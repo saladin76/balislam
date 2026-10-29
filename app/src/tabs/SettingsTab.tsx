@@ -21,7 +21,7 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
       }}
     >
       <label htmlFor={id}>{label}</label>
-      <span className={`key-state ${state?.set ? "on" : ""}`}>{state?.set ? `محفوظ ${state.preview}` : "غير مضاف"}</span>
+      <span className={`key-state ${state?.set ? "on" : ""}`}>{state?.set ? <>محفوظ <bdi dir="ltr">{state.preview}</bdi></> : "غير مضاف"}</span>
       <input id={id} type={secret ? "password" : "text"} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder ?? (state?.set ? "الصق قيمة جديدة للاستبدال" : "الصق هنا")} dir="ltr" autoComplete="off" spellCheck={false} />
       <button className="btn small" disabled={!v.trim() || busy} type="submit">حفظ</button>
       {state?.set ? (
