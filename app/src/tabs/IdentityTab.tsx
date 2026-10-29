@@ -5,6 +5,8 @@ import { Element } from "../../../brand/elements/Element";
 import { LogoMark } from "../../../brand/logo/Logo";
 import { useTheme } from "../../../brand/identity/index";
 import { ReelPreview, type Orientation } from "../ui/Preview";
+import { OverlaySwitches } from "../ui/Overlays";
+import { resolveOverlays } from "../../../brand/identity/index";
 import { contrast } from "../ui/contrast";
 import type { ChannelInfo } from "../../../src/channel/types";
 
@@ -199,6 +201,12 @@ export const IdentityTab: React.FC<{
               <output>{draft.motion.boil ? draft.motion.boilAmount : "مطفأ"}</output>
             </label>
             <span className="help">اهتزاز الحبر يظهر في ثيم «حبر وورق» فقط، ويعطي إحساس الرسم باليد.</span>
+          </div>
+
+          <div className="group">
+            <h3>عناصر الشاشة <small>الافتراضي لكل حلقات القناة</small></h3>
+            <OverlaySwitches value={resolveOverlays(draft.overlays)} onChange={(overlays) => onChange({ ...draft, overlays })} />
+            <span className="help">يمكن تغييرها لحلقة واحدة أو مشهد واحد من تبويب «المشاهد».</span>
           </div>
 
           <button className="btn" onClick={() => onChange(defaults)} style={{ alignSelf: "flex-start" }}>استرجاع الهوية الأصلية</button>

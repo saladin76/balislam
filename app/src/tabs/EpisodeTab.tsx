@@ -1,3 +1,5 @@
+import { OverlayToggles } from "../ui/Overlays";
+import { resolveOverlays } from "../../../brand/identity/index";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerRef } from "@remotion/player";
 import type { Plan, PlanScene } from "../../../src/plan/types";
@@ -67,6 +69,9 @@ export const EpisodeTab: React.FC<{
     });
   };
   const setProp = (key: string, value: string) => sel && updateScene({ props: { ...sel.scene.props, [key]: value } });
+  // عناصر الشاشة: القناة ← الحلقة ← المشهد
+  const channelOv = resolveOverlays(identity.overlays);
+  const episodeOv = resolveOverlays(identity.overlays, plan.overlays);
 
   const liveIssues = useMemo(() => planIssues(plan), [plan]);
   void issues;
@@ -132,12 +137,17 @@ export const EpisodeTab: React.FC<{
         <div className={`player-wrap ${orientation}`}>
           <div>
             {scope === "scene" ? (
-              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${langPack(plan.lang).strings.chapter} ${sel.chapter.number} · ${sel.chapter.title}`} identity={identity} channel={channel} lang={plan.lang} media={media} />
+              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${langPack(plan.lang).strings.chapter} ${sel.chapter.number} · ${sel.chapter.title}`} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays} />
             ) : (
               <EpisodePreview ref={playerRef} plan={plan} orientation={orientation} chapter={scope === "chapter" ? sel.chapter.number : undefined} identity={identity} channel={channel} media={media} />
             )}
           </div>
         </div>
+        <details className="render-box overlays-box" open={Boolean(plan.overlays)}>
+          <summary>عناصر الشاشة في الحلقة كلها {plan.overlays ? <span className="badge edited">معدّلة</span> : null}</summary>
+          <p className="help" style={{ margin: "6px 0 10px" }}>ما تختاره هنا يسري على كل مشاهد الحلقة والشورتس. «القناة» يعني الإعداد الافتراضي من تبويب «الهوية»، ويمكن تغيير أي مشهد وحده من إعداداته.</p>
+          <OverlayToggles idPrefix="ep-ov" value={plan.overlays} inherited={channelOv} inheritLabel="القناة" onChange={(overlays) => { const { overlays: _o, ...rest } = plan; onPlanChange(overlays ? { ...rest, overlays } : rest); }} />
+        </details>
         <IssuesBox issues={liveIssues} keys={keys} episodeId={episodeId} onSelect={setSelectedId} onReload={onReload} />
         <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />
         <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
@@ -229,14 +239,17 @@ export const EpisodeTab: React.FC<{
                 onChange={(e) => updateScene({ durationSec: e.target.value ? Number(e.target.value) : undefined })}
               />
             </label>
-            <label className="field" style={{ justifyContent: "flex-end" }}>
-              <span>الترجمة السفلية</span>
-              <select id="scene-captions" value={scene.captions === false ? "off" : "on"} onChange={(e) => updateScene({ captions: e.target.value === "on" })}>
-                <option value="on">ظاهرة</option>
-                <option value="off">مخفية</option>
-              </select>
-            </label>
           </div>
+
+          <div className="section-t">عناصر الشاشة في هذا المشهد</div>
+          <OverlayToggles
+            idPrefix="sc-ov"
+            compact
+            value={{ ...(scene.captions === false ? { captions: false } : {}), ...scene.overlays }}
+            inherited={episodeOv}
+            inheritLabel="الحلقة"
+            onChange={(overlays) => updateScene({ overlays, captions: undefined })}
+          />
 
           <div className="section-t">المؤثرات الصوتية</div>
           <div className="chips">

@@ -19,13 +19,26 @@ import type { Orientation } from "./types";
 import type { WordTiming } from "./timing";
 import type { EpisodeMedia } from "../../plan/media";
 import { useLang } from "../../i18n/context";
+import { resolveOverlays, useChannelOverlays, type Overlays } from "../../../brand/identity/index";
 
-type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia };
+type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> };
 
 /** يحوّل مشهدًا من الخطة إلى مكوّن القالب المناسب. */
-export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media }) => {
+export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media, episodeOverlays }) => {
   const p = scene.props;
-  const base = { themeId, orientation, eyebrow, narration: scene.narration || undefined, narrationTimings: timings, captions: scene.captions ?? true, backdrop: scene.backdrop };
+  const ov = resolveOverlays(useChannelOverlays(), episodeOverlays, { captions: scene.captions }, scene.overlays);
+  const base = {
+    themeId,
+    orientation,
+    eyebrow: ov.chapterLabel ? eyebrow : undefined,
+    narration: scene.narration || undefined,
+    narrationTimings: timings,
+    captions: ov.captions,
+    backdrop: scene.backdrop,
+    motif: ov.motif,
+    // شاشة النهاية فيها شعار القناة أصلًا
+    watermark: ov.watermark && scene.template !== "end-screen",
+  };
   const lang = useLang();
   const hasRecitation = Boolean(scene.ayahKey && media?.recitations[scene.ayahKey]);
   switch (scene.template) {

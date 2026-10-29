@@ -269,5 +269,11 @@
     "boil": true,
     "boilAmount": 0.7,
     "float": 1
+  },
+  "overlays": {
+    "captions": true,
+    "chapterLabel": true,
+    "motif": true,
+    "watermark": false
   }
 }

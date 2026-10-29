@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import type { Identity } from "../../../brand/identity/index";
+import type { Identity, Overlays } from "../../../brand/identity/index";
 import { Providers } from "../../../src/remotion/Providers";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { Episode, episodeFrames, SceneAudio } from "../../../src/remotion/scenes/Episode";
@@ -18,7 +18,7 @@ const size = (o: Orientation) => (o === "portrait" ? config.video.short : config
 
 type Ctx = { identity: Identity; channel?: ChannelInfo; lang?: string };
 
-const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia } & Ctx> = ({ identity, channel, lang, media = emptyMedia, ...p }) => {
+const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> } & Ctx> = ({ identity, channel, lang, media = emptyMedia, ...p }) => {
   const clip = media.voice[p.scene.id];
   const timings = clip && clip.text === p.scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
   return (
@@ -40,7 +40,7 @@ const ReelComp: React.FC<{ themeId: ThemeId; orientation: Orientation } & Ctx> =
 /** العرض فقط؛ الارتفاع يحسبه المشغل من نسبة الفيديو. العمودي يُضيَّق من الحاوية. */
 const playerStyle = (_o: Orientation): React.CSSProperties => ({ width: "100%", borderRadius: 8, overflow: "hidden" });
 
-export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia } & Ctx>((props, ref) => (
+export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> } & Ctx>((props, ref) => (
   <Player
     ref={ref}
     key={`${props.scene.id}-${props.orientation}`}

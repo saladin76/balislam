@@ -10,6 +10,7 @@ import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { enter, exit, fade } from "./motion";
 import { estimateTimings } from "./timing";
+import { ChannelLogo } from "../../channel/context";
 import type { SceneBase } from "./types";
 
 /** خلفية الثيم: لون الخلفية مع زخرفته الخفيفة (لا تنافس النص). */
@@ -74,7 +75,7 @@ type ShellProps = SceneBase & { children: React.ReactNode; durationInFrames: num
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
  * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
  */
-export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, children, durationInFrames }) => {
+export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames }) => {
   useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -92,9 +93,9 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
         <div style={{ position: "absolute", inset: 0, opacity: fade(frame, 0, 14) }}>
           <Element id={backdrop} theme={t} width={width} height={height} />
         </div>
-      ) : (
+      ) : motif ? (
         <Motif t={t} w={width} h={height} frame={frame} rtl={lang.dir === "rtl"} />
-      )}
+      ) : null}
       <AbsoluteFill style={{ opacity: out }}>
         {eyebrow ? (
           <div
@@ -116,6 +117,11 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
           </div>
         ) : null}
         {children}
+        {watermark ? (
+          <div style={{ position: "absolute", top: portrait ? 244 : 56, insetInlineEnd: portrait ? 64 : 72, opacity: 0.88 * fade(frame, 6, 16) }}>
+            <ChannelLogo theme={t} size={portrait ? 84 : 72} tile />
+          </div>
+        ) : null}
       </AbsoluteFill>
       {captions && timings.length ? <CaptionBar theme={t} timings={timings} portrait={portrait} /> : null}
     </AbsoluteFill>

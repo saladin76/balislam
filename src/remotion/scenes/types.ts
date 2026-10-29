@@ -18,6 +18,10 @@ export type SceneBase = {
   eyebrow?: string;
   /** خلفية من مكتبة العناصر بدل زخرفة الثيم */
   backdrop?: string;
+  /** إظهار زخرفة الثيم في الخلفية (الافتراضي: نعم) */
+  motif?: boolean;
+  /** شعار القناة صغيرًا في الزاوية */
+  watermark?: boolean;
 };
 
 export type BigQuestionProps = SceneBase & {

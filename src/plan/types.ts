@@ -1,4 +1,5 @@
 import type { Domain, ThemeId } from "../../brand/themes";
+import type { Overlays } from "../../brand/identity/index";
 
 /** مؤثر صوتي داخل مشهد: at بالثواني من بداية المشهد. */
 export type PlanSfx = { id: string; at: number };
@@ -17,7 +18,10 @@ export type PlanScene = {
   durationSec?: number;
   /** خلفية من المكتبة؛ إن غابت تُستخدم زخرفة الثيم */
   backdrop?: string;
+  /** قديم: يعادل overlays.captions */
   captions?: boolean;
+  /** إظهار/إخفاء عناصر الشاشة لهذا المشهد فقط (ما لم يُحدَّد يتبع الحلقة) */
+  overlays?: Partial<Overlays>;
   sfx: PlanSfx[];
   /** للآيات: مفتاح مثل 53:39 */
   ayahKey?: string;
@@ -38,5 +42,7 @@ export type Plan = {
   /** لغة الحلقة (رمز مثل ar أو tr أو en) */
   lang?: string;
   updatedAt: string;
+  /** إظهار/إخفاء عناصر الشاشة للحلقة كلها (ما لم يُحدَّد يتبع القناة) */
+  overlays?: Partial<Overlays>;
   chapters: PlanChapter[];
 };

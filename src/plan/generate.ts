@@ -141,6 +141,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         s.captions = old.captions;
         s.edited = true;
       }
+      // إظهار/إخفاء عناصر الشاشة يبقى حتى لو تغيّر القالب
+      if (old?.overlays && Object.keys(old.overlays).length) s.overlays = { ...old.overlays };
       if (!templateById(s.template)) s.props.unknownTemplate = "1";
     }
     return { number: ch.number, title: ch.title, scenes };
@@ -168,6 +170,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
       scene.backdrop = old.backdrop;
       scene.edited = true;
     }
+    if (old?.overlays && Object.keys(old.overlays).length) scene.overlays = { ...old.overlays };
     lastChapter.scenes.push(scene);
   }
 
@@ -180,6 +183,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     channel: channel.id,
     lang: fm.lang ?? channel.language,
     updatedAt: new Date().toISOString(),
+    ...(previous?.overlays && Object.keys(previous.overlays).length ? { overlays: { ...previous.overlays } } : {}),
     chapters,
   };
 };

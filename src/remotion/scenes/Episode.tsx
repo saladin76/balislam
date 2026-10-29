@@ -67,7 +67,7 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
         const timings = clip && clip.text === scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
         return (
           <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} name={`${scene.id} · ${scene.template}`}>
-            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${lang.strings.chapter} ${chapter.number} · ${chapter.title}`} timings={timings} media={media} />
+            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${lang.strings.chapter} ${chapter.number} · ${chapter.title}`} timings={timings} media={media} episodeOverlays={plan.overlays} />
             <SceneAudio scene={scene} media={media} />
           </Series.Sequence>
         );
