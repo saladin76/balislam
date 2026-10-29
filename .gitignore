@@ -1,0 +1,13 @@
+node_modules/
+.env
+out/
+renders/
+*.log
+
+# الملفات الكبيرة: تُحفظ على تخزين سحابي لا في Git
+episodes/*/voice/*.mp3
+episodes/*/voice/*.wav
+episodes/*/out/
+assets/recitations/**/*.wav
+assets/recitations/**/*.mp3
+assets/sfx/**/*.wav

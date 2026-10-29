@@ -1,0 +1,30 @@
+/**
+ * الخطوط المعتمدة (كلها برخصة SIL Open Font License، من Google Fonts).
+ * - العناوين: El Messiri
+ * - النص والترجمة: IBM Plex Sans Arabic
+ * - الآيات والأحاديث: Amiri
+ * - اسم القناة بجوار الشعار فقط: Readex Pro
+ */
+export const fontFamilies = {
+  heading: "'El Messiri', serif",
+  body: "'IBM Plex Sans Arabic', sans-serif",
+  scripture: "'Amiri', serif",
+  wordmark: "'Readex Pro', sans-serif",
+} as const;
+
+export type FontFile = {
+  family: string;
+  file: string;
+  weight: string;
+};
+
+/** الملفات داخل public/fonts، تُحمّل في Remotion عبر staticFile. */
+export const fontFiles: FontFile[] = [
+  { family: "El Messiri", file: "fonts/ElMessiri.ttf", weight: "400 700" },
+  { family: "IBM Plex Sans Arabic", file: "fonts/IBMPlexSansArabic-Medium.ttf", weight: "500" },
+  { family: "IBM Plex Sans Arabic", file: "fonts/IBMPlexSansArabic-SemiBold.ttf", weight: "600" },
+  { family: "IBM Plex Sans Arabic", file: "fonts/IBMPlexSansArabic-Bold.ttf", weight: "700" },
+  { family: "Amiri", file: "fonts/Amiri-Regular.ttf", weight: "400" },
+  { family: "Amiri", file: "fonts/Amiri-Bold.ttf", weight: "700" },
+  { family: "Readex Pro", file: "fonts/ReadexPro.ttf", weight: "200 700" },
+];

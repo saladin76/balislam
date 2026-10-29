@@ -1,0 +1,19 @@
+{
+  "speech": {
+    "wordsPerMinute": 130,
+    "calibrated": false
+  },
+  "episode": {
+    "chapters": 6,
+    "chapterSeconds": { "min": 60, "max": 80 }
+  },
+  "writing": {
+    "maxSentenceWords": 20,
+    "maxTitleChars": 60
+  },
+  "video": {
+    "fps": 30,
+    "episode": { "width": 1920, "height": 1080 },
+    "short": { "width": 1080, "height": 1920 }
+  }
+}
