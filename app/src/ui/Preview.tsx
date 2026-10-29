@@ -1,6 +1,8 @@
 import React, { forwardRef } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
-import { IdentityProvider, type Identity } from "../../../brand/identity/index";
+import type { Identity } from "../../../brand/identity/index";
+import { Providers } from "../../../src/remotion/Providers";
+import type { ChannelInfo } from "../../../src/channel/types";
 import { Episode, episodeFrames, SceneAudio } from "../../../src/remotion/scenes/Episode";
 import { emptyMedia, type EpisodeMedia } from "../../../src/plan/media";
 import { toFrames } from "../../../src/remotion/scenes/timing";
@@ -14,33 +16,31 @@ import config from "../../../config.json";
 export type Orientation = "landscape" | "portrait";
 const size = (o: Orientation) => (o === "portrait" ? config.video.short : config.video.episode);
 
-const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; identity: Identity; media?: EpisodeMedia }> = ({ identity, media = emptyMedia, ...p }) => {
+type Ctx = { identity: Identity; channel?: ChannelInfo; lang?: string };
+
+const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia } & Ctx> = ({ identity, channel, lang, media = emptyMedia, ...p }) => {
   const clip = media.voice[p.scene.id];
   const timings = clip && clip.text === p.scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
   return (
-    <IdentityProvider identity={identity}>
+    <Providers identity={identity} channel={channel} lang={lang}>
       <SceneFromPlan {...p} timings={timings} media={media} />
       <SceneAudio scene={p.scene} media={media} />
-    </IdentityProvider>
+    </Providers>
   );
 };
 
-const EpisodeComp: React.FC<{ plan: Plan; orientation: Orientation; chapter?: number; identity: Identity; media?: EpisodeMedia }> = ({ identity, ...p }) => (
-  <IdentityProvider identity={identity}>
-    <Episode {...p} />
-  </IdentityProvider>
-);
+const EpisodeComp: React.FC<{ plan: Plan; orientation: Orientation; chapter?: number; media?: EpisodeMedia } & Ctx> = ({ identity, channel, ...p }) => <Episode {...p} identity={identity} channel={channel} />;
 
-const ReelComp: React.FC<{ themeId: ThemeId; orientation: Orientation; identity: Identity }> = ({ identity, ...p }) => (
-  <IdentityProvider identity={identity}>
+const ReelComp: React.FC<{ themeId: ThemeId; orientation: Orientation } & Ctx> = ({ identity, channel, lang, ...p }) => (
+  <Providers identity={identity} channel={channel} lang={lang}>
     <TemplateReel {...p} />
-  </IdentityProvider>
+  </Providers>
 );
 
 /** العرض فقط؛ الارتفاع يحسبه المشغل من نسبة الفيديو. العمودي يُضيَّق من الحاوية. */
 const playerStyle = (_o: Orientation): React.CSSProperties => ({ width: "100%", borderRadius: 8, overflow: "hidden" });
 
-export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; identity: Identity; media?: EpisodeMedia }>((props, ref) => (
+export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia } & Ctx>((props, ref) => (
   <Player
     ref={ref}
     key={`${props.scene.id}-${props.orientation}`}
@@ -58,7 +58,7 @@ export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: T
   />
 ));
 
-export const EpisodePreview = forwardRef<PlayerRef, { plan: Plan; orientation: Orientation; chapter?: number; identity: Identity; media?: EpisodeMedia }>((props, ref) => (
+export const EpisodePreview = forwardRef<PlayerRef, { plan: Plan; orientation: Orientation; chapter?: number; media?: EpisodeMedia } & Ctx>((props, ref) => (
   <Player
     ref={ref}
     key={`ep-${props.orientation}-${props.chapter ?? "all"}`}
@@ -74,7 +74,7 @@ export const EpisodePreview = forwardRef<PlayerRef, { plan: Plan; orientation: O
   />
 ));
 
-export const ReelPreview: React.FC<{ themeId: ThemeId; orientation: Orientation; identity: Identity }> = (props) => (
+export const ReelPreview: React.FC<{ themeId: ThemeId; orientation: Orientation } & Ctx> = (props) => (
   <Player
     key={`reel-${props.themeId}-${props.orientation}`}
     component={ReelComp}

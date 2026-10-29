@@ -7,6 +7,10 @@ import { emptyMedia, type EpisodeMedia } from "../../plan/media";
 import { SceneFromPlan } from "./components";
 import { toFrames } from "./timing";
 import type { Orientation } from "./types";
+import { Providers } from "../Providers";
+import { langPack } from "../../i18n/packs";
+import type { Identity } from "../../../brand/identity/index";
+import type { ChannelInfo } from "../../channel/types";
 
 export type EpisodeProps = {
   plan: Plan;
@@ -14,6 +18,9 @@ export type EpisodeProps = {
   /** فصل واحد فقط (للشورت) */
   chapter?: number;
   media?: EpisodeMedia;
+  /** هوية القناة (إن غابت: الهوية الافتراضية) */
+  identity?: Identity;
+  channel?: ChannelInfo;
 };
 
 /** في الشورت (فصل واحد) لا تُعرض شاشة النهاية. */
@@ -22,7 +29,7 @@ export const scenesOf = (p: Pick<EpisodeProps, "plan" | "chapter">): { chapter: 
     chapter.scenes.filter((s) => !(p.chapter && s.template === "end-screen")).map((scene) => ({ chapter, scene })),
   );
 
-export const mediaSrc = (media: EpisodeMedia, rel: string) => (media.mode === "static" ? staticFile(`${media.base}${rel}`) : `${media.base}${rel}`);
+export const mediaSrc = (media: EpisodeMedia, rel: string) => (media.mode === "static" ? staticFile(`${media.base}${rel}`) : `${media.base}${rel}${media.query ?? ""}`);
 
 export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = ({ scene, media }) => {
   const fps = config.video.fps;
@@ -51,19 +58,22 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
 export const Episode: React.FC<EpisodeProps> = (props) => {
   const { plan, orientation } = props;
   const media = props.media ?? emptyMedia;
+  const lang = langPack(plan.lang ?? props.channel?.language);
   return (
+    <Providers identity={props.identity} channel={props.channel} lang={lang.code}>
     <Series>
       {scenesOf(props).map(({ chapter, scene }) => {
         const clip = media.voice[scene.id];
         const timings = clip && clip.text === scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
         return (
           <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} name={`${scene.id} · ${scene.template}`}>
-            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`الفصل ${chapter.number} · ${chapter.title}`} timings={timings} media={media} />
+            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${lang.strings.chapter} ${chapter.number} · ${chapter.title}`} timings={timings} media={media} />
             <SceneAudio scene={scene} media={media} />
           </Series.Sequence>
         );
       })}
     </Series>
+    </Providers>
   );
 };
 

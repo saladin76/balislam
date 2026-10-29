@@ -6,6 +6,8 @@ import type { Theme } from "../../../brand/themes";
 import { Element } from "../../../brand/elements/Element";
 import { LogoMark } from "../../../brand/logo/Logo";
 import { SceneShell } from "./SceneShell";
+import { T } from "../../i18n/context";
+import { ChannelName } from "../../channel/context";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -85,7 +87,7 @@ export const EndScreen: React.FC<EndScreenProps> = (props) => {
   const logo = (size: number) => (
     <div style={{ display: "flex", alignItems: "center", gap: size * 0.3, opacity: logoIn, transform: `translateY(${(1 - logoIn) * -14 + float(frame, 3 * motion.float, 120)}px)` }}>
       <LogoMark size={size} colors={t.logo} />
-      <span style={{ fontFamily: fontFamilies.wordmark, fontWeight: 700, fontSize: size * 0.56, lineHeight: 1, color: c.ink }}>بالإسلام</span>
+      <span style={{ fontFamily: fontFamilies.wordmark, fontWeight: 700, fontSize: size * 0.56, lineHeight: 1, color: c.ink }}><ChannelName /></span>
     </div>
   );
 
@@ -110,7 +112,7 @@ export const EndScreen: React.FC<EndScreenProps> = (props) => {
       <svg width={18} height={18} viewBox="0 0 20 20">
         <path d="M10 1 L19 10 L10 19 L1 10 Z" fill={line ? c.primary : c.bg} opacity={line ? 1 : 0.8} />
       </svg>
-      الخطوة العملية
+      <T k="practicalStep" />
     </div>
   );
 
@@ -205,7 +207,7 @@ export const EndScreen: React.FC<EndScreenProps> = (props) => {
             <Rule t={t} width={70} a={1} />
             <div style={{ display: "flex", alignItems: "center", gap: 12, fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: Math.round(refSize * 1.1), color: c.primary }}>
               <Element id="bell" theme={t} size={56} />
-              تابعنا
+              <T k="follow" />
             </div>
             <Rule t={t} width={70} a={1} />
           </div>

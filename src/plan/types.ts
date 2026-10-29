@@ -33,6 +33,10 @@ export type Plan = {
   title: string;
   domain: Domain;
   themeId: ThemeId;
+  /** القناة صاحبة الحلقة */
+  channel?: string;
+  /** لغة الحلقة (رمز مثل ar أو tr أو en) */
+  lang?: string;
   updatedAt: string;
   chapters: PlanChapter[];
 };

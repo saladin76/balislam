@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import { LogoMark } from "../../brand/logo/Logo";
 import type { Plan } from "../../src/plan/types";
-import { api, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
+import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
+import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
@@ -25,15 +26,16 @@ const store = {
     }
   },
 };
-const domains: [string, string][] = [
-  ["psychology", "النفس والسلوك · حبر وورق"],
-  ["family", "الأسرة والعلاقات · دفء البيت"],
-  ["money", "المال والتأمل · ليلٌ هادئ"],
-  ["knowledge", "العلم والتاريخ · أقواس دافئة"],
-];
 
 export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "episode");
+  const [channels, setChannels] = useState<ChannelSummary[]>([]);
+  const [channelId, setChannelId] = useState<string>(() => {
+    const c = store.get("bal-channel") || "";
+    setApiChannel(c);
+    return c;
+  });
+  const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -55,16 +57,26 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
+    api.channels().then(setChannels).catch((e) => say(e.message, true));
+  }, []);
+
+  // عند تغيير القناة: حلقاتها وهويتها
+  useEffect(() => {
+    setApiChannel(channelId);
+    store.set("bal-channel", channelId);
+    setEpisodes(null);
+    setPlan(null);
     api.episodes().then((list) => {
       setEpisodes(list);
-      if (!list.some((e) => e.id === epId) && list[0]) setEpId(list[0].id);
+      setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
     api.identity().then(({ identity, defaults }) => setIdent({ draft: identity, saved: identity, defaults })).catch((e) => say(e.message, true));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadEpisode = useCallback((id: string) => {
     api.episode(id).then((d) => {
       setPlan(d.plan);
+      setChannel(d.channel);
       setScript(d.script);
       setSavedScript(d.script);
       setCheck(d.check);
@@ -78,7 +90,7 @@ export const App: React.FC = () => {
     store.set("bal-episode", epId);
     setPlan(null);
     loadEpisode(epId);
-  }, [epId, loadEpisode]);
+  }, [epId, channelId, loadEpisode]);
   useEffect(() => store.set("bal-tab", tab), [tab]);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
@@ -121,6 +133,11 @@ export const App: React.FC = () => {
             <LogoMark size={34} colors={ident.draft.themes.warm.logo} />
             <span>استوديو بالإسلام</span>
           </div>
+          {channels.length > 1 ? (
+            <select id="channel-select" value={channelId || channels[0]?.id} onChange={(e) => setChannelId(e.target.value)} style={{ width: 170 }} aria-label="القناة">
+              {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          ) : null}
           <select id="episode-select" value={epId} onChange={(e) => setEpId(e.target.value)} style={{ width: 300 }} aria-label="الحلقة">
             {episodes?.length ? null : <option value="">لا توجد حلقات</option>}
             {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
@@ -142,6 +159,7 @@ export const App: React.FC = () => {
 
         {tab === "identity" ? (
           <IdentityTab
+            channel={channel}
             draft={ident.draft}
             saved={ident.saved}
             defaults={ident.defaults}
@@ -166,6 +184,7 @@ export const App: React.FC = () => {
             episodeId={epId}
             plan={plan}
             identity={ident.draft}
+            channel={channel}
             media={media}
             issues={extra.issues}
             keys={extra.keys}
@@ -183,6 +202,7 @@ export const App: React.FC = () => {
 
         {showNew ? (
           <NewEpisode
+            domains={Object.entries(channels.find((c) => c.id === (channelId || channels[0]?.id))?.domains ?? defaultChannel.domains).map(([id, d]) => [id, d.name])}
             suggested={String((episodes?.reduce((m, e) => Math.max(m, Number(e.id)), 0) ?? 0) + 1).padStart(3, "0")}
             onClose={() => setShowNew(false)}
             onCreated={async (id) => {
@@ -201,10 +221,10 @@ export const App: React.FC = () => {
   );
 };
 
-const NewEpisode: React.FC<{ suggested: string; onClose: () => void; onCreated: (id: string) => void }> = ({ suggested, onClose, onCreated }) => {
+const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, onClose, onCreated }) => {
   const [episode, setEpisode] = useState(suggested);
   const [slug, setSlug] = useState("");
-  const [domain, setDomain] = useState("psychology");
+  const [domain, setDomain] = useState(domains[0]?.[0] ?? "");
   const [title, setTitle] = useState("");
   const [err, setErr] = useState("");
   return (

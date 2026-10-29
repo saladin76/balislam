@@ -4,21 +4,16 @@ import { QF_ATTRIBUTION } from "../quran/attribution";
 import { chapterStarts } from "../remotion/scenes/Episode";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
+import { defaultChannel, type ChannelConfig } from "../channel/types";
 
 const clock = (sec: number) => {
   const s = Math.floor(sec);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
-const domainTags: Record<string, string[]> = {
-  psychology: ["النفس", "تطوير_الذات", "السلوك"],
-  family: ["الأسرة", "العلاقات", "تربية"],
-  money: ["المال", "الرزق", "الدنيا"],
-  knowledge: ["العلم", "التاريخ_الإسلامي", "الحضارة"],
-};
 
 /** نص الوصف والعناوين لليوتيوب: الحلقة والشورتس، بالفصول والمصادر والإفصاح. */
-export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number): string => {
+export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number, channel: ChannelConfig = defaultChannel): string => {
   const parsed = parseScript(script);
   const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
   const starts = chapterStarts(plan, media);
@@ -38,7 +33,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
     } else sources.push(`- ${c.fields.join(" — ")}`);
   }
 
-  const tags = ["بالإسلام", ...(domainTags[plan.domain] ?? [])];
+  const tags = [...channel.youtube.tags, ...(channel.domains[plan.domain]?.tags ?? [])];
   const description = [
     hook,
     "",
@@ -50,7 +45,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
     sources.length ? "المصادر:" : "",
     ...sources,
     "",
-    "التعليق الصوتي في هذه الحلقة مولَّد بالذكاء الاصطناعي من صوت صاحب القناة نفسه، وكل المحتوى مراجَع شرعيًا قبل النشر.",
+    channel.youtube.voiceDisclosure,
     "",
     tags.map((t) => `#${t}`).join(" "),
   ]
@@ -62,7 +57,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
     return [
       `### الشورت ${i + 1} · الفصل ${c.number}`,
       "",
-      `**العنوان:** ${c.title.endsWith("؟") ? c.title : `${c.title}`} | بالإسلام`,
+      `**العنوان:** ${c.title} | ${channel.name}`,
       "",
       "**الوصف:**",
       "",
@@ -70,7 +65,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
       `${line}`,
       "",
       "الحلقة كاملة على القناة: ‹ضع رابط الحلقة هنا›",
-      "#بالإسلام #shorts",
+      `${channel.youtube.tags.map((t) => `#${t}`).join(" ")} #shorts`,
       "```",
     ].join("\n");
   });
@@ -100,7 +95,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   ].join("\n");
 };
 
-export const publishChecklist = (plan: Plan, hasVoice: boolean) => `# قائمة النشر · ${plan.episode} · ${plan.title}
+export const publishChecklist = (plan: Plan, hasVoice: boolean, channel: ChannelConfig = defaultChannel) => `# قائمة النشر · ${channel.name} · ${plan.episode} · ${plan.title}
 
 لا يُنشر شيء لم تشاهده كاملًا بنفسك.
 
@@ -115,7 +110,7 @@ ${hasVoice ? "" : "- [ ] ⚠️ لا يوجد صوت حقيقي بعد: هذه �
 - [ ] رفع ملف الترجمة العربية (.srt)
 - [ ] «المحتوى المعدّل أو الاصطناعي»: نعم (الصوت مستنسخ بالذكاء الاصطناعي)
 - [ ] عناصر شاشة النهاية: فيديوان + زر الاشتراك في أماكنها المحددة في آخر 20 ثانية
-- [ ] التوقيت: 7 مساءً بتوقيت مكة
+- [ ] التوقيت: ${channel.youtube.postingTime}
 
 ## الشورتس
 - [ ] شورت يوميًا لستة أيام، بنفس التوقيت

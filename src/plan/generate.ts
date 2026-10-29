@@ -1,10 +1,11 @@
 import { parseAyahRef, SURAH_NAMES } from "../script/quranMeta";
 import type { ParsedScript } from "../script/types";
-import { themeIdForDomain, type Domain } from "../../brand/themes";
+import type { Domain } from "../../brand/themes";
+import { defaultChannel, themeIdForDomainIn, type ChannelConfig } from "../channel/types";
+import { langPack, localDigits } from "../i18n/packs";
 import type { Plan, PlanChapter, PlanScene, PlanSfx } from "./types";
 import { templateById } from "./templates";
 
-const toArabicDigits = (n: number | string) => String(n).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)] ?? d);
 
 const firstSentence = (text: string, maxWords = 8) => {
   const s = text.split(/(?<=[.؟?!…])\s+/)[0] ?? text;
@@ -49,9 +50,9 @@ export type QuranTexts = Record<string, string>;
  * - bridge تُضم لتعليق المشهد السابق. [صوت: …] يُلحق بالمشهد التالي.
  * - إن مُررت خطة سابقة تُحفظ تعديلات المستخدم للمشاهد التي لم يتغير قالبها.
  */
-export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}): Plan => {
-  const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string };
-  const domain: Domain = fm.domain ?? "psychology";
+export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}, channel: ChannelConfig = defaultChannel): Plan => {
+  const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string };
+  const domain: Domain = fm.domain ?? Object.keys(channel.domains)[0] ?? "general";
   const title = String(fm.title ?? "");
   // اسم القارئ من الاستشهادات: «- آية | النجم 39 | القارئ: فلان»
   const reciterFor = (key: string | undefined) => {
@@ -64,6 +65,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     }
     return "";
   };
+  const L = langPack(fm.lang ?? channel.language);
+  const digits = (x: number | string) => localDigits(x, L);
   const prevScenes = new Map((previous?.chapters ?? []).flatMap((c) => c.scenes).map((s) => [s.id, s]));
 
   const chapters: PlanChapter[] = parsed.chapters.map((ch) => {
@@ -96,7 +99,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         const r = parseAyahRef(b.ref);
         const key = r.ok ? r.ref.key : undefined;
         const surah = r.ok ? SURAH_NAMES[r.ref.surah - 1] : "";
-        const reference = r.ok ? `${surah} · ${toArabicDigits(r.ref.from)}${r.ref.to !== r.ref.from ? `–${toArabicDigits(r.ref.to)}` : ""}` : b.ref;
+        const reference = r.ok ? `${surah} · ${digits(r.ref.from)}${r.ref.to !== r.ref.from ? `–${digits(r.ref.to)}` : ""}` : b.ref;
         push({
           template: "verse-card",
           narration: "",
@@ -111,7 +114,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
           template: "hadith-card",
           narration: "",
           line: b.line,
-          props: { text: b.text ?? "", narrator: b.narrator ?? "", reference: toArabicDigits(b.ref), grade: grade === "حسن" ? "حسن" : "صحيح" },
+          props: { text: b.text ?? "", narrator: b.narrator ?? "", reference: digits(b.ref), grade: grade === "حسن" ? "حسن" : "صحيح" },
         });
       }
     }
@@ -147,7 +150,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
       template: "end-screen",
       narration: "",
       line: parsed.practicalStep?.line ?? 1,
-      props: { step: step.replace(questionLine, "").trim() || step, prompt: questionLine ? `اكتب في التعليقات: ${questionLine}` : "شاركنا رأيك في التعليقات" },
+      props: { step: step.replace(questionLine, "").trim() || step, prompt: questionLine ? `${L.strings.commentPrompt} ${questionLine}` : L.strings.shareOpinion },
       captions: false,
       sfx: [],
     };
@@ -165,7 +168,9 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     episode: String(fm.episode ?? previous?.episode ?? ""),
     title,
     domain,
-    themeId: themeIdForDomain(domain),
+    themeId: themeIdForDomainIn(channel, domain),
+    channel: channel.id,
+    lang: fm.lang ?? channel.language,
     updatedAt: new Date().toISOString(),
     chapters,
   };

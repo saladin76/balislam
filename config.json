@@ -1,4 +1,5 @@
 {
+  "defaultChannel": "balislam",
   "speech": {
     "wordsPerMinute": 130,
     "calibrated": false

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from "react";
-import identityJson from "../identity.json";
+import identityJson from "../../channels/balislam/identity.json";
 import { buildThemes, themeIds, type Theme, type ThemeId } from "../themes";
 import { buildPalette, type StoredPalette } from "../elements/palette";
 import type { ElementPalette } from "../elements/types";
@@ -7,7 +7,7 @@ import type { ElementPalette } from "../elements/types";
 export type Orientation = "landscape" | "portrait";
 export type SizePair = { landscape: number; portrait: number };
 
-/** كل ما يمكن تعديله في الهوية من الاستوديو. يُحفظ في brand/identity.json. */
+/** كل ما يمكن تعديله في الهوية من الاستوديو. يُحفظ في channels/<القناة>/identity.json. */
 export type Identity = {
   version: number;
   themes: Record<ThemeId, Omit<Theme, "id">>;

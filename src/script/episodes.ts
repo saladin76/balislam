@@ -1,13 +1,12 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { episodesDir, templatesDir } from "../config/paths";
-import type { Domain } from "../../brand/themes";
-
-const DOMAINS: Domain[] = ["psychology", "family", "money", "knowledge"];
+import { templatesDir } from "../config/paths";
+import { channelPaths, domainIds, loadChannel } from "../channel";
 
 /** يحدد ملف السكريبت من رقم الحلقة (001) أو من مسار ملف أو مجلد. */
 export const resolveScriptPath = async (arg: string): Promise<string> => {
+  const episodesDir = channelPaths().episodes;
   if (/^\d{3}$/.test(arg)) {
     const entries = existsSync(episodesDir) ? await readdir(episodesDir) : [];
     const matches = entries.filter((e) => e.startsWith(`${arg}-`));
@@ -20,7 +19,7 @@ export const resolveScriptPath = async (arg: string): Promise<string> => {
   return (await stat(p)).isDirectory() ? path.join(p, "script.md") : p;
 };
 
-export type NewEpisodeOptions = { episode: string; slug: string; domain: Domain; title?: string };
+export type NewEpisodeOptions = { episode: string; slug: string; domain: string; title?: string; lang?: string };
 
 /** ينشئ مجلد حلقة جديدة بقالب السكريبت. */
 export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> => {
@@ -28,7 +27,10 @@ export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> =>
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(opts.slug)) {
     throw new Error("الاسم المختصر بالإنجليزية وحروف صغيرة وشرطات فقط، مثل family-conflict.");
   }
+  const channel = loadChannel();
+  const DOMAINS = domainIds(channel);
   if (!DOMAINS.includes(opts.domain)) throw new Error(`المجال يجب أن يكون واحدًا من: ${DOMAINS.join("، ")}.`);
+  const episodesDir = channelPaths().episodes;
 
   const existing = existsSync(episodesDir) ? (await readdir(episodesDir)).filter((e) => e.startsWith(`${opts.episode}-`)) : [];
   if (existing.length) throw new Error(`الحلقة ${opts.episode} موجودة بالفعل: episodes/${existing[0]}`);

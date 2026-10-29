@@ -18,7 +18,7 @@ import type { CharacterPose, CharacterVariant } from "../../../characters/Charac
 import type { Orientation } from "./types";
 import type { WordTiming } from "./timing";
 import type { EpisodeMedia } from "../../plan/media";
-import { QF_ATTRIBUTION } from "../../quran/attribution";
+import { useLang } from "../../i18n/context";
 
 type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia };
 
@@ -26,6 +26,7 @@ type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; ti
 export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media }) => {
   const p = scene.props;
   const base = { themeId, orientation, eyebrow, narration: scene.narration || undefined, narrationTimings: timings, captions: scene.captions ?? true, backdrop: scene.backdrop };
+  const lang = useLang();
   const hasRecitation = Boolean(scene.ayahKey && media?.recitations[scene.ayahKey]);
   switch (scene.template) {
     case "big-question":
@@ -48,7 +49,7 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
           text={p.text || ""}
           reference={p.reference || ""}
           reciter={hasRecitation && p.reciter ? p.reciter : undefined}
-          sourceNote={p.text && !p.text.startsWith("‹") ? QF_ATTRIBUTION : undefined}
+          sourceNote={p.text && !p.text.startsWith("‹") ? lang.strings.quranAttribution : undefined}
         />
       );
     case "hadith-card":

@@ -10,9 +10,7 @@ import type { Plugin, ViteDevServer } from "vite";
  * تعمل داخل خادم Vite على جهازك فقط (localhost).
  */
 const root = path.resolve(import.meta.dirname, "..", "..");
-const episodesDir = path.join(root, "episodes");
-const identityFile = path.join(root, "brand", "identity.json");
-const identityDefaultFile = path.join(root, "brand", "identity.default.json");
+const configFile = path.join(root, "config.json");
 
 type Job = { id: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; log: string[] };
 const jobs = new Map<string, Job>();
@@ -59,8 +57,8 @@ export const balApi = (): Plugin => ({
 
     const checkText = async (text: string, file = "script.md") => {
       const { parseScript } = await load("/src/script/parse.ts");
-      const { checkScript } = await load("/src/script/check.ts");
-      return checkScript(parseScript(text, file));
+      const { checkForChannel } = await load("/src/script/checkChannel.ts");
+      return checkForChannel(parseScript(text, file));
     };
 
     server.middlewares.use(async (req, res, next) => {
@@ -68,6 +66,24 @@ export const balApi = (): Plugin => ({
       if (!url.pathname.startsWith("/api/")) return next();
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
+        // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
+        const ch = url.searchParams.get("channel") || JSON.parse(await readFile(configFile, "utf8")).defaultChannel;
+        if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
+        process.env.BAL_CHANNEL = ch;
+        const channelMod = await load("/src/channel/index.ts");
+        const cp = channelMod.channelPaths(ch);
+        const episodesDir: string = cp.episodes;
+        const identityFile: string = cp.identity;
+        const identityDefaultFile: string = cp.identityDefault;
+
+        if (parts[0] === "channels") {
+          const list = channelMod.listChannels().map((id: string) => {
+            const c = channelMod.loadChannel(id);
+            return { id: c.id, name: c.name, language: c.language, domains: c.domains, rules: c.rules };
+          });
+          return send(res, 200, list);
+        }
+
         // الحلقات
         if (parts[0] === "episodes" && parts.length === 1) {
           if (req.method === "POST") {
@@ -102,13 +118,14 @@ export const balApi = (): Plugin => ({
 
           const mediaFor = async (plan: unknown) => {
             const { collectMedia } = await load("/src/plan/collect.ts");
-            return { ...(await collectMedia(ep, plan)), mode: "url", base: `/api/episodes/${ep}/media/` };
+            return { ...(await collectMedia(ep, plan)), mode: "url", base: `/api/episodes/${ep}/media/`, query: `?channel=${ch}` };
           };
           if (parts.length === 2 && req.method === "GET") {
             const script = await readFile(scriptPath, "utf8");
             const plan = (await io.readJson(io.planPathFor(scriptPath))) ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
-            return send(res, 200, { script, plan, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
+            const c = channelMod.loadChannel(ch);
+            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
@@ -187,7 +204,7 @@ export const balApi = (): Plugin => ({
             const id = `${Date.now()}`;
             const job: Job = { id, episode: b.episode, orientation: b.orientation, chapter: b.chapter, status: "running", pct: 0, log: [] };
             jobs.set(id, job);
-            const args = ["bin/bal.mjs", "render", b.episode];
+            const args = ["bin/bal.mjs", "--channel", ch, "render", b.episode];
             if (b.orientation === "portrait") args.push("--portrait");
             if (b.chapter) args.push("--chapter", String(b.chapter));
             const child = spawn(process.execPath, args, { cwd: root, env: process.env });

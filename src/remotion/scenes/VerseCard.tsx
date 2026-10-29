@@ -3,6 +3,7 @@ import { interpolate, useVideoConfig } from "remotion";
 import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
+import { T } from "../../i18n/context";
 import { enter, fade, useSceneFrame } from "./motion";
 import type { VerseCardProps } from "./types";
 
@@ -92,7 +93,7 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
           </div>
           {reciter || sourceNote ? (
             <div style={{ fontSize: portrait ? 26 : 22, color: c.inkSoft, opacity: refIn * 0.8, marginTop: -16 }}>
-              {reciter ? `بصوت القارئ ${reciter}` : sourceNote}
+              {reciter ? `$<T k="recitedBy" /> ${reciter}` : sourceNote}
             </div>
           ) : null}
         </div>

@@ -3,6 +3,8 @@ import defaultConfig from "../../config.json";
 import { normalizeArabic, parseAyahRef } from "./quranMeta";
 import { isSceneTemplate, SCENE_TEMPLATES } from "./sceneTemplates";
 import type { Chapter, Frontmatter, Issue, ParsedScript } from "./types";
+import { defaultChannel, domainIds } from "../channel/types";
+import { langPacks } from "../i18n/packs";
 
 export type CheckConfig = {
   wordsPerMinute: number;
@@ -10,6 +12,8 @@ export type CheckConfig = {
   chapterSeconds: { min: number; max: number };
   maxSentenceWords: number;
   maxTitleChars: number;
+  /** مجالات القناة المسموحة (افتراضيًا: مجالات القناة الأساسية) */
+  domains?: string[];
 };
 
 export const configFromFile = (c: typeof defaultConfig = defaultConfig): CheckConfig => ({
@@ -20,15 +24,16 @@ export const configFromFile = (c: typeof defaultConfig = defaultConfig): CheckCo
   maxTitleChars: c.writing.maxTitleChars,
 });
 
-const frontmatterSchema = z.object({
+const frontmatterSchemaFor = (domains: string[]) => z.object({
   title: z.string({ error: "العنوان (title) مطلوب ويجب أن يكون نصًا." }).trim().min(1, { error: "العنوان (title) فارغ." }),
-  domain: z.enum(["psychology", "family", "money", "knowledge"], {
-    error: "المجال (domain) يجب أن يكون واحدًا من: psychology، family، money، knowledge.",
+  domain: z.string({ error: "المجال (domain) مطلوب." }).refine((d) => domains.includes(d), {
+    error: `المجال (domain) يجب أن يكون واحدًا من: ${domains.join("، ")}.`,
   }),
   episode: z.union([z.string(), z.number()]).transform(String).pipe(
     z.string().regex(/^\d{3}$/, { error: "رقم الحلقة (episode) يجب أن يكون ثلاث خانات، مثل 001." }),
   ),
   alt_titles: z.array(z.string()).optional(),
+  lang: z.string().optional(),
 });
 
 /** عبارات تحيل لفصل سابق، فتكسر استقلال الفصل حين يُنشر شورت. */
@@ -70,11 +75,16 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
   // ترويسة الحلقة
   let fm: Frontmatter | null = null;
   if (script.frontmatter) {
-    const parsed = frontmatterSchema.safeParse(script.frontmatter);
+    const parsed = frontmatterSchemaFor(config.domains ?? domainIds(defaultChannel)).safeParse(script.frontmatter);
     if (parsed.success) {
       fm = parsed.data as Frontmatter;
       if (fm.title.length > config.maxTitleChars) {
         warn("title-length", `العنوان ${fm.title.length} حرفًا؛ الحد ${config.maxTitleChars} حتى لا يُقطع على الموبايل.`, script.frontmatterLine);
+      }
+      if (fm.lang) {
+        const pack = langPacks[fm.lang];
+        if (!pack) err("lang-unknown", `اللغة «${fm.lang}» غير معروفة. المتاح: ${Object.keys(langPacks).join("، ")}.`, script.frontmatterLine);
+        else if (!pack.ready) warn("lang-not-ready", `اللغة «${pack.nameAr}» في مرحلة التجهيز: نصوصها جاهزة، وتخطيط القوالب من اليسار لليمين لم يُفعَّل بعد.`, script.frontmatterLine);
       }
       if (!/[؟?]\s*$/.test(fm.title)) warn("title-question", "العنوان يُفضّل أن يكون سؤالًا ينتهي بـ «؟».", script.frontmatterLine);
       if (!fm.alt_titles || fm.alt_titles.length < 3) {
@@ -84,6 +94,7 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
       for (const issue of parsed.error.issues) err("frontmatter-invalid", issue.message, script.frontmatterLine);
     }
   }
+  const isArabic = (fm?.lang ?? "ar") === "ar";
 
   // الفصول
   if (script.chapters.length !== config.chapters) {
@@ -130,7 +141,8 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
 
       const text = b.text;
       const norm = normalizeArabic(text);
-      for (const phrase of BACK_REFERENCES) {
+      // قواعد خاصة بالكتابة العربية
+      if (isArabic) for (const phrase of BACK_REFERENCES) {
         if (norm.includes(normalizeArabic(phrase))) {
           err("back-reference", `«${phrase}» تحيل لما قبل الفصل، والفصل يُنشر وحده كشورت. أعد تقديم الفكرة في جملة.`, b.line);
         }
@@ -151,7 +163,7 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
 
     // الجملة الأولى
     const first = narrationBlocks[0];
-    if (first) {
+    if (first && isArabic) {
       const firstWord = normalizeArabic(first.text.split(/\s+/)[0] ?? "").replace(/[^\p{L}]/gu, "");
       if (DANGLING_STARTERS.map(normalizeArabic).includes(firstWord)) {
         warn("dangling-start", `الفصل ${ch.number} يبدأ بـ «${first.text.split(/\s+/)[0]}»؛ قد لا يُفهم وحده كشورت.`, first.line);

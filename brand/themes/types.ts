@@ -1,5 +1,6 @@
 export type ThemeId = "paper" | "family" | "night" | "warm";
-export type Domain = "psychology" | "family" | "money" | "knowledge";
+/** معرّف المجال، تحدده كل قناة في channel.json (مثل psychology لقناة بالإسلام). */
+export type Domain = string;
 
 export type Theme = {
   id: ThemeId;

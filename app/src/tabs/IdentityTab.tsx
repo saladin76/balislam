@@ -6,6 +6,7 @@ import { LogoMark } from "../../../brand/logo/Logo";
 import { useTheme } from "../../../brand/identity/index";
 import { ReelPreview, type Orientation } from "../ui/Preview";
 import { contrast } from "../ui/contrast";
+import type { ChannelInfo } from "../../../src/channel/types";
 
 const sceneColors: [string, string][] = [
   ["bg", "الخلفية"],
@@ -83,12 +84,13 @@ const ElementStrip: React.FC<{ themeId: ThemeId }> = ({ themeId }) => {
 
 /** تعديل الهوية: الألوان والخطوط والحركة، مع معاينة حية قبل الحفظ. */
 export const IdentityTab: React.FC<{
+  channel?: ChannelInfo;
   draft: Identity;
   saved: Identity;
   defaults: Identity;
   onChange: (i: Identity) => void;
   onSave: () => Promise<void>;
-}> = ({ draft, saved, defaults, onChange, onSave }) => {
+}> = ({ channel, draft, saved, defaults, onChange, onSave }) => {
   const [themeId, setThemeId] = useState<ThemeId>("paper");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [sizeO, setSizeO] = useState<Orientation>("landscape");
@@ -214,7 +216,7 @@ export const IdentityTab: React.FC<{
           </div>
         </div>
         <div className={`player-wrap ${orientation}`}>
-          <div><ReelPreview themeId={themeId} orientation={orientation} identity={draft} /></div>
+          <div><ReelPreview themeId={themeId} orientation={orientation} identity={draft} channel={channel} /></div>
         </div>
         <IdentityProvider identity={draft}>
           <ElementStrip themeId={themeId} />

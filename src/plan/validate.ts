@@ -1,5 +1,6 @@
 import { hasElement } from "../../brand/elements/registry";
 import type { Plan } from "./types";
+import { langPack, langPacks } from "../i18n/packs";
 
 export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: string };
 
@@ -9,6 +10,8 @@ export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: 
  */
 export const planIssues = (plan: Plan): PlanIssue[] => {
   const out: PlanIssue[] = [];
+  if (plan.lang && langPacks[plan.lang] && !langPack(plan.lang).ready)
+    out.push({ level: "error", sceneId: "-", message: `لغة «${langPack(plan.lang).nameAr}» في مرحلة التجهيز: تخطيط القوالب من اليسار لليمين لم يُفعَّل بعد، فلا تخرج منها نسخة نهائية.` });
   for (const ch of plan.chapters)
     for (const s of ch.scenes) {
       const p = s.props;

@@ -1,4 +1,4 @@
-import identity from "../identity.json";
+import identity from "../../channels/balislam/identity.json";
 import { themes, themeIds, type ThemeId } from "../themes";
 import type { ElementPalette } from "./types";
 
@@ -13,7 +13,7 @@ export const buildPalette = (id: ThemeId, stored: StoredPalette, colors: { bg: s
   ink: colors.ink,
 });
 
-/** القيم من brand/identity.json. */
+/** القيم الافتراضية من هوية القناة الأساسية. */
 export const elementPalettes: Record<ThemeId, ElementPalette> = Object.fromEntries(
   themeIds.map((id) => [id, buildPalette(id, (identity.palettes as unknown as Record<ThemeId, StoredPalette>)[id], themes[id].colors)]),
 ) as Record<ThemeId, ElementPalette>;

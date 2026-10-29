@@ -8,6 +8,8 @@ export type Recitation = { file: string; duration: number };
 export type EpisodeMedia = {
   mode: "static" | "url";
   base: string;
+  /** لاحقة تُضاف لروابط الاستوديو (مثل ?channel=balislam) */
+  query?: string;
   voice: Record<string, VoiceClip>;
   sfx: string[];
   recitations: Record<string, Recitation>;

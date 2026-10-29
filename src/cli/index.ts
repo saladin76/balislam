@@ -2,11 +2,10 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { Command } from "commander";
 import { parseScript } from "../script/parse";
-import { checkScript } from "../script/check";
+import { checkForChannel } from "../script/checkChannel";
 import { formatReport } from "../script/report";
 import { createEpisode, resolveScriptPath } from "../script/episodes";
 import { projectRoot } from "../config/paths";
-import type { Domain } from "../../brand/themes";
 
 const program = new Command();
 
@@ -14,16 +13,21 @@ program
   .name("bal")
   .description("منظومة إنتاج قناة بالإسلام")
   .helpOption("-h, --help", "عرض المساعدة")
-  .showHelpAfterError();
+  .showHelpAfterError()
+  .option("-c, --channel <id>", "القناة (الافتراضية في config.json)")
+  .hook("preAction", (cmd) => {
+    const ch = cmd.opts<{ channel?: string }>().channel;
+    if (ch) process.env.BAL_CHANNEL = ch;
+  });
 
 program
   .command("new")
   .description("إنشاء مجلد حلقة جديدة بقالب السكريبت")
   .argument("<episode>", "رقم الحلقة من ثلاث خانات، مثل 002")
   .argument("<slug>", "اسم مختصر بالإنجليزية، مثل family-conflict")
-  .requiredOption("-d, --domain <domain>", "المجال: psychology | family | money | knowledge")
+  .requiredOption("-d, --domain <domain>", "المجال كما في channel.json للقناة (لبالإسلام: psychology | family | money | knowledge)")
   .option("-t, --title <title>", "عنوان الحلقة (سؤال)")
-  .action(async (episode: string, slug: string, opts: { domain: Domain; title?: string }) => {
+  .action(async (episode: string, slug: string, opts: { domain: string; title?: string }) => {
     const file = await createEpisode({ episode, slug, domain: opts.domain, title: opts.title });
     console.log(`أُنشئت الحلقة: ${path.relative(projectRoot, file)}`);
     console.log(`بعد الكتابة: bal check ${episode}`);
@@ -37,7 +41,7 @@ program
   .action(async (episode: string, opts: { json?: boolean }) => {
     const file = await resolveScriptPath(episode);
     const source = await readFile(file, "utf8");
-    const result = checkScript(parseScript(source, file));
+    const result = checkForChannel(parseScript(source, file));
     if (opts.json) console.log(JSON.stringify(result, null, 2));
     else console.log(formatReport(path.relative(projectRoot, file), result));
     process.exitCode = result.ok ? 0 : 1;
@@ -197,6 +201,35 @@ program
     const { makeEpisode } = await import("../package/make");
     const r = await makeEpisode({ episode, noVoice: opts.voice === false, skipVideo: opts.skipVideo, onProgress: (m) => console.log(m) });
     console.log(`\nتم. الملفات في ${path.relative(projectRoot, r.dir)}. راجع publish-checklist.md قبل النشر.`);
+  });
+
+const channelCmd = program.command("channel").description("إدارة القنوات (كل قناة: هوية ومجالات وحلقات خاصة، والمحرك مشترك)");
+
+channelCmd
+  .command("list")
+  .description("عرض القنوات")
+  .action(async () => {
+    const { listChannels, loadChannel, currentChannelId } = await import("../channel");
+    for (const id of listChannels()) {
+      const c = loadChannel(id);
+      console.log(`${id === currentChannelId() ? "●" : "·"} ${id.padEnd(16)} ${c.name} · ${c.language} · ${Object.keys(c.domains).join("، ")}`);
+    }
+  });
+
+channelCmd
+  .command("new")
+  .description("إنشاء قناة جديدة بهوية تبدأ من قناة موجودة")
+  .argument("<id>", "معرّف بالإنجليزية، مثل bilislam-tr")
+  .requiredOption("-n, --name <name>", "اسم القناة كما يظهر في الفيديو")
+  .requiredOption("-l, --lang <lang>", "اللغة: ar | tr | en")
+  .option("--latin <name>", "الاسم بالحروف اللاتينية")
+  .option("--from <id>", "القناة التي تُنسخ هويتها", "balislam")
+  .option("--no-quran", "قناة لا تستشهد بالقرآن والحديث")
+  .action(async (id: string, opts: { name: string; lang: string; latin?: string; from: string; quran: boolean }) => {
+    const { createChannel } = await import("../channel/create");
+    const dir = await createChannel({ id, name: opts.name, language: opts.lang, nameLatin: opts.latin, from: opts.from, quran: opts.quran });
+    console.log(`أُنشئت القناة في ${path.relative(projectRoot, dir)}.`);
+    console.log("الخطوات التالية: عدّل المجالات في channel.json، والألوان من تبويب الهوية في الاستوديو، ثم: bal --channel " + id + " new 001 …");
   });
 
 program.parseAsync().catch((err: Error) => {

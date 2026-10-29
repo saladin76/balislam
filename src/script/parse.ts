@@ -2,7 +2,15 @@ import { parse as parseYaml } from "yaml";
 import { normalizeArabic, toLatinDigits } from "./quranMeta";
 import type { Block, Chapter, Citation, Issue, ParsedScript } from "./types";
 
-const CHAPTER_HEADING = /^الفصل\s+([0-9٠-٩]+)\s*(?:[·\-–:|]\s*(.*))?$/;
+import { langPacks } from "../i18n/packs";
+
+const packs = Object.values(langPacks);
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** «الفصل 1 · …» أو ما يقابلها في أي لغة مفعّلة: «Bölüm 1 · …»، «Chapter 1 · …» */
+const CHAPTER_HEADING = new RegExp(`^(?:${packs.map((p) => escape(p.syntax.chapter)).join("|")})\\s+([0-9٠-٩]+)\\s*(?:[·\\-–:|]\\s*(.*))?$`, "i");
+const lower = (s: string) => normalizeArabic(s).toLocaleLowerCase("tr");
+const CITATION_HEADINGS = new Set(packs.map((p) => lower(p.syntax.citations)));
+const STEP_HEADINGS = new Set(packs.map((p) => lower(p.syntax.step)));
 const DIRECTIVE = /^\[\s*([^\]:]+?)\s*:\s*(.+?)\s*\]$/;
 const BRIDGE = /^bridge\s*:\s*(.*)$/i;
 
@@ -13,6 +21,12 @@ const DIRECTIVE_KINDS: Record<string, "scene" | "ayah" | "hadith" | "sfx"> = {
   حديث: "hadith",
   صوت: "sfx",
 };
+for (const p of packs) {
+  DIRECTIVE_KINDS[lower(p.syntax.scene)] = "scene";
+  DIRECTIVE_KINDS[lower(p.syntax.ayah)] = "ayah";
+  DIRECTIVE_KINDS[lower(p.syntax.hadith)] = "hadith";
+  DIRECTIVE_KINDS[lower(p.syntax.sfx)] = "sfx";
+}
 
 type Section = { type: "preamble" } | { type: "chapter"; chapter: Chapter } | { type: "citations" } | { type: "step" } | { type: "unknown" };
 
@@ -102,10 +116,10 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
         const chapter: Chapter = { number: Number(toLatinDigits(ch[1] ?? "0")), title: (ch[2] ?? "").trim(), line: lineNo, blocks: [] };
         chapters.push(chapter);
         section = { type: "chapter", chapter };
-      } else if (norm === normalizeArabic("الاستشهادات")) {
+      } else if (CITATION_HEADINGS.has(lower(title))) {
         hasCitationsSection = true;
         section = { type: "citations" };
-      } else if (norm === normalizeArabic("الخطوة العملية")) {
+      } else if (STEP_HEADINGS.has(lower(title))) {
         section = { type: "step" };
       } else {
         issues.push({
@@ -123,7 +137,8 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
       if (line.startsWith("-")) {
         const parts = line.replace(/^-\s*/, "").split("|").map((p) => p.trim());
         const type = normalizeArabic(parts[0] ?? "");
-        const kind: Citation["kind"] = type === normalizeArabic("آية") ? "ayah" : type === normalizeArabic("حديث") ? "hadith" : "other";
+        const t = lower(parts[0] ?? "");
+        const kind: Citation["kind"] = packs.some((p) => lower(p.syntax.ayah) === t) ? "ayah" : packs.some((p) => lower(p.syntax.hadith) === t) ? "hadith" : "other";
         citations.push({ kind, fields: parts.slice(1), raw: line, line: lineNo });
       }
       continue;
@@ -139,7 +154,7 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
       if (line.startsWith("[")) {
         flushParagraph();
         const d = line.match(DIRECTIVE);
-        const kind = d ? DIRECTIVE_KINDS[normalizeArabic(d[1] ?? "")] ?? DIRECTIVE_KINDS[(d[1] ?? "").trim()] : undefined;
+        const kind = d ? DIRECTIVE_KINDS[normalizeArabic(d[1] ?? "")] ?? DIRECTIVE_KINDS[(d[1] ?? "").trim()] ?? DIRECTIVE_KINDS[lower(d[1] ?? "")] : undefined;
         if (!d || !kind) {
           issues.push({
             level: "error",

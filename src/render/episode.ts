@@ -8,6 +8,7 @@ import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, getServeUrl } from "./bundle";
+import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -35,7 +36,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
   log(0, "تجميع المشروع…");
   const serveUrl = await getServeUrl(!opts.media);
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media };
+  const channel = loadChannel();
+  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   await renderMedia({
@@ -54,8 +56,10 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
 };
 
 /** الصورة المصغّرة بعنوان محدد. */
-export const renderThumbnail = async (props: { themeId: string; title: string; highlight?: string; element?: string }, output: string) => {
+export const renderThumbnail = async (input: { themeId: string; title: string; highlight?: string; element?: string; lang?: string }, output: string) => {
   const serveUrl = await getServeUrl();
+  const channel = loadChannel();
+  const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
   await renderStill({ serveUrl, composition, inputProps: props, output, browserExecutable: browserExecutable() });
   return output;

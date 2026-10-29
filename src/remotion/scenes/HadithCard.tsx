@@ -4,6 +4,7 @@ import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import type { Theme } from "../../../brand/themes";
 import { SceneShell } from "./SceneShell";
+import { useLang } from "../../i18n/context";
 import { enter, fade, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -67,7 +68,9 @@ const textScale = (len: number, portrait: boolean) => {
  * ثم المصدر، ثم يُختم بدرجة الحديث. شريط الترجمة يبقى ظاهرًا.
  */
 export const HadithCard: React.FC<HadithCardProps> = (props) => {
-  const { themeId, orientation, narrator, text = "", reference, grade } = props;
+  const { themeId, orientation, narrator, text = "", reference, grade: gradeRaw } = props;
+  const lang = useLang();
+  const grade = gradeRaw ? (lang.strings.grades[gradeRaw] ?? gradeRaw) : gradeRaw;
   const frame = useSceneFrame();
   const boil = useBoil();
   const verseSize = useSize("verse", orientation);

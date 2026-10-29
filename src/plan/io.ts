@@ -4,6 +4,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { resolveScriptPath } from "../script/episodes";
 import { generatePlan, type QuranTexts } from "./generate";
+import { loadChannel } from "../channel";
 import type { Plan } from "./types";
 
 export const planPathFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "plan.json");
@@ -25,7 +26,7 @@ export const regeneratePlan = async (episode: string): Promise<Plan> => {
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const previous = await readJson<Plan>(planPathFor(scriptPath));
   const quran = (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {};
-  const plan = generatePlan(parsed, previous, quran);
+  const plan = generatePlan(parsed, previous, quran, loadChannel());
   await writeFile(planPathFor(scriptPath), JSON.stringify(plan, null, 2) + "\n", "utf8");
   return plan;
 };

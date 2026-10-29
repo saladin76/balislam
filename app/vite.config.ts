@@ -18,7 +18,7 @@ export default defineConfig({
     port: 4321,
     open: false,
     fs: { allow: [root] },
-    watch: { ignored: ["**/episodes/**", "**/brand/identity.json", "**/renders/**", "**/assets/elements/**"] },
+    watch: { ignored: ["**/channels/*/episodes/**", "**/channels/*/identity.json", "**/renders/**", "**/assets/elements/**", "**/public/_render/**"] },
   },
   resolve: { alias: { "@root": root } },
 });

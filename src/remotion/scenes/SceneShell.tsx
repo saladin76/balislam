@@ -5,6 +5,7 @@ import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { useBrandFonts } from "../useBrandFonts";
 import { CaptionBar } from "./CaptionBar";
+import { useLang } from "../../i18n/context";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { enter, exit, fade } from "./motion";
@@ -78,6 +79,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const t = useTheme(themeId);
+  const lang = useLang();
   const portrait = orientation === "portrait";
   const eyebrowSize = useSize("eyebrow", orientation);
   const out = exit(frame, durationInFrames, 8);
@@ -85,7 +87,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
 
   return (
-    <AbsoluteFill style={{ backgroundColor: t.colors.bg, direction: "rtl", fontFamily: fontFamilies.body, color: t.colors.ink }}>
+    <AbsoluteFill style={{ backgroundColor: t.colors.bg, direction: lang.dir, fontFamily: fontFamilies.body, color: t.colors.ink }}>
       {backdrop && hasElement(backdrop) ? (
         <div style={{ position: "absolute", inset: 0, opacity: fade(frame, 0, 14) }}>
           <Element id={backdrop} theme={t} width={width} height={height} />

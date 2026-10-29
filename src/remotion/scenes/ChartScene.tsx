@@ -3,6 +3,8 @@ import { useVideoConfig } from "remotion";
 import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
+import { Digits } from "../../i18n/context";
+
 import { enter, fade, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -178,7 +180,7 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
           }}
         >
           <span style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: valueSize, color: hl ? c.primary : c.ink, fontVariantNumeric: "tabular-nums" }}>
-            {toArabicDigits(g >= 1 ? r.value : shown, r.decimals)}
+            <Digits>{toArabicDigits(g >= 1 ? r.value : shown, r.decimals)}</Digits>
           </span>
           {unit ? <span style={{ fontSize: Math.round(valueSize * 0.6), fontWeight: 600, color: c.inkSoft }}>{unit}</span> : null}
         </div>

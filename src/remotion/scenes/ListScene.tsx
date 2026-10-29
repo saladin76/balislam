@@ -5,6 +5,8 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
+import { Digits } from "../../i18n/context";
+
 import { enter, fade, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -115,7 +117,7 @@ export const ListScene: React.FC<ListSceneProps> = (props) => {
             <path d="M8 21 L17 30 L33 11" fill="none" stroke={on} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={40} strokeDashoffset={40 * (1 - fade(frame, at(i) + 4, 12))} />
           </svg>
         ) : (
-          <span style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: badge * 0.56, lineHeight: 1, color: on, marginTop: badge * 0.06 }}>{arabicDigits(i + 1)}</span>
+          <span style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: badge * 0.56, lineHeight: 1, color: on, marginTop: badge * 0.06 }}><Digits>{arabicDigits(i + 1)}</Digits></span>
         )}
       </div>
     );

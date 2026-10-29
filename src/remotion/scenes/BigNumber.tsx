@@ -5,6 +5,8 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
+import { Digits } from "../../i18n/context";
+
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -127,12 +129,12 @@ export const BigNumber: React.FC<BigNumberProps> = (props) => {
         transform: `translateY(${(1 - numIn) * 40}px) scale(${(0.9 + 0.1 * numIn) * (1 + 0.04 * pop)})`,
       }}
     >
-      {smallBefore ? <span style={smallStyle}>{smallBefore}</span> : null}
+      {smallBefore ? <span style={smallStyle}><Digits>{smallBefore}</Digits></span> : null}
       <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ display: "grid", position: "relative", zIndex: 1, fontSize: numSize, lineHeight: 1.1, color: c.primary, whiteSpace: "nowrap", textAlign: "center" }}>
           {/* النص النهائي مخفي ليحجز العرض فلا يهتز الرقم أثناء العدّ */}
-          <span style={{ gridArea: "1 / 1", visibility: "hidden" }}>{finalBig}</span>
-          <span style={{ gridArea: "1 / 1" }}>{liveBig}</span>
+          <span style={{ gridArea: "1 / 1", visibility: "hidden" }}><Digits>{finalBig}</Digits></span>
+          <span style={{ gridArea: "1 / 1" }}><Digits>{liveBig}</Digits></span>
         </div>
         <div
           style={{
@@ -148,7 +150,7 @@ export const BigNumber: React.FC<BigNumberProps> = (props) => {
           }}
         />
       </div>
-      {smallAfter ? <span style={smallStyle}>{smallAfter}</span> : null}
+      {smallAfter ? <span style={smallStyle}><Digits>{smallAfter}</Digits></span> : null}
     </div>
   );
 
@@ -175,13 +177,13 @@ export const BigNumber: React.FC<BigNumberProps> = (props) => {
             transform: `translateY(${(1 - capIn) * 24}px)`,
           }}
         >
-          {easternText(caption)}
+          <Digits>{easternText(caption)}</Digits>
         </div>
       ) : null}
       {source ? (
         <div style={{ display: "flex", alignItems: "center", gap: 14, opacity: srcIn, maxWidth: portrait ? 900 : 1200 }}>
           <div style={{ width: 36, height: 2, background: c.inkSoft, opacity: 0.45, flexShrink: 0 }} />
-          <div style={{ fontFamily: fontFamilies.body, fontWeight: 500, fontSize: Math.round(refSize * 0.75), color: c.inkSoft, textAlign: "center" }}>{easternText(source)}</div>
+          <div style={{ fontFamily: fontFamilies.body, fontWeight: 500, fontSize: Math.round(refSize * 0.75), color: c.inkSoft, textAlign: "center" }}><Digits>{easternText(source)}</Digits></div>
           <div style={{ width: 36, height: 2, background: c.inkSoft, opacity: 0.45, flexShrink: 0 }} />
         </div>
       ) : null}

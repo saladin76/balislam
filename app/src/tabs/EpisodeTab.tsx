@@ -12,6 +12,8 @@ import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
 import { api, type RenderJob, type VoiceReport } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
+import type { ChannelInfo } from "../../../src/channel/types";
+import { langPack } from "../../../src/i18n/packs";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -21,6 +23,7 @@ export const EpisodeTab: React.FC<{
   episodeId: string;
   plan: Plan;
   identity: Identity;
+  channel: ChannelInfo;
   media: EpisodeMedia;
   issues: PlanIssue[];
   keys: { voice: boolean; quran: boolean };
@@ -28,7 +31,7 @@ export const EpisodeTab: React.FC<{
   onMediaChange: (media: EpisodeMedia) => void;
   onReload: () => void;
   onEditScript: (line: number) => void;
-}> = ({ episodeId, plan, identity, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript }) => {
+}> = ({ episodeId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript }) => {
   const allScenes = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))), [plan]);
   const [selectedId, setSelectedId] = useState(allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
@@ -129,9 +132,9 @@ export const EpisodeTab: React.FC<{
         <div className={`player-wrap ${orientation}`}>
           <div>
             {scope === "scene" ? (
-              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`الفصل ${sel.chapter.number} · ${sel.chapter.title}`} identity={identity} media={media} />
+              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${langPack(plan.lang).strings.chapter} ${sel.chapter.number} · ${sel.chapter.title}`} identity={identity} channel={channel} lang={plan.lang} media={media} />
             ) : (
-              <EpisodePreview ref={playerRef} plan={plan} orientation={orientation} chapter={scope === "chapter" ? sel.chapter.number : undefined} identity={identity} media={media} />
+              <EpisodePreview ref={playerRef} plan={plan} orientation={orientation} chapter={scope === "chapter" ? sel.chapter.number : undefined} identity={identity} channel={channel} media={media} />
             )}
           </div>
         </div>

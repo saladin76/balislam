@@ -9,6 +9,7 @@ import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
 import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { buildYoutubeText, publishChecklist } from "./youtube";
+import { loadChannel, loadChannelIdentity } from "../channel";
 
 export type PackageOptions = {
   episode: string;
@@ -40,14 +41,17 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const files: string[] = [];
 
   // النصوص أولًا: سريعة ولا تحتاج رندر
-  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, shorts));
-  await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice));
-  await writeFile(path.join(dir, `${id}-episode.ar.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media));
+  const channel = loadChannel();
+  const identity = loadChannelIdentity();
+  const lang = plan.lang ?? channel.language;
+  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, shorts, channel));
+  await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice, channel));
+  await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
   for (let n = 1; n <= shorts; n++) {
     const ch = plan.chapters[n - 1]!;
-    await writeFile(path.join(dir, `${id}-short-${n}.ar.srt`), buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media));
+    await writeFile(path.join(dir, `${id}-short-${n}.${lang}.srt`), buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media, identity));
   }
-  files.push("youtube.md", "publish-checklist.md", `${id}-episode.ar.srt`);
+  files.push("youtube.md", "publish-checklist.md", `${id}-episode.${lang}.srt`);
 
   log("تجميع المشروع…");
   await getServeUrl(true);
@@ -58,7 +62,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const titles = [plan.title, ...(fm.alt_titles ?? [])].slice(0, 3);
   for (const [i, title] of titles.entries()) {
     log(`الصورة المصغّرة ${i + 1}…`);
-    files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
+    files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element, lang }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
   }
 
   if (!opts.skipVideo) {

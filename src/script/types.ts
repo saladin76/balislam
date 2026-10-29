@@ -30,6 +30,8 @@ export type Frontmatter = {
   domain: Domain;
   episode: string;
   alt_titles?: string[];
+  /** لغة الحلقة إن خالفت لغة القناة */
+  lang?: string;
 };
 
 export type ParsedScript = {

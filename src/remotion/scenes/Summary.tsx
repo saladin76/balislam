@@ -5,6 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
+import { T } from "../../i18n/context";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import { splitWords } from "./timing";
 import type { SceneBase, StringFields } from "./types";
@@ -144,7 +145,7 @@ export const Summary: React.FC<SummaryProps> = (props) => {
       <svg width={18} height={18} viewBox="0 0 20 20">
         <path d="M10 1 L19 10 L10 19 L1 10 Z" fill={line ? c.primary : c.bg} opacity={line ? 1 : 0.8} />
       </svg>
-      الخلاصة
+      <T k="summary" />
     </div>
   );
 

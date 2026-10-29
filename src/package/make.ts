@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
-import { checkScript } from "../script/check";
+import { checkForChannel } from "../script/checkChannel";
 import { formatReport } from "../script/report";
 import { quranClientFromEnv } from "../quran/client";
 import { syncQuran } from "../quran/sync";
@@ -30,7 +30,7 @@ export const makeEpisode = async (opts: MakeOptions) => {
   const scriptPath = await resolveScriptPath(ep);
 
   log("١/٥ فحص السكريبت…");
-  const check = checkScript(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
+  const check = checkForChannel(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
   if (!check.ok) throw new Error(`السكريبت فيه أخطاء، أصلحها أولًا:\n${formatReport(scriptPath, check)}`);
 
   log("٢/٥ نصوص الآيات…");

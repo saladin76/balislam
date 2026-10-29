@@ -7,14 +7,25 @@ import { hasElement } from "../../brand/elements/registry";
 import { LogoMark } from "../../brand/logo/Logo";
 import type { ThemeId } from "../../brand/themes";
 import { useBrandFonts } from "./useBrandFonts";
+import { Providers } from "./Providers";
+import { ChannelName } from "../channel/context";
+import { useLang } from "../i18n/context";
+import type { Identity } from "../../brand/identity/index";
+import type { ChannelInfo } from "../channel/types";
 
-export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string };
+export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; identity?: Identity; channel?: ChannelInfo; lang?: string };
 
 /**
  * الصورة المصغّرة 1280×720: العنوان بخط كبير يمينًا، والعنصر الرمزي يسارًا داخل دائرة بلون التمييز،
  * والشعار صغيرًا في الزاوية. تُقرأ على الهاتف بحجم صغير، لذا لا أكثر من سطرين.
  */
-export const Thumbnail: React.FC<ThumbnailProps> = ({ themeId, title, highlight, element }) => {
+export const Thumbnail: React.FC<ThumbnailProps> = ({ identity, channel, lang, ...rest }) => (
+  <Providers identity={identity} channel={channel} lang={lang}>
+    <ThumbnailInner {...rest} />
+  </Providers>
+);
+
+const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = ({ themeId, title, highlight, element }) => {
   useBrandFonts();
   const t = useTheme(themeId);
   const c = t.colors;
@@ -34,7 +45,7 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({ themeId, title, highlight,
   const size = title.length > 34 ? 84 : title.length > 22 ? 96 : 112;
 
   return (
-    <AbsoluteFill style={{ background: c.bg, direction: "rtl", fontFamily: fontFamilies.heading, overflow: "hidden" }}>
+    <AbsoluteFill style={{ background: c.bg, direction: useLang().dir, fontFamily: fontFamilies.heading, overflow: "hidden" }}>
       <div style={{ position: "absolute", left: -120, top: 70, width: 640, height: 640, borderRadius: "50%", background: c.highlight, opacity: line ? 0.55 : 0.85, border: line ? `5px solid ${c.ink}` : "none" }} />
       <div style={{ position: "absolute", left: 40, top: 150, width: 440, height: 440, display: "grid", placeItems: "center" }}>
         <Element id={el} theme={t} size={400} />
@@ -54,7 +65,7 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({ themeId, title, highlight,
       </div>
       <div style={{ position: "absolute", top: 34, right: 40, display: "flex", alignItems: "center", gap: 12 }}>
         <LogoMark size={64} colors={t.logo} />
-        <span style={{ fontFamily: fontFamilies.wordmark, fontWeight: 700, fontSize: 34, color: c.ink }}>بالإسلام</span>
+        <span style={{ fontFamily: fontFamilies.wordmark, fontWeight: 700, fontSize: 34, color: c.ink }}><ChannelName /></span>
       </div>
     </AbsoluteFill>
   );

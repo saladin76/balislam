@@ -1,5 +1,5 @@
 import config from "../../config.json";
-import identity from "../../brand/identity.json";
+import type { Identity } from "../../brand/identity/index";
 import { sceneSeconds } from "../plan/duration";
 import { estimateTimings } from "../remotion/scenes/timing";
 import type { EpisodeMedia } from "../plan/media";
@@ -18,8 +18,8 @@ const ts = (sec: number) => {
  * ملف ترجمة عربية SRT يُرفع إلى يوتيوب مع الفيديو. يستخدم توقيت كلمات الصوت الحقيقي،
  * وإن لم يوجد صوت يقدّر التوقيت. السطر الواحد بعدد كلمات سطر الترجمة في الهوية.
  */
-export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia): string => {
-  const per = Math.max(3, identity.motion.captionWords);
+export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, identity?: Pick<Identity, "motion">): string => {
+  const per = Math.max(3, identity?.motion.captionWords ?? 6);
   const fps = config.video.fps;
   const cues: { start: number; end: number; text: string }[] = [];
   let offset = 0;

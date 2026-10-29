@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { parseFile } from "music-metadata";
 import config from "../../config.json";
-import { projectRoot } from "../config/paths";
+import { channelPaths } from "../channel";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, readJson, regeneratePlan } from "../plan/io";
 import type { Plan } from "../plan/types";
@@ -20,7 +20,8 @@ export const voiceDirFor = (scriptPath: string) => path.join(path.dirname(script
 export const loadVoiceIndex = async (episode: string): Promise<VoiceIndex> =>
   (await readJson<VoiceIndex>(path.join(voiceDirFor(await resolveScriptPath(episode)), "index.json"))) ?? {};
 
-const loadDictionary = async () => readJson<{ entries?: { text: string; say: string }[] }>(path.join(projectRoot, "dictionary", "pronunciation.json")).then((d) => d ?? {});
+/** قاموس نطق القناة الحالية: channels/<القناة>/pronunciation.json */
+const loadDictionary = async () => readJson<{ entries?: { text: string; say: string }[] }>(channelPaths().pronunciation).then((d) => d ?? {});
 
 type Job = { id: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string; prev?: string; next?: string };
 
