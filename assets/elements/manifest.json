@@ -1,0 +1,8294 @@
+{
+  "count": 301,
+  "elements": [
+    {
+      "id": "arrow-left",
+      "nameAr": "سهم لليسار",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "سهم",
+        "اتجاه",
+        "التالي"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/arrow-left.svg"
+        ],
+        "family": [
+          "family/ui/arrow-left.svg"
+        ],
+        "night": [
+          "night/ui/arrow-left.svg"
+        ],
+        "warm": [
+          "warm/ui/arrow-left.svg"
+        ]
+      }
+    },
+    {
+      "id": "arrow-right",
+      "nameAr": "سهم لليمين",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "سهم",
+        "اتجاه",
+        "رجوع"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/arrow-right.svg"
+        ],
+        "family": [
+          "family/ui/arrow-right.svg"
+        ],
+        "night": [
+          "night/ui/arrow-right.svg"
+        ],
+        "warm": [
+          "warm/ui/arrow-right.svg"
+        ]
+      }
+    },
+    {
+      "id": "arrow-up",
+      "nameAr": "سهم للأعلى",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "سهم",
+        "صعود",
+        "زيادة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/arrow-up.svg"
+        ],
+        "family": [
+          "family/ui/arrow-up.svg"
+        ],
+        "night": [
+          "night/ui/arrow-up.svg"
+        ],
+        "warm": [
+          "warm/ui/arrow-up.svg"
+        ]
+      }
+    },
+    {
+      "id": "arrow-down",
+      "nameAr": "سهم للأسفل",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "سهم",
+        "نزول",
+        "نقص"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/arrow-down.svg"
+        ],
+        "family": [
+          "family/ui/arrow-down.svg"
+        ],
+        "night": [
+          "night/ui/arrow-down.svg"
+        ],
+        "warm": [
+          "warm/ui/arrow-down.svg"
+        ]
+      }
+    },
+    {
+      "id": "arrow-curve",
+      "nameAr": "سهم منحنٍ",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "سهم",
+        "تحول",
+        "انتقال"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/arrow-curve.svg"
+        ],
+        "family": [
+          "family/ui/arrow-curve.svg"
+        ],
+        "night": [
+          "night/ui/arrow-curve.svg"
+        ],
+        "warm": [
+          "warm/ui/arrow-curve.svg"
+        ]
+      }
+    },
+    {
+      "id": "check",
+      "nameAr": "علامة صح",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "صح",
+        "صواب",
+        "تم",
+        "افعل"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/check.svg"
+        ],
+        "family": [
+          "family/ui/check.svg"
+        ],
+        "night": [
+          "night/ui/check.svg"
+        ],
+        "warm": [
+          "warm/ui/check.svg"
+        ]
+      }
+    },
+    {
+      "id": "cross",
+      "nameAr": "علامة خطأ",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "خطأ",
+        "لا",
+        "تجنب"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/cross.svg"
+        ],
+        "family": [
+          "family/ui/cross.svg"
+        ],
+        "night": [
+          "night/ui/cross.svg"
+        ],
+        "warm": [
+          "warm/ui/cross.svg"
+        ]
+      }
+    },
+    {
+      "id": "plus",
+      "nameAr": "زائد",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "زيادة",
+        "إضافة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/plus.svg"
+        ],
+        "family": [
+          "family/ui/plus.svg"
+        ],
+        "night": [
+          "night/ui/plus.svg"
+        ],
+        "warm": [
+          "warm/ui/plus.svg"
+        ]
+      }
+    },
+    {
+      "id": "minus",
+      "nameAr": "ناقص",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "نقص",
+        "طرح"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/minus.svg"
+        ],
+        "family": [
+          "family/ui/minus.svg"
+        ],
+        "night": [
+          "night/ui/minus.svg"
+        ],
+        "warm": [
+          "warm/ui/minus.svg"
+        ]
+      }
+    },
+    {
+      "id": "equals",
+      "nameAr": "يساوي",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "مساواة",
+        "نتيجة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/equals.svg"
+        ],
+        "family": [
+          "family/ui/equals.svg"
+        ],
+        "night": [
+          "night/ui/equals.svg"
+        ],
+        "warm": [
+          "warm/ui/equals.svg"
+        ]
+      }
+    },
+    {
+      "id": "question-mark",
+      "nameAr": "علامة استفهام",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "سؤال",
+        "استفهام",
+        "حيرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/question-mark.svg"
+        ],
+        "family": [
+          "family/ui/question-mark.svg"
+        ],
+        "night": [
+          "night/ui/question-mark.svg"
+        ],
+        "warm": [
+          "warm/ui/question-mark.svg"
+        ]
+      }
+    },
+    {
+      "id": "exclamation",
+      "nameAr": "علامة تعجب",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "تنبيه",
+        "انتباه",
+        "مهم"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/exclamation.svg"
+        ],
+        "family": [
+          "family/ui/exclamation.svg"
+        ],
+        "night": [
+          "night/ui/exclamation.svg"
+        ],
+        "warm": [
+          "warm/ui/exclamation.svg"
+        ]
+      }
+    },
+    {
+      "id": "warning",
+      "nameAr": "تحذير",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "خطر",
+        "تحذير",
+        "انتبه"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/warning.svg"
+        ],
+        "family": [
+          "family/ui/warning.svg"
+        ],
+        "night": [
+          "night/ui/warning.svg"
+        ],
+        "warm": [
+          "warm/ui/warning.svg"
+        ]
+      }
+    },
+    {
+      "id": "quote-open",
+      "nameAr": "علامة اقتباس",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "اقتباس",
+        "قول",
+        "كلام"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/quote-open.svg"
+        ],
+        "family": [
+          "family/ui/quote-open.svg"
+        ],
+        "night": [
+          "night/ui/quote-open.svg"
+        ],
+        "warm": [
+          "warm/ui/quote-open.svg"
+        ]
+      }
+    },
+    {
+      "id": "speech-bubble",
+      "nameAr": "فقاعة كلام",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "كلام",
+        "حوار",
+        "قول"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/speech-bubble.svg"
+        ],
+        "family": [
+          "family/ui/speech-bubble.svg"
+        ],
+        "night": [
+          "night/ui/speech-bubble.svg"
+        ],
+        "warm": [
+          "warm/ui/speech-bubble.svg"
+        ]
+      }
+    },
+    {
+      "id": "thought-bubble",
+      "nameAr": "فقاعة تفكير",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "تفكير",
+        "خاطرة",
+        "تأمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/thought-bubble.svg"
+        ],
+        "family": [
+          "family/ui/thought-bubble.svg"
+        ],
+        "night": [
+          "night/ui/thought-bubble.svg"
+        ],
+        "warm": [
+          "warm/ui/thought-bubble.svg"
+        ]
+      }
+    },
+    {
+      "id": "dots-typing",
+      "nameAr": "نقاط انتظار",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "انتظار",
+        "صمت",
+        "تفكير"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/dots-typing.svg"
+        ],
+        "family": [
+          "family/ui/dots-typing.svg"
+        ],
+        "night": [
+          "night/ui/dots-typing.svg"
+        ],
+        "warm": [
+          "warm/ui/dots-typing.svg"
+        ]
+      }
+    },
+    {
+      "id": "lightbulb",
+      "nameAr": "مصباح فكرة",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "فكرة",
+        "إلهام",
+        "حل"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/lightbulb.svg"
+        ],
+        "family": [
+          "family/ui/lightbulb.svg"
+        ],
+        "night": [
+          "night/ui/lightbulb.svg"
+        ],
+        "warm": [
+          "warm/ui/lightbulb.svg"
+        ]
+      }
+    },
+    {
+      "id": "target",
+      "nameAr": "هدف",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "هدف",
+        "غاية",
+        "تركيز"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/target.svg"
+        ],
+        "family": [
+          "family/ui/target.svg"
+        ],
+        "night": [
+          "night/ui/target.svg"
+        ],
+        "warm": [
+          "warm/ui/target.svg"
+        ]
+      }
+    },
+    {
+      "id": "flag",
+      "nameAr": "راية",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "إنجاز",
+        "وصول",
+        "هدف"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/flag.svg"
+        ],
+        "family": [
+          "family/ui/flag.svg"
+        ],
+        "night": [
+          "night/ui/flag.svg"
+        ],
+        "warm": [
+          "warm/ui/flag.svg"
+        ]
+      }
+    },
+    {
+      "id": "pin",
+      "nameAr": "دبوس موقع",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "مكان",
+        "موقع",
+        "نقطة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/pin.svg"
+        ],
+        "family": [
+          "family/ui/pin.svg"
+        ],
+        "night": [
+          "night/ui/pin.svg"
+        ],
+        "warm": [
+          "warm/ui/pin.svg"
+        ]
+      }
+    },
+    {
+      "id": "search",
+      "nameAr": "عدسة بحث",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "بحث",
+        "تدقيق",
+        "تحقق"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/search.svg"
+        ],
+        "family": [
+          "family/ui/search.svg"
+        ],
+        "night": [
+          "night/ui/search.svg"
+        ],
+        "warm": [
+          "warm/ui/search.svg"
+        ]
+      }
+    },
+    {
+      "id": "lock",
+      "nameAr": "قفل",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "قفل",
+        "منع",
+        "خصوصية"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/lock.svg"
+        ],
+        "family": [
+          "family/ui/lock.svg"
+        ],
+        "night": [
+          "night/ui/lock.svg"
+        ],
+        "warm": [
+          "warm/ui/lock.svg"
+        ]
+      }
+    },
+    {
+      "id": "unlock",
+      "nameAr": "قفل مفتوح",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "فتح",
+        "تحرر",
+        "حل"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/unlock.svg"
+        ],
+        "family": [
+          "family/ui/unlock.svg"
+        ],
+        "night": [
+          "night/ui/unlock.svg"
+        ],
+        "warm": [
+          "warm/ui/unlock.svg"
+        ]
+      }
+    },
+    {
+      "id": "key",
+      "nameAr": "مفتاح",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "مفتاح",
+        "حل",
+        "سر"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/key.svg"
+        ],
+        "family": [
+          "family/ui/key.svg"
+        ],
+        "night": [
+          "night/ui/key.svg"
+        ],
+        "warm": [
+          "warm/ui/key.svg"
+        ]
+      }
+    },
+    {
+      "id": "link",
+      "nameAr": "حلقتا سلسلة",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "ربط",
+        "علاقة",
+        "صلة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/link.svg"
+        ],
+        "family": [
+          "family/ui/link.svg"
+        ],
+        "night": [
+          "night/ui/link.svg"
+        ],
+        "warm": [
+          "warm/ui/link.svg"
+        ]
+      }
+    },
+    {
+      "id": "refresh",
+      "nameAr": "تكرار ودوران",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "تكرار",
+        "عادة",
+        "دورة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/refresh.svg"
+        ],
+        "family": [
+          "family/ui/refresh.svg"
+        ],
+        "night": [
+          "night/ui/refresh.svg"
+        ],
+        "warm": [
+          "warm/ui/refresh.svg"
+        ]
+      }
+    },
+    {
+      "id": "bell",
+      "nameAr": "جرس تنبيه",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "تنبيه",
+        "إشعار",
+        "تذكير"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/bell.svg"
+        ],
+        "family": [
+          "family/ui/bell.svg"
+        ],
+        "night": [
+          "night/ui/bell.svg"
+        ],
+        "warm": [
+          "warm/ui/bell.svg"
+        ]
+      }
+    },
+    {
+      "id": "bookmark",
+      "nameAr": "علامة حفظ",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "حفظ",
+        "تذكر"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/bookmark.svg"
+        ],
+        "family": [
+          "family/ui/bookmark.svg"
+        ],
+        "night": [
+          "night/ui/bookmark.svg"
+        ],
+        "warm": [
+          "warm/ui/bookmark.svg"
+        ]
+      }
+    },
+    {
+      "id": "star-badge",
+      "nameAr": "نجمة تقييم",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "تميز",
+        "تقييم",
+        "أفضل"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/star-badge.svg"
+        ],
+        "family": [
+          "family/ui/star-badge.svg"
+        ],
+        "night": [
+          "night/ui/star-badge.svg"
+        ],
+        "warm": [
+          "warm/ui/star-badge.svg"
+        ]
+      }
+    },
+    {
+      "id": "number-circle",
+      "nameAr": "دائرة رقم",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "رقم",
+        "ترتيب",
+        "خطوة"
+      ],
+      "note": "تُكتب فوقها الأرقام في القوالب؛ الدائرة نفسها فارغة.",
+      "files": {
+        "paper": [
+          "paper/ui/number-circle.svg"
+        ],
+        "family": [
+          "family/ui/number-circle.svg"
+        ],
+        "night": [
+          "night/ui/number-circle.svg"
+        ],
+        "warm": [
+          "warm/ui/number-circle.svg"
+        ]
+      }
+    },
+    {
+      "id": "timer",
+      "nameAr": "مؤقت",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "وقت",
+        "سرعة",
+        "عد تنازلي"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/timer.svg"
+        ],
+        "family": [
+          "family/ui/timer.svg"
+        ],
+        "night": [
+          "night/ui/timer.svg"
+        ],
+        "warm": [
+          "warm/ui/timer.svg"
+        ]
+      }
+    },
+    {
+      "id": "sparkle",
+      "nameAr": "لمعة",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "لمعان",
+        "جديد",
+        "بركة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/sparkle.svg"
+        ],
+        "family": [
+          "family/ui/sparkle.svg"
+        ],
+        "night": [
+          "night/ui/sparkle.svg"
+        ],
+        "warm": [
+          "warm/ui/sparkle.svg"
+        ]
+      }
+    },
+    {
+      "id": "burst",
+      "nameAr": "انفجار لحظة",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "مفاجأة",
+        "صدمة",
+        "لحظة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/burst.svg"
+        ],
+        "family": [
+          "family/ui/burst.svg"
+        ],
+        "night": [
+          "night/ui/burst.svg"
+        ],
+        "warm": [
+          "warm/ui/burst.svg"
+        ]
+      }
+    },
+    {
+      "id": "loading-ring",
+      "nameAr": "حلقة تقدم",
+      "category": "ui",
+      "categoryAr": "رموز وواجهة",
+      "kind": "prop",
+      "tags": [
+        "تقدم",
+        "نسبة",
+        "مرحلة"
+      ],
+      "files": {
+        "paper": [
+          "paper/ui/loading-ring.svg"
+        ],
+        "family": [
+          "family/ui/loading-ring.svg"
+        ],
+        "night": [
+          "night/ui/loading-ring.svg"
+        ],
+        "warm": [
+          "warm/ui/loading-ring.svg"
+        ]
+      }
+    },
+    {
+      "id": "heart",
+      "nameAr": "قلب",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "قلب",
+        "حب",
+        "مشاعر",
+        "إيمان"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/heart.svg"
+        ],
+        "family": [
+          "family/mind/heart.svg"
+        ],
+        "night": [
+          "night/mind/heart.svg"
+        ],
+        "warm": [
+          "warm/mind/heart.svg"
+        ]
+      }
+    },
+    {
+      "id": "heart-broken",
+      "nameAr": "قلب مكسور",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "حزن",
+        "انكسار",
+        "خذلان",
+        "ألم"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/heart-broken.svg"
+        ],
+        "family": [
+          "family/mind/heart-broken.svg"
+        ],
+        "night": [
+          "night/mind/heart-broken.svg"
+        ],
+        "warm": [
+          "warm/mind/heart-broken.svg"
+        ]
+      }
+    },
+    {
+      "id": "heart-calm",
+      "nameAr": "قلب مطمئن",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "طمأنينة",
+        "سكينة",
+        "راحة",
+        "هدوء"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/heart-calm.svg"
+        ],
+        "family": [
+          "family/mind/heart-calm.svg"
+        ],
+        "night": [
+          "night/mind/heart-calm.svg"
+        ],
+        "warm": [
+          "warm/mind/heart-calm.svg"
+        ]
+      }
+    },
+    {
+      "id": "heart-bandaged",
+      "nameAr": "قلب مضمّد",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "شفاء",
+        "جبر الخاطر",
+        "تعافٍ",
+        "مواساة"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/heart-bandaged.svg"
+        ],
+        "family": [
+          "family/mind/heart-bandaged.svg"
+        ],
+        "night": [
+          "night/mind/heart-bandaged.svg"
+        ],
+        "warm": [
+          "warm/mind/heart-bandaged.svg"
+        ]
+      }
+    },
+    {
+      "id": "heart-light",
+      "nameAr": "قلب منير",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "نور",
+        "إيمان",
+        "هداية",
+        "صفاء"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/heart-light.svg"
+        ],
+        "family": [
+          "family/mind/heart-light.svg"
+        ],
+        "night": [
+          "night/mind/heart-light.svg"
+        ],
+        "warm": [
+          "warm/mind/heart-light.svg"
+        ]
+      }
+    },
+    {
+      "id": "head-profile",
+      "nameAr": "رأس جانبي",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "عقل",
+        "تفكير",
+        "نفس",
+        "إنسان"
+      ],
+      "note": "صورة ظلية بلا ملامح؛ يمكن وضع رموز أخرى فوقها.",
+      "files": {
+        "paper": [
+          "paper/mind/head-profile.svg"
+        ],
+        "family": [
+          "family/mind/head-profile.svg"
+        ],
+        "night": [
+          "night/mind/head-profile.svg"
+        ],
+        "warm": [
+          "warm/mind/head-profile.svg"
+        ]
+      }
+    },
+    {
+      "id": "head-storm",
+      "nameAr": "رأس فيه غيمة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "هم",
+        "قلق",
+        "اكتئاب",
+        "ضيق"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/head-storm.svg"
+        ],
+        "family": [
+          "family/mind/head-storm.svg"
+        ],
+        "night": [
+          "night/mind/head-storm.svg"
+        ],
+        "warm": [
+          "warm/mind/head-storm.svg"
+        ]
+      }
+    },
+    {
+      "id": "head-gears",
+      "nameAr": "رأس يفكر",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "تفكير",
+        "تدبر",
+        "عقل",
+        "تخطيط"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/head-gears.svg"
+        ],
+        "family": [
+          "family/mind/head-gears.svg"
+        ],
+        "night": [
+          "night/mind/head-gears.svg"
+        ],
+        "warm": [
+          "warm/mind/head-gears.svg"
+        ]
+      }
+    },
+    {
+      "id": "head-tangle",
+      "nameAr": "رأس مشوش",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "تشتت",
+        "حيرة",
+        "وسواس",
+        "كثرة التفكير"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/head-tangle.svg"
+        ],
+        "family": [
+          "family/mind/head-tangle.svg"
+        ],
+        "night": [
+          "night/mind/head-tangle.svg"
+        ],
+        "warm": [
+          "warm/mind/head-tangle.svg"
+        ]
+      }
+    },
+    {
+      "id": "head-idea",
+      "nameAr": "رأس فيه فكرة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "فكرة",
+        "إلهام",
+        "وعي",
+        "فهم"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/head-idea.svg"
+        ],
+        "family": [
+          "family/mind/head-idea.svg"
+        ],
+        "night": [
+          "night/mind/head-idea.svg"
+        ],
+        "warm": [
+          "warm/mind/head-idea.svg"
+        ]
+      }
+    },
+    {
+      "id": "head-sprout",
+      "nameAr": "رأس ينبت",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "نمو",
+        "تزكية",
+        "تطور",
+        "تعلم"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/head-sprout.svg"
+        ],
+        "family": [
+          "family/mind/head-sprout.svg"
+        ],
+        "night": [
+          "night/mind/head-sprout.svg"
+        ],
+        "warm": [
+          "warm/mind/head-sprout.svg"
+        ]
+      }
+    },
+    {
+      "id": "weight-burden",
+      "nameAr": "ثقل وعبء",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "عبء",
+        "هم",
+        "ثقل",
+        "ذنوب",
+        "ضغط"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/weight-burden.svg"
+        ],
+        "family": [
+          "family/mind/weight-burden.svg"
+        ],
+        "night": [
+          "night/mind/weight-burden.svg"
+        ],
+        "warm": [
+          "warm/mind/weight-burden.svg"
+        ]
+      }
+    },
+    {
+      "id": "anchor-steady",
+      "nameAr": "مرساة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "ثبات",
+        "رسوخ",
+        "يقين",
+        "استقرار"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/anchor-steady.svg"
+        ],
+        "family": [
+          "family/mind/anchor-steady.svg"
+        ],
+        "night": [
+          "night/mind/anchor-steady.svg"
+        ],
+        "warm": [
+          "warm/mind/anchor-steady.svg"
+        ]
+      }
+    },
+    {
+      "id": "chain-broken",
+      "nameAr": "قيد مكسور",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "تحرر",
+        "ترك العادة",
+        "انعتاق",
+        "توبة"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/chain-broken.svg"
+        ],
+        "family": [
+          "family/mind/chain-broken.svg"
+        ],
+        "night": [
+          "night/mind/chain-broken.svg"
+        ],
+        "warm": [
+          "warm/mind/chain-broken.svg"
+        ]
+      }
+    },
+    {
+      "id": "cage-open",
+      "nameAr": "قفص مفتوح",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "حرية",
+        "انطلاق",
+        "تحرر",
+        "خروج"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/cage-open.svg"
+        ],
+        "family": [
+          "family/mind/cage-open.svg"
+        ],
+        "night": [
+          "night/mind/cage-open.svg"
+        ],
+        "warm": [
+          "warm/mind/cage-open.svg"
+        ]
+      }
+    },
+    {
+      "id": "balloon-rising",
+      "nameAr": "بالون يرتفع",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "خفة",
+        "فرح",
+        "انطلاق",
+        "أمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/balloon-rising.svg"
+        ],
+        "family": [
+          "family/mind/balloon-rising.svg"
+        ],
+        "night": [
+          "night/mind/balloon-rising.svg"
+        ],
+        "warm": [
+          "warm/mind/balloon-rising.svg"
+        ]
+      }
+    },
+    {
+      "id": "path-fork",
+      "nameAr": "مفترق طرق",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "اختيار",
+        "قرار",
+        "حيرة",
+        "طريق"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/path-fork.svg"
+        ],
+        "family": [
+          "family/mind/path-fork.svg"
+        ],
+        "night": [
+          "night/mind/path-fork.svg"
+        ],
+        "warm": [
+          "warm/mind/path-fork.svg"
+        ]
+      }
+    },
+    {
+      "id": "signpost",
+      "nameAr": "لافتة اتجاهات",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "اتجاه",
+        "اختيار",
+        "طريق",
+        "هداية"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/signpost.svg"
+        ],
+        "family": [
+          "family/mind/signpost.svg"
+        ],
+        "night": [
+          "night/mind/signpost.svg"
+        ],
+        "warm": [
+          "warm/mind/signpost.svg"
+        ]
+      }
+    },
+    {
+      "id": "door-light",
+      "nameAr": "باب يشع نورًا",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "أمل",
+        "فرج",
+        "فرصة",
+        "بداية"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/door-light.svg"
+        ],
+        "family": [
+          "family/mind/door-light.svg"
+        ],
+        "night": [
+          "night/mind/door-light.svg"
+        ],
+        "warm": [
+          "warm/mind/door-light.svg"
+        ]
+      }
+    },
+    {
+      "id": "tunnel-light",
+      "nameAr": "نور في آخر النفق",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "أمل",
+        "فرج",
+        "صبر",
+        "نهاية الشدة"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/tunnel-light.svg"
+        ],
+        "family": [
+          "family/mind/tunnel-light.svg"
+        ],
+        "night": [
+          "night/mind/tunnel-light.svg"
+        ],
+        "warm": [
+          "warm/mind/tunnel-light.svg"
+        ]
+      }
+    },
+    {
+      "id": "bridge-crossing",
+      "nameAr": "جسر",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "عبور",
+        "تجاوز",
+        "صلة",
+        "وصول"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/bridge-crossing.svg"
+        ],
+        "family": [
+          "family/mind/bridge-crossing.svg"
+        ],
+        "night": [
+          "night/mind/bridge-crossing.svg"
+        ],
+        "warm": [
+          "warm/mind/bridge-crossing.svg"
+        ]
+      }
+    },
+    {
+      "id": "footprints",
+      "nameAr": "آثار أقدام",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "خطوات",
+        "مسير",
+        "أثر",
+        "رحلة"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/footprints.svg"
+        ],
+        "family": [
+          "family/mind/footprints.svg"
+        ],
+        "night": [
+          "night/mind/footprints.svg"
+        ],
+        "warm": [
+          "warm/mind/footprints.svg"
+        ]
+      }
+    },
+    {
+      "id": "mountain-flag",
+      "nameAr": "قمة وراية",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "هدف",
+        "طموح",
+        "إنجاز",
+        "وصول"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/mountain-flag.svg"
+        ],
+        "family": [
+          "family/mind/mountain-flag.svg"
+        ],
+        "night": [
+          "night/mind/mountain-flag.svg"
+        ],
+        "warm": [
+          "warm/mind/mountain-flag.svg"
+        ]
+      }
+    },
+    {
+      "id": "stairs-up",
+      "nameAr": "درج صاعد",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "تقدم",
+        "ترقٍّ",
+        "تدرج",
+        "خطوات"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/stairs-up.svg"
+        ],
+        "family": [
+          "family/mind/stairs-up.svg"
+        ],
+        "night": [
+          "night/mind/stairs-up.svg"
+        ],
+        "warm": [
+          "warm/mind/stairs-up.svg"
+        ]
+      }
+    },
+    {
+      "id": "energy-low",
+      "nameAr": "طاقة منخفضة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "تعب",
+        "إرهاق",
+        "فتور",
+        "ضعف"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/energy-low.svg"
+        ],
+        "family": [
+          "family/mind/energy-low.svg"
+        ],
+        "night": [
+          "night/mind/energy-low.svg"
+        ],
+        "warm": [
+          "warm/mind/energy-low.svg"
+        ]
+      }
+    },
+    {
+      "id": "energy-half",
+      "nameAr": "طاقة متوسطة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "توسط",
+        "جهد",
+        "استمرار"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/energy-half.svg"
+        ],
+        "family": [
+          "family/mind/energy-half.svg"
+        ],
+        "night": [
+          "night/mind/energy-half.svg"
+        ],
+        "warm": [
+          "warm/mind/energy-half.svg"
+        ]
+      }
+    },
+    {
+      "id": "energy-full",
+      "nameAr": "طاقة كاملة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "نشاط",
+        "همة",
+        "قوة",
+        "حماس"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/energy-full.svg"
+        ],
+        "family": [
+          "family/mind/energy-full.svg"
+        ],
+        "night": [
+          "night/mind/energy-full.svg"
+        ],
+        "warm": [
+          "warm/mind/energy-full.svg"
+        ]
+      }
+    },
+    {
+      "id": "hourglass-patience",
+      "nameAr": "ساعة رملية",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "صبر",
+        "وقت",
+        "انتظار",
+        "عمر"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/hourglass-patience.svg"
+        ],
+        "family": [
+          "family/mind/hourglass-patience.svg"
+        ],
+        "night": [
+          "night/mind/hourglass-patience.svg"
+        ],
+        "warm": [
+          "warm/mind/hourglass-patience.svg"
+        ]
+      }
+    },
+    {
+      "id": "mirror-reflect",
+      "nameAr": "مرآة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "محاسبة النفس",
+        "تأمل",
+        "مراجعة",
+        "ذات"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/mirror-reflect.svg"
+        ],
+        "family": [
+          "family/mind/mirror-reflect.svg"
+        ],
+        "night": [
+          "night/mind/mirror-reflect.svg"
+        ],
+        "warm": [
+          "warm/mind/mirror-reflect.svg"
+        ]
+      }
+    },
+    {
+      "id": "mask-hypocrisy",
+      "nameAr": "قناع",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "نفاق",
+        "رياء",
+        "تظاهر",
+        "خداع"
+      ],
+      "note": "قناع مجرد بلا ملامح تعبيرية.",
+      "files": {
+        "paper": [
+          "paper/mind/mask-hypocrisy.svg"
+        ],
+        "family": [
+          "family/mind/mask-hypocrisy.svg"
+        ],
+        "night": [
+          "night/mind/mask-hypocrisy.svg"
+        ],
+        "warm": [
+          "warm/mind/mask-hypocrisy.svg"
+        ]
+      }
+    },
+    {
+      "id": "fire-anger",
+      "nameAr": "لهب الغضب",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "غضب",
+        "شهوة",
+        "انفعال",
+        "حرارة"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/fire-anger.svg"
+        ],
+        "family": [
+          "family/mind/fire-anger.svg"
+        ],
+        "night": [
+          "night/mind/fire-anger.svg"
+        ],
+        "warm": [
+          "warm/mind/fire-anger.svg"
+        ]
+      }
+    },
+    {
+      "id": "ice-cold",
+      "nameAr": "مكعب ثلج",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "برود",
+        "جفاء",
+        "قسوة",
+        "تبلد"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/ice-cold.svg"
+        ],
+        "family": [
+          "family/mind/ice-cold.svg"
+        ],
+        "night": [
+          "night/mind/ice-cold.svg"
+        ],
+        "warm": [
+          "warm/mind/ice-cold.svg"
+        ]
+      }
+    },
+    {
+      "id": "cloud-storm",
+      "nameAr": "غيمة عاصفة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "هم",
+        "كرب",
+        "ابتلاء",
+        "شدة"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/cloud-storm.svg"
+        ],
+        "family": [
+          "family/mind/cloud-storm.svg"
+        ],
+        "night": [
+          "night/mind/cloud-storm.svg"
+        ],
+        "warm": [
+          "warm/mind/cloud-storm.svg"
+        ]
+      }
+    },
+    {
+      "id": "sun-hope",
+      "nameAr": "شمس مشرقة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "أمل",
+        "بداية جديدة",
+        "تفاؤل",
+        "فجر"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/sun-hope.svg"
+        ],
+        "family": [
+          "family/mind/sun-hope.svg"
+        ],
+        "night": [
+          "night/mind/sun-hope.svg"
+        ],
+        "warm": [
+          "warm/mind/sun-hope.svg"
+        ]
+      }
+    },
+    {
+      "id": "maze",
+      "nameAr": "متاهة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "حيرة",
+        "ضياع",
+        "تعقيد",
+        "بحث عن مخرج"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/maze.svg"
+        ],
+        "family": [
+          "family/mind/maze.svg"
+        ],
+        "night": [
+          "night/mind/maze.svg"
+        ],
+        "warm": [
+          "warm/mind/maze.svg"
+        ]
+      }
+    },
+    {
+      "id": "scale-heart",
+      "nameAr": "ميزان القلب",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "ميزان",
+        "عدل",
+        "أولويات",
+        "دنيا وآخرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/scale-heart.svg"
+        ],
+        "family": [
+          "family/mind/scale-heart.svg"
+        ],
+        "night": [
+          "night/mind/scale-heart.svg"
+        ],
+        "warm": [
+          "warm/mind/scale-heart.svg"
+        ]
+      }
+    },
+    {
+      "id": "shield-heart",
+      "nameAr": "درع القلب",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "حماية",
+        "تحصين",
+        "وقاية",
+        "حفظ"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/shield-heart.svg"
+        ],
+        "family": [
+          "family/mind/shield-heart.svg"
+        ],
+        "night": [
+          "night/mind/shield-heart.svg"
+        ],
+        "warm": [
+          "warm/mind/shield-heart.svg"
+        ]
+      }
+    },
+    {
+      "id": "puzzle-piece",
+      "nameAr": "قطعة أحجية",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "نقص",
+        "تكامل",
+        "حل",
+        "انتماء"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/puzzle-piece.svg"
+        ],
+        "family": [
+          "family/mind/puzzle-piece.svg"
+        ],
+        "night": [
+          "night/mind/puzzle-piece.svg"
+        ],
+        "warm": [
+          "warm/mind/puzzle-piece.svg"
+        ]
+      }
+    },
+    {
+      "id": "magnet-pull",
+      "nameAr": "مغناطيس",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "جذب",
+        "شهوات",
+        "فتنة",
+        "تعلق"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/magnet-pull.svg"
+        ],
+        "family": [
+          "family/mind/magnet-pull.svg"
+        ],
+        "night": [
+          "night/mind/magnet-pull.svg"
+        ],
+        "warm": [
+          "warm/mind/magnet-pull.svg"
+        ]
+      }
+    },
+    {
+      "id": "sun",
+      "nameAr": "شمس",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "شمس",
+        "نهار",
+        "ضوء",
+        "حرارة",
+        "صباح"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/sun.svg"
+        ],
+        "family": [
+          "family/nature/sun.svg"
+        ],
+        "night": [
+          "night/nature/sun.svg"
+        ],
+        "warm": [
+          "warm/nature/sun.svg"
+        ]
+      }
+    },
+    {
+      "id": "sunrise",
+      "nameAr": "شروق الشمس",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "شروق",
+        "فجر",
+        "بداية",
+        "صباح",
+        "غروب"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/sunrise.svg"
+        ],
+        "family": [
+          "family/nature/sunrise.svg"
+        ],
+        "night": [
+          "night/nature/sunrise.svg"
+        ],
+        "warm": [
+          "warm/nature/sunrise.svg"
+        ]
+      }
+    },
+    {
+      "id": "moon-crescent",
+      "nameAr": "هلال",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "هلال",
+        "قمر",
+        "ليل",
+        "شهر",
+        "رمضان"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/moon-crescent.svg"
+        ],
+        "family": [
+          "family/nature/moon-crescent.svg"
+        ],
+        "night": [
+          "night/nature/moon-crescent.svg"
+        ],
+        "warm": [
+          "warm/nature/moon-crescent.svg"
+        ]
+      }
+    },
+    {
+      "id": "moon-full",
+      "nameAr": "بدر",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "بدر",
+        "قمر",
+        "ليل",
+        "اكتمال",
+        "منتصف الشهر"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/moon-full.svg"
+        ],
+        "family": [
+          "family/nature/moon-full.svg"
+        ],
+        "night": [
+          "night/nature/moon-full.svg"
+        ],
+        "warm": [
+          "warm/nature/moon-full.svg"
+        ]
+      }
+    },
+    {
+      "id": "star",
+      "nameAr": "نجمة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "نجم",
+        "سماء",
+        "ليل",
+        "هداية"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/star.svg"
+        ],
+        "family": [
+          "family/nature/star.svg"
+        ],
+        "night": [
+          "night/nature/star.svg"
+        ],
+        "warm": [
+          "warm/nature/star.svg"
+        ]
+      }
+    },
+    {
+      "id": "stars-cluster",
+      "nameAr": "نجوم",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "نجوم",
+        "سماء",
+        "ليل",
+        "كثرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/stars-cluster.svg"
+        ],
+        "family": [
+          "family/nature/stars-cluster.svg"
+        ],
+        "night": [
+          "night/nature/stars-cluster.svg"
+        ],
+        "warm": [
+          "warm/nature/stars-cluster.svg"
+        ]
+      }
+    },
+    {
+      "id": "comet",
+      "nameAr": "مذنب",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "مذنب",
+        "شهاب",
+        "فضاء",
+        "سرعة"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/comet.svg"
+        ],
+        "family": [
+          "family/nature/comet.svg"
+        ],
+        "night": [
+          "night/nature/comet.svg"
+        ],
+        "warm": [
+          "warm/nature/comet.svg"
+        ]
+      }
+    },
+    {
+      "id": "earth-globe",
+      "nameAr": "كوكب الأرض",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "الأرض",
+        "العالم",
+        "كوكب",
+        "الناس"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/earth-globe.svg"
+        ],
+        "family": [
+          "family/nature/earth-globe.svg"
+        ],
+        "night": [
+          "night/nature/earth-globe.svg"
+        ],
+        "warm": [
+          "warm/nature/earth-globe.svg"
+        ]
+      }
+    },
+    {
+      "id": "planet-ringed",
+      "nameAr": "كوكب بحلقة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "كوكب",
+        "فضاء",
+        "زحل",
+        "كون"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/planet-ringed.svg"
+        ],
+        "family": [
+          "family/nature/planet-ringed.svg"
+        ],
+        "night": [
+          "night/nature/planet-ringed.svg"
+        ],
+        "warm": [
+          "warm/nature/planet-ringed.svg"
+        ]
+      }
+    },
+    {
+      "id": "cloud",
+      "nameAr": "غيمة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "غيم",
+        "سحاب",
+        "سماء",
+        "طقس"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/cloud.svg"
+        ],
+        "family": [
+          "family/nature/cloud.svg"
+        ],
+        "night": [
+          "night/nature/cloud.svg"
+        ],
+        "warm": [
+          "warm/nature/cloud.svg"
+        ]
+      }
+    },
+    {
+      "id": "cloud-rain",
+      "nameAr": "غيمة ممطرة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "مطر",
+        "غيث",
+        "سحاب",
+        "رحمة",
+        "شتاء"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/cloud-rain.svg"
+        ],
+        "family": [
+          "family/nature/cloud-rain.svg"
+        ],
+        "night": [
+          "night/nature/cloud-rain.svg"
+        ],
+        "warm": [
+          "warm/nature/cloud-rain.svg"
+        ]
+      }
+    },
+    {
+      "id": "cloud-lightning",
+      "nameAr": "برق ورعد",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "برق",
+        "رعد",
+        "عاصفة",
+        "خوف",
+        "قوة"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/cloud-lightning.svg"
+        ],
+        "family": [
+          "family/nature/cloud-lightning.svg"
+        ],
+        "night": [
+          "night/nature/cloud-lightning.svg"
+        ],
+        "warm": [
+          "warm/nature/cloud-lightning.svg"
+        ]
+      }
+    },
+    {
+      "id": "rainbow",
+      "nameAr": "قوس قزح",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "قوس",
+        "ألوان",
+        "أمل",
+        "بعد المطر"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/rainbow.svg"
+        ],
+        "family": [
+          "family/nature/rainbow.svg"
+        ],
+        "night": [
+          "night/nature/rainbow.svg"
+        ],
+        "warm": [
+          "warm/nature/rainbow.svg"
+        ]
+      }
+    },
+    {
+      "id": "snowflake",
+      "nameAr": "ندفة ثلج",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "ثلج",
+        "برد",
+        "شتاء",
+        "صقيع"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/snowflake.svg"
+        ],
+        "family": [
+          "family/nature/snowflake.svg"
+        ],
+        "night": [
+          "night/nature/snowflake.svg"
+        ],
+        "warm": [
+          "warm/nature/snowflake.svg"
+        ]
+      }
+    },
+    {
+      "id": "wind",
+      "nameAr": "ريح",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "ريح",
+        "هواء",
+        "رياح",
+        "تغيير"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/wind.svg"
+        ],
+        "family": [
+          "family/nature/wind.svg"
+        ],
+        "night": [
+          "night/nature/wind.svg"
+        ],
+        "warm": [
+          "warm/nature/wind.svg"
+        ]
+      }
+    },
+    {
+      "id": "seed",
+      "nameAr": "بذرة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "بذرة",
+        "بداية",
+        "نية",
+        "زرع",
+        "إمكان"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/seed.svg"
+        ],
+        "family": [
+          "family/nature/seed.svg"
+        ],
+        "night": [
+          "night/nature/seed.svg"
+        ],
+        "warm": [
+          "warm/nature/seed.svg"
+        ]
+      }
+    },
+    {
+      "id": "sprout",
+      "nameAr": "نبتة صغيرة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "نبتة",
+        "نمو",
+        "بداية",
+        "أمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/sprout.svg"
+        ],
+        "family": [
+          "family/nature/sprout.svg"
+        ],
+        "night": [
+          "night/nature/sprout.svg"
+        ],
+        "warm": [
+          "warm/nature/sprout.svg"
+        ]
+      }
+    },
+    {
+      "id": "plant-young",
+      "nameAr": "نبتة في أصيص",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "نبات",
+        "نمو",
+        "رعاية",
+        "تربية"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/plant-young.svg"
+        ],
+        "family": [
+          "family/nature/plant-young.svg"
+        ],
+        "night": [
+          "night/nature/plant-young.svg"
+        ],
+        "warm": [
+          "warm/nature/plant-young.svg"
+        ]
+      }
+    },
+    {
+      "id": "flower",
+      "nameAr": "زهرة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "زهرة",
+        "ورد",
+        "جمال",
+        "ربيع"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/flower.svg"
+        ],
+        "family": [
+          "family/nature/flower.svg"
+        ],
+        "night": [
+          "night/nature/flower.svg"
+        ],
+        "warm": [
+          "warm/nature/flower.svg"
+        ]
+      }
+    },
+    {
+      "id": "leaf",
+      "nameAr": "ورقة شجر",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "ورقة",
+        "شجر",
+        "خريف",
+        "طبيعة"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/leaf.svg"
+        ],
+        "family": [
+          "family/nature/leaf.svg"
+        ],
+        "night": [
+          "night/nature/leaf.svg"
+        ],
+        "warm": [
+          "warm/nature/leaf.svg"
+        ]
+      }
+    },
+    {
+      "id": "tree",
+      "nameAr": "شجرة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "شجرة",
+        "ظل",
+        "ثبات",
+        "نمو",
+        "صدقة جارية"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/tree.svg"
+        ],
+        "family": [
+          "family/nature/tree.svg"
+        ],
+        "night": [
+          "night/nature/tree.svg"
+        ],
+        "warm": [
+          "warm/nature/tree.svg"
+        ]
+      }
+    },
+    {
+      "id": "fruit-tree",
+      "nameAr": "شجرة مثمرة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "ثمر",
+        "شجرة",
+        "عطاء",
+        "حصاد",
+        "أجر"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/fruit-tree.svg"
+        ],
+        "family": [
+          "family/nature/fruit-tree.svg"
+        ],
+        "night": [
+          "night/nature/fruit-tree.svg"
+        ],
+        "warm": [
+          "warm/nature/fruit-tree.svg"
+        ]
+      }
+    },
+    {
+      "id": "tree-bare",
+      "nameAr": "شجرة عارية",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "شتاء",
+        "خريف",
+        "جفاف",
+        "ذبول",
+        "صبر"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/tree-bare.svg"
+        ],
+        "family": [
+          "family/nature/tree-bare.svg"
+        ],
+        "night": [
+          "night/nature/tree-bare.svg"
+        ],
+        "warm": [
+          "warm/nature/tree-bare.svg"
+        ]
+      }
+    },
+    {
+      "id": "palm-tree",
+      "nameAr": "نخلة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "نخلة",
+        "نخيل",
+        "تمر",
+        "صحراء",
+        "ثبات"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/palm-tree.svg"
+        ],
+        "family": [
+          "family/nature/palm-tree.svg"
+        ],
+        "night": [
+          "night/nature/palm-tree.svg"
+        ],
+        "warm": [
+          "warm/nature/palm-tree.svg"
+        ]
+      }
+    },
+    {
+      "id": "mountain",
+      "nameAr": "جبل",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "جبل",
+        "رسوخ",
+        "صعوبة",
+        "قمة",
+        "تحدي"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/mountain.svg"
+        ],
+        "family": [
+          "family/nature/mountain.svg"
+        ],
+        "night": [
+          "night/nature/mountain.svg"
+        ],
+        "warm": [
+          "warm/nature/mountain.svg"
+        ]
+      }
+    },
+    {
+      "id": "hills",
+      "nameAr": "تلال",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "تلال",
+        "مرج",
+        "ريف",
+        "خضرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/hills.svg"
+        ],
+        "family": [
+          "family/nature/hills.svg"
+        ],
+        "night": [
+          "night/nature/hills.svg"
+        ],
+        "warm": [
+          "warm/nature/hills.svg"
+        ]
+      }
+    },
+    {
+      "id": "desert-dune",
+      "nameAr": "كثبان رملية",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "صحراء",
+        "رمل",
+        "كثبان",
+        "عطش",
+        "سفر"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/desert-dune.svg"
+        ],
+        "family": [
+          "family/nature/desert-dune.svg"
+        ],
+        "night": [
+          "night/nature/desert-dune.svg"
+        ],
+        "warm": [
+          "warm/nature/desert-dune.svg"
+        ]
+      }
+    },
+    {
+      "id": "oasis",
+      "nameAr": "واحة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "واحة",
+        "ماء",
+        "صحراء",
+        "نجاة",
+        "راحة"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/oasis.svg"
+        ],
+        "family": [
+          "family/nature/oasis.svg"
+        ],
+        "night": [
+          "night/nature/oasis.svg"
+        ],
+        "warm": [
+          "warm/nature/oasis.svg"
+        ]
+      }
+    },
+    {
+      "id": "rock",
+      "nameAr": "صخرة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "صخر",
+        "حجر",
+        "قسوة",
+        "ثبات"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/rock.svg"
+        ],
+        "family": [
+          "family/nature/rock.svg"
+        ],
+        "night": [
+          "night/nature/rock.svg"
+        ],
+        "warm": [
+          "warm/nature/rock.svg"
+        ]
+      }
+    },
+    {
+      "id": "water-drop",
+      "nameAr": "قطرة ماء",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "ماء",
+        "قطرة",
+        "حياة",
+        "طهارة",
+        "وضوء"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/water-drop.svg"
+        ],
+        "family": [
+          "family/nature/water-drop.svg"
+        ],
+        "night": [
+          "night/nature/water-drop.svg"
+        ],
+        "warm": [
+          "warm/nature/water-drop.svg"
+        ]
+      }
+    },
+    {
+      "id": "wave",
+      "nameAr": "موجة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "موج",
+        "بحر",
+        "قوة",
+        "فتنة",
+        "اضطراب"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/wave.svg"
+        ],
+        "family": [
+          "family/nature/wave.svg"
+        ],
+        "night": [
+          "night/nature/wave.svg"
+        ],
+        "warm": [
+          "warm/nature/wave.svg"
+        ]
+      }
+    },
+    {
+      "id": "river",
+      "nameAr": "نهر",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "نهر",
+        "جريان",
+        "ماء",
+        "استمرار"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/river.svg"
+        ],
+        "family": [
+          "family/nature/river.svg"
+        ],
+        "night": [
+          "night/nature/river.svg"
+        ],
+        "warm": [
+          "warm/nature/river.svg"
+        ]
+      }
+    },
+    {
+      "id": "campfire",
+      "nameAr": "نار",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "نار",
+        "لهب",
+        "دفء",
+        "خطر",
+        "عذاب"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/campfire.svg"
+        ],
+        "family": [
+          "family/nature/campfire.svg"
+        ],
+        "night": [
+          "night/nature/campfire.svg"
+        ],
+        "warm": [
+          "warm/nature/campfire.svg"
+        ]
+      }
+    },
+    {
+      "id": "bird-flying",
+      "nameAr": "طائر يحلق",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "طير",
+        "حرية",
+        "رزق",
+        "توكل",
+        "سماء"
+      ],
+      "note": "صورة ظلية بلا ملامح.",
+      "files": {
+        "paper": [
+          "paper/nature/bird-flying.svg"
+        ],
+        "family": [
+          "family/nature/bird-flying.svg"
+        ],
+        "night": [
+          "night/nature/bird-flying.svg"
+        ],
+        "warm": [
+          "warm/nature/bird-flying.svg"
+        ]
+      }
+    },
+    {
+      "id": "butterfly",
+      "nameAr": "فراشة",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "فراشة",
+        "تحول",
+        "جمال",
+        "ربيع"
+      ],
+      "note": "صورة ظلية بلا ملامح.",
+      "files": {
+        "paper": [
+          "paper/nature/butterfly.svg"
+        ],
+        "family": [
+          "family/nature/butterfly.svg"
+        ],
+        "night": [
+          "night/nature/butterfly.svg"
+        ],
+        "warm": [
+          "warm/nature/butterfly.svg"
+        ]
+      }
+    },
+    {
+      "id": "house",
+      "nameAr": "بيت",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "بيت",
+        "منزل",
+        "أسرة",
+        "مسكن"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/house.svg"
+        ],
+        "family": [
+          "family/home/house.svg"
+        ],
+        "night": [
+          "night/home/house.svg"
+        ],
+        "warm": [
+          "warm/home/house.svg"
+        ]
+      }
+    },
+    {
+      "id": "house-warm",
+      "nameAr": "بيت دافئ",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "بيت",
+        "دفء",
+        "أسرة",
+        "سكينة",
+        "مدخنة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/house-warm.svg"
+        ],
+        "family": [
+          "family/home/house-warm.svg"
+        ],
+        "night": [
+          "night/home/house-warm.svg"
+        ],
+        "warm": [
+          "warm/home/house-warm.svg"
+        ]
+      }
+    },
+    {
+      "id": "door",
+      "nameAr": "باب",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "باب",
+        "دخول",
+        "بيت",
+        "استئذان"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/door.svg"
+        ],
+        "family": [
+          "family/home/door.svg"
+        ],
+        "night": [
+          "night/home/door.svg"
+        ],
+        "warm": [
+          "warm/home/door.svg"
+        ]
+      }
+    },
+    {
+      "id": "door-open",
+      "nameAr": "باب مفتوح",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "باب",
+        "فتح",
+        "ترحيب",
+        "فرصة",
+        "خروج"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/door-open.svg"
+        ],
+        "family": [
+          "family/home/door-open.svg"
+        ],
+        "night": [
+          "night/home/door-open.svg"
+        ],
+        "warm": [
+          "warm/home/door-open.svg"
+        ]
+      }
+    },
+    {
+      "id": "window",
+      "nameAr": "نافذة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "نافذة",
+        "شباك",
+        "نور",
+        "إطلالة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/window.svg"
+        ],
+        "family": [
+          "family/home/window.svg"
+        ],
+        "night": [
+          "night/home/window.svg"
+        ],
+        "warm": [
+          "warm/home/window.svg"
+        ]
+      }
+    },
+    {
+      "id": "table",
+      "nameAr": "طاولة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "طاولة",
+        "مائدة",
+        "أثاث"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/table.svg"
+        ],
+        "family": [
+          "family/home/table.svg"
+        ],
+        "night": [
+          "night/home/table.svg"
+        ],
+        "warm": [
+          "warm/home/table.svg"
+        ]
+      }
+    },
+    {
+      "id": "chair",
+      "nameAr": "كرسي",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "كرسي",
+        "جلوس",
+        "أثاث"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/chair.svg"
+        ],
+        "family": [
+          "family/home/chair.svg"
+        ],
+        "night": [
+          "night/home/chair.svg"
+        ],
+        "warm": [
+          "warm/home/chair.svg"
+        ]
+      }
+    },
+    {
+      "id": "sofa",
+      "nameAr": "أريكة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "أريكة",
+        "كنبة",
+        "جلسة",
+        "راحة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/sofa.svg"
+        ],
+        "family": [
+          "family/home/sofa.svg"
+        ],
+        "night": [
+          "night/home/sofa.svg"
+        ],
+        "warm": [
+          "warm/home/sofa.svg"
+        ]
+      }
+    },
+    {
+      "id": "bed",
+      "nameAr": "سرير",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "سرير",
+        "نوم",
+        "راحة",
+        "ليل"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/bed.svg"
+        ],
+        "family": [
+          "family/home/bed.svg"
+        ],
+        "night": [
+          "night/home/bed.svg"
+        ],
+        "warm": [
+          "warm/home/bed.svg"
+        ]
+      }
+    },
+    {
+      "id": "cradle",
+      "nameAr": "مهد طفل",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "مهد",
+        "طفل",
+        "رضيع",
+        "أمومة",
+        "ولادة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/cradle.svg"
+        ],
+        "family": [
+          "family/home/cradle.svg"
+        ],
+        "night": [
+          "night/home/cradle.svg"
+        ],
+        "warm": [
+          "warm/home/cradle.svg"
+        ]
+      }
+    },
+    {
+      "id": "lamp-floor",
+      "nameAr": "مصباح أرضي",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "مصباح",
+        "إنارة",
+        "ضوء",
+        "مساء"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/lamp-floor.svg"
+        ],
+        "family": [
+          "family/home/lamp-floor.svg"
+        ],
+        "night": [
+          "night/home/lamp-floor.svg"
+        ],
+        "warm": [
+          "warm/home/lamp-floor.svg"
+        ]
+      }
+    },
+    {
+      "id": "lamp-desk",
+      "nameAr": "مصباح مكتب",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "مصباح",
+        "مذاكرة",
+        "سهر",
+        "قراءة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/lamp-desk.svg"
+        ],
+        "family": [
+          "family/home/lamp-desk.svg"
+        ],
+        "night": [
+          "night/home/lamp-desk.svg"
+        ],
+        "warm": [
+          "warm/home/lamp-desk.svg"
+        ]
+      }
+    },
+    {
+      "id": "kettle",
+      "nameAr": "إبريق",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "إبريق",
+        "شاي",
+        "ضيافة",
+        "مطبخ"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/kettle.svg"
+        ],
+        "family": [
+          "family/home/kettle.svg"
+        ],
+        "night": [
+          "night/home/kettle.svg"
+        ],
+        "warm": [
+          "warm/home/kettle.svg"
+        ]
+      }
+    },
+    {
+      "id": "tea-glass",
+      "nameAr": "كأس شاي",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "شاي",
+        "استكانة",
+        "ضيافة",
+        "جلسة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/tea-glass.svg"
+        ],
+        "family": [
+          "family/home/tea-glass.svg"
+        ],
+        "night": [
+          "night/home/tea-glass.svg"
+        ],
+        "warm": [
+          "warm/home/tea-glass.svg"
+        ]
+      }
+    },
+    {
+      "id": "cup",
+      "nameAr": "فنجان",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "كوب",
+        "قهوة",
+        "صباح",
+        "مشروب"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/cup.svg"
+        ],
+        "family": [
+          "family/home/cup.svg"
+        ],
+        "night": [
+          "night/home/cup.svg"
+        ],
+        "warm": [
+          "warm/home/cup.svg"
+        ]
+      }
+    },
+    {
+      "id": "plate-food",
+      "nameAr": "طبق طعام",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "طعام",
+        "أكل",
+        "وجبة",
+        "نعمة",
+        "رزق"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/plate-food.svg"
+        ],
+        "family": [
+          "family/home/plate-food.svg"
+        ],
+        "night": [
+          "night/home/plate-food.svg"
+        ],
+        "warm": [
+          "warm/home/plate-food.svg"
+        ]
+      }
+    },
+    {
+      "id": "dining-set",
+      "nameAr": "مائدة طعام",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "مائدة",
+        "اجتماع",
+        "أسرة",
+        "طعام",
+        "ضيافة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/dining-set.svg"
+        ],
+        "family": [
+          "family/home/dining-set.svg"
+        ],
+        "night": [
+          "night/home/dining-set.svg"
+        ],
+        "warm": [
+          "warm/home/dining-set.svg"
+        ]
+      }
+    },
+    {
+      "id": "bowl-soup",
+      "nameAr": "صحن حساء",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "حساء",
+        "شوربة",
+        "طعام",
+        "دفء",
+        "إفطار"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/bowl-soup.svg"
+        ],
+        "family": [
+          "family/home/bowl-soup.svg"
+        ],
+        "night": [
+          "night/home/bowl-soup.svg"
+        ],
+        "warm": [
+          "warm/home/bowl-soup.svg"
+        ]
+      }
+    },
+    {
+      "id": "wall-clock",
+      "nameAr": "ساعة حائط",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "ساعة",
+        "وقت",
+        "زمن",
+        "عمر"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/wall-clock.svg"
+        ],
+        "family": [
+          "family/home/wall-clock.svg"
+        ],
+        "night": [
+          "night/home/wall-clock.svg"
+        ],
+        "warm": [
+          "warm/home/wall-clock.svg"
+        ]
+      }
+    },
+    {
+      "id": "frame-landscape",
+      "nameAr": "لوحة منظر",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "لوحة",
+        "منظر",
+        "جدار",
+        "زينة",
+        "طبيعة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/frame-landscape.svg"
+        ],
+        "family": [
+          "family/home/frame-landscape.svg"
+        ],
+        "night": [
+          "night/home/frame-landscape.svg"
+        ],
+        "warm": [
+          "warm/home/frame-landscape.svg"
+        ]
+      }
+    },
+    {
+      "id": "toy-ball",
+      "nameAr": "كرة لعب",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "كرة",
+        "لعب",
+        "طفولة",
+        "أطفال"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/toy-ball.svg"
+        ],
+        "family": [
+          "family/home/toy-ball.svg"
+        ],
+        "night": [
+          "night/home/toy-ball.svg"
+        ],
+        "warm": [
+          "warm/home/toy-ball.svg"
+        ]
+      }
+    },
+    {
+      "id": "toy-blocks",
+      "nameAr": "مكعبات لعب",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "مكعبات",
+        "لعب",
+        "طفولة",
+        "بناء"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/toy-blocks.svg"
+        ],
+        "family": [
+          "family/home/toy-blocks.svg"
+        ],
+        "night": [
+          "night/home/toy-blocks.svg"
+        ],
+        "warm": [
+          "warm/home/toy-blocks.svg"
+        ]
+      }
+    },
+    {
+      "id": "school-bag",
+      "nameAr": "حقيبة مدرسية",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "حقيبة",
+        "مدرسة",
+        "طالب",
+        "أطفال",
+        "تعلم"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/school-bag.svg"
+        ],
+        "family": [
+          "family/home/school-bag.svg"
+        ],
+        "night": [
+          "night/home/school-bag.svg"
+        ],
+        "warm": [
+          "warm/home/school-bag.svg"
+        ]
+      }
+    },
+    {
+      "id": "shoes-pair",
+      "nameAr": "زوج أحذية",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "حذاء",
+        "خروج",
+        "مشي",
+        "سفر"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/shoes-pair.svg"
+        ],
+        "family": [
+          "family/home/shoes-pair.svg"
+        ],
+        "night": [
+          "night/home/shoes-pair.svg"
+        ],
+        "warm": [
+          "warm/home/shoes-pair.svg"
+        ]
+      }
+    },
+    {
+      "id": "plant-pot",
+      "nameAr": "نبتة في أصيص",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "نبتة",
+        "زرع",
+        "نمو",
+        "رعاية"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/plant-pot.svg"
+        ],
+        "family": [
+          "family/home/plant-pot.svg"
+        ],
+        "night": [
+          "night/home/plant-pot.svg"
+        ],
+        "warm": [
+          "warm/home/plant-pot.svg"
+        ]
+      }
+    },
+    {
+      "id": "gift-box",
+      "nameAr": "صندوق هدية",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "هدية",
+        "عيد",
+        "فرح",
+        "مودة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/gift-box.svg"
+        ],
+        "family": [
+          "family/home/gift-box.svg"
+        ],
+        "night": [
+          "night/home/gift-box.svg"
+        ],
+        "warm": [
+          "warm/home/gift-box.svg"
+        ]
+      }
+    },
+    {
+      "id": "envelope",
+      "nameAr": "ظرف رسالة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "رسالة",
+        "بريد",
+        "تواصل",
+        "خبر"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/envelope.svg"
+        ],
+        "family": [
+          "family/home/envelope.svg"
+        ],
+        "night": [
+          "night/home/envelope.svg"
+        ],
+        "warm": [
+          "warm/home/envelope.svg"
+        ]
+      }
+    },
+    {
+      "id": "letter-open",
+      "nameAr": "رسالة مفتوحة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "رسالة",
+        "خبر",
+        "وصية",
+        "قراءة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/letter-open.svg"
+        ],
+        "family": [
+          "family/home/letter-open.svg"
+        ],
+        "night": [
+          "night/home/letter-open.svg"
+        ],
+        "warm": [
+          "warm/home/letter-open.svg"
+        ]
+      }
+    },
+    {
+      "id": "keys-house",
+      "nameAr": "مفاتيح البيت",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "مفاتيح",
+        "بيت",
+        "أمانة",
+        "عودة"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/keys-house.svg"
+        ],
+        "family": [
+          "family/home/keys-house.svg"
+        ],
+        "night": [
+          "night/home/keys-house.svg"
+        ],
+        "warm": [
+          "warm/home/keys-house.svg"
+        ]
+      }
+    },
+    {
+      "id": "fridge",
+      "nameAr": "ثلاجة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "ثلاجة",
+        "مطبخ",
+        "طعام",
+        "تخزين"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/fridge.svg"
+        ],
+        "family": [
+          "family/home/fridge.svg"
+        ],
+        "night": [
+          "night/home/fridge.svg"
+        ],
+        "warm": [
+          "warm/home/fridge.svg"
+        ]
+      }
+    },
+    {
+      "id": "washing-machine",
+      "nameAr": "غسالة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "غسالة",
+        "غسيل",
+        "نظافة",
+        "عمل البيت"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/washing-machine.svg"
+        ],
+        "family": [
+          "family/home/washing-machine.svg"
+        ],
+        "night": [
+          "night/home/washing-machine.svg"
+        ],
+        "warm": [
+          "warm/home/washing-machine.svg"
+        ]
+      }
+    },
+    {
+      "id": "broom",
+      "nameAr": "مكنسة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "مكنسة",
+        "تنظيف",
+        "نظافة",
+        "عمل البيت"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/broom.svg"
+        ],
+        "family": [
+          "family/home/broom.svg"
+        ],
+        "night": [
+          "night/home/broom.svg"
+        ],
+        "warm": [
+          "warm/home/broom.svg"
+        ]
+      }
+    },
+    {
+      "id": "rug",
+      "nameAr": "سجادة بيت",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "سجادة",
+        "بساط",
+        "جلسة",
+        "بيت"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/rug.svg"
+        ],
+        "family": [
+          "family/home/rug.svg"
+        ],
+        "night": [
+          "night/home/rug.svg"
+        ],
+        "warm": [
+          "warm/home/rug.svg"
+        ]
+      }
+    },
+    {
+      "id": "smartphone",
+      "nameAr": "هاتف ذكي",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "هاتف",
+        "جوال",
+        "تقنية",
+        "تطبيقات"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/smartphone.svg"
+        ],
+        "family": [
+          "family/daily/smartphone.svg"
+        ],
+        "night": [
+          "night/daily/smartphone.svg"
+        ],
+        "warm": [
+          "warm/daily/smartphone.svg"
+        ]
+      }
+    },
+    {
+      "id": "phone-notifications",
+      "nameAr": "هاتف بإشعارات",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "إشعارات",
+        "تنبيهات",
+        "هاتف",
+        "تشتت",
+        "انشغال"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/phone-notifications.svg"
+        ],
+        "family": [
+          "family/daily/phone-notifications.svg"
+        ],
+        "night": [
+          "night/daily/phone-notifications.svg"
+        ],
+        "warm": [
+          "warm/daily/phone-notifications.svg"
+        ]
+      }
+    },
+    {
+      "id": "phone-scroll",
+      "nameAr": "تصفح الهاتف",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "تصفح",
+        "تمرير",
+        "إدمان",
+        "وسائل التواصل",
+        "وقت ضائع"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/phone-scroll.svg"
+        ],
+        "family": [
+          "family/daily/phone-scroll.svg"
+        ],
+        "night": [
+          "night/daily/phone-scroll.svg"
+        ],
+        "warm": [
+          "warm/daily/phone-scroll.svg"
+        ]
+      }
+    },
+    {
+      "id": "laptop",
+      "nameAr": "حاسوب محمول",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "حاسوب",
+        "لابتوب",
+        "عمل",
+        "دراسة",
+        "تقنية"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/laptop.svg"
+        ],
+        "family": [
+          "family/daily/laptop.svg"
+        ],
+        "night": [
+          "night/daily/laptop.svg"
+        ],
+        "warm": [
+          "warm/daily/laptop.svg"
+        ]
+      }
+    },
+    {
+      "id": "desktop-monitor",
+      "nameAr": "شاشة حاسوب",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "حاسوب",
+        "شاشة",
+        "مكتب",
+        "عمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/desktop-monitor.svg"
+        ],
+        "family": [
+          "family/daily/desktop-monitor.svg"
+        ],
+        "night": [
+          "night/daily/desktop-monitor.svg"
+        ],
+        "warm": [
+          "warm/daily/desktop-monitor.svg"
+        ]
+      }
+    },
+    {
+      "id": "tv",
+      "nameAr": "تلفاز",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "تلفاز",
+        "شاشة",
+        "مشاهدة",
+        "إعلام"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/tv.svg"
+        ],
+        "family": [
+          "family/daily/tv.svg"
+        ],
+        "night": [
+          "night/daily/tv.svg"
+        ],
+        "warm": [
+          "warm/daily/tv.svg"
+        ]
+      }
+    },
+    {
+      "id": "headphones",
+      "nameAr": "سماعات رأس",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "سماعات",
+        "استماع",
+        "عزلة",
+        "صوت"
+      ],
+      "note": "للاستماع إلى درس أو محاضرة؛ لا تُقرن برموز موسيقية.",
+      "files": {
+        "paper": [
+          "paper/daily/headphones.svg"
+        ],
+        "family": [
+          "family/daily/headphones.svg"
+        ],
+        "night": [
+          "night/daily/headphones.svg"
+        ],
+        "warm": [
+          "warm/daily/headphones.svg"
+        ]
+      }
+    },
+    {
+      "id": "game-controller",
+      "nameAr": "يد ألعاب",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "ألعاب",
+        "لعب",
+        "ترفيه",
+        "إدمان"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/game-controller.svg"
+        ],
+        "family": [
+          "family/daily/game-controller.svg"
+        ],
+        "night": [
+          "night/daily/game-controller.svg"
+        ],
+        "warm": [
+          "warm/daily/game-controller.svg"
+        ]
+      }
+    },
+    {
+      "id": "wifi",
+      "nameAr": "شبكة لاسلكية",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "إنترنت",
+        "شبكة",
+        "اتصال",
+        "واي فاي"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/wifi.svg"
+        ],
+        "family": [
+          "family/daily/wifi.svg"
+        ],
+        "night": [
+          "night/daily/wifi.svg"
+        ],
+        "warm": [
+          "warm/daily/wifi.svg"
+        ]
+      }
+    },
+    {
+      "id": "alarm-clock",
+      "nameAr": "منبه",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "منبه",
+        "استيقاظ",
+        "فجر",
+        "وقت",
+        "صباح"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/alarm-clock.svg"
+        ],
+        "family": [
+          "family/daily/alarm-clock.svg"
+        ],
+        "night": [
+          "night/daily/alarm-clock.svg"
+        ],
+        "warm": [
+          "warm/daily/alarm-clock.svg"
+        ]
+      }
+    },
+    {
+      "id": "calendar",
+      "nameAr": "تقويم",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "تقويم",
+        "موعد",
+        "أيام",
+        "تخطيط",
+        "شهر"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/calendar.svg"
+        ],
+        "family": [
+          "family/daily/calendar.svg"
+        ],
+        "night": [
+          "night/daily/calendar.svg"
+        ],
+        "warm": [
+          "warm/daily/calendar.svg"
+        ]
+      }
+    },
+    {
+      "id": "wristwatch",
+      "nameAr": "ساعة يد",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "ساعة",
+        "وقت",
+        "موعد",
+        "التزام"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/wristwatch.svg"
+        ],
+        "family": [
+          "family/daily/wristwatch.svg"
+        ],
+        "night": [
+          "night/daily/wristwatch.svg"
+        ],
+        "warm": [
+          "warm/daily/wristwatch.svg"
+        ]
+      }
+    },
+    {
+      "id": "car",
+      "nameAr": "سيارة",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "سيارة",
+        "سفر",
+        "طريق",
+        "تنقل"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/car.svg"
+        ],
+        "family": [
+          "family/daily/car.svg"
+        ],
+        "night": [
+          "night/daily/car.svg"
+        ],
+        "warm": [
+          "warm/daily/car.svg"
+        ]
+      }
+    },
+    {
+      "id": "bus",
+      "nameAr": "حافلة",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "حافلة",
+        "باص",
+        "مدرسة",
+        "تنقل",
+        "رحلة"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/bus.svg"
+        ],
+        "family": [
+          "family/daily/bus.svg"
+        ],
+        "night": [
+          "night/daily/bus.svg"
+        ],
+        "warm": [
+          "warm/daily/bus.svg"
+        ]
+      }
+    },
+    {
+      "id": "bicycle",
+      "nameAr": "دراجة",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "دراجة",
+        "رياضة",
+        "توازن",
+        "حركة"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/bicycle.svg"
+        ],
+        "family": [
+          "family/daily/bicycle.svg"
+        ],
+        "night": [
+          "night/daily/bicycle.svg"
+        ],
+        "warm": [
+          "warm/daily/bicycle.svg"
+        ]
+      }
+    },
+    {
+      "id": "road",
+      "nameAr": "طريق",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "طريق",
+        "مسار",
+        "رحلة",
+        "مستقبل",
+        "سفر"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/road.svg"
+        ],
+        "family": [
+          "family/daily/road.svg"
+        ],
+        "night": [
+          "night/daily/road.svg"
+        ],
+        "warm": [
+          "warm/daily/road.svg"
+        ]
+      }
+    },
+    {
+      "id": "traffic-light",
+      "nameAr": "إشارة مرور",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "إشارة",
+        "توقف",
+        "انتظار",
+        "قواعد",
+        "مرور"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/traffic-light.svg"
+        ],
+        "family": [
+          "family/daily/traffic-light.svg"
+        ],
+        "night": [
+          "night/daily/traffic-light.svg"
+        ],
+        "warm": [
+          "warm/daily/traffic-light.svg"
+        ]
+      }
+    },
+    {
+      "id": "briefcase",
+      "nameAr": "حقيبة عمل",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "عمل",
+        "وظيفة",
+        "مهنة",
+        "كسب"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/briefcase.svg"
+        ],
+        "family": [
+          "family/daily/briefcase.svg"
+        ],
+        "night": [
+          "night/daily/briefcase.svg"
+        ],
+        "warm": [
+          "warm/daily/briefcase.svg"
+        ]
+      }
+    },
+    {
+      "id": "glasses",
+      "nameAr": "نظارة",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "نظارة",
+        "رؤية",
+        "بصيرة",
+        "قراءة"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/glasses.svg"
+        ],
+        "family": [
+          "family/daily/glasses.svg"
+        ],
+        "night": [
+          "night/daily/glasses.svg"
+        ],
+        "warm": [
+          "warm/daily/glasses.svg"
+        ]
+      }
+    },
+    {
+      "id": "pen",
+      "nameAr": "قلم حبر",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "قلم",
+        "كتابة",
+        "توقيع",
+        "عمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/pen.svg"
+        ],
+        "family": [
+          "family/daily/pen.svg"
+        ],
+        "night": [
+          "night/daily/pen.svg"
+        ],
+        "warm": [
+          "warm/daily/pen.svg"
+        ]
+      }
+    },
+    {
+      "id": "pencil",
+      "nameAr": "قلم رصاص",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "قلم",
+        "رسم",
+        "مذاكرة",
+        "مدرسة",
+        "تعلم"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/pencil.svg"
+        ],
+        "family": [
+          "family/daily/pencil.svg"
+        ],
+        "night": [
+          "night/daily/pencil.svg"
+        ],
+        "warm": [
+          "warm/daily/pencil.svg"
+        ]
+      }
+    },
+    {
+      "id": "notebook",
+      "nameAr": "دفتر",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "دفتر",
+        "تدوين",
+        "مذاكرة",
+        "ملاحظات"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/notebook.svg"
+        ],
+        "family": [
+          "family/daily/notebook.svg"
+        ],
+        "night": [
+          "night/daily/notebook.svg"
+        ],
+        "warm": [
+          "warm/daily/notebook.svg"
+        ]
+      }
+    },
+    {
+      "id": "checklist",
+      "nameAr": "قائمة مهام",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "مهام",
+        "تخطيط",
+        "إنجاز",
+        "قائمة",
+        "تنظيم"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/checklist.svg"
+        ],
+        "family": [
+          "family/daily/checklist.svg"
+        ],
+        "night": [
+          "night/daily/checklist.svg"
+        ],
+        "warm": [
+          "warm/daily/checklist.svg"
+        ]
+      }
+    },
+    {
+      "id": "trophy",
+      "nameAr": "كأس فوز",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "فوز",
+        "نجاح",
+        "إنجاز",
+        "تفوق",
+        "جائزة"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/trophy.svg"
+        ],
+        "family": [
+          "family/daily/trophy.svg"
+        ],
+        "night": [
+          "night/daily/trophy.svg"
+        ],
+        "warm": [
+          "warm/daily/trophy.svg"
+        ]
+      }
+    },
+    {
+      "id": "medal",
+      "nameAr": "ميدالية",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "ميدالية",
+        "فوز",
+        "تكريم",
+        "إنجاز"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/medal.svg"
+        ],
+        "family": [
+          "family/daily/medal.svg"
+        ],
+        "night": [
+          "night/daily/medal.svg"
+        ],
+        "warm": [
+          "warm/daily/medal.svg"
+        ]
+      }
+    },
+    {
+      "id": "ladder",
+      "nameAr": "سلم خشبي",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "سلم",
+        "صعود",
+        "ترقي",
+        "خطوات",
+        "تدرج"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/ladder.svg"
+        ],
+        "family": [
+          "family/daily/ladder.svg"
+        ],
+        "night": [
+          "night/daily/ladder.svg"
+        ],
+        "warm": [
+          "warm/daily/ladder.svg"
+        ]
+      }
+    },
+    {
+      "id": "ticket",
+      "nameAr": "تذكرة",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "تذكرة",
+        "دخول",
+        "سفر",
+        "رحلة",
+        "فرصة"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/ticket.svg"
+        ],
+        "family": [
+          "family/daily/ticket.svg"
+        ],
+        "night": [
+          "night/daily/ticket.svg"
+        ],
+        "warm": [
+          "warm/daily/ticket.svg"
+        ]
+      }
+    },
+    {
+      "id": "camera",
+      "nameAr": "كاميرا",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "كاميرا",
+        "تصوير",
+        "صورة",
+        "توثيق"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/camera.svg"
+        ],
+        "family": [
+          "family/daily/camera.svg"
+        ],
+        "night": [
+          "night/daily/camera.svg"
+        ],
+        "warm": [
+          "warm/daily/camera.svg"
+        ]
+      }
+    },
+    {
+      "id": "shopping-bag",
+      "nameAr": "كيس تسوق",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "تسوق",
+        "شراء",
+        "سوق",
+        "استهلاك"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/shopping-bag.svg"
+        ],
+        "family": [
+          "family/daily/shopping-bag.svg"
+        ],
+        "night": [
+          "night/daily/shopping-bag.svg"
+        ],
+        "warm": [
+          "warm/daily/shopping-bag.svg"
+        ]
+      }
+    },
+    {
+      "id": "social-like",
+      "nameAr": "إعجاب",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "إعجاب",
+        "تواصل",
+        "تفاعل",
+        "شهرة",
+        "رياء"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/social-like.svg"
+        ],
+        "family": [
+          "family/daily/social-like.svg"
+        ],
+        "night": [
+          "night/daily/social-like.svg"
+        ],
+        "warm": [
+          "warm/daily/social-like.svg"
+        ]
+      }
+    },
+    {
+      "id": "coin",
+      "nameAr": "عملة نقدية",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "عملة",
+        "دينار",
+        "مال",
+        "نقود",
+        "ذهب"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/coin.svg"
+        ],
+        "family": [
+          "family/money/coin.svg"
+        ],
+        "night": [
+          "night/money/coin.svg"
+        ],
+        "warm": [
+          "warm/money/coin.svg"
+        ]
+      }
+    },
+    {
+      "id": "coin-stack",
+      "nameAr": "رصّة عملات",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "عملات",
+        "ادخار",
+        "مال",
+        "ثروة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/coin-stack.svg"
+        ],
+        "family": [
+          "family/money/coin-stack.svg"
+        ],
+        "night": [
+          "night/money/coin-stack.svg"
+        ],
+        "warm": [
+          "warm/money/coin-stack.svg"
+        ]
+      }
+    },
+    {
+      "id": "coins-pile",
+      "nameAr": "كومة عملات",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "عملات",
+        "كنز",
+        "ثروة",
+        "مال كثير"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/coins-pile.svg"
+        ],
+        "family": [
+          "family/money/coins-pile.svg"
+        ],
+        "night": [
+          "night/money/coins-pile.svg"
+        ],
+        "warm": [
+          "warm/money/coins-pile.svg"
+        ]
+      }
+    },
+    {
+      "id": "banknote",
+      "nameAr": "ورقة نقدية",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "نقود",
+        "ورقة",
+        "مال",
+        "عملة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/banknote.svg"
+        ],
+        "family": [
+          "family/money/banknote.svg"
+        ],
+        "night": [
+          "night/money/banknote.svg"
+        ],
+        "warm": [
+          "warm/money/banknote.svg"
+        ]
+      }
+    },
+    {
+      "id": "banknotes-stack",
+      "nameAr": "رزمة أوراق نقدية",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "نقود",
+        "رزمة",
+        "مال",
+        "ثروة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/banknotes-stack.svg"
+        ],
+        "family": [
+          "family/money/banknotes-stack.svg"
+        ],
+        "night": [
+          "night/money/banknotes-stack.svg"
+        ],
+        "warm": [
+          "warm/money/banknotes-stack.svg"
+        ]
+      }
+    },
+    {
+      "id": "wallet",
+      "nameAr": "محفظة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "محفظة",
+        "نقود",
+        "مصروف",
+        "رزق"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/wallet.svg"
+        ],
+        "family": [
+          "family/money/wallet.svg"
+        ],
+        "night": [
+          "night/money/wallet.svg"
+        ],
+        "warm": [
+          "warm/money/wallet.svg"
+        ]
+      }
+    },
+    {
+      "id": "wallet-empty",
+      "nameAr": "محفظة فارغة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "فقر",
+        "إفلاس",
+        "فراغ",
+        "دين",
+        "حاجة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/wallet-empty.svg"
+        ],
+        "family": [
+          "family/money/wallet-empty.svg"
+        ],
+        "night": [
+          "night/money/wallet-empty.svg"
+        ],
+        "warm": [
+          "warm/money/wallet-empty.svg"
+        ]
+      }
+    },
+    {
+      "id": "money-bag",
+      "nameAr": "كيس نقود",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "مال",
+        "ثروة",
+        "كنز",
+        "غنى"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/money-bag.svg"
+        ],
+        "family": [
+          "family/money/money-bag.svg"
+        ],
+        "night": [
+          "night/money/money-bag.svg"
+        ],
+        "warm": [
+          "warm/money/money-bag.svg"
+        ]
+      }
+    },
+    {
+      "id": "savings-jar",
+      "nameAr": "جرة ادخار",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ادخار",
+        "توفير",
+        "مال",
+        "مستقبل"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/savings-jar.svg"
+        ],
+        "family": [
+          "family/money/savings-jar.svg"
+        ],
+        "night": [
+          "night/money/savings-jar.svg"
+        ],
+        "warm": [
+          "warm/money/savings-jar.svg"
+        ]
+      }
+    },
+    {
+      "id": "scale-balance",
+      "nameAr": "ميزان متعادل",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ميزان",
+        "عدل",
+        "قسط",
+        "توازن",
+        "تجارة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/scale-balance.svg"
+        ],
+        "family": [
+          "family/money/scale-balance.svg"
+        ],
+        "night": [
+          "night/money/scale-balance.svg"
+        ],
+        "warm": [
+          "warm/money/scale-balance.svg"
+        ]
+      }
+    },
+    {
+      "id": "scale-tilted",
+      "nameAr": "ميزان مائل",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ميزان",
+        "ترجيح",
+        "ظلم",
+        "تطفيف",
+        "ثقل"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/scale-tilted.svg"
+        ],
+        "family": [
+          "family/money/scale-tilted.svg"
+        ],
+        "night": [
+          "night/money/scale-tilted.svg"
+        ],
+        "warm": [
+          "warm/money/scale-tilted.svg"
+        ]
+      }
+    },
+    {
+      "id": "chart-up",
+      "nameAr": "رسم بياني صاعد",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "نمو",
+        "ربح",
+        "زيادة",
+        "صعود"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/chart-up.svg"
+        ],
+        "family": [
+          "family/money/chart-up.svg"
+        ],
+        "night": [
+          "night/money/chart-up.svg"
+        ],
+        "warm": [
+          "warm/money/chart-up.svg"
+        ]
+      }
+    },
+    {
+      "id": "chart-down",
+      "nameAr": "رسم بياني هابط",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "خسارة",
+        "نقص",
+        "هبوط",
+        "تراجع"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/chart-down.svg"
+        ],
+        "family": [
+          "family/money/chart-down.svg"
+        ],
+        "night": [
+          "night/money/chart-down.svg"
+        ],
+        "warm": [
+          "warm/money/chart-down.svg"
+        ]
+      }
+    },
+    {
+      "id": "bar-chart",
+      "nameAr": "أعمدة بيانية",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "إحصاء",
+        "مقارنة",
+        "نمو",
+        "أرقام"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/bar-chart.svg"
+        ],
+        "family": [
+          "family/money/bar-chart.svg"
+        ],
+        "night": [
+          "night/money/bar-chart.svg"
+        ],
+        "warm": [
+          "warm/money/bar-chart.svg"
+        ]
+      }
+    },
+    {
+      "id": "pie-chart",
+      "nameAr": "دائرة نسب",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "نسبة",
+        "حصة",
+        "تقسيم",
+        "ميراث",
+        "زكاة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/pie-chart.svg"
+        ],
+        "family": [
+          "family/money/pie-chart.svg"
+        ],
+        "night": [
+          "night/money/pie-chart.svg"
+        ],
+        "warm": [
+          "warm/money/pie-chart.svg"
+        ]
+      }
+    },
+    {
+      "id": "receipt",
+      "nameAr": "فاتورة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "فاتورة",
+        "حساب",
+        "شراء",
+        "دين"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/receipt.svg"
+        ],
+        "family": [
+          "family/money/receipt.svg"
+        ],
+        "night": [
+          "night/money/receipt.svg"
+        ],
+        "warm": [
+          "warm/money/receipt.svg"
+        ]
+      }
+    },
+    {
+      "id": "credit-card",
+      "nameAr": "بطاقة بنكية",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "بطاقة",
+        "بنك",
+        "دفع",
+        "شراء",
+        "دين"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/credit-card.svg"
+        ],
+        "family": [
+          "family/money/credit-card.svg"
+        ],
+        "night": [
+          "night/money/credit-card.svg"
+        ],
+        "warm": [
+          "warm/money/credit-card.svg"
+        ]
+      }
+    },
+    {
+      "id": "shop-stall",
+      "nameAr": "دكان في السوق",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "سوق",
+        "تجارة",
+        "بيع",
+        "دكان",
+        "كسب"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/shop-stall.svg"
+        ],
+        "family": [
+          "family/money/shop-stall.svg"
+        ],
+        "night": [
+          "night/money/shop-stall.svg"
+        ],
+        "warm": [
+          "warm/money/shop-stall.svg"
+        ]
+      }
+    },
+    {
+      "id": "shopping-cart",
+      "nameAr": "عربة تسوق",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "تسوق",
+        "شراء",
+        "استهلاك",
+        "سوق"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/shopping-cart.svg"
+        ],
+        "family": [
+          "family/money/shopping-cart.svg"
+        ],
+        "night": [
+          "night/money/shopping-cart.svg"
+        ],
+        "warm": [
+          "warm/money/shopping-cart.svg"
+        ]
+      }
+    },
+    {
+      "id": "price-tag",
+      "nameAr": "بطاقة سعر",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "سعر",
+        "ثمن",
+        "بيع",
+        "تخفيض"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/price-tag.svg"
+        ],
+        "family": [
+          "family/money/price-tag.svg"
+        ],
+        "night": [
+          "night/money/price-tag.svg"
+        ],
+        "warm": [
+          "warm/money/price-tag.svg"
+        ]
+      }
+    },
+    {
+      "id": "bank-building",
+      "nameAr": "مبنى مصرف",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "بنك",
+        "مصرف",
+        "مؤسسة",
+        "ربا",
+        "اقتصاد"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/bank-building.svg"
+        ],
+        "family": [
+          "family/money/bank-building.svg"
+        ],
+        "night": [
+          "night/money/bank-building.svg"
+        ],
+        "warm": [
+          "warm/money/bank-building.svg"
+        ]
+      }
+    },
+    {
+      "id": "safe",
+      "nameAr": "خزنة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "خزنة",
+        "حفظ",
+        "أمان",
+        "كنز",
+        "ادخار"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/safe.svg"
+        ],
+        "family": [
+          "family/money/safe.svg"
+        ],
+        "night": [
+          "night/money/safe.svg"
+        ],
+        "warm": [
+          "warm/money/safe.svg"
+        ]
+      }
+    },
+    {
+      "id": "gold-bar",
+      "nameAr": "سبيكة ذهب",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ذهب",
+        "سبيكة",
+        "ثروة",
+        "زكاة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/gold-bar.svg"
+        ],
+        "family": [
+          "family/money/gold-bar.svg"
+        ],
+        "night": [
+          "night/money/gold-bar.svg"
+        ],
+        "warm": [
+          "warm/money/gold-bar.svg"
+        ]
+      }
+    },
+    {
+      "id": "gold-bars-stack",
+      "nameAr": "سبائك ذهب",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ذهب",
+        "كنز",
+        "ثروة",
+        "اكتناز"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/gold-bars-stack.svg"
+        ],
+        "family": [
+          "family/money/gold-bars-stack.svg"
+        ],
+        "night": [
+          "night/money/gold-bars-stack.svg"
+        ],
+        "warm": [
+          "warm/money/gold-bars-stack.svg"
+        ]
+      }
+    },
+    {
+      "id": "contract",
+      "nameAr": "عقد موثق",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "عقد",
+        "دين",
+        "توثيق",
+        "كتابة الدين",
+        "اتفاق"
+      ],
+      "note": "سطور بلا كتابة؛ يصلح لآية الدين وتوثيق العقود.",
+      "files": {
+        "paper": [
+          "paper/money/contract.svg"
+        ],
+        "family": [
+          "family/money/contract.svg"
+        ],
+        "night": [
+          "night/money/contract.svg"
+        ],
+        "warm": [
+          "warm/money/contract.svg"
+        ]
+      }
+    },
+    {
+      "id": "calculator",
+      "nameAr": "آلة حاسبة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "حساب",
+        "زكاة",
+        "ميزانية",
+        "عد"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/calculator.svg"
+        ],
+        "family": [
+          "family/money/calculator.svg"
+        ],
+        "night": [
+          "night/money/calculator.svg"
+        ],
+        "warm": [
+          "warm/money/calculator.svg"
+        ]
+      }
+    },
+    {
+      "id": "grain-sack",
+      "nameAr": "كيس حبوب",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "قمح",
+        "حبوب",
+        "طعام",
+        "زكاة الفطر",
+        "رزق"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/grain-sack.svg"
+        ],
+        "family": [
+          "family/money/grain-sack.svg"
+        ],
+        "night": [
+          "night/money/grain-sack.svg"
+        ],
+        "warm": [
+          "warm/money/grain-sack.svg"
+        ]
+      }
+    },
+    {
+      "id": "charity-box",
+      "nameAr": "صندوق صدقة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "صدقة",
+        "تبرع",
+        "إنفاق",
+        "خير",
+        "زكاة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/charity-box.svg"
+        ],
+        "family": [
+          "family/money/charity-box.svg"
+        ],
+        "night": [
+          "night/money/charity-box.svg"
+        ],
+        "warm": [
+          "warm/money/charity-box.svg"
+        ]
+      }
+    },
+    {
+      "id": "debt-chain",
+      "nameAr": "دين مقيِّد",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "دين",
+        "قيد",
+        "ربا",
+        "عبء",
+        "هم"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/debt-chain.svg"
+        ],
+        "family": [
+          "family/money/debt-chain.svg"
+        ],
+        "night": [
+          "night/money/debt-chain.svg"
+        ],
+        "warm": [
+          "warm/money/debt-chain.svg"
+        ]
+      }
+    },
+    {
+      "id": "dates-basket",
+      "nameAr": "سلة تمر",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "تمر",
+        "صدقة",
+        "إطعام",
+        "طعام",
+        "إفطار"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/dates-basket.svg"
+        ],
+        "family": [
+          "family/money/dates-basket.svg"
+        ],
+        "night": [
+          "night/money/dates-basket.svg"
+        ],
+        "warm": [
+          "warm/money/dates-basket.svg"
+        ]
+      }
+    },
+    {
+      "id": "coin-sprout",
+      "nameAr": "مال ينمو",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "نماء",
+        "بركة",
+        "استثمار",
+        "ربح حلال",
+        "صدقة تنمي"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/coin-sprout.svg"
+        ],
+        "family": [
+          "family/money/coin-sprout.svg"
+        ],
+        "night": [
+          "night/money/coin-sprout.svg"
+        ],
+        "warm": [
+          "warm/money/coin-sprout.svg"
+        ]
+      }
+    },
+    {
+      "id": "coin-exchange",
+      "nameAr": "تبادل وصرف",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "صرف",
+        "تبادل",
+        "بيع",
+        "مقايضة",
+        "تجارة"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/coin-exchange.svg"
+        ],
+        "family": [
+          "family/money/coin-exchange.svg"
+        ],
+        "night": [
+          "night/money/coin-exchange.svg"
+        ],
+        "warm": [
+          "warm/money/coin-exchange.svg"
+        ]
+      }
+    },
+    {
+      "id": "book-closed",
+      "nameAr": "كتاب مغلق",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "كتاب",
+        "علم",
+        "قراءة",
+        "معرفة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/book-closed.svg"
+        ],
+        "family": [
+          "family/knowledge/book-closed.svg"
+        ],
+        "night": [
+          "night/knowledge/book-closed.svg"
+        ],
+        "warm": [
+          "warm/knowledge/book-closed.svg"
+        ]
+      }
+    },
+    {
+      "id": "book-open",
+      "nameAr": "كتاب مفتوح",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "كتاب",
+        "قراءة",
+        "تعلم",
+        "علم",
+        "مطالعة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/book-open.svg"
+        ],
+        "family": [
+          "family/knowledge/book-open.svg"
+        ],
+        "night": [
+          "night/knowledge/book-open.svg"
+        ],
+        "warm": [
+          "warm/knowledge/book-open.svg"
+        ]
+      }
+    },
+    {
+      "id": "books-stack",
+      "nameAr": "كومة كتب",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "كتب",
+        "علم",
+        "دراسة",
+        "مكتبة",
+        "طلب العلم"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/books-stack.svg"
+        ],
+        "family": [
+          "family/knowledge/books-stack.svg"
+        ],
+        "night": [
+          "night/knowledge/books-stack.svg"
+        ],
+        "warm": [
+          "warm/knowledge/books-stack.svg"
+        ]
+      }
+    },
+    {
+      "id": "bookshelf",
+      "nameAr": "رف كتب",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "مكتبة",
+        "كتب",
+        "علم",
+        "دار الحكمة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/bookshelf.svg"
+        ],
+        "family": [
+          "family/knowledge/bookshelf.svg"
+        ],
+        "night": [
+          "night/knowledge/bookshelf.svg"
+        ],
+        "warm": [
+          "warm/knowledge/bookshelf.svg"
+        ]
+      }
+    },
+    {
+      "id": "scroll",
+      "nameAr": "لفافة مطوية",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "مخطوط",
+        "رسالة",
+        "لفافة",
+        "تاريخ"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/scroll.svg"
+        ],
+        "family": [
+          "family/knowledge/scroll.svg"
+        ],
+        "night": [
+          "night/knowledge/scroll.svg"
+        ],
+        "warm": [
+          "warm/knowledge/scroll.svg"
+        ]
+      }
+    },
+    {
+      "id": "scroll-open",
+      "nameAr": "لفافة مفتوحة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "مخطوط",
+        "رسالة",
+        "إعلان",
+        "وثيقة",
+        "تاريخ"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/scroll-open.svg"
+        ],
+        "family": [
+          "family/knowledge/scroll-open.svg"
+        ],
+        "night": [
+          "night/knowledge/scroll-open.svg"
+        ],
+        "warm": [
+          "warm/knowledge/scroll-open.svg"
+        ]
+      }
+    },
+    {
+      "id": "quill",
+      "nameAr": "ريشة كتابة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "كتابة",
+        "تدوين",
+        "ريشة",
+        "تأليف",
+        "قلم"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/quill.svg"
+        ],
+        "family": [
+          "family/knowledge/quill.svg"
+        ],
+        "night": [
+          "night/knowledge/quill.svg"
+        ],
+        "warm": [
+          "warm/knowledge/quill.svg"
+        ]
+      }
+    },
+    {
+      "id": "inkwell",
+      "nameAr": "محبرة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "حبر",
+        "كتابة",
+        "تدوين",
+        "محبرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/inkwell.svg"
+        ],
+        "family": [
+          "family/knowledge/inkwell.svg"
+        ],
+        "night": [
+          "night/knowledge/inkwell.svg"
+        ],
+        "warm": [
+          "warm/knowledge/inkwell.svg"
+        ]
+      }
+    },
+    {
+      "id": "quill-and-inkwell",
+      "nameAr": "ريشة ومحبرة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "كتابة",
+        "تأليف",
+        "علم",
+        "تدوين",
+        "علماء"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/quill-and-inkwell.svg"
+        ],
+        "family": [
+          "family/knowledge/quill-and-inkwell.svg"
+        ],
+        "night": [
+          "night/knowledge/quill-and-inkwell.svg"
+        ],
+        "warm": [
+          "warm/knowledge/quill-and-inkwell.svg"
+        ]
+      }
+    },
+    {
+      "id": "oil-lamp",
+      "nameAr": "سراج زيت",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "سراج",
+        "نور",
+        "علم",
+        "سهر",
+        "قنديل"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/oil-lamp.svg"
+        ],
+        "family": [
+          "family/knowledge/oil-lamp.svg"
+        ],
+        "night": [
+          "night/knowledge/oil-lamp.svg"
+        ],
+        "warm": [
+          "warm/knowledge/oil-lamp.svg"
+        ]
+      }
+    },
+    {
+      "id": "astrolabe",
+      "nameAr": "أسطرلاب",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "فلك",
+        "أسطرلاب",
+        "حضارة إسلامية",
+        "علماء",
+        "نجوم"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/astrolabe.svg"
+        ],
+        "family": [
+          "family/knowledge/astrolabe.svg"
+        ],
+        "night": [
+          "night/knowledge/astrolabe.svg"
+        ],
+        "warm": [
+          "warm/knowledge/astrolabe.svg"
+        ]
+      }
+    },
+    {
+      "id": "telescope",
+      "nameAr": "مقراب فلكي",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "فلك",
+        "رصد",
+        "نجوم",
+        "اكتشاف",
+        "علم"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/telescope.svg"
+        ],
+        "family": [
+          "family/knowledge/telescope.svg"
+        ],
+        "night": [
+          "night/knowledge/telescope.svg"
+        ],
+        "warm": [
+          "warm/knowledge/telescope.svg"
+        ]
+      }
+    },
+    {
+      "id": "globe-stand",
+      "nameAr": "مجسم كرة أرضية",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "جغرافيا",
+        "عالم",
+        "خرائط",
+        "رحلة",
+        "دراسة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/globe-stand.svg"
+        ],
+        "family": [
+          "family/knowledge/globe-stand.svg"
+        ],
+        "night": [
+          "night/knowledge/globe-stand.svg"
+        ],
+        "warm": [
+          "warm/knowledge/globe-stand.svg"
+        ]
+      }
+    },
+    {
+      "id": "map-old",
+      "nameAr": "خريطة قديمة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "خريطة",
+        "رحلة",
+        "جغرافيا",
+        "استكشاف",
+        "طريق"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/map-old.svg"
+        ],
+        "family": [
+          "family/knowledge/map-old.svg"
+        ],
+        "night": [
+          "night/knowledge/map-old.svg"
+        ],
+        "warm": [
+          "warm/knowledge/map-old.svg"
+        ]
+      }
+    },
+    {
+      "id": "compass-rose",
+      "nameAr": "وردة الاتجاهات",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "اتجاه",
+        "بوصلة",
+        "ملاحة",
+        "طريق",
+        "قبلة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/compass-rose.svg"
+        ],
+        "family": [
+          "family/knowledge/compass-rose.svg"
+        ],
+        "night": [
+          "night/knowledge/compass-rose.svg"
+        ],
+        "warm": [
+          "warm/knowledge/compass-rose.svg"
+        ]
+      }
+    },
+    {
+      "id": "compass-tool",
+      "nameAr": "فرجار",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "هندسة",
+        "رسم",
+        "دقة",
+        "رياضيات"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/compass-tool.svg"
+        ],
+        "family": [
+          "family/knowledge/compass-tool.svg"
+        ],
+        "night": [
+          "night/knowledge/compass-tool.svg"
+        ],
+        "warm": [
+          "warm/knowledge/compass-tool.svg"
+        ]
+      }
+    },
+    {
+      "id": "microscope",
+      "nameAr": "مجهر",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "مجهر",
+        "بحث",
+        "علوم",
+        "خلية",
+        "مختبر"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/microscope.svg"
+        ],
+        "family": [
+          "family/knowledge/microscope.svg"
+        ],
+        "night": [
+          "night/knowledge/microscope.svg"
+        ],
+        "warm": [
+          "warm/knowledge/microscope.svg"
+        ]
+      }
+    },
+    {
+      "id": "flask",
+      "nameAr": "دورق مخبري",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "كيمياء",
+        "تجربة",
+        "مختبر",
+        "علوم"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/flask.svg"
+        ],
+        "family": [
+          "family/knowledge/flask.svg"
+        ],
+        "night": [
+          "night/knowledge/flask.svg"
+        ],
+        "warm": [
+          "warm/knowledge/flask.svg"
+        ]
+      }
+    },
+    {
+      "id": "test-tubes",
+      "nameAr": "أنابيب اختبار",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "تجربة",
+        "مختبر",
+        "علوم",
+        "كيمياء"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/test-tubes.svg"
+        ],
+        "family": [
+          "family/knowledge/test-tubes.svg"
+        ],
+        "night": [
+          "night/knowledge/test-tubes.svg"
+        ],
+        "warm": [
+          "warm/knowledge/test-tubes.svg"
+        ]
+      }
+    },
+    {
+      "id": "atom",
+      "nameAr": "ذرة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "ذرة",
+        "فيزياء",
+        "علوم",
+        "طاقة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/atom.svg"
+        ],
+        "family": [
+          "family/knowledge/atom.svg"
+        ],
+        "night": [
+          "night/knowledge/atom.svg"
+        ],
+        "warm": [
+          "warm/knowledge/atom.svg"
+        ]
+      }
+    },
+    {
+      "id": "gear",
+      "nameAr": "ترس",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "آلة",
+        "صناعة",
+        "هندسة",
+        "نظام",
+        "عمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/gear.svg"
+        ],
+        "family": [
+          "family/knowledge/gear.svg"
+        ],
+        "night": [
+          "night/knowledge/gear.svg"
+        ],
+        "warm": [
+          "warm/knowledge/gear.svg"
+        ]
+      }
+    },
+    {
+      "id": "gears-pair",
+      "nameAr": "ترسان متعاشقان",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "تعاون",
+        "آلة",
+        "نظام",
+        "هندسة",
+        "ترابط"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/gears-pair.svg"
+        ],
+        "family": [
+          "family/knowledge/gears-pair.svg"
+        ],
+        "night": [
+          "night/knowledge/gears-pair.svg"
+        ],
+        "warm": [
+          "warm/knowledge/gears-pair.svg"
+        ]
+      }
+    },
+    {
+      "id": "column-classic",
+      "nameAr": "عمود أثري",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "عمارة",
+        "حضارة",
+        "تاريخ",
+        "أثر",
+        "ركيزة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/column-classic.svg"
+        ],
+        "family": [
+          "family/knowledge/column-classic.svg"
+        ],
+        "night": [
+          "night/knowledge/column-classic.svg"
+        ],
+        "warm": [
+          "warm/knowledge/column-classic.svg"
+        ]
+      }
+    },
+    {
+      "id": "arch-gate",
+      "nameAr": "قوس أندلسي",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "أندلس",
+        "عمارة",
+        "حضارة إسلامية",
+        "قرطبة",
+        "باب"
+      ],
+      "note": "قوس حدوي بصنج متناوبة على طراز جامع قرطبة.",
+      "files": {
+        "paper": [
+          "paper/knowledge/arch-gate.svg"
+        ],
+        "family": [
+          "family/knowledge/arch-gate.svg"
+        ],
+        "night": [
+          "night/knowledge/arch-gate.svg"
+        ],
+        "warm": [
+          "warm/knowledge/arch-gate.svg"
+        ]
+      }
+    },
+    {
+      "id": "sundial",
+      "nameAr": "مزولة شمسية",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "وقت",
+        "مزولة",
+        "مواقيت الصلاة",
+        "فلك",
+        "ظل"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/sundial.svg"
+        ],
+        "family": [
+          "family/knowledge/sundial.svg"
+        ],
+        "night": [
+          "night/knowledge/sundial.svg"
+        ],
+        "warm": [
+          "warm/knowledge/sundial.svg"
+        ]
+      }
+    },
+    {
+      "id": "abacus",
+      "nameAr": "معداد",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "حساب",
+        "رياضيات",
+        "عدّ",
+        "تعليم"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/abacus.svg"
+        ],
+        "family": [
+          "family/knowledge/abacus.svg"
+        ],
+        "night": [
+          "night/knowledge/abacus.svg"
+        ],
+        "warm": [
+          "warm/knowledge/abacus.svg"
+        ]
+      }
+    },
+    {
+      "id": "ruler-triangle",
+      "nameAr": "مسطرة ومثلث",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "هندسة",
+        "رسم",
+        "رياضيات",
+        "قياس",
+        "دقة"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/ruler-triangle.svg"
+        ],
+        "family": [
+          "family/knowledge/ruler-triangle.svg"
+        ],
+        "night": [
+          "night/knowledge/ruler-triangle.svg"
+        ],
+        "warm": [
+          "warm/knowledge/ruler-triangle.svg"
+        ]
+      }
+    },
+    {
+      "id": "magnifier-brass",
+      "nameAr": "عدسة مكبرة نحاسية",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "تدقيق",
+        "بحث علمي",
+        "تحقيق",
+        "قراءة",
+        "تفحص"
+      ],
+      "note": "تختلف عن search في الواجهة: عدسة أثرية بإطار نحاسي فوق كتاب.",
+      "files": {
+        "paper": [
+          "paper/knowledge/magnifier-brass.svg"
+        ],
+        "family": [
+          "family/knowledge/magnifier-brass.svg"
+        ],
+        "night": [
+          "night/knowledge/magnifier-brass.svg"
+        ],
+        "warm": [
+          "warm/knowledge/magnifier-brass.svg"
+        ]
+      }
+    },
+    {
+      "id": "graduation-cap",
+      "nameAr": "قبعة تخرج",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "تخرج",
+        "شهادة",
+        "تعليم",
+        "جامعة",
+        "نجاح"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/graduation-cap.svg"
+        ],
+        "family": [
+          "family/knowledge/graduation-cap.svg"
+        ],
+        "night": [
+          "night/knowledge/graduation-cap.svg"
+        ],
+        "warm": [
+          "warm/knowledge/graduation-cap.svg"
+        ]
+      }
+    },
+    {
+      "id": "chalkboard",
+      "nameAr": "سبورة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "درس",
+        "تعليم",
+        "مدرسة",
+        "شرح",
+        "معلم"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/chalkboard.svg"
+        ],
+        "family": [
+          "family/knowledge/chalkboard.svg"
+        ],
+        "night": [
+          "night/knowledge/chalkboard.svg"
+        ],
+        "warm": [
+          "warm/knowledge/chalkboard.svg"
+        ]
+      }
+    },
+    {
+      "id": "dna-helix",
+      "nameAr": "شريط وراثي",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "وراثة",
+        "خلق",
+        "أحياء",
+        "علوم",
+        "تكوين"
+      ],
+      "files": {
+        "paper": [
+          "paper/knowledge/dna-helix.svg"
+        ],
+        "family": [
+          "family/knowledge/dna-helix.svg"
+        ],
+        "night": [
+          "night/knowledge/dna-helix.svg"
+        ],
+        "warm": [
+          "warm/knowledge/dna-helix.svg"
+        ]
+      }
+    },
+    {
+      "id": "water-clock",
+      "nameAr": "ساعة مائية",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "الجزري",
+        "وقت",
+        "اختراع",
+        "حضارة إسلامية",
+        "هندسة"
+      ],
+      "note": "ساعة مائية مبسطة: خزان يقطر في إناء وعوامة تحرك مؤشرًا على مقياس.",
+      "files": {
+        "paper": [
+          "paper/knowledge/water-clock.svg"
+        ],
+        "family": [
+          "family/knowledge/water-clock.svg"
+        ],
+        "night": [
+          "night/knowledge/water-clock.svg"
+        ],
+        "warm": [
+          "warm/knowledge/water-clock.svg"
+        ]
+      }
+    },
+    {
+      "id": "manuscript-page",
+      "nameAr": "صفحة مخطوطة مزخرفة",
+      "category": "knowledge",
+      "categoryAr": "العلم والحضارة",
+      "kind": "prop",
+      "tags": [
+        "مخطوط",
+        "تراث",
+        "كتاب",
+        "زخرفة",
+        "حضارة إسلامية"
+      ],
+      "note": "سطور بلا كتابة؛ ليست صفحة مصحف.",
+      "files": {
+        "paper": [
+          "paper/knowledge/manuscript-page.svg"
+        ],
+        "family": [
+          "family/knowledge/manuscript-page.svg"
+        ],
+        "night": [
+          "night/knowledge/manuscript-page.svg"
+        ],
+        "warm": [
+          "warm/knowledge/manuscript-page.svg"
+        ]
+      }
+    },
+    {
+      "id": "mosque",
+      "nameAr": "مسجد",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "مسجد",
+        "صلاة",
+        "جماعة",
+        "بيت الله",
+        "جمعة"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/mosque.svg"
+        ],
+        "family": [
+          "family/islamic/mosque.svg"
+        ],
+        "night": [
+          "night/islamic/mosque.svg"
+        ],
+        "warm": [
+          "warm/islamic/mosque.svg"
+        ]
+      }
+    },
+    {
+      "id": "minaret",
+      "nameAr": "مئذنة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "مئذنة",
+        "أذان",
+        "نداء",
+        "مسجد"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/minaret.svg"
+        ],
+        "family": [
+          "family/islamic/minaret.svg"
+        ],
+        "night": [
+          "night/islamic/minaret.svg"
+        ],
+        "warm": [
+          "warm/islamic/minaret.svg"
+        ]
+      }
+    },
+    {
+      "id": "dome",
+      "nameAr": "قبة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "قبة",
+        "عمارة",
+        "مسجد",
+        "حضارة"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/dome.svg"
+        ],
+        "family": [
+          "family/islamic/dome.svg"
+        ],
+        "night": [
+          "night/islamic/dome.svg"
+        ],
+        "warm": [
+          "warm/islamic/dome.svg"
+        ]
+      }
+    },
+    {
+      "id": "mihrab-arch",
+      "nameAr": "محراب",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "محراب",
+        "قبلة",
+        "إمام",
+        "صلاة",
+        "عمارة"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/mihrab-arch.svg"
+        ],
+        "family": [
+          "family/islamic/mihrab-arch.svg"
+        ],
+        "night": [
+          "night/islamic/mihrab-arch.svg"
+        ],
+        "warm": [
+          "warm/islamic/mihrab-arch.svg"
+        ]
+      }
+    },
+    {
+      "id": "arch-window",
+      "nameAr": "نافذة مقوسة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "نافذة",
+        "مشربية",
+        "عمارة",
+        "ليل",
+        "تأمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/arch-window.svg"
+        ],
+        "family": [
+          "family/islamic/arch-window.svg"
+        ],
+        "night": [
+          "night/islamic/arch-window.svg"
+        ],
+        "warm": [
+          "warm/islamic/arch-window.svg"
+        ]
+      }
+    },
+    {
+      "id": "minbar",
+      "nameAr": "منبر",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "منبر",
+        "خطبة",
+        "جمعة",
+        "موعظة"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/minbar.svg"
+        ],
+        "family": [
+          "family/islamic/minbar.svg"
+        ],
+        "night": [
+          "night/islamic/minbar.svg"
+        ],
+        "warm": [
+          "warm/islamic/minbar.svg"
+        ]
+      }
+    },
+    {
+      "id": "kaaba",
+      "nameAr": "الكعبة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "الكعبة",
+        "مكة",
+        "قبلة",
+        "حج",
+        "عمرة",
+        "البيت الحرام"
+      ],
+      "note": "صورة ظلية مبسطة بلا كتابة على الحزام.",
+      "files": {
+        "paper": [
+          "paper/islamic/kaaba.svg"
+        ],
+        "family": [
+          "family/islamic/kaaba.svg"
+        ],
+        "night": [
+          "night/islamic/kaaba.svg"
+        ],
+        "warm": [
+          "warm/islamic/kaaba.svg"
+        ]
+      }
+    },
+    {
+      "id": "mushaf-rehal",
+      "nameAr": "مصحف على حامل",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "مصحف",
+        "قرآن",
+        "تلاوة",
+        "حامل",
+        "رحل"
+      ],
+      "note": "المصحف مغلق دائمًا ولا يُكتب عليه شيء.",
+      "files": {
+        "paper": [
+          "paper/islamic/mushaf-rehal.svg"
+        ],
+        "family": [
+          "family/islamic/mushaf-rehal.svg"
+        ],
+        "night": [
+          "night/islamic/mushaf-rehal.svg"
+        ],
+        "warm": [
+          "warm/islamic/mushaf-rehal.svg"
+        ]
+      }
+    },
+    {
+      "id": "prayer-mat",
+      "nameAr": "سجادة صلاة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "سجادة",
+        "صلاة",
+        "سجود",
+        "مصلى"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/prayer-mat.svg"
+        ],
+        "family": [
+          "family/islamic/prayer-mat.svg"
+        ],
+        "night": [
+          "night/islamic/prayer-mat.svg"
+        ],
+        "warm": [
+          "warm/islamic/prayer-mat.svg"
+        ]
+      }
+    },
+    {
+      "id": "tasbih",
+      "nameAr": "مسبحة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "مسبحة",
+        "تسبيح",
+        "ذكر",
+        "أذكار"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/tasbih.svg"
+        ],
+        "family": [
+          "family/islamic/tasbih.svg"
+        ],
+        "night": [
+          "night/islamic/tasbih.svg"
+        ],
+        "warm": [
+          "warm/islamic/tasbih.svg"
+        ]
+      }
+    },
+    {
+      "id": "ibriq",
+      "nameAr": "إبريق وضوء",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "إبريق",
+        "وضوء",
+        "طهارة",
+        "ماء"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/ibriq.svg"
+        ],
+        "family": [
+          "family/islamic/ibriq.svg"
+        ],
+        "night": [
+          "night/islamic/ibriq.svg"
+        ],
+        "warm": [
+          "warm/islamic/ibriq.svg"
+        ]
+      }
+    },
+    {
+      "id": "qibla-compass",
+      "nameAr": "بوصلة القبلة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "قبلة",
+        "اتجاه",
+        "بوصلة",
+        "صلاة",
+        "سفر"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/qibla-compass.svg"
+        ],
+        "family": [
+          "family/islamic/qibla-compass.svg"
+        ],
+        "night": [
+          "night/islamic/qibla-compass.svg"
+        ],
+        "warm": [
+          "warm/islamic/qibla-compass.svg"
+        ]
+      }
+    },
+    {
+      "id": "miswak",
+      "nameAr": "سواك",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "سواك",
+        "سنة",
+        "نظافة",
+        "طهارة"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/miswak.svg"
+        ],
+        "family": [
+          "family/islamic/miswak.svg"
+        ],
+        "night": [
+          "night/islamic/miswak.svg"
+        ],
+        "warm": [
+          "warm/islamic/miswak.svg"
+        ]
+      }
+    },
+    {
+      "id": "crescent-star",
+      "nameAr": "هلال ونجمة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "هلال",
+        "رمضان",
+        "عيد",
+        "شهر",
+        "ليل"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/crescent-star.svg"
+        ],
+        "family": [
+          "family/islamic/crescent-star.svg"
+        ],
+        "night": [
+          "night/islamic/crescent-star.svg"
+        ],
+        "warm": [
+          "warm/islamic/crescent-star.svg"
+        ]
+      }
+    },
+    {
+      "id": "ramadan-lantern",
+      "nameAr": "فانوس رمضان",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "فانوس",
+        "رمضان",
+        "نور",
+        "فرح",
+        "ليالي"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/ramadan-lantern.svg"
+        ],
+        "family": [
+          "family/islamic/ramadan-lantern.svg"
+        ],
+        "night": [
+          "night/islamic/ramadan-lantern.svg"
+        ],
+        "warm": [
+          "warm/islamic/ramadan-lantern.svg"
+        ]
+      }
+    },
+    {
+      "id": "mosque-lamp",
+      "nameAr": "قنديل مسجد",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "قنديل",
+        "نور",
+        "مسجد",
+        "هداية"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/mosque-lamp.svg"
+        ],
+        "family": [
+          "family/islamic/mosque-lamp.svg"
+        ],
+        "night": [
+          "night/islamic/mosque-lamp.svg"
+        ],
+        "warm": [
+          "warm/islamic/mosque-lamp.svg"
+        ]
+      }
+    },
+    {
+      "id": "dates-bowl",
+      "nameAr": "طبق تمر",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "تمر",
+        "إفطار",
+        "رمضان",
+        "سنة",
+        "ضيافة"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/dates-bowl.svg"
+        ],
+        "family": [
+          "family/islamic/dates-bowl.svg"
+        ],
+        "night": [
+          "night/islamic/dates-bowl.svg"
+        ],
+        "warm": [
+          "warm/islamic/dates-bowl.svg"
+        ]
+      }
+    },
+    {
+      "id": "hijri-calendar",
+      "nameAr": "تقويم هجري",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "تقويم",
+        "هجري",
+        "شهر",
+        "هلال",
+        "موعد"
+      ],
+      "note": "بلا أرقام؛ تضاف الأرقام في القوالب.",
+      "files": {
+        "paper": [
+          "paper/islamic/hijri-calendar.svg"
+        ],
+        "family": [
+          "family/islamic/hijri-calendar.svg"
+        ],
+        "night": [
+          "night/islamic/hijri-calendar.svg"
+        ],
+        "warm": [
+          "warm/islamic/hijri-calendar.svg"
+        ]
+      }
+    },
+    {
+      "id": "rub-el-hizb",
+      "nameAr": "نجمة ثمانية",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "زخرفة",
+        "نجمة",
+        "ربع الحزب",
+        "فن إسلامي"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/rub-el-hizb.svg"
+        ],
+        "family": [
+          "family/islamic/rub-el-hizb.svg"
+        ],
+        "night": [
+          "night/islamic/rub-el-hizb.svg"
+        ],
+        "warm": [
+          "warm/islamic/rub-el-hizb.svg"
+        ]
+      }
+    },
+    {
+      "id": "hand-open",
+      "nameAr": "كف مفتوحة",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "يد",
+        "كف",
+        "عطاء",
+        "انفتاح"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hand-open.svg"
+        ],
+        "family": [
+          "family/hands/hand-open.svg"
+        ],
+        "night": [
+          "night/hands/hand-open.svg"
+        ],
+        "warm": [
+          "warm/hands/hand-open.svg"
+        ]
+      }
+    },
+    {
+      "id": "hand-stop",
+      "nameAr": "يد توقف",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "توقف",
+        "منع",
+        "كفى",
+        "تحذير"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hand-stop.svg"
+        ],
+        "family": [
+          "family/hands/hand-stop.svg"
+        ],
+        "night": [
+          "night/hands/hand-stop.svg"
+        ],
+        "warm": [
+          "warm/hands/hand-stop.svg"
+        ]
+      }
+    },
+    {
+      "id": "hand-wave",
+      "nameAr": "يد تلوّح",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "سلام",
+        "تحية",
+        "وداع",
+        "ترحيب"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hand-wave.svg"
+        ],
+        "family": [
+          "family/hands/hand-wave.svg"
+        ],
+        "night": [
+          "night/hands/hand-wave.svg"
+        ],
+        "warm": [
+          "warm/hands/hand-wave.svg"
+        ]
+      }
+    },
+    {
+      "id": "hands-dua",
+      "nameAr": "يدا الدعاء",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "دعاء",
+        "تضرع",
+        "سؤال الله",
+        "رجاء"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hands-dua.svg"
+        ],
+        "family": [
+          "family/hands/hands-dua.svg"
+        ],
+        "night": [
+          "night/hands/hands-dua.svg"
+        ],
+        "warm": [
+          "warm/hands/hands-dua.svg"
+        ]
+      }
+    },
+    {
+      "id": "hand-one",
+      "nameAr": "إصبع مرفوعة",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "توحيد",
+        "واحد",
+        "شهادة",
+        "تنبيه"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hand-one.svg"
+        ],
+        "family": [
+          "family/hands/hand-one.svg"
+        ],
+        "night": [
+          "night/hands/hand-one.svg"
+        ],
+        "warm": [
+          "warm/hands/hand-one.svg"
+        ]
+      }
+    },
+    {
+      "id": "hand-point",
+      "nameAr": "يد تشير",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "إشارة",
+        "اتجاه",
+        "انظر",
+        "التالي"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hand-point.svg"
+        ],
+        "family": [
+          "family/hands/hand-point.svg"
+        ],
+        "night": [
+          "night/hands/hand-point.svg"
+        ],
+        "warm": [
+          "warm/hands/hand-point.svg"
+        ]
+      }
+    },
+    {
+      "id": "thumbs-up",
+      "nameAr": "إبهام للأعلى",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "موافقة",
+        "أحسنت",
+        "إعجاب",
+        "صواب"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/thumbs-up.svg"
+        ],
+        "family": [
+          "family/hands/thumbs-up.svg"
+        ],
+        "night": [
+          "night/hands/thumbs-up.svg"
+        ],
+        "warm": [
+          "warm/hands/thumbs-up.svg"
+        ]
+      }
+    },
+    {
+      "id": "hand-giving",
+      "nameAr": "يد تعطي",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "صدقة",
+        "عطاء",
+        "إنفاق",
+        "كرم"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hand-giving.svg"
+        ],
+        "family": [
+          "family/hands/hand-giving.svg"
+        ],
+        "night": [
+          "night/hands/hand-giving.svg"
+        ],
+        "warm": [
+          "warm/hands/hand-giving.svg"
+        ]
+      }
+    },
+    {
+      "id": "handshake",
+      "nameAr": "مصافحة",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "مصافحة",
+        "اتفاق",
+        "أخوة",
+        "صلح"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/handshake.svg"
+        ],
+        "family": [
+          "family/hands/handshake.svg"
+        ],
+        "night": [
+          "night/hands/handshake.svg"
+        ],
+        "warm": [
+          "warm/hands/handshake.svg"
+        ]
+      }
+    },
+    {
+      "id": "hands-help",
+      "nameAr": "يد العون",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "مساعدة",
+        "عون",
+        "نجدة",
+        "تكافل"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hands-help.svg"
+        ],
+        "family": [
+          "family/hands/hands-help.svg"
+        ],
+        "night": [
+          "night/hands/hands-help.svg"
+        ],
+        "warm": [
+          "warm/hands/hands-help.svg"
+        ]
+      }
+    },
+    {
+      "id": "hands-heart",
+      "nameAr": "كفان تحملان قلبًا",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "رحمة",
+        "حنان",
+        "رعاية",
+        "محبة"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hands-heart.svg"
+        ],
+        "family": [
+          "family/hands/hands-heart.svg"
+        ],
+        "night": [
+          "night/hands/hands-heart.svg"
+        ],
+        "warm": [
+          "warm/hands/hands-heart.svg"
+        ]
+      }
+    },
+    {
+      "id": "hands-water",
+      "nameAr": "كفان تغرفان الماء",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "وضوء",
+        "ماء",
+        "طهارة",
+        "غرفة"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hands-water.svg"
+        ],
+        "family": [
+          "family/hands/hands-water.svg"
+        ],
+        "night": [
+          "night/hands/hands-water.svg"
+        ],
+        "warm": [
+          "warm/hands/hands-water.svg"
+        ]
+      }
+    },
+    {
+      "id": "hand-writing",
+      "nameAr": "يد تكتب",
+      "category": "hands",
+      "categoryAr": "الأيدي والإشارات",
+      "kind": "prop",
+      "tags": [
+        "كتابة",
+        "تدوين",
+        "علم",
+        "توقيع"
+      ],
+      "files": {
+        "paper": [
+          "paper/hands/hand-writing.svg"
+        ],
+        "family": [
+          "family/hands/hand-writing.svg"
+        ],
+        "night": [
+          "night/hands/hand-writing.svg"
+        ],
+        "warm": [
+          "warm/hands/hand-writing.svg"
+        ]
+      }
+    },
+    {
+      "id": "verse-frame",
+      "nameAr": "إطار آية مزخرف",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "آية",
+        "إطار",
+        "خرطوشة",
+        "قرآن",
+        "زخرفة"
+      ],
+      "note": "إطار فارغ لبطاقة الآية؛ النص تكتبه القوالب.",
+      "files": {
+        "paper": [
+          "paper/frames/verse-frame.svg"
+        ],
+        "family": [
+          "family/frames/verse-frame.svg"
+        ],
+        "night": [
+          "night/frames/verse-frame.svg"
+        ],
+        "warm": [
+          "warm/frames/verse-frame.svg"
+        ]
+      }
+    },
+    {
+      "id": "hadith-frame",
+      "nameAr": "إطار حديث",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "حديث",
+        "إطار",
+        "اقتباس",
+        "بطاقة"
+      ],
+      "note": "إطار فارغ؛ النص تكتبه القوالب.",
+      "files": {
+        "paper": [
+          "paper/frames/hadith-frame.svg"
+        ],
+        "family": [
+          "family/frames/hadith-frame.svg"
+        ],
+        "night": [
+          "night/frames/hadith-frame.svg"
+        ],
+        "warm": [
+          "warm/frames/hadith-frame.svg"
+        ]
+      }
+    },
+    {
+      "id": "divider-ornament",
+      "nameAr": "فاصل مزخرف",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "فاصل",
+        "زخرفة",
+        "خط",
+        "تقسيم"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/divider-ornament.svg"
+        ],
+        "family": [
+          "family/frames/divider-ornament.svg"
+        ],
+        "night": [
+          "night/frames/divider-ornament.svg"
+        ],
+        "warm": [
+          "warm/frames/divider-ornament.svg"
+        ]
+      }
+    },
+    {
+      "id": "corner-ornament",
+      "nameAr": "زخرفة زاوية",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "زاوية",
+        "زخرفة",
+        "ركن",
+        "إطار"
+      ],
+      "note": "زاوية علوية يمنى؛ تُقلب للزوايا الأخرى.",
+      "files": {
+        "paper": [
+          "paper/frames/corner-ornament.svg"
+        ],
+        "family": [
+          "family/frames/corner-ornament.svg"
+        ],
+        "night": [
+          "night/frames/corner-ornament.svg"
+        ],
+        "warm": [
+          "warm/frames/corner-ornament.svg"
+        ]
+      }
+    },
+    {
+      "id": "star-pattern-tile",
+      "nameAr": "بلاطة نجمة ثمانية",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "نجمة",
+        "هندسة",
+        "زخرفة إسلامية",
+        "بلاطة",
+        "نمط"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/star-pattern-tile.svg"
+        ],
+        "family": [
+          "family/frames/star-pattern-tile.svg"
+        ],
+        "night": [
+          "night/frames/star-pattern-tile.svg"
+        ],
+        "warm": [
+          "warm/frames/star-pattern-tile.svg"
+        ]
+      }
+    },
+    {
+      "id": "girih-tile",
+      "nameAr": "بلاطة گره هندسية",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "هندسة",
+        "زخرفة إسلامية",
+        "بلاطة",
+        "نجمة عشرية",
+        "نمط"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/girih-tile.svg"
+        ],
+        "family": [
+          "family/frames/girih-tile.svg"
+        ],
+        "night": [
+          "night/frames/girih-tile.svg"
+        ],
+        "warm": [
+          "warm/frames/girih-tile.svg"
+        ]
+      }
+    },
+    {
+      "id": "arabesque-border",
+      "nameAr": "شريط أرابيسك",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "أرابيسك",
+        "شريط",
+        "زخرفة نباتية",
+        "حاشية"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/arabesque-border.svg"
+        ],
+        "family": [
+          "family/frames/arabesque-border.svg"
+        ],
+        "night": [
+          "night/frames/arabesque-border.svg"
+        ],
+        "warm": [
+          "warm/frames/arabesque-border.svg"
+        ]
+      }
+    },
+    {
+      "id": "badge-circle",
+      "nameAr": "وسام دائري",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "وسام",
+        "شارة",
+        "دائرة",
+        "إنجاز",
+        "إطار"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/badge-circle.svg"
+        ],
+        "family": [
+          "family/frames/badge-circle.svg"
+        ],
+        "night": [
+          "night/frames/badge-circle.svg"
+        ],
+        "warm": [
+          "warm/frames/badge-circle.svg"
+        ]
+      }
+    },
+    {
+      "id": "ribbon-banner",
+      "nameAr": "شريط لافتة",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "شريط",
+        "لافتة",
+        "عنوان",
+        "راية"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/ribbon-banner.svg"
+        ],
+        "family": [
+          "family/frames/ribbon-banner.svg"
+        ],
+        "night": [
+          "night/frames/ribbon-banner.svg"
+        ],
+        "warm": [
+          "warm/frames/ribbon-banner.svg"
+        ]
+      }
+    },
+    {
+      "id": "label-chip",
+      "nameAr": "شريحة عنوان",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "شريحة",
+        "وسم",
+        "عنوان",
+        "تصنيف"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/label-chip.svg"
+        ],
+        "family": [
+          "family/frames/label-chip.svg"
+        ],
+        "night": [
+          "night/frames/label-chip.svg"
+        ],
+        "warm": [
+          "warm/frames/label-chip.svg"
+        ]
+      }
+    },
+    {
+      "id": "card-plain",
+      "nameAr": "بطاقة بسيطة",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "بطاقة",
+        "لوحة",
+        "إطار",
+        "صندوق"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/card-plain.svg"
+        ],
+        "family": [
+          "family/frames/card-plain.svg"
+        ],
+        "night": [
+          "night/frames/card-plain.svg"
+        ],
+        "warm": [
+          "warm/frames/card-plain.svg"
+        ]
+      }
+    },
+    {
+      "id": "arch-frame",
+      "nameAr": "إطار محراب",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "محراب",
+        "قوس",
+        "إطار",
+        "مسجد",
+        "زخرفة"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/arch-frame.svg"
+        ],
+        "family": [
+          "family/frames/arch-frame.svg"
+        ],
+        "night": [
+          "night/frames/arch-frame.svg"
+        ],
+        "warm": [
+          "warm/frames/arch-frame.svg"
+        ]
+      }
+    },
+    {
+      "id": "seal-stamp",
+      "nameAr": "ختم دائري",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "ختم",
+        "خاتم",
+        "توثيق",
+        "دائرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/seal-stamp.svg"
+        ],
+        "family": [
+          "family/frames/seal-stamp.svg"
+        ],
+        "night": [
+          "night/frames/seal-stamp.svg"
+        ],
+        "warm": [
+          "warm/frames/seal-stamp.svg"
+        ]
+      }
+    },
+    {
+      "id": "bracket-ornate",
+      "nameAr": "قوس زخرفي",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "قوس",
+        "زخرفة",
+        "حاصرة",
+        "اقتباس"
+      ],
+      "note": "قوس أيمن؛ يُقلب أفقيًا للجهة الأخرى.",
+      "files": {
+        "paper": [
+          "paper/frames/bracket-ornate.svg"
+        ],
+        "family": [
+          "family/frames/bracket-ornate.svg"
+        ],
+        "night": [
+          "night/frames/bracket-ornate.svg"
+        ],
+        "warm": [
+          "warm/frames/bracket-ornate.svg"
+        ]
+      }
+    },
+    {
+      "id": "dots-pattern",
+      "nameAr": "نمط نقاط",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "نقاط",
+        "نمط",
+        "خلفية",
+        "زخرفة"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/dots-pattern.svg"
+        ],
+        "family": [
+          "family/frames/dots-pattern.svg"
+        ],
+        "night": [
+          "night/frames/dots-pattern.svg"
+        ],
+        "warm": [
+          "warm/frames/dots-pattern.svg"
+        ]
+      }
+    },
+    {
+      "id": "lines-pattern",
+      "nameAr": "نمط خطوط",
+      "category": "frames",
+      "categoryAr": "إطارات وزخارف",
+      "kind": "prop",
+      "tags": [
+        "خطوط",
+        "نمط",
+        "خلفية",
+        "تظليل"
+      ],
+      "files": {
+        "paper": [
+          "paper/frames/lines-pattern.svg"
+        ],
+        "family": [
+          "family/frames/lines-pattern.svg"
+        ],
+        "night": [
+          "night/frames/lines-pattern.svg"
+        ],
+        "warm": [
+          "warm/frames/lines-pattern.svg"
+        ]
+      }
+    },
+    {
+      "id": "paper-desk",
+      "nameAr": "ورقة ورسوم هامش",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "ورق",
+        "كراسة",
+        "مكتب",
+        "رسم",
+        "دفتر"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/paper-desk-landscape.svg",
+          "paper/backdrops/paper-desk-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/paper-desk-landscape.svg",
+          "family/backdrops/paper-desk-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/paper-desk-landscape.svg",
+          "night/backdrops/paper-desk-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/paper-desk-landscape.svg",
+          "warm/backdrops/paper-desk-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "room-living",
+      "nameAr": "غرفة جلوس",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "بيت",
+        "غرفة",
+        "أريكة",
+        "صالة",
+        "أسرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/room-living-landscape.svg",
+          "paper/backdrops/room-living-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/room-living-landscape.svg",
+          "family/backdrops/room-living-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/room-living-landscape.svg",
+          "night/backdrops/room-living-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/room-living-landscape.svg",
+          "warm/backdrops/room-living-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "room-kids",
+      "nameAr": "غرفة أطفال",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "أطفال",
+        "غرفة",
+        "ألعاب",
+        "طفل",
+        "تربية"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/room-kids-landscape.svg",
+          "paper/backdrops/room-kids-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/room-kids-landscape.svg",
+          "family/backdrops/room-kids-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/room-kids-landscape.svg",
+          "night/backdrops/room-kids-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/room-kids-landscape.svg",
+          "warm/backdrops/room-kids-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "kitchen",
+      "nameAr": "مطبخ",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "مطبخ",
+        "بيت",
+        "طعام",
+        "طبخ",
+        "أسرة"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/kitchen-landscape.svg",
+          "paper/backdrops/kitchen-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/kitchen-landscape.svg",
+          "family/backdrops/kitchen-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/kitchen-landscape.svg",
+          "night/backdrops/kitchen-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/kitchen-landscape.svg",
+          "warm/backdrops/kitchen-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "night-sky",
+      "nameAr": "سماء ليلية بهلال",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "ليل",
+        "سماء",
+        "نجوم",
+        "هلال",
+        "تأمل",
+        "رمضان"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/night-sky-landscape.svg",
+          "paper/backdrops/night-sky-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/night-sky-landscape.svg",
+          "family/backdrops/night-sky-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/night-sky-landscape.svg",
+          "night/backdrops/night-sky-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/night-sky-landscape.svg",
+          "warm/backdrops/night-sky-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "city-night",
+      "nameAr": "مدينة ليلًا",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "مدينة",
+        "ليل",
+        "مباني",
+        "دنيا",
+        "عمل",
+        "مال"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/city-night-landscape.svg",
+          "paper/backdrops/city-night-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/city-night-landscape.svg",
+          "family/backdrops/city-night-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/city-night-landscape.svg",
+          "night/backdrops/city-night-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/city-night-landscape.svg",
+          "warm/backdrops/city-night-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "desert-night",
+      "nameAr": "صحراء ليلًا",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "صحراء",
+        "ليل",
+        "نجوم",
+        "رمال",
+        "سفر",
+        "تأمل"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/desert-night-landscape.svg",
+          "paper/backdrops/desert-night-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/desert-night-landscape.svg",
+          "family/backdrops/desert-night-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/desert-night-landscape.svg",
+          "night/backdrops/desert-night-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/desert-night-landscape.svg",
+          "warm/backdrops/desert-night-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "desert-day",
+      "nameAr": "صحراء نهارًا",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "صحراء",
+        "نهار",
+        "رمال",
+        "واحة",
+        "نخيل",
+        "سفر"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/desert-day-landscape.svg",
+          "paper/backdrops/desert-day-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/desert-day-landscape.svg",
+          "family/backdrops/desert-day-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/desert-day-landscape.svg",
+          "night/backdrops/desert-day-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/desert-day-landscape.svg",
+          "warm/backdrops/desert-day-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "courtyard-arches",
+      "nameAr": "رواق أقواس",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "أقواس",
+        "رواق",
+        "فناء",
+        "مسجد",
+        "تاريخ",
+        "حضارة"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/courtyard-arches-landscape.svg",
+          "paper/backdrops/courtyard-arches-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/courtyard-arches-landscape.svg",
+          "family/backdrops/courtyard-arches-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/courtyard-arches-landscape.svg",
+          "night/backdrops/courtyard-arches-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/courtyard-arches-landscape.svg",
+          "warm/backdrops/courtyard-arches-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "library-hall",
+      "nameAr": "قاعة مكتبة",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "مكتبة",
+        "كتب",
+        "علم",
+        "قراءة",
+        "تاريخ"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/library-hall-landscape.svg",
+          "paper/backdrops/library-hall-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/library-hall-landscape.svg",
+          "family/backdrops/library-hall-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/library-hall-landscape.svg",
+          "night/backdrops/library-hall-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/library-hall-landscape.svg",
+          "warm/backdrops/library-hall-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "market-street",
+      "nameAr": "شارع سوق",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "سوق",
+        "تجارة",
+        "بيع",
+        "شارع",
+        "مال"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/market-street-landscape.svg",
+          "paper/backdrops/market-street-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/market-street-landscape.svg",
+          "family/backdrops/market-street-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/market-street-landscape.svg",
+          "night/backdrops/market-street-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/market-street-landscape.svg",
+          "warm/backdrops/market-street-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "garden",
+      "nameAr": "حديقة",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "حديقة",
+        "شجر",
+        "عشب",
+        "طبيعة",
+        "نزهة"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/garden-landscape.svg",
+          "paper/backdrops/garden-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/garden-landscape.svg",
+          "family/backdrops/garden-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/garden-landscape.svg",
+          "night/backdrops/garden-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/garden-landscape.svg",
+          "warm/backdrops/garden-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "classroom",
+      "nameAr": "فصل دراسي",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "فصل",
+        "مدرسة",
+        "سبورة",
+        "تعليم",
+        "درس"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/classroom-landscape.svg",
+          "paper/backdrops/classroom-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/classroom-landscape.svg",
+          "family/backdrops/classroom-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/classroom-landscape.svg",
+          "night/backdrops/classroom-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/classroom-landscape.svg",
+          "warm/backdrops/classroom-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "mosque-exterior",
+      "nameAr": "مسجد من بعيد",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "مسجد",
+        "صلاة",
+        "قبة",
+        "مئذنة",
+        "جمعة",
+        "عبادة"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/mosque-exterior-landscape.svg",
+          "paper/backdrops/mosque-exterior-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/mosque-exterior-landscape.svg",
+          "family/backdrops/mosque-exterior-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/mosque-exterior-landscape.svg",
+          "night/backdrops/mosque-exterior-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/mosque-exterior-landscape.svg",
+          "warm/backdrops/mosque-exterior-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "road-horizon",
+      "nameAr": "طريق إلى الأفق",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "طريق",
+        "أفق",
+        "سفر",
+        "هدف",
+        "رحلة",
+        "مستقبل"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/road-horizon-landscape.svg",
+          "paper/backdrops/road-horizon-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/road-horizon-landscape.svg",
+          "family/backdrops/road-horizon-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/road-horizon-landscape.svg",
+          "night/backdrops/road-horizon-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/road-horizon-landscape.svg",
+          "warm/backdrops/road-horizon-portrait.svg"
+        ]
+      }
+    },
+    {
+      "id": "sea-horizon",
+      "nameAr": "بحر وأفق",
+      "category": "backdrops",
+      "categoryAr": "الخلفيات",
+      "kind": "backdrop",
+      "tags": [
+        "بحر",
+        "أفق",
+        "ماء",
+        "سفينة",
+        "تأمل",
+        "سفر"
+      ],
+      "files": {
+        "paper": [
+          "paper/backdrops/sea-horizon-landscape.svg",
+          "paper/backdrops/sea-horizon-portrait.svg"
+        ],
+        "family": [
+          "family/backdrops/sea-horizon-landscape.svg",
+          "family/backdrops/sea-horizon-portrait.svg"
+        ],
+        "night": [
+          "night/backdrops/sea-horizon-landscape.svg",
+          "night/backdrops/sea-horizon-portrait.svg"
+        ],
+        "warm": [
+          "warm/backdrops/sea-horizon-landscape.svg",
+          "warm/backdrops/sea-horizon-portrait.svg"
+        ]
+      }
+    }
+  ]
+}

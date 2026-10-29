@@ -18,10 +18,24 @@ cp .env.example .env   # ضع المفاتيح هنا فقط — لا تُرفع
 | `npx bal check 002` | يفحص السكريبت (الفصول، المراجع، الاستشهادات، الأسلوب، المدة) قبل صرف أي رصيد |
 | `npx bal check 002 --json` | النتيجة نفسها بصيغة JSON |
 | `npx bal stills` | يرندر لوحات الهوية لكل ثيم في `renders/brand/` |
+| `npx bal elements` | يصدّر مكتبة العناصر: SVG لكل ثيم + `manifest.json` + `catalog.html` في `assets/elements/` |
+| `npx bal preview reel-paper` | يرندر فيديو معاينة القوالب (أو `--stills 30,120` للقطات ثابتة) في `renders/previews/` |
 | `npm run studio` | يفتح Remotion Studio للمعاينة |
 | `npm test` / `npm run typecheck` | الاختبارات وفحص الأنواع |
 
 المجالات: `psychology` (حبر وورق) · `family` (دفء البيت) · `money` (ليلٌ هادئ) · `knowledge` (أقواس دافئة).
+
+## مكتبة العناصر
+
+كل ما تُبنى منه المشاهد في مكان واحد، ويتلوّن تلقائيًا بثيم الحلقة:
+
+- `brand/elements/categories/` — العناصر مقسّمة على 11 فئة (رموز، نفس ومشاعر، طبيعة، بيت، حياة يومية، مال، علم، رموز إسلامية، أيدٍ، إطارات، خلفيات).
+- `characters/Character.tsx` — 5 شخصيات بلا ملامح × 12 وضعية.
+- `brand/sfx.ts` — سجل المؤثرات الصوتية والآهات (بلا موسيقى).
+- `brand/elements/GUIDE.md` — دليل رسم أي عنصر جديد وضوابطه.
+- `assets/elements/catalog.html` — الكتالوج المصوّر لكل ما سبق.
+
+في الكود: `<Element id="book-open" theme={theme} size={240} />`
 
 ## قواعد ثابتة
 
@@ -35,5 +49,5 @@ cp .env.example .env   # ضع المفاتيح هنا فقط — لا تُرفع
 1. ✅ الأساس: الثيمات والخطوط والشعار والشخصيات
 2. ✅ قراءة السكريبت وفحصه (`bal new` و`bal check`)
 3. ⏳ الصوت (ElevenLabs) والآيات (Quran Foundation)
-4. ⏳ قوالب المشاهد الاثنا عشر
+4. 🔄 قوالب المشاهد الاثنا عشر (جاهز: السؤال الكبير، حوار الشخصية، بطاقة الآية) + مكتبة العناصر
 5. ⏳ المزامنة والرندر والتغليف (`bal make`)

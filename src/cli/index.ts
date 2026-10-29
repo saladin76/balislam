@@ -53,6 +53,27 @@ program
     console.log(`تم: ${files.length} صورة في ${path.relative(projectRoot, path.dirname(files[0] ?? "renders/brand/x"))}`);
   });
 
+program
+  .command("elements")
+  .description("تصدير مكتبة العناصر: SVG لكل ثيم + manifest.json + كتالوج HTML")
+  .action(async () => {
+    const { exportElements } = await import("../elements/export");
+    const r = await exportElements();
+    console.log(`تم: ${r.elements} عنصرًا، ${r.files} ملفًا. الكتالوج: ${path.relative(projectRoot, r.catalog)}`);
+  });
+
+program
+  .command("preview")
+  .description("رندر معاينة القوالب: bal preview reel-paper-landscape، أو --stills 30,90 للقطات ثابتة")
+  .argument("<prefix>", "بادئة معرّف التكوين")
+  .option("--stills <frames>", "أرقام إطارات مفصولة بفواصل")
+  .action(async (prefix: string, opts: { stills?: string }) => {
+    const { renderPreviews } = await import("../render/previews");
+    const stills = opts.stills ? opts.stills.split(",").map(Number) : undefined;
+    const files = await renderPreviews({ prefix, stills, onProgress: (m) => console.log(m) });
+    console.log(`تم: ${files.length} ملف في renders/previews`);
+  });
+
 program.parseAsync().catch((err: Error) => {
   console.error(`خطأ: ${err.message}`);
   process.exitCode = 1;
