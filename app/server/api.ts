@@ -54,7 +54,11 @@ export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
-    const load = async <T = any>(file: string): Promise<T> => (await server.ssrLoadModule(`/@fs${path.join(root, file)}`)) as T;
+    // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
+    const load = async <T = any>(file: string): Promise<T> => {
+      const abs = path.join(root, file).replace(/\\/g, "/");
+      return (await server.ssrLoadModule(`/@fs${abs.startsWith("/") ? "" : "/"}${abs}`)) as T;
+    };
 
     const checkText = async (text: string, file = "script.md") => {
       const { parseScript } = await load("/src/script/parse.ts");

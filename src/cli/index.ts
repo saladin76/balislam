@@ -118,7 +118,7 @@ program
   .description("فتح استوديو بالإسلام في المتصفح")
   .action(async () => {
     const { spawn } = await import("node:child_process");
-    spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit" });
+    spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit", shell: process.platform === "win32" });
   });
 
 program
