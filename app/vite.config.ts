@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vite";
 import { existsSync } from "node:fs";
-import { balApi } from "./server/api.ts";
+import { balApi } from "./server/api";
 
 const root = path.resolve(import.meta.dirname, "..");
 // مفاتيح ElevenLabs وQuran Foundation من .env (على جهازك فقط)

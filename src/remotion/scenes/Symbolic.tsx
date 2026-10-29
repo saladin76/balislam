@@ -286,10 +286,10 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
     const scale = interpolate(move, [0, 1], [1.25, 1]) * interpolate(frame, [ghostFrom, ghostFrom + 12], [1, 0.9], clamp);
 
     // السهم: قوس لطيف بين الموضعين (يبتعد عن العنصرين بهامش).
-    const gap = size * 0.62;
+    const gap = size * (portrait ? 0.56 : 0.62);
     const S = portrait ? { x: A.x, y: A.y + gap } : { x: A.x - gap, y: A.y };
     const E = portrait ? { x: B.x, y: B.y - gap } : { x: B.x + gap, y: B.y };
-    const bend = portrait ? { x: -60, y: 0 } : { x: 0, y: -70 };
+    const bend = portrait ? { x: -34, y: 0 } : { x: 0, y: -70 };
     const Cc = { x: (S.x + E.x) / 2 + bend.x, y: (S.y + E.y) / 2 + bend.y };
     const q = (u: number) => ({
       x: (1 - u) * (1 - u) * S.x + 2 * (1 - u) * u * Cc.x + u * u * E.x,
