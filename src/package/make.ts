@@ -39,7 +39,7 @@ export const makeEpisode = async (opts: MakeOptions) => {
     const r = await syncQuran(ep, qf);
     if (r.failed.length) throw new Error(`تعذّر جلب آيات: ${r.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`);
     log(`   جُلبت ${r.fetched.length}، ومخزّنة ${r.cached.length}.`);
-  } else log("   ⚠️ مفاتيح Quran Foundation غير موجودة: بطاقات الآيات ستعرض نصًا مؤقتًا.");
+  } else log("   مفاتيح Quran Foundation غير موجودة: سيُستخدم المخزّن من النصوص فقط، وأي آية غير مخزّنة ستمنع النسخة النهائية.");
 
   log("٣/٥ خطة المشاهد…");
   const plan = await regeneratePlan(ep);

@@ -14,12 +14,15 @@ const firstSentence = (text: string, maxWords = 8) => {
 
 const questionIn = (text: string) => text.split(/(?<=[.؟?!…])\s+/).find((s) => /[؟?]\s*$/.test(s));
 
+const MULTILINE = new Set(["items", "rightItems", "leftItems", "events", "data"]);
+
 /** خيارات العلامة: [مشهد: character-talk | pose=think | element=bell] */
 const parseOptions = (options: string[]): Record<string, string> => {
   const out: Record<string, string> = {};
   for (const o of options) {
     const [k, ...v] = o.split("=");
-    if (k && v.length) out[k.trim()] = v.join("=").trim();
+    // الحقول متعددة الأسطر تُكتب في سطر العلامة مفصولة بـ «؛»
+    if (k && v.length) out[k.trim()] = MULTILINE.has(k.trim()) ? v.join("=").split("؛").map((x) => (k.trim() === "events" ? x.replace(/\s*—\s*/, " | ") : x).trim()).filter(Boolean).join("\n") : v.join("=").trim();
   }
   return out;
 };

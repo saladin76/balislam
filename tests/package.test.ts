@@ -65,13 +65,14 @@ describe("المزامنة والتغليف", () => {
   };
 
   it("مدة المشهد من الصوت الحقيقي، وبطاقة الآية بطول التلاوة", () => {
-    expect(sceneSeconds(first, media)).toBeCloseTo(3.35);
+    expect(sceneSeconds(first, media)).toBeCloseTo(3.5); // أقل مدة للسؤال الكبير
     const verse = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
     expect(sceneSeconds(verse, media)).toBeCloseTo(10.6);
   });
 
   it("الصوت القديم (نص تغيّر) لا يُستخدم", () => {
-    expect(sceneSeconds({ ...first, narration: `${first.narration} زيادة` }, media)).not.toBeCloseTo(3.35);
+    const longer = { ...first, narration: `${first.narration} ${"كلمة ".repeat(20)}`.trim() };
+    expect(sceneSeconds(longer, media)).toBeGreaterThan(8);
   });
 
   it("ملف الترجمة SRT مرتب بلا تداخل", () => {

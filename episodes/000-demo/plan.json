@@ -4,7 +4,7 @@
   "title": "حلقة تجريبية: لماذا نؤجّل ما نعرف أنه مهم؟",
   "domain": "psychology",
   "themeId": "paper",
-  "updatedAt": "2026-10-29T13:29:55.377Z",
+  "updatedAt": "2026-10-29T13:48:19.467Z",
   "chapters": [
     {
       "number": 1,
@@ -45,15 +45,14 @@
       "title": "من أين يأتي التأجيل؟",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "big-number",
           "narration": "التأجيل لا يبدأ من الكسل. يبدأ من شعور ثقيل نريد الهروب منه.",
           "line": 23,
           "props": {
-            "line": "التأجيل لا يبدأ من الكسل.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": "right"
+            "number": "٢٠٪",
+            "caption": "من الناس يصفون أنفسهم بأنهم مؤجّلون مزمنون",
+            "source": "رقم توضيحي للحلقة التجريبية",
+            "element": "hourglass-patience"
           },
           "id": "c2-s1",
           "sfx": []
@@ -61,7 +60,7 @@
         {
           "template": "character-talk",
           "narration": "المهمة الصعبة تذكّرنا بالخوف من الفشل، فنختار شيئًا أخف. لكن ما الذي يقوله الإسلام عن هذا؟",
-          "line": 26,
+          "line": 27,
           "props": {
             "line": "المهمة الصعبة تذكّرنا بالخوف من الفشل، فنختار شيئًا…",
             "variant": "narrator-m",
@@ -86,29 +85,29 @@
       "title": "السبب الأعمق",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "comparison",
           "narration": "حين نؤجل، نشتري راحة قصيرة بثمن طويل.",
-          "line": 32,
+          "line": 33,
           "props": {
-            "line": "حين نؤجل، نشتري راحة قصيرة بثمن طويل.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": "right"
+            "rightTitle": "ما نظنه",
+            "rightItems": "التأجيل كسل\nأحتاج حماسًا لأبدأ",
+            "rightElement": "head-tangle",
+            "leftTitle": "ما يحدث فعلًا",
+            "leftItems": "التأجيل هروب من شعور\nالحماس يأتي بعد البداية",
+            "leftElement": "head-idea",
+            "tone": "contrast"
           },
           "id": "c3-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "timeline",
           "narration": "القلق لا يختفي، بل يكبر كل يوم. وهنا يأتي الميزان الذي يغير النظرة.",
-          "line": 34,
+          "line": 36,
           "props": {
-            "line": "القلق لا يختفي، بل يكبر كل يوم.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": "right"
+            "title": "كيف يكبر التأجيل",
+            "events": "اليوم الأول | أؤجل خمس دقائق\nالأسبوع الأول | تتراكم المهام\nالشهر الأول | يصبح عادة",
+            "element": "hourglass-patience"
           },
           "id": "c3-s2",
           "sfx": []
@@ -122,7 +121,7 @@
         {
           "template": "character-talk",
           "narration": "القرآن يربط قيمة الإنسان بسعيه، لا بأمنياته.",
-          "line": 40,
+          "line": 43,
           "props": {
             "line": "القرآن يربط قيمة الإنسان بسعيه، لا بأمنياته.",
             "variant": "narrator-m",
@@ -136,7 +135,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 42,
+          "line": 45,
           "ayahKey": "53:39",
           "props": {
             "text": "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ",
@@ -149,7 +148,7 @@
         {
           "template": "character-talk",
           "narration": "والغنى الحقيقي في النفس، كما قال رسول الله صلى الله عليه وسلم.",
-          "line": 44,
+          "line": 47,
           "props": {
             "line": "والغنى الحقيقي في النفس، كما قال رسول الله…",
             "variant": "narrator-m",
@@ -163,7 +162,7 @@
         {
           "template": "hadith-card",
           "narration": "",
-          "line": 46,
+          "line": 49,
           "props": {
             "text": "ليس الغنى عن كثرة العرض، ولكن الغنى غنى النفس",
             "narrator": "عن أبي هريرة رضي الله عنه",
@@ -176,7 +175,7 @@
         {
           "template": "character-talk",
           "narration": "فكيف نحوّل هذا الفهم إلى عمل؟",
-          "line": 48,
+          "line": 51,
           "props": {
             "line": "فكيف نحوّل هذا الفهم إلى عمل؟",
             "variant": "narrator-m",
@@ -194,29 +193,27 @@
       "title": "كيف نبدأ",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "list",
           "narration": "ابدأ بخطوة صغيرة جدًا، حتى لا يخاف منها عقلك.",
-          "line": 52,
+          "line": 55,
           "props": {
-            "line": "ابدأ بخطوة صغيرة جدًا، حتى لا يخاف منها…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": "right"
+            "title": "ثلاث خطوات صغيرة",
+            "items": "حدّد مهمة واحدة\nاعمل عليها خمس دقائق\nكافئ نفسك",
+            "style": "numbered"
           },
           "id": "c5-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "symbolic",
           "narration": "خمس دقائق فقط تكسر حاجز البداية، وتفتح الباب لما بعدها. وفي النهاية خطوة واحدة لليوم.",
-          "line": 54,
+          "line": 58,
           "props": {
-            "line": "خمس دقائق فقط تكسر حاجز البداية، وتفتح الباب…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": "right"
+            "element": "seed",
+            "secondElement": "tree",
+            "relation": "becomes",
+            "caption": "خطوة صغيرة اليوم… أثر كبير غدًا",
+            "effect": "grow"
           },
           "id": "c5-s2",
           "sfx": []
@@ -230,9 +227,10 @@
         {
           "template": "summary",
           "narration": "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن.",
-          "line": 60,
+          "line": 65,
           "props": {
-            "text": "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن."
+            "text": "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن.",
+            "element": "lightbulb"
           },
           "id": "c6-s1",
           "sfx": []
@@ -241,7 +239,7 @@
           "id": "c6-end",
           "template": "end-screen",
           "narration": "",
-          "line": 70,
+          "line": 75,
           "props": {
             "step": "اكتب الآن مهمة واحدة أجلتها، وابدأ فيها خمس دقائق فقط.",
             "prompt": "اكتب في التعليقات: ما المهمة التي اخترتها؟"

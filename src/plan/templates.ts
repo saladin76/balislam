@@ -22,6 +22,8 @@ export type TemplateDef = {
   fields: FieldDef[];
   /** مدة افتراضية بالثواني إن لم يكن له تعليق صوتي */
   baseSeconds: number;
+  /** أقل مدة تحتاجها حركة القالب لتكتمل، حتى لو كان الصوت أقصر */
+  minSeconds: number;
 };
 
 const side = { value: "right", label: "يمين" };
@@ -33,6 +35,7 @@ export const templateDefs: TemplateDef[] = [
     useAr: "افتتاح الفصل بسؤال واحد بخط كبير",
     implemented: true,
     baseSeconds: 5,
+    minSeconds: 3.5,
     fields: [
       { key: "question", label: "السؤال", type: "textarea" },
       { key: "highlight", label: "العبارة المميزة", type: "text", help: "جزء من السؤال كما هو، يمر عليه قلم التمييز" },
@@ -45,6 +48,7 @@ export const templateDefs: TemplateDef[] = [
     useAr: "شخصية تتكلم بعبارة قصيرة في فقاعة",
     implemented: true,
     baseSeconds: 5,
+    minSeconds: 3,
     fields: [
       { key: "line", label: "عبارة الفقاعة", type: "textarea", help: "قصيرة: ثماني كلمات أو أقل" },
       { key: "variant", label: "الشخصية", type: "variant" },
@@ -59,6 +63,7 @@ export const templateDefs: TemplateDef[] = [
     useAr: "عرض آية بنصها من المصدر المعتمد",
     implemented: true,
     baseSeconds: 7,
+    minSeconds: 7,
     fields: [
       { key: "text", label: "نص الآية", type: "textarea", help: "يُجلب من Quran Foundation ولا يُعدَّل يدويًا" },
       { key: "reference", label: "المرجع", type: "text" },
@@ -69,8 +74,9 @@ export const templateDefs: TemplateDef[] = [
     id: "hadith-card",
     nameAr: "بطاقة الحديث",
     useAr: "نص الحديث بمصدره ودرجته",
-    implemented: false,
+    implemented: true,
     baseSeconds: 8,
+    minSeconds: 7,
     fields: [
       { key: "narrator", label: "الراوي", type: "text", placeholder: "عن أبي هريرة رضي الله عنه" },
       { key: "text", label: "نص الحديث", type: "textarea", help: "كما في المصدر، بلا تعديل" },
@@ -82,8 +88,9 @@ export const templateDefs: TemplateDef[] = [
     id: "comparison",
     nameAr: "المقارنة",
     useAr: "جانبان متقابلان: قبل وبعد، خطأ وصواب",
-    implemented: false,
+    implemented: true,
     baseSeconds: 7,
+    minSeconds: 7,
     fields: [
       { key: "rightTitle", label: "عنوان الجانب الأول (يمين)", type: "text" },
       { key: "rightItems", label: "نقاطه (سطر لكل نقطة)", type: "textarea" },
@@ -98,8 +105,9 @@ export const templateDefs: TemplateDef[] = [
     id: "list",
     nameAr: "القائمة",
     useAr: "نقاط تظهر تباعًا",
-    implemented: false,
+    implemented: true,
     baseSeconds: 7,
+    minSeconds: 6,
     fields: [
       { key: "title", label: "العنوان", type: "text" },
       { key: "items", label: "النقاط (سطر لكل نقطة، حتى 5)", type: "textarea" },
@@ -111,8 +119,9 @@ export const templateDefs: TemplateDef[] = [
     id: "big-number",
     nameAr: "الرقم الكبير",
     useAr: "رقم أو نسبة صادمة",
-    implemented: false,
+    implemented: true,
     baseSeconds: 5,
+    minSeconds: 5,
     fields: [
       { key: "number", label: "الرقم", type: "text", placeholder: "٧٠٪" },
       { key: "caption", label: "الوصف", type: "textarea" },
@@ -124,8 +133,9 @@ export const templateDefs: TemplateDef[] = [
     id: "chart",
     nameAr: "الرسم البياني",
     useAr: "مقارنة أرقام بأعمدة",
-    implemented: false,
+    implemented: true,
     baseSeconds: 7,
+    minSeconds: 7,
     fields: [
       { key: "title", label: "العنوان", type: "text" },
       { key: "data", label: "البيانات (الاسم: القيمة في كل سطر)", type: "textarea", placeholder: "الهاتف: 4\nالقراءة: 0.5" },
@@ -138,8 +148,9 @@ export const templateDefs: TemplateDef[] = [
     id: "timeline",
     nameAr: "الخط الزمني",
     useAr: "أحداث بترتيبها",
-    implemented: false,
+    implemented: true,
     baseSeconds: 8,
+    minSeconds: 8,
     fields: [
       { key: "title", label: "العنوان", type: "text" },
       { key: "events", label: "الأحداث (التاريخ | الحدث في كل سطر، حتى 5)", type: "textarea", placeholder: "٢٢٠ هـ | تأسيس بيت الحكمة" },
@@ -150,8 +161,9 @@ export const templateDefs: TemplateDef[] = [
     id: "symbolic",
     nameAr: "المشهد الرمزي",
     useAr: "عنصر رمزي كبير يعبّر عن الفكرة",
-    implemented: false,
+    implemented: true,
     baseSeconds: 5,
+    minSeconds: 5,
     fields: [
       { key: "element", label: "العنصر", type: "element" },
       { key: "secondElement", label: "عنصر ثانٍ (اختياري)", type: "element" },
@@ -164,8 +176,9 @@ export const templateDefs: TemplateDef[] = [
     id: "summary",
     nameAr: "الخلاصة",
     useAr: "خلاصة الفصل في جملة",
-    implemented: false,
+    implemented: true,
     baseSeconds: 6,
+    minSeconds: 5,
     fields: [
       { key: "text", label: "الخلاصة", type: "textarea" },
       { key: "element", label: "رمز", type: "element" },
@@ -175,8 +188,9 @@ export const templateDefs: TemplateDef[] = [
     id: "end-screen",
     nameAr: "شاشة النهاية",
     useAr: "آخر 20 ثانية: الخطوة العملية وأماكن عناصر يوتيوب",
-    implemented: false,
+    implemented: true,
     baseSeconds: 20,
+    minSeconds: 20,
     fields: [
       { key: "step", label: "الخطوة العملية", type: "textarea" },
       { key: "prompt", label: "سؤال التعليقات", type: "text", placeholder: "اكتب في التعليقات: ما المهمة التي اخترتها؟" },
