@@ -50,6 +50,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
           reference={p.reference || ""}
           reciter={hasRecitation && p.reciter ? p.reciter : undefined}
           sourceNote={p.text && !p.text.startsWith("‹") ? lang.strings.quranAttribution : undefined}
+          meaning={p.meaning || undefined}
+          meaningSource={p.meaningSource || undefined}
         />
       );
     case "hadith-card":

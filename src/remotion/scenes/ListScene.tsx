@@ -5,7 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
-import { Digits } from "../../i18n/context";
+import { Digits, useLang } from "../../i18n/context";
 
 import { enter, fade, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
@@ -38,6 +38,9 @@ export const ListScene: React.FC<ListSceneProps> = (props) => {
   const c = t.colors;
   const portrait = orientation === "portrait";
   const ink = t.character.style === "line";
+  /** الصفوف تنزلق من جهة بداية القراءة. */
+  const rtl = useLang().dir === "rtl";
+  const startSide = rtl ? "right" : "left";
   const style = props.style === "check" || props.style === "icons" ? props.style : "numbered";
 
   const items = (props.items ?? "")
@@ -141,7 +144,7 @@ export const ListScene: React.FC<ListSceneProps> = (props) => {
           {title ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, opacity: titleIn, transform: `translateY(${(1 - titleIn) * 24}px)` }}>
               <div style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: titleSize, lineHeight: 1.3, color: c.ink }}>{title}</div>
-              <div style={{ height: 8, width: portrait ? 150 : 170, borderRadius: 4, background: ink ? c.secondary : c.primary, border: ink ? `2px solid ${c.ink}` : "none", transformOrigin: "right center", transform: `scaleX(${barIn})` }} />
+              <div style={{ height: 8, width: portrait ? 150 : 170, borderRadius: 4, background: ink ? c.secondary : c.primary, border: ink ? `2px solid ${c.ink}` : "none", transformOrigin: `${startSide} center`, transform: `scaleX(${barIn})` }} />
             </div>
           ) : null}
           <div style={{ display: "flex", flexDirection: "column", gap: rowGap }}>
@@ -166,8 +169,8 @@ export const ListScene: React.FC<ListSceneProps> = (props) => {
                       ? `${8 * current}px ${8 * current}px 0 ${c.secondary}`
                       : `0 0 0 ${3 * current}px ${c.primary}, 0 ${10 + 8 * current}px ${30 + 12 * current}px rgba(0,0,0,${themeId === "night" ? 0.28 : 0.07 + 0.03 * current})`,
                     opacity: Math.min(1, a * 1.5),
-                    transform: `translateX(${(1 - a) * 70}px) scale(${1 + 0.012 * current}) ${ink ? boil(frame, 40 + i, 0.18) : ""}`,
-                    transformOrigin: "right center",
+                    transform: `translateX(${(1 - a) * 70 * (rtl ? 1 : -1)}px) scale(${1 + 0.012 * current}) ${ink ? boil(frame, 40 + i, 0.18) : ""}`,
+                    transformOrigin: `${startSide} center`,
                   }}
                 >
                   <div style={{ opacity: 1 - dim * 0.4, display: "flex" }}>{lead$(i, a)}</div>
@@ -190,5 +193,14 @@ export const listSample: Omit<ListSceneProps, "themeId" | "orientation"> = {
   style: "numbered",
   icons: "target, timer, star-badge",
   narration: "حدّد مهمة واحدة، واعمل عليها خمس دقائق، ثم كافئ نفسك.",
+};
+/** English preview content. */
+export const listSampleEn: Omit<ListSceneProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 5 · How to start",
+  title: "Three small steps",
+  items: "Pick just one task\nWork on it for five minutes\nReward yourself when it's done",
+  style: "numbered",
+  icons: "target, timer, star-badge",
+  narration: "Pick one task, work on it for five minutes, then reward yourself.",
 };
 export const listSeconds = 8;

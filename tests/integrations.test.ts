@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createQuranClient, QF_URLS } from "../src/quran/client";
 import { composeVerses } from "../src/quran/sync";
+import { parseAyahRef } from "../src/script/quranMeta";
 import { createElevenLabs } from "../src/voice/elevenlabs";
 import { alignmentToWords, applyDictionary, wordsForCaptions } from "../src/voice/words";
 
@@ -41,6 +42,28 @@ describe("Quran Foundation", () => {
     });
     const qf = createQuranClient({ clientId: "a", clientSecret: "b", fetchImpl: f });
     expect((await qf.verse("1:1")).text).toBe("بِسْمِ ٱللَّهِ");
+  });
+
+  it("يجلب ترجمة المعنى عند طلبها ويحذف الحواشي", async () => {
+    const { f, calls } = mockFetch({
+      "/oauth2/token": () => ({ json: { access_token: "T", expires_in: 3600 } }),
+      "/verses/by_key/53:39": () => ({ json: { verse: { verse_number: 39, text_uthmani: "ن", translations: [{ text: "And that there is not for man<sup foot_note=1>1</sup> except that for which he strives" }] } } }),
+    });
+    const qf = createQuranClient({ clientId: "a", clientSecret: "b", fetchImpl: f });
+    const v = await qf.verse("53:39", { translationId: 20 });
+    expect(calls[1]!.url).toContain("?fields=text_uthmani&translations=20");
+    expect(v.meaning).toBe("And that there is not for man except that for which he strives");
+  });
+
+  it("مرجع الآية بالعربية أو اللاتينية أو بالأرقام", () => {
+    for (const r of ["النجم 39", "An-Najm 39", "Surah an najm 39", "53:39", "53 39"]) {
+      const res = parseAyahRef(r);
+      expect(res.ok && res.ref.key, r).toBe("53:39");
+    }
+    const range = parseAyahRef("Al-Baqarah 255-256");
+    expect(range.ok && range.ref.key).toBe("2:255-256");
+    expect(parseAyahRef("Ya-Sin 1").ok).toBe(true);
+    expect(parseAyahRef("Nowhere 1").ok).toBe(false);
   });
 
   it("يضع علامة نهاية الآية ورقمها بين آيات المقطع دون تغيير النص", () => {

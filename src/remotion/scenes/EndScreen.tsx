@@ -6,7 +6,7 @@ import type { Theme } from "../../../brand/themes";
 import { Element } from "../../../brand/elements/Element";
 import { LogoMark } from "../../../brand/logo/Logo";
 import { SceneShell } from "./SceneShell";
-import { T } from "../../i18n/context";
+import { T, useLang } from "../../i18n/context";
 import { ChannelName } from "../../channel/context";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
@@ -16,6 +16,8 @@ export type EndScreenProps = SceneBase & StringFields<"step" | "prompt">;
 /**
  * أماكن عناصر شاشة النهاية في يوتيوب (أفقي 1920×1080). يضعها صاحب القناة في YouTube Studio
  * فوق هذه المواضع تمامًا: فيديوهان 16:9 ودائرة اشتراك.
+ * هذه مواضع العربية (RTL): دائرة الاشتراك يمينًا (جانب البداية) والفيديو الأول بجوارها.
+ * للتركية والإنجليزية (LTR) تنعكس أفقيًا (x' = 1920 − x − w): استخدم endScreenSlots(dir).
  */
 export const END_SCREEN_SLOTS = {
   videos: [
@@ -24,6 +26,17 @@ export const END_SCREEN_SLOTS = {
   ],
   subscribe: { cx: 1650, cy: 780, r: 100 },
 } as const;
+
+const END_W = 1920;
+
+/** End-screen slots for both directions. LTR mirrors the RTL layout horizontally (subscribe on the left). */
+export const END_SCREEN_SLOTS_LTR = {
+  videos: END_SCREEN_SLOTS.videos.map((v) => ({ ...v, x: END_W - v.x - v.w })),
+  subscribe: { ...END_SCREEN_SLOTS.subscribe, cx: END_W - END_SCREEN_SLOTS.subscribe.cx },
+};
+
+/** مواضع عناصر يوتيوب حسب اتجاه اللغة: "rtl" ⇒ END_SCREEN_SLOTS، "ltr" ⇒ END_SCREEN_SLOTS_LTR. */
+export const endScreenSlots = (dir: "rtl" | "ltr") => (dir === "rtl" ? END_SCREEN_SLOTS : END_SCREEN_SLOTS_LTR);
 
 /** مكان فارغ ناعم (بلا نص) يدلّ على موضع عنصر يوتيوب. */
 const Slot: React.FC<{ t: Theme; style: React.CSSProperties; round?: boolean; a: number }> = ({ t, style, round, a }) => {
@@ -70,6 +83,7 @@ export const EndScreen: React.FC<EndScreenProps> = (props) => {
   const portrait = orientation === "portrait";
   const line = t.character.style === "line";
   const night = themeId === "night";
+  const dir = useLang().dir;
 
   const logoIn = enter(frame, 0, 30, 110);
   const cardIn = enter(frame, 10, 30, 100);
@@ -216,7 +230,7 @@ export const EndScreen: React.FC<EndScreenProps> = (props) => {
     );
   }
 
-  const { videos, subscribe } = END_SCREEN_SLOTS;
+  const { videos, subscribe } = endScreenSlots(dir);
   return (
     <SceneShell {...props} eyebrow={undefined} captions={false} durationInFrames={durationInFrames}>
       {/* أماكن عناصر يوتيوب (فارغة عمدًا) */}
@@ -226,7 +240,7 @@ export const EndScreen: React.FC<EndScreenProps> = (props) => {
       <Slot t={t} round a={slotsIn} style={{ left: subscribe.cx - subscribe.r, top: subscribe.cy - subscribe.r, width: subscribe.r * 2, height: subscribe.r * 2 }} />
 
       {/* الشعار */}
-      <div style={{ position: "absolute", top: 58, right: 110 }}>{logo(80)}</div>
+      <div style={{ position: "absolute", top: 58, ...(dir === "rtl" ? { right: 110 } : { left: 110 }) }}>{logo(80)}</div>
 
       {/* الخطوة العملية والسؤال */}
       <div
@@ -257,3 +271,10 @@ export const endScreenSample: Omit<EndScreenProps, "themeId" | "orientation"> = 
   captions: false,
 };
 export const endScreenSeconds = 20;
+
+/** English preview sample (LTR). */
+export const endScreenSampleEn: Omit<EndScreenProps, "themeId" | "orientation"> = {
+  step: "Write down one task you've been putting off, and start it for just five minutes.",
+  prompt: "Tell us in the comments: which task did you pick?",
+  captions: false,
+};

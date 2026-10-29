@@ -21,7 +21,7 @@ const Star8: React.FC<{ size: number; fill: string; stroke?: string; sw?: number
  * النص يُعرض كما ورد من المصدر بلا أي تعديل.
  */
 export const VerseCard: React.FC<VerseCardProps> = (props) => {
-  const { themeId, orientation, text, reference, reciter, sourceNote } = props;
+  const { themeId, orientation, text, reference, reciter, sourceNote, meaning, meaningSource } = props;
   const frame = useSceneFrame();
   const verseSize = useSize("verse", orientation);
   const refSize = useSize("reference", orientation);
@@ -35,6 +35,8 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
   const textIn = fade(frame, 14, 30);
   const blur = interpolate(textIn, [0, 1], [8, 0]);
   const refIn = fade(frame, 40, 16);
+  const meaningIn = fade(frame, 34, 20);
+  const meaningSize = Math.round(refSize * 1.25);
   const ornament = enter(frame, 8, 30, 120);
 
   return (
@@ -74,6 +76,8 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
           <div style={{ position: "absolute", inset: 18, border: `2px solid ${line ? c.ink : c.primary}`, borderRadius: 18, opacity: 0.18 * card, pointerEvents: "none" }} />
           <div
             style={{
+              /** الآية عربية دائمًا: تبقى من اليمين لليسار حتى في الحلقات التركية والإنجليزية. */
+              direction: "rtl",
               fontFamily: fontFamilies.scripture,
               fontSize: verseSize,
               lineHeight: 1.9,
@@ -86,6 +90,12 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
           >
             <span style={{ color: line ? c.primary : c.primary }}>﴿</span> {text} <span style={{ color: c.primary }}>﴾</span>
           </div>
+          {meaning ? (
+            <div style={{ fontFamily: fontFamilies.body, fontSize: meaningSize, lineHeight: 1.5, textAlign: "center", color: c.ink, opacity: meaningIn * 0.85, maxWidth: portrait ? 820 : 1180, marginTop: portrait ? -18 : -14, textWrap: "balance" }}>
+              {meaning}
+              {meaningSource ? <span style={{ display: "block", fontSize: Math.round(refSize * 0.75), color: c.inkSoft, marginTop: 8 }}>{meaningSource}</span> : null}
+            </div>
+          ) : null}
           <div style={{ display: "flex", alignItems: "center", gap: 18, opacity: refIn, transform: `translateY(${(1 - refIn) * 10}px)` }}>
             <div style={{ width: 56, height: 2, background: c.inkSoft, opacity: 0.4 }} />
             <div style={{ fontFamily: fontFamilies.heading, fontWeight: 600, fontSize: refSize, color: c.inkSoft }}>{reference}</div>
@@ -93,7 +103,13 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
           </div>
           {reciter || sourceNote ? (
             <div style={{ fontSize: portrait ? 26 : 22, color: c.inkSoft, opacity: refIn * 0.8, marginTop: -16 }}>
-              {reciter ? `$<T k="recitedBy" /> ${reciter}` : sourceNote}
+              {reciter ? (
+                <>
+                  <T k="recitedBy" /> {reciter}
+                </>
+              ) : (
+                sourceNote
+              )}
             </div>
           ) : null}
         </div>

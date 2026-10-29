@@ -36,6 +36,14 @@ export type LangPack = {
     shareOpinion: string;
     templateWip: string;
     quranAttribution: string;
+    /** نصوص الوصف المنشور على يوتيوب (تظهر للمشاهد) */
+    descChapters: string;
+    descSources: string;
+    /** «سورة {name}، الآية {ayah}» */
+    descVerse: string;
+    /** «التلاوة: {name} بإذن مكتوب» */
+    descRecitation: string;
+    fullEpisode: string;
     /** أسماء درجات الحديث للعرض */
     grades: Record<string, string>;
   };

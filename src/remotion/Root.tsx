@@ -5,6 +5,18 @@ import { BrandSheet } from "./BrandSheet";
 import { TemplateReel, reelDuration } from "./scenes/TemplateReel";
 import { sceneCatalog } from "./scenes/catalog";
 import { Thumbnail } from "./Thumbnail";
+import { Providers } from "./Providers";
+
+/** معاينة قالب بلغة من اليسار لليمين (للتحقق من الاتجاه قبل إطلاق قناة تركية أو إنجليزية). */
+const LtrPreview: React.FC<{ entryId: string; lang: string } & Record<string, unknown>> = ({ entryId, lang, ...props }) => {
+  const entry = sceneCatalog.find((e) => e.id === entryId)!;
+  const C = entry.component;
+  return (
+    <Providers lang={lang}>
+      <C {...props} />
+    </Providers>
+  );
+};
 import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
 import samplePlan from "../../tests/fixtures/plan.json";
@@ -18,6 +30,22 @@ const orientations = ["landscape", "portrait"] as const;
 /** كل التكوينات المسجلة في Remotion. الحلقة والشورت الكاملان يُضافان في المرحلة 5. */
 export const RemotionRoot: React.FC = () => (
   <>
+    {(["paper", "night"] as const).flatMap((id) =>
+      orientations.flatMap((o) =>
+        sceneCatalog.map((entry) => (
+          <Composition
+            key={`en-${entry.id}-${id}-${o}`}
+            id={`en-scene-${entry.id}-${id}-${o}`}
+            component={LtrPreview}
+            durationInFrames={Math.round(entry.seconds * config.video.fps)}
+            fps={config.video.fps}
+            {...sizes[o]}
+            defaultProps={{ ...(entry.sampleEn ?? entry.sample), themeId: id, orientation: o, entryId: entry.id, lang: "en" }}
+          />
+        )),
+      ),
+    )}
+    <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
     {orientations.map((o) => (
       <Composition

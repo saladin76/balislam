@@ -4,6 +4,7 @@ import { useMotionSettings, useSize, useTheme } from "../../../brand/identity/in
 import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { SceneShell } from "./SceneShell";
+import { useLang } from "../../i18n/context";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import { splitWords } from "./timing";
 import type { BigQuestionProps } from "./types";
@@ -22,6 +23,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
   const t = useTheme(themeId);
   const portrait = orientation === "portrait";
   const line = t.character.style === "line";
+  const rtl = useLang().dir === "rtl";
 
   const words = splitWords(question);
   const hl = highlight ? splitWords(highlight) : [];
@@ -105,7 +107,8 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
                     bottom: "2%",
                     background: t.colors.highlight,
                     borderRadius: 18,
-                    transformOrigin: "right center",
+                    /** قلم التمييز يبدأ من بداية السطر: يمين في العربية، يسار في اللاتينية. */
+                    transformOrigin: rtl ? "right center" : "left center",
                     transform: `scaleX(${marker}) ${line ? boil(frame, 7, 0.3) : ""}`,
                   }}
                 />

@@ -4,6 +4,10 @@ import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
 import { quranPathFor, readJson } from "../plan/io";
 import type { QuranClient, Verse } from "./client";
+import { loadChannel } from "../channel/index";
+
+/** مفتاح ترجمة المعنى داخل quran.json بجوار نص الآية. */
+export const meaningKey = (key: string) => `${key}#meaning`;
 
 const ar = (n: number) => String(n).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)] ?? d);
 
@@ -23,6 +27,8 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
   const file = quranPathFor(scriptPath);
   const store = (await readJson<Record<string, string>>(file)) ?? {};
   const result: QuranSyncResult = { fetched: [], cached: [], failed: [] };
+  // ترجمة المعنى للقنوات غير العربية (معرّفها في channel.json ← quranTranslation)
+  const translationId = loadChannel().quranTranslation?.id;
 
   const refs = parsed.chapters.flatMap((c) => c.blocks).filter((b) => b.kind === "ayah") as { ref: string }[];
   for (const { ref } of refs) {
@@ -32,14 +38,18 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       continue;
     }
     const { key, surah, from, to } = r.ref;
-    if (store[key] && !opts.force) {
+    if (store[key] && (!translationId || store[meaningKey(key)]) && !opts.force) {
       result.cached.push(key);
       continue;
     }
     try {
       const verses: Verse[] = [];
-      for (let n = from; n <= to; n++) verses.push(await client.verse(`${surah}:${n}`));
+      for (let n = from; n <= to; n++) verses.push(await client.verse(`${surah}:${n}`, { translationId }));
       store[key] = composeVerses(verses);
+      if (translationId) {
+        const meanings = verses.map((v) => v.meaning ?? "").filter(Boolean);
+        if (meanings.length === verses.length) store[meaningKey(key)] = verses.length === 1 ? meanings[0]! : verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
+      }
       result.fetched.push(key);
     } catch (err) {
       result.failed.push({ ref, reason: (err as Error).message });

@@ -13,7 +13,7 @@ import { estimateTimings } from "./timing";
 import type { SceneBase } from "./types";
 
 /** خلفية الثيم: لون الخلفية مع زخرفته الخفيفة (لا تنافس النص). */
-const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number }> = ({ t, w, h, frame }) => {
+const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number; rtl: boolean }> = ({ t, w, h, frame, rtl }) => {
   const c = t.colors;
   const reveal = fade(frame, 0, 24);
   switch (t.motif) {
@@ -23,9 +23,9 @@ const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number }> = ({ t,
       return (
         <svg width={w} height={h} style={{ position: "absolute", inset: 0 }}>
           {Array.from({ length: lines }, (_, i) => (
-            <line key={i} x1={w * (1 - reveal)} x2={w} y1={(i + 1) * gap} y2={(i + 1) * gap} stroke={c.ink} strokeOpacity={0.05} strokeWidth={2} />
+            <line key={i} x1={rtl ? w * (1 - reveal) : 0} x2={rtl ? w : w * reveal} y1={(i + 1) * gap} y2={(i + 1) * gap} stroke={c.ink} strokeOpacity={0.05} strokeWidth={2} />
           ))}
-          <line x1={w - 120} x2={w - 120} y1={0} y2={h * reveal} stroke={c.primary} strokeOpacity={0.18} strokeWidth={3} />
+          <line x1={rtl ? w - 120 : 120} x2={rtl ? w - 120 : 120} y1={0} y2={h * reveal} stroke={c.primary} strokeOpacity={0.18} strokeWidth={3} />
         </svg>
       );
     }
@@ -93,7 +93,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
           <Element id={backdrop} theme={t} width={width} height={height} />
         </div>
       ) : (
-        <Motif t={t} w={width} h={height} frame={frame} />
+        <Motif t={t} w={width} h={height} frame={frame} rtl={lang.dir === "rtl"} />
       )}
       <AbsoluteFill style={{ opacity: out }}>
         {eyebrow ? (
@@ -101,7 +101,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
             style={{
               position: "absolute",
               top: portrait ? 250 : 64,
-              right: portrait ? 72 : 96,
+              insetInlineStart: portrait ? 72 : 96,
               fontSize: eyebrowSize,
               fontWeight: 600,
               color: t.colors.inkSoft,

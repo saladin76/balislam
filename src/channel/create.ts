@@ -42,6 +42,7 @@ export const createChannel = async (opts: NewChannelOptions) => {
     language: opts.language,
     description: "",
     masterTheme: base.masterTheme,
+    logo: { type: "letter", letter: [...opts.name.trim()][0] ?? "؟" },
     domains: { general: { name: "عام", theme: base.masterTheme, tags: [] } },
     rules: { ...base.rules, quran, hadith: quran ? base.rules.hadith : false },
     youtube: { tags: [opts.name.replace(/\s+/g, "_")], postingTime: base.youtube.postingTime, voiceDisclosure: base.youtube.voiceDisclosure },

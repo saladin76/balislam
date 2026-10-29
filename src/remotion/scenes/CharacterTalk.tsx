@@ -5,6 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Character } from "../../../characters/Character";
 import { Element } from "../../../brand/elements/Element";
 import { SceneShell } from "./SceneShell";
+import { useLang } from "../../i18n/context";
 import { enter, float, useBoil, useSceneFrame } from "./motion";
 import { splitWords } from "./timing";
 import type { CharacterTalkProps } from "./types";
@@ -14,7 +15,10 @@ import type { CharacterTalkProps } from "./types";
  * وعنصر رمزي يظهر بجوارها. الشخصية تتنفس (حركة خفيفة) طوال المشهد.
  */
 export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
-  const { themeId, orientation, variant, pose, line: said, element, side = "right" } = props;
+  const { themeId, orientation, variant, pose, line: said, element } = props;
+  const rtl = useLang().dir === "rtl";
+  /** الشخصية افتراضيًا في بداية السطر: يمين في العربية، يسار في اللاتينية. القيمة الصريحة تبقى كما هي. */
+  const side = props.side ?? (rtl ? "right" : "left");
   const frame = useSceneFrame();
   const boil = useBoil();
   const motion = useMotionSettings();
@@ -33,6 +37,7 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
 
   const charH = portrait ? 800 : 820;
   const fromSide = side === "right" ? 1 : -1;
+  const mirrorFigure = !rtl && side === "left";
 
   const bubble = (
     <div
@@ -86,7 +91,8 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
   const figure = (
     <div
       style={{
-        transform: `translateX(${(1 - charIn) * 160 * fromSide}px) scale(${breathe}) ${ink ? boil(frame, 3, 0.4) : ""}`,
+        /** في اللاتينية والشخصية يسارًا تُعكس أفقيًا لتكون صورة مرآة للنسخة العربية. */
+        transform: `translateX(${(1 - charIn) * 160 * fromSide}px) ${mirrorFigure ? `scale(${-breathe}, ${breathe})` : `scale(${breathe})`} ${ink ? boil(frame, 3, 0.4) : ""}`,
         transformOrigin: "50% 100%",
         opacity: charIn,
       }}
@@ -126,12 +132,12 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
           [sideKey]: 100 + (charH * 160) / 300 + 60,
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
+          alignItems: rtl || side === "left" ? "flex-start" : "flex-end",
           gap: 40,
         }}
       >
         {bubble}
-        <div style={{ alignSelf: side === "right" ? "flex-end" : "flex-start" }}>{prop}</div>
+        <div style={{ alignSelf: (side === "right") === rtl ? "flex-end" : "flex-start" }}>{prop}</div>
       </div>
     </SceneShell>
   );

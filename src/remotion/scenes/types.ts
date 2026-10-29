@@ -35,6 +35,10 @@ export type VerseCardProps = SceneBase & {
   reference: string;
   /** اسم القارئ إن صاحب الآيةَ تلاوةٌ مرخّصة */
   reciter?: string;
+  /** ترجمة معنى الآية بلغة الحلقة (للقنوات غير العربية) */
+  meaning?: string;
+  /** اسم الترجمة، يظهر صغيرًا للنسبة */
+  meaningSource?: string;
   /** سطر صغير للمعاينة مثل «نص تجريبي» */
   sourceNote?: string;
 };

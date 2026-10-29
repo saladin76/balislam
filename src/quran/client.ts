@@ -20,7 +20,15 @@ export type QuranClientOptions = {
   fetchImpl?: typeof fetch;
 };
 
-export type Verse = { key: string; number: number; text: string };
+export type Verse = { key: string; number: number; text: string; meaning?: string };
+
+/** ترجمات المعاني تأتي أحيانًا بحواشٍ داخل <sup>؛ نحذفها ونبقي النص فقط. */
+export const cleanTranslation = (html: string) =>
+  html
+    .replace(/<sup[^>]*>.*?<\/sup>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export class QuranApiError extends Error {}
 
@@ -59,14 +67,22 @@ export const createQuranClient = (opts: QuranClientOptions) => {
   };
 
   /** آية واحدة بالرسم العثماني، مثل verse("53:39"). */
-  const verse = async (key: string): Promise<Verse> => {
-    const data = await get<{ verse?: { verse_key?: string; verse_number?: number; text_uthmani?: string } }>(`/verses/by_key/${key}?fields=text_uthmani`);
+  const verse = async (key: string, opts: { translationId?: number } = {}): Promise<Verse> => {
+    const q = opts.translationId ? `&translations=${opts.translationId}` : "";
+    const data = await get<{ verse?: { verse_key?: string; verse_number?: number; text_uthmani?: string; translations?: { text?: string }[] } }>(`/verses/by_key/${key}?fields=text_uthmani${q}`);
     const text = data.verse?.text_uthmani;
     if (!text) throw new QuranApiError(`لم يرجع نص للآية ${key}.`);
-    return { key, number: data.verse?.verse_number ?? Number(key.split(":")[1]), text };
+    const raw = data.verse?.translations?.[0]?.text;
+    return { key, number: data.verse?.verse_number ?? Number(key.split(":")[1]), text, meaning: raw ? cleanTranslation(raw) : undefined };
   };
 
-  return { env, verse, getToken };
+  /** ترجمات المعاني المتاحة (اختياريًا بلغة معيّنة مثل en أو turkish). */
+  const translations = async (language?: string): Promise<{ id: number; name: string; author: string; language: string }[]> => {
+    const data = await get<{ translations?: { id: number; name?: string; author_name?: string; language_name?: string }[] }>(`/resources/translations${language ? `?language=${encodeURIComponent(language)}` : ""}`);
+    return (data.translations ?? []).map((t) => ({ id: t.id, name: t.name ?? `#${t.id}`, author: t.author_name ?? "", language: t.language_name ?? "" }));
+  };
+
+  return { env, verse, translations, getToken };
 };
 
 export type QuranClient = ReturnType<typeof createQuranClient>;

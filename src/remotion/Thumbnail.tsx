@@ -4,11 +4,10 @@ import { useTheme } from "../../brand/identity/index";
 import { fontFamilies } from "../../brand/fonts";
 import { Element } from "../../brand/elements/Element";
 import { hasElement } from "../../brand/elements/registry";
-import { LogoMark } from "../../brand/logo/Logo";
 import type { ThemeId } from "../../brand/themes";
 import { useBrandFonts } from "./useBrandFonts";
 import { Providers } from "./Providers";
-import { ChannelName } from "../channel/context";
+import { ChannelLogo, ChannelName } from "../channel/context";
 import { useLang } from "../i18n/context";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
@@ -46,11 +45,11 @@ const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "la
 
   return (
     <AbsoluteFill style={{ background: c.bg, direction: useLang().dir, fontFamily: fontFamilies.heading, overflow: "hidden" }}>
-      <div style={{ position: "absolute", left: -120, top: 70, width: 640, height: 640, borderRadius: "50%", background: c.highlight, opacity: line ? 0.55 : 0.85, border: line ? `5px solid ${c.ink}` : "none" }} />
-      <div style={{ position: "absolute", left: 40, top: 150, width: 440, height: 440, display: "grid", placeItems: "center" }}>
+      <div style={{ position: "absolute", insetInlineEnd: -120, top: 70, width: 640, height: 640, borderRadius: "50%", background: c.highlight, opacity: line ? 0.55 : 0.85, border: line ? `5px solid ${c.ink}` : "none" }} />
+      <div style={{ position: "absolute", insetInlineEnd: 40, top: 150, width: 440, height: 440, display: "grid", placeItems: "center" }}>
         <Element id={el} theme={t} size={400} />
       </div>
-      <div style={{ position: "absolute", right: 64, top: 0, bottom: 0, width: 700, display: "flex", flexDirection: "column", justifyContent: "center", gap: 18 }}>
+      <div style={{ position: "absolute", insetInlineStart: 64, top: 0, bottom: 0, width: 700, display: "flex", flexDirection: "column", justifyContent: "center", gap: 18 }}>
         <div style={{ fontWeight: 700, fontSize: size, lineHeight: 1.25, color: c.ink, display: "flex", flexWrap: "wrap", gap: "0 22px", textWrap: "balance" }}>
           {groups.map((g, i) =>
             g.on ? (
@@ -63,8 +62,8 @@ const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "la
           )}
         </div>
       </div>
-      <div style={{ position: "absolute", top: 34, right: 40, display: "flex", alignItems: "center", gap: 12 }}>
-        <LogoMark size={64} colors={t.logo} />
+      <div style={{ position: "absolute", top: 34, insetInlineStart: 40, display: "flex", alignItems: "center", gap: 12 }}>
+        <ChannelLogo theme={t} size={64} />
         <span style={{ fontFamily: fontFamilies.wordmark, fontWeight: 700, fontSize: 34, color: c.ink }}><ChannelName /></span>
       </div>
     </AbsoluteFill>

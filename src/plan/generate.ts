@@ -1,4 +1,4 @@
-import { parseAyahRef, SURAH_NAMES } from "../script/quranMeta";
+import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import type { ParsedScript } from "../script/types";
 import type { Domain } from "../../brand/themes";
 import { defaultChannel, themeIdForDomainIn, type ChannelConfig } from "../channel/types";
@@ -98,14 +98,21 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
       } else if (b.kind === "ayah") {
         const r = parseAyahRef(b.ref);
         const key = r.ok ? r.ref.key : undefined;
-        const surah = r.ok ? SURAH_NAMES[r.ref.surah - 1] : "";
-        const reference = r.ok ? `${surah} · ${digits(r.ref.from)}${r.ref.to !== r.ref.from ? `–${digits(r.ref.to)}` : ""}` : b.ref;
+        const surah = r.ok ? surahNameFor(r.ref.surah, L.code) : "";
+        const ayahs = r.ok ? `${digits(r.ref.from)}${r.ref.to !== r.ref.from ? `–${digits(r.ref.to)}` : ""}` : "";
+        // العربية: «النجم · ٣٩»، وغيرها: «An-Najm · 53:39»
+        const reference = !r.ok ? b.ref : L.code === "ar" ? `${surah} · ${ayahs}` : `${surah} · ${r.ref.surah}:${ayahs}`;
         push({
           template: "verse-card",
           narration: "",
           line: b.line,
           ayahKey: key,
-          props: { text: (key && quran[key]) || "‹نص الآية يُجلب من Quran Foundation›", reference, reciter: reciterFor(key) },
+          props: {
+            text: (key && quran[key]) || "‹نص الآية يُجلب من Quran Foundation›",
+            reference,
+            reciter: reciterFor(key),
+            ...(key && quran[`${key}#meaning`] ? { meaning: quran[`${key}#meaning`], meaningSource: channel.quranTranslation?.name ?? "" } : {}),
+          },
         });
       } else if (b.kind === "hadith") {
         const cite = parsed.citations.find((c) => c.kind === "hadith" && (c.fields[0] ?? "").replace(/\s+/g, " ") === b.ref.replace(/\s+/g, " "));
@@ -128,6 +135,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
       if (old && old.edited && old.template === s.template) {
         s.props = { ...s.props, ...old.props };
         if (s.template === "verse-card" && s.ayahKey && quran[s.ayahKey]) s.props.text = quran[s.ayahKey]!;
+        if (s.template === "verse-card" && s.ayahKey && quran[`${s.ayahKey}#meaning`]) s.props.meaning = quran[`${s.ayahKey}#meaning`]!;
         s.durationSec = old.durationSec;
         s.backdrop = old.backdrop;
         s.captions = old.captions;

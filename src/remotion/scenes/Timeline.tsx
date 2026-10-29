@@ -5,6 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
+import { useLang } from "../../i18n/context";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -25,7 +26,8 @@ const parseEvents = (events: string): Event[] =>
     .slice(0, 5);
 
 /**
- * «الخط الزمني»: خط يُرسم تدريجيًا (من اليمين إلى اليسار أفقيًا، ومن الأعلى إلى الأسفل عموديًا)،
+ * «الخط الزمني»: خط يُرسم تدريجيًا (أفقيًا من جانب البداية: يمين→يسار في العربية ويسار→يمين في LTR،
+ * ومن الأعلى إلى الأسفل عموديًا مع الخط على جانب البداية)،
  * وكلما بلغ رأسُ القلم موضع حدث ظهرت نقطته بموجة صغيرة، ثم تاريخه البارز، ثم نصّه.
  */
 export const Timeline: React.FC<TimelineProps> = (props) => {
@@ -40,6 +42,9 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
   const c = t.colors;
   const portrait = orientation === "portrait";
   const ink = t.character.style === "line";
+  // اتجاه القراءة: الخط يُرسم من جانب البداية (يمين في العربية، يسار في التركية/الإنجليزية).
+  const rtl = useLang().dir === "rtl";
+  const s = rtl ? 1 : -1;
 
   const list = parseEvents(events);
   const n = Math.max(1, list.length);
@@ -128,7 +133,7 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
 
   if (portrait) {
     const W = 940;
-    const lineX = W - 44; // من اليسار
+    const lineX = rtl ? W - 44 : 44; // من اليسار (الخط على جانب البداية)
     const top = 30;
     const rowH = Math.min(200, Math.floor(740 / n));
     const textLines = Math.max(1, Math.min(3, Math.floor((rowH - 18 - dateSize * 1.2) / (textSize * 1.35))));
@@ -160,7 +165,7 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                   <div style={{ position: "absolute", top: rowTop + 8, left: lineX - 19 }}>
                     {dot(a, ring, i)}
                   </div>
-                  <div style={{ position: "absolute", top: rowTop - 8, right: W - lineX + 46, left: 0, height: rowH, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                  <div style={{ position: "absolute", top: rowTop - 8, ...(rtl ? { right: W - lineX + 46, left: 0 } : { left: lineX + 46, right: 0 }), height: rowH, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
                     {e.date ? (
                       <div
                         style={{
@@ -170,7 +175,7 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                           lineHeight: 1.2,
                           color: c.primary,
                           opacity: dIn,
-                          transform: `translateX(${(1 - dIn) * 30}px)`,
+                          transform: `translateX(${(1 - dIn) * 30 * s}px)`,
                         }}
                       >
                         {e.date}
@@ -207,8 +212,8 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
   const colW = W / n;
   const lineY = 128;
   const H = lineY + 300;
-  const x0 = W; // البداية يمينًا
-  const x1 = 0;
+  const x0 = rtl ? W : 0; // البداية: يمينًا في العربية، يسارًا في LTR
+  const x1 = rtl ? 0 : W;
   const tipX = x0 - (x0 - x1) * p;
 
   return (
@@ -219,11 +224,11 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
           <svg width={W} height={H} style={{ position: "absolute", inset: 0, overflow: "visible", transform: ink ? boil(frame, 9, 0.06) : undefined }}>
             <line x1={x0} x2={x1} y1={lineY} y2={lineY} stroke={c.inkSoft} strokeOpacity={0.3 * trackIn} strokeWidth={3} strokeDasharray="2 14" strokeLinecap="round" />
             <line x1={x0} x2={tipX} y1={lineY} y2={lineY} stroke={lineColor} strokeWidth={sw} strokeLinecap="round" />
-            <path d={`M${x1 + 6} ${lineY - 16} L${x1 - 14} ${lineY} L${x1 + 6} ${lineY + 16}`} fill="none" stroke={lineColor} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" opacity={headIn} />
+            <path d={`M${x1 + 6 * s} ${lineY - 16} L${x1 - 14 * s} ${lineY} L${x1 + 6 * s} ${lineY + 16}`} fill="none" stroke={lineColor} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" opacity={headIn} />
             {p > 0 && p < 1 ? <circle cx={tipX} cy={lineY} r={10} fill={c.primary} /> : null}
           </svg>
           {list.map((e, i) => {
-            const cx = W - (i + 0.5) * colW;
+            const cx = rtl ? W - (i + 0.5) * colW : (i + 0.5) * colW;
             const at = reachFrame((i + 0.5) / n);
             const a = enter(frame, at, 30, 200);
             const ring = frame >= at ? fade(frame, at, 20) : 0;
@@ -310,3 +315,12 @@ export const timelineSample: Omit<TimelineProps, "themeId" | "orientation"> = {
   narration: "يبدأ التأجيل صغيرًا، ثم يكبر يومًا بعد يوم حتى يصبح عادة.",
 };
 export const timelineSeconds = 9;
+
+/** English preview sample (LTR). */
+export const timelineSampleEn: Omit<TimelineProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 4 · Through the lens of Islam",
+  title: "How procrastination grows",
+  events: "Day one | Just five more minutes\nWeek one | Small tasks pile up\nMonth one | Delay becomes a habit\nOne year later | Big chances slip away",
+  element: "hourglass-patience",
+  narration: "Procrastination starts small, then grows day by day until it becomes a habit.",
+};

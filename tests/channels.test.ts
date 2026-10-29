@@ -8,7 +8,9 @@ import { checkScript, configFromFile } from "../src/script/check";
 import { parseScript } from "../src/script/parse";
 import { generatePlan } from "../src/plan/generate";
 import { planIssues } from "../src/plan/validate";
-import { langPack, localDigits } from "../src/i18n/packs";
+import { langPack, langPacks, localDigits } from "../src/i18n/packs";
+import { buildYoutubeText } from "../src/package/youtube";
+import { defaultChannel } from "../src/channel/types";
 
 /** نسخة مؤقتة من مجلد القنوات حتى لا تمس الاختبارات القنوات الحقيقية. */
 let tmp = "";
@@ -94,11 +96,36 @@ Bugün başla. Hangisini seçtin?
     expect(plan.lang).toBe("tr");
     const end = plan.chapters[0]!.scenes.at(-1)!;
     expect(end.props.prompt).toBe("Yorumlara yaz: Hangisini seçtin?");
-    expect(planIssues(plan).some((i) => i.level === "error" && i.message.includes("التركية"))).toBe(true);
+    expect(planIssues(plan).some((i) => i.level === "error" && i.message.includes("التركية"))).toBe(false);
+    langPacks.tr!.ready = false;
+    try {
+      expect(planIssues(plan).some((i) => i.level === "error" && i.message.includes("التركية"))).toBe(true);
+    } finally {
+      langPacks.tr!.ready = true;
+    }
   });
 
-  it("الفحص ينبّه للغة غير الجاهزة ويرفض اللغة المجهولة", () => {
+  it("الآية في حلقة إنجليزية: اسم السورة لاتيني، وترجمة المعنى من القناة", () => {
+    const en = `---\ntitle: "Why we delay"\ndomain: psychology\nepisode: "901"\nlang: en\n---\n\n## Chapter 1 · Question\n\nWe all delay.\n\n[verse: An-Najm 39]\n\n## Sources\n\n- verse | An-Najm 39\n\n## Practical step\n\nStart now. Which task?\n`;
+    const parsed = parseScript(en);
+    const ayah = parsed.chapters[0]!.blocks.find((b) => b.kind === "ayah");
+    expect(ayah, "verse directive").toBeTruthy();
+    const channel = { ...defaultChannel, language: "en", quranTranslation: { id: 20, name: "Saheeh International" } };
+    const plan = generatePlan(parsed, null, { "53:39": "وَأَن لَّيْسَ", "53:39#meaning": "And that there is not for man except that for which he strives" }, channel);
+    const verse = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
+    expect(verse.props.reference).toBe("An-Najm · 53:39");
+    expect(verse.props.meaning).toContain("strives");
+    expect(verse.props.meaningSource).toBe("Saheeh International");
+    const yt = buildYoutubeText(plan, en, { mode: "file", base: "", voice: {}, sfx: {}, recitations: {} } as never, 1, channel);
+    expect(yt).toContain("Chapters:");
+    expect(yt).toContain("Surah An-Najm, verse 39 (Verse text: Quran.Foundation, Saheeh International)");
+    expect(yt).not.toContain("فصول الحلقة");
+  });
+
+  it("الفحص يرفض اللغة المجهولة وينبّه لغير الجاهزة", () => {
+    langPacks.tr!.ready = false;
     const warn = checkScript(parseScript(tr));
+    langPacks.tr!.ready = true;
     expect(warn.issues.some((i) => i.code === "lang-not-ready")).toBe(true);
     const unknown = checkScript(parseScript(tr.replace("lang: tr", "lang: xx")));
     expect(unknown.issues.some((i) => i.code === "lang-unknown")).toBe(true);

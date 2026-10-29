@@ -89,7 +89,21 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
     return Buffer.from(await res.arrayBuffer());
   };
 
-  return { modelId, tts, soundEffect };
+  const get = async <T>(path: string): Promise<T> => {
+    const res = await f(`${BASE}${path}`, { headers: { "xi-api-key": opts.apiKey } });
+    if (!res.ok) throw new ElevenLabsError(explain(res.status, await res.text().catch(() => "")), res.status);
+    return (await res.json()) as T;
+  };
+
+  /** الاشتراك والرصيد (لاختبار المفتاح من الاستوديو). */
+  const account = () =>
+    get<{ tier: string; character_count: number; character_limit: number; next_character_count_reset_unix?: number }>("/v1/user/subscription");
+
+  /** أصوات الحساب (لاختيار الصوت المستنسخ). */
+  const voices = async () =>
+    (await get<{ voices: { voice_id: string; name: string; category: string }[] }>("/v1/voices")).voices.map((v) => ({ id: v.voice_id, name: v.name, category: v.category }));
+
+  return { modelId, tts, soundEffect, account, voices };
 };
 
 export type ElevenLabsClient = ReturnType<typeof createElevenLabs>;

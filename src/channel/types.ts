@@ -1,4 +1,5 @@
 import defaultChannelJson from "../../channels/balislam/channel.json";
+import type { LogoSpec } from "../../brand/logo/Logo";
 
 /**
  * ملف القناة (channels/<id>/channel.json): كل ما يميّز قناة عن أخرى غير الهوية البصرية.
@@ -19,6 +20,10 @@ export type ChannelConfig = {
   language: string;
   description: string;
   masterTheme: "paper" | "family" | "night" | "warm";
+  /** رمز القناة (افتراضيًا باء التشغيل) */
+  logo?: LogoSpec;
+  /** ترجمة معاني القرآن للقنوات غير العربية: معرّف المورد في Quran Foundation واسمه للنسبة. */
+  quranTranslation?: { id: number; name: string };
   domains: Record<string, ChannelDomain>;
   rules: {
     music: boolean;
@@ -32,12 +37,12 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameLatin" | "language">;
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameLatin" | "language" | "logo">;
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;
 
-export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language });
+export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language, logo: c.logo });
 
 export const domainIds = (c: ChannelConfig) => Object.keys(c.domains);
 

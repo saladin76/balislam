@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
-import { LogoMark } from "../../brand/logo/Logo";
 import type { Plan } from "../../src/plan/types";
 import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
@@ -8,8 +7,16 @@ import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
+import { HomeTab } from "./tabs/HomeTab";
+import { PublishTab } from "./tabs/PublishTab";
+import { LibraryTab } from "./tabs/LibraryTab";
+import { ChannelTab } from "./tabs/ChannelTab";
+import { SettingsTab } from "./tabs/SettingsTab";
+import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
+import { useTheme } from "../../brand/identity/index";
 
-type Tab = "episode" | "script" | "identity";
+type Tab = "home" | "episode" | "script" | "publish" | "identity" | "library" | "channel" | "settings";
+const EPISODE_TABS: Tab[] = ["episode", "script", "publish"];
 const store = {
   get: (k: string) => {
     try {
@@ -28,7 +35,9 @@ const store = {
 };
 
 export const App: React.FC = () => {
-  const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "episode");
+  const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
+  const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
+  const [homeKey, setHomeKey] = useState(0);
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [channelId, setChannelId] = useState<string>(() => {
     const c = store.get("bal-channel") || "";
@@ -56,9 +65,16 @@ export const App: React.FC = () => {
     setTimeout(() => setToast(null), 2600);
   };
 
+  const reloadChannels = useCallback(() => api.channels().then(setChannels).catch((e) => say(e.message, true)), []);
+  const reloadKeys = useCallback(
+    () =>
+      api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: Boolean(keys.QF_CLIENT_ID?.set && keys.QF_CLIENT_SECRET?.set) })).catch(() => {}),
+    [],
+  );
   useEffect(() => {
-    api.channels().then(setChannels).catch((e) => say(e.message, true));
-  }, []);
+    reloadChannels();
+    reloadKeys();
+  }, [reloadChannels, reloadKeys]);
 
   // عند تغيير القناة: حلقاتها وهويتها
   useEffect(() => {
@@ -127,26 +143,37 @@ export const App: React.FC = () => {
 
   return (
     <IdentityProvider identity={ident.draft}>
+      <ChannelProvider channel={channel}>
       <div className="app">
         <header className="top">
-          <div className="brand">
-            <LogoMark size={34} colors={ident.draft.themes.warm.logo} />
-            <span>استوديو بالإسلام</span>
-          </div>
+          <button className="brand" onClick={() => setTab("home")} title="الرئيسية">
+            <BrandMark channel={channel} />
+            <span>استوديو {channel.name}</span>
+          </button>
           {channels.length > 1 ? (
             <select id="channel-select" value={channelId || channels[0]?.id} onChange={(e) => setChannelId(e.target.value)} style={{ width: 170 }} aria-label="القناة">
               {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : null}
-          <select id="episode-select" value={epId} onChange={(e) => setEpId(e.target.value)} style={{ width: 300 }} aria-label="الحلقة">
-            {episodes?.length ? null : <option value="">لا توجد حلقات</option>}
-            {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
-          </select>
-          <button className="btn" onClick={() => setShowNew(true)}>+ حلقة جديدة</button>
           <nav className="tabs" role="tablist">
-            <button role="tab" aria-selected={tab === "episode"} onClick={() => setTab("episode")}>الحلقة</button>
+            <button role="tab" aria-selected={tab === "home"} onClick={() => setTab("home")}>الرئيسية</button>
+          </nav>
+          {EPISODE_TABS.includes(tab) ? (
+            <select id="episode-select" value={epId} onChange={(e) => setEpId(e.target.value)} style={{ width: 280 }} aria-label="الحلقة">
+              {episodes?.length ? null : <option value="">لا توجد حلقات</option>}
+              {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
+            </select>
+          ) : null}
+          <nav className="tabs" role="tablist" aria-label="الحلقة">
+            <button role="tab" aria-selected={tab === "episode"} onClick={() => setTab("episode")}>المشاهد</button>
             <button role="tab" aria-selected={tab === "script"} onClick={() => setTab("script")}>السكريبت{scriptDirty ? " •" : ""}</button>
+            <button role="tab" aria-selected={tab === "publish"} onClick={() => setTab("publish")}>النشر</button>
+          </nav>
+          <nav className="tabs" role="tablist" aria-label="القناة">
             <button role="tab" aria-selected={tab === "identity"} onClick={() => setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
+            <button role="tab" aria-selected={tab === "library"} onClick={() => setTab("library")}>المكتبة</button>
+            <button role="tab" aria-selected={tab === "channel"} onClick={() => setTab("channel")}>القناة</button>
+            <button role="tab" aria-selected={tab === "settings"} onClick={() => setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
           </nav>
           <span className="spacer" />
           {tab === "episode" && plan ? (
@@ -157,7 +184,40 @@ export const App: React.FC = () => {
           ) : null}
         </header>
 
-        {tab === "identity" ? (
+        {tab === "home" ? (
+          <HomeTab
+            key={`${channelId}-${homeKey}`}
+            channel={channel}
+            onNew={() => setShowNew(true)}
+            onOpen={(id, t) => {
+              setEpId(id);
+              setTab(t);
+            }}
+          />
+        ) : tab === "library" ? (
+          <LibraryTab hasVoiceKeys={keysOk.voice} />
+        ) : tab === "channel" ? (
+          <ChannelTab
+            key={channelId}
+            onSaved={() => {
+              reloadChannels();
+              if (epId) loadEpisode(epId);
+            }}
+            onCreated={async (id) => {
+              await reloadChannels();
+              setChannelId(id);
+              setTab("home");
+              say("أُنشئت القناة. عدّل مجالاتها وألوانها، ثم أنشئ أول حلقة.");
+            }}
+          />
+        ) : tab === "settings" ? (
+          <SettingsTab
+            onKeysChanged={() => {
+              reloadKeys();
+              if (epId) loadEpisode(epId);
+            }}
+          />
+        ) : tab === "identity" ? (
           <IdentityTab
             channel={channel}
             draft={ident.draft}
@@ -178,6 +238,8 @@ export const App: React.FC = () => {
           </div>
         ) : !plan || !check ? (
           <div className="empty-state"><h2>جارٍ فتح الحلقة…</h2></div>
+        ) : tab === "publish" ? (
+          <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
           <EpisodeTab
             key={epId}
@@ -211,12 +273,14 @@ export const App: React.FC = () => {
               setEpId(id);
               setShowNew(false);
               setTab("script");
+              setHomeKey((k) => k + 1);
               say(`أُنشئت الحلقة ${id}`);
             }}
           />
         ) : null}
         {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
       </div>
+      </ChannelProvider>
     </IdentityProvider>
   );
 };
@@ -265,4 +329,10 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; onC
       </form>
     </div>
   );
+};
+
+/** رمز القناة في رأس الاستوديو بألوان ثيمها الأساسي. */
+const BrandMark: React.FC<{ channel: ChannelInfo }> = () => {
+  const t = useTheme("warm");
+  return <ChannelLogo theme={t} size={34} />;
 };

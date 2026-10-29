@@ -5,7 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
-import { T } from "../../i18n/context";
+import { T, useLang } from "../../i18n/context";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import { splitWords } from "./timing";
 import type { SceneBase, StringFields } from "./types";
@@ -59,6 +59,8 @@ export const Summary: React.FC<SummaryProps> = (props) => {
   const c = t.colors;
   const portrait = orientation === "portrait";
   const line = t.character.style === "line";
+  /** قلم التمييز يمر من جهة بداية القراءة. */
+  const rtl = useLang().dir === "rtl";
   const icon = element && hasElement(element) ? element : "lightbulb";
 
   const words = splitWords(text);
@@ -180,14 +182,14 @@ export const Summary: React.FC<SummaryProps> = (props) => {
                 <span
                   style={{
                     position: "absolute",
-                    right: first ? 2 : 0,
-                    left: last ? 2 : -1,
+                    [rtl ? "right" : "left"]: first ? 2 : 0,
+                    [rtl ? "left" : "right"]: last ? 2 : -1,
                     bottom: night ? "13%" : "14%",
                     height: night ? "8%" : "30%",
                     background: c.highlight,
                     opacity: line ? 0.9 : night ? 1 : 0.75,
-                    borderRadius: `${last ? rad : 0}px ${first ? rad : 0}px ${first ? rad : 0}px ${last ? rad : 0}px`,
-                    transformOrigin: "right center",
+                    borderRadius: rtl ? `${last ? rad : 0}px ${first ? rad : 0}px ${first ? rad : 0}px ${last ? rad : 0}px` : `${first ? rad : 0}px ${last ? rad : 0}px ${last ? rad : 0}px ${first ? rad : 0}px`,
+                    transformOrigin: rtl ? "right center" : "left center",
                     transform: `scaleX(${mk}) ${line ? boil(frame, 30 + i, 0.25) : ""}`,
                   }}
                 />
@@ -251,5 +253,12 @@ export const summarySample: Omit<SummaryProps, "themeId" | "orientation"> = {
   text: "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن.",
   element: "lightbulb",
   narration: "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن.",
+};
+/** English preview content. */
+export const summarySampleEn: Omit<SummaryProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 6 · Summary",
+  text: "Procrastination is an escape from a feeling, and the cure is a small step you take now.",
+  element: "lightbulb",
+  narration: "Procrastination is an escape from a feeling, and the cure is a small step you take now.",
 };
 export const summarySeconds = 6;

@@ -7,6 +7,7 @@ import { hasElement } from "../../../brand/elements/registry";
 import type { Theme } from "../../../brand/themes";
 import { SceneShell } from "./SceneShell";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
+import { useLang } from "../../i18n/context";
 import type { SceneBase, StringFields } from "./types";
 
 export type ComparisonProps = SceneBase & StringFields<"rightTitle" | "rightItems" | "rightElement" | "leftTitle" | "leftItems" | "leftElement" | "tone">;
@@ -82,6 +83,10 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
   const portrait = orientation === "portrait";
   const ink = t.character.style === "line";
   const contrast = props.tone === "contrast";
+  /** الجانب الأول في بداية القراءة: اليمين في العربية، اليسار في اللاتينية. */
+  const rtl = useLang().dir === "rtl";
+  const sx = rtl ? 1 : -1;
+  const startSide = rtl ? "right" : "left";
 
   const rItems = lines(props.rightItems);
   const lItems = lines(props.leftItems);
@@ -133,7 +138,7 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
     const muted = contrast && first;
     const strong = contrast && !first;
     const kind: Mark = contrast ? (first ? "wrong" : "right") : first ? "neutral-a" : "neutral-b";
-    const shift = portrait ? `translateY(${(1 - cardIn) * 40}px)` : `translateX(${(1 - cardIn) * (first ? 60 : -60)}px)`;
+    const shift = portrait ? `translateY(${(1 - cardIn) * 40}px)` : `translateX(${(1 - cardIn) * (first ? 60 : -60) * sx}px)`;
 
     const border = ink
       ? muted
@@ -199,7 +204,7 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
                 width: 110,
                 borderRadius: 3,
                 background: muted ? alpha(c.inkSoft, 0.35) : strong ? (ink ? c.secondary : c.primary) : first ? c.primary : c.secondary,
-                transformOrigin: "right center",
+                transformOrigin: `${startSide} center`,
                 transform: `scaleX(${fade(frame, (first ? rCardAt : lCardAt) + 10, 16)})`,
               }}
             />
@@ -219,7 +224,7 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
                   alignItems: "flex-start",
                   gap: 20,
                   opacity: Math.min(1, a * 1.4),
-                  transform: `translateX(${(1 - a) * 36}px)`,
+                  transform: `translateX(${(1 - a) * 36 * sx}px)`,
                 }}
               >
                 <div style={{ paddingTop: itemSize * 0.72 - markSize / 2 }}>
@@ -241,7 +246,7 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
                       style={{
                         backgroundImage: `linear-gradient(${ink ? c.ink : c.primary}, ${ink ? c.ink : c.primary})`,
                         backgroundRepeat: "no-repeat",
-                        backgroundPosition: "right 58%",
+                        backgroundPosition: `${startSide} 58%`,
                         backgroundSize: `${strike * 100}% ${Math.max(3, Math.round(itemSize * 0.08))}px`,
                         WebkitBoxDecorationBreak: "clone",
                         boxDecorationBreak: "clone",
@@ -282,7 +287,7 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
       }}
     >
       {contrast ? (
-        <svg width={48} height={48} viewBox="0 0 48 48" style={{ transform: portrait ? "rotate(-90deg)" : undefined }}>
+        <svg width={48} height={48} viewBox="0 0 48 48" style={{ transform: portrait ? "rotate(-90deg)" : rtl ? undefined : "scaleX(-1)" }}>
           <path d="M38 24 H11 M21 13 L10 24 L21 35" fill="none" stroke={ink ? c.ink : c.surface} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : (
@@ -337,5 +342,17 @@ export const comparisonSample: Omit<ComparisonProps, "themeId" | "orientation"> 
   leftElement: "head-idea",
   tone: "contrast",
   narration: "نظن أن التأجيل كسل، لكنه في الحقيقة هروب من شعور ثقيل.",
+};
+/** English preview content (same shape; first side = reading start). */
+export const comparisonSampleEn: Omit<ComparisonProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 3 · The deeper cause",
+  rightTitle: "What we think",
+  rightItems: "Procrastination is laziness\nI need motivation to start\nTomorrow I'll have more energy",
+  rightElement: "head-tangle",
+  leftTitle: "What really happens",
+  leftItems: "It's an escape from a heavy feeling\nMotivation comes after you start\nTomorrow never comes on its own",
+  leftElement: "head-idea",
+  tone: "contrast",
+  narration: "We think procrastination is laziness, but it's really an escape from a heavy feeling.",
 };
 export const comparisonSeconds = 8;

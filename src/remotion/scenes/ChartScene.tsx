@@ -3,7 +3,7 @@ import { useVideoConfig } from "remotion";
 import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
-import { Digits } from "../../i18n/context";
+import { Digits, useLang } from "../../i18n/context";
 
 import { enter, fade, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
@@ -48,7 +48,8 @@ export const toArabicDigits = (n: number, decimals = 0) =>
 const bare = (s: string) => s.replace(/[ً-ْٰـ]/g, "").trim();
 
 /**
- * «الرسم البياني»: عنوان ثم أعمدة أفقية تنمو من اليمين إلى اليسار (من خط الصفر) واحدًا تلو الآخر،
+ * «الرسم البياني»: عنوان ثم أعمدة أفقية تنمو من جانب البداية (يمين→يسار في العربية، يسار→يمين في LTR)
+ * من خط الصفر واحدًا تلو الآخر،
  * بمقياس واحد لكل الأعمدة. العمود المميز بلون الثيم، والبقية خافتة، ثم يمر قلم التمييز على اسمه.
  * في الشاشة العمودية يعلو الاسمُ عمودَه ليأخذ العمود عرض الشاشة كله.
  */
@@ -64,6 +65,10 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
   const c = t.colors;
   const portrait = orientation === "portrait";
   const ink = t.character.style === "line";
+  // اتجاه القراءة: العربية تنمو أعمدتها من اليمين، والتركية/الإنجليزية من اليسار.
+  const rtl = useLang().dir === "rtl";
+  const startSide = rtl ? "right" : "left";
+  const endSide = rtl ? "left" : "right";
 
   const rows = parseData(data);
   const n = Math.max(1, rows.length);
@@ -126,7 +131,7 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
           lineHeight: 1.25,
           color: hl ? c.ink : c.inkSoft,
           opacity: labelIn,
-          transform: `translateX(${(1 - labelIn) * 18}px)`,
+          transform: `translateX(${(1 - labelIn) * (rtl ? 18 : -18)}px)`,
           overflowWrap: "anywhere",
         }}
       >
@@ -134,14 +139,14 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
           <span
             style={{
               position: "absolute",
-              right: -12,
-              left: portrait ? -12 : "auto",
+              [startSide]: -12,
+              [endSide]: portrait ? -12 : "auto",
               width: portrait ? "auto" : "calc(100% + 24px)",
               top: "8%",
               bottom: "4%",
               background: c.highlight,
               borderRadius: 12,
-              transformOrigin: "right center",
+              transformOrigin: `${startSide} center`,
               transform: `scaleX(${marker}) ${ink ? boil(frame, 11, 0.3) : ""}`,
             }}
           />
@@ -153,30 +158,30 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
     const bar = (
       <div style={{ position: "relative", width: trackW, height: barH, display: "flex", alignItems: "center" }}>
         {portrait ? (
-          <div style={{ position: "absolute", right: -3, top: -8, bottom: -8, width: 4, borderRadius: 2, background: c.ink, opacity: 0.55 * axisIn }} />
+          <div style={{ position: "absolute", [startSide]: -3, top: -8, bottom: -8, width: 4, borderRadius: 2, background: c.ink, opacity: 0.55 * axisIn }} />
         ) : null}
         <div
           style={{
             height: barH,
             width: w,
             minWidth: g > 0 ? (ink ? 6 : 4) : 0,
-            borderRadius: `${barH * 0.28}px 0 0 ${barH * 0.28}px`,
+            borderRadius: rtl ? `${barH * 0.28}px 0 0 ${barH * 0.28}px` : `0 ${barH * 0.28}px ${barH * 0.28}px 0`,
             boxSizing: "border-box",
             transform: ink ? boil(frame, 20 + i, 0.08) : undefined,
             ...barFill(hl),
-            ...(ink ? { borderRight: "none" } : {}),
+            ...(ink ? (rtl ? { borderRight: "none" } : { borderLeft: "none" }) : {}),
           }}
         />
         <div
           style={{
-            marginRight: 20,
+            ...(rtl ? { marginRight: 20 } : { marginLeft: 20 }),
             display: "flex",
             alignItems: "baseline",
             gap: 10,
             whiteSpace: "nowrap",
             opacity: valueIn,
             transform: `scale(${hlScale})`,
-            transformOrigin: "right center",
+            transformOrigin: `${startSide} center`,
           }}
         >
           <span style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: valueSize, color: hl ? c.primary : c.ink, fontVariantNumeric: "tabular-nums" }}>
@@ -205,7 +210,7 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
     );
   });
 
-  // خط الصفر: عمودي على يمين الأعمدة.
+  // خط الصفر: عمودي على جانب البداية من الأعمدة (يمينًا في العربية، يسارًا في الإنجليزية).
   const axisRight = padX + labelCol + labelGap;
 
   return (
@@ -260,7 +265,7 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
             {portrait ? null : <div
               style={{
                 position: "absolute",
-                right: axisRight - padX - 3,
+                [startSide]: axisRight - padX - 3,
                 top: 6,
                 bottom: 6,
                 width: 4,
@@ -308,3 +313,14 @@ export const chartSample: Omit<ChartSceneProps, "themeId" | "orientation"> = {
   narration: "ساعات على الهاتف، ودقائق لما نعرف أنه مهم.",
 };
 export const chartSeconds = 8;
+
+/** English preview sample (LTR). */
+export const chartSampleEn: Omit<ChartSceneProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 3 · The deeper cause",
+  title: "Where does our day go?",
+  data: "Phone: 4\nPutting off work: 1.5\nReading: 0.5\nExercise: 0.3",
+  unit: "hours",
+  highlight: "Phone",
+  source: "Illustrative numbers for preview",
+  narration: "Hours on the phone, and minutes for what we know matters.",
+};

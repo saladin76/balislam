@@ -232,4 +232,13 @@ export const bigNumberSample: Omit<BigNumberProps, "themeId" | "orientation"> = 
   element: "hourglass-patience",
   narration: "واحد من كل خمسة أشخاص يصف نفسه بأنه مؤجّل مزمن.",
 };
+/** English preview content (digits and % come out Western via <Digits>). */
+export const bigNumberSampleEn: Omit<BigNumberProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 2 · Where does procrastination come from?",
+  number: "20%",
+  caption: "of people describe themselves as chronic procrastinators",
+  source: "Illustrative figure for preview",
+  element: "hourglass-patience",
+  narration: "One in five people describes themselves as a chronic procrastinator.",
+};
 export const bigNumberSeconds = 6;

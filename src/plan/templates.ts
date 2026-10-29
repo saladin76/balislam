@@ -68,6 +68,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "text", label: "نص الآية", type: "textarea", help: "يُجلب من Quran Foundation ولا يُعدَّل يدويًا" },
       { key: "reference", label: "المرجع", type: "text" },
       { key: "reciter", label: "القارئ", type: "text", help: "يظهر فقط إن صاحبت الآيةَ تلاوةٌ مرخّصة" },
+      { key: "meaning", label: "ترجمة المعنى", type: "textarea", help: "للقنوات غير العربية: تُجلب من الترجمة المحددة في إعدادات القناة" },
     ],
   },
   {

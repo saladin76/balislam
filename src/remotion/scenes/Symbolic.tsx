@@ -5,6 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
+import { useLang } from "../../i18n/context";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -78,6 +79,9 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
   const portrait = orientation === "portrait";
   const ink = t.character.style === "line";
   const night = themeId === "night";
+  // اتجاه القراءة: الأول على جانب البداية (يمين في العربية، يسار في LTR) والحركة نحو الثاني.
+  const rtl = useLang().dir === "rtl";
+  const s = rtl ? 1 : -1;
 
   const first = element && hasElement(element) ? element : "lightbulb";
   const second = secondElement && hasElement(secondElement) ? secondElement : undefined;
@@ -259,9 +263,9 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
   const size = portrait ? (longCaption ? 260 : 300) : 380;
   const W = portrait ? 940 : 1440;
   const H = portrait ? (longCaption ? 690 : 860) : 460;
-  // المركزان: الأول يمينًا (أو أعلى)، الثاني يسارًا (أو أسفل).
-  const A = portrait ? { x: W / 2, y: size / 2 + 6 } : { x: W / 2 + 440, y: H / 2 };
-  const B = portrait ? { x: W / 2, y: H - size / 2 - 6 } : { x: W / 2 - 440, y: H / 2 };
+  // المركزان: الأول على جانب البداية (أو أعلى)، الثاني على جانب النهاية (أو أسفل).
+  const A = portrait ? { x: W / 2, y: size / 2 + 6 } : { x: rtl ? W / 2 + 440 : W / 2 - 440, y: H / 2 };
+  const B = portrait ? { x: W / 2, y: H - size / 2 - 6 } : { x: rtl ? W / 2 - 440 : W / 2 + 440, y: H / 2 };
   const box = (pt: { x: number; y: number }, child: React.ReactNode, extra?: React.CSSProperties) => (
     <div style={{ position: "absolute", left: pt.x - size / 2, top: pt.y - size / 2, width: size, height: size, ...extra }}>{child}</div>
   );
@@ -287,9 +291,9 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
 
     // السهم: قوس لطيف بين الموضعين (يبتعد عن العنصرين بهامش).
     const gap = size * (portrait ? 0.56 : 0.62);
-    const S = portrait ? { x: A.x, y: A.y + gap } : { x: A.x - gap, y: A.y };
-    const E = portrait ? { x: B.x, y: B.y - gap } : { x: B.x + gap, y: B.y };
-    const bend = portrait ? { x: -34, y: 0 } : { x: 0, y: -70 };
+    const S = portrait ? { x: A.x, y: A.y + gap } : { x: rtl ? A.x - gap : A.x + gap, y: A.y };
+    const E = portrait ? { x: B.x, y: B.y - gap } : { x: rtl ? B.x + gap : B.x - gap, y: B.y };
+    const bend = portrait ? { x: -34 * s, y: 0 } : { x: 0, y: -70 };
     const Cc = { x: (S.x + E.x) / 2 + bend.x, y: (S.y + E.y) / 2 + bend.y };
     const q = (u: number) => ({
       x: (1 - u) * (1 - u) * S.x + 2 * (1 - u) * u * Cc.x + u * u * E.x,
@@ -323,7 +327,7 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
               top: gp.y - ghostSize / 2,
               width: ghostSize,
               height: ghostSize,
-              transform: `scale(${0.8 + 0.4 * Math.sin(g * Math.PI)}) rotate(${g * 20 - 10}deg)`,
+              transform: `scale(${0.8 + 0.4 * Math.sin(g * Math.PI)}) rotate(${(g * 20 - 10) * s}deg)`,
             }}
           >
             <div style={{ position: "absolute", inset: -ghostSize * 0.18, borderRadius: "50%", background: ink ? c.secondary : c.highlight, opacity: night ? 0.35 : 0.6 }} />
@@ -397,8 +401,8 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
   }
   const slideA = enter(frame, atA, 30, 120);
   const slideB = enter(frame, atB, 30, 120);
-  const offA = portrait ? `translateY(${(1 - slideA) * -50}px)` : `translateX(${(1 - slideA) * 80}px)`;
-  const offB = portrait ? `translateY(${(1 - slideB) * 50}px)` : `translateX(${(1 - slideB) * -80}px)`;
+  const offA = portrait ? `translateY(${(1 - slideA) * -50}px)` : `translateX(${(1 - slideA) * 80 * s}px)`;
+  const offB = portrait ? `translateY(${(1 - slideB) * 50}px)` : `translateX(${(1 - slideB) * -80 * s}px)`;
   const stage = (
     <div style={{ position: "relative", width: W, height: H, flexShrink: 0 }}>
       {middle}
@@ -420,3 +424,14 @@ export const symbolicSample: Omit<SymbolicProps, "themeId" | "orientation"> = {
   narration: "البذرة الصغيرة اليوم تصبح شجرة غدًا.",
 };
 export const symbolicSeconds = 6;
+
+/** English preview sample (LTR). */
+export const symbolicSampleEn: Omit<SymbolicProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 5 · How to begin",
+  element: "seed",
+  secondElement: "tree",
+  relation: "becomes",
+  caption: "A small step today… a big impact tomorrow",
+  effect: "grow",
+  narration: "Today's small seed becomes tomorrow's tree.",
+};

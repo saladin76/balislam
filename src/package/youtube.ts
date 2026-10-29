@@ -1,5 +1,6 @@
 import { parseScript } from "../script/parse";
-import { parseAyahRef, SURAH_NAMES } from "../script/quranMeta";
+import { parseAyahRef, surahNameFor } from "../script/quranMeta";
+import { langPack } from "../i18n/packs";
 import { QF_ATTRIBUTION } from "../quran/attribution";
 import { chapterStarts } from "../remotion/scenes/Episode";
 import type { EpisodeMedia } from "../plan/media";
@@ -19,15 +20,19 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   const starts = chapterStarts(plan, media);
   const hook = plan.chapters[0]?.scenes.find((s) => s.narration)?.narration ?? "";
   const step = parsed.practicalStep?.text ?? "";
+  const L = langPack(plan.lang ?? channel.language);
+  const fill = (tpl: string, v: Record<string, string>) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
+  const translation = channel.quranTranslation?.name;
 
   const sources: string[] = [];
   for (const c of parsed.citations) {
     if (c.kind === "ayah") {
       const r = parseAyahRef(c.fields[0] ?? "");
-      const name = r.ok ? `سورة ${SURAH_NAMES[r.ref.surah - 1]}، الآية ${r.ref.from}${r.ref.to !== r.ref.from ? `–${r.ref.to}` : ""}` : c.fields[0];
+      const name = r.ok ? fill(L.strings.descVerse, { name: surahNameFor(r.ref.surah, L.code), ayah: `${r.ref.from}${r.ref.to !== r.ref.from ? `–${r.ref.to}` : ""}` }) : c.fields[0];
       const reciter = (c.fields.find((f) => f.startsWith("القارئ")) ?? "").replace(/^القارئ\s*:\s*/, "").trim();
       const hasRec = r.ok && Object.keys(media.recitations).includes(r.ref.key);
-      sources.push(`- ${name} (${QF_ATTRIBUTION}${hasRec && reciter && reciter !== "…" ? `، التلاوة: ${reciter} بإذن مكتوب` : ""})`);
+      const extras = [L.code === "ar" ? QF_ATTRIBUTION : L.strings.quranAttribution, translation && L.code !== "ar" ? translation : "", hasRec && reciter && reciter !== "…" ? fill(L.strings.descRecitation, { name: reciter }) : ""].filter(Boolean);
+      sources.push(`- ${name} (${extras.join(L.code === "ar" ? "، " : ", ")})`);
     } else if (c.kind === "hadith") {
       sources.push(`- ${c.fields[0] ?? ""}${c.fields[1] ? ` — ${c.fields[1]}` : ""}${c.fields[2] ? ` (${c.fields[2]})` : ""}`);
     } else sources.push(`- ${c.fields.join(" — ")}`);
@@ -37,12 +42,12 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   const description = [
     hook,
     "",
-    "فصول الحلقة:",
+    L.strings.descChapters,
     ...starts.map((s) => `${clock(s.start)} ${s.title}`),
     "",
-    step ? `الخطوة العملية: ${step}` : "",
+    step ? `${L.strings.practicalStep}: ${step}` : "",
     "",
-    sources.length ? "المصادر:" : "",
+    sources.length ? L.strings.descSources : "",
     ...sources,
     "",
     channel.youtube.voiceDisclosure,
@@ -64,7 +69,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
       "```",
       `${line}`,
       "",
-      "الحلقة كاملة على القناة: ‹ضع رابط الحلقة هنا›",
+      L.strings.fullEpisode,
       `${channel.youtube.tags.map((t) => `#${t}`).join(" ")} #shorts`,
       "```",
     ].join("\n");

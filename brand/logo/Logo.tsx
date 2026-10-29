@@ -6,7 +6,11 @@ import { fontFamilies } from "../fonts";
 export const BAA_PATH = "M92 34V62Q92 76 78 76H42Q28 76 28 62V52";
 export const PLAY_POINTS = "54,86 54,104 70,95";
 
+/** شكل رمز القناة: باء التشغيل (بالإسلام)، أو حرف القناة مع زر التشغيل نفسه (عائلة واحدة من الرموز). */
+export type LogoSpec = { type: "baa" } | { type: "letter"; letter: string };
+
 type MarkProps = {
+  mark?: LogoSpec;
   size: number;
   colors: { tile?: string; baa: string; play: string };
   /** مربع ملون بزوايا دائرية خلف الرمز */
@@ -16,15 +20,21 @@ type MarkProps = {
 };
 
 /** رمز «باء التشغيل». */
-export const LogoMark: React.FC<MarkProps> = ({ size, colors, tile = true, square = false }) => {
+export const LogoMark: React.FC<MarkProps> = ({ size, colors, tile = true, square = false, mark }) => {
   const viewBox = tile ? "0 0 120 120" : "14 20 92 92";
   const dy = square ? -9 : 0;
   return (
     <svg width={size} height={size} viewBox={viewBox} aria-label="شعار بالإسلام" role="img">
       {tile ? <rect width="120" height="120" rx={square ? 0 : 28} fill={colors.tile} /> : null}
       <g transform={`translate(0 ${dy})`}>
-        <path d={BAA_PATH} fill="none" stroke={colors.baa} strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
-        <polygon points={PLAY_POINTS} fill={colors.play} />
+        {mark?.type === "letter" ? (
+          <text x={60} y={66} textAnchor="middle" dominantBaseline="middle" fontFamily={fontFamilies.wordmark} fontWeight={700} fontSize={62} fill={colors.baa}>
+            {mark.letter}
+          </text>
+        ) : (
+          <path d={BAA_PATH} fill="none" stroke={colors.baa} strokeWidth={11} strokeLinecap="round" strokeLinejoin="round" />
+        )}
+        <polygon points={mark?.type === "letter" ? "84,82 84,100 100,91" : PLAY_POINTS} fill={colors.play} />
       </g>
     </svg>
   );

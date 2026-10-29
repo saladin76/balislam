@@ -4,6 +4,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
+import { handleExtra } from "./extra";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -75,6 +76,8 @@ export const balApi = (): Plugin => ({
         const episodesDir: string = cp.episodes;
         const identityFile: string = cp.identity;
         const identityDefaultFile: string = cp.identityDefault;
+
+        if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
         if (parts[0] === "channels") {
           const list = channelMod.listChannels().map((id: string) => {

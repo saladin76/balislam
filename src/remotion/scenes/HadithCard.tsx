@@ -81,6 +81,7 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
   const portrait = orientation === "portrait";
   const line = t.character.style === "line";
   const night = themeId === "night";
+  const rtl = lang.dir === "rtl";
 
   const card = enter(frame, 0, 30, 90);
   const spine = fade(frame, 4, 26);
@@ -118,7 +119,8 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
             border: line ? `3px solid ${c.ink}` : "none",
             boxShadow: line ? "none" : `0 22px 56px rgba(0,0,0,${night ? 0.35 : 0.09})`,
             borderRadius: portrait ? 22 : 20,
-            padding: portrait ? "84px 92px 120px 70px" : "70px 124px 78px 110px",
+            /** الحشوة الأعرض في جهة الشريط الجانبي (بداية السطر). */
+            padding: portrait ? (rtl ? "84px 92px 120px 70px" : "84px 70px 120px 92px") : rtl ? "70px 124px 78px 110px" : "70px 110px 78px 124px",
             opacity: card,
             transform: `translateY(${(1 - card) * 24}px)`,
             display: "flex",
@@ -127,17 +129,17 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
             gap: portrait ? 34 : 28,
           }}
         >
-          {/* الشريط الجانبي (يمين، بداية السطر العربي) */}
+          {/* الشريط الجانبي في بداية السطر: يمين في العربية، يسار في اللاتينية */}
           <div
             style={{
               position: "absolute",
               top: line ? -3 : 0,
               bottom: line ? -3 : 0,
-              right: line ? -3 : 0,
+              insetInlineStart: line ? -3 : 0,
               width: spineW,
               background: line ? c.secondary : c.primary,
               border: line ? `3px solid ${c.ink}` : "none",
-              borderRadius: portrait ? "0 22px 22px 0" : "0 20px 20px 0",
+              borderRadius: rtl ? (portrait ? "0 22px 22px 0" : "0 20px 20px 0") : portrait ? "22px 0 0 22px" : "20px 0 0 20px",
               transformOrigin: "50% 0%",
               transform: `scaleY(${spine})`,
             }}
@@ -145,10 +147,10 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
           {/* أركان مزخرفة */}
           {(
             [
-              { top: 22, right: 22 + spineW, rot: 90 },
-              { top: 22, left: 22, rot: 0 },
-              { bottom: 22, left: 22, rot: -90 },
-              { bottom: 22, right: 22 + spineW, rot: 180 },
+              { top: 22, insetInlineStart: 22 + spineW, rot: rtl ? 90 : 0 },
+              { top: 22, insetInlineEnd: 22, rot: rtl ? 0 : 90 },
+              { bottom: 22, insetInlineEnd: 22, rot: rtl ? -90 : 180 },
+              { bottom: 22, insetInlineStart: 22 + spineW, rot: rtl ? 180 : -90 },
             ] as const
           )
             .filter((_, i) => !(grade && !portrait && i === 2))
@@ -202,9 +204,17 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
               textWrap: "balance",
             }}
           >
-            <span style={{ fontFamily: fontFamilies.heading, color: c.primary, fontSize: "0.8em", margin: "0 0 0 0.12em" }}>«</span>
+            {rtl ? (
+              <span style={{ fontFamily: fontFamilies.heading, color: c.primary, fontSize: "0.8em", marginInlineEnd: "0.12em" }}>«</span>
+            ) : (
+              <span style={{ color: c.primary, marginInlineEnd: "0.06em" }}>{"\u201C"}</span>
+            )}
             {text}
-            <span style={{ fontFamily: fontFamilies.heading, color: c.primary, fontSize: "0.8em", margin: "0 0.12em 0 0" }}>»</span>
+            {rtl ? (
+              <span style={{ fontFamily: fontFamilies.heading, color: c.primary, fontSize: "0.8em", marginInlineStart: "0.12em" }}>»</span>
+            ) : (
+              <span style={{ color: c.primary, marginInlineStart: "0.06em" }}>{"\u201D"}</span>
+            )}
           </div>
 
           {/* المصدر */}
@@ -217,7 +227,7 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
                 gap: 18,
                 opacity: refIn,
                 transform: `translateY(${(1 - refIn) * 10}px)`,
-                paddingLeft: portrait ? 0 : sealSize * 0.9,
+                paddingInlineEnd: portrait ? 0 : sealSize * 0.9,
               }}
             >
               <div style={{ width: 64, height: 3, borderRadius: 2, background: c.primary, opacity: 0.7 }} />
@@ -225,16 +235,15 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
             </div>
           ) : null}
 
-          {/* ختم الدرجة: يُطبع على الحافة السفلية اليسرى */}
+          {/* ختم الدرجة: يُطبع على الحافة السفلية في نهاية السطر (يسار في العربية، يمين في اللاتينية) */}
           {grade ? (
             <div
               style={{
                 position: "absolute",
-                left: portrait ? "50%" : 56,
+                ...(portrait ? { left: "50%", marginLeft: -sealSize / 2 } : { insetInlineEnd: 56, marginLeft: 0 }),
                 bottom: -sealSize * (portrait ? 0.52 : 0.42),
-                marginLeft: portrait ? -sealSize / 2 : 0,
                 opacity: Math.min(1, seal * 1.4),
-                transform: `scale(${1.35 - 0.35 * seal}) rotate(${-14 + 6 * seal}deg) ${line ? boil(frame, 21, 0.5) : ""}`,
+                transform: `scale(${1.35 - 0.35 * seal}) rotate(${(rtl ? 1 : -1) * (-14 + 6 * seal)}deg) ${line ? boil(frame, 21, 0.5) : ""}`,
                 filter: night ? "none" : `drop-shadow(0 6px 10px rgba(0,0,0,${0.12 * seal}))`,
               }}
             >
@@ -257,3 +266,13 @@ export const hadithCardSample: Omit<HadithCardProps, "themeId" | "orientation"> 
   narration: "والغنى الحقيقي في النفس، كما قال رسول الله صلى الله عليه وسلم.",
 };
 export const hadithCardSeconds = 8;
+
+/** محتوى تجريبي إنجليزي (للحلقات الإنجليزية). الدرجة تبقى بمفتاحها العربي وتُترجم من حزمة اللغة. */
+export const hadithCardSampleEn: Omit<HadithCardProps, "themeId" | "orientation"> = {
+  eyebrow: "Chapter 4 · Through the lens of Islam",
+  narrator: "Narrated by Abu Hurayrah",
+  text: "Richness is not having many possessions; true richness is the richness of the soul.",
+  reference: "Sahih al-Bukhari · 6446",
+  grade: "صحيح",
+  narration: "True richness lives in the soul, as the Prophet, peace be upon him, said.",
+};

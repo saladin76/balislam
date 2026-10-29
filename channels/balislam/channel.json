@@ -5,6 +5,7 @@
   "language": "ar",
   "description": "الحياة بعين الإسلام: النفس، والأسرة، والمال، والعلم.",
   "masterTheme": "warm",
+  "logo": { "type": "baa" },
   "domains": {
     "psychology": { "name": "النفس والسلوك", "theme": "paper", "tags": ["النفس", "تطوير_الذات", "السلوك"] },
     "family": { "name": "الأسرة والعلاقات", "theme": "family", "tags": ["الأسرة", "العلاقات", "تربية"] },
