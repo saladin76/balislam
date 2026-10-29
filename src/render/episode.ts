@@ -1,43 +1,62 @@
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
-import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition } from "@remotion/renderer";
-import { projectRoot } from "../config/paths";
+import { renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
+import { prepareRenderMedia } from "../plan/collect";
+import type { EpisodeMedia } from "../plan/media";
+import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
+import { browserExecutable, getServeUrl } from "./bundle";
 
 export type RenderEpisodeOptions = {
   episode: string;
   orientation: Orientation;
   /** فصل واحد فقط (للشورت) */
   chapter?: number;
+  outFile?: string;
+  plan?: Plan;
+  media?: EpisodeMedia;
   onProgress?: (pct: number, msg: string) => void;
 };
 
-/** يرندر الحلقة (أو فصلًا) من plan.json إلى episodes/<الحلقة>/out. */
+export const outDirFor = async (episode: string) => {
+  const dir = path.join(path.dirname(await resolveScriptPath(episode)), "out");
+  await mkdir(dir, { recursive: true });
+  return dir;
+};
+
+/** يرندر الحلقة (أو فصلًا) من plan.json بالصوت والمؤثرات إن وُجدت. */
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   const log = opts.onProgress ?? (() => {});
-  const plan = (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
-  const dir = path.join(path.dirname(await resolveScriptPath(opts.episode)), "out");
-  await mkdir(dir, { recursive: true });
+  const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
+  log(0, "تجهيز الوسائط…");
+  // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
+  const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
   log(0, "تجميع المشروع…");
-  const serveUrl = await bundle({ entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"), publicDir: path.join(projectRoot, "public") });
-  const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter };
-  const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable });
-  const name = `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`;
-  const output = path.join(dir, name);
+  const serveUrl = await getServeUrl(!opts.media);
+  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media };
+  const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
+  const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   await renderMedia({
     serveUrl,
     composition,
     inputProps,
     codec: "h264",
-    crf: 20,
+    crf: 18,
     x264Preset: "veryfast",
+    audioCodec: "aac",
     outputLocation: output,
-    browserExecutable,
+    browserExecutable: browserExecutable(),
     onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
   });
+  return output;
+};
+
+/** الصورة المصغّرة بعنوان محدد. */
+export const renderThumbnail = async (props: { themeId: string; title: string; highlight?: string; element?: string }, output: string) => {
+  const serveUrl = await getServeUrl();
+  const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
+  await renderStill({ serveUrl, composition, inputProps: props, output, browserExecutable: browserExecutable() });
   return output;
 };

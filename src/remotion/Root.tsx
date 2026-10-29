@@ -2,11 +2,9 @@ import React from "react";
 import { Composition, Still } from "remotion";
 import { themeIds } from "../../brand/themes";
 import { BrandSheet } from "./BrandSheet";
-import { BigQuestion } from "./scenes/BigQuestion";
-import { CharacterTalk } from "./scenes/CharacterTalk";
-import { VerseCard } from "./scenes/VerseCard";
 import { TemplateReel, reelDuration } from "./scenes/TemplateReel";
-import { sampleBigQuestion, sampleCharacterTalk, sampleVerseCard, sceneDurations } from "./scenes/samples";
+import { sceneCatalog } from "./scenes/catalog";
+import { Thumbnail } from "./Thumbnail";
 import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
 import samplePlan from "../../tests/fixtures/plan.json";
@@ -20,6 +18,7 @@ const orientations = ["landscape", "portrait"] as const;
 /** كل التكوينات المسجلة في Remotion. الحلقة والشورت الكاملان يُضافان في المرحلة 5. */
 export const RemotionRoot: React.FC = () => (
   <>
+    <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
     {orientations.map((o) => (
       <Composition
         key={`episode-${o}`}
@@ -39,30 +38,17 @@ export const RemotionRoot: React.FC = () => (
         {orientations.map((o) => (
           <React.Fragment key={o}>
             <Composition id={`reel-${id}-${o}`} component={TemplateReel} durationInFrames={reelDuration} fps={config.video.fps} {...sizes[o]} defaultProps={{ themeId: id, orientation: o }} />
-            <Composition
-              id={`scene-big-question-${id}-${o}`}
-              component={BigQuestion}
-              durationInFrames={sceneDurations.bigQuestion}
-              fps={config.video.fps}
-              {...sizes[o]}
-              defaultProps={{ ...sampleBigQuestion, themeId: id, orientation: o }}
-            />
-            <Composition
-              id={`scene-character-talk-${id}-${o}`}
-              component={CharacterTalk}
-              durationInFrames={sceneDurations.characterTalk}
-              fps={config.video.fps}
-              {...sizes[o]}
-              defaultProps={{ ...sampleCharacterTalk, themeId: id, orientation: o }}
-            />
-            <Composition
-              id={`scene-verse-card-${id}-${o}`}
-              component={VerseCard}
-              durationInFrames={sceneDurations.verseCard}
-              fps={config.video.fps}
-              {...sizes[o]}
-              defaultProps={{ ...sampleVerseCard, themeId: id, orientation: o }}
-            />
+            {sceneCatalog.map((entry) => (
+              <Composition
+                key={entry.id}
+                id={`scene-${entry.id}-${id}-${o}`}
+                component={entry.component}
+                durationInFrames={Math.round(entry.seconds * config.video.fps)}
+                fps={config.video.fps}
+                {...sizes[o]}
+                defaultProps={{ ...entry.sample, themeId: id, orientation: o }}
+              />
+            ))}
           </React.Fragment>
         ))}
       </React.Fragment>

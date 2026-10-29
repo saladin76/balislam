@@ -65,9 +65,9 @@ program
 program
   .command("preview")
   .description("رندر معاينة القوالب: bal preview reel-paper-landscape، أو --stills 30,90 للقطات ثابتة")
-  .argument("<prefix>", "بادئة معرّف التكوين")
+  .argument("<prefix...>", "بادئة معرّف التكوين (واحدة أو أكثر)")
   .option("--stills <frames>", "أرقام إطارات مفصولة بفواصل")
-  .action(async (prefix: string, opts: { stills?: string }) => {
+  .action(async (prefix: string[], opts: { stills?: string }) => {
     const { renderPreviews } = await import("../render/previews");
     const stills = opts.stills ? opts.stills.split(",").map(Number) : undefined;
     const files = await renderPreviews({ prefix, stills, onProgress: (m) => console.log(m) });
@@ -115,6 +115,88 @@ program
   .action(async () => {
     const { spawn } = await import("node:child_process");
     spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit" });
+  });
+
+program
+  .command("quran")
+  .description("جلب نصوص آيات الحلقة بالرسم العثماني من Quran Foundation (تُخزن في quran.json)")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--force", "إعادة الجلب حتى للمخزّن")
+  .action(async (episode: string, opts: { force?: boolean }) => {
+    const { quranClientFromEnv } = await import("../quran/client");
+    const { syncQuran } = await import("../quran/sync");
+    const { regeneratePlan } = await import("../plan/io");
+    const client = quranClientFromEnv();
+    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
+    const r = await syncQuran(episode, client, { force: opts.force });
+    await regeneratePlan(episode);
+    console.log(`جُلبت ${r.fetched.length} آية/مقطع، ومخزّنة ${r.cached.length}.`);
+    for (const f of r.failed) console.log(`تعذّر: ${f.ref}: ${f.reason}`);
+    if (r.failed.length) process.exitCode = 1;
+  });
+
+program
+  .command("voice")
+  .description("توليد صوت المشاهد من ElevenLabs (المشاهد التي لم تتغير لا يُعاد توليدها)")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--dry-run", "حساب الحروف والرصيد فقط بلا توليد")
+  .option("--force", "إعادة توليد كل المشاهد")
+  .option("--scene <ids>", "مشاهد محددة مفصولة بفواصل، مثل c2-s1,c4-s3")
+  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string }) => {
+    const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
+    const { generateVoice } = await import("../voice/generate");
+    const client = elevenLabsFromEnv();
+    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
+    console.log(`المشاهد: ${r.total} · للتوليد: ${r.toGenerate.length} · محفوظة: ${r.cached.length}`);
+    console.log(`الحروف: ${r.chars} ≈ ${r.credits} رصيد ElevenLabs`);
+    if (!client && !opts.dryRun) console.log("لم يُولَّد شيء: أضف ELEVENLABS_API_KEY وELEVENLABS_VOICE_ID إلى .env.");
+  });
+
+program
+  .command("sfx")
+  .description("توليد المؤثرات الصوتية من سجل brand/sfx.ts عبر ElevenLabs")
+  .argument("[ids...]", "معرّفات المؤثرات")
+  .option("--missing", "كل المؤثرات غير الموجودة")
+  .option("--list", "عرض الحالة فقط")
+  .option("--force", "إعادة التوليد")
+  .action(async (ids: string[], opts: { missing?: boolean; list?: boolean; force?: boolean }) => {
+    const { sfxLibrary } = await import("../../brand/sfx");
+    const { availableSfx, generateSfx } = await import("../voice/sfx");
+    const have = new Set(availableSfx());
+    if (opts.list || (!ids.length && !opts.missing)) {
+      for (const s of sfxLibrary) console.log(`${have.has(s.id) ? "✓" : "·"} ${s.id.padEnd(16)} ${s.nameAr}${s.category === "vocal" ? " (تسجيل بشري)" : ""}`);
+      console.log(`موجود ${have.size} من ${sfxLibrary.length}.`);
+      return;
+    }
+    const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
+    const client = elevenLabsFromEnv();
+    if (!client) throw new Error("أضف ELEVENLABS_API_KEY وELEVENLABS_VOICE_ID إلى ملف .env.");
+    const list = opts.missing ? sfxLibrary.filter((s) => !have.has(s.id)).map((s) => s.id) : ids;
+    const r = await generateSfx(client, list, { force: opts.force, onProgress: (m) => console.log(m) });
+    console.log(`وُلّد ${r.done.length}. ${r.skipped.map((x) => `${x.id}: ${x.reason}`).join("؛ ")}`);
+  });
+
+program
+  .command("package")
+  .description("تجهيز ملفات النشر: الحلقة + الشورتس + الصور المصغّرة + الترجمة + الوصف")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--skip-video", "بلا رندر فيديو")
+  .action(async (episode: string, opts: { skipVideo?: boolean }) => {
+    const { packageEpisode } = await import("../package/package");
+    const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, onProgress: (m) => console.log(m) });
+    console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
+  });
+
+program
+  .command("make")
+  .description("من السكريبت إلى ملفات النشر بأمر واحد: فحص ← آيات ← مشاهد ← صوت ← رندر ← تغليف")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--no-voice", "نسخة معاينة بلا صوت (لا تُنشر)")
+  .option("--skip-video", "بلا رندر فيديو")
+  .action(async (episode: string, opts: { voice?: boolean; skipVideo?: boolean }) => {
+    const { makeEpisode } = await import("../package/make");
+    const r = await makeEpisode({ episode, noVoice: opts.voice === false, skipVideo: opts.skipVideo, onProgress: (m) => console.log(m) });
+    console.log(`\nتم. الملفات في ${path.relative(projectRoot, r.dir)}. راجع publish-checklist.md قبل النشر.`);
   });
 
 program.parseAsync().catch((err: Error) => {

@@ -28,6 +28,7 @@
     "@remotion/player": "4.0.539",
     "@remotion/renderer": "^4.0.539",
     "commander": "^15.0.0",
+    "music-metadata": "^12.3.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "remotion": "^4.0.539",

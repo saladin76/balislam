@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import { LogoMark } from "../../brand/logo/Logo";
 import type { Plan } from "../../src/plan/types";
-import { api, type CheckResult, type EpisodeSummary } from "./api";
+import { api, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
+import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
@@ -39,6 +40,8 @@ export const App: React.FC = () => {
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
   const [check, setCheck] = useState<CheckResult | null>(null);
+  const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
+  const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
@@ -59,18 +62,23 @@ export const App: React.FC = () => {
     api.identity().then(({ identity, defaults }) => setIdent({ draft: identity, saved: identity, defaults })).catch((e) => say(e.message, true));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!epId) return;
-    store.set("bal-episode", epId);
-    setPlan(null);
-    api.episode(epId).then((d) => {
+  const loadEpisode = useCallback((id: string) => {
+    api.episode(id).then((d) => {
       setPlan(d.plan);
       setScript(d.script);
       setSavedScript(d.script);
       setCheck(d.check);
+      setMedia(d.media);
+      setExtra({ issues: d.issues, keys: d.keys });
       setPlanState("saved");
     }).catch((e) => say(e.message, true));
-  }, [epId]);
+  }, []);
+  useEffect(() => {
+    if (!epId) return;
+    store.set("bal-episode", epId);
+    setPlan(null);
+    loadEpisode(epId);
+  }, [epId, loadEpisode]);
   useEffect(() => store.set("bal-tab", tab), [tab]);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
@@ -96,6 +104,7 @@ export const App: React.FC = () => {
     setCheck(r.check);
     setPlan(r.plan);
     setPlanState("saved");
+    api.episode(epId).then((d) => { setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys }); }).catch(() => {});
     say("حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك");
   };
 
@@ -157,6 +166,11 @@ export const App: React.FC = () => {
             episodeId={epId}
             plan={plan}
             identity={ident.draft}
+            media={media}
+            issues={extra.issues}
+            keys={extra.keys}
+            onMediaChange={setMedia}
+            onReload={() => loadEpisode(epId)}
             onPlanChange={onPlanChange}
             onEditScript={(line) => {
               setTab("script");

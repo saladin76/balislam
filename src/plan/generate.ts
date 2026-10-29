@@ -50,6 +50,17 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
   const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string };
   const domain: Domain = fm.domain ?? "psychology";
   const title = String(fm.title ?? "");
+  // اسم القارئ من الاستشهادات: «- آية | النجم 39 | القارئ: فلان»
+  const reciterFor = (key: string | undefined) => {
+    if (!key) return "";
+    for (const c of parsed.citations) {
+      if (c.kind !== "ayah") continue;
+      const r = parseAyahRef(c.fields[0] ?? "");
+      const name = (c.fields.find((f) => f.startsWith("القارئ")) ?? "").replace(/^القارئ\s*:\s*/, "").trim();
+      if (r.ok && r.ref.key === key && name && name !== "…" && name !== "...") return name;
+    }
+    return "";
+  };
   const prevScenes = new Map((previous?.chapters ?? []).flatMap((c) => c.scenes).map((s) => [s.id, s]));
 
   const chapters: PlanChapter[] = parsed.chapters.map((ch) => {
@@ -72,8 +83,10 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         push({ template, narration: b.text, line: pending?.line ?? b.line, props: { ...defaultsFor(template, b.text, { title, chapterTitle: ch.title }), ...options } });
         pending = null;
       } else if (b.kind === "bridge") {
+        // جملة الربط تُضم لآخر مشهد متكلَّم؛ وإن كان آخر مشهد بطاقة آية أو حديث فلها مشهد قصير خاص
         const last = scenes[scenes.length - 1];
-        if (last) last.narration = `${last.narration} ${b.text}`.trim();
+        if (last && last.narration) last.narration = `${last.narration} ${b.text}`.trim();
+        else push({ template: "character-talk", narration: b.text, line: b.line, props: { ...defaultsFor("character-talk", b.text, { title, chapterTitle: ch.title }), pose: "point" } });
       } else if (b.kind === "sfx") {
         pendingSfx.push({ id: b.id, at: 0 });
       } else if (b.kind === "ayah") {
@@ -86,10 +99,17 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
           narration: "",
           line: b.line,
           ayahKey: key,
-          props: { text: (key && quran[key]) || "‹نص الآية يُجلب من Quran Foundation›", reference, reciter: "" },
+          props: { text: (key && quran[key]) || "‹نص الآية يُجلب من Quran Foundation›", reference, reciter: reciterFor(key) },
         });
       } else if (b.kind === "hadith") {
-        push({ template: "hadith-card", narration: "", line: b.line, props: { text: "", reference: b.ref } });
+        const cite = parsed.citations.find((c) => c.kind === "hadith" && (c.fields[0] ?? "").replace(/\s+/g, " ") === b.ref.replace(/\s+/g, " "));
+        const grade = (cite?.fields[1] ?? "").trim();
+        push({
+          template: "hadith-card",
+          narration: "",
+          line: b.line,
+          props: { text: b.text ?? "", narrator: b.narrator ?? "", reference: toArabicDigits(b.ref), grade: grade === "حسن" ? "حسن" : "صحيح" },
+        });
       }
     }
     if (pending) push({ template: pending.template, narration: "", line: pending.line, props: { ...defaultsFor(pending.template, "", { title, chapterTitle: ch.title }), ...pending.options } });
@@ -111,6 +131,31 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     }
     return { number: ch.number, title: ch.title, scenes };
   });
+
+  // شاشة النهاية: آخر مشهد في الحلقة، من «الخطوة العملية»
+  const lastChapter = chapters[chapters.length - 1];
+  if (lastChapter) {
+    const id = `c${lastChapter.number}-end`;
+    const old = prevScenes.get(id);
+    const step = parsed.practicalStep?.text ?? "";
+    const questionLine = step.split(/(?<=[.؟?!])\s+/).find((x) => /[؟?]\s*$/.test(x)) ?? "";
+    const scene: PlanScene = {
+      id,
+      template: "end-screen",
+      narration: "",
+      line: parsed.practicalStep?.line ?? 1,
+      props: { step: step.replace(questionLine, "").trim() || step, prompt: questionLine ? `اكتب في التعليقات: ${questionLine}` : "شاركنا رأيك في التعليقات" },
+      captions: false,
+      sfx: [],
+    };
+    if (old?.edited && old.template === "end-screen") {
+      scene.props = { ...scene.props, ...old.props };
+      scene.durationSec = old.durationSec;
+      scene.backdrop = old.backdrop;
+      scene.edited = true;
+    }
+    lastChapter.scenes.push(scene);
+  }
 
   return {
     version: 1,

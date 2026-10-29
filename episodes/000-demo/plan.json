@@ -4,7 +4,7 @@
   "title": "حلقة تجريبية: لماذا نؤجّل ما نعرف أنه مهم؟",
   "domain": "psychology",
   "themeId": "paper",
-  "updatedAt": "2026-10-29T12:02:43.076Z",
+  "updatedAt": "2026-10-29T13:29:55.377Z",
   "chapters": [
     {
       "number": 1,
@@ -162,13 +162,29 @@
         },
         {
           "template": "hadith-card",
-          "narration": "فكيف نحوّل هذا الفهم إلى عمل؟",
+          "narration": "",
           "line": 46,
           "props": {
-            "text": "",
-            "reference": "صحيح البخاري 6446"
+            "text": "ليس الغنى عن كثرة العرض، ولكن الغنى غنى النفس",
+            "narrator": "عن أبي هريرة رضي الله عنه",
+            "reference": "صحيح البخاري ٦٤٤٦",
+            "grade": "صحيح"
           },
           "id": "c4-s4",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "فكيف نحوّل هذا الفهم إلى عمل؟",
+          "line": 48,
+          "props": {
+            "line": "فكيف نحوّل هذا الفهم إلى عمل؟",
+            "variant": "narrator-m",
+            "pose": "point",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c4-s5",
           "sfx": []
         }
       ]
@@ -219,6 +235,18 @@
             "text": "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن."
           },
           "id": "c6-s1",
+          "sfx": []
+        },
+        {
+          "id": "c6-end",
+          "template": "end-screen",
+          "narration": "",
+          "line": 70,
+          "props": {
+            "step": "اكتب الآن مهمة واحدة أجلتها، وابدأ فيها خمس دقائق فقط.",
+            "prompt": "اكتب في التعليقات: ما المهمة التي اخترتها؟"
+          },
+          "captions": false,
           "sfx": []
         }
       ]

@@ -122,7 +122,10 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
         if (r.ok) ayahMarkers.push({ ref: b.ref, key: r.ref.key, line: b.line });
         else err("ayah-ref", r.reason, b.line);
       }
-      if (b.kind === "hadith") hadithMarkers.push({ ref: b.ref, line: b.line });
+      if (b.kind === "hadith") {
+        hadithMarkers.push({ ref: b.ref, line: b.line });
+        if (!b.text) warn("hadith-text-missing", `نص الحديث [${b.ref}] غير مكتوب؛ أضفه هكذا: [حديث: ${b.ref} | نص الحديث | الراوي]، أو اكتبه في الاستوديو.`, b.line);
+      }
       if (b.kind !== "narration" && b.kind !== "bridge") continue;
 
       const text = b.text;

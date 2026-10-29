@@ -157,7 +157,8 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
         } else if (kind === "ayah") {
           block = { kind, ref: value, line: lineNo };
         } else if (kind === "hadith") {
-          block = { kind, ref: value.split("|")[0]?.trim() ?? value, line: lineNo };
+          const [ref = value, text, narrator] = value.split("|").map((s) => s.trim());
+          block = { kind, ref, text: text || undefined, narrator: narrator || undefined, line: lineNo };
         } else {
           block = { kind, id: value, line: lineNo };
         }

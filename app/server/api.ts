@@ -9,7 +9,7 @@ import type { Plugin, ViteDevServer } from "vite";
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
  * تعمل داخل خادم Vite على جهازك فقط (localhost).
  */
-const root = path.resolve(__dirname, "..", "..");
+const root = path.resolve(import.meta.dirname, "..", "..");
 const episodesDir = path.join(root, "episodes");
 const identityFile = path.join(root, "brand", "identity.json");
 const identityDefaultFile = path.join(root, "brand", "identity.default.json");
@@ -31,6 +31,25 @@ const readBody = async (req: IncomingMessage): Promise<any> => {
 };
 
 const EP = /^\d{3}$/;
+
+/** يخدم ملفًا مع دعم المقاطع (Range) حتى يستطيع المشغل التقديم والتأخير. */
+const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type: string) => {
+  const size = statSync(file).size;
+  const range = req.headers.range?.match(/bytes=(\d*)-(\d*)/);
+  res.setHeader("content-type", type);
+  res.setHeader("accept-ranges", "bytes");
+  if (range) {
+    const start = range[1] ? Number(range[1]) : 0;
+    const end = range[2] ? Number(range[2]) : size - 1;
+    res.statusCode = 206;
+    res.setHeader("content-range", `bytes ${start}-${end}/${size}`);
+    res.setHeader("content-length", String(end - start + 1));
+    createReadStream(file, { start, end }).pipe(res);
+  } else {
+    res.setHeader("content-length", String(size));
+    createReadStream(file).pipe(res);
+  }
+};
 
 export const balApi = (): Plugin => ({
   name: "bal-api",
@@ -81,10 +100,41 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
 
+          const mediaFor = async (plan: unknown) => {
+            const { collectMedia } = await load("/src/plan/collect.ts");
+            return { ...(await collectMedia(ep, plan)), mode: "url", base: `/api/episodes/${ep}/media/` };
+          };
           if (parts.length === 2 && req.method === "GET") {
             const script = await readFile(scriptPath, "utf8");
             const plan = (await io.readJson(io.planPathFor(scriptPath))) ?? (await io.regeneratePlan(ep));
-            return send(res, 200, { script, plan, check: await checkText(script, scriptPath) });
+            const { planIssues } = await load("/src/plan/validate.ts");
+            return send(res, 200, { script, plan, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
+          }
+          if (parts[2] === "media" && parts[3] && parts[4]) {
+            const kind = parts[3];
+            const name = path.basename(decodeURIComponent(parts[4]));
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? path.join(root, "assets", "recitations") : null;
+            const file = dir ? path.join(dir, name) : "";
+            if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
+            serveFile(req, res, file, "audio/mpeg");
+            return;
+          }
+          if (parts[2] === "voice" && req.method === "POST") {
+            const b = await readBody(req);
+            const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
+            const { generateVoice } = await load("/src/voice/generate.ts");
+            const client = elevenLabsFromEnv();
+            const report = await generateVoice(ep, { client, dryRun: b.dryRun || !client, only: b.scenes, force: b.force });
+            const plan = await io.readJson(io.planPathFor(scriptPath));
+            return send(res, 200, { report, generated: Boolean(client && !b.dryRun), media: await mediaFor(plan) });
+          }
+          if (parts[2] === "quran" && req.method === "POST") {
+            const { quranClientFromEnv } = await load("/src/quran/client.ts");
+            const { syncQuran } = await load("/src/quran/sync.ts");
+            const client = quranClientFromEnv();
+            if (!client) return send(res, 400, { error: "أضف QF_CLIENT_ID وQF_CLIENT_SECRET إلى ملف .env ثم أعد تشغيل الاستوديو." });
+            const result = await syncQuran(ep, client);
+            return send(res, 200, { result, plan: await io.regeneratePlan(ep) });
           }
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
@@ -104,21 +154,7 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "video" && parts[3]) {
             const file = path.join(path.dirname(scriptPath), "out", path.basename(parts[3]));
             if (!existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
-            const size = statSync(file).size;
-            const range = req.headers.range?.match(/bytes=(\d*)-(\d*)/);
-            res.setHeader("content-type", "video/mp4");
-            res.setHeader("accept-ranges", "bytes");
-            if (range) {
-              const start = range[1] ? Number(range[1]) : 0;
-              const end = range[2] ? Number(range[2]) : size - 1;
-              res.statusCode = 206;
-              res.setHeader("content-range", `bytes ${start}-${end}/${size}`);
-              res.setHeader("content-length", String(end - start + 1));
-              createReadStream(file, { start, end }).pipe(res);
-            } else {
-              res.setHeader("content-length", String(size));
-              createReadStream(file).pipe(res);
-            }
+            serveFile(req, res, file, "video/mp4");
             return;
           }
         }

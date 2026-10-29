@@ -1,12 +1,15 @@
 import path from "node:path";
 import { defineConfig } from "vite";
-import { balApi } from "./server/api";
+import { existsSync } from "node:fs";
+import { balApi } from "./server/api.ts";
 
-const root = path.resolve(__dirname, "..");
+const root = path.resolve(import.meta.dirname, "..");
+// مفاتيح ElevenLabs وQuran Foundation من .env (على جهازك فقط)
+if (existsSync(path.join(root, ".env"))) process.loadEnvFile(path.join(root, ".env"));
 
 /** استوديو بالإسلام: يعمل محليًا فقط. التشغيل: npx bal app (أو npm run app) */
 export default defineConfig({
-  root: __dirname,
+  root: import.meta.dirname,
   publicDir: path.join(root, "public"),
   plugins: [balApi()],
   oxc: { jsx: { runtime: "automatic" } },

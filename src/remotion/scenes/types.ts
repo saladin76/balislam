@@ -49,3 +49,6 @@ export type CharacterTalkProps = SceneBase & {
   /** جهة الشخصية في الشاشة الأفقية */
   side?: "right" | "left";
 };
+
+/** حقول نصية لقالب (قيم الخطة كلها نصوص؛ القائمة سطر لكل عنصر). */
+export type StringFields<K extends string> = Partial<Record<K, string>>;

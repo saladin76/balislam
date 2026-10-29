@@ -5,8 +5,8 @@ import { getCompositions, renderMedia, renderStill } from "@remotion/renderer";
 import { projectRoot } from "../config/paths";
 
 export type PreviewOptions = {
-  /** بادئة معرّف التكوين، مثل reel-paper أو scene-verse-card-night */
-  prefix: string;
+  /** بادئة أو أكثر لمعرّف التكوين، مثل reel-paper أو scene-verse-card-night */
+  prefix: string | string[];
   outDir?: string;
   /** صور ثابتة عند إطارات محددة بدل الفيديو */
   stills?: number[];
@@ -21,12 +21,14 @@ export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> =>
   log("تجميع المشروع…");
   const serveUrl = await bundle({ entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"), publicDir: path.join(projectRoot, "public") });
   const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
-  const comps = (await getCompositions(serveUrl, { browserExecutable })).filter((c) => c.id.startsWith(opts.prefix));
+  const prefixes = Array.isArray(opts.prefix) ? opts.prefix : [opts.prefix];
+  const comps = (await getCompositions(serveUrl, { browserExecutable })).filter((c) => prefixes.some((p) => c.id.startsWith(p)));
   if (!comps.length) throw new Error(`لا يوجد تكوين يبدأ بـ «${opts.prefix}».`);
   const written: string[] = [];
   for (const composition of comps) {
     if (opts.stills) {
-      for (const frame of opts.stills) {
+      for (const wanted of opts.stills) {
+        const frame = Math.min(wanted, composition.durationInFrames - 1);
         const output = path.join(outDir, `${composition.id}-f${frame}.png`);
         await renderStill({ serveUrl, composition, output, frame, browserExecutable });
         written.push(output);

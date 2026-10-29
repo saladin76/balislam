@@ -9,7 +9,9 @@ import type { Identity } from "../../../brand/identity/index";
 import type { CharacterPose, CharacterVariant } from "../../../characters/Character";
 import { CharacterField, ElementField } from "../ui/Pickers";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
-import { api, type RenderJob } from "../api";
+import { api, type RenderJob, type VoiceReport } from "../api";
+import type { EpisodeMedia } from "../../../src/plan/media";
+import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -19,9 +21,14 @@ export const EpisodeTab: React.FC<{
   episodeId: string;
   plan: Plan;
   identity: Identity;
+  media: EpisodeMedia;
+  issues: PlanIssue[];
+  keys: { voice: boolean; quran: boolean };
   onPlanChange: (plan: Plan) => void;
+  onMediaChange: (media: EpisodeMedia) => void;
+  onReload: () => void;
   onEditScript: (line: number) => void;
-}> = ({ episodeId, plan, identity, onPlanChange, onEditScript }) => {
+}> = ({ episodeId, plan, identity, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript }) => {
   const allScenes = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))), [plan]);
   const [selectedId, setSelectedId] = useState(allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
@@ -44,7 +51,7 @@ export const EpisodeTab: React.FC<{
           playerRef.current?.seekTo(frame);
           return;
         }
-        frame += sceneFrames(s);
+        frame += sceneFrames(s, media);
       }
     }
   }, [selectedId, scope]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -58,7 +65,15 @@ export const EpisodeTab: React.FC<{
   };
   const setProp = (key: string, value: string) => sel && updateScene({ props: { ...sel.scene.props, [key]: value } });
 
-  const totalSec = allScenes.reduce((n, x) => n + sceneSeconds(x.scene), 0);
+  const liveIssues = useMemo(() => planIssues(plan), [plan]);
+  void issues;
+  const totalSec = allScenes.reduce((n, x) => n + sceneSeconds(x.scene, media), 0);
+  const voiceState = (s: PlanScene): "none" | "ok" | "stale" | "missing" => {
+    if (!s.narration.trim()) return "none";
+    const clip = media.voice[s.id];
+    if (!clip) return "missing";
+    return clip.text === s.narration.trim() ? "ok" : "stale";
+  };
 
   if (!sel) return <div className="empty-state"><h2>لا توجد مشاهد بعد</h2><p>اكتب فصول السكريبت أولًا، ثم ستظهر المشاهد هنا تلقائيًا.</p></div>;
   const scene = sel.scene;
@@ -82,9 +97,10 @@ export const EpisodeTab: React.FC<{
                 <div key={s.id} className="scene-item" role="button" tabIndex={0} aria-selected={s.id === scene.id} onClick={() => setSelectedId(s.id)} onKeyDown={(e) => e.key === "Enter" && setSelectedId(s.id)}>
                   <span className="t">{d?.nameAr ?? s.template}</span>
                   <span style={{ display: "flex", gap: 4 }}>
+                    {voiceState(s) === "ok" ? <span className="badge voice">صوت</span> : voiceState(s) === "stale" ? <span className="badge edited">صوت قديم</span> : null}
                     {s.edited ? <span className="badge edited">معدّل</span> : null}
                     {d && !d.implemented ? <span className="badge todo">قيد البناء</span> : null}
-                    <span className="badge" style={{ fontVariantNumeric: "tabular-nums" }}>{sceneSeconds(s).toFixed(1)}ث</span>
+                    <span className="badge" style={{ fontVariantNumeric: "tabular-nums" }}>{sceneSeconds(s, media).toFixed(1)}ث</span>
                   </span>
                   <span className="n">{s.narration || s.props.text || s.props.reference || "بلا تعليق صوتي"}</span>
                 </div>
@@ -108,17 +124,19 @@ export const EpisodeTab: React.FC<{
             <button aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}>عمودي 9:16</button>
           </div>
           <span className="spacer" />
-          <span className="help">المعاينة بتوقيت تقديري حتى يُربط الصوت</span>
+          <span className="help">{Object.keys(media.voice).length ? "المعاينة بالصوت الحقيقي حيث وُجد" : "المعاينة بتوقيت تقديري حتى يُولَّد الصوت"}</span>
         </div>
         <div className={`player-wrap ${orientation}`}>
           <div>
             {scope === "scene" ? (
-              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`الفصل ${sel.chapter.number} · ${sel.chapter.title}`} identity={identity} />
+              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`الفصل ${sel.chapter.number} · ${sel.chapter.title}`} identity={identity} media={media} />
             ) : (
-              <EpisodePreview ref={playerRef} plan={plan} orientation={orientation} chapter={scope === "chapter" ? sel.chapter.number : undefined} identity={identity} />
+              <EpisodePreview ref={playerRef} plan={plan} orientation={orientation} chapter={scope === "chapter" ? sel.chapter.number : undefined} identity={identity} media={media} />
             )}
           </div>
         </div>
+        <IssuesBox issues={liveIssues} keys={keys} episodeId={episodeId} onSelect={setSelectedId} onReload={onReload} />
+        <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />
         <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
       </div>
 
@@ -251,6 +269,7 @@ export const EpisodeTab: React.FC<{
 
           <div className="section-t">التعليق الصوتي</div>
           <div className="narr">{scene.narration || <span className="help">لا تعليق صوتي في هذا المشهد</span>}</div>
+          {scene.narration ? <SceneVoice episodeId={episodeId} sceneId={scene.id} state={voiceState(scene)} hasKeys={keys.voice} onMedia={onMediaChange} /> : null}
           <button className="btn small" onClick={() => onEditScript(scene.line)}>تعديل النص في السكريبت (سطر {scene.line})</button>
         </div>
       </div>
@@ -303,6 +322,138 @@ const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId
         </div>
       ))}
       {lastDone?.output ? <video src={api.videoUrl(lastDone.episode, lastDone.output)} controls style={{ width: "100%", maxHeight: 300, borderRadius: 8, background: "#000" }} /> : null}
+    </div>
+  );
+};
+
+/** صوت مشهد واحد: الحالة وزر التوليد. */
+const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" | "ok" | "stale" | "missing"; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, sceneId, state, hasKeys, onMedia }) => {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const label = { ok: "صوت هذا المشهد جاهز ومطابق للنص", stale: "النص تغيّر بعد توليد الصوت", missing: "لم يُولَّد صوت لهذا المشهد بعد", none: "" }[state];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span className="help" style={{ color: state === "ok" ? "var(--ok)" : state === "stale" ? "var(--warn)" : undefined }}>{label}</span>
+      <button
+        className="btn small"
+        disabled={busy || !hasKeys}
+        title={hasKeys ? "" : "أضف مفاتيح ElevenLabs إلى .env ثم أعد تشغيل الاستوديو"}
+        onClick={async () => {
+          setBusy(true);
+          setMsg("");
+          try {
+            const r = await api.voice(episodeId, { scenes: [sceneId], force: state === "ok" });
+            onMedia(r.media);
+            setMsg(`تم (${r.report.chars} حرفًا ≈ ${r.report.credits} رصيد)`);
+          } catch (e) {
+            setMsg((e as Error).message);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "جارٍ التوليد…" : state === "ok" ? "أعد توليد صوت هذا المشهد" : "ولّد صوت هذا المشهد"}
+      </button>
+      {!hasKeys ? <span className="help">يتطلب مفاتيح ElevenLabs في ملف .env</span> : null}
+      {msg ? <span className="help">{msg}</span> : null}
+    </div>
+  );
+};
+
+/** صوت الحلقة كلها: تقدير التكلفة أولًا، ثم التوليد بتأكيد. */
+const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, hasKeys, onMedia }) => {
+  const [est, setEst] = useState<VoiceReport | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const estimate = async () => {
+    setMsg("");
+    try {
+      setEst((await api.voice(episodeId, { dryRun: true })).report);
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  };
+  return (
+    <div className="render-box">
+      <div className="toolbar">
+        <b>صوت الحلقة</b>
+        <span className="help">المشاهد التي لم يتغير نصها لا يُعاد توليدها</span>
+        <span className="spacer" />
+        <button className="btn" onClick={estimate}>احسب التكلفة</button>
+        {est && est.toGenerate.length > 0 ? (
+          <button
+            className="btn primary"
+            disabled={busy || !hasKeys}
+            onClick={async () => {
+              setBusy(true);
+              setMsg("");
+              try {
+                const r = await api.voice(episodeId, {});
+                onMedia(r.media);
+                setEst(r.report);
+                setMsg(`وُلّد ${r.report.toGenerate.length} مقطعًا.`);
+                setEst((await api.voice(episodeId, { dryRun: true })).report);
+              } catch (e) {
+                setMsg((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "جارٍ التوليد…" : `ولّد ${est.toGenerate.length} مقطعًا`}
+          </button>
+        ) : null}
+      </div>
+      {est ? (
+        <div className="help" style={{ fontVariantNumeric: "tabular-nums" }}>
+          {est.toGenerate.length === 0 ? `كل المشاهد (${est.total}) لها صوت مطابق.` : `للتوليد ${est.toGenerate.length} من ${est.total} مشهدًا: ${est.chars} حرفًا ≈ ${est.credits} رصيد ElevenLabs. المحفوظ: ${est.cached.length}.`}
+          {!hasKeys ? " (أضف مفاتيح ElevenLabs إلى .env لتفعيل التوليد)" : ""}
+        </div>
+      ) : null}
+      {msg ? <div className="help">{msg}</div> : null}
+    </div>
+  );
+};
+
+/** ما يمنع النسخة النهائية، وجلب الآيات. */
+const IssuesBox: React.FC<{ issues: PlanIssue[]; keys: { quran: boolean }; episodeId: string; onSelect: (id: string) => void; onReload: () => void }> = ({ issues, keys, episodeId, onSelect, onReload }) => {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (!issues.length) return null;
+  const needsQuran = issues.some((i) => i.message.includes("bal quran"));
+  return (
+    <div className="render-box" style={{ borderColor: "var(--err)", background: "var(--err-soft)" }}>
+      <div className="toolbar">
+        <b style={{ color: "var(--err)" }}>قبل النسخة النهائية</b>
+        <span className="spacer" />
+        {needsQuran ? (
+          <button
+            className="btn small"
+            disabled={busy || !keys.quran}
+            title={keys.quran ? "" : "أضف مفاتيح Quran Foundation إلى .env"}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api.quran(episodeId);
+                onReload();
+              } catch (e) {
+                setMsg((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "جارٍ الجلب…" : "اجلب نصوص الآيات"}
+          </button>
+        ) : null}
+      </div>
+      {issues.map((i, k) => (
+        <button key={k} className="issue" style={{ gridTemplateColumns: "auto 1fr" }} onClick={() => onSelect(i.sceneId)}>
+          <span className="lv" style={{ background: i.level === "error" ? "var(--panel)" : "var(--warn-soft)", color: i.level === "error" ? "var(--err)" : "var(--warn)" }}>{i.level === "error" ? "يمنع" : "تنبيه"}</span>
+          <span>{i.message}</span>
+        </button>
+      ))}
+      {msg ? <div className="help">{msg}</div> : null}
     </div>
   );
 };

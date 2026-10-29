@@ -11,3 +11,6 @@ episodes/*/out/
 assets/recitations/**/*.wav
 assets/recitations/**/*.mp3
 assets/sfx/**/*.wav
+
+# وسائط الرندر المؤقتة
+public/_render/

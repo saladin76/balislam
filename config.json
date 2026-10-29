@@ -5,7 +5,10 @@
   },
   "episode": {
     "chapters": 6,
-    "chapterSeconds": { "min": 60, "max": 80 }
+    "chapterSeconds": {
+      "min": 60,
+      "max": 80
+    }
   },
   "writing": {
     "maxSentenceWords": 20,
@@ -13,7 +16,30 @@
   },
   "video": {
     "fps": 30,
-    "episode": { "width": 1920, "height": 1080 },
-    "short": { "width": 1080, "height": 1920 }
+    "episode": {
+      "width": 1920,
+      "height": 1080
+    },
+    "short": {
+      "width": 1080,
+      "height": 1920
+    }
+  },
+  "voice": {
+    "modelId": "eleven_multilingual_v2",
+    "outputFormat": "mp3_44100_128",
+    "stability": 0.5,
+    "similarityBoost": 0.8,
+    "style": 0,
+    "speakerBoost": true,
+    "speed": 1,
+    "seed": 7,
+    "tailSeconds": 0.35,
+    "creditsPerChar": 1
+  },
+  "audio": {
+    "narrationVolume": 1,
+    "sfxVolume": 0.55,
+    "recitationVolume": 1
   }
 }
