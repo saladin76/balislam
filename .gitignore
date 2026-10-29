@@ -5,9 +5,9 @@ renders/
 *.log
 
 # الملفات الكبيرة: تُحفظ على تخزين سحابي لا في Git
-episodes/*/voice/*.mp3
-episodes/*/voice/*.wav
-episodes/*/out/
+channels/*/episodes/*/voice/
+channels/*/episodes/*/out/
+channels/*/episodes/*/status.json
 assets/recitations/**/*.wav
 assets/recitations/**/*.mp3
 assets/sfx/**/*.wav
