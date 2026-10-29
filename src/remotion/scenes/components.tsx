@@ -52,7 +52,7 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
           variant={(p.variant || "narrator-m") as CharacterVariant}
           pose={(p.pose || "stand") as CharacterPose}
           element={p.element || undefined}
-          side={(p.side as "left" | "right") || "right"}
+          side={(p.side as "left" | "right") || undefined}
         />
       );
     case "verse-card":

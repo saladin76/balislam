@@ -59,6 +59,10 @@ export const App: React.FC = () => {
   const [showNew, setShowNew] = useState(false);
   const scriptRef = useRef<ScriptTabHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** آخر خطة لم تُحفظ بعد (تنتظر مؤقت الحفظ التلقائي) */
+  const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
+  /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
+  const scriptDirtyRef = useRef(false);
 
   const say = (msg: string, err = false) => {
     setToast({ msg, err });
@@ -89,18 +93,38 @@ export const App: React.FC = () => {
     api.identity().then(({ identity, defaults }) => setIdent({ draft: identity, saved: identity, defaults })).catch((e) => say(e.message, true));
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadEpisode = useCallback((id: string) => {
+  /** يحفظ فورًا أي تعديل ينتظر الحفظ التلقائي، حتى لا يكتب فوق خطة أحدث لاحقًا. */
+  const flushPlan = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    const p = pendingPlan.current;
+    pendingPlan.current = null;
+    if (!p) return;
+    setPlanState("saving");
+    try {
+      await api.savePlan(p.ep, p.plan);
+      setPlanState("saved");
+    } catch (e) {
+      setPlanState("error");
+      say((e as Error).message, true);
+    }
+  }, []);
+
+  const loadEpisode = useCallback(async (id: string, opts: { keepScript?: boolean } = {}) => {
+    await flushPlan();
     api.episode(id).then((d) => {
       setPlan(d.plan);
       setChannel(d.channel);
-      setScript(d.script);
-      setSavedScript(d.script);
+      if (!(opts.keepScript && scriptDirtyRef.current)) {
+        setScript(d.script);
+        setSavedScript(d.script);
+      }
       setCheck(d.check);
       setMedia(d.media);
       setExtra({ issues: d.issues, keys: d.keys });
       setPlanState("saved");
     }).catch((e) => say(e.message, true));
-  }, []);
+  }, [flushPlan]);
   useEffect(() => {
     if (!epId) return;
     store.set("bal-episode", epId);
@@ -113,21 +137,21 @@ export const App: React.FC = () => {
   const onPlanChange = useCallback((p: Plan) => {
     setPlan(p);
     setPlanState("dirty");
+    pendingPlan.current = { ep: epId, plan: p };
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      setPlanState("saving");
-      try {
-        await api.savePlan(epId, p);
-        setPlanState("saved");
-      } catch (e) {
-        setPlanState("error");
-        say((e as Error).message, true);
-      }
-    }, 700);
-  }, [epId]);
+    saveTimer.current = setTimeout(() => void flushPlan(), 700);
+  }, [epId, flushPlan]);
 
   const saveScript = async () => {
-    const r = await api.saveScript(epId, script);
+    // تعديلات المشاهد المعلّقة تُحفظ أولًا، ثم يعيد الخادم بناء الخطة مع إبقائها
+    await flushPlan();
+    let r;
+    try {
+      r = await api.saveScript(epId, script);
+    } catch (e) {
+      say(`تعذّر حفظ السكريبت: ${(e as Error).message}`, true);
+      return;
+    }
     setSavedScript(script);
     setCheck(r.check);
     setPlan(r.plan);
@@ -137,6 +161,20 @@ export const App: React.FC = () => {
   };
 
   const scriptDirty = script !== savedScript;
+  scriptDirtyRef.current = scriptDirty;
+
+  // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
+  useEffect(() => {
+    const h = (e: BeforeUnloadEvent) => {
+      if (scriptDirtyRef.current || pendingPlan.current) {
+        void flushPlan();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [flushPlan]);
+  const confirmLeaveScript = () => !scriptDirty || window.confirm("في السكريبت تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟");
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
@@ -151,7 +189,7 @@ export const App: React.FC = () => {
             <span>استوديو {channel.name}</span>
           </button>
           {channels.length > 1 ? (
-            <select id="channel-select" value={channelId || channels[0]?.id} onChange={(e) => setChannelId(e.target.value)} style={{ width: 170 }} aria-label="القناة">
+            <select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(e.target.value); }} style={{ width: 170 }} aria-label="القناة">
               {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : null}
@@ -159,7 +197,7 @@ export const App: React.FC = () => {
             <button role="tab" aria-selected={tab === "home"} onClick={() => setTab("home")}>الرئيسية</button>
           </nav>
           {EPISODE_TABS.includes(tab) ? (
-            <select id="episode-select" value={epId} onChange={(e) => setEpId(e.target.value)} style={{ width: 280 }} aria-label="الحلقة">
+            <select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} style={{ width: 280 }} aria-label="الحلقة">
               {episodes?.length ? null : <option value="">لا توجد حلقات</option>}
               {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
             </select>
@@ -190,6 +228,7 @@ export const App: React.FC = () => {
             channel={channel}
             onNew={() => setShowNew(true)}
             onOpen={(id, t) => {
+              if (id !== epId && !confirmLeaveScript()) return;
               setEpId(id);
               setTab(t);
             }}
@@ -201,7 +240,7 @@ export const App: React.FC = () => {
             key={channelId}
             onSaved={() => {
               reloadChannels();
-              if (epId) loadEpisode(epId);
+              if (epId) loadEpisode(epId, { keepScript: true });
             }}
             onCreated={async (id) => {
               await reloadChannels();
@@ -214,7 +253,7 @@ export const App: React.FC = () => {
           <SettingsTab
             onKeysChanged={() => {
               reloadKeys();
-              if (epId) loadEpisode(epId);
+              if (epId) loadEpisode(epId, { keepScript: true });
             }}
           />
         ) : tab === "identity" ? (
@@ -225,9 +264,13 @@ export const App: React.FC = () => {
             defaults={ident.defaults}
             onChange={(draft) => setIdent({ ...ident, draft })}
             onSave={async () => {
-              await api.saveIdentity(ident.draft);
-              setIdent({ ...ident, saved: ident.draft });
-              say("حُفظت الهوية. الرندر القادم يستخدمها.");
+              try {
+                await api.saveIdentity(ident.draft);
+                setIdent({ ...ident, saved: ident.draft });
+                say("حُفظت الهوية. الرندر القادم يستخدمها.");
+              } catch (e) {
+                say(`تعذّر حفظ الهوية: ${(e as Error).message}`, true);
+              }
             }}
           />
         ) : !episodes?.length ? (
@@ -251,7 +294,7 @@ export const App: React.FC = () => {
             issues={extra.issues}
             keys={extra.keys}
             onMediaChange={setMedia}
-            onReload={() => loadEpisode(epId)}
+            onReload={() => loadEpisode(epId, { keepScript: true })}
             onPlanChange={onPlanChange}
             onEditScript={(line) => {
               setTab("script");

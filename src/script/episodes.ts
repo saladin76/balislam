@@ -10,7 +10,7 @@ export const resolveScriptPath = async (arg: string): Promise<string> => {
   if (/^\d{3}$/.test(arg)) {
     const entries = existsSync(episodesDir) ? await readdir(episodesDir) : [];
     const matches = entries.filter((e) => e.startsWith(`${arg}-`));
-    if (matches.length === 0) throw new Error(`لا يوجد مجلد للحلقة ${arg} داخل episodes/. أنشئه بـ: bal new ${arg} اسم-مختصر`);
+    if (matches.length === 0) throw new Error(`الحلقة ${arg} غير موجودة. أنشئها من زر «حلقة جديدة» في الاستوديو، أو بالأمر: bal new ${arg} اسم-مختصر`);
     if (matches.length > 1) throw new Error(`أكثر من مجلد يبدأ بـ ${arg}-: ${matches.join("، ")}`);
     return path.join(episodesDir, matches[0] as string, "script.md");
   }

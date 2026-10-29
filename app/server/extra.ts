@@ -3,6 +3,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { safeName } from "./util.ts";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -36,6 +37,23 @@ export type LongJob = {
 };
 export const longJobs = new Map<string, LongJob>();
 
+/**
+ * حلقة واحدة لا تُصنع مرتين في الوقت نفسه (رندر، صناعة، تغليف تكتب في نفس مجلد out).
+ * المفتاح: قناة/حلقة، أو قناة/sfx.
+ */
+export const busy = new Set<string>();
+let seq = 0;
+export const newJobId = () => `${Date.now()}-${++seq}`;
+/** يُبقي آخر 30 مهمة فقط. */
+export const trimJobs = <T extends { status: string }>(m: Map<string, T>) => {
+  while (m.size > 30) {
+    const oldest = [...m.entries()].find(([, j]) => j.status !== "running");
+    if (!oldest) break;
+    m.delete(oldest[0]);
+  }
+};
+export const busyMessage = "توجد مهمة جارية على هذه الحلقة (رندر أو صناعة). انتظر انتهاءها ثم أعد المحاولة.";
+
 const EP = /^\d{3}$/;
 const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const types: Record<string, string> = { ".png": "image/png", ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".mp3": "audio/mpeg" };
@@ -58,8 +76,11 @@ const progressFrom = (job: LongJob, line: string) => {
 };
 
 export const startJob = (ctx: Pick<ExtraCtx, "root">, job: Omit<LongJob, "id" | "status" | "pct" | "log" | "startedAt">, args: string[]) => {
-  const j: LongJob = { ...job, id: `${Date.now()}`, status: "running", pct: 1, log: [], startedAt: Date.now() };
+  const j: LongJob = { ...job, id: newJobId(), status: "running", pct: 1, log: [], startedAt: Date.now() };
+  const key = `${job.channel}/${job.episode ?? job.kind}`;
+  busy.add(key);
   longJobs.set(j.id, j);
+  trimJobs(longJobs);
   const child = spawn(process.execPath, ["bin/bal.mjs", "--channel", job.channel, ...args], { cwd: ctx.root, env: process.env });
   const onData = (d: Buffer) => {
     for (const raw of d.toString().split("\n")) {
@@ -74,7 +95,13 @@ export const startJob = (ctx: Pick<ExtraCtx, "root">, job: Omit<LongJob, "id" | 
   };
   child.stdout.on("data", onData);
   child.stderr.on("data", onData);
+  child.on("error", (err) => {
+    busy.delete(key);
+    j.status = "error";
+    j.error = `تعذّر تشغيل العملية: ${err.message}`;
+  });
   child.on("close", (code) => {
+    busy.delete(key);
     j.status = code === 0 ? "done" : "error";
     if (code === 0) j.pct = 100;
     else j.error = j.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-3).join(" ") || "توقفت العملية";
@@ -138,7 +165,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const file = path.join(path.dirname(await resolveScriptPath(parts[1])), "status.json");
     if (req.method === "PUT") {
       const { status } = await readBody(req);
-      await writeFile(file, JSON.stringify(status ?? {}, null, 2) + "\n");
+      if (!status || typeof status !== "object" || Array.isArray(status)) return send(res, 400, { error: "حالة النشر غير صالحة؛ لم تُحفظ." }), true;
+      await writeFile(file, JSON.stringify(status, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {});
     return true;
@@ -150,7 +178,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const { resolveScriptPath } = await load("/src/script/episodes.ts");
     const dir = path.join(path.dirname(await resolveScriptPath(parts[1])), "out", "package");
     if (parts[3]) {
-      const file = path.join(dir, path.basename(decodeURIComponent(parts[3])));
+      const file = path.join(dir, safeName(parts[3]));
       if (!existsSync(file)) return send(res, 404, { error: "الملف غير موجود" }), true;
       const ext = path.extname(file);
       if (new URL(req.url ?? "/", "http://x").searchParams.get("download")) res.setHeader("content-disposition", `attachment; filename="${path.basename(file)}"`);
@@ -253,7 +281,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   // المؤثرات الصوتية
   if (parts[0] === "sfx") {
     if (parts[1]) {
-      const file = path.join(ctx.root, "assets", "sfx", path.basename(decodeURIComponent(parts[1])));
+      const file = path.join(ctx.root, "assets", "sfx", safeName(parts[1]));
       if (!existsSync(file)) return send(res, 404, { error: "غير موجود" }), true;
       ctx.serveFile(req, res, file, "audio/mpeg");
       return true;
@@ -269,11 +297,13 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const b = await readBody(req);
       if (b.kind === "make" || b.kind === "package") {
         if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+        if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage }), true;
         const args = b.kind === "make" ? ["make", b.episode, ...(b.noVoice ? ["--no-voice"] : [])] : ["package", b.episode];
         const job = startJob(ctx, { kind: b.kind, channel: ch, episode: b.episode, title: b.kind === "make" ? `صناعة الحلقة ${b.episode}${b.noVoice ? " (معاينة بلا صوت)" : ""}` : `تغليف الحلقة ${b.episode}` }, args);
         return send(res, 200, job), true;
       }
       if (b.kind === "sfx") {
+        if (busy.has(`${ch}/sfx`)) return send(res, 409, { error: "توليد المؤثرات جارٍ بالفعل." }), true;
         const job = startJob(ctx, { kind: "sfx", channel: ch, title: "توليد المؤثرات الناقصة" }, ["sfx", "--missing"]);
         return send(res, 200, job), true;
       }

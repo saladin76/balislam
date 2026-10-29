@@ -21,7 +21,8 @@ export const fade = (frame: number, from: number, length = 12) =>
 
 /** خروج في آخر المشهد (1 → 0). */
 export const exit = (frame: number, duration: number, length = 10) =>
-  interpolate(frame, [duration - length, duration], [1, 0], {
+  // آخر إطار مرسوم هو duration-1؛ ينتهي الاختفاء عنده تمامًا
+  interpolate(frame, [duration - 1 - length, duration - 1], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.in(Easing.cubic),

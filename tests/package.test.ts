@@ -43,7 +43,7 @@ describe("الخطة: الحديث والربط وشاشة النهاية", () =
   it("الخطة السليمة بلا موانع، والآية بنص مؤقت تمنع النسخة النهائية", () => {
     expect(planIssues(plan).filter((i) => i.level === "error")).toEqual([]);
     const noQuran = generatePlan(parsed, null, {});
-    expect(planIssues(noQuran).some((i) => i.level === "error" && i.message.includes("bal quran"))).toBe(true);
+    expect(planIssues(noQuran).some((i) => i.level === "error" && i.message.includes("بنص مؤقت"))).toBe(true);
   });
 });
 
@@ -65,9 +65,17 @@ describe("المزامنة والتغليف", () => {
   };
 
   it("مدة المشهد من الصوت الحقيقي، وبطاقة الآية بطول التلاوة", () => {
-    expect(sceneSeconds(first, media)).toBeCloseTo(3.5); // أقل مدة للسؤال الكبير
+    // أقل مدة للسؤال الكبير: وقت ظهور كلماته ثم قلم التمييز
+    expect(sceneSeconds(first, media)).toBeGreaterThanOrEqual(3.5);
+    expect(sceneSeconds(first, media)).toBeLessThan(4.5);
     const verse = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
     expect(sceneSeconds(verse, media)).toBeCloseTo(10.6);
+  });
+
+  it("المدة اليدوية لا تقطع الصوت", () => {
+    const clip = media.voice[first.id]!;
+    expect(sceneSeconds({ ...first, durationSec: 0.5 }, media)).toBeGreaterThanOrEqual(clip.duration);
+    expect(sceneSeconds({ ...first, durationSec: 30 }, media)).toBe(30);
   });
 
   it("الصوت القديم (نص تغيّر) لا يُستخدم", () => {

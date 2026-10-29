@@ -35,7 +35,15 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
   const breathe = 1 + Math.sin(frame / 14) * 0.006;
   const words = splitWords(said);
 
-  const charH = portrait ? 800 : 820;
+  // العمودي: الفقاعة فوق الشخصية في عمود واحد؛ نقدّر ارتفاع الفقاعة من طول الجملة
+  // ثم نصغّر الخط إن طالت، ونصغّر الشخصية لتبدأ تحت الفقاعة ولا تغطيها.
+  const P_TOP = 330;
+  const P_BOTTOM = 590; // فوق شريط الترجمة
+  const estLines = (px: number) => Math.max(1, Math.ceil((said.length * px * 0.5 * 1.1) / (900 - 104)));
+  const fit = portrait ? Math.max(0.72, Math.min(1, Math.sqrt(3 / estLines(bubbleSize)))) : 1;
+  const fontPx = Math.round(bubbleSize * fit);
+  const bubbleH = estLines(fontPx) * fontPx * 1.45 + 80;
+  const charH = portrait ? Math.round(Math.max(440, Math.min(800, 1920 - P_BOTTOM - (P_TOP + bubbleH + 70)))) : 820;
   const fromSide = side === "right" ? 1 : -1;
   const mirrorFigure = !rtl && side === "left";
 
@@ -54,7 +62,7 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
         transformOrigin: portrait ? "50% 100%" : side === "right" ? "100% 80%" : "0% 80%",
         fontFamily: fontFamilies.heading,
         fontWeight: 700,
-        fontSize: bubbleSize,
+        fontSize: fontPx,
         lineHeight: 1.45,
         display: "flex",
         flexWrap: "wrap",
@@ -110,11 +118,11 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
   if (portrait) {
     return (
       <SceneShell {...props} durationInFrames={durationInFrames}>
-        <div style={{ position: "absolute", top: 360, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 40 }}>
+        <div style={{ position: "absolute", top: P_TOP, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 40 }}>
           {bubble}
         </div>
-        <div style={{ position: "absolute", bottom: 590, left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 10 }}>
-          <div style={{ marginBottom: 420 }}>{prop}</div>
+        <div style={{ position: "absolute", bottom: P_BOTTOM, left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 10 }}>
+          <div style={{ marginBottom: Math.round(charH * 0.52) }}>{prop}</div>
           {figure}
         </div>
       </SceneShell>

@@ -54,7 +54,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "variant", label: "الشخصية", type: "variant" },
       { key: "pose", label: "الوضعية", type: "pose" },
       { key: "element", label: "عنصر بجوارها", type: "element" },
-      { key: "side", label: "جهة الشخصية", type: "select", options: [side, { value: "left", label: "يسار" }] },
+      { key: "side", label: "جهة الشخصية", type: "select", options: [{ value: "", label: "تلقائي (بداية السطر)" }, side, { value: "left", label: "يسار" }] },
     ],
   },
   {

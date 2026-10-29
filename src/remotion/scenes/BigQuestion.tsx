@@ -35,10 +35,15 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
   words.forEach((w, i) => {
     const h = isHl(i);
     const last = groups[groups.length - 1];
-    if (last && last.highlight && h) last.items.push({ w, i });
+    // كتلة التمييز لا تزيد على 3 كلمات حتى لا تتحول إلى لوح كبير عند التفاف السطر
+    if (last && last.highlight && h && last.items.length < 3) last.items.push({ w, i });
     else groups.push({ highlight: h, items: [{ w, i }] });
   });
 
+  // السؤال الطويل يصغر خطه تدريجيًا (فوق 8 كلمات) حتى لا يصطدم بعنوان الفصل والترجمة
+  const fit = words.length > 8 ? Math.max(0.6, Math.sqrt(8 / words.length)) : 1;
+  const fontPx = Math.round(questionSize * fit);
+  const iconPx = Math.round((portrait ? 280 : 250) * (fit < 1 ? Math.max(0.6, fit) : 1));
   const iconIn = enter(frame, 0, 30, 140);
   const wordsFrom = 12;
   const perWord = motion.wordInterval;
@@ -65,13 +70,13 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
             opacity: iconIn,
           }}
         >
-          <Element id={element} theme={t} size={portrait ? 280 : 250} />
+          <Element id={element} theme={t} size={iconPx} />
         </div>
         <div
           style={{
             fontFamily: fontFamilies.heading,
             fontWeight: 700,
-            fontSize: questionSize,
+            fontSize: fontPx,
             lineHeight: 1.35,
             textAlign: "center",
             maxWidth: portrait ? 920 : 1560,
@@ -97,7 +102,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
             );
             if (!hlOn) return <React.Fragment key={gi}>{span}</React.Fragment>;
             return (
-              <span key={gi} style={{ position: "relative", display: "inline-flex", flexWrap: "wrap", justifyContent: "center", gap: "inherit" }}>
+              <span key={gi} style={{ position: "relative", display: "inline-flex", flexWrap: "nowrap", justifyContent: "center", gap: "inherit" }}>
                 <span
                   style={{
                     position: "absolute",

@@ -33,7 +33,7 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
     case "big-question":
       return { question: questionIn(narration) ?? (ctx.chapterTitle.endsWith("؟") ? ctx.chapterTitle : ctx.title), highlight: "", element: "question-mark" };
     case "character-talk":
-      return { line: firstSentence(narration), variant: "narrator-m", pose: "stand", element: "", side: "right" };
+      return { line: firstSentence(narration), variant: "narrator-m", pose: "stand", element: "", side: "" };
     case "summary":
       return { text: firstSentence(narration, 14) };
     default:

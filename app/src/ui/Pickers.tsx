@@ -79,7 +79,7 @@ export const ElementField: React.FC<{ themeId: ThemeId; value?: string; kind?: "
         </span>
         <span className="meta">
           <b>{def ? def.nameAr : kind === "backdrop" ? "زخرفة الثيم (بدون خلفية)" : "بدون عنصر"}</b>
-          <code>{def ? def.id : "اضغط للاختيار"}</code>
+          {def ? <code>{def.id}</code> : <span className="help">اضغط للاختيار</span>}
         </span>
       </button>
       {open ? (

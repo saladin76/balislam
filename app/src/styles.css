@@ -245,7 +245,9 @@ table.stats td.bad { color: var(--warn); font-weight: 600; }
 .key-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .key-row > label { min-width: 120px; font-weight: 600; font-size: 13px; }
 .key-row input { flex: 1; min-width: 220px; font-family: var(--f-mono); }
-.key-state { font-size: 12px; border-radius: 999px; padding: 1px 10px; background: var(--panel-2); color: var(--muted); font-family: var(--f-mono); direction: ltr; }
+.key-row input::placeholder { font-family: var(--f-body); }
+.key-state { font-size: 12px; border-radius: 999px; padding: 1px 10px; background: var(--panel-2); color: var(--muted); }
+.key-state bdi { font-family: var(--f-mono); }
 .key-state.on { background: var(--ok-soft); color: var(--ok); }
 .test-ok { display: flex; flex-direction: column; gap: 6px; background: var(--ok-soft); border-radius: 10px; padding: 10px 12px; }
 .test-ok > b { color: var(--ok); }

@@ -4,7 +4,8 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { handleExtra } from "./extra.ts";
+import { busy, busyMessage, handleExtra, newJobId, trimJobs } from "./extra.ts";
+import { HttpError, safeName } from "./util.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -13,7 +14,7 @@ import { handleExtra } from "./extra.ts";
 const root = path.resolve(import.meta.dirname, "..", "..");
 const configFile = path.join(root, "config.json");
 
-type Job = { id: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; log: string[] };
+type Job = { id: string; channel: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; log: string[] };
 const jobs = new Map<string, Job>();
 
 const send = (res: ServerResponse, status: number, body: unknown) => {
@@ -26,20 +27,41 @@ const readBody = async (req: IncomingMessage): Promise<any> => {
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
   const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? JSON.parse(raw) : {};
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new HttpError(400, "بيانات الطلب غير صالحة.");
+  }
 };
+
+
 
 const EP = /^\d{3}$/;
 
 /** يخدم ملفًا مع دعم المقاطع (Range) حتى يستطيع المشغل التقديم والتأخير. */
 const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type: string) => {
   const size = statSync(file).size;
-  const range = req.headers.range?.match(/bytes=(\d*)-(\d*)/);
+  // مقطع واحد فقط: bytes=start-end أو bytes=start- أو bytes=-suffix
+  const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
   res.setHeader("content-type", type);
   res.setHeader("accept-ranges", "bytes");
-  if (range) {
-    const start = range[1] ? Number(range[1]) : 0;
-    const end = range[2] ? Number(range[2]) : size - 1;
+  if (range && (range[1] || range[2])) {
+    let start: number;
+    let end: number;
+    if (!range[1]) {
+      start = Math.max(0, size - Number(range[2]));
+      end = size - 1;
+    } else {
+      start = Number(range[1]);
+      end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    }
+    if (start >= size || start > end) {
+      res.statusCode = 416;
+      res.setHeader("content-range", `bytes */${size}`);
+      res.end();
+      return;
+    }
     res.statusCode = 206;
     res.setHeader("content-range", `bytes ${start}-${end}/${size}`);
     res.setHeader("content-length", String(end - start + 1));
@@ -136,7 +158,7 @@ export const balApi = (): Plugin => ({
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
-            const name = path.basename(decodeURIComponent(parts[4]));
+            const name = safeName(parts[4]);
             const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? path.join(root, "assets", "recitations") : null;
             const file = dir ? path.join(dir, name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
@@ -162,6 +184,7 @@ export const balApi = (): Plugin => ({
           }
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
+            if (typeof text !== "string" || !text.trim()) return send(res, 400, { error: "نص السكريبت فارغ؛ لم يُحفظ." });
             await writeFile(scriptPath, text, "utf8");
             const check = await checkText(text, scriptPath);
             const plan = await io.regeneratePlan(ep);
@@ -172,11 +195,12 @@ export const balApi = (): Plugin => ({
           }
           if (parts[2] === "plan" && req.method === "PUT") {
             const { plan } = await readBody(req);
+            if (!plan || !Array.isArray(plan.chapters) || plan.chapters.some((c: any) => !Array.isArray(c?.scenes))) return send(res, 400, { error: "الخطة غير مكتملة؛ لم تُحفظ." });
             await writeFile(io.planPathFor(scriptPath), JSON.stringify({ ...plan, updatedAt: new Date().toISOString() }, null, 2) + "\n", "utf8");
             return send(res, 200, { ok: true });
           }
           if (parts[2] === "video" && parts[3]) {
-            const file = path.join(path.dirname(scriptPath), "out", path.basename(parts[3]));
+            const file = path.join(path.dirname(scriptPath), "out", safeName(parts[3]));
             if (!existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
             serveFile(req, res, file, "video/mp4");
             return;
@@ -208,9 +232,13 @@ export const balApi = (): Plugin => ({
           if (req.method === "POST") {
             const b = await readBody(req);
             if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
-            const id = `${Date.now()}`;
-            const job: Job = { id, episode: b.episode, orientation: b.orientation, chapter: b.chapter, status: "running", pct: 0, log: [] };
+            const key = `${ch}/${b.episode}`;
+            if (busy.has(key)) return send(res, 409, { error: busyMessage });
+            busy.add(key);
+            const id = newJobId();
+            const job: Job = { id, channel: ch, episode: b.episode, orientation: b.orientation, chapter: b.chapter, status: "running", pct: 0, log: [] };
             jobs.set(id, job);
+            trimJobs(jobs);
             const args = ["bin/bal.mjs", "--channel", ch, "render", b.episode];
             if (b.orientation === "portrait") args.push("--portrait");
             if (b.chapter) args.push("--chapter", String(b.chapter));
@@ -227,17 +255,24 @@ export const balApi = (): Plugin => ({
             };
             child.stdout.on("data", onData);
             child.stderr.on("data", onData);
+            child.on("error", (err) => {
+              busy.delete(key);
+              job.status = "error";
+              job.error = `تعذّر تشغيل الرندر: ${err.message}`;
+            });
             child.on("close", (code) => {
+              busy.delete(key);
               job.status = code === 0 ? "done" : "error";
               if (code !== 0) job.error = job.log.filter((l) => /خطأ|Error/.test(l)).pop() ?? "فشل الرندر";
             });
             return send(res, 200, job);
           }
-          return send(res, 200, [...jobs.values()].reverse());
+          return send(res, 200, [...jobs.values()].filter((j) => j.channel === ch).reverse());
         }
 
         return send(res, 404, { error: "مسار غير معروف" });
       } catch (err) {
+        if (err instanceof HttpError) return send(res, err.status, { error: err.message });
         return send(res, 500, { error: (err as Error).message });
       }
     });

@@ -138,7 +138,7 @@ const Sfx: React.FC<{ hasVoiceKeys: boolean }> = ({ hasVoiceKeys }) => {
       <div className="toolbar">
         <span className="help">موجود {have} من {list.length}. الآهات البشرية تُسجَّل بصوت منشد ولا تُولَّد، وكل مؤثر يُسمع ويُعتمد قبل النشر.</span>
         <span className="spacer" />
-        <button className="btn primary" disabled={!hasVoiceKeys || !generatable || job?.status === "running"} title={hasVoiceKeys ? "" : "يتطلب مفاتيح ElevenLabs"} onClick={async () => setJob(await api.startJob({ kind: "sfx" }))}>
+        <button className="btn primary" disabled={!hasVoiceKeys || !generatable || job?.status === "running"} title={hasVoiceKeys ? "" : "يتطلب مفاتيح ElevenLabs"} onClick={async () => { try { setJob(await api.startJob({ kind: "sfx" })); } catch (x) { window.alert((x as Error).message); } }}>
           {job?.status === "running" ? `جارٍ التوليد… ${job.log[job.log.length - 1] ?? ""}` : `ولّد الناقص (${generatable})`}
         </button>
       </div>

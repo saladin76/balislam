@@ -123,7 +123,11 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
           </div>
         ) : null}
       </AbsoluteFill>
-      {captions && timings.length ? <CaptionBar theme={t} timings={timings} portrait={portrait} /> : null}
+      {captions && timings.length ? (
+        <AbsoluteFill style={{ opacity: out }}>
+          <CaptionBar theme={t} timings={timings} portrait={portrait} />
+        </AbsoluteFill>
+      ) : null}
     </AbsoluteFill>
   );
 };

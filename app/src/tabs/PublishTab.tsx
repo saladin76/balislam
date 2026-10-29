@@ -222,7 +222,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                 <>
                   <span className="help" style={{ color: "var(--ok)" }}>نُشرت في {status.published.date}</span>
                   {status.published.url ? <a href={status.published.url} target="_blank" rel="noreferrer">{status.published.url}</a> : null}
-                  <button className="btn small" onClick={() => saveStatus({ ...status, published: undefined })}>تراجع</button>
+                  <button className="btn small" onClick={() => window.confirm("إلغاء تسجيل النشر لهذه الحلقة؟") && saveStatus({ ...status, published: undefined })}>تراجع</button>
                 </>
               ) : (
                 <PublishForm disabled={!checked.watched} onSave={(p) => saveStatus({ ...status, published: p })} />
@@ -247,8 +247,8 @@ const PublishForm: React.FC<{ disabled: boolean; onSave: (p: { date: string; url
       }}
       style={{ display: "flex", flexDirection: "column", gap: 6 }}
     >
-      <input id="pub-date" type="text" value={date} onChange={(e) => setDate(e.target.value)} aria-label="تاريخ النشر" dir="ltr" />
-      <input id="pub-url" type="text" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="رابط الحلقة على يوتيوب (اختياري)" dir="ltr" />
+      <input id="pub-date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} aria-label="تاريخ النشر" dir="ltr" />
+      <input id="pub-url" type="url" pattern="https://.*" title="رابط يبدأ بـ https://" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="رابط الحلقة على يوتيوب (اختياري)" dir="ltr" />
       <button className="btn primary small" disabled={disabled} type="submit">تم النشر</button>
     </form>
   );

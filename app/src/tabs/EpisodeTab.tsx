@@ -236,7 +236,7 @@ export const EpisodeTab: React.FC<{
                 step={0.5}
                 placeholder={`تلقائي: ${sceneSeconds({ ...scene, durationSec: undefined }).toFixed(1)}`}
                 value={scene.durationSec ?? ""}
-                onChange={(e) => updateScene({ durationSec: e.target.value ? Number(e.target.value) : undefined })}
+                onChange={(e) => { const n = Number(e.target.value); updateScene({ durationSec: e.target.value && Number.isFinite(n) && n >= 0.5 ? Math.min(n, 600) : undefined }); }}
               />
             </label>
           </div>
@@ -285,7 +285,7 @@ export const EpisodeTab: React.FC<{
 
           <div className="section-t">التعليق الصوتي</div>
           <div className="narr">{scene.narration || <span className="help">لا تعليق صوتي في هذا المشهد</span>}</div>
-          {scene.narration ? <SceneVoice episodeId={episodeId} sceneId={scene.id} state={voiceState(scene)} hasKeys={keys.voice} onMedia={onMediaChange} /> : null}
+          {scene.narration ? <SceneVoice key={scene.id} episodeId={episodeId} sceneId={scene.id} state={voiceState(scene)} hasKeys={keys.voice} onMedia={onMediaChange} /> : null}
           <button className="btn small" onClick={() => onEditScript(scene.line)}>تعديل النص في السكريبت (سطر {scene.line})</button>
         </div>
       </div>

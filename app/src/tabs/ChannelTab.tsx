@@ -74,9 +74,9 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
     api.channel().then((x) => {
       setC(x);
       setSaved(JSON.stringify(x));
-    });
+    }).catch((x) => setMsg({ text: `تعذّر تحميل إعدادات القناة: ${(x as Error).message}`, err: true }));
   }, []);
-  if (!c) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
+  if (!c) return <div className="empty-state"><h2>{msg?.err ? msg.text : "جارٍ التحميل…"}</h2></div>;
   const dirty = JSON.stringify(c) !== saved;
   const set = (patch: Partial<ChannelConfig>) => setC({ ...c, ...patch });
   const setDomain = (id: string, patch: Partial<ChannelDomain>) => set({ domains: { ...c.domains, [id]: { ...c.domains[id]!, ...patch } } });

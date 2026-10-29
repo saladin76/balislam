@@ -23,13 +23,19 @@ const Star8: React.FC<{ size: number; fill: string; stroke?: string; sw?: number
 export const VerseCard: React.FC<VerseCardProps> = (props) => {
   const { themeId, orientation, text, reference, reciter, sourceNote, meaning, meaningSource } = props;
   const frame = useSceneFrame();
-  const verseSize = useSize("verse", orientation);
+  const baseVerse = useSize("verse", orientation);
   const refSize = useSize("reference", orientation);
   const { durationInFrames } = useVideoConfig();
   const t = useTheme(themeId);
   const c = t.colors;
   const portrait = orientation === "portrait";
   const line = t.character.style === "line";
+  // الآيات الطويلة (مثل آية الكرسي) يصغر خطها حتى تبقى البطاقة داخل الإطار؛ القصيرة كما هي
+  // نعدّ الحروف دون علامات التشكيل والوقف (الرسم العثماني كثير العلامات)
+  const letters = text.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\s]/g, "").length;
+  const room = (portrait ? 80 : 90) * (meaning ? 0.7 : 1);
+  const verseFit = letters > room ? Math.max(0.42, Math.sqrt(room / letters)) : 1;
+  const verseSize = Math.round(baseVerse * verseFit);
 
   const card = enter(frame, 0, 30, 90);
   const textIn = fade(frame, 14, 30);
@@ -41,7 +47,7 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
 
   return (
     <SceneShell {...props} captions={false} durationInFrames={durationInFrames}>
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: portrait ? "0 60px 300px" : "0 200px 20px" }}>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: verseFit < 1 ? (portrait ? "330px 60px 300px" : "140px 200px 20px") : portrait ? "0 60px 300px" : "0 200px 20px" }}>
         <div
           style={{
             position: "relative",
@@ -80,7 +86,7 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
               direction: "rtl",
               fontFamily: fontFamilies.scripture,
               fontSize: verseSize,
-              lineHeight: 1.9,
+              lineHeight: verseFit < 0.8 ? 1.75 : 1.9,
               textAlign: "center",
               color: c.ink,
               opacity: textIn,

@@ -15,6 +15,8 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
         try {
           await onSave(v);
           setV("");
+        } catch (x) {
+          window.alert(`تعذّر الحفظ: ${(x as Error).message}`);
         } finally {
           setBusy(false);
         }
@@ -25,7 +27,7 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
       <input id={id} type={secret ? "password" : "text"} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder ?? (state?.set ? "الصق قيمة جديدة للاستبدال" : "الصق هنا")} dir="ltr" autoComplete="off" spellCheck={false} />
       <button className="btn small" disabled={!v.trim() || busy} type="submit">حفظ</button>
       {state?.set ? (
-        <button className="btn ghost small" type="button" onClick={() => onSave("")}>حذف</button>
+        <button className="btn ghost small" type="button" onClick={() => { if (window.confirm(`حذف «${label}» من هذا الجهاز؟`)) onSave("").catch((x) => window.alert(`تعذّر الحذف: ${(x as Error).message}`)); }}>حذف</button>
       ) : null}
     </form>
   );
@@ -37,8 +39,9 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
   const [el, setEl] = useState<TestResult | null>(null);
   const [qf, setQf] = useState<TestResult | null>(null);
   const [busy, setBusy] = useState("");
+  const [loadErr, setLoadErr] = useState("");
   useEffect(() => {
-    api.keys().then((r) => setKeys(r.keys)).catch(() => {});
+    api.keys().then((r) => setKeys(r.keys)).catch((x) => setLoadErr((x as Error).message));
   }, []);
   const save = async (updates: Record<string, string>) => {
     const r = await api.saveKeys(updates);
@@ -51,11 +54,15 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
       const r = await api.testService(service);
       if (service === "elevenlabs") setEl(r);
       else setQf(r);
+    } catch (x) {
+      const r = { ok: false, message: (x as Error).message };
+      if (service === "elevenlabs") setEl(r);
+      else setQf(r);
     } finally {
       setBusy("");
     }
   };
-  if (!keys) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
+  if (!keys) return <div className="empty-state"><h2>{loadErr ? `تعذّر التحميل: ${loadErr}` : "جارٍ التحميل…"}</h2></div>;
   const voiceId = keys.ELEVENLABS_VOICE_ID?.preview ?? "";
 
   return (

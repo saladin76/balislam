@@ -56,10 +56,10 @@ const GradeSeal: React.FC<{ t: Theme; size: number; grade: string; line: boolean
 
 /** حجم نص الحديث حسب طوله، حتى يبقى في البطاقة دون أن يصغر بلا داعٍ. */
 const textScale = (len: number, portrait: boolean) => {
-  const steps = portrait ? [60, 110, 170, 240] : [64, 100, 150, 220];
-  const scales = [0.95, 0.85, 0.74, 0.64, 0.56];
+  const steps = portrait ? [60, 110, 170, 240, 320] : [64, 100, 150, 220, 320];
+  const scales = [0.95, 0.85, 0.74, 0.64, 0.56, 0.48];
   const i = steps.findIndex((s) => len <= s);
-  return scales[i === -1 ? scales.length - 1 : i] ?? 0.56;
+  return scales[i === -1 ? scales.length - 1 : i] ?? 0.48;
 };
 
 /**
@@ -107,7 +107,8 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: portrait ? "250px 64px 560px" : "120px 210px 210px",
+          /** العمودي: المسافة السفلية تتسع لختم الدرجة فوق شريط الترجمة. */
+          padding: portrait ? "310px 64px 680px" : "120px 210px 210px",
         }}
       >
         <div
