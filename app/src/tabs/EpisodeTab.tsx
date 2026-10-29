@@ -340,7 +340,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
       <button
         className="btn small"
         disabled={busy || !hasKeys}
-        title={hasKeys ? "" : "أضف مفاتيح ElevenLabs إلى .env ثم أعد تشغيل الاستوديو"}
+        title={hasKeys ? "" : "أضف مفتاح ElevenLabs واختر صوتك من تبويب «الإعدادات»"}
         onClick={async () => {
           setBusy(true);
           setMsg("");
@@ -357,7 +357,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
       >
         {busy ? "جارٍ التوليد…" : state === "ok" ? "أعد توليد صوت هذا المشهد" : "ولّد صوت هذا المشهد"}
       </button>
-      {!hasKeys ? <span className="help">يتطلب مفاتيح ElevenLabs في ملف .env</span> : null}
+      {!hasKeys ? <span className="help">يتطلب مفتاح ElevenLabs (تبويب «الإعدادات»)</span> : null}
       {msg ? <span className="help">{msg}</span> : null}
     </div>
   );
@@ -410,7 +410,7 @@ const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: Epi
       {est ? (
         <div className="help" style={{ fontVariantNumeric: "tabular-nums" }}>
           {est.toGenerate.length === 0 ? `كل المشاهد (${est.total}) لها صوت مطابق.` : `للتوليد ${est.toGenerate.length} من ${est.total} مشهدًا: ${est.chars} حرفًا ≈ ${est.credits} رصيد ElevenLabs. المحفوظ: ${est.cached.length}.`}
-          {!hasKeys ? " (أضف مفاتيح ElevenLabs إلى .env لتفعيل التوليد)" : ""}
+          {!hasKeys ? " (أضف مفتاح ElevenLabs من تبويب «الإعدادات» لتفعيل التوليد)" : ""}
         </div>
       ) : null}
       {msg ? <div className="help">{msg}</div> : null}
@@ -433,7 +433,7 @@ const IssuesBox: React.FC<{ issues: PlanIssue[]; keys: { quran: boolean }; episo
           <button
             className="btn small"
             disabled={busy || !keys.quran}
-            title={keys.quran ? "" : "أضف مفاتيح Quran Foundation إلى .env"}
+            title={keys.quran ? "" : "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»"}
             onClick={async () => {
               setBusy(true);
               try {

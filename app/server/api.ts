@@ -156,7 +156,7 @@ export const balApi = (): Plugin => ({
             const { quranClientFromEnv } = await load("/src/quran/client.ts");
             const { syncQuran } = await load("/src/quran/sync.ts");
             const client = quranClientFromEnv();
-            if (!client) return send(res, 400, { error: "أضف QF_CLIENT_ID وQF_CLIENT_SECRET إلى ملف .env ثم أعد تشغيل الاستوديو." });
+            if (!client) return send(res, 400, { error: "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»." });
             const result = await syncQuran(ep, client);
             return send(res, 200, { result, plan: await io.regeneratePlan(ep) });
           }
