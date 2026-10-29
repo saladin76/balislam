@@ -16,6 +16,8 @@ export type SceneBase = {
   captions?: boolean;
   /** عنوان الفصل الصغير أعلى المشهد */
   eyebrow?: string;
+  /** خلفية من مكتبة العناصر بدل زخرفة الثيم */
+  backdrop?: string;
 };
 
 export type BigQuestionProps = SceneBase & {

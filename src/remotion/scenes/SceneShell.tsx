@@ -1,9 +1,12 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
-import { themes, type Theme } from "../../../brand/themes";
+import type { Theme } from "../../../brand/themes";
+import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { useBrandFonts } from "../useBrandFonts";
 import { CaptionBar } from "./CaptionBar";
+import { Element } from "../../../brand/elements/Element";
+import { hasElement } from "../../../brand/elements/registry";
 import { enter, exit, fade } from "./motion";
 import { estimateTimings } from "./timing";
 import type { SceneBase } from "./types";
@@ -70,19 +73,26 @@ type ShellProps = SceneBase & { children: React.ReactNode; durationInFrames: num
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
  * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
  */
-export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, children, durationInFrames }) => {
+export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, children, durationInFrames }) => {
   useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
-  const t = themes[themeId];
+  const t = useTheme(themeId);
   const portrait = orientation === "portrait";
+  const eyebrowSize = useSize("eyebrow", orientation);
   const out = exit(frame, durationInFrames, 8);
   const eyebrowIn = enter(frame, 4);
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
 
   return (
     <AbsoluteFill style={{ backgroundColor: t.colors.bg, direction: "rtl", fontFamily: fontFamilies.body, color: t.colors.ink }}>
-      <Motif t={t} w={width} h={height} frame={frame} />
+      {backdrop && hasElement(backdrop) ? (
+        <div style={{ position: "absolute", inset: 0, opacity: fade(frame, 0, 14) }}>
+          <Element id={backdrop} theme={t} width={width} height={height} />
+        </div>
+      ) : (
+        <Motif t={t} w={width} h={height} frame={frame} />
+      )}
       <AbsoluteFill style={{ opacity: out }}>
         {eyebrow ? (
           <div
@@ -90,7 +100,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
               position: "absolute",
               top: portrait ? 250 : 64,
               right: portrait ? 72 : 96,
-              fontSize: portrait ? 34 : 28,
+              fontSize: eyebrowSize,
               fontWeight: 600,
               color: t.colors.inkSoft,
               border: `2px solid ${t.colors.primary}`,

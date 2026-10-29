@@ -1,11 +1,11 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig } from "remotion";
-import { themes } from "../../../brand/themes";
+import { useVideoConfig } from "remotion";
+import { useMotionSettings, useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { Character } from "../../../characters/Character";
 import { Element } from "../../../brand/elements/Element";
 import { SceneShell } from "./SceneShell";
-import { boil, enter, float } from "./motion";
+import { enter, float, useBoil, useSceneFrame } from "./motion";
 import { splitWords } from "./timing";
 import type { CharacterTalkProps } from "./types";
 
@@ -15,9 +15,12 @@ import type { CharacterTalkProps } from "./types";
  */
 export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
   const { themeId, orientation, variant, pose, line: said, element, side = "right" } = props;
-  const frame = useCurrentFrame();
+  const frame = useSceneFrame();
+  const boil = useBoil();
+  const motion = useMotionSettings();
+  const bubbleSize = useSize("bubble", orientation);
   const { durationInFrames } = useVideoConfig();
-  const t = themes[themeId];
+  const t = useTheme(themeId);
   const c = t.colors;
   const portrait = orientation === "portrait";
   const ink = t.character.style === "line";
@@ -46,7 +49,7 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
         transformOrigin: portrait ? "50% 100%" : side === "right" ? "100% 80%" : "0% 80%",
         fontFamily: fontFamilies.heading,
         fontWeight: 700,
-        fontSize: portrait ? 68 : 64,
+        fontSize: bubbleSize,
         lineHeight: 1.45,
         display: "flex",
         flexWrap: "wrap",
@@ -54,7 +57,7 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
       }}
     >
       {words.map((w, i) => {
-        const a = enter(frame, 16 + i * 4, 30, 180);
+        const a = enter(frame, 16 + i * Math.max(1, motion.wordInterval - 1), 30, 180);
         return (
           <span key={i} style={{ opacity: a, transform: `translateY(${(1 - a) * 14}px)`, display: "inline-block" }}>
             {w}
@@ -93,7 +96,7 @@ export const CharacterTalk: React.FC<CharacterTalkProps> = (props) => {
   );
 
   const prop = element ? (
-    <div style={{ opacity: propIn, transform: `translateY(${float(frame, 7, 80) + (1 - propIn) * 30}px) scale(${propIn}) ${ink ? boil(frame, 5) : ""}` }}>
+    <div style={{ opacity: propIn, transform: `translateY(${float(frame, 7 * motion.float, 80) + (1 - propIn) * 30}px) scale(${propIn}) ${ink ? boil(frame, 5) : ""}` }}>
       <Element id={element} theme={t} size={portrait ? 200 : 180} />
     </div>
   ) : null;

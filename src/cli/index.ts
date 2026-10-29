@@ -74,6 +74,49 @@ program
     console.log(`تم: ${files.length} ملف في renders/previews`);
   });
 
+program
+  .command("plan")
+  .description("توليد خطة المشاهد plan.json من السكريبت (تُحفظ تعديلاتك اليدوية)")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { regeneratePlan } = await import("../plan/io");
+    const plan = await regeneratePlan(episode);
+    const n = plan.chapters.reduce((a, c) => a + c.scenes.length, 0);
+    console.log(`الخطة جاهزة: ${plan.chapters.length} فصول، ${n} مشهدًا.`);
+  });
+
+program
+  .command("render")
+  .description("رندر الحلقة من plan.json")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--portrait", "النسخة العمودية 9:16")
+  .option("--chapter <n>", "فصل واحد فقط (شورت)")
+  .action(async (episode: string, opts: { portrait?: boolean; chapter?: string }) => {
+    const { renderEpisode } = await import("../render/episode");
+    let last = -1;
+    const out = await renderEpisode({
+      episode,
+      orientation: opts.portrait ? "portrait" : "landscape",
+      chapter: opts.chapter ? Number(opts.chapter) : undefined,
+      onProgress: (pct, msg) => {
+        const step = Math.floor(pct / 10) * 10;
+        if (step !== last) {
+          last = step;
+          console.log(`PROGRESS ${pct} ${msg}`);
+        }
+      },
+    });
+    console.log(`DONE ${path.relative(projectRoot, out)}`);
+  });
+
+program
+  .command("app")
+  .description("فتح استوديو بالإسلام في المتصفح")
+  .action(async () => {
+    const { spawn } = await import("node:child_process");
+    spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit" });
+  });
+
 program.parseAsync().catch((err: Error) => {
   console.error(`خطأ: ${err.message}`);
   process.exitCode = 1;

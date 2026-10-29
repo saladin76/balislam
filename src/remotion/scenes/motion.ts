@@ -1,4 +1,5 @@
-import { Easing, interpolate, spring } from "remotion";
+import { Easing, interpolate, spring, useCurrentFrame } from "remotion";
+import { useMotionSettings } from "../../../brand/identity/index";
 
 /**
  * حركات القناة الموحّدة. كل القوالب تستخدم هذه الدوال فقط حتى يبقى الإيقاع واحدًا.
@@ -38,4 +39,18 @@ export const boil = (frame: number, seed = 0, amount = 0.7) => {
   const r = Math.sin((step + 1) * 12.9898 + seed * 78.233) * 43758.5453;
   const n = (r - Math.floor(r)) * 2 - 1;
   return `rotate(${(n * amount).toFixed(2)}deg)`;
+};
+
+
+/** إطار المشهد بعد تطبيق مضاعف السرعة من إعدادات الهوية. */
+export const useSceneFrame = () => {
+  const frame = useCurrentFrame();
+  const { speed } = useMotionSettings();
+  return frame * speed;
+};
+
+/** اهتزاز الحبر حسب إعدادات الهوية (يُطفأ من الاستوديو). */
+export const useBoil = () => {
+  const m = useMotionSettings();
+  return (frame: number, seed = 0, scale = 1) => (m.boil ? boil(frame, seed, m.boilAmount * scale) : "");
 };

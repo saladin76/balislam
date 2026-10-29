@@ -1,88 +1,21 @@
-import { themes, type ThemeId } from "../themes";
+import identity from "../identity.json";
+import { themes, themeIds, type ThemeId } from "../themes";
 import type { ElementPalette } from "./types";
 
-const base = (id: ThemeId) => ({ themeId: id, bg: themes[id].colors.bg, surface: themes[id].colors.surface, ink: themes[id].colors.ink });
+type StoredPalette = Omit<ElementPalette, "themeId" | "bg" | "surface" | "ink">;
 
-/** القيم مشتقة من جدول الثيمات في دليل القناة. */
-export const elementPalettes: Record<ThemeId, ElementPalette> = {
-  paper: {
-    ...base("paper"),
-    style: "line",
-    edge: "#1B1B1B",
-    stroke: "#1B1B1B",
-    sw: 3,
-    line: "#1B1B1B",
-    lw: 3,
-    main: "#FFFDF8",
-    second: "#9FDCCB",
-    accent: "#1E6B5C",
-    light: "#FFFDF8",
-    dark: "#1B1B1B",
-    skin: "#FFFDF8",
-    metal: "#9FDCCB",
-    wood: "#FFFDF8",
-    green: "#9FDCCB",
-    water: "#9FDCCB",
-    shadow: "rgba(27,27,27,0.10)",
-  },
-  family: {
-    ...base("family"),
-    style: "flat",
-    edge: "#3A2E39",
-    stroke: "none",
-    sw: 0,
-    line: "#3A2E39",
-    lw: 3,
-    main: "#C2566B",
-    second: "#7FA88E",
-    accent: "#F2C7A5",
-    light: "#FFFFFF",
-    dark: "#3A2E39",
-    skin: "#E9C6A8",
-    metal: "#E0A458",
-    wood: "#B07A5B",
-    green: "#7FA88E",
-    water: "#8FB8C9",
-    shadow: "rgba(58,46,57,0.12)",
-  },
-  night: {
-    ...base("night"),
-    style: "flat",
-    edge: "#C9D3E3",
-    stroke: "none",
-    sw: 0,
-    line: "#0E1A2B",
-    lw: 3,
-    main: "#5FB8AE",
-    second: "#E58E6B",
-    accent: "#E2B24C",
-    light: "#F3EEE3",
-    dark: "#33476A",
-    skin: "#E7C3A0",
-    metal: "#E2B24C",
-    wood: "#8A6A55",
-    green: "#5FB8AE",
-    water: "#5A6F94",
-    shadow: "rgba(0,0,0,0.25)",
-  },
-  warm: {
-    ...base("warm"),
-    style: "flat",
-    edge: "#2E3A2A",
-    stroke: "none",
-    sw: 0,
-    line: "#2E3A2A",
-    lw: 3,
-    main: "#B4532F",
-    second: "#D9A441",
-    accent: "#4A5546",
-    light: "#FBF6EE",
-    dark: "#2E3A2A",
-    skin: "#F2D2B0",
-    metal: "#D9A441",
-    wood: "#7A5A44",
-    green: "#6E8A5A",
-    water: "#7FA3A8",
-    shadow: "rgba(46,58,42,0.12)",
-  },
-};
+/** يركّب لوحة العناصر من بيانات الهوية + ألوان المشهد للثيم. */
+export const buildPalette = (id: ThemeId, stored: StoredPalette, colors: { bg: string; surface: string; ink: string }): ElementPalette => ({
+  ...stored,
+  themeId: id,
+  bg: colors.bg,
+  surface: colors.surface,
+  ink: colors.ink,
+});
+
+/** القيم من brand/identity.json. */
+export const elementPalettes: Record<ThemeId, ElementPalette> = Object.fromEntries(
+  themeIds.map((id) => [id, buildPalette(id, (identity.palettes as unknown as Record<ThemeId, StoredPalette>)[id], themes[id].colors)]),
+) as Record<ThemeId, ElementPalette>;
+
+export type { StoredPalette };

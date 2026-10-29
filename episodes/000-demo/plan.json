@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "episode": "000",
+  "title": "حلقة تجريبية: لماذا نؤجّل ما نعرف أنه مهم؟",
+  "domain": "psychology",
+  "themeId": "paper",
+  "updatedAt": "2026-10-29T12:02:43.076Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "السؤال",
+      "scenes": [
+        {
+          "template": "big-question",
+          "narration": "تفتح الهاتف لدقيقة… فتمر ساعة.",
+          "line": 13,
+          "props": {
+            "question": "لماذا نؤجّل ما نعرف أنه مهم؟",
+            "highlight": "نعرف أنه مهم",
+            "element": "question-mark"
+          },
+          "id": "c1-s1",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "character-talk",
+          "narration": "تعرف ما يجب فعله، ومع ذلك تؤجله. لماذا يحدث هذا معنا جميعًا؟ لنبدأ من حيث يبدأ التأجيل.",
+          "line": 16,
+          "props": {
+            "line": "تعرف ما يجب فعله، ومع ذلك تؤجله.",
+            "variant": "narrator-m",
+            "pose": "think",
+            "element": "smartphone",
+            "side": "right"
+          },
+          "id": "c1-s2",
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "من أين يأتي التأجيل؟",
+      "scenes": [
+        {
+          "template": "character-talk",
+          "narration": "التأجيل لا يبدأ من الكسل. يبدأ من شعور ثقيل نريد الهروب منه.",
+          "line": 23,
+          "props": {
+            "line": "التأجيل لا يبدأ من الكسل.",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c2-s1",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "المهمة الصعبة تذكّرنا بالخوف من الفشل، فنختار شيئًا أخف. لكن ما الذي يقوله الإسلام عن هذا؟",
+          "line": 26,
+          "props": {
+            "line": "المهمة الصعبة تذكّرنا بالخوف من الفشل، فنختار شيئًا…",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c2-s2",
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
+          "backdrop": "room-living",
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "السبب الأعمق",
+      "scenes": [
+        {
+          "template": "character-talk",
+          "narration": "حين نؤجل، نشتري راحة قصيرة بثمن طويل.",
+          "line": 32,
+          "props": {
+            "line": "حين نؤجل، نشتري راحة قصيرة بثمن طويل.",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c3-s1",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "القلق لا يختفي، بل يكبر كل يوم. وهنا يأتي الميزان الذي يغير النظرة.",
+          "line": 34,
+          "props": {
+            "line": "القلق لا يختفي، بل يكبر كل يوم.",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c3-s2",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "بعين الإسلام",
+      "scenes": [
+        {
+          "template": "character-talk",
+          "narration": "القرآن يربط قيمة الإنسان بسعيه، لا بأمنياته.",
+          "line": 40,
+          "props": {
+            "line": "القرآن يربط قيمة الإنسان بسعيه، لا بأمنياته.",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c4-s1",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 42,
+          "ayahKey": "53:39",
+          "props": {
+            "text": "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ",
+            "reference": "النجم · ٣٩",
+            "reciter": ""
+          },
+          "id": "c4-s2",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "والغنى الحقيقي في النفس، كما قال رسول الله صلى الله عليه وسلم.",
+          "line": 44,
+          "props": {
+            "line": "والغنى الحقيقي في النفس، كما قال رسول الله…",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c4-s3",
+          "sfx": []
+        },
+        {
+          "template": "hadith-card",
+          "narration": "فكيف نحوّل هذا الفهم إلى عمل؟",
+          "line": 46,
+          "props": {
+            "text": "",
+            "reference": "صحيح البخاري 6446"
+          },
+          "id": "c4-s4",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "كيف نبدأ",
+      "scenes": [
+        {
+          "template": "character-talk",
+          "narration": "ابدأ بخطوة صغيرة جدًا، حتى لا يخاف منها عقلك.",
+          "line": 52,
+          "props": {
+            "line": "ابدأ بخطوة صغيرة جدًا، حتى لا يخاف منها…",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c5-s1",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "خمس دقائق فقط تكسر حاجز البداية، وتفتح الباب لما بعدها. وفي النهاية خطوة واحدة لليوم.",
+          "line": 54,
+          "props": {
+            "line": "خمس دقائق فقط تكسر حاجز البداية، وتفتح الباب…",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "element": "",
+            "side": "right"
+          },
+          "id": "c5-s2",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "الخلاصة",
+      "scenes": [
+        {
+          "template": "summary",
+          "narration": "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن.",
+          "line": 60,
+          "props": {
+            "text": "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن."
+          },
+          "id": "c6-s1",
+          "sfx": []
+        }
+      ]
+    }
+  ]
+}

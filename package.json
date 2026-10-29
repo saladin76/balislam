@@ -12,7 +12,8 @@
     "studio": "remotion studio src/remotion/index.ts",
     "stills": "tsx src/cli/index.ts stills",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "app": "vite --config app/vite.config.ts"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   "dependencies": {
     "@remotion/bundler": "^4.0.539",
     "@remotion/cli": "^4.0.539",
+    "@remotion/player": "4.0.539",
     "@remotion/renderer": "^4.0.539",
     "commander": "^15.0.0",
     "react": "^19.3.1",
@@ -38,6 +40,7 @@
     "@types/react-dom": "^19.3.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
+    "vite": "8.3.5",
     "vitest": "^5.0.5"
   }
 }

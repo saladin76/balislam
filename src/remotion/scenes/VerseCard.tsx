@@ -1,9 +1,9 @@
 import React from "react";
-import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { themes } from "../../../brand/themes";
+import { interpolate, useVideoConfig } from "remotion";
+import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
-import { enter, fade } from "./motion";
+import { enter, fade, useSceneFrame } from "./motion";
 import type { VerseCardProps } from "./types";
 
 /** نجمة ثمانية صغيرة للزخرفة (مربعان متراكبان). */
@@ -21,9 +21,11 @@ const Star8: React.FC<{ size: number; fill: string; stroke?: string; sw?: number
  */
 export const VerseCard: React.FC<VerseCardProps> = (props) => {
   const { themeId, orientation, text, reference, reciter, sourceNote } = props;
-  const frame = useCurrentFrame();
+  const frame = useSceneFrame();
+  const verseSize = useSize("verse", orientation);
+  const refSize = useSize("reference", orientation);
   const { durationInFrames } = useVideoConfig();
-  const t = themes[themeId];
+  const t = useTheme(themeId);
   const c = t.colors;
   const portrait = orientation === "portrait";
   const line = t.character.style === "line";
@@ -72,7 +74,7 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
           <div
             style={{
               fontFamily: fontFamilies.scripture,
-              fontSize: portrait ? 84 : 92,
+              fontSize: verseSize,
               lineHeight: 1.9,
               textAlign: "center",
               color: c.ink,
@@ -85,7 +87,7 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 18, opacity: refIn, transform: `translateY(${(1 - refIn) * 10}px)` }}>
             <div style={{ width: 56, height: 2, background: c.inkSoft, opacity: 0.4 }} />
-            <div style={{ fontFamily: fontFamilies.heading, fontWeight: 600, fontSize: portrait ? 40 : 36, color: c.inkSoft }}>{reference}</div>
+            <div style={{ fontFamily: fontFamilies.heading, fontWeight: 600, fontSize: refSize, color: c.inkSoft }}>{reference}</div>
             <div style={{ width: 56, height: 2, background: c.inkSoft, opacity: 0.4 }} />
           </div>
           {reciter || sourceNote ? (

@@ -1,6 +1,6 @@
 import React from "react";
 import type { Theme } from "../themes";
-import { elementPalettes } from "./palette";
+import { usePalette } from "../identity/index";
 import { elementById } from "./registry";
 
 type Props = {
@@ -17,7 +17,7 @@ type Props = {
 /** يرسم عنصرًا من المكتبة بألوان الثيم: <Element id="book-open" theme={t} size={240} /> */
 export const Element: React.FC<Props> = ({ id, theme, size = 120, width, height, style }) => {
   const def = elementById(id);
-  const p = elementPalettes[theme.id];
+  const p = usePalette(theme.id);
   if (def.kind === "backdrop") {
     const w = width ?? 1920;
     const h = height ?? 1080;

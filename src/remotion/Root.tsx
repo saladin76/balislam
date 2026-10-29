@@ -8,6 +8,8 @@ import { VerseCard } from "./scenes/VerseCard";
 import { TemplateReel, reelDuration } from "./scenes/TemplateReel";
 import { sampleBigQuestion, sampleCharacterTalk, sampleVerseCard, sceneDurations } from "./scenes/samples";
 import config from "../../config.json";
+import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
+import samplePlan from "../../tests/fixtures/plan.json";
 
 const sizes = {
   landscape: { width: config.video.episode.width, height: config.video.episode.height },
@@ -18,6 +20,18 @@ const orientations = ["landscape", "portrait"] as const;
 /** كل التكوينات المسجلة في Remotion. الحلقة والشورت الكاملان يُضافان في المرحلة 5. */
 export const RemotionRoot: React.FC = () => (
   <>
+    {orientations.map((o) => (
+      <Composition
+        key={`episode-${o}`}
+        id={`episode-${o}`}
+        component={Episode}
+        durationInFrames={300}
+        fps={config.video.fps}
+        {...sizes[o]}
+        defaultProps={{ plan: samplePlan as unknown as EpisodeProps["plan"], orientation: o } as EpisodeProps}
+        calculateMetadata={calculateEpisodeMetadata}
+      />
+    ))}
     {themeIds.map((id) => (
       <React.Fragment key={id}>
         <Still id={`brand-${id}-landscape`} component={BrandSheet} {...sizes.landscape} defaultProps={{ themeId: id, orientation: "landscape" as const }} />

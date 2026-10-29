@@ -1,10 +1,10 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig } from "remotion";
-import { themes } from "../../../brand/themes";
+import { useVideoConfig } from "remotion";
+import { useMotionSettings, useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { SceneShell } from "./SceneShell";
-import { boil, enter, fade, float } from "./motion";
+import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import { splitWords } from "./timing";
 import type { BigQuestionProps } from "./types";
 
@@ -14,9 +14,12 @@ import type { BigQuestionProps } from "./types";
  */
 export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
   const { themeId, orientation, question, highlight, element = "question-mark" } = props;
-  const frame = useCurrentFrame();
+  const frame = useSceneFrame();
+  const boil = useBoil();
+  const motion = useMotionSettings();
+  const questionSize = useSize("question", orientation);
   const { durationInFrames } = useVideoConfig();
-  const t = themes[themeId];
+  const t = useTheme(themeId);
   const portrait = orientation === "portrait";
   const line = t.character.style === "line";
 
@@ -36,7 +39,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
 
   const iconIn = enter(frame, 0, 30, 140);
   const wordsFrom = 12;
-  const perWord = 5;
+  const perWord = motion.wordInterval;
   const wordsDone = wordsFrom + words.length * perWord;
   const marker = fade(frame, wordsDone + 4, 14);
 
@@ -56,7 +59,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
       >
         <div
           style={{
-            transform: `translateY(${float(frame, 8) + (1 - iconIn) * 40}px) scale(${0.6 + 0.4 * iconIn}) ${line ? boil(frame, 1) : ""}`,
+            transform: `translateY(${float(frame, 8 * motion.float) + (1 - iconIn) * 40}px) scale(${0.6 + 0.4 * iconIn}) ${line ? boil(frame, 1) : ""}`,
             opacity: iconIn,
           }}
         >
@@ -66,7 +69,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
           style={{
             fontFamily: fontFamilies.heading,
             fontWeight: 700,
-            fontSize: portrait ? 108 : 132,
+            fontSize: questionSize,
             lineHeight: 1.35,
             textAlign: "center",
             maxWidth: portrait ? 920 : 1560,

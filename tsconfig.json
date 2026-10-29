@@ -13,5 +13,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src", "brand", "characters", "tests", "bin"]
+  "include": ["src", "brand", "characters", "tests", "bin", "app"]
 }
