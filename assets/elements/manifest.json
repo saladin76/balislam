@@ -1,5 +1,5 @@
 {
-  "count": 301,
+  "count": 351,
   "elements": [
     {
       "id": "arrow-left",
@@ -1965,6 +1965,269 @@
       }
     },
     {
+      "id": "hourglass-ornate",
+      "nameAr": "ساعة رملية مزخرفة",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "ساعة رملية",
+        "وقت",
+        "عمر",
+        "صبر",
+        "مهلة",
+        "hourglass"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/hourglass-ornate.svg"
+        ],
+        "family": [
+          "family/mind/hourglass-ornate.svg"
+        ],
+        "night": [
+          "night/mind/hourglass-ornate.svg"
+        ],
+        "warm": [
+          "warm/mind/hourglass-ornate.svg"
+        ]
+      }
+    },
+    {
+      "id": "path-milestones",
+      "nameAr": "طريق بمعالم",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "طريق",
+        "مراحل",
+        "رحلة الحياة",
+        "هدف",
+        "تقدم",
+        "milestones"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/path-milestones.svg"
+        ],
+        "family": [
+          "family/mind/path-milestones.svg"
+        ],
+        "night": [
+          "night/mind/path-milestones.svg"
+        ],
+        "warm": [
+          "warm/mind/path-milestones.svg"
+        ]
+      }
+    },
+    {
+      "id": "summit-climb",
+      "nameAr": "قمة وطريق الصعود",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "قمة",
+        "صعود",
+        "هدف",
+        "مجاهدة",
+        "إنجاز",
+        "summit"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/summit-climb.svg"
+        ],
+        "family": [
+          "family/mind/summit-climb.svg"
+        ],
+        "night": [
+          "night/mind/summit-climb.svg"
+        ],
+        "warm": [
+          "warm/mind/summit-climb.svg"
+        ]
+      }
+    },
+    {
+      "id": "ladder-clouds",
+      "nameAr": "سلم إلى السحاب",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "سلم",
+        "طموح",
+        "ارتقاء",
+        "حلم",
+        "درجات",
+        "ladder"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/ladder-clouds.svg"
+        ],
+        "family": [
+          "family/mind/ladder-clouds.svg"
+        ],
+        "night": [
+          "night/mind/ladder-clouds.svg"
+        ],
+        "warm": [
+          "warm/mind/ladder-clouds.svg"
+        ]
+      }
+    },
+    {
+      "id": "chains-breaking",
+      "nameAr": "قيد ينكسر",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "قيد",
+        "تحرر",
+        "كسر العادة",
+        "انعتاق",
+        "حرية",
+        "breaking chains"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/chains-breaking.svg"
+        ],
+        "family": [
+          "family/mind/chains-breaking.svg"
+        ],
+        "night": [
+          "night/mind/chains-breaking.svg"
+        ],
+        "warm": [
+          "warm/mind/chains-breaking.svg"
+        ]
+      }
+    },
+    {
+      "id": "birdcage-freedom",
+      "nameAr": "قفص مفتوح وطائر محلق",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "قفص",
+        "حرية",
+        "انطلاق",
+        "تحرر",
+        "روح",
+        "birdcage"
+      ],
+      "note": "الطائر صورة ظلية بلا ملامح.",
+      "files": {
+        "paper": [
+          "paper/mind/birdcage-freedom.svg"
+        ],
+        "family": [
+          "family/mind/birdcage-freedom.svg"
+        ],
+        "night": [
+          "night/mind/birdcage-freedom.svg"
+        ],
+        "warm": [
+          "warm/mind/birdcage-freedom.svg"
+        ]
+      }
+    },
+    {
+      "id": "compass-pocket",
+      "nameAr": "بوصلة جيب",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "بوصلة",
+        "اتجاه",
+        "هداية",
+        "قرار",
+        "وجهة",
+        "compass"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/compass-pocket.svg"
+        ],
+        "family": [
+          "family/mind/compass-pocket.svg"
+        ],
+        "night": [
+          "night/mind/compass-pocket.svg"
+        ],
+        "warm": [
+          "warm/mind/compass-pocket.svg"
+        ]
+      }
+    },
+    {
+      "id": "anchor-rope",
+      "nameAr": "مرساة بحبل",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "مرساة",
+        "ثبات",
+        "يقين",
+        "طمأنينة",
+        "رسوخ",
+        "anchor"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/anchor-rope.svg"
+        ],
+        "family": [
+          "family/mind/anchor-rope.svg"
+        ],
+        "night": [
+          "night/mind/anchor-rope.svg"
+        ],
+        "warm": [
+          "warm/mind/anchor-rope.svg"
+        ]
+      }
+    },
+    {
+      "id": "staircase-door",
+      "nameAr": "درج نحو باب مفتوح",
+      "category": "mind",
+      "categoryAr": "النفس والمشاعر",
+      "kind": "prop",
+      "tags": [
+        "درج",
+        "صعود",
+        "فرصة",
+        "باب",
+        "تقدم",
+        "مستقبل",
+        "stairs"
+      ],
+      "files": {
+        "paper": [
+          "paper/mind/staircase-door.svg"
+        ],
+        "family": [
+          "family/mind/staircase-door.svg"
+        ],
+        "night": [
+          "night/mind/staircase-door.svg"
+        ],
+        "warm": [
+          "warm/mind/staircase-door.svg"
+        ]
+      }
+    },
+    {
       "id": "sun",
       "nameAr": "شمس",
       "category": "nature",
@@ -2930,6 +3193,35 @@
       }
     },
     {
+      "id": "sunrise-hills",
+      "nameAr": "شروق فوق التلال",
+      "category": "nature",
+      "categoryAr": "الطبيعة والكون",
+      "kind": "prop",
+      "tags": [
+        "شروق",
+        "فجر",
+        "بداية جديدة",
+        "أمل",
+        "صباح",
+        "sunrise"
+      ],
+      "files": {
+        "paper": [
+          "paper/nature/sunrise-hills.svg"
+        ],
+        "family": [
+          "family/nature/sunrise-hills.svg"
+        ],
+        "night": [
+          "night/nature/sunrise-hills.svg"
+        ],
+        "warm": [
+          "warm/nature/sunrise-hills.svg"
+        ]
+      }
+    },
+    {
       "id": "house",
       "nameAr": "بيت",
       "category": "home",
@@ -3827,6 +4119,93 @@
       }
     },
     {
+      "id": "gifts-stack",
+      "nameAr": "هدايا مكدسة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "هدايا",
+        "عيد",
+        "فرح",
+        "تهادوا تحابوا",
+        "كرم",
+        "gifts"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/gifts-stack.svg"
+        ],
+        "family": [
+          "family/home/gifts-stack.svg"
+        ],
+        "night": [
+          "night/home/gifts-stack.svg"
+        ],
+        "warm": [
+          "warm/home/gifts-stack.svg"
+        ]
+      }
+    },
+    {
+      "id": "storm-lantern",
+      "nameAr": "قنديل زيت",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "قنديل",
+        "فانوس",
+        "نور",
+        "ظلمة",
+        "هداية",
+        "lantern"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/storm-lantern.svg"
+        ],
+        "family": [
+          "family/home/storm-lantern.svg"
+        ],
+        "night": [
+          "night/home/storm-lantern.svg"
+        ],
+        "warm": [
+          "warm/home/storm-lantern.svg"
+        ]
+      }
+    },
+    {
+      "id": "candle",
+      "nameAr": "شمعة",
+      "category": "home",
+      "categoryAr": "البيت والأسرة",
+      "kind": "prop",
+      "tags": [
+        "شمعة",
+        "نور",
+        "تضحية",
+        "عمر يذوب",
+        "هدوء",
+        "candle"
+      ],
+      "files": {
+        "paper": [
+          "paper/home/candle.svg"
+        ],
+        "family": [
+          "family/home/candle.svg"
+        ],
+        "night": [
+          "night/home/candle.svg"
+        ],
+        "warm": [
+          "warm/home/candle.svg"
+        ]
+      }
+    },
+    {
       "id": "smartphone",
       "nameAr": "هاتف ذكي",
       "category": "daily",
@@ -4648,6 +5027,962 @@
         ],
         "warm": [
           "warm/daily/social-like.svg"
+        ]
+      }
+    },
+    {
+      "id": "podium",
+      "nameAr": "منصة التتويج",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "منصة",
+        "فوز",
+        "منافسة",
+        "مقارنة",
+        "مركز أول",
+        "podium"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/podium.svg"
+        ],
+        "family": [
+          "family/daily/podium.svg"
+        ],
+        "night": [
+          "night/daily/podium.svg"
+        ],
+        "warm": [
+          "warm/daily/podium.svg"
+        ]
+      }
+    },
+    {
+      "id": "camera-pro",
+      "nameAr": "كاميرا احترافية",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "كاميرا",
+        "تصوير",
+        "توثيق",
+        "شهرة",
+        "camera"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/camera-pro.svg"
+        ],
+        "family": [
+          "family/daily/camera-pro.svg"
+        ],
+        "night": [
+          "night/daily/camera-pro.svg"
+        ],
+        "warm": [
+          "warm/daily/camera-pro.svg"
+        ]
+      }
+    },
+    {
+      "id": "sneakers",
+      "nameAr": "حذاء رياضي",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "حذاء",
+        "رياضة",
+        "موضة",
+        "مشي",
+        "سعي",
+        "sneakers"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/sneakers.svg"
+        ],
+        "family": [
+          "family/daily/sneakers.svg"
+        ],
+        "night": [
+          "night/daily/sneakers.svg"
+        ],
+        "warm": [
+          "warm/daily/sneakers.svg"
+        ]
+      }
+    },
+    {
+      "id": "calendar-page",
+      "nameAr": "ورقة تقويم",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "تقويم",
+        "أيام",
+        "موعد",
+        "عمر",
+        "مرور الوقت",
+        "calendar"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/calendar-page.svg"
+        ],
+        "family": [
+          "family/daily/calendar-page.svg"
+        ],
+        "night": [
+          "night/daily/calendar-page.svg"
+        ],
+        "warm": [
+          "warm/daily/calendar-page.svg"
+        ]
+      }
+    },
+    {
+      "id": "alarm-clock-ringing",
+      "nameAr": "منبه يرن",
+      "category": "daily",
+      "categoryAr": "الحياة اليومية والتقنية",
+      "kind": "prop",
+      "tags": [
+        "منبه",
+        "استيقاظ",
+        "فجر",
+        "تأخر",
+        "تنبيه",
+        "alarm"
+      ],
+      "files": {
+        "paper": [
+          "paper/daily/alarm-clock-ringing.svg"
+        ],
+        "family": [
+          "family/daily/alarm-clock-ringing.svg"
+        ],
+        "night": [
+          "night/daily/alarm-clock-ringing.svg"
+        ],
+        "warm": [
+          "warm/daily/alarm-clock-ringing.svg"
+        ]
+      }
+    },
+    {
+      "id": "helicopter",
+      "nameAr": "مروحية",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "مروحية",
+        "هليكوبتر",
+        "طيران",
+        "ثراء",
+        "سفر",
+        "helicopter"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/helicopter.svg"
+        ],
+        "family": [
+          "family/city/helicopter.svg"
+        ],
+        "night": [
+          "night/city/helicopter.svg"
+        ],
+        "warm": [
+          "warm/city/helicopter.svg"
+        ]
+      }
+    },
+    {
+      "id": "private-jet",
+      "nameAr": "طائرة خاصة",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "طائرة خاصة",
+        "ثراء",
+        "رفاهية",
+        "سفر",
+        "أمنيات",
+        "private jet"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/private-jet.svg"
+        ],
+        "family": [
+          "family/city/private-jet.svg"
+        ],
+        "night": [
+          "night/city/private-jet.svg"
+        ],
+        "warm": [
+          "warm/city/private-jet.svg"
+        ]
+      }
+    },
+    {
+      "id": "airplane",
+      "nameAr": "طائرة ركاب",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "طائرة",
+        "سفر",
+        "رحلة",
+        "هجرة",
+        "غربة",
+        "airplane"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/airplane.svg"
+        ],
+        "family": [
+          "family/city/airplane.svg"
+        ],
+        "night": [
+          "night/city/airplane.svg"
+        ],
+        "warm": [
+          "warm/city/airplane.svg"
+        ]
+      }
+    },
+    {
+      "id": "yacht",
+      "nameAr": "يخت",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "يخت",
+        "ثراء",
+        "بحر",
+        "رفاهية",
+        "مقارنة",
+        "yacht"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/yacht.svg"
+        ],
+        "family": [
+          "family/city/yacht.svg"
+        ],
+        "night": [
+          "night/city/yacht.svg"
+        ],
+        "warm": [
+          "warm/city/yacht.svg"
+        ]
+      }
+    },
+    {
+      "id": "sailboat",
+      "nameAr": "قارب شراعي",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "قارب",
+        "شراع",
+        "بحر",
+        "رحلة",
+        "صبر",
+        "توكل",
+        "sailboat"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/sailboat.svg"
+        ],
+        "family": [
+          "family/city/sailboat.svg"
+        ],
+        "night": [
+          "night/city/sailboat.svg"
+        ],
+        "warm": [
+          "warm/city/sailboat.svg"
+        ]
+      }
+    },
+    {
+      "id": "motorbike",
+      "nameAr": "دراجة نارية",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "دراجة نارية",
+        "موتوسيكل",
+        "سرعة",
+        "شباب",
+        "motorbike"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/motorbike.svg"
+        ],
+        "family": [
+          "family/city/motorbike.svg"
+        ],
+        "night": [
+          "night/city/motorbike.svg"
+        ],
+        "warm": [
+          "warm/city/motorbike.svg"
+        ]
+      }
+    },
+    {
+      "id": "sports-car",
+      "nameAr": "سيارة رياضية",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "سيارة رياضية",
+        "فخامة",
+        "سرعة",
+        "تفاخر",
+        "حسد",
+        "sports car"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/sports-car.svg"
+        ],
+        "family": [
+          "family/city/sports-car.svg"
+        ],
+        "night": [
+          "night/city/sports-car.svg"
+        ],
+        "warm": [
+          "warm/city/sports-car.svg"
+        ]
+      }
+    },
+    {
+      "id": "train",
+      "nameAr": "قطار",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "قطار",
+        "سفر",
+        "محطة",
+        "رحلة",
+        "مواعيد",
+        "train"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/train.svg"
+        ],
+        "family": [
+          "family/city/train.svg"
+        ],
+        "night": [
+          "night/city/train.svg"
+        ],
+        "warm": [
+          "warm/city/train.svg"
+        ]
+      }
+    },
+    {
+      "id": "skyscraper",
+      "nameAr": "ناطحة سحاب",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "ناطحة سحاب",
+        "برج",
+        "مدينة",
+        "طموح",
+        "تطاول في البنيان",
+        "skyscraper"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/skyscraper.svg"
+        ],
+        "family": [
+          "family/city/skyscraper.svg"
+        ],
+        "night": [
+          "night/city/skyscraper.svg"
+        ],
+        "warm": [
+          "warm/city/skyscraper.svg"
+        ]
+      }
+    },
+    {
+      "id": "apartment-block",
+      "nameAr": "عمارة سكنية",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "عمارة",
+        "شقة",
+        "سكن",
+        "جيران",
+        "إيجار",
+        "apartment"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/apartment-block.svg"
+        ],
+        "family": [
+          "family/city/apartment-block.svg"
+        ],
+        "night": [
+          "night/city/apartment-block.svg"
+        ],
+        "warm": [
+          "warm/city/apartment-block.svg"
+        ]
+      }
+    },
+    {
+      "id": "villa",
+      "nameAr": "قصر فاخر",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "قصر",
+        "فيلا",
+        "ثراء",
+        "بيت كبير",
+        "أمنيات",
+        "دنيا",
+        "villa",
+        "mansion"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/villa.svg"
+        ],
+        "family": [
+          "family/city/villa.svg"
+        ],
+        "night": [
+          "night/city/villa.svg"
+        ],
+        "warm": [
+          "warm/city/villa.svg"
+        ]
+      }
+    },
+    {
+      "id": "shop-front",
+      "nameAr": "واجهة متجر",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "متجر",
+        "دكان",
+        "محل",
+        "تجارة",
+        "رزق",
+        "shop"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/shop-front.svg"
+        ],
+        "family": [
+          "family/city/shop-front.svg"
+        ],
+        "night": [
+          "night/city/shop-front.svg"
+        ],
+        "warm": [
+          "warm/city/shop-front.svg"
+        ]
+      }
+    },
+    {
+      "id": "street-lamp",
+      "nameAr": "عمود إنارة",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "إنارة",
+        "شارع",
+        "ليل",
+        "نور",
+        "وحدة",
+        "street lamp"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/street-lamp.svg"
+        ],
+        "family": [
+          "family/city/street-lamp.svg"
+        ],
+        "night": [
+          "night/city/street-lamp.svg"
+        ],
+        "warm": [
+          "warm/city/street-lamp.svg"
+        ]
+      }
+    },
+    {
+      "id": "bridge-suspension",
+      "nameAr": "جسر معلّق",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "جسر",
+        "عبور",
+        "وصل",
+        "مدينة",
+        "تواصل",
+        "bridge"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/bridge-suspension.svg"
+        ],
+        "family": [
+          "family/city/bridge-suspension.svg"
+        ],
+        "night": [
+          "night/city/bridge-suspension.svg"
+        ],
+        "warm": [
+          "warm/city/bridge-suspension.svg"
+        ]
+      }
+    },
+    {
+      "id": "city-skyline",
+      "nameAr": "أفق المدينة",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "مدينة",
+        "أبراج",
+        "زحام",
+        "حضارة",
+        "skyline"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/city-skyline.svg"
+        ],
+        "family": [
+          "family/city/city-skyline.svg"
+        ],
+        "night": [
+          "night/city/city-skyline.svg"
+        ],
+        "warm": [
+          "warm/city/city-skyline.svg"
+        ]
+      }
+    },
+    {
+      "id": "park-bench",
+      "nameAr": "مقعد حديقة",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "مقعد",
+        "حديقة",
+        "انتظار",
+        "وحدة",
+        "تأمل",
+        "bench"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/park-bench.svg"
+        ],
+        "family": [
+          "family/city/park-bench.svg"
+        ],
+        "night": [
+          "night/city/park-bench.svg"
+        ],
+        "warm": [
+          "warm/city/park-bench.svg"
+        ]
+      }
+    },
+    {
+      "id": "hot-air-balloon",
+      "nameAr": "منطاد",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "منطاد",
+        "ارتفاع",
+        "طموح",
+        "حلم",
+        "سفر",
+        "hot air balloon"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/hot-air-balloon.svg"
+        ],
+        "family": [
+          "family/city/hot-air-balloon.svg"
+        ],
+        "night": [
+          "night/city/hot-air-balloon.svg"
+        ],
+        "warm": [
+          "warm/city/hot-air-balloon.svg"
+        ]
+      }
+    },
+    {
+      "id": "construction-crane",
+      "nameAr": "رافعة بناء",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "بناء",
+        "رافعة",
+        "عمل",
+        "مشروع",
+        "تعمير",
+        "crane"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/construction-crane.svg"
+        ],
+        "family": [
+          "family/city/construction-crane.svg"
+        ],
+        "night": [
+          "night/city/construction-crane.svg"
+        ],
+        "warm": [
+          "warm/city/construction-crane.svg"
+        ]
+      }
+    },
+    {
+      "id": "clock-tower",
+      "nameAr": "برج ساعة",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "برج",
+        "ساعة",
+        "وقت",
+        "مدينة",
+        "موعد",
+        "clock tower"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/clock-tower.svg"
+        ],
+        "family": [
+          "family/city/clock-tower.svg"
+        ],
+        "night": [
+          "night/city/clock-tower.svg"
+        ],
+        "warm": [
+          "warm/city/clock-tower.svg"
+        ]
+      }
+    },
+    {
+      "id": "suitcase",
+      "nameAr": "حقيبة سفر",
+      "category": "city",
+      "categoryAr": "المدينة والسفر",
+      "kind": "prop",
+      "tags": [
+        "حقيبة سفر",
+        "سفر",
+        "رحيل",
+        "غربة",
+        "رحلة",
+        "suitcase"
+      ],
+      "files": {
+        "paper": [
+          "paper/city/suitcase.svg"
+        ],
+        "family": [
+          "family/city/suitcase.svg"
+        ],
+        "night": [
+          "night/city/suitcase.svg"
+        ],
+        "warm": [
+          "warm/city/suitcase.svg"
+        ]
+      }
+    },
+    {
+      "id": "luxury-watch",
+      "nameAr": "ساعة فاخرة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ساعة فاخرة",
+        "ثراء",
+        "وقت",
+        "مظاهر",
+        "تفاخر",
+        "luxury watch"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/luxury-watch.svg"
+        ],
+        "family": [
+          "family/money/luxury-watch.svg"
+        ],
+        "night": [
+          "night/money/luxury-watch.svg"
+        ],
+        "warm": [
+          "warm/money/luxury-watch.svg"
+        ]
+      }
+    },
+    {
+      "id": "diamond-ring",
+      "nameAr": "خاتم ألماس",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "خاتم",
+        "ألماس",
+        "زواج",
+        "مهر",
+        "زينة",
+        "ring"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/diamond-ring.svg"
+        ],
+        "family": [
+          "family/money/diamond-ring.svg"
+        ],
+        "night": [
+          "night/money/diamond-ring.svg"
+        ],
+        "warm": [
+          "warm/money/diamond-ring.svg"
+        ]
+      }
+    },
+    {
+      "id": "crown",
+      "nameAr": "تاج",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "تاج",
+        "ملك",
+        "سلطة",
+        "مكانة",
+        "كبر",
+        "crown"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/crown.svg"
+        ],
+        "family": [
+          "family/money/crown.svg"
+        ],
+        "night": [
+          "night/money/crown.svg"
+        ],
+        "warm": [
+          "warm/money/crown.svg"
+        ]
+      }
+    },
+    {
+      "id": "handbag",
+      "nameAr": "حقيبة يد فاخرة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "حقيبة",
+        "موضة",
+        "فخامة",
+        "مظاهر",
+        "تسوق",
+        "handbag"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/handbag.svg"
+        ],
+        "family": [
+          "family/money/handbag.svg"
+        ],
+        "night": [
+          "night/money/handbag.svg"
+        ],
+        "warm": [
+          "warm/money/handbag.svg"
+        ]
+      }
+    },
+    {
+      "id": "car-key",
+      "nameAr": "مفتاح سيارة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "مفتاح",
+        "سيارة",
+        "امتلاك",
+        "هدية",
+        "car key"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/car-key.svg"
+        ],
+        "family": [
+          "family/money/car-key.svg"
+        ],
+        "night": [
+          "night/money/car-key.svg"
+        ],
+        "warm": [
+          "warm/money/car-key.svg"
+        ]
+      }
+    },
+    {
+      "id": "diamond",
+      "nameAr": "ألماسة",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ألماس",
+        "جوهرة",
+        "نفيس",
+        "كنز",
+        "قيمة",
+        "diamond"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/diamond.svg"
+        ],
+        "family": [
+          "family/money/diamond.svg"
+        ],
+        "night": [
+          "night/money/diamond.svg"
+        ],
+        "warm": [
+          "warm/money/diamond.svg"
+        ]
+      }
+    },
+    {
+      "id": "scale-brass-balanced",
+      "nameAr": "ميزان نحاسي متوازن",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ميزان",
+        "عدل",
+        "توازن",
+        "قسط",
+        "اعتدال",
+        "balanced scale"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/scale-brass-balanced.svg"
+        ],
+        "family": [
+          "family/money/scale-brass-balanced.svg"
+        ],
+        "night": [
+          "night/money/scale-brass-balanced.svg"
+        ],
+        "warm": [
+          "warm/money/scale-brass-balanced.svg"
+        ]
+      }
+    },
+    {
+      "id": "scale-brass-tilted",
+      "nameAr": "ميزان نحاسي مائل",
+      "category": "money",
+      "categoryAr": "المال والتجارة",
+      "kind": "prop",
+      "tags": [
+        "ميزان",
+        "ظلم",
+        "رجحان",
+        "تطفيف",
+        "خلل",
+        "tilted scale"
+      ],
+      "files": {
+        "paper": [
+          "paper/money/scale-brass-tilted.svg"
+        ],
+        "family": [
+          "family/money/scale-brass-tilted.svg"
+        ],
+        "night": [
+          "night/money/scale-brass-tilted.svg"
+        ],
+        "warm": [
+          "warm/money/scale-brass-tilted.svg"
         ]
       }
     },
@@ -6975,6 +8310,122 @@
         ],
         "warm": [
           "warm/islamic/rub-el-hizb.svg"
+        ]
+      }
+    },
+    {
+      "id": "prayer-mat-ornate",
+      "nameAr": "سجادة صلاة مزخرفة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "سجادة",
+        "صلاة",
+        "سجود",
+        "خشوع",
+        "محراب",
+        "prayer mat"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/prayer-mat-ornate.svg"
+        ],
+        "family": [
+          "family/islamic/prayer-mat-ornate.svg"
+        ],
+        "night": [
+          "night/islamic/prayer-mat-ornate.svg"
+        ],
+        "warm": [
+          "warm/islamic/prayer-mat-ornate.svg"
+        ]
+      }
+    },
+    {
+      "id": "tasbih-33",
+      "nameAr": "مسبحة مفصلة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "مسبحة",
+        "تسبيح",
+        "ذكر",
+        "أذكار",
+        "سبحة",
+        "tasbih"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/tasbih-33.svg"
+        ],
+        "family": [
+          "family/islamic/tasbih-33.svg"
+        ],
+        "night": [
+          "night/islamic/tasbih-33.svg"
+        ],
+        "warm": [
+          "warm/islamic/tasbih-33.svg"
+        ]
+      }
+    },
+    {
+      "id": "minaret-ottoman",
+      "nameAr": "مئذنة رشيقة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "مئذنة",
+        "أذان",
+        "مسجد",
+        "صلاة",
+        "عمارة إسلامية",
+        "minaret"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/minaret-ottoman.svg"
+        ],
+        "family": [
+          "family/islamic/minaret-ottoman.svg"
+        ],
+        "night": [
+          "night/islamic/minaret-ottoman.svg"
+        ],
+        "warm": [
+          "warm/islamic/minaret-ottoman.svg"
+        ]
+      }
+    },
+    {
+      "id": "zakat-jar",
+      "nameAr": "جرة الزكاة",
+      "category": "islamic",
+      "categoryAr": "رموز إسلامية",
+      "kind": "prop",
+      "tags": [
+        "زكاة",
+        "صدقة",
+        "إنفاق",
+        "مال",
+        "بركة",
+        "zakat"
+      ],
+      "files": {
+        "paper": [
+          "paper/islamic/zakat-jar.svg"
+        ],
+        "family": [
+          "family/islamic/zakat-jar.svg"
+        ],
+        "night": [
+          "night/islamic/zakat-jar.svg"
+        ],
+        "warm": [
+          "warm/islamic/zakat-jar.svg"
         ]
       }
     },

@@ -92,7 +92,7 @@ channels/balislam/
 
 كل ما تُبنى منه المشاهد في مكان واحد، ويتلوّن تلقائيًا بثيم الحلقة:
 
-- `brand/elements/categories/` — العناصر مقسّمة على 11 فئة (رموز، نفس ومشاعر، طبيعة، بيت، حياة يومية، مال، علم، رموز إسلامية، أيدٍ، إطارات، خلفيات).
+- `brand/elements/categories/` — العناصر مقسّمة على 12 فئة (رموز، نفس ومشاعر، طبيعة، بيت، حياة يومية، المدينة والسفر، مال، علم، رموز إسلامية، أيدٍ، إطارات، خلفيات).
 - `characters/Character.tsx` — 5 شخصيات بلا ملامح × 12 وضعية.
 - `brand/sfx.ts` — سجل المؤثرات الصوتية والآهات (بلا موسيقى).
 - `brand/elements/GUIDE.md` — دليل رسم أي عنصر جديد وضوابطه.
@@ -108,6 +108,9 @@ channels/balislam/
 [مشهد: list | title=ثلاث خطوات صغيرة | items=حدّد مهمة واحدة؛ اعمل خمس دقائق؛ كافئ نفسك | style=numbered]
 [مشهد: timeline | title=كيف يكبر التأجيل | events=اليوم الأول — أؤجل؛ بعد شهر — يصبح عادة]
 [مشهد: symbolic | element=seed | secondElement=tree | relation=becomes | effect=grow]
+[مشهد: glow-story | quote=ليتني أملك سيارة أكبر. | highlight=سيارة أكبر | wish=sports-car | sideElement=traffic-light | sideGlow=red]
+[مشهد: sketch-board | title=قاعدة الدقائق الخمس | keyword=الخمس | element=timer | items=اختر مهمة؛ اعمل خمس دقائق؛ توقف إن شئت | board=green]
+[مشهد: kinetic-text | emphasis=راحة، يكبر | stage=dark]
 ```
 أو اترك العلامة بسيطة `[مشهد: list]` واملأ الحقول من الاستوديو.
 
@@ -130,5 +133,5 @@ channels/balislam/
 1. ✅ الأساس: الثيمات والخطوط والشعار والشخصيات
 2. ✅ قراءة السكريبت وفحصه (`bal new` و`bal check`)
 3. ✅ الصوت (ElevenLabs) والآيات (Quran Foundation) — جاهزة، تعمل فور إضافة المفاتيح
-4. ✅ قوالب المشاهد الاثنا عشر + مكتبة العناصر
+4. ✅ قوالب المشاهد (15 قالبًا، منها «القصة المضيئة» و«السبورة» بخط اليد و«النص الحركي») + مكتبة العناصر (351 عنصرًا)
 5. ✅ المزامنة والرندر والتغليف و`bal make`
