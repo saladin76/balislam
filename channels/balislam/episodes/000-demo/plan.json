@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-10-29T17:39:20.938Z",
+  "updatedAt": "2026-10-30T18:44:28.748Z",
   "chapters": [
     {
       "number": 1,
@@ -251,5 +251,9 @@
         }
       ]
     }
-  ]
+  ],
+  "overlays": {
+    "captions": false,
+    "chapterLabel": false
+  }
 }

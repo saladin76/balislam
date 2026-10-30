@@ -46,6 +46,8 @@ const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type
   const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
   res.setHeader("content-type", type);
   res.setHeader("accept-ranges", "bytes");
+  // الملفات تُعاد صناعتها بنفس الاسم؛ بلا ذاكرة مؤقتة حتى لا يعرض المتصفح نسخة قديمة
+  res.setHeader("cache-control", "no-store");
   if (range && (range[1] || range[2])) {
     let start: number;
     let end: number;

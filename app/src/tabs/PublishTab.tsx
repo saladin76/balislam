@@ -54,6 +54,9 @@ const Copy: React.FC<{ text: string; label?: string }> = ({ text, label = "نس�
   );
 };
 
+/** رابط بعلامة وقت الملف: المتصفح يجلب النسخة الجديدة بعد كل صناعة. */
+const fresh = (url: string, mtime: number) => `${url}${url.includes("?") ? "&" : "?"}v=${Math.round(mtime)}`;
+
 export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; onChanged: () => void }> = ({ episodeId, hasVoiceKeys, onChanged }) => {
   const [pkg, setPkg] = useState<PackageInfo | null>(null);
   const [status, setStatus] = useState<EpisodeStatus>({});
@@ -149,18 +152,18 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
         <div className="pub-grid">
           <section className="pub-col">
             <h3>الحلقة</h3>
-            <video src={api.packageUrl(episodeId, video.name)} controls preload="metadata" className="pub-video" />
+            <video key={`${video.name}-${video.mtime}`} src={fresh(api.packageUrl(episodeId, video.name), video.mtime)} controls preload="metadata" className="pub-video" />
             <h3>الشورتس <small>{shorts.length}</small></h3>
             <div className="shorts-row">
               {shorts.map((s) => (
-                <video key={s.name} src={api.packageUrl(episodeId, s.name)} controls preload="metadata" />
+                <video key={`${s.name}-${s.mtime}`} src={fresh(api.packageUrl(episodeId, s.name), s.mtime)} controls preload="metadata" />
               ))}
             </div>
             <h3>الصور المصغّرة <small>اختر واحدة أو جرّبها كلها في اختبار العناوين</small></h3>
             <div className="thumbs">
               {thumbs.map((t, i) => (
                 <figure key={t.name}>
-                  <img src={api.packageUrl(episodeId, t.name)} alt={`الصورة المصغّرة ${i + 1}`} />
+                  <img src={fresh(api.packageUrl(episodeId, t.name), t.mtime)} alt={`الصورة المصغّرة ${i + 1}`} />
                   <figcaption>
                     <span>{yt.titles[i] ?? t.name}</span>
                     <a className="btn small" href={api.packageUrl(episodeId, t.name, true)}>تنزيل</a>
