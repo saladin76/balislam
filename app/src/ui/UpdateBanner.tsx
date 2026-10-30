@@ -1,0 +1,60 @@
+import React, { useCallback, useEffect, useState } from "react";
+import { api } from "../api";
+
+/**
+ * شريط «تحديث جديد»: يتحقق من GitHub كل دقيقتين (وعند العودة للنافذة)،
+ * ويحدّث الاستوديو بضغطة واحدة دون إغلاق الـ Terminal.
+ */
+export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsaved: boolean }> = ({ beforeUpdate, hasUnsaved }) => {
+  const [st, setSt] = useState<{ behind: number; changes: string[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
+
+  const check = useCallback((force = false) => {
+    api.updateStatus(force).then((s) => setSt(s.available ? s : null)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    check();
+    const t = setInterval(() => check(), 120_000);
+    const onFocus = () => check();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [check]);
+
+  if (!st && !msg) return null;
+  const apply = async () => {
+    if (hasUnsaved && !window.confirm("في السكريبت تعديلات لم تُحفظ بعد. احفظها أولًا (Ctrl+S) وإلا ستضيع عند التحديث. هل تريد المتابعة؟")) return;
+    setBusy(true);
+    try {
+      await beforeUpdate();
+      const r = await api.applyUpdate();
+      if (r.reinstalled) setMsg({ text: `${r.message} نزلت حزم جديدة: أغلق الاستوديو (Ctrl + C) وشغّله مرة أخيرة.` });
+      else {
+        setMsg({ text: `${r.message} جارٍ إعادة التحميل…` });
+        setTimeout(() => window.location.reload(), 1500);
+      }
+      setSt(null);
+    } catch (e) {
+      setMsg({ text: (e as Error).message, err: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className={`update-banner ${msg?.err ? "err" : ""}`} role="status">
+      {msg ? (
+        <span>{msg.text}</span>
+      ) : st ? (
+        <>
+          <b>تحديث جديد متاح</b>
+          <span className="help" title={st.changes.join("\n")}>{st.changes[0] ?? ""}{st.behind > 1 ? ` (+${st.behind - 1})` : ""}</span>
+          <button className="btn primary small" disabled={busy} onClick={apply}>{busy ? "جارٍ التحديث…" : "حدّث الآن"}</button>
+        </>
+      ) : null}
+      {msg ? <button className="btn ghost small" onClick={() => setMsg(null)}>إغلاق</button> : null}
+    </div>
+  );
+};

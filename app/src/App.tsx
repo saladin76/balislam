@@ -1,3 +1,4 @@
+import { UpdateBanner } from "./ui/UpdateBanner";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
@@ -183,6 +184,7 @@ export const App: React.FC = () => {
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
       <div className="app">
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || identDirty} />
         <header className="top">
           <button className="brand" onClick={() => setTab("home")} title="الرئيسية">
             <BrandMark channel={channel} />

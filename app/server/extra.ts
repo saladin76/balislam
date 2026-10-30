@@ -4,6 +4,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
+import { applyUpdate, updateStatus } from "./update.ts";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -113,6 +114,15 @@ const episodeDirs = async (episodesDir: string) => (existsSync(episodesDir) ? (a
 
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
+
+  // التحديث من GitHub
+  if (parts[0] === "update") {
+    if (req.method === "POST") {
+      const r = await applyUpdate(ctx.root);
+      send(res, r.ok ? 200 : 409, r.ok ? r : { error: r.message });
+    } else send(res, 200, await updateStatus(ctx.root, new URL(req.url ?? "/", "http://x").searchParams.has("force")));
+    return true;
+  }
 
   // نظرة عامة: مرحلة كل حلقة
   if (parts[0] === "overview") {
