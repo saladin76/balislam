@@ -41,7 +41,7 @@ export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, i
   return cues
     .map((c, i) => {
       const next = cues[i + 1]?.start ?? Infinity;
-      const end = Math.min(Math.max(c.end, c.start + 0.6), next - 0.02);
+      const end = Math.max(c.start + 0.05, Math.min(Math.max(c.end, c.start + 0.6), next - 0.02));
       return `${i + 1}\n${ts(c.start)} --> ${ts(end)}\n${c.text}\n`;
     })
     .join("\n");

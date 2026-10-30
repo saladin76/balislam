@@ -51,14 +51,14 @@ export const makeEpisode = async (opts: MakeOptions) => {
   for (const i of blocking) log(`   ⚠️ (${i.sceneId}): ${i.message}`);
 
   log("٤/٥ الصوت…");
-  const el = elevenLabsFromEnv();
+  const el = opts.noVoice ? null : elevenLabsFromEnv();
   if (el) {
     const r = await generateVoice(ep, { client: el, onProgress: (m) => log(`   ${m}`) });
     log(`   ولّد ${r.toGenerate.length} مقطعًا (${r.chars} حرفًا ≈ ${r.credits} رصيد)، وأعاد استخدام ${r.cached.length}.`);
   } else if (opts.noVoice) {
-    log("   ⚠️ بلا صوت (--no-voice): نسخة معاينة بتوقيت تقديري، لا تُنشر.");
+    log("   ⚠️ معاينة بلا توليد صوت (--no-voice): يُستخدم الصوت المحفوظ إن وُجد، ولا يُصرف أي رصيد. لا تُنشر.");
   } else {
-    throw new Error("مفاتيح ElevenLabs غير موجودة في .env. أضفها، أو شغّل الأمر مع --no-voice لنسخة معاينة.");
+    throw new Error("مفتاح ElevenLabs أو الصوت غير مضاف. أضفهما من تبويب «الإعدادات» في الاستوديو، أو اختر «معاينة بلا صوت».");
   }
 
   log("٥/٥ الرندر والتغليف…");

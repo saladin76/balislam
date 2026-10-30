@@ -36,7 +36,7 @@ export const writeKeys = async (updates: Partial<Record<ManagedKey, string>>) =>
   const example = path.join(projectRoot, ".env.example");
   let text = existsSync(file) ? await readFile(file, "utf8") : existsSync(example) ? await readFile(example, "utf8") : "";
   for (const [k, raw] of Object.entries(updates)) {
-    if (!(k in MANAGED_KEYS) || raw === undefined) continue;
+    if (!Object.hasOwn(MANAGED_KEYS, k) || raw === undefined) continue;
     const v = String(raw).trim().replace(/[\r\n]/g, "");
     const line = `${k}=${v}`;
     const re = new RegExp(`^${k}=.*$`, "m");

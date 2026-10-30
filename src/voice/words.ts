@@ -15,7 +15,8 @@ export const applyDictionary = (text: string, dict: Dict) => {
   const spoken: string[] = [];
   const owner: number[] = [];
   original.forEach((w, i) => {
-    const core = w.replace(/^[«"(]+|[»")،.؟!:؛…]+$/g, "");
+    // علامات الترقيم في الطرفين (عربية ولاتينية) لا تمنع مطابقة القاموس
+    const core = w.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, "");
     const say = map.get(core);
     const replaced = say ? w.replace(core, say) : w;
     for (const part of replaced.split(/\s+/).filter(Boolean)) {

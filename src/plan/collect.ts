@@ -30,7 +30,8 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
 /** ينسخ الوسائط إلى public/_render/<الحلقة> ليضمّها Remotion في الرندر. */
 export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<EpisodeMedia> => {
   const m = await collectMedia(episode, plan);
-  const rel = `_render/${episode}/`;
+  // اسم مجلد آمن حتى لو مُرّر مسار كامل للحلقة
+  const rel = `_render/${path.basename(String(episode)).replace(/[^\w.-]/g, "_")}/`;
   const dest = path.join(projectRoot, "public", rel);
   await rm(dest, { recursive: true, force: true });
   for (const d of ["voice", "sfx", "recitations"]) await mkdir(path.join(dest, d), { recursive: true });

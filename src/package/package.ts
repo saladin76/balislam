@@ -37,7 +37,11 @@ export const packageEpisode = async (opts: PackageOptions) => {
 
   log("تجهيز الوسائط…");
   const media = await prepareRenderMedia(ep, plan);
-  const hasVoice = Object.keys(media.voice).length > 0;
+  // الصوت «كامل» فقط إن كان لكل مشهد متكلَّم مقطع يطابق نصه الحالي
+  const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
+  const voicedOk = narrated.filter((s) => media.voice[s.id]?.text === s.narration.trim()).length;
+  const hasVoice = narrated.length > 0 && voicedOk === narrated.length;
+  if (narrated.length && !hasVoice) log(`⚠️ الصوت ناقص: ${voicedOk} من ${narrated.length} مشهدًا فقط لها صوت مطابق لنصها؛ الباقي صامت بتوقيت تقديري.`);
   const files: string[] = [];
 
   // النصوص أولًا: سريعة ولا تحتاج رندر

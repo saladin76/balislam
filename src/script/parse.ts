@@ -106,8 +106,8 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
       const level = heading[1]?.length ?? 0;
       const title = (heading[2] ?? "").trim();
       if (level !== 2) {
-        issues.push({ level: "warning", code: "heading-level", message: `العنوان «${title}» يجب أن يبدأ بـ ## فقط؛ تم تجاهله.`, line: lineNo });
-        section = { type: "unknown" };
+        // عنوان فرعي (###) داخل فصل: يُتجاهل سطره فقط، والنص بعده يبقى في الفصل نفسه
+        issues.push({ level: "warning", code: "heading-level", message: `العنوان «${title}» ليس عنوان فصل (##)؛ تم تجاهل سطر العنوان فقط، والنص بعده يبقى في القسم نفسه.`, line: lineNo });
         continue;
       }
       const ch = title.match(CHAPTER_HEADING);

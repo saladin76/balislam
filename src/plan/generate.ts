@@ -1,4 +1,4 @@
-import { parseAyahRef, surahNameFor } from "../script/quranMeta";
+import { normalizeArabic, parseAyahRef, surahNameFor, toLatinDigits } from "../script/quranMeta";
 import type { ParsedScript } from "../script/types";
 import type { Domain } from "../../brand/themes";
 import { defaultChannel, themeIdForDomainIn, type ChannelConfig } from "../channel/types";
@@ -67,7 +67,18 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
   };
   const L = langPack(fm.lang ?? channel.language);
   const digits = (x: number | string) => localDigits(x, L);
-  const prevScenes = new Map((previous?.chapters ?? []).flatMap((c) => c.scenes).map((s) => [s.id, s]));
+  const prevList = (previous?.chapters ?? []).flatMap((c) => c.scenes);
+  const prevScenes = new Map(prevList.map((s) => [s.id, s]));
+  /**
+   * بصمة المشهد من محتواه لا من ترتيبه: إن أُضيفت فقرة في منتصف الفصل تتغير أرقام المشاهد،
+   * لكن تعديلات كل مشهد تبقى معه.
+   */
+  const fingerprint = (s: Pick<PlanScene, "template" | "narration" | "ayahKey" | "props">) =>
+    s.narration.trim() ? `n:${s.narration.trim()}` : s.ayahKey ? `a:${s.ayahKey}` : s.template === "hadith-card" ? `h:${s.props.reference ?? ""}` : `t:${s.template}:${s.props.title ?? s.props.question ?? ""}`;
+  const usedOld = new Set<string>();
+  const byPrint = new Map<string, PlanScene[]>();
+  for (const s of prevList) byPrint.set(fingerprint(s), [...(byPrint.get(fingerprint(s)) ?? []), s]);
+  const scenesAll: PlanScene[] = [];
 
   const chapters: PlanChapter[] = parsed.chapters.map((ch) => {
     const scenes: PlanScene[] = [];
@@ -75,7 +86,9 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     let pendingSfx: PlanSfx[] = [];
     const push = (scene: Omit<PlanScene, "id" | "sfx">) => {
       const id = `c${ch.number}-s${scenes.length + 1}`;
-      scenes.push({ ...scene, id, sfx: pendingSfx });
+      const made = { ...scene, id, sfx: pendingSfx };
+      scenes.push(made);
+      scenesAll.push(made);
       pendingSfx = [];
     };
 
@@ -115,13 +128,16 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
           },
         });
       } else if (b.kind === "hadith") {
-        const cite = parsed.citations.find((c) => c.kind === "hadith" && (c.fields[0] ?? "").replace(/\s+/g, " ") === b.ref.replace(/\s+/g, " "));
-        const grade = (cite?.fields[1] ?? "").trim();
+        const norm = (x: string) => normalizeArabic(toLatinDigits(x)).replace(/\s+/g, " ").trim();
+        const cite = parsed.citations.find((c) => c.kind === "hadith" && norm(c.fields[0] ?? "") === norm(b.ref));
+        // «حسن لغيره» و«حسن صحيح»… كلها حسن؛ والبطاقة لا تعرض «صحيح» إلا لما نُص عليه صحيحًا
+        const gradeText = normalizeArabic(cite?.fields[1] ?? "");
+        const grade = gradeText.includes("حسن") ? "حسن" : "صحيح";
         push({
           template: "hadith-card",
           narration: "",
           line: b.line,
-          props: { text: b.text ?? "", narrator: b.narrator ?? "", reference: digits(b.ref), grade: grade === "حسن" ? "حسن" : "صحيح" },
+          props: { text: b.text ?? "", narrator: b.narrator ?? "", reference: digits(b.ref), grade },
         });
       }
     }
@@ -129,24 +145,50 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     const last = scenes[scenes.length - 1];
     if (last && pendingSfx.length) last.sfx.push(...pendingSfx);
 
-    // دمج تعديلات المستخدم السابقة
-    for (const s of scenes) {
-      const old = prevScenes.get(s.id);
-      if (old && old.edited && old.template === s.template) {
-        s.props = { ...s.props, ...old.props };
-        if (s.template === "verse-card" && s.ayahKey && quran[s.ayahKey]) s.props.text = quran[s.ayahKey]!;
-        if (s.template === "verse-card" && s.ayahKey && quran[`${s.ayahKey}#meaning`]) s.props.meaning = quran[`${s.ayahKey}#meaning`]!;
-        s.durationSec = old.durationSec;
-        s.backdrop = old.backdrop;
-        s.captions = old.captions;
-        s.edited = true;
-      }
-      // إظهار/إخفاء عناصر الشاشة يبقى حتى لو تغيّر القالب
-      if (old?.overlays && Object.keys(old.overlays).length) s.overlays = { ...old.overlays };
-      if (!templateById(s.template)) s.props.unknownTemplate = "1";
-    }
+    for (const s of scenes) if (!templateById(s.template)) s.props.unknownTemplate = "1";
     return { number: ch.number, title: ch.title, scenes };
   });
+
+  // دمج تعديلات المستخدم السابقة: أولًا بالمحتوى المطابق، ثم بالموضع لمشهد عُدّل نصه
+  const matches = new Map<PlanScene, PlanScene>();
+  for (const s of scenesAll) {
+    const same = (byPrint.get(fingerprint(s)) ?? []).filter((o) => !usedOld.has(o.id));
+    const hit = same.find((o) => o.id === s.id) ?? same[0];
+    if (hit) {
+      usedOld.add(hit.id);
+      matches.set(s, hit);
+    }
+  }
+  const newPrints = new Set(scenesAll.map(fingerprint));
+  for (const s of scenesAll) {
+    if (matches.has(s)) continue;
+    const pos = prevScenes.get(s.id);
+    // لا نأخذ مشهدًا قديمًا ما زال محتواه موجودًا في مكان آخر (أي أنه انزاح ولم يُعدَّل)
+    if (pos && !usedOld.has(pos.id) && pos.template === s.template && !newPrints.has(fingerprint(pos))) {
+      usedOld.add(pos.id);
+      matches.set(s, pos);
+    }
+  }
+  for (const s of scenesAll) {
+    const old = matches.get(s);
+    if (!old) continue;
+    if (old.edited && old.template === s.template) {
+      const fresh = s.props;
+      s.props = { ...fresh, ...old.props };
+      // نصوص الآية والحديث ومراجعها من المصدر دائمًا، لا من تعديل قديم
+      for (const k of ["text", "reference", "meaning", "meaningSource", "narrator", "grade"])
+        if (s.template === "verse-card" || s.template === "hadith-card") {
+          if (k in fresh) s.props[k] = fresh[k]!;
+          else delete s.props[k];
+        }
+      s.durationSec = old.durationSec;
+      s.backdrop = old.backdrop;
+      s.captions = old.captions;
+      s.edited = true;
+    }
+    // إظهار/إخفاء عناصر الشاشة يبقى حتى لو تغيّر القالب
+    if (old.overlays && Object.keys(old.overlays).length) s.overlays = { ...old.overlays };
+  }
 
   // شاشة النهاية: آخر مشهد في الحلقة، من «الخطوة العملية»
   const lastChapter = chapters[chapters.length - 1];

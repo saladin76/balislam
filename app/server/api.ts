@@ -96,8 +96,9 @@ export const balApi = (): Plugin => ({
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || JSON.parse(await readFile(configFile, "utf8")).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
-        process.env.BAL_CHANNEL = ch;
         const channelMod = await load("/src/channel/index.ts");
+        // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
+        return await channelMod.runWithChannel(ch, async () => {
         const cp = channelMod.channelPaths(ch);
         const episodesDir: string = cp.episodes;
         const identityFile: string = cp.identity;
@@ -271,6 +272,7 @@ export const balApi = (): Plugin => ({
         }
 
         return send(res, 404, { error: "مسار غير معروف" });
+        });
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
         return send(res, 500, { error: (err as Error).message });

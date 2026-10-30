@@ -1,4 +1,5 @@
 import path from "node:path";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import config from "../../config.json";
 import { projectRoot } from "../config/paths";
@@ -9,8 +10,16 @@ export * from "./types";
 /** مجلد القنوات (يمكن تغييره في الاختبارات بـ BAL_CHANNELS_DIR). */
 export const channelsDir = () => process.env.BAL_CHANNELS_DIR || path.join(projectRoot, "channels");
 
-/** القناة الحالية: من --channel أو BAL_CHANNEL، وإلا الافتراضية في config.json. */
-export const currentChannelId = () => process.env.BAL_CHANNEL || config.defaultChannel;
+const channelScope = new AsyncLocalStorage<string>();
+
+/**
+ * يشغّل fn وكل ما يتفرع عنه (حتى بعد await) على قناة محددة، دون متغير عام مشترك.
+ * يستخدمه الاستوديو لكل طلب حتى لا تتداخل طلبات قناتين.
+ */
+export const runWithChannel = <T>(id: string, fn: () => T): T => channelScope.run(id, fn);
+
+/** القناة الحالية: نطاق الطلب، ثم --channel أو BAL_CHANNEL، وإلا الافتراضية في config.json. */
+export const currentChannelId = () => channelScope.getStore() || process.env.BAL_CHANNEL || config.defaultChannel;
 
 export const channelPaths = (id = currentChannelId()) => {
   const dir = path.join(channelsDir(), id);
