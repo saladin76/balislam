@@ -34,6 +34,8 @@ const frontmatterSchemaFor = (domains: string[]) => z.object({
   ),
   alt_titles: z.array(z.string()).optional(),
   lang: z.string().optional(),
+  /** أسلوب العرض الافتراضي للمشاهد التي بلا علامة: templates (القوالب) أو board (السبورة المتصلة) */
+  style: z.enum(["templates", "board"], { error: "الأسلوب (style) يجب أن يكون templates أو board." }).optional(),
 });
 
 /** عبارات تحيل لفصل سابق، فتكسر استقلال الفصل حين يُنشر شورت. */

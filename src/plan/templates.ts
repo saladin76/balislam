@@ -174,6 +174,18 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "board-story",
+    nameAr: "السبورة المتصلة",
+    useAr: "كل جملة تُرسم وقت قولها (رسمة + كلمة بخط اليد) على لوحة واحدة تتحرك عليها الكاميرا",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 3.5,
+    fields: [
+      { key: "beats", label: "اللقطات (سطر لكل جملة)", type: "textarea", help: "الرسمة | الكلمة المكتوبة. الرسمة: معرّف عنصر من المكتبة، أو person أو people أو person:think" },
+      { key: "board", label: "السبورة", type: "select", options: [{ value: "white", label: "بيضاء (حبر وأخضر)" }, { value: "green", label: "خضراء (طباشير)" }] },
+    ],
+  },
+  {
     id: "glow-story",
     nameAr: "القصة المضيئة",
     useAr: "لقطة قصصية ليلية بخطوط مضيئة: شخص وأمنيته المتوهجة وجملة تُكتب حرفًا حرفًا",

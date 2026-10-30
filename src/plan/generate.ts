@@ -1,3 +1,4 @@
+import { beatsFor, beatsToText } from "./beats";
 import { normalizeArabic, parseAyahRef, surahNameFor, toLatinDigits } from "../script/quranMeta";
 import type { ParsedScript } from "../script/types";
 import type { Domain } from "../../brand/themes";
@@ -36,6 +37,8 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
       return { line: firstSentence(narration), variant: "narrator-m", pose: "stand", element: "", side: "" };
     case "summary":
       return { text: firstSentence(narration, 14) };
+    case "board-story":
+      return { beats: beatsToText(beatsFor(narration)), board: "white" };
     case "glow-story":
       return { quote: firstSentence(narration, 8), highlight: "", wish: "sports-car", subjectElement: "", variant: "narrator-m", pose: "think", sideElement: "", sideGlow: "none", connector: "dotted" };
     case "sketch-board":
@@ -57,7 +60,9 @@ export type QuranTexts = Record<string, string>;
  * - إن مُررت خطة سابقة تُحفظ تعديلات المستخدم للمشاهد التي لم يتغير قالبها.
  */
 export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}, channel: ChannelConfig = defaultChannel): Plan => {
-  const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string };
+  const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string; style?: string };
+  // أسلوب الحلقة: المشاهد التي بلا علامة تُعرض بالسبورة المتصلة أو بالشخصية المتكلمة
+  const defaultTemplate = fm.style === "board" ? "board-story" : "character-talk";
   const domain: Domain = fm.domain ?? Object.keys(channel.domains)[0] ?? "general";
   const title = String(fm.title ?? "");
   // اسم القارئ من الاستشهادات: «- آية | النجم 39 | القارئ: فلان»
@@ -103,7 +108,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         if (pending) push({ template: pending.template, narration: "", line: pending.line, props: { ...defaultsFor(pending.template, "", { title, chapterTitle: ch.title }), ...pending.options } });
         pending = { template: b.template, options: parseOptions(b.options), line: b.line };
       } else if (b.kind === "narration") {
-        const template = pending?.template ?? "character-talk";
+        const template = pending?.template ?? defaultTemplate;
         const options = pending?.options ?? {};
         push({ template, narration: b.text, line: pending?.line ?? b.line, props: { ...defaultsFor(template, b.text, { title, chapterTitle: ch.title }), ...options } });
         pending = null;
@@ -111,7 +116,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         // جملة الربط تُضم لآخر مشهد متكلَّم؛ وإن كان آخر مشهد بطاقة آية أو حديث فلها مشهد قصير خاص
         const last = scenes[scenes.length - 1];
         if (last && last.narration) last.narration = `${last.narration} ${b.text}`.trim();
-        else push({ template: "character-talk", narration: b.text, line: b.line, props: { ...defaultsFor("character-talk", b.text, { title, chapterTitle: ch.title }), pose: "point" } });
+        else push({ template: defaultTemplate, narration: b.text, line: b.line, props: { ...defaultsFor(defaultTemplate, b.text, { title, chapterTitle: ch.title }), ...(defaultTemplate === "character-talk" ? { pose: "point" } : {}) } });
       } else if (b.kind === "sfx") {
         pendingSfx.push({ id: b.id, at: 0 });
       } else if (b.kind === "ayah") {

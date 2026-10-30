@@ -21,7 +21,7 @@ export type SketchBoardProps = SceneBase & StringFields<"title" | "items" | "ele
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 /** لوحة «حبر على سبورة»: حدود بلون القلم، وتعبئة بلون السبورة، ولمسة اللون الثاني للتمييز. */
-const inkPalette = (base: ElementPalette, board: string, ink: string, accent: string): ElementPalette => ({
+export const inkPalette = (base: ElementPalette, board: string, ink: string, accent: string): ElementPalette => ({
   ...base,
   style: "line",
   stroke: ink,
@@ -46,7 +46,7 @@ const inkPalette = (base: ElementPalette, board: string, ink: string, accent: st
 });
 
 /** رأس قلم صغير يتبع خط الرسم. */
-const Pen: React.FC<{ x: number; y: number; color: string; tip: string; show: number; flip: boolean }> = ({ x, y, color, tip, show, flip }) => (
+export const Pen: React.FC<{ x: number; y: number; color: string; tip: string; show: number; flip: boolean }> = ({ x, y, color, tip, show, flip }) => (
   <svg width={150} height={150} viewBox="0 0 150 150" style={{ position: "absolute", left: x - 8, top: y - 142, opacity: show, transform: flip ? "scaleX(-1)" : undefined, transformOrigin: "8px 142px", overflow: "visible" }}>
     <g transform="rotate(35 8 142)">
       <rect x={-6} y={6} width={28} height={110} rx={8} fill={color} />
@@ -58,7 +58,7 @@ const Pen: React.FC<{ x: number; y: number; color: string; tip: string; show: nu
 );
 
 /** مسار يُرسم تدريجيًا (0 → 1). */
-const Drawn: React.FC<{ d: string; t: number; color: string; width: number; opacity?: number }> = ({ d, t, color, width, opacity = 1 }) => (
+export const Drawn: React.FC<{ d: string; t: number; color: string; width: number; opacity?: number }> = ({ d, t, color, width, opacity = 1 }) => (
   <path d={d} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - t} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" opacity={t > 0 ? opacity : 0} />
 );
 

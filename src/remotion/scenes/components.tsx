@@ -13,6 +13,7 @@ import { Symbolic } from "./Symbolic";
 import { Summary } from "./Summary";
 import { GlowStory } from "./GlowStory";
 import { SketchBoard } from "./SketchBoard";
+import { BoardStory } from "./BoardStory";
 import { KineticText } from "./KineticText";
 import { EndScreen } from "./EndScreen";
 import type { PlanScene } from "../../plan/types";
@@ -24,10 +25,10 @@ import type { EpisodeMedia } from "../../plan/media";
 import { useLang } from "../../i18n/context";
 import { resolveOverlays, useChannelOverlays, type Overlays } from "../../../brand/identity/index";
 
-type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> };
+type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; prev?: PlanScene };
 
 /** يحوّل مشهدًا من الخطة إلى مكوّن القالب المناسب. */
-export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media, episodeOverlays }) => {
+export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media, episodeOverlays, prev }) => {
   const p = scene.props;
   const ov = resolveOverlays(useChannelOverlays(), episodeOverlays, { captions: scene.captions }, scene.overlays);
   const base = {
@@ -86,6 +87,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <Symbolic {...base} {...p} />;
     case "glow-story":
       return <GlowStory {...base} {...p} />;
+    case "board-story":
+      return <BoardStory {...base} {...p} prevBeats={prev?.template === "board-story" ? prev.props.beats : undefined} />;
     case "sketch-board":
       return <SketchBoard {...base} {...p} />;
     case "kinetic-text":
