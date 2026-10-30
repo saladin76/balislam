@@ -169,7 +169,8 @@ export const EpisodeTab: React.FC<{
               onChange={(e) => {
                 const t = e.target.value;
                 const defs = defaultsFor(t, scene.narration, { title: plan.title, chapterTitle: sel.chapter.title });
-                const keep = Object.fromEntries(Object.entries(scene.props).filter(([k]) => templateById(t)?.fields.some((f) => f.key === k)));
+                // نُبقي الاختيارات (عنصر، شخصية، وضعية…) لا النصوص: نص قالب قديم نادرًا ما يناسب الجديد
+                const keep = Object.fromEntries(Object.entries(scene.props).filter(([k, v]) => v && templateById(t)?.fields.some((f) => f.key === k && f.type !== "text" && f.type !== "textarea")));
                 updateScene({ template: t, props: { ...defs, ...keep } });
               }}
             >

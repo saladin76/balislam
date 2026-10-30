@@ -36,6 +36,12 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
       return { line: firstSentence(narration), variant: "narrator-m", pose: "stand", element: "", side: "" };
     case "summary":
       return { text: firstSentence(narration, 14) };
+    case "glow-story":
+      return { quote: firstSentence(narration, 8), highlight: "", wish: "sports-car", subjectElement: "", variant: "narrator-m", pose: "think", sideElement: "", sideGlow: "none", connector: "dotted" };
+    case "sketch-board":
+      return { title: ctx.chapterTitle, keyword: "", element: "lightbulb", items: "", board: "white" };
+    case "kinetic-text":
+      return { emphasis: "", element: "", stage: "theme" };
     default:
       return {};
   }
