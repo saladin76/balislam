@@ -13,6 +13,7 @@ import { Symbolic } from "./Symbolic";
 import { Summary } from "./Summary";
 import { GlowStory } from "./GlowStory";
 import { SketchBoard } from "./SketchBoard";
+import { KineticText } from "./KineticText";
 import { EndScreen } from "./EndScreen";
 import type { PlanScene } from "../../plan/types";
 import type { ThemeId } from "../../../brand/themes";
@@ -87,6 +88,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <GlowStory {...base} {...p} />;
     case "sketch-board":
       return <SketchBoard {...base} {...p} />;
+    case "kinetic-text":
+      return <KineticText {...base} {...p} />;
     case "summary":
       return <Summary {...base} {...p} />;
     case "end-screen":

@@ -208,6 +208,19 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "kinetic-text",
+    nameAr: "النص الحركي",
+    useAr: "كلمات التعليق نفسها كبيرة في وسط الشاشة على إيقاع الصوت، والمهم منها مميز",
+    implemented: true,
+    baseSeconds: 5,
+    minSeconds: 3,
+    fields: [
+      { key: "emphasis", label: "الكلمات المهمة", type: "text", help: "كلمات من التعليق مفصولة بفاصلة، تظهر أكبر وملونة" },
+      { key: "element", label: "رمز فوق الكلام (اختياري)", type: "element" },
+      { key: "stage", label: "الخلفية", type: "select", options: [{ value: "theme", label: "ثيم الحلقة" }, { value: "dark", label: "ليلية" }] },
+    ],
+  },
+  {
     id: "summary",
     nameAr: "الخلاصة",
     useAr: "خلاصة الفصل في جملة",
