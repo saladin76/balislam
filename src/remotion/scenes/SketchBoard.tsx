@@ -94,7 +94,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
   const elCy = portrait ? (items.length > 2 ? 700 : 740) : 580;
   const itemSize = portrait ? (items.length > 3 ? 58 : 66) : items.length > 3 ? 58 : 66;
   const itemsTop = portrait ? elCy + elSize / 2 + 30 : 330;
-  const itemGap = itemSize * 1.55;
+  const itemGap = itemSize * 1.8;
 
   // التوقيت: عنوان ← خط تحته ← رسم العنصر ← سهم ← النقاط
   const titleT = interpolate(frame, [4, 4 + Math.max(18, title.length * 1.1)], [0, 1], clamp);
@@ -155,6 +155,12 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
   // العربية بخط الرقعة، واللاتينية بخط Caveat (خط الرقعة يحمل حروفًا لاتينية لا تشبه خط اليد)
   const handFont: React.CSSProperties = { fontFamily: rtl ? fontFamilies.hand : "'Caveat', cursive", fontWeight: 700, color: inkColor, direction: lang.dir, whiteSpace: "nowrap" };
   const handScale = rtl ? 1.12 : 1.08;
+  /** النقطة الطويلة تصغر لتبقى في سطر واحد قدر الإمكان (ثم تلتف بمسافة كافية). */
+  const fitItem = (it: string) => {
+    const avail = itemsRight - itemsLeft - 90;
+    const est = it.length * itemSize * handScale * (rtl ? 0.42 : 0.4);
+    return est > avail ? Math.max(0.72, avail / est) : 1;
+  };
   const jitter = (seed: number) => boil(frame, seed, 0.35);
 
   return (
@@ -215,7 +221,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
             <svg width={64} height={64} viewBox="0 0 64 64" style={{ flex: "none" }}>
               <Drawn d="M10 34 L26 50 L56 12" t={tick} color={accent} width={7} />
             </svg>
-            <span style={{ ...handFont, fontSize: Math.round(itemSize * handScale), lineHeight: 1.25, whiteSpace: "normal", ...reveal(t), transform: jitter(10 + i) }}>{it}</span>
+            <span style={{ ...handFont, fontSize: Math.round(itemSize * handScale * fitItem(it)), lineHeight: 1.5, whiteSpace: "normal", ...reveal(t), transform: jitter(10 + i) }}>{it}</span>
           </div>
         );
       })}

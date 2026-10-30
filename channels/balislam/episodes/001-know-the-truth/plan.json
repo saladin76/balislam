@@ -1,0 +1,863 @@
+{
+  "version": 1,
+  "episode": "001",
+  "title": "كيف تعرف أنك على حق؟",
+  "domain": "psychology",
+  "themeId": "paper",
+  "channel": "balislam",
+  "lang": "ar",
+  "updatedAt": "2026-10-30T18:25:30.159Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "هل ترى الحقيقة فعلًا؟",
+      "scenes": [
+        {
+          "template": "big-question",
+          "narration": "هل فكرت يومًا أنك قد تكون مخطئًا في شيء تؤمن تمامًا أنه صحيح؟",
+          "line": 13,
+          "props": {
+            "question": "هل فكرت يومًا أنك قد تكون مخطئًا؟",
+            "highlight": "مخطئًا",
+            "element": "question-mark"
+          },
+          "id": "c1-s1",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "تخيل شخصين يشاهدان الموقف نفسه. الأول يراه ظلمًا، والثاني يراه عدلًا. كل واحد منهما مقتنع أنه يرى الحقيقة.",
+          "line": 16,
+          "props": {
+            "rightTitle": "الأول",
+            "rightItems": "يراه ظلمًا",
+            "rightElement": "scale-tilted",
+            "leftTitle": "الثاني",
+            "leftItems": "يراه عدلًا",
+            "leftElement": "scale-balance",
+            "tone": "neutral"
+          },
+          "id": "c1-s2",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "لكن هل يمكن أن يكون الاثنان على حق في أمرين متناقضين، بالمعنى نفسه وفي الوقت نفسه؟ بالطبع لا.",
+          "line": 19,
+          "props": {
+            "emphasis": "متناقضين، لا",
+            "element": "",
+            "stage": "theme"
+          },
+          "id": "c1-s3",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "المشكلة أن الإنسان لا ينظر دائمًا إلى الأحداث بعين محايدة.",
+          "line": 22,
+          "props": {
+            "line": "لا ننظر دائمًا بعين محايدة",
+            "variant": "narrator-m",
+            "pose": "think",
+            "element": "glasses",
+            "side": ""
+          },
+          "id": "c1-s4",
+          "sfx": []
+        },
+        {
+          "template": "list",
+          "narration": "فنحن نتأثر بتجاربنا، ومخاوفنا، والأشخاص الذين نحبهم، والأفكار التي اعتدنا عليها.",
+          "line": 25,
+          "props": {
+            "title": "ما يلوّن نظرتنا",
+            "items": "تجاربنا\nمخاوفنا\nمن نحبهم\nما اعتدنا عليه",
+            "style": "icons",
+            "icons": "footprints,cloud-storm,heart,refresh"
+          },
+          "id": "c1-s5",
+          "sfx": []
+        },
+        {
+          "template": "sketch-board",
+          "narration": "قد تصدق خبرًا لأنه يؤكد رأيك. وقد ترفض نصيحة لأنها جاءت من شخص لا تحبه. وقد تدافع عن قرار اتخذته، لا لأنك متأكد من صحته، بل لأن الاعتراف بخطئه مؤلم.",
+          "line": 28,
+          "props": {
+            "title": "ثلاثة فخاخ في التفكير",
+            "keyword": "فخاخ",
+            "element": "head-tangle",
+            "items": "نصدّق ما يؤكد رأينا\nنرفض النصيحة بسبب قائلها\nندافع عن قرار لأن الاعتراف مؤلم",
+            "board": "white"
+          },
+          "id": "c1-s6",
+          "sfx": []
+        },
+        {
+          "template": "big-question",
+          "narration": "وهنا يظهر سؤال يستحق أن نتوقف عنده: هل نحن نبحث عن الحقيقة فعلًا؟ أم نبحث عما يجعلنا نشعر أننا على حق؟",
+          "line": 31,
+          "props": {
+            "question": "هل نبحث عن الحقيقة فعلًا؟",
+            "highlight": "الحقيقة",
+            "element": "search"
+          },
+          "id": "c1-s7",
+          "sfx": []
+        },
+        {
+          "template": "summary",
+          "narration": "فليس كل ما نقتنع به صحيحًا، وليس كل ما لا يعجبنا باطلًا. لكن لماذا يصبح التمييز بين الحق والباطل صعبًا أحيانًا؟",
+          "line": 34,
+          "props": {
+            "text": "ليس كل ما نقتنع به صحيحًا، وليس كل ما لا يعجبنا باطلًا",
+            "element": "scale-brass-balanced"
+          },
+          "id": "c1-s8",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "عندما يرتدي الباطل ثوب الحق",
+      "scenes": [
+        {
+          "template": "symbolic",
+          "narration": "ليس كل باطل يأتي في صورة واضحة يسهل رفضها. أحيانًا يأتي ممزوجًا بشيء من الحق.",
+          "line": 41,
+          "props": {
+            "element": "mask-hypocrisy",
+            "caption": "باطل في ثوب الحق",
+            "effect": "pop"
+          },
+          "id": "c2-s1",
+          "sfx": []
+        },
+        {
+          "template": "glow-story",
+          "narration": "تخيل شخصًا يجرح الآخرين بكلماته، ثم يقول: أنا فقط إنسان صريح. الصراحة قيمة جميلة، لكن هل تعني أن نؤذي الناس؟",
+          "line": 44,
+          "props": {
+            "quote": "أنا فقط إنسان صريح.",
+            "highlight": "صريح",
+            "wish": "speech-bubble",
+            "subjectElement": "",
+            "variant": "narrator-m",
+            "pose": "open-arms",
+            "sideElement": "",
+            "sideGlow": "none",
+            "connector": "dotted"
+          },
+          "id": "c2-s2",
+          "sfx": []
+        },
+        {
+          "template": "glow-story",
+          "narration": "وشخصًا يتكبر على غيره، ثم يقول: أنا أعرف قيمة نفسي. الثقة بالنفس مطلوبة، لكن هل تعني احتقار الآخرين؟",
+          "line": 47,
+          "props": {
+            "quote": "أنا أعرف قيمة نفسي.",
+            "highlight": "قيمة نفسي",
+            "wish": "crown",
+            "subjectElement": "",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "sideElement": "",
+            "sideGlow": "none",
+            "connector": "dotted"
+          },
+          "id": "c2-s3",
+          "sfx": []
+        },
+        {
+          "template": "glow-story",
+          "narration": "وشخصًا ينشر خبرًا دون التأكد منه، لأنه مقتنع أن الخبر يخدم قضية عادلة. لكن هل تصبح المعلومة صحيحة لمجرد أنها تخدم ما نؤمن به؟",
+          "line": 50,
+          "props": {
+            "quote": "الخبر يخدم قضية عادلة.",
+            "highlight": "قضية عادلة",
+            "wish": "phone-notifications",
+            "subjectElement": "",
+            "variant": "narrator-m",
+            "pose": "hold",
+            "sideElement": "",
+            "sideGlow": "none",
+            "connector": "dotted"
+          },
+          "id": "c2-s4",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "هذه الأمثلة تكشف مشكلة دقيقة. قد تكون الفكرة التي نستخدمها لتبرير أفعالنا صحيحة في أصلها، لكن التطبيق خاطئ.",
+          "line": 53,
+          "props": {
+            "rightTitle": "التطبيق",
+            "rightItems": "خاطئ",
+            "rightElement": "cross",
+            "leftTitle": "الفكرة",
+            "leftItems": "صحيحة في أصلها",
+            "leftElement": "lightbulb",
+            "tone": "contrast"
+          },
+          "id": "c2-s5",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "ولهذا جاء التحذير القرآني:",
+          "line": 56,
+          "props": {
+            "line": "ولهذا جاء التحذير القرآني",
+            "variant": "narrator-m",
+            "pose": "point",
+            "element": "",
+            "side": ""
+          },
+          "id": "c2-s6",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 59,
+          "ayahKey": "2:42",
+          "props": {
+            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "reference": "البقرة · ٤٢",
+            "reciter": ""
+          },
+          "id": "c2-s7",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "فالحق والباطل ليسا شيئًا واحدًا. لكن الإنسان قد يخلط بينهما، حتى يصعب عليه أن يميز أحدهما من الآخر.",
+          "line": 61,
+          "props": {
+            "element": "scale-brass-tilted",
+            "caption": "الحق والباطل ليسا شيئًا واحدًا",
+            "effect": "shake"
+          },
+          "id": "c2-s8",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "وأحيانًا يكون أخطر الباطل هو الذي يحمل شيئًا من الحق. لكن هناك مشكلة أعمق من اختلاط الأمور أمام أعيننا.",
+          "line": 64,
+          "props": {
+            "emphasis": "أخطر، الحق",
+            "element": "",
+            "stage": "dark"
+          },
+          "id": "c2-s9",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "هل نريد معرفة الحق فعلًا؟",
+      "scenes": [
+        {
+          "template": "character-talk",
+          "narration": "تخيل أنك اختلفت مع شخص قريب منك. أنت مقتنع أنه أخطأ في حقك.",
+          "line": 71,
+          "props": {
+            "line": "أنا متأكد أنه أخطأ في حقي",
+            "variant": "narrator-m",
+            "pose": "slump",
+            "element": "",
+            "side": ""
+          },
+          "id": "c3-s1",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ثم تكتشف معلومة جديدة تثبت أنك أنت من أساء فهم الموقف.",
+          "line": 74,
+          "props": {
+            "element": "lightbulb",
+            "caption": "معلومة جديدة تغيّر الصورة",
+            "effect": "pop"
+          },
+          "id": "c3-s2",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "ماذا ستفعل؟ هل ستعتذر مباشرة؟ أم ستبحث عن تفسير آخر يحفظ لك موقفك؟",
+          "line": 77,
+          "props": {
+            "rightTitle": "أبحث عن تبرير",
+            "rightItems": "أحفظ موقفي",
+            "rightElement": "mask-hypocrisy",
+            "leftTitle": "أعتذر مباشرة",
+            "leftItems": "أقبل الحقيقة",
+            "leftElement": "handshake",
+            "tone": "contrast"
+          },
+          "id": "c3-s3",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "هذا الموقف البسيط يكشف شيئًا مهمًا. أحيانًا لا نرفض الحقيقة لأننا لا نراها. بل لأننا لا نريد النتائج التي ستترتب على قبولها.",
+          "line": 80,
+          "props": {
+            "emphasis": "نراها، نريد",
+            "element": "",
+            "stage": "theme"
+          },
+          "id": "c3-s4",
+          "sfx": []
+        },
+        {
+          "template": "list",
+          "narration": "فالاعتراف بالحق قد يتطلب الاعتذار. وقد يتطلب تغيير قرار. وقد يتطلب التخلي عن مصلحة. وقد يتطلب أن تقول لنفسك: كنت مخطئًا. وهذه ليست دائمًا خطوة سهلة.",
+          "line": 83,
+          "props": {
+            "title": "ثمن الاعتراف بالحق",
+            "items": "الاعتذار\nتغيير قرار\nالتخلي عن مصلحة\n«كنت مخطئًا»",
+            "style": "check"
+          },
+          "id": "c3-s5",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "يقول الله تعالى:",
+          "line": 86,
+          "props": {
+            "line": "يقول الله تعالى",
+            "variant": "narrator-m",
+            "pose": "point",
+            "element": "",
+            "side": ""
+          },
+          "id": "c3-s6",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 89,
+          "ayahKey": "75:14-15",
+          "props": {
+            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "reference": "القيامة · ١٤–١٥",
+            "reciter": ""
+          },
+          "id": "c3-s7",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وفي سياق هذه الآيات تذكير بأن الإنسان شاهد على نفسه، ولو قدم الأعذار.",
+          "line": 91,
+          "props": {
+            "element": "mirror-reflect",
+            "caption": "شاهد على نفسه",
+            "effect": "float"
+          },
+          "id": "c3-s8",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "وهنا نكتشف الفرق بين أمرين: أن تعرف ما هو صحيح. وأن تكون مستعدًا للعمل بما عرفت.",
+          "line": 94,
+          "props": {
+            "rightTitle": "أن تعرف",
+            "rightItems": "ما هو صحيح",
+            "rightElement": "lightbulb",
+            "leftTitle": "أن تعمل",
+            "leftItems": "بما عرفت",
+            "leftElement": "footprints",
+            "tone": "neutral"
+          },
+          "id": "c3-s9",
+          "sfx": []
+        },
+        {
+          "template": "summary",
+          "narration": "فقد يكون أصعب ما في الحق ليس أن نراه، بل أن نقبله عندما يخالف ما نريد. ولهذا يحمل دعاء قصير معنى عميقًا للغاية.",
+          "line": 97,
+          "props": {
+            "text": "أصعب ما في الحق أن نقبله حين يخالف ما نريد",
+            "element": "heart-light"
+          },
+          "id": "c3-s10",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "اللهم أرنا الحق حقًا",
+      "scenes": [
+        {
+          "template": "symbolic",
+          "narration": "هناك دعاء مأثور في كلام أهل العلم، عظيم في معناه:",
+          "line": 104,
+          "props": {
+            "element": "hands-dua",
+            "caption": "دعاء مأثور عظيم في معناه",
+            "effect": "float"
+          },
+          "id": "c4-s1",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "«اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
+          "line": 107,
+          "props": {
+            "emphasis": "الحق، اتباعه، الباطل، اجتنابه",
+            "element": "hands-dua",
+            "stage": "dark"
+          },
+          "id": "c4-s2",
+          "sfx": []
+        },
+        {
+          "template": "sketch-board",
+          "narration": "تأمل كلمات هذا الدعاء.",
+          "line": 110,
+          "props": {
+            "title": "أربعة مطالب في دعاء واحد",
+            "keyword": "أربعة",
+            "element": "hands-dua",
+            "items": "أرنا الحق حقًا\nوارزقنا اتباعه\nوأرنا الباطل باطلًا\nوارزقنا اجتنابه",
+            "board": "green"
+          },
+          "id": "c4-s3",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "نحن لا نقول فقط: اللهم أرنا الحق. بل نقول: أرنا الحق حقًا. أي نسأل الله أن يهدينا إلى معرفته على حقيقته.",
+          "line": 113,
+          "props": {
+            "line": "أرنا الحق حقًا",
+            "variant": "narrator-m",
+            "pose": "raise-hands",
+            "element": "lightbulb",
+            "side": ""
+          },
+          "id": "c4-s4",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "ثم نضيف طلبًا آخر: «وارزقنا اتباعه». لماذا؟ لأن معرفة الصواب لا تعني بالضرورة أننا سنفعله.",
+          "line": 116,
+          "props": {
+            "emphasis": "اتباعه، لماذا، نفعله",
+            "element": "",
+            "stage": "theme"
+          },
+          "id": "c4-s5",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "كم مرة عرفنا أن الاعتذار هو الصواب، لكن منعنا الكبرياء؟ وكم مرة عرفنا أن علينا التوقف عن عادة سيئة، لكن غلبتنا رغبتنا؟",
+          "line": 119,
+          "props": {
+            "rightTitle": "عرفنا",
+            "rightItems": "أن الاعتذار هو الصواب\nأن العادة السيئة يجب تركها",
+            "rightElement": "lightbulb",
+            "leftTitle": "لكن",
+            "leftItems": "منعنا الكبرياء\nغلبتنا الرغبة",
+            "leftElement": "crown",
+            "tone": "neutral"
+          },
+          "id": "c4-s6",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ثم نطلب من الله: «وأرنا الباطل باطلًا». فقد يبدو الخطأ جميلًا، أو سهلًا، أو نافعًا في اللحظة الحاضرة. وقد نراه مقبولًا فقط لأن كثيرين يفعلونه.",
+          "line": 122,
+          "props": {
+            "element": "mask-hypocrisy",
+            "caption": "جميل… سهل… نافع الآن",
+            "effect": "shake"
+          },
+          "id": "c4-s7",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "ثم نقول: «وارزقنا اجتنابه». لأن معرفة الخطأ وحدها لا تكفي للابتعاد عنه.",
+          "line": 125,
+          "props": {
+            "line": "وارزقنا اجتنابه",
+            "variant": "narrator-m",
+            "pose": "raise-hands",
+            "element": "hand-stop",
+            "side": ""
+          },
+          "id": "c4-s8",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "وهكذا يجمع الدعاء بين البصيرة والعمل. بين أن تعرف الحق، وأن تتبعه. وبين أن تعرف الباطل، وأن تجتنبه.",
+          "line": 128,
+          "props": {
+            "rightTitle": "البصيرة",
+            "rightItems": "أن تعرف الحق\nأن تعرف الباطل",
+            "rightElement": "lightbulb",
+            "leftTitle": "العمل",
+            "leftItems": "أن تتبعه\nأن تجتنبه",
+            "leftElement": "footprints",
+            "tone": "neutral"
+          },
+          "id": "c4-s9",
+          "sfx": []
+        },
+        {
+          "template": "list",
+          "narration": "فنحن لا نحتاج فقط إلى عين ترى الحق، بل إلى قلب يقبله، وعزيمة تعيننا على اتباعه. وهذا يقودنا إلى دعاء آخر يحمل معنى قريبًا.",
+          "line": 131,
+          "props": {
+            "title": "ما نحتاجه",
+            "items": "عين ترى الحق\nقلب يقبله\nعزيمة تعين على اتباعه",
+            "style": "check"
+          },
+          "id": "c4-s10",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "اللهم أرنا الأشياء كما هي",
+      "scenes": [
+        {
+          "template": "kinetic-text",
+          "narration": "تأمل هذه الكلمات: «اللهم أرنا الأشياء كما هي». قد تبدو بسيطة. لكنها تحمل سؤالًا عميقًا:",
+          "line": 138,
+          "props": {
+            "emphasis": "كما، هي، عميقًا",
+            "element": "glasses",
+            "stage": "dark"
+          },
+          "id": "c5-s1",
+          "sfx": []
+        },
+        {
+          "template": "big-question",
+          "narration": "هل نرى الأشياء على حقيقتها، أم نراها أكبر أو أصغر مما تستحق؟",
+          "line": 141,
+          "props": {
+            "question": "هل نرى الأشياء على حقيقتها؟",
+            "highlight": "على حقيقتها",
+            "element": "magnifier-brass"
+          },
+          "id": "c5-s2",
+          "sfx": []
+        },
+        {
+          "template": "glow-story",
+          "narration": "تأمل المال مثلًا. هو نعمة ووسيلة لقضاء الحاجات. لكن الإنسان قد يراه مقياسًا لقيمته وقيمة الآخرين.",
+          "line": 144,
+          "props": {
+            "quote": "المال… مقياس قيمتي؟",
+            "highlight": "مقياس قيمتي",
+            "wish": "money-bag",
+            "subjectElement": "",
+            "variant": "narrator-m",
+            "pose": "think",
+            "sideElement": "",
+            "sideGlow": "none",
+            "connector": "dotted"
+          },
+          "id": "c5-s3",
+          "sfx": []
+        },
+        {
+          "template": "glow-story",
+          "narration": "وتأمل النجاح. قد يكون ثمرة جهد وتوفيق من الله. لكننا أحيانًا نجعله سببًا للشعور بأننا أفضل من غيرنا.",
+          "line": 147,
+          "props": {
+            "quote": "نجحت… إذن أنا أفضل منهم.",
+            "highlight": "أفضل منهم",
+            "wish": "podium",
+            "subjectElement": "",
+            "variant": "narrator-m",
+            "pose": "stand",
+            "sideElement": "",
+            "sideGlow": "none",
+            "connector": "dotted"
+          },
+          "id": "c5-s4",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وتأمل الدنيا كلها. قد ننشغل بها حتى نتصرف وكأنها ستبقى إلى الأبد.",
+          "line": 150,
+          "props": {
+            "element": "hourglass-ornate",
+            "caption": "كأنها ستبقى إلى الأبد",
+            "effect": "float"
+          },
+          "id": "c5-s5",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "بينما يذكرنا القرآن:",
+          "line": 153,
+          "props": {
+            "line": "بينما يذكرنا القرآن",
+            "variant": "narrator-m",
+            "pose": "point",
+            "element": "",
+            "side": ""
+          },
+          "id": "c5-s6",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 156,
+          "ayahKey": "3:185",
+          "props": {
+            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "reference": "آل عمران · ١٨٥",
+            "reciter": ""
+          },
+          "id": "c5-s7",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "فالمشكلة ليست في أن نعمل للدنيا أو نستمتع بما أباح الله فيها. المشكلة أن ننسى حقيقتها، وأن نجعلها غايتنا الأخيرة.",
+          "line": 158,
+          "props": {
+            "line": "المشكلة أن ننسى حقيقتها",
+            "variant": "narrator-m",
+            "pose": "think",
+            "element": "compass-pocket",
+            "side": ""
+          },
+          "id": "c5-s8",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "ورؤية الأشياء كما هي تعني أيضًا أن نرى أنفسنا بصدق. أن نعترف بمميزاتنا دون غرور. وبأخطائنا دون يأس.",
+          "line": 161,
+          "props": {
+            "rightTitle": "مميزاتنا",
+            "rightItems": "نعترف بها دون غرور",
+            "rightElement": "star-badge",
+            "leftTitle": "أخطاؤنا",
+            "leftItems": "نعترف بها دون يأس",
+            "leftElement": "heart-bandaged",
+            "tone": "neutral"
+          },
+          "id": "c5-s9",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وأن نرى الآخرين بعدل، فلا تجعلنا محبتنا لهم نتجاهل أخطاءهم، ولا تجعلنا كراهيتنا لهم ننكر ما عندهم من حق.",
+          "line": 164,
+          "props": {
+            "element": "scale-brass-balanced",
+            "caption": "نرى الآخرين بعدل",
+            "effect": "pop"
+          },
+          "id": "c5-s10",
+          "sfx": []
+        },
+        {
+          "template": "summary",
+          "narration": "ربما لا نحتاج دائمًا إلى أن تتغير الأشياء من حولنا، بقدر ما نحتاج إلى أن نراها بميزان صحيح. فكيف نقترب من هذه الرؤية في حياتنا اليومية؟",
+          "line": 167,
+          "props": {
+            "text": "نحتاج أن نرى الأشياء بميزان صحيح",
+            "element": "scale-brass-balanced"
+          },
+          "id": "c5-s11",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "هل أنت مستعد لأن تكون مخطئًا؟",
+      "scenes": [
+        {
+          "template": "big-question",
+          "narration": "كيف تعرف أنك تسير في طريق الحق؟",
+          "line": 174,
+          "props": {
+            "question": "كيف تعرف أنك تسير في طريق الحق؟",
+            "highlight": "طريق الحق",
+            "element": "compass-pocket"
+          },
+          "id": "c6-s1",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "ليس بأن تكون متأكدًا من كل آرائك. بل بأن تكون مستعدًا لمراجعتها حين يظهر لك ما يخالفها. فاليقين بما ثبت من الحق لا يعني أن كل فهم شخصي لنا صحيح.",
+          "line": 177,
+          "props": {
+            "line": "مستعد لمراجعة رأيي",
+            "variant": "narrator-m",
+            "pose": "listen",
+            "element": "refresh",
+            "side": ""
+          },
+          "id": "c6-s2",
+          "sfx": []
+        },
+        {
+          "template": "sketch-board",
+          "narration": "وهناك ثلاث خطوات بسيطة يمكن أن تساعدنا.",
+          "line": 180,
+          "props": {
+            "title": "ثلاث خطوات بسيطة",
+            "keyword": "ثلاث",
+            "element": "path-milestones",
+            "items": "تثبّت قبل أن تحكم\nراجع نيتك\nكن مستعدًا لتصحيح موقفك",
+            "board": "green"
+          },
+          "id": "c6-s3",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "الأولى: تثبت قبل أن تحكم. لا تصدق كل خبر تسمعه، حتى لو وافق رأيك. فالله تعالى يقول:",
+          "line": 183,
+          "props": {
+            "line": "تثبّت قبل أن تحكم",
+            "variant": "narrator-m",
+            "pose": "hold",
+            "element": "search",
+            "side": ""
+          },
+          "id": "c6-s4",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 186,
+          "ayahKey": "49:6",
+          "props": {
+            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "reference": "الحجرات · ٦",
+            "reciter": ""
+          },
+          "id": "c6-s5",
+          "sfx": []
+        },
+        {
+          "template": "glow-story",
+          "narration": "والثانية: راجع نيتك. حين تختلف مع أحد، اسأل نفسك: هل أريد أن أصل إلى الصواب؟ أم أريد فقط أن أنتصر في النقاش؟",
+          "line": 188,
+          "props": {
+            "quote": "أريد أن أنتصر في النقاش.",
+            "highlight": "أنتصر",
+            "wish": "trophy",
+            "subjectElement": "",
+            "variant": "narrator-m",
+            "pose": "think",
+            "sideElement": "",
+            "sideGlow": "none",
+            "connector": "dotted"
+          },
+          "id": "c6-s6",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "والثالثة: كن مستعدًا لتصحيح موقفك. فالاعتراف بالخطأ ليس هزيمة. بل قد يكون أول خطوة نحو الحق.",
+          "line": 191,
+          "props": {
+            "emphasis": "هزيمة، أول، خطوة",
+            "element": "",
+            "stage": "theme"
+          },
+          "id": "c6-s7",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "ولا يعني هذا أن نشك في كل شيء، أو أن نعتبر الحق والباطل مجرد وجهات نظر. بل يعني أن نتواضع أمام الحقيقة، وأن نطلب الهداية من الله، وأن نرجع إلى الوحي وأهل العلم فيما نجهل.",
+          "line": 194,
+          "props": {
+            "line": "نتواضع أمام الحقيقة",
+            "variant": "elder-m",
+            "pose": "open-arms",
+            "element": "book-open",
+            "side": ""
+          },
+          "id": "c6-s8",
+          "sfx": []
+        },
+        {
+          "template": "character-talk",
+          "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، جرب شيئًا واحدًا: استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟",
+          "line": 197,
+          "props": {
+            "line": "لو كان الحق معه، هل سأقبله؟",
+            "variant": "narrator-m",
+            "pose": "listen",
+            "element": "speech-bubble",
+            "side": ""
+          },
+          "id": "c6-s9",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "وتذكر هذا الدعاء: «اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
+          "line": 200,
+          "props": {
+            "emphasis": "الحق، اتباعه، الباطل، اجتنابه",
+            "element": "hands-dua",
+            "stage": "dark"
+          },
+          "id": "c6-s10",
+          "sfx": []
+        },
+        {
+          "template": "summary",
+          "narration": "لأن الغاية ليست أن نثبت دائمًا أننا على حق. الغاية أن نكون مع الحق، أينما كان.",
+          "line": 203,
+          "props": {
+            "text": "الغاية أن نكون مع الحق، أينما كان",
+            "element": "compass-pocket"
+          },
+          "id": "c6-s11",
+          "sfx": []
+        },
+        {
+          "id": "c6-end",
+          "template": "end-screen",
+          "narration": "",
+          "line": 216,
+          "props": {
+            "step": "متى غيّرت رأيك آخر مرة بعد أن سمعت حجة غيرك؟",
+            "prompt": "اكتب في التعليقات: في المرة القادمة التي تختلف فيها مع شخص، استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟"
+          },
+          "captions": false,
+          "sfx": []
+        }
+      ]
+    }
+  ]
+}

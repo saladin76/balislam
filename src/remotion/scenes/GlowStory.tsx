@@ -78,12 +78,12 @@ export const GlowStory: React.FC<GlowStoryProps> = (props) => {
 
   // المواضع (تنعكس في العربية: صاحب المشهد في بداية السطر)
   const X = (fraction: number) => (rtl ? W * (1 - fraction) : W * fraction);
-  const floorY = portrait ? 1230 : 840;
+  const floorY = portrait ? 1230 : 880;
   const subjectX = X(portrait ? 0.32 : 0.3);
   const sideX = X(portrait ? 0.82 : 0.8);
   const wishCx = X(portrait ? 0.6 : 0.6);
-  const wishCy = portrait ? 590 : 330;
-  const wishSize = portrait ? 360 : 300;
+  const wishCy = portrait ? 650 : 385;
+  const wishSize = portrait ? 360 : 280;
   const useChar = !subjectElement || !hasElement(subjectElement);
   const charH = portrait ? 540 : 440;
   const subjSize = portrait ? 440 : 380;
@@ -245,7 +245,7 @@ export const GlowStory: React.FC<GlowStoryProps> = (props) => {
         <div
           style={{
             position: "absolute",
-            top: portrait ? 330 : 150,
+            top: portrait ? 330 : 128,
             left: portrait ? 70 : 160,
             right: portrait ? 70 : 160,
             textAlign: "center",
