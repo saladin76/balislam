@@ -50,6 +50,7 @@ export type ElementCategory =
   | "nature"
   | "home"
   | "daily"
+  | "city"
   | "money"
   | "knowledge"
   | "islamic"
@@ -78,6 +79,7 @@ export const categoryNamesAr: Record<ElementCategory, string> = {
   nature: "الطبيعة والكون",
   home: "البيت والأسرة",
   daily: "الحياة اليومية والتقنية",
+  city: "المدينة والسفر",
   money: "المال والتجارة",
   knowledge: "العلم والحضارة",
   islamic: "رموز إسلامية",
@@ -93,6 +95,7 @@ export const categoryOrder: ElementCategory[] = [
   "nature",
   "home",
   "daily",
+  "city",
   "money",
   "knowledge",
   "islamic",
