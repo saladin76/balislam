@@ -11,6 +11,8 @@ export const fontFamilies = {
   body: "'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif",
   scripture: "'Amiri', serif",
   wordmark: "'Readex Pro', sans-serif",
+  /** خط اليد لقوالب السبورة: رقعة للعربية، وCaveat للاتينية */
+  hand: "'Aref Ruqaa', 'Caveat', cursive",
 } as const;
 
 export type FontFile = {
@@ -29,4 +31,7 @@ export const fontFiles: FontFile[] = [
   { family: "Amiri", file: "fonts/Amiri-Regular.ttf", weight: "400" },
   { family: "Amiri", file: "fonts/Amiri-Bold.ttf", weight: "700" },
   { family: "Readex Pro", file: "fonts/ReadexPro.ttf", weight: "200 700" },
+  { family: "Aref Ruqaa", file: "fonts/ArefRuqaa-Regular.ttf", weight: "400" },
+  { family: "Aref Ruqaa", file: "fonts/ArefRuqaa-Bold.ttf", weight: "700" },
+  { family: "Caveat", file: "fonts/Caveat-VF.ttf", weight: "400 700" },
 ];

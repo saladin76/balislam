@@ -58,7 +58,10 @@ describe("خطة الحلقة", () => {
     expect(sceneSeconds({ ...s, durationSec: 12 })).toBe(12);
   });
 
-  it("كل القوالب الاثني عشر معرّفة", () => {
-    expect(templateDefs).toHaveLength(12);
+  it("كل القوالب معرّفة ومسجّلة في الكتالوج والمعاينة", async () => {
+    const { sceneCatalog } = await import("../src/remotion/scenes/catalog");
+    expect(templateDefs.length).toBeGreaterThanOrEqual(14);
+    for (const t of templateDefs) expect(sceneCatalog.some((c) => c.id === t.id), t.id).toBe(true);
+    expect(new Set(templateDefs.map((t) => t.id)).size).toBe(templateDefs.length);
   });
 });

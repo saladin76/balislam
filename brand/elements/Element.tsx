@@ -2,6 +2,7 @@ import React from "react";
 import type { Theme } from "../themes";
 import { usePalette } from "../identity/index";
 import { elementById } from "./registry";
+import type { ElementPalette } from "./types";
 
 type Props = {
   id: string;
@@ -12,12 +13,15 @@ type Props = {
   width?: number;
   height?: number;
   style?: React.CSSProperties;
+  /** لوحة بديلة (مثل أسلوب الخطوط المضيئة في قالب «القصة المضيئة») */
+  palette?: ElementPalette;
 };
 
 /** يرسم عنصرًا من المكتبة بألوان الثيم: <Element id="book-open" theme={t} size={240} /> */
-export const Element: React.FC<Props> = ({ id, theme, size = 120, width, height, style }) => {
+export const Element: React.FC<Props> = ({ id, theme, size = 120, width, height, style, palette }) => {
   const def = elementById(id);
-  const p = usePalette(theme.id);
+  const themed = usePalette(theme.id);
+  const p = palette ?? themed;
   if (def.kind === "backdrop") {
     const w = width ?? 1920;
     const h = height ?? 1080;

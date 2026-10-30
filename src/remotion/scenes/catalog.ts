@@ -9,6 +9,8 @@ import { BigNumber, bigNumberSample, bigNumberSampleEn, bigNumberSeconds } from 
 import { ChartScene, chartSample, chartSampleEn, chartSeconds } from "./ChartScene";
 import { Timeline, timelineSample, timelineSampleEn, timelineSeconds } from "./Timeline";
 import { Symbolic, symbolicSample, symbolicSampleEn, symbolicSeconds } from "./Symbolic";
+import { SketchBoard, sketchBoardSample, sketchBoardSampleEn, sketchBoardSeconds } from "./SketchBoard";
+import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from "./GlowStory";
 import { Summary, summarySample, summarySampleEn, summarySeconds } from "./Summary";
 import { EndScreen, endScreenSample, endScreenSampleEn, endScreenSeconds } from "./EndScreen";
 import { sampleBigQuestion, sampleBigQuestionEn, sampleCharacterTalk, sampleCharacterTalkEn, sampleVerseCard, sampleVerseCardEn, sceneDurations } from "./samples";
@@ -27,6 +29,8 @@ export const sceneCatalog: Entry[] = [
   { id: "chart", component: ChartScene, sample: chartSample, sampleEn: chartSampleEn, seconds: chartSeconds },
   { id: "timeline", component: Timeline, sample: timelineSample, sampleEn: timelineSampleEn, seconds: timelineSeconds },
   { id: "symbolic", component: Symbolic, sample: symbolicSample, sampleEn: symbolicSampleEn, seconds: symbolicSeconds },
+  { id: "glow-story", component: GlowStory, sample: glowStorySample, sampleEn: glowStorySampleEn, seconds: glowStorySeconds },
+  { id: "sketch-board", component: SketchBoard, sample: sketchBoardSample, sampleEn: sketchBoardSampleEn, seconds: sketchBoardSeconds },
   { id: "summary", component: Summary, sample: summarySample, sampleEn: summarySampleEn, seconds: summarySeconds },
   { id: "end-screen", component: EndScreen, sample: endScreenSample, sampleEn: endScreenSampleEn, seconds: endScreenSeconds },
 ];

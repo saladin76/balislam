@@ -11,6 +11,8 @@ import { ChartScene } from "./ChartScene";
 import { Timeline } from "./Timeline";
 import { Symbolic } from "./Symbolic";
 import { Summary } from "./Summary";
+import { GlowStory } from "./GlowStory";
+import { SketchBoard } from "./SketchBoard";
 import { EndScreen } from "./EndScreen";
 import type { PlanScene } from "../../plan/types";
 import type { ThemeId } from "../../../brand/themes";
@@ -81,6 +83,10 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <Timeline {...base} {...p} />;
     case "symbolic":
       return <Symbolic {...base} {...p} />;
+    case "glow-story":
+      return <GlowStory {...base} {...p} />;
+    case "sketch-board":
+      return <SketchBoard {...base} {...p} />;
     case "summary":
       return <Summary {...base} {...p} />;
     case "end-screen":

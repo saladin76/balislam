@@ -20,6 +20,11 @@ const MIN_SECONDS = 2.5;
 const textSeconds = (scene: PlanScene): number => {
   const fps = config.video.fps;
   if (scene.template === "big-question") return (12 + words(scene.props.question ?? "") * 5 + 40) / fps + 0.8;
+  if (scene.template === "sketch-board") {
+    const items = (scene.props.items ?? "").split(/\n|؛/).filter((x) => x.trim()).slice(0, 4);
+    return (Math.max(18, (scene.props.title ?? "").length * 1.1) + 60 + items.length * 26 + 50) / fps + 0.8;
+  }
+  if (scene.template === "glow-story") return (10 + Array.from(scene.props.quote ?? "").length * 1.5 + 50) / fps + 1;
   if (scene.template === "character-talk") return (16 + words(scene.props.line ?? "") * 4 + 30) / fps + 0.8;
   return 0;
 };

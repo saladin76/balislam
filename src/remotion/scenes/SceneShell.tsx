@@ -69,13 +69,20 @@ const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number; rtl: bool
   }
 };
 
-type ShellProps = SceneBase & { children: React.ReactNode; durationInFrames: number };
+type ShellProps = SceneBase & {
+  children: React.ReactNode;
+  durationInFrames: number;
+  /** لون خلفية خاص بالقالب (سبورة، مسرح…) بدل خلفية الثيم */
+  background?: string;
+  /** ألوان شارة عنوان الفصل على تلك الخلفية */
+  eyebrowColors?: { text: string; border: string };
+};
 
 /**
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
  * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
  */
-export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames }) => {
+export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors }) => {
   useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -88,7 +95,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
 
   return (
-    <AbsoluteFill style={{ backgroundColor: t.colors.bg, direction: lang.dir, fontFamily: fontFamilies.body, color: t.colors.ink }}>
+    <AbsoluteFill style={{ backgroundColor: background ?? t.colors.bg, direction: lang.dir, fontFamily: fontFamilies.body, color: t.colors.ink }}>
       {backdrop && hasElement(backdrop) ? (
         <div style={{ position: "absolute", inset: 0, opacity: fade(frame, 0, 14) }}>
           <Element id={backdrop} theme={t} width={width} height={height} />
@@ -105,8 +112,8 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
               insetInlineStart: portrait ? 72 : 96,
               fontSize: eyebrowSize,
               fontWeight: 600,
-              color: t.colors.inkSoft,
-              border: `2px solid ${t.colors.primary}`,
+              color: eyebrowColors?.text ?? t.colors.inkSoft,
+              border: `2px solid ${eyebrowColors?.border ?? t.colors.primary}`,
               borderRadius: 999,
               padding: portrait ? "8px 26px" : "6px 22px",
               opacity: eyebrowIn,
