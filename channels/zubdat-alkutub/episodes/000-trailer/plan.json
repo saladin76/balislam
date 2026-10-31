@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "episode": "000",
+  "title": "زبدة الكتب: أهم الأفكار في دقائق",
+  "domain": "self",
+  "themeId": "paper",
+  "channel": "zubdat-alkutub",
+  "lang": "ar",
+  "updatedAt": "2026-10-31T12:51:03.888Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "زبدة الكتب",
+      "scenes": [
+        {
+          "template": "kinetic-text",
+          "narration": "كتاب من ثلاثمئة صفحة، وفكرته الكبرى في عشر دقائق فقط.",
+          "line": 10,
+          "props": {
+            "emphasis": "ثلاثمئة، عشر دقائق",
+            "element": "book-open",
+            "stage": "dark"
+          },
+          "id": "c1-s1",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "desk-moment",
+          "narration": "كلنا نشتري كتبًا كثيرة، ونبدأ بحماس، ثم تبقى على الرف نصف مقروءة.",
+          "line": 13,
+          "props": {
+            "reaction": "...",
+            "reactAt": "0.55",
+            "push": "on",
+            "outfit": "green",
+            "screen": "dark"
+          },
+          "id": "c1-s2",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "set-scene",
+          "narration": "والسؤال الذي يتكرر دائمًا: أبدأ بأي كتاب؟ وماذا آخذ منه فعلًا؟",
+          "line": 16,
+          "props": {
+            "set": "office",
+            "variant": "narrator-m",
+            "pose": "think",
+            "variant2": "",
+            "pose2": "stand",
+            "camera": "push",
+            "bubble": "أبدأ بأي كتاب؟",
+            "bubbleKind": "think",
+            "bubbleWho": "1",
+            "element": "",
+            "figure": "",
+            "expr": "neutral",
+            "figure2": "",
+            "expr2": "neutral",
+            "talk": ""
+          },
+          "id": "c1-s3",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "sketch-board",
+          "narration": "هنا نختصر لك كل كتاب في ثلاثة أشياء: الفكرة الكبرى، ودليلها، وكيف تطبقها غدًا.",
+          "line": 19,
+          "props": {
+            "title": "زبدة كل كتاب",
+            "keyword": "زبدة",
+            "element": "books-stack",
+            "items": "الفكرة الكبرى\nدليلها\nكيف تطبقها غدًا",
+            "board": "green"
+          },
+          "id": "c1-s4",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "sim-stage",
+          "narration": "عشر دقائق في الأسبوع، وبعد سنة تكون قد عرفت زبدة خمسين كتابًا.",
+          "line": 22,
+          "props": {
+            "kicker": "تخيّل",
+            "title": "عشر دقائق في الأسبوع،",
+            "location": "تحدي القراءة",
+            "meter": "كتب عرفت زبدتها",
+            "meterTo": "100",
+            "timer": "52:00",
+            "timerLabel": "أسبوعًا",
+            "env": "books-stack",
+            "envLayout": "row",
+            "badge": "٥٠ كتابًا",
+            "tone": "gold",
+            "aura": "off",
+            "variant": "narrator-m",
+            "pose": "stand"
+          },
+          "id": "c1-s5",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "زبدة الكتب، حلقة جديدة كل أربعاء. اشترك حتى لا تفوتك.",
+          "line": 25,
+          "props": {
+            "emphasis": "زبدة الكتب، كل أربعاء",
+            "element": "",
+            "stage": "dark"
+          },
+          "id": "c1-s6",
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    }
+  ]
+}

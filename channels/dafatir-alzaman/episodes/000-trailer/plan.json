@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "episode": "000",
+  "title": "دفاتر الزمن: التاريخ كما حدث",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "updatedAt": "2026-10-31T12:51:03.875Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "دفاتر الزمن",
+      "scenes": [
+        {
+          "template": "map-journey",
+          "narration": "بغداد، والقاهرة، وقرطبة، وسمرقند. في كل مدينة من هذه المدن قصة غيّرت وجه العالم.",
+          "line": 10,
+          "props": {
+            "title": "مدن صنعت التاريخ",
+            "places": "بغداد\nالقاهرة\nقرطبة\nسمرقند",
+            "mode": "points",
+            "mover": "none",
+            "look": "night",
+            "zoom": "in",
+            "rivers": "on"
+          },
+          "id": "c1-s1",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "set-scene",
+          "narration": "قادة وقفوا على الأسوار في ليلة حاسمة، وكان قرار واحد يكفي ليتغير كل شيء.",
+          "line": 13,
+          "props": {
+            "set": "castle-walls",
+            "variant": "narrator-m",
+            "pose": "raise-hands",
+            "variant2": "",
+            "pose2": "stand",
+            "camera": "push",
+            "bubble": "",
+            "bubbleKind": "say",
+            "bubbleWho": "1",
+            "element": "",
+            "figure": "commander",
+            "expr": "neutral",
+            "figure2": "",
+            "expr2": "neutral",
+            "talk": ""
+          },
+          "id": "c1-s2",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "set-scene",
+          "narration": "وعلماء سهروا على المخطوطات حتى الفجر، ليبنوا حضارة كاملة من الورق والحبر.",
+          "line": 16,
+          "props": {
+            "set": "wisdom-library",
+            "variant": "narrator-m",
+            "pose": "point",
+            "variant2": "narrator-m",
+            "pose2": "hold",
+            "camera": "push",
+            "bubble": "أين وصلت الترجمة؟",
+            "bubbleKind": "say",
+            "bubbleWho": "1",
+            "element": "",
+            "figure": "ruler",
+            "expr": "neutral",
+            "figure2": "scholar",
+            "expr2": "worried",
+            "talk": "1"
+          },
+          "id": "c1-s3",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "set-scene",
+          "narration": "وتجار عبروا الصحراء بقوافلهم إلى أطراف الدنيا، يحملون البضائع والأفكار معًا.",
+          "line": 19,
+          "props": {
+            "set": "caravan",
+            "variant": "narrator-m",
+            "pose": "open-arms",
+            "variant2": "narrator-m",
+            "pose2": "point",
+            "camera": "pan",
+            "bubble": "إلى سمرقند؟",
+            "bubbleKind": "say",
+            "bubbleWho": "2",
+            "element": "",
+            "figure": "merchant",
+            "expr": "happy",
+            "figure2": "traveler",
+            "expr2": "surprised",
+            "talk": "2"
+          },
+          "id": "c1-s4",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "map-journey",
+          "narration": "كل أسبوع نفتح دفترًا من دفاتر الزمن، ونحكي القصة كما حدثت، من أولها إلى آخرها.",
+          "line": 22,
+          "props": {
+            "title": "من دمشق إلى قرطبة",
+            "places": "دمشق\nالقيروان\nجبل طارق\nقرطبة",
+            "mode": "route",
+            "mover": "caravan",
+            "look": "parchment",
+            "zoom": "follow",
+            "rivers": "on"
+          },
+          "id": "c1-s5",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "اشترك الآن، فالدفتر الأول يُفتح يوم الاثنين.",
+          "line": 25,
+          "props": {
+            "emphasis": "اشترك، الاثنين",
+            "element": "",
+            "stage": "dark"
+          },
+          "id": "c1-s6",
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    }
+  ]
+}

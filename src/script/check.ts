@@ -35,6 +35,8 @@ const frontmatterSchemaFor = (domains: string[]) => z.object({
   alt_titles: z.array(z.string()).optional(),
   lang: z.string().optional(),
   /** أسلوب العرض الافتراضي للمشاهد التي بلا علامة: templates (القوالب) أو board (السبورة المتصلة) */
+  /** trailer: إعلان القناة القصير (فصل واحد أو أكثر، بلا شروط عدد الفصول وطولها والاستشهادات) */
+  format: z.enum(["episode", "trailer"]).optional(),
   style: z.enum(["templates", "board", "glow", "kinetic"], { error: "الأسلوب (style) يجب أن يكون واحدًا من: templates، board، glow، kinetic." }).optional(),
 });
 
@@ -97,9 +99,10 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
     }
   }
   const isArabic = (fm?.lang ?? "ar") === "ar";
+  const trailer = (script.frontmatter as { format?: string } | undefined)?.format === "trailer";
 
   // الفصول
-  if (script.chapters.length !== config.chapters) {
+  if (!trailer && script.chapters.length !== config.chapters) {
     err("chapter-count", `السكريبت فيه ${script.chapters.length} فصول؛ المطلوب ${config.chapters} بالضبط.`, script.chapters[0]?.line);
   }
   script.chapters.forEach((ch, idx) => {
@@ -175,7 +178,7 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
     const words = countWords(narrationOf(ch));
     const seconds = Math.round((words / config.wordsPerMinute) * 60);
     stats.push({ number: ch.number, words, seconds });
-    if (narrationBlocks.length > 0 && (seconds < config.chapterSeconds.min || seconds > config.chapterSeconds.max)) {
+    if (!trailer && narrationBlocks.length > 0 && (seconds < config.chapterSeconds.min || seconds > config.chapterSeconds.max)) {
       warn(
         "chapter-length",
         `الفصل ${ch.number}: ${words} كلمة ≈ ${seconds} ثانية؛ المستهدف من ${config.chapterSeconds.min} إلى ${config.chapterSeconds.max} ثانية.`,
@@ -185,8 +188,8 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
   });
 
   // الاستشهادات
-  if (!script.hasCitationsSection) err("citations-missing", "قسم «## الاستشهادات» مفقود في آخر السكريبت.");
-  if (!script.practicalStep) err("step-missing", "قسم «## الخطوة العملية» مفقود أو فارغ.");
+  if (!trailer && !script.hasCitationsSection) err("citations-missing", "قسم «## الاستشهادات» مفقود في آخر السكريبت.");
+  if (!trailer && !script.practicalStep) err("step-missing", "قسم «## الخطوة العملية» مفقود أو فارغ.");
 
   const citedAyahKeys = new Map<string, number>();
   const citedHadith = new Map<string, number>();

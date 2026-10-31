@@ -72,7 +72,7 @@ export type QuranTexts = Record<string, string>;
  * - إن مُررت خطة سابقة تُحفظ تعديلات المستخدم للمشاهد التي لم يتغير قالبها.
  */
 export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}, channel: ChannelConfig = defaultChannel): Plan => {
-  const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string; style?: string };
+  const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string; style?: string; format?: string };
   // أسلوب الحلقة: المشاهد التي بلا علامة تُعرض بالسبورة المتصلة أو بالشخصية المتكلمة
   const defaultTemplate = ({ board: "board-story", glow: "glow-story", kinetic: "kinetic-text" } as Record<string, string>)[fm.style ?? ""] ?? "character-talk";
   const domain: Domain = fm.domain ?? Object.keys(channel.domains)[0] ?? "general";
@@ -214,7 +214,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
   }
 
   // شاشة النهاية: آخر مشهد في الحلقة، من «الخطوة العملية»
-  const lastChapter = chapters[chapters.length - 1];
+  // إعلان القناة (format: trailer) بلا شاشة نهاية
+  const lastChapter = (fm as { format?: string }).format === "trailer" ? undefined : chapters[chapters.length - 1];
   if (lastChapter) {
     const id = `c${lastChapter.number}-end`;
     const old = prevScenes.get(id);
