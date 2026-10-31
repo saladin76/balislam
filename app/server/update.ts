@@ -22,17 +22,33 @@ let cached: UpdateStatus | null = null;
 
 export type UpdateStatus = { available: boolean; behind: number; changes: string[]; error?: string };
 
+let updating = false;
+
 export const updateStatus = async (root: string, force = false): Promise<UpdateStatus> => {
-  if (!force && cached && Date.now() - lastFetch < 60_000) return cached;
-  lastFetch = Date.now();
-  const f = await git(root, ["fetch", "--quiet", "origin"]);
-  if (!f.ok) return (cached = { available: false, behind: 0, changes: [], error: "تعذّر الاتصال بـ GitHub للتحقق من التحديثات." });
+  if (updating) return { available: false, behind: 0, changes: [] };
+  // الجلب من GitHub مرة كل دقيقة على الأكثر، أما المقارنة بالنسخة المحلية فكل مرة (حتى لا يبقى الشريط بعد التحديث)
+  if (force || !cached || Date.now() - lastFetch >= 60_000) {
+    lastFetch = Date.now();
+    const f = await git(root, ["fetch", "--quiet", "origin"]);
+    if (!f.ok) return (cached = { available: false, behind: 0, changes: [], error: "تعذّر الاتصال بـ GitHub للتحقق من التحديثات." });
+  }
   const behind = Number((await git(root, ["rev-list", "--count", "HEAD..@{u}"])).out) || 0;
   const log = behind ? (await git(root, ["log", "--format=%s", "HEAD..@{u}"])).out.split("\n").filter(Boolean).slice(0, 8) : [];
   return (cached = { available: behind > 0, behind, changes: log });
 };
 
 export const applyUpdate = async (root: string): Promise<{ ok: boolean; message: string; reinstalled?: boolean }> => {
+  updating = true;
+  try {
+    await git(root, ["fetch", "--quiet", "origin"]);
+    return await doApply(root);
+  } finally {
+    updating = false;
+    cached = null;
+  }
+};
+
+const doApply = async (root: string): Promise<{ ok: boolean; message: string; reinstalled?: boolean }> => {
   const before = (await git(root, ["rev-parse", "HEAD"])).out;
   // ملف القفل يتغير أحيانًا بمجرد npm install؛ لا قيمة له محليًا
   await git(root, ["checkout", "--", "package-lock.json"]);

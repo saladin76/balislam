@@ -38,7 +38,22 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
       }
       setSt(null);
     } catch (e) {
-      setMsg({ text: (e as Error).message, err: true });
+      // التحديث يغيّر ملفات الخادم نفسه فيُعاد تشغيله وينقطع الطلب: ننتظر عودته ثم نعيد التحميل
+      if (e instanceof TypeError || /fetch|network|Load failed/i.test((e as Error).message)) {
+        setMsg({ text: "تم تنزيل التحديث، والاستوديو يعيد تشغيل نفسه… لحظات" });
+        setSt(null);
+        for (let i = 0; i < 40; i++) {
+          await new Promise((r) => setTimeout(r, 1000));
+          try {
+            await api.updateStatus(true);
+            window.location.reload();
+            return;
+          } catch {
+            /* لم يعد بعد */
+          }
+        }
+        setMsg({ text: "لم يرجع الاستوديو. أعد تحميل الصفحة (Cmd + R).", err: true });
+      } else setMsg({ text: (e as Error).message, err: true });
     } finally {
       setBusy(false);
     }
