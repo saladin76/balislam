@@ -275,7 +275,7 @@ const ArtInner: React.FC<Omit<ChannelArtProps, "identity" | "channel">> = ({ kin
 
   const goldText = (size: number): React.CSSProperties =>
     look.dark
-      ? { background: `linear-gradient(180deg, ${look.gold2} 0%, ${look.gold} 55%, ${look.goldDeep} 100%)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", paddingBottom: size * 0.08 }
+      ? { background: `linear-gradient(180deg, ${look.gold2} 0%, ${look.gold} 55%, ${look.goldDeep} 100%)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", paddingBottom: size * 0.08, paddingTop: size * 0.3, marginTop: -size * 0.3 }
       : { color: profile ? warm.logo.baa : look.ink };
 
   // ---------- صورة الحساب: الرمز والاسم داخل الدائرة ----------
@@ -289,7 +289,7 @@ const ArtInner: React.FC<Omit<ChannelArtProps, "identity" | "channel">> = ({ kin
             <LogoMark size={(look.dark ? 440 : 400) * u} colors={warm.logo} mark={ch.logo} tile={false} />
           </div>
           <div style={{ fontFamily: look.font, fontWeight: 700, fontSize: name, lineHeight: 1.05, whiteSpace: "nowrap", direction: "rtl", filter: look.dark ? `drop-shadow(0 0 ${18 * u}px ${look.gold}40)` : `drop-shadow(0 ${4 * u}px ${10 * u}px #00000033)`, ...goldText(name) }}>
-            {ch.name}
+            {ch.nameDisplay ?? ch.name}
           </div>
         </AbsoluteFill>
       </AbsoluteFill>
@@ -327,7 +327,7 @@ const ArtInner: React.FC<Omit<ChannelArtProps, "identity" | "channel">> = ({ kin
         {/* خط فاصل رأسي رفيع بين الرمز والاسم */}
         <div style={{ flex: "none", width: 2, height: safe.h * 0.62, background: `linear-gradient(180deg, transparent, ${accent}, transparent)`, opacity: 0.6 }} />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 * u }}>
-          <div style={{ fontFamily: look.font, fontWeight: 700, fontSize: nameSize, lineHeight: 1.1, whiteSpace: "nowrap", filter: look.dark ? `drop-shadow(0 0 ${22 * u}px ${look.gold}33)` : undefined, ...goldText(nameSize) }}>{ch.name}</div>
+          <div style={{ fontFamily: look.font, fontWeight: 700, fontSize: nameSize, lineHeight: 1.1, whiteSpace: "nowrap", filter: look.dark ? `drop-shadow(0 0 ${22 * u}px ${look.gold}33)` : undefined, ...goldText(nameSize) }}>{ch.nameDisplay ?? ch.name}</div>
           <Ornament width={nameSize * 3} color={accent} />
           {line ? <div style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: 50 * u, lineHeight: 1.3, color: look.dark ? look.ink : look.soft, whiteSpace: "nowrap" }}>{line}</div> : null}
           <div style={{ fontFamily: "'Readex Pro', sans-serif", fontWeight: 500, fontSize: 22 * u, letterSpacing: "0.42em", color: accent, opacity: 0.85, direction: "ltr", textTransform: "uppercase", whiteSpace: "nowrap", marginTop: 4 * u }}>{ch.nameLatin}</div>

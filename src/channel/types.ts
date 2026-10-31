@@ -16,6 +16,8 @@ export type ChannelConfig = {
   id: string;
   name: string;
   nameLatin: string;
+  /** الاسم كما يُرسم على الصور (بالتشكيل إن لزم)، والاسم العادي يبقى للبحث والنصوص */
+  nameDisplay?: string;
   /** لغة القناة الافتراضية (يمكن تجاوزها لكل حلقة بحقل lang) */
   language: string;
   description: string;
@@ -49,12 +51,12 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music">; cast?: ChannelConfig["cast"]; tone?: string };
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music">; cast?: ChannelConfig["cast"]; tone?: string };
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;
 
-export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music } });
+export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music } });
 
 export const domainIds = (c: ChannelConfig) => Object.keys(c.domains);
 

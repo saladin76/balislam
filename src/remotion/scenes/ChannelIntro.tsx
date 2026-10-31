@@ -113,7 +113,7 @@ const CinematicIntro: React.FC<P & { look: CineLook }> = ({ frame, fps, portrait
             </div>
           </div>
           <div style={{ opacity: nameIn, textAlign: "center" }}>
-            <div style={{ fontFamily: look.font, fontWeight: 700, fontSize: portrait ? 132 : 118, letterSpacing: spacing, background: `linear-gradient(180deg, ${look.gold2} 0%, ${look.gold} 60%, #8A6326 100%)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", lineHeight: 1.3, filter: `drop-shadow(0 4px 18px ${look.bg})` }}>{ch.name}</div>
+            <div style={{ fontFamily: look.font, fontWeight: 700, fontSize: portrait ? 132 : 118, letterSpacing: spacing, background: `linear-gradient(180deg, ${look.gold2} 0%, ${look.gold} 60%, #8A6326 100%)`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", lineHeight: 1.3, paddingTop: 40, marginTop: -40, filter: `drop-shadow(0 4px 18px ${look.bg})` }}>{ch.nameDisplay ?? ch.name}</div>
             <svg width={portrait ? 520 : 460} height={24} viewBox="0 0 460 24" style={{ display: "block", margin: "6px auto 0" }}>
               <path d="M10 12 H200 M260 12 H450" stroke={look.gold} strokeWidth={2} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - nameIn} />
               <path d={`M230 3 L239 12 L230 21 L221 12 Z`} fill={look.gold} opacity={nameIn} />
