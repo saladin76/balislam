@@ -58,6 +58,16 @@ program
   });
 
 program
+  .command("art")
+  .description("رندر صور القنوات للمنصات: صورة الحساب وأغلفة يوتيوب وفيسبوك وX (bal art أو bal art dafatir-alzaman)")
+  .argument("[channels...]")
+  .action(async (channels: string[]) => {
+    const { renderChannelArt } = await import("../render/stills");
+    const files = await renderChannelArt({ channels, onProgress: (m) => console.log(m) });
+    console.log(`تم: ${files.length} صورة في renders/brand/`);
+  });
+
+program
   .command("elements")
   .description("تصدير مكتبة العناصر: SVG لكل ثيم + manifest.json + كتالوج HTML")
   .action(async () => {
