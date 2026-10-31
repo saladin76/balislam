@@ -192,9 +192,21 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const episodes = await channelMod.runWithChannel(id, () => buildOverview(cp.episodes, load));
       const ideasFile = path.join(cp.dir, "ideas.json");
       const ideas = existsSync(ideasFile) ? JSON.parse(await readFile(ideasFile, "utf8")) : [];
-      out.push({ channel: { id: c.id, name: c.name, language: c.language, schedule: c.schedule ?? null, domains: c.domains }, episodes, ideas });
+      const calFile = path.join(cp.dir, "calendar.json");
+      const calendar = existsSync(calFile) ? JSON.parse(await readFile(calFile, "utf8")) : {};
+      out.push({ channel: { id: c.id, name: c.name, language: c.language, schedule: c.schedule ?? null, domains: c.domains }, episodes, ideas, calendar });
     }
     send(res, 200, out);
+    return true;
+  }
+
+  // تقويم القناة: شورتس كل يوم وملاحظاته وأيام الإجازة (channels/<id>/calendar.json)
+  if (parts[0] === "calendar" && req.method === "PUT") {
+    const channelMod = await load("/src/channel/index.ts");
+    const { calendar } = await readBody(req);
+    if (!calendar || typeof calendar !== "object" || Array.isArray(calendar) || Object.keys(calendar).some((k) => !/^\d{4}-\d{2}-\d{2}$/.test(k))) return send(res, 400, { error: "التقويم غير صالح." }), true;
+    await writeFile(path.join(channelMod.channelPaths(ch).dir, "calendar.json"), JSON.stringify(calendar, null, 2) + "\n", "utf8");
+    send(res, 200, { ok: true });
     return true;
   }
 

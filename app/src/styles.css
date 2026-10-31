@@ -344,3 +344,11 @@ details.box > summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
 .brand-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 14px; align-items: start; }
 .brand-prev { direction: ltr; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #000; }
 .chip.on { background: var(--accent-soft); border-color: var(--accent); }
+button.ops-cell, div.ops-cell[role="button"] { cursor: pointer; font: inherit; border-color: transparent; }
+button.ops-cell.short { border: 1px solid transparent; }
+.ops-cell:hover { outline: 2px solid var(--accent-soft); }
+.ops-cell.short.set { background: #EEF4EA; color: #2F5B2F; }
+.ops-cell.off { background: repeating-linear-gradient(135deg, var(--panel-2) 0 8px, #EDE6DA 8px 16px); color: var(--muted); align-items: center; justify-content: center; border: 1px dashed var(--line); }
+.ops-note { color: #8A5A00; }
+button.ops-ch { text-align: start; font: inherit; cursor: pointer; border: 0; border-inline-start: 4px solid; }
+button.ops-ch:hover { background: var(--accent-soft); }

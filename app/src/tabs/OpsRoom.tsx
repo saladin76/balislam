@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { api, type Idea, type OpsChannel, type Overview } from "../api";
+import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
 
 /**
@@ -81,11 +81,15 @@ export const OpsRoom: React.FC<{
     api.ops().then(setData).catch((e) => setErr((e as Error).message));
   }, [tick, refreshKey]);
 
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [editDay, setEditDay] = useState<{ ch: string; date: string } | null>(null);
+  const [editCh, setEditCh] = useState<string | null>(null);
   const week = useMemo(() => {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    return Array.from({ length: 7 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
-  }, []);
+    return Array.from({ length: 7 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i + weekOffset * 7));
+  }, [weekOffset]);
+  const todayIso = iso(new Date());
 
   if (err) return <div className="render-box"><b>غرفة العمليات</b><span className="help">{err}</span></div>;
   if (!data) return <div className="render-box"><span className="help">جارٍ تجهيز غرفة العمليات…</span></div>;
@@ -129,63 +133,82 @@ export const OpsRoom: React.FC<{
 
       {/* الأسبوع */}
       <section className="ops-sec">
-        <h2>هذا الأسبوع</h2>
+        <div className="toolbar" style={{ marginBottom: 10 }}>
+          <h2 style={{ margin: 0 }}>{weekOffset === 0 ? "هذا الأسبوع" : weekOffset === 1 ? "الأسبوع القادم" : weekOffset === -1 ? "الأسبوع الماضي" : `أسبوع ${week[0]!.getDate()}/${week[0]!.getMonth() + 1}`}</h2>
+          <span className="help">اضغط على أي يوم لتعدّله، أو على اسم القناة لتغيّر يومها وساعتها.</span>
+          <span className="spacer" />
+          <button className="btn small" onClick={() => setWeekOffset((w) => w - 1)}>→ السابق</button>
+          {weekOffset !== 0 ? <button className="btn small" onClick={() => setWeekOffset(0)}>اليوم</button> : null}
+          <button className="btn small" onClick={() => setWeekOffset((w) => w + 1)}>التالي ←</button>
+        </div>
         <div className="ops-week" style={{ gridTemplateColumns: `140px repeat(7, minmax(0, 1fr))` }}>
           <div />
           {week.map((d, i) => (
-            <div key={i} className={`ops-day ${i === 0 ? "today" : ""}`}>
-              <b>{i === 0 ? "اليوم" : DAYS[d.getDay()]}</b>
+            <div key={i} className={`ops-day ${iso(d) === todayIso ? "today" : ""}`}>
+              <b>{iso(d) === todayIso ? "اليوم" : DAYS[d.getDay()]}</b>
               <span>{d.getDate()}/{d.getMonth() + 1}</span>
             </div>
           ))}
           {data.map((d) => {
             const sch = d.channel.schedule;
             const used = new Set<string>();
-            // ترتيب الحلقات المرشحة للأيام القادمة: غير المنشورة وغير المجدولة، الأقدم أولًا
-            // الحلقة 000 تجريبية لا تُقترح للنشر
+            // ترتيب الحلقات المرشحة للأيام القادمة: غير المنشورة وغير المجدولة، الأقدم أولًا (000 تجريبية لا تُقترح)
             const queue = d.episodes.filter((e) => e.id !== "000" && !e.status.published && !e.status.scheduled).sort((a, b) => a.id.localeCompare(b.id));
             return (
               <React.Fragment key={d.channel.id}>
-                <div className="ops-ch" style={{ borderInlineStartColor: color(d.channel.id) }}>
+                <button className="ops-ch" style={{ borderInlineStartColor: color(d.channel.id) }} onClick={() => setEditCh(d.channel.id)} title="تعديل يوم الحلقة والساعة">
                   <b>{d.channel.name}</b>
-                  <span className="help">{sch ? `حلقة كل ${DAYS[sch.longDay]}` : "بلا جدول"}</span>
-                </div>
+                  <span className="help">{sch ? `حلقة كل ${DAYS[sch.longDay]}${sch.time ? ` · ${sch.time}` : ""}` : "بلا جدول"} ✎</span>
+                </button>
                 {week.map((day, i) => {
                   const date = iso(day);
+                  const cal = d.calendar?.[date];
+                  const open = () => setEditDay({ ch: d.channel.id, date });
+                  const fixed = d.episodes.find((e) => e.status.scheduled === date || e.status.published?.date === date);
                   const isLong = sch && day.getDay() === sch.longDay;
-                  if (!isLong) {
-                    const source = [...d.episodes].filter((e) => (e.status.published?.date ?? e.status.scheduled ?? "9999") <= date).sort((a, b) => b.id.localeCompare(a.id))[0];
+                  const shorts = shortsFor(d, date);
+                  const shortsLine = shorts.length ? shorts.map((x) => `شورت ${x.n} من ${x.ep}`).join("، ") : "";
+                  if (cal?.off) {
                     return (
-                      <div key={i} className="ops-cell short">
-                        <span>شورت</span>
-                        <small>{source ? `من الحلقة ${source.id}` : "لا حلقة بعد"}</small>
-                      </div>
+                      <button key={i} className="ops-cell off" onClick={open}>
+                        <b>بلا نشر</b>
+                        {cal.note ? <small>{cal.note}</small> : null}
+                      </button>
                     );
                   }
-                  const fixed = d.episodes.find((e) => e.status.scheduled === date || e.status.published?.date === date);
                   if (fixed) {
                     used.add(fixed.id);
                     const st = stageOf(fixed);
                     return (
-                      <div key={i} className={`ops-cell long ${st === "published" ? "done" : st === "scheduled" && stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
-                        <button className="linkish" onClick={() => onOpen(d.channel.id, fixed.id, tabFor(st))}>🎬 {fixed.id} · {fixed.title || fixed.dir}</button>
+                      <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
+                        <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {fixed.id} · {fixed.title || fixed.dir}</button>
                         <small>{st === "published" ? "منشورة" : stagesOf(fixed)[3]!.state === "done" ? "الفيديو جاهز" : "الفيديو لم يكتمل بعد!"}</small>
-                        {st !== "published" ? <button className="btn ghost small" onClick={() => setScheduled(d.channel.id, fixed, undefined)}>إلغاء الموعد</button> : null}
+                        {shortsLine ? <small>+ {shortsLine}</small> : null}
+                        {cal?.note ? <small className="ops-note">{cal.note}</small> : null}
                       </div>
                     );
                   }
-                  const next = queue.find((e) => !used.has(e.id));
-                  if (next) used.add(next.id);
-                  return next ? (
-                    <div key={i} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
-                      <span>مقترح: {next.id} · {next.title || next.dir}</span>
-                      <button className="btn small primary" onClick={() => setScheduled(d.channel.id, next, date)}>ثبّتها لهذا اليوم</button>
-                    </div>
-                  ) : (
-                    <div key={i} className="ops-cell long empty">
-                      <b>فاضي</b>
-                      <small>محتاج حلقة لـ{d.channel.name}</small>
-                    </div>
+                  if (isLong && date >= todayIso) {
+                    const next = queue.find((e) => !used.has(e.id));
+                    if (next) used.add(next.id);
+                    return next ? (
+                      <div key={i} role="button" tabIndex={0} onClick={open} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
+                        <span>مقترح: {next.id} · {next.title || next.dir}</span>
+                        <button className="btn small primary" onClick={(e) => { e.stopPropagation(); setScheduled(d.channel.id, next, date); }}>ثبّتها لهذا اليوم</button>
+                      </div>
+                    ) : (
+                      <button key={i} className="ops-cell long empty" onClick={open}>
+                        <b>فاضي</b>
+                        <small>محتاج حلقة لـ{d.channel.name}</small>
+                      </button>
+                    );
+                  }
+                  return (
+                    <button key={i} className={`ops-cell short ${cal?.shorts ? "set" : ""}`} onClick={open}>
+                      <span>{shorts.length ? (shorts.length > 1 ? `${shorts.length} شورتس` : "شورت") : "شورت"}</span>
+                      <small>{shortsLine || "لا شورت متاح"}</small>
+                      {cal?.note ? <small className="ops-note">{cal.note}</small> : null}
+                    </button>
                   );
                 })}
               </React.Fragment>
@@ -193,6 +216,19 @@ export const OpsRoom: React.FC<{
           })}
         </div>
       </section>
+      {editDay ? (
+        <DayEditor
+          ops={data.find((d) => d.channel.id === editDay.ch)!}
+          date={editDay.date}
+          auto={shortsFor({ ...data.find((d) => d.channel.id === editDay.ch)!, calendar: {} }, editDay.date)}
+          onClose={() => setEditDay(null)}
+          onSaved={() => {
+            setEditDay(null);
+            setTick((t) => t + 1);
+          }}
+        />
+      ) : null}
+      {editCh ? <ChannelScheduleEditor channel={editCh} name={data.find((d) => d.channel.id === editCh)?.channel.name ?? ""} onClose={() => setEditCh(null)} onSaved={() => { setEditCh(null); setTick((t) => t + 1); }} /> : null}
 
       {/* خط الإنتاج */}
       <section className="ops-sec">
@@ -244,6 +280,168 @@ export const OpsRoom: React.FC<{
           ))}
         </div>
       </section>
+    </div>
+  );
+};
+
+/** شورتس يوم: ما حُدد في التقويم، وإلا التلقائي (اليوم n بعد آخر حلقة طويلة = الشورت n منها، حتى 6). */
+const shortsFor = (d: OpsChannel, date: string): { ep: string; n: number }[] => {
+  const cal = d.calendar?.[date];
+  if (cal?.shorts) return cal.shorts;
+  if (cal?.off) return [];
+  const per = d.channel.schedule?.shortsPerDay ?? 1;
+  if (!per) return [];
+  const dated = d.episodes
+    .map((e) => ({ e, at: e.status.published?.date ?? e.status.scheduled }))
+    .filter((x): x is { e: Overview; at: string } => Boolean(x.at) && x.at! < date)
+    .sort((a, b) => b.at.localeCompare(a.at))[0];
+  if (!dated) return [];
+  const days = Math.round((Date.parse(date) - Date.parse(dated.at)) / 86400000);
+  const out: { ep: string; n: number }[] = [];
+  for (let k = 0; k < per; k++) {
+    const n = (days - 1) * per + k + 1;
+    if (n >= 1 && n <= 6) out.push({ ep: dated.e.id, n });
+  }
+  return out;
+};
+
+const fmtDay = (date: string) => {
+  const d = new Date(`${date}T00:00:00`);
+  return `${DAYS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+};
+
+/** تعديل يوم في تقويم قناة: الحلقة الطويلة، والشورتس، ويوم بلا نشر، وملاحظة. */
+const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n: number }[]; onClose: () => void; onSaved: () => void }> = ({ ops, date, auto, onClose, onSaved }) => {
+  const ch = ops.channel.id;
+  const cal: CalendarDay = ops.calendar?.[date] ?? {};
+  const current = ops.episodes.find((e) => e.status.scheduled === date);
+  const publishedHere = ops.episodes.find((e) => e.status.published?.date === date);
+  const [long, setLong] = useState(current?.id ?? "");
+  const [custom, setCustom] = useState(Boolean(cal.shorts));
+  const [shorts, setShorts] = useState<{ ep: string; n: number }[]>(cal.shorts ?? auto);
+  const [off, setOff] = useState(Boolean(cal.off));
+  const [note, setNote] = useState(cal.note ?? "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const longOptions = ops.episodes.filter((e) => !e.status.published && (!e.status.scheduled || e.status.scheduled === date));
+  const eps = [...ops.episodes].sort((a, b) => a.id.localeCompare(b.id));
+
+  const save = async () => {
+    setBusy(true);
+    setErr("");
+    try {
+      // الحلقة الطويلة: تُنقل من يومها السابق إلى هذا اليوم (أو يُلغى موعدها)
+      if (current && current.id !== long) {
+        const st = { ...(await api.statusFor(ch, current.id)) };
+        delete st.scheduled;
+        await api.saveStatusFor(ch, current.id, st);
+      }
+      if (long && long !== current?.id) {
+        const st = { ...(await api.statusFor(ch, long)), scheduled: date };
+        await api.saveStatusFor(ch, long, st);
+      }
+      const next = { ...(ops.calendar ?? {}) };
+      const day: CalendarDay = {};
+      if (off) day.off = true;
+      if (custom && !off) day.shorts = shorts.filter((x) => x.ep && x.n >= 1 && x.n <= 6);
+      if (note.trim()) day.note = note.trim();
+      if (Object.keys(day).length) next[date] = day;
+      else delete next[date];
+      await api.saveCalendar(ch, next);
+      onSaved();
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ width: 560 }}>
+        <div className="modal-head"><h3>{ops.channel.name} · {fmtDay(date)}</h3></div>
+        <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <label className="check"><input type="checkbox" checked={off} onChange={(e) => setOff(e.target.checked)} /><span>يوم بلا نشر في هذه القناة</span></label>
+
+          {!off ? (
+            <>
+              <label className="field">
+                <span>الحلقة الطويلة في هذا اليوم {publishedHere ? <small>(نُشرت فيه: {publishedHere.id})</small> : null}</span>
+                <select value={long} onChange={(e) => setLong(e.target.value)}>
+                  <option value="">بدون حلقة طويلة</option>
+                  {longOptions.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
+                </select>
+                <span className="help">تقدر تنزّل حلقة طويلة في أي يوم، مش بس يوم القناة. اختيار حلقة مجدولة في يوم تاني بينقلها لهنا.</span>
+              </label>
+
+              <div className="field">
+                <span>الشورتس</span>
+                <label className="check"><input type="checkbox" checked={!custom} onChange={(e) => { setCustom(!e.target.checked); if (e.target.checked) setShorts(auto); }} /><span>تلقائي{auto.length ? `: ${auto.map((x) => `شورت ${x.n} من ${x.ep}`).join("، ")}` : " (لا شورت متاح في هذا اليوم)"}</span></label>
+                {custom ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {shorts.map((x, i) => (
+                      <div key={i} style={{ display: "flex", gap: 6 }}>
+                        <select value={x.ep} onChange={(e) => setShorts(shorts.map((y, k) => (k === i ? { ...y, ep: e.target.value } : y)))} style={{ flex: 1 }}>
+                          {eps.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
+                        </select>
+                        <select value={x.n} onChange={(e) => setShorts(shorts.map((y, k) => (k === i ? { ...y, n: Number(e.target.value) } : y)))} style={{ width: 110 }}>
+                          {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>شورت {n}</option>)}
+                        </select>
+                        <button className="btn ghost small" onClick={() => setShorts(shorts.filter((_, k) => k !== i))}>حذف</button>
+                      </div>
+                    ))}
+                    <button className="btn small" style={{ alignSelf: "flex-start" }} disabled={!eps.length} onClick={() => setShorts([...shorts, { ep: shorts.at(-1)?.ep ?? eps.at(-1)?.id ?? "", n: Math.min(6, (shorts.at(-1)?.n ?? 0) + 1) }])}>+ أضف شورت</button>
+                    {!shorts.length ? <span className="help">بلا شورتس في هذا اليوم.</span> : null}
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+
+          <label className="field"><span>ملاحظة</span><input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلًا: يوم عرفة، نشر مبكر، تعاون مع قناة…" /></label>
+          {err ? <span className="help" style={{ color: "var(--err)" }}>{err}</span> : null}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button className="btn" onClick={onClose}>إلغاء</button>
+            <button className="btn primary" disabled={busy} onClick={save}>{busy ? "جارٍ الحفظ…" : "حفظ"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** يوم الحلقة الطويلة وساعتها وعدد الشورتس اليومي لقناة. */
+const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: () => void; onSaved: () => void }> = ({ channel, name, onClose, onSaved }) => {
+  const [c, setC] = useState<Awaited<ReturnType<typeof api.channelFor>> | null>(null);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    api.channelFor(channel).then(setC).catch((e) => setErr((e as Error).message));
+  }, [channel]);
+  const sch = c?.schedule ?? { longDay: 6, time: "19:00", shortsPerDay: 1 };
+  const set = (patch: Partial<typeof sch>) => c && setC({ ...c, schedule: { ...sch, ...patch } });
+  return (
+    <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ width: 460 }}>
+        <div className="modal-head"><h3>جدول «{name}»</h3></div>
+        <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {!c ? <span className="help">{err || "جارٍ التحميل…"}</span> : (
+            <>
+              <label className="field">
+                <span>يوم الحلقة الطويلة</span>
+                <select value={sch.longDay} onChange={(e) => set({ longDay: Number(e.target.value) })}>
+                  {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                </select>
+              </label>
+              <label className="field"><span>ساعة النشر</span><input type="text" dir="ltr" value={sch.time ?? ""} onChange={(e) => set({ time: e.target.value })} placeholder="19:00" /></label>
+              <label className="field"><span>شورتس في اليوم (تلقائيًا من آخر حلقة)</span><input type="number" min={0} max={3} value={sch.shortsPerDay ?? 1} onChange={(e) => set({ shortsPerDay: Number(e.target.value) })} /></label>
+              {err ? <span className="help" style={{ color: "var(--err)" }}>{err}</span> : null}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button className="btn" onClick={onClose}>إلغاء</button>
+                <button className="btn primary" onClick={async () => { try { await api.saveChannelFor(channel, c); onSaved(); } catch (e) { setErr((e as Error).message); } }}>حفظ</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
