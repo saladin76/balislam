@@ -18,9 +18,9 @@
         "captionInk": "#F3EADA"
       },
       "logo": {
-        "tile": "#7A2A1F",
-        "baa": "#F3EADA",
-        "play": "#E9D3A6"
+        "tile": "#120D0A",
+        "baa": "#D4A24C",
+        "play": "#9B2C20"
       },
       "character": {
         "style": "line",
@@ -57,9 +57,9 @@
         "captionInk": "#F2E6D8"
       },
       "logo": {
-        "tile": "#A3472F",
-        "baa": "#F2E6D8",
-        "play": "#EBC79A"
+        "tile": "#120D0A",
+        "baa": "#D4A24C",
+        "play": "#9B2C20"
       },
       "character": {
         "style": "flat",
@@ -96,9 +96,9 @@
         "captionInk": "#141019"
       },
       "logo": {
-        "tile": "#D9A441",
-        "baa": "#141019",
-        "play": "#8E2F23"
+        "tile": "#120D0A",
+        "baa": "#D4A24C",
+        "play": "#9B2C20"
       },
       "character": {
         "style": "flat",
@@ -135,9 +135,9 @@
         "captionInk": "#EFE3CC"
       },
       "logo": {
-        "tile": "#8E2F23",
-        "baa": "#EFE3CC",
-        "play": "#E7C981"
+        "tile": "#120D0A",
+        "baa": "#D4A24C",
+        "play": "#9B2C20"
       },
       "character": {
         "style": "flat",

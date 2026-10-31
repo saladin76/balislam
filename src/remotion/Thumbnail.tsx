@@ -48,72 +48,59 @@ const splitTitle = (title: string, highlight?: string) => {
   return groups;
 };
 
-/**
- * دفاتر الزمن: رَقّ قديم بحافة محروقة، العنوان بحبر بني كبير والكلمة المهمة بأحمر الختم مع خط تحتها،
- * والعنصر داخل إطار بيضاوي كصورة أرشيفية، وختم القناة في الزاوية.
- */
-const ArchiveThumb: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = ({ themeId, title, highlight, element }) => {
+/** مشترك للأسلوب السينمائي: خلفية داكنة بضوء جانبي، عنصر داخل إطار ذهبي متوهج، عنوان كريمي بكلمة ذهبية. */
+const CineThumb: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang"> & { look: { bg: string; glow: string; gold: string; cream: string; font: string; frame: "oval" | "book"; badge?: string } }> = ({ themeId, title, highlight, element, look }) => {
   const t = useTheme(themeId);
-  const c = t.colors;
-  const el = element && hasElement(element) ? element : "scroll";
+  const el = element && hasElement(element) ? element : "question-mark";
   const groups = splitTitle(title, highlight);
-  const size = title.length > 34 ? 82 : title.length > 22 ? 96 : 110;
+  const size = title.length > 34 ? 80 : title.length > 22 ? 94 : 108;
   return (
-    <AbsoluteFill style={{ background: "#EADBC0", direction: useLang().dir, fontFamily: fontFamilies.heading, overflow: "hidden" }}>
-      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 45%, #F6EBD3 0%, #E4D0AC 60%, #8A6A43 130%)" }} />
-      <AbsoluteFill style={{ boxShadow: "inset 0 0 120px 30px rgba(60,35,15,.55)" }} />
-      <div style={{ position: "absolute", insetInlineEnd: 60, top: 110, width: 430, height: 500, borderRadius: "50%", background: c.bg, border: "10px double #5A3A22", display: "grid", placeItems: "center", boxShadow: "0 10px 30px rgba(60,35,15,.4)", filter: "sepia(0.35)" }}>
-        <Element id={hasElement(el) ? el : "question-mark"} theme={t} size={330} />
+    <AbsoluteFill style={{ background: look.bg, direction: useLang().dir, fontFamily: look.font, overflow: "hidden" }}>
+      <AbsoluteFill style={{ background: `radial-gradient(ellipse at 24% 52%, ${look.glow} 0%, transparent 52%)` }} />
+      <AbsoluteFill style={{ background: `linear-gradient(90deg, transparent 40%, ${look.bg}cc 70%)` }} />
+      {/* العنصر داخل إطار */}
+      <div style={{ position: "absolute", insetInlineEnd: 90, top: 95, width: 400, height: look.frame === "oval" ? 520 : 470, display: "grid", placeItems: "center" }}>
+        {look.frame === "oval" ? (
+          <>
+            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `5px solid ${look.gold}`, boxShadow: `0 0 50px ${look.gold}55, inset 0 0 60px ${look.bg}` }} />
+            <div style={{ position: "absolute", inset: 14, borderRadius: "50%", border: `1.5px solid ${look.gold}99` }} />
+            <div style={{ position: "absolute", inset: 22, borderRadius: "50%", background: `radial-gradient(circle at 50% 40%, #F3E3C2 0%, #C9A877 80%)`, filter: "sepia(.25)" }} />
+          </>
+        ) : (
+          <>
+            <div style={{ position: "absolute", inset: 0, borderRadius: "8px 22px 22px 8px", background: `linear-gradient(135deg, #12303A, #0A1A20)`, border: `4px solid ${look.gold}`, boxShadow: `22px 26px 50px rgba(0,0,0,.6), 0 0 40px ${look.gold}33` }} />
+            <div style={{ position: "absolute", top: 12, bottom: 12, insetInlineStart: 26, width: 3, background: `${look.gold}88` }} />
+            <div style={{ position: "absolute", top: -8, insetInlineEnd: 70, width: 40, height: 120, background: look.cream, clipPath: "polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)" }} />
+            <div style={{ position: "absolute", width: 290, height: 290, borderRadius: "50%", background: `radial-gradient(circle, #F7EBD3 0%, #E4D3AE 75%)` }} />
+          </>
+        )}
+        <div style={{ position: "relative" }}><Element id={el} theme={t} size={look.frame === "oval" ? 320 : 240} /></div>
       </div>
-      <div style={{ position: "absolute", insetInlineStart: 70, top: 0, bottom: 0, width: 690, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14 }}>
-        <div style={{ fontWeight: 800, fontSize: size, lineHeight: 1.22, color: "#2E1F14", display: "flex", flexWrap: "wrap", gap: "0 20px", textWrap: "balance" }}>
-          {groups.map((g, i) => (g.on ? <span key={i} style={{ color: "#8E2F23", borderBottom: "8px solid #8E2F23", paddingBottom: 2 }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
+      <div style={{ position: "absolute", insetInlineStart: 64, top: 0, bottom: 0, width: 700, display: "flex", flexDirection: "column", justifyContent: "center", gap: 20 }}>
+        {look.badge ? <span style={{ alignSelf: "flex-start", border: `2px solid ${look.gold}`, color: look.gold, fontWeight: 700, fontSize: 34, borderRadius: 10, padding: "2px 18px", fontFamily: fontFamilies.heading }}>{look.badge}</span> : null}
+        <div style={{ fontWeight: 700, fontSize: size, lineHeight: 1.25, color: look.cream, display: "flex", flexWrap: "wrap", gap: "0 20px", textWrap: "balance", textShadow: "0 6px 24px rgba(0,0,0,.6)" }}>
+          {groups.map((g, i) => (g.on ? <span key={i} style={{ color: look.gold }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
         </div>
+        <div style={{ width: 160, height: 3, background: `linear-gradient(90deg, ${look.gold}, transparent)` }} />
       </div>
-      <div style={{ position: "absolute", bottom: 40, insetInlineStart: 60, display: "flex", alignItems: "center", gap: 12 }}>
-        <ChannelLogo theme={t} size={60} />
-        <span style={{ fontWeight: 700, fontSize: 32, color: "#2E1F14" }}><ChannelName /></span>
+      <AbsoluteFill style={{ boxShadow: `inset 0 0 160px 40px ${look.bg}` }} />
+      <div style={{ position: "absolute", bottom: 34, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 12 }}>
+        <ChannelLogo theme={t} size={56} />
+        <span style={{ fontWeight: 700, fontSize: 30, color: look.cream, fontFamily: look.font }}><ChannelName /></span>
       </div>
     </AbsoluteFill>
   );
 };
 
-/**
- * زبدة الكتب: غلاف كتاب ثلاثي الأبعاد يسارًا بلون الثيم وعليه العنصر، والعنوان كبير يمينًا
- * مع شارة «في دقائق» بالكهرماني، على خلفية داكنة تبرز على الهاتف.
- */
-const CoverThumb: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = ({ themeId, title, highlight, element }) => {
-  const t = useTheme(themeId);
-  const c = t.colors;
-  const el = element && hasElement(element) ? element : "book-open";
-  const groups = splitTitle(title, highlight);
-  const size = title.length > 34 ? 80 : title.length > 22 ? 94 : 108;
-  return (
-    <AbsoluteFill style={{ background: "#0F1A20", direction: useLang().dir, fontFamily: fontFamilies.heading, overflow: "hidden" }}>
-      <AbsoluteFill style={{ background: "radial-gradient(circle at 78% 55%, #1F4D52 0%, transparent 55%)" }} />
-      <div style={{ position: "absolute", insetInlineEnd: 110, top: 100, width: 360, height: 500, perspective: 1200 }}>
-        <div style={{ position: "absolute", inset: 0, transform: "rotateY(-22deg)", transformStyle: "preserve-3d" }}>
-          <div style={{ position: "absolute", inset: 0, background: c.primary, borderRadius: "6px 16px 16px 6px", boxShadow: "18px 22px 40px rgba(0,0,0,.55)", display: "grid", placeItems: "center", border: "4px solid rgba(255,255,255,.15)" }}>
-            <div style={{ background: c.surface, borderRadius: "50%", width: 260, height: 260, display: "grid", placeItems: "center" }}>
-              <Element id={hasElement(el) ? el : "question-mark"} theme={t} size={210} />
-            </div>
-          </div>
-          <div style={{ position: "absolute", top: 8, bottom: 8, insetInlineStart: "100%", width: 26, background: "repeating-linear-gradient(to bottom, #F2EDE2 0 3px, #D9D2C2 3px 5px)", transform: "translateX(-2px)" }} />
-        </div>
-      </div>
-      <div style={{ position: "absolute", insetInlineStart: 64, top: 0, bottom: 0, width: 720, display: "flex", flexDirection: "column", justifyContent: "center", gap: 22 }}>
-        <span style={{ alignSelf: "flex-start", background: "#FFB547", color: "#0F1A20", fontWeight: 800, fontSize: 40, borderRadius: 12, padding: "4px 20px" }}>في دقائق</span>
-        <div style={{ fontWeight: 800, fontSize: size, lineHeight: 1.22, color: "#EEF3F2", display: "flex", flexWrap: "wrap", gap: "0 20px", textWrap: "balance" }}>
-          {groups.map((g, i) => (g.on ? <span key={i} style={{ color: "#FFB547" }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
-        </div>
-      </div>
-      <div style={{ position: "absolute", top: 34, insetInlineStart: 40, display: "flex", alignItems: "center", gap: 12 }}>
-        <ChannelLogo theme={t} size={58} />
-        <span style={{ fontWeight: 700, fontSize: 30, color: "#EEF3F2" }}><ChannelName /></span>
-      </div>
-    </AbsoluteFill>
-  );
-};
+/** دفاتر الزمن: أسود دافئ وذهب، صورة أرشيفية في إطار بيضاوي، وخط أميري */
+const ArchiveThumb: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = (p) => (
+  <CineThumb {...p} element={p.element || "scroll"} look={{ bg: "#0C0907", glow: "#4A2E16", gold: "#D4A24C", cream: "#F1E3C6", font: "'Amiri', serif", frame: "oval" }} />
+);
+
+/** زبدة الكتب: أزرق ليلي وكهرماني، كتاب مجسّم بشريط، وشارة «في دقائق» */
+const CoverThumb: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = (p) => (
+  <CineThumb {...p} element={p.element || "book-open"} look={{ bg: "#071116", glow: "#1A4552", gold: "#F2C46D", cream: "#F3EEE4", font: fontFamilies.heading, frame: "book", badge: "في دقائق" }} />
+);
 
 /** بالإسلام: العنوان يمينًا، والعنصر داخل دائرة بلون التمييز، والشعار في الزاوية. */
 const CircleThumb: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = ({ themeId, title, highlight, element }) => {

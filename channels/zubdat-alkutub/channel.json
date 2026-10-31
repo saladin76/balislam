@@ -6,8 +6,8 @@
   "description": "خلاصة أهم الكتب في دقائق: الأفكار التي تغيّر طريقة تفكيرك وعملك ومالك.",
   "masterTheme": "paper",
   "logo": {
-    "type": "letter",
-    "letter": "ز"
+    "type": "emblem",
+    "emblem": "bookmark-star"
   },
   "domains": {
     "self": {
