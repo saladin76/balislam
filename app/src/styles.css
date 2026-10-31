@@ -328,3 +328,14 @@ details.box > summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
 .ops-idea { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .ops-idea-row { display: flex; gap: 6px; align-items: center; }
 .ops-idea-row select { flex: 1; font-size: 12px; }
+
+/* معرض القوالب وأماكن التصوير */
+.tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; padding: 4px 0 30px; }
+.tpl-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.tpl-prev { background: var(--panel-2); aspect-ratio: 16 / 9; overflow: hidden; direction: ltr; }
+.tpl-info { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.tpl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tpl-ch { display: flex; gap: 6px; flex-wrap: wrap; }
+.tpl-dot { font-size: 11px; border-radius: 6px; padding: 1px 6px; }
+.tpl-dot.on { background: #EAF5EC; color: #2F6B3A; }
+.tpl-dot.off { background: #F6EDEA; color: #9A4A3A; }

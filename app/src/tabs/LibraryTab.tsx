@@ -5,25 +5,34 @@ import { categoryNamesAr, categoryOrder, type ElementCategory } from "../../../b
 import { Character, characterNamesAr, characterPoseNamesAr, characterPoses, characterVariants } from "../../../characters/Character";
 import { useTheme } from "../../../brand/identity/index";
 import { themeIds, type ThemeId } from "../../../brand/themes";
-import { api, type LongJob, type SfxItem } from "../api";
+import { api, type ChannelSummary, type LongJob, type SfxItem } from "../api";
+import { SetsGallery, TemplatesGallery } from "./LibraryGalleries";
+import { sceneCatalog } from "../../../src/remotion/scenes/catalog";
+import { sets } from "../../../brand/sets/index";
+import type { Identity } from "../../../brand/identity/index";
+import type { ChannelInfo } from "../../../src/channel/types";
 
-type Section = "elements" | "characters" | "sfx";
+type Section = "templates" | "sets" | "elements" | "characters" | "sfx";
 
-/** مكتبة القناة: العناصر والشخصيات والمؤثرات، بألوان الهوية الحالية. */
-export const LibraryTab: React.FC<{ hasVoiceKeys: boolean }> = ({ hasVoiceKeys }) => {
-  const [section, setSection] = useState<Section>("elements");
+/** المكتبة: القوالب، وأماكن التصوير، والشخصيات، والعناصر، والمؤثرات. */
+export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; channel?: ChannelInfo }> = ({ hasVoiceKeys, identity, channel }) => {
+  const [section, setSection] = useState<Section>("templates");
+  const [channels, setChannels] = useState<ChannelSummary[]>([]);
+  useEffect(() => {
+    api.channels().then(setChannels).catch(() => {});
+  }, []);
   const [themeId, setThemeId] = useState<ThemeId>("paper");
   const t = useTheme(themeId);
   return (
     <div className="library">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="القسم">
-          {([["elements", `العناصر (${elementLibrary.length})`], ["characters", "الشخصيات"], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
+          {([["templates", `القوالب (${sceneCatalog.length})`], ["sets", `أماكن التصوير (${sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${elementLibrary.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
             <button key={k} aria-pressed={section === k} onClick={() => setSection(k)}>{l}</button>
           ))}
         </div>
         <span className="spacer" />
-        {section !== "sfx" ? (
+        {section === "elements" || section === "characters" ? (
           <div className="seg" role="group" aria-label="الثيم">
             {themeIds.map((id) => (
               <ThemeButton key={id} id={id} active={id === themeId} onClick={() => setThemeId(id)} />
@@ -31,6 +40,8 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean }> = ({ hasVoiceKeys }
           </div>
         ) : null}
       </div>
+      {section === "templates" ? <TemplatesGallery identity={identity} channel={channel} channels={channels} /> : null}
+      {section === "sets" ? <SetsGallery /> : null}
       {section === "elements" ? <Elements themeId={themeId} /> : null}
       {section === "characters" ? (
         <div className="lib-chars" style={{ background: t.colors.bg }}>

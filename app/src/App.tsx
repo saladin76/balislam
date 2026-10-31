@@ -287,7 +287,7 @@ export const App: React.FC = () => {
           />
           </div>
         ) : tab === "library" ? (
-          <LibraryTab hasVoiceKeys={keysOk.voice} />
+          <LibraryTab hasVoiceKeys={keysOk.voice} identity={ident?.draft} channel={channel} />
         ) : tab === "channel" ? (
           <ChannelTab
             key={channelId}

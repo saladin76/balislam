@@ -49,6 +49,8 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
     case "kinetic-text":
       // الكلمات المهمة: كلمات المعنى في كل جملة (تظهر أكبر وملونة)
       return { emphasis: beatsFor(narration, 3).map((b) => b.label).filter(Boolean).join("، "), element: "", stage: "theme" };
+    case "set-scene":
+      return { set: "office", variant: "narrator-m", pose: "stand", variant2: "", pose2: "stand", camera: "push", bubble: "", bubbleKind: "say", bubbleWho: "1", element: "" };
     case "desk-moment":
       return { reaction: "!", reactAt: "0.6", push: "on", outfit: "blue", screen: "feed" };
     case "sim-stage":
