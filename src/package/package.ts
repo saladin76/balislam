@@ -1,4 +1,6 @@
 import path from "node:path";
+import { chaptersText, generatePublishKit, kitToMarkdown } from "./social";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
@@ -56,6 +58,15 @@ export const packageEpisode = async (opts: PackageOptions) => {
     await writeFile(path.join(dir, `${id}-short-${n}.${lang}.srt`), buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media, identity));
   }
   files.push("youtube.md", "publish-checklist.md", `${id}-episode.${lang}.srt`);
+
+  // حزمة الانتشار (عناوين وكابشن لكل منصة): من publish.json إن وُجد، وإلا نسخة آلية
+  {
+    const kitFile = path.join(path.dirname(scriptPath), "publish.json");
+    const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
+    if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
+    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media)));
+    files.push("social.md");
+  }
 
   log("تجميع المشروع…");
   await getServeUrl(true);

@@ -182,6 +182,43 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // حزمة الانتشار: عناوين وأوصاف وكابشن لكل منصة
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "kit") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const ep = parts[1];
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const io = await load("/src/plan/io.ts");
+    const social = await load("/src/package/social.ts");
+    const scriptPath: string = await resolveScriptPath(ep);
+    const file = path.join(path.dirname(scriptPath), "publish.json");
+    const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
+    const build = async () => {
+      const { collectMedia } = await load("/src/plan/collect.ts");
+      const media = { ...(await collectMedia(ep, plan)), mode: "url", base: "" };
+      const { loadChannel } = await load("/src/channel/index.ts");
+      return social.generatePublishKit(plan, await readFile(scriptPath, "utf8"), media, loadChannel());
+    };
+    if (req.method === "PUT") {
+      const { kit } = await readBody(req);
+      if (!kit?.long || !Array.isArray(kit.shorts)) return send(res, 400, { error: "حزمة الانتشار غير مكتملة؛ لم تُحفظ." }), true;
+      await writeFile(file, JSON.stringify({ ...kit, generatedBy: kit.generatedBy === "auto" ? "edited" : kit.generatedBy, updatedAt: new Date().toISOString() }, null, 2) + "\n");
+      return send(res, 200, { ok: true }), true;
+    }
+    if (req.method === "POST" && parts[3] === "regenerate") {
+      const kit = await build();
+      await writeFile(file, JSON.stringify(kit, null, 2) + "\n");
+      return send(res, 200, { kit, keywords: social.kitKeywords(plan) }), true;
+    }
+    let kit = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : null;
+    if (!kit) {
+      kit = await build();
+      await writeFile(file, JSON.stringify(kit, null, 2) + "\n");
+    }
+    const { collectMedia } = await load("/src/plan/collect.ts");
+    const media = { ...(await collectMedia(ep, plan)), mode: "url", base: "" };
+    return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media) }), true;
+  }
+
   // ملفات التغليف
   if (parts[0] === "episodes" && parts[1] && parts[2] === "package") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;

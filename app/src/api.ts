@@ -2,6 +2,7 @@ import type { Plan } from "../../src/plan/types";
 import type { Identity } from "../../brand/identity/index";
 import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
+import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
@@ -77,6 +78,9 @@ export const api = {
   quranTranslations: (lang: string) => call<{ ok: boolean; message?: string; list: { id: number; name: string; author: string; language: string }[] }>(`/api/quran/translations?lang=${lang}`),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
+  kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string }>(`/api/episodes/${id}/kit`),
+  saveKit: (id: string, kit: PublishKit) => call(`/api/episodes/${id}/kit`, { method: "PUT", json: { kit } }),
+  regenerateKit: (id: string) => call<{ kit: PublishKit; keywords: string[] }>(`/api/episodes/${id}/kit/regenerate`, { method: "POST", json: {} }),
   keys: () => call<{ keys: KeyState }>("/api/settings"),
   saveKeys: (updates: Record<string, string>) => call<{ keys: KeyState }>("/api/settings", { method: "PUT", json: { updates } }),
   testService: (service: "elevenlabs" | "quran") => call<{ ok: boolean; message?: string; account?: { tier: string; character_count: number; character_limit: number }; voices?: { id: string; name: string; category: string }[]; voiceFound?: boolean; sample?: string; env?: string }>("/api/settings/test", { method: "POST", json: { service } }),

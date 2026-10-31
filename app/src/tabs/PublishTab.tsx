@@ -1,3 +1,4 @@
+import { SocialKit } from "./SocialKit";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
 
@@ -142,6 +143,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
         ) : null}
         {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
       </section>
+
+      <SocialKit episodeId={episodeId} />
 
       {!video ? (
         <div className="empty-state" style={{ margin: "20px auto" }}>
