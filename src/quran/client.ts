@@ -82,7 +82,21 @@ export const createQuranClient = (opts: QuranClientOptions) => {
     return (data.translations ?? []).map((t) => ({ id: t.id, name: t.name ?? `#${t.id}`, author: t.author_name ?? "", language: t.language_name ?? "" }));
   };
 
-  return { env, verse, translations, getToken };
+  /** التلاوات (آية بآية) المتاحة: المعرّف واسم القارئ ونوع الأداء. */
+  const recitations = async (): Promise<{ id: number; name: string; style: string }[]> => {
+    const data = await get<{ recitations?: { id: number; reciter_name?: string; style?: string | null; translated_name?: { name?: string } }[] }>(`/resources/recitations?language=ar`);
+    return (data.recitations ?? []).map((r) => ({ id: r.id, name: r.translated_name?.name || r.reciter_name || `#${r.id}`, style: r.style ?? "" }));
+  };
+
+  /** رابط ملف تلاوة آية واحدة لقارئ معيّن. */
+  const verseAudioUrl = async (recitationId: number, key: string): Promise<string> => {
+    const data = await get<{ audio_files?: { url?: string; verse_key?: string }[] }>(`/recitations/${recitationId}/by_ayah/${key}`);
+    const url = data.audio_files?.find((a) => !a.verse_key || a.verse_key === key)?.url;
+    if (!url) throw new QuranApiError(`لا يوجد ملف تلاوة للآية ${key} لهذا القارئ.`);
+    return /^https?:/.test(url) ? url : url.startsWith("//") ? `https:${url}` : `https://verses.quran.com/${url.replace(/^\//, "")}`;
+  };
+
+  return { env, verse, translations, recitations, verseAudioUrl, getToken, fetch: f };
 };
 
 export type QuranClient = ReturnType<typeof createQuranClient>;

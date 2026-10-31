@@ -38,11 +38,17 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
   return (
     <>
       {clip && clip.text === scene.narration.trim() ? <Audio src={mediaSrc(media, `voice/${clip.file}`)} volume={config.audio.narrationVolume} /> : null}
-      {scene.template === "verse-card" && rec ? (
-        <Sequence from={Math.round(0.8 * fps)} name="تلاوة">
-          <Audio src={mediaSrc(media, `recitations/${rec.file}`)} volume={config.audio.recitationVolume} />
-        </Sequence>
-      ) : null}
+      {scene.template === "verse-card" && rec
+        ? (rec.parts ?? [{ file: rec.file, duration: rec.duration }]).map((p, i, all) => {
+            // آيات المقطع متتالية بفاصل قصير
+            const from = Math.round((0.8 + all.slice(0, i).reduce((n, x) => n + x.duration + 0.25, 0)) * fps);
+            return (
+              <Sequence key={p.file} from={from} name={`تلاوة ${i + 1}`}>
+                <Audio src={mediaSrc(media, `recitations/${p.file}`)} volume={config.audio.recitationVolume} />
+              </Sequence>
+            );
+          })
+        : null}
       {scene.sfx
         .filter((x) => media.sfx.includes(x.id))
         .map((x, i) => (

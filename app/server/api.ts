@@ -154,7 +154,7 @@ export const balApi = (): Plugin => ({
           };
           if (parts.length === 2 && req.method === "GET") {
             const script = await readFile(scriptPath, "utf8");
-            const plan = (await io.readJson(io.planPathFor(scriptPath))) ?? (await io.regeneratePlan(ep));
+            const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
             const c = channelMod.loadChannel(ch);
             return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
@@ -162,7 +162,9 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
             const name = safeName(parts[4]);
-            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? path.join(root, "assets", "recitations") : null;
+            // التلاوات: من مجلد الحلقة (Quran Foundation) أو من assets/recitations (المرخّصة)
+            const epRec = path.join(path.dirname(scriptPath), "recitations");
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : null;
             const file = dir ? path.join(dir, name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
             serveFile(req, res, file, "audio/mpeg");
@@ -174,7 +176,7 @@ export const balApi = (): Plugin => ({
             const { generateVoice } = await load("/src/voice/generate.ts");
             const client = elevenLabsFromEnv();
             const report = await generateVoice(ep, { client, dryRun: b.dryRun || !client, only: b.scenes, force: b.force });
-            const plan = await io.readJson(io.planPathFor(scriptPath));
+            const plan = await io.readPlanFile(scriptPath);
             return send(res, 200, { report, generated: Boolean(client && !b.dryRun), media: await mediaFor(plan) });
           }
           if (parts[2] === "quran" && req.method === "POST") {
@@ -199,7 +201,7 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "plan" && req.method === "PUT") {
             const { plan } = await readBody(req);
             if (!plan || !Array.isArray(plan.chapters) || plan.chapters.some((c: any) => !Array.isArray(c?.scenes))) return send(res, 400, { error: "الخطة غير مكتملة؛ لم تُحفظ." });
-            await writeFile(io.planPathFor(scriptPath), JSON.stringify({ ...plan, updatedAt: new Date().toISOString() }, null, 2) + "\n", "utf8");
+            await io.writePlanFile(io.planPathFor(scriptPath), { ...plan, updatedAt: new Date().toISOString() });
             return send(res, 200, { ok: true });
           }
           if (parts[2] === "video" && parts[3]) {

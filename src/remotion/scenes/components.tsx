@@ -65,7 +65,7 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
           {...base}
           text={p.text || ""}
           reference={p.reference || ""}
-          reciter={hasRecitation && p.reciter ? p.reciter : undefined}
+          reciter={hasRecitation ? p.reciter || media?.recitations[scene.ayahKey!]?.reciter || undefined : undefined}
           sourceNote={p.text && !p.text.startsWith("‹") ? lang.strings.quranAttribution : undefined}
           meaning={p.meaning || undefined}
           meaningSource={p.meaningSource || undefined}

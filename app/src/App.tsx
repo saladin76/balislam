@@ -64,6 +64,8 @@ export const App: React.FC = () => {
   const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
   /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
   const scriptDirtyRef = useRef(false);
+  /** الحلقات التي جُلبت آياتها في هذه الجلسة */
+  const quranSynced = useRef(new Set<string>());
 
   const say = (msg: string, err = false) => {
     setToast({ msg, err });
@@ -124,6 +126,18 @@ export const App: React.FC = () => {
       setMedia(d.media);
       setExtra({ issues: d.issues, keys: d.keys });
       setPlanState("saved");
+      // مرة لكل حلقة في الجلسة: جلب نصوص الآيات (والتلاوة إن اختيرت) تلقائيًا من Quran Foundation
+      if (d.keys.quran && !quranSynced.current.has(`${id}`)) {
+        quranSynced.current.add(`${id}`);
+        api.quran(id).then((r) => {
+          if (r.result?.failed?.length) say(`تعذّر جلب: ${r.result.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`, true);
+          return api.episode(id);
+        }).then((n) => {
+          setPlan(n.plan);
+          setMedia(n.media);
+          setExtra({ issues: n.issues, keys: n.keys });
+        }).catch((e) => say(`تعذّر جلب الآيات: ${(e as Error).message}`, true));
+      }
     }).catch((e) => say(e.message, true));
   }, [flushPlan]);
   useEffect(() => {

@@ -14,3 +14,6 @@ assets/sfx/**/*.wav
 
 # وسائط الرندر المؤقتة
 public/_render/
+# محتوى Quran Foundation لا يُحتفظ به أكثر من أسبوع (شروطهم): يُجلب على جهازك ولا يُرفع
+channels/*/episodes/*/quran.json
+channels/*/episodes/*/recitations/

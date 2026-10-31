@@ -270,6 +270,19 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // القرّاء المتاحون (تلاوة آية بآية)
+  if (parts[0] === "quran" && parts[1] === "recitations") {
+    const { quranClientFromEnv } = await load("/src/quran/client.ts");
+    const qf = quranClientFromEnv();
+    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
+    try {
+      send(res, 200, { ok: true, list: await qf.recitations() });
+    } catch (e) {
+      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
+    }
+    return true;
+  }
+
   // ترجمات معاني القرآن المتاحة (لقنوات غير عربية)
   if (parts[0] === "quran" && parts[1] === "translations") {
     const { quranClientFromEnv } = await load("/src/quran/client.ts");

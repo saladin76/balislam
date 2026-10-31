@@ -24,6 +24,8 @@ export type ChannelConfig = {
   logo?: LogoSpec;
   /** ترجمة معاني القرآن للقنوات غير العربية: معرّف المورد في Quran Foundation واسمه للنسبة. */
   quranTranslation?: { id: number; name: string };
+  /** تلاوة الآيات من Quran Foundation (اختياري): معرّف التلاوة واسم القارئ. بدونها تُعرض الآية نصًّا فقط. */
+  recitation?: { id: number; name: string };
   domains: Record<string, ChannelDomain>;
   rules: {
     music: boolean;

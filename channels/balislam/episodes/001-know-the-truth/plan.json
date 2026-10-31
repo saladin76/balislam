@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-10-30T19:27:45.583Z",
+  "updatedAt": "2026-10-31T05:37:18.770Z",
   "chapters": [
     {
       "number": 1,
@@ -192,7 +192,7 @@
           "line": 46,
           "ayahKey": "2:42",
           "props": {
-            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "text": "",
             "reference": "البقرة · ٤٢",
             "reciter": ""
           },
@@ -307,7 +307,7 @@
           "line": 68,
           "ayahKey": "75:14-15",
           "props": {
-            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "text": "",
             "reference": "القيامة · ١٤–١٥",
             "reciter": ""
           },
@@ -560,7 +560,7 @@
           "line": 116,
           "ayahKey": "3:185",
           "props": {
-            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "text": "",
             "reference": "آل عمران · ١٨٥",
             "reciter": ""
           },
@@ -675,7 +675,7 @@
           "line": 138,
           "ayahKey": "49:6",
           "props": {
-            "text": "‹نص الآية يُجلب من Quran Foundation›",
+            "text": "",
             "reference": "الحجرات · ٦",
             "reciter": ""
           },

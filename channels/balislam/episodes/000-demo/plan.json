@@ -6,7 +6,11 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-10-30T18:44:28.748Z",
+  "updatedAt": "2026-10-31T05:37:18.501Z",
+  "overlays": {
+    "captions": false,
+    "chapterLabel": false
+  },
   "chapters": [
     {
       "number": 1,
@@ -129,7 +133,7 @@
             "variant": "narrator-m",
             "pose": "stand",
             "element": "",
-            "side": "right"
+            "side": ""
           },
           "id": "c4-s1",
           "sfx": []
@@ -140,7 +144,7 @@
           "line": 45,
           "ayahKey": "53:39",
           "props": {
-            "text": "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ",
+            "text": "",
             "reference": "النجم · ٣٩",
             "reciter": ""
           },
@@ -156,7 +160,7 @@
             "variant": "narrator-m",
             "pose": "stand",
             "element": "",
-            "side": "right"
+            "side": ""
           },
           "id": "c4-s3",
           "sfx": []
@@ -183,7 +187,7 @@
             "variant": "narrator-m",
             "pose": "point",
             "element": "",
-            "side": "right"
+            "side": ""
           },
           "id": "c4-s5",
           "sfx": []
@@ -251,9 +255,5 @@
         }
       ]
     }
-  ],
-  "overlays": {
-    "captions": false,
-    "chapterLabel": false
-  }
+  ]
 }

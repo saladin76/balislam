@@ -62,6 +62,41 @@ const MeaningPicker: React.FC<{ value?: { id: number; name: string }; language: 
   );
 };
 
+/** تلاوة الآيات من Quran Foundation: اختيار القارئ (اختياري). */
+const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: (v: { id: number; name: string } | undefined) => void }> = ({ value, onChange }) => {
+  const [list, setList] = React.useState<{ id: number; name: string; style: string }[] | null>(null);
+  const [msg, setMsg] = React.useState("");
+  const load = async () => {
+    setMsg("جارٍ التحميل…");
+    try {
+      const r = await api.quranRecitations();
+      setList(r.list);
+      setMsg(r.ok ? "" : (r.message ?? ""));
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  };
+  const styleAr = (s: string) => (/murattal/i.test(s) ? "مرتل" : /mujawwad/i.test(s) ? "مجوّد" : /muallim/i.test(s) ? "معلّم" : s);
+  return (
+    <div className="field">
+      <span>تلاوة الآيات</span>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        {list && list.length ? (
+          <select id="ch-reciter" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }} style={{ flex: 1, minWidth: 220 }}>
+            <option value="">بلا تلاوة (نص الآية فقط)</option>
+            {list.map((t) => <option key={t.id} value={t.id}>{t.name}{t.style ? ` · ${styleAr(t.style)}` : ""}</option>)}
+          </select>
+        ) : (
+          <span style={{ flex: 1 }}>{value ? <b>{value.name}</b> : <span className="help">بلا تلاوة (نص الآية فقط)</span>}</span>
+        )}
+        <button className="btn small" onClick={load}>اختيار قارئ</button>
+        {value ? <button className="btn ghost small" onClick={() => onChange(undefined)}>إيقاف التلاوة</button> : null}
+      </div>
+      <span className="help">{msg || "تُجلب تلاوة كل آية مع نصها من Quran Foundation وتُشغَّل في بطاقة الآية، ويُذكر القارئ في الوصف. التلاوة المرخّصة في assets/recitations لها الأولوية."}</span>
+    </div>
+  );
+};
+
 export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void }> = ({ onCreated, onSaved }) => {
   const [c, setC] = useState<ChannelConfig | null>(null);
   const [saved, setSaved] = useState("");
@@ -176,6 +211,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           <label className="check"><input type="checkbox" checked={c.rules.hadith} onChange={(e) => set({ rules: { ...c.rules, hadith: e.target.checked } })} /><span>القناة تستشهد بالحديث (المقبول: {c.rules.hadithGrades.join(" و")})</span></label>
           <label className="check"><input type="checkbox" checked={!c.rules.faces} onChange={(e) => set({ rules: { ...c.rules, faces: !e.target.checked } })} /><span>شخصيات بلا ملامح وجه</span></label>
           <label className="check"><input type="checkbox" checked={!c.rules.music} onChange={(e) => set({ rules: { ...c.rules, music: !e.target.checked } })} /><span>بلا موسيقى (مؤثرات وآهات بشرية فقط)</span></label>
+          {c.rules.quran ? <ReciterPicker value={c.recitation} onChange={(recitation) => set({ recitation })} /> : null}
           {c.rules.quran ? <MeaningPicker value={c.quranTranslation} language={c.language} onChange={(quranTranslation) => set({ quranTranslation })} /> : null}
           <h3>يوتيوب</h3>
           <label className="field"><span>وسوم القناة</span><TagsInput id="ch-tags" value={c.youtube.tags} onChange={(tags) => set({ youtube: { ...c.youtube, tags } })} /></label>
