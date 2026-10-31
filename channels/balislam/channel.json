@@ -5,22 +5,69 @@
   "language": "ar",
   "description": "الحياة بعين الإسلام: النفس، والأسرة، والمال، والعلم.",
   "masterTheme": "warm",
-  "logo": { "type": "baa" },
+  "logo": {
+    "type": "baa"
+  },
   "domains": {
-    "psychology": { "name": "النفس والسلوك", "theme": "paper", "tags": ["النفس", "تطوير_الذات", "السلوك"] },
-    "family": { "name": "الأسرة والعلاقات", "theme": "family", "tags": ["الأسرة", "العلاقات", "تربية"] },
-    "money": { "name": "المال والتأمل", "theme": "night", "tags": ["المال", "الرزق", "الدنيا"] },
-    "knowledge": { "name": "العلم والتاريخ", "theme": "warm", "tags": ["العلم", "التاريخ_الإسلامي", "الحضارة"] }
+    "psychology": {
+      "name": "النفس والسلوك",
+      "theme": "paper",
+      "tags": [
+        "النفس",
+        "تطوير_الذات",
+        "السلوك"
+      ]
+    },
+    "family": {
+      "name": "الأسرة والعلاقات",
+      "theme": "family",
+      "tags": [
+        "الأسرة",
+        "العلاقات",
+        "تربية"
+      ]
+    },
+    "money": {
+      "name": "المال والتأمل",
+      "theme": "night",
+      "tags": [
+        "المال",
+        "الرزق",
+        "الدنيا"
+      ]
+    },
+    "knowledge": {
+      "name": "العلم والتاريخ",
+      "theme": "warm",
+      "tags": [
+        "العلم",
+        "التاريخ_الإسلامي",
+        "الحضارة"
+      ]
+    },
+    "books": {
+      "name": "كتب إسلامية",
+      "theme": "warm",
+      "tags": [
+        "كتب_إسلامية",
+        "ملخص_كتاب"
+      ]
+    }
   },
   "rules": {
     "music": false,
     "faces": false,
     "quran": true,
     "hadith": true,
-    "hadithGrades": ["صحيح", "حسن"]
+    "hadithGrades": [
+      "صحيح",
+      "حسن"
+    ]
   },
   "youtube": {
-    "tags": ["بالإسلام"],
+    "tags": [
+      "بالإسلام"
+    ],
     "postingTime": "19:00 Asia/Riyadh",
     "voiceDisclosure": "التعليق الصوتي في هذه الحلقة مولَّد بالذكاء الاصطناعي من صوت صاحب القناة نفسه، وكل المحتوى مراجَع شرعيًا قبل النشر."
   }

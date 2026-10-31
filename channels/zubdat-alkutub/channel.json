@@ -1,0 +1,65 @@
+{
+  "id": "zubdat-alkutub",
+  "name": "زبدة الكتب",
+  "nameLatin": "Zubdat Al-Kutub",
+  "language": "ar",
+  "description": "خلاصة أهم الكتب في دقائق: الأفكار التي تغيّر طريقة تفكيرك وعملك ومالك.",
+  "masterTheme": "warm",
+  "logo": {
+    "type": "letter",
+    "letter": "ز"
+  },
+  "domains": {
+    "self": {
+      "name": "تطوير الذات",
+      "theme": "paper",
+      "tags": [
+        "تطوير_الذات",
+        "كتب"
+      ]
+    },
+    "money": {
+      "name": "المال والاستثمار",
+      "theme": "night",
+      "tags": [
+        "المال",
+        "الاستثمار",
+        "ريادة_الأعمال"
+      ]
+    },
+    "mind": {
+      "name": "علم النفس والتفكير",
+      "theme": "family",
+      "tags": [
+        "علم_النفس",
+        "التفكير"
+      ]
+    },
+    "classics": {
+      "name": "كتب خالدة",
+      "theme": "warm",
+      "tags": [
+        "كتب",
+        "قراءة"
+      ]
+    }
+  },
+  "rules": {
+    "music": false,
+    "faces": true,
+    "quran": false,
+    "hadith": false,
+    "hadithGrades": [
+      "صحيح",
+      "حسن"
+    ]
+  },
+  "youtube": {
+    "tags": [
+      "زبدة_الكتب",
+      "ملخص_كتاب"
+    ],
+    "postingTime": "19:00 Asia/Riyadh",
+    "voiceDisclosure": "التعليق الصوتي مولَّد بالذكاء الاصطناعي. هذا تلخيص وشرح بأسلوبنا للأفكار الرئيسية، وليس بديلًا عن قراءة الكتاب."
+  }
+}

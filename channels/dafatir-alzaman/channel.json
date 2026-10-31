@@ -1,0 +1,64 @@
+{
+  "id": "dafatir-alzaman",
+  "name": "دفاتر الزمن",
+  "nameLatin": "Dafatir Al-Zaman",
+  "language": "ar",
+  "description": "حكايات التاريخ كما حدثت: الحضارات والقادة والعلماء والمعارك، بقصة تُروى.",
+  "masterTheme": "warm",
+  "logo": {
+    "type": "letter",
+    "letter": "د"
+  },
+  "domains": {
+    "islamic": {
+      "name": "التاريخ الإسلامي",
+      "theme": "warm",
+      "tags": [
+        "التاريخ_الإسلامي",
+        "الحضارة_الإسلامية"
+      ]
+    },
+    "world": {
+      "name": "تاريخ العالم",
+      "theme": "night",
+      "tags": [
+        "التاريخ",
+        "حضارات"
+      ]
+    },
+    "people": {
+      "name": "شخصيات غيّرت التاريخ",
+      "theme": "paper",
+      "tags": [
+        "شخصيات_تاريخية",
+        "سير"
+      ]
+    },
+    "mysteries": {
+      "name": "أحداث غامضة",
+      "theme": "night",
+      "tags": [
+        "ألغاز_التاريخ",
+        "أحداث_غامضة"
+      ]
+    }
+  },
+  "rules": {
+    "music": false,
+    "faces": true,
+    "quran": true,
+    "hadith": true,
+    "hadithGrades": [
+      "صحيح",
+      "حسن"
+    ]
+  },
+  "youtube": {
+    "tags": [
+      "دفاتر_الزمن",
+      "التاريخ"
+    ],
+    "postingTime": "19:00 Asia/Riyadh",
+    "voiceDisclosure": "التعليق الصوتي مولَّد بالذكاء الاصطناعي، والمعلومات التاريخية مأخوذة من مصادرها ومراجَعة قبل النشر. لا تُصوَّر الأنبياء ولا الصحابة."
+  }
+}
