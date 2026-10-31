@@ -22,6 +22,8 @@ export const styleNamesAr: Record<string, string> = {
   "sketch-board": "سبورة خط اليد",
   "sim-stage": "محاكاة",
   "desk-moment": "لحظة يومية",
+  "set-scene": "مشهد في مكان",
+  "map-journey": "خرائط متحركة",
   "character-talk": "شخصية تتكلم",
   "big-question": "سؤال كبير",
   comparison: "مقارنة",

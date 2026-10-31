@@ -13,6 +13,7 @@ export const familyNamesAr: Record<TemplateFamily, string> = {
 };
 export const templateMeta: Record<string, { family: TemplateFamily; only?: string[]; not?: string[] }> = {
   "set-scene": { family: "story" },
+  "map-journey": { family: "data" },
   "desk-moment": { family: "story" },
   "sim-stage": { family: "story" },
   "glow-story": { family: "story" },

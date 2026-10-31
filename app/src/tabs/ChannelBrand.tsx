@@ -12,7 +12,7 @@ import config from "../../../config.json";
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const INTROS: [NonNullable<NonNullable<ChannelConfig["brand"]>["intro"]>, string][] = [["ink", "باء وحبر (بالإسلام)"], ["archive", "ختم على رَقّ (دفاتر الزمن)"], ["book", "كتاب يُفتح (زبدة الكتب)"], ["none", "بلا افتتاحية"]];
 const THUMBS: [NonNullable<NonNullable<ChannelConfig["brand"]>["thumbnail"]>, string][] = [["circle", "دائرة ورمز (بالإسلام)"], ["archive", "أرشيف ورق قديم (دفاتر الزمن)"], ["cover", "غلاف كتاب (زبدة الكتب)"]];
-const ALL_STYLES = ["board", "set-scene", "sim-stage", "desk-moment", "kinetic", "glow", "sketch-board", "timeline", "templates"];
+const ALL_STYLES = ["board", "map-journey", "set-scene", "sim-stage", "desk-moment", "kinetic", "glow", "sketch-board", "timeline", "templates"];
 
 const IntroComp: React.FC<{ kind: IntroKind; identity?: Identity; channel: ReturnType<typeof channelInfo> }> = ({ kind, identity, channel }) => (
   <Providers identity={identity} channel={channel}>

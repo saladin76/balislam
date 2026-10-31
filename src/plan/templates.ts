@@ -233,6 +233,23 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "map-journey",
+    nameAr: "الخريطة المتحركة",
+    useAr: "خريطة حقيقية لمنطقة الأحداث: مسار يُرسم من مكان إلى مكان وعليه قافلة أو جيش أو سفينة، والأماكن تظهر بدبابيس",
+    implemented: true,
+    baseSeconds: 8,
+    minSeconds: 5,
+    fields: [
+      { key: "title", label: "عنوان الخريطة", type: "text", placeholder: "من دمشق إلى قرطبة" },
+      { key: "places", label: "الأماكن بالترتيب", type: "textarea", help: "سطر لكل مكان: دمشق، بغداد، قرطبة… أو مكان غير معروف بإحداثياته: «اسم | 35.2, 31.7»" },
+      { key: "mode", label: "العرض", type: "select", options: [{ value: "route", label: "مسار يُرسم بين الأماكن" }, { value: "points", label: "أماكن تظهر تباعًا بلا مسار" }] },
+      { key: "mover", label: "ما يتحرك على المسار", type: "select", options: [{ value: "caravan", label: "قافلة" }, { value: "army", label: "جيش (راية)" }, { value: "ship", label: "سفينة" }, { value: "none", label: "لا شيء" }] },
+      { key: "look", label: "الشكل", type: "select", options: [{ value: "parchment", label: "رَقّ قديم بالحبر" }, { value: "night", label: "ليل سينمائي بالذهب" }] },
+      { key: "zoom", label: "الكاميرا", type: "select", options: [{ value: "in", label: "تقترب ببطء" }, { value: "follow", label: "تتبع المسار" }, { value: "off", label: "ثابتة" }] },
+      { key: "rivers", label: "الأنهار (النيل ودجلة والفرات)", type: "select", options: [{ value: "on", label: "تظهر" }, { value: "off", label: "بدونها" }] },
+    ],
+  },
+  {
     id: "set-scene",
     nameAr: "مشهد في مكان",
     useAr: "مكان مرسوم كامل (مطبخ، شارع بالليل، فصل، سوق، صحراء، مكتب) وشخصية أو اثنتان، وكاميرا تتحرك، وفقاعة كلام أو فكرة",
