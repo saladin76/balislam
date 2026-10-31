@@ -215,7 +215,7 @@ export const App: React.FC = () => {
             <span>استوديو {channel.name}</span>
           </button>
           {channels.length > 1 ? (
-            <select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(e.target.value); }} style={{ width: 170 }} aria-label="القناة">
+            <select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { const next = e.target.value; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }} style={{ width: 170 }} aria-label="القناة">
               {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : null}
@@ -291,6 +291,7 @@ export const App: React.FC = () => {
         ) : tab === "channel" ? (
           <ChannelTab
             key={channelId}
+            identity={ident?.draft}
             onSaved={() => {
               reloadChannels();
               if (epId) loadEpisode(epId, { keepScript: true });

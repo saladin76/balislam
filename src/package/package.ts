@@ -1,4 +1,5 @@
 import path from "node:path";
+import { channelInfo } from "../channel/types";
 import { chaptersText, generatePublishKit, kitToMarkdown } from "./social";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -64,7 +65,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const kitFile = path.join(path.dirname(scriptPath), "publish.json");
     const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
     if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
-    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media)));
+    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()))));
     files.push("social.md");
   }
 

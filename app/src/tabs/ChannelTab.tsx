@@ -4,6 +4,8 @@ import type { ChannelConfig, ChannelDomain } from "../../../src/channel/types";
 import { langPacks } from "../../../src/i18n/packs";
 import { useTheme } from "../../../brand/identity/index";
 import { LogoMark } from "../../../brand/logo/Logo";
+import { ChannelBrand } from "./ChannelBrand";
+import type { Identity } from "../../../brand/identity/index";
 
 const SLOTS: ChannelDomain["theme"][] = ["paper", "family", "night", "warm"];
 
@@ -97,7 +99,7 @@ const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: 
   );
 };
 
-export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void }> = ({ onCreated, onSaved }) => {
+export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void; identity?: Identity }> = ({ onCreated, onSaved, identity }) => {
   const [c, setC] = useState<ChannelConfig | null>(null);
   const [saved, setSaved] = useState("");
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
@@ -218,6 +220,8 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           <label className="field"><span>موعد النشر</span><input id="ch-time" type="text" dir="ltr" value={c.youtube.postingTime} onChange={(e) => set({ youtube: { ...c.youtube, postingTime: e.target.value } })} /></label>
           <label className="field"><span>سطر الإفصاح عن الصوت (في كل وصف)</span><textarea id="ch-disclosure" rows={3} value={c.youtube.voiceDisclosure} onChange={(e) => set({ youtube: { ...c.youtube, voiceDisclosure: e.target.value } })} /></label>
         </section>
+
+        <ChannelBrand c={c} set={set} identity={identity} />
 
         <NewChannel onCreated={onCreated} />
       </div>

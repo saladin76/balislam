@@ -4,7 +4,7 @@
   "nameLatin": "Zubdat Al-Kutub",
   "language": "ar",
   "description": "خلاصة أهم الكتب في دقائق: الأفكار التي تغيّر طريقة تفكيرك وعملك ومالك.",
-  "masterTheme": "warm",
+  "masterTheme": "paper",
   "logo": {
     "type": "letter",
     "letter": "ز"
@@ -49,6 +49,18 @@
     "time": "19:00",
     "shortsPerDay": 1
   },
+  "brand": {
+    "intro": "book",
+    "thumbnail": "cover"
+  },
+  "styles": [
+    "sketch-board",
+    "board",
+    "desk-moment",
+    "set-scene",
+    "kinetic",
+    "sim-stage"
+  ],
   "rules": {
     "music": false,
     "faces": true,

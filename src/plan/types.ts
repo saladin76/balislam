@@ -44,5 +44,7 @@ export type Plan = {
   updatedAt: string;
   /** إظهار/إخفاء عناصر الشاشة للحلقة كلها (ما لم يُحدَّد يتبع القناة) */
   overlays?: Partial<Overlays>;
+  /** افتتاحية القناة في أول الحلقة (افتراضيًا تظهر إن كانت للقناة افتتاحية) */
+  intro?: boolean;
   chapters: PlanChapter[];
 };

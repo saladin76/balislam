@@ -8,7 +8,7 @@ import { channelPaths } from "../channel";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, readJson, regeneratePlan } from "../plan/io";
 import type { Plan } from "../plan/types";
-import type { ElevenLabsClient } from "./elevenlabs";
+import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
@@ -61,7 +61,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   await mkdir(dir, { recursive: true });
   const indexFile = path.join(dir, "index.json");
   const index: VoiceIndex = (await readJson<VoiceIndex>(indexFile)) ?? {};
-  const voiceKey = `${process.env.ELEVENLABS_VOICE_ID ?? ""}|${process.env.ELEVENLABS_MODEL_ID || config.voice.modelId}`;
+  const voiceKey = `${voiceIdFor() ?? ""}|${process.env.ELEVENLABS_MODEL_ID || config.voice.modelId}`;
   const jobs = (await jobsFor(plan, voiceKey)).filter((j) => !opts.only || opts.only.includes(j.id));
 
   // مقطع بنفس البصمة موجود لمشهد آخر (انزاح رقمه بعد إضافة فقرة): يُعاد استخدامه بلا تكلفة

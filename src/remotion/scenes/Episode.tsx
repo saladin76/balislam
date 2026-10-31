@@ -6,6 +6,7 @@ import { sceneFrames } from "../../plan/duration";
 import { emptyMedia, type EpisodeMedia } from "../../plan/media";
 import { SceneFromPlan } from "./components";
 import { toFrames } from "./timing";
+import { ChannelIntro, introFramesFor, introKindFor } from "./ChannelIntro";
 import type { Orientation } from "./types";
 import { Providers } from "../Providers";
 import { langPack } from "../../i18n/packs";
@@ -68,6 +69,14 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
   return (
     <Providers identity={props.identity} channel={props.channel} lang={lang.code}>
     <Series>
+      {(() => {
+        const kind = introKindFor(props.channel, plan, props.chapter);
+        return kind ? (
+          <Series.Sequence key="intro" durationInFrames={introFramesFor(props.channel, plan, props.chapter)} name="افتتاحية القناة">
+            <ChannelIntro kind={kind} orientation={orientation} />
+          </Series.Sequence>
+        ) : null;
+      })()}
       {scenesOf(props).map(({ chapter, scene }, idx, all) => {
         // المشهد السابق في الفصل نفسه (للانتقال المتصل في السبورة؛ الشورت يبدأ بلا انتقال)
         const prev = idx > 0 && all[idx - 1]!.chapter.number === chapter.number ? all[idx - 1]!.scene : undefined;
@@ -85,14 +94,15 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
   );
 };
 
-export const episodeFrames = (props: Pick<EpisodeProps, "plan" | "chapter" | "media">) =>
-  Math.max(1, scenesOf(props).reduce((n, { scene }) => n + sceneFrames(scene, props.media ?? emptyMedia), 0));
+export const episodeFrames = (props: Pick<EpisodeProps, "plan" | "chapter" | "media" | "channel">) =>
+  Math.max(1, introFramesFor(props.channel, props.plan, props.chapter) + scenesOf(props).reduce((n, { scene }) => n + sceneFrames(scene, props.media ?? emptyMedia), 0));
 
 /** بدايات الفصول بالثواني (لفصول وصف يوتيوب). */
-export const chapterStarts = (plan: Plan, media?: EpisodeMedia) => {
-  let t = 0;
-  return plan.chapters.map((c) => {
-    const start = t;
+export const chapterStarts = (plan: Plan, media?: EpisodeMedia, channel?: ChannelInfo) => {
+  // الفصل الأول يبدأ من 0:00 (يوتيوب يشترطه) ويشمل الافتتاحية، والبقية تتأخر بمدتها
+  let t = introFramesFor(channel, plan) / config.video.fps;
+  return plan.chapters.map((c, i) => {
+    const start = i === 0 ? 0 : t;
     for (const s of c.scenes) t += sceneFrames(s, media ?? emptyMedia) / config.video.fps;
     return { number: c.number, title: c.title, start };
   });

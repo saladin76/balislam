@@ -168,7 +168,7 @@ export const balApi = (): Plugin => ({
             const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
             const c = channelMod.loadChannel(ch);
-            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
+            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];

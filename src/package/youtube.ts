@@ -5,7 +5,7 @@ import { QF_ATTRIBUTION } from "../quran/attribution";
 import { chapterStarts } from "../remotion/scenes/Episode";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
-import { defaultChannel, type ChannelConfig } from "../channel/types";
+import { channelInfo, defaultChannel, type ChannelConfig } from "../channel/types";
 
 const clock = (sec: number) => {
   const s = Math.floor(sec);
@@ -17,7 +17,7 @@ const clock = (sec: number) => {
 export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number, channel: ChannelConfig = defaultChannel): string => {
   const parsed = parseScript(script);
   const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
-  const starts = chapterStarts(plan, media);
+  const starts = chapterStarts(plan, media, channelInfo(channel));
   const hook = plan.chapters[0]?.scenes.find((s) => s.narration)?.narration ?? "";
   const step = parsed.practicalStep?.text ?? "";
   const L = langPack(plan.lang ?? channel.language);

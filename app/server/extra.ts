@@ -259,7 +259,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     }
     const { collectMedia } = await load("/src/plan/collect.ts");
     const media = { ...(await collectMedia(ep, plan)), mode: "url", base: "" };
-    return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media) }), true;
+    return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
   }
 
   // ملفات التغليف

@@ -48,6 +48,18 @@
     "time": "19:00",
     "shortsPerDay": 1
   },
+  "brand": {
+    "intro": "archive",
+    "thumbnail": "archive"
+  },
+  "styles": [
+    "set-scene",
+    "timeline",
+    "board",
+    "kinetic",
+    "glow",
+    "sim-stage"
+  ],
   "rules": {
     "music": false,
     "faces": true,

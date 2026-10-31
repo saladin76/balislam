@@ -31,6 +31,10 @@ export type ChannelConfig = {
   schedule?: { longDay: number; time?: string; shortsPerDay?: number };
   /** الأساليب البصرية التي تتناوب عليها حلقات القناة (للتنوّع) */
   styles?: string[];
+  /** بصمة القناة الثابتة: الافتتاحية وأسلوب الصورة المصغّرة */
+  brand?: { intro?: "ink" | "archive" | "book" | "none"; thumbnail?: "circle" | "archive" | "cover" };
+  /** صوت القناة في ElevenLabs (إن غاب: ELEVENLABS_VOICE_ID من الإعدادات) */
+  voice?: { id: string; name?: string };
   rules: {
     music: boolean;
     faces: boolean;
@@ -43,12 +47,12 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameLatin" | "language" | "logo">;
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameLatin" | "language" | "logo" | "brand">;
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;
 
-export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language, logo: c.logo });
+export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand });
 
 export const domainIds = (c: ChannelConfig) => Object.keys(c.domains);
 

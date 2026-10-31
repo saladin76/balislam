@@ -5,6 +5,16 @@ import { BrandSheet } from "./BrandSheet";
 import { TemplateReel, reelDuration } from "./scenes/TemplateReel";
 import { sceneCatalog } from "./scenes/catalog";
 import { Thumbnail } from "./Thumbnail";
+import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "./scenes/ChannelIntro";
+import type { Identity } from "../../brand/identity/index";
+import type { ChannelInfo } from "../channel/types";
+
+/** افتتاحية قناة منفردة (للمعاينة): تُمرَّر هوية القناة واسمها من inputProps */
+const IntroPreview: React.FC<{ kind: IntroKind; orientation: "landscape" | "portrait"; identity?: Identity; channel?: ChannelInfo }> = ({ kind, orientation, identity, channel }) => (
+  <Providers identity={identity} channel={channel}>
+    <ChannelIntro kind={kind} orientation={orientation} />
+  </Providers>
+);
 import { Providers } from "./Providers";
 
 /** معاينة قالب بلغة من اليسار لليمين (للتحقق من الاتجاه قبل إطلاق قناة تركية أو إنجليزية). */
@@ -45,6 +55,9 @@ export const RemotionRoot: React.FC = () => (
         )),
       ),
     )}
+    {orientations.map((o) => (
+      <Composition key={`intro-${o}`} id={`channel-intro-${o}`} component={IntroPreview} durationInFrames={INTRO_FRAMES} fps={config.video.fps} {...sizes[o]} defaultProps={{ kind: "ink" as IntroKind, orientation: o }} />
+    ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
     {orientations.map((o) => (

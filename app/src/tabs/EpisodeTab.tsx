@@ -6,6 +6,7 @@ import type { Plan, PlanScene } from "../../../src/plan/types";
 import { templateById, templateDefs } from "../../../src/plan/templates";
 import { defaultsFor } from "../../../src/plan/generate";
 import { sceneFrames, sceneSeconds } from "../../../src/plan/duration";
+import { introFramesFor } from "../../../src/remotion/scenes/ChannelIntro";
 import { sfxLibrary, sfxCategoryNamesAr } from "../../../brand/sfx";
 import type { Identity } from "../../../brand/identity/index";
 import type { CharacterPose, CharacterVariant } from "../../../characters/Character";
@@ -48,7 +49,7 @@ export const EpisodeTab: React.FC<{
   // في معاينة الفصل أو الحلقة: أي مشهد يُعرض الآن؟ (إعدادات اللوحة الجانبية تخص المشهد المختار فقط)
   const starts = useMemo(() => {
     const list: { id: string; from: number }[] = [];
-    let frame = 0;
+    let frame = scope === "episode" ? introFramesFor(channel, plan) : 0;
     for (const ch of plan.chapters) {
       if (scope === "chapter" && ch.number !== sel?.chapter.number) continue;
       for (const s of ch.scenes) {
@@ -86,7 +87,7 @@ export const EpisodeTab: React.FC<{
       return;
     }
     if (scope === "scene" || !sel) return;
-    let frame = 0;
+    let frame = scope === "episode" ? introFramesFor(channel, plan) : 0;
     for (const ch of plan.chapters) {
       if (scope === "chapter" && ch.number !== sel.chapter.number) continue;
       for (const s of ch.scenes) {

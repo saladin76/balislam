@@ -1,4 +1,14 @@
 import config from "../../config.json";
+import { loadChannel } from "../channel/index";
+
+/** صوت القناة الحالية: ما اختير في إعدادات القناة، وإلا ELEVENLABS_VOICE_ID العام. */
+export const voiceIdFor = (): string | undefined => {
+  try {
+    return loadChannel().voice?.id || process.env.ELEVENLABS_VOICE_ID || undefined;
+  } catch {
+    return process.env.ELEVENLABS_VOICE_ID || undefined;
+  }
+};
 
 /**
  * عميل ElevenLabs: تحويل النص إلى صوت مع توقيت كل حرف، وتوليد المؤثرات الصوتية.
@@ -110,7 +120,7 @@ export type ElevenLabsClient = ReturnType<typeof createElevenLabs>;
 
 export const elevenLabsFromEnv = (fetchImpl?: typeof fetch): ElevenLabsClient | null => {
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const voiceId = voiceIdFor();
   if (!apiKey || !voiceId) return null;
   return createElevenLabs({ apiKey, voiceId, modelId: process.env.ELEVENLABS_MODEL_ID || undefined, fetchImpl });
 };

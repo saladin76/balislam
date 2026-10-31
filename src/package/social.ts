@@ -1,3 +1,4 @@
+import type { ChannelInfo } from "../channel/types";
 import { parseScript } from "../script/parse";
 import { normalizeArabic } from "../script/quranMeta";
 import { chapterStarts } from "../remotion/scenes/Episode";
@@ -32,7 +33,7 @@ export type ShortKit = {
 };
 /** يُكتب في الوصف ويُستبدل بتوقيت الفصول الحقيقي (يتغير بعد تسجيل الصوت). */
 export const CHAPTERS_TOKEN = "{{الفصول}}";
-export const chaptersText = (plan: Plan, media?: EpisodeMedia) => ["فصول الحلقة:", ...chapterStarts(plan, media).map((s) => `${clock(s.start)} ${s.title}`)].join("\n");
+export const chaptersText = (plan: Plan, media?: EpisodeMedia, channel?: ChannelInfo) => ["فصول الحلقة:", ...chapterStarts(plan, media, channel).map((s) => `${clock(s.start)} ${s.title}`)].join("\n");
 export const resolveDescription = (desc: string, chapters: string) => desc.replace(CHAPTERS_TOKEN, chapters);
 
 export type PublishKit = { version: 1; generatedBy: "auto" | "claude" | "edited"; updatedAt: string; long: LongKit; shorts: ShortKit[] };

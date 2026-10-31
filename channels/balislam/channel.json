@@ -59,6 +59,19 @@
     "time": "19:00",
     "shortsPerDay": 1
   },
+  "brand": {
+    "intro": "ink",
+    "thumbnail": "circle"
+  },
+  "styles": [
+    "board",
+    "sim-stage",
+    "desk-moment",
+    "set-scene",
+    "kinetic",
+    "glow",
+    "sketch-board"
+  ],
   "rules": {
     "music": false,
     "faces": false,

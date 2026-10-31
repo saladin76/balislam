@@ -339,3 +339,8 @@ details.box > summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
 .tpl-dot { font-size: 11px; border-radius: 6px; padding: 1px 6px; }
 .tpl-dot.on { background: #EAF5EC; color: #2F6B3A; }
 .tpl-dot.off { background: #F6EDEA; color: #9A4A3A; }
+
+/* بصمة القناة */
+.brand-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 14px; align-items: start; }
+.brand-prev { direction: ltr; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); }
