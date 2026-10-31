@@ -8,6 +8,7 @@ import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "../../../src/remotio
 import { Thumbnail } from "../../../src/remotion/Thumbnail";
 import { styleNamesAr } from "./OpsRoom";
 import config from "../../../config.json";
+import { tones, toneIds } from "../../../src/voice/tones";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const INTROS: [NonNullable<NonNullable<ChannelConfig["brand"]>["intro"]>, string][] = [["ink", "باء وحبر (بالإسلام)"], ["archive", "ختم على رَقّ (دفاتر الزمن)"], ["book", "كتاب يُفتح (زبدة الكتب)"], ["none", "بلا افتتاحية"]];
@@ -66,17 +67,42 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
         <span>صوت القناة في ElevenLabs</span>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {voices ? (
-            <select id="ch-voice" value={c.voice?.id ?? ""} onChange={(e) => { const v = voices.find((x) => x.id === e.target.value); set({ voice: v ? { id: v.id, name: v.name } : undefined }); }} style={{ flex: 1, minWidth: 220 }}>
+            <select id="ch-voice" value={c.voice?.id ?? ""} onChange={(e) => { const v = voices.find((x) => x.id === e.target.value); set({ voice: { ...c.voice, id: v?.id, name: v?.name } }); }} style={{ flex: 1, minWidth: 220 }}>
               <option value="">الصوت العام من «الإعدادات»</option>
               {voices.map((v) => <option key={v.id} value={v.id}>{v.name} ({v.category})</option>)}
             </select>
           ) : (
-            <span style={{ flex: 1 }}>{c.voice ? <b>{c.voice.name ?? c.voice.id}</b> : <span className="help">الصوت العام من «الإعدادات»</span>}</span>
+            <span style={{ flex: 1 }}>{c.voice?.id ? <b>{c.voice.name ?? c.voice.id}</b> : <span className="help">الصوت العام من «الإعدادات»</span>}</span>
           )}
           <button className="btn small" onClick={async () => { setVmsg("جارٍ التحميل…"); try { const r = await api.testService("elevenlabs"); if (r.ok && r.voices) { setVoices(r.voices); setVmsg(""); } else setVmsg(r.message ?? "تعذّر جلب الأصوات"); } catch (e) { setVmsg((e as Error).message); } }}>اختيار من أصوات حسابك</button>
-          {c.voice ? <button className="btn ghost small" onClick={() => set({ voice: undefined })}>رجوع للصوت العام</button> : null}
+          {c.voice?.id ? <button className="btn ghost small" onClick={() => set({ voice: { ...c.voice, id: undefined, name: undefined } })}>رجوع للصوت العام</button> : null}
         </div>
         <span className="help">{vmsg || "صوت مختلف لكل قناة يقوّي شخصيتها. تغيير الصوت يعني إعادة توليد صوت الحلقات غير المنشورة."}</span>
+      </div>
+
+      <label className="field">
+        <span>النبرة الافتراضية للقناة <small>(الصوت نفسه بإحساس مختلف؛ تتغير لكل حلقة أو مشهد من تبويب «المشاهد»)</small></span>
+        <select id="ch-tone" value={c.voice?.tone ?? ""} onChange={(e) => set({ voice: { ...c.voice, tone: e.target.value || undefined } })}>
+          <option value="">عادية (إعدادات الصوت الأساسية)</option>
+          {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
+        </select>
+      </label>
+
+      <div className="field">
+        <span>أصوات الشخصيات <small>(للحوار في الحلقات التاريخية مثلًا؛ تختارها لكل مشهد)</small></span>
+        {(c.cast ?? []).map((v, i) => (
+          <div key={v.id + i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <b style={{ flex: 1 }}>{v.name}</b>
+            <input type="text" placeholder="الدور: القائد، العالم، الراوية…" value={v.role ?? ""} onChange={(e) => set({ cast: (c.cast ?? []).map((x, k) => (k === i ? { ...x, role: e.target.value } : x)) })} style={{ flex: 1 }} />
+            <button className="btn ghost small" onClick={() => set({ cast: (c.cast ?? []).filter((_, k) => k !== i) })}>حذف</button>
+          </div>
+        ))}
+        {voices ? (
+          <select value="" onChange={(e) => { const v = voices.find((x) => x.id === e.target.value); if (v && !(c.cast ?? []).some((x) => x.id === v.id)) set({ cast: [...(c.cast ?? []), { id: v.id, name: v.name }] }); }}>
+            <option value="">+ أضف صوتًا من حسابك…</option>
+            {voices.map((v) => <option key={v.id} value={v.id}>{v.name} ({v.category})</option>)}
+          </select>
+        ) : <span className="help">اضغط «اختيار من أصوات حسابك» فوق لتظهر قائمة الأصوات وتضيف منها. أضف الأصوات الجاهزة أولًا لمكتبتك في ElevenLabs (Voice Library).</span>}
       </div>
 
       <div className="brand-row" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>

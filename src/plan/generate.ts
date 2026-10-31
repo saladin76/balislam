@@ -211,6 +211,9 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     }
     // إظهار/إخفاء عناصر الشاشة يبقى حتى لو تغيّر القالب
     if (old.overlays && Object.keys(old.overlays).length) s.overlays = { ...old.overlays };
+    // نبرة المشهد وصوت الشخصية يبقيان مع المشهد
+    if (old.tone) s.tone = old.tone;
+    if (old.voice) s.voice = old.voice;
   }
 
   // شاشة النهاية: آخر مشهد في الحلقة، من «الخطوة العملية»
@@ -250,6 +253,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     lang: fm.lang ?? channel.language,
     updatedAt: new Date().toISOString(),
     ...(previous?.overlays && Object.keys(previous.overlays).length ? { overlays: { ...previous.overlays } } : {}),
+    ...(previous?.tone ? { tone: previous.tone } : {}),
+    ...(previous?.intro === false ? { intro: false } : {}),
     chapters,
   };
 };

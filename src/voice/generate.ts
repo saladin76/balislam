@@ -9,6 +9,8 @@ import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, readJson, regeneratePlan } from "../plan/io";
 import type { Plan } from "../plan/types";
 import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
+import { isTone, tones } from "./tones";
+import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
@@ -23,17 +25,27 @@ export const loadVoiceIndex = async (episode: string): Promise<VoiceIndex> =>
 /** قاموس نطق القناة الحالية: channels/<القناة>/pronunciation.json */
 const loadDictionary = async () => readJson<{ entries?: { text: string; say: string }[] }>(channelPaths().pronunciation).then((d) => d ?? {});
 
-type Job = { id: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string; prev?: string; next?: string };
+type Job = { id: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } };
 
 const jobsFor = async (plan: Plan, voiceKey: string) => {
   const dict = await loadDictionary();
   const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
+  let channelTone: string | undefined;
+  try {
+    channelTone = loadChannel().voice?.tone;
+  } catch {
+    /* بلا قناة */
+  }
   return scenes.map((s, i): Job => {
     const d = applyDictionary(s.narration.trim(), dict);
-    // البصمة من كل ما يغيّر الصوت نفسه فقط (لا مدة الذيل ولا حساب التكلفة)
+    // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
+    const toneId = [s.tone, plan.tone, channelTone].find(isTone);
+    const tune = toneId ? { stability: tones[toneId].stability, style: tones[toneId].style, speed: tones[toneId].speed } : undefined;
+    // البصمة من كل ما يغيّر الصوت نفسه فقط (لا مدة الذيل ولا حساب التكلفة)؛ النبرة والصوت يدخلانها فقط إن حُددا
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
-    const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts })).digest("hex").slice(0, 16);
-    return { id: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, prev: scenes[i - 1]?.narration, next: scenes[i + 1]?.narration };
+    const extra = { ...(tune ? { tune } : {}), ...(s.voice ? { voice: s.voice } : {}) };
+    const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...extra })).digest("hex").slice(0, 16);
+    return { id: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, prev: scenes[i - 1]?.narration, next: scenes[i + 1]?.narration, voiceId: s.voice || undefined, tune };
   });
 };
 
@@ -88,7 +100,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
 
   for (const [k, j] of todo.entries()) {
     log(`(${k + 1}/${todo.length}) ${j.id}: ${j.spoken.length} حرفًا`);
-    const r = await opts.client!.tts(j.spoken, { previousText: j.prev, nextText: j.next });
+    const r = await opts.client!.tts(j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune });
     // اسم الملف من البصمة: مشهدان بنفس النص يتشاركان الملف، والانزياح لا يكتب فوق مقطع آخر
     const file = `${j.hash}.mp3`;
     await writeFile(path.join(dir, file), r.audio);

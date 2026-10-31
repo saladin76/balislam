@@ -68,16 +68,16 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
   };
 
   /** صوت جملة أو فقرة مع توقيت الحروف. previous/next يحسّنان اتصال النبرة بين المشاهد. */
-  const tts = async (text: string, ctx: { previousText?: string; nextText?: string } = {}): Promise<TtsResult> => {
-    const res = await post(`/v1/text-to-speech/${opts.voiceId}/with-timestamps?output_format=${s.outputFormat}`, {
+  const tts = async (text: string, ctx: { previousText?: string; nextText?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } } = {}): Promise<TtsResult> => {
+    const res = await post(`/v1/text-to-speech/${ctx.voiceId || opts.voiceId}/with-timestamps?output_format=${s.outputFormat}`, {
       text,
       model_id: modelId,
       voice_settings: {
-        stability: s.stability,
+        stability: ctx.tune?.stability ?? s.stability,
         similarity_boost: s.similarityBoost,
-        style: s.style,
+        style: ctx.tune?.style ?? s.style,
         use_speaker_boost: s.speakerBoost,
-        speed: s.speed,
+        speed: ctx.tune?.speed ?? s.speed,
       },
       seed: s.seed,
       previous_text: ctx.previousText || undefined,

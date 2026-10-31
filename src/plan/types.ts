@@ -27,6 +27,10 @@ export type PlanScene = {
   ayahKey?: string;
   /** عدّلها المستخدم يدويًا: تُحفظ عند إعادة التوليد */
   edited?: boolean;
+  /** نبرة الصوت لهذا المشهد (تتجاوز نبرة الحلقة) */
+  tone?: string;
+  /** صوت آخر من ElevenLabs لهذا المشهد (حوار شخصية): معرّف الصوت */
+  voice?: string;
 };
 
 export type PlanChapter = { number: number; title: string; scenes: PlanScene[] };
@@ -44,6 +48,8 @@ export type Plan = {
   updatedAt: string;
   /** إظهار/إخفاء عناصر الشاشة للحلقة كلها (ما لم يُحدَّد يتبع القناة) */
   overlays?: Partial<Overlays>;
+  /** نبرة الصوت للحلقة كلها (تتجاوز نبرة القناة) */
+  tone?: string;
   /** افتتاحية القناة في أول الحلقة (افتراضيًا تظهر إن كانت للقناة افتتاحية) */
   intro?: boolean;
   chapters: PlanChapter[];

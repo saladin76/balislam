@@ -34,7 +34,9 @@ export type ChannelConfig = {
   /** بصمة القناة الثابتة: الافتتاحية وأسلوب الصورة المصغّرة */
   brand?: { intro?: "ink" | "archive" | "book" | "none"; thumbnail?: "circle" | "archive" | "cover" };
   /** صوت القناة في ElevenLabs (إن غاب: ELEVENLABS_VOICE_ID من الإعدادات) */
-  voice?: { id: string; name?: string };
+  voice?: { id?: string; name?: string; tone?: string };
+  /** أصوات إضافية للشخصيات (الحوار في الحلقات التاريخية مثلًا): من أصوات حساب ElevenLabs */
+  cast?: { id: string; name: string; role?: string }[];
   rules: {
     music: boolean;
     faces: boolean;
@@ -47,7 +49,7 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> };
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music">; cast?: ChannelConfig["cast"]; tone?: string };
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;

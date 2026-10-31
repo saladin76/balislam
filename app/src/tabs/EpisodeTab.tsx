@@ -7,6 +7,7 @@ import { templateById, templateDefs } from "../../../src/plan/templates";
 import { defaultsFor } from "../../../src/plan/generate";
 import { sceneFrames, sceneSeconds } from "../../../src/plan/duration";
 import { introFramesFor } from "../../../src/remotion/scenes/ChannelIntro";
+import { tones, toneIds } from "../../../src/voice/tones";
 import { sfxLibrary, sfxCategoryNamesAr } from "../../../brand/sfx";
 import type { Identity } from "../../../brand/identity/index";
 import type { CharacterPose, CharacterVariant } from "../../../characters/Character";
@@ -204,6 +205,17 @@ export const EpisodeTab: React.FC<{
           <OverlayToggles idPrefix="ep-ov" value={plan.overlays} inherited={channelOv} inheritLabel="القناة" onChange={(overlays) => { const { overlays: _o, ...rest } = plan; onPlanChange(overlays ? { ...rest, overlays } : rest); }} />
         </details>
         <IssuesBox issues={liveIssues} keys={keys} episodeId={episodeId} onSelect={setSelectedId} onReload={onReload} />
+        <div className="render-box">
+          <div className="toolbar">
+            <b>نبرة الصوت في الحلقة</b>
+            <span className="help">صوتك نفسه بإحساس يناسب الحلقة؛ وأي مشهد يمكن أن يأخذ نبرة أخرى أو صوت شخصية من إعداداته.</span>
+            <span className="spacer" />
+            <select id="ep-tone" value={plan.tone ?? ""} onChange={(e) => { const { tone: _t, ...rest } = plan; onPlanChange(e.target.value ? { ...rest, tone: e.target.value } : rest); }} style={{ width: 260 }}>
+              <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : "نبرة القناة (عادية)"}</option>
+              {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
+            </select>
+          </div>
+        </div>
         <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />
         <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
       </div>
@@ -371,6 +383,25 @@ export const EpisodeTab: React.FC<{
 
           <div className="section-t">التعليق الصوتي</div>
           <div className="narr">{scene.narration || <span className="help">لا تعليق صوتي في هذا المشهد</span>}</div>
+          {scene.narration ? (
+            <div className="row2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "8px 0" }}>
+              <label className="field">
+                <span>النبرة</span>
+                <select id="sc-tone" value={scene.tone ?? ""} onChange={(e) => updateScene({ tone: e.target.value || undefined })}>
+                  <option value="">مثل الحلقة</option>
+                  {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>الصوت</span>
+                <select id="sc-voice" value={scene.voice ?? ""} onChange={(e) => updateScene({ voice: e.target.value || undefined })}>
+                  <option value="">صوت القناة (الراوي)</option>
+                  {(channel.cast ?? []).map((v) => <option key={v.id} value={v.id}>{v.role ? `${v.role}: ` : ""}{v.name}</option>)}
+                </select>
+              </label>
+              {!(channel.cast ?? []).length ? <span className="help" style={{ gridColumn: "1 / -1" }}>لأصوات الشخصيات: أضفها من تبويب «القناة» ← «أصوات الشخصيات».</span> : null}
+            </div>
+          ) : null}
           {scene.narration ? <SceneVoice key={scene.id} episodeId={episodeId} sceneId={scene.id} state={voiceState(scene)} hasKeys={keys.voice} onMedia={onMediaChange} /> : null}
           <button className="btn small" onClick={() => onEditScript(scene.line)}>تعديل النص في السكريبت (سطر {scene.line})</button>
         </div>

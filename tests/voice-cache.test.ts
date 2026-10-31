@@ -57,6 +57,29 @@ describe("ذاكرة الصوت", () => {
     for (const f of readdirSync(dir).filter((f) => f.endsWith(".mp3"))) expect(used.has(f), f).toBe(true);
   });
 
+  it("النبرة وصوت الشخصية يعيدان توليد مشهدهما فقط، ويصلان إلى ElevenLabs", async () => {
+    const { readPlanFile, writePlanFile, planPathFor } = await import("../src/plan/io");
+    const { resolveScriptPath } = await import("../src/script/episodes");
+    const sp = await resolveScriptPath("000");
+    const plan = (await readPlanFile(sp))!;
+    const scene = plan.chapters[0]!.scenes.find((s) => s.narration)!;
+    scene.tone = "dramatic";
+    scene.voice = "voice-commander";
+    await writePlanFile(planPathFor(sp), plan);
+    const seen: { voiceId?: string; tune?: { speed: number } }[] = [];
+    const spy = { ...mock, tts: async (t: string, ctx: { voiceId?: string; tune?: { speed: number } } = {}) => { seen.push(ctx); return mock.tts(t, ctx as never); } } as unknown as ElevenLabsClient;
+    const dry = await generateVoice("000", { client: spy, dryRun: true });
+    expect(dry.toGenerate.map((x) => x.id)).toEqual([scene.id]);
+    await generateVoice("000", { client: spy });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.voiceId).toBe("voice-commander");
+    expect(seen[0]!.tune?.speed).toBe(0.96);
+    // تبقى بعد إعادة توليد الخطة من السكريبت
+    const again = await regeneratePlan("000");
+    const kept = again.chapters[0]!.scenes.find((s) => s.id === scene.id)!;
+    expect([kept.tone, kept.voice]).toEqual(["dramatic", "voice-commander"]);
+  });
+
   it("القاموس يعمل مع علامات الترقيم اللاتينية والعربية", () => {
     const dict = { entries: [{ text: "Allah", say: "Al-lah" }, { text: "الله", say: "اللّاه" }] };
     expect(applyDictionary("Allah, is great.", dict).spoken).toBe("Al-lah, is great.");
