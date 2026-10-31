@@ -45,8 +45,46 @@ export const EpisodeTab: React.FC<{
     if (!allScenes.some((x) => x.scene.id === selectedId) && allScenes[0]) setSelectedId(allScenes[0].scene.id);
   }, [allScenes, selectedId]);
 
+  // في معاينة الفصل أو الحلقة: أي مشهد يُعرض الآن؟ (إعدادات اللوحة الجانبية تخص المشهد المختار فقط)
+  const starts = useMemo(() => {
+    const list: { id: string; from: number }[] = [];
+    let frame = 0;
+    for (const ch of plan.chapters) {
+      if (scope === "chapter" && ch.number !== sel?.chapter.number) continue;
+      for (const s of ch.scenes) {
+        list.push({ id: s.id, from: frame });
+        frame += sceneFrames(s, media);
+      }
+    }
+    return list;
+  }, [plan, media, scope, sel?.chapter.number]);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const skipSeek = useRef(false);
+  useEffect(() => {
+    setPlayingId(null);
+    if (scope === "scene") return;
+    const player = playerRef.current;
+    if (!player) return;
+    const onFrame = (e: { detail: { frame: number } }) => {
+      let id: string | null = null;
+      for (const x of starts) if (x.from <= e.detail.frame) id = x.id;
+      setPlayingId(id);
+    };
+    player.addEventListener("frameupdate", onFrame);
+    player.addEventListener("seeked", onFrame);
+    return () => {
+      player.removeEventListener("frameupdate", onFrame);
+      player.removeEventListener("seeked", onFrame);
+    };
+  }, [scope, starts]);
+  const playing = playingId ? allScenes.findIndex((x) => x.scene.id === playingId) : -1;
+
   // في معاينة الفصل أو الحلقة: القفز إلى بداية المشهد المختار
   useEffect(() => {
+    if (skipSeek.current) {
+      skipSeek.current = false;
+      return;
+    }
     if (scope === "scene" || !sel) return;
     let frame = 0;
     for (const ch of plan.chapters) {
@@ -143,6 +181,22 @@ export const EpisodeTab: React.FC<{
             )}
           </div>
         </div>
+        {scope !== "scene" && playing >= 0 && playingId !== sel?.scene.id ? (
+          <div className="playing-hint">
+            <span>
+              المعروض الآن: <b>المشهد {playing + 1}</b> «{allScenes[playing]!.scene.narration.slice(0, 40)}…». أما الإعدادات في اللوحة الجانبية فهي للمشهد {allScenes.findIndex((x) => x.scene.id === sel?.scene.id) + 1}.
+            </span>
+            <button
+              className="btn primary small"
+              onClick={() => {
+                skipSeek.current = true;
+                setSelectedId(playingId!);
+              }}
+            >
+              عدّل المشهد المعروض
+            </button>
+          </div>
+        ) : null}
         <details className="render-box overlays-box" open={Boolean(plan.overlays)}>
           <summary>عناصر الشاشة في الحلقة كلها {plan.overlays ? <span className="badge edited">معدّلة</span> : null}</summary>
           <p className="help" style={{ margin: "6px 0 10px" }}>ما تختاره هنا يسري على كل مشاهد الحلقة والشورتس. «القناة» يعني الإعداد الافتراضي من تبويب «الهوية»، ويمكن تغيير أي مشهد وحده من إعداداته.</p>
