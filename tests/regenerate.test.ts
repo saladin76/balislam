@@ -56,3 +56,15 @@ describe("إعادة توليد الخطة", () => {
     expect(scenes(generatePlan(parseScript(spelled))).find((s) => s.template === "hadith-card")!.props.grade).toBe("حسن");
   });
 });
+
+describe("أسلوب الحلقة", () => {
+  it("style يحدد القالب الافتراضي للفقرات التي بلا علامة", () => {
+    for (const [style, template] of [["board", "board-story"], ["glow", "glow-story"], ["kinetic", "kinetic-text"]] as const) {
+      const s = script.replace('episode: "001"', `episode: "001"\nstyle: ${style}`);
+      const p = generatePlan(parseScript(s));
+      const sc = p.chapters[1]!.scenes[0]!;
+      expect(sc.template, style).toBe(template);
+      if (template === "glow-story") expect(sc.props.wish).toBeTruthy();
+    }
+  });
+});
