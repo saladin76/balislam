@@ -6,8 +6,8 @@
   "description": "حكايات التاريخ كما حدثت: الحضارات والقادة والعلماء والمعارك، بقصة تُروى.",
   "masterTheme": "warm",
   "logo": {
-    "type": "letter",
-    "letter": "د"
+    "type": "emblem",
+    "emblem": "scroll-seal"
   },
   "domains": {
     "islamic": {

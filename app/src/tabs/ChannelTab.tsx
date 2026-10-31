@@ -3,7 +3,7 @@ import { api } from "../api";
 import type { ChannelConfig, ChannelDomain } from "../../../src/channel/types";
 import { langPacks } from "../../../src/i18n/packs";
 import { useTheme } from "../../../brand/identity/index";
-import { LogoMark } from "../../../brand/logo/Logo";
+import { LogoMark, emblemNamesAr, type EmblemId } from "../../../brand/logo/Logo";
 import { ChannelBrand } from "./ChannelBrand";
 import type { Identity } from "../../../brand/identity/index";
 
@@ -161,9 +161,10 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
             <span style={{ fontWeight: 600, fontSize: 13 }}>الرمز</span>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <LogoMark size={64} colors={logoTheme.logo} mark={c.logo} />
-              <select id="ch-logo" value={c.logo?.type ?? "baa"} onChange={(e) => set({ logo: e.target.value === "letter" ? { type: "letter", letter: [...c.name][0] ?? "؟" } : { type: "baa" } })}>
+              <select id="ch-logo" value={c.logo?.type === "emblem" ? `emblem:${c.logo.emblem}` : (c.logo?.type ?? "baa")} onChange={(e) => { const v = e.target.value; set({ logo: v === "letter" ? { type: "letter", letter: [...c.name][0] ?? "؟" } : v.startsWith("emblem:") ? { type: "emblem", emblem: v.slice(7) as EmblemId } : { type: "baa" } }); }}>
                 <option value="baa">باء التشغيل</option>
                 <option value="letter">حرف القناة + زر التشغيل</option>
+                {(Object.keys(emblemNamesAr) as EmblemId[]).map((e) => <option key={e} value={`emblem:${e}`}>شارة: {emblemNamesAr[e]}</option>)}
               </select>
               {c.logo?.type === "letter" ? <input id="ch-letter" type="text" value={c.logo.letter} maxLength={2} onChange={(e) => set({ logo: { type: "letter", letter: e.target.value } })} style={{ width: 60, textAlign: "center", fontSize: 20 }} /> : null}
             </div>
