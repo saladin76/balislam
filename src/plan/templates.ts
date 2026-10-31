@@ -240,7 +240,7 @@ export const templateDefs: TemplateDef[] = [
     baseSeconds: 6,
     minSeconds: 3.5,
     fields: [
-      { key: "set", label: "المكان", type: "select", options: [{ value: "office", label: "مكتب" }, { value: "kitchen", label: "مطبخ البيت" }, { value: "street-night", label: "شارع بالليل" }, { value: "classroom", label: "فصل دراسي" }, { value: "market", label: "سوق" }, { value: "desert-night", label: "صحراء تحت السماء" }] },
+      { key: "set", label: "المكان", type: "select", options: [{ value: "office", label: "مكتب" }, { value: "kitchen", label: "مطبخ البيت" }, { value: "street-night", label: "شارع بالليل" }, { value: "classroom", label: "فصل دراسي" }, { value: "market", label: "سوق" }, { value: "desert-night", label: "صحراء تحت السماء" }, { value: "castle-walls", label: "أسوار وقلعة" }, { value: "palace-court", label: "صحن قصر" }, { value: "caravan", label: "قافلة في الصحراء" }, { value: "wisdom-library", label: "بيت الحكمة" }] },
       { key: "variant", label: "الشخصية الأولى", type: "variant" },
       { key: "pose", label: "وضعيتها", type: "pose" },
       { key: "variant2", label: "الشخصية الثانية (اختياري)", type: "variant" },

@@ -251,7 +251,203 @@ const desertNight: SetDef = {
   ),
 };
 
-export const sets: SetDef[] = [office, kitchen, streetNight, classroom, market, desertNight];
+/** أسوار مدينة وقلعة عند الفجر: أبراج، رايات ترفرف، بوابة، ومشاعل */
+const castleWalls: SetDef = {
+  id: "castle-walls",
+  nameAr: "أسوار وقلعة",
+  tags: ["تاريخ", "حصار", "مدينة", "دفاع", "فتح", "قلعة"],
+  channels: ["dafatir-alzaman", "balislam"],
+  floorY: 950,
+  mood: "day",
+  draw: (t) => (
+    <>
+      <defs>
+        <linearGradient id="cw-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3B4A6B" /><stop offset="0.55" stopColor="#D98E6A" /><stop offset="1" stopColor="#F2C98B" /></linearGradient>
+      </defs>
+      <rect x={0} y={0} width={1920} height={1080} fill="url(#cw-sky)" />
+      <circle cx={1500} cy={560} r={90} fill="#FBE3A8" opacity={0.9} />
+      {[[200, 160, 0.4], [700, 120, 0.3], [1250, 200, 0.35]].map(([x, y, o], i) => <ellipse key={i} cx={(x as number) + Math.sin(t * 0.2 + i) * 20} cy={y} rx={180} ry={26} fill="#fff" opacity={o} />)}
+      <path fill="#8A6B5A" opacity={0.5} d="M0 700 L240 600 L420 680 L640 590 L900 690 L1200 610 L1500 690 L1760 600 L1920 660 V1080 H0 Z" />
+      {/* السور */}
+      <rect {...S} stroke="#3A2A20" x={-10} y={620} width={1940} height={330} fill="#C9A47A" />
+      {Array.from({ length: 34 }, (_, i) => <rect key={i} {...S} stroke="#3A2A20" strokeWidth={4} x={i * 60 - 10} y={590} width={36} height={34} fill="#C9A47A" />)}
+      {Array.from({ length: 20 }, (_, r) => Array.from({ length: 6 }, (_, c) => <line key={`${r}-${c}`} x1={r * 100 + (c % 2) * 50} y1={660 + c * 48} x2={r * 100 + (c % 2) * 50 + 80} y2={660 + c * 48} stroke="#A8865E" strokeWidth={3} />))}
+      {/* البرجان والبوابة */}
+      {[560, 1260].map((x) => (
+        <g key={x}>
+          <rect {...S} stroke="#3A2A20" x={x} y={420} width={160} height={530} fill="#BF996D" />
+          {Array.from({ length: 4 }, (_, i) => <rect key={i} {...S} stroke="#3A2A20" strokeWidth={4} x={x - 6 + i * 44} y={390} width={30} height={34} fill="#BF996D" />)}
+          <path {...S} stroke="#3A2A20" fill="#2B1F18" d={`M${x + 60} 560 V520 Q${x + 80} 494 ${x + 100} 520 V560 Z`} />
+          <line {...L(4, "#3A2A20")} x1={x + 80} y1={390} x2={x + 80} y2={300} />
+          <path fill="#8E2F23" d={`M${x + 80} 300 Q${x + 130} ${310 + Math.sin(t * 4 + x) * 8} ${x + 170} ${300 + Math.sin(t * 4 + x + 1) * 10} L${x + 170} ${350 + Math.sin(t * 4 + x + 1) * 10} Q${x + 130} ${360 + Math.sin(t * 4 + x) * 8} ${x + 80} 350 Z`} />
+        </g>
+      ))}
+      <path {...S} stroke="#3A2A20" fill="#2B1F18" d="M820 950 V760 Q960 640 1100 760 V950 Z" />
+      <path {...L(5, "#6B4A30")} d="M850 950 V780 M890 950 V745 M930 950 V728 M970 950 V722 M1010 950 V730 M1050 950 V748 M1080 950 V775" />
+      <path {...L(6, "#3A2A20")} d="M820 760 Q960 640 1100 760" />
+      {[790, 1130].map((x, i) => (
+        <g key={x}>
+          <rect {...S} stroke="#3A2A20" x={x - 6} y={760} width={12} height={60} fill="#5A3A22" />
+          <path fill="#F2A23A" d={`M${x} ${700 + Math.sin(t * 9 + i) * 4} Q${x + 18} 740 ${x} 760 Q${x - 18} 740 ${x} ${700 + Math.sin(t * 9 + i) * 4} Z`} />
+          <circle cx={x} cy={740} r={60} fill="#FFC56B" opacity={0.18 + 0.06 * Math.sin(t * 8 + i)} />
+        </g>
+      ))}
+      <rect x={0} y={950} width={1920} height={130} fill="#B08A63" />
+      <path fill="#9C7752" d="M0 990 Q480 960 960 990 T1920 980 V1080 H0 Z" />
+    </>
+  ),
+};
+
+/** صحن قصر: أقواس مزخرفة، نافورة، أشجار نخيل، ونجمة ثمانية في الأرضية */
+const palaceCourt: SetDef = {
+  id: "palace-court",
+  nameAr: "صحن قصر",
+  tags: ["قصر", "حكم", "خليفة", "سلطان", "حضارة", "أندلس"],
+  channels: ["dafatir-alzaman", "balislam"],
+  floorY: 960,
+  mood: "day",
+  draw: (t) => (
+    <>
+      <rect x={0} y={0} width={1920} height={1080} fill="#F3E6CF" />
+      <rect x={0} y={0} width={1920} height={110} fill="#CDB38A" />
+      {Array.from({ length: 48 }, (_, i) => <path key={i} fill="#B8955F" d={`M${i * 40} 110 l20 -26 l20 26 Z`} />)}
+      {/* الأقواس */}
+      {Array.from({ length: 6 }, (_, i) => {
+        const x = 80 + i * 300;
+        return (
+          <g key={i}>
+            <path fill="#2E5A6A" opacity={0.18} d={`M${x + 30} 820 V420 Q${x + 30} 300 ${x + 130} 250 Q${x + 230} 300 ${x + 230} 420 V820 Z`} />
+            <path {...S} stroke="#5A3E22" fill="none" d={`M${x + 30} 820 V420 Q${x + 30} 300 ${x + 130} 250 Q${x + 230} 300 ${x + 230} 420 V820`} />
+            <path {...L(3, "#B8955F")} d={`M${x + 46} 820 V424 Q${x + 46} 316 ${x + 130} 270 Q${x + 214} 316 ${x + 214} 424 V820`} />
+            {Array.from({ length: 7 }, (_, k) => <circle key={k} cx={x + 60 + k * 23} cy={300 + Math.abs(k - 3) * 22} r={5} fill="#2E7A7A" />)}
+            <rect {...S} stroke="#5A3E22" x={x + 14} y={820} width={32} height={140} fill="#E9D7B4" />
+            <rect {...S} stroke="#5A3E22" x={x + 214} y={820} width={32} height={140} fill="#E9D7B4" />
+          </g>
+        );
+      })}
+      <rect {...S} stroke="#5A3E22" x={-10} y={810} width={1940} height={20} fill="#CDB38A" />
+      {/* الأرضية والنجمة */}
+      <rect x={0} y={960} width={1920} height={120} fill="#E2CBA2" />
+      <g transform="translate(960 1020) scale(1 0.35)">
+        <path fill="#2E7A7A" opacity={0.85} d="M0 -120 L34 -84 L85 -85 L84 -34 L120 0 L84 34 L85 85 L34 84 L0 120 L-34 84 L-85 85 L-84 34 L-120 0 L-84 -34 L-85 -85 L-34 -84 Z" />
+      </g>
+      {/* نافورة */}
+      <path {...S} stroke="#5A3E22" fill="#D9C39A" d="M1500 950 H1760 L1740 900 H1520 Z" />
+      <rect x={1528} y={904} width={204} height={14} fill="#7FB7C9" />
+      <rect {...S} stroke="#5A3E22" x={1615} y={820} width={30} height={84} fill="#D9C39A" />
+      {[-1, 1].map((d) => <path key={d} {...L(4, "#7FB7C9")} opacity={0.8} d={`M1630 820 Q${1630 + d * 50} ${760 + Math.sin(t * 6) * 6} ${1630 + d * 90} 900`} />)}
+      {/* نخلة في أصيص */}
+      <g transform="translate(260 960)">
+        <path {...S} stroke="#5A3E22" fill="#B4532F" d="M-50 0 H50 L40 -70 H-40 Z" />
+        <path stroke="#6B4A2E" strokeWidth={14} fill="none" d="M0 -70 Q10 -200 -4 -300" />
+        {[-70, -30, 10, 50, 90].map((a, i) => <path key={i} fill="#4E7A4A" transform={`rotate(${a + Math.sin(t + i) * 3} -4 -300)`} d="M-4 -300 Q70 -330 140 -290 Q70 -310 -4 -300 Z" />)}
+      </g>
+    </>
+  ),
+};
+
+/** قافلة في الصحراء نهارًا: كثبان، جمال تمشي في الأفق، وسراب */
+const caravan: SetDef = {
+  id: "caravan",
+  nameAr: "قافلة في الصحراء",
+  tags: ["تجارة", "سفر", "هجرة", "رحلة", "طريق الحرير", "صحراء"],
+  channels: ["dafatir-alzaman", "balislam", "zubdat-alkutub"],
+  floorY: 940,
+  mood: "day",
+  draw: (t) => (
+    <>
+      <defs>
+        <linearGradient id="cv-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#F2C27A" /><stop offset="1" stopColor="#FBE6C0" /></linearGradient>
+      </defs>
+      <rect x={0} y={0} width={1920} height={1080} fill="url(#cv-sky)" />
+      <circle cx={420} cy={260} r={110} fill="#FFF3D1" opacity={0.95} />
+      <circle cx={420} cy={260} r={180} fill="#FFF3D1" opacity={0.25} />
+      <path fill="#E7B877" d="M0 640 Q300 560 640 620 T1300 600 T1920 610 V1080 H0 Z" />
+      {/* القافلة على خط الأفق */}
+      {Array.from({ length: 6 }, (_, i) => {
+        const x = ((1700 - i * 120 - t * 30) % 2200 + 2200) % 2200 - 200;
+        const bob = Math.sin(t * 4 + i) * 3;
+        return (
+          <g key={i} transform={`translate(${x} ${612 + bob}) scale(${i % 2 ? 0.9 : 1})`} fill="#6B4A2E">
+            <path d="M0 0 Q10 -30 30 -24 Q40 -44 56 -28 Q70 -30 74 -12 L84 -30 Q92 -40 98 -30 L92 -6 Q88 4 78 2 L74 22 H68 L66 4 H22 L20 22 H14 L12 2 Q0 4 0 0 Z" />
+            {i % 3 === 0 ? <path d="M36 -40 Q42 -56 48 -40 Z" /> : null}
+          </g>
+        );
+      })}
+      <path fill="#D9A15E" d="M0 760 Q420 660 860 740 T1920 720 V1080 H0 Z" />
+      <path fill="#C98E4E" d="M0 880 Q520 800 1100 880 T1920 860 V1080 H0 Z" />
+      <path fill="#B97C40" d="M0 960 Q700 920 1300 970 T1920 950 V1080 H0 Z" />
+      {[0, 1, 2].map((i) => <path key={i} stroke="#FFF3D1" strokeWidth={3} opacity={0.35} fill="none" d={`M${200 + i * 500} ${700 + i * 20} q 40 ${Math.sin(t * 3 + i) * 4} 80 0 t 80 0`} />)}
+    </>
+  ),
+};
+
+/** بيت الحكمة: مكتبة مخطوطات، مصابيح معلّقة، إسطرلاب، ومنضدة كتابة */
+const wisdomLibrary: SetDef = {
+  id: "wisdom-library",
+  nameAr: "بيت الحكمة",
+  tags: ["علم", "كتب", "مخطوطات", "علماء", "ترجمة", "بغداد", "مكتبة"],
+  channels: ["dafatir-alzaman", "zubdat-alkutub", "balislam"],
+  floorY: 950,
+  mood: "night",
+  draw: (t) => (
+    <>
+      <rect x={0} y={0} width={1920} height={1080} fill="#2A1E18" />
+      <rect x={0} y={0} width={1920} height={1080} fill="url(#wl-glow)" />
+      <defs>
+        <radialGradient id="wl-glow" cx="0.5" cy="0.45" r="0.6"><stop offset="0" stopColor="#7A5232" stopOpacity={0.9} /><stop offset="1" stopColor="#2A1E18" stopOpacity={0} /></radialGradient>
+      </defs>
+      {/* رفوف المخطوطات */}
+      {[60, 1380].map((x) => (
+        <g key={x}>
+          <rect {...S} stroke="#120C08" x={x} y={140} width={480} height={810} fill="#4A3020" />
+          {[0, 1, 2, 3, 4].map((r) => (
+            <g key={r}>
+              <rect x={x + 16} y={160 + r * 158} width={448} height={138} fill="#2E1E14" />
+              {Array.from({ length: 11 }, (_, k) => {
+                const roll = (k + r) % 3 === 0;
+                return roll ? <rect key={k} x={x + 26 + k * 40} y={250 + r * 158} width={34} height={44} rx={17} fill={["#E8D6AE", "#D9C08C", "#C8A86C"][(k + r) % 3]} stroke="#120C08" strokeWidth={2} /> : <rect key={k} x={x + 28 + k * 40} y={190 + r * 158 + (k % 2) * 14} width={30} height={104 - (k % 2) * 14} rx={3} fill={["#8E2F23", "#2E5A4A", "#6B4A2E", "#A07A3A"][(k + r) % 4]} stroke="#120C08" strokeWidth={2} />;
+              })}
+              <rect x={x + 10} y={296 + r * 158} width={460} height={10} fill="#6B4A30" />
+            </g>
+          ))}
+        </g>
+      ))}
+      {/* نافذة مقوّسة ونجوم */}
+      <path {...S} stroke="#120C08" fill="#1C2440" d="M820 520 V300 Q820 200 960 160 Q1100 200 1100 300 V520 Z" />
+      {Array.from({ length: 14 }, (_, i) => <circle key={i} cx={850 + ((i * 53) % 220)} cy={210 + ((i * 37) % 280)} r={2.5} fill="#fff" opacity={0.4 + 0.5 * Math.abs(Math.sin(t * 1.5 + i))} />)}
+      <path {...L(6, "#120C08")} d="M960 160 V520 M820 360 H1100" />
+      {/* مصابيح معلّقة */}
+      {[700, 1220].map((x, i) => {
+        const sw = Math.sin(t * 1.2 + i) * 3;
+        return (
+          <g key={x} transform={`rotate(${sw} ${x} 0)`}>
+            <line {...L(3, "#C9A25A")} x1={x} y1={0} x2={x} y2={300} />
+            <path {...S} stroke="#120C08" fill="#C9A25A" d={`M${x - 30} 300 H${x + 30} L${x + 40} 340 Q${x} 380 ${x - 40} 340 Z`} />
+            <circle cx={x} cy={350} r={90} fill="#FFC56B" opacity={0.16 + 0.05 * Math.sin(t * 7 + i)} />
+          </g>
+        );
+      })}
+      {/* منضدة ومخطوطة مفتوحة وإسطرلاب */}
+      <rect x={0} y={950} width={1920} height={130} fill="#3A281C" />
+      <rect {...S} stroke="#120C08" x={700} y={780} width={520} height={30} rx={6} fill="#6B4A30" />
+      <rect {...S} stroke="#120C08" x={730} y={810} width={24} height={140} fill="#5A3A22" />
+      <rect {...S} stroke="#120C08" x={1166} y={810} width={24} height={140} fill="#5A3A22" />
+      <path {...S} stroke="#120C08" fill="#EBD9B0" d="M760 780 Q860 756 960 780 Q1060 756 1160 780 V770 Q1060 744 960 768 Q860 744 760 770 Z" />
+      <g transform="translate(1110 700)">
+        <circle {...S} stroke="#C9A25A" strokeWidth={5} r={44} fill="none" />
+        <ellipse stroke="#C9A25A" strokeWidth={3} fill="none" rx={44} ry={16} transform={`rotate(${t * 20})`} />
+        <line stroke="#C9A25A" strokeWidth={4} x1={-36} y1={22} x2={36} y2={-22} />
+        <rect x={-6} y={44} width={12} height={36} fill="#C9A25A" />
+      </g>
+      <path fill="#F2A23A" d={`M820 ${700 + Math.sin(t * 9) * 4} Q836 740 820 760 Q804 740 820 ${700 + Math.sin(t * 9) * 4} Z`} />
+      <rect {...S} stroke="#120C08" x={808} y={760} width={24} height={22} fill="#C9A25A" />
+      <circle cx={820} cy={740} r={70} fill="#FFC56B" opacity={0.2 + 0.06 * Math.sin(t * 8)} />
+    </>
+  ),
+};
+
+export const sets: SetDef[] = [office, kitchen, streetNight, classroom, market, desertNight, castleWalls, palaceCourt, caravan, wisdomLibrary];
 export const setById = (id: string) => sets.find((s) => s.id === id);
 
 /** يرسم مكانًا كاملًا داخل SVG بإطار 1920×1080 */
