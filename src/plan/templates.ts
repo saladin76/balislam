@@ -267,6 +267,11 @@ export const templateDefs: TemplateDef[] = [
       { key: "bubbleKind", label: "نوع الفقاعة", type: "select", options: [{ value: "say", label: "كلام" }, { value: "think", label: "تفكير" }] },
       { key: "bubbleWho", label: "صاحب الفقاعة", type: "select", options: [{ value: "1", label: "الأولى" }, { value: "2", label: "الثانية" }] },
       { key: "element", label: "عنصر مساعد", type: "element" },
+      { key: "figure", label: "شخصية تاريخية بملامح (بدل الأولى)", type: "select", options: [{ value: "", label: "بلا (شخصية بلا ملامح)" }, { value: "scholar", label: "عالم" }, { value: "commander", label: "قائد" }, { value: "merchant", label: "تاجر" }, { value: "ruler", label: "حاكم" }, { value: "woman", label: "امرأة" }, { value: "youth", label: "شاب" }, { value: "elder", label: "شيخ كبير" }, { value: "traveler", label: "رحّالة غريب" }], help: "تظهر فقط في القنوات التي تسمح بالوجوه (دفاتر الزمن). لا تُستعمل لنبي ولا صحابي." },
+      { key: "expr", label: "تعبيرها", type: "select", options: [{ value: "neutral", label: "هادئ" }, { value: "happy", label: "سعيد" }, { value: "sad", label: "حزين" }, { value: "angry", label: "غاضب" }, { value: "surprised", label: "مندهش" }, { value: "worried", label: "قلق" }] },
+      { key: "figure2", label: "شخصية تاريخية ثانية", type: "select", options: [{ value: "", label: "بلا (شخصية بلا ملامح)" }, { value: "scholar", label: "عالم" }, { value: "commander", label: "قائد" }, { value: "merchant", label: "تاجر" }, { value: "ruler", label: "حاكم" }, { value: "woman", label: "امرأة" }, { value: "youth", label: "شاب" }, { value: "elder", label: "شيخ كبير" }, { value: "traveler", label: "رحّالة غريب" }] },
+      { key: "expr2", label: "تعبيرها", type: "select", options: [{ value: "neutral", label: "هادئ" }, { value: "happy", label: "سعيد" }, { value: "sad", label: "حزين" }, { value: "angry", label: "غاضب" }, { value: "surprised", label: "مندهش" }, { value: "worried", label: "قلق" }] },
+      { key: "talk", label: "من يتكلم (يتحرك فمه)", type: "select", options: [{ value: "", label: "لا أحد" }, { value: "1", label: "الأولى" }, { value: "2", label: "الثانية" }] },
     ],
   },
   {

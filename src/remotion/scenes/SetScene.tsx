@@ -7,6 +7,8 @@ import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SetBackdrop, setById } from "../../../brand/sets/index";
 import { Character, type CharacterPose, type CharacterVariant } from "../../../characters/Character";
+import { HistoricFigure, type FigureExpr, type FigureId, type FigurePose } from "../../../characters/HistoricFigure";
+import { useChannel } from "../../channel/context";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
 import { useSceneFrame } from "./motion";
@@ -17,7 +19,10 @@ import type { SceneBase, StringFields } from "./types";
  * وكاميرا تتحرك (اقتراب، تحريك جانبي، أو ثابتة)، وفقاعة كلام أو فكرة قصيرة، وعنصر اختياري.
  */
 export type SetSceneProps = SceneBase &
-  StringFields<"set" | "variant" | "pose" | "variant2" | "pose2" | "camera" | "bubble" | "bubbleKind" | "bubbleWho" | "element">;
+  StringFields<"set" | "variant" | "pose" | "variant2" | "pose2" | "camera" | "bubble" | "bubbleKind" | "bubbleWho" | "element" | "figure" | "figure2" | "expr" | "expr2" | "talk">;
+
+/** وضعيات الشخصيات بلا ملامح ← وضعيات الشخصيات التاريخية */
+const figPose = (p: string): FigurePose => (({ point: "point", think: "think", "open-arms": "gesture", hold: "scroll", "raise-hands": "banner", wave: "gesture" } as Record<string, FigurePose>)[p] ?? "stand");
 
 const ink = "#2A2F3A";
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -40,7 +45,11 @@ export const SetScene: React.FC<SetSceneProps> = (props) => {
     character: { style: "flat", outline: ink, skin: ["#E3B58E", "#CF9C74"], garments: ["#4A78B8", "#B85C7A", "#E8B23A", "#5B7F3A", "#8C6A9A"], cap: "#F4F1EA" },
   };
 
-  const two = Boolean(variant2);
+  // الشخصيات التاريخية بملامح: فقط في القنوات التي تسمح بالوجوه
+  const facesOk = Boolean(useChannel().rules?.faces);
+  const fig1 = facesOk && props.figure ? (props.figure as FigureId) : null;
+  const fig2 = facesOk && props.figure2 ? (props.figure2 as FigureId) : null;
+  const two = Boolean(variant2 || fig2);
   // خط خارجي للشخصية يطابق رسم الأماكن
   const outline = [[3, 0], [-3, 0], [0, 3], [0, -3]].map(([x, y]) => `drop-shadow(${x}px ${y}px 0 ${ink})`).join(" ");
   const h = 430;
@@ -84,11 +93,18 @@ export const SetScene: React.FC<SetSceneProps> = (props) => {
           {/* ظل الأرض */}
           {xs.map((x, i) => <ellipse key={i} cx={x} cy={floorY + 4} rx={w * 0.55} ry={16} fill="#000" opacity={night ? 0.35 : 0.12} />)}
           {/* الشخصيات */}
-          {[{ v: variant, p: pose, e: enterA }, ...(two ? [{ v: variant2, p: pose2, e: enterB }] : [])].map((c, i) => (
-            <g key={i} transform={`translate(${xs[i]! - w / 2} ${floorY - h + (1 - c.e) * 40 + bob(i)}) ${two && i === 1 ? `translate(${w} 0) scale(-1 1)` : ""}`} opacity={c.e} style={{ filter: `${outline}${night ? " brightness(0.82) saturate(0.9)" : ""}` }}>
-              <Character theme={castTheme} variant={c.v as CharacterVariant} pose={c.p as CharacterPose} height={h} />
-            </g>
-          ))}
+          {[{ v: variant, p: pose, e: enterA, f: fig1, x: (props.expr || "neutral") as FigureExpr }, ...(two ? [{ v: variant2 || "narrator-m", p: pose2, e: enterB, f: fig2, x: (props.expr2 || "neutral") as FigureExpr }] : [])].map((c, i) =>
+            c.f ? (
+              // الشخصية التاريخية أطول قليلًا (بعمامتها) وتنظر نحو الأخرى
+              <g key={i} transform={`translate(${xs[i]! - (h * 1.1 * 200) / 420 / 2} ${floorY - h * 1.1 + (1 - c.e) * 40 + bob(i) * 0.5}) ${two && i === 1 ? `translate(${(h * 1.1 * 200) / 420} 0) scale(-1 1)` : ""}`} opacity={c.e} style={night ? { filter: "brightness(0.85) saturate(0.9)" } : undefined}>
+                <HistoricFigure figure={c.f} expr={c.x} pose={figPose(c.p)} height={h * 1.1} frame={frame + i * 37} talking={props.talk === String(i + 1)} />
+              </g>
+            ) : (
+              <g key={i} transform={`translate(${xs[i]! - w / 2} ${floorY - h + (1 - c.e) * 40 + bob(i)}) ${two && i === 1 ? `translate(${w} 0) scale(-1 1)` : ""}`} opacity={c.e} style={{ filter: `${outline}${night ? " brightness(0.82) saturate(0.9)" : ""}` }}>
+                <Character theme={castTheme} variant={c.v as CharacterVariant} pose={c.p as CharacterPose} height={h} />
+              </g>
+            ),
+          )}
           {/* عنصر مساعد بجوار الشخصية */}
           {element && hasElement(element) ? (
             <g transform={`translate(${(two ? 960 : xs[0]! + w * 0.9) - 70} ${floorY - 150 - Math.abs(Math.sin(t * 2)) * 6}) scale(${spring({ frame: frame - 20, fps, config: { damping: 12 } })})`}>

@@ -52,7 +52,7 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
     case "map-journey":
       return { title: "", places: "", mode: "route", mover: "caravan", look: "parchment", zoom: "in", rivers: "on" };
     case "set-scene":
-      return { set: "office", variant: "narrator-m", pose: "stand", variant2: "", pose2: "stand", camera: "push", bubble: "", bubbleKind: "say", bubbleWho: "1", element: "" };
+      return { set: "office", variant: "narrator-m", pose: "stand", variant2: "", pose2: "stand", camera: "push", bubble: "", bubbleKind: "say", bubbleWho: "1", element: "", figure: "", expr: "neutral", figure2: "", expr2: "neutral", talk: "" };
     case "desk-moment":
       return { reaction: "!", reactAt: "0.6", push: "on", outfit: "blue", screen: "feed" };
     case "sim-stage":
