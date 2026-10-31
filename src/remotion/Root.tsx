@@ -5,6 +5,7 @@ import { BrandSheet } from "./BrandSheet";
 import { TemplateReel, reelDuration } from "./scenes/TemplateReel";
 import { sceneCatalog } from "./scenes/catalog";
 import { Thumbnail } from "./Thumbnail";
+import { ChannelArt, artSizes, type ArtKind } from "./ChannelArt";
 import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "./scenes/ChannelIntro";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
@@ -57,6 +58,9 @@ export const RemotionRoot: React.FC = () => (
     )}
     {orientations.map((o) => (
       <Composition key={`intro-${o}`} id={`channel-intro-${o}`} component={IntroPreview} durationInFrames={INTRO_FRAMES} fps={config.video.fps} {...sizes[o]} defaultProps={{ kind: "ink" as IntroKind, orientation: o }} />
+    ))}
+    {(Object.keys(artSizes) as ArtKind[]).map((k) => (
+      <Still key={`art-${k}`} id={`channel-art-${k}`} component={ChannelArt} {...artSizes[k]} defaultProps={{ kind: k }} />
     ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
