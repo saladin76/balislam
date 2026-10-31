@@ -37,6 +37,17 @@ const readBody = async (req: IncomingMessage): Promise<any> => {
 
 
 
+/** config.json مع رسالة واضحة إن تلف (مثلًا علامات تعارض من git pull أو stash pop) */
+const readConfig = async () => {
+  const raw = await readFile(configFile, "utf8");
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    const hint = /^(<<<<<<<|=======|>>>>>>>)/m.test(raw) ? "فيه علامات تعارض من git. أصلحه بالأمر: git checkout origin/main -- config.json" : (e as Error).message;
+    throw new HttpError(500, `ملف config.json تالف: ${hint}`);
+  }
+};
+
 const EP = /^\d{3}$/;
 
 /** يخدم ملفًا مع دعم المقاطع (Range) حتى يستطيع المشغل التقديم والتأخير. */
@@ -96,7 +107,7 @@ export const balApi = (): Plugin => ({
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
-        const ch = url.searchParams.get("channel") || JSON.parse(await readFile(configFile, "utf8")).defaultChannel;
+        const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
         const channelMod = await load("/src/channel/index.ts");
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)

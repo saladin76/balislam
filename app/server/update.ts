@@ -54,6 +54,9 @@ const doApply = async (root: string): Promise<{ ok: boolean; message: string; re
   await git(root, ["checkout", "--", "package-lock.json"]);
   const dirty = (await git(root, ["status", "--porcelain"])).out;
   if (dirty) {
+    // لا نحفظ ملفًا فيه علامات تعارض قديمة من git (<<<<<<<) وإلا صار جزءًا من التاريخ
+    const marked = (await git(root, ["grep", "-l", "-E", "^(<<<<<<<|>>>>>>>) ", "--", "."])).out.split("\n").filter(Boolean);
+    if (marked.length) return { ok: false, message: `في ملفاتك علامات تعارض قديمة من git (${marked.join("، ")}). صلّحها أولًا: git checkout origin/main -- ${marked.join(" ")}` };
     await git(root, ["add", "-A"]);
     const c = await git(root, ["-c", "user.name=Balislam Studio", "-c", "user.email=studio@localhost", "commit", "-q", "-m", "حفظ تلقائي لتعديلات الاستوديو قبل التحديث"]);
     if (!c.ok) return { ok: false, message: `تعذّر حفظ تعديلاتك قبل التحديث: ${c.out.slice(0, 200)}` };
