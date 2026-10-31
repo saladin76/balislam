@@ -197,7 +197,7 @@ export const EpisodeTab: React.FC<{
             </button>
           </div>
         ) : null}
-        <details className="render-box overlays-box" open={Boolean(plan.overlays)}>
+        <details className="render-box overlays-box" open>
           <summary>عناصر الشاشة في الحلقة كلها {plan.overlays ? <span className="badge edited">معدّلة</span> : null}</summary>
           <p className="help" style={{ margin: "6px 0 10px" }}>ما تختاره هنا يسري على كل مشاهد الحلقة والشورتس. «القناة» يعني الإعداد الافتراضي من تبويب «الهوية»، ويمكن تغيير أي مشهد وحده من إعداداته.</p>
           <OverlayToggles idPrefix="ep-ov" value={plan.overlays} inherited={channelOv} inheritLabel="القناة" onChange={(overlays) => { const { overlays: _o, ...rest } = plan; onPlanChange(overlays ? { ...rest, overlays } : rest); }} />
@@ -305,6 +305,36 @@ export const EpisodeTab: React.FC<{
             inheritLabel="الحلقة"
             onChange={(overlays) => updateScene({ overlays, captions: undefined })}
           />
+          {(() => {
+            const own = { ...(scene.captions === false ? { captions: false } : {}), ...scene.overlays };
+            if (!Object.keys(own).length) return <div className="help">هذه الأزرار لهذا المشهد فقط. للحلقة كلها استعمل «عناصر الشاشة في الحلقة كلها» تحت المعاينة.</div>;
+            return (
+              <button
+                className="btn small"
+                style={{ marginTop: 8 }}
+                title="ينقل اختيارات هذا المشهد إلى الحلقة كلها، ويعيد كل المشاهد لتتبع الحلقة"
+                onClick={() => {
+                  if (!window.confirm("تطبيق اختيارات هذا المشهد (إظهار/إخفاء) على كل مشاهد الحلقة؟ ستُلغى الاختيارات الخاصة بالمشاهد الأخرى لهذه العناصر.")) return;
+                  const keys = Object.keys(own) as (keyof typeof own)[];
+                  onPlanChange({
+                    ...plan,
+                    overlays: { ...plan.overlays, ...own },
+                    chapters: plan.chapters.map((c) => ({
+                      ...c,
+                      scenes: c.scenes.map((sc) => {
+                        const rest = { ...sc.overlays };
+                        for (const k of keys) delete (rest as Record<string, unknown>)[k];
+                        const { overlays: _o, captions: cap, ...base } = sc;
+                        return { ...base, ...(keys.includes("captions") || cap === undefined ? {} : { captions: cap }), ...(Object.keys(rest).length ? { overlays: rest } : {}) };
+                      }),
+                    })),
+                  });
+                }}
+              >
+                طبّق هذا على الحلقة كلها
+              </button>
+            );
+          })()}
 
           <div className="section-t">المؤثرات الصوتية</div>
           <div className="chips">
@@ -505,7 +535,11 @@ const IssuesBox: React.FC<{ issues: PlanIssue[]; keys: { quran: boolean }; episo
             onClick={async () => {
               setBusy(true);
               try {
-                await api.quran(episodeId);
+                setMsg("");
+                const r = await api.quran(episodeId);
+                const failed = r.result?.failed ?? [];
+                if (failed.length) setMsg(`تعذّر جلب ${failed.length}: ${failed.map((f) => `${f.ref} ← ${f.reason}`).join(" | ")}`);
+                else setMsg(`تم: جُلبت ${r.result?.fetched?.length ?? 0} آية/مقطع.`);
                 onReload();
               } catch (e) {
                 setMsg((e as Error).message);
