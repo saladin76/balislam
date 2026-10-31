@@ -49,6 +49,8 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
     case "kinetic-text":
       // الكلمات المهمة: كلمات المعنى في كل جملة (تظهر أكبر وملونة)
       return { emphasis: beatsFor(narration, 3).map((b) => b.label).filter(Boolean).join("، "), element: "", stage: "theme" };
+    case "sim-stage":
+      return { kicker: "", title: firstSentence(narration, 8), location: "", meter: "", meterTo: "100", timer: "", timerLabel: "", env: "", envLayout: "row", badge: "", tone: "gold", aura: "on", variant: "narrator-m", pose: "stand" };
     default:
       return {};
   }

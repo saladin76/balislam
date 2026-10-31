@@ -10,6 +10,7 @@ import { ChartScene, chartSample, chartSampleEn, chartSeconds } from "./ChartSce
 import { Timeline, timelineSample, timelineSampleEn, timelineSeconds } from "./Timeline";
 import { Symbolic, symbolicSample, symbolicSampleEn, symbolicSeconds } from "./Symbolic";
 import { KineticText, kineticTextSample, kineticTextSampleEn, kineticTextSeconds } from "./KineticText";
+import { SimStage, simStageSample, simStageSampleEn, simStageSeconds } from "./SimStage";
 import { BoardStory, boardStorySample, boardStorySampleEn, boardStorySeconds } from "./BoardStory";
 import { SketchBoard, sketchBoardSample, sketchBoardSampleEn, sketchBoardSeconds } from "./SketchBoard";
 import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from "./GlowStory";
@@ -35,6 +36,7 @@ export const sceneCatalog: Entry[] = [
   { id: "board-story", component: BoardStory, sample: boardStorySample, sampleEn: boardStorySampleEn, seconds: boardStorySeconds },
   { id: "sketch-board", component: SketchBoard, sample: sketchBoardSample, sampleEn: sketchBoardSampleEn, seconds: sketchBoardSeconds },
   { id: "kinetic-text", component: KineticText, sample: kineticTextSample, sampleEn: kineticTextSampleEn, seconds: kineticTextSeconds },
+  { id: "sim-stage", component: SimStage, sample: simStageSample, sampleEn: simStageSampleEn, seconds: simStageSeconds },
   { id: "summary", component: Summary, sample: summarySample, sampleEn: summarySampleEn, seconds: summarySeconds },
   { id: "end-screen", component: EndScreen, sample: endScreenSample, sampleEn: endScreenSampleEn, seconds: endScreenSeconds },
 ];
