@@ -233,6 +233,21 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "desk-moment",
+    nameAr: "لحظة على المكتب",
+    useAr: "رسم مسطح بألوان هادئة: شخص على مكتبه يتصفح هاتفه والكاميرا تقترب، ثم ردّة فعل (! ؟ …). لمشاهد الحياة اليومية: خبر، إشعار، رسالة، تشتت",
+    implemented: true,
+    baseSeconds: 7,
+    minSeconds: 4,
+    fields: [
+      { key: "reaction", label: "ردّة الفعل", type: "select", options: [{ value: "!", label: "! مفاجأة" }, { value: "?", label: "؟ حيرة" }, { value: "...", label: "… تفكير" }, { value: "heart", label: "♥ إعجاب" }, { value: "none", label: "بدون" }] },
+      { key: "reactAt", label: "متى تحدث (0.1–0.9 من المشهد)", type: "text", placeholder: "0.6" },
+      { key: "push", label: "اقتراب الكاميرا", type: "select", options: [{ value: "on", label: "يقترب ببطء" }, { value: "off", label: "ثابتة" }] },
+      { key: "outfit", label: "لون القميص", type: "select", options: [{ value: "blue", label: "أزرق" }, { value: "green", label: "أخضر" }, { value: "sand", label: "رملي" }, { value: "maroon", label: "عنابي" }] },
+      { key: "screen", label: "الشاشة", type: "select", options: [{ value: "feed", label: "فاتحة" }, { value: "dark", label: "داكنة" }] },
+    ],
+  },
+  {
     id: "sim-stage",
     nameAr: "المحاكاة",
     useAr: "مسرح مظلم وشخصية بيضاء في بيئة (محل عطور، حظيرة، ورشة) ولوحة كأنها لعبة: مؤشر يمتلئ وعدّاد وقت. للأمثال والتجارب الذهنية «لو جلست ساعتين في…»",

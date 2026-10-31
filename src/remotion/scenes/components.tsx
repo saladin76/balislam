@@ -16,6 +16,7 @@ import { SketchBoard } from "./SketchBoard";
 import { BoardStory } from "./BoardStory";
 import { KineticText } from "./KineticText";
 import { SimStage } from "./SimStage";
+import { DeskMoment } from "./DeskMoment";
 import { EndScreen } from "./EndScreen";
 import type { PlanScene } from "../../plan/types";
 import type { ThemeId } from "../../../brand/themes";
@@ -94,6 +95,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <SketchBoard {...base} {...p} />;
     case "kinetic-text":
       return <KineticText {...base} {...p} />;
+    case "desk-moment":
+      return <DeskMoment {...base} {...p} />;
     case "sim-stage":
       return <SimStage {...base} {...p} />;
     case "summary":
