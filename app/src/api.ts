@@ -23,9 +23,13 @@ export type Overview = {
   blocking: number;
   package: { video: boolean; shorts: number; thumbnails: number; updatedAt: number | null };
   planUpdatedAt: number | null;
+  /** الأسلوب الغالب على الحلقة (للتنوّع) */
+  style: string;
   status: EpisodeStatus;
 };
-export type EpisodeStatus = { checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string };
+export type EpisodeStatus = { checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string; /** يوم نشر الحلقة الطويلة المخطط (YYYY-MM-DD) */ scheduled?: string };
+export type Idea = { id: string; title: string; note?: string; domain?: string; style?: string; createdAt: string };
+export type OpsChannel = { channel: { id: string; name: string; language: string; schedule: { longDay: number; time?: string; shortsPerDay?: number } | null; domains: Record<string, ChannelDomain> }; episodes: Overview[]; ideas: Idea[] };
 export type PackageInfo = { files: { name: string; size: number; mtime: number }[]; youtube: string; checklist: string };
 export type LongJob = { id: string; kind: string; episode?: string; title: string; status: "running" | "done" | "error"; pct: number; log: string[]; error?: string; startedAt: number };
 export type KeyState = Record<string, { label: string; set: boolean; preview: string }>;
@@ -39,8 +43,8 @@ export const setApiChannel = (id: string) => {
 };
 const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(currentChannel)}` : url);
 
-const call = async <T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> => {
-  const url = withChannel(path);
+const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
+  const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
     ...init,
     headers: init?.json !== undefined ? { "content-type": "application/json" } : undefined,
@@ -52,6 +56,11 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }): P
 };
 
 export const api = {
+  /** غرفة العمليات: كل القنوات */
+  ops: () => call<OpsChannel[]>("/api/ops"),
+  saveIdeas: (channel: string, ideas: Idea[]) => call("/api/ideas", { method: "PUT", json: { ideas } }, channel),
+  statusFor: (channel: string, id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`, undefined, channel),
+  saveStatusFor: (channel: string, id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }, channel),
   channels: () => call<ChannelSummary[]>("/api/channels"),
   episodes: () => call<EpisodeSummary[]>("/api/episodes"),
   createEpisode: (b: { episode: string; slug: string; domain: string; title: string }) => call("/api/episodes", { method: "POST", json: b }),

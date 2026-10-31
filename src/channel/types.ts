@@ -27,6 +27,10 @@ export type ChannelConfig = {
   /** تلاوة الآيات من Quran Foundation (اختياري): معرّف التلاوة واسم القارئ. بدونها تُعرض الآية نصًّا فقط. */
   recitation?: { id: number; name: string };
   domains: Record<string, ChannelDomain>;
+  /** جدول النشر: يوم الحلقة الطويلة (0 الأحد … 6 السبت) وعدد الشورتس اليومية */
+  schedule?: { longDay: number; time?: string; shortsPerDay?: number };
+  /** الأساليب البصرية التي تتناوب عليها حلقات القناة (للتنوّع) */
+  styles?: string[];
   rules: {
     music: boolean;
     faces: boolean;

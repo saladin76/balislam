@@ -112,20 +112,8 @@ export const startJob = (ctx: Pick<ExtraCtx, "root">, job: Omit<LongJob, "id" | 
 
 const episodeDirs = async (episodesDir: string) => (existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d)).sort() : []);
 
-export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
-  const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
-
-  // التحديث من GitHub
-  if (parts[0] === "update") {
-    if (req.method === "POST") {
-      const r = await applyUpdate(ctx.root);
-      send(res, r.ok ? 200 : 409, r.ok ? r : { error: r.message });
-    } else send(res, 200, await updateStatus(ctx.root, new URL(req.url ?? "/", "http://x").searchParams.has("force")));
-    return true;
-  }
-
-  // نظرة عامة: مرحلة كل حلقة
-  if (parts[0] === "overview") {
+/** حالة كل حلقة في مجلد حلقات قناة: السكريبت، والمشاهد، والصوت، والفيديو، والنشر، والأسلوب الغالب. */
+const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
     const { parseScript } = await load("/src/script/parse.ts");
     const { checkForChannel } = await load("/src/script/checkChannel.ts");
     const { planIssues } = await load("/src/plan/validate.ts");
@@ -161,10 +149,65 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         blocking: issues.filter((i: any) => i.level === "error").length,
         package: { video: Boolean(video), shorts: pkgFiles.filter((f) => /-short-\d\.mp4$/.test(f)).length, thumbnails: pkgFiles.filter((f) => f.endsWith(".png")).length, updatedAt: video ? statSync(path.join(pkgDir, video)).mtimeMs : null },
         planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
+        style: styleOf((fm as { style?: string }).style, scenes),
         status,
       });
     }
+  return out;
+};
+
+/** الأسلوب البصري للحلقة: من style في السكريبت، وإلا القالب الأكثر استعمالًا في مشاهدها (لتنبيه التنوّع). */
+const styleOf = (fmStyle: string | undefined, scenes: { template?: string }[]) => {
+  if (fmStyle && fmStyle !== "templates") return fmStyle;
+  const count = new Map<string, number>();
+  for (const s of scenes) if (s.template && !["verse-card", "hadith-card", "end-screen", "summary"].includes(s.template)) count.set(s.template, (count.get(s.template) ?? 0) + 1);
+  return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? fmStyle ?? "";
+};
+
+export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
+  const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
+
+  // التحديث من GitHub
+  if (parts[0] === "update") {
+    if (req.method === "POST") {
+      const r = await applyUpdate(ctx.root);
+      send(res, r.ok ? 200 : 409, r.ok ? r : { error: r.message });
+    } else send(res, 200, await updateStatus(ctx.root, new URL(req.url ?? "/", "http://x").searchParams.has("force")));
+    return true;
+  }
+
+  // نظرة عامة: مرحلة كل حلقة
+  if (parts[0] === "overview") {
+    send(res, 200, await buildOverview(episodesDir, load));
+    return true;
+  }
+
+  // غرفة العمليات: كل القنوات مرة واحدة (الحلقات، والجدول، وبنك الأفكار)
+  if (parts[0] === "ops" && req.method === "GET") {
+    const channelMod = await load("/src/channel/index.ts");
+    const out = [];
+    for (const id of channelMod.listChannels() as string[]) {
+      const c = channelMod.loadChannel(id);
+      const cp = channelMod.channelPaths(id);
+      const episodes = await channelMod.runWithChannel(id, () => buildOverview(cp.episodes, load));
+      const ideasFile = path.join(cp.dir, "ideas.json");
+      const ideas = existsSync(ideasFile) ? JSON.parse(await readFile(ideasFile, "utf8")) : [];
+      out.push({ channel: { id: c.id, name: c.name, language: c.language, schedule: c.schedule ?? null, domains: c.domains }, episodes, ideas });
+    }
     send(res, 200, out);
+    return true;
+  }
+
+  // بنك الأفكار للقناة: channels/<id>/ideas.json
+  if (parts[0] === "ideas") {
+    const channelMod = await load("/src/channel/index.ts");
+    const file = path.join(channelMod.channelPaths(ch).dir, "ideas.json");
+    if (req.method === "PUT") {
+      const { ideas } = await readBody(req);
+      if (!Array.isArray(ideas) || ideas.some((i: any) => typeof i?.id !== "string" || typeof i?.title !== "string")) return send(res, 400, { error: "قائمة الأفكار غير صالحة." }), true;
+      await writeFile(file, JSON.stringify(ideas, null, 2) + "\n", "utf8");
+      send(res, 200, { ok: true });
+    } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : []);
     return true;
   }
 

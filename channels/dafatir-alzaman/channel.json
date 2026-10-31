@@ -43,6 +43,11 @@
       ]
     }
   },
+  "schedule": {
+    "longDay": 1,
+    "time": "19:00",
+    "shortsPerDay": 1
+  },
   "rules": {
     "music": false,
     "faces": true,

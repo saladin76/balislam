@@ -9,6 +9,7 @@ import { EpisodeTab } from "./tabs/EpisodeTab";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
+import { OpsRoom } from "./tabs/OpsRoom";
 import { PublishTab } from "./tabs/PublishTab";
 import { LibraryTab } from "./tabs/LibraryTab";
 import { ChannelTab } from "./tabs/ChannelTab";
@@ -58,6 +59,10 @@ export const App: React.FC = () => {
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
   const [showNew, setShowNew] = useState(false);
+  /** فكرة من بنك الأفكار تتحول حلقة: تملأ نموذج الحلقة الجديدة */
+  const [newPrefill, setNewPrefill] = useState<{ channel: string; title: string; domain?: string; suggested: string; ideaId: string } | null>(null);
+  /** فتح حلقة في قناة أخرى من غرفة العمليات: يُطبَّق بعد تحميل حلقات القناة */
+  const pendingOpen = useRef<{ ep: string; tab: Tab } | null>(null);
   const scriptRef = useRef<ScriptTabHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** آخر خطة لم تُحفظ بعد (تنتظر مؤقت الحفظ التلقائي) */
@@ -91,7 +96,12 @@ export const App: React.FC = () => {
     setPlan(null);
     api.episodes().then((list) => {
       setEpisodes(list);
-      setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
+      const want = pendingOpen.current;
+      pendingOpen.current = null;
+      if (want && list.some((e) => e.id === want.ep)) {
+        setEpId(want.ep);
+        setTab(want.tab);
+      } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
     api.identity().then(({ identity, defaults }) => setIdent({ draft: identity, saved: identity, defaults })).catch((e) => say(e.message, true));
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -127,8 +137,8 @@ export const App: React.FC = () => {
       setExtra({ issues: d.issues, keys: d.keys });
       setPlanState("saved");
       // مرة لكل حلقة في الجلسة: جلب نصوص الآيات (والتلاوة إن اختيرت) تلقائيًا من Quran Foundation
-      if (d.keys.quran && !quranSynced.current.has(`${id}`)) {
-        quranSynced.current.add(`${id}`);
+      if (d.keys.quran && !quranSynced.current.has(`${channelId}:${id}`)) {
+        quranSynced.current.add(`${channelId}:${id}`);
         api.quran(id).then((r) => {
           if (r.result?.failed?.length) say(`تعذّر جلب: ${r.result.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`, true);
           return api.episode(id);
@@ -139,7 +149,7 @@ export const App: React.FC = () => {
         }).catch((e) => say(`تعذّر جلب الآيات: ${(e as Error).message}`, true));
       }
     }).catch((e) => say(e.message, true));
-  }, [flushPlan]);
+  }, [flushPlan, channelId]);
   useEffect(() => {
     if (!epId) return;
     store.set("bal-episode", epId);
@@ -210,7 +220,7 @@ export const App: React.FC = () => {
             </select>
           ) : null}
           <nav className="tabs" role="tablist">
-            <button role="tab" aria-selected={tab === "home"} onClick={() => setTab("home")}>الرئيسية</button>
+            <button role="tab" aria-selected={tab === "home"} onClick={() => setTab("home")}>غرفة العمليات</button>
           </nav>
           {EPISODE_TABS.includes(tab) ? (
             <select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} style={{ width: 280 }} aria-label="الحلقة">
@@ -239,6 +249,32 @@ export const App: React.FC = () => {
         </header>
 
         {tab === "home" ? (
+          <div className="home-wrap">
+          <OpsRoom
+            refreshKey={homeKey}
+            onOpen={async (ch, id, t) => {
+              if (ch === (channelId || channels[0]?.id)) {
+                if (id !== epId && !confirmLeaveScript()) return;
+                setEpId(id);
+                setTab(t);
+                return;
+              }
+              if (!confirmLeaveScript()) return;
+              await flushPlan();
+              pendingOpen.current = { ep: id, tab: t };
+              setChannelId(ch);
+            }}
+            onStartIdea={async (ch, idea, suggested) => {
+              if (ch !== (channelId || channels[0]?.id)) {
+                if (!confirmLeaveScript()) return;
+                await flushPlan();
+                setChannelId(ch);
+              }
+              setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
+              setShowNew(true);
+            }}
+          />
+          <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
           <HomeTab
             key={`${channelId}-${homeKey}`}
             channel={channel}
@@ -249,6 +285,7 @@ export const App: React.FC = () => {
               setTab(t);
             }}
           />
+          </div>
         ) : tab === "library" ? (
           <LibraryTab hasVoiceKeys={keysOk.voice} />
         ) : tab === "channel" ? (
@@ -324,9 +361,22 @@ export const App: React.FC = () => {
         {showNew ? (
           <NewEpisode
             domains={Object.entries(channels.find((c) => c.id === (channelId || channels[0]?.id))?.domains ?? defaultChannel.domains).map(([id, d]) => [id, d.name])}
-            suggested={String((episodes?.reduce((m, e) => Math.max(m, Number(e.id)), 0) ?? 0) + 1).padStart(3, "0")}
-            onClose={() => setShowNew(false)}
+            suggested={newPrefill?.suggested ?? String((episodes?.reduce((m, e) => Math.max(m, Number(e.id)), 0) ?? 0) + 1).padStart(3, "0")}
+            initialTitle={newPrefill?.title}
+            initialDomain={newPrefill?.domain}
+            onClose={() => {
+              setShowNew(false);
+              setNewPrefill(null);
+            }}
             onCreated={async (id) => {
+              // الفكرة صارت حلقة: تُرفع من بنك الأفكار
+              if (newPrefill) {
+                const pre = newPrefill;
+                setNewPrefill(null);
+                const ops = await api.ops().catch(() => []);
+                const ideas = ops.find((o) => o.channel.id === pre.channel)?.ideas;
+                if (ideas) await api.saveIdeas(pre.channel, ideas.filter((x) => x.id !== pre.ideaId)).catch(() => {});
+              }
               const list = await api.episodes();
               setEpisodes(list);
               setEpId(id);
@@ -344,11 +394,11 @@ export const App: React.FC = () => {
   );
 };
 
-const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, onClose, onCreated }) => {
+const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, initialTitle, initialDomain, onClose, onCreated }) => {
   const [episode, setEpisode] = useState(suggested);
   const [slug, setSlug] = useState("");
-  const [domain, setDomain] = useState(domains[0]?.[0] ?? "");
-  const [title, setTitle] = useState("");
+  const [domain, setDomain] = useState(initialDomain && domains.some(([d]) => d === initialDomain) ? initialDomain : (domains[0]?.[0] ?? ""));
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [err, setErr] = useState("");
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
