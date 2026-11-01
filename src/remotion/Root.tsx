@@ -6,6 +6,11 @@ import { TemplateReel, reelDuration } from "./scenes/TemplateReel";
 import { sceneCatalog } from "./scenes/catalog";
 import { Thumbnail } from "./Thumbnail";
 import { ChannelArt, artSizes, type ArtKind } from "./ChannelArt";
+import { SilhouetteDemo } from "./styles/Silhouette";
+import { FlatModernDemo } from "./styles/FlatModern";
+import { PaperCutDemo } from "./styles/PaperCut";
+import { IsometricDemo } from "./styles/Isometric";
+const styleDemos = { silhouette: SilhouetteDemo, "flat-modern": FlatModernDemo, "paper-cut": PaperCutDemo, isometric: IsometricDemo } as const;
 import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "./scenes/ChannelIntro";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
@@ -62,6 +67,10 @@ export const RemotionRoot: React.FC = () => (
     {(Object.keys(artSizes) as ArtKind[]).map((k) => (
       <Still key={`art-${k}`} id={`channel-art-${k}`} component={ChannelArt} {...artSizes[k]} defaultProps={{ kind: k }} />
     ))}
+      {/* نماذج الأساليب البصرية لدفاتر الزمن (للمقارنة قبل اعتماد أسلوب) */}
+      {Object.entries(styleDemos).map(([id, C]) => (
+        <Composition key={`style-${id}`} id={`style-${id}`} component={C} durationInFrames={9 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
+      ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
     {orientations.map((o) => (
