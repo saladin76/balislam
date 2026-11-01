@@ -96,7 +96,7 @@ export const channelLibraries: Record<string, LibrarySlot[]> = {
       ["v-sand-wind", "رمال تتطاير", "Wind blowing sand over the crest of a desert dune at sunset, slow motion, golden light", "video"],
       ["v-waves-ship", "أمواج حول سفينة", "Waves hitting the wooden hull of a sailing ship at sea, spray in the air, overcast light", "video"],
       ["v-banner-wind", "راية في الريح", "A plain dark cloth banner without symbols waving slowly in the wind on a wooden pole against a cloudy sky", "video"],
-      ["v-ink-pen", "قلم يكتب", "A reed pen dipping into an ink pot and writing on paper, macro shot, candlelight", "video"],
+      ["v-ink-pen", "قلم يكتب", "A reed pen dipping into an ink pot, then drawing a single curved ink stroke on blank paper, macro shot, candlelight", "video"],
       ["v-candle-library", "شموع في مكتبة", "Candle flames flickering in a dark library with shelves of old manuscripts, slow camera push", "video"],
       ["v-stars-desert", "نجوم فوق الصحراء", "Time lapse of stars moving over desert dunes at night, milky way", "video"],
       ["v-smoke-city", "دخان فوق مدينة", "Smoke drifting slowly over the domes of an old city at dusk, slow motion", "video"],
