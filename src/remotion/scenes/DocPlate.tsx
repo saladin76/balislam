@@ -29,7 +29,7 @@ const rand = (i: number) => {
 
 /** التلوين: مرشحات CSS للصورة + طبقة لون بمزج ناعم */
 const GRADES: Record<string, { filter: string; tint: string; blend: React.CSSProperties["mixBlendMode"]; tintOpacity: number }> = {
-  warm: { filter: "saturate(0.9) contrast(1.08) brightness(0.96)", tint: "#C8782A", blend: "soft-light", tintOpacity: 0.45 },
+  warm: { filter: "saturate(0.82) contrast(1.1) brightness(0.94)", tint: "#B86E2E", blend: "soft-light", tintOpacity: 0.22 },
   cold: { filter: "saturate(0.75) contrast(1.1) brightness(0.95)", tint: "#2C5A7A", blend: "soft-light", tintOpacity: 0.5 },
   night: { filter: "saturate(0.6) contrast(1.15) brightness(0.72)", tint: "#14284A", blend: "multiply", tintOpacity: 0.45 },
   sepia: { filter: "sepia(0.55) saturate(0.8) contrast(1.05)", tint: "#8A5A2B", blend: "soft-light", tintOpacity: 0.35 },
@@ -156,7 +156,7 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
   );
 
   return (
-    <SceneShell {...props} themeId="night" motif={false} background="#050403" durationInFrames={durationInFrames} eyebrowColors={{ text: "#E9D9B8", border: GOLD }} captionVariant="cinema">
+    <SceneShell {...props} themeId="night" motif={false} background="#050403" durationInFrames={durationInFrames} eyebrowColors={{ text: "#E9D9B8", border: GOLD }} captionVariant={letterbox === "on" && !portrait ? "cinema" : "pill"}>
       <AbsoluteFill style={{ opacity: appear, overflow: "hidden" }}>
         {archive ? (
           // الوثيقة على طاولة داكنة: ورقة بهامش وظل، والكاميرا تنزلق فوقها، وضوء يمرّ عليها
