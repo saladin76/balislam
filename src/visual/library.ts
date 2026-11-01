@@ -109,7 +109,7 @@ export const channelLibraries: Record<string, LibrarySlot[]> = {
       ["open-book-light", "كتاب مفتوح في الضوء", "An open book on a table with a beam of sunlight crossing its pages, dust floating, shallow depth of field"],
       ["reading-window", "قراءة عند النافذة", "A person seen from behind reading a book by a large window with rain outside, cozy warm light"],
       ["bookshop", "مكتبة لبيع الكتب", "A cozy old bookshop interior with crowded shelves and a wooden ladder, warm light, no people"],
-      ["notes-highlight", "ملاحظات وتظليل", "Close shot of a page with highlighted lines and handwritten notes in the margin, a pen resting on it"],
+      ["notes-highlight", "قلم تظليل على كتاب", "A yellow highlighter pen resting on an open book, the printed page softly out of focus, sticky note tabs on the edges, warm desk light"],
     ]),
     ...d("أفكار ورموز", [
       ["city-commute", "زحام المدينة", "A busy modern city crossing seen from above, people as small silhouettes, morning rush, long shadows"],

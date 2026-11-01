@@ -15,7 +15,7 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "set-scene": { family: "story" },
   "map-journey": { family: "data" },
   "desk-moment": { family: "story" },
-  "doc-plate": { family: "story", not: ["balislam"] },
+  "doc-plate": { family: "story" },
   "sim-stage": { family: "story" },
   "glow-story": { family: "story" },
   "character-talk": { family: "story" },

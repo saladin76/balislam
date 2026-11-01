@@ -12,7 +12,7 @@ export const channelImageStyle: Record<string, string> = {
   "dafatir-alzaman":
     "cinematic historical documentary still, photorealistic, shot on 35mm film, anamorphic lens, natural volumetric light, atmospheric haze, rich warm earth tones with deep shadows, subtle film grain, historically accurate architecture, clothing and materials, epic scale, matte painting quality",
   "zubdat-alkutub": "cinematic editorial still, photorealistic, soft window light, shallow depth of field, calm muted teal and amber palette, subtle film grain, minimal composition",
-  balislam: "cinematic still, photorealistic, soft natural light, warm calm palette, peaceful atmosphere, subtle film grain, no people's faces visible",
+  balislam: "cinematic still, photorealistic, soft natural light, warm calm palette, peaceful atmosphere, subtle film grain",
 };
 
 /** أسلوب الأرشيف: مخطوطات وخرائط ولوحات قديمة */
@@ -22,6 +22,8 @@ export const archiveStyle =
 /** قواعد ثابتة: الشخصيات بلا وجوه واضحة، ولا كتابة مولّدة (تخرج حروفًا مشوّهة) */
 export const figureRule =
   "people only as silhouettes, seen from behind, or distant small figures, faces not visible, no close-up portraits";
+/** بالإسلام: بلا ناس أصلًا (القناة بلا وجوه) */
+const ruleFor = (channel: string) => (channel === "balislam" ? "empty scene with no people at all" : figureRule);
 export const negativeRule = "no text, no letters, no captions, no watermark, no logo, no modern objects";
 
 export type ImagePromptInput = { channel: string; prompt: string; look?: PromptLook; orientation?: "landscape" | "portrait" };
@@ -31,7 +33,7 @@ export const fullImagePrompt = ({ channel, prompt, look = "scene" }: ImagePrompt
   const subject = prompt.trim().replace(/\s+/g, " ").replace(/[.,;\s]+$/, "");
   if (!subject) return "";
   const style = look === "archive" ? archiveStyle : (channelImageStyle[channel] ?? channelImageStyle["dafatir-alzaman"]!);
-  const parts = look === "archive" ? [subject, style] : [subject, style, figureRule];
+  const parts = look === "archive" ? [subject, style] : [subject, style, ruleFor(channel)];
   return `${parts.join(", ")}. ${negativeRule}.`;
 };
 
@@ -56,6 +58,6 @@ export const fireflyPrompt = (input: ImagePromptInput & { video?: boolean }) => 
       exclude: "text, letters, logo, watermark, modern objects, faces",
     };
   const style = input.look === "archive" ? archiveStyle : (channelImageStyle[input.channel] ?? channelImageStyle["dafatir-alzaman"]!);
-  const parts = input.look === "archive" ? [subject, style] : [subject, style, figureRule];
-  return { prompt: parts.join(", "), exclude: "text, letters, captions, watermark, logo, modern objects, close-up faces, portraits" };
+  const parts = input.look === "archive" ? [subject, style] : [subject, style, ruleFor(input.channel)];
+  return { prompt: parts.join(", "), exclude: input.channel === "balislam" ? "people, faces, text, letters, watermark, logo" : input.channel === "dafatir-alzaman" ? "text, letters, captions, watermark, logo, modern objects, close-up faces, portraits" : "text, letters, captions, watermark, logo, close-up faces, portraits" };
 };
