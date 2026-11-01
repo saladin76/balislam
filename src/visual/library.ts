@@ -12,10 +12,26 @@ export type LibrarySlot = {
   look?: "scene" | "archive";
   /** مقطع فيديو قصير بدل صورة (Firefly Video) */
   video?: boolean;
+  /**
+   * وثيقة حقيقية من المتاحف بدل التوليد (بحث في Wikimedia Commons): المخطوطات والخرائط والعملات المولّدة
+   * تخرج بكتابة عربية مشوّهة يلاحظها المشاهد فورًا، والأصل متاح مجانًا بترخيص مفتوح.
+   */
+  museum?: string;
 };
 
 const d = (group: string, rows: [string, string, string, ("archive" | "video")?][]): LibrarySlot[] =>
   rows.map(([id, titleAr, prompt, kind]) => ({ id, group, titleAr, prompt, look: kind === "archive" ? "archive" : "scene", video: kind === "video" }));
+
+/** كلمات البحث في Wikimedia Commons لكل وثيقة (ملفات بترخيص مفتوح أو ملكية عامة) */
+const museumSearch: Record<string, string> = {
+  "map-world": "Al-Idrisi Tabula Rogeriana",
+  "manuscript-astronomy": "al-Sufi Book of Fixed Stars manuscript",
+  "manuscript-medicine": "Hunayn ibn Ishaq eye manuscript",
+  "manuscript-math": "al-Khwarizmi algebra manuscript",
+  "astrolabe-brass": "Andalusian astrolabe",
+  coins: "Abbasid gold dinar",
+  "letter-seal": "illuminated Arabic manuscript Abbasid",
+};
 
 export const channelLibraries: Record<string, LibrarySlot[]> = {
   "dafatir-alzaman": [
@@ -33,7 +49,7 @@ export const channelLibraries: Record<string, LibrarySlot[]> = {
     ]),
     ...d("أماكن داخلية", [
       ["library-hall", "قاعة مكتبة كبرى", "A grand medieval library hall, carved wooden shelves full of manuscripts reaching the ceiling, tall arched windows, light beams with floating dust, a scholar seen from behind at a desk"],
-      ["scriptorium-lamp", "نسّاخ على ضوء السراج", "Close shot of hands of a scribe writing Arabic calligraphy with a reed pen by an oil lamp at night, ink pots and paper, warm candlelight, face not visible"],
+      ["scriptorium-lamp", "نسّاخ على ضوء السراج", "Close shot of the hands of a scribe holding a reed pen above blank paper by an oil lamp at night, ink pots and stacks of paper, warm candlelight, shallow depth of field, face not visible"],
       ["palace-hall", "قاعة العرش", "A vast medieval palace hall with marble columns, carved stucco arches, hanging brass lanterns, guards standing far away, sunlight through high windows"],
       ["observatory", "مرصد فلكي", "A medieval Islamic observatory at night, a giant brass astrolabe and stone sextant, a starry sky through an open dome, an astronomer seen from behind"],
       ["bimaristan", "مستشفى (بيمارستان)", "Interior of a medieval hospital courtyard with a fountain, arched corridors, physicians in robes seen from afar, herbs and jars on shelves, soft daylight"],
@@ -65,15 +81,16 @@ export const channelLibraries: Record<string, LibrarySlot[]> = {
       ["city-burning", "مدينة تحترق", "A medieval city burning at night seen from a distant hill, orange smoke filling the sky, silhouettes of domes and towers"],
       ["battlefield-after", "بعد المعركة", "A quiet battlefield after the battle at dawn, broken banners and spears in the ground, mist over the field, crows in the sky, no bodies visible"],
     ]),
-    ...d("أرشيف ووثائق", [
-      ["map-world", "خريطة عالم قديمة", "An old hand drawn world map in the style of medieval Islamic cartography, round world with seas and continents, decorative borders", "archive"],
-      ["manuscript-astronomy", "مخطوطة فلك", "A medieval Arabic astronomy manuscript page with diagrams of planets and circles, faded ink and gold details", "archive"],
-      ["manuscript-medicine", "مخطوطة طب", "A medieval Arabic medical manuscript page with anatomical drawings of the eye and plants, faded ink", "archive"],
-      ["manuscript-math", "مخطوطة رياضيات", "A medieval Arabic mathematics manuscript page with geometric diagrams and tables, aged paper", "archive"],
-      ["astrolabe-brass", "أسطرلاب نحاسي", "A detailed antique brass astrolabe lying on dark velvet, engraved scales and star pointers, museum lighting", "archive"],
-      ["coins", "عملات قديمة", "Old gold dinars and silver dirhams scattered on dark wood, worn engraved surfaces, museum lighting", "archive"],
-      ["letter-seal", "رسالة بختم", "An old folded letter with a red wax seal on aged parchment, a reed pen beside it, dark wooden table", "archive"],
-    ]),
+    // الأرشيف: أصول حقيقية من المتاحف (مجانية) لا صور مولّدة
+    ...d("أرشيف ووثائق (من المتاحف مجانًا)", [
+      ["map-world", "خريطة الإدريسي", "", "archive"],
+      ["manuscript-astronomy", "مخطوطة فلك", "", "archive"],
+      ["manuscript-medicine", "مخطوطة طب (العين)", "", "archive"],
+      ["manuscript-math", "مخطوطة الخوارزمي", "", "archive"],
+      ["astrolabe-brass", "أسطرلاب أندلسي", "", "archive"],
+      ["coins", "دينار عباسي", "", "archive"],
+      ["letter-seal", "مخطوطة مصحف أو كتاب مذهّب", "", "archive"],
+    ]).map((s) => ({ ...s, museum: museumSearch[s.id] })),
     ...d("مقاطع فيديو قصيرة", [
       ["v-fire-torch", "شعلة نار", "Close shot of a burning torch flame flickering in the wind at night, sparks rising, dark stone wall behind", "video"],
       ["v-sand-wind", "رمال تتطاير", "Wind blowing sand over the crest of a desert dune at sunset, slow motion, golden light", "video"],

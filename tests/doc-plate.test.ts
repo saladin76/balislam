@@ -45,7 +45,7 @@ describe("لوحة وثائقية", () => {
   it("مكتبة دفاتر الزمن: معرّفات فريدة ووصف لكل خانة", () => {
     for (const [ch, slots] of Object.entries(channelLibraries)) {
       expect(new Set(slots.map((s) => s.id)).size, ch).toBe(slots.length);
-      for (const s of slots) expect(fireflyPrompt({ channel: ch, prompt: s.prompt, look: s.look, video: s.video }).prompt.length).toBeGreaterThan(40);
+      for (const s of slots.filter((x) => !x.museum)) expect(fireflyPrompt({ channel: ch, prompt: s.prompt, look: s.look, video: s.video }).prompt.length).toBeGreaterThan(40);
     }
   });
   it("لوحة بلا صورة خطأ يمنع النسخة النهائية", () => {

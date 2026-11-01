@@ -39,7 +39,7 @@ export const ChannelImages: React.FC<{ channel: string }> = ({ channel }) => {
         لكل خانة: «انسخ الوصف» والصقه في خانة الوصف، و«انسخ الممنوعات» والصقها في <b>Exclude from image</b> (من الإعدادات المتقدمة).
         اختر أفضل صورة من الأربع، ونزّلها بأعلى دقة، ثم ارفعها في خانتها هنا.
         نصيحة للتناسق: بعد أول صورة تعجبك، استعملها <b>Style reference</b> في باقي الصور.
-        خانات الفيديو: من Firefly ← Text to Video (16:9، 5 ثوانٍ).
+        خانات الفيديو: من Firefly ← Text to Video (16:9، 5 ثوانٍ). خانات «الأرشيف» لا تُولَّد: الوثائق المولّدة تخرج بكتابة عربية مشوّهة، فننزّل الأصل الحقيقي من Wikimedia Commons مجانًا.
       </div>
       <div className="toolbar">
         <b>
@@ -109,8 +109,14 @@ const SlotCard: React.FC<{ slot: LibrarySlot; channel: string; file?: string; ve
         <b>{slot.titleAr}</b>
         <code className="help" style={{ direction: "ltr", fontSize: 11 }}>{slot.id}</code>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button className="btn small primary" onClick={() => copy(ff.prompt, "الوصف")} title={ff.prompt}>انسخ الوصف</button>
-          <button className="btn small" onClick={() => copy(ff.exclude, "الممنوعات")} title={ff.exclude}>انسخ الممنوعات</button>
+          {slot.museum ? (
+            <a className="btn small primary" href={`https://commons.wikimedia.org/w/index.php?search=${encodeURIComponent(slot.museum)}&title=Special:MediaSearch&type=image`} target="_blank" rel="noreferrer" title="صورة حقيقية بترخيص مفتوح: نزّلها بأعلى دقة واكتب اسم مصدرها في «مصدر الصورة» بالمشهد">ابحث في المتاحف</a>
+          ) : (
+            <>
+              <button className="btn small primary" onClick={() => copy(ff.prompt, "الوصف")} title={ff.prompt}>انسخ الوصف</button>
+              <button className="btn small" onClick={() => copy(ff.exclude, "الممنوعات")} title={ff.exclude}>انسخ الممنوعات</button>
+            </>
+          )}
           <button className="btn small" disabled={busy} onClick={() => input.current?.click()}>{file ? "استبدل" : "ارفع"}</button>
         </div>
       </div>
