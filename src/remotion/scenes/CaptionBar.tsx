@@ -10,7 +10,8 @@ import { useMotionSettings, useSize } from "../../../brand/identity/index";
  * شريط الترجمة: يعرض الجملة الجارية على دفعات قصيرة، والكلمة المنطوقة الآن مميزة.
  * في الشورت يرتفع فوق منطقة أزرار المنصات.
  */
-export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean }> = ({ theme, timings, portrait }) => {
+export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; variant?: "pill" | "cinema" }> = ({ theme, timings, portrait, variant = "pill" }) => {
+  const cinema = variant === "cinema";
   const frame = useCurrentFrame();
   const CHUNK = Math.max(1, Math.round(useMotionSettings().captionWords));
   const fontSize = useSize("caption", portrait ? "portrait" : "landscape");
@@ -28,7 +29,7 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: portrait ? 470 : 64,
+        bottom: portrait ? 470 : cinema ? 38 : 64,
         display: "flex",
         justifyContent: "center",
         padding: "0 64px",
@@ -36,8 +37,10 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
     >
       <div
         style={{
-          background: c.captionBg,
-          color: c.captionInk,
+          // السينمائي: نص أبيض بظل داخل شريط السينما السفلي، والكلمة المنطوقة ذهبية
+          background: cinema ? "transparent" : c.captionBg,
+          color: cinema ? "#F4EEE2" : c.captionInk,
+          textShadow: cinema ? "0 2px 6px rgba(0,0,0,0.95), 0 0 18px rgba(0,0,0,0.8)" : undefined,
           borderRadius: 18,
           padding: portrait ? "14px 26px" : "12px 28px",
           fontFamily: fontFamilies.body,
@@ -57,8 +60,8 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
             <span
               key={chunkStart + i}
               style={{
-                background: active ? c.highlight : "transparent",
-                color: active ? c.onHighlight : c.captionInk,
+                background: active && !cinema ? c.highlight : "transparent",
+                color: active ? (cinema ? "#E8B65C" : c.onHighlight) : cinema ? "#F4EEE2" : c.captionInk,
                 borderRadius: 10,
                 padding: "0 8px",
               }}

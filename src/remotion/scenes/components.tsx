@@ -17,6 +17,8 @@ import { BoardStory } from "./BoardStory";
 import { KineticText } from "./KineticText";
 import { SimStage } from "./SimStage";
 import { DeskMoment } from "./DeskMoment";
+import { DocPlate } from "./DocPlate";
+import { staticFile } from "remotion";
 import { SetScene } from "./SetScene";
 import { MapJourney } from "./MapJourney";
 import { EndScreen } from "./EndScreen";
@@ -103,6 +105,11 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <SetScene {...base} {...p} />;
     case "desk-moment":
       return <DeskMoment {...base} {...p} />;
+    case "doc-plate": {
+      const file = p.image && media?.images?.includes(p.image) ? p.image : "";
+      const src = file && media ? (media.mode === "static" ? staticFile(`${media.base}images/${file}`) : `${media.base}images/${encodeURIComponent(file)}${media.query ?? ""}`) : undefined;
+      return <DocPlate {...base} {...p} src={src} />;
+    }
     case "sim-stage":
       return <SimStage {...base} {...p} />;
     case "summary":

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
@@ -175,11 +175,29 @@ export const balApi = (): Plugin => ({
             const name = safeName(parts[4]);
             // التلاوات: من مجلد الحلقة (Quran Foundation) أو من assets/recitations (المرخّصة)
             const epRec = path.join(path.dirname(scriptPath), "recitations");
-            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : null;
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : kind === "images" ? path.join(path.dirname(scriptPath), "images") : null;
             const file = dir ? path.join(dir, name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
-            serveFile(req, res, file, "audio/mpeg");
+            const imgType = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : "image/jpeg";
+            serveFile(req, res, file, kind === "images" ? imgType : "audio/mpeg");
             return;
+          }
+          // رفع صورة لوحة وثائقية: {name, data(base64)} ← تُحفظ في images/ باسم آمن وتُرجع اسمها
+          if (parts[2] === "images" && req.method === "POST") {
+            const b = await readBody(req);
+            const { IMAGE_EXT, imagesDirFor } = await load("/src/plan/collect.ts");
+            const ext = (String(b.name ?? "").match(IMAGE_EXT)?.[0] ?? "").toLowerCase();
+            if (!ext) return send(res, 400, { error: "الصورة يجب أن تكون JPG أو PNG أو WEBP." });
+            const data = Buffer.from(String(b.data ?? "").replace(/^data:[^,]+,/, ""), "base64");
+            if (!data.length || data.length > 30 * 1024 * 1024) return send(res, 400, { error: "حجم الصورة غير مناسب (الحد 30 ميجابايت)." });
+            const base = String(b.scene ?? "img").replace(/[^\w-]/g, "") || "img";
+            const fileName = `${base}-${Date.now().toString(36)}${ext === ".jpeg" ? ".jpg" : ext}`;
+            const dir = imagesDirFor(scriptPath);
+            await mkdir(dir, { recursive: true });
+            await writeFile(path.join(dir, fileName), data);
+            const plan = await io.readPlanFile(scriptPath);
+            const media = await mediaFor(plan);
+            return send(res, 200, { file: fileName, media: { ...media, images: [...new Set([...(media.images ?? []), fileName])] } });
           }
           if (parts[2] === "voice" && req.method === "POST") {
             const b = await readBody(req);

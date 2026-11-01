@@ -13,6 +13,7 @@ import { KineticText, kineticTextSample, kineticTextSampleEn, kineticTextSeconds
 import { MapJourney, mapJourneySample, mapJourneySampleEn, mapJourneySeconds } from "./MapJourney";
 import { SetScene, setSceneSample, setSceneSampleEn, setSceneSeconds } from "./SetScene";
 import { DeskMoment, deskMomentSample, deskMomentSampleEn, deskMomentSeconds } from "./DeskMoment";
+import { DocPlate, docPlateSample, docPlateSampleEn, docPlateSeconds } from "./DocPlate";
 import { SimStage, simStageSample, simStageSampleEn, simStageSeconds } from "./SimStage";
 import { BoardStory, boardStorySample, boardStorySampleEn, boardStorySeconds } from "./BoardStory";
 import { SketchBoard, sketchBoardSample, sketchBoardSampleEn, sketchBoardSeconds } from "./SketchBoard";
@@ -42,6 +43,7 @@ export const sceneCatalog: Entry[] = [
   { id: "map-journey", component: MapJourney, sample: mapJourneySample, sampleEn: mapJourneySampleEn, seconds: mapJourneySeconds },
   { id: "set-scene", component: SetScene, sample: setSceneSample, sampleEn: setSceneSampleEn, seconds: setSceneSeconds },
   { id: "desk-moment", component: DeskMoment, sample: deskMomentSample, sampleEn: deskMomentSampleEn, seconds: deskMomentSeconds },
+  { id: "doc-plate", component: DocPlate, sample: docPlateSample, sampleEn: docPlateSampleEn, seconds: docPlateSeconds },
   { id: "sim-stage", component: SimStage, sample: simStageSample, sampleEn: simStageSampleEn, seconds: simStageSeconds },
   { id: "summary", component: Summary, sample: summarySample, sampleEn: summarySampleEn, seconds: summarySeconds },
   { id: "end-screen", component: EndScreen, sample: endScreenSample, sampleEn: endScreenSampleEn, seconds: endScreenSeconds },

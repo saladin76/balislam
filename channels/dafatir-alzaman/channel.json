@@ -53,6 +53,7 @@
     "thumbnail": "archive"
   },
   "styles": [
+    "doc-plate",
     "set-scene",
     "timeline",
     "board",

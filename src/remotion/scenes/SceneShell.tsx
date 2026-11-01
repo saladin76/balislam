@@ -76,13 +76,14 @@ type ShellProps = SceneBase & {
   background?: string;
   /** ألوان شارة عنوان الفصل على تلك الخلفية */
   eyebrowColors?: { text: string; border: string };
+  captionVariant?: "pill" | "cinema";
 };
 
 /**
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
  * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
  */
-export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors }) => {
+export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant }) => {
   useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -132,7 +133,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
       </AbsoluteFill>
       {captions && timings.length ? (
         <AbsoluteFill style={{ opacity: out }}>
-          <CaptionBar theme={t} timings={timings} portrait={portrait} />
+          <CaptionBar theme={t} timings={timings} portrait={portrait} variant={captionVariant} />
         </AbsoluteFill>
       ) : null}
     </AbsoluteFill>

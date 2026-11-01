@@ -12,6 +12,7 @@ import { sfxLibrary, sfxCategoryNamesAr } from "../../../brand/sfx";
 import type { Identity } from "../../../brand/identity/index";
 import type { CharacterPose, CharacterVariant } from "../../../characters/Character";
 import { CharacterField, ElementField } from "../ui/Pickers";
+import { ImageField } from "../ui/ImageField";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
 import { api, type RenderJob, type VoiceReport } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
@@ -270,6 +271,21 @@ export const EpisodeTab: React.FC<{
                   <ElementField themeId={plan.themeId} value={v} onChange={(id) => setProp(f.key, id)} />
                 </div>
               );
+            if (f.type === "image")
+              return (
+                <ImageField
+                  key={f.key}
+                  episodeId={episodeId}
+                  sceneId={scene.id}
+                  channel={channel.id}
+                  value={v}
+                  prompt={scene.props.prompt ?? ""}
+                  look={scene.props.look === "archive" ? "archive" : "scene"}
+                  media={media}
+                  onChange={(file) => setProp(f.key, file)}
+                  onMedia={onMediaChange}
+                />
+              );
             if (f.type === "select")
               return (
                 <label key={f.key} className="field">
@@ -283,7 +299,7 @@ export const EpisodeTab: React.FC<{
               <label key={f.key} className="field">
                 <span>{f.label}</span>
                 {f.type === "textarea" ? (
-                  <textarea id={`f-${f.key}`} rows={f.key === "text" ? 3 : 2} value={v} onChange={(e) => setProp(f.key, e.target.value)} readOnly={scene.template === "verse-card" && f.key === "text"} />
+                  <textarea id={`f-${f.key}`} rows={f.key === "text" || f.key === "prompt" ? 4 : 2} dir={f.key === "prompt" ? "ltr" : undefined} value={v} onChange={(e) => setProp(f.key, e.target.value)} readOnly={scene.template === "verse-card" && f.key === "text"} />
                 ) : (
                   <input id={`f-${f.key}`} type="text" value={v} onChange={(e) => setProp(f.key, e.target.value)} />
                 )}

@@ -14,6 +14,8 @@ export type EpisodeMedia = {
   voice: Record<string, VoiceClip>;
   sfx: string[];
   recitations: Record<string, Recitation>;
+  /** صور اللوحات الوثائقية الموجودة في مجلد الحلقة images/ */
+  images?: string[];
 };
 
 export const emptyMedia: EpisodeMedia = { mode: "url", base: "", voice: {}, sfx: [], recitations: {} };

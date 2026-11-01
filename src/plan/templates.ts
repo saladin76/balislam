@@ -2,7 +2,7 @@
  * تعريف القوالب كبيانات: الاسم، هل بُني، والحقول التي يعرضها الاستوديو لكل قالب.
  * مشترك بين مولّد الخطة والاستوديو وتكوين الحلقة.
  */
-export type FieldType = "text" | "textarea" | "element" | "variant" | "pose" | "select" | "number" | "boolean";
+export type FieldType = "text" | "textarea" | "element" | "variant" | "pose" | "select" | "number" | "boolean" | "image";
 
 export type FieldDef = {
   key: string;
@@ -272,6 +272,27 @@ export const templateDefs: TemplateDef[] = [
       { key: "figure2", label: "شخصية تاريخية ثانية", type: "select", options: [{ value: "", label: "بلا (شخصية بلا ملامح)" }, { value: "scholar", label: "عالم" }, { value: "commander", label: "قائد" }, { value: "merchant", label: "تاجر" }, { value: "ruler", label: "حاكم" }, { value: "woman", label: "امرأة" }, { value: "youth", label: "شاب" }, { value: "elder", label: "شيخ كبير" }, { value: "traveler", label: "رحّالة غريب" }] },
       { key: "expr2", label: "تعبيرها", type: "select", options: [{ value: "neutral", label: "هادئ" }, { value: "happy", label: "سعيد" }, { value: "sad", label: "حزين" }, { value: "angry", label: "غاضب" }, { value: "surprised", label: "مندهش" }, { value: "worried", label: "قلق" }] },
       { key: "talk", label: "من يتكلم (يتحرك فمه)", type: "select", options: [{ value: "", label: "لا أحد" }, { value: "1", label: "الأولى" }, { value: "2", label: "الثانية" }] },
+    ],
+  },
+  {
+    id: "doc-plate",
+    nameAr: "لوحة وثائقية",
+    useAr: "صورة واقعية (مولّدة أو أرشيفية) تتحول للقطة سينمائية: حركة كاميرا بطيئة، تلوين، حبيبات فيلم، غبار أو دخان، وعنوان المكان والتاريخ. للتاريخ والوثائقي",
+    implemented: true,
+    baseSeconds: 7,
+    minSeconds: 4,
+    fields: [
+      { key: "image", label: "الصورة", type: "image", help: "ولّدها من الوصف بالأسفل (Midjourney أو Flux…) بنسبة 16:9 ثم ارفعها هنا. الشورت يقصّ من الوسط حسب «نقطة التركيز»." },
+      { key: "prompt", label: "وصف الصورة لأداة التوليد (بالإنجليزية)", type: "textarea", help: "صف المشهد فقط: المكان والزمن والضوء وما يحدث. الاستوديو يضيف أسلوب القناة وقواعد الوجوه تلقائيًا." },
+      { key: "look", label: "النوع", type: "select", options: [{ value: "scene", label: "لقطة سينمائية" }, { value: "archive", label: "وثيقة أرشيفية (مخطوطة، خريطة، لوحة)" }] },
+      { key: "camera", label: "حركة الكاميرا", type: "select", options: [{ value: "push", label: "اقتراب بطيء" }, { value: "pull", label: "ابتعاد بطيء" }, { value: "pan-right", label: "تحريك لليمين" }, { value: "pan-left", label: "تحريك لليسار" }, { value: "rise", label: "صعود" }, { value: "drift", label: "انجراف هادئ" }] },
+      { key: "focus", label: "نقطة التركيز", type: "select", options: [{ value: "center", label: "الوسط" }, { value: "right", label: "اليمين" }, { value: "left", label: "اليسار" }, { value: "top", label: "الأعلى" }, { value: "bottom", label: "الأسفل" }] },
+      { key: "grade", label: "التلوين", type: "select", options: [{ value: "warm", label: "دافئ (ذهبي)" }, { value: "cold", label: "بارد" }, { value: "night", label: "ليل" }, { value: "sepia", label: "قديم (بني)" }, { value: "natural", label: "طبيعي" }] },
+      { key: "atmos", label: "الجو", type: "select", options: [{ value: "dust", label: "غبار يطفو في الضوء" }, { value: "smoke", label: "دخان/ضباب" }, { value: "embers", label: "جمر يتطاير" }, { value: "rain", label: "مطر" }, { value: "none", label: "بدون" }] },
+      { key: "title", label: "المكان (أعلى الشاشة)", type: "text", placeholder: "بغداد" },
+      { key: "date", label: "الزمن", type: "text", placeholder: "سنة 1258م" },
+      { key: "credit", label: "مصدر الصورة", type: "text", help: "للوثائق والصور الحقيقية من المتاحف: اسم المتحف أو المكتبة." },
+      { key: "letterbox", label: "أشرطة السينما", type: "select", options: [{ value: "on", label: "تظهر" }, { value: "off", label: "بدونها" }] },
     ],
   },
   {
