@@ -50,7 +50,8 @@
   },
   "brand": {
     "intro": "archive",
-    "thumbnail": "archive"
+    "thumbnail": "archive",
+    "sceneLook": "cinema"
   },
   "styles": [
     "doc-plate",

@@ -26,6 +26,69 @@ const steam = (x: number, y: number, t: number, op = 0.35) => (
   <path {...L(3)} opacity={op} d={`M${x} ${y} q 10 -${14 + Math.sin(t * 3) * 4} 0 -28 q -10 -14 0 -28 M${x + 22} ${y + 4} q 10 -${16 + Math.cos(t * 3) * 4} 0 -30`} />
 );
 
+
+/** جمل يمشي (منظر جانبي متجه يسارًا): أرجل تتأرجح بخطوة متبادلة، ورأس يهتز، وحمولة اختيارية */
+const WalkingCamel: React.FC<{ x: number; y: number; s: number; t: number; phase: number; load?: boolean; tone?: string }> = ({ x, y, s, t, phase, load, tone = "#7A5434" }) => {
+  const w = t * 4.2 + phase;
+  const leg = (hx: number, a: number, k: number) => {
+    const ang = Math.sin(w + a) * 0.38;
+    const kx = hx + Math.sin(ang) * 60;
+    const ky = 60 + Math.cos(ang) * 60;
+    const knee = Math.max(0, Math.sin(w + a + 1.2)) * 0.5;
+    const fx = kx + Math.sin(ang - knee) * 58;
+    const fy = ky + Math.cos(ang - knee) * 58;
+    return <path key={`${hx}-${a}`} {...L(k, ink)} d={`M${hx} 40 L${kx} ${ky} L${fx} ${fy}`} />;
+  };
+  const bob = Math.abs(Math.sin(w)) * -5;
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <g transform={`translate(0 ${bob})`}>
+        {/* الأرجل البعيدة أغمق */}
+        <g opacity={0.75}>{[leg(-46, Math.PI, 11), leg(52, 0, 11)]}</g>
+        <path {...S} fill={tone} d="M-80 30 Q-86 -10 -50 -20 Q-30 -70 0 -62 Q20 -80 44 -52 Q70 -40 76 0 Q78 36 50 46 H-60 Q-82 46 -80 30 Z" />
+        {/* الرقبة والرأس يتمايلان */}
+        <g transform={`rotate(${Math.sin(w * 2) * 3} -78 10)`}>
+          <path {...S} fill={tone} d="M-74 18 Q-110 0 -116 -48 Q-120 -74 -100 -80 Q-80 -84 -78 -62 Q-82 -30 -60 -6 Z" />
+          <path {...S} fill={tone} d="M-104 -80 Q-140 -86 -150 -70 Q-150 -58 -132 -58 Q-118 -60 -100 -62 Z" />
+          <circle cx={-118} cy={-74} r={3} fill={ink} />
+        </g>
+        {load ? (
+          <g>
+            <rect {...S} fill="#C9A36B" x={-38} y={-104} width={72} height={40} rx={12} />
+            <rect {...S} fill="#8E2F23" x={-44} y={-70} width={84} height={22} rx={6} />
+            <path {...L(4, ink)} d="M-30 -104 V-64 M0 -104 V-64 M26 -104 V-64" />
+          </g>
+        ) : null}
+        {[leg(-40, 0, 12), leg(58, Math.PI, 12)]}
+        <path {...L(5)} d="M76 0 Q92 10 88 34" />
+      </g>
+      {/* غبار تحت الأقدام */}
+      {[0, 1, 2].map((i) => {
+        const life = ((t * 1.6 + i / 3 + phase) % 1 + 1) % 1;
+        return <circle key={i} cx={-30 + i * 40 + life * 50} cy={126 - life * 20} r={10 + life * 26} fill="#E9C48E" opacity={(1 - life) * 0.35} />;
+      })}
+    </g>
+  );
+};
+
+/** شخص بلا ملامح يمشي بجانب القافلة (ظل بعباءة) */
+const Walker: React.FC<{ x: number; y: number; s: number; t: number; phase: number }> = ({ x, y, s, t, phase }) => {
+  const w = t * 4.2 + phase;
+  const a = Math.sin(w) * 18;
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <g transform={`translate(0 ${Math.abs(Math.sin(w)) * -4})`}>
+        <path {...L(9)} d={`M0 60 l${Math.sin((a * Math.PI) / 180) * 40} 58`} />
+        <path {...L(9)} d={`M0 60 l${-Math.sin((a * Math.PI) / 180) * 40} 58`} />
+        <path {...S} fill="#5A3E2E" d="M-22 -40 Q-30 20 -28 74 H28 Q30 20 22 -40 Q0 -54 -22 -40 Z" />
+        <path {...S} fill="#6B4E38" d="M-20 -46 Q-22 -86 0 -88 Q22 -86 20 -46 Q0 -38 -20 -46 Z" />
+        <path {...S} fill="#C9B48E" d="M-24 -70 Q0 -100 24 -70 Q26 -54 22 -48 Q0 -60 -22 -48 Q-26 -56 -24 -70 Z" />
+        <path {...L(7)} d={`M-18 -20 Q-34 20 ${-30 + Math.sin(w) * 10} 40`} />
+      </g>
+    </g>
+  );
+};
+
 /** المكتب: نافذة على المدينة، رف أيقونات، مكتب جانبي */
 const office: SetDef = {
   id: "office",
@@ -375,6 +438,12 @@ const caravan: SetDef = {
         );
       })}
       <path fill="#D9A15E" d="M0 760 Q420 660 860 740 T1920 720 V1080 H0 Z" />
+      {/* القافلة القريبة: جمال تمشي فعلًا (أرجل تتحرك وغبار) من اليمين إلى اليسار */}
+      {Array.from({ length: 6 }, (_, i) => {
+        const span = 2600;
+        const x = ((1500 + i * 200 - t * 45) % span + span) % span - 340;
+        return i % 3 === 2 ? <Walker key={i} x={x} y={690} s={0.55} t={t} phase={i * 1.3} /> : <WalkingCamel key={i} x={x} y={660} s={0.55} t={t} phase={i * 1.7} load={i % 2 === 0} tone={i % 2 ? "#8A6040" : "#7A5434"} />;
+      })}
       <path fill="#C98E4E" d="M0 880 Q520 800 1100 880 T1920 860 V1080 H0 Z" />
       <path fill="#B97C40" d="M0 960 Q700 920 1300 970 T1920 950 V1080 H0 Z" />
       {[0, 1, 2].map((i) => <path key={i} stroke="#FFF3D1" strokeWidth={3} opacity={0.35} fill="none" d={`M${200 + i * 500} ${700 + i * 20} q 40 ${Math.sin(t * 3 + i) * 4} 80 0 t 80 0`} />)}
@@ -447,7 +516,65 @@ const wisdomLibrary: SetDef = {
   ),
 };
 
-export const sets: SetDef[] = [office, kitchen, streetNight, classroom, market, desertNight, castleWalls, palaceCourt, caravan, wisdomLibrary];
+
+/** فوق السور ليلًا: شرفات حجرية في المقدمة، وتحتها سهل فيه معسكر العدو بمئات النيران، وقمر */
+const wallsNight: SetDef = {
+  id: "walls-night",
+  nameAr: "فوق السور ليلًا",
+  tags: ["تاريخ", "حصار", "ليل", "معركة", "دفاع", "قائد"],
+  channels: ["dafatir-alzaman"],
+  floorY: 960,
+  mood: "night",
+  draw: (t) => (
+    <>
+      <defs>
+        <linearGradient id="wn-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#070B1C" /><stop offset="0.55" stopColor="#1B2446" /><stop offset="1" stopColor="#3A2E3A" /></linearGradient>
+        <radialGradient id="wn-fire" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stopColor="#FFB45A" stopOpacity={0.9} /><stop offset="1" stopColor="#FFB45A" stopOpacity={0} /></radialGradient>
+      </defs>
+      <rect x={0} y={0} width={1920} height={1080} fill="url(#wn-sky)" />
+      {Array.from({ length: 80 }, (_, i) => <circle key={i} cx={(i * 233) % 1920} cy={(i * 89) % 420} r={i % 6 ? 1.6 : 2.8} fill="#fff" opacity={0.2 + 0.5 * Math.abs(Math.sin(t * 1.1 + i * 1.9))} />)}
+      <circle cx={1560} cy={180} r={70} fill="#F4EBD0" />
+      <circle cx={1560} cy={180} r={170} fill="#F4EBD0" opacity={0.08} />
+      {([[300, 260], [980, 200]] as const).map(([x, y], i) => <ellipse key={i} cx={x + Math.sin(t * 0.15 + i) * 40} cy={y} rx={260} ry={22} fill="#8A93B8" opacity={0.18} />)}
+      {/* جبال بعيدة وسهل */}
+      <path fill="#1A1E33" d="M0 520 L180 450 L360 500 L560 430 L820 510 L1080 440 L1340 500 L1600 430 L1920 490 V700 H0 Z" />
+      <path fill="#231F2C" d="M0 560 Q480 520 960 560 T1920 550 V900 H0 Z" />
+      {/* معسكر العدو: خيام ونيران تتراقص */}
+      {Array.from({ length: 70 }, (_, i) => {
+        const px = (i * 157 + (i % 7) * 23) % 1920;
+        const py = 580 + ((i * 61) % 180) * (0.6 + (px / 1920) * 0.2);
+        const sc = 0.5 + (py - 580) / 360;
+        const fl = 0.6 + 0.4 * Math.abs(Math.sin(t * 6 + i * 2.3));
+        return (
+          <g key={i}>
+            {i % 3 === 0 ? <path fill="#3A3040" d={`M${px - 22 * sc} ${py} L${px} ${py - 26 * sc} L${px + 22 * sc} ${py} Z`} /> : null}
+            <circle cx={px + 30 * sc} cy={py - 4} r={26 * sc} fill="url(#wn-fire)" opacity={fl * 0.8} />
+            <circle cx={px + 30 * sc} cy={py - 4} r={3.4 * sc} fill="#FFE2A8" opacity={fl} />
+          </g>
+        );
+      })}
+      {/* دخان المعسكر */}
+      {[0, 1, 2, 3].map((i) => <ellipse key={i} cx={300 + i * 420 + Math.sin(t * 0.3 + i) * 50} cy={600 - ((t * 12 + i * 40) % 160)} rx={160} ry={30} fill="#6A6070" opacity={0.12} />)}
+      {/* الشرفات في المقدمة */}
+      <rect {...S} stroke="#0E0A08" x={-10} y={830} width={1940} height={260} fill="#5A4636" />
+      {Array.from({ length: 16 }, (_, i) => <rect key={i} {...S} stroke="#0E0A08" x={i * 130 - 40} y={770} width={80} height={70} fill="#66503E" />)}
+      {Array.from({ length: 16 }, (_, i) => <rect key={`h${i}`} x={i * 130 - 34} y={776} width={68} height={8} fill="#7A6250" opacity={0.6} />)}
+      {Array.from({ length: 4 }, (_, r) => Array.from({ length: 12 }, (_, c) => <line key={`${r}-${c}`} x1={c * 170 + (r % 2) * 85} y1={850 + r * 50} x2={c * 170 + (r % 2) * 85 + 140} y2={850 + r * 50} stroke="#3E3026" strokeWidth={4} />))}
+      {/* مشاعل على السور */}
+      {[200, 1720].map((x, i) => (
+        <g key={x}>
+          <rect {...S} stroke="#0E0A08" x={x - 7} y={690} width={14} height={90} fill="#3A2416" />
+          <path fill="#F2A23A" d={`M${x} ${632 + Math.sin(t * 9 + i) * 5} Q${x + 22} 676 ${x} 698 Q${x - 22} 676 ${x} ${632 + Math.sin(t * 9 + i) * 5} Z`} />
+          <path fill="#FFE2A8" d={`M${x} ${656 + Math.sin(t * 11 + i) * 4} Q${x + 10} 680 ${x} 694 Q${x - 10} 680 ${x} ${656 + Math.sin(t * 11 + i) * 4} Z`} />
+          <circle cx={x} cy={680} r={110} fill="#FFB45A" opacity={0.16 + 0.05 * Math.sin(t * 8 + i)} />
+        </g>
+      ))}
+      <rect x={0} y={960} width={1920} height={120} fill="#2E241E" />
+    </>
+  ),
+};
+
+export const sets: SetDef[] = [office, kitchen, streetNight, classroom, market, desertNight, castleWalls, wallsNight, palaceCourt, caravan, wisdomLibrary];
 export const setById = (id: string) => sets.find((s) => s.id === id);
 
 /** يرسم مكانًا كاملًا داخل SVG بإطار 1920×1080 */

@@ -257,7 +257,7 @@ export const templateDefs: TemplateDef[] = [
     baseSeconds: 6,
     minSeconds: 3.5,
     fields: [
-      { key: "set", label: "المكان", type: "select", options: [{ value: "office", label: "مكتب" }, { value: "kitchen", label: "مطبخ البيت" }, { value: "street-night", label: "شارع بالليل" }, { value: "classroom", label: "فصل دراسي" }, { value: "market", label: "سوق" }, { value: "desert-night", label: "صحراء تحت السماء" }, { value: "castle-walls", label: "أسوار وقلعة" }, { value: "palace-court", label: "صحن قصر" }, { value: "caravan", label: "قافلة في الصحراء" }, { value: "wisdom-library", label: "بيت الحكمة" }] },
+      { key: "set", label: "المكان", type: "select", options: [{ value: "office", label: "مكتب" }, { value: "kitchen", label: "مطبخ البيت" }, { value: "street-night", label: "شارع بالليل" }, { value: "classroom", label: "فصل دراسي" }, { value: "market", label: "سوق" }, { value: "desert-night", label: "صحراء تحت السماء" }, { value: "castle-walls", label: "أسوار وقلعة" }, { value: "walls-night", label: "فوق السور ليلًا (معسكر العدو)" }, { value: "palace-court", label: "صحن قصر" }, { value: "caravan", label: "قافلة في الصحراء" }, { value: "wisdom-library", label: "بيت الحكمة" }] },
       { key: "variant", label: "الشخصية الأولى", type: "variant" },
       { key: "pose", label: "وضعيتها", type: "pose" },
       { key: "variant2", label: "الشخصية الثانية (اختياري)", type: "variant" },
@@ -272,6 +272,10 @@ export const templateDefs: TemplateDef[] = [
       { key: "figure2", label: "شخصية تاريخية ثانية", type: "select", options: [{ value: "", label: "بلا (شخصية بلا ملامح)" }, { value: "scholar", label: "عالم" }, { value: "commander", label: "قائد" }, { value: "merchant", label: "تاجر" }, { value: "ruler", label: "حاكم" }, { value: "woman", label: "امرأة" }, { value: "youth", label: "شاب" }, { value: "elder", label: "شيخ كبير" }, { value: "traveler", label: "رحّالة غريب" }] },
       { key: "expr2", label: "تعبيرها", type: "select", options: [{ value: "neutral", label: "هادئ" }, { value: "happy", label: "سعيد" }, { value: "sad", label: "حزين" }, { value: "angry", label: "غاضب" }, { value: "surprised", label: "مندهش" }, { value: "worried", label: "قلق" }] },
       { key: "talk", label: "من يتكلم (يتحرك فمه)", type: "select", options: [{ value: "", label: "لا أحد" }, { value: "1", label: "الأولى" }, { value: "2", label: "الثانية" }] },
+      { key: "look", label: "المظهر", type: "select", options: [{ value: "", label: "حسب القناة" }, { value: "cinema", label: "سينمائي (إضاءة، عمق، جو، أشرطة)" }, { value: "flat", label: "مسطح بسيط" }], help: "السينمائي: الكاميرا تحرك الخلفية أبطأ من الشخصيات (عمق)، وإضاءة وأشعة، وغبار أو جمر، وحبيبات فيلم." },
+      { key: "atmos", label: "الجو (في السينمائي)", type: "select", options: [{ value: "", label: "حسب المكان" }, { value: "dust", label: "غبار يطفو" }, { value: "embers", label: "جمر يتطاير" }, { value: "smoke", label: "دخان" }, { value: "rain", label: "مطر" }, { value: "none", label: "بدون" }] },
+      { key: "title", label: "المكان (أعلى الشاشة)", type: "text", placeholder: "بغداد" },
+      { key: "date", label: "الزمن", type: "text", placeholder: "سنة 1258م" },
     ],
   },
   {

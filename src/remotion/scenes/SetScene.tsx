@@ -1,5 +1,5 @@
 import React from "react";
-import { Easing, interpolate, spring, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, interpolate, spring, useVideoConfig } from "remotion";
 import { useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import type { Theme } from "../../../brand/themes";
@@ -10,6 +10,7 @@ import { Character, type CharacterPose, type CharacterVariant } from "../../../c
 import { HistoricFigure, type FigureExpr, type FigureId, type FigurePose } from "../../../characters/HistoricFigure";
 import { useChannel } from "../../channel/context";
 import { SceneShell } from "./SceneShell";
+import { Atmosphere, CinemaLight, FilmGrain, Letterbox, PlaceTitle, letterboxHeight } from "./cinema";
 import { useLang } from "../../i18n/context";
 import { useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
@@ -19,18 +20,30 @@ import type { SceneBase, StringFields } from "./types";
  * وكاميرا تتحرك (اقتراب، تحريك جانبي، أو ثابتة)، وفقاعة كلام أو فكرة قصيرة، وعنصر اختياري.
  */
 export type SetSceneProps = SceneBase &
-  StringFields<"set" | "variant" | "pose" | "variant2" | "pose2" | "camera" | "bubble" | "bubbleKind" | "bubbleWho" | "element" | "figure" | "figure2" | "expr" | "expr2" | "talk">;
+  StringFields<"set" | "variant" | "pose" | "variant2" | "pose2" | "camera" | "bubble" | "bubbleKind" | "bubbleWho" | "element" | "figure" | "figure2" | "expr" | "expr2" | "talk" | "look" | "atmos" | "title" | "date">;
 
 /** وضعيات الشخصيات بلا ملامح ← وضعيات الشخصيات التاريخية */
 const figPose = (p: string): FigurePose => (({ point: "point", think: "think", "open-arms": "gesture", hold: "scroll", "raise-hands": "banner", wave: "gesture" } as Record<string, FigurePose>)[p] ?? "stand");
 
 const ink = "#2A2F3A";
+
+/** إضاءة كل مكان في المظهر السينمائي: موضع مصدر الضوء (نسبة من الإطار)، وأشعة، والجو الافتراضي */
+const CINEMA: Record<string, { light: { x: number; y: number }; rays?: boolean; atmos: string }> = {
+  caravan: { light: { x: 0.22, y: 0.24 }, atmos: "dust" },
+  "castle-walls": { light: { x: 0.78, y: 0.52 }, atmos: "dust" },
+  "walls-night": { light: { x: 0.81, y: 0.17 }, atmos: "embers" },
+  "wisdom-library": { light: { x: 0.5, y: 0.3 }, rays: true, atmos: "dust" },
+  "palace-court": { light: { x: 0.35, y: 0.0 }, rays: true, atmos: "dust" },
+  "desert-night": { light: { x: 0.19, y: 0.19 }, atmos: "dust" },
+  market: { light: { x: 0.7, y: 0.1 }, rays: true, atmos: "dust" },
+  "street-night": { light: { x: 0.5, y: 0.3 }, atmos: "none" },
+};
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 export const SetScene: React.FC<SetSceneProps> = (props) => {
   const { orientation, set = "office", variant = "narrator-m", pose = "stand", variant2 = "", pose2 = "stand", camera = "push", bubble = "", bubbleKind = "say", bubbleWho = "1", element = "" } = props;
   const frame = useSceneFrame();
-  const { fps, durationInFrames } = useVideoConfig();
+  const { fps, durationInFrames, width: W, height: H } = useVideoConfig();
   const lang = useLang();
   const portrait = orientation === "portrait";
   const def = setById(set);
@@ -46,7 +59,10 @@ export const SetScene: React.FC<SetSceneProps> = (props) => {
   };
 
   // الشخصيات التاريخية بملامح: فقط في القنوات التي تسمح بالوجوه
-  const facesOk = Boolean(useChannel().rules?.faces);
+  const chInfo = useChannel();
+  const facesOk = Boolean(chInfo.rules?.faces);
+  const cinema = (props.look || chInfo.brand?.sceneLook) === "cinema";
+  const cfg = CINEMA[set] ?? { light: { x: 0.3, y: 0.2 }, atmos: "dust" };
   const fig1 = facesOk && props.figure ? (props.figure as FigureId) : null;
   const fig2 = facesOk && props.figure2 ? (props.figure2 as FigureId) : null;
   const two = Boolean(variant2 || fig2);
@@ -81,15 +97,24 @@ export const SetScene: React.FC<SetSceneProps> = (props) => {
   const bubbleX = bubbleSide > 0 ? Math.min(rawX, 960 + half - bubbleW - 30) : Math.max(rawX, 960 - half + bubbleW + 30);
 
   return (
-    <SceneShell {...props} themeId={night ? "night" : "paper"} motif={false} background={night ? "#141B33" : "#F4F6EF"} durationInFrames={durationInFrames}>
+    <SceneShell {...props} themeId={night ? "night" : "paper"} motif={false} background={night ? "#141B33" : "#F4F6EF"} durationInFrames={durationInFrames} captionVariant={cinema && !portrait ? "cinema" : "pill"}>
       <svg viewBox={viewBox} preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-        <g transform={`translate(${panX} 0) translate(960 ${focusY}) scale(${zoom}) translate(-960 ${-focusY})`}>
-          <g transform="translate(0 0)">
-            {/* المكان، ممتد قليلًا خارج الإطار ليغطي حركة الكاميرا والقص العمودي */}
-            <g transform={`translate(960 ${floorY}) scale(1.08) translate(-960 ${-floorY})`}>
-              <SetBackdrop id={set} t={t} />
-            </g>
+        {cinema ? (
+          <defs>
+            <filter id="set-dof" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation={1.6} /></filter>
+            <filter id="rim" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx={0} dy={0} stdDeviation={6} floodColor={night ? "#FFB45A" : "#FFE6B0"} floodOpacity={night ? 0.45 : 0.35} />
+            </filter>
+          </defs>
+        ) : null}
+        {/* المظهر السينمائي: الخلفية تتحرك نصف حركة الكاميرا (عمق) وتنعم قليلًا، والشخصيات حادة في المقدمة */}
+        <g transform={cinema ? `translate(${panX * 0.45} 0) translate(960 ${focusY}) scale(${1 + (zoom - 1) * 0.45}) translate(-960 ${-focusY})` : `translate(${panX} 0) translate(960 ${focusY}) scale(${zoom}) translate(-960 ${-focusY})`} filter={cinema ? "url(#set-dof)" : undefined}>
+          {/* المكان، ممتد قليلًا خارج الإطار ليغطي حركة الكاميرا والقص العمودي */}
+          <g transform={`translate(960 ${floorY}) scale(1.08) translate(-960 ${-floorY})`}>
+            <SetBackdrop id={set} t={t} />
           </g>
+        </g>
+        <g transform={`translate(${panX} 0) translate(960 ${focusY}) scale(${zoom}) translate(-960 ${-focusY})`} filter={cinema ? "url(#rim)" : undefined}>
           {/* ظل الأرض */}
           {xs.map((x, i) => <ellipse key={i} cx={x} cy={floorY + 4} rx={w * 0.55} ry={16} fill="#000" opacity={night ? 0.35 : 0.12} />)}
           {/* الشخصيات */}
@@ -136,6 +161,15 @@ export const SetScene: React.FC<SetSceneProps> = (props) => {
           ) : null}
         </g>
       </svg>
+      {cinema ? (
+        <>
+          <CinemaLight mood={night ? "night" : "day"} frame={frame} rays={cfg.rays} light={cfg.light} w={W} h={H} />
+          {(props.atmos || cfg.atmos) !== "none" ? <Atmosphere kind={props.atmos || cfg.atmos} frame={frame} w={W} h={H} /> : null}
+          <FilmGrain frame={frame} w={W} h={H} amount={0.14} />
+          {!portrait ? <Letterbox frame={frame} h={H} /> : null}
+          <PlaceTitle title={props.title} date={props.date} frame={frame} duration={durationInFrames} top={portrait ? 330 : letterboxHeight(frame, H) + 40} inset={portrait ? 64 : 96} u={H / 1080 > 1.5 ? 1 : H / 1080} portrait={portrait} rtl={lang.dir === "rtl"} />
+        </>
+      ) : null}
     </SceneShell>
   );
 };

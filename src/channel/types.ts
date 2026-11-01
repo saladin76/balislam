@@ -34,7 +34,7 @@ export type ChannelConfig = {
   /** الأساليب البصرية التي تتناوب عليها حلقات القناة (للتنوّع) */
   styles?: string[];
   /** بصمة القناة الثابتة: الافتتاحية وأسلوب الصورة المصغّرة */
-  brand?: { intro?: "ink" | "archive" | "book" | "none"; thumbnail?: "circle" | "archive" | "cover" };
+  brand?: { intro?: "ink" | "archive" | "book" | "none"; thumbnail?: "circle" | "archive" | "cover"; /** مظهر المشاهد المرسومة: سينمائي أو مسطح */ sceneLook?: "cinema" | "flat" };
   /** صوت القناة في ElevenLabs (إن غاب: ELEVENLABS_VOICE_ID من الإعدادات) */
   voice?: { id?: string; name?: string; tone?: string };
   /** أصوات إضافية للشخصيات (الحوار في الحلقات التاريخية مثلًا): من أصوات حساب ElevenLabs */
