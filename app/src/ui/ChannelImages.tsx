@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import { channelLibraries, type LibrarySlot } from "../../../src/visual/library";
-import { fireflyPrompt } from "../../../src/visual/prompts";
+import { chatgptProjectInstructions, fireflyPrompt } from "../../../src/visual/prompts";
 
 const readAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -40,6 +40,14 @@ export const ChannelImages: React.FC<{ channel: string }> = ({ channel }) => {
         اختر أفضل صورة من الأربع، ونزّلها بأعلى دقة، ثم ارفعها في خانتها هنا.
         نصيحة للتناسق: بعد أول صورة تعجبك، استعملها <b>Style reference</b> في باقي الصور.
         خانات الفيديو: من Firefly ← Text to Video (16:9، 5 ثوانٍ). خانات «الأرشيف» لا تُولَّد: الوثائق المولّدة تخرج بكتابة عربية مشوّهة، فننزّل الأصل الحقيقي من Wikimedia Commons مجانًا.
+      </div>
+      <div className="note">
+        <b>الأسهل: ChatGPT (بلا حد).</b> أنشئ Project في ChatGPT باسم «صور {channel}»، والصق في Instructions التعليمات من الزر،
+        ثم أرسل لكل خانة «انسخ لـ ChatGPT» فقط (وصف المشهد) فتخرج الصورة بأسلوب القناة. ووفّر كريدت Firefly للفيديو:
+        Firefly ← Image to Video من أفضل الصور.
+        <div style={{ marginTop: 8 }}>
+          <button className="btn small primary" onClick={() => navigator.clipboard.writeText(chatgptProjectInstructions(channel)).then(() => flash("نُسخت التعليمات ✓")).catch(() => flash("تعذّر النسخ"))}>انسخ تعليمات مشروع ChatGPT</button>
+        </div>
       </div>
       <div className="toolbar">
         <b>
@@ -113,8 +121,9 @@ const SlotCard: React.FC<{ slot: LibrarySlot; channel: string; file?: string; ve
             <a className="btn small primary" href={`https://commons.wikimedia.org/w/index.php?search=${encodeURIComponent(slot.museum)}&title=Special:MediaSearch&type=image`} target="_blank" rel="noreferrer" title="صورة حقيقية بترخيص مفتوح: نزّلها بأعلى دقة واكتب اسم مصدرها في «مصدر الصورة» بالمشهد">ابحث في المتاحف</a>
           ) : (
             <>
-              <button className="btn small primary" onClick={() => copy(ff.prompt, "الوصف")} title={ff.prompt}>انسخ الوصف</button>
-              <button className="btn small" onClick={() => copy(ff.exclude, "الممنوعات")} title={ff.exclude}>انسخ الممنوعات</button>
+              <button className="btn small primary" onClick={() => copy(slot.prompt, "وصف ChatGPT")} title={slot.prompt}>انسخ لـ ChatGPT</button>
+              <button className="btn small" onClick={() => copy(ff.prompt, "وصف Firefly")} title={ff.prompt}>انسخ لـ Firefly</button>
+              <button className="btn small" onClick={() => copy(ff.exclude, "الممنوعات")} title={`ممنوعات Firefly: ${ff.exclude}`}>ممنوعات Firefly</button>
             </>
           )}
           <button className="btn small" disabled={busy} onClick={() => input.current?.click()}>{file ? "استبدل" : "ارفع"}</button>
