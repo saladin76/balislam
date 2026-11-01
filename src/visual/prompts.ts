@@ -70,6 +70,7 @@ export const chatgptProjectInstructions = (channel: string) => {
   const common = [
     "For every message I send, generate exactly ONE image of the described scene. Do not ask questions, do not add commentary.",
     "Always use a wide 16:9 landscape format.",
+    "Look like a frame from a high-budget film, not a stock photo or postcard: filmic, slightly muted colors, soft contrast, depth and haze between foreground and background, a clear foreground element.",
     "Never put any text, letters, captions, signs, logos or watermarks in the image. Books and documents must be closed or their pages blurred: no readable or fake script.",
   ];
   const byChannel: Record<string, string[]> = {
