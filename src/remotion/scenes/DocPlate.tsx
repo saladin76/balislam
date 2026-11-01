@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Easing, Img, interpolate, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, Img, OffthreadVideo, interpolate, useVideoConfig } from "remotion";
 import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
@@ -16,6 +16,8 @@ export type DocPlateProps = SceneBase &
   StringFields<"image" | "prompt" | "look" | "camera" | "focus" | "grade" | "atmos" | "title" | "date" | "credit" | "letterbox"> & {
     /** رابط الصورة الجاهز (يحسبه الاستوديو من وسائط الحلقة) */
     src?: string;
+    /** الملف مقطع فيديو قصير (Firefly Video…) لا صورة */
+    video?: boolean;
   };
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -133,9 +135,11 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
   const u = H / 1080;
   const rtl = useLang().dir === "rtl";
 
-  const image = src ? (
-    <Img src={src} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: `${f.x}% ${f.y}%`, filter: g.filter }} />
-  ) : null;
+  const { fps } = useVideoConfig();
+  const mediaStyle: React.CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: `${f.x}% ${f.y}%`, filter: g.filter };
+  // مقاطع Firefly نحو 5 ثوانٍ: تُبطَّأ لتغطي المشهد (حتى 40% من سرعتها) فتبدو حركة بطيئة سينمائية
+  const rate = Math.min(1, Math.max(0.4, 5 / Math.max(1, durationInFrames / fps)));
+  const image = src ? (props.video ? <OffthreadVideo src={src} muted playbackRate={rate} style={mediaStyle} /> : <Img src={src} style={mediaStyle} />) : null;
 
   const placeholder = (
     <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 45%, #2A1D12 0%, #0B0806 75%)", alignItems: "center", justifyContent: "center" }}>
@@ -159,7 +163,7 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
           <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 40%, #3A2818 0%, #120B06 80%)" }}>
             <AbsoluteFill style={{ transform: `translate(${tx * 0.6}%, ${ty * 0.6}%) scale(${0.92 + (scale - 1) * 0.8}) rotate(${interpolate(p, [0, 1], [-1.2, 0.6])}deg)`, alignItems: "center", justifyContent: "center" }}>
               <div style={{ position: "relative", width: portrait ? "88%" : "74%", height: portrait ? "66%" : "84%", background: "#E8D9B6", padding: 18 * u, boxShadow: `0 ${30 * u}px ${80 * u}px rgba(0,0,0,0.65)`, borderRadius: 4 }}>
-                {src ? <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", filter: `${g.filter} sepia(0.15)` }} /> : <div style={{ width: "100%", height: "100%", position: "relative" }}>{placeholder}</div>}
+                {src ? (props.video ? <OffthreadVideo src={src} muted playbackRate={rate} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", filter: `${g.filter} sepia(0.15)` }} />) : <div style={{ width: "100%", height: "100%", position: "relative" }}>{placeholder}</div>}
               </div>
             </AbsoluteFill>
             {/* ضوء يعبر الوثيقة */}

@@ -42,3 +42,20 @@ export const midjourneyPrompt = (input: ImagePromptInput) => {
   const ar = input.orientation === "portrait" ? "9:16" : "16:9";
   return `${base.replace(/\.\s*no text.*$/, "")} --ar ${ar} --style raw --v 7 --no text, letters, watermark, logo, modern objects`;
 };
+
+/**
+ * نسخة Adobe Firefly: الوصف في خانة الوصف، والممنوعات في خانة «Exclude from image» (لا تُكتب في الوصف
+ * لأن ذكر الكلمة قد يستدعيها). الإعدادات: Aspect ratio 16:9 (Widescreen)، Content type: Photo.
+ */
+export const fireflyPrompt = (input: ImagePromptInput & { video?: boolean }) => {
+  const subject = input.prompt.trim().replace(/\s+/g, " ").replace(/[.,;\s]+$/, "");
+  if (!subject) return { prompt: "", exclude: "" };
+  if (input.video)
+    return {
+      prompt: `${subject}, cinematic historical documentary footage, photorealistic, natural light, shallow depth of field, slow subtle camera movement, film grain, no people's faces`,
+      exclude: "text, letters, logo, watermark, modern objects, faces",
+    };
+  const style = input.look === "archive" ? archiveStyle : (channelImageStyle[input.channel] ?? channelImageStyle["dafatir-alzaman"]!);
+  const parts = input.look === "archive" ? [subject, style] : [subject, style, figureRule];
+  return { prompt: parts.join(", "), exclude: "text, letters, captions, watermark, logo, modern objects, close-up faces, portraits" };
+};

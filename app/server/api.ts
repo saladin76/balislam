@@ -1,6 +1,6 @@
 import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
@@ -152,6 +152,36 @@ export const balApi = (): Plugin => ({
           return send(res, 200, list);
         }
 
+        // مكتبة صور القناة: channels/<القناة>/images/<الخانة>.<الامتداد>
+        if (parts[0] === "library-images") {
+          const dir = path.join(cp.dir, "images");
+          const { MEDIA_EXT } = await load("/src/plan/collect.ts");
+          if (parts[1] === "file" && parts[2]) {
+            const name = safeName(parts[2]);
+            const file = path.join(dir, name);
+            if (!MEDIA_EXT.test(name) || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
+            const t = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : /\.mp4$/i.test(name) ? "video/mp4" : /\.webm$/i.test(name) ? "video/webm" : /\.mov$/i.test(name) ? "video/quicktime" : "image/jpeg";
+            serveFile(req, res, file, t);
+            return;
+          }
+          if (req.method === "POST") {
+            const b = await readBody(req);
+            const slot = String(b.slot ?? "").replace(/[^\w-]/g, "");
+            const ext = (String(b.name ?? "").match(MEDIA_EXT)?.[0] ?? "").toLowerCase();
+            if (!slot || !ext) return send(res, 400, { error: "الملف يجب أن يكون صورة (JPG/PNG/WEBP) أو فيديو (MP4/WEBM/MOV)." });
+            const data = Buffer.from(String(b.data ?? "").replace(/^data:[^,]+,/, ""), "base64");
+            if (!data.length || data.length > 120 * 1024 * 1024) return send(res, 400, { error: "حجم الملف غير مناسب (الحد 120 ميجابايت)." });
+            await mkdir(dir, { recursive: true });
+            // ملف واحد لكل خانة: نحذف أي امتداد آخر قديم
+            for (const f of existsSync(dir) ? await readdir(dir) : []) if (f.replace(MEDIA_EXT, "") === slot) await rm(path.join(dir, f));
+            const fileName = `${slot}${ext === ".jpeg" ? ".jpg" : ext}`;
+            await writeFile(path.join(dir, fileName), data);
+            return send(res, 200, { file: fileName });
+          }
+          const files = existsSync(dir) ? (await readdir(dir)).filter((f) => MEDIA_EXT.test(f)) : [];
+          return send(res, 200, { files });
+        }
+
         if (parts[0] === "episodes" && parts[1]) {
           const ep = parts[1];
           if (!EP.test(ep)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
@@ -175,21 +205,21 @@ export const balApi = (): Plugin => ({
             const name = safeName(parts[4]);
             // التلاوات: من مجلد الحلقة (Quran Foundation) أو من assets/recitations (المرخّصة)
             const epRec = path.join(path.dirname(scriptPath), "recitations");
-            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : kind === "images" ? path.join(path.dirname(scriptPath), "images") : null;
-            const file = dir ? path.join(dir, name) : "";
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
+            const file = dir ? path.join(dir, kind === "images" ? name.replace(/^lib__/, "") : name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
-            const imgType = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : "image/jpeg";
+            const imgType = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : /\.mp4$/i.test(name) ? "video/mp4" : /\.webm$/i.test(name) ? "video/webm" : /\.mov$/i.test(name) ? "video/quicktime" : "image/jpeg";
             serveFile(req, res, file, kind === "images" ? imgType : "audio/mpeg");
             return;
           }
           // رفع صورة لوحة وثائقية: {name, data(base64)} ← تُحفظ في images/ باسم آمن وتُرجع اسمها
           if (parts[2] === "images" && req.method === "POST") {
             const b = await readBody(req);
-            const { IMAGE_EXT, imagesDirFor } = await load("/src/plan/collect.ts");
-            const ext = (String(b.name ?? "").match(IMAGE_EXT)?.[0] ?? "").toLowerCase();
-            if (!ext) return send(res, 400, { error: "الصورة يجب أن تكون JPG أو PNG أو WEBP." });
+            const { MEDIA_EXT, imagesDirFor } = await load("/src/plan/collect.ts");
+            const ext = (String(b.name ?? "").match(MEDIA_EXT)?.[0] ?? "").toLowerCase();
+            if (!ext) return send(res, 400, { error: "الملف يجب أن يكون صورة (JPG/PNG/WEBP) أو فيديو (MP4/WEBM/MOV)." });
             const data = Buffer.from(String(b.data ?? "").replace(/^data:[^,]+,/, ""), "base64");
-            if (!data.length || data.length > 30 * 1024 * 1024) return send(res, 400, { error: "حجم الصورة غير مناسب (الحد 30 ميجابايت)." });
+            if (!data.length || data.length > 120 * 1024 * 1024) return send(res, 400, { error: "حجم الملف غير مناسب (الحد 120 ميجابايت)." });
             const base = String(b.scene ?? "img").replace(/[^\w-]/g, "") || "img";
             const fileName = `${base}-${Date.now().toString(36)}${ext === ".jpeg" ? ".jpg" : ext}`;
             const dir = imagesDirFor(scriptPath);

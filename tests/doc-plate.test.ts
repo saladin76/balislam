@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fullImagePrompt, midjourneyPrompt } from "../src/visual/prompts";
-import { usedImages } from "../src/plan/collect";
+import { fireflyPrompt, fullImagePrompt, midjourneyPrompt } from "../src/visual/prompts";
+import { resolveImageRef, usedImages } from "../src/plan/collect";
+import { channelLibraries } from "../src/visual/library";
 import { planIssues } from "../src/plan/validate";
 import { defaultsFor } from "../src/plan/generate";
 import type { Plan } from "../src/plan/types";
@@ -31,6 +32,21 @@ describe("لوحة وثائقية", () => {
     writeFileSync(path.join(dir, "a.jpg"), "x");
     expect(usedImages(planWith("a.jpg"), dir)).toEqual(["a.jpg"]);
     expect(usedImages(planWith("b.jpg"), dir)).toEqual([]);
+  });
+  it("مراجع مكتبة القناة: بامتداد أو بدونه", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ep-"));
+    const lib = mkdtempSync(path.join(tmpdir(), "lib-"));
+    writeFileSync(path.join(lib, "caravan-dunes.png"), "x");
+    expect(usedImages(planWith("lib:caravan-dunes"), dir, lib)).toEqual(["lib:caravan-dunes.png"]);
+    expect(usedImages(planWith("lib:caravan-dunes.png"), dir, lib)).toEqual(["lib:caravan-dunes.png"]);
+    expect(usedImages(planWith("lib:missing"), dir, lib)).toEqual([]);
+    expect(resolveImageRef("lib:caravan-dunes", ["lib:caravan-dunes.png"])).toBe("lib:caravan-dunes.png");
+  });
+  it("مكتبة دفاتر الزمن: معرّفات فريدة ووصف لكل خانة", () => {
+    for (const [ch, slots] of Object.entries(channelLibraries)) {
+      expect(new Set(slots.map((s) => s.id)).size, ch).toBe(slots.length);
+      for (const s of slots) expect(fireflyPrompt({ channel: ch, prompt: s.prompt, look: s.look, video: s.video }).prompt.length).toBeGreaterThan(40);
+    }
   });
   it("لوحة بلا صورة خطأ يمنع النسخة النهائية", () => {
     expect(planIssues(planWith("")).some((i) => i.level === "error")).toBe(true);

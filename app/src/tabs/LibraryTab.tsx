@@ -7,12 +7,14 @@ import { useTheme } from "../../../brand/identity/index";
 import { themeIds, type ThemeId } from "../../../brand/themes";
 import { api, type ChannelSummary, type LongJob, type SfxItem } from "../api";
 import { SetsGallery, TemplatesGallery } from "./LibraryGalleries";
+import { ChannelImages } from "../ui/ChannelImages";
+import { channelLibraries } from "../../../src/visual/library";
 import { sceneCatalog } from "../../../src/remotion/scenes/catalog";
 import { sets } from "../../../brand/sets/index";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../../src/channel/types";
 
-type Section = "templates" | "sets" | "elements" | "characters" | "sfx";
+type Section = "templates" | "images" | "sets" | "elements" | "characters" | "sfx";
 
 /** المكتبة: القوالب، وأماكن التصوير، والشخصيات، والعناصر، والمؤثرات. */
 export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; channel?: ChannelInfo }> = ({ hasVoiceKeys, identity, channel }) => {
@@ -27,7 +29,7 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
     <div className="library">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="القسم">
-          {([["templates", `القوالب (${sceneCatalog.length})`], ["sets", `أماكن التصوير (${sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${elementLibrary.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
+          {([["templates", `القوالب (${sceneCatalog.length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${elementLibrary.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
             <button key={k} aria-pressed={section === k} onClick={() => setSection(k)}>{l}</button>
           ))}
         </div>
@@ -41,6 +43,7 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
         ) : null}
       </div>
       {section === "templates" ? <TemplatesGallery identity={identity} channel={channel} channels={channels} /> : null}
+      {section === "images" ? <ChannelImages key={channel?.id} channel={channel?.id ?? ""} /> : null}
       {section === "sets" ? <SetsGallery /> : null}
       {section === "elements" ? <Elements themeId={themeId} /> : null}
       {section === "characters" ? (

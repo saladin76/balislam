@@ -106,9 +106,10 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
     case "desk-moment":
       return <DeskMoment {...base} {...p} />;
     case "doc-plate": {
-      const file = p.image && media?.images?.includes(p.image) ? p.image : "";
+      const ref = p.image ? media?.images?.find((x) => x === p.image || x.replace(/\.[^.]+$/, "") === p.image) : undefined;
+      const file = ref ? ref.replace(/^lib:/, "lib__") : "";
       const src = file && media ? (media.mode === "static" ? staticFile(`${media.base}images/${file}`) : `${media.base}images/${encodeURIComponent(file)}${media.query ?? ""}`) : undefined;
-      return <DocPlate {...base} {...p} src={src} />;
+      return <DocPlate {...base} {...p} src={src} video={/\.(mp4|webm|mov)$/i.test(file)} />;
     }
     case "sim-stage":
       return <SimStage {...base} {...p} />;

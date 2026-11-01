@@ -1,7 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
-import { fullImagePrompt, midjourneyPrompt, type PromptLook } from "../../../src/visual/prompts";
+import { fireflyPrompt, fullImagePrompt, midjourneyPrompt, type PromptLook } from "../../../src/visual/prompts";
+import { librarySlot } from "../../../src/visual/library";
 
 const readAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -26,8 +27,20 @@ export const ImageField: React.FC<{
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const has = Boolean(value && media.images?.includes(value));
-  const url = has ? `${media.base}images/${encodeURIComponent(value)}${media.query ?? ""}` : "";
+  const [lib, setLib] = useState<string[]>([]);
+  useEffect(() => {
+    api.libraryImages().then((r) => setLib(r.files)).catch(() => {});
+  }, [channel]);
+  const resolved = value ? media.images?.find((x) => x === value || x.replace(/\.[^.]+$/, "") === value) : undefined;
+  const has = Boolean(resolved);
+  const url = resolved ? `${media.base}images/${encodeURIComponent(resolved.replace(/^lib:/, "lib__"))}${media.query ?? ""}` : "";
+  const isVid = /\.(mp4|webm|mov)$/i.test(resolved ?? "");
+  // المرجع بلا امتداد (lib:<الخانة>) حتى يبقى صالحًا لو استُبدلت الصورة بامتداد آخر
+  const pickLib = (file: string) => {
+    if (!file) return;
+    onMedia({ ...media, images: [...new Set([...(media.images ?? []), `lib:${file}`])] });
+    onChange(`lib:${file.replace(/\.[^.]+$/, "")}`);
+  };
   const flash = (m: string) => {
     setMsg(m);
     setTimeout(() => setMsg(""), 1600);
@@ -49,6 +62,7 @@ export const ImageField: React.FC<{
   };
   const mj = midjourneyPrompt({ channel, prompt, look, orientation: "landscape" });
   const generic = fullImagePrompt({ channel, prompt, look });
+  const ff = fireflyPrompt({ channel, prompt, look });
 
   return (
     <div className="field image-field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -64,13 +78,23 @@ export const ImageField: React.FC<{
         onClick={() => input.current?.click()}
         title="اضغط لاختيار صورة أو اسحبها هنا"
       >
-        {url ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 13 }}>{busy ? "جارٍ الرفع…" : value ? "الصورة غير موجودة على هذا الجهاز، ارفعها مرة أخرى" : "اضغط أو اسحب صورة هنا (JPG/PNG)"}</span>}
+        {url ? isVid ? <video src={url} muted loop autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 13 }}>{busy ? "جارٍ الرفع…" : value ? (value.startsWith("lib:") ? "خانة المكتبة لم تُرفع صورتها بعد (المكتبة ← صور القناة)" : "الصورة غير موجودة على هذا الجهاز، ارفعها مرة أخرى") : "اضغط أو اسحب صورة هنا (JPG/PNG)"}</span>}
       </div>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }} />
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }} />
+      {lib.length ? (
+        <select value={value.startsWith("lib:") ? (lib.find((f) => f === value.slice(4) || f.replace(/\.[^.]+$/, "") === value.slice(4)) ?? "") : ""} onChange={(e) => pickLib(e.target.value)}>
+          <option value="">من مكتبة صور القناة ({lib.length})…</option>
+          {lib.map((f) => {
+            const slot = librarySlot(channel, f.replace(/\.[^.]+$/, ""));
+            return <option key={f} value={f}>{slot ? `${slot.group} · ${slot.titleAr}` : f}</option>;
+          })}
+        </select>
+      ) : null}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        <button className="btn small" disabled={busy} onClick={() => input.current?.click()}>{has ? "استبدل الصورة" : "ارفع صورة"}</button>
+        <button className="btn small" disabled={busy} onClick={() => input.current?.click()}>{has && !value.startsWith("lib:") ? "استبدل الصورة" : "ارفع صورة خاصة بالمشهد"}</button>
         {has ? <button className="btn small" onClick={() => onChange("")}>أزل</button> : null}
         {mj ? <button className="btn small" onClick={() => copy(mj)} title={mj}>انسخ أمر Midjourney</button> : null}
+        {ff.prompt ? <button className="btn small" onClick={() => copy(ff.prompt)} title={`${ff.prompt}\n\nExclude: ${ff.exclude}`}>انسخ وصف Firefly</button> : null}
         {generic ? <button className="btn small" onClick={() => copy(generic)} title={generic}>انسخ الوصف لأي أداة</button> : null}
         {msg ? <span className="help">{msg}</span> : null}
       </div>

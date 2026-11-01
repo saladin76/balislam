@@ -15,12 +15,33 @@ export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 /** صور اللوحات الوثائقية: مجلد images/ بجوار سكريبت الحلقة (لا تُرفع إلى Git لحجمها) */
 export const imagesDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "images");
 export const IMAGE_EXT = /\.(jpe?g|png|webp)$/i;
-/** الصور المستعملة في مشاهد الخطة والموجودة فعلًا على القرص */
-export const usedImages = (plan: Plan, dir: string) => {
-  const onDisk = existsSync(dir) ? new Set(readdirSync(dir).filter((f) => IMAGE_EXT.test(f))) : new Set<string>();
+export const MEDIA_EXT = /\.(jpe?g|png|webp|mp4|webm|mov)$/i;
+/** مكتبة صور القناة (تُستعمل في كل الحلقات): channels/<القناة>/images */
+export const libraryDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "..", "..", "images");
+/** مرجع صورة من المكتبة في الخطة: lib:<الملف>، واسمه عند النسخ للرندر وفي الروابط: lib__<الملف> */
+export const LIB = "lib:";
+export const imageKey = (ref: string) => (ref.startsWith(LIB) ? `lib__${ref.slice(LIB.length)}` : ref);
+const listDir = (dir: string) => (existsSync(dir) ? new Set(readdirSync(dir).filter((f) => MEDIA_EXT.test(f))) : new Set<string>());
+/** الصور المستعملة في مشاهد الخطة والموجودة فعلًا على القرص (من الحلقة أو من مكتبة القناة) */
+export const usedImages = (plan: Plan, dir: string, libDir?: string) => {
+  const onDisk = listDir(dir);
+  const inLib = libDir ? listDir(libDir) : new Set<string>();
   const used = new Set(plan.chapters.flatMap((c) => c.scenes.map((s) => s.props?.image ?? "")).filter(Boolean));
-  return [...used].filter((f) => onDisk.has(f));
+  // مرجع المكتبة قد يكون بلا امتداد (lib:walls-commander) فيُطابق أي ملف بنفس الاسم
+  const out: string[] = [];
+  for (const f of used) {
+    if (!f.startsWith(LIB)) {
+      if (onDisk.has(f)) out.push(f);
+      continue;
+    }
+    const name = f.slice(LIB.length);
+    const hit = inLib.has(name) ? name : [...inLib].find((x) => x.replace(MEDIA_EXT, "") === name);
+    if (hit) out.push(`${LIB}${hit}`);
+  }
+  return out;
 };
+/** يطابق مرجع المشهد مع الملف الفعلي في قائمة الوسائط (يدعم مراجع المكتبة بلا امتداد) */
+export const resolveImageRef = (ref: string, images: string[] = []) => images.find((x) => x === ref || x.replace(/\.[^.]+$/, "") === ref);
 
 /** يجمع وسائط الحلقة الموجودة فعلًا على القرص (بلا نسخ). */
 export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<EpisodeMedia, "mode" | "base">> => {
@@ -48,7 +69,8 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
       recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration + 0.25, -0.25), parts: q.parts, reciter: q.reciter, source: "quran-foundation" };
     }
   }
-  const images = usedImages(plan, imagesDirFor(await resolveScriptPath(episode)));
+  const sp = await resolveScriptPath(episode);
+  const images = usedImages(plan, imagesDirFor(sp), libraryDirFor(sp));
   return { voice, sfx, recitations, images };
 };
 
@@ -71,7 +93,7 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
     if (r.source === "quran-foundation") for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
     else await cp(path.join(recitationsDir, r.file), path.join(dest, "recitations", r.file));
   }
-  const idir = imagesDirFor(await resolveScriptPath(episode));
-  for (const f of m.images ?? []) await cp(path.join(idir, f), path.join(dest, "images", f));
+  const sp2 = await resolveScriptPath(episode);
+  for (const f of m.images ?? []) await cp(f.startsWith(LIB) ? path.join(libraryDirFor(sp2), f.slice(LIB.length)) : path.join(imagesDirFor(sp2), f), path.join(dest, "images", imageKey(f)));
   return { ...m, mode: "static", base: rel };
 };

@@ -34,7 +34,7 @@
           "narration": "قادة وقفوا على الأسوار في ليلة حاسمة، وكان قرار واحد يكفي ليتغير كل شيء.",
           "line": 13,
           "props": {
-            "image": "",
+            "image": "lib:walls-commander",
             "look": "scene",
             "title": "",
             "date": "",
@@ -55,7 +55,7 @@
           "narration": "وعلماء سهروا على المخطوطات حتى الفجر، ليبنوا حضارة كاملة من الورق والحبر.",
           "line": 16,
           "props": {
-            "image": "",
+            "image": "lib:library-hall",
             "look": "scene",
             "title": "",
             "date": "",
@@ -76,7 +76,7 @@
           "narration": "وتجار عبروا الصحراء بقوافلهم إلى أطراف الدنيا، يحملون البضائع والأفكار معًا.",
           "line": 19,
           "props": {
-            "image": "",
+            "image": "lib:caravan-dunes",
             "look": "scene",
             "title": "",
             "date": "",
