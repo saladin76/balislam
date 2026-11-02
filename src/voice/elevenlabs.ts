@@ -39,6 +39,8 @@ const explain = (status: number, body: string) => {
   if (status === 404) return "الصوت غير موجود: تأكد من ELEVENLABS_VOICE_ID.";
   if (status === 429) return "تجاوزت حد الطلبات أو نفد الرصيد في ElevenLabs. انتظر قليلًا أو راجع رصيدك.";
   if (status === 422) return `ElevenLabs رفض الطلب: ${body.slice(0, 200)}`;
+  if (body.includes("voice_not_fine_tuned"))
+    return "الصوت الاحترافي ما زال قيد التدريب في ElevenLabs (Fine-tuning in progress). انتظر حتى ينتهي التدريب ثم أعد التوليد.";
   return `ElevenLabs أعاد خطأ ${status}: ${body.slice(0, 200)}`;
 };
 
