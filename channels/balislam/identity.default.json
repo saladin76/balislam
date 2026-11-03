@@ -39,7 +39,7 @@
         ],
         "cap": "#1E6B5C"
       },
-      "motif": "ink-lines"
+      "motif": "girih"
     },
     "family": {
       "nameAr": "دفء البيت",
@@ -79,7 +79,7 @@
         ],
         "cap": "#FFFFFF"
       },
-      "motif": "house-circles"
+      "motif": "arches"
     },
     "night": {
       "nameAr": "محراب الليل",
@@ -159,7 +159,7 @@
         ],
         "cap": "#FBF6EE"
       },
-      "motif": "arches"
+      "motif": "girih"
     }
   },
   "palettes": {

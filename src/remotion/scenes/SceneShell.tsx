@@ -66,6 +66,45 @@ const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number; rtl: bool
         </svg>
       );
     }
+    case "girih": {
+      // نقش النجمة الثمانية (بالإسلام): بلاطات خافتة تُرسم من الأطراف
+      const g = 150;
+      const cells: React.ReactNode[] = [];
+      for (let x = g / 2, i = 0; x < w + g; x += g) for (let y = g / 2; y < h + g; y += g, i++) {
+        const r = 44;
+        const d = `M${x} ${y - r} L${x + r} ${y} L${x} ${y + r} L${x - r} ${y} Z M${x - r * 0.7} ${y - r * 0.7} H${x + r * 0.7} V${y + r * 0.7} H${x - r * 0.7} Z`;
+        cells.push(<path key={i} d={d} fill="none" stroke={c.primary} strokeOpacity={0.09} strokeWidth={1.6} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - reveal} />);
+      }
+      return <svg width={w} height={h} style={{ position: "absolute", inset: 0 }}>{cells}</svg>;
+    }
+    case "horizon": {
+      // خط الأفق بعلامات القرون (دفاتر الزمن)
+      const y = h * 0.84;
+      const n = 12;
+      return (
+        <svg width={w} height={h} style={{ position: "absolute", inset: 0 }}>
+          <line x1={rtl ? w * (1 - reveal) : 0} x2={rtl ? w : w * reveal} y1={y} y2={y} stroke={c.ink} strokeOpacity={0.14} strokeWidth={3} />
+          {Array.from({ length: n + 1 }, (_, i) => (
+            <line key={i} x1={(i / n) * w} x2={(i / n) * w} y1={y} y2={y + (i % 3 === 0 ? 22 : 12)} stroke={c.ink} strokeOpacity={0.14 * reveal} strokeWidth={3} />
+          ))}
+          <circle cx={w * 0.5} cy={y} r={Math.min(w, h) * 0.16} fill={c.highlight} opacity={0.12 * reveal} />
+        </svg>
+      );
+    }
+    case "ruled": {
+      // ورقة مسطّرة بهامش (زبدة الكتب): الأصفر للفكرة فقط، فلا تظليل في الخلفية
+      const gap = 56;
+      const lines = Math.ceil(h / gap);
+      const mx = rtl ? w - 96 : 96;
+      return (
+        <svg width={w} height={h} style={{ position: "absolute", inset: 0 }}>
+          {Array.from({ length: lines }, (_, i) => (
+            <line key={i} x1={rtl ? w * (1 - reveal) : 0} x2={rtl ? w : w * reveal} y1={(i + 1) * gap} y2={(i + 1) * gap} stroke={c.ink} strokeOpacity={0.06} strokeWidth={2} />
+          ))}
+          <line x1={mx} x2={mx} y1={0} y2={h * reveal} stroke={c.secondary} strokeOpacity={0.25} strokeWidth={2} />
+        </svg>
+      );
+    }
   }
 };
 

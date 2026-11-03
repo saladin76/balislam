@@ -37,9 +37,9 @@
           "#6A6A6A",
           "#DCD6C8"
         ],
-        "cap": "#0F6E6E"
+        "cap": "#111111"
       },
-      "motif": "ink-lines"
+      "motif": "ruled"
     },
     "family": {
       "nameAr": "ورقة لاصقة",
@@ -79,7 +79,7 @@
         ],
         "cap": "#FFFFFF"
       },
-      "motif": "house-circles"
+      "motif": "ruled"
     },
     "night": {
       "nameAr": "حبر أسود",
@@ -119,7 +119,7 @@
         ],
         "cap": "#F3EEE3"
       },
-      "motif": "stars"
+      "motif": "ruled"
     },
     "warm": {
       "nameAr": "كتاب كلاسيكي",
@@ -159,7 +159,7 @@
         ],
         "cap": "#FBF6EE"
       },
-      "motif": "arches"
+      "motif": "ruled"
     }
   },
   "palettes": {

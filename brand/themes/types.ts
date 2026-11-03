@@ -39,5 +39,6 @@ export type Theme = {
     garments: [string, string, string, string, string];
     cap: string;
   };
-  motif: "ink-lines" | "house-circles" | "stars" | "arches";
+  /** زخرفة الخلفية؛ لكل قناة زخارفها: بالإسلام arches/girih، دفاتر الزمن stars/horizon/ink-lines، زبدة الكتب ruled */
+  motif: "ink-lines" | "house-circles" | "stars" | "arches" | "girih" | "horizon" | "ruled";
 };
