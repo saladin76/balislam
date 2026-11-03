@@ -57,17 +57,22 @@ export type ChannelConfig = {
     hadith: boolean;
     hadithGrades: string[];
   };
+  /**
+   * مكتبة القناة: ما يستبعده صاحب القناة منها لأنه لا يناسب هويتها (أداة حديثة في قناة تاريخ، مكان برسومات قديمة…).
+   * خاص بهذه القناة وحدها؛ والملفات تبقى في المحرك المشترك لبقية القنوات.
+   */
+  library?: { exclude?: { elements?: string[]; categories?: string[]; sets?: string[]; templates?: string[] } };
   /** footer: سطر ثابت في آخر كل وصف (توقيع القناة)، ولا يذكر أدوات الإنتاج أبدًا */
   youtube: { tags: string[]; postingTime: string; footer: string };
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; library?: ChannelConfig["library"]; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;
 
-export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith } });
+export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library });
 
 export const domainIds = (c: ChannelConfig) => Object.keys(c.domains);
 

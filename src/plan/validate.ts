@@ -10,10 +10,10 @@ export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: 
  * فحص الخطة قبل الرندر النهائي: ما لا يجوز نشره (حديث بلا نص، آية بنص مؤقت)
  * وما يستحق التنبيه (عنصر غير موجود في المكتبة).
  */
-export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]> }): PlanIssue[] => {
+export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]>; library?: LibraryRules["library"] }): PlanIssue[] => {
   const out: PlanIssue[] = [];
   // مكتبة القناة: ما ليس منها خطأ يمنع النسخة النهائية (لا خلط بين القنوات)
-  const lib: LibraryRules | null = channel?.rules ? { id: channel.id, rules: { faces: Boolean(channel.rules.faces), quran: Boolean(channel.rules.quran), hadith: Boolean(channel.rules.hadith) } } : null;
+  const lib: LibraryRules | null = channel?.rules ? { id: channel.id, rules: { faces: Boolean(channel.rules.faces), quran: Boolean(channel.rules.quran), hadith: Boolean(channel.rules.hadith) }, library: channel.library } : null;
   const notOurs = (sceneId: string, what: string, why: keyof typeof excludeReasonAr | null) => {
     if (lib && why) out.push({ level: "error", sceneId, message: `${what} ليس من مكتبة هذه القناة (${excludeReasonAr[why]}).` });
   };

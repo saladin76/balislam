@@ -16,13 +16,13 @@ import type { ChannelConfig } from "./types";
  * - الشخصيات بملامح (الشخصيات التاريخية): لمن تسمح بالوجوه. الشخصيات بلا ملامح للجميع.
  * - القوالب التخصصية (only في templateMeta) وأماكن التصوير (channels في brand/sets): بقائمة القنوات المذكورة معها.
  */
-export type LibraryRules = Pick<ChannelConfig, "id"> & { rules: Pick<ChannelConfig["rules"], "faces" | "quran" | "hadith"> };
+export type LibraryRules = Pick<ChannelConfig, "id"> & { rules: Pick<ChannelConfig["rules"], "faces" | "quran" | "hadith">; library?: ChannelConfig["library"] };
 
 /** عناصر دينية خارج فئة «رموز إسلامية» */
 const RELIGIOUS_IDS = new Set(["hands-dua", "arch-frame", "star-pattern-tile", "girih-tile", "arabesque-border", "courtyard-arches", "mosque-exterior"]);
 const RELIGIOUS_CATEGORIES = new Set<ElementCategory>(["islamic"]);
 
-export type ExcludeReason = "religious" | "quran" | "hadith" | "faces" | "channel" | "legacy";
+export type ExcludeReason = "religious" | "quran" | "hadith" | "faces" | "channel" | "legacy" | "identity";
 export const excludeReasonAr: Record<ExcludeReason, string> = {
   religious: "رمز ديني لقناة لا تستشهد بالقرآن ولا بالحديث",
   quran: "القناة لا تستشهد بالقرآن",
@@ -30,6 +30,15 @@ export const excludeReasonAr: Record<ExcludeReason, string> = {
   faces: "القناة بلا وجوه",
   channel: "خاص بقناة أخرى",
   legacy: "قالب قديم برسومات ثابتة لم يُعَد رسمه بهوية القناة",
+  identity: "استبعده صاحب القناة لأنه لا يناسب هويتها (library.exclude في channel.json)",
+};
+
+/** استبعاد خاص بقناة واحدة من ملفها (channel.json → library.exclude)، فلا يمس مكتبات القنوات الأخرى */
+const excludedBy = (ch: LibraryRules, kind: "elements" | "sets" | "templates", id: string, category?: ElementCategory) => {
+  const ex = ch.library?.exclude;
+  if (!ex) return false;
+  if (ex[kind]?.includes(id)) return true;
+  return kind === "elements" && Boolean(category && ex.categories?.includes(category));
 };
 
 const religious = (r: LibraryRules["rules"]) => r.quran || r.hadith;
@@ -40,6 +49,7 @@ export const elementExclusion = (ch: LibraryRules, id: string, category?: Elemen
   if (id === "verse-frame") return ch.rules.quran ? null : "quran";
   if (id === "hadith-frame") return ch.rules.hadith ? null : "hadith";
   if ((RELIGIOUS_IDS.has(id) || (cat && RELIGIOUS_CATEGORIES.has(cat))) && !religious(ch.rules)) return "religious";
+  if (excludedBy(ch, "elements", id, cat)) return "identity";
   return null;
 };
 
@@ -49,12 +59,14 @@ export const templateExclusion = (ch: LibraryRules, id: string): ExcludeReason |
   if (templateMeta[id]?.legacy) return "legacy";
   const only = templateMeta[id]?.only;
   if (only && !only.includes(ch.id)) return "channel";
+  if (excludedBy(ch, "templates", id)) return "identity";
   return null;
 };
 
 export const setExclusion = (ch: LibraryRules, id: string): ExcludeReason | null => {
   const s = sets.find((x) => x.id === id);
-  return s?.channels?.length && !s.channels.includes(ch.id) ? "channel" : null;
+  if (s?.channels?.length && !s.channels.includes(ch.id)) return "channel";
+  return excludedBy(ch, "sets", id) ? "identity" : null;
 };
 
 /** الشخصيات التاريخية بملامح الوجه */

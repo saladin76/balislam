@@ -32,7 +32,7 @@ export const renderBrandStills = async (opts: StillsOptions = {}): Promise<strin
   for (const composition of targets) {
     const output = path.join(outDir, `${composition.id}.png`);
     log(`رندر ${composition.id}…`);
-    await renderStill({ serveUrl, composition, output, browserExecutable });
+    await renderStill({ serveUrl, composition, output, scale: 2, browserExecutable });
     written.push(output);
   }
   return written;
@@ -55,7 +55,9 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
     for (const composition of comps.filter((c) => c.id.startsWith("channel-art-"))) {
       const output = path.join(outDir, `${composition.id.replace("channel-art-", "")}.png`);
       log(`رندر ${id} ← ${composition.id}…`);
-      await renderStill({ serveUrl, composition, output, browserExecutable, inputProps: { ...inputProps, kind: composition.defaultProps.kind } });
+      // دقة مضاعفة للتنزيل الحاد، ما عدا غلاف يوتيوب: 2560×1440 هو أقصى مقاس يقبله
+      const scale = composition.defaultProps.kind === "youtube" ? 1 : 2;
+      await renderStill({ serveUrl, composition, output, scale, browserExecutable, inputProps: { ...inputProps, kind: composition.defaultProps.kind } });
       written.push(output);
     }
   }

@@ -13,6 +13,9 @@ export type TimelineProps = SceneBase & StringFields<"title" | "events" | "eleme
 
 type Event = { date: string; text: string };
 
+/** السنوات بخط IBM Plex Mono (بصمة «دفتر الأفق»)، والحروف العربية في التاريخ («م»، «هـ») بخط العناوين */
+const YEAR_FONT = `'IBM Plex Mono', ${fontFamilies.heading}`;
+
 /** «التاريخ | الحدث» في كل سطر (حتى 5). السطر بلا فاصل يصير حدثًا بلا تاريخ. */
 const parseEvents = (events: string): Event[] =>
   events
@@ -169,8 +172,8 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                     {e.date ? (
                       <div
                         style={{
-                          fontFamily: fontFamilies.heading,
-                          fontWeight: 700,
+                          fontFamily: YEAR_FONT,
+                          fontWeight: 500,
                           fontSize: dateSize,
                           lineHeight: 1.2,
                           color: c.primary,
@@ -248,8 +251,8 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
                     width: colW - 24,
                     bottom: H - lineY + 50,
                     textAlign: "center",
-                    fontFamily: fontFamilies.heading,
-                    fontWeight: 700,
+                    fontFamily: YEAR_FONT,
+                    fontWeight: 500,
                     fontSize: dateSize,
                     lineHeight: 1.15,
                     color: c.primary,

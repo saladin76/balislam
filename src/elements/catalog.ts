@@ -2,7 +2,7 @@ import type { ThemeId } from "../../brand/themes";
 import type { ElementCategory } from "../../brand/elements/types";
 
 export type CatalogData = {
-  channel: { id: string; name: string; nameLatin: string; faces: boolean; scripture: boolean };
+  channel: { id: string; name: string; nameLatin: string; faces: boolean; scripture: boolean; /** نموذجا العنوان والنص بمحتوى القناة نفسها */ sample?: { heading: string; body: string } };
   /** خطوط هوية القناة */
   fonts: { heading: string; body: string; wordmark: string };
   themes: { id: ThemeId; nameAr: string; domainAr: string; colors: Record<string, string>; style: string }[];
@@ -155,8 +155,8 @@ td.p{font-family:var(--f-mono);font-size:12px;direction:ltr;text-align:left;colo
       nav.push(['identity','الألوان والخطوط']);
       var sw=[['الخلفية','bg'],['البطاقات','surface'],['النص','ink'],['نص ثانوي','inkSoft'],['الأساسي','primary'],['الثانوي','secondary'],['التمييز','highlight'],['شريط الترجمة','captionBg']];
       out.push('<section id="identity"><h2>الألوان والخطوط <small>'+E(t.nameAr)+' · '+E(t.domainAr)+' · أسلوب '+(t.style==='line'?'خطي بالحبر':'مسطح ملوّن')+'</small></h2><div class="swatches">'+sw.map(function(s){return '<div class="sw"><i style="background:'+t.colors[s[1]]+'"></i><div>'+s[0]+'<code>'+t.colors[s[1]]+'</code></div></div>'}).join('')+'</div><div class="fonts">'+
-      '<div class="font"><div class="s" style="font-family:var(--f-head);font-weight:700">لماذا نؤجّل؟</div><div class="r">العناوين · '+E(D.fonts.heading)+'</div></div>'+
-      '<div class="font"><div class="s" style="font-family:var(--f-body);font-weight:500;font-size:22px">التأجيل هروب من شعور، لا كسل.</div><div class="r">النص والترجمة · '+E(D.fonts.body)+'</div></div>'+
+      '<div class="font"><div class="s" style="font-family:var(--f-head);font-weight:700">'+E((D.channel.sample||{}).heading||'لماذا نؤجّل؟')+'</div><div class="r">العناوين · '+E(D.fonts.heading)+'</div></div>'+
+      '<div class="font"><div class="s" style="font-family:var(--f-body);font-weight:500;font-size:22px">'+E((D.channel.sample||{}).body||'التأجيل هروب من شعور، لا كسل.')+'</div><div class="r">النص والترجمة · '+E(D.fonts.body)+'</div></div>'+
       (D.channel.scripture?'<div class="font"><div class="s" style="font-family:var(--f-scr)">وَأَن لَّيْسَ لِلْإِنسَٰنِ إِلَّا مَا سَعَىٰ</div><div class="r">الآيات والأحاديث فقط · Amiri</div></div>':'')+
       '<div class="font"><div class="s" style="font-family:var(--f-word);font-weight:700">'+E(D.channel.name)+'</div><div class="r">اسم القناة · '+E(D.fonts.wordmark)+'</div></div>'+
       '</div></section>');

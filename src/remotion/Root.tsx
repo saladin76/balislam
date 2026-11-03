@@ -4,6 +4,7 @@ import { themeIds } from "../../brand/themes";
 import { BrandSheet } from "./BrandSheet";
 import { TemplateReel, reelDuration } from "./scenes/TemplateReel";
 import { sceneCatalog } from "./scenes/catalog";
+import { sampleForChannel } from "./scenes/channelSamples";
 import { Thumbnail } from "./Thumbnail";
 import { ChannelArt, artSizes, type ArtKind } from "./ChannelArt";
 import { SilhouetteDemo } from "./styles/Silhouette";
@@ -46,7 +47,7 @@ const ChannelScenePreview: React.FC<{ entryId: string; identity?: Identity; chan
   const C = entry.component;
   return (
     <Providers identity={identity} channel={channel}>
-      <C {...entry.sample} {...props} />
+      <C {...sampleForChannel(channel?.id, entryId, entry.sample)} {...props} />
     </Providers>
   );
 };

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
-import { rename, unlink } from "node:fs/promises";
+import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
@@ -82,12 +82,21 @@ export const cleanMetadata = async (file: string, meta: { title: string; artist:
   }
 };
 
-/** الصورة المصغّرة بعنوان محدد. */
+/** حد يوتيوب لحجم الصورة المصغّرة (2MB) مع هامش أمان */
+const THUMB_MAX_BYTES = 1.9 * 1024 * 1024;
+
+/**
+ * الصورة المصغّرة بعنوان محدد، بدقة مضاعفة (2560×1440) حتى تبقى الحروف والخطوط حادة عند التنزيل والتكبير.
+ * إن تجاوز الملف حد يوتيوب تنزل الدقة (1.5× ثم 1×) فلا تُرفض عند الرفع.
+ */
 export const renderThumbnail = async (input: { themeId: string; title: string; highlight?: string; element?: string; lang?: string }, output: string) => {
   const serveUrl = await getServeUrl();
   const channel = loadChannel();
   const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
-  await renderStill({ serveUrl, composition, inputProps: props, output, browserExecutable: browserExecutable() });
+  for (const scale of [2, 1.5, 1]) {
+    await renderStill({ serveUrl, composition, inputProps: props, output, scale, overwrite: true, browserExecutable: browserExecutable() });
+    if ((await stat(output)).size <= THUMB_MAX_BYTES) break;
+  }
   return output;
 };

@@ -36,8 +36,33 @@ describe("مكتبة كل قناة", () => {
   it("دفاتر الزمن: قوالب التاريخ وأماكنه وشخصياته", () => {
     const lib = channelLibrary(dafatir);
     expect(lib.templates).toEqual(expect.arrayContaining(["doc-plate", "timeline"]));
-    expect(lib.sets).toEqual(expect.arrayContaining(["castle-walls", "walls-night", "palace-court"]));
+    // أماكن التصوير القديمة الألوان خارج مكتبتها حتى يُعاد رسمها بهوية «دفتر الأفق»
+    expect(lib.sets).toEqual([]);
     expect(lib.figures).toBe(true);
+    // لا أدوات حديثة ولا أيقونات تنمية ذاتية في قناة التاريخ، وعناصر التاريخ باقية
+    for (const id of ["smartphone", "wifi", "laptop", "sports-car", "fridge", "head-gears", "energy-full", "social-like"]) expect(lib.elements, id).not.toContain(id);
+    for (const id of ["scroll", "quill", "astrolabe", "map-old", "hourglass-ornate", "sailboat", "crown", "coin", "oil-lamp", "notebook"]) expect(lib.elements, id).toContain(id);
+  });
+
+  it("استبعاد قناة من ملفها لا يمس مكتبات القنوات الأخرى", () => {
+    for (const other of [balislam, zubdat]) {
+      expect(channelLibrary(other).elements, other.id).toContain("smartphone");
+      expect(channelLibrary(other).sets.length, other.id).toBeGreaterThan(0);
+    }
+    expect(elementExclusion(dafatir, "smartphone")).toBe("identity");
+    expect(drawAllowed(dafatir)("phone-notifications")).toBe(false);
+  });
+
+  it("كل ما في قوائم الاستبعاد موجود فعلًا في المحرك (لا خطأ إملائي يمرّر عنصرًا)", async () => {
+    const { elementLibrary } = await import("../brand/elements/registry");
+    const { sets } = await import("../brand/sets/index");
+    const { templateDefs } = await import("../src/plan/templates");
+    for (const c of [balislam, dafatir, zubdat]) {
+      const ex = c.library?.exclude ?? {};
+      for (const id of ex.elements ?? []) expect(elementLibrary.some((e) => e.id === id), `${c.id}/${id}`).toBe(true);
+      for (const id of ex.sets ?? []) expect(sets.some((s) => s.id === id), `${c.id}/${id}`).toBe(true);
+      for (const id of ex.templates ?? []) expect(templateDefs.some((t) => t.id === id), `${c.id}/${id}`).toBe(true);
+    }
   });
 
   it("الرسمات الآلية لا تخرج عن مكتبة القناة", () => {

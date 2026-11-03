@@ -13,6 +13,7 @@ import { sfxLibrary, sfxCategoryNamesAr } from "../../brand/sfx";
 import { projectRoot } from "../config/paths";
 import { loadChannel, loadChannelIdentity } from "../channel";
 import { channelLibrary } from "../channel/library";
+import { catalogSamples } from "../remotion/scenes/channelSamples";
 import { buildCatalogHtml, type CatalogData } from "./catalog";
 
 export type ExportResult = { channel: string; files: number; elements: number; catalog: string };
@@ -37,7 +38,7 @@ export const exportElements = async (channelId: string, outDir = path.join(proje
   let files = 0;
   const elements = elementLibrary.filter((e) => allowed.has(e.id));
   const data: CatalogData = {
-    channel: { id: channel.id, name: channel.nameDisplay ?? channel.name, nameLatin: channel.nameLatin, faces: channel.rules.faces, scripture: channel.rules.quran || channel.rules.hadith },
+    channel: { id: channel.id, name: channel.nameDisplay ?? channel.name, nameLatin: channel.nameLatin, faces: channel.rules.faces, scripture: channel.rules.quran || channel.rules.hadith, sample: catalogSamples[channel.id] },
     fonts: { heading: identity.fonts?.heading ?? "El Messiri", body: identity.fonts?.body ?? "IBM Plex Sans Arabic", wordmark: identity.fonts?.wordmark ?? "Readex Pro" },
     themes: themeIds.map((id) => ({
       id,

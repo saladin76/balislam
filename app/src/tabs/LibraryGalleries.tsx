@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { sampleForChannel } from "../../../src/remotion/scenes/channelSamples";
 import { Player, type PlayerRef } from "@remotion/player";
 import { Providers } from "../../../src/remotion/Providers";
 import { sceneCatalog } from "../../../src/remotion/scenes/catalog";
@@ -35,7 +36,7 @@ const TemplatePreview: React.FC<{ entry: (typeof sceneCatalog)[number]; identity
       <Player
         ref={ref}
         component={Comp}
-        inputProps={{ ...entry.sample, themeId: "paper", orientation: "landscape" }}
+        inputProps={{ ...sampleForChannel(channel?.id, entry.id, entry.sample), themeId: "paper", orientation: "landscape" }}
         durationInFrames={frames}
         fps={fps}
         compositionWidth={config.video.episode.width}
@@ -92,6 +93,12 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
 
 /** أماكن التصوير: كل مكان مرسوم كاملًا، يُستعمل في قالب «مشهد في مكان». */
 export const SetsGallery: React.FC<{ allowed: string[] }> = ({ allowed }) => (
+  !allowed.length ? (
+    <div className="empty-state">
+      <h2>لا أماكن تصوير في مكتبة هذه القناة الآن.</h2>
+      <p className="help">الأماكن القديمة برسومات وألوان لا تناسب هوية القناة استُبعدت. تعود بعد إعادة رسمها بهويتها واعتماد الستوري بورد وقياس حركتها.</p>
+    </div>
+  ) :
   <>
     <p className="help">أماكن هذه القناة فقط. أماكن مرسومة كاملة تتحرك فيها الإضاءة والبخار والنجوم. استعملها من قالب «مشهد في مكان» واختر المكان. غيّر المكان بين الحلقات ليبقى المحتوى متنوعًا.</p>
     <div className="tpl-grid">

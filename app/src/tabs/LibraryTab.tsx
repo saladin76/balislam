@@ -17,7 +17,7 @@ import type { ChannelInfo } from "../../../src/channel/types";
 import { channelLibrary, type LibraryRules } from "../../../src/channel/library";
 
 /** قواعد مكتبة القناة من بياناتها في الاستوديو */
-export const libraryRulesOf = (c?: ChannelInfo): LibraryRules => ({ id: c?.id ?? "", rules: { faces: Boolean(c?.rules?.faces), quran: Boolean(c?.rules?.quran), hadith: Boolean(c?.rules?.hadith) } });
+export const libraryRulesOf = (c?: ChannelInfo): LibraryRules => ({ id: c?.id ?? "", rules: { faces: Boolean(c?.rules?.faces), quran: Boolean(c?.rules?.quran), hadith: Boolean(c?.rules?.hadith) }, library: c?.library });
 
 type Section = "templates" | "images" | "sets" | "elements" | "characters" | "sfx";
 

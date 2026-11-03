@@ -76,7 +76,7 @@ const Slider: React.FC<{ label: string; value: number; min: number; max: number;
 /** عينة عناصر بألوان الثيم: من مكتبة القناة فقط، وشعار القناة نفسها */
 const ElementStrip: React.FC<{ themeId: ThemeId; channel?: ChannelInfo }> = ({ themeId, channel }) => {
   const t = useTheme(themeId);
-  const ok = drawAllowed({ id: channel?.id ?? "", rules: { faces: Boolean(channel?.rules?.faces), quran: Boolean(channel?.rules?.quran), hadith: Boolean(channel?.rules?.hadith) } });
+  const ok = drawAllowed({ id: channel?.id ?? "", rules: { faces: Boolean(channel?.rules?.faces), quran: Boolean(channel?.rules?.quran), hadith: Boolean(channel?.rules?.hadith) }, library: channel?.library });
   return (
     <div className="el-strip" style={{ background: t.colors.bg }}>
       <div style={{ display: "grid", placeItems: "center" }}><LogoMark size={56} colors={t.logo} mark={channel?.logo} /></div>

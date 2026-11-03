@@ -21,7 +21,9 @@ export type DocPlateProps = SceneBase &
     video?: boolean;
   };
 
-const GOLD = "#D4A24C";
+/** ألوان «دفتر الأفق» (brand/identity/approved.ts) ودرجاتها المشتقة؛ القالب خاص بدفاتر الزمن */
+const HZ = { dusk: "#2A1E3F", duskDeep: "#140E20", sun: "#E07A3F", parchment: "#F1E4CB", ink: "#4A2E1F", inkDeep: "#1E130C", tape: "#D7372B", sand: "#C8A15A" } as const;
+const GOLD = HZ.sand;
 const rand = (i: number) => {
   const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
@@ -29,10 +31,10 @@ const rand = (i: number) => {
 
 /** التلوين: مرشحات CSS للصورة + طبقة لون بمزج ناعم */
 const GRADES: Record<string, { filter: string; tint: string; blend: React.CSSProperties["mixBlendMode"]; tintOpacity: number }> = {
-  warm: { filter: "saturate(0.82) contrast(1.1) brightness(0.94)", tint: "#B86E2E", blend: "soft-light", tintOpacity: 0.22 },
-  cold: { filter: "saturate(0.75) contrast(1.1) brightness(0.95)", tint: "#2C5A7A", blend: "soft-light", tintOpacity: 0.5 },
-  night: { filter: "saturate(0.6) contrast(1.15) brightness(0.72)", tint: "#14284A", blend: "multiply", tintOpacity: 0.45 },
-  sepia: { filter: "sepia(0.55) saturate(0.8) contrast(1.05)", tint: "#8A5A2B", blend: "soft-light", tintOpacity: 0.35 },
+  warm: { filter: "saturate(0.82) contrast(1.1) brightness(0.94)", tint: HZ.sun, blend: "soft-light", tintOpacity: 0.2 },
+  cold: { filter: "saturate(0.75) contrast(1.1) brightness(0.95)", tint: HZ.dusk, blend: "soft-light", tintOpacity: 0.5 },
+  night: { filter: "saturate(0.6) contrast(1.15) brightness(0.72)", tint: HZ.dusk, blend: "multiply", tintOpacity: 0.5 },
+  sepia: { filter: "sepia(0.55) saturate(0.8) contrast(1.05)", tint: HZ.ink, blend: "soft-light", tintOpacity: 0.4 },
   natural: { filter: "contrast(1.04)", tint: "#000000", blend: "normal", tintOpacity: 0 },
 };
 
@@ -86,8 +88,8 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
   const image = src ? (props.video ? <OffthreadVideo src={src} muted playbackRate={rate} style={mediaStyle} /> : <Img src={src} style={mediaStyle} />) : null;
 
   const placeholder = (
-    <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 45%, #2A1D12 0%, #0B0806 75%)", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: portrait ? "84%" : "62%", border: `2px dashed ${GOLD}66`, borderRadius: 18 * u, padding: `${40 * u}px ${48 * u}px`, textAlign: "center", color: "#E9D9B8" }}>
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${HZ.dusk} 0%, ${HZ.duskDeep} 75%)`, alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: portrait ? "84%" : "62%", border: `2px dashed ${GOLD}66`, borderRadius: 18 * u, padding: `${40 * u}px ${48 * u}px`, textAlign: "center", color: HZ.parchment }}>
         <svg width={90 * u} height={70 * u} viewBox="0 0 90 70" style={{ marginBottom: 18 * u }}>
           <rect x="3" y="3" width="84" height="64" rx="8" fill="none" stroke={GOLD} strokeWidth="3" />
           <circle cx="28" cy="24" r="7" fill={GOLD} />
@@ -100,18 +102,18 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
   );
 
   return (
-    <SceneShell {...props} themeId="night" motif={false} background="#050403" durationInFrames={durationInFrames} eyebrowColors={{ text: "#E9D9B8", border: GOLD }} captionVariant={letterbox === "on" && !portrait ? "cinema" : "pill"}>
+    <SceneShell {...props} themeId="night" motif={false} background={HZ.duskDeep} durationInFrames={durationInFrames} eyebrowColors={{ text: HZ.parchment, border: GOLD }} captionVariant={letterbox === "on" && !portrait ? "cinema" : "pill"}>
       <AbsoluteFill style={{ opacity: appear, overflow: "hidden" }}>
         {archive ? (
           // الوثيقة على طاولة داكنة: ورقة بهامش وظل، والكاميرا تنزلق فوقها، وضوء يمرّ عليها
-          <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 40%, #3A2818 0%, #120B06 80%)" }}>
+          <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 40%, ${HZ.ink} 0%, ${HZ.inkDeep} 80%)` }}>
             <AbsoluteFill style={{ transform: `translate(${tx * 0.6}%, ${ty * 0.6}%) scale(${0.92 + (scale - 1) * 0.8}) rotate(${interpolate(p, [0, 1], [-1.2, 0.6])}deg)`, alignItems: "center", justifyContent: "center" }}>
-              <div style={{ position: "relative", width: portrait ? "88%" : "74%", height: portrait ? "66%" : "84%", background: "#E8D9B6", padding: 18 * u, boxShadow: `0 ${30 * u}px ${80 * u}px rgba(0,0,0,0.65)`, borderRadius: 4 }}>
+              <div style={{ position: "relative", width: portrait ? "88%" : "74%", height: portrait ? "66%" : "84%", background: HZ.parchment, padding: 18 * u, boxShadow: `0 ${30 * u}px ${80 * u}px rgba(0,0,0,0.65)`, borderRadius: 4 }}>
                 {src ? (props.video ? <OffthreadVideo src={src} muted playbackRate={rate} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", filter: `${g.filter} sepia(0.15)` }} />) : <div style={{ width: "100%", height: "100%", position: "relative" }}>{placeholder}</div>}
               </div>
             </AbsoluteFill>
             {/* ضوء يعبر الوثيقة */}
-            <AbsoluteFill style={{ background: `linear-gradient(105deg, transparent ${interpolate(p, [0, 1], [-30, 70])}%, rgba(255,230,180,0.14) ${interpolate(p, [0, 1], [-10, 90])}%, transparent ${interpolate(p, [0, 1], [10, 110])}%)`, mixBlendMode: "screen" }} />
+            <AbsoluteFill style={{ background: `linear-gradient(105deg, transparent ${interpolate(p, [0, 1], [-30, 70])}%, rgba(224,122,63,0.14) ${interpolate(p, [0, 1], [-10, 90])}%, transparent ${interpolate(p, [0, 1], [10, 110])}%)`, mixBlendMode: "screen" }} />
           </AbsoluteFill>
         ) : (
           <>
@@ -135,19 +137,20 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
         </>
       ) : null}
 
-      {/* المكان والتاريخ: أعلى بداية الشاشة، بخط Amiri وخط ذهبي، فوق ظل خفيف يضمن وضوحه على أي صورة */}
+      {/* المكان والتاريخ: أعلى بداية الشاشة، بخط الأميري وخط رملي وشريط تاريخ أحمر، فوق ظل خفيف يضمن وضوحه على أي صورة */}
       {title || date ? <AbsoluteFill style={{ opacity: lowerA, background: `radial-gradient(ellipse 45% 40% at ${rtl ? "100%" : "0%"} ${portrait ? "22%" : "8%"}, rgba(0,0,0,0.55) 0%, transparent 100%)` }} /> : null}
       {title || date ? (
-        <div style={{ position: "absolute", top: portrait ? 330 * u : bar + 40 * u, insetInlineStart: portrait ? 64 * u : 96 * u, opacity: lowerA, transform: `translateY(${(1 - lowerIn) * 14}px)`, color: "#F1E3C6", textShadow: "0 2px 18px rgba(0,0,0,0.85)" }}>
+        <div style={{ position: "absolute", top: portrait ? 330 * u : bar + 40 * u, insetInlineStart: portrait ? 64 * u : 96 * u, opacity: lowerA, transform: `translateY(${(1 - lowerIn) * 14}px)`, color: HZ.parchment, textShadow: "0 2px 18px rgba(0,0,0,0.85)" }}>
           {title ? <div style={{ fontFamily: fontFamilies.scripture, fontWeight: 700, fontSize: (portrait ? 64 : 58) * u, lineHeight: 1.2 }}>{title}</div> : null}
           <div style={{ width: interpolate(lowerIn, [0, 1], [0, (portrait ? 220 : 260) * u]), height: 2, background: GOLD, margin: `${10 * u}px 0` }} />
-          {date ? <div style={{ fontFamily: fontFamilies.heading, fontSize: (portrait ? 34 : 30) * u, color: GOLD, letterSpacing: "0.04em" }}>{date}</div> : null}
+          {/* الزمن على «شريط التاريخ» الأحمر بخط السنوات IBM Plex Mono (بصمة دفتر الأفق) */}
+          {date ? <div style={{ display: "inline-block", fontFamily: `${fontFamilies.mono.replace(", monospace", "")}, ${fontFamilies.clean}`, fontWeight: 500, fontSize: (portrait ? 32 : 28) * u, color: HZ.parchment, background: HZ.tape, padding: `${4 * u}px ${16 * u}px`, borderRadius: 3 * u, letterSpacing: "0.03em", textShadow: "none", clipPath: `inset(0 ${(1 - lowerIn) * 100}% 0 0)` }}>{date}</div> : null}
         </div>
       ) : null}
 
       {/* اسم المصدر (للوثائق والصور الأرشيفية) */}
       {credit ? (
-        <div style={{ position: "absolute", bottom: (portrait ? 420 : bar + 22) * u, insetInlineEnd: (portrait ? 64 : 96) * u, fontSize: (portrait ? 22 : 20) * u, color: "#E9D9B8", opacity: 0.75 * lowerA, fontFamily: fontFamilies.body }}>
+        <div style={{ position: "absolute", bottom: (portrait ? 420 : bar + 22) * u, insetInlineEnd: (portrait ? 64 : 96) * u, fontSize: (portrait ? 22 : 20) * u, color: HZ.parchment, opacity: 0.75 * lowerA, fontFamily: fontFamilies.body }}>
           المصدر: {credit}
         </div>
       ) : null}
