@@ -11,10 +11,13 @@ const dafatir = ch("dafatir-alzaman");
 const zubdat = ch("zubdat-alkutub");
 
 describe("مكتبة كل قناة", () => {
-  it("زبدة الكتب: لا رموز دينية ولا آيات ولا أحاديث ولا قوالب التاريخ", () => {
+  it("زبدة الكتب: الآيات والأحاديث مسموحة (٣ نوفمبر ٢٠٢٦، بإذن صاحب القناة) بلا زخارف بالإسلام ولا قوالب التاريخ", () => {
     const lib = channelLibrary(zubdat);
-    for (const id of ["mosque", "mushaf-rehal", "hands-dua", "verse-frame", "hadith-frame", "girih-tile", "mosque-exterior"]) expect(lib.elements, id).not.toContain(id);
-    for (const id of ["verse-card", "hadith-card", "doc-plate", "map-journey"]) expect(lib.templates, id).not.toContain(id);
+    expect(lib.templates).toEqual(expect.arrayContaining(["verse-card", "hadith-card"]));
+    expect(lib.elements).toEqual(expect.arrayContaining(["mushaf-rehal", "verse-frame", "hadith-frame", "prayer-mat", "ibriq"]));
+    // بصمة «محراب النور» وزخارفه تبقى لبالإسلام وحدها
+    for (const id of ["mihrab-arch", "girih-tile", "star-pattern-tile", "arabesque-border", "arch-frame", "courtyard-arches", "rub-el-hizb", "crescent-star"]) expect(lib.elements, id).not.toContain(id);
+    for (const id of ["doc-plate", "map-journey"]) expect(lib.templates, id).not.toContain(id);
     for (const id of ["castle-walls", "palace-court", "walls-night"]) expect(lib.sets, id).not.toContain(id);
     expect(lib.elements).toContain("book-open");
     // «القلم المميِّز»: لا أماكن ولا خلفيات تراثية، ولا زخارف ولا ختم، ولا هلال
@@ -74,16 +77,19 @@ describe("مكتبة كل قناة", () => {
     }
   });
 
+  // قناة لا تستشهد بالقرآن ولا بالحديث (كل القنوات الحالية تستشهد بهما منذ ٣ نوفمبر ٢٠٢٦)
+  const secular = { id: "test-secular", rules: { faces: true, quran: false, hadith: false } };
+
   it("الرسمات الآلية لا تخرج عن مكتبة القناة", () => {
     const text = "القرآن يهدينا إلى الطريق.";
     expect(beatsFor(text, 1)[0]?.draw).toBe("mushaf-rehal");
-    expect(beatsFor(text, 1, drawAllowed(zubdat))[0]?.draw).not.toBe("mushaf-rehal");
-    expect(elementExclusion(zubdat, beatsFor(text, 1, drawAllowed(zubdat))[0]!.draw)).toBeNull();
+    expect(beatsFor(text, 1, drawAllowed(secular))[0]?.draw).not.toBe("mushaf-rehal");
+    expect(elementExclusion(secular, beatsFor(text, 1, drawAllowed(secular))[0]!.draw)).toBeNull();
   });
 
   it("فحص الخطة يرفض ما ليس من مكتبة القناة", () => {
     const plan = {
-      channel: "zubdat-alkutub",
+      channel: "test-secular",
       chapters: [
         {
           id: "c1",
@@ -97,7 +103,7 @@ describe("مكتبة كل قناة", () => {
         },
       ],
     } as unknown as Plan;
-    const errs = planIssues(plan, zubdat).filter((i) => i.level === "error").map((i) => i.sceneId);
+    const errs = planIssues(plan, secular as never).filter((i) => i.level === "error").map((i) => i.sceneId);
     expect(errs).toEqual(expect.arrayContaining(["c1-s1", "c1-s2", "c1-s3", "c1-s4"]));
     // في بالإسلام: الآية والرموز من مكتبتها؛ وقالب «مشهد في مكان» قديم فيُرفض في كل القنوات
     const errs2 = planIssues(plan, balislam).filter((i) => i.level === "error" && /مكتبة/.test(i.message)).map((i) => i.sceneId);

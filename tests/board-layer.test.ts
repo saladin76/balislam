@@ -5,7 +5,7 @@ import { defaultsFor } from "../src/plan/generate";
 import { drawAllowed } from "../src/channel/library";
 
 const words = (text: string) => spokenWords(estimateTimings(text, 0, 300));
-const zubdat = drawAllowed({ id: "zubdat-alkutub", rules: { faces: false, quran: false, hadith: false } });
+const secular = drawAllowed({ id: "test-secular", rules: { faces: false, quran: false, hadith: false } });
 
 describe("طبقة الحركة الثانية للسبورة", () => {
   it("تجد الكلمة المكتوبة لحظة نطقها ولو بواو العطف أو أل", () => {
@@ -16,11 +16,11 @@ describe("طبقة الحركة الثانية للسبورة", () => {
 
   it("الرسمات المساندة من قائمة المعاني المراجَعة فقط، بلا تكرار وفي مكتبة القناة", () => {
     const w = words("الفكرة هنا بسيطة. لا تبحث عن قرار كبير يغير حياتك في يوم واحد.");
-    const sup = supportsOf(w, [{ from: 0, to: w.length }], [{ draw: "head-idea", shownAt: 0, labelWord: 0 }], zubdat, 3);
+    const sup = supportsOf(w, [{ from: 0, to: w.length }], [{ draw: "head-idea", shownAt: 0, labelWord: 0 }], secular, 3);
     expect(sup.map((s) => s.draw)).toEqual(["path-fork"]);
-    // لا رمز ديني لقناة لا تستشهد بالقرآن والحديث
+    // لا رمز ديني لقناة لا تستشهد بالقرآن والحديث (مكتبة القناة تُحترم)
     const dua = words("نختم بالدعاء");
-    expect(supportsOf(dua, [{ from: 0, to: dua.length }], [{ draw: "", shownAt: 0 }], zubdat)).toEqual([]);
+    expect(supportsOf(dua, [{ from: 0, to: dua.length }], [{ draw: "", shownAt: 0 }], secular)).toEqual([]);
   });
 
   it("تحويط الرسمة عند ذكر معناها مرة أخرى بعد ظهورها، لا عند كلمتها المكتوبة", () => {
@@ -40,10 +40,10 @@ describe("طبقة الحركة الثانية للسبورة", () => {
   });
 
   it("السبورة المرسومة تأخذ رسمتها ونقاطها من التعليق، وعند الشك لا تُرسم", () => {
-    const d = defaultsFor("sketch-board", "الفكرة هنا بسيطة وواضحة جدا. ابحث عن خطوة صغيرة تستطيعها الآن.", { title: "", chapterTitle: "البداية", allow: zubdat });
+    const d = defaultsFor("sketch-board", "الفكرة هنا بسيطة وواضحة جدا. ابحث عن خطوة صغيرة تستطيعها الآن.", { title: "", chapterTitle: "البداية", allow: secular });
     expect(d.element).toBe("head-idea");
     expect(d.items!.split("\n")).toEqual(["الفكرة", "خطوة"]);
-    const none = defaultsFor("sketch-board", "هذا كلام عام جدا بلا معنى مرسوم.", { title: "", chapterTitle: "البداية", allow: zubdat });
+    const none = defaultsFor("sketch-board", "هذا كلام عام جدا بلا معنى مرسوم.", { title: "", chapterTitle: "البداية", allow: secular });
     expect(none.element).toBe("");
   });
 });

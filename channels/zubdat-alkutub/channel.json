@@ -61,8 +61,8 @@
   "rules": {
     "music": false,
     "faces": true,
-    "quran": false,
-    "hadith": false,
+    "quran": true,
+    "hadith": true,
     "hadithGrades": [
       "صحيح",
       "حسن"
@@ -96,7 +96,19 @@
         "desert-night",
         "desert-day",
         "market-street",
-        "library-hall"
+        "library-hall",
+        "mihrab-arch",
+        "girih-tile",
+        "star-pattern-tile",
+        "arabesque-border",
+        "arch-frame",
+        "courtyard-arches",
+        "rub-el-hizb",
+        "crescent-star",
+        "ramadan-lantern",
+        "mosque-lamp",
+        "minaret-ottoman",
+        "prayer-mat-ornate"
       ],
       "sets": [
         "desert-night",

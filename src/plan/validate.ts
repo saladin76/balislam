@@ -42,6 +42,8 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
       if (s.template === "hadith-card" && (p.text ?? "").length > 320) out.push({ level: "warning", sceneId: s.id, message: "نص الحديث طويل وسيُعرض بخط صغير؛ يمكن الاكتفاء بموضع الشاهد مع ذكر المصدر." });
       if (s.template === "board-story" || s.template === "motion-story")
         for (const b of parseBeats(p.beats ?? "")) {
+          // لقطة بلا رسمة (الكلمة وحدها) مقصودة: «عند الشك لا تُرسم»، وبجوار ذكر الله
+          if (!b.draw) continue;
           if (!isDrawable(b.draw)) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» غير موجودة في المكتبة؛ اختر معرّفًا من «المكتبة» أو person/people.` });
           // قاعدة القناة: لا عنصر لا يطابق الكلمة. الرسمة المختارة آليًا (لا من قائمة المعاني المراجَعة) تحتاج مراجعة صريحة
           else if (!isCuratedBeat(b) && !s.edited) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» للكلمة «${b.label}» اختيرت آليًا؛ تأكد أنها تطابق المعنى أو غيّرها (أي تعديل يدوي للمشهد يعتمدها).` });
