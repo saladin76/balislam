@@ -40,7 +40,8 @@ const jobsFor = async (plan: Plan, voiceKey: string) => {
     const d = applyDictionary(s.narration.trim(), dict);
     // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
     const toneId = [s.tone, plan.tone, channelTone].find(isTone);
-    const tune = toneId ? { stability: tones[toneId].stability, style: tones[toneId].style, speed: tones[toneId].speed } : undefined;
+    // سرعة النبرة نسبية إلى سرعة القناة الأساسية (config.voice.speed)، حتى يبقى إيقاع صاحب الصوت هو المرجع
+    const tune = toneId ? { stability: tones[toneId].stability, style: tones[toneId].style, speed: Math.round(tones[toneId].speed * config.voice.speed * 100) / 100 } : undefined;
     // البصمة من كل ما يغيّر الصوت نفسه فقط (لا مدة الذيل ولا حساب التكلفة)؛ النبرة والصوت يدخلانها فقط إن حُددا
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
     const extra = { ...(tune ? { tune } : {}), ...(s.voice ? { voice: s.voice } : {}) };

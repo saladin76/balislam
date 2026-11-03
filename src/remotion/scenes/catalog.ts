@@ -15,6 +15,7 @@ import { SetScene, setSceneSample, setSceneSampleEn, setSceneSeconds } from "./S
 import { DeskMoment, deskMomentSample, deskMomentSampleEn, deskMomentSeconds } from "./DeskMoment";
 import { DocPlate, docPlateSample, docPlateSampleEn, docPlateSeconds } from "./DocPlate";
 import { SimStage, simStageSample, simStageSampleEn, simStageSeconds } from "./SimStage";
+import { MotionStory, motionStorySample, motionStorySampleEn, motionStorySeconds } from "./MotionStory";
 import { BoardStory, boardStorySample, boardStorySampleEn, boardStorySeconds } from "./BoardStory";
 import { SketchBoard, sketchBoardSample, sketchBoardSampleEn, sketchBoardSeconds } from "./SketchBoard";
 import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from "./GlowStory";
@@ -38,6 +39,7 @@ export const sceneCatalog: Entry[] = [
   { id: "symbolic", component: Symbolic, sample: symbolicSample, sampleEn: symbolicSampleEn, seconds: symbolicSeconds },
   { id: "glow-story", component: GlowStory, sample: glowStorySample, sampleEn: glowStorySampleEn, seconds: glowStorySeconds },
   { id: "board-story", component: BoardStory, sample: boardStorySample, sampleEn: boardStorySampleEn, seconds: boardStorySeconds },
+  { id: "motion-story", component: MotionStory, sample: motionStorySample, sampleEn: motionStorySampleEn, seconds: motionStorySeconds },
   { id: "sketch-board", component: SketchBoard, sample: sketchBoardSample, sampleEn: sketchBoardSampleEn, seconds: sketchBoardSeconds },
   { id: "kinetic-text", component: KineticText, sample: kineticTextSample, sampleEn: kineticTextSampleEn, seconds: kineticTextSeconds },
   { id: "map-journey", component: MapJourney, sample: mapJourneySample, sampleEn: mapJourneySampleEn, seconds: mapJourneySeconds },

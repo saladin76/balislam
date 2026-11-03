@@ -14,6 +14,7 @@ import { Summary } from "./Summary";
 import { GlowStory } from "./GlowStory";
 import { SketchBoard } from "./SketchBoard";
 import { BoardStory } from "./BoardStory";
+import { MotionStory } from "./MotionStory";
 import { KineticText } from "./KineticText";
 import { SimStage } from "./SimStage";
 import { DeskMoment } from "./DeskMoment";
@@ -95,6 +96,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <GlowStory {...base} {...p} />;
     case "board-story":
       return <BoardStory {...base} {...p} prevBeats={prev?.template === "board-story" ? prev.props.beats : undefined} />;
+    case "motion-story":
+      return <MotionStory {...base} {...p} />;
     case "sketch-board":
       return <SketchBoard {...base} {...p} />;
     case "kinetic-text":

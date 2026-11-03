@@ -1,3 +1,4 @@
+import config from "../config.json";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -73,7 +74,7 @@ describe("ذاكرة الصوت", () => {
     await generateVoice("000", { client: spy });
     expect(seen).toHaveLength(1);
     expect(seen[0]!.voiceId).toBe("voice-commander");
-    expect(seen[0]!.tune?.speed).toBe(0.96);
+    expect(seen[0]!.tune?.speed).toBe(Math.round(0.96 * config.voice.speed * 100) / 100);
     // تبقى بعد إعادة توليد الخطة من السكريبت
     const again = await regeneratePlan("000");
     const kept = again.chapters[0]!.scenes.find((s) => s.id === scene.id)!;

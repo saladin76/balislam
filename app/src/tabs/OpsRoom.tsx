@@ -14,6 +14,8 @@ const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربع�
 const COLORS = ["#B5562E", "#2E6F8E", "#5B7F3A", "#7A4E9A", "#A07A1E"];
 export const styleNamesAr: Record<string, string> = {
   board: "سبورة متصلة",
+  motion: "قصة متحركة",
+  "motion-story": "قصة متحركة",
   "board-story": "سبورة متصلة",
   glow: "قصة مضيئة",
   "glow-story": "قصة مضيئة",
@@ -33,7 +35,7 @@ export const styleNamesAr: Record<string, string> = {
   symbolic: "رمزي",
   templates: "قوالب متنوعة",
 };
-const styleKey = (s: string) => ({ board: "board-story", glow: "glow-story", kinetic: "kinetic-text" } as Record<string, string>)[s] ?? s;
+const styleKey = (s: string) => ({ board: "board-story", motion: "motion-story", glow: "glow-story", kinetic: "kinetic-text" } as Record<string, string>)[s] ?? s;
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -447,7 +449,7 @@ const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: 
   );
 };
 
-const STYLE_OPTIONS = ["board", "sim-stage", "desk-moment", "kinetic", "glow", "sketch-board", "templates"];
+const STYLE_OPTIONS = ["motion", "board", "sim-stage", "desk-moment", "kinetic", "glow", "sketch-board", "templates"];
 
 const IdeasColumn: React.FC<{ ops: OpsChannel; color: string; lastStyle: string; onSave: (ideas: Idea[]) => void; onStart: (idea: Idea) => void }> = ({ ops, color, lastStyle, onSave, onStart }) => {
   const [title, setTitle] = useState("");

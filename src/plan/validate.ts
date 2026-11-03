@@ -26,7 +26,7 @@ export const planIssues = (plan: Plan): PlanIssue[] => {
       if (s.template === "big-question" && wc(p.question) > 14) out.push({ level: "warning", sceneId: s.id, message: `السؤال طويل (${wc(p.question)} كلمة)؛ الأوضح ألا يزيد على 12 كلمة.` });
       if (s.template === "character-talk" && wc(p.line) > 14) out.push({ level: "warning", sceneId: s.id, message: `جملة الفقاعة طويلة (${wc(p.line)} كلمة)؛ الأوضح ألا تزيد على 10 كلمات.` });
       if (s.template === "hadith-card" && (p.text ?? "").length > 320) out.push({ level: "warning", sceneId: s.id, message: "نص الحديث طويل وسيُعرض بخط صغير؛ يمكن الاكتفاء بموضع الشاهد مع ذكر المصدر." });
-      if (s.template === "board-story")
+      if (s.template === "board-story" || s.template === "motion-story")
         for (const b of parseBeats(p.beats ?? "")) if (!isDrawable(b.draw)) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» غير موجودة في المكتبة؛ اختر معرّفًا من «المكتبة» أو person/people.` });
       if (s.template === "doc-plate" && !p.image?.trim())
         out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد." });

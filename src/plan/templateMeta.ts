@@ -20,6 +20,7 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "glow-story": { family: "story" },
   "character-talk": { family: "story" },
   "board-story": { family: "explain" },
+  "motion-story": { family: "explain" },
   "sketch-board": { family: "explain" },
   symbolic: { family: "explain" },
   "big-question": { family: "text" },

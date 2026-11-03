@@ -186,6 +186,17 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "motion-story",
+    nameAr: "القصة المتحركة",
+    useAr: "شرح حديث بعمق: أيقونة على قرص زجاجي، عنوان يُبنى كلمة كلمة، شريط للأفكار السابقة، وترجمة متزامنة تتوهج مع الصوت",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 3.5,
+    fields: [
+      { key: "beats", label: "اللحظات (سطر لكل جملة)", type: "textarea", help: "الرسمة | العنوان. الرسمة: معرّف عنصر من المكتبة، أو person أو people أو person:think. آخر كلمة في العنوان تظهر بالذهبي" },
+    ],
+  },
+  {
     id: "glow-story",
     nameAr: "القصة المضيئة",
     useAr: "لقطة قصصية ليلية بخطوط مضيئة: شخص وأمنيته المتوهجة وجملة تُكتب حرفًا حرفًا",

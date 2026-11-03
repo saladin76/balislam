@@ -37,7 +37,7 @@ const frontmatterSchemaFor = (domains: string[]) => z.object({
   /** أسلوب العرض الافتراضي للمشاهد التي بلا علامة: templates (القوالب) أو board (السبورة المتصلة) */
   /** trailer: إعلان القناة القصير (فصل واحد أو أكثر، بلا شروط عدد الفصول وطولها والاستشهادات) */
   format: z.enum(["episode", "trailer"]).optional(),
-  style: z.enum(["templates", "board", "glow", "kinetic"], { error: "الأسلوب (style) يجب أن يكون واحدًا من: templates، board، glow، kinetic." }).optional(),
+  style: z.enum(["templates", "board", "motion", "glow", "kinetic"], { error: "الأسلوب (style) يجب أن يكون واحدًا من: templates، board، motion، glow، kinetic." }).optional(),
 });
 
 /** عبارات تحيل لفصل سابق، فتكسر استقلال الفصل حين يُنشر شورت. */
