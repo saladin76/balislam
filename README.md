@@ -26,7 +26,7 @@ npm run app            # الاستوديو على http://127.0.0.1:4321
 
 ```bash
 cd balislam
-git pull
+git pull --no-edit
 npm install            # فقط إن تغيّرت الحزم
 npm run app
 ```
