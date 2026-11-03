@@ -8,6 +8,8 @@ renders/
 channels/*/episodes/*/voice/
 channels/*/episodes/*/out/
 channels/*/episodes/*/status.json
+# نسخة الخطة المحلية عند تعارض التحديث
+channels/*/episodes/*/plan.local.json
 assets/recitations/**/*.wav
 assets/recitations/**/*.mp3
 assets/sfx/**/*.wav

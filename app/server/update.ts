@@ -1,3 +1,5 @@
+import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 
 /**
@@ -64,6 +66,21 @@ const doApply = async (root: string): Promise<{ ok: boolean; message: string; re
   const m = await git(root, ["-c", "user.name=Balislam Studio", "-c", "user.email=studio@localhost", "merge", "--no-edit", "@{u}"], 120_000);
   if (!m.ok) {
     const files = (await git(root, ["diff", "--name-only", "--diff-filter=U"])).out.split("\n").filter(Boolean);
+    // خطة المشاهد (plan.json) يحفظها الاستوديو تلقائيًا وتُولَّد من السكريبت: عند التعارض تؤخذ نسخة GitHub،
+    // وتُحفظ نسختك بجوارها باسم plan.local.json (لا تُرفع) حتى لا يضيع أي تعديل يدوي
+    if (files.length && files.every((f) => /^channels\/[^/]+\/episodes\/[^/]+\/plan\.json$/.test(f))) {
+      for (const f of files) {
+        const mine = await git(root, ["show", `HEAD:${f}`]);
+        if (mine.ok) await writeFile(path.join(root, f.replace(/plan\.json$/, "plan.local.json")), mine.out + "\n");
+        await git(root, ["checkout", "--theirs", "--", f]);
+        await git(root, ["add", "--", f]);
+      }
+      const c = await git(root, ["-c", "user.name=Balislam Studio", "-c", "user.email=studio@localhost", "commit", "--no-edit", "-q"]);
+      if (c.ok) {
+        cached = null;
+        return { ok: true, message: "تم التحديث. خطة المشاهد أُخذت من التحديث، ونسختك السابقة محفوظة بجوارها (plan.local.json)." };
+      }
+    }
     await git(root, ["merge", "--abort"]);
     return {
       ok: false,
