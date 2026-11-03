@@ -53,6 +53,9 @@ describe("مكتبة كل قناة", () => {
       expect(channelLibrary(other).sets.length, other.id).toBeGreaterThan(0);
     }
     expect(elementExclusion(dafatir, "smartphone")).toBe("identity");
+    // عناصر التاريخ رُسمت لدفاتر الزمن وحدها
+    for (const other of [balislam, zubdat]) for (const id of ["sword", "fortress", "camel"]) expect(channelLibrary(other).elements, `${other.id}/${id}`).not.toContain(id);
+    for (const id of ["sword", "fortress", "camel", "dhow-ship", "wax-seal"]) expect(channelLibrary(dafatir).elements, id).toContain(id);
     expect(drawAllowed(dafatir)("phone-notifications")).toBe(false);
     // واستبعاد زبدة الكتب لا يمس بالإسلام ودفاتر الزمن
     expect(channelLibrary(balislam).sets).toContain("wisdom-library");
@@ -115,5 +118,17 @@ describe("أسلوب كل قناة لها وحدها", () => {
 
   it("بالإسلام بلا سبورة ولا رسم", () => {
     for (const t of ["board-story", "sketch-board"]) expect(channelLibrary(balislam).templates).not.toContain(t);
+  });
+});
+
+describe("رسمات التاريخ الآلية", () => {
+  it("كلمات التاريخ تُرسم في دفاتر الزمن ولا تخلط المعاني", async () => {
+    const { beatsFor } = await import("../src/plan/beats");
+    const d = (t: string) => beatsFor(t, 1, drawAllowed(dafatir))[0]?.draw;
+    expect(d("ضرب الحصار حول القلعة.")).toBe("fortress");
+    expect(d("سارت القافلة في الصحراء.")).toBe("camel");
+    // «الفرس» هنا الفُرس، و«الجمال» الجَمال: لا حصان ولا جمل
+    expect(d("انتصر المسلمون على الفرس.")).not.toBe("horse");
+    expect(d("أحب الناس الجمال في العمارة.")).not.toBe("camel");
   });
 });

@@ -53,6 +53,7 @@ export type ElementCategory =
   | "city"
   | "money"
   | "knowledge"
+  | "history"
   | "islamic"
   | "mind"
   | "hands"
@@ -82,6 +83,7 @@ export const categoryNamesAr: Record<ElementCategory, string> = {
   city: "المدينة والسفر",
   money: "المال والتجارة",
   knowledge: "العلم والحضارة",
+  history: "التاريخ والحضارات",
   islamic: "رموز إسلامية",
   mind: "النفس والمشاعر",
   hands: "الأيدي والإشارات",
@@ -98,6 +100,7 @@ export const categoryOrder: ElementCategory[] = [
   "city",
   "money",
   "knowledge",
+  "history",
   "islamic",
   "hands",
   "frames",

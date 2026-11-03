@@ -21,6 +21,8 @@ export type LibraryRules = Pick<ChannelConfig, "id"> & { rules: Pick<ChannelConf
 /** عناصر دينية خارج فئة «رموز إسلامية» */
 const RELIGIOUS_IDS = new Set(["hands-dua", "arch-frame", "star-pattern-tile", "girih-tile", "arabesque-border", "courtyard-arches", "mosque-exterior"]);
 const RELIGIOUS_CATEGORIES = new Set<ElementCategory>(["islamic"]);
+/** فئات عناصر خاصة بقنوات بعينها (رُسمت لهويتها): لا تظهر في مكتبة غيرها */
+const CATEGORY_CHANNELS: Partial<Record<ElementCategory, string[]>> = { history: ["dafatir-alzaman"] };
 
 export type ExcludeReason = "religious" | "quran" | "hadith" | "faces" | "channel" | "legacy" | "identity";
 export const excludeReasonAr: Record<ExcludeReason, string> = {
@@ -49,6 +51,7 @@ export const elementExclusion = (ch: LibraryRules, id: string, category?: Elemen
   if (id === "verse-frame") return ch.rules.quran ? null : "quran";
   if (id === "hadith-frame") return ch.rules.hadith ? null : "hadith";
   if ((RELIGIOUS_IDS.has(id) || (cat && RELIGIOUS_CATEGORIES.has(cat))) && !religious(ch.rules)) return "religious";
+  if (cat && CATEGORY_CHANNELS[cat] && !CATEGORY_CHANNELS[cat]!.includes(ch.id)) return "channel";
   if (excludedBy(ch, "elements", id, cat)) return "identity";
   return null;
 };

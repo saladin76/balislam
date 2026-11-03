@@ -12,12 +12,13 @@ import { elements as life } from "./categories/life";
 import { elements as islamicPro } from "./categories/islamic-pro";
 import { elements as money } from "./categories/money";
 import { elements as knowledge } from "./categories/knowledge";
+import { elements as history } from "./categories/history";
 import { elements as islamic } from "./categories/islamic";
 import { elements as hands } from "./categories/hands";
 import { elements as frames } from "./categories/frames";
 import { elements as backdrops } from "./categories/backdrops";
 
-const all: ElementDef[] = [...ui, ...mind, ...nature, ...home, ...daily, ...city, ...possessions, ...scenes, ...life, ...money, ...knowledge, ...islamic, ...islamicPro, ...hands, ...frames, ...backdrops];
+const all: ElementDef[] = [...ui, ...mind, ...nature, ...home, ...daily, ...city, ...possessions, ...scenes, ...life, ...money, ...knowledge, ...history, ...islamic, ...islamicPro, ...hands, ...frames, ...backdrops];
 
 /** كل عناصر المكتبة مرتبة بالفئة. */
 export const elementLibrary: ElementDef[] = [...all].sort(
