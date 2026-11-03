@@ -13,14 +13,6 @@ export const channelSamples: Record<string, Record<string, Record<string, unknow
       element: "book-open",
       narration: "مدينة بُنيت على ضفاف دجلة، فكيف صارت مقصد العلماء؟",
     },
-    "character-talk": {
-      eyebrow: "بغداد",
-      variant: "narrator-m",
-      pose: "point",
-      line: "بُنيت بغداد مستديرة، وفي قلبها قصر الخليفة.",
-      element: "map-old",
-      narration: "بُنيت بغداد مستديرة، وفي قلبها قصر الخليفة.",
-    },
     comparison: {
       eyebrow: "المنهج",
       rightTitle: "الحقيقة الثابتة",

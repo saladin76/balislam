@@ -160,8 +160,8 @@ td.p{font-family:var(--f-mono);font-size:12px;direction:ltr;text-align:left;colo
       (D.channel.scripture?'<div class="font"><div class="s" style="font-family:var(--f-scr)">وَأَن لَّيْسَ لِلْإِنسَٰنِ إِلَّا مَا سَعَىٰ</div><div class="r">الآيات والأحاديث فقط · Amiri</div></div>':'')+
       '<div class="font"><div class="s" style="font-family:var(--f-word);font-weight:700">'+E(D.channel.name)+'</div><div class="r">اسم القناة · '+E(D.fonts.wordmark)+'</div></div>'+
       '</div></section>');
-      nav.push(['characters','الشخصيات']);
-      out.push('<section id="characters"><h2>الشخصيات <small>بلا ملامح وجه · لا تمثل نبيًا ولا صحابيًا ولا ملَكًا</small></h2><div class="grid chars">'+D.characters.map(function(c){return '<div class="card"><div class="stage">'+c.svg[cur]+'</div><div class="meta"><span class="n">'+E(c.nameAr)+' · '+E(c.poseAr)+'</span><button class="id" data-id="'+c.variant+'/'+c.pose+'">'+c.variant+' · '+c.pose+'</button></div></div>'}).join('')+'</div></section>');
+      if(D.characters.length){ nav.push(['characters','الشخصيات']);
+      out.push('<section id="characters"><h2>الشخصيات <small>بلا ملامح وجه · لا تمثل نبيًا ولا صحابيًا ولا ملَكًا</small></h2><div class="grid chars">'+D.characters.map(function(c){return '<div class="card"><div class="stage">'+c.svg[cur]+'</div><div class="meta"><span class="n">'+E(c.nameAr)+' · '+E(c.poseAr)+'</span><button class="id" data-id="'+c.variant+'/'+c.pose+'">'+c.variant+' · '+c.pose+'</button></div></div>'}).join('')+'</div></section>'); }
     }
     D.categories.forEach(function(c){
       var items=D.elements.filter(function(e){return e.category===c.id&&match(e)});

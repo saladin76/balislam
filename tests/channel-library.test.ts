@@ -66,12 +66,15 @@ describe("مكتبة كل قناة", () => {
     expect(channelLibrary(zubdat).sets.length).toBeGreaterThan(0);
     expect(channelLibrary(zubdat).templates).toEqual(expect.arrayContaining(["comparison", "list", "big-question"]));
     // واستبعاد بالإسلام لا يمس دفاتر الزمن
-    expect(channelLibrary(dafatir).templates).toEqual(expect.arrayContaining(["character-talk", "comparison"]));
+    expect(channelLibrary(dafatir).templates).toEqual(expect.arrayContaining(["comparison", "timeline", "doc-plate"]));
     expect(elementExclusion(dafatir, "smartphone")).toBe("identity");
     // عناصر التاريخ رُسمت لدفاتر الزمن وحدها
     for (const other of [balislam, zubdat]) for (const id of ["sword", "fortress", "camel"]) expect(channelLibrary(other).elements, `${other.id}/${id}`).not.toContain(id);
     for (const id of ["sword", "fortress", "camel", "dhow-ship", "wax-seal"]) expect(channelLibrary(dafatir).elements, id).toContain(id);
     expect(drawAllowed(dafatir)("phone-notifications")).toBe(false);
+    // قائمة السماح: لا يتسرب إلى دفاتر الزمن ما يُرسم لقنوات أخرى، ولا الرواة العامّون
+    for (const id of ["prayer-postures", "book-card", "busy-clutter", "charity-box", "wudu-hands"]) expect(channelLibrary(dafatir).elements, id).not.toContain(id);
+    expect(channelLibrary(dafatir).templates).not.toContain("character-talk");
     // واستبعاد زبدة الكتب لا يمس بالإسلام ودفاتر الزمن
     expect(channelLibrary(balislam).elements).toEqual(expect.arrayContaining(["mihrab-arch", "mushaf-rehal"]));
     expect(channelLibrary(balislam).templates).toEqual(expect.arrayContaining(["alley-tale", "kinetic-text"]));

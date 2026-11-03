@@ -63,7 +63,13 @@ export type ChannelConfig = {
    */
   /** قواعد السكريبت الخاصة بالقناة: fixedChapters=false عدد الفصول وطولها حر، practicalStep=false بلا «الخطوة العملية» */
   script?: { fixedChapters?: boolean; practicalStep?: boolean };
-  library?: { exclude?: { elements?: string[]; categories?: string[]; sets?: string[]; templates?: string[] }; /** «illus»: شخصيات القناة وأماكنها المصوَّرة الجديدة (src/remotion/illus) بدل القديمة في الاستوديو */ cast?: "illus" };
+  library?: {
+    exclude?: { elements?: string[]; categories?: string[]; sets?: string[]; templates?: string[] };
+    /** قائمة سماح: إن وُجدت فلا يدخل مكتبة القناة من العناصر إلا ما فيها (أو في فئاتها)، فلا يتسرب إليها ما يُرسم لقنوات أخرى لاحقًا */
+    include?: { elements?: string[]; categories?: string[] };
+    /** figures: الشخصيات التاريخية وحدها في الاستوديو (بلا الرواة العامّين) */
+    characters?: "all" | "figures";
+    /** «illus»: شخصيات القناة وأماكنها المصوَّرة الجديدة (src/remotion/illus) بدل القديمة في الاستوديو */ cast?: "illus" };
   /** footer: سطر ثابت في آخر كل وصف (توقيع القناة)، ولا يذكر أدوات الإنتاج أبدًا */
   youtube: { tags: string[]; postingTime: string; footer: string };
 };

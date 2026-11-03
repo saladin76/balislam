@@ -53,6 +53,8 @@ export const elementExclusion = (ch: LibraryRules, id: string, category?: Elemen
   if ((RELIGIOUS_IDS.has(id) || (cat && RELIGIOUS_CATEGORIES.has(cat))) && !religious(ch.rules)) return "religious";
   if (cat && CATEGORY_CHANNELS[cat] && !CATEGORY_CHANNELS[cat]!.includes(ch.id)) return "channel";
   if (excludedBy(ch, "elements", id, cat)) return "identity";
+  const inc = ch.library?.include;
+  if (inc && !(inc.elements?.includes(id) || (cat && inc.categories?.includes(cat)))) return "identity";
   return null;
 };
 

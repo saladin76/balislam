@@ -55,7 +55,8 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
       {section === "characters" && illus ? <IllusCast /> : null}
       {section === "characters" && !illus ? (
         <div className="lib-chars" style={{ background: t.colors.bg }}>
-          {characterVariants.map((v) => (
+          {/* القناة التي تكتفي بالشخصيات التاريخية لا يظهر فيها الرواة العامّون */}
+          {channel?.library?.characters === "figures" ? null : characterVariants.map((v) => (
             <div key={v} className="lib-char-row">
               <b style={{ color: t.colors.ink }}>{characterNamesAr[v]}</b>
               <div className="lib-char-poses">

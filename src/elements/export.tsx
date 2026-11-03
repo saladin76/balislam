@@ -86,7 +86,8 @@ export const exportElements = async (channelId: string, outDir = path.join(proje
     data.elements.push(entry);
   }
 
-  for (const variant of characterVariants) {
+  // القناة التي تكتفي بالشخصيات التاريخية لا يُصدَّر لها الرواة العامّون
+  for (const variant of channel.library?.characters === "figures" ? [] : characterVariants) {
     for (const pose of characterPoses) {
       const svgs = {} as Record<ThemeId, string>;
       for (const id of themeIds) {
