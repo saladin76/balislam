@@ -328,4 +328,134 @@ export const elements: ElementDef[] = [
       </>
     ),
   },
+{
+    id: "clay-mound",
+    nameAr: "طين",
+    category: "history",
+    tags: ["طين", "صلصال", "تراب", "خلق من طين", "فخار"],
+    note: "مادة مجردة فقط: كتلة طين بلا أي هيئة.",
+    draw: (p) => (
+      <>
+        {ground(p, 60, 110, 50, 4)}
+        <path {...S(p)} fill={woodOf(p)} d="M10 106 Q14 80 34 74 Q42 52 62 56 Q80 46 92 64 Q110 70 110 106 Z" />
+        <path {...shade(p, 0.14)} d="M62 56 Q80 46 92 64 Q110 70 110 106 H70 Q78 82 62 56 Z" />
+        <path {...L(p, 2)} opacity={0.45} d="M26 92 Q40 86 52 92 M60 80 Q72 74 84 82 M70 98 Q84 94 96 98" />
+        <circle {...hi(p, 0.35)} cx={46} cy={70} r={5} />
+      </>
+    ),
+  },
+  {
+    id: "flame",
+    nameAr: "نار",
+    category: "history",
+    tags: ["نار", "لهب", "خلق من نار", "اشتعال"],
+    note: "لهب مجرد بلا وقود ولا مكان.",
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.second} d="M60 8 Q86 38 88 62 Q90 92 60 110 Q30 92 32 64 Q34 46 48 34 Q48 52 58 58 Q52 34 60 8 Z" />
+        <path {...S(p)} fill={p.metal} d="M60 48 Q76 66 74 84 Q70 102 60 106 Q48 100 46 84 Q46 72 54 64 Q56 76 62 78 Q58 64 60 48 Z" />
+        <path fill={p.style === "line" ? p.light : p.light} opacity={0.55} d="M60 76 Q68 86 66 96 Q62 102 58 98 Q54 92 60 76 Z" />
+      </>
+    ),
+  },
+  {
+    id: "stone-tools",
+    nameAr: "أدوات حجرية",
+    category: "history",
+    tags: ["أدوات حجرية", "حجر", "فأس حجري", "ما قبل التاريخ", "آثار", "صناعة قديمة"],
+    draw: (p) => (
+      <>
+        {ground(p, 60, 110, 50, 4)}
+        <path {...S(p)} fill={paperOf(p)} d="M30 104 Q14 76 24 46 Q34 18 50 14 Q62 30 60 60 Q58 90 30 104 Z" />
+        <path {...L(p, 2)} opacity={0.5} d="M28 50 L40 44 M24 66 L40 60 M28 82 L44 76 M36 30 L48 28" />
+        <path {...S(p)} fill={p.metal} d="M66 104 L74 60 Q78 48 86 48 Q96 50 98 62 L104 104 Z" />
+        <path {...L(p, 2)} opacity={0.5} d="M78 64 L92 70 M76 80 L96 84 M74 94 L98 96" />
+      </>
+    ),
+  },
+  {
+    id: "rock-art",
+    nameAr: "نقوش صخرية",
+    category: "history",
+    tags: ["نقوش", "رسوم صخرية", "كهف", "ما قبل الكتابة", "آثار"],
+    note: "علامات ونقوش مجردة على صخرة، بلا رسم لإنسان أو حيوان.",
+    draw: (p) => (
+      <>
+        {ground(p, 60, 112, 52, 4)}
+        <path {...S(p)} fill={woodOf(p)} d="M8 108 Q6 60 26 34 Q50 10 84 18 Q112 28 114 66 Q116 96 108 108 Z" />
+        <path {...shade(p, 0.14)} d="M84 18 Q112 28 114 66 Q116 96 108 108 H80 Q96 70 84 18 Z" />
+        <g stroke={paperOf(p)} strokeWidth={4} strokeLinecap="round" fill="none" opacity={0.95}>
+          <path d="M30 56 Q40 46 50 56 Q60 66 70 56" />
+          <path d="M34 72 H74 M40 80 H68" />
+          <circle cx={88} cy={50} r={8} />
+          <path d="M84 72 L92 82 L100 72 M28 92 L36 86 L44 92 L52 86" />
+        </g>
+      </>
+    ),
+  },
+  {
+    id: "excavation-tools",
+    nameAr: "أدوات التنقيب",
+    category: "history",
+    tags: ["تنقيب", "علم الآثار", "باحثون", "حفريات", "اكتشاف"],
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={woodOf(p)} d="M6 112 V92 Q30 86 60 92 Q90 98 114 90 V112 Z" />
+        {tube(p, "M30 90 L58 30", p.main, 7)}
+        <path {...S(p)} fill={p.metal} d="M54 34 L74 14 Q82 10 84 18 L70 40 Z" />
+        {tube(p, "M86 92 L94 44", woodOf(p), 6)}
+        <path {...S(p)} fill={p.second} d="M88 46 Q84 30 94 26 Q104 30 100 46 Z" />
+        <path {...L(p, 2)} opacity={0.6} d="M90 32 V44 M94 30 V44 M98 32 V44" />
+        <path {...S(p)} fill={paperOf(p)} d="M40 100 L48 94 L54 100 L48 104 Z" />
+      </>
+    ),
+  },
+  {
+    id: "dwelling-remains",
+    nameAr: "آثار مساكن",
+    category: "history",
+    tags: ["مساكن قديمة", "مستوطنة", "قرية قديمة", "استيطان", "أساسات", "آثار"],
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={tint(p, p.light)} d="M4 112 V84 Q60 72 116 84 V112 Z" />
+        <ellipse {...S(p)} cx={38} cy={92} rx={26} ry={10} fill="none" stroke={p.style === "line" ? p.stroke : paperOf(p)} strokeWidth={6} />
+        <ellipse {...S(p)} cx={86} cy={96} rx={22} ry={8} fill="none" stroke={p.style === "line" ? p.stroke : paperOf(p)} strokeWidth={6} />
+        {[18, 30, 44, 58, 70, 80, 94, 104].map((x, i) => (
+          <circle key={i} {...S(p)} cx={x} cy={i % 2 ? 90 + (i % 3) * 3 : 98 - (i % 3) * 2} r={4} fill={p.metal} />
+        ))}
+        {/* بقايا جدران منخفضة من الحجر حول كل بيت */}
+        <path {...S(p)} fill={paperOf(p)} d="M14 92 Q14 78 38 76 Q62 78 62 92 L56 92 Q56 84 38 83 Q20 84 20 92 Z" />
+        <path {...S(p)} fill={paperOf(p)} d="M66 96 Q66 84 86 82 Q106 84 106 96 L100 96 Q100 90 86 89 Q72 90 72 96 Z" />
+      </>
+    ),
+  },
+  {
+    id: "generations",
+    nameAr: "أجيال البشر",
+    category: "history",
+    tags: ["أجيال", "نسل", "ذرية", "البشر", "الناس", "تعاقب الأجيال"],
+    note: "صور ظلية بلا ملامح، تتكرر كالموج دلالة على تعاقب الأجيال.",
+    draw: (p) => (
+      <>
+        {ground(p, 60, 112, 54, 3)}
+        {[
+          [18, 0.62],
+          [40, 0.78],
+          [62, 0.92],
+          [84, 0.78],
+          [104, 0.62],
+        ].map(([x, k], i) => {
+          const s = k as number;
+          const cx = x as number;
+          const top = 108 - 92 * s;
+          return (
+            <g key={i} opacity={0.55 + 0.45 * s}>
+              <circle {...S(p)} cx={cx} cy={top + 10 * s} r={9 * s} fill={i === 2 ? p.main : p.second} />
+              <path {...S(p)} fill={i === 2 ? p.main : p.second} d={`M${cx - 14 * s} 108 Q${cx - 15 * s} ${top + 26 * s} ${cx} ${top + 22 * s} Q${cx + 15 * s} ${top + 26 * s} ${cx + 14 * s} 108 Z`} />
+            </g>
+          );
+        })}
+      </>
+    ),
+  },
 ];
