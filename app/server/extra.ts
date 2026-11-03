@@ -326,6 +326,46 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // تجربة سماع طبقة القناة والنبرات: عيّنات قصيرة تُحفظ في renders/voice-samples/<القناة> فلا يُصرف رصيد مرتين للعيّنة نفسها
+  if (parts[0] === "voice-sample") {
+    const dir = path.join(ctx.root, "renders", "voice-samples", ch);
+    if (parts[1] === "file" && parts[2] && req.method === "GET") {
+      const f = path.join(dir, safeName(parts[2]));
+      if (!existsSync(f)) return send(res, 404, { error: "العيّنة غير موجودة." }), true;
+      ctx.serveFile(req, res, f, "audio/mpeg");
+      return true;
+    }
+    const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
+    const { runWithChannel } = await load("/src/channel/index.ts");
+    const el = runWithChannel(ch, () => elevenLabsFromEnv());
+    if (!el) return send(res, 400, { error: "أضف مفتاح ElevenLabs واختر صوتك من تبويب «الإعدادات»." }), true;
+    if (parts[1] === "models" && req.method === "GET") {
+      send(res, 200, { models: await el.models(), current: el.modelId });
+      return true;
+    }
+    if (!parts[1] && req.method === "POST") {
+      const b = await readBody(req);
+      const text = String(b.text ?? "").trim();
+      if (!text) return send(res, 400, { error: "اكتب نص العيّنة." }), true;
+      if (text.length > 400) return send(res, 400, { error: "العيّنة أطول من 400 حرف؛ يكفي سطران لضبط الصوت." }), true;
+      const { voiceSettingsFor, isTone } = await load("/src/voice/tones.ts");
+      const tune = voiceSettingsFor(b.profile ?? undefined, isTone(b.tone) ? b.tone : undefined);
+      const model = String(b.model || el.modelId);
+      const { createHash } = await import("node:crypto");
+      const name = `${createHash("sha1").update(JSON.stringify({ text, tune, model, v: process.env.ELEVENLABS_VOICE_ID })).digest("hex").slice(0, 16)}.mp3`;
+      const file = path.join(dir, name);
+      const cached = existsSync(file);
+      if (!cached) {
+        const audio = await el.sample(text, { tune, modelId: model });
+        const { mkdir } = await import("node:fs/promises");
+        await mkdir(dir, { recursive: true });
+        await writeFile(file, audio);
+      }
+      send(res, 200, { file: name, cached, chars: cached ? 0 : text.length, tune, model });
+      return true;
+    }
+  }
+
   // المفاتيح: الحالة، الحفظ في .env، اختبار الاتصال
   if (parts[0] === "settings") {
     const env = await load("/src/settings/env.ts");

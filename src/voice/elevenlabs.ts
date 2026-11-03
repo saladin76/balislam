@@ -115,7 +115,30 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
   const voices = async () =>
     (await get<{ voices: { voice_id: string; name: string; category: string }[] }>("/v1/voices")).voices.map((v) => ({ id: v.voice_id, name: v.name, category: v.category }));
 
-  return { modelId, tts, soundEffect, account, voices };
+  /** النماذج التي تحوّل النص إلى كلام، ومعها هل تدعم العربية (لتجربة السماع في الاستوديو). */
+  const models = async () =>
+    (await get<{ model_id: string; name: string; can_do_text_to_speech?: boolean; languages?: { language_id: string }[] }[]>("/v1/models"))
+      .filter((m) => m.can_do_text_to_speech !== false)
+      .map((m) => ({ id: m.model_id, name: m.name, arabic: (m.languages ?? []).some((l) => l.language_id === "ar") }));
+
+  /**
+   * عيّنة سماع بلا توقيت (لضبط طبقة القناة والنبرة قبل توليد حلقة).
+   * نموذج v3 يقبل للثبات ثلاث قيم فقط (0 / 0.5 / 1)، فتُقرَّب إليها.
+   */
+  const sample = async (text: string, ctx: { tune?: { stability: number; style: number; speed: number }; modelId?: string } = {}): Promise<Buffer> => {
+    const model = ctx.modelId || modelId;
+    const t = ctx.tune ?? { stability: s.stability, style: s.style, speed: s.speed };
+    const stability = model === "eleven_v3" ? [0, 0.5, 1].reduce((a, b) => (Math.abs(b - t.stability) < Math.abs(a - t.stability) ? b : a)) : t.stability;
+    const res = await post(`/v1/text-to-speech/${opts.voiceId}?output_format=${s.outputFormat}`, {
+      text,
+      model_id: model,
+      voice_settings: { stability, similarity_boost: s.similarityBoost, style: t.style, use_speaker_boost: s.speakerBoost, speed: t.speed },
+      seed: s.seed,
+    });
+    return Buffer.from(await res.arrayBuffer());
+  };
+
+  return { modelId, tts, soundEffect, account, voices, models, sample };
 };
 
 export type ElevenLabsClient = ReturnType<typeof createElevenLabs>;

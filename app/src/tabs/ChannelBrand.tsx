@@ -161,6 +161,7 @@ const pct = (x: number) => `${Math.round(x * 100)}٪`;
 const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>) => void }> = ({ c, set }) => {
   const p = c.voice?.profile;
   const put = (profile: VoiceProfile | undefined) => set({ voice: { ...c.voice, profile } });
+  const [play, setPlay] = useState<PlayState>({ busy: false });
   const slider = (key: "speed" | "stability" | "style", label: string, help: string, min: number, max: number) => (
     <label className="field">
       <span>{label}: <b>{key === "speed" ? `${p![key].toFixed(2)}×` : pct(p![key])}</b> <small>{help}</small></span>
@@ -184,8 +185,9 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
           {slider("style", "التعبير", "أعلى = أداء أكثر حيوية (ومعه احتمال تذبذب أكبر)", 0, 0.5)}
         </>
       ) : null}
+      <ListenPanel c={c} profile={p} play={play} setPlay={setPlay} />
       <table className="dom-table tone-table">
-        <thead><tr><th>النبرة في الحلقة</th><th>السرعة</th><th>الثبات</th><th>التعبير</th></tr></thead>
+        <thead><tr><th>النبرة في الحلقة</th><th>السرعة</th><th>الثبات</th><th>التعبير</th><th>استمع</th></tr></thead>
         <tbody>
           {[undefined, ...toneIds].map((t) => {
             const v = voiceSettingsFor(p, t) ?? { speed: config.voice.speed, stability: config.voice.stability, style: config.voice.style };
@@ -195,12 +197,74 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
                 <td dir="ltr">{v.speed.toFixed(2)}×</td>
                 <td>{pct(v.stability)}</td>
                 <td>{pct(v.style)}</td>
+                <td><button className="btn ghost small" disabled={play.busy} aria-label="استمع" onClick={() => setPlay({ ...play, request: { tone: t, n: Date.now() } })}>{play.playing === (t ?? "base") ? "■" : "▶"}</button></td>
               </tr>
             );
           })}
         </tbody>
       </table>
       <span className="help">تغيير الطبقة يعيد توليد صوت المشاهد غير المنشورة عند التوليد التالي (المشاهد التي لم يتغير صوتها لا يُعاد توليدها).</span>
+    </div>
+  );
+};
+
+type PlayState = { busy: boolean; playing?: string; request?: { tone?: string; n: number }; msg?: string };
+
+/** نص تجربة لكل قناة: سطران بروح محتواها (بلا آيات: الصوت المستنسخ لا يتلو القرآن). */
+const SAMPLE_TEXT: Record<string, string> = {
+  balislam: "أحيانًا نؤجّل ما نعرف أنه مهم، لا لأننا كسالى، بل لأننا نخاف من الشعور الذي ينتظرنا عند البداية. فماذا لو بدأنا بخطوةٍ واحدةٍ صغيرة؟",
+  "dafatir-alzaman": "في صيف عام ألفٍ ومئتين وثمانيةٍ وخمسين، وقف رجلٌ على أسوار بغداد يراقب الأفق، ولم يكن يعلم أن الأيام القادمة ستغيّر وجه التاريخ.",
+  "zubdat-alkutub": "الفكرة الأولى في هذا الكتاب بسيطة جدًا: العادات الصغيرة تصنع النتائج الكبيرة. تحسّنٌ بواحدٍ في المئة كل يوم، يجعلك بعد سنةٍ شخصًا مختلفًا تمامًا.",
+};
+
+/** تجربة السماع: النص والنموذج، ويُشغَّل الصوت من أزرار جدول النبرات. */
+const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: PlayState; setPlay: (s: PlayState) => void }> = ({ c, profile, play, setPlay }) => {
+  const [text, setText] = useState(SAMPLE_TEXT[c.id] ?? "اكتب هنا سطرين بروح القناة لتسمع صوتك بطبقتها ونبراتها.");
+  const [models, setModels] = useState<{ id: string; name: string; arabic: boolean }[] | null>(null);
+  const [model, setModel] = useState("");
+  const [spent, setSpent] = useState(0);
+  const audio = React.useRef<HTMLAudioElement | null>(null);
+  React.useEffect(() => {
+    const r = play.request;
+    if (!r) return;
+    const key = r.tone ?? "base";
+    if (play.playing === key && audio.current) {
+      audio.current.pause();
+      setPlay({ busy: false });
+      return;
+    }
+    audio.current?.pause();
+    setPlay({ busy: true, msg: "جارٍ التوليد…" });
+    api.voiceSample(c.id, { text, tone: r.tone, model: model || undefined, profile })
+      .then((x) => {
+        setSpent((n) => n + x.chars);
+        const a = new Audio(api.voiceSampleUrl(c.id, x.file));
+        audio.current = a;
+        a.onended = () => setPlay({ busy: false });
+        a.play().catch(() => {});
+        setPlay({ busy: false, playing: key, msg: x.cached ? "عيّنة محفوظة (بلا رصيد)" : `صُرف ${x.chars} حرفًا` });
+      })
+      .catch((e) => setPlay({ busy: false, msg: (e as Error).message }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [play.request?.n]);
+  return (
+    <div className="listen-panel">
+      <label className="field">
+        <span>تجربة السماع <small>(صوتك بطبقة القناة الحالية — حتى قبل الحفظ — وبكل نبرة؛ اضغط ▶ في الجدول)</small></span>
+        <textarea rows={2} value={text} maxLength={400} onChange={(e) => setText(e.target.value)} />
+      </label>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span className="help">النموذج:</span>
+        {models ? (
+          <select value={model} onChange={(e) => setModel(e.target.value)} style={{ minWidth: 260 }}>
+            <option value="">الحالي في الإعدادات</option>
+            {models.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.id}){m.arabic ? "" : " — العربية غير مذكورة"}</option>)}
+          </select>
+        ) : (
+          <button className="btn small" onClick={() => api.voiceModels(c.id).then((r) => setModels(r.models)).catch((e) => setPlay({ ...play, msg: (e as Error).message }))}>مقارنة بنموذج آخر</button>
+        )}
+        <span className="help">{play.msg ?? ""}{spent ? ` · مجموع هذه الجلسة: ${spent} حرف` : ""}</span>
+      </div>
     </div>
   );
 };

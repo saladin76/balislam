@@ -32,3 +32,21 @@ describe("طبقة صوت القناة والنبرة", () => {
     }
   });
 });
+
+describe("عيّنة السماع", () => {
+  it("ترسل الطبقة والنبرة والنموذج، وتقرّب الثبات في v3", async () => {
+    const { createElevenLabs } = await import("../src/voice/elevenlabs");
+    const bodies: any[] = [];
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return new Response(new Uint8Array([1, 2, 3]));
+    }) as unknown as typeof fetch;
+    const el = createElevenLabs({ apiKey: "k", voiceId: "v", fetchImpl });
+    const tune = voiceSettingsFor({ speed: 1, stability: 0.45, style: 0.3 }, "warm")!;
+    expect((await el.sample("نص", { tune })).length).toBe(3);
+    expect(bodies[0].voice_settings).toMatchObject({ stability: tune.stability, style: tune.style, speed: tune.speed });
+    await el.sample("نص", { tune, modelId: "eleven_v3" });
+    expect(bodies[1].model_id).toBe("eleven_v3");
+    expect([0, 0.5, 1]).toContain(bodies[1].voice_settings.stability);
+  });
+});
