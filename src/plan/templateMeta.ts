@@ -41,4 +41,6 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "hadith-card": { family: "scripture" },
   summary: { family: "close" },
   "end-screen": { family: "close" },
+  // نور وكتابة: لما لا يُصوَّر (آدم عليه السلام والملائكة نورًا، والجنة والشجرة فراغًا مع كتابة)
+  "noor-text": { family: "text", only: ["dafatir-alzaman"] },
 };

@@ -22,6 +22,7 @@ import { KineticText } from "./KineticText";
 import { SimStage } from "./SimStage";
 import { DeskMoment } from "./DeskMoment";
 import { DocPlate } from "./DocPlate";
+import { NoorText } from "./NoorText";
 import { staticFile } from "remotion";
 import { SetScene } from "./SetScene";
 import { MapJourney } from "./MapJourney";
@@ -127,6 +128,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
     }
     case "sim-stage":
       return <SimStage {...base} {...p} />;
+    case "noor-text":
+      return <NoorText {...base} {...p} />;
     case "summary":
       return <Summary {...base} {...p} />;
     case "end-screen":

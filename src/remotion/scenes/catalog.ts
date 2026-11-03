@@ -23,6 +23,7 @@ import { Summary, summarySample, summarySampleEn, summarySeconds } from "./Summa
 import { RoadJourney, roadJourneySample, roadJourneySampleEn, roadJourneySeconds } from "./RoadJourney";
 import { LightStage, lightStageSample, lightStageSampleEn, lightStageSeconds } from "./LightStage";
 import { AlleyTale, alleyTaleSample, alleyTaleSampleEn, alleyTaleSeconds } from "./AlleyTale";
+import { NoorText, noorTextSample, noorTextSampleEn, noorTextSeconds } from "./NoorText";
 import { EndScreen, endScreenSample, endScreenSampleEn, endScreenSeconds } from "./EndScreen";
 import { sampleBigQuestion, sampleBigQuestionEn, sampleCharacterTalk, sampleCharacterTalkEn, sampleVerseCard, sampleVerseCardEn, sceneDurations } from "./samples";
 
@@ -54,5 +55,6 @@ export const sceneCatalog: Entry[] = [
   { id: "doc-plate", component: DocPlate, sample: docPlateSample, sampleEn: docPlateSampleEn, seconds: docPlateSeconds },
   { id: "sim-stage", component: SimStage, sample: simStageSample, sampleEn: simStageSampleEn, seconds: simStageSeconds },
   { id: "summary", component: Summary, sample: summarySample, sampleEn: summarySampleEn, seconds: summarySeconds },
+  { id: "noor-text", component: NoorText, sample: noorTextSample, sampleEn: noorTextSampleEn, seconds: noorTextSeconds },
   { id: "end-screen", component: EndScreen, sample: endScreenSample, sampleEn: endScreenSampleEn, seconds: endScreenSeconds },
 ];

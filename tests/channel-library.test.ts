@@ -43,6 +43,9 @@ describe("مكتبة كل قناة", () => {
     for (const ch of [balislam, dafatir, zubdat]) for (const id of ["desk-moment", "sim-stage", "set-scene"]) expect(channelLibrary(ch).templates, `${ch.id}/${id}`).not.toContain(id);
     // الخريطة المتحركة أُعيد رسمها بهوية «دفتر الأفق»: لدفاتر الزمن وحدها
     expect(channelLibrary(dafatir).templates).toContain("map-journey");
+    // «نور وكتابة» لما لا يُصوَّر في دفاتر الزمن وحدها
+    expect(channelLibrary(dafatir).templates).toContain("noor-text");
+    for (const ch of [balislam, zubdat]) expect(channelLibrary(ch).templates, ch.id).not.toContain("noor-text");
     for (const ch of [balislam, zubdat]) expect(channelLibrary(ch).templates, ch.id).not.toContain("map-journey");
   });
 

@@ -170,6 +170,19 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "noor-text",
+    nameAr: "نور وكتابة",
+    useAr: "لما لا يُصوَّر أبدًا: نور فقط مع كتابة (آدم عليه السلام، والملائكة)، أو فراغ الأفق مع كتابة (الجنة، والشجرة). الكتابة تظهر وقت نطقها",
+    implemented: true,
+    baseSeconds: 5,
+    minSeconds: 3,
+    fields: [
+      { key: "text", label: "الكتابة", type: "text", placeholder: "آدم عليه السلام" },
+      { key: "light", label: "النوع", type: "select", options: [{ value: "on", label: "نور مع كتابة" }, { value: "off", label: "فراغ مع كتابة" }] },
+      { key: "subtitle", label: "سطر صغير تحتها (اختياري)", type: "text" },
+    ],
+  },
+  {
     id: "timeline",
     nameAr: "الخط الزمني",
     useAr: "أحداث بترتيبها",

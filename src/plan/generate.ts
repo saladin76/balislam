@@ -68,6 +68,8 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
       return { title: "", places: "", mode: "route", mover: "caravan", look: "parchment", zoom: "in", rivers: "on" };
     case "set-scene":
       return { set: "office", variant: "narrator-m", pose: "stand", variant2: "", pose2: "stand", camera: "push", bubble: "", bubbleKind: "say", bubbleWho: "1", element: "", figure: "", expr: "neutral", figure2: "", expr2: "neutral", talk: "", look: "", atmos: "", title: "", date: "" };
+    case "noor-text":
+      return { text: "", light: "on", subtitle: "" };
     case "doc-plate":
       return { image: "", prompt: "", look: "scene", camera: "push", focus: "center", grade: "warm", atmos: "dust", title: "", date: "", credit: "", letterbox: "on" };
     case "desk-moment":
