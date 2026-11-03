@@ -102,24 +102,8 @@ export const channelLibraries: Record<string, LibrarySlot[]> = {
       ["v-smoke-city", "دخان فوق مدينة", "Smoke drifting slowly over the domes of an old city at dusk, slow motion", "video"],
     ]),
   ],
-  "zubdat-alkutub": [
-    ...d("أجواء القراءة", [
-      ["desk-books", "مكتب وكتب", "A wooden desk with a stack of hardcover books, an open notebook and a cup of coffee, soft window light, plants, calm morning"],
-      ["library-modern", "مكتبة حديثة", "A quiet modern library with tall bookshelves and warm lamps, empty reading tables, evening light"],
-      ["open-book-light", "كتاب مفتوح في الضوء", "An open book on a table with a beam of sunlight crossing its pages, dust floating, shallow depth of field"],
-      ["reading-window", "قراءة عند النافذة", "A person seen from behind reading a book by a large window with rain outside, cozy warm light"],
-      ["bookshop", "مكتبة لبيع الكتب", "A cozy old bookshop interior with crowded shelves and a wooden ladder, warm light, no people"],
-      ["notes-highlight", "قلم تظليل على كتاب", "A yellow highlighter pen resting on an open book, the printed page softly out of focus, sticky note tabs on the edges, warm desk light"],
-    ]),
-    ...d("أفكار ورموز", [
-      ["city-commute", "زحام المدينة", "A busy modern city crossing seen from above, people as small silhouettes, morning rush, long shadows"],
-      ["money-coins", "مال وادخار", "Coins stacked in growing columns on a wooden table with a small plant growing from the top stack, soft light"],
-      ["mountain-climber", "تسلق جبل", "A lone climber seen from behind reaching the top of a mountain at sunrise, sea of clouds below"],
-      ["focus-desk-night", "تركيز ليلي", "A single desk lamp lighting a notebook and laptop in a dark room at night, focused calm mood, no people"],
-      ["crossroads", "مفترق طرق", "A road splitting into two paths in a misty forest at dawn, soft light"],
-      ["clock-time", "الوقت", "An old pocket watch lying on an open book, macro shot, warm light"],
-    ]),
-  ],
+  // زبدة الكتب: «القلم المميِّز» نظام أبيض وأسود، فلا تصوير ملون في مكتبتها (حُذفت الخانات الملونة القديمة بطلب صاحب القناة)
+  "zubdat-alkutub": [],
   balislam: [
     ...d("طبيعة وسكينة", [
       ["dawn-sky", "سماء الفجر", "A calm dawn sky over a quiet town with a single minaret silhouette, soft pink and gold clouds, no people"],

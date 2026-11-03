@@ -182,7 +182,7 @@ export const templateDefs: TemplateDef[] = [
     minSeconds: 3.5,
     fields: [
       { key: "beats", label: "اللقطات (سطر لكل جملة)", type: "textarea", help: "الرسمة | الكلمة المكتوبة. الرسمة: معرّف عنصر من المكتبة، أو person أو people أو person:think" },
-      { key: "board", label: "السبورة", type: "select", options: [{ value: "white", label: "بيضاء (حبر وأخضر)" }, { value: "green", label: "خضراء (طباشير)" }] },
+      { key: "board", label: "السبورة", type: "select", options: [{ value: "white", label: "بيضاء (ورق مسطّر)" }, { value: "green", label: "سوداء (حبر أبيض)" }] },
     ],
   },
   {
@@ -227,7 +227,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "keyword", label: "كلمة تُحوَّط بدائرة", type: "text", help: "جزء من العنوان كما هو" },
       { key: "element", label: "الرسمة", type: "element" },
       { key: "items", label: "النقاط", type: "textarea", help: "سطر لكل نقطة، حتى 4 نقاط قصيرة" },
-      { key: "board", label: "السبورة", type: "select", options: [{ value: "white", label: "بيضاء (حبر وأخضر)" }, { value: "green", label: "خضراء (طباشير)" }] },
+      { key: "board", label: "السبورة", type: "select", options: [{ value: "white", label: "بيضاء (ورق مسطّر)" }, { value: "green", label: "سوداء (حبر أبيض)" }] },
     ],
   },
   {

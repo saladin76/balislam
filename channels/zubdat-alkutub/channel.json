@@ -84,5 +84,25 @@
       "style": 0.28,
       "direction": "clear, lively explainer"
     }
+  },
+  "library": {
+    "exclude": {
+      "elements": [
+        "divider-ornament",
+        "corner-ornament",
+        "bracket-ornate",
+        "seal-stamp",
+        "moon-crescent",
+        "desert-night",
+        "desert-day",
+        "market-street",
+        "library-hall"
+      ],
+      "sets": [
+        "desert-night",
+        "caravan",
+        "wisdom-library"
+      ]
+    }
   }
 }

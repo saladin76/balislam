@@ -8,6 +8,8 @@ import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
 import { enter, fade, float, useBoil, useSceneFrame, clamp } from "./motion";
 import type { SceneBase, StringFields } from "./types";
+import { useChannel } from "../../channel/context";
+import { highlightIdeaOnly } from "../../../brand/identity/approved";
 
 export type SymbolicProps = SceneBase & StringFields<"element" | "secondElement" | "relation" | "caption" | "effect">;
 
@@ -78,6 +80,8 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
   const portrait = orientation === "portrait";
   const ink = t.character.style === "line";
   const night = themeId === "night";
+  // زبدة الكتب: الفسفوري للفكرة فقط، فالهالة خلف العناصر رمادية
+  const ideaOnly = highlightIdeaOnly(useChannel().id);
   // اتجاه القراءة: الأول على جانب البداية (يمين في العربية، يسار في LTR) والحركة نحو الثاني.
   const rtl = useLang().dir === "rtl";
   const s = rtl ? 1 : -1;
@@ -98,8 +102,8 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
           left: -size * 0.56,
           top: -size * 0.56,
           borderRadius: "50%",
-          background: ink ? c.secondary : night ? c.secondary : c.highlight,
-          opacity: (ink ? 0.4 : night ? 0.14 : 0.38) * a,
+          background: ideaOnly ? c.inkSoft : ink ? c.secondary : night ? c.secondary : c.highlight,
+          opacity: (ideaOnly ? 0.08 : ink ? 0.4 : night ? 0.14 : 0.38) * a,
           transform: `scale(${0.6 + 0.4 * a})`,
         }}
       />
@@ -329,7 +333,7 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
               transform: `scale(${0.8 + 0.4 * Math.sin(g * Math.PI)}) rotate(${(g * 20 - 10) * s}deg)`,
             }}
           >
-            <div style={{ position: "absolute", inset: -ghostSize * 0.18, borderRadius: "50%", background: ink ? c.secondary : c.highlight, opacity: night ? 0.35 : 0.6 }} />
+            <div style={{ position: "absolute", inset: -ghostSize * 0.18, borderRadius: "50%", background: ideaOnly ? c.inkSoft : ink ? c.secondary : c.highlight, opacity: ideaOnly ? 0.1 : night ? 0.35 : 0.6 }} />
             <div style={{ position: "absolute", inset: 0, opacity: 1 - g }}>
               <Element id={first} theme={t} size={ghostSize} />
             </div>

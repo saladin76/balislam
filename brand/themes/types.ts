@@ -38,6 +38,8 @@ export type Theme = {
     /** ألوان الثياب بالترتيب: الراوي، الراوية، الطفل، الكبير، الكبيرة */
     garments: [string, string, string, string, string];
     cap: string;
+    /** robe = ثوب طويل (الافتراضي)، modern = قميص وبنطال وشعر بلا غطاء رأس للرجال (زبدة الكتب) */
+    outfit?: "robe" | "modern";
   };
   /** زخرفة الخلفية؛ لكل قناة زخارفها: بالإسلام arches/girih، دفاتر الزمن stars/horizon/ink-lines، زبدة الكتب ruled */
   motif: "ink-lines" | "house-circles" | "stars" | "arches" | "girih" | "horizon" | "ruled";

@@ -17,7 +17,10 @@ describe("مكتبة كل قناة", () => {
     for (const id of ["verse-card", "hadith-card", "doc-plate", "map-journey"]) expect(lib.templates, id).not.toContain(id);
     for (const id of ["castle-walls", "palace-court", "walls-night"]) expect(lib.sets, id).not.toContain(id);
     expect(lib.elements).toContain("book-open");
-    expect(lib.sets).toContain("wisdom-library");
+    // «القلم المميِّز»: لا أماكن ولا خلفيات تراثية، ولا زخارف ولا ختم، ولا هلال
+    for (const id of ["desert-night", "caravan", "wisdom-library"]) expect(lib.sets, id).not.toContain(id);
+    for (const id of ["divider-ornament", "corner-ornament", "bracket-ornate", "seal-stamp", "moon-crescent", "desert-night", "market-street", "library-hall"]) expect(lib.elements, id).not.toContain(id);
+    expect(lib.sets).toEqual(expect.arrayContaining(["office", "classroom"]));
   });
 
   it("بالإسلام: الآيات والأحاديث والرموز الإسلامية، بلا وجوه ولا لوحات وثائقية", () => {
@@ -51,6 +54,9 @@ describe("مكتبة كل قناة", () => {
     }
     expect(elementExclusion(dafatir, "smartphone")).toBe("identity");
     expect(drawAllowed(dafatir)("phone-notifications")).toBe(false);
+    // واستبعاد زبدة الكتب لا يمس بالإسلام ودفاتر الزمن
+    expect(channelLibrary(balislam).sets).toContain("wisdom-library");
+    expect(channelLibrary(dafatir).elements).toContain("seal-stamp");
   });
 
   it("كل ما في قوائم الاستبعاد موجود فعلًا في المحرك (لا خطأ إملائي يمرّر عنصرًا)", async () => {

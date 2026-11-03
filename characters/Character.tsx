@@ -272,6 +272,9 @@ export const Character: React.FC<Props> = ({ theme, variant, pose = "stand", hei
   const garment = line ? surface : (c.garments[garmentIndex[variant]] ?? c.garments[0]);
   const scarf = line ? surface : isElder ? c.cap : garment;
   const armStroke = line ? c.outline : garment;
+  const modern = c.outfit === "modern";
+  // الزي العصري: قميص حتى الورك وبنطال بلون الحبر الثانوي
+  const trousers = line ? surface : theme.colors.inkSoft;
   const armWidth = line ? 3 : 16;
 
   const def = POSES[pose];
@@ -311,7 +314,9 @@ export const Character: React.FC<Props> = ({ theme, variant, pose = "stand", hei
       {variant === "elder-m" && !back ? (
         <path d="M56 58 Q80 104 104 58 Q80 74 56 58 Z" fill={line ? surface : "#FFFFFF"} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
       ) : null}
-      {variant !== "child" ? (
+      {modern && !isElder ? (
+        <path d={back ? "M50 50 Q48 14 80 14 Q112 14 110 50 Q80 60 50 50 Z" : "M50 46 Q50 14 80 14 Q110 14 110 46 Q100 30 82 32 Q62 30 50 46 Z"} fill={line ? surface : c.outline} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+      ) : variant !== "child" ? (
         back ? (
           <path d="M51 44 Q80 2 109 44 Q80 52 51 44 Z" fill={c.cap} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
         ) : (
@@ -370,8 +375,17 @@ export const Character: React.FC<Props> = ({ theme, variant, pose = "stand", hei
           </g>
         ) : null}
         {def.armABehind ? armA : null}
-        <path d={body} fill={garment} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
-        {def.folds ? (
+        {modern && !def.body ? (
+          <>
+            <path d="M48 186 L79 186 L76 290 L52 290 Z" fill={trousers} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+            <path d="M81 186 L112 186 L108 290 L84 290 Z" fill={trousers} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+            <path d={isFemale ? "M42 196 L48 112 Q52 90 80 90 Q108 90 112 112 L118 196 Z" : "M44 192 L48 116 Q52 88 80 88 Q108 88 112 116 L116 192 Z"} fill={garment} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+            {back ? null : <path d="M70 92 L80 108 L90 92" fill="none" stroke={line ? c.outline : surface} strokeWidth={line ? 2.5 : 4} strokeLinecap="round" strokeLinejoin="round" />}
+          </>
+        ) : (
+          <path d={body} fill={garment} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+        )}
+        {def.folds && !modern ? (
           line ? (
             <path d={def.folds} fill="none" stroke={c.outline} strokeWidth={2.5} strokeLinecap="round" />
           ) : (

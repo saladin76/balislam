@@ -12,7 +12,7 @@ import { useLang } from "../i18n/context";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
 
-export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; identity?: Identity; channel?: ChannelInfo; lang?: string };
+export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; /** اسم الكتاب (book في رأس السكريبت): شارة التنبيه في مصغّرة زبدة الكتب */ book?: string; identity?: Identity; channel?: ChannelInfo; lang?: string };
 
 /**
  * الصورة المصغّرة 1280×720: العنوان بخط كبير يمينًا، والعنصر الرمزي يسارًا داخل دائرة بلون التمييز،
@@ -173,31 +173,28 @@ const HorizonThumb: React.FC<Inner> = ({ title, highlight, element }) => {
 };
 
 /** زبدة الكتب «القلم المميِّز»: أبيض، بطاقة كتاب سوداء مائلة، والعنوان بخط ثقيل وكلمته مظلّلة بالفسفوري. */
-const HighlighterThumb: React.FC<Inner> = ({ title, highlight, element }) => {
+const HighlighterThumb: React.FC<Inner> = ({ title, highlight, book }) => {
+  // «القلم المميِّز» كما في لوحة الهوية: ورقة مسطّرة، بطاقة الكتاب السوداء بشريطها الفسفوري، العنوان وكلمته المظلّلة، واسم الكتاب بلون التنبيه
   const t = useTheme("paper");
-  const el = element && hasElement(element) ? element : "book-open";
+  const c = t.colors;
   const groups = splitTitle(title, highlight);
-  const size = titleSize(title, 118);
+  const size = titleSize(title, 128);
   return (
-    <AbsoluteFill style={{ background: "#FFFFFF", direction: useLang().dir, overflow: "hidden" }}>
+    <AbsoluteFill style={{ background: c.bg, direction: useLang().dir, overflow: "hidden" }}>
       <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
-        {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M0 ${(i + 1) * 64} H1280`} stroke="#111111" strokeOpacity={0.05} strokeWidth={2} />)}
+        {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M0 ${(i + 1) * 64} H1280`} stroke={c.ink} strokeOpacity={0.05} strokeWidth={2} />)}
       </svg>
-      <div style={{ position: "absolute", left: 90, top: 110, width: 330, height: 480, background: "#111111", borderRadius: 10, transform: "rotate(-6deg)", boxShadow: "22px 26px 0 rgba(17,17,17,0.12)" }}>
-        <div style={{ margin: "56px 34px 0", height: 26, background: "#E8F542" }} />
-        <div style={{ margin: "22px 34px 0 90px", height: 16, background: "#FFFFFF", opacity: 0.45 }} />
-        <div style={{ position: "absolute", left: 50, bottom: 70, width: 230, height: 230, borderRadius: "50%", background: "#FFFFFF", display: "grid", placeItems: "center" }}>
-          <Element id={el} theme={t} size={190} />
-        </div>
+      <div style={{ position: "absolute", left: 96, top: 116, width: 300, height: 450, background: c.ink, borderRadius: 10, transform: "rotate(-5deg)", boxShadow: `22px 26px 0 ${c.ink}1F` }}>
+        <div style={{ margin: "58px 30px 0", height: 30, background: c.highlight }} />
+        <div style={{ margin: "22px 30px 0 70px", height: 18, background: c.bg, opacity: 0.45 }} />
       </div>
-      <div style={{ position: "absolute", insetInlineStart: 60, top: 0, bottom: 0, width: 700, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ fontFamily: fontFamilies.bold, fontSize: size, lineHeight: 1.3, color: "#111111", display: "flex", flexWrap: "wrap", gap: "0 24px" }}>
-          {groups.map((g, i) => (g.on ? <span key={i} style={{ background: "#E8F542", padding: "0 14px" }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
+      <div style={{ position: "absolute", insetInlineStart: 64, top: 0, bottom: 0, width: 720, display: "flex", flexDirection: "column", justifyContent: "center", gap: 46 }}>
+        <div style={{ fontFamily: fontFamilies.bold, fontSize: size, lineHeight: 1.3, color: c.ink, display: "flex", flexWrap: "wrap", gap: "0 24px" }}>
+          {groups.map((g, i) => (g.on ? <span key={i} style={{ background: c.highlight, color: c.onHighlight, padding: "0 14px" }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
         </div>
-      </div>
-      <div style={{ position: "absolute", bottom: 30, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 10 }}>
-        <ChannelLogo theme={t} size={60} tile={false} />
-        <span style={{ fontFamily: fontFamilies.bold, fontSize: 34, color: "#111111" }}><ChannelName /></span>
+        {book ? (
+          <div style={{ alignSelf: "flex-start", background: c.secondary, color: c.bg, fontFamily: fontFamilies.bold, fontSize: 54, lineHeight: 1.25, padding: "6px 26px 10px", borderRadius: 12 }}>{book}</div>
+        ) : null}
       </div>
     </AbsoluteFill>
   );

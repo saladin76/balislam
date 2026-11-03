@@ -170,3 +170,17 @@ export const fillCameraGaps = (keys: CamKey[], events: number[], until: number, 
   });
   return [...sorted, ...fill].sort((a, b) => a.at - b.at);
 };
+
+/**
+ * خلفية السبورة من زخرفة هوية القناة: «ورقة مسطّرة بهامش» (زبدة الكتب) ثابتة بلا حركة،
+ * وإلا نقاط السبورة الخفيفة. الخطوط تنزاح مع انتقال الكاميرا بين المشاهد (إحساس اللوحة الواحدة).
+ */
+export const BoardPaper: React.FC<{ motif?: string; ink: string; margin: string; dark: boolean; rtl: boolean; shift?: number }> = ({ motif, ink, margin, dark, rtl, shift = 0 }) =>
+  motif === "ruled" ? (
+    <>
+      <div style={{ position: "absolute", inset: 0, opacity: dark ? 0.1 : 0.06, backgroundImage: `linear-gradient(to bottom, transparent 54px, ${ink} 54px, ${ink} 56px)`, backgroundSize: "100% 56px" }} />
+      <div style={{ position: "absolute", top: 0, bottom: 0, [rtl ? "right" : "left"]: 96, width: 2, background: margin, opacity: 0.25 }} />
+    </>
+  ) : (
+    <div style={{ position: "absolute", inset: 0, opacity: dark ? 0.1 : 0.07, backgroundImage: `radial-gradient(${ink} 1.6px, transparent 1.8px)`, backgroundSize: "48px 48px", backgroundPosition: `${shift}px 0` }} />
+  );

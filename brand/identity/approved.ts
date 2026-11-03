@@ -20,6 +20,8 @@ export type ApprovedIdentity = {
   motifs: string[];
   /** درجات مشتقة من ألوان الهوية (أسطح وحبر ثانوي) وألوان البشرة: ما عدا الألوان والبصمة والمشتقات ممنوع في identity.json */
   derived: string[];
+  /** «idea-only»: لون التمييز للكلمة أو الفكرة المحورية فقط، لا لتلوين العناصر ولا للزينة (يُطبَّق في القوالب) */
+  highlight?: "idea-only";
 };
 
 const SKIN = ["#E7C3A0", "#D2A782"];
@@ -80,11 +82,15 @@ export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
     ],
     signature: ["#E8F542", "#FF6B4A"],
     motifs: ["ruled"],
+    highlight: "idea-only",
     derived: ["#000000", "#1E1E1E", "#4A4A4A", "#6A6A6A", "#8A8172", "#BDBDBD", "#DCD6C8", "#F4F4F1", "#F1EDE4", "#EDE7DA", "#F8F4EC", ...SKIN],
   },
 };
 
 export const approvedIdentity = (channelId?: string): ApprovedIdentity | undefined => (channelId ? APPROVED_IDENTITIES[channelId] : undefined);
+
+/** هل لون التمييز في هذه القناة للفكرة فقط (زبدة الكتب: «ولا شيء آخر يأخذ اللون الفسفوري») */
+export const highlightIdeaOnly = (channelId?: string) => approvedIdentity(channelId)?.highlight === "idea-only";
 
 /** كل الشارات المحجوزة لقنوات معتمدة (لا تُعرض لغيرها) */
 export const reservedEmblems = () => new Set(Object.values(APPROVED_IDENTITIES).map((a) => a.emblem));

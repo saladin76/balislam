@@ -14,7 +14,7 @@ import { estimateTimings } from "./timing";
 import { sentenceGroups } from "../../plan/beats";
 import { useChannel } from "../../channel/context";
 import { drawAllowed } from "../../channel/library";
-import { cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
+import { BoardPaper, cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
 
 /**
  * «السبورة»: شرح مرسوم باليد كأن قلمًا يرسم أمامك. العنوان يُكتب بخط اليد ويُخط تحته،
@@ -78,7 +78,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
   const paper = useTheme("paper");
   const pal = usePalette("paper");
   const chalk = board === "green";
-  const boardColor = chalk ? paper.colors.primary : paper.colors.surface;
+  const boardColor = chalk ? paper.colors.primary : paper.motif === "ruled" ? paper.colors.bg : paper.colors.surface;
   const inkColor = chalk ? paper.colors.surface : paper.colors.ink;
   const accent = chalk ? paper.colors.highlight : paper.colors.primary;
   const elPal = inkPalette(pal, boardColor, inkColor, accent);
@@ -179,7 +179,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
 
   // رسمات مساندة لمعانٍ منطوقة أخرى (من قائمة المعاني المراجَعة)، وتحويط الرسمة إذا ذُكر معناها مرة أخرى
   const ch = useChannel();
-  const allow = drawAllowed({ id: ch.id, rules: { faces: ch.rules?.faces ?? false, quran: ch.rules?.quran ?? false, hadith: ch.rules?.hadith ?? false } });
+  const allow = drawAllowed({ id: ch.id, rules: { faces: ch.rules?.faces ?? false, quran: ch.rules?.quran ?? false, hadith: ch.rules?.hadith ?? false }, library: ch.library });
   const hasMain = hasElement(element);
   const mainShown = { draw: hasMain ? element : "", shownAt: drawFrom + 36 };
   const supports = narration
@@ -249,7 +249,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
       durationInFrames={durationInFrames}
     >
       {/* إطار السبورة الخفيف */}
-      <div style={{ position: "absolute", inset: portrait ? 28 : 22, border: `3px solid ${inkColor}`, borderRadius: 26, opacity: chalk ? 0.12 : 0.07 }} />
+      {paper.motif === "ruled" ? <BoardPaper motif="ruled" ink={inkColor} margin={paper.colors.secondary} dark={chalk} rtl={rtl} /> : <div style={{ position: "absolute", inset: portrait ? 28 : 22, border: `3px solid ${inkColor}`, borderRadius: 26, opacity: chalk ? 0.12 : 0.07 }} />}
       {chalk ? <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 40%, ${paper.colors.surface}14, transparent 70%)` }} /> : null}
 
       <div style={{ position: "absolute", inset: 0, ...camStyle }}>

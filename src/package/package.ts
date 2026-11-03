@@ -101,12 +101,12 @@ export const packageEpisode = async (opts: PackageOptions) => {
   await getServeUrl(true);
 
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
-  const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string };
+  const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
   const element = fm.thumbnail_element ?? plan.chapters.flatMap((c) => c.scenes).find((s) => s.props.element)?.props.element;
   const titles = [plan.title, ...(fm.alt_titles ?? [])].slice(0, 3);
   for (const [i, title] of stage === "episode" ? titles.entries() : []) {
     log(`الصورة المصغّرة ${i + 1}…`);
-    files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element, lang }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
+    files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element, book: fm.book, lang }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
   }
 
   if (!opts.skipVideo) {

@@ -12,7 +12,7 @@ import { boil, useSceneFrame, clamp } from "./motion";
 import { Drawn, inkPalette, Pen } from "./SketchBoard";
 import { estimateTimings, type WordTiming } from "./timing";
 import { parseBeats, sentenceGroups, type Beat } from "../../plan/beats";
-import { cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, Highlighter, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
+import { BoardPaper, cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, Highlighter, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
 import { useChannel } from "../../channel/context";
 import { drawAllowed } from "../../channel/library";
 import type { SceneBase, StringFields } from "./types";
@@ -60,7 +60,7 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
   const paper = useTheme("paper");
   const pal = usePalette("paper");
   const chalk = board === "green";
-  const boardColor = chalk ? paper.colors.primary : paper.colors.surface;
+  const boardColor = chalk ? paper.colors.primary : paper.motif === "ruled" ? paper.colors.bg : paper.colors.surface;
   const inkColor = chalk ? paper.colors.surface : paper.colors.ink;
   const accent = chalk ? paper.colors.highlight : paper.colors.primary;
   /** الفسفوري للفكرة فقط: الكلمة المحورية لكل جملة لحظة نطقها */
@@ -102,7 +102,7 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
   const shown = beats.map((b, i) => ({ draw: b.draw, shownAt: (starts[i] ?? 0) + drawLen[i]!, labelWord: labelWord[i]?.i }));
   const mentions = mentionsOf(words, shown);
   const ch = useChannel();
-  const allow = drawAllowed({ id: ch.id, rules: { faces: ch.rules?.faces ?? false, quran: ch.rules?.quran ?? false, hadith: ch.rules?.hadith ?? false } });
+  const allow = drawAllowed({ id: ch.id, rules: { faces: ch.rules?.faces ?? false, quran: ch.rules?.quran ?? false, hadith: ch.rules?.hadith ?? false }, library: ch.library });
   const supports = supportsOf(words, ranges.slice(0, beats.length), shown, (id) => allow(id) && hasElement(id));
 
   // انتقال الكاميرا: اللوحة السابقة تخرج والجديدة تدخل في اتجاه القراءة
@@ -264,16 +264,7 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
       eyebrowColors={chalk ? { text: paper.colors.surface, border: paper.colors.highlight } : undefined}
       durationInFrames={durationInFrames}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: chalk ? 0.1 : 0.07,
-          backgroundImage: `radial-gradient(${inkColor} 1.6px, transparent 1.8px)`,
-          backgroundSize: "48px 48px",
-          backgroundPosition: `${gridShift}px 0`,
-        }}
-      />
+      <BoardPaper motif={paper.motif} ink={inkColor} margin={paper.colors.secondary} dark={chalk} rtl={rtl} shift={gridShift} />
       {prev ? (
         <div style={{ position: "absolute", inset: 0, transform: `translateX(${prevX}px)` }}>
           <svg width={W} height={H} style={{ position: "absolute", inset: 0, overflow: "visible" }}>{prev.arrows}</svg>
