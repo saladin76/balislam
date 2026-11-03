@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-11-03T18:58:48.393Z",
+  "updatedAt": "2026-11-03T19:05:02.218Z",
   "chapters": [
     {
       "number": 1,
@@ -619,10 +619,11 @@
           "narration": "بل يعني أن نتواضع أمام الحقيقة، وأن نطلب الهداية من الله، وأن نرجع إلى الوحي وأهل العلم فيما نجهل.",
           "line": 146,
           "props": {
-            "beats": "magnifier-brass | الحقيقة\ncompass-pocket | الهداية\nmushaf-rehal | الوحي"
+            "beats": "magnifier-brass | الحقيقة\nmushaf-rehal | الوحي"
           },
           "id": "c6-s9",
-          "sfx": []
+          "sfx": [],
+          "edited": true
         },
         {
           "template": "motion-story",
