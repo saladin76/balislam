@@ -9,6 +9,7 @@ import { OverlaySwitches } from "../ui/Overlays";
 import { resolveOverlays } from "../../../brand/identity/index";
 import { contrast } from "../ui/contrast";
 import type { ChannelInfo } from "../../../src/channel/types";
+import { drawAllowed } from "../../../src/channel/library";
 
 const sceneColors: [string, string][] = [
   ["bg", "الخلفية"],
@@ -44,7 +45,7 @@ const typeRoles: [keyof Identity["typography"], string, number, number][] = [
   ["caption", "الترجمة السفلية", 28, 72],
   ["eyebrow", "عنوان الفصل الصغير", 18, 48],
 ];
-const sampleEls = ["question-mark", "heart", "lightbulb", "book-open", "coin-stack", "mosque", "house-warm", "smartphone", "tree", "scale-balance", "hands-dua", "verse-frame"];
+const sampleEls = ["question-mark", "heart", "lightbulb", "book-open", "coin-stack", "mosque", "house-warm", "smartphone", "tree", "scale-balance", "hands-dua", "verse-frame", "hourglass-ornate", "compass-pocket"];
 
 const Color: React.FC<{ label: string; value: string; onChange: (v: string) => void; id: string }> = ({ label, value, onChange, id }) => {
   const valid = /^#[0-9a-f]{6}$/i.test(value);
@@ -72,12 +73,14 @@ const Slider: React.FC<{ label: string; value: number; min: number; max: number;
   </label>
 );
 
-const ElementStrip: React.FC<{ themeId: ThemeId }> = ({ themeId }) => {
+/** عينة عناصر بألوان الثيم: من مكتبة القناة فقط، وشعار القناة نفسها */
+const ElementStrip: React.FC<{ themeId: ThemeId; channel?: ChannelInfo }> = ({ themeId, channel }) => {
   const t = useTheme(themeId);
+  const ok = drawAllowed({ id: channel?.id ?? "", rules: { faces: Boolean(channel?.rules?.faces), quran: Boolean(channel?.rules?.quran), hadith: Boolean(channel?.rules?.hadith) } });
   return (
     <div className="el-strip" style={{ background: t.colors.bg }}>
-      <div style={{ display: "grid", placeItems: "center" }}><LogoMark size={56} colors={t.logo} /></div>
-      {sampleEls.map((id) => (
+      <div style={{ display: "grid", placeItems: "center" }}><LogoMark size={56} colors={t.logo} mark={channel?.logo} /></div>
+      {sampleEls.filter(ok).slice(0, 12).map((id) => (
         <div key={id} style={{ display: "grid", placeItems: "center" }}><Element id={id} theme={t} size={60} /></div>
       ))}
     </div>
@@ -227,7 +230,7 @@ export const IdentityTab: React.FC<{
           <div><ReelPreview themeId={themeId} orientation={orientation} identity={draft} channel={channel} /></div>
         </div>
         <IdentityProvider identity={draft}>
-          <ElementStrip themeId={themeId} />
+          <ElementStrip themeId={themeId} channel={channel} />
         </IdentityProvider>
       </div>
     </div>

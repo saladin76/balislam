@@ -51,6 +51,8 @@ export const App: React.FC = () => {
   // القناة الحالية لطلبات الواجهة تُضبط أثناء الرسم لا في useEffect: تأثيرات الأبناء (مثل تحميل إعدادات القناة)
   // تعمل قبل تأثير الأب، فكانت تجلب بيانات القناة السابقة بعد التبديل
   if (channelId) setApiChannel(channelId);
+  const channelRef = useRef(channelId);
+  channelRef.current = channelId;
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
@@ -68,6 +70,9 @@ export const App: React.FC = () => {
   const [newPrefill, setNewPrefill] = useState<{ channel: string; title: string; domain?: string; suggested: string; ideaId: string } | null>(null);
   /** فتح حلقة في قناة أخرى من غرفة العمليات: يُطبَّق بعد تحميل حلقات القناة */
   const pendingOpen = useRef<{ ep: string; tab: Tab } | null>(null);
+  const loadedKey = useRef("");
+  /** القناة التي تخصها قائمة الحلقات المعروضة */
+  const episodesOf = useRef("");
   const scriptRef = useRef<ScriptTabHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** آخر خطة لم تُحفظ بعد (تنتظر مؤقت الحفظ التلقائي) */
@@ -99,7 +104,12 @@ export const App: React.FC = () => {
     store.set("bal-channel", channelId);
     setEpisodes(null);
     setPlan(null);
+    loadedKey.current = "";
+    episodesOf.current = "";
+    const ch = channelId;
     api.episodes().then((list) => {
+      if (channelRef.current !== ch) return;
+      episodesOf.current = ch;
       setEpisodes(list);
       const want = pendingOpen.current;
       pendingOpen.current = null;
@@ -131,8 +141,12 @@ export const App: React.FC = () => {
   }, []);
 
   const loadEpisode = useCallback(async (id: string, opts: { keepScript?: boolean } = {}) => {
+    // الحلقة تخص القناة الحالية لحظة الطلب؛ إن تبدّلت القناة أثناء الحفظ يُلغى التحميل
+    const ch = channelRef.current;
     await flushPlan();
-    api.episode(id).then((d) => {
+    if (channelRef.current !== ch) return;
+    api.episode(id, ch).then((d) => {
+      if (channelRef.current !== ch) return;
       setPlan(d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
@@ -157,12 +171,16 @@ export const App: React.FC = () => {
       }
     }).catch((e) => say(e.message, true));
   }, [flushPlan, channelId]);
+  // تُحمَّل الحلقة بعد وصول قائمة حلقات القناة الحالية فقط، فلا تُطلب حلقة القناة السابقة بعد التبديل
   useEffect(() => {
-    if (!epId) return;
+    if (!epId || episodesOf.current !== channelId || !episodes?.some((e) => e.id === epId)) return;
+    const key = `${channelId}/${epId}`;
+    if (loadedKey.current === key) return;
+    loadedKey.current = key;
     store.set("bal-episode", epId);
     setPlan(null);
     loadEpisode(epId);
-  }, [epId, channelId, loadEpisode]);
+  }, [epId, channelId, episodes, loadEpisode]);
   useEffect(() => store.set("bal-tab", tab), [tab]);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
