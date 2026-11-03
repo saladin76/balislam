@@ -1,6 +1,10 @@
+import config from "../../config.json";
+import type { VoiceProfile } from "../channel/types";
+
 /**
  * نبرات الصوت: الصوت المستنسخ نفسه بإعدادات مختلفة حسب روح الحلقة أو المشهد.
- * تُطبَّق فوق إعدادات config.voice. (القيم من مدى ElevenLabs: stability وstyle من 0 إلى 1، والسرعة 0.7–1.2)
+ * الصوت النهائي = طبقة القناة (profile في channel.json) + فرق النبرة عن الحياد.
+ * (مدى ElevenLabs: stability وstyle من 0 إلى 1، والسرعة 0.7–1.2)
  */
 export type Tone = "calm" | "warm" | "documentary" | "dramatic" | "energetic" | "intimate";
 export const tones: Record<Tone, { nameAr: string; useAr: string; stability: number; style: number; speed: number }> = {
@@ -13,3 +17,24 @@ export const tones: Record<Tone, { nameAr: string; useAr: string; stability: num
 };
 export const toneIds = Object.keys(tones) as Tone[];
 export const isTone = (t: unknown): t is Tone => typeof t === "string" && t in tones;
+
+/** الحياد الذي تُقاس منه فروق النبرات (إعدادات config.voice) */
+const NEUTRAL = { stability: config.voice.stability, style: config.voice.style, speed: config.voice.speed };
+const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
+const r2 = (x: number) => Math.round(x * 100) / 100;
+
+/**
+ * إعدادات الصوت النهائية لمشهد: طبقة القناة ثم النبرة فوقها.
+ * النبرة تحرّك الثبات والتعبير بفرقها عن الحياد، وتضرب السرعة في نسبتها؛ فتبقى كل قناة على طبقتها
+ * والنبرة تلوّنها (الحماسي في زبدة الكتب أسرع من الحماسي في بالإسلام).
+ */
+export const voiceSettingsFor = (profile?: VoiceProfile, tone?: Tone): { stability: number; style: number; speed: number } | undefined => {
+  if (!profile && !tone) return undefined;
+  const base = profile ?? NEUTRAL;
+  const t = tone ? tones[tone] : null;
+  return {
+    stability: r2(clamp(base.stability + (t ? t.stability - 0.5 : 0), 0, 1)),
+    style: r2(clamp(base.style + (t ? t.style : 0), 0, 1)),
+    speed: r2(clamp((profile ? profile.speed : NEUTRAL.speed) * (t ? t.speed : 1), 0.7, 1.2)),
+  };
+};

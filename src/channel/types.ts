@@ -12,6 +12,9 @@ export type ChannelDomain = {
   tags: string[];
 };
 
+/** طبقة صوت القناة: السرعة (0.7–1.2) والثبات والتعبير (0–1) */
+export type VoiceProfile = { nameAr?: string; speed: number; stability: number; style: number };
+
 export type ChannelConfig = {
   id: string;
   name: string;
@@ -36,7 +39,14 @@ export type ChannelConfig = {
   /** بصمة القناة الثابتة: الافتتاحية وأسلوب الصورة المصغّرة */
   brand?: { intro?: "mihrab" | "horizon" | "highlighter" | "ink" | "archive" | "book" | "none"; thumbnail?: "mihrab" | "horizon" | "highlighter" | "circle" | "archive" | "cover"; /** مظهر المشاهد المرسومة: سينمائي أو مسطح */ sceneLook?: "cinema" | "flat" };
   /** صوت القناة في ElevenLabs (إن غاب: ELEVENLABS_VOICE_ID من الإعدادات) */
-  voice?: { id?: string; name?: string; tone?: string };
+  voice?: {
+    id?: string;
+    name?: string;
+    /** النبرة الافتراضية للقناة (تتغير لكل حلقة أو مشهد) */
+    tone?: string;
+    /** «طبقة» القناة: صوت صاحب القناة نفسه بإعدادات أساس خاصة بها، والنبرات تتحرك حولها */
+    profile?: VoiceProfile;
+  };
   /** أصوات إضافية للشخصيات (الحوار في الحلقات التاريخية مثلًا): من أصوات حساب ElevenLabs */
   cast?: { id: string; name: string; role?: string }[];
   rules: {
@@ -52,7 +62,7 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; cast?: ChannelConfig["cast"]; tone?: string };
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;

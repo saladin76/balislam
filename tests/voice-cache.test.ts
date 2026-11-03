@@ -1,9 +1,9 @@
-import config from "../config.json";
 import { cpSync, mkdtempSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { generateVoice } from "../src/voice/generate";
+import { voiceSettingsFor } from "../src/voice/tones";
 import { regeneratePlan } from "../src/plan/io";
 import { applyDictionary } from "../src/voice/words";
 import { parseScript } from "../src/script/parse";
@@ -76,7 +76,9 @@ describe("ذاكرة الصوت", () => {
     await generateVoice("000", { client: spy });
     expect(seen).toHaveLength(1);
     expect(seen[0]!.voiceId).toBe("voice-commander");
-    expect(seen[0]!.tune?.speed).toBe(Math.round(0.96 * config.voice.speed * 100) / 100);
+    // طبقة القناة ثم النبرة فوقها
+    const profile = JSON.parse(readFileSync(path.join(__dirname, "..", "channels", "balislam", "channel.json"), "utf8")).voice.profile;
+    expect(seen[0]!.tune).toEqual(voiceSettingsFor(profile, "dramatic"));
     // تبقى بعد إعادة توليد الخطة من السكريبت
     const again = await regeneratePlan("000");
     const kept = again.chapters[0]!.scenes.find((s) => s.id === scene.id)!;

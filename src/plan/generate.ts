@@ -8,6 +8,7 @@ import type { Plan, PlanChapter, PlanScene, PlanSfx } from "./types";
 import { templateById } from "./templates";
 import { styleTemplate } from "./styles";
 import { drawAllowed } from "../channel/library";
+import { isTone } from "../voice/tones";
 
 
 const firstSentence = (text: string, maxWords = 8) => {
@@ -261,7 +262,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     lang: fm.lang ?? channel.language,
     updatedAt: new Date().toISOString(),
     ...(previous?.overlays && Object.keys(previous.overlays).length ? { overlays: { ...previous.overlays } } : {}),
-    ...(previous?.tone ? { tone: previous.tone } : {}),
+    // نبرة الحلقة: ما اختير في الاستوديو، وإلا tone: في ترويسة السكريبت
+    ...(previous?.tone ? { tone: previous.tone } : isTone((fm as { tone?: string }).tone) ? { tone: (fm as { tone?: string }).tone } : {}),
     ...(previous?.intro === false ? { intro: false } : {}),
     chapters,
   };

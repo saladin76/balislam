@@ -10,7 +10,8 @@ import { templateExclusion } from "../../../src/channel/library";
 import { styleNameAr, styleTemplate } from "../../../src/plan/styles";
 import { Thumbnail } from "../../../src/remotion/Thumbnail";
 import config from "../../../config.json";
-import { tones, toneIds } from "../../../src/voice/tones";
+import { tones, toneIds, voiceSettingsFor } from "../../../src/voice/tones";
+import type { VoiceProfile } from "../../../src/channel/types";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 /** أنماط عامة للقنوات التي لم تُعتمد هويتها بعد (الافتتاحيات المعتمدة محجوزة لقنواتها) */
@@ -93,16 +94,10 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
           <button className="btn small" onClick={async () => { setVmsg("جارٍ التحميل…"); try { const r = await api.testService("elevenlabs"); if (r.ok && r.voices) { setVoices(r.voices); setVmsg(""); } else setVmsg(r.message ?? "تعذّر جلب الأصوات"); } catch (e) { setVmsg((e as Error).message); } }}>اختيار من أصوات حسابك</button>
           {c.voice?.id ? <button className="btn ghost small" onClick={() => set({ voice: { ...c.voice, id: undefined, name: undefined } })}>رجوع للصوت العام</button> : null}
         </div>
-        <span className="help">{vmsg || "صوت مختلف لكل قناة يقوّي شخصيتها. تغيير الصوت يعني إعادة توليد صوت الحلقات غير المنشورة."}</span>
+        <span className="help">{vmsg || "صوتك المستنسخ هو الأساس في كل القنوات؛ وما يميز كل قناة طبقتها تحت. اختر صوتًا آخر هنا فقط إن نسخت صوتك نسخة خاصة بهذه القناة."}</span>
       </div>
 
-      <label className="field">
-        <span>النبرة الافتراضية للقناة <small>(الصوت نفسه بإحساس مختلف؛ تتغير لكل حلقة أو مشهد من تبويب «المشاهد»)</small></span>
-        <select id="ch-tone" value={c.voice?.tone ?? ""} onChange={(e) => set({ voice: { ...c.voice, tone: e.target.value || undefined } })}>
-          <option value="">عادية (إعدادات الصوت الأساسية)</option>
-          {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
-        </select>
-      </label>
+      <VoiceRegister c={c} set={set} />
 
       <div className="field">
         <span>أصوات الشخصيات <small>(للحوار في الحلقات التاريخية مثلًا؛ تختارها لكل مشهد)</small></span>
@@ -147,5 +142,65 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
         <span className="help">الأساليب المتاحة من مكتبة القناة فقط. غرفة العمليات تنبّهك إن تكرر أسلوب حلقتين متتاليتين، وتقترح من هذه القائمة.</span>
       </div>
     </section>
+  );
+};
+
+/** طبقات جاهزة: نقطة بداية لكل قناة، وتُضبط بالمنزلقات */
+const REGISTERS: VoiceProfile[] = [
+  { nameAr: "وقور هادئ", speed: 0.9, stability: 0.6, style: 0.08 },
+  { nameAr: "راوٍ وثائقي", speed: 0.95, stability: 0.5, style: 0.22 },
+  { nameAr: "سريع واضح", speed: 1.02, stability: 0.45, style: 0.28 },
+  { nameAr: "حكّاء قريب", speed: 0.94, stability: 0.45, style: 0.3 },
+];
+const pct = (x: number) => `${Math.round(x * 100)}٪`;
+
+/**
+ * طبقة صوت القناة: صوت صاحب القناة نفسه بسرعة وثبات وتعبير خاصة بها، والنبرات (لكل حلقة أو مشهد) تتحرك حولها.
+ * يظهر جدول بما تصير إليه كل نبرة في هذه القناة.
+ */
+const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>) => void }> = ({ c, set }) => {
+  const p = c.voice?.profile;
+  const put = (profile: VoiceProfile | undefined) => set({ voice: { ...c.voice, profile } });
+  const slider = (key: "speed" | "stability" | "style", label: string, help: string, min: number, max: number) => (
+    <label className="field">
+      <span>{label}: <b>{key === "speed" ? `${p![key].toFixed(2)}×` : pct(p![key])}</b> <small>{help}</small></span>
+      <input type="range" min={min} max={max} step={0.01} value={p![key]} onChange={(e) => put({ ...p!, nameAr: p!.nameAr, [key]: Number(e.target.value) })} />
+    </label>
+  );
+  return (
+    <div className="field voice-register">
+      <span>طبقة صوت القناة <small>(صوتك نفسه بإيقاع وإحساس أساسي خاص بهذه القناة؛ والنبرة تختارها لكل حلقة أو مشهد)</small></span>
+      <div className="chips">
+        {REGISTERS.map((r) => (
+          <button key={r.nameAr} className={`chip ${p?.nameAr === r.nameAr ? "on" : ""}`} onClick={() => put({ ...r })}>{p?.nameAr === r.nameAr ? "✓ " : ""}{r.nameAr}</button>
+        ))}
+        {p ? <button className="chip" onClick={() => put(undefined)}>بلا طبقة (إعدادات الصوت العامة)</button> : null}
+      </div>
+      {p ? (
+        <>
+          <label className="field"><span>اسم الطبقة</span><input type="text" value={p.nameAr ?? ""} onChange={(e) => put({ ...p, nameAr: e.target.value })} /></label>
+          {slider("speed", "السرعة", "أبطأ للتأمل، أسرع للخلاصات", 0.8, 1.1)}
+          {slider("stability", "الثبات", "أعلى = أهدأ وأثبت، أقل = تلوين أكثر", 0.3, 0.8)}
+          {slider("style", "التعبير", "أعلى = أداء أكثر حيوية (ومعه احتمال تذبذب أكبر)", 0, 0.5)}
+        </>
+      ) : null}
+      <table className="dom-table tone-table">
+        <thead><tr><th>النبرة في الحلقة</th><th>السرعة</th><th>الثبات</th><th>التعبير</th></tr></thead>
+        <tbody>
+          {[undefined, ...toneIds].map((t) => {
+            const v = voiceSettingsFor(p, t) ?? { speed: config.voice.speed, stability: config.voice.stability, style: config.voice.style };
+            return (
+              <tr key={t ?? "base"}>
+                <td>{t ? <>{tones[t].nameAr} <small className="help">{tones[t].useAr}</small></> : <b>طبقة القناة وحدها</b>}</td>
+                <td dir="ltr">{v.speed.toFixed(2)}×</td>
+                <td>{pct(v.stability)}</td>
+                <td>{pct(v.style)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <span className="help">تغيير الطبقة يعيد توليد صوت المشاهد غير المنشورة عند التوليد التالي (المشاهد التي لم يتغير صوتها لا يُعاد توليدها).</span>
+    </div>
   );
 };

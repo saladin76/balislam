@@ -381,3 +381,4 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .idc-lib { display: flex; flex-wrap: wrap; gap: 8px; }
 .idc-lib span { background: var(--panel, #f4f4f4); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
 .locked { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: var(--panel, #f6f6f6); border: 1px solid var(--line); font-size: 13px; }
+.voice-register .chips { margin-bottom: 6px; } .tone-table td small { margin-inline-start: 6px; }

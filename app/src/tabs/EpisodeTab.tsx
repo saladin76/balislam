@@ -209,10 +209,10 @@ export const EpisodeTab: React.FC<{
         <div className="render-box">
           <div className="toolbar">
             <b>نبرة الصوت في الحلقة</b>
-            <span className="help">صوتك نفسه بإحساس يناسب الحلقة؛ وأي مشهد يمكن أن يأخذ نبرة أخرى أو صوت شخصية من إعداداته.</span>
+            <span className="help">صوتك بطبقة القناة، والنبرة تلوّنه بإحساس الحلقة؛ وأي مشهد يمكن أن يأخذ نبرة أخرى أو صوت شخصية من إعداداته.</span>
             <span className="spacer" />
             <select id="ep-tone" value={plan.tone ?? ""} onChange={(e) => { const { tone: _t, ...rest } = plan; onPlanChange(e.target.value ? { ...rest, tone: e.target.value } : rest); }} style={{ width: 260 }}>
-              <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : "نبرة القناة (عادية)"}</option>
+              <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : `طبقة القناة${channel.voiceProfile ? ` «${channel.voiceProfile}»` : ""} بلا نبرة إضافية`}</option>
               {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
             </select>
           </div>

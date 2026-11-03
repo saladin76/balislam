@@ -9,7 +9,8 @@ import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, readJson, regeneratePlan } from "../plan/io";
 import type { Plan } from "../plan/types";
 import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
-import { isTone, tones } from "./tones";
+import { isTone, voiceSettingsFor } from "./tones";
+import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
@@ -40,8 +41,11 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   const tk = await loadTashkeel(scriptPath);
   const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   let channelTone: string | undefined;
+  let profile: VoiceProfile | undefined;
   try {
-    channelTone = loadChannel().voice?.tone;
+    const v = loadChannel().voice;
+    channelTone = v?.tone;
+    profile = v?.profile;
   } catch {
     /* بلا قناة */
   }
@@ -50,8 +54,8 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
     const d = applyDictionary(s.narration.trim(), dict, tk ? vowelize(words, tk) : undefined);
     // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
     const toneId = [s.tone, plan.tone, channelTone].find(isTone);
-    // سرعة النبرة نسبية إلى سرعة القناة الأساسية (config.voice.speed)، حتى يبقى إيقاع صاحب الصوت هو المرجع
-    const tune = toneId ? { stability: tones[toneId].stability, style: tones[toneId].style, speed: Math.round(tones[toneId].speed * config.voice.speed * 100) / 100 } : undefined;
+    // طبقة القناة ثم النبرة فوقها (صوت صاحب القناة هو المرجع دائمًا)
+    const tune = voiceSettingsFor(profile, toneId);
     // البصمة من كل ما يغيّر الصوت نفسه فقط (لا مدة الذيل ولا حساب التكلفة)؛ النبرة والصوت يدخلانها فقط إن حُددا
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
     const extra = { ...(tune ? { tune } : {}), ...(s.voice ? { voice: s.voice } : {}) };

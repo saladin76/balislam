@@ -89,5 +89,13 @@
     ],
     "postingTime": "19:00 Asia/Riyadh",
     "footer": "كل المحتوى مراجَع شرعيًا قبل النشر."
+  },
+  "voice": {
+    "profile": {
+      "nameAr": "وقور هادئ",
+      "speed": 0.9,
+      "stability": 0.6,
+      "style": 0.08
+    }
   }
 }
