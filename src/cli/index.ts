@@ -180,14 +180,33 @@ program
   .option("--dry-run", "حساب الحروف والرصيد فقط بلا توليد")
   .option("--force", "إعادة توليد كل المشاهد")
   .option("--scene <ids>", "مشاهد محددة مفصولة بفواصل، مثل c2-s1,c4-s3")
-  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string }) => {
+  .option("--ignore-tashkeel", "التوليد رغم نقص التشكيل (غير مستحسن)")
+  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string; ignoreTashkeel?: boolean }) => {
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
     const { generateVoice } = await import("../voice/generate");
     const client = elevenLabsFromEnv();
-    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
+    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, ignoreTashkeel: opts.ignoreTashkeel, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
+    console.log(tashkeelLine(r.tashkeel));
     console.log(`المشاهد: ${r.total} · للتوليد: ${r.toGenerate.length} · محفوظة: ${r.cached.length}`);
     console.log(`الحروف: ${r.chars} ≈ ${r.credits} رصيد ElevenLabs`);
     if (!client && !opts.dryRun) console.log("لم يُولَّد شيء: أضف ELEVENLABS_API_KEY وELEVENLABS_VOICE_ID إلى .env.");
+  });
+
+const tashkeelLine = (t: import("../voice/tashkeelReport").TashkeelReport) =>
+  !t.file ? "التشكيل: لا يوجد tashkeel.md ✗" : `التشكيل: ${(t.coverage * 100).toFixed(1)}% (${t.covered} من ${t.words} كلمة، الحد ${Math.round(t.min * 100)}%) ${t.ok ? "✓" : "✗"}`;
+
+program
+  .command("tashkeel")
+  .description("مدقق التشكيل: الكلمات التي ستُنطق بلا تشكيل، والكلمات التي لها أكثر من نطق")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { generateVoice } = await import("../voice/generate");
+    const { tashkeel: t } = await generateVoice(episode, { dryRun: true });
+    console.log(tashkeelLine(t));
+    for (const g of t.gaps) console.log(`  ${g.sceneId}: ${g.words.join("، ")}`);
+    if (t.ambiguous.length) console.log("كلمات لها أكثر من نطق في الملف (راجع السياق):");
+    for (const a of t.ambiguous) console.log(`  ${a.forms.join(" / ")} ← ${a.scenes.join("، ")}`);
+    if (!t.ok) process.exitCode = 1;
   });
 
 program

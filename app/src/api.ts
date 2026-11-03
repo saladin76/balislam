@@ -10,7 +10,8 @@ export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { n
 export type EpisodeSummary = { id: string; dir: string; title: string; domain: string; hasPlan: boolean };
 export type ChannelSummary = { id: string; name: string; language: string; domains: Record<string, ChannelDomain> };
 export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; check: CheckResult; media: EpisodeMedia; issues: PlanIssue[]; keys: { voice: boolean; quran: boolean } };
-export type VoiceReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number };
+export type TashkeelReport = { file: boolean; words: number; covered: number; coverage: number; min: number; ok: boolean; gaps: { sceneId: string; words: string[]; narration: string }[]; ambiguous: { word: string; forms: string[]; scenes: string[] }[] };
+export type VoiceReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; tashkeel?: TashkeelReport };
 export type Overview = {
   id: string;
   dir: string;

@@ -45,7 +45,7 @@ afterAll(() => {
 describe("ذاكرة الصوت", () => {
   it("إضافة فقرة لا تعيد توليد المشاهد التي انزاحت أرقامها", async () => {
     await regeneratePlan("000");
-    const first = await generateVoice("000", { client: mock });
+    const first = await generateVoice("000", { client: mock, ignoreTashkeel: true });
     expect(calls).toBe(first.toGenerate.length);
     const scriptFile = path.join(tmp, "balislam", "episodes", "000-demo", "script.md");
     const text = readFileSync(scriptFile, "utf8");
@@ -54,7 +54,7 @@ describe("ذاكرة الصوت", () => {
     await regeneratePlan("000");
     const dry = await generateVoice("000", { client: mock, dryRun: true });
     expect(dry.toGenerate.length).toBe(1);
-    await generateVoice("000", { client: mock });
+    await generateVoice("000", { client: mock, ignoreTashkeel: true });
     expect(calls).toBe(first.toGenerate.length + 1);
     // لا ملفات يتيمة: كل mp3 يشير إليه مشهد
     const dir = path.join(tmp, "balislam", "episodes", "000-demo", "voice");
@@ -76,7 +76,7 @@ describe("ذاكرة الصوت", () => {
     const spy = { ...mock, tts: async (t: string, ctx: { voiceId?: string; tune?: { speed: number } } = {}) => { seen.push(ctx); return mock.tts(t, ctx as never); } } as unknown as ElevenLabsClient;
     const dry = await generateVoice("000", { client: spy, dryRun: true });
     expect(dry.toGenerate.map((x) => x.id)).toEqual([scene.id]);
-    await generateVoice("000", { client: spy });
+    await generateVoice("000", { client: spy, ignoreTashkeel: true });
     expect(seen).toHaveLength(1);
     expect(seen[0]!.voiceId).toBe("voice-commander");
     // طبقة القناة ثم النبرة فوقها

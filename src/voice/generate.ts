@@ -14,6 +14,7 @@ import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
+import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { capsFor, dropTagWords } from "./models";
 import { applyTempo, scaleTimes } from "./tempo";
 
@@ -66,7 +67,7 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   });
 };
 
-export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number };
+export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport };
 
 export type GenerateVoiceOptions = {
   client?: ElevenLabsClient | null;
@@ -76,6 +77,8 @@ export type GenerateVoiceOptions = {
   /** مشاهد محددة فقط */
   only?: string[];
   onProgress?: (msg: string) => void;
+  /** توليد رغم نقص التشكيل (من سطر الأوامر فقط، بقرار صاحب القناة) */
+  ignoreTashkeel?: boolean;
 };
 
 /**
@@ -107,8 +110,15 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     cached: jobs.filter(isCached).map((j) => j.id),
     chars,
     credits: Math.ceil(chars * config.voice.creditsPerChar),
+    tashkeel: tashkeelReport(
+      plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && (!opts.only || opts.only.includes(s.id))),
+      await loadTashkeel(scriptPath),
+      await loadDictionary(),
+    ),
   };
   if (opts.dryRun) return report;
+  // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
+  if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)
   if (todo.length && opts.client?.voiceInfo) {

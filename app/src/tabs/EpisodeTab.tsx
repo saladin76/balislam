@@ -14,7 +14,7 @@ import type { CharacterPose, CharacterVariant } from "../../../characters/Charac
 import { CharacterField, ElementField } from "../ui/Pickers";
 import { ImageField } from "../ui/ImageField";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
-import { api, type RenderJob, type VoiceReport } from "../api";
+import { api, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import type { ChannelInfo } from "../../../src/channel/types";
@@ -522,6 +522,11 @@ const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: Epi
       setMsg((e as Error).message);
     }
   };
+  // التقدير والتشكيل بلا تكلفة: يظهران مع فتح الحلقة
+  useEffect(() => {
+    setEst(null);
+    void estimate();
+  }, [episodeId]);
   return (
     <div className="render-box">
       <div className="toolbar">
@@ -532,7 +537,8 @@ const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: Epi
         {est && est.toGenerate.length > 0 ? (
           <button
             className="btn primary"
-            disabled={busy || !hasKeys}
+            disabled={busy || !hasKeys || est.tashkeel?.ok === false}
+            title={est.tashkeel?.ok === false ? "أكمل التشكيل أولًا" : ""}
             onClick={async () => {
               setBusy(true);
               setMsg("");
@@ -559,7 +565,43 @@ const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: Epi
           {!hasKeys ? " (أضف مفتاح ElevenLabs من تبويب «الإعدادات» لتفعيل التوليد)" : ""}
         </div>
       ) : null}
+      {est?.tashkeel ? <TashkeelBox t={est.tashkeel} /> : null}
       {msg ? <div className="help">{msg}</div> : null}
+    </div>
+  );
+};
+
+/** مدقق التشكيل: نسبة التغطية، والكلمات التي ستُنطق بلا تشكيل، والكلمات التي لها أكثر من نطق. */
+const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
+  const pct = Math.round(t.coverage * 1000) / 10;
+  const color = t.ok ? "var(--ok)" : "var(--err)";
+  return (
+    <div className="help" style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+      <span style={{ color, fontWeight: 600 }}>
+        {!t.file
+          ? "التشكيل: لا توجد نسخة مشكولة (tashkeel.md) لهذه الحلقة؛ التوليد متوقف حتى تُضاف."
+          : `التشكيل: ${pct}% (${t.covered} من ${t.words} كلمة) · الحد ${Math.round(t.min * 100)}% ${t.ok ? "✓" : "· التوليد متوقف حتى يكتمل"}`}
+      </span>
+      {t.gaps.length ? (
+        <details open={!t.ok}>
+          <summary>كلمات ستُنطق بلا تشكيل ({t.words - t.covered})</summary>
+          {t.gaps.map((g) => (
+            <div key={g.sceneId}>
+              <b dir="ltr">{g.sceneId}</b>: {g.words.join("، ")}
+            </div>
+          ))}
+        </details>
+      ) : null}
+      {t.ambiguous.length ? (
+        <details>
+          <summary>كلمات لها أكثر من نطق في الملف ({t.ambiguous.length}) — راجع أن كل موضع بنطقه الصحيح</summary>
+          {t.ambiguous.map((a) => (
+            <div key={a.word}>
+              {a.forms.join(" / ")} ← <span dir="ltr">{a.scenes.join(", ")}</span>
+            </div>
+          ))}
+        </details>
+      ) : null}
     </div>
   );
 };

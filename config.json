@@ -58,5 +58,9 @@
     "narrationVolume": 1,
     "sfxVolume": 0.55,
     "recitationVolume": 1
+  },
+  "tashkeel": {
+    "required": true,
+    "minCoverage": 0.98
   }
 }
