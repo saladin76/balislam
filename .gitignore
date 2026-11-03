@@ -23,3 +23,6 @@ channels/*/episodes/*/recitations/
 # صور اللوحات الوثائقية (كبيرة الحجم)
 channels/*/episodes/*/images/
 channels/*/images/
+
+# سكربتات مؤقتة للمعاينة والقياس (لا تُرفع)
+*-tmp.mts
