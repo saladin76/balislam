@@ -1,6 +1,7 @@
 import React from "react";
 import type { ElementDef } from "../types";
 import { L, S, tint } from "../helpers";
+import { tube } from "../kit";
 
 /**
  * رموز إسلامية: مساجد وعمارة، أدوات العبادة، رموز رمضان والتقويم.
@@ -416,6 +417,28 @@ export const elements: ElementDef[] = [
         <path {...L(p)} d={rubElHizb(60, 60, 40)} opacity={0.3} />
         <circle {...S(p)} cx={60} cy={60} r={22} fill={p.main} />
         <path {...S(p)} fill={p.metal} d={rubElHizb(60, 60, 12)} />
+      </>
+    ),
+  },
+  {
+    id: "prayer-postures",
+    nameAr: "هيئات الصلاة",
+    category: "islamic",
+    tags: ["صلاة", "قيام", "ركوع", "سجود", "حركات الصلاة"],
+    // ثلاث هيئات بلا ملامح: قيام، ركوع، سجود؛ على سجادة واحدة
+    draw: (p) => (
+      <>
+        <rect {...S(p)} x={6} y={100} width={108} height={10} rx={3} fill={p.second} />
+        {/* قيام */}
+        {tube(p, "M22 36 V98", p.main, 10, "q")}
+        <circle {...S(p)} cx={22} cy={24} r={9} fill={p.skin} />
+        {/* ركوع: الظهر مستوٍ واليدان على الركبتين */}
+        {tube(p, "M50 52 H72 V98", p.main, 10, "r")}
+        {tube(p, "M58 54 L68 74", p.main, 7, "ra")}
+        <circle {...S(p)} cx={42} cy={52} r={8} fill={p.skin} />
+        {/* سجود: الجبهة على الأرض */}
+        {tube(p, "M90 92 L104 74 L106 98 H112", p.main, 10, "s")}
+        <circle {...S(p)} cx={85} cy={95} r={7} fill={p.skin} />
       </>
     ),
   },

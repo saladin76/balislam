@@ -282,4 +282,22 @@ export const elements: ElementDef[] = [
       </>
     ),
   },
+  {
+    id: "hands-takbir",
+    nameAr: "تكبيرة الإحرام",
+    category: "hands",
+    tags: ["تكبير", "تكبيرة الإحرام", "رفع اليدين", "بدء الصلاة"],
+    // رأس بلا ملامح وكتفان، واليدان مرفوعتان بحذاء الأذنين والكفان للأمام
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.main} d="M26 116 Q28 84 60 80 Q92 84 94 116 Z" />
+        <circle {...S(p)} cx={60} cy={56} r={18} fill={p.skin} />
+        <path {...L(p, 6)} stroke={p.edge} d="M38 96 Q30 86 30 74 M82 96 Q90 86 90 74" opacity={0.85} />
+        <g transform="rotate(-8 24 78)">{openHand(p, 0.42, 26, 82)}</g>
+        <g transform="translate(120 0) scale(-1 1)">
+          <g transform="rotate(-8 24 78)">{openHand(p, 0.42, 26, 82)}</g>
+        </g>
+      </>
+    ),
+  },
 ];

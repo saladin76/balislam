@@ -671,4 +671,19 @@ export const elements: ElementDef[] = [
       </>
     ),
   },
+  {
+    id: "ear-listen",
+    nameAr: "أذن تسمع",
+    category: "mind",
+    tags: ["سمع", "استماع", "إصغاء", "انتباه"],
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.skin} d="M40 46 Q40 16 66 16 Q92 16 92 44 Q92 60 80 70 Q72 77 72 90 Q72 108 56 108 Q44 108 42 96" />
+        <path {...L(p, 4)} d="M54 48 Q54 32 66 32 Q78 32 78 46 Q78 56 70 62 Q64 66 64 74" />
+        <path {...L(p, 4)} d="M60 50 Q62 44 66 46" opacity={0.6} />
+        <path {...L(p, 5)} stroke={p.edge} d="M100 40 Q108 56 100 72" />
+        <path {...L(p, 5)} stroke={p.edge} d="M108 30 Q120 56 108 82" opacity={0.6} />
+      </>
+    ),
+  },
 ];
