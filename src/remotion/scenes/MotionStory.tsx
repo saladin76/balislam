@@ -10,7 +10,7 @@ import { useLang } from "../../i18n/context";
 import { clamp, seeded, useSceneFrame } from "./motion";
 import { localDigits } from "../../i18n/packs";
 import { estimateTimings, type WordTiming } from "./timing";
-import { parseBeats, sentenceGroups, type Beat } from "../../plan/beats";
+import { parseBeats, sentenceGroups, wordElement, type Beat } from "../../plan/beats";
 import type { SceneBase, StringFields } from "./types";
 
 /**
@@ -187,6 +187,69 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
     const headSize = (portrait ? 108 : 112) * (Array.from(b.label).length > 14 ? 0.78 : 1);
     const ul = interpolate(frame, [st + 16 + words.length * 5, st + 34 + words.length * 5], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
 
+    // ——— عناصر مساندة: كل كلمة لها رسمة تظهر وقت نطقها حول القرص (حتى 4 لكل لحظة) ———
+    const until = next ?? durationInFrames;
+    const seen = new Set<string>([b.draw]);
+    const sats: { id: string; word: string; at: number }[] = [];
+    for (const w of timings) {
+      if (w.start < st + 8 || w.start >= until - 10 || sats.length >= 4) continue;
+      const id = wordElement(w.word);
+      if (!id || seen.has(id) || (isPerson(b.draw) && isPerson(id)) || !(isPerson(id) || hasElement(id))) continue;
+      if (sats.length && w.start - sats[sats.length - 1]!.at < 24) continue;
+      seen.add(id);
+      sats.push({ id, word: w.word.replace(/[«»"؟?!.,،:؛…]/g, ""), at: w.start });
+    }
+    // نبضات على كلمات المعنى الطويلة بين العناصر (إيقاع مرئي مع الصوت، كل ثانية ونصف على الأكثر)
+    const beatsAt: number[] = [];
+    let lastEv = st + 20;
+    for (const w of timings) {
+      if (w.start < st + 20 || w.start >= until - 8) continue;
+      const near = sats.some((x) => Math.abs(x.at - w.start) < 30) || beatsAt.some((x) => Math.abs(x - w.start) < 30);
+      if (!near && w.word.replace(/[^\p{L}]/gu, "").length >= 4 && w.start - lastEv >= 54) {
+        beatsAt.push(w.start);
+        lastEv = w.start;
+      }
+    }
+    const events = [...sats.map((x) => x.at), ...beatsAt];
+    const bump = events.reduce((acc, at) => acc + 0.06 * Math.max(0, Math.sin(Math.min(1, Math.max(0, (frame - at) / 14)) * Math.PI)), 0);
+    const bursts = events.map((at, k) => {
+      const t = (frame - at) / 26;
+      if (t < 0 || t > 1) return null;
+      const col = k % 2 ? teal : gold;
+      return (
+        <React.Fragment key={`b${k}`}>
+          <div style={{ position: "absolute", left: discX - disc / 2, top: discY - disc / 2 + ty, width: disc, height: disc, borderRadius: "50%", background: `radial-gradient(circle, ${col}55 0%, transparent 70%)`, transform: `scale(${1 + t * 0.35})`, opacity: (1 - t) * (1 - outT) }} />
+          <div style={{ position: "absolute", left: discX - disc / 2, top: discY - disc / 2 + ty, width: disc, height: disc, borderRadius: "50%", border: `6px solid ${col}`, transform: `scale(${1 + t * 0.6})`, opacity: (1 - t) * 0.8 * (1 - outT) }} />
+        </React.Fragment>
+      );
+    });
+    const R = disc * (portrait ? 0.78 : 0.8);
+    // مواضع تتجنب العنوان وشريط الأفكار أعلى الشاشة والترجمة أسفلها
+    const angles = portrait ? [-150, -30, 150, 30] : rtl ? [-35, 40, 115, -80] : [-145, 140, 65, -100];
+    const satNodes = sats.map((x, k) => {
+      const sIn = spring({ frame: frame - x.at, fps, config: { damping: 11, stiffness: 150, mass: 0.6 } });
+      if (sIn <= 0.001) return null;
+      const a = ((angles[k % angles.length]! + Math.sin((frame - x.at) / 40 + k) * 4) * Math.PI) / 180;
+      const r = R * (0.75 + 0.25 * sIn);
+      const sx = discX + Math.cos(a) * r;
+      const sy = discY + ty + Math.sin(a) * r * (portrait ? 0.9 : 0.82) + Math.sin((frame + k * 20) / 22) * 6;
+      const size = portrait ? 150 : 132;
+      const line = interpolate(frame, [x.at + 4, x.at + 18], [0, 1], clamp);
+      const ex = discX + Math.cos(a) * (disc / 2 + 10);
+      const ey = discY + ty + Math.sin(a) * (disc / 2 + 10) * (portrait ? 0.9 : 0.82);
+      return (
+        <React.Fragment key={`s${k}`}>
+          <svg width={W} height={H} style={{ position: "absolute", inset: 0, overflow: "visible", opacity: (1 - outT) * 0.6 }}>
+            <line x1={ex} y1={ey} x2={ex + (sx - ex) * line} y2={ey + (sy - ey) * line} stroke={gold} strokeWidth={2} strokeDasharray="4 8" />
+          </svg>
+          <div style={{ position: "absolute", left: sx - size / 2, top: sy - size / 2, width: size, height: size, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.16), rgba(255,255,255,0.05) 55%, rgba(10,20,36,0.6))", border: `1.5px solid ${k % 2 ? teal : gold}88`, boxShadow: "0 18px 40px rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${sIn * (1 - 0.6 * outT)}) rotate(${(1 - sIn) * 25}deg)`, opacity: Math.min(1, sIn * 1.5) * (1 - outT) }}>
+            {isPerson(x.id) ? <People draw={x.id} t={night} height={size * 0.62} gap={4} /> : <Element id={x.id} theme={night} size={size * 0.62} palette={pal} />}
+          </div>
+          <div style={{ position: "absolute", left: sx - 160, width: 320, top: sy + size / 2 + 6, textAlign: "center", fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: portrait ? 36 : 30, color: c.ink, opacity: interpolate(frame, [x.at + 6, x.at + 16], [0, 0.9], clamp) * (1 - outT), textShadow: "0 4px 14px rgba(0,0,0,0.8)" }}>{x.word}</div>
+        </React.Fragment>
+      );
+    });
+
     const pulse = isQ
       ? [0, 1, 2].map((k) => {
           const t = (((frame - st - 10) / 50 + k / 3) % 1 + 1) % 1;
@@ -199,6 +262,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
     return (
       <React.Fragment key={i}>
         {pulse}
+        {bursts}
         {/* القرص الزجاجي */}
         <div style={{ position: "absolute", left: discX - disc / 2, top: discY - disc / 2, width: disc, height: disc, transform: `translateY(${ty}px) scale(${scale})`, opacity }}>
           <div
@@ -221,11 +285,12 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
               <circle cx={disc / 2} cy={-26} r={6} fill={gold} />
             </g>
           </svg>
-          <div style={{ position: "absolute", inset: disc * 0.14, display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${0.4 + 0.6 * iconS}) rotate(${(1 - iconS) * -12}deg)`, filter: "drop-shadow(0 18px 24px rgba(0,0,0,0.45))" }}>
+          <div style={{ position: "absolute", inset: disc * 0.14, display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${(0.4 + 0.6 * iconS) * (1 + bump)}) rotate(${(1 - iconS) * -12 + bump * 40}deg)`, filter: "drop-shadow(0 18px 24px rgba(0,0,0,0.45))" }}>
             {isPerson(b.draw) ? <People draw={b.draw} t={night} height={disc * 0.66} gap={disc * 0.04} /> : hasElement(b.draw) ? <Element id={b.draw} theme={night} size={disc * 0.68} palette={pal} /> : null}
           </div>
         </div>
 
+        {satNodes}
         {/* رقم اللحظة الكبير المفرَّغ + العنوان */}
         <div style={{ position: "absolute", left: headX - headW / 2, width: headW, top: headY - (portrait ? 40 : 170), textAlign: "center", opacity: 1 - outT, transform: `translateY(${-outT * 60}px)` }}>
           <div

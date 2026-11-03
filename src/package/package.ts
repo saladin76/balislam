@@ -12,6 +12,7 @@ import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
 import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
+import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../render/motionMeter";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
 
@@ -96,12 +97,23 @@ export const packageEpisode = async (opts: PackageOptions) => {
         log(`${label}: ${pct}%`);
       }
     };
-    files.push(path.basename(await renderEpisode({ episode: ep, orientation: "landscape", plan, media, outFile: path.join(dir, `${id}-episode.mp4`), onProgress: progress("الحلقة") })));
+    // قاعدة القناة: الحركة في 80% من الوقت على الأقل (الهدف 90%) لكل فيديو منشور
+    const motion: { label: string; report: MotionReport }[] = [];
+    const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", plan, media, outFile: path.join(dir, `${id}-episode.mp4`), onProgress: progress("الحلقة") });
+    files.push(path.basename(episodeFile));
+    motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape") });
+    log(motionSummary(motion[0]!.report, "الحلقة"));
     for (let n = 1; n <= shorts; n++) {
       last = -1;
       const ch = plan.chapters[n - 1]!;
-      files.push(path.basename(await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) })));
+      const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
+      files.push(path.basename(f));
+      motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait") });
     }
+    await writeFile(path.join(dir, "motion-report.md"), `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
+    files.push("motion-report.md");
+    const weak = motion.filter((m) => m.report.percent < MOTION_MIN);
+    if (weak.length) throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. التفاصيل والمقاطع الساكنة في motion-report.md.`);
   }
   return { dir, files, hasVoice };
 };

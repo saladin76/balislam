@@ -120,7 +120,25 @@ program
         }
       },
     });
+    const { measureMotion, motionSummary } = await import("../render/motionMeter");
+    console.log(motionSummary(await measureMotion(out, opts.portrait ? "portrait" : "landscape"), "الحركة"));
     console.log(`DONE ${path.relative(projectRoot, out)}`);
+  });
+
+program
+  .command("motion")
+  .description("مقياس الحركة لفيديو مرندر (قاعدة القناة: 80% على الأقل، والهدف 90%)")
+  .argument("<files...>", "ملفات الفيديو")
+  .option("--portrait", "فيديو عمودي")
+  .action(async (files: string[], opts: { portrait?: boolean }) => {
+    const { measureMotion, motionSummary, MOTION_MIN } = await import("../render/motionMeter");
+    let bad = false;
+    for (const f of files) {
+      const r = await measureMotion(f, opts.portrait ? "portrait" : "landscape");
+      console.log(motionSummary(r, path.basename(f)));
+      bad ||= r.percent < MOTION_MIN;
+    }
+    if (bad) process.exitCode = 1;
   });
 
 program

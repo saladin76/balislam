@@ -78,6 +78,19 @@ const conceptFor = (word: string): string | null => {
   return null;
 };
 
+/**
+ * رسمة لكلمة واحدة منطوقة (للعناصر المساندة التي تظهر وقت نطق الكلمة)، أو null.
+ * المعاني المعروفة أولًا، ثم وسوم المكتبة لكلمات المعنى الطويلة فقط (تفاديًا لمطابقات بعيدة).
+ */
+export const wordElement = (word: string): string | null => {
+  const w = word.replace(/[«»"“”'؟?!.,،:؛…]/g, "");
+  if (STOP.has(normalizeArabic(w))) return null;
+  const c = conceptFor(w);
+  if (c) return c;
+  const s = stem(w);
+  return s.length >= 4 ? (tags().get(s) ?? null) : null;
+};
+
 /** يقسم النص إلى جمل (حسب علامات الوقف)، ويدمج الجمل القصيرة جدًا مع التالية. */
 export const sentencesOf = (text: string): string[] => {
   const raw = text

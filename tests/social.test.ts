@@ -46,3 +46,13 @@ describe("قاعدة: لا أثر لأدوات الإنتاج", () => {
     expect(() => assertNoTraces([{ name: "youtube.md", text: "Claude" }])).toThrow(/youtube.md/);
   });
 });
+
+describe("قاعدة: مقياس الحركة", () => {
+  it("يصف النتيجة بالحد والهدف والمقاطع الساكنة", async () => {
+    const { motionSummary } = await import("../src/render/motionMeter");
+    const low = motionSummary({ percent: 70, seconds: 10, activeSeconds: 7, perSecond: [], still: [{ from: 3, to: 6 }] }, "الحلقة");
+    expect(low).toContain("أقل من الحد");
+    expect(low).toContain("0:03–0:06");
+    expect(motionSummary({ percent: 92, seconds: 10, activeSeconds: 9, perSecond: [], still: [] }, "x")).toContain("ممتاز");
+  });
+});
