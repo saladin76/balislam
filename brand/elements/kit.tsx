@@ -67,3 +67,50 @@ export const water = (p: ElementPalette, y: number) => (
     d={`M4 ${y} Q13 ${y - 5} 22 ${y} T40 ${y} T58 ${y} T76 ${y} T94 ${y} T112 ${y} Q115 ${y + 1} 116 ${y + 2} V108 Q116 112 112 112 H8 Q4 112 4 108 Z`}
   />
 );
+
+/**
+ * شخص بلا ملامح لمشاهد العناصر (زي عصري: قميص بلون main وبنطال داكن)، واقف ومواجه.
+ * (x, base) منتصف القدمين، وh الطول الكلي. arms: down | chin (يد على الذقن) | open.
+ */
+export const figure = (p: ElementPalette, x: number, base: number, h: number, arms: "down" | "chin" | "open" = "down", key?: string | number) => {
+  const k = h / 100;
+  const head = 9 * k;
+  const top = base - h;
+  const shoulder = top + head * 2 + 3 * k;
+  const hip = base - 44 * k;
+  const w = 13 * k;
+  const pant = p.style === "line" ? p.light : p.dark;
+  const arm = (d: string) => tube(p, d, p.main, 5 * k);
+  return (
+    <g key={key}>
+      <path {...S(p)} fill={pant} d={`M${x - w + 2 * k} ${hip} L${x - w + 3 * k} ${base} H${x - 1.5 * k} L${x} ${hip + 8 * k} L${x + 1.5 * k} ${base} H${x + w - 3 * k} L${x + w - 2 * k} ${hip} Z`} />
+      <path {...S(p)} fill={p.main} d={`M${x - w} ${hip + 2 * k} L${x - w - 1 * k} ${shoulder + 6 * k} Q${x - w} ${shoulder} ${x - 6 * k} ${shoulder} H${x + 6 * k} Q${x + w} ${shoulder} ${x + w + 1 * k} ${shoulder + 6 * k} L${x + w} ${hip + 2 * k} Z`} />
+      {arms === "down" ? (
+        <>
+          {arm(`M${x - w} ${shoulder + 6 * k} L${x - w - 2 * k} ${hip + 4 * k}`)}
+          {arm(`M${x + w} ${shoulder + 6 * k} L${x + w + 2 * k} ${hip + 4 * k}`)}
+        </>
+      ) : arms === "chin" ? (
+        <>
+          {arm(`M${x - w} ${shoulder + 6 * k} L${x - w - 2 * k} ${hip + 4 * k}`)}
+          {arm(`M${x + w} ${shoulder + 6 * k} L${x + w + 3 * k} ${shoulder + 22 * k} L${x + 5 * k} ${top + head * 2}`)}
+        </>
+      ) : (
+        <>
+          {arm(`M${x - w} ${shoulder + 6 * k} L${x - w - 12 * k} ${shoulder + 18 * k}`)}
+          {arm(`M${x + w} ${shoulder + 6 * k} L${x + w + 12 * k} ${shoulder + 18 * k}`)}
+        </>
+      )}
+      <circle {...S(p)} cx={x} cy={top + head} r={head} fill={p.skin} />
+      <path {...S(p)} fill={p.style === "line" ? p.light : p.ink} d={`M${x - head} ${top + head} Q${x - head} ${top} ${x} ${top} Q${x + head} ${top} ${x + head} ${top + head} Q${x} ${top + head * 0.55} ${x - head} ${top + head} Z`} />
+    </g>
+  );
+};
+
+/** سجادة صلاة مسطحة تحت قدمي شخص (x منتصفها، y خطها السفلي) */
+export const mat = (p: ElementPalette, x: number, y: number, w: number, key?: string | number) => (
+  <g key={key}>
+    <path {...S(p)} fill={p.second} d={`M${x - w / 2} ${y} L${x - w / 2 + w * 0.12} ${y - w * 0.16} H${x + w / 2 - w * 0.12} L${x + w / 2} ${y} Z`} />
+    <path d={`M${x - w * 0.3} ${y - w * 0.04} H${x + w * 0.3}`} stroke={p.style === "line" ? p.line : p.dark} strokeWidth={2} opacity={0.35} />
+  </g>
+);

@@ -2,6 +2,7 @@ import React from "react";
 import type { ElementDef } from "../types";
 import { L, S, tint } from "../helpers";
 import { tube } from "../kit";
+import { figure, mat } from "../kit";
 
 /**
  * رموز إسلامية: مساجد وعمارة، أدوات العبادة، رموز رمضان والتقويم.
@@ -471,6 +472,57 @@ export const elements: ElementDef[] = [
         <path {...L(p, 3)} d="M32 72 H88 V106 H32 Z" opacity={0.5} />
         <path {...L(p, 3)} d="M50 92 Q60 78 70 92 V106 H50 Z" opacity={0.6} />
         <path {...S(p)} fill={p.accent} d="M60 54 L44 38 Q36 30 42 22 Q50 16 60 26 Q70 16 78 22 Q84 30 76 38 Z" />
+      </>
+    ),
+  },
+  {
+    id: "learn-prayer",
+    nameAr: "طفل يتعلم الصلاة",
+    category: "islamic",
+    tags: ["تعلم الصلاة", "الصغر", "الطفولة", "قدوة", "تربية"],
+    note: "أب وابنه على سجادتين، الصغير يقلّد الكبير. بلا ملامح.",
+    draw: (p) => (
+      <>
+        {mat(p, 40, 112, 50, "m1")}
+        {mat(p, 88, 112, 36, "m2")}
+        {figure(p, 40, 106, 92, "down", "f1")}
+        {figure(p, 88, 108, 56, "down", "f2")}
+      </>
+    ),
+  },
+  {
+    id: "prayer-distracted",
+    nameAr: "مصلٍّ شارد الذهن",
+    category: "islamic",
+    tags: ["شرود", "خواطر", "غفلة في الصلاة", "انشغال"],
+    note: "مصلٍّ واقف على سجادته وفوقه خواطر: هاتف، وساعة، وحقيبة عمل.",
+    draw: (p) => (
+      <>
+        {mat(p, 34, 114, 52, "m")}
+        {figure(p, 34, 108, 74, "down", "f")}
+        <path {...L(p, 3)} stroke={p.edge} strokeDasharray="3 5" d="M44 34 Q58 30 62 22" opacity={0.7} />
+        <path {...S(p)} fill={p.light} d="M58 26 Q58 6 82 6 Q114 6 114 26 Q114 48 86 48 Q58 48 58 26 Z" />
+        <rect {...S(p)} x={66} y={14} width={10} height={18} rx={2} fill={p.dark} />
+        <circle {...S(p)} cx={90} cy={22} r={7} fill={p.light} />
+        <path {...L(p, 2.5)} d="M90 17 V22 L94 24" />
+        <rect {...S(p)} x={98} y={26} width={12} height={9} rx={1.5} fill={p.main} />
+        <path {...L(p, 2)} d="M101 26 V23 H107 V26" />
+        <circle {...S(p)} cx={54} cy={44} r={3} fill={p.light} />
+      </>
+    ),
+  },
+  {
+    id: "prayer-present",
+    nameAr: "مصلٍّ حاضر القلب",
+    category: "islamic",
+    tags: ["خشوع", "حضور القلب", "إقبال", "سكينة"],
+    note: "مصلٍّ واقف على سجادته وقلبه مضيء، بلا خواطر حوله.",
+    draw: (p) => (
+      <>
+        {mat(p, 60, 114, 70, "m")}
+        {figure(p, 60, 108, 92, "down", "f")}
+        <path {...S(p)} fill={p.accent} d="M60 58 L52 50 Q48 46 51 42 Q55 39 60 44 Q65 39 69 42 Q72 46 68 50 Z" />
+        <path {...L(p, 3)} stroke={p.edge} d="M60 30 V24 M40 40 L35 36 M80 40 L85 36" opacity={0.6} />
       </>
     ),
   },

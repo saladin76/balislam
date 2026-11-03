@@ -741,4 +741,21 @@ export const elements: ElementDef[] = [
       </>
     ),
   },
+  {
+    id: "book-card",
+    nameAr: "بطاقة الكتاب",
+    category: "knowledge",
+    tags: ["كتاب", "الكتاب", "المؤلف", "قراءة"],
+    note: "بطاقة كتاب القناة: غلاف أسود مائل وشريطه، وظل خفيف. العنوان تكتبه القوالب.",
+    draw: (p) => (
+      <>
+        <g transform="rotate(-6 60 60)">
+          <rect x={34} y={14} width={58} height={92} rx={4} fill={p.shadow} transform="translate(6 6)" />
+          <rect {...S(p)} x={34} y={14} width={58} height={92} rx={4} fill={p.style === "line" ? p.ink : p.dark} />
+          <rect x={42} y={26} width={42} height={8} fill={p.style === "line" ? p.surface : p.light} />
+          <rect x={52} y={40} width={32} height={5} fill={p.style === "line" ? p.surface : p.light} opacity={0.5} />
+        </g>
+      </>
+    ),
+  },
 ];

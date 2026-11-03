@@ -1,6 +1,7 @@
 import React from "react";
 import type { ElementDef, ElementPalette } from "../types";
 import { L, S, tint } from "../helpers";
+import { figure } from "../kit";
 
 /**
  * النفس والمشاعر: رموز مجردة للمشاعر والحالات النفسية،
@@ -765,6 +766,37 @@ export const elements: ElementDef[] = [
         <path {...L(p, 5)} strokeDasharray="10 8" d="M28 32 H92" opacity={0.55} />
         <path {...L(p, 5)} strokeDasharray="6 10" d="M28 48 H86" opacity={0.35} />
         <path {...L(p, 5)} strokeDasharray="3 12" d="M28 64 H70" opacity={0.2} />
+      </>
+    ),
+  },
+  {
+    id: "person-question",
+    nameAr: "شخص يتساءل",
+    category: "mind",
+    tags: ["سؤال", "تأمل", "تفكير", "حيرة"],
+    draw: (p) => (
+      <>
+        {figure(p, 42, 114, 96, "chin", "f")}
+        <path {...S(p)} fill={p.main} d="M76 30 Q76 10 94 10 Q112 10 112 28 Q112 40 100 46 Q96 48 96 56 V60 H86 V54 Q86 42 96 37 Q102 34 102 28 Q102 20 94 20 Q86 20 86 30 Z" />
+        <circle {...S(p)} cx={91} cy={72} r={6} fill={p.main} />
+      </>
+    ),
+  },
+  {
+    id: "days-passing",
+    nameAr: "مرور الأيام",
+    category: "mind",
+    tags: ["الأيام", "الوقت", "اعتياد", "تكرار", "مداومة"],
+    note: "أوراق تقويم تتطاير في دائرة: الأيام تمضي والفعل يتكرر.",
+    draw: (p) => (
+      <>
+        <path {...L(p, 4)} stroke={p.edge} d="M24 78 A38 38 0 1 1 60 98" />
+        <path {...L(p, 4)} stroke={p.edge} d="M54 92 L60 98 L52 104" />
+        <g transform="rotate(-14 34 40)"><rect {...S(p)} x={20} y={26} width={28} height={30} rx={3} fill={p.light} /><rect x={20} y={26} width={28} height={8} rx={3} fill={p.main} /></g>
+        <g transform="rotate(10 82 34)"><rect {...S(p)} x={68} y={18} width={28} height={30} rx={3} fill={p.light} /><rect x={68} y={18} width={28} height={8} rx={3} fill={p.main} /></g>
+        <rect {...S(p)} x={44} y={50} width={34} height={36} rx={3} fill={p.light} />
+        <rect x={44} y={50} width={34} height={10} rx={3} fill={p.main} />
+        <path {...L(p, 3)} d="M50 68 H72 M50 76 H66" opacity={0.5} />
       </>
     ),
   },
