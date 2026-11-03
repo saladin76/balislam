@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-11-03T11:57:58.729Z",
+  "updatedAt": "2026-11-03T18:58:48.393Z",
   "chapters": [
     {
       "number": 1,
@@ -414,10 +414,10 @@
       "scenes": [
         {
           "template": "motion-story",
-          "narration": "تأمل هذه الكلمات التي يرددها كثير من الناس دعاءً: «اللهم أرنا الأشياء كما هي». قد تبدو بسيطة. لكنها تحمل سؤالًا عميقًا:",
+          "narration": "تأمل هذه الكلمات: «اللهم أرنا الأشياء كما هي». قد تبدو بسيطة. لكنها تحمل سؤالًا عميقًا:",
           "line": 104,
           "props": {
-            "beats": "person | الناس\nhands-dua | اللهم\nquestion-mark | سؤالًا"
+            "beats": "hands-dua | اللهم\nquestion-mark | سؤالًا"
           },
           "id": "c5-s1",
           "sfx": []
@@ -553,7 +553,7 @@
         },
         {
           "template": "motion-story",
-          "narration": "وهذه ثلاث خطوات تساعدنا.",
+          "narration": "وهناك ثلاث خطوات بسيطة يمكن أن تساعدنا.",
           "line": 134,
           "props": {
             "beats": "path-milestones | خطوات"
@@ -606,49 +606,59 @@
         },
         {
           "template": "motion-story",
-          "narration": "وهذا لا يعني أن نشك في كل شيء، بل أن نتواضع أمام الحقيقة، ونرجع إلى الوحي وأهل العلم فيما نجهل.",
+          "narration": "ولا يعني هذا أن نشك في كل شيء، أو أن نعتبر الحق والباطل مجرد وجهات نظر.",
           "line": 144,
           "props": {
-            "beats": "lightbulb | وهذا\nmagnifier-brass | الحقيقة\nmushaf-rehal | الوحي"
+            "beats": "lightbulb | يعني\nscale-brass-balanced | الحق"
           },
           "id": "c6-s8",
           "sfx": []
         },
         {
           "template": "motion-story",
-          "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، جرب شيئًا واحدًا. استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟",
+          "narration": "بل يعني أن نتواضع أمام الحقيقة، وأن نطلب الهداية من الله، وأن نرجع إلى الوحي وأهل العلم فيما نجهل.",
           "line": 146,
           "props": {
-            "beats": "person | شخص\nspeech-bubble | حجته\nscale-brass-balanced | الحق\nquestion-mark | مستعدًا"
+            "beats": "magnifier-brass | الحقيقة\ncompass-pocket | الهداية\nmushaf-rehal | الوحي"
           },
           "id": "c6-s9",
           "sfx": []
         },
         {
           "template": "motion-story",
-          "narration": "وتذكر هذا الدعاء: «اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
+          "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، جرب شيئًا واحدًا. استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟",
           "line": 148,
           "props": {
-            "beats": "hands-dua | الدعاء\nscale-brass-tilted | الباطل"
+            "beats": "person | شخص\nspeech-bubble | حجته\nscale-brass-balanced | الحق\nquestion-mark | مستعدًا"
           },
           "id": "c6-s10",
           "sfx": []
         },
         {
           "template": "motion-story",
-          "narration": "لأن الغاية ليست أن نثبت دائمًا أننا على حق. الغاية أن نكون مع الحق، أينما كان.",
+          "narration": "وتذكر هذا الدعاء: «اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
           "line": 150,
+          "props": {
+            "beats": "hands-dua | الدعاء\nscale-brass-tilted | الباطل"
+          },
+          "id": "c6-s11",
+          "sfx": []
+        },
+        {
+          "template": "motion-story",
+          "narration": "لأن الغاية ليست أن نثبت دائمًا أننا على حق. الغاية أن نكون مع الحق، أينما كان.",
+          "line": 152,
           "props": {
             "beats": "scale-brass-balanced | حق\ntarget | الغاية\nlightbulb | أينما"
           },
-          "id": "c6-s11",
+          "id": "c6-s12",
           "sfx": []
         },
         {
           "id": "c6-end",
           "template": "end-screen",
           "narration": "",
-          "line": 162,
+          "line": 164,
           "props": {
             "step": "متى غيّرت رأيك آخر مرة بعد أن سمعت حجة غيرك؟",
             "prompt": "اكتب في التعليقات: في المرة القادمة التي تختلف فيها مع شخص، استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟"
