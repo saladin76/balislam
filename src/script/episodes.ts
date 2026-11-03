@@ -19,6 +19,19 @@ export const resolveScriptPath = async (arg: string): Promise<string> => {
   return (await stat(p)).isDirectory() ? path.join(p, "script.md") : p;
 };
 
+/** ملف البحث بجوار السكريبت (دراسة الكتاب في زبدة الكتب) */
+export const RESEARCH_FILE = "research.md";
+
+/** قالب القناة (templates/<القناة>/<الملف>)، وإلا قالب «بالإسلام» العام. */
+export function templateFor(channelId: string, name: string): string;
+export function templateFor(channelId: string, name: string, fallback: false): string | null;
+export function templateFor(channelId: string, name: string, fallback = true): string | null {
+  const own = path.join(templatesDir, channelId, name);
+  if (existsSync(own)) return own;
+  if (!fallback) return null;
+  return path.join(templatesDir, "balislam", name);
+}
+
 export type NewEpisodeOptions = { episode: string; slug: string; domain: string; title?: string; lang?: string };
 
 /** ينشئ مجلد حلقة جديدة بقالب السكريبت. */
@@ -38,13 +51,16 @@ export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> =>
   const dir = path.join(episodesDir, `${opts.episode}-${opts.slug}`);
   await mkdir(path.join(dir, "voice"), { recursive: true });
   await mkdir(path.join(dir, "out"), { recursive: true });
-  const template = await readFile(path.join(templatesDir, "script.md"), "utf8");
-  const script = template
-    .replace("{{TITLE}}", (opts.title ?? "").replace(/"/g, "'"))
-    .replace("{{DOMAIN}}", opts.domain)
-    .replace("{{EPISODE}}", opts.episode);
+  const fill = (t: string) =>
+    t
+      .replaceAll("{{TITLE}}", (opts.title ?? "").replace(/"/g, "'"))
+      .replace("{{DOMAIN}}", opts.domain)
+      .replace("{{EPISODE}}", opts.episode);
   const file = path.join(dir, "script.md");
-  await writeFile(file, script, "utf8");
+  await writeFile(file, fill(await readFile(templateFor(channel.id, "script.md"), "utf8")), "utf8");
+  // ملف البحث (أو دراسة الكتاب) بقالب القناة: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
+  const research = templateFor(channel.id, "research.md", false);
+  if (research) await writeFile(path.join(dir, RESEARCH_FILE), fill(await readFile(research, "utf8")), "utf8");
   await writeFile(path.join(dir, "voice", ".gitkeep"), "");
   return file;
 };
