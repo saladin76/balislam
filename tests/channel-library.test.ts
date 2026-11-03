@@ -40,7 +40,10 @@ describe("مكتبة كل قناة", () => {
   });
 
   it("القوالب القديمة برسومات ثابتة لا تظهر في أي قناة", () => {
-    for (const ch of [balislam, dafatir, zubdat]) for (const id of ["desk-moment", "sim-stage", "set-scene", "map-journey"]) expect(channelLibrary(ch).templates, `${ch.id}/${id}`).not.toContain(id);
+    for (const ch of [balislam, dafatir, zubdat]) for (const id of ["desk-moment", "sim-stage", "set-scene"]) expect(channelLibrary(ch).templates, `${ch.id}/${id}`).not.toContain(id);
+    // الخريطة المتحركة أُعيد رسمها بهوية «دفتر الأفق»: لدفاتر الزمن وحدها
+    expect(channelLibrary(dafatir).templates).toContain("map-journey");
+    for (const ch of [balislam, zubdat]) expect(channelLibrary(ch).templates, ch.id).not.toContain("map-journey");
   });
 
   it("دفاتر الزمن: قوالب التاريخ وأماكنه وشخصياته", () => {

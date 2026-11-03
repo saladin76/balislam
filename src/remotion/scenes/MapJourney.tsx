@@ -8,21 +8,29 @@ import { parsePlace, rivers } from "../../geo/places";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
 import { useSceneFrame, clamp } from "./motion";
+import { estimateTimings } from "./timing";
+import { eventArrivals } from "./Timeline";
 import type { SceneBase, StringFields } from "./types";
 
 /**
  * «الخريطة المتحركة»: خريطة حقيقية (Natural Earth) لمنطقة الأحداث تُضبط على الأماكن المذكورة،
  * ومسار يُرسم من مكان إلى مكان وعليه رمز يتحرك (قافلة، جيش، سفينة)، والدبابيس تسقط حين يصلها المسار.
- * أسلوبان: رَقّ قديم بالحبر، أو ليل سينمائي بالذهب.
+ * أسلوبان بألوان «دفتر الأفق»: رَقّ بالحبر البني وشريط التاريخ الأحمر، أو غسق بالرملي وشمس الغروب.
+ * كل مكان يظهر ويصله المسار وقت نطق اسمه.
  */
 export type MapJourneyProps = SceneBase & StringFields<"title" | "places" | "mode" | "mover" | "look" | "rivers" | "zoom">;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const landGeo = feature(land50 as any, (land50 as any).objects.land) as unknown as GeoJSON.FeatureCollection;
 
+/**
+ * ألوان «دفتر الأفق» (brand/identity/approved.ts) ودرجاتها المشتقة:
+ * رَقّ: يابسة رَقّ، وبحر غسق فاتح، وساحل بالحبر البني، ومسار بأحمر شريط التاريخ.
+ * غسق (night): بحر الغسق، ويابسة غسق أفتح، وساحل رملي، ومسار بشمس الغروب.
+ */
 const LOOKS = {
-  parchment: { sea: "#A9BBB2", sea2: "#8EA398", land: "#F1E3C4", coast: "#6B4A2E", grid: "#8A6B45", route: "#8E2F23", label: "#2E1F14", halo: "#F1E3C4", river: "#6E95A6", pin: "#8E2F23", vignette: "rgba(60,35,15,.55)", font: "'Amiri', serif" },
-  night: { sea: "#0A1218", sea2: "#05090C", land: "#2C3B3B", coast: "#C9A25A", grid: "#C9A25A", route: "#E8B64C", label: "#F1E6CF", halo: "#0B1419", river: "#4F7F8C", pin: "#E8B64C", vignette: "rgba(0,0,0,.7)", font: "'Amiri', serif" },
+  parchment: { sea: "#C2B6C9", sea2: "#A396AF", land: "#F1E4CB", coast: "#4A2E1F", grid: "#4A2E1F", route: "#D7372B", label: "#2B1E14", halo: "#F1E4CB", river: "#7A6C93", pin: "#D7372B", vignette: "rgba(42,30,63,.45)", font: "'Amiri', serif" },
+  night: { sea: "#2A1E3F", sea2: "#140E20", land: "#3D2F55", coast: "#C8A15A", grid: "#C8A15A", route: "#E07A3F", label: "#F1E4CB", halo: "#140E20", river: "#6E5F8C", pin: "#E07A3F", vignette: "rgba(10,6,18,.7)", font: "'Amiri', serif" },
 } as const;
 
 /** نقاط منحنى بين مكانين (يرتفع قليلًا ليبدو كمسار رحلة) */
@@ -82,21 +90,35 @@ export const MapJourney: React.FC<MapJourneyProps> = (props) => {
     };
   }, [pts, W, H, portrait]);
 
-  // التوقيت
+  // التوقيت من الكلام: يصل المسار إلى كل مكان وقت نطق اسمه (قاعدة القناة)، وما لا يُنطق يأخذ موضعًا بين جاريه
   const start = 14;
   const end = Math.max(start + 30, durationInFrames - 30);
-  const prog = interpolate(frame, [start, end], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
-  const drawn = prog * geo.total;
+  const timings = props.narration ? (props.narrationTimings ?? estimateTimings(props.narration, 6, durationInFrames - 12)) : [];
+  const spoken = pts.length ? eventArrivals(pts.map((p) => ({ date: "", text: p.name })), timings, start, end) : [];
+  // المكان الأول نقطة البداية: يظهر عند نطقه، والمسار يبدأ منه
+  const keyF = [spoken[0] ?? start, ...spoken.slice(1)];
+  const keyL = geo.arrive.slice(0, keyF.length);
+  for (let i = 1; i < keyF.length; i++) if (keyF[i]! <= keyF[i - 1]!) keyF[i] = keyF[i - 1]! + 1;
+  const drawn = keyF.length > 1 ? interpolate(frame, keyF, keyL, { ...clamp, easing: Easing.inOut(Easing.sin) }) : 0;
+  const prog = geo.total ? drawn / geo.total : 0;
   const k = geo.route.findIndex((_, i) => (geo.lens[i] ?? 0) >= drawn);
   const head = geo.route[k < 0 ? geo.route.length - 1 : Math.max(0, k)] ?? geo.pts[0]?.xy ?? [W / 2, H / 2];
   const routeD = geo.route.slice(0, k < 0 ? geo.route.length : Math.max(1, k + 1)).map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
   const routeAll = geo.route.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
 
-  // الكاميرا: اقتراب بطيء يتبع رأس المسار
-  const z = zoom === "off" ? 1 : interpolate(frame, [0, durationInFrames], [1, zoom === "follow" ? 1.35 : 1.12], { ...clamp, easing: Easing.inOut(Easing.quad) });
-  // المتابعة: الكاميرا تتجه نحو رأس المسار دون أن تقفز (نصف المسافة بين المركز والرأس)
-  const fx = zoom === "follow" ? W / 2 + (head[0] - W / 2) * 0.55 : W / 2;
-  const fy = zoom === "follow" ? H / 2 + (head[1] - H / 2) * 0.55 : H / 2;
+  /**
+   * الكاميرا تروي الرحلة: تقترب من مكان البداية حتى يُنطق، ثم تتبع رأس المسار وهو يمضي،
+   * وبعد آخر مكان تبتعد لتكشف الطريق كله. zoom=off يبقي الخريطة ثابتة.
+   */
+  const first = geo.pts[0]?.xy ?? [W / 2, H / 2];
+  const firstAt = keyF[0] ?? start;
+  const lastAt = keyF[keyF.length - 1] ?? end;
+  const ease = { ...clamp, easing: Easing.inOut(Easing.cubic) };
+  const zIn = zoom === "off" ? 1 : zoom === "follow" ? 1.5 : 1.35;
+  const z = zoom === "off" ? 1 : frame < firstAt ? interpolate(frame, [0, firstAt], [1.02, zIn], ease) : frame < lastAt ? zIn : interpolate(frame, [lastAt + 6, Math.max(lastAt + 30, durationInFrames - 4)], [zIn, 1.04], ease);
+  const pull = (pt: readonly [number, number], k: number): [number, number] => [W / 2 + (pt[0] - W / 2) * k, H / 2 + (pt[1] - H / 2) * k];
+  const target: [number, number] = frame < firstAt ? pull(first, interpolate(frame, [0, firstAt], [0, 0.85], ease)) : frame < lastAt ? pull(head, 0.85) : pull(head, interpolate(frame, [lastAt + 6, Math.max(lastAt + 30, durationInFrames - 4)], [0.85, 0], ease));
+  const [fx, fy] = zoom === "off" ? [W / 2, H / 2] : target;
   const titleIn = interpolate(frame, [0, 14], [0, 1], clamp);
   const route = mode !== "points";
 
@@ -126,10 +148,10 @@ export const MapJourney: React.FC<MapJourneyProps> = (props) => {
       <svg width={W} height={H} style={{ position: "absolute", inset: 0 }}>
         <defs>
           <radialGradient id="mj-sea" cx="0.5" cy="0.45" r="0.75"><stop offset="0" stopColor={look.sea} /><stop offset="1" stopColor={look.sea2} /></radialGradient>
-          <filter id="mj-rough"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={3} /><feColorMatrix values="0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.15  0 0 0 0.12 0" /><feComposite in2="SourceGraphic" operator="in" /></filter>
+          <filter id="mj-rough"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={3} /><feColorMatrix values="0 0 0 0 0.29  0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0.12 0" /><feComposite in2="SourceGraphic" operator="in" /></filter>
         </defs>
         <rect width={W} height={H} fill="url(#mj-sea)" />
-        <g transform={zoom === "follow" ? `translate(${W / 2} ${H / 2}) scale(${z}) translate(${-fx} ${-fy})` : `translate(${fx} ${fy}) scale(${z}) translate(${-fx} ${-fy})`}>
+        <g transform={`translate(${W / 2} ${H / 2}) scale(${z}) translate(${-fx} ${-fy})`}>
           <path d={geo.grid} fill="none" stroke={look.grid} strokeWidth={1} opacity={0.18} />
           <path d={geo.land} fill={look.land} stroke={look.coast} strokeWidth={2.4} strokeLinejoin="round" />
           {lookId !== "night" ? <path d={geo.land} fill="#000" filter="url(#mj-rough)" opacity={0.9} /> : null}
@@ -141,7 +163,7 @@ export const MapJourney: React.FC<MapJourneyProps> = (props) => {
             </>
           ) : null}
           {geo.pts.map((p, i) => {
-            const at = route ? start + ((geo.arrive[i] ?? 0) / Math.max(1, geo.total)) * (end - start) : start + i * 14;
+            const at = spoken[i] ?? start + i * 14;
             const s = spring({ frame: frame - at, fps, config: { damping: 11, stiffness: 150 } });
             const pulse = (frame - at) > 0 ? ((frame - at) % 40) / 40 : 0;
             const left = p.xy[0] > W * 0.62;
@@ -172,7 +194,7 @@ export const MapJourney: React.FC<MapJourneyProps> = (props) => {
 };
 
 export const mapJourneySample: Omit<MapJourneyProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 1 · الطريق إلى الأندلس",
+  eyebrow: "الطريق إلى الأندلس",
   title: "من دمشق إلى قرطبة",
   places: "دمشق\nالقيروان\nجبل طارق\nقرطبة",
   mode: "route",
