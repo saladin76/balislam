@@ -22,7 +22,6 @@ export const sampleVerseCard: Omit<VerseCardProps, "themeId" | "orientation"> = 
   eyebrow: "الفصل 4 · بعين الإسلام",
   text: "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ",
   reference: "النجم · ٣٩",
-  sourceNote: "معاينة: النص النهائي بالرسم العثماني من Quran Foundation",
 };
 
 /** نسخ إنجليزية من نفس المحتوى للحلقات الإنجليزية (en-scene-…). */
@@ -50,7 +49,6 @@ export const sampleVerseCardEn: Omit<VerseCardProps, "themeId" | "orientation"> 
   reference: "An-Najm · 53:39",
   meaning: "And that there is not for man except that for which he strives.",
   meaningSource: "Translation preview",
-  sourceNote: "Preview: final Uthmani text from Quran Foundation",
 };
 
 export const sceneDurations = { bigQuestion: 150, characterTalk: 165, verseCard: 180 } as const;

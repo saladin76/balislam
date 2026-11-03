@@ -6,120 +6,88 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-11-03T11:16:56.924Z",
+  "updatedAt": "2026-11-03T11:26:00.484Z",
   "chapters": [
     {
       "number": 1,
       "title": "هل ترى الحقيقة فعلًا؟",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "هل فكرت يومًا أنك قد تكون مخطئًا في شيء تؤمن تمامًا أنه صحيح؟",
           "line": 13,
           "props": {
-            "line": "هل فكرت يومًا أنك قد تكون مخطئًا في…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "head-idea | فكرت"
           },
           "id": "c1-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "تخيل شخصين يشاهدان الموقف نفسه. الأول يراه ظلمًا، والثاني يراه عدلًا. كل واحد منهما مقتنع أنه يرى الحقيقة.",
           "line": 15,
           "props": {
-            "line": "تخيل شخصين يشاهدان الموقف نفسه.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "people | شخصين\nscale-brass-tilted | ظلمًا\nmagnifier-brass | الحقيقة"
           },
           "id": "c1-s2",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "لكن هل يمكن أن يكون الاثنان على حق في أمرين متناقضين، بالمعنى نفسه وفي الوقت نفسه؟ بالطبع لا.",
           "line": 17,
           "props": {
-            "line": "لكن هل يمكن أن يكون الاثنان على حق…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "people | الاثنان\nquestion-mark | بالمعنى\nlightbulb | بالطبع"
           },
           "id": "c1-s3",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "المشكلة أن الإنسان لا ينظر دائمًا إلى الأحداث بعين محايدة.",
           "line": 19,
           "props": {
-            "line": "المشكلة أن الإنسان لا ينظر دائمًا إلى الأحداث…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "person | الإنسان"
           },
           "id": "c1-s4",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "فنحن نتأثر بتجاربنا، ومخاوفنا، والأشخاص الذين نحبهم، والأفكار التي اعتدنا عليها.",
           "line": 21,
           "props": {
-            "line": "فنحن نتأثر بتجاربنا، ومخاوفنا، والأشخاص الذين نحبهم، والأفكار…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "footprints | بتجاربنا\nlightbulb | والأشخاص\nhead-idea | والأفكار"
           },
           "id": "c1-s5",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "قد تصدق خبرًا لأنه يؤكد رأيك. وقد ترفض نصيحة لأنها جاءت من شخص لا تحبه. وقد تدافع عن قرار اتخذته، لا لأنك متأكد من صحته، بل لأن الاعتراف بخطئه مؤلم.",
           "line": 23,
           "props": {
-            "line": "قد تصدق خبرًا لأنه يؤكد رأيك.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "phone-notifications | خبرًا\nspeech-bubble | نصيحة\npath-fork | قرار"
           },
           "id": "c1-s6",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وهنا يظهر سؤال يستحق أن نتوقف عنده: هل نحن نبحث عن الحقيقة فعلًا؟ أم نبحث عما يجعلنا نشعر أننا على حق؟",
           "line": 25,
           "props": {
-            "line": "وهنا يظهر سؤال يستحق أن نتوقف عنده: هل…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "question-mark | سؤال\nmagnifier-brass | الحقيقة\nscale-brass-balanced | حق"
           },
           "id": "c1-s7",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "فليس كل ما نقتنع به صحيحًا، وليس كل ما لا يعجبنا باطلًا. لكن لماذا يصبح التمييز بين الحق والباطل صعبًا أحيانًا؟",
           "line": 27,
           "props": {
-            "line": "فليس كل ما نقتنع به صحيحًا، وليس كل…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | صحيحًا\nscale-brass-tilted | باطلًا"
           },
           "id": "c1-s8",
           "sfx": []
@@ -131,85 +99,61 @@
       "title": "عندما يرتدي الباطل ثوب الحق",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ليس كل باطل يأتي في صورة واضحة يسهل رفضها. أحيانًا يأتي ممزوجًا بشيء من الحق.",
           "line": 33,
           "props": {
-            "line": "ليس كل باطل يأتي في صورة واضحة يسهل…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "scale-brass-tilted | باطل\nscale-brass-balanced | الحق"
           },
           "id": "c2-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "تخيل شخصًا يجرح الآخرين بكلماته، ثم يقول: أنا فقط إنسان صريح. الصراحة قيمة جميلة، لكن هل تعني أن نؤذي الناس؟",
           "line": 35,
           "props": {
-            "line": "تخيل شخصًا يجرح الآخرين بكلماته، ثم يقول: أنا…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "heart-bandaged | يجرح\nperson | إنسان\ndiamond | قيمة"
           },
           "id": "c2-s2",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وشخصًا يتكبر على غيره، ثم يقول: أنا أعرف قيمة نفسي. الثقة بالنفس مطلوبة، لكن هل تعني احتقار الآخرين؟",
           "line": 37,
           "props": {
-            "line": "وشخصًا يتكبر على غيره، ثم يقول: أنا أعرف…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "crown | يتكبر\ndiamond | قيمة\nperson | الآخرين"
           },
           "id": "c2-s3",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وشخصًا ينشر خبرًا دون التأكد منه، لأنه مقتنع أن الخبر يخدم قضية عادلة. لكن هل تصبح المعلومة صحيحة لمجرد أنها تخدم ما نؤمن به؟",
           "line": 39,
           "props": {
-            "line": "وشخصًا ينشر خبرًا دون التأكد منه، لأنه مقتنع…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "phone-notifications | خبرًا\nenvelope | الخبر\nphone-notifications | المعلومة"
           },
           "id": "c2-s4",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "هذه الأمثلة تكشف مشكلة دقيقة. قد تكون الفكرة التي نستخدمها لتبرير أفعالنا صحيحة في أصلها، لكن التطبيق خاطئ.",
           "line": 41,
           "props": {
-            "line": "هذه الأمثلة تكشف مشكلة دقيقة.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | الأمثلة\nhead-idea | الفكرة\nscale-brass-tilted | خاطئ"
           },
           "id": "c2-s5",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ولهذا جاء التحذير القرآني:",
           "line": 43,
           "props": {
-            "line": "ولهذا جاء التحذير القرآني:",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "mushaf-rehal | القرآني"
           },
           "id": "c2-s6",
           "sfx": []
@@ -228,29 +172,21 @@
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "فالحق والباطل ليسا شيئًا واحدًا. لكن الإنسان قد يخلط بينهما، حتى يصعب عليه أن يميز أحدهما من الآخر.",
           "line": 47,
           "props": {
-            "line": "فالحق والباطل ليسا شيئًا واحدًا.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "scale-brass-balanced | فالحق\nperson | الإنسان\nlightbulb | أحدهما"
           },
           "id": "c2-s8",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وأحيانًا يكون أخطر الباطل هو الذي يحمل شيئًا من الحق. لكن هناك مشكلة أعمق من اختلاط الأمور أمام أعيننا.",
           "line": 49,
           "props": {
-            "line": "وأحيانًا يكون أخطر الباطل هو الذي يحمل شيئًا…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "scale-brass-tilted | الباطل"
           },
           "id": "c2-s9",
           "sfx": []
@@ -262,85 +198,61 @@
       "title": "هل نريد معرفة الحق فعلًا؟",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "تخيل أنك اختلفت مع شخص قريب منك. أنت مقتنع أنه أخطأ في حقك.",
           "line": 55,
           "props": {
-            "line": "تخيل أنك اختلفت مع شخص قريب منك.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "person | شخص\nlightbulb | مقتنع"
           },
           "id": "c3-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ثم تكتشف معلومة جديدة تثبت أنك أنت من أساء فهم الموقف.",
           "line": 57,
           "props": {
-            "line": "ثم تكتشف معلومة جديدة تثبت أنك أنت من…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "phone-notifications | معلومة"
           },
           "id": "c3-s2",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ماذا ستفعل؟ هل ستعتذر مباشرة؟ أم ستبحث عن تفسير آخر يحفظ لك موقفك؟",
           "line": 59,
           "props": {
-            "line": "ماذا ستفعل؟",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "question-mark | ستعتذر\nquestion-mark | ستبحث"
           },
           "id": "c3-s3",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "هذا الموقف البسيط يكشف شيئًا مهمًا. أحيانًا لا نرفض الحقيقة لأننا لا نراها. بل لأننا لا نريد النتائج التي ستترتب على قبولها.",
           "line": 61,
           "props": {
-            "line": "هذا الموقف البسيط يكشف شيئًا مهمًا.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | الموقف\nmagnifier-brass | الحقيقة\nlightbulb | النتائج"
           },
           "id": "c3-s4",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "فالاعتراف بالحق قد يتطلب الاعتذار. وقد يتطلب تغيير قرار. وقد يتطلب التخلي عن مصلحة. وقد يتطلب أن تقول لنفسك: كنت مخطئًا. وهذه ليست دائمًا خطوة سهلة.",
           "line": 63,
           "props": {
-            "line": "فالاعتراف بالحق قد يتطلب الاعتذار.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "scale-brass-balanced | بالحق\npath-fork | قرار\nscale-brass-tilted | مخطئًا"
           },
           "id": "c3-s5",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "يقول الله تعالى:",
           "line": 65,
           "props": {
-            "line": "يقول الله تعالى:",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | تعالى"
           },
           "id": "c3-s6",
           "sfx": []
@@ -359,43 +271,31 @@
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وفي سياق هذه الآيات تذكير بأن الإنسان شاهد على نفسه، ولو قدم الأعذار.",
           "line": 69,
           "props": {
-            "line": "وفي سياق هذه الآيات تذكير بأن الإنسان شاهد…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "mushaf-rehal | الآيات\nlightbulb | الأعذار"
           },
           "id": "c3-s8",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وهنا نكتشف الفرق بين أمرين: أن تعرف ما هو صحيح. وأن تكون مستعدًا للعمل بما عرفت.",
           "line": 71,
           "props": {
-            "line": "وهنا نكتشف الفرق بين أمرين: أن تعرف ما…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | نكتشف\nscale-brass-balanced | صحيح\nlaptop | للعمل"
           },
           "id": "c3-s9",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "فقد يكون أصعب ما في الحق ليس أن نراه، بل أن نقبله عندما يخالف ما نريد. ولهذا يحمل دعاء قصير معنى عميقًا للغاية.",
           "line": 73,
           "props": {
-            "line": "فقد يكون أصعب ما في الحق ليس أن…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "scale-brass-balanced | الحق\nlightbulb | نقبله"
           },
           "id": "c3-s10",
           "sfx": []
@@ -407,141 +307,101 @@
       "title": "اللهم أرنا الحق حقًا",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "هناك دعاء مأثور في كلام أهل العلم، عظيم في معناه:",
           "line": 79,
           "props": {
-            "line": "هناك دعاء مأثور في كلام أهل العلم، عظيم…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hands-dua | دعاء\nlightbulb | معناه"
           },
           "id": "c4-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "«اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
           "line": 81,
           "props": {
-            "line": "«اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hands-dua | اللهم\nscale-brass-tilted | الباطل"
           },
           "id": "c4-s2",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "تأمل كلمات هذا الدعاء.",
           "line": 83,
           "props": {
-            "line": "تأمل كلمات هذا الدعاء.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hands-dua | الدعاء"
           },
           "id": "c4-s3",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "نحن لا نقول فقط: اللهم أرنا الحق. بل نقول: أرنا الحق حقًا. أي نسأل الله أن يهدينا إلى معرفته على حقيقته.",
           "line": 85,
           "props": {
-            "line": "نحن لا نقول فقط: اللهم أرنا الحق.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | نقول\nhands-dua | اللهم\nscale-brass-balanced | الحق"
           },
           "id": "c4-s4",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ثم نضيف طلبًا آخر: «وارزقنا اتباعه». لماذا؟ لأن معرفة الصواب لا تعني بالضرورة أننا سنفعله.",
           "line": 87,
           "props": {
-            "line": "ثم نضيف طلبًا آخر: «وارزقنا اتباعه».",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | طلبًا\nhands-dua | وارزقنا"
           },
           "id": "c4-s5",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "كم مرة عرفنا أن الاعتذار هو الصواب، لكن منعنا الكبرياء؟ وكم مرة عرفنا أن علينا التوقف عن عادة سيئة، لكن غلبتنا رغبتنا؟",
           "line": 89,
           "props": {
-            "line": "كم مرة عرفنا أن الاعتذار هو الصواب، لكن…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "handshake | الاعتذار\nhand-stop | التوقف\nquestion-mark | غلبتنا"
           },
           "id": "c4-s6",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ثم نطلب من الله: «وأرنا الباطل باطلًا». فقد يبدو الخطأ جميلًا، أو سهلًا، أو نافعًا في اللحظة الحاضرة. وقد نراه مقبولًا فقط لأن كثيرين يفعلونه.",
           "line": 91,
           "props": {
-            "line": "ثم نطلب من الله: «وأرنا الباطل باطلًا».",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | نطلب\nhands-dua | وأرنا\nlightbulb | مقبولًا"
           },
           "id": "c4-s7",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ثم نقول: «وارزقنا اجتنابه». لأن معرفة الخطأ وحدها لا تكفي للابتعاد عنه.",
           "line": 93,
           "props": {
-            "line": "ثم نقول: «وارزقنا اجتنابه».",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hands-dua | وارزقنا\nscale-brass-tilted | الخطأ"
           },
           "id": "c4-s8",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وهكذا يجمع الدعاء بين البصيرة والعمل. بين أن تعرف الحق، وأن تتبعه. وبين أن تعرف الباطل، وأن تجتنبه.",
           "line": 95,
           "props": {
-            "line": "وهكذا يجمع الدعاء بين البصيرة والعمل.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hands-dua | الدعاء\nscale-brass-balanced | الحق\nscale-brass-tilted | الباطل"
           },
           "id": "c4-s9",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "فنحن لا نحتاج فقط إلى عين ترى الحق، بل إلى قلب يقبله، وعزيمة تعيننا على اتباعه. وهذا يقودنا إلى دعاء آخر يحمل معنى قريبًا.",
           "line": 97,
           "props": {
-            "line": "فنحن لا نحتاج فقط إلى عين ترى الحق،…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "glasses | عين\nheart-light | قلب\nlightbulb | وعزيمة"
           },
           "id": "c4-s10",
           "sfx": []
@@ -553,85 +413,61 @@
       "title": "اللهم أرنا الأشياء كما هي",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "تأمل هذه الكلمات التي يرددها كثير من الناس دعاءً: «اللهم أرنا الأشياء كما هي». قد تبدو بسيطة. لكنها تحمل سؤالًا عميقًا:",
           "line": 103,
           "props": {
-            "line": "تأمل هذه الكلمات التي يرددها كثير من الناس…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "person | الناس\nhands-dua | اللهم\nquestion-mark | سؤالًا"
           },
           "id": "c5-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "هل نرى الأشياء على حقيقتها، أم نراها أكبر أو أصغر مما تستحق؟",
           "line": 105,
           "props": {
-            "line": "هل نرى الأشياء على حقيقتها، أم نراها أكبر…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "magnifier-brass | حقيقتها\nquestion-mark | نراها"
           },
           "id": "c5-s2",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "تأمل المال مثلًا. هو نعمة ووسيلة لقضاء الحاجات. لكن الإنسان قد يراه مقياسًا لقيمته وقيمة الآخرين.",
           "line": 107,
           "props": {
-            "line": "تأمل المال مثلًا.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "money-bag | المال\nperson | الإنسان"
           },
           "id": "c5-s3",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وتأمل النجاح. قد يكون ثمرة جهد وتوفيق من الله. لكننا أحيانًا نجعله سببًا للشعور بأننا أفضل من غيرنا.",
           "line": 109,
           "props": {
-            "line": "وتأمل النجاح.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "podium | النجاح\nstar-badge | أفضل"
           },
           "id": "c5-s4",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وتأمل الدنيا كلها. قد ننشغل بها حتى نتصرف وكأنها ستبقى إلى الأبد.",
           "line": 111,
           "props": {
-            "line": "وتأمل الدنيا كلها.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hourglass-ornate | الدنيا"
           },
           "id": "c5-s5",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "بينما يذكرنا القرآن:",
           "line": 113,
           "props": {
-            "line": "بينما يذكرنا القرآن:",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "mushaf-rehal | القرآن"
           },
           "id": "c5-s6",
           "sfx": []
@@ -650,57 +486,41 @@
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "فالمشكلة ليست في أن نعمل للدنيا أو نستمتع بما أباح الله فيها. المشكلة أن ننسى حقيقتها، وأن نجعلها غايتنا الأخيرة.",
           "line": 117,
           "props": {
-            "line": "فالمشكلة ليست في أن نعمل للدنيا أو نستمتع…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hourglass-ornate | للدنيا\nmagnifier-brass | حقيقتها\nlightbulb | الأخيرة"
           },
           "id": "c5-s8",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ورؤية الأشياء كما هي تعني أيضًا أن نرى أنفسنا بصدق. أن نعترف بمميزاتنا دون غرور. وبأخطائنا دون يأس.",
           "line": 119,
           "props": {
-            "line": "ورؤية الأشياء كما هي تعني أيضًا أن نرى…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "glasses | ورؤية\ncrown | غرور\nlightbulb | وبأخطائنا"
           },
           "id": "c5-s9",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وأن نرى الآخرين بعدل، فلا تجعلنا محبتنا لهم نتجاهل أخطاءهم، ولا تجعلنا كراهيتنا لهم ننكر ما عندهم من حق.",
           "line": 121,
           "props": {
-            "line": "وأن نرى الآخرين بعدل، فلا تجعلنا محبتنا لهم…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "person | الآخرين\nlightbulb | أخطاءهم\nscale-brass-balanced | حق"
           },
           "id": "c5-s10",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ربما لا نحتاج دائمًا إلى أن تتغير الأشياء من حولنا، بقدر ما نحتاج إلى أن نراها بميزان صحيح. فكيف نقترب من هذه الرؤية في حياتنا اليومية؟",
           "line": 123,
           "props": {
-            "line": "ربما لا نحتاج دائمًا إلى أن تتغير الأشياء…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | الأشياء\nscale-brass-balanced | بميزان"
           },
           "id": "c5-s11",
           "sfx": []
@@ -712,57 +532,41 @@
       "title": "هل أنت مستعد لأن تكون مخطئًا؟",
       "scenes": [
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "كيف تعرف أنك تسير في طريق الحق؟",
           "line": 129,
           "props": {
-            "line": "كيف تعرف أنك تسير في طريق الحق؟",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "compass-pocket | تسير"
           },
           "id": "c6-s1",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "ليس بأن تكون متأكدًا من كل آرائك. بل بأن تكون مستعدًا لمراجعتها حين يظهر لك ما يخالفها. فاليقين بما ثبت من الحق لا يعني أن كل فهم شخصي لنا صحيح.",
           "line": 131,
           "props": {
-            "line": "ليس بأن تكون متأكدًا من كل آرائك.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | متأكدًا\nlightbulb | لمراجعتها\nscale-brass-balanced | الحق"
           },
           "id": "c6-s2",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وهذه ثلاث خطوات تساعدنا.",
           "line": 133,
           "props": {
-            "line": "وهذه ثلاث خطوات تساعدنا.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "path-milestones | خطوات"
           },
           "id": "c6-s3",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "الأولى: تثبت قبل أن تحكم. لا تصدق كل خبر تسمعه، حتى لو وافق رأيك. فالله تعالى يقول:",
           "line": 135,
           "props": {
-            "line": "الأولى: تثبت قبل أن تحكم.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "search | تثبت\nphone-notifications | خبر\nlightbulb | فالله"
           },
           "id": "c6-s4",
           "sfx": []
@@ -781,85 +585,61 @@
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "والثانية: راجع نيتك. حين تختلف مع أحد، اسأل نفسك: هل أريد أن أصل إلى الصواب؟ أم أريد فقط أن أنتصر في النقاش؟",
           "line": 139,
           "props": {
-            "line": "والثانية: راجع نيتك.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "heart-light | نيتك\nscale-brass-balanced | الصواب\ntrophy | أنتصر"
           },
           "id": "c6-s6",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "والثالثة: كن مستعدًا لتصحيح موقفك. فالاعتراف بالخطأ ليس هزيمة. بل قد يكون أول خطوة نحو الحق.",
           "line": 141,
           "props": {
-            "line": "والثالثة: كن مستعدًا لتصحيح موقفك.",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | والثالثة\nscale-brass-tilted | بالخطأ\npath-milestones | خطوة"
           },
           "id": "c6-s7",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وهذا لا يعني أن نشك في كل شيء، بل أن نتواضع أمام الحقيقة، ونرجع إلى الوحي وأهل العلم فيما نجهل.",
           "line": 143,
           "props": {
-            "line": "وهذا لا يعني أن نشك في كل شيء،…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "lightbulb | وهذا\nmagnifier-brass | الحقيقة\nmushaf-rehal | الوحي"
           },
           "id": "c6-s8",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، جرب شيئًا واحدًا. استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟",
           "line": 145,
           "props": {
-            "line": "وفي المرة القادمة التي تختلف فيها مع شخص،…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "person | شخص\nspeech-bubble | حجته\nscale-brass-balanced | الحق"
           },
           "id": "c6-s9",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "وتذكر هذا الدعاء: «اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
           "line": 147,
           "props": {
-            "line": "وتذكر هذا الدعاء: «اللهم أرنا الحق حقًا وارزقنا…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "hands-dua | الدعاء\nscale-brass-tilted | الباطل"
           },
           "id": "c6-s10",
           "sfx": []
         },
         {
-          "template": "character-talk",
+          "template": "motion-story",
           "narration": "لأن الغاية ليست أن نثبت دائمًا أننا على حق. الغاية أن نكون مع الحق، أينما كان.",
           "line": 149,
           "props": {
-            "line": "لأن الغاية ليست أن نثبت دائمًا أننا على…",
-            "variant": "narrator-m",
-            "pose": "stand",
-            "element": "",
-            "side": ""
+            "beats": "scale-brass-balanced | حق\ntarget | الغاية\nlightbulb | أينما"
           },
           "id": "c6-s11",
           "sfx": []

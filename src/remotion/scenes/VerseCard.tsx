@@ -21,7 +21,7 @@ const Star8: React.FC<{ size: number; fill: string; stroke?: string; sw?: number
  * النص يُعرض كما ورد من المصدر بلا أي تعديل.
  */
 export const VerseCard: React.FC<VerseCardProps> = (props) => {
-  const { themeId, orientation, text, reference, reciter, sourceNote, meaning, meaningSource } = props;
+  const { themeId, orientation, text, reference, reciter, meaning, meaningSource } = props;
   const frame = useSceneFrame();
   const baseVerse = useSize("verse", orientation);
   const refSize = useSize("reference", orientation);
@@ -107,15 +107,10 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
             <div style={{ fontFamily: fontFamilies.heading, fontWeight: 600, fontSize: refSize, color: c.inkSoft }}>{reference}</div>
             <div style={{ width: 56, height: 2, background: c.inkSoft, opacity: 0.4 }} />
           </div>
-          {reciter || sourceNote ? (
+          {/* نسبة النص لـ Quran Foundation في وصف الفيديو لا على الشاشة؛ ويبقى هنا اسم القارئ فقط إن وُجدت تلاوة */}
+          {reciter ? (
             <div style={{ fontSize: portrait ? 26 : 22, color: c.inkSoft, opacity: refIn * 0.8, marginTop: -16 }}>
-              {reciter ? (
-                <>
-                  <T k="recitedBy" /> {reciter}
-                </>
-              ) : (
-                sourceNote
-              )}
+              <T k="recitedBy" /> {reciter}
             </div>
           ) : null}
         </div>

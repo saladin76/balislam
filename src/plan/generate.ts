@@ -81,7 +81,7 @@ export type QuranTexts = Record<string, string>;
 export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}, channel: ChannelConfig = defaultChannel): Plan => {
   const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string; style?: string; format?: string };
   // أسلوب الحلقة: المشاهد التي بلا علامة تُعرض بالسبورة المتصلة أو بالشخصية المتكلمة
-  const defaultTemplate = styleTemplate(fm.style) ?? "character-talk";
+  const defaultTemplate = styleTemplate(fm.style) ?? styleTemplate(channel.styles?.[0]) ?? "character-talk";
   const domain: Domain = fm.domain ?? Object.keys(channel.domains)[0] ?? "general";
   const title = String(fm.title ?? "");
   // الرسمات الآلية من مكتبة القناة فقط

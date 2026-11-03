@@ -70,3 +70,19 @@ describe("مكتبة كل قناة", () => {
     expect(errs2).toEqual(["c1-s4"]);
   });
 });
+
+describe("أسلوب كل قناة لها وحدها", () => {
+  it("لا يشترك قالب أسلوب بين قناتين، وأساليب كل قناة من مكتبتها", async () => {
+    const { styleTemplate } = await import("../src/plan/styles");
+    const styles = (id: string) => (JSON.parse(readFileSync(`channels/${id}/channel.json`, "utf8")).styles as string[]).map((s) => styleTemplate(s) ?? s);
+    const all = { balislam: styles("balislam"), dafatir: styles("dafatir-alzaman"), zubdat: styles("zubdat-alkutub") };
+    const lib = { balislam: channelLibrary(balislam).templates, dafatir: channelLibrary(dafatir).templates, zubdat: channelLibrary(zubdat).templates };
+    for (const [k, v] of Object.entries(all)) for (const t of v) expect(lib[k as keyof typeof lib], `${k}/${t}`).toContain(t);
+    const keys = Object.keys(all) as (keyof typeof all)[];
+    for (const a of keys) for (const b of keys) if (a !== b) for (const t of all[a]) expect(lib[b], `${t} من ${a} في ${b}`).not.toContain(t);
+  });
+
+  it("بالإسلام بلا سبورة ولا رسم", () => {
+    for (const t of ["board-story", "sketch-board"]) expect(channelLibrary(balislam).templates).not.toContain(t);
+  });
+});

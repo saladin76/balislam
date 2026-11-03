@@ -29,7 +29,6 @@ import type { CharacterPose, CharacterVariant } from "../../../characters/Charac
 import type { Orientation } from "./types";
 import type { WordTiming } from "./timing";
 import type { EpisodeMedia } from "../../plan/media";
-import { useLang } from "../../i18n/context";
 import { resolveOverlays, useChannelOverlays, type Overlays } from "../../../brand/identity/index";
 
 type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; prev?: PlanScene };
@@ -50,7 +49,6 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
     // شاشة النهاية فيها شعار القناة أصلًا
     watermark: ov.watermark && scene.template !== "end-screen",
   };
-  const lang = useLang();
   const hasRecitation = Boolean(scene.ayahKey && media?.recitations[scene.ayahKey]);
   switch (scene.template) {
     case "big-question":
@@ -73,7 +71,6 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
           text={p.text || ""}
           reference={p.reference || ""}
           reciter={hasRecitation ? p.reciter || media?.recitations[scene.ayahKey!]?.reciter || undefined : undefined}
-          sourceNote={p.text && !p.text.startsWith("‹") ? lang.strings.quranAttribution : undefined}
           meaning={p.meaning || undefined}
           meaningSource={p.meaningSource || undefined}
         />

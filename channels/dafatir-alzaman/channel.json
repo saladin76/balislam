@@ -55,11 +55,7 @@
   },
   "styles": [
     "doc-plate",
-    "timeline",
-    "motion",
-    "glow",
-    "kinetic",
-    "board"
+    "timeline"
   ],
   "rules": {
     "music": false,

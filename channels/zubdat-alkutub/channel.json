@@ -56,9 +56,7 @@
   },
   "styles": [
     "sketch-board",
-    "board",
-    "kinetic",
-    "motion"
+    "board"
   ],
   "rules": {
     "music": false,

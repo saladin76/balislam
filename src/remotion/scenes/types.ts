@@ -43,8 +43,6 @@ export type VerseCardProps = SceneBase & {
   meaning?: string;
   /** اسم الترجمة، يظهر صغيرًا للنسبة */
   meaningSource?: string;
-  /** سطر صغير للمعاينة مثل «نص تجريبي» */
-  sourceNote?: string;
 };
 
 export type CharacterTalkProps = SceneBase & {

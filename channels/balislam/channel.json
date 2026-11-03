@@ -67,8 +67,7 @@
   "styles": [
     "motion",
     "glow",
-    "kinetic",
-    "board"
+    "kinetic"
   ],
   "rules": {
     "music": false,

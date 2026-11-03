@@ -28,7 +28,8 @@ describe("الخطة: الحديث والربط وشاشة النهاية", () =
   it("جملة الربط بعد بطاقة حديث تأخذ مشهدًا خاصًا لا تُقرأ فوق البطاقة", () => {
     const ch4 = plan.chapters.find((c) => c.number === 4)!;
     const last = ch4.scenes[ch4.scenes.length - 1]!;
-    expect(last.template).toBe("character-talk");
+    // تأخذ الأسلوب الافتراضي للقناة (أول أساليبها) لا بطاقة الحديث
+    expect(last.template).toBe("motion-story");
     expect(last.narration).toBe("فكيف نحوّل هذا الفهم إلى عمل؟");
     expect(ch4.scenes.find((s) => s.template === "hadith-card")!.narration).toBe("");
   });
