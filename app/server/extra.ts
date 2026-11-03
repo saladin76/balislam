@@ -1,7 +1,8 @@
 import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { readdir, readFile, writeFile } from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { readdir, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import { execFile, spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
@@ -220,6 +221,48 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       await writeFile(file, JSON.stringify(ideas, null, 2) + "\n", "utf8");
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : []);
+    return true;
+  }
+
+  // حذف حلقة نهائيًا: من الجهاز (السكريبت والخطة والصوت والفيديو والصور)، ومن أرشيف البداية النظيفة، ومن GitHub
+  if (parts[0] === "episodes" && parts[1] && !parts[2] && req.method === "DELETE") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    if (busy.has(`${ch}/${parts[1]}`)) return send(res, 409, { error: busyMessage }), true;
+    const { confirm } = await readBody(req);
+    if (confirm !== parts[1]) return send(res, 400, { error: "اكتب رقم الحلقة للتأكيد." }), true;
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const dir = path.dirname(await resolveScriptPath(parts[1]));
+    const rel = path.relative(ctx.root, dir);
+    if (!/^channels\/[^/]+\/episodes\/\d{3}-[^/]+$/.test(rel.split(path.sep).join("/"))) return send(res, 400, { error: "مسار الحلقة غير متوقع؛ لم يُحذف شيء." }), true;
+    const git = (args: string[]) => new Promise<{ ok: boolean; out: string }>((resolve) => execFile("git", args, { cwd: ctx.root, timeout: 120_000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }, (err, so, se) => resolve({ ok: !err, out: `${so}${se}`.trim() })));
+    // ١) من Git (إن كانت مرفوعة) ثم من القرص كله، بما فيه الصوت والفيديو غير المرفوعين
+    const tracked = (await git(["ls-files", "--", rel])).out.length > 0;
+    if (tracked) await git(["rm", "-r", "-q", "--cached", "--", rel]);
+    await rm(dir, { recursive: true, force: true });
+    // ٢) من أرشيف «البداية النظيفة» (~/balislam-archive/*/<المسار نفسه>)
+    const archive = path.join(os.homedir(), "balislam-archive");
+    let archived = 0;
+    if (existsSync(archive))
+      for (const d of await readdir(archive)) {
+        const a = path.join(archive, d, rel);
+        if (existsSync(a)) {
+          await rm(a, { recursive: true, force: true });
+          archived++;
+        }
+      }
+    // ٣) من GitHub: حفظ الحذف ورفعه (حتى لا تعيده محادثات القنوات)
+    let pushed = false;
+    let note = "";
+    if (tracked) {
+      const c = await git(["-c", "user.name=Balislam Studio", "-c", "user.email=studio@localhost", "commit", "-q", "-m", `حذف الحلقة ${path.basename(dir)} من قناة ${ch}`, "--", rel]);
+      if (c.ok) {
+        const pl = await git(["pull", "--rebase", "-q"]);
+        const p = pl.ok ? await git(["push", "-q"]) : pl;
+        pushed = p.ok;
+        if (!p.ok) note = "حُذفت من جهازك، وتعذّر رفع الحذف إلى GitHub الآن؛ يُرفع مع أول تحديث ناجح أو شغّل: git push";
+      } else note = `تعذّر حفظ الحذف في Git: ${c.out.slice(0, 160)}`;
+    }
+    send(res, 200, { ok: true, dir: rel, archived, pushed, note });
     return true;
   }
 

@@ -304,6 +304,17 @@ export const App: React.FC = () => {
             key={`${channelId}-${homeKey}`}
             channel={channel}
             onNew={() => setShowNew(true)}
+            onDeleted={(id) => {
+              // الحلقة المحذوفة لا تبقى مفتوحة ولا في القائمة
+              api.episodes().then((list) => {
+                setEpisodes(list);
+                if (id === epId) {
+                  loadedKey.current = "";
+                  setPlan(null);
+                  setEpId(list[0]?.id ?? "");
+                }
+              }).catch(() => {});
+            }}
             onOpen={(id, t) => {
               if (id !== epId && !confirmLeaveScript()) return;
               setEpId(id);

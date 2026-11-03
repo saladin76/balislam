@@ -38,7 +38,9 @@ export const HomeTab: React.FC<{
   channel: ChannelInfo;
   onOpen: (id: string, tab: "script" | "episode" | "publish") => void;
   onNew: () => void;
-}> = ({ channel, onOpen, onNew }) => {
+  onDeleted?: (id: string) => void;
+}> = ({ channel, onOpen, onNew, onDeleted }) => {
+  const [del, setDel] = useState<{ id: string; title: string; typed: string; busy?: boolean; msg?: string } | null>(null);
   const [items, setItems] = useState<Overview[] | null>(null);
   const [err, setErr] = useState("");
   useEffect(() => {
@@ -54,6 +56,38 @@ export const HomeTab: React.FC<{
 
   return (
     <div className="home">
+      {del ? (
+        <div className="modal-back" role="dialog" aria-modal="true" aria-labelledby="del-title">
+          <div className="modal">
+            <div className="modal-head"><h3 id="del-title">حذف الحلقة {del.id} نهائيًا</h3></div>
+            <p>«{del.title}»</p>
+            <p className="help">تُحذف نهائيًا ولا يمكن استرجاعها: السكريبت والتشكيل والمشاهد والصوت والفيديو والصور المصغّرة، من جهازك ومن أرشيف البداية النظيفة ومن GitHub.</p>
+            <label className="field"><span>اكتب رقم الحلقة ({del.id}) للتأكيد</span><input id="del-confirm" type="text" dir="ltr" value={del.typed} onChange={(ev) => setDel({ ...del, typed: ev.target.value.trim() })} autoFocus /></label>
+            {del.msg ? <p className="help" style={{ color: "var(--err)" }}>{del.msg}</p> : null}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-start" }}>
+              <button
+                className="btn primary danger"
+                disabled={del.typed !== del.id || del.busy}
+                onClick={async () => {
+                  setDel({ ...del, busy: true, msg: undefined });
+                  try {
+                    const r = await api.deleteEpisode(del.id, del.typed);
+                    setItems((xs) => (xs ?? []).filter((x) => x.id !== del.id));
+                    setDel(null);
+                    onDeleted?.(del.id);
+                    if (r.note) window.alert(r.note);
+                  } catch (x) {
+                    setDel({ ...del, busy: false, msg: (x as Error).message });
+                  }
+                }}
+              >
+                {del.busy ? "جارٍ الحذف…" : "احذف نهائيًا"}
+              </button>
+              <button className="btn" disabled={del.busy} onClick={() => setDel(null)}>إلغاء</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="home-head">
         <div>
           <h1>{channel.name}</h1>
@@ -103,6 +137,8 @@ export const HomeTab: React.FC<{
                   </button>
                   <button className="btn ghost small" onClick={() => onOpen(e.id, "episode")}>المشاهد</button>
                   <button className="btn ghost small" onClick={() => onOpen(e.id, "script")}>السكريبت</button>
+                  <span className="spacer" />
+                  <button className="btn ghost small danger" onClick={() => setDel({ id: e.id, title: e.title || e.dir, typed: "" })}>حذف</button>
                 </footer>
               </article>
             );
