@@ -64,7 +64,8 @@ describe("أسلوب الحلقة", () => {
       const p = generatePlan(parseScript(s));
       const sc = p.chapters[1]!.scenes[0]!;
       expect(sc.template, style).toBe(template);
-      if (template === "glow-story") expect(sc.props.wish).toBeTruthy();
+      // الأمنية من قائمة المعاني المراجَعة فقط، وإلا تبقى فارغة (لا مصباح عام بديل)
+      if (template === "glow-story") expect(sc.props.wish).not.toBe("lightbulb");
     }
   });
 });

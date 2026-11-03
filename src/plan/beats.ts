@@ -1,4 +1,4 @@
-import { elementLibrary, hasElement } from "../../brand/elements/registry";
+import { hasElement } from "../../brand/elements/registry";
 import { normalizeArabic } from "../script/quranMeta";
 
 /**
@@ -68,22 +68,6 @@ const stem = (w: string) =>
 
 const STOP = new Set(["له", "لها", "لهم", "لهما", "لنا", "لك", "به", "بها", "بهم", "في", "من", "على", "الى", "عن", "ان", "لا", "لم", "لن", "ما", "هو", "هي", "هذا", "هذه", "ذلك", "كل", "قد", "لكن", "بل", "ثم", "او", "ام", "حتى", "مع", "عند", "التي", "الذي", "كان", "نحن", "انت", "انه", "انها", "انك", "لان", "اي", "فقط", "دائما", "احيانا", "يمكن", "مجرد", "ليس", "ليست"].map((x) => normalizeArabic(x)));
 
-/** فهرس وسوم المكتبة: جذع الوسم ← العنصر (العناصر الأولى أولى). */
-let tagIndex: Map<string, string> | null = null;
-const tags = () => {
-  if (!tagIndex) {
-    tagIndex = new Map();
-    for (const e of elementLibrary) {
-      if (e.kind === "backdrop") continue;
-      for (const t of [e.nameAr, ...e.tags]) {
-        const s = stem(t);
-        if (s.length >= 3 && !tagIndex.has(s)) tagIndex.set(s, e.id);
-      }
-    }
-  }
-  return tagIndex;
-};
-
 const conceptFor = (word: string): string | null => {
   const n = normalizeArabic(word).replace(/[^\p{L}\s]/gu, "");
   const s = stem(word);
@@ -149,20 +133,12 @@ export const beatFor = (sentence: string, used: Set<string> = new Set(), allow: 
       fallback ??= beat;
     }
   }
-  for (const w of words) {
-    const s = stem(clean(w));
-    if (s.length < 3 || STOP.has(normalizeArabic(clean(w)))) continue;
-    const id = tags().get(s);
-    if (id && allow(id)) {
-      const beat = { draw: id, label: clean(w) };
-      if (!used.has(id)) return beat;
-      fallback ??= beat;
-    }
-  }
   if (fallback) return fallback;
-  // بلا رسمة مناسبة: علامة تعجب/سؤال مع أطول كلمة في الجملة
+  // بلا معنى مراجَع في المكتبة: لا يُستعمل أقرب عنصر ولا مطابقة الوسوم ولا عنصر عام (المصباح).
+  // الموضع يبقى بلا رسمة (الكلمة وحدها) ويظهر في فحص الخطة طلبًا لعنصر جديد يُصمَّم ويُضاف للمكتبة.
+  // الاستثناء الوحيد: الجملة السؤال تأخذ علامة السؤال، وهي معناها.
   const longest = words.map(clean).filter((w) => !STOP.has(normalizeArabic(w))).sort((a, b) => b.length - a.length)[0] ?? "";
-  return { draw: /[؟?]/.test(sentence) ? "question-mark" : "lightbulb", label: longest };
+  return { draw: /[؟?]/.test(sentence) && allow("question-mark") ? "question-mark" : "", label: longest };
 };
 
 /** لقطات مشهد كامل (حتى 3 لقطات: الجمل الزائدة تُدمج). */
@@ -212,4 +188,7 @@ export const parseBeats = (text: string): Beat[] =>
     });
 
 /** رسمة صالحة: عنصر موجود أو شخصية. */
+/** لقطة بلا عنصر مطابق في المكتبة: تحتاج عنصرًا جديدًا يُصمَّم لها */
+export const needsElement = (b: Beat) => !b.draw.trim();
+
 export const isDrawable = (draw: string) => draw === "person" || draw === "people" || draw.startsWith("person:") || hasElement(draw);

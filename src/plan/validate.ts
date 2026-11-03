@@ -1,7 +1,7 @@
 import { hasElement } from "../../brand/elements/registry";
 import type { Plan } from "./types";
 import { langPack, langPacks } from "../i18n/packs";
-import { isCuratedBeat, isDrawable, parseBeats } from "./beats";
+import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
 import { elementExclusion, excludeReasonAr, figuresAllowed, setExclusion, templateExclusion, type LibraryRules } from "../channel/library";
 
 export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: string };
@@ -10,6 +10,9 @@ export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: 
  * فحص الخطة قبل الرندر النهائي: ما لا يجوز نشره (حديث بلا نص، آية بنص مؤقت)
  * وما يستحق التنبيه (عنصر غير موجود في المكتبة).
  */
+/** بداية رسالة «عنصر مطلوب» (يجمعها الاستوديو قائمةً لتوسيع المكتبة) */
+export const NEEDS_ELEMENT = "لحظات بلا عنصر مطابق";
+
 export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]>; library?: LibraryRules["library"] }): PlanIssue[] => {
   const out: PlanIssue[] = [];
   // مكتبة القناة: ما ليس منها خطأ يمنع النسخة النهائية (لا خلط بين القنوات)
@@ -43,11 +46,17 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
       if (s.template === "board-story" || s.template === "motion-story")
         for (const b of parseBeats(p.beats ?? "")) {
           // لقطة بلا رسمة (الكلمة وحدها) مقصودة: «عند الشك لا تُرسم»، وبجوار ذكر الله
-          if (!b.draw) continue;
-          if (!isDrawable(b.draw)) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» غير موجودة في المكتبة؛ اختر معرّفًا من «المكتبة» أو person/people.` });
+          if (needsElement(b)) continue;
+          else if (!isDrawable(b.draw)) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» غير موجودة في المكتبة؛ اختر معرّفًا من «المكتبة» أو person/people.` });
           // قاعدة القناة: لا عنصر لا يطابق الكلمة. الرسمة المختارة آليًا (لا من قائمة المعاني المراجَعة) تحتاج مراجعة صريحة
           else if (!isCuratedBeat(b) && !s.edited) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» للكلمة «${b.label}» اختيرت آليًا؛ تأكد أنها تطابق المعنى أو غيّرها (أي تعديل يدوي للمشهد يعتمدها).` });
         }
+      // القاعدة: لا عنصر قريب ولا عام بديل. اللحظة التي لا يطابق معناها عنصر في مكتبة القناة تظهر بكلمتها وحدها،
+      // وتُجمع هنا طلبًا: إن كان للمعنى رسمة تخدمه يُصمَّم عنصر جديد بهوية القناة ويُضاف للمكتبة وقائمة المعاني
+      if (s.template === "board-story" || s.template === "motion-story") {
+        const empty = parseBeats(p.beats ?? "").filter(needsElement).map((b) => `«${b.label}»`);
+        if (empty.length) out.push({ level: "warning", sceneId: s.id, message: `${NEEDS_ELEMENT}: ${empty.join("، ")} — تظهر الكلمة بلا رسمة. إن كان للمعنى رسمة تخدمه فصمّم عنصرًا جديدًا بهوية القناة وأضفه لمكتبتها وقائمة المعاني؛ ولا تضع عنصرًا قريبًا أو عامًّا.` });
+      }
       if (s.template === "doc-plate" && !p.image?.trim())
         out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد." });
       if (s.backdrop && !hasElement(s.backdrop)) out.push({ level: "warning", sceneId: s.id, message: `الخلفية «${s.backdrop}» غير موجودة.` });

@@ -61,7 +61,8 @@ export const Summary: React.FC<SummaryProps> = (props) => {
   const line = t.character.style === "line";
   /** قلم التمييز يمر من جهة بداية القراءة. */
   const rtl = useLang().dir === "rtl";
-  const icon = element && hasElement(element) ? element : "lightbulb";
+  // بلا عنصر مطابق لا تُرسم أيقونة (لا عنصر عام بديل)
+  const icon = element && hasElement(element) ? element : "";
 
   const words = splitWords(text);
   const fontSize = Math.round(questionSize * sizeFactor(words.length, portrait));
@@ -120,7 +121,7 @@ export const Summary: React.FC<SummaryProps> = (props) => {
           transform: `scale(${0.6 + 0.4 * iconIn}) ${line ? boil(frame, 2) : ""}`,
         }}
       >
-        <Element id={icon} theme={t} size={iconSize} />
+        {icon ? <Element id={icon} theme={t} size={iconSize} /> : null}
       </div>
     </div>
   );
