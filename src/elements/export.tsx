@@ -2,7 +2,8 @@ import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { themeIds, themes, type ThemeId } from "../../brand/themes";
+import { buildThemes, themeIds, type Theme, type ThemeId } from "../../brand/themes";
+import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import { Element } from "../../brand/elements/Element";
 import { elementLibrary } from "../../brand/elements/registry";
 import { categoryNamesAr, categoryOrder } from "../../brand/elements/types";
@@ -10,23 +11,34 @@ import { Character, characterNamesAr, characterPoses, characterVariants, charact
 import { LogoMark } from "../../brand/logo/Logo";
 import { sfxLibrary, sfxCategoryNamesAr } from "../../brand/sfx";
 import { projectRoot } from "../config/paths";
+import { loadChannel, loadChannelIdentity } from "../channel";
+import { channelLibrary } from "../channel/library";
 import { buildCatalogHtml, type CatalogData } from "./catalog";
 
-const svg = (node: React.ReactElement) => {
-  const markup = renderToStaticMarkup(node);
-  return markup.includes("xmlns=") ? markup : markup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
-};
-
-export type ExportResult = { files: number; elements: number; catalog: string };
+export type ExportResult = { channel: string; files: number; elements: number; catalog: string };
 
 /**
- * يصدّر كل عناصر المكتبة لكل ثيم كملفات SVG مستقلة،
+ * يصدّر مكتبة قناة واحدة بهويتها: كل عنصر من مكتبتها لكل ثيم من ثيماتها كملف SVG،
  * ومعها manifest.json وصفحة كتالوج تجمع كل شيء من الألف إلى الياء.
+ * المخرجات في renders/elements/<القناة>/ (تُولَّد عند الحاجة ولا تُرفع إلى Git).
  */
-export const exportElements = async (outDir = path.join(projectRoot, "assets", "elements")): Promise<ExportResult> => {
+export const exportElements = async (channelId: string, outDir = path.join(projectRoot, "renders", "elements", channelId)): Promise<ExportResult> => {
+  const channel = loadChannel(channelId);
+  const identity = loadChannelIdentity(channelId) as Identity;
+  const themes: Record<ThemeId, Theme> = buildThemes(identity.themes as never);
+  const lib = channelLibrary(channel);
+  const allowed = new Set(lib.elements);
+  // كل رسمة تُرندر داخل هوية القناة (لوحة ألوان العناصر)، ثم يُزال غلاف المزوّد
+  const svg = (node: React.ReactElement) => {
+    const markup = renderToStaticMarkup(<IdentityProvider identity={identity}>{node}</IdentityProvider>).replace(/^<div[^>]*>/, "").replace(/<\/div>$/, "");
+    return markup.includes("xmlns=") ? markup : markup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+  };
   await rm(outDir, { recursive: true, force: true });
   let files = 0;
+  const elements = elementLibrary.filter((e) => allowed.has(e.id));
   const data: CatalogData = {
+    channel: { id: channel.id, name: channel.nameDisplay ?? channel.name, nameLatin: channel.nameLatin, faces: channel.rules.faces, scripture: channel.rules.quran || channel.rules.hadith },
+    fonts: { heading: identity.fonts?.heading ?? "El Messiri", body: identity.fonts?.body ?? "IBM Plex Sans Arabic", wordmark: identity.fonts?.wordmark ?? "Readex Pro" },
     themes: themeIds.map((id) => ({
       id,
       nameAr: themes[id].nameAr,
@@ -34,14 +46,14 @@ export const exportElements = async (outDir = path.join(projectRoot, "assets", "
       colors: themes[id].colors,
       style: themes[id].character.style,
     })),
-    categories: categoryOrder.map((c) => ({ id: c, nameAr: categoryNamesAr[c] })),
+    categories: categoryOrder.filter((c) => elements.some((e) => e.category === c)).map((c) => ({ id: c, nameAr: categoryNamesAr[c] })),
     elements: [],
     characters: [],
     logos: {} as Record<ThemeId, string>,
     sfx: sfxLibrary.map((s) => ({ ...s, categoryAr: sfxCategoryNamesAr[s.category] })),
   };
 
-  for (const el of elementLibrary) {
+  for (const el of elements) {
     const entry: CatalogData["elements"][number] = {
       id: el.id,
       nameAr: el.nameAr,
@@ -89,7 +101,7 @@ export const exportElements = async (outDir = path.join(projectRoot, "assets", "
   }
 
   for (const id of themeIds) {
-    data.logos[id] = svg(<LogoMark size={120} colors={themes[id].logo} />);
+    data.logos[id] = svg(<LogoMark size={120} colors={themes[id].logo} mark={channel.logo} />);
   }
 
   const manifest = data.elements.map((e) => ({
@@ -112,5 +124,5 @@ export const exportElements = async (outDir = path.join(projectRoot, "assets", "
   await writeFile(path.join(outDir, "manifest.json"), JSON.stringify({ count: manifest.length, elements: manifest }, null, 2));
   const catalog = path.join(outDir, "catalog.html");
   await writeFile(catalog, buildCatalogHtml(data));
-  return { files: files + 2, elements: elementLibrary.length, catalog };
+  return { channel: channel.id, files: files + 2, elements: elements.length, catalog };
 };

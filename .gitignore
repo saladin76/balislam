@@ -13,6 +13,8 @@ assets/recitations/**/*.mp3
 assets/sfx/**/*.wav
 
 # وسائط الرندر المؤقتة
+# مكتبة العناصر المصدَّرة لكل قناة (bal elements) تُولَّد من الكود في renders/elements
+assets/elements/
 public/_render/
 # محتوى Quran Foundation لا يُحتفظ به أكثر من أسبوع (شروطهم): يُجلب على جهازك ولا يُرفع
 channels/*/episodes/*/quran.json

@@ -11,7 +11,7 @@ const program = new Command();
 
 program
   .name("bal")
-  .description("منظومة إنتاج قناة بالإسلام")
+  .description("منظومة إنتاج القنوات: بالإسلام، دفاتر الزمن، زبدة الكتب")
   .helpOption("-h, --help", "عرض المساعدة")
   .showHelpAfterError()
   .option("-c, --channel <id>", "القناة (الافتراضية في config.json)")
@@ -69,11 +69,15 @@ program
 
 program
   .command("elements")
-  .description("تصدير مكتبة العناصر: SVG لكل ثيم + manifest.json + كتالوج HTML")
-  .action(async () => {
+  .description("تصدير مكتبة كل قناة بهويتها: SVG لكل ثيم + manifest.json + كتالوج HTML في renders/elements/<القناة> (bal elements أو bal elements zubdat-alkutub)")
+  .argument("[channels...]")
+  .action(async (channels: string[]) => {
     const { exportElements } = await import("../elements/export");
-    const r = await exportElements();
-    console.log(`تم: ${r.elements} عنصرًا، ${r.files} ملفًا. الكتالوج: ${path.relative(projectRoot, r.catalog)}`);
+    const { listChannels } = await import("../channel");
+    for (const id of channels.length ? channels : listChannels()) {
+      const r = await exportElements(id);
+      console.log(`${r.channel}: ${r.elements} عنصرًا، ${r.files} ملفًا. الكتالوج: ${path.relative(projectRoot, r.catalog)}`);
+    }
   });
 
 program
@@ -143,7 +147,7 @@ program
 
 program
   .command("app")
-  .description("فتح استوديو بالإسلام في المتصفح")
+  .description("فتح الاستوديو في المتصفح")
   .action(async () => {
     const { spawn } = await import("node:child_process");
     spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit", shell: process.platform === "win32" });

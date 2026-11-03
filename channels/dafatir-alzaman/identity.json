@@ -4,7 +4,7 @@
     "paper": {
       "nameAr": "خريطة عتيقة",
       "domain": "psychology",
-      "domainAr": "النفس والسلوك",
+      "domainAr": "شخصيات غيّرت التاريخ",
       "colors": {
         "bg": "#EADBC0",
         "surface": "#F4E9D4",
@@ -44,7 +44,7 @@
     "family": {
       "nameAr": "أفق الغروب",
       "domain": "family",
-      "domainAr": "الأسرة والعلاقات",
+      "domainAr": "أفق الغروب",
       "colors": {
         "bg": "#2A1E3F",
         "surface": "#35284D",
@@ -84,7 +84,7 @@
     "night": {
       "nameAr": "غسق",
       "domain": "money",
-      "domainAr": "المال والدنيا والتأمل",
+      "domainAr": "تاريخ العالم، أحداث غامضة",
       "colors": {
         "bg": "#1A1424",
         "surface": "#251C30",
@@ -124,7 +124,7 @@
     "warm": {
       "nameAr": "رق وحبر",
       "domain": "knowledge",
-      "domainAr": "العلم والتاريخ والحضارة",
+      "domainAr": "التاريخ الإسلامي",
       "colors": {
         "bg": "#F1E4CB",
         "surface": "#F8EEDB",

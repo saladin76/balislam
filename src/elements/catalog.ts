@@ -2,6 +2,9 @@ import type { ThemeId } from "../../brand/themes";
 import type { ElementCategory } from "../../brand/elements/types";
 
 export type CatalogData = {
+  channel: { id: string; name: string; nameLatin: string; faces: boolean; scripture: boolean };
+  /** خطوط هوية القناة */
+  fonts: { heading: string; body: string; wordmark: string };
   themes: { id: ThemeId; nameAr: string; domainAr: string; colors: Record<string, string>; style: string }[];
   categories: { id: ElementCategory; nameAr: string }[];
   elements: {
@@ -21,22 +24,25 @@ export type CatalogData = {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** صفحة واحدة مكتفية بذاتها: كل عناصر الهوية من الألف إلى الياء، بكل الثيمات. */
+/** صفحة واحدة مكتفية بذاتها: مكتبة قناة واحدة بهويتها (ألوانها وخطوطها وشعارها)، بكل ثيماتها. */
 export const buildCatalogHtml = (data: CatalogData): string => {
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const props = data.elements.filter((e) => e.kind === "prop").length;
   const backs = data.elements.length - props;
   const files = data.elements.reduce((n, e) => n + (e.kind === "backdrop" ? 8 : 4), 0) + data.characters.length * 4;
-  return `<title>مكتبة عناصر بالإسلام</title>
+  const gf = (f: string) => `family=${f.replace(/ /g, "+")}${/Aref Ruqaa|Amiri|El Messiri|Readex Pro|Tajawal/.test(f) ? ":wght@400;700" : ""}`;
+  const families = [...new Set([data.fonts.heading, data.fonts.body, data.fonts.wordmark, "IBM Plex Mono", ...(data.channel.scripture ? ["Amiri"] : [])])];
+  const name = esc(data.channel.name);
+  return `<title>مكتبة ${name}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Amiri&family=Readex+Pro:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?${families.map(gf).join("&")}&display=swap">
 <style>
 /* التخطيط: شريط تحكم لاصق (الثيم + البحث + الفئات) ثم أقسام الهوية من الألف إلى الياء بشبكات بطاقات بمسرح ملوّن بالثيم المختار */
 :root{
   --bg:#EFE4D3; --panel:#FBF6EE; --ink:#2E3A2A; --muted:#5d6658; --line:#d9cbb4; --accent:#B4532F; --accent-ink:#FBF6EE; --gold:#D9A441;
-  --f-head:'El Messiri','IBM Plex Sans Arabic',serif; --f-body:'IBM Plex Sans Arabic',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace; --f-word:'Readex Pro','IBM Plex Sans Arabic',sans-serif; --f-scr:'Amiri',serif;
+  --f-head:'${data.fonts.heading}',serif; --f-body:'${data.fonts.body}',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace; --f-word:'${data.fonts.wordmark}',sans-serif; --f-scr:'Amiri',serif;
   --stage:#F4F1EA;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0E1A2B;--panel:#16263D;--ink:#F3EEE3;--muted:#A9B4C6;--line:#26395a;--accent:#E2B24C;--accent-ink:#0E1A2B;--gold:#E2B24C;color-scheme:dark}}
@@ -105,8 +111,8 @@ td.p{font-family:var(--f-mono);font-size:12px;direction:ltr;text-align:left;colo
   <header class="top">
     <div class="mark" id="mark"></div>
     <div style="min-width:0;flex:1">
-      <h1>مكتبة عناصر بالإسلام</h1>
-      <p>كل ما تُبنى منه مشاهد القناة، من الألوان والخطوط إلى الشخصيات والرموز والخلفيات والمؤثرات. كل عنصر يتبدل شكله مع الثيم، وكل اسم إنجليزي تحت البطاقة هو المعرّف الذي يُستخدم في الكود؛ اضغطه لنسخه.</p>
+      <h1>مكتبة ${name}</h1>
+      <p>كل ما تُبنى منه مشاهد «${name}» بهويتها، ومن مكتبتها فقط، من الألوان والخطوط إلى الشخصيات والرموز والخلفيات والمؤثرات. كل عنصر يتبدل شكله مع الثيم، وكل اسم إنجليزي تحت البطاقة هو المعرّف الذي يُستخدم في الكود؛ اضغطه لنسخه.</p>
       <div class="stats">
         <span class="stat"><b>${props}</b> عنصرًا</span>
         <span class="stat"><b>${backs}</b> خلفية</span>
@@ -128,7 +134,7 @@ td.p{font-family:var(--f-mono);font-size:12px;direction:ltr;text-align:left;colo
 (function(){
   var D=JSON.parse(document.getElementById('data').textContent);
   var cur='paper', q='';
-  try{var s=localStorage.getItem('bal-theme'); if(s&&D.themes.some(function(t){return t.id===s})) cur=s;}catch(e){}
+  try{var s=localStorage.getItem('bal-theme-'+D.channel.id); if(s&&D.themes.some(function(t){return t.id===s})) cur=s;}catch(e){}
   var main=document.getElementById('main');
   function h(tag,attrs,html){var el=document.createElement(tag);for(var k in attrs||{}){el.setAttribute(k,attrs[k])}if(html!=null)el.innerHTML=html;return el}
   function E(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
@@ -149,10 +155,10 @@ td.p{font-family:var(--f-mono);font-size:12px;direction:ltr;text-align:left;colo
       nav.push(['identity','الألوان والخطوط']);
       var sw=[['الخلفية','bg'],['البطاقات','surface'],['النص','ink'],['نص ثانوي','inkSoft'],['الأساسي','primary'],['الثانوي','secondary'],['التمييز','highlight'],['شريط الترجمة','captionBg']];
       out.push('<section id="identity"><h2>الألوان والخطوط <small>'+E(t.nameAr)+' · '+E(t.domainAr)+' · أسلوب '+(t.style==='line'?'خطي بالحبر':'مسطح ملوّن')+'</small></h2><div class="swatches">'+sw.map(function(s){return '<div class="sw"><i style="background:'+t.colors[s[1]]+'"></i><div>'+s[0]+'<code>'+t.colors[s[1]]+'</code></div></div>'}).join('')+'</div><div class="fonts">'+
-      '<div class="font"><div class="s" style="font-family:var(--f-head);font-weight:700">لماذا نؤجّل؟</div><div class="r">العناوين · El Messiri</div></div>'+
-      '<div class="font"><div class="s" style="font-family:var(--f-body);font-weight:500;font-size:22px">التأجيل هروب من شعور، لا كسل.</div><div class="r">النص والترجمة · IBM Plex Sans Arabic</div></div>'+
-      '<div class="font"><div class="s" style="font-family:var(--f-scr)">وَأَن لَّيْسَ لِلْإِنسَٰنِ إِلَّا مَا سَعَىٰ</div><div class="r">الآيات والأحاديث فقط · Amiri</div></div>'+
-      '<div class="font"><div class="s" style="font-family:var(--f-word);font-weight:700">بالإسلام</div><div class="r">اسم القناة بجوار الشعار فقط · Readex Pro</div></div>'+
+      '<div class="font"><div class="s" style="font-family:var(--f-head);font-weight:700">لماذا نؤجّل؟</div><div class="r">العناوين · '+E(D.fonts.heading)+'</div></div>'+
+      '<div class="font"><div class="s" style="font-family:var(--f-body);font-weight:500;font-size:22px">التأجيل هروب من شعور، لا كسل.</div><div class="r">النص والترجمة · '+E(D.fonts.body)+'</div></div>'+
+      (D.channel.scripture?'<div class="font"><div class="s" style="font-family:var(--f-scr)">وَأَن لَّيْسَ لِلْإِنسَٰنِ إِلَّا مَا سَعَىٰ</div><div class="r">الآيات والأحاديث فقط · Amiri</div></div>':'')+
+      '<div class="font"><div class="s" style="font-family:var(--f-word);font-weight:700">'+E(D.channel.name)+'</div><div class="r">اسم القناة · '+E(D.fonts.wordmark)+'</div></div>'+
       '</div></section>');
       nav.push(['characters','الشخصيات']);
       out.push('<section id="characters"><h2>الشخصيات <small>بلا ملامح وجه · لا تمثل نبيًا ولا صحابيًا ولا ملَكًا</small></h2><div class="grid chars">'+D.characters.map(function(c){return '<div class="card"><div class="stage">'+c.svg[cur]+'</div><div class="meta"><span class="n">'+E(c.nameAr)+' · '+E(c.poseAr)+'</span><button class="id" data-id="'+c.variant+'/'+c.pose+'">'+c.variant+' · '+c.pose+'</button></div></div>'}).join('')+'</div></section>');
@@ -174,14 +180,14 @@ td.p{font-family:var(--f-mono);font-size:12px;direction:ltr;text-align:left;colo
     }
     if(!q){
       nav.push(['usage','طريقة الاستخدام']);
-      out.push('<section id="usage"><h2>طريقة الاستخدام</h2><p class="lead">العنصر يأخذ ألوانه من ثيم الحلقة تلقائيًا، فلا يُلوَّن يدويًا. ملفات SVG الجاهزة لكل ثيم موجودة في assets/elements داخل المستودع، والقائمة الكاملة في manifest.json.</p><div class="code">&lt;Element id="book-open" theme={theme} size={240} /&gt;\\n&lt;Element id="night-sky" theme={theme} width={1920} height={1080} /&gt;\\n&lt;Character theme={theme} variant="narrator-f" pose="think" height={520} /&gt;\\n\\nnpx bal elements   # يعيد تصدير المكتبة والكتالوج</div></section>');
+      out.push('<section id="usage"><h2>طريقة الاستخدام</h2><p class="lead">العنصر يأخذ ألوانه من ثيم الحلقة تلقائيًا، فلا يُلوَّن يدويًا. ملفات SVG الجاهزة لكل ثيم بجوار هذه الصفحة (renders/elements/'+E(D.channel.id)+')، والقائمة الكاملة في manifest.json.</p><div class="code">&lt;Element id="book-open" theme={theme} size={240} /&gt;\\n&lt;Element id="night-sky" theme={theme} width={1920} height={1080} /&gt;\\n&lt;Character theme={theme} variant="narrator-f" pose="think" height={520} /&gt;\\n\\nnpx bal elements '+E(D.channel.id)+'   # يعيد تصدير مكتبة القناة وكتالوجها</div></section>');
     }
     if(!out.length) out.push('<p class="empty">لا نتائج لـ «'+E(q)+'». جرّب كلمة أخرى أو معرّفًا إنجليزيًا.</p>');
     main.innerHTML=out.join('');
     var j=document.getElementById('jump');
     j.innerHTML='<option value="">اذهب إلى قسم…</option>'+nav.map(function(n){return '<option value="'+n[0]+'">'+E(n[1])+'</option>'}).join('');
   }
-  document.getElementById('themes').addEventListener('click',function(ev){var b=ev.target.closest('button[data-t]');if(!b)return;cur=b.dataset.t;try{localStorage.setItem('bal-theme',cur)}catch(e){}render()});
+  document.getElementById('themes').addEventListener('click',function(ev){var b=ev.target.closest('button[data-t]');if(!b)return;cur=b.dataset.t;try{localStorage.setItem('bal-theme-'+D.channel.id,cur)}catch(e){}render()});
   document.getElementById('q').addEventListener('input',function(ev){q=ev.target.value.trim().toLowerCase();render()});
   document.getElementById('jump').addEventListener('change',function(ev){var el=document.getElementById(ev.target.value);if(el)el.scrollIntoView({behavior:'smooth'});ev.target.value=''});
   render();

@@ -4,7 +4,7 @@
     "paper": {
       "nameAr": "ورقة بيضاء",
       "domain": "psychology",
-      "domainAr": "النفس والسلوك",
+      "domainAr": "تطوير الذات",
       "colors": {
         "bg": "#FFFFFF",
         "surface": "#F4F4F1",
@@ -44,7 +44,7 @@
     "family": {
       "nameAr": "ورقة لاصقة",
       "domain": "family",
-      "domainAr": "الأسرة والعلاقات",
+      "domainAr": "علم النفس والتفكير",
       "colors": {
         "bg": "#F1EDE4",
         "surface": "#FFFFFF",
@@ -84,7 +84,7 @@
     "night": {
       "nameAr": "حبر أسود",
       "domain": "money",
-      "domainAr": "المال والدنيا والتأمل",
+      "domainAr": "المال والاستثمار",
       "colors": {
         "bg": "#111111",
         "surface": "#1E1E1E",
@@ -124,7 +124,7 @@
     "warm": {
       "nameAr": "كتاب كلاسيكي",
       "domain": "knowledge",
-      "domainAr": "العلم والتاريخ والحضارة",
+      "domainAr": "كتب خالدة",
       "colors": {
         "bg": "#EDE7DA",
         "surface": "#F8F4EC",
