@@ -2,6 +2,7 @@
 title: "كيف تعرف أنك على حق؟"
 domain: psychology
 episode: "001"
+style: motion
 alt_titles:
   - "هل أنت مستعد لأن تكون مخطئًا؟"
   - "لماذا نرفض الحقيقة أحيانًا؟"

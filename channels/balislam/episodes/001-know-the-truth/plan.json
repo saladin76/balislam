@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-11-03T11:26:00.484Z",
+  "updatedAt": "2026-11-03T11:57:58.729Z",
   "chapters": [
     {
       "number": 1,
@@ -15,7 +15,7 @@
         {
           "template": "motion-story",
           "narration": "هل فكرت يومًا أنك قد تكون مخطئًا في شيء تؤمن تمامًا أنه صحيح؟",
-          "line": 13,
+          "line": 14,
           "props": {
             "beats": "head-idea | فكرت"
           },
@@ -25,7 +25,7 @@
         {
           "template": "motion-story",
           "narration": "تخيل شخصين يشاهدان الموقف نفسه. الأول يراه ظلمًا، والثاني يراه عدلًا. كل واحد منهما مقتنع أنه يرى الحقيقة.",
-          "line": 15,
+          "line": 16,
           "props": {
             "beats": "people | شخصين\nscale-brass-tilted | ظلمًا\nmagnifier-brass | الحقيقة"
           },
@@ -35,7 +35,7 @@
         {
           "template": "motion-story",
           "narration": "لكن هل يمكن أن يكون الاثنان على حق في أمرين متناقضين، بالمعنى نفسه وفي الوقت نفسه؟ بالطبع لا.",
-          "line": 17,
+          "line": 18,
           "props": {
             "beats": "people | الاثنان\nquestion-mark | بالمعنى\nlightbulb | بالطبع"
           },
@@ -45,7 +45,7 @@
         {
           "template": "motion-story",
           "narration": "المشكلة أن الإنسان لا ينظر دائمًا إلى الأحداث بعين محايدة.",
-          "line": 19,
+          "line": 20,
           "props": {
             "beats": "person | الإنسان"
           },
@@ -55,7 +55,7 @@
         {
           "template": "motion-story",
           "narration": "فنحن نتأثر بتجاربنا، ومخاوفنا، والأشخاص الذين نحبهم، والأفكار التي اعتدنا عليها.",
-          "line": 21,
+          "line": 22,
           "props": {
             "beats": "footprints | بتجاربنا\nlightbulb | والأشخاص\nhead-idea | والأفكار"
           },
@@ -65,9 +65,9 @@
         {
           "template": "motion-story",
           "narration": "قد تصدق خبرًا لأنه يؤكد رأيك. وقد ترفض نصيحة لأنها جاءت من شخص لا تحبه. وقد تدافع عن قرار اتخذته، لا لأنك متأكد من صحته، بل لأن الاعتراف بخطئه مؤلم.",
-          "line": 23,
+          "line": 24,
           "props": {
-            "beats": "phone-notifications | خبرًا\nspeech-bubble | نصيحة\npath-fork | قرار"
+            "beats": "phone-notifications | خبرًا\nspeech-bubble | نصيحة\npath-fork | قرار\nscale-brass-tilted | بخطئه"
           },
           "id": "c1-s6",
           "sfx": []
@@ -75,7 +75,7 @@
         {
           "template": "motion-story",
           "narration": "وهنا يظهر سؤال يستحق أن نتوقف عنده: هل نحن نبحث عن الحقيقة فعلًا؟ أم نبحث عما يجعلنا نشعر أننا على حق؟",
-          "line": 25,
+          "line": 26,
           "props": {
             "beats": "question-mark | سؤال\nmagnifier-brass | الحقيقة\nscale-brass-balanced | حق"
           },
@@ -85,7 +85,7 @@
         {
           "template": "motion-story",
           "narration": "فليس كل ما نقتنع به صحيحًا، وليس كل ما لا يعجبنا باطلًا. لكن لماذا يصبح التمييز بين الحق والباطل صعبًا أحيانًا؟",
-          "line": 27,
+          "line": 28,
           "props": {
             "beats": "lightbulb | صحيحًا\nscale-brass-tilted | باطلًا"
           },
@@ -101,7 +101,7 @@
         {
           "template": "motion-story",
           "narration": "ليس كل باطل يأتي في صورة واضحة يسهل رفضها. أحيانًا يأتي ممزوجًا بشيء من الحق.",
-          "line": 33,
+          "line": 34,
           "props": {
             "beats": "scale-brass-tilted | باطل\nscale-brass-balanced | الحق"
           },
@@ -111,7 +111,7 @@
         {
           "template": "motion-story",
           "narration": "تخيل شخصًا يجرح الآخرين بكلماته، ثم يقول: أنا فقط إنسان صريح. الصراحة قيمة جميلة، لكن هل تعني أن نؤذي الناس؟",
-          "line": 35,
+          "line": 36,
           "props": {
             "beats": "heart-bandaged | يجرح\nperson | إنسان\ndiamond | قيمة"
           },
@@ -121,7 +121,7 @@
         {
           "template": "motion-story",
           "narration": "وشخصًا يتكبر على غيره، ثم يقول: أنا أعرف قيمة نفسي. الثقة بالنفس مطلوبة، لكن هل تعني احتقار الآخرين؟",
-          "line": 37,
+          "line": 38,
           "props": {
             "beats": "crown | يتكبر\ndiamond | قيمة\nperson | الآخرين"
           },
@@ -131,7 +131,7 @@
         {
           "template": "motion-story",
           "narration": "وشخصًا ينشر خبرًا دون التأكد منه، لأنه مقتنع أن الخبر يخدم قضية عادلة. لكن هل تصبح المعلومة صحيحة لمجرد أنها تخدم ما نؤمن به؟",
-          "line": 39,
+          "line": 40,
           "props": {
             "beats": "phone-notifications | خبرًا\nenvelope | الخبر\nphone-notifications | المعلومة"
           },
@@ -141,7 +141,7 @@
         {
           "template": "motion-story",
           "narration": "هذه الأمثلة تكشف مشكلة دقيقة. قد تكون الفكرة التي نستخدمها لتبرير أفعالنا صحيحة في أصلها، لكن التطبيق خاطئ.",
-          "line": 41,
+          "line": 42,
           "props": {
             "beats": "lightbulb | الأمثلة\nhead-idea | الفكرة\nscale-brass-tilted | خاطئ"
           },
@@ -151,7 +151,7 @@
         {
           "template": "motion-story",
           "narration": "ولهذا جاء التحذير القرآني:",
-          "line": 43,
+          "line": 44,
           "props": {
             "beats": "mushaf-rehal | القرآني"
           },
@@ -161,7 +161,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 45,
+          "line": 46,
           "ayahKey": "2:42",
           "props": {
             "text": "",
@@ -174,7 +174,7 @@
         {
           "template": "motion-story",
           "narration": "فالحق والباطل ليسا شيئًا واحدًا. لكن الإنسان قد يخلط بينهما، حتى يصعب عليه أن يميز أحدهما من الآخر.",
-          "line": 47,
+          "line": 48,
           "props": {
             "beats": "scale-brass-balanced | فالحق\nperson | الإنسان\nlightbulb | أحدهما"
           },
@@ -184,7 +184,7 @@
         {
           "template": "motion-story",
           "narration": "وأحيانًا يكون أخطر الباطل هو الذي يحمل شيئًا من الحق. لكن هناك مشكلة أعمق من اختلاط الأمور أمام أعيننا.",
-          "line": 49,
+          "line": 50,
           "props": {
             "beats": "scale-brass-tilted | الباطل"
           },
@@ -200,7 +200,7 @@
         {
           "template": "motion-story",
           "narration": "تخيل أنك اختلفت مع شخص قريب منك. أنت مقتنع أنه أخطأ في حقك.",
-          "line": 55,
+          "line": 56,
           "props": {
             "beats": "person | شخص\nlightbulb | مقتنع"
           },
@@ -210,7 +210,7 @@
         {
           "template": "motion-story",
           "narration": "ثم تكتشف معلومة جديدة تثبت أنك أنت من أساء فهم الموقف.",
-          "line": 57,
+          "line": 58,
           "props": {
             "beats": "phone-notifications | معلومة"
           },
@@ -220,7 +220,7 @@
         {
           "template": "motion-story",
           "narration": "ماذا ستفعل؟ هل ستعتذر مباشرة؟ أم ستبحث عن تفسير آخر يحفظ لك موقفك؟",
-          "line": 59,
+          "line": 60,
           "props": {
             "beats": "question-mark | ستعتذر\nquestion-mark | ستبحث"
           },
@@ -230,7 +230,7 @@
         {
           "template": "motion-story",
           "narration": "هذا الموقف البسيط يكشف شيئًا مهمًا. أحيانًا لا نرفض الحقيقة لأننا لا نراها. بل لأننا لا نريد النتائج التي ستترتب على قبولها.",
-          "line": 61,
+          "line": 62,
           "props": {
             "beats": "lightbulb | الموقف\nmagnifier-brass | الحقيقة\nlightbulb | النتائج"
           },
@@ -240,9 +240,9 @@
         {
           "template": "motion-story",
           "narration": "فالاعتراف بالحق قد يتطلب الاعتذار. وقد يتطلب تغيير قرار. وقد يتطلب التخلي عن مصلحة. وقد يتطلب أن تقول لنفسك: كنت مخطئًا. وهذه ليست دائمًا خطوة سهلة.",
-          "line": 63,
+          "line": 64,
           "props": {
-            "beats": "scale-brass-balanced | بالحق\npath-fork | قرار\nscale-brass-tilted | مخطئًا"
+            "beats": "scale-brass-balanced | بالحق\npath-fork | قرار\nlightbulb | يتطلب\nscale-brass-tilted | مخطئًا"
           },
           "id": "c3-s5",
           "sfx": []
@@ -250,7 +250,7 @@
         {
           "template": "motion-story",
           "narration": "يقول الله تعالى:",
-          "line": 65,
+          "line": 66,
           "props": {
             "beats": "lightbulb | تعالى"
           },
@@ -260,7 +260,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 67,
+          "line": 68,
           "ayahKey": "75:14-15",
           "props": {
             "text": "",
@@ -273,7 +273,7 @@
         {
           "template": "motion-story",
           "narration": "وفي سياق هذه الآيات تذكير بأن الإنسان شاهد على نفسه، ولو قدم الأعذار.",
-          "line": 69,
+          "line": 70,
           "props": {
             "beats": "mushaf-rehal | الآيات\nlightbulb | الأعذار"
           },
@@ -283,7 +283,7 @@
         {
           "template": "motion-story",
           "narration": "وهنا نكتشف الفرق بين أمرين: أن تعرف ما هو صحيح. وأن تكون مستعدًا للعمل بما عرفت.",
-          "line": 71,
+          "line": 72,
           "props": {
             "beats": "lightbulb | نكتشف\nscale-brass-balanced | صحيح\nlaptop | للعمل"
           },
@@ -293,7 +293,7 @@
         {
           "template": "motion-story",
           "narration": "فقد يكون أصعب ما في الحق ليس أن نراه، بل أن نقبله عندما يخالف ما نريد. ولهذا يحمل دعاء قصير معنى عميقًا للغاية.",
-          "line": 73,
+          "line": 74,
           "props": {
             "beats": "scale-brass-balanced | الحق\nlightbulb | نقبله"
           },
@@ -309,7 +309,7 @@
         {
           "template": "motion-story",
           "narration": "هناك دعاء مأثور في كلام أهل العلم، عظيم في معناه:",
-          "line": 79,
+          "line": 80,
           "props": {
             "beats": "hands-dua | دعاء\nlightbulb | معناه"
           },
@@ -319,7 +319,7 @@
         {
           "template": "motion-story",
           "narration": "«اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
-          "line": 81,
+          "line": 82,
           "props": {
             "beats": "hands-dua | اللهم\nscale-brass-tilted | الباطل"
           },
@@ -329,7 +329,7 @@
         {
           "template": "motion-story",
           "narration": "تأمل كلمات هذا الدعاء.",
-          "line": 83,
+          "line": 84,
           "props": {
             "beats": "hands-dua | الدعاء"
           },
@@ -339,7 +339,7 @@
         {
           "template": "motion-story",
           "narration": "نحن لا نقول فقط: اللهم أرنا الحق. بل نقول: أرنا الحق حقًا. أي نسأل الله أن يهدينا إلى معرفته على حقيقته.",
-          "line": 85,
+          "line": 86,
           "props": {
             "beats": "lightbulb | نقول\nhands-dua | اللهم\nscale-brass-balanced | الحق"
           },
@@ -349,7 +349,7 @@
         {
           "template": "motion-story",
           "narration": "ثم نضيف طلبًا آخر: «وارزقنا اتباعه». لماذا؟ لأن معرفة الصواب لا تعني بالضرورة أننا سنفعله.",
-          "line": 87,
+          "line": 88,
           "props": {
             "beats": "lightbulb | طلبًا\nhands-dua | وارزقنا"
           },
@@ -359,7 +359,7 @@
         {
           "template": "motion-story",
           "narration": "كم مرة عرفنا أن الاعتذار هو الصواب، لكن منعنا الكبرياء؟ وكم مرة عرفنا أن علينا التوقف عن عادة سيئة، لكن غلبتنا رغبتنا؟",
-          "line": 89,
+          "line": 90,
           "props": {
             "beats": "handshake | الاعتذار\nhand-stop | التوقف\nquestion-mark | غلبتنا"
           },
@@ -369,9 +369,9 @@
         {
           "template": "motion-story",
           "narration": "ثم نطلب من الله: «وأرنا الباطل باطلًا». فقد يبدو الخطأ جميلًا، أو سهلًا، أو نافعًا في اللحظة الحاضرة. وقد نراه مقبولًا فقط لأن كثيرين يفعلونه.",
-          "line": 91,
+          "line": 92,
           "props": {
-            "beats": "lightbulb | نطلب\nhands-dua | وأرنا\nlightbulb | مقبولًا"
+            "beats": "lightbulb | نطلب\nhands-dua | وأرنا\nburst | اللحظة\nlightbulb | مقبولًا"
           },
           "id": "c4-s7",
           "sfx": []
@@ -379,7 +379,7 @@
         {
           "template": "motion-story",
           "narration": "ثم نقول: «وارزقنا اجتنابه». لأن معرفة الخطأ وحدها لا تكفي للابتعاد عنه.",
-          "line": 93,
+          "line": 94,
           "props": {
             "beats": "hands-dua | وارزقنا\nscale-brass-tilted | الخطأ"
           },
@@ -389,7 +389,7 @@
         {
           "template": "motion-story",
           "narration": "وهكذا يجمع الدعاء بين البصيرة والعمل. بين أن تعرف الحق، وأن تتبعه. وبين أن تعرف الباطل، وأن تجتنبه.",
-          "line": 95,
+          "line": 96,
           "props": {
             "beats": "hands-dua | الدعاء\nscale-brass-balanced | الحق\nscale-brass-tilted | الباطل"
           },
@@ -399,7 +399,7 @@
         {
           "template": "motion-story",
           "narration": "فنحن لا نحتاج فقط إلى عين ترى الحق، بل إلى قلب يقبله، وعزيمة تعيننا على اتباعه. وهذا يقودنا إلى دعاء آخر يحمل معنى قريبًا.",
-          "line": 97,
+          "line": 98,
           "props": {
             "beats": "glasses | عين\nheart-light | قلب\nlightbulb | وعزيمة"
           },
@@ -415,7 +415,7 @@
         {
           "template": "motion-story",
           "narration": "تأمل هذه الكلمات التي يرددها كثير من الناس دعاءً: «اللهم أرنا الأشياء كما هي». قد تبدو بسيطة. لكنها تحمل سؤالًا عميقًا:",
-          "line": 103,
+          "line": 104,
           "props": {
             "beats": "person | الناس\nhands-dua | اللهم\nquestion-mark | سؤالًا"
           },
@@ -425,7 +425,7 @@
         {
           "template": "motion-story",
           "narration": "هل نرى الأشياء على حقيقتها، أم نراها أكبر أو أصغر مما تستحق؟",
-          "line": 105,
+          "line": 106,
           "props": {
             "beats": "magnifier-brass | حقيقتها\nquestion-mark | نراها"
           },
@@ -435,7 +435,7 @@
         {
           "template": "motion-story",
           "narration": "تأمل المال مثلًا. هو نعمة ووسيلة لقضاء الحاجات. لكن الإنسان قد يراه مقياسًا لقيمته وقيمة الآخرين.",
-          "line": 107,
+          "line": 108,
           "props": {
             "beats": "money-bag | المال\nperson | الإنسان"
           },
@@ -445,7 +445,7 @@
         {
           "template": "motion-story",
           "narration": "وتأمل النجاح. قد يكون ثمرة جهد وتوفيق من الله. لكننا أحيانًا نجعله سببًا للشعور بأننا أفضل من غيرنا.",
-          "line": 109,
+          "line": 110,
           "props": {
             "beats": "podium | النجاح\nstar-badge | أفضل"
           },
@@ -455,7 +455,7 @@
         {
           "template": "motion-story",
           "narration": "وتأمل الدنيا كلها. قد ننشغل بها حتى نتصرف وكأنها ستبقى إلى الأبد.",
-          "line": 111,
+          "line": 112,
           "props": {
             "beats": "hourglass-ornate | الدنيا"
           },
@@ -465,7 +465,7 @@
         {
           "template": "motion-story",
           "narration": "بينما يذكرنا القرآن:",
-          "line": 113,
+          "line": 114,
           "props": {
             "beats": "mushaf-rehal | القرآن"
           },
@@ -475,7 +475,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 115,
+          "line": 116,
           "ayahKey": "3:185",
           "props": {
             "text": "",
@@ -488,7 +488,7 @@
         {
           "template": "motion-story",
           "narration": "فالمشكلة ليست في أن نعمل للدنيا أو نستمتع بما أباح الله فيها. المشكلة أن ننسى حقيقتها، وأن نجعلها غايتنا الأخيرة.",
-          "line": 117,
+          "line": 118,
           "props": {
             "beats": "hourglass-ornate | للدنيا\nmagnifier-brass | حقيقتها\nlightbulb | الأخيرة"
           },
@@ -498,7 +498,7 @@
         {
           "template": "motion-story",
           "narration": "ورؤية الأشياء كما هي تعني أيضًا أن نرى أنفسنا بصدق. أن نعترف بمميزاتنا دون غرور. وبأخطائنا دون يأس.",
-          "line": 119,
+          "line": 120,
           "props": {
             "beats": "glasses | ورؤية\ncrown | غرور\nlightbulb | وبأخطائنا"
           },
@@ -508,7 +508,7 @@
         {
           "template": "motion-story",
           "narration": "وأن نرى الآخرين بعدل، فلا تجعلنا محبتنا لهم نتجاهل أخطاءهم، ولا تجعلنا كراهيتنا لهم ننكر ما عندهم من حق.",
-          "line": 121,
+          "line": 122,
           "props": {
             "beats": "person | الآخرين\nlightbulb | أخطاءهم\nscale-brass-balanced | حق"
           },
@@ -518,7 +518,7 @@
         {
           "template": "motion-story",
           "narration": "ربما لا نحتاج دائمًا إلى أن تتغير الأشياء من حولنا، بقدر ما نحتاج إلى أن نراها بميزان صحيح. فكيف نقترب من هذه الرؤية في حياتنا اليومية؟",
-          "line": 123,
+          "line": 124,
           "props": {
             "beats": "lightbulb | الأشياء\nscale-brass-balanced | بميزان"
           },
@@ -534,7 +534,7 @@
         {
           "template": "motion-story",
           "narration": "كيف تعرف أنك تسير في طريق الحق؟",
-          "line": 129,
+          "line": 130,
           "props": {
             "beats": "compass-pocket | تسير"
           },
@@ -544,7 +544,7 @@
         {
           "template": "motion-story",
           "narration": "ليس بأن تكون متأكدًا من كل آرائك. بل بأن تكون مستعدًا لمراجعتها حين يظهر لك ما يخالفها. فاليقين بما ثبت من الحق لا يعني أن كل فهم شخصي لنا صحيح.",
-          "line": 131,
+          "line": 132,
           "props": {
             "beats": "lightbulb | متأكدًا\nlightbulb | لمراجعتها\nscale-brass-balanced | الحق"
           },
@@ -554,7 +554,7 @@
         {
           "template": "motion-story",
           "narration": "وهذه ثلاث خطوات تساعدنا.",
-          "line": 133,
+          "line": 134,
           "props": {
             "beats": "path-milestones | خطوات"
           },
@@ -564,7 +564,7 @@
         {
           "template": "motion-story",
           "narration": "الأولى: تثبت قبل أن تحكم. لا تصدق كل خبر تسمعه، حتى لو وافق رأيك. فالله تعالى يقول:",
-          "line": 135,
+          "line": 136,
           "props": {
             "beats": "search | تثبت\nphone-notifications | خبر\nlightbulb | فالله"
           },
@@ -574,7 +574,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 137,
+          "line": 138,
           "ayahKey": "49:6",
           "props": {
             "text": "",
@@ -587,7 +587,7 @@
         {
           "template": "motion-story",
           "narration": "والثانية: راجع نيتك. حين تختلف مع أحد، اسأل نفسك: هل أريد أن أصل إلى الصواب؟ أم أريد فقط أن أنتصر في النقاش؟",
-          "line": 139,
+          "line": 140,
           "props": {
             "beats": "heart-light | نيتك\nscale-brass-balanced | الصواب\ntrophy | أنتصر"
           },
@@ -597,7 +597,7 @@
         {
           "template": "motion-story",
           "narration": "والثالثة: كن مستعدًا لتصحيح موقفك. فالاعتراف بالخطأ ليس هزيمة. بل قد يكون أول خطوة نحو الحق.",
-          "line": 141,
+          "line": 142,
           "props": {
             "beats": "lightbulb | والثالثة\nscale-brass-tilted | بالخطأ\npath-milestones | خطوة"
           },
@@ -607,7 +607,7 @@
         {
           "template": "motion-story",
           "narration": "وهذا لا يعني أن نشك في كل شيء، بل أن نتواضع أمام الحقيقة، ونرجع إلى الوحي وأهل العلم فيما نجهل.",
-          "line": 143,
+          "line": 144,
           "props": {
             "beats": "lightbulb | وهذا\nmagnifier-brass | الحقيقة\nmushaf-rehal | الوحي"
           },
@@ -617,9 +617,9 @@
         {
           "template": "motion-story",
           "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، جرب شيئًا واحدًا. استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟",
-          "line": 145,
+          "line": 146,
           "props": {
-            "beats": "person | شخص\nspeech-bubble | حجته\nscale-brass-balanced | الحق"
+            "beats": "person | شخص\nspeech-bubble | حجته\nscale-brass-balanced | الحق\nquestion-mark | مستعدًا"
           },
           "id": "c6-s9",
           "sfx": []
@@ -627,7 +627,7 @@
         {
           "template": "motion-story",
           "narration": "وتذكر هذا الدعاء: «اللهم أرنا الحق حقًا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
-          "line": 147,
+          "line": 148,
           "props": {
             "beats": "hands-dua | الدعاء\nscale-brass-tilted | الباطل"
           },
@@ -637,7 +637,7 @@
         {
           "template": "motion-story",
           "narration": "لأن الغاية ليست أن نثبت دائمًا أننا على حق. الغاية أن نكون مع الحق، أينما كان.",
-          "line": 149,
+          "line": 150,
           "props": {
             "beats": "scale-brass-balanced | حق\ntarget | الغاية\nlightbulb | أينما"
           },
@@ -648,7 +648,7 @@
           "id": "c6-end",
           "template": "end-screen",
           "narration": "",
-          "line": 161,
+          "line": 162,
           "props": {
             "step": "متى غيّرت رأيك آخر مرة بعد أن سمعت حجة غيرك؟",
             "prompt": "اكتب في التعليقات: في المرة القادمة التي تختلف فيها مع شخص، استمع إلى حجته كاملة، ثم اسأل نفسك بصدق: لو كان الحق معه، هل سأكون مستعدًا لقبوله؟"

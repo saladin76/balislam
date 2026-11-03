@@ -77,7 +77,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
   const gold = props.accent || c.primary;
   const teal = c.secondary;
 
-  const beats: Beat[] = parseBeats(props.beats ?? "").slice(0, 3);
+  const beats: Beat[] = parseBeats(props.beats ?? "").slice(0, 4);
   const timings: WordTiming[] = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
 
   // بداية كل لحظة: أول كلمة من جملتها
@@ -199,13 +199,13 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
       seen.add(id);
       sats.push({ id, word: w.word.replace(/[«»"؟?!.,،:؛…]/g, ""), at: w.start });
     });
-    // نبضات على كلمات المعنى الطويلة بين العناصر (إيقاع مرئي مع الصوت، كل ثانية ونصف على الأكثر)
+    // نبضات على كلمات المعنى الطويلة بين العناصر (إيقاع مرئي مع الصوت، كل ثانية وخُمس على الأكثر، فلا يبقى المشهد ساكنًا ثانيتين)
     const beatsAt: number[] = [];
     let lastEv = st + 20;
     for (const w of timings) {
       if (w.start < st + 20 || w.start >= until - 8) continue;
       const near = sats.some((x) => Math.abs(x.at - w.start) < 30) || beatsAt.some((x) => Math.abs(x - w.start) < 30);
-      if (!near && w.word.replace(/[^\p{L}]/gu, "").length >= 4 && w.start - lastEv >= 54) {
+      if (!near && w.word.replace(/[^\p{L}]/gu, "").length >= 4 && w.start - lastEv >= 36) {
         beatsAt.push(w.start);
         lastEv = w.start;
       }

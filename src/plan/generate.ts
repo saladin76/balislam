@@ -43,7 +43,8 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
     case "board-story":
       return { beats: beatsToText(beatsFor(narration, 3, ctx.allow)), board: "white" };
     case "motion-story":
-      return { beats: beatsToText(beatsFor(narration, 3, ctx.allow)) };
+      // الجملة الطويلة (أكثر من 22 كلمة) تأخذ لحظة رابعة، فلا تبقى الأيقونة نفسها أكثر من بضع ثوانٍ
+      return { beats: beatsToText(beatsFor(narration, narration.split(/\s+/).filter(Boolean).length > 22 ? 4 : 3, ctx.allow)) };
     case "glow-story": {
       // الأمنية/الفكرة المتوهجة: أول رسمة لها معنى في الجملة (لا شخصية)، والكلمة المتوهجة من الجملة نفسها
       const beat = beatsFor(narration, 3, ctx.allow).find((b) => !b.draw.startsWith("person") && b.draw !== "people");

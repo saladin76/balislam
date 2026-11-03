@@ -30,7 +30,8 @@ bal = {
   "paper": theme("نور الفجر", "girih", cols(N2, N3, PP, SG, DW, SL, BR, N, PP, N), DEEP, SKIN, bal_garments, PP),
   "family": theme("دفء الختم", "arches", cols(N, N2, PP, SG, BR, SL, DW, N, PP, N), DEEP, SKIN, bal_garments, PP),
 }
-bal_pal = {k: pal("flat", SG, DEEP, BR, DW, SL, v["colors"]["surface"], DEEP, SKIN[0], BR, BR, SG, SG2) for k, v in bal.items()}
+# الخطوط الداخلية للعناصر بلون فاتح (لا حبر داكن على أرضية داكنة)
+bal_pal = {k: pal("flat", SG, SG, BR, DW, SL, v["colors"]["surface"], SG2, SKIN[0], BR, BR, SG, SG2) for k, v in bal.items()}
 bal_logo = {"tile": N, "baa": BR, "play": DW, "ink": PP}
 
 # ── دفاتر الزمن «دفتر الأفق»: رَقّ وغسق وحبر بني ──
