@@ -266,7 +266,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
               marginBottom: portrait ? -60 : -80,
             }}
           >
-            {digits(i + 1, ar).padStart(2, ar ? "٠" : "0")}
+            {ar ? digits(i + 1, ar) : String(i + 1).padStart(2, "0")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `0 ${headSize * 0.26}px`, direction: lang.dir }}>
             {words.map((w, k) => {
@@ -348,7 +348,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
   const subs =
     chunk && showSubs ? (
       <div style={{ position: "absolute", left: 0, right: 0, bottom: portrait ? 480 : 86, display: "flex", justifyContent: "center", padding: "0 80px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0 16px", maxWidth: portrait ? 940 : 1560, direction: lang.dir }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0 22px", maxWidth: portrait ? 940 : 1560, direction: lang.dir }}>
           {timings.slice(chunk.from, chunk.to + 1).map((w, k) => {
             const s = spring({ frame: frame - w.start + 3, fps, config: { damping: 16, stiffness: 200, mass: 0.5 } });
             const speaking = frame >= w.start && frame < w.end + 2;
@@ -364,7 +364,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
                   lineHeight: 1.45,
                   color: speaking ? gold : c.ink,
                   opacity: Math.max(0.28, Math.min(1, s)) * (said || speaking ? 1 : 0.55),
-                  transform: `translateY(${(1 - s) * 16}px) scale(${speaking ? 1.08 : 1})`,
+                  transform: `translateY(${(1 - s) * 16}px) scale(${speaking ? 1.05 : 1})`,
                   textShadow: speaking ? `0 0 26px ${gold}AA, 0 4px 14px rgba(0,0,0,0.9)` : "0 4px 14px rgba(0,0,0,0.9)",
                 }}
               >
