@@ -10,6 +10,7 @@ import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, getServeUrl } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
+import { QUALITY, type Quality } from "./quality";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -17,6 +18,8 @@ export type RenderEpisodeOptions = {
   /** فصل واحد فقط (للشورت) */
   chapter?: number;
   outFile?: string;
+  /** master لكل ما يُنشر (4K)، وpreview للمعاينات (الافتراضي) */
+  quality?: Quality;
   plan?: Plan;
   media?: EpisodeMedia;
   onProgress?: (pct: number, msg: string) => void;
@@ -40,15 +43,20 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const channel = loadChannel();
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
+  const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   await renderMedia({
     serveUrl,
     composition,
     inputProps,
     codec: "h264",
-    crf: 18,
-    x264Preset: "veryfast",
+    // الجودة من config.json: master = 4K بترميز بطيء عالي الجودة، preview = 1080p سريع
+    scale: q.scale,
+    crf: q.crf,
+    x264Preset: q.x264Preset,
     audioCodec: "aac",
+    audioBitrate: q.audioBitrate,
+    colorSpace: "bt709",
     outputLocation: output,
     browserExecutable: browserExecutable(),
     onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),

@@ -109,13 +109,15 @@ program
   .argument("<episode>", "رقم الحلقة")
   .option("--portrait", "النسخة العمودية 9:16")
   .option("--chapter <n>", "فصل واحد فقط (شورت)")
-  .action(async (episode: string, opts: { portrait?: boolean; chapter?: string }) => {
+  .option("--master", "بأعلى جودة 4K (الافتراضي معاينة 1080p)")
+  .action(async (episode: string, opts: { portrait?: boolean; chapter?: string; master?: boolean }) => {
     const { renderEpisode } = await import("../render/episode");
     let last = -1;
     const out = await renderEpisode({
       episode,
       orientation: opts.portrait ? "portrait" : "landscape",
       chapter: opts.chapter ? Number(opts.chapter) : undefined,
+      quality: opts.master ? "master" : "preview",
       onProgress: (pct, msg) => {
         const step = Math.floor(pct / 10) * 10;
         if (step !== last) {
@@ -217,9 +219,11 @@ program
   .description("تجهيز ملفات النشر: الحلقة + الشورتس + الصور المصغّرة + الترجمة + الوصف")
   .argument("<episode>", "رقم الحلقة")
   .option("--skip-video", "بلا رندر فيديو")
-  .action(async (episode: string, opts: { skipVideo?: boolean }) => {
+  .option("--shorts", "الشورتس/الريلز بأعلى جودة (بعد اعتماد النسخة الأساسية في الاستوديو)")
+  .option("--preview", "معاينة سريعة 1080p بدل أعلى جودة (لا تُنشر)")
+  .action(async (episode: string, opts: { skipVideo?: boolean; shorts?: boolean; preview?: boolean }) => {
     const { packageEpisode } = await import("../package/package");
-    const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, onProgress: (m) => console.log(m) });
+    const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, stage: opts.shorts ? "shorts" : "episode", quality: opts.preview ? "preview" : "master", onProgress: (m) => console.log(m) });
     console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
   });
 

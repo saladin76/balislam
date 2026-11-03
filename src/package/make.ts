@@ -63,5 +63,6 @@ export const makeEpisode = async (opts: MakeOptions) => {
   }
 
   log("٥/٥ الرندر والتغليف…");
-  return packageEpisode({ episode: ep, skipVideo: opts.skipVideo, onProgress: (m) => log(`   ${m}`) });
+  // النسخة النهائية بأعلى جودة (4K)، والمعاينة بلا صوت سريعة 1080p؛ والشورتس بعد اعتماد النسخة الأساسية في الاستوديو
+  return packageEpisode({ episode: ep, skipVideo: opts.skipVideo, stage: "episode", quality: opts.noVoice ? "preview" : "master", onProgress: (m) => log(`   ${m}`) });
 };

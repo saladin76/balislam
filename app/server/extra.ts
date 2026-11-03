@@ -25,7 +25,7 @@ export type ExtraCtx = {
 
 export type LongJob = {
   id: string;
-  kind: "make" | "package" | "sfx" | "render";
+  kind: "make" | "package" | "shorts" | "sfx" | "render";
   channel: string;
   episode?: string;
   title: string;
@@ -293,6 +293,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       files: names.map((n) => ({ name: n, size: statSync(path.join(dir, n)).size, mtime: statSync(path.join(dir, n)).mtimeMs })),
       youtube: existsSync(path.join(dir, "youtube.md")) ? await readFile(path.join(dir, "youtube.md"), "utf8") : "",
       checklist: existsSync(path.join(dir, "publish-checklist.md")) ? await readFile(path.join(dir, "publish-checklist.md"), "utf8") : "",
+      render: existsSync(path.join(dir, "render.json")) ? JSON.parse(await readFile(path.join(dir, "render.json"), "utf8")) : null,
     });
     return true;
   }
@@ -459,11 +460,12 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   if (parts[0] === "jobs") {
     if (req.method === "POST") {
       const b = await readBody(req);
-      if (b.kind === "make" || b.kind === "package") {
+      if (b.kind === "make" || b.kind === "package" || b.kind === "shorts") {
         if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
         if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage }), true;
-        const args = b.kind === "make" ? ["make", b.episode, ...(b.noVoice ? ["--no-voice"] : [])] : ["package", b.episode];
-        const job = startJob(ctx, { kind: b.kind, channel: ch, episode: b.episode, title: b.kind === "make" ? `صناعة الحلقة ${b.episode}${b.noVoice ? " (معاينة بلا صوت)" : ""}` : `تغليف الحلقة ${b.episode}` }, args);
+        const args = b.kind === "make" ? ["make", b.episode, ...(b.noVoice ? ["--no-voice"] : [])] : b.kind === "shorts" ? ["package", b.episode, "--shorts"] : ["package", b.episode];
+        const title = b.kind === "make" ? `صناعة الحلقة ${b.episode}${b.noVoice ? " (معاينة بلا صوت)" : " (أعلى جودة)"}` : b.kind === "shorts" ? `الشورتس والريلز للحلقة ${b.episode} (أعلى جودة)` : `تغليف الحلقة ${b.episode}`;
+        const job = startJob(ctx, { kind: b.kind, channel: ch, episode: b.episode, title }, args);
         return send(res, 200, job), true;
       }
       if (b.kind === "sfx") {

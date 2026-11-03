@@ -89,7 +89,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
     return () => clearInterval(t);
   }, [running, job?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const start = async (kind: "make" | "package", noVoice = false) => {
+  const start = async (kind: "make" | "package" | "shorts", noVoice = false) => {
     setErr("");
     try {
       await api.startJob({ kind, episode: episodeId, noVoice });
@@ -110,6 +110,10 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const video = files.find((f) => f.name.endsWith("-episode.mp4"));
   const shorts = files.filter((f) => /-short-\d\.mp4$/.test(f.name));
   const thumbs = files.filter((f) => f.name.endsWith(".png"));
+  const render = pkg?.render ?? null;
+  const isMaster = render?.quality === "master" && render.voiced;
+  // الاعتماد صالح ما دام ملف الحلقة نفسه (أي رندر جديد يلغيه)
+  const approved = Boolean(video && status.approved && status.approved.size === video.size && Math.abs(status.approved.mtime - video.mtime) < 1);
   const checked = status.checklist ?? {};
   const doneCount = CHECKLIST.filter((c) => checked[c.id]).length;
   const groups = [...new Set(CHECKLIST.map((c) => c.group))];
@@ -154,12 +158,39 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
       ) : (
         <div className="pub-grid">
           <section className="pub-col">
-            <h3>الحلقة</h3>
+            <h3>
+              الحلقة <span className={`chip ${isMaster ? "on" : ""}`}>{render ? `${render.label} · ${render.width}×${render.height}` : "جودة غير معروفة"}{render && !render.voiced ? " · بلا صوت" : ""}</span>
+            </h3>
             <video key={`${video.name}-${video.mtime}`} src={fresh(api.packageUrl(episodeId, video.name), video.mtime)} controls preload="metadata" className="pub-video" />
-            <h3>الشورتس <small>{shorts.length}</small></h3>
+            <div className="pub-actions">
+              <a className="btn primary small" href={api.packageUrl(episodeId, video.name, true)}>تنزيل الحلقة بأعلى جودة ({sizeLabel(video.size)})</a>
+              {approved ? (
+                <span className="chip on">✓ النسخة الأساسية معتمدة {status.approved ? new Date(status.approved.at).toLocaleDateString("ar-EG") : ""}</span>
+              ) : (
+                <button
+                  className="btn small"
+                  disabled={!isMaster || running}
+                  title={isMaster ? "" : "الاعتماد للنسخة النهائية بأعلى جودة وبصوت كامل فقط"}
+                  onClick={() => window.confirm("هل شاهدت النسخة الأساسية كاملة وتعتمدها؟ بعد الاعتماد تُصنع منها الشورتس والريلز.") && saveStatus({ ...status, approved: { at: new Date().toISOString(), size: video.size, mtime: video.mtime } })}
+                >
+                  اعتمد النسخة الأساسية
+                </button>
+              )}
+            </div>
+            {!isMaster ? <p className="help">هذه معاينة لا تُنشر. «اصنع النسخة النهائية» يرندر الحلقة بأعلى جودة (4K) وبصوتك، ثم تعتمدها وتُصنع منها الشورتس والريلز.</p> : null}
+
+            <h3>الشورتس والريلز <small>{shorts.length ? `${shorts.length} · 9:16 بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية"}</small></h3>
+            {approved ? (
+              <div className="pub-actions">
+                <button className="btn primary small" disabled={running} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (فصل لكل مقطع)"}</button>
+              </div>
+            ) : null}
             <div className="shorts-row">
               {shorts.map((s) => (
-                <video key={`${s.name}-${s.mtime}`} src={fresh(api.packageUrl(episodeId, s.name), s.mtime)} controls preload="metadata" />
+                <figure key={`${s.name}-${s.mtime}`} className="short-fig">
+                  <video src={fresh(api.packageUrl(episodeId, s.name), s.mtime)} controls preload="metadata" />
+                  <a className="btn small" href={api.packageUrl(episodeId, s.name, true)}>تنزيل ({sizeLabel(s.size)})</a>
+                </figure>
               ))}
             </div>
             <h3>الصور المصغّرة <small>اختر واحدة أو جرّبها كلها في اختبار العناوين</small></h3>

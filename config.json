@@ -24,6 +24,22 @@
     "short": {
       "width": 1080,
       "height": 1920
+    },
+    "quality": {
+      "master": {
+        "label": "4K · أعلى جودة",
+        "scale": 2,
+        "crf": 14,
+        "x264Preset": "slow",
+        "audioBitrate": "320k"
+      },
+      "preview": {
+        "label": "معاينة 1080p",
+        "scale": 1,
+        "crf": 20,
+        "x264Preset": "veryfast",
+        "audioBitrate": "192k"
+      }
     }
   },
   "voice": {

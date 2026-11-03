@@ -15,6 +15,8 @@ import { assertNoTraces } from "./traces";
 import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../render/motionMeter";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
+import { approvalValid, QUALITY, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
+import { unlink } from "node:fs/promises";
 
 export type PackageOptions = {
   episode: string;
@@ -22,12 +24,20 @@ export type PackageOptions = {
   skipVideo?: boolean;
   /** عدد الشورتس (فصل لكل شورت) */
   shorts?: number;
+  /**
+   * المرحلة: episode = النسخة الأساسية (الحلقة والنصوص والصور المصغّرة)؛
+   * shorts = الشورتس/الريلز، ولا تُصنع إلا بعد اعتماد النسخة الأساسية في الاستوديو
+   */
+  stage?: "episode" | "shorts";
+  /** جودة الرندر: master لما يُنشر (الافتراضي)، preview للمعاينة بلا صوت */
+  quality?: Quality;
   onProgress?: (msg: string) => void;
 };
 
 /**
- * يجهّز كل ما يُرفع إلى يوتيوب في out/package:
- * الحلقة 16:9، وشورت 9:16 لكل فصل، و3 صور مصغّرة، وملفات ترجمة SRT، والوصف، وقائمة النشر.
+ * يجهّز كل ما يُرفع إلى يوتيوب في out/package، على مرحلتين:
+ * ١) النسخة الأساسية: الحلقة 16:9 بأعلى جودة، و3 صور مصغّرة، وترجمة الحلقة، والوصف، وقائمة النشر.
+ * ٢) بعد اعتمادها في الاستوديو: شورت/ريل 9:16 لكل فصل بأعلى جودة مع ترجمته.
  */
 export const packageEpisode = async (opts: PackageOptions) => {
   const log = opts.onProgress ?? (() => {});
@@ -39,6 +49,16 @@ export const packageEpisode = async (opts: PackageOptions) => {
   await mkdir(dir, { recursive: true });
   const id = plan.episode || ep;
   const shorts = Math.min(opts.shorts ?? 6, plan.chapters.length);
+  const stage = opts.stage ?? "episode";
+  const quality: Quality = opts.quality ?? "master";
+  const episodePath = path.join(dir, `${id}-episode.mp4`);
+  const statusFile = path.join(path.dirname(scriptPath), "status.json");
+  const readStatus = async () => (existsSync(statusFile) ? JSON.parse(await readFile(statusFile, "utf8")) : {});
+  if (stage === "shorts") {
+    const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
+    if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
+    if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
+  }
 
   log("تجهيز الوسائط…");
   const media = await prepareRenderMedia(ep, plan);
@@ -56,10 +76,11 @@ export const packageEpisode = async (opts: PackageOptions) => {
   await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, shorts, channel));
   await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice, channel));
   await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
-  for (let n = 1; n <= shorts; n++) {
-    const ch = plan.chapters[n - 1]!;
-    await writeFile(path.join(dir, `${id}-short-${n}.${lang}.srt`), buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media, identity));
-  }
+  if (stage === "shorts")
+    for (let n = 1; n <= shorts; n++) {
+      const ch = plan.chapters[n - 1]!;
+      await writeFile(path.join(dir, `${id}-short-${n}.${lang}.srt`), buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media, identity));
+    }
   files.push("youtube.md", "publish-checklist.md", `${id}-episode.${lang}.srt`);
 
   // حزمة الانتشار (عناوين وكابشن لكل منصة): من publish.json إن وُجد، وإلا نسخة آلية
@@ -79,11 +100,11 @@ export const packageEpisode = async (opts: PackageOptions) => {
   log("تجميع المشروع…");
   await getServeUrl(true);
 
-  // الصور المصغّرة: العنوان والعنوانان البديلان
+  // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string };
   const element = fm.thumbnail_element ?? plan.chapters.flatMap((c) => c.scenes).find((s) => s.props.element)?.props.element;
   const titles = [plan.title, ...(fm.alt_titles ?? [])].slice(0, 3);
-  for (const [i, title] of titles.entries()) {
+  for (const [i, title] of stage === "episode" ? titles.entries() : []) {
     log(`الصورة المصغّرة ${i + 1}…`);
     files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element, lang }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
   }
@@ -99,18 +120,36 @@ export const packageEpisode = async (opts: PackageOptions) => {
     };
     // قاعدة القناة: الحركة في 80% من الوقت على الأقل (الهدف 90%) لكل فيديو منشور
     const motion: { label: string; report: MotionReport }[] = [];
-    const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", plan, media, outFile: path.join(dir, `${id}-episode.mp4`), onProgress: progress("الحلقة") });
-    files.push(path.basename(episodeFile));
-    motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape") });
-    log(motionSummary(motion[0]!.report, "الحلقة"));
-    for (let n = 1; n <= shorts; n++) {
-      last = -1;
-      const ch = plan.chapters[n - 1]!;
-      const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
-      files.push(path.basename(f));
-      motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait") });
+    const reportFile = path.join(dir, "motion-report.md");
+    const q = QUALITY[quality];
+    if (stage === "episode") {
+      // نسخة أساسية جديدة: تلغي الاعتماد السابق والشورتس القديمة (كانت من نسخة أخرى)
+      for (const f of await readdir(dir)) if (/-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f)) await unlink(path.join(dir, f));
+      const st = await readStatus();
+      if (st.approved) {
+        delete st.approved;
+        await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
+      }
+      log(`الحلقة بجودة: ${q.label}`);
+      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, outFile: episodePath, onProgress: progress("الحلقة") });
+      files.push(path.basename(episodeFile));
+      motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape") });
+      log(motionSummary(motion[0]!.report, "الحلقة"));
+      const info: RenderInfo = { quality, label: q.label, width: 1920 * q.scale, height: 1080 * q.scale, voiced: hasVoice, at: new Date().toISOString() };
+      await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
+      await writeFile(reportFile, `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
+    } else {
+      for (let n = 1; n <= shorts; n++) {
+        last = -1;
+        const ch = plan.chapters[n - 1]!;
+        log(`الشورت ${n} بجودة: ${q.label}`);
+        const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
+        files.push(path.basename(f));
+        motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait") });
+      }
+      const prev = existsSync(reportFile) ? (await readFile(reportFile, "utf8")).trimEnd() : `# مقياس الحركة · ${plan.title}\n`;
+      await writeFile(reportFile, `${prev}\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     }
-    await writeFile(path.join(dir, "motion-report.md"), `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     files.push("motion-report.md");
     const weak = motion.filter((m) => m.report.percent < MOTION_MIN);
     if (weak.length) throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. التفاصيل والمقاطع الساكنة في motion-report.md.`);
