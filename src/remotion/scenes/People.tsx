@@ -3,7 +3,9 @@ import type { Theme } from "../../../brand/themes";
 import { Character, type CharacterPose } from "../../../characters/Character";
 
 /** رسمات الأشخاص في اللقطات: person أو person:<وضعية> أو people (شخصان متقابلان). بلا ملامح وجه دائمًا. */
-export const isPerson = (draw: string) => draw === "person" || draw === "people" || draw.startsWith("person:");
+const VARIANTS = { person: "narrator-m", woman: "narrator-f", child: "child", elder: "elder-m" } as const;
+/** person / woman / child / elder، مع وضعية اختيارية (person:sit)، أو people */
+export const isPerson = (draw: string) => draw === "people" || Object.keys(VARIANTS).some((v) => draw === v || draw.startsWith(`${v}:`));
 
 export const People: React.FC<{ draw: string; t: Theme; height: number; gap?: number }> = ({ draw, t, height, gap = height * 0.07 }) => {
   if (draw === "people")
@@ -15,6 +17,7 @@ export const People: React.FC<{ draw: string; t: Theme; height: number; gap?: nu
         </div>
       </div>
     );
-  const pose = (draw.split(":")[1] || "stand") as CharacterPose;
-  return <Character theme={t} variant="narrator-m" pose={pose} height={height} />;
+  const [who = "person", poseId] = draw.split(":");
+  const pose = (poseId || "stand") as CharacterPose;
+  return <Character theme={t} variant={VARIANTS[who as keyof typeof VARIANTS] ?? "narrator-m"} pose={pose} height={height} />;
 };

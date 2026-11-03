@@ -196,4 +196,5 @@ export const parseBeats = (text: string): Beat[] =>
 /** لقطة بلا عنصر مطابق في المكتبة: تحتاج عنصرًا جديدًا يُصمَّم لها */
 export const needsElement = (b: Beat) => !b.draw.trim();
 
-export const isDrawable = (draw: string) => draw === "person" || draw === "people" || draw.startsWith("person:") || hasElement(draw);
+export const isDrawable = (draw: string): boolean =>
+  draw.includes("+") ? draw.split("+").every((d) => isDrawable(d.trim())) : draw === "people" || /^(person|woman|child|elder)(:[a-z-]+)?$/.test(draw) || hasElement(draw);

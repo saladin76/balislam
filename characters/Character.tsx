@@ -273,6 +273,7 @@ export const Character: React.FC<Props> = ({ theme, variant, pose = "stand", hei
   const scarf = line ? surface : isElder ? c.cap : garment;
   const armStroke = line ? c.outline : garment;
   const modern = c.outfit === "modern";
+  const uid = `ch${React.useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   // الزي العصري: قميص حتى الورك وبنطال بلون الحبر الثانوي
   const trousers = line ? surface : theme.colors.inkSoft;
   const armWidth = line ? 3 : 16;
@@ -380,6 +381,16 @@ export const Character: React.FC<Props> = ({ theme, variant, pose = "stand", hei
             <path d="M48 186 L79 186 L76 290 L52 290 Z" fill={trousers} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
             <path d="M81 186 L112 186 L108 290 L84 290 Z" fill={trousers} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
             <path d={isFemale ? "M42 196 L48 112 Q52 90 80 90 Q108 90 112 112 L118 196 Z" : "M44 192 L48 116 Q52 88 80 88 Q108 88 112 116 L116 192 Z"} fill={garment} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+            {back ? null : <path d="M70 92 L80 108 L90 92" fill="none" stroke={line ? c.outline : surface} strokeWidth={line ? 2.5 : 4} strokeLinecap="round" strokeLinejoin="round" />}
+          </>
+        ) : modern ? (
+          // وضعيات بجسم خاص (مشي، جلوس…): القميص فوق الورك والبنطال تحته، بالمسار نفسه
+          <>
+            <clipPath id={`${uid}-legs`}>
+              <rect x={0} y={184} width={VIEW_W} height={VIEW_H} />
+            </clipPath>
+            <path d={body} fill={garment} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+            <path d={body} fill={trousers} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" clipPath={`url(#${uid}-legs)`} />
             {back ? null : <path d="M70 92 L80 108 L90 92" fill="none" stroke={line ? c.outline : surface} strokeWidth={line ? 2.5 : 4} strokeLinecap="round" strokeLinejoin="round" />}
           </>
         ) : (
