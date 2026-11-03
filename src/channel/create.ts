@@ -45,7 +45,7 @@ export const createChannel = async (opts: NewChannelOptions) => {
     logo: { type: "letter", letter: [...opts.name.trim()][0] ?? "؟" },
     domains: { general: { name: "عام", theme: base.masterTheme, tags: [] } },
     rules: { ...base.rules, quran, hadith: quran ? base.rules.hadith : false },
-    youtube: { tags: [opts.name.replace(/\s+/g, "_")], postingTime: base.youtube.postingTime, voiceDisclosure: base.youtube.voiceDisclosure },
+    youtube: { tags: [opts.name.replace(/\s+/g, "_")], postingTime: base.youtube.postingTime, footer: base.youtube.footer },
   };
   await writeFile(p.channelFile, JSON.stringify(channel, null, 2) + "\n");
   return p.dir;

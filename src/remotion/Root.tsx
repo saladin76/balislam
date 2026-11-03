@@ -10,10 +10,16 @@ import { SilhouetteDemo } from "./styles/Silhouette";
 import { FlatModernDemo } from "./styles/FlatModern";
 import { PaperCutDemo } from "./styles/PaperCut";
 import { IsometricDemo } from "./styles/Isometric";
-const styleDemos = { silhouette: SilhouetteDemo, "flat-modern": FlatModernDemo, "paper-cut": PaperCutDemo, isometric: IsometricDemo } as const;
+import { Providers } from "./Providers";
+import config from "../../config.json";
+import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
+import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "./scenes/ChannelIntro";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
+
+/** نماذج أساليب بديلة (أساس اقتراحات الستوري بورد قبل اعتماد أسلوب الحلقة). */
+const styleDemos = { silhouette: SilhouetteDemo, "flat-modern": FlatModernDemo, "paper-cut": PaperCutDemo, isometric: IsometricDemo } as const;
 
 /** افتتاحية قناة منفردة (للمعاينة): تُمرَّر هوية القناة واسمها من inputProps */
 const IntroPreview: React.FC<{ kind: IntroKind; orientation: "landscape" | "portrait"; identity?: Identity; channel?: ChannelInfo }> = ({ kind, orientation, identity, channel }) => (
@@ -21,7 +27,6 @@ const IntroPreview: React.FC<{ kind: IntroKind; orientation: "landscape" | "port
     <ChannelIntro kind={kind} orientation={orientation} />
   </Providers>
 );
-import { Providers } from "./Providers";
 
 /** معاينة قالب بلغة من اليسار لليمين (للتحقق من الاتجاه قبل إطلاق قناة تركية أو إنجليزية). */
 const LtrPreview: React.FC<{ entryId: string; lang: string } & Record<string, unknown>> = ({ entryId, lang, ...props }) => {
@@ -33,9 +38,6 @@ const LtrPreview: React.FC<{ entryId: string; lang: string } & Record<string, un
     </Providers>
   );
 };
-import config from "../../config.json";
-import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
-import samplePlan from "../../tests/fixtures/plan.json";
 
 const sizes = {
   landscape: { width: config.video.episode.width, height: config.video.episode.height },
@@ -43,7 +45,7 @@ const sizes = {
 } as const;
 const orientations = ["landscape", "portrait"] as const;
 
-/** كل التكوينات المسجلة في Remotion. الحلقة والشورت الكاملان يُضافان في المرحلة 5. */
+/** كل التكوينات المسجلة في Remotion: لوحات الهوية، القوالب، الحلقة والشورت، الصورة المصغّرة، والافتتاحية. */
 export const RemotionRoot: React.FC = () => (
   <>
     {(["paper", "night"] as const).flatMap((id) =>

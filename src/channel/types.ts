@@ -47,7 +47,8 @@ export type ChannelConfig = {
     hadith: boolean;
     hadithGrades: string[];
   };
-  youtube: { tags: string[]; postingTime: string; voiceDisclosure: string };
+  /** footer: سطر ثابت في آخر كل وصف (توقيع القناة)، ولا يذكر أدوات الإنتاج أبدًا */
+  youtube: { tags: string[]; postingTime: string; footer: string };
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */

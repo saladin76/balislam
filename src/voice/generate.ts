@@ -146,4 +146,3 @@ export const audioDuration = async (file: string): Promise<number | null> => {
   }
 };
 
-export const readText = (f: string) => readFile(f, "utf8");

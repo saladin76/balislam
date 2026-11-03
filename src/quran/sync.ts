@@ -1,4 +1,5 @@
 import path from "node:path";
+import { toEasternDigits } from "../i18n/packs";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { audioDuration } from "../voice/generate";
@@ -12,7 +13,7 @@ import { loadChannel } from "../channel/index";
 /** مفتاح ترجمة المعنى داخل quran.json بجوار نص الآية. */
 export const meaningKey = (key: string) => `${key}#meaning`;
 
-const ar = (n: number) => String(n).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)] ?? d);
+const ar = toEasternDigits;
 
 /**
  * نص البطاقة: آية واحدة كما هي. للمقطع (2:255-256) تُتبع كل آية بعلامة نهاية الآية ۝ ورقمها،

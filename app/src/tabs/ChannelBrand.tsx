@@ -6,7 +6,7 @@ import type { Identity } from "../../../brand/identity/index";
 import { Providers } from "../../../src/remotion/Providers";
 import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "../../../src/remotion/scenes/ChannelIntro";
 import { Thumbnail } from "../../../src/remotion/Thumbnail";
-import { styleNamesAr } from "./OpsRoom";
+import { styleNameAr } from "../../../src/plan/styles";
 import config from "../../../config.json";
 import { tones, toneIds } from "../../../src/voice/tones";
 
@@ -123,7 +123,7 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
             const on = styles.includes(s);
             return (
               <button key={s} className={`chip ${on ? "on" : ""}`} aria-pressed={on} onClick={() => set({ styles: on ? styles.filter((x) => x !== s) : [...styles, s] })}>
-                {on ? "✓ " : ""}{styleNamesAr[s] ?? s}
+                {on ? "✓ " : ""}{styleNameAr(s)}
               </button>
             );
           })}

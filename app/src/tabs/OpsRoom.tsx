@@ -1,3 +1,4 @@
+import { styleIds, styleNameAr, styleTemplate } from "../../../src/plan/styles";
 import React, { useEffect, useMemo, useState } from "react";
 import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
@@ -12,30 +13,7 @@ import { stagesOf } from "./HomeTab";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const COLORS = ["#B5562E", "#2E6F8E", "#5B7F3A", "#7A4E9A", "#A07A1E"];
-export const styleNamesAr: Record<string, string> = {
-  board: "سبورة متصلة",
-  motion: "قصة متحركة",
-  "motion-story": "قصة متحركة",
-  "board-story": "سبورة متصلة",
-  glow: "قصة مضيئة",
-  "glow-story": "قصة مضيئة",
-  kinetic: "نص حركي",
-  "kinetic-text": "نص حركي",
-  "sketch-board": "سبورة خط اليد",
-  "sim-stage": "محاكاة",
-  "desk-moment": "لحظة يومية",
-  "doc-plate": "لوحات وثائقية",
-  "set-scene": "مشهد في مكان",
-  "map-journey": "خرائط متحركة",
-  "character-talk": "شخصية تتكلم",
-  "big-question": "سؤال كبير",
-  comparison: "مقارنة",
-  list: "قائمة",
-  timeline: "خط زمني",
-  symbolic: "رمزي",
-  templates: "قوالب متنوعة",
-};
-const styleKey = (s: string) => ({ board: "board-story", motion: "motion-story", glow: "glow-story", kinetic: "kinetic-text" } as Record<string, string>)[s] ?? s;
+const styleKey = (s: string) => styleTemplate(s) ?? s;
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -67,7 +45,7 @@ const varietyWarnings = (eps: Overview[]) => {
   const sorted = [...eps].sort((a, b) => a.id.localeCompare(b.id));
   for (let i = 1; i < sorted.length; i++) {
     const a = sorted[i - 1]!, b = sorted[i]!;
-    if (a.style && b.style && styleKey(a.style) === styleKey(b.style)) out.set(b.id, `نفس أسلوب الحلقة ${a.id} (${styleNamesAr[styleKey(b.style)] ?? b.style}). غيّر الأسلوب الأساسي لتبقى القناة متنوعة.`);
+    if (a.style && b.style && styleKey(a.style) === styleKey(b.style)) out.set(b.id, `نفس أسلوب الحلقة ${a.id} (${styleNameAr(b.style)}). غيّر الأسلوب الأساسي لتبقى القناة متنوعة.`);
   }
   return out;
 };
@@ -249,7 +227,7 @@ export const OpsRoom: React.FC<{
                       <span className="ops-card-ch" style={{ color: color(ch.id) }}>{ch.name} · {e.id}</span>
                       <b>{e.title || e.dir}</b>
                       <span className="ops-card-meta">
-                        {e.style ? <span className="chip">{styleNamesAr[styleKey(e.style)] ?? e.style}</span> : null}
+                        {e.style ? <span className="chip">{styleNameAr(e.style)}</span> : null}
                         {e.status.scheduled ? <span className="help">{e.status.scheduled}</span> : null}
                       </span>
                       {w ? <span className="ops-warn" title={w}>⚠ أسلوب مكرر</span> : null}
@@ -449,7 +427,7 @@ const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: 
   );
 };
 
-const STYLE_OPTIONS = ["motion", "board", "sim-stage", "desk-moment", "kinetic", "glow", "sketch-board", "templates"];
+const STYLE_OPTIONS = styleIds;
 
 const IdeasColumn: React.FC<{ ops: OpsChannel; color: string; lastStyle: string; onSave: (ideas: Idea[]) => void; onStart: (idea: Idea) => void }> = ({ ops, color, lastStyle, onSave, onStart }) => {
   const [title, setTitle] = useState("");
@@ -484,7 +462,7 @@ const IdeasColumn: React.FC<{ ops: OpsChannel; color: string; lastStyle: string;
               title="الأسلوب الأساسي المقترح"
             >
               <option value="">الأسلوب: يُختار لاحقًا</option>
-              {STYLE_OPTIONS.map((s) => <option key={s} value={s}>{styleNamesAr[styleKey(s)] ?? s}{lastStyle && styleKey(lastStyle) === styleKey(s) ? " (نفس آخر حلقة)" : ""}</option>)}
+              {STYLE_OPTIONS.map((s) => <option key={s} value={s}>{styleNameAr(s)}{lastStyle && styleKey(lastStyle) === styleKey(s) ? " (نفس آخر حلقة)" : ""}</option>)}
             </select>
             <button className="btn small" onClick={() => onStart(idea)}>ابدأ حلقة</button>
             <button className="btn ghost small" onClick={() => window.confirm("حذف الفكرة؟") && onSave(ops.ideas.filter((x) => x.id !== idea.id))}>حذف</button>

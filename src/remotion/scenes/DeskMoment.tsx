@@ -1,7 +1,7 @@
 import React from "react";
 import { Easing, interpolate, spring, useVideoConfig } from "remotion";
 import { SceneShell } from "./SceneShell";
-import { useSceneFrame } from "./motion";
+import { useSceneFrame, clamp } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
 /**
@@ -11,7 +11,6 @@ import type { SceneBase, StringFields } from "./types";
  */
 export type DeskMomentProps = SceneBase & StringFields<"reaction" | "reactAt" | "push" | "screen" | "outfit">;
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const C = {
   bg: "#F4F6EF",
   blob1: "#D6ECF3",

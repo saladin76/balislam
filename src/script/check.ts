@@ -5,6 +5,7 @@ import { isSceneTemplate, SCENE_TEMPLATES } from "./sceneTemplates";
 import type { Chapter, Frontmatter, Issue, ParsedScript } from "./types";
 import { defaultChannel, domainIds } from "../channel/types";
 import { langPacks } from "../i18n/packs";
+import { isStyle, styleIds } from "../plan/styles";
 
 export type CheckConfig = {
   wordsPerMinute: number;
@@ -37,7 +38,7 @@ const frontmatterSchemaFor = (domains: string[]) => z.object({
   /** أسلوب العرض الافتراضي للمشاهد التي بلا علامة: templates (القوالب) أو board (السبورة المتصلة) */
   /** trailer: إعلان القناة القصير (فصل واحد أو أكثر، بلا شروط عدد الفصول وطولها والاستشهادات) */
   format: z.enum(["episode", "trailer"]).optional(),
-  style: z.enum(["templates", "board", "motion", "glow", "kinetic"], { error: "الأسلوب (style) يجب أن يكون واحدًا من: templates، board، motion، glow، kinetic." }).optional(),
+  style: z.string().refine(isStyle, { error: `الأسلوب (style) يجب أن يكون واحدًا من: ${styleIds.join("، ")}.` }).optional(),
 });
 
 /** عبارات تحيل لفصل سابق، فتكسر استقلال الفصل حين يُنشر شورت. */

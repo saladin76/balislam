@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { findTraces } from "../src/package/traces";
 import { describe, expect, it } from "vitest";
 import { parseScript } from "../src/script/parse";
 import { generatePlan } from "../src/plan/generate";
@@ -94,12 +95,13 @@ describe("المزامنة والتغليف", () => {
     expect(srt.split("\n")[2]).toBe(first.narration.split(" ").slice(0, 6).join(" "));
   });
 
-  it("وصف يوتيوب فيه الفصول من 0:00 والمصادر والإفصاح عن الصوت", () => {
+  it("وصف يوتيوب فيه الفصول من 0:00 والمصادر وتوقيع القناة، بلا أي أثر لأدوات الإنتاج", () => {
     const text = buildYoutubeText(plan, src, media, 6);
     expect(text).toContain("0:00 السؤال");
     expect(text).toContain("Quran.Foundation");
     expect(text).toContain("صحيح البخاري 6446");
-    expect(text).toContain("مولَّد بالذكاء الاصطناعي");
+    expect(text).toContain("مراجَع شرعيًا");
+    expect(findTraces(text)).toEqual([]);
     expect(chapterStarts(plan, media)).toHaveLength(6);
   });
 });

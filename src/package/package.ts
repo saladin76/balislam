@@ -2,7 +2,7 @@ import path from "node:path";
 import { channelInfo } from "../channel/types";
 import { chaptersText, generatePublishKit, kitToMarkdown } from "./social";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { loadPlan, regeneratePlan } from "../plan/io";
@@ -11,6 +11,7 @@ import { scenesOf } from "../remotion/scenes/Episode";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
 import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
+import { assertNoTraces } from "./traces";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
 
@@ -68,6 +69,11 @@ export const packageEpisode = async (opts: PackageOptions) => {
     await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()))));
     files.push("social.md");
   }
+
+  // قاعدة القناة: لا أثر لأدوات الإنتاج في أي نص منشور (قبل أي رندر مكلف)
+  const published = (await readdir(dir)).filter((f) => f === "youtube.md" || f === "social.md" || f.endsWith(".srt"));
+  assertNoTraces(await Promise.all(published.map(async (name) => ({ name, text: await readFile(path.join(dir, name), "utf8") }))));
+  assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
 
   log("تجميع المشروع…");
   await getServeUrl(true);

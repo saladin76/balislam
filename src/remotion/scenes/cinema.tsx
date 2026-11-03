@@ -1,4 +1,5 @@
 import React from "react";
+import { clamp } from "./motion";
 import { AbsoluteFill, Easing, interpolate } from "remotion";
 import { fontFamilies } from "../../../brand/fonts";
 
@@ -10,7 +11,6 @@ export const rand = (i: number) => {
   const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 };
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 export const GOLD = "#D4A24C";
 
 /** ذرات الجو: غبار يطفو، دخان يتحرك، جمر يصعد، مطر */

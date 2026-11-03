@@ -7,7 +7,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { parsePlace, rivers } from "../../geo/places";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
-import { useSceneFrame } from "./motion";
+import { useSceneFrame, clamp } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
 /**
@@ -17,7 +17,6 @@ import type { SceneBase, StringFields } from "./types";
  */
 export type MapJourneyProps = SceneBase & StringFields<"title" | "places" | "mode" | "mover" | "look" | "rivers" | "zoom">;
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const landGeo = feature(land50 as any, (land50 as any).objects.land) as unknown as GeoJSON.FeatureCollection;
 

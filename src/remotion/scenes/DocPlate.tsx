@@ -4,7 +4,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
 import { Atmosphere, FilmGrain } from "./cinema";
 import { useLang } from "../../i18n/context";
-import { useSceneFrame } from "./motion";
+import { useSceneFrame, clamp } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
 /**
@@ -21,7 +21,6 @@ export type DocPlateProps = SceneBase &
     video?: boolean;
   };
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const GOLD = "#D4A24C";
 const rand = (i: number) => {
   const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;

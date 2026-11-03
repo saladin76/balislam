@@ -7,7 +7,7 @@ import { hasElement } from "../../../brand/elements/registry";
 import type { ElementPalette } from "../../../brand/elements/types";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
-import { boil, fade } from "./motion";
+import { boil, fade, clamp } from "./motion";
 import { useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
@@ -18,7 +18,6 @@ import type { SceneBase, StringFields } from "./types";
  */
 export type SketchBoardProps = SceneBase & StringFields<"title" | "items" | "element" | "board" | "keyword">;
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 /** لوحة «حبر على سبورة»: حدود بلون القلم، وتعبئة بلون السبورة، ولمسة اللون الثاني للتمييز. */
 export const inkPalette = (base: ElementPalette, board: string, ink: string, accent: string): ElementPalette => ({

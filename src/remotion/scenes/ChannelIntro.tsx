@@ -1,4 +1,5 @@
 import React from "react";
+import { clamp } from "./motion";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
@@ -21,7 +22,6 @@ export const introKindFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro">, 
 };
 export const introFramesFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro">, chapter?: number) => (introKindFor(channel, plan, chapter) ? INTRO_FRAMES : 0);
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 export const ChannelIntro: React.FC<{ kind: IntroKind; orientation: Orientation }> = ({ kind, orientation }) => {
   const frame = useCurrentFrame();

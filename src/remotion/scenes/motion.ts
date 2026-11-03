@@ -7,6 +7,15 @@ import { useMotionSettings } from "../../../brand/identity/index";
  */
 export const FPS = 30;
 
+/** خيار interpolate الموحّد: لا تتجاوز القيمة طرفي المدى. */
+export const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
+
+/** رقم شبه عشوائي ثابت (0..1) من بذرة: نفس الإطار يعطي نفس النتيجة في كل رندر. */
+export const seeded = (k: number) => {
+  const x = Math.sin(k * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
 /** دخول بنابض ناعم (0 → 1) يبدأ عند delay. */
 export const enter = (frame: number, delay = 0, fps = FPS, stiffness = 120) =>
   spring({ frame: frame - delay, fps, config: { damping: 18, stiffness, mass: 0.9 } });

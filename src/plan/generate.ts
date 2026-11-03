@@ -6,6 +6,7 @@ import { defaultChannel, themeIdForDomainIn, type ChannelConfig } from "../chann
 import { langPack, localDigits } from "../i18n/packs";
 import type { Plan, PlanChapter, PlanScene, PlanSfx } from "./types";
 import { templateById } from "./templates";
+import { styleTemplate } from "./styles";
 
 
 const firstSentence = (text: string, maxWords = 8) => {
@@ -78,7 +79,7 @@ export type QuranTexts = Record<string, string>;
 export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}, channel: ChannelConfig = defaultChannel): Plan => {
   const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string; style?: string; format?: string };
   // أسلوب الحلقة: المشاهد التي بلا علامة تُعرض بالسبورة المتصلة أو بالشخصية المتكلمة
-  const defaultTemplate = ({ board: "board-story", motion: "motion-story", glow: "glow-story", kinetic: "kinetic-text" } as Record<string, string>)[fm.style ?? ""] ?? "character-talk";
+  const defaultTemplate = styleTemplate(fm.style) ?? "character-talk";
   const domain: Domain = fm.domain ?? Object.keys(channel.domains)[0] ?? "general";
   const title = String(fm.title ?? "");
   // اسم القارئ من الاستشهادات: «- آية | النجم 39 | القارئ: فلان»

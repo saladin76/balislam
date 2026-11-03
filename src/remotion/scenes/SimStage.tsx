@@ -8,7 +8,7 @@ import type { Theme } from "../../../brand/themes";
 import { Character, type CharacterPose, type CharacterVariant } from "../../../characters/Character";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
-import { enter, fade, useSceneFrame } from "./motion";
+import { enter, fade, useSceneFrame, clamp } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
 /**
@@ -19,7 +19,6 @@ import type { SceneBase, StringFields } from "./types";
 export type SimStageProps = SceneBase &
   StringFields<"kicker" | "title" | "location" | "meter" | "meterTo" | "timer" | "timerLabel" | "env" | "envLayout" | "badge" | "tone" | "aura" | "pose" | "variant">;
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 /** «02:00» → ثوانٍ */
 const toSeconds = (t: string) => {

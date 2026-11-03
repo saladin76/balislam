@@ -219,7 +219,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           <h3>يوتيوب</h3>
           <label className="field"><span>وسوم القناة</span><TagsInput id="ch-tags" value={c.youtube.tags} onChange={(tags) => set({ youtube: { ...c.youtube, tags } })} /></label>
           <label className="field"><span>موعد النشر</span><input id="ch-time" type="text" dir="ltr" value={c.youtube.postingTime} onChange={(e) => set({ youtube: { ...c.youtube, postingTime: e.target.value } })} /></label>
-          <label className="field"><span>سطر الإفصاح عن الصوت (في كل وصف)</span><textarea id="ch-disclosure" rows={3} value={c.youtube.voiceDisclosure} onChange={(e) => set({ youtube: { ...c.youtube, voiceDisclosure: e.target.value } })} /></label>
+          <label className="field"><span>توقيع القناة (سطر ثابت في آخر كل وصف)</span><textarea id="ch-footer" rows={3} value={c.youtube.footer ?? ""} onChange={(e) => set({ youtube: { ...c.youtube, footer: e.target.value } })} /></label>
         </section>
 
         <ChannelBrand c={c} set={set} identity={identity} />

@@ -11,6 +11,8 @@ import { defaultChannel, type ChannelConfig } from "../channel/types";
  * تُحفظ في publish.json بجوار السكريبت (تُعدَّل من الاستوديو، أو يكتبها Claude بعناية لكل حلقة)،
  * وهذا الملف يولّد نسخة أولى آلية من السكريبت حين لا توجد.
  */
+import { traceCheck } from "./traces";
+
 export type Platform = "youtube" | "youtubeShorts" | "instagram" | "facebook";
 
 export type TitleIdea = { text: string; angle: string };
@@ -69,12 +71,14 @@ export const checkTitle = (title: string, platform: "youtube" | "youtubeShorts",
     { ok: len(title) > 0 && len(title) <= r.titleVisible, label: `الطول ${len(title)}/${r.titleVisible}` },
     { ok: containsKeyword(title.slice(0, platform === "youtubeShorts" ? 40 : 60), keywords), label: "كلمة بحث في أوله" },
     { ok: !/#/.test(title) || platform === "youtubeShorts", label: "بلا هاشتاج في العنوان" },
+    traceCheck(title),
   ];
 };
 export const checkDescription = (desc: string, keywords: string[], hashtags: string[]): Check[] => [
   { ok: containsKeyword(desc.slice(0, RULES.youtube.descFold), keywords), label: "كلمة بحث قبل «المزيد»" },
   { ok: /(^|\n)0:00 /.test(desc) && (desc.match(/(^|\n)\d+:\d\d /g) ?? []).length >= 3, label: "فصول بتوقيت" },
   { ok: hashtags.length >= 1 && hashtags.length <= RULES.youtube.hashtagsMax, label: `هاشتاجات ${hashtags.length} (يظهر أول 3)` },
+  traceCheck(`${desc}\n${hashtags.join(" ")}`),
 ];
 export const checkCaption = (caption: string, hashtags: string[], platform: "instagram" | "facebook", keywords: string[]): Check[] => {
   const r = RULES[platform];
@@ -83,6 +87,7 @@ export const checkCaption = (caption: string, hashtags: string[], platform: "ins
     { ok: containsKeyword(caption, keywords), label: "كلمات بحث في الكابشن" },
     { ok: /[؟?]/.test(caption), label: "سؤال يفتح التعليقات" },
     { ok: hashtags.length <= r.hashtagsMax && hashtags.length > 0, label: `هاشتاجات ${hashtags.length}/${r.hashtagsMax}` },
+    traceCheck(`${caption}\n${hashtags.join(" ")}`),
   ];
 };
 
@@ -140,7 +145,7 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
     "",
     step ? `الخطوة العملية: ${step}` : "",
     "",
-    channel.youtube.voiceDisclosure,
+    channel.youtube.footer,
     "",
     hashtags.join(" "),
   ]

@@ -9,7 +9,7 @@ import type { Theme } from "../../../brand/themes";
 import { Character, type CharacterPose, type CharacterVariant } from "../../../characters/Character";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
-import { enter, fade, float, useSceneFrame } from "./motion";
+import { enter, fade, float, useSceneFrame, clamp } from "./motion";
 import { splitWords } from "./timing";
 import type { SceneBase, StringFields } from "./types";
 
@@ -21,7 +21,6 @@ import type { SceneBase, StringFields } from "./types";
 export type GlowStoryProps = SceneBase &
   StringFields<"quote" | "highlight" | "subjectElement" | "variant" | "pose" | "wish" | "sideElement" | "sideGlow" | "connector">;
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 /** ألوان الإشارات الضوئية (دلالية: أحمر انتظار، أخضر انطلاق). */
 const SIGNAL: Record<string, string> = { red: "#E5534B", green: "#4FC08D" };

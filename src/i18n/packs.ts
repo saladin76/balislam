@@ -90,6 +90,12 @@ export const langPack = (code?: string): LangPack => langPacks[code ?? "ar"] ?? 
 
 const EAST = "٠١٢٣٤٥٦٧٨٩";
 
+/** أرقام عربية مشرقية (٠١٢…) بغض النظر عن اللغة. */
+export const toEasternDigits = (s: string | number) => String(s).replace(/[0-9]/g, (d) => EAST[Number(d)] ?? d);
+
+/** العكس: أرقام مشرقية إلى لاتينية. */
+export const toWesternDigits = (s: string) => s.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+
 /** يحوّل الأرقام حسب أرقام اللغة. */
 export const localDigits = (s: string | number, pack: LangPack) =>
   pack.digits === "arab"

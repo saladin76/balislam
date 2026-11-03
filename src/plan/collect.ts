@@ -14,7 +14,6 @@ export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 
 /** صور اللوحات الوثائقية: مجلد images/ بجوار سكريبت الحلقة (لا تُرفع إلى Git لحجمها) */
 export const imagesDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "images");
-export const IMAGE_EXT = /\.(jpe?g|png|webp)$/i;
 export const MEDIA_EXT = /\.(jpe?g|png|webp|mp4|webm|mov)$/i;
 /** مكتبة صور القناة (تُستعمل في كل الحلقات): channels/<القناة>/images */
 export const libraryDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "..", "..", "images");

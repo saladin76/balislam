@@ -5,10 +5,10 @@ import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import type { Theme } from "../../../brand/themes";
-import { Character, type CharacterPose } from "../../../characters/Character";
 import { SceneShell } from "./SceneShell";
+import { isPerson, People } from "./People";
 import { useLang } from "../../i18n/context";
-import { boil, useSceneFrame } from "./motion";
+import { boil, useSceneFrame, clamp } from "./motion";
 import { Drawn, inkPalette, Pen } from "./SketchBoard";
 import { estimateTimings, type WordTiming } from "./timing";
 import { parseBeats, sentenceGroups, type Beat } from "../../plan/beats";
@@ -25,7 +25,6 @@ export type BoardStoryProps = SceneBase &
     prevNarration?: string;
   };
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const CAMERA = 18;
 
 type Slot = { cx: number; cy: number; size: number; lx: number; ly: number; align: "center" | "side" };
@@ -45,22 +44,6 @@ const layout = (n: number, W: number, H: number, portrait: boolean, rtl: boolean
   if (n <= 1) return [{ cx: W / 2, cy: 450, size: 560, lx: W / 2, ly: 820, align: "center" }];
   if (n === 2) return [0.28, 0.72].map((f) => ({ cx: X(f), cy: 440, size: 470, lx: X(f), ly: 780, align: "center" as const }));
   return [0.18, 0.5, 0.82].map((f, i) => ({ cx: X(f), cy: i === 1 ? 470 : 410, size: 380, lx: X(f), ly: (i === 1 ? 470 : 410) + 260, align: "center" as const }));
-};
-
-/** شخصية أو شخصان بخط القلم. */
-const People: React.FC<{ draw: string; t: Theme; size: number }> = ({ draw, t, size }) => {
-  const pose = (draw.split(":")[1] || "stand") as CharacterPose;
-  const h = size * 1.05;
-  if (draw === "people")
-    return (
-      <div style={{ display: "flex", alignItems: "flex-end", gap: size * 0.08 }}>
-        <Character theme={t} variant="narrator-m" pose="stand" height={h * 0.92} />
-        <div style={{ transform: "scaleX(-1)" }}>
-          <Character theme={t} variant="narrator-f" pose="stand" height={h * 0.92} />
-        </div>
-      </div>
-    );
-  return <Character theme={t} variant="narrator-m" pose={pose} height={h} />;
 };
 
 export const BoardStory: React.FC<BoardStoryProps> = (props) => {
@@ -123,12 +106,11 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
       if (live && drawT > 0 && drawT < 1) pen = { x: rtl ? s.cx + s.size / 2 - s.size * drawT : s.cx - s.size / 2 + s.size * drawT, y: s.cy - s.size * 0.3 + s.size * 0.6 * (0.5 + 0.5 * Math.sin(frame * 1.7)) };
       else if (live && labelT > 0 && labelT < 1) pen = { x: s.lx + (rtl ? 1 : -1) * (b.label.length * labelSize * 0.21) * (1 - 2 * labelT), y: s.ly + labelSize * 0.4 };
       const reveal: React.CSSProperties = { clipPath: rtl ? `inset(-30% 0 -30% ${(1 - drawT) * 100}%)` : `inset(-30% ${(1 - drawT) * 100}% -30% 0)` };
-      const isPerson = b.draw === "person" || b.draw === "people" || b.draw.startsWith("person:");
       const labelW = Math.max(160, Array.from(b.label).length * labelSize * 0.5 + 40);
       return (
         <React.Fragment key={i}>
           <div style={{ position: "absolute", left: s.cx - s.size / 2, top: s.cy - s.size / 2, width: s.size, height: s.size, display: "flex", alignItems: "flex-end", justifyContent: "center", ...reveal, transform: jitter(i * 7 + 1), opacity: drawT > 0 ? 1 : 0 }}>
-            {isPerson ? <People draw={b.draw} t={charTheme} size={s.size} /> : hasElement(b.draw) ? <Element id={b.draw} theme={paper} size={s.size} palette={elPal} /> : null}
+            {isPerson(b.draw) ? <People draw={b.draw} t={charTheme} height={s.size * 1.05} gap={s.size * 0.08} /> : hasElement(b.draw) ? <Element id={b.draw} theme={paper} size={s.size} palette={elPal} /> : null}
           </div>
           {b.label ? (
             <div

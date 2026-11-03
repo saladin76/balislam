@@ -94,7 +94,6 @@ export const IdentityProvider: React.FC<{ identity: Identity; children: React.Re
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };
 
-export const useIdentity = () => useContext(Ctx).identity;
 export const useTheme = (id: ThemeId): Theme => useContext(Ctx).themes[id];
 export const usePalette = (id: ThemeId): ElementPalette => useContext(Ctx).palettes[id];
 export const useSize = (key: keyof Identity["typography"], orientation: Orientation) => useContext(Ctx).identity.typography[key][orientation];

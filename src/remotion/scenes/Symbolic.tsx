@@ -6,7 +6,7 @@ import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
-import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
+import { enter, fade, float, useBoil, useSceneFrame, clamp } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
 export type SymbolicProps = SceneBase & StringFields<"element" | "secondElement" | "relation" | "caption" | "effect">;
@@ -14,7 +14,6 @@ export type SymbolicProps = SceneBase & StringFields<"element" | "secondElement"
 type Effect = "pop" | "grow" | "shake" | "float";
 type Relation = "becomes" | "versus" | "plus";
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 /** حركة العنصر حسب التأثير المختار، تبدأ عند الإطار at. */
 const effectStyle = (effect: Effect, frame: number, at: number, floatAmp: number) => {

@@ -56,14 +56,13 @@ export const trimJobs = <T extends { status: string }>(m: Map<string, T>) => {
 export const busyMessage = "توجد مهمة جارية على هذه الحلقة (رندر أو صناعة). انتظر انتهاءها ثم أعد المحاولة.";
 
 const EP = /^\d{3}$/;
-const ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 const types: Record<string, string> = { ".png": "image/png", ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".mp3": "audio/mpeg" };
 
 /** تقدير التقدم من سطور bal make: «٣/٥ …» ثم «الحلقة: 40%» … */
 const progressFrom = (job: LongJob, line: string) => {
   const step = line.match(/^([٠-٩1-9])\/([٠-٩1-9])/);
   if (step) {
-    const n = Number(step[1]!.replace(/[٠-٩]/, (d) => String(ARABIC_DIGITS.indexOf(d))));
+    const n = Number(step[1]!.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)));
     job.pct = Math.max(job.pct, (n - 1) * 15);
   }
   const pct = line.match(/(\d+)%/);

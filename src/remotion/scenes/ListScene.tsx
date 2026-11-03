@@ -1,4 +1,5 @@
 import React from "react";
+import { toEasternDigits } from "../../i18n/packs";
 import { useVideoConfig } from "remotion";
 import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
@@ -13,7 +14,6 @@ import type { SceneBase, StringFields } from "./types";
 export type ListSceneProps = SceneBase & StringFields<"title" | "items" | "style" | "icons">;
 
 /** أرقام عربية مشرقية: 1 → ١ */
-const arabicDigits = (n: number) => String(n).replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)] ?? d);
 
 /** تقدير ارتفاع القائمة لتصغير الخط إن طال النص (عرض الحرف العربي ≈ 0.44 من حجم الخط). */
 const estimate = (items: string[], fs: number, textW: number, lead: number, padY: number, gap: number) => {
@@ -120,7 +120,7 @@ export const ListScene: React.FC<ListSceneProps> = (props) => {
             <path d="M8 21 L17 30 L33 11" fill="none" stroke={on} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={40} strokeDashoffset={40 * (1 - fade(frame, at(i) + 4, 12))} />
           </svg>
         ) : (
-          <span style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: badge * 0.56, lineHeight: 1, color: on, marginTop: badge * 0.06 }}><Digits>{arabicDigits(i + 1)}</Digits></span>
+          <span style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: badge * 0.56, lineHeight: 1, color: on, marginTop: badge * 0.06 }}><Digits>{toEasternDigits(i + 1)}</Digits></span>
         )}
       </div>
     );

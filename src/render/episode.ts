@@ -1,6 +1,7 @@
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
-import { renderMedia, renderStill, selectComposition } from "@remotion/renderer";
+import { rename, unlink } from "node:fs/promises";
+import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
@@ -52,7 +53,25 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     browserExecutable: browserExecutable(),
     onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
   });
+  await cleanMetadata(output, { title: plan.title, artist: channel.name });
   return output;
+};
+
+/**
+ * قاعدة القناة: الملف المنشور لا يحمل أي أثر لأدوات الإنتاج.
+ * يعيد تغليف الفيديو بلا إعادة ترميز: يحذف كل البيانات الوصفية (ومنها «Made with Remotion» ووسم المُرمِّز وتوقيع x264 داخل الصورة)
+ * ويضع العنوان واسم القناة فقط، مع نقل فهرس الملف لأوله (تشغيل أسرع على المنصات).
+ */
+export const cleanMetadata = async (file: string, meta: { title: string; artist: string }) => {
+  const tmp = file.replace(/\.mp4$/, ".clean.mp4");
+  const args = ["-y", "-i", file, "-map", "0", "-c", "copy", "-map_metadata", "-1", "-map_metadata:s", "-1", "-bsf:v", "filter_units=remove_types=6", "-fflags", "+bitexact", "-flags:v", "+bitexact", "-flags:a", "+bitexact", "-metadata", `title=${meta.title}`, "-metadata", `artist=${meta.artist}`, "-movflags", "+faststart", tmp];
+  try {
+    await RenderInternals.callFf({ bin: "ffmpeg", args, indent: false, logLevel: "error", binariesDirectory: null, cancelSignal: undefined });
+    await rename(tmp, file);
+  } catch (e) {
+    await unlink(tmp).catch(() => {});
+    throw new Error(`تعذّر تنظيف البيانات الوصفية للفيديو: ${(e as Error).message}`);
+  }
 };
 
 /** الصورة المصغّرة بعنوان محدد. */

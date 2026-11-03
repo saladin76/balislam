@@ -12,7 +12,7 @@ import { useChannel } from "../../channel/context";
 import { SceneShell } from "./SceneShell";
 import { Atmosphere, CinemaLight, FilmGrain, Letterbox, PlaceTitle, letterboxHeight } from "./cinema";
 import { useLang } from "../../i18n/context";
-import { useSceneFrame } from "./motion";
+import { useSceneFrame, clamp } from "./motion";
 import type { SceneBase, StringFields } from "./types";
 
 /**
@@ -38,7 +38,6 @@ const CINEMA: Record<string, { light: { x: number; y: number }; rays?: boolean; 
   market: { light: { x: 0.7, y: 0.1 }, rays: true, atmos: "dust" },
   "street-night": { light: { x: 0.5, y: 0.3 }, atmos: "none" },
 };
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 export const SetScene: React.FC<SetSceneProps> = (props) => {
   const { orientation, set = "office", variant = "narrator-m", pose = "stand", variant2 = "", pose2 = "stand", camera = "push", bubble = "", bubbleKind = "say", bubbleWho = "1", element = "" } = props;

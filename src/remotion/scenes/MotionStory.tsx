@@ -4,11 +4,11 @@ import { usePalette, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
-import type { Theme } from "../../../brand/themes";
-import { Character, type CharacterPose } from "../../../characters/Character";
 import { SceneShell } from "./SceneShell";
+import { isPerson, People } from "./People";
 import { useLang } from "../../i18n/context";
-import { useSceneFrame } from "./motion";
+import { clamp, seeded, useSceneFrame } from "./motion";
+import { localDigits } from "../../i18n/packs";
 import { estimateTimings, type WordTiming } from "./timing";
 import { parseBeats, sentenceGroups, type Beat } from "../../plan/beats";
 import type { SceneBase, StringFields } from "./types";
@@ -24,10 +24,8 @@ import type { SceneBase, StringFields } from "./types";
  */
 export type MotionStoryProps = SceneBase & StringFields<"beats" | "accent">;
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 /** أرقام بحسب اللغة. */
-const digits = (n: number, ar: boolean) => (ar ? String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!) : String(n));
 
 /** نقش النجمة الثمانية (خاتم) بلاطةً قابلة للتكرار. */
 const starTile = (color: string) => {
@@ -47,28 +45,6 @@ const starTile = (color: string) => {
 const grainTile = `url("data:image/svg+xml;utf8,${encodeURIComponent(
   "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='220' height='220' filter='url(#n)'/></svg>",
 )}")`;
-
-const rnd = (k: number) => {
-  const x = Math.sin(k * 127.1 + 311.7) * 43758.5453;
-  return x - Math.floor(x);
-};
-
-/** شخصية أو شخصان مسطّحان بلا ملامح. */
-const People: React.FC<{ draw: string; t: Theme; size: number }> = ({ draw, t, size }) => {
-  const pose = (draw.split(":")[1] || "stand") as CharacterPose;
-  if (draw === "people")
-    return (
-      <div style={{ display: "flex", alignItems: "flex-end", gap: size * 0.06 }}>
-        <Character theme={t} variant="narrator-m" pose="stand" height={size * 0.92} />
-        <div style={{ transform: "scaleX(-1)" }}>
-          <Character theme={t} variant="narrator-f" pose="stand" height={size * 0.92} />
-        </div>
-      </div>
-    );
-  return <Character theme={t} variant="narrator-m" pose={pose} height={size} />;
-};
-
-const isPerson = (d: string) => d === "person" || d === "people" || d.startsWith("person:");
 
 /** دفعات الترجمة: تنكسر عند علامات الوقف أو بعد max كلمات. */
 const chunksOf = (ws: WordTiming[], max: number) => {
@@ -93,7 +69,6 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
   const { width: W, height: H, durationInFrames, fps } = useVideoConfig();
   const lang = useLang();
   const rtl = lang.dir === "rtl";
-  const ar = lang.dir === "rtl";
   const portrait = orientation === "portrait";
 
   const night = useTheme("night");
@@ -143,7 +118,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
     { x: 0.82, y: 0.72, r: 0.6, col: teal, a: 0.14, sp: 210 },
     { x: 0.6, y: 0.15, r: 0.35, col: "#7A8CFF", a: 0.08, sp: 150 },
   ];
-  const grainPos = `${Math.floor(rnd(Math.floor(frame / 2)) * 220)}px ${Math.floor(rnd(Math.floor(frame / 2) + 9) * 220)}px`;
+  const grainPos = `${Math.floor(seeded(Math.floor(frame / 2)) * 220)}px ${Math.floor(seeded(Math.floor(frame / 2) + 9) * 220)}px`;
   const bg = (
     <>
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(120% 90% at 50% 35%, #17304F 0%, ${c.bg} 55%, #070E19 100%)` }} />
@@ -168,10 +143,10 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
       {/* ذرات ضوء صغيرة تصعد ببطء */}
       <svg width={W} height={H} style={{ position: "absolute", inset: 0 }}>
         {Array.from({ length: 26 }, (_, i) => {
-          const x = rnd(i) * W + Math.sin((frame + i * 40) / 60) * 14;
-          const y = (((rnd(i + 50) * H - frame * (0.4 + rnd(i + 7) * 0.8)) % H) + H) % H;
+          const x = seeded(i) * W + Math.sin((frame + i * 40) / 60) * 14;
+          const y = (((seeded(i + 50) * H - frame * (0.4 + seeded(i + 7) * 0.8)) % H) + H) % H;
           const tw = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin((frame + i * 17) / 20));
-          return <circle key={i} cx={x} cy={y} r={1.2 + rnd(i + 3) * 2.2} fill={i % 3 ? c.ink : gold} opacity={tw * 0.55} />;
+          return <circle key={i} cx={x} cy={y} r={1.2 + seeded(i + 3) * 2.2} fill={i % 3 ? c.ink : gold} opacity={tw * 0.55} />;
         })}
       </svg>
     </>
@@ -247,7 +222,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
             </g>
           </svg>
           <div style={{ position: "absolute", inset: disc * 0.14, display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${0.4 + 0.6 * iconS}) rotate(${(1 - iconS) * -12}deg)`, filter: "drop-shadow(0 18px 24px rgba(0,0,0,0.45))" }}>
-            {isPerson(b.draw) ? <People draw={b.draw} t={night} size={disc * 0.66} /> : hasElement(b.draw) ? <Element id={b.draw} theme={night} size={disc * 0.68} palette={pal} /> : null}
+            {isPerson(b.draw) ? <People draw={b.draw} t={night} height={disc * 0.66} gap={disc * 0.04} /> : hasElement(b.draw) ? <Element id={b.draw} theme={night} size={disc * 0.68} palette={pal} /> : null}
           </div>
         </div>
 
@@ -266,7 +241,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
               marginBottom: portrait ? -60 : -80,
             }}
           >
-            {ar ? digits(i + 1, ar) : String(i + 1).padStart(2, "0")}
+            {lang.digits === "arab" ? localDigits(i + 1, lang) : String(i + 1).padStart(2, "0")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `0 ${headSize * 0.26}px`, direction: lang.dir }}>
             {words.map((w, k) => {
@@ -328,7 +303,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
             }}
           >
             <div style={{ width: 54, height: 54, borderRadius: 27, background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-              {isPerson(b.draw) ? <People draw={b.draw} t={night} size={44} /> : hasElement(b.draw) ? <Element id={b.draw} theme={night} size={42} palette={pal} /> : null}
+              {isPerson(b.draw) ? <People draw={b.draw} t={night} height={44} gap={3} /> : hasElement(b.draw) ? <Element id={b.draw} theme={night} size={42} palette={pal} /> : null}
             </div>
             <span style={{ fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: portrait ? 34 : 32, color: c.ink, opacity: 0.85, whiteSpace: "nowrap" }}>{b.label}</span>
           </div>

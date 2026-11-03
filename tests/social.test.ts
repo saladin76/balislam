@@ -33,3 +33,16 @@ describe("حزمة الانتشار", () => {
     expect(checkCaption("سطر؟", ["#a", "#b", "#c", "#d", "#e", "#f"], "instagram", ["سطر"]).find((c) => c.label.startsWith("هاشتاجات"))!.ok).toBe(false);
   });
 });
+
+describe("قاعدة: لا أثر لأدوات الإنتاج", () => {
+  it("يكشف الإشارات للذكاء الاصطناعي والأدوات، ويقبل النص العادي", async () => {
+    const { findTraces, assertNoTraces } = await import("../src/package/traces");
+    expect(findTraces("التعليق الصوتي مولَّد بالذكاء الاصطناعي")).toContain("ذكاء اصطناعي");
+    expect(findTraces("Voice by ElevenLabs")).toContain("ElevenLabs");
+    expect(findTraces("made with AI")).toContain("AI");
+    expect(findTraces("صوت مستنسخ")).toContain("استنساخ الصوت");
+    expect(findTraces("كيف تعرف أنك على حق؟ اللهم أرنا الحق حقًا #بالإسلام")).toEqual([]);
+    expect(findTraces("SAID and MAIN")).toEqual([]);
+    expect(() => assertNoTraces([{ name: "youtube.md", text: "Claude" }])).toThrow(/youtube.md/);
+  });
+});

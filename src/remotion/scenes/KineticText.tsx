@@ -1,4 +1,5 @@
 import React from "react";
+import { clamp } from "./motion";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
@@ -16,7 +17,6 @@ import type { SceneBase, StringFields } from "./types";
  */
 export type KineticTextProps = SceneBase & StringFields<"emphasis" | "element" | "stage">;
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const bare = (w: string) => w.replace(/[«»"“”'؟?!.,،:؛…]/g, "");
 
 /** يقسم الكلمات إلى دفعات: تنتهي الدفعة عند علامة ترقيم أو بعد 3 كلمات. */
