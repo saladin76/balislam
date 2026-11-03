@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import { cueFrames, cuesFor, isSacredSentence, parseCues, cuesToText } from "../src/plan/sceneCues";
+import { chapterMood, posesFor } from "../src/plan/illusDirect";
+
+describe("إشارات المشاهد المصوَّرة (القاعدة الثالثة)", () => {
+  it("الحدث من معنى الكلمة المنطوقة نفسها", () => {
+    const cues = cuesFor("قد تصدق خبرًا لأنه يؤكد رأيك. الأول يراه ظلمًا، والثاني يراه عدلًا.");
+    expect(cues.map((c) => c.kind)).toEqual(["news", "wrong", "just"]);
+    expect(cues.map((c) => c.word)).toEqual(["خبرًا", "ظلمًا", "عدلًا"]);
+  });
+
+  it("لا أحداث في جملة فيها ذكر الله أو دعاء أو آية (توقير)", () => {
+    expect(isSacredSentence("يقول الله تعالى:")).toBe(true);
+    expect(isSacredSentence("«اللهم أرنا الحق حقًا وارزقنا اتباعه»")).toBe(true);
+    expect(isSacredSentence("فالله تعالى يقول:")).toBe(true);
+    expect(cuesFor("أي نسأل الله أن يهدينا إلى معرفة الحقيقة.")).toEqual([]);
+    expect(cuesFor("وأن نطلب الهداية من الله، وأن نرجع إلى الوحي.")).toEqual([]);
+  });
+
+  it("«في حقك» ليست الحق، و«صحيح» المنفي لا يضيء", () => {
+    expect(cuesFor("أنت مقتنع أنه أخطأ في حقك.")).toEqual([]);
+    expect(cuesFor("فليس كل ما نقتنع به صحيحًا.").map((c) => c.kind)).not.toContain("truth");
+  });
+
+  it("الحدث يقع لحظة نطق كلمته فقط، ولا يقع إن لم تُنطق", () => {
+    const cues = parseCues(cuesToText([{ kind: "news", word: "خبرًا" }, { kind: "door", word: "الاعتراف" }]));
+    const t = [{ word: "قد", start: 0 }, { word: "تصدق", start: 10 }, { word: "خبرًا", start: 22 }];
+    expect(cueFrames(cues, t)).toEqual([{ kind: "news", word: "خبرًا", at: 22 }]);
+  });
+});
+
+describe("إخراج الحلقة المصوَّرة", () => {
+  it("المزاج يتبع قوس الحلقة وينتهي بالفجر", () => {
+    expect(chapterMood(0, 6)).toBe("night");
+    expect(chapterMood(5, 6)).toBe("dawn");
+  });
+
+  it("حركة البطل من معنى الجملة، والجملة المقدسة بلا حركة", () => {
+    expect(posesFor("كيف تعرف أنك تسير في طريق الحق؟", 0)).toContain("walk");
+    expect(posesFor("قد تصدق خبرًا لأنه يؤكد رأيك.", 0)).toBe("hold");
+    expect(posesFor("يقول الله تعالى:", 0)).toBe("stand");
+  });
+});

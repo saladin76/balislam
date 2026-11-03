@@ -9,6 +9,7 @@ import { templateById } from "./templates";
 import { styleTemplate } from "./styles";
 import { drawAllowed } from "../channel/library";
 import { isTone } from "../voice/tones";
+import { directIllus, illusDefaults } from "./illusDirect";
 
 
 const firstSentence = (text: string, maxWords = 8) => {
@@ -56,6 +57,10 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
       const drawn = beats.find((b) => isCuratedBeat(b) && !b.draw.startsWith("person") && b.draw !== "people");
       return { title: ctx.chapterTitle, keyword: "", element: drawn?.draw ?? "", items: beats.filter((b) => isCuratedBeat(b) || b.draw !== "question-mark").map((b) => b.label).filter((l, i, a) => l && a.indexOf(l) === i).join("\n"), board: "white" };
     }
+    case "alley-tale":
+    case "road-journey":
+    case "light-stage":
+      return illusDefaults(template, narration);
     case "kinetic-text":
       // الكلمات المهمة: كلمات المعنى في كل جملة (تظهر أكبر وملونة)
       return { emphasis: beatsFor(narration, 3, ctx.allow).map((b) => b.label).filter(Boolean).join("، "), element: "", stage: "theme" };
@@ -185,6 +190,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     for (const s of scenes) if (!templateById(s.template)) s.props.unknownTemplate = "1";
     return { number: ch.number, title: ch.title, scenes };
   });
+  // إخراج القوالب المصوَّرة: المزاج والمكان والكاميرا وحركة البطل بحسب موضع المشهد في الحلقة
+  directIllus(chapters, String(fm.episode ?? ""));
 
   // دمج تعديلات المستخدم السابقة: أولًا بالمحتوى المطابق، ثم بالموضع لمشهد عُدّل نصه
   const matches = new Map<PlanScene, PlanScene>();

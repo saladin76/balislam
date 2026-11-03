@@ -2,6 +2,30 @@
  * تعريف القوالب كبيانات: الاسم، هل بُني، والحقول التي يعرضها الاستوديو لكل قالب.
  * مشترك بين مولّد الخطة والاستوديو وتكوين الحلقة.
  */
+/** خيارات مشتركة لقوالب «بالإسلام» المصوَّرة */
+const MOOD_OPTIONS = [
+  { value: "night", label: "ليل زمردي (سؤال وتأمل)" },
+  { value: "deep", label: "ليل أعمق (ثقل وإنكار)" },
+  { value: "dusk", label: "غروب (تأثر وذكرى)" },
+  { value: "predawn", label: "قبيل الفجر (بداية الفهم)" },
+  { value: "dawn", label: "فجر (الخلاصة والحق)" },
+  { value: "day", label: "نهار هادئ (الحياة اليومية)" },
+];
+const CAMERA_OPTIONS = [
+  { value: "push", label: "اقتراب بطيء" },
+  { value: "track", label: "تتبّع جانبي" },
+  { value: "rise", label: "ارتفاع" },
+  { value: "drift", label: "انجراف هادئ" },
+  { value: "still", label: "ثابتة" },
+];
+const LOOK_OPTIONS = [
+  { value: "hero", label: "شاب (سترة)" },
+  { value: "heroThobe", label: "شاب (ثوب)" },
+  { value: "woman", label: "امرأة (عباءة داكنة)" },
+  { value: "womanSand", label: "امرأة (عباءة رملية)" },
+  { value: "elder", label: "شيخ كبير" },
+];
+
 export type FieldType = "text" | "textarea" | "element" | "variant" | "pose" | "select" | "number" | "boolean" | "image";
 
 export type FieldDef = {
@@ -184,6 +208,53 @@ export const templateDefs: TemplateDef[] = [
       { key: "beats", label: "اللقطات (سطر لكل جملة)", type: "textarea", help: "الرسمة | الكلمة المكتوبة. الرسمة: معرّف عنصر من المكتبة، أو person أو people أو person:think" },
       { key: "board", label: "السبورة", type: "select", options: [{ value: "white", label: "بيضاء (ورق مسطّر)" }, { value: "green", label: "سوداء (حبر أبيض)" }] },
       { key: "extras", label: "رسمات مساندة آلية", type: "select", options: [{ value: "on", label: "نعم (من قائمة المعاني)" }, { value: "off", label: "لا (اللقطات المختارة فقط)" }] },
+    ],
+  },
+  {
+    id: "alley-tale",
+    nameAr: "حكايات الحارة",
+    useAr: "كل جملة لقطة في مكان مرسوم (حارة، سوق، بيت)، وبطل بلا ملامح يمثّل الكلام، والضوء يحمل المعنى لحظة نطق كلمته",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 4,
+    fields: [
+      { key: "place", label: "المكان", type: "select", options: [{ value: "alley", label: "حارة قديمة" }, { value: "market", label: "سوق" }, { value: "home", label: "بيت" }] },
+      { key: "mood", label: "المزاج", type: "select", options: MOOD_OPTIONS },
+      { key: "moodTo", label: "يتحول إلى", type: "select", options: [{ value: "", label: "لا يتحول" }, ...MOOD_OPTIONS] },
+      { key: "camera", label: "الكاميرا", type: "select", options: CAMERA_OPTIONS },
+      { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away, walk" },
+      { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+    ],
+  },
+  {
+    id: "road-journey",
+    nameAr: "الطريق",
+    useAr: "الحلقة رحلة مسافر واحد بلا قطع: يمشي من أطراف المدينة إلى تلة الفجر، ويتوقف عند كل محطة يذكرها الكلام",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 4,
+    fields: [
+      { key: "biome", label: "الطريق", type: "select", options: [{ value: "city", label: "أطراف المدينة" }, { value: "fields", label: "الحقول" }, { value: "desert", label: "الصحراء" }, { value: "hill", label: "تلة الفجر" }] },
+      { key: "mood", label: "المزاج", type: "select", options: MOOD_OPTIONS },
+      { key: "moodTo", label: "يتحول إلى", type: "select", options: [{ value: "", label: "لا يتحول" }, ...MOOD_OPTIONS] },
+      { key: "poses", label: "حركة المسافر", type: "text", help: "walk للمشي (الافتراضي)، أو stand ليقف طوال المشهد" },
+      { key: "look", label: "المسافر", type: "select", options: LOOK_OPTIONS },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+    ],
+  },
+  {
+    id: "light-stage",
+    nameAr: "ظل ونور",
+    useAr: "مسرح مظلم وبقعة ضوء: البطل ينتقل إلى علامة جديدة مع كل سطر، والمعنى يُروى بالضوء والظل",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 4,
+    fields: [
+      { key: "mood", label: "لون الضوء", type: "select", options: [{ value: "night", label: "ضوء ورقي (حيرة وسؤال)" }, { value: "dawn", label: "ضوء الفجر (حق وخلاصة)" }] },
+      { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away" },
+      { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
     ],
   },
   {

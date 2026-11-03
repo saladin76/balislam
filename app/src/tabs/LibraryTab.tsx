@@ -15,6 +15,8 @@ import { sets } from "../../../brand/sets/index";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { channelLibrary, type LibraryRules } from "../../../src/channel/library";
+import { Figure, LOOKS, POSES, type PoseName } from "../../../src/remotion/illus/Figure";
+import { PLACE_IDS, PlacePreview, placeNamesAr } from "../../../src/remotion/illus/places";
 
 /** قواعد مكتبة القناة من بياناتها في الاستوديو */
 export const libraryRulesOf = (c?: ChannelInfo): LibraryRules => ({ id: c?.id ?? "", rules: { faces: Boolean(c?.rules?.faces), quran: Boolean(c?.rules?.quran), hadith: Boolean(c?.rules?.hadith) }, library: c?.library });
@@ -27,16 +29,17 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
   const [themeId, setThemeId] = useState<ThemeId>("paper");
   const t = useTheme(themeId);
   const lib = useMemo(() => channelLibrary(libraryRulesOf(channel)), [channel]);
+  const illus = channel?.library?.cast === "illus";
   return (
     <div className="library">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="القسم">
-          {([["templates", `القوالب (${sceneCatalog.filter((e) => lib.templates.includes(e.id)).length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${lib.sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${lib.elements.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
+          {([["templates", `القوالب (${sceneCatalog.filter((e) => lib.templates.includes(e.id)).length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${illus ? PLACE_IDS.length : lib.sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${lib.elements.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
             <button key={k} aria-pressed={section === k} onClick={() => setSection(k)}>{l}</button>
           ))}
         </div>
         <span className="spacer" />
-        {section === "elements" || section === "characters" ? (
+        {section === "elements" || (section === "characters" && !illus) ? (
           <div className="seg" role="group" aria-label="الثيم">
             {themeIds.map((id) => (
               <ThemeButton key={id} id={id} active={id === themeId} onClick={() => setThemeId(id)} />
@@ -46,9 +49,10 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
       </div>
       {section === "templates" ? <TemplatesGallery identity={identity} channel={channel} allowed={lib.templates} /> : null}
       {section === "images" ? <ChannelImages key={channel?.id} channel={channel?.id ?? ""} /> : null}
-      {section === "sets" ? <SetsGallery allowed={lib.sets} /> : null}
+      {section === "sets" ? (illus ? <IllusPlaces /> : <SetsGallery allowed={lib.sets} />) : null}
       {section === "elements" ? <Elements themeId={themeId} allowed={lib.elements} channelName={channel?.name ?? ""} /> : null}
-      {section === "characters" ? (
+      {section === "characters" && illus ? <IllusCast /> : null}
+      {section === "characters" && !illus ? (
         <div className="lib-chars" style={{ background: t.colors.bg }}>
           {characterVariants.map((v) => (
             <div key={v} className="lib-char-row">
@@ -196,3 +200,40 @@ const Sfx: React.FC<{ hasVoiceKeys: boolean }> = ({ hasVoiceKeys }) => {
     </>
   );
 };
+
+const CAST_NAMES: Record<keyof typeof LOOKS, string> = { hero: "الشاب (سترة)", heroThobe: "الشاب (ثوب)", woman: "امرأة (عباءة داكنة)", womanSand: "امرأة (عباءة رملية)", elder: "شيخ كبير", friend: "صديق", stranger: "عابر" };
+const POSE_NAMES: Record<PoseName, string> = { stand: "واقف", think: "يتأمل", sit: "جالس", "sit-low": "جالس مطرق", "head-down": "مثقل", hold: "يقرأ ورقة", cross: "متمسك برأيه", point: "يشير", "look-up": "يرفع رأسه", nod: "يومئ", "turn-away": "يدير ظهره" };
+
+/** شخصيات «بالإسلام» المصوَّرة: بلا ملامح، بوضعياتها كما تظهر في القوالب الثلاثة */
+const IllusCast: React.FC = () => (
+  <div className="lib-chars" style={{ background: "#0B1F1C" }}>
+    <p className="help" style={{ color: "#C9A24A" }}>شخصيات القناة بلا ملامح وجه أبدًا. تتحرك بمفاصل (تمشي وتجلس وتومئ) في «حكايات الحارة» و«الطريق» و«ظل ونور».</p>
+    {(Object.keys(LOOKS) as (keyof typeof LOOKS)[]).map((k) => (
+      <div key={k} className="lib-char-row">
+        <b style={{ color: "#F4EEE2" }}>{CAST_NAMES[k]}</b>
+        <div className="lib-char-poses">
+          {(Object.keys(POSES) as PoseName[]).map((p) => (
+            <figure key={p}>
+              <svg viewBox="-110 -330 220 345" width={88} height={138}>
+                <Figure x={0} y={0} pose={POSES[p]} look={LOOKS[k]} flip />
+              </svg>
+              <figcaption style={{ color: "#C9A24A" }}>{POSE_NAMES[p]}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+/** أماكن «بالإسلام» المصوَّرة: ما يظهر هنا هو ما يُرندر */
+const IllusPlaces: React.FC = () => (
+  <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+    {PLACE_IDS.map((id) => (
+      <figure key={id} style={{ margin: 0 }}>
+        <PlacePreview id={id} width={360} />
+        <figcaption style={{ marginTop: 6 }}>{placeNamesAr[id]}</figcaption>
+      </figure>
+    ))}
+  </div>
+);

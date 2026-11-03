@@ -65,8 +65,9 @@
     "thumbnail": "mihrab"
   },
   "styles": [
-    "motion",
-    "glow",
+    "alley",
+    "road",
+    "stage",
     "kinetic"
   ],
   "rules": {
@@ -93,6 +94,48 @@
       "stability": 0.6,
       "style": 0.08,
       "direction": "calm, dignified, reflective narration"
+    }
+  },
+  "library": {
+    "cast": "illus",
+    "exclude": {
+      "templates": [
+        "big-question",
+        "character-talk",
+        "comparison",
+        "list",
+        "big-number",
+        "chart",
+        "symbolic",
+        "motion-story",
+        "glow-story",
+        "summary"
+      ],
+      "sets": [
+        "office",
+        "kitchen",
+        "street-night",
+        "classroom",
+        "market",
+        "desert-night",
+        "castle-walls",
+        "walls-night",
+        "palace-court",
+        "caravan",
+        "wisdom-library"
+      ],
+      "categories": [
+        "ui",
+        "mind",
+        "nature",
+        "home",
+        "daily",
+        "city",
+        "money",
+        "knowledge",
+        "hands",
+        "backdrops"
+      ]
     }
   }
 }

@@ -29,7 +29,7 @@ describe("الخطة: الحديث والربط وشاشة النهاية", () =
     const ch4 = plan.chapters.find((c) => c.number === 4)!;
     const last = ch4.scenes[ch4.scenes.length - 1]!;
     // تأخذ الأسلوب الافتراضي للقناة (أول أساليبها) لا بطاقة الحديث
-    expect(last.template).toBe("motion-story");
+    expect(last.template).toBe("alley-tale");
     expect(last.narration).toBe("فكيف نحوّل هذا الفهم إلى عمل؟");
     expect(ch4.scenes.find((s) => s.template === "hadith-card")!.narration).toBe("");
   });

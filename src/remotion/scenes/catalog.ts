@@ -20,6 +20,9 @@ import { BoardStory, boardStorySample, boardStorySampleEn, boardStorySeconds } f
 import { SketchBoard, sketchBoardSample, sketchBoardSampleEn, sketchBoardSeconds } from "./SketchBoard";
 import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from "./GlowStory";
 import { Summary, summarySample, summarySampleEn, summarySeconds } from "./Summary";
+import { RoadJourney, roadJourneySample, roadJourneySampleEn, roadJourneySeconds } from "./RoadJourney";
+import { LightStage, lightStageSample, lightStageSampleEn, lightStageSeconds } from "./LightStage";
+import { AlleyTale, alleyTaleSample, alleyTaleSampleEn, alleyTaleSeconds } from "./AlleyTale";
 import { EndScreen, endScreenSample, endScreenSampleEn, endScreenSeconds } from "./EndScreen";
 import { sampleBigQuestion, sampleBigQuestionEn, sampleCharacterTalk, sampleCharacterTalkEn, sampleVerseCard, sampleVerseCardEn, sceneDurations } from "./samples";
 
@@ -39,6 +42,9 @@ export const sceneCatalog: Entry[] = [
   { id: "symbolic", component: Symbolic, sample: symbolicSample, sampleEn: symbolicSampleEn, seconds: symbolicSeconds },
   { id: "glow-story", component: GlowStory, sample: glowStorySample, sampleEn: glowStorySampleEn, seconds: glowStorySeconds },
   { id: "board-story", component: BoardStory, sample: boardStorySample, sampleEn: boardStorySampleEn, seconds: boardStorySeconds },
+  { id: "alley-tale", component: AlleyTale, sample: alleyTaleSample, sampleEn: alleyTaleSampleEn, seconds: alleyTaleSeconds },
+  { id: "road-journey", component: RoadJourney, sample: roadJourneySample, sampleEn: roadJourneySampleEn, seconds: roadJourneySeconds },
+  { id: "light-stage", component: LightStage, sample: lightStageSample, sampleEn: lightStageSampleEn, seconds: lightStageSeconds },
   { id: "motion-story", component: MotionStory, sample: motionStorySample, sampleEn: motionStorySampleEn, seconds: motionStorySeconds },
   { id: "sketch-board", component: SketchBoard, sample: sketchBoardSample, sampleEn: sketchBoardSampleEn, seconds: sketchBoardSeconds },
   { id: "kinetic-text", component: KineticText, sample: kineticTextSample, sampleEn: kineticTextSampleEn, seconds: kineticTextSeconds },

@@ -28,11 +28,15 @@ describe("مكتبة كل قناة", () => {
 
   it("بالإسلام: الآيات والأحاديث والرموز الإسلامية، بلا وجوه ولا لوحات وثائقية", () => {
     const lib = channelLibrary(balislam);
-    expect(lib.templates).toEqual(expect.arrayContaining(["verse-card", "hadith-card", "motion-story"]));
-    expect(lib.templates).not.toContain("doc-plate");
-    expect(lib.elements).toEqual(expect.arrayContaining(["mushaf-rehal", "mihrab-arch", "hands-dua"]));
+    // الأساليب المصوَّرة الثلاثة (حكايات الحارة، الطريق، ظل ونور) والنص الحركي للدعاء، وبطاقات الآيات والأحاديث
+    expect(lib.templates).toEqual(expect.arrayContaining(["verse-card", "hadith-card", "alley-tale", "road-journey", "light-stage", "kinetic-text", "end-screen"]));
+    // القديم الذي لا يناسب «محراب النور» خارج مكتبتها (library.exclude)
+    for (const id of ["doc-plate", "motion-story", "glow-story", "big-question", "character-talk", "symbolic"]) expect(lib.templates, id).not.toContain(id);
+    expect(lib.elements).toEqual(expect.arrayContaining(["mushaf-rehal", "mihrab-arch"]));
+    for (const id of ["smartphone", "head-gears", "hands-dua"]) expect(lib.elements, id).not.toContain(id);
     expect(lib.figures).toBe(false);
-    expect(lib.sets).not.toContain("walls-night");
+    // أماكنها المصوَّرة الجديدة في src/remotion/illus، والقديمة مخفية
+    expect(lib.sets).toEqual([]);
   });
 
   it("القوالب القديمة برسومات ثابتة لا تظهر في أي قناة", () => {
@@ -51,10 +55,12 @@ describe("مكتبة كل قناة", () => {
   });
 
   it("استبعاد قناة من ملفها لا يمس مكتبات القنوات الأخرى", () => {
-    for (const other of [balislam, zubdat]) {
-      expect(channelLibrary(other).elements, other.id).toContain("smartphone");
-      expect(channelLibrary(other).sets.length, other.id).toBeGreaterThan(0);
-    }
+    // زبدة الكتب لم تستبعد شيئًا: مكتبتها كاملة رغم استبعاد القناتين الأخريين
+    expect(channelLibrary(zubdat).elements).toContain("smartphone");
+    expect(channelLibrary(zubdat).sets.length).toBeGreaterThan(0);
+    expect(channelLibrary(zubdat).templates).toEqual(expect.arrayContaining(["comparison", "list", "big-question"]));
+    // واستبعاد بالإسلام لا يمس دفاتر الزمن
+    expect(channelLibrary(dafatir).templates).toEqual(expect.arrayContaining(["character-talk", "comparison"]));
     expect(elementExclusion(dafatir, "smartphone")).toBe("identity");
     // عناصر التاريخ رُسمت لدفاتر الزمن وحدها
     for (const other of [balislam, zubdat]) for (const id of ["sword", "fortress", "camel"]) expect(channelLibrary(other).elements, `${other.id}/${id}`).not.toContain(id);
@@ -105,9 +111,10 @@ describe("مكتبة كل قناة", () => {
     } as unknown as Plan;
     const errs = planIssues(plan, secular as never).filter((i) => i.level === "error").map((i) => i.sceneId);
     expect(errs).toEqual(expect.arrayContaining(["c1-s1", "c1-s2", "c1-s3", "c1-s4"]));
-    // في بالإسلام: الآية والرموز من مكتبتها؛ وقالب «مشهد في مكان» قديم فيُرفض في كل القنوات
+    // في بالإسلام: الآية من مكتبتها؛ والقوالب القديمة (رمزي، القصة المتحركة، مشهد في مكان) مستبعدة فتُرفض
     const errs2 = planIssues(plan, balislam).filter((i) => i.level === "error" && /مكتبة/.test(i.message)).map((i) => i.sceneId);
-    expect(errs2).toEqual(["c1-s4"]);
+    expect(errs2).toEqual(expect.arrayContaining(["c1-s2", "c1-s3", "c1-s4"]));
+    expect(errs2).not.toContain("c1-s1");
   });
 });
 

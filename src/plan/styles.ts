@@ -9,10 +9,13 @@ export const STYLE_ALIASES: Record<string, string> = {
   board: "board-story",
   glow: "glow-story",
   kinetic: "kinetic-text",
+  alley: "alley-tale",
+  road: "road-journey",
+  stage: "light-stage",
 };
 
 /** قوالب تعمل من التعليق وحده (لا تحتاج حقولًا يكتبها صاحب القناة) فتصلح أسلوبًا لحلقة كاملة. */
-const STYLE_TEMPLATES = ["motion-story", "board-story", "glow-story", "kinetic-text", "sketch-board", "sim-stage", "desk-moment", "set-scene", "doc-plate", "map-journey", "timeline", "character-talk"];
+const STYLE_TEMPLATES = ["alley-tale", "road-journey", "light-stage", "motion-story", "board-story", "glow-story", "kinetic-text", "sketch-board", "sim-stage", "desk-moment", "set-scene", "doc-plate", "map-journey", "timeline", "character-talk"];
 
 /** القالب الافتراضي لأسلوب، أو undefined لـ «templates» (قوالب متنوعة بالعلامات). */
 export const styleTemplate = (style?: string): string | undefined => {
