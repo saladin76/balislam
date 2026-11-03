@@ -276,10 +276,10 @@ export const EpisodeTab: React.FC<{
                 <ImageField
                   key={f.key}
                   episodeId={episodeId}
-                  sceneId={scene.id}
+                  sceneId={f.key === "image" ? scene.id : `${scene.id}-${f.key.replace("image", "p")}`}
                   channel={channel.id}
                   value={v}
-                  prompt={scene.props.prompt ?? ""}
+                  prompt={scene.props[f.key === "image" ? "prompt" : f.key.replace("image", "prompt")] ?? ""}
                   look={scene.props.look === "archive" ? "archive" : "scene"}
                   media={media}
                   onChange={(file) => setProp(f.key, file)}

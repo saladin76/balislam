@@ -25,7 +25,7 @@ const listDir = (dir: string) => (existsSync(dir) ? new Set(readdirSync(dir).fil
 export const usedImages = (plan: Plan, dir: string, libDir?: string) => {
   const onDisk = listDir(dir);
   const inLib = libDir ? listDir(libDir) : new Set<string>();
-  const used = new Set(plan.chapters.flatMap((c) => c.scenes.map((s) => s.props?.image ?? "")).filter(Boolean));
+  const used = new Set(plan.chapters.flatMap((c) => c.scenes.flatMap((s) => [s.props?.image ?? "", s.props?.image2 ?? "", s.props?.image3 ?? ""])).filter(Boolean));
   // مرجع المكتبة قد يكون بلا امتداد (lib:walls-commander) فيُطابق أي ملف بنفس الاسم
   const out: string[] = [];
   for (const f of used) {

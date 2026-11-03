@@ -106,10 +106,15 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
     case "desk-moment":
       return <DeskMoment {...base} {...p} />;
     case "doc-plate": {
-      const ref = p.image ? media?.images?.find((x) => x === p.image || x.replace(/\.[^.]+$/, "") === p.image) : undefined;
-      const file = ref ? ref.replace(/^lib:/, "lib__") : "";
-      const src = file && media ? (media.mode === "static" ? staticFile(`${media.base}images/${file}`) : `${media.base}images/${encodeURIComponent(file)}${media.query ?? ""}`) : undefined;
-      return <DocPlate {...base} {...p} src={src} video={/\.(mp4|webm|mov)$/i.test(file)} />;
+      // كل لوحة (الأولى والثانية والثالثة): الملف الفعلي من وسائط الحلقة أو مكتبة القناة
+      const plate = (img?: string) => {
+        const ref = img ? media?.images?.find((x) => x === img || x.replace(/\.[^.]+$/, "") === img) : undefined;
+        const file = ref ? ref.replace(/^lib:/, "lib__") : "";
+        const src = file && media ? (media.mode === "static" ? staticFile(`${media.base}images/${file}`) : `${media.base}images/${encodeURIComponent(file)}${media.query ?? ""}`) : undefined;
+        return { src, video: /\.(mp4|webm|mov)$/i.test(file) };
+      };
+      const [a, b, c] = [plate(p.image), plate(p.image2), plate(p.image3)];
+      return <DocPlate {...base} {...p} src={a.src} video={a.video} src2={b.src} video2={b.video} src3={c.src} video3={c.video} />;
     }
     case "sim-stage":
       return <SimStage {...base} {...p} />;

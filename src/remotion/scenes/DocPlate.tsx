@@ -5,6 +5,7 @@ import { SceneShell } from "./SceneShell";
 import { Atmosphere, FilmGrain } from "./cinema";
 import { useLang } from "../../i18n/context";
 import { useSceneFrame, clamp } from "./motion";
+import { estimateTimings } from "./timing";
 import type { SceneBase, StringFields } from "./types";
 
 /**
@@ -14,12 +15,35 @@ import type { SceneBase, StringFields } from "./types";
  * بلا صورة: لوحة «صورة مطلوبة» فيها وصف المشهد حتى يعرف صاحب القناة ما يولّده.
  */
 export type DocPlateProps = SceneBase &
-  StringFields<"image" | "prompt" | "look" | "camera" | "focus" | "grade" | "atmos" | "title" | "date" | "credit" | "letterbox"> & {
+  StringFields<"image" | "prompt" | "image2" | "prompt2" | "image3" | "prompt3" | "look" | "camera" | "focus" | "grade" | "atmos" | "title" | "date" | "credit" | "letterbox"> & {
     /** رابط الصورة الجاهز (يحسبه الاستوديو من وسائط الحلقة) */
     src?: string;
     /** الملف مقطع فيديو قصير (Firefly Video…) لا صورة */
     video?: boolean;
+    /** اللوحتان الثانية والثالثة في المشهد نفسه (اختياريتان) */
+    src2?: string;
+    video2?: boolean;
+    src3?: string;
+    video3?: boolean;
   };
+
+/**
+ * حدود اللوحات على الكلام: المشهد يُقسم على عدد اللوحات عند أقرب فاصلة أو نقطة من نقاط التقسيم المتساوي،
+ * فتتبدل اللوحة مع بداية عبارة جديدة لا في منتصف كلمة.
+ */
+export const plateCuts = (count: number, timings: { word: string; start: number }[], duration: number): number[] => {
+  if (count <= 1 || timings.length < count) return Array.from({ length: Math.max(1, count) }, (_, i) => Math.round((duration * i) / Math.max(1, count)));
+  const cuts = [0];
+  for (let k = 1; k < count; k++) {
+    const ideal = Math.round((timings.length * k) / count);
+    let best = ideal;
+    for (let d = 0; d <= Math.ceil(timings.length / (count * 2)); d++) {
+      for (const j of [ideal - d, ideal + d]) if (j > 0 && j < timings.length && /[،,.؛:!؟?]$/.test(timings[j - 1]!.word)) { best = j; d = 1e9; break; }
+    }
+    cuts.push(Math.max(cuts[k - 1]! + 20, timings[best]!.start - 4));
+  }
+  return cuts;
+};
 
 /** ألوان «دفتر الأفق» (brand/identity/approved.ts) ودرجاتها المشتقة؛ القالب خاص بدفاتر الزمن */
 const HZ = { dusk: "#2A1E3F", duskDeep: "#140E20", sun: "#E07A3F", parchment: "#F1E4CB", ink: "#4A2E1F", inkDeep: "#1E130C", tape: "#D7372B", sand: "#C8A15A" } as const;
@@ -52,24 +76,43 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
   const { durationInFrames, width: W, height: H } = useVideoConfig();
   const portrait = orientation === "portrait";
   const archive = look === "archive";
-  const p = interpolate(frame, [0, durationInFrames], [0, 1], { ...clamp, easing: Easing.inOut(Easing.sin) });
-  const g = GRADES[grade] ?? GRADES.warm!;
+    const g = GRADES[grade] ?? GRADES.warm!;
   const f = FOCUS[focus] ?? FOCUS.center!;
 
-  // حركة الكاميرا: تكبير/تصغير بطيء أو تحريك أفقي/رأسي، دائمًا مع تكبير بسيط حتى لا تظهر الحواف
-  const span = portrait ? 0.1 : 0.14;
+  // اللوحات: الأولى والثانية والثالثة (بصورها أو بأوصافها قبل التوليد)، وتتبدل مع عبارات الكلام
+  const plates = [
+    { src, video: props.video, prompt },
+    { src: props.src2, video: props.video2, prompt: props.prompt2 ?? "" },
+    { src: props.src3, video: props.video3, prompt: props.prompt3 ?? "" },
+  ].filter((x, i) => i === 0 || x.src || x.prompt.trim());
+  const timings = props.narration ? (props.narrationTimings ?? estimateTimings(props.narration, 6, durationInFrames - 12)) : [];
+  const cuts = archive ? [0] : plateCuts(plates.length, timings, durationInFrames);
+  const plateIdx = cuts.reduce((acc, c, i) => (frame >= c ? i : acc), 0);
+  const segFrom = cuts[plateIdx] ?? 0;
+  const segTo = cuts[plateIdx + 1] ?? durationInFrames;
+  const p = interpolate(frame, [segFrom, segTo], [0, 1], { ...clamp, easing: Easing.inOut(Easing.sin) });
+
+  // حركة الكاميرا لكل لوحة: حركة الكاميرا المختارة للأولى، ثم عكسها، ثم اقتراب؛ وسرعتها محسوبة لمدة اللوحة
+  // (حركة واضحة يراها المشاهد كحركة كاميرا الأفلام الوثائقية، لا انجراف لا يُلحظ)
+  const segSec = Math.max(1, (segTo - segFrom) / 30);
+  const span = Math.min(0.18, 0.05 * segSec + 0.03);
+  const pan = Math.min(6, 1.6 * segSec + 1);
   const move: Record<string, { s: [number, number]; x: [number, number]; y: [number, number] }> = {
     push: { s: [1.04, 1.04 + span], x: [0, 0], y: [0, 0] },
     pull: { s: [1.04 + span, 1.04], x: [0, 0], y: [0, 0] },
-    "pan-right": { s: [1.16, 1.16], x: [-4, 4], y: [0, 0] },
-    "pan-left": { s: [1.16, 1.16], x: [4, -4], y: [0, 0] },
-    rise: { s: [1.16, 1.16], x: [0, 0], y: [4, -4] },
-    drift: { s: [1.06, 1.12], x: [-1.5, 1.5], y: [1, -1] },
+    "pan-right": { s: [1.18, 1.18], x: [-pan, pan], y: [0, 0] },
+    "pan-left": { s: [1.18, 1.18], x: [pan, -pan], y: [0, 0] },
+    rise: { s: [1.18, 1.18], x: [0, 0], y: [pan, -pan] },
+    drift: { s: [1.06, 1.06 + span * 0.7], x: [-pan * 0.5, pan * 0.5], y: [pan * 0.3, -pan * 0.3] },
   };
-  const m = move[camera] ?? move.push!;
+  const opposite: Record<string, string> = { push: "pull", pull: "push", "pan-right": "pan-left", "pan-left": "pan-right", rise: "push", drift: "pan-left" };
+  const camFor = (i: number) => (i === 0 ? camera : i === 1 ? (opposite[camera] ?? "pull") : "push");
+  const m = move[camFor(plateIdx)] ?? move.push!;
   const scale = interpolate(p, [0, 1], m.s);
   const tx = interpolate(p, [0, 1], m.x);
   const ty = interpolate(p, [0, 1], m.y);
+  // انتقال بين اللوحتين: ذوبان قصير
+  const plateIn = plateIdx === 0 ? 1 : interpolate(frame, [segFrom, segFrom + 10], [0, 1], clamp);
   // تنفّس الضوء: خفقان بسيط كضوء شمعة أو سحاب
   const breathe = 1 + Math.sin(frame / 37) * 0.012 + Math.sin(frame / 13) * 0.006;
   const appear = interpolate(frame, [0, 14], [0, 1], clamp);
@@ -82,12 +125,24 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
   const rtl = useLang().dir === "rtl";
 
   const { fps } = useVideoConfig();
-  const mediaStyle: React.CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: `${f.x}% ${f.y}%`, filter: g.filter };
+  /**
+   * في 9:16 تُقص صورة 16:9 من وسطها فيختفي ثلثاها، فالكاميرا تنزلق أفقيًا عبر الصورة كلها (انزلاق وثائقي)
+   * بدل التكبير وحده، باتجاه معاكس في كل لوحة تالية.
+   */
+  const slideX = (i: number, prog: number) => {
+    if (!portrait) return f.x;
+    const half = Math.min(32, 2.4 * segSec + 6);
+    const dir = i % 2 === 0 ? 1 : -1;
+    return Math.max(0, Math.min(100, f.x + dir * interpolate(prog, [0, 1], [-half, half])));
+  };
+  const mediaStyleFor = (i: number, prog: number): React.CSSProperties => ({ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: `${slideX(i, prog)}% ${f.y}%`, filter: g.filter });
   // مقاطع Firefly نحو 5 ثوانٍ: تُبطَّأ لتغطي المشهد (حتى 40% من سرعتها) فتبدو حركة بطيئة سينمائية
   const rate = Math.min(1, Math.max(0.4, 5 / Math.max(1, durationInFrames / fps)));
-  const image = src ? (props.video ? <OffthreadVideo src={src} muted playbackRate={rate} style={mediaStyle} /> : <Img src={src} style={mediaStyle} />) : null;
+  const mediaOf = (pl: { src?: string; video?: boolean }, i: number, prog: number) => (pl.src ? (pl.video ? <OffthreadVideo src={pl.src} muted playbackRate={rate} style={mediaStyleFor(i, prog)} /> : <Img src={pl.src} style={mediaStyleFor(i, prog)} />) : null);
+  const cur = plates[plateIdx] ?? plates[0]!;
+  const prev = plateIdx > 0 ? plates[plateIdx - 1] : undefined;
 
-  const placeholder = (
+  const placeholderFor = (prompt: string) => (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 45%, ${HZ.dusk} 0%, ${HZ.duskDeep} 75%)`, alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: portrait ? "84%" : "62%", border: `2px dashed ${GOLD}66`, borderRadius: 18 * u, padding: `${40 * u}px ${48 * u}px`, textAlign: "center", color: HZ.parchment }}>
         <svg width={90 * u} height={70 * u} viewBox="0 0 90 70" style={{ marginBottom: 18 * u }}>
@@ -109,7 +164,7 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
           <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 40%, ${HZ.ink} 0%, ${HZ.inkDeep} 80%)` }}>
             <AbsoluteFill style={{ transform: `translate(${tx * 0.6}%, ${ty * 0.6}%) scale(${0.92 + (scale - 1) * 0.8}) rotate(${interpolate(p, [0, 1], [-1.2, 0.6])}deg)`, alignItems: "center", justifyContent: "center" }}>
               <div style={{ position: "relative", width: portrait ? "88%" : "74%", height: portrait ? "66%" : "84%", background: HZ.parchment, padding: 18 * u, boxShadow: `0 ${30 * u}px ${80 * u}px rgba(0,0,0,0.65)`, borderRadius: 4 }}>
-                {src ? (props.video ? <OffthreadVideo src={src} muted playbackRate={rate} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", filter: `${g.filter} sepia(0.15)` }} />) : <div style={{ width: "100%", height: "100%", position: "relative" }}>{placeholder}</div>}
+                {src ? (props.video ? <OffthreadVideo src={src} muted playbackRate={rate} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", filter: `${g.filter} sepia(0.15)` }} />) : <div style={{ width: "100%", height: "100%", position: "relative" }}>{placeholderFor(prompt)}</div>}
               </div>
             </AbsoluteFill>
             {/* ضوء يعبر الوثيقة */}
@@ -117,10 +172,15 @@ export const DocPlate: React.FC<DocPlateProps> = (props) => {
           </AbsoluteFill>
         ) : (
           <>
-            <AbsoluteFill style={{ transform: `translate(${tx}%, ${ty}%) scale(${scale})`, transformOrigin: `${f.x}% ${f.y}%`, filter: `brightness(${breathe})` }}>
-              {image ?? placeholder}
+            {prev ? (
+              <AbsoluteFill style={{ transform: `translate(${(move[camFor(plateIdx - 1)] ?? move.push!).x[1]}%, ${(move[camFor(plateIdx - 1)] ?? move.push!).y[1]}%) scale(${(move[camFor(plateIdx - 1)] ?? move.push!).s[1]})`, transformOrigin: `${f.x}% ${f.y}%`, filter: `brightness(${breathe})` }}>
+                {mediaOf(prev, plateIdx - 1, 1) ?? placeholderFor(prev.prompt)}
+              </AbsoluteFill>
+            ) : null}
+            <AbsoluteFill style={{ opacity: plateIn, transform: `translate(${tx}%, ${ty}%) scale(${scale})`, transformOrigin: `${f.x}% ${f.y}%`, filter: `brightness(${breathe})` }}>
+              {mediaOf(cur, plateIdx, p) ?? placeholderFor(cur.prompt)}
             </AbsoluteFill>
-            {src && g.tintOpacity ? <AbsoluteFill style={{ background: g.tint, mixBlendMode: g.blend, opacity: g.tintOpacity }} /> : null}
+            {cur.src && g.tintOpacity ? <AbsoluteFill style={{ background: g.tint, mixBlendMode: g.blend, opacity: g.tintOpacity }} /> : null}
           </>
         )}
         {atmos !== "none" ? <Atmosphere kind={atmos} frame={frame} w={W} h={H} /> : null}

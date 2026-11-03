@@ -299,6 +299,10 @@ export const templateDefs: TemplateDef[] = [
     fields: [
       { key: "image", label: "الصورة", type: "image", help: "ولّدها من الوصف بالأسفل (Midjourney أو Flux…) بنسبة 16:9 ثم ارفعها هنا. الشورت يقصّ من الوسط حسب «نقطة التركيز»." },
       { key: "prompt", label: "وصف الصورة لأداة التوليد (بالإنجليزية)", type: "textarea", help: "صف المشهد فقط: المكان والزمن والضوء وما يحدث. الاستوديو يضيف أسلوب القناة وقواعد الوجوه تلقائيًا." },
+      { key: "image2", label: "اللوحة الثانية (اختيارية)", type: "image", help: "لوحة ثانية تتبدل مع العبارة التالية من الكلام. لوحتان أو ثلاث في المشهد الطويل تبقي الحركة فوق حد القناة." },
+      { key: "prompt2", label: "وصف اللوحة الثانية (بالإنجليزية)", type: "textarea" },
+      { key: "image3", label: "اللوحة الثالثة (اختيارية)", type: "image" },
+      { key: "prompt3", label: "وصف اللوحة الثالثة (بالإنجليزية)", type: "textarea" },
       { key: "look", label: "النوع", type: "select", options: [{ value: "scene", label: "لقطة سينمائية" }, { value: "archive", label: "وثيقة أرشيفية (مخطوطة، خريطة، لوحة)" }] },
       { key: "camera", label: "حركة الكاميرا", type: "select", options: [{ value: "push", label: "اقتراب بطيء" }, { value: "pull", label: "ابتعاد بطيء" }, { value: "pan-right", label: "تحريك لليمين" }, { value: "pan-left", label: "تحريك لليسار" }, { value: "rise", label: "صعود" }, { value: "drift", label: "انجراف هادئ" }] },
       { key: "focus", label: "نقطة التركيز", type: "select", options: [{ value: "center", label: "الوسط" }, { value: "right", label: "اليمين" }, { value: "left", label: "اليسار" }, { value: "top", label: "الأعلى" }, { value: "bottom", label: "الأسفل" }] },
