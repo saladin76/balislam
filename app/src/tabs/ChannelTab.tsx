@@ -5,6 +5,8 @@ import { langPacks } from "../../../src/i18n/packs";
 import { useTheme } from "../../../brand/identity/index";
 import { LogoMark, emblemNamesAr, type EmblemId } from "../../../brand/logo/Logo";
 import { ChannelBrand } from "./ChannelBrand";
+import { ChannelIdentity } from "./ChannelIdentity";
+import { approvedIdentity, reservedEmblems } from "../../../brand/identity/approved";
 import type { Identity } from "../../../brand/identity/index";
 
 const SLOTS: ChannelDomain["theme"][] = ["paper", "family", "night", "warm"];
@@ -146,9 +148,12 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
       {msg ? <div className={`note ${msg.err ? "err" : ""}`}>{msg.text}</div> : null}
 
       <div className="ch-grid">
+        <ChannelIdentity c={c} identity={identity} />
+
         <section className="group">
           <h3>الأساسيات</h3>
           <label className="field"><span>اسم القناة</span><input id="ch-name" type="text" value={c.name} onChange={(e) => set({ name: e.target.value })} /></label>
+          <label className="field"><span>الاسم كما يُرسم على الصور <small>(بالتشكيل إن لزم؛ فارغ = اسم القناة)</small></span><input id="ch-display" type="text" value={c.nameDisplay ?? ""} onChange={(e) => set({ nameDisplay: e.target.value || undefined })} /></label>
           <label className="field"><span>الاسم بالحروف اللاتينية</span><input id="ch-latin" type="text" dir="ltr" value={c.nameLatin} onChange={(e) => set({ nameLatin: e.target.value })} /></label>
           <label className="field"><span>وصف قصير</span><textarea id="ch-desc" rows={2} value={c.description} onChange={(e) => set({ description: e.target.value })} /></label>
           <label className="field">
@@ -161,11 +166,13 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
             <span style={{ fontWeight: 600, fontSize: 13 }}>الرمز</span>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <LogoMark size={64} colors={logoTheme.logo} mark={c.logo} />
-              <select id="ch-logo" value={c.logo?.type === "emblem" ? `emblem:${c.logo.emblem}` : (c.logo?.type ?? "baa")} onChange={(e) => { const v = e.target.value; set({ logo: v === "letter" ? { type: "letter", letter: [...c.name][0] ?? "؟" } : v.startsWith("emblem:") ? { type: "emblem", emblem: v.slice(7) as EmblemId } : { type: "baa" } }); }}>
+              {approvedIdentity(c.id) ? (
+                <span className="locked">🔒 شارة «{approvedIdentity(c.id)!.nameAr}» المعتمدة</span>
+              ) : <select id="ch-logo" value={c.logo?.type === "emblem" ? `emblem:${c.logo.emblem}` : (c.logo?.type ?? "baa")} onChange={(e) => { const v = e.target.value; set({ logo: v === "letter" ? { type: "letter", letter: [...c.name][0] ?? "؟" } : v.startsWith("emblem:") ? { type: "emblem", emblem: v.slice(7) as EmblemId } : { type: "baa" } }); }}>
                 <option value="baa">باء التشغيل</option>
                 <option value="letter">حرف القناة + زر التشغيل</option>
-                {(Object.keys(emblemNamesAr) as EmblemId[]).map((e) => <option key={e} value={`emblem:${e}`}>شارة: {emblemNamesAr[e]}</option>)}
-              </select>
+                {(Object.keys(emblemNamesAr) as EmblemId[]).filter((e) => !reservedEmblems().has(e)).map((e) => <option key={e} value={`emblem:${e}`}>شارة: {emblemNamesAr[e]}</option>)}
+              </select>}
               {c.logo?.type === "letter" ? <input id="ch-letter" type="text" value={c.logo.letter} maxLength={2} onChange={(e) => set({ logo: { type: "letter", letter: e.target.value } })} style={{ width: 60, textAlign: "center", fontSize: 20 }} /> : null}
             </div>
           </div>
@@ -250,7 +257,7 @@ const NewChannel: React.FC<{ onCreated: (id: string) => void }> = ({ onCreated }
         }
       }}
     >
-      <h3>قناة جديدة <small>المحرك والمكتبة مشتركان؛ الهوية تبدأ نسخة من «بالإسلام» وتعدّلها</small></h3>
+      <h3>قناة جديدة <small>المحرك مشترك؛ تبدأ بهوية مؤقتة محايدة (بلا بصمة أي قناة) حتى تُعتمد هويتها بستوري بورد</small></h3>
       <label className="field"><span>اسم القناة</span><input id="nc-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="تقنية بوعي" /></label>
       <label className="field"><span>المعرّف بالإنجليزية</span><input id="nc-id" type="text" dir="ltr" value={id} onChange={(e) => setId(e.target.value.toLowerCase())} required pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="tech" /></label>
       <label className="field">

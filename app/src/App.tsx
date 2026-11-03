@@ -13,6 +13,7 @@ import { OpsRoom } from "./tabs/OpsRoom";
 import { PublishTab } from "./tabs/PublishTab";
 import { LibraryTab } from "./tabs/LibraryTab";
 import { ChannelTab } from "./tabs/ChannelTab";
+import { useStudioFonts } from "./ui/useStudioFonts";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
@@ -37,6 +38,7 @@ const store = {
 };
 
 export const App: React.FC = () => {
+  useStudioFonts();
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
@@ -46,6 +48,9 @@ export const App: React.FC = () => {
     setApiChannel(c);
     return c;
   });
+  // القناة الحالية لطلبات الواجهة تُضبط أثناء الرسم لا في useEffect: تأثيرات الأبناء (مثل تحميل إعدادات القناة)
+  // تعمل قبل تأثير الأب، فكانت تجلب بيانات القناة السابقة بعد التبديل
+  if (channelId) setApiChannel(channelId);
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
@@ -214,7 +219,7 @@ export const App: React.FC = () => {
         <header className="top">
           <button className="brand" onClick={() => setTab("home")} title="الرئيسية">
             <BrandMark channel={channel} />
-            <span>استوديو {channel.name}</span>
+            <span>استوديو <span style={{ fontFamily: ident.draft.fonts?.wordmark ? `'${ident.draft.fonts.wordmark}', inherit` : undefined, fontSize: "1.1em" }}>{channel.nameDisplay ?? channel.name}</span></span>
           </button>
           {channels.length > 1 ? (
             <select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { const next = e.target.value; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }} style={{ width: 170 }} aria-label="القناة">

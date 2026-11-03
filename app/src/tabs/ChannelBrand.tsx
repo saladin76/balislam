@@ -4,15 +4,20 @@ import { api } from "../api";
 import { channelInfo, type ChannelConfig } from "../../../src/channel/types";
 import type { Identity } from "../../../brand/identity/index";
 import { Providers } from "../../../src/remotion/Providers";
-import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "../../../src/remotion/scenes/ChannelIntro";
+import { ChannelIntro, introFrames, type IntroKind } from "../../../src/remotion/scenes/ChannelIntro";
+import { approvedIdentity } from "../../../brand/identity/approved";
+import { templateExclusion } from "../../../src/channel/library";
+import { styleNameAr, styleTemplate } from "../../../src/plan/styles";
 import { Thumbnail } from "../../../src/remotion/Thumbnail";
-import { styleNameAr } from "../../../src/plan/styles";
 import config from "../../../config.json";
 import { tones, toneIds } from "../../../src/voice/tones";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-const INTROS: [NonNullable<NonNullable<ChannelConfig["brand"]>["intro"]>, string][] = [["ink", "باء وحبر (بالإسلام)"], ["archive", "ختم على رَقّ (دفاتر الزمن)"], ["book", "كتاب يُفتح (زبدة الكتب)"], ["none", "بلا افتتاحية"]];
-const THUMBS: [NonNullable<NonNullable<ChannelConfig["brand"]>["thumbnail"]>, string][] = [["circle", "دائرة ورمز (بالإسلام)"], ["archive", "أرشيف ورق قديم (دفاتر الزمن)"], ["cover", "غلاف كتاب (زبدة الكتب)"]];
+/** أنماط عامة للقنوات التي لم تُعتمد هويتها بعد (الافتتاحيات المعتمدة محجوزة لقنواتها) */
+const INTROS: [NonNullable<NonNullable<ChannelConfig["brand"]>["intro"]>, string][] = [["none", "بلا افتتاحية"], ["ink", "شعار وخط حبر"], ["archive", "ختم على ورق قديم"], ["book", "كتاب يُفتح"]];
+const THUMBS: [NonNullable<NonNullable<ChannelConfig["brand"]>["thumbnail"]>, string][] = [["circle", "دائرة ورمز"], ["archive", "ورق قديم"], ["cover", "غلاف كتاب"]];
+const INTRO_AR: Record<string, string> = { mihrab: "محراب النور", horizon: "دفتر الأفق", highlighter: "القلم المميِّز" };
+const secondsAr = (frames: number) => (frames / config.video.fps).toLocaleString("ar-EG", { maximumFractionDigits: 1 });
 const ALL_STYLES = ["doc-plate", "motion", "board", "map-journey", "set-scene", "sim-stage", "desk-moment", "kinetic", "glow", "sketch-board", "timeline", "templates"];
 
 const IntroComp: React.FC<{ kind: IntroKind; identity?: Identity; channel: ReturnType<typeof channelInfo> }> = ({ kind, identity, channel }) => (
@@ -33,20 +38,27 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
   const [vmsg, setVmsg] = useState("");
   const sch = c.schedule ?? { longDay: 6, time: "19:00", shortsPerDay: 1 };
   const styles = c.styles ?? [];
+  const approved = approvedIdentity(c.id);
+  // الأساليب المسموحة: ما في مكتبة القناة فقط
+  const allowedStyles = ALL_STYLES.filter((s) => { const t = styleTemplate(s); return !t || !templateExclusion(c, t); });
   return (
     <section className="group brand-group">
       <h3>بصمة القناة <small>ثابتة في كل حلقة؛ والتنوّع يكون داخل الحلقة</small></h3>
 
       <div className="brand-row">
         <label className="field">
-          <span>الافتتاحية (ثانيتان ونصف في أول الحلقة الطويلة)</span>
-          <select id="ch-intro" value={intro} onChange={(e) => set({ brand: { ...c.brand, intro: e.target.value as typeof intro } })}>
-            {INTROS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <span>الافتتاحية {intro !== "none" ? `(${secondsAr(introFrames(intro as IntroKind))} ث في أول الحلقة الطويلة)` : ""}</span>
+          {approved ? (
+            <span className="locked">🔒 «{INTRO_AR[intro] ?? intro}» — افتتاحية الهوية المعتمدة</span>
+          ) : (
+            <select id="ch-intro" value={intro} onChange={(e) => set({ brand: { ...c.brand, intro: e.target.value as typeof intro } })}>
+              {INTROS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          )}
         </label>
         {intro !== "none" ? (
           <div className="brand-prev">
-            <Player key={`${intro}-${c.name}`} component={IntroComp} inputProps={{ kind: intro as IntroKind, identity, channel: info }} durationInFrames={INTRO_FRAMES + 15} fps={config.video.fps} compositionWidth={1920} compositionHeight={1080} style={{ width: "100%" }} autoPlay loop controls acknowledgeRemotionLicense />
+            <Player key={`${intro}-${c.name}`} component={IntroComp} inputProps={{ kind: intro as IntroKind, identity, channel: info }} durationInFrames={introFrames(intro as IntroKind) + 15} fps={config.video.fps} compositionWidth={1920} compositionHeight={1080} style={{ width: "100%" }} autoPlay loop controls acknowledgeRemotionLicense />
           </div>
         ) : null}
       </div>
@@ -54,9 +66,13 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
       <div className="brand-row">
         <label className="field">
           <span>أسلوب الصورة المصغّرة</span>
-          <select id="ch-thumb" value={thumb} onChange={(e) => set({ brand: { ...c.brand, thumbnail: e.target.value as typeof thumb } })}>
-            {THUMBS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          {approved ? (
+            <span className="locked">🔒 «{INTRO_AR[thumb] ?? thumb}» — أسلوب المصغّرة المعتمد</span>
+          ) : (
+            <select id="ch-thumb" value={thumb} onChange={(e) => set({ brand: { ...c.brand, thumbnail: e.target.value as typeof thumb } })}>
+              {THUMBS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          )}
         </label>
         <div className="brand-prev">
           <Player key={`${thumb}-${c.name}`} component={Thumbnail} inputProps={{ themeId: c.masterTheme, title: "عنوان الحلقة يظهر هنا بخط كبير", highlight: "بخط كبير", element: "", identity, channel: info }} durationInFrames={1} fps={30} compositionWidth={1280} compositionHeight={720} style={{ width: "100%" }} acknowledgeRemotionLicense />
@@ -119,7 +135,7 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
       <div className="field">
         <span>الأساليب التي تتناوب عليها حلقات القناة</span>
         <div className="chips">
-          {ALL_STYLES.map((s) => {
+          {allowedStyles.map((s) => {
             const on = styles.includes(s);
             return (
               <button key={s} className={`chip ${on ? "on" : ""}`} aria-pressed={on} onClick={() => set({ styles: on ? styles.filter((x) => x !== s) : [...styles, s] })}>
@@ -128,7 +144,7 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
             );
           })}
         </div>
-        <span className="help">غرفة العمليات تنبّهك إن تكرر أسلوب حلقتين متتاليتين، وتقترح من هذه القائمة.</span>
+        <span className="help">الأساليب المتاحة من مكتبة القناة فقط. غرفة العمليات تنبّهك إن تكرر أسلوب حلقتين متتاليتين، وتقترح من هذه القائمة.</span>
       </div>
     </section>
   );
