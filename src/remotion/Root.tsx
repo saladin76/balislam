@@ -14,7 +14,8 @@ import { Providers } from "./Providers";
 import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
 import samplePlan from "../../tests/fixtures/plan.json";
-import { ChannelIntro, INTRO_FRAMES, type IntroKind } from "./scenes/ChannelIntro";
+import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
+import { MIHRAB_FRAMES } from "./scenes/MihrabIntro";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
 
@@ -64,7 +65,7 @@ export const RemotionRoot: React.FC = () => (
       ),
     )}
     {orientations.map((o) => (
-      <Composition key={`intro-${o}`} id={`channel-intro-${o}`} component={IntroPreview} durationInFrames={INTRO_FRAMES} fps={config.video.fps} {...sizes[o]} defaultProps={{ kind: "ink" as IntroKind, orientation: o }} />
+      <Composition key={`intro-${o}`} id={`channel-intro-${o}`} component={IntroPreview} durationInFrames={MIHRAB_FRAMES} fps={config.video.fps} {...sizes[o]} defaultProps={{ kind: "mihrab" as IntroKind, orientation: o }} />
     ))}
     {(Object.keys(artSizes) as ArtKind[]).map((k) => (
       <Still key={`art-${k}`} id={`channel-art-${k}`} component={ChannelArt} {...artSizes[k]} defaultProps={{ kind: k }} />

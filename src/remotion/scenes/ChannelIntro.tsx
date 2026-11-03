@@ -7,30 +7,37 @@ import { ChannelLogo, useChannel } from "../../channel/context";
 import type { ChannelInfo } from "../../channel/types";
 import type { Plan } from "../../plan/types";
 import type { Orientation } from "./types";
+import { MihrabIntro, MIHRAB_FRAMES } from "./MihrabIntro";
 
 /**
  * افتتاحية القناة (بصمتها الثابتة): ثانيتان ونصف في أول الحلقة الطويلة فقط، لا في الشورت.
- * ink: باء القناة وخط حبر يُرسم (بالإسلام) · archive: ختم شمع على رَقّ قديم (دفاتر الزمن) · book: كتاب يُفتح ويخرج منه الاسم (زبدة الكتب)
+ * mihrab: «محراب النور» الهوية المعتمدة لبالإسلام (٣٫٥ ثانية) · ink: الافتتاحية القديمة لبالإسلام · archive: ختم شمع على رَقّ قديم (دفاتر الزمن) · book: كتاب يُفتح ويخرج منه الاسم (زبدة الكتب)
  */
 export const INTRO_FRAMES = 75;
-export type IntroKind = "ink" | "archive" | "book";
+export type IntroKind = "mihrab" | "ink" | "archive" | "book";
+/** مدة كل افتتاحية بالإطارات */
+export const introFrames = (k: IntroKind) => (k === "mihrab" ? MIHRAB_FRAMES : INTRO_FRAMES);
 
 export const introKindFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro">, chapter?: number): IntroKind | null => {
   if (chapter || plan?.intro === false) return null;
   const k = channel?.brand?.intro;
   return k && k !== "none" ? k : null;
 };
-export const introFramesFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro">, chapter?: number) => (introKindFor(channel, plan, chapter) ? INTRO_FRAMES : 0);
+export const introFramesFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro">, chapter?: number) => {
+  const k = introKindFor(channel, plan, chapter);
+  return k ? introFrames(k) : 0;
+};
 
 
 export const ChannelIntro: React.FC<{ kind: IntroKind; orientation: Orientation }> = ({ kind, orientation }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const out = interpolate(frame, [INTRO_FRAMES - 10, INTRO_FRAMES], [1, 0], clamp);
+  const total = introFrames(kind);
+  const out = interpolate(frame, [total - 10, total], [1, 0], clamp);
   const portrait = orientation === "portrait";
   return (
     <AbsoluteFill style={{ opacity: out }}>
-      {kind === "ink" ? <InkIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "archive" ? <ArchiveIntro frame={frame} fps={fps} portrait={portrait} /> : <BookIntro frame={frame} fps={fps} portrait={portrait} />}
+      {kind === "mihrab" ? <MihrabIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "ink" ? <InkIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "archive" ? <ArchiveIntro frame={frame} fps={fps} portrait={portrait} /> : <BookIntro frame={frame} fps={fps} portrait={portrait} />}
     </AbsoluteFill>
   );
 };
