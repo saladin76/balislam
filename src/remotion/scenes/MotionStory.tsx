@@ -191,14 +191,14 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
     const until = next ?? durationInFrames;
     const seen = new Set<string>([b.draw]);
     const sats: { id: string; word: string; at: number }[] = [];
-    for (const w of timings) {
-      if (w.start < st + 8 || w.start >= until - 10 || sats.length >= 4) continue;
-      const id = wordElement(w.word);
-      if (!id || seen.has(id) || (isPerson(b.draw) && isPerson(id)) || !(isPerson(id) || hasElement(id))) continue;
-      if (sats.length && w.start - sats[sats.length - 1]!.at < 24) continue;
+    timings.forEach((w, wi) => {
+      if (w.start < st + 8 || w.start >= until - 10 || sats.length >= 4) return;
+      const id = wordElement(w.word, timings[wi - 1]?.word, timings[wi + 1]?.word);
+      if (!id || seen.has(id) || (isPerson(b.draw) && isPerson(id)) || !(isPerson(id) || hasElement(id))) return;
+      if (sats.length && w.start - sats[sats.length - 1]!.at < 24) return;
       seen.add(id);
       sats.push({ id, word: w.word.replace(/[«»"؟?!.,،:؛…]/g, ""), at: w.start });
-    }
+    });
     // نبضات على كلمات المعنى الطويلة بين العناصر (إيقاع مرئي مع الصوت، كل ثانية ونصف على الأكثر)
     const beatsAt: number[] = [];
     let lastEv = st + 20;

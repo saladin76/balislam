@@ -65,3 +65,17 @@ describe("خطة الحلقة", () => {
     expect(new Set(templateDefs.map((t) => t.id)).size).toBe(templateDefs.length);
   });
 });
+
+describe("قاعدة: لا عنصر لا يطابق الكلمة", () => {
+  it("العناصر المساندة من المعاني المراجَعة فقط، مع استثناء تغيّر الدلالة وجوار ذكر الله", async () => {
+    const { wordElement } = await import("../src/plan/beats");
+    expect(wordElement("الحق")).toBe("scale-brass-balanced");
+    expect(wordElement("حقك", "في")).toBeNull(); // «أخطأ في حقك»
+    expect(wordElement("للغاية")).toBeNull(); // «عميقًا للغاية»
+    expect(wordElement("لهم")).toBeNull(); // لا «اللهم»
+    expect(wordElement("صورة")).toBeNull(); // لا مطابقة وسوم آلية
+    expect(wordElement("نعمة")).toBeNull();
+    expect(wordElement("يقول", "", "الله")).toBeNull();
+    expect(wordElement("القرآن")).toBe("mushaf-rehal");
+  });
+});

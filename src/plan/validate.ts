@@ -1,7 +1,7 @@
 import { hasElement } from "../../brand/elements/registry";
 import type { Plan } from "./types";
 import { langPack, langPacks } from "../i18n/packs";
-import { isDrawable, parseBeats } from "./beats";
+import { isCuratedBeat, isDrawable, parseBeats } from "./beats";
 
 export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: string };
 
@@ -27,7 +27,11 @@ export const planIssues = (plan: Plan): PlanIssue[] => {
       if (s.template === "character-talk" && wc(p.line) > 14) out.push({ level: "warning", sceneId: s.id, message: `جملة الفقاعة طويلة (${wc(p.line)} كلمة)؛ الأوضح ألا تزيد على 10 كلمات.` });
       if (s.template === "hadith-card" && (p.text ?? "").length > 320) out.push({ level: "warning", sceneId: s.id, message: "نص الحديث طويل وسيُعرض بخط صغير؛ يمكن الاكتفاء بموضع الشاهد مع ذكر المصدر." });
       if (s.template === "board-story" || s.template === "motion-story")
-        for (const b of parseBeats(p.beats ?? "")) if (!isDrawable(b.draw)) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» غير موجودة في المكتبة؛ اختر معرّفًا من «المكتبة» أو person/people.` });
+        for (const b of parseBeats(p.beats ?? "")) {
+          if (!isDrawable(b.draw)) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» غير موجودة في المكتبة؛ اختر معرّفًا من «المكتبة» أو person/people.` });
+          // قاعدة القناة: لا عنصر لا يطابق الكلمة. الرسمة المختارة آليًا (لا من قائمة المعاني المراجَعة) تحتاج مراجعة صريحة
+          else if (!isCuratedBeat(b) && !s.edited) out.push({ level: "warning", sceneId: s.id, message: `رسمة «${b.draw}» للكلمة «${b.label}» اختيرت آليًا؛ تأكد أنها تطابق المعنى أو غيّرها (أي تعديل يدوي للمشهد يعتمدها).` });
+        }
       if (s.template === "doc-plate" && !p.image?.trim())
         out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد." });
       if (s.backdrop && !hasElement(s.backdrop)) out.push({ level: "warning", sceneId: s.id, message: `الخلفية «${s.backdrop}» غير موجودة.` });
