@@ -7,6 +7,7 @@ import { langPack, localDigits } from "../i18n/packs";
 import type { Plan, PlanChapter, PlanScene, PlanSfx } from "./types";
 import { templateById } from "./templates";
 import { styleTemplate } from "./styles";
+import { drawAllowed } from "../channel/library";
 
 
 const firstSentence = (text: string, maxWords = 8) => {
@@ -30,7 +31,7 @@ const parseOptions = (options: string[]): Record<string, string> => {
   return out;
 };
 
-export const defaultsFor = (template: string, narration: string, ctx: { title: string; chapterTitle: string }): Record<string, string> => {
+export const defaultsFor = (template: string, narration: string, ctx: { title: string; chapterTitle: string; allow?: (id: string) => boolean }): Record<string, string> => {
   switch (template) {
     case "big-question":
       return { question: questionIn(narration) ?? (ctx.chapterTitle.endsWith("؟") ? ctx.chapterTitle : ctx.title), highlight: "", element: "question-mark" };
@@ -39,19 +40,19 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
     case "summary":
       return { text: firstSentence(narration, 14) };
     case "board-story":
-      return { beats: beatsToText(beatsFor(narration)), board: "white" };
+      return { beats: beatsToText(beatsFor(narration, 3, ctx.allow)), board: "white" };
     case "motion-story":
-      return { beats: beatsToText(beatsFor(narration)) };
+      return { beats: beatsToText(beatsFor(narration, 3, ctx.allow)) };
     case "glow-story": {
       // الأمنية/الفكرة المتوهجة: أول رسمة لها معنى في الجملة (لا شخصية)، والكلمة المتوهجة من الجملة نفسها
-      const beat = beatsFor(narration, 3).find((b) => !b.draw.startsWith("person") && b.draw !== "people");
+      const beat = beatsFor(narration, 3, ctx.allow).find((b) => !b.draw.startsWith("person") && b.draw !== "people");
       return { quote: firstSentence(narration, 8), highlight: beat?.label ?? "", wish: beat?.draw ?? "lightbulb", subjectElement: "", variant: "narrator-m", pose: "think", sideElement: "", sideGlow: "none", connector: "dotted" };
     }
     case "sketch-board":
       return { title: ctx.chapterTitle, keyword: "", element: "lightbulb", items: "", board: "white" };
     case "kinetic-text":
       // الكلمات المهمة: كلمات المعنى في كل جملة (تظهر أكبر وملونة)
-      return { emphasis: beatsFor(narration, 3).map((b) => b.label).filter(Boolean).join("، "), element: "", stage: "theme" };
+      return { emphasis: beatsFor(narration, 3, ctx.allow).map((b) => b.label).filter(Boolean).join("، "), element: "", stage: "theme" };
     case "map-journey":
       return { title: "", places: "", mode: "route", mover: "caravan", look: "parchment", zoom: "in", rivers: "on" };
     case "set-scene":
@@ -82,6 +83,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
   const defaultTemplate = styleTemplate(fm.style) ?? "character-talk";
   const domain: Domain = fm.domain ?? Object.keys(channel.domains)[0] ?? "general";
   const title = String(fm.title ?? "");
+  // الرسمات الآلية من مكتبة القناة فقط
+  const allow = drawAllowed(channel);
   // اسم القارئ من الاستشهادات: «- آية | النجم 39 | القارئ: فلان»
   const reciterFor = (key: string | undefined) => {
     if (!key) return "";
@@ -122,18 +125,18 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
 
     for (const b of ch.blocks) {
       if (b.kind === "scene") {
-        if (pending) push({ template: pending.template, narration: "", line: pending.line, props: { ...defaultsFor(pending.template, "", { title, chapterTitle: ch.title }), ...pending.options } });
+        if (pending) push({ template: pending.template, narration: "", line: pending.line, props: { ...defaultsFor(pending.template, "", { title, chapterTitle: ch.title, allow }), ...pending.options } });
         pending = { template: b.template, options: parseOptions(b.options), line: b.line };
       } else if (b.kind === "narration") {
         const template = pending?.template ?? defaultTemplate;
         const options = pending?.options ?? {};
-        push({ template, narration: b.text, line: pending?.line ?? b.line, props: { ...defaultsFor(template, b.text, { title, chapterTitle: ch.title }), ...options } });
+        push({ template, narration: b.text, line: pending?.line ?? b.line, props: { ...defaultsFor(template, b.text, { title, chapterTitle: ch.title, allow }), ...options } });
         pending = null;
       } else if (b.kind === "bridge") {
         // جملة الربط تُضم لآخر مشهد متكلَّم؛ وإن كان آخر مشهد بطاقة آية أو حديث فلها مشهد قصير خاص
         const last = scenes[scenes.length - 1];
         if (last && last.narration) last.narration = `${last.narration} ${b.text}`.trim();
-        else push({ template: defaultTemplate, narration: b.text, line: b.line, props: { ...defaultsFor(defaultTemplate, b.text, { title, chapterTitle: ch.title }), ...(defaultTemplate === "character-talk" ? { pose: "point" } : {}) } });
+        else push({ template: defaultTemplate, narration: b.text, line: b.line, props: { ...defaultsFor(defaultTemplate, b.text, { title, chapterTitle: ch.title, allow }), ...(defaultTemplate === "character-talk" ? { pose: "point" } : {}) } });
       } else if (b.kind === "sfx") {
         pendingSfx.push({ id: b.id, at: 0 });
       } else if (b.kind === "ayah") {
@@ -169,7 +172,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         });
       }
     }
-    if (pending) push({ template: pending.template, narration: "", line: pending.line, props: { ...defaultsFor(pending.template, "", { title, chapterTitle: ch.title }), ...pending.options } });
+    if (pending) push({ template: pending.template, narration: "", line: pending.line, props: { ...defaultsFor(pending.template, "", { title, chapterTitle: ch.title, allow }), ...pending.options } });
     const last = scenes[scenes.length - 1];
     if (last && pendingSfx.length) last.sfx.push(...pendingSfx);
 

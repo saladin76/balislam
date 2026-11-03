@@ -2,6 +2,7 @@ import { hasElement } from "../../brand/elements/registry";
 import type { Plan } from "./types";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, parseBeats } from "./beats";
+import { elementExclusion, excludeReasonAr, figuresAllowed, setExclusion, templateExclusion, type LibraryRules } from "../channel/library";
 
 export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: string };
 
@@ -9,13 +10,26 @@ export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: 
  * فحص الخطة قبل الرندر النهائي: ما لا يجوز نشره (حديث بلا نص، آية بنص مؤقت)
  * وما يستحق التنبيه (عنصر غير موجود في المكتبة).
  */
-export const planIssues = (plan: Plan): PlanIssue[] => {
+export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]> }): PlanIssue[] => {
   const out: PlanIssue[] = [];
+  // مكتبة القناة: ما ليس منها خطأ يمنع النسخة النهائية (لا خلط بين القنوات)
+  const lib: LibraryRules | null = channel?.rules ? { id: channel.id, rules: { faces: Boolean(channel.rules.faces), quran: Boolean(channel.rules.quran), hadith: Boolean(channel.rules.hadith) } } : null;
+  const notOurs = (sceneId: string, what: string, why: keyof typeof excludeReasonAr | null) => {
+    if (lib && why) out.push({ level: "error", sceneId, message: `${what} ليس من مكتبة هذه القناة (${excludeReasonAr[why]}).` });
+  };
   if (plan.lang && langPacks[plan.lang] && !langPack(plan.lang).ready)
     out.push({ level: "error", sceneId: "-", message: `لغة «${langPack(plan.lang).nameAr}» في مرحلة التجهيز: تخطيط القوالب من اليسار لليمين لم يُفعَّل بعد، فلا تخرج منها نسخة نهائية.` });
   for (const ch of plan.chapters)
     for (const s of ch.scenes) {
       const p = s.props;
+      if (lib) {
+        notOurs(s.id, `القالب «${s.template}»`, templateExclusion(lib, s.template));
+        if (p.set) notOurs(s.id, `المكان «${p.set}»`, setExclusion(lib, p.set));
+        if ((p.figure || p.figure2) && !figuresAllowed(lib)) notOurs(s.id, "الشخصية التاريخية بملامح", "faces");
+        for (const k of ["element", "rightElement", "leftElement", "secondElement"]) if (p[k]) notOurs(s.id, `العنصر «${p[k]}»`, elementExclusion(lib, p[k]!));
+        if (s.backdrop) notOurs(s.id, `الخلفية «${s.backdrop}»`, elementExclusion(lib, s.backdrop));
+        for (const b of parseBeats(p.beats ?? "")) if (!b.draw.startsWith("person") && b.draw !== "people") notOurs(s.id, `رسمة «${b.draw}»`, elementExclusion(lib, b.draw));
+      }
       if (s.template === "hadith-card" && !p.text?.trim()) out.push({ level: "error", sceneId: s.id, message: `بطاقة الحديث «${p.reference ?? ""}» بلا نص.` });
       if (s.template === "verse-card" && (!p.text?.trim() || p.text.startsWith("‹")))
         out.push({ level: "error", sceneId: s.id, message: `بطاقة الآية «${p.reference ?? ""}» بنص مؤقت؛ اجلب نصوص الآيات (زر «اجلب نصوص الآيات» في الاستوديو أو الأمر bal quran) بعد إضافة مفاتيح Quran Foundation.` });

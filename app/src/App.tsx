@@ -104,6 +104,8 @@ export const App: React.FC = () => {
       } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
     api.identity().then(({ identity, defaults }) => setIdent({ draft: identity, saved: identity, defaults })).catch((e) => say(e.message, true));
+    // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
+    if (channelId) api.channel().then((c) => setChannel(channelInfo(c))).catch((e) => say(e.message, true));
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** يحفظ فورًا أي تعديل ينتظر الحفظ التلقائي، حتى لا يكتب فوق خطة أحدث لاحقًا. */

@@ -6,6 +6,7 @@ import { formatReport } from "../script/report";
 import { quranClientFromEnv } from "../quran/client";
 import { syncQuran } from "../quran/sync";
 import { regeneratePlan } from "../plan/io";
+import { loadChannel } from "../channel";
 import { elevenLabsFromEnv } from "../voice/elevenlabs";
 import { generateVoice } from "../voice/generate";
 import { packageEpisode } from "./package";
@@ -44,7 +45,7 @@ export const makeEpisode = async (opts: MakeOptions) => {
   log("٣/٥ خطة المشاهد…");
   const plan = await regeneratePlan(ep);
   log(`   ${plan.chapters.reduce((n, c) => n + c.scenes.length, 0)} مشهدًا.`);
-  const issues = planIssues(plan);
+  const issues = planIssues(plan, loadChannel(plan.channel));
   for (const i of issues.filter((x) => x.level === "warning")) log(`   تنبيه (${i.sceneId}): ${i.message}`);
   const blocking = issues.filter((x) => x.level === "error");
   if (blocking.length && !opts.noVoice) throw new Error(`لا يمكن إخراج نسخة نهائية:\n${blocking.map((i) => `- ${i.sceneId}: ${i.message}`).join("\n")}`);

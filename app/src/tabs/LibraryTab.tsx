@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Element } from "../../../brand/elements/Element";
 import { elementLibrary } from "../../../brand/elements/registry";
 import { categoryNamesAr, categoryOrder, type ElementCategory } from "../../../brand/elements/types";
+import { HistoricFigure, figureNamesAr, type FigureId } from "../../../characters/HistoricFigure";
 import { Character, characterNamesAr, characterPoseNamesAr, characterPoses, characterVariants } from "../../../characters/Character";
 import { useTheme } from "../../../brand/identity/index";
 import { themeIds, type ThemeId } from "../../../brand/themes";
-import { api, type ChannelSummary, type LongJob, type SfxItem } from "../api";
+import { api, type LongJob, type SfxItem } from "../api";
 import { SetsGallery, TemplatesGallery } from "./LibraryGalleries";
 import { ChannelImages } from "../ui/ChannelImages";
 import { channelLibraries } from "../../../src/visual/library";
@@ -13,23 +14,24 @@ import { sceneCatalog } from "../../../src/remotion/scenes/catalog";
 import { sets } from "../../../brand/sets/index";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../../src/channel/types";
+import { channelLibrary, type LibraryRules } from "../../../src/channel/library";
+
+/** قواعد مكتبة القناة من بياناتها في الاستوديو */
+export const libraryRulesOf = (c?: ChannelInfo): LibraryRules => ({ id: c?.id ?? "", rules: { faces: Boolean(c?.rules?.faces), quran: Boolean(c?.rules?.quran), hadith: Boolean(c?.rules?.hadith) } });
 
 type Section = "templates" | "images" | "sets" | "elements" | "characters" | "sfx";
 
-/** المكتبة: القوالب، وأماكن التصوير، والشخصيات، والعناصر، والمؤثرات. */
+/** المكتبة: القوالب، وأماكن التصوير، والشخصيات، والعناصر، والمؤثرات — لكل قناة مكتبتها فقط (src/channel/library.ts). */
 export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; channel?: ChannelInfo }> = ({ hasVoiceKeys, identity, channel }) => {
   const [section, setSection] = useState<Section>("templates");
-  const [channels, setChannels] = useState<ChannelSummary[]>([]);
-  useEffect(() => {
-    api.channels().then(setChannels).catch(() => {});
-  }, []);
   const [themeId, setThemeId] = useState<ThemeId>("paper");
   const t = useTheme(themeId);
+  const lib = useMemo(() => channelLibrary(libraryRulesOf(channel)), [channel]);
   return (
     <div className="library">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="القسم">
-          {([["templates", `القوالب (${sceneCatalog.length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${elementLibrary.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
+          {([["templates", `القوالب (${sceneCatalog.filter((e) => lib.templates.includes(e.id)).length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${lib.sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${lib.elements.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
             <button key={k} aria-pressed={section === k} onClick={() => setSection(k)}>{l}</button>
           ))}
         </div>
@@ -42,10 +44,10 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
           </div>
         ) : null}
       </div>
-      {section === "templates" ? <TemplatesGallery identity={identity} channel={channel} channels={channels} /> : null}
+      {section === "templates" ? <TemplatesGallery identity={identity} channel={channel} allowed={lib.templates} /> : null}
       {section === "images" ? <ChannelImages key={channel?.id} channel={channel?.id ?? ""} /> : null}
-      {section === "sets" ? <SetsGallery /> : null}
-      {section === "elements" ? <Elements themeId={themeId} /> : null}
+      {section === "sets" ? <SetsGallery allowed={lib.sets} /> : null}
+      {section === "elements" ? <Elements themeId={themeId} allowed={lib.elements} channelName={channel?.name ?? ""} /> : null}
       {section === "characters" ? (
         <div className="lib-chars" style={{ background: t.colors.bg }}>
           {characterVariants.map((v) => (
@@ -61,6 +63,21 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
               </div>
             </div>
           ))}
+          {lib.figures ? (
+            <div className="lib-char-row">
+              <b style={{ color: t.colors.ink }}>شخصيات تاريخية بملامح (لا تُستعمل لنبي ولا صحابي)</b>
+              <div className="lib-char-poses">
+                {(Object.keys(figureNamesAr) as FigureId[]).map((f) => (
+                  <figure key={f}>
+                    <HistoricFigure figure={f} height={130} />
+                    <figcaption style={{ color: t.colors.inkSoft }}>{figureNamesAr[f]}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="help" style={{ color: t.colors.inkSoft }}>القناة بلا وجوه: الشخصيات بلا ملامح فقط.</p>
+          )}
         </div>
       ) : null}
       {section === "sfx" ? <Sfx hasVoiceKeys={hasVoiceKeys} /> : null}
@@ -78,27 +95,28 @@ const ThemeButton: React.FC<{ id: ThemeId; active: boolean; onClick: () => void 
   );
 };
 
-const Elements: React.FC<{ themeId: ThemeId }> = ({ themeId }) => {
+const Elements: React.FC<{ themeId: ThemeId; allowed: string[]; channelName: string }> = ({ themeId, allowed, channelName }) => {
   const t = useTheme(themeId);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<ElementCategory | "all">("all");
   const [copied, setCopied] = useState("");
   const items = useMemo(() => {
     const qq = q.trim().toLowerCase();
-    return elementLibrary.filter((e) => (cat === "all" || e.category === cat) && (!qq || `${e.nameAr} ${e.id} ${e.tags.join(" ")}`.toLowerCase().includes(qq)));
-  }, [q, cat]);
+    const ok = new Set(allowed);
+    return elementLibrary.filter((e) => ok.has(e.id) && (cat === "all" || e.category === cat) && (!qq || `${e.nameAr} ${e.id} ${e.tags.join(" ")}`.toLowerCase().includes(qq)));
+  }, [q, cat, allowed]);
   return (
     <>
       <div className="toolbar">
         <input id="lib-search" type="text" placeholder="ابحث: قلب، هاتف، coin…" value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 300 }} />
         <div className="cat-row">
           <button aria-pressed={cat === "all"} onClick={() => setCat("all")}>الكل</button>
-          {categoryOrder.map((c) => (
+          {categoryOrder.filter((c) => elementLibrary.some((e) => e.category === c && allowed.includes(e.id))).map((c) => (
             <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}>{categoryNamesAr[c]}</button>
           ))}
         </div>
       </div>
-      <p className="help">اضغط على عنصر لنسخ معرّفه واستخدامه في السكريبت، مثل [مشهد: symbolic | element=seed].</p>
+      <p className="help">عناصر مكتبة «{channelName}» فقط ({allowed.length} من {elementLibrary.length}). اضغط على عنصر لنسخ معرّفه واستخدامه في السكريبت، مثل [مشهد: symbolic | element=seed].</p>
       <div className="grid-el lib-grid">
         {items.map((e) => (
           <button

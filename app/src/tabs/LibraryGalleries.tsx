@@ -3,11 +3,10 @@ import { Player, type PlayerRef } from "@remotion/player";
 import { Providers } from "../../../src/remotion/Providers";
 import { sceneCatalog } from "../../../src/remotion/scenes/catalog";
 import { templateById } from "../../../src/plan/templates";
-import { familyNamesAr, templateMeta, templateSuits, type TemplateFamily } from "../../../src/plan/templateMeta";
+import { familyNamesAr, templateMeta, type TemplateFamily } from "../../../src/plan/templateMeta";
 import { SetBackdrop, sets } from "../../../brand/sets/index";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../../src/channel/types";
-import type { ChannelSummary } from "../api";
 import config from "../../../config.json";
 
 const fps = config.video.fps;
@@ -51,26 +50,23 @@ const TemplatePreview: React.FC<{ entry: (typeof sceneCatalog)[number]; identity
 };
 
 /** معرض القوالب: معاينة حية لكل قالب، وعائلته، والقنوات التي يناسبها. */
-export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: ChannelInfo; channels: ChannelSummary[] }> = ({ identity, channel, channels }) => {
+/** قوالب القناة الحالية فقط، بهويتها */
+export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: ChannelInfo; allowed: string[] }> = ({ identity, channel, allowed }) => {
   const [family, setFamily] = useState<TemplateFamily | "all">("all");
-  const [forChannel, setForChannel] = useState<string>("all");
-  const items = sceneCatalog.filter((e) => (family === "all" || templateMeta[e.id]?.family === family) && (forChannel === "all" || templateSuits(e.id, forChannel)));
+  const mine = sceneCatalog.filter((e) => allowed.includes(e.id));
+  const items = mine.filter((e) => family === "all" || templateMeta[e.id]?.family === family);
+  const families = (Object.keys(familyNamesAr) as TemplateFamily[]).filter((f) => mine.some((e) => templateMeta[e.id]?.family === f));
   return (
     <>
       <div className="toolbar">
         <div className="cat-row">
           <button aria-pressed={family === "all"} onClick={() => setFamily("all")}>كل العائلات</button>
-          {(Object.keys(familyNamesAr) as TemplateFamily[]).map((f) => (
+          {families.map((f) => (
             <button key={f} aria-pressed={family === f} onClick={() => setFamily(f)}>{familyNamesAr[f]}</button>
           ))}
         </div>
-        <span className="spacer" />
-        <select value={forChannel} onChange={(e) => setForChannel(e.target.value)} style={{ width: 200 }} aria-label="القناة">
-          <option value="all">لكل القنوات</option>
-          {channels.map((c) => <option key={c.id} value={c.id}>يناسب {c.name}</option>)}
-        </select>
       </div>
-      <p className="help">مرّر الفأرة على القالب لتشاهده يتحرك. نوّع بين العائلات في الحلقة الواحدة، ولا تبنِ حلقتين متتاليتين على القالب الأساسي نفسه.</p>
+      <p className="help">قوالب «{channel?.name}» فقط ({mine.length} من {sceneCatalog.length}). مرّر الفأرة على القالب لتشاهده يتحرك. نوّع بين العائلات في الحلقة الواحدة، ولا تبنِ حلقتين متتاليتين على القالب الأساسي نفسه.</p>
       <div className="tpl-grid">
         {items.map((e) => {
           const def = templateById(e.id);
@@ -84,11 +80,6 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
                   {meta ? <span className="chip">{familyNamesAr[meta.family]}</span> : null}
                 </div>
                 <span className="help">{def?.useAr}</span>
-                <div className="tpl-ch">
-                  {channels.map((c) => (
-                    <span key={c.id} className={`tpl-dot ${templateSuits(e.id, c.id) ? "on" : "off"}`}>{templateSuits(e.id, c.id) ? "✓" : "✕"} {c.name}</span>
-                  ))}
-                </div>
                 <code className="help" style={{ direction: "ltr" }}>[مشهد: {e.id}]</code>
               </div>
             </article>
@@ -100,11 +91,11 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
 };
 
 /** أماكن التصوير: كل مكان مرسوم كاملًا، يُستعمل في قالب «مشهد في مكان». */
-export const SetsGallery: React.FC = () => (
+export const SetsGallery: React.FC<{ allowed: string[] }> = ({ allowed }) => (
   <>
-    <p className="help">أماكن مرسومة كاملة تتحرك فيها الإضاءة والبخار والنجوم. استعملها من قالب «مشهد في مكان» واختر المكان. غيّر المكان بين الحلقات ليبقى المحتوى متنوعًا.</p>
+    <p className="help">أماكن هذه القناة فقط. أماكن مرسومة كاملة تتحرك فيها الإضاءة والبخار والنجوم. استعملها من قالب «مشهد في مكان» واختر المكان. غيّر المكان بين الحلقات ليبقى المحتوى متنوعًا.</p>
     <div className="tpl-grid">
-      {sets.map((s) => (
+      {sets.filter((s) => allowed.includes(s.id)).map((s) => (
         <article key={s.id} className="tpl-card">
           <svg viewBox="0 0 1920 1080" style={{ width: "100%", display: "block", borderRadius: 10 }}>
             <SetBackdrop id={s.id} t={1.2} />

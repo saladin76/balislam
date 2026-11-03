@@ -116,6 +116,7 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
     const { parseScript } = await load("/src/script/parse.ts");
     const { checkForChannel } = await load("/src/script/checkChannel.ts");
     const { planIssues } = await load("/src/plan/validate.ts");
+    const { loadChannel } = await load("/src/channel/index.ts");
     const out = [];
     for (const d of await episodeDirs(episodesDir)) {
       const dir = path.join(episodesDir, d);
@@ -130,7 +131,7 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
       const voiced = scenes.filter((s: any) => s.narration?.trim());
       const vIndex = existsSync(path.join(dir, "voice", "index.json")) ? JSON.parse(await readFile(path.join(dir, "voice", "index.json"), "utf8")) : {};
       const voiceOk = voiced.filter((s: any) => vIndex[s.id]?.text === s.narration.trim()).length;
-      const issues = plan ? planIssues(plan) : [];
+      const issues = plan ? planIssues(plan, loadChannel(plan.channel)) : [];
       const pkgDir = path.join(dir, "out", "package");
       const pkgFiles = existsSync(pkgDir) ? await readdir(pkgDir) : [];
       const id = d.slice(0, 3);

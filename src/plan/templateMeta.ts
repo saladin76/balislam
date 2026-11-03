@@ -1,6 +1,6 @@
 /**
- * تصنيف القوالب لمكتبة الاستوديو وفحص التنوّع: العائلة البصرية، والقنوات التي يناسبها كل قالب.
- * القناة غير المذكورة يناسبها القالب ما لم يُستثنَ (مثل بطاقات الآيات لقناة الكتب).
+ * تصنيف القوالب لمكتبة الاستوديو وفحص التنوّع: العائلة البصرية، والقوالب الخاصة بقنوات بعينها (only).
+ * ما يجوز لكل قناة يُحسب في src/channel/library.ts (يجمع only مع قواعد القناة: القرآن والحديث والوجوه).
  */
 export type TemplateFamily = "story" | "explain" | "text" | "data" | "scripture" | "close";
 export const familyNamesAr: Record<TemplateFamily, string> = {
@@ -11,11 +11,11 @@ export const familyNamesAr: Record<TemplateFamily, string> = {
   scripture: "آيات وأحاديث",
   close: "خلاصة وختام",
 };
-export const templateMeta: Record<string, { family: TemplateFamily; only?: string[]; not?: string[] }> = {
+export const templateMeta: Record<string, { family: TemplateFamily; only?: string[] }> = {
   "set-scene": { family: "story" },
-  "map-journey": { family: "data" },
+  "map-journey": { family: "data", only: ["dafatir-alzaman", "balislam"] },
   "desk-moment": { family: "story" },
-  "doc-plate": { family: "story" },
+  "doc-plate": { family: "story", only: ["dafatir-alzaman"] },
   "sim-stage": { family: "story" },
   "glow-story": { family: "story" },
   "character-talk": { family: "story" },
@@ -30,14 +30,8 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "big-number": { family: "data" },
   chart: { family: "data" },
   timeline: { family: "data" },
-  "verse-card": { family: "scripture", not: ["zubdat-alkutub"] },
-  "hadith-card": { family: "scripture", not: ["zubdat-alkutub"] },
+  "verse-card": { family: "scripture" },
+  "hadith-card": { family: "scripture" },
   summary: { family: "close" },
   "end-screen": { family: "close" },
-};
-export const templateSuits = (id: string, channel: string) => {
-  const m = templateMeta[id];
-  if (!m) return true;
-  if (m.only && !m.only.includes(channel)) return false;
-  return !m.not?.includes(channel);
 };

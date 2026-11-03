@@ -114,7 +114,7 @@ export const EpisodeTab: React.FC<{
   const channelOv = resolveOverlays(identity.overlays);
   const episodeOv = resolveOverlays(identity.overlays, plan.overlays);
 
-  const liveIssues = useMemo(() => planIssues(plan), [plan]);
+  const liveIssues = useMemo(() => planIssues(plan, channel), [plan, channel]);
   void issues;
   const totalSec = allScenes.reduce((n, x) => n + sceneSeconds(x.scene, media), 0);
   const voiceState = (s: PlanScene): "none" | "ok" | "stale" | "missing" => {

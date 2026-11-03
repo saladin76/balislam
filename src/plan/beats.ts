@@ -121,14 +121,15 @@ export const sentencesOf = (text: string): string[] => {
 };
 
 /** لقطة لجملة: أول كلمة لها معنى معروف تحدد الرسمة والكلمة المكتوبة. */
-export const beatFor = (sentence: string, used: Set<string> = new Set()): Beat => {
+/** allow: مرشّح مكتبة القناة (drawAllowed في src/channel/library.ts)؛ ما ليس من مكتبتها لا يُختار أبدًا */
+export const beatFor = (sentence: string, used: Set<string> = new Set(), allow: (id: string) => boolean = () => true): Beat => {
   const words = sentence.split(/\s+/).filter(Boolean);
   const clean = (w: string) => w.replace(/[«»"“”'؟?!.,،:؛…]/g, "");
   let fallback: Beat | null = null;
   for (const w of words) {
     if (STOP.has(normalizeArabic(clean(w)))) continue;
     const c = conceptFor(clean(w));
-    if (c) {
+    if (c && allow(c)) {
       const beat = { draw: c, label: clean(w) };
       if (!used.has(c)) return beat;
       fallback ??= beat;
@@ -138,7 +139,7 @@ export const beatFor = (sentence: string, used: Set<string> = new Set()): Beat =
     const s = stem(clean(w));
     if (s.length < 3 || STOP.has(normalizeArabic(clean(w)))) continue;
     const id = tags().get(s);
-    if (id) {
+    if (id && allow(id)) {
       const beat = { draw: id, label: clean(w) };
       if (!used.has(id)) return beat;
       fallback ??= beat;
@@ -174,11 +175,11 @@ export const sentenceGroups = (narration: string, max = 3): string[] => {
   return sents;
 };
 
-export const beatsFor = (narration: string, max = 3): Beat[] => {
+export const beatsFor = (narration: string, max = 3, allow?: (id: string) => boolean): Beat[] => {
   const sents = sentenceGroups(narration, max);
   const used = new Set<string>();
   return sents.map((s) => {
-    const b = beatFor(s, used);
+    const b = beatFor(s, used, allow);
     used.add(b.draw);
     return b;
   });
