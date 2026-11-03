@@ -55,7 +55,7 @@ describe("مكتبة كل قناة", () => {
   });
 
   it("استبعاد قناة من ملفها لا يمس مكتبات القنوات الأخرى", () => {
-    // زبدة الكتب لم تستبعد شيئًا: مكتبتها كاملة رغم استبعاد القناتين الأخريين
+    // استبعاد بالإسلام ودفاتر الزمن لا يمس ما تستعمله زبدة الكتب
     expect(channelLibrary(zubdat).elements).toContain("smartphone");
     expect(channelLibrary(zubdat).sets.length).toBeGreaterThan(0);
     expect(channelLibrary(zubdat).templates).toEqual(expect.arrayContaining(["comparison", "list", "big-question"]));
@@ -67,7 +67,8 @@ describe("مكتبة كل قناة", () => {
     for (const id of ["sword", "fortress", "camel", "dhow-ship", "wax-seal"]) expect(channelLibrary(dafatir).elements, id).toContain(id);
     expect(drawAllowed(dafatir)("phone-notifications")).toBe(false);
     // واستبعاد زبدة الكتب لا يمس بالإسلام ودفاتر الزمن
-    expect(channelLibrary(balislam).sets).toContain("wisdom-library");
+    expect(channelLibrary(balislam).elements).toEqual(expect.arrayContaining(["mihrab-arch", "mushaf-rehal"]));
+    expect(channelLibrary(balislam).templates).toEqual(expect.arrayContaining(["alley-tale", "kinetic-text"]));
     expect(channelLibrary(dafatir).elements).toContain("seal-stamp");
   });
 
