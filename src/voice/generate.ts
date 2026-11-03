@@ -12,6 +12,7 @@ import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
 import { isTone, tones } from "./tones";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
+import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
 export type VoiceClip = { file: string; hash: string; text: string; duration: number; words: TimedWord[] };
@@ -27,8 +28,16 @@ const loadDictionary = async () => readJson<{ entries?: { text: string; say: str
 
 type Job = { id: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } };
 
-const jobsFor = async (plan: Plan, voiceKey: string) => {
+/** نسخة السكريبت المشكولة للنطق (اختيارية): tashkeel.md بجوار script.md */
+export const tashkeelFileFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "tashkeel.md");
+const loadTashkeel = async (scriptPath?: string): Promise<TashkeelIndex | null> => {
+  if (!scriptPath || !existsSync(tashkeelFileFor(scriptPath))) return null;
+  return buildTashkeelIndex(await readFile(tashkeelFileFor(scriptPath), "utf8"));
+};
+
+const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   const dict = await loadDictionary();
+  const tk = await loadTashkeel(scriptPath);
   const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   let channelTone: string | undefined;
   try {
@@ -37,7 +46,8 @@ const jobsFor = async (plan: Plan, voiceKey: string) => {
     /* بلا قناة */
   }
   return scenes.map((s, i): Job => {
-    const d = applyDictionary(s.narration.trim(), dict);
+    const words = s.narration.trim().split(/\s+/).filter(Boolean);
+    const d = applyDictionary(s.narration.trim(), dict, tk ? vowelize(words, tk) : undefined);
     // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
     const toneId = [s.tone, plan.tone, channelTone].find(isTone);
     // سرعة النبرة نسبية إلى سرعة القناة الأساسية (config.voice.speed)، حتى يبقى إيقاع صاحب الصوت هو المرجع
@@ -75,7 +85,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   const indexFile = path.join(dir, "index.json");
   const index: VoiceIndex = (await readJson<VoiceIndex>(indexFile)) ?? {};
   const voiceKey = `${voiceIdFor() ?? ""}|${process.env.ELEVENLABS_MODEL_ID || config.voice.modelId}`;
-  const jobs = (await jobsFor(plan, voiceKey)).filter((j) => !opts.only || opts.only.includes(j.id));
+  const jobs = (await jobsFor(plan, voiceKey, scriptPath)).filter((j) => !opts.only || opts.only.includes(j.id));
 
   // مقطع بنفس البصمة موجود لمشهد آخر (انزاح رقمه بعد إضافة فقرة): يُعاد استخدامه بلا تكلفة
   const byHash = new Map<string, VoiceClip>();
@@ -119,7 +129,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   }
 
   // تنظيف: مشاهد لم تعد موجودة، وملفات لم يعد يشير إليها أي مشهد
-  const live = new Set((await jobsFor(plan, voiceKey)).map((j) => j.id));
+  const live = new Set((await jobsFor(plan, voiceKey, scriptPath)).map((j) => j.id));
   for (const id of Object.keys(index)) if (!live.has(id)) delete index[id];
   const used = new Set(Object.values(index).map((c) => c.file));
   for (const f of await readdir(dir)) if (f.endsWith(".mp3") && !used.has(f)) await unlink(path.join(dir, f)).catch(() => {});

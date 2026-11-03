@@ -9,7 +9,7 @@ type Dict = { entries?: { text: string; say: string }[] };
  * يطبّق قاموس النطق كلمةً كلمة، ويحتفظ بخريطة: لكل كلمة منطوقة رقمُ الكلمة الأصلية.
  * هكذا تُعرض الترجمة بالكتابة الأصلية حتى لو تغيّر النطق المرسل.
  */
-export const applyDictionary = (text: string, dict: Dict) => {
+export const applyDictionary = (text: string, dict: Dict, voweled?: (string | undefined)[]) => {
   const map = new Map((dict.entries ?? []).filter((e) => e.text && e.say).map((e) => [e.text, e.say]));
   const original = text.split(/\s+/).filter(Boolean);
   const spoken: string[] = [];
@@ -18,7 +18,8 @@ export const applyDictionary = (text: string, dict: Dict) => {
     // علامات الترقيم في الطرفين (عربية ولاتينية) لا تمنع مطابقة القاموس
     const core = w.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, "");
     const say = map.get(core);
-    const replaced = say ? w.replace(core, say) : w;
+    // القاموس أولًا؛ وإلا الكلمة المشكولة من ملف التشكيل إن وُجدت
+    const replaced = say ? w.replace(core, say) : (voweled?.[i] ?? w);
     for (const part of replaced.split(/\s+/).filter(Boolean)) {
       spoken.push(part);
       owner.push(i);

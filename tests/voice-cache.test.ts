@@ -94,3 +94,18 @@ describe("ذاكرة الصوت", () => {
     expect(after).toBe(before);
   });
 });
+
+describe("التشكيل للنطق", () => {
+  it("يشكّل كلمات التعليق من ملف التشكيل ويُبقي ترقيم السكريبت، ويتجاوز ما لا نظير له", async () => {
+    const { buildTashkeelIndex, vowelize } = await import("../src/voice/tashkeel");
+    const idx = buildTashkeelIndex("عنوان\n\nﭐلْفَصْلُ\n\nتَخَيَّلْ شَخْصَيْنِ يُشَاهِدَانِ الْمَوْقِفَ نَفْسَهُ.\n\n﴿آيَةٌ﴾\n\nمَعْرِفَةَ الْخَطَإِ وَحْدَهَا");
+    const w = "تخيل شخصين يشاهدان الموقف نفسه، وكلمة جديدة".split(" ");
+    expect(vowelize(w, idx)).toEqual(["تَخَيَّلْ", "شَخْصَيْنِ", "يُشَاهِدَانِ", "الْمَوْقِفَ", "نَفْسَهُ،", undefined, undefined]);
+    // صور الهمزة المختلفة تتطابق
+    expect(vowelize("معرفة الخطأ وحدها".split(" "), idx)).toEqual(["مَعْرِفَةَ", "الْخَطَإِ", "وَحْدَهَا"]);
+    const { applyDictionary } = await import("../src/voice/words");
+    const d = applyDictionary("الموقف نفسه", { entries: [{ text: "نفسه", say: "ذاته" }] }, ["الْمَوْقِفَ", "نَفْسَهُ"]);
+    expect(d.spoken).toBe("الْمَوْقِفَ ذاته");
+    expect(d.original).toEqual(["الموقف", "نفسه"]);
+  });
+});
