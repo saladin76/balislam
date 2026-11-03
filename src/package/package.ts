@@ -13,6 +13,7 @@ import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
+import { loadSceneLedger, sceneReviewBlockMessage, sceneReviewItems, sceneReviewSummary } from "../plan/sceneReview";
 import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../render/motionMeter";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
@@ -33,6 +34,8 @@ export type PackageOptions = {
   /** جودة الرندر: master لما يُنشر (الافتراضي)، preview للمعاينة بلا صوت */
   quality?: Quality;
   onProgress?: (msg: string) => void;
+  /** صناعة النسخة النهائية قبل اكتمال مراجعة المشاهد (من سطر الأوامر فقط) */
+  ignoreSceneReview?: boolean;
 };
 
 /**
@@ -55,6 +58,12 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const episodePath = path.join(dir, `${id}-episode.mp4`);
   const statusFile = path.join(path.dirname(scriptPath), "status.json");
   const readStatus = async () => (existsSync(statusFile) ? JSON.parse(await readFile(statusFile, "utf8")) : {});
+  // قاعدة: كل مشهد يُراجَع بعد تنفيذه (حركاته سليمة ومتناسقة مع النص وغير عشوائية) قبل النسخة النهائية
+  if (quality === "master" && !opts.skipVideo && !opts.ignoreSceneReview) {
+    const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath));
+    const sum = sceneReviewSummary(items);
+    if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
+  }
   if (stage === "shorts") {
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");

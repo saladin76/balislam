@@ -230,6 +230,24 @@ program
   });
 
 program
+  .command("scenes-review")
+  .description("مراجعة المشاهد: هل حركات كل مشهد سليمة ومتناسقة مع النص وغير عشوائية؟")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { resolveScriptPath } = await import("../script/episodes");
+    const { loadPlan, regeneratePlan } = await import("../plan/io");
+    const { loadSceneLedger, sceneReviewItems, sceneReviewSummary } = await import("../plan/sceneReview");
+    const file = await resolveScriptPath(episode);
+    const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
+    const items = sceneReviewItems(plan, await loadSceneLedger(file));
+    const mark = { ok: "✓ سليم", fix: "✗ يحتاج إصلاحًا", pending: "… لم يُراجع", changed: "! تغيّر بعد المراجعة" } as const;
+    for (const i of items) console.log(`${mark[i.status]} · ${i.id}${i.note ? ` — ${i.note}` : ""}`);
+    const s = sceneReviewSummary(items);
+    console.log(`سليم ${s.ok} من ${s.total}${s.done ? " ✓" : ""}. القرار من الاستوديو: «المشاهد ← مراجعة المشهد».`);
+    if (!s.done) process.exitCode = 1;
+  });
+
+program
   .command("sfx")
   .description("توليد المؤثرات الصوتية من سجل brand/sfx.ts عبر ElevenLabs")
   .argument("[ids...]", "معرّفات المؤثرات")
@@ -260,9 +278,10 @@ program
   .option("--skip-video", "بلا رندر فيديو")
   .option("--shorts", "الشورتس/الريلز بأعلى جودة (بعد اعتماد النسخة الأساسية في الاستوديو)")
   .option("--preview", "معاينة سريعة 1080p بدل أعلى جودة (لا تُنشر)")
-  .action(async (episode: string, opts: { skipVideo?: boolean; shorts?: boolean; preview?: boolean }) => {
+  .option("--ignore-scene-review", "النسخة النهائية قبل اكتمال مراجعة المشاهد (غير مستحسن)")
+  .action(async (episode: string, opts: { skipVideo?: boolean; shorts?: boolean; preview?: boolean; ignoreSceneReview?: boolean }) => {
     const { packageEpisode } = await import("../package/package");
-    const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, stage: opts.shorts ? "shorts" : "episode", quality: opts.preview ? "preview" : "master", onProgress: (m) => console.log(m) });
+    const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, ignoreSceneReview: opts.ignoreSceneReview, stage: opts.shorts ? "shorts" : "episode", quality: opts.preview ? "preview" : "master", onProgress: (m) => console.log(m) });
     console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
   });
 

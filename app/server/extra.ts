@@ -284,6 +284,28 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // مراجعة كل مشهد بعد تنفيذه (scene-review.json)
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "scene-review") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const { loadPlan, regeneratePlan } = await load("/src/plan/io.ts");
+    const R = await load("/src/plan/sceneReview.ts");
+    const file = await resolveScriptPath(parts[1]);
+    const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
+    let items;
+    if (req.method === "PUT") {
+      const { id, status, note } = await readBody(req);
+      if (typeof id !== "string" || !["ok", "fix", "pending"].includes(status)) return send(res, 400, { error: "قرار غير صالح." }), true;
+      try {
+        items = await R.setSceneReview(file, plan, id, status, typeof note === "string" ? note : "");
+      } catch (e) {
+        return send(res, 400, { error: (e as Error).message }), true;
+      }
+    } else items = R.sceneReviewItems(plan, await R.loadSceneLedger(file));
+    send(res, 200, { items, summary: R.sceneReviewSummary(items), criteria: R.SCENE_CRITERIA });
+    return true;
+  }
+
   // سجل التوثيق والاعتماد لكل استشهاد (review.json)
   if (parts[0] === "episodes" && parts[1] && parts[2] === "review") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
