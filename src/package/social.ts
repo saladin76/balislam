@@ -12,6 +12,7 @@ import { defaultChannel, type ChannelConfig } from "../channel/types";
  * وهذا الملف يولّد نسخة أولى آلية من السكريبت حين لا توجد.
  */
 import { traceCheck } from "./traces";
+import { isGenericTitle, repeatedSentences, truncation } from "./quality";
 
 export type Platform = "youtube" | "youtubeShorts" | "instagram" | "facebook";
 
@@ -71,6 +72,8 @@ export const checkTitle = (title: string, platform: "youtube" | "youtubeShorts",
     { ok: len(title) > 0 && len(title) <= r.titleVisible, label: `الطول ${len(title)}/${r.titleVisible}` },
     { ok: containsKeyword(title.slice(0, platform === "youtubeShorts" ? 40 : 60), keywords), label: "كلمة بحث في أوله" },
     { ok: !/#/.test(title) || platform === "youtubeShorts", label: "بلا هاشتاج في العنوان" },
+    { ok: !isGenericTitle(title), label: "عنوان يقول شيئًا وحده" },
+    { ok: !truncation(title), label: "عنوان تام" },
     traceCheck(title),
   ];
 };
@@ -78,6 +81,7 @@ export const checkDescription = (desc: string, keywords: string[], hashtags: str
   { ok: containsKeyword(desc.slice(0, RULES.youtube.descFold), keywords), label: "كلمة بحث قبل «المزيد»" },
   { ok: /(^|\n)0:00 /.test(desc) && (desc.match(/(^|\n)\d+:\d\d /g) ?? []).length >= 3, label: "فصول بتوقيت" },
   { ok: hashtags.length >= 1 && hashtags.length <= RULES.youtube.hashtagsMax, label: `هاشتاجات ${hashtags.length} (يظهر أول 3)` },
+  { ok: !truncation(desc) && repeatedSentences(desc).length === 0, label: "بلا تكرار ولا بتر" },
   traceCheck(`${desc}\n${hashtags.join(" ")}`),
 ];
 export const checkCaption = (caption: string, hashtags: string[], platform: "instagram" | "facebook", keywords: string[]): Check[] => {
@@ -86,6 +90,7 @@ export const checkCaption = (caption: string, hashtags: string[], platform: "ins
     { ok: len(firstLine(caption)) <= r.fold && len(firstLine(caption)) > 0, label: `السطر الأول ${len(firstLine(caption))}/${r.fold}` },
     { ok: containsKeyword(caption, keywords), label: "كلمات بحث في الكابشن" },
     { ok: /[؟?]/.test(caption), label: "سؤال يفتح التعليقات" },
+    { ok: !truncation(caption) && repeatedSentences(caption).length === 0, label: "بلا تكرار ولا بتر" },
     { ok: hashtags.length <= r.hashtagsMax && hashtags.length > 0, label: `هاشتاجات ${hashtags.length}/${r.hashtagsMax}` },
     traceCheck(`${caption}\n${hashtags.join(" ")}`),
   ];
@@ -117,7 +122,16 @@ export const keywordsOf = (text: string, extra: string[] = [], max = 8): string[
 const hashtag = (s: string) => `#${s.trim().replace(/^#/, "").replace(/\s+/g, "_")}`;
 const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 const sentences = (t: string) => t.split(/(?<=[.؟?!])\s+/).map((s) => s.trim()).filter(Boolean);
-const clip = (s: string, n: number) => (len(s) <= n ? s : `${Array.from(s).slice(0, n - 1).join("").replace(/\s+\S*$/, "")}…`);
+/** يقص النص عند آخر جملة تامة تسعها المساحة؛ ولا يقص وسط جملة إلا إن كانت الجملة الأولى وحدها أطول. */
+const clip = (s: string, n: number) => {
+  if (len(s) <= n) return s;
+  let out = "";
+  for (const x of sentences(s)) {
+    if (len(out ? `${out} ${x}` : x) > n) break;
+    out = out ? `${out} ${x}` : x;
+  }
+  return out || `${Array.from(s).slice(0, n - 1).join("").replace(/\s+\S*$/, "")}…`;
+};
 
 /** نسخة أولى آلية من السكريبت والخطة. */
 export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMedia | undefined, channel: ChannelConfig = defaultChannel): PublishKit => {
@@ -160,15 +174,18 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
     const first = ss[0] ?? c.title;
     const kw = keywordsOf(`${c.title} ${text}`, [], 4);
     const tags = [...new Set([...kw.slice(0, 2), ...domainTags.slice(0, 1), channel.youtube.tags[0] ?? ""])].filter(Boolean);
-    const title = clip(/[؟?]$/.test(c.title) ? c.title : q ?? c.title, 60);
-    const value = ss.slice(1, 3).join(" ");
-    const ask = q && q !== first ? q : "ما رأيك؟ اكتب في التعليقات.";
+    // العنوان: سؤال الفصل إن كان يقول شيئًا وحده (لا «لماذا؟»)، وإلا عنوان الفصل، وإلا أول جملة
+    const cands = [/[؟?]$/.test(c.title) ? c.title : "", q ?? "", c.title, first].filter((t) => t && !isGenericTitle(t));
+    const title = cands.find((t) => len(t) <= 60) ?? clip(cands[0] ?? `${c.title} | ${plan.title}`, 60);
+    // القيمة بلا السؤال الذي يُختم به الكابشن (لا جملة مكررة)
+    const value = ss.slice(1, 4).filter((x) => x !== q).slice(0, 2).join(" ");
+    const ask = q && q !== first && !isGenericTitle(q) ? q : "ما رأيك؟ اكتب في التعليقات.";
     return {
       chapter: c.number,
       hook: clip(first, 90),
       youtube: { title, description: `${clip(first, 140)}\n\nالحلقة كاملة على القناة.\n\n${tags.slice(0, 3).map(hashtag).join(" ")}`, hashtags: tags.slice(0, 3).map(hashtag) },
-      instagram: { caption: `${clip(first, 120)}\n\n${clip(value, 300)}\n\n${ask}\n\nاحفظه لترجع له، وأرسله لمن يحتاجه.`, hashtags: tags.slice(0, 5).map(hashtag) },
-      facebook: { caption: `${clip(first, 120)}\n\n${ask}`, hashtags: tags.slice(0, 2).map(hashtag) },
+      instagram: { caption: `${clip(first, 240)}\n\n${clip(value, 300)}\n\n${ask}\n\nاحفظه لترجع له، وأرسله لمن يحتاجه.`, hashtags: tags.slice(0, 5).map(hashtag) },
+      facebook: { caption: `${clip(first, 240)}\n\n${ask}`, hashtags: tags.slice(0, 2).map(hashtag) },
     };
   });
 
@@ -183,7 +200,7 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
       hashtags,
       pinnedComment: step ? `${step}\n\nاكتب لنا تجربتك 👇` : `ما الفكرة التي توقفت عندها أكثر في الحلقة؟`,
       thumbnailTexts: [plan.title, ...(fm.alt_titles ?? [])].map((t) => clip(t, 28)).slice(0, 3),
-      facebook: `${clip(hook, 120)}\n\n${plan.title}\n\nشاهد الحلقة كاملة، وشاركنا رأيك: ${step ? clip(step, 120) : ""}\n\n${hashtags.slice(0, 3).join(" ")}`,
+      facebook: `${clip(hook, 120)}\n\n${plan.title}\n\nشاهد الحلقة كاملة، وشاركنا رأيك: ${step ? clip(step, 240) : ""}\n\n${hashtags.slice(0, 3).join(" ")}`,
     },
     shorts,
   };

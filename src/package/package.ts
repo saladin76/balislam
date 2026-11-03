@@ -12,6 +12,7 @@ import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
 import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
+import { kitBlockMessage, kitIssues } from "./quality";
 import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../render/motionMeter";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
@@ -88,6 +89,9 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const kitFile = path.join(path.dirname(scriptPath), "publish.json");
     const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
     if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
+    // جودة النشر: لا عنوان عام ولا جملة مكررة ولا نص مبتور ولا وسم مكرر (قبل أي رندر مكلف)
+    const kq = kitIssues(kit);
+    if (kq.some((i) => i.level === "error")) throw new Error(kitBlockMessage(kq));
     await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()))));
     files.push("social.md");
   }

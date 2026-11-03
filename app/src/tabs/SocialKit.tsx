@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import { kitIssues } from "../../../src/package/quality";
 import { CHAPTERS_TOKEN, checkCaption, checkDescription, checkTitle, resolveDescription, RULES, type Check, type PublishKit, type ShortKit } from "../../../src/package/social";
 
 const copy = (text: string, done: (m: string) => void) => {
@@ -73,6 +74,8 @@ export const SocialKit: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   const setLong = (patch: Partial<PublishKit["long"]>) => update({ ...kit, long: { ...L, ...patch } });
   const setShort = (i: number, patch: Partial<ShortKit>) => update({ ...kit, shorts: kit.shorts.map((s, k) => (k === i ? { ...s, ...patch } : s)) });
   const sh = typeof view === "number" ? kit.shorts[view] : undefined;
+  const issues = kitIssues(kit);
+  const blocking = issues.filter((i) => i.level === "error").length;
   const source = kit.generatedBy === "claude" ? "كتبها Claude لهذه الحلقة" : kit.generatedBy === "edited" ? "معدّلة منك" : "نسخة آلية من السكريبت";
 
   return (
@@ -97,6 +100,18 @@ export const SocialKit: React.FC<{ episodeId: string }> = ({ episodeId }) => {
       <div className="kit-keywords">
         <span className="help">كلمات البحث في هذه الحلقة (استعملها في أول العنوان والوصف والكابشن):</span>
         {keywords.map((k) => <span key={k} className="chip">{k}</span>)}
+      </div>
+      {/* فحص الجودة قبل التصدير: الأخطاء تمنع الحزمة، والتنبيهات للمراجعة */}
+      <div className="kit-quality" style={{ border: `1px solid ${blocking ? "var(--err)" : "var(--line)"}`, background: blocking ? "var(--err-soft)" : undefined, borderRadius: 8, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+        <b style={{ color: blocking ? "var(--err)" : issues.length ? "var(--warn)" : "var(--ok)" }}>
+          {blocking ? `جودة النشر: ${blocking} مشكلة تمنع التصدير` : issues.length ? `جودة النشر: ${issues.length} تنبيه للمراجعة` : "جودة النشر: لا عناوين عامة ولا تكرار ولا نص مبتور ✓"}
+        </b>
+        {issues.map((i, k) => (
+          <span key={k} className="help" style={{ color: i.level === "error" ? "var(--err)" : undefined }}>
+            {i.level === "error" ? "✗" : "!"} <b>{i.where}</b>: {i.message}
+            {i.suggestion ? <> — اقتراح: «{i.suggestion}»</> : null}
+          </span>
+        ))}
       </div>
       <div className="seg kit-tabs" role="group" aria-label="المنصة">
         <button aria-pressed={view === "long"} onClick={() => setView("long")}>الحلقة (يوتيوب وفيسبوك)</button>
