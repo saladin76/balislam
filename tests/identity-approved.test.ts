@@ -29,6 +29,12 @@ describe("الهويات المعتمدة", () => {
         for (const { hex } of a.palette) expect(text, hex).toContain(hex);
       });
 
+      it("لا لون خارج الهوية المعتمدة (لا بقايا هويات قديمة)", () => {
+        const allowed = new Set([...a.palette.map((p) => p.hex), ...a.signature, ...a.derived].map((x) => x.toUpperCase()));
+        const used = new Set((text.match(/#[0-9A-F]{6}/g) ?? []));
+        expect([...used].filter((h) => !allowed.has(h))).toEqual([]);
+      });
+
       it("زخارف الخلفية من زخارف القناة فقط", () => {
         for (const [id, t] of Object.entries<{ motif: string }>(identity.themes)) expect(a.motifs, `${ch}/${id}`).toContain(t.motif);
       });

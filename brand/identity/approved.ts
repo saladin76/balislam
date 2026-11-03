@@ -18,7 +18,11 @@ export type ApprovedIdentity = {
   /** بصمة القناة: ألوان لا تظهر في أي قناة أخرى */
   signature: string[];
   motifs: string[];
+  /** درجات مشتقة من ألوان الهوية (أسطح وحبر ثانوي) وألوان البشرة: ما عدا الألوان والبصمة والمشتقات ممنوع في identity.json */
+  derived: string[];
 };
+
+const SKIN = ["#E7C3A0", "#D2A782"];
 
 export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
   balislam: {
@@ -36,8 +40,9 @@ export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
       { hex: "#F4EEE2", nameAr: "ورق" },
       { hex: "#C2412D", nameAr: "ختم" },
     ],
-    signature: ["#0B1F1C", "#C9A24A", "#F2B35B", "#C2412D", "#0E5B4B"],
+    signature: ["#0B1F1C", "#C9A24A", "#F2B35B", "#C2412D"],
     motifs: ["arches", "girih"],
+    derived: ["#0F2A26", "#12352F", "#174039", "#071512", "#A9C3B9", "#6F8F84", ...SKIN],
   },
   "dafatir-alzaman": {
     nameAr: "دفتر الأفق",
@@ -57,6 +62,7 @@ export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
     ],
     signature: ["#2A1E3F", "#E07A3F", "#F1E4CB", "#4A2E1F", "#D7372B", "#F3C98B"],
     motifs: ["stars", "horizon", "ink-lines"],
+    derived: ["#1A1424", "#251C30", "#35284D", "#120C18", "#A399B4", "#BFB3C9", "#B4583A", "#2B1E14", "#5A4632", "#EADBC0", "#F4E9D4", "#F8EEDB", "#F3E9DA", "#7A7F4E", ...SKIN],
   },
   "zubdat-alkutub": {
     nameAr: "القلم المميِّز",
@@ -74,6 +80,7 @@ export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
     ],
     signature: ["#E8F542", "#FF6B4A"],
     motifs: ["ruled"],
+    derived: ["#000000", "#1E1E1E", "#4A4A4A", "#6A6A6A", "#8A8172", "#BDBDBD", "#DCD6C8", "#F4F4F1", "#F1EDE4", "#EDE7DA", "#F8F4EC", ...SKIN],
   },
 };
 

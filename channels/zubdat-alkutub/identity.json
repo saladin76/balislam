@@ -27,15 +27,15 @@
         "style": "flat",
         "outline": "#111111",
         "skin": [
-          "#FFFDF8",
-          "#FFFDF8"
+          "#E7C3A0",
+          "#D2A782"
         ],
         "garments": [
           "#111111",
-          "#FF6B4A",
-          "#E8F542",
           "#6A6A6A",
-          "#DCD6C8"
+          "#DCD6C8",
+          "#8A8172",
+          "#BDBDBD"
         ],
         "cap": "#111111"
       },
@@ -67,17 +67,17 @@
         "style": "flat",
         "outline": "#111111",
         "skin": [
-          "#E9C6A8",
-          "#D9B08C"
+          "#E7C3A0",
+          "#D2A782"
         ],
         "garments": [
           "#111111",
-          "#FF6B4A",
-          "#E8F542",
+          "#6A6A6A",
+          "#DCD6C8",
           "#8A8172",
-          "#DCD6C8"
+          "#BDBDBD"
         ],
-        "cap": "#FFFFFF"
+        "cap": "#111111"
       },
       "motif": "ruled"
     },
@@ -111,13 +111,13 @@
           "#D2A782"
         ],
         "garments": [
-          "#E8F542",
-          "#FF6B4A",
           "#FFFFFF",
+          "#BDBDBD",
           "#6A6A6A",
-          "#BDBDBD"
+          "#8A8172",
+          "#DCD6C8"
         ],
-        "cap": "#F3EEE3"
+        "cap": "#FFFFFF"
       },
       "motif": "ruled"
     },
@@ -147,17 +147,17 @@
         "style": "flat",
         "outline": "#111111",
         "skin": [
-          "#F2D2B0",
-          "#DDB58F"
+          "#E7C3A0",
+          "#D2A782"
         ],
         "garments": [
           "#111111",
-          "#FF6B4A",
-          "#E8F542",
-          "#7A6A55",
-          "#B8AE98"
+          "#6A6A6A",
+          "#DCD6C8",
+          "#8A8172",
+          "#BDBDBD"
         ],
-        "cap": "#FBF6EE"
+        "cap": "#111111"
       },
       "motif": "ruled"
     }
@@ -166,20 +166,20 @@
     "paper": {
       "style": "line",
       "edge": "#111111",
-      "stroke": "#1B1B1B",
+      "stroke": "#111111",
       "sw": 3,
       "line": "#111111",
       "lw": 3,
       "main": "#111111",
-      "second": "#FF6B4A",
-      "accent": "#E8F542",
+      "second": "#6A6A6A",
+      "accent": "#8A8172",
       "light": "#F4F4F1",
       "dark": "#111111",
-      "skin": "#FFFDF8",
-      "metal": "#E8F542",
-      "wood": "#FFFDF8",
-      "green": "#9FDCCB",
-      "water": "#9FDCCB",
+      "skin": "#E7C3A0",
+      "metal": "#BDBDBD",
+      "wood": "#8A8172",
+      "green": "#6A6A6A",
+      "water": "#BDBDBD",
       "shadow": "rgba(0,0,0,0.18)"
     },
     "family": {
@@ -190,15 +190,15 @@
       "line": "#111111",
       "lw": 3,
       "main": "#111111",
-      "second": "#FF6B4A",
-      "accent": "#E8F542",
+      "second": "#6A6A6A",
+      "accent": "#8A8172",
       "light": "#FFFFFF",
       "dark": "#111111",
-      "skin": "#E9C6A8",
-      "metal": "#E8F542",
-      "wood": "#B07A5B",
-      "green": "#7FA88E",
-      "water": "#8FB8C9",
+      "skin": "#E7C3A0",
+      "metal": "#BDBDBD",
+      "wood": "#8A8172",
+      "green": "#6A6A6A",
+      "water": "#BDBDBD",
       "shadow": "rgba(0,0,0,0.18)"
     },
     "night": {
@@ -208,16 +208,16 @@
       "sw": 0,
       "line": "#000000",
       "lw": 3,
-      "main": "#E8F542",
-      "second": "#FF6B4A",
-      "accent": "#FFFFFF",
+      "main": "#FFFFFF",
+      "second": "#6A6A6A",
+      "accent": "#8A8172",
       "light": "#1E1E1E",
       "dark": "#000000",
       "skin": "#E7C3A0",
-      "metal": "#FFFFFF",
-      "wood": "#8A6A55",
-      "green": "#5FB8AE",
-      "water": "#5A6F94",
+      "metal": "#BDBDBD",
+      "wood": "#8A8172",
+      "green": "#6A6A6A",
+      "water": "#BDBDBD",
       "shadow": "rgba(0,0,0,0.18)"
     },
     "warm": {
@@ -228,15 +228,15 @@
       "line": "#111111",
       "lw": 3,
       "main": "#111111",
-      "second": "#FF6B4A",
-      "accent": "#E8F542",
+      "second": "#6A6A6A",
+      "accent": "#8A8172",
       "light": "#F8F4EC",
       "dark": "#111111",
-      "skin": "#F2D2B0",
-      "metal": "#E8F542",
-      "wood": "#7A5A44",
-      "green": "#6E8A5A",
-      "water": "#7FA3A8",
+      "skin": "#E7C3A0",
+      "metal": "#BDBDBD",
+      "wood": "#8A8172",
+      "green": "#6A6A6A",
+      "water": "#BDBDBD",
       "shadow": "rgba(0,0,0,0.18)"
     }
   },

@@ -55,12 +55,11 @@
   },
   "styles": [
     "doc-plate",
-    "set-scene",
     "timeline",
-    "board",
-    "kinetic",
+    "motion",
     "glow",
-    "sim-stage"
+    "kinetic",
+    "board"
   ],
   "rules": {
     "music": false,

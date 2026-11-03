@@ -27,17 +27,17 @@
         "style": "flat",
         "outline": "#2B1E14",
         "skin": [
-          "#FFFDF8",
-          "#FFFDF8"
+          "#E7C3A0",
+          "#D2A782"
         ],
         "garments": [
           "#2A1E3F",
           "#B4583A",
           "#C8A15A",
           "#4A2E1F",
-          "#6B5640"
+          "#5A4632"
         ],
-        "cap": "#7A2A1F"
+        "cap": "#F1E4CB"
       },
       "motif": "ink-lines"
     },
@@ -49,7 +49,7 @@
         "bg": "#2A1E3F",
         "surface": "#35284D",
         "ink": "#F3E9DA",
-        "inkSoft": "#C9BFD6",
+        "inkSoft": "#BFB3C9",
         "primary": "#F3C98B",
         "secondary": "#E07A3F",
         "highlight": "#F3C98B",
@@ -67,17 +67,17 @@
         "style": "flat",
         "outline": "#120C18",
         "skin": [
-          "#E9C6A8",
-          "#D9B08C"
+          "#E7C3A0",
+          "#D2A782"
         ],
         "garments": [
           "#F3C98B",
           "#E07A3F",
           "#D7372B",
           "#C8A15A",
-          "#C9BFD6"
+          "#BFB3C9"
         ],
-        "cap": "#FFFFFF"
+        "cap": "#F3E9DA"
       },
       "motif": "stars"
     },
@@ -105,7 +105,7 @@
       },
       "character": {
         "style": "flat",
-        "outline": "#0D0A14",
+        "outline": "#120C18",
         "skin": [
           "#E7C3A0",
           "#D2A782"
@@ -113,11 +113,11 @@
         "garments": [
           "#E07A3F",
           "#F3C98B",
-          "#8A3E45",
+          "#D7372B",
           "#4A2E1F",
           "#BFB3C9"
         ],
-        "cap": "#F3EEE3"
+        "cap": "#F3E9DA"
       },
       "motif": "stars"
     },
@@ -147,17 +147,17 @@
         "style": "flat",
         "outline": "#2B1E14",
         "skin": [
-          "#F2D2B0",
-          "#DDB58F"
+          "#E7C3A0",
+          "#D2A782"
         ],
         "garments": [
           "#4A2E1F",
           "#B4583A",
           "#C8A15A",
           "#2A1E3F",
-          "#7E2A22"
+          "#D7372B"
         ],
-        "cap": "#FBF6EE"
+        "cap": "#F1E4CB"
       },
       "motif": "horizon"
     }
@@ -166,39 +166,39 @@
     "paper": {
       "style": "line",
       "edge": "#2B1E14",
-      "stroke": "#1B1B1B",
+      "stroke": "#2B1E14",
       "sw": 3,
       "line": "#2B1E14",
       "lw": 3,
-      "main": "#2A1E3F",
+      "main": "#4A2E1F",
       "second": "#B4583A",
       "accent": "#C8A15A",
       "light": "#F4E9D4",
       "dark": "#2B1E14",
-      "skin": "#FFFDF8",
+      "skin": "#E7C3A0",
       "metal": "#C8A15A",
-      "wood": "#FFFDF8",
-      "green": "#9FDCCB",
-      "water": "#9FDCCB",
+      "wood": "#4A2E1F",
+      "green": "#7A7F4E",
+      "water": "#A399B4",
       "shadow": "rgba(0,0,0,0.18)"
     },
     "family": {
       "style": "flat",
-      "edge": "#C9BFD6",
+      "edge": "#BFB3C9",
       "stroke": "none",
       "sw": 0,
       "line": "#120C18",
       "lw": 3,
-      "main": "#F3C98B",
-      "second": "#E07A3F",
-      "accent": "#D7372B",
+      "main": "#E07A3F",
+      "second": "#B4583A",
+      "accent": "#C8A15A",
       "light": "#35284D",
       "dark": "#120C18",
-      "skin": "#E9C6A8",
-      "metal": "#D7372B",
-      "wood": "#B07A5B",
-      "green": "#7FA88E",
-      "water": "#8FB8C9",
+      "skin": "#E7C3A0",
+      "metal": "#C8A15A",
+      "wood": "#4A2E1F",
+      "green": "#7A7F4E",
+      "water": "#A399B4",
       "shadow": "rgba(0,0,0,0.18)"
     },
     "night": {
@@ -206,18 +206,18 @@
       "edge": "#BFB3C9",
       "stroke": "none",
       "sw": 0,
-      "line": "#0D0A14",
+      "line": "#120C18",
       "lw": 3,
       "main": "#E07A3F",
-      "second": "#F3C98B",
-      "accent": "#8A3E45",
+      "second": "#B4583A",
+      "accent": "#C8A15A",
       "light": "#251C30",
-      "dark": "#0D0A14",
+      "dark": "#120C18",
       "skin": "#E7C3A0",
-      "metal": "#8A3E45",
-      "wood": "#8A6A55",
-      "green": "#5FB8AE",
-      "water": "#5A6F94",
+      "metal": "#C8A15A",
+      "wood": "#4A2E1F",
+      "green": "#7A7F4E",
+      "water": "#A399B4",
       "shadow": "rgba(0,0,0,0.18)"
     },
     "warm": {
@@ -232,11 +232,11 @@
       "accent": "#C8A15A",
       "light": "#F8EEDB",
       "dark": "#2B1E14",
-      "skin": "#F2D2B0",
+      "skin": "#E7C3A0",
       "metal": "#C8A15A",
-      "wood": "#6B4A2E",
-      "green": "#6E8A5A",
-      "water": "#7FA3A8",
+      "wood": "#4A2E1F",
+      "green": "#7A7F4E",
+      "water": "#A399B4",
       "shadow": "rgba(0,0,0,0.18)"
     }
   },

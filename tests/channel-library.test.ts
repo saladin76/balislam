@@ -22,16 +22,20 @@ describe("مكتبة كل قناة", () => {
 
   it("بالإسلام: الآيات والأحاديث والرموز الإسلامية، بلا وجوه ولا لوحات وثائقية", () => {
     const lib = channelLibrary(balislam);
-    expect(lib.templates).toEqual(expect.arrayContaining(["verse-card", "hadith-card", "map-journey"]));
+    expect(lib.templates).toEqual(expect.arrayContaining(["verse-card", "hadith-card", "motion-story"]));
     expect(lib.templates).not.toContain("doc-plate");
     expect(lib.elements).toEqual(expect.arrayContaining(["mushaf-rehal", "mihrab-arch", "hands-dua"]));
     expect(lib.figures).toBe(false);
     expect(lib.sets).not.toContain("walls-night");
   });
 
+  it("القوالب القديمة برسومات ثابتة لا تظهر في أي قناة", () => {
+    for (const ch of [balislam, dafatir, zubdat]) for (const id of ["desk-moment", "sim-stage", "set-scene", "map-journey"]) expect(channelLibrary(ch).templates, `${ch.id}/${id}`).not.toContain(id);
+  });
+
   it("دفاتر الزمن: قوالب التاريخ وأماكنه وشخصياته", () => {
     const lib = channelLibrary(dafatir);
-    expect(lib.templates).toEqual(expect.arrayContaining(["doc-plate", "map-journey", "timeline"]));
+    expect(lib.templates).toEqual(expect.arrayContaining(["doc-plate", "timeline"]));
     expect(lib.sets).toEqual(expect.arrayContaining(["castle-walls", "walls-night", "palace-court"]));
     expect(lib.figures).toBe(true);
   });
@@ -61,8 +65,8 @@ describe("مكتبة كل قناة", () => {
     } as unknown as Plan;
     const errs = planIssues(plan, zubdat).filter((i) => i.level === "error").map((i) => i.sceneId);
     expect(errs).toEqual(expect.arrayContaining(["c1-s1", "c1-s2", "c1-s3", "c1-s4"]));
-    // الخطة نفسها في بالإسلام: كل ما فيها من مكتبتها (والأسوار مسموحة لها)
-    const ok = planIssues(plan, balislam).filter((i) => i.level === "error" && /مكتبة/.test(i.message));
-    expect(ok).toHaveLength(0);
+    // في بالإسلام: الآية والرموز من مكتبتها؛ وقالب «مشهد في مكان» قديم فيُرفض في كل القنوات
+    const errs2 = planIssues(plan, balislam).filter((i) => i.level === "error" && /مكتبة/.test(i.message)).map((i) => i.sceneId);
+    expect(errs2).toEqual(["c1-s4"]);
   });
 });

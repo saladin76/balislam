@@ -57,10 +57,8 @@
   "styles": [
     "sketch-board",
     "board",
-    "desk-moment",
-    "set-scene",
     "kinetic",
-    "sim-stage"
+    "motion"
   ],
   "rules": {
     "music": false,

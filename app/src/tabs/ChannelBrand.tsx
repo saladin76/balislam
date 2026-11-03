@@ -15,8 +15,8 @@ import type { VoiceProfile } from "../../../src/channel/types";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 /** أنماط عامة للقنوات التي لم تُعتمد هويتها بعد (الافتتاحيات المعتمدة محجوزة لقنواتها) */
-const INTROS: [NonNullable<NonNullable<ChannelConfig["brand"]>["intro"]>, string][] = [["none", "بلا افتتاحية"], ["ink", "شعار وخط حبر"], ["archive", "ختم على ورق قديم"], ["book", "كتاب يُفتح"]];
-const THUMBS: [NonNullable<NonNullable<ChannelConfig["brand"]>["thumbnail"]>, string][] = [["circle", "دائرة ورمز"], ["archive", "ورق قديم"], ["cover", "غلاف كتاب"]];
+const INTROS: [NonNullable<NonNullable<ChannelConfig["brand"]>["intro"]>, string][] = [["none", "بلا افتتاحية (حتى تُعتمد الهوية)"]];
+const THUMBS: [NonNullable<NonNullable<ChannelConfig["brand"]>["thumbnail"]>, string][] = [["circle", "عامة بألوان القناة (حتى تُعتمد الهوية)"]];
 const INTRO_AR: Record<string, string> = { mihrab: "محراب النور", horizon: "دفتر الأفق", highlighter: "القلم المميِّز" };
 const secondsAr = (frames: number) => (frames / config.video.fps).toLocaleString("ar-EG", { maximumFractionDigits: 1 });
 const ALL_STYLES = ["doc-plate", "motion", "board", "map-journey", "set-scene", "sim-stage", "desk-moment", "kinetic", "glow", "sketch-board", "timeline", "templates"];

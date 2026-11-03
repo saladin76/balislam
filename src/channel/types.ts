@@ -37,7 +37,7 @@ export type ChannelConfig = {
   /** الأساليب البصرية التي تتناوب عليها حلقات القناة (للتنوّع) */
   styles?: string[];
   /** بصمة القناة الثابتة: الافتتاحية وأسلوب الصورة المصغّرة */
-  brand?: { intro?: "mihrab" | "horizon" | "highlighter" | "ink" | "archive" | "book" | "none"; thumbnail?: "mihrab" | "horizon" | "highlighter" | "circle" | "archive" | "cover"; /** مظهر المشاهد المرسومة: سينمائي أو مسطح */ sceneLook?: "cinema" | "flat" };
+  brand?: { intro?: "mihrab" | "horizon" | "highlighter" | "none"; thumbnail?: "mihrab" | "horizon" | "highlighter" | "circle"; /** مظهر المشاهد المرسومة: سينمائي أو مسطح */ sceneLook?: "cinema" | "flat" };
   /** صوت القناة في ElevenLabs (إن غاب: ELEVENLABS_VOICE_ID من الإعدادات) */
   voice?: {
     id?: string;

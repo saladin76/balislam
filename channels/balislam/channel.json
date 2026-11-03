@@ -65,13 +65,10 @@
     "thumbnail": "mihrab"
   },
   "styles": [
-    "board",
-    "sim-stage",
-    "desk-moment",
-    "set-scene",
-    "kinetic",
+    "motion",
     "glow",
-    "sketch-board"
+    "kinetic",
+    "board"
   ],
   "rules": {
     "music": false,

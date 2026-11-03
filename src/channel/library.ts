@@ -22,13 +22,14 @@ export type LibraryRules = Pick<ChannelConfig, "id"> & { rules: Pick<ChannelConf
 const RELIGIOUS_IDS = new Set(["hands-dua", "arch-frame", "star-pattern-tile", "girih-tile", "arabesque-border", "courtyard-arches", "mosque-exterior"]);
 const RELIGIOUS_CATEGORIES = new Set<ElementCategory>(["islamic"]);
 
-export type ExcludeReason = "religious" | "quran" | "hadith" | "faces" | "channel";
+export type ExcludeReason = "religious" | "quran" | "hadith" | "faces" | "channel" | "legacy";
 export const excludeReasonAr: Record<ExcludeReason, string> = {
   religious: "رمز ديني لقناة لا تستشهد بالقرآن ولا بالحديث",
   quran: "القناة لا تستشهد بالقرآن",
   hadith: "القناة لا تستشهد بالحديث",
   faces: "القناة بلا وجوه",
   channel: "خاص بقناة أخرى",
+  legacy: "قالب قديم برسومات ثابتة لم يُعَد رسمه بهوية القناة",
 };
 
 const religious = (r: LibraryRules["rules"]) => r.quran || r.hadith;
@@ -45,6 +46,7 @@ export const elementExclusion = (ch: LibraryRules, id: string, category?: Elemen
 export const templateExclusion = (ch: LibraryRules, id: string): ExcludeReason | null => {
   if (id === "verse-card" && !ch.rules.quran) return "quran";
   if (id === "hadith-card" && !ch.rules.hadith) return "hadith";
+  if (templateMeta[id]?.legacy) return "legacy";
   const only = templateMeta[id]?.only;
   if (only && !only.includes(ch.id)) return "channel";
   return null;

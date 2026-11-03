@@ -11,12 +11,13 @@ export const familyNamesAr: Record<TemplateFamily, string> = {
   scripture: "آيات وأحاديث",
   close: "خلاصة وختام",
 };
-export const templateMeta: Record<string, { family: TemplateFamily; only?: string[] }> = {
-  "set-scene": { family: "story" },
-  "map-journey": { family: "data", only: ["dafatir-alzaman", "balislam"] },
-  "desk-moment": { family: "story" },
+/** legacy: قالب برسومات وألوان ثابتة من قبل الهويات المعتمدة؛ لا يظهر في مكتبة أي قناة ولا يُستعمل حتى يُعاد رسمه بهويتها */
+export const templateMeta: Record<string, { family: TemplateFamily; only?: string[]; legacy?: true }> = {
+  "set-scene": { family: "story", legacy: true },
+  "map-journey": { family: "data", only: ["dafatir-alzaman", "balislam"], legacy: true },
+  "desk-moment": { family: "story", legacy: true },
   "doc-plate": { family: "story", only: ["dafatir-alzaman"] },
-  "sim-stage": { family: "story" },
+  "sim-stage": { family: "story", legacy: true },
   "glow-story": { family: "story" },
   "character-talk": { family: "story" },
   "board-story": { family: "explain" },
