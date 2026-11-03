@@ -30,7 +30,9 @@ export const posesFor = (narration: string, sceneIndex: number): string => {
   const kinds: (CueKind | "sacred")[][] = groups.map((g) => (isSacredSentence(g) ? ["sacred"] : g.split(/\s+/).map(cueKindOf).filter((k): k is CueKind => k !== null)));
   const all = kinds.flat();
   if (all.includes("walk")) return groups.map((_, i) => (kinds[i]!.includes("walk") || i === 0 ? "walk" : "stand")).join(",");
-  const sit = all.includes("pain") || sceneIndex % 4 === 1;
+  // الجلوس للثقل والتأمل فقط؛ ومن يكلّم غيره أو يعمل أو يتعالى يقف
+  const standing = ["companion", "harsh", "proud", "apologize", "listen", "debate", "spread", "money", "evidence", "work", "success", "witnesses"] as const;
+  const sit = !standing.some((k) => all.includes(k)) && (all.includes("pain") || sceneIndex % 4 === 1);
   const rest = sit ? ["sit", "sit-low", "sit"] : ["stand", "think", "nod"];
   return groups
     .map((_, i) => {
@@ -41,7 +43,11 @@ export const posesFor = (narration: string, sceneIndex: number): string => {
         if (k.includes("truth") || k.includes("heart")) return "look-up";
         return rest[i % rest.length]!;
       }
-      if (k.includes("news")) return "hold";
+      if (k.includes("proud")) return "proud";
+      if (k.includes("apologize")) return "apologize";
+      if (k.includes("listen")) return "listen";
+      if (k.includes("debate") || k.includes("harsh")) return "talk";
+      if (k.includes("news") || k.includes("spread") || k.includes("money") || k.includes("evidence")) return "hold";
       if (k.includes("think")) return "think";
       if (k.includes("decide") || k.includes("pain")) return "cross";
       if (k.includes("door")) return "turn-away";
@@ -57,7 +63,7 @@ export const illusDefaults = (template: string, narration: string): Record<strin
   const cues = cuesToText(cuesFor(narration));
   switch (template) {
     case "alley-tale":
-      return { place: "", mood: "", moodTo: "", camera: "", poses: "", look: "hero", cues };
+      return { place: "", mood: "", moodTo: "", camera: "", poses: "", look: "hero", cast: "", cues };
     case "road-journey":
       return { biome: "", mood: "", moodTo: "", poses: "", look: "hero", cues };
     case "light-stage":
@@ -85,7 +91,12 @@ export const directIllus = (chapters: PlanChapter[], episode: string) => {
         if (!p.camera) p.camera = CAMERAS[(si + ci) % CAMERAS.length]!;
       }
       if (s.template === "road-journey" && !p.biome) p.biome = BIOMES[Math.min(BIOMES.length - 1, Math.floor((ci / Math.max(1, n - 1)) * (BIOMES.length - 1) + (ci === n - 1 ? 1 : 0)))]!;
+      // «الأول يراه ظلمًا، والثاني عدلًا» بعد مشهد الشاهدين: يبقى الشاهدان في المشهد
+      const prev = illus[si - 1];
+      if (p.cast === "" && prev && /witnesses/.test(prev.props.cues ?? "") && /wrong/.test(p.cues ?? "") && /just/.test(p.cues ?? "")) p.cast = "witnesses";
       if (!p.poses) p.poses = s.template === "road-journey" ? "walk" : posesFor(s.narration, si + ci);
+      // مع الشاهدين أو شخص أمامه: البطل واقف
+      if (p.cast && p.cast !== "solo" && /sit|head-down/.test(p.poses)) p.poses = p.poses.replace(/sit-low|head-down|sit/g, "stand");
     });
   });
 };

@@ -16,7 +16,8 @@ import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { channelLibrary, type LibraryRules } from "../../../src/channel/library";
 import { Figure, LOOKS, POSES, type PoseName } from "../../../src/remotion/illus/Figure";
-import { PLACE_IDS, PlacePreview, placeNamesAr } from "../../../src/remotion/illus/places";
+import { PLACE_IDS, PlacePreview, placeNamesAr, PROP_IDS, PropPreview, propNamesAr } from "../../../src/remotion/illus/places";
+import { CUE_WORDS, cueNamesAr } from "../../../src/plan/sceneCues";
 
 /** قواعد مكتبة القناة من بياناتها في الاستوديو */
 export const libraryRulesOf = (c?: ChannelInfo): LibraryRules => ({ id: c?.id ?? "", rules: { faces: Boolean(c?.rules?.faces), quran: Boolean(c?.rules?.quran), hadith: Boolean(c?.rules?.hadith) }, library: c?.library });
@@ -202,7 +203,7 @@ const Sfx: React.FC<{ hasVoiceKeys: boolean }> = ({ hasVoiceKeys }) => {
 };
 
 const CAST_NAMES: Record<keyof typeof LOOKS, string> = { hero: "الشاب (سترة)", heroThobe: "الشاب (ثوب)", woman: "امرأة (عباءة داكنة)", womanSand: "امرأة (عباءة رملية)", elder: "شيخ كبير", friend: "صديق", stranger: "عابر" };
-const POSE_NAMES: Record<PoseName, string> = { stand: "واقف", think: "يتأمل", sit: "جالس", "sit-low": "جالس مطرق", "head-down": "مثقل", hold: "يقرأ ورقة", cross: "متمسك برأيه", point: "يشير", "look-up": "يرفع رأسه", nod: "يومئ", "turn-away": "يدير ظهره" };
+const POSE_NAMES: Record<PoseName, string> = { stand: "واقف", think: "يتأمل", sit: "جالس", "sit-low": "جالس مطرق", "head-down": "مثقل", hold: "يقرأ ورقة", cross: "متمسك برأيه", point: "يشير", "look-up": "يرفع رأسه", nod: "يومئ", "turn-away": "يدير ظهره", proud: "يتعالى", apologize: "يعتذر", listen: "يُصغي", talk: "يتكلم", flinch: "يتألم من كلمة" };
 
 /** شخصيات «بالإسلام» المصوَّرة: بلا ملامح، بوضعياتها كما تظهر في القوالب الثلاثة */
 const IllusCast: React.FC = () => (
@@ -226,14 +227,33 @@ const IllusCast: React.FC = () => (
   </div>
 );
 
-/** أماكن «بالإسلام» المصوَّرة: ما يظهر هنا هو ما يُرندر */
+/** أماكن «بالإسلام» المصوَّرة وعناصر مشاهدها ومعانيها: ما يظهر هنا هو ما يُرندر */
 const IllusPlaces: React.FC = () => (
-  <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-    {PLACE_IDS.map((id) => (
-      <figure key={id} style={{ margin: 0 }}>
-        <PlacePreview id={id} width={360} />
-        <figcaption style={{ marginTop: 6 }}>{placeNamesAr[id]}</figcaption>
-      </figure>
-    ))}
+  <div style={{ display: "grid", gap: 24 }}>
+    <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+      {PLACE_IDS.map((id) => (
+        <figure key={id} style={{ margin: 0 }}>
+          <PlacePreview id={id} width={360} />
+          <figcaption style={{ marginTop: 6 }}>{placeNamesAr[id]}</figcaption>
+        </figure>
+      ))}
+    </div>
+    <h3 style={{ margin: 0 }}>عناصر المشاهد ({PROP_IDS.length})</h3>
+    <p className="help">كل عنصر صُمِّم لمعنى في الكلام، ويظهر لحظة نطق كلمته فقط. وإن لم يوجد عنصر مناسب يُصمَّم جديد ويُضاف هنا، ولا يوضع أقرب عنصر.</p>
+    <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
+      {PROP_IDS.map((id) => (
+        <figure key={id} style={{ margin: 0 }}>
+          <PropPreview id={id} width={180} />
+          <figcaption style={{ marginTop: 6, fontSize: 13 }}>{propNamesAr[id]}</figcaption>
+        </figure>
+      ))}
+    </div>
+    <h3 style={{ margin: 0 }}>المعاني المراجَعة وكلماتها</h3>
+    <p className="help">لا حدث في جملة فيها ذكر الله أو دعاء أو آية، و«في حقك» ليست الحق.</p>
+    <table className="lib-cues"><tbody>
+      {CUE_WORDS.map(([k, words]) => (
+        <tr key={k}><td><b>{cueNamesAr[k]}</b></td><td style={{ direction: "rtl" }}>{words.join("، ")}</td></tr>
+      ))}
+    </tbody></table>
   </div>
 );

@@ -314,3 +314,34 @@ export const cameraTransform = (camera: Camera, frame: number, dur: number, dept
       return "";
   }
 };
+
+/** طاولة عمل (أعمالنا ومشروعاتنا): أوراق وأدوات بسيطة، وإناء فخاري مكتمل يضيء عند «النجاح» */
+export const Workbench: React.FC<{ x: number; mood: Mood; done?: number }> = ({ x, mood, done = 0 }) => {
+  const wood = darken(ID.copper, 0.45);
+  return (
+    <g>
+      {done > 0.01 ? <Glow cx={x + 150} cy={GROUND - 200} r={260} opacity={done} /> : null}
+      <rect x={x} y={GROUND - 150} width={300} height={18} rx={3} fill={mix(wood, stoneFor(mood), 0.2)} />
+      <rect x={x + 18} y={GROUND - 132} width={14} height={132} fill={darken(wood, 0.2)} />
+      <rect x={x + 268} y={GROUND - 132} width={14} height={132} fill={darken(wood, 0.2)} />
+      <rect x={x + 30} y={GROUND - 168} width={90} height={18} fill={mix(ID.paper, stoneFor(mood, 0.4), 0.35)} transform={`rotate(-4 ${x + 75} ${GROUND - 160})`} />
+      <rect x={x + 44} y={GROUND - 176} width={80} height={10} fill={mix(ID.paper, stoneFor(mood, 0.4), 0.2)} />
+      <path d={`M${x + 190} ${GROUND - 150} q-26 -10 -16 -50 q6 -18 -6 -26 h52 q-12 8 -6 26 q10 40 -16 50 z`} fill={mix(darken(ID.copper, 0.2), ID.dawn, done)} />
+      <rect x={x + 176} y={GROUND - 232} width={36} height={8} rx={3} fill={mix(darken(ID.copper, 0.3), ID.dawn, done)} />
+    </g>
+  );
+};
+
+/** دوائر تتسع من يد من ينشر خبرًا: الكلمة تصل أبعد مما يظن */
+export const Ripples: React.FC<{ x: number; y: number; t: number; frame: number; at: number }> = ({ x, y, t, frame, at }) => {
+  if (t <= 0.001) return null;
+  return (
+    <g>
+      {[0, 1, 2].map((k) => {
+        const p = ((frame - at - k * 12) % 48) / 48;
+        if (frame - at - k * 12 < 0) return null;
+        return <circle key={k} cx={x} cy={y} r={30 + p * 260} fill="none" stroke={ID.dawn} strokeWidth={4} opacity={(1 - p) * 0.7 * t} />;
+      })}
+    </g>
+  );
+};

@@ -28,7 +28,7 @@ export type PoseSpec = {
   legFront: Limb;
 };
 
-export type PoseName = "stand" | "think" | "sit" | "sit-low" | "head-down" | "hold" | "cross" | "point" | "look-up" | "nod" | "turn-away";
+export type PoseName = "stand" | "think" | "sit" | "sit-low" | "head-down" | "hold" | "cross" | "point" | "look-up" | "nod" | "turn-away" | "proud" | "apologize" | "listen" | "talk" | "flinch";
 
 const P = (lean: number, head: number, ab: [number, number], af: [number, number], lb: [number, number], lf: [number, number]): PoseSpec => ({
   lean,
@@ -51,6 +51,16 @@ export const POSES: Record<PoseName, PoseSpec> = {
   "look-up": P(-6, -22, [-10, 10], [-4, 12], [-3, 0], [3, 0]),
   nod: P(2, 20, [-6, 8], [6, 10], [-3, 0], [3, 0]),
   "turn-away": P(-2, 8, [-4, 6], [4, 8], [-3, 0], [3, 0]),
+  // يتعالى: ظهر مشدود للخلف ورأس مرفوع ويدان خلف الظهر
+  proud: P(-9, -16, [-34, 40], [-30, 44], [-5, 0], [6, 0]),
+  // يعتذر: انحناءة خفيفة ويد على الصدر
+  apologize: P(14, 24, [-4, 10], [38, 118], [-3, 0], [3, 0]),
+  // يُصغي: ميل خفيف للأمام ورأس مائل
+  listen: P(6, 12, [-6, 12], [8, 18], [-3, 0], [3, 0]),
+  // يتكلم: يد مفتوحة نحو من أمامه
+  talk: P(2, 2, [-6, 10], [58, 34], [-3, 0], [3, 0]),
+  // يتألم من كلمة: يتراجع ويحمي صدره
+  flinch: P(-12, 20, [26, 120], [34, 116], [-8, 0], [4, 0]),
 };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -118,7 +128,7 @@ export const LOOKS = {
 } satisfies Record<string, FigureLook>;
 export type LookId = keyof typeof LOOKS;
 
-export type Holding = "paper" | "phone" | "bundle" | "none";
+export type Holding = "paper" | "phone" | "bundle" | "coins" | "book" | "none";
 
 type FigureProps = {
   x: number;
@@ -217,6 +227,24 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
     switch (holding) {
       case "paper":
         return <rect x={hx - 4} y={hy - 30} width={34} height={44} rx={3} fill={silhouette ?? ID.paper} transform={`rotate(${-8} ${hx} ${hy})`} />;
+      case "coins":
+        return (
+          <g>
+            <path d={`M${hx - 14} ${hy - 4} q-6 -26 14 -30 q20 4 14 30 z`} fill={silhouette ?? darken(ID.copper, 0.35)} />
+            <rect x={hx - 6} y={hy - 36} width={12} height={6} rx={2} fill={silhouette ?? ID.copper} />
+            {[0, 1, 2].map((k) => (
+              <ellipse key={k} cx={hx + 18 + k * 2} cy={hy + 4 - k * 5} rx={8} ry={3} fill={silhouette ?? ID.dawn} />
+            ))}
+          </g>
+        );
+      case "book":
+        return (
+          <g transform={`rotate(-10 ${hx} ${hy})`}>
+            <path d={`M${hx - 30} ${hy - 22} q15 -6 30 0 v34 q-15 -6 -30 0 z`} fill={silhouette ?? ID.paper} />
+            <path d={`M${hx} ${hy - 22} q15 -6 30 0 v34 q-15 -6 -30 0 z`} fill={silhouette ?? mix(ID.paper, ID.copper, 0.15)} />
+            <path d={`M${hx - 32} ${hy + 13} q16 -6 32 0 q16 -6 32 0`} stroke={silhouette ?? darken(ID.seal, 0.2)} strokeWidth={3} fill="none" />
+          </g>
+        );
       case "phone":
         return <rect x={hx - 2} y={hy - 26} width={20} height={34} rx={4} fill={silhouette ?? ID.night} stroke={silhouette ?? ID.copper} strokeWidth={2} />;
       default:

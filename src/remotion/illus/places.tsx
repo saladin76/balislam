@@ -1,6 +1,7 @@
 import React from "react";
 import { ID, MOODS, darken, lighten, mix, stoneFor, type Mood } from "./palette";
-import { Bench, Cobbles, GROUND, Glow, HouseRow, Skyline, Sky, WallLamp, WW, WH, archPath, rand } from "./world";
+import { ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, MihrabGate, NoticeBoard, Signpost, Skyline, Sky, WallLamp, Workbench, WW, WH, archPath, rand } from "./world";
+import { Figure, LOOKS, POSES, type Holding } from "./Figure";
 
 /**
  * أماكن «بالإسلام» المصوَّرة: الحارة والسوق والبيت (حكايات الحارة)، والطريق بأربع بيئات (الطريق)، والمسرح (ظل ونور).
@@ -198,3 +199,39 @@ export const PlacePreview: React.FC<{ id: PlaceId; mood?: Mood; width?: number }
   </svg>
 );
 void Bench;
+
+/** عناصر المشاهد المصوَّرة: كل عنصر صُمِّم لمعنى في الكلام (القائمة المراجَعة في src/plan/sceneCues.ts) */
+export const PROP_IDS = ["door", "board", "bench", "lamp", "workbench", "gate", "signpost", "paper", "phone", "coins", "book", "bundle"] as const;
+export type PropId = (typeof PROP_IDS)[number];
+export const propNamesAr: Record<PropId, string> = {
+  door: "باب يتسرب منه النور (الاعتراف)",
+  board: "لوحة خبر تتوهج (خبر، معلومة)",
+  bench: "مقعد حجري (جلوس وتأمل)",
+  lamp: "مصباح في كوة محراب",
+  workbench: "طاولة عمل وإناء يكتمل (أعمالنا، النجاح)",
+  gate: "بوابة محراب تضيء (آخر الطريق)",
+  signpost: "لافتة طريق (قرار، طريق آخر)",
+  paper: "ورقة في اليد (خبر)",
+  phone: "هاتف ودوائر تتسع (ينشر)",
+  coins: "صُرّة مال (المال)",
+  book: "كتاب مفتوح (الدليل)",
+  bundle: "صُرّة على الظهر (تجاربنا)",
+};
+export const PropPreview: React.FC<{ id: PropId; width?: number }> = ({ id, width = 240 }) => {
+  const hold = (h: Holding) => (
+    <Figure x={480} y={GROUND} scale={1.6} pose={h === "bundle" ? POSES.stand : POSES.hold} look={LOOKS.hero} holding={h} flip />
+  );
+  return (
+    <svg viewBox={`240 ${GROUND - 560} 480 600`} width={width} height={(width * 600) / 480} style={{ display: "block", borderRadius: 8, background: darken(ID.night, 0.3) }}>
+      <rect x={0} y={GROUND} width={WW} height={200} fill={darken(ID.night, 0.5)} />
+      {id === "door" ? <ArchDoor x={400} w={160} h={280} light={0.9} mood="night" spill={false} /> : null}
+      {id === "board" ? <NoticeBoard x={347} y={GROUND - 420} glow={0.9} mood="night" /> : null}
+      {id === "bench" ? <Bench x={370} w={220} mood="night" /> : null}
+      {id === "lamp" ? <WallLamp x={480} y={GROUND - 300} on={1} frame={0} /> : null}
+      {id === "workbench" ? <Workbench x={330} mood="night" done={0.9} /> : null}
+      {id === "gate" ? <MihrabGate x={400} w={160} h={260} light={1} /> : null}
+      {id === "signpost" ? <Signpost x={420} dir={1} /> : null}
+      {["paper", "phone", "coins", "book", "bundle"].includes(id) ? hold(id as Holding) : null}
+    </svg>
+  );
+};

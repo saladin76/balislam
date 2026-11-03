@@ -4,10 +4,10 @@ import { SceneShell } from "./SceneShell";
 import { estimateTimings } from "./timing";
 import { exit } from "./motion";
 import { sentenceGroups } from "../../plan/beats";
-import { cueFrames, parseCues, type CueKind } from "../../plan/sceneCues";
+import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan/sceneCues";
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
-import { ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
+import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
 import { TopCaption, captionLines } from "../illus/TopCaption";
 import { Home, Market } from "../illus/places";
 import type { SceneBase, StringFields } from "./types";
@@ -17,12 +17,12 @@ import type { SceneBase, StringFields } from "./types";
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "poses" | "cues" | "look">;
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "poses" | "cues" | "look" | "cast">;
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
 const asMood = (m: string | undefined, d: Mood): Mood => (MOOD_IDS.includes(m as Mood) ? (m as Mood) : d);
-const POSE_IDS = ["stand", "think", "sit", "sit-low", "head-down", "hold", "cross", "point", "look-up", "nod", "turn-away", "walk"] as const;
+const POSE_IDS = ["stand", "think", "sit", "sit-low", "head-down", "hold", "cross", "point", "look-up", "nod", "turn-away", "walk", "proud", "apologize", "listen", "talk"] as const;
 export type ActionId = (typeof POSE_IDS)[number];
 
 /** أطر اللقطات بالتناوب: واسع ← متوسط ← قريب */
@@ -41,6 +41,10 @@ export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
   const cues = cueFrames(parseCues(props.cues), timings);
   const at = (k: CueKind) => cues.find((c) => c.kind === k)?.at;
   const look = LOOKS[(props.look as keyof typeof LOOKS) || "hero"] ?? LOOKS.hero;
+  // من في المشهد: البطل وحده، أو شخص أمامه (خلاف، اعتذار، إصغاء، كلمة جارحة)، أو شاهدان على موقف واحد
+  const has = (k: CueKind) => cues.some((c) => c.kind === k);
+  const stage: "solo" | "companion" | "witnesses" =
+    props.cast === "witnesses" || has("witnesses") ? "witnesses" : props.cast === "companion" || has("companion") || has("harsh") || has("apologize") || has("listen") || has("debate") ? "companion" : "solo";
 
   // اللقطات: سطر الكابشن لقطة (نحو 3–4 ثوانٍ)، بتأطير مختلف لكل لقطة وانتقال ناعم بينها.
   // وحركة البطل من poses بحسب الجملة التي يقع فيها السطر.
@@ -93,7 +97,9 @@ export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
     if (f > 0) heroX -= f * 3.4;
     if (g === groupOf(frame)) walking = true;
   }
-  if (!walking && !sitting && !poses.includes("walk")) {
+  if (stage !== "solo") heroX = stage === "witnesses" ? 640 : 1160;
+  // جملة فيها ذكر الله: البطل ساكن في مكانه، والكاميرا وحدها تتحرك
+  else if (!walking && !sitting && !poses.includes("walk") && !isSacredSentence(narration)) {
     const m0 = MARKS[Math.max(0, shot - 1) % MARKS.length]!;
     const m1 = MARKS[shot % MARKS.length]!;
     const tm = shot === 0 ? 1 : interpolate(frame, [starts[shot]! + 8, starts[shot]! + 36], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.sin) });
@@ -102,7 +108,7 @@ export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
   }
   heroX = Math.max(420, heroX);
   const stepDir = MARKS[shot % MARKS.length]! < MARKS[Math.max(0, shot - 1) % MARKS.length]!;
-  const facingLeft = walking || action === "turn-away" || (stepping && stepDir);
+  const facingLeft = stage === "companion" ? action !== "turn-away" : stage === "witnesses" ? false : walking || action === "turn-away" || (stepping && stepDir);
 
   // وضعية كل لقطة، وفي منتصف السطر إيماءة ثانوية من الوضعية نفسها (يومئ، يرفع رأسه، يعتدل)
   const SECOND: Record<string, PoseName> = { stand: "think", think: "stand", nod: "cross", sit: "head-down", "sit-low": "look-up", "head-down": "sit-low", "look-up": "think", hold: "nod", cross: "think", "turn-away": "cross", point: "stand" };
@@ -121,10 +127,41 @@ export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
   if (thinkAt !== undefined && !sitting) timeline.push({ at: thinkAt, pose: "think" });
   const newsAt = at("news");
   if (newsAt !== undefined && !sitting) timeline.push({ at: newsAt + 10, pose: "nod" }, { at: newsAt + 34, pose: "hold" });
+  // أحداث المعاني الجديدة على البطل
+  const ev = (k: CueKind, p: PoseName, back?: PoseName, hold = 50) => {
+    const t = at(k);
+    if (t === undefined || sitting) return;
+    timeline.push({ at: t, pose: p });
+    if (back) timeline.push({ at: t + hold, pose: back });
+  };
+  ev("proud", "proud", "stand", 60);
+  ev("apologize", "apologize", "nod", 70);
+  ev("listen", "listen");
+  ev("debate", "talk", "point", 40);
+  ev("harsh", "talk", "cross", 50);
+  ev("spread", "hold");
+  ev("money", "hold");
+  ev("evidence", "hold");
   let pose = poseAt(frame, timeline);
   if (walking) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95);
   else if (stepping) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95, 0.85);
-  const holding: Holding = action === "hold" || newsAt !== undefined ? "paper" : "none";
+  const holding: Holding = has("spread") ? "phone" : has("money") && frame >= (at("money") ?? 0) - 6 ? "coins" : has("evidence") && frame >= (at("evidence") ?? 0) - 6 ? "book" : action === "hold" || newsAt !== undefined ? "paper" : "none";
+
+  // الشخص الذي أمامه: يتألم من الكلمة الجارحة، ويُصغي للاعتذار، ويتكلم حين يُصغي البطل
+  const compTimeline: { at: number; pose: PoseName }[] = [{ at: 0, pose: "stand" }];
+  const ct = (k: CueKind, p: PoseName, back?: PoseName, d = 4) => {
+    const t = at(k);
+    if (t === undefined) return;
+    compTimeline.push({ at: t + d, pose: p });
+    if (back) compTimeline.push({ at: t + d + 60, pose: back });
+  };
+  ct("harsh", "flinch", "head-down" as PoseName);
+  ct("apologize", "listen", "nod", 20);
+  ct("listen", "talk", "talk");
+  ct("debate", "point", "talk", 24);
+  ct("companion", "nod", "stand", 8);
+  const compPose = poseAt(frame, compTimeline.map((x) => ({ ...x, pose: x.pose === "head-down" ? "nod" : x.pose })));
+  const compIn = rise(frame, 0, 14);
 
   // الأحداث
   const truth = rise(frame, at("truth"), 22);
@@ -133,6 +170,9 @@ export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
   const news = rise(frame, newsAt, 16);
   const door = rise(frame, at("door"), 30);
   const people = rise(frame, at("people"), 24);
+  const spread = rise(frame, at("spread"), 10);
+  const success = rise(frame, at("success"), 24);
+  const hasBench = has("work") || has("success");
   const memory = cues.filter((c) => c.kind === "memory" || c.kind === "wrong" || c.kind === "just");
   const skyT = moodTo ? interpolate(frame, [dur * 0.35, dur - 10], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.sin) }) : 0;
   const curMood: Mood = moodTo && skyT > 0.5 ? moodTo : mood;
@@ -190,8 +230,8 @@ export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
             {place !== "home" ? <Cobbles mood={curMood} tint={wrong > just ? ID.seal : ID.dawn} tintOpacity={0.1 * Math.max(wrong, just)} /> : null}
             {sitting ? <Bench x={heroX - 60} w={240} mood={curMood} /> : null}
             {/* لون الحكم: الخطأ أحمر الختم، والعدل فجر */}
-            <Glow cx={heroX - 520} cy={GROUND - 160} r={420} color={ID.seal} opacity={wrong * 0.9} />
-            <Glow cx={heroX + 520} cy={GROUND - 160} r={420} color={ID.dawn} opacity={just * 0.9} />
+            <Glow cx={stage === "witnesses" ? 640 : heroX - 520} cy={GROUND - 160} r={420} color={ID.seal} opacity={wrong * 0.9} />
+            <Glow cx={stage === "witnesses" ? 1300 : heroX + 520} cy={GROUND - 160} r={420} color={ID.dawn} opacity={just * 0.9} />
             <Glow cx={heroX} cy={GROUND - 260} r={460} color={ID.dawn} opacity={truth * 0.45} />
           </g>
           <g transform={cam(1)}>
@@ -205,11 +245,26 @@ export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
                   <Figure key={i} x={heroX + g.dx} y={GROUND + 6} scale={1.25} pose={poseAt(frame, [{ at: 0, pose: "stand" }])} look={g.look} opacity={0.32 * rise(frame, (at("people") ?? 0) + g.d, 20)} silhouette={mix(ID.paper, ID.night, 0.35)} shadow={false} frame={frame + i * 9} />
                 ))
               : null}
+            {hasBench ? <Workbench x={heroX + 120} mood={curMood} done={success} /> : null}
+            {stage === "companion" ? (
+              <Figure x={heroX - 400} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
+            ) : null}
+            {stage === "witnesses" ? (
+              <g>
+                {/* الموقف نفسه في الوسط، والشاهدان على طرفيه */}
+                <Glow cx={960} cy={GROUND - 200} r={300} color={ID.paper} opacity={0.35} />
+                <Figure x={920} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "point" }, { at: 50, pose: "talk" }])} look={LOOKS.stranger} opacity={0.85} frame={frame + 5} />
+                <Figure x={1010} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "hold" }, { at: 60, pose: "flinch" }])} look={LOOKS.elder} flip opacity={0.85} frame={frame + 9} />
+                <Figure x={1300} y={GROUND + 6} scale={1.75} pose={poseAt(frame, [{ at: 0, pose: "stand" }, { at: 40, pose: "think" }])} look={LOOKS.woman} flip frame={frame + 3} />
+              </g>
+            ) : null}
+            <Ripples x={heroX - 70} y={GROUND - 300} t={spread} frame={frame} at={at("spread") ?? 0} />
             <Figure x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
             {memory.map((c, i) => {
               const col = c.kind === "wrong" ? ID.seal : ID.dawn;
               const side = i % 2 ? 1 : -1;
-              return <WordPill key={c.word} x={heroX + side * (300 + i * 40)} y={GROUND - 420 - i * 56} text={c.word} color={col} t={rise(frame, c.at, 12)} />;
+              const x = stage === "witnesses" && c.kind !== "memory" ? (c.kind === "wrong" ? 640 : 1300) : heroX + side * (300 + i * 40);
+              return <WordPill key={c.word} x={x} y={GROUND - 420 - (stage === "witnesses" ? 40 : i * 56)} text={c.word} color={col} t={rise(frame, c.at, 12)} />;
             })}
           </g>
         </svg>
