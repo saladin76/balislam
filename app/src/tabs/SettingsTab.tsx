@@ -111,7 +111,11 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
             <div className="note err">{el.message}</div>
           )
         ) : null}
-        <KeyInput id="k-model" label="النموذج (اختياري)" secret={false} state={keys.ELEVENLABS_MODEL_ID} onSave={(v) => save({ ELEVENLABS_MODEL_ID: v })} placeholder="eleven_multilingual_v2" />
+        {el?.ok && el.models?.length ? (
+          <ModelPicker el={el} current={el.model ?? ""} onPick={async (id) => { await save({ ELEVENLABS_MODEL_ID: id }); await test("elevenlabs"); }} />
+        ) : (
+          <KeyInput id="k-model" label="النموذج (اختياري)" secret={false} state={keys.ELEVENLABS_MODEL_ID} onSave={(v) => save({ ELEVENLABS_MODEL_ID: v })} placeholder="eleven_v4" />
+        )}
       </section>
 
       <section className="group">
@@ -136,6 +140,39 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
         </div>
         {qf ? qf.ok ? <div className="test-ok"><b>الاتصال يعمل ✓</b><span style={{ fontFamily: "Amiri, serif", fontSize: 24 }}>{qf.sample}</span></div> : <div className="note err">{qf.message}</div> : null}
       </section>
+    </div>
+  );
+};
+
+const TRAINING_AR: Record<string, string> = { fine_tuned: "مدرَّب ✓", fine_tuning: "قيد التدريب…", not_started: "غير مدرَّب", queued: "في الانتظار", failed: "فشل التدريب", delayed: "مؤجَّل" };
+
+/**
+ * نموذج الصوت: النماذج الموصى بها أولًا، مع دعم العربية وحالة تدريب صوتك الاحترافي على كل نموذج.
+ * الصوت الاحترافي لا يعمل على نموذج حتى يُدرَّب عليه في ElevenLabs.
+ */
+const ModelPicker: React.FC<{ el: NonNullable<Awaited<ReturnType<typeof api.testService>>>; current: string; onPick: (id: string) => void }> = ({ el, current, onPick }) => {
+  const pro = el.voiceCategory === "professional";
+  const order = ["eleven_v4", "eleven_v3", "eleven_multilingual_v2"];
+  const list = [...(el.models ?? [])].filter((m) => m.arabic || order.includes(m.id)).sort((a, b) => (order.indexOf(a.id) + 1 || 99) - (order.indexOf(b.id) + 1 || 99));
+  const state = (id: string) => el.training?.[id];
+  const ready = (id: string) => !pro || state(id) === "fine_tuned";
+  return (
+    <div className="field">
+      <span>نموذج الصوت <small>(الأحدث أعلى جودة وأدق في النبرة؛ صوتك الاحترافي يحتاج تدريبًا على كل نموذج)</small></span>
+      <div className="voices">
+        {list.map((m) => (
+          <button key={m.id} className={`voice ${m.id === current ? "on" : ""}`} onClick={() => onPick(m.id)}>
+            <b>{m.name}</b>
+            <span className="help" dir="ltr">{m.id}</span>
+            <span className="help">{m.arabic ? "يدعم العربية" : "العربية غير مذكورة"}{pro ? ` · ${TRAINING_AR[state(m.id) ?? "not_started"] ?? state(m.id)}` : ""}</span>
+          </button>
+        ))}
+      </div>
+      {pro && current && !ready(current) ? (
+        <div className="note err">
+          صوتك غير مدرَّب بعد على {current}، فلن يُولَّد به صوت حتى يكتمل التدريب. في ElevenLabs: <b>My Voices</b> ← مرّر على صوتك ← زر <b>+</b> بجانب النموذج، وانتظر حتى يصبح «مدرَّب ✓» هنا (اضغط «اختبر الاتصال» للتحديث).
+        </div>
+      ) : null}
     </div>
   );
 };

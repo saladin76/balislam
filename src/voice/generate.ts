@@ -14,6 +14,8 @@ import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
+import { capsFor, dropTagWords } from "./models";
+import { applyTempo, scaleTimes } from "./tempo";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
 export type VoiceClip = { file: string; hash: string; text: string; duration: number; words: TimedWord[] };
@@ -88,7 +90,9 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   await mkdir(dir, { recursive: true });
   const indexFile = path.join(dir, "index.json");
   const index: VoiceIndex = (await readJson<VoiceIndex>(indexFile)) ?? {};
-  const voiceKey = `${voiceIdFor() ?? ""}|${process.env.ELEVENLABS_MODEL_ID || config.voice.modelId}`;
+  const model = process.env.ELEVENLABS_MODEL_ID || config.voice.modelId;
+  const caps = capsFor(model);
+  const voiceKey = `${voiceIdFor() ?? ""}|${model}`;
   const jobs = (await jobsFor(plan, voiceKey, scriptPath)).filter((j) => !opts.only || opts.only.includes(j.id));
 
   // مقطع بنفس البصمة موجود لمشهد آخر (انزاح رقمه بعد إضافة فقرة): يُعاد استخدامه بلا تكلفة
@@ -106,6 +110,13 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   };
   if (opts.dryRun) return report;
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
+  // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)
+  if (todo.length && opts.client?.voiceInfo) {
+    const info = await opts.client.voiceInfo().catch(() => null);
+    const state = info?.category === "professional" ? info.training[model] : undefined;
+    if (info?.category === "professional" && state !== "fine_tuned")
+      throw new Error(`صوتك «${info.name}» غير مدرَّب بعد على ${model}${state ? ` (الحالة: ${state})` : ""}. في ElevenLabs: My Voices ← مرّر على صوتك ← زر + بجانب النموذج، وانتظر انتهاء التدريب؛ أو اختر نموذجًا آخر من «الإعدادات».`);
+  }
 
   // ربط المشاهد بمقاطعها المحفوظة (حتى لو تغيّر رقم المشهد)
   for (const j of jobs) {
@@ -116,17 +127,22 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   for (const [k, j] of todo.entries()) {
     log(`(${k + 1}/${todo.length}) ${j.id}: ${j.spoken.length} حرفًا`);
     const r = await opts.client!.tts(j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune });
+    // السرعة بعد التوليد للنماذج التي لا تقبلها (v4): تمديد زمني يحفظ طبقة الصوت، ومعه توقيت الكلمات
+    const speed = caps.speed === "post" ? (j.tune?.speed ?? config.voice.speed) : 1;
+    const audio = await applyTempo(r.audio, speed);
     // اسم الملف من البصمة: مشهدان بنفس النص يتشاركان الملف، والانزياح لا يكتب فوق مقطع آخر
     const file = `${j.hash}.mp3`;
-    await writeFile(path.join(dir, file), r.audio);
-    const spokenWords = alignmentToWords(r.alignment);
-    const words = wordsForCaptions(j.original, j.owner, spokenWords);
-    let duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
+    await writeFile(path.join(dir, file), audio);
+    let duration = 0;
     try {
-      duration = (await parseFile(path.join(dir, file), { duration: true })).format.duration ?? duration;
+      duration = (await parseFile(path.join(dir, file), { duration: true })).format.duration ?? 0;
     } catch {
-      /* نكتفي بتوقيت النص */
+      /* يُقدَّر من التوقيت */
     }
+    // أوامر الأداء لا تظهر في الترجمة أبدًا؛ وبلا توقيت من النموذج تُوزَّع الكلمات على المدة بطولها
+    const spokenWords = r.alignment ? scaleTimes(dropTagWords(alignmentToWords(r.alignment)), speed) : estimateWords(j.spoken, duration);
+    const words = wordsForCaptions(j.original, j.owner, spokenWords);
+    if (!duration) duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
     index[j.id] = { file, hash: j.hash, text: j.narration, duration, words };
     byHash.set(j.hash, index[j.id]!);
     await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
@@ -150,3 +166,16 @@ export const audioDuration = async (file: string): Promise<number | null> => {
   }
 };
 
+
+/** توقيت تقديري للكلمات بطول حروفها (حين لا يُرجع النموذج توقيتًا) */
+export const estimateWords = (spoken: string, duration: number): TimedWord[] => {
+  const ws = spoken.split(/\s+/).filter(Boolean);
+  const total = ws.reduce((n, w) => n + w.length + 1, 0) || 1;
+  let t = 0;
+  return ws.map((w) => {
+    const d = (duration * (w.length + 1)) / total;
+    const out = { word: w, start: t, end: t + d * 0.92 };
+    t += d;
+    return out;
+  });
+};

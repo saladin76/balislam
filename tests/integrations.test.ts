@@ -83,13 +83,39 @@ describe("ElevenLabs", () => {
     const { f, calls } = mockFetch({
       "/with-timestamps": () => ({ json: { audio_base64: Buffer.from("ID3").toString("base64"), alignment: alignment("مرحبا بكم") } }),
     });
-    const el = createElevenLabs({ apiKey: "K", voiceId: "V", fetchImpl: f });
+    const el = createElevenLabs({ apiKey: "K", voiceId: "V", modelId: "eleven_multilingual_v2", fetchImpl: f });
     const r = await el.tts("مرحبا بكم", { previousText: "قبل", nextText: "بعد" });
     expect(r.audio.toString()).toBe("ID3");
     expect(calls[0]!.url).toContain("/v1/text-to-speech/V/with-timestamps");
     const body = JSON.parse(String(calls[0]!.init.body));
     expect(body).toMatchObject({ text: "مرحبا بكم", model_id: "eleven_multilingual_v2", previous_text: "قبل", next_text: "بعد" });
     expect((calls[0]!.init.headers as Record<string, string>)["xi-api-key"]).toBe("K");
+  });
+
+  it("v4: أمر الأداء أول النص، وبلا سرعة ولا تعبير ولا نص مجاور (لا يقبلها النموذج)", async () => {
+    const { f, calls } = mockFetch({
+      "/with-timestamps": () => ({ json: { audio_base64: Buffer.from("ID3").toString("base64"), alignment: alignment("[calm] مرحبا") } }),
+    });
+    const el = createElevenLabs({ apiKey: "K", voiceId: "V", modelId: "eleven_v4", fetchImpl: f });
+    await el.tts("مرحبا", { previousText: "قبل", tune: { stability: 0.6, style: 0.3, speed: 0.9, direction: "calm" } });
+    const body = JSON.parse(String(calls[0]!.init.body));
+    expect(body.text).toBe("[calm] مرحبا");
+    expect(body.model_id).toBe("eleven_v4");
+    expect(body.voice_settings.stability).toBe(0.6);
+    expect(body.voice_settings).not.toHaveProperty("speed");
+    expect(body.voice_settings).not.toHaveProperty("style");
+    expect(body).not.toHaveProperty("previous_text");
+  });
+
+  it("نموذج بلا توقيت: يُرجع الصوت وحده", async () => {
+    const { f } = mockFetch({
+      "/with-timestamps": () => ({ status: 422, body: "timestamps are not supported for this model" }),
+      "/text-to-speech/V": () => ({ body: "ID3" }),
+    });
+    const el = createElevenLabs({ apiKey: "K", voiceId: "V", modelId: "eleven_v4", fetchImpl: f });
+    const r = await el.tts("مرحبا");
+    expect(r.alignment).toBeNull();
+    expect(r.audio.toString()).toBe("ID3");
   });
 
   it("يشرح الأخطاء بالعربية", async () => {

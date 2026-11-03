@@ -85,7 +85,8 @@
       "nameAr": "سريع واضح",
       "speed": 1.02,
       "stability": 0.45,
-      "style": 0.28
+      "style": 0.28,
+      "direction": "clear, lively explainer"
     }
   }
 }

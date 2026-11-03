@@ -33,10 +33,13 @@ beforeAll(() => {
   cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
   process.env.BAL_CHANNELS_DIR = tmp;
   process.env.BAL_CHANNEL = "balislam";
+  // الصوت الوهمي ليس mp3 حقيقيًا: نموذج يقبل السرعة مباشرة فلا يمر على التمديد الزمني
+  process.env.ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
 });
 afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
+  delete process.env.ELEVENLABS_MODEL_ID;
 });
 
 describe("ذاكرة الصوت", () => {

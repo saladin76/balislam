@@ -41,12 +41,37 @@ describe("عيّنة السماع", () => {
       bodies.push(JSON.parse(String(init.body)));
       return new Response(new Uint8Array([1, 2, 3]));
     }) as unknown as typeof fetch;
-    const el = createElevenLabs({ apiKey: "k", voiceId: "v", fetchImpl });
+    const el = createElevenLabs({ apiKey: "k", voiceId: "v", modelId: "eleven_multilingual_v2", fetchImpl });
     const tune = voiceSettingsFor({ speed: 1, stability: 0.45, style: 0.3 }, "warm")!;
     expect((await el.sample("نص", { tune })).length).toBe(3);
     expect(bodies[0].voice_settings).toMatchObject({ stability: tune.stability, style: tune.style, speed: tune.speed });
     await el.sample("نص", { tune, modelId: "eleven_v3" });
     expect(bodies[1].model_id).toBe("eleven_v3");
     expect([0, 0.5, 1]).toContain(bodies[1].voice_settings.stability);
+  });
+});
+
+describe("نماذج الصوت الحديثة", () => {
+  it("أوامر الأداء لا تصل إلى الترجمة", async () => {
+    const { dropTagWords } = await import("../src/voice/models");
+    const w = (word: string) => ({ word, start: 0, end: 0 });
+    expect(dropTagWords([w("[calm,"), w("reflective]"), w("مرحبا"), w("بكم")]).map((x) => x.word)).toEqual(["مرحبا", "بكم"]);
+  });
+
+  it("السرعة بعد التوليد تغيّر المدة وتحفظ الصوت", async () => {
+    const { RenderInternals } = await import("@remotion/renderer");
+    const { applyTempo, scaleTimes } = await import("../src/voice/tempo");
+    const { parseBuffer } = await import("music-metadata");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const { readFileSync } = await import("node:fs");
+    const f = path.join(os.tmpdir(), `bal-tone-${Date.now()}.mp3`);
+    await RenderInternals.callFf({ bin: "ffmpeg", args: ["-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=220:duration=2", "-c:a", "libmp3lame", f], indent: false, logLevel: "error", binariesDirectory: null, cancelSignal: undefined });
+    const src = readFileSync(f);
+    const out = await applyTempo(src, 0.8);
+    const d = (await parseBuffer(out, { mimeType: "audio/mpeg" }, { duration: true })).format.duration!;
+    expect(d).toBeGreaterThan(2.3);
+    expect(await applyTempo(src, 1)).toBe(src);
+    expect(scaleTimes([{ start: 1, end: 2 }], 0.8)[0]!.end).toBeCloseTo(2.5);
   });
 });

@@ -95,7 +95,8 @@
       "nameAr": "وقور هادئ",
       "speed": 0.9,
       "stability": 0.6,
-      "style": 0.08
+      "style": 0.08,
+      "direction": "calm, dignified, reflective narration"
     }
   }
 }

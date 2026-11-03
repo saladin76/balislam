@@ -356,7 +356,11 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const file = path.join(dir, name);
       const cached = existsSync(file);
       if (!cached) {
-        const audio = await el.sample(text, { tune, modelId: model });
+        const { capsFor } = await load("/src/voice/models.ts");
+        const { applyTempo } = await load("/src/voice/tempo.ts");
+        const cfg = (await load("/config.json")).default;
+        const speed = capsFor(model).speed === "post" ? (tune?.speed ?? cfg.voice.speed) : 1;
+        const audio = await applyTempo(await el.sample(text, { tune, modelId: model }), speed);
         const { mkdir } = await import("node:fs/promises");
         await mkdir(dir, { recursive: true });
         await writeFile(file, audio);
@@ -379,7 +383,12 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
           const el = createElevenLabs({ apiKey: key, voiceId: process.env.ELEVENLABS_VOICE_ID ?? "" });
           const acc = await el.account();
           const voices = await el.voices();
-          send(res, 200, { ok: true, account: acc, voices, voiceFound: voices.some((v: any) => v.id === process.env.ELEVENLABS_VOICE_ID) });
+          const voiceFound = voices.some((v: any) => v.id === process.env.ELEVENLABS_VOICE_ID);
+          // النماذج المتاحة ودعمها للعربية، وحالة تدريب صوتك الاحترافي على كل نموذج
+          const models = await el.models().catch(() => []);
+          const info = voiceFound ? await el.voiceInfo().catch(() => null) : null;
+          const cfg = (await load("/config.json")).default;
+          send(res, 200, { ok: true, account: acc, voices, voiceFound, models, training: info?.training ?? {}, voiceCategory: info?.category, model: process.env.ELEVENLABS_MODEL_ID || cfg.voice.modelId });
         } else if (service === "quran") {
           const { quranClientFromEnv } = await load("/src/quran/client.ts");
           const qf = quranClientFromEnv();

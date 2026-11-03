@@ -1,5 +1,6 @@
 import config from "../../config.json";
 import { loadChannel } from "../channel/index";
+import { capsFor, stabilityFor, withDirection } from "./models";
 
 /** صوت القناة الحالية: ما اختير في إعدادات القناة، وإلا ELEVENLABS_VOICE_ID العام. */
 export const voiceIdFor = (): string | undefined => {
@@ -24,7 +25,10 @@ export type Alignment = {
   character_end_times_seconds: number[];
 };
 
-export type TtsResult = { audio: Buffer; alignment: Alignment };
+/** alignment غائب إن لم يُرجع النموذج توقيتًا (يُقدَّر بعدها من مدة الملف) */
+export type TtsResult = { audio: Buffer; alignment: Alignment | null; model: string };
+
+export type Tune = { stability: number; style: number; speed: number; direction?: string };
 
 export type VoiceSettings = typeof config.voice;
 
@@ -69,26 +73,44 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
     }
   };
 
-  /** صوت جملة أو فقرة مع توقيت الحروف. previous/next يحسّنان اتصال النبرة بين المشاهد. */
-  const tts = async (text: string, ctx: { previousText?: string; nextText?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } } = {}): Promise<TtsResult> => {
-    const res = await post(`/v1/text-to-speech/${ctx.voiceId || opts.voiceId}/with-timestamps?output_format=${s.outputFormat}`, {
-      text,
-      model_id: modelId,
+  /**
+   * جسم الطلب بحسب قدرات النموذج: السرعة والتعبير والنص المجاور لمن يقبلها، والثبات بصيغته،
+   * وأمر الأداء أول النص للنماذج الحديثة. السرعة في النماذج التي لا تقبلها تُطبَّق بعد التوليد (tempo.ts).
+   */
+  const bodyFor = (text: string, model: string, t: Tune | undefined, ctx: { previousText?: string; nextText?: string } = {}) => {
+    const caps = capsFor(model);
+    const tune = t ?? { stability: s.stability, style: s.style, speed: s.speed };
+    return {
+      text: withDirection(caps, text, tune.direction),
+      model_id: model,
       voice_settings: {
-        stability: ctx.tune?.stability ?? s.stability,
+        stability: stabilityFor(caps, tune.stability),
         similarity_boost: s.similarityBoost,
-        style: ctx.tune?.style ?? s.style,
+        ...(caps.style ? { style: tune.style } : {}),
         use_speaker_boost: s.speakerBoost,
-        speed: ctx.tune?.speed ?? s.speed,
+        ...(caps.speed === "native" ? { speed: tune.speed } : {}),
       },
       seed: s.seed,
-      previous_text: ctx.previousText || undefined,
-      next_text: ctx.nextText || undefined,
-    });
-    const data = (await res.json()) as { audio_base64: string; alignment?: Alignment | null; normalized_alignment?: Alignment | null };
-    const alignment = data.alignment ?? data.normalized_alignment;
-    if (!data.audio_base64 || !alignment) throw new ElevenLabsError("رد ElevenLabs بلا صوت أو بلا توقيت.");
-    return { audio: Buffer.from(data.audio_base64, "base64"), alignment };
+      ...(caps.context ? { previous_text: ctx.previousText || undefined, next_text: ctx.nextText || undefined } : {}),
+    };
+  };
+
+  /** صوت مشهد مع توقيت الحروف. إن لم يدعم النموذج التوقيت يُرجع الصوت وحده. */
+  const tts = async (text: string, ctx: { previousText?: string; nextText?: string; voiceId?: string; tune?: Tune; modelId?: string } = {}): Promise<TtsResult> => {
+    const model = ctx.modelId || modelId;
+    const body = bodyFor(text, model, ctx.tune, ctx);
+    const voice = ctx.voiceId || opts.voiceId;
+    try {
+      const res = await post(`/v1/text-to-speech/${voice}/with-timestamps?output_format=${s.outputFormat}`, body);
+      const data = (await res.json()) as { audio_base64: string; alignment?: Alignment | null; normalized_alignment?: Alignment | null };
+      if (!data.audio_base64) throw new ElevenLabsError("رد ElevenLabs بلا صوت.");
+      return { audio: Buffer.from(data.audio_base64, "base64"), alignment: data.alignment ?? data.normalized_alignment ?? null, model };
+    } catch (e) {
+      // نموذج لا يدعم التوقيت: الصوت وحده، والتوقيت يُقدَّر من المدة
+      if (!(e instanceof ElevenLabsError) || (e.status !== 400 && e.status !== 422) || !/timestamp|alignment/i.test(e.message)) throw e;
+      const res = await post(`/v1/text-to-speech/${voice}?output_format=${s.outputFormat}`, body);
+      return { audio: Buffer.from(await res.arrayBuffer()), alignment: null, model };
+    }
   };
 
   /** مؤثر صوتي من وصف نصي (0.5 إلى 30 ثانية). */
@@ -121,24 +143,19 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
       .filter((m) => m.can_do_text_to_speech !== false)
       .map((m) => ({ id: m.model_id, name: m.name, arabic: (m.languages ?? []).some((l) => l.language_id === "ar") }));
 
-  /**
-   * عيّنة سماع بلا توقيت (لضبط طبقة القناة والنبرة قبل توليد حلقة).
-   * نموذج v3 يقبل للثبات ثلاث قيم فقط (0 / 0.5 / 1)، فتُقرَّب إليها.
-   */
-  const sample = async (text: string, ctx: { tune?: { stability: number; style: number; speed: number }; modelId?: string } = {}): Promise<Buffer> => {
-    const model = ctx.modelId || modelId;
-    const t = ctx.tune ?? { stability: s.stability, style: s.style, speed: s.speed };
-    const stability = model === "eleven_v3" ? [0, 0.5, 1].reduce((a, b) => (Math.abs(b - t.stability) < Math.abs(a - t.stability) ? b : a)) : t.stability;
-    const res = await post(`/v1/text-to-speech/${opts.voiceId}?output_format=${s.outputFormat}`, {
-      text,
-      model_id: model,
-      voice_settings: { stability, similarity_boost: s.similarityBoost, style: t.style, use_speaker_boost: s.speakerBoost, speed: t.speed },
-      seed: s.seed,
-    });
+  /** عيّنة سماع بلا توقيت (لضبط طبقة القناة والنبرة قبل توليد حلقة). */
+  const sample = async (text: string, ctx: { tune?: Tune; modelId?: string } = {}): Promise<Buffer> => {
+    const res = await post(`/v1/text-to-speech/${opts.voiceId}?output_format=${s.outputFormat}`, bodyFor(text, ctx.modelId || modelId, ctx.tune));
     return Buffer.from(await res.arrayBuffer());
   };
 
-  return { modelId, tts, soundEffect, account, voices, models, sample };
+  /** حالة تدريب الصوت الاحترافي على كل نموذج (fine_tuned = جاهز) */
+  const voiceInfo = async (id = opts.voiceId) => {
+    const v = await get<{ voice_id: string; name: string; category: string; fine_tuning?: { state?: Record<string, string> } }>(`/v1/voices/${id}`);
+    return { id: v.voice_id, name: v.name, category: v.category, training: v.fine_tuning?.state ?? {} };
+  };
+
+  return { modelId, tts, soundEffect, account, voices, models, sample, voiceInfo };
 };
 
 export type ElevenLabsClient = ReturnType<typeof createElevenLabs>;

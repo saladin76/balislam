@@ -13,7 +13,7 @@ export type ChannelDomain = {
 };
 
 /** طبقة صوت القناة: السرعة (0.7–1.2) والثبات والتعبير (0–1) */
-export type VoiceProfile = { nameAr?: string; speed: number; stability: number; style: number };
+export type VoiceProfile = { nameAr?: string; speed: number; stability: number; style: number; /** أمر أداء للنماذج الحديثة يصف طبقة القناة (بالإنجليزية) */ direction?: string };
 
 export type ChannelConfig = {
   id: string;

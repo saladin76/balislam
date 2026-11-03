@@ -106,7 +106,7 @@ export const api = {
   voiceSample: (channel: string, b: { text: string; tone?: string; model?: string; profile?: { speed: number; stability: number; style: number } }) =>
     call<{ file: string; cached: boolean; chars: number; model: string }>("/api/voice-sample", { method: "POST", json: b }, channel),
   voiceSampleUrl: (channel: string, file: string) => `/api/voice-sample/file/${encodeURIComponent(file)}?channel=${encodeURIComponent(channel)}`,
-  testService: (service: "elevenlabs" | "quran") => call<{ ok: boolean; message?: string; account?: { tier: string; character_count: number; character_limit: number }; voices?: { id: string; name: string; category: string }[]; voiceFound?: boolean; sample?: string; env?: string }>("/api/settings/test", { method: "POST", json: { service } }),
+  testService: (service: "elevenlabs" | "quran") => call<{ ok: boolean; message?: string; account?: { tier: string; character_count: number; character_limit: number }; voices?: { id: string; name: string; category: string }[]; voiceFound?: boolean; models?: { id: string; name: string; arabic: boolean }[]; training?: Record<string, string>; voiceCategory?: string; model?: string; sample?: string; env?: string }>("/api/settings/test", { method: "POST", json: { service } }),
   sfx: () => call<SfxItem[]>("/api/sfx"),
   sfxUrl: (id: string) => withChannel(`/api/sfx/${id}.mp3`),
   startJob: (b: { kind: "make" | "package" | "sfx"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }),

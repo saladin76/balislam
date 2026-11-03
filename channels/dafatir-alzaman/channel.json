@@ -85,7 +85,8 @@
       "nameAr": "راوٍ وثائقي",
       "speed": 0.95,
       "stability": 0.5,
-      "style": 0.22
+      "style": 0.22,
+      "direction": "documentary storyteller narrating history"
     }
   }
 }
