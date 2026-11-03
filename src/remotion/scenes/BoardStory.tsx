@@ -23,7 +23,7 @@ import type { SceneBase, StringFields } from "./types";
  * لا نصوص طويلة على الشاشة: الصورة تشرح والصوت يتكلم.
  */
 export type BoardStoryProps = SceneBase &
-  StringFields<"beats" | "board" | "prevBeats"> & {
+  StringFields<"beats" | "board" | "prevBeats" | "extras"> & {
     /** للانتقال المتصل: لقطات المشهد السابق إن كان سبورة أيضًا */
     prevNarration?: string;
   };
@@ -103,7 +103,8 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
   const mentions = mentionsOf(words, shown);
   const ch = useChannel();
   const allow = drawAllowed({ id: ch.id, rules: { faces: ch.rules?.faces ?? false, quran: ch.rules?.quran ?? false, hadith: ch.rules?.hadith ?? false }, library: ch.library });
-  const supports = supportsOf(words, ranges.slice(0, beats.length), shown, (id) => allow(id) && hasElement(id));
+  // extras=off: لقطات اختارها صاحب القناة يدويًا، فلا تُضاف رسمات مساندة آلية فوق اختياره
+  const supports = props.extras === "off" ? [] : supportsOf(words, ranges.slice(0, beats.length), shown, (id) => allow(id) && hasElement(id));
 
   // انتقال الكاميرا: اللوحة السابقة تخرج والجديدة تدخل في اتجاه القراءة
   const cam = hasPrev ? interpolate(frame, [0, CAMERA], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) }) : 1;
@@ -142,8 +143,14 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
       const ringT = myMentions.reduce((a, m) => Math.max(a, interpolate(frame, [m.start - 2, m.start + 14], [0, 1], clamp) * interpolate(frame, [m.start + 40, m.start + 52], [1, 0], clamp)), 0);
       if (live && drawT > 0 && drawT < 1) pen = { x: rtl ? s.cx + s.size / 2 - s.size * drawT : s.cx - s.size / 2 + s.size * drawT, y: s.cy - s.size * 0.3 + s.size * 0.6 * (0.5 + 0.5 * Math.sin(frame * 1.7)) };
       else if (live && labelT > 0 && labelT < 1) pen = { x: s.lx + (rtl ? 1 : -1) * (b.label.length * labelSize * 0.21) * (1 - 2 * labelT), y: s.ly + labelSize * 0.4 };
+      if (live && labelT > 0 && labelT < 1 && !isPerson(b.draw) && !hasElement(b.draw)) pen = { x: s.cx + (rtl ? 1 : -1) * (b.label.length * s.size * 0.06) * (1 - 2 * labelT), y: s.cy };
       const reveal: React.CSSProperties = { clipPath: rtl ? `inset(-30% 0 -30% ${(1 - drawT) * 100}%)` : `inset(-30% ${(1 - drawT) * 100}% -30% 0)` };
-      const labelW = Math.max(160, Array.from(b.label).length * labelSize * 0.5 + 40);
+      // لقطة بلا عنصر مطابق: الكلمة وحدها كبيرة في مكان الرسمة (لا فراغ ولا عنصر قريب)
+      const wordOnly = !isPerson(b.draw) && !hasElement(b.draw);
+      const ls = wordOnly ? Math.min(s.size * 0.34, labelSize * 1.9) : labelSize;
+      const lx = wordOnly ? s.cx : s.lx;
+      const ly = wordOnly ? s.cy - ls * 0.2 : s.ly;
+      const labelW = Math.max(160, Array.from(b.label).length * ls * 0.5 + 40);
       return (
         <React.Fragment key={i}>
           {ringT > 0 ? (
@@ -158,15 +165,15 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
             <div
               style={{
                 position: "absolute",
-                left: s.lx - labelW / 2,
+                left: lx - labelW / 2,
                 width: labelW,
-                top: s.ly - labelSize * 0.55,
+                top: ly - ls * 0.55,
                 textAlign: "center",
                 clipPath: rtl ? `inset(-40% 0 -40% ${(1 - labelT) * 100}%)` : `inset(-40% ${(1 - labelT) * 100}% -40% 0)`,
               }}
             >
-              <Highlighter width={labelW * 0.86} height={labelSize * 0.62} t={markT} color={highlight} rtl={rtl} style={{ left: labelW * 0.07, top: labelSize * 0.82 }} />
-              <span style={{ ...handFont, position: "relative", fontSize: labelSize, color: chalk && markT > 0.4 ? onHighlight : i === list.length - 1 ? accent : inkColor, display: "inline-block", transform: jitter(i * 7 + 3) }}>{b.label}</span>
+              <Highlighter width={labelW * 0.86} height={ls * 0.62} t={markT} color={highlight} rtl={rtl} style={{ left: labelW * 0.07, top: ls * 0.82 }} />
+              <span style={{ ...handFont, position: "relative", fontSize: ls, color: chalk && markT > 0.4 ? onHighlight : i === list.length - 1 ? accent : inkColor, display: "inline-block", transform: jitter(i * 7 + 3) }}>{b.label}</span>
               <svg width={labelW} height={24} viewBox={`0 0 ${labelW} 24`} style={{ display: "block", margin: "-6px auto 0", overflow: "visible" }}>
                 <Drawn d={`M${labelW * 0.2} 10 Q ${labelW / 2} 20 ${labelW * 0.8} 6`} t={ulT} color={accent} width={5} />
               </svg>

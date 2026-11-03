@@ -1,6 +1,7 @@
 import React from "react";
 import type { ElementDef, ElementPalette } from "../types";
 import { L, S, tint } from "../helpers";
+import { tube } from "../kit";
 
 /**
  * الحياة اليومية والتقنية: أجهزة ومواصلات وأدوات عمل ودراسة.
@@ -579,6 +580,45 @@ export const elements: ElementDef[] = [
         <path {...S(p)} fill={p.main} d="M14 22 Q14 12 24 12 H96 Q106 12 106 22 V80 Q106 90 96 90 H52 L32 108 V90 H24 Q14 90 14 80 Z" />
         <rect {...S(p)} x={32} y={46} width={12} height={32} rx={2} fill={p.light} />
         <path {...S(p)} fill={p.light} d="M48 46 L58 28 Q62 22 68 25 Q73 28 71 36 L68 44 H82 Q90 44 88 52 L84 72 Q82 78 76 78 H48 Z" />
+      </>
+    ),
+  },
+  {
+    id: "busy-clutter",
+    nameAr: "زحمة المشاغل",
+    category: "daily",
+    tags: ["مشاغل", "رسائل", "مواعيد", "انشغال", "مسؤوليات"],
+    note: "هاتف بإشعار، ورقة تقويم، وساعة متراكبة.",
+    draw: (p) => (
+      <>
+        <rect {...S(p)} x={8} y={30} width={50} height={56} rx={6} fill={p.light} />
+        <rect {...S(p)} x={8} y={30} width={50} height={14} rx={6} fill={p.main} />
+        <path {...L(p, 3)} d="M18 56 H48 M18 66 H48 M18 76 H38" opacity={0.45} />
+        <rect {...S(p)} x={50} y={14} width={38} height={70} rx={8} fill={p.dark} />
+        <rect x={55} y={22} width={28} height={50} rx={3} fill={p.light} />
+        <rect {...S(p)} x={58} y={28} width={22} height={8} rx={2} fill={p.second} />
+        <rect {...S(p)} x={58} y={40} width={22} height={8} rx={2} fill={p.second} />
+        <circle {...S(p)} cx={86} cy={16} r={8} fill={p.accent} />
+        <circle {...S(p)} cx={84} cy={90} r={22} fill={p.light} />
+        <path {...L(p, 4)} stroke={p.edge} d="M84 76 V90 L94 96" />
+      </>
+    ),
+  },
+  {
+    id: "walk-autopilot",
+    nameAr: "طريق محفوظ",
+    category: "daily",
+    tags: ["اعتياد", "طريق", "ألفة", "دون انتباه", "عادة"],
+    note: "شخص بلا ملامح يمشي في طريق يعرفه، وفكرته تطير بعيدًا عنه.",
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.light} d="M30 114 L52 54 H68 L90 114 Z" />
+        <path {...L(p, 3)} strokeDasharray="6 7" d="M60 58 V112" opacity={0.5} />
+        {tube(p, "M58 74 L56 92 M56 92 L50 106 M56 92 L64 104", p.main, 7, "legs")}
+        {tube(p, "M58 74 L62 54 M61 60 L52 70 M61 60 L70 66", p.main, 7, "body")}
+        <circle {...S(p)} cx={63} cy={46} r={7} fill={p.skin} />
+        <path {...L(p, 3)} stroke={p.edge} strokeDasharray="3 5" d="M70 40 Q84 26 90 18" opacity={0.7} />
+        <path {...S(p)} fill={p.light} d="M86 16 Q86 6 98 6 Q110 6 110 16 Q110 26 98 26 Q86 26 86 16 Z" />
       </>
     ),
   },

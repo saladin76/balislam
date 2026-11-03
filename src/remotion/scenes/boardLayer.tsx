@@ -1,7 +1,7 @@
 import React from "react";
 import { Easing, interpolate } from "remotion";
 import { normalizeArabic } from "../../script/quranMeta";
-import { wordElement } from "../../plan/beats";
+import { SACRED_NEIGHBORS, wordElement } from "../../plan/beats";
 import { clamp } from "./motion";
 import { Drawn } from "./SketchBoard";
 import type { WordTiming } from "./timing";
@@ -139,6 +139,8 @@ export const supportsOf = (
   const used = new Set(beats.map((b) => b.draw));
   const out: Support[] = [];
   ranges.forEach((r, slot) => {
+    // توقير: لا رسمة مساندة في جملة فيها ذكر الله
+    if (words.slice(r.from, r.to).some((w) => SACRED_NEIGHBORS.test(normalizeArabic(w.raw.replace(PUNCT, ""))))) return;
     let n = 0;
     for (let k = r.from; k < r.to && n < max; k++) {
       const w = words[k];

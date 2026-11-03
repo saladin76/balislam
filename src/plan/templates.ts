@@ -183,6 +183,7 @@ export const templateDefs: TemplateDef[] = [
     fields: [
       { key: "beats", label: "اللقطات (سطر لكل جملة)", type: "textarea", help: "الرسمة | الكلمة المكتوبة. الرسمة: معرّف عنصر من المكتبة، أو person أو people أو person:think" },
       { key: "board", label: "السبورة", type: "select", options: [{ value: "white", label: "بيضاء (ورق مسطّر)" }, { value: "green", label: "سوداء (حبر أبيض)" }] },
+      { key: "extras", label: "رسمات مساندة آلية", type: "select", options: [{ value: "on", label: "نعم (من قائمة المعاني)" }, { value: "off", label: "لا (اللقطات المختارة فقط)" }] },
     ],
   },
   {

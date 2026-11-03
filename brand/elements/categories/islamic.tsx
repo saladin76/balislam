@@ -442,4 +442,36 @@ export const elements: ElementDef[] = [
       </>
     ),
   },
+  {
+    id: "path-to-mat",
+    nameAr: "الطريق إلى الصلاة",
+    category: "islamic",
+    tags: ["تهيؤ", "استعداد", "رحلة", "قبل الصلاة", "طريق"],
+    note: "خطوات منقطة تنتهي عند سجادة الصلاة.",
+    draw: (p) => (
+      <>
+        <path {...L(p, 4)} stroke={p.edge} strokeDasharray="2 9" d="M10 28 Q40 20 44 46 Q48 70 70 74" />
+        <ellipse cx={16} cy={26} rx={4} ry={6} fill={p.edge} opacity={0.5} />
+        <ellipse cx={30} cy={22} rx={4} ry={6} fill={p.edge} opacity={0.6} />
+        <path {...S(p)} fill={p.main} d="M66 70 L112 62 L114 112 L68 116 Z" />
+        <path {...L(p, 3)} d="M74 78 L106 72 L107 106 L76 109 Z" opacity={0.5} />
+        <path {...L(p, 3)} d="M84 88 Q90 80 96 86 V100 H84 Z" opacity={0.6} />
+      </>
+    ),
+  },
+  {
+    id: "mat-heart",
+    nameAr: "صلاة بقلب حاضر",
+    category: "islamic",
+    tags: ["صحة الأداء", "حسن الإقبال", "خشوع", "صلاة", "حضور القلب"],
+    note: "سجادة الصلاة يعلوها قلب: الهيئة والقلب معًا.",
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.main} d="M24 64 H96 V114 H24 Z" />
+        <path {...L(p, 3)} d="M32 72 H88 V106 H32 Z" opacity={0.5} />
+        <path {...L(p, 3)} d="M50 92 Q60 78 70 92 V106 H50 Z" opacity={0.6} />
+        <path {...S(p)} fill={p.accent} d="M60 54 L44 38 Q36 30 42 22 Q50 16 60 26 Q70 16 78 22 Q84 30 76 38 Z" />
+      </>
+    ),
+  },
 ];

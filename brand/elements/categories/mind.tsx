@@ -686,4 +686,86 @@ export const elements: ElementDef[] = [
       </>
     ),
   },
+  {
+    id: "head-wandering",
+    nameAr: "ذهن شارد",
+    category: "mind",
+    tags: ["شرود", "خواطر", "تشتت", "سهو", "غفلة"],
+    note: "رأس بلا ملامح وخواطر صغيرة تبتعد عنه في مسار متقطع.",
+    draw: (p) => (
+      <>
+        <g transform="translate(4 30) scale(0.72)">
+          <path {...S(p)} fill={p.second} d={HEAD} />
+        </g>
+        <path {...L(p, 3)} stroke={p.edge} strokeDasharray="4 6" d="M44 34 Q50 12 72 14 Q96 16 104 34" opacity={0.7} />
+        <circle {...S(p)} cx={48} cy={30} r={5} fill={p.light} />
+        <path {...S(p)} fill={p.light} d="M62 12 Q62 4 70 4 Q78 4 78 12 Q78 20 70 20 Q62 20 62 12 Z" />
+        <path {...S(p)} fill={p.light} d="M90 30 Q90 20 101 20 Q112 20 112 30 Q112 40 101 40 Q90 40 90 30 Z" />
+        <path {...L(p, 3)} d="M95 30 H107 M66 12 H74" opacity={0.5} />
+      </>
+    ),
+  },
+  {
+    id: "heart-present",
+    nameAr: "قلب حاضر",
+    category: "mind",
+    tags: ["حضور القلب", "خشوع", "إقبال", "باطن", "داخل"],
+    note: "جسد بلا ملامح وفي صدره قلب مضيء: الحضور من الداخل لا الهيئة وحدها.",
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.light} d="M22 114 Q22 70 60 66 Q98 70 98 114 Z" />
+        <circle {...S(p)} cx={60} cy={38} r={20} fill={p.light} />
+        <path {...S(p)} fill={p.accent} d="M60 104 L44 88 Q36 80 42 72 Q50 66 60 76 Q70 66 78 72 Q84 80 76 88 Z" />
+        <path {...L(p, 3)} stroke={p.edge} d="M60 56 V60 M38 64 L41 68 M82 64 L79 68" opacity={0.7} />
+      </>
+    ),
+  },
+  {
+    id: "understanding-grows",
+    nameAr: "فهم يتسع",
+    category: "mind",
+    tags: ["فهم", "اتساع", "تجديد", "وعي", "تدبر"],
+    note: "رأس بلا ملامح تخرج منه دوائر تتسع: المعنى نفسه يُفهم أعمق.",
+    draw: (p) => (
+      <>
+        <g transform="translate(2 22) scale(0.8)">
+          <path {...S(p)} fill={p.second} d={HEAD} />
+        </g>
+        <path {...L(p, 4)} stroke={p.edge} d="M72 28 Q82 38 72 48" />
+        <path {...L(p, 4)} stroke={p.edge} d="M82 18 Q98 38 82 58" opacity={0.75} />
+        <path {...L(p, 4)} stroke={p.edge} d="M92 8 Q114 38 92 68" opacity={0.5} />
+        <circle {...S(p)} cx={50} cy={50} r={9} fill={p.accent} />
+      </>
+    ),
+  },
+  {
+    id: "book-heart",
+    nameAr: "علم يصل إلى القلب",
+    category: "mind",
+    tags: ["معرفة", "أحكام", "معاني", "فهم", "علم نافع"],
+    note: "كتاب مفتوح يعلوه قلب: معرفة الحكم والمعنى معًا.",
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.light} d="M12 66 Q36 58 60 70 V112 Q36 100 12 108 Z" />
+        <path {...S(p)} fill={p.light} d="M108 66 Q84 58 60 70 V112 Q84 100 108 108 Z" />
+        <path {...L(p, 3)} d="M22 76 Q36 72 50 78 M22 88 Q36 84 50 90 M70 78 Q84 72 98 76 M70 90 Q84 84 98 88" opacity={0.45} />
+        <path {...S(p)} fill={p.accent} d="M60 52 L44 36 Q36 28 42 20 Q50 14 60 24 Q70 14 78 20 Q84 28 76 36 Z" />
+      </>
+    ),
+  },
+  {
+    id: "speech-unaware",
+    nameAr: "كلمات بلا انتباه",
+    category: "mind",
+    tags: ["غفلة", "ترديد", "كلمات", "عادة", "لسان"],
+    note: "فقاعة كلام كلماتها باهتة متقطعة: لفظ يمر دون استحضار.",
+    draw: (p) => (
+      <>
+        <path {...S(p)} fill={p.light} d="M14 22 Q14 12 24 12 H96 Q106 12 106 22 V70 Q106 80 96 80 H48 L30 98 V80 H24 Q14 80 14 70 Z" />
+        <path {...L(p, 5)} strokeDasharray="10 8" d="M28 32 H92" opacity={0.55} />
+        <path {...L(p, 5)} strokeDasharray="6 10" d="M28 48 H86" opacity={0.35} />
+        <path {...L(p, 5)} strokeDasharray="3 12" d="M28 64 H70" opacity={0.2} />
+      </>
+    ),
+  },
 ];

@@ -300,4 +300,23 @@ export const elements: ElementDef[] = [
       </>
     ),
   },
+  {
+    id: "wudu-hands",
+    nameAr: "يدان تحت ماء الوضوء",
+    category: "hands",
+    tags: ["وضوء", "طهارة", "ماء", "غسل اليدين"],
+    draw: (p) => (
+      <>
+        <path {...S(p)} d="M54 8 Q60 0 66 8 V34 Q60 40 54 34 Z" fill={p.water} />
+        <path {...L(p, 3)} stroke={p.edge} d="M60 10 V34" opacity={0.4} />
+        <path {...S(p)} fill={p.water} d="M42 40 Q46 46 42 50 Q38 46 42 40 Z" />
+        <path {...S(p)} fill={p.water} d="M80 36 Q84 42 80 46 Q76 42 80 36 Z" />
+        <path {...S(p)} fill={p.water} d="M72 48 Q75 53 72 56 Q69 53 72 48 Z" />
+        <g transform="rotate(22 40 112)">{openHand(p, 0.66, 40, 116)}</g>
+        <g transform="translate(120 0) scale(-1 1)">
+          <g transform="rotate(22 40 112)">{openHand(p, 0.66, 40, 116)}</g>
+        </g>
+      </>
+    ),
+  },
 ];
