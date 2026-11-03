@@ -181,12 +181,14 @@ program
   .option("--force", "إعادة توليد كل المشاهد")
   .option("--scene <ids>", "مشاهد محددة مفصولة بفواصل، مثل c2-s1,c4-s3")
   .option("--ignore-tashkeel", "التوليد رغم نقص التشكيل (غير مستحسن)")
-  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string; ignoreTashkeel?: boolean }) => {
+  .option("--ignore-review", "التوليد قبل اكتمال سجل التوثيق (غير مستحسن)")
+  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string; ignoreTashkeel?: boolean; ignoreReview?: boolean }) => {
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
     const { generateVoice } = await import("../voice/generate");
     const client = elevenLabsFromEnv();
-    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, ignoreTashkeel: opts.ignoreTashkeel, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
+    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, ignoreTashkeel: opts.ignoreTashkeel, ignoreReview: opts.ignoreReview, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
     console.log(tashkeelLine(r.tashkeel));
+    console.log(`التوثيق: ${r.review.verified} من ${r.review.total} موثّق ${r.review.ok ? "✓" : "✗"}`);
     console.log(`المشاهد: ${r.total} · للتوليد: ${r.toGenerate.length} · محفوظة: ${r.cached.length}`);
     console.log(`الحروف: ${r.chars} ≈ ${r.credits} رصيد ElevenLabs`);
     if (!client && !opts.dryRun) console.log("لم يُولَّد شيء: أضف ELEVENLABS_API_KEY وELEVENLABS_VOICE_ID إلى .env.");
@@ -207,6 +209,24 @@ program
     if (t.ambiguous.length) console.log("كلمات لها أكثر من نطق في الملف (راجع السياق):");
     for (const a of t.ambiguous) console.log(`  ${a.forms.join(" / ")} ← ${a.scenes.join("، ")}`);
     if (!t.ok) process.exitCode = 1;
+  });
+
+program
+  .command("review")
+  .description("سجل التوثيق: حالة مراجعة كل استشهاد (آية، حديث، مصدر، صفحة كتاب)")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { resolveScriptPath } = await import("../script/episodes");
+    const { parseScript } = await import("../script/parse");
+    const { loadLedger, reviewItems, reviewSummary } = await import("../script/review");
+    const { readFile } = await import("node:fs/promises");
+    const file = await resolveScriptPath(episode);
+    const items = reviewItems(parseScript(await readFile(file, "utf8"), file), await loadLedger(file));
+    const mark = { verified: "✓ موثّق", rejected: "✗ مرفوض", pending: "… بانتظار المراجعة", changed: "! تغيّر بعد الاعتماد" } as const;
+    for (const i of items) console.log(`${mark[i.status]} · ${i.label} | ${i.ref}${i.detail ? ` | ${i.detail}` : ""}${i.note ? ` — ${i.note}` : ""}`);
+    const s = reviewSummary(items);
+    console.log(`موثّق ${s.verified} من ${s.total}${s.ok ? " ✓" : ""}. القرار من الاستوديو: «السكريبت ← سجل التوثيق».`);
+    if (!s.ok) process.exitCode = 1;
   });
 
 program

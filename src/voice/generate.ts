@@ -15,6 +15,8 @@ import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
+import { parseScript } from "../script/parse";
+import { loadLedger, reviewBlockMessage, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
 import { capsFor, dropTagWords } from "./models";
 import { applyTempo, scaleTimes } from "./tempo";
 
@@ -67,7 +69,7 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   });
 };
 
-export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport };
+export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary };
 
 export type GenerateVoiceOptions = {
   client?: ElevenLabsClient | null;
@@ -79,6 +81,8 @@ export type GenerateVoiceOptions = {
   onProgress?: (msg: string) => void;
   /** توليد رغم نقص التشكيل (من سطر الأوامر فقط، بقرار صاحب القناة) */
   ignoreTashkeel?: boolean;
+  /** توليد قبل اكتمال سجل التوثيق (من سطر الأوامر فقط، بقرار صاحب القناة) */
+  ignoreReview?: boolean;
 };
 
 /**
@@ -115,10 +119,13 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
       await loadTashkeel(scriptPath),
       await loadDictionary(),
     ),
+    review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
   if (opts.dryRun) return report;
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
+  // ولا على محتوى لم تكتمل مراجعة استشهاداته
+  if (todo.length && !report.review.ok && !opts.ignoreReview) throw new Error(reviewBlockMessage(report.review));
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)
   if (todo.length && opts.client?.voiceInfo) {

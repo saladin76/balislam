@@ -266,6 +266,28 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // سجل التوثيق والاعتماد لكل استشهاد (review.json)
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "review") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const { parseScript } = await load("/src/script/parse.ts");
+    const R = await load("/src/script/review.ts");
+    const file = await resolveScriptPath(parts[1]);
+    const script = parseScript(await readFile(file, "utf8"), file);
+    let items;
+    if (req.method === "PUT") {
+      const { key, status, note } = await readBody(req);
+      if (typeof key !== "string" || !["verified", "rejected", "pending"].includes(status)) return send(res, 400, { error: "قرار غير صالح." }), true;
+      try {
+        items = await R.setReview(file, script, key, status, typeof note === "string" ? note : "");
+      } catch (e) {
+        return send(res, 400, { error: (e as Error).message }), true;
+      }
+    } else items = R.reviewItems(script, await R.loadLedger(file));
+    send(res, 200, { items, summary: R.reviewSummary(items) });
+    return true;
+  }
+
   // حالة النشر لكل حلقة (status.json)
   if (parts[0] === "episodes" && parts[1] && parts[2] === "status") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;

@@ -392,7 +392,7 @@ export const App: React.FC = () => {
             }}
           />
         ) : (
-          <ScriptTab ref={scriptRef} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
+          <ScriptTab ref={scriptRef} episodeId={epId} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}
 
         {showNew ? (

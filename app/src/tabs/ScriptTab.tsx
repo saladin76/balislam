@@ -1,6 +1,7 @@
 import React, { useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
 import { api, type CheckResult } from "../api";
 import config from "../../../config.json";
+import { ReviewPanel } from "./ReviewPanel";
 
 export type ScriptTabHandle = { goToLine: (line: number) => void };
 
@@ -8,12 +9,13 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 
 
 /** محرر السكريبت مع فحص مباشر أثناء الكتابة. الحفظ يحدّث المشاهد تلقائيًا مع إبقاء تعديلاتك. */
 export const ScriptTab = forwardRef<ScriptTabHandle, {
+  episodeId: string;
   text: string;
   savedText: string;
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
-}>(({ text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+}>(({ episodeId, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
@@ -101,6 +103,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             </button>
           ))}
         </div>
+        <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
       </div>
     </div>
   );

@@ -62,5 +62,8 @@
   "tashkeel": {
     "required": true,
     "minCoverage": 0.98
+  },
+  "review": {
+    "required": true
   }
 }

@@ -537,7 +537,7 @@ const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: Epi
         {est && est.toGenerate.length > 0 ? (
           <button
             className="btn primary"
-            disabled={busy || !hasKeys || est.tashkeel?.ok === false}
+            disabled={busy || !hasKeys || est.tashkeel?.ok === false || est.review?.ok === false}
             title={est.tashkeel?.ok === false ? "أكمل التشكيل أولًا" : ""}
             onClick={async () => {
               setBusy(true);
@@ -566,6 +566,11 @@ const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: Epi
         </div>
       ) : null}
       {est?.tashkeel ? <TashkeelBox t={est.tashkeel} /> : null}
+      {est?.review && est.review.total ? (
+        <div className="help" style={{ color: est.review.ok ? "var(--ok)" : "var(--err)", fontWeight: 600 }}>
+          {est.review.ok ? `سجل التوثيق: ${est.review.total} استشهادًا موثّقًا ✓` : `سجل التوثيق: ${est.review.verified} من ${est.review.total} موثّق · التوليد متوقف حتى تكتمل المراجعة («السكريبت ← سجل التوثيق»)`}
+        </div>
+      ) : null}
       {msg ? <div className="help">{msg}</div> : null}
     </div>
   );
