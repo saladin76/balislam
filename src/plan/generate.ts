@@ -1,4 +1,4 @@
-import { beatsFor, beatsToText } from "./beats";
+import { beatsFor, beatsToText, isCuratedBeat } from "./beats";
 import { normalizeArabic, parseAyahRef, surahNameFor, toLatinDigits } from "../script/quranMeta";
 import type { ParsedScript } from "../script/types";
 import type { Domain } from "../../brand/themes";
@@ -50,8 +50,12 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
       const beat = beatsFor(narration, 3, ctx.allow).find((b) => !b.draw.startsWith("person") && b.draw !== "people");
       return { quote: firstSentence(narration, 8), highlight: beat?.label ?? "", wish: beat?.draw ?? "lightbulb", subjectElement: "", variant: "narrator-m", pose: "think", sideElement: "", sideGlow: "none", connector: "dotted" };
     }
-    case "sketch-board":
-      return { title: ctx.chapterTitle, keyword: "", element: "lightbulb", items: "", board: "white" };
+    case "sketch-board": {
+      // الرسمة من قائمة المعاني المراجَعة لكلمة منطوقة (وعند الشك لا تُرسم)، والنقاط كلمات الجمل المحورية تُكتب لحظة نطقها
+      const beats = narration.trim() ? beatsFor(narration, 3, ctx.allow) : [];
+      const drawn = beats.find((b) => isCuratedBeat(b) && !b.draw.startsWith("person") && b.draw !== "people");
+      return { title: ctx.chapterTitle, keyword: "", element: narration.trim() ? (drawn?.draw ?? "") : "lightbulb", items: beats.filter((b) => isCuratedBeat(b) || !["lightbulb", "question-mark"].includes(b.draw)).map((b) => b.label).filter((l, i, a) => l && a.indexOf(l) === i).join("\n"), board: "white" };
+    }
     case "kinetic-text":
       // الكلمات المهمة: كلمات المعنى في كل جملة (تظهر أكبر وملونة)
       return { emphasis: beatsFor(narration, 3, ctx.allow).map((b) => b.label).filter(Boolean).join("، "), element: "", stage: "theme" };

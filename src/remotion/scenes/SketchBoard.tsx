@@ -10,6 +10,11 @@ import { useLang } from "../../i18n/context";
 import { boil, fade, clamp } from "./motion";
 import { useSceneFrame } from "./motion";
 import type { SceneBase, StringFields } from "./types";
+import { estimateTimings } from "./timing";
+import { sentenceGroups } from "../../plan/beats";
+import { useChannel } from "../../channel/context";
+import { drawAllowed } from "../../channel/library";
+import { cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
 
 /**
  * «السبورة»: شرح مرسوم باليد كأن قلمًا يرسم أمامك. العنوان يُكتب بخط اليد ويُخط تحته،
@@ -62,7 +67,7 @@ export const Drawn: React.FC<{ d: string; t: number; color: string; width: numbe
 );
 
 export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
-  const { orientation, title = "", element = "lightbulb", board = "white", keyword = "" } = props;
+  const { orientation, title = "", element = "lightbulb", board = "white", keyword = "", narration = "", narrationTimings } = props;
   const frame = useSceneFrame();
   const { width: W, height: H, durationInFrames } = useVideoConfig();
   const lang = useLang();
@@ -91,7 +96,9 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
   const elSize = portrait ? (items.length > 2 ? 400 : 470) : 460;
   const elCx = portrait ? W / 2 : X(0.27);
   const elCy = portrait ? (items.length > 2 ? 700 : 740) : 580;
-  const itemSize = portrait ? (items.length > 3 ? 58 : 66) : items.length > 3 ? 58 : 66;
+  // النقاط القصيرة (كلمة أو كلمتان) تُكتب أكبر
+  const short = items.length > 0 && items.every((x) => x.length <= 14);
+  const itemSize = (portrait ? (items.length > 3 ? 58 : 66) : items.length > 3 ? 58 : 66) * (short ? 1.3 : 1);
   const itemsTop = portrait ? elCy + elSize / 2 + 30 : 330;
   const itemGap = itemSize * 1.8;
 
@@ -102,7 +109,21 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
   const elT = interpolate(frame, [drawFrom, drawFrom + 36], [0, 1], clamp);
   const arrowFrom = drawFrom + 30;
   const arrowT = interpolate(frame, [arrowFrom, arrowFrom + 14], [0, 1], clamp);
-  const itemFrom = (i: number) => arrowFrom + (portrait ? 4 : 14) + i * 26;
+  // الطبقة الثانية: كل نقطة تُكتب لحظة نطق جملتها (أو كلمتها)، لا بتوقيت ثابت
+  const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
+  const words = spokenWords(timings);
+  const groups = narration && items.length ? sentenceGroups(narration, items.length) : [];
+  const ranges = groupRanges(groups);
+  const synced = groups.length >= items.length && items.length > 0;
+  const fixedFrom = (i: number) => arrowFrom + (portrait ? 4 : 14) + i * 26;
+  const spokenFrom: number[] = [];
+  items.forEach((it, i) => {
+    const r = ranges[i];
+    const w = r ? (findWord(words, it, r.from, r.to) ?? words[r.from]) : undefined;
+    const at = synced && w ? Math.max(fixedFrom(0) + i * 26, w.start - 2) : fixedFrom(i);
+    spokenFrom.push(Math.max(at, (spokenFrom[i - 1] ?? -99) + 22));
+  });
+  const itemFrom = (i: number) => spokenFrom[i] ?? fixedFrom(i);
   const itemT = (i: number) => interpolate(frame, [itemFrom(i), itemFrom(i) + Math.max(14, (items[i]?.length ?? 0) * 0.9)], [0, 1], clamp);
   const lastEnd = items.length ? itemFrom(items.length - 1) + Math.max(14, (items[items.length - 1]?.length ?? 0) * 0.9) : drawFrom + 36;
 
@@ -149,7 +170,22 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
   // الكلمة المحوّطة داخل العنوان
   const kwIndex = keyword ? title.indexOf(keyword) : -1;
   const titleParts = kwIndex >= 0 ? [title.slice(0, kwIndex), keyword, title.slice(kwIndex + keyword.length)] : [title];
-  const circleT = interpolate(frame, [lastEnd + 2, lastEnd + 18], [0, 1], clamp);
+  // الكلمة المحوّطة لحظة نطقها، والقلم الفسفوري خلفها (الفكرة المحورية)
+  const titleEnd = 18 + Math.max(18, title.length * 1.1);
+  const kwSpoken = keyword ? findWord(words, keyword) : undefined;
+  const circleAt = kwSpoken ? Math.max(titleEnd, kwSpoken.start - 2) : lastEnd + 2;
+  const circleT = interpolate(frame, [circleAt, circleAt + 16], [0, 1], clamp);
+  const kwMarkT = interpolate(frame, [circleAt + 4, circleAt + 16], [0, 1], clamp);
+
+  // رسمات مساندة لمعانٍ منطوقة أخرى (من قائمة المعاني المراجَعة)، وتحويط الرسمة إذا ذُكر معناها مرة أخرى
+  const ch = useChannel();
+  const allow = drawAllowed({ id: ch.id, rules: { faces: ch.rules?.faces ?? false, quran: ch.rules?.quran ?? false, hadith: ch.rules?.hadith ?? false } });
+  const hasMain = hasElement(element);
+  const mainShown = { draw: hasMain ? element : "", shownAt: drawFrom + 36 };
+  const supports = narration
+    ? supportsOf(words, [{ from: 0, to: words.length }], [mainShown], (id) => allow(id) && hasElement(id), 2).map((x) => ({ ...x, start: Math.max(x.start, drawFrom + 20) }))
+    : [];
+  const mentions = hasMain ? mentionsOf(words, [mainShown]) : [];
 
   // العربية بخط الرقعة، واللاتينية بخط Caveat (خط الرقعة يحمل حروفًا لاتينية لا تشبه خط اليد)
   const handFont: React.CSSProperties = { fontFamily: rtl ? fontFamilies.hand : "'Caveat', cursive", fontWeight: 700, color: inkColor, direction: lang.dir, whiteSpace: "nowrap" };
@@ -161,6 +197,47 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
     return est > avail ? Math.max(0.72, avail / est) : 1;
   };
   const jitter = (seed: number) => boil(frame, seed, 0.35);
+
+  const bump = mentions.reduce((a, m) => Math.max(a, pulse(frame, m.start - 2, 18)), 0);
+  const ringT = mentions.reduce((a, m) => Math.max(a, interpolate(frame, [m.start - 2, m.start + 14], [0, 1], clamp) * interpolate(frame, [m.start + 40, m.start + 52], [1, 0], clamp)), 0);
+  /** موضع الرسمة المساندة: على الجانب الخارجي للرسمة الرئيسة (أعلى ثم أسفل) */
+  const supPos = (k: number) => {
+    if (portrait) {
+      const size = 130;
+      return { x: W / 2 + (k === 0 ? 1 : -1) * (rtl ? 1 : -1) * (elSize / 2 + 75), y: elCy - elSize * 0.28, size };
+    }
+    const size = 150;
+    const outer = rtl ? 1 : -1;
+    return { x: elCx + outer * (elSize / 2 + 85), y: k === 0 ? elCy - 150 : elCy + 130, size };
+  };
+
+  // الكاميرا تتبع القلم: العنوان، ثم الرسمة، ثم كل نقطة لحظة كتابتها، ثم تبتعد لترى السبورة كلها
+  const fy = (y: number, z: number) => y + (H * 0.06) / z;
+  const overview = { x: W / 2, y: H / 2, z: 1 };
+  const titleFocus = { x: W / 2, y: fy(titleTop + titleSize * 0.7, 1.2), z: portrait ? 1.12 : 1.2 };
+  const elZ = Math.min(1.35, (H * (portrait ? 0.38 : 0.56)) / elSize);
+  const elFocus = { x: elCx, y: fy(elCy, elZ), z: Math.max(1.1, elZ) };
+  const itemX = (i: number) => {
+    const est = Math.min(itemsRight - itemsLeft - 90, (items[i] ?? "").length * itemSize * 0.5);
+    return rtl ? itemsRight - 60 - est / 2 : itemsLeft + 60 + est / 2;
+  };
+  const itemFocus = (i: number) => ({ x: portrait ? W / 2 : (itemX(i) + (elCx + itemX(i)) / 2) / 2, y: fy(itemsTop + i * itemGap + itemSize * 0.7, 1.28), z: portrait ? 1.15 : 1.28 });
+  const pullAt = Math.max(lastEnd + 14, circleAt + 20, durationInFrames - 46);
+  const keys: CamKey[] = [{ ...(title ? titleFocus : overview), at: 0, dur: 0 }];
+  if (hasMain) keys.push({ ...elFocus, at: drawFrom - 6, dur: 18 });
+  items.forEach((_, i) => keys.push({ ...itemFocus(i), at: itemFrom(i) - 6, dur: 16 }));
+  supports.forEach((x, k) => {
+    const p = supPos(k);
+    keys.push({ x: (elCx + p.x) / 2, y: fy((elCy + p.y) / 2, 1.1), z: 1.1, at: x.start - 4, dur: 16 });
+  });
+  if (kwSpoken && title) keys.push({ ...titleFocus, at: circleAt - 4, dur: 14 });
+  const focusAt = (at: number) => {
+    const done = items.map((_, i) => i).filter((i) => itemFrom(i) <= at);
+    return done.length ? itemFocus(done[done.length - 1]!) : hasMain && at >= drawFrom ? elFocus : titleFocus;
+  };
+  const camKeys = fillCameraGaps(keys, [drawFrom, arrowFrom, ...items.map((_, i) => itemFrom(i)), ...supports.map((x) => x.start), ...mentions.map((m) => m.start), circleAt], pullAt, focusAt, overview, portrait ? 75 : 30, portrait ? 120 : 46);
+  if (pullAt + 18 < durationInFrames) camKeys.push({ ...overview, at: pullAt, dur: 18 });
+  const camStyle = camTransform(cameraAt(camKeys, frame), W, H);
 
   return (
     <SceneShell
@@ -175,12 +252,14 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
       <div style={{ position: "absolute", inset: portrait ? 28 : 22, border: `3px solid ${inkColor}`, borderRadius: 26, opacity: chalk ? 0.12 : 0.07 }} />
       {chalk ? <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 40%, ${paper.colors.surface}14, transparent 70%)` }} /> : null}
 
+      <div style={{ position: "absolute", inset: 0, ...camStyle }}>
       {/* العنوان بخط اليد */}
       {title ? (
         <div style={{ position: "absolute", top: titleTop, left: titleBox.left, right: W - titleBox.right, textAlign: "center", ...reveal(titleT) }}>
           <span style={{ ...handFont, fontSize: Math.round(titleSize * handScale), lineHeight: 1.3, whiteSpace: "normal", display: "inline-block", transform: jitter(1) }}>
             {titleParts.map((p, i) => (
-              <span key={i} style={i === 1 ? { position: "relative", color: accent } : undefined}>
+              <span key={i} style={i === 1 ? { position: "relative", color: chalk && kwMarkT > 0.4 ? (paper.colors.onHighlight ?? paper.colors.ink) : accent } : undefined}>
+                {i === 1 ? <span style={{ position: "absolute", left: "-4%", right: "-4%", top: "38%", height: "48%", background: paper.colors.highlight, zIndex: -1, transform: `scaleX(${kwMarkT})`, transformOrigin: rtl ? "right" : "left" }} /> : null}
                 {p}
                 {i === 1 ? (
                   <svg viewBox="0 0 100 50" preserveAspectRatio="none" style={{ position: "absolute", left: "-14%", top: "-12%", width: "128%", height: "124%", overflow: "visible" }}>
@@ -205,10 +284,25 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
 
       {/* العنصر يُرسم أمامك */}
       {hasElement(element) ? (
-        <div style={{ position: "absolute", left: elBox.left, top: elBox.top, ...reveal(elT), transform: jitter(3) }}>
+        <div style={{ position: "absolute", left: elBox.left, top: elBox.top, ...reveal(elT), transform: `${jitter(3)} scale(${1 + 0.08 * bump})` }}>
           <Element id={element} theme={paper} size={elSize} palette={elPal} />
         </div>
       ) : null}
+      {ringT > 0 ? (
+        <svg width={W} height={H} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+          <Ring cx={elCx} cy={elCy} rx={elSize * 0.62} ry={elSize * 0.58} t={Math.min(1, ringT * 1.4)} fadeOut={Math.min(1, ringT * 3)} color={inkColor} width={6} />
+        </svg>
+      ) : null}
+      {/* رسمات مساندة لحظة نطق معناها */}
+      {supports.map((x, k) => {
+        const p = supPos(k);
+        const t = interpolate(frame, [x.start, x.start + 20], [0, 1], clamp);
+        return (
+          <div key={`sup${k}`} style={{ position: "absolute", left: p.x - p.size / 2, top: p.y - p.size / 2, width: p.size, height: p.size, opacity: t > 0 ? 1 : 0, ...reveal(t), transform: jitter(20 + k) }}>
+            <Element id={x.draw} theme={paper} size={p.size} palette={elPal} />
+          </div>
+        );
+      })}
 
       {/* النقاط بعلامة صح */}
       {items.map((it, i) => {
@@ -226,6 +320,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
       })}
 
       {pen ? <Pen x={(pen as { x: number }).x} y={(pen as { y: number }).y} color={chalk ? paper.colors.surface : paper.colors.ink} tip={accent} show={penShow} flip={rtl} /> : null}
+      </div>
       {/* لمسة ظهور أولى للسبورة */}
       <div style={{ position: "absolute", inset: 0, background: boardColor, opacity: 1 - fade(frame, 0, 8), pointerEvents: "none" }} />
     </SceneShell>
