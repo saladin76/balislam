@@ -29,6 +29,8 @@ const mock = {
 beforeAll(() => {
   tmp = mkdtempSync(path.join(os.tmpdir(), "bal-voice-"));
   cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(tmp, "balislam"), { recursive: true, filter: (s) => !/[\\/](voice|out)([\\/]|$)/.test(s) });
+  // الحلقة التجريبية للاختبارات (القنوات نفسها تبدأ بلا حلقات)
+  cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
   process.env.BAL_CHANNELS_DIR = tmp;
   process.env.BAL_CHANNEL = "balislam";
 });
