@@ -8,7 +8,6 @@ import { SceneShell } from "./SceneShell";
 import { isPerson, People } from "./People";
 import { useLang } from "../../i18n/context";
 import { clamp, seeded, useSceneFrame } from "./motion";
-import { localDigits } from "../../i18n/packs";
 import { estimateTimings, type WordTiming } from "./timing";
 import { parseBeats, sentenceGroups, wordElement, type Beat } from "../../plan/beats";
 import type { SceneBase, StringFields } from "./types";
@@ -291,23 +290,8 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
         </div>
 
         {satNodes}
-        {/* رقم اللحظة الكبير المفرَّغ + العنوان */}
-        <div style={{ position: "absolute", left: headX - headW / 2, width: headW, top: headY - (portrait ? 40 : 170), textAlign: "center", opacity: 1 - outT, transform: `translateY(${-outT * 60}px)` }}>
-          <div
-            style={{
-              fontFamily: fontFamilies.heading,
-              fontSize: portrait ? 150 : 190,
-              fontWeight: 700,
-              lineHeight: 1,
-              color: "transparent",
-              WebkitTextStroke: `2px ${gold}55`,
-              opacity: interpolate(frame, [st, st + 14], [0, 1], clamp),
-              transform: `translateY(${(1 - enterOf(st, 2)) * 30}px)`,
-              marginBottom: portrait ? -60 : -80,
-            }}
-          >
-            {lang.digits === "arab" ? localDigits(i + 1, lang) : String(i + 1).padStart(2, "0")}
-          </div>
+        {/* العنوان (بلا رقم للحظة: لا رقم على الشاشة لا يُنطق في الكلام) */}
+        <div style={{ position: "absolute", left: headX - headW / 2, width: headW, top: headY - (portrait ? -50 : 60), textAlign: "center", opacity: 1 - outT, transform: `translateY(${-outT * 60}px)` }}>
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `0 ${headSize * 0.26}px`, direction: lang.dir }}>
             {words.map((w, k) => {
               const s = enterOf(st, 8 + k * 5, 150, 12);
