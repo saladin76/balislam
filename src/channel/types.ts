@@ -61,6 +61,8 @@ export type ChannelConfig = {
    * مكتبة القناة: ما يستبعده صاحب القناة منها لأنه لا يناسب هويتها (أداة حديثة في قناة تاريخ، مكان برسومات قديمة…).
    * خاص بهذه القناة وحدها؛ والملفات تبقى في المحرك المشترك لبقية القنوات.
    */
+  /** قواعد السكريبت الخاصة بالقناة: fixedChapters=false عدد الفصول وطولها حر، practicalStep=false بلا «الخطوة العملية» */
+  script?: { fixedChapters?: boolean; practicalStep?: boolean };
   library?: { exclude?: { elements?: string[]; categories?: string[]; sets?: string[]; templates?: string[] }; /** «illus»: شخصيات القناة وأماكنها المصوَّرة الجديدة (src/remotion/illus) بدل القديمة في الاستوديو */ cast?: "illus" };
   /** footer: سطر ثابت في آخر كل وصف (توقيع القناة)، ولا يذكر أدوات الإنتاج أبدًا */
   youtube: { tags: string[]; postingTime: string; footer: string };

@@ -67,6 +67,10 @@
       "حسن"
     ]
   },
+  "script": {
+    "fixedChapters": false,
+    "practicalStep": false
+  },
   "library": {
     "exclude": {
       "elements": [
