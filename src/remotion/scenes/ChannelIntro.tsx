@@ -8,15 +8,17 @@ import type { ChannelInfo } from "../../channel/types";
 import type { Plan } from "../../plan/types";
 import type { Orientation } from "./types";
 import { MihrabIntro, MIHRAB_FRAMES } from "./MihrabIntro";
+import { HighlighterIntro, HIGHLIGHTER_FRAMES, HorizonIntro, HORIZON_FRAMES } from "./BrandIntros";
 
 /**
  * افتتاحية القناة (بصمتها الثابتة): ثانيتان ونصف في أول الحلقة الطويلة فقط، لا في الشورت.
- * mihrab: «محراب النور» الهوية المعتمدة لبالإسلام (٣٫٥ ثانية) · ink: الافتتاحية القديمة لبالإسلام · archive: ختم شمع على رَقّ قديم (دفاتر الزمن) · book: كتاب يُفتح ويخرج منه الاسم (زبدة الكتب)
+ * المعتمدة: mihrab «محراب النور» (بالإسلام) · horizon «دفتر الأفق» (دفاتر الزمن) · highlighter «القلم المميِّز» (زبدة الكتب).
+ * القديمة: ink: الافتتاحية القديمة لبالإسلام · archive: ختم شمع على رَقّ قديم (دفاتر الزمن) · book: كتاب يُفتح ويخرج منه الاسم (زبدة الكتب)
  */
 export const INTRO_FRAMES = 75;
-export type IntroKind = "mihrab" | "ink" | "archive" | "book";
+export type IntroKind = "mihrab" | "horizon" | "highlighter" | "ink" | "archive" | "book";
 /** مدة كل افتتاحية بالإطارات */
-export const introFrames = (k: IntroKind) => (k === "mihrab" ? MIHRAB_FRAMES : INTRO_FRAMES);
+export const introFrames = (k: IntroKind) => (k === "mihrab" ? MIHRAB_FRAMES : k === "horizon" ? HORIZON_FRAMES : k === "highlighter" ? HIGHLIGHTER_FRAMES : INTRO_FRAMES);
 
 export const introKindFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro">, chapter?: number): IntroKind | null => {
   if (chapter || plan?.intro === false) return null;
@@ -37,7 +39,7 @@ export const ChannelIntro: React.FC<{ kind: IntroKind; orientation: Orientation 
   const portrait = orientation === "portrait";
   return (
     <AbsoluteFill style={{ opacity: out }}>
-      {kind === "mihrab" ? <MihrabIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "ink" ? <InkIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "archive" ? <ArchiveIntro frame={frame} fps={fps} portrait={portrait} /> : <BookIntro frame={frame} fps={fps} portrait={portrait} />}
+      {kind === "mihrab" ? <MihrabIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "horizon" ? <HorizonIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "highlighter" ? <HighlighterIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "ink" ? <InkIntro frame={frame} fps={fps} portrait={portrait} /> : kind === "archive" ? <ArchiveIntro frame={frame} fps={fps} portrait={portrait} /> : <BookIntro frame={frame} fps={fps} portrait={portrait} />}
     </AbsoluteFill>
   );
 };

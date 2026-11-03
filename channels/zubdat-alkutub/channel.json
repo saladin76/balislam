@@ -8,7 +8,7 @@
   "masterTheme": "paper",
   "logo": {
     "type": "emblem",
-    "emblem": "bookmark-star"
+    "emblem": "highlighter-z"
   },
   "domains": {
     "self": {
@@ -51,8 +51,8 @@
     "shortsPerDay": 1
   },
   "brand": {
-    "intro": "book",
-    "thumbnail": "cover"
+    "intro": "highlighter",
+    "thumbnail": "highlighter"
   },
   "styles": [
     "sketch-board",

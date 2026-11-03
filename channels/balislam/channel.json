@@ -6,7 +6,8 @@
   "description": "الحياة بعين الإسلام: النفس، والأسرة، والمال، والعلم.",
   "masterTheme": "warm",
   "logo": {
-    "type": "baa"
+    "type": "emblem",
+    "emblem": "mihrab"
   },
   "domains": {
     "psychology": {
@@ -61,7 +62,7 @@
   },
   "brand": {
     "intro": "mihrab",
-    "thumbnail": "circle"
+    "thumbnail": "mihrab"
   },
   "styles": [
     "board",

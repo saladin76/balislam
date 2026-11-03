@@ -69,6 +69,8 @@ export type Identity = {
   };
   /** عناصر الشاشة الافتراضية للقناة (يمكن تغييرها لكل حلقة ولكل مشهد) */
   overlays?: Partial<Overlays>;
+  /** خطوط هوية القناة: العناوين والنصوص والشعار (أسماء عائلات محمّلة في brand/fonts.ts) */
+  fonts?: { heading?: string; body?: string; wordmark?: string };
 };
 
 export const defaultIdentity = identityJson as unknown as Identity;
@@ -91,7 +93,14 @@ const Ctx = createContext<Resolved>(defaultResolved);
 /** يلفّ المعاينة بهوية معدّلة (من الاستوديو) قبل حفظها. بدونه تُستخدم الهوية المحفوظة. */
 export const IdentityProvider: React.FC<{ identity: Identity; children: React.ReactNode }> = ({ identity, children }) => {
   const value = useMemo(() => resolve(identity), [identity]);
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  // خطوط القناة تمر كمتغيرات CSS، فتأخذها كل القوالب عبر fontFamilies بلا تعديل فيها
+  const f = identity.fonts ?? {};
+  const vars = { display: "contents", ...(f.heading ? { "--bal-heading": `'${f.heading}'` } : {}), ...(f.body ? { "--bal-body": `'${f.body}'` } : {}), ...(f.wordmark ? { "--bal-wordmark": `'${f.wordmark}'` } : {}) } as React.CSSProperties;
+  return (
+    <Ctx.Provider value={value}>
+      <div style={vars}>{children}</div>
+    </Ctx.Provider>
+  );
 };
 
 export const useTheme = (id: ThemeId): Theme => useContext(Ctx).themes[id];

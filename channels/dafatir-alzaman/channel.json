@@ -7,7 +7,7 @@
   "masterTheme": "warm",
   "logo": {
     "type": "emblem",
-    "emblem": "scroll-seal"
+    "emblem": "horizon-book"
   },
   "domains": {
     "islamic": {
@@ -49,8 +49,8 @@
     "shortsPerDay": 1
   },
   "brand": {
-    "intro": "archive",
-    "thumbnail": "archive",
+    "intro": "horizon",
+    "thumbnail": "horizon",
     "sceneLook": "cinema"
   },
   "styles": [

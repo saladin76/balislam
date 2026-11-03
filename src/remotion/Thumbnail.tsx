@@ -27,6 +27,9 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({ identity, channel, lang, .
 const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = (props) => {
   useBrandFonts();
   const style = useChannel().brand?.thumbnail ?? "circle";
+  if (style === "mihrab") return <MihrabThumb {...props} />;
+  if (style === "horizon") return <HorizonThumb {...props} />;
+  if (style === "highlighter") return <HighlighterThumb {...props} />;
   if (style === "archive") return <ArchiveThumb {...props} />;
   if (style === "cover") return <CoverThumb {...props} />;
   return <CircleThumb {...props} />;
@@ -143,6 +146,114 @@ const CircleThumb: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang"
       <div style={{ position: "absolute", top: 34, insetInlineStart: 40, display: "flex", alignItems: "center", gap: 12 }}>
         <ChannelLogo theme={t} size={64} />
         <span style={{ fontFamily: fontFamilies.wordmark, fontWeight: 700, fontSize: 34, color: c.ink }}><ChannelName /></span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ———————— أساليب الهويات المعتمدة (٣ نوفمبر ٢٠٢٦) ————————
+
+const titleSize = (title: string, big: number) => (title.length > 34 ? big * 0.74 : title.length > 22 ? big * 0.86 : big);
+type Inner = Omit<ThumbnailProps, "identity" | "channel" | "lang">;
+
+/** بالإسلام «محراب النور»: ليل زمردي، محراب نحاسي يضيء بالفجر وفيه العنصر، عنوان بالرقعة وكلمته بلون الفجر. */
+const MihrabThumb: React.FC<Inner> = ({ title, highlight, element }) => {
+  const t = useTheme("night");
+  const el = element && hasElement(element) ? element : "question-mark";
+  const groups = splitTitle(title, highlight);
+  const size = titleSize(title, 112);
+  return (
+    <AbsoluteFill style={{ background: "#0B1F1C", direction: useLang().dir, overflow: "hidden" }}>
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at 22% 60%, rgba(242,179,91,0.28) 0%, rgba(242,179,91,0) 45%), radial-gradient(ellipse at 70% 40%, #14382F 0%, #0B1F1C 70%)" }} />
+      <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
+        <defs>
+          <linearGradient id="th-dawn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#F2B35B" stopOpacity={0.8} /><stop offset="0.8" stopColor="#F2B35B" stopOpacity={0.06} /></linearGradient>
+        </defs>
+        <g transform="translate(110 70)">
+          <path d="M0 650 V250 A190 190 0 0 1 380 250 V650 Z" fill="url(#th-dawn)" />
+          <path d="M0 650 V250 A190 190 0 0 1 380 250 V650" fill="none" stroke="#C9A24A" strokeWidth={10} />
+          <path d="M190 76 L222 108 L190 140 L158 108 Z M167 85 H213 V131 H167 Z" fill="none" stroke="#C9A24A" strokeWidth={5} />
+        </g>
+      </svg>
+      <div style={{ position: "absolute", left: 140, top: 240, width: 320, height: 320, display: "grid", placeItems: "center" }}>
+        <Element id={el} theme={t} size={300} />
+      </div>
+      <div style={{ position: "absolute", insetInlineStart: 60, top: 0, bottom: 0, width: 690, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ fontFamily: fontFamilies.ruqaa, fontWeight: 700, fontSize: size, lineHeight: 1.35, color: "#F4EEE2", display: "flex", flexWrap: "wrap", gap: "0 22px", textShadow: "0 6px 28px rgba(0,0,0,0.6)" }}>
+          {groups.map((g, i) => (g.on ? <span key={i} style={{ color: "#F2B35B" }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 30, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 12 }}>
+        <ChannelLogo theme={t} size={58} tile={false} />
+        <span style={{ fontFamily: fontFamilies.ruqaa, fontWeight: 700, fontSize: 34, color: "#F4EEE2" }}><ChannelName /></span>
+        <span style={{ width: 16, height: 16, borderRadius: 3, background: "#C2412D" }} />
+      </div>
+      <AbsoluteFill style={{ boxShadow: "inset 0 0 160px 30px #0B1F1C" }} />
+    </AbsoluteFill>
+  );
+};
+
+/** دفاتر الزمن «دفتر الأفق»: سماء غروب فوق خط الأفق وخريطة عتيقة تحته، والعنوان بالأميري. */
+const HorizonThumb: React.FC<Inner> = ({ title, highlight, element }) => {
+  const t = useTheme("night");
+  const el = element && hasElement(element) ? element : "scroll";
+  const groups = splitTitle(title, highlight);
+  const size = titleSize(title, 104);
+  const year = title.match(/[0-9٠-٩]{3,4}/)?.[0];
+  return (
+    <AbsoluteFill style={{ direction: useLang().dir, overflow: "hidden", background: "linear-gradient(180deg, #120C1E 0%, #2A1E3F 30%, #6B3552 56%, #C8603A 72%, #E07A3F 76%, #EADBC0 76%, #E3D2B3 100%)" }}>
+      <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
+        <defs><clipPath id="th-sky"><rect x={0} y={0} width={1280} height={547} /></clipPath></defs>
+        <circle cx={290} cy={547} r={200} fill="#F3C98B" clipPath="url(#th-sky)" />
+        {Array.from({ length: 50 }, (_, i) => <circle key={i} cx={(Math.sin(i * 91.7) * 0.5 + 0.5) * 1280} cy={(Math.sin(i * 37.3) * 0.5 + 0.5) * 220} r={1.5} fill="#F3E9DA" opacity={0.5} />)}
+        <path d="M0 547 H1280" stroke="#2B1E14" strokeWidth={5} />
+        {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M${i * 120 + 60} 547 V${i % 4 === 0 ? 575 : 562}`} stroke="#2B1E14" strokeWidth={4} />)}
+        <path d="M60 660 C200 600 320 690 470 630 S700 600 760 640" fill="none" stroke="#7E2A22" strokeWidth={5} strokeDasharray="14 12" />
+        <circle cx={760} cy={640} r={12} fill="#7E2A22" />
+      </svg>
+      <div style={{ position: "absolute", left: 140, top: 230, width: 300, height: 300, display: "grid", placeItems: "center", filter: "drop-shadow(0 12px 24px rgba(18,12,30,0.5))" }}>
+        <Element id={el} theme={t} size={280} />
+      </div>
+      <div style={{ position: "absolute", insetInlineStart: 60, top: 40, height: 480, width: 700, display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
+        {year ? <span style={{ alignSelf: "flex-start", fontFamily: fontFamilies.mono, fontSize: 34, color: "#F3E9DA", background: "#D7372B", padding: "2px 16px", direction: "ltr" }}>{year}</span> : null}
+        <div style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: size, lineHeight: 1.3, color: "#F3E9DA", display: "flex", flexWrap: "wrap", gap: "0 22px", textShadow: "0 6px 26px rgba(18,12,30,0.75)" }}>
+          {groups.map((g, i) => (g.on ? <span key={i} style={{ color: "#F3C98B" }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 26, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 12 }}>
+        <ChannelLogo theme={t} size={64} tile={false} />
+        <span style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: 34, color: "#2B1E14" }}><ChannelName /></span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** زبدة الكتب «القلم المميِّز»: أبيض، بطاقة كتاب سوداء مائلة، والعنوان بخط ثقيل وكلمته مظلّلة بالفسفوري. */
+const HighlighterThumb: React.FC<Inner> = ({ title, highlight, element }) => {
+  const t = useTheme("paper");
+  const el = element && hasElement(element) ? element : "book-open";
+  const groups = splitTitle(title, highlight);
+  const size = titleSize(title, 118);
+  return (
+    <AbsoluteFill style={{ background: "#FFFFFF", direction: useLang().dir, overflow: "hidden" }}>
+      <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
+        {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M0 ${(i + 1) * 64} H1280`} stroke="#111111" strokeOpacity={0.05} strokeWidth={2} />)}
+      </svg>
+      <div style={{ position: "absolute", left: 90, top: 110, width: 330, height: 480, background: "#111111", borderRadius: 10, transform: "rotate(-6deg)", boxShadow: "22px 26px 0 rgba(17,17,17,0.12)" }}>
+        <div style={{ margin: "56px 34px 0", height: 26, background: "#E8F542" }} />
+        <div style={{ margin: "22px 34px 0 90px", height: 16, background: "#FFFFFF", opacity: 0.45 }} />
+        <div style={{ position: "absolute", left: 50, bottom: 70, width: 230, height: 230, borderRadius: "50%", background: "#FFFFFF", display: "grid", placeItems: "center" }}>
+          <Element id={el} theme={t} size={190} />
+        </div>
+      </div>
+      <div style={{ position: "absolute", insetInlineStart: 60, top: 0, bottom: 0, width: 700, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ fontFamily: fontFamilies.bold, fontSize: size, lineHeight: 1.3, color: "#111111", display: "flex", flexWrap: "wrap", gap: "0 24px" }}>
+          {groups.map((g, i) => (g.on ? <span key={i} style={{ background: "#E8F542", padding: "0 14px" }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 30, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 10 }}>
+        <ChannelLogo theme={t} size={60} tile={false} />
+        <span style={{ fontFamily: fontFamilies.bold, fontSize: 34, color: "#111111" }}><ChannelName /></span>
       </div>
     </AbsoluteFill>
   );

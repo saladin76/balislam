@@ -40,6 +40,17 @@ const LtrPreview: React.FC<{ entryId: string; lang: string } & Record<string, un
   );
 };
 
+/** معاينة أي قالب بهوية قناة محددة (تُمرَّر الهوية والقناة من inputProps). */
+const ChannelScenePreview: React.FC<{ entryId: string; identity?: Identity; channel?: ChannelInfo } & Record<string, unknown>> = ({ entryId, identity, channel, ...props }) => {
+  const entry = sceneCatalog.find((e) => e.id === entryId)!;
+  const C = entry.component;
+  return (
+    <Providers identity={identity} channel={channel}>
+      <C {...entry.sample} {...props} />
+    </Providers>
+  );
+};
+
 const sizes = {
   landscape: { width: config.video.episode.width, height: config.video.episode.height },
   portrait: { width: config.video.short.width, height: config.video.short.height },
@@ -64,6 +75,9 @@ export const RemotionRoot: React.FC = () => (
         )),
       ),
     )}
+    {orientations.map((o) => (
+      <Composition key={`chscene-${o}`} id={`channel-scene-${o}`} component={ChannelScenePreview} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes[o]} defaultProps={{ entryId: "motion-story", themeId: "night" as const, orientation: o }} />
+    ))}
     {orientations.map((o) => (
       <Composition key={`intro-${o}`} id={`channel-intro-${o}`} component={IntroPreview} durationInFrames={MIHRAB_FRAMES} fps={config.video.fps} {...sizes[o]} defaultProps={{ kind: "mihrab" as IntroKind, orientation: o }} />
     ))}

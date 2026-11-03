@@ -2,156 +2,160 @@
   "version": 1,
   "themes": {
     "paper": {
-      "nameAr": "صفحة بيضاء",
+      "nameAr": "ورقة بيضاء",
       "domain": "psychology",
       "domainAr": "النفس والسلوك",
       "colors": {
-        "bg": "#F5F3EE",
-        "surface": "#FFFFFF",
-        "ink": "#16232B",
-        "inkSoft": "#4E5D66",
-        "primary": "#0F6E6E",
-        "secondary": "#FFB547",
-        "highlight": "#FFD58A",
-        "onHighlight": "#16232B",
-        "captionBg": "#16232B",
-        "captionInk": "#F5F3EE"
+        "bg": "#FFFFFF",
+        "surface": "#F4F4F1",
+        "ink": "#111111",
+        "inkSoft": "#4A4A4A",
+        "primary": "#111111",
+        "secondary": "#FF6B4A",
+        "highlight": "#E8F542",
+        "onHighlight": "#111111",
+        "captionBg": "#111111",
+        "captionInk": "#FFFFFF"
       },
       "logo": {
-        "tile": "#0A161C",
-        "baa": "#F2C46D",
-        "play": "#F7EBD3"
+        "tile": "#FFFFFF",
+        "baa": "#111111",
+        "play": "#E8F542",
+        "ink": "#111111"
       },
       "character": {
-        "style": "line",
-        "outline": "#1B1B1B",
+        "style": "flat",
+        "outline": "#111111",
         "skin": [
           "#FFFDF8",
           "#FFFDF8"
         ],
         "garments": [
-          "#FFFDF8",
-          "#FFFDF8",
-          "#FFFDF8",
-          "#FFFDF8",
-          "#FFFDF8"
+          "#111111",
+          "#FF6B4A",
+          "#E8F542",
+          "#6A6A6A",
+          "#DCD6C8"
         ],
         "cap": "#0F6E6E"
       },
       "motif": "ink-lines"
     },
     "family": {
-      "nameAr": "أفكار دافئة",
+      "nameAr": "ورقة لاصقة",
       "domain": "family",
       "domainAr": "الأسرة والعلاقات",
       "colors": {
-        "bg": "#F8EFE6",
+        "bg": "#F1EDE4",
         "surface": "#FFFFFF",
-        "ink": "#2A1F1A",
-        "inkSoft": "#64554C",
-        "primary": "#D9663B",
-        "secondary": "#0F6E6E",
-        "highlight": "#FFD3B5",
-        "onHighlight": "#2A1F1A",
-        "captionBg": "#2A1F1A",
-        "captionInk": "#F8EFE6"
+        "ink": "#111111",
+        "inkSoft": "#4A4A4A",
+        "primary": "#111111",
+        "secondary": "#FF6B4A",
+        "highlight": "#E8F542",
+        "onHighlight": "#111111",
+        "captionBg": "#111111",
+        "captionInk": "#FFFFFF"
       },
       "logo": {
-        "tile": "#0A161C",
-        "baa": "#F2C46D",
-        "play": "#F7EBD3"
+        "tile": "#FFFFFF",
+        "baa": "#111111",
+        "play": "#E8F542",
+        "ink": "#111111"
       },
       "character": {
         "style": "flat",
-        "outline": "#3A2E39",
+        "outline": "#111111",
         "skin": [
           "#E9C6A8",
           "#D9B08C"
         ],
         "garments": [
-          "#C2566B",
-          "#7FA88E",
-          "#D98C6E",
-          "#5E4E5C",
-          "#4F7A60"
+          "#111111",
+          "#FF6B4A",
+          "#E8F542",
+          "#8A8172",
+          "#DCD6C8"
         ],
         "cap": "#FFFFFF"
       },
       "motif": "house-circles"
     },
     "night": {
-      "nameAr": "قراءة ليلية",
+      "nameAr": "حبر أسود",
       "domain": "money",
       "domainAr": "المال والدنيا والتأمل",
       "colors": {
-        "bg": "#0F1A20",
-        "surface": "#18262E",
-        "ink": "#EEF3F2",
-        "inkSoft": "#A9BAC0",
-        "primary": "#FFB547",
-        "secondary": "#2FA3A3",
-        "highlight": "#FFB547",
-        "onHighlight": "#0F1A20",
-        "captionBg": "#EEF3F2",
-        "captionInk": "#0F1A20"
+        "bg": "#111111",
+        "surface": "#1E1E1E",
+        "ink": "#FFFFFF",
+        "inkSoft": "#BDBDBD",
+        "primary": "#E8F542",
+        "secondary": "#FF6B4A",
+        "highlight": "#E8F542",
+        "onHighlight": "#111111",
+        "captionBg": "#FFFFFF",
+        "captionInk": "#111111"
       },
       "logo": {
-        "tile": "#0A161C",
-        "baa": "#F2C46D",
-        "play": "#F7EBD3"
+        "tile": "#FFFFFF",
+        "baa": "#111111",
+        "play": "#E8F542",
+        "ink": "#111111"
       },
       "character": {
         "style": "flat",
-        "outline": "#0E1A2B",
+        "outline": "#000000",
         "skin": [
           "#E7C3A0",
           "#D2A782"
         ],
         "garments": [
-          "#5FB8AE",
-          "#E2B24C",
-          "#E58E6B",
-          "#33476A",
-          "#5A6F94"
+          "#E8F542",
+          "#FF6B4A",
+          "#FFFFFF",
+          "#6A6A6A",
+          "#BDBDBD"
         ],
         "cap": "#F3EEE3"
       },
       "motif": "stars"
     },
     "warm": {
-      "nameAr": "كلاسيكيات",
+      "nameAr": "كتاب كلاسيكي",
       "domain": "knowledge",
       "domainAr": "العلم والتاريخ والحضارة",
       "colors": {
-        "bg": "#F1E9DC",
-        "surface": "#FFFBF4",
-        "ink": "#22201C",
-        "inkSoft": "#5C564C",
-        "primary": "#5B4BA8",
-        "secondary": "#E8A93B",
-        "highlight": "#F2D58F",
-        "onHighlight": "#22201C",
-        "captionBg": "#22201C",
-        "captionInk": "#F1E9DC"
+        "bg": "#EDE7DA",
+        "surface": "#F8F4EC",
+        "ink": "#111111",
+        "inkSoft": "#4A4A4A",
+        "primary": "#111111",
+        "secondary": "#FF6B4A",
+        "highlight": "#E8F542",
+        "onHighlight": "#111111",
+        "captionBg": "#111111",
+        "captionInk": "#FFFFFF"
       },
       "logo": {
-        "tile": "#0A161C",
-        "baa": "#F2C46D",
-        "play": "#F7EBD3"
+        "tile": "#FFFFFF",
+        "baa": "#111111",
+        "play": "#E8F542",
+        "ink": "#111111"
       },
       "character": {
         "style": "flat",
-        "outline": "#2E3A2A",
+        "outline": "#111111",
         "skin": [
           "#F2D2B0",
           "#DDB58F"
         ],
         "garments": [
-          "#2E3A2A",
-          "#B4532F",
-          "#D9A441",
-          "#7A5A44",
-          "#4A5546"
+          "#111111",
+          "#FF6B4A",
+          "#E8F542",
+          "#7A6A55",
+          "#B8AE98"
         ],
         "cap": "#FBF6EE"
       },
@@ -161,79 +165,79 @@
   "palettes": {
     "paper": {
       "style": "line",
-      "edge": "#16232B",
+      "edge": "#111111",
       "stroke": "#1B1B1B",
       "sw": 3,
-      "line": "#16232B",
+      "line": "#111111",
       "lw": 3,
-      "main": "#0F6E6E",
-      "second": "#FFB547",
-      "accent": "#1E6B5C",
-      "light": "#FFFFFF",
-      "dark": "#16232B",
+      "main": "#111111",
+      "second": "#FF6B4A",
+      "accent": "#E8F542",
+      "light": "#F4F4F1",
+      "dark": "#111111",
       "skin": "#FFFDF8",
-      "metal": "#9FDCCB",
+      "metal": "#E8F542",
       "wood": "#FFFDF8",
       "green": "#9FDCCB",
       "water": "#9FDCCB",
-      "shadow": "rgba(27,27,27,0.10)"
+      "shadow": "rgba(0,0,0,0.18)"
     },
     "family": {
       "style": "flat",
-      "edge": "#3A2E39",
+      "edge": "#111111",
       "stroke": "none",
       "sw": 0,
-      "line": "#3A2E39",
+      "line": "#111111",
       "lw": 3,
-      "main": "#D9663B",
-      "second": "#0F6E6E",
-      "accent": "#F2C7A5",
+      "main": "#111111",
+      "second": "#FF6B4A",
+      "accent": "#E8F542",
       "light": "#FFFFFF",
-      "dark": "#3A2E39",
+      "dark": "#111111",
       "skin": "#E9C6A8",
-      "metal": "#E0A458",
+      "metal": "#E8F542",
       "wood": "#B07A5B",
       "green": "#7FA88E",
       "water": "#8FB8C9",
-      "shadow": "rgba(58,46,57,0.12)"
+      "shadow": "rgba(0,0,0,0.18)"
     },
     "night": {
       "style": "flat",
-      "edge": "#C9D3E3",
+      "edge": "#BDBDBD",
       "stroke": "none",
       "sw": 0,
-      "line": "#0E1A2B",
+      "line": "#000000",
       "lw": 3,
-      "main": "#FFB547",
-      "second": "#2FA3A3",
-      "accent": "#E2B24C",
-      "light": "#EEF3F2",
-      "dark": "#0F1A20",
+      "main": "#E8F542",
+      "second": "#FF6B4A",
+      "accent": "#FFFFFF",
+      "light": "#1E1E1E",
+      "dark": "#000000",
       "skin": "#E7C3A0",
-      "metal": "#E2B24C",
+      "metal": "#FFFFFF",
       "wood": "#8A6A55",
       "green": "#5FB8AE",
       "water": "#5A6F94",
-      "shadow": "rgba(0,0,0,0.25)"
+      "shadow": "rgba(0,0,0,0.18)"
     },
     "warm": {
       "style": "flat",
-      "edge": "#2E3A2A",
+      "edge": "#111111",
       "stroke": "none",
       "sw": 0,
-      "line": "#2E3A2A",
+      "line": "#111111",
       "lw": 3,
-      "main": "#5B4BA8",
-      "second": "#E8A93B",
-      "accent": "#4A5546",
-      "light": "#FBF6EE",
-      "dark": "#2E3A2A",
+      "main": "#111111",
+      "second": "#FF6B4A",
+      "accent": "#E8F542",
+      "light": "#F8F4EC",
+      "dark": "#111111",
       "skin": "#F2D2B0",
-      "metal": "#D9A441",
+      "metal": "#E8F542",
       "wood": "#7A5A44",
       "green": "#6E8A5A",
       "water": "#7FA3A8",
-      "shadow": "rgba(46,58,42,0.12)"
+      "shadow": "rgba(0,0,0,0.18)"
     }
   },
   "typography": {
@@ -275,5 +279,10 @@
     "chapterLabel": true,
     "motif": true,
     "watermark": false
+  },
+  "fonts": {
+    "heading": "Lalezar",
+    "body": "Tajawal",
+    "wordmark": "Lalezar"
   }
 }

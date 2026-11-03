@@ -116,12 +116,12 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
   const orbs = [
     { x: 0.22, y: 0.28, r: 0.55, col: gold, a: 0.16, sp: 170 },
     { x: 0.82, y: 0.72, r: 0.6, col: teal, a: 0.14, sp: 210 },
-    { x: 0.6, y: 0.15, r: 0.35, col: "#7A8CFF", a: 0.08, sp: 150 },
+    { x: 0.6, y: 0.15, r: 0.35, col: c.inkSoft, a: 0.06, sp: 150 },
   ];
   const grainPos = `${Math.floor(seeded(Math.floor(frame / 2)) * 220)}px ${Math.floor(seeded(Math.floor(frame / 2) + 9) * 220)}px`;
   const bg = (
     <>
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(120% 90% at 50% 35%, #17304F 0%, ${c.bg} 55%, #070E19 100%)` }} />
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(120% 90% at 50% 35%, ${c.surface} 0%, ${c.bg} 55%, color-mix(in srgb, ${c.bg} 70%, #000) 100%)` }} />
       {orbs.map((o, i) => {
         const x = (o.x + Math.sin(frame / o.sp + i) * 0.05) * W;
         const y = (o.y + Math.cos(frame / o.sp + i * 2) * 0.05) * H;
@@ -242,7 +242,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
           <svg width={W} height={H} style={{ position: "absolute", inset: 0, overflow: "visible", opacity: (1 - outT) * 0.6 }}>
             <line x1={ex} y1={ey} x2={ex + (sx - ex) * line} y2={ey + (sy - ey) * line} stroke={gold} strokeWidth={2} strokeDasharray="4 8" />
           </svg>
-          <div style={{ position: "absolute", left: sx - size / 2, top: sy - size / 2, width: size, height: size, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.16), rgba(255,255,255,0.05) 55%, rgba(10,20,36,0.6))", border: `1.5px solid ${k % 2 ? teal : gold}88`, boxShadow: "0 18px 40px rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${sIn * (1 - 0.6 * outT)}) rotate(${(1 - sIn) * 25}deg)`, opacity: Math.min(1, sIn * 1.5) * (1 - outT) }}>
+          <div style={{ position: "absolute", left: sx - size / 2, top: sy - size / 2, width: size, height: size, borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.16), rgba(255,255,255,0.05) 55%, rgba(0,0,0,0.35))", border: `1.5px solid ${k % 2 ? teal : gold}88`, boxShadow: "0 18px 40px rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${sIn * (1 - 0.6 * outT)}) rotate(${(1 - sIn) * 25}deg)`, opacity: Math.min(1, sIn * 1.5) * (1 - outT) }}>
             {isPerson(x.id) ? <People draw={x.id} t={night} height={size * 0.62} gap={4} /> : <Element id={x.id} theme={night} size={size * 0.62} palette={pal} />}
           </div>
           <div style={{ position: "absolute", left: sx - 160, width: 320, top: sy + size / 2 + 6, textAlign: "center", fontFamily: fontFamilies.heading, fontWeight: 700, fontSize: portrait ? 36 : 30, color: c.ink, opacity: interpolate(frame, [x.at + 6, x.at + 16], [0, 0.9], clamp) * (1 - outT), textShadow: "0 4px 14px rgba(0,0,0,0.8)" }}>{x.word}</div>
@@ -270,7 +270,7 @@ export const MotionStory: React.FC<MotionStoryProps> = (props) => {
               position: "absolute",
               inset: 0,
               borderRadius: "50%",
-              background: `radial-gradient(circle at 35% 28%, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 45%, rgba(10,20,36,0.55) 100%)`,
+              background: `radial-gradient(circle at 35% 28%, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 45%, rgba(0,0,0,0.32) 100%)`,
               boxShadow: `0 40px 90px rgba(0,0,0,0.55), inset 0 0 0 1.5px rgba(255,255,255,0.10), 0 0 120px ${gold}22`,
               overflow: "hidden",
             }}

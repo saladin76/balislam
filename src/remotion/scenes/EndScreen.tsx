@@ -5,6 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import type { Theme } from "../../../brand/themes";
 import { Element } from "../../../brand/elements/Element";
 import { LogoMark } from "../../../brand/logo/Logo";
+import { useChannel } from "../../channel/context";
 import { SceneShell } from "./SceneShell";
 import { T, useLang } from "../../i18n/context";
 import { ChannelName } from "../../channel/context";
@@ -98,9 +99,10 @@ export const EndScreen: React.FC<EndScreenProps> = (props) => {
   const stepLong = step.length > 70;
   const stepSize = Math.round(bubbleSize * (portrait ? (stepLong ? 0.92 : 1) : stepLong ? 0.9 : 1));
 
+  const channelMark = useChannel().logo;
   const logo = (size: number) => (
     <div style={{ display: "flex", alignItems: "center", gap: size * 0.3, opacity: logoIn, transform: `translateY(${(1 - logoIn) * -14 + float(frame, 3 * motion.float, 120)}px)` }}>
-      <LogoMark size={size} colors={t.logo} />
+      <LogoMark size={size} colors={t.logo} mark={channelMark} />
       <span style={{ fontFamily: fontFamilies.wordmark, fontWeight: 700, fontSize: size * 0.56, lineHeight: 1, color: c.ink }}><ChannelName /></span>
     </div>
   );

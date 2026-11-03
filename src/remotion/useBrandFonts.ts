@@ -8,7 +8,7 @@ const loadAll = (): Promise<void> => {
   if (!loading) {
     loading = Promise.all(
       fontFiles.map(async (f) => {
-        const face = new FontFace(f.family, `url(${staticFile(f.file)})`, { weight: f.weight });
+        const face = new FontFace(f.family, `url(${staticFile(f.file)})`, { weight: f.weight, ...(f.unicodeRange ? { unicodeRange: f.unicodeRange } : {}) });
         await face.load();
         document.fonts.add(face);
       }),
