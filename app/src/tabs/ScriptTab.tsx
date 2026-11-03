@@ -20,6 +20,19 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
   const dirty = text !== savedText;
+  // ملف البحث / دراسة الكتاب: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
+  const [doc, setDoc] = useState<"script" | "research">("script");
+  const [research, setResearch] = useState<{ text: string; saved: string; label: string; exists: boolean } | null>(null);
+  useEffect(() => {
+    setResearch(null);
+    if (episodeId) api.research(episodeId).then((r) => setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists })).catch(() => {});
+  }, [episodeId]);
+  const researchDirty = research ? research.text !== research.saved : false;
+  const saveResearch = async () => {
+    if (!research) return;
+    await api.saveResearch(episodeId, research.text);
+    setResearch({ ...research, saved: research.text, exists: true });
+  };
 
   const goToLine = (line: number) => {
     const el = area.current;
@@ -52,7 +65,8 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        if (dirty) void save();
+        if (doc === "research") void saveResearch();
+        else if (dirty) void save();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -67,13 +81,31 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     <div className="work script-grid">
       <div className="editor">
         <div className="toolbar">
-          <b style={{ fontFamily: "var(--f-head)", fontSize: 18 }}>السكريبت</b>
-          <span className="help">العلامات: [مشهد: …] [آية: النجم 39] [حديث: …] [صوت: page-turn] · bridge: …</span>
-          <span className="spacer" />
-          <span className="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{dirty ? "تعديلات غير محفوظة" : "محفوظ"}</span>
-          <button className="btn primary" disabled={!dirty || saving} onClick={save}>{saving ? "جارٍ الحفظ…" : "حفظ (Ctrl+S)"}</button>
+          <div className="seg" role="group" aria-label="الملف">
+            <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
+            {research ? <button aria-pressed={doc === "research"} onClick={() => setDoc("research")}>{research.label}{research.exists ? "" : " (جديد)"}</button> : null}
+          </div>
+          {doc === "script" ? (
+            <>
+              <span className="help">العلامات: [مشهد: …] [آية: النجم 39] [حديث: …] [صوت: page-turn] · bridge: …</span>
+              <span className="spacer" />
+              <span className="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{dirty ? "تعديلات غير محفوظة" : "محفوظ"}</span>
+              <button className="btn primary" disabled={!dirty || saving} onClick={save}>{saving ? "جارٍ الحفظ…" : "حفظ (Ctrl+S)"}</button>
+            </>
+          ) : (
+            <>
+              <span className="help">للتحضير والمراجعة فقط، لا يُقرأ ولا يُنشر. كل معلومة في السكريبت تُربط هنا بمصدرها.</span>
+              <span className="spacer" />
+              <span className="status"><i className={`dot ${researchDirty ? "dirty" : ""}`} />{researchDirty ? "تعديلات غير محفوظة" : research?.exists ? "محفوظ" : "لم يُحفظ بعد"}</span>
+              <button className="btn primary" disabled={!researchDirty} onClick={saveResearch}>حفظ (Ctrl+S)</button>
+            </>
+          )}
         </div>
-        <textarea id="script-editor" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
+        {doc === "script" ? (
+          <textarea id="script-editor" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
+        ) : (
+          <textarea id="research-editor" value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
+        )}
       </div>
       <div className="col side">
         <div className="col-head"><h2>الفحص</h2><span className="spacer" /><span className="help">يتحدث أثناء الكتابة</span></div>

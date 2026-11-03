@@ -266,6 +266,24 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // ملف البحث (دراسة الكتاب في زبدة الكتب): research.md بجوار السكريبت، بقالب القناة إن لم يوجد
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "research") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { resolveScriptPath, templateFor, RESEARCH_FILE } = await load("/src/script/episodes.ts");
+    const file = path.join(path.dirname(await resolveScriptPath(parts[1])), RESEARCH_FILE);
+    const label = ch === "zubdat-alkutub" ? "دراسة الكتاب" : "ملف البحث";
+    if (req.method === "PUT") {
+      const { text } = await readBody(req);
+      if (typeof text !== "string") return send(res, 400, { error: "نص غير صالح." }), true;
+      await writeFile(file, text.endsWith("\n") ? text : `${text}\n`, "utf8");
+      return send(res, 200, { ok: true }), true;
+    }
+    if (existsSync(file)) return send(res, 200, { text: await readFile(file, "utf8"), exists: true, label }), true;
+    const tpl = templateFor(ch, RESEARCH_FILE, false);
+    send(res, 200, { text: tpl ? (await readFile(tpl, "utf8")).replaceAll("{{TITLE}}", "") : "", exists: false, label });
+    return true;
+  }
+
   // سجل التوثيق والاعتماد لكل استشهاد (review.json)
   if (parts[0] === "episodes" && parts[1] && parts[2] === "review") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
