@@ -126,7 +126,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
               <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
               {research ? <button aria-pressed={doc === "research"} onClick={() => setDoc("research")}>{research.label}{research.exists ? "" : " (جديد)"}</button> : null}
             </div>
-          )
+          )}
           {doc === "script" ? (
             <>
               <span className="help">العلامات: [مشهد: …] [آية: النجم 39] [حديث: …] [صوت: page-turn] · bridge: …</span>
