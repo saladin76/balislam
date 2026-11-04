@@ -63,6 +63,16 @@ export const StoryboardPanel: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [episodeId, plan]);
 
+  useEffect(() => {
+    let active = true;
+    api.longJobs().then((jobs) => {
+      if (!active) return;
+      const current = jobs.find((j) => j.kind === "storyboard-motion" && j.episode === episodeId && j.status === "running");
+      if (current) setJob(current);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [episodeId]);
+
   // متابعة قياس الحركة حتى ينتهي
   useEffect(() => {
     if (!job || job.status !== "running") return;
