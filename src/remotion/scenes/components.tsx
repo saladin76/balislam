@@ -107,7 +107,7 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <LightStage {...base} {...p} />;
     case "dua-board":
       // اللوح نفسه يستمر في المشهد التالي: لا إظلام بين المشهدين
-      return <DuaBoard {...base} {...p} continues={next?.template === "dua-board"} />;
+      return <DuaBoard {...base} {...p} continues={next?.template === "dua-board"} fromBoard={prev?.template === "dua-board"} />;
     case "alley-tale": {
       // لقطتان متتاليتان في المكان نفسه: قطع مباشر بلا إظلام بينهما
       const here = p.shot ? SHOTS[p.shot]?.place : undefined;

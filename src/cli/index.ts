@@ -148,6 +148,54 @@ program
   });
 
 program
+  .command("publish-preview")
+  .description("رفع فيديو إلى الاستوديو (تبويب الحلقة ← المعاينات): كل فيديو يُصنع يُرفع، والنسخة الجديدة تحذف القديمة من خانتها")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<file>", "ملف الفيديو")
+  .requiredOption("--slot <slot>", "خانة الفيديو الثابتة (مثل: عينة-ب)")
+  .requiredOption("--title <title>", "عنوان يظهر في الاستوديو")
+  .option("--scenes <ids>", "معرّفات المشاهد بالترتيب (لقياس الحركة مفصولًا: السرد والشرح / النص المقدس)")
+  .option("--note <note>", "ملاحظة قصيرة")
+  .option("--voiced", "الفيديو بالتعليق الصوتي")
+  .option("--master", "نسخة بأعلى جودة")
+  .action(async (episode: string, file: string, opts: { slot: string; title: string; scenes?: string; note?: string; voiced?: boolean; master?: boolean }) => {
+    const { resolveScriptPath } = await import("../script/episodes");
+    const { publishPreview } = await import("../render/episodePreviews");
+    const { measureMotion } = await import("../render/motionMeter");
+    const { motionBySegments, motionKindOf } = await import("../render/motionSegments");
+    const { loadPlan } = await import("../plan/io");
+    const { sceneFrames } = await import("../plan/duration");
+    const { execFileSync } = await import("node:child_process");
+    const scriptPath = await resolveScriptPath(episode);
+    const r = await measureMotion(file);
+    const ids = (opts.scenes ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    let motion = { narrative: r.percent, sacred: null as number | null, total: r.percent };
+    if (ids.length) {
+      const plan = await loadPlan(episode);
+      const all = (plan?.chapters ?? []).flatMap((c) => c.scenes);
+      let t = 0;
+      const spans = ids.map((id) => {
+        const s = all.find((x) => x.id === id);
+        if (!s) throw new Error(`المشهد ${id} غير موجود في الخطة`);
+        const d = sceneFrames(s) / 30;
+        const sp = { from: t, to: t + d, kind: motionKindOf(s) };
+        t += d;
+        return sp;
+      });
+      const seg = motionBySegments(r, spans);
+      motion = { narrative: seg.narrative.percent, sacred: seg.sacred.seconds ? seg.sacred.percent : null, total: r.percent };
+    }
+    let branch: string | undefined;
+    try {
+      branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: projectRoot }).toString().trim();
+    } catch {
+      branch = undefined;
+    }
+    const list = await publishPreview(scriptPath, file, { slot: opts.slot, title: opts.title, quality: opts.master ? "master" : "preview", voiced: Boolean(opts.voiced), scenes: ids, branch, seconds: r.seconds, motion, note: opts.note });
+    console.log(`رُفع إلى الاستوديو: ${list[0]!.file} (الخانة ${list[0]!.slot}، النسخة ${list[0]!.version}). الحركة: السرد والشرح ${motion.narrative}%${motion.sacred === null ? "" : `، النص المقدس ${motion.sacred}%`}.`);
+  });
+
+program
   .command("app")
   .description("فتح الاستوديو في المتصفح")
   .action(async () => {

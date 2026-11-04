@@ -50,6 +50,7 @@ const ShotScene: React.FC<AlleyTaleProps> = (props) => {
       <AbsoluteFill>
         <svg viewBox={vb} preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
           <g transform={camTransform(c, drift)}>{shot.world}</g>
+          {shot.overlay && !portrait ? shot.overlay : null}
           <Grade w={WW} h={WH} tint={shot.tint} tintOpacity={shot.tintOpacity} vignette={0.5} />
           <Texture kind="grain" w={WW} h={WH} opacity={0.18} tile={256} blend="overlay" />
         </svg>

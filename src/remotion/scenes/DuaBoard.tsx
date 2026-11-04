@@ -21,7 +21,7 @@ import type { SceneBase, StringFields } from "./types";
  *   glow1 / glow2 / glowall (إضاءة عمود)، grow3 (تكبر الكلمات المغرية)، clear (تمحى كلمات الشرح بهدوء).
  * الكلمة المكررة تُحدَّد بترتيبها: «وارزقنا#2».
  */
-export type DuaBoardProps = SceneBase & StringFields<"dua" | "asks" | "heads" | "source" | "shown" | "cues"> & { continues?: boolean };
+export type DuaBoardProps = SceneBase & StringFields<"dua" | "asks" | "heads" | "source" | "shown" | "cues"> & { continues?: boolean; fromBoard?: boolean };
 
 type Cue = { item: string; at: number; word?: string };
 
@@ -99,6 +99,8 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
   const out = props.continues ? 1 : exit(frame, dur, 10);
   const anyBefore = shownOrder.length > 0;
   const paperIn = anyBefore ? 1 : p01(frame, 0, 20);
+  // العودة إلى اللوح بعد مشهد مرسوم: يظهر بهدوء
+  const fadeIn = !anyBefore || props.fromBoard ? 1 : p01(frame, 0, 10);
 
   // آخر تركيز حتى الآن
   const focusEvents: { n: number; at: number }[] = [
@@ -109,7 +111,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
     let v = 0;
     for (const e of focusEvents) {
       const k = p01(frame, e.at, 12);
-      v = v + ((e.n === n ? 1 : 0) - v) * k;
+      v = v + ((String(e.n).includes(String(n)) && e.n !== 0 ? 1 : 0) - v) * k;
     }
     return v;
   };
@@ -175,7 +177,8 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
   const camFor = (id: string): Cam => {
     if (/^c[1-4]$/.test(id)) {
       const c = cell(Number(id[1]));
-      return { x: c.x + c.w / 2, y: c.y + c.h / 2, z: 2.3, ay: 475 };
+      // الخانة مع رقمها كاملة في الإطار، وفوق منطقة أسفل الشاشة
+      return { x: c.x + c.w / 2, y: c.y + (c.h - 30) / 2, z: 2.05, ay: 480 };
     }
     if (id === "r1" || id === "r2") {
       const r = ROW[id === "r1" ? 0 : 1]!;
@@ -202,14 +205,14 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
   const win = portrait ? { x: 20, y: 300, w: width - 40, h: 1300 } : { x: 40, y: 140, w: width - 80, h: 925 };
   const z = base * cam.z;
   const tx = win.w / 2 - cam.x * z;
-  const ty = (portrait ? win.h / 2 : cam.ay - win.y) - cam.y * z + (1 - paperIn) * 40;
+  const ty = (portrait ? win.h / 2 : cam.ay - win.y) - cam.y * z;
   const top = win.y;
 
   // الحالة الكبيرة للدعاء ثم استقراره في أعلى الورقة
   const bigY = 270;
-  const dockY = 30;
+  const dockY = 20;
   const duaY = bigY + (dockY - bigY) * dock;
-  const duaScale = 1 - 0.56 * dock;
+  const duaScale = 1 - 0.6 * dock;
 
   const arrow = (from: number, to: number, prog: number, dim: number, falter: number, alpha = 1) => {
     const a = cell(from);
@@ -237,7 +240,8 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
       <AbsoluteFill style={{ opacity: out }}>
         {/* نور الفجر يتنفس فوق الورقة */}
         <div style={{ position: "absolute", left: "50%", top: top - 220, width: 1800, height: 520, transform: "translateX(-50%)", background: `radial-gradient(50% 50% at 50% 50%, ${ID.dawn} 0%, transparent 70%)`, opacity: 0.16 + 0.12 * breathe }} />
-        <div style={{ position: "absolute", left: win.x, top: win.y, width: win.w, height: win.h, overflow: "hidden", borderRadius: 18 }}>
+        {/* الورقة تملأ النافذة دائمًا: لا فراغ داكن عند تقدم الكاميرا */}
+        <div style={{ position: "absolute", left: win.x, top: win.y + (1 - paperIn) * 40, width: win.w, height: win.h, overflow: "hidden", borderRadius: 18, opacity: paperIn * fadeIn, background: `linear-gradient(180deg, ${ID.paper} 0%, ${mix(ID.paper, ID.copper, 0.08)} 100%)`, boxShadow: "0 30px 80px rgba(0,0,0,0.45)" }}>
         <div
           style={{
             position: "absolute",
@@ -247,11 +251,6 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
             height: BH,
             transform: `translate(${tx}px, ${ty}px) scale(${z})`,
             transformOrigin: "top left",
-            opacity: paperIn,
-            background: `linear-gradient(180deg, ${ID.paper} 0%, ${mix(ID.paper, ID.copper, 0.08)} 100%)`,
-            borderRadius: 22,
-            boxShadow: `0 30px 80px rgba(0,0,0,0.45), inset 0 0 0 3px ${mix(ID.copper, ID.paper, 0.35)}`,
-            overflow: "hidden",
           }}
         >
           {/* مصدر الدعاء: من كلام أهل العلم، بلا نسبة إلى النبي ﷺ */}
@@ -286,23 +285,28 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
           {/* شبكة المطالب الأربعة */}
           {gridAt !== undefined ? (
             <>
-              {(["see", "act"] as const).map((col) => {
-                const c = COL[col];
-                const g = glow(col);
-                return g > 0 ? <div key={col} style={{ position: "absolute", left: c.x - 14, top: ROW[0]!.y - 80, width: c.w + 28, height: ROW[1]!.y + ROW[1]!.h - ROW[0]!.y + 94, borderRadius: 26, background: ID.dawn, opacity: 0.68 * g }} /> : null;
-              })}
               <svg width={BW} height={BH} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
                 {[1, 2, 3, 4].map((n) => {
                   const c = cell(n);
                   const per = 2 * (c.w + c.h);
                   const f = focusAmount(n);
                   const drop = gridAt === undefined || gridAt === -1e4 ? 0 : 1 - p01(frame, gridAt + (n - 1) * 5, 16);
+                  // «أربعة»: كل خانة تومض مرة مع ظهور رقمها، فتُعدّ الأربعة عدًّا
+                  // تضيء واحدة بعد الأخرى وتبقى، ثم تهدأ الأربع معًا مرة واحدة (لا وميض متكرر)
+                  const countAt = when("count") ?? (gridAt === undefined ? undefined : gridAt + 10);
+                  const count = countAt === undefined || countAt === -1e4 ? 0 : p01(frame, countAt + n * 7, 10) * (1 - p01(frame, countAt + 52, 24));
                   return (
-                    <g key={n} transform={`translate(0 ${40 * drop})`} opacity={1 - drop}>
-                      <rect x={c.x} y={c.y} width={c.w} height={c.h} rx={20} fill={ID.dawn} opacity={0.2 * f} />
+                    <g key={n} transform={`translate(0 ${90 * drop})`} opacity={1 - drop}>
+                      <rect x={c.x} y={c.y} width={c.w} height={c.h} rx={20} fill={mix(ID.copper, ID.paper, 0.85)} />
+                      <rect x={c.x} y={c.y} width={c.w} height={c.h} rx={20} fill={ID.dawn} opacity={0.75 * Math.max(f, count)} />
                       <rect x={c.x} y={c.y} width={c.w} height={c.h} rx={20} fill="none" stroke={mix(ID.copper, ID.night, 0.25 * f)} strokeWidth={3 + 2.5 * f} strokeDasharray={per} strokeDashoffset={per * (1 - Math.min(1, grid * 1.4))} />
                     </g>
                   );
+                })}
+                {(["see", "act"] as const).map((col) => {
+                  const c = COL[col];
+                  const g = glow(col);
+                  return g > 0 ? <rect key={col} x={c.x - 14} y={ROW[0]!.y - 14} width={c.w + 28} height={ROW[1]!.y + ROW[1]!.h - ROW[0]!.y + 28} rx={26} fill={ID.dawn} opacity={0.55 * g} /> : null;
                 })}
                 {arrow(1, 2, reachProg, stall === undefined ? 0 : p01(frame, stall, 12), stall === undefined ? 0 : p01(frame, stall, 4) * (1 - p01(frame, stall + 30, 10)), reachFade)}
                 {arrow(1, 2, p("link12", 26), 0, 0)}
@@ -323,7 +327,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                 const k = p(h, 20);
                 if (!k) return null;
                 return (
-                  <div key={h} style={{ position: "absolute", left: c.x, width: c.w, top: ROW[0]!.y - 78, height: 66, borderRadius: 16, background: mix(ID.copper, ID.paper, 0.45), clipPath: `inset(0 0 0 ${(1 - k) * 100}%)`, textAlign: "center", fontFamily: fontFamilies.ruqaa, fontSize: 50, lineHeight: "62px", color: darken(ID.night, 0.1) }}>
+                  <div key={h} style={{ position: "absolute", left: c.x, width: c.w, top: ROW[0]!.y - 78, height: 66, borderRadius: 16, background: mix(ID.copper, ID.paper, 0.3), clipPath: `inset(0 0 0 ${(1 - k) * 100}%)`, textAlign: "center", fontFamily: fontFamilies.ruqaa, fontSize: 50, lineHeight: "62px", color: darken(ID.night, 0.1) }}>
                     {heads[i]}
                   </div>
                 );
@@ -352,7 +356,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                             style={{
                               fontFamily: fontFamilies.body,
                               fontWeight: 600,
-                              fontSize: 34,
+                              fontSize: 36,
                               lineHeight: 1.35,
                               color: pill ? darken(ID.night, 0.1) : ID.paper,
                               background: x.kind === "warn" ? ID.seal : pill ? ID.dawn : mix(ID.night, ID.copper, 0.12),
@@ -374,6 +378,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
             </>
           ) : null}
         </div>
+        <div style={{ position: "absolute", inset: 0, borderRadius: 18, boxShadow: `inset 0 0 0 3px ${mix(ID.copper, ID.paper, 0.35)}`, pointerEvents: "none" }} />
         </div>
         {cues.some((c) => c.item === "dua") ? null : (
           <TopCaption frame={frame} fps={fps} timings={timings} keys={cues.map((c) => c.word ?? "").filter((w) => w && !w.includes("#"))} portrait={portrait} out={out} />

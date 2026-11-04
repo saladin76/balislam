@@ -1,12 +1,13 @@
 import React from "react";
 import { ID, darken, mix } from "../palette";
-import { Figure, LOOKS, POSES, walkPose, type PoseName } from "../Figure";
+import { Figure, LOOKS, POSES, walkPose, type FigureLook, type PoseName } from "../Figure";
 import { GROUND, Glow, useSvgId } from "../world";
 import { LightPool } from "../texture";
 import { SouqStreet, FruitCart } from "./street";
 import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow } from "./interior";
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
+import { BuzzArcs, PhonePOV } from "./phone";
 
 /**
  * اللقطات المصمَّمة: كل لقطة تحكي جملتها بمكانها وشخوصها وكاميرتها، وأحداثها تقع لحظة نطق كلماتها.
@@ -14,10 +15,13 @@ import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type Sh
  * الفصل الأول من الحلقة 001 قصة واحدة متصلة: حادثة في السوق يحكم عليها شاهدان بحكمين،
  * ثم البطل نفسه في يومه: ما يؤثر فيه، وخبر يصدقه، ونصيحة يرفضها، وقرار يدافع عنه، حتى فجر يراجع فيه نفسه.
  */
-export type Shot = { cam: CamKey[]; world: React.ReactNode; tint?: string; tintOpacity?: number };
+/** overlay: طبقة بإحداثيات الشاشة فوق المشهد (لقطة «بعين البطل») */
+export type Shot = { cam: CamKey[]; world: React.ReactNode; tint?: string; tintOpacity?: number; overlay?: React.ReactNode };
 export type ShotDef = { nameAr: string; place: string; render: (c: ShotCtx) => Shot };
 
 const hero = LOOKS.hero;
+/** تأطير مشهد جلوس: مركز الإطار عند الصدر والطاولة، فلا يضيع الجالس أسفل إطار نصفه جدار */
+const S = (t: number, x: number, z: number): CamKey => ({ t, x, y: 672, z });
 const RED = ID.seal;
 const GOLD = ID.dawn;
 
@@ -343,6 +347,157 @@ export const SHOTS: Record<string, ShotDef> = {
             <Figure x={620} y={GROUND + 8} scale={1.18} pose={pz(frame, [[0, "listen"], [tE - 10, "talk"], [tE + 30, "hold"], [tC, "stand"]])} look={LOOKS.elder} holding={frame > tE - 10 ? "book" : "none"} frame={frame + 5} />
             <Figure x={1090} y={frame > tP - 6 ? GROUND : GROUND + 8} scale={1.2} pose={pz(frame, [[0, "talk"], [tD, "point"], [tQ, "hold"], [tE + 8, "turn-away"], [tC, "cross"], [tP - 6, "sit-low"], [tP + 20, "head-down"]])} look={hero} flip holding={frame > tQ - 4 && frame < tC ? "paper" : "none"} frame={frame} />
             <rect x={-300} y={-300} width={2520} height={1500} fill="#000" opacity={0.25 * dim} />
+          </g>
+        ),
+      };
+    },
+  },
+  "home-knows-cant": {
+    nameAr: "البيت: يعرف ما ينبغي فعله ثم تعجز نفسه عن الالتزام",
+    place: "بيت بمكتبة وصور (ليلًا)",
+    render: ({ frame, at }) => {
+      // الكتاب الذي ينبغي أن يقرأه على الطاولة؛ يأخذه ويفتحه، ثم يهتز الهاتف فيترك الكتاب ويُغلق
+      const tK = at("يعرف", 0.3);
+      const tS = at("ينبغي", 0.45);
+      const tC = at("تعجز", 0.68);
+      const tL = at("الالتزام", 0.86);
+      const reading = prog(frame, tS, tS + 20) * (1 - prog(frame, tC + 6, tC + 30));
+      const holdBook = frame >= tK + 6 && frame < tC + 12;
+      const holdPhone = frame >= tC + 18;
+      const close = prog(frame, tL, tL + 18);
+      const bookOnTable = !holdBook;
+      const bx = 930;
+      const by = GROUND - 190;
+      const pw = frame < tK + 6 ? 0 : 62 * (1 - close);
+      return {
+        cam: [S(0, 1040, 1.7), S(tK, 1060, 2.0), S(tC, 1030, 1.9), S(tL, 1040, 1.75)],
+        world: (
+          <g>
+            <HomeRoom frame={frame} mood="night" />
+            <LightPool cx={1080} cy={GROUND - 260} rx={260} ry={200} color={GOLD} opacity={0.8 * reading} />
+            <CafeTable x={960} frame={frame} />
+            <Chair x={1140} flip />
+            {/* الكتاب على الطاولة: مغلق، ثم يعود مفتوحًا، ثم ينغلق */}
+            {bookOnTable ? (
+              <g>
+                <rect x={bx - 46 - pw / 2} y={by} width={92 + pw} height={14} rx={3} fill={mix(ID.seal, ID.night, 0.35)} stroke="#1a1208" strokeWidth={2.4} />
+                {pw > 1 ? <rect x={bx - pw / 2 - 40} y={by - 4} width={pw + 80} height={8} fill={ID.paper} stroke="#1a1208" strokeWidth={1.6} /> : null}
+              </g>
+            ) : null}
+            {/* الهاتف على الطاولة يهتز ويضيء */}
+            {!holdPhone ? <rect x={1010} y={GROUND - 182} width={44} height={10} rx={3} fill={frame > tC - 4 ? ID.dawn : darken(ID.night, 0.3)} stroke="#1a1208" strokeWidth={2} transform={frame > tC - 4 && frame < tC + 18 ? `translate(${Math.sin(frame * 2.3) * 3} 0)` : undefined} /> : null}
+            <BuzzArcs x={1032} y={GROUND - 186} p={prog(frame, tC - 4, tC + 22, (t) => t)} />
+            <Figure x={1120} y={GROUND} scale={1.12} pose={pz(frame, [[0, "sit"], [tK, "sit-show"], [tS, "sit-show"], [tC + 4, "sit"], [tC + 18, "sit-show"], [tL, "sit-low"]])} look={hero} flip holding={holdBook ? "book" : holdPhone ? "phone" : "none"} frame={frame} rim={0.6 * reading} />
+          </g>
+        ),
+      };
+    },
+  },
+  "cafe-rumor-looks-fine": {
+    nameAr: "المقهى: خطأ لا يبدو قبيحًا (رسالة جميلة الشكل)",
+    place: "مقهى الحارة",
+    render: ({ frame, at }) => {
+      const tW = at("خطأ", 0.3);
+      const tL = at("يبدو", 0.45);
+      const tQ = at("قبيحا", 0.6);
+      const tE = at("أعيننا", 0.85);
+      return {
+        cam: [S(0, 1030, 1.6), S(tW, 1060, 1.95)],
+        world: (
+          <g>
+            <Cafe frame={frame} />
+            <Chair x={800} />
+            <Chair x={1140} flip />
+            <CafeTable x={960} frame={frame} />
+            <Glow cx={1050} cy={GROUND - 220} r={120} opacity={0.8 * prog(frame, tW - 2, tW + 8)} />
+            <BuzzArcs x={1050} y={GROUND - 222} p={prog(frame, tW - 2, tW + 24, (t) => t)} />
+            <Figure x={1120} y={GROUND} scale={1.1} pose={pz(frame, [[0, "sit"], [tW + 4, "sit-show"]])} look={hero} flip holding="phone" frame={frame} />
+          </g>
+        ),
+        overlay: <PhonePOV frame={frame} show={prog(frame, tL - 4, tL + 14)} buzz={prog(frame, tL - 4, tL + 20, (t) => t)} shine={prog(frame, tQ, tQ + 28, (t) => t)} tempt={0.5 * prog(frame, tE, tE + 18)} near={prog(frame, tE - 4, tE + 22)} />,
+      };
+    },
+  },
+  "cafe-rumor-tempting": {
+    nameAr: "المقهى: مغرٍ وسهل وموافق لرغباته",
+    place: "مقهى الحارة",
+    render: ({ frame, at }) => {
+      const tM = at("مغريا", 0.25);
+      const tS = at("سهلا", 0.5);
+      const tA = at("موافقا", 0.7);
+      const tR = at("لرغباتنا", 0.86);
+      const agree = prog(frame, tA + 6, tA + 24);
+      return {
+        cam: [S(0, 1060, 1.95), S(tA, 1060, 1.75)],
+        world: (
+          <g>
+            <Cafe frame={frame} />
+            <Chair x={800} />
+            <Chair x={1140} flip />
+            <CafeTable x={960} frame={frame} />
+            <LightPool cx={1110} cy={GROUND - 260} rx={240} ry={240} color={GOLD} opacity={0.6 * agree} />
+            <Figure x={1120} y={GROUND} scale={1.1} pose={pz(frame, [[0, "sit-show"], [tA + 8, "sit-nod"], [tR, "sit-show"], [tR + 14, "sit-nod"]])} look={hero} flip holding="phone" frame={frame} rim={agree} />
+          </g>
+        ),
+        overlay: <PhonePOV frame={frame} show={1 - prog(frame, tA - 2, tA + 16)} tempt={0.5 + 0.5 * prog(frame, tM, tM + 14)} thumb={prog(frame, tS, tS + 18)} near={1 - prog(frame, tS - 6, tS + 14)} />,
+      };
+    },
+  },
+  "cafe-rumor-spreads": {
+    nameAr: "المقهى: يزداد قبوله لأن الناس اعتادوه",
+    place: "مقهى الحارة",
+    render: ({ frame, at }) => {
+      const tI = at("يزداد", 0.2);
+      const tQ = at("قبولنا", 0.35);
+      const tN = at("الناس", 0.65);
+      const tH = at("اعتادوه", 0.85);
+      // كل من تصله الرسالة يضيء هاتفه ثم يومئ ويعيد إرسالها؛ تنتقل من البطل إلى من حوله ثم إلى المقهى كله
+      const people: { x: number; look: FigureLook; flip: boolean; got: number }[] = [
+        { x: 1120, look: hero, flip: true, got: -100 },
+        { x: 560, look: LOOKS.stranger, flip: true, got: tQ },
+        { x: 380, look: LOOKS.elder, flip: false, got: tQ + 10 },
+        { x: 1400, look: LOOKS.friend, flip: false, got: tN - 4 },
+        { x: 1570, look: LOOKS.womanSand, flip: true, got: tN + 6 },
+      ];
+      const hand = (x: number, flip: boolean) => ({ x: x + (flip ? -62 : 62), y: GROUND - 222 });
+      const sends: { from: number; to: number; at: number }[] = [
+        { from: 0, to: 1, at: tI },
+        { from: 0, to: 2, at: tI + 6 },
+        { from: 1, to: 3, at: tN - 18 },
+        { from: 2, to: 4, at: tN - 10 },
+      ];
+      return {
+        cam: [S(0, 1060, 1.75), S(tI + 4, 975, 1.3), S(tH, 975, 1.36)],
+        world: (
+          <g>
+            <Cafe frame={frame} />
+            {[470, 1485].map((x) => (
+              <CafeTable key={x} x={x} frame={frame} />
+            ))}
+            <Chair x={800} />
+            <CafeTable x={960} frame={frame} />
+            {people.map((pp, i) => {
+              const lit = prog(frame, pp.got - 2, pp.got + 8) * (1 - 0.5 * prog(frame, pp.got + 40, pp.got + 70)) + (frame > tH ? prog(frame, tH, tH + 10) * (1 - prog(frame, tH + 30, tH + 60)) : 0);
+              const h = hand(pp.x, pp.flip);
+              return (
+                <g key={i}>
+                  <Chair x={pp.x + (pp.flip ? 20 : -20)} flip={pp.flip} />
+                  <Glow cx={h.x} cy={h.y} r={90} opacity={0.8 * Math.min(1, lit)} />
+                  <BuzzArcs x={h.x} y={h.y} p={prog(frame, pp.got - 2, pp.got + 22, (t) => t)} />
+                  <Figure x={pp.x} y={GROUND} scale={i === 0 ? 1.1 : 1.02} pose={pz(frame, i === 0 ? [[0, "sit-show"], [tI - 6, "sit-nod"], [tI + 10, "sit-show"], [tH, "sit-nod"]] : [[0, "sit"], [pp.got, "sit-show"], [pp.got + 20, "sit-nod"], [tH + 4, "sit-show"]])} look={pp.look} flip={pp.flip} holding="phone" frame={frame + i * 11} />
+                </g>
+              );
+            })}
+            {/* الرسالة تنتقل من هاتف إلى هاتف */}
+            {[...sends, ...(frame > tH ? people.slice(1).map((_, k) => ({ from: k + 1, to: ((k + 2) % people.length) || 1, at: tH + k * 4 })) : [])].map((s, i) => {
+              const t = prog(frame, s.at, s.at + 20, (v) => v);
+              if (t <= 0 || t >= 1) return null;
+              const a = hand(people[s.from]!.x, people[s.from]!.flip);
+              const b = hand(people[s.to]!.x, people[s.to]!.flip);
+              const x = a.x + (b.x - a.x) * t;
+              const y = a.y + (b.y - a.y) * t - Math.sin(Math.PI * t) * 160;
+              return <rect key={i} x={x - 16} y={y - 11} width={32} height={22} rx={5} fill={GOLD} stroke="#1a1208" strokeWidth={2} />;
+            })}
           </g>
         ),
       };

@@ -15,7 +15,7 @@ import { CharacterField, ElementField } from "../ui/Pickers";
 import { ImageField } from "../ui/ImageField";
 import { StoryboardPanel } from "./StoryboardPanel";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
-import { api, type SceneReviewItem, type SceneReviewSummary, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
+import { api, type SceneReviewItem, type SceneReviewSummary, type RenderJob, type TashkeelReport, type VoiceReport, type PreviewEntry } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import type { ChannelInfo } from "../../../src/channel/types";
@@ -270,6 +270,7 @@ export const EpisodeTab: React.FC<{
             <button className="btn" type="button" onClick={onOpenVoice}>افتح مرحلة الصوت</button>
           </div>
         ) : <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />}
+        <PreviewsBox episodeId={episodeId} />
         <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
       </div>
 
@@ -486,6 +487,45 @@ export const EpisodeTab: React.FC<{
 };
 
 /** رندر الحلقة أو الفصل وتتبع التقدم. */
+/** المعاينات المرفوعة إلى الاستوديو: كل فيديو يُصنع للحلقة يظهر هنا، والنسخة الجديدة تحل محل القديمة في خانتها */
+const PreviewsBox: React.FC<{ episodeId: string }> = ({ episodeId }) => {
+  const [list, setList] = React.useState<PreviewEntry[] | null>(null);
+  React.useEffect(() => {
+    let live = true;
+    api.previews(episodeId).then((r) => live && setList(r.previews)).catch(() => live && setList([]));
+    return () => {
+      live = false;
+    };
+  }, [episodeId]);
+  if (!list || !list.length) return null;
+  const pct = (v: number | null | undefined, min: number) => (v === null || v === undefined ? "—" : <b style={{ color: v >= min ? "var(--ok)" : "var(--err)" }}>{v}%</b>);
+  return (
+    <div className="render-box">
+      <div className="toolbar">
+        <b>المعاينات المرفوعة</b>
+        <span className="help">كل فيديو يُصنع للحلقة يُرفع هنا، وأي تعديل يحل محل نسخته القديمة. المعاينة لا تُنشر.</span>
+      </div>
+      {list.map((p) => (
+        <div key={p.slot} style={{ marginBottom: 14 }}>
+          <div className="toolbar" style={{ flexWrap: "wrap", gap: 8 }}>
+            <b>{p.title}</b>
+            <span className="badge">{p.quality === "master" ? "أعلى جودة" : "معاينة 1080p"}{p.voiced ? " · بصوت" : " · صامتة"}</span>
+            <span className="help">النسخة {p.version} · {new Date(p.createdAt).toLocaleString("ar")}{p.branch ? ` · فرع ${p.branch}` : ""} · {p.seconds} ث</span>
+            {p.motion ? (
+              <span className="help">
+                الحركة: السرد والشرح {pct(p.motion.narrative, 80)}
+                {p.motion.sacred !== null ? <> · النص المقدس {pct(p.motion.sacred, 0)} (يُسجَّل منفصلًا)</> : null}
+              </span>
+            ) : null}
+          </div>
+          {p.note ? <div className="help">{p.note}</div> : null}
+          <video src={api.previewUrl(episodeId, p.file)} controls preload="metadata" style={{ width: "100%", maxHeight: 360, borderRadius: 8, background: "#000" }} />
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId, chapter }) => {
   const [jobs, setJobs] = useState<RenderJob[]>([]);
   const [err, setErr] = useState("");

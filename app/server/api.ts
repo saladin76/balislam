@@ -263,6 +263,15 @@ export const balApi = (): Plugin => ({
             await io.writePlanFile(io.planPathFor(scriptPath), { ...plan, updatedAt: new Date().toISOString() });
             return send(res, 200, { ok: true });
           }
+          // المعاينات المرفوعة إلى الاستوديو (previews/)
+          if (parts[2] === "previews") {
+            const { loadPreviews, previewsDirFor } = await load("/src/render/episodePreviews.ts");
+            if (!parts[3]) return send(res, 200, { previews: await loadPreviews(scriptPath) });
+            const file = path.join(previewsDirFor(scriptPath), safeName(parts[3]));
+            if (!existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
+            serveFile(req, res, file, "video/mp4");
+            return;
+          }
           if (parts[2] === "video" && parts[3]) {
             const file = path.join(path.dirname(scriptPath), "out", safeName(parts[3]));
             if (!existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });

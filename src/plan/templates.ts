@@ -288,7 +288,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "asks", label: "المطالب الأربعة", type: "text", help: "مفصولة بـ |" },
       { key: "heads", label: "عنوانا العمودين", type: "text", help: "البصيرة | العزيمة" },
       { key: "shown", label: "على اللوح قبل المشهد", type: "text", help: "source, dua, dock, grid, ask1… (حالة اللوح من المشهد السابق)" },
-      { key: "cues", label: "ما يظهر في المشهد (سطر لكل كلمة)", type: "textarea", help: "العنصر | الكلمة المنطوقة. العناصر: source, dua, dock, grid, ask1-4, focus:N, head1-2, note1:نص, warn1:نص, pill3:نص, haze1, reach12, stall12, link12, link34, glow1, glow2, glowall, grow3, clear. الكلمة المكررة: كلمة#2" },
+      { key: "cues", label: "ما يظهر في المشهد (سطر لكل كلمة)", type: "textarea", help: "العنصر | الكلمة المنطوقة. العناصر: source, dua, dock, grid, ask1-4, focus:N, head1-2, count (إضاءة الخانات الأربع تباعًا), note1:نص, warn1:نص, pill3:نص, haze1, reach12, stall12, link12, link34, glow1, glow2, glowall, grow3, clear. الكلمة المكررة: كلمة#2" },
     ],
   },
   {

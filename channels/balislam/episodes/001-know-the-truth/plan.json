@@ -938,7 +938,7 @@
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
             "shown": "source, dua",
-            "cues": "dock | الدعاء\ngrid | أربعة"
+            "cues": "dock | تأمل\ngrid | يجمع\ncount | أربعة"
           },
           "id": "c4-s3",
           "sfx": [],
@@ -993,16 +993,19 @@
           "edited": true
         },
         {
-          "template": "dua-board",
+          "template": "alley-tale",
           "narration": "لأن الإنسان قد يعرف ما ينبغي فعله، ثم تعجز نفسه عن الالتزام به.",
           "line": 139,
           "props": {
-            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
-            "source": "من الأدعية المأثورة في كلام أهل العلم",
-            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
-            "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, focus:2, cam:c2",
-            "cues": "note2:يعرف ما ينبغي | يعرف\nwarn2:تعجز النفس عن الالتزام | تعجز"
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "shot": "home-knows-cant",
+            "cues": "think | يعرف"
           },
           "id": "c4-s7",
           "sfx": [],
@@ -1017,56 +1020,65 @@
             "source": "من الأدعية المأثورة في كلام أهل العلم",
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, focus:2, note2:يعرف ما ينبغي, warn2:تعجز النفس عن الالتزام, cam:c2",
-            "cues": "cam:c3 | وثالثها\nclear | وثالثها\nfocus:3 | وثالثها\nask3 | نرى"
+            "shown": "source, dua, dock, grid, ask1, ask2, focus:2, cam:c2",
+            "cues": "cam:c3 | وثالثها\nfocus:3 | وثالثها\nask3 | نرى"
           },
           "id": "c4-s8",
           "sfx": [],
           "edited": true
         },
         {
-          "template": "dua-board",
+          "template": "alley-tale",
           "narration": "فليس كل خطأ يبدو قبيحًا في أعيننا.",
           "line": 143,
           "props": {
-            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
-            "source": "من الأدعية المأثورة في كلام أهل العلم",
-            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
-            "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, ask3, focus:3, cam:c3",
-            "cues": "warn3:خطأ | خطأ\npill3:لا يبدو قبيحًا | قبيحًا"
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "shot": "cafe-rumor-looks-fine",
+            "cues": "wrong | خطأ"
           },
           "id": "c4-s9",
           "sfx": [],
           "edited": true
         },
         {
-          "template": "dua-board",
+          "template": "alley-tale",
           "narration": "قد يكون مغريًا، أو سهلًا، أو موافقًا لرغباتنا.",
           "line": 145,
           "props": {
-            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
-            "source": "من الأدعية المأثورة في كلام أهل العلم",
-            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
-            "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, ask3, focus:3, warn3:خطأ, pill3:لا يبدو قبيحًا, cam:c3",
-            "cues": "pill3:مغرٍ | مغريًا\npill3:سهل | سهلًا\npill3:موافق لرغباتنا | لرغباتنا"
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "shot": "cafe-rumor-tempting",
+            "cues": ""
           },
           "id": "c4-s10",
           "sfx": [],
           "edited": true
         },
         {
-          "template": "dua-board",
+          "template": "alley-tale",
           "narration": "وقد يزداد قبولنا له لأن الناس اعتادوه.",
           "line": 147,
           "props": {
-            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
-            "source": "من الأدعية المأثورة في كلام أهل العلم",
-            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
-            "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, ask3, focus:3, warn3:خطأ, pill3:لا يبدو قبيحًا, pill3:مغرٍ, pill3:سهل, pill3:موافق لرغباتنا, cam:c3",
-            "cues": "grow3 | يزداد\npill3:اعتاده الناس | اعتادوه"
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "shot": "cafe-rumor-spreads",
+            "cues": "people | الناس"
           },
           "id": "c4-s11",
           "sfx": [],
@@ -1081,8 +1093,8 @@
             "source": "من الأدعية المأثورة في كلام أهل العلم",
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, ask3, focus:3, warn3:خطأ, pill3:لا يبدو قبيحًا, pill3:مغرٍ, pill3:سهل, pill3:موافق لرغباتنا, pill3:اعتاده الناس, grow3, cam:c3",
-            "cues": "cam:c4 | الرابع\nclear | الرابع\nfocus:4 | الرابع\nask4 | اجتنابه"
+            "shown": "source, dua, dock, grid, ask1, ask2, ask3, focus:3, cam:c3, pill3:مغرٍ, pill3:سهل, pill3:موافق لرغباتنا, pill3:اعتاده الناس",
+            "cues": "clear | الرابع\ncam:c4 | الرابع\nfocus:4 | الرابع\nask4 | اجتنابه"
           },
           "id": "c4-s12",
           "sfx": [],
@@ -1098,7 +1110,7 @@
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
             "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:4, cam:c4",
-            "cues": "cam:r1 | الحق\nfocus:1 | الحق\nlink12 | اتباعه\ncam:r2 | الباطل\nfocus:3 | الباطل\nlink34 | تركه"
+            "cues": "cam:all | فكما\nfocus:1 | الحق\nlink12 | اتباعه\nfocus:12 | اتباعه\nfocus:3 | الباطل\nlink34 | تركه\nfocus:34 | تركه"
           },
           "id": "c4-s13",
           "sfx": [],
@@ -1113,8 +1125,8 @@
             "source": "من الأدعية المأثورة في كلام أهل العلم",
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:3, link12, link34, cam:r2",
-            "cues": "cam:all | وهكذا\nfocus:0 | وهكذا\nhead1 | البصيرة\nhead2 | والعزيمة"
+            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:34, link12, link34, cam:all",
+            "cues": "focus:0 | وهكذا\nhead1 | البصيرة\nhead2 | والعزيمة"
           },
           "id": "c4-s14",
           "sfx": [],
@@ -1130,7 +1142,7 @@
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
             "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:0, link12, link34, head1, head2, cam:all",
-            "cues": "glow1 | نعرف\nglow2 | نعمل\nglowall | عرفنا"
+            "cues": "focus:13 | نعرف\nfocus:24 | نعمل\nfocus:1234 | عرفنا"
           },
           "id": "c4-s15",
           "sfx": [],
