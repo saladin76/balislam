@@ -437,3 +437,12 @@ button.ops-ch:hover { background: var(--accent-soft); }
   .studio-manage-nav { min-width: 0; width: 100%; }
   .studio-manage-nav select { flex: 1; max-width: none; min-width: 0; }
 }
+
+
+/* Secondary quick-start help: collapsed by default, simple and keyboard-accessible. */
+.studio-start-guide { margin: 10px 16px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.studio-start-guide summary { cursor: pointer; font-weight: 700; }
+.studio-start-guide summary span { color: var(--muted); font-weight: 400; font-size: 12px; margin-inline-start: 12px; }
+.studio-start-guide[open] summary { margin-bottom: 8px; }
+.studio-start-guide p { color: var(--muted); margin: 8px 0; }
+.studio-start-guide ol { margin: 8px 0; padding-inline-start: 26px; display: grid; gap: 7px; }
