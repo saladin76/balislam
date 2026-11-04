@@ -90,3 +90,7 @@
   .ew-voice-text { flex-basis: 100%; order: 2; }
   .ew-voice-id { min-width: auto; }
 }
+
+/* يظل اسم الملف واضحًا عند استخدام مراحل البحث والسكريبت المنفصلة. */
+.ew-document-label { font-size: 14px; font-weight: 650; white-space: nowrap; }
+.ew-research-error { padding: 10px 12px; border-inline-start: 3px solid var(--err, #b3261e); color: var(--err, #b3261e); background: var(--err-soft, #fff3f1); font-size: 13px; }
