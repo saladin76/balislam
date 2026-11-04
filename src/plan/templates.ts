@@ -203,6 +203,7 @@ export const templateDefs: TemplateDef[] = [
     baseSeconds: 5,
     minSeconds: 5,
     fields: [
+      { key: "cue", label: "كلمة الظهور", type: "text", help: "الكلمة المنطوقة التي يظهر عندها العنصر (قاعدة القناة: يظهر وقت نطق كلمته)." },
       { key: "element", label: "العنصر", type: "element" },
       { key: "secondElement", label: "عنصر ثانٍ (اختياري)", type: "element" },
       { key: "relation", label: "العلاقة بينهما", type: "select", options: [{ value: "becomes", label: "يتحول إلى ←" }, { value: "versus", label: "مقابل" }, { value: "plus", label: "مع +" }] },
