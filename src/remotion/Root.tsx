@@ -14,6 +14,7 @@ import { IsometricDemo } from "./styles/Isometric";
 import { Providers } from "./Providers";
 import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
+import { AlleyTale } from "./scenes/AlleyTale";
 import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
 import { MIHRAB_FRAMES } from "./scenes/MihrabIntro";
@@ -61,6 +62,30 @@ const orientations = ["landscape", "portrait"] as const;
 /** كل التكوينات المسجلة في Remotion: لوحات الهوية، القوالب، الحلقة والشورت، الصورة المصغّرة، والافتتاحية. */
 export const RemotionRoot: React.FC = () => (
   <>
+    {/* Controlled A/B comparison: same words, cast and timing; only camera direction differs. */}
+    {(["automatic", "directed"] as const).map((mode) => (
+      <Composition
+        key={mode}
+        id={`balislam-alley-${mode}-review`}
+        component={AlleyTale}
+        durationInFrames={10 * config.video.fps}
+        fps={config.video.fps}
+        {...sizes.landscape}
+        defaultProps={{
+          themeId: "night" as const,
+          orientation: "landscape" as const,
+          narration: "قد تصدق خبرًا لأنه يؤكد رأيك. ثم تفكر في الحقيقة.",
+          place: "alley",
+          mood: "night",
+          cast: "solo",
+          poses: "stand",
+          cues: "news | خبرًا\\ntruth | الحقيقة",
+          cameraMode: mode,
+          camera: mode === "directed" ? "still" : "push",
+        }}
+      />
+    ))}
+
     {(["paper", "night"] as const).flatMap((id) =>
       orientations.flatMap((o) =>
         sceneCatalog.map((entry) => (
