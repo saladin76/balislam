@@ -11,13 +11,16 @@ import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, N
 import { TopCaption, captionLines } from "../illus/TopCaption";
 import { Home, Market } from "../illus/places";
 import type { SceneBase, StringFields } from "./types";
+import { SHOTS } from "../illus/shots";
+import { camAt, camTransform, makeAt } from "../illus/shots/kit";
+import { Grade, Texture } from "../illus/texture";
 
 /**
  * «حكايات الحارة»: كل جملة لقطة في مكان مرسوم (حارة، سوق، بيت)، وبطل بلا ملامح يمثّل ما يُقال،
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "poses" | "cues" | "look" | "cast">;
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "poses" | "cues" | "look" | "cast" | "shot">;
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -28,7 +31,38 @@ export type ActionId = (typeof POSE_IDS)[number];
 /** أطر اللقطات بالتناوب: واسع ← متوسط ← قريب */
 const FRAMINGS = [1.08, 1.38, 1.6, 1.24];
 
-export const AlleyTale: React.FC<AlleyTaleProps> = (props) => {
+/** لقطة مصمَّمة لجملتها (shot): مكانها وشخوصها وكاميرتها وأحداثها على توقيت الكلمات */
+const ShotScene: React.FC<AlleyTaleProps> = (props) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames: dur } = useVideoConfig();
+  const portrait = props.orientation === "portrait";
+  const narration = props.narration ?? "";
+  const timings = narration ? (props.narrationTimings ?? estimateTimings(narration, 6, dur - 12)) : [];
+  const shot = SHOTS[props.shot!]!.render({ frame, fps, dur, portrait, at: makeAt(timings, dur) });
+  const c = camAt(frame, shot.cam);
+  // دفع بطيء متصل للكاميرا طوال اللقطة (فوق مفاتيحها)
+  const drift = 0.045 * (frame / dur);
+  const vb = portrait ? `${960 - 304} 0 608 1080` : `0 0 ${WW} ${WH}`;
+  const out = exit(frame, dur, 8);
+  const keys = cueFrames(parseCues(props.cues), timings).map((k) => k.word);
+  return (
+    <SceneShell {...props} eyebrow={undefined} captions={false} motif={false} background={darken(ID.night, 0.4)} durationInFrames={dur}>
+      <AbsoluteFill>
+        <svg viewBox={vb} preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+          <g transform={camTransform(c, drift)}>{shot.world}</g>
+          <Grade w={WW} h={WH} tint={shot.tint} tintOpacity={shot.tintOpacity} vignette={0.5} />
+          <Texture kind="grain" w={WW} h={WH} opacity={0.18} tile={256} blend="overlay" />
+        </svg>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,0) 20%)" }} />
+      </AbsoluteFill>
+      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} />
+    </SceneShell>
+  );
+};
+
+export const AlleyTale: React.FC<AlleyTaleProps> = (props) => (props.shot && SHOTS[props.shot] ? <ShotScene {...props} /> : <AlleyTaleBase {...props} />);
+
+const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames: dur } = useVideoConfig();
   const portrait = props.orientation === "portrait";

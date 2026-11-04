@@ -18,6 +18,7 @@ import { channelLibrary, type LibraryRules } from "../../../src/channel/library"
 import { Figure, LOOKS, POSES, type PoseName } from "../../../src/remotion/illus/Figure";
 import { PLACE_IDS, PlacePreview, placeNamesAr, PROP_IDS, PropPreview, propNamesAr } from "../../../src/remotion/illus/places";
 import { CUE_WORDS, cueNamesAr } from "../../../src/plan/sceneCues";
+import { SHOTS } from "../../../src/remotion/illus/shots";
 
 /** قواعد مكتبة القناة من بياناتها في الاستوديو */
 export const libraryRulesOf = (c?: ChannelInfo): LibraryRules => ({ id: c?.id ?? "", rules: { faces: Boolean(c?.rules?.faces), quran: Boolean(c?.rules?.quran), hadith: Boolean(c?.rules?.hadith) }, library: c?.library });
@@ -203,8 +204,8 @@ const Sfx: React.FC<{ hasVoiceKeys: boolean }> = ({ hasVoiceKeys }) => {
   );
 };
 
-const CAST_NAMES: Record<keyof typeof LOOKS, string> = { hero: "الشاب (سترة)", heroThobe: "الشاب (ثوب)", woman: "امرأة (عباءة داكنة)", womanSand: "امرأة (عباءة رملية)", elder: "شيخ كبير", friend: "صديق", stranger: "عابر" };
-const POSE_NAMES: Record<PoseName, string> = { stand: "واقف", think: "يتأمل", sit: "جالس", "sit-low": "جالس مطرق", "head-down": "مثقل", hold: "يقرأ ورقة", cross: "متمسك برأيه", point: "يشير", "look-up": "يرفع رأسه", nod: "يومئ", "turn-away": "يدير ظهره", proud: "يتعالى", apologize: "يعتذر", listen: "يُصغي", talk: "يتكلم", flinch: "يتألم من كلمة" };
+const CAST_NAMES: Record<keyof typeof LOOKS, string> = { hero: "الشاب (سترة)", heroThobe: "الشاب (ثوب)", woman: "امرأة (عباءة داكنة)", womanSand: "امرأة (عباءة رملية)", elder: "شيخ كبير", friend: "صديق", stranger: "عابر", vendor: "بائع", boy: "فتى" };
+const POSE_NAMES: Record<PoseName, string> = { stand: "واقف", think: "يتأمل", sit: "جالس", "sit-low": "جالس مطرق", "head-down": "مثقل", hold: "يقرأ ورقة", cross: "متمسك برأيه", point: "يشير", "look-up": "يرفع رأسه", nod: "يومئ", "turn-away": "يدير ظهره", proud: "يتعالى", apologize: "يعتذر", listen: "يُصغي", talk: "يتكلم", flinch: "يتألم من كلمة", sincere: "صادق فيما يقول", halt: "مهلًا", "sit-show": "جالس يُري ما في يده", "sit-nod": "جالس يومئ", "wave-off": "يلوّح رافضًا", "lean-rail": "متكئ على سور" };
 
 /** شخصيات «بالإسلام» المصوَّرة: بلا ملامح، بوضعياتها كما تظهر في القوالب الثلاثة */
 const IllusCast: React.FC = () => (
@@ -239,6 +240,13 @@ const IllusPlaces: React.FC = () => (
         </figure>
       ))}
     </div>
+    <h3 style={{ margin: 0 }}>لقطات مصمَّمة ({Object.keys(SHOTS).length})</h3>
+    <p className="help">مشهد مصمَّم يحكي جملة بعينها: مكانه وشخوصه وكاميرته، وأحداثه على توقيت كلماتها. يُختار في «المشاهد» بحقل «لقطة مصمَّمة»، ويُعاد استعماله لكل جملة بالمعنى نفسه.</p>
+    <table className="lib-cues"><tbody>
+      {Object.entries(SHOTS).map(([id, d]) => (
+        <tr key={id}><td><b>{d.nameAr}</b></td><td>{d.place}</td><td style={{ direction: "ltr", fontFamily: "monospace", fontSize: 12 }}>{id}</td></tr>
+      ))}
+    </tbody></table>
     <h3 style={{ margin: 0 }}>عناصر المشاهد ({PROP_IDS.length})</h3>
     <p className="help">كل عنصر صُمِّم لمعنى في الكلام، ويظهر لحظة نطق كلمته فقط. وإن لم يوجد عنصر مناسب يُصمَّم جديد ويُضاف هنا، ولا يوضع أقرب عنصر.</p>
     <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
