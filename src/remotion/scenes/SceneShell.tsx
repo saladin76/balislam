@@ -166,13 +166,15 @@ type ShellProps = SceneBase & {
   /** ألوان شارة عنوان الفصل على تلك الخلفية */
   eyebrowColors?: { text: string; border: string };
   captionVariant?: "pill" | "cinema";
+  /** طول الإظلام في آخر المشهد (0 = قطع مباشر إلى مشهد يكمله) */
+  exitFrames?: number;
 };
 
 /**
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
  * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
  */
-export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant }) => {
+export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant, exitFrames = 8 }) => {
   useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -180,7 +182,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   const lang = useLang();
   const portrait = orientation === "portrait";
   const eyebrowSize = useSize("eyebrow", orientation);
-  const out = exit(frame, durationInFrames, 8);
+  const out = exitFrames > 0 ? exit(frame, durationInFrames, exitFrames) : 1;
   const eyebrowIn = enter(frame, 4);
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
   const notebook = useChannel().frame === "notebook";

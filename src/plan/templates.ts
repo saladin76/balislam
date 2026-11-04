@@ -276,6 +276,22 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "dua-board",
+    nameAr: "لوح الدعاء",
+    useAr: "ورقة هادئة تمتد عبر مشاهد متتالية: الدعاء كاملًا مقروءًا تكتمل كل عبارة منه لحظة نطقها بلا رموز بجواره، ثم شبكة مطالبه الأربعة تُكتب كلمةً كلمة مع الشرح",
+    implemented: true,
+    baseSeconds: 4,
+    minSeconds: 2,
+    fields: [
+      { key: "dua", label: "نص الدعاء", type: "text", help: "كما في السكريبت حرفيًا؛ / لسطر جديد و| بين العبارات" },
+      { key: "source", label: "مصدره", type: "text", help: "مثل: من الأدعية المأثورة في كلام أهل العلم (لا يُنسب إلى النبي ﷺ بلا سند)" },
+      { key: "asks", label: "المطالب الأربعة", type: "text", help: "مفصولة بـ |" },
+      { key: "heads", label: "عنوانا العمودين", type: "text", help: "البصيرة | العزيمة" },
+      { key: "shown", label: "على اللوح قبل المشهد", type: "text", help: "source, dua, dock, grid, ask1… (حالة اللوح من المشهد السابق)" },
+      { key: "cues", label: "ما يظهر في المشهد (سطر لكل كلمة)", type: "textarea", help: "العنصر | الكلمة المنطوقة. العناصر: source, dua, dock, grid, ask1-4, focus:N, head1-2, note1:نص, warn1:نص, pill3:نص, haze1, reach12, stall12, link12, link34, glow1, glow2, glowall, grow3, clear. الكلمة المكررة: كلمة#2" },
+    ],
+  },
+  {
     id: "ink-shot",
     nameAr: "مشهد حبر مصمَّم",
     useAr: "مشهد مرسوم بالحبر خاص بجملته: حدث بصري له بداية وتطور ونتيجة (خط الوقت، الكتاب ورحلته، خط الانتباه، الإقبال، التكبير، الخطوة العملية)، وكل رسم لحظة نطق كلمته",

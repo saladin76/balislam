@@ -1,12 +1,12 @@
 import React from "react";
 import { ID, darken, mix } from "../palette";
-import { Figure, LOOKS, POSES, walkPose } from "../Figure";
-import { GROUND, Glow } from "../world";
+import { Figure, LOOKS, POSES, walkPose, type PoseName } from "../Figure";
+import { GROUND, Glow, useSvgId } from "../world";
 import { LightPool } from "../texture";
 import { SouqStreet, FruitCart } from "./street";
 import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow } from "./interior";
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
-import { Birds, K, Rolling, Walker, prog, pz, type CamKey, type ShotCtx } from "./kit";
+import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 
 /**
  * اللقطات المصمَّمة: كل لقطة تحكي جملتها بمكانها وشخوصها وكاميرتها، وأحداثها تقع لحظة نطق كلماتها.
@@ -21,50 +21,118 @@ const hero = LOOKS.hero;
 const RED = ID.seal;
 const GOLD = ID.dawn;
 
-/** حادثة السوق: البائع يمسك معصم الفتى وفي يده برتقالة؛ هل سرق أم ظُلم؟ */
-const Incident: React.FC<{ frame: number; grab: number; fallAt?: number }> = ({ frame, grab, fallAt }) => (
-  <g>
-    <FruitCart x={820} missing={fallAt !== undefined && frame > fallAt ? 4 : 0} />
-    <Figure x={1140} y={GROUND + 4} scale={1.15} pose={grab > 0.5 ? (frame % 50 < 25 ? POSES.halt : POSES.point) : POSES.stand} look={LOOKS.vendor} flip frame={frame} />
-    <Figure x={760} y={GROUND + 4} scale={0.82} pose={grab > 0.5 ? POSES.flinch : POSES.hold} look={LOOKS.boy} holding="none" frame={frame + 7} />
-    {/* البرتقالة في يد الفتى */}
-    <circle cx={grab > 0.5 ? 742 : 792} cy={GROUND - 150} r={11} fill={mix(GOLD, RED, 0.3)} stroke="#1a1208" strokeWidth={2} />
-    {fallAt !== undefined ? <Rolling frame={frame} at={fallAt} x={900} y={GROUND - 200} ground={GROUND + 20} color={mix(GOLD, RED, 0.3)} dir={-1} /> : null}
-  </g>
-);
+/**
+ * حادثة السوق (حدث واحد لا يتغير): البائع منشغل بترتيب بضاعته وظهره للعربة، فيمد الفتى يده ويأخذ برتقالة،
+ * ثم يلتفت البائع فيوقفه وتتساقط حبات من العربة. take وgrab لحظتا الأخذ والإيقاف (بالإطارات).
+ */
+const STOLEN_FROM = { x: 846, y: GROUND - 168 };
+const IN_HAND = { x: 792, y: GROUND - 150 };
+const vendorGesture = (grab: number): [number, PoseName][] => {
+  const tl: [number, PoseName][] = [[-1e4, "hold"], [grab - 2, "halt"]];
+  for (let k = 1; k < 40; k++) tl.push([grab + 26 * k, k % 2 ? "point" : "halt"]);
+  return tl;
+};
+const Incident: React.FC<{ frame: number; take: number; grab: number; fallAt?: number }> = ({ frame, take, grab, fallAt }) => {
+  const reach = prog(frame, take, take + 14);
+  const pulled = prog(frame, grab, grab + 10);
+  const ox = STOLEN_FROM.x + (IN_HAND.x - STOLEN_FROM.x) * reach - 50 * pulled;
+  const oy = STOLEN_FROM.y + (IN_HAND.y - STOLEN_FROM.y) * reach;
+  const vx = 1140 - 70 * prog(frame, grab - 6, grab + 14);
+  return (
+    <g>
+      <FruitCart x={820} taken missing={fallAt !== undefined && frame > fallAt ? 4 : 0} />
+      <Turn x={vx} sx={turnSx(frame, grab - 8, 1, -1, 8)}>
+        <Figure x={vx} y={GROUND + 4} scale={1.15} pose={pz(frame, vendorGesture(grab))} look={LOOKS.vendor} frame={frame} />
+      </Turn>
+      <Figure x={760} y={GROUND + 4} scale={0.82} pose={pz(frame, [[-1e4, "stand"], [take - 12, "point"], [take + 12, "hold"], [grab, "flinch"]])} look={LOOKS.boy} holding="none" frame={frame + 7} />
+      <circle cx={ox} cy={oy} r={13} fill={mix(GOLD, RED, 0.3)} stroke="#1a1208" strokeWidth={2} />
+      {fallAt !== undefined ? <Rolling frame={frame} at={fallAt} x={900} y={GROUND - 200} ground={GROUND + 20} color={mix(GOLD, RED, 0.3)} dir={-1} /> : null}
+    </g>
+  );
+};
+/** الحادثة بعد انتهائها (للقطات التالية في السوق) */
+const AFTER = { take: -400, grab: -360 };
 
-/** مارّة في عمق الشارع (حياة لا تتوقف) */
-const Passers: React.FC<{ frame: number }> = ({ frame }) => (
-  <g>
-    <Walker frame={frame} from={2200} to={-300} y={GROUND - 40} loop look={LOOKS.elder} scale={0.78} start={-40} end={620} />
-    <Walker frame={frame} from={-300} to={2200} y={GROUND - 40} loop look={LOOKS.womanSand} scale={0.76} start={-260} end={480} />
-  </g>
-);
+/**
+ * «الصورة التي خرج بها كل شاهد»: دائرة فوق رأسه فيها ما رآه هو وحده من الحادثة نفسها.
+ * الحدث داخلها هو الحدث نفسه مجمَّدًا عند لحظة رآها، لا حدث آخر.
+ */
+const Memory: React.FC<{ frame: number; cx: number; cy: number; head: { x: number; y: number }; show: number; seenAt: number; ev: { take: number; grab: number }; tint?: string; tintAmt?: number }> = ({ frame, cx, cy, head, show, seenAt, ev, tint = RED, tintAmt = 0 }) => {
+  const id = useSvgId("mem");
+  if (show <= 0.001) return null;
+  const r = 120;
+  const s = 0.2 + 0.8 * show;
+  const zoom = 0.5 * (1 + 0.05 * prog(frame, 0, 400, (t) => t));
+  const ring = mix(ID.copper, tint, tintAmt);
+  const ex = cx + (head.x < cx ? -r * 0.75 : r * 0.75);
+  const ey = cy + r * 0.6;
+  const dots = [0.25, 0.55].map((k) => ({ x: head.x + (ex - head.x) * k, y: head.y + (ey - head.y) * k, r: 7 + 7 * k }));
+  return (
+    <g opacity={Math.min(1, show * 1.4)}>
+      {dots.map((d, i) => (show > 0.2 + i * 0.2 ? <circle key={i} cx={d.x} cy={d.y} r={d.r} fill={ID.paper} stroke={ring} strokeWidth={3} /> : null))}
+      <g transform={`translate(${cx} ${cy}) scale(${s}) translate(${-cx} ${-cy})`}>
+        <defs>
+          <clipPath id={id}>
+            <circle cx={cx} cy={cy} r={r} />
+          </clipPath>
+        </defs>
+        <circle cx={cx} cy={cy} r={r + 8} fill={darken(ID.night, 0.2)} opacity={0.35} />
+        <g clipPath={`url(#${id})`}>
+          <rect x={cx - r} y={cy - r} width={2 * r} height={2 * r} fill={mix(ID.paper, ID.copper, 0.25)} />
+          <g transform={`translate(${cx} ${cy + 20}) scale(${zoom}) translate(-925 ${-(GROUND - 175)})`}>
+            <rect x={400} y={GROUND} width={1200} height={300} fill={mix(ID.copper, ID.night, 0.35)} />
+            <Incident frame={seenAt} take={ev.take} grab={ev.grab} />
+          </g>
+          <circle cx={cx} cy={cy} r={r} fill={tint} opacity={0.28 * tintAmt} />
+        </g>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={ring} strokeWidth={7} />
+      </g>
+    </g>
+  );
+};
+
+/** موضع الحادثة وموضعا الشاهدين في لقطتَي «الشاهدان» و«الحكمان» (ثابتة بينهما) */
+const HERO_X = 340;
+const WOMAN_X = 1560;
+const MEM_Y = GROUND - 450;
+/** الحادثة كما تُرسم داخل صورتَي الشاهدين (ثابتة بين اللقطتين) */
+const MEM_EV = { take: 100, grab: 140 };
+const souqEvent = (at: ShotCtx["at"]) => {
+  const t2 = at("الموقف", 0.3);
+  const take = t2 - 4;
+  const grab = Math.max(at("نفسه", 0.42) + 4, take + 30);
+  return { take, grab };
+};
 
 export const SHOTS: Record<string, ShotDef> = {
   "souq-two-witnesses": {
-    nameAr: "السوق: شاهدان على حادثة واحدة",
+    nameAr: "السوق: شاهدان على حادثة واحدة، وكلٌّ رأى جزءًا منها",
     place: "سوق الحارة",
-    render: ({ frame, dur, at }) => {
+    render: ({ frame, at }) => {
       const t1 = at("شخصان", 0.15);
-      const t2 = at("الموقف", 0.3);
+      const { take, grab } = souqEvent(at);
       const t3 = at("يخرجان", 0.55);
       const t4 = at("مختلفين", 0.8);
+      const apart = prog(frame, t3, t3 + 40);
+      const hx = HERO_X - 40 * apart;
+      const wx = WOMAN_X + 40 * apart;
+      const spot = prog(frame, t1, t1 + 12) * (1 - 0.6 * prog(frame, t1 + 30, t1 + 60));
       return {
-        cam: [
-          K(0, 960, 1.12),
-          K(t1, 960, 1.13),
-          K(t2, 950, 1.49),
-          K(t3, 960, 1.12),
-          K(t4, 960, 1.17),
-        ],
+        cam: [K(0, 960, 1.12), K(t1, 960, 1.14), K(grab - 4, 920, 1.24), K(t3, 960, 1.12), K(t4, 960, 1.15)],
         world: (
           <g>
             <SouqStreet frame={frame} />
-            <Passers frame={frame} />
-            <Incident frame={frame} grab={prog(frame, t2 - 4, t2 + 4)} fallAt={t2 + 2} />
-            <Figure x={340 - 60 * prog(frame, t3, t3 + 40)} y={GROUND + 6} scale={1.2} pose={pz(frame, [[0, "stand"], [t1, "think"], [t3, "cross"], [t4, "think"]])} look={hero} frame={frame} />
-            <Figure x={1560 + 60 * prog(frame, t3, t3 + 40)} y={GROUND + 6} scale={1.18} pose={pz(frame, [[0, "stand"], [t1 + 6, "listen"], [t3, "cross"], [t4, "nod"]])} look={LOOKS.woman} flip frame={frame + 11} />
+            <LightPool cx={HERO_X} cy={GROUND + 10} rx={170} ry={40} color={GOLD} opacity={0.7 * spot} />
+            <LightPool cx={WOMAN_X} cy={GROUND + 10} rx={170} ry={40} color={GOLD} opacity={0.7 * spot} />
+            <Incident frame={frame} take={take} grab={grab} fallAt={grab + 2} />
+            {/* الأول منشغل بالدكان المجاور وقت الأخذ، ولا يلتفت إلا على صوت البائع */}
+            <Turn x={hx} sx={turnSx(frame, grab + 2, -1, 1, 10)}>
+              <Figure x={hx} y={GROUND + 6} scale={1.2} pose={pz(frame, [[0, "hold"], [grab + 2, "flinch"], [grab + 22, "think"], [t3, "cross"], [t4, "think"]])} look={hero} frame={frame} />
+            </Turn>
+            {/* الثانية تنظر إلى العربة من البداية فترى الأخذ نفسه */}
+            <Figure x={wx} y={GROUND + 6} scale={1.18} pose={pz(frame, [[0, "stand"], [t1 + 6, "listen"], [take + 8, "point"], [grab + 12, "nod"], [t3, "cross"], [t4, "nod"]])} look={LOOKS.woman} flip frame={frame + 11} />
+            <Memory frame={frame} cx={hx + 175} cy={MEM_Y} head={{ x: hx + 30, y: GROUND - 390 }} show={prog(frame, t3, t3 + 18)} seenAt={MEM_EV.grab + 18} ev={MEM_EV} />
+            <Memory frame={frame} cx={wx - 175} cy={MEM_Y} head={{ x: wx - 30, y: GROUND - 390 }} show={prog(frame, t3 + 8, t3 + 26)} seenAt={MEM_EV.take + 8} ev={MEM_EV} />
           </g>
         ),
         tintOpacity: 0,
@@ -72,7 +140,7 @@ export const SHOTS: Record<string, ShotDef> = {
     },
   },
   "souq-two-verdicts": {
-    nameAr: "السوق: كل شاهد يرى الحادثة بلونه",
+    nameAr: "السوق: كل شاهد يحكم بالصورة التي رآها",
     place: "سوق الحارة",
     render: ({ frame, at }) => {
       const tR = at("ظلما", 0.35);
@@ -80,21 +148,20 @@ export const SHOTS: Record<string, ShotDef> = {
       const tG = at("عدلا", 0.8);
       const red = prog(frame, tR, tR + 16);
       const gold = prog(frame, tG, tG + 16);
+      const hx = HERO_X - 40;
+      const wx = WOMAN_X + 40;
       return {
-        cam: [
-          K(0, 520, 1.78),
-          K(tR - 6, 620, 1.61),
-          K(t2, 1340, 1.67),
-          K(tG + 2, 960, 1.12),
-        ],
+        cam: [K(0, 560, 1.4, -40), K(tR - 6, 600, 1.46, -40), K(t2, 1380, 1.4, -40), K(tG + 4, 1360, 1.46, -40), K(tG + 34, 960, 1.12)],
         world: (
           <g>
             <SouqStreet frame={frame} />
-            <Incident frame={frame} grab={1} />
-            <LightPool cx={340} cy={GROUND - 160} rx={420} ry={360} color={RED} opacity={0.55 * red} />
-            <LightPool cx={1560} cy={GROUND - 160} rx={420} ry={360} color={GOLD} opacity={0.6 * gold} />
-            <Figure x={340} y={GROUND + 6} scale={1.2} pose={pz(frame, [[0, "think"], [tR, "point"], [tR + 50, "cross"]])} look={hero} frame={frame} rim={red} rimColor={RED} />
-            <Figure x={1560} y={GROUND + 6} scale={1.18} pose={pz(frame, [[0, "cross"], [tG, "nod"], [tG + 24, "talk"]])} look={LOOKS.woman} flip frame={frame + 11} rim={gold} />
+            <Incident frame={frame} {...AFTER} fallAt={AFTER.grab + 2} />
+            <LightPool cx={hx} cy={GROUND - 160} rx={420} ry={360} color={RED} opacity={0.5 * red} />
+            <LightPool cx={wx} cy={GROUND - 160} rx={420} ry={360} color={GOLD} opacity={0.55 * gold} />
+            <Figure x={hx} y={GROUND + 6} scale={1.2} pose={pz(frame, [[0, "think"], [tR, "point"], [tR + 50, "cross"]])} look={hero} frame={frame} rim={red} rimColor={RED} />
+            <Figure x={wx} y={GROUND + 6} scale={1.18} pose={pz(frame, [[0, "cross"], [tG, "nod"], [tG + 24, "talk"]])} look={LOOKS.woman} flip frame={frame + 11} rim={gold} />
+            <Memory frame={frame} cx={hx + 175} cy={MEM_Y} head={{ x: hx + 30, y: GROUND - 390 }} show={1} seenAt={MEM_EV.grab + 18} ev={MEM_EV} tint={RED} tintAmt={red} />
+            <Memory frame={frame} cx={wx - 175} cy={MEM_Y} head={{ x: wx - 30, y: GROUND - 390 }} show={1} seenAt={MEM_EV.take + 8} ev={MEM_EV} tint={GOLD} tintAmt={gold} />
           </g>
         ),
       };
@@ -144,7 +211,7 @@ export const SHOTS: Record<string, ShotDef> = {
       const outside = (
         <g transform="translate(520 120) scale(0.46) translate(-200 -260)">
           <SouqStreet frame={frame} />
-          <Incident frame={frame} grab={1} />
+          <Incident frame={frame} {...AFTER} fallAt={AFTER.grab + 2} />
         </g>
       );
       return {

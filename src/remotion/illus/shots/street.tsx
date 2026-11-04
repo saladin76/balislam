@@ -86,7 +86,7 @@ const Facade: React.FC<{ x: number; w: number; h: number; wall: string; seed: nu
 };
 
 /** عربة فاكهة خشبية */
-export const FruitCart: React.FC<{ x: number; missing?: number }> = ({ x, missing = 0 }) => {
+export const FruitCart: React.FC<{ x: number; missing?: number; taken?: boolean }> = ({ x, missing = 0, taken = false }) => {
   const ink = darken(ID.night, 0.55);
   const wood = darken(ID.copper, 0.42);
   const fruit: [number, number][] = [];
@@ -95,7 +95,7 @@ export const FruitCart: React.FC<{ x: number; missing?: number }> = ({ x, missin
     <g>
       <rect x={x} y={GROUND - 150} width={230} height={70} fill={wood} stroke={ink} strokeWidth={3} />
       <rect x={x - 8} y={GROUND - 158} width={246} height={12} fill={lighten(wood, 0.1)} stroke={ink} strokeWidth={3} />
-      {fruit.slice(0, fruit.length - missing).map(([fx, fy], i) => (
+      {fruit.slice(0, fruit.length - missing).map(([fx, fy], i) => taken && i === 0 ? null : (
         <circle key={i} cx={fx} cy={fy} r={13} fill={i % 4 ? mix(ID.dawn, ID.seal, 0.3) : mix(ID.seal, ID.copper, 0.25)} stroke={ink} strokeWidth={2} />
       ))}
       <circle cx={x + 60} cy={GROUND - 44} r={42} fill="none" stroke={ink} strokeWidth={9} />

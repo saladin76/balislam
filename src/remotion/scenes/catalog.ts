@@ -24,6 +24,7 @@ import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from 
 import { Summary, summarySample, summarySampleEn, summarySeconds } from "./Summary";
 import { RoadJourney, roadJourneySample, roadJourneySampleEn, roadJourneySeconds } from "./RoadJourney";
 import { LightStage, lightStageSample, lightStageSampleEn, lightStageSeconds } from "./LightStage";
+import { DuaBoard, duaBoardSample, duaBoardSampleEn, duaBoardSeconds } from "./DuaBoard";
 import { AlleyTale, alleyTaleSample, alleyTaleSampleEn, alleyTaleSeconds } from "./AlleyTale";
 import { NoorText, noorTextSample, noorTextSampleEn, noorTextSeconds } from "./NoorText";
 import { EndScreen, endScreenSample, endScreenSampleEn, endScreenSeconds } from "./EndScreen";
@@ -48,6 +49,7 @@ export const sceneCatalog: Entry[] = [
   { id: "alley-tale", component: AlleyTale, sample: alleyTaleSample, sampleEn: alleyTaleSampleEn, seconds: alleyTaleSeconds },
   { id: "road-journey", component: RoadJourney, sample: roadJourneySample, sampleEn: roadJourneySampleEn, seconds: roadJourneySeconds },
   { id: "light-stage", component: LightStage, sample: lightStageSample, sampleEn: lightStageSampleEn, seconds: lightStageSeconds },
+  { id: "dua-board", component: DuaBoard, sample: duaBoardSample, sampleEn: duaBoardSampleEn, seconds: duaBoardSeconds },
   { id: "motion-story", component: MotionStory, sample: motionStorySample, sampleEn: motionStorySampleEn, seconds: motionStorySeconds },
   { id: "ink-shot", component: InkShot, sample: inkShotSample, sampleEn: inkShotSampleEn, seconds: inkShotSeconds },
   { id: "ink-meaning", component: InkMeaning, sample: inkMeaningSample, sampleEn: inkMeaningSampleEn, seconds: inkMeaningSeconds },
