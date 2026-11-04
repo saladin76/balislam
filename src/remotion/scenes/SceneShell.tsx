@@ -133,28 +133,27 @@ const NotebookCover: React.FC<{ w: number; h: number; u: number }> = ({ w, h, u 
   );
 };
 
-/** عنوان الفصل شريطَ تاريخ أحمر معلّقًا من الحافة العليا للصفحة */
-const DateTape: React.FC<{ text: string; size: number; u: number; a: number; portrait: boolean }> = ({ text, size, u, a, portrait }) => (
-  <div
-    style={{
-      position: "absolute",
-      top: (portrait ? 220 : 26) * u,
-      insetInlineStart: (portrait ? 72 : 110) * u,
-      background: NB.tape,
-      color: NB.parchment,
-      fontFamily: fontFamilies.body,
-      fontWeight: 700,
-      fontSize: size,
-      lineHeight: 1.25,
-      padding: `${14 * u}px ${26 * u}px ${22 * u}px`,
-      clipPath: `polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - ${10 * u}px), 0 100%)`,
-      boxShadow: "0 6px 14px rgba(0,0,0,0.25)",
-      transformOrigin: "top center",
-      transform: `scaleY(${0.2 + 0.8 * a})`,
-      opacity: Math.min(1, a * 1.5),
-    }}
-  >
-    {text}
+/**
+ * عنوان الفصل «رُبْرِيكًا» (دفاتر الزمن): يُكتب بالحبر الأحمر في الهامش العلوي للصفحة كعناوين المخطوطات،
+ * وبجواره شريط القراءة الأحمر الرفيع معلّقًا من حافة الدفتر. لا كتلة لون تنافس المحتوى.
+ */
+const DateTape: React.FC<{ text: string; size: number; u: number; a: number; portrait: boolean; dark: boolean }> = ({ text, size, u, a, portrait, dark }) => (
+  <div style={{ position: "absolute", top: (portrait ? 220 : 26) * u, insetInlineStart: (portrait ? 72 : 96) * u, display: "flex", alignItems: "flex-start", gap: 18 * u }}>
+    <div style={{ width: 16 * u, height: 84 * u * (0.3 + 0.7 * a), background: NB.tape, clipPath: `polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - ${7 * u}px), 0 100%)`, opacity: 0.9 }} />
+    <div
+      style={{
+        marginTop: 22 * u,
+        fontFamily: fontFamilies.heading,
+        fontWeight: 700,
+        fontSize: size,
+        lineHeight: 1.3,
+        color: dark ? "#E9877A" : "#A8322A",
+        // الكتابة تنكشف بالحبر من جهة البداية
+        clipPath: `inset(-20% 0 -20% ${(1 - a) * 100}%)`,
+      }}
+    >
+      {text}
+    </div>
   </div>
 );
 
@@ -165,7 +164,7 @@ type ShellProps = SceneBase & {
   background?: string;
   /** ألوان شارة عنوان الفصل على تلك الخلفية */
   eyebrowColors?: { text: string; border: string };
-  captionVariant?: "pill" | "cinema";
+  captionVariant?: "pill" | "cinema" | "paper" | "dusk";
 };
 
 /**
@@ -185,6 +184,13 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
   const notebook = useChannel().frame === "notebook";
   const u = Math.min(width, height) / 1080;
+  /** هل خلفية المشهد داكنة؟ (الغسق) لاختيار حبر العنوان والترجمة */
+  const darkBg = (() => {
+    const h = (background ?? t.colors.bg).replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(h)) return false;
+    const n = parseInt(h, 16);
+    return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) < 110;
+  })();
 
   return (
     <AbsoluteFill style={{ backgroundColor: background ?? t.colors.bg, direction: lang.dir, fontFamily: fontFamilies.body, color: t.colors.ink }}>
@@ -196,7 +202,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
         <Motif t={t} w={width} h={height} frame={frame} rtl={lang.dir === "rtl"} />
       ) : null}
       <AbsoluteFill style={{ opacity: out }}>
-        {eyebrow && notebook ? <DateTape text={eyebrow} size={eyebrowSize * 1.35 * u} u={u} a={eyebrowIn} portrait={portrait} /> : null}
+        {eyebrow && notebook ? <DateTape text={eyebrow} size={eyebrowSize * 1.3 * u} u={u} a={eyebrowIn} portrait={portrait} dark={darkBg} /> : null}
         {eyebrow && !notebook ? (
           <div
             style={{
@@ -226,7 +232,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
       {notebook ? <NotebookCover w={width} h={height} u={u} /> : null}
       {captions && timings.length ? (
         <AbsoluteFill style={{ opacity: out }}>
-          <CaptionBar theme={t} timings={timings} portrait={portrait} variant={captionVariant} />
+          <CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? (darkBg ? "dusk" : "paper") : captionVariant} />
         </AbsoluteFill>
       ) : null}
     </AbsoluteFill>

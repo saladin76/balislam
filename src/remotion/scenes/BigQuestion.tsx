@@ -1,5 +1,5 @@
 import React from "react";
-import { useVideoConfig } from "remotion";
+import { interpolate, useVideoConfig } from "remotion";
 import { useMotionSettings, useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
@@ -54,6 +54,8 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
   const perWord = spoken.length ? Math.max(3, (spoken[1]! - wordsFrom) / Math.max(1, words.length)) : motion.wordInterval;
   const wordsDone = wordsFrom + words.length * perWord;
   const marker = fade(frame, wordsDone + 4, 14);
+  const dig = element === "soil-strata";
+  const digIn = interpolate(frame, [wordsFrom, Math.max(wordsFrom + 1, wordsDone)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
     <SceneShell {...props} durationInFrames={durationInFrames}>
@@ -75,7 +77,10 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
             opacity: iconIn,
           }}
         >
-          <Element id={element} theme={t} size={iconPx} />
+          {/* «طبقات الأرض»: تنكشف من الأعلى إلى الأسفل كما يكشف التنقيب الطبقات، على مدى السؤال المنطوق */}
+          <div style={dig ? { clipPath: `inset(0 0 ${(1 - digIn) * 82}% 0)` } : undefined}>
+            <Element id={element} theme={t} size={dig ? Math.round(iconPx * 1.45) : iconPx} />
+          </div>
         </div>
         <div
           style={{
