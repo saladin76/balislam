@@ -1,0 +1,1042 @@
+import React from "react";
+import type { CamKey } from "../illus/shots/kit";
+import { Arrow, Card, Cross, Icon, InkPerson, Mark, Stroke, Write, heartPath, lerp, fam, measure, outCubic, prog, type Font, type IconId, type Z } from "./inkKit";
+import type { InkCtx, InkShotDef } from "./shots";
+
+/**
+ * بقية مشاهد الحبر للحلقة 001 (زبدة الكتب). القاعدة نفسها: لا يُكتب على الشاشة إلا ما يُنطق،
+ * وكل حدث لحظة كلمته، ولا حدث ولا قلم عند ذكر الله (الكاميرا تسكن تلقائيًا عند كل ذكر).
+ */
+const C = (t: number, x: number, y: number, z: number): CamKey => ({ t, x, y, z });
+const wp = (frame: number, a: number, b: number) => prog(frame, a - 2, Math.max(a + 10, b), (t) => t);
+
+/** أدوات مختصرة لكل مشهد */
+const kit = (c: InkCtx) => {
+  const { frame, z, at, end } = c;
+  /** نص يُكتب من بداية كلمة إلى نهاية أخرى */
+  const T = (id: string, x: number, y: number, text: string, size: number, from: [string, number, number?], to?: [string, number, number?], o: { font?: Font; weight?: number; color?: string; opacity?: number } = {}) => {
+    const a = at(from[0], from[1], from[2]);
+    const b = to ? end(to[0], to[1], to[2]) : a + Math.max(12, Array.from(text).length * 2.2);
+    return <Write id={id} x={x} y={y} text={text} size={size} p={wp(frame, a, b)} c={o.color ?? z.ink} font={o.font ?? "hand"} weight={o.weight} opacity={o.opacity} z={z} />;
+  };
+  /** كلمة داخل إطار يُرسم ثم تُكتب الكلمة */
+  const Box = (id: string, x: number, y: number, text: string, size: number, t0: number, o: { font?: Font; fill?: string; opacity?: number; dashed?: boolean; tEnd?: number } = {}) => {
+    const w = measure(text, size, fam(o.font ?? "hand")) * 1.15 + size * 1.1;
+    const h = size * 1.7;
+    const pb = prog(frame, t0 - 4, t0 + 10);
+    return (
+      <g opacity={o.opacity ?? 1}>
+        {o.dashed ? (
+          <rect x={x - w / 2} y={y - h * 0.62} width={w} height={h} rx={14} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={pb} />
+        ) : (
+          <Stroke d={`M${x + w / 2 - 14} ${y - h * 0.62} H${x - w / 2 + 14} Q${x - w / 2} ${y - h * 0.62} ${x - w / 2} ${y - h * 0.62 + 14} V${y + h * 0.38 - 14} Q${x - w / 2} ${y + h * 0.38} ${x - w / 2 + 14} ${y + h * 0.38} H${x + w / 2 - 14} Q${x + w / 2} ${y + h * 0.38} ${x + w / 2} ${y + h * 0.38 - 14} V${y - h * 0.62 + 14} Q${x + w / 2} ${y - h * 0.62} ${x + w / 2 - 14} ${y - h * 0.62} Z`} p={pb} c={z.ink} w={6} fill={o.fill ?? z.paper} fillP={pb} />
+        )}
+        <Write id={id} x={x} y={y + size * 0.12} text={text} size={size} p={wp(frame, t0, o.tEnd ?? t0 + Math.max(12, Array.from(text).length * 2.2))} c={z.ink} font={o.font ?? "hand"} z={z} />
+      </g>
+    );
+  };
+  const P = (a: number, b: number, e: (t: number) => number = outCubic) => prog(frame, a, b, e);
+  return { frame, z, at, end, T, Box, P };
+};
+
+/** يدان مضمومتان بالحبر (للوضوء)، بلا ملامح */
+const Hands: React.FC<{ x: number; y: number; s?: number; p: number; z: Z }> = ({ x, y, s = 1, p, z }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`}>
+    <Stroke d="M-150 -30 C-150 50 -70 92 0 86 C70 92 150 50 150 -30" p={prog(p, 0, 0.6)} c={z.ink} w={9} />
+    <Stroke d="M-150 -30 C-130 -50 -110 -40 -104 -16 M150 -30 C130 -50 110 -40 104 -16" p={prog(p, 0.4, 0.8)} c={z.ink} w={8} />
+    <Stroke d="M-104 -16 C-80 20 -40 40 0 40 C40 40 80 20 104 -16" p={prog(p, 0.6, 1)} c={z.ink} w={6} opacity={0.7} />
+  </g>
+);
+
+/** قطرة ماء */
+const Drop: React.FC<{ x: number; y: number; s?: number; z: Z; o?: number }> = ({ x, y, s = 1, z, o = 1 }) => (
+  <path d="M0 -26 C10 -10 16 0 16 8 A16 16 0 0 1 -16 8 C-16 0 -10 -10 0 -26 Z" transform={`translate(${x} ${y}) scale(${s})`} fill={z.paper} stroke={z.ink} strokeWidth={5} opacity={o} />
+);
+
+/** ساعة حبرية بعقربين */
+const Clock: React.FC<{ x: number; y: number; r: number; a1: number; a2: number; p: number; z: Z; wedge?: number }> = ({ x, y, r, a1, a2, p, z, wedge = 0 }) => (
+  <g transform={`translate(${x} ${y})`} opacity={Math.min(1, p * 2)}>
+    <circle r={r} fill={z.paper} stroke={z.ink} strokeWidth={9} />
+    {wedge > 0 ? <path d={`M0 0 L0 ${-r + 12} A${r - 12} ${r - 12} 0 ${wedge > 0.5 ? 1 : 0} 1 ${Math.sin(wedge * 2 * Math.PI) * (r - 12)} ${-Math.cos(wedge * 2 * Math.PI) * (r - 12)} Z`} fill={z.hl} /> : null}
+    {Array.from({ length: 12 }, (_, i) => {
+      const a = (i / 12) * 2 * Math.PI;
+      return <line key={i} x1={Math.sin(a) * (r - 16)} y1={-Math.cos(a) * (r - 16)} x2={Math.sin(a) * (r - 30)} y2={-Math.cos(a) * (r - 30)} stroke={z.ink} strokeWidth={i % 3 ? 4 : 8} strokeLinecap="round" />;
+    })}
+    <line x1={0} y1={0} x2={Math.sin(a1) * r * 0.5} y2={-Math.cos(a1) * r * 0.5} stroke={z.ink} strokeWidth={12} strokeLinecap="round" />
+    <line x1={0} y1={0} x2={Math.sin(a2) * r * 0.75} y2={-Math.cos(a2) * r * 0.75} stroke={z.ink} strokeWidth={7} strokeLinecap="round" />
+    <circle r={10} fill={z.ink} />
+  </g>
+);
+
+/** سحابة خاطرة صغيرة */
+const Cloud: React.FC<{ x: number; y: number; r: number; p: number; z: Z; o?: number }> = ({ x, y, r, p, z, o = 1 }) =>
+  p <= 0 ? null : (
+    <g transform={`translate(${x} ${y}) scale(${p})`} opacity={Math.min(1, p) * o}>
+      <path d={`M${-r} 0 a${r * 0.6} ${r * 0.6} 0 0 1 ${r * 0.7} ${-r * 0.6} a${r * 0.7} ${r * 0.7} 0 0 1 ${r * 1.1} ${r * 0.1} a${r * 0.5} ${r * 0.5} 0 0 1 ${r * 0.2} ${r * 0.9} Z`} fill={z.paper} stroke={z.ink} strokeWidth={6} strokeLinejoin="round" />
+    </g>
+  );
+
+/** سطور رمادية (نص محفوظ بلا كتابته) */
+const Lines: React.FC<{ x: number; y: number; w: number; n: number; p: number; z: Z; gap?: number }> = ({ x, y, w, n, p, z, gap = 34 }) => (
+  <g>
+    {Array.from({ length: n }, (_, i) => (
+      <Stroke key={i} d={`M${x + w / 2} ${y + i * gap} L${x - w / 2 + (i === n - 1 ? w * 0.35 : 0)} ${y + i * gap}`} p={prog(p, i / (n + 1), (i + 2) / (n + 1))} c={z.faint} w={10} />
+    ))}
+  </g>
+);
+
+/** تمهيد الآية: اسم السورة وحده، بهدوء؛ لا شيء عند ذكر الله، والسكون قبل التلاوة */
+const verseIntro = (surah: string): InkShotDef => ({
+  nameAr: `تمهيد الآية: سورة ${surah}`,
+  render: (c) => {
+    const { frame, z, at, P } = kit(c);
+    const tS = at("سورة", 0.5);
+    const ln = P(tS - 6, tS + 18, (t) => t);
+    return {
+      cam: [C(0, 960, 500, 1.0)],
+      world: (
+        <g>
+          <Stroke d="M1260 600 L660 600" p={ln} c={z.ink} w={5} />
+          <Write id="vs" x={960} y={540} text={`سورة ${surah}`} size={110} p={wp(frame, tS, c.end(surah, 0.9))} c={z.ink} font="head" z={z} />
+        </g>
+      ),
+    };
+  },
+});
+
+/**
+ * الخاتمة المتحركة (نموذج للمراجعة): 8 ثوانٍ. أول ما يُرسم إطارا عنصري يوتيوب (الحلقة التالية والاشتراك)
+ * لأنهما يظهران من أول ثانية؛ ثم الشعار المعتمد كما هو، ثم مهمة الحلقة (مما قيل في المشهد 26)، ثم سهم إلى الحلقة التالية.
+ * لا نص فيها إلا ما نُطق في الحلقة، واسم القناة.
+ */
+const outro: InkShotDef = {
+  nameAr: "الخاتمة: الحلقة التالية والاشتراك ومهمة الحلقة",
+  render: (c) => {
+    const { frame, z, P } = kit(c);
+    const s = (sec: number) => Math.round(sec * 30);
+    const slot = P(s(0), s(1.2), (t) => t);
+    const ring = P(s(0.4), s(1.5), (t) => t);
+    const logoIn = P(s(1.5), s(2.3));
+    const name = wp(frame, s(2.2), s(3.2));
+    const sweep = P(s(3.2), s(3.9));
+    const note = P(s(4.0), s(4.7));
+    const box = P(s(5.0), s(5.4));
+    const link = P(s(5.6), s(6.6), (t) => t);
+    const close = P(s(7.2), s(8));
+    return {
+      cam: [C(0, 960, 520, 1.0)],
+      world: (
+        <g opacity={1 - 0.15 * close}>
+          {/* إطار الحلقة التالية (يسار، اتجاه القراءة) */}
+          <Stroke d="M150 250 H910 V678 H150 Z" p={slot} c={z.ink} w={7} />
+          <Write id="nx" x={530} y={200} text="الحلقة القادمة" size={60} p={wp(frame, s(0.6), s(1.6))} c={z.ink} z={z} />
+          {/* دائرة الاشتراك حول الشعار المعتمد */}
+          <circle cx={1440} cy={420} r={150} fill="none" stroke={z.ink} strokeWidth={7} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - ring} />
+          <foreignObject x={1440 - 100} y={420 - 100} width={200} height={200} opacity={logoIn}>
+            <div style={{ width: 200, height: 200, display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${0.8 + 0.2 * logoIn})` }}>{c.logo(170)}</div>
+          </foreignObject>
+          <Mark x={1440 - 190} y={640} w={380} h={34} p={sweep} z={z} />
+          <Write id="ch" x={1440} y={666} text="زبدة الكتب" size={90} p={name} c={z.ink} font="head" z={z} />
+          {/* مهمة الحلقة: الورقة اللاصقة من المشهد 26 */}
+          <g transform={`translate(1150 ${880 - 60 * (1 - note)}) rotate(-2)`} opacity={note}>
+            <rect x={-260} y={-70} width={520} height={140} fill={z.hl} />
+            <text x={30} y={14} textAnchor="middle" direction="rtl" style={{ fontFamily: fam("hand"), fontSize: 50, fill: z.ink }}>نستحضر معنى التكبير</text>
+            <rect x={-235} y={-26} width={48} height={48} rx={6} fill="none" stroke={z.ink} strokeWidth={6} opacity={box} />
+          </g>
+          {/* ومنها إلى الحلقة القادمة */}
+          <Stroke d="M880 880 C700 900 560 820 530 700" p={link} c={z.ink} w={6} />
+          <Stroke d="M500 724 L530 700 L556 728" p={P(s(6.4), s(6.8))} c={z.ink} w={6} />
+        </g>
+      ),
+    };
+  },
+};
+
+export const INK_SHOTS_2: Record<string, InkShotDef> = {
+  outro,
+  "verse-intro-taha": verseIntro("طه"),
+  "verse-intro-muminun": verseIntro("المؤمنون"),
+  "verse-intro-nahl": verseIntro("النحل"),
+  // S02 — العادة والوعي
+  "habit-attention": {
+    nameAr: "العادة نعمة، لكنها قد تضعف الانتباه",
+    render: (c) => {
+      const { frame, z, at, T, Box, P } = kit(c);
+      const tHab = at("الاعتياد", 0.02);
+      const tAib = at("عيبا", 0.08);
+      const tFixed = at("ثابتة", 0.2);
+      const tWeak = at("تضعف", 0.3);
+      const tAtt = at("الانتباه", 0.34);
+      const tWords = at("الكلمات", 0.44);
+      const tThought = at("أفكارنا", 0.52);
+      const tDates = at("مواعيدنا", 0.56);
+      const tWorry = at("وهمومنا", 0.6);
+      const tInvent = at("اختراع", 0.72);
+      const tNew = at("جديدة", 0.76);
+      const tNotice = at("ننتبه", 0.84);
+      const cells: [number, number][] = [];
+      for (let r = 0; r < 3; r++) for (let k = 0; k < 5; k++) cells.push([1300 - k * 160, 220 + r * 150]);
+      const KEEP = 7;
+      const gridOut = P(tThought - 14, tThought + 6);
+      const keepMove = P(tThought - 14, tThought + 10);
+      const kx = lerp(cells[KEEP]![0], 520, keepMove);
+      const ky = lerp(cells[KEEP]![1], 420, keepMove);
+      return {
+        focus: [[tHab, 1000, 300], [tAib, 1560, 220], [tFixed, 980, 370], [tWeak, 980, 370], [tAtt, cells[KEEP]![0], cells[KEEP]![1]], [tWords, 1300, 420], [tDates, 1500, 230], [tWorry, 1680, 330], [tInvent, 1250, 700], [tNotice, 520, 420]],
+        cam: [C(0, 980, 400, 1.05), C(tThought - 10, 1080, 470, 1.0), C(tNotice - 8, 900, 500, 1.04)],
+        world: (
+          <g>
+            <g opacity={1 - gridOut}>
+              {cells.map(([x, y], k) => {
+                const on = P(tHab + k * 2, tHab + k * 2 + 10);
+                const dim = k === KEEP ? 1 : 1 - 0.75 * P(tWeak, tWeak + 18);
+                return (
+                  <g key={k} opacity={on * dim}>
+                    <rect x={x - 60} y={y - 60} width={120} height={120} rx={14} fill={z.paper} stroke={z.ink} strokeWidth={5} />
+                    {[0, 1, 2, 3, 4].map((d) => (
+                      <circle key={d} cx={x + 40 - d * 20} cy={y + 30} r={7} fill={P(tFixed + k + d, tFixed + k + d + 6) > 0.5 ? z.hl : z.paper} stroke={z.ink} strokeWidth={3} />
+                    ))}
+                  </g>
+                );
+              })}
+              {T("ab", 1560, 140, "عيبا", 70, ["عيبا", 0.08])}
+              <Cross x1={1630} x2={1490} y={124} p={P(tAib + 8, tAib + 20)} z={z} />
+            </g>
+            {/* مربع الانتباه يبقى ويتقدم */}
+            <g opacity={P(tAtt - 4, tAtt + 6)}>
+              <rect x={kx - 76} y={ky - 76} width={152} height={152} rx={20} fill={P(tNotice, tNotice + 16) > 0 ? z.hl : "none"} fillOpacity={P(tNotice, tNotice + 16)} stroke={z.ink} strokeWidth={10} />
+              <rect x={kx - 60} y={ky - 60} width={120} height={120} rx={14} fill="none" stroke={z.ink} strokeWidth={5} opacity={keepMove} />
+            </g>
+            {T("at", 520, 600, "الانتباه", 80, ["الانتباه", 0.34], undefined, { font: "head", opacity: keepMove })}
+            {/* نقرأ الكلمات… وتنتقل أفكارنا */}
+            <g opacity={P(tWords - 4, tWords + 8)}>
+              <Lines x={1300} y={400} w={420} n={3} p={P(tWords, tWords + 20, (t) => t)} z={z} />
+            </g>
+            <Arrow x1={1300} y1={350} x2={1460} y2={270} p={P(tThought, tThought + 14)} c={z.ink} w={6} bend={30} />
+            <Icon id="calendar" x={1510} y={220} s={1.1} p={P(tDates - 2, tDates + 12)} c={z.ink} />
+            <Cloud x={1680} y={330} r={60} p={P(tWorry - 2, tWorry + 12)} z={z} />
+            {/* ليس اختراع صلاة جديدة */}
+            {Box("nw", 1250, 720, "صلاة جديدة", 64, tInvent, { dashed: true, tEnd: c.end("جديدة", 0.76) })}
+            <Cross x1={1440} x2={1060} y={706} p={P(tNew + 10, tNew + 24)} z={z} />
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S04 — الأمانة في القراءة، والأحكام مع الخشوع
+  "honest-reading": {
+    nameAr: "نقرأ بأمانة: كلام المؤلف وشرحنا، والأحكام مع الخشوع",
+    render: (c) => {
+      const { frame, z, at, end, T, Box, P } = kit(c);
+      const tBook = at("الكتاب", 0.04);
+      const tAuth = at("المؤلف", 0.14);
+      const tNisba = at("سننسبه", 0.2);
+      const tAdd = at("نضيفه", 0.26);
+      const tMayyiz = at("سنميزه", 0.34);
+      const tRules = at("بأحكام", 0.48);
+      const tFeel = at("المشاعر", 0.56);
+      const tSihha = at("فصحة", 0.64);
+      const tKhush = at("الخشوع", 0.72);
+      const tTogether = at("معا", 0.95);
+      const top = 1 - 0.75 * P(tRules - 12, tRules + 6);
+      return {
+        focus: [[tBook, 1600, 330], [tAuth, 1150, 300], [tNisba, 1400, 300], [tAdd, 620, 300], [tMayyiz, 880, 300], [tRules, 1250, 720], [tFeel, 700, 720], [tSihha, 1250, 720], [tKhush, 700, 720], [tTogether, 960, 800]],
+        cam: [C(0, 1100, 380, 1.08), C(tRules - 10, 960, 600, 1.0)],
+        world: (
+          <g>
+            <g opacity={top}>
+              {/* الكتاب */}
+              <g opacity={P(tBook - 6, tBook + 8)} transform={`translate(1640 ${330 - 30 * (1 - P(tBook - 6, tBook + 10))}) rotate(4)`}>
+                <rect x={-80} y={-110} width={160} height={220} rx={10} fill={z.ink} />
+                <rect x={-56} y={-80} width={112} height={14} rx={4} fill={z.hl} />
+              </g>
+              {Box("au", 1180, 320, "ما يقوله المؤلف", 58, tAuth - 6, { tEnd: end("المؤلف", 0.14) })}
+              <Arrow x1={1430} y1={300} x2={1550} y2={300} p={P(tNisba, tNisba + 14)} c={z.ink} w={7} />
+              <Stroke d="M900 160 L900 480" p={P(tMayyiz - 2, tMayyiz + 14)} c={z.ink} w={5} />
+              <g transform="translate(600 320) rotate(-2)" opacity={P(tAdd - 6, tAdd + 6)}>
+                <rect x={-230} y={-80} width={460} height={160} fill={z.hl} />
+              </g>
+              {T("ad", 600, 330, "ما نضيفه من شرح", 58, ["نضيفه", 0.26], ["شرح", 0.3])}
+            </g>
+            {/* لا نستبدل بالأحكام المشاعر، والاثنان معًا */}
+            {Box("hk", 1250, 720, "أحكام الصلاة", 66, tRules, { font: "head" })}
+            <g opacity={1 - P(tSihha - 12, tSihha + 4)}>
+              {T("ms", 690, 720, "مجرد المشاعر", 62, ["مجرد", 0.52], ["المشاعر", 0.56])}
+              <Arrow x1={880} y1={660} x2={1060} y2={660} p={P(tFeel + 6, tFeel + 18)} c={z.ink} w={6} bend={40} />
+              <Cross x1={1080} x2={860} y={620} p={P(tFeel + 18, tFeel + 30)} z={z} />
+            </g>
+            {T("sh", 1250, 600, "صحة العبادة", 56, ["فصحة", 0.64], ["العبادة", 0.68])}
+            {T("tk", 690, 730, "طلب الخشوع", 66, ["وطلب", 0.7], ["الخشوع", 0.72], { font: "head" })}
+            <Stroke d="M1250 790 Q960 900 690 790" p={P(tTogether - 4, tTogether + 14)} c={z.hl} w={22} />
+            <Stroke d="M1250 790 Q960 900 690 790" p={P(tTogether - 4, tTogether + 14)} c={z.ink} w={6} />
+            {T("mm", 970, 900, "معا", 64, ["معا", 0.95])}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S05 — المفتاح الأول: لا نجعل العجلة تسرق السكينة
+  "rush-key": {
+    nameAr: "مفاتيح الصلاة: العجلة لا تسرق السكينة",
+    render: (c) => {
+      const { frame, z, at, end, T, Box, P } = kit(c);
+      const tKeys = at("مفاتيح", 0.04);
+      const tTanbih = at("بتنبيه", 0.18);
+      const tRush = at("العجلة", 0.26);
+      const tSteal = at("تسرق", 0.3);
+      const tCalm = at("سكينة", 0.36);
+      const tTime = at("وقت", 0.48);
+      const tTask = at("مهمة", 0.7);
+      const tFast = at("بأسرع", 0.86);
+      // العقربان يدوران بسرعة مع «العجلة» ويتوقفان عند «سكينة»
+      const spin = prog(frame, tRush - 6, tCalm, (t) => t);
+      const a2 = spin * Math.PI * 16;
+      const a1 = spin * Math.PI * 2.5;
+      const calm = P(tCalm - 2, tCalm + 16);
+      const wedge = 0.22 * P(tTime, tTime + 20);
+      return {
+        focus: [[tKeys, 1200, 220], [tTanbih, 700, 230], [tRush, 960, 560], [tSteal, 960, 560], [tCalm, 960, 560], [tTime, 960, 560], [tTask, 1450, 760], [tFast, 1450, 760]],
+        cam: [C(0, 1050, 360, 1.08), C(tRush - 8, 960, 540, 1.0)],
+        world: (
+          <g>
+            {/* مفتاح وباب الكتاب */}
+            <g transform="translate(1540 220)" opacity={P(tKeys - 4, tKeys + 6)}>
+              <Stroke d="M40 0 A34 34 0 1 1 -28 0 A34 34 0 1 1 40 0 M-28 0 L-150 0 M-120 0 L-120 30 M-90 0 L-90 22" p={P(tKeys - 2, tKeys + 18)} c={z.ink} w={9} />
+            </g>
+            {Box("mk", 1170, 230, "مفاتيح الصلاة", 66, tKeys, { font: "head", tEnd: end("الصلاة", 0.08) })}
+            <g opacity={P(tTanbih - 4, tTanbih + 8)}>
+              <rect x={490} y={180} width={400} height={100} rx={50} fill="none" stroke={z.alert} strokeWidth={7} />
+            </g>
+            {T("tn", 690, 245, "تنبيه عملي", 60, ["بتنبيه", 0.18], ["عملي", 0.22], { color: z.alert })}
+            <Clock x={960} y={600} r={170} a1={a1} a2={a2} p={P(tRush - 8, tRush + 4)} z={z} wedge={wedge} />
+            <circle cx={960} cy={600} r={170 + 40 * calm} fill="none" stroke={z.hl} strokeWidth={22} opacity={calm} />
+            {T("sk", 960, 860, "سكينة الصلاة", 64, ["سكينة", 0.36], ["الصلاة", 0.4, 2])}
+            {/* ليست مهمة نتجاوزها */}
+            <g opacity={P(tTask - 4, tTask + 8)}>
+              <rect x={1290} y={720} width={56} height={56} rx={8} fill="none" stroke={z.ink} strokeWidth={6} />
+              <Stroke d="M1300 748 L1316 766 L1342 726" p={P(tFast, tFast + 6)} c={z.ink} w={7} />
+            </g>
+            {T("mh", 1520, 768, "مهمة", 66, ["مهمة", 0.7])}
+            <Cross x1={1640} x2={1270} y={748} p={P(end("يمكن", 0.97) - 12, end("يمكن", 0.97))} z={z} />
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S06 — من العمل المزدحم إلى الصلاة: التهيؤ
+  "busy-threshold": {
+    nameAr: "من عمل مزدحم إلى الصلاة: التهيؤ ليس ترفًا",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tWork = at("عمل", 0.04);
+      const tBusy = at("مزدحم", 0.1);
+      const tMove = at("فننتقل", 0.16);
+      const tMind = at("والذهن", 0.26);
+      const tPrep = at("التهيؤ", 0.46);
+      const tLux = at("ترفا", 0.54);
+      const tCauses = at("الأسباب", 0.66);
+      const tCalm = at("السكينة", 0.94);
+      const icons: [IconId, number, number, number][] = [["bag", 1500, 360, -8], ["phone", 1650, 470, 10], ["calendar", 1430, 560, 4], ["clock", 1620, 660, -6], ["cart", 1480, 760, 6]];
+      const calm = P(tCauses, tCalm + 6);
+      return {
+        focus: [[tWork, 1550, 500], [tBusy, 1560, 560], [tMove, 1000, 600], [tMind, 560, 380], [tPrep, 1000, 520], [tLux, 1000, 280], [tCauses, 560, 500], [tCalm, 560, 760]],
+        cam: [C(0, 1360, 540, 1.1), C(tMove - 6, 1000, 540, 1.0)],
+        world: (
+          <g>
+            {icons.map(([id, x, y, r], k) => (
+              <Icon key={id} id={id} x={x} y={y} s={1.25} rot={r} p={P(tWork + k * 4, tWork + k * 4 + 10)} c={z.ink} opacity={1 - 0.5 * calm} />
+            ))}
+            {T("ws", 1560, 900, "عمل مزدحم", 60, ["عمل", 0.04], ["مزدحم", 0.1], { opacity: 1 - calm })}
+            {/* الانتقال إلى الصلاة */}
+            <Arrow x1={1340} y1={620} x2={720} y2={700} p={P(tMove, tMove + 18)} c={z.ink} w={8} bend={60} />
+            <Stroke d="M420 800 L720 800 L680 850 L460 850 Z" p={P(tMove + 6, tMove + 22)} c={z.ink} w={6} fill={z.hl} fillP={0.45 * P(tMove + 10, tMove + 24)} />
+            <InkPerson x={570} y={810} s={1.05} pose="stand" p={P(tMove + 10, tMove + 28)} z={z} dir={-1} />
+            {/* الذهن ما زال في العمل */}
+            <g opacity={1 - calm}>
+              <path d="M600 450 C760 360 1100 330 1380 380" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="10 14" opacity={P(tMind, tMind + 14)} />
+              <Cloud x={600} y={400} r={70} p={P(tMind - 2, tMind + 12)} z={z} />
+              <Icon id="phone" x={600} y={385} s={0.55} p={P(tMind + 6, tMind + 16)} c={z.ink} />
+            </g>
+            {/* التهيؤ: مسافة بين العمل والصلاة */}
+            <rect x={940} y={160} width={120} height={720} rx={20} fill={z.hl} opacity={0.75 * P(tPrep - 2, tPrep + 14)} />
+            {T("th", 1000, 560, "التهيؤ", 72, ["التهيؤ", 0.46], undefined, { font: "head" })}
+            {T("tr", 1000, 300, "ترفا", 64, ["ترفا", 0.54])}
+            <Cross x1={1070} x2={930} y={284} p={P(tLux + 8, tLux + 20)} z={z} />
+            <Stroke d="M440 880 Q570 900 700 880" p={P(tCalm - 2, tCalm + 14)} c={z.ink} w={6} />
+            {T("sk", 570, 960, "السكينة", 64, ["السكينة", 0.94])}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S08 — «أول مرة»: تجديد لا اختراع
+  "first-time": {
+    nameAr: "لماذا «أول مرة أصلي»؟ نتعلم ما لم ننتبه إليه",
+    render: (c) => {
+      const { frame, z, at, end, T, P } = kit(c);
+      const tWhy = at("لماذا", 0.02);
+      const tTitle = at("أول", 0.1);
+      const tNot = at("ليس", 0.3);
+      const tNever = at("نصلي", 0.36);
+      const tYears = at("سنين", 0.62);
+      const tLearn = at("نتعلم", 0.72);
+      const tMeanings = at("معانيها", 0.78);
+      const tNotice = at("ننتبه", 0.94);
+      const titleUp = P(tNot - 6, tNot + 12);
+      const ty = lerp(420, 260, titleUp);
+      const tw = measure("أول مرة أصلي", 130, fam("head"));
+      return {
+        focus: [[tWhy, 1340, 400], [tTitle, 960, 420], [tNot, 960, 600], [tNever, 960, 600], [tYears, 960, 640], [tLearn, 560, 760], [tMeanings, 560, 760], [tNotice, 1050, 260]],
+        cam: [C(0, 980, 440, 1.1), C(tNot - 8, 960, 520, 1.0)],
+        world: (
+          <g>
+            <Mark x={960 + tw / 2 - tw * 0.48} y={ty - 50} w={tw * 0.48} h={60} p={P(tNotice, tNotice + 16)} z={z} />
+            <g transform={`translate(0 ${ty - 420})`}>
+              {T("tt", 960, 420, "أول مرة أصلي", 130, ["أول", 0.1], ["أصلي", 0.16], { font: "head" })}
+            </g>
+            <g opacity={1 - P(tNot - 4, tNot + 8)}>{T("why", 1460, 430, "؟", 200, ["لماذا", 0.02], undefined, { font: "head" })}</g>
+            {T("nv", 960, 580, "لم نكن نصلي", 66, ["لم", 0.32], ["نصلي", 0.36])}
+            <Cross x1={1150} x2={770} y={562} p={P(tNever + 10, tNever + 24)} z={z} />
+            {/* سنين من العبادة: خط طويل بعلامات كثيرة */}
+            <Stroke d="M1560 700 L360 700" p={P(at("نعرف", 0.5), tYears + 10, (t) => t)} c={z.ink} w={7} />
+            {Array.from({ length: 24 }, (_, i) => (
+              <line key={i} x1={1540 - i * 50} x2={1540 - i * 50} y1={684} y2={716} stroke={z.ink} strokeWidth={5} strokeLinecap="round" opacity={P(at("نعرف", 0.5) + i * 1.2, at("نعرف", 0.5) + i * 1.2 + 4)} />
+            ))}
+            {T("sn", 1300, 780, "سنين", 64, ["سنين", 0.62])}
+            {/* هامش المعاني يُفتح */}
+            <g transform={`translate(560 ${830 - 60 * P(tLearn - 4, tLearn + 12)}) rotate(-2)`} opacity={P(tLearn - 4, tLearn + 8)}>
+              <rect x={-230} y={-70} width={460} height={140} fill={z.hl} />
+            </g>
+            {T("mn", 560, 790, "نتعلم من معانيها", 60, ["نتعلم", 0.72], ["معانيها", 0.78])}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S09 — المحفوظ ثابت والفهم يتسع (بلا كتابة نص قرآني)
+  "growing-understanding": {
+    nameAr: "نحفظ السورة صغارًا ثم يتسع فهمنا",
+    render: (c) => {
+      const { frame, z, at, T, Box, P } = kit(c);
+      const tSurah = at("سورة", 0.04);
+      const tSmall = at("صغرنا", 0.1);
+      const tYears = at("سنوات", 0.22);
+      const tMeaning = at("معنى", 0.3);
+      const tWide = at("اتسع", 0.56);
+      const tRenew = at("نجدد", 0.7);
+      const tIlm = at("بالعلم", 0.8);
+      const tTad = at("والتدبر", 0.88);
+      const tAmal = at("والعمل", 0.96);
+      const grow = P(tYears - 4, tYears + 20);
+      const ring = P(tWide - 2, tWide + 22);
+      const lift = P(tRenew - 10, tRenew + 6);
+      return {
+        focus: [[tSurah, 1200, 380], [tSmall, 760, 520], [tYears, 760, 480], [tMeaning, 760, 300], [tWide, 760, 420], [tRenew, 960, 700], [tIlm, 1350, 760], [tTad, 960, 760], [tAmal, 570, 760]],
+        cam: [C(0, 1000, 440, 1.06), C(tRenew - 8, 960, 560, 1.0)],
+        world: (
+          <g transform={`translate(0 ${-120 * lift})`}>
+            {/* إطار مجرد للمحفوظ: سطور رمادية لا نص */}
+            <g opacity={P(tSurah - 4, tSurah + 8)}>
+              <rect x={1020} y={250} width={380} height={260} rx={18} fill={z.paper} stroke={z.ink} strokeWidth={6} />
+              <Lines x={1210} y={320} w={290} n={4} p={P(tSurah, tSurah + 20, (t) => t)} z={z} gap={42} />
+            </g>
+            {T("ns", 1210, 580, "نحفظ سورة", 58, ["نحفظ", 0.02], ["سورة", 0.04])}
+            {/* نحن: صغارًا ثم كبارًا */}
+            <InkPerson x={760} y={620} s={lerp(0.6, 1.0, grow)} pose="stand" p={P(tSmall - 4, tSmall + 14)} z={z} dir={-1} />
+            {T("sg", 760, 690, "صغرنا", 56, ["صغرنا", 0.1], undefined, { opacity: 1 - grow })}
+            {T("sn", 760, 690, "بعد سنوات", 56, ["بعد", 0.2], ["سنوات", 0.22], { opacity: grow })}
+            {/* معنى جديد: صلة بين المحفوظ ومن يقرؤه */}
+            <Arrow x1={1010} y1={380} x2={830} y2={380} p={P(tMeaning, tMeaning + 14)} c={z.ink} w={6} />
+            <circle cx={760} cy={620 - 272} r={lerp(40, 150, ring)} fill={z.hl} opacity={0.5 * ring} />
+            {T("fh", 760, 160, "اتسع فهمنا", 64, ["اتسع", 0.56], ["فهمنا", 0.6], { font: "head" })}
+            {/* نجدد علاقتنا: العلم والتدبر والعمل */}
+            {Box("i1", 1350, 900, "بالعلم", 60, tIlm, { font: "head" })}
+            <Arrow x1={1230} y1={890} x2={1100} y2={890} p={P(tTad - 6, tTad + 6)} c={z.ink} w={6} />
+            {Box("i2", 960, 900, "والتدبر", 60, tTad, { font: "head" })}
+            <Arrow x1={830} y1={890} x2={700} y2={890} p={P(tAmal - 6, tAmal + 6)} c={z.ink} w={6} />
+            {Box("i3", 570, 900, "والعمل", 60, tAmal, { font: "head" })}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S10 — الافتقار والرجاء (سكون عند ذكر الله)
+  "need-hope": {
+    nameAr: "نقبل على ربنا مفتقرين راجين، لا مدعين الكمال",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tRenew = at("وتجديد", 0.02);
+      const tNeed = at("الافتقار", 0.14);
+      const tCome = at("نقبل", 0.3);
+      const tWeNeed = at("ونحتاج", 0.36);
+      const tKamal = at("كمال", 0.58);
+      const tBal = at("بل", 0.66);
+      const tHope = at("راجين", 0.72);
+      const tHearts = at("وأعمالنا", 0.97);
+      return {
+        focus: [[tRenew, 1300, 300], [tNeed, 960, 330], [tCome, 1180, 600], [tWeNeed, 1180, 700], [tKamal, 620, 640], [tBal, 620, 640], [tHope, 1180, 600]],
+        cam: [C(0, 1060, 380, 1.08), C(tCome - 8, 960, 540, 1.0)],
+        world: (
+          <g>
+            {T("tj", 1300, 220, "تجديد صلاتنا", 58, ["وتجديد", 0.02], ["صلاتنا", 0.06])}
+            {T("ft", 960, 380, "الافتقار", 140, ["الافتقار", 0.14], undefined, { font: "head" })}
+            <InkPerson x={1180} y={820} s={1.1} pose="dua" p={P(tCome - 2, tCome + 18)} z={z} dir={-1} />
+            <ellipse cx={1180} cy={826} rx={150} ry={22} fill={z.hl} opacity={0.8 * P(tWeNeed, tWeNeed + 14)} />
+            {T("km", 620, 640, "كمال أنفسنا", 64, ["كمال", 0.58], ["أنفسنا", 0.62])}
+            <Cross x1={810} x2={430} y={624} p={P(tBal - 2, tBal + 12)} z={z} />
+            {T("rj", 620, 780, "راجين", 72, ["راجين", 0.72], undefined, { font: "head" })}
+            <g opacity={P(tHearts - 6, tHearts + 8)}>
+              <path d={heartPath(1180, 560, 22)} fill={z.hl} stroke={z.ink} strokeWidth={5} />
+            </g>
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S11 — من الخاطر إلى العمل
+  "thought-to-action": {
+    nameAr: "المعنى الذي نفهمه يظهر في عملنا",
+    render: (c) => {
+      const { frame, z, at, end, T, Box, P } = kit(c);
+      const tCollect = at("نجمع", 0.04);
+      const tForget = at("ننساها", 0.14);
+      const tUnder = at("نفهمه", 0.24);
+      const tWork = at("عملنا", 0.36);
+      const tRush = at("العجلة", 0.48);
+      const tChange = at("فلنغير", 0.58);
+      const tEnter = at("دخولنا", 0.64);
+      const tDhikr = at("للذكر", 0.8);
+      const tLearn = at("فلنتعلمه", 0.94);
+      const fade = P(tForget - 2, tForget + 16);
+      const spin = prog(frame, tRush - 4, tChange, (t) => t) * Math.PI * 10;
+      return {
+        focus: [[tCollect, 1450, 300], [tForget, 1450, 300], [tUnder, 1150, 560], [tWork, 760, 560], [tRush, 1450, 820], [tChange, 1000, 820], [tEnter, 600, 820], [tDhikr, 560, 300], [tLearn, 560, 300]],
+        cam: [C(0, 1300, 360, 1.08), C(tUnder - 8, 960, 540, 1.0)],
+        world: (
+          <g>
+            <g opacity={1 - 0.7 * fade}>
+              {[0, 1, 2].map((k) => (
+                <Cloud key={k} x={1350 + k * 110} y={290 - (k % 2) * 40} r={56} p={P(tCollect + k * 5, tCollect + k * 5 + 12)} z={z} />
+              ))}
+            </g>
+            {T("kh", 1460, 430, "خواطر مؤثرة", 56, ["خواطر", 0.06], ["مؤثرة", 0.1], { opacity: 1 - 0.7 * fade })}
+            {Box("fh", 1150, 580, "نفهمه", 66, tUnder, { font: "head" })}
+            <Arrow x1={1010} y1={570} x2={890} y2={570} p={P(tWork - 6, tWork + 8)} c={z.ink} w={7} />
+            {Box("am", 760, 580, "عملنا", 66, tWork, { font: "head", fill: z.hl })}
+            {/* العجلة ← نغير طريقة الدخول */}
+            <Clock x={1450} y={820} r={70} a1={spin / 6} a2={spin} p={P(tRush - 4, tRush + 6)} z={z} />
+            <path d="M1360 820 L1100 820" fill="none" stroke={z.faint} strokeWidth={6} strokeDasharray="12 12" opacity={P(tChange - 2, tChange + 8)} />
+            <Stroke d="M1360 800 C1200 720 900 720 700 800" p={P(tChange, tEnter + 10, (t) => t)} c={z.ink} w={8} />
+            <Stroke d="M520 790 L700 790 L670 830 L550 830 Z" p={P(tEnter - 2, tEnter + 12)} c={z.ink} w={5} fill={z.hl} fillP={0.5} />
+            {T("dk", 1000, 690, "طريقة دخولنا", 54, ["طريقة", 0.6], ["دخولنا", 0.64])}
+            {/* للذكر معنى: فلنتعلمه */}
+            <g opacity={P(tDhikr - 4, tDhikr + 8)}>
+              <path d="M460 260 Q510 236 560 260 Q610 236 660 260 L660 340 Q610 316 560 340 Q510 316 460 340 Z M560 260 L560 340" fill={z.paper} stroke={z.ink} strokeWidth={6} />
+            </g>
+            {T("lr", 560, 420, "فلنتعلمه", 66, ["فلنتعلمه", 0.94], undefined, { font: "head" })}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S15 — صحة الفعل وحضور القلب معًا
+  "act-and-heart": {
+    nameAr: "صحة الفعل وحضور القلب: لا يغني أحدهما عن الآخر",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tAct = at("الفعل", 0.06);
+      const tHeart = at("القلب", 0.24);
+      const tNone = at("يغني", 0.42);
+      const tLack = at("نقص", 0.56);
+      const tLeave = at("لترك", 0.66);
+      const tMotive = at("دافعا", 0.78);
+      const tLearn = at("للتعلم", 0.86);
+      const tJihad = at("والمجاهدة", 0.94);
+      const level = 1 - 0.55 * P(tLack, tLack + 18);
+      const climb = P(tMotive, tJihad + 10);
+      return {
+        focus: [[tAct, 1300, 520], [tHeart, 620, 520], [tNone, 960, 380], [tLack, 620, 520], [tLeave, 960, 760], [tMotive, 620, 400], [tLearn, 620, 300], [tJihad, 620, 220]],
+        cam: [C(0, 1150, 520, 1.06), C(tHeart - 8, 960, 520, 1.0)],
+        world: (
+          <g>
+            <InkPerson x={1300} y={700} s={1.0} pose="stand" p={P(tAct - 4, tAct + 16)} z={z} dir={-1} />
+            {T("sf", 1300, 800, "صحة الفعل", 64, ["فصحة", 0.02], ["الفعل", 0.06], { font: "head" })}
+            {/* القلب: ممتلئ ثم ينقص */}
+            <defs>
+              <clipPath id="hfill">
+                <rect x={480} y={560 - 130 + 260 * (1 - level)} width={300} height={260} />
+              </clipPath>
+            </defs>
+            <g opacity={P(tHeart - 4, tHeart + 8)}>
+              <path d={heartPath(630, 560, 110)} fill={z.hl} clipPath="url(#hfill)" />
+              <path d={heartPath(630, 560, 110)} fill="none" stroke={z.ink} strokeWidth={9} />
+            </g>
+            {T("hq", 630, 800, "حضور القلب", 64, ["وحضور", 0.2], ["القلب", 0.24], { font: "head" })}
+            <Arrow x1={1180} y1={420} x2={790} y2={420} p={P(tNone - 2, tNone + 14)} c={z.ink} w={6} bend={60} />
+            <Arrow x1={790} y1={460} x2={1180} y2={460} p={P(tNone + 8, tNone + 22)} c={z.ink} w={6} bend={-40} />
+            {/* ترك الصلاة: سهم خارج يُشطب */}
+            <Arrow x1={960} y1={600} x2={960} y2={860} p={P(tLeave - 2, tLeave + 12)} c={z.faint} w={7} />
+            <Cross x1={1040} x2={880} y={740} p={P(at("بل", 0.74) - 2, at("بل", 0.74) + 10)} z={z} />
+            {/* دافع: درجات إلى أعلى */}
+            <Stroke d="M420 470 L420 400 L520 400 L520 330 L620 330 L620 260 L720 260" p={climb} c={z.ink} w={8} />
+            {T("tl", 470, 380, "للتعلم", 52, ["للتعلم", 0.86])}
+            {T("mj", 690, 230, "والمجاهدة", 52, ["والمجاهدة", 0.94])}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S16 — الوضوء: من أحوال القلب إلى الأفعال
+  wudu: {
+    nameAr: "الوضوء: دقائقه جزء من تهيئنا",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tHeart = at("القلب", 0.08);
+      const tActs = at("أفعال", 0.14);
+      const tWudu = at("الوضوء", 0.3);
+      const tPurify = at("ونتطهر", 0.5);
+      const tWhy = at("لماذا", 0.62);
+      const tMinutes = at("دقائق", 0.74);
+      const tPart = at("جزءا", 0.84);
+      const tPrep = at("تهيئنا", 0.92);
+      const water = prog(frame, tWudu - 4, tPurify + 30, (t) => t);
+      const bar = P(tMinutes, tPart + 10, (t) => t);
+      return {
+        focus: [[tHeart, 1450, 300], [tActs, 1050, 300], [tWudu, 960, 520], [tPurify, 960, 560], [tWhy, 1450, 520], [tMinutes, 960, 820], [tPart, 760, 820], [tPrep, 960, 820]],
+        cam: [C(0, 1250, 340, 1.08), C(tWudu - 8, 960, 540, 1.0)],
+        world: (
+          <g>
+            <path d={heartPath(1500, 300, 50)} fill="none" stroke={z.ink} strokeWidth={7} opacity={P(tHeart - 4, tHeart + 8) * (1 - 0.6 * P(tWudu, tWudu + 12))} />
+            {T("hq", 1500, 420, "أحوال القلب", 52, ["أحوال", 0.06], ["القلب", 0.08], { opacity: 1 - 0.6 * P(tWudu, tWudu + 12) })}
+            <Arrow x1={1400} y1={300} x2={1200} y2={300} p={P(tActs - 4, tActs + 10)} c={z.ink} w={6} />
+            {T("af", 1080, 320, "أفعال", 64, ["أفعال", 0.14], undefined, { opacity: 1 - 0.6 * P(tWudu, tWudu + 12) })}
+            {/* الماء على اليدين */}
+            <Hands x={960} y={620} s={1.2} p={P(tWudu - 2, tWudu + 20)} z={z} />
+            {[0, 1, 2, 3, 4].map((k) => {
+              const ph = (water * 5 + k / 5) % 1;
+              return water > 0 && water < 1 ? <Drop key={k} x={960 + (k - 2) * 16} y={330 + ph * 250} s={0.8} z={z} o={Math.min(1, ph * 4) * (1 - ph * 0.3)} /> : null;
+            })}
+            {T("wd", 960, 270, "الوضوء", 90, ["الوضوء", 0.3], undefined, { font: "head" })}
+            {T("why", 1450, 560, "لماذا", 64, ["لماذا", 0.62])}
+            {/* دقائق الوضوء جزء من شريط التهيؤ */}
+            <g opacity={P(tMinutes - 4, tMinutes + 6)}>
+              <rect x={560} y={790} width={800} height={50} rx={25} fill="none" stroke={z.ink} strokeWidth={6} />
+              <rect x={1360 - 280 * bar} y={796} width={280 * bar} height={38} rx={19} fill={z.hl} />
+            </g>
+            {T("dq", 1220, 760, "دقائق الوضوء", 50, ["دقائق", 0.74], ["الوضوء", 0.78, 2])}
+            {T("th", 760, 760, "تهيئنا", 56, ["تهيئنا", 0.92], undefined, { font: "head" })}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S17 — إلى المسجد: نترك شيئًا من الشواغل، والقلب يحتاج عناية
+  "to-mosque": {
+    nameAr: "من البيت إلى المسجد: نترك شيئًا من شواغلنا",
+    render: (c) => {
+      const { frame, z, at, T, Box, P } = kit(c);
+      const tGo = at("نتوجه", 0.04);
+      const tMasjid = at("المسجد", 0.08);
+      const tLeave = at("نترك", 0.16);
+      const tMove = at("الانتقال", 0.5);
+      const tBusy = at("شواغلنا", 0.58);
+      const tPlace = at("المكان", 0.72);
+      const tGuar = at("ضمانا", 0.78);
+      const tHeart = at("فالقلب", 0.86);
+      const tCare = at("عناية", 0.94);
+      const walk = P(tGo, tMove + 20, (t) => t);
+      const pathX = (t: number) => lerp(1500, 520, t);
+      const pathY = (t: number) => 560 - 90 * Math.sin(Math.PI * t);
+      const drop = (k: number) => P(tBusy + k * 6, tBusy + k * 6 + 14);
+      const wx = pathX(walk);
+      const top = 1 - 0.7 * P(tPlace - 10, tPlace + 4);
+      return {
+        focus: [[tGo, 1500, 520], [tMasjid, 520, 520], [tLeave, 1500, 520], [tMove, 1000, 470], [tBusy, 1100, 470], [tPlace, 1200, 780], [tGuar, 960, 780], [tHeart, 650, 780], [tCare, 650, 780]],
+        cam: [C(0, 1000, 500, 1.0), C(tPlace - 8, 960, 600, 1.0)],
+        world: (
+          <g>
+            <g opacity={top}>
+              <Icon id="house" x={1580} y={500} s={1.6} p={P(tGo - 6, tGo + 8)} c={z.ink} opacity={1 - 0.5 * P(tLeave, tLeave + 14)} />
+              <path d={`M1500 560 Q1010 380 520 560`} fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" opacity={P(tGo, tGo + 10)} />
+              <g opacity={P(tMasjid - 4, tMasjid + 8)} transform="translate(440 520)">
+                <rect x={-110} y={-90} width={220} height={180} rx={20} fill={z.paper} stroke={z.ink} strokeWidth={7} />
+                <path d="M-70 40 L70 40 L54 68 L-54 68 Z" fill={z.hl} stroke={z.ink} strokeWidth={5} />
+              </g>
+              {T("ms", 440, 690, "المسجد", 60, ["المسجد", 0.08], undefined, { font: "head" })}
+              {/* السائر وشواغله تسقط على الطريق */}
+              <InkPerson x={wx} y={pathY(walk) - 20} s={0.55} pose="walk" p={P(tGo, tGo + 12)} z={z} dir={-1} />
+              {(["phone", "bag", "calendar"] as const).map((id, k) => {
+                const dx = drop(k);
+                const fx = dx > 0 ? pathX(Math.min(walk, 0.3 + k * 0.15)) + 40 : wx + 50 + k * 34;
+                const fy = dx > 0 ? pathY(0.3 + k * 0.15) + 40 * dx : pathY(walk) - 190 - k * 10;
+                return <Icon key={id} id={id} x={fx} y={fy} s={0.5} p={P(tGo + 4, tGo + 14)} c={z.ink} opacity={1 - 0.6 * dx} />;
+              })}
+              {T("sh", 1080, 340, "شيء من شواغلنا", 52, ["شيء", 0.56], ["شواغلنا", 0.58])}
+            </g>
+            {/* المكان وحده ليس ضمانًا؛ والقلب يحتاج عناية */}
+            {Box("mk", 1250, 800, "المكان وحده", 58, tPlace, { tEnd: c.end("وحده", 0.74) })}
+            {T("dm", 960, 810, "ضمانا", 58, ["ضمانا", 0.78])}
+            <Cross x1={1440} x2={880} y={786} p={P(tGuar + 10, tGuar + 22)} z={z} />
+            <g opacity={P(tHeart - 4, tHeart + 8)}>
+              <circle cx={640} cy={800} r={86 + 10 * P(tCare, tCare + 14)} fill={z.hl} opacity={0.7} />
+              <path d={heartPath(640, 800, 50)} fill="none" stroke={z.ink} strokeWidth={8} />
+            </g>
+            {T("en", 640, 960, "عناية", 60, ["عناية", 0.94], undefined, { font: "head" })}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S18 — استقبال القبلة: الأبدان تتوجه، والقلوب تُجمع
+  "qibla-gather": {
+    nameAr: "استقبال القبلة: الحركة التي نؤديها والمعنى الذي نستحضره",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tFace = at("نستقبل", 0.03);
+      const tBodies = at("أبداننا", 0.32);
+      const tDir = at("الجهة", 0.38);
+      const tHearts = at("قلوبنا", 0.58);
+      const tDiff = at("الفرق", 0.72);
+      const tMove = at("الحركة", 0.8);
+      const tMean = at("والمعنى", 0.88);
+      const turn = P(tBodies - 2, tBodies + 16);
+      const needle = lerp(-1.6, 0, P(tFace - 2, tFace + 20));
+      const gather = P(tHearts - 2, tHearts + 20);
+      const xs = [1350, 1100, 850];
+      return {
+        focus: [[tFace, 400, 480], [tBodies, 1100, 620], [tDir, 400, 480], [tHearts, 1100, 330], [tDiff, 960, 800], [tMove, 1300, 860], [tMean, 1300, 260]],
+        cam: [C(0, 700, 480, 1.08), C(tBodies - 8, 960, 540, 1.0)],
+        world: (
+          <g>
+            <g transform="translate(400 480)" opacity={P(tFace - 6, tFace + 6)}>
+              <circle r={90} fill={z.paper} stroke={z.ink} strokeWidth={8} />
+              <g transform={`rotate(${(needle * 180) / Math.PI})`}>
+                <path d="M-66 0 L22 -20 L22 20 Z" fill={z.ink} />
+              </g>
+              <circle r={10} fill={z.hl} stroke={z.ink} strokeWidth={4} />
+            </g>
+            {T("qb", 400, 630, "القبلة", 60, ["القبلة", 0.06])}
+            {xs.map((x, k) => {
+              const d = k === 1 ? -1 : 1;
+              const sx = lerp(d, -1, turn);
+              return (
+                <g key={k} transform={`translate(${x} 780) scale(${Math.abs(sx) < 0.08 ? 0.08 * Math.sign(sx || 1) : sx} 1)`}>
+                  <InkPerson x={0} y={0} s={0.9} pose="stand" p={P(tFace + 6 + k * 4, tFace + 24 + k * 4)} z={z} />
+                </g>
+              );
+            })}
+            {T("ab", 1100, 870, "أبداننا", 58, ["أبداننا", 0.32])}
+            {/* القلوب: متفرقة ثم تُجمع على خط واحد */}
+            {xs.map((x, k) => {
+              const y0 = [300, 220, 340][k]!;
+              return <path key={k} d={heartPath(x, lerp(y0, 300, gather), 30)} fill={z.hl} stroke={z.ink} strokeWidth={5} opacity={P(tHearts - 4 + k * 3, tHearts + 6 + k * 3)} />;
+            })}
+            <Stroke d="M1420 300 L780 300" p={P(tHearts + 18, tHearts + 34)} c={z.ink} w={5} opacity={0.6} />
+            {T("ql", 1100, 170, "قلوبنا", 58, ["قلوبنا", 0.58])}
+            {/* الفرق: الحركة والمعنى */}
+            <Stroke d="M720 420 L1480 420" p={P(tDiff - 2, tDiff + 16)} c={z.alert} w={5} />
+            {T("hr", 1540, 620, "الحركة", 56, ["الحركة", 0.8], undefined, { font: "head" })}
+            {T("mn", 1540, 240, "والمعنى", 56, ["والمعنى", 0.88], undefined, { font: "head" })}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S20 — التكبير لا يمحو المسؤوليات
+  "duties-aside": {
+    nameAr: "تعظيم الله لا يمحو مسؤولياتنا، بل نعرف قدر العبادة",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tProblems = at("مشكلاتنا", 0.14);
+      const tGone = at("اختفت", 0.2);
+      const tDuties = at("مسؤولياتنا", 0.3);
+      const tMatter = at("مهمة", 0.4);
+      const tKnow = at("نعرف", 0.56);
+      const tWorship = at("العبادة", 0.62);
+      const tGive = at("نعطيها", 0.78);
+      const tHeart = at("قلبنا", 0.86);
+      const aside = P(tKnow - 2, tKnow + 22);
+      const items: [IconId, number, number][] = [["calendar", 760, 420], ["bag", 960, 380], ["house", 1160, 420], ["phone", 860, 600], ["clock", 1060, 600]];
+      return {
+        focus: [[tProblems, 960, 480], [tGone, 960, 480], [tDuties, 960, 480], [tMatter, 960, 780], [tKnow, 960, 520], [tWorship, 960, 520], [tGive, 960, 520], [tHeart, 960, 520]],
+        cam: [C(0, 960, 500, 1.06), C(tKnow - 6, 960, 540, 1.0)],
+        world: (
+          <g>
+            {items.map(([id, x, y], k) => {
+              const tx = lerp(x, 1660, aside);
+              const ty = lerp(y, 220 + k * 150, aside);
+              return <Icon key={id} id={id} x={tx} y={ty} s={lerp(1.4, 0.8, aside)} p={P(tProblems - 2 + k * 3, tProblems + 10 + k * 3)} c={z.ink} />;
+            })}
+            {/* «اختفت»: لا تختفي (ظلال متقطعة تُشطب) */}
+            <g opacity={P(tGone - 2, tGone + 8) * (1 - aside)}>
+              <rect x={640} y={300} width={640} height={400} rx={30} fill="none" stroke={z.faint} strokeWidth={6} strokeDasharray="16 14" />
+            </g>
+            {T("ik", 960, 250, "اختفت", 64, ["اختفت", 0.2], undefined, { opacity: 1 - aside })}
+            <Cross x1={1050} x2={870} y={234} p={P(tGone + 10, tGone + 22)} z={z} />
+            {T("mh", 960, 800, "لم تعد مهمة", 62, ["لم", 0.36], ["مهمة", 0.4], { opacity: 1 - aside })}
+            <Cross x1={1130} x2={790} y={784} p={P(tMatter + 10, tMatter + 22)} z={z} />
+            {/* مساحة العبادة تنفتح في الوسط */}
+            <g opacity={P(tWorship - 4, tWorship + 10)}>
+              <rect x={760} y={360} width={400} height={300} rx={30} fill={z.paper} stroke={z.ink} strokeWidth={7} />
+              <path d="M860 600 L1060 600 L1036 640 L884 640 Z" fill={z.hl} stroke={z.ink} strokeWidth={5} />
+            </g>
+            {T("qd", 960, 740, "قدر العبادة", 66, ["قدر", 0.6], ["العبادة", 0.62], { font: "head" })}
+            <g opacity={P(tHeart - 4, tHeart + 10)}>
+              <path d={heartPath(960, lerp(380, 500, P(tHeart, tHeart + 16)), 46)} fill={z.hl} stroke={z.ink} strokeWidth={6} />
+            </g>
+            {T("ng", 960, 300, "نعطيها من قلبنا", 56, ["نعطيها", 0.78], ["قلبنا", 0.86])}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S21 — الاستفتاح: الثناء والافتقار وطلب المغفرة
+  istiftah: {
+    nameAr: "دعاء الاستفتاح: الثناء والافتقار وطلب المغفرة",
+    render: (c) => {
+      const { frame, z, at, T, Box, P } = kit(c);
+      const tDua = at("دعاء", 0.06);
+      const tForms = at("صيغ", 0.22);
+      const tThana = at("الثناء", 0.42);
+      const tNeed = at("والافتقار", 0.52);
+      const tMagh = at("وطلب", 0.6);
+      const tKamal = at("الكمال", 0.78);
+      const tBal = at("بل", 0.82);
+      const tHope = at("راجين", 0.86);
+      const fan = P(tForms, tForms + 20);
+      return {
+        focus: [[tDua, 960, 200], [tForms, 960, 420], [tThana, 1400, 680], [tNeed, 960, 680], [tMagh, 520, 680], [tKamal, 960, 860], [tHope, 960, 680]],
+        cam: [C(0, 960, 360, 1.08), C(tThana - 8, 960, 560, 1.0)],
+        world: (
+          <g>
+            {Box("ds", 960, 200, "دعاء الاستفتاح", 70, tDua, { font: "head", tEnd: c.end("الاستفتاح", 0.1) })}
+            {/* صيغ متعددة: أوراق بسطور رمادية بلا نص */}
+            {[-1, 0, 1].map((k) => (
+              <g key={k} transform={`translate(${960 + k * 200 * fan} ${430}) rotate(${k * 6 * fan})`} opacity={P(tForms - 4, tForms + 6)}>
+                <rect x={-110} y={-90} width={220} height={180} rx={14} fill={z.paper} stroke={z.ink} strokeWidth={5} />
+                <Lines x={0} y={-40} w={150} n={3} p={1} z={z} gap={36} />
+              </g>
+            ))}
+            {T("sg", 960, 590, "صيغ صحيحة متعددة", 50, ["صيغ", 0.22], ["متعددة", 0.3])}
+            {Box("c1", 1400, 700, "الثناء", 64, tThana, { font: "head" })}
+            {Box("c2", 960, 700, "الافتقار", 64, tNeed, { font: "head", fill: P(tHope, tHope + 14) > 0 ? z.hl : z.paper })}
+            {Box("c3", 520, 700, "طلب المغفرة", 64, tMagh, { font: "head", tEnd: c.end("المغفرة", 0.64) })}
+            {T("km", 960, 860, "مدعين الكمال", 56, ["مدعين", 0.76], ["الكمال", 0.78])}
+            <Cross x1={1130} x2={790} y={846} p={P(tBal - 2, tBal + 12)} z={z} />
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S22 — اللفظ المشروع ومعناه
+  "word-and-meaning": {
+    nameAr: "نتعلم معاني الأذكار، ولا نضيف إليها ألفاظًا",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tLearn = at("نتعلم", 0.06);
+      const tMeanings = at("معاني", 0.1);
+      const tAdhkar = at("الأذكار", 0.16);
+      const tAdd = at("نضيف", 0.32);
+      const tOurs = at("عندنا", 0.44);
+      const tHurma = at("حرمته", 0.6);
+      const tPlace = at("وموضعه", 0.66);
+      const tUnder = at("وفهمه", 0.76);
+      const tGood = at("حسن", 0.9);
+      const att = P(tAdd, tAdd + 22);
+      return {
+        focus: [[tLearn, 600, 440], [tAdhkar, 1300, 440], [tAdd, 1000, 760], [tOurs, 1000, 760], [tHurma, 1300, 440], [tPlace, 1300, 440], [tUnder, 950, 440], [tGood, 950, 300]],
+        cam: [C(0, 960, 480, 1.04)],
+        world: (
+          <g>
+            {/* الذكر المشروع: بطاقة ثابتة بسطور رمادية لا نص */}
+            <g opacity={P(tAdhkar - 4, tAdhkar + 8)}>
+              <rect x={1120} y={320} width={360} height={240} rx={18} fill={z.paper} stroke={z.ink} strokeWidth={7} />
+              <Lines x={1300} y={390} w={270} n={3} p={P(tAdhkar, tAdhkar + 16, (t) => t)} z={z} gap={44} />
+              <rect x={1104} y={304} width={392} height={272} rx={24} fill="none" stroke={z.ink} strokeWidth={4} opacity={P(tHurma, tHurma + 14)} />
+            </g>
+            {T("ad", 1300, 640, "الأذكار التي نقولها", 52, ["الأذكار", 0.16], ["نقولها", 0.2])}
+            {/* المعاني: كتاب يُفتح */}
+            <g opacity={P(tMeanings - 4, tMeanings + 8)}>
+              <path d="M460 360 Q530 330 600 360 Q670 330 740 360 L740 500 Q670 470 600 500 Q530 470 460 500 Z M600 360 L600 500" fill={z.paper} stroke={z.ink} strokeWidth={6} />
+            </g>
+            {T("mn", 600, 580, "معاني", 64, ["معاني", 0.1], undefined, { font: "head" })}
+            {/* ألفاظ من عندنا: بطاقة متقطعة تقترب ثم تُشطب */}
+            <g transform={`translate(${lerp(820, 1000, att)} 790)`} opacity={P(tAdd - 4, tAdd + 6) * (1 - 0.5 * P(tHurma, tHurma + 10))}>
+              <rect x={-200} y={-56} width={400} height={100} rx={14} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" />
+            </g>
+            {T("lf", lerp(820, 1000, att), 800, "ألفاظا من عندنا", 50, ["ألفاظا", 0.38], ["عندنا", 0.44], { opacity: 1 - 0.5 * P(tHurma, tHurma + 10) })}
+            <Cross x1={lerp(1010, 1190, att)} x2={lerp(630, 810, att)} y={784} p={P(tOurs + 8, tOurs + 22)} z={z} />
+            {T("hm", 1300, 260, "حرمته وموضعه", 52, ["حرمته", 0.6], ["وموضعه", 0.66])}
+            {/* الفهم يعين على حسن الأداء */}
+            <Arrow x1={760} y1={430} x2={1100} y2={430} p={P(tUnder - 2, tUnder + 16)} c={z.ink} w={7} />
+            <Stroke d="M760 430 L1100 430" p={P(tGood - 2, tGood + 14)} c={z.hl} w={26} opacity={0.8} />
+            {T("hs", 930, 360, "حسن أدائه", 56, ["حسن", 0.9], ["أدائه", 0.94], { font: "head" })}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S23 — الاستعاذة: طلب العون والافتقار (سكون عند الذكر، ولا تصوير للشيطان)
+  "seek-refuge": {
+    nameAr: "الاستعاذة: طلب العون والاعتراف بالحاجة",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tRead = at("القراءة", 0.03);
+      const tHelp = at("العون", 0.3);
+      const tNeed = at("بحاجتنا", 0.4);
+      const tIst = at("والاستعاذة", 0.5);
+      const tPromise = at("وعدا", 0.56);
+      const tVanish = at("تختفي", 0.62);
+      const tThought = at("خاطرة", 0.66);
+      const tDhikr = at("ذكر", 0.8);
+      const tSincere = at("وافتقار", 0.88);
+      return {
+        focus: [[tRead, 960, 300], [tHelp, 1300, 600], [tNeed, 620, 600], [tPromise, 960, 800], [tThought, 1500, 300], [tDhikr, 1300, 600], [tSincere, 620, 600]],
+        cam: [C(0, 960, 380, 1.08), C(tHelp - 8, 960, 540, 1.0)],
+        still: [],
+        world: (
+          <g>
+            <g opacity={P(tRead - 4, tRead + 10)}>
+              <path d="M760 240 Q860 200 960 240 Q1060 200 1160 240 L1160 400 Q1060 360 960 400 Q860 360 760 400 Z M960 240 L960 400" fill={z.paper} stroke={z.ink} strokeWidth={7} />
+            </g>
+            {T("qr", 960, 160, "قبل القراءة", 56, ["وقبل", 0.01], ["القراءة", 0.03])}
+            {T("aw", 1300, 620, "نطلب العون", 66, ["نطلب", 0.28], ["العون", 0.3], { font: "body", weight: 600 })}
+            {T("hj", 620, 620, "حاجتنا", 66, ["بحاجتنا", 0.4], undefined, { font: "body", weight: 600 })}
+            {/* الخواطر لا تختفي كلها: تبقى، ونرجع */}
+            {[0, 1, 2].map((k) => (
+              <Cloud key={k} x={1440 + k * 90} y={300 - (k % 2) * 50} r={44} p={P(tThought - 6 + k * 4, tThought + 6 + k * 4)} z={z} o={0.85} />
+            ))}
+            {T("wd", 960, 800, "وعدا بأن تختفي كل خاطرة", 54, ["وعدا", 0.56], ["خاطرة", 0.66])}
+            <Cross x1={1260} x2={660} y={784} p={P(tThought + 14, tThought + 28)} z={z} />
+            {T("dm", 1300, 720, "ذكر مشروع", 56, ["ذكر", 0.8], ["مشروع", 0.84], { font: "head" })}
+            {T("fs", 620, 720, "وافتقار صادق", 56, ["وافتقار", 0.88], ["صادق", 0.92], { font: "head" })}
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S25 — ما الذي تغير؟ محطات الحلقة والسؤال الواحد
+  recap: {
+    nameAr: "ما الذي تغير: محطات الحلقة والسؤال الواحد",
+    render: (c) => {
+      const { frame, z, at, end, T, P } = kit(c);
+      const tQ = at("بسؤال", 0.03);
+      const tReady = at("الاستعداد", 0.12);
+      const tBefore = at("قبل", 0.18);
+      const tIqbal = at("الإقبال", 0.26);
+      const tIlm = at("بالعلم", 0.3);
+      const tMuj = at("والمجاهدة", 0.33);
+      const tIst = at("والاستعانة", 0.36);
+      const stations: [string, number][] = [["الوضوء", at("الوضوء", 0.48)], ["والقبلة", at("والقبلة", 0.52)], ["والتكبير", at("والتكبير", 0.56)], ["والاستفتاح", at("والاستفتاح", 0.6)], ["والاستعاذة", at("والاستعاذة", 0.65)]];
+      const tOne = at("واحدا", 0.8);
+      const tFinal = at("نفهم", 0.88);
+      const dimAll = P(tOne - 4, tOne + 14);
+      const pathP = P(stations[0]![1] - 6, stations[4]![1] + 6, (t) => t);
+      return {
+        focus: [[tQ, 1500, 260], [tReady, 1000, 260], [tBefore, 1000, 260], [tIqbal, 520, 260], [tIlm, 520, 400], [tMuj, 520, 400], [stations[0]![1], 1600, 600], [stations[2]![1], 960, 600], [stations[4]![1], 320, 600], [tFinal, 960, 860]],
+        cam: [C(0, 1100, 380, 1.06), C(stations[0]![1] - 10, 960, 560, 1.0)],
+        world: (
+          <g>
+            <g opacity={1 - 0.75 * dimAll}>
+              {/* السؤال الأول */}
+              <path d={heartPath(1500, 260, 50)} fill="none" stroke={z.ink} strokeWidth={7} strokeDasharray="16 12" opacity={P(tQ - 4, tQ + 8)} />
+              {T("q1", 1640, 270, "؟", 110, ["بسؤال", 0.03], undefined, { font: "head" })}
+              {/* الاستعداد قبل التكبير */}
+              <rect x={860} y={210} width={300} height={40} rx={20} fill={z.hl} opacity={P(tBefore, tBefore + 14)} />
+              <line x1={860} x2={860} y1={190} y2={270} stroke={z.ink} strokeWidth={8} strokeLinecap="round" opacity={P(tBefore + 6, tBefore + 14)} />
+              {T("ri", 1010, 330, "الاستعداد", 56, ["الاستعداد", 0.12], undefined, { font: "head" })}
+              {/* الإقبال: بالعلم والمجاهدة والاستعانة */}
+              {T("iq", 520, 230, "الإقبال", 70, ["الإقبال", 0.26], undefined, { font: "head" })}
+              {T("i1", 680, 330, "بالعلم", 44, ["بالعلم", 0.3])}
+              {T("i2", 520, 330, "والمجاهدة", 44, ["والمجاهدة", 0.33])}
+              {T("i3", 350, 330, "والاستعانة", 44, ["والاستعانة", 0.36])}
+              {/* محطات ما تأملناه */}
+              <Stroke d="M1700 600 L220 600" p={pathP} c={z.ink} w={7} />
+              {stations.map(([w, t], k) => {
+                const x = 1600 - k * 320;
+                return (
+                  <g key={w}>
+                    <circle cx={x} cy={600} r={30} fill={z.hl} stroke={z.ink} strokeWidth={6} opacity={P(t - 4, t + 6)} />
+                    {T(`s${k}`, x, 690, w, 50, [w, 0.5])}
+                  </g>
+                );
+              })}
+            </g>
+            {/* السؤال الواحد */}
+            {T("fq", 960, 860, "هل نفهم ما نقوله ونفعله؟", 70, ["هل", 0.86], ["ونفعله", 0.98], { font: "head" })}
+            <Mark x={960 - 380} y={870} w={760} h={18} p={P(end("ونفعله", 0.98), end("ونفعله", 0.98) + 14)} z={z} />
+          </g>
+        ),
+      };
+    },
+  },
+
+  // S27 — باب القراءة: الحلقة القادمة والخاتمة
+  "reading-door": {
+    nameAr: "باب القراءة: الحلقة القادمة",
+    render: (c) => {
+      const { frame, z, at, T, P } = kit(c);
+      const tDoor = at("باب", 0.06);
+      const tNext = at("الحلقة", 0.18);
+      const tMeanings = at("معاني", 0.3);
+      const tHearts = at("بقلوبنا", 0.5);
+      const tFirst = at("قراءتنا", 0.58);
+      const tBook = at("كتاب", 0.66);
+      const tChannel = at("زبدة", 0.92);
+      const open = P(tDoor, tDoor + 24);
+      const out = P(tFirst - 10, tFirst + 8);
+      const bookIn = P(tBook - 8, tBook + 12);
+      return {
+        focus: [[tDoor, 960, 460], [tNext, 960, 240], [tMeanings, 960, 520], [tHearts, 960, 520], [tFirst, 1300, 500], [tBook, 1300, 500], [tChannel, 700, 620]],
+        cam: [C(0, 960, 500, 1.1), C(tFirst - 8, 1000, 520, 1.0)],
+        world: (
+          <g>
+            <g opacity={1 - 0.85 * out}>
+              {/* الباب يُفتح على صفحة مضيئة */}
+              <rect x={800} y={230} width={320} height={480} rx={10} fill={z.hl} opacity={0.8 * open} />
+              <rect x={800} y={230} width={320} height={480} rx={10} fill="none" stroke={z.ink} strokeWidth={8} opacity={P(tDoor - 6, tDoor + 4)} />
+              <g transform={`translate(1120 230) scale(${1 - 0.82 * open} 1)`} opacity={P(tDoor - 6, tDoor + 4)}>
+                <rect x={-320} y={0} width={320} height={480} rx={8} fill={z.paper} stroke={z.ink} strokeWidth={7} />
+                <circle cx={-280} cy={250} r={10} fill={z.ink} />
+              </g>
+              {T("bq", 960, 800, "باب القراءة", 70, ["باب", 0.06], ["القراءة", 0.1], { font: "head" })}
+              {T("nx", 960, 180, "الحلقة القادمة", 56, ["الحلقة", 0.18], ["القادمة", 0.22])}
+              <g opacity={P(tMeanings - 4, tMeanings + 10)}>
+                <path d="M880 440 Q920 420 960 440 Q1000 420 1040 440 L1040 520 Q1000 500 960 520 Q920 500 880 520 Z M960 440 L960 520" fill={z.paper} stroke={z.ink} strokeWidth={5} />
+              </g>
+              <path d={heartPath(960, 610, 30)} fill={z.paper} stroke={z.ink} strokeWidth={5} opacity={P(tHearts - 4, tHearts + 8)} />
+            </g>
+            {/* قراءتنا الأولى من الكتاب، من زبدة الكتب */}
+            <g transform={`translate(${lerp(1900, 1340, bookIn)} 460) rotate(-3)`} opacity={bookIn}>
+              <rect x={-170} y={-240} width={340} height={480} rx={14} fill={z.ink} />
+              <rect x={-120} y={-170} width={240} height={22} rx={6} fill={z.hl} />
+              <text x={0} y={-40} textAnchor="middle" direction="rtl" style={{ fontFamily: fam("head"), fontSize: 54, fill: z.paper }}>
+                أول مرة أصلي
+              </text>
+            </g>
+            {T("qa", 700, 420, "قراءتنا الأولى", 70, ["قراءتنا", 0.58], ["الأولى", 0.62], { font: "head" })}
+            {T("au", 700, 520, "للدكتور خالد أبي شادي", 50, ["للدكتور", 0.74], ["شادي", 0.84], { font: "body", weight: 600 })}
+            {T("zk", 700, 680, "زبدة الكتب", 96, ["زبدة", 0.92], ["الكتب", 0.98], { font: "head" })}
+            <Mark x={700 - 230} y={690} w={460} h={22} p={P(tChannel + 10, tChannel + 26)} z={z} />
+          </g>
+        ),
+      };
+    },
+  },
+};
