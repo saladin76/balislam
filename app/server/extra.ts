@@ -325,7 +325,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const hash = await currentMotionFingerprint(parts[1], plan, motion.orientation);
       motionStale = staleMotionScenes(plan, motion, hash);
     }
-    send(res, 200, { status, motion, motionStale });
+    const { auditNeedsJustification } = await load("/src/render/motionValidity.ts");
+    const auditNeedsReview = Boolean(motion && !motionStale.length && auditNeedsJustification(motion, status.audit));
+    send(res, 200, { status, motion, motionStale, auditNeedsReview });
     return true;
   }
 
