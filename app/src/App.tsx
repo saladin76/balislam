@@ -257,12 +257,6 @@ export const App: React.FC = () => {
               {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
             </select>
           ) : null}
-          <nav className="tabs" role="tablist" aria-label="الحلقة">
-            <button role="tab" aria-selected={tab === "episode"} onClick={() => setTab("episode")}>الصوت والمشاهد</button>
-             <button role="tab" aria-selected={tab === "storyboard"} onClick={() => setTab("storyboard")}>الستوري بورد</button>
-            <button role="tab" aria-selected={tab === "script"} onClick={() => setTab("script")}>السكريبت{scriptDirty ? " •" : ""}</button>
-            <button role="tab" aria-selected={tab === "publish"} onClick={() => setTab("publish")}>النشر</button>
-          </nav>
           <nav className="tabs" role="tablist" aria-label="القناة">
             <button role="tab" aria-selected={tab === "identity"} onClick={() => setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
             <button role="tab" aria-selected={tab === "library"} onClick={() => setTab("library")}>المكتبة</button>
