@@ -63,7 +63,16 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   return data as T;
 };
 
+export type Mp3QuranReciter = { id: number; name: string; moshaf: { id: number; name: string; surah_list: string; surah_total: number }[] };
+export type Mp3QuranSurah = { id: number; name: string };
+
 export const api = {
+  mp3quranReciters: () => call<{ reciters: Mp3QuranReciter[] }>("/api/mp3quran/reciters"),
+  mp3quranSuwar: () => call<{ suwar: Mp3QuranSurah[] }>("/api/mp3quran/suwar"),
+  mp3quranPreview: (reciter: number, moshaf: number, surah: number) =>
+    call<{ url: string; reciter: string; moshaf: string; surah: number; rightsVerified: false; publicationAllowed: false }>(
+      `/api/mp3quran/preview?reciter=${reciter}&moshaf=${moshaf}&surah=${surah}`),
+
   /** غرفة العمليات: كل القنوات */
   ops: () => call<OpsChannel[]>("/api/ops"),
   saveCalendar: (channel: string, calendar: Record<string, CalendarDay>) => call("/api/calendar", { method: "PUT", json: { calendar } }, channel),
