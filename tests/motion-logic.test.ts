@@ -42,6 +42,7 @@ describe("فحص منطق الحركة بالنسبة إلى السكريبت", 
   it("يفرق بين الدليل القابل للفحص والفهم الفني الذي يحتاج مشاهدة", () => {
     const r = inspectMotionLogic(scene("هذا المشهد يحتاج مراجعة بصرية", {}));
     expect(r.total).toBe(0);
+    expect(r.status).toBe("not-assessable");
     expect(r.findings.some((x) => x.message.includes("مراجعة") || x.message.includes("مشاهدة"))).toBe(true);
   });
 });
