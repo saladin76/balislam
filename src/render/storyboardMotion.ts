@@ -17,7 +17,7 @@ import { browserExecutable, getServeUrl } from "./bundle";
 import { outDirFor } from "./episode";
 import { ACTIVE_PCT, measureMotion } from "./motionMeter";
 import { inspectMotionLogic, type MotionLogicReview } from "../plan/motionLogic";
-import { motionFingerprint } from "./motionFingerprint";
+import { currentMotionFingerprint } from "./motionFingerprint";
 import { renderMotionAuditMarkdown } from "./motionAudit";
 import config from "../../config.json";
 
@@ -45,7 +45,7 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   const channel = loadChannel();
   const info = channelInfo(channel);
   const inputProps = { plan, orientation, media, identity: loadChannelIdentity(), channel: info };
-  const inputHash = motionFingerprint(plan, media, inputProps.identity, info, orientation);
+  const inputHash = await currentMotionFingerprint(episode, plan, orientation);
   const composition = await selectComposition({ serveUrl, id: `episode-${orientation}`, inputProps, browserExecutable: browserExecutable() });
   const video = path.join(await outDirFor(episode), `${episode}-storyboard-${orientation}.mp4`);
   let last = -1;
