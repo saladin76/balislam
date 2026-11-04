@@ -46,6 +46,18 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
     const scriptPath = await resolveScriptPath(opts.episode);
+    const { readFile } = await import("node:fs/promises");
+    const { parseScript } = await import("../script/parse");
+    const { checkForChannel } = await import("../script/checkChannel");
+    const { planIssues } = await import("../plan/validate");
+    const { loadLedger, reviewItems, reviewSummary } = await import("../script/review");
+    const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+    const checked = checkForChannel(parsed);
+    if (!checked.ok) throw new Error("السكريبت غير صالح للرندر النهائي؛ راجع تبويب السكريبت وفحوصه.");
+    const errors = planIssues(plan, loadChannel()).filter((issue) => issue.level === "error");
+    if (errors.length) throw new Error(`خطة الحلقة بها أخطاء تمنع النشر: ${errors.slice(0, 5).map((issue) => issue.message).join("؛ ")}`);
+    const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
+    if (!citations.ok) throw new Error(`توثيق الاستشهادات غير مكتمل: ${citations.verified} من ${citations.total}. راجع سجل التوثيق قبل الرندر النهائي.`);
     const ids = new Set(plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
     const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
     const missing = required.filter((s) => {
