@@ -15,6 +15,7 @@ import { assertNoTraces } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
 import { loadSceneLedger, sceneReviewBlockMessage, sceneReviewItems, sceneReviewSummary } from "../plan/sceneReview";
 import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../render/motionMeter";
+import { exemptForRender } from "../render/stillness";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
 import { approvalValid, QUALITY, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
@@ -151,7 +152,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
       log(`الحلقة بجودة: ${q.label}`);
       const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
       files.push(path.basename(episodeFile));
-      motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape") });
+      motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
       log(motionSummary(motion[0]!.report, "الحلقة"));
       const info: RenderInfo = { quality, label: q.label, width: 1920 * q.scale, height: 1080 * q.scale, voiced: hasVoice, at: new Date().toISOString() };
       await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
@@ -163,7 +164,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
         log(`الشورت ${n} بجودة: ${q.label}`);
         const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
         files.push(path.basename(f));
-        motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait") });
+        motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait", await exemptForRender(plan, media, ch.number)) });
       }
       const prev = existsSync(reportFile) ? (await readFile(reportFile, "utf8")).trimEnd() : `# مقياس الحركة · ${plan.title}\n`;
       await writeFile(reportFile, `${prev}\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);

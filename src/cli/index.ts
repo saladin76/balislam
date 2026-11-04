@@ -127,7 +127,11 @@ program
       },
     });
     const { measureMotion, motionSummary } = await import("../render/motionMeter");
-    console.log(motionSummary(await measureMotion(out, opts.portrait ? "portrait" : "landscape"), "الحركة"));
+    const { exemptForRender } = await import("../render/stillness");
+    const { loadPlan } = await import("../plan/io");
+    const plan = await loadPlan(episode);
+    const exempt = plan ? await exemptForRender(plan, undefined, opts.chapter ? Number(opts.chapter) : undefined) : undefined;
+    console.log(motionSummary(await measureMotion(out, opts.portrait ? "portrait" : "landscape", exempt), "الحركة"));
     console.log(`DONE ${path.relative(projectRoot, out)}`);
   });
 
