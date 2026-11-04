@@ -294,9 +294,24 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const file = await resolveScriptPath(parts[1]);
     const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
     if (req.method === "PUT") {
-      const { action } = await readBody(req);
-      if (action === "approve") await S.approveStoryboard(file, plan);
-      else if (action === "revoke") await S.revokeStoryboard(file);
+      const { action, auditNote } = await readBody(req);
+      if (action === "approve") {
+        const measured = await loadStoryboardMotion(parts[1]);
+        const note = typeof auditNote === "string" ? auditNote.trim() : "";
+        if (measured) {
+          const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
+          const currentHash = await currentMotionFingerprint(parts[1], plan, measured.orientation);
+          if (!measured.inputHash || measured.inputHash !== currentHash)
+            return send(res, 409, { error: "تغيّرت مدخلات الحلقة بعد قياس الحركة؛ أعد الفحص قبل اعتماد الستوري بورد." }), true;
+          const warnings = Object.values(measured.scenes).filter((s: any) => s.logic?.status === "needs-review").length;
+          if (warnings && note.length < 10)
+            return send(res, 400, { error: `هناك ${warnings} مشهدًا بها تحذيرات. شاهدها واكتب سبب الاعتماد أو الاستثناء (10 أحرف على الأقل).` }), true;
+          await S.approveStoryboard(file, plan, note ? { note, inputHash: measured.inputHash } : undefined);
+        } else {
+          // الاعتماد اليدوي التقليدي متاح دون تقرير آلي؛ لا يُعرض باعتباره اجتيازًا للفحص.
+          await S.approveStoryboard(file, plan);
+        }
+      } else if (action === "revoke") await S.revokeStoryboard(file);
       else return send(res, 400, { error: "إجراء غير صالح." }), true;
     }
     const status = S.storyboardStatus(plan, await S.loadStoryboard(file));
