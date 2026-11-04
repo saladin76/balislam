@@ -425,3 +425,15 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .sb-preview { margin: 0; display: grid; gap: 6px; min-width: 0; }
 .sb-preview video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; direction: ltr; }
 .sb-preview figcaption { display: grid; gap: 2px; }
+
+
+/* Progressive disclosure: production tasks stay in the primary navigation;
+   identity, library and service connections live in one secondary control. */
+.studio-manage-nav { display: inline-flex; align-items: center; gap: 8px; min-width: 210px; }
+.studio-nav-label { white-space: nowrap; color: var(--muted); font-size: 12px; }
+.studio-manage-nav select { min-width: 190px; max-width: 240px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.studio-manage-nav select:focus-visible { outline: 2px solid var(--accent); }
+@media (max-width: 780px) {
+  .studio-manage-nav { min-width: 0; width: 100%; }
+  .studio-manage-nav select { flex: 1; max-width: none; min-width: 0; }
+}
