@@ -12,7 +12,7 @@ import { boil, useSceneFrame, clamp } from "./motion";
 import { Drawn, inkPalette, Pen } from "./SketchBoard";
 import { estimateTimings, type WordTiming } from "./timing";
 import { parseBeats, sentenceGroups, type Beat } from "../../plan/beats";
-import { BoardPaper, cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, Highlighter, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
+import { BoardPaper, safeCam, cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, Highlighter, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
 import { useChannel } from "../../channel/context";
 import { drawAllowed } from "../../channel/library";
 import type { SceneBase, StringFields } from "./types";
@@ -254,7 +254,7 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
   camKeys.push(...filled);
   if (beats.length && pullAt + 18 < durationInFrames) camKeys.push({ ...overview, at: pullAt, dur: 18 });
   const view = beats.length ? cameraAt(camKeys, frame) : overview;
-  const camStyle = camTransform(view, W, H);
+  const camStyle = camTransform(safeCam(view, W, H, portrait ? 1.05 : 1.07), W, H);
   const prev = hasPrev && cam < 1 ? panel(prevBeats, false) : null;
   const lastStart = starts[beats.length - 1] ?? 0;
   const penShow = interpolate(frame, [lastStart + 60, lastStart + 72], [1, 0], clamp);

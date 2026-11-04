@@ -18,6 +18,7 @@ import { SimStage, simStageSample, simStageSampleEn, simStageSeconds } from "./S
 import { MotionStory, motionStorySample, motionStorySampleEn, motionStorySeconds } from "./MotionStory";
 import { BoardStory, boardStorySample, boardStorySampleEn, boardStorySeconds } from "./BoardStory";
 import { SketchBoard, sketchBoardSample, sketchBoardSampleEn, sketchBoardSeconds } from "./SketchBoard";
+import { InkMeaning, inkMeaningSample, inkMeaningSampleEn, inkMeaningSeconds } from "./InkMeaning";
 import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from "./GlowStory";
 import { Summary, summarySample, summarySampleEn, summarySeconds } from "./Summary";
 import { RoadJourney, roadJourneySample, roadJourneySampleEn, roadJourneySeconds } from "./RoadJourney";
@@ -47,6 +48,7 @@ export const sceneCatalog: Entry[] = [
   { id: "road-journey", component: RoadJourney, sample: roadJourneySample, sampleEn: roadJourneySampleEn, seconds: roadJourneySeconds },
   { id: "light-stage", component: LightStage, sample: lightStageSample, sampleEn: lightStageSampleEn, seconds: lightStageSeconds },
   { id: "motion-story", component: MotionStory, sample: motionStorySample, sampleEn: motionStorySampleEn, seconds: motionStorySeconds },
+  { id: "ink-meaning", component: InkMeaning, sample: inkMeaningSample, sampleEn: inkMeaningSampleEn, seconds: inkMeaningSeconds },
   { id: "sketch-board", component: SketchBoard, sample: sketchBoardSample, sampleEn: sketchBoardSampleEn, seconds: sketchBoardSeconds },
   { id: "kinetic-text", component: KineticText, sample: kineticTextSample, sampleEn: kineticTextSampleEn, seconds: kineticTextSeconds },
   { id: "map-journey", component: MapJourney, sample: mapJourneySample, sampleEn: mapJourneySampleEn, seconds: mapJourneySeconds },

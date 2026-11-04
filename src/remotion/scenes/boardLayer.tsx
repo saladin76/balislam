@@ -186,3 +186,14 @@ export const BoardPaper: React.FC<{ motif?: string; ink: string; margin: string;
   ) : (
     <div style={{ position: "absolute", inset: 0, opacity: dark ? 0.1 : 0.07, backgroundImage: `radial-gradient(${ink} 1.6px, transparent 1.8px)`, backgroundSize: "48px 48px", backgroundPosition: `${shift}px 0` }} />
   );
+
+/**
+ * إطار آمن: تكبير خفيف لا يتجاوز maxZ، والإطار لا يخرج عن حدود اللوحة أبدًا،
+ * فلا يُقطع عنصر ولا كلمة عند حافة الشاشة (القاعدة السادسة: لا عنصر يخرج من الإطار).
+ */
+export const safeCam = (c: Cam, W: number, H: number, maxZ = 1.07): Cam => {
+  const z = Math.max(1, Math.min(maxZ, c.z));
+  const hw = W / (2 * z);
+  const hh = H / (2 * z);
+  return { z, x: Math.min(W - hw, Math.max(hw, c.x)), y: Math.min(H - hh, Math.max(hh, c.y)) };
+};

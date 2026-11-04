@@ -14,7 +14,7 @@ import { estimateTimings } from "./timing";
 import { sentenceGroups } from "../../plan/beats";
 import { useChannel } from "../../channel/context";
 import { drawAllowed } from "../../channel/library";
-import { BoardPaper, cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
+import { BoardPaper, safeCam, cameraAt, camTransform, fillCameraGaps, findWord, groupRanges, mentionsOf, pulse, Ring, spokenWords, supportsOf, type CamKey } from "./boardLayer";
 
 /**
  * «السبورة»: شرح مرسوم باليد كأن قلمًا يرسم أمامك. العنوان يُكتب بخط اليد ويُخط تحته،
@@ -237,7 +237,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
   };
   const camKeys = fillCameraGaps(keys, [drawFrom, arrowFrom, ...items.map((_, i) => itemFrom(i)), ...supports.map((x) => x.start), ...mentions.map((m) => m.start), circleAt], pullAt, focusAt, overview, portrait ? 75 : 30, portrait ? 120 : 46);
   if (pullAt + 18 < durationInFrames) camKeys.push({ ...overview, at: pullAt, dur: 18 });
-  const camStyle = camTransform(cameraAt(camKeys, frame), W, H);
+  const camStyle = camTransform(safeCam(cameraAt(camKeys, frame), W, H, portrait ? 1.05 : 1.07), W, H);
 
   return (
     <SceneShell

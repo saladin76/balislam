@@ -275,6 +275,20 @@ export const templateDefs: TemplateDef[] = [
     ],
   },
   {
+    id: "ink-meaning",
+    nameAr: "حبر ومعنى",
+    useAr: "الكلمات نفسها هي الرسم: كل كلمة أو عبارة تُكتب بالحبر لحظة نطقها، وأسهم وخطوط تصل الأفكار، والفسفوري للفكرة المحورية وحدها",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 3.5,
+    fields: [
+      { key: "layout", label: "التخطيط", type: "select", options: [{ value: "center", label: "كلمة محورية" }, { value: "compare", label: "مقارنة" }, { value: "flow", label: "تدفق بأسهم" }, { value: "book", label: "بطاقة الكتاب" }, { value: "sacred", label: "ذكر ثابت" }, { value: "note", label: "ورقة لاصقة" }] },
+      { key: "items", label: "العناصر (سطر لكل عنصر)", type: "textarea", help: "النص | الدور | كلمة البدء. الأدوار: key، word، line، mark (تظليل عنصر بنصه)، cross (شطبه)، link (وصل الطرفين)" },
+      { key: "author", label: "المؤلف (لبطاقة الكتاب)", type: "text" },
+      { key: "enter", label: "الدخول", type: "select", options: [{ value: "", label: "بلا" }, { value: "page", label: "صفحة تُقلب" }] },
+    ],
+  },
+  {
     id: "motion-story",
     nameAr: "القصة المتحركة",
     useAr: "شرح حديث بعمق: أيقونة على قرص زجاجي، عنوان يُبنى كلمة كلمة، شريط للأفكار السابقة، وترجمة متزامنة تتوهج مع الصوت",
