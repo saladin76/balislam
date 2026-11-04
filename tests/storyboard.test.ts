@@ -53,6 +53,20 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
     expect(storyboardStatus(plan(), await loadStoryboard(script)).audit?.inputHash).toBe("hash-1");
   });
 
+  it("تغير المدة أو التراكبات يعيد الاعتماد بدل الاحتفاظ ببصمة مشهد قديمة", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-hash-"));
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    const p = plan();
+    await approveStoryboard(script, p);
+    const changed = plan();
+    changed.chapters[0]!.scenes[0]!.durationSec = 15;
+    expect(storyboardStatus(changed, await loadStoryboard(script)).changed).toContain("c1-s1");
+    const changedOverlay = plan();
+    changedOverlay.chapters[0]!.scenes[0]!.overlays = { captions: false };
+    expect(storyboardStatus(changedOverlay, await loadStoryboard(script)).changed).toContain("c1-s1");
+  });
+
   it("وصف اللقطة: نوعها وما على الشاشة وعناصرها", () => {
     const [a, b] = plan().chapters[0]!.scenes;
     expect(shotKind(a!)).toBe("فراغ وكتابة");
