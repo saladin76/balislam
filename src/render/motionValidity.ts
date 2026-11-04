@@ -12,3 +12,13 @@ export const staleMotionScenes = (plan: Plan, report: StoryboardMotion, currentI
     .filter((s) => outdated || !report.scenes?.[s.id] || report.scenes[s.id]!.hash !== sceneHash(s))
     .map((s) => s.id);
 };
+
+/** التقرير الحديث ذو التحذيرات يحتاج قرار مراجعة صريحًا متعلقًا بالتقرير نفسه. */
+export const auditNeedsJustification = (
+  report: StoryboardMotion | null,
+  audit?: { note: string; inputHash?: string },
+): boolean => {
+  if (!report) return false;
+  const hasWarnings = Object.values(report.scenes ?? {}).some((scene) => scene.logic?.status === "needs-review");
+  return hasWarnings && (!audit?.note?.trim() || audit.note.trim().length < 10 || audit.inputHash !== report.inputHash);
+};
