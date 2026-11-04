@@ -28,6 +28,7 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 
 
 export const EpisodeTab: React.FC<{
   episodeId: string;
+  requestedSceneId?: string;
   plan: Plan;
   identity: Identity;
   channel: ChannelInfo;
@@ -38,9 +39,10 @@ export const EpisodeTab: React.FC<{
   onMediaChange: (media: EpisodeMedia) => void;
   onReload: () => void;
   onEditScript: (line: number) => void;
-}> = ({ episodeId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript }) => {
+  onOpenVoice?: () => void;
+}> = ({ episodeId, requestedSceneId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript, onOpenVoice }) => {
   const allScenes = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))), [plan]);
-  const [selectedId, setSelectedId] = useState(allScenes[0]?.scene.id ?? "");
+  const [selectedId, setSelectedId] = useState(requestedSceneId ?? allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [scope, setScope] = useState<Scope>("scene");
   // ستوري بورد الفيديو قبل تنفيذه (يُعتمد قبل الصوت والنسخة النهائية)
@@ -59,6 +61,12 @@ export const EpisodeTab: React.FC<{
   useEffect(() => {
     if (!allScenes.some((x) => x.scene.id === selectedId) && allScenes[0]) setSelectedId(allScenes[0].scene.id);
   }, [allScenes, selectedId]);
+
+  // عندما يختار المستخدم مشهدًا من الستوري بورد أو لوحة الملاحظات ننتقل إليه فورًا.
+  useEffect(() => {
+    // يُطبَّق طلب الانتقال فقط عند وصوله؛ تحديث الخطة لا يعيد اختيار مشهد قديم.
+    if (requestedSceneId && allScenes.some((x) => x.scene.id === requestedSceneId)) setSelectedId(requestedSceneId);
+  }, [requestedSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // في معاينة الفصل أو الحلقة: أي مشهد يُعرض الآن؟ (إعدادات اللوحة الجانبية تخص المشهد المختار فقط)
   const starts = useMemo(() => {
@@ -256,7 +264,12 @@ export const EpisodeTab: React.FC<{
             </select>
           </div>
         </div>
-        <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />
+        {onOpenVoice ? (
+          <div className="render-box ew-voice-link">
+            <span>توليد صوت الحلقة وتقرير التشكيل والمقاطع في مرحلة الصوت.</span>
+            <button className="btn" type="button" onClick={onOpenVoice}>افتح مرحلة الصوت</button>
+          </div>
+        ) : <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />}
         <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
       </div>
 
@@ -365,6 +378,9 @@ export const EpisodeTab: React.FC<{
             </label>
           </div>
 
+          <details className="ew-advanced-settings">
+            <summary>إعدادات متقدمة · عناصر الشاشة والمؤثرات الصوتية</summary>
+            <div className="ew-advanced-body">
           <div className="section-t">عناصر الشاشة في هذا المشهد</div>
           <OverlayToggles
             idPrefix="sc-ov"
@@ -436,6 +452,9 @@ export const EpisodeTab: React.FC<{
               </optgroup>
             ))}
           </select>
+
+            </div>
+          </details>
 
           <div className="section-t">التعليق الصوتي</div>
           <div className="narr">{scene.narration || <span className="help">لا تعليق صوتي في هذا المشهد</span>}</div>
@@ -609,7 +628,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
 };
 
 /** صوت الحلقة كلها: تقدير التكلفة أولًا، ثم التوليد بتأكيد. */
-const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, hasKeys, onMedia }) => {
+export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, hasKeys, onMedia }) => {
   const [est, setEst] = useState<VoiceReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
