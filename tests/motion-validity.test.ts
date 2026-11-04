@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { staleMotionScenes, auditNeedsJustification } from "../src/render/motionValidity";
 import { sceneHash } from "../src/plan/sceneReview";
-import type { Plan } from "../src/plan/types";
+import type { Plan, PlanScene } from "../src/plan/types";
 import type { StoryboardMotion } from "../src/render/storyboardMotion";
 
-const one = { id: "c1-s1", narration: "الحقيقة", template: "alley-tale", props: {}, sfx: [] };
-const two = { id: "c1-s2", narration: "ثم القرار", template: "alley-tale", props: {}, sfx: [] };
+const one: PlanScene = { id: "c1-s1", narration: "الحقيقة", line: 1, template: "alley-tale", props: {}, sfx: [] };
+const two: PlanScene = { id: "c1-s2", narration: "ثم القرار", line: 2, template: "alley-tale", props: {}, sfx: [] };
 const plan = { chapters: [{ scenes: [one, two] }] } as unknown as Plan;
 const report = (): StoryboardMotion => ({
   at: new Date(0).toISOString(), percent: 85, orientation: "landscape", inputHash: "current",
