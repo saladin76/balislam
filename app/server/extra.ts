@@ -305,11 +305,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     let motionStale: string[] = [];
     if (motion) {
       const { sceneHash } = await load("/src/plan/sceneReview.ts");
-      const { collectMedia } = await load("/src/plan/collect.ts");
-      const { motionFingerprint } = await load("/src/render/motionFingerprint.ts");
-      const { loadChannel, loadChannelIdentity, channelInfo } = await load("/src/channel/index.ts");
-      const m = await collectMedia(parts[1], plan);
-      const hash = motionFingerprint(plan, m, loadChannelIdentity(), channelInfo(loadChannel()), motion.orientation);
+      const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
+      const hash = await currentMotionFingerprint(parts[1], plan, motion.orientation);
       const globalStale = !motion.inputHash || motion.inputHash !== hash;
       motionStale = plan.chapters.flatMap((c: any) => c.scenes)
         .filter((s: any) => !motion.scenes[s.id] || globalStale || motion.scenes[s.id].hash !== sceneHash(s))
@@ -328,6 +325,10 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const report = await loadStoryboardMotion(parts[1]);
     if (!report) return send(res, 404, { error: "لا يوجد تقرير. ابدأ فحص الحركة والمنطق أولًا." }), true;
     const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
+    const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
+    const hash = await currentMotionFingerprint(parts[1], plan, report.orientation);
+    if (!report.inputHash || report.inputHash !== hash)
+      return send(res, 409, { error: "تغيّرت مدخلات الحلقة بعد القياس؛ أعد فحص الحركة والمنطق لتنزيل تقرير صالح." }), true;
     send(res, 200, { markdown: renderMotionAuditMarkdown(plan, report) });
     return true;
   }
