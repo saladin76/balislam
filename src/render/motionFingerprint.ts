@@ -26,3 +26,15 @@ export const motionFingerprint = (
     orientation,
   })).digest("hex").slice(0, 24);
 };
+
+/** الحساب الحالي لا ينسخ وسائط ولا يرندر؛ صالح لاستدعاء واجهة الحالة. */
+export const currentMotionFingerprint = async (
+  episode: string,
+  plan: Plan,
+  orientation: "landscape" | "portrait" = "landscape",
+): Promise<string> => {
+  const { collectMedia } = await import("../plan/collect");
+  const { loadChannel, loadChannelIdentity, channelInfo } = await import("../channel");
+  const media = await collectMedia(episode, plan);
+  return motionFingerprint(plan, media, loadChannelIdentity(), channelInfo(loadChannel()), orientation);
+};
