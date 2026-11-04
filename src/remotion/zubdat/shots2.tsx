@@ -1160,6 +1160,75 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     },
   },
 
+  // S25 (نسخة قراءة الهاتف، مقترحة للمراجعة): النص نفسه، بخط النص العريض وأحجام أكبر ومحطات متدرجة
+  "recap-readable": {
+    nameAr: "ما الذي تغير (مقروء على الهاتف): محطات الحلقة والسؤال الواحد",
+    render: (c) => {
+      const { frame, z, at, end, T, P } = kit(c);
+      const tQ = at("بسؤال", 0.03);
+      const tReady = at("الاستعداد", 0.12);
+      const tBefore = at("قبل", 0.18);
+      const tIqbal = at("الإقبال", 0.26);
+      const tIlm = at("بالعلم", 0.3);
+      const tMuj = at("والمجاهدة", 0.33);
+      const tIst = at("والاستعانة", 0.36);
+      const stations: [string, number][] = [["الوضوء", at("الوضوء", 0.48)], ["والقبلة", at("والقبلة", 0.52)], ["والتكبير", at("والتكبير", 0.56)], ["والاستفتاح", at("والاستفتاح", 0.6)], ["والاستعاذة", at("والاستعاذة", 0.65)]];
+      const tOne = at("واحدا", 0.8);
+      const tFinal = at("نفهم", 0.88);
+      const dimAll = P(tOne - 4, tOne + 14);
+      const pathP = P(stations[0]![1] - 6, stations[4]![1] + 6, (t) => t);
+      return {
+        // كاميرا ثابتة تقريبًا تُبقي الخلاصة كلها داخل المنطقة الآمنة وبحجمها المقروء؛ الحركة من بناء العناصر نفسها
+        focus: [],
+        cam: [C(0, 995, 470, 1.04), C(tOne - 6, 960, 540, 1.0)],
+        world: (
+          <g>
+            <g opacity={1 - 0.75 * dimAll}>
+              <g transform={`translate(0 ${-45 * dimAll})`}>
+              {/* السؤال الأول */}
+              <path d={heartPath(1500, 260, 50)} fill="none" stroke={z.ink} strokeWidth={7} strokeDasharray="16 12" opacity={P(tQ - 4, tQ + 8)} />
+              {T("q1", 1640, 270, "؟", 110, ["بسؤال", 0.03], undefined, { font: "head" })}
+              {/* الاستعداد قبل التكبير */}
+              <rect x={860} y={210} width={300} height={40} rx={20} fill={z.hl} opacity={P(tBefore, tBefore + 14)} />
+              <line x1={860} x2={860} y1={190} y2={270} stroke={z.ink} strokeWidth={8} strokeLinecap="round" opacity={P(tBefore + 6, tBefore + 14)} />
+              {T("ri", 1010, 330, "الاستعداد", 64, ["الاستعداد", 0.12], undefined, { font: "head" })}
+              {/* الإقبال وطرقه الثلاث: ثلاث بطاقات بخط النص العريض، كل طريق في بطاقة تُرسم عند نطقه */}
+              {T("iq", 500, 215, "الإقبال", 76, ["الإقبال", 0.26], undefined, { font: "head" })}
+              {([["i1", "بالعلم", tIlm], ["i2", "والمجاهدة", tMuj], ["i3", "والاستعانة", tIst]] as const).map(([id, w, t], k) => (
+                <g key={id}>
+                  <rect x={300} y={262 + k * 78} width={400} height={64} rx={12} fill={k === 0 ? z.paper : z.paper} stroke={z.ink} strokeWidth={5} opacity={P(t - 4, t + 6)} />
+                  <rect x={664} y={262 + k * 78} width={36} height={64} rx={10} fill={z.hl} opacity={P(t - 2, t + 8)} />
+                  {T(id, 482, 310 + k * 78, w, 56, [w, [0.3, 0.33, 0.36][k]!], undefined, { font: "body", weight: 700 })}
+                </g>
+              ))}
+              </g>
+              {/* محطات ما تأملناه: تصعد قليلًا عند «واحدا» لتترك مساحة السؤال */}
+              <g transform={`translate(0 ${-125 * dimAll})`}>
+              <Stroke d="M1600 600 L320 600" p={pathP} c={z.ink} w={7} />
+              {stations.map(([w, t], k) => {
+                const x = 1500 - k * 270;
+                return (
+                  <g key={w}>
+                    <circle cx={x} cy={600} r={30} fill={z.hl} stroke={z.ink} strokeWidth={6} opacity={P(t - 4, t + 6)} />
+                    <line x1={x} x2={x} y1={630} y2={k % 2 ? 712 : 650} stroke={z.ink} strokeWidth={4} opacity={P(t - 2, t + 6)} />
+                    {T(`s${k}`, x, k % 2 ? 772 : 712, w, 62, [w, 0.5], undefined, { font: "body", weight: 700 })}
+                  </g>
+                );
+              })}
+              </g>
+            </g>
+            {/* السؤال الواحد: يأخذ مساحة الصفحة وحده بعد أن تبهت المحطات وتصعد */}
+            <g opacity={P(tOne - 2, tOne + 12)}>
+              <rect x={960 - 470} y={700} width={940} height={150} rx={18} fill={z.paper} stroke={z.ink} strokeWidth={6} />
+            </g>
+            {T("fq", 960, 800, "هل نفهم ما نقوله ونفعله؟", 72, ["هل", 0.86], ["ونفعله", 0.98], { font: "head" })}
+            <Mark x={960 - 390} y={812} w={780} h={18} p={P(end("ونفعله", 0.98), end("ونفعله", 0.98) + 14)} z={z} />
+          </g>
+        ),
+      };
+    },
+  },
+
   // S27 — باب القراءة: الحلقة القادمة والخاتمة
   "reading-door": {
     nameAr: "باب القراءة: الحلقة القادمة",

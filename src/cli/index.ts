@@ -178,6 +178,21 @@ program
   });
 
 program
+  .command("quran-compare")
+  .description("مقابلة نص بطاقات الآيات بنص Quran Foundation حرفًا وحركةً، دون تغيير quran.json (النتيجة في «ملفات المراجعة»)")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { quranClientFromEnv } = await import("../quran/client");
+    const { checkEpisodeQuran, writeQuranCheckReport } = await import("../quran/compare");
+    const client = quranClientFromEnv();
+    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
+    const checks = await checkEpisodeQuran(episode, client);
+    for (const c of checks) console.log(`${c.key}: ${c.status === "match" ? "مطابق" : c.status === "differs" ? `فيه ${c.diffs.length} فرق` : c.reason ?? c.status}`);
+    console.log(`التقرير: ${await writeQuranCheckReport(episode, checks)}`);
+    if (checks.some((c) => c.status !== "match")) process.exitCode = 1;
+  });
+
+program
   .command("voice")
   .description("توليد صوت المشاهد من ElevenLabs (المشاهد التي لم تتغير لا يُعاد توليدها)")
   .argument("<episode>", "رقم الحلقة")
