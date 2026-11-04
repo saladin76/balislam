@@ -278,9 +278,13 @@ export const App: React.FC = () => {
              episodeId={epId}
              title={plan.title}
              stage={tab as WorkspaceStage}
-             onStage={(stage) => {
+             onStage={(stage, target) => {
                if (stage !== "script" && scriptDirty && !confirmLeaveScript()) return;
+               if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
                setTab(stage);
+               if (target?.line && stage === "script") {
+                 setTimeout(() => scriptRef.current?.goToLine(target.line!), 50);
+               }
              }}
              check={check}
              issues={extra.issues}
