@@ -64,14 +64,17 @@ export const Mp3QuranBrowser: React.FC<{ channelId: string }> = ({ channelId }) 
             <div className="key-row">
               <label htmlFor="mp3quran-reciter">القارئ</label>
               <select id="mp3quran-reciter" value={reciterId} onChange={(e) => {
-                setReciterId(Number(e.target.value)); setMoshafId(0); setAudio("");
+                setReciterId(Number(e.target.value)); setMoshafId(0); setSurahId(1); setAudio("");
               }}>
                 <option value={0}>اختر القارئ</option>
                 {reciters.map((r) => <option value={r.id} key={r.id}>{r.name}</option>)}
               </select>
               <label htmlFor="mp3quran-moshaf">الرواية / المصحف</label>
               <select id="mp3quran-moshaf" value={moshafId} onChange={(e) => {
-                setMoshafId(Number(e.target.value)); setAudio("");
+                const nextId = Number(e.target.value);
+                const next = reciter?.moshaf.find((m) => m.id === nextId);
+                const first = Number(next?.surah_list.split(",")[0]?.trim());
+                setMoshafId(nextId); setSurahId(Number.isInteger(first) && first >= 1 && first <= 114 ? first : 1); setAudio("");
               }}>
                 <option value={0}>اختر الرواية</option>
                 {reciter?.moshaf.map((m) => <option value={m.id} key={m.id}>{m.name}</option>)}
