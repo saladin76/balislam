@@ -18,7 +18,8 @@ import { channelLibrary, type LibraryRules } from "../../../src/channel/library"
 import { Figure, LOOKS, POSES, type PoseName } from "../../../src/remotion/illus/Figure";
 import { PLACE_IDS, PlacePreview, placeNamesAr, PROP_IDS, PropPreview, propNamesAr } from "../../../src/remotion/illus/places";
 import { CUE_WORDS, cueNamesAr } from "../../../src/plan/sceneCues";
-import { SHOTS } from "../../../src/remotion/illus/shots";
+import { RICH_SETS, SHOTS } from "../../../src/remotion/illus/shots";
+import { camAt, camTransform } from "../../../src/remotion/illus/shots/kit";
 
 /** قواعد مكتبة القناة من بياناتها في الاستوديو */
 export const libraryRulesOf = (c?: ChannelInfo): LibraryRules => ({ id: c?.id ?? "", rules: { faces: Boolean(c?.rules?.faces), quran: Boolean(c?.rules?.quran), hadith: Boolean(c?.rules?.hadith) }, library: c?.library });
@@ -36,7 +37,7 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
     <div className="library">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="القسم">
-          {([["templates", `القوالب (${sceneCatalog.filter((e) => lib.templates.includes(e.id)).length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${illus ? PLACE_IDS.length : lib.sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${lib.elements.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
+          {([["templates", `القوالب (${sceneCatalog.filter((e) => lib.templates.includes(e.id)).length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${illus ? RICH_SETS.length + PLACE_IDS.length : lib.sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${lib.elements.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
             <button key={k} aria-pressed={section === k} onClick={() => setSection(k)}>{l}</button>
           ))}
         </div>
@@ -229,24 +230,56 @@ const IllusCast: React.FC = () => (
   </div>
 );
 
+/** معاينة لقطة مصمَّمة: إطار من منتصفها بكاميرتها */
+const ShotThumb: React.FC<{ id: string; width?: number }> = ({ id, width = 320 }) => {
+  const dur = 200;
+  const frame = 120;
+  const shot = SHOTS[id]!.render({ frame, fps: 30, dur, portrait: false, at: (_w, f) => Math.round(f * dur) });
+  return (
+    <svg viewBox="0 0 1920 1080" width={width} height={(width * 9) / 16} style={{ display: "block", borderRadius: 8, background: "#0B1F1C" }}>
+      <g transform={camTransform(camAt(frame, shot.cam))}>{shot.world}</g>
+    </svg>
+  );
+};
+
 /** أماكن «بالإسلام» المصوَّرة وعناصر مشاهدها ومعانيها: ما يظهر هنا هو ما يُرندر */
 const IllusPlaces: React.FC = () => (
   <div style={{ display: "grid", gap: 24 }}>
+    <h3 style={{ margin: 0 }}>أماكن مرسومة ({RICH_SETS.length})</h3>
+    <p className="help">أماكن اللقطات المصمَّمة: طبقات وملمس ومصادر ضوء وتفاصيل حياة. كل مكان يُعاد استعماله في الحلقات التالية بزوايا وأحداث أخرى.</p>
     <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-      {PLACE_IDS.map((id) => (
-        <figure key={id} style={{ margin: 0 }}>
-          <PlacePreview id={id} width={360} />
-          <figcaption style={{ marginTop: 6 }}>{placeNamesAr[id]}</figcaption>
+      {RICH_SETS.map((st) => (
+        <figure key={st.id} style={{ margin: 0 }}>
+          <svg viewBox="-60 -40 2040 1160" width="100%" style={{ display: "block", borderRadius: 8, aspectRatio: "16 / 9" }} preserveAspectRatio="xMidYMid slice">
+            {st.render(60)}
+          </svg>
+          <figcaption style={{ marginTop: 6 }}>{st.nameAr}</figcaption>
         </figure>
       ))}
     </div>
     <h3 style={{ margin: 0 }}>لقطات مصمَّمة ({Object.keys(SHOTS).length})</h3>
     <p className="help">مشهد مصمَّم يحكي جملة بعينها: مكانه وشخوصه وكاميرته، وأحداثه على توقيت كلماتها. يُختار في «المشاهد» بحقل «لقطة مصمَّمة»، ويُعاد استعماله لكل جملة بالمعنى نفسه.</p>
-    <table className="lib-cues"><tbody>
+    <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
       {Object.entries(SHOTS).map(([id, d]) => (
-        <tr key={id}><td><b>{d.nameAr}</b></td><td>{d.place}</td><td style={{ direction: "ltr", fontFamily: "monospace", fontSize: 12 }}>{id}</td></tr>
+        <figure key={id} style={{ margin: 0 }}>
+          <ShotThumb id={id} />
+          <figcaption style={{ marginTop: 6 }}>
+            <b>{d.nameAr}</b>
+            <div className="help" style={{ direction: "ltr", textAlign: "end", fontFamily: "monospace" }}>{id}</div>
+          </figcaption>
+        </figure>
       ))}
-    </tbody></table>
+    </div>
+    <h3 style={{ margin: 0 }}>أماكن الإخراج العام ({PLACE_IDS.length})</h3>
+    <p className="help">للمشاهد التي لم تُصمَّم لها لقطة بعد (حكايات الحارة العامة، والطريق، وظل ونور).</p>
+    <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+      {PLACE_IDS.map((id) => (
+        <figure key={id} style={{ margin: 0 }}>
+          <PlacePreview id={id} width={280} />
+          <figcaption style={{ marginTop: 6 }}>{placeNamesAr[id]}</figcaption>
+        </figure>
+      ))}
+    </div>
     <h3 style={{ margin: 0 }}>عناصر المشاهد ({PROP_IDS.length})</h3>
     <p className="help">كل عنصر صُمِّم لمعنى في الكلام، ويظهر لحظة نطق كلمته فقط. وإن لم يوجد عنصر مناسب يُصمَّم جديد ويُضاف هنا، ولا يوضع أقرب عنصر.</p>
     <div className="lib-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>

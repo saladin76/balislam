@@ -310,13 +310,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
 };
 
 export const alleyTaleSample: Omit<AlleyTaleProps, "themeId" | "orientation"> = {
-  narration: "هل فكرت يومًا أنك قد تكون مخطئًا في شيء تؤمن تمامًا أنه صحيح؟ قد تصدق خبرًا لأنه يؤكد رأيك. فليس كل ما نقتنع به صحيحًا.",
-  place: "alley",
-  mood: "night",
-  moodTo: "predawn",
-  camera: "push",
-  poses: "sit,head-down,look-up",
-  cues: "wrong | مخطئًا\nnews | خبرًا\ntruth | صحيحًا",
+  narration: "قد نصدق خبرًا لأنه يؤكد رأينا.",
+  shot: "cafe-news-agrees",
+  cues: "news | خبرًا",
 };
 export const alleyTaleSampleEn = alleyTaleSample;
-export const alleyTaleSeconds = 14;
+export const alleyTaleSeconds = 6;
