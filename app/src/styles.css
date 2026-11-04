@@ -426,3 +426,41 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .sb-preview { margin: 0; display: grid; gap: 6px; min-width: 0; }
 .sb-preview video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; direction: ltr; }
 .sb-preview figcaption { display: grid; gap: 2px; }
+
+/* Progressive disclosure: production tasks stay in the primary navigation;
+   identity, library and service connections live in one secondary control. */
+.studio-manage-nav { display: inline-flex; align-items: center; gap: 8px; min-width: 210px; }
+.studio-nav-label { white-space: nowrap; color: var(--muted); font-size: 12px; }
+.studio-manage-nav select { min-width: 190px; max-width: 240px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.studio-manage-nav select:focus-visible { outline: 2px solid var(--accent); }
+@media (max-width: 780px) {
+  .studio-manage-nav { min-width: 0; width: 100%; }
+  .studio-manage-nav select { flex: 1; max-width: none; min-width: 0; }
+}
+
+
+/* Secondary quick-start help: collapsed by default, simple and keyboard-accessible. */
+.studio-start-guide { margin: 10px 16px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.studio-start-guide summary { cursor: pointer; font-weight: 700; }
+.studio-start-guide summary span { color: var(--muted); font-weight: 400; font-size: 12px; margin-inline-start: 12px; }
+.studio-start-guide[open] summary { margin-bottom: 8px; }
+.studio-start-guide p { color: var(--muted); margin: 8px 0; }
+.studio-start-guide ol { margin: 8px 0; padding-inline-start: 26px; display: grid; gap: 7px; }
+
+
+/* Home: one task context at a time; not two stacked workspaces. */
+.studio-home-switch { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 16px 14px; padding: 4px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; width: fit-content; max-width: calc(100% - 32px); }
+.studio-home-switch button { cursor: pointer; padding: 8px 14px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); }
+.studio-home-switch button.active { background: var(--panel); color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px #00000010; }
+.studio-home-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+
+/* Service connections stay visible as compact status rows until needed. */
+.studio-provider { padding: 0 !important; }
+.studio-provider > summary { cursor: pointer; list-style-position: inside; padding: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.studio-provider > summary strong { font-family: var(--f-head); font-size: 17px; }
+.studio-provider > summary span { color: var(--muted); font-size: 12px; flex: 1; }
+.studio-provider > summary em { font-style: normal; background: var(--panel-2); border: 1px solid var(--line); padding: 2px 9px; border-radius: 9px; font-size: 12px; }
+.studio-provider[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.studio-provider > :not(summary) { margin-inline: 16px; }
+.studio-provider > :last-child { margin-bottom: 16px; }
