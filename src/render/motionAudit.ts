@@ -41,6 +41,9 @@ export const renderMotionAuditMarkdown = (plan: Plan, report: StoryboardMotion):
     const state = !m ? "لم يُقس" : m.logic?.status === "needs-review" ? "يحتاج مراجعة" : "غير قابل للتقييم الآلي";
     out.push(`### ${s.id} — ${state}`, `- التعليق: ${safe(s.narration) || "(بلا تعليق)"}`);
     if (m) out.push(`- بداية المشهد: ${clock(m.from)} | الحركة: ${m.pct}% | أطول سكون: ${m.still} ث`);
+    for (const cue of m?.logic?.cues ?? []) {
+      out.push(`- مرساة ${safe(cue.source)} «${safe(cue.label)}»: ${cue.expectedVoiceStartSec === undefined ? "لا تتوفر محاذاة صوت صالحة" : `توقيت الكلمة المتوقع ${cue.expectedVoiceStartSec.toFixed(2)} ث من بداية المشهد (لم تُقَس الحركة بصريًا عند هذا الوقت)`}`);
+    }
     for (const f of m?.logic?.findings ?? []) {
       if (f.level === "warning") out.push(`- **${f.kind === "timing" ? "ارتباط بالنص" : f.kind === "rhythm" ? "إيقاع" : "معنى"}:** ${safe(f.message)}`);
     }
