@@ -421,6 +421,7 @@ button.ops-ch:hover { background: var(--accent-soft); }
 /* معاينات الحلقة داخل الستوري بورد */
 .sb-previews { display: grid; gap: 10px; padding: 16px 0 8px; border-bottom: 1px solid var(--line, #ddd); }
 .sb-previews h3 { margin: 0; }
+.sb-reviews { margin: 0; padding-inline-start: 18px; display: grid; gap: 8px; }
 .sb-previews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
 .sb-preview { margin: 0; display: grid; gap: 6px; min-width: 0; }
 .sb-preview video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; direction: ltr; }

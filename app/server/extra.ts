@@ -462,6 +462,30 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 200, { files }), true;
   }
 
+  // ملفات المراجعة (reviews/ بجوار السكريبت): تقارير الاعتماد التحريري والشرعي للحلقة، صفحات HTML مكتفية بذاتها، داخلية لا تُنشر
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "reviews") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const dir = path.join(path.dirname(await resolveScriptPath(parts[1])), "reviews");
+    if (parts[3]) {
+      const file = path.join(dir, safeName(parts[3]));
+      if (!existsSync(file) || !/\.html$/i.test(file)) return send(res, 404, { error: "الملف غير موجود" }), true;
+      ctx.serveFile(req, res, file, "text/html; charset=utf-8");
+      return true;
+    }
+    if (!existsSync(dir)) return send(res, 200, { files: [] }), true;
+    const names = (await readdir(dir)).filter((n) => /\.html$/i.test(n));
+    const files = await Promise.all(
+      names.map(async (n) => {
+        const html = await readFile(path.join(dir, n), "utf8");
+        const title = /<title>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() || n;
+        const note = /<meta name="description" content="([^"]*)"/i.exec(html)?.[1] ?? "";
+        return { name: n, title, note, mtime: statSync(path.join(dir, n)).mtimeMs };
+      }),
+    );
+    return send(res, 200, { files: files.sort((x, y) => y.mtime - x.mtime) }), true;
+  }
+
   // ملفات التغليف
   if (parts[0] === "episodes" && parts[1] && parts[2] === "package") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
