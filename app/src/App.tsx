@@ -6,6 +6,9 @@ import { api, setApiChannel, type ChannelSummary, type CheckResult, type Episode
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
+import { StoryboardPanel } from "./tabs/StoryboardPanel";
+import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
@@ -18,8 +21,8 @@ import { SettingsTab } from "./tabs/SettingsTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
-type Tab = "home" | "episode" | "script" | "publish" | "identity" | "library" | "channel" | "settings";
-const EPISODE_TABS: Tab[] = ["episode", "script", "publish"];
+type Tab = "home" | "episode" | "script" | "storyboard" | "publish" | "identity" | "library" | "channel" | "settings";
+const EPISODE_TABS: Tab[] = ["episode", "script", "storyboard", "publish"];
 const store = {
   get: (k: string) => {
     try {
@@ -254,7 +257,8 @@ export const App: React.FC = () => {
             </select>
           ) : null}
           <nav className="tabs" role="tablist" aria-label="الحلقة">
-            <button role="tab" aria-selected={tab === "episode"} onClick={() => setTab("episode")}>المشاهد</button>
+            <button role="tab" aria-selected={tab === "episode"} onClick={() => setTab("episode")}>الصوت والمشاهد</button>
+             <button role="tab" aria-selected={tab === "storyboard"} onClick={() => setTab("storyboard")}>الستوري بورد</button>
             <button role="tab" aria-selected={tab === "script"} onClick={() => setTab("script")}>السكريبت{scriptDirty ? " •" : ""}</button>
             <button role="tab" aria-selected={tab === "publish"} onClick={() => setTab("publish")}>النشر</button>
           </nav>
@@ -273,7 +277,26 @@ export const App: React.FC = () => {
           ) : null}
         </header>
 
-        {tab === "home" ? (
+        {EPISODE_TABS.includes(tab) && plan && check && epId ? (
+           <EpisodeWorkspaceBar
+             key={`${channelId}:${epId}`}
+             episodeId={epId}
+             title={plan.title}
+             stage={tab as WorkspaceStage}
+             onStage={(stage) => {
+               if (stage !== "script" && scriptDirty && !confirmLeaveScript()) return;
+               setTab(stage);
+             }}
+             check={check}
+             issues={extra.issues}
+             plan={plan}
+             media={media}
+             saveState={planState}
+             scriptDirty={scriptDirty}
+           />
+         ) : null}
+
+         {tab === "home" ? (
           <div className="home-wrap">
           <OpsRoom
             refreshKey={homeKey}
@@ -371,6 +394,15 @@ export const App: React.FC = () => {
           </div>
         ) : !plan || !check ? (
           <div className="empty-state"><h2>جارٍ فتح الحلقة…</h2></div>
+        ) : tab === "storyboard" ? (
+          <div className="ew-storyboard-wrap"><StoryboardPanel
+            episodeId={epId}
+            plan={plan}
+            identity={ident.draft}
+            channel={channel}
+            media={media}
+            onOpenScene={() => setTab("episode")}
+          /></div>
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
