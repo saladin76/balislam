@@ -79,7 +79,7 @@ export const RemotionRoot: React.FC = () => (
           mood: "night",
           cast: "solo",
           poses: "stand",
-          cues: "news | خبرًا\\ntruth | الحقيقة",
+          cues: "news | خبرًا\ntruth | الحقيقة",
           cameraMode: mode,
           camera: mode === "directed" ? "still" : "push",
         }}
