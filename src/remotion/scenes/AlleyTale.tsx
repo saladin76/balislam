@@ -72,7 +72,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const mood = asMood(props.mood, "night");
   const moodTo = props.moodTo ? asMood(props.moodTo, mood) : undefined;
   const directed = props.cameraMode === "directed";
-  const camera = (directed ? (props.camera || "static") : (props.camera || "push")) as Camera;
+  const camera = (directed ? (props.camera || "still") : (props.camera || "push")) as Camera;
   const cues = cueFrames(parseCues(props.cues), timings);
   const at = (k: CueKind) => cues.find((c) => c.kind === k)?.at;
   const look = LOOKS[(props.look as keyof typeof LOOKS) || "hero"] ?? LOOKS.hero;
