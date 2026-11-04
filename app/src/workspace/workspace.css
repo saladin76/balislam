@@ -14,7 +14,7 @@
 .ew-eyebrow { margin: 0 0 4px; font-size: 12px; opacity: .66; }
 .ew-save { flex-shrink: 0; border-radius: 999px; padding: 7px 12px; background: var(--panel, #f2f1eb); font-size: 12px; }
 .ew-save.error { color: var(--err, #b3261e); }
-.ew-stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ew-stages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .ew-stage {
   min-width: 0; display: flex; align-items: center; gap: 10px; text-align: right;
   padding: 12px; background: transparent; border: 1px solid var(--line, #d4d2cb);
@@ -37,7 +37,10 @@
 .ew-more { justify-self: end; border: 0; padding: 9px 14px; background: transparent; color: inherit; cursor: pointer; font-size: 12px; }
 .ew-ready { padding: 12px 14px; border: 1px solid var(--line, #d4d2cb); border-radius: 12px; font-size: 13px; }
 .ew-storyboard-wrap { padding: 0 20px 20px; }
-@media (max-width: 1050px) {
+@media (max-width: 1280px) {
+  .ew-stages { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
   .ew-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
@@ -66,3 +69,24 @@
 .ew-advanced-settings[open] > summary { border-bottom: 1px solid var(--line, #d4d2cb); }
 .ew-advanced-body { padding: 10px 12px 14px; }
 .ew-advanced-body > .section-t:first-child { margin-top: 0; }
+
+/* ملخص الصوت وإدارة المقاطع؛ تستخدم نفس عمليات التوليد الحالية. */
+.ew-voice-stage { padding: 14px 20px 28px; max-width: 1200px; margin-inline: auto; display: grid; gap: 14px; direction: rtl; }
+.ew-voice-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.ew-voice-heading h2, .ew-voice-heading h3 { margin: 0; }
+.ew-voice-heading p, .ew-voice-heading span { margin: 0; font-size: 13px; opacity: .72; }
+.ew-voice-scenes { border: 1px solid var(--line, #d4d2cb); border-radius: 12px; overflow: hidden; display: grid; }
+.ew-voice-scenes button { width: 100%; border: 0; border-bottom: 1px solid var(--line, #d4d2cb); background: transparent; color: inherit; padding: 12px; display: flex; text-align: right; gap: 12px; align-items: center; cursor: pointer; }
+.ew-voice-scenes button:last-child { border-bottom: 0; }
+.ew-voice-scenes button:hover, .ew-voice-scenes button:focus-visible { background: var(--panel, #f2f1eb); }
+.ew-voice-id { white-space: nowrap; font-size: 12px; opacity: .7; min-width: 135px; }
+.ew-voice-text { min-width: 0; flex: 1; font-size: 13px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ew-voice-status { border-radius: 999px; padding: 5px 9px; font-size: 11px; white-space: nowrap; background: var(--panel, #f2f1eb); }
+.ew-voice-status.stale { color: var(--err, #a32a22); }
+.ew-voice-status.ready { color: var(--ok, #207f67); }
+@media (max-width: 700px) {
+  .ew-voice-stage { padding: 10px; }
+  .ew-voice-scenes button { flex-wrap: wrap; }
+  .ew-voice-text { flex-basis: 100%; order: 2; }
+  .ew-voice-id { min-width: auto; }
+}
