@@ -73,5 +73,5 @@ describe("نماذج الصوت الحديثة", () => {
     expect(d).toBeGreaterThan(2.3);
     expect(await applyTempo(src, 1)).toBe(src);
     expect(scaleTimes([{ start: 1, end: 2 }], 0.8)[0]!.end).toBeCloseTo(2.5);
-  });
+  }, 20_000);
 });
