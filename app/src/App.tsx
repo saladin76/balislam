@@ -273,12 +273,25 @@ export const App: React.FC = () => {
               {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
             </select>
           ) : null}
-          <nav className="tabs" role="tablist" aria-label="القناة">
-            <button role="tab" aria-selected={tab === "identity"} onClick={() => confirmLeaveScript() && setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
-            <button role="tab" aria-selected={tab === "library"} onClick={() => confirmLeaveScript() && setTab("library")}>المكتبة</button>
-            <button role="tab" aria-selected={tab === "channel"} onClick={() => confirmLeaveScript() && setTab("channel")}>القناة</button>
-            <button role="tab" aria-selected={tab === "settings"} onClick={() => confirmLeaveScript() && setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
-          </nav>
+          <label className="studio-manage-nav">
+            <span className="studio-nav-label">إدارة الاستوديو</span>
+            <select
+              aria-label="أدوات القناة والإعدادات"
+              value={["identity", "library", "channel", "settings"].includes(tab) ? tab : ""}
+              onChange={async (e) => {
+                const next = e.target.value as Tab;
+                if (!next || !confirmLeaveScript()) return;
+                await flushPlan();
+                setTab(next);
+              }}
+            >
+              <option value="">الأدوات والإعدادات…</option>
+              <option value="channel">معلومات القناة</option>
+              <option value="identity">الهوية البصرية{identDirty ? " • غير محفوظة" : ""}</option>
+              <option value="library">مكتبة الأصول والقوالب</option>
+              <option value="settings">الاتصالات والمفاتيح{keysOk.voice ? "" : " • تحتاج إعدادًا"}</option>
+            </select>
+          </label>
           <span className="spacer" />
           {tab === "episode" && plan ? (
             <span className="status">
