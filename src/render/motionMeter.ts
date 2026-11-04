@@ -18,7 +18,7 @@ const H = 180;
 const FPS = 10;
 const LAG = 5; // نصف ثانية
 const PIXEL_DELTA = 28;
-const ACTIVE_PCT = 2.5;
+export const ACTIVE_PCT = 2.5;
 
 export type MotionReport = { percent: number; seconds: number; activeSeconds: number; perSecond: number[]; still: { from: number; to: number }[] };
 

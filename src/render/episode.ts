@@ -1,4 +1,5 @@
 import path from "node:path";
+import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir } from "node:fs/promises";
 import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
@@ -44,6 +45,13 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
+  // النسخة النهائية لا تُصنع قبل اعتماد ستوري بورد مشاهدها (المعاينات الصامتة مسموحة دائمًا)
+  if (opts.quality === "master") {
+    const sb = storyboardStatus(plan, await loadStoryboard(await resolveScriptPath(opts.episode)));
+    const ids = plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id));
+    const blocked = unapprovedScenes(sb, ids);
+    if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+  }
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   await renderMedia({
     serveUrl,

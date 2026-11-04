@@ -62,7 +62,7 @@ export type ChannelConfig = {
    * خاص بهذه القناة وحدها؛ والملفات تبقى في المحرك المشترك لبقية القنوات.
    */
   /** قواعد السكريبت الخاصة بالقناة: fixedChapters=false عدد الفصول وطولها حر، practicalStep=false بلا «الخطوة العملية» */
-  script?: { fixedChapters?: boolean; practicalStep?: boolean };
+  script?: { fixedChapters?: boolean; practicalStep?: boolean; /** false: عنوان الفصل أعلى المشهد بلا رقمه (لا أرقام على الشاشة لا تُنطق) */ chapterNumbers?: boolean };
   library?: {
     exclude?: { elements?: string[]; categories?: string[]; sets?: string[]; templates?: string[] };
     /** قائمة سماح: إن وُجدت فلا يدخل مكتبة القناة من العناصر إلا ما فيها (أو في فئاتها)، فلا يتسرب إليها ما يُرسم لقنوات أخرى لاحقًا */
@@ -75,12 +75,12 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; library?: ChannelConfig["library"]; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; library?: ChannelConfig["library"]; script?: ChannelConfig["script"]; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;
 
-export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library });
+export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script });
 
 export const domainIds = (c: ChannelConfig) => Object.keys(c.domains);
 
