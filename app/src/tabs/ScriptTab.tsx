@@ -16,7 +16,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
->} >(({ episodeId, initialDoc = "script", text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+}> (({ episodeId, initialDoc = "script", text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
