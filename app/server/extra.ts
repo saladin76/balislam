@@ -168,6 +168,37 @@ const styleOf = (fmStyle: string | undefined, scenes: { template?: string }[]) =
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
 
+  // مكتبة تلاوات خارجية للمعاينة فقط؛ لا تُنشئ ملفات ولا تغيّر اختيار مصدر التلاوة.
+  if (parts[0] === "mp3quran") {
+    if (req.method !== "GET") return send(res, 405, { error: "طلبات القراءة فقط." }), true;
+    const { createMp3QuranClient } = await load("/src/quran/mp3quran.ts");
+    const client = createMp3QuranClient();
+    const resource = parts[1];
+    if (resource === "reciters") return send(res, 200, { reciters: await client.reciters() }), true;
+    if (resource === "suwar") return send(res, 200, { suwar: await client.suwar() }), true;
+    if (resource === "preview") {
+      const query = new URL(req.url ?? "/", "http://localhost").searchParams;
+      const reciterId = Number(query.get("reciter"));
+      const moshafId = Number(query.get("moshaf"));
+      const surah = Number(query.get("surah"));
+      if (![reciterId, moshafId, surah].every(Number.isSafeInteger) ||
+          reciterId < 1 || moshafId < 1 || surah < 1 || surah > 114)
+        return send(res, 400, { error: "معرّف القارئ أو الرواية أو السورة غير صالح." }), true;
+      const reciter = (await client.reciters()).find((r: any) => r.id === reciterId);
+      const moshaf = reciter?.moshaf.find((m: any) => m.id === moshafId);
+      if (!moshaf) return send(res, 404, { error: "الرواية المختارة غير موجودة." }), true;
+      return send(res, 200, {
+        url: client.preview(moshaf, surah),
+        reciter: reciter.name,
+        moshaf: moshaf.name,
+        surah,
+        rightsVerified: false,
+        publicationAllowed: false,
+      }), true;
+    }
+    return send(res, 404, { error: "مسار MP3Quran غير موجود." }), true;
+  }
+
   // التحديث من GitHub
   if (parts[0] === "update") {
     if (req.method === "POST") {
