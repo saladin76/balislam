@@ -324,9 +324,10 @@ export const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
       <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
         <Defs id="s4" />
         <BookShadow />
-        <Page id="s4" side="r" />
+        <Page id="s4" side="r">
+          <path d="M1700 72 H1736 V156 L1718 142 L1700 156 Z" fill={C.ribbon} />
+        </Page>
         <Page id="s4" side="l">
-          <path d="M868 72 H904 V156 L886 142 L868 156 Z" fill={C.ribbon} />
           {/* تعاقب: حلقة تتصل بالتي قبلها، والسابقة تخفت */}
           {LINEAGE.map((x, i) => {
             const s0 = m0 + i * 0.36;
@@ -357,7 +358,7 @@ export const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
         </Page>
         <Spine />
       </svg>
-      <div style={{ position: "absolute", right: W - 836, top: 104, fontFamily: Amiri, fontWeight: 700, fontSize: 40, color: C.ink, direction: "rtl" }}>الفصل الثاني</div>
+      <div style={{ position: "absolute", right: W - 1680, top: 104, fontFamily: Amiri, fontWeight: 700, fontSize: 40, color: C.ink, direction: "rtl" }}>الفصل الثاني</div>
       {q?.word ? (
         // لفظ الآية من نص Quran Foundation نفسه، في إطار على الصفحة المقابلة: ساكن طوال اللقطة، ولا يلتقي بالحاشية
         <div style={{ position: "absolute", left: 1170, top: 330, width: 390, padding: "18px 20px 16px", background: "#FBF4E6", border: "3px double rgba(74,46,31,0.65)", borderRadius: 8, textAlign: "center", direction: "rtl", boxShadow: "0 10px 24px rgba(43,30,20,0.18)" }}>

@@ -572,9 +572,12 @@ const Pending: React.FC<HzProps> = ({ t, dur, exit, p }) => (
 const legacy = (Comp: React.FC<{ t: number; tl: Timeline }>, endCam: Cam): React.FC<HzProps> =>
   function Legacy({ t, tl, dur, exit }) {
     return (
+      // خفوت الحبر: الدفتر الفارغ بالكادر نفسه تحت اللقطة، واللقطة تخفت فوقه
       <>
-        <Comp t={t} tl={tl} />
-        {exit === "fade" ? <BlankBookOver id="lg" cam={endCam} o={prog(t, dur - 0.75, dur - 0.15)} /> : null}
+        {exit === "fade" && t > dur - 0.8 ? <BlankBookOver id="lg" cam={endCam} o={1} /> : null}
+        <div style={{ position: "absolute", inset: 0, opacity: exit === "fade" ? 1 - prog(t, dur - 0.75, dur - 0.15) : 1 }}>
+          <Comp t={t} tl={tl} />
+        </div>
       </>
     );
   };
