@@ -845,7 +845,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tMove = at("الحركة", 0.8);
       const tMean = at("والمعنى", 0.88);
       const tDo = at("نؤديها", 0.84);
-      const tWith = at("معها", 0.97);
+      // الخيوط تبدأ مع «نستحضره» فتكتمل عند «معها»، ويبقى لها وقت تُرى فيه قبل نهاية المشهد
+      const tWith = at("نستحضره", 0.92);
       const turn = P(tBodies - 2, tBodies + 16);
       const needle = lerp(-1.6, 0, P(tFace - 2, tFace + 20));
       const gather = P(tHearts - 2, tHearts + 20);
