@@ -27,7 +27,7 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
       <input id={id} type={secret ? "password" : "text"} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder ?? (state?.set ? "الصق قيمة جديدة للاستبدال" : "الصق هنا")} dir="ltr" autoComplete="off" spellCheck={false} />
       <button className="btn small" disabled={!v.trim() || busy} type="submit">حفظ</button>
       {state?.set ? (
-        <button className="btn ghost small" type="button" onClick={() => { if (window.confirm(`حذف «${label}» من هذا الجهاز؟`)) onSave("").catch((x) => window.alert(`تعذّر الحذف: ${(x as Error).message}`)); }}>حذف</button>
+        <button className="btn ghost small" type="button" onClick={() => { if (window.confirm(`سيُزال «${label}» من ملف إعدادات الاستوديو النشط. قد يؤثر ذلك في جميع نسخ الاستوديو التي تستخدم الملف المشترك. هل تؤكد الإزالة؟`)) onSave("").catch((x) => window.alert(`تعذّر الحذف: ${(x as Error).message}`)); }}>حذف</button>
       ) : null}
     </form>
   );
@@ -68,10 +68,10 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
   return (
     <div className="settings-tab">
       <h2>الإعدادات والمفاتيح</h2>
-      <div className="note">المفاتيح تُحفظ في ملف ‎.env‎ داخل مجلد المشروع على هذا الجهاز فقط. لا تُرفع إلى GitHub، ولا تُرسل إلى أي مكان غير الخدمة نفسها، ولا تُكتب في المحادثات.</div>
+      <div className="note">المفاتيح لا تُرفع إلى GitHub. كل مجلد عمل يستخدم ملف ‎.env‎ الخاص به، إلا إذا حددت ملفًا مشتركًا عبر متغير البيئة BAL_ENV_FILE قبل تشغيل الاستوديو. ظهور «غير مضاف» لا يعني حذف المفتاح من مجلد مشروع آخر. لا تشارك محتوى الملف أو لقطة تظهر أسراره.</div>
 
-      <section className="group">
-        <h3>ElevenLabs <small>الصوت المستنسخ والمؤثرات</small></h3>
+      <details className="group studio-provider">
+        <summary><strong>ElevenLabs</strong> <span>الصوت المستنسخ والمؤثرات</span> <em>{keys.ELEVENLABS_API_KEY?.set ? "المفتاح موجود" : "يحتاج إعدادًا"}</em></summary>
         <ol className="steps">
           <li>افتح صفحة المفاتيح في حسابك: <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noreferrer">elevenlabs.io ← API Keys</a>، واضغط «Create API Key».</li>
           <li>الصق المفتاح هنا واضغط «حفظ».</li>
@@ -116,10 +116,10 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
         ) : (
           <KeyInput id="k-model" label="النموذج (اختياري)" secret={false} state={keys.ELEVENLABS_MODEL_ID} onSave={(v) => save({ ELEVENLABS_MODEL_ID: v })} placeholder="eleven_v4" />
         )}
-      </section>
+      </details>
 
-      <section className="group">
-        <h3>Quran Foundation <small>نصوص الآيات بالرسم العثماني</small></h3>
+      <details className="group studio-provider">
+        <summary><strong>Quran Foundation</strong> <span>نصوص الآيات بالرسم العثماني</span> <em>{keys.QF_CLIENT_ID?.set && keys.QF_CLIENT_SECRET?.set ? "المفاتيح موجودة" : "يحتاج إعدادًا"}</em></summary>
         <ol className="steps">
           <li>سجّل في بوابة المطورين: <a href="https://api-docs.quran.foundation/docs/quickstart" target="_blank" rel="noreferrer">api-docs.quran.foundation</a> واطلب مفاتيح Content API.</li>
           <li>الصق Client ID وClient Secret، واختر البيئة (prelive للتجربة، production بعد الموافقة).</li>
@@ -139,7 +139,7 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
           </button>
         </div>
         {qf ? qf.ok ? <div className="test-ok"><b>الاتصال يعمل ✓</b><span style={{ fontFamily: "Amiri, serif", fontSize: 24 }}>{qf.sample}</span></div> : <div className="note err">{qf.message}</div> : null}
-      </section>
+      </details>
     </div>
   );
 };
