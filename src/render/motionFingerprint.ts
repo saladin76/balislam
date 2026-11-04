@@ -11,11 +11,12 @@ export const motionFingerprint = (
   channel: unknown,
   orientation: "landscape" | "portrait" = "landscape",
 ): string => {
+  const { updatedAt: _ignored, ...renderPlan } = plan;
   const voice = Object.fromEntries(Object.entries(media.voice).sort(([a], [b]) => a.localeCompare(b)).map(([id, clip]) =>
     [id, { hash: clip.hash, text: clip.text, duration: clip.duration, words: clip.words }]));
   return createHash("sha256").update(JSON.stringify({
     version: AUDIT_VERSION,
-    plan,
+    plan: renderPlan,
     voice,
     recitations: media.recitations,
     images: media.images ?? [],
