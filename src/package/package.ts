@@ -2,7 +2,7 @@ import path from "node:path";
 import { channelInfo } from "../channel/types";
 import { chaptersText, generatePublishKit, kitToMarkdown } from "./social";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { loadPlan, regeneratePlan } from "../plan/io";
@@ -171,12 +171,14 @@ export const packageEpisode = async (opts: PackageOptions) => {
     files.push("motion-report.md");
     const weak = motion.filter((m) => m.report.percent < MOTION_MIN);
     if (weak.length) {
-      // تقرير التشخيص يبقى متاحًا؛ أما الفيديوهات الفاشلة فلا تبقى ضمن ملفات جاهزة للنشر.
+      // يظل المقطع متاحًا للتشخيص، لكنه يُعزل خارج ملفات النشر المعتمدة.
+      const quarantine = path.join(dir, "qc-failed");
+      await mkdir(quarantine, { recursive: true });
       for (const name of files.filter((f) => f.endsWith(".mp4"))) {
-        await unlink(path.join(dir, name)).catch(() => {});
+        await rename(path.join(dir, name), path.join(quarantine, name));
       }
       if (stage === "episode") await unlink(renderInfoFile(dir)).catch(() => {});
-      throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. حُذفت ملفات الفيديو غير المجتازة؛ راجع التفاصيل في motion-report.md.`);
+      throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. نُقلت الفيديوهات إلى qc-failed/ للتشخيص ولن تظهر ضمن ملفات النشر؛ راجع motion-report.md.`);
     }
   }
   return { dir, files, hasVoice };
