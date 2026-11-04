@@ -11,12 +11,13 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 
 export const ScriptTab = forwardRef<ScriptTabHandle, {
   episodeId: string;
   initialDoc?: "script" | "research";
+  onResearchDirtyChange?: (dirty: boolean) => void;
   text: string;
   savedText: string;
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
-}> (({ episodeId, initialDoc = "script", text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+}> (({ episodeId, initialDoc = "script", onResearchDirtyChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
@@ -29,6 +30,10 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     if (episodeId) api.research(episodeId).then((r) => setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists })).catch(() => {});
   }, [episodeId]);
   const researchDirty = research ? research.text !== research.saved : false;
+  useEffect(() => {
+    onResearchDirtyChange?.(researchDirty);
+    return () => onResearchDirtyChange?.(false);
+  }, [researchDirty, onResearchDirtyChange]);
   const saveResearch = async () => {
     if (!research) return;
     await api.saveResearch(episodeId, research.text);
