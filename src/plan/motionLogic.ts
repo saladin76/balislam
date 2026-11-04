@@ -61,7 +61,7 @@ const sceneAnchors = (scene: PlanScene): Anchor[] => {
 
 export const inspectMotionLogic = (
   scene: PlanScene,
-  motion?: { pct: number; still: number },
+  motion?: { pct: number; still: number; perSecond?: readonly number[]; activityThreshold?: number },
   voiceWords?: readonly { word: string; start: number; end: number }[],
 ): MotionLogicReview => {
   const findings: MotionLogicFinding[] = [];
@@ -93,10 +93,15 @@ export const inspectMotionLogic = (
     const wordIndex = later >= 0 ? later : first;
     previous = wordIndex;
     const timed = voiceWords?.[wordIndex];
-    cues.push({
-      source: a.source, label: a.label, wordIndex,
-      expectedVoiceStartSec: timed && wordMatches(timed.word, narration[wordIndex] ?? "") && Number.isFinite(timed.start) ? timed.start : undefined,
-    });
+    const expectedVoiceStartSec = timed && wordMatches(timed.word, narration[wordIndex] ?? "") && Number.isFinite(timed.start) ? timed.start : undefined;
+    cues.push({ source: a.source, label: a.label, wordIndex, expectedVoiceStartSec });
+    if (expectedVoiceStartSec !== undefined && motion?.perSecond?.length) {
+      const second = Math.floor(expectedVoiceStartSec);
+      // هامش ثانية قبل الكلمة وبعدها: لا نفترض أن بكسلات الحركة تحدد العنصر الذي تحرك.
+      const nearby = motion.perSecond.slice(Math.max(0, second - 1), Math.min(motion.perSecond.length, second + 2));
+      if (nearby.length && !nearby.some((pct) => pct >= (motion.activityThreshold ?? 2.5)))
+        add("timing", "warning", `لم تُرصد حركة واضحة قرب نطق «${a.label}» (تقريبًا ${expectedVoiceStartSec.toFixed(1)} ث)؛ راجع وقوع الحدث عند الكلمة بصريًا.`);
+    }
 
     if (a.draw !== undefined && a.draw && !isCuratedBeat({ draw: a.draw, label: a.label }))
       add("meaning", "info", `الرسمة «${a.draw}» مع «${a.label}» ليست مطابقة مؤكدة من قاموس المعاني المراجع؛ افحص ملاءمتها للسياق.`);
