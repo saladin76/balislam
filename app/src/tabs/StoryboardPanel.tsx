@@ -215,6 +215,8 @@ export const StoryboardPanel: React.FC<{
         </div>
       </div>
 
+      <Previews episodeId={episodeId} />
+
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter">
           <h3>
@@ -283,5 +285,31 @@ export const StoryboardPanel: React.FC<{
         </section>
       ))}
     </div>
+  );
+};
+
+/** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
+const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
+  const [files, setFiles] = useState<{ name: string; size: number; mtime: number; title: string; note: string }[]>([]);
+  useEffect(() => {
+    api.previews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
+  }, [episodeId]);
+  if (!files.length) return null;
+  return (
+    <section className="sb-previews">
+      <h3>المعاينات</h3>
+      <p className="help">فيديوهات مبدئية للمراجعة، بلا صوت وبجودة منخفضة. لا تُنشر.</p>
+      <div className="sb-previews-grid">
+        {files.map((f) => (
+          <figure key={f.name} className="sb-preview">
+            <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
+            <figcaption>
+              <b>{f.title}</b>
+              {f.note ? <span className="help">{f.note}</span> : null}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
   );
 };

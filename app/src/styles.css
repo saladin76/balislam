@@ -417,3 +417,11 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .sb-meta b { color: inherit; font-weight: 600; }
 .sb-motion { font-size: 12px; font-variant-numeric: tabular-nums; }
 .badge.ok { border-color: #2F6E47; color: #2F6E47; }
+
+/* معاينات الحلقة داخل الستوري بورد */
+.sb-previews { display: grid; gap: 10px; padding: 16px 0 8px; border-bottom: 1px solid var(--line, #ddd); }
+.sb-previews h3 { margin: 0; }
+.sb-previews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
+.sb-preview { margin: 0; display: grid; gap: 6px; min-width: 0; }
+.sb-preview video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; direction: ltr; }
+.sb-preview figcaption { display: grid; gap: 2px; }

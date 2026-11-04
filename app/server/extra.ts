@@ -444,6 +444,24 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
   }
 
+  // معاينات الحلقة (previews/ بجوار السكريبت): فيديوهات صامتة خفيفة للمراجعة، تُرفع مع المستودع ولا تُنشر أبدًا
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "previews") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const dir = path.join(path.dirname(await resolveScriptPath(parts[1])), "previews");
+    if (parts[3]) {
+      const file = path.join(dir, safeName(parts[3]));
+      if (!existsSync(file) || !/\.mp4$/i.test(file)) return send(res, 404, { error: "الملف غير موجود" }), true;
+      ctx.serveFile(req, res, file, "video/mp4");
+      return true;
+    }
+    if (!existsSync(dir)) return send(res, 200, { files: [] }), true;
+    const names = (await readdir(dir)).filter((n) => /\.mp4$/i.test(n));
+    const notes = existsSync(path.join(dir, "index.json")) ? JSON.parse(await readFile(path.join(dir, "index.json"), "utf8")) : {};
+    const files = names.map((n) => ({ name: n, size: statSync(path.join(dir, n)).size, mtime: statSync(path.join(dir, n)).mtimeMs, title: notes[n]?.title ?? n, note: notes[n]?.note ?? "" })).sort((x, y) => y.mtime - x.mtime);
+    return send(res, 200, { files }), true;
+  }
+
   // ملفات التغليف
   if (parts[0] === "episodes" && parts[1] && parts[2] === "package") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
