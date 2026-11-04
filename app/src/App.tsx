@@ -48,6 +48,7 @@ export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
+  const [homeView, setHomeView] = useState<"channel" | "all">("channel");
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [channelId, setChannelId] = useState<string>(() => {
     const c = store.get("bal-channel") || "";
@@ -329,7 +330,11 @@ export const App: React.FC = () => {
          {tab === "home" ? (
           <div className="home-wrap">
           <StudioStartGuide />
-          <OpsRoom
+          <nav className="studio-home-switch" aria-label="عرض الاستوديو">
+            <button type="button" aria-pressed={homeView === "channel"} className={homeView === "channel" ? "active" : ""} onClick={() => setHomeView("channel")}>حلقات القناة الحالية</button>
+            <button type="button" aria-pressed={homeView === "all"} className={homeView === "all" ? "active" : ""} onClick={() => setHomeView("all")}>جميع القنوات · غرفة العمليات</button>
+          </nav>
+          {homeView === "all" ? <OpsRoom
             refreshKey={homeKey}
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
@@ -352,7 +357,7 @@ export const App: React.FC = () => {
               setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
               setShowNew(true);
             }}
-          />
+          /> : <>
           <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
           <HomeTab
             key={`${channelId}-${homeKey}`}
@@ -375,6 +380,7 @@ export const App: React.FC = () => {
               setTab(t);
             }}
           />
+          </>}
           </div>
         ) : tab === "library" ? (
           <LibraryTab hasVoiceKeys={keysOk.voice} identity={ident?.draft} channel={channel} />
