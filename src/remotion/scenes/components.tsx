@@ -12,6 +12,7 @@ import { Timeline } from "./Timeline";
 import { Symbolic } from "./Symbolic";
 import { Summary } from "./Summary";
 import { GlowStory } from "./GlowStory";
+import { InkMeaning } from "./InkMeaning";
 import { SketchBoard } from "./SketchBoard";
 import { BoardStory } from "./BoardStory";
 import { AlleyTale } from "./AlleyTale";
@@ -105,6 +106,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <AlleyTale {...base} {...p} />;
     case "motion-story":
       return <MotionStory {...base} {...p} />;
+    case "ink-meaning":
+      return <InkMeaning {...base} {...p} />;
     case "sketch-board":
       return <SketchBoard {...base} {...p} />;
     case "kinetic-text":

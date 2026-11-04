@@ -29,6 +29,7 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "light-stage": { family: "story", only: ["balislam"] },
   "motion-story": { family: "explain", only: ["balislam"] },
   "sketch-board": { family: "explain", only: ["zubdat-alkutub"] },
+  "ink-meaning": { family: "explain", only: ["zubdat-alkutub"] },
   symbolic: { family: "explain" },
   "big-question": { family: "text" },
   "kinetic-text": { family: "text", only: ["balislam"] },
