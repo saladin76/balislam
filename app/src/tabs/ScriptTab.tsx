@@ -30,14 +30,26 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     if (episodeId) api.research(episodeId).then((r) => setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists })).catch(() => {});
   }, [episodeId]);
   const researchDirty = research ? research.text !== research.saved : false;
+  const [researchError, setResearchError] = useState("");
+  const [researchSaving, setResearchSaving] = useState(false);
   useEffect(() => {
     onResearchDirtyChange?.(researchDirty);
     return () => onResearchDirtyChange?.(false);
   }, [researchDirty, onResearchDirtyChange]);
   const saveResearch = async () => {
-    if (!research) return;
-    await api.saveResearch(episodeId, research.text);
-    setResearch({ ...research, saved: research.text, exists: true });
+    if (!research || researchSaving) return;
+    const snapshot = research.text;
+    setResearchError("");
+    setResearchSaving(true);
+    try {
+      await api.saveResearch(episodeId, snapshot);
+      // لا تستبدل نصًا تغيّر أثناء انتظار الشبكة بنسخة أقدم.
+      setResearch((current) => current ? { ...current, saved: snapshot, exists: true } : null);
+    } catch (error) {
+      setResearchError(`تعذر حفظ ملف البحث: ${(error as Error).message}`);
+    } finally {
+      setResearchSaving(false);
+    }
   };
 
   const pendingLine = useRef<number | null>(null);
@@ -117,10 +129,11 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
               <span className="help">للتحضير والمراجعة فقط، لا يُقرأ ولا يُنشر. كل معلومة في السكريبت تُربط هنا بمصدرها.</span>
               <span className="spacer" />
               <span className="status"><i className={`dot ${researchDirty ? "dirty" : ""}`} />{researchDirty ? "تعديلات غير محفوظة" : research?.exists ? "محفوظ" : "لم يُحفظ بعد"}</span>
-              <button className="btn primary" disabled={!researchDirty} onClick={saveResearch}>حفظ (Ctrl+S)</button>
+              <button className="btn primary" disabled={!researchDirty || researchSaving} onClick={() => void saveResearch()}>{researchSaving ? "جارٍ الحفظ…" : "حفظ (Ctrl+S)"}</button>
             </>
           )}
         </div>
+        {doc === "research" && researchError ? <div className="ew-research-error" role="alert">{researchError}</div> : null}
         {doc === "script" ? (
           <textarea id="script-editor" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
         ) : (
