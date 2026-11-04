@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 
 /**
- * شريط «تحديث جديد»: يتحقق من GitHub كل دقيقتين (وعند العودة للنافذة)،
+ * شريط «تحديث جديد»: يتحقق من GitHub كل دقيقة (وعند العودة للنافذة)،
  * ويحدّث الاستوديو بضغطة واحدة دون إغلاق الـ Terminal.
  */
 export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsaved: boolean }> = ({ beforeUpdate, hasUnsaved }) => {
@@ -24,31 +24,13 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     };
   }, [check]);
 
-  // تحديث تلقائي: إن لم يكن هناك شيء غير محفوظ، يبدأ عدّ تنازلي قصير ثم يحدّث وحده
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [postponed, setPostponed] = useState(false);
-  const applyRef = useRef<(auto?: boolean) => void>(() => {});
-  useEffect(() => {
-    if (!st || hasUnsaved || postponed || busy) {
-      setCountdown(null);
+  if (!st && !msg) return null;
+  const apply = async () => {
+    if (hasUnsaved) {
+      window.alert("هناك تغييرات لم تُحفظ. احفظها أولًا قبل تحديث الاستوديو.");
       return;
     }
-    let n = 10;
-    setCountdown(n);
-    const t = setInterval(() => {
-      n -= 1;
-      setCountdown(n);
-      if (n <= 0) {
-        clearInterval(t);
-        applyRef.current(true);
-      }
-    }, 1000);
-    return () => clearInterval(t);
-  }, [st, hasUnsaved, postponed, busy]);
-
-  if (!st && !msg) return null;
-  const apply = async (auto = false) => {
-    if (!auto && hasUnsaved && !window.confirm("في السكريبت تعديلات لم تُحفظ بعد. احفظها أولًا (Ctrl+S) وإلا ستضيع عند التحديث. هل تريد المتابعة؟")) return;
+    if (!window.confirm("هل تريد تحديث الاستوديو الآن؟ تحقق من أنك لا تشغّل رندرًا أو عملية إنتاج قبل الموافقة.")) return;
     setBusy(true);
     try {
       await beforeUpdate();
@@ -80,7 +62,6 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
       setBusy(false);
     }
   };
-  applyRef.current = (auto) => void apply(auto);
   return (
     <div className={`update-banner ${msg?.err ? "err" : ""}`} role="status">
       {msg ? (
@@ -89,9 +70,8 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
         <>
           <b>تحديث جديد متاح</b>
           <span className="help" title={st.changes.join("\n")}>{st.changes[0] ?? ""}{st.behind > 1 ? ` (+${st.behind - 1})` : ""}</span>
-          {countdown !== null && !busy ? <span className="help">يتحدّث تلقائيًا خلال {countdown} ث</span> : hasUnsaved ? <span className="help">احفظ تعديلاتك ليتحدّث تلقائيًا</span> : null}
-          <button className="btn primary small" disabled={busy} onClick={() => apply()}>{busy ? "جارٍ التحديث…" : "حدّث الآن"}</button>
-          {countdown !== null && !busy ? <button className="btn ghost small" onClick={() => setPostponed(true)}>لاحقًا</button> : null}
+          <span className="help">{hasUnsaved ? "احفظ التعديلات أولًا ثم حدّث يدويًا" : "لن يبدأ التحديث دون موافقتك"}</span>
+          <button className="btn primary small" disabled={busy || hasUnsaved} onClick={() => apply()}>{busy ? "جارٍ التحديث…" : "حدّث الآن"}</button>
         </>
       ) : null}
       {msg ? <button className="btn ghost small" onClick={() => setMsg(null)}>إغلاق</button> : null}
