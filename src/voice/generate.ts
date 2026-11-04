@@ -16,7 +16,7 @@ import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } f
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { parseScript } from "../script/parse";
-import { loadLedger, reviewBlockMessage, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
+import { loadLedger, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { capsFor, dropTagWords } from "./models";
 import { applyTempo, scaleTimes } from "./tempo";
@@ -82,7 +82,7 @@ export type GenerateVoiceOptions = {
   onProgress?: (msg: string) => void;
   /** توليد رغم نقص التشكيل (من سطر الأوامر فقط، بقرار صاحب القناة) */
   ignoreTashkeel?: boolean;
-  /** توليد قبل اكتمال سجل التوثيق (من سطر الأوامر فقط، بقرار صاحب القناة) */
+  /** خيار قديم للتوافق مع أوامر سابقة؛ لم يعد التوثيق يمنع توليد الصوت. */
   ignoreReview?: boolean;
   /** توليد قبل اعتماد الستوري بورد (من سطر الأوامر فقط، بقرار صاحب القناة) */
   ignoreStoryboard?: boolean;
@@ -127,8 +127,6 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   if (opts.dryRun) return report;
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
-  // ولا على محتوى لم تكتمل مراجعة استشهاداته
-  if (todo.length && !report.review.ok && !opts.ignoreReview) throw new Error(reviewBlockMessage(report.review));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
   if (todo.length && !opts.ignoreStoryboard) {
     const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
