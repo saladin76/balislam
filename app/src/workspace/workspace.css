@@ -1,23 +1,24 @@
 /* مساحة الحلقة: طبقة عرض فوق المحرك الحالي، تعتمد ألوان الثيم ولا تغيّر قواعد الإنتاج. */
 .episode-workspace-header {
-  margin: 16px 20px 12px;
-  padding: 18px 20px;
+  margin: 8px 14px;
+  padding: 10px 14px;
   border: 1px solid var(--line, #d4d2cb);
   background: var(--surface, #fff);
   border-radius: 16px;
   display: grid;
-  gap: 14px;
+  gap: 8px;
+  min-height: 0;
   direction: rtl;
 }
 .ew-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.ew-heading h1 { font-size: clamp(18px, 1.8vw, 25px); line-height: 1.5; margin: 0; }
+.ew-heading h1 { font-size: clamp(16px, 1.5vw, 21px); line-height: 1.35; margin: 0; }
 .ew-eyebrow { margin: 0 0 4px; font-size: 12px; opacity: .66; }
 .ew-save { flex-shrink: 0; border-radius: 999px; padding: 7px 12px; background: var(--panel, #f2f1eb); font-size: 12px; }
 .ew-save.error { color: var(--err, #b3261e); }
 .ew-stages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .ew-stage {
   min-width: 0; display: flex; align-items: center; gap: 10px; text-align: right;
-  padding: 12px; background: transparent; border: 1px solid var(--line, #d4d2cb);
+  padding: 7px 10px; background: transparent; border: 1px solid var(--line, #d4d2cb);
   border-radius: 12px; cursor: pointer; color: inherit;
 }
 .ew-stage:hover, .ew-stage:focus-visible { background: var(--panel, #f2f1eb); }
@@ -28,7 +29,9 @@
 .ew-stage strong { font-size: 13px; font-weight: 650; }
 .ew-stage small { font-size: 11px; opacity: .67; margin-top: 3px; }
 .ew-attention { border: 1px solid var(--line, #d4d2cb); border-radius: 12px; overflow: hidden; }
-.ew-attention-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 11px 14px; background: var(--panel, #f2f1eb); font-size: 13px; }
+.ew-attention-title { display: flex; justify-content: space-between; width: 100%; border: 0; color: inherit; text-align: start; cursor: pointer; gap: 12px; align-items: center; padding: 7px 12px; background: var(--panel, #f2f1eb); font-size: 13px; }
+.ew-attention-title:hover, .ew-attention-title:focus-visible { background: var(--panel-2, #e9e5dd); }
+.ew-attention-details { max-height: min(210px, 30vh); overflow-y: auto; }
 .ew-attention-title span { opacity: .7; font-size: 11px; }
 .ew-notes { display: grid; }
 .ew-notes button { display: flex; gap: 10px; align-items: center; width: 100%; text-align: right; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line, #d4d2cb); background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
@@ -99,3 +102,16 @@
 .ew-research-panel p { font-size: 13px; line-height: 1.9; opacity: .8; }
 .ew-research-state { border-radius: 10px; padding: 11px 13px; background: var(--panel, #f2f1eb); font-size: 13px; }
 .ew-voice-link { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+/* ثلاث مناطق مستقلة: الشريط العام، ملخص الحلقة، ثم محرر يملأ المساحة المتبقية. */
+.app.episode-workspace-app {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+.app.episode-workspace-app > .work,
+.app.episode-workspace-app > .ew-storyboard-wrap,
+.app.episode-workspace-app > .ew-voice-stage,
+.app.episode-workspace-app > .publish { min-height: 0; min-width: 0; }
+.app.episode-workspace-app > .ew-storyboard-wrap,
+.app.episode-workspace-app > .ew-voice-stage { overflow-y: auto; }
