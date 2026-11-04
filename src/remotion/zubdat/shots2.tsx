@@ -17,6 +17,8 @@ const kit = (c: InkCtx) => {
   const T = (id: string, x: number, y: number, text: string, size: number, from: [string, number, number?], to?: [string, number, number?], o: { font?: Font; weight?: number; color?: string; opacity?: number } = {}) => {
     const a = at(from[0], from[1], from[2]);
     const b = to ? end(to[0], to[1], to[2]) : a + Math.max(12, Array.from(text).length * 2.2);
+    const tw = measure(text, size, fam(o.font ?? "hand")) * 1.1;
+    if ((o.opacity ?? 1) > 0.2) c.reg([x - tw / 2, y - size * 0.95, x + tw / 2, y + size * 0.4], a);
     return <Write id={id} x={x} y={y} text={text} size={size} p={wp(frame, a, b)} c={o.color ?? z.ink} font={o.font ?? "hand"} weight={o.weight} opacity={o.opacity} z={z} />;
   };
   /** كلمة داخل إطار يُرسم ثم تُكتب الكلمة */
@@ -24,6 +26,7 @@ const kit = (c: InkCtx) => {
     const w = measure(text, size, fam(o.font ?? "hand")) * 1.15 + size * 1.1;
     const h = size * 1.7;
     const pb = prog(frame, t0 - 4, t0 + 10);
+    if ((o.opacity ?? 1) > 0.2) c.reg([x - w / 2, y - h * 0.62, x + w / 2, y + h * 0.38], t0);
     return (
       <g opacity={o.opacity ?? 1}>
         {o.dashed ? (
@@ -39,20 +42,27 @@ const kit = (c: InkCtx) => {
   return { frame, z, at, end, T, Box, P };
 };
 
-/** يدان مضمومتان بالحبر (للوضوء)، بلا ملامح */
+/** يد مفتوحة راحتها إلى أعلى (رسم خطي): راحة وأربع أصابع وإبهام */
+const OpenHand: React.FC<{ p: number; z: Z }> = ({ p, z }) => {
+  const fingers: [number, number][] = [[-42, 92], [-14, 108], [14, 104], [42, 86]];
+  return (
+    <g>
+      <Stroke d="M-60 0 L-60 90 Q-60 130 0 130 Q60 130 60 90 L60 0" p={prog(p, 0, 0.4)} c={z.ink} w={8} fill={z.paper} fillP={prog(p, 0, 0.4)} />
+      {fingers.map(([x, h], k) => (
+        <Stroke key={k} d={`M${x - 13} 4 L${x - 13} ${-h + 13} Q${x - 13} ${-h} ${x} ${-h} Q${x + 13} ${-h} ${x + 13} ${-h + 13} L${x + 13} 4`} p={prog(p, 0.3 + k * 0.1, 0.6 + k * 0.1)} c={z.ink} w={7} fill={z.paper} fillP={prog(p, 0.3 + k * 0.1, 0.6 + k * 0.1)} />
+      ))}
+      <Stroke d="M60 70 Q100 50 112 10 Q118 -8 104 -12 Q92 -14 86 2 L70 40" p={prog(p, 0.7, 1)} c={z.ink} w={7} fill={z.paper} fillP={prog(p, 0.7, 1)} />
+    </g>
+  );
+};
+
+/** يدان متجاورتان مفتوحتان تستقبلان الماء (للوضوء)، بلا ملامح */
 const Hands: React.FC<{ x: number; y: number; s?: number; p: number; z: Z }> = ({ x, y, s = 1, p, z }) => (
   <g transform={`translate(${x} ${y}) scale(${s})`}>
-    <Stroke d="M-150 -30 C-150 50 -70 92 0 86 C70 92 150 50 150 -30" p={prog(p, 0, 0.6)} c={z.ink} w={9} />
-    <Stroke d="M-150 -30 C-130 -50 -110 -40 -104 -16 M150 -30 C130 -50 110 -40 104 -16" p={prog(p, 0.4, 0.8)} c={z.ink} w={8} />
-    <Stroke d="M-104 -16 C-80 20 -40 40 0 40 C40 40 80 20 104 -16" p={prog(p, 0.6, 1)} c={z.ink} w={6} opacity={0.7} />
-    {/* أصابع: أطراف منحنية عند الحافتين */}
-    {[-1, 1].map((d) => (
-      <g key={d}>
-        {[0, 1, 2].map((k) => (
-          <Stroke key={k} d={`M${d * (150 - k * 12)} ${-30 - k * 4} q${d * 10} ${-26} ${d * -4} ${-40}`} p={prog(p, 0.7 + k * 0.08, 1)} c={z.ink} w={7} />
-        ))}
-      </g>
-    ))}
+    <g transform="translate(-74 0) rotate(10) scale(-1 1)"><OpenHand p={p} z={z} /></g>
+    <g transform="translate(74 0) rotate(-10)"><OpenHand p={p} z={z} /></g>
+    {/* ماء مجتمع في الكفين */}
+    <path d="M-120 70 Q0 110 120 70" fill="none" stroke={z.ink} strokeWidth={4} strokeDasharray="10 10" opacity={prog(p, 0.8, 1)} />
   </g>
 );
 
@@ -136,24 +146,25 @@ const outro: InkShotDef = {
       world: (
         <g opacity={1 - 0.15 * close}>
           {/* إطار الحلقة التالية (يسار، اتجاه القراءة) */}
-          <Stroke d="M150 250 H910 V678 H150 Z" p={slot} c={z.ink} w={7} />
-          <Write id="nx" x={530} y={200} text="الحلقة القادمة" size={60} p={wp(frame, s(0.6), s(1.6))} c={z.ink} z={z} />
+          <rect x={210} y={250} width={720} height={405} rx={6} fill={z.hl} opacity={0.35 * P(s(0.5), s(1.3))} />
+          <Stroke d="M210 250 H930 V655 H210 Z" p={slot} c={z.ink} w={8} />
+          <Write id="nx" x={570} y={205} text="الحلقة القادمة" size={60} p={wp(frame, s(0.6), s(1.6))} c={z.ink} z={z} />
           {/* دائرة الاشتراك حول الشعار المعتمد */}
-          <circle cx={1440} cy={420} r={150} fill="none" stroke={z.ink} strokeWidth={7} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - ring} />
+          <circle cx={1440} cy={420} r={150} fill={z.hl} fillOpacity={0.35 * ring} stroke={z.ink} strokeWidth={8} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - ring} />
           <foreignObject x={1440 - 130} y={420 - 130} width={260} height={260} opacity={logoIn}>
             <div style={{ width: 260, height: 260, display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${0.8 + 0.2 * logoIn})` }}>{c.logo(220)}</div>
           </foreignObject>
           <Mark x={1440 - 190} y={640} w={380} h={34} p={sweep} z={z} />
           <Write id="ch" x={1440} y={666} text="زبدة الكتب" size={90} p={name} c={z.ink} font="head" z={z} />
           {/* مهمة الحلقة: الورقة اللاصقة من المشهد 26 */}
-          <g transform={`translate(1150 ${880 - 60 * (1 - note)}) rotate(-2)`} opacity={note}>
+          <g transform={`translate(1150 ${820 - 60 * (1 - note)}) rotate(-2)`} opacity={note}>
             <rect x={-260} y={-70} width={520} height={140} fill={z.hl} />
             <text x={30} y={14} textAnchor="middle" direction="rtl" style={{ fontFamily: fam("hand"), fontSize: 50, fill: z.ink }}>نستحضر معنى التكبير</text>
             <rect x={-235} y={-26} width={48} height={48} rx={6} fill="none" stroke={z.ink} strokeWidth={6} opacity={box} />
           </g>
           {/* ومنها إلى الحلقة القادمة */}
-          <Stroke d="M880 880 C700 900 560 820 530 700" p={link} c={z.ink} w={6} />
-          <Stroke d="M500 724 L530 700 L556 728" p={P(s(6.4), s(6.8))} c={z.ink} w={6} />
+          <Stroke d="M880 850 C720 870 600 800 570 670" p={link} c={z.ink} w={6} />
+          <Stroke d="M540 694 L570 670 L596 698" p={P(s(6.4), s(6.8))} c={z.ink} w={6} />
         </g>
       ),
     };
@@ -222,7 +233,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             </g>
             <Arrow x1={1300} y1={350} x2={1460} y2={270} p={P(tThought, tThought + 14)} c={z.ink} w={6} bend={30} />
             <Icon id="calendar" x={1510} y={220} s={1.1} p={P(tDates - 2, tDates + 12)} c={z.ink} />
-            <Cloud x={1680} y={330} r={60} p={P(tWorry - 2, tWorry + 12)} z={z} />
+            <Cloud x={1640} y={330} r={60} p={P(tWorry - 2, tWorry + 12)} z={z} />
             {/* ليس اختراع صلاة جديدة */}
             {Box("nw", 1250, 720, "صلاة جديدة", 64, tInvent, { dashed: true, tEnd: c.end("جديدة", 0.76) })}
             <Cross x1={1440} x2={1060} y={706} p={P(tNew + 10, tNew + 24)} z={z} />
@@ -278,7 +289,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("tk", 690, 730, "طلب الخشوع", 66, ["وطلب", 0.7], ["الخشوع", 0.72], { font: "head" })}
             <Stroke d="M1250 790 Q960 900 690 790" p={P(tTogether - 4, tTogether + 14)} c={z.hl} w={22} />
             <Stroke d="M1250 790 Q960 900 690 790" p={P(tTogether - 4, tTogether + 14)} c={z.ink} w={6} />
-            {T("mm", 970, 900, "معا", 64, ["معا", 0.95])}
+            {T("mm", 970, 872, "معا", 64, ["معا", 0.95])}
           </g>
         ),
       };
@@ -373,8 +384,10 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("th", 1000, 560, "التهيؤ", 72, ["التهيؤ", 0.46], undefined, { font: "head" })}
             {T("tr", 1000, 300, "ترفا", 64, ["ترفا", 0.54])}
             <Cross x1={1070} x2={930} y={284} p={P(tLux + 8, tLux + 20)} z={z} />
-            <Stroke d="M440 880 Q570 900 700 880" p={P(tCalm - 2, tCalm + 14)} c={z.ink} w={6} />
-            {T("sk", 570, 960, "السكينة", 64, ["السكينة", 0.94])}
+            <Stroke d="M440 868 Q570 880 700 868" p={P(tCalm - 2, tCalm + 14)} c={z.hl} w={16} />
+            {/* «الأسباب التي تعيننا»: سهم من شريط التهيؤ إلى المصلي */}
+            <Arrow x1={930} y1={720} x2={660} y2={760} p={P(at("تعيننا", 0.74) - 2, at("تعيننا", 0.74) + 14)} c={z.ink} w={7} bend={30} />
+            {T("sk", 570, 470, "السكينة", 64, ["السكينة", 0.94])}
           </g>
         ),
       };
@@ -442,12 +455,11 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tAmal = at("والعمل", 0.96);
       const grow = P(tYears - 4, tYears + 20);
       const ring = P(tWide - 2, tWide + 22);
-      const lift = P(tRenew - 10, tRenew + 6);
       return {
         focus: [[tSurah, 1200, 380], [tSmall, 760, 520], [tYears, 760, 480], [tMeaning, 760, 300], [tWide, 760, 420], [tRenew, 960, 700], [tIlm, 1350, 760], [tTad, 960, 760], [tAmal, 570, 760]],
         cam: [C(0, 1000, 440, 1.06), C(tRenew - 8, 960, 560, 1.0)],
         world: (
-          <g transform={`translate(0 ${-120 * lift})`}>
+          <g>
             {/* إطار مجرد للمحفوظ: سطور رمادية لا نص */}
             <g opacity={P(tSurah - 4, tSurah + 8)}>
               <rect x={1020} y={250} width={380} height={260} rx={18} fill={z.paper} stroke={z.ink} strokeWidth={6} />
@@ -461,13 +473,13 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {/* معنى جديد: صلة بين المحفوظ ومن يقرؤه */}
             <Arrow x1={1010} y1={380} x2={830} y2={380} p={P(tMeaning, tMeaning + 14)} c={z.ink} w={6} />
             <circle cx={760} cy={620 - 272} r={lerp(40, 150, ring)} fill={z.hl} opacity={0.5 * ring} />
-            {T("fh", 760, 160, "اتسع فهمنا", 64, ["اتسع", 0.56], ["فهمنا", 0.6], { font: "head" })}
+            {T("fh", 760, 190, "اتسع فهمنا", 64, ["اتسع", 0.56], ["فهمنا", 0.6], { font: "head" })}
             {/* نجدد علاقتنا: العلم والتدبر والعمل */}
-            {Box("i1", 1350, 900, "بالعلم", 60, tIlm, { font: "head" })}
-            <Arrow x1={1230} y1={890} x2={1100} y2={890} p={P(tTad - 6, tTad + 6)} c={z.ink} w={6} />
-            {Box("i2", 960, 900, "والتدبر", 60, tTad, { font: "head" })}
-            <Arrow x1={830} y1={890} x2={700} y2={890} p={P(tAmal - 6, tAmal + 6)} c={z.ink} w={6} />
-            {Box("i3", 570, 900, "والعمل", 60, tAmal, { font: "head" })}
+            {Box("i1", 1350, 800, "بالعلم", 60, tIlm, { font: "head" })}
+            <Arrow x1={1230} y1={790} x2={1100} y2={790} p={P(tTad - 6, tTad + 6)} c={z.ink} w={6} />
+            {Box("i2", 960, 800, "والتدبر", 60, tTad, { font: "head" })}
+            <Arrow x1={830} y1={790} x2={700} y2={790} p={P(tAmal - 6, tAmal + 6)} c={z.ink} w={6} />
+            {Box("i3", 570, 800, "والعمل", 60, tAmal, { font: "head" })}
           </g>
         ),
       };
@@ -495,6 +507,10 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("tj", 1300, 220, "تجديد صلاتنا", 66, ["وتجديد", 0.02], ["صلاتنا", 0.06])}
             {T("ft", 960, 380, "الافتقار", 140, ["الافتقار", 0.14], undefined, { font: "head" })}
             <InkPerson x={1180} y={820} s={1.1} pose="dua" p={P(tCome - 2, tCome + 18)} z={z} dir={-1} />
+            {/* «لا ينفصل»: صلة بين التجديد والافتقار */}
+            <Stroke d="M1300 250 Q1200 300 1080 330" p={P(at("ينفصل", 0.08) - 2, at("ينفصل", 0.08) + 14)} c={z.ink} w={6} />
+            {/* «لا ندخل العبادة»: عتبة الدخول تحت المصلي */}
+            <Stroke d="M1000 860 L1360 860" p={P(at("ندخل", 0.5) - 2, at("ندخل", 0.5) + 14)} c={z.ink} w={8} />
             <ellipse cx={1180} cy={826} rx={150} ry={22} fill={z.hl} opacity={0.8 * P(tWeNeed, tWeNeed + 14)} />
             {T("km", 620, 640, "كمال أنفسنا", 64, ["كمال", 0.58], ["أنفسنا", 0.62])}
             <Cross x1={810} x2={430} y={624} p={P(tBal - 2, tBal + 12)} z={z} />
@@ -525,30 +541,33 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const fade = P(tForget - 2, tForget + 16);
       const spin = prog(frame, tRush - 4, tChange, (t) => t) * Math.PI * 10;
       return {
-        focus: [[tCollect, 1450, 300], [tForget, 1450, 300], [tUnder, 1150, 560], [tWork, 760, 560], [tRush, 1450, 820], [tChange, 1000, 820], [tEnter, 600, 820], [tDhikr, 560, 300], [tLearn, 560, 300]],
-        cam: [C(0, 1450, 330, 1.35), C(tUnder - 6, 960, 560, 1.2), C(tRush - 6, 1120, 760, 1.15), C(tDhikr - 6, 700, 420, 1.2)],
+        focus: [[tCollect, 1450, 300], [tUnder, 1180, 500], [tWork, 760, 500], [tRush, 1420, 760], [tChange, 1190, 740], [tEnter, 970, 780], [tDhikr, 720, 740], [tLearn, 720, 820]],
+        cam: [C(0, 1400, 380, 1.12), C(tUnder - 6, 980, 540, 1.08), C(tRush - 6, 1100, 620, 1.05)],
         world: (
           <g>
+            {/* الخواطر وحدها لا تكفي: تبهت */}
             <g opacity={1 - 0.7 * fade}>
               {[0, 1, 2].map((k) => (
-                <Cloud key={k} x={1320 + k * 150} y={300 - (k % 2) * 50} r={80} p={P(tCollect + k * 5, tCollect + k * 5 + 12)} z={z} />
+                <Cloud key={k} x={1360 + k * 120} y={250 - (k % 2) * 40} r={64} p={P(tCollect + k * 5, tCollect + k * 5 + 12)} z={z} />
               ))}
             </g>
-            {T("kh", 1460, 430, "خواطر مؤثرة", 64, ["خواطر", 0.06], ["مؤثرة", 0.1], { opacity: 1 - 0.7 * fade })}
-            {Box("fh", 1150, 580, "نفهمه", 66, tUnder, { font: "head" })}
-            <Arrow x1={1010} y1={570} x2={890} y2={570} p={P(tWork - 6, tWork + 8)} c={z.ink} w={7} />
-            {Box("am", 760, 580, "عملنا", 66, tWork, { font: "head", fill: z.hl })}
-            {/* العجلة ← نغير طريقة الدخول */}
-            <Clock x={1450} y={820} r={70} a1={spin / 6} a2={spin} p={P(tRush - 4, tRush + 6)} z={z} />
-            <path d="M1360 820 L1100 820" fill="none" stroke={z.faint} strokeWidth={6} strokeDasharray="12 12" opacity={P(tChange - 2, tChange + 8)} />
-            <Stroke d="M1360 800 C1200 720 900 720 700 800" p={P(tChange, tEnter + 10, (t) => t)} c={z.ink} w={8} />
-            <Stroke d="M520 790 L700 790 L670 830 L550 830 Z" p={P(tEnter - 2, tEnter + 12)} c={z.ink} w={5} fill={z.hl} fillP={0.5} />
-            {T("dk", 1000, 690, "طريقة دخولنا", 62, ["طريقة", 0.6], ["دخولنا", 0.64])}
-            {/* للذكر معنى: فلنتعلمه */}
+            {T("kh", 1480, 370, "خواطر مؤثرة", 64, ["خواطر", 0.06], ["مؤثرة", 0.1], { opacity: 1 - 0.7 * fade })}
+            {/* المسار: نفهمه ← عملنا، ومنه مثالان */}
+            {Box("fh", 1180, 500, "نفهمه", 72, tUnder, { font: "head" })}
+            <Arrow x1={1030} y1={490} x2={900} y2={490} p={P(tWork - 6, tWork + 8)} c={z.ink} w={8} />
+            {Box("am", 760, 500, "عملنا", 72, tWork, { font: "head", fill: z.hl })}
+            <path d="M760 560 L760 610 L1250 610 L1250 650" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="12 10" opacity={P(tRush - 4, tRush + 8)} />
+            <path d="M760 560 L760 650" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="12 10" opacity={P(tDhikr - 4, tDhikr + 8)} />
+            {/* المثال الأول: العجلة ← نغير طريقة الدخول */}
+            <Clock x={1420} y={760} r={62} a1={spin / 6} a2={spin} p={P(tRush - 4, tRush + 6)} z={z} />
+            <Stroke d="M1340 760 C1250 700 1120 700 1040 760" p={P(tChange, tEnter + 10, (t) => t)} c={z.ink} w={8} />
+            <Stroke d="M900 760 L1040 760 L1016 796 L924 796 Z" p={P(tEnter - 2, tEnter + 12)} c={z.ink} w={5} fill={z.hl} fillP={0.5} />
+            {T("dk", 1190, 850, "طريقة دخولنا", 60, ["طريقة", 0.6], ["دخولنا", 0.64])}
+            {/* المثال الثاني: للذكر معنى ← فلنتعلمه */}
             <g opacity={P(tDhikr - 4, tDhikr + 8)}>
-              <path d="M460 260 Q510 236 560 260 Q610 236 660 260 L660 340 Q610 316 560 340 Q510 316 460 340 Z M560 260 L560 340" fill={z.paper} stroke={z.ink} strokeWidth={6} />
+              <path d="M620 700 Q670 676 720 700 Q770 676 820 700 L820 780 Q770 756 720 780 Q670 756 620 780 Z M720 700 L720 780" fill={z.paper} stroke={z.ink} strokeWidth={6} />
             </g>
-            {T("lr", 560, 420, "فلنتعلمه", 66, ["فلنتعلمه", 0.94], undefined, { font: "head" })}
+            {T("lr", 720, 860, "فلنتعلمه", 70, ["فلنتعلمه", 0.94], undefined, { font: "head" })}
           </g>
         ),
       };
@@ -591,9 +610,9 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             <Arrow x1={1180} y1={420} x2={790} y2={420} p={P(tNone - 2, tNone + 14)} c={z.ink} w={6} bend={60} />
             <Arrow x1={790} y1={460} x2={1180} y2={460} p={P(tNone + 8, tNone + 22)} c={z.ink} w={6} bend={-40} />
             {/* ترك الصلاة: سهم خارج يُشطب */}
-            <Arrow x1={960} y1={560} x2={960} y2={760} p={P(tLeave - 2, tLeave + 12)} c={z.ink} w={7} />
-            {T("tr", 1100, 700, "لترك الصلاة", 64, ["لترك", 0.66], ["الصلاة", 0.7, 2])}
-            <Cross x1={1220} x2={880} y={680} p={P(at("بل", 0.74) - 2, at("بل", 0.74) + 10)} z={z} />
+            <Arrow x1={960} y1={560} x2={960} y2={780} p={P(tLeave - 2, tLeave + 12)} c={z.ink} w={7} />
+            {T("tr", 960, 846, "لترك الصلاة", 60, ["لترك", 0.66], ["الصلاة", 0.7, 2])}
+            <Cross x1={1120} x2={800} y={830} p={P(at("بل", 0.74) - 2, at("بل", 0.74) + 10)} z={z} />
             {/* دافع: درجات إلى أعلى */}
             <Stroke d="M420 470 L420 400 L520 400 L520 330 L620 330 L620 260 L720 260" p={climb} c={z.ink} w={8} />
             {T("tl", 470, 380, "للتعلم", 60, ["للتعلم", 0.86])}
@@ -624,15 +643,16 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
         cam: [C(0, 1350, 320, 1.3), C(tWudu - 8, 960, 470, 1.2), C(tWhy - 4, 1120, 520, 1.1), C(tMinutes - 6, 960, 680, 1.12)],
         world: (
           <g>
-            <path d={heartPath(1500, 300, 50)} fill="none" stroke={z.ink} strokeWidth={7} opacity={P(tHeart - 4, tHeart + 8) * (1 - 0.6 * P(tWudu, tWudu + 12))} />
+            {/* «من أحوال القلب إلى أفعال»: القلب في الوسط ثم ينتقل جانبًا لتأتي الأفعال */}
+            <path d={heartPath(lerp(960, 1500, P(tActs - 4, tActs + 18)), lerp(470, 300, P(tActs - 4, tActs + 18)), lerp(130, 50, P(tActs - 4, tActs + 18)))} fill={z.hl} fillOpacity={0.6 * (1 - P(tActs, tActs + 18))} stroke={z.ink} strokeWidth={8} opacity={P(tHeart - 6, tHeart + 6) * (1 - 0.6 * P(tWudu, tWudu + 12))} />
             {T("hq", 1500, 420, "أحوال القلب", 60, ["أحوال", 0.06], ["القلب", 0.08], { opacity: 1 - 0.6 * P(tWudu, tWudu + 12) })}
             <Arrow x1={1420} y1={300} x2={1250} y2={300} p={P(tActs - 4, tActs + 10)} c={z.ink} w={6} />
             {T("af", 1170, 320, "أفعال", 64, ["أفعال", 0.14], undefined, { opacity: 1 - 0.6 * P(tWudu, tWudu + 12) })}
             {/* الماء على اليدين */}
-            <Hands x={960} y={560} s={1.2} p={P(tWudu - 2, tWudu + 20)} z={z} />
-            {[0, 1, 2, 3, 4].map((k) => {
-              const ph = (water * 5 + k / 5) % 1;
-              return water > 0 && water < 1 ? <Drop key={k} x={960 + (k - 2) * 16} y={300 + ph * 220} s={0.8} z={z} o={Math.min(1, ph * 4) * (1 - ph * 0.3)} /> : null;
+            <Hands x={960} y={560} s={1.1} p={P(tWudu - 2, tWudu + 20)} z={z} />
+            {Array.from({ length: 8 }, (_, k) => {
+              const ph = (water * 9 + k / 8) % 1;
+              return water > 0 && water < 1 ? <Drop key={k} x={960 + ((k * 37) % 5 - 2) * 18} y={300 + ph * 240} s={1.1} z={z} o={Math.min(1, ph * 5) * (1 - ph * 0.3)} /> : null;
             })}
             {T("wd", 900, 250, "الوضوء", 90, ["الوضوء", 0.3], undefined, { font: "head" })}
             {T("why", 1450, 560, "لماذا", 64, ["لماذا", 0.62])}
@@ -693,14 +713,14 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               {T("sh", 1080, 340, "شيء من شواغلنا", 60, ["شيء", 0.56], ["شواغلنا", 0.58])}
             </g>
             {/* المكان وحده ليس ضمانًا؛ والقلب يحتاج عناية */}
-            {Box("mk", 1250, 800, "المكان وحده", 58, tPlace, { tEnd: c.end("وحده", 0.74) })}
-            {T("dm", 960, 810, "ضمانا", 66, ["ضمانا", 0.78])}
-            <Cross x1={1440} x2={880} y={786} p={P(tGuar + 10, tGuar + 22)} z={z} />
+            {Box("mk", 1350, 760, "المكان وحده", 58, tPlace, { tEnd: c.end("وحده", 0.74) })}
+            {T("dm", 1010, 770, "ضمانا", 66, ["ضمانا", 0.78])}
+            <Cross x1={1550} x2={910} y={752} p={P(tGuar + 10, tGuar + 22)} z={z} />
             <g opacity={P(tHeart - 4, tHeart + 8)}>
-              <circle cx={640} cy={800} r={86 + 10 * P(tCare, tCare + 14)} fill={z.hl} opacity={0.7} />
-              <path d={heartPath(640, 800, 50)} fill="none" stroke={z.ink} strokeWidth={8} />
+              <circle cx={540} cy={740} r={80 + 10 * P(tCare, tCare + 14)} fill={z.hl} opacity={0.7} />
+              <path d={heartPath(540, 740, 46)} fill="none" stroke={z.ink} strokeWidth={8} />
             </g>
-            {T("en", 640, 960, "عناية", 60, ["عناية", 0.94], undefined, { font: "head" })}
+            {T("en", 740, 770, "عناية", 60, ["عناية", 0.94], undefined, { font: "head" })}
           </g>
         ),
       };
@@ -844,6 +864,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {Box("c2", 960, 700, "الافتقار", 64, tNeed, { font: "head", fill: P(tHope, tHope + 14) > 0 ? z.hl : z.paper })}
             {Box("c3", 520, 700, "طلب المغفرة", 64, tMagh, { font: "head", tEnd: c.end("المغفرة", 0.64) })}
             {T("km", 960, 860, "مدعين الكمال", 64, ["مدعين", 0.76], ["الكمال", 0.78])}
+            <InkPerson x={1640} y={860} s={0.8} pose="stand" p={P(at("نقف", 0.8) - 2, at("نقف", 0.8) + 16)} z={z} dir={-1} />
             <Cross x1={1130} x2={790} y={846} p={P(tBal - 2, tBal + 12)} z={z} />
           </g>
         ),
@@ -924,16 +945,16 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <path d="M760 240 Q860 200 960 240 Q1060 200 1160 240 L1160 400 Q1060 360 960 400 Q860 360 760 400 Z M960 240 L960 400" fill={z.paper} stroke={z.ink} strokeWidth={7} />
             </g>
             {T("qr", 960, 160, "قبل القراءة", 64, ["وقبل", 0.01], ["القراءة", 0.03])}
-            {T("aw", 1300, 620, "نطلب العون", 66, ["نطلب", 0.28], ["العون", 0.3], { font: "body", weight: 600 })}
-            {T("hj", 620, 620, "حاجتنا", 66, ["بحاجتنا", 0.4], undefined, { font: "body", weight: 600 })}
+            {T("aw", 1360, 560, "نطلب العون", 66, ["نطلب", 0.28], ["العون", 0.3], { font: "body", weight: 600 })}
+            {T("hj", 560, 560, "حاجتنا", 66, ["بحاجتنا", 0.4], undefined, { font: "body", weight: 600 })}
             {/* الخواطر لا تختفي كلها: تبقى، ونرجع */}
             {[0, 1, 2].map((k) => (
-              <Cloud key={k} x={1440 + k * 90} y={300 - (k % 2) * 50} r={44} p={P(tThought - 6 + k * 4, tThought + 6 + k * 4)} z={z} o={0.85} />
+              <Cloud key={k} x={1400 + k * 100} y={330 - (k % 2) * 50} r={50} p={P(tThought - 6 + k * 4, tThought + 6 + k * 4)} z={z} o={0.85} />
             ))}
-            {T("wd", 960, 860, "وعدا بأن تختفي كل خاطرة", 60, ["وعدا", 0.56], ["خاطرة", 0.66])}
-            <Cross x1={1290} x2={630} y={842} p={P(tThought + 14, tThought + 28)} z={z} />
-            {T("dm", 1300, 740, "ذكر مشروع", 64, ["ذكر", 0.8], ["مشروع", 0.84], { font: "head" })}
-            {T("fs", 620, 740, "وافتقار صادق", 64, ["وافتقار", 0.88], ["صادق", 0.92], { font: "head" })}
+            {T("wd", 960, 850, "وعدا بأن تختفي كل خاطرة", 62, ["وعدا", 0.56], ["خاطرة", 0.66])}
+            <Cross x1={1280} x2={640} y={834} p={P(tThought + 14, tThought + 28)} z={z} />
+            {T("dm", 1360, 690, "ذكر مشروع", 64, ["ذكر", 0.8], ["مشروع", 0.84], { font: "head" })}
+            {T("fs", 560, 690, "وافتقار صادق", 64, ["وافتقار", 0.88], ["صادق", 0.92], { font: "head" })}
           </g>
         ),
       };
@@ -988,8 +1009,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               })}
             </g>
             {/* السؤال الواحد */}
-            {T("fq", 960, 860, "هل نفهم ما نقوله ونفعله؟", 70, ["هل", 0.86], ["ونفعله", 0.98], { font: "head" })}
-            <Mark x={960 - 380} y={870} w={760} h={18} p={P(end("ونفعله", 0.98), end("ونفعله", 0.98) + 14)} z={z} />
+            {T("fq", 960, 840, "هل نفهم ما نقوله ونفعله؟", 70, ["هل", 0.86], ["ونفعله", 0.98], { font: "head" })}
+            <Mark x={960 - 380} y={850} w={760} h={18} p={P(end("ونفعله", 0.98), end("ونفعله", 0.98) + 14)} z={z} />
           </g>
         ),
       };
@@ -1026,10 +1047,12 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               </g>
               {T("bq", 960, 790, "باب القراءة", 70, ["باب", 0.06], ["القراءة", 0.1], { font: "head" })}
               {T("nx", 960, 180, "الحلقة القادمة", 64, ["الحلقة", 0.18], ["القادمة", 0.22])}
+              {/* «نقرؤه»: صفحة تُقلب في الكتاب المفتوح */}
+              <path d={`M960 440 Q${1040 - 160 * P(at("نقرؤه", 0.38), at("نقرؤه", 0.38) + 16, (t) => t)} 430 ${1040 - 160 * P(at("نقرؤه", 0.38), at("نقرؤه", 0.38) + 16, (t) => t)} 440 L${1040 - 160 * P(at("نقرؤه", 0.38), at("نقرؤه", 0.38) + 16, (t) => t)} 520 L960 520 Z`} fill={z.paper} stroke={z.ink} strokeWidth={4} opacity={P(at("نقرؤه", 0.38) - 1, at("نقرؤه", 0.38)) * (1 - P(at("نقرؤه", 0.38) + 16, at("نقرؤه", 0.38) + 18))} />
               <g opacity={P(tMeanings - 4, tMeanings + 10)}>
                 <path d="M880 440 Q920 420 960 440 Q1000 420 1040 440 L1040 520 Q1000 500 960 520 Q920 500 880 520 Z M960 440 L960 520" fill={z.paper} stroke={z.ink} strokeWidth={5} />
               </g>
-              <path d={heartPath(960, 610, 30)} fill={z.paper} stroke={z.ink} strokeWidth={5} opacity={P(tHearts - 4, tHearts + 8)} />
+              <path d={heartPath(960, 610, 30 + 6 * Math.sin(Math.PI * P(at("نتفاعل", 0.44) - 2, at("نتفاعل", 0.44) + 16)))} fill={P(at("نتفاعل", 0.44), at("نتفاعل", 0.44) + 10) > 0.5 ? z.hl : z.paper} stroke={z.ink} strokeWidth={5} opacity={P(tHearts - 4, tHearts + 8)} />
             </g>
             {/* قراءتنا الأولى من الكتاب، من زبدة الكتب */}
             <g transform={`translate(${lerp(1900, 1340, bookIn)} 460) rotate(-3)`} opacity={bookIn}>

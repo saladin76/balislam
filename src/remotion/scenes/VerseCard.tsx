@@ -137,6 +137,7 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
 export const VerseCard: React.FC<VerseCardProps> = (props) => {
   const v = useChannel().verse;
   if (v?.style === "page") return <VersePage {...props} reveal={v.reveal === "lines"} />;
+  if (v?.style === "ink") return <VerseInk {...props} />;
   return <VerseCardClassic {...props} />;
 };
 
@@ -234,6 +235,46 @@ const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
             </div>
           ) : null}
         </div>
+      </div>
+    </SceneShell>
+  );
+};
+
+/** يحوّل الأرقام اللاتينية إلى العربية في المرجع (طه · 14 ← طه · ١٤) */
+const arabicDigits = (s: string) => s.replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
+
+/**
+ * بطاقة الآية بهوية «القلم المميِّز» (زبدة الكتب): ورق أبيض وحبر أسود، بلا زخرفة ولا تظليل ولا قلم.
+ * تظهر كاملة في نصف ثانية قبل التلاوة ثم تسكن تمامًا؛ النص كما ورد من المصدر بلا تعديل.
+ * فوقها اسم السورة ورقم الآية، وتحتها اسم القارئ إن وُجد.
+ */
+const VerseInk: React.FC<VerseCardProps> = (props) => {
+  const { orientation, text, reference, reciter } = props;
+  const frame = useSceneFrame();
+  const baseVerse = useSize("verse", orientation);
+  const refSize = useSize("reference", orientation);
+  const { durationInFrames } = useVideoConfig();
+  const t = useTheme("paper");
+  const c = t.colors;
+  const portrait = orientation === "portrait";
+  const letters = text.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\s]/g, "").length;
+  const room = portrait ? 80 : 95;
+  const fit = letters > room ? Math.max(0.45, Math.sqrt(room / letters)) : 1;
+  const size = Math.round(baseVerse * fit * (portrait ? 1 : 1.08));
+  const inP = fade(frame, 0, 14);
+  const ref = reference.replace(/\s*·\s*/, /[–-]/.test(reference) ? " · الآيتان " : " · الآية ");
+  return (
+    <SceneShell {...props} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: portrait ? 56 : 44, padding: portrait ? "0 80px 220px" : "0 220px 40px", opacity: inP }}>
+        <div style={{ fontFamily: fontFamilies.heading, fontSize: Math.round(refSize * 1.25), color: c.ink, letterSpacing: 0.5 }}>سورة {arabicDigits(ref)}</div>
+        <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />
+        <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400 }}>{text}</div>
+        <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />
+        {reciter ? (
+          <div style={{ fontFamily: fontFamilies.body, fontSize: refSize, color: c.inkSoft }}>
+            <T k="recitedBy" /> {reciter}
+          </div>
+        ) : null}
       </div>
     </SceneShell>
   );
