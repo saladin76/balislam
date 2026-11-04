@@ -228,7 +228,11 @@ export const App: React.FC = () => {
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
   }, [flushPlan]);
-  const confirmLeaveScript = () => !scriptDirty || window.confirm("في السكريبت تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟");
+  const confirmLeaveScript = () => {
+    if (scriptDirty && !window.confirm("في السكريبت تعديلات غير محفوظة. هل تريد مغادرة المحرر؟")) return false;
+    if (scriptRef.current?.hasUnsavedResearch() && !window.confirm("في ملف البحث تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟")) return false;
+    return true;
+  };
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
@@ -239,7 +243,7 @@ export const App: React.FC = () => {
       <div className="app">
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || identDirty} />
         <header className="top">
-          <button className="brand" onClick={() => setTab("home")} title="الرئيسية">
+          <button className="brand" onClick={() => confirmLeaveScript() && setTab("home")} title="الرئيسية">
             <BrandMark channel={channel} />
             <span>استوديو <span style={{ fontFamily: ident.draft.fonts?.wordmark ? `'${ident.draft.fonts.wordmark}', inherit` : undefined, fontSize: "1.1em" }}>{channel.nameDisplay ?? channel.name}</span></span>
           </button>
@@ -249,7 +253,7 @@ export const App: React.FC = () => {
             </select>
           ) : null}
           <nav className="tabs" role="tablist">
-            <button role="tab" aria-selected={tab === "home"} onClick={() => setTab("home")}>غرفة العمليات</button>
+            <button role="tab" aria-selected={tab === "home"} onClick={() => confirmLeaveScript() && setTab("home")}>غرفة العمليات</button>
           </nav>
           {EPISODE_TABS.includes(tab) ? (
             <select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} style={{ width: 280 }} aria-label="الحلقة">
@@ -258,10 +262,10 @@ export const App: React.FC = () => {
             </select>
           ) : null}
           <nav className="tabs" role="tablist" aria-label="القناة">
-            <button role="tab" aria-selected={tab === "identity"} onClick={() => setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
-            <button role="tab" aria-selected={tab === "library"} onClick={() => setTab("library")}>المكتبة</button>
-            <button role="tab" aria-selected={tab === "channel"} onClick={() => setTab("channel")}>القناة</button>
-            <button role="tab" aria-selected={tab === "settings"} onClick={() => setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
+            <button role="tab" aria-selected={tab === "identity"} onClick={() => confirmLeaveScript() && setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
+            <button role="tab" aria-selected={tab === "library"} onClick={() => confirmLeaveScript() && setTab("library")}>المكتبة</button>
+            <button role="tab" aria-selected={tab === "channel"} onClick={() => confirmLeaveScript() && setTab("channel")}>القناة</button>
+            <button role="tab" aria-selected={tab === "settings"} onClick={() => confirmLeaveScript() && setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
           </nav>
           <span className="spacer" />
           {tab === "episode" && plan ? (
@@ -279,7 +283,7 @@ export const App: React.FC = () => {
              title={plan.title}
              stage={tab as WorkspaceStage}
              onStage={(stage, target) => {
-               if (stage !== "script" && scriptDirty && !confirmLeaveScript()) return;
+               if (stage !== "script" && !confirmLeaveScript()) return;
                if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
                setTab(stage);
                if (target?.line && stage === "script") {
