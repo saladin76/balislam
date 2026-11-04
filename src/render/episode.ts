@@ -12,6 +12,9 @@ import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, getServeUrl } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { QUALITY, type Quality } from "./quality";
+import { loadSceneLedger, sceneReviewItems, sceneReviewSummary, sceneReviewBlockMessage } from "../plan/sceneReview";
+import { loadStoryboardMotion } from "./storyboardMotion";
+import { currentMotionFingerprint } from "./motionFingerprint";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -23,6 +26,8 @@ export type RenderEpisodeOptions = {
   quality?: Quality;
   plan?: Plan;
   media?: EpisodeMedia;
+  /** استثناء صريح للصيانة فقط؛ لا يُستخدم من الواجهة العامة. */
+  allowUnreviewed?: boolean;
   onProgress?: (pct: number, msg: string) => void;
 };
 
@@ -45,12 +50,24 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
-  // النسخة النهائية لا تُصنع قبل اعتماد ستوري بورد مشاهدها (المعاينات الصامتة مسموحة دائمًا)
+  // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
-    const sb = storyboardStatus(plan, await loadStoryboard(await resolveScriptPath(opts.episode)));
-    const ids = plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id));
-    const blocked = unapprovedScenes(sb, ids);
+    const scriptPath = await resolveScriptPath(opts.episode);
+    const ids = new Set(plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
+    const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
+    const missing = required.filter((s) => media.voice[s.id]?.text !== s.narration.trim()).map((s) => s.id);
+    if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
+    const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
+    const blocked = unapprovedScenes(sb, [...ids]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+    if (!opts.allowUnreviewed) {
+      const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
+      const review = sceneReviewSummary(items);
+      if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
+    }
+    const measured = await loadStoryboardMotion(opts.episode);
+    if (measured && (!measured.inputHash || measured.inputHash !== await currentMotionFingerprint(opts.episode, plan, measured.orientation)))
+      throw new Error("نتيجة فحص الحركة والمنطق قديمة؛ أعد الفحص بعد آخر تعديل قبل الرندر النهائي.");
   }
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   await renderMedia({
