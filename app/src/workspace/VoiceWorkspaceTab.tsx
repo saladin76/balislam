@@ -26,7 +26,7 @@ export const VoiceWorkspaceTab: React.FC<{
     <main className="ew-voice-stage">
       <div className="ew-voice-heading">
         <h2>صوت الحلقة</h2>
-        <p>راجع التشكيل والتوثيق قبل التوليد. المقاطع التي لم يتغير نصها تبقى محفوظة كما في المحرك الحالي.</p>
+        <p>راجع التشكيل وإعدادات الصوت قبل التوليد. المقاطع التي لم يتغير نصها تبقى محفوظة كما في المحرك الحالي.</p>
       </div>
       <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} />
       <Mp3QuranBrowser key={channelId} channelId={channelId} />
