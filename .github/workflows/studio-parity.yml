@@ -25,6 +25,20 @@ jobs:
         run: npm ci
       - name: All three channels — typecheck and regression tests
         run: npm run check
+      - name: Start shared studio and smoke-test API for three channel scopes
+        run: |
+          npm run app > /tmp/studio-app.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl -fsS "http://127.0.0.1:4321/api/channels" -o /tmp/studio-channels.json; then break; fi
+            sleep 1
+          done
+          node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("/tmp/studio-channels.json","utf8"));for(const id of ["balislam","dafatir-alzaman","zubdat-alkutub"])if(!c.some(x=>x.id===id))throw Error("Missing channel "+id)'
+          for channel in balislam dafatir-alzaman zubdat-alkutub; do
+            curl -fsS "http://127.0.0.1:4321/api/episodes?channel=$channel" -o /tmp/episodes-$channel.json
+            node -e 'const x=require(process.argv[1]);if(!Array.isArray(x))throw Error("Episodes API must be an array")' "/tmp/episodes-$channel.json"
+          done
       - name: Verify mandatory shared and opt-in modules
         run: |
           test -f src/render/storyboardMotion.ts
