@@ -55,6 +55,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
   const wordsDone = wordsFrom + words.length * perWord;
   const marker = fade(frame, wordsDone + 4, 14);
   const dig = element === "soil-strata";
+  const side = dig && !portrait;
   const digIn = interpolate(frame, [wordsFrom, Math.max(wordsFrom + 1, wordsDone)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
@@ -64,11 +65,12 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
           position: "absolute",
           inset: 0,
           display: "flex",
-          flexDirection: "column",
+          // «طبقات الأرض» في الأفقي: المقطع كبيرًا في جهة البداية والسؤال بجواره، ليُقرأ الرسم لا ليزيّن
+          flexDirection: side ? "row" : "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: portrait ? 56 : 40,
-          padding: portrait ? "0 80px 360px" : "0 160px 60px",
+          gap: side ? 90 : portrait ? 56 : 40,
+          padding: portrait ? "0 80px 360px" : side ? "0 150px 90px" : "0 160px 60px",
         }}
       >
         <div
@@ -79,7 +81,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
         >
           {/* «طبقات الأرض»: تنكشف من الأعلى إلى الأسفل كما يكشف التنقيب الطبقات، على مدى السؤال المنطوق */}
           <div style={dig ? { clipPath: `inset(0 0 ${(1 - digIn) * 82}% 0)` } : undefined}>
-            <Element id={element} theme={t} size={dig ? Math.round(iconPx * 1.45) : iconPx} />
+            <Element id={element} theme={t} size={side ? 560 : dig ? Math.round(iconPx * 1.45) : iconPx} />
           </div>
         </div>
         <div
@@ -89,7 +91,7 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
             fontSize: fontPx,
             lineHeight: 1.35,
             textAlign: "center",
-            maxWidth: portrait ? 920 : 1560,
+            maxWidth: portrait ? 920 : side ? 980 : 1560,
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "center",

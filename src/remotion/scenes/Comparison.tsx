@@ -9,7 +9,8 @@ import { SceneShell } from "./SceneShell";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import { useLang } from "../../i18n/context";
 import { useChannel } from "../../channel/context";
-import { estimateTimings, spreadOverSpeech } from "./timing";
+import { estimateTimings } from "./timing";
+import { eventArrivals } from "./Timeline";
 import type { SceneBase, StringFields } from "./types";
 
 export type ComparisonProps = SceneBase & StringFields<"rightTitle" | "rightItems" | "rightElement" | "leftTitle" | "leftItems" | "leftElement" | "tone">;
@@ -118,13 +119,16 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
   // ـــ التوقيت ـــ
   const all = rItems.length + lItems.length;
   const step = Math.max(6, Math.min(12, Math.floor((durationInFrames - 70) / Math.max(1, all + 3))));
-  // القناة التي تطلب التزامن مع الكلام: كل عنوان ونقطة تتوالى على مدى الجملة المنطوقة
+  // القناة التي تطلب التزامن مع الكلام: كل جانب يدخل كاملًا (عنوانه ونقاطه معًا) لحظة نطق عنوانه،
+  // فلا تظهر بطاقة فارغة تنتظر نقاطها. ما لا يُنطق يتوزع بين جاريه.
   const sync = useChannel().pacing?.speechSync === true;
-  const spread = sync && props.narration ? spreadOverSpeech(all + 2, props.narrationTimings ?? estimateTimings(props.narration, 6, durationInFrames - 12), 4, durationInFrames - 40) : [];
-  const rCardAt = spread.length ? Math.max(2, spread[0]! - 6) : 4;
-  const rItemAt = (i: number) => (spread.length ? spread[1 + i]! : 18 + i * step);
-  const lCardAt = spread.length ? Math.max(rItemAt(rItems.length - 1) + 8, spread[1 + rItems.length]! - 6) : rItemAt(rItems.length) + 8;
-  const lItemAt = (i: number) => (spread.length ? Math.max(lCardAt + 10 + i * 6, spread[2 + rItems.length + i]!) : lCardAt + 14 + i * step);
+  const syncTimings = sync && props.narration ? props.narrationTimings ?? estimateTimings(props.narration, 6, durationInFrames - 12) : [];
+  const anchors = syncTimings.length ? eventArrivals([{ date: "", text: rightTitle }, { date: "", text: leftTitle }], syncTimings, 4, Math.max(5, durationInFrames - 60)) : [];
+  // الجانب الأول يفتح المشهد (لا صفحة فارغة في أوله)، والثاني يدخل لحظة نطق عنوانه
+  const rCardAt = 4;
+  const rItemAt = (i: number) => (anchors.length ? rCardAt + 12 + i * 8 : 18 + i * step);
+  const lCardAt = anchors.length ? Math.max(rItemAt(rItems.length - 1) + 24, anchors[1]! - 6) : rItemAt(rItems.length) + 8;
+  const lItemAt = (i: number) => (anchors.length ? lCardAt + 12 + i * 8 : lCardAt + 14 + i * step);
   const midAt = lCardAt - 6;
 
   const rIn = enter(frame, rCardAt, 30, 130);
