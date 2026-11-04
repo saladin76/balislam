@@ -6,7 +6,7 @@ import type { PlanScene } from "./types";
 import { templateById } from "./templates";
 
 export const shotKind = (s: PlanScene) => {
-  if (s.template === "noor-text") return s.props.light === "off" ? "فراغ وكتابة" : "نور وكتابة";
+  if (s.template === "noor-text") return s.props.light === "off" ? "فراغ وكتابة" : s.props.light === "ink" ? "حبر على الصفحة" : "نور وكتابة";
   return templateById(s.template)?.nameAr ?? s.template;
 };
 

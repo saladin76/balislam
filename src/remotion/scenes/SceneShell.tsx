@@ -10,7 +10,7 @@ import { Element } from "../../../brand/elements/Element";
 import { hasElement } from "../../../brand/elements/registry";
 import { enter, exit, fade } from "./motion";
 import { estimateTimings } from "./timing";
-import { ChannelLogo } from "../../channel/context";
+import { ChannelLogo, useChannel } from "../../channel/context";
 import type { SceneBase } from "./types";
 
 /** خلفية الثيم: لون الخلفية مع زخرفته الخفيفة (لا تنافس النص). */
@@ -87,7 +87,6 @@ const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number; rtl: bool
           {Array.from({ length: n + 1 }, (_, i) => (
             <line key={i} x1={(i / n) * w} x2={(i / n) * w} y1={y} y2={y + (i % 3 === 0 ? 22 : 12)} stroke={c.ink} strokeOpacity={0.14 * reveal} strokeWidth={3} />
           ))}
-          <circle cx={w * 0.5} cy={y} r={Math.min(w, h) * 0.16} fill={c.highlight} opacity={0.12 * reveal} />
         </svg>
       );
     }
@@ -107,6 +106,57 @@ const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number; rtl: bool
     }
   }
 };
+
+/** ألوان «دفتر الأفق» الثابتة للغلاف والشريط */
+const NB = { cover: "#4A2E1F", coverDeep: "#2E1C12", tape: "#D7372B", parchment: "#F1E4CB", sand: "#C8A15A" } as const;
+
+/**
+ * غلاف الدفتر (دفاتر الزمن): كل مشهد صفحة داخل دفتر مفتوح؛ إطار جلدي بني بزوايا داخلية مستديرة،
+ * وظل خفيف على حافة الصفحة. ثابت لا يتحرك، فلا يُحسب حركة ولا يزاحم المحتوى.
+ */
+const NotebookCover: React.FC<{ w: number; h: number; u: number }> = ({ w, h, u }) => {
+  const b = 26 * u;
+  const r = 18 * u;
+  const inner = `M${b + r} ${b} H${w - b - r} Q${w - b} ${b} ${w - b} ${b + r} V${h - b - r} Q${w - b} ${h - b} ${w - b - r} ${h - b} H${b + r} Q${b} ${h - b} ${b} ${h - b - r} V${b + r} Q${b} ${b} ${b + r} ${b} Z`;
+  return (
+    <svg width={w} height={h} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      <defs>
+        <linearGradient id="nb-cover" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={NB.cover} />
+          <stop offset="1" stopColor={NB.coverDeep} />
+        </linearGradient>
+      </defs>
+      <path fillRule="evenodd" fill="url(#nb-cover)" d={`M0 0 H${w} V${h} H0 Z ${inner}`} />
+      <path d={inner} fill="none" stroke="#000" strokeOpacity={0.28} strokeWidth={10 * u} style={{ filter: `blur(${6 * u}px)` }} />
+      <path d={inner} fill="none" stroke={NB.sand} strokeOpacity={0.35} strokeWidth={1.5 * u} />
+    </svg>
+  );
+};
+
+/** عنوان الفصل شريطَ تاريخ أحمر معلّقًا من الحافة العليا للصفحة */
+const DateTape: React.FC<{ text: string; size: number; u: number; a: number; portrait: boolean }> = ({ text, size, u, a, portrait }) => (
+  <div
+    style={{
+      position: "absolute",
+      top: (portrait ? 220 : 26) * u,
+      insetInlineStart: (portrait ? 72 : 110) * u,
+      background: NB.tape,
+      color: NB.parchment,
+      fontFamily: fontFamilies.body,
+      fontWeight: 700,
+      fontSize: size,
+      lineHeight: 1.25,
+      padding: `${14 * u}px ${26 * u}px ${22 * u}px`,
+      clipPath: `polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - ${10 * u}px), 0 100%)`,
+      boxShadow: "0 6px 14px rgba(0,0,0,0.25)",
+      transformOrigin: "top center",
+      transform: `scaleY(${0.2 + 0.8 * a})`,
+      opacity: Math.min(1, a * 1.5),
+    }}
+  >
+    {text}
+  </div>
+);
 
 type ShellProps = SceneBase & {
   children: React.ReactNode;
@@ -133,6 +183,8 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   const out = exit(frame, durationInFrames, 8);
   const eyebrowIn = enter(frame, 4);
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
+  const notebook = useChannel().frame === "notebook";
+  const u = Math.min(width, height) / 1080;
 
   return (
     <AbsoluteFill style={{ backgroundColor: background ?? t.colors.bg, direction: lang.dir, fontFamily: fontFamilies.body, color: t.colors.ink }}>
@@ -144,7 +196,8 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
         <Motif t={t} w={width} h={height} frame={frame} rtl={lang.dir === "rtl"} />
       ) : null}
       <AbsoluteFill style={{ opacity: out }}>
-        {eyebrow ? (
+        {eyebrow && notebook ? <DateTape text={eyebrow} size={eyebrowSize * 1.35 * u} u={u} a={eyebrowIn} portrait={portrait} /> : null}
+        {eyebrow && !notebook ? (
           <div
             style={{
               position: "absolute",
@@ -170,6 +223,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
           </div>
         ) : null}
       </AbsoluteFill>
+      {notebook ? <NotebookCover w={width} h={height} u={u} /> : null}
       {captions && timings.length ? (
         <AbsoluteFill style={{ opacity: out }}>
           <CaptionBar theme={t} timings={timings} portrait={portrait} variant={captionVariant} />

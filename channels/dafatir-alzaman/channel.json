@@ -469,5 +469,6 @@
   },
   "pacing": {
     "speechSync": true
-  }
+  },
+  "frame": "notebook"
 }

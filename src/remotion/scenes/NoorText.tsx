@@ -12,12 +12,14 @@ import type { SceneBase, StringFields } from "./types";
  * - light=on: نور فقط مع كتابة (آدم عليه السلام، والملائكة): ضوء ناعم بلا أي هيئة أو شكل، يشتد حين يُنطق الاسم،
  *   وأشعة تدور ببطء وذرات نور تصعد، والاسم يُكتب تحته بخط الأميري.
  * - light=off: فراغ مع كتابة (الجنة، والشجرة…): أفق الغسق والنجوم، والعبارة تُكتب بالحبر وقت نطقها.
+ * - light=ink: حبر على صفحة الدفتر (لكل ما ليس غيبًا: الذكر، والانتقال، والخلاصة): رَقّ وخط أفق، والعبارة تُكتب بالحبر البني.
+ * النور لغة محدودة: لآدم عليه السلام والملائكة وحدهم، فلا يصير الطابع الغالب على الحلقة.
  * لا رموز ولا رسوم ولا عناصر من المكتبة في هذا القالب أبدًا (توقير، وقاعدة «لا يُرسم ما لا يُصوَّر»).
  */
 export type NoorTextProps = SceneBase & StringFields<"text" | "light" | "subtitle">;
 
 /** ألوان «دفتر الأفق» ودرجاتها المشتقة */
-const C = { dusk: "#2A1E3F", duskDeep: "#120C1C", sun: "#E07A3F", sand: "#C8A15A", parchment: "#F1E4CB", glow: "#FFE9C2" } as const;
+const C = { dusk: "#2A1E3F", duskDeep: "#120C1C", sun: "#E07A3F", sand: "#C8A15A", parchment: "#F1E4CB", glow: "#FFE9C2", ink: "#4A2E1F", paperDeep: "#E6D3B0" } as const;
 
 const stem = (w: string) =>
   w
@@ -45,7 +47,8 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
   const { durationInFrames, width: W, height: H } = useVideoConfig();
   const portrait = orientation === "portrait";
   const rtl = useLang().dir === "rtl";
-  const on = light !== "off";
+  const ink = light === "ink";
+  const on = light !== "off" && !ink;
   const timings = props.narration ? (props.narrationTimings ?? estimateTimings(props.narration, 6, durationInFrames - 12)) : [];
   const at = Math.min(durationInFrames - 30, spokenAt(text, timings, 18));
   // كل كلمة من الكتابة تظهر وقت نطقها (ما لا يُنطق يظهر بعد سابقتها بقليل)
@@ -75,7 +78,9 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
   // الكتابة: تنكشف بالحبر من جانب البداية خلال ثانية تقريبًا وقت النطق
   const write = interpolate(frame, [at - 4, lastWord + 16], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
   const wIn = (i: number) => interpolate(frame, [(wordAt[i] ?? at) - 4, (wordAt[i] ?? at) + 10], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
-  const subIn = interpolate(frame, [lastWord + 18, lastWord + 34], [0, 1], clamp);
+  // السطر الفرعي يظهر لحظة نطق كلماته إن نُطقت (وإلا بعد آخر كلمة من الكتابة)
+  const subAt = Math.min(durationInFrames - 24, Math.max(lastWord + 18, subtitle ? spokenAt(subtitle, timings, lastWord + 18) - 4 : 0));
+  const subIn = interpolate(frame, [subAt, subAt + 16], [0, 1], clamp);
 
   // النور: يتنفس ويشتد عند نطق الاسم ثم يهدأ قليلًا ويبقى، والكاميرا تقترب ببطء
   // النور يبزغ من العدم في أول المشهد، ويشتد عند نطق الاسم، ثم يبقى هادئًا
@@ -88,10 +93,9 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
   const cx = W / 2;
   const cy = on ? H * (portrait ? 0.4 : 0.38) : H * 0.62;
   const R = (portrait ? 560 : 460) * u;
-  const rot = frame * 0.9;
 
   // ذرات نور تصعد (في النور) أو نجوم تومض (في الفراغ)
-  const motes = Array.from({ length: on ? 46 : 70 }, (_, i) => {
+  const motes = Array.from({ length: ink ? 0 : on ? 14 : 50 }, (_, i) => {
     const r1 = seeded(i * 3.1);
     const r2 = seeded(i * 7.7);
     const r3 = seeded(i * 1.9);
@@ -108,13 +112,13 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
   const fontPx = Math.round((portrait ? 120 : on ? 112 : 128) * u * (text.length > 26 ? Math.max(0.72, Math.sqrt(26 / text.length)) : 1));
   const captionsShown = !writesNarration && props.captions !== false;
   // مع سطر فرعي وشريط الترجمة: ترتفع الكتابة حتى لا يغطي الشريطُ السطرَ الفرعي
-  const textTop = on ? (subtitle && captionsShown ? Math.min(cy + R * 0.62, H * (portrait ? 0.66 : 0.74) - fontPx * 1.3 - 110 * u) : cy + R * 0.62) : H * (portrait ? 0.3 : 0.24);
+  const textTop = on ? (subtitle && captionsShown ? Math.min(cy + R * 0.62, H * (portrait ? 0.66 : 0.74) - fontPx * 1.3 - 110 * u) : cy + R * 0.62) : ink ? H * (portrait ? 0.36 : 0.33) : H * (portrait ? 0.3 : 0.24);
 
   return (
-    <SceneShell {...props} captions={writesNarration ? false : props.captions} themeId="night" motif={false} background={C.duskDeep} durationInFrames={durationInFrames} eyebrowColors={{ text: C.parchment, border: C.sand }}>
+    <SceneShell {...props} captions={writesNarration ? false : props.captions} themeId={ink ? "warm" : "night"} motif={false} background={ink ? C.parchment : C.duskDeep} durationInFrames={durationInFrames} eyebrowColors={ink ? { text: C.ink, border: C.sand } : { text: C.parchment, border: C.sand }}>
       <div style={{ position: "absolute", inset: 0, transform: `scale(${cam})`, transformOrigin: `50% ${on ? 40 : 55}%` }}>
         {/* سماء الغسق */}
-        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, ${C.duskDeep} 0%, ${C.dusk} 62%, ${on ? C.dusk : "#3A2440"} 100%)` }} />
+        <div style={{ position: "absolute", inset: 0, background: ink ? `radial-gradient(ellipse at 50% 40%, ${C.parchment} 0%, ${C.paperDeep} 100%)` : `linear-gradient(180deg, ${C.duskDeep} 0%, ${C.dusk} 62%, ${on ? C.dusk : "#3A2440"} 100%)` }} />
         <svg width={W} height={H} style={{ position: "absolute", inset: 0 }}>
           <defs>
             <radialGradient id="noor-core">
@@ -133,15 +137,18 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
               <stop offset="1" stopColor={C.glow} stopOpacity={0} />
             </linearGradient>
           </defs>
-          {on ? (
+          {ink ? (
             <>
-              {/* أشعة ناعمة تدور ببطء حول مصدر النور: ضوء فقط، بلا هيئة */}
-              <g transform={`translate(${cx} ${cy}) rotate(${rot})`} opacity={0.55 * swell}>
-                {Array.from({ length: 14 }, (_, i) => (
-                  <path key={i} transform={`rotate(${(i * 360) / 14})`} d={`M0 0 L${R * 1.9} ${-R * 0.07} L${R * 1.9} ${R * 0.07} Z`} fill="url(#noor-ray)" opacity={0.5 + 0.5 * seeded(i)} />
-                ))}
-              </g>
-              <circle cx={cx} cy={cy} r={R * swell * breathe} fill="url(#noor-core)" />
+              {/* صفحة الدفتر: خط الأفق بعلامات القرون، يمتد مع بداية الكتابة */}
+              <line x1={rtl ? W * (1 - write) : 0} x2={rtl ? W : W * write} y1={H * 0.8} y2={H * 0.8} stroke={C.ink} strokeOpacity={0.16} strokeWidth={3 * u} />
+              {Array.from({ length: 13 }, (_, i) => (
+                <line key={i} x1={(i / 12) * W} x2={(i / 12) * W} y1={H * 0.8} y2={H * 0.8 + (i % 3 === 0 ? 22 : 12) * u} stroke={C.ink} strokeOpacity={0.16 * write} strokeWidth={3 * u} />
+              ))}
+            </>
+          ) : on ? (
+            <>
+              {/* نور هادئ بلا أشعة ولا هيئة: وهج واحد يبزغ ويتنفس، ويشتد قليلًا عند نطق الاسم */}
+              <circle cx={cx} cy={cy} r={R * 0.62 * swell * breathe} fill="url(#noor-core)" opacity={0.85} />
             </>
           ) : (
             <>
@@ -165,10 +172,10 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
                 fontWeight: 700,
                 fontSize: fontPx,
                 lineHeight: 1.3,
-                color: C.parchment,
+                color: ink ? C.ink : C.parchment,
                 textAlign: "center",
                 textWrap: "balance",
-                textShadow: on ? `0 0 ${30 * u}px rgba(255,233,194,0.55)` : "none",
+                textShadow: on ? `0 0 ${14 * u}px rgba(255,233,194,0.35)` : "none",
                 display: "flex",
                 flexWrap: "wrap",
                 justifyContent: "center",
@@ -178,13 +185,13 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
               {words.map((w, i) => (
                 <span key={i} style={{ position: "relative", display: "inline-block" }}>
                   {/* وهج يكتب الكلمة: يسطع خلفها لحظة ظهورها ثم يخفت */}
-                  <span aria-hidden style={{ position: "absolute", left: "50%", top: "55%", width: fontPx * 3.2, height: fontPx * 2.2, marginLeft: -fontPx * 1.6, marginTop: -fontPx * 1.1, borderRadius: "50%", background: `radial-gradient(closest-side, ${on ? C.glow : C.sand} 0%, rgba(0,0,0,0) 100%)`, opacity: 0.75 * interpolate(frame - (wordAt[i] ?? at), [-4, 4, 26], [0, 1, 0], clamp), pointerEvents: "none" }} />
+                  <span aria-hidden style={{ position: "absolute", left: "50%", top: "55%", width: fontPx * 3.2, height: fontPx * 2.2, marginLeft: -fontPx * 1.6, marginTop: -fontPx * 1.1, borderRadius: "50%", background: `radial-gradient(closest-side, ${on ? C.glow : C.sand} 0%, rgba(0,0,0,0) 100%)`, opacity: (ink ? 0.35 : 0.6) * interpolate(frame - (wordAt[i] ?? at), [-4, 4, 26], [0, 1, 0], clamp), pointerEvents: "none" }} />
                   <span style={{ position: "relative", display: "inline-block", opacity: wIn(i), transform: `translateY(${(1 - wIn(i)) * 24 * u}px)`, clipPath: rtl ? `inset(-30% 0 -30% ${(1 - wIn(i)) * 100}%)` : `inset(-30% ${(1 - wIn(i)) * 100}% -30% 0)` }}>{w}</span>
                 </span>
               ))}
             </div>
             <div style={{ height: 3 * u, width: interpolate(write, [0.3, 1], [0, (portrait ? 360 : 420) * u], clamp), background: C.sand, opacity: 0.8 }} />
-            {subtitle ? <div style={{ fontFamily: fontFamilies.clean, fontSize: (portrait ? 40 : 36) * u, color: C.parchment, opacity: 0.85 * subIn }}>{subtitle}</div> : null}
+            {subtitle ? <div style={{ fontFamily: fontFamilies.clean, fontSize: (portrait ? 46 : 42) * u, color: ink ? C.ink : C.parchment, opacity: 0.88 * subIn }}>{subtitle}</div> : null}
           </div>
         ) : null}
       </div>

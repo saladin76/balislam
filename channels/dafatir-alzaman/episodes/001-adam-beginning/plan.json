@@ -18,7 +18,7 @@
           "line": 13,
           "props": {
             "text": "بسم الله الرحمن الرحيم",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c1-s1",
@@ -108,7 +108,7 @@
           "line": 27,
           "props": {
             "text": "بما هو أعظم من تحديد سنة أو مكان",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c1-s8",
@@ -168,7 +168,7 @@
           "line": 37,
           "props": {
             "text": "سورة البقرة",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c2-s1",
@@ -249,7 +249,7 @@
           "line": 49,
           "props": {
             "text": "",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c2-s7",
@@ -315,7 +315,7 @@
           "line": 59,
           "props": {
             "text": "إلى التعليم",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c2-s12",
@@ -360,7 +360,7 @@
           "line": 67,
           "props": {
             "text": "قال الله تعالى",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c3-s3",
@@ -385,7 +385,7 @@
           "line": 71,
           "props": {
             "text": "ثم قال سبحانه",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c3-s5",
@@ -597,7 +597,7 @@
           "line": 105,
           "props": {
             "text": "فالعبادة حق لله وحده",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c4-s3",
@@ -822,7 +822,7 @@
           "line": 139,
           "props": {
             "text": "عباد الله",
-            "light": "on",
+            "light": "ink",
             "subtitle": "ليس لإبليس عليهم سلطان"
           },
           "id": "c4-s20",
@@ -1054,7 +1054,7 @@
           "line": 177,
           "props": {
             "text": "دعاء آدم وزوجه",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c5-s16",
@@ -1120,7 +1120,7 @@
           "line": 187,
           "props": {
             "text": "سعة رحمة الله",
-            "light": "on",
+            "light": "ink",
             "subtitle": "باب التوبة ليس مغلقًا"
           },
           "id": "c5-s21",
@@ -1243,7 +1243,7 @@
           "line": 207,
           "props": {
             "text": "الله أعلم",
-            "light": "off",
+            "light": "ink",
             "subtitle": "لا ننسب إليه مكانًا ولا تاريخًا"
           },
           "id": "c6-s9",
@@ -1292,7 +1292,7 @@
           "line": 215,
           "props": {
             "text": "من نفس واحدة",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c7-s2",
@@ -1416,7 +1416,7 @@
           "line": 233,
           "props": {
             "text": "ولكنها لا تخبرنا بكل شيء",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c7-s11",
@@ -1457,7 +1457,7 @@
           "props": {
             "question": "كيف يعرف الباحثون حياة قوم لم يتركوا سجلًا مكتوبًا؟",
             "highlight": "سجلًا مكتوبًا",
-            "element": "excavation-tools"
+            "element": "soil-strata"
           },
           "id": "c7-s14",
           "sfx": []
@@ -1524,7 +1524,7 @@
           "line": 249,
           "props": {
             "text": "والحمد لله رب العالمين",
-            "light": "off",
+            "light": "ink",
             "subtitle": ""
           },
           "id": "c7-s19",

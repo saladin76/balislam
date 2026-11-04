@@ -5,6 +5,7 @@ import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
 import { T } from "../../i18n/context";
 import { useChannel } from "../../channel/context";
+import { VERSE_PLACEHOLDER } from "../../plan/quranText";
 import { enter, fade, useSceneFrame } from "./motion";
 import type { VerseCardProps } from "./types";
 
@@ -63,6 +64,8 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
   const verseSize = Math.round(baseVerse * verseFit);
 
   const page = enter(frame, 0, 26, 100);
+  // نص لم يُجلب بعد: سطور فارغة في مكان الآية، ولا يظهر نص مؤقت ولا اسم مصدر مكان كلام الله
+  const pending = !text.trim() || text === VERSE_PLACEHOLDER;
   const chunks = reveal ? verseChunks(text) : [text];
   // الكشف يبدأ بعد انفتاح الصفحة وينتهي قبل آخر التلاوة بقليل، فتبقى الآية كاملة لحظة الختام
   const start = 18;
@@ -93,6 +96,13 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
         >
           <div style={{ position: "absolute", inset: 16, border: `2px solid ${HZ.sand}`, borderRadius: 6, opacity: 0.55 * page, pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: 24, border: `1px solid ${HZ.sand}`, borderRadius: 4, opacity: 0.35 * page, pointerEvents: "none" }} />
+          {pending ? (
+            <div style={{ display: "grid", gap: verseSize * 0.7, width: "78%", padding: `${verseSize * 0.4}px 0` }}>
+              {[1, 0.86, 0.6].map((w, i) => (
+                <div key={i} style={{ height: 3, width: `${w * 100 * fade(frame, start + i * 14, 24)}%`, marginInline: "auto", background: HZ.sand, opacity: 0.55 }} />
+              ))}
+            </div>
+          ) : (
           <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance" }}>
             <span style={{ color: HZ.sand, opacity: fade(frame, 10, 14) }}>﴿</span>{" "}
             {chunks.map((c, i) => {
@@ -107,6 +117,7 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
             })}{" "}
             <span style={{ color: HZ.sand, opacity: fade(frame, start + Math.max(0, chunks.length - 1) * step, 20) }}>﴾</span>
           </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 18, opacity: refIn, transform: `translateY(${(1 - refIn) * 8}px)` }}>
             <div style={{ width: 56, height: 2, background: HZ.sand, opacity: 0.6 }} />
             <div style={{ fontFamily: fontFamilies.heading, fontWeight: 600, fontSize: refSize, color: HZ.ink }}>{reference}</div>
