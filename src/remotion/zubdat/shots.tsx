@@ -248,16 +248,18 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             <g opacity={ghost * (1 - 0.6 * prog(frame, tThought, tThought + 20))}>
               <line x1={1380} y1={560} x2={360} y2={560} stroke={z.faint} strokeWidth={6} strokeDasharray="18 16" />
             </g>
+            <rect x={660} y={570} width={400} height={100} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tFull - 4, tFull + 8) * (1 - 0.5 * prog(frame, tThought, tThought + 20))} />
             <Write id="kf" x={860} y={640} text="خشوع كامل" size={68} p={wp(frame, tFull, end("كاملا", 0.22))} c={z.ink} z={z} opacity={1 - 0.5 * prog(frame, tThought, tThought + 20)} />
             <Cross x1={1010} x2={710} y={624} p={prog(frame, tSalah - 2, tSalah + 12)} z={z} />
             {/* الخواطر: يخرج الخط عن مساره */}
             <Stroke d="M1380 560 C1300 560 1290 430 1210 410 C1130 390 1170 300 1090 320 C1020 340 1050 262 1000 300" p={seg2} c={z.ink} w={9} />
+            {/* الخواطر لا تختفي: عند «نرجع» تتنحى قليلًا إلى الأعلى وتبهت، وتبقى حاضرة */}
             {([
-              [1270, 300, 82],
-              [1090, 210, 68],
-              [930, 200, 56],
+              [1290, 310, 96],
+              [1100, 215, 80],
+              [925, 205, 66],
             ] as const).map(([x, y, r], k) => (
-              <g key={k} transform={`translate(${x} ${y}) scale(${cloud(k)})`} opacity={cloud(k) * (1 - 0.7 * prog(frame, tBack, tBack + 20))}>
+              <g key={k} transform={`translate(${x + 70 * prog(frame, tBack, tBack + 24, outCubic)} ${y - 40 * prog(frame, tBack, tBack + 24, outCubic)}) scale(${cloud(k) * (1 - 0.2 * prog(frame, tBack, tBack + 24))})`} opacity={cloud(k) * (1 - 0.45 * prog(frame, tBack, tBack + 20))}>
                 <path d={`M${-r} 0 a${r * 0.6} ${r * 0.6} 0 0 1 ${r * 0.7} ${-r * 0.6} a${r * 0.7} ${r * 0.7} 0 0 1 ${r * 1.1} ${r * 0.1} a${r * 0.5} ${r * 0.5} 0 0 1 ${r * 0.2} ${r * 0.9} Z`} fill={z.faint} fillOpacity={0.25} stroke={z.ink} strokeWidth={6} strokeLinejoin="round" />
               </g>
             ))}
@@ -272,8 +274,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             ))}
             {/* مطاردة شعور مثالي: نجمة تهرب وسهم يلاحقها، ثم يُشطب */}
             <g opacity={prog(frame, tChase - 4, tChase + 6)}>
-              <path d="M0 -30 Q5 -5 30 0 Q5 5 0 30 Q-5 5 -30 0 Q-5 -5 0 -30 Z" transform={`translate(${starX} 200) scale(1.8)`} fill={z.hl} stroke={z.ink} strokeWidth={5} />
-              <line x1={1240} y1={200} x2={starX + 70} y2={200} stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" strokeLinecap="round" />
+              <path d="M0 -30 Q5 -5 30 0 Q5 5 0 30 Q-5 5 -30 0 Q-5 -5 0 -30 Z" transform={`translate(${starX} ${200 + 28 * Math.sin(chase * Math.PI * 4)}) rotate(${chase * 200}) scale(2.4)`} fill={z.hl} stroke={z.ink} strokeWidth={4} />
+              <line x1={1240} y1={200} x2={starX + 90} y2={200 + 28 * Math.sin(chase * Math.PI * 4)} stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" strokeLinecap="round" />
             </g>
             <Write id="ms" x={1000} y={150} text="شعور مثالي" size={62} p={wp(frame, at("شعور", 0.78), end("مثالي", 0.8))} c={z.ink} z={z} />
             <Cross x1={1250} x2={500} y={206} p={prog(frame, tBal - 4, tBal + 12)} z={z} />
@@ -283,6 +285,9 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
               <rect x={-150} y={-60} width={300} height={110} rx={12} fill={z.hl} stroke={z.ink} strokeWidth={5} />
             </g>
             <Write id="sd" x={560} y={700} text="الصدق" size={96} p={wp(frame, tTruth, end("الصدق", 0.9))} c={z.ink} font="head" z={z} />
+            {/* «في طلب الخشوع»: يُكتب تحت الصدق، ويصل الخط الراجع بالكتاب */}
+            <Write id="tk" x={560} y={810} text="في طلب الخشوع" size={56} p={wp(frame, at("طلب", 0.94), end("الخشوع", 0.98))} c={z.ink} z={z} />
+            <path d="M400 560 C380 640 380 760 420 800" fill="none" stroke={z.hl} strokeWidth={18} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(frame, at("طلب", 0.94), end("الخشوع", 0.98) + 6)} />
           </g>
         ),
       };
@@ -292,7 +297,7 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
   // S12 — سر الصلاة: الإقبال (البدن والقلب إلى جهة واحدة)
   iqbal: {
     nameAr: "الإقبال: البدن إلى القبلة والقلب معه",
-    render: ({ frame, z, at, end }) => {
+    render: ({ frame, z, at, end, reg }) => {
       const tPhrase = at("عبارة", 0.04);
       const tBook = at("الكتاب", 0.16);
       const tSir = at("سر", 0.2);
@@ -318,6 +323,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const icon = (k: number) => prog(frame, iconAt[k]! - 4, iconAt[k]! + 12);
       // سهم القلب يكتمل قبل ذكر اسم الله، فلا حركة جديدة عنده
       const heartArrow = prog(frame, tTry, end("قلوبنا", 0.56), (t) => t);
+      // دائرة «حقها»: حول المصلي كله، وتبقى فوق خط الترجمة (أسفلها 860 < 880)
+      reg([1130, 430, 1510, 860], tHaq);
       return {
         focus: [[tPhrase, 960, 560], [at("القسم", 0.12), 960, 520], [tBook, 960, 560], [at("ننسى", 0.64), 1200, 450], [tSir, 1100, 232], [tIq, 850, 232], [tFace, 1320, 700], [tQibla, 420, 640], [tBody, 880, 700], [tTry, 1320, 650], [tHearts, 900, 560], [tDunya, 1300, 560], [at("الأبد", 0.76), 1200, 560], [tBal, 1250, 560], [tHaq, 1150, 560]],
         cam: [C(0, 960, 470, 1.15), C(tSir - 6, 960, 400, 1.05), C(tFace - 6, 980, 560, 1.0), C(tTry - 4, 1000, 590, 1.06), C(tDunya - 6, 1060, 560, 1.0), C(tHaq - 6, 1060, 580, 1.0)],
@@ -353,7 +360,7 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             {([["house", 1600, 330], ["bag", 1610, 560], ["cart", 1580, 760]] as const).map(([id, x, y], k) => (
               <Icon key={id} id={id} x={x + 40 * aside} y={y} s={1.1 - 0.2 * aside} p={icon(k)} c={z.ink} opacity={1 - 0.35 * aside} />
             ))}
-            <ellipse cx={1320} cy={700} rx={200} ry={250} fill="none" stroke={z.hl} strokeWidth={22} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(frame, tHaq - 2, tHaq + 20)} opacity={0.95} />
+            <ellipse cx={1320} cy={645} rx={190} ry={215} fill="none" stroke={z.hl} strokeWidth={22} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(frame, tHaq - 2, tHaq + 20)} opacity={0.95} />
             <Write id="hq" x={1320} y={395} text="حقها من الانتباه" size={68} p={wp(frame, tHaq, end("الانتباه", 0.96))} c={z.ink} z={z} />
           </g>
         ),
