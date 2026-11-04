@@ -1,5 +1,6 @@
 import React from "react";
 import type { CamKey } from "../illus/shots/kit";
+import { INK_SHOTS_2 } from "./shots2";
 import { Arrow, Card, Cross, Icon, InkPerson, Mark, Stroke, Sun, Write, heartPath, lerp, measure, fam, outCubic, prog, type Z } from "./inkKit";
 
 /**
@@ -459,4 +460,5 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       };
     },
   },
+  ...INK_SHOTS_2,
 };
