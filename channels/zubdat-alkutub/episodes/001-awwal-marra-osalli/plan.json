@@ -6,7 +6,7 @@
   "themeId": "warm",
   "channel": "zubdat-alkutub",
   "lang": "ar",
-  "updatedAt": "2026-11-04T11:38:34.649Z",
+  "updatedAt": "2026-11-04T14:19:08.283Z",
   "chapters": [
     {
       "number": 1,
@@ -353,15 +353,17 @@
         },
         {
           "id": "c6-end",
-          "template": "end-screen",
+          "template": "ink-shot",
           "narration": "",
-          "line": 172,
+          "line": 183,
           "props": {
-            "step": "في الصلاة القادمة: استحضر معنى التكبير عند الدخول في الصلاة.",
-            "prompt": "شاركنا رأيك في التعليقات"
+            "shot": "outro",
+            "task": "نستحضر معنى التكبير"
           },
           "captions": false,
-          "sfx": []
+          "sfx": [],
+          "durationSec": 8,
+          "edited": true
         }
       ]
     }

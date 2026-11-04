@@ -72,6 +72,8 @@ export type ChannelConfig = {
   pacing?: { speechSync?: boolean };
   /** notebook: كل مشهد صفحة داخل غلاف الدفتر، وعنوان الفصل شريط تاريخ أحمر معلّق من حافة الصفحة (هوية «دفتر الأفق») */
   frame?: "notebook";
+  /** خاتمة القناة بدل شاشة النهاية الافتراضية (زبدة الكتب: خاتمة الحبر المتحركة 8 ثوانٍ، معتمدة ٤ نوفمبر) */
+  outro?: { template: string; props?: Record<string, string>; seconds?: number };
   library?: {
     exclude?: { elements?: string[]; categories?: string[]; sets?: string[]; templates?: string[] };
     /** قائمة سماح: إن وُجدت فلا يدخل مكتبة القناة من العناصر إلا ما فيها (أو في فئاتها)، فلا يتسرب إليها ما يُرسم لقنوات أخرى لاحقًا */

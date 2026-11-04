@@ -266,7 +266,7 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
   return (
     <SceneShell {...props} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: portrait ? 56 : 44, padding: portrait ? "0 80px 220px" : "0 220px 40px", opacity: inP }}>
-        <div style={{ fontFamily: fontFamilies.heading, fontSize: Math.round(refSize * 1.25), color: c.ink, letterSpacing: 0.5 }}>سورة {arabicDigits(ref)}</div>
+        <div style={{ fontFamily: fontFamilies.heading, fontSize: Math.round(refSize * (portrait ? 2.1 : 2.2)), lineHeight: 1.2, color: c.ink, letterSpacing: 0.5 }}>سورة {arabicDigits(ref)}</div>
         <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />
         <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400 }}>{text}</div>
         <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />

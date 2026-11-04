@@ -256,7 +256,17 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
       captions: false,
       sfx: [],
     };
-    if (old?.edited && old.template === "end-screen") {
+    if (channel.outro) {
+      // خاتمة القناة المعتمدة: مهمة الحلقة من «الخطوة العملية» ما لم تُحرَّر في الخطة
+      scene.template = channel.outro.template;
+      scene.props = { ...(channel.outro.props ?? {}), task: step };
+      if (channel.outro.seconds) scene.durationSec = channel.outro.seconds;
+      if (old?.edited && old.template === scene.template) {
+        scene.props = { ...scene.props, ...old.props };
+        scene.edited = true;
+      }
+    }
+    if (!channel.outro && old?.edited && old.template === "end-screen") {
       scene.props = { ...scene.props, ...old.props };
       scene.durationSec = old.durationSec;
       scene.backdrop = old.backdrop;

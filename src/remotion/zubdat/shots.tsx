@@ -18,6 +18,8 @@ export type InkCtx = {
   logo: (size: number) => React.ReactNode;
   /** تسجيل مستطيل عنصر ولحظة ظهوره، لتبقيه الكاميرا داخل الإطار */
   reg: (r: [number, number, number, number], t: number) => void;
+  /** مهمة الحلقة (للخاتمة) */
+  task?: string;
 };
 /**
  * focus: لحظات الأحداث ومواضعها [لحظة، x، y]؛ الكاميرا تميل إلى كل حدث لحظة وقوعه (كاميرا فوق الدفتر تتبع القلم).
@@ -251,12 +253,12 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             {/* الخواطر: يخرج الخط عن مساره */}
             <Stroke d="M1380 560 C1300 560 1290 430 1210 410 C1130 390 1170 300 1090 320 C1020 340 1050 262 1000 300" p={seg2} c={z.ink} w={9} />
             {([
-              [1260, 290, 58],
-              [1100, 200, 48],
-              [960, 180, 40],
+              [1270, 300, 82],
+              [1090, 210, 68],
+              [930, 200, 56],
             ] as const).map(([x, y, r], k) => (
               <g key={k} transform={`translate(${x} ${y}) scale(${cloud(k)})`} opacity={cloud(k) * (1 - 0.7 * prog(frame, tBack, tBack + 20))}>
-                <path d={`M${-r} 0 a${r * 0.6} ${r * 0.6} 0 0 1 ${r * 0.7} ${-r * 0.6} a${r * 0.7} ${r * 0.7} 0 0 1 ${r * 1.1} ${r * 0.1} a${r * 0.5} ${r * 0.5} 0 0 1 ${r * 0.2} ${r * 0.9} Z`} fill={z.paper} stroke={z.ink} strokeWidth={6} strokeLinejoin="round" />
+                <path d={`M${-r} 0 a${r * 0.6} ${r * 0.6} 0 0 1 ${r * 0.7} ${-r * 0.6} a${r * 0.7} ${r * 0.7} 0 0 1 ${r * 1.1} ${r * 0.1} a${r * 0.5} ${r * 0.5} 0 0 1 ${r * 0.2} ${r * 0.9} Z`} fill={z.faint} fillOpacity={0.25} stroke={z.ink} strokeWidth={6} strokeLinejoin="round" />
               </g>
             ))}
             {/* يضعف الانتباه: الخط يبهت ويتقطع */}
@@ -270,11 +272,16 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             ))}
             {/* مطاردة شعور مثالي: نجمة تهرب وسهم يلاحقها، ثم يُشطب */}
             <g opacity={prog(frame, tChase - 4, tChase + 6)}>
-              <path d="M0 -30 Q5 -5 30 0 Q5 5 0 30 Q-5 5 -30 0 Q-5 -5 0 -30 Z" transform={`translate(${starX} 200)`} fill={z.hl} stroke={z.ink} strokeWidth={5} />
+              <path d="M0 -30 Q5 -5 30 0 Q5 5 0 30 Q-5 5 -30 0 Q-5 -5 0 -30 Z" transform={`translate(${starX} 200) scale(1.8)`} fill={z.hl} stroke={z.ink} strokeWidth={5} />
               <line x1={1240} y1={200} x2={starX + 70} y2={200} stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" strokeLinecap="round" />
             </g>
             <Write id="ms" x={1000} y={150} text="شعور مثالي" size={62} p={wp(frame, at("شعور", 0.78), end("مثالي", 0.8))} c={z.ink} z={z} />
             <Cross x1={1250} x2={500} y={206} p={prog(frame, tBal - 4, tBal + 12)} z={z} />
+            {/* «الصدق»: بطاقة فسفورية تثبت على الخط الراجع */}
+            <g transform={`translate(560 ${lerp(760, 676, prog(frame, tTruth - 4, tTruth + 10, outCubic))}) rotate(-2)`} opacity={prog(frame, tTruth - 4, tTruth + 6)}>
+              <rect x={-150} y={-60} width={300} height={110} rx={12} fill={z.ink} opacity={0.12} transform="translate(8 10)" />
+              <rect x={-150} y={-60} width={300} height={110} rx={12} fill={z.hl} stroke={z.ink} strokeWidth={5} />
+            </g>
             <Write id="sd" x={560} y={700} text="الصدق" size={96} p={wp(frame, tTruth, end("الصدق", 0.9))} c={z.ink} font="head" z={z} />
           </g>
         ),

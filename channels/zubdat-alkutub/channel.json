@@ -124,5 +124,12 @@
   "verse": {
     "style": "ink",
     "reveal": "whole"
+  },
+  "outro": {
+    "template": "ink-shot",
+    "props": {
+      "shot": "outro"
+    },
+    "seconds": 8
   }
 }

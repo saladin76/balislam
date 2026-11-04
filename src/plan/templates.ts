@@ -282,7 +282,10 @@ export const templateDefs: TemplateDef[] = [
     implemented: true,
     baseSeconds: 6,
     minSeconds: 4,
-    fields: [{ key: "shot", label: "المشهد", type: "select", options: Object.entries(INK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) }],
+    fields: [
+      { key: "shot", label: "المشهد", type: "select", options: Object.entries(INK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
+      { key: "task", label: "مهمة الحلقة (للخاتمة فقط، بنص منطوق في الحلقة)", type: "text" },
+    ],
   },
   {
     id: "ink-meaning",
