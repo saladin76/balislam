@@ -38,6 +38,7 @@ describe("مرحلة الصوت", () => {
   it("تظهر حالة المقطع المفقود وتستخدم واجهة الصوت القائمة", () => {
     const html = renderToStaticMarkup(
       <VoiceWorkspaceTab
+        channelId="balislam"
         episodeId="001"
         plan={plan("هذا تعليق لم يولّد بعد")}
         media={{ voice: {} } as EpisodeMedia}
