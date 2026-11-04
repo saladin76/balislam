@@ -170,7 +170,14 @@ export const packageEpisode = async (opts: PackageOptions) => {
     }
     files.push("motion-report.md");
     const weak = motion.filter((m) => m.report.percent < MOTION_MIN);
-    if (weak.length) throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. التفاصيل والمقاطع الساكنة في motion-report.md.`);
+    if (weak.length) {
+      // تقرير التشخيص يبقى متاحًا؛ أما الفيديوهات الفاشلة فلا تبقى ضمن ملفات جاهزة للنشر.
+      for (const name of files.filter((f) => f.endsWith(".mp4"))) {
+        await unlink(path.join(dir, name)).catch(() => {});
+      }
+      if (stage === "episode") await unlink(renderInfoFile(dir)).catch(() => {});
+      throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. حُذفت ملفات الفيديو غير المجتازة؛ راجع التفاصيل في motion-report.md.`);
+    }
   }
   return { dir, files, hasVoice };
 };
