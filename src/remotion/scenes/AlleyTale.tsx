@@ -4,6 +4,7 @@ import { SceneShell } from "./SceneShell";
 import { estimateTimings } from "./timing";
 import { exit } from "./motion";
 import { sentenceGroups } from "../../plan/beats";
+import { cameraCuts, parsePoseTimeline } from "../../plan/director";
 import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan/sceneCues";
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
@@ -20,7 +21,7 @@ import { Grade, Texture } from "../illus/texture";
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "poses" | "cues" | "look" | "cast" | "shot">;
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot">;
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -96,15 +97,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   if (!starts.length) starts.push(0);
   const shot = Math.max(0, starts.filter((s) => frame >= s).length - 1);
   // لقطات التأطير: كل سطر لقطة، والسطر الطويل (أكثر من ثانيتين ونصف) لقطتان، فلا يسكن الكادر أكثر من ثانيتين
-  const cuts: number[] = [];
-  if (directed) {
-    // One deliberate framing per semantic group: no automatic mid-sentence cuts.
-    cuts.push(0);
-  } else starts.forEach((s0, i) => {
-    const s1 = starts[i + 1] ?? dur;
-    cuts.push(s0);
-    if (s1 - s0 > 75) cuts.push(s0 + Math.round((s1 - s0) / 2));
-  });
+  const cuts = cameraCuts(starts, dur, directed);
   const cut = Math.max(0, cuts.filter((s) => frame >= s).length - 1);
   const groupOf = (f: number) => Math.max(0, groupStarts.filter((s) => f >= s).length - 1);
   const poses = (props.poses || "stand").split(",").map((p) => p.trim()).filter((p): p is ActionId => (POSE_IDS as readonly string[]).includes(p));
@@ -160,6 +153,10 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
     if (!directed && s1 - s0 > 50 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.3), pose: SECOND[p] ?? "nod" });
     if (!directed && s1 - s0 > 90 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.78), pose: p });
   });
+  // Director-authored poses are additive and do not depend on automatic filler gestures.
+  for (const event of parsePoseTimeline(props.poseTimeline)) {
+    if ((POSE_IDS as readonly string[]).includes(event.pose)) timeline.push({ at: event.at, pose: event.pose as PoseName });
+  }
   // إيماءة عند الكلمة المفتاحية في اللقطة: يتأمل/يومئ
   const thinkAt = at("think");
   if (thinkAt !== undefined && !sitting) timeline.push({ at: thinkAt, pose: "think" });
