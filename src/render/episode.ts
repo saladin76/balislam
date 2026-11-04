@@ -86,24 +86,30 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
-  await renderMedia({
-    serveUrl,
-    composition,
-    inputProps,
-    codec: "h264",
-    // الجودة من config.json: master = 4K بترميز بطيء عالي الجودة، preview = 1080p سريع
-    scale: q.scale,
-    crf: q.crf,
-    x264Preset: q.x264Preset,
-    audioCodec: "aac",
-    audioBitrate: q.audioBitrate,
-    colorSpace: "bt709",
-    outputLocation: output,
-    browserExecutable: browserExecutable(),
-    onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
-  });
-  await cleanMetadata(output, { title: plan.title, artist: channel.name });
-  return output;
+  // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
+  const tempOutput = output.replace(/\.mp4$/i, "") + ".rendering.mp4";
+  try {
+    await renderMedia({
+      serveUrl,
+      composition,
+      inputProps,
+      codec: "h264",
+      scale: q.scale,
+      crf: q.crf,
+      x264Preset: q.x264Preset,
+      audioCodec: "aac",
+      audioBitrate: q.audioBitrate,
+      colorSpace: "bt709",
+      outputLocation: tempOutput,
+      browserExecutable: browserExecutable(),
+      onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
+    });
+    await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
+    await rename(tempOutput, output);
+    return output;
+  } finally {
+    await unlink(tempOutput).catch(() => {});
+  }
 };
 
 /**
