@@ -1,4 +1,5 @@
 import { hasElement } from "../../brand/elements/registry";
+import { parsePoseTimeline } from "./director";
 import type { Plan } from "./types";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
@@ -32,6 +33,19 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         for (const k of ["element", "rightElement", "leftElement", "secondElement"]) if (p[k]) notOurs(s.id, `العنصر «${p[k]}»`, elementExclusion(lib, p[k]!));
         if (s.backdrop) notOurs(s.id, `الخلفية «${s.backdrop}»`, elementExclusion(lib, s.backdrop));
         for (const b of parseBeats(p.beats ?? "")) if (!b.draw.startsWith("person") && b.draw !== "people") notOurs(s.id, `رسمة «${b.draw}»`, elementExclusion(lib, b.draw));
+      }
+      if (s.template === "alley-tale" && plan.channel === "balislam") {
+        if (p.cameraMode && p.cameraMode !== "automatic" && p.cameraMode !== "directed")
+          out.push({ level: "error", sceneId: s.id, message: "وضع الكاميرا غير معروف؛ استخدم automatic أو directed." });
+        if (p.cameraMode === "directed" && p.camera && !["still", "push", "track", "rise", "drift"].includes(p.camera))
+          out.push({ level: "error", sceneId: s.id, message: "حركة كاميرا غير مدعومة في وضع الإخراج اليدوي." });
+        if (p.poseTimeline) {
+          const allowed = new Set(["stand", "think", "sit", "sit-low", "head-down", "hold", "cross", "point", "look-up", "nod", "turn-away", "walk", "proud", "apologize", "listen", "talk"]);
+          const parsed = parsePoseTimeline(p.poseTimeline);
+          const lines = p.poseTimeline.split("\n").map((x) => x.trim()).filter(Boolean);
+          if (parsed.length !== lines.length || parsed.some((x) => !allowed.has(x.pose)))
+            out.push({ level: "error", sceneId: s.id, message: "الخط الزمني للوضعيات غير صالح؛ اكتب: رقم_الإطار | الوضعية، سطرًا لكل حدث." });
+        }
       }
       if (s.template === "hadith-card" && !p.text?.trim()) out.push({ level: "error", sceneId: s.id, message: `بطاقة الحديث «${p.reference ?? ""}» بلا نص.` });
       if (s.template === "verse-card" && (!p.text?.trim() || p.text.startsWith("‹")))

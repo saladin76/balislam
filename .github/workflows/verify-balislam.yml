@@ -1,0 +1,27 @@
+name: Verify Balislam production environment
+on:
+  push:
+    branches:
+      - chore/balislam-production-environment-v1
+  pull_request:
+    paths:
+      - "src/plan/**"
+      - "src/remotion/scenes/AlleyTale.tsx"
+      - "channels/balislam/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/verify-balislam.yml"
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install ffmpeg for recitation tests
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci
+      - run: npm run check
