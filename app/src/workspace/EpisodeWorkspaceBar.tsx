@@ -35,6 +35,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   const [published, setPublished] = useState<EpisodeStatus["published"] | null>(null);
   const [researchExists, setResearchExists] = useState<boolean | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [unavailableChecks, setUnavailableChecks] = useState(0);
 
   // تُحدّث الملخصات عند تغيير الحلقة أو الخطة؛ اعتماد أي مرحلة يتم داخل مكوّنها الأصلي فقط.
   useEffect(() => {
@@ -42,6 +43,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     const refresh = () => {
       void Promise.allSettled([api.review(episodeId), api.sceneReview(episodeId), api.storyboard(episodeId), api.status(episodeId), api.research(episodeId)]).then(([r, s, b, p, research]) => {
         if (!alive) return;
+        setUnavailableChecks([r, s, b, p, research].filter((item) => item.status === "rejected").length);
         setReview(r.status === "fulfilled" ? r.value.summary : null);
         setSceneReview(s.status === "fulfilled" ? s.value.summary : null);
         setBoard(b.status === "fulfilled" ? b.value.status : null);
@@ -52,7 +54,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     refresh();
     const timer = window.setInterval(refresh, 15000);
     return () => { alive = false; window.clearInterval(timer); };
-  }, [episodeId, plan]);
+  }, [episodeId, plan, stage]);
 
   const narration = useMemo(() => plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim()), [plan]);
   const missingAudio = narration.filter((s) => !media.voice[s.id] || media.voice[s.id]?.text !== s.narration.trim()).length;
@@ -60,6 +62,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     ...check.issues.filter((i) => i.level === "error").map((i, n) => ({ id: `script-${n}`, stage: "script" as const, text: i.message, critical: true, line: i.line })),
     ...issues.filter((i) => i.level === "error").map((i, n) => ({ id: `plan-${n}`, stage: "episode" as const, text: i.message, critical: true, sceneId: i.sceneId === "-" ? undefined : i.sceneId })),
   ];
+  if (unavailableChecks) notes.unshift({ id: "unavailable-checks", stage, text: `تعذر جلب ${unavailableChecks} من تقارير حالة الحلقة؛ لا يمكن تأكيد اكتمال المراجعات الآن`, critical: true });
   if (researchDirty) notes.unshift({ id: "unsaved-research", stage: "research", text: "ملف البحث يحتوي على تعديلات غير محفوظة", critical: true });
   if (scriptDirty) notes.unshift({ id: "unsaved-script", stage: "script", text: "السكريبت يحتوي على تغييرات غير محفوظة", critical: true });
   if (saveState === "error") notes.unshift({ id: "failed-save", stage: "episode", text: "تعذر حفظ تعديلات المشاهد؛ راجع الحفظ قبل المتابعة", critical: true });
