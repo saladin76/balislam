@@ -153,10 +153,6 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
     if (!directed && s1 - s0 > 50 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.3), pose: SECOND[p] ?? "nod" });
     if (!directed && s1 - s0 > 90 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.78), pose: p });
   });
-  // Director-authored poses are additive and do not depend on automatic filler gestures.
-  for (const event of parsePoseTimeline(props.poseTimeline)) {
-    if ((POSE_IDS as readonly string[]).includes(event.pose)) timeline.push({ at: event.at, pose: event.pose as PoseName });
-  }
   // إيماءة عند الكلمة المفتاحية في اللقطة: يتأمل/يومئ
   const thinkAt = at("think");
   if (thinkAt !== undefined && !sitting) timeline.push({ at: thinkAt, pose: "think" });
@@ -177,6 +173,10 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   ev("spread", "hold");
   ev("money", "hold");
   ev("evidence", "hold");
+  // Apply authored poses after automatic/semantic events: at the same frame the director wins.
+  for (const event of parsePoseTimeline(props.poseTimeline)) {
+    if ((POSE_IDS as readonly string[]).includes(event.pose)) timeline.push({ at: event.at, pose: event.pose as PoseName });
+  }
   let pose = poseAt(frame, timeline);
   if (walking) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95);
   else if (stepping) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95, 0.85);
