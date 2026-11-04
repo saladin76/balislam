@@ -107,10 +107,30 @@ export const StoryboardPanel: React.FC<{
   const st = info?.status;
   const motion = info?.motion;
   const act = async (action: "approve" | "revoke") => {
+    let auditNote: string | undefined;
+    if (action === "approve") {
+      if (info?.motionStale?.length) {
+        setErr("نتيجة الفحص قديمة؛ أعد قياس الحركة والمنطق ثم اعتمد الستوري بورد.");
+        return;
+      }
+      const warnings = Object.values(info?.motion?.scenes ?? {}).filter((s) => s.logic?.status === "needs-review").length;
+      if (warnings) {
+        const answer = window.prompt(
+          `يوجد ${warnings} مشهدًا بها تحذيرات فحص. شاهد المشاهد أولًا، ثم اكتب سبب قبولها رغم التحذيرات أو الإصلاح الذي أجريته. لن تُعتبر التحذيرات اعتمادًا تلقائيًا.`,
+          "",
+        );
+        if (answer === null) return;
+        auditNote = answer.trim();
+        if (auditNote.length < 10) {
+          setErr("اكتب ملاحظة مراجعة من 10 أحرف على الأقل قبل اعتماد المشاهد ذات التحذيرات.");
+          return;
+        }
+      }
+    }
     setBusy(true);
     setErr("");
     try {
-      setInfo(await api.setStoryboard(episodeId, action));
+      setInfo(await api.setStoryboard(episodeId, action, auditNote));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -173,6 +193,7 @@ export const StoryboardPanel: React.FC<{
             {motion && <span className={logicNeedsReview.length || logicNotAssessable.length ? "warn" : "help"}>مطابقة النص: {logicNeedsReview.length} بها تحذيرات · {logicNotAssessable.length} غير قابلة للتقييم الآلي (لا تعادل اعتمادًا فنيًا)</span>}
           </p>
           {st?.changed.length ? <p className="help warn">تغيّر بعد الاعتماد: {st.changed.join("، ")}</p> : null}
+          {st?.audit?.note ? <p className="help">ملاحظة اعتماد المراجع: {st.audit.note}</p> : null}
           {err ? <p className="help warn" role="alert">{err}</p> : null}
           {job?.status === "error" ? <p className="help warn">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
         </div>
