@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { elementExclusion, templateExclusion } from "../src/channel/library";
 import { currentChannelId, loadChannel, runWithChannel, channelPaths, channelInfo } from "../src/channel";
 import { channelLibrary } from "../src/channel/library";
 import { channelSamples } from "../src/remotion/scenes/channelSamples";
@@ -16,6 +19,38 @@ describe("shared studio isolation across all three channels", () => {
       for (const template of Object.keys(channelSamples[id] ?? {})) expect(allowed.has(template), id + "/" + template).toBe(true);
     });
   });
+
+  it("keeps each identity, assets directory and episode storage distinct", () => {
+    const dirs = ids.map((id) => channelPaths(id));
+    expect(new Set(dirs.map((d) => d.dir)).size).toBe(3);
+    expect(new Set(dirs.map((d) => d.episodes)).size).toBe(3);
+    const digests = dirs.map((d) => createHash("sha256").update(readFileSync(d.identity)).digest("hex"));
+    expect(new Set(digests).size).toBe(3);
+    for (const dir of dirs) {
+      expect(dir.identity.startsWith(dir.dir)).toBe(true);
+      expect(dir.episodes.startsWith(dir.dir)).toBe(true);
+    }
+  });
+
+  it("uses the same studio engine but applies per-channel libraries and identity rules", () => {
+    const channels = ids.map((id) => loadChannel(id));
+    const libs = channels.map(channelLibrary);
+    for (const lib of libs) {
+      expect(lib.templates.length).toBeGreaterThan(0);
+      expect(lib.elements.length).toBeGreaterThan(0);
+    }
+    expect(new Set(libs.map((l) => JSON.stringify(l))).size).toBeGreaterThan(1);
+    for (let i = 0; i < ids.length; i++) {
+      const c = channels[i]!;
+      const lib = libs[i]!;
+      for (const id of lib.elements) expect(elementExclusion(c, id)).toBeNull();
+      for (const id of lib.templates) expect(templateExclusion(c, id)).toBeNull();
+      expect(lib.figures).toBe(c.rules.faces);
+    }
+    expect(libs[0]!.figures).toBe(false);
+    expect(libs[1]!.figures).toBe(true);
+  });
+
   it("keeps overlapping asynchronous studio requests in distinct channels", async () => {
     const names = await Promise.all(ids.map((id, index) =>
       runWithChannel(id, async () => {
