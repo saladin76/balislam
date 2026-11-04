@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir } from "node:fs/promises";
 import { rename, stat, unlink } from "node:fs/promises";
@@ -47,7 +48,10 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     const scriptPath = await resolveScriptPath(opts.episode);
     const ids = new Set(plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
     const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
-    const missing = required.filter((s) => media.voice[s.id]?.text !== s.narration.trim()).map((s) => s.id);
+    const missing = required.filter((s) => {
+      const clip = media.voice[s.id];
+      return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
+    }).map((s) => s.id);
     if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
     const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
     const blocked = unapprovedScenes(sb, [...ids]);
