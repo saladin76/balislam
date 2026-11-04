@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { useTheme } from "../../../brand/identity/index";
 import { SceneShell } from "./SceneShell";
 import { LogoMark } from "../../../brand/logo/Logo";
@@ -25,7 +25,7 @@ const withFocus = (keys: CamKey[], focus: [number, number, number][], still: [nu
     .filter(([t]) => !inStill(t) && !base.some((k) => Math.abs(k.t - t) < 10))
     .map(([t, x, y]) => {
       const b0 = camAt(t, base, len);
-      return { t: t - 4, x: b0.x + (x - b0.x) * 0.32, y: b0.y + (y - b0.y) * 0.28, z: b0.z * 1.07 };
+      return { t: t - 4, x: b0.x + (x - b0.x) * 0.38, y: b0.y + (y - b0.y) * 0.32, z: b0.z * 1.1 };
     });
   // لا يبدأ انتقال ولا يمر داخل نافذة سكون: يُؤجَّل إلى نهايتها
   const shift = (k: CamKey): CamKey => {
@@ -63,6 +63,17 @@ export const InkShot: React.FC<InkShotProps> = (props) => {
             <Paper z={z} />
             {shot?.world}
           </g>
+          {/* صفحة جديدة لكل فكرة: الورقة السابقة تُقلب من اليسار إلى اليمين (اتجاه تقليب الكتاب العربي) */}
+          {frame < 16 ? (
+            <g transform={`translate(${interpolate(frame, [0, 15], [0, W * 1.08], { extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) })} 0)`}>
+              <rect x={-40} y={0} width={40} height={H} fill={z.ink} opacity={0.12} />
+              <rect x={0} y={0} width={W} height={H} fill={z.paper} />
+              {Array.from({ length: 20 }, (_, i) => (
+                <line key={i} x1={0} x2={W} y1={26 + i * 54} y2={26 + i * 54} stroke={z.ink} strokeOpacity={0.055} strokeWidth={2} />
+              ))}
+              <line x1={W - 150} x2={W - 150} y1={0} y2={H} stroke={z.alert} strokeOpacity={0.28} strokeWidth={3} />
+            </g>
+          ) : null}
         </svg>
       </AbsoluteFill>
     </SceneShell>
