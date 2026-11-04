@@ -300,6 +300,7 @@ export const App: React.FC = () => {
              media={media}
              saveState={planState}
              scriptDirty={scriptDirty}
+             researchDirty={researchDirty}
            />
          ) : null}
 
