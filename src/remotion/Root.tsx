@@ -14,6 +14,7 @@ import { IsometricDemo } from "./styles/Isometric";
 import { Providers } from "./Providers";
 import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
+import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { AlleyTale } from "./scenes/AlleyTale";
 import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
@@ -67,6 +68,10 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="dafatir-001-horizon-test" component={HorizonTest} durationInFrames={HZ_TOTAL} fps={HZ_FPS} width={1920} height={1080} />
     {/* دفاتر الزمن 001: اللقطات الست بصوت الراوي والتلاوة — تُرندر على جهاز الإنتاج فقط (npx bal horizon-audio) */}
     <Composition id="dafatir-001-horizon-audio" component={HorizonAudioReel} defaultProps={{}} calculateMetadata={horizonAudioMetadata} durationInFrames={HZ_TOTAL} fps={HZ_FPS} width={1920} height={1080} />
+    {/* مختبر «بالإسلام»: اختبارات بصرية للمحرك، بلا صوت، لا تُنشر */}
+    <Composition id="balislam-lab-camera-ab" component={CameraAB} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
+    <Composition id="balislam-lab-camera-portrait" component={CameraComposedPortrait} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.portrait} />
+
     {/* Controlled A/B comparison: same words, cast and timing; only camera direction differs. */}
     {(["automatic", "directed"] as const).map((mode) => (
       <Composition

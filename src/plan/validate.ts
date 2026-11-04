@@ -1,5 +1,5 @@
 import { hasElement } from "../../brand/elements/registry";
-import { parsePoseTimeline } from "./director";
+import { parseCameraPlanLines, parsePoseTimeline } from "./director";
 import type { Plan } from "./types";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
@@ -35,8 +35,15 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         for (const b of parseBeats(p.beats ?? "")) if (!b.draw.startsWith("person") && b.draw !== "people") notOurs(s.id, `رسمة «${b.draw}»`, elementExclusion(lib, b.draw));
       }
       if (s.template === "alley-tale" && plan.channel === "balislam") {
-        if (p.cameraMode && p.cameraMode !== "automatic" && p.cameraMode !== "directed")
-          out.push({ level: "error", sceneId: s.id, message: "وضع الكاميرا غير معروف؛ استخدم automatic أو directed." });
+        if (p.cameraMode && !["automatic", "directed", "composed"].includes(p.cameraMode))
+          out.push({ level: "error", sceneId: s.id, message: "وضع الكاميرا غير معروف؛ استخدم automatic أو directed أو composed." });
+        if (p.cameraPlan) {
+          const lines = parseCameraPlanLines(p.cameraPlan);
+          if (lines.some((x) => x === null))
+            out.push({ level: "error", sceneId: s.id, message: "خطة الكاميرا غير صالحة؛ اكتب سطرًا لكل حركة: الكلمة أو رقم الإطار | wide أو medium أو close ثم الهدف (hero، pair، door، board، center)." });
+          if (p.cameraMode !== "composed")
+            out.push({ level: "warning", sceneId: s.id, message: "خطة الكاميرا لا تعمل إلا في وضع composed." });
+        }
         if (p.cameraMode === "directed" && p.camera && !["still", "push", "track", "rise", "drift"].includes(p.camera))
           out.push({ level: "error", sceneId: s.id, message: "حركة كاميرا غير مدعومة في وضع الإخراج اليدوي." });
         if (p.poseTimeline) {

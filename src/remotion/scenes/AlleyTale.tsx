@@ -4,7 +4,7 @@ import { SceneShell } from "./SceneShell";
 import { estimateTimings } from "./timing";
 import { exit } from "./motion";
 import { sentenceGroups } from "../../plan/beats";
-import { cameraCuts, parsePoseTimeline } from "../../plan/director";
+import { autoCameraPlan, cameraCuts, isComposed, moveFrames, parseCameraPlan, parsePoseTimeline, shotZoom, type CamShot, type CamTarget } from "../../plan/director";
 import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan/sceneCues";
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
@@ -21,7 +21,7 @@ import { Grade, Texture } from "../illus/texture";
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -73,8 +73,10 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const place = (["alley", "market", "home"].includes(props.place ?? "") ? props.place : "alley") as Place;
   const mood = asMood(props.mood, "night");
   const moodTo = props.moodTo ? asMood(props.moodTo, mood) : undefined;
-  const directed = props.cameraMode === "directed";
-  const camera = (directed ? (props.camera || "still") : (props.camera || "push")) as Camera;
+  // composed: كاميرا مؤلَّفة بحركات قليلة لها سبب؛ ومثل directed: لا تأطير آلي متكرر، ولا خطوات بين علامات ثابتة، ولا إيماءات حشو
+  const composed = isComposed(props.cameraMode);
+  const directed = props.cameraMode === "directed" || composed;
+  const camera = (composed ? "still" : directed ? (props.camera || "still") : (props.camera || "push")) as Camera;
   const cues = cueFrames(parseCues(props.cues), timings);
   const at = (k: CueKind) => cues.find((c) => c.kind === k)?.at;
   const look = LOOKS[(props.look as keyof typeof LOOKS) || "hero"] ?? LOOKS.hero;
@@ -226,8 +228,15 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const out = exit(frame, dur, 8);
   const keys = cues.map((c) => c.word);
   const focusX = heroX;
-  const cam = (depth: number) => `${cameraTransform(camera, frame, dur, depth, focusX)} translate(${-offX * (0.4 + depth * 0.6)} 0) translate(${focusX} ${GROUND - 330}) scale(${1 + (zoom - 1) * (0.55 + depth * 0.45)}) translate(${-focusX} ${-(GROUND - 330)})`;
-  const vb = portrait ? `${Math.max(0, Math.min(WW - 608, focusX - 304))} 0 608 1080` : `0 0 ${WW} ${WH}`;
+  // الكاميرا المؤلَّفة: مفاتيح قليلة (افتتاح + حركة أو اثنتان) على كلمات المعنى، بانتقال طويل هادئ
+  const sacredScene = isSacredSentence(narration);
+  const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: props.cameraPlan, cues, timings }) : null;
+  const cam = (depth: number) =>
+    composedCam
+      ? composedLayer(composedCam, depth)
+      : `${cameraTransform(camera, frame, dur, depth, focusX)} translate(${-offX * (0.4 + depth * 0.6)} 0) translate(${focusX} ${GROUND - 330}) scale(${1 + (zoom - 1) * (0.55 + depth * 0.45)}) translate(${-focusX} ${-(GROUND - 330)})`;
+  // العمودي في الكاميرا المؤلَّفة: الهدف في منتصف الإطار دائمًا، فلا يُقص ما تنظر إليه الكاميرا
+  const vb = portrait ? (composedCam ? `${960 - 304} 0 608 1080` : `${Math.max(0, Math.min(WW - 608, focusX - 304))} 0 608 1080`) : `0 0 ${WW} ${WH}`;
 
   const hasBoard = newsAt !== undefined && place !== "home";
   const hasDoor = at("door") !== undefined;
@@ -309,6 +318,99 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
       <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} />
     </SceneShell>
   );
+};
+
+/** موضع الهدف في عالم المشهد */
+const targetX = (t: CamTarget, heroX: number, stage: "solo" | "companion" | "witnesses") =>
+  t === "hero" ? heroX : t === "pair" ? (stage === "companion" ? heroX - 200 : heroX) : t === "door" ? heroX + 250 : t === "board" ? heroX - 430 : 960;
+/** المسافة بين البطل والهدف حين يجب أن يظهرا معًا (الباب واللوحة ومن أمامه) */
+const targetSpan = (t: CamTarget, stage: "solo" | "companion" | "witnesses") => (t === "door" ? 250 : t === "board" ? 430 : t === "pair" && stage === "companion" ? 400 : 0);
+/** عرض الإطار العمودي في عالم المشهد، والهامش المتروك على الجانبين */
+const PORTRAIT_W = 608;
+const PORTRAIT_KEEP = PORTRAIT_W - 160;
+/**
+ * هدف اللقطة: في الأفقي الهدف نفسه؛ وفي العمودي إن كان الهدف شيئًا مع البطل (باب، لوحة، من أمامه)
+ * تؤطّر الكاميرا الاثنين معًا وتحدّ التكبير حتى يتسعا، فلا يُقص البطل خارج الإطار الضيق.
+ */
+export const shotFrame = (t: CamTarget, shot: CamShot, heroX: number, stage: "solo" | "companion" | "witnesses", portrait: boolean): CamState => {
+  const span = targetSpan(t, stage);
+  if (!portrait || span === 0) return frameOn(targetX(t, heroX, stage), shotZoom(shot), portrait);
+  const tx = targetX(t, heroX, stage);
+  const mid = t === "pair" ? tx : (heroX + tx) / 2;
+  return frameOn(mid, Math.max(1, Math.min(shotZoom(shot), PORTRAIT_KEEP / span)), true);
+};
+
+/** منحنى كاميرا ثقيلة: بداية متأنية واستقرار طويل */
+const camEase = Easing.bezier(0.42, 0, 0.18, 1);
+
+type CamState = { x: number; y: number; z: number };
+/** أعلى رأس البطل في العالم (الشخصية بمقياس 1.75 نحو 530 وحدة فوق الأرض) */
+const HEAD_Y = GROUND - 540;
+/** أقرب مسافة لأعلى الرأس من أعلى الإطار: تحت منطقة الترجمة العلوية */
+const HEADROOM = 230;
+/**
+ * تأطير على هدف: الأرض عند 80% من الإطار ما دام الرأس تحت منطقة الترجمة، وإلا تنزل الأرض
+ * (في اللقطة القريبة قد تقترب القدمان من الحافة السفلى، ولا يُقص الرأس أبدًا). ولا يظهر ما وراء حدود العالم.
+ */
+export const frameOn = (x: number, z: number, portrait = false): CamState => {
+  // في العمودي يُرى من العالم 608 وحدات فقط في العرض
+  const halfW = (portrait ? 304 : WW / 2) / z;
+  const halfH = WH / 2 / z;
+  const y = Math.min(GROUND - 320 / z, HEAD_Y + (540 - HEADROOM) / z);
+  return { x: Math.max(halfW, Math.min(WW - halfW, x)), y: Math.max(halfH, Math.min(WH - halfH, y)), z };
+};
+/** موضع نقطة من العالم على الشاشة بتأطير ما (لاختبار الرأس والحدود) */
+export const screenY = (c: CamState, worldY: number) => 540 + c.z * (worldY - c.y);
+export const HERO_HEAD_Y = HEAD_Y;
+
+export const composedCamera = (o: {
+  frame: number;
+  dur: number;
+  fps: number;
+  heroX: number;
+  stage: "solo" | "companion" | "witnesses";
+  sacred: boolean;
+  portrait?: boolean;
+  plan?: string;
+  cues: { kind: string; word: string; at: number }[];
+  timings: { word: string; start: number }[];
+}): CamState & { keys: number } => {
+  const authored = parseCameraPlan(o.plan);
+  const beats: { frame: number; shot: CamShot; target: CamTarget }[] = authored.length
+    ? authored
+        .map((b) => ("frame" in b.at ? { frame: b.at.frame, shot: b.shot, target: b.target } : (() => {
+          const hit = cueFrames([{ kind: "truth", word: (b.at as { word: string }).word }], o.timings)[0];
+          return hit ? { frame: hit.at, shot: b.shot, target: b.target } : null;
+        })()))
+        .filter((b): b is { frame: number; shot: CamShot; target: CamTarget } => b !== null)
+        .sort((a, b) => a.frame - b.frame)
+    : autoCameraPlan({ cues: o.cues, duration: o.dur, fps: o.fps, stage: o.stage, sacred: o.sacred });
+  if (!beats.length || beats[0]!.frame > 0) beats.unshift({ frame: 0, shot: "wide", target: "hero" });
+  const pt = Boolean(o.portrait);
+  let cur = shotFrame(beats[0]!.target, beats[0]!.shot, o.heroX, o.stage, pt);
+  let free = 0;
+  for (let i = 1; i < beats.length; i++) {
+    const b = beats[i]!;
+    const to = shotFrame(b.target, b.shot, o.heroX, o.stage, pt);
+    const len = moveFrames(to.z - cur.z, to.x - cur.x);
+    // تصل الكاميرا مع نطق الكلمة تقريبًا: تبدأ قبلها بنحو 40% من مدة الحركة
+    const start = Math.max(free, b.frame - Math.round(len * 0.4));
+    if (o.frame < start) break;
+    const p = interpolate(o.frame, [start, start + len], [0, 1], { ...clampOpt, easing: camEase });
+    cur = { x: cur.x + (to.x - cur.x) * p, y: cur.y + (to.y - cur.y) * p, z: cur.z + (to.z - cur.z) * p };
+    free = start + len;
+    if (p < 1) break;
+  }
+  // تنفس خفيف للكاميرا (1.5% على طول المشهد) إلا في مشهد الذكر والآية
+  const breath = o.sacred ? 0 : 0.015 * (o.frame / Math.max(1, o.dur));
+  return { ...frameOn(cur.x, cur.z * (1 + breath), pt), keys: beats.length };
+};
+
+/** تحويل طبقة بعمق depth: الطبقات البعيدة تتحرك وتكبر أقل (منظور) */
+const composedLayer = (c: CamState, depth: number) => {
+  const k = 0.4 + depth * 0.6;
+  const z = 1 + (c.z - 1) * (0.55 + depth * 0.45);
+  return `translate(960 540) scale(${z}) translate(${-(960 + (c.x - 960) * k)} ${-(540 + (c.y - 540) * k)})`;
 };
 
 export const alleyTaleSample: Omit<AlleyTaleProps, "themeId" | "orientation"> = {

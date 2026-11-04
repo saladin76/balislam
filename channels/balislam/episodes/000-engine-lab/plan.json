@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "episode": "000",
+  "title": "مختبر المحرك — اختبارات بصرية (لا تُنشر)",
+  "domain": "psychology",
+  "themeId": "night",
+  "channel": "balislam",
+  "lang": "ar",
+  "updatedAt": "2026-11-04T21:27:06.268602Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "الكاميرا المؤلَّفة",
+      "scenes": [
+        {
+          "id": "c1-s1",
+          "template": "alley-tale",
+          "narration": "يمشي في الحارة مساء. يقف أمام الباب ويفكر. ثم يعرف الحقيقة.",
+          "line": 0,
+          "props": {
+            "place": "alley",
+            "mood": "night",
+            "moodTo": "",
+            "cast": "solo",
+            "poses": "walk,stand,look-up",
+            "look": "hero",
+            "cues": "door | الباب\nthink | ويفكر\ntruth | الحقيقة",
+            "camera": "",
+            "cameraMode": "composed",
+            "cameraPlan": "",
+            "shot": ""
+          },
+          "durationSec": 10,
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    }
+  ]
+}
