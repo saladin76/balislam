@@ -83,7 +83,7 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
       still = Math.max(still, run);
     }
     const pct = Math.round((100 * secs.filter((v) => v >= ACTIVE_PCT).length) / Math.max(1, secs.length));
-    scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still }, media.voice[s.id]?.text === s.narration.trim() ? media.voice[s.id]?.words : undefined) };
+    scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still, perSecond: secs, activityThreshold: ACTIVE_PCT }, media.voice[s.id]?.text === s.narration.trim() ? media.voice[s.id]?.words : undefined) };
     t += d;
   }
   const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, inputHash, scenes };
