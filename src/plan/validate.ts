@@ -42,7 +42,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         if (p.poseTimeline) {
           const allowed = new Set(["stand", "think", "sit", "sit-low", "head-down", "hold", "cross", "point", "look-up", "nod", "turn-away", "walk", "proud", "apologize", "listen", "talk"]);
           const parsed = parsePoseTimeline(p.poseTimeline);
-          const lines = p.poseTimeline.split("\\n").map((x) => x.trim()).filter(Boolean);
+          const lines = p.poseTimeline.split("\n").map((x) => x.trim()).filter(Boolean);
           if (parsed.length !== lines.length || parsed.some((x) => !allowed.has(x.pose)))
             out.push({ level: "error", sceneId: s.id, message: "الخط الزمني للوضعيات غير صالح؛ اكتب: رقم_الإطار | الوضعية، سطرًا لكل حدث." });
         }
