@@ -17,7 +17,7 @@ const check = (error = false): CheckResult => ({
   stats: { chapters: [], totalWords: 0, totalSeconds: 0 },
 });
 
-const render = (narration: string, error = false) => renderToStaticMarkup(
+const render = (narration: string, error = false, researchDirty = false) => renderToStaticMarkup(
   <EpisodeWorkspaceBar
     episodeId="001"
     title="حلقة اختبار"
@@ -29,6 +29,7 @@ const render = (narration: string, error = false) => renderToStaticMarkup(
     media={{ voice: {} } as EpisodeMedia}
     saveState="saved"
     scriptDirty={false}
+    researchDirty={researchDirty}
   />,
 );
 
@@ -38,6 +39,12 @@ describe("مساحة عمل الحلقة", () => {
     for (const label of ["البحث", "السكريبت", "الستوري بورد", "الصوت", "المشاهد", "النشر"])
       expect(html).toContain(label);
     expect(html).toContain("لا توجد ملاحظات");
+  });
+
+  it("تحذر من التعديلات غير المحفوظة في ملف البحث", () => {
+    const html = render("", false, true);
+    expect(html).toContain("ملف البحث يحتوي على تعديلات غير محفوظة");
+    expect(html).toContain("تعديلات غير محفوظة");
   });
 
   it("تعرض أخطاء السكريبت ونقص الصوت بدل إخفائهما", () => {
