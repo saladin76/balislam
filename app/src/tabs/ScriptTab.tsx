@@ -3,38 +3,59 @@ import { api, type CheckResult } from "../api";
 import config from "../../../config.json";
 import { ReviewPanel } from "./ReviewPanel";
 
-export type ScriptTabHandle = { goToLine: (line: number) => void };
+export type ScriptTabHandle = { goToLine: (line: number) => void; hasUnsavedResearch: () => boolean };
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 
 /** محرر السكريبت مع فحص مباشر أثناء الكتابة. الحفظ يحدّث المشاهد تلقائيًا مع إبقاء تعديلاتك. */
 export const ScriptTab = forwardRef<ScriptTabHandle, {
   episodeId: string;
+  initialDoc?: "script" | "research";
+  workspaceMode?: boolean;
+  onOpenScriptLine?: (line: number) => void;
+  onResearchDirtyChange?: (dirty: boolean) => void;
   text: string;
   savedText: string;
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
-}>(({ episodeId, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+}> (({ episodeId, initialDoc = "script", workspaceMode = false, onOpenScriptLine, onResearchDirtyChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
   const dirty = text !== savedText;
   // ملف البحث / دراسة الكتاب: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
-  const [doc, setDoc] = useState<"script" | "research">("script");
+  const [doc, setDoc] = useState<"script" | "research">(initialDoc);
   const [research, setResearch] = useState<{ text: string; saved: string; label: string; exists: boolean } | null>(null);
   useEffect(() => {
     setResearch(null);
     if (episodeId) api.research(episodeId).then((r) => setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists })).catch(() => {});
   }, [episodeId]);
   const researchDirty = research ? research.text !== research.saved : false;
+  const [researchError, setResearchError] = useState("");
+  const [researchSaving, setResearchSaving] = useState(false);
+  useEffect(() => {
+    onResearchDirtyChange?.(researchDirty);
+    return () => onResearchDirtyChange?.(false);
+  }, [researchDirty, onResearchDirtyChange]);
   const saveResearch = async () => {
-    if (!research) return;
-    await api.saveResearch(episodeId, research.text);
-    setResearch({ ...research, saved: research.text, exists: true });
+    if (!research || researchSaving) return;
+    const snapshot = research.text;
+    setResearchError("");
+    setResearchSaving(true);
+    try {
+      await api.saveResearch(episodeId, snapshot);
+      // لا تستبدل نصًا تغيّر أثناء انتظار الشبكة بنسخة أقدم.
+      setResearch((current) => current ? { ...current, saved: snapshot, exists: true } : null);
+    } catch (error) {
+      setResearchError(`تعذر حفظ ملف البحث: ${(error as Error).message}`);
+    } finally {
+      setResearchSaving(false);
+    }
   };
 
-  const goToLine = (line: number) => {
+  const pendingLine = useRef<number | null>(null);
+  const jumpToLine = (line: number) => {
     const el = area.current;
     if (!el) return;
     const lines = el.value.split("\n");
@@ -45,7 +66,24 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     const lh = parseFloat(getComputedStyle(el).lineHeight) || 32;
     el.scrollTop = Math.max(0, (line - 4) * lh);
   };
-  useImperativeHandle(ref, () => ({ goToLine }));
+  const goToLine = (line: number) => {
+    if (workspaceMode && initialDoc === "research" && onOpenScriptLine) {
+      onOpenScriptLine(line);
+      return;
+    }
+    if (doc !== "script") {
+      pendingLine.current = line;
+      setDoc("script");
+    } else jumpToLine(line);
+  };
+  useEffect(() => {
+    if (doc === "script" && pendingLine.current !== null) {
+      const line = pendingLine.current;
+      pendingLine.current = null;
+      jumpToLine(line);
+    }
+  }, [doc]);
+  useImperativeHandle(ref, () => ({ goToLine, hasUnsavedResearch: () => researchDirty }));
 
   useEffect(() => setCheck(initialCheck), [initialCheck]);
   useEffect(() => {
@@ -81,10 +119,14 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     <div className="work script-grid">
       <div className="editor">
         <div className="toolbar">
-          <div className="seg" role="group" aria-label="الملف">
-            <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
-            {research ? <button aria-pressed={doc === "research"} onClick={() => setDoc("research")}>{research.label}{research.exists ? "" : " (جديد)"}</button> : null}
-          </div>
+          {workspaceMode ? (
+            <strong className="ew-document-label">{doc === "research" ? (research?.label ?? "البحث") : "تحرير السكريبت"}</strong>
+          ) : (
+            <div className="seg" role="group" aria-label="الملف">
+              <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
+              {research ? <button aria-pressed={doc === "research"} onClick={() => setDoc("research")}>{research.label}{research.exists ? "" : " (جديد)"}</button> : null}
+            </div>
+          )}
           {doc === "script" ? (
             <>
               <span className="help">العلامات: [مشهد: …] [آية: النجم 39] [حديث: …] [صوت: page-turn] · bridge: …</span>
@@ -97,16 +139,28 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
               <span className="help">للتحضير والمراجعة فقط، لا يُقرأ ولا يُنشر. كل معلومة في السكريبت تُربط هنا بمصدرها.</span>
               <span className="spacer" />
               <span className="status"><i className={`dot ${researchDirty ? "dirty" : ""}`} />{researchDirty ? "تعديلات غير محفوظة" : research?.exists ? "محفوظ" : "لم يُحفظ بعد"}</span>
-              <button className="btn primary" disabled={!researchDirty} onClick={saveResearch}>حفظ (Ctrl+S)</button>
+              <button className="btn primary" disabled={!researchDirty || researchSaving} onClick={() => void saveResearch()}>{researchSaving ? "جارٍ الحفظ…" : "حفظ (Ctrl+S)"}</button>
             </>
           )}
         </div>
+        {doc === "research" && researchError ? <div className="ew-research-error" role="alert">{researchError}</div> : null}
         {doc === "script" ? (
           <textarea id="script-editor" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
         ) : (
           <textarea id="research-editor" value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
         )}
       </div>
+      {doc === "research" ? (
+        <aside className="col side ew-research-panel">
+          <div className="col-head"><h2>ملف البحث</h2></div>
+          <p>هذا الملف للتحضير والمراجعة فقط، ولا يدخل في التعليق الصوتي أو النشر.</p>
+          <p>اربط المعلومات والملاحظات بالمصادر التي استندت إليها قبل كتابة السكريبت.</p>
+          <div className="ew-research-state" role="status">
+            {researchSaving ? "جارٍ حفظ ملف البحث…" : researchDirty ? "هناك تعديلات لم تُحفظ" : research?.exists ? "ملف البحث محفوظ" : "ملف البحث لم يُحفظ بعد"}
+          </div>
+          {researchError ? <p role="alert">{researchError}</p> : null}
+        </aside>
+      ) : (
       <div className="col side">
         <div className="col-head"><h2>الفحص</h2><span className="spacer" /><span className="help">يتحدث أثناء الكتابة</span></div>
         <div className={`verdict ${check.ok ? "ok" : "bad"}`}>
@@ -137,6 +191,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
         </div>
         <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
       </div>
+      )}
     </div>
   );
 });

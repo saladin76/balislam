@@ -2,10 +2,15 @@ import { UpdateBanner } from "./ui/UpdateBanner";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
+import { planIssues } from "../../src/plan/validate";
 import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
+import { StoryboardPanel } from "./tabs/StoryboardPanel";
+import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
+import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
@@ -18,8 +23,8 @@ import { SettingsTab } from "./tabs/SettingsTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
-type Tab = "home" | "episode" | "script" | "publish" | "identity" | "library" | "channel" | "settings";
-const EPISODE_TABS: Tab[] = ["episode", "script", "publish"];
+type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings";
+const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "publish"];
 const store = {
   get: (k: string) => {
     try {
@@ -56,9 +61,14 @@ export const App: React.FC = () => {
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
+  const episodeRef = useRef(epId);
+  episodeRef.current = epId;
+  const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
+  useEffect(() => setRequestedSceneId(undefined), [channelId, epId]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
+  const [researchDirty, setResearchDirty] = useState(false);
   const [check, setCheck] = useState<CheckResult | null>(null);
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
@@ -118,9 +128,13 @@ export const App: React.FC = () => {
         setTab(want.tab);
       } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
-    api.identity().then(({ identity, defaults }) => setIdent({ draft: identity, saved: identity, defaults })).catch((e) => say(e.message, true));
+    api.identity().then(({ identity, defaults }) => {
+      if (channelRef.current === ch) setIdent({ draft: identity, saved: identity, defaults });
+    }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
     // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
-    if (channelId) api.channel().then((c) => setChannel(channelInfo(c))).catch((e) => say(e.message, true));
+    if (channelId) api.channel().then((c) => {
+      if (channelRef.current === ch) setChannel(channelInfo(c));
+    }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** يحفظ فورًا أي تعديل ينتظر الحفظ التلقائي، حتى لا يكتب فوق خطة أحدث لاحقًا. */
@@ -144,9 +158,9 @@ export const App: React.FC = () => {
     // الحلقة تخص القناة الحالية لحظة الطلب؛ إن تبدّلت القناة أثناء الحفظ يُلغى التحميل
     const ch = channelRef.current;
     await flushPlan();
-    if (channelRef.current !== ch) return;
+    if (channelRef.current !== ch || episodeRef.current !== id) return;
     api.episode(id, ch).then((d) => {
-      if (channelRef.current !== ch) return;
+      if (channelRef.current !== ch || episodeRef.current !== id) return;
       setPlan(d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
@@ -160,10 +174,11 @@ export const App: React.FC = () => {
       // مرة لكل حلقة في الجلسة: جلب نصوص الآيات (والتلاوة إن اختيرت) تلقائيًا من Quran Foundation
       if (d.keys.quran && !quranSynced.current.has(`${channelId}:${id}`)) {
         quranSynced.current.add(`${channelId}:${id}`);
-        api.quran(id).then((r) => {
+        api.quran(id, ch).then((r) => {
           if (r.result?.failed?.length) say(`تعذّر جلب: ${r.result.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`, true);
-          return api.episode(id);
+          return api.episode(id, ch);
         }).then((n) => {
+          if (channelRef.current !== ch || episodeRef.current !== id) return;
           setPlan(n.plan);
           setMedia(n.media);
           setExtra({ issues: n.issues, keys: n.keys });
@@ -216,15 +231,20 @@ export const App: React.FC = () => {
   // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
-      if (scriptDirtyRef.current || pendingPlan.current) {
-        void flushPlan();
+      if (scriptDirtyRef.current || researchDirty || pendingPlan.current) {
+        // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
+        e.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
-  }, [flushPlan]);
-  const confirmLeaveScript = () => !scriptDirty || window.confirm("في السكريبت تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟");
+  }, [researchDirty]);
+  const confirmLeaveScript = () => {
+    if (scriptDirty && !window.confirm("في السكريبت تعديلات غير محفوظة. هل تريد مغادرة المحرر؟")) return false;
+    if (scriptRef.current?.hasUnsavedResearch() && !window.confirm("في ملف البحث تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟")) return false;
+    return true;
+  };
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
@@ -233,9 +253,9 @@ export const App: React.FC = () => {
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
       <div className="app">
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || identDirty} />
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
         <header className="top">
-          <button className="brand" onClick={() => setTab("home")} title="الرئيسية">
+          <button className="brand" onClick={() => confirmLeaveScript() && setTab("home")} title="الرئيسية">
             <BrandMark channel={channel} />
             <span>استوديو <span style={{ fontFamily: ident.draft.fonts?.wordmark ? `'${ident.draft.fonts.wordmark}', inherit` : undefined, fontSize: "1.1em" }}>{channel.nameDisplay ?? channel.name}</span></span>
           </button>
@@ -245,7 +265,7 @@ export const App: React.FC = () => {
             </select>
           ) : null}
           <nav className="tabs" role="tablist">
-            <button role="tab" aria-selected={tab === "home"} onClick={() => setTab("home")}>غرفة العمليات</button>
+            <button role="tab" aria-selected={tab === "home"} onClick={() => confirmLeaveScript() && setTab("home")}>غرفة العمليات</button>
           </nav>
           {EPISODE_TABS.includes(tab) ? (
             <select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} style={{ width: 280 }} aria-label="الحلقة">
@@ -253,16 +273,11 @@ export const App: React.FC = () => {
               {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
             </select>
           ) : null}
-          <nav className="tabs" role="tablist" aria-label="الحلقة">
-            <button role="tab" aria-selected={tab === "episode"} onClick={() => setTab("episode")}>المشاهد</button>
-            <button role="tab" aria-selected={tab === "script"} onClick={() => setTab("script")}>السكريبت{scriptDirty ? " •" : ""}</button>
-            <button role="tab" aria-selected={tab === "publish"} onClick={() => setTab("publish")}>النشر</button>
-          </nav>
           <nav className="tabs" role="tablist" aria-label="القناة">
-            <button role="tab" aria-selected={tab === "identity"} onClick={() => setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
-            <button role="tab" aria-selected={tab === "library"} onClick={() => setTab("library")}>المكتبة</button>
-            <button role="tab" aria-selected={tab === "channel"} onClick={() => setTab("channel")}>القناة</button>
-            <button role="tab" aria-selected={tab === "settings"} onClick={() => setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
+            <button role="tab" aria-selected={tab === "identity"} onClick={() => confirmLeaveScript() && setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
+            <button role="tab" aria-selected={tab === "library"} onClick={() => confirmLeaveScript() && setTab("library")}>المكتبة</button>
+            <button role="tab" aria-selected={tab === "channel"} onClick={() => confirmLeaveScript() && setTab("channel")}>القناة</button>
+            <button role="tab" aria-selected={tab === "settings"} onClick={() => confirmLeaveScript() && setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
           </nav>
           <span className="spacer" />
           {tab === "episode" && plan ? (
@@ -273,7 +288,31 @@ export const App: React.FC = () => {
           ) : null}
         </header>
 
-        {tab === "home" ? (
+        {EPISODE_TABS.includes(tab) && plan && check && epId ? (
+           <EpisodeWorkspaceBar
+             key={`${channelId}:${epId}`}
+             episodeId={epId}
+             title={plan.title}
+             stage={tab as WorkspaceStage}
+             onStage={(stage, target) => {
+               if (stage !== tab && !confirmLeaveScript()) return;
+               if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
+               setTab(stage);
+               if (target?.line && stage === "script") {
+                 setTimeout(() => scriptRef.current?.goToLine(target.line!), 50);
+               }
+             }}
+             check={check}
+             issues={planIssues(plan, channel)}
+             plan={plan}
+             media={media}
+             saveState={planState}
+             scriptDirty={scriptDirty}
+             researchDirty={researchDirty}
+           />
+         ) : null}
+
+         {tab === "home" ? (
           <div className="home-wrap">
           <OpsRoom
             refreshKey={homeKey}
@@ -371,12 +410,31 @@ export const App: React.FC = () => {
           </div>
         ) : !plan || !check ? (
           <div className="empty-state"><h2>جارٍ فتح الحلقة…</h2></div>
+        ) : tab === "storyboard" ? (
+          <div className="ew-storyboard-wrap"><StoryboardPanel
+            episodeId={epId}
+            plan={plan}
+            identity={ident.draft}
+            channel={channel}
+            media={media}
+            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+          /></div>
+        ) : tab === "voice" ? (
+          <VoiceWorkspaceTab
+            episodeId={epId}
+            plan={plan}
+            media={media}
+            hasKeys={extra.keys.voice}
+            onMedia={setMedia}
+            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+          />
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
           <EpisodeTab
             key={epId}
             episodeId={epId}
+            requestedSceneId={requestedSceneId}
             plan={plan}
             identity={ident.draft}
             channel={channel}
@@ -390,9 +448,10 @@ export const App: React.FC = () => {
               setTab("script");
               setTimeout(() => scriptRef.current?.goToLine(line), 50);
             }}
+            onOpenVoice={() => setTab("voice")}
           />
         ) : (
-          <ScriptTab ref={scriptRef} episodeId={epId} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
+          <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}
 
         {showNew ? (
