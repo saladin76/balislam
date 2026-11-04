@@ -63,8 +63,9 @@ export const EpisodeTab: React.FC<{
 
   // عندما يختار المستخدم مشهدًا من الستوري بورد أو لوحة الملاحظات ننتقل إليه فورًا.
   useEffect(() => {
+    // يُطبَّق طلب الانتقال فقط عند وصوله؛ تحديث الخطة لا يعيد اختيار مشهد قديم.
     if (requestedSceneId && allScenes.some((x) => x.scene.id === requestedSceneId)) setSelectedId(requestedSceneId);
-  }, [requestedSceneId, allScenes]);
+  }, [requestedSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // في معاينة الفصل أو الحلقة: أي مشهد يُعرض الآن؟ (إعدادات اللوحة الجانبية تخص المشهد المختار فقط)
   const starts = useMemo(() => {
