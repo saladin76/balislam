@@ -53,7 +53,7 @@ const Amiri = "'Amiri', serif";
 const Tajawal = "'Tajawal', sans-serif";
 
 /** غروب مرسوم بغسل حبر خفيف على الصفحة اليمنى: سماء جمرية تخف للأعلى، وأرض رملية تحت خط y */
-const Sunset: React.FC<{ y: number; o: number }> = ({ y, o }) => (
+export const Sunset: React.FC<{ y: number; o: number }> = ({ y, o }) => (
   <g opacity={o}>
     <defs>
       <linearGradient id={`sky-${y}`} x1="0" y1="1" x2="0" y2="0">
@@ -70,7 +70,7 @@ const Sunset: React.FC<{ y: number; o: number }> = ({ y, o }) => (
 );
 
 /** تظليل بخطوط مائلة داخل مستطيل (ظل عمود أو برج) */
-const Hatch: React.FC<{ x: number; y: number; w: number; h: number; o: number }> = ({ x, y, w, h, o }) => (
+export const Hatch: React.FC<{ x: number; y: number; w: number; h: number; o: number }> = ({ x, y, w, h, o }) => (
   <g opacity={0.28 * o}>
     <clipPath id={`h-${x}-${y}`}>
       <rect x={x} y={y} width={w} height={h} />
@@ -84,7 +84,7 @@ const Hatch: React.FC<{ x: number; y: number; w: number; h: number; o: number }>
 );
 
 // ─────────────────────────── اللقطة 1: العودة إلى البداية ───────────────────────────
-const RUINS = [
+export const RUINS = [
   "M1050 700 C1200 696 1500 704 1690 698",
   "M1120 700 V500 L1132 488 L1141 497 L1150 481 L1160 492 V700",
   "M1133 690 V512 M1147 690 V506",
@@ -95,7 +95,7 @@ const RUINS = [
   "M1424 700 C1424 680 1474 680 1474 700 M1436 700 C1436 690 1462 690 1462 700",
   "M1080 700 L1088 692 L1098 700 M1270 700 L1280 690 L1292 700 M1640 700 L1650 693 L1660 700",
 ];
-const GATE = [
+export const GATE = [
   "M1060 722 H1660",
   "M1120 722 V380 H1240 V722 M1120 380 V352 H1146 V380 M1167 380 V352 H1193 V380 M1214 380 V352 H1240 V380",
   "M1480 722 V380 H1600 V722 M1480 380 V352 H1506 V380 M1527 380 V352 H1553 V380 M1574 380 V352 H1600 V380",
@@ -191,7 +191,7 @@ const circlePath = (cx: number, cy: number, rx: number, ry: number) => {
 };
 const SLOT_CIRCLE = circlePath(1300, 445, 74, 86);
 
-const Shot2: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
+export const Shot2: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   const drop = prog(t, at(tl, "تاريخا") - 0.2, at(tl, "تاريخا") + 0.7, easeOut);
   // غطاء الخانة يرتفع عند «بالسنة» فتظهر فارغة، ثم تُحاط بدائرة لا تُغلق
   const flap = prog(t, at(tl, "بالسنة") - 0.05, at(tl, "بالسنة") + 0.55, easeOut);
@@ -289,7 +289,7 @@ const S4 = mk(["أخبر الله ملائكته أنه جاعل في الأرض
 const LINEAGE = [830, 724, 618, 512, 406, 300];
 const CARD = { x: 245, y: 240, w: 620, h: 320 };
 
-const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
+export const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
   // «المفسرون»: حزمة حواشٍ تدخل · «أقوالًا»: تنفرج ثلاثًا (تعدد الأقوال) · «منها»: تتقدم واحدة وتُكتب، والباقيتان تتراجعان دون أن تختفيا
   const enter = prog(t, at(tl, "المفسرون") - 0.15, at(tl, "المفسرون") + 0.75, easeOut);
   const fan = prog(t, at(tl, "أقوالا") - 0.1, at(tl, "أقوالا") + 0.7, easeOut);
@@ -411,7 +411,7 @@ const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
 // ─────────────────────────── اللقطة 5 (قبل الآية): التوبة ───────────────────────────
 const S5 = mk(["ولكن آدم عليه السلام لم يصر على معصيته، بل رجع إلى ربه.", "وقد حكى الله عن آدم وزوجه دعاءهما:"], 0.9, 1.9);
 
-const Shot5: React.FC<ShotProps> = ({ t, tl, q }) => {
+export const Shot5: React.FC<ShotProps> = ({ t, tl, q }) => {
   const dot = prog(t, 0.2, 0.7, easeOut);
   const away = prog(t, at(tl, "ولكن"), end(tl, "معصيته"), easeOut);
   const back = prog(t, at(tl, "بل"), end(tl, "رجع") - 0.02);
@@ -595,7 +595,7 @@ const FINDS: Find[] = [
 const K6 = 1.3;
 const ORDER = ["tool", "home", "food", "settle", "burial", "art"];
 
-const Shot6: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
+export const Shot6: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   const hz = prog(t, 0.05, 0.8, easeOut);
   const words = ORDER.map((k) => FINDS.find((f) => f.key === k)!);
   // نافذة الوصول إلى كل أثر: تبدأ بعد نطق السابق، وتنتهي عند نطق اسمه

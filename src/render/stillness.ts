@@ -3,6 +3,7 @@ import type { EpisodeMedia } from "../plan/media";
 import { sceneSeconds } from "../plan/duration";
 import { normalizeArabic } from "../script/quranMeta";
 import { estimateTimings } from "../remotion/scenes/timing";
+import { HZ_META } from "../remotion/dafatir/horizon/meta";
 
 /**
  * السكون المقصود (قرار صاحب القناة، مراجعة G5 للحلقة 001 بزبدة الكتب): لا تُفرض حركة عند كلام الله
@@ -24,6 +25,7 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
       const shot = String(s.props?.shot ?? "");
       if (s.template === "verse-card") spans.push({ from: t, to: t + d, why: "آية" });
       else if (s.template === "ink-shot" && shot.startsWith("verse-intro")) spans.push({ from: t, to: t + d, why: "تمهيد آية" });
+      else if (s.template === "horizon-shot" && HZ_META[shot]?.still) spans.push({ from: t, to: t + d, why: HZ_META[shot]!.still === "dhikr" ? "ذكر الله" : "تمهيد آية" });
       else if (s.narration) {
         const clip = media?.voice[s.id];
         const words = clip && clip.text === s.narration.trim() ? clip.words.map((w) => ({ word: w.word, start: w.start * 30, end: w.end * 30 })) : estimateTimings(s.narration, 6, Math.round(d * 30) - 12);

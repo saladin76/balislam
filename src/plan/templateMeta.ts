@@ -32,6 +32,7 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "sketch-board": { family: "explain", only: ["zubdat-alkutub"] },
   "ink-meaning": { family: "explain", only: ["zubdat-alkutub"] },
   "ink-shot": { family: "explain", only: ["zubdat-alkutub"] },
+  "horizon-shot": { family: "explain", only: ["dafatir-alzaman"] },
   symbolic: { family: "explain" },
   "big-question": { family: "text" },
   "kinetic-text": { family: "text", only: ["balislam"] },

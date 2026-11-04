@@ -13,6 +13,7 @@ import { Symbolic } from "./Symbolic";
 import { Summary } from "./Summary";
 import { GlowStory } from "./GlowStory";
 import { InkShot } from "./InkShot";
+import { HorizonShot, HorizonVerse } from "./HorizonShot";
 import { InkMeaning } from "./InkMeaning";
 import { SketchBoard } from "./SketchBoard";
 import { BoardStory } from "./BoardStory";
@@ -73,6 +74,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
         />
       );
     case "verse-card":
+      if (p.look === "horizon")
+        return <HorizonVerse {...base} text={p.text || ""} ayahKey={scene.ayahKey} head={p.head || undefined} reciter={hasRecitation ? p.reciter || media?.recitations[scene.ayahKey!]?.reciter || undefined : undefined} />;
       return (
         <VerseCard
           {...base}
@@ -118,6 +121,8 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <MotionStory {...base} {...p} />;
     case "ink-shot":
       return <InkShot {...base} {...p} />;
+    case "horizon-shot":
+      return <HorizonShot {...base} {...p} />;
     case "ink-meaning":
       return <InkMeaning {...base} {...p} />;
     case "sketch-board":

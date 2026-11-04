@@ -1,0 +1,602 @@
+/**
+ * مشاهد «خط الأفق» للحلقة 001 (الفصلان 1 و2 — الدفعة البصرية الأولى) — `production-plan.md`.
+ * كل حدث مربوط بكلمته (at/end) في توقيت الجملة، فيُستبدل التوقيت التقديري بتوقيت صوت الراوي دون إعادة تصميم.
+ * لا يبدأ عنصر ولا تتحرك الكاميرا عند ذكر الله وما في معناه. ولا يُصوَّر غيب: الملائكة والخلق تُكتب كلامًا لا رسمًا.
+ */
+import React from "react";
+import { at, end, type Timeline } from "./timeline";
+import { C, CoverLeaf, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
+import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, SText, camPath, fonts, type Cam, type Exit } from "./book";
+import { GATE, Hatch, RUINS, Shot2, Shot4, Sunset } from "./shots";
+import { HZ_META } from "./meta";
+
+export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
+const { Amiri, Tajawal } = fonts;
+const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+
+/** البسملة كما ينطقها الراوي، على الصفحة الأولى، تحتها خط ذهبي */
+const Basmala: React.FC = () => (
+  <g>
+    <SText x={1365} y={505} size={92} color={C.inkText}>
+      بسم الله الرحمن الرحيم
+    </SText>
+    <path d="M1200 575 H1530" stroke={C.gold} strokeWidth={3} strokeLinecap="round" />
+    <circle cx={1365} cy={575} r={6} fill={C.gold} />
+  </g>
+);
+
+// ─────────── c1-s0: الدفتر المغلق يُفتح، وعلى صفحته الأولى البسملة ───────────
+const Cover: React.FC<HzProps> = ({ t, dur, exit }) => {
+  const cover = prog(t, 0.3, 1.5);
+  const cam = camPath(t, { cx: 1370, cy: 520, s: 1.06 }, [{ a: 0.45, b: 2.1, ...NEUTRAL }]);
+  return <Book id="cv" t={t} dur={dur} exit={exit} cam={cam} R={<Basmala />} top={<CoverLeaf p={cover} />} noLeft={cover < 1} light={prog(t, 0.45, 1.65)} />;
+};
+
+// ─────────── c1-s1: البسملة ساكنة ───────────
+const BasmalaScene: React.FC<HzProps> = ({ t, dur, exit }) => <Book id="bs" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={<Basmala />} />;
+
+// ─────────── c1-s2: أمم كثيرة وأجيال تتعاقب على الأفق ───────────
+// الماضي على اليمين (اتجاه الخط العربي): كل أمة تظهر على يسار الأفق ثم تمضي نحو اليمين وتبهت، وتأتي بعدها أخرى.
+const GLYPHS = [
+  "M-22 0 V-26 L0 -46 L22 -26 V0 Z",
+  "M-11 0 V-72 H11 V0 Z M-16 -72 H16 V-80 H-16 Z",
+  "M-28 0 V-22 C-28 -52 28 -52 28 -22 V0 Z",
+  "M-30 0 L0 -42 L30 0 Z",
+  "M-36 0 V-14 H-24 V-28 H-12 V-42 H12 V-28 H24 V-14 H36 V0 Z",
+  "M-30 0 V-48 H30 V0 M-15 0 V-48 M0 0 V-48 M15 0 V-48 M-36 -48 H36 V-56 H-36 Z",
+];
+const N_GLYPH = 16;
+const SP = 112;
+const Nations: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
+  const hzR = prog(t, at(tl, "عرفت") - 0.1, at(tl, "الأرض") + 0.2);
+  const hzL = prog(t, at(tl, "الأرض"), at(tl, "أمما") + 0.1);
+  // مقدار ما مضى من الزمن على الأفق: يتقدم مع الكلمات ويقف قبل ذكر الله
+  const anchors: [number, number][] = [
+    [at(tl, "أمما") - 0.1, 0],
+    [end(tl, "كثيرة") + 0.1, 5.2 * SP],
+    [at(tl, "وتعاقبت"), 5.6 * SP],
+    [end(tl, "أجيال"), 10 * SP],
+    [end(tl, "عددها"), 14.5 * SP],
+  ];
+  let S = 0;
+  for (let i = 1; i < anchors.length; i++) {
+    const [a0, v0] = anchors[i - 1]!;
+    const [a1, v1] = anchors[i]!;
+    if (t >= a0) S = mix(v0, v1, prog(t, a0, a1, (x) => x * x * (3 - 2 * x)));
+  }
+  const r = rng(5);
+  const heights = Array.from({ length: N_GLYPH }, () => 0.85 + r() * 0.35);
+  const row = (
+    <g>
+      {Array.from({ length: N_GLYPH }, (_, i) => {
+        const age = S - i * SP;
+        if (age <= 0) return null;
+        const x = 250 + age;
+        if (x > 1760) return null;
+        const old = clamp01((x - 250) / 1480);
+        const draw = clamp01(age / (0.8 * SP));
+        const sc = (1.8 - 0.75 * old) * heights[i]!;
+        return (
+          <g key={i} transform={`translate(${x} 640) scale(${sc})`} opacity={(1 - 0.8 * old) * (x > 1690 ? 1 - (x - 1690) / 70 : 1)}>
+            <Ink d={GLYPHS[i % GLYPHS.length]!} w={3 / sc} p={draw} fill="#E8D6B3" fillP={draw} />
+          </g>
+        );
+      })}
+    </g>
+  );
+  const sky = (
+    <g opacity={0.8 * hzR}>
+      <defs>
+        <linearGradient id="nt-sky" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stopColor={C.ember} stopOpacity={0.22} />
+          <stop offset="1" stopColor={C.ember} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <rect x={140} y={330} width={1660} height={310} fill="url(#nt-sky)" />
+      <rect x={140} y={640} width={1660} height={300} fill="#D9C29A" opacity={0.35} />
+    </g>
+  );
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "أمما") - 0.3, b: end(tl, "كثيرة"), cx: 720, cy: 560, s: 1.12 },
+    { a: at(tl, "وتعاقبت") - 0.1, b: end(tl, "أجيال"), cx: 1120, cy: 560, s: 1.06 },
+    { a: at(tl, "يعلم") - 0.2, b: at(tl, "إلا") - 0.3, ...NEUTRAL },
+  ]);
+  return (
+    <Book
+      id="nt"
+      t={t}
+      dur={dur}
+      exit={exit}
+      cam={cam}
+      R={
+        <g>
+          {sky}
+          <Ink d="M1740 640 C1500 636 1200 644 960 640" w={4} p={hzR} />
+          {row}
+        </g>
+      }
+      L={
+        <g>
+          {sky}
+          <Ink d="M960 640 C720 636 420 644 180 640" w={4} p={hzL} />
+          {row}
+        </g>
+      }
+    />
+  );
+};
+
+// ─────────── c1-s3: لا من مدينة قديمة، ولا من مملكة نُسي اسمها… بل من آدم عليه السلام ───────────
+const ReturnScene: React.FC<HzProps> = ({ t, tl, dur, exit, from }) => {
+  const d0 = at(tl, "تبدأ");
+  const d1 = end(tl, "قديمة");
+  const step = (d1 - 0.5 - d0) / (RUINS.length - 1);
+  const f1 = end(tl, "قديمة") + 0.05;
+  const f2 = end(tl, "اسمها") + 0.1;
+  const flip1 = prog(t, f1, f1 + 1.1);
+  const flip2 = prog(t, f2, f2 + 1.15);
+  const forget = prog(t, at(tl, "نسي"), end(tl, "اسمها"));
+  const horizon = prog(t, at(tl, "إننا"), at(tl, "آدم") - 0.25, easeOut);
+  const wash = prog(t, at(tl, "رحلتنا"), d0 + 0.6);
+  const ruins = (
+    <g>
+      <Sunset y={700} o={wash} />
+      <g transform="translate(1368 700) scale(1.15) translate(-1368 -700)">
+        {RUINS.map((d, i) => (
+          <Ink key={i} d={d} w={4} p={prog(t, d0 + i * step, d0 + i * step + 0.5)} />
+        ))}
+        <Hatch x={1124} y={510} w={34} h={186} o={prog(t, d1 - 0.2, d1 + 0.3)} />
+        <Hatch x={1503} y={466} w={34} h={230} o={prog(t, d1 - 0.1, d1 + 0.4)} />
+      </g>
+    </g>
+  );
+  const gate = (o: number) => (
+    <g opacity={o}>
+      <Sunset y={722} o={1} />
+      <g transform="translate(1360 722) scale(1.08) translate(-1360 -722)">
+        {GATE.map((d, i) => (
+          <Ink key={i} d={d} w={4} p={1} />
+        ))}
+        <Hatch x={1124} y={384} w={50} h={334} o={1} />
+        <Hatch x={1484} y={384} w={50} h={334} o={1} />
+        <path d="M1304 722 V604 C1304 526 1416 526 1416 604 V722 Z" fill={C.ink} opacity={0.14} />
+      </g>
+    </g>
+  );
+  const finalPage = (
+    <g>
+      <Sunset y={640} o={horizon * 0.8} />
+      <Ink d="M1720 640 C1500 636 1220 642 1010 638" w={4} p={horizon} />
+    </g>
+  );
+  const under = t < f1 ? ruins : t < f2 ? gate(1 - 0.72 * forget) : finalPage;
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "رحلتنا"), b: d1, cx: 1330, cy: 540, s: 1.12 },
+    { a: at(tl, "إننا") - 0.2, b: tl.end + 0.6, cx: 1250, cy: 520, s: 1.1 },
+  ]);
+  return (
+    <Book
+      id="rt"
+      t={t}
+      dur={dur}
+      exit={exit}
+      from={from}
+      cam={cam}
+      tintL={`rgba(200,161,90,${0.04 * (flip1 >= 1 ? 1 : 0) + 0.04 * (flip2 >= 1 ? 1 : 0)})`}
+      R={under}
+      top={
+        <g>
+          <FlipLeaf id="rt" p={flip1} front={ruins} />
+          <FlipLeaf id="rt" p={flip2} front={gate(1 - 0.72 * forget)} />
+        </g>
+      }
+      htmlR={
+        <Words
+          now={t}
+          dur={0.5}
+          items={[{ w: "آدم", t: at(tl, "آدم") }, { w: "عليه", t: at(tl, "عليه") }, { w: "السلام", t: at(tl, "السلام") }]}
+          style={{ right: W - 1700, top: 486, width: 660, textAlign: "center", fontFamily: Amiri, fontWeight: 700, fontSize: 104, lineHeight: 1.25, color: C.ink }}
+        />
+      }
+    />
+  );
+};
+
+// ─────────── c1-s4: ومنه بدأ نسل البشر الذي انتشر في الأرض ───────────
+const GEN = [
+  { y: 300, c: 1370, h: 0 },
+  { y: 385, c: 1290, h: 150 },
+  { y: 470, c: 1200, h: 330 },
+  { y: 555, c: 1080, h: 560 },
+  { y: 640, c: 960, h: 770 },
+];
+const nodeX = (k: number, j: number) => {
+  const g = GEN[k]!;
+  const n = 2 ** k;
+  return n === 1 ? g.c : g.c - g.h + (j * 2 * g.h) / (n - 1);
+};
+const Lineage: React.FC<HzProps> = ({ t, tl, dur, exit, from }) => {
+  const mv = prog(t, at(tl, "أول") - 0.1, at(tl, "إنسان") + 0.5);
+  const root = prog(t, at(tl, "إنسان"), at(tl, "إنسان") + 0.45, easeOut);
+  const genAt = [0, at(tl, "ومنه"), at(tl, "بدأ"), at(tl, "نسل"), at(tl, "البشر")];
+  const spread = prog(t, at(tl, "انتشر") - 0.1, at(tl, "انتشر") + 1.1, easeOut);
+  const ground = prog(t, at(tl, "الأرض") - 0.1, at(tl, "الأرض") + 0.8);
+  const tree = (
+    <g>
+      <rect x={140} y={640} width={1660} height={300} fill="#D9C29A" opacity={0.4 * ground} />
+      <circle cx={1370} cy={300} r={15 * root} fill={C.ink} />
+      {[1, 2, 3, 4].map((k) => {
+        const p = prog(t, genAt[k]!, genAt[k]! + 0.6, easeOut);
+        return Array.from({ length: 2 ** k }, (_, j) => {
+          const px = nodeX(k - 1, Math.floor(j / 2));
+          const py = GEN[k - 1]!.y;
+          const x = nodeX(k, j);
+          const y = GEN[k]!.y;
+          const fade = k < 4 ? 1 - 0.35 * spread : 1;
+          return (
+            <g key={`${k}-${j}`} opacity={fade}>
+              <Ink d={`M${px} ${py + 10} C${px} ${py + 45} ${x} ${y - 45} ${x} ${y - 9}`} w={k < 3 ? 3.5 : 2.5} p={p} />
+              <circle cx={x} cy={y} r={(k < 4 ? 9 - k : 6) * prog(t, genAt[k]! + 0.4, genAt[k]! + 0.7, easeOut)} fill={C.ink} />
+            </g>
+          );
+        });
+      })}
+      {/* «انتشر»: من كل فرع أخير يمضي أثر على الأفق إلى الجانبين */}
+      {Array.from({ length: 16 }, (_, j) => {
+        const x = nodeX(4, j);
+        return [-1, 1].map((sd) => {
+          const dx = sd * (26 + (j % 3) * 10) * spread;
+          return <circle key={`${j}${sd}`} cx={x + dx} cy={640} r={4.5 * spread} fill={C.ink} opacity={0.75} />;
+        });
+      })}
+    </g>
+  );
+  const cam = camPath(t, { cx: 1250, cy: 520, s: 1.1 }, [
+    { a: at(tl, "ومنه") - 0.2, b: at(tl, "نسل") + 0.4, cx: 1160, cy: 480, s: 1.02 },
+    { a: at(tl, "انتشر") - 0.2, b: end(tl, "الأرض") + 0.4, ...NEUTRAL },
+  ]);
+  const top = mix(486, 168, mv);
+  return (
+    <Book
+      id="ln"
+      t={t}
+      dur={dur}
+      exit={exit}
+      from={from}
+      cam={cam}
+      R={
+        <g>
+          <Sunset y={640} o={0.8 * (1 - 0.6 * ground)} />
+          <Ink d="M1720 640 C1500 636 1220 642 1010 638" w={4} p={1} />
+          <Ink d="M1010 638 C990 639 975 640 960 640" w={4} p={spread} />
+          {tree}
+        </g>
+      }
+      L={
+        <g>
+          <Ink d="M960 640 C720 636 420 644 180 640" w={4} p={spread} />
+          {tree}
+        </g>
+      }
+      htmlR={
+        <div style={{ position: "absolute", right: W - 1700, top, width: 660, textAlign: "center", fontFamily: Amiri, fontWeight: 700, fontSize: 104, lineHeight: 1.25, color: C.ink, direction: "rtl", transform: `scale(${mix(1, 0.62, mv)})`, transformOrigin: "50% 0" }}>آدم عليه السلام</div>
+      }
+    />
+  );
+};
+
+// ─────────── c1-s6: ما هو أعظم من تحديد سنة أو مكان ───────────
+const FRAME_O = "M1690 170 H1040 V870 H1690 Z";
+const FRAME_I = "M1676 184 H1054 V856 H1676 Z";
+const marginNotes = (ribbon: number, pin: number) => (
+  <g>
+    <g transform={`translate(0 ${(1 - ribbon) * -40})`}>
+      <DateRibbon x={300} y={120} s={0.42} o={ribbon} />
+    </g>
+    <SText x={300} y={248} size={30} font="tajawal" weight={500} color={C.inkSoft} o={ribbon}>
+      سنة
+    </SText>
+    <Pin x={430} y={210} s={0.75} o={pin} />
+    <SText x={430} y={248} size={30} font="tajawal" weight={500} color={C.inkSoft} o={pin}>
+      مكان
+    </SText>
+  </g>
+);
+const GreaterFrame: React.FC<{ p: number }> = ({ p }) => (
+  <g>
+    <Ink d={FRAME_O} w={4} p={p} c={C.gold} />
+    <Ink d={FRAME_I} w={1.8} p={prog(p, 0.25, 1)} c={C.gold} />
+  </g>
+);
+const Greater: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
+  const frame = prog(t, at(tl, "أعظم") - 0.1, at(tl, "أعظم") + 1.1);
+  const ribbon = prog(t, at(tl, "سنة") - 0.05, at(tl, "سنة") + 0.45, easeOut);
+  const pin = prog(t, at(tl, "مكان") - 0.05, at(tl, "مكان") + 0.45, easeOut);
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "أعظم") - 0.25, b: at(tl, "أعظم") + 0.9, cx: 1320, cy: 520, s: 1.08 },
+    { a: at(tl, "تحديد") - 0.2, b: at(tl, "سنة") + 0.3, cx: 820, cy: 460, s: 1.1 },
+    { a: end(tl, "مكان") + 0.1, b: end(tl, "مكان") + 1.0, ...NEUTRAL },
+  ]);
+  return <Book id="gr" t={t} dur={dur} exit={exit} cam={cam} R={<GreaterFrame p={frame} />} L={marginNotes(ribbon, pin)} />;
+};
+
+// ─────────── c1-s7: فهرس ما أخبرنا به ───────────
+const ENTRIES = [
+  { w: "خلق", txt: "خلق آدم", n: "٣" },
+  { w: "وتكريمه", txt: "تكريمه", n: "٤" },
+  { w: "وتعليمه", txt: "تعليمه", n: "٣" },
+  { w: "أمر", txt: "أمر الملائكة بالسجود", n: "٤" },
+  { w: "عداوة", txt: "عداوة إبليس", n: "٤" },
+  { w: "عما", txt: "ما جرى لآدم وزوجه", n: "٥" },
+  { w: "وهبوطهما", txt: "هبوطهما إلى الأرض", n: "٦" },
+];
+const ENTRY_Y = (i: number) => 312 + i * 78;
+const IndexList: React.FC<{ t: number; times: number[]; head: number; glow?: number }> = ({ t, times, head, glow = -1 }) => (
+  <g>
+    <SText x={1365} y={240} size={34} font="tajawal" weight={700} color={C.inkSoft} o={head}>
+      ما أخبرنا به
+    </SText>
+    <Ink d="M1520 262 H1210" w={2.5} p={head} c={C.gold} />
+    {ENTRIES.map((e, i) => {
+      const a = times[i]!;
+      const txt = prog(t, a - 0.05, a + 0.4, easeOut);
+      const lead = prog(t, a + 0.25, a + 0.85);
+      const y = ENTRY_Y(i);
+      const x0 = 1630 - e.txt.length * 20.5 - 22;
+      const lit = glow >= 0 ? prog(t, glow + i * 0.08, glow + i * 0.08 + 0.3) * (1 - prog(t, glow + 0.9 + i * 0.08, glow + 1.4 + i * 0.08)) : 0;
+      return (
+        <g key={i}>
+          <g transform={`translate(${(1 - txt) * 18} 0)`}>
+            <SText x={1630} y={y} size={40} font="tajawal" weight={500} anchor="start" o={txt}>
+              {e.txt}
+            </SText>
+          </g>
+          {lead > 0 ? <line x1={x0} x2={mix(x0, 1135, lead)} y1={y - 11} y2={y - 11} stroke={C.inkSoft} strokeWidth={3} strokeDasharray="2 9" strokeLinecap="round" /> : null}
+          <circle cx={1103} cy={y - 13} r={26} fill={C.gold} opacity={0.35 * lit} />
+          <SText x={1103} y={y} size={42} o={prog(t, a + 0.7, a + 1.0)} color={C.ink}>
+            {e.n}
+          </SText>
+        </g>
+      );
+    })}
+  </g>
+);
+const indexTimes = (tl: Timeline) => ENTRIES.map((e) => at(tl, e.w));
+const IndexScene: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
+  const times = indexTimes(tl);
+  const keys = times.map((a, i) => ({ a: a - 0.3, b: a + 0.5, cx: 1370, cy: Math.min(640, Math.max(400, ENTRY_Y(i))), s: 1.14 }));
+  const cam = camPath(t, NEUTRAL, [...keys, { a: tl.end + 0.05, b: tl.end + 0.9, ...NEUTRAL }]);
+  return <Book id="ix" t={t} dur={dur} exit={exit} cam={cam} R={<g><GreaterFrame p={1} /><IndexList t={t} times={times} head={prog(t, at(tl, "أخبرنا") - 0.05, at(tl, "أخبرنا") + 0.45)} /></g>} L={marginNotes(1, 1)} />;
+};
+
+// ─────────── c1-s8: ومن هذه الأخبار نبدأ قصتنا (قلب الصفحة) ───────────
+const Begin: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
+  const done = ENTRIES.map(() => -10);
+  const sweep = prog(t, at(tl, "الأخبار") - 0.05, at(tl, "الأخبار") + 0.6);
+  return (
+    <Book
+      id="bg"
+      t={t}
+      dur={dur}
+      exit={exit}
+      turnAt={at(tl, "نبدأ")}
+      cam={NEUTRAL}
+      R={
+        <g>
+          <GreaterFrame p={1} />
+          <IndexList t={t} times={done} head={1} glow={at(tl, "الأخبار")} />
+          <Ink d="M1640 828 H1090" w={4} p={sweep} c={C.gold} />
+        </g>
+      }
+      L={marginNotes(1, 1)}
+    />
+  );
+};
+
+// ─────────── عنوان الفصل (بلا كلام): يُكتب كبيرًا ثم يصغر إلى رأس الصفحة ───────────
+const Chapter: React.FC<HzProps> = ({ t, dur, exit, p }) => {
+  const label = p.label ?? "";
+  const big = prog(t, 0.3, 1.0, easeOut);
+  const shrink = prog(t, 2.0, 2.8);
+  const orn = prog(t, 0.1, 0.8);
+  const rule = prog(t, 0.6, 1.4);
+  const title = p.title ?? "";
+  const R = (
+    <g>
+      <g opacity={1 - shrink} transform={`translate(${shrink * 200} ${-shrink * 280}) translate(1365 470) scale(${1 - 0.55 * shrink}) translate(-1365 -470)`}>
+        <Ink d="M1345 330 H1385 L1371 360 L1385 390 H1345 L1359 360 Z" w={3} p={orn} c={C.gold} fill={C.gold} fillP={0.35 * orn} />
+        <SText x={1365} y={500} size={118} o={big} dy={(1 - big) * 16} color={C.ink}>
+          {label}
+        </SText>
+        {title ? (
+          <SText x={1365} y={600} size={60} o={prog(t, 0.7, 1.3)} color={C.inkSoft}>
+            {title}
+          </SText>
+        ) : null}
+        <Ink d={`M1520 ${title ? 650 : 560} H1210`} w={3} p={rule} c={C.gold} />
+      </g>
+      <g transform={`translate(0 ${(1 - prog(t, 0.6, 1.2, easeOut)) * -90})`}>
+        <path d="M1700 72 H1736 V156 L1718 142 L1700 156 Z" fill={C.ribbon} />
+      </g>
+      <SText x={1680} y={140} size={40} anchor="start" color={C.ink} o={prog(t, 2.3, 2.9)}>
+        {label}
+      </SText>
+    </g>
+  );
+  return <Book id="ch" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={R} />;
+};
+
+// ─────────── تمهيد آية: صفحة ساكنة برأس الفصل ───────────
+const VerseIntro: React.FC<HzProps> = ({ t, dur, exit, p }) => <Book id="vi" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={<ChapterHead label={p.head ?? ""} />} />;
+
+// ─────────── c2-s3: سؤال لطلب الفهم، لا اعتراض (حاشية ابن كثير على البقرة 30) ───────────
+const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
+  const q = prog(t, at(tl, "وسألت") - 0.05, at(tl, "وسألت") + 0.6, easeOut);
+  const head = prog(t, end(tl, "وسألت"), end(tl, "وسألت") + 0.5);
+  const fasad = prog(t, at(tl, "الفساد") - 0.05, at(tl, "الفساد") + 0.45, easeOut);
+  const safk = prog(t, at(tl, "وسفك") - 0.05, at(tl, "وسفك") + 0.45, easeOut);
+  const card = prog(t, at(tl, "سؤالهم") - 0.15, at(tl, "سؤالهم") + 0.6, easeOut);
+  const i3 = prog(t, at(tl, "اعتراضا") - 0.05, at(tl, "اعتراضا") + 0.4, easeOut);
+  const strike = prog(t, at(tl, "اعتراضا") + 0.4, at(tl, "حكم") - 0.05);
+  const ring = prog(t, end(tl, "الفهم"), end(tl, "الفهم") + 0.6);
+  const under = prog(t, at(tl, "الحكمة"), end(tl, "الحكمة") + 0.3);
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "وسألت") - 0.2, b: at(tl, "وسألت") + 0.9, cx: 1365, cy: 520, s: 1.1 },
+    { a: at(tl, "سؤالهم") - 0.3, b: at(tl, "سؤالهم") + 0.9, cx: 600, cy: 500, s: 1.12 },
+  ]);
+  const R = (
+    <g>
+      <ChapterHead label={p.head ?? ""} />
+      <g transform={`translate(1365 430) scale(${0.85 + 0.15 * q}) translate(-1365 -430)`}>
+        <SText x={1365} y={500} size={300} o={q} color={C.ink}>
+          ؟
+        </SText>
+      </g>
+      <SText x={1365} y={590} size={48} font="tajawal" o={head} color={C.inkText}>
+        سؤال
+      </SText>
+      <Ink d="M1560 640 V626 H1170 V640" w={2.5} p={Math.max(fasad, safk)} c={C.inkSoft} />
+      <SText x={1470} y={705} size={40} font="tajawal" weight={500} o={fasad} color={C.inkSoft}>
+        الفساد
+      </SText>
+      <SText x={1250} y={705} size={40} font="tajawal" weight={500} o={safk} color={C.inkSoft}>
+        سفك الدماء
+      </SText>
+    </g>
+  );
+  const row = (top: number): React.CSSProperties => ({ right: 34, top, fontFamily: Tajawal, fontWeight: 500, fontSize: 50, lineHeight: 1.4, color: C.inkText });
+  const htmlL = (
+    <div style={{ position: "absolute", left: 250, top: 250, width: 620, height: 470, background: "#FFFAF0", border: "3px solid rgba(74,46,31,0.6)", borderRadius: 8, boxShadow: "0 16px 32px rgba(43,30,20,0.25)", opacity: card, transform: `translate(${(1 - card) * -40}px, 0) rotate(${-1.2 + 1.2 * card}deg)`, direction: "rtl" }}>
+      <div style={{ position: "absolute", right: 24, top: -42, padding: "4px 18px 8px", background: C.ribbon, color: C.page, fontFamily: Tajawal, fontWeight: 700, fontSize: 28, borderRadius: "6px 6px 0 0" }}>حاشية</div>
+      <div style={{ position: "absolute", ...row(34), opacity: i3 }}>
+        <span style={{ position: "relative", display: "inline-block" }}>
+          اعتراضا
+          <span style={{ position: "absolute", right: 0, top: "54%", height: 5, width: `${strike * 100}%`, background: C.ribbon, borderRadius: 3 }} />
+        </span>
+      </div>
+      <Words now={t} items={[{ w: "سؤالا", t: at(tl, "سؤالا") }, { w: "لطلب", t: at(tl, "لطلب") }, { w: "الفهم", t: at(tl, "الفهم") }]} style={row(150)} />
+      <svg width={620} height={470} style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
+        <Ink d="M614 196 C616 158 500 144 390 146 C270 148 164 168 164 200 C164 236 280 252 390 252 C500 252 612 236 614 196" w={4} p={ring} c={C.ribbon} />
+      </svg>
+      <Words now={t} items={[{ w: "ومعرفة", t: at(tl, "ومعرفة") }, { w: "الحكمة", t: at(tl, "الحكمة") }]} style={row(262)} />
+      <div style={{ position: "absolute", right: 34, top: 340, height: 5, width: 300 * under, background: C.gold, borderRadius: 3 }} />
+      <div style={{ position: "absolute", right: 34, bottom: 24, fontFamily: Tajawal, fontWeight: 500, fontSize: 26, color: C.inkSoft, opacity: prog(t, end(tl, "الحكمة") + 0.1, end(tl, "الحكمة") + 0.6) }}>ابن كثير · تفسير البقرة: ٣٠</div>
+    </div>
+  );
+  return <Book id="qs" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} htmlL={htmlL} />;
+};
+
+// ─────────── c2-s4: معرفتنا محدودة (لا يُرسم ما يرمز إلى علم الله) ───────────
+const KNOWN = "M560 368 C640 366 694 430 692 500 C690 574 634 632 560 632 C484 632 428 572 428 500 C428 428 486 370 556 368";
+const Known: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
+  const circ = prog(t, at(tl, "معرفتنا") - 0.05, at(tl, "معرفتنا") + 0.9);
+  const firm = prog(t, at(tl, "محدودة") - 0.05, at(tl, "محدودة") + 0.6);
+  const label = prog(t, at(tl, "معرفتنا") + 0.25, at(tl, "معرفتنا") + 0.7);
+  const dots = [at(tl, "نعرف"), at(tl, "بعض"), at(tl, "الحكم")].map((a) => prog(t, a - 0.05, a + 0.4, easeOut));
+  const reach = prog(t, at(tl, "ندعي") - 0.05, at(tl, "الإحاطة") + 0.1);
+  const recede = prog(t, at(tl, "الإحاطة") + 0.1, end(tl, "الإحاطة") + 0.2);
+  const cam = camPath(t, NEUTRAL, [{ a: at(tl, "معرفتنا") - 0.25, b: at(tl, "معرفتنا") + 0.9, cx: 720, cy: 500, s: 1.08 }]);
+  const L = (
+    <g>
+      <Ink d={KNOWN} w={4} p={circ} />
+      <Ink d={KNOWN} w={8} p={firm} opacity={0.85} />
+      <SText x={560} y={700} size={40} font="tajawal" weight={500} o={label} color={C.inkText}>
+        معرفتنا
+      </SText>
+      {[
+        [520, 470],
+        [606, 452],
+        [574, 548],
+      ].map(([x, y], i) => (
+        <g key={i} opacity={dots[i]}>
+          <circle cx={x} cy={y} r={22 * dots[i]!} fill={C.gold} opacity={0.3} />
+          <circle cx={x} cy={y} r={9} fill={C.gold} stroke={C.ink} strokeWidth={2} />
+        </g>
+      ))}
+      <g opacity={1 - recede}>
+        <Ink d="M700 470 C760 430 820 380 900 350" w={4} p={reach} dash="10 12" c={C.inkSoft} />
+      </g>
+    </g>
+  );
+  return <Book id="kn" t={t} dur={dur} exit={exit} from={from} cam={cam} R={<ChapterHead label={p.head ?? ""} />} L={L} />;
+};
+
+// ─────────── c2-s5: يحدثنا القرآن عن الخلق، ثم عن التعليم ───────────
+const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
+  const rule = prog(t, at(tl, "الإخبار") - 0.05, at(tl, "الإخبار") + 0.6);
+  const quran = prog(t, at(tl, "القرآن") - 0.05, at(tl, "القرآن") + 0.45);
+  const khalq = prog(t, at(tl, "خلق") - 0.05, at(tl, "خلق") + 0.5, easeOut);
+  const adam = prog(t, at(tl, "آدم") - 0.05, at(tl, "آدم") + 0.45);
+  const arrow = prog(t, at(tl, "ثم") - 0.05, at(tl, "ثم") + 0.6);
+  const box = prog(t, at(tl, "أعظم") - 0.1, at(tl, "أعظم") + 0.8);
+  const taalim = prog(t, at(tl, "التعليم") - 0.05, at(tl, "التعليم") + 0.5, easeOut);
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "خلق") - 0.25, b: at(tl, "خلق") + 0.8, cx: 1365, cy: 470, s: 1.1 },
+    { a: at(tl, "ثم") - 0.2, b: at(tl, "أعظم") + 0.5, cx: 1365, cy: 560, s: 1.1 },
+  ]);
+  const R = (
+    <g>
+      <ChapterHead label={p.head ?? ""} />
+      <Ink d="M1540 205 H1190" w={2.5} p={rule} c={C.gold} />
+      <SText x={1365} y={258} size={30} font="tajawal" weight={500} color={C.inkSoft} o={quran}>
+        القرآن الكريم
+      </SText>
+      <SText x={1365} y={370} size={96} o={khalq} dy={(1 - khalq) * 12} color={C.ink}>
+        الخلق
+      </SText>
+      <SText x={1365} y={428} size={34} font="tajawal" weight={500} color={C.inkSoft} o={adam}>
+        آدم عليه السلام
+      </SText>
+      <Ink d="M1365 452 V570 M1345 548 L1365 572 L1385 548" w={4} p={arrow} />
+      <Ink d="M1560 600 H1170 V770 H1560 Z" w={4} p={box} c={C.gold} />
+      <SText x={1365} y={718} size={96} o={taalim} dy={(1 - taalim) * 12} color={C.ink}>
+        التعليم
+      </SText>
+    </g>
+  );
+  return <Book id="tt" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} />;
+};
+
+// ─────────── قيد التصميم: مكان المشهد في الخطة، بفكرته المكتوبة ───────────
+const Pending: React.FC<HzProps> = ({ t, dur, exit, p }) => (
+  <>
+    <Book id="pd" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={p.head ? <ChapterHead label={p.head} /> : undefined} />
+    <div style={{ position: "absolute", left: 360, right: 360, top: 330, padding: "28px 40px 32px", border: "3px dashed rgba(241,228,203,0.7)", borderRadius: 14, background: "rgba(13,10,20,0.78)", color: C.parchment, direction: "rtl", textAlign: "center", fontFamily: Tajawal }}>
+      <div style={{ fontSize: 30, fontWeight: 700, color: C.sand }}>قيد التصميم{p.batch ? ` — الدفعة ${p.batch}` : ""}</div>
+      <div style={{ marginTop: 14, fontSize: 34, fontWeight: 500, lineHeight: 1.5 }}>{p.idea ?? ""}</div>
+    </div>
+  </>
+);
+
+// ─────────── لقطتان مصممتان قبل هذا البناء (اختبار «خط الأفق»)، بخروج بخفوت الحبر ───────────
+const legacy = (Comp: React.FC<{ t: number; tl: Timeline }>, endCam: Cam): React.FC<HzProps> =>
+  function Legacy({ t, tl, dur, exit }) {
+    return (
+      <>
+        <Comp t={t} tl={tl} />
+        {exit === "fade" ? <BlankBookOver id="lg" cam={endCam} o={prog(t, dur - 0.75, dur - 0.15)} /> : null}
+      </>
+    );
+  };
+
+export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
+  cover: Cover,
+  basmala: BasmalaScene,
+  nations: Nations,
+  return: ReturnScene,
+  lineage: Lineage,
+  "no-date": legacy(Shot2, { cx: 960, cy: 520, s: 1 }),
+  greater: Greater,
+  index: IndexScene,
+  begin: Begin,
+  chapter: Chapter,
+  "verse-intro": VerseIntro,
+  interpreters: legacy(Shot4, { cx: 555, cy: 575, s: 1.12 }),
+  question: Question,
+  known: Known,
+  "two-titles": TwoTitles,
+  pending: Pending,
+};
+
+// كل مشهد مسجل له بياناته، والعكس
+for (const k of Object.keys(HZ_META)) if (!HZ_SCENES[k]) throw new Error(`مشهد «خط الأفق» بلا رسم: ${k}`);

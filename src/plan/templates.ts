@@ -1,4 +1,5 @@
 import { INK_SHOTS } from "../remotion/zubdat/shots";
+import { HZ_META } from "../remotion/dafatir/horizon/meta";
 import { SHOTS } from "../remotion/illus/shots";
 /**
  * تعريف القوالب كبيانات: الاسم، هل بُني، والحقول التي يعرضها الاستوديو لكل قالب.
@@ -301,6 +302,24 @@ export const templateDefs: TemplateDef[] = [
     fields: [
       { key: "shot", label: "المشهد", type: "select", options: Object.entries(INK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
       { key: "task", label: "مهمة الحلقة (للخاتمة فقط، بنص منطوق في الحلقة)", type: "text" },
+    ],
+  },
+  {
+    id: "horizon-shot",
+    nameAr: "مشهد خط الأفق",
+    useAr: "دفاتر الزمن: مشهد مصمَّم لجملته على الدفتر المفتوح (أفق، أطلال، نسل، فهرس، حاشية مفسر، عنوان فصل)، كل حدث لحظة نطق كلمته، ولا يُصوَّر غيب",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 2.5,
+    fields: [
+      { key: "shot", label: "المشهد", type: "select", options: Object.entries(HZ_META).map(([value, d]) => ({ value, label: d.nameAr })) },
+      { key: "head", label: "رأس الصفحة (رقم الفصل)", type: "text" },
+      { key: "label", label: "عنوان الفصل (لمشهد العنوان)", type: "text" },
+      { key: "title", label: "اسم الفصل تحت رقمه (اختياري)", type: "text" },
+      { key: "from", label: "كاميرا البداية من المشهد السابق (x,y,تكبير)", type: "text" },
+      { key: "exit", label: "الخروج", type: "select", options: [{ value: "", label: "حسب المشهد" }, { value: "turn", label: "قلب صفحة" }, { value: "fade", label: "خفوت الحبر" }, { value: "none", label: "يكمله المشهد التالي" }] },
+      { key: "idea", label: "فكرة المشهد (قيد التصميم)", type: "textarea" },
+      { key: "batch", label: "الدفعة", type: "text" },
     ],
   },
   {

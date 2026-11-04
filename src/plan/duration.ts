@@ -2,6 +2,7 @@ import config from "../../config.json";
 import { templateById } from "./templates";
 import type { PlanScene } from "./types";
 import type { EpisodeMedia } from "./media";
+import { HZ_META, hzEstimateSeconds } from "../remotion/dafatir/horizon/meta";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
@@ -40,6 +41,12 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
     return Math.max(scene.durationSec, audio);
   }
   if (scene.template === "verse-card" && rec) return Math.max(base, rec.duration + 1.6);
+  // خط الأفق: ذيل كل مشهد من تصميمه (قلب الصفحة يحتاج وقته بعد آخر كلمة)
+  if (scene.template === "horizon-shot") {
+    const shot = String(scene.props.shot ?? "");
+    if (voiced) return Math.max(MIN_SECONDS, voiced.duration + (HZ_META[shot]?.tail ?? config.voice.tailSeconds));
+    return Math.max(MIN_SECONDS, hzEstimateSeconds(scene.narration, shot));
+  }
   const min = Math.max(templateById(scene.template)?.minSeconds ?? MIN_SECONDS, textSeconds(scene));
   if (voiced) return Math.max(min, voiced.duration + config.voice.tailSeconds);
   const n = words(scene.narration);

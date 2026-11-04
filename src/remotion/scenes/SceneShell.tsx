@@ -167,13 +167,15 @@ type ShellProps = SceneBase & {
   captionVariant?: "pill" | "cinema" | "paper" | "dusk";
   /** طول الإظلام في آخر المشهد (0 = قطع مباشر إلى مشهد يكمله) */
   exitFrames?: number;
+  /** المشهد يرسم الدفتر بنفسه (خط الأفق): بلا غلاف الدفتر الثابت حوله */
+  frameless?: boolean;
 };
 
 /**
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
  * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
  */
-export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant, exitFrames = 8 }) => {
+export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant, exitFrames = 8, frameless = false }) => {
   useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -231,7 +233,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
           </div>
         ) : null}
       </AbsoluteFill>
-      {notebook ? <NotebookCover w={width} h={height} u={u} /> : null}
+      {notebook && !frameless ? <NotebookCover w={width} h={height} u={u} /> : null}
       {captions && timings.length ? (
         <AbsoluteFill style={{ opacity: out }}>
           <CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? (darkBg ? "dusk" : "paper") : captionVariant} />

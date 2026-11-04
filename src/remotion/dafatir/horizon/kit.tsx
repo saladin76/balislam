@@ -257,7 +257,7 @@ export const Tag: React.FC<{ text: string; corner: "tl" | "tr" | "bl" | "br" | "
 );
 
 /** أسماء السور التي تحتاجها اللقطات (للمرجع تحت الآية) */
-const SURAH: Record<number, string> = { 2: "البقرة", 7: "الأعراف" };
+const SURAH: Record<number, string> = { 2: "البقرة", 4: "النساء", 7: "الأعراف", 15: "الحجر", 18: "الكهف", 20: "طه", 38: "ص" };
 const easternDigits = (n: number | string) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
 /** «2:30» ← «البقرة: ٣٠» */
 export const verseRef = (key: string) => {

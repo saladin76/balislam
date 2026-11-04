@@ -1,0 +1,157 @@
+/**
+ * الدفتر بطبقاته لمشاهد «خط الأفق» في الحلقة: صفحة يمنى ويسرى وما فوقهما، بكاميرا، وخروج من المشهد
+ * بقلب صفحة إلى الأمام (كتاب عربي: الصفحة اليسرى ترتفع وتنقلب فوق الكعب إلى اليمين) أو بخفوت الحبر.
+ * كل مشهد يبدأ من دفتر فارغ أو من الحال التي انتهى عليها المشهد قبله، فلا قفز بين المشاهد.
+ */
+import React from "react";
+import { BookShadow, C, Camera, Defs, GUTTER, LEFT_PAGE, LightPool, PAGE_TOP, Page, PageStack, RIGHT_PAGE, Spine, W, mix, prog, easeIO } from "./kit";
+
+export type Cam = { cx: number; cy: number; s: number };
+export const NEUTRAL: Cam = { cx: 960, cy: 520, s: 1 };
+
+/** كاميرا بمفاتيح متتالية: كل مفتاح ينتقل إلى (cx,cy,s) بين a وb بالثواني */
+export type CamKey = { a: number; b: number } & Cam;
+export const camPath = (t: number, start: Cam, keys: CamKey[]): Cam => {
+  let c = { ...start };
+  for (const k of keys) {
+    const p = prog(t, k.a, k.b);
+    c = { cx: mix(c.cx, k.cx, p), cy: mix(c.cy, k.cy, p), s: mix(c.s, k.s, p) };
+  }
+  return c;
+};
+const blend = (a: Cam, b: Cam, p: number): Cam => ({ cx: mix(a.cx, b.cx, p), cy: mix(a.cy, b.cy, p), s: mix(a.s, b.s, p) });
+export const parseCam = (v?: string): Cam | undefined => {
+  const n = (v ?? "").split(",").map(Number);
+  return n.length === 3 && n.every(Number.isFinite) ? { cx: n[0]!, cy: n[1]!, s: n[2]! } : undefined;
+};
+
+export type Exit = "turn" | "fade" | "none";
+export type Leaf = {
+  cam: Cam;
+  /** محتوى الصفحتين بإحداثيات العالم (SVG) */
+  L?: React.ReactNode;
+  R?: React.ReactNode;
+  /** فوق الصفحتين وتحت الكعب (أوراق تُقلب، شريط) — يُعامل جزءًا من الصفحة اليمنى عند القلب */
+  top?: React.ReactNode;
+  /** نصوص HTML على كل صفحة (تنقلب اليسرى مع الورقة، وتختفي اليمنى تحتها) */
+  htmlL?: React.ReactNode;
+  htmlR?: React.ReactNode;
+  /** الصفحة اليسرى غير ظاهرة (الدفتر مغلق) */
+  noLeft?: boolean;
+  tintL?: string;
+  light?: number;
+};
+
+/** قلب صفحة إلى الأمام: الورقة اليسرى (بوجهها front) تنقلب إلى اليمين، فيظهر ظهرها الفارغ على اليمين */
+const FwdLeaf: React.FC<{ id: string; p: number; front: React.ReactNode }> = ({ id, p, front }) => {
+  if (p <= 0 || p >= 1) return null;
+  const sx = Math.cos(Math.PI * p);
+  const sxSafe = Math.abs(sx) < 0.01 ? 0.01 * Math.sign(sx || 1) : sx;
+  const lift = Math.sin(Math.PI * p);
+  return (
+    <g>
+      <path d={sx > 0 ? LEFT_PAGE : RIGHT_PAGE} fill="#2B1E14" opacity={0.18 * lift} />
+      <g transform={`translate(${GUTTER} ${PAGE_TOP}) skewY(${5 * lift * Math.sign(sx || 1)}) scale(${sxSafe} 1) translate(${-GUTTER} ${-PAGE_TOP})`}>
+        {sx > 0 ? <Page id={id} side="l">{front}</Page> : <Page id={id} side="l" tint="rgba(74,46,31,0.05)" />}
+        <path d={LEFT_PAGE} fill="#FFF6E0" opacity={sx > 0 ? 0.22 * lift : 0} />
+        <path d={LEFT_PAGE} fill="#2B1E14" opacity={0.32 * (1 - Math.abs(sx))} />
+      </g>
+    </g>
+  );
+};
+
+export const leafTransform = (p: number) => {
+  const sx = Math.cos(Math.PI * p);
+  const lift = Math.sin(Math.PI * p);
+  return { sx, css: `translate(${GUTTER}px, ${PAGE_TOP}px) skewY(${5 * lift}deg) scale(${Math.max(0.01, sx)}, 1) translate(${-GUTTER}px, ${-PAGE_TOP}px)` };
+};
+
+/**
+ * الدفتر: from = كاميرا المشهد السابق (يبدأ منها ثم ينتقل في أول ثانية)، exit = خروج المشهد.
+ * عند الخروج بالقلب تعود الكاميرا إلى الوضع العام قبله، فالمشهد التالي يبدأ من دفتر فارغ بالكادر نفسه.
+ */
+export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: Exit; turnAt?: number; from?: Cam }> = ({ id, t, dur, exit = "none", turnAt, from, ...leaf }) => {
+  const turnStart = turnAt ?? dur - 0.95;
+  const p = exit === "turn" ? prog(t, turnStart, turnStart + 0.8, easeIO) : 0;
+  const fade = exit === "fade" ? prog(t, dur - 0.75, dur - 0.15) : 0;
+  let cam = leaf.cam;
+  if (from) cam = blend(from, cam, prog(t, 0, 1.0));
+  if (exit === "turn") cam = blend(cam, NEUTRAL, prog(t, turnStart - 0.7, turnStart));
+  const { sx, css } = leafTransform(p);
+  const turning = p > 0 && p < 1;
+  const crossed = p > 0 && sx <= 0;
+  const ink = 1 - fade;
+  return (
+    <Camera {...cam}>
+      <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
+        <Defs id={id} />
+        <BookShadow />
+        {leaf.noLeft ? null : <Page id={id} side="l" tint={leaf.tintL}>{p > 0 ? null : <g opacity={ink}>{leaf.L}</g>}</Page>}
+        <Page id={id} side="r">{p >= 1 ? null : <g opacity={ink}>{leaf.R}</g>}</Page>
+        <PageStack />
+        {p >= 1 || crossed ? null : <g opacity={ink}>{leaf.top}</g>}
+        {turning ? <FwdLeaf id={id} p={p} front={leaf.L} /> : null}
+        <Spine />
+        <LightPool o={leaf.light ?? 1} />
+      </svg>
+      {leaf.htmlR && !crossed && p < 1 ? <div style={{ position: "absolute", inset: 0, opacity: ink }}>{leaf.htmlR}</div> : null}
+      {leaf.htmlL && !crossed && p < 1 ? <div style={{ position: "absolute", left: 0, top: 0, width: W, height: 1080, opacity: ink, transformOrigin: "0 0", transform: turning ? css : undefined }}>{leaf.htmlL}</div> : null}
+    </Camera>
+  );
+};
+
+/** دفتر فارغ بكاميرا ثابتة يغطي ما تحته تدريجيًا (لخروج اللقطات المصممة قبل هذا البناء بخفوت الحبر) */
+export const BlankBookOver: React.FC<{ id: string; cam: Cam; o: number }> = ({ id, cam, o }) =>
+  o <= 0 ? null : (
+    <div style={{ position: "absolute", inset: 0, opacity: o }}>
+      <Camera {...cam}>
+        <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
+          <Defs id={id} />
+          <Page id={id} side="l" />
+          <Page id={id} side="r" />
+          <PageStack />
+          <Spine />
+          <LightPool />
+        </svg>
+      </Camera>
+    </div>
+  );
+
+const Amiri = "'Amiri', serif";
+const Tajawal = "'Tajawal', sans-serif";
+
+/** نص SVG عربي (يتصل حرفه ويُقلب مع الورقة). anchor: middle للتوسيط، start = محاذاة إلى اليمين */
+export const SText: React.FC<{ x: number; y: number; size: number; o?: number; dy?: number; font?: "amiri" | "tajawal"; weight?: number; color?: string; anchor?: "middle" | "start" | "end"; children: React.ReactNode }> = ({ x, y, size, o = 1, dy = 0, font = "amiri", weight = 700, color = C.inkText, anchor = "middle", children }) =>
+  o <= 0 ? null : (
+    <text x={x} y={y + dy} fontFamily={font === "amiri" ? Amiri : Tajawal} fontWeight={weight} fontSize={size} fill={color} textAnchor={anchor} direction="rtl" opacity={o}>
+      {children}
+    </text>
+  );
+
+/** رأس الفصل الصغير أعلى الصفحة اليمنى، وشريطه الأحمر */
+export const ChapterHead: React.FC<{ label: string; o?: number }> = ({ label, o = 1 }) => (
+  <g opacity={o}>
+    <SText x={1680} y={140} size={40} anchor="start" color={C.ink}>
+      {label}
+    </SText>
+    <path d="M1700 72 H1736 V156 L1718 142 L1700 156 Z" fill={C.ribbon} />
+  </g>
+);
+
+/** دبوس مكان صغير (حبر) */
+export const Pin: React.FC<{ x: number; y: number; s?: number; o?: number }> = ({ x, y, s = 1, o = 1 }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`} opacity={o}>
+    <path d="M0 0 C-14 -20 -22 -30 -22 -44 A22 22 0 1 1 22 -44 C22 -30 14 -20 0 0 Z" fill={C.ribbon} stroke={C.ink} strokeWidth={3} />
+    <circle cx={0} cy={-44} r={8} fill={C.page} stroke={C.ink} strokeWidth={2} />
+  </g>
+);
+
+/** شريط التاريخ الأحمر بخانة سنة فارغة (عنصر الهوية) */
+export const DateRibbon: React.FC<{ x: number; y: number; s?: number; o?: number }> = ({ x, y, s = 1, o = 1 }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`} opacity={o}>
+    <path d="M-35 0 H35 V200 L0 170 L-35 200 Z" fill={C.ribbon} stroke={C.ink} strokeWidth={2} />
+    <rect x={-28} y={70} width={56} height={84} rx={4} fill={C.page} stroke={C.ink} strokeWidth={2} />
+  </g>
+);
+
+export const fonts = { Amiri, Tajawal };

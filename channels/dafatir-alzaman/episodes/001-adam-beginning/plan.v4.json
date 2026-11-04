@@ -1,0 +1,1548 @@
+{
+  "version": 1,
+  "episode": "001",
+  "title": "خلق آدم عليه السلام وبداية البشرية",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "updatedAt": "2026-11-04T11:34:57.126Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "بداية القصة",
+      "scenes": [
+        {
+          "template": "noor-text",
+          "narration": "بسم الله الرحمن الرحيم.",
+          "line": 13,
+          "props": {
+            "text": "بسم الله الرحمن الرحيم",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c1-s1",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "عرفت الأرض أمما كثيرة، وتعاقبت فيها أجيال لا يعلم عددها إلا الله.",
+          "line": 15,
+          "props": {
+            "title": "عرفت الأرض",
+            "events": "أممًا كثيرة\nأجيالًا لا يعلم عددها إلا الله",
+            "element": ""
+          },
+          "id": "c1-s2",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ولكن رحلتنا هذه لا تبدأ من مدينة قديمة، ولا من مملكة نسي الناس اسمها.",
+          "line": 17,
+          "props": {
+            "element": "ruins-columns",
+            "secondElement": "",
+            "relation": "",
+            "caption": "لا من مدينة قديمة، ولا من مملكة نسي الناس اسمها",
+            "effect": "float",
+            "cue": "مدينة"
+          },
+          "id": "c1-s3",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "إننا نبدأ من أبي البشر، آدم عليه السلام.",
+          "line": 19,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": "أبو البشر"
+          },
+          "id": "c1-s4",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "من أول إنسان خلقه الله سبحانه وتعالى، ومنه بدأ نسل البشر الذي انتشر في الأرض.",
+          "line": 21,
+          "props": {
+            "text": "أول إنسان",
+            "light": "on",
+            "subtitle": "ومنه بدأ نسل البشر"
+          },
+          "id": "c1-s5",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ولا نملك تاريخا ثابتا لخلق آدم عليه السلام.",
+          "line": 23,
+          "props": {
+            "element": "hourglass-ornate",
+            "secondElement": "",
+            "relation": "",
+            "caption": "لا نملك تاريخًا ثابتًا لخلقه",
+            "effect": "float",
+            "cue": "تاريخا"
+          },
+          "id": "c1-s6",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "فلم يخبرنا القرآن الكريم بالسنة التي خلق فيها، ولا بالزمن الذي يفصله عن أقدم الحضارات التي وصلت إلينا آثارها.",
+          "line": 25,
+          "props": {
+            "title": "لم يخبرنا القرآن الكريم",
+            "events": "بالسنة التي خلق فيها\nولا بالزمن الذي يفصله عن أقدم الحضارات",
+            "element": ""
+          },
+          "id": "c1-s7",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولكن الله أخبرنا بما هو أعظم من تحديد سنة أو مكان.",
+          "line": 27,
+          "props": {
+            "text": "بما هو أعظم من تحديد سنة أو مكان",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c1-s8",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "أخبرنا عن خلق آدم، وتكريمه، وتعليمه، وعن أمر الملائكة بالسجود له، وعن عداوة إبليس.",
+          "line": 29,
+          "props": {
+            "title": "أخبرنا عن",
+            "events": "خلق آدم\nتكريمه\nتعليمه\nسجود الملائكة\nعداوة إبليس",
+            "element": ""
+          },
+          "id": "c1-s9",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ثم أخبرنا عما جرى لآدم وزوجه، وهبوطهما إلى الأرض.",
+          "line": 31,
+          "props": {
+            "element": "earth-globe",
+            "secondElement": "",
+            "relation": "",
+            "caption": "وهبوطهما إلى الأرض",
+            "effect": "float",
+            "cue": "الأرض"
+          },
+          "id": "c1-s10",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ومن هذه الأخبار نبدأ قصتنا.",
+          "line": 33,
+          "props": {
+            "element": "notebook",
+            "secondElement": "",
+            "relation": "",
+            "caption": "ومن هذه الأخبار نبدأ قصتنا",
+            "effect": "grow",
+            "cue": "نبدأ"
+          },
+          "id": "c1-s11",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "إني جاعل في الأرض خليفة",
+      "scenes": [
+        {
+          "template": "noor-text",
+          "narration": "قبل أن نتحدث عن حياة آدم عليه السلام، نقف عند ما أخبرنا الله به في سورة البقرة.",
+          "line": 37,
+          "props": {
+            "text": "سورة البقرة",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c2-s1",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 39,
+          "ayahKey": "2:30",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣٠",
+            "reciter": ""
+          },
+          "id": "c2-s2",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "أخبر الله ملائكته أنه جاعل في الأرض خليفة.",
+          "line": 41,
+          "props": {
+            "text": "الملائكة",
+            "light": "on",
+            "subtitle": "خليفة في الأرض"
+          },
+          "id": "c2-s3",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "وقد ذكر المفسرون في معنى الخلافة أقوالا، منها أن البشر يخلف بعضهم بعضا في عمارة الأرض والحياة عليها.",
+          "line": 43,
+          "props": {
+            "rightTitle": "لفظ الآية",
+            "rightItems": "خليفة في الأرض",
+            "rightElement": "",
+            "leftTitle": "من أقوال المفسرين",
+            "leftItems": "يخلف بعضهم بعضًا\nفي عمارة الأرض",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c2-s4",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وسألت الملائكة ربها عن جعل من يكون منه الفساد وسفك الدماء، مع أنهم يسبحون بحمده ويقدسون له.",
+          "line": 45,
+          "props": {
+            "text": "سؤال الملائكة",
+            "light": "on",
+            "subtitle": ""
+          },
+          "id": "c2-s5",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "ولم يكن سؤالهم اعتراضا على حكم الله، وإنما كان سؤالا لطلب الفهم ومعرفة الحكمة.",
+          "line": 47,
+          "props": {
+            "rightTitle": "لم يكن",
+            "rightItems": "اعتراضًا على حكم الله",
+            "rightElement": "",
+            "leftTitle": "وإنما كان",
+            "leftItems": "سؤالًا لطلب الفهم\nومعرفة الحكمة",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c2-s6",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "فأجابهم الله بأنه يعلم ما لا يعلمون.",
+          "line": 49,
+          "props": {
+            "text": "",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c2-s7",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وهنا ينبغي أن ننتبه إلى معنى مهم.",
+          "line": 51,
+          "props": {
+            "element": "magnifier-brass",
+            "secondElement": "",
+            "relation": "",
+            "caption": "معنى مهم",
+            "effect": "pop",
+            "cue": "ننتبه"
+          },
+          "id": "c2-s8",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "إن معرفتنا محدودة، وعلم الله محيط بكل شيء.",
+          "line": 53,
+          "props": {
+            "rightTitle": "معرفتنا",
+            "rightItems": "محدودة",
+            "rightElement": "",
+            "leftTitle": "علم الله",
+            "leftItems": "محيط بكل شيء",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c2-s9",
+          "sfx": []
+        },
+        {
+          "template": "summary",
+          "narration": "وقد نعرف بعض الحكم من أمر من أمور الله، ولكننا لا ندعي الإحاطة بجميع حكمه.",
+          "line": 55,
+          "props": {
+            "text": "قد نعرف بعض الحكم، ولكننا لا ندعي الإحاطة بجميع حكمه",
+            "element": ""
+          },
+          "id": "c2-s10",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وبعد هذا الإخبار، ينتقل بنا القرآن الكريم إلى أمر من أعظم ما خص الله به آدم عليه السلام.",
+          "line": 57,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": ""
+          },
+          "id": "c2-s11",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "إلى التعليم.",
+          "line": 59,
+          "props": {
+            "text": "إلى التعليم",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c2-s12",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "خلق آدم وتعليمه",
+      "scenes": [
+        {
+          "template": "noor-text",
+          "narration": "خلق الله آدم عليه السلام من طين.",
+          "line": 63,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": "من طين"
+          },
+          "id": "c3-s1",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وقد جاء ذكر خلقه في مواضع متعددة من القرآن الكريم.",
+          "line": 65,
+          "props": {
+            "element": "mushaf-rehal",
+            "secondElement": "",
+            "relation": "",
+            "caption": "في مواضع متعددة من القرآن الكريم",
+            "effect": "pop",
+            "cue": "القرآن"
+          },
+          "id": "c3-s2",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "قال الله تعالى:",
+          "line": 67,
+          "props": {
+            "text": "قال الله تعالى",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c3-s3",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 69,
+          "ayahKey": "38:71",
+          "props": {
+            "text": "",
+            "reference": "ص · ٧١",
+            "reciter": ""
+          },
+          "id": "c3-s4",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ثم قال سبحانه:",
+          "line": 71,
+          "props": {
+            "text": "ثم قال سبحانه",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c3-s5",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 73,
+          "ayahKey": "38:72",
+          "props": {
+            "text": "",
+            "reference": "ص · ٧٢",
+            "reciter": ""
+          },
+          "id": "c3-s6",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "وفي هذه الآيات خبر خلق آدم عليه السلام، وتسويته، ونفخ الروح فيه.",
+          "line": 75,
+          "props": {
+            "title": "خبر خلق آدم عليه السلام",
+            "events": "خلقه\nتسويته\nنفخ الروح فيه",
+            "element": ""
+          },
+          "id": "c3-s7",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ثم أخبرنا الله بأنه علم آدم الأسماء كلها.",
+          "line": 77,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": "الأسماء كلها"
+          },
+          "id": "c3-s8",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 79,
+          "ayahKey": "2:31",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣١",
+            "reciter": ""
+          },
+          "id": "c3-s9",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وقد اختلف المفسرون في تفصيل المقصود بالأسماء، وذكروا في ذلك أقوالا متعددة.",
+          "line": 81,
+          "props": {
+            "element": "books-stack",
+            "secondElement": "",
+            "relation": "",
+            "caption": "أقوال متعددة",
+            "effect": "pop",
+            "cue": "المفسرون"
+          },
+          "id": "c3-s10",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولكن المعنى الواضح في الآيات أن الله خص آدم بعلم علمه إياه.",
+          "line": 83,
+          "props": {
+            "text": "علم خص الله به آدم",
+            "light": "on",
+            "subtitle": ""
+          },
+          "id": "c3-s11",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وعندما عرض الله المسميات على الملائكة، لم يدعوا علم ما لم يعلمهم الله.",
+          "line": 85,
+          "props": {
+            "text": "الملائكة",
+            "light": "on",
+            "subtitle": ""
+          },
+          "id": "c3-s12",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 87,
+          "ayahKey": "2:32",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣٢",
+            "reciter": ""
+          },
+          "id": "c3-s13",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ثم أمر الله آدم أن ينبئهم بأسمائها.",
+          "line": 89,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": "ينبئهم بأسمائها"
+          },
+          "id": "c3-s14",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 91,
+          "ayahKey": "2:33",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣٣",
+            "reciter": ""
+          },
+          "id": "c3-s15",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وهكذا أظهر الله لملائكته ما علمه لآدم عليه السلام.",
+          "line": 93,
+          "props": {
+            "text": "",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c3-s16",
+          "sfx": []
+        },
+        {
+          "template": "summary",
+          "narration": "ونتعلم من هذا الموقف أن العلم نعمة من الله، وأن ما نعرفه إنما نعرفه بما يسره لنا من أسباب المعرفة.",
+          "line": 95,
+          "props": {
+            "text": "العلم نعمة من الله",
+            "element": ""
+          },
+          "id": "c3-s17",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "فلا مكان للغرور بالعلم، ولا لادعاء معرفة ما لم يقم عليه دليل.",
+          "line": 97,
+          "props": {
+            "rightTitle": "فلا مكان",
+            "rightItems": "للغرور بالعلم",
+            "rightElement": "",
+            "leftTitle": "ولا",
+            "leftItems": "لادعاء معرفة ما لم يقم عليه دليل",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c3-s18",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "سجود الملائكة ومعصية إبليس",
+      "scenes": [
+        {
+          "template": "noor-text",
+          "narration": "بعد أن خلق الله آدم عليه السلام، أمر الملائكة أن يسجدوا له.",
+          "line": 101,
+          "props": {
+            "text": "الملائكة",
+            "light": "on",
+            "subtitle": "أمرهم الله بالسجود لآدم"
+          },
+          "id": "c4-s1",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "وكان هذا السجود بأمر الله، تكريما لآدم عليه السلام، وليس عبادة له.",
+          "line": 103,
+          "props": {
+            "rightTitle": "تكريمًا",
+            "rightItems": "لآدم عليه السلام",
+            "rightElement": "",
+            "leftTitle": "وليس",
+            "leftItems": "عبادة له",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c4-s2",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "فالعبادة حق لله وحده.",
+          "line": 105,
+          "props": {
+            "text": "فالعبادة حق لله وحده",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c4-s3",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 107,
+          "ayahKey": "2:34",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣٤",
+            "reciter": ""
+          },
+          "id": "c4-s4",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "استجابت الملائكة لأمر ربها.",
+          "line": 109,
+          "props": {
+            "text": "استجابت الملائكة",
+            "light": "on",
+            "subtitle": ""
+          },
+          "id": "c4-s5",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولكن إبليس أبى واستكبر.",
+          "line": 111,
+          "props": {
+            "text": "إبليس أبى واستكبر",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c4-s6",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ومن المهم هنا أن نعرف أن إبليس لم يكن من الملائكة.",
+          "line": 113,
+          "props": {
+            "text": "إبليس لم يكن من الملائكة",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c4-s7",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "بل كان من الجن، كما أخبرنا الله في سورة الكهف.",
+          "line": 115,
+          "props": {
+            "element": "mushaf-rehal",
+            "secondElement": "",
+            "relation": "",
+            "caption": "سورة الكهف",
+            "effect": "pop",
+            "cue": "الكهف"
+          },
+          "id": "c4-s8",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 117,
+          "ayahKey": "18:50",
+          "props": {
+            "text": "",
+            "reference": "الكهف · ٥٠",
+            "reciter": ""
+          },
+          "id": "c4-s9",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وقد جاء في سورة الأعراف خبر سؤال الله لإبليس عن سبب امتناعه عن السجود.",
+          "line": 119,
+          "props": {
+            "element": "mushaf-rehal",
+            "secondElement": "",
+            "relation": "",
+            "caption": "سورة الأعراف",
+            "effect": "pop",
+            "cue": "الأعراف"
+          },
+          "id": "c4-s10",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 121,
+          "ayahKey": "7:12",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ١٢",
+            "reciter": ""
+          },
+          "id": "c4-s11",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "فقدم إبليس ما ظنه حجة، حين رأى أن خلقه من نار يجعله أفضل من آدم الذي خلق من طين.",
+          "line": 123,
+          "props": {
+            "rightTitle": "نار",
+            "rightItems": "ما خلق منه إبليس",
+            "rightElement": "flame",
+            "leftTitle": "طين",
+            "leftItems": "ما خلق منه آدم عليه السلام",
+            "leftElement": "clay-mound",
+            "tone": "contrast"
+          },
+          "id": "c4-s12",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولكنه أخطأ حين جعل هذا الظن مقدما على أمر الله.",
+          "line": 125,
+          "props": {
+            "text": "",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c4-s13",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "لم يكن الأمر مجرد مقارنة بين مادتين.",
+          "line": 127,
+          "props": {
+            "element": "flame",
+            "secondElement": "clay-mound",
+            "relation": "versus",
+            "caption": "ليس مجرد مقارنة بين مادتين",
+            "effect": "pop",
+            "cue": "مقارنة"
+          },
+          "id": "c4-s14",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "بل كان أمرا إلهيا وجبت طاعته، فاستكبر إبليس عنه.",
+          "line": 129,
+          "props": {
+            "text": "أمرًا إلهيًا وجبت طاعته",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c4-s15",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وهكذا أصبح إبليس عدوا لآدم وذريته.",
+          "line": 131,
+          "props": {
+            "element": "generations",
+            "secondElement": "",
+            "relation": "",
+            "caption": "عدوًا لآدم وذريته",
+            "effect": "float",
+            "cue": "وذريته"
+          },
+          "id": "c4-s16",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "وقد ذكر القرآن الكريم أن إبليس سأل الله أن يمهله، وأنه أعلن عزمه على إغواء البشر.",
+          "line": 133,
+          "props": {
+            "title": "إبليس",
+            "events": "سأل الله أن يمهله\nأعلن عزمه على إغواء البشر",
+            "element": ""
+          },
+          "id": "c4-s17",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 135,
+          "ayahKey": "7:14",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ١٤",
+            "reciter": ""
+          },
+          "id": "c4-s18",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 137,
+          "ayahKey": "7:16",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ١٦",
+            "reciter": ""
+          },
+          "id": "c4-s19",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وفي مقابل هذا الوعيد، أخبر الله في سورة الحجر أن عباده ليس لإبليس عليهم سلطان، إلا من اتبعه من الغاوين.",
+          "line": 139,
+          "props": {
+            "text": "عباد الله",
+            "light": "ink",
+            "subtitle": "ليس لإبليس عليهم سلطان"
+          },
+          "id": "c4-s20",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 141,
+          "ayahKey": "15:42",
+          "props": {
+            "text": "",
+            "reference": "الحجر · ٤٢",
+            "reciter": ""
+          },
+          "id": "c4-s21",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ومن هنا نفهم أن عداوة الشيطان للإنسان قديمة، وأن القرآن يحذرنا منها تحذيرا صريحا.",
+          "line": 143,
+          "props": {
+            "element": "hand-stop",
+            "secondElement": "",
+            "relation": "",
+            "caption": "عداوة قديمة، وتحذير صريح",
+            "effect": "shake",
+            "cue": "يحذرنا"
+          },
+          "id": "c4-s22",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "آدم وزوجه في الجنة",
+      "scenes": [
+        {
+          "template": "noor-text",
+          "narration": "خلق الله لآدم زوجه، وأسكنهما الجنة.",
+          "line": 147,
+          "props": {
+            "text": "وأسكنهما الجنة",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c5-s1",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وأباح لهما أن يأكلا منها، ونهاهما عن الاقتراب من شجرة معينة.",
+          "line": 149,
+          "props": {
+            "text": "ونهاهما عن الاقتراب من شجرة معينة",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c5-s2",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 151,
+          "ayahKey": "2:35",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣٥",
+            "reciter": ""
+          },
+          "id": "c5-s3",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولم يسم القرآن الكريم نوع تلك الشجرة.",
+          "line": 153,
+          "props": {
+            "text": "ولم يسم القرآن الكريم نوع تلك الشجرة",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c5-s4",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولذلك لا نجزم بأنها شجرة تفاح، أو تين، أو غير ذلك.",
+          "line": 155,
+          "props": {
+            "text": "",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c5-s5",
+          "sfx": []
+        },
+        {
+          "template": "summary",
+          "narration": "فليس في معرفة نوعها ما تتوقف عليه العبرة من القصة.",
+          "line": 157,
+          "props": {
+            "text": "ليس في معرفة نوعها ما تتوقف عليه العبرة",
+            "element": ""
+          },
+          "id": "c5-s6",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وقد حذر الله آدم عليه السلام من عداوة الشيطان.",
+          "line": 159,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": "تحذير من عداوة الشيطان"
+          },
+          "id": "c5-s7",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 161,
+          "ayahKey": "20:117",
+          "props": {
+            "text": "",
+            "reference": "طه · ١١٧",
+            "reciter": ""
+          },
+          "id": "c5-s8",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولكن إبليس وسوس إلى آدم وزوجه، وسعى إلى إيقاعهما فيما نهاهما الله عنه.",
+          "line": 163,
+          "props": {
+            "text": "إبليس وسوس إلى آدم وزوجه",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c5-s9",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وفي سورة الأعراف، يخبرنا الله أن الشيطان أغراهما بما زعم أنه يؤدي إلى الخلد أو منزلة الملائكة.",
+          "line": 165,
+          "props": {
+            "element": "mushaf-rehal",
+            "secondElement": "",
+            "relation": "",
+            "caption": "سورة الأعراف",
+            "effect": "pop",
+            "cue": "الأعراف"
+          },
+          "id": "c5-s10",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 167,
+          "ayahKey": "7:20",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ٢٠",
+            "reciter": ""
+          },
+          "id": "c5-s11",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ثم وقع ما حذرهما الله منه.",
+          "line": 169,
+          "props": {
+            "text": "",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c5-s12",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 171,
+          "ayahKey": "7:22",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ٢٢",
+            "reciter": ""
+          },
+          "id": "c5-s13",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وبعد أن أكلا من الشجرة، ظهرت لهما سوآتهما، وأخذا يخصفان عليهما من ورق الجنة.",
+          "line": 173,
+          "props": {
+            "text": "وأخذا يخصفان عليهما من ورق الجنة",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c5-s14",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولكن آدم عليه السلام لم يصر على معصيته، بل رجع إلى ربه.",
+          "line": 175,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": "بل رجع إلى ربه"
+          },
+          "id": "c5-s15",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وقد حكى الله عن آدم وزوجه دعاءهما:",
+          "line": 177,
+          "props": {
+            "text": "دعاء آدم وزوجه",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c5-s16",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 179,
+          "ayahKey": "7:23",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ٢٣",
+            "reciter": ""
+          },
+          "id": "c5-s17",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وفي سورة البقرة، أخبرنا الله أن آدم تلقى من ربه كلمات، فتاب عليه.",
+          "line": 181,
+          "props": {
+            "text": "فتاب عليه",
+            "light": "on",
+            "subtitle": ""
+          },
+          "id": "c5-s18",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 183,
+          "ayahKey": "2:37",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣٧",
+            "reciter": ""
+          },
+          "id": "c5-s19",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "وهنا يظهر الفرق بين الموقفين: فإبليس استكبر وأصر، وآدم عليه السلام تاب وأناب.",
+          "line": 185,
+          "props": {
+            "rightTitle": "آدم عليه السلام",
+            "rightItems": "تاب\nوأناب",
+            "rightElement": "",
+            "leftTitle": "إبليس",
+            "leftItems": "استكبر\nوأصر",
+            "leftElement": "",
+            "tone": "contrast"
+          },
+          "id": "c5-s20",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وفي ذلك بيان لسعة رحمة الله، وأن باب التوبة ليس مغلقا أمام من أذنب ثم رجع إلى ربه صادقا.",
+          "line": 187,
+          "props": {
+            "text": "سعة رحمة الله",
+            "light": "ink",
+            "subtitle": "باب التوبة ليس مغلقًا"
+          },
+          "id": "c5-s21",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "الهبوط إلى الأرض",
+      "scenes": [
+        {
+          "template": "noor-text",
+          "narration": "أخبرنا الله أن آدم وزوجه هبطا إلى الأرض.",
+          "line": 191,
+          "props": {
+            "text": "هبطا إلى الأرض",
+            "light": "off",
+            "subtitle": ""
+          },
+          "id": "c6-s1",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 193,
+          "ayahKey": "2:38",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٣٨",
+            "reciter": ""
+          },
+          "id": "c6-s2",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "وفي سورة الأعراف، جاء بيان أن في الأرض مستقرا ومتاعا إلى حين، وأن فيها حياة البشر وموتهم، ومنها يكون إخراجهم.",
+          "line": 195,
+          "props": {
+            "title": "في الأرض",
+            "events": "مستقر ومتاع إلى حين\nحياة البشر\nموتهم\nومنها إخراجهم",
+            "element": ""
+          },
+          "id": "c6-s3",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 197,
+          "ayahKey": "7:24",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ٢٤",
+            "reciter": ""
+          },
+          "id": "c6-s4",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 199,
+          "ayahKey": "7:25",
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ٢٥",
+            "reciter": ""
+          },
+          "id": "c6-s5",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "ومن هنا تتصل قصة آدم عليه السلام بالتاريخ البشري على الأرض.",
+          "line": 201,
+          "props": {
+            "title": "تتصل القصة",
+            "events": "آدم عليه السلام\nالتاريخ البشري على الأرض",
+            "element": "earth-globe"
+          },
+          "id": "c6-s6",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وأما موضع هبوطه، فقد اشتهرت فيه روايات مختلفة، ولا نعلم نصا صحيحا صريحا يحدده.",
+          "line": 203,
+          "props": {
+            "element": "map-old",
+            "secondElement": "",
+            "relation": "",
+            "caption": "روايات مختلفة في موضع الهبوط",
+            "effect": "float",
+            "cue": "روايات"
+          },
+          "id": "c6-s7",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "كما لا نملك تاريخا محددا لذلك الهبوط.",
+          "line": 205,
+          "props": {
+            "element": "hourglass-ornate",
+            "secondElement": "",
+            "relation": "",
+            "caption": "لا تاريخ محددًا لذلك الهبوط",
+            "effect": "float",
+            "cue": "تاريخا"
+          },
+          "id": "c6-s8",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولذلك لا ننسب إليه مكانا ولا تاريخا على سبيل الجزم، ونقول فيما لا نعلمه: الله أعلم.",
+          "line": 207,
+          "props": {
+            "text": "الله أعلم",
+            "light": "ink",
+            "subtitle": "لا ننسب إليه مكانًا ولا تاريخًا"
+          },
+          "id": "c6-s9",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "وما أخبرنا الله به عن آدم نؤمن به ونثبته، دون أن نزيد عليه ما لم يثبت به دليل.",
+          "line": 209,
+          "props": {
+            "rightTitle": "نؤمن به",
+            "rightItems": "ونثبته",
+            "rightElement": "",
+            "leftTitle": "دون أن نزيد عليه",
+            "leftItems": "ما لم يثبت به دليل",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c6-s10",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "title": "من آدم إلى تاريخ البشرية",
+      "scenes": [
+        {
+          "template": "symbolic",
+          "narration": "بدأ نسل البشر من آدم وزوجه، عليه السلام.",
+          "line": 213,
+          "props": {
+            "element": "generations",
+            "secondElement": "",
+            "relation": "",
+            "caption": "نسل البشر",
+            "effect": "grow",
+            "cue": "نسل"
+          },
+          "id": "c7-s1",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "وأخبرنا الله في سورة النساء أنه خلق الناس من نفس واحدة، وخلق منها زوجها، وبث منهما رجالا كثيرا ونساء.",
+          "line": 215,
+          "props": {
+            "text": "من نفس واحدة",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c7-s2",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 217,
+          "ayahKey": "4:1",
+          "props": {
+            "text": "",
+            "reference": "النساء · ١",
+            "reciter": ""
+          },
+          "id": "c7-s3",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "ومع تعاقب الأجيال، امتد التاريخ البشري، وتنوعت أحوال الناس ومعايشهم.",
+          "line": 219,
+          "props": {
+            "title": "تعاقب الأجيال",
+            "events": "امتد التاريخ البشري\nتنوعت أحوال الناس ومعايشهم",
+            "element": "generations"
+          },
+          "id": "c7-s4",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "ولكننا لا نملك سجلا متصلا يخبرنا بتفاصيل كل جيل، من آدم عليه السلام إلى أقدم المجتمعات التي وصلت إلينا آثارها.",
+          "line": 221,
+          "props": {
+            "element": "chain-broken",
+            "secondElement": "",
+            "relation": "",
+            "caption": "لا نملك سجلًا متصلًا",
+            "effect": "shake",
+            "cue": "متصلا"
+          },
+          "id": "c7-s5",
+          "sfx": []
+        },
+        {
+          "template": "list",
+          "narration": "فلا نعرف أسماء جميع الأمم الأولى، ولا أماكن إقامتها، ولا كل ما جرى لها من أحداث.",
+          "line": 223,
+          "props": {
+            "title": "لا نعرف",
+            "items": "أسماء جميع الأمم الأولى\nأماكن إقامتها\nكل ما جرى لها",
+            "style": "icons",
+            "icons": "scroll, map-old, hourglass-ornate"
+          },
+          "id": "c7-s6",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وهنا تبدأ مرحلة أخرى من رحلتنا.",
+          "line": 225,
+          "props": {
+            "element": "path-milestones",
+            "secondElement": "",
+            "relation": "",
+            "caption": "مرحلة أخرى من رحلتنا",
+            "effect": "grow",
+            "cue": "مرحلة"
+          },
+          "id": "c7-s7",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "فإلى جانب ما أخبرنا الله به، هناك شواهد مادية درسها الباحثون للتعرف إلى حياة المجتمعات البشرية القديمة.",
+          "line": 227,
+          "props": {
+            "rightTitle": "ما أخبرنا الله به",
+            "rightItems": "",
+            "rightElement": "",
+            "leftTitle": "وإلى جانبه",
+            "leftItems": "شواهد مادية درسها الباحثون",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c7-s8",
+          "sfx": []
+        },
+        {
+          "template": "list",
+          "narration": "منها أدوات صنعت من الحجر، وآثار مساكن، وبقايا أطعمة، ومواقع استيطان، ومدافن، ونقوش ورسوم تركتها مجتمعات في أزمنة مختلفة.",
+          "line": 229,
+          "props": {
+            "title": "شواهد مادية",
+            "items": "أدوات من الحجر\nآثار مساكن ومواقع استيطان\nبقايا أطعمة\nمدافن\nنقوش ورسوم",
+            "style": "icons",
+            "icons": "stone-tools, dwelling-remains, food-remains, burial-cairn, rock-art"
+          },
+          "id": "c7-s9",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "وتساعدنا هذه الآثار على دراسة جوانب من حياة أصحابها.",
+          "line": 231,
+          "props": {
+            "element": "excavation-tools",
+            "secondElement": "",
+            "relation": "",
+            "caption": "دراسة جوانب من حياة أصحابها",
+            "effect": "pop",
+            "cue": "الآثار"
+          },
+          "id": "c7-s10",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "ولكنها لا تخبرنا بكل شيء، ولا تمكننا من ربط كل اكتشاف بشخصية ورد ذكرها في القرآن الكريم.",
+          "line": 233,
+          "props": {
+            "text": "ولكنها لا تخبرنا بكل شيء",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c7-s11",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "ولذلك سنذكر منها ما ثبت، ونبين ما اختلف فيه، ولن نجعل الظنون حقائق.",
+          "line": 235,
+          "props": {
+            "rightTitle": "سنذكر",
+            "rightItems": "ما ثبت\nونبين ما اختلف فيه",
+            "rightElement": "",
+            "leftTitle": "ولن نجعل",
+            "leftItems": "الظنون حقائق",
+            "leftElement": "",
+            "tone": "contrast"
+          },
+          "id": "c7-s12",
+          "sfx": []
+        },
+        {
+          "template": "timeline",
+          "narration": "ومع تقدم حلقاتنا، سنتعرف إلى أحوال البشر قبل الكتابة، ثم إلى نشأة القرى والمدن، والحضارات التي تعاقبت على الأرض.",
+          "line": 237,
+          "props": {
+            "title": "مع تقدم حلقاتنا",
+            "events": "أحوال البشر قبل الكتابة\nنشأة القرى والمدن\nالحضارات التي تعاقبت",
+            "element": ""
+          },
+          "id": "c7-s13",
+          "sfx": []
+        },
+        {
+          "template": "big-question",
+          "narration": "وأول ما نحتاج إلى فهمه: كيف يعرف الباحثون شيئا عن حياة قوم لم يتركوا لنا سجلا مكتوبا؟",
+          "line": 239,
+          "props": {
+            "question": "كيف يعرف الباحثون حياة قوم لم يتركوا سجلًا مكتوبًا؟",
+            "highlight": "سجلًا مكتوبًا",
+            "element": "soil-strata"
+          },
+          "id": "c7-s14",
+          "sfx": []
+        },
+        {
+          "template": "list",
+          "narration": "وكيف يقدرون أعمار الأدوات والمساكن والآثار؟",
+          "line": 241,
+          "props": {
+            "title": "كيف يقدرون أعمار",
+            "items": "الأدوات\nالمساكن\nالآثار",
+            "style": "icons",
+            "icons": "stone-tools, dwelling-remains, ruins-columns"
+          },
+          "id": "c7-s15",
+          "sfx": []
+        },
+        {
+          "template": "comparison",
+          "narration": "وما الذي يمكن لهذه الأدلة أن تخبرنا به، وما الذي يبقى خارج حدودها؟",
+          "line": 243,
+          "props": {
+            "rightTitle": "ما تخبرنا به",
+            "rightItems": "هذه الأدلة",
+            "rightElement": "",
+            "leftTitle": "وما يبقى",
+            "leftItems": "خارج حدودها",
+            "leftElement": "",
+            "tone": "neutral"
+          },
+          "id": "c7-s16",
+          "sfx": []
+        },
+        {
+          "template": "symbolic",
+          "narration": "هذا ما سنبدأ به في الحلقة القادمة من «قصة الإنسان عبر الزمن».",
+          "line": 245,
+          "props": {
+            "element": "bookmark",
+            "secondElement": "",
+            "relation": "",
+            "caption": "الحلقة القادمة",
+            "effect": "pop",
+            "cue": "القادمة"
+          },
+          "id": "c7-s17",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "أما اليوم، فقد بدأنا من آدم عليه السلام، أبي البشر، ومن هنا نفتح أولى صفحات «دفاتر الزمن».",
+          "line": 247,
+          "props": {
+            "text": "آدم عليه السلام",
+            "light": "on",
+            "subtitle": "أبو البشر"
+          },
+          "id": "c7-s18",
+          "sfx": []
+        },
+        {
+          "template": "noor-text",
+          "narration": "والحمد لله رب العالمين.",
+          "line": 249,
+          "props": {
+            "text": "والحمد لله رب العالمين",
+            "light": "ink",
+            "subtitle": ""
+          },
+          "id": "c7-s19",
+          "sfx": []
+        },
+        {
+          "id": "c7-end",
+          "template": "end-screen",
+          "narration": "",
+          "line": 1,
+          "props": {
+            "step": "الحلقة القادمة: كيف يعرف الباحثون حياة قوم لم يتركوا كتابًا؟",
+            "prompt": ""
+          },
+          "captions": false,
+          "sfx": []
+        }
+      ]
+    }
+  ]
+}
