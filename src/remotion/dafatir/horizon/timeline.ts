@@ -48,3 +48,25 @@ export const end = (tl: Timeline, prefix: string, nth = 1): number => {
   if (!hit) throw new Error(`كلمة غير موجودة في التوقيت: ${prefix} (${nth})`);
   return hit.e;
 };
+
+/**
+ * توقيت حقيقي من صوت الراوي: كلمات بتوقيتها (من محاذاة الصوت) تُوزَّع على الجمل بعددها، وتُزاح بمقدار lead
+ * (اللحظة التي يبدأ فيها الصوت داخل اللقطة). إن اختلف عدد الكلمات عن نص الجمل يُرمى خطأ بدل مزامنة خاطئة.
+ */
+export const timelineFromWords = (sentences: string[], words: { word: string; start: number; end: number }[], lead: number): Timeline => {
+  const tokens = sentences.map((s) => s.split(/\s+/).filter((w) => w && w !== "|"));
+  const need = tokens.reduce((n, t) => n + t.length, 0);
+  if (need !== words.length) throw new Error(`عدد كلمات الصوت (${words.length}) لا يطابق نص اللقطة (${need}).`);
+  const out: Word[] = [];
+  const sents: Timeline["sentences"] = [];
+  let i = 0;
+  tokens.forEach((ts, si) => {
+    const first = i;
+    for (const tok of ts) {
+      const w = words[i++]!;
+      out.push({ w: clean(tok), s: lead + w.start, e: lead + w.end, sent: si });
+    }
+    sents.push({ text: sentences[si]!.replace(/\s*\|\s*/g, " "), s: out[first]!.s, e: out[i - 1]!.e });
+  });
+  return { words: out, sentences: sents, end: out.length ? out[out.length - 1]!.e : lead };
+};

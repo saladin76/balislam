@@ -6,9 +6,32 @@
  */
 import React from "react";
 import { at, buildTimeline, end, type Timeline } from "./timeline";
-import { BookShadow, C, Camera, CoverLeaf, Defs, Ink, LightPool, Page, PageStack, Spine, FlipLeaf, Words, easeOut, mix, prog, rng, W } from "./kit";
+import { BookShadow, C, Camera, CoverLeaf, Defs, Ink, LightPool, Page, PageStack, Spine, FlipLeaf, VerseCard, Words, easeOut, mix, prog, rng, verseRef as verseRefLabel, W } from "./kit";
+import { timelineFromWords } from "./timeline";
 
-export type ShotDef = { id: string; label: string; tl: Timeline; dur: number; note?: string; noteCorner?: "tl2" | "br"; Comp: React.FC<{ t: number; tl: Timeline }>; tail?: React.FC<{ t: number; tl: Timeline }> };
+/** آية تظهر في لقطة: نصها من Quran Foundation، وبدء تلاوتها ومدتها داخل اللقطة (ث)، وword لكلمة مأخوذة منها */
+export type QuranView = { key: string; text: string; reciter: string; start: number; dur: number; word?: string };
+type ShotProps = { t: number; tl: Timeline; q?: QuranView };
+export type ShotDef = {
+  id: string;
+  label: string;
+  tl: Timeline;
+  dur: number;
+  note?: string;
+  noteCorner?: "tl2" | "br";
+  Comp: React.FC<ShotProps>;
+  q?: QuranView;
+  /** في المعاينة الصوتية: ملف صوت الراوي ولحظة بدئه، وأجزاء التلاوة ولحظة بدئها */
+  voice?: { file: string; at: number };
+  recitation?: { parts: { file: string; duration: number }[]; at: number };
+};
+
+/** وسائط المعاينة الصوتية (inputProps): مجلد public النسبي، وصوت كل لقطة بتوقيت كلماته، والآيات بنصها وتلاوتها */
+export type HorizonAudio = {
+  base: string;
+  voice: Record<string, { file: string; duration: number; words: { word: string; start: number; end: number }[] }>;
+  verses: Record<string, { text: string; reciter: string; parts: { file: string; duration: number }[] }>;
+};
 
 /** كاميرا بمفاتيح متتالية: كل مفتاح ينتقل إلى (cx,cy,s) بين a وb بثوانٍ، بتسارع ناعم */
 type Key = { a: number; b: number; cx: number; cy: number; s: number };
@@ -23,7 +46,7 @@ const camAt = (t: number, start: Omit<Key, "a" | "b">, keys: Key[]) => {
 
 const mk = (sentences: string[], lead: number, tail: number) => {
   const tl = buildTimeline(sentences, lead);
-  return { tl, dur: tl.end + tail };
+  return { tl, dur: tl.end + tail, sentences, lead, tail };
 };
 
 const Amiri = "'Amiri', serif";
@@ -127,7 +150,7 @@ const Shot1: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   const open = prog(t, 0.4, 1.6);
   const { cx, cy, s: sc } = camAt(t, { cx: 1370, cy: 520, s: 1.06 }, [
     { a: 0.4, b: 1.7, cx: 980, cy: 520, s: 1.0 },
-    { a: 1.8, b: S1.dur, cx: 1250, cy: 520, s: 1.1 },
+    { a: 1.8, b: tl.end + 1.4, cx: 1250, cy: 520, s: 1.1 },
   ]);
   return (
     <Camera cx={cx} cy={cy} s={sc}>
@@ -154,7 +177,7 @@ const Shot1: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
 };
 
 // ─────────────────────────── اللقطة 2: حد المعرفة ───────────────────────────
-const S2 = mk(["ولا نملك تاريخًا ثابتًا لخلق آدم عليه السلام.", "فلم يخبرنا القرآن الكريم بالسنة التي خلق فيها، ولا بالزمن الذي يفصله عن أقدم الحضارات التي وصلت إلينا آثارها."], 0.8, 1.2);
+const S2 = mk(["ولا نملك تاريخا ثابتا لخلق آدم عليه السلام.", "فلم يخبرنا القرآن الكريم بالسنة التي خلق فيها، ولا بالزمن الذي يفصله عن أقدم الحضارات التي وصلت إلينا آثارها."], 0.8, 1.2);
 
 const circlePath = (cx: number, cy: number, rx: number, ry: number) => {
   const r = rng(11);
@@ -239,12 +262,34 @@ const Shot2: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   );
 };
 
+// ─────────────────────────── اللقطة 3: البقرة 30 ───────────────────────────
+// التمهيد فيه ذكر الله: الصفحة ساكنة. ثم تظهر الآية كاملة قبل بدء التلاوة بقليل، وتبقى ساكنة حتى نهايتها.
+const S3 = mk(["قبل أن نتحدث عن حياة آدم عليه السلام، نقف عند ما أخبرنا الله به في سورة البقرة."], 0.7, 1.5);
+
+const Shot3: React.FC<ShotProps> = ({ t, q }) => (
+  <>
+    <Camera cx={960} cy={500} s={1.0}>
+      <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
+        <Defs id="s3" />
+        <BookShadow />
+        <Page id="s3" side="l" />
+        <Page id="s3" side="r">
+          <path d="M1700 72 H1736 V156 L1718 142 L1700 156 Z" fill={C.ribbon} />
+        </Page>
+        <Spine />
+      </svg>
+      <div style={{ position: "absolute", right: W - 1680, top: 104, fontFamily: Amiri, fontWeight: 700, fontSize: 40, color: C.ink, direction: "rtl" }}>الفصل الثاني</div>
+    </Camera>
+    {q ? <VerseCard show={prog(t, q.start - 0.7, q.start - 0.1)} text={q.text} refKey={q.key} reciter={q.reciter} /> : null}
+  </>
+);
+
 // ─────────────────────────── اللقطة 4 (جزئية): أقوال المفسرين ───────────────────────────
-const S4 = mk(["أخبر الله ملائكته أنه جاعل في الأرض خليفة.", "وقد ذكر المفسرون في معنى الخلافة أقوالًا، منها أن البشر يخلف بعضهم بعضًا في عمارة الأرض والحياة عليها."], 0.8, 1.2);
+const S4 = mk(["أخبر الله ملائكته أنه جاعل في الأرض خليفة.", "وقد ذكر المفسرون في معنى الخلافة أقوالا، منها أن البشر يخلف بعضهم بعضا في عمارة الأرض والحياة عليها."], 0.8, 1.2);
 const LINEAGE = [830, 724, 618, 512, 406, 300];
 const CARD = { x: 245, y: 240, w: 620, h: 320 };
 
-const Shot4: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
+const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
   // «المفسرون»: حزمة حواشٍ تدخل · «أقوالًا»: تنفرج ثلاثًا (تعدد الأقوال) · «منها»: تتقدم واحدة وتُكتب، والباقيتان تتراجعان دون أن تختفيا
   const enter = prog(t, at(tl, "المفسرون") - 0.15, at(tl, "المفسرون") + 0.75, easeOut);
   const fan = prog(t, at(tl, "أقوالا") - 0.1, at(tl, "أقوالا") + 0.7, easeOut);
@@ -254,7 +299,7 @@ const Shot4: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   const ground = prog(t, at(tl, "عمارة") - 0.15, at(tl, "عمارة") + 0.7, easeOut);
   const homes = prog(t, at(tl, "الأرض", 2) - 0.1, at(tl, "الأرض", 2) + 0.8);
   const life = prog(t, at(tl, "والحياة") - 0.1, at(tl, "والحياة") + 0.8);
-  const line1 = ["البشر", "يخلف", "بعضهم", "بعضا"].map((k, i) => ({ w: ["البشر", "يخلف", "بعضهم", "بعضًا"][i]!, t: at(tl, k) }));
+  const line1 = ["البشر", "يخلف", "بعضهم", "بعضا"].map((k, i) => ({ w: ["البشر", "يخلف", "بعضهم", "بعضا"][i]!, t: at(tl, k) }));
   const line2 = [
     { w: "في", t: at(tl, "في", 3) },
     { w: "عمارة", t: at(tl, "عمارة") },
@@ -270,9 +315,10 @@ const Shot4: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   const ruled = "repeating-linear-gradient(180deg, transparent 0 46px, rgba(74,46,31,0.13) 46px 48px)";
   return (
     <Camera
-      {...camAt(t, { cx: 590, cy: 500, s: 1.12 }, [
-        { a: at(tl, "المفسرون") - 0.2, b: at(tl, "المفسرون") + 1.0, cx: 555, cy: 410, s: 1.26 },
-        { a: at(tl, "يخلف") - 0.35, b: at(tl, "يخلف") + 0.9, cx: 555, cy: 575, s: 1.12 },
+      {...camAt(t, q?.word ? { cx: 960, cy: 500, s: 1.0 } : { cx: 590, cy: 500, s: 1.12 }, [
+        // مع إطار لفظ الآية: يبقى الإطار والحاشية معًا في الكادر (الفصل بينهما هو موضوع اللقطة)
+        { a: at(tl, "المفسرون") - 0.2, b: at(tl, "المفسرون") + 1.0, cx: q?.word ? 900 : 555, cy: q?.word ? 440 : 410, s: q?.word ? 1.12 : 1.26 },
+        { a: at(tl, "يخلف") - 0.35, b: at(tl, "يخلف") + 0.9, cx: q?.word ? 880 : 555, cy: 575, s: q?.word ? 1.08 : 1.12 },
       ])}
     >
       <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
@@ -312,6 +358,14 @@ const Shot4: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
         <Spine />
       </svg>
       <div style={{ position: "absolute", right: W - 836, top: 104, fontFamily: Amiri, fontWeight: 700, fontSize: 40, color: C.ink, direction: "rtl" }}>الفصل الثاني</div>
+      {q?.word ? (
+        // لفظ الآية من نص Quran Foundation نفسه، في إطار على الصفحة المقابلة: ساكن طوال اللقطة، ولا يلتقي بالحاشية
+        <div style={{ position: "absolute", left: 1170, top: 330, width: 390, padding: "18px 20px 16px", background: "#FBF4E6", border: "3px double rgba(74,46,31,0.65)", borderRadius: 8, textAlign: "center", direction: "rtl", boxShadow: "0 10px 24px rgba(43,30,20,0.18)" }}>
+          <div style={{ fontFamily: Tajawal, fontWeight: 500, fontSize: 24, color: C.inkSoft }}>لفظ الآية</div>
+          <div style={{ fontFamily: Amiri, fontSize: 88, lineHeight: 1.7, color: C.inkText }}>﴿{q.word}﴾</div>
+          <div style={{ fontFamily: Tajawal, fontWeight: 500, fontSize: 24, color: C.inkSoft }}>{verseRefLabel(q.key)}</div>
+        </div>
+      ) : null}
       {fanPose.map((pose, k) => {
         const front = k === 2;
         const dim = front ? 0 : pick;
@@ -357,13 +411,14 @@ const Shot4: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
 // ─────────────────────────── اللقطة 5 (قبل الآية): التوبة ───────────────────────────
 const S5 = mk(["ولكن آدم عليه السلام لم يصر على معصيته، بل رجع إلى ربه.", "وقد حكى الله عن آدم وزوجه دعاءهما:"], 0.9, 1.9);
 
-const Shot5: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
+const Shot5: React.FC<ShotProps> = ({ t, tl, q }) => {
   const dot = prog(t, 0.2, 0.7, easeOut);
   const away = prog(t, at(tl, "ولكن"), end(tl, "معصيته"), easeOut);
   const back = prog(t, at(tl, "بل"), end(tl, "رجع") - 0.02);
   // بعد «دعاءهما:» صمت قصير ثم تخلو الصفحة للآية (في الحلقة يدخل إطار الآية هنا)
   const fade = prog(t, tl.end + 0.6, tl.end + 1.3);
   return (
+    <>
     <Camera
       {...camAt(t, { cx: 1400, cy: 505, s: 1.22 }, [
         // الكاميرا تتبع الخط وهو يبتعد ثم وهو يعود، وتسكن قبل «إلى ربه»
@@ -392,6 +447,8 @@ const Shot5: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
         <rect x={150} y={60} width={1620} height={900} fill="url(#s5-glow)" />
       </svg>
     </Camera>
+    {q ? <VerseCard show={prog(t, q.start - 0.7, q.start - 0.1)} text={q.text} refKey={q.key} reciter={q.reciter} /> : null}
+    </>
   );
 };
 
@@ -640,10 +697,55 @@ const Shot6: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   );
 };
 
-export const SHOTS: ShotDef[] = [
-  { id: "1", label: "١ · الافتتاح", ...S1, Comp: Shot1 },
-  { id: "2", label: "٢ · حد المعرفة", ...S2, Comp: Shot2 },
-  { id: "4", label: "٤ · أقوال المفسرين (جزئية)", ...S4, Comp: Shot4, note: "إطار لفظ الآية لا يُعرض في هذه المعاينة: لا نص قرآني فيها", noteCorner: "tl2" },
-  { id: "5", label: "٥ · التوبة (قبل الآية)", ...S5, Comp: Shot5 },
-  { id: "6", label: "٦ · الأثر وحدوده", ...S6, Comp: Shot6, note: "رسم توضيحي", noteCorner: "br" },
-];
+type Spec = ReturnType<typeof mk>;
+const SILENT_LABELS: Record<string, string> = { "1": "١ · الافتتاح", "2": "٢ · حد المعرفة", "4": "٤ · أقوال المفسرين (جزئية)", "5": "٥ · التوبة (قبل الآية)", "6": "٦ · الأثر وحدوده" };
+const AUDIO_LABELS: Record<string, string> = { "1": "١ · الافتتاح", "2": "٢ · حد المعرفة", "3": "٣ · البقرة 30", "4": "٤ · النص والتفسير", "5": "٥ · التوبة", "6": "٦ · الأثر وحدوده" };
+const COMPS: Record<string, React.FC<ShotProps>> = { "1": Shot1, "2": Shot2, "3": Shot3, "4": Shot4, "5": Shot5, "6": Shot6 };
+/** نص كل لقطة (جملها كما في السكريبت المعتمد) وبدء الصوت فيها وذيلها */
+export const SHOT_SPECS: Record<string, Spec> = { "1": S1, "2": S2, "3": S3, "4": S4, "5": S5, "6": S6 };
+const NOTES: Record<string, Pick<ShotDef, "note" | "noteCorner">> = { "6": { note: "رسم توضيحي", noteCorner: "br" } };
+
+/** كلمة الآية التي يُشار إليها (مثل «خليفة») كما هي في نص Quran Foundation، بحروفها وتشكيلها */
+export const pickQuranWord = (text: string, stem: string) =>
+  text.split(/\s+/).find((w) => w.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, "").includes(stem));
+
+/**
+ * اللقطات: بلا وسائط = المعاينة الصامتة (أزمنة تقديرية، بلا آيات). مع وسائط = اللقطات الست بصوت الراوي الحقيقي
+ * والآيات وتلاواتها: توقيت كل لقطة من كلماتها، والتلاوة بعد التمهيد بوقفة، والسكون بعدها.
+ */
+export const buildShots = (audio?: HorizonAudio): ShotDef[] => {
+  if (!audio) {
+    return ["1", "2", "4", "5", "6"].map((id) => {
+      const sp = SHOT_SPECS[id]!;
+      const base: ShotDef = { id, label: SILENT_LABELS[id]!, tl: sp.tl, dur: sp.dur, Comp: COMPS[id]!, ...NOTES[id] };
+      return id === "4" ? { ...base, note: "إطار لفظ الآية لا يُعرض في هذه المعاينة: لا نص قرآني فيها", noteCorner: "tl2" } : base;
+    });
+  }
+  const verse = (key: string, start: number): QuranView => {
+    const v = audio.verses[key];
+    if (!v) throw new Error(`نص الآية ${key} أو تلاوتها غير موجودين في الوسائط.`);
+    return { key, text: v.text, reciter: v.reciter, start, dur: v.parts.reduce((n, p) => n + p.duration, 0) };
+  };
+  return ["1", "2", "3", "4", "5", "6"].map((id) => {
+    const sp = SHOT_SPECS[id]!;
+    const clip = audio.voice[id];
+    if (!clip) throw new Error(`صوت الراوي للقطة ${id} غير موجود في الوسائط.`);
+    const tl = timelineFromWords(sp.sentences, clip.words, sp.lead);
+    const voiceEnd = Math.max(tl.end, sp.lead + clip.duration);
+    const def: ShotDef = { id, label: AUDIO_LABELS[id]!, tl, dur: voiceEnd + sp.tail, Comp: COMPS[id]!, voice: { file: clip.file, at: sp.lead }, ...NOTES[id] };
+    if (id === "3" || id === "5") {
+      // وقفة قبل التلاوة: بعد «سورة البقرة» ثانية واحدة؛ وبعد «دعاءهما:» يخفت الخط أولًا (1.6 ث)
+      const q = verse(id === "3" ? "2:30" : "7:23", voiceEnd + (id === "3" ? 1.0 : 1.6));
+      return { ...def, q, recitation: { parts: audio.verses[q.key]!.parts, at: q.start }, dur: q.start + q.dur + (id === "3" ? 1.5 : 2.0) };
+    }
+    if (id === "4") {
+      const v = audio.verses["2:30"];
+      const word = v ? pickQuranWord(v.text, "خليف") : undefined;
+      if (!v || !word) throw new Error("لفظ «خليفة» غير موجود في نص البقرة 30 المجلوب.");
+      return { ...def, q: { key: "2:30", text: v.text, reciter: v.reciter, start: 0, dur: 0, word } };
+    }
+    return def;
+  });
+};
+
+export const SHOTS: ShotDef[] = buildShots();

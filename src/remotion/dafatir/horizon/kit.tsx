@@ -255,3 +255,44 @@ export const Tag: React.FC<{ text: string; corner: "tl" | "tr" | "bl" | "br" | "
     {text}
   </div>
 );
+
+/** أسماء السور التي تحتاجها اللقطات (للمرجع تحت الآية) */
+const SURAH: Record<number, string> = { 2: "البقرة", 7: "الأعراف" };
+const easternDigits = (n: number | string) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
+/** «2:30» ← «البقرة: ٣٠» */
+export const verseRef = (key: string) => {
+  const [s, a] = key.split(":");
+  return `${SURAH[Number(s)] ?? `سورة ${s}`}: ${easternDigits(a ?? "")}`;
+};
+
+/**
+ * بطاقة الآية: نص Quran Foundation كاملًا كما هو بالأميري داخل إطار رَقّ، والمرجع واسم القارئ تحته.
+ * تُرسم في مساحة الشاشة (لا تتأثر بالكاميرا)، ولا حركة فيها بعد ظهورها. show من 0 إلى 1 للظهور فقط.
+ */
+export const VerseCard: React.FC<{ show: number; text: string; refKey: string; reciter: string }> = ({ show, text, refKey, reciter }) =>
+  show <= 0 ? null : (
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", paddingBottom: 60 }}>
+      <AbsoluteFill style={{ background: "rgba(13,10,20,0.28)", opacity: show }} />
+      <div
+        style={{
+          position: "relative",
+          width: 1320,
+          padding: "44px 64px 34px",
+          background: "#FBF4E6",
+          border: `3px double rgba(74,46,31,0.65)`,
+          outline: "1.5px solid rgba(74,46,31,0.35)",
+          outlineOffset: -14,
+          borderRadius: 10,
+          boxShadow: "0 18px 46px rgba(13,10,20,0.35)",
+          opacity: show,
+          direction: "rtl",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontFamily: "'Amiri', serif", fontSize: text.length > 200 ? 54 : 62, lineHeight: 2.05, color: C.inkText }}>{text}</div>
+        <div style={{ marginTop: 18, fontFamily: "'Tajawal', sans-serif", fontWeight: 500, fontSize: 28, color: C.inkSoft }}>
+          {verseRef(refKey)} · بصوت {reciter}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );

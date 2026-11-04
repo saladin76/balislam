@@ -269,6 +269,26 @@ program
   });
 
 program
+  .command("horizon-audio <episode>")
+  .description("دفاتر الزمن 001: اللقطات الست («خط الأفق») بصوت الراوي المعتمد وآيتي البقرة 30 والأعراف 23 بتلاوة قارئ القناة، مضبوطة على توقيت الكلام؛ تُرفع إلى «المعاينات» (خانة -audio تبقى على الجهاز) وتحل محل المعاينة الصامتة بعد التحقق من تشغيلها. تتوقف بقائمة النواقص دون إنتاج نسخة ناقصة.")
+  .option("--slot <slot>", "خانة المعاينة (تنتهي بـ -audio)", "six-shots-audio")
+  .option("--replaces <slot>", "المعاينة الصامتة التي تحل محلها بعد النجاح", "horizon-test-v2")
+  .action(async (episode: string, opts: { slot: string; replaces: string }) => {
+    const { renderHorizonAudio } = await import("../render/horizonAudio");
+    try {
+      const r = await renderHorizonAudio(episode, { ...opts, onProgress: (m) => console.log(m) });
+      console.log(`رُفعت إلى الاستوديو: ${path.relative(projectRoot, r.file)} (النسخة ${r.version})${r.replaced ? ` · أُزيلت ${r.replaced} من العرض` : ""}`);
+      console.log(`المدة: ${r.seconds} ث`);
+      for (const s of r.shots) console.log(`  اللقطة ${s.id}: ${s.seconds} ث · الراوي ${s.voice} ث${s.recitation ? ` · التلاوة ${s.recitation} ث` : ""}`);
+      for (const v of r.verses) console.log(`  ${v.key}: ${v.words} كلمة · ${v.parts} ملف تلاوة · ${v.seconds} ث · ${v.reciter}`);
+      console.log(`الحركة بعد الاستثناءات: ${r.motion.percent}% (مستثنى ${r.motion.exempt} ث)${r.motion.still.length ? ` · مقاطع ساكنة: ${r.motion.still.map((x) => `${x.from}-${x.to}`).join("، ")}` : ""}`);
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command("upload-preview <episode> <slot> <file>")
   .description("رفع فيديو للحلقة إلى «المعاينات» في الاستوديو: يحذف النسخة القديمة لنفس الخانة ويضع الجديدة مكانها")
   .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو")

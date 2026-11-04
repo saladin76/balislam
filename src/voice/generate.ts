@@ -203,3 +203,67 @@ export const estimateWords = (spoken: string, duration: number): TimedWord[] => 
     return out;
   });
 };
+
+/**
+ * صوت الراوي لجمل مستقلة عن خطة المشاهد (مثل معاينة لقطات مختارة): نفس التشكيل والقاموس ونبرة القناة والسرعة
+ * التي يستعملها generateVoice، لكن في مجلد مستقل بفهرس خاص، فلا يحذف أحدهما ملفات الآخر.
+ * يُعاد استعمال المقطع إن لم يتغير نصه ولا الصوت ولا إعداداته (البصمة).
+ */
+export type LineClip = { file: string; hash: string; text: string; duration: number; words: TimedWord[] };
+export const synthesizeLines = async (
+  scriptPath: string,
+  lines: { id: string; text: string }[],
+  opts: { client: ElevenLabsClient; dir: string; force?: boolean; onProgress?: (m: string) => void },
+): Promise<Record<string, LineClip>> => {
+  const log = opts.onProgress ?? (() => {});
+  await mkdir(opts.dir, { recursive: true });
+  const indexFile = path.join(opts.dir, "index.json");
+  const index: Record<string, LineClip> = (await readJson<Record<string, LineClip>>(indexFile)) ?? {};
+  const model = process.env.ELEVENLABS_MODEL_ID || config.voice.modelId;
+  const caps = capsFor(model);
+  const voiceKey = `${voiceIdFor() ?? ""}|${model}`;
+  const dict = await loadDictionary();
+  const tk = await loadTashkeel(scriptPath);
+  let channelTone: string | undefined;
+  let profile: VoiceProfile | undefined;
+  try {
+    const v = loadChannel().voice;
+    channelTone = v?.tone;
+    profile = v?.profile;
+  } catch {
+    /* بلا قناة */
+  }
+  const toneId = [channelTone].find(isTone);
+  const tune = voiceSettingsFor(profile, toneId);
+  const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
+  const out: Record<string, LineClip> = {};
+  for (const [k, line] of lines.entries()) {
+    const text = line.text.trim();
+    const words = text.split(/\s+/).filter(Boolean);
+    const d = applyDictionary(text, dict, tk ? vowelize(words, tk) : undefined);
+    const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
+    const have = index[line.id];
+    if (!opts.force && have && have.hash === hash && existsSync(path.join(opts.dir, have.file))) {
+      out[line.id] = have;
+      continue;
+    }
+    log(`(${k + 1}/${lines.length}) ${line.id}: ${d.spoken.length} حرفًا`);
+    const r = await opts.client.tts(d.spoken, { previousText: lines[k - 1]?.text, nextText: lines[k + 1]?.text, tune });
+    const speed = caps.speed === "post" ? (tune?.speed ?? config.voice.speed) : 1;
+    const audio = await applyTempo(r.audio, speed);
+    const file = `${hash}.mp3`;
+    await writeFile(path.join(opts.dir, file), audio);
+    let duration = (await audioDuration(path.join(opts.dir, file))) ?? 0;
+    const spokenWords = r.alignment ? scaleTimes(dropTagWords(alignmentToWords(r.alignment)), speed) : estimateWords(d.spoken, duration);
+    const timed = wordsForCaptions(d.original, d.owner, spokenWords);
+    if (!duration) duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
+    out[line.id] = index[line.id] = { file, hash, text, duration, words: timed };
+    await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
+  }
+  return out;
+};
+
+/** فحص التشكيل (حد 98%) لجمل مستقلة قبل صرف أي رصيد على توليد صوتها */
+export const tashkeelForLines = async (scriptPath: string, lines: { id: string; text: string }[]) =>
+  tashkeelReport(lines.map((l) => ({ id: l.id, narration: l.text })), await loadTashkeel(scriptPath), await loadDictionary());
+export { tashkeelBlockMessage };
