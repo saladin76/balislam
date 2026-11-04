@@ -34,7 +34,8 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     setResearch({ ...research, saved: research.text, exists: true });
   };
 
-  const goToLine = (line: number) => {
+  const pendingLine = useRef<number | null>(null);
+  const jumpToLine = (line: number) => {
     const el = area.current;
     if (!el) return;
     const lines = el.value.split("\n");
@@ -45,6 +46,19 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     const lh = parseFloat(getComputedStyle(el).lineHeight) || 32;
     el.scrollTop = Math.max(0, (line - 4) * lh);
   };
+  const goToLine = (line: number) => {
+    if (doc !== "script") {
+      pendingLine.current = line;
+      setDoc("script");
+    } else jumpToLine(line);
+  };
+  useEffect(() => {
+    if (doc === "script" && pendingLine.current !== null) {
+      const line = pendingLine.current;
+      pendingLine.current = null;
+      jumpToLine(line);
+    }
+  }, [doc]);
   useImperativeHandle(ref, () => ({ goToLine, hasUnsavedResearch: () => researchDirty }));
 
   useEffect(() => setCheck(initialCheck), [initialCheck]);
