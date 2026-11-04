@@ -69,7 +69,8 @@
   },
   "script": {
     "fixedChapters": false,
-    "practicalStep": false
+    "practicalStep": false,
+    "chapterNumbers": false
   },
   "library": {
     "exclude": {

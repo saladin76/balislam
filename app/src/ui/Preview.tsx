@@ -18,7 +18,7 @@ const size = (o: Orientation) => (o === "portrait" ? config.video.short : config
 
 type Ctx = { identity: Identity; channel?: ChannelInfo; lang?: string };
 
-const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> } & Ctx> = ({ identity, channel, lang, media = emptyMedia, ...p }) => {
+export const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> } & Ctx> = ({ identity, channel, lang, media = emptyMedia, ...p }) => {
   const clip = media.voice[p.scene.id];
   const timings = clip && clip.text === p.scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
   return (

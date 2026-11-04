@@ -1,4 +1,5 @@
 import React from "react";
+import { chapterEyebrow } from "./eyebrow";
 import { Audio, Sequence, Series, staticFile, type CalculateMetadataFunction } from "remotion";
 import config from "../../../config.json";
 import type { Plan, PlanChapter, PlanScene } from "../../plan/types";
@@ -84,7 +85,7 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
         const timings = clip && clip.text === scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
         return (
           <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} name={`${scene.id} · ${scene.template}`}>
-            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${lang.strings.chapter} ${chapter.number} · ${chapter.title}`} timings={timings} media={media} episodeOverlays={plan.overlays} prev={prev} />
+            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, chapter)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={prev} />
             <SceneAudio scene={scene} media={media} />
           </Series.Sequence>
         );

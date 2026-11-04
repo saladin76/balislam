@@ -182,11 +182,12 @@ program
   .option("--scene <ids>", "مشاهد محددة مفصولة بفواصل، مثل c2-s1,c4-s3")
   .option("--ignore-tashkeel", "التوليد رغم نقص التشكيل (غير مستحسن)")
   .option("--ignore-review", "التوليد قبل اكتمال سجل التوثيق (غير مستحسن)")
-  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string; ignoreTashkeel?: boolean; ignoreReview?: boolean }) => {
+  .option("--ignore-storyboard", "التوليد قبل اعتماد الستوري بورد (غير مستحسن)")
+  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string; ignoreTashkeel?: boolean; ignoreReview?: boolean; ignoreStoryboard?: boolean }) => {
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
     const { generateVoice } = await import("../voice/generate");
     const client = elevenLabsFromEnv();
-    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, ignoreTashkeel: opts.ignoreTashkeel, ignoreReview: opts.ignoreReview, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
+    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, ignoreTashkeel: opts.ignoreTashkeel, ignoreReview: opts.ignoreReview, ignoreStoryboard: opts.ignoreStoryboard, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
     console.log(tashkeelLine(r.tashkeel));
     console.log(`التوثيق: ${r.review.verified} من ${r.review.total} موثّق ${r.review.ok ? "✓" : "✗"}`);
     console.log(`المشاهد: ${r.total} · للتوليد: ${r.toGenerate.length} · محفوظة: ${r.cached.length}`);
@@ -226,6 +227,27 @@ program
     for (const i of items) console.log(`${mark[i.status]} · ${i.label} | ${i.ref}${i.detail ? ` | ${i.detail}` : ""}${i.note ? ` — ${i.note}` : ""}`);
     const s = reviewSummary(items);
     console.log(`موثّق ${s.verified} من ${s.total}${s.ok ? " ✓" : ""}. القرار من الاستوديو: «السكريبت ← سجل التوثيق».`);
+    if (!s.ok) process.exitCode = 1;
+  });
+
+program
+  .command("storyboard <episode>")
+  .description("الستوري بورد: هل اعتمد صاحب القناة لقطة كل مشهد قبل الصوت والنسخة النهائية؟ (--motion يقيس حركة كل مشهد بمعاينة صامتة خفيفة)")
+  .option("--motion", "قياس حركة كل مشهد (معاينة صامتة بثلث الدقة، لا تُنشر)")
+  .action(async (episode: string, opts: { motion?: boolean }) => {
+    if (opts.motion) {
+      const { measureStoryboardMotion } = await import("../render/storyboardMotion");
+      const m = await measureStoryboardMotion(episode, { onProgress: (p, msg) => console.log(`PROGRESS ${p} ${msg}`) });
+      const low = Object.entries(m.scenes).filter(([, v]) => v.still > 2).map(([k]) => k);
+      console.log(`الحركة في الحلقة: ${m.percent}%${low.length ? `؛ سكون فوق ثانيتين في: ${low.join("، ")}` : ""}`);
+      return;
+    }
+    const { resolveScriptPath } = await import("../script/episodes");
+    const { loadPlan, regeneratePlan } = await import("../plan/io");
+    const { loadStoryboard, storyboardStatus } = await import("../plan/storyboard");
+    const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
+    const s = storyboardStatus(plan, await loadStoryboard(await resolveScriptPath(episode)));
+    console.log(`معتمد ${s.approved} من ${s.total}${s.ok ? " ✓" : ""}${s.changed.length ? `؛ تغيّر بعد الاعتماد: ${s.changed.join("، ")}` : ""}. الاعتماد من الاستوديو: «المشاهد ← ستوري بورد».`);
     if (!s.ok) process.exitCode = 1;
   });
 

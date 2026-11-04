@@ -13,12 +13,14 @@ import type { Identity } from "../../../brand/identity/index";
 import type { CharacterPose, CharacterVariant } from "../../../characters/Character";
 import { CharacterField, ElementField } from "../ui/Pickers";
 import { ImageField } from "../ui/ImageField";
+import { StoryboardPanel } from "./StoryboardPanel";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
 import { api, type SceneReviewItem, type SceneReviewSummary, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { langPack } from "../../../src/i18n/packs";
+import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -41,6 +43,8 @@ export const EpisodeTab: React.FC<{
   const [selectedId, setSelectedId] = useState(allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [scope, setScope] = useState<Scope>("scene");
+  // ستوري بورد الفيديو قبل تنفيذه (يُعتمد قبل الصوت والنسخة النهائية)
+  const [board, setBoard] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
   const sel = allScenes.find((x) => x.scene.id === selectedId) ?? allScenes[0];
   // مراجعة كل مشهد بعد تنفيذه: تُحدَّث بعد الحفظ التلقائي لأي تعديل (التعديل يعيد المشهد للمراجعة)
@@ -136,12 +140,38 @@ export const EpisodeTab: React.FC<{
   const scene = sel.scene;
   const def = templateById(scene.template);
 
+  if (board)
+    return (
+      <div className="work">
+        <div className="sb-back">
+          <button className="btn" onClick={() => setBoard(false)}>
+            ← المشاهد
+          </button>
+        </div>
+        <StoryboardPanel
+          episodeId={episodeId}
+          plan={plan}
+          identity={identity}
+          channel={channel}
+          media={media}
+          onOpenScene={(id) => {
+            setSelectedId(id);
+            setScope("scene");
+            setBoard(false);
+          }}
+        />
+      </div>
+    );
+
   return (
     <div className="work episode-grid">
       {/* قائمة المشاهد */}
       <div className="col scenes">
         <div className="col-head">
           <h2>المشاهد</h2>
+          <button className="btn small" onClick={() => setBoard(true)} title="لقطة لكل مشهد مع نصه وعناصره، تُعتمد قبل الصوت والنسخة النهائية">
+            ستوري بورد
+          </button>
           <span className="spacer" />
           <span className="help" style={{ fontVariantNumeric: "tabular-nums" }}>{allScenes.length} مشهدًا · {fmt(totalSec)}</span>
         </div>
@@ -187,7 +217,7 @@ export const EpisodeTab: React.FC<{
         <div className={`player-wrap ${orientation}`}>
           <div>
             {scope === "scene" ? (
-              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={`${langPack(plan.lang).strings.chapter} ${sel.chapter.number} · ${sel.chapter.title}`} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays} />
+              <ScenePreview ref={playerRef} scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(channel, langPack(plan.lang).strings.chapter, sel.chapter)} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays} />
             ) : (
               <EpisodePreview ref={playerRef} plan={plan} orientation={orientation} chapter={scope === "chapter" ? sel.chapter.number : undefined} identity={identity} channel={channel} media={media} />
             )}

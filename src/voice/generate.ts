@@ -17,6 +17,7 @@ import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { parseScript } from "../script/parse";
 import { loadLedger, reviewBlockMessage, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
+import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { capsFor, dropTagWords } from "./models";
 import { applyTempo, scaleTimes } from "./tempo";
 
@@ -83,6 +84,8 @@ export type GenerateVoiceOptions = {
   ignoreTashkeel?: boolean;
   /** توليد قبل اكتمال سجل التوثيق (من سطر الأوامر فقط، بقرار صاحب القناة) */
   ignoreReview?: boolean;
+  /** توليد قبل اعتماد الستوري بورد (من سطر الأوامر فقط، بقرار صاحب القناة) */
+  ignoreStoryboard?: boolean;
 };
 
 /**
@@ -126,6 +129,12 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على محتوى لم تكتمل مراجعة استشهاداته
   if (todo.length && !report.review.ok && !opts.ignoreReview) throw new Error(reviewBlockMessage(report.review));
+  // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
+  if (todo.length && !opts.ignoreStoryboard) {
+    const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
+    const blocked = unapprovedScenes(sb, todo.map((j) => j.id));
+    if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+  }
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)
   if (todo.length && opts.client?.voiceInfo) {

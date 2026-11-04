@@ -388,3 +388,32 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .btn.primary.danger { background: var(--err); color: #fff; border-color: var(--err); }
 .btn.primary.danger:disabled { opacity: .45; }
 .modal-back .modal:has(#del-confirm) { width: min(520px, 100%); padding: 18px 20px; gap: 10px; overflow: visible; }
+
+/* ستوري بورد الحلقة */
+.storyboard { display: grid; gap: 28px; padding: 8px 4px 48px; }
+.sb-back { padding: 8px 4px 0; }
+.sb-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: space-between; }
+.sb-head h2 { margin: 0; }
+.sb-facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; font-variant-numeric: tabular-nums; }
+.sb-facts .ok, .sb-motion { color: #2F6E47; }
+.sb-facts .warn, .help.warn, .sb-motion.warn { color: #B3261E; }
+.sb-motion.stale { color: var(--muted); }
+.sb-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.sb-chapter { display: grid; gap: 12px; }
+.sb-chapter h3 { margin: 0; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.sb-tape { background: #D7372B; color: #fff; font-size: 13px; padding: 1px 10px; border-radius: 3px; }
+.sb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.sb-shot { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; min-width: 0; }
+.sb-shot:hover, .sb-shot:focus-visible { border-color: var(--accent); }
+.sb-frame { position: relative; aspect-ratio: 16 / 9; background: #120C1C; direction: ltr; overflow: hidden; }
+.sb-id, .sb-time { position: absolute; top: 6px; font-size: 11px; padding: 0 6px; border-radius: 3px; font-variant-numeric: tabular-nums; }
+.sb-id { right: 6px; background: #D7372B; color: #fff; }
+.sb-time { left: 6px; background: rgba(0, 0, 0, .55); color: #fff; }
+.sb-txt { padding: 10px 12px; display: grid; gap: 4px; min-width: 0; }
+.sb-txt p { margin: 0; }
+.sb-kind { font-size: 12px; font-weight: 700; color: var(--accent); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sb-said { font-size: 15px; line-height: 1.55; }
+.sb-meta { font-size: 12.5px; color: var(--muted); }
+.sb-meta b { color: inherit; font-weight: 600; }
+.sb-motion { font-size: 12px; font-variant-numeric: tabular-nums; }
+.badge.ok { border-color: #2F6E47; color: #2F6E47; }

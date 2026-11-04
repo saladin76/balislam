@@ -26,7 +26,7 @@ export type ExtraCtx = {
 
 export type LongJob = {
   id: string;
-  kind: "make" | "package" | "shorts" | "sfx" | "render";
+  kind: "make" | "package" | "shorts" | "sfx" | "render" | "storyboard-motion";
   channel: string;
   episode?: string;
   title: string;
@@ -281,6 +281,30 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (existsSync(file)) return send(res, 200, { text: await readFile(file, "utf8"), exists: true, label }), true;
     const tpl = templateFor(ch, RESEARCH_FILE, false);
     send(res, 200, { text: tpl ? (await readFile(tpl, "utf8")).replaceAll("{{TITLE}}", "") : "", exists: false, label });
+    return true;
+  }
+
+  // ستوري بورد الفيديو قبل تنفيذه (storyboard.json): الحالة، والاعتماد، وحركة كل مشهد إن قيست
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "storyboard") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const { loadPlan, regeneratePlan } = await load("/src/plan/io.ts");
+    const S = await load("/src/plan/storyboard.ts");
+    const { loadStoryboardMotion } = await load("/src/render/storyboardMotion.ts");
+    const file = await resolveScriptPath(parts[1]);
+    const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
+    if (req.method === "PUT") {
+      const { action } = await readBody(req);
+      if (action === "approve") await S.approveStoryboard(file, plan);
+      else if (action === "revoke") await S.revokeStoryboard(file);
+      else return send(res, 400, { error: "إجراء غير صالح." }), true;
+    }
+    const status = S.storyboardStatus(plan, await S.loadStoryboard(file));
+    const motion = await loadStoryboardMotion(parts[1]);
+    // المشاهد التي تغيّرت بعد قياس حركتها (البصمة تُحسب هنا لأن المتصفح لا يملك node:crypto)
+    const { sceneHash } = await load("/src/plan/sceneReview.ts");
+    const motionStale = motion ? plan.chapters.flatMap((c: any) => c.scenes).filter((s: any) => motion.scenes[s.id] && motion.scenes[s.id].hash !== sceneHash(s)).map((s: any) => s.id) : [];
+    send(res, 200, { status, motion, motionStale });
     return true;
   }
 
@@ -571,6 +595,12 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         const args = b.kind === "make" ? ["make", b.episode, ...(b.noVoice ? ["--no-voice"] : [])] : b.kind === "shorts" ? ["package", b.episode, "--shorts"] : ["package", b.episode];
         const title = b.kind === "make" ? `صناعة الحلقة ${b.episode}${b.noVoice ? " (معاينة بلا صوت)" : " (أعلى جودة)"}` : b.kind === "shorts" ? `الشورتس والريلز للحلقة ${b.episode} (أعلى جودة)` : `تغليف الحلقة ${b.episode}`;
         const job = startJob(ctx, { kind: b.kind, channel: ch, episode: b.episode, title }, args);
+        return send(res, 200, job), true;
+      }
+      if (b.kind === "storyboard-motion") {
+        if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+        if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage }), true;
+        const job = startJob(ctx, { kind: "storyboard-motion", channel: ch, episode: b.episode, title: `قياس حركة مشاهد الحلقة ${b.episode} (معاينة صامتة خفيفة)` }, ["storyboard", b.episode, "--motion"]);
         return send(res, 200, job), true;
       }
       if (b.kind === "sfx") {
