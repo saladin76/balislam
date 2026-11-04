@@ -27,7 +27,7 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
       <input id={id} type={secret ? "password" : "text"} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder ?? (state?.set ? "الصق قيمة جديدة للاستبدال" : "الصق هنا")} dir="ltr" autoComplete="off" spellCheck={false} />
       <button className="btn small" disabled={!v.trim() || busy} type="submit">حفظ</button>
       {state?.set ? (
-        <button className="btn ghost small" type="button" onClick={() => { if (window.confirm(`حذف «${label}» من هذا الجهاز؟`)) onSave("").catch((x) => window.alert(`تعذّر الحذف: ${(x as Error).message}`)); }}>حذف</button>
+        <button className="btn ghost small" type="button" onClick={() => { if (window.confirm(`سيُزال «${label}» من ملف إعدادات الاستوديو النشط. قد يؤثر ذلك في جميع نسخ الاستوديو التي تستخدم الملف المشترك. هل تؤكد الإزالة؟`)) onSave("").catch((x) => window.alert(`تعذّر الحذف: ${(x as Error).message}`)); }}>حذف</button>
       ) : null}
     </form>
   );
@@ -68,7 +68,7 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
   return (
     <div className="settings-tab">
       <h2>الإعدادات والمفاتيح</h2>
-      <div className="note">المفاتيح تُحفظ في ملف ‎.env‎ داخل مجلد المشروع على هذا الجهاز فقط. لا تُرفع إلى GitHub، ولا تُرسل إلى أي مكان غير الخدمة نفسها، ولا تُكتب في المحادثات.</div>
+      <div className="note">المفاتيح لا تُرفع إلى GitHub. كل مجلد عمل يستخدم ملف ‎.env‎ الخاص به، إلا إذا حددت ملفًا مشتركًا عبر متغير البيئة BAL_ENV_FILE قبل تشغيل الاستوديو. ظهور «غير مضاف» لا يعني حذف المفتاح من مجلد مشروع آخر. لا تشارك محتوى الملف أو لقطة تظهر أسراره.</div>
 
       <section className="group">
         <h3>ElevenLabs <small>الصوت المستنسخ والمؤثرات</small></h3>
