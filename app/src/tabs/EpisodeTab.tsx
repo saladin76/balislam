@@ -61,6 +61,11 @@ export const EpisodeTab: React.FC<{
     if (!allScenes.some((x) => x.scene.id === selectedId) && allScenes[0]) setSelectedId(allScenes[0].scene.id);
   }, [allScenes, selectedId]);
 
+  // عندما يختار المستخدم مشهدًا من الستوري بورد أو لوحة الملاحظات ننتقل إليه فورًا.
+  useEffect(() => {
+    if (requestedSceneId && allScenes.some((x) => x.scene.id === requestedSceneId)) setSelectedId(requestedSceneId);
+  }, [requestedSceneId, allScenes]);
+
   // في معاينة الفصل أو الحلقة: أي مشهد يُعرض الآن؟ (إعدادات اللوحة الجانبية تخص المشهد المختار فقط)
   const starts = useMemo(() => {
     const list: { id: string; from: number }[] = [];
@@ -366,6 +371,9 @@ export const EpisodeTab: React.FC<{
             </label>
           </div>
 
+          <details className="ew-advanced-settings">
+            <summary>إعدادات متقدمة · عناصر الشاشة والمؤثرات الصوتية</summary>
+            <div className="ew-advanced-body">
           <div className="section-t">عناصر الشاشة في هذا المشهد</div>
           <OverlayToggles
             idPrefix="sc-ov"
@@ -437,6 +445,9 @@ export const EpisodeTab: React.FC<{
               </optgroup>
             ))}
           </select>
+
+            </div>
+          </details>
 
           <div className="section-t">التعليق الصوتي</div>
           <div className="narr">{scene.narration || <span className="help">لا تعليق صوتي في هذا المشهد</span>}</div>
