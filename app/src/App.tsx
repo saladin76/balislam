@@ -65,6 +65,7 @@ export const App: React.FC = () => {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
+  const [researchDirty, setResearchDirty] = useState(false);
   const [check, setCheck] = useState<CheckResult | null>(null);
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
@@ -243,7 +244,7 @@ export const App: React.FC = () => {
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
       <div className="app">
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || identDirty} />
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
         <header className="top">
           <button className="brand" onClick={() => confirmLeaveScript() && setTab("home")} title="الرئيسية">
             <BrandMark channel={channel} />
@@ -439,7 +440,7 @@ export const App: React.FC = () => {
             }}
           />
         ) : (
-          <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
+          <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}
 
         {showNew ? (
