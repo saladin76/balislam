@@ -34,6 +34,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
   const [published, setPublished] = useState<EpisodeStatus["published"] | null>(null);
   const [researchExists, setResearchExists] = useState<boolean | null>(null);
+  const [attentionOpen, setAttentionOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [unavailableChecks, setUnavailableChecks] = useState(0);
 
@@ -101,18 +102,26 @@ export const EpisodeWorkspaceBar: React.FC<{
       </nav>
       {notes.length ? (
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
-          <div className="ew-attention-title">
+          <button className="ew-attention-title" type="button" aria-expanded={attentionOpen}
+            aria-controls="ew-attention-details" onClick={() => setAttentionOpen((open) => !open)}>
             <strong>ما الذي يحتاج انتباهك؟</strong>
             <span>{notes.filter((n) => n.critical).length} مهمة · {notes.length} ملاحظة</span>
-          </div>
-          <div className="ew-notes">
-            {visible.map((n) => <button key={n.id} type="button" onClick={() => onStage(n.stage, { sceneId: n.sceneId, line: n.line })} title="افتح موضع الملاحظة">
-              <span aria-hidden="true">{n.critical ? "●" : "○"}</span>{n.text}<span className="ew-note-action">فتح</span>
-            </button>)}
-          </div>
-          {notes.length > 3 && <button type="button" className="ew-more" onClick={() => setShowAll(!showAll)}>{showAll ? "إخفاء التفاصيل" : `عرض ${notes.length - 3} ملاحظات إضافية`}</button>}
+            <span aria-hidden="true">{attentionOpen ? "▴" : "▾"}</span>
+          </button>
+          {attentionOpen ? (
+            <div id="ew-attention-details" className="ew-attention-details">
+              <div className="ew-notes">
+                {visible.map((n) => <button key={n.id} type="button" onClick={() => onStage(n.stage, { sceneId: n.sceneId, line: n.line })} title="افتح موضع الملاحظة">
+                  <span aria-hidden="true">{n.critical ? "●" : "○"}</span>{n.text}<span className="ew-note-action">فتح</span>
+                </button>)}
+              </div>
+              {notes.length > 3 ? <button type="button" className="ew-more" onClick={() => setShowAll((all) => !all)}>
+                {showAll ? "عرض أقل" : `عرض ${notes.length - 3} ملاحظات إضافية`}
+              </button> : null}
+            </div>
+          ) : null}
         </div>
-      ) : <div className="ew-ready">لا توجد ملاحظات في الفحوص المتاحة. يبقى الاعتماد النهائي داخل مراحل الإنتاج.</div>}
+      ) : null}
     </section>
   );
 };
