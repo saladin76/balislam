@@ -150,6 +150,17 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
           <textarea id="research-editor" value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
         )}
       </div>
+      {doc === "research" ? (
+        <aside className="col side ew-research-panel">
+          <div className="col-head"><h2>ملف البحث</h2></div>
+          <p>هذا الملف للتحضير والمراجعة فقط، ولا يدخل في التعليق الصوتي أو النشر.</p>
+          <p>اربط المعلومات والملاحظات بالمصادر التي استندت إليها قبل كتابة السكريبت.</p>
+          <div className="ew-research-state" role="status">
+            {researchSaving ? "جارٍ حفظ ملف البحث…" : researchDirty ? "هناك تعديلات لم تُحفظ" : research?.exists ? "ملف البحث محفوظ" : "ملف البحث لم يُحفظ بعد"}
+          </div>
+          {researchError ? <p role="alert">{researchError}</p> : null}
+        </aside>
+      ) : (
       <div className="col side">
         <div className="col-head"><h2>الفحص</h2><span className="spacer" /><span className="help">يتحدث أثناء الكتابة</span></div>
         <div className={`verdict ${check.ok ? "ok" : "bad"}`}>
@@ -180,6 +191,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
         </div>
         <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
       </div>
+      )}
     </div>
   );
 });
