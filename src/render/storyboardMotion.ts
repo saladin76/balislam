@@ -87,7 +87,9 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
     t += d;
   }
   // لا تنشر نتيجةً جديدة لو تغيّرت المصادر أو هوية القناة أثناء الرندر الطويل.
-  const latestHash = await currentMotionFingerprint(episode, plan, orientation);
+  const latestPlan = await loadPlan(episode);
+  if (!latestPlan) throw new Error("اختفت خطة الحلقة أثناء فحص الحركة؛ أعد القياس.");
+  const latestHash = await currentMotionFingerprint(episode, latestPlan, orientation);
   if (latestHash !== inputHash)
     throw new Error("تغيّرت ملفات الحلقة أو إعداداتها أثناء الفحص؛ أعد القياس بعد اكتمال التعديلات.");
   const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, inputHash, scenes };
