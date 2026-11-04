@@ -8,6 +8,7 @@ import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
@@ -21,8 +22,8 @@ import { SettingsTab } from "./tabs/SettingsTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
-type Tab = "home" | "episode" | "script" | "storyboard" | "publish" | "identity" | "library" | "channel" | "settings";
-const EPISODE_TABS: Tab[] = ["episode", "script", "storyboard", "publish"];
+type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings";
+const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "publish"];
 const store = {
   get: (k: string) => {
     try {
@@ -406,6 +407,15 @@ export const App: React.FC = () => {
             media={media}
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           /></div>
+        ) : tab === "voice" ? (
+          <VoiceWorkspaceTab
+            episodeId={epId}
+            plan={plan}
+            media={media}
+            hasKeys={extra.keys.voice}
+            onMedia={setMedia}
+            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+          />
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
@@ -428,7 +438,7 @@ export const App: React.FC = () => {
             }}
           />
         ) : (
-          <ScriptTab ref={scriptRef} episodeId={epId} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
+          <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}
 
         {showNew ? (
