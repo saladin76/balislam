@@ -446,3 +446,10 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .studio-start-guide[open] summary { margin-bottom: 8px; }
 .studio-start-guide p { color: var(--muted); margin: 8px 0; }
 .studio-start-guide ol { margin: 8px 0; padding-inline-start: 26px; display: grid; gap: 7px; }
+
+
+/* Home: one task context at a time; not two stacked workspaces. */
+.studio-home-switch { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 16px 14px; padding: 4px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; width: fit-content; max-width: calc(100% - 32px); }
+.studio-home-switch button { cursor: pointer; padding: 8px 14px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); }
+.studio-home-switch button.active { background: var(--panel); color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px #00000010; }
+.studio-home-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
