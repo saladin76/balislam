@@ -33,9 +33,9 @@ const render = (narration: string, error = false) => renderToStaticMarkup(
 );
 
 describe("مساحة عمل الحلقة", () => {
-  it("تعرض المراحل الأربعة دون إنشاء حالة اعتماد موازية", () => {
+  it("تعرض المراحل الست دون إنشاء حالة اعتماد موازية", () => {
     const html = render("");
-    for (const label of ["البحث والسكريبت", "الستوري بورد", "الصوت والمشاهد", "النسخة والنشر"])
+    for (const label of ["البحث", "السكريبت", "الستوري بورد", "الصوت", "المشاهد", "النشر"])
       expect(html).toContain(label);
     expect(html).toContain("لا توجد ملاحظات");
   });
