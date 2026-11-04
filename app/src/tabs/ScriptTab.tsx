@@ -3,7 +3,7 @@ import { api, type CheckResult } from "../api";
 import config from "../../../config.json";
 import { ReviewPanel } from "./ReviewPanel";
 
-export type ScriptTabHandle = { goToLine: (line: number) => void };
+export type ScriptTabHandle = { goToLine: (line: number) => void; hasUnsavedResearch: () => boolean };
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 
@@ -45,7 +45,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     const lh = parseFloat(getComputedStyle(el).lineHeight) || 32;
     el.scrollTop = Math.max(0, (line - 4) * lh);
   };
-  useImperativeHandle(ref, () => ({ goToLine }));
+  useImperativeHandle(ref, () => ({ goToLine, hasUnsavedResearch: () => researchDirty }));
 
   useEffect(() => setCheck(initialCheck), [initialCheck]);
   useEffect(() => {
