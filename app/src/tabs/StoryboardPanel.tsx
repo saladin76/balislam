@@ -215,6 +215,7 @@ export const StoryboardPanel: React.FC<{
         </div>
       </div>
 
+      <Reviews episodeId={episodeId} />
       <Previews episodeId={episodeId} />
 
       {rows.map(({ ch, shots }) => (
@@ -285,6 +286,32 @@ export const StoryboardPanel: React.FC<{
         </section>
       ))}
     </div>
+  );
+};
+
+/** ملفات المراجعة والاعتماد للحلقة (reviews/): تقارير داخلية تُفتح في نافذة مستقلة، لا تُنشر. */
+const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
+  const [files, setFiles] = useState<{ name: string; title: string; note: string; mtime: number }[]>([]);
+  useEffect(() => {
+    api.reviews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
+  }, [episodeId]);
+  if (!files.length) return null;
+  return (
+    <section className="sb-previews">
+      <h3>ملفات المراجعة</h3>
+      <p className="help">تقارير الاعتماد التحريري والشرعي للحلقة. القرار في كل بند يبقى في «السكريبت ← سجل التوثيق»؛ هذه الملفات أدلة ولا تعتمد شيئًا.</p>
+      <ul className="sb-reviews">
+        {files.map((f) => (
+          <li key={f.name}>
+            <a href={api.reviewUrl(episodeId, f.name)} target="_blank" rel="noreferrer">
+              <b>{f.title}</b>
+            </a>
+            <span className="help"> · {new Date(f.mtime).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}</span>
+            {f.note ? <div className="help">{f.note}</div> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
 
