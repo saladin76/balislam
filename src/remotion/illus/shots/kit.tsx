@@ -126,3 +126,12 @@ export const Birds: React.FC<{ frame: number; start: number; y: number; n?: numb
     </g>
   );
 };
+
+/** التفات الشخص: يدور حول محوره الرأسي من جهة إلى أخرى (بلا قفز) */
+export const turnSx = (frame: number, at: number, from: 1 | -1, to: 1 | -1, len = 10) => {
+  const v = from + (to - from) * prog(frame, at, at + len);
+  return Math.sign(v || to) * Math.max(0.12, Math.abs(v));
+};
+export const Turn: React.FC<{ x: number; sx: number; children: React.ReactNode }> = ({ x, sx, children }) => (
+  <g transform={`translate(${x} 0) scale(${sx} 1) translate(${-x} 0)`}>{children}</g>
+);

@@ -81,11 +81,12 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
       {scenesOf(props).map(({ chapter, scene }, idx, all) => {
         // المشهد السابق في الفصل نفسه (للانتقال المتصل في السبورة؛ الشورت يبدأ بلا انتقال)
         const prev = idx > 0 && all[idx - 1]!.chapter.number === chapter.number ? all[idx - 1]!.scene : undefined;
+        const next = idx < all.length - 1 && all[idx + 1]!.chapter.number === chapter.number ? all[idx + 1]!.scene : undefined;
         const clip = media.voice[scene.id];
         const timings = clip && clip.text === scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
         return (
           <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} name={`${scene.id} · ${scene.template}`}>
-            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, chapter)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={prev} />
+            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, chapter)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={prev} next={next} />
             <SceneAudio scene={scene} media={media} />
           </Series.Sequence>
         );

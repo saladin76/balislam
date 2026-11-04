@@ -19,6 +19,8 @@ import { BoardStory } from "./BoardStory";
 import { AlleyTale } from "./AlleyTale";
 import { RoadJourney } from "./RoadJourney";
 import { LightStage } from "./LightStage";
+import { DuaBoard } from "./DuaBoard";
+import { SHOTS } from "../illus/shots";
 import { MotionStory } from "./MotionStory";
 import { KineticText } from "./KineticText";
 import { SimStage } from "./SimStage";
@@ -37,10 +39,10 @@ import type { WordTiming } from "./timing";
 import type { EpisodeMedia } from "../../plan/media";
 import { resolveOverlays, useChannelOverlays, type Overlays } from "../../../brand/identity/index";
 
-type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; prev?: PlanScene };
+type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; prev?: PlanScene; next?: PlanScene };
 
 /** يحوّل مشهدًا من الخطة إلى مكوّن القالب المناسب. */
-export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media, episodeOverlays, prev }) => {
+export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media, episodeOverlays, prev, next }) => {
   const p = scene.props;
   const ov = resolveOverlays(useChannelOverlays(), episodeOverlays, { captions: scene.captions }, scene.overlays);
   const base = {
@@ -103,8 +105,15 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       return <RoadJourney {...base} {...p} />;
     case "light-stage":
       return <LightStage {...base} {...p} />;
-    case "alley-tale":
-      return <AlleyTale {...base} {...p} />;
+    case "dua-board":
+      // اللوح نفسه يستمر في المشهد التالي: لا إظلام بين المشهدين
+      return <DuaBoard {...base} {...p} continues={next?.template === "dua-board"} fromBoard={prev?.template === "dua-board"} />;
+    case "alley-tale": {
+      // لقطتان متتاليتان في المكان نفسه: قطع مباشر بلا إظلام بينهما
+      const here = p.shot ? SHOTS[p.shot]?.place : undefined;
+      const there = next?.template === "alley-tale" && next.props.shot ? SHOTS[next.props.shot]?.place : undefined;
+      return <AlleyTale {...base} {...p} continues={Boolean(here && here === there)} />;
+    }
     case "motion-story":
       return <MotionStory {...base} {...p} />;
     case "ink-shot":

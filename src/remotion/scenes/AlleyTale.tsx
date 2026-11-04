@@ -21,7 +21,7 @@ import { Grade, Texture } from "../illus/texture";
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot">;
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -44,13 +44,14 @@ const ShotScene: React.FC<AlleyTaleProps> = (props) => {
   // دفع بطيء متصل للكاميرا طوال اللقطة (فوق مفاتيحها)
   const drift = props.cameraMode === "directed" ? 0 : 0.045 * (frame / dur);
   const vb = portrait ? `${960 - 304} 0 608 1080` : `0 0 ${WW} ${WH}`;
-  const out = exit(frame, dur, 8);
+  const out = props.continues ? 1 : exit(frame, dur, 8);
   const keys = cueFrames(parseCues(props.cues), timings).map((k) => k.word);
   return (
-    <SceneShell {...props} eyebrow={undefined} captions={false} motif={false} background={darken(ID.night, 0.4)} durationInFrames={dur}>
+    <SceneShell {...props} eyebrow={undefined} captions={false} motif={false} background={darken(ID.night, 0.4)} durationInFrames={dur} exitFrames={props.continues ? 0 : 8}>
       <AbsoluteFill>
         <svg viewBox={vb} preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
           <g transform={camTransform(c, drift)}>{shot.world}</g>
+          {shot.overlay && !portrait ? shot.overlay : null}
           <Grade w={WW} h={WH} tint={shot.tint} tintOpacity={shot.tintOpacity} vignette={0.5} />
           <Texture kind="grain" w={WW} h={WH} opacity={0.18} tile={256} blend="overlay" />
         </svg>

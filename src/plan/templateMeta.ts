@@ -27,6 +27,7 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "alley-tale": { family: "story", only: ["balislam"] },
   "road-journey": { family: "story", only: ["balislam"] },
   "light-stage": { family: "story", only: ["balislam"] },
+  "dua-board": { family: "text", only: ["balislam"] },
   "motion-story": { family: "explain", only: ["balislam"] },
   "sketch-board": { family: "explain", only: ["zubdat-alkutub"] },
   "ink-meaning": { family: "explain", only: ["zubdat-alkutub"] },
