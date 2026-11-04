@@ -1,0 +1,41 @@
+import { existsSync } from "node:fs";
+import { mkdtemp, readFile, writeFile, readdir } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import { putPreview } from "../src/render/episodePreviews";
+
+describe("معاينات الاستوديو: كل تعديل يحذف القديم ويضع الجديد", () => {
+  it("الخانة نفسها تحتفظ بفيديو واحد فقط، والنسخ القديمة تُحذف", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    const a = path.join(dir, "a.mp4");
+    const b = path.join(dir, "b.mp4");
+    await writeFile(a, "A");
+    await writeFile(b, "B");
+    await putPreview(script, "six-shots", a, { title: "الأولى" });
+    // اسم قديم بنمط النسخ يُحذف أيضًا
+    await writeFile(path.join(dir, "previews", "six-shots-v3.mp4"), "old");
+    const r = await putPreview(script, "six-shots", b, { title: "الثانية" });
+    const files = (await readdir(path.join(dir, "previews"))).filter((n) => n.endsWith(".mp4"));
+    expect(files).toEqual(["six-shots.mp4"]);
+    expect(await readFile(path.join(dir, "previews", "six-shots.mp4"), "utf8")).toBe("B");
+    expect(r.removed).toContain("six-shots-v3.mp4");
+    const index = JSON.parse(await readFile(path.join(dir, "previews", "index.json"), "utf8"));
+    expect(index["six-shots.mp4"].title).toBe("الثانية");
+    expect(index["six-shots.mp4"].version).toBe(2);
+    expect(existsSync(path.join(dir, "previews", "six-shots-v3.mp4"))).toBe(false);
+  });
+  it("الخانات المختلفة لا تمس بعضها", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    const a = path.join(dir, "a.mp4");
+    await writeFile(a, "A");
+    await putPreview(script, "chapter-1", a, { title: "الفصل 1" });
+    await putPreview(script, "six-shots", a, { title: "اللقطات" });
+    const files = (await readdir(path.join(dir, "previews"))).filter((n) => n.endsWith(".mp4")).sort();
+    expect(files).toEqual(["chapter-1.mp4", "six-shots.mp4"]);
+  });
+});

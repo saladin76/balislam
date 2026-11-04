@@ -458,7 +458,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (!existsSync(dir)) return send(res, 200, { files: [] }), true;
     const names = (await readdir(dir)).filter((n) => /\.mp4$/i.test(n));
     const notes = existsSync(path.join(dir, "index.json")) ? JSON.parse(await readFile(path.join(dir, "index.json"), "utf8")) : {};
-    const files = names.map((n) => ({ name: n, size: statSync(path.join(dir, n)).size, mtime: statSync(path.join(dir, n)).mtimeMs, title: notes[n]?.title ?? n, note: notes[n]?.note ?? "" })).sort((x, y) => y.mtime - x.mtime);
+    const files = names.map((n) => ({ name: n, size: statSync(path.join(dir, n)).size, mtime: statSync(path.join(dir, n)).mtimeMs, title: notes[n]?.title ?? n, note: notes[n]?.note ?? "", version: notes[n]?.version ?? 1, updatedAt: notes[n]?.updatedAt ?? null })).sort((x, y) => y.mtime - x.mtime);
     return send(res, 200, { files }), true;
   }
 

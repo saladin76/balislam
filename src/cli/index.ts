@@ -235,6 +235,17 @@ program
   });
 
 program
+  .command("upload-preview <episode> <slot> <file>")
+  .description("رفع فيديو للحلقة إلى «المعاينات» في الاستوديو: يحذف النسخة القديمة لنفس الخانة ويضع الجديدة مكانها")
+  .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو")
+  .option("--note <note>", "ملاحظة قصيرة تحته")
+  .action(async (episode: string, slot: string, file: string, opts: { title: string; note?: string }) => {
+    const { putEpisodePreview } = await import("../render/episodePreviews");
+    const r = await putEpisodePreview(episode, slot, path.resolve(file), { title: opts.title, note: opts.note });
+    console.log(`رُفع إلى الاستوديو: ${path.relative(projectRoot, r.file)} (النسخة ${r.version})${r.removed.length ? `؛ حُذف القديم: ${r.removed.join("، ")}` : ""}`);
+  });
+
+program
   .command("storyboard <episode>")
   .description("الستوري بورد: هل اعتمد صاحب القناة لقطة كل مشهد قبل الصوت والنسخة النهائية؟ (--motion يقيس حركة كل مشهد بمعاينة صامتة خفيفة)")
   .option("--motion", "قياس حركة كل مشهد (معاينة صامتة بثلث الدقة، لا تُنشر)")

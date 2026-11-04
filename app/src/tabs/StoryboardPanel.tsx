@@ -290,7 +290,7 @@ export const StoryboardPanel: React.FC<{
 
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
 const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
-  const [files, setFiles] = useState<{ name: string; size: number; mtime: number; title: string; note: string }[]>([]);
+  const [files, setFiles] = useState<{ name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[]>([]);
   useEffect(() => {
     api.previews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
   }, [episodeId]);
@@ -298,13 +298,14 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   return (
     <section className="sb-previews">
       <h3>المعاينات</h3>
-      <p className="help">فيديوهات مبدئية للمراجعة، بلا صوت وبجودة منخفضة. لا تُنشر.</p>
+      <p className="help">كل فيديو يُصنع للحلقة يظهر هنا، وأي تعديل يستبدل القديم بالجديد. المعاينات لا تُنشر.</p>
       <div className="sb-previews-grid">
         {files.map((f) => (
           <figure key={f.name} className="sb-preview">
             <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
             <figcaption>
               <b>{f.title}</b>
+              <span className="help">النسخة {f.version}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
               {f.note ? <span className="help">{f.note}</span> : null}
             </figcaption>
           </figure>
