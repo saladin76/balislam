@@ -116,6 +116,8 @@ export const StoryboardPanel: React.FC<{
     return m ? { ...m, stale: Boolean(info?.motionStale?.includes(s.id)) } : null;
   };
   const stills = motion ? Object.entries(motion.scenes).filter(([, v]) => v.still > 2).map(([k]) => k) : [];
+  const logicNeedsReview = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && v.logic?.status === "needs-review").map(([id]) => id) : [];
+  const logicNotAssessable = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && (!v.logic || v.logic.status === "not-assessable")).map(([id]) => id) : [];
 
   return (
     <div className="storyboard">
@@ -123,7 +125,7 @@ export const StoryboardPanel: React.FC<{
         <div style={{ display: "grid", gap: 4 }}>
           <h2>ستوري بورد الحلقة {episodeId}</h2>
           <p className="help">
-            لقطة لكل مشهد مع نصه وما يظهر على الشاشة وعناصره. لا يُولَّد صوت ولا تُصنع النسخة النهائية لمشهد قبل اعتماده هنا، وأي تعديل بعد الاعتماد يعيده للاعتماد.
+            لقطة لكل مشهد مع نصه وما يظهر على الشاشة وعناصره. القياس يفحص الحركة المرئية ومطابقة كلمات تشغيل الأحداث للنص وترتيبها؛ لا يستطيع الحكم على صحة المعنى من الفيديو وحده. لا يُولَّد صوت ولا تُصنع النسخة النهائية لمشهد قبل اعتماده هنا، وأي تعديل بعد الاعتماد يعيده للاعتماد.
           </p>
           <p className="sb-facts">
             <span>{rows.reduce((n, r) => n + r.shots.length, 0)} مشهدًا</span>
@@ -131,13 +133,14 @@ export const StoryboardPanel: React.FC<{
             {st ? <span className={st.ok ? "ok" : "warn"}>معتمد {st.approved} من {st.total}</span> : null}
             {motion ? <span className={motion.percent >= 80 ? "ok" : "warn"}>الحركة {motion.percent}٪</span> : <span className="warn">الحركة لم تُقس</span>}
             {stills.length ? <span className="warn">سكون فوق ثانيتين: {stills.join("، ")}</span> : null}
+            {motion && <span className={logicNeedsReview.length || logicNotAssessable.length ? "warn" : "help"}>مطابقة النص: {logicNeedsReview.length} بها تحذيرات · {logicNotAssessable.length} غير قابلة للتقييم الآلي (لا تعادل اعتمادًا فنيًا)</span>}
           </p>
           {st?.changed.length ? <p className="help warn">تغيّر بعد الاعتماد: {st.changed.join("، ")}</p> : null}
           {err ? <p className="help warn">{err}</p> : null}
         </div>
         <div className="sb-actions">
           <button className="btn" onClick={measure} disabled={job?.status === "running"}>
-            {job?.status === "running" ? `يقيس الحركة… ${job.pct}%` : motion ? "أعد قياس الحركة" : "قِس حركة المشاهد"}
+            {job?.status === "running" ? `يقيس الحركة والمنطق… ${job.pct}%` : motion ? "أعد فحص الحركة والمنطق" : "افحص الحركة والمنطق"}
           </button>
           {st?.ok ? (
             <button className="btn" onClick={() => act("revoke")} disabled={busy}>
@@ -190,9 +193,26 @@ export const StoryboardPanel: React.FC<{
                       <b>العناصر:</b> {els.length ? els.map((id) => elName.get(id) ?? id).join("، ") : "بلا عناصر"}
                     </p>
                     {m ? (
-                      <p className={`sb-motion${m.stale ? " stale" : m.still > 2 ? " warn" : ""}`}>
-                        {m.stale ? "تغيّر بعد القياس" : `${m.pct}٪ حركة · أطول سكون ${m.still} ث`}
-                      </p>
+                      <>
+                        <p className={`sb-motion${m.stale ? " stale" : m.still > 2 ? " warn" : ""}`}>
+                          {m.stale ? "تغيّر بعد القياس" : `${m.pct}٪ حركة · أطول سكون ${m.still} ث`}
+                        </p>
+                        {!m.stale && m.logic ? (
+                          <div className="sb-logic">
+                            <strong>{m.logic.status === "needs-review" ? "مراجعة منطق الحركة مطلوبة" : m.logic.status === "not-assessable" ? "تعذّر تقييم ملاءمة الحركة للنص آليًا" : "لم تُكتشف مخالفات في مراسي الأحداث"}</strong>
+                            <span>الكلمات المحفّزة المطابقة: {m.logic.matched} من {m.logic.total}</span>
+                            {m.logic.findings.filter((f) => f.level === "warning").map((f, i) => (
+                              <p key={i} className="warn">{f.message}</p>
+                            ))}
+                            <details onClick={(e) => e.stopPropagation()}>
+                              <summary>حدود الفحص وملاحظاته</summary>
+                              {m.logic.findings.filter((f) => f.level === "info").map((f, i) => (
+                                <p key={i}>{f.message}</p>
+                              ))}
+                            </details>
+                          </div>
+                        ) : null}
+                      </>
                     ) : null}
                   </div>
                 </article>
