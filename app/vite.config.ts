@@ -4,8 +4,10 @@ import { existsSync } from "node:fs";
 import { balApi } from "./server/api.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
-// مفاتيح ElevenLabs وQuran Foundation من .env (على جهازك فقط)
-if (existsSync(path.join(root, ".env"))) process.loadEnvFile(path.join(root, ".env"));
+// ملف المفاتيح يمكن مشاركته بين worktrees عند تحديد BAL_ENV_FILE صراحةً.
+// لا ننسخ المفاتيح ولا نستوردها من مجلد مشروع آخر تلقائيًا.
+const envPath = process.env.BAL_ENV_FILE ? path.resolve(process.env.BAL_ENV_FILE) : path.join(root, ".env");
+if (existsSync(envPath)) process.loadEnvFile(envPath);
 
 /** استوديو بالإسلام: يعمل محليًا فقط. التشغيل: npx bal app (أو npm run app) */
 export default defineConfig({

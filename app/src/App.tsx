@@ -1,4 +1,5 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
+import { StudioStartGuide } from "./ui/StudioStartGuide";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
@@ -47,6 +48,7 @@ export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
+  const [homeView, setHomeView] = useState<"channel" | "all">("channel");
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [channelId, setChannelId] = useState<string>(() => {
     const c = store.get("bal-channel") || "";
@@ -273,12 +275,25 @@ export const App: React.FC = () => {
               {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
             </select>
           ) : null}
-          <nav className="tabs" role="tablist" aria-label="القناة">
-            <button role="tab" aria-selected={tab === "identity"} onClick={() => confirmLeaveScript() && setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
-            <button role="tab" aria-selected={tab === "library"} onClick={() => confirmLeaveScript() && setTab("library")}>المكتبة</button>
-            <button role="tab" aria-selected={tab === "channel"} onClick={() => confirmLeaveScript() && setTab("channel")}>القناة</button>
-            <button role="tab" aria-selected={tab === "settings"} onClick={() => confirmLeaveScript() && setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
-          </nav>
+          <label className="studio-manage-nav">
+            <span className="studio-nav-label">إدارة الاستوديو</span>
+            <select
+              aria-label="أدوات القناة والإعدادات"
+              value={["identity", "library", "channel", "settings"].includes(tab) ? tab : ""}
+              onChange={async (e) => {
+                const next = e.target.value as Tab;
+                if (!next || !confirmLeaveScript()) return;
+                await flushPlan();
+                setTab(next);
+              }}
+            >
+              <option value="">الأدوات والإعدادات…</option>
+              <option value="channel">معلومات القناة</option>
+              <option value="identity">الهوية البصرية{identDirty ? " • غير محفوظة" : ""}</option>
+              <option value="library">مكتبة الأصول والقوالب</option>
+              <option value="settings">الاتصالات والمفاتيح{keysOk.voice ? "" : " • تحتاج إعدادًا"}</option>
+            </select>
+          </label>
           <span className="spacer" />
           {tab === "episode" && plan ? (
             <span className="status">
@@ -314,7 +329,12 @@ export const App: React.FC = () => {
 
          {tab === "home" ? (
           <div className="home-wrap">
-          <OpsRoom
+          <StudioStartGuide />
+          <nav className="studio-home-switch" aria-label="عرض الاستوديو">
+            <button type="button" aria-pressed={homeView === "channel"} className={homeView === "channel" ? "active" : ""} onClick={() => setHomeView("channel")}>حلقات القناة الحالية</button>
+            <button type="button" aria-pressed={homeView === "all"} className={homeView === "all" ? "active" : ""} onClick={() => setHomeView("all")}>جميع القنوات · غرفة العمليات</button>
+          </nav>
+          {homeView === "all" ? <OpsRoom
             refreshKey={homeKey}
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
@@ -337,7 +357,7 @@ export const App: React.FC = () => {
               setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
               setShowNew(true);
             }}
-          />
+          /> : <>
           <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
           <HomeTab
             key={`${channelId}-${homeKey}`}
@@ -360,6 +380,7 @@ export const App: React.FC = () => {
               setTab(t);
             }}
           />
+          </>}
           </div>
         ) : tab === "library" ? (
           <LibraryTab hasVoiceKeys={keysOk.voice} identity={ident?.draft} channel={channel} />
