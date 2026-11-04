@@ -4,13 +4,15 @@ import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import type { PlanIssue } from "../../../src/plan/validate";
 
-export type WorkspaceStage = "script" | "storyboard" | "episode" | "publish";
+export type WorkspaceStage = "research" | "script" | "storyboard" | "voice" | "episode" | "publish";
 
-const stages: { id: WorkspaceStage; title: string; subtitle: string }[] = [
-  { id: "script", title: "البحث والسكريبت", subtitle: "المحتوى والتوثيق" },
-  { id: "storyboard", title: "الستوري بورد", subtitle: "الاعتماد البصري" },
-  { id: "episode", title: "الصوت والمشاهد", subtitle: "المعاينة والمراجعة" },
-  { id: "publish", title: "النسخة والنشر", subtitle: "الفيديو وحزمة النشر" },
+const stages: { id: WorkspaceStage; title: string }[] = [
+  { id: "research", title: "البحث" },
+  { id: "script", title: "السكريبت" },
+  { id: "storyboard", title: "الستوري بورد" },
+  { id: "voice", title: "الصوت" },
+  { id: "episode", title: "المشاهد" },
+  { id: "publish", title: "النشر" },
 ];
 
 /** واجهة عرض فقط؛ ليست مصدرًا جديدًا لحالة الاعتماد ولا تتجاوز بوابات المحرك. */
@@ -30,18 +32,20 @@ export const EpisodeWorkspaceBar: React.FC<{
   const [sceneReview, setSceneReview] = useState<SceneReviewSummary | null>(null);
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
   const [published, setPublished] = useState<EpisodeStatus["published"] | null>(null);
+  const [researchExists, setResearchExists] = useState<boolean | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   // تُحدّث الملخصات عند تغيير الحلقة أو الخطة؛ اعتماد أي مرحلة يتم داخل مكوّنها الأصلي فقط.
   useEffect(() => {
     let alive = true;
     const refresh = () => {
-      void Promise.allSettled([api.review(episodeId), api.sceneReview(episodeId), api.storyboard(episodeId), api.status(episodeId)]).then(([r, s, b, p]) => {
+      void Promise.allSettled([api.review(episodeId), api.sceneReview(episodeId), api.storyboard(episodeId), api.status(episodeId), api.research(episodeId)]).then(([r, s, b, p, research]) => {
         if (!alive) return;
         setReview(r.status === "fulfilled" ? r.value.summary : null);
         setSceneReview(s.status === "fulfilled" ? s.value.summary : null);
         setBoard(b.status === "fulfilled" ? b.value.status : null);
         setPublished(p.status === "fulfilled" ? p.value.published ?? null : null);
+        setResearchExists(research.status === "fulfilled" ? research.value.exists : null);
       });
     };
     refresh();
@@ -59,12 +63,14 @@ export const EpisodeWorkspaceBar: React.FC<{
   if (saveState === "error") notes.unshift({ id: "failed-save", stage: "episode", text: "تعذر حفظ تعديلات المشاهد؛ راجع الحفظ قبل المتابعة", critical: true });
   if (review && !review.ok) notes.push({ id: "citations", stage: "script", text: `الاستشهادات: ${review.verified} من ${review.total} معتمد`, critical: true });
   if (board && !board.ok) notes.push({ id: "storyboard", stage: "storyboard", text: `الستوري بورد: ${board.approved} من ${board.total} معتمد`, critical: false });
-  if (missingAudio) notes.push({ id: "voice", stage: "episode", text: `${missingAudio} مشهدًا بلا صوت مطابق للنص الحالي`, critical: false });
+  if (missingAudio) notes.push({ id: "voice", stage: "voice", text: `${missingAudio} مشهدًا بلا صوت مطابق للنص الحالي`, critical: false });
   if (sceneReview && !sceneReview.done) notes.push({ id: "scenes", stage: "episode", text: `مراجعة المشاهد: ${sceneReview.ok} من ${sceneReview.total} سليم`, critical: false });
   const stageState = (id: WorkspaceStage): string => {
+    if (id === "research") return researchExists ? "الملف موجود" : "ملف البحث";
     if (id === "script") return check.ok && review?.ok && !scriptDirty ? "مكتمل" : "مراجعة";
     if (id === "storyboard") return board?.ok ? "معتمد" : "بانتظار الاعتماد";
-    if (id === "episode") return narration.length > 0 && missingAudio === 0 && sceneReview?.done ? "مكتمل" : "قيد العمل";
+    if (id === "voice") return narration.length > 0 && missingAudio === 0 ? "الصوت جاهز" : "قيد العمل";
+    if (id === "episode") return sceneReview?.done ? "المشاهد معتمدة" : "قيد المراجعة";
     return published ? "منشور" : "قيد العمل";
   };
   const visible = showAll ? notes : notes.slice(0, 3);
