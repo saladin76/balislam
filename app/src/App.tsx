@@ -2,6 +2,7 @@ import { UpdateBanner } from "./ui/UpdateBanner";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
+import { planIssues } from "../../src/plan/validate";
 import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
@@ -295,7 +296,7 @@ export const App: React.FC = () => {
                }
              }}
              check={check}
-             issues={extra.issues}
+             issues={planIssues(plan, channel)}
              plan={plan}
              media={media}
              saveState={planState}
