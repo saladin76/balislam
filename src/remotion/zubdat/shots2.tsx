@@ -338,7 +338,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const ready = P(tGive - 2, tGive + 10);
       const speed = P(tRush - 4, tRush + 4) * (1 - P(tCalm - 4, tCalm + 8));
       const pIn = P(tRush - 8, tRush + 4);
-      const list = P(tTask - 8, tTask + 8);
+      const list = P(at("نتعامل", 0.6) - 2, tTask + 6);
       c.reg([210, 560, 620, 860], tRush);
       return {
         focus: [[tKeys, 1200, 230], [tTanbih, 700, 240], [tRush, 700, 600], [tCalm, 900, 600], [tTime, 1300, 500], [tGive, 600, 700], [tTask, 1400, 640], [tSkip, 1100, 600], [tFast, 1300, 700], [tEnd, 1100, 620]],
@@ -446,6 +446,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             <Cross x1={1070} x2={930} y={284} p={P(tLux + 8, tLux + 20)} z={z} />
             <Stroke d="M440 868 Q570 880 700 868" p={P(tCalm - 2, tCalm + 14)} c={z.hl} w={16} />
             {/* «الأسباب التي تعيننا»: سهم من شريط التهيؤ إلى المصلي */}
+            <Stroke d="M960 760 Q820 820 700 830" p={P(at("الأسباب", 0.66) - 2, at("تعيننا", 0.74) + 10, (t) => t)} c={z.hl} w={34} opacity={0.85} />
             <Arrow x1={930} y1={720} x2={660} y2={760} p={P(at("تعيننا", 0.74) - 2, at("تعيننا", 0.74) + 14)} c={z.ink} w={7} bend={30} />
             {T("sk", 570, 470, "السكينة", 64, ["السكينة", 0.94])}
           </g>
