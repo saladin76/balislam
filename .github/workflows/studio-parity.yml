@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+      - name: Install FFmpeg for audio and rendering regression tests
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Install exact dependencies
         run: npm ci
       - name: All three channels — typecheck and regression tests
