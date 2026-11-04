@@ -117,6 +117,7 @@ export const StoryboardPanel: React.FC<{
   };
   const stills = motion ? Object.entries(motion.scenes).filter(([, v]) => v.still > 2).map(([k]) => k) : [];
   const logicNeedsReview = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && v.logic?.status === "needs-review").map(([id]) => id) : [];
+  const logicNotAssessable = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && (!v.logic || v.logic.status === "not-assessable")).map(([id]) => id) : [];
 
   return (
     <div className="storyboard">
@@ -132,7 +133,7 @@ export const StoryboardPanel: React.FC<{
             {st ? <span className={st.ok ? "ok" : "warn"}>معتمد {st.approved} من {st.total}</span> : null}
             {motion ? <span className={motion.percent >= 80 ? "ok" : "warn"}>الحركة {motion.percent}٪</span> : <span className="warn">الحركة لم تُقس</span>}
             {stills.length ? <span className="warn">سكون فوق ثانيتين: {stills.join("، ")}</span> : null}
-            {motion && <span className={logicNeedsReview.length ? "warn" : "help"}>مراجعة العلاقة بالنص: {logicNeedsReview.length ? `${logicNeedsReview.length} مشهدًا يحتاج فحصًا` : "لا تحذيرات آلية"} (ليست اعتمادًا فنيًا)</span>}
+            {motion && <span className={logicNeedsReview.length || logicNotAssessable.length ? "warn" : "help"}>مطابقة النص: {logicNeedsReview.length} بها تحذيرات · {logicNotAssessable.length} غير قابلة للتقييم الآلي (لا تعادل اعتمادًا فنيًا)</span>}
           </p>
           {st?.changed.length ? <p className="help warn">تغيّر بعد الاعتماد: {st.changed.join("، ")}</p> : null}
           {err ? <p className="help warn">{err}</p> : null}
@@ -198,7 +199,7 @@ export const StoryboardPanel: React.FC<{
                         </p>
                         {!m.stale && m.logic ? (
                           <div className="sb-logic">
-                            <strong>{m.logic.status === "needs-review" ? "مراجعة منطق الحركة مطلوبة" : "لا تحذيرات آلية عن ارتباط الأحداث بالنص"}</strong>
+                            <strong>{m.logic.status === "needs-review" ? "مراجعة منطق الحركة مطلوبة" : m.logic.status === "not-assessable" ? "تعذّر تقييم ملاءمة الحركة للنص آليًا" : "لم تُكتشف مخالفات في مراسي الأحداث"}</strong>
                             <span>الكلمات المحفّزة المطابقة: {m.logic.matched} من {m.logic.total}</span>
                             {m.logic.findings.filter((f) => f.level === "warning").map((f, i) => (
                               <p key={i} className="warn">{f.message}</p>
