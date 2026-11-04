@@ -301,8 +301,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         if (measured) {
           const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
           const currentHash = await currentMotionFingerprint(parts[1], plan, measured.orientation);
-          if (!measured.inputHash || measured.inputHash !== currentHash)
-            return send(res, 409, { error: "تغيّرت مدخلات الحلقة بعد قياس الحركة؛ أعد الفحص قبل اعتماد الستوري بورد." }), true;
+          const { staleMotionScenes } = await load("/src/render/motionValidity.ts");
+          if (staleMotionScenes(plan, measured, currentHash).length)
+            return send(res, 409, { error: "القياس قديم أو غير مكتمل؛ أعد الفحص قبل اعتماد الستوري بورد." }), true;
           const warnings = Object.values(measured.scenes).filter((s: any) => s.logic?.status === "needs-review").length;
           if (warnings && note.length < 10)
             return send(res, 400, { error: `هناك ${warnings} مشهدًا بها تحذيرات. شاهدها واكتب سبب الاعتماد أو الاستثناء (10 أحرف على الأقل).` }), true;
@@ -319,15 +320,14 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     // أي اختلاف في مدخلات الرندر يجعل القياس السابق غير صالح، لا مجرد تعديل القالب.
     let motionStale: string[] = [];
     if (motion) {
-      const { sceneHash } = await load("/src/plan/sceneReview.ts");
       const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
+      const { staleMotionScenes } = await load("/src/render/motionValidity.ts");
       const hash = await currentMotionFingerprint(parts[1], plan, motion.orientation);
-      const globalStale = !motion.inputHash || motion.inputHash !== hash;
-      motionStale = plan.chapters.flatMap((c: any) => c.scenes)
-        .filter((s: any) => !motion.scenes[s.id] || globalStale || motion.scenes[s.id].hash !== sceneHash(s))
-        .map((s: any) => s.id);
+      motionStale = staleMotionScenes(plan, motion, hash);
     }
-    send(res, 200, { status, motion, motionStale });
+    const { auditNeedsJustification } = await load("/src/render/motionValidity.ts");
+    const auditNeedsReview = Boolean(motion && !motionStale.length && auditNeedsJustification(motion, status.audit));
+    send(res, 200, { status, motion, motionStale, auditNeedsReview });
     return true;
   }
 
@@ -342,8 +342,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
     const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
     const hash = await currentMotionFingerprint(parts[1], plan, report.orientation);
-    if (!report.inputHash || report.inputHash !== hash)
-      return send(res, 409, { error: "تغيّرت مدخلات الحلقة بعد القياس؛ أعد فحص الحركة والمنطق لتنزيل تقرير صالح." }), true;
+    const { staleMotionScenes } = await load("/src/render/motionValidity.ts");
+    if (staleMotionScenes(plan, report, hash).length)
+      return send(res, 409, { error: "تقرير الحركة قديم أو ناقص المشاهد؛ أعد فحص الحركة والمنطق لتنزيل تقرير صالح." }), true;
     send(res, 200, { markdown: renderMotionAuditMarkdown(plan, report) });
     return true;
   }

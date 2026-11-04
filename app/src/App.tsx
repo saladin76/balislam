@@ -412,6 +412,7 @@ export const App: React.FC = () => {
           <div className="empty-state"><h2>جارٍ فتح الحلقة…</h2></div>
         ) : tab === "storyboard" ? (
           <div className="ew-storyboard-wrap"><StoryboardPanel
+            key={`${channelId}:${epId}`}
             episodeId={epId}
             plan={plan}
             identity={ident.draft}
