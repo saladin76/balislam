@@ -194,6 +194,7 @@ export const StoryboardPanel: React.FC<{
           </p>
           {st?.changed.length ? <p className="help warn">تغيّر بعد الاعتماد: {st.changed.join("، ")}</p> : null}
           {st?.audit?.note ? <p className="help">ملاحظة اعتماد المراجع: {st.audit.note}</p> : null}
+          {info?.auditNeedsReview ? <p className="help warn" role="alert">ظهر تقرير حديث بتحذيرات لم يشملها الاعتماد السابق. راجع المشاهد ثم سجّل سبب قبولها.</p> : null}
           {err ? <p className="help warn" role="alert">{err}</p> : null}
           {job?.status === "error" ? <p className="help warn">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
         </div>
@@ -202,13 +203,13 @@ export const StoryboardPanel: React.FC<{
             {job?.status === "running" ? `يقيس الحركة والمنطق… ${job.pct}%` : motion ? "أعد فحص الحركة والمنطق" : "افحص الحركة والمنطق"}
           </button>
           {motion ? <button className="btn" onClick={() => void downloadReport()} disabled={reportBusy}>{reportBusy ? "يُجهّز التقرير…" : "تنزيل تقرير الفحص"}</button> : null}
-          {st?.ok ? (
+          {st?.ok && !info?.auditNeedsReview ? (
             <button className="btn" onClick={() => act("revoke")} disabled={busy}>
               اسحب الاعتماد
             </button>
           ) : (
             <button className="btn primary" onClick={() => act("approve")} disabled={busy || !st}>
-              اعتمد الستوري بورد
+              {info?.auditNeedsReview ? "راجع تحذيرات القياس واعتمد" : "اعتمد الستوري بورد"}
             </button>
           )}
         </div>

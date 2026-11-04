@@ -65,7 +65,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
     }).map((s) => s.id);
     if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
-    const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
+    const sbRecord = await loadStoryboard(scriptPath);
+    const sb = storyboardStatus(plan, sbRecord);
     const blocked = unapprovedScenes(sb, [...ids]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
     if (!opts.allowUnreviewed) {
@@ -76,8 +77,14 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     const { loadStoryboardMotion } = await import("./storyboardMotion");
     const { currentMotionFingerprint } = await import("./motionFingerprint");
     const measured = await loadStoryboardMotion(opts.episode);
-    if (measured && (!measured.inputHash || measured.inputHash !== await currentMotionFingerprint(opts.episode, plan, measured.orientation)))
-      throw new Error("نتيجة فحص الحركة والمنطق قديمة؛ أعد الفحص بعد آخر تعديل قبل الرندر النهائي.");
+    if (measured) {
+      const { staleMotionScenes, auditNeedsJustification } = await import("./motionValidity");
+      const currentHash = await currentMotionFingerprint(opts.episode, plan, measured.orientation);
+      if (staleMotionScenes(plan, measured, currentHash).length)
+        throw new Error("نتيجة فحص الحركة والمنطق قديمة أو ناقصة المشاهد؛ أعد الفحص قبل الرندر النهائي.");
+      if (auditNeedsJustification(measured, sbRecord.audit))
+        throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
+    }
   }
   log(0, "تجميع المشروع…");
   const serveUrl = await getServeUrl(!opts.media);
@@ -86,24 +93,30 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
-  await renderMedia({
-    serveUrl,
-    composition,
-    inputProps,
-    codec: "h264",
-    // الجودة من config.json: master = 4K بترميز بطيء عالي الجودة، preview = 1080p سريع
-    scale: q.scale,
-    crf: q.crf,
-    x264Preset: q.x264Preset,
-    audioCodec: "aac",
-    audioBitrate: q.audioBitrate,
-    colorSpace: "bt709",
-    outputLocation: output,
-    browserExecutable: browserExecutable(),
-    onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
-  });
-  await cleanMetadata(output, { title: plan.title, artist: channel.name });
-  return output;
+  // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
+  const tempOutput = output.replace(/\.mp4$/i, "") + ".rendering.mp4";
+  try {
+    await renderMedia({
+      serveUrl,
+      composition,
+      inputProps,
+      codec: "h264",
+      scale: q.scale,
+      crf: q.crf,
+      x264Preset: q.x264Preset,
+      audioCodec: "aac",
+      audioBitrate: q.audioBitrate,
+      colorSpace: "bt709",
+      outputLocation: tempOutput,
+      browserExecutable: browserExecutable(),
+      onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
+    });
+    await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
+    await rename(tempOutput, output);
+    return output;
+  } finally {
+    await unlink(tempOutput).catch(() => {});
+  }
 };
 
 /**

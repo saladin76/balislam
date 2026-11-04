@@ -86,10 +86,25 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
     scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still, perSecond: secs, activityThreshold: ACTIVE_PCT }, media.voice[s.id]?.text === s.narration.trim() ? media.voice[s.id]?.words : undefined) };
     t += d;
   }
+  // لا تنشر نتيجةً جديدة لو تغيّرت المصادر أو هوية القناة أثناء الرندر الطويل.
+  const latestPlan = await loadPlan(episode);
+  if (!latestPlan) throw new Error("اختفت خطة الحلقة أثناء فحص الحركة؛ أعد القياس.");
+  const latestHash = await currentMotionFingerprint(episode, latestPlan, orientation);
+  if (latestHash !== inputHash)
+    throw new Error("تغيّرت ملفات الحلقة أو إعداداتها أثناء الفحص؛ أعد القياس بعد اكتمال التعديلات.");
   const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, inputHash, scenes };
   const outputFile = await storyboardMotionFile(episode);
-  await writeFile(outputFile, JSON.stringify(out, null, 2) + "\n");
-  await writeFile(path.join(path.dirname(outputFile), "storyboard-motion-report.md"), renderMotionAuditMarkdown(plan, out));
+  const reportFile = path.join(path.dirname(outputFile), "storyboard-motion-report.md");
+  // كتابة نص التقرير قبل JSON: لا نعرض نتيجة جديدة إلا بعد وجود نصها.
+  await writeFile(reportFile, renderMotionAuditMarkdown(plan, out));
+  const tmpFile = outputFile + ".tmp";
+  try {
+    await writeFile(tmpFile, JSON.stringify(out, null, 2) + "\n");
+    const { rename } = await import("node:fs/promises");
+    await rename(tmpFile, outputFile);
+  } finally {
+    await rm(tmpFile, { force: true });
+  }
   log(100, "تم");
   return out;
   } finally {
