@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir } from "node:fs/promises";
 import { rename, stat, unlink } from "node:fs/promises";
@@ -12,6 +13,7 @@ import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, getServeUrl } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { QUALITY, type Quality } from "./quality";
+import { loadSceneLedger, sceneReviewItems, sceneReviewSummary, sceneReviewBlockMessage } from "../plan/sceneReview";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -23,6 +25,8 @@ export type RenderEpisodeOptions = {
   quality?: Quality;
   plan?: Plan;
   media?: EpisodeMedia;
+  /** استثناء صريح للصيانة فقط؛ لا يُستخدم من الواجهة العامة. */
+  allowUnreviewed?: boolean;
   onProgress?: (pct: number, msg: string) => void;
 };
 
@@ -39,19 +43,48 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
+  // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
+  if (opts.quality === "master") {
+    const scriptPath = await resolveScriptPath(opts.episode);
+    const { readFile } = await import("node:fs/promises");
+    const { parseScript } = await import("../script/parse");
+    const { checkForChannel } = await import("../script/checkChannel");
+    const { planIssues } = await import("../plan/validate");
+    const { loadLedger, reviewItems, reviewSummary } = await import("../script/review");
+    const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+    const checked = checkForChannel(parsed);
+    if (!checked.ok) throw new Error("السكريبت غير صالح للرندر النهائي؛ راجع تبويب السكريبت وفحوصه.");
+    const errors = planIssues(plan, loadChannel()).filter((issue) => issue.level === "error");
+    if (errors.length) throw new Error(`خطة الحلقة بها أخطاء تمنع النشر: ${errors.slice(0, 5).map((issue) => issue.message).join("؛ ")}`);
+    const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
+    if (!citations.ok) throw new Error(`توثيق الاستشهادات غير مكتمل: ${citations.verified} من ${citations.total}. راجع سجل التوثيق قبل الرندر النهائي.`);
+    const ids = new Set(plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
+    const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
+    const missing = required.filter((s) => {
+      const clip = media.voice[s.id];
+      return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
+    }).map((s) => s.id);
+    if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
+    const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
+    const blocked = unapprovedScenes(sb, [...ids]);
+    if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+    if (!opts.allowUnreviewed) {
+      const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
+      const review = sceneReviewSummary(items);
+      if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
+    }
+    const { loadStoryboardMotion } = await import("./storyboardMotion");
+    const { currentMotionFingerprint } = await import("./motionFingerprint");
+    const measured = await loadStoryboardMotion(opts.episode);
+    if (measured && (!measured.inputHash || measured.inputHash !== await currentMotionFingerprint(opts.episode, plan, measured.orientation)))
+      throw new Error("نتيجة فحص الحركة والمنطق قديمة؛ أعد الفحص بعد آخر تعديل قبل الرندر النهائي.");
+  }
   log(0, "تجميع المشروع…");
   const serveUrl = await getServeUrl(!opts.media);
   const channel = loadChannel();
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
-  // النسخة النهائية لا تُصنع قبل اعتماد ستوري بورد مشاهدها (المعاينات الصامتة مسموحة دائمًا)
-  if (opts.quality === "master") {
-    const sb = storyboardStatus(plan, await loadStoryboard(await resolveScriptPath(opts.episode)));
-    const ids = plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id));
-    const blocked = unapprovedScenes(sb, ids);
-    if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-  }
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   await renderMedia({
     serveUrl,

@@ -10,7 +10,7 @@ import path from "node:path";
 import { sceneHash } from "./sceneReview";
 import type { Plan } from "./types";
 
-export type StoryboardRecord = { version: 1; approvedAt?: string; scenes: Record<string, string> };
+export type StoryboardRecord = { version: 1; approvedAt?: string; scenes: Record<string, string>; audit?: { note: string; inputHash?: string; at: string } };
 export type StoryboardSceneStatus = "approved" | "changed" | "new";
 export type StoryboardStatus = {
   total: number;
@@ -20,6 +20,7 @@ export type StoryboardStatus = {
   /** كل المشاهد معتمدة ببصمتها الحالية */
   ok: boolean;
   approvedAt?: string;
+  audit?: StoryboardRecord["audit"];
   scenes: Record<string, StoryboardSceneStatus>;
 };
 
@@ -30,7 +31,7 @@ export const loadStoryboard = async (scriptPath: string): Promise<StoryboardReco
   if (!existsSync(f)) return { version: 1, scenes: {} };
   try {
     const r = JSON.parse(await readFile(f, "utf8")) as StoryboardRecord;
-    return { version: 1, approvedAt: r.approvedAt, scenes: r.scenes ?? {} };
+    return { version: 1, approvedAt: r.approvedAt, scenes: r.scenes ?? {}, audit: r.audit };
   } catch {
     return { version: 1, scenes: {} };
   }
@@ -51,15 +52,17 @@ export const storyboardStatus = (plan: Plan, rec: StoryboardRecord): StoryboardS
     fresh: ids.filter((i) => scenes[i] === "new"),
     ok: ids.length > 0 && approved === ids.length,
     approvedAt: rec.approvedAt,
+    audit: rec.audit,
     scenes,
   };
 };
 
 /** اعتماد الستوري بورد كما هو الآن (كل المشاهد ببصماتها الحالية). */
-export const approveStoryboard = async (scriptPath: string, plan: Plan): Promise<StoryboardRecord> => {
+export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: { note: string; inputHash?: string }): Promise<StoryboardRecord> => {
   const rec: StoryboardRecord = {
     version: 1,
     approvedAt: new Date().toISOString(),
+    audit: audit ? { ...audit, at: new Date().toISOString() } : undefined,
     scenes: Object.fromEntries(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, sceneHash(s)])),
   };
   await writeFile(storyboardFileFor(scriptPath), JSON.stringify(rec, null, 2) + "\n");

@@ -14,6 +14,35 @@ describe("فحص منطق الحركة بالنسبة إلى السكريبت", 
     expect(r.status).toBe("no-obvious-issues");
   });
 
+  it("يحتفظ بوقت الكلمة المتوقع من محاذاة الصوت دون ادعاء قياس الحركة", () => {
+    const r = inspectMotionLogic(
+      scene("سمع خبرًا ثم اعتذر", { cues: "news | خبرًا" }),
+      { pct: 91, still: 0 },
+      [
+        { word: "سمع", start: 0.1, end: 0.5 },
+        { word: "خبرًا", start: 0.6, end: 0.9 },
+        { word: "ثم", start: 1, end: 1.2 },
+        { word: "اعتذر", start: 1.3, end: 1.7 },
+      ],
+    );
+    expect(r.cues?.[0]?.expectedVoiceStartSec).toBe(0.6);
+    expect(r.cues?.[0]?.wordIndex).toBe(1);
+  });
+
+  it("ينبّه عند غياب نشاط مرئي قرب الكلمة المنطوقة مع وجود محاذاة صوت", () => {
+    const r = inspectMotionLogic(
+      scene("سمع خبرًا ثم اعتذر", { cues: "news | خبرًا" }),
+      { pct: 0, still: 3, perSecond: [0, 0, 0], activityThreshold: 2.5 },
+      [
+        { word: "سمع", start: 0, end: 0.4 },
+        { word: "خبرًا", start: 1, end: 1.4 },
+        { word: "ثم", start: 1.5, end: 1.8 },
+        { word: "اعتذر", start: 2, end: 2.4 },
+      ],
+    );
+    expect(r.findings.some((f) => f.kind === "timing" && f.message.includes("لم تُرصد حركة"))).toBe(true);
+  });
+
   it("ينبّه عند ربط الحدث بكلمة غير منطوقة", () => {
     const r = inspectMotionLogic(scene("قرر التراجع عن الخطأ", { cues: "news | خبرًا" }), { pct: 93, still: 0 });
     expect(r.status).toBe("needs-review");
