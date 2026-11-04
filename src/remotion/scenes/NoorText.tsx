@@ -106,7 +106,9 @@ export const NoorText: React.FC<NoorTextProps> = (props) => {
   });
 
   const fontPx = Math.round((portrait ? 120 : on ? 112 : 128) * u * (text.length > 26 ? Math.max(0.72, Math.sqrt(26 / text.length)) : 1));
-  const textTop = on ? cy + R * 0.62 : H * (portrait ? 0.3 : 0.24);
+  const captionsShown = !writesNarration && props.captions !== false;
+  // مع سطر فرعي وشريط الترجمة: ترتفع الكتابة حتى لا يغطي الشريطُ السطرَ الفرعي
+  const textTop = on ? (subtitle && captionsShown ? Math.min(cy + R * 0.62, H * (portrait ? 0.66 : 0.74) - fontPx * 1.3 - 110 * u) : cy + R * 0.62) : H * (portrait ? 0.3 : 0.24);
 
   return (
     <SceneShell {...props} captions={writesNarration ? false : props.captions} themeId="night" motif={false} background={C.duskDeep} durationInFrames={durationInFrames} eyebrowColors={{ text: C.parchment, border: C.sand }}>

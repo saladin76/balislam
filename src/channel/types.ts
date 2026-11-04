@@ -63,6 +63,13 @@ export type ChannelConfig = {
    */
   /** قواعد السكريبت الخاصة بالقناة: fixedChapters=false عدد الفصول وطولها حر، practicalStep=false بلا «الخطوة العملية» */
   script?: { fixedChapters?: boolean; practicalStep?: boolean; /** false: عنوان الفصل أعلى المشهد بلا رقمه (لا أرقام على الشاشة لا تُنطق) */ chapterNumbers?: boolean };
+  /**
+   * عرض الآيات في القناة. style «page»: صفحة رَقّ هادئة بلا زخارف ولا رموز بجوار كلام الله؛
+   * reveal «lines»: تُكشف الآية مقطعًا مقطعًا بترتيبها على مدى التلاوة (قرار صاحب القناة: حرمة النص قبل نسبة الحركة).
+   */
+  verse?: { style?: "card" | "page"; reveal?: "whole" | "lines" };
+  /** speechSync: نقاط المقارنة وكلمات السؤال الكبير تتوالى على مدى الجملة المنطوقة بدل ظهورها كلها في أول ثانيتين (خاص بالقناة) */
+  pacing?: { speechSync?: boolean };
   library?: {
     exclude?: { elements?: string[]; categories?: string[]; sets?: string[]; templates?: string[] };
     /** قائمة سماح: إن وُجدت فلا يدخل مكتبة القناة من العناصر إلا ما فيها (أو في فئاتها)، فلا يتسرب إليها ما يُرسم لقنوات أخرى لاحقًا */
@@ -75,12 +82,12 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; library?: ChannelConfig["library"]; script?: ChannelConfig["script"]; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; library?: ChannelConfig["library"]; script?: ChannelConfig["script"]; verse?: ChannelConfig["verse"]; pacing?: ChannelConfig["pacing"]; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;
 
-export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script });
+export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing });
 
 export const domainIds = (c: ChannelConfig) => Object.keys(c.domains);
 

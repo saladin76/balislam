@@ -200,13 +200,17 @@
           "sfx": []
         },
         {
-          "template": "timeline",
+          "template": "comparison",
           "narration": "وقد ذكر المفسرون في معنى الخلافة أقوالا، منها أن البشر يخلف بعضهم بعضا في عمارة الأرض والحياة عليها.",
           "line": 43,
           "props": {
-            "title": "معنى الخلافة",
-            "events": "يخلف بعضهم بعضًا\nعمارة الأرض والحياة عليها",
-            "element": "books-stack"
+            "rightTitle": "لفظ الآية",
+            "rightItems": "خليفة في الأرض",
+            "rightElement": "",
+            "leftTitle": "من أقوال المفسرين",
+            "leftItems": "يخلف بعضهم بعضًا\nفي عمارة الأرض",
+            "leftElement": "",
+            "tone": "neutral"
           },
           "id": "c2-s4",
           "sfx": []

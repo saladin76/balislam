@@ -462,5 +462,12 @@
   "recitation": {
     "id": 6,
     "name": "محمود خليل الحصري"
+  },
+  "verse": {
+    "style": "page",
+    "reveal": "lines"
+  },
+  "pacing": {
+    "speechSync": true
   }
 }
