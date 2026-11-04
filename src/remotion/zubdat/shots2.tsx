@@ -390,7 +390,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             </g>
             {T("mh", 1470, 632, "مهمة", 56, ["مهمة", 0.7], undefined, { font: "head" })}
             {/* «تجاوزها»: قفزة متقطعة فوق السجادة، كأن الصلاة شيء يُتخطى */}
-            <path d="M600 760 Q900 560 1270 680" fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" pathLength={1} strokeDashoffset={0} opacity={P(tSkip - 2, tSkip + 4) * (1 - 0.6 * P(tEnd, tEnd + 12))} style={{ clipPath: `inset(0 ${100 - 100 * P(tSkip - 2, tSkip + 14, (t) => t)}% 0 0)` }} />
+            <path d="M230 800 Q460 470 700 800" fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" pathLength={1} strokeDashoffset={0} opacity={P(tSkip - 2, tSkip + 4) * (1 - 0.6 * P(tEnd, tEnd + 12))} style={{ clipPath: `inset(0 ${100 - 100 * P(tSkip - 2, tSkip + 14, (t) => t)}% 0 0)` }} />
             {/* «لا نتعامل معها»: شطب القائمة والقفزة معًا */}
             <Stroke d="M1300 590 L1640 820" p={P(tEnd - 12, tEnd)} c={z.alert} w={10} />
             <Stroke d="M1640 590 L1300 820" p={P(tEnd - 6, tEnd + 6)} c={z.alert} w={10} />
@@ -414,11 +414,12 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tCauses = at("الأسباب", 0.66);
       const tCalm = at("السكينة", 0.94);
       const tEnter = at("ندخل", 0.8);
+      c.reg([400, 500, 740, 860], tMove + 6);
       const icons: [IconId, number, number, number][] = [["bag", 1500, 360, -8], ["phone", 1650, 470, 10], ["calendar", 1430, 560, 4], ["clock", 1620, 660, -6], ["cart", 1480, 760, 6]];
       const calm = P(tCauses, tCalm + 6);
       return {
         focus: [[tWork, 1550, 500], [tBusy, 1560, 560], [tMove, 1000, 600], [tMind, 560, 380], [tPrep, 1000, 520], [tLux, 1000, 280], [tCauses, 560, 500], [tCalm, 560, 760]],
-        cam: [C(0, 1550, 480, 1.3), C(tMove - 6, 1000, 600, 1.0), C(tMind - 4, 850, 460, 1.15), C(tPrep - 4, 980, 520, 1.0), C(tCalm - 8, 640, 700, 1.2)],
+        cam: [C(0, 1550, 480, 1.3), C(tMove - 6, 1000, 560, 1.0), C(tMind - 4, 850, 560, 1.1), C(tPrep - 4, 980, 540, 1.0), C(tCalm - 8, 700, 640, 1.12)],
         world: (
           <g>
             {icons.map(([id, x, y, r], k) => (
@@ -472,7 +473,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tw = measure("أول مرة أصلي", 130, fam("head"));
       return {
         focus: [[tWhy, 1340, 400], [tTitle, 960, 420], [tNot, 960, 600], [tNever, 960, 600], [tYears, 960, 640], [tLearn, 560, 760], [tMeanings, 560, 760], [tNotice, 1050, 260]],
-        cam: [C(0, 960, 420, 1.35), C(tNot - 6, 960, 520, 1.0), C(tLearn - 6, 720, 700, 1.15), C(tNotice - 6, 960, 420, 1.1)],
+        cam: [C(0, 960, 420, 1.1), C(tNot - 6, 960, 520, 1.0), C(tLearn - 6, 720, 700, 1.15), C(tNotice - 6, 960, 420, 1.1)],
         world: (
           <g>
             <Mark x={960 + tw / 2 - tw * 0.48} y={ty - 50} w={tw * 0.48} h={60} p={P(tNotice, tNotice + 16)} z={z} />
@@ -481,7 +482,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             </g>
             <g opacity={1 - P(tNot - 4, tNot + 8)}>{T("why", 1460, 430, "؟", 200, ["لماذا", 0.02], undefined, { font: "head" })}</g>
             {/* «يسمي المؤلف كتابه»: غلاف الكتاب يدخل قبل أن يُكتب عنوانه */}
-            <g transform={`translate(${lerp(140, 400, P(tBookW - 6, tBookW + 10))} 430) rotate(-4)`} opacity={P(tBookW - 6, tBookW + 4) * (1 - P(tNot - 4, tNot + 8))}>
+            <g transform={`translate(${lerp(240, 440, P(tBookW - 6, tBookW + 10))} 430) rotate(-4)`} opacity={P(tBookW - 6, tBookW + 4) * (1 - P(tNot - 4, tNot + 8))}>
               <rect x={-115} y={-160} width={230} height={320} rx={12} fill={z.ink} />
               <rect x={-80} y={-110} width={160} height={16} rx={5} fill={z.hl} />
             </g>
@@ -737,14 +738,14 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("af", 1170, 320, "أفعال", 64, ["أفعال", 0.14], undefined, { opacity: 1 - 0.6 * P(tWudu, tWudu + 12) })}
             {T("wd", 960, 230, "الوضوء", 90, ["الوضوء", 0.3], undefined, { font: "head" })}
             {/* الإبريق: يميل فيجري الماء على الكفين */}
-            <g transform={`translate(700 380) rotate(${-38 * tilt})`} opacity={P(tWudu - 6, tWudu + 4)}>
+            <g transform={`translate(700 380) rotate(${38 * tilt})`} opacity={P(tWudu - 6, tWudu + 4)}>
               <Stroke d="M-46 -40 Q-60 40 -30 70 L30 70 Q60 40 46 -40 Z" p={P(tWudu - 6, tWudu + 6)} c={z.ink} w={7} fill={z.paper} fillP={1} />
               <Stroke d="M-30 -40 Q0 -60 30 -40" p={P(tWudu - 4, tWudu + 6)} c={z.ink} w={7} />
               <Stroke d="M44 0 Q90 -6 104 -40" p={P(tWudu - 2, tWudu + 8)} c={z.ink} w={8} />
               <Stroke d="M-48 -20 Q-90 0 -50 40" p={P(tWudu - 2, tWudu + 8)} c={z.ink} w={7} />
             </g>
             {flow > 0 ? (
-              <path d="M800 345 Q880 360 925 450" fill="none" stroke={z.ink} strokeWidth={7} strokeLinecap="round" strokeDasharray="22 12" strokeDashoffset={-frame * 3} opacity={flow * 0.8} />
+              <path d="M806 412 Q880 405 925 458" fill="none" stroke={z.ink} strokeWidth={7} strokeLinecap="round" strokeDasharray="22 12" strokeDashoffset={-frame * 3} opacity={flow * 0.8} />
             ) : null}
             {/* الكفان: تتلقيان الماء، وتتحركان حركة الغسل الهادئة مع «نتوضأ» */}
             <g transform={`rotate(${rot} 960 560)`}>
@@ -883,8 +884,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <Stroke d="M720 420 L1480 420" p={P(tDiff - 2, tDiff + 16)} c={z.alert} w={5} />
             </g>
             {/* «الحركة التي نؤديها»: إطار حول الأبدان، يمتلئ قليلًا عند «نؤديها» */}
-            <rect x={730} y={490} width={740} height={330} rx={28} fill={z.hl} opacity={0.22 * P(tDo - 2, tDo + 12)} />
-            <rect x={730} y={490} width={740} height={330} rx={28} fill="none" stroke={z.ink} strokeWidth={6} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - P(tMove - 2, tMove + 16, (t) => t)} />
+            <rect x={790} y={490} width={680} height={330} rx={28} fill={z.hl} opacity={0.22 * P(tDo - 2, tDo + 12)} />
+            <rect x={790} y={490} width={680} height={330} rx={28} fill="none" stroke={z.ink} strokeWidth={6} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - P(tMove - 2, tMove + 16, (t) => t)} />
             {T("hr", 1590, 660, "الحركة", 64, ["الحركة", 0.8], undefined, { font: "head" })}
             {/* «والمعنى الذي نريد أن نستحضره»: إطار فسفوري حول القلوب */}
             <rect x={740} y={232} width={720} height={130} rx={28} fill="none" stroke={z.hl} strokeWidth={14} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - P(tMean - 2, tMean + 16, (t) => t)} />
@@ -1057,7 +1058,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tSincere = at("وافتقار", 0.88);
       // الخواطر تحضر حول الرأس، ولا تختفي: عند «بل هي ذكر» تتباعد قليلًا وتبهت، فتتسع المساحة حول المصلي
       const apart = P(tBal, tDhikr + 18);
-      const clouds: [number, number, number][] = [[800, 520, 54], [1125, 515, 50], [870, 440, 46], [1050, 445, 48]];
+      const clouds: [number, number, number][] = [[800, 495, 54], [1125, 490, 50], [870, 415, 46], [1050, 420, 48]];
+      c.reg([800, 470, 1120, 770], tAsk);
       return {
         focus: [[tRead, 960, 330], [tAsk, 1300, 560], [tNeed, 620, 560], [tPromise, 960, 800], [tThought, 960, 480], [tMinds, 960, 480], [tDhikr, 1300, 660], [tSincere, 620, 660]],
         cam: [C(0, 960, 330, 1.3), C(tAsk - 6, 960, 520, 1.1), C(tPromise - 6, 960, 600, 1.08), C(tDhikr - 6, 960, 560, 1.04)],
@@ -1069,14 +1071,14 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             </g>
             {T("qr", 960, 150, "قبل القراءة", 64, ["وقبل", 0.01], ["القراءة", 0.03])}
             {/* المصلي قائم قبل القراءة؛ لا يُرسم شيء عند الاستعاذة نفسها */}
-            <InkPerson x={960} y={760} s={0.85} pose="fold" p={P(tRead, tRead + 18)} z={z} dir={-1} />
-            <Stroke d="M820 762 L1100 762 L1072 790 L848 790 Z" p={P(tAsk - 2, tAsk + 12)} c={z.ink} w={6} fill={z.hl} fillP={0.55 * P(tAsk + 4, tAsk + 16)} />
+            <InkPerson x={960} y={735} s={0.85} pose="fold" p={P(tAsk - 4, tAsk + 14)} z={z} dir={-1} />
+            <Stroke d="M820 737 L1100 737 L1072 765 L848 765 Z" p={P(tAsk - 2, tAsk + 12)} c={z.ink} w={6} fill={z.hl} fillP={0.55 * P(tAsk + 4, tAsk + 16)} />
             {T("aw", 1360, 560, "نطلب العون", 66, ["نطلب", 0.28], ["العون", 0.3], { font: "body", weight: 600 })}
             {T("hj", 560, 560, "حاجتنا", 66, ["بحاجتنا", 0.4], undefined, { font: "body", weight: 600 })}
             {/* «كل خاطرة من أذهاننا»: سحب حول الرأس */}
             {clouds.map(([x, y, r], k) => {
               const dx = (x - 960) * 0.45 * apart;
-              const dy = (y - 560) * 0.5 * apart;
+              const dy = (y - 535) * 0.5 * apart;
               return <Cloud key={k} x={x + dx} y={y + dy} r={r} p={P(tThought - 4 + k * 4, tThought + 8 + k * 4)} z={z} o={1 - 0.5 * apart} />;
             })}
             {T("wd", 960, 860, "وعدا بأن تختفي كل خاطرة", 60, ["وعدا", 0.56], ["خاطرة", 0.66])}
@@ -1084,7 +1086,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("dm", 1360, 690, "ذكر مشروع", 64, ["ذكر", 0.8], ["مشروع", 0.84], { font: "head" })}
             {T("fs", 560, 690, "وافتقار صادق", 64, ["وافتقار", 0.88], ["صادق", 0.92], { font: "head" })}
             {/* «وافتقار صادق»: قلب المصلي يمتلئ، ويكتمل قبل ذكر الله */}
-            <path d={heartPath(960, 600, 20)} fill={z.hl} stroke={z.ink} strokeWidth={4} opacity={P(tSincere - 2, tSincere + 10)} />
+            <path d={heartPath(960, 575, 20)} fill={z.hl} stroke={z.ink} strokeWidth={4} opacity={P(tSincere - 2, tSincere + 10)} />
           </g>
         ),
       };
@@ -1176,7 +1178,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tChannel = at("زبدة", 0.92);
       const open = P(tDoor, tDoor + 24);
       const out = P(tFirst - 10, tFirst + 8);
-      const bookIn = P(tBook - 8, tBook + 12);
+      const bookIn = P(tFirst - 4, tFirst + 14);
       return {
         focus: [[tDoor, 960, 460], [tNext, 960, 240], [tNear, 960, 440], [tMeanings, 960, 460], [tPrayer, 760, 600], [tInter, 960, 560], [tHearts, 960, 560], [tFirst, 1300, 500], [tFirstW, 1300, 380], [tBook, 1300, 500], [tAuthor, 700, 520], [tChannel, 700, 620]],
         cam: [C(0, 960, 470, 1.25), C(tMeanings - 6, 960, 520, 1.15), C(tFirst - 8, 1000, 520, 1.0), C(tChannel - 6, 820, 600, 1.15)],
@@ -1229,7 +1231,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 أول مرة أصلي
               </text>
               {/* «الأولى»: شريط علامة فسفوري ينزل في الكتاب؛ القراءة مستمرة في الحلقات القادمة */}
-              <path d={`M90 -240 L140 -240 L140 ${-240 + 230 * P(tFirstW - 2, tFirstW + 14)} L115 ${-262 + 230 * P(tFirstW - 2, tFirstW + 14)} L90 ${-240 + 230 * P(tFirstW - 2, tFirstW + 14)} Z`} fill={z.hl} stroke={z.paper} strokeWidth={4} opacity={P(tFirstW - 2, tFirstW + 4)} />
+              <path d={`M100 -240 L140 -240 L140 ${-240 + 120 * P(tFirstW - 2, tFirstW + 14)} L120 ${-258 + 120 * P(tFirstW - 2, tFirstW + 14)} L100 ${-240 + 120 * P(tFirstW - 2, tFirstW + 14)} Z`} fill={z.hl} stroke={z.paper} strokeWidth={4} opacity={P(tFirstW - 2, tFirstW + 4)} />
             </g>
             {T("qa", 700, 420, "قراءتنا الأولى", 70, ["قراءتنا", 0.58], ["الأولى", 0.62], { font: "head" })}
             {T("au", 700, 520, "للدكتور خالد أبي شادي", 66, ["للدكتور", 0.74], ["شادي", 0.84], { font: "body", weight: 600 })}
