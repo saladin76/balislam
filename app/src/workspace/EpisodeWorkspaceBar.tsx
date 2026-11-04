@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { api, type CheckResult, type SceneReviewSummary, type ReviewSummary } from "../api";
+import { api, type CheckResult, type EpisodeStatus, type SceneReviewSummary, type ReviewSummary } from "../api";
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import type { PlanIssue } from "../../../src/plan/validate";
@@ -29,17 +29,19 @@ export const EpisodeWorkspaceBar: React.FC<{
   const [review, setReview] = useState<ReviewSummary | null>(null);
   const [sceneReview, setSceneReview] = useState<SceneReviewSummary | null>(null);
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
+  const [published, setPublished] = useState<EpisodeStatus["published"] | null>(null);
   const [showAll, setShowAll] = useState(false);
 
   // تُحدّث الملخصات عند تغيير الحلقة أو الخطة؛ اعتماد أي مرحلة يتم داخل مكوّنها الأصلي فقط.
   useEffect(() => {
     let alive = true;
     const refresh = () => {
-      void Promise.allSettled([api.review(episodeId), api.sceneReview(episodeId), api.storyboard(episodeId)]).then(([r, s, b]) => {
+      void Promise.allSettled([api.review(episodeId), api.sceneReview(episodeId), api.storyboard(episodeId), api.status(episodeId)]).then(([r, s, b, p]) => {
         if (!alive) return;
         setReview(r.status === "fulfilled" ? r.value.summary : null);
         setSceneReview(s.status === "fulfilled" ? s.value.summary : null);
         setBoard(b.status === "fulfilled" ? b.value.status : null);
+        setPublished(p.status === "fulfilled" ? p.value.published ?? null : null);
       });
     };
     refresh();
@@ -59,6 +61,12 @@ export const EpisodeWorkspaceBar: React.FC<{
   if (board && !board.ok) notes.push({ id: "storyboard", stage: "storyboard", text: `الستوري بورد: ${board.approved} من ${board.total} معتمد`, critical: false });
   if (missingAudio) notes.push({ id: "voice", stage: "episode", text: `${missingAudio} مشهدًا بلا صوت مطابق للنص الحالي`, critical: false });
   if (sceneReview && !sceneReview.done) notes.push({ id: "scenes", stage: "episode", text: `مراجعة المشاهد: ${sceneReview.ok} من ${sceneReview.total} سليم`, critical: false });
+  const stageState = (id: WorkspaceStage): string => {
+    if (id === "script") return check.ok && review?.ok && !scriptDirty ? "مكتمل" : "مراجعة";
+    if (id === "storyboard") return board?.ok ? "معتمد" : "بانتظار الاعتماد";
+    if (id === "episode") return narration.length > 0 && missingAudio === 0 && sceneReview?.done ? "مكتمل" : "قيد العمل";
+    return published ? "منشور" : "قيد العمل";
+  };
   const visible = showAll ? notes : notes.slice(0, 3);
   const saveLabel = scriptDirty || saveState === "dirty" ? "تعديلات غير محفوظة" : saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذر الحفظ" : "تعديلات المشاهد محفوظة";
 
@@ -76,7 +84,7 @@ export const EpisodeWorkspaceBar: React.FC<{
           <button key={item.id} type="button" className={`ew-stage ${stage === item.id ? "active" : ""}`}
             aria-current={stage === item.id ? "step" : undefined} onClick={() => onStage(item.id)}>
             <span className="ew-stage-number">{index + 1}</span>
-            <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
+            <span><strong>{item.title}</strong><small>{stageState(item.id)}</small></span>
           </button>
         ))}
       </nav>
