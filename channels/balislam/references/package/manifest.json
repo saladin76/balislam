@@ -1,0 +1,243 @@
+{
+  "package": "balislam_foundation_master",
+  "created": "2026-11-04",
+  "scope": "channel foundation, not episode production",
+  "entries": [
+    {
+      "path": "01_official_references/channel-guide.pdf",
+      "source_filename": "دليل قناة بالإسلام .pdf",
+      "size": 730971,
+      "sha256": "f80ed19bccf05f5c47606262ea6f8d63935007df58a714870ca8062dd0b3574b"
+    },
+    {
+      "path": "01_official_references/sharia-editorial-charter.pdf",
+      "source_filename": "ميثاق المحتوى والمرجعية الشرعية · بالإسلام.pdf",
+      "size": 208744,
+      "sha256": "3e151db028ac4e1061bb44d18c529c1c17c45c75b5751f56e4432a261c8bbca2"
+    },
+    {
+      "path": "01_official_references/scriptwriting-principles.pdf",
+      "source_filename": "أصول كتابة السكريبت · بالإسلام.pdf",
+      "size": 357497,
+      "sha256": "bee6453e0e251d88d083a0a59a9da545ee4b3338af42239c048e6e8cddc85e0e"
+    },
+    {
+      "path": "01_official_references/audio-guide.pdf",
+      "source_filename": "دليل الصوت · بالإسلام.pdf",
+      "size": 301925,
+      "sha256": "4bf9cb7deeff037bf3bf5309cfc8b5c71bd393912361f5f21c9c820fa7c5c1ce"
+    },
+    {
+      "path": "01_official_references/workflow.pdf",
+      "source_filename": "آلية العمل · بالإسلام .pdf",
+      "size": 332321,
+      "sha256": "964d24befd1b9e6842de2f2df77482e8b278707244ac6ab03a46cf83dd4ce1a1"
+    },
+    {
+      "path": "01_official_references/visual-identity.pdf",
+      "source_filename": "هوية بالإسلام-selection.pdf",
+      "size": 1558764,
+      "sha256": "5265768a386d2c91123125f29dfa69a1a4e836c3bfd11438251112c1de9510dc"
+    },
+    {
+      "path": "01_official_references/technical-specifications.md",
+      "source_filename": "المواصفات التقنية · منظومة بالإسلام.md",
+      "size": 17908,
+      "sha256": "a038b82cf4ff6f2aca49e5a6ef89a876dc32e887b9515c5be1e7ed2ea507947f"
+    },
+    {
+      "path": "01_official_references/youtube-audience.pdf",
+      "source_filename": "يوتيوب والجمهور · بالإسلام.pdf",
+      "size": 320373,
+      "sha256": "8a02f924eb165e8acb545c6d44d1299369ecb13bb78ea750960df5b8bce3721f"
+    },
+    {
+      "path": "01_official_references/channel-content-guide.pdf",
+      "source_filename": "دليل محتوى قناة «بالإسلام».pdf",
+      "size": 287773,
+      "sha256": "0225c4ad6c9eca97ce17b6e8b4fb49ca45122f30e8e7e4f5ec73edaf6fe25e75"
+    },
+    {
+      "path": "02_motion_and_production/motion-graphics-professional-guide.txt",
+      "source_filename": "قواعد الموشن جرافيك الاحترافي.txt",
+      "size": 55580,
+      "sha256": "5d7f739485fb562ca7c9ab209625a265997b9b252a3438566b972c73ed7d1c75"
+    },
+    {
+      "path": "02_motion_and_production/production-method-development.txt",
+      "source_filename": "#-تطوير-منهج-إنتاج-الفيديوهات-—-تعليمات-معتمدة-للقناة.txt",
+      "size": 12881,
+      "sha256": "db8b8fd2531b40966a2e73bfe89e635806bf47e79ad85c2b6b67244edf80b485"
+    },
+    {
+      "path": "03_visual_identity/approved-mihrab-al-noor.png",
+      "source_filename": "بالإسلام · ✓ المعتمد محراب النور@1x.png",
+      "size": 217972,
+      "sha256": "903e96be30bf1f5b5dd10d39330737780a01dafda48d9121f4bc1b1f66944fe6"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/profile-800x800.png",
+      "source_filename": "balislam-channel-assets.zip:profile-800x800.png",
+      "size": 20759,
+      "sha256": "a4f08debe0319705502e61ab92f0d029ab6088a9ce545168d46e77bb2fa7ffc8"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/profile-family-800x800.png",
+      "source_filename": "balislam-channel-assets.zip:profile-family-800x800.png",
+      "size": 20661,
+      "sha256": "19864af7622bfa0f283d566e857f5bda52cebd19f521d6fe3a6ab1b9ae60acc6"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/profile-night-800x800.png",
+      "source_filename": "balislam-channel-assets.zip:profile-night-800x800.png",
+      "size": 20899,
+      "sha256": "c8fab996df8a78d717927ef78c1ac6ca89dcbf681086ad0fc40da0d3590e7777"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/profile-paper-800x800.png",
+      "source_filename": "balislam-channel-assets.zip:profile-paper-800x800.png",
+      "size": 20885,
+      "sha256": "03d0a7aa0b1a8071cf3efa03751802ab0391aaad48258bd8c05d43dc07c03a93"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/youtube-banner-2560x1440.png",
+      "source_filename": "balislam-channel-assets.zip:youtube-banner-2560x1440.png",
+      "size": 115325,
+      "sha256": "963e4f60ed827d66ec939538092545d564e1fd5f8ea0b42b4bc08eda9ba5b3c2"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/facebook-cover-1702x630.png",
+      "source_filename": "balislam-channel-assets.zip:facebook-cover-1702x630.png",
+      "size": 60024,
+      "sha256": "9b805e594e07d3a1f2818bb72b53bc53b9f200e805481be0816411050fe5439e"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/watermark-300x300.png",
+      "source_filename": "balislam-channel-assets.zip:watermark-300x300.png",
+      "size": 9228,
+      "sha256": "e288240849fea5ad4c79b0f6ea57c8f63950f3a933bb2cd42c7c2541c258d891"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/icon-180.png",
+      "source_filename": "balislam-channel-assets.zip:icon-180.png",
+      "size": 4962,
+      "sha256": "4bca7d4862c606c6e81f65467ebbfca6697d25655969194fe48783bf2be845f8"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/icon-32.png",
+      "source_filename": "balislam-channel-assets.zip:icon-32.png",
+      "size": 925,
+      "sha256": "828e0021733fdb3bbd51b1fc4018527a2060636a9430c87cc83c197dd027ac69"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/icon-512.png",
+      "source_filename": "balislam-channel-assets.zip:icon-512.png",
+      "size": 18693,
+      "sha256": "f842e2ceb84074b29a578ab24ce6021a9c4ab27d5bee8b4f84338a300d4cd411"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/domain-icon-family-512.png",
+      "source_filename": "balislam-channel-assets.zip:domain-icon-family-512.png",
+      "size": 20960,
+      "sha256": "cff0a0b32fbb0368eac18d0a714ec715d42348b2a64dd6d45a42f1de49ee4c76"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/domain-icon-night-512.png",
+      "source_filename": "balislam-channel-assets.zip:domain-icon-night-512.png",
+      "size": 22337,
+      "sha256": "8f18f961df0221e3c960dccd700f74227ccb5ce888f2906ac8af62d1ee2c08e7"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/domain-icon-paper-512.png",
+      "source_filename": "balislam-channel-assets.zip:domain-icon-paper-512.png",
+      "size": 29534,
+      "sha256": "6f11fc399f10406e5b7de0415358614154c3a25ed18258c98c725900826ea3c2"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/domain-icon-warm-512.png",
+      "source_filename": "balislam-channel-assets.zip:domain-icon-warm-512.png",
+      "size": 24375,
+      "sha256": "42583d75cf6d8f9d0ced5ba3149dd6ea586ee7a6b0695afe624ff1ce9510b717"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/playlist-family-1280x720.png",
+      "source_filename": "balislam-channel-assets.zip:playlist-family-1280x720.png",
+      "size": 50623,
+      "sha256": "64ffe215bae5628c63830fbe4457f45a5bcb1559a3782591a36e791d91c857bb"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/playlist-night-1280x720.png",
+      "source_filename": "balislam-channel-assets.zip:playlist-night-1280x720.png",
+      "size": 47031,
+      "sha256": "a86e8c2542447e1d97677fe89113963b7e8cafa1a61e639386f89dbbda0cf1ed"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/playlist-paper-1280x720.png",
+      "source_filename": "balislam-channel-assets.zip:playlist-paper-1280x720.png",
+      "size": 52341,
+      "sha256": "88dbf34633a0a0b47a4a831747f8004a1bf4a816725bfda81571f8d53b7cfd7a"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/playlist-warm-1280x720.png",
+      "source_filename": "balislam-channel-assets.zip:playlist-warm-1280x720.png",
+      "size": 55383,
+      "sha256": "84445347b9ce932e491238df8dca8917e22a568e80ee519e4123ee7c2b1b3441"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/thumbnail-example-1280x720.png",
+      "source_filename": "balislam-channel-assets.zip:thumbnail-example-1280x720.png",
+      "size": 66533,
+      "sha256": "a4bb25a57fa11f5e1529fb67a340e28943749055ccfee307e18b918b1f7a681d"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/end-screen-1920x1080.png",
+      "source_filename": "balislam-channel-assets.zip:end-screen-1920x1080.png",
+      "size": 86034,
+      "sha256": "0486dbd941450f6afd142dbff79513ff56c4f952ac1359c67042010cdfb4b4e4"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/logo-lockup-color.png",
+      "source_filename": "balislam-channel-assets.zip:logo-lockup-color.png",
+      "size": 36287,
+      "sha256": "9797b3257cf1020dee44c8d8bbd775444873b4698c85ad728bf5fcc67bbb4e73"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/logo-lockup-mono-black.png",
+      "source_filename": "balislam-channel-assets.zip:logo-lockup-mono-black.png",
+      "size": 32071,
+      "sha256": "adde4c73f166a7f07153949a6a3d01633bade882e6cb50a210413766c4fc3898"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/logo-lockup-mono-white.png",
+      "source_filename": "balislam-channel-assets.zip:logo-lockup-mono-white.png",
+      "size": 28962,
+      "sha256": "8921d184bf2bd7e77ed68a7d2a8382645e09b724770548fed9bd1038578b69bb"
+    },
+    {
+      "path": "03_visual_identity/channel-assets/logo-mark-color.png",
+      "source_filename": "balislam-channel-assets.zip:logo-mark-color.png",
+      "size": 18668,
+      "sha256": "110f53bf83023de8434391035f8cdbcb8e74d7da093a01feb5b0d240b8f17036"
+    },
+    {
+      "path": "README.md",
+      "size": 1886,
+      "sha256": "489b5ff8b149f95bf1ee6e54aa9f2f10029c43597d51c96d0f05cd36e011003d"
+    },
+    {
+      "path": "04_execution/CLAUDE_HANDOFF.md",
+      "size": 1708,
+      "sha256": "7ff201163352209242ed8b56cd2df785fcde950fb8fced9d464f943a60a89dd5"
+    },
+    {
+      "path": "04_execution/OPEN_DECISIONS.md",
+      "size": 1443,
+      "sha256": "1f8c6b5f986754509f0cea805e9554d1d5cf35af5c3a3d73a5a83a37a5cddb33"
+    },
+    {
+      "path": "04_execution/PRODUCTION_GATE.md",
+      "size": 1001,
+      "sha256": "a90c3dd0af077733c907b12bed79a4df5c5657c035570138e7af48de90d0ec51"
+    }
+  ]
+}
