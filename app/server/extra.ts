@@ -301,10 +301,34 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     }
     const status = S.storyboardStatus(plan, await S.loadStoryboard(file));
     const motion = await loadStoryboardMotion(parts[1]);
-    // المشاهد التي تغيّرت بعد قياس حركتها (البصمة تُحسب هنا لأن المتصفح لا يملك node:crypto)
-    const { sceneHash } = await load("/src/plan/sceneReview.ts");
-    const motionStale = motion ? plan.chapters.flatMap((c: any) => c.scenes).filter((s: any) => motion.scenes[s.id] && motion.scenes[s.id].hash !== sceneHash(s)).map((s: any) => s.id) : [];
+    // أي اختلاف في مدخلات الرندر يجعل القياس السابق غير صالح، لا مجرد تعديل القالب.
+    let motionStale: string[] = [];
+    if (motion) {
+      const { sceneHash } = await load("/src/plan/sceneReview.ts");
+      const { collectMedia } = await load("/src/plan/collect.ts");
+      const { motionFingerprint } = await load("/src/render/motionFingerprint.ts");
+      const { loadChannel, loadChannelIdentity, channelInfo } = await load("/src/channel/index.ts");
+      const m = await collectMedia(parts[1], plan);
+      const hash = motionFingerprint(plan, m, loadChannelIdentity(), channelInfo(loadChannel()), motion.orientation);
+      const globalStale = !motion.inputHash || motion.inputHash !== hash;
+      motionStale = plan.chapters.flatMap((c: any) => c.scenes)
+        .filter((s: any) => !motion.scenes[s.id] || globalStale || motion.scenes[s.id].hash !== sceneHash(s))
+        .map((s: any) => s.id);
+    }
     send(res, 200, { status, motion, motionStale });
+    return true;
+  }
+
+  // تنزيل التقرير النصي المفصل دون المساس بسجلات الاعتماد.
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "storyboard-report" && req.method === "GET") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { loadStoryboardMotion } = await load("/src/render/storyboardMotion.ts");
+    const { loadPlan, regeneratePlan } = await load("/src/plan/io.ts");
+    const { renderMotionAuditMarkdown } = await load("/src/render/motionAudit.ts");
+    const report = await loadStoryboardMotion(parts[1]);
+    if (!report) return send(res, 404, { error: "لا يوجد تقرير. ابدأ فحص الحركة والمنطق أولًا." }), true;
+    const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
+    send(res, 200, { markdown: renderMotionAuditMarkdown(plan, report) });
     return true;
   }
 
