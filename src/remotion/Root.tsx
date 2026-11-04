@@ -17,6 +17,7 @@ import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/E
 import { AlleyTale } from "./scenes/AlleyTale";
 import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
+import { HorizonTest, HZ_FPS, HZ_TOTAL } from "./dafatir/horizon/HorizonTest";
 import { MIHRAB_FRAMES } from "./scenes/MihrabIntro";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
@@ -62,6 +63,8 @@ const orientations = ["landscape", "portrait"] as const;
 /** كل التكوينات المسجلة في Remotion: لوحات الهوية، القوالب، الحلقة والشورت، الصورة المصغّرة، والافتتاحية. */
 export const RemotionRoot: React.FC = () => (
   <>
+    {/* دفاتر الزمن 001: اختبار «خط الأفق» — مشاهد غير قرآنية، معاينة صامتة لا تُنشر */}
+    <Composition id="dafatir-001-horizon-test" component={HorizonTest} durationInFrames={HZ_TOTAL} fps={HZ_FPS} width={1920} height={1080} />
     {/* Controlled A/B comparison: same words, cast and timing; only camera direction differs. */}
     {(["automatic", "directed"] as const).map((mode) => (
       <Composition
