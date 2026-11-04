@@ -61,6 +61,7 @@ export const App: React.FC = () => {
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
+  useEffect(() => setRequestedSceneId(undefined), [channelId, epId]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
@@ -284,7 +285,7 @@ export const App: React.FC = () => {
              title={plan.title}
              stage={tab as WorkspaceStage}
              onStage={(stage, target) => {
-               if (stage !== "script" && !confirmLeaveScript()) return;
+               if (stage !== tab && !confirmLeaveScript()) return;
                if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
                setTab(stage);
                if (target?.line && stage === "script") {
