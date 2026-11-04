@@ -1,3 +1,4 @@
+import type { ChannelConfig } from "../channel/types";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
@@ -37,6 +38,51 @@ export const outDirFor = async (episode: string) => {
 };
 
 /** يرندر الحلقة (أو فصلًا) من plan.json بالصوت والمؤثرات إن وُجدت. */
+/** مشاهد الآيات في النطاق التي ليس لها نص أو تلاوة (حين تختار القناة قارئًا). */
+export const versesWithoutRecitation = (plan: { chapters: { scenes: { id: string; template: string; ayahKey?: string }[] }[] }, media: Pick<EpisodeMedia, "recitations">, ids: Set<string>, needsRecitation: boolean) =>
+  needsRecitation ? plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.template === "verse-card" && (!s.ayahKey || !media.recitations[s.ayahKey])).map((s) => s.id) : [];
+
+/**
+ * بوابات النسخة النهائية (Master): تمنع خروج ملف يبدو مكتملًا مع نقص. كل حالة تستوجب المنع ترمي خطأ بسببها:
+ * سكريبت غير صالح، أخطاء خطة (منها آية بلا نص)، توثيق ناقص أو مرفوض، صوت ناقص أو لا يطابق نصه، آية بلا تلاوة،
+ * ستوري بورد غير معتمد أو تغيّر بعد اعتماده، ومشاهد لم تُراجع.
+ */
+export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; media: EpisodeMedia; channel: ChannelConfig; chapter?: number; allowUnreviewed?: boolean }) => {
+  const { scriptPath, plan, media } = o;
+  const { readFile } = await import("node:fs/promises");
+  const { parseScript } = await import("../script/parse");
+  const { checkForChannel } = await import("../script/checkChannel");
+  const { planIssues } = await import("../plan/validate");
+  const { loadLedger, reviewItems, reviewSummary } = await import("../script/review");
+  const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  const checked = checkForChannel(parsed);
+  if (!checked.ok) throw new Error("السكريبت غير صالح للرندر النهائي؛ راجع تبويب السكريبت وفحوصه.");
+  const errors = planIssues(plan, o.channel).filter((issue) => issue.level === "error");
+  if (errors.length) throw new Error(`خطة الحلقة بها أخطاء تمنع النشر: ${errors.slice(0, 5).map((issue) => issue.message).join("؛ ")}`);
+  const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
+  if (!citations.ok) throw new Error(`توثيق الاستشهادات غير مكتمل: ${citations.verified} من ${citations.total}. راجع سجل التوثيق قبل الرندر النهائي.`);
+  const ids = new Set(plan.chapters.filter((c) => !o.chapter || c.number === o.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
+  const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
+  const missing = required.filter((s) => {
+    const clip = media.voice[s.id];
+    return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
+  }).map((s) => s.id);
+  if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
+  // القناة التي اختارت قارئًا: لا آية في النسخة النهائية بلا تلاوتها (مرخّصة أو من القارئ المختار)
+  const verseGaps = versesWithoutRecitation(plan, media, ids, Boolean(o.channel.recitation?.id));
+  if (verseGaps.length) throw new Error(`لا يمكن رندر نسخة نهائية وفيها آية بلا تلاوة: ${verseGaps.slice(0, 10).join("، ")}${verseGaps.length > 10 ? "…" : ""}. اجلب نصوص الآيات وتلاواتها أولًا.`);
+  const sbRecord = await loadStoryboard(scriptPath);
+  const sb = storyboardStatus(plan, sbRecord);
+  const blocked = unapprovedScenes(sb, [...ids]);
+  if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+  if (!o.allowUnreviewed) {
+    const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
+    const review = sceneReviewSummary(items);
+    if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
+  }
+  return true;
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   const log = opts.onProgress ?? (() => {});
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
@@ -46,34 +92,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
     const scriptPath = await resolveScriptPath(opts.episode);
-    const { readFile } = await import("node:fs/promises");
-    const { parseScript } = await import("../script/parse");
-    const { checkForChannel } = await import("../script/checkChannel");
-    const { planIssues } = await import("../plan/validate");
-    const { loadLedger, reviewItems, reviewSummary } = await import("../script/review");
-    const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-    const checked = checkForChannel(parsed);
-    if (!checked.ok) throw new Error("السكريبت غير صالح للرندر النهائي؛ راجع تبويب السكريبت وفحوصه.");
-    const errors = planIssues(plan, loadChannel()).filter((issue) => issue.level === "error");
-    if (errors.length) throw new Error(`خطة الحلقة بها أخطاء تمنع النشر: ${errors.slice(0, 5).map((issue) => issue.message).join("؛ ")}`);
-    const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
-    if (!citations.ok) throw new Error(`توثيق الاستشهادات غير مكتمل: ${citations.verified} من ${citations.total}. راجع سجل التوثيق قبل الرندر النهائي.`);
-    const ids = new Set(plan.chapters.filter((c) => !opts.chapter || c.number === opts.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
-    const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
-    const missing = required.filter((s) => {
-      const clip = media.voice[s.id];
-      return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
-    }).map((s) => s.id);
-    if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
     const sbRecord = await loadStoryboard(scriptPath);
-    const sb = storyboardStatus(plan, sbRecord);
-    const blocked = unapprovedScenes(sb, [...ids]);
-    if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-    if (!opts.allowUnreviewed) {
-      const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
-      const review = sceneReviewSummary(items);
-      if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
-    }
+    await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
     const { loadStoryboardMotion } = await import("./storyboardMotion");
     const { currentMotionFingerprint } = await import("./motionFingerprint");
     const measured = await loadStoryboardMotion(opts.episode);

@@ -35,11 +35,26 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
   return spans;
 };
 
-/** الثواني الصحيحة التي يغطي السكون المقصود أغلبها */
+/** دمج الفترات المتداخلة أو المتلاصقة، فلا تُحسب مساحة التداخل مرتين (ذكران متقاربان، أو ذكر داخل مشهد آية) */
+export const mergeSpans = (spans: Span[]): Span[] => {
+  const sorted = [...spans].filter((x) => x.to > x.from).sort((a, b) => a.from - b.from);
+  const out: Span[] = [];
+  for (const x of sorted) {
+    const last = out[out.length - 1];
+    if (last && x.from <= last.to) {
+      last.to = Math.max(last.to, x.to);
+      if (!last.why.split("، ").includes(x.why)) last.why += `، ${x.why}`;
+    } else out.push({ ...x });
+  }
+  return out;
+};
+
+/** الثواني الصحيحة التي يغطي السكون المقصود أغلبها (بعد دمج الفترات المتداخلة) */
 export const exemptSeconds = (spans: Span[], seconds: number): Set<number> => {
   const out = new Set<number>();
+  const merged = mergeSpans(spans);
   for (let s = 0; s < seconds; s++) {
-    const cover = spans.reduce((a, x) => a + Math.max(0, Math.min(s + 1, x.to) - Math.max(s, x.from)), 0);
+    const cover = merged.reduce((a, x) => a + Math.max(0, Math.min(s + 1, x.to) - Math.max(s, x.from)), 0);
     if (cover >= 0.5) out.add(s);
   }
   return out;

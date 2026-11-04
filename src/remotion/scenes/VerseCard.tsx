@@ -97,10 +97,10 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
           <div style={{ position: "absolute", inset: 16, border: `2px solid ${HZ.sand}`, borderRadius: 6, opacity: 0.55 * page, pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: 24, border: `1px solid ${HZ.sand}`, borderRadius: 4, opacity: 0.35 * page, pointerEvents: "none" }} />
           {pending ? (
-            <div style={{ display: "grid", gap: verseSize * 0.7, width: "78%", padding: `${verseSize * 0.4}px 0` }}>
-              {[1, 0.86, 0.6].map((w, i) => (
-                <div key={i} style={{ height: 3, width: `${w * 100 * fade(frame, start + i * 14, 24)}%`, marginInline: "auto", background: HZ.sand, opacity: 0.55 }} />
-              ))}
+            // معاينة فقط: تنبيه صريح بأن المشهد غير مكتمل (النسخة النهائية واعتماد الستوري بورد ممنوعان بلا نص الآية)
+            <div style={{ display: "grid", gap: 14, justifyItems: "center", padding: `${verseSize * 0.3}px 0`, fontFamily: fontFamilies.body, textAlign: "center" }}>
+              <div style={{ fontSize: Math.round(verseSize * 0.5), fontWeight: 700, color: "#A8322A" }}>مشهد غير مكتمل: لم يُجلب نص الآية</div>
+              <div style={{ fontSize: Math.round(verseSize * 0.34), color: HZ.ink, opacity: 0.8 }}>اجلب نصوص الآيات وتلاواتها من الاستوديو، ثم أعد المعاينة</div>
             </div>
           ) : (
           <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance" }}>
