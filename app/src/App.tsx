@@ -252,7 +252,7 @@ export const App: React.FC = () => {
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
-      <div className="app">
+      <div className={`app${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
         <header className="top">
           <button className="brand" onClick={() => confirmLeaveScript() && setTab("home")} title="الرئيسية">

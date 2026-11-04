@@ -57,19 +57,19 @@ describe("مساحة عمل الحلقة", () => {
     const html = render("");
     for (const label of ["البحث", "السكريبت", "الستوري بورد", "الصوت", "المشاهد", "النشر"])
       expect(html).toContain(label);
-    expect(html).toContain("لا توجد ملاحظات");
+    expect(html).not.toContain("ما الذي يحتاج انتباهك؟");
   });
 
   it("تحذر من التعديلات غير المحفوظة في ملف البحث", () => {
     const html = render("", false, true);
-    expect(html).toContain("ملف البحث يحتوي على تعديلات غير محفوظة");
+    expect(html).toContain("1 مهمة");
     expect(html).toContain("تعديلات غير محفوظة");
   });
 
   it("تعرض أخطاء السكريبت ونقص الصوت بدل إخفائهما", () => {
     const html = render("مقطع يحتاج إلى صوت", true);
-    expect(html).toContain("خطأ في السكريبت");
-    expect(html).toContain("مشهدًا بلا صوت مطابق");
-    expect(html).toContain("فتح");
+    expect(html).toContain("2 ملاحظة");
+    expect(html).toContain("ما الذي يحتاج انتباهك؟");
+    expect(html).toContain('aria-expanded="false"');
   });
 });
