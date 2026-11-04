@@ -16,9 +16,10 @@ import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { browserExecutable, getServeUrl } from "./bundle";
 import { outDirFor } from "./episode";
 import { ACTIVE_PCT, measureMotion } from "./motionMeter";
+import { inspectMotionLogic, type MotionLogicReview } from "../plan/motionLogic";
 import config from "../../config.json";
 
-export type StoryboardMotion = { at: string; percent: number; orientation: "landscape" | "portrait"; scenes: Record<string, { hash: string; pct: number; still: number; from: number }> };
+export type StoryboardMotion = { at: string; percent: number; orientation: "landscape" | "portrait"; scenes: Record<string, { hash: string; pct: number; still: number; from: number; logic?: MotionLogicReview }> };
 
 export const storyboardMotionFile = async (episode: string) => path.join(await outDirFor(episode), "storyboard-motion.json");
 
@@ -77,7 +78,8 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
       run = v >= ACTIVE_PCT ? 0 : run + 1;
       still = Math.max(still, run);
     }
-    scenes[s.id] = { hash: sceneHash(s), pct: Math.round((100 * secs.filter((v) => v >= ACTIVE_PCT).length) / Math.max(1, secs.length)), still, from: t / fps };
+    const pct = Math.round((100 * secs.filter((v) => v >= ACTIVE_PCT).length) / Math.max(1, secs.length));
+    scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still }) };
     t += d;
   }
   const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, scenes };
