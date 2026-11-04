@@ -72,7 +72,7 @@ export const currentMotionFingerprint = async (
     for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
       const name = join(dir, entry.name);
       if (entry.isDirectory()) await walk(name);
-      else if (entry.isFile() && /\\.(ts|tsx)$/.test(entry.name)) rendererFiles.push(name);
+      else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) rendererFiles.push(name);
     }
   };
   for (const dir of trackedRoots) await walk(dir);
