@@ -28,6 +28,7 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 
 
 export const EpisodeTab: React.FC<{
   episodeId: string;
+  requestedSceneId?: string;
   plan: Plan;
   identity: Identity;
   channel: ChannelInfo;
@@ -38,9 +39,9 @@ export const EpisodeTab: React.FC<{
   onMediaChange: (media: EpisodeMedia) => void;
   onReload: () => void;
   onEditScript: (line: number) => void;
-}> = ({ episodeId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript }) => {
+}> = ({ episodeId, requestedSceneId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript }) => {
   const allScenes = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))), [plan]);
-  const [selectedId, setSelectedId] = useState(allScenes[0]?.scene.id ?? "");
+  const [selectedId, setSelectedId] = useState(requestedSceneId ?? allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [scope, setScope] = useState<Scope>("scene");
   // ستوري بورد الفيديو قبل تنفيذه (يُعتمد قبل الصوت والنسخة النهائية)
