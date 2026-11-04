@@ -47,3 +47,22 @@
   .ew-stage small { display: none; }
   .ew-storyboard-wrap { padding: 0 10px 12px; }
 }
+
+/* الحقول المتقدمة لا تزاحم إعدادات المشهد الأساسية. */
+.ew-advanced-settings {
+  border: 1px solid var(--line, #d4d2cb);
+  border-radius: 12px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+.ew-advanced-settings > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 12px;
+  background: var(--panel, #f2f1eb);
+  outline-offset: -3px;
+}
+.ew-advanced-settings[open] > summary { border-bottom: 1px solid var(--line, #d4d2cb); }
+.ew-advanced-body { padding: 10px 12px 14px; }
+.ew-advanced-body > .section-t:first-child { margin-top: 0; }
