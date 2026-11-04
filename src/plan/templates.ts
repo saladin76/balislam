@@ -1,3 +1,4 @@
+import { INK_SHOTS } from "../remotion/zubdat/shots";
 import { SHOTS } from "../remotion/illus/shots";
 /**
  * تعريف القوالب كبيانات: الاسم، هل بُني، والحقول التي يعرضها الاستوديو لكل قالب.
@@ -273,6 +274,15 @@ export const templateDefs: TemplateDef[] = [
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
       { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
     ],
+  },
+  {
+    id: "ink-shot",
+    nameAr: "مشهد حبر مصمَّم",
+    useAr: "مشهد مرسوم بالحبر خاص بجملته: حدث بصري له بداية وتطور ونتيجة (خط الوقت، الكتاب ورحلته، خط الانتباه، الإقبال، التكبير، الخطوة العملية)، وكل رسم لحظة نطق كلمته",
+    implemented: true,
+    baseSeconds: 6,
+    minSeconds: 4,
+    fields: [{ key: "shot", label: "المشهد", type: "select", options: Object.entries(INK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) }],
   },
   {
     id: "ink-meaning",
