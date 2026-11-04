@@ -51,6 +51,7 @@ export const StoryboardPanel: React.FC<{
   const [job, setJob] = useState<LongJob | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
   const fps = config.video.fps;
   const W = config.video.episode.width;
   const H = config.video.episode.height;
@@ -62,6 +63,16 @@ export const StoryboardPanel: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [episodeId, plan]);
 
+  useEffect(() => {
+    let active = true;
+    api.longJobs().then((jobs) => {
+      if (!active) return;
+      const current = jobs.find((j) => j.kind === "storyboard-motion" && j.episode === episodeId && j.status === "running");
+      if (current) setJob(current);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [episodeId]);
+
   // متابعة قياس الحركة حتى ينتهي
   useEffect(() => {
     if (!job || job.status !== "running") return;
@@ -70,7 +81,11 @@ export const StoryboardPanel: React.FC<{
       const j = all.find((x) => x.id === job.id);
       if (!j) return;
       setJob(j);
-      if (j.status !== "running") api.storyboard(episodeId).then(setInfo).catch(() => {});
+      if (j.status !== "running") {
+        if (j.status === "error") setErr(j.error || j.log.slice(-2).join(" ") || "فشل فحص الحركة؛ افتح سجل المهمة.");
+        else setErr("");
+        api.storyboard(episodeId).then(setInfo).catch((e) => setErr((e as Error).message));
+      }
     }, 3000);
     return () => clearInterval(t);
   }, [job, episodeId]);
@@ -92,10 +107,30 @@ export const StoryboardPanel: React.FC<{
   const st = info?.status;
   const motion = info?.motion;
   const act = async (action: "approve" | "revoke") => {
+    let auditNote: string | undefined;
+    if (action === "approve") {
+      if (info?.motionStale?.length) {
+        setErr("نتيجة الفحص قديمة؛ أعد قياس الحركة والمنطق ثم اعتمد الستوري بورد.");
+        return;
+      }
+      const warnings = Object.values(info?.motion?.scenes ?? {}).filter((s) => s.logic?.status === "needs-review").length;
+      if (warnings) {
+        const answer = window.prompt(
+          `يوجد ${warnings} مشهدًا بها تحذيرات فحص. شاهد المشاهد أولًا، ثم اكتب سبب قبولها رغم التحذيرات أو الإصلاح الذي أجريته. لن تُعتبر التحذيرات اعتمادًا تلقائيًا.`,
+          "",
+        );
+        if (answer === null) return;
+        auditNote = answer.trim();
+        if (auditNote.length < 10) {
+          setErr("اكتب ملاحظة مراجعة من 10 أحرف على الأقل قبل اعتماد المشاهد ذات التحذيرات.");
+          return;
+        }
+      }
+    }
     setBusy(true);
     setErr("");
     try {
-      setInfo(await api.setStoryboard(episodeId, action));
+      setInfo(await api.setStoryboard(episodeId, action, auditNote));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -111,11 +146,32 @@ export const StoryboardPanel: React.FC<{
     }
   };
 
+  const downloadReport = async () => {
+    setReportBusy(true);
+    setErr("");
+    try {
+      const { markdown } = await api.storyboardReport(episodeId);
+      const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `storyboard-motion-report-${episodeId}.md`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setReportBusy(false);
+    }
+  };
   const motionOf = (s: PlanScene) => {
     const m = motion?.scenes[s.id];
     return m ? { ...m, stale: Boolean(info?.motionStale?.includes(s.id)) } : null;
   };
-  const stills = motion ? Object.entries(motion.scenes).filter(([, v]) => v.still > 2).map(([k]) => k) : [];
+  const stills = motion ? Object.entries(motion.scenes).filter(([k, v]) => !info?.motionStale?.includes(k) && v.still > 2).map(([k]) => k) : [];
+  const staleCount = info?.motionStale?.length ?? 0;
   const logicNeedsReview = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && v.logic?.status === "needs-review").map(([id]) => id) : [];
   const logicNotAssessable = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && (!v.logic || v.logic.status === "not-assessable")).map(([id]) => id) : [];
 
@@ -131,17 +187,21 @@ export const StoryboardPanel: React.FC<{
             <span>{rows.reduce((n, r) => n + r.shots.length, 0)} مشهدًا</span>
             <span>المدة {fmt(totalSec)}{Object.keys(media.voice).length ? "" : " (بلا صوت: أقل مدة لكل قالب)"}</span>
             {st ? <span className={st.ok ? "ok" : "warn"}>معتمد {st.approved} من {st.total}</span> : null}
-            {motion ? <span className={motion.percent >= 80 ? "ok" : "warn"}>الحركة {motion.percent}٪</span> : <span className="warn">الحركة لم تُقس</span>}
+            {motion ? <span className={staleCount ? "warn" : motion.percent >= 80 ? "ok" : "warn"}>الحركة {motion.percent}٪{staleCount ? " (قياس قديم)" : ""}</span> : <span className="warn">الحركة لم تُقس</span>}
+            {staleCount ? <span className="warn">{staleCount} مشهدًا تغيّر منذ القياس — أعد الفحص قبل الاعتماد.</span> : null}
             {stills.length ? <span className="warn">سكون فوق ثانيتين: {stills.join("، ")}</span> : null}
             {motion && <span className={logicNeedsReview.length || logicNotAssessable.length ? "warn" : "help"}>مطابقة النص: {logicNeedsReview.length} بها تحذيرات · {logicNotAssessable.length} غير قابلة للتقييم الآلي (لا تعادل اعتمادًا فنيًا)</span>}
           </p>
           {st?.changed.length ? <p className="help warn">تغيّر بعد الاعتماد: {st.changed.join("، ")}</p> : null}
-          {err ? <p className="help warn">{err}</p> : null}
+          {st?.audit?.note ? <p className="help">ملاحظة اعتماد المراجع: {st.audit.note}</p> : null}
+          {err ? <p className="help warn" role="alert">{err}</p> : null}
+          {job?.status === "error" ? <p className="help warn">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
         </div>
         <div className="sb-actions">
           <button className="btn" onClick={measure} disabled={job?.status === "running"}>
             {job?.status === "running" ? `يقيس الحركة والمنطق… ${job.pct}%` : motion ? "أعد فحص الحركة والمنطق" : "افحص الحركة والمنطق"}
           </button>
+          {motion ? <button className="btn" onClick={() => void downloadReport()} disabled={reportBusy}>{reportBusy ? "يُجهّز التقرير…" : "تنزيل تقرير الفحص"}</button> : null}
           {st?.ok ? (
             <button className="btn" onClick={() => act("revoke")} disabled={busy}>
               اسحب الاعتماد

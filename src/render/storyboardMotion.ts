@@ -17,9 +17,11 @@ import { browserExecutable, getServeUrl } from "./bundle";
 import { outDirFor } from "./episode";
 import { ACTIVE_PCT, measureMotion } from "./motionMeter";
 import { inspectMotionLogic, type MotionLogicReview } from "../plan/motionLogic";
+import { currentMotionFingerprint } from "./motionFingerprint";
+import { renderMotionAuditMarkdown } from "./motionAudit";
 import config from "../../config.json";
 
-export type StoryboardMotion = { at: string; percent: number; orientation: "landscape" | "portrait"; scenes: Record<string, { hash: string; pct: number; still: number; from: number; logic?: MotionLogicReview }> };
+export type StoryboardMotion = { at: string; percent: number; orientation: "landscape" | "portrait"; inputHash?: string; scenes: Record<string, { hash: string; pct: number; still: number; from: number; logic?: MotionLogicReview }> };
 
 export const storyboardMotionFile = async (episode: string) => path.join(await outDirFor(episode), "storyboard-motion.json");
 
@@ -43,9 +45,11 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   const channel = loadChannel();
   const info = channelInfo(channel);
   const inputProps = { plan, orientation, media, identity: loadChannelIdentity(), channel: info };
+  const inputHash = await currentMotionFingerprint(episode, plan, orientation);
   const composition = await selectComposition({ serveUrl, id: `episode-${orientation}`, inputProps, browserExecutable: browserExecutable() });
   const video = path.join(await outDirFor(episode), `${episode}-storyboard-${orientation}.mp4`);
   let last = -1;
+  try {
   await renderMedia({
     serveUrl,
     composition,
@@ -79,12 +83,17 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
       still = Math.max(still, run);
     }
     const pct = Math.round((100 * secs.filter((v) => v >= ACTIVE_PCT).length) / Math.max(1, secs.length));
-    scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still }) };
+    scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still, perSecond: secs, activityThreshold: ACTIVE_PCT }, media.voice[s.id]?.text === s.narration.trim() ? media.voice[s.id]?.words : undefined) };
     t += d;
   }
-  const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, scenes };
-  await writeFile(await storyboardMotionFile(episode), JSON.stringify(out, null, 2) + "\n");
-  await rm(video, { force: true });
+  const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, inputHash, scenes };
+  const outputFile = await storyboardMotionFile(episode);
+  await writeFile(outputFile, JSON.stringify(out, null, 2) + "\n");
+  await writeFile(path.join(path.dirname(outputFile), "storyboard-motion-report.md"), renderMotionAuditMarkdown(plan, out));
   log(100, "تم");
   return out;
+  } finally {
+    // لا تترك معاينة ضخمة حتى إذا فشل الرندر أو تحليل الحركة.
+    await rm(video, { force: true });
+  }
 };

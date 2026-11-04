@@ -74,8 +74,13 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const media = await prepareRenderMedia(ep, plan);
   // الصوت «كامل» فقط إن كان لكل مشهد متكلَّم مقطع يطابق نصه الحالي
   const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
-  const voicedOk = narrated.filter((s) => media.voice[s.id]?.text === s.narration.trim()).length;
+  const voicedOk = narrated.filter((s) => {
+    const clip = media.voice[s.id];
+    return clip?.text === s.narration.trim() && existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
+  }).length;
   const hasVoice = narrated.length > 0 && voicedOk === narrated.length;
+  if (narrated.length && !hasVoice && quality === "master" && !opts.skipVideo)
+    throw new Error(`النسخة النهائية تتطلب صوتًا مطابقًا في كل مشهد: ${voicedOk} من ${narrated.length}. أكمل الصوت أو استخدم معاينة غير قابلة للنشر.`);
   if (narrated.length && !hasVoice) log(`⚠️ الصوت ناقص: ${voicedOk} من ${narrated.length} مشهدًا فقط لها صوت مطابق لنصها؛ الباقي صامت بتوقيت تقديري.`);
   const files: string[] = [];
 
@@ -144,7 +149,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
         await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
       }
       log(`الحلقة بجودة: ${q.label}`);
-      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, outFile: episodePath, onProgress: progress("الحلقة") });
+      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape") });
       log(motionSummary(motion[0]!.report, "الحلقة"));
@@ -156,7 +161,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
         last = -1;
         const ch = plan.chapters[n - 1]!;
         log(`الشورت ${n} بجودة: ${q.label}`);
-        const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
+        const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
         files.push(path.basename(f));
         motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait") });
       }

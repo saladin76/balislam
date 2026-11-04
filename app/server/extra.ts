@@ -294,17 +294,57 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const file = await resolveScriptPath(parts[1]);
     const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
     if (req.method === "PUT") {
-      const { action } = await readBody(req);
-      if (action === "approve") await S.approveStoryboard(file, plan);
-      else if (action === "revoke") await S.revokeStoryboard(file);
+      const { action, auditNote } = await readBody(req);
+      if (action === "approve") {
+        const measured = await loadStoryboardMotion(parts[1]);
+        const note = typeof auditNote === "string" ? auditNote.trim() : "";
+        if (measured) {
+          const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
+          const currentHash = await currentMotionFingerprint(parts[1], plan, measured.orientation);
+          if (!measured.inputHash || measured.inputHash !== currentHash)
+            return send(res, 409, { error: "تغيّرت مدخلات الحلقة بعد قياس الحركة؛ أعد الفحص قبل اعتماد الستوري بورد." }), true;
+          const warnings = Object.values(measured.scenes).filter((s: any) => s.logic?.status === "needs-review").length;
+          if (warnings && note.length < 10)
+            return send(res, 400, { error: `هناك ${warnings} مشهدًا بها تحذيرات. شاهدها واكتب سبب الاعتماد أو الاستثناء (10 أحرف على الأقل).` }), true;
+          await S.approveStoryboard(file, plan, note ? { note, inputHash: measured.inputHash } : undefined);
+        } else {
+          // الاعتماد اليدوي التقليدي متاح دون تقرير آلي؛ لا يُعرض باعتباره اجتيازًا للفحص.
+          await S.approveStoryboard(file, plan);
+        }
+      } else if (action === "revoke") await S.revokeStoryboard(file);
       else return send(res, 400, { error: "إجراء غير صالح." }), true;
     }
     const status = S.storyboardStatus(plan, await S.loadStoryboard(file));
     const motion = await loadStoryboardMotion(parts[1]);
-    // المشاهد التي تغيّرت بعد قياس حركتها (البصمة تُحسب هنا لأن المتصفح لا يملك node:crypto)
-    const { sceneHash } = await load("/src/plan/sceneReview.ts");
-    const motionStale = motion ? plan.chapters.flatMap((c: any) => c.scenes).filter((s: any) => motion.scenes[s.id] && motion.scenes[s.id].hash !== sceneHash(s)).map((s: any) => s.id) : [];
+    // أي اختلاف في مدخلات الرندر يجعل القياس السابق غير صالح، لا مجرد تعديل القالب.
+    let motionStale: string[] = [];
+    if (motion) {
+      const { sceneHash } = await load("/src/plan/sceneReview.ts");
+      const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
+      const hash = await currentMotionFingerprint(parts[1], plan, motion.orientation);
+      const globalStale = !motion.inputHash || motion.inputHash !== hash;
+      motionStale = plan.chapters.flatMap((c: any) => c.scenes)
+        .filter((s: any) => !motion.scenes[s.id] || globalStale || motion.scenes[s.id].hash !== sceneHash(s))
+        .map((s: any) => s.id);
+    }
     send(res, 200, { status, motion, motionStale });
+    return true;
+  }
+
+  // تنزيل التقرير النصي المفصل دون المساس بسجلات الاعتماد.
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "storyboard-report" && req.method === "GET") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { loadStoryboardMotion } = await load("/src/render/storyboardMotion.ts");
+    const { loadPlan, regeneratePlan } = await load("/src/plan/io.ts");
+    const { renderMotionAuditMarkdown } = await load("/src/render/motionAudit.ts");
+    const report = await loadStoryboardMotion(parts[1]);
+    if (!report) return send(res, 404, { error: "لا يوجد تقرير. ابدأ فحص الحركة والمنطق أولًا." }), true;
+    const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
+    const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
+    const hash = await currentMotionFingerprint(parts[1], plan, report.orientation);
+    if (!report.inputHash || report.inputHash !== hash)
+      return send(res, 409, { error: "تغيّرت مدخلات الحلقة بعد القياس؛ أعد فحص الحركة والمنطق لتنزيل تقرير صالح." }), true;
+    send(res, 200, { markdown: renderMotionAuditMarkdown(plan, report) });
     return true;
   }
 

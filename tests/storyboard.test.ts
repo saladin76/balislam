@@ -44,6 +44,29 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
     expect(unapprovedScenes(st, ["c1-s1"])).toEqual(["c1-s1"]);
   });
 
+  it("يحفظ سبب اعتماد التحذيرات ويزيله عند سحب الاعتماد", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-audit-"));
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    await approveStoryboard(script, plan(), { note: "شوهدت حركة المشهد والسكوت مقصود", inputHash: "hash-1" });
+    expect((await loadStoryboard(script)).audit?.note).toContain("شوهدت");
+    expect(storyboardStatus(plan(), await loadStoryboard(script)).audit?.inputHash).toBe("hash-1");
+  });
+
+  it("تغير المدة أو التراكبات يعيد الاعتماد بدل الاحتفاظ ببصمة مشهد قديمة", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-hash-"));
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    const p = plan();
+    await approveStoryboard(script, p);
+    const changed = plan();
+    changed.chapters[0]!.scenes[0]!.durationSec = 15;
+    expect(storyboardStatus(changed, await loadStoryboard(script)).changed).toContain("c1-s1");
+    const changedOverlay = plan();
+    changedOverlay.chapters[0]!.scenes[0]!.overlays = { captions: false };
+    expect(storyboardStatus(changedOverlay, await loadStoryboard(script)).changed).toContain("c1-s1");
+  });
+
   it("وصف اللقطة: نوعها وما على الشاشة وعناصرها", () => {
     const [a, b] = plan().chapters[0]!.scenes;
     expect(shotKind(a!)).toBe("فراغ وكتابة");

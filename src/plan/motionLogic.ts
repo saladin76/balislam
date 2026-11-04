@@ -17,6 +17,8 @@ export type MotionLogicReview = {
   matched: number;
   total: number;
   findings: MotionLogicFinding[];
+  /** توقيت الحدث المتوقع وفق موضع الكلمة في الصوت؛ ليس وقت ظهور الحركة المقاس من الفيديو. */
+  cues?: { source: string; label: string; wordIndex: number; expectedVoiceStartSec?: number }[];
 };
 
 type Anchor = { label: string; source: string; draw?: string };
@@ -59,7 +61,8 @@ const sceneAnchors = (scene: PlanScene): Anchor[] => {
 
 export const inspectMotionLogic = (
   scene: PlanScene,
-  motion?: { pct: number; still: number },
+  motion?: { pct: number; still: number; perSecond?: readonly number[]; activityThreshold?: number },
+  voiceWords?: readonly { word: string; start: number; end: number }[],
 ): MotionLogicReview => {
   const findings: MotionLogicFinding[] = [];
   const add = (kind: MotionLogicFinding["kind"], level: MotionLogicFinding["level"], message: string) =>
@@ -75,6 +78,7 @@ export const inspectMotionLogic = (
   const narration = wordsOf(scene.narration);
   let matched = 0;
   let previous = -1;
+  const cues: NonNullable<MotionLogicReview["cues"]> = [];
   for (const a of anchors) {
     const first = anchorIndex(narration, a.label);
     if (first < 0) {
@@ -86,7 +90,18 @@ export const inspectMotionLogic = (
     const later = anchorIndex(narration, a.label, Math.max(0, previous + 1));
     if (first < previous && later < 0)
       add("timing", "warning", `ترتيب ${a.source} «${a.label}» لا يوافق ترتيب الكلمات المنطوقة في السكريبت.`);
-    previous = later >= 0 ? later : first;
+    const wordIndex = later >= 0 ? later : first;
+    previous = wordIndex;
+    const timed = voiceWords?.[wordIndex];
+    const expectedVoiceStartSec = timed && wordMatches(timed.word, narration[wordIndex] ?? "") && Number.isFinite(timed.start) ? timed.start : undefined;
+    cues.push({ source: a.source, label: a.label, wordIndex, expectedVoiceStartSec });
+    if (expectedVoiceStartSec !== undefined && motion?.perSecond?.length) {
+      const second = Math.floor(expectedVoiceStartSec);
+      // هامش ثانية قبل الكلمة وبعدها: لا نفترض أن بكسلات الحركة تحدد العنصر الذي تحرك.
+      const nearby = motion.perSecond.slice(Math.max(0, second - 1), Math.min(motion.perSecond.length, second + 2));
+      if (nearby.length && !nearby.some((pct) => pct >= (motion.activityThreshold ?? 2.5)))
+        add("timing", "warning", `لم تُرصد حركة واضحة قرب نطق «${a.label}» (تقريبًا ${expectedVoiceStartSec.toFixed(1)} ث)؛ راجع وقوع الحدث عند الكلمة بصريًا.`);
+    }
 
     if (a.draw !== undefined && a.draw && !isCuratedBeat({ draw: a.draw, label: a.label }))
       add("meaning", "info", `الرسمة «${a.draw}» مع «${a.label}» ليست مطابقة مؤكدة من قاموس المعاني المراجع؛ افحص ملاءمتها للسياق.`);
@@ -104,5 +119,6 @@ export const inspectMotionLogic = (
     matched,
     total: anchors.length,
     findings,
+    cues,
   };
 };
