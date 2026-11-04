@@ -621,7 +621,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
 };
 
 /** صوت الحلقة كلها: تقدير التكلفة أولًا، ثم التوليد بتأكيد. */
-const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, hasKeys, onMedia }) => {
+export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, hasKeys, onMedia }) => {
   const [est, setEst] = useState<VoiceReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
