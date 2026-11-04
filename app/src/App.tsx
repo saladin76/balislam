@@ -61,6 +61,8 @@ export const App: React.FC = () => {
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
+  const episodeRef = useRef(epId);
+  episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   useEffect(() => setRequestedSceneId(undefined), [channelId, epId]);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -126,9 +128,13 @@ export const App: React.FC = () => {
         setTab(want.tab);
       } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
-    api.identity().then(({ identity, defaults }) => setIdent({ draft: identity, saved: identity, defaults })).catch((e) => say(e.message, true));
+    api.identity().then(({ identity, defaults }) => {
+      if (channelRef.current === ch) setIdent({ draft: identity, saved: identity, defaults });
+    }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
     // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
-    if (channelId) api.channel().then((c) => setChannel(channelInfo(c))).catch((e) => say(e.message, true));
+    if (channelId) api.channel().then((c) => {
+      if (channelRef.current === ch) setChannel(channelInfo(c));
+    }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** يحفظ فورًا أي تعديل ينتظر الحفظ التلقائي، حتى لا يكتب فوق خطة أحدث لاحقًا. */
@@ -152,9 +158,9 @@ export const App: React.FC = () => {
     // الحلقة تخص القناة الحالية لحظة الطلب؛ إن تبدّلت القناة أثناء الحفظ يُلغى التحميل
     const ch = channelRef.current;
     await flushPlan();
-    if (channelRef.current !== ch) return;
+    if (channelRef.current !== ch || episodeRef.current !== id) return;
     api.episode(id, ch).then((d) => {
-      if (channelRef.current !== ch) return;
+      if (channelRef.current !== ch || episodeRef.current !== id) return;
       setPlan(d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
@@ -168,10 +174,11 @@ export const App: React.FC = () => {
       // مرة لكل حلقة في الجلسة: جلب نصوص الآيات (والتلاوة إن اختيرت) تلقائيًا من Quran Foundation
       if (d.keys.quran && !quranSynced.current.has(`${channelId}:${id}`)) {
         quranSynced.current.add(`${channelId}:${id}`);
-        api.quran(id).then((r) => {
+        api.quran(id, ch).then((r) => {
           if (r.result?.failed?.length) say(`تعذّر جلب: ${r.result.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`, true);
-          return api.episode(id);
+          return api.episode(id, ch);
         }).then((n) => {
+          if (channelRef.current !== ch || episodeRef.current !== id) return;
           setPlan(n.plan);
           setMedia(n.media);
           setExtra({ issues: n.issues, keys: n.keys });
