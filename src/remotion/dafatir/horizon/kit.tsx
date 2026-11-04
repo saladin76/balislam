@@ -117,11 +117,72 @@ export const FlipLeaf: React.FC<{ id: string; p: number; front: React.ReactNode 
       <path d={sx > 0 ? RIGHT_PAGE : LEFT_PAGE} fill="#2B1E14" opacity={0.18 * lift} />
       <g transform={`translate(${GUTTER} ${PAGE_TOP}) skewY(${-5 * lift * Math.sign(sx || 1)}) scale(${sxSafe} 1) translate(${-GUTTER} ${-PAGE_TOP})`}>
         {sx > 0 ? <Page id={id} side="r">{front}</Page> : <Page id={id} side="r" tint="rgba(74,46,31,0.08)" />}
+        {/* الورقة المرتفعة تلتقط الضوء ثم تظلم وهي تنقلب */}
+        <path d={RIGHT_PAGE} fill="#FFF6E0" opacity={sx > 0 ? 0.22 * lift : 0} />
         <path d={RIGHT_PAGE} fill="#2B1E14" opacity={shade} />
       </g>
     </g>
   );
 };
+
+/**
+ * غلاف الدفتر يُفتح (كتاب عربي: الغلاف الأمامي على اليمين وينقلب إلى اليسار). p=0 مغلق، p=1 مفتوح.
+ * وجهه بني بإطار ذهبي وشريط أحمر (الهوية)، وظهره ورق بطانة.
+ */
+const COVER = `M956 ${PAGE_TOP + 6} C1120 ${PAGE_TOP - 22} 1530 ${PAGE_TOP - 28} 1790 ${PAGE_TOP - 6} V${PAGE_BOT + 10} C1530 ${PAGE_BOT - 8} 1120 ${PAGE_BOT - 4} 956 ${PAGE_BOT + 24} Z`;
+export const CoverLeaf: React.FC<{ p: number }> = ({ p }) => {
+  if (p >= 1) return null;
+  const sx = Math.cos(Math.PI * p);
+  const sxSafe = Math.abs(sx) < 0.01 ? 0.01 * Math.sign(sx || 1) : sx;
+  const lift = Math.sin(Math.PI * p);
+  return (
+    <g>
+      <path d={sx > 0 ? RIGHT_PAGE : LEFT_PAGE} fill="#2B1E14" opacity={0.25 * lift} />
+      <g transform={`translate(${GUTTER} ${PAGE_TOP}) skewY(${-4 * lift * Math.sign(sx || 1)}) scale(${sxSafe} 1) translate(${-GUTTER} ${-PAGE_TOP})`}>
+        {sx > 0 ? (
+          <g>
+            <path d={COVER} fill="#5A3A26" stroke={C.ink} strokeWidth={5} strokeLinejoin="round" />
+            <path d={`M1010 ${PAGE_TOP + 40} H1740 V${PAGE_BOT - 30} H1010 Z`} fill="none" stroke={C.gold} strokeWidth={3} opacity={0.75} />
+            <path d={`M1024 ${PAGE_TOP + 54} H1726 V${PAGE_BOT - 44} H1024 Z`} fill="none" stroke={C.gold} strokeWidth={1.5} opacity={0.5} />
+            <path d="M1250 470 H1500 M1290 500 H1460" stroke={C.gold} strokeWidth={5} strokeLinecap="round" opacity={0.7} />
+            <path d="M1596 46 H1640 V250 L1618 230 L1596 250 Z" fill={C.ribbon} />
+            <path d={COVER} fill="#FFF6E0" opacity={0.12 * lift} />
+          </g>
+        ) : (
+          <path d={COVER} fill="#EAD9B5" stroke={C.ink} strokeWidth={5} strokeLinejoin="round" />
+        )}
+        <path d={COVER} fill="#2B1E14" opacity={0.3 * (1 - Math.abs(sx))} />
+      </g>
+    </g>
+  );
+};
+
+/** سماكة الصفحات عند الحافة الخارجية للصفحة اليمنى */
+export const PageStack: React.FC = () => (
+  <g opacity={0.55}>
+    {[6, 11, 16].map((d) => (
+      <path key={d} d={`M${1770 + d} ${PAGE_TOP + 8 + d * 0.4} V${PAGE_BOT - 6 + d * 0.3}`} stroke={C.ink} strokeWidth={1.6} />
+    ))}
+  </g>
+);
+
+/** بركة ضوء دافئ تسقط على الدفتر من أعلى اليمين */
+export const LightPool: React.FC<{ o?: number }> = ({ o = 1 }) => (
+  <g opacity={o} style={{ mixBlendMode: "soft-light" }}>
+    <defs>
+      <radialGradient id="lightpool" cx="0.72" cy="0.18" r="0.9">
+        <stop offset="0" stopColor="#FFFFFF" stopOpacity={0.55} />
+        <stop offset="0.6" stopColor="#FFFFFF" stopOpacity={0} />
+        <stop offset="1" stopColor="#000000" stopOpacity={0.35} />
+      </radialGradient>
+    </defs>
+    <clipPath id="lightpool-clip">
+      <path d={RIGHT_PAGE} />
+      <path d={LEFT_PAGE} />
+    </clipPath>
+    <rect x={140} y={50} width={1660} height={920} fill="url(#lightpool)" clipPath="url(#lightpool-clip)" />
+  </g>
+);
 
 /** ظهر صفحة: سطور باهتة فقط */
 export const RuledBack: React.FC = () => (

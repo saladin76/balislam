@@ -36,7 +36,7 @@ const ShotFrame: React.FC<{ shot: ShotDef }> = ({ shot }) => {
         {cap ? <Caption text={cap.text} opacity={cap.o} /> : null}
         <Tag corner="tr" text={shot.label} />
         {shot.note ? <Tag corner={shot.noteCorner ?? "tl2"} text={shot.note} tone="dark" /> : null}
-        {shot.id === "5" ? <Tag corner="bl" tone="dark" opacity={prog(t, shot.tl.end + 0.3, shot.tl.end + 0.8)} text="تليها الأعراف 23 بتلاوة الحصري — غير منفذة في هذه المعاينة" /> : null}
+        {shot.id === "5" ? <Tag corner="bl" tone="dark" opacity={prog(t, shot.tl.end + 0.5, shot.tl.end + 0.9)} text="تليها الأعراف 23 بتلاوة الحصري — غير منفذة في هذه المعاينة" /> : null}
       </AbsoluteFill>
       <Tag corner="tl" text="اختبار إخراجي أولي — مشاهد غير قرآنية · بلا صوت · أزمنة تقديرية" />
     </AbsoluteFill>
