@@ -12,7 +12,7 @@ export type MotionLogicFinding = {
   message: string;
 };
 export type MotionLogicReview = {
-  status: "needs-review" | "no-obvious-issues";
+  status: "needs-review" | "no-obvious-issues" | "not-assessable";
   /** عدد مراسي الأحداث التي أمكن إيجادها في التعليق */
   matched: number;
   total: number;
@@ -100,7 +100,7 @@ export const inspectMotionLogic = (
   // هذه أدلة من النص وإعدادات القالب، لا نرى بها معنى اللقطة أو انتقالاتها الفعلية.
   add("meaning", "info", "المطابقة الآلية لا تثبت أن الحركة مفهومة أو منطقية؛ يلزم مشاهدة المشهد لتأكيد المعنى والتزامن.");
   return {
-    status: findings.some((f) => f.level === "warning") ? "needs-review" : "no-obvious-issues",
+    status: findings.some((f) => f.level === "warning") ? "needs-review" : anchors.length ? "no-obvious-issues" : "not-assessable",
     matched,
     total: anchors.length,
     findings,
