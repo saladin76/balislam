@@ -11,13 +11,15 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 
 export const ScriptTab = forwardRef<ScriptTabHandle, {
   episodeId: string;
   initialDoc?: "script" | "research";
+  workspaceMode?: boolean;
+  onOpenScriptLine?: (line: number) => void;
   onResearchDirtyChange?: (dirty: boolean) => void;
   text: string;
   savedText: string;
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
-}> (({ episodeId, initialDoc = "script", onResearchDirtyChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+}> (({ episodeId, initialDoc = "script", workspaceMode = false, onOpenScriptLine, onResearchDirtyChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
@@ -65,6 +67,10 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     el.scrollTop = Math.max(0, (line - 4) * lh);
   };
   const goToLine = (line: number) => {
+    if (workspaceMode && initialDoc === "research" && onOpenScriptLine) {
+      onOpenScriptLine(line);
+      return;
+    }
     if (doc !== "script") {
       pendingLine.current = line;
       setDoc("script");
@@ -113,10 +119,14 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     <div className="work script-grid">
       <div className="editor">
         <div className="toolbar">
-          <div className="seg" role="group" aria-label="الملف">
-            <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
-            {research ? <button aria-pressed={doc === "research"} onClick={() => setDoc("research")}>{research.label}{research.exists ? "" : " (جديد)"}</button> : null}
-          </div>
+          {workspaceMode ? (
+            <strong className="ew-document-label">{doc === "research" ? (research?.label ?? "البحث") : "تحرير السكريبت"}</strong>
+          ) : (
+            <div className="seg" role="group" aria-label="الملف">
+              <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
+              {research ? <button aria-pressed={doc === "research"} onClick={() => setDoc("research")}>{research.label}{research.exists ? "" : " (جديد)"}</button> : null}
+            </div>
+          )
           {doc === "script" ? (
             <>
               <span className="help">العلامات: [مشهد: …] [آية: النجم 39] [حديث: …] [صوت: page-turn] · bridge: …</span>
