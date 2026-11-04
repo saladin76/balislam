@@ -1,0 +1,48 @@
+name: Studio preview / audit parity
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "app/**"
+      - "package*.json"
+      - ".github/workflows/studio-parity.yml"
+  workflow_dispatch:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install FFmpeg for audio and rendering regression tests
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Install exact dependencies
+        run: npm ci
+      - name: All three channels — typecheck and regression tests
+        run: npm run check
+      - name: Start shared studio and smoke-test API for three channel scopes
+        run: |
+          npm run app > /tmp/studio-app.log 2>&1 &
+          app_pid=$!
+          trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl -fsS "http://127.0.0.1:4321/api/channels" -o /tmp/studio-channels.json; then break; fi
+            sleep 1
+          done
+          node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("/tmp/studio-channels.json","utf8"));for(const id of ["balislam","dafatir-alzaman","zubdat-alkutub"])if(!c.some(x=>x.id===id))throw Error("Missing channel "+id)'
+          for channel in balislam dafatir-alzaman zubdat-alkutub; do
+            curl -fsS "http://127.0.0.1:4321/api/episodes?channel=$channel" -o /tmp/episodes-$channel.json
+            node -e 'const x=require(process.argv[1]);if(!Array.isArray(x))throw Error("Episodes API must be an array")' "/tmp/episodes-$channel.json"
+          done
+      - name: Verify mandatory shared and opt-in modules
+        run: |
+          test -f src/render/storyboardMotion.ts
+          test -f src/render/motionFingerprint.ts
+          test -f src/render/motionValidity.ts
+          test -f src/plan/director.ts
+          grep -q 'cameraMode' src/remotion/scenes/AlleyTale.tsx

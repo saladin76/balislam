@@ -4,6 +4,7 @@ import { SceneShell } from "./SceneShell";
 import { estimateTimings } from "./timing";
 import { exit } from "./motion";
 import { sentenceGroups } from "../../plan/beats";
+import { cameraCuts, parsePoseTimeline } from "../../plan/director";
 import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan/sceneCues";
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
@@ -20,7 +21,7 @@ import { Grade, Texture } from "../illus/texture";
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "poses" | "cues" | "look" | "cast" | "shot">;
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot">;
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -41,7 +42,7 @@ const ShotScene: React.FC<AlleyTaleProps> = (props) => {
   const shot = SHOTS[props.shot!]!.render({ frame, fps, dur, portrait, at: makeAt(timings, dur) });
   const c = camAt(frame, shot.cam);
   // دفع بطيء متصل للكاميرا طوال اللقطة (فوق مفاتيحها)
-  const drift = 0.045 * (frame / dur);
+  const drift = props.cameraMode === "directed" ? 0 : 0.045 * (frame / dur);
   const vb = portrait ? `${960 - 304} 0 608 1080` : `0 0 ${WW} ${WH}`;
   const out = exit(frame, dur, 8);
   const keys = cueFrames(parseCues(props.cues), timings).map((k) => k.word);
@@ -71,7 +72,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const place = (["alley", "market", "home"].includes(props.place ?? "") ? props.place : "alley") as Place;
   const mood = asMood(props.mood, "night");
   const moodTo = props.moodTo ? asMood(props.moodTo, mood) : undefined;
-  const camera = (props.camera || "push") as Camera;
+  const directed = props.cameraMode === "directed";
+  const camera = (directed ? (props.camera || "still") : (props.camera || "push")) as Camera;
   const cues = cueFrames(parseCues(props.cues), timings);
   const at = (k: CueKind) => cues.find((c) => c.kind === k)?.at;
   const look = LOOKS[(props.look as keyof typeof LOOKS) || "hero"] ?? LOOKS.hero;
@@ -95,12 +97,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   if (!starts.length) starts.push(0);
   const shot = Math.max(0, starts.filter((s) => frame >= s).length - 1);
   // لقطات التأطير: كل سطر لقطة، والسطر الطويل (أكثر من ثانيتين ونصف) لقطتان، فلا يسكن الكادر أكثر من ثانيتين
-  const cuts: number[] = [];
-  starts.forEach((s0, i) => {
-    const s1 = starts[i + 1] ?? dur;
-    cuts.push(s0);
-    if (s1 - s0 > 75) cuts.push(s0 + Math.round((s1 - s0) / 2));
-  });
+  const cuts = cameraCuts(starts, dur, directed);
   const cut = Math.max(0, cuts.filter((s) => frame >= s).length - 1);
   const groupOf = (f: number) => Math.max(0, groupStarts.filter((s) => f >= s).length - 1);
   const poses = (props.poses || "stand").split(",").map((p) => p.trim()).filter((p): p is ActionId => (POSE_IDS as readonly string[]).includes(p));
@@ -109,10 +106,10 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const sitting = poses.some((p) => p === "sit" || p === "sit-low" || p === "head-down");
 
   // التأطير: لكل لقطة تكبير وجهة، وانتقال ناعم سريع بينها
-  const framing = (i: number) => ({ z: FRAMINGS[i % FRAMINGS.length]!, dx: [0, 260, -230, 140][i % 4]! });
+  const framing = (i: number) => directed ? { z: 1.08, dx: 0 } : ({ z: FRAMINGS[i % FRAMINGS.length]!, dx: [0, 260, -230, 140][i % 4]! });
   // افتتاح كل مشهد بحركة تأسيسية من لقطة واسعة، ثم انتقال ناعم بين اللقطات
   const tShot = interpolate(frame, [cuts[cut]!, cuts[cut]! + (cut === 0 ? 26 : 16)], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.cubic) });
-  const fa = cut === 0 ? { z: 0.96, dx: -240 } : framing(cut - 1);
+  const fa = directed ? framing(cut) : cut === 0 ? { z: 0.96, dx: -240 } : framing(cut - 1);
   const fb = framing(cut);
   const zoom = fa.z + (fb.z - fa.z) * tShot;
   const offX = fa.dx + (fb.dx - fa.dx) * tShot;
@@ -133,7 +130,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   }
   if (stage !== "solo") heroX = stage === "witnesses" ? 640 : 1160;
   // جملة فيها ذكر الله: البطل ساكن في مكانه، والكاميرا وحدها تتحرك
-  else if (!walking && !sitting && !poses.includes("walk") && !isSacredSentence(narration)) {
+  else if (!directed && !walking && !sitting && !poses.includes("walk") && !isSacredSentence(narration)) {
     const m0 = MARKS[Math.max(0, shot - 1) % MARKS.length]!;
     const m1 = MARKS[shot % MARKS.length]!;
     const tm = shot === 0 ? 1 : interpolate(frame, [starts[shot]! + 8, starts[shot]! + 36], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.sin) });
@@ -153,8 +150,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
     const s0 = starts[i] ?? 0;
     const s1 = starts[i + 1] ?? dur;
     timeline.push({ at: s0, pose: p });
-    if (s1 - s0 > 50 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.3), pose: SECOND[p] ?? "nod" });
-    if (s1 - s0 > 90 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.78), pose: p });
+    if (!directed && s1 - s0 > 50 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.3), pose: SECOND[p] ?? "nod" });
+    if (!directed && s1 - s0 > 90 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.78), pose: p });
   });
   // إيماءة عند الكلمة المفتاحية في اللقطة: يتأمل/يومئ
   const thinkAt = at("think");
@@ -176,6 +173,10 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   ev("spread", "hold");
   ev("money", "hold");
   ev("evidence", "hold");
+  // Apply authored poses after automatic/semantic events: at the same frame the director wins.
+  for (const event of parsePoseTimeline(props.poseTimeline)) {
+    if ((POSE_IDS as readonly string[]).includes(event.pose)) timeline.push({ at: event.at, pose: event.pose as PoseName });
+  }
   let pose = poseAt(frame, timeline);
   if (walking) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95);
   else if (stepping) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95, 0.85);

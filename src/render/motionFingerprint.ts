@@ -3,7 +3,7 @@ import type { Plan } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
 
 /** بصمة مدخلات المعاينة؛ إدخال إصدار الفاحص يجعل النتائج القديمة ظاهرة كقديمة بدل اعتبارها معتمدة. */
-const AUDIT_VERSION = 3;
+const AUDIT_VERSION = 4;
 export const motionFingerprint = (
   plan: Plan,
   media: Pick<EpisodeMedia, "voice" | "recitations" | "images" | "sfx">,
@@ -11,6 +11,7 @@ export const motionFingerprint = (
   channel: unknown,
   orientation: "landscape" | "portrait" = "landscape",
   assetState: readonly { file: string; size: number; mtime: number }[] = [],
+  rendererHash = "",
 ): string => {
   const { updatedAt: _ignored, ...renderPlan } = plan;
   const voice = Object.fromEntries(Object.entries(media.voice).sort(([a], [b]) => a.localeCompare(b)).map(([id, clip]) =>
@@ -23,6 +24,7 @@ export const motionFingerprint = (
     images: media.images ?? [],
     sfx: media.sfx,
     assetState,
+    rendererHash,
     identity,
     channel,
     orientation,
@@ -57,5 +59,34 @@ export const currentMotionFingerprint = async (
     const data = await stat(file).catch(() => null);
     return { file, size: data?.size ?? -1, mtime: data ? Math.round(data.mtimeMs) : -1 };
   }));
-  return motionFingerprint(plan, media, loadChannelIdentity(), channelInfo(loadChannel()), orientation, assets);
+  // Invalidate earlier reports whenever the rendering engine changes, even if a plan
+  // and its media are unchanged. Preview and audit render the same episode composition.
+  const fs = await import("node:fs/promises");
+  const { fileURLToPath } = await import("node:url");
+  const { dirname, join, relative } = path;
+  const remotionRoot = fileURLToPath(new URL("../remotion/", import.meta.url));
+  const projectRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+  const trackedRoots = [remotionRoot];
+  const rendererFiles: string[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      const name = join(dir, entry.name);
+      if (entry.isDirectory()) await walk(name);
+      else if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) rendererFiles.push(name);
+    }
+  };
+  for (const dir of trackedRoots) await walk(dir);
+  // Timing, direction, fonts, config and drawing libraries also affect the pixels.
+  rendererFiles.push(join(projectRoot, "src/plan/duration.ts"), join(projectRoot, "src/plan/sceneCues.ts"),
+    join(projectRoot, "src/plan/director.ts"), join(projectRoot, "config.json"));
+  const rendererDigest = createHash("sha256");
+  for (const file of [...new Set(rendererFiles)].sort()) {
+    rendererDigest.update(relative(projectRoot, file));
+    try { rendererDigest.update(await fs.readFile(file)); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      rendererDigest.update("[missing]");
+    }
+  }
+  return motionFingerprint(plan, media, loadChannelIdentity(), channelInfo(loadChannel()), orientation, assets, rendererDigest.digest("hex"));
 };
