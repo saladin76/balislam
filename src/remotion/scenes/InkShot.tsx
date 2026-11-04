@@ -2,6 +2,8 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { useTheme } from "../../../brand/identity/index";
 import { SceneShell } from "./SceneShell";
+import { LogoMark } from "../../../brand/logo/Logo";
+import { useChannel } from "../../channel/context";
 import { estimateTimings } from "./timing";
 import { normalizeArabic } from "../../script/quranMeta";
 import { camAt, camTransform, type CamKey } from "../illus/shots/kit";
@@ -46,7 +48,9 @@ export const InkShot: React.FC<InkShotProps> = (props) => {
   const timings = narration ? (props.narrationTimings ?? estimateTimings(narration, 6, dur - 12)) : [];
   const z: Z = { ink: t.colors.ink, paper: t.colors.bg, hl: t.colors.highlight, alert: t.colors.secondary, faint: t.colors.inkSoft };
   const def = INK_SHOTS[props.shot ?? ""];
-  const shot = def ? def.render({ frame, dur, z, at: makeAt(timings, dur), end: makeEnd(timings, dur) }) : null;
+  const channelMark = useChannel().logo;
+  const logo = (size: number) => <LogoMark size={size} colors={t.logo} mark={channelMark} />;
+  const shot = def ? def.render({ frame, dur, z, at: makeAt(timings, dur), end: makeEnd(timings, dur), logo }) : null;
   // سكون تام للكاميرا عند كل ذكر لله (ومع نوافذ المشهد الخاصة)
   const sacred: [number, number][] = timings.filter((w) => SACRED.test(normalizeArabic(w.word))).map((w) => [w.start - 8, w.end + 8]);
   const c = shot ? camAt(frame, withFocus(shot.cam, shot.focus ?? [], [...(shot.still ?? []), ...sacred], shot.camLen ?? 22), shot.camLen ?? 22) : { x: W / 2, y: H / 2, z: 1 };

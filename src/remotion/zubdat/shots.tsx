@@ -14,6 +14,8 @@ export type InkCtx = {
   z: Z;
   at: (word: string, frac: number, nth?: number) => number;
   end: (word: string, frac: number, nth?: number) => number;
+  /** شعار القناة المعتمد (كما هو، بلا تعديل) */
+  logo: (size: number) => React.ReactNode;
 };
 /**
  * focus: لحظات الأحداث ومواضعها [لحظة، x، y]؛ الكاميرا تميل إلى كل حدث لحظة وقوعه (كاميرا فوق الدفتر تتبع القلم).

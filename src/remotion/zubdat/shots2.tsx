@@ -104,7 +104,56 @@ const verseIntro = (surah: string): InkShotDef => ({
   },
 });
 
+/**
+ * الخاتمة المتحركة (نموذج للمراجعة): 8 ثوانٍ. أول ما يُرسم إطارا عنصري يوتيوب (الحلقة التالية والاشتراك)
+ * لأنهما يظهران من أول ثانية؛ ثم الشعار المعتمد كما هو، ثم مهمة الحلقة (مما قيل في المشهد 26)، ثم سهم إلى الحلقة التالية.
+ * لا نص فيها إلا ما نُطق في الحلقة، واسم القناة.
+ */
+const outro: InkShotDef = {
+  nameAr: "الخاتمة: الحلقة التالية والاشتراك ومهمة الحلقة",
+  render: (c) => {
+    const { frame, z, P } = kit(c);
+    const s = (sec: number) => Math.round(sec * 30);
+    const slot = P(s(0), s(1.2), (t) => t);
+    const ring = P(s(0.4), s(1.5), (t) => t);
+    const logoIn = P(s(1.5), s(2.3));
+    const name = wp(frame, s(2.2), s(3.2));
+    const sweep = P(s(3.2), s(3.9));
+    const note = P(s(4.0), s(4.7));
+    const box = P(s(5.0), s(5.4));
+    const link = P(s(5.6), s(6.6), (t) => t);
+    const close = P(s(7.2), s(8));
+    return {
+      cam: [C(0, 960, 520, 1.0)],
+      world: (
+        <g opacity={1 - 0.15 * close}>
+          {/* إطار الحلقة التالية (يسار، اتجاه القراءة) */}
+          <Stroke d="M150 250 H910 V678 H150 Z" p={slot} c={z.ink} w={7} />
+          <Write id="nx" x={530} y={200} text="الحلقة القادمة" size={60} p={wp(frame, s(0.6), s(1.6))} c={z.ink} z={z} />
+          {/* دائرة الاشتراك حول الشعار المعتمد */}
+          <circle cx={1440} cy={420} r={150} fill="none" stroke={z.ink} strokeWidth={7} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - ring} />
+          <foreignObject x={1440 - 100} y={420 - 100} width={200} height={200} opacity={logoIn}>
+            <div style={{ width: 200, height: 200, display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${0.8 + 0.2 * logoIn})` }}>{c.logo(170)}</div>
+          </foreignObject>
+          <Mark x={1440 - 190} y={640} w={380} h={34} p={sweep} z={z} />
+          <Write id="ch" x={1440} y={666} text="زبدة الكتب" size={90} p={name} c={z.ink} font="head" z={z} />
+          {/* مهمة الحلقة: الورقة اللاصقة من المشهد 26 */}
+          <g transform={`translate(1150 ${880 - 60 * (1 - note)}) rotate(-2)`} opacity={note}>
+            <rect x={-260} y={-70} width={520} height={140} fill={z.hl} />
+            <text x={30} y={14} textAnchor="middle" direction="rtl" style={{ fontFamily: fam("hand"), fontSize: 50, fill: z.ink }}>نستحضر معنى التكبير</text>
+            <rect x={-235} y={-26} width={48} height={48} rx={6} fill="none" stroke={z.ink} strokeWidth={6} opacity={box} />
+          </g>
+          {/* ومنها إلى الحلقة القادمة */}
+          <Stroke d="M880 880 C700 900 560 820 530 700" p={link} c={z.ink} w={6} />
+          <Stroke d="M500 724 L530 700 L556 728" p={P(s(6.4), s(6.8))} c={z.ink} w={6} />
+        </g>
+      ),
+    };
+  },
+};
+
 export const INK_SHOTS_2: Record<string, InkShotDef> = {
+  outro,
   "verse-intro-taha": verseIntro("طه"),
   "verse-intro-muminun": verseIntro("المؤمنون"),
   "verse-intro-nahl": verseIntro("النحل"),
