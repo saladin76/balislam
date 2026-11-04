@@ -10,18 +10,19 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 
 /** محرر السكريبت مع فحص مباشر أثناء الكتابة. الحفظ يحدّث المشاهد تلقائيًا مع إبقاء تعديلاتك. */
 export const ScriptTab = forwardRef<ScriptTabHandle, {
   episodeId: string;
+  initialDoc?: "script" | "research";
   text: string;
   savedText: string;
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
-}>(({ episodeId, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+>} >(({ episodeId, initialDoc = "script", text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
   const dirty = text !== savedText;
   // ملف البحث / دراسة الكتاب: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
-  const [doc, setDoc] = useState<"script" | "research">("script");
+  const [doc, setDoc] = useState<"script" | "research">(initialDoc);
   const [research, setResearch] = useState<{ text: string; saved: string; label: string; exists: boolean } | null>(null);
   useEffect(() => {
     setResearch(null);
