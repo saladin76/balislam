@@ -9,6 +9,8 @@ import { SceneShell } from "./SceneShell";
 import { Digits, useLang } from "../../i18n/context";
 
 import { enter, fade, useBoil, useSceneFrame } from "./motion";
+import { estimateTimings } from "./timing";
+import { eventArrivals } from "./Timeline";
 import type { SceneBase, StringFields } from "./types";
 
 export type ListSceneProps = SceneBase & StringFields<"title" | "items" | "style" | "icons">;
@@ -80,7 +82,10 @@ export const ListScene: React.FC<ListSceneProps> = (props) => {
   const n = Math.max(1, items.length);
   const first = title ? 22 : 8;
   const step = Math.max(12, Math.min(42, Math.floor((durationInFrames - first - 60) / n)));
-  const at = (i: number) => first + i * step;
+  // كل نقطة تظهر وقت نطق كلماتها (من توقيت الصوت أو بالتقدير)، وما لا يُنطق بين جاريه
+  const timings = props.narration ? (props.narrationTimings ?? estimateTimings(props.narration, 6, durationInFrames - 12)) : [];
+  const spoken = timings.length ? eventArrivals(items.map((text) => ({ date: "", text })), timings, first, Math.max(first + 1, durationInFrames - 40)) : [];
+  const at = (i: number) => spoken[i] ?? first + i * step;
   const settleAt = at(n - 1) + Math.max(30, Math.min(step, 48));
   const settle = fade(frame, settleAt, 16);
 

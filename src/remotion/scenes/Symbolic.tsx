@@ -1,4 +1,6 @@
 import React from "react";
+import { spokenAt } from "./NoorText";
+import { estimateTimings } from "./timing";
 import { Easing, interpolate, spring, useVideoConfig } from "remotion";
 import { useMotionSettings, usePalette, useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
@@ -11,7 +13,7 @@ import type { SceneBase, StringFields } from "./types";
 import { useChannel } from "../../channel/context";
 import { highlightIdeaOnly } from "../../../brand/identity/approved";
 
-export type SymbolicProps = SceneBase & StringFields<"element" | "secondElement" | "relation" | "caption" | "effect">;
+export type SymbolicProps = SceneBase & StringFields<"element" | "secondElement" | "relation" | "caption" | "effect" | "cue">;
 
 type Effect = "pop" | "grow" | "shake" | "float";
 type Relation = "becomes" | "versus" | "plus";
@@ -69,7 +71,11 @@ const Sparkle: React.FC<{ size: number; color: string }> = ({ size, color }) => 
  */
 export const Symbolic: React.FC<SymbolicProps> = (props) => {
   const { themeId, orientation, element, secondElement, relation, caption, effect } = props;
-  const frame = useSceneFrame();
+  const { durationInFrames: dur } = useVideoConfig();
+  // العنصر يظهر وقت نطق كلمته (cue)، لا في أول المشهد؛ وبلا cue يبدأ مع المشهد كما كان
+  const cueTimings = props.cue && props.narration ? (props.narrationTimings ?? estimateTimings(props.narration, 6, dur - 12)) : [];
+  const cueShift = props.cue ? Math.max(0, Math.min(dur - 45, spokenAt(props.cue, cueTimings, 6) - 6)) : 0;
+  const frame = useSceneFrame() - cueShift;
   const boil = useBoil();
   const motion = useMotionSettings();
   const bubbleSize = useSize("bubble", orientation);
