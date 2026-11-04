@@ -28,3 +28,7 @@ channels/*/images/
 
 # سكربتات مؤقتة للمعاينة والقياس (لا تُرفع)
 *-tmp.mts
+
+# المعاينات الصوتية فيها تلاوة Quran Foundation: تبقى على جهاز صاحب القناة ولا تُرفع
+channels/*/episodes/*/previews/*-audio.mp4
+channels/*/episodes/*/out/*-audio-preview.mp4

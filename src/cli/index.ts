@@ -235,6 +235,25 @@ program
   });
 
 program
+  .command("shots-preview <episode> <ids>")
+  .description("معاينة صوتية لمشاهد مختارة (صوت الراوي والتلاوة الفعلية) تُرفع إلى «المعاينات» مكان النسخة السابقة؛ تُرفض بقائمة النواقص إن نقص نص آية أو تلاوة أو صوت")
+  .option("--slot <slot>", "خانة المعاينة (تنتهي بـ -audio)", "six-shots-audio")
+  .option("--replaces <slot>", "الخانة الصامتة التي تحل محلها عند النجاح", "six-shots")
+  .option("--title <title>", "العنوان في الاستوديو", "اللقطات الست بالصوت والتلاوة")
+  .option("--note <note>", "ملاحظة تحته", "معاينة بصوت الراوي وتلاوة الحصري، بجودة المعاينة. لا تُنشر.")
+  .action(async (episode: string, ids: string, opts: { slot: string; title: string; note: string; replaces: string }) => {
+    const { renderShotsPreview } = await import("../render/shotsPreview");
+    try {
+      const r = await renderShotsPreview(episode, ids.split(/[,،\s]+/).filter(Boolean), { ...opts, onProgress: (p, m) => console.log(`PROGRESS ${p} ${m}`) });
+      console.log(`رُفعت إلى الاستوديو: ${path.relative(projectRoot, r.file)} (النسخة ${r.version})`);
+      for (const t of r.timing) console.log(`  ${t.id}: ${t.seconds} ث${t.voice ? ` · صوت ${t.voice.toFixed(1)} ث` : ""}${t.recitation ? ` · تلاوة ${t.recitation.toFixed(1)} ث` : ""}`);
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command("upload-preview <episode> <slot> <file>")
   .description("رفع فيديو للحلقة إلى «المعاينات» في الاستوديو: يحذف النسخة القديمة لنفس الخانة ويضع الجديدة مكانها")
   .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو")

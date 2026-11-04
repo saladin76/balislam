@@ -39,3 +39,21 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
     expect(files).toEqual(["chapter-1.mp4", "six-shots.mp4"]);
   });
 });
+
+import { shotGaps } from "../src/render/shotsPreview";
+
+describe("المعاينة الصوتية لا تُصنع مع نقص", () => {
+  const plan = {
+    chapters: [{ number: 1, title: "", scenes: [
+      { id: "a", template: "noor-text", narration: "جملة", props: {} },
+      { id: "v", template: "verse-card", narration: "", ayahKey: "2:30", props: { text: "" } },
+    ] }],
+  } as never;
+  it("تذكر كل نقص بمشهده", () => {
+    const gaps = shotGaps(plan, { voice: {}, recitations: {} } as never, ["a", "v"], "/tmp/x/script.md", true);
+    expect(gaps).toHaveLength(3);
+    expect(gaps.some((g) => g.id === "a" && g.what.includes("صوت"))).toBe(true);
+    expect(gaps.some((g) => g.id === "v" && g.what.includes("نص الآية"))).toBe(true);
+    expect(gaps.some((g) => g.id === "v" && g.what.includes("تلاوة"))).toBe(true);
+  });
+});
