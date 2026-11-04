@@ -18,7 +18,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   episodeId: string;
   title: string;
   stage: WorkspaceStage;
-  onStage: (stage: WorkspaceStage) => void;
+  onStage: (stage: WorkspaceStage, target?: { sceneId?: string; line?: number }) => void;
   check: CheckResult;
   issues: PlanIssue[];
   plan: Plan;
@@ -49,9 +49,9 @@ export const EpisodeWorkspaceBar: React.FC<{
 
   const narration = useMemo(() => plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim()), [plan]);
   const missingAudio = narration.filter((s) => !media.voice[s.id] || media.voice[s.id]?.text !== s.narration.trim()).length;
-  const notes: { id: string; stage: WorkspaceStage; text: string; critical: boolean }[] = [
-    ...check.issues.filter((i) => i.level === "error").map((i, n) => ({ id: `script-${n}`, stage: "script" as const, text: i.message, critical: true })),
-    ...issues.filter((i) => i.level === "error").map((i, n) => ({ id: `plan-${n}`, stage: "episode" as const, text: i.message, critical: true })),
+  const notes: { id: string; stage: WorkspaceStage; text: string; critical: boolean; sceneId?: string; line?: number }[] = [
+    ...check.issues.filter((i) => i.level === "error").map((i, n) => ({ id: `script-${n}`, stage: "script" as const, text: i.message, critical: true, line: i.line })),
+    ...issues.filter((i) => i.level === "error").map((i, n) => ({ id: `plan-${n}`, stage: "episode" as const, text: i.message, critical: true, sceneId: i.sceneId === "-" ? undefined : i.sceneId })),
   ];
   if (scriptDirty) notes.unshift({ id: "unsaved-script", stage: "script", text: "السكريبت يحتوي على تغييرات غير محفوظة", critical: true });
   if (saveState === "error") notes.unshift({ id: "failed-save", stage: "episode", text: "تعذر حفظ تعديلات المشاهد؛ راجع الحفظ قبل المتابعة", critical: true });
@@ -84,10 +84,10 @@ export const EpisodeWorkspaceBar: React.FC<{
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
           <div className="ew-attention-title">
             <strong>ما الذي يحتاج انتباهك؟</strong>
-            <span>{notes.filter((n) => n.critical).length} مانع · {notes.length} ملاحظة</span>
+            <span>{notes.filter((n) => n.critical).length} مهمة · {notes.length} ملاحظة</span>
           </div>
           <div className="ew-notes">
-            {visible.map((n) => <button key={n.id} type="button" onClick={() => onStage(n.stage)} title="افتح المرحلة المرتبطة بالملاحظة">
+            {visible.map((n) => <button key={n.id} type="button" onClick={() => onStage(n.stage, { sceneId: n.sceneId, line: n.line })} title="افتح موضع الملاحظة">
               <span aria-hidden="true">{n.critical ? "●" : "○"}</span>{n.text}<span className="ew-note-action">فتح</span>
             </button>)}
           </div>
