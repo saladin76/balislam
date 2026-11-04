@@ -1,4 +1,5 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
+import { StudioStartGuide } from "./ui/StudioStartGuide";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
@@ -327,6 +328,7 @@ export const App: React.FC = () => {
 
          {tab === "home" ? (
           <div className="home-wrap">
+          <StudioStartGuide />
           <OpsRoom
             refreshKey={homeKey}
             onOpen={async (ch, id, t) => {
