@@ -41,3 +41,19 @@ describe("إخراج الحلقة المصوَّرة", () => {
     expect(posesFor("يقول الله تعالى:", 0)).toBe("stand");
   });
 });
+
+describe("اللقطات المصمَّمة", () => {
+  it("كل لقطة في خطة الحلقة 001 موجودة في المكتبة، ولها كاميرا ومشهد", async () => {
+    const { SHOTS } = await import("../src/remotion/illus/shots");
+    const { readFileSync } = await import("node:fs");
+    const plan = JSON.parse(readFileSync("channels/balislam/episodes/001-know-the-truth/plan.json", "utf8"));
+    const used = plan.chapters.flatMap((c: { scenes: { props: { shot?: string } }[] }) => c.scenes.map((s) => s.props.shot).filter(Boolean)) as string[];
+    expect(used.length).toBeGreaterThanOrEqual(12);
+    for (const id of used) {
+      const d = SHOTS[id];
+      expect(d, id).toBeDefined();
+      const shot = d!.render({ frame: 40, fps: 30, dur: 200, portrait: false, at: (_w, f) => Math.round(f * 200) });
+      expect(shot.cam.length, id).toBeGreaterThan(1);
+    }
+  });
+});

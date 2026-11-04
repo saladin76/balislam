@@ -1,3 +1,4 @@
+import { SHOTS } from "../remotion/illus/shots";
 /**
  * تعريف القوالب كبيانات: الاسم، هل بُني، والحقول التي يعرضها الاستوديو لكل قالب.
  * مشترك بين مولّد الخطة والاستوديو وتكوين الحلقة.
@@ -238,6 +239,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "camera", label: "الكاميرا", type: "select", options: CAMERA_OPTIONS },
       { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away, walk, proud, apologize, listen, talk" },
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
+      { key: "shot", label: "لقطة مصمَّمة", type: "select", options: [{ value: "", label: "بلا (إخراج عام)" }, ...Object.entries(SHOTS).map(([value, d]) => ({ value, label: d.nameAr }))] },
       { key: "cast", label: "من في المشهد", type: "select", options: [{ value: "", label: "من معنى الكلام" }, { value: "solo", label: "البطل وحده" }, { value: "companion", label: "شخص أمامه" }, { value: "witnesses", label: "شاهدان على موقف واحد" }] },
       { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
     ],
