@@ -65,7 +65,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
     }).map((s) => s.id);
     if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
-    const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
+    const sbRecord = await loadStoryboard(scriptPath);
+    const sb = storyboardStatus(plan, sbRecord);
     const blocked = unapprovedScenes(sb, [...ids]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
     if (!opts.allowUnreviewed) {
@@ -77,10 +78,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     const { currentMotionFingerprint } = await import("./motionFingerprint");
     const measured = await loadStoryboardMotion(opts.episode);
     if (measured) {
-      const { staleMotionScenes } = await import("./motionValidity");
+      const { staleMotionScenes, auditNeedsJustification } = await import("./motionValidity");
       const currentHash = await currentMotionFingerprint(opts.episode, plan, measured.orientation);
       if (staleMotionScenes(plan, measured, currentHash).length)
         throw new Error("نتيجة فحص الحركة والمنطق قديمة أو ناقصة المشاهد؛ أعد الفحص قبل الرندر النهائي.");
+      if (auditNeedsJustification(measured, sbRecord.audit))
+        throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
     }
   }
   log(0, "تجميع المشروع…");
