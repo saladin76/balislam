@@ -397,4 +397,18 @@ export const SHOTS: Record<string, ShotDef> = {
 };
 
 export const SHOT_IDS = Object.keys(SHOTS);
+
+/** الأماكن المرسومة بالمستوى الجديد (معرض «أماكن التصوير» في الاستوديو): ما يظهر هنا هو ما يُرندر */
+export const RICH_SETS: { id: string; nameAr: string; render: (frame: number) => React.ReactNode }[] = [
+  { id: "souq-street", nameAr: "سوق الحارة عصرًا: دكاكين بمظلات وشرفات مشربية وعربة فاكهة", render: (f) => <><SouqStreet frame={f} /><FruitCart x={820} /></> },
+  { id: "tinted-lattice", nameAr: "مشربية بزجاج ملوّن تطل على السوق", render: (f) => <TintedLattice frame={f} tint={GOLD} tintAmount={0.6} outside={<g transform="translate(520 120) scale(0.46) translate(-200 -260)"><SouqStreet frame={f} /></g>} /> },
+  { id: "home-room", nameAr: "البيت: مكتبة وصور وصندوق رسائل ونافذة الغروب", render: (f) => <HomeRoom frame={f} mood="dusk" /> },
+  { id: "home-room-night", nameAr: "البيت ليلًا", render: (f) => <HomeRoom frame={f} mood="night" /> },
+  { id: "cafe", nameAr: "مقهى الحارة: أقواس وفوانيس وروّاد وطاولة شاي", render: (f) => <><Cafe frame={f} /><Chair x={800} /><Chair x={1120} flip /><CafeTable x={960} frame={f} /></> },
+  { id: "workshop", nameAr: "ورشة نجارة: لوح أدوات ومنضدة وكرسي قيد الصنع", render: (f) => <Workshop frame={f} chairTilt={2.5} /> },
+  { id: "night-window", nameAr: "غرفة ليلًا بنافذة تعكس صاحبها", render: (f) => <NightWindow frame={f} /> },
+  { id: "courtyard", nameAr: "صحن دار بنافورة ليلًا", render: (f) => <Courtyard frame={f} /> },
+  { id: "rooftops-night", nameAr: "أسطح المدينة ليلًا والشارع في الأسفل", render: (f) => <><Rooftops frame={f} mood="night" streetPeople /><RoofWall frame={f} /></> },
+  { id: "rooftops-dawn", nameAr: "أسطح المدينة فجرًا بالضباب", render: (f) => <><Rooftops frame={f} mood="predawn" to="dawn" t={0.8} fog={0.6} /><RoofWall frame={f} /></> },
+];
 void LightPool;

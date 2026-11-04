@@ -708,8 +708,8 @@ const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
       {t.gaps.length ? (
         <details open={!t.ok}>
           <summary>كلمات ستُنطق بلا تشكيل ({t.words - t.covered})</summary>
-          {t.gaps.map((g) => (
-            <div key={g.sceneId}>
+          {t.gaps.map((g, i) => (
+            <div key={`${g.sceneId}-${i}`}>
               <b dir="ltr">{g.sceneId}</b>: {g.words.join("، ")}
             </div>
           ))}
