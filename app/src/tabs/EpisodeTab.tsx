@@ -39,7 +39,8 @@ export const EpisodeTab: React.FC<{
   onMediaChange: (media: EpisodeMedia) => void;
   onReload: () => void;
   onEditScript: (line: number) => void;
-}> = ({ episodeId, requestedSceneId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript }) => {
+  onOpenVoice?: () => void;
+}> = ({ episodeId, requestedSceneId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript, onOpenVoice }) => {
   const allScenes = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))), [plan]);
   const [selectedId, setSelectedId] = useState(requestedSceneId ?? allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
@@ -263,7 +264,12 @@ export const EpisodeTab: React.FC<{
             </select>
           </div>
         </div>
-        <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />
+        {onOpenVoice ? (
+          <div className="render-box ew-voice-link">
+            <span>توليد صوت الحلقة وتقرير التشكيل والمقاطع في مرحلة الصوت.</span>
+            <button className="btn" type="button" onClick={onOpenVoice}>افتح مرحلة الصوت</button>
+          </div>
+        ) : <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />}
         <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
       </div>
 
