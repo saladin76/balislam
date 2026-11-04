@@ -27,7 +27,8 @@ export const EpisodeWorkspaceBar: React.FC<{
   media: EpisodeMedia;
   saveState: "saved" | "dirty" | "saving" | "error";
   scriptDirty: boolean;
-}> = ({ episodeId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty }) => {
+  researchDirty?: boolean;
+}> = ({ episodeId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false }) => {
   const [review, setReview] = useState<ReviewSummary | null>(null);
   const [sceneReview, setSceneReview] = useState<SceneReviewSummary | null>(null);
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
@@ -59,6 +60,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     ...check.issues.filter((i) => i.level === "error").map((i, n) => ({ id: `script-${n}`, stage: "script" as const, text: i.message, critical: true, line: i.line })),
     ...issues.filter((i) => i.level === "error").map((i, n) => ({ id: `plan-${n}`, stage: "episode" as const, text: i.message, critical: true, sceneId: i.sceneId === "-" ? undefined : i.sceneId })),
   ];
+  if (researchDirty) notes.unshift({ id: "unsaved-research", stage: "research", text: "ملف البحث يحتوي على تعديلات غير محفوظة", critical: true });
   if (scriptDirty) notes.unshift({ id: "unsaved-script", stage: "script", text: "السكريبت يحتوي على تغييرات غير محفوظة", critical: true });
   if (saveState === "error") notes.unshift({ id: "failed-save", stage: "episode", text: "تعذر حفظ تعديلات المشاهد؛ راجع الحفظ قبل المتابعة", critical: true });
   if (review && !review.ok) notes.push({ id: "citations", stage: "script", text: `الاستشهادات: ${review.verified} من ${review.total} معتمد`, critical: true });
@@ -74,7 +76,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     return published ? "منشور" : "قيد العمل";
   };
   const visible = showAll ? notes : notes.slice(0, 3);
-  const saveLabel = scriptDirty || saveState === "dirty" ? "تعديلات غير محفوظة" : saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذر الحفظ" : "تعديلات المشاهد محفوظة";
+  const saveLabel = scriptDirty || researchDirty || saveState === "dirty" ? "تعديلات غير محفوظة" : saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذر الحفظ" : "تعديلات المشاهد محفوظة";
 
   return (
     <section className="episode-workspace-header" aria-label="مساحة عمل الحلقة">
