@@ -59,6 +59,7 @@ export const App: React.FC = () => {
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
+  const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
@@ -401,7 +402,7 @@ export const App: React.FC = () => {
             identity={ident.draft}
             channel={channel}
             media={media}
-            onOpenScene={() => setTab("episode")}
+            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           /></div>
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
@@ -409,6 +410,7 @@ export const App: React.FC = () => {
           <EpisodeTab
             key={epId}
             episodeId={epId}
+            requestedSceneId={requestedSceneId}
             plan={plan}
             identity={ident.draft}
             channel={channel}
