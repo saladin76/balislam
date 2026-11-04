@@ -196,8 +196,9 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const cells: [number, number][] = [];
       for (let r = 0; r < 3; r++) for (let k = 0; k < 5; k++) cells.push([1300 - k * 160, 220 + r * 150]);
       const KEEP = 7;
-      const gridOut = P(tThought - 14, tThought + 6);
-      const keepMove = P(tThought - 14, tThought + 10);
+      // الشبكة تتوارى عند «الكلمات» قبل أن تُرسم سطور القراءة مكانها، فلا تداخل
+      const gridOut = P(tWords - 16, tWords + 2);
+      const keepMove = P(tWords - 16, tWords + 6);
       const kx = lerp(cells[KEEP]![0], 520, keepMove);
       const ky = lerp(cells[KEEP]![1], 420, keepMove);
       return {
@@ -229,7 +230,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <rect x={kx - 60} y={ky - 60} width={120} height={120} rx={14} fill="none" stroke={z.ink} strokeWidth={5} opacity={keepMove} />
             </g>
             <Mark x={520 - 170} y={548} w={340} h={70} p={P(tAtt + 10, tAtt + 26) * keepMove} z={z} />
-            {T("at", 520, 600, "الانتباه", 80, ["الانتباه", 0.34], undefined, { font: "head", opacity: keepMove })}
+            {T("at", 520, 600, "الانتباه", 80, ["الانتباه", 0.34], undefined, { font: "head", opacity: keepMove * keepMove })}
             {/* نقرأ الكلمات… وتنتقل أفكارنا */}
             <g opacity={P(tWords - 4, tWords + 8)}>
               <Lines x={1300} y={400} w={420} n={3} p={P(tWords - 2, tWords + 10, (t) => t)} z={z} />
@@ -493,8 +494,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("ns", 1210, 580, "نحفظ سورة", 66, ["نحفظ", 0.02], ["سورة", 0.04])}
             {/* نحن: صغارًا ثم كبارًا */}
             <InkPerson x={760} y={620} s={lerp(0.6, 1.0, grow)} pose="stand" p={P(tSmall - 4, tSmall + 14)} z={z} dir={-1} />
-            {T("sg", 760, 690, "صغرنا", 64, ["صغرنا", 0.1], undefined, { opacity: 1 - grow })}
-            {T("sn", 760, 690, "بعد سنوات", 64, ["بعد", 0.2], ["سنوات", 0.22], { opacity: grow })}
+            {T("sg", 760, 680, "صغرنا", 64, ["صغرنا", 0.1], undefined, { opacity: 1 - grow })}
+            {T("sn", 760, 680, "بعد سنوات", 64, ["بعد", 0.2], ["سنوات", 0.22], { opacity: grow })}
             {/* معنى جديد: صلة بين المحفوظ ومن يقرؤه */}
             <Arrow x1={1010} y1={380} x2={830} y2={380} p={P(tMeaning, tMeaning + 14)} c={z.ink} w={6} />
             <circle cx={760} cy={620 - 272} r={lerp(40, 170, ring)} fill={z.hl} opacity={0.6 * ring} />
@@ -502,11 +503,11 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             <path d="M1020 330 L840 310 L840 420 L1020 440 Z" fill={z.hl} opacity={0.55 * P(tMeaning + 6, tMeaning + 20)} />
             {T("fh", 760, 190, "اتسع فهمنا", 64, ["اتسع", 0.56], ["فهمنا", 0.6], { font: "head" })}
             {/* نجدد علاقتنا: العلم والتدبر والعمل */}
-            {Box("i1", 1350, 800, "بالعلم", 76, tIlm, { font: "head", fill: z.hl })}
-            <Arrow x1={1230} y1={790} x2={1100} y2={790} p={P(tTad - 6, tTad + 6)} c={z.ink} w={6} />
-            {Box("i2", 960, 800, "والتدبر", 76, tTad, { font: "head", fill: z.hl })}
-            <Arrow x1={830} y1={790} x2={700} y2={790} p={P(tAmal - 6, tAmal + 6)} c={z.ink} w={6} />
-            {Box("i3", 570, 800, "والعمل", 76, tAmal, { font: "head", fill: z.hl })}
+            {Box("i1", 1350, 830, "بالعلم", 76, tIlm, { font: "head", fill: z.hl })}
+            <Arrow x1={1230} y1={820} x2={1100} y2={820} p={P(tTad - 6, tTad + 6)} c={z.ink} w={6} />
+            {Box("i2", 960, 830, "والتدبر", 76, tTad, { font: "head", fill: z.hl })}
+            <Arrow x1={830} y1={820} x2={700} y2={820} p={P(tAmal - 6, tAmal + 6)} c={z.ink} w={6} />
+            {Box("i3", 570, 830, "والعمل", 76, tAmal, { font: "head", fill: z.hl })}
           </g>
         ),
       };
