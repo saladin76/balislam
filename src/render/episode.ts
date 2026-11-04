@@ -76,8 +76,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     const { loadStoryboardMotion } = await import("./storyboardMotion");
     const { currentMotionFingerprint } = await import("./motionFingerprint");
     const measured = await loadStoryboardMotion(opts.episode);
-    if (measured && (!measured.inputHash || measured.inputHash !== await currentMotionFingerprint(opts.episode, plan, measured.orientation)))
-      throw new Error("نتيجة فحص الحركة والمنطق قديمة؛ أعد الفحص بعد آخر تعديل قبل الرندر النهائي.");
+    if (measured) {
+      const { staleMotionScenes } = await import("./motionValidity");
+      const currentHash = await currentMotionFingerprint(opts.episode, plan, measured.orientation);
+      if (staleMotionScenes(plan, measured, currentHash).length)
+        throw new Error("نتيجة فحص الحركة والمنطق قديمة أو ناقصة المشاهد؛ أعد الفحص قبل الرندر النهائي.");
+    }
   }
   log(0, "تجميع المشروع…");
   const serveUrl = await getServeUrl(!opts.media);
