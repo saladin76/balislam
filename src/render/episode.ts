@@ -13,8 +13,6 @@ import { browserExecutable, getServeUrl } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { QUALITY, type Quality } from "./quality";
 import { loadSceneLedger, sceneReviewItems, sceneReviewSummary, sceneReviewBlockMessage } from "../plan/sceneReview";
-import { loadStoryboardMotion } from "./storyboardMotion";
-import { currentMotionFingerprint } from "./motionFingerprint";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -44,12 +42,6 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
-  log(0, "تجميع المشروع…");
-  const serveUrl = await getServeUrl(!opts.media);
-  const channel = loadChannel();
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
-  const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
-  const q = QUALITY[opts.quality ?? "preview"];
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
     const scriptPath = await resolveScriptPath(opts.episode);
@@ -65,10 +57,18 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       const review = sceneReviewSummary(items);
       if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
     }
+    const { loadStoryboardMotion } = await import("./storyboardMotion");
+    const { currentMotionFingerprint } = await import("./motionFingerprint");
     const measured = await loadStoryboardMotion(opts.episode);
     if (measured && (!measured.inputHash || measured.inputHash !== await currentMotionFingerprint(opts.episode, plan, measured.orientation)))
       throw new Error("نتيجة فحص الحركة والمنطق قديمة؛ أعد الفحص بعد آخر تعديل قبل الرندر النهائي.");
   }
+  log(0, "تجميع المشروع…");
+  const serveUrl = await getServeUrl(!opts.media);
+  const channel = loadChannel();
+  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+  const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
+  const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   await renderMedia({
     serveUrl,
