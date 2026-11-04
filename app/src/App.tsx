@@ -423,6 +423,7 @@ export const App: React.FC = () => {
         ) : tab === "voice" ? (
           <VoiceWorkspaceTab
             episodeId={epId}
+            channelId={channelId}
             plan={plan}
             media={media}
             hasKeys={extra.keys.voice}
