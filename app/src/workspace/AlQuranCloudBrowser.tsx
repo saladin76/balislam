@@ -7,6 +7,12 @@ import type { CloudRecitation } from "../../../src/quran/provider";
 export const previewReciterKey = (channelId: string, episodeId: string) =>
   `balislam:alquran-preview:${encodeURIComponent(channelId)}:${encodeURIComponent(episodeId)}`;
 
+/** Channel preview choice is used only when this episode has no explicit preview override. */
+export const previewEditionFor = (episodeChoice: string | null, channelChoice?: string): string => {
+  const valid = (s?: string | null) => !!s && /^ar\.[a-z0-9._-]{1,75}$/i.test(s);
+  return valid(episodeChoice) ? episodeChoice! : valid(channelChoice) ? channelChoice! : "ar.alafasy";
+};
+
 export const filterAudioEditions = (editions: AlQuranAudioEdition[], term: string) => {
   const query = term.trim().toLocaleLowerCase();
   return query ? editions.filter((e) =>
@@ -48,13 +54,12 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
     try { stored = localStorage.getItem(previewReciterKey(channelId, episodeId)); }
     catch { /* storage may be disabled */ }
     if (stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored)) {
-      setEdition(stored);
+      setEdition(previewEditionFor(stored));
     } else {
-      setEdition("ar.alafasy");
+      setEdition(previewEditionFor(null));
       api.channelFor(channelId).then((channel) => {
         const preferred = channel.alquranPreviewRecitation?.edition;
-        if (alive && preferred && /^ar\.[a-z0-9._-]{1,75}$/i.test(preferred))
-          setEdition(preferred);
+        if (alive) setEdition(previewEditionFor(null, preferred));
       }).catch(() => { /* keep safe preview fallback */ });
     }
     return () => { alive = false; mounted.current = false; };
