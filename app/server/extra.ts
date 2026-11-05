@@ -561,6 +561,16 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         if (!/^[a-z0-9-]+$/.test(id)) return send(res, 400, { error: `معرّف المجال «${id}» بالإنجليزية الصغيرة والشرطات فقط.` }), true;
         if (!slots.includes(channel.domains[id].theme)) return send(res, 400, { error: `ثيم المجال «${id}» غير صالح.` }), true;
       }
+      // AlQuran Cloud at channel level is a preview preference, never a licence.
+      // Restrict the shape so rights-gated episode production remains separate.
+      if (channel.alquranPreviewRecitation != null) {
+        const v = channel.alquranPreviewRecitation;
+        if (typeof v !== "object" || Array.isArray(v) ||
+            Object.keys(v).some((k) => k !== "edition" && k !== "name") ||
+            typeof v.edition !== "string" || !/^ar\\.[a-z0-9._-]{1,75}$/i.test(v.edition) ||
+            typeof v.name !== "string" || !v.name.trim() || v.name.length > 160)
+          return send(res, 400, { error: "اختيار قارئ AlQuran Cloud للمعاينة غير صالح." }), true;
+      }
       await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(channel, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, ch_.loadChannel(ch));
