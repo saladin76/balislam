@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | بالإسلام | `balislam` | لا دليل مستقل بعد: `CLAUDE.md` وملفات `channels/balislam/` (ومختبرها `channels/balislam/episodes/900-engine-lab/README.md`) |
 | دفاتر الزمن | `dafatir-alzaman` | **[docs/dafatir-alzaman/](docs/dafatir-alzaman/README.md)** — ابدأ من [00-start-here.md](docs/dafatir-alzaman/00-start-here.md) |
-| زبدة الكتب | `zubdat-alkutub` | معاييرها الدائمة في `templates/zubdat-alkutub/studio.md` (وفحوصها `npx bal zubdat …`)، مع `CLAUDE.md` وملفات `channels/zubdat-alkutub/` |
+| زبدة الكتب | `zubdat-alkutub` | **[docs/zubdat-alkutub/](docs/zubdat-alkutub/README.md)** — ابدأ من [00-start-here.md](docs/zubdat-alkutub/00-start-here.md)، والمختصر في [channels/zubdat-alkutub/AGENTS.md](channels/zubdat-alkutub/AGENTS.md) |
 
 التشغيل وفتح الاستوديو: [README.md](README.md).
 
@@ -40,7 +40,7 @@ npm run gate                 # الاثنان معًا كما تفحصهما ا�
 ## قاعدة تحديث التوثيق
 
 كل تغيير يؤثر في أسلوب إنتاج قناة أو أدواتها أو قواعدها يُسلَّم **مع** تحديث وثيقته وسجل قراراتها في الدفع نفسه. المهمة غير مكتملة إن تغيّر التنفيذ وبقي التوثيق قديمًا.
-لـ«دفاتر الزمن» يُفرض آليًا: البوابة ترفض تغيير ملفات منظومتها دون تحديث `docs/dafatir-alzaman/07-decisions.md` (`scripts/docs-sync.mjs`).
+لـ«دفاتر الزمن» و«زبدة الكتب» يُفرض آليًا: البوابة ترفض تغيير ملفات منظومتهما دون تحديث `docs/dafatir-alzaman/07-decisions.md` أو `docs/zubdat-alkutub/06-decisions.md` (`scripts/docs-sync.mjs`).
 
 ## متى ترجع إلى صاحب القناة
 

@@ -8,7 +8,7 @@ type Block =
   | { k: "h"; level: number; text: string }
   | { k: "p"; text: string }
   | { k: "quote"; text: string }
-  | { k: "ul" | "ol"; items: string[] }
+  | { k: "ul" | "ol"; items: string[]; depth?: number[] }
   | { k: "table"; head: string[]; rows: string[][] }
   | { k: "code"; text: string }
   | { k: "hr" };
@@ -51,13 +51,15 @@ export const parseMarkdown = (src: string): Block[] => {
     if (li) {
       const ordered = /\d/.test(li[1]!);
       const items: string[] = [];
+      const depth: number[] = [];
       while (i < lines.length) {
-        const m = lines[i]!.match(/^\s*([-*]|\d+\.)\s+(.*)$/);
-        if (m) { items.push(m[2]!); i++; }
+        const m = lines[i]!.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+        if (m) { items.push(m[3]!); depth.push(Math.floor(m[1]!.length / 2)); i++; }
         else if (lines[i]!.match(/^\s{2,}\S/) && items.length) { items[items.length - 1] += " " + lines[i]!.trim(); i++; }
         else break;
       }
-      out.push({ k: ordered ? "ol" : "ul", items });
+      // القوائم المتداخلة (بند فرعي بمسافتين): تُعرض نقاطًا تحت بندها؛ والقائمة المسطحة كما كانت تمامًا
+      out.push(depth.some((d) => d > 0) ? { k: ordered ? "ol" : "ul", items, depth } : { k: ordered ? "ol" : "ul", items });
       continue;
     }
     const body: string[] = [];
@@ -108,8 +110,20 @@ export const Markdown: React.FC<{ text: string; onLink: (href: string) => void }
         case "quote":
           return <blockquote key={k}>{inline(b.text, onLink, k)}</blockquote>;
         case "ul":
-          return <ul key={k}>{b.items.map((it, j) => <li key={j}>{inline(it, onLink, `${k}-${j}`)}</li>)}</ul>;
+          return <ul key={k}>{b.items.map((it, j) => <li key={j} style={b.depth?.[j] ? { marginInlineStart: 22 * b.depth[j]!, listStyleType: "circle" } : undefined}>{inline(it, onLink, `${k}-${j}`)}</li>)}</ul>;
         case "ol":
+          if (b.depth) {
+            let n = 0;
+            return (
+              <ol key={k}>
+                {b.items.map((it, j) => {
+                  const top = b.depth![j] === 0;
+                  if (top) n++;
+                  return <li key={j} value={top ? n : undefined} style={top ? undefined : { listStyleType: "disc", marginInlineStart: 22 * b.depth![j]! }}>{inline(it, onLink, `${k}-${j}`)}</li>;
+                })}
+              </ol>
+            );
+          }
           return <ol key={k}>{b.items.map((it, j) => <li key={j}>{inline(it, onLink, `${k}-${j}`)}</li>)}</ol>;
         case "table":
           return (

@@ -61,10 +61,11 @@ export const App: React.FC = () => {
   if (channelId) setApiChannel(channelId);
   // دليل الاستوديو: يظهر في القائمة فقط للقناة التي لها دليل (docs/<القناة>/guide.json)
   const [hasGuide, setHasGuide] = useState(false);
+  const [guideLabel, setGuideLabel] = useState("دليل الاستوديو");
   useEffect(() => {
     if (!channelId) return setHasGuide(false);
     let live = true;
-    api.guideIndex(channelId).then((r) => live && setHasGuide(Boolean(r.index)), () => live && setHasGuide(false));
+    api.guideIndex(channelId).then((r) => { if (!live) return; setHasGuide(Boolean(r.index)); setGuideLabel(r.index?.navLabel || "دليل الاستوديو"); }, () => live && setHasGuide(false));
     return () => {
       live = false;
     };
@@ -302,7 +303,7 @@ export const App: React.FC = () => {
               <option value="channel">معلومات القناة</option>
               <option value="identity">الهوية البصرية{identDirty ? " • غير محفوظة" : ""}</option>
               <option value="library">مكتبة الأصول والقوالب</option>
-              {hasGuide ? <option value="guide">دليل الاستوديو</option> : null}
+              {hasGuide ? <option value="guide">{guideLabel}</option> : null}
               <option value="settings">الاتصالات والمفاتيح{keysOk.voice ? "" : " • تحتاج إعدادًا"}</option>
             </select>
           </label>

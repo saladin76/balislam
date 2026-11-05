@@ -21,6 +21,17 @@ export const DOC_RULES = [
       /^templates\/dafatir-alzaman\//,
     ],
   },
+  {
+    channel: "zubdat-alkutub",
+    log: "docs/zubdat-alkutub/06-decisions.md",
+    watch: [
+      /^src\/remotion\/zubdat\//,
+      /^src\/remotion\/scenes\/InkShot\.tsx$/,
+      /^src\/studio\//,
+      /^channels\/zubdat-alkutub\/(channel|identity|identity\.default)\.json$/,
+      /^templates\/zubdat-alkutub\//,
+    ],
+  },
 ];
 
 /** المخالفات لقائمة ملفات متغيرة: قناة تغيّرت منظومتها ولم يتغير سجلها */

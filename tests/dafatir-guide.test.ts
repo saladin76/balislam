@@ -29,9 +29,8 @@ describe("دليل دفاتر الزمن", () => {
     expect(await readGuidePage("dafatir-alzaman", "../../.env")).toBeNull();
     expect(await readGuidePage("dafatir-alzaman", "../../CLAUDE.md")).toBeNull();
     expect(await readGuideIndex("../balislam")).toBeNull();
-    // القناتان الأخريان بلا دليل: لا يظهر لهما القسم
+    // قناة بلا دليل لا يظهر لها القسم (لزبدة الكتب دليلها منذ ٥ نوفمبر: tests/zubdat-reference.test.ts)
     expect(await readGuideIndex("balislam")).toBeNull();
-    expect(await readGuideIndex("zubdat-alkutub")).toBeNull();
   });
 
   it("الروابط بين الصفحات ومسارات المشروع المذكورة موجودة", () => {

@@ -9,7 +9,8 @@ import path from "node:path";
 import { projectRoot } from "../config/paths";
 
 export type GuideEntry = { file: string; title: string; summary?: string };
-export type GuideIndex = { title: string; channel: string; entries: GuideEntry[] };
+/** navLabel: اسم القسم في قائمة الاستوديو لهذه القناة (الافتراضي «دليل الاستوديو») */
+export type GuideIndex = { title: string; channel: string; navLabel?: string; entries: GuideEntry[] };
 
 export const guideDir = (channel: string, root = projectRoot) => path.join(root, "docs", channel);
 
