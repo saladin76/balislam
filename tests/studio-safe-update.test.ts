@@ -34,7 +34,7 @@ describe("safe studio updater", () => {
     execFileSync("git", ["branch", "-m", "main"], { cwd: dir });
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir }).toString().trim();
     const gitDir = execFileSync("git", ["rev-parse", "--absolute-git-dir"], { cwd: dir }).toString().trim();
-    writeFileSync(path.join(gitDir, "MERGE_HEAD"), head + "\\n");
+    writeFileSync(path.join(gitDir, "MERGE_HEAD"), head + "\n");
     const before = readFileSync(path.join(dir, "note.txt"), "utf8");
     const status = await updateStatus(dir, true);
     expect(status.available).toBe(false);
@@ -44,6 +44,20 @@ describe("safe studio updater", () => {
     expect(result.message).toMatch(/عملية Git غير مكتملة/);
     expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe(before);
     expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir }).toString().trim()).toBe(head);
+  });
+
+  it("refuses a malformed MERGE_HEAD without attempting a network fetch", async () => {
+    const dir = repo();
+    execFileSync("git", ["branch", "-m", "main"], { cwd: dir });
+    const gitDir = execFileSync("git", ["rev-parse", "--absolute-git-dir"], { cwd: dir }).toString().trim();
+    writeFileSync(path.join(gitDir, "MERGE_HEAD"), "incomplete\\n");
+    const result = await updateStatus(dir, true);
+    expect(result.available).toBe(false);
+    expect(result.error).toMatch(/عملية Git غير مكتملة/);
+    const applied = await applyUpdate(dir);
+    expect(applied.ok).toBe(false);
+    expect(applied.message).toMatch(/عملية Git غير مكتملة/);
+    expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("original\n");
   });
 
   it("refuses a rebase in progress, even when status is otherwise clean", async () => {
