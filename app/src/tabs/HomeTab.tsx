@@ -43,8 +43,17 @@ export const HomeTab: React.FC<{
   const [del, setDel] = useState<{ id: string; title: string; typed: string; busy?: boolean; msg?: string } | null>(null);
   const [items, setItems] = useState<Overview[] | null>(null);
   const [err, setErr] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "attention" | "ready" | "published">("all");
+  const [sort, setSort] = useState<"recent" | "oldest" | "title">("recent");
   useEffect(() => {
-    api.overview().then(setItems).catch((e) => setErr((e as Error).message));
+    let active = true;
+    setItems(null);
+    setErr("");
+    setSearch("");
+    setFilter("all");
+    api.overview().then((results) => { if (active) setItems(results); }).catch((e) => { if (active) setErr((e as Error).message); });
+    return () => { active = false; };
   }, [channel.id]);
 
   if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
@@ -53,6 +62,18 @@ export const HomeTab: React.FC<{
   const published = items.filter((e) => e.status.published).length;
   const ready = items.filter((e) => stagesOf(e).slice(0, 4).every((s) => s.state === "done" || s.state === "na") && !e.status.published).length;
   const minutes = items.reduce((n, e) => n + e.check.seconds, 0) / 60;
+  const visible = items.filter((e) => {
+    const query = search.trim().toLocaleLowerCase();
+    const found = !query || [e.id, e.title, e.dir, e.domain].some((part) => String(part ?? "").toLocaleLowerCase().includes(query));
+    const stages = stagesOf(e);
+    const publishReady = stages.slice(0, 4).every((stage) => stage.state === "done" || stage.state === "na") && !e.status.published;
+    const needsAttention = !e.status.published && !publishReady;
+    return found && (filter === "all" || (filter === "published" && Boolean(e.status.published)) ||
+      (filter === "ready" && publishReady) || (filter === "attention" && needsAttention));
+  }).sort((a, b) => sort === "title"
+    ? (a.title || a.dir).localeCompare(b.title || b.dir, "ar")
+    : sort === "oldest" ? a.id.localeCompare(b.id, undefined, { numeric: true })
+      : b.id.localeCompare(a.id, undefined, { numeric: true }));
 
   return (
     <div className="home">
@@ -109,8 +130,16 @@ export const HomeTab: React.FC<{
           <button className="btn primary" onClick={onNew}>+ حلقة جديدة</button>
         </div>
       ) : (
-        <div className="ep-grid">
-          {items.map((e) => {
+        <>
+          <div className="episode-list-tools" role="search" aria-label="البحث في حلقات القناة">
+            <label className="field"><span>البحث عن حلقة</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم الحلقة أو رقمها أو المجال" /></label>
+            <label className="field"><span>حالة الحلقة</span><select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}><option value="all">جميع الحالات</option><option value="attention">قيد العمل</option><option value="ready">جاهزة للنشر</option><option value="published">منشورة</option></select></label>
+            <label className="field"><span>الترتيب</span><select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}><option value="recent">الأحدث رقمًا</option><option value="oldest">الأقدم رقمًا</option><option value="title">العنوان أبجديًا</option></select></label>
+            <span className="episode-list-count" role="status">{visible.length} من {items.length} حلقة</span>
+          </div>
+          {visible.length === 0 ? <div className="episode-list-empty"><strong>لا توجد حلقات مطابقة.</strong><p className="help">جرّب تغيير البحث أو الحالة.</p><button className="btn" type="button" onClick={() => { setSearch(""); setFilter("all"); }}>مسح البحث والفلاتر</button></div> : null}
+          <div className="ep-grid">
+          {visible.map((e) => {
             const stages = stagesOf(e);
             const next = nextStep(e);
             return (
@@ -143,7 +172,8 @@ export const HomeTab: React.FC<{
               </article>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
