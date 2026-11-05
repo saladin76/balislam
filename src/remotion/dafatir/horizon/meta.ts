@@ -34,6 +34,18 @@ export const HZ_META: Record<string, HzMeta> = {
   question: { nameAr: "سؤال للفهم لا اعتراض (حاشية ابن كثير)", tail: 1.2, exit: "fade" },
   known: { nameAr: "معرفتنا محدودة", tail: 1.3, exit: "fade" },
   "two-titles": { nameAr: "الخلق ثم التعليم", tail: 1.5, exit: "turn" },
+  clay: { nameAr: "«طين» كلمةً، ومواضع ذكره في القرآن", tail: 1.2, exit: "fade" },
+  steps: { nameAr: "الخلق · التسوية · نفخ الروح (كلمات على خط)", tail: 1.6, exit: "turn" },
+  catalog: { nameAr: "درج أقوال المفسرين، وبطاقة ما هو واضح في الآيات", tail: 1.2, exit: "fade" },
+  knowledge: { nameAr: "الدفتر على مكتب الكاتب: أسباب المعرفة، والغرور يُشطب", tail: 1.6, exit: "turn" },
+  honor: { nameAr: "السجود تكريم لا عبادة، والعبادة لله وحده", tail: 1.2, exit: "fade" },
+  comply: { nameAr: "على مسار الأمر: استجابة، وإباء واستكبار", tail: 1.2, exit: "fade" },
+  sort: { nameAr: "إبليس من الجن لا من الملائكة (تصنيف)", tail: 1.2, exit: "fade" },
+  "verse-tag": { nameAr: "تمهيد آية بختم سورتها", tail: 1.0, exit: "none" },
+  scale: { nameAr: "ميزان «نار / طين» الذي ظنه حجة، و«أمر واجب الطاعة»", tail: 1.2, exit: "fade" },
+  enmity: { nameAr: "العداوة والإمهال وعزم الإغواء", tail: 1.2, exit: "fade" },
+  authority: { nameAr: "لا سلطان له على عباد الله إلا من اتبعه", tail: 1.2, exit: "fade" },
+  warning: { nameAr: "عداوة قديمة وتحذير صريح", tail: 1.6, exit: "turn" },
   pending: { nameAr: "قيد التصميم (مكان المشهد في الخطة)", tail: 1.0, exit: "none" },
 };
 

@@ -14,7 +14,7 @@ import type { SceneBase, StringFields } from "./types";
  * «مشهد خط الأفق» (دفاتر الزمن): مشهد مصمم لجملته على الدفتر المفتوح، يُختار بحقل shot.
  * التوقيت من صوت الراوي إن وُجد (كلمة بكلمة)، وإلا تقديري بالقواعد نفسها، فلا يتغير التصميم عند دخول الصوت.
  */
-export type HorizonShotProps = SceneBase & StringFields<"shot" | "exit" | "from" | "head" | "label" | "title" | "idea" | "batch">;
+export type HorizonShotProps = SceneBase & StringFields<"shot" | "exit" | "from" | "head" | "label" | "title" | "idea" | "batch" | "ref" | "tagWord">;
 
 const timelineFor = (narration: string, timings: SceneBase["narrationTimings"], fps: number): Timeline => {
   const sentences = hzSentences(narration);

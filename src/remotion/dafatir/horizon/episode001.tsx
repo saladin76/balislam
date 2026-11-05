@@ -9,6 +9,7 @@ import { C, CoverLeaf, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "
 import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, SText, camPath, fonts, type Cam, type Exit } from "./book";
 import { GATE, Hatch, RUINS, Shot2, Shot4, Sunset } from "./shots";
 import { HZ_META } from "./meta";
+import { HZ_SCENES_B } from "./episode001b";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const { Amiri, Tajawal } = fonts;
@@ -599,6 +600,7 @@ export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
   known: Known,
   "two-titles": TwoTitles,
   pending: Pending,
+  ...HZ_SCENES_B,
 };
 
 // كل مشهد مسجل له بياناته، والعكس

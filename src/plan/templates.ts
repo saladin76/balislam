@@ -320,6 +320,8 @@ export const templateDefs: TemplateDef[] = [
       { key: "exit", label: "الخروج", type: "select", options: [{ value: "", label: "حسب المشهد" }, { value: "turn", label: "قلب صفحة" }, { value: "fade", label: "خفوت الحبر" }, { value: "none", label: "يكمله المشهد التالي" }] },
       { key: "idea", label: "فكرة المشهد (قيد التصميم)", type: "textarea" },
       { key: "batch", label: "الدفعة", type: "text" },
+      { key: "ref", label: "مرجع الختم القرآني (مثل: ص ٧١–٧٢)", type: "text" },
+      { key: "tagWord", label: "كلمة ظهور الختم (تمهيد الآية)", type: "text" },
     ],
   },
   {

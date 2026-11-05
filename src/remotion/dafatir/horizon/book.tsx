@@ -38,6 +38,9 @@ export type Leaf = {
   htmlR?: React.ReactNode;
   /** الصفحة اليسرى غير ظاهرة (الدفتر مغلق) */
   noLeft?: boolean;
+  /** تحت الدفتر (سطح المكتب) وفوقه خارج الصفحات (أدوات على المكتب) — بإحداثيات العالم، بلا قص */
+  under?: React.ReactNode;
+  over?: React.ReactNode;
   tintL?: string;
   light?: number;
 };
@@ -85,6 +88,7 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
     <Camera {...cam}>
       <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
         <Defs id={id} />
+        {leaf.under}
         <BookShadow />
         {leaf.noLeft ? null : <Page id={id} side="l" tint={leaf.tintL}>{p > 0 ? null : <g opacity={ink}>{leaf.L}</g>}</Page>}
         <Page id={id} side="r">{p >= 1 ? null : <g opacity={ink}>{leaf.R}</g>}</Page>
@@ -93,6 +97,7 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
         {turning ? <FwdLeaf id={id} p={p} front={leaf.L} /> : null}
         <Spine />
         <LightPool o={leaf.light ?? 1} />
+        {leaf.over ? <g opacity={ink * (1 - Math.min(1, p * 4))}>{leaf.over}</g> : null}
       </svg>
       {leaf.htmlR && !crossed && p < 1 ? <div style={{ position: "absolute", inset: 0, opacity: ink }}>{leaf.htmlR}</div> : null}
       {leaf.htmlL && !crossed && p < 1 ? <div style={{ position: "absolute", left: 0, top: 0, width: W, height: 1080, opacity: ink, transformOrigin: "0 0", transform: turning ? css : undefined }}>{leaf.htmlL}</div> : null}
@@ -155,3 +160,31 @@ export const DateRibbon: React.FC<{ x: number; y: number; s?: number; o?: number
 );
 
 export const fonts = { Amiri, Tajawal };
+
+/** ختم ذهبي: ما ورد في القرآن الكريم (مرجعه تحته) */
+export const QuranSeal: React.FC<{ x: number; y: number; o?: number; refText?: string; s?: number }> = ({ x, y, o = 1, refText, s = 1 }) =>
+  o <= 0 ? null : (
+    <g opacity={o} transform={`translate(${x} ${y}) scale(${s * (0.85 + 0.15 * o)})`}>
+      <circle r={44} fill={C.gold} stroke={C.ink} strokeWidth={2.5} />
+      <circle r={36} fill="none" stroke={C.page} strokeWidth={1.5} strokeDasharray="3 5" />
+      <SText x={0} y={9} size={22} font="tajawal" weight={700} color={C.page}>
+        القرآن
+      </SText>
+      {refText ? (
+        <SText x={0} y={82} size={28} font="tajawal" weight={700} color={C.ink}>
+          {refText}
+        </SText>
+      ) : null}
+    </g>
+  );
+
+/** لسان أحمر: ما ذكره المفسرون (المصدر عليه) */
+export const TafsirTab: React.FC<{ x: number; y: number; o?: number; label: string; w?: number }> = ({ x, y, o = 1, label, w = 300 }) =>
+  o <= 0 ? null : (
+    <g opacity={o}>
+      <path d={`M${x} ${y} h${-w} v44 h${w} l-14 -22 Z`} fill={C.ribbon} />
+      <SText x={x - 26} y={y + 31} size={24} font="tajawal" weight={700} color={C.page} anchor="start">
+        {label}
+      </SText>
+    </g>
+  );
