@@ -109,7 +109,7 @@ describe("جلب نصوص الآيات الناقصة دون مساس بالإن
     try {
       writeFileSync(cacheFile, originalCache);
       // Two distinct references to exercise a partial failure after a successful fetch.
-      writeFileSync(scriptFile, originalScript.replace("[آية: النجم 39]", "[آية: النجم 39]\\n[آية: طه 14]"));
+      writeFileSync(scriptFile, originalScript.replace("[آية: النجم 39]", "[آية: النجم 39]\n[آية: طه 14]"));
       const client = { verse: async (key: string) => {
         if (key === "20:14") throw new Error("network unavailable");
         return { key, number: 39, text: "نص تجريبي" };
