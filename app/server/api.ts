@@ -82,11 +82,11 @@ const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type
   }
 };
 
-export const balApi = (): Plugin => ({
+export const balApi = (options: { snapshot?: boolean } = {}): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
     // استعادة طابور الرندر بعد إعادة تشغيل الاستوديو (الأمر 010)
-    void recoverStudioQueue();
+    if (!options.snapshot) void recoverStudioQueue();
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
     // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
     const load = async <T = any>(file: string): Promise<T> => {
@@ -103,6 +103,7 @@ export const balApi = (): Plugin => ({
     server.middlewares.use(async (req, res, next) => {
       const url = new URL(req.url ?? "/", "http://localhost");
       if (!url.pathname.startsWith("/api/")) return next();
+      if (options.snapshot && req.method !== "GET") return send(res, 405, { error: "نسخة المعاينة للقراءة فقط" });
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
@@ -213,7 +214,9 @@ export const balApi = (): Plugin => ({
           };
           if (parts.length === 2 && req.method === "GET") {
             const script = await readFile(scriptPath, "utf8");
-            const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
+            const existing = await io.readPlanFile(scriptPath);
+            if (!existing && options.snapshot) return send(res, 404, { error: "خطة الحلقة غير موجودة؛ أنشئها في الاستوديو المحلي أولًا." });
+            const plan = existing ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
             const c = channelMod.loadChannel(ch);
             return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });

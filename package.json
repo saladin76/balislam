@@ -14,6 +14,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "app": "vite --config app/vite.config.ts",
+    "build": "vite build --config app/vite.config.ts",
     "check": "npm run typecheck && npm test",
     "gate": "node scripts/gate.mjs",
     "prepare": "node scripts/install-hooks.mjs"

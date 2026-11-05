@@ -1,3 +1,4 @@
+import { previewMediaUrl, readPreview, studioPreview } from "./preview";
 import type { Plan } from "../../src/plan/types";
 import type { Identity } from "../../brand/identity/index";
 import type { EpisodeMedia } from "../../src/plan/media";
@@ -56,6 +57,7 @@ const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?"
 
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
+  if (studioPreview) return readPreview<T>(url, init?.method);
   const res = await fetch(url, {
     ...init,
     headers: init?.json !== undefined ? { "content-type": "application/json" } : undefined,
@@ -80,7 +82,7 @@ export const api = {
 
   /** مختبرات الإنتاج للقناة (ليست حلقات) */
   labs: (channel: string) => call<{ labs: LabSummary[] }>("/api/labs", undefined, channel),
-  labPreviewUrl: (channel: string, dir: string, name: string) => `/api/labs/${encodeURIComponent(dir)}/previews/${encodeURIComponent(name)}?channel=${encodeURIComponent(channel)}`,
+  labPreviewUrl: (channel: string, dir: string, name: string) => previewMediaUrl(`/api/labs/${encodeURIComponent(dir)}/previews/${encodeURIComponent(name)}?channel=${encodeURIComponent(channel)}`),
   /** دليل الاستوديو للقناة (null إن لم يكن لها دليل) */
   guideIndex: (channel: string) => call<{ index: GuideIndex | null }>("/api/guide", undefined, channel),
   guidePage: (channel: string, file: string) => call<{ text: string }>(`/api/guide/${encodeURIComponent(file)}`, undefined, channel),
@@ -141,12 +143,12 @@ export const api = {
   voiceSampleUrl: (channel: string, file: string) => `/api/voice-sample/file/${encodeURIComponent(file)}?channel=${encodeURIComponent(channel)}`,
   testService: (service: "elevenlabs" | "quran") => call<{ ok: boolean; message?: string; account?: { tier: string; character_count: number; character_limit: number }; voices?: { id: string; name: string; category: string }[]; voiceFound?: boolean; models?: { id: string; name: string; arabic: boolean }[]; training?: Record<string, string>; voiceCategory?: string; model?: string; sample?: string; env?: string }>("/api/settings/test", { method: "POST", json: { service } }),
   sfx: () => call<SfxItem[]>("/api/sfx"),
-  sfxUrl: (id: string) => withChannel(`/api/sfx/${id}.mp3`),
+  sfxUrl: (id: string) => previewMediaUrl(withChannel(`/api/sfx/${id}.mp3`)),
   startJob: (b: { kind: "make" | "package" | "shorts" | "sfx" | "storyboard-motion"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }),
   /** إلغاء مهمة منتظرة أو جارية (رندر أو صناعة) */
   cancelJob: (id: string) => call<{ ok: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   storyboard: (id: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`),
-  previewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`),
+  previewUrl: (id: string, name: string) => previewMediaUrl(withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`)),
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
