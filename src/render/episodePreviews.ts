@@ -4,7 +4,8 @@
  * لكل موضوع «خانة» واحدة: أي تعديل يحذف الفيديو القديم ويضع الجديد مكانه، فلا تتراكم نسخ قديمة.
  */
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { resolveScriptPath } from "../script/episodes";
 
@@ -36,16 +37,30 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   await mkdir(dir, { recursive: true });
   const index = await readIndex(dir);
   const target = `${name}.mp4`;
-  const stale = (await readdir(dir)).filter((n) => n !== target && /\.mp4$/i.test(n) && (n === `${name}.mp4` || n.startsWith(`${name}-v`)));
-  for (const n of stale) {
-    await rm(path.join(dir, n), { force: true });
-    delete index[n];
-  }
+  const stale = (await readdir(dir)).filter((n) => n !== target && /\.mp4$/i.test(n) && n.startsWith(`${name}-v`));
   const prev = index[target];
-  await copyFile(file, path.join(dir, target));
-  index[target] = { title: meta.title, note: meta.note, version: (prev?.version ?? stale.length) + 1, updatedAt: new Date().toISOString() };
-  await writeFile(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
-  return { file: path.join(dir, target), removed: stale, version: index[target]!.version };
+  const output = path.join(dir, target);
+  const pending = path.join(dir, `.${name}.${randomUUID()}.pending`);
+  const pendingIndex = path.join(dir, `.index.${randomUUID()}.pending`);
+  // انسخ الملف كاملًا إلى مسار مؤقت، ثم استبدله؛ لا تحذف النسخة الفعّالة مسبقًا.
+  try {
+    const sourceSize = (await stat(file)).size;
+    if (sourceSize === 0) throw new Error("ملف المعاينة فارغ؛ النسخة القديمة محفوظة.");
+    await copyFile(file, pending);
+    if ((await stat(pending)).size !== sourceSize) throw new Error("نسخ المعاينة غير مكتمل؛ النسخة القديمة محفوظة.");
+    const nextIndex = { ...index };
+    for (const n of stale) delete nextIndex[n];
+    nextIndex[target] = { title: meta.title, note: meta.note, version: (prev?.version ?? stale.length) + 1, updatedAt: new Date().toISOString() };
+    await writeFile(pendingIndex, JSON.stringify(nextIndex, null, 2) + "\n");
+    await rename(pending, output);
+    await rename(pendingIndex, path.join(dir, "index.json"));
+    // احذف نسخ الخانة القديمة فقط بعد نجاح استبدال الفيديو والفهرس.
+    for (const n of stale) await rm(path.join(dir, n), { force: true });
+    return { file: output, removed: stale, version: nextIndex[target]!.version };
+  } finally {
+    await rm(pending, { force: true });
+    await rm(pendingIndex, { force: true });
+  }
 };
 
 export const putEpisodePreview = async (episode: string, slot: string, file: string, meta: { title: string; note?: string }) => putPreview(await resolveScriptPath(episode), slot, file, meta);
