@@ -41,7 +41,13 @@ export const fillMissingQuranTexts = async (
     if (additional[key]) continue;
     try {
       const verses: Verse[] = [];
-      for (let n = from; n <= to; n++) verses.push(await client.verse(`${surah}:${n}`));
+      for (let n = from; n <= to; n++) {
+        const expected = `${surah}:${n}`;
+        const verse = await client.verse(expected);
+        if (verse.key !== expected || verse.number !== n || !verse.text?.trim())
+          throw new Error(`استجابة الآية ${expected} لا تطابق المرجع المطلوب.`);
+        verses.push(verse);
+      }
       const text = composeVerses(verses);
       if (!text.trim()) throw new Error("لم يرجع نص صالح لهذه الآية.");
       additional[key] = text;
