@@ -540,8 +540,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               ))}
             </g>
             {T("as", sheetX, 330, "أسرار الصلاة", 56, ["أسرار", 0.29], ["الصلاة", 0.31], { font: "head", opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
-            {T("iq", sheetX, 400, "ابن القيم", 48, ["ابن", 0.25], ["القيم", 0.27], { opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
-            {T("ts", sheetX, 820, "ثلاث صيغ", 56, ["ثلاث", 0.65], ["صيغ", 0.67], { opacity: others })}
+            {T("iq", sheetX, 400, "ابن القيم", 58, ["ابن", 0.25], ["القيم", 0.27], { opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
+            {T("ts", sheetX - 100, 820, "ثلاث صيغ", 66, ["ثلاث", 0.65], ["صيغ", 0.67], { opacity: others })}
             {/* «من كتب ابن القيم الأخرى»: كتب مرسومة بالحبر بلا عناوين، وسهم إلى الرسالة */}
             <g opacity={others}>
               {[0, 1, 2].map((k) => (
@@ -551,10 +551,10 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 </g>
               ))}
               <Arrow x1={1000} y1={540} x2={930} y2={540} p={P(tAdd - 2, tAdd + 10)} c={z.ink} w={6} />
-              {T("kt", 1100, 780, "كتب ابن القيم الأخرى", 46, ["كتب", 0.77], ["الأخرى", 0.8])}
+              {T("kt", 1080, 790, "كتب ابن القيم الأخرى", 52, ["كتب", 0.77], ["الأخرى", 0.8])}
               {/* «ومن شرحه وإضافاته هو»: سهم من المؤلف إلى الهامش */}
               <path d="M1290 440 Q1100 320 900 330" fill="none" stroke={z.ink} strokeWidth={6} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - P(tSharh - 2, tSharh + 14, (t) => t)} />
-              {T("sh", 1420, 360, "شرحه وإضافاته", 54, ["شرحه", 0.86], ["وإضافاته", 0.89])}
+              {T("sh", 1420, 360, "شرحه وإضافاته", 64, ["شرحه", 0.86], ["وإضافاته", 0.89])}
             </g>
             {/* «فكان هذا الكتاب»: تجتمع كلها في كتاب واحد (رسم القناة، لا غلاف طبعة) */}
             <g transform={`translate(960 ${lerp(560, 520, final)}) scale(${lerp(0.6, 1, final)}) rotate(-3)`} opacity={final}>
@@ -836,7 +836,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             <g opacity={side}>
               {T("zh", 1290, 330, "ظاهر", 70, ["ظاهر", 0.42], undefined, { font: "head" })}
               <Arrow x1={1170} y1={480} x2={1090} y2={530} p={P(tBadan - 4, tBadan + 10)} c={z.ink} w={6} />
-              {T("bd", 1300, 430, "طهارة البدن", 58, ["طهارة", 0.46], ["البدن", 0.47])}
+              {T("bd", 1300, 430, "طهارة البدن", 66, ["طهارة", 0.46], ["البدن", 0.47])}
               <line x1={1450} x2={1450} y1={270} y2={640} stroke={z.faint} strokeWidth={4} strokeDasharray="10 12" opacity={P(tBatin - 4, tBatin + 10)} />
               {T("bt", 1610, 330, "باطن", 70, ["وباطن", 0.44], undefined, { font: "head" })}
               <g opacity={P(tQalb - 6, tQalb + 6)}>
@@ -846,8 +846,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               </g>
               {T("tw", 1610, 600, "بالتوبة", 60, ["بالتوبة", 0.55], undefined, { font: "head" })}
               {/* «معنى تربوي، لا شرط لصحة الوضوء» */}
-              <rect x={1490} y={640} width={240} height={70} rx={14} fill={z.hl} opacity={0.8 * P(tTarb - 2, tTarb + 10)} />
-              {T("tr", 1610, 690, "معنى تربوي", 50, ["معنى", 0.58], ["تربوي", 0.59])}
+              <rect x={1455} y={630} width={310} height={84} rx={14} fill={z.hl} opacity={0.8 * P(tTarb - 2, tTarb + 10)} />
+              {T("tr", 1610, 690, "معنى تربوي", 62, ["معنى", 0.58], ["تربوي", 0.59])}
             </g>
             {/* دقائق الوضوء تملأ شريط التهيؤ حتى تصل إلى السجادة: «للعبادة» */}
             <g opacity={P(tMinutes - 4, tMinutes + 6)}>
@@ -929,7 +929,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               })}
               {T("gf", 1250, 700, "الغفلة", 64, ["الغفلة", 0.18], undefined, { font: "head", opacity: 1 - 0.6 * strong })}
               {T("aw", 900, 720, "عودة", 76, ["عودة", 0.4], undefined, { font: "head" })}
-              {T("tm", 440, 360, "تمام العبودية", 52, ["تمام", 0.63], ["العبودية", 0.65])}
+              {T("tm", 440, 360, "تمام العبودية", 64, ["تمام", 0.63], ["العبودية", 0.65])}
             </g>
             {/* المكان وحده ليس ضمانًا؛ والقلب يحتاج عناية */}
             {Box("mk", 1350, 760, "المكان وحده", 58, tPlace, { tEnd: c.end("وحده", 0.74) })}
@@ -1014,7 +1014,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             </g>
             <line x1={1080} y1={500} x2={lerp(1080, 600, glance)} y2={lerp(500, 290, glance)} stroke={z.alert} strokeWidth={6} strokeDasharray="14 12" strokeLinecap="round" opacity={glance > 0.02 ? 0.9 : 0} />
             <Cross x1={900} x2={700} y={400} p={P(tLaNal - 2, tLaNal + 12) * (1 - P(tAbsar + 6, tAbsar + 16))} z={z} />
-            {T("ln", 700, 500, "لا نلتفت", 58, ["نلتفت", 0.46], ["بأبصارنا", 0.49], { opacity: 1 - 0.7 * P(tDiff - 6, tDiff + 6) })}
+            {T("ln", 700, 500, "لا نلتفت", 68, ["نلتفت", 0.46], ["بأبصارنا", 0.49], { opacity: 1 - 0.7 * P(tDiff - 6, tDiff + 6) })}
             {/* الفرق: خط يفصل الحركة عن المعنى، ثم يخف حين يُستحضر المعنى «معها» */}
             <g opacity={1 - 0.65 * P(tWith, tWith + 16)}>
               <Stroke d="M720 420 L1480 420" p={P(tDiff - 2, tDiff + 16)} c={z.alert} w={5} />

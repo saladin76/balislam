@@ -240,7 +240,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const seg4 = prog(frame, tBack - 2, tRead + 8, (t) => t);
       const truth = prog(frame, tBack + 10, tRead + 20);
       // صفحة الفكرة الجديدة: ما سبق يبهت ولا يختفي، ويُرسم مؤشر الخشوع على الورقة نفسها
-      const dim = 1 - 0.9 * prog(frame, tKh - 6, tKh + 12);
+      // الأمر 010: ما سبق يُخفى تمامًا فلا يبقى طيفه فوق المؤشر
+      const dim = 1 - prog(frame, tKh - 6, tKh + 12);
       const W = [[1620, 600], [1420, 440], [1220, 660], [990, 450], [800, 580], [560, 330]] as const;
       const segT: [number, number][] = [[tUp - 2, tUp + 14], [tDown - 2, tDown + 14], [tJ - 2, tTalab + 10], [tQal - 6, tQal + 10], [tAsp - 2, tAkmal + 4]];
       const segP = segT.map(([a, b]) => prog(frame, a, b, (t) => t));
@@ -299,15 +300,15 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
               return <path key={i} d={`M${x0} 760 L${x0} ${y0} L${x1} ${y1} L${x1} 760 Z`} fill={z.hl} opacity={0.55} />;
             })}
             {segP.map((p, i) => <Stroke key={i} d={seg(i)} p={p} c={z.ink} w={12} />)}
-            <Write id="yz" x={1420} y={390} text="يزيد" size={60} p={wp(frame, tUp, end("يزيد", 0.73))} c={z.ink} z={z} />
-            <Write id="yn" x={1220} y={740} text="وينقص" size={60} p={wp(frame, tDown, end("وينقص", 0.76))} c={z.ink} z={z} />
+            <Write id="yz" x={1420} y={390} text="يزيد" size={72} p={wp(frame, tUp, end("يزيد", 0.73))} c={z.ink} z={z} />
+            <Write id="yn" x={1220} y={740} text="وينقص" size={72} p={wp(frame, tDown, end("وينقص", 0.76))} c={z.ink} z={z} />
             {/* «نجاهد أنفسنا في طلبه»: ساعٍ يصعد مع المؤشر */}
             <g transform={`rotate(${tipK === 3 ? 8 : -14} ${sx} ${sy})`}>
               <InkPerson x={sx} y={sy - 4} s={0.42} pose="walk" p={prog(frame, tJ - 4, tJ + 10)} z={z} dir={-1} />
             </g>
             <Write id="jh" x={1160} y={480} text="نجاهد" size={60} p={wp(frame, tJ, end("نجاهد", 0.79))} c={z.ink} font="head" z={z} />
             {/* «ولا نيأس إذا قل»: هبوط قصير لا ينكسر فيه الخط */}
-            <Write id="ny" x={800} y={680} text="لا نيأس" size={58} p={wp(frame, tYa - 6, end("نيأس", 0.88))} c={z.ink} z={z} />
+            <Write id="ny" x={800} y={680} text="لا نيأس" size={72} p={wp(frame, tYa - 6, end("نيأس", 0.88))} c={z.ink} z={z} />
             {/* «ونتطلع دائمًا إلى ما هو أكمل»: أفق متقطع يقترب منه المؤشر ولا يُغلق */}
             <rect x={380} y={196} width={180} height={110} rx={16} fill={z.hl} opacity={0.75 * prog(frame, tAkmal - 2, tAkmal + 10)} />
             <rect x={380} y={196} width={180} height={110} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tAsp, tAsp + 12)} />
