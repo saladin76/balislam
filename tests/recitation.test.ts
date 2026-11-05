@@ -51,6 +51,9 @@ describe("تلاوة AlQuran Cloud داخل الفيديو بعد إثبات ا�
     try {
       await saveEpisodeRecitation(scriptPath, selected);
       expect((await readEpisodeRecitation(scriptPath))?.edition).toBe("ar.alafasy");
+      const current = readFileSync(episodeRecitationFile(scriptPath), "utf8");
+      await expect(saveEpisodeRecitation(scriptPath, { provider: "alquran-cloud", edition: "ar.invalid", name: "غير مرخّص", licence: { holder: "", evidence: "", scope: "", verifiedAt: "" } })).rejects.toThrow();
+      expect(readFileSync(episodeRecitationFile(scriptPath), "utf8")).toBe(current);
       expect((await activeRecitation(scriptPath, { id: 7, name: "قارئ القناة" }))?.provider).toBe("alquran-cloud");
       expect(await readEpisodeRecitation(other)).toBeNull();
       expect(existsSync(episodeRecitationFile(scriptPath))).toBe(true);
