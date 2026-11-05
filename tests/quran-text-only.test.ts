@@ -74,6 +74,26 @@ describe("جلب نصوص الآيات الناقصة دون مساس بالإن
     expect(readFileSync(cacheFile, "utf8")).toBe(concurrent);
   });
 
+  it("يرفض كتابة مخزن آيات استُخرج من سكريبت تغير أثناء الجلب", async () => {
+    const cacheFile = path.join(episodeDir, "quran.json");
+    const scriptFile = path.join(episodeDir, "script.md");
+    const originalScript = readFileSync(scriptFile, "utf8");
+    const originalCache = JSON.stringify({ local: "نص محفوظ" });
+    writeFileSync(cacheFile, originalCache);
+    const modifiedScript = originalScript + "\\n<!-- تعديل معتمد بعد بداية طلب الآية -->\\n";
+    const client = { verse: async (key: string) => {
+      writeFileSync(scriptFile, modifiedScript);
+      return { key, number: 39, text: "نص تجريبي" };
+    } } as Pick<QuranClient, "verse">;
+    try {
+      await expect(fillMissingQuranTexts("999", client)).rejects.toThrow(/تغير سكريبت الحلقة/);
+      expect(readFileSync(cacheFile, "utf8")).toBe(originalCache);
+      expect(readFileSync(scriptFile, "utf8")).toBe(modifiedScript);
+    } finally {
+      writeFileSync(scriptFile, originalScript);
+    }
+  });
+
   it("يفشل الجلب دون كتابة نص ناقص أو تغيير ملف الخطة", async () => {
     const cacheFile = path.join(episodeDir, "quran.json");
     const planFile = path.join(episodeDir, "plan.json");
