@@ -9,6 +9,8 @@ import { recitationFileFor, type EpisodeMedia, type Recitation } from "./media";
 import type { Plan } from "./types";
 import { readJson } from "./io";
 import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
+import { loadChannel } from "../channel";
+import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
 
 export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 
@@ -50,6 +52,8 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const recitations: Record<string, Recitation> = {};
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
+  const chosen = await activeRecitation(await resolveScriptPath(episode), loadChannel().recitation);
+  if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     if (s.template !== "verse-card" || !s.ayahKey) continue;
     // 1) تلاوة مرخّصة بإذن مكتوب (assets/recitations) لها الأولوية
@@ -64,8 +68,11 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
     }
     // 2) تلاوة من Quran Foundation (إن اختارت القناة قارئًا وجُلبت)
     const q = qf[s.ayahKey];
-    if (q && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
-      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration + 0.25, -0.25), parts: q.parts, reciter: q.reciter, source: "quran-foundation" };
+    const matching = q && chosen && (isCloudRecitation(chosen)
+      ? q.provider === "alquran-cloud" && q.edition === chosen.edition
+      : q.provider !== "alquran-cloud" && q.recitationId === chosen.id);
+    if (q && matching && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
+      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration + 0.25, -0.25), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
     }
   }
   const sp = await resolveScriptPath(episode);
@@ -89,7 +96,7 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
   for (const id of m.sfx) await cp(sfxFile(id), path.join(dest, "sfx", `${id}.mp3`));
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   for (const r of Object.values(m.recitations)) {
-    if (r.source === "quran-foundation") for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
+    if (r.source === "quran-foundation" || r.source === "alquran-cloud") for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
     else await cp(path.join(recitationsDir, r.file), path.join(dest, "recitations", r.file));
   }
   const sp2 = await resolveScriptPath(episode);
