@@ -101,4 +101,26 @@ describe("جلب نصوص الآيات الناقصة دون مساس بالإن
     expect(readFileSync(cacheFile, "utf8")).toBe(untouched);
   });
 
+  it("لا يخزن نتيجة جزئية إذا نجحت آية وفشلت أخرى", async () => {
+    const cacheFile = path.join(episodeDir, "quran.json");
+    const scriptFile = path.join(episodeDir, "script.md");
+    const originalScript = readFileSync(scriptFile, "utf8");
+    const originalCache = JSON.stringify({ untouched: "احتفظ بالقيمة" });
+    try {
+      writeFileSync(cacheFile, originalCache);
+      // Two distinct references to exercise a partial failure after a successful fetch.
+      writeFileSync(scriptFile, originalScript.replace("[آية: النجم 39]", "[آية: النجم 39]\\n[آية: طه 14]"));
+      const client = { verse: async (key: string) => {
+        if (key === "20:14") throw new Error("network unavailable");
+        return { key, number: 39, text: "نص تجريبي" };
+      } } as Pick<QuranClient, "verse">;
+      const result = await fillMissingQuranTexts("999", client);
+      expect(result.failed).toHaveLength(1);
+      expect(result.fetched).toEqual([]);
+      expect(readFileSync(cacheFile, "utf8")).toBe(originalCache);
+    } finally {
+      writeFileSync(scriptFile, originalScript);
+    }
+  });
+
 });
