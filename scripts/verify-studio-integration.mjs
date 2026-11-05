@@ -42,13 +42,20 @@ try {
     }
   }
   if (!ready) throw new Error("Studio did not start on port 4323");
-  const r = await fetch(root + "/api/mp3quran/suwar", { signal: AbortSignal.timeout(20000) });
-  if (!r.ok) throw new Error(`MP3Quran API unavailable (HTTP ${r.status})`);
+  const r = await fetch(root + "/api/alquran-cloud/editions", { signal: AbortSignal.timeout(20000) });
+  if (!r.ok) throw new Error(`AlQuran Cloud API unavailable (HTTP ${r.status})`);
   const catalogue = await r.json();
-  if (!Array.isArray(catalogue.suwar) || !catalogue.suwar.some((s) => s.id === 1))
-    throw new Error("MP3Quran surah catalogue malformed");
-  console.log(`PASS: MP3Quran external catalogue (${catalogue.suwar.length} surahs)`);
-  console.log("PASS: static checks + all regression tests + local studio API + MP3Quran");
+  if (!Array.isArray(catalogue.editions) || !catalogue.editions.some((e) => e.identifier === "ar.alafasy"))
+    throw new Error("AlQuran Cloud audio editions malformed");
+  const ayah = await fetch(root + "/api/alquran-cloud/ayah?surah=1&ayah=1&edition=ar.alafasy",
+    { signal: AbortSignal.timeout(20000) });
+  if (!ayah.ok) throw new Error(`AlQuran Cloud ayah unavailable (HTTP ${ayah.status})`);
+  const data = await ayah.json();
+  if (!data.text || !data.audio?.startsWith("https://cdn.islamic.network/quran/audio/") ||
+      data.rightsVerified !== false || data.publicationAllowed !== false)
+    throw new Error("AlQuran Cloud text/audio metadata invalid");
+  console.log(`PASS: AlQuran Cloud editions (${catalogue.editions.length}) + Al-Fatiha ayah preview`);
+  console.log("PASS: typecheck + regression tests + three studio channels + AlQuran Cloud");
 } catch (error) {
   console.error("FAIL:", error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
