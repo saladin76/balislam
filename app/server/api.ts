@@ -189,6 +189,18 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
 
+          if (parts[2] === "recitation" && parts.length === 3) {
+            const { readEpisodeRecitation, saveEpisodeRecitation } = await load("/src/quran/provider.ts");
+            if (req.method === "GET") {
+              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
+            }
+            if (req.method === "PUT") {
+              const body = await readBody(req);
+              await saveEpisodeRecitation(scriptPath, body.recitation ?? null);
+              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
+            }
+          }
+
           const mediaFor = async (plan: unknown) => {
             const { collectMedia } = await load("/src/plan/collect.ts");
             return { ...(await collectMedia(ep, plan)), mode: "url", base: `/api/episodes/${ep}/media/`, query: `?channel=${ch}` };
