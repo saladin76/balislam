@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { execFile } from "node:child_process";
 
 /**
@@ -30,10 +32,26 @@ const cleanTree = async (root: string): Promise<boolean> => {
   return status.ok && !status.out;
 };
 
+/** Detect unfinished operations even when 'git status --porcelain' is empty. */
+const pendingGitOperation = async (root: string): Promise<boolean> => {
+  for (const ref of ["MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "REBASE_HEAD"]) {
+    const checked = await git(root, ["rev-parse", "--verify", "-q", ref]);
+    if (checked.ok && checked.out) return true;
+  }
+  for (const dir of ["rebase-merge", "rebase-apply", "sequencer"]) {
+    const resolved = await git(root, ["rev-parse", "--git-path", dir]);
+    if (!resolved.ok) return true;
+    const folder = path.isAbsolute(resolved.out) ? resolved.out : path.resolve(root, resolved.out);
+    if (existsSync(folder)) return true;
+  }
+  return false;
+};
+
 export const updateStatus = async (root: string, force = false): Promise<UpdateStatus> => {
   const off = { available: false, behind: 0, changes: [] };
   if (updating) return off;
   if (!await activeMain(root)) return { ...off, error: "التحديث داخل الاستوديو متاح لفرع main فقط؛ نسخة المراجعة لا تتحدث تلقائيًا." };
+  if (await pendingGitOperation(root)) return { ...off, error: "هناك عملية Git غير مكتملة (دمج أو إعادة تأسيس أو انتقاء التزام)؛ لا تحديث قبل حلها يدويًا." };
   if (!await cleanTree(root)) return { ...off, error: "هناك تغييرات محلية؛ لا يُحدّث الاستوديو حتى تُراجع وتُحفظ بأمان." };
   if (force || !cached || Date.now() - lastFetch >= 60_000) {
     const f = await git(root, ["fetch", "--quiet", "origin", "main"]);
@@ -53,13 +71,15 @@ export const applyUpdate = async (root: string): Promise<{ ok: boolean; message:
   updating = true;
   try {
     if (!await activeMain(root)) return { ok: false, message: "أوقف التحديث: هذه نسخة مراجعة أو فرع غير main." };
+    if (await pendingGitOperation(root)) return { ok: false, message: "أوقف التحديث: توجد عملية Git غير مكتملة؛ لم يُعدل أي ملف." };
     if (!await cleanTree(root)) return { ok: false, message: "أوقف التحديث: توجد ملفات محلية غير محفوظة؛ لم يُعدل أي ملف." };
     const before = await git(root, ["rev-parse", "HEAD"]);
     const fetch = await git(root, ["fetch", "--quiet", "origin", "main"]);
     if (!fetch.ok) return { ok: false, message: "فشل التحقق من GitHub؛ لم يُطبّق التحديث." };
     const ahead = await git(root, ["rev-list", "--count", "origin/main..HEAD"]);
     if (!ahead.ok || Number(ahead.out) > 0) return { ok: false, message: "توجد commits محلية؛ يلزم دمجها يدويًا. لم يُعدل أي ملف." };
-    // Recheck after network operation: never override edits made while fetching.
+    // Recheck after network operation: never override edits or pending operations.
+    if (await pendingGitOperation(root)) return { ok: false, message: "بدأت عملية Git أثناء جلب التحديث؛ أُوقف التحديث لحمايتها." };
     if (!await cleanTree(root)) return { ok: false, message: "ظهرت تعديلات أثناء الفحص؛ أُوقف التحديث لحمايتها." };
     const m = await git(root, ["merge", "--ff-only", "origin/main"], 120_000);
     if (!m.ok) return { ok: false, message: "تعذّر تحديث main بشكل آمن (fast-forward فقط). لم نجرِ دمجًا تلقائيًا أو نحذف ملفات." };
