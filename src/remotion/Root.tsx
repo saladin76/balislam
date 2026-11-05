@@ -17,6 +17,7 @@ import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/E
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
 import { MotionLab007, MotionScenes007, SEG7, SEGMENTS_007 } from "./lab/MotionLab007";
+import { PermanentCh2, PermanentStyles, permanentCh2Frames, permanentStylesFrames } from "./lab/PermanentLab";
 import { TransitionLab, TransitionLabBaseline, transitionLabFrames } from "./lab/TransitionLab";
 import { LIGHT_CASES, LIGHT_CASES_009, LightTimingOff, LightTimingOn, lightLab, lightLab009 } from "./lab/LightLab";
 import { AlleyTale } from "./scenes/AlleyTale";
@@ -141,6 +142,10 @@ export const RemotionRoot: React.FC = () => (
       ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
+    {/* مختبر التوجيه الدائم: الحلقة الجديدة بأدوات المحرك المعتمدة، بلا صوت، ولا يُنشر */}
+    <Composition id="lab-permanent-ch2-landscape" component={PermanentCh2} durationInFrames={permanentCh2Frames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "landscape" as const }} />
+    <Composition id="lab-permanent-ch2-portrait" component={PermanentCh2} durationInFrames={permanentCh2Frames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "portrait" as const }} />
+    <Composition id="lab-permanent-styles" component={PermanentStyles} durationInFrames={permanentStylesFrames()} fps={config.video.fps} {...sizes.landscape} />
     {/* مختبر الانتقالات (الأمر 011): بلا صوت، ولا يُنشر */}
     {orientations.map((o) => (
       <React.Fragment key={`tlab-${o}`}>

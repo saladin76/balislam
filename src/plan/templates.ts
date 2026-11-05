@@ -22,6 +22,20 @@ const CAMERA_OPTIONS = [
   { value: "drift", label: "انجراف هادئ" },
   { value: "still", label: "ثابتة" },
 ];
+/** أدوات المحرك (الأوامر 006–011) في محرر المشهد: فارغ = السلوك القائم حرفيًا */
+const GAIT_OPTIONS = [
+  { value: "", label: "الافتراضية" },
+  { value: "stroll", label: "تمهّل (stroll)" },
+  { value: "walk", label: "مشي عادي (walk)" },
+  { value: "brisk", label: "مشي سريع (brisk)" },
+  { value: "heavy", label: "مشي مثقل (heavy)" },
+];
+const MOTION_OPTIONS = [
+  { value: "", label: "القديمة (كما هي)" },
+  { value: "natural", label: "طبيعية: قدم ثابتة وتسارع والتفاتة بالجسد" },
+];
+const CAMERA_PLAN_HELP =
+  "مع الكاميرا المؤلَّفة فقط. فارغ = خطة آلية من كلمات المعنى. «ثابت» وحدها = كاميرا ساكنة. أو سطر لكل حركة: الكلمة (ويجوز +إطارات أو -إطارات) أو رقم الإطار | wide أو medium أو close ثم الهدف (hero، pair، door، board، center) ثم مدة اختيارية بالإطارات (12–300). السطر الأول 0 = التأطير الافتتاحي.";
 const LOOK_OPTIONS = [
   { value: "hero", label: "شاب (سترة)" },
   { value: "heroThobe", label: "شاب (ثوب)" },
@@ -239,8 +253,13 @@ export const templateDefs: TemplateDef[] = [
       { key: "place", label: "المكان", type: "select", options: [{ value: "alley", label: "حارة قديمة" }, { value: "market", label: "سوق" }, { value: "home", label: "بيت" }] },
       { key: "mood", label: "المزاج", type: "select", options: MOOD_OPTIONS },
       { key: "moodTo", label: "يتحول إلى", type: "select", options: [{ value: "", label: "لا يتحول" }, ...MOOD_OPTIONS] },
-      { key: "camera", label: "الكاميرا", type: "select", options: CAMERA_OPTIONS },
+      { key: "cameraMode", label: "وضع الكاميرا", type: "select", options: [{ value: "", label: "تلقائي (القديم: تأطير مع كل سطر)" }, { value: "directed", label: "إخراج يدوي (حركة «الكاميرا» وحدها)" }, { value: "composed", label: "مؤلَّفة: حركات قليلة على كلمات المعنى ومشي طبيعي" }], help: "المؤلَّفة تفعّل المشي الطبيعي والالتفات بالجسد واستمرار الحركة بين المشاهد (carry)." },
+      { key: "camera", label: "الكاميرا", type: "select", options: CAMERA_OPTIONS, help: "في الوضع المؤلَّف تتولاها خطة الكاميرا." },
+      { key: "cameraPlan", label: "خطة الكاميرا (اختياري)", type: "textarea", help: CAMERA_PLAN_HELP },
+      { key: "cameraPlanPortrait", label: "خطة الكاميرا للعمودي (اختياري)", type: "textarea", help: "مثل خطة الكاميرا، للنسخة العمودية وحدها؛ فارغ = الخطة نفسها." },
+      { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الكاميرا المؤلَّفة فقط." },
       { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away, walk, proud, apologize, listen, talk" },
+      { key: "poseTimeline", label: "وضعيات بتوقيت دقيق (اختياري)", type: "textarea", help: "سطر لكل حدث: رقم_الإطار | الوضعية (من قائمة الحركات أعلاه)، تحل محل الإيماءات الآلية." },
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
       { key: "shot", label: "لقطة مصمَّمة", type: "select", options: [{ value: "", label: "بلا (إخراج عام)" }, ...Object.entries(SHOTS).map(([value, d]) => ({ value, label: d.nameAr }))] },
       { key: "cast", label: "من في المشهد", type: "select", options: [{ value: "", label: "من معنى الكلام" }, { value: "solo", label: "البطل وحده" }, { value: "companion", label: "شخص أمامه" }, { value: "witnesses", label: "شاهدان على موقف واحد" }] },
@@ -260,6 +279,8 @@ export const templateDefs: TemplateDef[] = [
       { key: "mood", label: "المزاج", type: "select", options: MOOD_OPTIONS },
       { key: "moodTo", label: "يتحول إلى", type: "select", options: [{ value: "", label: "لا يتحول" }, ...MOOD_OPTIONS] },
       { key: "poses", label: "حركة المسافر", type: "text", help: "walk للمشي (الافتراضي)، أو stand ليقف طوال المشهد" },
+      { key: "motion", label: "طريقة المشي", type: "select", options: MOTION_OPTIONS, help: "الطبيعية: قدم ثابتة على الطريق المتحرك، وتباطؤ عند المحطات واندفاع بعدها." },
+      { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية stroll)." },
       { key: "look", label: "المسافر", type: "select", options: LOOK_OPTIONS },
       { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
       { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: lightingHelp("road-journey") },
@@ -275,6 +296,8 @@ export const templateDefs: TemplateDef[] = [
     fields: [
       { key: "mood", label: "لون الضوء", type: "select", options: [{ value: "night", label: "ضوء ورقي (حيرة وسؤال)" }, { value: "dawn", label: "ضوء الفجر (حق وخلاصة)" }] },
       { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away" },
+      { key: "motion", label: "الانتقال بين العلامات", type: "select", options: MOTION_OPTIONS, help: "الطبيعية: يمشي إلى علامة كل سطر بخطوات حقيقية بدل الانزلاق السريع، ويقصّر المسافة إن قصر السطر." },
+      { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية walk)." },
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
       { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
     ],

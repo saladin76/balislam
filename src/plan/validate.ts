@@ -1,3 +1,4 @@
+import { engineEnabled } from "./engine";
 import { hasElement } from "../../brand/elements/registry";
 import { parseCameraPlanLines, parsePoseTimeline } from "./director";
 import { lightingIssues } from "./lighting";
@@ -41,7 +42,9 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
       // الانتقال (الأمر 011): من المشهد السابق في الفصل نفسه، ويُرفض ما لا ينفذه المحرك أو لا يليق بالمشهد
       {
         const idx = ch.scenes.indexOf(s);
-        for (const i of transitionIssues(s, idx > 0 ? ch.scenes[idx - 1] : undefined)) out.push({ level: i.level, sceneId: s.id, message: i.message });
+        if (s.transition?.trim() && !engineEnabled("transitions", plan.channel))
+          out.push({ level: "error", sceneId: s.id, message: "الانتقالات غير مفعّلة لهذه القناة؛ احذف حقل الانتقال." });
+        else for (const i of transitionIssues(s, idx > 0 ? ch.scenes[idx - 1] : undefined)) out.push({ level: i.level, sceneId: s.id, message: i.message });
       }
       if (s.template === "road-journey") {
         if (p.motion && !["legacy", "natural"].includes(p.motion))
@@ -50,6 +53,16 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
           out.push({ level: "error", sceneId: s.id, message: "المشية غير معروفة؛ استخدم heavy أو stroll أو walk أو brisk." });
         if (p.gait && p.motion !== "natural")
           out.push({ level: "warning", sceneId: s.id, message: "المشية لا تعمل في «الطريق» إلا مع motion = natural." });
+      }
+      if (s.template === "light-stage") {
+        if (p.motion && !["legacy", "natural"].includes(p.motion))
+          out.push({ level: "error", sceneId: s.id, message: "حركة البطل غير معروفة؛ استخدم legacy أو natural." });
+        if (p.gait && !["stroll", "walk", "brisk", "heavy"].includes(p.gait))
+          out.push({ level: "error", sceneId: s.id, message: "المشية غير معروفة؛ استخدم heavy أو stroll أو walk أو brisk." });
+        if (p.gait && p.motion !== "natural")
+          out.push({ level: "warning", sceneId: s.id, message: "المشية لا تعمل في «ظل ونور» إلا مع motion = natural." });
+        if (p.motion === "natural" && /sit|head-down/.test(p.poses ?? ""))
+          out.push({ level: "warning", sceneId: s.id, message: "البطل جالس في هذا المشهد، فالحركة الطبيعية لا أثر لها هنا." });
       }
       if (s.template === "alley-tale" && plan.channel === "balislam") {
         if (p.cameraMode && !["automatic", "directed", "composed"].includes(p.cameraMode))

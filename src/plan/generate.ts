@@ -1,3 +1,4 @@
+import { applyEngineDefaults } from "./engine";
 import { beatsFor, beatsToText, isCuratedBeat } from "./beats";
 import { normalizeArabic, parseAyahRef, surahNameFor, toLatinDigits } from "../script/quranMeta";
 import type { ParsedScript } from "../script/types";
@@ -192,6 +193,10 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     for (const s of scenes) if (!templateById(s.template)) s.props.unknownTemplate = "1";
     return { number: ch.number, title: ch.title, scenes };
   });
+  // أدوات المحرك المعتمدة افتراضيًا: تُختم في الخطة لحظة إنشائها، والخطة القائمة تستعمل ختمها هي وحده
+  // (وغيابه في كل خطة قديمة = لا شيء)، فلا يتغير إنتاج سابق بإعادة التوليد
+  const engineDefaults = previous ? previous.engineDefaults : channel.production?.defaults;
+  for (const ch of chapters) for (const s of ch.scenes) applyEngineDefaults(s, engineDefaults);
   // إخراج القوالب المصوَّرة: المزاج والمكان والكاميرا وحركة البطل بحسب موضع المشهد في الحلقة
   directIllus(chapters, String(fm.episode ?? ""));
 
@@ -290,6 +295,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     // نبرة الحلقة: ما اختير في الاستوديو، وإلا tone: في ترويسة السكريبت
     ...(previous?.tone ? { tone: previous.tone } : isTone((fm as { tone?: string }).tone) ? { tone: (fm as { tone?: string }).tone } : {}),
     ...(previous?.intro === false ? { intro: false } : {}),
+    ...(engineDefaults?.length ? { engineDefaults: [...engineDefaults] } : {}),
     chapters,
   };
 };

@@ -19,6 +19,7 @@ import { api, type SceneReviewItem, type SceneReviewSummary, type RenderJob, typ
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import { TRANSITION_HELP } from "../../../src/plan/transitions";
+import { engineEnabled } from "../../../src/plan/engine";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { langPack } from "../../../src/i18n/packs";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
@@ -377,6 +378,7 @@ export const EpisodeTab: React.FC<{
                 onChange={(e) => { const n = Number(e.target.value); updateScene({ durationSec: e.target.value && Number.isFinite(n) && n >= 0.5 ? Math.min(n, 600) : undefined }); }}
               />
             </label>
+            {engineEnabled("transitions", channel.id) || scene.transition ? (
             <label className="field">
               <span>الدخول من المشهد السابق</span>
               <input
@@ -388,8 +390,9 @@ export const EpisodeTab: React.FC<{
                 onChange={(e) => updateScene({ transition: e.target.value.trim() ? e.target.value : undefined })}
               />
             </label>
+            ) : null}
           </div>
-          {(() => {
+          {(engineEnabled("transitions", channel.id) || scene.transition) && (() => {
             const errs = liveIssues.filter((i) => i.sceneId === scene.id && /الانتقال/.test(i.message));
             return (
               <div className="help" style={{ marginTop: -4 }}>

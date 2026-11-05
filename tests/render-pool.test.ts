@@ -252,7 +252,8 @@ describe("الاستعادة بعد إعادة التشغيل (عمليات حق
     const d = dir();
     const ledger = path.join(d, "studio-queue.json");
     // «الاستوديو الأول»: مهمة تنتهي، وأخرى تعمل طويلًا، وثالثة تنتظر
-    const p1 = new RenderPool({ ledger, cpus: 2, maxParallel: 2, pollMs: 20, ...noEvidence });
+    // معزول عن رندرات أخرى تعمل على الجهاز نفسه (تُعد خانات «أجنبية» فتؤخر المهام): الاختبار للاستعادة لا لتقاسم الجهاز
+    const p1 = new RenderPool({ ledger, cpus: 2, maxParallel: 2, pollMs: 20, foreign: () => [], ...noEvidence });
     p1.add(nodeTask(d, "finished", 10));
     await new Promise((r) => setTimeout(r, 600));
     expect(p1.tasks.get("finished")!.status).toBe("done");
@@ -274,7 +275,8 @@ describe("الاستعادة بعد إعادة التشغيل (عمليات حق
       }
     };
     expect(alive(orphanPid)).toBe(true);
-    const p2 = new RenderPool({ ledger, cpus: 2, maxParallel: 2, pollMs: 20, ...noEvidence });
+    // معزول عن رندرات أخرى تعمل على الجهاز نفسه (تُعد خانات «أجنبية» فتؤخر المهام): الاختبار للاستعادة لا لتقاسم الجهاز
+    const p2 = new RenderPool({ ledger, cpus: 2, maxParallel: 2, pollMs: 20, foreign: () => [], ...noEvidence });
     const seen: string[] = [];
     const r = await p2.recover((def) => {
       seen.push(def.id);

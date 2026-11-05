@@ -388,7 +388,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
             {memory.map((c, i) => {
               const col = c.kind === "wrong" ? ID.seal : ID.dawn;
               const side = i % 2 ? 1 : -1;
-              const x = stage === "witnesses" && c.kind !== "memory" ? (c.kind === "wrong" ? 640 : 1300) : heroX + side * (300 + i * 40);
+              const x0 = stage === "witnesses" && c.kind !== "memory" ? (c.kind === "wrong" ? 640 : 1300) : heroX + side * (300 + i * 40);
+              // الكاميرا المؤلَّفة: الكلمة داخل الإطار الظاهر كاملة (لا تُقص على حافته، خاصة في العمودي)
+              const x = composedCam ? pillInView(x0, c.word, composedCam, portrait) : x0;
               return <WordPill key={c.word} x={x} y={GROUND - 420 - (stage === "witnesses" ? 40 : i * 56)} text={c.word} color={col} t={rise(frame, c.at, 12)} />;
             })}
           </g>
@@ -498,6 +500,14 @@ export const composedCamera = (o: {
   return { ...frameOn(cur.x, cur.z * (1 + breath), pt), keys: beats.length, still };
 };
 
+/** موضع كلمة في طبقة العمق 1 بحيث تقع كاملة داخل الإطار الظاهر (بهامش)، وإلا في منتصفه */
+export const pillInView = (x: number, word: string, c: CamState, portrait: boolean, size = 46) => {
+  const half = (portrait ? 304 : 960) / c.z;
+  const w = word.length * size * 0.58 + 64;
+  const lo = c.x - half + w / 2 + 24;
+  const hi = c.x + half - w / 2 - 24;
+  return lo > hi ? c.x : Math.max(lo, Math.min(hi, x));
+};
 /** تحويل طبقة بعمق depth: الطبقات البعيدة تتحرك وتكبر أقل (منظور) */
 const composedLayer = (c: CamState, depth: number) => {
   const k = 0.4 + depth * 0.6;

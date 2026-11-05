@@ -45,7 +45,7 @@ export const transitionLabPlan = (withTransitions = true, cases: Case[] = TRANSI
       ...(withTransitions && into?.transition ? { transition: into.transition } : {}),
     } as PlanScene);
   }
-  return { version: 1, title: "مختبر الانتقالات", themeId: "night", chapters: [{ number: 1, title: "الانتقالات", scenes }] } as unknown as Plan;
+  return { version: 1, title: "مختبر الانتقالات", channel: "balislam", themeId: "night", chapters: [{ number: 1, title: "الانتقالات", scenes }] } as unknown as Plan;
 };
 
 /** لوحة اسم الانتقال حول كل حد (ثانية قبله حتى ثانية بعد نهايته) */

@@ -13,6 +13,7 @@ import { Providers } from "../Providers";
 import { langPack } from "../../i18n/packs";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../channel/types";
+import { engineEnabled } from "../../plan/engine";
 import { parseTransition, transitionIssues, type Transition } from "../../plan/transitions";
 import { FrozenScene, TransitionContext, TransitionIn, type TransitionCtx } from "./transitions";
 import { useTheme } from "../../../brand/identity/index";
@@ -66,7 +67,8 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
 };
 
 /** الانتقال الصالح بين مشهدين (لا يُطبَّق ما يرفضه فحص الخطة) */
-export const activeTransition = (scene: PlanScene, prev: PlanScene): Transition | null => {
+export const activeTransition = (scene: PlanScene, prev: PlanScene, channelId?: string): Transition | null => {
+  if (!scene.transition || !engineEnabled("transitions", channelId)) return null;
   const r = parseTransition(scene.transition);
   if (!r || !r.ok) return null;
   return transitionIssues(scene, prev).some((i) => i.level === "error") ? null : r.t;
@@ -110,8 +112,8 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           return <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
         };
         // الانتقال (الأمر 011): يُطبَّق فقط إن كان صالحًا لهذا الزوج؛ وبدونه يبقى السلوك القائم حرفيًا
-        const tIn = prev ? activeTransition(scene, prev) : null;
-        const tOut = next ? activeTransition(next, scene) : null;
+        const tIn = prev ? activeTransition(scene, prev, plan.channel) : null;
+        const tOut = next ? activeTransition(next, scene, plan.channel) : null;
         const ctx: TransitionCtx = {
           ...(tOut ? { holdExit: true } : {}),
           ...(tIn ? { skipEnter: true } : {}),

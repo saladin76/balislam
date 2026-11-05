@@ -654,6 +654,13 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
             typeof v.name !== "string" || !v.name.trim() || v.name.length > 160)
           return send(res, 400, { error: "اختيار قارئ AlQuran Cloud للمعاينة غير صالح." }), true;
       }
+      // أدوات المحرك الافتراضية للحلقات الجديدة: لا يُقبل إلا أساس يعمل في مكتبة هذه القناة
+      if (channel.production != null) {
+        const { engineDefaultsIssues } = await load("/src/plan/engine.ts");
+        const { templateExclusion } = await load("/src/channel/library.ts");
+        const bad = engineDefaultsIssues(channel.production.defaults, (t: string) => !templateExclusion(channel, t), ch);
+        if (bad.length) return send(res, 400, { error: bad.join(" ") }), true;
+      }
       await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(channel, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, ch_.loadChannel(ch));

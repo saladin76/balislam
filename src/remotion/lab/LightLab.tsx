@@ -62,7 +62,7 @@ export const LIGHT_CASES: { id: string; title: string; sub: string; before: Reac
 const T: React.CSSProperties = { fontFamily: "Tajawal, sans-serif", direction: "rtl", textAlign: "center" };
 
 type Labels = { beforeLabel?: string; afterLabel?: string; footer?: string };
-const Split: React.FC<{ c: { title: string; sub: string; before: React.ReactNode; after: React.ReactNode } & Labels }> = ({ c }) => (
+export const Split: React.FC<{ c: { title: string; sub: string; before: React.ReactNode; after: React.ReactNode } & Labels }> = ({ c }) => (
   <AbsoluteFill style={{ background: "#071512" }}>
     <div style={{ position: "absolute", top: 34, left: 0, right: 0, ...T, color: "#F4EEE2", fontSize: 40, fontWeight: 700 }}>{c.title}</div>
     <div style={{ position: "absolute", top: 96, left: 80, right: 80, ...T, color: "#C9A24A", fontSize: 23 }}>{c.sub}</div>
@@ -143,7 +143,7 @@ export const LIGHT_CASES_009: Case9[] = [
   },
 ];
 
-const PortraitSplit: React.FC<{ c: Case9 }> = ({ c }) => (
+export const PortraitSplit: React.FC<{ c: Case9 }> = ({ c }) => (
   <AbsoluteFill style={{ background: "#071512" }}>
     <div style={{ position: "absolute", top: 30, left: 0, right: 0, ...T, color: "#F4EEE2", fontSize: 40, fontWeight: 700 }}>{c.title}</div>
     <div style={{ position: "absolute", top: 90, left: 80, right: 80, ...T, color: "#C9A24A", fontSize: 23 }}>{c.sub}</div>

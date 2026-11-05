@@ -39,6 +39,11 @@ export type ChannelConfig = {
   schedule?: { longDay: number; time?: string; shortsPerDay?: number };
   /** الأساليب البصرية التي تتناوب عليها حلقات القناة (للتنوّع) */
   styles?: string[];
+  /**
+   * أدوات المحرك المعتمدة افتراضيًا للحلقات الجديدة (معرّفات من src/plan/engine.ts، بقرار صاحب القناة
+   * من الاستوديو). لا تمس الحلقات القائمة. غيابها = لا افتراضي جديد.
+   */
+  production?: { defaults?: string[]; approvedAt?: Record<string, string> };
   /** بصمة القناة الثابتة: الافتتاحية وأسلوب الصورة المصغّرة */
   brand?: { intro?: "mihrab" | "horizon" | "highlighter" | "none"; thumbnail?: "mihrab" | "horizon" | "highlighter" | "circle"; /** مظهر المشاهد المرسومة: سينمائي أو مسطح */ sceneLook?: "cinema" | "flat" };
   /** صوت القناة في ElevenLabs (إن غاب: ELEVENLABS_VOICE_ID من الإعدادات) */

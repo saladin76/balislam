@@ -1,3 +1,4 @@
+import { channelEngineFeatures, ENGINE_STATUS_AR, engineStatus } from "../../../src/plan/engine";
 import React, { useState } from "react";
 import { Player } from "@remotion/player";
 import { api } from "../api";
@@ -141,7 +142,59 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
         </div>
         <span className="help">الأساليب المتاحة من مكتبة القناة فقط. غرفة العمليات تنبّهك إن تكرر أسلوب حلقتين متتاليتين، وتقترح من هذه القائمة.</span>
       </div>
+      <EnginePanel c={c} set={set} />
     </section>
+  );
+};
+
+/**
+ * أدوات المحرك (التوجيه الدائم): حالة كل ما بُني، في قوالب مكتبة هذه القناة وحدها.
+ * الأساس يصير افتراضيًا للحلقات الجديدة فقط باعتماد صاحب القناة؛ والمؤثرات متاحة ولا تُفرض.
+ */
+const EnginePanel: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>) => void }> = ({ c, set }) => {
+  const allowed = (t: string) => !templateExclusion(c, t);
+  const rows = channelEngineFeatures(c.id).map((f) => ({ f, st: engineStatus(f, c, allowed) })).filter((r) => r.st !== "unavailable");
+  if (!rows.length) return null;
+  const defaults = c.production?.defaults ?? [];
+  const toggle = (id: string, on: boolean) => {
+    const next = on ? [...defaults.filter((x) => x !== id), id] : defaults.filter((x) => x !== id);
+    const approvedAt = { ...(c.production?.approvedAt ?? {}) };
+    if (on) approvedAt[id] = new Date().toISOString();
+    else delete approvedAt[id];
+    set({ production: { defaults: next, approvedAt } });
+  };
+  return (
+    <div className="field" id="engine-panel">
+      <span>أدوات المحرك <small>حالة ما بُني في الأوامر 005–011 لهذه القناة</small></span>
+      <table className="engine-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <tbody>
+          {rows.map(({ f, st }) => (
+            <tr key={f.id} data-engine={f.id} data-status={st} style={{ borderTop: "1px solid var(--line, #0002)" }}>
+              <td style={{ padding: "8px 4px", verticalAlign: "top" }}>
+                <b>{f.nameAr}</b> <small style={{ opacity: 0.6 }}>({f.order})</small>
+                <div className="help">{f.summary}</div>
+                <div className="help">التحكم: {f.control}</div>
+                {f.limits ? <div className="help">حدود: {f.limits}</div> : null}
+              </td>
+              <td style={{ padding: "8px 4px", verticalAlign: "top", whiteSpace: "nowrap" }}>
+                <span className={`chip ${st === "default" || st === "always" ? "on" : ""}`}>{ENGINE_STATUS_AR[st]}</span>
+                {f.kind === "base" ? (
+                  <div style={{ marginTop: 6 }}>
+                    {st === "default" ? (
+                      <button className="btn small ghost" onClick={() => toggle(f.id, false)} title="الحلقات الجديدة تعود للسلوك القديم؛ القائمة لا تتغير">إلغاء الافتراضي</button>
+                    ) : (
+                      <button className="btn small" onClick={() => toggle(f.id, true)} title="يُختم في خطط الحلقات الجديدة فقط؛ الحلقات القائمة لا تتغير">اعتمده افتراضيًا للحلقات الجديدة</button>
+                    )}
+                    {c.production?.approvedAt?.[f.id] ? <div className="help">اعتُمد {new Date(c.production.approvedAt[f.id]!).toLocaleDateString("ar")}</div> : null}
+                  </div>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <span className="help">الاعتماد الافتراضي يُختم في خطة كل حلقة جديدة لحظة إنشائها، فلا يغيّر حلقة قائمة ولا فيديو معتمدًا، ويبقى تعديله لكل مشهد من محرر المشهد. المؤثرات (الإضاءة والانتقالات) لا تُفرض أبدًا.</span>
+    </div>
   );
 };
 

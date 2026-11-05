@@ -11,13 +11,24 @@ import { GROUND, Glow, WordPill, WW, WH, clampOpt, rise, useSvgId } from "../ill
 import { StageFloor } from "../illus/places";
 import { TopCaption, captionLines } from "../illus/TopCaption";
 import type { SceneBase, StringFields } from "./types";
+import { fitDistance, GAIT_IDS, locomote, locoPose, poseAtNatural, type GaitId, type LocoState, type Move } from "../illus/gait";
 
 /**
  * «ظل ونور»: مسرح مظلم وبقعة ضوء. البطل وحده تقريبًا، والمعنى يُروى بالضوء:
  * يتحرك البطل إلى علامة جديدة مع كل سطر وتتبعه البقعة، و«الحقيقة» تفتح ضوء الفجر واسعًا،
  * و«الخطأ» يغمر جانبًا بلون الختم، و«الناس» يظهرون في بقع صغيرة حوله، و«الخبر» ورقة تضيئه من أسفل.
  */
-export type LightStageProps = SceneBase & StringFields<"mood" | "poses" | "cues" | "look">;
+export type LightStageProps = SceneBase &
+  StringFields<"mood" | "poses" | "cues" | "look"> & {
+    /**
+     * حركة البطل بين العلامات: "legacy" (الافتراضي، كما هو منذ البداية: انتقال 26 إطارًا) أو "natural"
+     * من طبقة الحركة المشتركة (مشية حقيقية بقدم ثابتة، تسارع وتباطؤ، التفاتة بالجسد، ومتابعة الثوب).
+     * المسافة تُقصَّر إن لم يتسع السطر لها، فلا يسرع البطل أبدًا فوق مشيته. اختياري ولا يغير شيئًا قائمًا.
+     */
+    motion?: string;
+    /** المشية مع motion = "natural" (الافتراضي walk) */
+    gait?: string;
+  };
 
 const MARKS = [960, 700, 1220, 860, 1080];
 
@@ -57,9 +68,27 @@ export const LightStage: React.FC<LightStageProps> = (props) => {
   const markOf = (i: number) => MARKS[i % MARKS.length]!;
   const tMove = interpolate(frame, [starts[shot]!, starts[shot]! + 26], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.sin) });
   const fromX = shot === 0 ? markOf(0) : markOf(shot - 1);
-  const heroX = /sit|head-down/.test(props.poses ?? "") ? MARKS[0]! : fromX + (markOf(shot) - fromX) * tMove;
   const sittingScene = /sit|head-down/.test(props.poses ?? "");
-  const moving = !sittingScene && shot > 0 && tMove > 0 && tMove < 1;
+  // الحركة الطبيعية (اختيارية): مشية إلى كل علامة تبدأ مع سطرها، بطول يتسع له السطر
+  const natural = props.motion === "natural" && !sittingScene;
+  const gait: GaitId = (GAIT_IDS as readonly string[]).includes(props.gait ?? "") ? (props.gait as GaitId) : "walk";
+  const SCALE = 1.8;
+  let loco: LocoState | null = null;
+  if (natural) {
+    const moves: Move[] = [];
+    let x = markOf(0);
+    for (let i = 1; i < starts.length; i++) {
+      const s0 = starts[i]!;
+      const s1 = starts[i + 1] ?? dur;
+      const room = fitDistance(gait, s1 - s0 - 8, SCALE, fps);
+      const d = Math.max(-room, Math.min(room, markOf(i) - x));
+      if (Math.abs(d) > 4) moves.push({ start: s0, dx: d, gait });
+      x += d;
+    }
+    loco = locomote(frame, { x0: markOf(0), facing0: 1, moves, scale: SCALE, fps });
+  }
+  const heroX = loco ? loco.x : sittingScene ? MARKS[0]! : fromX + (markOf(shot) - fromX) * tMove;
+  const moving = !natural && !sittingScene && shot > 0 && tMove > 0 && tMove < 1;
   const facingLeft = markOf(shot) < fromX;
 
   const groups = sentenceGroups(narration, 3);
@@ -78,7 +107,7 @@ export const LightStage: React.FC<LightStageProps> = (props) => {
   });
   const newsAt = at("news");
   if (newsAt !== undefined) timeline.push({ at: newsAt + 4, pose: "hold" });
-  let pose = poseAt(frame, timeline);
+  let pose = loco ? locoPose(poseAtNatural(frame, timeline), loco) : poseAt(frame, timeline);
   if (moving) pose = walkPose(pose, (frame / fps) * Math.PI * 2, Math.sin(tMove * Math.PI));
   const sitting = /sit|head-down/.test(props.poses ?? "");
   const holding: Holding = newsAt !== undefined && frame >= newsAt ? "paper" : "none";
@@ -136,7 +165,7 @@ export const LightStage: React.FC<LightStageProps> = (props) => {
               : null}
             {news > 0 ? <Glow cx={heroX + 40} cy={GROUND - 250} r={300} color={ID.dawn} opacity={news * 0.8} /> : null}
             {sitting ? <g><rect x={heroX - 70} y={GROUND + 30 - 112} width={150} height={112} fill={darken(ID.night, 0.2)} /><rect x={heroX - 76} y={GROUND + 30 - 120} width={162} height={12} fill={mix(ID.night, ID.copper, 0.3)} /></g> : null}
-            <Figure x={heroX} y={GROUND + 30} scale={sitting ? 1.75 : 1.8} pose={pose} look={look} flip={facingLeft} holding={holding} frame={frame} rim={Math.max(truth, news) * 0.9} />
+            <Figure x={heroX} y={GROUND + 30} scale={sitting ? 1.75 : 1.8} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, view: loco.view, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, news) * 0.9} />
             {memory.map((c, i) => (
               <WordPill key={c.word} x={heroX + (i % 2 ? 360 : -360)} y={GROUND - 470 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
             ))}
