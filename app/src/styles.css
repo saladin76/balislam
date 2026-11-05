@@ -259,6 +259,13 @@ table.stats td.bad { color: var(--warn); font-weight: 600; }
   .channel-provider-controls > button { justify-self: start; }
   .channel-tab .toolbar { gap: 8px; }
 }
+.channel-cloud-preview { border-top: 1px solid var(--line); padding-top: 12px; min-width: 0; }
+.channel-cloud-preview > strong { font-size: 13px; }
+.channel-cloud-preview p { margin: 0; }
+.channel-cloud-preview code { display: inline-block; margin-inline-start: 6px; font-size: 11px; overflow-wrap: anywhere; }
+.channel-cloud-results { display: grid; gap: 6px; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+.channel-cloud-results label { font-size: 12px; font-weight: 600; }
+.channel-cloud-results input, .channel-cloud-results select { width: 100%; min-width: 0; }
 .dom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .dom-table th, .dom-table td { text-align: start; padding: 4px 6px; border-bottom: 1px solid var(--line); }
 .dom-table th { color: var(--muted); font-weight: 600; }

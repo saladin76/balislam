@@ -7,6 +7,12 @@ import type { CloudRecitation } from "../../../src/quran/provider";
 export const previewReciterKey = (channelId: string, episodeId: string) =>
   `balislam:alquran-preview:${encodeURIComponent(channelId)}:${encodeURIComponent(episodeId)}`;
 
+/** Channel preview choice is used only when this episode has no explicit preview override. */
+export const previewEditionFor = (episodeChoice: string | null, channelChoice?: string): string => {
+  const valid = (s?: string | null) => !!s && /^ar\.[a-z0-9._-]{1,75}$/i.test(s);
+  return valid(episodeChoice) ? episodeChoice! : valid(channelChoice) ? channelChoice! : "ar.alafasy";
+};
+
 export const filterAudioEditions = (editions: AlQuranAudioEdition[], term: string) => {
   const query = term.trim().toLocaleLowerCase();
   return query ? editions.filter((e) =>
@@ -31,25 +37,38 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [activeProduction, setActiveProduction] = useState<CloudRecitation | null>(null);
   const [saving, setSaving] = useState(false);
   const mounted = useRef(true);
+  const previewManuallyChanged = useRef(false);
   const visibleEditions = useMemo(() => filterAudioEditions(editions, search), [editions, search]);
 
   useEffect(() => {
     setEnabled(false); setEditions([]); setPreview(null); setError(""); setSearch(""); setSurah(1); setAyah(1);
     setLicenceHolder(""); setLicenceEvidence(""); setConfirmed(false); setProductionStatus(""); setActiveProduction(null);
     let alive = true;
+    previewManuallyChanged.current = false;
     mounted.current = true;
     api.recitationChoice(episodeId, channelId).then(({ recitation }) => {
       if (!alive) return;
       setActiveProduction(recitation);
     }).catch(() => { /* the production form handles API failures when used */ });
-    try {
-      const stored = localStorage.getItem(previewReciterKey(channelId, episodeId));
-      setEdition(stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored) ? stored : "ar.alafasy");
-    } catch { setEdition("ar.alafasy"); }
+    // Episode preview preference overrides the channel preview default.
+    // Neither preference is an authorisation for production or publication.
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(previewReciterKey(channelId, episodeId)); }
+    catch { /* storage may be disabled */ }
+    if (stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored)) {
+      setEdition(previewEditionFor(stored));
+    } else {
+      setEdition(previewEditionFor(null));
+      api.channelFor(channelId).then((channel) => {
+        const preferred = channel.alquranPreviewRecitation?.edition;
+        if (alive && !previewManuallyChanged.current) setEdition(previewEditionFor(null, preferred));
+      }).catch(() => { /* keep safe preview fallback */ });
+    }
     return () => { alive = false; mounted.current = false; };
   }, [channelId, episodeId]);
 
   const selectEdition = (id: string) => {
+    previewManuallyChanged.current = true;
     setEdition(id); setPreview(null);
     try { localStorage.setItem(previewReciterKey(channelId, episodeId), id); } catch { /* restricted browser storage */ }
   };
