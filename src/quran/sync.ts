@@ -84,7 +84,8 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
             if (len > 20_000_000) throw new Error("حجم ملف التلاوة أكبر من الحد الآمن.");
             const bytes = Buffer.from(await res.arrayBuffer());
             if (bytes.length < 100 || bytes.length > 20_000_000) throw new Error("ملف التلاوة غير صالح أو كبير جدًا.");
-            const file = `${id}-${surah}-${n}.mp3`;
+            // Preserve the existing Quran Foundation filename contract for old episodes.
+            const file = isCloudRecitation(recitation) ? `${id}-${surah}-${n}.mp3` : `${recitation.id}-${surah}-${n}.mp3`;
             const temp = path.join(recDir, `${file}.tmp`);
             await writeFile(temp, bytes);
             try {
