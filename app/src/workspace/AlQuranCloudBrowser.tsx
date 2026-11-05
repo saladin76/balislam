@@ -42,10 +42,21 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
       if (!alive) return;
       setActiveProduction(recitation);
     }).catch(() => { /* the production form handles API failures when used */ });
-    try {
-      const stored = localStorage.getItem(previewReciterKey(channelId, episodeId));
-      setEdition(stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored) ? stored : "ar.alafasy");
-    } catch { setEdition("ar.alafasy"); }
+    // Episode preview preference overrides the channel preview default.
+    // Neither preference is an authorisation for production or publication.
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(previewReciterKey(channelId, episodeId)); }
+    catch { /* storage may be disabled */ }
+    if (stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored)) {
+      setEdition(stored);
+    } else {
+      setEdition("ar.alafasy");
+      api.channelFor(channelId).then((channel) => {
+        const preferred = channel.alquranPreviewRecitation?.edition;
+        if (alive && preferred && /^ar\.[a-z0-9._-]{1,75}$/i.test(preferred))
+          setEdition(preferred);
+      }).catch(() => { /* keep safe preview fallback */ });
+    }
     return () => { alive = false; mounted.current = false; };
   }, [channelId, episodeId]);
 
