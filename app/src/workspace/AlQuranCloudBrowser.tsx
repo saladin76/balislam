@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api, type AlQuranAudioEdition, type AlQuranAyahPreview } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import type { CloudRecitation } from "../../../src/quran/provider";
+import { filterRecitersByRights, commercialEvidenceFor, type ReciterRightsFilter } from "./recitationRights";
 
 /** A local preview preference only: NEVER an approved production recitation choice. */
 export const previewReciterKey = (channelId: string, episodeId: string) =>
@@ -25,6 +26,7 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [editions, setEditions] = useState<AlQuranAudioEdition[]>([]);
   const [edition, setEdition] = useState("ar.alafasy");
   const [search, setSearch] = useState("");
+  const [rightsFilter, setRightsFilter] = useState<ReciterRightsFilter>("all");
   const [surah, setSurah] = useState(1);
   const [ayah, setAyah] = useState(1);
   const [preview, setPreview] = useState<AlQuranAyahPreview | null>(null);
@@ -38,7 +40,7 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [saving, setSaving] = useState(false);
   const mounted = useRef(true);
   const previewManuallyChanged = useRef(false);
-  const visibleEditions = useMemo(() => filterAudioEditions(editions, search), [editions, search]);
+  const visibleEditions = useMemo(() => filterAudioEditions(filterRecitersByRights(editions, rightsFilter), search), [editions, search, rightsFilter]);
 
   useEffect(() => {
     setEnabled(false); setEditions([]); setPreview(null); setError(""); setSearch(""); setSurah(1); setAyah(1);
@@ -175,16 +177,24 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
         {loading && <p role="status">جارٍ الاتصال بمكتبة القرآن…</p>}
         {error && <p role="alert">{error}</p>}
         {!!editions.length && <div className="ew-reciter-controls">
+          <label htmlFor="alquran-rights">تصنيف حقوق الاستخدام التجاري</label>
+          <select id="alquran-rights" value={rightsFilter} onChange={(e) => setRightsFilter(e.target.value as ReciterRightsFilter)}>
+            <option value="all">جميع القرّاء</option>
+            <option value="verified">استخدام تجاري موثّق</option>
+            <option value="review">يحتاج مراجعة</option>
+          </select>
+          <span className="help">الظهور في AlQuran Cloud ليس دليلًا على تصريح تجاري. حالة «موثّق» تتطلب دليلًا تمت مراجعته لتسجيل محدد.</span>
           <label htmlFor="alquran-search">البحث عن قارئ</label>
           <input id="alquran-search" type="search" value={search} placeholder="اسم القارئ أو معرّفه" onChange={(e) => setSearch(e.target.value)} />
-          <span className="ew-reciter-count" role="status">{visibleEditions.length} نتيجة من أصل {editions.length} تسجيلًا</span>
+          <span className="ew-reciter-count" role="status">{visibleEditions.length} نتيجة من أصل {editions.length} تسجيلًا{rightsFilter === "verified" && !visibleEditions.length ? " — لا يوجد دليل ترخيص تجاري متحقق منه في السجل الحالي" : ""}</span>
           <label htmlFor="alquran-edition">اختر القارئ</label>
           <select id="alquran-edition" value={edition} onChange={(e) => selectEdition(e.target.value)}>
             {!visibleEditions.some((e) => e.identifier === edition) && editions.some((e) => e.identifier === edition) &&
-              <option value={edition}>{editions.find((e) => e.identifier === edition)?.name} (المختار)</option>}
+              <option value={edition}>{editions.find((e) => e.identifier === edition)?.name} (المختار خارج نتائج الفلتر)</option>}
             {visibleEditions.map((e) => <option key={e.identifier} value={e.identifier}>{e.name} — {e.identifier}</option>)}
           </select>
-          {!visibleEditions.length && <p>لا توجد نتائج مطابقة. امسح البحث لعرض القائمة كاملة.</p>}
+          {!visibleEditions.length && <p>{rightsFilter === "verified" ? "لا توجد تسجيلات موثقة تجاريًا في سجل المراجعة حاليًا. يمكنك اختيار «جميع القرّاء» للاستماع." : "لا توجد نتائج مطابقة. غيّر التصنيف أو امسح البحث."}</p>}
+          <p className="help">القارئ المحدد: {commercialEvidenceFor(edition) ? "استخدام تجاري موثّق" : "حقوق الاستخدام التجاري تحتاج مراجعة"}</p>
           <div className="ew-reciter-verse-row"><label htmlFor="alquran-surah">رقم السورة (1–114)</label>
           <input id="alquran-surah" type="number" min={1} max={114} value={surah} onChange={(e) => {
             setSurah(Number(e.target.value)); setAyah(1); setPreview(null);

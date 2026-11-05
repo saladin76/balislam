@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createAlQuranClient, AlQuranError } from "../src/quran/alquranCloud";
+import { filterRecitersByRights, validCommercialEvidence, verifiedCommercialEditions } from "../app/src/workspace/recitationRights";
 import { filterAudioEditions, previewReciterKey, previewEditionFor } from "../app/src/workspace/AlQuranCloudBrowser";
 
 const edition = { identifier: "ar.alafasy", name: "مشاري العفاسي" };
@@ -48,6 +49,28 @@ describe("AlQuran Cloud read-only ayah integration", () => {
     expect(previewEditionFor("ar.minshawi", "ar.husary")).toBe("ar.minshawi");
     expect(previewEditionFor(null, "../../bad")).toBe("ar.alafasy");
     expect(previewEditionFor("wrong", "ar.husary")).toBe("ar.husary");
+  });
+
+  it("does not misrepresent all available audio editions as licensed for commercial reuse", () => {
+    const voices = [edition, { identifier: "ar.husary", name: "محمود خليل الحصري" }];
+    expect(verifiedCommercialEditions).toEqual([]);
+    expect(filterRecitersByRights(voices, "all")).toEqual(voices);
+    expect(filterRecitersByRights(voices, "verified")).toEqual([]);
+    expect(filterRecitersByRights(voices, "review")).toEqual(voices);
+  });
+
+  it("recognizes only edition-specific evidence with commercial YouTube scope", () => {
+    const voices = [edition, { identifier: "ar.husary", name: "محمود خليل الحصري" }];
+    const proof = {
+      edition: "ar.husary", holder: "Rights holder",
+      evidenceUrl: "https://example.org/licence", scope: "Commercial YouTube publication",
+      reviewedAt: "2026-11-05T14:00:00Z",
+    };
+    expect(validCommercialEvidence(proof)).toBe(true);
+    expect(filterRecitersByRights(voices, "verified", [proof])).toEqual([voices[1]]);
+    expect(filterRecitersByRights(voices, "review", [proof])).toEqual([voices[0]]);
+    expect(filterRecitersByRights(voices, "verified", [{ ...proof, scope: "Personal listening only" }])).toEqual([]);
+    expect(filterRecitersByRights(voices, "verified", [{ ...proof, evidenceUrl: "http://example.org/licence" }])).toEqual([]);
   });
 
   it("filters multiple reciters and keeps preview selection scoped to channel and episode", () => {
