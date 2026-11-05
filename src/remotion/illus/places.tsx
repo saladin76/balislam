@@ -70,14 +70,22 @@ export const Home: React.FC<{ mood: Mood; frame: number; lit: number }> = ({ moo
 
 /** الطريق: تلال بطبقتين وطريق ممتد، وبيئة لكل فصل (أطراف المدينة، الحقول، الصحراء، التلة) */
 export type Biome = "city" | "fields" | "desert" | "hill";
-export const RoadLand: React.FC<{ mood: Mood; biome: Biome; shift?: number; frame: number }> = ({ mood, biome, shift = 0, frame }) => {
+/**
+ * طبقات العمق في الطريق (الأمر 009): اختيارية. layer يلف كل طبقة بعمقها (0 أبعد … 1 مستوى المسافر)،
+ * وparallax يكبّر الفرق في سرعة مرور الطبقات أو يصغّره. بدونها يُرسم الطريق كما كان حرفيًا.
+ */
+export type RoadDepth = { layer: (depth: number, node: React.ReactNode) => React.ReactNode; parallax: number };
+export const RoadLand: React.FC<{ mood: Mood; biome: Biome; shift?: number; frame: number; depth?: RoadDepth }> = ({ mood, biome, shift = 0, frame, depth }) => {
   const sky = MOODS[mood].sky;
   const far = mix(mix(sky[1], darken(ID.night, 0.3), 0.4), ID.copper, 0.12);
   const mid = mix(mix(sky[1], darken(ID.night, 0.45), 0.6), ID.copper, 0.16);
   const near = mix(darken(ID.night, 0.5), stoneFor(mood, 0.5), 0.35);
     const P = 2880;
   // المنظر يتحرك يمينًا لأن المسافر يمشي يسارًا (اتجاه القراءة)، ونمط التلال دوري فلا قفزة عند التكرار
-  const sx = (k: number) => ((shift * k) % P) - P;
+  // سرعة مرور الطبقة: k^parallax (القريبة k = 1 لا تتغير، والبعيدة تبطؤ أكثر كلما زاد المعامل)
+  const kk = (k: number) => (depth && depth.parallax !== 1 ? Math.pow(k, depth.parallax) : k);
+  const sx = (k: number) => ((shift * kk(k)) % P) - P;
+  const L = (d: number, node: React.ReactNode) => (depth ? depth.layer(d, node) : node);
   const hills = (y: number, amp: number, col: string, k: number, seed: number) => {
     const rr = rand(seed);
     const pts = Array.from({ length: 12 }, () => [rr(), rr()] as const);
@@ -98,8 +106,9 @@ export const RoadLand: React.FC<{ mood: Mood; biome: Biome; shift?: number; fram
   void frame;
   return (
     <g>
-      {biome === "city" ? <g transform={`translate(${sx(0.15) + P} 0)`}><Skyline mood={mood} base={GROUND - 210} dome={1300} minaret={1650} seed={8} w={WW} /></g> : null}
-      {hills(GROUND - 230, biome === "desert" ? 160 : 90, far, 0.25, 3)}
+      {biome === "city" ? L(0.15, <g transform={`translate(${sx(0.15) + P} 0)`}><Skyline mood={mood} base={GROUND - 210} dome={1300} minaret={1650} seed={8} w={WW} /></g>) : null}
+      {L(0.25, hills(GROUND - 230, biome === "desert" ? 160 : 90, far, 0.25, 3))}
+      {L(0.5, <>
       {hills(GROUND - 120, biome === "hill" ? 200 : 70, mid, 0.5, 5)}
       {biome === "fields"
         ? Array.from({ length: 60 }, (_, i) => {
@@ -120,6 +129,7 @@ export const RoadLand: React.FC<{ mood: Mood; biome: Biome; shift?: number; fram
             );
           })
         : null}
+      </>)}
       {/* أعمدة قناديل على جانب الطريق تمر بالمسافر: تعطي الرحلة إيقاع خطواتها */}
       {Array.from({ length: 8 }, (_, i) => {
         const x = ((i * 560 + shift * 1.0) % (560 * 8)) - 560;

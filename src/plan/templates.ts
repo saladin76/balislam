@@ -1,3 +1,4 @@
+import { lightingHelp } from "./lighting";
 import { INK_SHOTS } from "../remotion/zubdat/shots";
 import { HZ_META } from "../remotion/dafatir/horizon/meta";
 import { SHOTS } from "../remotion/illus/shots";
@@ -244,7 +245,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "shot", label: "لقطة مصمَّمة", type: "select", options: [{ value: "", label: "بلا (إخراج عام)" }, ...Object.entries(SHOTS).map(([value, d]) => ({ value, label: d.nameAr }))] },
       { key: "cast", label: "من في المشهد", type: "select", options: [{ value: "", label: "من معنى الكلام" }, { value: "solo", label: "البطل وحده" }, { value: "companion", label: "شخص أمامه" }, { value: "witnesses", label: "شاهدان على موقف واحد" }] },
       { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
-      { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: "فارغ = كما هو. إعداد جاهز: night-lamp أو dawn-sun أو day-sun أو interior-lamp أو interior-window، ثم سطور تعدّله: key lamp|sun x y · intensity · ambient · warmth (-1 بارد .. 1 دافئ) · back (ضوء خلفي) · shadow soft|hard|off [طول] · depth dof 0.4 fog 0.3 parallax 1.2 fg · fade من إلى الكلمة [مدة] · move x y الكلمة [مدة]" },
+      { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: lightingHelp("alley-tale") },
     ],
   },
   {
@@ -261,7 +262,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "poses", label: "حركة المسافر", type: "text", help: "walk للمشي (الافتراضي)، أو stand ليقف طوال المشهد" },
       { key: "look", label: "المسافر", type: "select", options: LOOK_OPTIONS },
       { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
-      { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: "فارغ = كما هو. إعداد جاهز: night-lamp أو dawn-sun أو day-sun أو interior-lamp أو interior-window، ثم سطور تعدّله: key lamp|sun x y · intensity · ambient · warmth (-1 بارد .. 1 دافئ) · back (ضوء خلفي) · shadow soft|hard|off [طول] · depth dof 0.4 fog 0.3 parallax 1.2 fg · fade من إلى الكلمة [مدة] · move x y الكلمة [مدة]" },
+      { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: lightingHelp("road-journey") },
     ],
   },
   {

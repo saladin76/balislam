@@ -1,6 +1,6 @@
 import { hasElement } from "../../brand/elements/registry";
 import { parseCameraPlanLines, parsePoseTimeline } from "./director";
-import { LIGHT_PRESET_IDS, parseLightingLines } from "./lighting";
+import { lightingIssues } from "./lighting";
 import type { Plan } from "./types";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
@@ -35,11 +35,8 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         if (s.backdrop) notOurs(s.id, `الخلفية «${s.backdrop}»`, elementExclusion(lib, s.backdrop));
         for (const b of parseBeats(p.beats ?? "")) if (!b.draw.startsWith("person") && b.draw !== "people") notOurs(s.id, `رسمة «${b.draw}»`, elementExclusion(lib, b.draw));
       }
-      if ((s.template === "alley-tale" || s.template === "road-journey") && p.lighting) {
-        const { bad } = parseLightingLines(p.lighting);
-        if (bad.length)
-          out.push({ level: "error", sceneId: s.id, message: `الإضاءة غير صالحة في السطر ${bad.join("، ")}؛ اكتب إعدادًا جاهزًا (${LIGHT_PRESET_IDS.join("، ")}) أو: key lamp|sun x y، intensity، ambient، warmth، back، shadow soft|hard|off [طول]، depth dof/fog/parallax/fg، fade من إلى كلمة [مدة]، move x y كلمة [مدة].` });
-      }
+      // الإضاءة (الأمر 009): يُرفض كل إعداد لا ينفذه القالب، بدل قبوله بصمت
+      for (const i of lightingIssues(s.template, p)) out.push({ level: i.level, sceneId: s.id, message: i.message });
       if (s.template === "road-journey") {
         if (p.motion && !["legacy", "natural"].includes(p.motion))
           out.push({ level: "error", sceneId: s.id, message: "حركة المسافر غير معروفة؛ استخدم legacy أو natural." });

@@ -11,6 +11,8 @@
 | `motion` | `balislam-lab-motion-007` (`src/remotion/lab/MotionLab007.tsx`) | الالتفاتة قبل وبعد، والمشيات الأربع، ووقوف ← مشي ← توقف (الأمر 007) |
 | `motion-scenes` | `balislam-lab-motion-scenes` | الحركة نفسها في «الطريق» و«الحارة» عبر الطبقة المشتركة (الأمر 007) |
 | `light` | `balislam-lab-light-*` (`src/remotion/lab/LightLab.tsx`) | الإضاءة والظلال والعمق: خمس مقارنات قبل وبعد (الأمر 008) |
+| `light-009` | `balislam-lab-light9-*` (`src/remotion/lab/LightLab.tsx`) | الإضاءة الداخلية مقابل الأمر 008، وضوء النافذة، والعمق في «الطريق» والعمودي (الأمر 009) |
 
 النسخ السابقة لكل خانة محفوظة في سجل git (`git log -- channels/balislam/episodes/900-engine-lab/previews`).
 الرفع: `npx bal -c balislam upload-preview 900 <الخانة> <الملف> --title … --note …`
+الرندر المتعدد عبر الطابور الآمن: `npx bal -c balislam render-batch <تكوين…> --out <مجلد>` (و`--retry` لإعادة الفاشل وحده)

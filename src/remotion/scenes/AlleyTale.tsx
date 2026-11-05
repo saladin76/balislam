@@ -16,7 +16,7 @@ import type { SceneBase, StringFields } from "./types";
 import { SHOTS } from "../illus/shots";
 import { camAt, camTransform, makeAt } from "../illus/shots/kit";
 import { Grade, Texture } from "../illus/texture";
-import { AmbientGrade, BackHalo, DepthLayer, ForegroundFrame, LitFigure, WorldLight, lightAt, parallaxDepth, parseLighting } from "../illus/light";
+import { AmbientGrade, BackHalo, DepthLayer, ForegroundFrame, LitFigure, SceneFigure, WorldLight, lightAt, parallaxDepth, parseLighting } from "../illus/light";
 
 /**
  * «حكايات الحارة»: كل جملة لقطة في مكان مرسوم (حارة، سوق، بيت)، وبطل بلا ملامح يمثّل ما يُقال،
@@ -272,6 +272,17 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   // العمودي في الكاميرا المؤلَّفة: الهدف في منتصف الإطار دائمًا، فلا يُقص ما تنظر إليه الكاميرا
   const vb = portrait ? (composedCam ? `${960 - 304} 0 608 1080` : `${Math.max(0, Math.min(WW - 608, focusX - 304))} 0 608 1080`) : `0 0 ${WW} ${WH}`;
 
+  // حافتا الإطار الظاهر في طبقة المقدمة (عمق 1.3) عند بداية المشهد، فيقع العمود على طرفه في الأفقي والعمودي معًا،
+  // ثم يتحرك مع الكاميرا بسرعة طبقته (منظور حقيقي)
+  const fgEdges = (() => {
+    if (!light?.rig.depth.fg || !portrait) return {};
+    if (!composedCam) return { x0: Math.max(0, Math.min(WW - 608, focusX - 304)), w: 608 };
+    const c0 = composedCamera({ frame: 0, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: props.cameraPlanPortrait || props.cameraPlan, cues, timings });
+    const k = 0.4 + parallaxDepth(1.3, light) * 0.6;
+    const z = 1 + (c0.z - 1) * (0.55 + parallaxDepth(1.3, light) * 0.45);
+    const toWorld = (sx: number) => (sx - 960) / z + 960 + (c0.x - 960) * k;
+    return { x0: toWorld(656), w: toWorld(1264) - toWorld(656) };
+  })();
   const hasBoard = newsAt !== undefined && place !== "home";
   const hasDoor = at("door") !== undefined;
   const ghosts = at("people") !== undefined;
@@ -327,7 +338,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
             <>
               <AmbientGrade light={light} />
               <g transform={cam(0.6)}>
-                <WorldLight light={light} frame={frame} drawLamp={place !== "home"} />
+                <WorldLight light={light} frame={frame} drawLamp={place !== "home"} room={place === "home"} window={{ x: 1200, w: 320, h: 440 }} />
               </g>
             </>
           ) : null}
@@ -354,9 +365,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               <g>
                 {/* الموقف نفسه في الوسط، والشاهدان على طرفيه */}
                 <Glow cx={960} cy={GROUND - 200} r={300} color={ID.paper} opacity={0.35} />
-                <Figure x={920} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "point" }, { at: 50, pose: "talk" }])} look={LOOKS.stranger} opacity={0.85} frame={frame + 5} />
-                <Figure x={1010} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "hold" }, { at: 60, pose: "flinch" }])} look={LOOKS.elder} flip opacity={0.85} frame={frame + 9} />
-                <Figure x={1300} y={GROUND + 6} scale={1.75} pose={poseAt(frame, [{ at: 0, pose: "stand" }, { at: 40, pose: "think" }])} look={LOOKS.woman} flip frame={frame + 3} />
+                <SceneFigure light={light} x={920} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "point" }, { at: 50, pose: "talk" }])} look={LOOKS.stranger} opacity={0.85} frame={frame + 5} />
+                <SceneFigure light={light} x={1010} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "hold" }, { at: 60, pose: "flinch" }])} look={LOOKS.elder} flip opacity={0.85} frame={frame + 9} />
+                <SceneFigure light={light} x={1300} y={GROUND + 6} scale={1.75} pose={poseAt(frame, [{ at: 0, pose: "stand" }, { at: 40, pose: "think" }])} look={LOOKS.woman} flip frame={frame + 3} />
               </g>
             ) : null}
             <Ripples x={heroX - 70} y={GROUND - 300} t={spread} frame={frame} at={at("spread") ?? 0} />
@@ -378,7 +389,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
           {light?.rig.depth.fg ? (
             <g transform={cam(1.3)}>
               <DepthLayer depth={1.3} light={light}>
-                <ForegroundFrame light={light} />
+                <ForegroundFrame light={light} {...fgEdges} />
               </DepthLayer>
             </g>
           ) : null}

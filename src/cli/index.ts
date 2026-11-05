@@ -330,6 +330,51 @@ program
   });
 
 program
+  .command("render-batch <compositions...>")
+  .description("رندر عدة تكوينات عبر الطابور الآمن: التوازي من موارد الجهاز، والفاشل لا يوقف غيره، وسببه مسجَّل في render-queue.json (--retry يعيد الفاشل وحده)")
+  .option("--out <dir>", "مجلد النواتج", "renders/batch")
+  .option("--retry", "أعد المهام الفاشلة أو غير المكتملة في السجل السابق فقط")
+  .option("--max <n>", "حد أعلى للتوازي (الحد الفعلي هو الأصغر بينه وبين ما تسمح به الذاكرة)")
+  .option("--frames <range>", "نطاق إطارات لكل تكوين (للقياس السريع)")
+  .option("--props <json>", "خصائص تُمرر إلى كل تكوين")
+  .action(async (compositions: string[], opts: { out: string; retry?: boolean; max?: string; frames?: string; props?: string }) => {
+    const { RenderPool, memoryInfo, safeParallelism } = await import("../render/pool");
+    const out = path.resolve(opts.out);
+    const ledger = path.join(out, "render-queue.json");
+    const prev = await RenderPool.readLedger(ledger);
+    const pool = new RenderPool({
+      ledger,
+      ...(prev ? { perJobMB: prev.perJobMB } : {}),
+      ...(opts.max ? { maxParallel: Number(opts.max) } : {}),
+      onChange: (t) => console.log(`${t.status === "done" ? "✓" : t.status === "error" ? "✗" : t.status === "running" ? "▶" : "…"} ${t.id}${t.seconds ? ` ${t.seconds.toFixed(1)} ث` : ""}${t.peakMB ? ` ذروة ${t.peakMB} م.ب` : ""}${t.error ? ` — ${t.error}` : ""}`),
+    });
+    const done = new Set(opts.retry && prev ? prev.tasks.filter((t) => t.status === "done").map((t) => t.id) : []);
+    // الناجح سابقًا يبقى في السجل ناجحًا كما هو
+    // وعدد المحاولات يُحمل من السجل السابق
+    if (opts.retry && prev) for (const t of prev.tasks) pool.tasks.set(t.id, { ...t, status: t.status === "done" ? "done" : "error", log: [] });
+    const mem = memoryInfo();
+    console.log(`الذاكرة المتاحة ${Math.round(mem.availableMB)} م.ب · التوازي الآمن الآن ${safeParallelism(mem.availableMB, (await import("node:os")).cpus().length, pool.perJobMB, 900)} (ذروة المهمة ${Math.round(pool.perJobMB)} م.ب)`);
+    const browser = process.env.REMOTION_BROWSER_EXECUTABLE;
+    for (const id of compositions) {
+      if (done.has(id)) {
+        console.log(`= ${id} نجح سابقًا، لا يُعاد`);
+        continue;
+      }
+      const output = path.join(out, `${id}.mp4`);
+      const args = ["remotion", "render", "src/remotion/index.ts", id, output, "--codec=h264", "--crf=20", "--log=error"];
+      if (browser) args.push(`--browser-executable=${browser}`);
+      if (opts.frames) args.push(`--frames=${opts.frames}`);
+      if (opts.props) args.push(`--props=${opts.props}`);
+      pool.add({ id, cmd: "npx", args, cwd: projectRoot, output, outputArg: 4 });
+    }
+    await pool.idle();
+    await pool.save();
+    const failed = [...pool.tasks.values()].filter((t) => t.status === "error");
+    console.log(failed.length ? `فشل ${failed.length}؛ السجل: ${path.relative(projectRoot, ledger)} · أعد الفاشل وحده: bal render-batch … --retry` : "اكتملت كل المهام.");
+    if (failed.length) process.exitCode = 1;
+  });
+
+program
   .command("storyboard <episode>")
   .description("الستوري بورد: هل اعتمد صاحب القناة لقطة كل مشهد قبل الصوت والنسخة النهائية؟ (--motion يقيس حركة كل مشهد بمعاينة صامتة خفيفة)")
   .option("--motion", "قياس حركة كل مشهد (معاينة صامتة بثلث الدقة، لا تُنشر)")

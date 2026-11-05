@@ -1,8 +1,9 @@
+import { queuePosition, RenderPool } from "../../src/render/pool.ts";
 import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { readdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
@@ -36,6 +37,8 @@ export type LongJob = {
   output?: string;
   error?: string;
   startedAt: number;
+  /** ينتظر دوره في طابور الرندر (الحالة تبقى running كي لا تظنه الواجهة انتهى) */
+  queued?: boolean;
 };
 export const longJobs = new Map<string, LongJob>();
 
@@ -76,37 +79,49 @@ const progressFrom = (job: LongJob, line: string) => {
   if (/^PROGRESS (\d+)/.test(line)) job.pct = Number(line.match(/^PROGRESS (\d+)/)![1]);
 };
 
+/**
+ * كل المهام الثقيلة في الاستوديو (الرندر والصناعة والقياس) تمر بطابور واحد (الأمر 009):
+ * تبدأ فورًا إن سمحت ذاكرة الجهاز، وإلا تنتظر دورها بدل أن تُسقط غيرها؛ وفشل إحداها مسجل بسببه
+ * في renders/studio-queue.json ولا يمس غيرها.
+ */
+export const studioPool = new RenderPool({ ledger: path.join(path.resolve(import.meta.dirname, "..", ".."), "renders", "studio-queue.json") });
+export const queued = (j: { log: string[] }, id: string) => {
+  const ahead = queuePosition(studioPool, id);
+  j.log.push(`في الطابور: ينتظر ذاكرة كافية لبدء الرندر${ahead ? ` (${ahead} قبله)` : ""}…`);
+};
+
 export const startJob = (ctx: Pick<ExtraCtx, "root">, job: Omit<LongJob, "id" | "status" | "pct" | "log" | "startedAt">, args: string[]) => {
-  const j: LongJob = { ...job, id: newJobId(), status: "running", pct: 1, log: [], startedAt: Date.now() };
+  const j: LongJob = { ...job, id: newJobId(), status: "running", pct: 1, log: [], startedAt: Date.now(), queued: true };
   const key = `${job.channel}/${job.episode ?? job.kind}`;
   busy.add(key);
   longJobs.set(j.id, j);
   trimJobs(longJobs);
-  const child = spawn(process.execPath, ["bin/bal.mjs", "--channel", job.channel, ...args], { cwd: ctx.root, env: process.env });
-  const onData = (d: Buffer) => {
-    for (const raw of d.toString().split("\n")) {
-      const line = raw.trim();
-      if (!line || /emory|docker|Detected differing/.test(line)) continue;
+  studioPool.add({
+    id: j.id,
+    cmd: process.execPath,
+    args: ["bin/bal.mjs", "--channel", job.channel, ...args],
+    cwd: ctx.root,
+    onStart: () => {
+      j.queued = false;
+      j.startedAt = Date.now();
+    },
+    onLine: (line) => {
+      if (/emory|docker|Detected differing/.test(line)) return;
       progressFrom(j, line);
       const done = line.match(/^DONE (.+)$/);
       if (done) j.output = path.basename(done[1]!.trim());
       j.log.push(line);
       if (j.log.length > 300) j.log.shift();
-    }
-  };
-  child.stdout.on("data", onData);
-  child.stderr.on("data", onData);
-  child.on("error", (err) => {
-    busy.delete(key);
-    j.status = "error";
-    j.error = `تعذّر تشغيل العملية: ${err.message}`;
+    },
+    onEnd: (t) => {
+      busy.delete(key);
+      j.status = t.status === "done" ? "done" : "error";
+      if (t.status === "done") j.pct = 100;
+      else j.error = j.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-3).join(" ") || t.error || "توقفت العملية";
+      if (t.status === "error" && t.error && !(j.error ?? "").includes(t.error)) j.error = `${t.error} ${j.error ?? ""}`.trim();
+    },
   });
-  child.on("close", (code) => {
-    busy.delete(key);
-    j.status = code === 0 ? "done" : "error";
-    if (code === 0) j.pct = 100;
-    else j.error = j.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-3).join(" ") || "توقفت العملية";
-  });
+  if (j.queued) queued(j, j.id);
   return j;
 };
 

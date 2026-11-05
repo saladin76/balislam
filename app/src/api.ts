@@ -40,10 +40,10 @@ export type CalendarDay = { shorts?: { ep: string; n: number }[]; off?: boolean;
 export type OpsChannel = { calendar: Record<string, CalendarDay>; channel: { id: string; name: string; language: string; schedule: { longDay: number; time?: string; shortsPerDay?: number } | null; domains: Record<string, ChannelDomain> }; episodes: Overview[]; ideas: Idea[] };
 export type PackageInfo = { files: { name: string; size: number; mtime: number }[]; youtube: string; checklist: string; /** بأي جودة رُندرت الحلقة */ render?: { quality: "master" | "preview"; label: string; width: number; height: number; voiced: boolean; at: string } | null };
 export type StoryboardInfo = { status: import("../../src/plan/storyboard").StoryboardStatus; motion: import("../../src/render/storyboardMotion").StoryboardMotion | null; motionStale?: string[]; auditNeedsReview?: boolean };
-export type LongJob = { id: string; kind: string; episode?: string; title: string; status: "running" | "done" | "error"; pct: number; log: string[]; error?: string; startedAt: number };
+export type LongJob = { id: string; kind: string; episode?: string; title: string; status: "running" | "done" | "error"; pct: number; log: string[]; error?: string; startedAt: number; queued?: boolean };
 export type KeyState = Record<string, { label: string; set: boolean; preview: string }>;
 export type SfxItem = { id: string; nameAr: string; category: string; categoryAr: string; useAr: string; seconds: number; guard?: string; available: boolean };
-export type RenderJob = { id: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string };
+export type RenderJob = { id: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; queued?: boolean };
 
 /** القناة المختارة في الاستوديو: تُضاف لكل طلب. */
 let currentChannel = "";

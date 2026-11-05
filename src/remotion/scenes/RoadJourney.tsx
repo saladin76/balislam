@@ -9,7 +9,7 @@ import { ID, darken, mix, type Mood } from "../illus/palette";
 import { GROUND, Glow, MihrabGate, NoticeBoard, Signpost, Sky, WordPill, WW, WH, clampOpt, rise } from "../illus/world";
 import { RoadLand, type Biome } from "../illus/places";
 import { characterAt, GAIT_IDS, type GaitId } from "../illus/gait";
-import { AmbientGrade, BackHalo, LitFigure, WorldLight, lightAt, parseLighting } from "../illus/light";
+import { AmbientGrade, BackHalo, DepthLayer, LitFigure, WorldLight, lightAt, parseLighting } from "../illus/light";
 import { TopCaption, captionLines } from "../illus/TopCaption";
 import type { SceneBase, StringFields } from "./types";
 
@@ -116,7 +116,15 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
           <g transform={cam}>
             <Sky mood={mood} to={moodTo} t={skyT} frame={frame} />
             {biome === "hill" || truth > 0 ? <MihrabGate x={240} w={150} h={220} base={GROUND - 30} light={biome === "hill" ? 0.6 + 0.4 * truth : truth} /> : null}
-            <RoadLand mood={curMood} biome={biome} shift={shift} frame={frame} />
+            <RoadLand
+              mood={curMood}
+              biome={biome}
+              shift={shift}
+              frame={frame}
+              {...(light && (light.rig.depth.dof > 0 || light.rig.depth.fog > 0 || light.rig.depth.parallax !== 1)
+                ? { depth: { parallax: light.rig.depth.parallax, layer: (d: number, node: React.ReactNode) => <DepthLayer depth={d} light={light}>{node}</DepthLayer> } }
+                : {})}
+            />
             {light ? (
               <>
                 <AmbientGrade light={light} />

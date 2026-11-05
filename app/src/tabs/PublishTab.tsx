@@ -137,7 +137,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             <div className="job">
               <span style={{ minWidth: 220 }}>{job.title}</span>
               <span className="bar"><i style={{ width: `${job.pct}%`, background: job.status === "error" ? "var(--err)" : undefined }} /></span>
-              <span style={{ minWidth: 70, fontVariantNumeric: "tabular-nums" }}>{job.status === "running" ? `${Math.round(job.pct)}%` : job.status === "done" ? "تم" : "توقف"}</span>
+              <span style={{ minWidth: 70, fontVariantNumeric: "tabular-nums" }}>{job.status === "running" ? (job.queued ? "في الطابور" : `${Math.round(job.pct)}%`) : job.status === "done" ? "تم" : "توقف"}</span>
               <button className="btn ghost small" onClick={() => setShowLog((v) => !v)}>{showLog ? "إخفاء التفاصيل" : "التفاصيل"}</button>
             </div>
             {job.status === "running" ? <div className="help">{job.log[job.log.length - 1] ?? "…"}</div> : null}

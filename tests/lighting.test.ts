@@ -92,3 +92,39 @@ describe("الظلال", () => {
     expect(off).not.toContain("contact");
   });
 });
+
+describe("الطبقة المشتركة (الأمر 009)", () => {
+  const fig = { x: 900, y: 860, scale: 1.75, pose: POSES.stand, frame: 3 };
+  it("SceneFigure بلا إضاءة = الشخصية العادية حرفيًا", async () => {
+    const { SceneFigure } = await import("../src/remotion/illus/light");
+    const { Figure } = await import("../src/remotion/illus/Figure");
+    const a = renderToStaticMarkup(React.createElement("svg", null, React.createElement(SceneFigure, { light: null, ...fig, flip: true })));
+    const b = renderToStaticMarkup(React.createElement("svg", null, React.createElement(Figure, { ...fig, flip: true })));
+    expect(a).toBe(b);
+  });
+
+  it("figureLight حساب خالص: جهة الضوء والحافة وظل التماس دون رسم", async () => {
+    const { figureLight } = await import("../src/remotion/illus/light");
+    const light = lightAt(parseLighting("night-lamp")!, 0, () => undefined);
+    const l = figureLight(light, { x: 600, scale: 1.75, facing: -1 });
+    expect(l.side).toBe(1); // المصباح عند 1420 يمين الشخصية
+    expect(l.behind).toBe(true); // تنظر يسارًا والضوء من خلفها
+    expect(l.geo!.skew).toBeLessThan(0);
+    expect(figureLight(lightAt(parseLighting("night-lamp\nshadow off")!, 0, () => undefined), { x: 600, scale: 1 }).contact).toBeNull();
+  });
+
+  it("ألوان الإضاءة من القناة: لوحة أخرى تغير الألوان لا الحسابات", async () => {
+    const { LightPaletteContext, BALISLAM_LIGHT, LitFigure } = await import("../src/remotion/illus/light");
+    const light = lightAt(parseLighting("night-lamp")!, 0, () => undefined);
+    const draw = (pal?: typeof BALISLAM_LIGHT) => {
+      const el = React.createElement("svg", null, React.createElement(LitFigure, { light, ...fig }));
+      return renderToStaticMarkup(pal ? React.createElement(LightPaletteContext.Provider, { value: pal }, el) : el);
+    };
+    const other = draw({ ...BALISLAM_LIGHT, shadow: "#202020", warm: "#E8F542" });
+    expect(draw(BALISLAM_LIGHT)).toBe(draw());
+    expect(other).not.toBe(draw());
+    expect(other).toContain("#202020");
+    // البنية نفسها: عدد العناصر لا يتغير
+    expect(other.split("<").length).toBe(draw().split("<").length);
+  });
+});

@@ -1,10 +1,9 @@
 import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { spawn } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyMessage, handleExtra, newJobId, trimJobs } from "./extra.ts";
+import { busy, busyMessage, handleExtra, newJobId, queued, studioPool, trimJobs } from "./extra.ts";
 import { HttpError, safeName } from "./util.ts";
 
 /**
@@ -14,7 +13,7 @@ import { HttpError, safeName } from "./util.ts";
 const root = path.resolve(import.meta.dirname, "..", "..");
 const configFile = path.join(root, "config.json");
 
-type Job = { id: string; channel: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; log: string[] };
+type Job = { id: string; channel: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; log: string[]; queued?: boolean };
 const jobs = new Map<string, Job>();
 
 const send = (res: ServerResponse, status: number, body: unknown) => {
@@ -325,29 +324,29 @@ export const balApi = (): Plugin => ({
             const args = ["bin/bal.mjs", "--channel", ch, "render", b.episode];
             if (b.orientation === "portrait") args.push("--portrait");
             if (b.chapter) args.push("--chapter", String(b.chapter));
-            const child = spawn(process.execPath, args, { cwd: root, env: process.env });
-            const onData = (d: Buffer) => {
-              for (const line of d.toString().split("\n")) {
+            job.queued = true;
+            // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره (الأمر 009)
+            studioPool.add({
+              id,
+              cmd: process.execPath,
+              args,
+              cwd: root,
+              onStart: () => (job.queued = false),
+              onLine: (line) => {
                 const p = line.match(/^PROGRESS (\d+)/);
                 if (p) job.pct = Number(p[1]);
                 const done = line.match(/^DONE (.+)$/);
                 if (done) job.output = path.basename(done[1]!.trim());
-                if (line.trim()) job.log.push(line.trim());
+                job.log.push(line);
                 if (job.log.length > 50) job.log.shift();
-              }
-            };
-            child.stdout.on("data", onData);
-            child.stderr.on("data", onData);
-            child.on("error", (err) => {
-              busy.delete(key);
-              job.status = "error";
-              job.error = `تعذّر تشغيل الرندر: ${err.message}`;
+              },
+              onEnd: (t) => {
+                busy.delete(key);
+                job.status = t.status === "done" ? "done" : "error";
+                if (t.status !== "done") job.error = [t.error, job.log.filter((l) => /خطأ|Error/.test(l)).pop()].filter(Boolean).join(" ") || "فشل الرندر";
+              },
             });
-            child.on("close", (code) => {
-              busy.delete(key);
-              job.status = code === 0 ? "done" : "error";
-              if (code !== 0) job.error = job.log.filter((l) => /خطأ|Error/.test(l)).pop() ?? "فشل الرندر";
-            });
+            if (job.queued) queued(job, id);
             return send(res, 200, job);
           }
           return send(res, 200, [...jobs.values()].filter((j) => j.channel === ch).reverse());

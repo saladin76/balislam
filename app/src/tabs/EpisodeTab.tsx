@@ -524,7 +524,7 @@ const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId
           <span style={{ minWidth: 150 }}>{j.chapter ? `الفصل ${j.chapter} · عمودي` : `الحلقة · ${j.orientation === "portrait" ? "عمودي" : "أفقي"}`}</span>
           <span className="bar"><i style={{ width: `${j.status === "done" ? 100 : j.pct}%`, background: j.status === "error" ? "var(--err)" : undefined }} /></span>
           <span style={{ minWidth: 90, fontVariantNumeric: "tabular-nums" }}>
-            {j.status === "running" ? `${j.pct}%` : j.status === "done" ? "جاهز" : j.error ?? "فشل"}
+            {j.status === "running" ? (j.queued ? "في الطابور" : `${j.pct}%`) : j.status === "done" ? "جاهز" : j.error ?? "فشل"}
           </span>
           {j.status === "done" && j.output ? <a className="btn small" href={api.videoUrl(j.episode, j.output)} target="_blank" rel="noreferrer">فتح</a> : null}
         </div>
