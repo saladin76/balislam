@@ -50,7 +50,7 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     } catch (e) {
       // التحديث يغيّر ملفات الخادم نفسه فيُعاد تشغيله وينقطع الطلب: ننتظر عودته ثم نعيد التحميل
       if (e instanceof TypeError || /fetch|network|Load failed/i.test((e as Error).message)) {
-        setMsg({ text: "تم تنزيل التحديث، والاستوديو يعيد تشغيل نفسه… لحظات" });
+        setMsg({ text: "انقطع الاتصال أثناء طلب التحديث؛ نتحقق من عودة الاستوديو دون افتراض نجاح العملية.", err: true });
         setSt(null);
         for (let i = 0; i < 40; i++) {
           await new Promise((r) => setTimeout(r, 1000));
