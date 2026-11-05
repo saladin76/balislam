@@ -14,6 +14,33 @@ export type TextOnlyResult = {
   failed: { ref: string; reason: string }[];
 };
 
+/** Read-only scan: report missing Quran references, never contact the API or write files. */
+export const inspectMissingQuranTexts = async (episode: string): Promise<{
+  missing: string[];
+  existing: string[];
+  invalid: { ref: string; reason: string }[];
+}> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  const file = quranPathFor(scriptPath);
+  const source = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
+    if (e.code === "ENOENT") return null;
+    throw e;
+  });
+  const cache = source === null ? {} : JSON.parse(source) as Record<string, string>;
+  const missing = new Set<string>();
+  const existing = new Set<string>();
+  const invalid: { ref: string; reason: string }[] = [];
+  for (const block of parsed.chapters.flatMap((chapter) => chapter.blocks)) {
+    if (block.kind !== "ayah") continue;
+    const ref = parseAyahRef((block as { ref: string }).ref);
+    if (!ref.ok) { invalid.push({ ref: (block as { ref: string }).ref, reason: ref.reason }); continue; }
+    if (cache[ref.ref.key]) existing.add(ref.ref.key);
+    else missing.add(ref.ref.key);
+  }
+  return { missing: [...missing], existing: [...existing], invalid };
+};
+
 /** Adds only missing text keys and timestamps, preserving every existing cache value. */
 export const fillMissingQuranTexts = async (
   episode: string,
