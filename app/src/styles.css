@@ -233,9 +233,32 @@ table.stats td.bad { color: var(--warn); font-weight: 600; }
 /* القناة والإعدادات */
 .channel-tab, .settings-tab { overflow: auto; padding: 16px 22px 60px; display: flex; flex-direction: column; gap: 14px; }
 .channel-tab h2, .settings-tab h2 { font-family: var(--f-head); margin: 0; font-size: 22px; }
-.ch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; align-items: start; }
+.ch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; align-items: start; }
+.ch-grid > * { min-width: 0; }
 .ch-grid .ch-wide { grid-column: span 2; }
 @media (max-width: 900px) { .ch-grid .ch-wide { grid-column: auto; } }
+/* Channel controls must remain usable inside the narrow RTL settings column. */
+.channel-tab .group { min-width: 0; }
+.channel-tab .field input:not([type="checkbox"]),
+.channel-tab .field select,
+.channel-tab .field textarea { width: 100%; min-width: 0; }
+.channel-provider-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.channel-provider-controls > select,
+.channel-provider-controls > span { width: 100%; min-width: 0; }
+.channel-provider-controls > select { max-width: 100%; }
+.channel-provider-controls > button { max-width: 100%; white-space: normal; }
+@media (max-width: 580px) {
+  .channel-tab { padding-inline: 12px; }
+  .channel-provider-controls { grid-template-columns: minmax(0, 1fr); }
+  .channel-provider-controls > button { justify-self: start; }
+  .channel-tab .toolbar { gap: 8px; }
+}
 .dom-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .dom-table th, .dom-table td { text-align: start; padding: 4px 6px; border-bottom: 1px solid var(--line); }
 .dom-table th { color: var(--muted); font-weight: 600; }
