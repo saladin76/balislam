@@ -10,7 +10,7 @@ import { quranPathFor, readJson } from "../plan/io";
 import type { QuranClient, Verse } from "./client";
 import { loadChannel } from "../channel/index";
 import { createAlQuranClient } from "./alquranCloud";
-import { isCloudRecitation, recitationIdentity, requireCloudPublicationRights } from "./provider";
+import { activeRecitation, isCloudRecitation, recitationIdentity, requireCloudPublicationRights } from "./provider";
 
 /** مفتاح ترجمة المعنى داخل quran.json بجوار نص الآية. */
 export const meaningKey = (key: string) => `${key}#meaning`;
@@ -43,7 +43,7 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
   const store = (await readJson<Record<string, string>>(file)) ?? {};
   const result: QuranSyncResult = { fetched: [], cached: [], failed: [], recited: [] };
   const channel = loadChannel();
-  const recitation = channel.rules.quran ? channel.recitation : undefined;
+  const recitation = channel.rules.quran ? await activeRecitation(scriptPath, channel.recitation) : undefined;
   // Fail closed: a chosen Cloud voice must have documented publication rights, not merely preview access.
   if (recitation && isCloudRecitation(recitation)) requireCloudPublicationRights(recitation);
   const cloud = recitation && isCloudRecitation(recitation) ? createAlQuranClient(client.fetch) : null;
