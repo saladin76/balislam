@@ -135,7 +135,7 @@ export const balApi = (): Plugin => ({
             await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title });
             return send(res, 200, { ok: true });
           }
-          const dirs = existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d) && existsSync(path.join(episodesDir, d, "script.md"))).sort() : [];
+          const dirs = existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d)).sort() : [];
           const list = await Promise.all(
             dirs.map(async (d) => {
               const script = path.join(episodesDir, d, "script.md");
