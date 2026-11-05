@@ -69,8 +69,9 @@ const Clay: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       <QuranSeal x={760} y={250} o={seal} s={0.9} />
     </g>
   );
-  const cam = camPath(t, { cx: 1365, cy: 500, s: 2.0 }, [
-    { a: at(tl, "طين") - 0.1, b: at(tl, "طين") + 1.0, cx: 1365, cy: 510, s: 1.6 },
+  // يبدأ برأس الفصل كاملًا، ويقترب على «آدم عليه السلام» حتى تملأ «طين» الكادر
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "عليه") - 0.1, b: at(tl, "طين") + 0.4, cx: 1365, cy: 500, s: 1.7 },
     { a: at(tl, "وقد") - 0.2, b: at(tl, "مواضع"), ...NEUTRAL },
   ]);
   return <Book id="c31" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} />;
@@ -237,41 +238,53 @@ const Tool: React.FC<{ q: number; children: React.ReactNode; x: number; y: numbe
       {children}
     </g>
   );
+// أدوات المعرفة من أعلى، بحجم يُقرأ على شاشة عادية: كتب، وقلم ودواة، ومسطرة، وعدسة
 const Qalam = () => (
   <g>
-    <path d="M-170 -10 L150 -10 L190 0 L150 10 L-170 10 Z" fill="#C9A06A" stroke={C.ink} strokeWidth={3} />
-    <path d="M150 -10 L190 0 L150 10" fill="#2B1E14" />
+    <path d="M-300 -16 L230 -16 C262 -16 290 -8 330 0 C290 8 262 16 230 16 L-300 16 C-312 16 -318 8 -318 0 C-318 -8 -312 -16 -300 -16 Z" fill="#C9A06A" stroke={C.ink} strokeWidth={5} />
+    {[-220, -120, -20, 80].map((x) => (
+      <path key={x} d={`M${x} -16 C${x + 8} -6 ${x + 8} 6 ${x} 16`} fill="none" stroke="#8B6A3E" strokeWidth={4} />
+    ))}
+    <path d="M230 -16 C262 -16 290 -8 330 0 C290 8 262 16 230 16 Z" fill="#2B1E14" />
   </g>
 );
 const Inkwell = () => (
   <g>
-    <ellipse cx={0} cy={30} rx={70} ry={26} fill="#2B1E14" />
-    <path d="M-70 30 V-10 C-70 -40 70 -40 70 -10 V30" fill="#3B2A3E" stroke={C.ink} strokeWidth={3} />
-    <ellipse cx={0} cy={-14} rx={34} ry={14} fill="#120C10" stroke={C.gold} strokeWidth={3} />
+    <circle r={96} fill="#2E2236" stroke={C.ink} strokeWidth={5} />
+    <circle r={70} fill="#120C10" stroke={C.gold} strokeWidth={8} />
+    <ellipse cx={-22} cy={-24} rx={22} ry={12} fill="#FFFFFF" opacity={0.25} />
   </g>
 );
 const Lens = () => (
   <g>
-    <path d="M60 60 L150 150" stroke="#6B4A2E" strokeWidth={22} strokeLinecap="round" />
-    <circle r={84} fill="rgba(255,250,235,0.25)" stroke={C.gold} strokeWidth={12} />
-    <circle r={84} fill="none" stroke={C.ink} strokeWidth={3} />
+    <path d="M80 80 L220 220" stroke="#6B4A2E" strokeWidth={34} strokeLinecap="round" />
+    <path d="M80 80 L220 220" stroke={C.ink} strokeWidth={4} strokeLinecap="round" opacity={0.6} />
+    <circle r={116} fill="rgba(255,250,235,0.22)" stroke={C.gold} strokeWidth={18} />
+    <circle r={116} fill="none" stroke={C.ink} strokeWidth={4} />
+    <path d="M-60 -70 C-30 -92 20 -96 54 -76" fill="none" stroke="#FFFFFF" strokeWidth={8} strokeLinecap="round" opacity={0.5} />
   </g>
 );
 const Books = () => (
   <g>
-    {[0, 1, 2].map((i) => (
-      <g key={i} transform={`translate(${i * 8 - 8} ${-i * 46}) rotate(${(i - 1) * 4})`}>
-        <rect x={-150} y={-22} width={300} height={44} rx={5} fill={[C.ribbon, "#3A4A3A", C.dusk][i]} stroke={C.ink} strokeWidth={3} />
-        <rect x={-150} y={-6} width={300} height={12} fill={C.page} opacity={0.75} />
+    {[
+      { x: 30, y: 40, r: -7, c: "#3A4A3A" },
+      { x: -10, y: -10, r: 5, c: C.ribbon },
+    ].map((b, i) => (
+      <g key={i} transform={`translate(${b.x} ${b.y}) rotate(${b.r})`}>
+        <rect x={-180} y={-240} width={360} height={480} rx={10} fill={C.page} stroke={C.ink} strokeWidth={5} />
+        <rect x={-180} y={-240} width={348} height={468} rx={10} fill={b.c} stroke={C.ink} strokeWidth={5} />
+        <rect x={-180} y={-240} width={56} height={468} rx={8} fill="#000000" opacity={0.18} />
+        <rect x={-80} y={-150} width={210} height={110} rx={8} fill="none" stroke={C.gold} strokeWidth={6} />
+        <rect x={-70} y={150} width={190} height={8} rx={4} fill={C.gold} opacity={0.8} />
       </g>
     ))}
   </g>
 );
 const Ruler = () => (
   <g>
-    <rect x={-210} y={-22} width={420} height={44} rx={4} fill="#D9B680" stroke={C.ink} strokeWidth={3} />
-    {Array.from({ length: 21 }, (_, i) => (
-      <line key={i} x1={-200 + i * 20} x2={-200 + i * 20} y1={-22} y2={i % 5 ? -10 : 2} stroke={C.ink} strokeWidth={2} />
+    <rect x={-300} y={-40} width={600} height={80} rx={6} fill="#D9B680" stroke={C.ink} strokeWidth={5} />
+    {Array.from({ length: 29 }, (_, i) => (
+      <line key={i} x1={-280 + i * 20} x2={-280 + i * 20} y1={-40} y2={i % 5 ? -20 : 0} stroke={C.ink} strokeWidth={3} />
     ))}
   </g>
 );
@@ -287,12 +300,22 @@ const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const dalil = pop(t, at(tl, "دليل"));
   const lensMove = prog(t, at(tl, "دليل"), at(tl, "دليل") + 0.8, easeOut);
   const cam = camPath(t, NEUTRAL, [
-    { a: learn - 0.1, b: at(tl, "نعمة") + 0.4, cx: 960, cy: 540, s: 0.66 },
+    { a: learn - 0.1, b: at(tl, "نعمة") + 0.4, cx: 960, cy: 560, s: 0.7 },
     { a: at(tl, "فلا") - 0.2, b: at(tl, "للغرور") + 0.4, cx: 600, cy: 520, s: 1.05 },
   ]);
+  // يبدأ المشهد من حيث انتهى الدرج: ما خُصّ به آدم من علم، ثم ينفتح على ما نتعلمه نحن
+  const recap = 1 - prog(t, learn - 0.2, learn + 0.4);
   const R = (
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
+      <g opacity={recap}>
+        <rect x={1085} y={300} width={560} height={250} rx={12} fill="#FFFAF0" stroke={C.gold} strokeWidth={5} />
+        <rect x={1097} y={312} width={536} height={226} rx={8} fill="none" stroke={C.gold} strokeWidth={1.5} />
+        <SText x={1365} y={450} size={64} color={C.ink}>
+          علم خص به آدم
+        </SText>
+        <QuranSeal x={1635} y={306} s={0.7} />
+      </g>
       <Word x={1365} y={470} size={120} p={ilm} color={C.ink}>
         العلم
       </Word>
@@ -320,25 +343,19 @@ const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   // الأدوات حول الدفتر على المكتب، والعدسة تنتقل إلى «دليل» في آخر المشهد
   const over = (
     <g>
-      <Tool q={tools[0]!} x={2150} y={360} rot={-4}>
-        <g transform="scale(1.7)">
-          <Books />
-        </g>
+      <Tool q={tools[0]!} x={2030} y={340}>
+        <Books />
       </Tool>
-      <Tool q={tools[1]!} x={960} y={1110} rot={-3}>
-        <g transform="scale(1.5)">
-          <Qalam />
-        </g>
+      <Tool q={tools[1]!} x={-60} y={230}>
+        <Inkwell />
       </Tool>
-      <Tool q={tools[1]!} x={1330} y={1120}>
-        <g transform="scale(1.5)">
-          <Inkwell />
-        </g>
+      <Tool q={tools[1]!} x={-80} y={620} rot={-62}>
+        <Qalam />
       </Tool>
-      <Tool q={tools[2]!} x={-180} y={760} rot={84}>
+      <Tool q={tools[2]!} x={1990} y={960} rot={-8}>
         <Ruler />
       </Tool>
-      <Tool q={tools[3]!} x={mix(-200, 560, lensMove)} y={mix(330, 690, lensMove)} rot={mix(-12, 0, lensMove)}>
+      <Tool q={tools[3]!} x={mix(-150, 560, lensMove)} y={mix(1060, 690, lensMove)} rot={mix(-12, 0, lensMove)}>
         <Lens />
       </Tool>
     </g>
@@ -351,7 +368,7 @@ const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ─── c4-s1: السجود تكريم لا عبادة (ابن كثير، البقرة 34)، والعبادة لله وحده ───
 const Honor: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const sujud = pop(t, at(tl, "يسجدوا"));
-  const adam = pop(t, at(tl, "عليه"));
+  const adam = prog(t, 0.05, 0.6, easeOut);
   const table = prog(t, at(tl, "وكان") - 0.05, at(tl, "السجود") + 0.4);
   const takrim = pop(t, at(tl, "تكريما") + 0.1);
   const check = prog(t, at(tl, "تكريما") + 0.3, at(tl, "تكريما") + 0.8);
@@ -433,11 +450,14 @@ const Comply: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
       </SText>
       {dots(PATH_R)}
       {dots(LOW_R)}
-      <Ink d={PATH_R} w={6} p={gR} c={C.gold} />
-      <Ink d={LOW_R} w={6} p={low} c={EMBER} />
-      <circle cx={1180} cy={640} r={14 * halt} fill={EMBER} stroke={C.ink} strokeWidth={2} />
-      <Ink d={RISE} w={6} p={rise} c={EMBER} />
-      <Word x={1240} y={300} size={44} p={lblB} font="tajawal" weight={700} color={EMBER}>
+      <Ink d={PATH_R} w={8} p={gR} c={C.gold} />
+      <Ink d={LOW_R} w={22} p={low} c={EMBER} opacity={0.18} />
+      <Ink d={LOW_R} w={10} p={low} c="#B23A1E" />
+      <circle cx={1180} cy={640} r={22 * halt} fill="#B23A1E" stroke={C.ink} strokeWidth={3} />
+      <Ink d={RISE} w={26} p={rise} c={EMBER} opacity={0.18} />
+      <Ink d={RISE} w={10} p={rise} c="#B23A1E" />
+      <Ink d="M928 280 L960 250 L948 294" w={10} p={prog(rise, 0.85, 1)} c="#B23A1E" />
+      <Word x={1250} y={300} size={58} p={lblB} font="tajawal" weight={800} color="#B23A1E">
         إباء واستكبار
       </Word>
     </g>
@@ -446,9 +466,9 @@ const Comply: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
     <g>
       {dots(PATH_L)}
       <path d="M960 640 C700 610 450 680 220 640" fill="none" stroke={C.gold} strokeWidth={3} strokeDasharray="2 12" strokeLinecap="round" opacity={0.8 * guide} />
-      <Ink d={PATH_L} w={6} p={gL} c={C.gold} />
+      <Ink d={PATH_L} w={8} p={gL} c={C.gold} />
       <circle cx={220} cy={470} r={12 * lblA} fill={C.gold} />
-      <Word x={420} y={400} size={44} p={lblA} font="tajawal" weight={700} color={C.gold}>
+      <Word x={420} y={400} size={58} p={lblA} font="tajawal" weight={800} color="#A8803A">
         استجابة
       </Word>
     </g>
@@ -458,8 +478,9 @@ const Comply: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
 
 // ─── c4-s3: تصنيف لا تجسيد: «إبليس» كلمةً لا تدخل دائرة الملائكة، وتستقر في دائرة الجن (الكهف 50) ───
 const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
-  const angels = prog(t, at(tl, "الملائكة") - 0.1, at(tl, "الملائكة") + 0.6);
-  const jinn = prog(t, at(tl, "الجن") - 0.1, at(tl, "الجن") + 0.6);
+  const ring = prog(t, 0.05, at(tl, "نعرف") + 0.3);
+  const angels = pop(t, at(tl, "الملائكة"));
+  const jinn = pop(t, at(tl, "الجن"));
   const tag = pop(t, at(tl, "إبليس"));
   const toA = prog(t, at(tl, "يكن") - 0.1, at(tl, "الملائكة") + 0.2, easeOut);
   const blocked = prog(t, at(tl, "الملائكة") + 0.1, end(tl, "الملائكة") + 0.3);
@@ -479,7 +500,7 @@ const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const cam = camPath(t, NEUTRAL, [{ a: at(tl, "بل") - 0.2, b: end(tl, "الجن") + 0.3, cx: 820, cy: 520, s: 1.05 }]);
   const R = (
     <g>
-      <Ink d="M1365 320 C1520 320 1600 420 1600 520 C1600 640 1500 720 1365 720 C1230 720 1130 640 1130 520 C1130 410 1220 320 1361 320" w={4} p={angels} c={C.gold} />
+      <Ink d="M1365 320 C1520 320 1600 420 1600 520 C1600 640 1500 720 1365 720 C1230 720 1130 640 1130 520 C1130 410 1220 320 1361 320" w={4} p={ring} c={C.gold} />
       <Word x={1365} y={540} size={56} p={angels} color={C.ink}>
         الملائكة
       </Word>
@@ -489,7 +510,7 @@ const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   );
   const L = (
     <g>
-      <Ink d="M560 320 C715 320 795 420 795 520 C795 640 695 720 560 720 C425 720 325 640 325 520 C325 410 415 320 556 320" w={4} p={jinn} c={C.inkSoft} />
+      <Ink d="M560 320 C715 320 795 420 795 520 C795 640 695 720 560 720 C425 720 325 640 325 520 C325 410 415 320 556 320" w={4} p={ring} c={C.inkSoft} />
       <Word x={560} y={640} size={56} p={jinn} color={C.ink}>
         الجن
       </Word>
@@ -560,20 +581,29 @@ const Scale: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
           <Pan x={1270} y={300} label="طين" color={CLAY} q={tin * (1 + 0.15 * pulse)} />
         </g>
       </g>
-      <g transform="translate(250 0) rotate(-8 960 190)">
-        <rect x={880} y={150} width={160} height={70} rx={6} fill="none" stroke={C.ribbon} strokeWidth={4} opacity={zann} />
-        <SText x={960} y={202} size={46} o={zann} color={C.ribbon}>
-          ظن
-        </SText>
-      </g>
-      <Ink d="M1110 140 L1310 236 M1310 140 L1110 236" w={6} p={wrong} c={C.ribbon} />
+    </g>
+  );
+  // «الظن» ختمٌ يُرفع فوق «الأمر» (الخطأ في الترتيب)، ثم يُشطب ويسقط عند «لم يكن الأمر مجرد مقارنة»
+  const lift = prog(t, at(tl, "جعل") - 0.05, at(tl, "مقدما"), easeOut);
+  const fall = prog(t, at(tl, "لم") + 0.35, at(tl, "مجرد") + 0.3);
+  const cross = prog(t, at(tl, "لم") - 0.05, at(tl, "لم") + 0.35);
+  const zx = mix(1430, 1250, lift);
+  const zy = mix(205, 128, lift) + 520 * fall * fall;
+  const stamp = (
+    <g opacity={zann * (1 - fall)} transform={`translate(${zx} ${zy}) rotate(${-8 + 8 * lift + 30 * fall}) scale(${1 + 0.25 * lift})`}>
+      <rect x={-86} y={-44} width={172} height={80} rx={8} fill={C.page} stroke={C.ribbon} strokeWidth={5} />
+      <SText x={0} y={14} size={52} color={C.ribbon}>
+        ظن
+      </SText>
+      <Ink d="M-96 -52 L96 46 M96 -52 L-96 46" w={7} p={cross} c={C.ribbon} />
     </g>
   );
   const top = (
     <g>
-      <Ink d="M1500 150 H420" w={8} p={bar} c={C.gold} />
+      <Ink d="M1500 190 H420" w={10} p={bar} c={C.gold} />
+      {stamp}
       {["أمر", "واجب", "الطاعة"].map((w, i) => (
-        <Word key={i} x={[1290, 1060, 800][i]!} y={250} size={70} p={amr[i]!} color={C.ink}>
+        <Word key={i} x={[1290, 1060, 800][i]!} y={290} size={70} p={amr[i]!} color={C.ink}>
           {w}
         </Word>
       ))}
@@ -581,7 +611,8 @@ const Scale: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
     </g>
   );
   const cam = camPath(t, NEUTRAL, [
-    { a: at(tl, "نار") - 0.2, b: at(tl, "أفضل") + 0.5, cx: 960, cy: 520, s: 1.1 },
+    { a: at(tl, "نار") - 0.2, b: at(tl, "أفضل") + 0.5, cx: 1100, cy: 520, s: 1.1 },
+    { a: at(tl, "جعل") - 0.2, b: at(tl, "مقدما") + 0.3, cx: 1100, cy: 400, s: 1.08 },
     { a: at(tl, "مجرد") - 0.2, b: at(tl, "مقارنة") + 0.5, ...NEUTRAL },
     { a: at(tl, "أمرا") - 0.2, b: at(tl, "طاعته") + 0.3, cx: 960, cy: 380, s: 1.08 },
   ]);

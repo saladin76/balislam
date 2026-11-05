@@ -16,7 +16,7 @@ export type HzMeta = {
   seconds?: number;
 };
 
-export const HZ_LEAD = 0.5;
+export const HZ_LEAD = 0.3;
 
 export const HZ_META: Record<string, HzMeta> = {
   cover: { nameAr: "فتح الدفتر (بلا كلام)", tail: 0, exit: "none", seconds: 2.6 },
@@ -46,6 +46,17 @@ export const HZ_META: Record<string, HzMeta> = {
   enmity: { nameAr: "العداوة والإمهال وعزم الإغواء", tail: 1.2, exit: "fade" },
   authority: { nameAr: "لا سلطان له على عباد الله إلا من اتبعه", tail: 1.2, exit: "fade" },
   warning: { nameAr: "عداوة قديمة وتحذير صريح", tail: 1.6, exit: "turn" },
+  permit: { nameAr: "الإباحة واسعة، والنهي علامة واحدة بحدّ «لا تقربا»", tail: 1.2, exit: "fade" },
+  species: { nameAr: "بطاقة «نوع الشجرة»: فارغة، ثم العبرة", tail: 1.2, exit: "fade" },
+  "warn-recall": { nameAr: "تحذير من عداوة الشيطان (قبل آية)", tail: 1.0, exit: "none" },
+  whisper: { nameAr: "الوسوسة خط متموج، والوعدان الكاذبان يُشطبان", tail: 1.2, exit: "fade" },
+  breach: { nameAr: "ثم وقع: ثغرة في حدّ النهي (قبل آية)", tail: 1.0, exit: "none" },
+  "return-line": { nameAr: "الخط العائد: لم يصر بل رجع (قبل الدعاء)", tail: 1.9, exit: "fade" },
+  stances: { nameAr: "موقفان: استكبر وأصر / تاب وأناب، وباب التوبة", tail: 1.6, exit: "turn" },
+  "earth-words": { nameAr: "مستقر ومتاع إلى حين، وحياة وموت وإخراج", tail: 1.2, exit: "fade" },
+  bridge: { nameAr: "نقطة التحول: أفق الخبر يتصل بأفق التاريخ البشري", tail: 1.4, exit: "fade" },
+  "no-map": { nameAr: "خريطة بلا معالم: روايات، ودبوس لا يستقر، وتاريخ فارغ", tail: 1.4, exit: "fade" },
+  limit: { nameAr: "نؤمن به ونثبته، ولا نزيد عليه إلا بدليل", tail: 1.6, exit: "turn" },
   pending: { nameAr: "قيد التصميم (مكان المشهد في الخطة)", tail: 1.0, exit: "none" },
 };
 
