@@ -1,4 +1,5 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
+import { previewNotice, studioPreview } from "./preview";
 import { StudioStartGuide } from "./ui/StudioStartGuide";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
@@ -92,6 +93,7 @@ export const App: React.FC = () => {
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
+  const [loadError, setLoadError] = useState("");
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
   const [showNew, setShowNew] = useState(false);
   /** فكرة من بنك الأفكار تتحول حلقة: تملأ نموذج الحلقة الجديدة */
@@ -135,6 +137,7 @@ export const App: React.FC = () => {
     loadedKey.current = "";
     episodesOf.current = "";
     const ch = channelId;
+    setLoadError("");
     api.episodes().then((list) => {
       if (channelRef.current !== ch) return;
       episodesOf.current = ch;
@@ -148,7 +151,7 @@ export const App: React.FC = () => {
     }).catch((e) => say(e.message, true));
     api.identity().then(({ identity, defaults }) => {
       if (channelRef.current === ch) setIdent({ draft: identity, saved: identity, defaults });
-    }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
+    }).catch((e) => { if (channelRef.current === ch) { setLoadError(e.message); say(e.message, true); } });
     // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
     if (channelId) api.channel().then((c) => {
       if (channelRef.current === ch) setChannel(channelInfo(c));
@@ -265,14 +268,15 @@ export const App: React.FC = () => {
   };
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
-  if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
+  if (!ident) return <div className="empty-state"><h2>{loadError ? "تعذّر تحميل الاستوديو" : "جارٍ التحميل…"}</h2>{loadError && <><p role="alert">{loadError}</p><button className="btn" onClick={() => window.location.reload()}>إعادة المحاولة</button></>}</div>;
 
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
       <div className={`app${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
+        {!studioPreview && <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />}
         <header className="top">
+          {studioPreview && <p className="studio-preview-notice" role="note">{previewNotice}</p>}
           <button className="brand" onClick={() => confirmLeaveScript() && setTab("home")} title="الرئيسية">
             <BrandMark channel={channel} />
             <span>استوديو <span style={{ fontFamily: ident.draft.fonts?.wordmark ? `'${ident.draft.fonts.wordmark}', inherit` : undefined, fontSize: "1.1em" }}>{channel.nameDisplay ?? channel.name}</span></span>
@@ -318,7 +322,7 @@ export const App: React.FC = () => {
           {tab === "episode" && plan ? (
             <span className="status">
               <i className={`dot ${planState === "dirty" || planState === "saving" ? "dirty" : planState === "error" ? "err" : ""}`} />
-              {planState === "saved" ? "كل التعديلات محفوظة" : planState === "saving" ? "جارٍ الحفظ…" : planState === "dirty" ? "تعديل…" : "تعذّر الحفظ"}
+              {studioPreview ? "معاينة — التعديلات لا تُحفظ" : planState === "saved" ? "كل التعديلات محفوظة" : planState === "saving" ? "جارٍ الحفظ…" : planState === "dirty" ? "تعديل…" : "تعذّر الحفظ"}
             </span>
           ) : null}
         </header>
@@ -424,7 +428,7 @@ export const App: React.FC = () => {
             }}
           />
         ) : tab === "settings" ? (
-          <SettingsTab
+          studioPreview ? <section className="empty-state"><h2>الاتصالات والمفاتيح</h2><p>{previewNotice}</p><p>لا تُدخل مفاتيح أو بيانات اتصال في رابط المعاينة.</p></section> : <SettingsTab
             onKeysChanged={() => {
               reloadKeys();
               if (epId) loadEpisode(epId, { keepScript: true });

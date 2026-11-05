@@ -773,3 +773,4 @@ button.ops-ch:hover { background: var(--accent-soft); }
 @media (max-width: 590px) {
   .studio-primary-nav button { flex: 1 1 100%; }
 }
+.studio-preview-notice { flex-basis: 100%; margin: 0; padding: 12px 20px; background: #fff4cc; color: #493b13; border-bottom: 1px solid #d6bf6a; text-align: center; font-size: 14px; }
