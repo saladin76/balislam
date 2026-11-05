@@ -1,0 +1,19 @@
+#!/bin/sh
+# بوابة التسليم (الأمر 010): لا يُدفع commit تفشل عليه الفحوص الإلزامية (الأنواع والاختبارات).
+# يُفحص الـ commit المدفوع نفسه في نسخة منفصلة، لا ملفات العمل غير المحفوظة.
+# التثبيت تلقائي مع npm install (scripts/install-hooks.mjs). الأمر git push --no-verify يتجاوزه
+# محليًا ولا يُستعمل إلا بقرار صاحب المشروع.
+z40=0000000000000000000000000000000000000000
+tested=""
+while read local_ref local_sha remote_ref remote_sha; do
+  # حذف فرع: لا شيء يُفحص
+  [ "$local_sha" = "$z40" ] && continue
+  case " $tested " in *" $local_sha "*) continue ;; esac
+  echo "بوابة التسليم: فحص $local_ref ($local_sha) قبل الدفع إلى $remote_ref…"
+  node "$(git rev-parse --show-toplevel)/scripts/gate.mjs" --commit "$local_sha" || {
+    echo "✗ رُفض الدفع إلى $remote_ref: الفحوص الإلزامية فشلت على $local_sha." >&2
+    exit 1
+  }
+  tested="$tested $local_sha"
+done
+exit 0

@@ -1,4 +1,6 @@
 node_modules/
+# رابط node_modules (ليس مجلدًا) لا يُحفظ أيضًا
+node_modules
 .env
 out/
 renders/
