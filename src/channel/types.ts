@@ -1,5 +1,6 @@
 import defaultChannelJson from "../../channels/balislam/channel.json";
 import type { LogoSpec } from "../../brand/logo/Logo";
+import type { RecitationChoice } from "../quran/provider";
 
 /**
  * ملف القناة (channels/<id>/channel.json): كل ما يميّز قناة عن أخرى غير الهوية البصرية.
@@ -30,7 +31,7 @@ export type ChannelConfig = {
   /** ترجمة معاني القرآن للقنوات غير العربية: معرّف المورد في Quran Foundation واسمه للنسبة. */
   quranTranslation?: { id: number; name: string };
   /** تلاوة الآيات من Quran Foundation (اختياري): معرّف التلاوة واسم القارئ. بدونها تُعرض الآية نصًّا فقط. */
-  recitation?: { id: number; name: string };
+  recitation?: RecitationChoice;
   domains: Record<string, ChannelDomain>;
   /** جدول النشر: يوم الحلقة الطويلة (0 الأحد … 6 السبت) وعدد الشورتس اليومية */
   schedule?: { longDay: number; time?: string; shortsPerDay?: number };
