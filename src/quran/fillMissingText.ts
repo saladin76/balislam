@@ -48,7 +48,8 @@ export const fillMissingQuranTexts = async (
   client: Pick<QuranClient, "verse">,
 ): Promise<TextOnlyResult> => {
   const scriptPath = await resolveScriptPath(episode);
-  const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  const scriptSnapshot = await readFile(scriptPath, "utf8");
+  const parsed = parseScript(scriptSnapshot, scriptPath);
   const file = quranPathFor(scriptPath);
   // Capture the complete file BEFORE any network request so edits to ANY key are protected.
   const snapshot = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
@@ -90,6 +91,11 @@ export const fillMissingQuranTexts = async (
   if (result.failed.length) return { fetched: [], existing: result.existing, failed: result.failed };
 
   if (Object.keys(additional).length) {
+    // The episode script may change while remote text is being fetched.
+    // Refuse writing a Quran cache derived from an obsolete script snapshot.
+    const scriptCurrent = await readFile(scriptPath, "utf8");
+    if (scriptCurrent !== scriptSnapshot)
+      throw new Error("تغير سكريبت الحلقة أثناء جلب الآيات؛ أُوقف حفظ النصوص لحماية التعديلات.");
     // Never overwrite any edit that occurred while the API requests were in flight.
     const current = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
       if (e.code === "ENOENT") return null;
