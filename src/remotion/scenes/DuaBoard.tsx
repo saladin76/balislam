@@ -75,9 +75,17 @@ const INK = darken(ID.night, 0.05);
 const INK_SOFT = mix(ID.night, ID.paper, 0.45);
 const COPPER_INK = darken(ID.copper, 0.35);
 
-/** كتابة بالحبر من اليمين إلى اليسار */
+/** إظهار الحبر من دون clip-path: القصّ المتحرك يقطع الحروف العربية وعلامات التشكيل وسط الكلمة. */
+export const arabicInkRevealStyle = (progress: number): React.CSSProperties => {
+  const p = Math.max(0, Math.min(1, progress));
+  return {
+    display: "inline-block",
+    opacity: p,
+    transform: `translateY(${(1 - p) * 6}px)`,
+  };
+};
 const Ink: React.FC<{ p: number; style?: React.CSSProperties; children: React.ReactNode }> = ({ p, style, children }) => (
-  <span style={{ display: "inline-block", clipPath: `inset(-20% 0 -20% ${(1 - p) * 100}%)`, opacity: p > 0 ? 1 : 0, transform: `translateY(${(1 - p) * 6}px)`, ...style }}>{children}</span>
+  <span style={{ ...arabicInkRevealStyle(p), ...style }}>{children}</span>
 );
 
 export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
