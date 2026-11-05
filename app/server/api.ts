@@ -256,7 +256,8 @@ export const balApi = (): Plugin => ({
             const client = quranClientFromEnv();
             if (!client) return send(res, 400, { error: "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»." });
             const result = await syncQuran(ep, client);
-            return send(res, 200, { result, plan: await io.regeneratePlan(ep) });
+            // Fetching Quran audio must never rewrite an existing hand-edited episode plan.
+            return send(res, 200, { result, plan: (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep)) });
           }
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
