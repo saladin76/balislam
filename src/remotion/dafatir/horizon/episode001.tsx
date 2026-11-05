@@ -400,10 +400,10 @@ const Begin: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
 // ─────────── عنوان الفصل (بلا كلام): يُكتب كبيرًا ثم يصغر إلى رأس الصفحة ───────────
 const Chapter: React.FC<HzProps> = ({ t, dur, exit, p }) => {
   const label = p.label ?? "";
-  const big = prog(t, 0.3, 1.0, easeOut);
+  const big = prog(t, 0.05, 0.7, easeOut);
   const shrink = prog(t, 2.0, 2.8);
-  const orn = prog(t, 0.1, 0.8);
-  const rule = prog(t, 0.6, 1.4);
+  const orn = prog(t, 0.0, 0.5);
+  const rule = prog(t, 0.35, 1.1);
   const title = p.title ?? "";
   const R = (
     <g>
@@ -413,13 +413,13 @@ const Chapter: React.FC<HzProps> = ({ t, dur, exit, p }) => {
           {label}
         </SText>
         {title ? (
-          <SText x={1365} y={600} size={60} o={prog(t, 0.7, 1.3)} color={C.inkSoft}>
+          <SText x={1365} y={600} size={60} o={prog(t, 0.4, 1.0)} color={C.inkSoft}>
             {title}
           </SText>
         ) : null}
         <Ink d={`M1520 ${title ? 650 : 560} H1210`} w={3} p={rule} c={C.gold} />
       </g>
-      <g transform={`translate(0 ${(1 - prog(t, 0.6, 1.2, easeOut)) * -90})`}>
+      <g transform={`translate(0 ${(1 - prog(t, 0.3, 0.9, easeOut)) * -90})`}>
         <path d="M1700 72 H1736 V156 L1718 142 L1700 156 Z" fill={C.ribbon} />
       </g>
       <SText x={1680} y={140} size={40} anchor="start" color={C.ink} o={prog(t, 2.3, 2.9)}>
@@ -553,6 +553,8 @@ const Known: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
 // ─────────── c2-s5: يحدثنا القرآن عن الخلق (يمين)، ثم ينتقل إلى ما هو أعظم: التعليم (يسار) ───────────
 const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const seal = prog(t, at(tl, "القرآن") - 0.05, at(tl, "القرآن") + 0.45, easeOut);
+  // «وبعد هذا الإخبار»: خط ذهبي يُغلق ما سبق قبل أن يبدأ الحديث الجديد
+  const rule = prog(t, at(tl, "وبعد") - 0.05, at(tl, "الإخبار") + 0.4);
   const khalq = prog(t, at(tl, "خلق") - 0.05, at(tl, "خلق") + 0.7);
   const adam = prog(t, at(tl, "آدم") - 0.05, at(tl, "آدم") + 0.45);
   const arrow = prog(t, at(tl, "ثم") - 0.1, at(tl, "عن", 2) + 0.4);
@@ -566,7 +568,8 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const R = (
     <g>
       <ChapterHead label={p.head ?? ""} />
-      <QuranSeal x={1365} y={250} o={seal} s={0.9} />
+      <Ink d="M1640 200 H1090" w={3} p={rule} c={C.gold} />
+      <QuranSeal x={1365} y={270} o={seal} s={0.9} />
       <WriteIn id="tt-k" x={1365} y={470} size={120} p={khalq} label="الخلق" color="#8A5A3C" />
       <SText x={1365} y={545} size={38} font="tajawal" weight={500} color={C.inkSoft} o={adam}>
         آدم عليه السلام
