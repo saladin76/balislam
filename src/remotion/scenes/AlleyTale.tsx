@@ -7,6 +7,7 @@ import { sentenceGroups } from "../../plan/beats";
 import { autoCameraPlan, cameraCuts, isComposed, moveFrames, parseCameraPlan, parsePoseTimeline, shotZoom, type CamShot, type CamTarget } from "../../plan/director";
 import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan/sceneCues";
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
+import { fitDistance, GAIT_IDS, locomote, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
 import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
 import { TopCaption, captionLines } from "../illus/TopCaption";
@@ -21,7 +22,7 @@ import { Grade, Texture } from "../illus/texture";
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "cameraPlanPortrait" | "gait" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -144,6 +145,33 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const stepDir = MARKS[shot % MARKS.length]! < MARKS[Math.max(0, shot - 1) % MARKS.length]!;
   const facingLeft = stage === "companion" ? action !== "turn-away" : stage === "witnesses" ? false : walking || action === "turn-away" || (stepping && stepDir);
 
+  // الحركة الطبيعية (الكاميرا المؤلَّفة، الأمر 006): مشية بحسب الحالة، تسارع وتباطؤ، قدم ثابتة،
+  // والتفاتة بالجسد نحو ما يحدث (الباب) بدل الانقلاب الفوري، وثوب يتابع الجسد
+  const gait: GaitId = (GAIT_IDS as readonly string[]).includes(props.gait ?? "") ? (props.gait as GaitId) : "walk";
+  const HERO_SCALE = 1.75;
+  let loco: ReturnType<typeof locomote> | null = null;
+  if (composed && stage === "solo" && !sitting) {
+    const moves: Move[] = [];
+    const turns: Turn[] = [];
+    let room = 1060 - 420;
+    for (let g = 0; g < groupStarts.length; g++) {
+      const s0 = groupStarts[g]!;
+      const s1 = groupStarts[g + 1] ?? dur;
+      if (actionOf(g) === "walk") {
+        const d = Math.min(room, fitDistance(gait, s1 - s0 - 6, HERO_SCALE, fps));
+        if (d > 4) moves.push({ start: s0 + 2, dx: -d, gait });
+        room -= d;
+      } else if (actionOf(g) === "turn-away") turns.push({ at: s0 + 2, to: -1 });
+    }
+    const firstWalk = moves[0]?.start ?? Infinity;
+    // يلتفت نحو الباب حين يُذكر، إن كان ظهره إليه
+    const doorAt = at("door");
+    if (doorAt !== undefined) turns.push({ at: Math.max(0, doorAt - 6), to: 1, dur: 20 });
+    loco = locomote(frame, { x0: 1060, facing0: firstWalk <= 2 ? -1 : 1, moves, turns, scale: HERO_SCALE, fps });
+    heroX = loco.x;
+    walking = loco.moving;
+  }
+
   // وضعية كل لقطة، وفي منتصف السطر إيماءة ثانوية من الوضعية نفسها (يومئ، يرفع رأسه، يعتدل)
   const SECOND: Record<string, PoseName> = { stand: "think", think: "stand", nod: "cross", sit: "head-down", "sit-low": "look-up", "head-down": "sit-low", "look-up": "think", hold: "nod", cross: "think", "turn-away": "cross", point: "stand" };
   const timeline: { at: number; pose: PoseName }[] = [];
@@ -180,8 +208,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   for (const event of parsePoseTimeline(props.poseTimeline)) {
     if ((POSE_IDS as readonly string[]).includes(event.pose)) timeline.push({ at: event.at, pose: event.pose as PoseName });
   }
-  let pose = poseAt(frame, timeline);
-  if (walking) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95);
+  let pose = composed ? poseAtNatural(frame, timeline) : poseAt(frame, timeline);
+  if (loco) pose = locoPose(pose, loco);
+  else if (walking) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95);
   else if (stepping) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95, 0.85);
   const holding: Holding = has("spread") ? "phone" : has("money") && frame >= (at("money") ?? 0) - 6 ? "coins" : has("evidence") && frame >= (at("evidence") ?? 0) - 6 ? "book" : action === "hold" || newsAt !== undefined ? "paper" : "none";
 
@@ -230,7 +259,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const focusX = heroX;
   // الكاميرا المؤلَّفة: مفاتيح قليلة (افتتاح + حركة أو اثنتان) على كلمات المعنى، بانتقال طويل هادئ
   const sacredScene = isSacredSentence(narration);
-  const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: props.cameraPlan, cues, timings }) : null;
+  const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: portrait && props.cameraPlanPortrait ? props.cameraPlanPortrait : props.cameraPlan, cues, timings }) : null;
   const cam = (depth: number) =>
     composedCam
       ? composedLayer(composedCam, depth)
@@ -304,7 +333,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               </g>
             ) : null}
             <Ripples x={heroX - 70} y={GROUND - 300} t={spread} frame={frame} at={at("spread") ?? 0} />
-            <Figure x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
+            <Figure x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
             {memory.map((c, i) => {
               const col = c.kind === "wrong" ? ID.seal : ID.dawn;
               const side = i % 2 ? 1 : -1;
@@ -374,17 +403,22 @@ export const composedCamera = (o: {
   plan?: string;
   cues: { kind: string; word: string; at: number }[];
   timings: { word: string; start: number }[];
-}): CamState & { keys: number } => {
+}): CamState & { keys: number; still: boolean } => {
   const authored = parseCameraPlan(o.plan);
-  const beats: { frame: number; shot: CamShot; target: CamTarget }[] = authored.length
-    ? authored
-        .map((b) => ("frame" in b.at ? { frame: b.at.frame, shot: b.shot, target: b.target } : (() => {
-          const hit = cueFrames([{ kind: "truth", word: (b.at as { word: string }).word }], o.timings)[0];
-          return hit ? { frame: hit.at, shot: b.shot, target: b.target } : null;
-        })()))
-        .filter((b): b is { frame: number; shot: CamShot; target: CamTarget } => b !== null)
-        .sort((a, b) => a.frame - b.frame)
-    : autoCameraPlan({ cues: o.cues, duration: o.dur, fps: o.fps, stage: o.stage, sacred: o.sacred });
+  const still = authored.some((b) => b.still);
+  type Beat = { frame: number; shot: CamShot; target: CamTarget; dur?: number };
+  const beats: Beat[] = still
+    ? [{ frame: 0, shot: "wide", target: o.stage === "companion" ? "pair" : o.stage === "witnesses" ? "center" : "hero" }]
+    : authored.length
+      ? authored
+          .map((b): Beat | null => {
+            const base = "frame" in b.at ? b.at.frame : cueFrames([{ kind: "truth", word: b.at.word }], o.timings)[0]?.at;
+            if (base === undefined) return null;
+            return { frame: Math.max(0, base + (b.offset ?? 0)), shot: b.shot, target: b.target, ...(b.dur ? { dur: b.dur } : {}) };
+          })
+          .filter((b): b is Beat => b !== null)
+          .sort((a, b) => a.frame - b.frame)
+      : autoCameraPlan({ cues: o.cues, duration: o.dur, fps: o.fps, stage: o.stage, sacred: o.sacred });
   if (!beats.length || beats[0]!.frame > 0) beats.unshift({ frame: 0, shot: "wide", target: "hero" });
   const pt = Boolean(o.portrait);
   let cur = shotFrame(beats[0]!.target, beats[0]!.shot, o.heroX, o.stage, pt);
@@ -392,8 +426,8 @@ export const composedCamera = (o: {
   for (let i = 1; i < beats.length; i++) {
     const b = beats[i]!;
     const to = shotFrame(b.target, b.shot, o.heroX, o.stage, pt);
-    const len = moveFrames(to.z - cur.z, to.x - cur.x);
-    // تصل الكاميرا مع نطق الكلمة تقريبًا: تبدأ قبلها بنحو 40% من مدة الحركة
+    const len = b.dur ?? moveFrames(to.z - cur.z, to.x - cur.x);
+    // تصل الكاميرا مع الحدث تقريبًا: تبدأ قبله بنحو 40% من مدة الحركة (والإزاحة في الخطة تضبط موضع الحدث)
     const start = Math.max(free, b.frame - Math.round(len * 0.4));
     if (o.frame < start) break;
     const p = interpolate(o.frame, [start, start + len], [0, 1], { ...clampOpt, easing: camEase });
@@ -401,9 +435,9 @@ export const composedCamera = (o: {
     free = start + len;
     if (p < 1) break;
   }
-  // تنفس خفيف للكاميرا (1.5% على طول المشهد) إلا في مشهد الذكر والآية
-  const breath = o.sacred ? 0 : 0.015 * (o.frame / Math.max(1, o.dur));
-  return { ...frameOn(cur.x, cur.z * (1 + breath), pt), keys: beats.length };
+  // تنفس خفيف للكاميرا (1.5% على طول المشهد) إلا في المشهد الثابت ومشهد الذكر والآية
+  const breath = o.sacred || still ? 0 : 0.015 * (o.frame / Math.max(1, o.dur));
+  return { ...frameOn(cur.x, cur.z * (1 + breath), pt), keys: beats.length, still };
 };
 
 /** تحويل طبقة بعمق depth: الطبقات البعيدة تتحرك وتكبر أقل (منظور) */

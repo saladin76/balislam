@@ -37,10 +37,14 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
       if (s.template === "alley-tale" && plan.channel === "balislam") {
         if (p.cameraMode && !["automatic", "directed", "composed"].includes(p.cameraMode))
           out.push({ level: "error", sceneId: s.id, message: "وضع الكاميرا غير معروف؛ استخدم automatic أو directed أو composed." });
-        if (p.cameraPlan) {
-          const lines = parseCameraPlanLines(p.cameraPlan);
+        if (p.gait && !["stroll", "walk", "brisk", "heavy"].includes(p.gait))
+          out.push({ level: "error", sceneId: s.id, message: "المشية غير معروفة؛ استخدم heavy أو stroll أو walk أو brisk." });
+        if (p.gait && p.cameraMode !== "composed")
+          out.push({ level: "warning", sceneId: s.id, message: "المشية لا تعمل إلا في وضع الكاميرا composed." });
+        for (const plan of [p.cameraPlan, p.cameraPlanPortrait].filter(Boolean)) {
+          const lines = parseCameraPlanLines(plan);
           if (lines.some((x) => x === null))
-            out.push({ level: "error", sceneId: s.id, message: "خطة الكاميرا غير صالحة؛ اكتب سطرًا لكل حركة: الكلمة أو رقم الإطار | wide أو medium أو close ثم الهدف (hero، pair، door، board، center)." });
+            out.push({ level: "error", sceneId: s.id, message: "خطة الكاميرا غير صالحة؛ اكتب «ثابت» وحدها، أو سطرًا لكل حركة: الكلمة (ويجوز +إطارات أو -إطارات) أو رقم الإطار | wide أو medium أو close ثم الهدف (hero، pair، door، board، center) ثم مدة اختيارية بالإطارات (12–300)." });
           if (p.cameraMode !== "composed")
             out.push({ level: "warning", sceneId: s.id, message: "خطة الكاميرا لا تعمل إلا في وضع composed." });
         }

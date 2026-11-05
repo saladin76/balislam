@@ -116,6 +116,19 @@ export const walkPose = (base: PoseSpec, phase: number, amount = 1): PoseSpec =>
 };
 
 const rad = (d: number) => (d * Math.PI) / 180;
+
+/** هندسة الساقين لوضعية ما (إحداثيات محلية، القدمان على الأرض y=0 تقريبًا): للرسم ولاختبار انزلاق القدمين */
+export const legGeometry = (pose: PoseSpec) => {
+  const drop = (l: Limb) => THIGH * Math.cos(rad(l.s)) + SHIN * Math.cos(rad(l.s - l.e));
+  const hipY = -Math.max(drop(pose.legBack), drop(pose.legFront)) - 6;
+  const leg = (l: Limb) => {
+    const kx = THIGH * Math.sin(rad(l.s));
+    const ky = hipY + THIGH * Math.cos(rad(l.s));
+    return { k: [kx, ky] as const, f: [kx + SHIN * Math.sin(rad(l.s - l.e)), ky + SHIN * Math.cos(rad(l.s - l.e))] as const };
+  };
+  return { hipY, back: leg(pose.legBack), front: leg(pose.legFront) };
+};
+export const LEG_LEN = THIGH + SHIN;
 const step = (x: number, y: number, len: number, ang: number) => [x + len * Math.sin(rad(ang)), y + len * Math.cos(rad(ang))] as const;
 /** دوران نقطة حول مركز (لإمالة الجذع) */
 const rot = (x: number, y: number, cx: number, cy: number, ang: number) => {
@@ -164,6 +177,10 @@ type FigureProps = {
   silhouette?: string;
   /** شدة الظل على الجانب البعيد عن الضوء (0..1) */
   shade?: number;
+  /** اتجاه الجسد بين -1 و1 (للالتفاتة التدريجية)؛ إن وُجد يتقدم على flip */
+  facing?: number;
+  /** تأخر الثوب عن الجسد (وحدات محلية، موجب = إلى الخلف): متابعة القماش بعد الحركة والتوقف */
+  sway?: number;
 };
 
 type Pt = readonly [number, number];
@@ -198,7 +215,7 @@ const Limb2: React.FC<{ pts: Pt[]; w: number[]; fill: string; ink: string; o?: n
   );
 };
 
-export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LOOKS.hero, flip = false, opacity = 1, shadow = true, rim = 0, rimColor = ID.dawn, holding = "none", frame = 0, silhouette, shade = 1 }) => {
+export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LOOKS.hero, flip = false, opacity = 1, shadow = true, rim = 0, rimColor = ID.dawn, holding = "none", frame = 0, silhouette, shade = 1, facing, sway = 0 }) => {
   const L = look as FigureLook;
   const sil = silhouette;
   const cloth = sil ?? CLOTH[L.cloth];
@@ -252,8 +269,8 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
   const legsFront = <Limb2 pts={[hip, lf.k, lf.f]} w={legW} fill={legFill} ink={ink} />;
   // ذيل الثوب: يغطي ما بين الساقين واقفًا
   const hemY = Math.max(lb.f[1], lf.f[1]) - 9;
-  const hemL = Math.min(lb.f[0], lf.f[0], lb.k[0] - 6, lf.k[0] - 6) - 24;
-  const hemR = Math.max(lb.f[0], lf.f[0], lb.k[0] + 6, lf.k[0] + 6) + 24;
+  const hemL = Math.min(lb.f[0], lf.f[0], lb.k[0] - 6, lf.k[0] - 6) - 24 - sway;
+  const hemR = Math.max(lb.f[0], lf.f[0], lb.k[0] + 6, lf.k[0] + 6) + 24 - sway;
   const skirt = robe && !seated ? (
     <path d={`M-24 ${hipY - 4} L24 ${hipY - 4} Q${hemR - 4} ${(hipY + hemY) / 2} ${hemR} ${hemY} Q${(hemL + hemR) / 2} ${hemY + 6} ${hemL} ${hemY} Q${hemL + 4} ${(hipY + hemY) / 2} -24 ${hipY - 4} Z`} fill={cloth} stroke={ink} strokeWidth={2.6} strokeLinejoin="round" />
   ) : null;
@@ -409,7 +426,7 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
     ) : null;
 
   return (
-    <g transform={`translate(${x} ${y}) scale(${flip ? -scale : scale} ${scale})`} opacity={opacity}>
+    <g transform={`translate(${x} ${y}) scale(${(facing ?? (flip ? -1 : 1)) * scale} ${scale})`} opacity={opacity}>
       {shadow ? <ellipse cx={6} cy={2} rx={64} ry={10} fill="#000" opacity={0.3 * opacity} /> : null}
       {bundle}
       {sleeve(ab, true, "ab")}

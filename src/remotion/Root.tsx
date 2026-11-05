@@ -15,6 +15,7 @@ import { Providers } from "./Providers";
 import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
+import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
 import { AlleyTale } from "./scenes/AlleyTale";
 import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
@@ -70,6 +71,7 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="dafatir-001-horizon-audio" component={HorizonAudioReel} defaultProps={{}} calculateMetadata={horizonAudioMetadata} durationInFrames={HZ_TOTAL} fps={HZ_FPS} width={1920} height={1080} />
     {/* مختبر «بالإسلام»: اختبارات بصرية للمحرك، بلا صوت، لا تُنشر */}
     <Composition id="balislam-lab-camera-ab" component={CameraAB} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
+    <Composition id="balislam-lab-motion" component={MotionLab} durationInFrames={MOTION_SEGMENTS.length * SEG} fps={config.video.fps} {...sizes.landscape} />
     <Composition id="balislam-lab-camera-portrait" component={CameraComposedPortrait} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.portrait} />
 
     {/* Controlled A/B comparison: same words, cast and timing; only camera direction differs. */}

@@ -50,14 +50,44 @@ describe("الكاميرا المؤلَّفة", () => {
     expect(plan).toHaveLength(1);
   });
 
-  it("بلا كلمات معنى: اقتراب هادئ واحد قرب منتصف المشهد", () => {
+  it("بلا كلمات معنى: تبقى الكاميرا على تأطيرها الافتتاحي (لا اقتراب حشو بنمط ثابت)", () => {
     const plan = autoCameraPlan({ cues: [], duration: DUR, fps: FPS, stage: "solo", sacred: false });
-    expect(plan).toHaveLength(2);
-    expect(plan[1]!.frame).toBeGreaterThan(DUR * 0.3);
-    expect(plan[1]!.frame).toBeLessThan(DUR * 0.6);
+    expect(plan).toHaveLength(1);
   });
 
-  it("أقل تغيّرًا للتأطير من الوضع الآلي القديم في المشهد نفسه", () => {
+  it("المشهد الثابت: «ثابت» تُبقي الكاميرا ساكنة تمامًا بلا تنفس", () => {
+    expect(parseCameraPlan("ثابت")[0]?.still).toBe(true);
+    const a = composedCamera({ frame: 0, dur: DUR, fps: FPS, heroX: 1060, stage: "solo", sacred: false, plan: "ثابت", cues: [{ kind: "truth", word: "الحقيقة", at: 200 }], timings });
+    const b = composedCamera({ frame: DUR - 1, dur: DUR, fps: FPS, heroX: 1060, stage: "solo", sacred: false, plan: "ثابت", cues: [{ kind: "truth", word: "الحقيقة", at: 200 }], timings });
+    expect(b).toEqual(a);
+    expect(a.still).toBe(true);
+  });
+
+  it("حركة واحدة طويلة بمدة يحددها المخرج، وإزاحة لتصل الكاميرا مع الحدث لا مع الكلمة", () => {
+    expect(parseCameraPlan("الباب+12 | medium door 150")[0]).toEqual({ at: { word: "الباب" }, shot: "medium", target: "door", offset: 12, dur: 150 });
+    expect(parseCameraPlanLines("الباب | medium door 5")).toEqual([null]);
+    const run = (f: number) => composedCamera({ frame: f, dur: DUR, fps: FPS, heroX: 1060, stage: "solo", sacred: true, plan: "0 | wide\nالحقيقة | close hero 150", cues: [], timings });
+    const t = cueAt("الحقيقة");
+    const start = t - 60;
+    // الحركة الطويلة تبدأ قبل الكلمة بـ40% من مدتها، وفي منتصفها لم تكتمل بعد
+    expect(run(start - 2).z).toBeCloseTo(1, 5);
+    const mid = run(start + 75).z;
+    expect(mid).toBeGreaterThan(1.05);
+    expect(mid).toBeLessThan(1.55);
+  });
+
+  it("فحص الخطة: خطة العمودي والمشية تُفحصان، وتنبيه حين تُكتبان خارج وضع composed", async () => {
+    const { planIssues } = await import("../src/plan/validate");
+    const scene = (props: Record<string, string>) => ({
+      version: 1 as const, episode: "000", title: "t", domain: "psychology" as const, themeId: "night" as const, channel: "balislam", updatedAt: "",
+      chapters: [{ number: 1, title: "t", scenes: [{ id: "c1-s1", template: "alley-tale", narration: "يمشي في الحارة.", line: 0, props, sfx: [] }] }],
+    });
+    const msgs = (props: Record<string, string>) => planIssues(scene(props) as never).map((i) => i.message).join("\n");
+    expect(msgs({ cameraMode: "composed", cameraPlanPortrait: "الباب | zoom" })).toContain("خطة الكاميرا غير صالحة");
+    expect(msgs({ cameraMode: "composed", gait: "run" })).toContain("المشية غير معروفة");
+    expect(msgs({ cameraMode: "automatic", gait: "stroll" })).toContain("لا تعمل إلا في وضع الكاميرا composed");
+    expect(msgs({ cameraMode: "composed", gait: "stroll", cameraPlan: "ثابت", cameraPlanPortrait: "0 | medium hero" })).not.toMatch(/المشية|خطة الكاميرا/);
+  });  it("أقل تغيّرًا للتأطير من الوضع الآلي القديم في المشهد نفسه", () => {
     const lineStarts = [0, 75, 150, 225];
     const legacyCuts = cameraCuts(lineStarts, DUR, false).length - 1;
     const c = composedCamera({ frame: 0, dur: DUR, fps: FPS, heroX: 1060, stage: "solo", sacred: false, cues: [{ kind: "door", word: "الباب", at: cueAt("الباب") }, { kind: "truth", word: "الحقيقة", at: cueAt("الحقيقة") }], timings });

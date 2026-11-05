@@ -20,7 +20,19 @@ export const CAM_SHOTS = ["wide", "medium", "close"] as const;
 export type CamShot = (typeof CAM_SHOTS)[number];
 export const CAM_TARGETS = ["hero", "pair", "door", "board", "center"] as const;
 export type CamTarget = (typeof CAM_TARGETS)[number];
-export type CameraBeat = { at: { frame: number } | { word: string }; shot: CamShot; target: CamTarget };
+export type CameraBeat = {
+  at: { frame: number } | { word: string };
+  shot: CamShot;
+  target: CamTarget;
+  /** إزاحة بالإطارات عن نطق الكلمة (موجبة = بعدها): لتصل الكاميرا مع الحدث لا مع الكلمة */
+  offset?: number;
+  /** مدة الحركة بالإطارات (لحركة واحدة طويلة)؛ إن غابت تُحسب من المسافة */
+  dur?: number;
+  /** المشهد كله ثابت: لا حركة ولا تنفس كاميرا */
+  still?: boolean;
+};
+/** كلمة «ثابت» أو still في سطر وحده: الكاميرا ساكنة طوال المشهد */
+const STILL_WORDS = ["still", "ثابت"];
 
 const SHOT_ZOOM: Record<CamShot, number> = { wide: 1, medium: 1.28, close: 1.6 };
 export const shotZoom = (s: CamShot) => SHOT_ZOOM[s];
@@ -31,13 +43,24 @@ export const parseCameraPlanLines = (input?: string): (CameraBeat | null)[] =>
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((line) => {
+    .map((line): CameraBeat | null => {
+      if (STILL_WORDS.includes(line)) return { at: { frame: 0 }, shot: "wide", target: "hero", still: true };
       const [left, right] = line.split("|").map((x) => x.trim());
       if (!left || !right) return null;
-      const [shot, target = "hero"] = right.split(/\s+/);
+      const [shot, target = "hero", durTok] = right.split(/\s+/);
       if (!(CAM_SHOTS as readonly string[]).includes(shot ?? "") || !(CAM_TARGETS as readonly string[]).includes(target)) return null;
-      const at = /^\d+$/.test(left) ? { frame: Number(left) } : { word: left };
-      return { at, shot: shot as CamShot, target: target as CamTarget };
+      let dur: number | undefined;
+      if (durTok !== undefined) {
+        if (!/^\d+$/.test(durTok)) return null;
+        dur = Number(durTok);
+        if (dur < 12 || dur > 300) return null;
+      }
+      // «الكلمة+12» أو «الكلمة-8»: إزاحة عن نطق الكلمة
+      const m = /^(.+?)([+-]\d+)$/.exec(left);
+      const offset = m && !/^\d+$/.test(left) ? Number(m[2]) : undefined;
+      const word = m && !/^\d+$/.test(left) ? m[1]!.trim() : left;
+      const at = /^\d+$/.test(word) ? { frame: Number(word) } : { word };
+      return { at, shot: shot as CamShot, target: target as CamTarget, ...(offset !== undefined ? { offset } : {}), ...(dur !== undefined ? { dur } : {}) };
     });
 export const parseCameraPlan = (input?: string): CameraBeat[] => parseCameraPlanLines(input).filter((b): b is CameraBeat => b !== null);
 
@@ -86,7 +109,7 @@ export const autoCameraPlan = (opts: {
     if (m.shot === prevShot && m.target === prevTarget) continue;
     moves.push({ frame: c.at, ...m });
   }
-  if (!moves.length && duration > 4 * fps && stage !== "witnesses") moves.push({ frame: Math.round(duration * 0.45), shot: open.shot === "wide" ? "medium" : "close", target: open.target === "pair" ? "pair" : "hero" });
+  // بلا كلمة معنى: تبقى الكاميرا على تأطيرها الافتتاحي (لا حركة حشو بنمط ثابت)
   return [open, ...moves];
 };
 

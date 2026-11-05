@@ -4,7 +4,7 @@ import { AlleyTale, type AlleyTaleProps } from "../scenes/AlleyTale";
 
 /**
  * مختبر استوديو «بالإسلام»: اختبارات بصرية قصيرة لقدرات المحرك (لا حلقة ولا قصة، بلا صوت).
- * تُرندر وتُرفع إلى «المعاينات» في مجلد 000-engine-lab للمراجعة، ولا تُنشر أبدًا.
+ * تُرندر وتُرفع إلى «المعاينات» في مجلد 900-engine-lab للمراجعة، ولا تُنشر أبدًا.
  */
 export const LAB_SCENE: Omit<AlleyTaleProps, "themeId" | "orientation" | "cameraMode"> = {
   narration: "يمشي في الحارة مساء. يقف أمام الباب ويفكر. ثم يعرف الحقيقة.",
