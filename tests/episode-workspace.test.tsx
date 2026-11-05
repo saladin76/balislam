@@ -51,8 +51,9 @@ describe("مرحلة الصوت", () => {
     expect(html).toContain("التعليق الصوتي");
     expect(html).toContain("تلاوة الآيات داخل الفيديو");
     expect(html).toContain("مكتبة القرّاء");
-    expect(html).toContain("ربط صوت القارئ بفيديو هذه الحلقة");
-    expect(html).toContain("إعداد متقدم");
+    // نموذج ترخيص الإنتاج يظهر فقط بعد اختيار فتح مكتبة القرّاء، وليس في الشاشة الأولية.
+    expect(html).toContain("استعراض القرّاء لهذه الحلقة");
+    expect(html).not.toContain("رابط HTTPS إلى وثيقة الإذن");
     expect(html).toContain("مساران مستقلان");
     expect(html).toContain("c1-s1");
     expect(html).toContain("بلا صوت");
