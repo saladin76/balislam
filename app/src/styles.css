@@ -729,3 +729,47 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .lab-checks .err { color: #a3322a; font-weight: 700; }
 .lab-card code { unicode-bidi: isolate; }
 .sb-preview figcaption .lab-badge { align-self: flex-start; }
+
+/* Visible shared-studio navigation: settings must not be buried in a select menu. */
+.studio-primary-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel-2);
+}
+.studio-primary-nav button {
+  appearance: none;
+  padding: 9px 13px;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: normal;
+}
+.studio-primary-nav button:hover,
+.studio-primary-nav button:focus-visible {
+  color: var(--ink);
+  background: var(--panel);
+  border-color: var(--line);
+}
+.studio-primary-nav button.active {
+  color: var(--ink);
+  background: var(--panel);
+  border-color: var(--accent);
+  box-shadow: 0 2px 7px #00000010;
+}
+@media (max-width: 1060px) {
+  .studio-primary-nav { order: 4; width: 100%; }
+  .studio-primary-nav button { flex: 1 1 155px; }
+}
+@media (max-width: 590px) {
+  .studio-primary-nav button { flex: 1 1 100%; }
+}
