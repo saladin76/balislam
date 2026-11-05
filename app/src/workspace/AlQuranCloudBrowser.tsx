@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api, type AlQuranAudioEdition, type AlQuranAyahPreview } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
+import type { CloudRecitation } from "../../../src/quran/provider";
 
 /** A local preview preference only: NEVER an approved production recitation choice. */
 export const previewReciterKey = (channelId: string, episodeId: string) =>
@@ -27,16 +28,23 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [licenceEvidence, setLicenceEvidence] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [productionStatus, setProductionStatus] = useState("");
+  const [activeProduction, setActiveProduction] = useState<CloudRecitation | null>(null);
   const [saving, setSaving] = useState(false);
   const visibleEditions = useMemo(() => filterAudioEditions(editions, search), [editions, search]);
 
   useEffect(() => {
     setEnabled(false); setEditions([]); setPreview(null); setError(""); setSearch(""); setSurah(1); setAyah(1);
-    setLicenceHolder(""); setLicenceEvidence(""); setConfirmed(false); setProductionStatus("");
+    setLicenceHolder(""); setLicenceEvidence(""); setConfirmed(false); setProductionStatus(""); setActiveProduction(null);
+    let alive = true;
+    api.recitationChoice(episodeId, channelId).then(({ recitation }) => {
+      if (!alive) return;
+      setActiveProduction(recitation);
+    }).catch(() => { /* the production form handles API failures when used */ });
     try {
       const stored = localStorage.getItem(previewReciterKey(channelId, episodeId));
       setEdition(stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored) ? stored : "ar.alafasy");
     } catch { setEdition("ar.alafasy"); }
+    return () => { alive = false; };
   }, [channelId, episodeId]);
 
   const selectEdition = (id: string) => {
@@ -80,17 +88,17 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
     }
     setSaving(true); setError(""); setProductionStatus("");
     try {
-      const original = await api.channelFor(channelId);
+      const original = (await api.recitationChoice(episodeId, channelId)).recitation;
       const selectedName = editions.find((e) => e.identifier === edition)?.name || edition;
-      const updated = { ...original, recitation: {
-        provider: "alquran-cloud" as const, edition, name: selectedName,
+      const selected: CloudRecitation = {
+        provider: "alquran-cloud", edition, name: selectedName,
         licence: {
           holder: licenceHolder.trim(), evidence: licenceEvidence.trim(),
           scope: "إذن نشر تسجيل القارئ على يوتيوب للاستخدام التجاري",
           verifiedAt: new Date().toISOString(),
         },
-      } };
-      await api.saveChannelFor(channelId, updated);
+      };
+      await api.saveRecitationChoice(episodeId, channelId, selected);
       try {
         const r = await api.quran(episodeId, channelId);
         if (r.result.failed.length)
@@ -99,9 +107,10 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
           const episode = await api.episode(episodeId, channelId);
           onMedia(episode.media);
         }
-        setProductionStatus(`تم اعتماد ${selectedName} للقناة وجلب تلاوات الحلقة المطابقة؛ اعرض معاينة الرندر قبل النشر.`);
+        setActiveProduction(selected);
+        setProductionStatus(`تم ربط ${selectedName} بإنتاج هذه الحلقة وحدها وجلب تلاواتها؛ راجع معاينة الرندر قبل النشر.`);
       } catch (e) {
-        await api.saveChannelFor(channelId, original);
+        await api.saveRecitationChoice(episodeId, channelId, original);
         throw e;
       }
     } catch (e) { setError(`فشل اعتماد التلاوة، ولم يُستكمل تغيير المصدر: ${e instanceof Error ? e.message : String(e)}`); }
@@ -110,8 +119,9 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
 
   return (
     <section className="group" aria-label="مكتبة AlQuran Cloud للقرآن">
-      <h3>AlQuran Cloud <small>مكتبة قرّاء متعددة — معاينة فقط</small></h3>
-      <p>ابحث عن قارئ، استمع إلى آية، وقارن الأصوات. يُحفظ آخر قارئ للمعاينة لهذه الحلقة في هذا المتصفح فقط؛ لا يتغير صوت الرندر أو خطة الحلقة.</p>
+      <h3>AlQuran Cloud <small>معاينة القرّاء وربط التلاوة بالإنتاج</small></h3>
+      <p>ابحث عن قارئ واستمع إلى الآية. يمكن ربط القارئ تلقائيًا بفيديو <strong>هذه الحلقة فقط</strong> بعد توثيق إذن تسجيله؛ الاختيار التجريبي لا يغير الرندر.</p>
+      {activeProduction && <p role="status" className="ew-production-ok">القارئ الإنتاجي للحلقة: {activeProduction.name} ({activeProduction.edition})</p>}
       {!enabled ? <button className="btn small" type="button" onClick={open}>استعراض القرّاء لهذه الحلقة</button> : <>
         <button className="btn ghost small" type="button" onClick={() => {
           setEnabled(false); setPreview(null); setEditions([]); setError("");
@@ -150,9 +160,9 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
         </div>}
         <p className="note">المعاينة ليست إذن نشر. حقوق التسجيلات لأصحابها؛ لا يتاح إدراج تلاوة AlQuran Cloud في الرندر أو التصدير قبل توثيق ترخيص التسجيل المحدد. يبقى مصدر التلاوة الإنتاجي الحالي دون تغيير.</p>
         <details className="ew-production-licence">
-          <summary>إدراج القارئ المحدد تلقائيًا في فيديوهات هذه القناة — بعد توثيق الإذن</summary>
+          <summary>إدراج القارئ المحدد تلقائيًا في فيديو هذه الحلقة — بعد توثيق الإذن</summary>
           <div className="ew-licence-fields">
-            <p>بعد التفعيل، سيجلب محرك الآيات صوت القارئ المحدد لكل آية ويضعه في بطاقة الآية أثناء الرندر، بنفس مسار Quran Foundation. هذا الاختيار يغيّر <strong>القارئ الافتراضي للقناة كلها</strong>، وليس المعاينة فقط.</p>
+            <p>بعد التفعيل، سيجلب محرك الآيات صوت القارئ المحدد لكل آية ويضعه في بطاقة الآية أثناء الرندر، بنفس مسار Quran Foundation. هذا الاختيار <strong>خاص بهذه الحلقة فقط</strong>، ولا يبدّل قرّاء الحلقات الأخرى أو خطة الحلقة.</p>
             <p>لا يُعتبر رابط AlQuran Cloud نفسه ترخيصًا. يلزم إذن فعلي صريح من صاحب حقوق التسجيل يسمح بالنشر على يوتيوب والاستخدام التجاري؛ إدخال الرابط هنا توثيق منك وليس تحققًا قانونيًا آليًا.</p>
             <label htmlFor="alquran-holder">اسم صاحب حقوق التسجيل أو الجهة المخوِّلة</label>
             <input id="alquran-holder" value={licenceHolder} onChange={(e) => setLicenceHolder(e.target.value)} placeholder="الجهة التي منحت الإذن" />
