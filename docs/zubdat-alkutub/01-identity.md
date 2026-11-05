@@ -36,6 +36,7 @@
 | البرتقالي (للشطب والتنبيه) | `#FF6B4A` | `identity.json` (`secondary`) |
 | خط العناوين | لاله زار (Lalezar) | `identity.json` (`fonts.heading`) |
 | خط النص | تجوّل (Tajawal) | `identity.json` (`fonts.body`) |
+| الترجمة على الشاشة | بلا تشكيل، ونص النطق المشكول محفوظ (الأمر 017) | `channel.json` (`script.captionTashkeel: false`) |
 | خط اليد في مشاهد الحبر | الرقعة (Aref Ruqaa) | `fontFamilies.hand` في `brand/fonts.ts` |
 | نص الآيات | الأميري (Amiri) على بطاقة الآية | `public/fonts/Amiri-Regular.ttf`، و`src/remotion/scenes/VerseCard.tsx` |
 | الشعار | «القلم المميِّز» (`highlighter-z`) | `brand/logo/Logo.tsx` |

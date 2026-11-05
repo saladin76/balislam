@@ -152,7 +152,8 @@ export const checkInkScene = (span: Pick<SceneSpan, "scene" | "dur" | "timings" 
   const times: [string, number][] = [];
   const mk = (pre: string[], key: "start" | "end") => (word: string, frac: number, nth = 1) => {
     const hit = findWord(span.timings, word, nth, pre);
-    if (!hit) { missing.add(word ? `«${word}»${nth > 1 ? `#${nth}` : ""}` : "(بلا كلمة)"); return Math.round(frac * span.dur); }
+    // النسبة السالبة «استطلاع» (هل نُطقت الكلمة؟) لا توقيت حدث، فلا تُعد مفقودة
+    if (!hit) { if (frac >= 0) missing.add(word ? `«${word}»${nth > 1 ? `#${nth}` : ""}` : "(بلا كلمة)"); return Math.round(frac * span.dur); }
     times.push([word, hit[key]]);
     return hit[key];
   };
@@ -191,7 +192,7 @@ export const checkInkScene = (span: Pick<SceneSpan, "scene" | "dur" | "timings" 
   }
   if (kit) {
     const n = args.labels.length;
-    const need: Record<string, [number, number]> = { "kit-ideas": [2, 5], "kit-shift": [2, 2], "kit-chain": [2, 4], "kit-meter": [0, 2], "kit-book": [1, 3] };
+    const need: Record<string, [number, number]> = { "kit-ideas": [2, 5], "kit-shift": [2, 2], "kit-chain": [2, 4], "kit-meter": [0, 3], "kit-book": [1, 3] };
     const [lo, hi] = need[shot] ?? [0, 9];
     if (n < lo || n > hi) findings.push({ level: "error", code: "labels", msg: `عدد العبارات ${n}، والأداة تقبل ${lo === hi ? lo : `${lo}–${hi}`}` });
     for (const l of args.labels) if (SACRED_WORD.test(normalizeArabic(l))) findings.push({ level: "warn", code: "sacred-label", msg: `العبارة «${l}» فيها ذكر لله فلا تُكتب (توقير)؛ تبقى للصوت وحده` });

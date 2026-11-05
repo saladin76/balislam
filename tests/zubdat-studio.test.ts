@@ -4,6 +4,9 @@ import { KIT_SHOTS, parseInkArgs } from "../src/remotion/zubdat/kitShots";
 import { INK_SHOTS } from "../src/remotion/zubdat/shots";
 import { estimateTimings } from "../src/remotion/scenes/timing";
 import type { PlanScene } from "../src/plan/types";
+import React from "react";
+import { readFileSync } from "node:fs";
+import { Write } from "../src/remotion/zubdat/inkKit";
 
 const span = (shot: string, narration: string, labels = "", cues = "") => {
   const dur = 240;
@@ -68,5 +71,37 @@ describe("استوديو زبدة الكتب", () => {
     expect(() => assertZubdat()).toThrow();
     process.env.BAL_CHANNEL = "zubdat-alkutub";
     expect(() => assertZubdat()).not.toThrow();
+  });
+  it("الأمر 017: خانات العدّاد عند كلمة العدد لا تكشف فكرة قبل كلمتها، والمقياس بلا تدريج ولا أرقام", () => {
+    const narration = "يَبْدَأُ الْكِتَابُ مِنْ ثَلَاثِ فِكَرٍ: الْخَاطِرُ يَمُرُّ سَرِيعًا، وَمَا لَا يُكْتَبُ يَضِيعُ، وَالْكِتَابَةُ تَحْفَظُهُ.";
+    const sp = span("kit-ideas", narration, "الخاطر يمر سريعا | ما لا يكتب يضيع | الكتابة تحفظه");
+    const tm = sp.timings;
+    const tCount = tm.find((w) => w.word.includes("ثَلَاثِ"))!.start;
+    const tFirst = tm.find((w) => w.word.includes("الْخَاطِرُ"))!.start;
+    const writes = (node: React.ReactNode, out: { text: string; p: number }[] = []) => {
+      if (Array.isArray(node)) node.forEach((n) => writes(n, out));
+      else if (React.isValidElement(node)) {
+        const el = node as React.ReactElement<Record<string, unknown>>;
+        if (el.type === Write) out.push({ text: String(el.props.text), p: Number(el.props.p) });
+        else writes(el.props.children as React.ReactNode, out);
+      }
+      return out;
+    };
+    const at = (w: string, frac: number, nth = 1) => { const k = w.replace(/[\u064B-\u0652]/g, ""); const hit = tm.filter((t) => t.word.replace(/[\u064B-\u0652«»:،.]/g, "").replace(/^و/, "") === k)[nth - 1]; return hit ? hit.start : Math.round(frac * sp.dur); };
+    const end = (w: string, frac: number, nth = 1) => at(w, frac, nth) + 10;
+    const render = (frame: number) => KIT_SHOTS["kit-ideas"]!.render({ frame, dur: sp.dur, z: { ink: "#111", paper: "#fff", hl: "#E8F542", alert: "#C2412D", faint: "#888" }, at, end, logo: () => null, reg: () => {}, args: parseInkArgs("الخاطر يمر سريعا | ما لا يكتب يضيع | الكتابة تحفظه") });
+    const mid = Math.round((tCount + tFirst) / 2);
+    expect(tFirst - tCount).toBeGreaterThan(4);
+    expect(writes(render(mid).world).filter((w) => w.p > 0)).toEqual([]);
+    expect(JSON.stringify(render(mid).world, (_k, v) => (typeof v === "function" ? undefined : v))).toContain("strokeDasharray");
+    // المقياس: لا خطوط تدريج قصيرة على جانب العمود (كانت ثلاثًا في الأمر 016)
+    const meter = KIT_SHOTS["kit-meter"]!.render({ frame: 200, dur: 240, z: { ink: "#111", paper: "#fff", hl: "#E8F542", alert: "#C2412D", faint: "#888" }, at: () => 100, end: () => 120, logo: () => null, reg: () => {}, args: parseInkArgs("انخفض | ارتفع | حضورها", "rise | ارتفع") });
+    expect(JSON.stringify(meter.world, (_k, v) => (typeof v === "function" ? undefined : v))).not.toMatch(/"type":"line"/);
+  });
+
+  it("الأمر 017: الترجمة بلا تشكيل في زبدة الكتب وحدها (script.captionTashkeel)", () => {
+    const cfg = (id: string) => JSON.parse(readFileSync(`channels/${id}/channel.json`, "utf8"));
+    expect(cfg("zubdat-alkutub").script?.captionTashkeel).toBe(false);
+    for (const id of ["balislam", "dafatir-alzaman"]) expect(cfg(id).script?.captionTashkeel).not.toBe(false);
   });
 });

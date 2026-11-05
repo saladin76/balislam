@@ -4,6 +4,14 @@ import type { Theme } from "../../../brand/themes";
 import { fontFamilies } from "../../../brand/fonts";
 import type { WordTiming } from "./timing";
 import { useMotionSettings, useSize } from "../../../brand/identity/index";
+import { useChannel } from "../../channel/context";
+import { stripTashkeel } from "../../voice/tashkeel";
+
+/** نص الكلمة على الشاشة: بلا تشكيل إن قررت القناة ذلك (script.captionTashkeel=false)، ونص النطق المشكول لا يتغير */
+const useCaptionWord = () => {
+  const plain = useChannel().script?.captionTashkeel === false;
+  return (w: string) => (plain ? stripTashkeel(w) : w);
+};
 
 
 /**
@@ -15,6 +23,7 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
   if (variant === "paper" || variant === "dusk") return <QuietCaption timings={timings} portrait={portrait} dusk={variant === "dusk"} />;
   const cinema = variant === "cinema";
   const frame = useCurrentFrame();
+  const shown = useCaptionWord();
   const CHUNK = Math.max(1, Math.round(useMotionSettings().captionWords));
   const fontSize = useSize("caption", portrait ? "portrait" : "landscape");
   const first = timings[0];
@@ -68,7 +77,7 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
                 padding: "0 8px",
               }}
             >
-              {w.word}
+              {shown(w.word)}
             </span>
           );
         })}
@@ -79,6 +88,7 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
 
 const QuietCaption: React.FC<{ timings: WordTiming[]; portrait: boolean; dusk: boolean }> = ({ timings, portrait, dusk }) => {
   const frame = useCurrentFrame();
+  const shown = useCaptionWord();
   const CHUNK = Math.max(1, Math.round(useMotionSettings().captionWords));
   const fontSize = useSize("caption", portrait ? "portrait" : "landscape");
   const first = timings[0];
@@ -111,7 +121,7 @@ const QuietCaption: React.FC<{ timings: WordTiming[]; portrait: boolean; dusk: b
           const active = chunkStart + i === idx;
           return (
             <span key={chunkStart + i} style={{ color: active ? (dusk ? "#F3C98B" : "#8A3A1E") : undefined, fontWeight: active ? 700 : 500, boxShadow: active ? `inset 0 -3px 0 ${dusk ? "rgba(200,161,90,0.7)" : "rgba(200,161,90,0.8)"}` : "none" }}>
-              {w.word}
+              {shown(w.word)}
             </span>
           );
         })}

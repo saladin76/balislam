@@ -1,6 +1,6 @@
 import React from "react";
 import type { CamKey } from "../illus/shots/kit";
-import { Arrow, Cross, Mark, Stroke, Write, fam, measure, prog, type Font } from "./inkKit";
+import { Cross, Mark, Stroke, Write, fam, measure, prog, type Font } from "./inkKit";
 import type { InkCtx, InkShotDef } from "./shots";
 
 /**
@@ -77,40 +77,72 @@ const tools = (c: InkCtx) => {
     const pout = Number.isFinite(off) ? prog(frame, off - 4, off + 8) : 0;
     return <Mark x={x0} y={y - size * 0.82} w={tw} h={size * 1.12} p={pin * (1 - pout)} z={z} />;
   };
-  return { frame, z, args, cue, cueEnd, fit, T, Band, P: (a: number, b: number) => prog(frame, a, b) };
+  /** لحظة كلمة إن نُطقت في الجملة، وإلا null (فحص الاستوديو لا يعدّها توقيتًا مفقودًا لأن نسبتها سالبة) */
+  const probe = (word: string) => { const t = at(word, -1); return t >= 0 ? t : null; };
+  return { frame, z, args, cue, cueEnd, fit, T, Band, probe, P: (a: number, b: number) => prog(frame, a, b) };
 };
 
 /** أصغر حجم نص في الأدوات العامة (على عرض 1920): يبقى مقروءًا على شاشة هاتف عرضها 390 */
 export const MIN_TEXT = 52;
 
+/** سهم واضح الاتجاه: جسم بالحبر يُخطّ ثم رأس مثلث مصمت (الأمر 017: «قوِّ وضوح السهم واتجاهه») */
+const Arrow2: React.FC<{ x1: number; y1: number; x2: number; y2: number; p: number; c: string; w?: number; bend?: number }> = ({ x1, y1, x2, y2, p, c, w = 10, bend = 0 }) => {
+  if (p <= 0) return null;
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - bend;
+  const a = Math.atan2(y2 - my, x2 - mx);
+  const hs = w * 3.6;
+  // الجسم يقف قبل الرأس بقليل فلا يبرز من تحته
+  const ex = x2 - Math.cos(a) * hs * 0.6, ey = y2 - Math.sin(a) * hs * 0.6;
+  const head = `M${x2} ${y2} L${x2 - hs * Math.cos(a - 0.42)} ${y2 - hs * Math.sin(a - 0.42)} L${x2 - hs * Math.cos(a + 0.42)} ${y2 - hs * Math.sin(a + 0.42)} Z`;
+  const hp = prog(p, 0.82, 1);
+  return (
+    <g>
+      <Stroke d={`M${x1} ${y1} Q${mx} ${my} ${ex} ${ey}`} p={Math.min(1, p * 1.2)} c={c} w={w} />
+      {hp > 0 ? <path d={head} fill={c} opacity={hp} /> : null}
+    </g>
+  );
+};
+
+/** كلمات العدد في التمهيد («ثلاث فكر»، «أربعة أمور»…): لحظة ظهور خانات العدّاد فارغة، بلا كشف للأفكار */
+const COUNT_WORDS = ["فكرتين", "فكرتان", "اثنتين", "اثنتان", "ثلاث", "ثلاثة", "أربع", "أربعة", "خمس", "خمسة"];
+
 export const KIT_SHOTS: Record<string, InkShotDef> = {
-  // ── عدّاد الأفكار: الأفكار تُكتب واحدة واحدة، والفسفوري ينتقل إلى الفكرة المنطوقة الآن ──
+  // ── عدّاد الأفكار: خانات بعدد الأفكار عند ذكر عددها، ثم تُكتب الأفكار واحدة واحدة والفسفوري على المنطوقة الآن ──
   "kit-ideas": {
-    nameAr: "أداة: عدّاد الأفكار (العبارات = الأفكار بترتيب نطقها، من ٢ إلى ٥)",
+    nameAr: "أداة: عدّاد الأفكار (العبارات = الأفكار بترتيب نطقها، من ٢ إلى ٥؛ «count» لكلمة العدد في التمهيد)",
     render: (c) => {
-      const { z, args, cue, cueEnd, fit, T, Band, P } = tools(c);
+      const { z, args, cue, cueEnd, fit, T, Band, P, probe } = tools(c);
       const ideas = args.labels.slice(0, 5);
       const n = Math.max(1, ideas.length);
-      const row = Math.min(150, 600 / n);
-      const y0 = 540 - (row * (n - 1)) / 2 - 20;
+      const row = Math.min(150, 620 / n);
       const ts = ideas.map((s, i) => cue(`idea${i + 1}`, firstWord(s), (i + 0.5) / (n + 0.5)));
       const te = ideas.map((s, i) => cueEnd(`idea${i + 1}`, lastWord(s), (i + 0.9) / (n + 0.5)));
-      const xr = 1540;
-      const xt = 1450;
+      // خانات العدّاد عند كلمة العدد المنطوقة في التمهيد (أو مفتاح count)، وإلا مع الفكرة الأولى
+      const tCount = Math.min(ts[0]!, args.cues.count ? cue("count", "", 0.05) : COUNT_WORDS.map(probe).filter((t): t is number => t !== null && t < ts[0]!)[0] ?? ts[0]!);
+      const sizes = ideas.map((s) => fit(s, 76, 980, "head"));
+      const widths = ideas.map((s, i) => measure(s, sizes[i]!, fam("head")) * 1.08);
+      // المجموعة (العدّاد على اليمين والنص يمتد يسارًا) متوسطة أفقيًا داخل المنطقة الآمنة، ومتوسطة رأسيًا فوق الترجمة
+      const G = Math.max(...widths, 300) + 110;
+      const xr = 960 + G / 2 - 30;
+      const xt = xr - 80;
+      const y0 = 494 - (row * (n - 1)) / 2 + 20;
       return {
-        cam: [C(0, 960, 500, 1.0)],
-        focus: ideas.map((_, i) => [ts[i]!, 1100, y0 + i * row] as [number, number, number]),
+        cam: [C(0, 960, 494, 1.0)],
+        // الكاميرا تميل إلى الفكرة لحظة كتابتها (كاميرا فوق الدفتر تتبع القلم، D04)
+        focus: [[tCount, xr - G / 2, y0 + ((n - 1) * row) / 2] as [number, number, number], ...ideas.map((_, i) => [ts[i]!, xt - widths[i]! / 2, y0 + i * row] as [number, number, number])],
         world: (
           <g>
-            {/* سكة العدّاد تمتد مع كل فكرة جديدة */}
-            {n > 1 ? <Stroke d={`M${xr} ${y0} L${xr} ${y0 + (n - 1) * row}`} p={P(ts[0]! - 6, (ts[n - 1] ?? 0) + 6)} c={z.ink} w={5} opacity={0.5} /> : null}
+            {n > 1 ? <Stroke d={`M${xr} ${y0 - 24} L${xr} ${y0 + (n - 1) * row - 24}`} p={P(tCount, tCount + 16)} c={z.ink} w={5} opacity={0.5} /> : null}
             {ideas.map((s, i) => {
               const y = y0 + i * row;
-              const size = fit(s, 76, 1050, "head");
+              const size = sizes[i]!;
+              const slot = P(tCount + i * 4, tCount + i * 4 + 10);
               return (
                 <g key={i}>
-                  <circle cx={xr} cy={y - size * 0.3} r={30} fill={z.paper} stroke={z.ink} strokeWidth={6} opacity={P(ts[i]! - 8, ts[i]! + 2)} />
-                  <circle cx={xr} cy={y - size * 0.3} r={16 * P(ts[i]!, ts[i]! + 10)} fill={z.ink} />
+                  {/* خانة فارغة تنتظر فكرتها: دائرة وسطر متقطع خافت، بلا نص قبل نطقه */}
+                  <circle cx={xr} cy={y - 24} r={30} fill={z.paper} stroke={z.ink} strokeWidth={6} opacity={slot} />
+                  <line x1={xt} x2={xt - Math.min(widths[i]!, 420)} y1={y + 14} y2={y + 14} stroke={z.ink} strokeWidth={4} strokeDasharray="10 14" strokeLinecap="round" opacity={0.3 * slot * (1 - P(ts[i]! - 2, ts[i]! + 6))} />
+                  <circle cx={xr} cy={y - 24} r={16 * P(ts[i]!, ts[i]! + 10)} fill={z.ink} />
                   {Band(xt, y, s, size, ts[i]!, i + 1 < n ? ts[i + 1]! : Infinity, { font: "head", anchor: "start" })}
                   {T(`ki${i}`, xt, y, s, size, ts[i]!, te[i]!, { font: "head", anchor: "start" })}
                 </g>
@@ -122,7 +154,7 @@ export const KIT_SHOTS: Record<string, InkShotDef> = {
     },
   },
 
-  // ── من… إلى…: حال تُشطب أو تخفت، وسهم إلى الحال الجديدة وهي وحدها بالفسفوري ──
+  // ── من… إلى…: الحال الأولى أعلى اليمين، وسهم مائل صريح الاتجاه إلى الحال الجديدة أسفل اليسار (اتجاه القراءة) ──
   "kit-shift": {
     nameAr: "أداة: من… إلى… (العبارتان: الحال الأولى | الحال الجديدة؛ «cross» للشطب عند كلمة النفي)",
     render: (c) => {
@@ -135,58 +167,62 @@ export const KIT_SHOTS: Record<string, InkShotDef> = {
       const hasCross = Boolean(args.cues.cross);
       // الشطب لا يسبق ما يُشطب: إن جاءت كلمة النفي قبل العبارة (مثل «ليس») يقع بعد اكتمال كتابتها (المراجعة البصرية، الأمر 016)
       const tX = hasCross ? Math.max(cue("cross", "", 0.45), tAe + 4) : -1;
-      const sA = fit(from, 84, 620, "head");
-      const sB = fit(to, 92, 620, "head");
+      const sA = fit(from, 96, 640, "head");
+      const sB = fit(to, 104, 640, "head");
       const wA = measure(from, sA, fam("head")) * 1.1;
       const wB = measure(to, sB, fam("head")) * 1.1;
+      const [ax, ay] = [1290, 380];
+      const [bx, by] = [640, 640];
       const fade = hasCross ? 0 : 0.45 * P(tB - 4, tB + 12);
       return {
-        cam: [C(0, 1180, 480, 1.08), C(tB - 10, 960, 480, 1.0)],
-        focus: [[tA, 1340, 470], [tB, 600, 470]],
+        cam: [C(0, 1150, 440, 1.06), C(tB - 12, 960, 494, 1.0)],
+        focus: [[tA, ax, ay - 30], [tB, bx, by - 30], ...(hasCross ? [[tX, ax, ay - 30] as [number, number, number]] : [])],
         world: (
           <g>
-            {Band(1340, 500, from, sA, tA, tB, { font: "head" })}
-            <g opacity={1 - fade}>{T("fa", 1340, 500, from, sA, tA, tAe, { font: "head" })}</g>
-            {hasCross ? <Cross x1={1340 - wA / 2 - 10} x2={1340 + wA / 2 + 10} y={500 - sA * 0.32} p={P(tX, tX + 12)} z={z} /> : null}
-            <Arrow x1={1340 - Math.min(wA / 2, 300) - 40} y1={470} x2={600 + Math.min(wB / 2, 300) + 50} y2={470} p={P(tB - 12, tB + 4)} c={z.ink} w={8} bend={60} />
-            {Band(600, 500, to, sB, tB, Infinity, { font: "head" })}
-            {T("fb", 600, 500, to, sB, tB, tBe, { font: "head" })}
+            {Band(ax, ay, from, sA, tA, tB, { font: "head" })}
+            <g opacity={1 - fade}>{T("fa", ax, ay, from, sA, tA, tAe, { font: "head" })}</g>
+            {hasCross ? <Cross x1={ax - wA / 2 - 10} x2={ax + wA / 2 + 10} y={ay - sA * 0.32} p={P(tX, tX + 12)} z={z} /> : null}
+            {/* السهم يخرج من أسفل الحال الأولى وينتهي فوق الجديدة، منحنيًا نحو اليسار */}
+            <Arrow2 x1={ax - Math.min(wA / 2, 260)} y1={ay + 40} x2={bx + Math.min(wB / 2, 260) * 0.35} y2={by - sB - 10} p={P(tB - 14, tB + 2)} c={z.ink} w={11} bend={-90} />
+            {Band(bx, by, to, sB, tB, Infinity, { font: "head" })}
+            {T("fb", bx, by, to, sB, tB, tBe, { font: "head" })}
           </g>
         ),
       };
     },
   },
 
-  // ── سلسلة السبب والنتيجة: صناديق من اليمين إلى اليسار، يصلها سهم عند نطق التالي، والنتيجة بالفسفوري ──
+  // ── سلسلة السبب والنتيجة: صناديق من اليمين إلى اليسار، يصلها سهم برأس مصمت عند نطق التالي، والنتيجة بالفسفوري ──
   "kit-chain": {
     nameAr: "أداة: سلسلة السبب والنتيجة (العبارات: الحلقات بترتيبها، من ٢ إلى ٤، والأخيرة هي النتيجة)",
     render: (c) => {
       const { z, args, cue, cueEnd, fit, T, P } = tools(c);
       const items = args.labels.slice(0, 4);
       const n = Math.max(1, items.length);
-      const span = 1360;
-      const gap = 90;
+      const span = 1400;
+      const gap = 120;
       const bw = (span - gap * (n - 1)) / n;
-      const xs = items.map((_, i) => 1640 - bw / 2 - i * (bw + gap));
+      const xs = items.map((_, i) => 960 + span / 2 - bw / 2 - i * (bw + gap));
       const ts = items.map((s, i) => cue(`step${i + 1}`, firstWord(s), (i + 0.4) / (n + 0.3)));
       const te = items.map((s, i) => cueEnd(`step${i + 1}`, lastWord(s), (i + 0.8) / (n + 0.3)));
+      const yT = 400, yB = 580, yM = (yT + yB) / 2;
       return {
-        cam: [C(0, 1400, 470, 1.06), C((ts[1] ?? 60) - 10, 960, 470, 1.0)],
-        focus: items.map((_, i) => [ts[i]!, xs[i]!, 470] as [number, number, number]),
+        cam: [C(0, xs[0]! - 120, 480, 1.06), C((ts[1] ?? 60) - 10, 960, 494, 1.0)],
+        focus: items.map((_, i) => [ts[i]!, xs[i]!, yM] as [number, number, number]),
         world: (
           <g>
             {items.map((s, i) => {
               const x = xs[i]!;
-              const size = fit(s, 70, bw - 60, "body");
+              const size = fit(s, 72, bw - 70, "body");
               const last = i === n - 1 && n > 1;
               const pb = P(ts[i]! - 8, ts[i]! + 6);
               return (
                 <g key={i}>
                   {/* الحلقة المنطوقة الآن بالفسفوري، وينتقل إلى التالية؛ والنتيجة تبقى */}
-                  <rect x={x - bw / 2} y={380} width={bw} height={170} rx={18} fill={z.hl} opacity={P(ts[i]! - 2, ts[i]! + 10) * (last ? 1 : 1 - P(ts[i + 1]! - 4, ts[i + 1]! + 8)) * (last ? 1 : 0.85)} style={{ mixBlendMode: "multiply" }} />
-                  <Stroke d={`M${x + bw / 2} 380 L${x - bw / 2} 380 L${x - bw / 2} 550 L${x + bw / 2} 550 Z`} p={pb} c={z.ink} w={6} />
-                  {T(`kc${i}`, x, 488, s, size, ts[i]!, te[i]!, { font: "body", weight: 700 })}
-                  {i > 0 ? <Arrow x1={xs[i - 1]! - bw / 2 - 8} y1={465} x2={x + bw / 2 + 12} y2={465} p={P(ts[i]! - 14, ts[i]! - 2)} c={z.ink} w={7} bend={0} /> : null}
+                  <rect x={x - bw / 2} y={yT} width={bw} height={yB - yT} rx={18} fill={z.hl} opacity={P(ts[i]! - 2, ts[i]! + 10) * (last ? 1 : 1 - P(ts[i + 1]! - 4, ts[i + 1]! + 8)) * (last ? 1 : 0.85)} style={{ mixBlendMode: "multiply" }} />
+                  <Stroke d={`M${x + bw / 2} ${yT} L${x - bw / 2} ${yT} L${x - bw / 2} ${yB} L${x + bw / 2} ${yB} Z`} p={pb} c={z.ink} w={6} />
+                  {T(`kc${i}`, x, yM + size * 0.35, s, size, ts[i]!, te[i]!, { font: "body", weight: 700 })}
+                  {i > 0 ? <Arrow2 x1={xs[i - 1]! - bw / 2 - 18} y1={yM} x2={x + bw / 2 + 18} y2={yM} p={P(ts[i]! - 14, ts[i]! - 2)} c={z.ink} w={9} /> : null}
                 </g>
               );
             })}
@@ -196,49 +232,60 @@ export const KIT_SHOTS: Record<string, InkShotDef> = {
     },
   },
 
-  // ── مقياس المستوى: أنبوب يمتلئ بالفسفوري عند كلمة الارتفاع ويفرغ عند كلمة الهبوط ──
+  // ── مقياس المستوى: عمود بلا تدريج ولا أرقام (لا يوحي بقياس حقيقي)، يرتفع ما يُقاس فيه عند كلمة الارتفاع وينخفض عند كلمة الانخفاض ──
   "kit-meter": {
-    nameAr: "أداة: مقياس المستوى (العبارتان اختيارية: الأدنى | الأعلى؛ التوقيت: rise وfall وpeak)",
+    nameAr: "أداة: مقياس المستوى، لجملة تقول صراحةً إن شيئًا يرتفع أو ينخفض (العبارات: الأدنى | الأعلى | ما يُقاس؛ التوقيت: rise وfall)",
     render: (c) => {
       const { frame, z, args, cue, cueEnd, T, Band, P } = tools(c);
-      const [low = "", high = ""] = args.labels;
+      const [low = "", high = "", subject = ""] = args.labels;
       const tR = cue("rise", high ? firstWord(high) : "", 0.35);
       const tRe = Math.max(tR + 24, cueEnd("rise", high ? lastWord(high) : "", 0.5));
       const hasFall = Boolean(args.cues.fall);
       const tF = hasFall ? cue("fall", "", 0.75) : Infinity;
-      const tL = low ? cue("low", firstWord(low), 0.12) : -1;
-      const tLe = low ? cueEnd("low", lastWord(low), 0.2) : -1;
+      const tL = low ? cue("low", firstWord(low), 0.7) : -1;
+      const tLe = low ? cueEnd("low", lastWord(low), 0.8) : -1;
       const tH = high ? cue("high", firstWord(high), 0.4) : -1;
       const tHe = high ? cueEnd("high", lastWord(high), 0.5) : -1;
-      const hasPeak = Boolean(args.cues.peak);
-      const tP = hasPeak ? cue("peak", "", 0.6) : -1;
-      const lvl = 0.12 + 0.74 * prog(frame, tR, tRe) - (hasFall ? 0.62 * prog(frame, tF, tF + 30) : 0);
-      const top = 250, bot = 780, x = 1180, w = 170;
+      const tS = subject ? cue("subject", firstWord(subject), 0.3) : -1;
+      const tSe = subject ? cueEnd("subject", lastWord(subject), 0.4) : -1;
+      const lvl = 0.14 + 0.72 * prog(frame, tR, tRe) - (hasFall ? 0.6 * prog(frame, tF, tF + 30) : 0);
+      const top = 220, bot = 780, x = 1000, w = 160;
       const yL = bot - (bot - top) * lvl;
-      const pulse = hasPeak ? Math.sin(Math.PI * prog(frame, tP, tP + 20)) : 0;
-      c.reg([x - w, top - 40, x + w, bot + 30], 0);
+      const xr = x + w / 2;
+      c.reg([x - w / 2 - 420, top - 40, x + w / 2 + 420, bot + 30], 0);
+      const up = P(tR - 2, tR + 12) * (hasFall ? 1 - P(tF - 4, tF + 6) : 1);
+      const down = hasFall ? P(tF, tF + 14) : 0;
       return {
-        cam: [C(0, 960, 500, 1.0)],
-        focus: [[tR, x, 520], ...(hasFall ? [[tF, x, 640] as [number, number, number]] : [])],
+        cam: [C(0, 960, 494, 1.0)],
+        focus: [[tR, x, top + 160], ...(hasFall ? [[tF, x, bot - 160] as [number, number, number]] : []), ...(low ? [[tL, xr + 200, bot] as [number, number, number]] : [])],
         world: (
           <g>
-            <rect x={x - w / 2} y={yL} width={w} height={bot - yL} rx={16} fill={z.hl} opacity={P(0, 10)} />
+            <rect x={x - w / 2} y={yL} width={w} height={bot - yL} rx={14} fill={z.hl} opacity={P(0, 10)} />
             <Stroke d={`M${x - w / 2} ${top} L${x - w / 2} ${bot} L${x + w / 2} ${bot} L${x + w / 2} ${top}`} p={P(0, 18)} c={z.ink} w={7} />
-            {[0.25, 0.5, 0.75].map((f) => (
-              <line key={f} x1={x + w / 2} x2={x + w / 2 + 34} y1={bot - (bot - top) * f} y2={bot - (bot - top) * f} stroke={z.ink} strokeWidth={5} strokeLinecap="round" opacity={P(10, 24)} />
-            ))}
-            {pulse > 0 ? <circle cx={x} cy={yL} r={70 + 40 * pulse} fill="none" stroke={z.ink} strokeWidth={5} opacity={pulse} /> : null}
-            {low ? Band(860, bot - 10, low, 68, tL, Infinity, { font: "head" }) : null}
-            {low ? T("ml", 860, bot - 10, low, 68, tL, tLe, { font: "head" }) : null}
-            {high ? Band(860, top + 50, high, 68, tH, hasFall ? tF : Infinity, { font: "head" }) : null}
-            {high ? T("mh", 860, top + 50, high, 68, tH, tHe, { font: "head" }) : null}
+            {/* ما يُقاس: اسمه معلّق بسطح الامتلاء نفسه، فيصعد معه وينزل */}
+            {subject ? (
+              <g>
+                <Stroke d={`M${x - w / 2 - 14} ${yL} L${x - w / 2 - 110} ${yL}`} p={P(tS - 2, tS + 10)} c={z.ink} w={5} />
+                <g transform={`translate(0 ${yL - 520})`}>{T("ms", x - w / 2 - 130, 540, subject, 64, tS, tSe, { font: "head", anchor: "start" })}</g>
+              </g>
+            ) : null}
+            {/* اتجاه الحركة: سهم صاعد عند الارتفاع، ونازل عند الانخفاض */}
+            <g opacity={up}><Arrow2 x1={xr + 70} y1={bot - 60} x2={xr + 70} y2={top + 90} p={P(tR - 2, tR + 18)} c={z.ink} w={9} /></g>
+            <g opacity={down}><Arrow2 x1={xr + 70} y1={top + 90} x2={xr + 70} y2={bot - 60} p={P(tF, tF + 18)} c={z.alert} w={9} /></g>
+            {/* طرفا المقياس: تسمية كل طرف موصولة بحافته بخط قصير */}
+            {high ? <Stroke d={`M${xr + 6} ${top} L${xr + 150} ${top}`} p={P(tH - 4, tH + 8)} c={z.ink} w={5} /> : null}
+            {high ? Band(xr + 170 + measure(high, 68, fam("head")) * 1.1, top + 22, high, 68, tH, hasFall ? tF : Infinity, { font: "head", anchor: "start" }) : null}
+            {high ? T("mh", xr + 170 + measure(high, 68, fam("head")) * 1.1, top + 22, high, 68, tH, tHe, { font: "head", anchor: "start" }) : null}
+            {low ? <Stroke d={`M${xr + 6} ${bot} L${xr + 150} ${bot}`} p={P(tL - 4, tL + 8)} c={z.ink} w={5} /> : null}
+            {low ? Band(xr + 170 + measure(low, 68, fam("head")) * 1.1, bot + 22, low, 68, tL, Infinity, { font: "head", anchor: "start" }) : null}
+            {low ? T("ml", xr + 170 + measure(low, 68, fam("head")) * 1.1, bot + 22, low, 68, tL, tLe, { font: "head", anchor: "start" }) : null}
           </g>
         ),
       };
     },
   },
 
-  // ── بطاقة الكتاب: كتاب بالحبر (بلا غلاف واقعي) يُكتب عليه عنوانه، والمؤلف تحته، وورقة لاصقة بسؤاله ──
+  // ── بطاقة الكتاب: غلاف بنسبة كتاب حقيقية (2:3) وكعب على اليمين، تخطيط طباعي فقط (عنوان، خط، مؤلف) بلا زخرفة، وورقة لاصقة بالسؤال ──
   "kit-book": {
     nameAr: "أداة: بطاقة الكتاب (العبارات: العنوان | المؤلف | سؤال الورقة اللاصقة اختياريًا)",
     render: (c) => {
@@ -250,28 +297,39 @@ export const KIT_SHOTS: Record<string, InkShotDef> = {
       const tAe = author ? cueEnd("author", lastWord(author), 0.5) : -1;
       const tN = note ? cue("note", firstWord(note), 0.65) : -1;
       const tNe = note ? cueEnd("note", lastWord(note), 0.85) : -1;
-      const bx = note ? 1240 : 960, by = 470, bw = 420, bh = 540;
-      const sT = fit(title, 84, bw - 80, "head");
+      const bw = 380, bh = 570;
+      const bx = note ? 1180 : 960, by = 494;
+      const L = bx - bw / 2, R = bx + bw / 2, Tp = by - bh / 2, B = by + bh / 2;
+      const spine = 44;
+      // العنوان في الثلث الأعلى من الغلاف (سطران إن طال)، والمؤلف في أسفله: تخطيط غلاف طباعي يملأ المساحة بلا زخرفة
+      const tLines = splitTwo(title, 3);
+      const sT = Math.min(...tLines.map((l) => fit(l, 88, bw - spine - 70, "head")));
+      const sA = author ? fit(author, 58, bw - spine - 70, "body") : 0;
+      const cx = L + (bw - spine) / 2;
       const pb = P(tT - 16, tT);
-      const noteLines = note ? splitTwo(note) : [];
-      const sN = note ? Math.min(...noteLines.map((l) => fit(l, 64, 400, "hand"))) : 0;
-      c.reg([bx - bw / 2, by - bh / 2, bx + bw / 2, by + bh / 2], tT - 16);
+      const noteLines = note ? splitTwo(note, 4) : [];
+      const sN = note ? Math.min(...noteLines.map((l) => fit(l, 64, 420, "body"))) : 0;
+      const [nx, ny] = [700, 470];
+      c.reg([L, Tp, R, B], tT - 16);
       return {
-        cam: [C(0, bx, 480, 1.08), ...(note ? [C(tN - 10, 960, 480, 1.0)] : [])],
-        focus: [[tT, bx, by], ...(note ? [[tN, 620, 430] as [number, number, number]] : [])],
+        cam: [C(0, bx, 494, 1.04), ...(note ? [C(tN - 10, 940, 494, 1.0)] : [])],
+        focus: [[tT, cx, Tp + 150], ...(author ? [[tA, cx, B - 70] as [number, number, number]] : []), ...(note ? [[tN, nx, ny] as [number, number, number]] : [])],
         world: (
           <g>
-            <Stroke d={`M${bx + bw / 2} ${by - bh / 2} L${bx - bw / 2} ${by - bh / 2} L${bx - bw / 2} ${by + bh / 2} L${bx + bw / 2} ${by + bh / 2} Z`} p={pb} c={z.ink} w={8} />
-            <Stroke d={`M${bx + bw / 2 - 40} ${by - bh / 2} L${bx + bw / 2 - 40} ${by + bh / 2}`} p={prog(pb, 0.5, 1)} c={z.ink} w={6} />
-            <rect x={bx - bw / 2 + 50} y={by - 70} width={bw - 140} height={14} rx={7} fill={z.hl} opacity={P(tTe, tTe + 12)} />
-            {T("bt", bx - 20, by - 100, title, sT, tT, tTe, { font: "head" })}
-            {author ? Band(bx, by + bh / 2 + 80, author, 60, tA, note ? tN : Infinity, { font: "body" }) : null}
-            {author ? T("ba", bx, by + bh / 2 + 80, author, 60, tA, tAe, { font: "body", weight: 700 }) : null}
+            <Stroke d={`M${R} ${Tp} L${L} ${Tp} L${L} ${B} L${R} ${B} Z`} p={pb} c={z.ink} w={8} />
+            <Stroke d={`M${R - spine} ${Tp} L${R - spine} ${B}`} p={prog(pb, 0.5, 1)} c={z.ink} w={6} />
+            {tLines.map((l, i) => (
+              <React.Fragment key={i}>{T(`bt${i}`, cx, Tp + 150 + i * sT * 1.15, l, sT, i === 0 ? tT : (tT + tTe) / 2, i === 0 ? (tLines.length > 1 ? (tT + tTe) / 2 : tTe) : tTe, { font: "head" })}</React.Fragment>
+            ))}
+            {Band(cx, Tp + 150 + (tLines.length - 1) * sT * 1.15, tLines[tLines.length - 1] ?? "", sT, tT, author ? tA : Infinity, { font: "head" })}
+            <Stroke d={`M${cx + 70} ${Tp + 150 + (tLines.length - 1) * sT * 1.15 + 46} L${cx - 70} ${Tp + 150 + (tLines.length - 1) * sT * 1.15 + 46}`} p={P(tTe, tTe + 10)} c={z.ink} w={5} />
+            {author ? Band(cx, B - 70, author, sA, tA, note ? tN : Infinity, { font: "body" }) : null}
+            {author ? T("ba", cx, B - 70, author, sA, tA, tAe, { font: "body", weight: 700 }) : null}
             {note ? (
-              <g transform={`rotate(-4 620 430)`} opacity={P(tN - 10, tN)}>
-                <rect x={620 - 250} y={430 - 170} width={500} height={340} rx={10} fill={z.hl} stroke={z.ink} strokeWidth={5} />
+              <g transform={`rotate(-3 ${nx} ${ny})`} opacity={P(tN - 6, tN + 2)}>
+                <rect x={nx - 260} y={ny - 160} width={520} height={320} rx={10} fill={z.hl} stroke={z.ink} strokeWidth={5} />
                 {noteLines.map((l, i) => (
-                  <React.Fragment key={i}>{T(`bn${i}`, 620, 430 - (noteLines.length - 1) * sN * 0.65 + i * sN * 1.3 + sN * 0.3, l, sN, i === 0 ? tN : (tN + tNe) / 2, i === 0 ? (tN + tNe) / 2 : tNe)}</React.Fragment>
+                  <React.Fragment key={i}>{T(`bn${i}`, nx, ny - (noteLines.length - 1) * sN * 0.7 + i * sN * 1.4 + sN * 0.32, l, sN, i === 0 ? tN : (tN + tNe) / 2, i === 0 ? (tN + tNe) / 2 : tNe, { font: "body", weight: 700 })}</React.Fragment>
                 ))}
               </g>
             ) : null}
@@ -282,10 +340,10 @@ export const KIT_SHOTS: Record<string, InkShotDef> = {
   },
 };
 
-/** يقسم عبارة طويلة سطرين متقاربين (للورقة اللاصقة) */
-const splitTwo = (s: string): string[] => {
+/** يقسم عبارة طويلة سطرين متقاربين (minWords: أقل عدد كلمات يُقسم عنده) */
+const splitTwo = (s: string, minWords = 4): string[] => {
   const w = s.trim().split(/\s+/);
-  if (w.length < 4) return [s.trim()];
+  if (w.length < minWords) return [s.trim()];
   const half = Math.ceil(w.length / 2);
   return [w.slice(0, half).join(" "), w.slice(half).join(" ")];
 };
