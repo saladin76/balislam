@@ -4,7 +4,7 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
-import { quranPathFor, readJson } from "../plan/io";
+import { quranPathFor } from "../plan/io";
 import { composeVerses } from "./sync";
 import type { QuranClient, Verse } from "./client";
 
@@ -22,7 +22,12 @@ export const fillMissingQuranTexts = async (
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const file = quranPathFor(scriptPath);
-  const existing = (await readJson<Record<string, string>>(file)) ?? {};
+  // Capture the complete file BEFORE any network request so edits to ANY key are protected.
+  const snapshot = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
+    if (e.code === "ENOENT") return null;
+    throw e;
+  });
+  const existing = snapshot === null ? {} : JSON.parse(snapshot) as Record<string, string>;
   const additional: Record<string, string> = {};
   const result: TextOnlyResult = { fetched: [], existing: [], failed: [] };
   const refs = parsed.chapters.flatMap((chapter) => chapter.blocks)
@@ -48,21 +53,17 @@ export const fillMissingQuranTexts = async (
   }
 
   if (Object.keys(additional).length) {
-    // Fail closed rather than overwriting a file changed during network fetches.
-    const before = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
+    // Never overwrite any edit that occurred while the API requests were in flight.
+    const current = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
       if (e.code === "ENOENT") return null;
       throw e;
     });
-    const latest = before ? JSON.parse(before) as Record<string, string> : {};
-    for (const key of Object.keys(existing)) {
-      if (latest[key] !== existing[key]) throw new Error("تغير مخزن القرآن أثناء الجلب؛ لم تُحفظ النتيجة.");
-    }
-    // Do not overwrite a value created while requests were in flight.
-    for (const key of result.fetched) if (latest[key]) throw new Error("ظهرت آية جديدة في المخزن أثناء الجلب؛ أعد المحاولة.");
+    if (current !== snapshot)
+      throw new Error("تغير مخزن القرآن أثناء الجلب؛ لم تُحفظ النتيجة، وأُبقيت التعديلات الجديدة.");
     await mkdir(path.dirname(file), { recursive: true });
     const temp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
     try {
-      await writeFile(temp, JSON.stringify({ ...latest, ...additional }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+      await writeFile(temp, JSON.stringify({ ...existing, ...additional }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
       await rename(temp, file);
     } finally { await rm(temp, { force: true }); }
   }
