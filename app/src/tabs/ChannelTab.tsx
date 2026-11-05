@@ -268,10 +268,20 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
       </div>
       {msg ? <div className={`note ${msg.err ? "err" : ""}`}>{msg.text}</div> : null}
 
-      <div className="ch-grid">
-        <ChannelIdentity c={c} identity={identity} />
+      <nav className="channel-section-nav" aria-label="أقسام إعدادات القناة">
+        <a href="#channel-identity">الهوية</a>
+        <a href="#channel-basics">الأساسيات</a>
+        <a href="#channel-domains">المجالات</a>
+        <a href="#channel-rules">قواعد المحتوى</a>
+        {c.rules.quran && <a href="#channel-quran">القرآن والتلاوات</a>}
+        <a href="#channel-youtube">النشر</a>
+        <a href="#channel-brand">بصمة القناة</a>
+        <a href="#channel-new">قناة جديدة</a>
+      </nav>
+      <div className="ch-grid channel-settings-grid">
+        <div id="channel-identity" className="channel-identity-slot"><ChannelIdentity c={c} identity={identity} /></div>
 
-        <section className="group">
+        <section id="channel-basics" className="group channel-settings-section">
           <h3>الأساسيات</h3>
           <label className="field"><span>اسم القناة</span><input id="ch-name" type="text" value={c.name} onChange={(e) => set({ name: e.target.value })} /></label>
           <label className="field"><span>الاسم كما يُرسم على الصور <small>(بالتشكيل إن لزم؛ فارغ = اسم القناة)</small></span><input id="ch-display" type="text" value={c.nameDisplay ?? ""} onChange={(e) => set({ nameDisplay: e.target.value || undefined })} /></label>
@@ -305,7 +315,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           </div>
         </section>
 
-        <section className="group ch-wide">
+        <section id="channel-domains" className="group channel-settings-section ch-wide">
           <h3>المجالات <small>كل مجال له ثيم يحدد ألوان حلقاته</small></h3>
           <table className="dom-table">
             <thead><tr><th>المعرّف</th><th>الاسم</th><th>الثيم</th><th>الوسوم</th><th /></tr></thead>
@@ -342,24 +352,32 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           </label>
         </section>
 
-        <section className="group">
-          <h3>القواعد <small>تحدد ما يُسمح باستخدامه في إنتاج القناة</small></h3>
+        <section id="channel-rules" className="group channel-settings-section">
+          <h3>قواعد المحتوى <small>عرض الإعدادات الحالية دون تغيير طريقة الإنتاج</small></h3>
           <label className="check"><input type="checkbox" checked={c.rules.quran} onChange={(e) => set({ rules: { ...c.rules, quran: e.target.checked } })} /><span>القناة تستشهد بالقرآن (بطاقات الآيات وجلب النصوص)</span></label>
           <label className="check"><input type="checkbox" checked={c.rules.hadith} onChange={(e) => set({ rules: { ...c.rules, hadith: e.target.checked } })} /><span>القناة تستشهد بالحديث (المقبول: {c.rules.hadithGrades.join(" و")})</span></label>
           <label className="check"><input type="checkbox" checked={!c.rules.faces} onChange={(e) => set({ rules: { ...c.rules, faces: !e.target.checked } })} /><span>إخفاء ملامح وجوه الشخصيات</span></label>
           <label className="check"><input type="checkbox" checked={!c.rules.music} onChange={(e) => set({ rules: { ...c.rules, music: !e.target.checked } })} /><span>منع الموسيقى (السماح بالمؤثرات غير الموسيقية فقط)</span></label>
-          {c.rules.quran ? <ReciterPicker value={c.recitation} onChange={(recitation) => set({ recitation })} /> : null}
-          {c.rules.quran ? <CloudPreviewPicker value={c.alquranPreviewRecitation} onChange={(alquranPreviewRecitation) => set({ alquranPreviewRecitation })} /> : null}
-          {c.rules.quran ? <MeaningPicker key={c.language} value={c.quranTranslation} language={c.language} onChange={(quranTranslation) => set({ quranTranslation })} /> : null}
-          <h3>يوتيوب</h3>
+        </section>
+
+        {c.rules.quran && <section id="channel-quran" className="group channel-settings-section channel-settings-quran ch-wide">
+          <h3>مصادر القرآن والتلاوات <small>Quran Foundation وAlQuran Cloud والترجمة</small></h3>
+          <p className="help">إعدادات مصادر الآيات والمعاينة؛ تحديد صوت AlQuran Cloud للاستماع لا يمنح إذن نشره في الفيديو.</p>
+          <ReciterPicker value={c.recitation} onChange={(recitation) => set({ recitation })} />
+          <CloudPreviewPicker value={c.alquranPreviewRecitation} onChange={(alquranPreviewRecitation) => set({ alquranPreviewRecitation })} />
+          <MeaningPicker key={c.language} value={c.quranTranslation} language={c.language} onChange={(quranTranslation) => set({ quranTranslation })} />
+        </section>}
+
+        <section id="channel-youtube" className="group channel-settings-section">
+          <h3>يوتيوب والنشر</h3>
           <label className="field"><span>وسوم القناة</span><TagsInput id="ch-tags" value={c.youtube.tags} onChange={(tags) => set({ youtube: { ...c.youtube, tags } })} /></label>
           <label className="field"><span>وقت النشر والمنطقة الزمنية</span><input id="ch-time" type="text" dir="ltr" placeholder="19:00 Asia/Riyadh" aria-describedby="ch-time-help" value={c.youtube.postingTime} onChange={(e) => set({ youtube: { ...c.youtube, postingTime: e.target.value } })} /><small className="help" id="ch-time-help">الصيغة المقترحة: 19:00 Asia/Riyadh. يُحفظ وقت النشر كإعداد للقناة ولا ينشر تلقائيًا.</small></label>
           <label className="field"><span>توقيع القناة (سطر ثابت في آخر كل وصف)</span><textarea id="ch-footer" rows={3} value={c.youtube.footer ?? ""} onChange={(e) => set({ youtube: { ...c.youtube, footer: e.target.value } })} /></label>
         </section>
 
-        <ChannelBrand c={c} set={set} identity={identity} />
+        <div id="channel-brand" className="channel-brand-slot"><ChannelBrand c={c} set={set} identity={identity} /></div>
 
-        <NewChannel onCreated={onCreated} />
+        <div id="channel-new" className="channel-new-slot"><NewChannel onCreated={onCreated} /></div>
       </div>
     </div>
   );

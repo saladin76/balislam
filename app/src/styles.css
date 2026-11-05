@@ -237,6 +237,71 @@ table.stats td.bad { color: var(--warn); font-weight: 600; }
 .ch-grid > * { min-width: 0; }
 .ch-grid .ch-wide { grid-column: span 2; }
 @media (max-width: 900px) { .ch-grid .ch-wide { grid-column: auto; } }
+/* Shared channel-settings layout. Presentation only: no production behavior changes. */
+.channel-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.channel-section-nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 650;
+}
+.channel-section-nav a:hover,
+.channel-section-nav a:focus-visible {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  outline-offset: 2px;
+}
+.channel-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.channel-settings-grid > * { min-width: 0; scroll-margin-top: 28px; }
+.channel-settings-grid > .channel-identity-slot,
+.channel-settings-grid > .channel-settings-quran { grid-column: 1 / -1; }
+.channel-settings-grid .channel-identity-slot > .ch-identity { grid-column: auto; }
+.channel-settings-section { padding: 18px 20px; }
+.channel-settings-section h3 { font-size: 17px; line-height: 1.5; margin-bottom: 14px; }
+.channel-settings-quran .channel-cloud-preview {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--panel-2);
+}
+.channel-settings-quran .channel-cloud-preview > strong { font-size: 15px; }
+.channel-settings-quran .channel-cloud-preview .channel-provider-controls {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.channel-settings-quran .channel-cloud-preview .channel-provider-controls > span {
+  grid-column: 1 / -1;
+}
+.channel-settings-quran .channel-provider-controls button {
+  min-height: 36px;
+}
+@media (max-width: 1080px) {
+  .channel-settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .channel-settings-grid .ch-wide,
+  .channel-settings-grid > .channel-identity-slot,
+  .channel-settings-grid > .channel-settings-quran { grid-column: auto; }
+}
+@media (max-width: 680px) {
+  .channel-settings-section { padding: 14px 12px; }
+  .channel-settings-quran .channel-cloud-preview .channel-provider-controls { grid-template-columns: minmax(0, 1fr); }
+  .channel-settings-quran .channel-cloud-preview .channel-provider-controls > span { grid-column: auto; }
+  .channel-section-nav a { font-size: 12.5px; }
+}
 /* Channel controls must remain usable inside the narrow RTL settings column. */
 .channel-tab .group { min-width: 0; }
 .channel-tab .field input:not([type="checkbox"]),
