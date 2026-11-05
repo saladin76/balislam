@@ -130,17 +130,25 @@ const CloudPreviewPicker: React.FC<{
   const [sampleBusy, setSampleBusy] = React.useState(false);
   const [sampleError, setSampleError] = React.useState("");
   const [sampleEdition, setSampleEdition] = React.useState("");
+  const auditionRequest = React.useRef(0);
+  const mounted = React.useRef(true);
+  React.useEffect(() => () => { mounted.current = false; auditionRequest.current++; }, []);
+  React.useEffect(() => {
+    auditionRequest.current++;
+    setSample(null); setSampleError("");
+  }, [value?.edition]);
   const listen = async () => {
     if (!value || sampleBusy) return;
     setSample(null); setSampleError(""); setSampleBusy(true);
     const requested = value.edition;
+    const request = ++auditionRequest.current;
     setSampleEdition(requested);
     try {
       const r = await api.alquranAyah(1, 1, requested);
-      setSample({ text: r.text, audio: r.audio });
+      if (mounted.current && request === auditionRequest.current) setSample({ text: r.text, audio: r.audio });
     } catch (e) {
-      setSampleError(e instanceof Error ? e.message : String(e));
-    } finally { setSampleBusy(false); }
+      if (mounted.current && request === auditionRequest.current) setSampleError(e instanceof Error ? e.message : String(e));
+    } finally { if (mounted.current) setSampleBusy(false); }
   };
   const load = async () => {
     if (loading) return;
@@ -148,13 +156,13 @@ const CloudPreviewPicker: React.FC<{
     setMessage("جارٍ تحميل قرّاء AlQuran Cloud…");
     try {
       const res = await api.alquranEditions();
+      if (!mounted.current) return;
       setList(res.editions);
       setMessage(res.editions.length ? "" : "لم تُرجع الخدمة أي تسجيلات متاحة.");
     } catch (e) {
-      setList(null);
-      setMessage(e instanceof Error ? e.message : String(e));
+      if (mounted.current) { setList(null); setMessage(e instanceof Error ? e.message : String(e)); }
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   };
   const byRights = filterRecitersByRights(list ?? [], rightsFilter);
@@ -164,7 +172,7 @@ const CloudPreviewPicker: React.FC<{
   return (
     <div className="field channel-cloud-preview">
       <strong>AlQuran Cloud — اختيار القارئ والاستماع</strong>
-      <p className="help">اختر قارئًا من التسجيلات المتاحة واستمع لعينة مباشرة. سيصبح القارئ الافتراضي للتجربة داخل حلقات هذه القناة؛ حفظ الاختيار لا يضيف الصوت تلقائيًا إلى الفيديو.</p>
+      <p className="help">اختر قارئًا من التسجيلات المتاحة واستمع لعينة مباشرة. اضغط «حفظ» في إعدادات القناة لاعتماد اختيار المعاينة. لا يضاف الصوت تلقائيًا إلى الفيديو.</p>
       <div className="channel-provider-controls">
         <span>{value ? <><b>{value.name}</b> <code dir="ltr">{value.edition}</code></> : <span className="help">لم يُحدد قارئ للمعاينة</span>}</span>
         <button type="button" className="btn small" disabled={loading} onClick={load}>
@@ -181,7 +189,8 @@ const CloudPreviewPicker: React.FC<{
             <option value="verified">استخدام تجاري موثّق</option>
             <option value="review">يحتاج مراجعة</option>
           </select>
-          <span className="help">المصدر لا يرسل حالة ترخيص تجاري لكل تسجيل. «موثّق» يتطلب دليلًا تمت مراجعته لهذا الإصدار تحديدًا، لا مجرد توافره للاستماع.</span>
+          <span className="help">AlQuran Cloud لا يرسل حالة الترخيص التجاري لكل تسجيل. فئة «موثّق» تظهر فقط عند تسجيل دليل نشر تجاري تمت مراجعته.</span>
+          {rightsFilter !== "all" && <button type="button" className="btn ghost small" onClick={() => { setRightsFilter("all"); setSearch(""); }}>إظهار جميع القرّاء ومسح البحث</button>}
           <label htmlFor="ch-cloud-search">البحث عن قارئ</label>
           <input id="ch-cloud-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم القارئ أو معرّفه" />
           <label htmlFor="ch-cloud-edition">التسجيلات المتاحة</label>
@@ -193,7 +202,6 @@ const CloudPreviewPicker: React.FC<{
             <option value="">اختر قارئًا للمعاينة</option>
             {value && !filtered.some((item) => item.identifier === value.edition) && <option value={value.edition}>{value.name} (الاختيار المحفوظ خارج نتائج الفلتر)</option>}
             {filtered.map((item) => <option key={item.identifier} value={item.identifier}>{item.name} — {item.identifier}</option>)}
-            
           </select>
           <span className="help" role="status">{filtered.length} نتيجة ضمن التصنيف المحدد. {rightsFilter === "verified" && !filtered.length ? "لا توجد تسجيلات ذات دليل تجاري متحقق منه حاليًا؛ ليست هذه نتيجة تفيد منع جميع التسجيلات." : ""}</span>
           {value && <span className="help">حالة القارئ المحدد: {commercialEvidenceFor(value.edition) ? "استخدام تجاري موثّق بدليل" : "يحتاج مراجعة حقوق الاستخدام"}</span>}
