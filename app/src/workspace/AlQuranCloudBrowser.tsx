@@ -37,12 +37,14 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [activeProduction, setActiveProduction] = useState<CloudRecitation | null>(null);
   const [saving, setSaving] = useState(false);
   const mounted = useRef(true);
+  const previewManuallyChanged = useRef(false);
   const visibleEditions = useMemo(() => filterAudioEditions(editions, search), [editions, search]);
 
   useEffect(() => {
     setEnabled(false); setEditions([]); setPreview(null); setError(""); setSearch(""); setSurah(1); setAyah(1);
     setLicenceHolder(""); setLicenceEvidence(""); setConfirmed(false); setProductionStatus(""); setActiveProduction(null);
     let alive = true;
+    previewManuallyChanged.current = false;
     mounted.current = true;
     api.recitationChoice(episodeId, channelId).then(({ recitation }) => {
       if (!alive) return;
@@ -59,13 +61,14 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
       setEdition(previewEditionFor(null));
       api.channelFor(channelId).then((channel) => {
         const preferred = channel.alquranPreviewRecitation?.edition;
-        if (alive) setEdition(previewEditionFor(null, preferred));
+        if (alive && !previewManuallyChanged.current) setEdition(previewEditionFor(null, preferred));
       }).catch(() => { /* keep safe preview fallback */ });
     }
     return () => { alive = false; mounted.current = false; };
   }, [channelId, episodeId]);
 
   const selectEdition = (id: string) => {
+    previewManuallyChanged.current = true;
     setEdition(id); setPreview(null);
     try { localStorage.setItem(previewReciterKey(channelId, episodeId), id); } catch { /* restricted browser storage */ }
   };
