@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { VoiceBox } from "../tabs/EpisodeTab";
-import { Mp3QuranBrowser } from "./Mp3QuranBrowser";
+import { AlQuranCloudBrowser } from "./AlQuranCloudBrowser";
 
 /** واجهة خفيفة فوق منظومة الصوت الأصلية؛ لا توليد ولا تخزين إضافي. */
 export const VoiceWorkspaceTab: React.FC<{
@@ -29,7 +29,7 @@ export const VoiceWorkspaceTab: React.FC<{
         <p>راجع التشكيل وإعدادات الصوت قبل التوليد. المقاطع التي لم يتغير نصها تبقى محفوظة كما في المحرك الحالي.</p>
       </div>
       <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} />
-      <Mp3QuranBrowser key={channelId} channelId={channelId} />
+      <AlQuranCloudBrowser key={channelId} channelId={channelId} />
       <div className="ew-voice-heading">
         <h3>حالة المقاطع الصوتية</h3>
         <span>{ready} من {scenes.length} مطابق للنص الحالي</span>

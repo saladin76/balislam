@@ -168,35 +168,24 @@ const styleOf = (fmStyle: string | undefined, scenes: { template?: string }[]) =
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
 
-  // مكتبة تلاوات خارجية للمعاينة فقط؛ لا تُنشئ ملفات ولا تغيّر اختيار مصدر التلاوة.
-  if (parts[0] === "mp3quran") {
+  // AlQuran Cloud: قراءة نص الآية والمعاينة الصوتية فقط؛ لا تنزيل ولا تعديل للرندر.
+  if (parts[0] === "alquran-cloud") {
     if (req.method !== "GET") return send(res, 405, { error: "طلبات القراءة فقط." }), true;
-    const { createMp3QuranClient } = await load("/src/quran/mp3quran.ts");
-    const client = createMp3QuranClient();
-    const resource = parts[1];
-    if (resource === "reciters") return send(res, 200, { reciters: await client.reciters() }), true;
-    if (resource === "suwar") return send(res, 200, { suwar: await client.suwar() }), true;
-    if (resource === "preview") {
+    const { createAlQuranClient, AlQuranError } = await load("/src/quran/alquranCloud.ts");
+    const client = createAlQuranClient();
+    if (parts[1] === "editions") return send(res, 200, { editions: await client.editions() }), true;
+    if (parts[1] === "ayah") {
       const query = new URL(req.url ?? "/", "http://localhost").searchParams;
-      const reciterId = Number(query.get("reciter"));
-      const moshafId = Number(query.get("moshaf"));
       const surah = Number(query.get("surah"));
-      if (![reciterId, moshafId, surah].every(Number.isSafeInteger) ||
-          reciterId < 1 || moshafId < 1 || surah < 1 || surah > 114)
-        return send(res, 400, { error: "معرّف القارئ أو الرواية أو السورة غير صالح." }), true;
-      const reciter = (await client.reciters()).find((r: any) => r.id === reciterId);
-      const moshaf = reciter?.moshaf.find((m: any) => m.id === moshafId);
-      if (!moshaf) return send(res, 404, { error: "الرواية المختارة غير موجودة." }), true;
-      return send(res, 200, {
-        url: client.preview(moshaf, surah),
-        reciter: reciter.name,
-        moshaf: moshaf.name,
-        surah,
-        rightsVerified: false,
-        publicationAllowed: false,
-      }), true;
+      const ayah = Number(query.get("ayah"));
+      const edition = query.get("edition") ?? "";
+      try { return send(res, 200, await client.ayah(surah, ayah, edition)), true; }
+      catch (e) {
+        if (e instanceof AlQuranError) return send(res, 422, { error: e instanceof Error ? e.message : String(e) }), true;
+        throw e;
+      }
     }
-    return send(res, 404, { error: "مسار MP3Quran غير موجود." }), true;
+    return send(res, 404, { error: "مسار AlQuran Cloud غير موجود." }), true;
   }
 
   // التحديث من GitHub
