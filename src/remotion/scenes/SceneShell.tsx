@@ -1,3 +1,4 @@
+import { useTransition } from "./transitions";
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Theme } from "../../../brand/themes";
@@ -183,7 +184,9 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   const lang = useLang();
   const portrait = orientation === "portrait";
   const eyebrowSize = useSize("eyebrow", orientation);
-  const out = exitFrames > 0 ? exit(frame, durationInFrames, exitFrames) : 1;
+  // الانتقال (الأمر 011) يتولى الخروج والدخول حين يُحدَّد؛ وبدونه يبقى التلاشي القائم كما هو
+  const tc = useTransition();
+  const out = exitFrames > 0 && !tc.holdExit ? exit(frame, durationInFrames, exitFrames) : 1;
   const eyebrowIn = enter(frame, 4);
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
   const notebook = useChannel().frame === "notebook";
@@ -199,7 +202,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
   return (
     <AbsoluteFill style={{ backgroundColor: background ?? t.colors.bg, direction: lang.dir, fontFamily: fontFamilies.body, color: t.colors.ink }}>
       {backdrop && hasElement(backdrop) ? (
-        <div style={{ position: "absolute", inset: 0, opacity: fade(frame, 0, 14) }}>
+        <div style={{ position: "absolute", inset: 0, opacity: tc.skipEnter ? 1 : fade(frame, 0, 14) }}>
           <Element id={backdrop} theme={t} width={width} height={height} />
         </div>
       ) : motif ? (

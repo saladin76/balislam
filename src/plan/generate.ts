@@ -237,6 +237,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     // نبرة المشهد وصوت الشخصية يبقيان مع المشهد
     if (old.tone) s.tone = old.tone;
     if (old.voice) s.voice = old.voice;
+    if (old.transition) s.transition = old.transition;
   }
 
   // شاشة النهاية: آخر مشهد في الحلقة، من «الخطوة العملية»

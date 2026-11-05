@@ -128,18 +128,36 @@ export const fitDistance = (g: GaitId, frames: number, scale: number, fps: numbe
   return gaitSpeed(g, scale, fps) * (T - ramps / 2);
 };
 
+/** عدد الإطارات التي تستغرقها مسافة بمشية (عكس fitDistance)، مع البداية أو النهاية الطائرة */
+export const fitFrames = (g: GaitId, distance: number, scale: number, fps: number, flyIn = false, flyOut = false) => {
+  const s = GAITS[g];
+  const ra = flyIn ? 0 : s.accel;
+  const rd = flyOut ? 0 : s.decel;
+  return Math.max(ra + rd, distance / gaitSpeed(g, scale, fps) + (ra + rd) / 2);
+};
+
 /** حركة: انطلاق عند start لمسافة dx (بإشارتها) بمشية */
-export type Move = { start: number; dx: number; gait: GaitId };
+export type Move = {
+  start: number;
+  dx: number;
+  gait: GaitId;
+  /**
+   * استمرار الحركة عبر حدود المشاهد (الأمر 011): flyIn تبدأ بالسرعة الكاملة بلا استعداد ولا تسارع
+   * (كان يمشي قبل بداية المشهد)، وflyOut تنتهي بالسرعة الكاملة بلا تباطؤ (يخرج من الإطار ماشيًا).
+   */
+  flyIn?: boolean;
+  flyOut?: boolean;
+};
 /** التفاتة في المكان نحو اتجاه */
 export type Turn = { at: number; to: 1 | -1; dur?: number };
 
-type Profile = { start: number; end: number; vpk: number; ra: number; rd: number; dir: 1 | -1; gait: GaitId };
+type Profile = { start: number; end: number; vpk: number; ra: number; rd: number; dir: 1 | -1; gait: GaitId; flyIn?: boolean };
 const profileOf = (m: Move, scale: number, fps: number): Profile => {
   const g = GAITS[m.gait];
   const vmax = gaitSpeed(m.gait, scale, fps);
   const D = Math.abs(m.dx);
-  let ra = g.accel;
-  let rd = g.decel;
+  let ra = m.flyIn ? 0 : g.accel;
+  let rd = m.flyOut ? 0 : g.decel;
   let T = D / vmax + (ra + rd) / 2;
   let vpk = vmax;
   if (T < ra + rd) {
@@ -147,13 +165,14 @@ const profileOf = (m: Move, scale: number, fps: number): Profile => {
     vpk = D / ((ra + rd) / 2);
     T = ra + rd;
   }
-  return { start: m.start, end: m.start + T, vpk, ra, rd, dir: m.dx < 0 ? -1 : 1, gait: m.gait };
+  return { start: m.start, end: m.start + T, vpk, ra, rd, dir: m.dx < 0 ? -1 : 1, gait: m.gait, ...(m.flyIn ? { flyIn: true } : {}) };
 };
 /** السرعة الموقّعة لملف حركة عند إطار (منحدرات ناعمة: تسارع ثم ثبات ثم تباطؤ) */
 const speedAt = (p: Profile, f: number) => {
-  if (f <= p.start || f >= p.end) return 0;
-  const up = smooth((f - p.start) / p.ra);
-  const down = smooth((p.end - f) / p.rd);
+  // بداية طائرة: السرعة كاملة منذ إطار البداية نفسه
+  if (f >= p.end || (f <= p.start && !(p.ra === 0 && f === p.start))) return 0;
+  const up = p.ra === 0 ? 1 : smooth((f - p.start) / p.ra);
+  const down = p.rd === 0 ? 1 : smooth((p.end - f) / p.rd);
   return p.dir * p.vpk * Math.min(up, down);
 };
 
@@ -244,9 +263,11 @@ export const locomote = (frame: number, o: LocoOptions): LocoState => {
   // نابضا الجذع والثوب
   let lean = 0;
   let leanV = 0;
-  let sway = 0;
+  // بداية طائرة: الثوب في حال المشي المستقرة منذ الإطار الأول (لا «يلحق» بالجسد كأنه بدأ من سكون)
+  const fly = profs.find((p) => p.flyIn && p.start <= 0);
+  let sway = fly ? fly.vpk * 1.5 : 0;
   let swayV = 0;
-  let v = 0;
+  let v = fly ? fly.dir * fly.vpk : 0;
   const end = Math.max(0, Math.floor(frame));
   for (let f = 0; f <= end; f++) {
     const p = profs.find((q) => f > q.start - 1 && f < q.end + 1) ?? null;
@@ -277,6 +298,7 @@ export const locomote = (frame: number, o: LocoOptions): LocoState => {
   let dip = 0;
   let antic = 0;
   for (const p of profs) {
+    if (p.flyIn) continue;
     const u = (frame - (p.start - 8)) / 10;
     if (u > 0 && u < 1) {
       dip = Math.max(dip, Math.sin(Math.PI * u));
@@ -356,4 +378,57 @@ export type CharacterState = { x: number; pose: PoseSpec; facing: 1 | -1; view: 
 export const characterAt = (frame: number, base: PoseSpec, spec: LocoOptions): CharacterState => {
   const loco = locomote(frame, spec);
   return { x: loco.x, pose: locoPose(base, loco), facing: loco.facing < 0 ? -1 : 1, view: loco.view, sway: loco.sway, moving: loco.moving, loco };
+};
+
+/**
+ * استمرار الحركة عبر حدود المشاهد (الأمر 011، الانتقال carry): دالة نقية تعدّل خطة المشي فقط.
+ * - carryIn: يبدأ خارج الإطار ماشيًا بالسرعة الكاملة (flyIn) حتى موضعه المعتاد، وتُسقط حركات تقع أثناء دخوله.
+ * - carryOut: يخرج من الإطار في آخر المشهد ماشيًا بلا تباطؤ (flyOut)، فيلتقط المشهد التالي الحركة نفسها.
+ * بلا carryIn/carryOut تُعاد الخطة كما هي حرفيًا.
+ */
+export const withCarry = (o: {
+  x0: number;
+  facing0: 1 | -1;
+  moves: Move[];
+  turns: Turn[];
+  gait: GaitId;
+  dur: number;
+  fps: number;
+  scale: number;
+  worldW: number;
+  carryIn?: "left" | "right";
+  carryOut?: "left" | "right";
+  margin?: number;
+}): { x0: number; facing0: 1 | -1; moves: Move[] } => {
+  if (!o.carryIn && !o.carryOut) return { x0: o.x0, facing0: o.facing0, moves: o.moves };
+  // يكاد جسده يغادر حافة العالم (وهي حافة الإطار عند الحافة) في آخر إطار، ويظهر طرفه في أول إطار من التالي
+  const margin = o.margin ?? 60;
+  let moves = [...o.moves];
+  let x0 = o.x0;
+  let facing0 = o.facing0;
+  if (o.carryIn) {
+    const sx = o.carryIn === "left" ? o.worldW + margin : -margin;
+    const entry: Move = { start: 0, dx: o.x0 - sx, gait: o.gait, flyIn: true };
+    const entryEnd = fitFrames(o.gait, Math.abs(entry.dx), o.scale, o.fps, true, false);
+    moves = [entry, ...moves.filter((m) => m.start >= entryEnd + 4)];
+    x0 = sx;
+    facing0 = o.carryIn === "left" ? -1 : 1;
+  }
+  if (o.carryOut) {
+    const base = { x0, facing0, moves: [...moves], turns: o.turns, scale: o.scale, fps: o.fps };
+    const target = o.carryOut === "left" ? -margin : o.worldW + margin;
+    const lastEnd = Math.max(0, ...moves.map((m) => m.start + fitFrames(m.gait, Math.abs(m.dx), o.scale, o.fps, Boolean(m.flyIn), Boolean(m.flyOut))));
+    // يبدأ الخروج بحيث يغادر الإطار مع آخر إطار، ولا يبدأ قبل انتهاء ما قبله
+    let start = o.dur - 1;
+    for (let k = 0; k < 3; k++) {
+      const from = locomote(Math.max(0, start), base).x;
+      start = Math.round(o.dur - 1 - fitFrames(o.gait, Math.abs(target - from), o.scale, o.fps, false, true));
+    }
+    start = Math.max(start, Math.ceil(lastEnd) + 2);
+    const from = locomote(start, base).x;
+    // يمتد قليلًا بعد آخر إطار: فهو في آخر إطار ما زال ماشيًا بالسرعة الكاملة (لا يقف عند الحافة)
+    const beyond = Math.sign(target - from) * gaitSpeed(o.gait, o.scale, o.fps) * 3;
+    moves.push({ start, dx: target - from + beyond, gait: o.gait, flyOut: true });
+  }
+  return { x0, facing0, moves };
 };

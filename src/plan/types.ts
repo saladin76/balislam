@@ -31,6 +31,8 @@ export type PlanScene = {
   tone?: string;
   /** صوت آخر من ElevenLabs لهذا المشهد (حوار شخصية): معرّف الصوت */
   voice?: string;
+  /** كيف يدخل هذا المشهد من الذي قبله (الأمر 011)؛ بلا الحقل يبقى التلاشي القائم. الصيغة في src/plan/transitions.ts */
+  transition?: string;
 };
 
 export type PlanChapter = { number: number; title: string; scenes: PlanScene[] };

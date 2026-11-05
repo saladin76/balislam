@@ -7,7 +7,8 @@ import { sentenceGroups } from "../../plan/beats";
 import { autoCameraPlan, cameraCuts, isComposed, moveFrames, parseCameraPlan, parsePoseTimeline, shotZoom, type CamShot, type CamTarget } from "../../plan/director";
 import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan/sceneCues";
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
-import { fitDistance, GAIT_IDS, locomote, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
+import { useTransition } from "./transitions";
+import { fitDistance, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
 import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
 import { TopCaption, captionLines } from "../illus/TopCaption";
@@ -150,6 +151,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   // والتفاتة بالجسد نحو ما يحدث (الباب) بدل الانقلاب الفوري، وثوب يتابع الجسد
   const gait: GaitId = (GAIT_IDS as readonly string[]).includes(props.gait ?? "") ? (props.gait as GaitId) : "walk";
   const HERO_SCALE = 1.75;
+  const tc = useTransition();
   let loco: ReturnType<typeof locomote> | null = null;
   if (composed && stage === "solo" && !sitting) {
     const moves: Move[] = [];
@@ -168,7 +170,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
     // يلتفت نحو الباب حين يُذكر، إن كان ظهره إليه
     const doorAt = at("door");
     if (doorAt !== undefined) turns.push({ at: Math.max(0, doorAt - 6), to: 1, dur: 20 });
-    loco = locomote(frame, { x0: 1060, facing0: firstWalk <= 2 ? -1 : 1, moves, turns, scale: HERO_SCALE, fps });
+    // استمرار الحركة عبر حد المشهد (الأمر 011، الانتقال carry)؛ بدونه الخطة كما كانت حرفيًا
+    const { x0, facing0, moves: planned } = withCarry({ x0: 1060, facing0: firstWalk <= 2 ? -1 : 1, moves, turns, gait, dur, fps, scale: HERO_SCALE, worldW: WW, ...(tc.carryIn ? { carryIn: tc.carryIn } : {}), ...(tc.carryOut ? { carryOut: tc.carryOut } : {}) });
+    loco = locomote(frame, { x0, facing0, moves: planned, turns, scale: HERO_SCALE, fps });
     heroX = loco.x;
     walking = loco.moving;
   }
@@ -258,6 +262,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const out = exit(frame, dur, 8);
   const keys = cues.map((c) => c.word);
   const focusX = heroX;
+  // عناصر المكان (الباب واللوحة) ثابتة في موضع البطل المعتاد حين يدخل أو يخرج ماشيًا عبر الحد (carry)، فلا تتبعه خارج الإطار
+  const propX = tc.carryIn || tc.carryOut ? Math.max(420, Math.min(1060, heroX)) : heroX;
   // الكاميرا المؤلَّفة: مفاتيح قليلة (افتتاح + حركة أو اثنتان) على كلمات المعنى، بانتقال طويل هادئ
   const sacredScene = isSacredSentence(narration);
   const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: portrait && props.cameraPlanPortrait ? props.cameraPlanPortrait : props.cameraPlan, cues, timings }) : null;
@@ -306,8 +312,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               <g transform={cam(0.6)}>
                 <DepthLayer depth={0.6} light={light}>
                   <HouseRow mood={curMood} seed={place === "alley" ? 4 : 9} lit={lit} />
-                  {hasDoor ? <ArchDoor x={heroX + 250} w={190} h={310} light={door} mood={curMood} /> : null}
-                  {hasBoard ? <NoticeBoard x={heroX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
+                  {hasDoor ? <ArchDoor x={propX + 250} w={190} h={310} light={door} mood={curMood} /> : null}
+                  {hasBoard ? <NoticeBoard x={propX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
                   {sitting ? <WallLamp x={heroX + 30} y={GROUND - 420} on={1} frame={frame} /> : null}
                 </DepthLayer>
               </g>
@@ -316,7 +322,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
             <g transform={cam(0.6)}>
               <DepthLayer depth={0.6} light={light}>
                 <Market mood={curMood} frame={frame} lit={truth} />
-                {hasBoard ? <NoticeBoard x={heroX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
+                {hasBoard ? <NoticeBoard x={propX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
               </DepthLayer>
             </g>
           ) : (
@@ -353,7 +359,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
                   <Figure key={i} x={heroX + g.dx} y={GROUND + 6} scale={1.25} pose={poseAt(frame, [{ at: 0, pose: "stand" }])} look={g.look} opacity={0.32 * rise(frame, (at("people") ?? 0) + g.d, 20)} silhouette={mix(ID.paper, ID.night, 0.35)} shadow={false} frame={frame + i * 9} />
                 ))
               : null}
-            {hasBench ? <Workbench x={heroX + 120} mood={curMood} done={success} /> : null}
+            {hasBench ? <Workbench x={propX + 120} mood={curMood} done={success} /> : null}
             {stage === "companion" ? (
               light ? (
                 <LitFigure light={light} x={heroX - 400} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />

@@ -18,6 +18,7 @@ import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
 import { api, type SceneReviewItem, type SceneReviewSummary, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
+import { TRANSITION_HELP } from "../../../src/plan/transitions";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { langPack } from "../../../src/i18n/packs";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
@@ -376,7 +377,26 @@ export const EpisodeTab: React.FC<{
                 onChange={(e) => { const n = Number(e.target.value); updateScene({ durationSec: e.target.value && Number.isFinite(n) && n >= 0.5 ? Math.min(n, 600) : undefined }); }}
               />
             </label>
+            <label className="field">
+              <span>الدخول من المشهد السابق</span>
+              <input
+                id="scene-transition"
+                type="text"
+                dir="ltr"
+                placeholder="كما هو (تلاشٍ قصير)"
+                value={scene.transition ?? ""}
+                onChange={(e) => updateScene({ transition: e.target.value.trim() ? e.target.value : undefined })}
+              />
+            </label>
           </div>
+          {(() => {
+            const errs = liveIssues.filter((i) => i.sceneId === scene.id && /الانتقال/.test(i.message));
+            return (
+              <div className="help" style={{ marginTop: -4 }}>
+                {errs.length ? errs.map((i, k) => <div key={k} style={{ color: i.level === "error" ? "var(--danger, #C2412D)" : undefined }}>{i.message}</div>) : TRANSITION_HELP}
+              </div>
+            );
+          })()}
 
           <details className="ew-advanced-settings">
             <summary>إعدادات متقدمة · عناصر الشاشة والمؤثرات الصوتية</summary>

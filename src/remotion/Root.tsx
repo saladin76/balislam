@@ -17,6 +17,7 @@ import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/E
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
 import { MotionLab007, MotionScenes007, SEG7, SEGMENTS_007 } from "./lab/MotionLab007";
+import { TransitionLab, TransitionLabBaseline, transitionLabFrames } from "./lab/TransitionLab";
 import { LIGHT_CASES, LIGHT_CASES_009, LightTimingOff, LightTimingOn, lightLab, lightLab009 } from "./lab/LightLab";
 import { AlleyTale } from "./scenes/AlleyTale";
 import samplePlan from "../../tests/fixtures/plan.json";
@@ -140,6 +141,13 @@ export const RemotionRoot: React.FC = () => (
       ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
+    {/* مختبر الانتقالات (الأمر 011): بلا صوت، ولا يُنشر */}
+    {orientations.map((o) => (
+      <React.Fragment key={`tlab-${o}`}>
+        <Composition id={`lab-transitions-${o}`} component={TransitionLab} durationInFrames={transitionLabFrames()} fps={config.video.fps} {...sizes[o]} defaultProps={{ orientation: o }} />
+        <Composition id={`lab-transitions-baseline-${o}`} component={TransitionLabBaseline} durationInFrames={transitionLabFrames()} fps={config.video.fps} {...sizes[o]} defaultProps={{ orientation: o }} />
+      </React.Fragment>
+    ))}
     {orientations.map((o) => (
       <Composition
         key={`episode-${o}`}

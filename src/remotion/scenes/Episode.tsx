@@ -13,6 +13,9 @@ import { Providers } from "../Providers";
 import { langPack } from "../../i18n/packs";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../channel/types";
+import { parseTransition, transitionIssues, type Transition } from "../../plan/transitions";
+import { FrozenScene, TransitionContext, TransitionIn, type TransitionCtx } from "./transitions";
+import { useTheme } from "../../../brand/identity/index";
 
 export type EpisodeProps = {
   plan: Plan;
@@ -62,6 +65,22 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
   );
 };
 
+/** الانتقال الصالح بين مشهدين (لا يُطبَّق ما يرفضه فحص الخطة) */
+export const activeTransition = (scene: PlanScene, prev: PlanScene): Transition | null => {
+  const r = parseTransition(scene.transition);
+  if (!r || !r.ok) return null;
+  return transitionIssues(scene, prev).some((i) => i.level === "error") ? null : r.t;
+};
+/** ألوان الانتقال من ثيم الحلقة (هوية القناة)، لا من قيم ثابتة */
+const ThemedTransition: React.FC<{ t: Transition; themeId: Plan["themeId"]; outgoing: React.ReactNode; children: React.ReactNode }> = ({ t, themeId, outgoing, children }) => {
+  const theme = useTheme(themeId);
+  return (
+    <TransitionIn t={t} outgoing={outgoing} colors={{ bg: theme.colors.bg, light: theme.colors.highlight }}>
+      {children}
+    </TransitionIn>
+  );
+};
+
 /** الحلقة كاملة (أو فصل واحد) من خطة الحلقة، بالصوت إن وُجد. */
 export const Episode: React.FC<EpisodeProps> = (props) => {
   const { plan, orientation } = props;
@@ -82,11 +101,33 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
         // المشهد السابق في الفصل نفسه (للانتقال المتصل في السبورة؛ الشورت يبدأ بلا انتقال)
         const prev = idx > 0 && all[idx - 1]!.chapter.number === chapter.number ? all[idx - 1]!.scene : undefined;
         const next = idx < all.length - 1 && all[idx + 1]!.chapter.number === chapter.number ? all[idx + 1]!.scene : undefined;
-        const clip = media.voice[scene.id];
-        const timings = clip && clip.text === scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
+        const draw = (i: number) => {
+          const { chapter: c, scene: sc } = all[i]!;
+          const p = i > 0 && all[i - 1]!.chapter.number === c.number ? all[i - 1]!.scene : undefined;
+          const n = i < all.length - 1 && all[i + 1]!.chapter.number === c.number ? all[i + 1]!.scene : undefined;
+          const clip = media.voice[sc.id];
+          const timings = clip && clip.text === sc.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
+          return <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
+        };
+        // الانتقال (الأمر 011): يُطبَّق فقط إن كان صالحًا لهذا الزوج؛ وبدونه يبقى السلوك القائم حرفيًا
+        const tIn = prev ? activeTransition(scene, prev) : null;
+        const tOut = next ? activeTransition(next, scene) : null;
+        const ctx: TransitionCtx = {
+          ...(tOut ? { holdExit: true } : {}),
+          ...(tIn ? { skipEnter: true } : {}),
+          ...(tIn?.kind === "carry" ? { carryIn: tIn.dir } : {}),
+          ...(tOut?.kind === "carry" ? { carryOut: tOut.dir } : {}),
+        };
+        const body = <TransitionContext.Provider value={ctx}>{draw(idx)}</TransitionContext.Provider>;
         return (
-          <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} name={`${scene.id} · ${scene.template}`}>
-            <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, chapter)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={prev} next={next} />
+          <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} name={`${scene.id} · ${scene.template}${tIn ? ` · ${tIn.kind}` : ""}`}>
+            {tIn && tIn.dur > 0 ? (
+              <ThemedTransition t={tIn} themeId={plan.themeId} outgoing={<FrozenScene frames={sceneFrames(prev!, media)}>{draw(idx - 1)}</FrozenScene>}>
+                {body}
+              </ThemedTransition>
+            ) : (
+              body
+            )}
             <SceneAudio scene={scene} media={media} />
           </Series.Sequence>
         );
