@@ -188,3 +188,29 @@ export const TafsirTab: React.FC<{ x: number; y: number; o?: number; label: stri
       </SText>
     </g>
   );
+
+/**
+ * كتابة بالحبر: الكلمة تنكشف من اليمين إلى اليسار خلف سنّ قلم صغير، كأنها تُكتب الآن على الصفحة.
+ * تُستعمل للمصطلحات التي يدوّنها الكاتب (عنوان فكرة)، بدل الظهور والارتفاع، ولكلمة واحدة أو كلمتين فقط.
+ */
+export const WriteIn: React.FC<{ id: string; x: number; y: number; size: number; p: number; label: string; color?: string; font?: "amiri" | "tajawal"; weight?: number }> = ({ id, x, y, size, p, label, color = C.ink, font = "amiri", weight = 700 }) => {
+  if (p <= 0) return null;
+  const w = size * (font === "amiri" ? 0.44 : 0.52) * label.length + 30;
+  const right = x + w / 2;
+  const front = right - Math.min(1, p) * w;
+  return (
+    <g>
+      <defs>
+        <clipPath id={`wi-${id}`}>
+          <rect x={front} y={y - size * 1.25} width={right - front + 6} height={size * 1.8} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#wi-${id})`}>
+        <SText x={x} y={y} size={size} font={font} weight={weight} color={color}>
+          {label}
+        </SText>
+      </g>
+      {p < 1 ? <circle cx={front} cy={y - size * 0.3} r={Math.max(4, size * 0.06)} fill={C.ink} opacity={0.8} /> : null}
+    </g>
+  );
+};

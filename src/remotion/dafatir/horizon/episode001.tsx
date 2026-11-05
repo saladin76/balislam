@@ -6,7 +6,7 @@
 import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, CoverLeaf, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
-import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, camPath, fonts, type Cam, type Exit } from "./book";
+import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
 import { GATE, Hatch, RUINS, Shot2, Shot4, Shot5, Shot6, Sunset } from "./shots";
 import { HZ_META } from "./meta";
 import { HZ_SCENES_B } from "./episode001b";
@@ -496,74 +496,94 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
 };
 
 // ─────────── c2-s4: معرفتنا محدودة (لا يُرسم ما يرمز إلى علم الله) ───────────
+const KNOWN_BIG = "M560 300 C680 298 770 390 768 520 C766 640 680 740 560 740 C436 740 352 640 352 520 C352 400 440 302 554 300";
 const KNOWN = "M560 368 C640 366 694 430 692 500 C690 574 634 632 560 632 C484 632 428 572 428 500 C428 428 486 370 556 368";
 const Known: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
+  // يبقى سؤال الملائكة («؟» من المشهد السابق) ساكنًا ما دام الجواب لله؛ ثم يبهت حين يبدأ الكلام عن معرفتنا
+  const qFade = prog(t, at(tl, "إن") - 0.05, at(tl, "معرفتنا") + 0.6);
   const circ = prog(t, at(tl, "معرفتنا") - 0.05, at(tl, "معرفتنا") + 0.9);
   const firm = prog(t, at(tl, "محدودة") - 0.05, at(tl, "محدودة") + 0.6);
   const label = prog(t, at(tl, "معرفتنا") + 0.25, at(tl, "معرفتنا") + 0.7);
   const dots = [at(tl, "نعرف"), at(tl, "بعض"), at(tl, "الحكم")].map((a) => prog(t, a - 0.05, a + 0.4, easeOut));
   const reach = prog(t, at(tl, "ندعي") - 0.05, at(tl, "الإحاطة") + 0.1);
   const recede = prog(t, at(tl, "الإحاطة") + 0.1, end(tl, "الإحاطة") + 0.2);
-  const cam = camPath(t, NEUTRAL, [{ a: at(tl, "معرفتنا") - 0.25, b: at(tl, "معرفتنا") + 0.9, cx: 720, cy: 500, s: 1.08 }]);
+  // لقطة قريبة على دائرتنا الصغيرة، ثم عند «لا ندعي الإحاطة» تبتعد الكاميرا فيظهر اتساع الصفحة حولها: الفراغ هنا هو المعنى
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "معرفتنا") - 0.25, b: at(tl, "محدودة") + 0.4, cx: 560, cy: 520, s: 1.35 },
+    { a: at(tl, "ندعي") - 0.1, b: end(tl, "الإحاطة") + 0.2, cx: 900, cy: 520, s: 0.86 },
+  ]);
   const L = (
     <g>
-      <Ink d={KNOWN} w={4} p={circ} />
-      <Ink d={KNOWN} w={8} p={firm} opacity={0.85} />
-      <SText x={560} y={700} size={40} font="tajawal" weight={500} o={label} color={C.inkText}>
+      <Ink d={KNOWN_BIG} w={5} p={circ} />
+      <Ink d={KNOWN_BIG} w={10} p={firm} opacity={0.85} />
+      <SText x={560} y={790} size={46} font="tajawal" weight={700} o={label} color={C.inkText}>
         معرفتنا
       </SText>
       {[
-        [520, 470],
-        [606, 452],
-        [574, 548],
+        [500, 470],
+        [630, 440],
+        [590, 590],
       ].map(([x, y], i) => (
         <g key={i} opacity={dots[i]}>
-          <circle cx={x} cy={y} r={22 * dots[i]!} fill={C.gold} opacity={0.3} />
-          <circle cx={x} cy={y} r={9} fill={C.gold} stroke={C.ink} strokeWidth={2} />
+          <circle cx={x} cy={y} r={34 * dots[i]!} fill={C.gold} opacity={0.3} />
+          <circle cx={x} cy={y} r={14} fill={C.gold} stroke={C.ink} strokeWidth={3} />
         </g>
       ))}
       <g opacity={1 - recede}>
-        <Ink d="M700 470 C760 430 820 380 900 350" w={4} p={reach} dash="10 12" c={C.inkSoft} />
+        <path d="M740 470 C900 380 1100 300 1400 260 C1550 240 1650 250 1720 270" fill="none" stroke={C.inkSoft} strokeWidth={5} strokeLinecap="round" pathLength={1} strokeDasharray={`${reach} 1`} opacity={reach > 0 ? 0.8 : 0} />
       </g>
     </g>
   );
-  return <Book id="kn" t={t} dur={dur} exit={exit} from={from} cam={cam} R={<ChapterHead label={p.head ?? ""} />} L={L} />;
-};
-
-// ─────────── c2-s5: يحدثنا القرآن عن الخلق، ثم عن التعليم ───────────
-const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
-  const rule = prog(t, at(tl, "الإخبار") - 0.05, at(tl, "الإخبار") + 0.6);
-  const quran = prog(t, at(tl, "القرآن") - 0.05, at(tl, "القرآن") + 0.45);
-  const khalq = prog(t, at(tl, "خلق") - 0.05, at(tl, "خلق") + 0.5, easeOut);
-  const adam = prog(t, at(tl, "آدم") - 0.05, at(tl, "آدم") + 0.45);
-  const arrow = prog(t, at(tl, "ثم") - 0.05, at(tl, "ثم") + 0.6);
-  const box = prog(t, at(tl, "أعظم") - 0.1, at(tl, "أعظم") + 0.8);
-  const taalim = prog(t, at(tl, "التعليم") - 0.05, at(tl, "التعليم") + 0.5, easeOut);
-  const cam = camPath(t, NEUTRAL, [
-    { a: at(tl, "خلق") - 0.25, b: at(tl, "خلق") + 0.8, cx: 1365, cy: 470, s: 1.1 },
-    { a: at(tl, "ثم") - 0.2, b: at(tl, "أعظم") + 0.5, cx: 1365, cy: 560, s: 1.1 },
-  ]);
   const R = (
     <g>
       <ChapterHead label={p.head ?? ""} />
-      <Ink d="M1540 205 H1190" w={2.5} p={rule} c={C.gold} />
-      <SText x={1365} y={258} size={30} font="tajawal" weight={500} color={C.inkSoft} o={quran}>
-        القرآن الكريم
-      </SText>
-      <SText x={1365} y={370} size={96} o={khalq} dy={(1 - khalq) * 12} color={C.ink}>
-        الخلق
-      </SText>
-      <SText x={1365} y={428} size={34} font="tajawal" weight={500} color={C.inkSoft} o={adam}>
-        آدم عليه السلام
-      </SText>
-      <Ink d="M1365 452 V570 M1345 548 L1365 572 L1385 548" w={4} p={arrow} />
-      <Ink d="M1560 600 H1170 V770 H1560 Z" w={4} p={box} c={C.gold} />
-      <SText x={1365} y={718} size={96} o={taalim} dy={(1 - taalim) * 12} color={C.ink}>
-        التعليم
-      </SText>
+      <g opacity={1 - qFade}>
+        <SText x={1365} y={560} size={300} color={C.ink} o={0.9}>
+          ؟
+        </SText>
+      </g>
+      <g opacity={1 - recede}>
+        <path d="M740 470 C900 380 1100 300 1400 260 C1550 240 1650 250 1720 270" fill="none" stroke={C.inkSoft} strokeWidth={5} strokeLinecap="round" pathLength={1} strokeDasharray={`${reach} 1`} opacity={reach > 0 ? 0.8 : 0} />
+      </g>
     </g>
   );
-  return <Book id="tt" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} />;
+  return <Book id="kn" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} L={L} />;
+};
+
+// ─────────── c2-s5: يحدثنا القرآن عن الخلق (يمين)، ثم ينتقل إلى ما هو أعظم: التعليم (يسار) ───────────
+const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
+  const seal = prog(t, at(tl, "القرآن") - 0.05, at(tl, "القرآن") + 0.45, easeOut);
+  const khalq = prog(t, at(tl, "خلق") - 0.05, at(tl, "خلق") + 0.7);
+  const adam = prog(t, at(tl, "آدم") - 0.05, at(tl, "آدم") + 0.45);
+  const arrow = prog(t, at(tl, "ثم") - 0.1, at(tl, "عن", 2) + 0.4);
+  const box = prog(t, at(tl, "أعظم") - 0.1, at(tl, "أعظم") + 0.8);
+  const taalim = prog(t, at(tl, "التعليم") - 0.05, at(tl, "التعليم") + 0.8);
+  const cam = camPath(t, { cx: 1365, cy: 500, s: 1.12 }, [
+    // ينتقل النظر عبر الكعب مع «ثم» من الخلق إلى التعليم
+    { a: at(tl, "ثم") - 0.1, b: at(tl, "أعظم") + 0.3, cx: 600, cy: 520, s: 1.12 },
+  ]);
+  const both = <Ink d="M1240 520 C1100 640 900 660 760 560" w={5} p={arrow} />;
+  const R = (
+    <g>
+      <ChapterHead label={p.head ?? ""} />
+      <QuranSeal x={1365} y={250} o={seal} s={0.9} />
+      <WriteIn id="tt-k" x={1365} y={470} size={120} p={khalq} label="الخلق" color="#8A5A3C" />
+      <SText x={1365} y={545} size={38} font="tajawal" weight={500} color={C.inkSoft} o={adam}>
+        آدم عليه السلام
+      </SText>
+      {both}
+    </g>
+  );
+  const L = (
+    <g>
+      {both}
+      <Ink d="M776 548 L760 560 L780 572" w={5} p={prog(arrow, 0.9, 1)} />
+      <Ink d="M820 380 H300 V680 H820 Z" w={5} p={box} c={C.gold} />
+      <Ink d="M806 394 H314 V666 H806 Z" w={1.8} p={box} c={C.gold} />
+      <WriteIn id="tt-t" x={560} y={570} size={120} p={taalim} label="التعليم" />
+    </g>
+  );
+  return <Book id="tt" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} L={L} />;
 };
 
 // ─────────── قيد التصميم: مكان المشهد في الخطة، بفكرته المكتوبة ───────────

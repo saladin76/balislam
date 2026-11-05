@@ -7,7 +7,7 @@
 import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, Ink, easeOut, mix, prog, rng } from "./kit";
-import { Book, ChapterHead, NEUTRAL, QuranSeal, SText, TafsirTab, camPath, type Cam, type Exit } from "./book";
+import { Book, ChapterHead, NEUTRAL, QuranSeal, SText, TafsirTab, WriteIn, camPath, type Cam, type Exit } from "./book";
 import { VerseRefPanel } from "./verseRef";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
@@ -291,7 +291,7 @@ const Ruler = () => (
 );
 const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const learn = at(tl, "ونتعلم");
-  const ilm = pop(t, at(tl, "العلم", 1));
+  const ilm = prog(t, at(tl, "العلم", 1) - 0.05, at(tl, "العلم", 1) + 0.7);
   const nima = pop(t, at(tl, "نعمة"));
   const tools = [at(tl, "نعرفه", 1), at(tl, "نعرفه", 2), at(tl, "أسباب"), at(tl, "المعرفة")].map((a) => prog(t, a - 0.05, a + 0.5, easeOut));
   const ghurur = pop(t, at(tl, "للغرور"));
@@ -317,9 +317,7 @@ const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         </SText>
         <QuranSeal x={1635} y={306} s={0.7} />
       </g>
-      <Word x={1365} y={470} size={120} p={ilm} color={C.ink}>
-        العلم
-      </Word>
+      <WriteIn id="kw-i" x={1365} y={470} size={120} p={ilm} label="العلم" />
       <Word x={1365} y={610} size={56} p={nima} font="tajawal" weight={500} color={C.gold}>
         نعمة
       </Word>
@@ -368,9 +366,10 @@ const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 
 // ─── c4-s1: السجود تكريم لا عبادة (ابن كثير، البقرة 34)، والعبادة لله وحده ───
 const Honor: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const sujud = pop(t, at(tl, "يسجدوا"));
+  const sujud = prog(t, at(tl, "يسجدوا") - 0.05, at(tl, "يسجدوا") + 0.7);
   const adam = prog(t, 0.05, 0.6, easeOut);
-  const table = prog(t, at(tl, "وكان") - 0.05, at(tl, "السجود") + 0.4);
+  const boxK = prog(t, at(tl, "تكريما") + 0.1, at(tl, "تكريما") + 0.6);
+  const boxI = prog(t, at(tl, "وليس") - 0.05, at(tl, "عبادة") + 0.2);
   const takrim = pop(t, at(tl, "تكريما") + 0.1);
   const check = prog(t, at(tl, "تكريما") + 0.3, at(tl, "تكريما") + 0.8);
   const tab = pop(t, at(tl, "لآدم"));
@@ -384,7 +383,7 @@ const Honor: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   ]);
   const col = (x: number, label: string, q: number, good: boolean, mark: number, fade = 1) => (
     <g opacity={fade}>
-      <Ink d={`M${x + 140} 470 H${x - 140} V720 H${x + 140} Z`} w={3} p={table} c={good ? C.gold : C.inkSoft} />
+      <Ink d={`M${x + 140} 470 H${x - 140} V720 H${x + 140} Z`} w={3} p={good ? boxK : boxI} c={good ? C.gold : C.inkSoft} />
       <Word x={x} y={590} size={64} p={q} color={good ? C.ink : C.inkSoft}>
         {label}
       </Word>
@@ -394,12 +393,10 @@ const Honor: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const R = (
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
-      <Word x={1365} y={230} size={36} p={adam} font="tajawal" weight={500} color={C.inkSoft}>
+      <Word x={1365} y={230} size={46} p={adam} font="tajawal" weight={500} color={C.inkSoft}>
         آدم عليه السلام
       </Word>
-      <Word x={1365} y={330} size={96} p={sujud} color={C.ink}>
-        السجود
-      </Word>
+      <WriteIn id="hn-s" x={1365} y={340} size={100} p={sujud} label="السجود" />
       <Ink d="M1500 370 H1230" w={3} p={sujud} c={C.gold} />
       {col(1530, "تكريم", takrim, true, check)}
       {col(1200, "عبادة", ibada, false, cross, 1 - 0.6 * lift)}
@@ -691,29 +688,33 @@ const Hourglass: React.FC<{ q: number; flow: number }> = ({ q, flow }) => (
   </g>
 );
 const Enmity: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
+  // العلاقة تُبنى مع الجملة: «إبليس» ثم سهم «عداوة» يخرج بلا هدف، ثم يظهر هدفه «آدم وذريته» فيصل إليه؛
+  // ثم «إمهال» ساعة رملية تجري، ثم «إغواء» مسارات تُرسم نحو فروع النسل.
   const iblis = pop(t, at(tl, "إبليس", 1));
   const tree = at(tl, "لآدم");
   const lbl = pop(t, at(tl, "وذريته"));
-  const arrow = prog(t, at(tl, "عدوا") - 0.05, at(tl, "عدوا") + 0.6);
+  const arrow = prog(t, at(tl, "عدوا") - 0.05, end(tl, "وذريته") + 0.2);
   const seal = pop(t, at(tl, "القرآن"));
   const hg = pop(t, at(tl, "يمهله"));
   const flow = prog(t, at(tl, "يمهله"), dur);
-  const att = [at(tl, "أعلن"), at(tl, "عزمه"), at(tl, "إغواء"), at(tl, "البشر")].map((a) => prog(t, a - 0.05, a + 0.7));
-  const cam = camPath(t, NEUTRAL, [
-    { a: at(tl, "لآدم") - 0.2, b: at(tl, "وذريته") + 0.3, cx: 1400, cy: 430, s: 1.18 },
-    { a: at(tl, "عدوا") - 0.2, b: at(tl, "عدوا") + 0.6, ...NEUTRAL },
+  const mhl = pop(t, at(tl, "يمهله") + 0.2);
+  const att = [at(tl, "أعلن"), at(tl, "عزمه"), at(tl, "إغواء"), at(tl, "البشر")].map((a) => prog(t, a - 0.05, a + 0.8));
+  const ighwa = pop(t, at(tl, "إغواء"));
+  const cam = camPath(t, { cx: 620, cy: 520, s: 1.2 }, [
+    { a: at(tl, "عدوا") - 0.1, b: end(tl, "وذريته") + 0.2, cx: 1250, cy: 450, s: 1.08 },
+    { a: end(tl, "وذريته") + 0.3, b: end(tl, "وذريته") + 1.0, ...NEUTRAL },
     { a: at(tl, "يمهله") + 0.05, b: at(tl, "يمهله") + 0.7, cx: 620, cy: 560, s: 1.15 },
     { a: at(tl, "أعلن") - 0.2, b: at(tl, "إغواء") + 0.3, ...NEUTRAL },
   ]);
   const both = (
     <g>
-      <Ink d="M650 470 C800 380 1000 360 1150 400" w={5} p={arrow} c={EMBER} />
-      <Ink d="M1125 380 L1152 401 L1120 420" w={5} p={prog(arrow, 0.85, 1)} c={EMBER} />
-      <SText x={900} y={360} size={40} font="tajawal" weight={700} color={EMBER} o={arrow}>
+      <path d="M650 470 C800 380 1000 360 1150 400" fill="none" stroke={EMBER} strokeWidth={6} strokeLinecap="round" pathLength={1} strokeDasharray={`${arrow} 1`} opacity={arrow > 0 ? 1 : 0} />
+      <Ink d="M1125 380 L1152 401 L1120 420" w={6} p={prog(arrow, 0.9, 1)} c={EMBER} />
+      <SText x={900} y={350} size={44} font="tajawal" weight={800} color={EMBER} o={prog(arrow, 0, 0.3)}>
         عداوة
       </SText>
       {ATTACK.map((d, i) => (
-        <path key={i} d={d} fill="none" stroke={EMBER} strokeWidth={3.5} strokeDasharray="0.02 0.025" strokeLinecap="round" pathLength={1} opacity={0.8 * att[i]!} />
+        <path key={i} d={d} fill="none" stroke={EMBER} strokeWidth={4} strokeLinecap="round" pathLength={1} strokeDasharray={`${att[i]! * 0.98} 1`} opacity={att[i]! > 0 ? 0.75 : 0} />
       ))}
     </g>
   );
@@ -728,7 +729,7 @@ const Enmity: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         <g>
           {p.head ? <ChapterHead label={p.head} /> : null}
           <Lineage2 t={t} a={tree} />
-          <Word x={1420} y={240} size={44} p={lbl} font="tajawal" weight={700} color={C.ink}>
+          <Word x={1420} y={240} size={50} p={lbl} font="tajawal" weight={700} color={C.ink}>
             آدم وذريته
           </Word>
           {both}
@@ -738,6 +739,12 @@ const Enmity: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         <g>
           <IblisWord o={iblis} />
           <Hourglass q={hg} flow={flow} />
+          <SText x={480} y={800} size={38} font="tajawal" weight={700} color={C.gold} o={mhl}>
+            إمهال
+          </SText>
+          <SText x={760} y={700} size={40} font="tajawal" weight={800} color={EMBER} o={ighwa}>
+            إغواء
+          </SText>
           <QuranSeal x={300} y={250} o={seal} s={0.85} />
           {both}
         </g>

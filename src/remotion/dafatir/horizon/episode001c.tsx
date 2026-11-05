@@ -6,10 +6,11 @@
 import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, Ink, easeOut, mix, prog, rng } from "./kit";
-import { Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, camPath, type Cam, type Exit } from "./book";
+import { Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, WriteIn, camPath, type Cam, type Exit } from "./book";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const EMBER = "#B23A1E";
+const GOLD_D = "#A8803A";
 const pop = (t: number, a: number, d = 0.45) => prog(t, a - 0.05, a - 0.05 + d, easeOut);
 const Word: React.FC<{ x: number; y: number; size: number; p: number; color?: string; font?: "amiri" | "tajawal"; weight?: number; anchor?: "middle" | "start" | "end"; children: React.ReactNode }> = ({ p, ...r }) => (
   <SText {...r} o={p} dy={(1 - p) * 12}>
@@ -38,15 +39,15 @@ const Forbidden: React.FC<{ x: number; y: number; mark: number; bound: number; b
 const Permit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const pair = pop(t, at(tl, "زوجه"));
   const jannah = pop(t, at(tl, "الجنة"));
-  const ibaha = pop(t, at(tl, "وأباح"));
+  const ibaha = prog(t, at(tl, "وأباح") - 0.05, at(tl, "وأباح") + 0.7);
   const g0 = at(tl, "يأكلا") - 0.1;
   const g1 = end(tl, "منها");
-  const nahy = pop(t, at(tl, "ونهاهما"));
+  const nahy = prog(t, at(tl, "ونهاهما") - 0.05, at(tl, "ونهاهما") + 0.7);
   const mark = prog(t, at(tl, "ونهاهما"), at(tl, "عن") + 0.2, easeOut);
   const bound = prog(t, at(tl, "الاقتراب") - 0.05, end(tl, "الاقتراب") + 0.4);
   const label = pop(t, at(tl, "شجرة"));
   const r = rng(51);
-  const ticks = Array.from({ length: 24 }, (_, i) => ({ x: 1100 + (i % 6) * 110 + r() * 24, y: 400 + Math.floor(i / 6) * 110 + r() * 20, a: g0 + (i / 24) * (g1 - g0) }));
+  const ticks = Array.from({ length: 24 }, (_, i) => ({ x: 1100 + (i % 6) * 110 + r() * 24, y: 450 + Math.floor(i / 6) * 105 + r() * 20, a: g0 + (i / 24) * (g1 - g0) }));
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "وأباح") - 0.2, b: g1, cx: 1340, cy: 540, s: 1.08 },
     { a: at(tl, "ونهاهما") - 0.25, b: at(tl, "الاقتراب") + 0.2, cx: 600, cy: 520, s: 1.1 },
@@ -54,15 +55,13 @@ const Permit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const R = (
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
-      <Word x={1365} y={215} size={40} p={pair} font="tajawal" weight={500} color={C.inkSoft}>
+      <Word x={1365} y={225} size={56} p={pair} color={C.ink}>
         آدم وزوجه
       </Word>
-      <Word x={1365} y={262} size={30} p={jannah} font="tajawal" weight={700} color={C.gold}>
+      <Word x={1365} y={275} size={36} p={jannah} font="tajawal" weight={700} color={GOLD_D}>
         الجنة
       </Word>
-      <Word x={1365} y={350} size={76} p={ibaha} color={C.ink}>
-        الإباحة
-      </Word>
+      <WriteIn id="pm-i" x={1365} y={385} size={84} p={ibaha} label="الإباحة" />
       {ticks.map((k, i) => {
         const q = prog(t, k.a, k.a + 0.3, easeOut);
         return <Ink key={i} d={`M${k.x - 18} ${k.y} L${k.x - 4} ${k.y + 16} L${k.x + 22} ${k.y - 16}`} w={6} p={q} c={C.gold} />;
@@ -76,9 +75,7 @@ const Permit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   );
   const L = (
     <g>
-      <Word x={560} y={250} size={76} p={nahy} color={C.ink}>
-        النهي
-      </Word>
+      <WriteIn id="pm-n" x={560} y={250} size={84} p={nahy} label="النهي" />
       <Forbidden x={560} y={520} mark={mark} bound={bound} label={label} />
     </g>
   );
