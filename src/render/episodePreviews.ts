@@ -42,7 +42,10 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   const output = path.join(dir, target);
   const pending = path.join(dir, `.${name}.${randomUUID()}.pending`);
   const pendingIndex = path.join(dir, `.index.${randomUUID()}.pending`);
-  // انسخ الملف كاملًا إلى مسار مؤقت، ثم استبدله؛ لا تحذف النسخة الفعّالة مسبقًا.
+  const backup = path.join(dir, `.${name}.${randomUUID()}.backup`);
+  let replacedVideo = false;
+  let committedIndex = false;
+  // جهّز بديلًا صالح الحجم قبل لمس النسخة الحالية.
   try {
     const sourceSize = (await stat(file)).size;
     if (sourceSize === 0) throw new Error("ملف المعاينة فارغ؛ النسخة القديمة محفوظة.");
@@ -52,14 +55,23 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
     for (const n of stale) delete nextIndex[n];
     nextIndex[target] = { title: meta.title, note: meta.note, version: (prev?.version ?? stale.length) + 1, updatedAt: new Date().toISOString() };
     await writeFile(pendingIndex, JSON.stringify(nextIndex, null, 2) + "\n");
+    if (existsSync(output)) await copyFile(output, backup);
     await rename(pending, output);
+    replacedVideo = true;
     await rename(pendingIndex, path.join(dir, "index.json"));
-    // احذف نسخ الخانة القديمة فقط بعد نجاح استبدال الفيديو والفهرس.
-    for (const n of stale) await rm(path.join(dir, n), { force: true });
-    return { file: output, removed: stale, version: nextIndex[target]!.version };
+    committedIndex = true;
+    // لا تجعل فشل تنظيف نسخة قديمة يُخفي نجاح الاستبدال.
+    await Promise.allSettled(stale.map((n) => rm(path.join(dir, n), { force: true })));
+    return { file: output, removed: stale.filter((n) => !existsSync(path.join(dir, n))), version: nextIndex[target]!.version };
+  } catch (error) {
+    // إذا فشل تحديث الفهرس، أعد الفيديو السابق لتظل النسخة المعروضة والفهرس متوافقين.
+    if (replacedVideo && !committedIndex) {
+      if (existsSync(backup)) await rename(backup, output);
+      else await rm(output, { force: true });
+    }
+    throw error;
   } finally {
-    await rm(pending, { force: true });
-    await rm(pendingIndex, { force: true });
+    await Promise.allSettled([rm(pending, { force: true }), rm(pendingIndex, { force: true }), rm(backup, { force: true })]);
   }
 };
 
