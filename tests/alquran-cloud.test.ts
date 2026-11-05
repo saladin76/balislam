@@ -40,7 +40,7 @@ describe("AlQuran Cloud read-only ayah integration", () => {
     await expect(createAlQuranClient(mock({ audio: "https://cdn.islamic.network/quran/audio/128/ar.alafasy/2.mp3" }))
       .ayah(1, 1, "ar.alafasy")).rejects.toThrow(/يطابق/);
     await expect(createAlQuranClient(mock({ edition: { identifier: "ar.husary" } }))
-      .ayah(1, 1, "ar.alafasy")).rejects.toThrow(/يطابق/);
+      .ayah(1, 1, "ar.alafasy")).rejects.toThrow(/لا تطابق القارئ أو الآية/);
   });
 
   it("filters multiple reciters and keeps preview selection scoped to channel and episode", () => {
