@@ -126,6 +126,13 @@ const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     { a: at(tl, "تعاقب") - 0.1, b: end(tl, "البشري") + 0.2, cx: 760, cy: 520, s: 1.08 },
     { a: at(tl, "وتنوعت") - 0.2, b: end(tl, "ومعايشهم"), cx: 1100, cy: 500, s: 1.02 },
     { a: at(tl, "ولكننا") - 0.2, b: at(tl, "متصلا") + 0.3, ...NEUTRAL },
+    // طرفا الخط: «من آدم» ثم «إلى أقدم المجتمعات»، ثم كل سؤال عند فجوته
+    { a: at(tl, "آدم") - 0.3, b: at(tl, "آدم") + 0.4, cx: 1420, cy: 560, s: 1.15 },
+    { a: at(tl, "أقدم") - 0.2, b: at(tl, "آثارها") + 0.2, cx: 480, cy: 580, s: 1.15 },
+    { a: at(tl, "أسماء") - 0.35, b: at(tl, "أسماء") + 0.25, cx: 1380, cy: 500, s: 1.18 },
+    { a: at(tl, "أماكن") - 0.35, b: at(tl, "أماكن") + 0.25, cx: 820, cy: 500, s: 1.18 },
+    { a: at(tl, "أحداث") - 0.35, b: at(tl, "أحداث") + 0.25, cx: 520, cy: 500, s: 1.18 },
+    { a: end(tl, "أحداث") + 0.2, b: end(tl, "أحداث") + 1.0, ...NEUTRAL },
   ]);
   const r = rng(73);
   const tickX = Array.from({ length: 70 }, (_, i) => 1700 - i * 21.4 - r() * 4);
@@ -338,9 +345,16 @@ const Roadmap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   ]);
   const both = (
     <g>
-      <path d={ROAD} fill="none" stroke="#C9B48E" strokeWidth={34} strokeLinecap="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - road} opacity={0.6} />
-      <path d={ROAD} fill="none" stroke={C.ink} strokeWidth={4} strokeDasharray="14 12" opacity={road > 0 ? 0.8 : 0} />
-      <path d={ROAD} fill="none" stroke={C.page} strokeWidth={40} pathLength={1} strokeDasharray="1" strokeDashoffset={-road} opacity={1} />
+      {/* الطريق يُرسم بقناع يتقدم معه (لا ممحاة بلون الورق فوق الصفحة) */}
+      <defs>
+        <mask id="c76-road" maskUnits="userSpaceOnUse" x={0} y={0} width={1920} height={1080}>
+          <path d={ROAD} fill="none" stroke="white" strokeWidth={44} strokeLinecap="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - road} />
+        </mask>
+      </defs>
+      <g mask="url(#c76-road)">
+        <path d={ROAD} fill="none" stroke="#C9B48E" strokeWidth={34} strokeLinecap="round" opacity={0.6} />
+        <path d={ROAD} fill="none" stroke={C.ink} strokeWidth={4} strokeDasharray="14 12" opacity={0.8} />
+      </g>
       {MILES.map((m, i) => {
         const q = prog(t, times[i]! - 0.05, times[i]! + 0.6, easeOut);
         return (
@@ -513,7 +527,7 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
       dur={dur}
       exit="turn"
       turnAt={turnAt}
-      cam={NEUTRAL}
+      cam={camPath(t, { cx: 600, cy: 470, s: 1.12 }, [{ a: at(tl, "اليوم") - 0.2, b: at(tl, "بدأنا") + 0.4, cx: 1370, cy: 560, s: 1.1 }])}
       L={
         <g>
           <g opacity={tag} transform={`translate(0 ${(1 - tag) * -30})`}>
