@@ -672,3 +672,31 @@ button.ops-ch:hover { background: var(--accent-soft); }
 @media (prefers-reduced-motion: reduce) {
   .channel-tab *, .home *, .ops * { scroll-behavior: auto !important; }
 }
+
+/* Operations room: quicker navigation without changing planning or rendering. */
+.ops-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.ops-section-nav a {
+  padding: 9px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 650;
+}
+.ops-section-nav a:hover, .ops-section-nav a:focus-visible {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.ops-sec[id] { scroll-margin-top: 18px; }
+@media (max-width: 720px) {
+  .ops-section-nav a { flex: 1 1 130px; text-align: center; }
+}
