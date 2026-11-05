@@ -17,16 +17,36 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
     await putPreview(script, "six-shots", a, { title: "الأولى" });
     // اسم قديم بنمط النسخ يُحذف أيضًا
     await writeFile(path.join(dir, "previews", "six-shots-v3.mp4"), "old");
+    // خانة مختلفة تبدأ بالحروف نفسها، ولا يجوز حذفها مع الإصدارات القديمة
+    await writeFile(path.join(dir, "previews", "six-shots-video.mp4"), "OTHER");
     const r = await putPreview(script, "six-shots", b, { title: "الثانية" });
     const files = (await readdir(path.join(dir, "previews"))).filter((n) => n.endsWith(".mp4"));
-    expect(files).toEqual(["six-shots.mp4"]);
+    expect(files).toEqual(["six-shots-video.mp4", "six-shots.mp4"]);
     expect(await readFile(path.join(dir, "previews", "six-shots.mp4"), "utf8")).toBe("B");
     expect(r.removed).toContain("six-shots-v3.mp4");
+    expect(await readFile(path.join(dir, "previews", "six-shots-video.mp4"), "utf8")).toBe("OTHER");
     const index = JSON.parse(await readFile(path.join(dir, "previews", "index.json"), "utf8"));
     expect(index["six-shots.mp4"].title).toBe("الثانية");
     expect(index["six-shots.mp4"].version).toBe(2);
     expect(existsSync(path.join(dir, "previews", "six-shots-v3.mp4"))).toBe(false);
   });
+  it("يرفض ملفًا بديلًا فارغًا ويحافظ على المعاينة والفهرس السابقين", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const script = path.join(dir, "script.md");
+    const good = path.join(dir, "good.mp4");
+    const empty = path.join(dir, "empty.mp4");
+    await writeFile(script, "");
+    await writeFile(good, "VALID");
+    await writeFile(empty, "");
+    await putPreview(script, "chapter-1", good, { title: "الصحيحة" });
+    await expect(putPreview(script, "chapter-1", empty, { title: "غير صالحة" })).rejects.toThrow("فارغ");
+    expect(await readFile(path.join(dir, "previews", "chapter-1.mp4"), "utf8")).toBe("VALID");
+    const index = JSON.parse(await readFile(path.join(dir, "previews", "index.json"), "utf8"));
+    expect(index["chapter-1.mp4"].title).toBe("الصحيحة");
+    expect(index["chapter-1.mp4"].version).toBe(1);
+    expect((await readdir(path.join(dir, "previews"))).every((name) => !name.endsWith(".pending"))).toBe(true);
+  });
+
   it("الخانات المختلفة لا تمس بعضها", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
     const script = path.join(dir, "script.md");
