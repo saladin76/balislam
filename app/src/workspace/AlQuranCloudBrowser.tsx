@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api, type AlQuranAudioEdition, type AlQuranAyahPreview } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import type { CloudRecitation } from "../../../src/quran/provider";
@@ -30,12 +30,14 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [productionStatus, setProductionStatus] = useState("");
   const [activeProduction, setActiveProduction] = useState<CloudRecitation | null>(null);
   const [saving, setSaving] = useState(false);
+  const mounted = useRef(true);
   const visibleEditions = useMemo(() => filterAudioEditions(editions, search), [editions, search]);
 
   useEffect(() => {
     setEnabled(false); setEditions([]); setPreview(null); setError(""); setSearch(""); setSurah(1); setAyah(1);
     setLicenceHolder(""); setLicenceEvidence(""); setConfirmed(false); setProductionStatus(""); setActiveProduction(null);
     let alive = true;
+    mounted.current = true;
     api.recitationChoice(episodeId, channelId).then(({ recitation }) => {
       if (!alive) return;
       setActiveProduction(recitation);
@@ -44,7 +46,7 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
       const stored = localStorage.getItem(previewReciterKey(channelId, episodeId));
       setEdition(stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored) ? stored : "ar.alafasy");
     } catch { setEdition("ar.alafasy"); }
-    return () => { alive = false; };
+    return () => { alive = false; mounted.current = false; };
   }, [channelId, episodeId]);
 
   const selectEdition = (id: string) => {
@@ -105,7 +107,7 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
           throw new Error(r.result.failed.map((x) => `${x.ref}: ${x.reason}`).join("؛ "));
         if (onMedia) {
           const episode = await api.episode(episodeId, channelId);
-          onMedia(episode.media);
+          if (mounted.current) onMedia(episode.media);
         }
         setActiveProduction(selected);
         setProductionStatus(`تم ربط ${selectedName} بإنتاج هذه الحلقة وحدها وجلب تلاواتها؛ راجع معاينة الرندر قبل النشر.`);
@@ -125,7 +127,10 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
       try {
         const r = await api.quran(episodeId, channelId);
         if (r.result.failed.length) throw new Error(r.result.failed.map((x) => x.reason).join("؛ "));
-        if (onMedia) onMedia((await api.episode(episodeId, channelId)).media);
+        if (onMedia) {
+          const episode = await api.episode(episodeId, channelId);
+          if (mounted.current) onMedia(episode.media);
+        }
         setActiveProduction(null);
         setProductionStatus("أُلغي تخصيص قارئ هذه الحلقة؛ عاد المصدر الافتراضي للقناة.");
       } catch (e) {
