@@ -112,8 +112,14 @@ export const OpsRoom: React.FC<{
         </div>
       </div>
 
+      <nav className="ops-section-nav" aria-label="أقسام غرفة العمليات">
+        <a href="#ops-week">الجدول الأسبوعي</a>
+        <a href="#ops-pipeline">خط الإنتاج</a>
+        <a href="#ops-ideas">بنك الأفكار</a>
+      </nav>
+
       {/* الأسبوع */}
-      <section className="ops-sec">
+      <section id="ops-week" className="ops-sec">
         <div className="toolbar" style={{ marginBottom: 10 }}>
           <h2 style={{ margin: 0 }}>{weekOffset === 0 ? "هذا الأسبوع" : weekOffset === 1 ? "الأسبوع القادم" : weekOffset === -1 ? "الأسبوع الماضي" : `أسبوع ${week[0]!.getDate()}/${week[0]!.getMonth() + 1}`}</h2>
           <span className="help">اضغط على أي يوم لتعدّله، أو على اسم القناة لتغيّر يومها وساعتها.</span>
@@ -212,7 +218,7 @@ export const OpsRoom: React.FC<{
       {editCh ? <ChannelScheduleEditor channel={editCh} name={data.find((d) => d.channel.id === editCh)?.channel.name ?? ""} onClose={() => setEditCh(null)} onSaved={() => { setEditCh(null); setTick((t) => t + 1); }} /> : null}
 
       {/* خط الإنتاج */}
-      <section className="ops-sec">
+      <section id="ops-pipeline" className="ops-sec">
         <h2>خط الإنتاج</h2>
         <div className="ops-board">
           {STAGES.map((st) => {
@@ -246,7 +252,7 @@ export const OpsRoom: React.FC<{
       </section>
 
       {/* بنك الأفكار */}
-      <section className="ops-sec">
+      <section id="ops-ideas" className="ops-sec">
         <h2>بنك الأفكار</h2>
         <div className="ops-ideas">
           {data.map((d) => (
