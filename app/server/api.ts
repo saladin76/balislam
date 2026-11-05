@@ -196,7 +196,13 @@ export const balApi = (): Plugin => ({
             }
             if (req.method === "PUT") {
               const body = await readBody(req);
-              await saveEpisodeRecitation(scriptPath, body.recitation ?? null);
+              if (!body || typeof body !== "object" || Array.isArray(body) ||
+                  !Object.prototype.hasOwnProperty.call(body, "recitation"))
+                throw new HttpError(400, "يجب تحديد recitation صراحةً؛ استخدم null فقط عند طلب العودة للقارئ الافتراضي.");
+              if (body.recitation !== null && (
+                  typeof body.recitation !== "object" || Array.isArray(body.recitation)))
+                throw new HttpError(400, "بيانات القارئ المختار غير صالحة.");
+              await saveEpisodeRecitation(scriptPath, body.recitation);
               return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
             }
           }
