@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
+import { updateOutcome } from "./updateOutcome";
 
 /**
  * شريط «تحديث جديد»: يتحقق من GitHub كل دقيقة (وعند العودة للنافذة)،
@@ -35,11 +36,12 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     try {
       await beforeUpdate();
       const r = await api.applyUpdate();
-      if (!r.ok) {
+      const outcome = updateOutcome(r);
+      if (outcome === "failure") {
         setMsg({ text: r.message || "تعذّر تحديث الاستوديو؛ لم تُطبّق العملية.", err: true });
         return;
       }
-      if (r.reinstalled) setMsg({ text: `${r.message} نزلت حزم جديدة: أغلق الاستوديو (Ctrl + C) وشغّله مرة أخيرة.` });
+      if (outcome === "restart") setMsg({ text: `${r.message} نزلت حزم جديدة: أغلق الاستوديو (Ctrl + C) وشغّله مرة أخيرة.` });
       else {
         setMsg({ text: `${r.message} جارٍ إعادة التحميل…` });
         setTimeout(() => window.location.reload(), 1500);
