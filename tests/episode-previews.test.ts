@@ -17,11 +17,14 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
     await putPreview(script, "six-shots", a, { title: "الأولى" });
     // اسم قديم بنمط النسخ يُحذف أيضًا
     await writeFile(path.join(dir, "previews", "six-shots-v3.mp4"), "old");
+    // خانة مختلفة تبدأ بالحروف نفسها، ولا يجوز حذفها مع الإصدارات القديمة
+    await writeFile(path.join(dir, "previews", "six-shots-video.mp4"), "OTHER");
     const r = await putPreview(script, "six-shots", b, { title: "الثانية" });
     const files = (await readdir(path.join(dir, "previews"))).filter((n) => n.endsWith(".mp4"));
-    expect(files).toEqual(["six-shots.mp4"]);
+    expect(files).toEqual(["six-shots-video.mp4", "six-shots.mp4"]);
     expect(await readFile(path.join(dir, "previews", "six-shots.mp4"), "utf8")).toBe("B");
     expect(r.removed).toContain("six-shots-v3.mp4");
+    expect(await readFile(path.join(dir, "previews", "six-shots-video.mp4"), "utf8")).toBe("OTHER");
     const index = JSON.parse(await readFile(path.join(dir, "previews", "index.json"), "utf8"));
     expect(index["six-shots.mp4"].title).toBe("الثانية");
     expect(index["six-shots.mp4"].version).toBe(2);
