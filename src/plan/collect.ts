@@ -10,7 +10,7 @@ import type { Plan } from "./types";
 import { readJson } from "./io";
 import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
 import { loadChannel } from "../channel";
-import { isCloudRecitation } from "../quran/provider";
+import { isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
 
 export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 
@@ -53,6 +53,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
   const chosen = loadChannel().recitation;
+  if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     if (s.template !== "verse-card" || !s.ayahKey) continue;
     // 1) تلاوة مرخّصة بإذن مكتوب (assets/recitations) لها الأولوية
