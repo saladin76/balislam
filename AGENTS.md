@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | بالإسلام | `balislam` | لا دليل مستقل بعد: `CLAUDE.md` وملفات `channels/balislam/` (ومختبرها `channels/balislam/episodes/900-engine-lab/README.md`) |
 | دفاتر الزمن | `dafatir-alzaman` | **[docs/dafatir-alzaman/](docs/dafatir-alzaman/README.md)** — ابدأ من [00-start-here.md](docs/dafatir-alzaman/00-start-here.md) |
-| زبدة الكتب | `zubdat-alkutub` | لا دليل مستقل بعد: `CLAUDE.md` وملفات `channels/zubdat-alkutub/` |
+| زبدة الكتب | `zubdat-alkutub` | معاييرها الدائمة في `templates/zubdat-alkutub/studio.md` (وفحوصها `npx bal zubdat …`)، مع `CLAUDE.md` وملفات `channels/zubdat-alkutub/` |
 
 التشغيل وفتح الاستوديو: [README.md](README.md).
 
