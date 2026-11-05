@@ -195,7 +195,8 @@ export const TafsirTab: React.FC<{ x: number; y: number; o?: number; label: stri
  */
 export const WriteIn: React.FC<{ id: string; x: number; y: number; size: number; p: number; label: string; color?: string; font?: "amiri" | "tajawal"; weight?: number }> = ({ id, x, y, size, p, label, color = C.ink, font = "amiri", weight = 700 }) => {
   if (p <= 0) return null;
-  const w = size * (font === "amiri" ? 0.44 : 0.52) * label.length + 30;
+  // العرض بعدد الحروف المرسومة: الحركات والتطويل لا تزيد العرض (الحلقة 001 بلا تشكيل، فلا يتغير شيء فيها)
+  const w = size * (font === "amiri" ? 0.44 : 0.52) * label.replace(/[\u064B-\u0652\u0670\u0640]/g, "").length + 30;
   const right = x + w / 2;
   const front = right - Math.min(1, p) * w;
   return (

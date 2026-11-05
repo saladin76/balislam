@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "episode": "900",
+  "title": "مختبر مكتبة دفتر الأفق — اختبارات بصرية (لا تُنشر)",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "المصطلح بالحبر",
+      "scenes": [
+        {
+          "id": "c1-s0",
+          "template": "horizon-shot",
+          "narration": "",
+          "line": 0,
+          "props": {
+            "shot": "chapter",
+            "label": "مختبر المكتبة",
+            "title": "دفتر الأفق"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s1",
+          "template": "horizon-shot",
+          "narration": "يسمي المؤرخون هذا التحول باسم واحد: الاستقرار. أي أن الجماعة تبقى في مكان واحد، تزرع وتبني.",
+          "line": 0,
+          "props": {
+            "shot": "lib-term",
+            "head": "مختبر المكتبة",
+            "term": "الاستقرار",
+            "termWord": "الاستقرار",
+            "sub": "جماعة تبقى في مكان واحد، تزرع وتبني",
+            "subWord": "أي",
+            "kind": "note",
+            "source": "مصطلح عند المؤرخين",
+            "sourceWord": "المؤرخون",
+            "exit": "fade"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s2",
+          "template": "horizon-shot",
+          "narration": "والحَضَارَةُ في أصلها اللغوي: الإقامةُ في الحَضَر، خلافَ البادية. ثم اتسع معناها حتى صار يدل على العمران كله.",
+          "line": 0,
+          "props": {
+            "shot": "lib-term",
+            "head": "مختبر المكتبة",
+            "term": "الحَضَارَة",
+            "termWord": "والحضارة",
+            "sub": "الإقامة في الحضر، خلاف البادية",
+            "subWord": "الإقامة",
+            "kind": "note",
+            "source": "لسان العرب: مادة حضر",
+            "sourceWord": "اللغوي",
+            "note": "اتسع المعنى إلى العمران كله",
+            "noteWord": "اتسع",
+            "color": "clay",
+            "exit": "turn"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s3",
+          "template": "horizon-shot",
+          "narration": "ويدعونا الله في سورة الروم إلى السير في الأرض، والنظر في عاقبة من قبلنا. وهذا هو منهج الاعتبار.",
+          "line": 0,
+          "props": {
+            "shot": "lib-term",
+            "head": "مختبر المكتبة",
+            "term": "الاعتبار",
+            "termWord": "الاعتبار",
+            "kind": "quran",
+            "source": "الروم: ٤٢",
+            "sourceWord": "الروم",
+            "exit": "turn",
+            "note": "السير في الأرض والنظر في عاقبة من قبلنا",
+            "noteWord": "السير"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "الأصل والحاشية والتعليق",
+      "scenes": [
+        {
+          "id": "c2-s1",
+          "template": "horizon-shot",
+          "narration": "يقول ابن خلدون في مقدمته: الاجتماع الإنساني ضروري. ونفهم من عبارته أن العمران يبدأ من حاجة الناس بعضهم إلى بعض.",
+          "line": 0,
+          "props": {
+            "shot": "lib-gloss",
+            "head": "مختبر المكتبة",
+            "matn": "الاجتماع الإنساني ضروري",
+            "matnWord": "الاجتماع",
+            "matnLabel": "النص",
+            "matnSource": "ابن خلدون · المقدمة",
+            "note": "العمران يبدأ من حاجة الناس بعضهم إلى بعض",
+            "noteWord": "ونفهم",
+            "exit": "fade"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c2-s2",
+          "template": "horizon-shot",
+          "narration": "وفي سورة الحجرات أن الناس جعلوا شعوبا وقبائل ليتعارفوا. قال ابن كثير: ليحصل التعارف بينهم، كل يرجع إلى قبيلته. ونفهم من ذلك أن تنوع الأمم مدخل للمعرفة.",
+          "line": 0,
+          "props": {
+            "shot": "lib-gloss",
+            "head": "مختبر المكتبة",
+            "ref": "الحجرات · ١٣",
+            "matnWord": "الحجرات",
+            "tafsir": "ليحصل التعارف بينهم، كل يرجع إلى قبيلته",
+            "tafsirWord": "قال",
+            "tafsirLabel": "تفسير",
+            "tafsirSource": "ابن كثير · تفسير الحجرات: ١٣",
+            "note": "تنوع الأمم مدخل للمعرفة",
+            "noteWord": "ونفهم",
+            "exit": "turn"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "المقارنة",
+      "scenes": [
+        {
+          "id": "c3-s1",
+          "template": "horizon-shot",
+          "narration": "اختلف المؤرخون في سبب هجر المدينة. فقال بعضهم: جفاف طويل أنهك الزرع. وقال آخرون: حرب أخرجت أهلها. والشواهد حتى الآن لا تحسم المسألة.",
+          "line": 0,
+          "props": {
+            "shot": "lib-compare",
+            "head": "مختبر المكتبة",
+            "aLabel": "قول",
+            "aText": "جفاف طويل أنهك الزرع",
+            "aWord": "فقال",
+            "bLabel": "قول آخر",
+            "bText": "حرب أخرجت أهلها",
+            "bWord": "وقال",
+            "verdict": "open",
+            "verdictText": "لم تُحسم بعد",
+            "verdictWord": "لا",
+            "exit": "fade"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c3-s2",
+          "template": "horizon-shot",
+          "narration": "قارِنْ بين روايتين: الأولى لها سَنَدٌ متصل، والثانية بلا سند. والمعتمد عند المحققين ما ثبت سنده.",
+          "line": 0,
+          "props": {
+            "shot": "lib-compare",
+            "head": "مختبر المكتبة",
+            "aLabel": "رواية",
+            "aText": "لها سَنَدٌ متصل",
+            "aWord": "الأولى",
+            "bLabel": "رواية",
+            "bText": "بلا سند",
+            "bWord": "والثانية",
+            "verdict": "a",
+            "verdictText": "المعتمد",
+            "verdictWord": "والمعتمد",
+            "exit": "turn"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "الزمن والشواهد",
+      "scenes": [
+        {
+          "id": "c4-s1",
+          "template": "horizon-shot",
+          "narration": "بدأت القرى الأولى، ثم ظهرت المدن، وبعدها قرون لم يصلنا عنها سجل، ثم جاءت الكتابة، ثم قامت الممالك.",
+          "line": 0,
+          "props": {
+            "shot": "lib-timeline",
+            "head": "مختبر المكتبة",
+            "items": "القرى = القرى الأولى\nالمدن = المدن\n؟قرون = قرون بلا سجل\nالكتابة = الكتابة\nالممالك = الممالك",
+            "exit": "none"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s2",
+          "template": "horizon-shot",
+          "narration": "في الموقع وجد المنقبون أدوات من الحجر، وبقايا مساكن، ومدافن. لكن الشاهد يخبرنا بما بقي، لا بكل ما كان.",
+          "line": 0,
+          "props": {
+            "shot": "lib-evidence",
+            "head": "مختبر المكتبة",
+            "from": "960,520,1",
+            "items": "أدوات = tool\nمساكن = home\nومدافن = burial",
+            "limit": "يخبر بما بقي، لا بكل ما كان",
+            "limitWord": "لكن",
+            "exit": "fade"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    }
+  ]
+}

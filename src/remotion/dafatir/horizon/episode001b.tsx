@@ -9,6 +9,9 @@ import { at, end, type Timeline } from "./timeline";
 import { C, Ink, easeOut, mix, prog, rng } from "./kit";
 import { Book, ChapterHead, NEUTRAL, QuranSeal, SText, TafsirTab, WriteIn, camPath, type Cam, type Exit } from "./book";
 import { VerseRefPanel } from "./verseRef";
+import { Books, Desk, Hourglass, Inkwell, Lens, Qalam, Ruler, Tool } from "../lib/drawings";
+import { Pan } from "../lib/compare";
+import { Strike, Word } from "../lib/text";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const CLAY = "#8A5A3C";
@@ -16,14 +19,8 @@ const EMBER = C.ember;
 const pop = (t: number, a: number, d = 0.45) => prog(t, a - 0.05, a - 0.05 + d, easeOut);
 
 /** خط يتلاشى ثم يعود بالكتابة: كلمة SText تظهر مع ارتفاع خفيف */
-const Word: React.FC<{ x: number; y: number; size: number; p: number; color?: string; font?: "amiri" | "tajawal"; weight?: number; anchor?: "middle" | "start" | "end"; children: React.ReactNode }> = ({ p, ...r }) => (
-  <SText {...r} o={p} dy={(1 - p) * 12}>
-    {r.children}
-  </SText>
-);
 
 /** شطب بخط أحمر يُرسم */
-const Strike: React.FC<{ x1: number; x2: number; y: number; p: number }> = ({ x1, x2, y, p }) => <Ink d={`M${x1} ${y} L${x2} ${y - 6}`} w={5} p={p} c={C.ribbon} />;
 
 // ═══════════════ الفصل الثالث ═══════════════
 
@@ -218,77 +215,6 @@ const Catalog: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 };
 
 // ─── c3-s9: الدفتر على مكتب الكاتب: أسباب المعرفة أدواتٌ حوله، و«الغرور» يُشطب، و«دليل» تحت العدسة ───
-const Desk: React.FC = () => {
-  const r = rng(9);
-  return (
-    <g>
-      <rect x={-900} y={-600} width={3720} height={2300} fill="#4A3020" />
-      {Array.from({ length: 42 }, (_, i) => {
-        const y = -560 + i * 54 + r() * 20;
-        return <path key={i} d={`M-900 ${y} C0 ${y + 12 - r() * 24} 1000 ${y - 10 + r() * 20} 2820 ${y + 6}`} stroke="#3A2416" strokeWidth={2 + r() * 3} fill="none" opacity={0.5} />;
-      })}
-    </g>
-  );
-};
-const Tool: React.FC<{ q: number; children: React.ReactNode; x: number; y: number; rot?: number }> = ({ q, children, x, y, rot = 0 }) =>
-  q <= 0 ? null : (
-    <g opacity={q} transform={`translate(${x} ${y + (1 - q) * 30}) rotate(${rot})`}>
-      <g transform="translate(6 10)" opacity={0.35}>
-        <g style={{ filter: "blur(4px)" }}>{children}</g>
-      </g>
-      {children}
-    </g>
-  );
-// أدوات المعرفة من أعلى، بحجم يُقرأ على شاشة عادية: كتب، وقلم ودواة، ومسطرة، وعدسة
-const Qalam = () => (
-  <g>
-    <path d="M-300 -16 L230 -16 C262 -16 290 -8 330 0 C290 8 262 16 230 16 L-300 16 C-312 16 -318 8 -318 0 C-318 -8 -312 -16 -300 -16 Z" fill="#C9A06A" stroke={C.ink} strokeWidth={5} />
-    {[-220, -120, -20, 80].map((x) => (
-      <path key={x} d={`M${x} -16 C${x + 8} -6 ${x + 8} 6 ${x} 16`} fill="none" stroke="#8B6A3E" strokeWidth={4} />
-    ))}
-    <path d="M230 -16 C262 -16 290 -8 330 0 C290 8 262 16 230 16 Z" fill="#2B1E14" />
-  </g>
-);
-const Inkwell = () => (
-  <g>
-    <circle r={96} fill="#2E2236" stroke={C.ink} strokeWidth={5} />
-    <circle r={70} fill="#120C10" stroke={C.gold} strokeWidth={8} />
-    <ellipse cx={-22} cy={-24} rx={22} ry={12} fill="#FFFFFF" opacity={0.25} />
-  </g>
-);
-const Lens = () => (
-  <g>
-    <path d="M80 80 L220 220" stroke="#6B4A2E" strokeWidth={34} strokeLinecap="round" />
-    <path d="M80 80 L220 220" stroke={C.ink} strokeWidth={4} strokeLinecap="round" opacity={0.6} />
-    <circle r={116} fill="rgba(255,250,235,0.22)" stroke={C.gold} strokeWidth={18} />
-    <circle r={116} fill="none" stroke={C.ink} strokeWidth={4} />
-    <path d="M-60 -70 C-30 -92 20 -96 54 -76" fill="none" stroke="#FFFFFF" strokeWidth={8} strokeLinecap="round" opacity={0.5} />
-  </g>
-);
-const Books = () => (
-  <g>
-    {[
-      { x: 30, y: 40, r: -7, c: "#3A4A3A" },
-      { x: -10, y: -10, r: 5, c: C.ribbon },
-    ].map((b, i) => (
-      <g key={i} transform={`translate(${b.x} ${b.y}) rotate(${b.r})`}>
-        <rect x={-180} y={-240} width={360} height={480} rx={10} fill={C.page} stroke={C.ink} strokeWidth={5} />
-        <rect x={-180} y={-240} width={348} height={468} rx={10} fill={b.c} stroke={C.ink} strokeWidth={5} />
-        <rect x={-180} y={-240} width={56} height={468} rx={8} fill="#000000" opacity={0.18} />
-        <rect x={-80} y={-150} width={210} height={110} rx={8} fill="none" stroke={C.gold} strokeWidth={6} />
-        <rect x={-70} y={150} width={190} height={8} rx={4} fill={C.gold} opacity={0.8} />
-      </g>
-    ))}
-  </g>
-);
-const Ruler = () => (
-  <g>
-    <rect x={-300} y={-40} width={600} height={80} rx={6} fill="#D9B680" stroke={C.ink} strokeWidth={5} />
-    {Array.from({ length: 29 }, (_, i) => (
-      <line key={i} x1={-280 + i * 20} x2={-280 + i * 20} y1={-40} y2={i % 5 ? -20 : 0} stroke={C.ink} strokeWidth={3} />
-    ))}
-  </g>
-);
 const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const learn = at(tl, "ونتعلم");
   const ilm = prog(t, at(tl, "العلم", 1) - 0.05, at(tl, "العلم", 1) + 0.7);
@@ -523,37 +449,7 @@ const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   return <Book id="c43" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} />;
 };
 
-// ─── تمهيد آية بمرجعها: صفحة ساكنة، يظهر عليها ختم السورة لحظة ذكرها فقط ───
-const VerseTag: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const seal = p.tagWord ? pop(t, at(tl, p.tagWord)) : 0;
-  return (
-    <Book
-      id="vt"
-      t={t}
-      dur={dur}
-      exit={exit}
-      cam={NEUTRAL}
-      R={
-        <g>
-          {p.head ? <ChapterHead label={p.head} /> : null}
-          {p.ref ? <VerseRefPanel refText={p.ref} o={seal} /> : null}
-        </g>
-      }
-    />
-  );
-};
-
 // ─── c4-s5: ميزان «نار / طين» الذي ظنه حجة، يُخطَّأ ويصغر، ويعلوه «أمر واجب الطاعة» ───
-const Pan: React.FC<{ x: number; y: number; label: string; color: string; q: number }> = ({ x, y, label, color, q }) => (
-  <g>
-    <path d={`M${x} ${y} L${x - 120} ${y + 150} M${x} ${y} L${x + 120} ${y + 150}`} stroke={C.ink} strokeWidth={2.5} />
-    <path d={`M${x - 140} ${y + 150} C${x - 110} ${y + 210} ${x + 110} ${y + 210} ${x + 140} ${y + 150} Z`} fill={C.page} stroke={C.ink} strokeWidth={4} />
-    <ellipse cx={x} cy={y + 164} rx={92 * q} ry={18 * q} fill={color} opacity={0.85} />
-    <SText x={x} y={y + 128} size={52} o={q} color={color === EMBER ? "#B4512A" : CLAY}>
-      {label}
-    </SText>
-  </g>
-);
 const Scale: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const draw = prog(t, at(tl, "فقدم") - 0.05, at(tl, "حجة") + 0.2);
   const zann = pop(t, at(tl, "ظنه"));
@@ -677,14 +573,6 @@ const IblisWord: React.FC<{ o: number }> = ({ o }) => (
     <SText x={480} y={540} size={84} color={EMBER}>
       إبليس
     </SText>
-  </g>
-);
-const Hourglass: React.FC<{ q: number; flow: number }> = ({ q, flow }) => (
-  <g opacity={q} transform="translate(480 690) scale(0.9)">
-    <path d="M-40 -60 H40 L6 0 L40 60 H-40 L-6 0 Z" fill={C.page} stroke={C.gold} strokeWidth={4} />
-    <path d={`M${-30 + 26 * flow} -50 H${30 - 26 * flow} L4 -6 H-4 Z`} fill={C.sand} />
-    <path d={`M${-30 * flow} 52 H${30 * flow} L0 ${52 - 34 * flow} Z`} fill={C.sand} />
-    <line x1={0} x2={0} y1={-4} y2={50} stroke={C.sand} strokeWidth={2} opacity={flow > 0 && flow < 1 ? 1 : 0} />
   </g>
 );
 const Enmity: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
@@ -872,7 +760,6 @@ export const HZ_SCENES_B: Record<string, React.FC<HzProps>> = {
   honor: Honor,
   comply: Comply,
   sort: Sort,
-  "verse-tag": VerseTag,
   scale: Scale,
   enmity: Enmity,
   authority: Authority,

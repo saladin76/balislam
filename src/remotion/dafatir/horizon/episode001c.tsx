@@ -7,33 +7,18 @@ import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, Ink, easeOut, mix, prog, rng } from "./kit";
 import { Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, WriteIn, camPath, type Cam, type Exit } from "./book";
+import { BoundaryMark, ring } from "../lib/compare";
+import { Strike, Word } from "../lib/text";
+/** حدّ النهي في هذه الحلقة: تسميته «شجرة معينة» (لا يُرسم نوعها) */
+const Forbidden: React.FC<Omit<React.ComponentProps<typeof BoundaryMark>, "labelText">> = (props) => <BoundaryMark {...props} labelText="شجرة معينة" />;
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const EMBER = "#B23A1E";
 const GOLD_D = "#A8803A";
 const pop = (t: number, a: number, d = 0.45) => prog(t, a - 0.05, a - 0.05 + d, easeOut);
-const Word: React.FC<{ x: number; y: number; size: number; p: number; color?: string; font?: "amiri" | "tajawal"; weight?: number; anchor?: "middle" | "start" | "end"; children: React.ReactNode }> = ({ p, ...r }) => (
-  <SText {...r} o={p} dy={(1 - p) * 12}>
-    {r.children}
-  </SText>
-);
-const Strike: React.FC<{ x1: number; x2: number; y: number; p: number; w?: number }> = ({ x1, x2, y, p, w = 5 }) => <Ink d={`M${x1} ${y} L${x2} ${y - 6}`} w={w} p={p} c={C.ribbon} />;
 /** دائرة مرسومة باليد حول نقطة */
-const ring = (cx: number, cy: number, rx: number, ry: number) =>
-  `M${cx} ${cy - ry} C${cx + rx * 0.56} ${cy - ry} ${cx + rx} ${cy - ry * 0.55} ${cx + rx} ${cy} C${cx + rx} ${cy + ry * 0.56} ${cx + rx * 0.55} ${cy + ry} ${cx} ${cy + ry} C${cx - rx * 0.56} ${cy + ry} ${cx - rx} ${cy + ry * 0.55} ${cx - rx} ${cy} C${cx - rx} ${cy - ry * 0.56} ${cx - rx * 0.55} ${cy - ry} ${cx - 4} ${cy - ry}`;
 
 /** علامة النهي: ✗ داخل دائرة، ويحيط بها حدّ «عدم الاقتراب» المتقطع؛ breach يفتح ثغرة في الحد */
-const Forbidden: React.FC<{ x: number; y: number; mark: number; bound: number; breach?: number; label?: number }> = ({ x, y, mark, bound, breach = 0, label = 0 }) => (
-  <g>
-    <circle cx={x} cy={y} r={70 * mark} fill={C.page} stroke={breach > 0 ? EMBER : C.ink} strokeWidth={5} />
-    <Ink d={`M${x - 34} ${y - 34} L${x + 34} ${y + 34} M${x + 34} ${y - 34} L${x - 34} ${y + 34}`} w={8} p={prog(mark, 0.4, 1)} c={breach > 0 ? EMBER : C.ribbon} />
-    <path d={ring(x, y, 190, 190)} fill="none" stroke={C.ink} strokeWidth={4} strokeDasharray="14 14" pathLength={1000} strokeDashoffset={0} opacity={bound * (1 - 0.0 * breach)} style={{ strokeDasharray: `${14 * bound} 14` }} />
-    {breach > 0 ? <path d={`M${x + 120} ${y - 150} C${x + 160} ${y - 110} ${x + 180} ${y - 80} ${x + 190} ${y - 30}`} stroke={C.page} strokeWidth={14 * breach} fill="none" /> : null}
-    <Word x={x} y={y + 260} size={44} p={label} font="tajawal" weight={700} color={C.inkText}>
-      شجرة معينة
-    </Word>
-  </g>
-);
 
 // ─── c5-s1: الإباحة واسعة، والنهي علامة واحدة يحيط بها حدّ «لا تقربا» (لا جنة مرسومة ولا شجرة) ───
 const Permit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {

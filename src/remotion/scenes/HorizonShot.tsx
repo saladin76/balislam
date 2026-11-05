@@ -10,11 +10,14 @@ import { VERSE_PLACEHOLDER } from "../../plan/quranText";
 import { verseRef } from "../dafatir/horizon/kit";
 import type { SceneBase, StringFields } from "./types";
 
+/** حقول مشاهد المكتبة العامة (lib-*) */
+type LibField = "term" | "termWord" | "sub" | "subWord" | "kind" | "source" | "sourceWord" | "matn" | "matnWord" | "matnLabel" | "matnSource" | "tafsir" | "tafsirWord" | "tafsirLabel" | "tafsirSource" | "note" | "noteWord" | "aLabel" | "aText" | "aWord" | "bLabel" | "bText" | "bWord" | "verdict" | "verdictText" | "verdictWord" | "items" | "limit" | "limitWord" | "color";
+
 /**
  * «مشهد خط الأفق» (دفاتر الزمن): مشهد مصمم لجملته على الدفتر المفتوح، يُختار بحقل shot.
  * التوقيت من صوت الراوي إن وُجد (كلمة بكلمة)، وإلا تقديري بالقواعد نفسها، فلا يتغير التصميم عند دخول الصوت.
  */
-export type HorizonShotProps = SceneBase & StringFields<"shot" | "exit" | "from" | "head" | "label" | "title" | "idea" | "batch" | "ref" | "tagWord">;
+export type HorizonShotProps = SceneBase & StringFields<"shot" | "exit" | "from" | "head" | "label" | "title" | "idea" | "batch" | "ref" | "tagWord" | LibField>;
 
 const timelineFor = (narration: string, timings: SceneBase["narrationTimings"], fps: number): Timeline => {
   const sentences = hzSentences(narration);

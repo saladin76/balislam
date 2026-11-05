@@ -3,6 +3,7 @@
  * الاسم في الاستوديو، وذيل المشهد بعد آخر كلمة، وطريقة الخروج، والسكون المقصود، ومدة المشاهد الصامتة.
  */
 import { buildTimeline } from "./timeline";
+import { LIB_META } from "../lib/meta";
 
 export type HzExit = "turn" | "fade" | "none";
 export type HzMeta = {
@@ -18,7 +19,8 @@ export type HzMeta = {
 
 export const HZ_LEAD = 0.3;
 
-export const HZ_META: Record<string, HzMeta> = {
+/** مشاهد الحلقة 001 الخاصة بها (لا تُستعمل في حلقة أخرى إلا بقرار) */
+export const EP001_META: Record<string, HzMeta> = {
   cover: { nameAr: "فتح الدفتر (بلا كلام)", tail: 0, exit: "none", seconds: 2.6 },
   basmala: { nameAr: "البسملة على الصفحة الأولى", tail: 1.5, exit: "turn", still: "dhikr" },
   nations: { nameAr: "أمم وأجيال على الأفق", tail: 1.2, exit: "fade" },
@@ -28,8 +30,6 @@ export const HZ_META: Record<string, HzMeta> = {
   greater: { nameAr: "ما هو أعظم من السنة والمكان", tail: 1.2, exit: "none" },
   index: { nameAr: "فهرس الأخبار", tail: 1.0, exit: "none" },
   begin: { nameAr: "من هذه الأخبار نبدأ (قلب الصفحة)", tail: 1.0, exit: "turn" },
-  chapter: { nameAr: "عنوان الفصل (بلا كلام)", tail: 0, exit: "none", seconds: 3.2 },
-  "verse-intro": { nameAr: "تمهيد آية (صفحة ساكنة)", tail: 1.0, exit: "none", still: "verse-intro" },
   interpreters: { nameAr: "معنى الخلافة: أقوال المفسرين", tail: 1.2, exit: "fade" },
   question: { nameAr: "سؤال للفهم لا اعتراض (حاشية ابن كثير)", tail: 1.2, exit: "fade" },
   known: { nameAr: "معرفتنا محدودة", tail: 1.3, exit: "fade" },
@@ -41,7 +41,6 @@ export const HZ_META: Record<string, HzMeta> = {
   honor: { nameAr: "السجود تكريم لا عبادة، والعبادة لله وحده", tail: 1.2, exit: "fade" },
   comply: { nameAr: "على مسار الأمر: استجابة، وإباء واستكبار", tail: 1.2, exit: "fade" },
   sort: { nameAr: "إبليس من الجن لا من الملائكة (تصنيف)", tail: 1.2, exit: "fade" },
-  "verse-tag": { nameAr: "تمهيد آية بختم سورتها", tail: 1.0, exit: "none" },
   scale: { nameAr: "ميزان «نار / طين» الذي ظنه حجة، و«أمر واجب الطاعة»", tail: 1.2, exit: "fade" },
   enmity: { nameAr: "العداوة والإمهال وعزم الإغواء", tail: 1.2, exit: "fade" },
   authority: { nameAr: "لا سلطان له على عباد الله إلا من اتبعه", tail: 1.2, exit: "fade" },
@@ -65,8 +64,10 @@ export const HZ_META: Record<string, HzMeta> = {
   roadmap: { nameAr: "طريق الحلقات: قبل الكتابة، القرى والمدن، الحضارات", tail: 1.2, exit: "fade" },
   questions: { nameAr: "أسئلة الحلقة القادمة، لكل سؤال أداته", tail: 1.6, exit: "turn" },
   closing: { nameAr: "الختام: صفحة «دفاتر الزمن» الأولى", tail: 3.2, exit: "none" },
-  pending: { nameAr: "قيد التصميم (مكان المشهد في الخطة)", tail: 1.0, exit: "none" },
 };
+
+/** كل مشاهد «خط الأفق»: المكتبة العامة (lib/meta.ts) ثم مشاهد الحلقة 001 */
+export const HZ_META: Record<string, HzMeta> = { ...LIB_META, ...EP001_META };
 
 /** جمل النص كما في السكريبت (الجملة تنتهي بنقطة أو علامة استفهام) */
 export const hzSentences = (narration: string) => (narration.match(/[^.؟!]+[.؟!]?/g) ?? []).map((s) => s.trim()).filter(Boolean);

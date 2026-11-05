@@ -9,22 +9,15 @@ import { AbsoluteFill } from "remotion";
 import { at, end, type Timeline } from "./timeline";
 import { C, Ink, easeOut, mix, prog, rng } from "./kit";
 import { Book, ChapterHead, NEUTRAL, QuranSeal, SText, camPath, type Cam, type Exit } from "./book";
-import { FINDS } from "./shots";
+import { Boat, FindAt, Fire, Jar, Temple, Tent, Village, Wheat } from "../lib/drawings";
+import { Stamp } from "../lib/compare";
+import { Word } from "../lib/text";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const EMBER = "#B23A1E";
 const GOLD_D = "#A8803A";
 const pop = (t: number, a: number, d = 0.45) => prog(t, a - 0.05, a - 0.05 + d, easeOut);
-const Word: React.FC<{ x: number; y: number; size: number; p: number; color?: string; font?: "amiri" | "tajawal"; weight?: number; anchor?: "middle" | "start" | "end"; children: React.ReactNode }> = ({ p, ...r }) => (
-  <SText {...r} o={p} dy={(1 - p) * 12}>
-    {r.children}
-  </SText>
-);
 /** أثر من رسوم الشواهد (مشهد الأثر وحدوده) في موضع جديد وبحجم جديد */
-const Find: React.FC<{ k: string; x: number; y: number; s: number; p: number }> = ({ k, x, y, s, p }) => {
-  const f = FINDS.find((v) => v.key === k)!;
-  return <g transform={`translate(${x} ${y}) scale(${s}) translate(${-f.cx} ${-f.cy})`}>{f.draw(p)}</g>;
-};
 
 // ─── c7-s1: النسل مراوح أجيال تتسع من أصل واحد (النساء 1) — نقاط لا هيئات ───
 const ROOT: [number, number] = [1300, 230];
@@ -93,22 +86,6 @@ const GAPS: [number, number][] = [
   [900, 700],
   [580, 400],
 ];
-const Tent = () => <path d="M-50 0 L0 -70 L50 0 Z M0 -70 V0 M-14 0 L0 -26 L14 0" fill="#E8D6B3" stroke={C.ink} strokeWidth={4} strokeLinejoin="round" />;
-const Wheat = () => (
-  <g fill="none" stroke={C.ink} strokeWidth={4} strokeLinecap="round">
-    <path d="M0 0 V-80 M-26 0 C-26 -30 -14 -54 -4 -70 M26 0 C26 -30 14 -54 4 -70" />
-    {[-60, -44, -28].map((y) => (
-      <path key={y} d={`M0 ${y} l-12 -12 M0 ${y} l12 -12`} />
-    ))}
-  </g>
-);
-const Boat = () => (
-  <g stroke={C.ink} strokeWidth={4} strokeLinejoin="round">
-    <path d="M-60 -16 H60 L42 6 H-42 Z" fill="#C9A06A" />
-    <path d="M0 -16 V-84 L44 -26 H0" fill="#F2E3C2" />
-  </g>
-);
-const Jar = () => <path d="M-16 -80 H16 V-70 C34 -60 40 -36 34 -16 C28 -2 16 0 0 0 C-16 0 -28 -2 -34 -16 C-40 -36 -34 -60 -16 -70 Z" fill="#C98E5A" stroke={C.ink} strokeWidth={4} />;
 const LIVES = [Tent, Wheat, Boat, Jar];
 const LIVES_X = [1560, 1150, 880, 470];
 const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
@@ -199,7 +176,7 @@ const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
             أقدم الآثار
           </Word>
           <g opacity={oldest}>
-            <Find k="food" x={262} y={LINE_Y + 170} s={0.55} p={oldest} />
+            <FindAt k="food" x={262} y={LINE_Y + 170} s={0.55} p={oldest} />
           </g>
         </g>
       }
@@ -241,20 +218,6 @@ const Threshold: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 };
 
 // ─── c7-s5: من الشاهد إلى الحكم: «ثبت» و«اختُلف فيه» ختمان، و«ظن» لا يُختم حقيقة ───
-const Stamp: React.FC<{ x: number; y: number; q: number; label: string; color: string; filled?: boolean; w?: number }> = ({ x, y, q, label, color, filled, w = 260 }) => {
-  if (q <= 0) return null;
-  const sc = 1 + 0.6 * (1 - q);
-  const ring = prog(q, 0.6, 1);
-  return (
-    <g opacity={Math.min(1, q * 2)} transform={`translate(${x} ${y}) rotate(${-6 + 6 * q}) scale(${sc})`}>
-      <rect x={-w / 2 - 22 * ring} y={-60 - 22 * ring} width={w + 44 * ring} height={120 + 44 * ring} rx={16} fill="none" stroke={color} strokeWidth={3} opacity={0.5 * (1 - ring)} />
-      <rect x={-w / 2} y={-60} width={w} height={120} rx={12} fill={filled ? color : C.page} stroke={color} strokeWidth={7} />
-      <SText x={0} y={20} size={58} font="tajawal" weight={800} color={filled ? C.page : color}>
-        {label}
-      </SText>
-    </g>
-  );
-};
 const Method: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const ev = prog(t, 0.05, 0.8);
   const a1 = prog(t, at(tl, "سنذكر") - 0.1, at(tl, "ثبت"));
@@ -296,8 +259,8 @@ const Method: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       <SText x={1290} y={210} size={40} font="tajawal" weight={700} color={C.inkSoft} o={ev}>
         الشاهد
       </SText>
-      <Find k="tool" x={1380} y={330} s={0.75} p={ev} />
-      <Find k="food" x={1200} y={330} s={0.75} p={ev} />
+      <FindAt k="tool" x={1380} y={330} s={0.75} p={ev} />
+      <FindAt k="food" x={1200} y={330} s={0.75} p={ev} />
       {both}
     </g>
   );
@@ -306,28 +269,6 @@ const Method: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 
 // ─── c7-s6: طريق الحلقات: قبل الكتابة ← القرى والمدن ← الحضارات ───
 const ROAD = "M1740 820 C1600 820 1560 700 1460 690 C1300 670 1260 520 1120 470 C960 420 860 560 720 560 C560 560 560 380 420 340 C320 310 260 300 180 300";
-const Fire = ({ q }: { q: number }) => (
-  <g>
-    <path d="M-50 10 H50" stroke={C.ink} strokeWidth={6} strokeLinecap="round" />
-    <path d="M-36 4 L30 -6 M-30 -6 L36 4" stroke="#6B4A2E" strokeWidth={8} strokeLinecap="round" />
-    <path d={`M0 ${-70 * q} C26 -40 30 -16 14 0 C26 -10 22 -30 10 -40 C14 -22 0 -14 -6 0 C-24 -14 -20 -40 0 ${-70 * q} Z`} fill={C.ember} stroke={C.ink} strokeWidth={3} />
-  </g>
-);
-const Village = () => (
-  <g stroke={C.ink} strokeWidth={4} strokeLinejoin="round" fill="#E8D6B3">
-    <path d="M-110 0 V-50 H-50 V0 Z M-110 -50 L-80 -76 L-50 -50" />
-    <path d="M-40 0 V-70 H30 V0 Z M-40 -70 L-5 -98 L30 -70" />
-    <path d="M40 0 V-46 H100 V0 Z" />
-    <path d="M-130 0 H130" fill="none" />
-    <path d="M-130 6 V-24 H-120 V6 M120 6 V-24 H130 V6" />
-  </g>
-);
-const Temple = () => (
-  <g stroke={C.ink} strokeWidth={4} strokeLinejoin="round" fill="#E8D6B3">
-    <path d="M-140 0 H-10 V-14 H-24 V-28 H-38 V-42 H-60 V-56 H-90 V-42 H-112 V-28 H-126 V-14 H-140 Z" />
-    <path d="M10 0 H140 V-12 H10 Z M20 -12 V-90 M50 -12 V-90 M80 -12 V-90 M110 -12 V-90 M130 -12 V-90 M4 -90 H146 L75 -126 Z" />
-  </g>
-);
 const MILES = [
   { x: 1460, y: 690, w: "قبل", label: "قبل الكتابة", D: Fire },
   { x: 1120, y: 470, w: "القرى", label: "القرى والمدن", D: Village },
@@ -455,13 +396,13 @@ const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         ))}
       </g>
       <g opacity={items[0]}>
-        <Find k="tool" x={1420} y={810} s={0.45} p={items[0]!} />
+        <FindAt k="tool" x={1420} y={810} s={0.45} p={items[0]!} />
       </g>
       <g opacity={items[1]}>
-        <Find k="home" x={1260} y={720} s={0.4} p={items[1]!} />
+        <FindAt k="home" x={1260} y={720} s={0.4} p={items[1]!} />
       </g>
       <g opacity={items[2]}>
-        <Find k="food" x={1110} y={620} s={0.45} p={items[2]!} />
+        <FindAt k="food" x={1110} y={620} s={0.45} p={items[2]!} />
       </g>
       <g opacity={rod}>
         <rect x={1590} y={620} width={150} height={74} rx={8} fill="#2B1E14" />
@@ -486,9 +427,9 @@ const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       </defs>
       <circle cx={560} cy={520} r={250 * light} fill="url(#c77-light)" opacity={light} />
       <g opacity={light}>
-        <Find k="tool" x={480} y={470} s={0.6} p={1} />
-        <Find k="food" x={640} y={560} s={0.6} p={1} />
-        <Find k="art" x={540} y={600} s={0.35} p={1} />
+        <FindAt k="tool" x={480} y={470} s={0.6} p={1} />
+        <FindAt k="food" x={640} y={560} s={0.6} p={1} />
+        <FindAt k="art" x={540} y={600} s={0.35} p={1} />
       </g>
       <Ink d="M560 270 a250 250 0 1 1 -0.1 0" w={8} p={bound} c={C.gold} />
       {[
@@ -543,7 +484,7 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
             </Word>
           ))}
           <Ink d="M780 460 H220" w={3} p={series[3]!} c={C.gold} />
-          <Find k="art" x={500} y={640} s={0.6} p={series[3]!} />
+          <FindAt k="art" x={500} y={640} s={0.6} p={series[3]!} />
         </g>
       }
       R={

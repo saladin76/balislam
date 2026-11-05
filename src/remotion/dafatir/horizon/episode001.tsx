@@ -7,12 +7,14 @@ import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, CoverLeaf, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
 import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
-import { GATE, Hatch, RUINS, Shot2, Shot4, Shot5, Shot6, Sunset } from "./shots";
+import { Shot2, Shot4, Shot5, Shot6 } from "./shots";
+import { GATE, GLYPHS, Hatch, RUINS, Sunset } from "../lib/drawings";
 import { HZ_META } from "./meta";
 import { HZ_SCENES_B } from "./episode001b";
 import { VerseRefPanel } from "./verseRef";
 import { HZ_SCENES_C } from "./episode001c";
 import { HZ_SCENES_D } from "./episode001d";
+import { LIB_SCENES } from "../lib/scenes";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const { Amiri, Tajawal } = fonts;
@@ -41,14 +43,6 @@ const BasmalaScene: React.FC<HzProps> = ({ t, dur, exit }) => <Book id="bs" t={t
 
 // ─────────── c1-s2: أمم كثيرة وأجيال تتعاقب على الأفق ───────────
 // الماضي على اليمين (اتجاه الخط العربي): كل أمة تظهر على يسار الأفق ثم تمضي نحو اليمين وتبهت، وتأتي بعدها أخرى.
-const GLYPHS = [
-  "M-22 0 V-26 L0 -46 L22 -26 V0 Z",
-  "M-11 0 V-72 H11 V0 Z M-16 -72 H16 V-80 H-16 Z",
-  "M-28 0 V-22 C-28 -52 28 -52 28 -22 V0 Z",
-  "M-30 0 L0 -42 L30 0 Z",
-  "M-36 0 V-14 H-24 V-28 H-12 V-42 H12 V-28 H24 V-14 H36 V0 Z",
-  "M-30 0 V-48 H30 V0 M-15 0 V-48 M0 0 V-48 M15 0 V-48 M-36 -48 H36 V-56 H-36 Z",
-];
 const N_GLYPH = 16;
 const SP = 112;
 const Nations: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
@@ -397,44 +391,6 @@ const Begin: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   );
 };
 
-// ─────────── عنوان الفصل (بلا كلام): يُكتب كبيرًا ثم يصغر إلى رأس الصفحة ───────────
-const Chapter: React.FC<HzProps> = ({ t, dur, exit, p }) => {
-  const label = p.label ?? "";
-  const big = prog(t, 0.05, 0.7, easeOut);
-  const shrink = prog(t, 2.0, 2.8);
-  const orn = prog(t, 0.0, 0.5);
-  const rule = prog(t, 0.35, 1.1);
-  const title = p.title ?? "";
-  const R = (
-    <g>
-      <g opacity={1 - shrink} transform={`translate(${shrink * 200} ${-shrink * 280}) translate(1365 470) scale(${1 - 0.55 * shrink}) translate(-1365 -470)`}>
-        <Ink d="M1345 330 H1385 L1371 360 L1385 390 H1345 L1359 360 Z" w={3} p={orn} c={C.gold} fill={C.gold} fillP={0.35 * orn} />
-        <SText x={1365} y={500} size={118} o={big} dy={(1 - big) * 16} color={C.ink}>
-          {label}
-        </SText>
-        {title ? (
-          <SText x={1365} y={600} size={60} o={prog(t, 0.4, 1.0)} color={C.inkSoft}>
-            {title}
-          </SText>
-        ) : null}
-        <Ink d={`M1520 ${title ? 650 : 560} H1210`} w={3} p={rule} c={C.gold} />
-      </g>
-      <g transform={`translate(0 ${(1 - prog(t, 0.3, 0.9, easeOut)) * -90})`}>
-        <path d="M1700 72 H1736 V156 L1718 142 L1700 156 Z" fill={C.ribbon} />
-      </g>
-      <SText x={1680} y={140} size={40} anchor="start" color={C.ink} o={prog(t, 2.3, 2.9)}>
-        {label}
-      </SText>
-    </g>
-  );
-  return <Book id="ch" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={R} />;
-};
-
-// ─────────── تمهيد آية: صفحة ساكنة عليها مرجع الآية القادمة (لا نصّها) ───────────
-const VerseIntro: React.FC<HzProps> = ({ t, dur, exit, p }) => (
-  <Book id="vi" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={<g><ChapterHead label={p.head ?? ""} />{p.ref ? <VerseRefPanel refText={p.ref} o={prog(t, 0, 0.25)} /> : null}</g>} />
-);
-
 // ─────────── c2-s3: سؤال لطلب الفهم، لا اعتراض (حاشية ابن كثير على البقرة 30) ───────────
 const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const q = prog(t, at(tl, "وسألت") - 0.05, at(tl, "وسألت") + 0.45, easeOut);
@@ -589,17 +545,6 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   return <Book id="tt" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} L={L} />;
 };
 
-// ─────────── قيد التصميم: مكان المشهد في الخطة، بفكرته المكتوبة ───────────
-const Pending: React.FC<HzProps> = ({ t, dur, exit, p }) => (
-  <>
-    <Book id="pd" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={p.head ? <ChapterHead label={p.head} /> : undefined} />
-    <div style={{ position: "absolute", left: 360, right: 360, top: 330, padding: "28px 40px 32px", border: "3px dashed rgba(241,228,203,0.7)", borderRadius: 14, background: "rgba(13,10,20,0.78)", color: C.parchment, direction: "rtl", textAlign: "center", fontFamily: Tajawal }}>
-      <div style={{ fontSize: 30, fontWeight: 700, color: C.sand }}>قيد التصميم{p.batch ? ` — الدفعة ${p.batch}` : ""}</div>
-      <div style={{ marginTop: 14, fontSize: 34, fontWeight: 500, lineHeight: 1.5 }}>{p.idea ?? ""}</div>
-    </div>
-  </>
-);
-
 // ─────────── لقطتان مصممتان قبل هذا البناء (اختبار «خط الأفق»)، بخروج بخفوت الحبر ───────────
 const legacy = (Comp: React.FC<{ t: number; tl: Timeline }>, endCam: Cam): React.FC<HzProps> =>
   function Legacy({ t, tl, dur, exit }) {
@@ -614,7 +559,9 @@ const legacy = (Comp: React.FC<{ t: number; tl: Timeline }>, endCam: Cam): React
     );
   };
 
+/** كل مشاهد «خط الأفق»: المكتبة العامة (../lib/scenes) ثم مشاهد الحلقة 001 */
 export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
+  ...LIB_SCENES,
   cover: Cover,
   basmala: BasmalaScene,
   nations: Nations,
@@ -624,13 +571,10 @@ export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
   greater: Greater,
   index: IndexScene,
   begin: Begin,
-  chapter: Chapter,
-  "verse-intro": VerseIntro,
   interpreters: legacy(Shot4, { cx: 555, cy: 575, s: 1.12 }),
   question: Question,
   known: Known,
   "two-titles": TwoTitles,
-  pending: Pending,
   ...HZ_SCENES_B,
   ...HZ_SCENES_C,
   "return-line": legacy(Shot5, { cx: 1405, cy: 500, s: 1.24 }),
