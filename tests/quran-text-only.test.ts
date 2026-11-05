@@ -88,4 +88,17 @@ describe("جلب نصوص الآيات الناقصة دون مساس بالإن
     expect(existsSync(planFile) ? readFileSync(planFile).equals(planBefore!) : planBefore === null).toBe(true);
   });
 
+  it("يرفض نصًا لآية أخرى حتى إن أعاد الخادم استجابة ناجحة", async () => {
+    const cacheFile = path.join(episodeDir, "quran.json");
+    const untouched = JSON.stringify({ custom: "معلومة محلية" });
+    writeFileSync(cacheFile, untouched);
+    const wrong = { verse: async () => ({ key: "53:40", number: 40, text: "نص آية مختلفة" }) }
+      as unknown as Pick<QuranClient, "verse">;
+    const result = await fillMissingQuranTexts("999", wrong);
+    expect(result.fetched).toEqual([]);
+    expect(result.failed).toHaveLength(1);
+    expect(result.failed[0]?.reason).toMatch(/لا تطابق المرجع/);
+    expect(readFileSync(cacheFile, "utf8")).toBe(untouched);
+  });
+
 });
