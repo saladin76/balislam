@@ -9,13 +9,14 @@ import { normalizeArabic } from "../../script/quranMeta";
 import { camAt, camTransform, type CamKey } from "../illus/shots/kit";
 import { INK_SHOTS } from "../zubdat/shots";
 import { H, W, Paper, makeAt, makeEnd, type Z } from "../zubdat/inkKit";
+import { parseInkArgs } from "../zubdat/kitShots";
 import type { SceneBase, StringFields } from "./types";
 
 /**
  * «مشهد حبر مصمَّم» (زبدة الكتب): كل مشهد حدث بصري خاص بجملته، يُختار بحقل shot،
  * ويُرسم بهوية «القلم المميِّز» على ورق القناة، والكاميرا فوق الدفتر.
  */
-export type InkShotProps = SceneBase & StringFields<"shot" | "task">;
+export type InkShotProps = SceneBase & StringFields<"shot" | "task" | "labels" | "cues">;
 
 /** يدمج لحظات الأحداث في مسار الكاميرا: ميل نحو موضع الحدث مع تقريب خفيف، إلا في نوافذ السكون */
 const withFocus = (keys: CamKey[], focus: [number, number, number][], still: [number, number][], len: number): CamKey[] => {
@@ -105,7 +106,7 @@ export const InkShot: React.FC<InkShotProps> = (props) => {
   const logo = (size: number) => <LogoMark size={size} colors={t.logo} mark={channelMark} />;
   const regs: Reg[] = [];
   const reg = (r: [number, number, number, number], t: number) => regs.push({ r, t });
-  const shot = def ? def.render({ frame, dur, z, at: makeAt(timings, dur), end: makeEnd(timings, dur), logo, reg, task: props.task }) : null;
+  const shot = def ? def.render({ frame, dur, z, at: makeAt(timings, dur), end: makeEnd(timings, dur), logo, reg, task: props.task, args: parseInkArgs(props.labels, props.cues) }) : null;
   // مواضع الأحداث تُعد عناصر أيضًا (للرسوم غير النصية): مستطيل حول كل حدث من لحظته
   for (const [t, x, y] of shot?.focus ?? []) reg([x - 170, y - 110, x + 170, y + 110], t);
   // سكون تام للكاميرا عند كل ذكر لله (ومع نوافذ المشهد الخاصة)

@@ -152,6 +152,43 @@ program
   });
 
 program
+  .command("zubdat <action> <episode>")
+  .description("استوديو زبدة الكتب (لهذه القناة وحدها): check فحص مشاهد الحبر · guide دليل الراوي · qa بطاقتا الجودة · sheet لوحة الهاتف من رندر")
+  .option("--video <file>", "فيديو الحلقة (لـ qa: قياس الحركة، ولـ sheet: مصدر اللقطات؛ الافتراضي previews/episode.mp4)")
+  .action(async (action: string, episode: string, opts: { video?: string }) => {
+    const st = await import("../studio/zubdat");
+    st.assertZubdat();
+    const rel = (f: string) => path.relative(projectRoot, f);
+    if (action === "check") {
+      const checks = await st.checkEpisode(episode);
+      for (const c of checks) for (const f of c.findings) console.log(`${f.level === "error" ? "✗" : "!"} ${c.id} (${c.shot}): ${f.msg}`);
+      const r = await st.writeCheckReport(episode, checks);
+      console.log(`${checks.length} مشهد حبر · ${r.errors} خطأ · ${r.warns} تنبيه. التقرير: ${rel(r.file)}`);
+      if (r.errors) process.exitCode = 1;
+    } else if (action === "guide") {
+      console.log(`دليل الراوي: ${rel(await st.writeGuideReport(episode, await st.narratorGuide(episode)))}`);
+    } else if (action === "qa") {
+      const checks = await st.checkEpisode(episode);
+      await st.writeCheckReport(episode, checks);
+      const video = opts.video ?? path.join(path.dirname(await resolveScriptPath(episode)), "previews", "episode.mp4");
+      let motion: string | null = null;
+      if (opts.video || (await import("node:fs")).existsSync(video)) {
+        const { measureMotion, motionSummary } = await import("../render/motionMeter");
+        const { exemptForRender } = await import("../render/stillness");
+        const { loadPlan } = await import("../plan/io");
+        const { collectMedia } = await import("../plan/collect");
+        const plan = (await loadPlan(episode))!;
+        motion = motionSummary(await measureMotion(video, "landscape", await exemptForRender(plan, await collectMedia(episode, plan))), path.basename(video));
+      }
+      console.log(`مراجعة الجودة: ${rel(await st.writeQaReport(episode, checks, motion))}`);
+    } else if (action === "sheet") {
+      const { writePhoneSheet } = await import("../studio/zubdatSheet");
+      const video = opts.video ?? path.join(path.dirname(await resolveScriptPath(episode)), "previews", "episode.mp4");
+      console.log(`لوحة الهاتف: ${rel(await writePhoneSheet(episode, path.resolve(video)))}`);
+    } else throw new Error(`إجراء غير معروف: ${action} (check | guide | qa | sheet)`);
+  });
+
+program
   .command("app")
   .description("فتح الاستوديو في المتصفح")
   .action(async () => {

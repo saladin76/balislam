@@ -1,6 +1,7 @@
 import React from "react";
 import type { CamKey } from "../illus/shots/kit";
 import { INK_SHOTS_2 } from "./shots2";
+import { KIT_SHOTS, type InkArgs } from "./kitShots";
 import { Arrow, Card, Cross, Icon, InkPerson, Mark, Stroke, Sun, Write, heartPath, lerp, measure, fam, outCubic, prog, type Z } from "./inkKit";
 
 /**
@@ -20,6 +21,8 @@ export type InkCtx = {
   reg: (r: [number, number, number, number], t: number) => void;
   /** مهمة الحلقة (للخاتمة) */
   task?: string;
+  /** حقلا أدوات الاستوديو العامة (kit-*): العبارات والتوقيت؛ لا تستعملهما مشاهد الحلقات الخاصة */
+  args?: InkArgs;
 };
 /**
  * focus: لحظات الأحداث ومواضعها [لحظة، x، y]؛ الكاميرا تميل إلى كل حدث لحظة وقوعه (كاميرا فوق الدفتر تتبع القلم).
@@ -504,4 +507,5 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
     },
   },
   ...INK_SHOTS_2,
+  ...KIT_SHOTS,
 };

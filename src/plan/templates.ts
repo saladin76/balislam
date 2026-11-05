@@ -305,6 +305,8 @@ export const templateDefs: TemplateDef[] = [
     fields: [
       { key: "shot", label: "المشهد", type: "select", options: Object.entries(INK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
       { key: "task", label: "مهمة الحلقة (للخاتمة فقط، بنص منطوق في الحلقة)", type: "text" },
+      { key: "labels", label: "العبارات (لأدوات الاستوديو kit-* فقط)", type: "text", help: "مفصولة بـ |، وكل عبارة منطوقة حرفيًا في جملة المشهد" },
+      { key: "cues", label: "التوقيت (لأدوات الاستوديو، اختياري)", type: "textarea", help: "سطر لكل مفتاح: المفتاح | الكلمة المنطوقة (الكلمة المكررة: كلمة#2). المفاتيح: idea1-5، from، to، cross، step1-4، rise، fall، peak، low، high، title، author، note، و«مفتاح.end» لنهاية الكتابة" },
     ],
   },
   {
