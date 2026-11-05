@@ -23,10 +23,11 @@ import { useStudioFonts } from "./ui/useStudioFonts";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
 import { LabsTab } from "./tabs/LabsTab";
+import { TechReviewsTab } from "./tabs/TechReviewsTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
-type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs";
+type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs" | "treviews";
 const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "publish"];
 const store = {
   get: (k: string) => {
@@ -65,11 +66,14 @@ export const App: React.FC = () => {
   const [guideLabel, setGuideLabel] = useState("دليل الاستوديو");
   // مختبرات الإنتاج: تظهر في القائمة فقط للقناة التي لها مختبر (مجلد فيه lab.json)
   const [hasLabs, setHasLabs] = useState(false);
+  // المراجعات الفنية: تظهر فقط للقناة التي فيها مراجعة (tech-reviews/)
+  const [hasTechReviews, setHasTechReviews] = useState(false);
   useEffect(() => {
-    if (!channelId) return setHasGuide(false), setHasLabs(false);
+    if (!channelId) return setHasGuide(false), setHasLabs(false), setHasTechReviews(false);
     let live = true;
     api.guideIndex(channelId).then((r) => { if (!live) return; setHasGuide(Boolean(r.index)); setGuideLabel(r.index?.navLabel || "دليل الاستوديو"); }, () => live && setHasGuide(false));
     api.labs(channelId).then((r) => live && setHasLabs(r.labs.length > 0), () => live && setHasLabs(false));
+    api.techReviews(channelId).then((r) => live && setHasTechReviews(r.reviews.length > 0), () => live && setHasTechReviews(false));
     return () => {
       live = false;
     };
@@ -297,7 +301,7 @@ export const App: React.FC = () => {
             <span className="studio-nav-label">إدارة الاستوديو</span>
             <select
               aria-label="أدوات القناة والإعدادات"
-              value={["identity", "library", "channel", "settings", "guide", "labs"].includes(tab) ? tab : ""}
+              value={["identity", "library", "channel", "settings", "guide", "labs", "treviews"].includes(tab) ? tab : ""}
               onChange={async (e) => {
                 const next = e.target.value as Tab;
                 if (!next || !confirmLeaveScript()) return;
@@ -311,6 +315,7 @@ export const App: React.FC = () => {
               <option value="library">مكتبة الأصول والقوالب</option>
               {hasGuide ? <option value="guide">{guideLabel}</option> : null}
               {hasLabs ? <option value="labs">مختبرات الإنتاج</option> : null}
+              {hasTechReviews ? <option value="treviews">المراجعات الفنية</option> : null}
               <option value="settings">الاتصالات والمفاتيح{keysOk.voice ? "" : " • تحتاج إعدادًا"}</option>
             </select>
           </label>
@@ -402,6 +407,8 @@ export const App: React.FC = () => {
           />
           </>}
           </div>
+        ) : tab === "treviews" && channelId ? (
+          <TechReviewsTab key={channelId} channel={channelId} />
         ) : tab === "labs" && channelId ? (
           <LabsTab key={channelId} channel={channelId} />
         ) : tab === "guide" && channelId ? (

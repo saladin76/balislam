@@ -1,0 +1,76 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { listTechReviews, techReviewFilePath, techReviewProblems, type TechReviewMeta } from "../src/channel/techReviews";
+import { listLabs } from "../src/channel/labs";
+import { listScriptEpisodeDirs } from "../src/script/episodes";
+import { parseMarkdown } from "../app/src/ui/Markdown";
+
+/**
+ * «المراجعات الفنية» (الأمر 018): تقارير المنفّذ تُعرض في الاستوديو بوسائطها، ولا تُغيّر اعتماد شيء:
+ * قرار المشرف فارغ حتى يتخذه، والمختبر يبقى «جاهز للمراجعة»، والمعاينات المراجَعة موجودة كما هي.
+ */
+const EPS = "channels/dafatir-alzaman/episodes";
+
+describe("المراجعات الفنية", () => {
+  it("مراجعتا الأمر 018 موجودتان للحلقة 001 والمختبر 900، وقرار المشرف فارغ", async () => {
+    const list = await listTechReviews(EPS);
+    const keys = list.map((r) => `${r.dir}/${r.id}`).sort();
+    expect(keys).toEqual(["001-adam-beginning/018", "900-library-lab/018"]);
+    for (const r of list) {
+      expect(r.supervisorDecision).toBeNull();
+      expect(r.hasReport).toBe(true);
+      expect(r.strips.length).toBeGreaterThan(0);
+      expect(r.clips.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("كل وسيط في التقرير موجود ويُخدم، وكل هدف فيديو موجود في معاينات الحلقة أو المختبر", async () => {
+    const labs = await listLabs(EPS);
+    const episodes = await listScriptEpisodeDirs(EPS);
+    for (const r of await listTechReviews(EPS)) {
+      const md = readFileSync(path.join(EPS, r.dir, "tech-reviews", r.id, "report.md"), "utf8");
+      const media = parseMarkdown(md).filter((b) => b.k === "media");
+      expect(media.length, r.dir).toBeGreaterThan(0);
+      for (const m of media) if (m.k === "media") expect(await techReviewFilePath(EPS, r.dir, r.id, m.src), m.src).not.toBeNull();
+      for (const t of r.targets) {
+        if (t.kind === "lab") expect(labs.find((l) => l.dir === t.dir)?.previews.map((p) => p.name), t.label).toContain(t.preview);
+        else {
+          expect(episodes).toContain(t.dir);
+          expect(readFileSync(path.join(EPS, t.dir, "previews", "index.json"), "utf8")).toContain(t.preview);
+        }
+      }
+    }
+  });
+
+  it("المراجعة لا تغيّر اعتماد المختبر: يبقى وأدواته «جاهز للمراجعة»", async () => {
+    const lab = (await listLabs(EPS)).find((l) => l.dir === "900-library-lab")!;
+    expect(lab.status).toBe("review");
+    expect(lab.tools.every((t) => t.status === "review")).toBe(true);
+    expect(lab.decisions.some((d) => d.status === "approved")).toBe(false);
+  });
+
+  it("خدمة الملفات لا تخرج عن مجلد المراجعة ولا تخدم إلا الأنواع المسموحة", async () => {
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "018", "../../script.md")).toBeNull();
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "018", "review.json")).toBeNull();
+    expect(await techReviewFilePath(EPS, "../001-adam-beginning", "018", "report.md")).toBeNull();
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "..", "report.md")).toBeNull();
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "018", "report.md")).not.toBeNull();
+  });
+
+  it("لا مراجعات فنية في القناتين الأخريين", async () => {
+    expect(await listTechReviews("channels/balislam/episodes")).toEqual([]);
+    expect(await listTechReviews("channels/zubdat-alkutub/episodes")).toEqual([]);
+  });
+
+  it("السجل يرفض قرار مشرف غير مسجل وتوصية غير معروفة", () => {
+    const base: TechReviewMeta = { title: "t", date: "2026-11-05", author: "المنفّذ", recommendation: "fixes", summary: "", targets: [{ label: "x", kind: "lab", dir: "900-x", preview: "a.mp4" }], supervisorDecision: null };
+    expect(techReviewProblems(base)).toEqual([]);
+    expect(techReviewProblems({ ...base, recommendation: "approved" as never })).toHaveLength(1);
+    expect(techReviewProblems({ ...base, supervisorDecision: {} as never })).toHaveLength(1);
+  });
+
+  it("عارض Markdown يقرأ سطر الوسائط صورةً أو فيديو", () => {
+    expect(parseMarkdown("![وصف](clips/a.mp4)")).toEqual([{ k: "media", alt: "وصف", src: "clips/a.mp4" }]);
+  });
+});

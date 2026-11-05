@@ -553,6 +553,18 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
   }
 
+  // المراجعات الفنية (الأمر 018): تقارير المنفّذ بشرائطها ومقاطعها، بجوار الحلقة أو المختبر؛ للقراءة
+  if (parts[0] === "tech-reviews" && req.method === "GET") {
+    const rv = await load("/src/channel/techReviews.ts");
+    if (!parts[1]) return send(res, 200, { reviews: await rv.listTechReviews(episodesDir) }), true;
+    const rel = parts.slice(3).map((x) => decodeURIComponent(x)).join("/");
+    const file: string | null = await rv.techReviewFilePath(episodesDir, parts[1], parts[2] ?? "", rel);
+    if (!file) return send(res, 404, { error: "الملف غير موجود في المراجعة" }), true;
+    const type = file.endsWith(".mp4") ? "video/mp4" : file.endsWith(".jpg") ? "image/jpeg" : "text/markdown; charset=utf-8";
+    ctx.serveFile(req, res, file, type);
+    return true;
+  }
+
   // مختبرات الإنتاج (الأمر 017): مجلدات lab.json لهذه القناة وحدها، ومعايناتها؛ ليست حلقات ولا تُنشر
   if (parts[0] === "labs" && req.method === "GET") {
     const labs = await load("/src/channel/labs.ts");

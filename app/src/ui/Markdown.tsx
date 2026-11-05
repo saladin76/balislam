@@ -11,7 +11,9 @@ type Block =
   | { k: "ul" | "ol"; items: string[]; depth?: number[] }
   | { k: "table"; head: string[]; rows: string[][] }
   | { k: "code"; text: string }
-  | { k: "hr" };
+  | { k: "hr" }
+  /** سطر وحده: ![وصف](ملف) — صورة، أو فيديو إن كان الملف .mp4 */
+  | { k: "media"; alt: string; src: string };
 
 const cells = (line: string) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
 
@@ -33,6 +35,8 @@ export const parseMarkdown = (src: string): Block[] => {
     const h = l.match(/^(#{1,4})\s+(.*)$/);
     if (h) { out.push({ k: "h", level: h[1]!.length, text: h[2]! }); i++; continue; }
     if (/^(-{3,}|\*{3,})\s*$/.test(l)) { out.push({ k: "hr" }); i++; continue; }
+    const media = l.trim().match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/);
+    if (media) { out.push({ k: "media", alt: media[1]!, src: media[2]! }); i++; continue; }
     if (l.trim().startsWith("|") && lines[i + 1]?.match(/^\s*\|?\s*:?-{2,}/)) {
       const head = cells(l);
       i += 2;
@@ -98,7 +102,8 @@ const inline = (text: string, onLink: (href: string) => void, key = ""): React.R
   return out;
 };
 
-export const Markdown: React.FC<{ text: string; onLink: (href: string) => void }> = ({ text, onLink }) => (
+/** resolveMedia: يحوّل مسار الصورة أو الفيديو النسبي إلى رابط؛ بدونه لا تُعرض الوسائط (الدليل لا يحتاجها) */
+export const Markdown: React.FC<{ text: string; onLink: (href: string) => void; resolveMedia?: (src: string) => string | null }> = ({ text, onLink, resolveMedia }) => (
   <div className="md" dir="rtl">
     {parseMarkdown(text).map((b, i) => {
       const k = String(i);
@@ -136,6 +141,15 @@ export const Markdown: React.FC<{ text: string; onLink: (href: string) => void }
           );
         case "code":
           return <pre key={k} dir="ltr"><code>{b.text}</code></pre>;
+        case "media": {
+          const url = resolveMedia?.(b.src);
+          if (!url) return <p key={k} className="muted">[{b.alt || b.src}]</p>;
+          return /\.mp4$/i.test(b.src) ? (
+            <figure key={k} className="md-media"><video src={url} controls preload="metadata" playsInline /><figcaption>{b.alt}</figcaption></figure>
+          ) : (
+            <figure key={k} className="md-media"><a href={url} target="_blank" rel="noreferrer"><img src={url} alt={b.alt} loading="lazy" /></a><figcaption>{b.alt}</figcaption></figure>
+          );
+        }
         case "hr":
           return <hr key={k} />;
       }
