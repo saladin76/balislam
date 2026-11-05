@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api, type Overview } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
+import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
@@ -44,8 +45,8 @@ export const HomeTab: React.FC<{
   const [items, setItems] = useState<Overview[] | null>(null);
   const [err, setErr] = useState("");
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "attention" | "ready" | "published">("all");
-  const [sort, setSort] = useState<"recent" | "oldest" | "title">("recent");
+  const [filter, setFilter] = useState<HomeCardFilter>("all");
+  const [sort, setSort] = useState<HomeCardSort>("recent");
   useEffect(() => {
     let active = true;
     setItems(null);
@@ -62,18 +63,8 @@ export const HomeTab: React.FC<{
   const published = items.filter((e) => e.status.published).length;
   const ready = items.filter((e) => stagesOf(e).slice(0, 4).every((s) => s.state === "done" || s.state === "na") && !e.status.published).length;
   const minutes = items.reduce((n, e) => n + e.check.seconds, 0) / 60;
-  const visible = items.filter((e) => {
-    const query = search.trim().toLocaleLowerCase();
-    const found = !query || [e.id, e.title, e.dir, e.domain].some((part) => String(part ?? "").toLocaleLowerCase().includes(query));
-    const stages = stagesOf(e);
-    const publishReady = stages.slice(0, 4).every((stage) => stage.state === "done" || stage.state === "na") && !e.status.published;
-    const needsAttention = !e.status.published && !publishReady;
-    return found && (filter === "all" || (filter === "published" && Boolean(e.status.published)) ||
-      (filter === "ready" && publishReady) || (filter === "attention" && needsAttention));
-  }).sort((a, b) => sort === "title"
-    ? (a.title || a.dir).localeCompare(b.title || b.dir, "ar")
-    : sort === "oldest" ? a.id.localeCompare(b.id, undefined, { numeric: true })
-      : b.id.localeCompare(a.id, undefined, { numeric: true }));
+  const visible = selectHomeCards(items, search, filter, sort, (e) =>
+    stagesOf(e).slice(0, 4).every((stage) => stage.state === "done" || stage.state === "na"));
 
   return (
     <div className="home">
