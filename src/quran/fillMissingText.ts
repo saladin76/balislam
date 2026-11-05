@@ -58,6 +58,9 @@ export const fillMissingQuranTexts = async (
     }
   }
 
+  // All-or-nothing: a failed reference must not leave a misleading partial comparison cache.
+  if (result.failed.length) return { fetched: [], existing: result.existing, failed: result.failed };
+
   if (Object.keys(additional).length) {
     // Never overwrite any edit that occurred while the API requests were in flight.
     const current = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
