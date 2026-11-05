@@ -181,8 +181,20 @@ program
   .command("quran-text-only")
   .description("جلب نصوص الآيات الناقصة فقط إلى quran.json؛ لا يكتب plan.json ولا يجلب صوتًا أو يغيّر مراجعات الحلقة")
   .argument("<episode>", "رقم الحلقة")
-  .requiredOption("--confirm-cache-write", "إقرار صريح بحفظ النصوص الناقصة في quran.json فقط")
-  .action(async (episode: string) => {
+  .option("--dry-run", "عرض المراجع الناقصة دون اتصال أو كتابة أي ملف")
+  .option("--confirm-cache-write", "إقرار صريح بحفظ النصوص الناقصة في quran.json فقط")
+  .action(async (episode: string, opts: { dryRun?: boolean; confirmCacheWrite?: boolean }) => {
+    if (opts.dryRun) {
+      const { inspectMissingQuranTexts } = await import("../quran/fillMissingText");
+      const result = await inspectMissingQuranTexts(episode);
+      for (const key of result.missing) console.log(`${key}: نص محلي ناقص`);
+      for (const key of result.existing) console.log(`${key}: نص محلي موجود`);
+      for (const failure of result.invalid) console.log(`${failure.ref}: مرجع غير صالح — ${failure.reason}`);
+      console.log(`ناقص: ${result.missing.length} · موجود: ${result.existing.length} · غير صالح: ${result.invalid.length} (فحص دون كتابة)`);
+      if (result.invalid.length) process.exitCode = 1;
+      return;
+    }
+    if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص أو --confirm-cache-write للإذن بحفظ النصوص الناقصة.");
     const { quranClientFromEnv } = await import("../quran/client");
     const { fillMissingQuranTexts } = await import("../quran/fillMissingText");
     const client = quranClientFromEnv();
