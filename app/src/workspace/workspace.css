@@ -115,3 +115,29 @@
 .app.episode-workspace-app > .publish { min-height: 0; min-width: 0; }
 .app.episode-workspace-app > .ew-storyboard-wrap,
 .app.episode-workspace-app > .ew-voice-stage { overflow-y: auto; }
+
+/* المرحلة الثانية من تحسين UX: بطاقتا صوت واضحتان، مع اعتماد الحقوق ضمن مسار منفصل. */
+.ew-audio-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ew-audio-summary > div { padding: 13px 16px; border: 1px solid var(--line, #d4d2cb); border-radius: 14px; background: var(--surface, #fff); display: grid; gap: 4px; }
+.ew-audio-summary strong { font-size: 25px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ew-audio-summary span { color: var(--muted, #67645e); font-size: 12px; line-height: 1.6; }
+.ew-voice-lane { border: 1px solid var(--line, #d4d2cb); border-radius: 16px; padding: clamp(12px, 2vw, 22px); background: var(--surface, #fff); min-width: 0; display: grid; gap: 16px; }
+.ew-lane-heading { display: flex; align-items: flex-start; gap: 12px; }
+.ew-lane-index { width: 37px; height: 37px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; color: var(--accent, #207f67); background: var(--panel, #f2f1eb); font-weight: 750; }
+.ew-lane-heading h3 { margin: 0 0 5px; font-size: 17px; }
+.ew-lane-heading p { margin: 0; line-height: 1.7; font-size: 13px; color: var(--muted, #67645e); }
+.ew-voice-lane > .group { margin: 0; min-width: 0; }
+.ew-production-licence { margin-block-start: 16px; border: 1px solid var(--line, #d4d2cb); border-radius: 12px; overflow: hidden; }
+.ew-production-licence > summary { padding: 13px 16px; cursor: pointer; font-weight: 700; background: var(--panel, #f2f1eb); line-height: 1.7; }
+.ew-production-licence[open] > summary { border-bottom: 1px solid var(--line, #d4d2cb); }
+.ew-licence-fields { padding: 15px; display: grid; gap: 12px; }
+.ew-licence-fields p { margin: 0; font-size: 13px; line-height: 1.85; }
+.ew-licence-fields label { font-size: 13px; font-weight: 600; }
+.ew-licence-fields > input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line, #d4d2cb); border-radius: 9px; font: inherit; min-width: 0; }
+.ew-licence-confirm { display: flex; gap: 9px; align-items: flex-start; line-height: 1.8; }
+.ew-licence-confirm input { margin-block-start: 6px; }
+.ew-production-ok { color: var(--ok, #207f67); font-weight: 650; }
+@media (max-width: 760px) {
+  .ew-audio-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ew-audio-summary > div:last-child { grid-column: 1 / -1; }
+}
