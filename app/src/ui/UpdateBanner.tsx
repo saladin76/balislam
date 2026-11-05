@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
+import { updateOutcome } from "./updateOutcome";
 
 /**
  * شريط «تحديث جديد»: يتحقق من GitHub كل دقيقة (وعند العودة للنافذة)،
@@ -35,7 +36,12 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     try {
       await beforeUpdate();
       const r = await api.applyUpdate();
-      if (r.reinstalled) setMsg({ text: `${r.message} نزلت حزم جديدة: أغلق الاستوديو (Ctrl + C) وشغّله مرة أخيرة.` });
+      const outcome = updateOutcome(r);
+      if (outcome === "failure") {
+        setMsg({ text: r.message || "تعذّر تحديث الاستوديو؛ لم تُطبّق العملية.", err: true });
+        return;
+      }
+      if (outcome === "restart") setMsg({ text: `${r.message} نزلت حزم جديدة: أغلق الاستوديو (Ctrl + C) وشغّله مرة أخيرة.` });
       else {
         setMsg({ text: `${r.message} جارٍ إعادة التحميل…` });
         setTimeout(() => window.location.reload(), 1500);
@@ -44,7 +50,7 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     } catch (e) {
       // التحديث يغيّر ملفات الخادم نفسه فيُعاد تشغيله وينقطع الطلب: ننتظر عودته ثم نعيد التحميل
       if (e instanceof TypeError || /fetch|network|Load failed/i.test((e as Error).message)) {
-        setMsg({ text: "تم تنزيل التحديث، والاستوديو يعيد تشغيل نفسه… لحظات" });
+        setMsg({ text: "انقطع الاتصال أثناء طلب التحديث؛ نتحقق من عودة الاستوديو دون افتراض نجاح العملية.", err: true });
         setSt(null);
         for (let i = 0; i < 40; i++) {
           await new Promise((r) => setTimeout(r, 1000));
