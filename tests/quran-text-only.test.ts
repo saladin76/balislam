@@ -3,7 +3,7 @@ import { rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { fillMissingQuranTexts } from "../src/quran/fillMissingText";
+import { fillMissingQuranTexts, inspectMissingQuranTexts } from "../src/quran/fillMissingText";
 import type { QuranClient } from "../src/quran/client";
 
 let tempRoot = "";
@@ -121,6 +121,16 @@ describe("جلب نصوص الآيات الناقصة دون مساس بالإن
     } finally {
       writeFileSync(scriptFile, originalScript);
     }
+  });
+
+  it("يستعرض المراجع الناقصة دون جلب أو كتابة ملفات", async () => {
+    const cacheFile = path.join(episodeDir, "quran.json");
+    const original = JSON.stringify({ existing: "محلي" });
+    writeFileSync(cacheFile, original);
+    const found = await inspectMissingQuranTexts("999");
+    expect(found.missing).toContain("53:39");
+    expect(found.invalid).toEqual([]);
+    expect(readFileSync(cacheFile, "utf8")).toBe(original);
   });
 
 });
