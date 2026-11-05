@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createQuranClient } from "../src/quran/client";
 import { syncQuran } from "../src/quran/sync";
 import { collectMedia } from "../src/plan/collect";
-import { requireCloudPublicationRights } from "../src/quran/provider";
+import { requireCloudPublicationRights, activeRecitation, episodeRecitationFile, saveEpisodeRecitation, readEpisodeRecitation } from "../src/quran/provider";
 import { regeneratePlan } from "../src/plan/io";
 
 let tmp = "";
@@ -36,6 +36,30 @@ describe("تلاوة AlQuran Cloud داخل الفيديو بعد إثبات ا�
       licence: { holder: "", evidence: "https://example.com/permission", scope: "يوتيوب والنشر التجاري", verifiedAt: new Date().toISOString() } })).toThrow(/إذن/);
     expect(() => requireCloudPublicationRights({ provider: "alquran-cloud", edition: "ar.alafasy", name: "العفاسي",
       licence: { holder: "المالك", evidence: "http://example.com/permission", scope: "يوتيوب والنشر التجاري", verifiedAt: new Date().toISOString() } })).toThrow(/HTTPS/);
+  });
+
+  it("يحفظ قارئ كل حلقة محليًا دون تغيير إعدادات القناة أو خطة الحلقة", async () => {
+    const scriptPath = path.join(tmp, "balislam", "episodes", "000-demo", "script.md");
+    const other = path.join(tmp, "balislam", "episodes", "999-other", "script.md");
+    const selected = {
+      provider: "alquran-cloud" as const, edition: "ar.alafasy", name: "القارئ المختار",
+      licence: { holder: "صاحب الحق", evidence: "https://rights.example.org/recording",
+        scope: "إذن نشر على يوتيوب للاستخدام التجاري", verifiedAt: new Date().toISOString() },
+    };
+    const planPath = path.join(path.dirname(scriptPath), "plan.json");
+    const planBefore = existsSync(planPath) ? readFileSync(planPath, "utf8") : null;
+    try {
+      await saveEpisodeRecitation(scriptPath, selected);
+      expect((await readEpisodeRecitation(scriptPath))?.edition).toBe("ar.alafasy");
+      expect((await activeRecitation(scriptPath, { id: 7, name: "قارئ القناة" }))?.provider).toBe("alquran-cloud");
+      expect(await readEpisodeRecitation(other)).toBeNull();
+      expect(existsSync(episodeRecitationFile(scriptPath))).toBe(true);
+      expect(existsSync(planPath) ? readFileSync(planPath, "utf8") : null).toBe(planBefore);
+    } finally {
+      await saveEpisodeRecitation(scriptPath, null);
+    }
+    expect(await readEpisodeRecitation(scriptPath)).toBeNull();
+    expect((await activeRecitation(scriptPath, { id: 7, name: "قارئ القناة" }))?.name).toBe("قارئ القناة");
   });
 
   it("يجلب الآية تلقائيًا من القارئ المرخّص ويجهزها لرندر بطاقة الآية", async () => {
