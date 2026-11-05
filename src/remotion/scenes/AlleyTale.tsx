@@ -8,6 +8,7 @@ import { autoCameraPlan, cameraCuts, isComposed, moveFrames, parseCameraPlan, pa
 import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan/sceneCues";
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { useTransition } from "./transitions";
+import { figureSpan, fitFrame } from "../illus/framing";
 import { fitDistance, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
 import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
@@ -24,7 +25,7 @@ import { AmbientGrade, BackHalo, DepthLayer, ForegroundFrame, LitFigure, SceneFi
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "cameraPlanPortrait" | "gait" | "lighting" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "cameraPlanPortrait" | "framing" | "gait" | "lighting" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -153,6 +154,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const HERO_SCALE = 1.75;
   const tc = useTransition();
   let loco: ReturnType<typeof locomote> | null = null;
+  let locoOpts: Parameters<typeof locomote>[1] | null = null;
   if (composed && stage === "solo" && !sitting) {
     const moves: Move[] = [];
     const turns: Turn[] = [];
@@ -172,7 +174,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
     if (doorAt !== undefined) turns.push({ at: Math.max(0, doorAt - 6), to: 1, dur: 20 });
     // استمرار الحركة عبر حد المشهد (الأمر 011، الانتقال carry)؛ بدونه الخطة كما كانت حرفيًا
     const { x0, facing0, moves: planned } = withCarry({ x0: 1060, facing0: firstWalk <= 2 ? -1 : 1, moves, turns, gait, dur, fps, scale: HERO_SCALE, worldW: WW, ...(tc.carryIn ? { carryIn: tc.carryIn } : {}), ...(tc.carryOut ? { carryOut: tc.carryOut } : {}) });
-    loco = locomote(frame, { x0, facing0, moves: planned, turns, scale: HERO_SCALE, fps });
+    locoOpts = { x0, facing0, moves: planned, turns, scale: HERO_SCALE, fps };
+    loco = locomote(frame, locoOpts);
     heroX = loco.x;
     walking = loco.moving;
   }
@@ -232,6 +235,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   ct("listen", "talk", "talk");
   ct("debate", "point", "talk", 24);
   ct("companion", "nod", "stand", 8);
+  // في العمودي مع التأطير المحتوي يقترب من أمامه قليلًا (330 بدل 400) ليتسع الاثنان في الإطار الضيق (تغيير تكوين مقصود ومعلن)
+  const compGap = composed && props.framing === "fit" && portrait ? 330 : 400;
   const compPose = poseAt(frame, compTimeline.map((x) => ({ ...x, pose: x.pose === "head-down" ? "nod" : x.pose })));
   const compIn = rise(frame, 0, 14);
 
@@ -263,10 +268,17 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const keys = cues.map((c) => c.word);
   const focusX = heroX;
   // عناصر المكان (الباب واللوحة) ثابتة في موضع البطل المعتاد حين يدخل أو يخرج ماشيًا عبر الحد (carry)، فلا تتبعه خارج الإطار
-  const propX = tc.carryIn || tc.carryOut ? Math.max(420, Math.min(1060, heroX)) : heroX;
+  // التأطير المحتوي (الأمر 013): الباب واللوحة ثابتان في مكانهما من العالم، حيث يقف البطل لحظة ذكرهما،
+  // لا ينزلقان معه وهو يمشي (عيب قائم في التأطير القديم يبقى فيه كما هو)
+  const propAnchor = props.cameraMode === "composed" && props.framing === "fit" && locoOpts ? locomote(Math.max(0, (at("door") ?? at("news") ?? dur - 1)), locoOpts).x : null;
+  const propX = propAnchor !== null ? Math.max(420, Math.min(1060, propAnchor)) : tc.carryIn || tc.carryOut ? Math.max(420, Math.min(1060, heroX)) : heroX;
   // الكاميرا المؤلَّفة: مفاتيح قليلة (افتتاح + حركة أو اثنتان) على كلمات المعنى، بانتقال طويل هادئ
   const sacredScene = isSacredSentence(narration);
-  const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: portrait && props.cameraPlanPortrait ? props.cameraPlanPortrait : props.cameraPlan, cues, timings }) : null;
+  // التأطير المحتوي (الأمر 013، framing = fit): الكاميرا تحتوي ما يلزم لفهم اللقطة ولا تقص غيره نصف قص.
+  // بلا الحقل تبقى الكاميرا المؤلَّفة كما كانت حرفيًا
+  const fitMode = composed && props.framing === "fit";
+  const fit = fitMode ? fitFor({ heroX, propX, stage, portrait, sitting, walking, timeline, compTimeline, compX: heroX - compGap, hasDoor: at("door") !== undefined, hasBoard: newsAt !== undefined && place !== "home", ghosts: at("people") !== undefined, facingLeft, turnsAway: poses.includes("turn-away"), verdicts: { wrong: cues.find((c) => c.kind === "wrong")?.word, just: cues.find((c) => c.kind === "just")?.word } }) : undefined;
+  const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: portrait && props.cameraPlanPortrait ? props.cameraPlanPortrait : props.cameraPlan, cues, timings, ...(fit ? { fit, alternate: portrait } : {}) }) : null;
   // الإضاءة والظلال والعمق (الأمر 008): اختيارية بحقل lighting، وبدونه لا يتغير شيء
   const rig = parseLighting(props.lighting);
   const light = rig ? lightAt(rig, frame, (w) => cueFrames([{ kind: "truth", word: w }], timings)[0]?.at) : null;
@@ -362,9 +374,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
             {hasBench ? <Workbench x={propX + 120} mood={curMood} done={success} /> : null}
             {stage === "companion" ? (
               light ? (
-                <LitFigure light={light} x={heroX - 400} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
+                <LitFigure light={light} x={heroX - compGap} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
               ) : (
-                <Figure x={heroX - 400} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
+                <Figure x={heroX - compGap} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
               )
             ) : null}
             {stage === "witnesses" ? (
@@ -388,7 +400,13 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
             {memory.map((c, i) => {
               const col = c.kind === "wrong" ? ID.seal : ID.dawn;
               const side = i % 2 ? 1 : -1;
-              const x0 = stage === "witnesses" && c.kind !== "memory" ? (c.kind === "wrong" ? 640 : 1300) : heroX + side * (300 + i * 40);
+              const witnessPill = stage === "witnesses" && c.kind !== "memory";
+              const x0 = witnessPill ? (c.kind === "wrong" ? 640 : 1300) : heroX + side * (300 + i * 40);
+              if (fitMode && witnessPill && composedCam) {
+                // التأطير المحتوي: حكم كل شاهد بجوار رأسه من جهة الموقف (لا فوق رأسه)، ويخرج معه إن خرج من الإطار
+                const p = witnessPillAt(x0, c.kind === "wrong" ? 1 : -1, c.word, composedCam, portrait);
+                return p === null ? null : <WordPill key={c.word} x={p} y={GROUND - 420 - 40} text={c.word} color={col} t={rise(frame, c.at, 12)} />;
+              }
               // الكاميرا المؤلَّفة: الكلمة داخل الإطار الظاهر كاملة (لا تُقص على حافته، خاصة في العمودي)
               const x = composedCam ? pillInView(x0, c.word, composedCam, portrait) : x0;
               return <WordPill key={c.word} x={x} y={GROUND - 420 - (stage === "witnesses" ? 40 : i * 56)} text={c.word} color={col} t={rise(frame, c.at, 12)} />;
@@ -452,6 +470,61 @@ export const frameOn = (x: number, z: number, portrait = false): CamState => {
 export const screenY = (c: CamState, worldY: number) => 540 + c.z * (worldY - c.y);
 export const HERO_HEAD_Y = HEAD_Y;
 
+/**
+ * التأطير المحتوي لكل هدف (الأمر 013): ما يلزم لفهم اللقطة «مطلوب» يُحتوى كاملًا، وما سواه «اختياري»
+ * يظهر كاملًا أو يخرج كاملًا. الحدود من وضعيات الشخصية في المشهد كله (غلاف ثابت).
+ */
+export const fitFor = (s: {
+  heroX: number;
+  propX: number;
+  stage: "solo" | "companion" | "witnesses";
+  portrait: boolean;
+  sitting: boolean;
+  walking: boolean;
+  timeline: { pose: PoseName }[];
+  compTimeline: { pose: PoseName }[];
+  compX: number;
+  hasDoor: boolean;
+  hasBoard: boolean;
+  ghosts: boolean;
+  facingLeft: boolean;
+  turnsAway: boolean;
+  /** كلمتا حكم الشاهدين: تُحتويان مع صاحبيهما بجوار رأسيهما */
+  verdicts?: { wrong?: string; just?: string };
+}) => (t: CamTarget, shot: CamShot): CamState => {
+  const heroPoses = [...new Set(s.timeline.map((e) => e.pose))] as (PoseName | "walk")[];
+  if (s.walking) heroPoses.push("walk");
+  const heroFacing = s.stage === "companion" ? (s.turnsAway ? "both" : "left") : s.stage === "witnesses" ? "right" : s.sitting ? (s.facingLeft ? "left" : "right") : "both";
+  const hero = figureSpan(s.heroX, heroPoses, heroFacing, 1.75, "hero");
+  // المقعد جزء من البطل الجالس
+  // حكم كل شاهد بجواره جزء منه في التأطير (ليتسع الاثنان معًا)
+  const vw = (w?: string) => (w ? pillWidth(w) : 0);
+  const heroSeat = s.sitting ? { lo: Math.min(hero.lo, s.heroX - 60), hi: Math.max(hero.hi, s.heroX + 180), name: "hero" } : hero;
+  const heroAll = s.stage === "witnesses" && s.verdicts?.wrong ? { ...heroSeat, hi: Math.max(heroSeat.hi, s.heroX + 48 + vw(s.verdicts.wrong)) } : heroSeat;
+  const comp = s.stage === "companion" ? figureSpan(s.compX, [...new Set(s.compTimeline.map((e) => e.pose))], "right", 1.7, "companion") : null;
+  const door = s.hasDoor ? { lo: s.propX + 250 - 16, hi: s.propX + 250 + 190 + 16, name: "door" } : null;
+  const board = s.hasBoard ? { lo: s.propX - 430, hi: s.propX - 430 + 266, name: "board" } : null;
+  const situation = s.stage === "witnesses" ? { lo: figureSpan(920, ["point", "talk"], "right", 1.15).lo, hi: figureSpan(1010, ["hold", "flinch"], "left", 1.15).hi, name: "situation" } : null;
+  const second0 = s.stage === "witnesses" ? figureSpan(1300, ["stand", "think"], "left", 1.75, "witness2") : null;
+  const second = second0 && s.verdicts?.just ? { ...second0, lo: Math.min(second0.lo, 1300 - 48 - vw(s.verdicts.just)) } : second0;
+  const ghosts = s.ghosts ? [-330, -560, 300].map((dx, i) => figureSpan(s.heroX + dx, ["stand"], "both", 1.25, `ghost${i}`)) : [];
+  const all = [heroAll, comp, door, board, situation, second, ...ghosts].filter((x): x is NonNullable<typeof x> => Boolean(x));
+  const pick = (req: (typeof all)[number] | null | undefined, ...more: ((typeof all)[number] | null | undefined)[]) => [req, ...more].filter((x): x is NonNullable<typeof x> => Boolean(x));
+  const required =
+    t === "pair" && comp ? pick(heroAll, comp)
+    : t === "door" && door ? pick(heroAll, door)
+    : t === "board" && board ? pick(heroAll, board)
+    : t === "center" && situation ? pick(situation)
+    : t === "other" && second ? pick(second)
+    : t === "other" && comp ? pick(comp)
+    : t === "center" ? []
+    : pick(heroAll);
+  const optional = all.filter((x) => !required.includes(x));
+  const want = required.length ? (Math.min(...required.map((r) => r.lo)) + Math.max(...required.map((r) => r.hi))) / 2 : 960;
+  const r = fitFrame({ x: want, z: shotZoom(shot), required, optional, portrait: s.portrait, worldW: WW });
+  return frameOn(r.x, r.z, s.portrait);
+};
+
 export const composedCamera = (o: {
   frame: number;
   dur: number;
@@ -463,6 +536,10 @@ export const composedCamera = (o: {
   plan?: string;
   cues: { kind: string; word: string; at: number }[];
   timings: { word: string; start: number }[];
+  /** التأطير المحتوي (framing = fit): يحل محل shotFrame لكل هدف */
+  fit?: (t: CamTarget, s: CamShot) => CamState;
+  /** في العمودي مع fit: الانتقال بين الشاهدين عند كلمتي حكمهما */
+  alternate?: boolean;
 }): CamState & { keys: number; still: boolean } => {
   const authored = parseCameraPlan(o.plan);
   const still = authored.some((b) => b.still);
@@ -478,14 +555,15 @@ export const composedCamera = (o: {
           })
           .filter((b): b is Beat => b !== null)
           .sort((a, b) => a.frame - b.frame)
-      : autoCameraPlan({ cues: o.cues, duration: o.dur, fps: o.fps, stage: o.stage, sacred: o.sacred });
+      : autoCameraPlan({ cues: o.cues, duration: o.dur, fps: o.fps, stage: o.stage, sacred: o.sacred, ...(o.alternate ? { alternate: true } : {}) });
   if (!beats.length || beats[0]!.frame > 0) beats.unshift({ frame: 0, shot: "wide", target: "hero" });
   const pt = Boolean(o.portrait);
-  let cur = shotFrame(beats[0]!.target, beats[0]!.shot, o.heroX, o.stage, pt);
+  const frameFor = (t: CamTarget, s: CamShot) => (o.fit ? o.fit(t, s) : shotFrame(t, s, o.heroX, o.stage, pt));
+  let cur = frameFor(beats[0]!.target, beats[0]!.shot);
   let free = 0;
   for (let i = 1; i < beats.length; i++) {
     const b = beats[i]!;
-    const to = shotFrame(b.target, b.shot, o.heroX, o.stage, pt);
+    const to = frameFor(b.target, b.shot);
     const len = b.dur ?? moveFrames(to.z - cur.z, to.x - cur.x);
     // تصل الكاميرا مع الحدث تقريبًا: تبدأ قبله بنحو 40% من مدة الحركة (والإزاحة في الخطة تضبط موضع الحدث)
     const start = Math.max(free, b.frame - Math.round(len * 0.4));
@@ -508,6 +586,21 @@ export const pillInView = (x: number, word: string, c: CamState, portrait: boole
   const hi = c.x + half - w / 2 - 24;
   return lo > hi ? c.x : Math.max(lo, Math.min(hi, x));
 };
+/**
+ * حكم الشاهد (framing = fit، الأمر 013): بجوار رأسه من جهة الموقف بلا تداخل مع الرأس، داخل الإطار إن كان
+ * الشاهد ظاهرًا، ولا يُرسم (null) إن كان الشاهد خارج الإطار، فلا تُسحب كلمته إلى غير صاحبها.
+ */
+export const witnessPillAt = (wx: number, inward: 1 | -1, word: string, c: CamState, portrait: boolean, size = 46) => {
+  const half = (portrait ? 304 : 960) / c.z;
+  if (wx < c.x - half || wx > c.x + half) return null;
+  const w = pillWidth(word, size);
+  // الرأس نحو 45 وحدة حول محور الشخصية
+  const beside = wx + inward * (48 + w / 2);
+  const x = pillInView(beside, word, c, portrait, size);
+  return x;
+};
+/** عرض بطاقة كلمة (كما في WordPill) */
+export const pillWidth = (word: string, size = 46) => word.length * size * 0.58 + 64;
 /** تحويل طبقة بعمق depth: الطبقات البعيدة تتحرك وتكبر أقل (منظور) */
 const composedLayer = (c: CamState, depth: number) => {
   const k = 0.4 + depth * 0.6;

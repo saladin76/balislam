@@ -35,7 +35,7 @@ const MOTION_OPTIONS = [
   { value: "natural", label: "طبيعية: قدم ثابتة وتسارع والتفاتة بالجسد" },
 ];
 const CAMERA_PLAN_HELP =
-  "مع الكاميرا المؤلَّفة فقط. فارغ = خطة آلية من كلمات المعنى. «ثابت» وحدها = كاميرا ساكنة. أو سطر لكل حركة: الكلمة (ويجوز +إطارات أو -إطارات) أو رقم الإطار | wide أو medium أو close ثم الهدف (hero، pair، door، board، center) ثم مدة اختيارية بالإطارات (12–300). السطر الأول 0 = التأطير الافتتاحي.";
+  "مع الكاميرا المؤلَّفة فقط. فارغ = خطة آلية من كلمات المعنى. «ثابت» وحدها = كاميرا ساكنة. أو سطر لكل حركة: الكلمة (ويجوز +إطارات أو -إطارات) أو رقم الإطار | wide أو medium أو close ثم الهدف (hero، pair، door، board، center، وother للطرف الآخر مع التأطير المحتوي) ثم مدة اختيارية بالإطارات (12–300). السطر الأول 0 = التأطير الافتتاحي.";
 const LOOK_OPTIONS = [
   { value: "hero", label: "شاب (سترة)" },
   { value: "heroThobe", label: "شاب (ثوب)" },
@@ -255,6 +255,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "moodTo", label: "يتحول إلى", type: "select", options: [{ value: "", label: "لا يتحول" }, ...MOOD_OPTIONS] },
       { key: "cameraMode", label: "وضع الكاميرا", type: "select", options: [{ value: "", label: "تلقائي (القديم: تأطير مع كل سطر)" }, { value: "directed", label: "إخراج يدوي (حركة «الكاميرا» وحدها)" }, { value: "composed", label: "مؤلَّفة: حركات قليلة على كلمات المعنى ومشي طبيعي" }], help: "المؤلَّفة تفعّل المشي الطبيعي والالتفات بالجسد واستمرار الحركة بين المشاهد (carry)." },
       { key: "camera", label: "الكاميرا", type: "select", options: CAMERA_OPTIONS, help: "في الوضع المؤلَّف تتولاها خطة الكاميرا." },
+      { key: "framing", label: "التأطير", type: "select", options: [{ value: "", label: "القائم (كما هو)" }, { value: "fit", label: "محتوي: الشخصيات والعناصر المطلوبة كاملة، وما سواها لا يُقص نصف قص" }], help: "مع الكاميرا المؤلَّفة فقط (الأمر 013). في العمودي: يقترب من أمام البطل قليلًا ليتسعا، وتنتقل الكاميرا بين الشاهدين عند كلمتي حكمهما، وتكون كلمة كل شاهد بجوار رأسه." },
       { key: "cameraPlan", label: "خطة الكاميرا (اختياري)", type: "textarea", help: CAMERA_PLAN_HELP },
       { key: "cameraPlanPortrait", label: "خطة الكاميرا للعمودي (اختياري)", type: "textarea", help: "مثل خطة الكاميرا، للنسخة العمودية وحدها؛ فارغ = الخطة نفسها." },
       { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الكاميرا المؤلَّفة فقط." },

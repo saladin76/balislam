@@ -167,7 +167,7 @@ export const LightStage: React.FC<LightStageProps> = (props) => {
             {sitting ? <g><rect x={heroX - 70} y={GROUND + 30 - 112} width={150} height={112} fill={darken(ID.night, 0.2)} /><rect x={heroX - 76} y={GROUND + 30 - 120} width={162} height={12} fill={mix(ID.night, ID.copper, 0.3)} /></g> : null}
             <Figure x={heroX} y={GROUND + 30} scale={sitting ? 1.75 : 1.8} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, view: loco.view, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, news) * 0.9} />
             {memory.map((c, i) => (
-              <WordPill key={c.word} x={heroX + (i % 2 ? 360 : -360)} y={GROUND - 470 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
+              <WordPill key={c.word} x={natural ? stagePillX(heroX + (i % 2 ? 360 : -360), heroX, zoom, c.word, portrait) : heroX + (i % 2 ? 360 : -360)} y={GROUND - 470 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
             ))}
           </g>
         </svg>
@@ -175,6 +175,21 @@ export const LightStage: React.FC<LightStageProps> = (props) => {
       <TopCaption frame={frame} fps={fps} timings={timings} keys={cues.map((c) => c.word)} portrait={portrait} out={out} />
     </SceneShell>
   );
+};
+
+/**
+ * مع الحركة الطبيعية (الأمر 013): كلمة المعنى داخل ما تراه الكاميرا كاملة، فلا تُقص على حافة اللقطة القريبة.
+ * الكاميرا تكبّر حول البطل داخل ما يراه الإطار (كل العالم في الأفقي، و608 وحدات حوله في العمودي).
+ */
+export const stagePillX = (x: number, heroX: number, zoom: number, word: string, portrait: boolean, size = 46) => {
+  const w = word.length * size * 0.58 + 64;
+  // ما يراه الإطار قبل التكبير (viewBox)، ثم التكبير حول البطل
+  const c = portrait ? Math.max(304, Math.min(WW - 304, heroX)) : WW / 2;
+  const v0 = heroX + (c - (portrait ? 304 : WW / 2) - heroX) / zoom;
+  const v1 = heroX + (c + (portrait ? 304 : WW / 2) - heroX) / zoom;
+  const lo = v0 + w / 2 + 24 / zoom;
+  const hi = v1 - w / 2 - 24 / zoom;
+  return lo > hi ? (v0 + v1) / 2 : Math.max(lo, Math.min(hi, x));
 };
 
 export const lightStageSample: Omit<LightStageProps, "themeId" | "orientation"> = {

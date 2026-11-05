@@ -17,6 +17,7 @@ import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/E
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
 import { MotionLab007, MotionScenes007, SEG7, SEGMENTS_007 } from "./lab/MotionLab007";
+import { FramingLab, FramingTiming, framingLabFrames } from "./lab/FramingLab";
 import { PermanentCh2, PermanentStyles, permanentCh2Frames, permanentStylesFrames } from "./lab/PermanentLab";
 import { TransitionLab, TransitionLabBaseline, transitionLabFrames } from "./lab/TransitionLab";
 import { LIGHT_CASES, LIGHT_CASES_009, LightTimingOff, LightTimingOn, lightLab, lightLab009 } from "./lab/LightLab";
@@ -142,6 +143,15 @@ export const RemotionRoot: React.FC = () => (
       ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
+    {/* مختبر التأطير (الأمر 013): قبل/بعد framing = fit، بلا صوت، ولا يُنشر */}
+    <Composition id="lab-framing-landscape" component={FramingLab} durationInFrames={framingLabFrames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "landscape" as const }} />
+    {(["landscape", "portrait"] as const).map((o) => (
+      <Composition key={`motion013-${o}`} id={`lab-motion-013-${o}`} component={PermanentStyles} durationInFrames={permanentStylesFrames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: o, footer: "مختبر المحرك · الأمر 013 · المشهد نفسه بالتوقيت نفسه · بلا صوت · لا يُنشر" }} />
+    ))}
+    {[false, true].map((fit) => (
+      <Composition key={`ftime-${fit}`} id={`lab-framing-timing-${fit ? "fit" : "base"}`} component={FramingTiming} durationInFrames={8 * config.video.fps} fps={config.video.fps} {...sizes.portrait} defaultProps={{ fit, orientation: "portrait" as const, caseId: "witnesses" }} />
+    ))}
+    <Composition id="lab-framing-portrait" component={FramingLab} durationInFrames={framingLabFrames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "portrait" as const }} />
     {/* مختبر التوجيه الدائم: الحلقة الجديدة بأدوات المحرك المعتمدة، بلا صوت، ولا يُنشر */}
     <Composition id="lab-permanent-ch2-landscape" component={PermanentCh2} durationInFrames={permanentCh2Frames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "landscape" as const }} />
     <Composition id="lab-permanent-ch2-portrait" component={PermanentCh2} durationInFrames={permanentCh2Frames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "portrait" as const }} />

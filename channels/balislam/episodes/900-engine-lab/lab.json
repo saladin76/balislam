@@ -1,0 +1,66 @@
+{
+  "title": "مختبر محرك «بالإسلام»",
+  "purpose": "اختبارات بصرية لأدوات المحرك (الأوامر 005–013): الكاميرا المؤلَّفة والتأطير، والحركة الطبيعية، والإضاءة، والانتقالات، بمشاهد محايدة بلا صوت. ليس حلقة، ولا يُنشر. المرجع: docs/balislam/03-engine.md.",
+  "status": "review",
+  "tools": [
+    {
+      "name": "composed-camera — الكاميرا المؤلَّفة والتأطير المحتوي (framing = fit) في «الحارة»",
+      "status": "review",
+      "note": "أساس ينتظر الاعتماد ليصير افتراضيًا للحلقات الجديدة (الأوامر 005–006 و013)"
+    },
+    {
+      "name": "natural-road — المشي الطبيعي في «الطريق»",
+      "status": "review"
+    },
+    {
+      "name": "natural-stage — المشي الطبيعي في «ظل ونور»",
+      "status": "review"
+    },
+    {
+      "name": "lighting — الإضاءة والظلال والعمق",
+      "status": "experimental",
+      "note": "مؤثر اختياري لا يُفرض (الأمران 008–009)"
+    },
+    {
+      "name": "transitions — الانتقالات بين المشاهد",
+      "status": "experimental",
+      "note": "مؤثر اختياري لا يُفرض (الأمر 011)"
+    }
+  ],
+  "checks": [
+    {
+      "name": "tests/framing-fit.test.tsx — المطلوب كامل في كل حالة وهدف وحجم، وبلا الحقل الرسم القائم حرفيًا",
+      "ok": true,
+      "at": "2026-11-05"
+    },
+    {
+      "name": "tests/engine-permanent.test.tsx — الحلقة 001 لا تتغير، والعزل عن القنوات الأخرى",
+      "ok": true,
+      "at": "2026-11-05"
+    }
+  ],
+  "visualNotes": [
+    "الأمر 013: فحص المنفذ لقطات عند بدء المشي والتوقف والالتفات وتغيّر التأطير وبينها، في الاتجاهين.",
+    "العمودي لا يجمع الشاهدين والموقف في لقطة واحدة؛ تنتقل الكاميرا بين الشاهدين عند كلمتي حكمهما."
+  ],
+  "decisions": [],
+  "promoted": [],
+  "previews": {
+    "camera-ab.mp4": "review",
+    "camera-portrait.mp4": "review",
+    "motion.mp4": "review",
+    "motion-scenes.mp4": "review",
+    "light.mp4": "review",
+    "light-009.mp4": "review",
+    "transitions-011.mp4": "review",
+    "transitions-011-portrait.mp4": "review",
+    "engine-permanent.mp4": "review",
+    "engine-permanent-portrait.mp4": "review",
+    "engine-styles.mp4": "review",
+    "framing-013.mp4": "review",
+    "framing-013-portrait.mp4": "review",
+    "motion-013.mp4": "review",
+    "motion-013-portrait.mp4": "review"
+  },
+  "updatedAt": "2026-11-05"
+}

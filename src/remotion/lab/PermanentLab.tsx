@@ -39,33 +39,38 @@ const ROAD_S = 14;
 const STAGE_S = 12;
 export const permanentStylesFrames = () => (ROAD_S + STAGE_S) * config.video.fps;
 /** «الطريق» ثم «ظل ونور»: يمين الحركة القديمة، يسار الطبيعية */
-export const PermanentStyles: React.FC = () => (
+export const PermanentStyles: React.FC<{ orientation?: "landscape" | "portrait"; footer?: string }> = ({ orientation = "landscape", footer = FOOT }) => {
+  const S = orientation === "portrait" ? PortraitSplit : Split;
+  return (
   <AbsoluteFill>
     <Sequence durationInFrames={ROAD_S * config.video.fps} name="الطريق">
-      <Split
+      <S
         c={{
+          id: "road",
           title: "«الطريق»: طريقة المشي",
           sub: "قدم ثابتة على الطريق المتحرك، وتباطؤ عند المحطة واندفاع بعدها، ومتابعة الثوب (motion = natural)",
-          before: <RoadJourney {...roadJourneySample} themeId="night" orientation="landscape" />,
-          after: <RoadJourney {...roadJourneySample} motion="natural" themeId="night" orientation="landscape" />,
+          before: <RoadJourney {...roadJourneySample} themeId="night" orientation={orientation} />,
+          after: <RoadJourney {...roadJourneySample} motion="natural" themeId="night" orientation={orientation} />,
           beforeLabel: "القديمة",
           afterLabel: "الطبيعية",
-          footer: FOOT,
+          footer,
         }}
       />
     </Sequence>
     <Sequence from={ROAD_S * config.video.fps} durationInFrames={STAGE_S * config.video.fps} name="ظل ونور">
-      <Split
+      <S
         c={{
+          id: "stage",
           title: "«ظل ونور»: الانتقال بين العلامات",
           sub: "خطوات حقيقية إلى علامة كل سطر والتفاتة بالجسد، بدل الانزلاق السريع في 26 إطارًا (motion = natural)",
-          before: <LightStage {...lightStageSample} themeId="night" orientation="landscape" />,
-          after: <LightStage {...lightStageSample} motion="natural" themeId="night" orientation="landscape" />,
+          before: <LightStage {...lightStageSample} themeId="night" orientation={orientation} />,
+          after: <LightStage {...lightStageSample} motion="natural" themeId="night" orientation={orientation} />,
           beforeLabel: "القديمة",
           afterLabel: "الطبيعية",
-          footer: FOOT,
+          footer,
         }}
       />
     </Sequence>
   </AbsoluteFill>
-);
+  );
+};

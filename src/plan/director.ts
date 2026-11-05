@@ -18,7 +18,8 @@ export const isComposed = (mode?: string) => mode === "composed";
  */
 export const CAM_SHOTS = ["wide", "medium", "close"] as const;
 export type CamShot = (typeof CAM_SHOTS)[number];
-export const CAM_TARGETS = ["hero", "pair", "door", "board", "center"] as const;
+/** other (مع framing = fit فقط، الأمر 013): الطرف الآخر — من أمام البطل، أو الشاهد الثاني */
+export const CAM_TARGETS = ["hero", "pair", "door", "board", "center", "other"] as const;
 export type CamTarget = (typeof CAM_TARGETS)[number];
 export type CameraBeat = {
   at: { frame: number } | { word: string };
@@ -92,11 +93,27 @@ export const autoCameraPlan = (opts: {
   fps: number;
   stage: "solo" | "companion" | "witnesses";
   sacred: boolean;
+  /**
+   * التأطير المحتوي في العمودي (framing = fit، الأمر 013): الشاهدان لا يتسعان معًا في الإطار الضيق،
+   * فتنتقل الكاميرا إلى كل شاهد عند كلمة حكمه («ظلم» ثم «عدل») بدل تأطير يقصهما معًا.
+   */
+  alternate?: boolean;
 }): { frame: number; shot: CamShot; target: CamTarget }[] => {
   const { cues, duration, fps, stage, sacred } = opts;
   const open: { frame: number; shot: CamShot; target: CamTarget } = { frame: 0, shot: stage === "companion" ? "medium" : "wide", target: stage === "companion" ? "pair" : stage === "witnesses" ? "center" : "hero" };
   if (sacred) return [open];
   const moves: { frame: number; shot: CamShot; target: CamTarget }[] = [];
+  if (opts.alternate && stage === "witnesses") {
+    // الحكمان متقاربان عادة في جملة واحدة: يكفي ثانية ونصف بين الحركتين، فلكل حركة سبب في الكلام
+    for (const c of [...cues].sort((a, b) => a.at - b.at)) {
+      const m = c.kind === "wrong" ? { shot: "medium" as const, target: "hero" as const } : c.kind === "just" ? { shot: "medium" as const, target: "other" as const } : null;
+      if (!m || moves.length >= 2 || moves.some((x) => x.target === m.target)) continue;
+      const last = moves.at(-1)?.frame ?? -Infinity;
+      if (c.at - last < 1.5 * fps || c.at > duration - fps) continue;
+      moves.push({ frame: c.at, ...m });
+    }
+    return [open, ...moves];
+  }
   for (const c of [...cues].sort((a, b) => a.at - b.at)) {
     const m = CAMERA_CUES[c.kind];
     if (!m || moves.length >= 2) continue;

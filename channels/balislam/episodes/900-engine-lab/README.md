@@ -14,9 +14,12 @@
 | `light-009` | `balislam-lab-light9-*` (`src/remotion/lab/LightLab.tsx`) | الإضاءة الداخلية مقابل الأمر 008، وضوء النافذة، والعمق في «الطريق» والعمودي (الأمر 009) |
 | `transitions-011` و`transitions-011-portrait` | `lab-transitions-landscape` و`lab-transitions-portrait` (`src/remotion/lab/TransitionLab.tsx`) | الانتقالات بين المشاهد عبر محرك الحلقة الحقيقي، أولها بلا حقل للمقارنة (الأمر 011) |
 | `engine-permanent` و`engine-permanent-portrait` | `lab-permanent-ch2-landscape` و`lab-permanent-ch2-portrait` (`src/remotion/lab/PermanentLab.tsx`) | الفصل ٢ من الحلقة 001 كما اعتُمد مقابل الخطة نفسها لو أُنشئت جديدة بعد اعتماد الأساس (التوجيه الدائم) |
+| `framing-013` و`framing-013-portrait` | `lab-framing-landscape` و`lab-framing-portrait` (`src/remotion/lab/FramingLab.tsx`) | التأطير القائم مقابل المحتوي (`framing = fit`) في ست حالات: وحده، جالس، شخص أمامه، شاهدان، لوحة، ذكر الله (الأمر 013) |
+| `motion-013` و`motion-013-portrait` | `lab-motion-013-landscape` و`lab-motion-013-portrait` (`src/remotion/lab/PermanentLab.tsx`) | الحركة القديمة والطبيعية في «الطريق» و«ظل ونور» بالاتجاهين (الأمر 013) |
 | `engine-styles` | `lab-permanent-styles` (`src/remotion/lab/PermanentLab.tsx`) | الحركة القديمة والطبيعية في «الطريق» و«ظل ونور» (التوجيه الدائم) |
 
 النسخ السابقة لكل خانة محفوظة في سجل git (`git log -- channels/balislam/episodes/900-engine-lab/previews`).
 الرفع: `npx bal -c balislam upload-preview 900 <الخانة> <الملف> --title … --note …`
+المختبر مسجّل في «مختبرات الإنتاج» بالاستوديو (`lab.json`: حالة كل أداة ومعاينة، ولا اعتماد فيه إلا بقرار صاحب القناة).
 المرجع الهندسي الكامل للمحرك وحالة كل أداة: `docs/balislam/03-engine.md`.
 الرندر المتعدد عبر الطابور الآمن: `npx bal -c balislam render-batch <تكوين…> --out <مجلد>` (و`--retry` لإعادة الفاشل وحده)

@@ -36,8 +36,13 @@ describe("مختبرات الإنتاج", () => {
     });
   });
 
-  it("بالإسلام بلا مختبرات معلنة، وزبدة الكتب مختبرها الوحيد 980 (أدوات الحبر)", async () => {
-    expect(await listLabDirs(eps("balislam"))).toEqual([]);
+  it("بالإسلام مختبرها مختبر المحرك 900 (الأمر 013)، وزبدة الكتب مختبرها الوحيد 980 (أدوات الحبر)", async () => {
+    expect(await listLabDirs(eps("balislam"))).toEqual(["900-engine-lab"]);
+    const bal = JSON.parse(readFileSync(`${eps("balislam")}/900-engine-lab/lab.json`, "utf8")) as LabMeta;
+    expect(labProblems(bal)).toEqual([]);
+    // لا اعتماد مسجل نيابةً عن صاحب القناة
+    expect(bal.decisions).toEqual([]);
+    expect(Object.values(bal.previews ?? {}).every((v) => v !== "approved")).toBe(true);
     expect(await listLabDirs(eps("zubdat-alkutub"))).toEqual(["980-kit-lab"]); // مختبر أدوات الحبر (الأمر 016)
   });
 

@@ -1,6 +1,6 @@
 import { engineEnabled } from "./engine";
 import { hasElement } from "../../brand/elements/registry";
-import { parseCameraPlanLines, parsePoseTimeline } from "./director";
+import { parseCameraPlan, parseCameraPlanLines, parsePoseTimeline } from "./director";
 import { lightingIssues } from "./lighting";
 import { transitionIssues } from "./transitions";
 import type { Plan } from "./types";
@@ -71,6 +71,14 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
           out.push({ level: "error", sceneId: s.id, message: "المشية غير معروفة؛ استخدم heavy أو stroll أو walk أو brisk." });
         if (p.gait && p.cameraMode !== "composed")
           out.push({ level: "warning", sceneId: s.id, message: "المشية لا تعمل إلا في وضع الكاميرا composed." });
+        if (p.framing && p.framing !== "fit")
+          out.push({ level: "error", sceneId: s.id, message: "التأطير غير معروف؛ اتركه فارغًا (القائم) أو fit." });
+        if (p.framing === "fit" && p.cameraMode !== "composed")
+          out.push({ level: "error", sceneId: s.id, message: "التأطير المحتوي (framing = fit) يعمل مع الكاميرا المؤلَّفة فقط (cameraMode = composed)." });
+        if (p.framing === "fit" && p.shot)
+          out.push({ level: "warning", sceneId: s.id, message: "اللقطة المصمَّمة لها تأطيرها؛ framing لا أثر له فيها." });
+        if (p.framing !== "fit" && [p.cameraPlan, p.cameraPlanPortrait].some((x) => parseCameraPlan(x).some((b) => b.target === "other")))
+          out.push({ level: "error", sceneId: s.id, message: "الهدف other في خطة الكاميرا يعمل مع التأطير المحتوي فقط (framing = fit)." });
         for (const plan of [p.cameraPlan, p.cameraPlanPortrait].filter(Boolean)) {
           const lines = parseCameraPlanLines(plan);
           if (lines.some((x) => x === null))
