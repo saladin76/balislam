@@ -142,31 +142,31 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   };
 
   return (
-    <section className="group" aria-label="مكتبة AlQuran Cloud للقرآن">
-      <h3>AlQuran Cloud <small>معاينة القرّاء وربط التلاوة بالإنتاج</small></h3>
-      <p>ابحث عن قارئ واستمع إلى الآية. يمكن ربط القارئ تلقائيًا بفيديو <strong>هذه الحلقة فقط</strong> بعد توثيق إذن تسجيله؛ الاختيار التجريبي لا يغير الرندر.</p>
+    <section className="group ew-reciter-panel" aria-label="مكتبة AlQuran Cloud للقرآن">
+      <h4 className="ew-reciter-title">مكتبة القرّاء <span>AlQuran Cloud</span></h4>
+      <p className="ew-reciter-subtitle">اختر قارئًا واستمع إلى آية أولًا. ربط صوته بفيديو الحلقة إجراء مستقل يتطلب إذن استخدام التسجيل.</p>
       {activeProduction && <div className="ew-current-reciter" role="status">
         <span>القارئ الإنتاجي لهذه الحلقة: <strong>{activeProduction.name}</strong> ({activeProduction.edition})</span>
         <button type="button" className="btn ghost small" disabled={saving} onClick={restoreChannelDefault}>العودة لقارئ القناة الافتراضي</button>
       </div>}
       {!enabled ? <button className="btn small" type="button" onClick={open}>استعراض القرّاء لهذه الحلقة</button> : <>
-        <button className="btn ghost small" type="button" onClick={() => {
+        <button className="btn ghost small ew-reciter-close" type="button" onClick={() => {
           setEnabled(false); setPreview(null); setEditions([]); setError("");
-        }}>إغلاق المكتبة وإيقاف الاستماع</button>
+        }}>إغلاق مكتبة القرّاء</button>
         {loading && <p role="status">جارٍ الاتصال بمكتبة القرآن…</p>}
         {error && <p role="alert">{error}</p>}
-        {!!editions.length && <div className="key-row">
+        {!!editions.length && <div className="ew-reciter-controls">
           <label htmlFor="alquran-search">البحث عن قارئ</label>
           <input id="alquran-search" type="search" value={search} placeholder="اسم القارئ أو معرّفه" onChange={(e) => setSearch(e.target.value)} />
-          <span role="status">{visibleEditions.length} من {editions.length} تسجيلًا صوتيًا</span>
-          <label htmlFor="alquran-edition">القارئ للمعاينة</label>
+          <span className="ew-reciter-count" role="status">{visibleEditions.length} نتيجة من أصل {editions.length} تسجيلًا</span>
+          <label htmlFor="alquran-edition">اختر القارئ</label>
           <select id="alquran-edition" value={edition} onChange={(e) => selectEdition(e.target.value)}>
             {!visibleEditions.some((e) => e.identifier === edition) && editions.some((e) => e.identifier === edition) &&
               <option value={edition}>{editions.find((e) => e.identifier === edition)?.name} (المختار)</option>}
             {visibleEditions.map((e) => <option key={e.identifier} value={e.identifier}>{e.name} — {e.identifier}</option>)}
           </select>
           {!visibleEditions.length && <p>لا توجد نتائج مطابقة. امسح البحث لعرض القائمة كاملة.</p>}
-          <label htmlFor="alquran-surah">رقم السورة (1–114)</label>
+          <div className="ew-reciter-verse-row"><label htmlFor="alquran-surah">رقم السورة (1–114)</label>
           <input id="alquran-surah" type="number" min={1} max={114} value={surah} onChange={(e) => {
             setSurah(Number(e.target.value)); setAyah(1); setPreview(null);
           }} />
@@ -174,23 +174,23 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
           <input id="alquran-ayah" type="number" min={1} max={286} value={ayah} onChange={(e) => {
             setAyah(Number(e.target.value)); setPreview(null);
           }} />
-          <button className="btn small" type="button" disabled={loading || !edition ||
+          <button className="btn small ew-listen-action" type="button" disabled={loading || !edition ||
             !Number.isSafeInteger(surah) || surah < 1 || surah > 114 ||
             !Number.isSafeInteger(ayah) || ayah < 1 || ayah > 286} onClick={listen}>
             عرض الآية والاستماع
-          </button>
+          </button></div>
         </div>}
-        {preview && <div>
+        {preview && <div className="ew-ayah-preview">
           <p dir="rtl" lang="ar">{preview.text}</p>
           <audio key={preview.audio} controls preload="none" src={preview.audio} />
           <p className="note">سورة {preview.surah}، الآية {preview.ayah} · القارئ: {editions.find((e) => e.identifier === preview.reciter)?.name ?? preview.reciter}</p>
         </div>}
-        <p className="note">المعاينة ليست إذن نشر. حقوق التسجيلات لأصحابها؛ لا يتاح إدراج تلاوة AlQuran Cloud في الرندر أو التصدير قبل توثيق ترخيص التسجيل المحدد. يبقى مصدر التلاوة الإنتاجي الحالي دون تغيير.</p>
+        <p className="ew-reciter-rights-note">الاستماع لا يغيّر صوت الفيديو ولا يمنح إذن إعادة نشر التسجيل. يمكنك مقارنة القرّاء بحرية؛ تفعيل الإنتاج خطوة منفصلة.</p>
         <details className="ew-production-licence">
-          <summary>إدراج القارئ المحدد تلقائيًا في فيديو هذه الحلقة — بعد توثيق الإذن</summary>
+          <summary><strong>ربط صوت القارئ بفيديو هذه الحلقة</strong><span>إعداد متقدم · يتطلب توثيق حقوق التسجيل</span></summary>
           <div className="ew-licence-fields">
-            <p>بعد التفعيل، سيجلب محرك الآيات صوت القارئ المحدد لكل آية ويضعه في بطاقة الآية أثناء الرندر، بنفس مسار Quran Foundation. هذا الاختيار <strong>خاص بهذه الحلقة فقط</strong>، ولا يبدّل قرّاء الحلقات الأخرى أو خطة الحلقة.</p>
-            <p>لا يُعتبر رابط AlQuran Cloud نفسه ترخيصًا. يلزم إذن فعلي صريح من صاحب حقوق التسجيل يسمح بالنشر على يوتيوب والاستخدام التجاري؛ إدخال الرابط هنا توثيق منك وليس تحققًا قانونيًا آليًا.</p>
+            <p>بعد اعتماد هذا القارئ، سيجلب المحرك تلاوة كل آية للحلقة ويضعها في بطاقة الآية أثناء الرندر. <strong>لا تتأثر الحلقات الأخرى.</strong></p>
+            <p className="ew-licence-help">هذا المسار مخصص للتسجيلات التي لديك إذن فعلي بإعادة نشرها على يوتيوب، بما يشمل الاستخدام التجاري. رابط مكتبة التلاوة ليس وثيقة إذن، ولا يتحقق النظام تلقائيًا من صحة الترخيص.</p>
             <label htmlFor="alquran-holder">اسم صاحب حقوق التسجيل أو الجهة المخوِّلة</label>
             <input id="alquran-holder" value={licenceHolder} onChange={(e) => setLicenceHolder(e.target.value)} placeholder="الجهة التي منحت الإذن" />
             <label htmlFor="alquran-evidence">رابط HTTPS إلى وثيقة الإذن الخاصة بهذا التسجيل</label>
