@@ -30,6 +30,25 @@ export const resolveScriptPath = async (arg: string): Promise<string> => {
   return (await stat(p)).isDirectory() ? path.join(p, "script.md") : p;
 };
 
+/**
+ * مجلد الحلقة لملفات المراجعة بجوارها (المعاينات وغيرها): حلقة سكريبت أولًا، وإلا مختبر plan.json فقط
+ * (مثل 900-engine-lab). لا يغيّر resolveScriptPath، فلا يتصادم المختبر مع حلقة حقيقية بنفس الرقم:
+ * إن وُجدت حلقة سكريبت بالرقم فهي المقصودة دائمًا.
+ */
+export const resolveEpisodeDir = async (arg: string): Promise<string> => {
+  if (/^\d{3}$/.test(arg)) {
+    const episodesDir = channelPaths().episodes;
+    const scripted = await scriptEpisodeDirectories(episodesDir, arg);
+    if (scripted.length) return path.dirname(await resolveScriptPath(arg));
+    const labs = existsSync(episodesDir)
+      ? (await readdir(episodesDir)).filter((e) => e.startsWith(`${arg}-`) && existsSync(path.join(episodesDir, e, "plan.json"))).sort()
+      : [];
+    if (labs.length === 1) return path.join(episodesDir, labs[0]!);
+    if (labs.length > 1) throw new Error(`أكثر من مجلد يبدأ بـ ${arg}-: ${labs.join("، ")}`);
+  }
+  return path.dirname(await resolveScriptPath(arg));
+};
+
 /** ملف البحث بجوار السكريبت (دراسة الكتاب في زبدة الكتب) */
 export const RESEARCH_FILE = "research.md";
 

@@ -8,6 +8,7 @@ import { Figure, LOOKS, poseAt, walkPose, type Holding, type PoseName } from "..
 import { ID, darken, mix, type Mood } from "../illus/palette";
 import { GROUND, Glow, MihrabGate, NoticeBoard, Signpost, Sky, WordPill, WW, WH, clampOpt, rise } from "../illus/world";
 import { RoadLand, type Biome } from "../illus/places";
+import { characterAt, GAIT_IDS, type GaitId } from "../illus/gait";
 import { TopCaption, captionLines } from "../illus/TopCaption";
 import type { SceneBase, StringFields } from "./types";
 
@@ -17,7 +18,16 @@ import type { SceneBase, StringFields } from "./types";
  * لوحة خبر، ولافتة تشير إلى طريق آخر، ورفاق طريق، وبوابة محراب تضيء في آخره.
  * يتوقف المسافر عند كل محطة ثم يكمل، فالحركة نفسها رحلة لا زينة.
  */
-export type RoadJourneyProps = SceneBase & StringFields<"biome" | "mood" | "moodTo" | "poses" | "cues" | "look">;
+export type RoadJourneyProps = SceneBase &
+  StringFields<"biome" | "mood" | "moodTo" | "poses" | "cues" | "look"> & {
+    /**
+     * حركة المسافر: "legacy" (الافتراضي، كما هو منذ البداية) أو "natural" من طبقة الحركة المشتركة
+     * (قدم ثابتة على الطريق المتحرك، وتباطؤ واندفاع عند المحطات، ومتابعة الثوب). اختياري ولا يغير شيئًا قائمًا.
+     */
+    motion?: string;
+    /** المشية مع motion = "natural" (الافتراضي stroll) */
+    gait?: string;
+  };
 
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
 const asMood = (m: string | undefined, d: Mood): Mood => (MOOD_IDS.includes(m as Mood) ? (m as Mood) : d);
@@ -60,8 +70,12 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
     const p = stopPose[c.kind];
     if (p && p !== "head-down") timeline.push({ at: c.at + 6, pose: p }, { at: c.at + 46, pose: "stand" });
   }
+  const natural = props.motion === "natural";
+  const gait: GaitId = GAIT_IDS.includes(props.gait as GaitId) ? (props.gait as GaitId) : "stroll";
   let pose = poseAt(frame, timeline);
-  pose = walkPose(pose, (shift / 260) * Math.PI * 2, Math.min(1, v / 5.2));
+  // المسافر ينظر يسارًا ويسير والطريق يمر تحته يمينًا: سرعته على الأرض = سرعة الطريق
+  const hero = natural ? characterAt(frame, pose, { x0: heroX, facing0: -1, moves: [], scale: 1.95, fps, velocity: (f) => -speedAt(f), gait }) : null;
+  pose = hero ? hero.pose : walkPose(pose, (shift / 260) * Math.PI * 2, Math.min(1, v / 5.2));
   const holding: Holding = at("memory") !== undefined ? "bundle" : at("news") !== undefined && frame > (at("news") ?? 0) ? "paper" : "none";
 
   // أحداث الطريق: تدخل من يسار الكادر (أمام المسافر) وتمر بجانبه
@@ -118,7 +132,7 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
                   <Figure key={i} x={heroX + 260 + i * 220} y={GROUND + 10} scale={1.45} pose={walkPose(poseAt(frame, [{ at: 0, pose: "stand" }]), (shift / 260) * Math.PI * 2 + i * 1.7, Math.min(1, v / 5.2))} look={l} flip opacity={0.4 * peopleIn} silhouette={mix(ID.paper, ID.night, 0.4)} shadow={false} frame={frame} />
                 ))
               : null}
-            <Figure x={heroX} y={GROUND + 10} scale={1.95} pose={pose} look={look} flip holding={holding} frame={frame} rim={truth * 0.8} />
+            <Figure x={heroX} y={GROUND + 10} scale={1.95} pose={pose} look={look} flip {...(hero ? { sway: hero.sway } : {})} holding={holding} frame={frame} rim={truth * 0.8} />
             {memory.map((c, i) => (
               <WordPill key={c.word} x={heroX + (i % 2 ? 330 : -330)} y={GROUND - 480 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
             ))}

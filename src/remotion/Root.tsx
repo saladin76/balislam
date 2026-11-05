@@ -16,6 +16,7 @@ import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
+import { MotionLab007, MotionScenes007, SEG7, SEGMENTS_007 } from "./lab/MotionLab007";
 import { AlleyTale } from "./scenes/AlleyTale";
 import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
@@ -72,6 +73,8 @@ export const RemotionRoot: React.FC = () => (
     {/* مختبر «بالإسلام»: اختبارات بصرية للمحرك، بلا صوت، لا تُنشر */}
     <Composition id="balislam-lab-camera-ab" component={CameraAB} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
     <Composition id="balislam-lab-motion" component={MotionLab} durationInFrames={MOTION_SEGMENTS.length * SEG} fps={config.video.fps} {...sizes.landscape} />
+    <Composition id="balislam-lab-motion-007" component={MotionLab007} durationInFrames={SEGMENTS_007.length * SEG7} fps={config.video.fps} {...sizes.landscape} />
+    <Composition id="balislam-lab-motion-scenes" component={MotionScenes007} durationInFrames={14 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
     <Composition id="balislam-lab-camera-portrait" component={CameraComposedPortrait} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.portrait} />
 
     {/* Controlled A/B comparison: same words, cast and timing; only camera direction differs. */}

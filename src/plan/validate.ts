@@ -34,6 +34,14 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         if (s.backdrop) notOurs(s.id, `الخلفية «${s.backdrop}»`, elementExclusion(lib, s.backdrop));
         for (const b of parseBeats(p.beats ?? "")) if (!b.draw.startsWith("person") && b.draw !== "people") notOurs(s.id, `رسمة «${b.draw}»`, elementExclusion(lib, b.draw));
       }
+      if (s.template === "road-journey") {
+        if (p.motion && !["legacy", "natural"].includes(p.motion))
+          out.push({ level: "error", sceneId: s.id, message: "حركة المسافر غير معروفة؛ استخدم legacy أو natural." });
+        if (p.gait && !["stroll", "walk", "brisk", "heavy"].includes(p.gait))
+          out.push({ level: "error", sceneId: s.id, message: "المشية غير معروفة؛ استخدم heavy أو stroll أو walk أو brisk." });
+        if (p.gait && p.motion !== "natural")
+          out.push({ level: "warning", sceneId: s.id, message: "المشية لا تعمل في «الطريق» إلا مع motion = natural." });
+      }
       if (s.template === "alley-tale" && plan.channel === "balislam") {
         if (p.cameraMode && !["automatic", "directed", "composed"].includes(p.cameraMode))
           out.push({ level: "error", sceneId: s.id, message: "وضع الكاميرا غير معروف؛ استخدم automatic أو directed أو composed." });

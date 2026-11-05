@@ -123,29 +123,109 @@ describe("التسارع والتوقف", () => {
 });
 
 describe("الالتفاتة بالجسد", () => {
-  it("لا انقلاب فوري: الجسد يضيق ثم ينقلب، وتغيره بين إطارين محدود", () => {
+  it("دوران حقيقي بلا تضييق: الجسد يمر بثلاثة أرباع ثم يواجه الناظر ثم ينقلب، والزاوية متصلة", () => {
     const o = { x0: 0, facing0: 1 as const, moves: [], turns: [{ at: 20, to: -1 as const, dur: 16 }], scale: SCALE, fps: FPS };
-    let prev = 1;
-    let narrowest = 1;
-    for (let f = 0; f < 60; f++) {
-      const fc = locomote(f, o).facing;
-      narrowest = Math.min(narrowest, Math.abs(fc));
-      // الانقلاب عند أضيق نقطة فقط، ومن عرض ضيق
-      if (Math.sign(fc) === Math.sign(prev)) expect(Math.abs(fc - prev)).toBeLessThan(0.3);
-      else expect(Math.abs(prev)).toBeLessThan(0.42);
-      prev = fc;
+    let prev = locomote(0, o);
+    let peak = 0;
+    for (let f = 1; f < 60; f++) {
+      const st = locomote(f, o);
+      // الاتجاه دائمًا كامل (±1): لا يُضيَّق عرض الشخصية أبدًا
+      expect(Math.abs(st.facing)).toBe(1);
+      expect(Math.abs(st.view - prev.view)).toBeLessThan(0.25);
+      // الانقلاب يقع فقط والجسد مواجه للناظر تقريبًا (حيث الرسم متماثل)
+      if (st.facing !== prev.facing) expect(Math.min(st.view, prev.view)).toBeGreaterThan(0.9);
+      peak = Math.max(peak, st.view);
+      prev = st;
     }
-    expect(narrowest).toBeLessThan(0.36);
-    // لا يصير الجسد شريحة رقيقة
-    expect(narrowest).toBeGreaterThanOrEqual(0.3);
-    expect(prev).toBe(-1);
+    expect(peak).toBeGreaterThan(0.95);
+    expect(prev.facing).toBe(-1);
+    expect(prev.view).toBe(0);
   });
 
   it("حركة بعكس الاتجاه الحالي تبدأ بالتفاتة تلقائية قبلها", () => {
     const o = { x0: 0, facing0: 1 as const, moves: [{ start: 40, dx: -400, gait: "walk" as const }], scale: SCALE, fps: FPS };
     expect(locomote(20, o).facing).toBe(1);
-    expect(Math.abs(locomote(33, o).facing)).toBeLessThan(1);
+    expect(locomote(20, o).view).toBe(0);
+    expect(locomote(33, o).view).toBeGreaterThan(0.3);
     expect(locomote(41, o).facing).toBe(-1);
+  });
+});
+
+describe("جودة المشية (الأمر 007)", () => {
+  it("تأرجح الذراع ناعم: لا انكسار في منحنى زاويتها", () => {
+    const o = { x0: 0, moves: [{ start: 10, dx: 900, gait: "brisk" as const }], scale: SCALE, fps: FPS };
+    const arm = Array.from({ length: 160 }, (_, f) => locoPose(POSES.stand, locomote(f, o)).armFront.s);
+    // نعومة البندول: تغير السرعة الزاوية بين إطارين صغير (لا زوايا حادة في المنحنى كالمثلث القديم)
+    let maxAcc = 0;
+    for (let f = 40; f < 80; f++) maxAcc = Math.max(maxAcc, Math.abs(arm[f]! - 2 * arm[f - 1]! + arm[f - 2]!));
+    // البندول الجيبي ≈ 1.16 درجة/إطار²، والصيغة المثلثية القديمة ≈ 3.6 (انكسار عند كل انعكاس)
+    expect(maxAcc).toBeLessThan(1.3);
+  });
+
+  it("الثوب يرفرف مع الخطوات أثناء المشي ثم يهدأ بعد التوقف", () => {
+    const o = { x0: 0, moves: [{ start: 10, dx: 900, gait: "walk" as const }], scale: SCALE, fps: FPS };
+    const sw = Array.from({ length: 40 }, (_, i) => locomote(60 + i, o).sway);
+    expect(Math.max(...sw) - Math.min(...sw)).toBeGreaterThan(0.3);
+    expect(Math.abs(locomote(400, o).sway)).toBeLessThan(0.5);
+  });
+
+  it("المشية المتثاقلة أبطأ من المتمهلة لكنها لا تجر القدمين: خطوة لا تقل عن ثلثي المتمهلة", async () => {
+    const { GAITS } = await import("../src/remotion/illus/gait");
+    expect(GAITS.heavy.ax / GAITS.stroll.ax).toBeGreaterThan(0.66);
+    expect(gaitSpeed("heavy", SCALE, FPS)).toBeLessThan(gaitSpeed("stroll", SCALE, FPS));
+  });
+});
+
+describe("الطبقة المشتركة characterAt", () => {
+  it("بالحركات: نفس النتيجة التي يعطيها locomote", async () => {
+    const { characterAt } = await import("../src/remotion/illus/gait");
+    const o = { x0: 300, moves: [{ start: 5, dx: 500, gait: "walk" as const }], scale: SCALE, fps: FPS };
+    const c = characterAt(70, POSES.stand, o);
+    const st = locomote(70, o);
+    expect(c.x).toBe(st.x);
+    expect(c.pose).toEqual(locoPose(POSES.stand, st));
+  });
+
+  for (const gait of GAIT_IDS) {
+    it(`بسرعة يفرضها القالب (الطريق): القدم ثابتة على الأرض المتحركة في مشية ${gait}`, async () => {
+      const { characterAt } = await import("../src/remotion/illus/gait");
+      // الطريق: 5.2 وحدة لكل إطار، مقياس 1.95
+      const S = 1.95;
+      const vel = () => -5.2;
+      const xs: number[] = [];
+      const poses: PoseSpec[] = [];
+      for (let f = 30; f < 150; f++) {
+        const c = characterAt(f, POSES.stand, { x0: 0, facing0: -1, moves: [], scale: S, fps: FPS, velocity: vel, gait });
+        xs.push(c.x);
+        poses.push(c.pose);
+      }
+      const slips: number[] = [];
+      let prevC: string | null = null;
+      let prevX = 0;
+      for (let i = 0; i < poses.length; i++) {
+        const g = legGeometry(poses[i]!);
+        const contact = g.back.f[1] >= g.front.f[1] ? "back" : "front";
+        const fx = xs[i]! - g[contact].f[0] * S;
+        if (contact === prevC) slips.push(Math.abs(fx - prevX));
+        prevC = contact;
+        prevX = fx;
+      }
+      expect(mean(slips)).toBeLessThan(5.2 * 0.12);
+    });
+  }
+
+  it("فحص الخطة: حركة الطريق ومشيته تُفحصان، والافتراضي القديم لا يحتاج شيئًا", async () => {
+    const { planIssues } = await import("../src/plan/validate");
+    const scene = (props: Record<string, string>) => ({
+      version: 1 as const, episode: "000", title: "t", domain: "psychology" as const, themeId: "night" as const, channel: "balislam", updatedAt: "",
+      chapters: [{ number: 1, title: "t", scenes: [{ id: "c1-s1", template: "road-journey", narration: "يمشي في الطريق.", line: 0, props, sfx: [] }] }],
+    });
+    const msgs = (props: Record<string, string>) => planIssues(scene(props) as never).map((i) => i.message).join("\n");
+    expect(msgs({ motion: "fly" })).toContain("حركة المسافر غير معروفة");
+    expect(msgs({ motion: "natural", gait: "run" })).toContain("المشية غير معروفة");
+    expect(msgs({ gait: "stroll" })).toContain("إلا مع motion = natural");
+    expect(msgs({})).not.toMatch(/المسافر|المشية/);
+    expect(msgs({ motion: "natural", gait: "heavy" })).not.toMatch(/المسافر|المشية/);
   });
 });
 

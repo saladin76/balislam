@@ -15,7 +15,7 @@ const SCALE = 1.2;
 const LOOK = LOOKS.hero;
 const FLOORS = [520, 1000] as const;
 
-type Lane = { label: string; render: (f: number) => { x: number; pose: ReturnType<typeof locoPose>; flip?: boolean; facing?: number; sway?: number } };
+type Lane = { label: string; render: (f: number) => { x: number; pose: ReturnType<typeof locoPose>; flip?: boolean; facing?: number; view?: number; sway?: number } };
 type Segment = { title: string; note: string; lanes: [Lane, Lane]; marker?: number };
 
 /** النظام القديم كما هو في المحرك: سرعة ثابتة 3.4 لكل إطار، ودورة مشي كاملة تبدأ وتنتهي فجأة، والوجه يعود فورًا */
@@ -27,7 +27,7 @@ const oldWalk = (x0: number, start: number, end: number, speed = 3.4) => (f: num
 /** الحركة الجديدة */
 const newMove = (x0: number, moves: Move[], turns: Turn[] = [], facing0: 1 | -1 = -1) => (f: number) => {
   const st = locomote(f, { x0, facing0, moves, turns, scale: SCALE, fps: FPS });
-  return { x: st.x, pose: locoPose(POSES.stand, st), facing: st.facing, sway: st.sway };
+  return { x: st.x, pose: locoPose(POSES.stand, st), facing: st.facing, view: st.view, sway: st.sway };
 };
 const walkFor = (g: GaitId, frames: number) => fitDistance(g, frames, SCALE, FPS);
 
@@ -122,7 +122,7 @@ export const MotionLab: React.FC = () => {
           return (
             <g key={k}>
               <Ground y={FLOORS[k]!} marker={seg.marker} />
-              <Figure x={s.x} y={FLOORS[k]! + 4} scale={SCALE} pose={s.pose} look={LOOK} flip={s.flip ?? false} {...(s.facing !== undefined ? { facing: s.facing, sway: s.sway ?? 0 } : {})} frame={frame} />
+              <Figure x={s.x} y={FLOORS[k]! + 4} scale={SCALE} pose={s.pose} look={LOOK} flip={s.flip ?? false} {...(s.facing !== undefined ? { facing: s.facing, view: s.view ?? 0, sway: s.sway ?? 0 } : {})} frame={frame} />
             </g>
           );
         })}

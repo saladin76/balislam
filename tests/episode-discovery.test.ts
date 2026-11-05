@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:
 import os from "node:os";
 import path from "node:path";
 import { runWithChannel } from "../src/channel";
-import { resolveScriptPath } from "../src/script/episodes";
+import { resolveEpisodeDir, resolveScriptPath } from "../src/script/episodes";
 
 const tempDirs: string[] = [];
 const prevDir = process.env.BAL_CHANNELS_DIR;
@@ -56,4 +56,21 @@ describe("اكتشاف الحلقات عند وجود مختبر المحرك", 
     await expect(runWithChannel("balislam", () => resolveScriptPath("000"))).rejects.toThrow("أكثر من مجلد");
   });
 
+  it("المعاينات تجد مجلد المختبر (بلا سكريبت) فيبقى ظاهرًا في الاستوديو", async () => {
+    const episodes = setup();
+    const lab = path.join(episodes, "900-engine-lab");
+    mkdirSync(lab);
+    writeFileSync(path.join(lab, "plan.json"), "{}");
+    expect(await runWithChannel("balislam", () => resolveEpisodeDir("900"))).toBe(lab);
+    // ولا يزال المختبر ليس حلقة نصية
+    await expect(runWithChannel("balislam", () => resolveScriptPath("900"))).rejects.toThrow("غير موجودة");
+  });
+
+  it("حلقة السكريبت تُقدَّم على المختبر بنفس الرقم في المعاينات", async () => {
+    const episodes = setup();
+    mkdirSync(path.join(episodes, "000-engine-lab"));
+    writeFileSync(path.join(episodes, "000-engine-lab", "plan.json"), "{}");
+    const script = scripted(episodes, "000-demo");
+    expect(await runWithChannel("balislam", () => resolveEpisodeDir("000"))).toBe(path.dirname(script));
+  });
 });

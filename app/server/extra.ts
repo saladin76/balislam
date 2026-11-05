@@ -467,8 +467,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   // معاينات الحلقة (previews/ بجوار السكريبت): فيديوهات صامتة خفيفة للمراجعة، تُرفع مع المستودع ولا تُنشر أبدًا
   if (parts[0] === "episodes" && parts[1] && parts[2] === "previews") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-    const { resolveScriptPath } = await load("/src/script/episodes.ts");
-    const dir = path.join(path.dirname(await resolveScriptPath(parts[1])), "previews");
+    const { resolveEpisodeDir } = await load("/src/script/episodes.ts");
+    const dir = path.join(await resolveEpisodeDir(parts[1]), "previews");
     if (parts[3]) {
       const file = path.join(dir, safeName(parts[3]));
       if (!existsSync(file) || !/\.mp4$/i.test(file)) return send(res, 404, { error: "الملف غير موجود" }), true;

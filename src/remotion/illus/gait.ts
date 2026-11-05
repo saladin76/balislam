@@ -33,7 +33,8 @@ type GaitSpec = {
 /** المشيات: من المتثاقل إلى المسرع. السرعة تُشتق من طول الخطوة والإيقاع، فلا تنزلق القدم */
 export const GAITS: Record<GaitId, GaitSpec> = {
   // متثاقل: خطوة قصيرة، جذع منحنٍ، رأس منخفض، ذراعان شبه ساكنتين
-  heavy: { ax: 24, cadence: 0.62, stance: 0.64, knee: 22, arm: 5, elbow: 8, lean: 9, head: 16, accel: 24, decel: 26 },
+  // (الأمر 007) أحيا قليلًا: خطوة أطول وإيقاع أسرع، فلا يبدو جرًّا، مع بقاء الانحناء والثقل
+  heavy: { ax: 26, cadence: 0.7, stance: 0.66, knee: 24, arm: 6, elbow: 10, lean: 8, head: 14, accel: 24, decel: 26 },
   // متمهل: هادئ متأمل
   stroll: { ax: 31, cadence: 0.74, stance: 0.62, knee: 28, arm: 11, elbow: 10, lean: 3, head: 6, accel: 20, decel: 22 },
   // طبيعي
@@ -95,17 +96,26 @@ export const gaitPose = (base: PoseSpec, phase: number, amount: number, gait: Ga
   if (a <= 0.001) return { ...base, lean: base.lean + extraLean };
   const front = legAt(phase, g, a);
   const back = legAt(phase + 0.5, g, a);
-  // الذراع تعاكس الساق المقابلة لها
-  const swingF = -g.arm * (front.x / Math.max(1, g.ax));
-  const swingB = -g.arm * (back.x / Math.max(1, g.ax));
+  // الذراع تعاكس الساق المقابلة لها بتأرجح جيبي ناعم (البندول) يتأخر قليلًا عن الساق،
+  // والمرفق ينثني أكثر في التأرجح للأمام ويرتخي في الرجوع
+  const ph = ((phase % 1) + 1) % 1;
+  const cF = Math.cos(2 * Math.PI * (ph - 0.03));
+  const swingF = -g.arm * cF;
+  const swingB = g.arm * cF;
+  const elbowF = g.elbow * (1 + 0.7 * Math.max(0, -cF));
+  const elbowB = g.elbow * (1 + 0.7 * Math.max(0, cF));
   const mix = (b: number, w: number) => b + (w - b) * a;
+  // الساقان تتبعان هندسة الخطوة مباشرة (طولها يصغر مع السرعة)، لا مزجًا بالمقدار يقصّرها مرة ثانية
+  // فتنزلق القدم في التسارع والتباطؤ؛ المزج بوضعية الأساس في أول السرعة وآخرها فقط
+  const la = Math.min(1, a / 0.2);
+  const mixL = (b: number, w: number) => b + (w - b) * la;
   return {
     lean: base.lean + g.lean * a + extraLean,
     head: base.head + g.head * a,
-    legFront: { s: mix(base.legFront.s, front.s), e: mix(base.legFront.e, front.e) },
-    legBack: { s: mix(base.legBack.s, back.s), e: mix(base.legBack.e, back.e) },
-    armFront: { s: mix(base.armFront.s, swingF), e: mix(base.armFront.e, g.elbow) },
-    armBack: { s: mix(base.armBack.s, swingB), e: mix(base.armBack.e, g.elbow) },
+    legFront: { s: mixL(base.legFront.s, front.s), e: mixL(base.legFront.e, front.e) },
+    legBack: { s: mixL(base.legBack.s, back.s), e: mixL(base.legBack.e, back.e) },
+    armFront: { s: mix(base.armFront.s, swingF), e: mix(base.armFront.e, elbowF) },
+    armBack: { s: mix(base.armBack.s, swingB), e: mix(base.armBack.e, elbowB) },
   };
 };
 
@@ -162,12 +172,17 @@ export type LocoState = {
   dip: number;
   /** تأخر الثوب (وحدات محلية، موجب = إلى الخلف) */
   sway: number;
-  /** اتجاه الجسد بين -1 و1 (يمر بقيمة ضيقة أثناء الالتفات) */
+  /** اتجاه الرسم (+1 أو -1): ينقلب عند مواجهة الناظر في منتصف الالتفاتة */
   facing: number;
+  /** زاوية النظر للرسم (0 جانبي .. 1 أمامي): الالتفاتة دوران للجسد بحجمه، لا تضييق له */
+  view: number;
   moving: boolean;
 };
 
-/** اتجاه الجسد مع الالتفاتات: نصف التفاتة يضيق الجسد ثم ينقلب، فلا انقلاب فوري */
+/**
+ * اتجاه الجسد مع الالتفاتات (الأمر 007): الجسد يدور حول محوره الرأسي، جانبي ← ثلاثة أرباع ← أمامي
+ * ← ثلاثة أرباع ← جانبي معاكس. الانقلاب يقع وهو مواجه للناظر تمامًا حيث الرسم متماثل، فلا قفزة.
+ */
 const facingWith = (f: number, initial: 1 | -1, turns: Turn[]) => {
   let dir: number = initial;
   for (const t of [...turns].sort((a, b) => a.at - b.at)) {
@@ -181,10 +196,9 @@ const facingWith = (f: number, initial: 1 | -1, turns: Turn[]) => {
     }
     const e = smooth(p);
     const side = e < 0.5 ? dir : t.to;
-    // الجسد يضيق حول منتصف الالتفاتة إلى نحو ثلث عرضه (كمن يُرى من جانبه)، فينقلب وهو في أضيق حالاته
-    return { facing: side * (0.3 + 0.7 * Math.pow(Math.abs(Math.cos(Math.PI * e)), 1.7)), turning: Math.sin(Math.PI * e) };
+    return { facing: side, view: Math.sin(Math.PI * e), turning: Math.sin(Math.PI * e) };
   }
-  return { facing: dir, turning: 0 };
+  return { facing: dir, view: 0, turning: 0 };
 };
 
 /**
@@ -193,8 +207,25 @@ const facingWith = (f: number, initial: 1 | -1, turns: Turn[]) => {
  * - استعداد 8 إطارات قبل الانطلاق (ميل للخلف وانثناء ركبتين).
  * - الجذع والثوب على نابضين مخمّدين: يتابعان الجسد بعد التوقف ثم يستقران.
  */
-export const locomote = (frame: number, o: { x0: number; facing0?: 1 | -1; moves: Move[]; turns?: Turn[]; scale: number; fps: number }): LocoState => {
-  const moves = [...o.moves].filter((m) => Math.abs(m.dx) > 0.5).sort((a, b) => a.start - b.start);
+export type LocoOptions = {
+  x0: number;
+  facing0?: 1 | -1;
+  moves: Move[];
+  turns?: Turn[];
+  scale: number;
+  fps: number;
+  /**
+   * سرعة يفرضها القالب نفسه (وحدات العالم/إطار، موقّعة) بدل الحركات: لمشاهد «السير في المكان»
+   * التي يتحرك فيها العالم تحت الشخصية (الطريق). القدم تبقى ثابتة على أرض تتحرك بهذه السرعة.
+   */
+  velocity?: (f: number) => number;
+  /** المشية مع velocity */
+  gait?: GaitId;
+};
+
+export const locomote = (frame: number, o: LocoOptions): LocoState => {
+  const driven = o.velocity;
+  const moves = driven ? [] : [...o.moves].filter((m) => Math.abs(m.dx) > 0.5).sort((a, b) => a.start - b.start);
   const profs = moves.map((m) => profileOf(m, o.scale, o.fps));
   // التفاتة قبل كل حركة تعاكس الاتجاه السابق
   const turns: Turn[] = [...(o.turns ?? [])];
@@ -209,7 +240,7 @@ export const locomote = (frame: number, o: { x0: number; facing0?: 1 | -1; moves
   }
   let x = o.x0;
   let phase = 0;
-  let gait: GaitId = profs[0]?.gait ?? "walk";
+  let gait: GaitId = o.gait ?? profs[0]?.gait ?? "walk";
   // نابضا الجذع والثوب
   let lean = 0;
   let leanV = 0;
@@ -220,14 +251,15 @@ export const locomote = (frame: number, o: { x0: number; facing0?: 1 | -1; moves
   for (let f = 0; f <= end; f++) {
     const p = profs.find((q) => f > q.start - 1 && f < q.end + 1) ?? null;
     const prevV = v;
-    v = p ? speedAt(p, f) : 0;
+    v = driven ? driven(f) : p ? speedAt(p, f) : 0;
     if (p) gait = p.gait;
     if (f > 0) x += (v + prevV) / 2;
     const g = GAITS[gait];
     const vmax = gaitSpeed(gait, o.scale, o.fps);
     const amount = Math.min(1, Math.abs(v) / vmax);
     // الإيقاع ثابت للمشية، والخطوة تقصر مع السرعة: فلا انزلاق في البداية ولا النهاية
-    if (Math.abs(v) > 1e-4) phase += g.cadence / o.fps;
+    // فوق أقصى سرعة المشية (سرعة يفرضها القالب) يسرع الإيقاع بدل أن تنزلق القدم
+    if (Math.abs(v) > 1e-4) phase += (g.cadence / o.fps) * Math.max(1, Math.abs(v) / vmax);
     // نابض الجذع: يتبع ميل المشية، ويتأثر بالتسارع (يندفع للأمام عند الكبح)
     const acc = v - prevV;
     // عند الكبح يندفع الجذع للأمام بقدر التباطؤ، ثم يعود النابض فيستقر بتأرجح خفيف
@@ -236,7 +268,8 @@ export const locomote = (frame: number, o: { x0: number; facing0?: 1 | -1; moves
     leanV += (leanTarget - lean) * 0.09 - leanV * 0.28;
     lean += leanV;
     // نابض الثوب: يتأخر بقدر السرعة، ويتأرجح قليلًا بعد التوقف
-    const swayTarget = Math.abs(v) * 1.5;
+    // ومع كل خطوة رفرفة صغيرة للذيل (ضعف إيقاع الدورة) بقدر السرعة
+    const swayTarget = Math.abs(v) * 1.5 + Math.sin(4 * Math.PI * phase) * 0.9 * Math.min(1, Math.abs(v) / vmax);
     swayV += (swayTarget - sway) * 0.07 - swayV * 0.16;
     sway += swayV;
   }
@@ -262,6 +295,7 @@ export const locomote = (frame: number, o: { x0: number; facing0?: 1 | -1; moves
     dip: Math.max(dip, fc.turning * 0.6),
     sway,
     facing: fc.facing,
+    view: fc.view,
     moving: Math.abs(v) > 1e-3,
   };
 };
@@ -309,4 +343,17 @@ export const poseAtNatural = (frame: number, timeline: { at: number; pose: PoseN
     cur = { ...body, armBack: arms.armBack, armFront: arms.armFront, head: head.head };
   }
   return cur;
+};
+
+/**
+ * الطبقة المشتركة لحركة الشخصيات (الأمر 007): كل قالب يطلب حالة شخصيته من هنا بدل حساب المشي بنفسه.
+ * تعطي الموضع والوضعية والاتجاه وزاوية النظر وتأخر الثوب، فتُمرَّر إلى Figure كما هي:
+ *   const c = characterAt(frame, base, spec);
+ *   <Figure x={c.x} pose={c.pose} facing={c.facing} view={c.view} sway={c.sway} … />
+ * spec إما حركات (moves/turns) لشخصية تقطع المكان، أو velocity لشخصية تسير والعالم يمر تحتها.
+ */
+export type CharacterState = { x: number; pose: PoseSpec; facing: 1 | -1; view: number; sway: number; moving: boolean; loco: LocoState };
+export const characterAt = (frame: number, base: PoseSpec, spec: LocoOptions): CharacterState => {
+  const loco = locomote(frame, spec);
+  return { x: loco.x, pose: locoPose(base, loco), facing: loco.facing < 0 ? -1 : 1, view: loco.view, sway: loco.sway, moving: loco.moving, loco };
 };

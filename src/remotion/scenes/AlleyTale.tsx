@@ -333,7 +333,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               </g>
             ) : null}
             <Ripples x={heroX - 70} y={GROUND - 300} t={spread} frame={frame} at={at("spread") ?? 0} />
-            <Figure x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
+            <Figure x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, view: loco.view, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
             {memory.map((c, i) => {
               const col = c.kind === "wrong" ? ID.seal : ID.dawn;
               const side = i % 2 ? 1 : -1;

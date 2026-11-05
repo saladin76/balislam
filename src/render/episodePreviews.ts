@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { resolveScriptPath } from "../script/episodes";
+import { resolveEpisodeDir } from "../script/episodes";
 
 export type PreviewEntry = { title: string; note?: string; version: number; updatedAt: string };
 export type PreviewIndex = Record<string, PreviewEntry>;
@@ -75,7 +75,8 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   }
 };
 
-export const putEpisodePreview = async (episode: string, slot: string, file: string, meta: { title: string; note?: string }) => putPreview(await resolveScriptPath(episode), slot, file, meta);
+// المعاينات تخص مجلد الحلقة (ومنه مختبر المحرك الذي لا سكريبت له)
+export const putEpisodePreview = async (episode: string, slot: string, file: string, meta: { title: string; note?: string }) => putPreview(path.join(await resolveEpisodeDir(episode), "script.md"), slot, file, meta);
 
 /** حذف خانة من المعاينات */
 export const removePreview = async (scriptPath: string, slot: string) => {

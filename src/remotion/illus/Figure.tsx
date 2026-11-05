@@ -181,7 +181,17 @@ type FigureProps = {
   facing?: number;
   /** تأخر الثوب عن الجسد (وحدات محلية، موجب = إلى الخلف): متابعة القماش بعد الحركة والتوقف */
   sway?: number;
+  /**
+   * زاوية النظر حول المحور الرأسي (0..1): 0 جانبي كما يُرسم اليوم، 0.5 ثلاثة أرباع، 1 أمامي.
+   * كل مفصل له موضع في العمق يُسقط على الشاشة، والأطراف بطولها وسُمكها، والجذع والرأس بعرض
+   * المقطع البيضاوي المُسقط؛ فيحافظ الجسد على حجمه أثناء الالتفات بلا تضييق ولا تشويه.
+   */
+  view?: number;
 };
+
+/** موضع الوركين والكتفين على جانبي الجسد (وحدات محلية) */
+const HIP_U = 11;
+const SH_U = 34;
 
 type Pt = readonly [number, number];
 const sub = (a: Pt, b: Pt): Pt => [a[0] - b[0], a[1] - b[1]];
@@ -215,8 +225,20 @@ const Limb2: React.FC<{ pts: Pt[]; w: number[]; fill: string; ink: string; o?: n
   );
 };
 
-export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LOOKS.hero, flip = false, opacity = 1, shadow = true, rim = 0, rimColor = ID.dawn, holding = "none", frame = 0, silhouette, shade = 1, facing, sway = 0 }) => {
+export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LOOKS.hero, flip = false, opacity = 1, shadow = true, rim = 0, rimColor = ID.dawn, holding = "none", frame = 0, silhouette, shade = 1, facing, sway = 0, view = 0 }) => {
   const L = look as FigureLook;
+  // الإسقاط: s = 0 يعطي الرسم الجانبي نفسه حرفيًا (اختبار المرجع يثبت ذلك)
+  const vw = Math.max(0, Math.min(1, view));
+  const cY = vw === 0 ? 1 : Math.cos((vw * Math.PI) / 2);
+  const sY = vw === 0 ? 0 : Math.sin((vw * Math.PI) / 2);
+  const flat = sY === 0;
+  /** نقطة في العمق: f للأمام، u للجانب القريب من الناظر */
+  const P = (f: number, u: number) => (flat ? f : f * cY + u * sY);
+  /** حافة مقطع بيضاوي: عرضه جانبيًا xp وأماميًا xf */
+  const E = (xp: number, xf: number) => (flat ? xp : Math.sign(xp || xf) * Math.hypot(xp * cY, xf * sY));
+  /** رسمان لنفس الشكل (جانبي وأمامي) بنفس البنية */
+  const V = (a: number, b: number) => (flat ? a : a + (b - a) * sY);
+  const pr = (pt: Pt, u: number): Pt => (flat ? pt : [P(pt[0], u), pt[1]]);
   const sil = silhouette;
   const cloth = sil ?? CLOTH[L.cloth];
   const clothDark = sil ?? darken(cloth, 0.2 * shade + 0.06);
@@ -235,44 +257,52 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
   const drop = (l: Limb) => THIGH * Math.cos(rad(l.s)) + SHIN * Math.cos(rad(l.s - l.e));
   const hipY = -Math.max(drop(pose.legBack), drop(pose.legFront)) - 6;
   const hip: Pt = [0, hipY];
-  const leg = (l: Limb) => {
+  const leg = (l: Limb, u: number) => {
     const k = step(hip[0], hip[1], THIGH, l.s);
     const f = step(k[0], k[1], SHIN, l.s - l.e);
-    return { k: k as Pt, f: f as Pt };
+    return { k: pr(k as Pt, u), f: pr(f as Pt, u), h: pr(hip, u) };
   };
-  const lb = leg(pose.legBack);
-  const lf = leg(pose.legFront);
+  // الساق الخلفية في الجانب البعيد، والأمامية في الجانب القريب
+  const lb = leg(pose.legBack, -HIP_U);
+  const lf = leg(pose.legFront, HIP_U);
   const seated = Math.abs(lb.k[1] - hipY) < 30;
 
   // الجذع والرأس يُرسمان في إحداثيات محلية ثم تُمال المجموعة حول الورك
   const shY = hipY - TORSO + breathe;
   const sh = rot(0, shY + 8, 0, hipY, pose.lean) as Pt;
-  const arm = (l: Limb) => {
+  const leanV = flat ? pose.lean : pose.lean * cY;
+  const arm = (l: Limb, u: number) => {
     const e = step(sh[0], sh[1], UPPER, l.s + pose.lean * 0.6) as Pt;
     const h = step(e[0], e[1], FORE, l.s + l.e + pose.lean * 0.6) as Pt;
-    return { e, h };
+    return { e: pr(e, u), h: pr(h, u), sh: pr(sh, u) };
   };
-  const ab = arm(pose.armBack);
-  const af = arm(pose.armFront);
+  const ab = arm(pose.armBack, -SH_U);
+  const af = arm(pose.armFront, SH_U);
 
+  // الحذاء: من الكعب (-9) إلى المقدمة (25) جانبيًا، وعرضه 16 أماميًا
+  const shoeL = flat ? -9 : -9 * cY - 8 * sY;
+  const shoeR = flat ? 25 : 25 * cY + 8 * sY;
+  const sx = (dx: number) => (flat ? dx : shoeL + ((dx + 9) / 34) * (shoeR - shoeL));
   const shoeEl = (f: Pt, key: string) => (
     <g key={key}>
-      <path d={`M${f[0] - 9} ${f[1] - 2} Q${f[0] - 10} ${f[1] - 13} ${f[0] + 2} ${f[1] - 13} Q${f[0] + 22} ${f[1] - 11} ${f[0] + 25} ${f[1] - 3} L${f[0] + 25} ${f[1] + 1} L${f[0] - 9} ${f[1] + 1} Z`} fill={shoe} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
-      <rect x={f[0] - 9} y={f[1] - 2} width={34} height={3} fill={sil ?? darken(shoe, 0.35)} />
+      <path d={`M${f[0] + sx(-9)} ${f[1] - 2} Q${f[0] + sx(-10)} ${f[1] - 13} ${f[0] + sx(2)} ${f[1] - 13} Q${f[0] + sx(22)} ${f[1] - 11} ${f[0] + sx(25)} ${f[1] - 3} L${f[0] + sx(25)} ${f[1] + 1} L${f[0] + sx(-9)} ${f[1] + 1} Z`} fill={shoe} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
+      <rect x={f[0] + sx(-9)} y={f[1] - 2} width={sx(25) - sx(-9)} height={3} fill={sil ?? darken(shoe, 0.35)} />
     </g>
   );
 
   // الأرجل: بنطال، أو ثوب ينسدل
   const legW = robe ? [19, 17, 15] : [14, 11, 8];
   const legFill = robe ? cloth : pants;
-  const legsBack = <Limb2 pts={[hip, lb.k, lb.f]} w={legW} fill={robe ? clothDark : darken(pants, 0.18)} ink={ink} />;
-  const legsFront = <Limb2 pts={[hip, lf.k, lf.f]} w={legW} fill={legFill} ink={ink} />;
+  // الطرف البعيد أغمق جانبيًا فقط؛ أماميًا الطرفان متساويان (فلا قفزة لونية عند الانقلاب)
+  const far = (dark: string, near: string) => (flat || sil ? dark : mix(dark, near, sY));
+  const legsBack = <Limb2 pts={[lb.h, lb.k, lb.f]} w={legW} fill={far(robe ? clothDark : darken(pants, 0.18), legFill)} ink={ink} />;
+  const legsFront = <Limb2 pts={[lf.h, lf.k, lf.f]} w={legW} fill={legFill} ink={ink} />;
   // ذيل الثوب: يغطي ما بين الساقين واقفًا
   const hemY = Math.max(lb.f[1], lf.f[1]) - 9;
   const hemL = Math.min(lb.f[0], lf.f[0], lb.k[0] - 6, lf.k[0] - 6) - 24 - sway;
   const hemR = Math.max(lb.f[0], lf.f[0], lb.k[0] + 6, lf.k[0] + 6) + 24 - sway;
   const skirt = robe && !seated ? (
-    <path d={`M-24 ${hipY - 4} L24 ${hipY - 4} Q${hemR - 4} ${(hipY + hemY) / 2} ${hemR} ${hemY} Q${(hemL + hemR) / 2} ${hemY + 6} ${hemL} ${hemY} Q${hemL + 4} ${(hipY + hemY) / 2} -24 ${hipY - 4} Z`} fill={cloth} stroke={ink} strokeWidth={2.6} strokeLinejoin="round" />
+    <path d={`M${E(-24, -30)} ${hipY - 4} L${E(24, 30)} ${hipY - 4} Q${hemR - 4} ${(hipY + hemY) / 2} ${hemR} ${hemY} Q${(hemL + hemR) / 2} ${hemY + 6} ${hemL} ${hemY} Q${hemL + 4} ${(hipY + hemY) / 2} ${E(-24, -30)} ${hipY - 4} Z`} fill={cloth} stroke={ink} strokeWidth={2.6} strokeLinejoin="round" />
   ) : null;
   const skirtFolds = robe && !seated ? (
     <g stroke={clothDark} strokeWidth={3} fill="none" strokeLinecap="round" opacity={0.8}>
@@ -288,16 +318,17 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
     const ang = (Math.atan2(d[1], d[0]) * 180) / Math.PI;
     return (
       <g key={key}>
-        <ellipse cx={hc[0]} cy={hc[1]} rx={10.5} ry={8} transform={`rotate(${ang} ${hc[0]} ${hc[1]})`} fill={back ? skinDark : skin} stroke={ink} strokeWidth={2.4} />
-        <ellipse cx={hc[0] - d[1] * 6 + d[0] * 2} cy={hc[1] + d[0] * 6 + d[1] * 2} rx={4.5} ry={3.4} transform={`rotate(${ang} ${hc[0]} ${hc[1]})`} fill={back ? skinDark : skin} />
+        <ellipse cx={hc[0]} cy={hc[1]} rx={10.5} ry={8} transform={`rotate(${ang} ${hc[0]} ${hc[1]})`} fill={back ? far(skinDark, skin) : skin} stroke={ink} strokeWidth={2.4} />
+        <ellipse cx={hc[0] - d[1] * 6 + d[0] * 2} cy={hc[1] + d[0] * 6 + d[1] * 2} rx={4.5} ry={3.4} transform={`rotate(${ang} ${hc[0]} ${hc[1]})`} fill={back ? far(skinDark, skin) : skin} />
       </g>
     );
   };
-  const sleeve = (a: { e: Pt; h: Pt }, back: boolean, key: string) => {
-    const fill = back ? clothDark : L.outfit === "shirt" ? cloth : darken(cloth, 0.06);
+  const sleeve = (a: { e: Pt; h: Pt; sh: Pt }, back: boolean, key: string) => {
+    const nearFill = L.outfit === "shirt" ? cloth : darken(cloth, 0.06);
+    const fill = back ? far(clothDark, nearFill) : nearFill;
     return (
       <g key={key}>
-        <Limb2 pts={[sh, a.e, a.h]} w={robe ? [12, 10.5, 9.5] : [11, 8.5, 7]} fill={fill} ink={ink} />
+        <Limb2 pts={[a.sh, a.e, a.h]} w={robe ? [12, 10.5, 9.5] : [11, 8.5, 7]} fill={fill} ink={ink} />
         {L.outfit === "jacket" ? <path d={segPath(a.h, [a.h[0] + (a.h[0] - a.e[0]) * 0.08, a.h[1] + (a.h[1] - a.e[1]) * 0.08], 7.5, 7.5)} fill={inner} /> : null}
         {hand(a.e, a.h, `${key}h`, back)}
       </g>
@@ -306,68 +337,86 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
 
   // الجذع في إحداثيات محلية
   const waist = hipY + (robe ? -2 : 18);
-  const torsoPath = `M-29 ${shY + 14} Q-30 ${shY + 2} -18 ${shY} L20 ${shY} Q31 ${shY + 2} 30 ${shY + 16} Q29 ${(shY + waist) / 2} 25 ${waist} L-25 ${waist} Q-31 ${(shY + waist) / 2} -29 ${shY + 14} Z`;
-  const backShade = `M-29 ${shY + 14} Q-30 ${shY + 2} -18 ${shY} L-4 ${shY} Q-8 ${(shY + waist) / 2} -10 ${waist} L-25 ${waist} Q-31 ${(shY + waist) / 2} -29 ${shY + 14} Z`;
+  // ذيل الجاكيت يتأخر قليلًا مع الحركة
+  const tail = L.outfit === "jacket" ? sway * 0.35 : 0;
+  const torsoPath = `M${E(-29, -40)} ${shY + 14} Q${E(-30, -41)} ${shY + 2} ${E(-18, -28)} ${shY} L${E(20, 28)} ${shY} Q${E(31, 41)} ${shY + 2} ${E(30, 40)} ${shY + 16} Q${E(29, 39)} ${(shY + waist) / 2} ${E(25, 32)} ${waist} L${E(-25, -32) - tail} ${waist} Q${E(-31, -39)} ${(shY + waist) / 2} ${E(-29, -40)} ${shY + 14} Z`;
+  const backShade = `M${E(-29, -40)} ${shY + 14} Q${E(-30, -41)} ${shY + 2} ${E(-18, -28)} ${shY} L${P(-4, -14)} ${shY} Q${P(-8, -18)} ${(shY + waist) / 2} ${P(-10, -20)} ${waist} L${E(-25, -32) - tail} ${waist} Q${E(-31, -39)} ${(shY + waist) / 2} ${E(-29, -40)} ${shY + 14} Z`;
+  // تفاصيل الصدر في منتصفه الأمامي: تُسقط بموضعها (تتجه نحو المنتصف كلما واجه الناظر)
+  const chest = (center: number, half: number, halfFront: number): [number, number, number] => (flat ? [center - half, center, center + half] : [center * cY - (half * cY + halfFront * sY), center * cY, center * cY + half * cY + halfFront * sY]);
+  const [jL, jC, jR] = chest(12, 8, 12);
+  const [shL, shC, shR] = chest(12, 6, 8);
+  const [thL, thC, thR] = chest(13, 5, 7);
+  const bandX = E(-25, -32);
+  const bandW = E(25, 32) - bandX;
+  const sideDetail = flat ? 1 : cY;
   const torso = (
     <g>
       <path d={torsoPath} fill={cloth} stroke={ink} strokeWidth={2.6} strokeLinejoin="round" />
-      <path d={backShade} fill="#000" opacity={0.16 * shade} />
+      <path d={backShade} fill="#000" opacity={flat ? 0.16 * shade : 0.16 * shade * cY} />
       {L.outfit === "jacket" ? (
         <g>
-          <path d={`M4 ${shY + 1} L20 ${shY + 1} L12 ${shY + 44} Z`} fill={inner} />
-          <path d={`M4 ${shY + 1} L12 ${shY + 44} L10 ${waist}`} stroke={darken(cloth, 0.3)} strokeWidth={2.4} fill="none" />
-          <path d={`M20 ${shY + 1} L14 ${shY + 40}`} stroke={darken(cloth, 0.3)} strokeWidth={2} fill="none" />
-          <rect x={-25} y={waist - 4} width={50} height={4} fill={darken(cloth, 0.22)} />
+          <path d={`M${jL} ${shY + 1} L${jR} ${shY + 1} L${jC} ${shY + 44} Z`} fill={inner} />
+          <path d={`M${jL} ${shY + 1} L${jC} ${shY + 44} L${flat ? 10 : jC - 2 * cY} ${waist}`} stroke={darken(cloth, 0.3)} strokeWidth={2.4} fill="none" />
+          <path d={`M${jR} ${shY + 1} L${flat ? 14 : jC + 2 * cY} ${shY + 40}`} stroke={darken(cloth, 0.3)} strokeWidth={2} fill="none" />
+          <rect x={bandX} y={waist - 4} width={bandW} height={4} fill={darken(cloth, 0.22)} />
         </g>
       ) : null}
       {L.outfit === "shirt" ? (
         <g>
-          <path d={`M6 ${shY + 1} L18 ${shY + 1} L12 ${shY + 18} Z`} fill={darken(cloth, 0.25)} />
-          <path d={`M12 ${shY + 18} L12 ${waist}`} stroke={darken(cloth, 0.22)} strokeWidth={2} />
-          <rect x={-25} y={waist - 3} width={50} height={5} fill={darken(pants, 0.2)} />
+          <path d={`M${shL} ${shY + 1} L${shR} ${shY + 1} L${shC} ${shY + 18} Z`} fill={darken(cloth, 0.25)} />
+          <path d={`M${shC} ${shY + 18} L${shC} ${waist}`} stroke={darken(cloth, 0.22)} strokeWidth={2} />
+          <rect x={bandX} y={waist - 3} width={bandW} height={5} fill={darken(pants, 0.2)} />
         </g>
       ) : null}
       {L.outfit === "thobe" ? (
         <g>
-          <path d={`M8 ${shY + 2} L18 ${shY + 2} L14 ${shY + 34} Z`} fill={darken(cloth, 0.1)} />
-          <path d={`M13 ${shY + 6} L13 ${shY + 50}`} stroke={darken(cloth, 0.22)} strokeWidth={2} />
-          <path d={`M-16 ${shY + 40} Q-12 ${waist - 20} -18 ${waist}`} stroke={darken(cloth, 0.15)} strokeWidth={2.4} fill="none" />
+          <path d={`M${thL} ${shY + 2} L${thR} ${shY + 2} L${flat ? 14 : thC + cY} ${shY + 34} Z`} fill={darken(cloth, 0.1)} />
+          <path d={`M${thC} ${shY + 6} L${thC} ${shY + 50}`} stroke={darken(cloth, 0.22)} strokeWidth={2} />
+          <path d={`M${P(-16, -28)} ${shY + 40} Q${P(-12, -26)} ${waist - 20} ${P(-18, -30)} ${waist}`} stroke={darken(cloth, 0.15)} strokeWidth={2.4} fill="none" opacity={flat ? undefined : sideDetail} />
         </g>
       ) : null}
-      {L.outfit === "abaya" ? <path d={`M-10 ${shY + 30} Q-4 ${waist - 30} -12 ${waist}`} stroke={darken(cloth, 0.35)} strokeWidth={2.4} fill="none" /> : null}
+      {L.outfit === "abaya" ? <path d={`M${P(-10, -24)} ${shY + 30} Q${P(-4, -20)} ${waist - 30} ${P(-12, -26)} ${waist}`} stroke={darken(cloth, 0.35)} strokeWidth={2.4} fill="none" opacity={flat ? undefined : sideDetail} /> : null}
     </g>
   );
 
   // الرأس (بلا ملامح): بيضاوي، بأذن وشعر أو غطاء
   const neckTop = shY - 10;
-  const headTilt = pose.head;
+  const headTilt = flat ? pose.head : pose.head * cY;
   const hy = neckTop - 22;
   const headEl = (
     <g transform={`rotate(${headTilt} 0 ${neckTop + 6})`}>
-      <path d={segPath([2, shY + 4], [3, neckTop], 7.5, 7)} fill={skinDark} stroke={ink} strokeWidth={2.4} />
+      <path d={segPath([flat ? 2 : 2 * cY, shY + 4], [flat ? 3 : 3 * cY, neckTop], 7.5, 7)} fill={skinDark} stroke={ink} strokeWidth={2.4} />
       {L.head === "hijab" ? (
         <g>
-          <path d={`M-27 ${shY + 22} Q-31 ${hy - 26} 2 ${hy - 29} Q31 ${hy - 26} 28 ${shY + 12} Q10 ${shY + 26} -27 ${shY + 22} Z`} fill={sil ?? L.head2 ?? mix(cloth, ID.night, 0.25)} stroke={ink} strokeWidth={2.6} />
-          <ellipse cx={8} cy={hy + 2} rx={14} ry={18} fill={skin} />
-          <path d={`M-6 ${hy - 14} Q4 ${hy - 22} 20 ${hy - 14}`} stroke={darken(sil ?? L.head2 ?? cloth, 0.2)} strokeWidth={3} fill="none" />
-          <path d={`M-20 ${shY + 18} Q-14 ${hy + 10} -16 ${hy - 10}`} stroke={darken(sil ?? L.head2 ?? cloth, 0.25)} strokeWidth={2.6} fill="none" />
+          <path d={`M${V(-27, -28)} ${V(shY + 22, shY + 20)} Q${V(-31, -32)} ${hy - 26} ${V(2, 0)} ${hy - 29} Q${V(31, 32)} ${hy - 26} ${V(28, 28)} ${V(shY + 12, shY + 20)} Q${V(10, 0)} ${V(shY + 26, shY + 30)} ${V(-27, -28)} ${V(shY + 22, shY + 20)} Z`} fill={sil ?? L.head2 ?? mix(cloth, ID.night, 0.25)} stroke={ink} strokeWidth={2.6} />
+          <ellipse cx={V(8, 0)} cy={hy + 2} rx={V(14, 15)} ry={18} fill={skin} />
+          <path d={`M${V(-6, -13)} ${hy - 14} Q${V(4, 0)} ${hy - 22} ${V(20, 13)} ${hy - 14}`} stroke={darken(sil ?? L.head2 ?? cloth, 0.2)} strokeWidth={3} fill="none" />
+          <path d={`M-20 ${shY + 18} Q${V(-14, -17)} ${hy + 10} ${V(-16, -18)} ${hy - 10}`} stroke={darken(sil ?? L.head2 ?? cloth, 0.25)} strokeWidth={2.6} fill="none" />
         </g>
       ) : (
         <g>
-          <ellipse cx={3} cy={hy} rx={20} ry={23.5} fill={skin} stroke={ink} strokeWidth={2.6} />
-          <path d={`M-17 ${hy - 10} Q-20 ${hy + 8} -10 ${hy + 19} Q-2 ${hy + 22} 2 ${hy + 21} L-3 ${hy - 10} Z`} fill="#000" opacity={0.08 * shade} />
-          {L.head === "hair" ? <path d={`M-17 ${hy + 4} Q-20 ${hy - 22} 2 ${hy - 25} Q20 ${hy - 25} 23 ${hy - 10} Q14 ${hy - 15} 6 ${hy - 13} Q2 ${hy - 4} 0 ${hy - 2} Q-6 ${hy - 6} -8 ${hy + 2} Q-12 ${hy + 6} -17 ${hy + 4} Z`} fill={hairCol} stroke={ink} strokeWidth={2.2} strokeLinejoin="round" /> : null}
+          <ellipse cx={V(3, 0)} cy={hy} rx={V(20, 19)} ry={23.5} fill={skin} stroke={ink} strokeWidth={2.6} />
+          <path d={`M-17 ${hy - 10} Q-20 ${hy + 8} -10 ${hy + 19} Q-2 ${hy + 22} 2 ${hy + 21} L-3 ${hy - 10} Z`} fill="#000" opacity={flat ? 0.08 * shade : 0.08 * shade * cY} />
+          {L.head === "hair" ? (
+            <path
+              d={`M${V(-17, -20)} ${V(hy + 4, hy + 2)} Q${V(-20, -22)} ${V(hy - 22, hy - 24)} ${V(2, 0)} ${V(hy - 25, hy - 26)} Q${V(20, 22)} ${V(hy - 25, hy - 24)} ${V(23, 20)} ${V(hy - 10, hy + 2)} Q${V(14, 14)} ${V(hy - 15, hy - 12)} ${V(6, 8)} ${V(hy - 13, hy - 12)} Q${V(2, 2)} ${V(hy - 4, hy - 14)} ${V(0, 0)} ${V(hy - 2, hy - 12)} Q${V(-6, -2)} ${V(hy - 6, hy - 14)} ${V(-8, -8)} ${V(hy + 2, hy - 12)} Q${V(-12, -14)} ${V(hy + 6, hy - 12)} ${V(-17, -20)} ${V(hy + 4, hy + 2)} Z`}
+              fill={hairCol}
+              stroke={ink}
+              strokeWidth={2.2}
+              strokeLinejoin="round"
+            />
+          ) : null}
           {L.head === "kufi" ? (
             <g>
-              {L.hair ? <path d={`M-17 ${hy + 2} Q-18 ${hy - 6} -12 ${hy - 10} L-8 ${hy + 4} Z`} fill={L.hair} /> : null}
-              <path d={`M-18 ${hy - 6} Q-17 ${hy - 26} 3 ${hy - 27} Q22 ${hy - 26} 23 ${hy - 6} Z`} fill={sil ?? lighten(ID.paper, 0.25)} stroke={ink} strokeWidth={2.2} />
-              <path d={`M-17 ${hy - 10} Q3 ${hy - 14} 23 ${hy - 10}`} stroke={sil ?? mix(ID.paper, ID.copper, 0.3)} strokeWidth={2} fill="none" />
+              {L.hair ? <path d={`M-17 ${hy + 2} Q-18 ${hy - 6} -12 ${hy - 10} L-8 ${hy + 4} Z`} fill={L.hair} opacity={flat ? undefined : cY} /> : null}
+              <path d={`M${V(-18, -21)} ${hy - 6} Q${V(-17, -20)} ${hy - 26} ${V(3, 0)} ${hy - 27} Q${V(22, 20)} ${hy - 26} ${V(23, 21)} ${hy - 6} Z`} fill={sil ?? lighten(ID.paper, 0.25)} stroke={ink} strokeWidth={2.2} />
+              <path d={`M${V(-17, -20)} ${hy - 10} Q${V(3, 0)} ${hy - 14} ${V(23, 20)} ${hy - 10}`} stroke={sil ?? mix(ID.paper, ID.copper, 0.3)} strokeWidth={2} fill="none" />
             </g>
           ) : null}
           {L.head === "ghutra" ? (
             <g>
-              <path d={`M-24 ${shY + 6} Q-28 ${hy - 28} 3 ${hy - 29} Q26 ${hy - 28} 25 ${hy - 6} L20 ${hy - 4} Q4 ${hy - 14} -10 ${hy - 2} Q-16 ${hy + 16} -14 ${shY + 8} Z`} fill={sil ?? lighten(ID.paper, 0.2)} stroke={ink} strokeWidth={2.4} />
-              <path d={`M-19 ${hy - 14} Q3 ${hy - 22} 24 ${hy - 13}`} stroke={sil ?? darken(ID.night, 0.4)} strokeWidth={5} fill="none" />
+              <path d={`M${V(-24, -27)} ${V(shY + 6, shY + 8)} Q${V(-28, -30)} ${hy - 28} ${V(3, 0)} ${hy - 29} Q${V(26, 30)} ${hy - 28} ${V(25, 27)} ${V(hy - 6, shY + 8)} L${V(20, 18)} ${V(hy - 4, shY + 4)} Q${V(4, 16)} ${V(hy - 14, hy - 14)} ${V(-10, 0)} ${V(hy - 2, hy - 14)} Q${V(-16, -16)} ${V(hy + 16, hy - 14)} ${V(-14, -18)} ${V(shY + 8, shY + 4)} Z`} fill={sil ?? lighten(ID.paper, 0.2)} stroke={ink} strokeWidth={2.4} />
+              <path d={`M${V(-19, -21)} ${hy - 14} Q${V(3, 0)} ${hy - 22} ${V(24, 21)} ${V(hy - 13, hy - 14)}`} stroke={sil ?? darken(ID.night, 0.4)} strokeWidth={5} fill="none" />
             </g>
           ) : null}
         </g>
@@ -415,12 +464,14 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
         return null;
     }
   })();
-  const bundle = holding === "bundle" ? <path d={`M${sh[0] - 18} ${sh[1] + 4} q-62 -14 -66 44 q-4 62 40 74 q30 4 34 -30 z`} fill={sil ?? darken(ID.copper, 0.35)} stroke={ink} strokeWidth={2.4} /> : null;
+  const bundleEl = holding === "bundle" ? <path d={`M${sh[0] - 18} ${sh[1] + 4} q-62 -14 -66 44 q-4 62 40 74 q30 4 34 -30 z`} fill={sil ?? darken(ID.copper, 0.35)} stroke={ink} strokeWidth={2.4} /> : null;
+  // الحِمل على الظهر يختفي خلف الجسد كلما واجه الناظر
+  const bundle = flat || !bundleEl ? bundleEl : <g opacity={1 - sY}>{bundleEl}</g>;
 
   const rimLayer =
     rim > 0 && !sil ? (
-      <g style={{ mixBlendMode: "screen" }} opacity={rim * 0.6} transform={`rotate(${pose.lean} 0 ${hipY})`}>
-        <path d={`M30 ${shY + 16} Q29 ${(shY + waist) / 2} 25 ${waist}`} fill="none" stroke={rimColor} strokeWidth={5} strokeLinecap="round" />
+      <g style={{ mixBlendMode: "screen" }} opacity={flat ? rim * 0.6 : rim * 0.6 * cY} transform={`rotate(${leanV} 0 ${hipY})`}>
+        <path d={`M${E(30, 40)} ${shY + 16} Q${E(29, 39)} ${(shY + waist) / 2} ${E(25, 32)} ${waist}`} fill="none" stroke={rimColor} strokeWidth={5} strokeLinecap="round" />
         <path d={`M14 ${hy - 22} Q26 ${hy - 10} 22 ${hy + 10}`} fill="none" stroke={rimColor} strokeWidth={4.5} strokeLinecap="round" transform={`rotate(${headTilt} 0 ${neckTop + 6})`} />
       </g>
     ) : null;
@@ -429,17 +480,19 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
     <g transform={`translate(${x} ${y}) scale(${(facing ?? (flip ? -1 : 1)) * scale} ${scale})`} opacity={opacity}>
       {shadow ? <ellipse cx={6} cy={2} rx={64} ry={10} fill="#000" opacity={0.3 * opacity} /> : null}
       {bundle}
-      {sleeve(ab, true, "ab")}
+      {sY < 0.85 ? sleeve(ab, true, "ab") : null}
       {skirt ? null : legsBack}
       {shoeEl(lb.f, "sb")}
       {skirt ? null : legsFront}
       {shoeEl(lf.f, "sf")}
       {skirt}
       {skirtFolds}
-      <g transform={`rotate(${pose.lean} 0 ${hipY})`}>
+      <g transform={`rotate(${leanV} 0 ${hipY})`}>
         {torso}
         {headEl}
       </g>
+      {/* أماميًا الذراعان على جانبي الجذع، فلا تختفي البعيدة خلفه */}
+      {sY >= 0.85 ? sleeve(ab, true, "ab") : null}
       {held && holding === "paper" ? held : null}
       {sleeve(af, false, "af")}
       {held && holding !== "paper" ? held : null}
