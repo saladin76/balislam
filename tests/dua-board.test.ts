@@ -19,7 +19,7 @@ describe("لوح الدعاء", () => {
     template: "dua-board",
     narration: "«اللهم أرنا الحق حقًّا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
     props: {
-      cues: "dua | اللهم\\nask1 | الحق\\nask2 | وارزقنا\\nask4 | وارزقنا#2",
+      cues: "dua | اللهم\nask1 | الحق\nask2 | وارزقنا\nask4 | وارزقنا#2",
       dua: "اللهم أرنا الحق حقًّا وارزقنا اتباعه / وأرنا الباطل باطلًا وارزقنا اجتنابه",
       source: "من كلام أهل العلم",
     },
@@ -27,7 +27,7 @@ describe("لوح الدعاء", () => {
   type BoardScene = typeof fixture;
   const checkCues = (s: BoardScene) => {
     const timings = estimateTimings(s.narration, 6, 300);
-    const lines = (s.props.cues ?? "").split("\\n").filter((l) => l.includes("|"));
+    const lines = (s.props.cues ?? "").split("\n").filter((l) => l.includes("|"));
     for (const line of lines) {
       const word = line.split("|")[1]!.trim();
       const [k, nth] = word.split("#");
@@ -43,8 +43,8 @@ describe("لوح الدعاء", () => {
   });
 
   it("الدعاء الظاهر في قالب اللوح مطابق للمنطوق بلا نسبة نبوية غير صحيحة", () => {
-    const shown = fixture.props.dua.replace(/[|/]/g, " ").replace(/\\s+/g, " ").trim();
-    const spoken = fixture.narration.replace(/[«».]/g, "").replace(/\\s+/g, " ").trim();
+    const shown = fixture.props.dua.replace(/[|/]/g, " ").replace(/\s+/g, " ").trim();
+    const spoken = fixture.narration.replace(/[«».]/g, "").replace(/\s+/g, " ").trim();
     expect(shown).toBe(spoken);
     expect(fixture.props.source).not.toMatch(/النبي|رسول|ﷺ/);
   });
@@ -56,9 +56,9 @@ describe("لوح الدعاء", () => {
     for (const scene of boards) {
       checkCues(scene);
       expect(scene.props.source ?? "").not.toMatch(/النبي|رسول|ﷺ/);
-      if (/dua \\|/.test(scene.props.cues ?? "")) {
-        const shown = (scene.props.dua ?? "").replace(/[|/]/g, " ").replace(/\\s+/g, " ").trim();
-        const spoken = scene.narration.replace(/[«».]/g, "").replace(/\\s+/g, " ").trim();
+      if (/dua \|/.test(scene.props.cues ?? "")) {
+        const shown = (scene.props.dua ?? "").replace(/[|/]/g, " ").replace(/\s+/g, " ").trim();
+        const spoken = scene.narration.replace(/[«».]/g, "").replace(/\s+/g, " ").trim();
         expect(shown).toBe(spoken);
       }
     }
