@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { parseBoardCues } from "../src/remotion/scenes/DuaBoard";
+import { parseBoardCues, arabicInkRevealStyle } from "../src/remotion/scenes/DuaBoard";
 import { estimateTimings } from "../src/remotion/scenes/timing";
 
 describe("لوح الدعاء", () => {
+  it("يظهر النص العربي كامل الحروف بلا قناع يقص التشكيل أثناء الحركة", () => {
+    const before = arabicInkRevealStyle(0);
+    const midway = arabicInkRevealStyle(0.5);
+    const after = arabicInkRevealStyle(1);
+    expect(before.opacity).toBe(0);
+    expect(midway.opacity).toBe(0.5);
+    expect(after.opacity).toBe(1);
+    for (const state of [before, midway, after]) {
+      expect(state).not.toHaveProperty("clipPath");
+      expect(state).not.toHaveProperty("overflow", "hidden");
+    }
+  });
+
   it("كل عنصر يظهر لحظة نطق كلمته، والكلمة المكررة بترتيبها", () => {
     const narration = "«اللهم أرنا الحق حقًّا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».";
     const t = estimateTimings(narration, 6, 200);
