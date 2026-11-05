@@ -37,7 +37,7 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   await mkdir(dir, { recursive: true });
   const index = await readIndex(dir);
   const target = `${name}.mp4`;
-  const stale = (await readdir(dir)).filter((n) => n !== target && /\.mp4$/i.test(n) && n.startsWith(`${name}-v`));
+  const stale = (await readdir(dir)).filter((n) => n !== target && /\.mp4$/i.test(n) && n.startsWith(`${name}-v`) && /^v\d+\.mp4$/i.test(n.slice(name.length + 1)));
   const prev = index[target];
   const output = path.join(dir, target);
   const pending = path.join(dir, `.${name}.${randomUUID()}.pending`);
