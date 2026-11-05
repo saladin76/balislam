@@ -36,9 +36,9 @@ describe("مختبرات الإنتاج", () => {
     });
   });
 
-  it("القناتان الأخريان بلا مختبرات معلنة: واجهتاهما بلا قسم المختبرات", async () => {
+  it("بالإسلام بلا مختبرات معلنة، وزبدة الكتب مختبرها الوحيد 980 (أدوات الحبر)", async () => {
     expect(await listLabDirs(eps("balislam"))).toEqual([]);
-    expect(await listLabDirs(eps("zubdat-alkutub"))).toEqual([]);
+    expect(await listLabDirs(eps("zubdat-alkutub"))).toEqual(["980-kit-lab"]); // مختبر أدوات الحبر (الأمر 016)
   });
 
   it("سجل المختبر سليم، ومعاينته تُقرأ بحالتها، وما انتقل موجود فعلًا في المكتبة", async () => {

@@ -31,30 +31,38 @@ export const assertZubdat = () => {
 };
 
 // ── المعايير والأدوات (مصدر واحد للوثيقة والتقارير) ──────────────────────
+/** حد الخطأ لحجم النص (على عرض 1920)؛ وMIN_TEXT حد التنبيه */
+export const MIN_TEXT_HARD = 40;
 export type Level = "standard" | "tool" | "episode";
 export const LEVEL_AR: Record<Level, string> = { standard: "معيار دائم للقناة", tool: "أداة إخراجية اختيارية", episode: "معالجة خاصة بحلقة" };
-export type Standard = { id: string; area: 1 | 2 | 3 | 4 | 5 | 6 | 7; level: Level; title: string; rule: string; enforced: string };
+/**
+ * حالة المعيار بعد مراجعة نطاقه (الأمر 016): ملزم بقرار مسجَّل ومصدره، أو خيار إخراجي، أو منفّذ ينتظر المراجعة.
+ * لا يصير معيار ملزمًا لمجرد وجوده في الجدول؛ والمقترحات المستقبلية ليست هنا بل في سجل القرارات.
+ */
+export type StandardStatus = "binding" | "option" | "pending";
+export const STATUS_AR: Record<StandardStatus, string> = { binding: "ملزم", option: "خيار إخراجي", pending: "منفّذ ينتظر المراجعة" };
+export type Standard = { id: string; area: 1 | 2 | 3 | 4 | 5 | 6 | 7; level: Level; status: StandardStatus; source: string; title: string; rule: string; enforced: string };
 export const AREA_AR = ["", "الموشن جرافيك", "التكوين البصري", "الهوية الفنية", "السرد البصري", "الإخراج الصوتي", "التزامن", "مراجعة الجودة"] as const;
 
 export const STANDARDS: Standard[] = [
-  { id: "M1", area: 1, level: "standard", title: "حدث لا تحريك", rule: "كل مشهد شرح حدث بصري له بداية وتطور ونتيجة (يُرسم، يمتلئ، يُشطب، يتصل)، لا نص يتحرك وحده.", enforced: "قالب ink-shot وأدوات kit-*؛ مراجعة المشهد (القاعدة السادسة)" },
-  { id: "M2", area: 1, level: "standard", title: "الحركة بالمعنى وبالنسبة", rule: "حركة مقصودة في 80% من الثواني على الأقل (الهدف 90%)، ولا مقطع ساكن فوق ثانيتين، والسكون عند الآية وتمهيدها وذكر الله مستثنى ولا يُعوَّض بزخرفة.", enforced: "src/render/motionMeter.ts وstillness.ts (عام للقنوات، يُقرأ هنا)" },
-  { id: "M3", area: 1, level: "standard", title: "قلب الصفحة لكل فكرة", rule: "الانتقال بين الأفكار قلب ورقة من اليسار إلى اليمين (اتجاه الكتاب العربي)، لا انتقالات منوعة.", enforced: "InkShot.tsx (ثابت في القالب)" },
-  { id: "C1", area: 2, level: "standard", title: "المنطقة الآمنة", rule: "هامش 10% من كل جانب، وأسفلها فوق شريط الترجمة (y ≤ 880 من 1080)، والكاميرا لا تقص عنصرًا ظهر.", enforced: "SAFE وfitFrame في InkShot.tsx؛ لوحة الهاتف `zubdat sheet`" },
-  { id: "C2", area: 2, level: "standard", title: "القراءة على الهاتف", rule: `لا نص أصغر من ${MIN_TEXT}px على عرض 1920 (≈11px على هاتف عرضه 390)، والأساسي 64px فأكثر؛ ونقطة تركيز واحدة في كل لحظة.`, enforced: "`zubdat check` (حجم كل نص مكتوب)" },
-  { id: "I1", area: 3, level: "standard", title: "القلم المميِّز", rule: "ورق أبيض بسطور خفيفة وهامش برتقالي، حبر أسود، فسفوري #E8F542 للفكرة وحدها، برتقالي للشطب والتنبيه؛ لاله زار للعناوين.", enforced: "inkKit.tsx (Z من هوية القناة)؛ tests/identity-approved.test.ts" },
-  { id: "I2", area: 3, level: "standard", title: "عناصر الهوية", rule: "عدّاد الأفكار، الورقة اللاصقة، بطاقة الكتاب: رسم حبري بلا غلاف واقعي ولا صورة.", enforced: "أدوات kit-ideas وkit-book" },
-  { id: "N1", area: 4, level: "standard", title: "لا نص إلا ما يُنطق", rule: "كل ما يُكتب على الشاشة منطوق في جملة المشهد نفسه، ويظهر لحظة نطقه.", enforced: "`zubdat check` (نص غير منطوق = خطأ)" },
-  { id: "N2", area: 4, level: "tool", title: "استعارات جاهزة", rule: "عدّاد الأفكار، من… إلى…، سلسلة السبب والنتيجة، مقياس المستوى، بطاقة الكتاب: تُختار عند مناسبتها للفكرة وتُخصَّص بالعبارات والتوقيت.", enforced: "src/remotion/zubdat/kitShots.tsx" },
-  { id: "N3", area: 4, level: "episode", title: "اللقطة المصمَّمة", rule: "حين لا تكفي الأدوات العامة يُصمَّم مشهد خاص بالجملة (مثل مشاهد الحلقة 001)، ويبقى ضمن حلقته ولا يُعمَّم إلا بقرار.", enforced: "shots.tsx وshots2.tsx (مشاهد 001)" },
-  { id: "V1", area: 5, level: "standard", title: "إيقاع طبيعي لا سرعة مفروضة", rule: "نطاق 110–140 كلمة في الدقيقة دليل لا قيد؛ الصورة تتبع الراوي (توقيت الكلمات من الصوت)، ولا تُضبط سرعته لتوافق رسمًا.", enforced: "التوقيت من محاذاة الصوت؛ دليل الراوي `zubdat guide` (مدى لا رقم)" },
-  { id: "V2", area: 5, level: "standard", title: "النطق والوقفات", rule: "تشكيل 98% فأكثر قبل أي صوت، والكلمات ذات النطقين تُراجع في سياقها، والوقفات من علامات الترقيم والمعنى لا من عدّاد، والأسماء بحركة إعرابها في موضعها.", enforced: "مدقق التشكيل؛ `zubdat guide`" },
-  { id: "V3", area: 5, level: "standard", title: "الأمانة الصوتية", rule: "الراوي لا يتلو القرآن (التلاوة مرخصة)، والأداء عند ذكر الله هادئ خاشع بلا مؤثر.", enforced: "قاعدة المشروع؛ `zubdat guide` يعلّم المواضع" },
-  { id: "S1", area: 6, level: "standard", title: "كل رسم على كلمته", rule: "كل حدث مربوط بكلمة منطوقة (at/end)؛ كلمة لا توجد في الجملة تُسقط الحدث إلى نسبة تقديرية وهذا خطأ.", enforced: "`zubdat check` (توقيت مفقود = خطأ)" },
-  { id: "S2", area: 6, level: "standard", title: "سكون عند الذكر", rule: "لا يُكتب ولا يُظلَّل ولا يقع حدث في نافذة ذكر الله، والكاميرا ساكنة فيها.", enforced: "InkShot.tsx (سكون الكاميرا)؛ `zubdat check` (حدث في نافذة ذكر = خطأ)" },
-  { id: "Q1", area: 7, level: "standard", title: "بطاقة الصورة والحركة", rule: "100 نقطة بأوزان الدليل المهني؛ الاعتماد 85 فأكثر.", enforced: "`zubdat qa`" },
-  { id: "Q2", area: 7, level: "standard", title: "بطاقة الراوي", rule: "100 نقطة (20/20/20/20/15/5)؛ 85 نجاح، 80–84 إعادة مقطع، دون 80 رفض؛ ويُرفض فورًا خطأ نطق مؤثر أو أداء آلي مصطنع.", enforced: "`zubdat qa`" },
-  { id: "Q3", area: 7, level: "standard", title: "الفحص قبل العرض", rule: "لا يُعرض مشهد قبل `zubdat check` بلا أخطاء ولوحة الهاتف عند كل كلمة مرسومة.", enforced: "`zubdat check` و`zubdat sheet`" },
+  { id: "M1", area: 1, level: "standard", status: "binding", source: "القاعدتان الثانية والثالثة (CLAUDE.md)، وD04", title: "حدث لا تحريك", rule: "كل مشهد شرح حدث بصري له بداية وتطور ونتيجة (يُرسم، يمتلئ، يُشطب، يتصل)، لا نص يتحرك وحده.", enforced: "قالب ink-shot وأدوات kit-*؛ مراجعة المشهد (القاعدة السادسة)" },
+  { id: "M2", area: 1, level: "standard", status: "binding", source: "القاعدة الثانية (CLAUDE.md). وحيث يكون الحدث تحركًا للأصفر يُحكم بالمراجعة البصرية (الأمر 016)", title: "الحركة بالمعنى وبالنسبة", rule: "حركة مقصودة في 80% من الثواني على الأقل (الهدف 90%)، ولا مقطع ساكن فوق ثانيتين، والسكون عند الآية وتمهيدها وذكر الله مستثنى ولا يُعوَّض بزخرفة.", enforced: "src/render/motionMeter.ts وstillness.ts (عام للقنوات، يُقرأ هنا)" },
+  { id: "M3", area: 1, level: "standard", status: "binding", source: "D07", title: "قلب الصفحة لكل فكرة", rule: "الانتقال بين الأفكار قلب ورقة من اليسار إلى اليمين (اتجاه الكتاب العربي)، لا انتقالات منوعة.", enforced: "InkShot.tsx (ثابت في القالب)" },
+  { id: "C1", area: 2, level: "standard", status: "binding", source: "الأمر 016، وD05", title: "المنطقة الآمنة", rule: "هامش 10% من كل جانب، وأسفلها فوق شريط الترجمة (y ≤ 880 من 1080)، والكاميرا لا تقص عنصرًا ظهر.", enforced: "SAFE وfitFrame في InkShot.tsx؛ لوحة الهاتف `zubdat sheet`" },
+  { id: "C2", area: 2, level: "standard", status: "binding", source: "الأمر 016: تحت 40px خطأ ملزم. وحد 52px تنبيه يُحسم بمشاهدة الهاتف، لا تكبير آلي", title: "القراءة على الهاتف", rule: `لا نص أصغر من ${MIN_TEXT_HARD}px على عرض 1920 (خطأ)، والمعيار ${MIN_TEXT}px فأكثر (≈11px على هاتف عرضه 390) يُراجع بالمشاهدة، والأساسي 64px فأكثر؛ ونقطة تركيز واحدة في كل لحظة.`, enforced: "`zubdat check` (حجم كل نص مكتوب)" },
+  { id: "I1", area: 3, level: "standard", status: "binding", source: "D01، واختبار الهويات المعتمدة", title: "القلم المميِّز", rule: "ورق أبيض بسطور خفيفة وهامش برتقالي، حبر أسود، فسفوري #E8F542 للفكرة وحدها، برتقالي للشطب والتنبيه؛ لاله زار للعناوين.", enforced: "inkKit.tsx (Z من هوية القناة)؛ tests/identity-approved.test.ts" },
+  { id: "I2", area: 3, level: "standard", status: "pending", source: "أشكال الأدوات بانتظار الاعتماد البصري (الأمر 016، المختبر 980)", title: "عناصر الهوية", rule: "عدّاد الأفكار، الورقة اللاصقة، بطاقة الكتاب: رسم حبري بلا غلاف واقعي ولا صورة.", enforced: "أدوات kit-ideas وkit-book" },
+  { id: "N1", area: 4, level: "standard", status: "pending", source: "الفحص يعمل ويُظهر الخطأ. نطاقه (شاشة النهاية، أسماء السور، اسم القناة) يُراجع قبل جعله ملزمًا", title: "لا نص إلا ما يُنطق", rule: "كل ما يُكتب على الشاشة منطوق في جملة المشهد نفسه، ويظهر لحظة نطقه.", enforced: "`zubdat check` (نص غير منطوق = خطأ)" },
+  { id: "N2", area: 4, level: "tool", status: "option", source: "الأمر 016: أدوات اختيارية لا تُفرض، وأشكالها بانتظار الاعتماد البصري", title: "استعارات جاهزة", rule: "عدّاد الأفكار، من… إلى…، سلسلة السبب والنتيجة، مقياس المستوى، بطاقة الكتاب: تُختار عند مناسبتها للفكرة وتُخصَّص بالعبارات والتوقيت.", enforced: "src/remotion/zubdat/kitShots.tsx" },
+  { id: "N3", area: 4, level: "episode", status: "option", source: "D03 وD04", title: "اللقطة المصمَّمة", rule: "حين لا تكفي الأدوات العامة يُصمَّم مشهد خاص بالجملة (مثل مشاهد الحلقة 001)، ويبقى ضمن حلقته ولا يُعمَّم إلا بقرار.", enforced: "shots.tsx وshots2.tsx (مشاهد 001)" },
+  { id: "V1", area: 5, level: "standard", status: "binding", source: "ملحق الأمر 015 والأمر 016 (دليل الراوي)", title: "إيقاع طبيعي لا سرعة مفروضة", rule: "نطاق 110–140 كلمة في الدقيقة دليل لا قيد؛ الصورة تتبع الراوي (توقيت الكلمات من الصوت)، ولا تُضبط سرعته لتوافق رسمًا.", enforced: "التوقيت من محاذاة الصوت؛ دليل الراوي `zubdat guide` (مدى لا رقم)" },
+  { id: "V2", area: 5, level: "standard", status: "binding", source: "القاعدة الخامسة (CLAUDE.md)، وملحق الأمر 013", title: "النطق والوقفات", rule: "تشكيل 98% فأكثر قبل أي صوت، والكلمات ذات النطقين تُراجع في سياقها، والوقفات من علامات الترقيم والمعنى لا من عدّاد، والأسماء بحركة إعرابها في موضعها.", enforced: "مدقق التشكيل؛ `zubdat guide`" },
+  { id: "V3", area: 5, level: "standard", status: "binding", source: "ثوابت CLAUDE.md", title: "الأمانة الصوتية", rule: "الراوي لا يتلو القرآن (التلاوة مرخصة)، والأداء عند ذكر الله هادئ خاشع بلا مؤثر.", enforced: "قاعدة المشروع؛ `zubdat guide` يعلّم المواضع" },
+  { id: "S1", area: 6, level: "standard", status: "binding", source: "الأمر 016 (فحوص التوقيت)", title: "كل رسم على كلمته", rule: "كل حدث مربوط بكلمة منطوقة (at/end)؛ كلمة لا توجد في الجملة تُسقط الحدث إلى نسبة تقديرية وهذا خطأ.", enforced: "`zubdat check` (توقيت مفقود = خطأ)" },
+  { id: "S2", area: 6, level: "standard", status: "binding", source: "القاعدة الثالثة (CLAUDE.md). وتنبيه الطرف يُحسم على الصوت الفعلي", title: "سكون عند الذكر", rule: "لا يُكتب ولا يُظلَّل ولا يقع حدث في نافذة ذكر الله، والكاميرا ساكنة فيها.", enforced: "InkShot.tsx (سكون الكاميرا)؛ `zubdat check` (حدث في نافذة ذكر = خطأ)" },
+  { id: "Q1", area: 7, level: "standard", status: "binding", source: "الأمر 016 (بطاقات الجودة)", title: "بطاقة الصورة والحركة", rule: "100 نقطة بأوزان الدليل المهني؛ الاعتماد 85 فأكثر.", enforced: "`zubdat qa`" },
+  { id: "Q2", area: 7, level: "standard", status: "binding", source: "ملحق الأمر 015 والأمر 016", title: "بطاقة الراوي", rule: "100 نقطة (20/20/20/20/15/5)؛ 85 نجاح، 80–84 إعادة مقطع، دون 80 رفض؛ ويُرفض فورًا خطأ نطق مؤثر أو أداء آلي مصطنع.", enforced: "`zubdat qa`" },
+  { id: "Q3", area: 7, level: "standard", status: "binding", source: "القاعدة السادسة (CLAUDE.md)", title: "الفحص قبل العرض", rule: "لا يُعرض مشهد قبل `zubdat check` بلا أخطاء ولوحة الهاتف عند كل كلمة مرسومة.", enforced: "`zubdat check` و`zubdat sheet`" },
 ];
 
 export const VISUAL_SCORECARD: [string, number][] = [
@@ -131,7 +139,6 @@ export type Finding = { level: "error" | "warn"; code: string; msg: string };
 export type InkSceneCheck = { id: string; shot: string; kit: boolean; seconds: number; voiced: boolean; cues: number; texts: Drawn[]; findings: Finding[] };
 
 const Z0: Z = { ink: "#111", paper: "#fff", hl: "#E8F542", alert: "#C2412D", faint: "#888" };
-export const MIN_TEXT_HARD = 40;
 
 export const checkInkScene = (span: Pick<SceneSpan, "scene" | "dur" | "timings" | "voiced">): InkSceneCheck => {
   const s = span.scene;

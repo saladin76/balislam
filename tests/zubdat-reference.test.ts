@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { readGuideIndex, readGuidePage } from "../src/channel/guide";
 import { parseMarkdown } from "../app/src/ui/Markdown";
-import { STANDARDS, LEVEL_AR } from "../src/studio/zubdat";
+import { STANDARDS, STATUS_AR } from "../src/studio/zubdat";
 import { KIT_SHOTS } from "../src/remotion/zubdat/kitShots";
 // @ts-expect-error سكريبت mjs بلا أنواع
 import { docsSyncProblems } from "../scripts/docs-sync.mjs";
@@ -46,12 +46,12 @@ describe("المرجع الدائم لاستوديو زبدة الكتب", () =>
     expect(missing).toEqual([]);
   });
 
-  it("كل معيار في STANDARDS موثق بمستواه، وكل أداة kit-* وكل أمر zubdat موثق", () => {
+  it("كل معيار في STANDARDS موثق بحالته (ملزم، أو خيار، أو ينتظر المراجعة)، وكل أداة kit-* وكل أمر zubdat موثق", () => {
     const quality = page("05-quality.md");
     for (const s of STANDARDS) {
       const row = quality.split("\n").find((l) => l.startsWith(`| ${s.id} |`));
       expect(row, s.id).toBeDefined();
-      expect(row, s.id).toContain(LEVEL_AR[s.level]);
+      expect(row, s.id).toContain(`**${STATUS_AR[s.status]}**`);
     }
     const rules = page("04-rules.md");
     for (const id of Object.keys(KIT_SHOTS)) expect(rules, id).toContain(`\`${id}\``);

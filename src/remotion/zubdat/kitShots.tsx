@@ -133,7 +133,8 @@ export const KIT_SHOTS: Record<string, InkShotDef> = {
       const tB = cue("to", firstWord(to), 0.6);
       const tBe = cueEnd("to", lastWord(to), 0.8);
       const hasCross = Boolean(args.cues.cross);
-      const tX = hasCross ? cue("cross", "", 0.45) : -1;
+      // الشطب لا يسبق ما يُشطب: إن جاءت كلمة النفي قبل العبارة (مثل «ليس») يقع بعد اكتمال كتابتها (المراجعة البصرية، الأمر 016)
+      const tX = hasCross ? Math.max(cue("cross", "", 0.45), tAe + 4) : -1;
       const sA = fit(from, 84, 620, "head");
       const sB = fit(to, 92, 620, "head");
       const wA = measure(from, sA, fam("head")) * 1.1;

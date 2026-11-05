@@ -55,6 +55,10 @@ describe("استوديو زبدة الكتب", () => {
   it("المعايير مصنفة وتغطي المجالات السبعة، والبطاقتان مجموعهما 100", () => {
     expect(new Set(STANDARDS.map((s) => s.area)).size).toBe(7);
     expect(STANDARDS.every((s) => ["standard", "tool", "episode"].includes(s.level))).toBe(true);
+    // الأمر 016: لا معيار ملزم بلا مصدر، والأدوات اختيارية، وأشكالها ونطاق «لا نص إلا ما يُنطق» بانتظار المراجعة
+    expect(STANDARDS.filter((s) => s.status === "binding").every((s) => s.source.trim().length > 0)).toBe(true);
+    const by = Object.fromEntries(STANDARDS.map((s) => [s.id, s.status]));
+    expect([by.N2, by.N3, by.I2, by.N1]).toEqual(["option", "option", "pending", "pending"]);
     expect(VOICE_SCORECARD.reduce((n, [, w]) => n + w, 0)).toBe(100);
     expect(VISUAL_SCORECARD.reduce((n, [, w]) => n + w, 0)).toBe(100);
   });
