@@ -35,6 +35,10 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     try {
       await beforeUpdate();
       const r = await api.applyUpdate();
+      if (!r.ok) {
+        setMsg({ text: r.message || "تعذّر تحديث الاستوديو؛ لم تُطبّق العملية.", err: true });
+        return;
+      }
       if (r.reinstalled) setMsg({ text: `${r.message} نزلت حزم جديدة: أغلق الاستوديو (Ctrl + C) وشغّله مرة أخيرة.` });
       else {
         setMsg({ text: `${r.message} جارٍ إعادة التحميل…` });
