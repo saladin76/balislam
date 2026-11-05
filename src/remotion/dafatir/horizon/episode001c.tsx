@@ -91,9 +91,9 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const seal = pop(t, at(tl, "القرآن"));
   const blank = prog(t, at(tl, "نوع") - 0.05, at(tl, "الشجرة") + 0.3);
   const guesses = [
-    { w: "تفاح", x: 1460, a: at(tl, "تفاح") },
-    { w: "تين", x: 1260, a: at(tl, "تين") },
-    { w: "غير ذلك", x: 1030, a: at(tl, "غير") },
+    { w: "تفاح", x: 1560, a: at(tl, "تفاح") },
+    { w: "تين", x: 1375, a: at(tl, "تين") },
+    { w: "غير ذلك", x: 1160, a: at(tl, "غير") },
   ];
   const noJazm = pop(t, at(tl, "نجزم"));
   const flip = prog(t, at(tl, "معرفة") - 0.1, at(tl, "العبرة") - 0.1, (x) => x * x * (3 - 2 * x));
@@ -101,23 +101,27 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const story = pop(t, at(tl, "القصة"));
   const sx = Math.cos(Math.PI * flip);
   const front = sx > 0;
-  const cx = 1250;
-  const cam = camPath(t, { cx: 1260, cy: 520, s: 1.12 }, [{ a: at(tl, "معرفة") - 0.2, b: at(tl, "العبرة"), cx: 1250, cy: 520, s: 1.18 }]);
+  const cx = 1370;
+  const cam = camPath(t, { cx: 1370, cy: 520, s: 1.12 }, [
+    { a: at(tl, "تفاح") - 0.3, b: at(tl, "تفاح") + 0.3, cx: 1370, cy: 590, s: 1.4 },
+    { a: at(tl, "نجزم") - 0.25, b: at(tl, "نجزم") + 0.3, cx: 1370, cy: 640, s: 1.3 },
+    { a: at(tl, "معرفة") - 0.2, b: at(tl, "العبرة"), cx: 1370, cy: 520, s: 1.18 },
+  ]);
   const R = (
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
       <g opacity={card} transform={`translate(${cx} 520) scale(${Math.max(0.02, Math.abs(sx))} 1) translate(${-cx} -520)`}>
-        <rect x={cx - 400} y={300} width={800} height={440} rx={14} fill="#FFFAF0" stroke={C.ink} strokeWidth={4} />
-        <rect x={cx - 400} y={300} width={800} height={70} rx={14} fill={front ? C.ribbon : C.gold} opacity={0.9} />
+        <rect x={cx - 380} y={300} width={760} height={440} rx={14} fill="#FFFAF0" stroke={C.ink} strokeWidth={4} />
+        <rect x={cx - 380} y={300} width={760} height={70} rx={14} fill={front ? C.ribbon : C.gold} opacity={0.9} />
         {front ? (
           <g>
             <SText x={cx} y={348} size={34} font="tajawal" weight={700} color={C.page}>
               بطاقة فهرسة
             </SText>
-            <SText x={cx + 360} y={460} size={52} font="tajawal" weight={700} anchor="start" color={C.inkText}>
+            <SText x={cx + 340} y={460} size={52} font="tajawal" weight={700} anchor="start" color={C.inkText}>
               نوع الشجرة:
             </SText>
-            <Ink d={`M${cx + 60} 470 H${cx - 360}`} w={3} p={blank} c={C.inkSoft} />
+            <Ink d={`M${cx + 40} 470 H${cx - 340}`} w={3} p={blank} c={C.inkSoft} />
             {guesses.map((g, i) => {
               const q = pop(t, g.a);
               const st = prog(t, g.a + 0.3, g.a + 0.65);
@@ -149,7 +153,7 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
           </g>
         )}
       </g>
-      <QuranSeal x={cx - 330} y={250} o={seal * (front ? 1 : 0)} s={0.8} refText="لم يسمّها" />
+      <QuranSeal x={cx - 290} y={200} o={seal * (front ? 1 : 0)} s={0.7} refText="لم يسمّها" />
     </g>
   );
   return <Book id="c52" t={t} dur={dur} exit={exit} cam={cam} R={R} />;
@@ -256,6 +260,9 @@ const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const walk = prog(t, at(tl, "رجع") - 0.1, at(tl, "رجع") + 0.15);
   const glow = prog(t, at(tl, "صادقا") + 0.25, at(tl, "صادقا") + 0.7);
   const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "فإبليس") - 0.3, b: at(tl, "فإبليس") + 0.3, cx: 560, cy: 520, s: 1.22 },
+    { a: at(tl, "وآدم") - 0.35, b: at(tl, "وآدم") + 0.3, cx: 1370, cy: 520, s: 1.22 },
+    { a: end(tl, "وأناب") + 0.1, b: end(tl, "وأناب") + 0.8, ...NEUTRAL },
     { a: at(tl, "باب") - 0.3, b: at(tl, "التوبة") + 0.3, cx: 1300, cy: 520, s: 1.12 },
   ]);
   // الباب على الصفحة اليمنى: إطار ثابت ومصراع يدور على مفصله الأيمن
@@ -457,6 +464,9 @@ const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   // الدبوس معلق يتردد ولا يستقر، ثم يسكن حين نترك الجزم
   const hover = hover0 * (1 - aside);
   const cam = camPath(t, { cx: 960, cy: 540, s: 1.05 }, [
+    { a: r0 - 0.2, b: r0 + 0.6, cx: 640, cy: 520, s: 1.15 },
+    { a: r0 + 0.6, b: r1, cx: 1300, cy: 520, s: 1.15 },
+    { a: at(tl, "نعلم") - 0.2, b: at(tl, "نصا"), cx: 1180, cy: 470, s: 1.12 },
     { a: at(tl, "تاريخا", 1) - 0.25, b: at(tl, "محددا") + 0.3, cx: 1300, cy: 460, s: 1.1 },
     { a: at(tl, "ننسب") - 0.2, b: at(tl, "الجزم") + 0.4, ...NEUTRAL },
   ]);

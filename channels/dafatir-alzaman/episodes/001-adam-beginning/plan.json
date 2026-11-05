@@ -136,7 +136,8 @@
           "line": 37,
           "props": {
             "shot": "verse-intro",
-            "head": "الفصل الثاني"
+            "head": "الفصل الثاني",
+            "ref": "البقرة · ٣٠"
           },
           "sfx": [],
           "edited": true
@@ -244,7 +245,8 @@
           "line": 63,
           "props": {
             "shot": "verse-intro",
-            "head": "الفصل الثالث"
+            "head": "الفصل الثالث",
+            "ref": "ص · ٧١"
           },
           "sfx": [],
           "edited": true
@@ -273,7 +275,8 @@
           "line": 67,
           "props": {
             "shot": "verse-intro",
-            "head": "الفصل الثالث"
+            "head": "الفصل الثالث",
+            "ref": "ص · ٧٢"
           },
           "sfx": [],
           "edited": true
@@ -315,7 +318,8 @@
           "line": 73,
           "props": {
             "shot": "verse-intro",
-            "head": "الفصل الثالث"
+            "head": "الفصل الثالث",
+            "ref": "البقرة · ٣١"
           },
           "sfx": [],
           "edited": true
@@ -356,7 +360,8 @@
           "line": 81,
           "props": {
             "shot": "verse-intro",
-            "head": "الفصل الثالث"
+            "head": "الفصل الثالث",
+            "ref": "البقرة · ٣٢"
           },
           "sfx": [],
           "edited": true
@@ -385,7 +390,8 @@
           "line": 85,
           "props": {
             "shot": "verse-intro",
-            "head": "الفصل الثالث"
+            "head": "الفصل الثالث",
+            "ref": "البقرة · ٣٣"
           },
           "sfx": [],
           "edited": true
@@ -883,7 +889,8 @@
           "line": 185,
           "props": {
             "shot": "verse-intro",
-            "head": "الفصل السادس"
+            "head": "الفصل السادس",
+            "ref": "البقرة · ٣٨"
           },
           "sfx": [],
           "edited": true

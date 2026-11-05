@@ -6,10 +6,11 @@
 import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, CoverLeaf, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
-import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, SText, camPath, fonts, type Cam, type Exit } from "./book";
+import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, camPath, fonts, type Cam, type Exit } from "./book";
 import { GATE, Hatch, RUINS, Shot2, Shot4, Shot5, Shot6, Sunset } from "./shots";
 import { HZ_META } from "./meta";
 import { HZ_SCENES_B } from "./episode001b";
+import { VerseRefPanel } from "./verseRef";
 import { HZ_SCENES_C } from "./episode001c";
 import { HZ_SCENES_D } from "./episode001d";
 
@@ -255,7 +256,7 @@ const Lineage: React.FC<HzProps> = ({ t, tl, dur, exit, from }) => {
     </g>
   );
   const cam = camPath(t, { cx: 1250, cy: 520, s: 1.1 }, [
-    { a: at(tl, "ومنه") - 0.2, b: at(tl, "نسل") + 0.4, cx: 1160, cy: 480, s: 1.02 },
+    { a: at(tl, "ومنه") + 0.05, b: at(tl, "نسل") + 0.4, cx: 1160, cy: 480, s: 1.02 },
     { a: at(tl, "انتشر") - 0.2, b: end(tl, "الأرض") + 0.4, ...NEUTRAL },
   ]);
   const top = mix(486, 168, mv);
@@ -429,13 +430,15 @@ const Chapter: React.FC<HzProps> = ({ t, dur, exit, p }) => {
   return <Book id="ch" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={R} />;
 };
 
-// ─────────── تمهيد آية: صفحة ساكنة برأس الفصل ───────────
-const VerseIntro: React.FC<HzProps> = ({ t, dur, exit, p }) => <Book id="vi" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={<ChapterHead label={p.head ?? ""} />} />;
+// ─────────── تمهيد آية: صفحة ساكنة عليها مرجع الآية القادمة (لا نصّها) ───────────
+const VerseIntro: React.FC<HzProps> = ({ t, dur, exit, p }) => (
+  <Book id="vi" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={<g><ChapterHead label={p.head ?? ""} />{p.ref ? <VerseRefPanel refText={p.ref} o={prog(t, 0, 0.25)} /> : null}</g>} />
+);
 
 // ─────────── c2-s3: سؤال لطلب الفهم، لا اعتراض (حاشية ابن كثير على البقرة 30) ───────────
 const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
-  const q = prog(t, at(tl, "وسألت") - 0.05, at(tl, "وسألت") + 0.6, easeOut);
-  const head = prog(t, end(tl, "وسألت"), end(tl, "وسألت") + 0.5);
+  const q = prog(t, at(tl, "وسألت") - 0.05, at(tl, "وسألت") + 0.45, easeOut);
+  const head = prog(t, end(tl, "وسألت") - 0.05, end(tl, "وسألت") + 0.25);
   const fasad = prog(t, at(tl, "الفساد") - 0.05, at(tl, "الفساد") + 0.45, easeOut);
   const safk = prog(t, at(tl, "وسفك") - 0.05, at(tl, "وسفك") + 0.45, easeOut);
   const card = prog(t, at(tl, "سؤالهم") - 0.15, at(tl, "سؤالهم") + 0.6, easeOut);
@@ -444,7 +447,10 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const ring = prog(t, end(tl, "الفهم"), end(tl, "الفهم") + 0.6);
   const under = prog(t, at(tl, "الحكمة"), end(tl, "الحكمة") + 0.3);
   const cam = camPath(t, NEUTRAL, [
-    { a: at(tl, "وسألت") - 0.2, b: at(tl, "وسألت") + 0.9, cx: 1365, cy: 520, s: 1.1 },
+    { a: at(tl, "وسألت") - 0.2, b: at(tl, "وسألت") + 0.55, cx: 1365, cy: 520, s: 1.1 },
+    // لقطة أقرب على ما سألوا عنه، ثم إلى الحاشية
+    { a: at(tl, "الفساد") - 0.3, b: at(tl, "وسفك") + 0.3, cx: 1360, cy: 640, s: 1.3 },
+    { a: at(tl, "يسبحون") - 0.6, b: at(tl, "يسبحون") - 0.26, cx: 1365, cy: 520, s: 1.1 },
     { a: at(tl, "سؤالهم") - 0.3, b: at(tl, "سؤالهم") + 0.9, cx: 600, cy: 500, s: 1.12 },
   ]);
   const R = (

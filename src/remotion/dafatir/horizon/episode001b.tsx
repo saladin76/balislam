@@ -8,6 +8,7 @@ import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, Ink, easeOut, mix, prog, rng } from "./kit";
 import { Book, ChapterHead, NEUTRAL, QuranSeal, SText, TafsirTab, camPath, type Cam, type Exit } from "./book";
+import { VerseRefPanel } from "./verseRef";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const CLAY = "#8A5A3C";
@@ -378,6 +379,7 @@ const Honor: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const lift = prog(t, at(tl, "فالعبادة") - 0.1, at(tl, "حق") + 0.05, easeOut);
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "يسجدوا") - 0.2, b: at(tl, "يسجدوا") + 0.6, cx: 1365, cy: 460, s: 1.1 },
+    { a: at(tl, "تكريما") + 0.1, b: at(tl, "تكريما") + 0.7, cx: 1365, cy: 600, s: 1.2 },
     { a: at(tl, "فالعبادة") - 0.3, b: at(tl, "حق") - 0.05, cx: 780, cy: 500, s: 1.04 },
   ]);
   const col = (x: number, label: string, q: number, good: boolean, mark: number, fade = 1) => (
@@ -497,7 +499,10 @@ const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
       </SText>
     </g>
   );
-  const cam = camPath(t, NEUTRAL, [{ a: at(tl, "بل") - 0.2, b: end(tl, "الجن") + 0.3, cx: 820, cy: 520, s: 1.05 }]);
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "إبليس") - 0.2, b: at(tl, "الملائكة") + 0.3, cx: 1200, cy: 500, s: 1.15 },
+    { a: at(tl, "بل") - 0.2, b: end(tl, "الجن") + 0.3, cx: 820, cy: 520, s: 1.1 },
+  ]);
   const R = (
     <g>
       <Ink d="M1365 320 C1520 320 1600 420 1600 520 C1600 640 1500 720 1365 720 C1230 720 1130 640 1130 520 C1130 410 1220 320 1361 320" w={4} p={ring} c={C.gold} />
@@ -534,7 +539,7 @@ const VerseTag: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       R={
         <g>
           {p.head ? <ChapterHead label={p.head} /> : null}
-          <QuranSeal x={1365} y={500} o={seal} refText={p.ref} />
+          {p.ref ? <VerseRefPanel refText={p.ref} o={seal} /> : null}
         </g>
       }
     />
@@ -695,6 +700,8 @@ const Enmity: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const flow = prog(t, at(tl, "يمهله"), dur);
   const att = [at(tl, "أعلن"), at(tl, "عزمه"), at(tl, "إغواء"), at(tl, "البشر")].map((a) => prog(t, a - 0.05, a + 0.7));
   const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "لآدم") - 0.2, b: at(tl, "وذريته") + 0.3, cx: 1400, cy: 430, s: 1.18 },
+    { a: at(tl, "عدوا") - 0.2, b: at(tl, "عدوا") + 0.6, ...NEUTRAL },
     { a: at(tl, "يمهله") + 0.05, b: at(tl, "يمهله") + 0.7, cx: 620, cy: 560, s: 1.15 },
     { a: at(tl, "أعلن") - 0.2, b: at(tl, "إغواء") + 0.3, ...NEUTRAL },
   ]);

@@ -412,6 +412,7 @@ const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const bound = prog(t, at(tl, "خارج") - 0.05, end(tl, "حدودها") + 0.2);
   const qmark = pop(t, end(tl, "حدودها") - 0.1);
   const cam = camPath(t, { cx: 1380, cy: 340, s: 1.45 }, [
+    { a: at(tl, "سجلا") - 0.3, b: at(tl, "سجلا") + 0.3, cx: 1530, cy: 320, s: 1.8 },
     { a: q2 - 0.4, b: q2 + 0.3, cx: 1380, cy: 720, s: 1.45 },
     { a: q3 - 0.6, b: q3 + 0.2, cx: 560, cy: 520, s: 1.12 },
     { a: end(tl, "حدودها") + 0.2, b: end(tl, "حدودها") + 1.0, ...NEUTRAL },
@@ -517,7 +518,7 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
   const turned = t >= turnAt + 0.8;
   const title = prog(t, at(tl, "دفاتر") - 0.05, at(tl, "دفاتر") + 0.7, easeOut);
   const glass = prog(t, turnAt + 0.6, at(tl, "دفاتر"));
-  const ribbon = prog(t, end(tl, "الزمن", 2) + 0.1, end(tl, "الزمن", 2) + 0.8, easeOut);
+  const ribbon = prog(t, end(tl, "الزمن", 2) + 0.05, end(tl, "الزمن", 2) + 0.6, easeOut);
   const pull = prog(t, end(tl, "الزمن", 2) + 0.1, at(tl, "والحمد") - 0.1);
   const night = prog(t, dur - 1.2, dur);
   const before = (
