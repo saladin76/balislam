@@ -48,6 +48,9 @@ describe("مرحلة الصوت", () => {
       />,
     );
     expect(html).toContain("صوت الحلقة");
+    expect(html).toContain("التعليق الصوتي");
+    expect(html).toContain("تلاوة الآيات داخل الفيديو");
+    expect(html).toContain("مساران مستقلان");
     expect(html).toContain("c1-s1");
     expect(html).toContain("بلا صوت");
   });
