@@ -6,6 +6,7 @@ import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
 import type { CloudRecitation } from "../../src/quran/provider";
 import type { GuideIndex } from "../../src/channel/guide";
+import type { LabSummary } from "../../src/channel/labs";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -77,6 +78,9 @@ export const api = {
   alquranAyah: (surah: number, ayah: number, edition: string) =>
     call<AlQuranAyahPreview>(`/api/alquran-cloud/ayah?surah=${surah}&ayah=${ayah}&edition=${encodeURIComponent(edition)}`),
 
+  /** مختبرات الإنتاج للقناة (ليست حلقات) */
+  labs: (channel: string) => call<{ labs: LabSummary[] }>("/api/labs", undefined, channel),
+  labPreviewUrl: (channel: string, dir: string, name: string) => `/api/labs/${encodeURIComponent(dir)}/previews/${encodeURIComponent(name)}?channel=${encodeURIComponent(channel)}`,
   /** دليل الاستوديو للقناة (null إن لم يكن لها دليل) */
   guideIndex: (channel: string) => call<{ index: GuideIndex | null }>("/api/guide", undefined, channel),
   guidePage: (channel: string, file: string) => call<{ text: string }>(`/api/guide/${encodeURIComponent(file)}`, undefined, channel),

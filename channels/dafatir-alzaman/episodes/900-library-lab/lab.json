@@ -1,0 +1,39 @@
+{
+  "title": "مختبر مكتبة «دفتر الأفق»",
+  "purpose": "تجربة مشاهد المكتبة العامة وأدواتها بنصوص عربية مختلفة عن الحلقة 001 (بتشكيل وبدونه، وبذكر الله)، قبل استعمالها في حلقة جديدة. لا يُنشر ولا يُعد حلقة؛ والاستشهادات فيه للاختبار البصري فقط.",
+  "status": "review",
+  "tools": [
+    { "name": "lib-term — مصطلح يُكتب بالحبر", "status": "review", "promotedTo": "lib-term" },
+    { "name": "lib-gloss — أصل وحاشية وتعليق", "status": "review", "promotedTo": "lib-gloss" },
+    { "name": "lib-compare — مقارنة وحكم", "status": "review", "promotedTo": "lib-compare" },
+    { "name": "lib-timeline — خط زمني بفجوات", "status": "review", "promotedTo": "lib-timeline" },
+    { "name": "lib-evidence — شواهد أثرية وحدودها", "status": "review", "promotedTo": "lib-evidence" },
+    { "name": "cues — مراسٍ آمنة تؤخر الأحداث والكاميرا عن ذكر الله", "status": "review", "promotedTo": "cues" },
+    { "name": "Flow — نص يُكتب كلمة كلمة ويلتف", "status": "review", "promotedTo": "Flow" },
+    { "name": "WriteIn — عرض الكشف بلا أثر للتشكيل", "status": "review", "note": "تحسين على أداة الحلقة 001؛ في horizon/book.tsx" },
+    { "name": "chapter — عنوان الفصل في حلقة غير 001", "status": "review", "note": "منقول كما هو من 001 إلى المكتبة" }
+  ],
+  "checks": [
+    { "name": "tests/dafatir-library.test.tsx", "ok": true, "detail": "9 من 9: التسجيل، مراسي المختبر، الرسم، السكون عند ذكر الله، التشكيل، عدم الاستيراد من قناة أخرى", "at": "2026-11-05" },
+    { "name": "بصمة مشاهد الحلقة 001 قبل النقل وبعده", "ok": true, "detail": "58 مشهدًا متطابقة، و21333 إطارًا كما هي", "at": "2026-11-05" },
+    { "name": "رندر المختبر كاملًا", "ok": true, "detail": "1920×1080، 111.5 ث، 3345 إطارًا، تشغيل كامل بلا خطأ", "at": "2026-11-05" },
+    { "name": "قياس الحركة (npx bal motion)", "ok": false, "detail": "53% دون حد 80%: نصوص المختبر قصيرة وأحداثها قليلة؛ لم تُضف حركة زخرفية", "at": "2026-11-05" }
+  ],
+  "visualNotes": [
+    "أُصلح قبل الرفع: نص فوق الكعب في المقارنة (صار قصاصة فوق الكعب) والخط الزمني (العلامة تُزاح عن الكعب)، وإطارات أكبر من محتواها، وترتيب مفاتيح الكاميرا.",
+    "مشهد «الاعتبار» (c1-s3): الصفحة شبه فارغة طويلًا قبل كتابة المصطلح؛ أُضيف تعليق الهامش عند «السير»، ويبقى المرسى المتأخر حدًّا معروفًا.",
+    "رسم «آثار مساكن» صغير في بطاقته عند الكادر المحايد.",
+    "الكتابة بالحبر سليمة مع التشكيل الكامل («الحَضَارَة») ومتصلة الحروف في كل إطار."
+  ],
+  "decisions": [
+    { "at": "2026-11-05T15:27:39Z", "by": "المنفّذ", "decision": "رُفعت المعاينة «library» بعد مراجعة اللقطات: جاهزة للمراجعة.", "status": "review" },
+    { "at": "2026-11-05T15:47:00Z", "by": "المشرف", "decision": "اعتماد مبدئي لتقرير المكتبة والدليل (توجيه ما بعد الأمرين 015–016). لا اعتماد إخراجي للمعاينة بعد.", "status": "review" }
+  ],
+  "promoted": [
+    "lib-term، lib-gloss، lib-compare، lib-timeline، lib-evidence ← src/remotion/dafatir/lib/scenes.tsx (الأمر 015)",
+    "cues (المراسي الآمنة) ← src/remotion/dafatir/lib/scenes.tsx",
+    "Flow و letterCount ← src/remotion/dafatir/lib/text.tsx"
+  ],
+  "previews": { "library.mp4": "review" },
+  "updatedAt": "2026-11-05"
+}

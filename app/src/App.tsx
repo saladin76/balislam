@@ -22,10 +22,11 @@ import { ChannelTab } from "./tabs/ChannelTab";
 import { useStudioFonts } from "./ui/useStudioFonts";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
+import { LabsTab } from "./tabs/LabsTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
-type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide";
+type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs";
 const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "publish"];
 const store = {
   get: (k: string) => {
@@ -62,10 +63,13 @@ export const App: React.FC = () => {
   // دليل الاستوديو: يظهر في القائمة فقط للقناة التي لها دليل (docs/<القناة>/guide.json)
   const [hasGuide, setHasGuide] = useState(false);
   const [guideLabel, setGuideLabel] = useState("دليل الاستوديو");
+  // مختبرات الإنتاج: تظهر في القائمة فقط للقناة التي لها مختبر (مجلد فيه lab.json)
+  const [hasLabs, setHasLabs] = useState(false);
   useEffect(() => {
-    if (!channelId) return setHasGuide(false);
+    if (!channelId) return setHasGuide(false), setHasLabs(false);
     let live = true;
     api.guideIndex(channelId).then((r) => { if (!live) return; setHasGuide(Boolean(r.index)); setGuideLabel(r.index?.navLabel || "دليل الاستوديو"); }, () => live && setHasGuide(false));
+    api.labs(channelId).then((r) => live && setHasLabs(r.labs.length > 0), () => live && setHasLabs(false));
     return () => {
       live = false;
     };
@@ -291,7 +295,7 @@ export const App: React.FC = () => {
             <span className="studio-nav-label">إدارة الاستوديو</span>
             <select
               aria-label="أدوات القناة والإعدادات"
-              value={["identity", "library", "channel", "settings", "guide"].includes(tab) ? tab : ""}
+              value={["identity", "library", "channel", "settings", "guide", "labs"].includes(tab) ? tab : ""}
               onChange={async (e) => {
                 const next = e.target.value as Tab;
                 if (!next || !confirmLeaveScript()) return;
@@ -304,6 +308,7 @@ export const App: React.FC = () => {
               <option value="identity">الهوية البصرية{identDirty ? " • غير محفوظة" : ""}</option>
               <option value="library">مكتبة الأصول والقوالب</option>
               {hasGuide ? <option value="guide">{guideLabel}</option> : null}
+              {hasLabs ? <option value="labs">مختبرات الإنتاج</option> : null}
               <option value="settings">الاتصالات والمفاتيح{keysOk.voice ? "" : " • تحتاج إعدادًا"}</option>
             </select>
           </label>
@@ -395,6 +400,8 @@ export const App: React.FC = () => {
           />
           </>}
           </div>
+        ) : tab === "labs" && channelId ? (
+          <LabsTab key={channelId} channel={channelId} />
         ) : tab === "guide" && channelId ? (
           <GuideTab key={channelId} channel={channelId} />
         ) : tab === "library" ? (

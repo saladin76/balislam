@@ -553,6 +553,18 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
   }
 
+  // مختبرات الإنتاج (الأمر 017): مجلدات lab.json لهذه القناة وحدها، ومعايناتها؛ ليست حلقات ولا تُنشر
+  if (parts[0] === "labs" && req.method === "GET") {
+    const labs = await load("/src/channel/labs.ts");
+    if (!parts[1]) return send(res, 200, { labs: await labs.listLabs(episodesDir) }), true;
+    const dirs: string[] = await labs.listLabDirs(episodesDir);
+    if (!dirs.includes(parts[1]) || parts[2] !== "previews" || !parts[3]) return send(res, 404, { error: "المختبر غير موجود" }), true;
+    const file = path.join(episodesDir, parts[1], "previews", safeName(parts[3]));
+    if (!existsSync(file) || !/\.mp4$/i.test(file)) return send(res, 404, { error: "الملف غير موجود" }), true;
+    ctx.serveFile(req, res, file, "video/mp4");
+    return true;
+  }
+
   // دليل الاستوديو (docs/<القناة>/): مرجع القناة الدائم للقراءة فقط؛ الفهرس guide.json وصفحاته
   if (parts[0] === "guide" && req.method === "GET") {
     const g = await load("/src/channel/guide.ts");
