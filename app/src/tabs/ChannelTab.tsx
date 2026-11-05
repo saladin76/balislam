@@ -124,6 +124,22 @@ const CloudPreviewPicker: React.FC<{
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState("");
   const [search, setSearch] = React.useState("");
+  const [sample, setSample] = React.useState<{ text: string; audio: string } | null>(null);
+  const [sampleBusy, setSampleBusy] = React.useState(false);
+  const [sampleError, setSampleError] = React.useState("");
+  const [sampleEdition, setSampleEdition] = React.useState("");
+  const listen = async () => {
+    if (!value || sampleBusy) return;
+    setSample(null); setSampleError(""); setSampleBusy(true);
+    const requested = value.edition;
+    setSampleEdition(requested);
+    try {
+      const r = await api.alquranAyah(1, 1, requested);
+      setSample({ text: r.text, audio: r.audio });
+    } catch (e) {
+      setSampleError(e instanceof Error ? e.message : String(e));
+    } finally { setSampleBusy(false); }
+  };
   const load = async () => {
     if (loading) return;
     setLoading(true);
@@ -144,14 +160,15 @@ const CloudPreviewPicker: React.FC<{
     r.identifier.toLowerCase().includes(search.trim().toLowerCase()));
   return (
     <div className="field channel-cloud-preview">
-      <strong>قارئ AlQuran Cloud الافتراضي للمعاينة</strong>
-      <p className="help">يُستخدم لتجربة الاستماع داخل مكتبة قرّاء الحلقة فقط. لا يغيّر قارئ الإنتاج، ولا يُدرج التسجيل في الرندر، ولا يمنح إذن نشر.</p>
+      <strong>AlQuran Cloud — اختيار القارئ والاستماع</strong>
+      <p className="help">اختر قارئًا من التسجيلات المتاحة واستمع لعينة مباشرة. سيصبح القارئ الافتراضي للتجربة داخل حلقات هذه القناة؛ حفظ الاختيار لا يضيف الصوت تلقائيًا إلى الفيديو.</p>
       <div className="channel-provider-controls">
         <span>{value ? <><b>{value.name}</b> <code dir="ltr">{value.edition}</code></> : <span className="help">لم يُحدد قارئ للمعاينة</span>}</span>
         <button type="button" className="btn small" disabled={loading} onClick={load}>
           {loading ? "جارٍ التحميل…" : list ? "تحديث القرّاء" : "اختيار من AlQuran Cloud"}
         </button>
-        {value && <button type="button" className="btn ghost small" onClick={() => onChange(undefined)}>إزالة الاختيار</button>}
+        {value && <button type="button" className="btn small" disabled={sampleBusy} onClick={listen}>{sampleBusy ? "جارٍ جلب العينة…" : "استمع لعينة"}</button>}
+        {value && <button type="button" className="btn ghost small" onClick={() => { setSample(null); onChange(undefined); }}>إزالة الاختيار</button>}
       </div>
       {list && list.length > 0 && (
         <div className="channel-cloud-results">
@@ -160,6 +177,7 @@ const CloudPreviewPicker: React.FC<{
           <label htmlFor="ch-cloud-edition">التسجيلات المتاحة</label>
           <select id="ch-cloud-edition" value={value?.edition ?? ""} onChange={(e) => {
             const selected = list.find((item) => item.identifier === e.target.value);
+            setSample(null); setSampleError("");
             onChange(selected ? { edition: selected.identifier, name: selected.name } : undefined);
           }}>
             <option value="">اختر قارئًا للمعاينة</option>
@@ -171,6 +189,12 @@ const CloudPreviewPicker: React.FC<{
           <span className="help" role="status">{filtered.length} قارئًا في نتائج البحث</span>
         </div>
       )}
+      {sampleError && <span className="help" role="alert">{sampleError}</span>}
+      {sample && value?.edition === sampleEdition && <div className="channel-cloud-results">
+        <span className="help">عينة استماع: الفاتحة، الآية 1 — {value.name}</span>
+        <p lang="ar" dir="rtl">{sample.text}</p>
+        <audio controls preload="none" src={sample.audio} aria-label={`استمع إلى عينة القارئ ${value.name}`} />
+      </div>}
       {message && <span className="help" role="status">{message}</span>}
     </div>
   );
