@@ -6,17 +6,21 @@ type TestResult = Awaited<ReturnType<typeof api.testService>>;
 const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; preview: string }; secret?: boolean; onSave: (v: string) => Promise<void>; placeholder?: string }> = ({ id, label, state, secret = true, onSave, placeholder }) => {
   const [v, setV] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fieldError, setFieldError] = useState("");
+  const [fieldStatus, setFieldStatus] = useState("");
   return (
     <form
       className="key-row"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
+        setFieldError(""); setFieldStatus("");
         try {
           await onSave(v);
           setV("");
+          setFieldStatus("تم حفظ الإعداد.");
         } catch (x) {
-          window.alert(`تعذّر الحفظ: ${(x as Error).message}`);
+          setFieldError(`تعذّر الحفظ: ${(x as Error).message}`);
         } finally {
           setBusy(false);
         }
@@ -24,11 +28,19 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
     >
       <label htmlFor={id}>{label}</label>
       <span className={`key-state ${state?.set ? "on" : ""}`}>{state?.set ? <>محفوظ <bdi dir="ltr">{state.preview}</bdi></> : "غير مضاف"}</span>
-      <input id={id} type={secret ? "password" : "text"} value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder ?? (state?.set ? "الصق قيمة جديدة للاستبدال" : "الصق هنا")} dir="ltr" autoComplete="off" spellCheck={false} />
-      <button className="btn small" disabled={!v.trim() || busy} type="submit">حفظ</button>
+      <input id={id} type={secret ? "password" : "text"} value={v} onChange={(e) => { setV(e.target.value); setFieldError(""); setFieldStatus(""); }} placeholder={placeholder ?? (state?.set ? "الصق قيمة جديدة للاستبدال" : "الصق هنا")} dir="ltr" autoComplete="off" spellCheck={false} aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? `${id}-error` : fieldStatus ? `${id}-status` : undefined} />
+      <button className="btn small" disabled={!v.trim() || busy} type="submit">{busy ? "جارٍ الحفظ…" : "حفظ"}</button>
       {state?.set ? (
-        <button className="btn ghost small" type="button" onClick={() => { if (window.confirm(`سيُزال «${label}» من ملف إعدادات الاستوديو النشط. قد يؤثر ذلك في جميع نسخ الاستوديو التي تستخدم الملف المشترك. هل تؤكد الإزالة؟`)) onSave("").catch((x) => window.alert(`تعذّر الحذف: ${(x as Error).message}`)); }}>حذف</button>
+        <button className="btn ghost small" type="button" disabled={busy} onClick={async () => {
+          if (!window.confirm(`سيُزال «${label}» من ملف إعدادات الاستوديو النشط. قد يؤثر ذلك في جميع نسخ الاستوديو التي تستخدم الملف المشترك. هل تؤكد الإزالة؟`)) return;
+          setBusy(true); setFieldError(""); setFieldStatus("");
+          try { await onSave(""); setFieldStatus("تم حذف الإعداد."); }
+          catch (x) { setFieldError(`تعذّر الحذف: ${(x as Error).message}`); }
+          finally { setBusy(false); }
+        }}>حذف</button>
       ) : null}
+      {fieldError && <span className="key-feedback error" id={`${id}-error`} role="alert">{fieldError}</span>}
+      {fieldStatus && <span className="key-feedback" id={`${id}-status`} role="status">{fieldStatus}</span>}
     </form>
   );
 };
