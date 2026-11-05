@@ -12,6 +12,7 @@ import { VERSE_PLACEHOLDER } from "../plan/quranText";
 import { sceneFrames } from "../plan/duration";
 import { resolveScriptPath } from "../script/episodes";
 import { loadChannel } from "../channel/index";
+import { activeRecitation } from "../quran/provider";
 import type { Plan } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
 import { renderEpisode } from "./episode";
@@ -54,7 +55,8 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   if (!full) throw new Error("لا توجد خطة للحلقة.");
   const plan: Plan = { ...full, chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
   const media = await prepareRenderMedia(episode, plan);
-  const gaps = shotGaps(plan, media, ids, scriptPath, Boolean(loadChannel().recitation?.id));
+  const chosenReciter = await activeRecitation(scriptPath, loadChannel().recitation);
+  const gaps = shotGaps(plan, media, ids, scriptPath, Boolean(chosenReciter));
   if (gaps.length) {
     const e = new Error(`لم تُصنع المعاينة الصوتية لأن فيها نواقص:\n${gaps.map((g) => `- ${g.id}: ${g.what}`).join("\n")}`) as Error & { gaps: ShotGap[] };
     e.gaps = gaps;
