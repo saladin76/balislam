@@ -157,7 +157,7 @@ export type LookId = keyof typeof LOOKS;
 
 export type Holding = "paper" | "phone" | "bundle" | "coins" | "book" | "cup" | "none";
 
-type FigureProps = {
+export type FigureProps = {
   x: number;
   y: number;
   scale?: number;

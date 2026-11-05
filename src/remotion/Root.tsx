@@ -17,6 +17,7 @@ import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/E
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
 import { MotionLab007, MotionScenes007, SEG7, SEGMENTS_007 } from "./lab/MotionLab007";
+import { LIGHT_CASES, LightTimingOff, LightTimingOn, lightLab } from "./lab/LightLab";
 import { AlleyTale } from "./scenes/AlleyTale";
 import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
@@ -75,6 +76,11 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="balislam-lab-motion" component={MotionLab} durationInFrames={MOTION_SEGMENTS.length * SEG} fps={config.video.fps} {...sizes.landscape} />
     <Composition id="balislam-lab-motion-007" component={MotionLab007} durationInFrames={SEGMENTS_007.length * SEG7} fps={config.video.fps} {...sizes.landscape} />
     <Composition id="balislam-lab-motion-scenes" component={MotionScenes007} durationInFrames={14 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
+    {LIGHT_CASES.map((c) => (
+      <Composition key={c.id} id={`balislam-lab-light-${c.id}`} component={lightLab(c.id)} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
+    ))}
+    <Composition id="balislam-lab-light-timing-off" component={LightTimingOff} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
+    <Composition id="balislam-lab-light-timing-on" component={LightTimingOn} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
     <Composition id="balislam-lab-camera-portrait" component={CameraComposedPortrait} durationInFrames={10 * config.video.fps} fps={config.video.fps} {...sizes.portrait} />
 
     {/* Controlled A/B comparison: same words, cast and timing; only camera direction differs. */}

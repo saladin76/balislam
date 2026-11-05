@@ -10,6 +10,7 @@
 | `camera-portrait` | `balislam-lab-camera-portrait` | الكاميرا المؤلَّفة في العمودي |
 | `motion` | `balislam-lab-motion-007` (`src/remotion/lab/MotionLab007.tsx`) | الالتفاتة قبل وبعد، والمشيات الأربع، ووقوف ← مشي ← توقف (الأمر 007) |
 | `motion-scenes` | `balislam-lab-motion-scenes` | الحركة نفسها في «الطريق» و«الحارة» عبر الطبقة المشتركة (الأمر 007) |
+| `light` | `balislam-lab-light-*` (`src/remotion/lab/LightLab.tsx`) | الإضاءة والظلال والعمق: خمس مقارنات قبل وبعد (الأمر 008) |
 
 النسخ السابقة لكل خانة محفوظة في سجل git (`git log -- channels/balislam/episodes/900-engine-lab/previews`).
 الرفع: `npx bal -c balislam upload-preview 900 <الخانة> <الملف> --title … --note …`

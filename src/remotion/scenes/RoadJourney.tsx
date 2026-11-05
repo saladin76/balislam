@@ -9,6 +9,7 @@ import { ID, darken, mix, type Mood } from "../illus/palette";
 import { GROUND, Glow, MihrabGate, NoticeBoard, Signpost, Sky, WordPill, WW, WH, clampOpt, rise } from "../illus/world";
 import { RoadLand, type Biome } from "../illus/places";
 import { characterAt, GAIT_IDS, type GaitId } from "../illus/gait";
+import { AmbientGrade, BackHalo, LitFigure, WorldLight, lightAt, parseLighting } from "../illus/light";
 import { TopCaption, captionLines } from "../illus/TopCaption";
 import type { SceneBase, StringFields } from "./types";
 
@@ -27,6 +28,8 @@ export type RoadJourneyProps = SceneBase &
     motion?: string;
     /** المشية مع motion = "natural" (الافتراضي stroll) */
     gait?: string;
+    /** الإضاءة والظلال (الأمر 008)، اختيارية؛ نفس صيغة «الحارة» (بلا عمق المجال) */
+    lighting?: string;
   };
 
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -98,6 +101,8 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
   const lines = captionLines(timings, portrait ? 6 : 8);
   void lines;
 
+  const rig = parseLighting(props.lighting);
+  const light = rig ? lightAt(rig, frame, (w) => cueFrames([{ kind: "truth", word: w }], timings)[0]?.at) : null;
   const out = exit(frame, dur, 8);
   const vb = portrait ? `${heroX - 380} 0 608 1080` : `0 0 ${WW} ${WH}`;
   // افتتاح المشهد بحركة تأسيسية، ثم اقتراب بطيء مع المسير
@@ -112,6 +117,12 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
             <Sky mood={mood} to={moodTo} t={skyT} frame={frame} />
             {biome === "hill" || truth > 0 ? <MihrabGate x={240} w={150} h={220} base={GROUND - 30} light={biome === "hill" ? 0.6 + 0.4 * truth : truth} /> : null}
             <RoadLand mood={curMood} biome={biome} shift={shift} frame={frame} />
+            {light ? (
+              <>
+                <AmbientGrade light={light} />
+                <WorldLight light={light} frame={frame} />
+              </>
+            ) : null}
             <Glow cx={heroX - 420} cy={GROUND - 180} r={440} color={ID.seal} opacity={wrong * 0.9} />
             <Glow cx={heroX + 420} cy={GROUND - 180} r={440} color={ID.dawn} opacity={just * 0.9} />
             {newsX !== null ? (
@@ -132,7 +143,14 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
                   <Figure key={i} x={heroX + 260 + i * 220} y={GROUND + 10} scale={1.45} pose={walkPose(poseAt(frame, [{ at: 0, pose: "stand" }]), (shift / 260) * Math.PI * 2 + i * 1.7, Math.min(1, v / 5.2))} look={l} flip opacity={0.4 * peopleIn} silhouette={mix(ID.paper, ID.night, 0.4)} shadow={false} frame={frame} />
                 ))
               : null}
-            <Figure x={heroX} y={GROUND + 10} scale={1.95} pose={pose} look={look} flip {...(hero ? { sway: hero.sway } : {})} holding={holding} frame={frame} rim={truth * 0.8} />
+            {light ? (
+              <>
+                <BackHalo x={heroX} y={GROUND + 10} scale={1.95} light={light} />
+                <LitFigure light={light} x={heroX} y={GROUND + 10} scale={1.95} pose={pose} look={look} flip {...(hero ? { sway: hero.sway } : {})} holding={holding} frame={frame} rim={truth * 0.8} />
+              </>
+            ) : (
+              <Figure x={heroX} y={GROUND + 10} scale={1.95} pose={pose} look={look} flip {...(hero ? { sway: hero.sway } : {})} holding={holding} frame={frame} rim={truth * 0.8} />
+            )}
             {memory.map((c, i) => (
               <WordPill key={c.word} x={heroX + (i % 2 ? 330 : -330)} y={GROUND - 480 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
             ))}

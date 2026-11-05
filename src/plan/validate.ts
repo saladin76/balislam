@@ -1,5 +1,6 @@
 import { hasElement } from "../../brand/elements/registry";
 import { parseCameraPlanLines, parsePoseTimeline } from "./director";
+import { LIGHT_PRESET_IDS, parseLightingLines } from "./lighting";
 import type { Plan } from "./types";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
@@ -33,6 +34,11 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         for (const k of ["element", "rightElement", "leftElement", "secondElement"]) if (p[k]) notOurs(s.id, `العنصر «${p[k]}»`, elementExclusion(lib, p[k]!));
         if (s.backdrop) notOurs(s.id, `الخلفية «${s.backdrop}»`, elementExclusion(lib, s.backdrop));
         for (const b of parseBeats(p.beats ?? "")) if (!b.draw.startsWith("person") && b.draw !== "people") notOurs(s.id, `رسمة «${b.draw}»`, elementExclusion(lib, b.draw));
+      }
+      if ((s.template === "alley-tale" || s.template === "road-journey") && p.lighting) {
+        const { bad } = parseLightingLines(p.lighting);
+        if (bad.length)
+          out.push({ level: "error", sceneId: s.id, message: `الإضاءة غير صالحة في السطر ${bad.join("، ")}؛ اكتب إعدادًا جاهزًا (${LIGHT_PRESET_IDS.join("، ")}) أو: key lamp|sun x y، intensity، ambient، warmth، back، shadow soft|hard|off [طول]، depth dof/fog/parallax/fg، fade من إلى كلمة [مدة]، move x y كلمة [مدة].` });
       }
       if (s.template === "road-journey") {
         if (p.motion && !["legacy", "natural"].includes(p.motion))

@@ -16,13 +16,14 @@ import type { SceneBase, StringFields } from "./types";
 import { SHOTS } from "../illus/shots";
 import { camAt, camTransform, makeAt } from "../illus/shots/kit";
 import { Grade, Texture } from "../illus/texture";
+import { AmbientGrade, BackHalo, DepthLayer, ForegroundFrame, LitFigure, WorldLight, lightAt, parallaxDepth, parseLighting } from "../illus/light";
 
 /**
  * «حكايات الحارة»: كل جملة لقطة في مكان مرسوم (حارة، سوق، بيت)، وبطل بلا ملامح يمثّل ما يُقال،
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
-export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "cameraPlanPortrait" | "gait" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
+export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "cameraPlanPortrait" | "gait" | "lighting" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
 
 export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
@@ -260,7 +261,11 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   // الكاميرا المؤلَّفة: مفاتيح قليلة (افتتاح + حركة أو اثنتان) على كلمات المعنى، بانتقال طويل هادئ
   const sacredScene = isSacredSentence(narration);
   const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: portrait && props.cameraPlanPortrait ? props.cameraPlanPortrait : props.cameraPlan, cues, timings }) : null;
-  const cam = (depth: number) =>
+  // الإضاءة والظلال والعمق (الأمر 008): اختيارية بحقل lighting، وبدونه لا يتغير شيء
+  const rig = parseLighting(props.lighting);
+  const light = rig ? lightAt(rig, frame, (w) => cueFrames([{ kind: "truth", word: w }], timings)[0]?.at) : null;
+  const cam = (d: number) => camRaw(light ? parallaxDepth(d, light) : d);
+  const camRaw = (depth: number) =>
     composedCam
       ? composedLayer(composedCam, depth)
       : `${cameraTransform(camera, frame, dur, depth, focusX)} translate(${-offX * (0.4 + depth * 0.6)} 0) translate(${focusX} ${GROUND - 330}) scale(${1 + (zoom - 1) * (0.55 + depth * 0.45)}) translate(${-focusX} ${-(GROUND - 330)})`;
@@ -276,28 +281,38 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
       <AbsoluteFill>
         <svg viewBox={vb} preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
           <g transform={cam(0)}>
-            <Sky mood={mood} to={moodTo} t={skyT} frame={frame} />
+            <DepthLayer depth={0} light={light}>
+              <Sky mood={mood} to={moodTo} t={skyT} frame={frame} />
+            </DepthLayer>
           </g>
           {place === "alley" ? (
             <>
               <g transform={cam(0.25)}>
-                <Skyline mood={curMood} dome={760} minaret={1260} seed={5} />
+                <DepthLayer depth={0.25} light={light}>
+                  <Skyline mood={curMood} dome={760} minaret={1260} seed={5} />
+                </DepthLayer>
               </g>
               <g transform={cam(0.6)}>
-                <HouseRow mood={curMood} seed={place === "alley" ? 4 : 9} lit={lit} />
-                {hasDoor ? <ArchDoor x={heroX + 250} w={190} h={310} light={door} mood={curMood} /> : null}
-                {hasBoard ? <NoticeBoard x={heroX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
-                {sitting ? <WallLamp x={heroX + 30} y={GROUND - 420} on={1} frame={frame} /> : null}
+                <DepthLayer depth={0.6} light={light}>
+                  <HouseRow mood={curMood} seed={place === "alley" ? 4 : 9} lit={lit} />
+                  {hasDoor ? <ArchDoor x={heroX + 250} w={190} h={310} light={door} mood={curMood} /> : null}
+                  {hasBoard ? <NoticeBoard x={heroX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
+                  {sitting ? <WallLamp x={heroX + 30} y={GROUND - 420} on={1} frame={frame} /> : null}
+                </DepthLayer>
               </g>
             </>
           ) : place === "market" ? (
             <g transform={cam(0.6)}>
-              <Market mood={curMood} frame={frame} lit={truth} />
-              {hasBoard ? <NoticeBoard x={heroX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
+              <DepthLayer depth={0.6} light={light}>
+                <Market mood={curMood} frame={frame} lit={truth} />
+                {hasBoard ? <NoticeBoard x={heroX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
+              </DepthLayer>
             </g>
           ) : (
             <g transform={cam(0.6)}>
-              <Home mood={curMood} frame={frame} lit={truth} />
+              <DepthLayer depth={0.6} light={light}>
+                <Home mood={curMood} frame={frame} lit={truth} />
+              </DepthLayer>
             </g>
           )}
           <g transform={cam(0.9)}>
@@ -308,6 +323,14 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
             <Glow cx={stage === "witnesses" ? 1300 : heroX + 520} cy={GROUND - 160} r={420} color={ID.dawn} opacity={just * 0.9} />
             <Glow cx={heroX} cy={GROUND - 260} r={460} color={ID.dawn} opacity={truth * 0.45} />
           </g>
+          {light ? (
+            <>
+              <AmbientGrade light={light} />
+              <g transform={cam(0.6)}>
+                <WorldLight light={light} frame={frame} drawLamp={place !== "home"} />
+              </g>
+            </>
+          ) : null}
           <g transform={cam(1)}>
             {/* الناس حوله: أطياف شفافة لمن يؤثرون فيه */}
             {ghosts
@@ -321,7 +344,11 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               : null}
             {hasBench ? <Workbench x={heroX + 120} mood={curMood} done={success} /> : null}
             {stage === "companion" ? (
-              <Figure x={heroX - 400} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
+              light ? (
+                <LitFigure light={light} x={heroX - 400} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
+              ) : (
+                <Figure x={heroX - 400} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />
+              )
             ) : null}
             {stage === "witnesses" ? (
               <g>
@@ -333,7 +360,14 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               </g>
             ) : null}
             <Ripples x={heroX - 70} y={GROUND - 300} t={spread} frame={frame} at={at("spread") ?? 0} />
-            <Figure x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, view: loco.view, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
+            {light ? (
+              <>
+                <BackHalo x={heroX} y={GROUND + 6} scale={1.75} light={light} />
+                <LitFigure light={light} x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, view: loco.view, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
+              </>
+            ) : (
+              <Figure x={heroX} y={GROUND + 6} scale={1.75} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, view: loco.view, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, door) * 0.8} />
+            )}
             {memory.map((c, i) => {
               const col = c.kind === "wrong" ? ID.seal : ID.dawn;
               const side = i % 2 ? 1 : -1;
@@ -341,6 +375,13 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               return <WordPill key={c.word} x={x} y={GROUND - 420 - (stage === "witnesses" ? 40 : i * 56)} text={c.word} color={col} t={rise(frame, c.at, 12)} />;
             })}
           </g>
+          {light?.rig.depth.fg ? (
+            <g transform={cam(1.3)}>
+              <DepthLayer depth={1.3} light={light}>
+                <ForegroundFrame light={light} />
+              </DepthLayer>
+            </g>
+          ) : null}
         </svg>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(0,0,0,.4) 100%)" }} />
       </AbsoluteFill>
