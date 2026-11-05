@@ -10,7 +10,7 @@ import type { Plan } from "./types";
 import { readJson } from "./io";
 import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
 import { loadChannel } from "../channel";
-import { isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
+import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
 
 export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 
@@ -52,7 +52,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const recitations: Record<string, Recitation> = {};
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
-  const chosen = loadChannel().recitation;
+  const chosen = await activeRecitation(await resolveScriptPath(episode), loadChannel().recitation);
   if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     if (s.template !== "verse-card" || !s.ayahKey) continue;
