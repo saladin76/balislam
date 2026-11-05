@@ -43,8 +43,8 @@ const MeaningPicker: React.FC<{ value?: { id: number; name: string }; language: 
     setMsg("جارٍ التحميل…");
     try {
       const r = await api.quranTranslations(language);
-      setList(r.list);
-      setMsg(r.ok ? (r.list.length ? "" : "لا توجد ترجمات بهذه اللغة.") : (r.message ?? ""));
+      setList(r.ok ? r.list : null);
+      setMsg(r.ok ? (r.list.length ? "" : "لا توجد ترجمات بهذه اللغة.") : (r.message ?? "تعذّر تحميل الترجمات."));
     } catch (e) {
       setList(null);
       setMsg((e as Error).message);
@@ -59,6 +59,7 @@ const MeaningPicker: React.FC<{ value?: { id: number; name: string }; language: 
         {list && list.length ? (
           <select id="ch-meaning" aria-label="ترجمة معاني الآيات" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }}>
             <option value="">بلا ترجمة</option>
+            {value && !list.some((t) => t.id === value.id) ? <option value={value.id}>{value.name} (محفوظ سابقًا؛ غير موجود في القائمة الحالية)</option> : null}
             {list.map((t) => <option key={t.id} value={t.id}>{t.name}{t.author ? ` — ${t.author}` : ""} (#{t.id})</option>)}
           </select>
         ) : (
@@ -83,8 +84,8 @@ const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: 
     setMsg("جارٍ التحميل…");
     try {
       const r = await api.quranRecitations();
-      setList(r.list);
-      setMsg(r.ok ? "" : (r.message ?? ""));
+      setList(r.ok ? r.list : null);
+      setMsg(r.ok ? (r.list.length ? "" : "لا توجد تلاوات متاحة.") : (r.message ?? "تعذّر تحميل القرّاء."));
     } catch (e) {
       setList(null);
       setMsg((e as Error).message);
@@ -100,6 +101,7 @@ const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: 
         {list && list.length ? (
           <select id="ch-reciter" aria-label="القارئ المختار" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }}>
             <option value="">بلا تلاوة (نص الآية فقط)</option>
+            {value && !list.some((t) => t.id === value.id) ? <option value={value.id}>{value.name} (اختيار محفوظ؛ غير موجود في القائمة الحالية)</option> : null}
             {list.map((t) => <option key={t.id} value={t.id}>{t.name}{t.style ? ` · ${styleAr(t.style)}` : ""}</option>)}
           </select>
         ) : (
@@ -174,7 +176,13 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           <label className="field"><span>وصف قصير</span><textarea id="ch-desc" rows={2} value={c.description} onChange={(e) => set({ description: e.target.value })} /></label>
           <label className="field">
             <span>اللغة</span>
-            <select id="ch-lang" value={c.language} onChange={(e) => set({ language: e.target.value })}>
+            <select id="ch-lang" value={c.language} onChange={(e) => {
+              const language = e.target.value;
+              if (language !== c.language) {
+                set({ language, quranTranslation: undefined });
+                if (c.quranTranslation) setMsg({ text: "تغيّرت لغة القناة؛ أُزيل اختيار الترجمة السابق من المسودة فقط. راجع الترجمة المناسبة قبل الحفظ." });
+              }
+            }}>
               {Object.values(langPacks).map((p) => <option key={p.code} value={p.code}>{p.nameAr} · {p.nativeName}{p.ready ? "" : " (تجهيز)"}</option>)}
             </select>
           </label>
