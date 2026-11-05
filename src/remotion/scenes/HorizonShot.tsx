@@ -11,7 +11,7 @@ import { verseRef } from "../dafatir/horizon/kit";
 import type { SceneBase, StringFields } from "./types";
 
 /** حقول مشاهد المكتبة العامة (lib-*) */
-type LibField = "term" | "termWord" | "sub" | "subWord" | "kind" | "source" | "sourceWord" | "matn" | "matnWord" | "matnLabel" | "matnSource" | "tafsir" | "tafsirWord" | "tafsirLabel" | "tafsirSource" | "note" | "noteWord" | "aLabel" | "aText" | "aWord" | "bLabel" | "bText" | "bWord" | "verdict" | "verdictText" | "verdictWord" | "items" | "limit" | "limitWord" | "color";
+type LibField = "term" | "termWord" | "sub" | "subWord" | "kind" | "source" | "sourceWord" | "matn" | "matnWord" | "matnLabel" | "matnSource" | "tafsir" | "tafsirWord" | "tafsirLabel" | "tafsirSource" | "note" | "noteWord" | "aLabel" | "aText" | "aWord" | "bLabel" | "bText" | "bWord" | "verdict" | "verdictText" | "verdictWord" | "items" | "limit" | "limitWord" | "color" | "titleWord";
 
 /**
  * «مشهد خط الأفق» (دفاتر الزمن): مشهد مصمم لجملته على الدفتر المفتوح، يُختار بحقل shot.

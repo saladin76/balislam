@@ -8,7 +8,8 @@ import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
-export type TechReviewTarget = { label: string; kind: "episode" | "lab"; dir: string; preview: string; duration?: string };
+/** note: تنبيه يظهر مع الفيديو (مثل: حلّت محل النسخة المراجَعة نسخة أحدث في الخانة نفسها؛ القديمة في سجل git) */
+export type TechReviewTarget = { label: string; kind: "episode" | "lab"; dir: string; preview: string; duration?: string; note?: string };
 export type TechReviewMeta = {
   title: string;
   order?: string;

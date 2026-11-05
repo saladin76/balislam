@@ -13,10 +13,10 @@ import { parseMarkdown } from "../app/src/ui/Markdown";
 const EPS = "channels/dafatir-alzaman/episodes";
 
 describe("المراجعات الفنية", () => {
-  it("مراجعتا الأمر 018 موجودتان للحلقة 001 والمختبر 900، وقرار المشرف فارغ", async () => {
+  it("مراجعات الأمرين 018 و019 موجودة للحلقة 001 والمختبر 900، وقرار المشرف فارغ", async () => {
     const list = await listTechReviews(EPS);
     const keys = list.map((r) => `${r.dir}/${r.id}`).sort();
-    expect(keys).toEqual(["001-adam-beginning/018", "900-library-lab/018"]);
+    expect(keys).toEqual(["001-adam-beginning/018", "001-adam-beginning/019", "900-library-lab/018", "900-library-lab/019"]);
     for (const r of list) {
       expect(r.supervisorDecision).toBeNull();
       expect(r.hasReport).toBe(true);

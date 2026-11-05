@@ -5,6 +5,7 @@
  * كل حركة مربوطة بكلمتها في التوقيت (at/end)؛ والسكون عند ذكر الله مقصود.
  */
 import React from "react";
+import { VerseRefPanel } from "./verseRef";
 import { at, buildTimeline, end, type Timeline } from "./timeline";
 import { BookShadow, C, Camera, CoverLeaf, Defs, Ink, LightPool, Page, PageStack, Spine, FlipLeaf, VerseCard, Words, easeOut, mix, prog, rng, verseRef as verseRefLabel, W } from "./kit";
 import { timelineFromWords } from "./timeline";
@@ -245,7 +246,9 @@ const S4 = mk(["أخبر الله ملائكته أنه جاعل في الأرض
 const LINEAGE = [830, 724, 618, 512, 406, 300];
 const CARD = { x: 245, y: 240, w: 620, h: 320 };
 
-export const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
+/** refText (الأمر 019، E1): لوحة مرجع الآية ثابتة على الصفحة اليمنى من الإطار الأول، بلا نص آية ولا حركة؛ والكادر يحفظها مع الحاشية */
+export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, refText }) => {
+  const framed = Boolean(q?.word || refText);
   // «المفسرون»: حزمة حواشٍ تدخل · «أقوالًا»: تنفرج ثلاثًا (تعدد الأقوال) · «منها»: تتقدم واحدة وتُكتب، والباقيتان تتراجعان دون أن تختفيا
   const enter = prog(t, at(tl, "المفسرون") - 0.15, at(tl, "المفسرون") + 0.75, easeOut);
   const fan = prog(t, at(tl, "أقوالا") - 0.1, at(tl, "أقوالا") + 0.7, easeOut);
@@ -271,10 +274,10 @@ export const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
   const ruled = "repeating-linear-gradient(180deg, transparent 0 46px, rgba(74,46,31,0.13) 46px 48px)";
   return (
     <Camera
-      {...camAt(t, q?.word ? { cx: 960, cy: 500, s: 1.0 } : { cx: 590, cy: 500, s: 1.12 }, [
-        // مع إطار لفظ الآية: يبقى الإطار والحاشية معًا في الكادر (الفصل بينهما هو موضوع اللقطة)
-        { a: at(tl, "المفسرون") - 0.2, b: at(tl, "المفسرون") + 1.0, cx: q?.word ? 900 : 555, cy: q?.word ? 440 : 410, s: q?.word ? 1.12 : 1.26 },
-        { a: at(tl, "يخلف") - 0.35, b: at(tl, "يخلف") + 0.9, cx: q?.word ? 880 : 555, cy: 575, s: q?.word ? 1.08 : 1.12 },
+      {...camAt(t, framed ? { cx: 960, cy: 500, s: 1.0 } : { cx: 590, cy: 500, s: 1.12 }, [
+        // مع إطار لفظ الآية أو لوحة مرجعها: يبقى الإطار والحاشية معًا في الكادر (الفصل بينهما هو موضوع اللقطة)
+        { a: at(tl, "المفسرون") - 0.2, b: at(tl, "المفسرون") + 1.0, cx: framed ? 900 : 555, cy: framed ? 440 : 410, s: framed ? 1.12 : 1.26 },
+        { a: at(tl, "يخلف") - 0.35, b: at(tl, "يخلف") + 0.9, cx: framed ? 880 : 555, cy: 575, s: framed ? 1.08 : 1.12 },
       ])}
     >
       <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
@@ -282,6 +285,7 @@ export const Shot4: React.FC<ShotProps> = ({ t, tl, q }) => {
         <BookShadow />
         <Page id="s4" side="r">
           <path d="M1700 72 H1736 V156 L1718 142 L1700 156 Z" fill={C.ribbon} />
+          {refText && !q?.word ? <VerseRefPanel refText={refText} o={1} /> : null}
         </Page>
         <Page id="s4" side="l">
           {/* تعاقب: حلقة تتصل بالتي قبلها، والسابقة تخفت */}

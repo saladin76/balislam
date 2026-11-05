@@ -44,8 +44,17 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
   // خط الأفق: ذيل كل مشهد من تصميمه (قلب الصفحة يحتاج وقته بعد آخر كلمة)
   if (scene.template === "horizon-shot") {
     const shot = String(scene.props.shot ?? "");
-    if (voiced) return Math.max(MIN_SECONDS, voiced.duration + (HZ_META[shot]?.tail ?? config.voice.tailSeconds));
-    return Math.max(MIN_SECONDS, hzEstimateSeconds(scene.narration, shot));
+    const props = scene.props as Record<string, string | undefined>;
+    if (voiced) {
+      const m = HZ_META[shot];
+      const base = voiced.duration + (m?.tail ?? config.voice.tailSeconds);
+      // أقل مدة بحسب التصميم (minEnd) مقدرة على التوقيت التقديري ثم مقيسة بنسبة طول الصوت الحقيقي
+      const est = hzEstimateSeconds(scene.narration, shot, props);
+      const plain = hzEstimateSeconds(scene.narration, shot);
+      const extra = Math.max(0, est - plain);
+      return Math.max(MIN_SECONDS, base + extra);
+    }
+    return Math.max(MIN_SECONDS, hzEstimateSeconds(scene.narration, shot, props));
   }
   const min = Math.max(templateById(scene.template)?.minSeconds ?? MIN_SECONDS, textSeconds(scene));
   if (voiced) return Math.max(min, voiced.duration + config.voice.tailSeconds);

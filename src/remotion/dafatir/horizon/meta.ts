@@ -15,6 +15,8 @@ export type HzMeta = {
   still?: "dhikr" | "verse-intro";
   /** مدة المشهد بلا كلام */
   seconds?: number;
+  /** أقل مدة يحتاجها المشهد من بدايته بحسب حقوله وتوقيت كلماته (مثل إمساك مصطلح متأخر) — اختياري */
+  minEnd?: (p: Record<string, string | undefined>, tl: import("./timeline").Timeline) => number;
 };
 
 export const HZ_LEAD = 0.3;
@@ -73,9 +75,10 @@ export const HZ_META: Record<string, HzMeta> = { ...LIB_META, ...EP001_META };
 export const hzSentences = (narration: string) => (narration.match(/[^.؟!]+[.؟!]?/g) ?? []).map((s) => s.trim()).filter(Boolean);
 
 /** مدة المشهد قبل وجود صوت الراوي: توقيت الكلمات التقديري + الذيل */
-export const hzEstimateSeconds = (narration: string, shot: string) => {
+export const hzEstimateSeconds = (narration: string, shot: string, props: Record<string, string | undefined> = {}) => {
   const m = HZ_META[shot];
   if (!narration.trim()) return m?.seconds ?? 3;
   const tl = buildTimeline(hzSentences(narration), HZ_LEAD);
-  return Math.round((tl.end + (m?.tail ?? 1.2)) * 10) / 10;
+  const base = tl.end + (m?.tail ?? 1.2);
+  return Math.round(Math.max(base, m?.minEnd?.(props, tl) ?? 0) * 10) / 10;
 };

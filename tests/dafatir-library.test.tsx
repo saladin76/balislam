@@ -7,7 +7,9 @@ import { EP001_META, HZ_LEAD, HZ_META, hzSentences } from "../src/remotion/dafat
 import { at, buildTimeline } from "../src/remotion/dafatir/horizon/timeline";
 import { WriteIn } from "../src/remotion/dafatir/horizon/book";
 import { LIB_META, LIB_SACRED } from "../src/remotion/dafatir/lib/meta";
-import { LIB_SCENES, cues, libAnchors, parseItems, sacredWindows } from "../src/remotion/dafatir/lib/scenes";
+import { LIB_SCENES, boundCam, cues, libAnchors, parseItems, sacredWindows } from "../src/remotion/dafatir/lib/scenes";
+import { TERM_HOLD, termMinEnd } from "../src/remotion/dafatir/lib/meta";
+import { FINDS } from "../src/remotion/dafatir/lib/drawings";
 import { sceneSeconds } from "../src/plan/duration";
 import { SACRED_WORD } from "../src/render/stillness";
 import type { Plan } from "../src/plan/types";
@@ -133,4 +135,36 @@ describe("مكتبة دفتر الأفق — أدوات", () => {
     expect(shakl.match(/<text/g)!.length).toBe(1);
     expect(shakl).toContain("الحَضَارَة");
   });
+
+  it("المصطلح المتأخر يبقى مقروءًا: مدة lib-term تتسع لإمساك القراءة قبل الخروج، دون تقديم الكتابة عن كلمتها (الأمر 019، L1)", () => {
+    for (const s of labScenes.filter((x) => x.props.shot === "lib-term")) {
+      const tl = buildTimeline(hzSentences(s.narration), HZ_LEAD);
+      const dur = sceneSeconds(s);
+      const p = s.props as Record<string, string>;
+      const [w] = (p.termWord || p.term!.split(/\s+/)[0]!).split("#");
+      const writeEnd = at(tl, w!) + Math.min(1.4, 0.4 + 0.08 * p.term!.replace(/[\u064B-\u0652\u0670\u0640\s]/g, "").length);
+      const exitLen = p.exit === "turn" ? 1.0 : 0.8;
+      expect(dur - exitLen - writeEnd, s.id).toBeGreaterThanOrEqual(TERM_HOLD - 0.06);
+      expect(termMinEnd(p, tl)).toBeGreaterThan(0);
+    }
+  });
+
+  it("كاميرا المكتبة لا تُظهر ما وراء الكادر المحايد، وتحفظ رأس الصفحة (الأمر 019)", () => {
+    for (const c of [{ cx: 1600, cy: 600, s: 1.3 }, { cx: 300, cy: 900, s: 1.2 }, { cx: 1365, cy: 470, s: 1.2 }]) {
+      const b = boundCam(c, true);
+      expect(b.cx - 960 / b.s).toBeGreaterThanOrEqual(-0.01);
+      expect(b.cx + 960 / b.s).toBeLessThanOrEqual(1920.01);
+      expect(b.cy - 540 / b.s).toBeLessThanOrEqual(60.01);
+    }
+    expect(boundCam({ cx: 960, cy: 520, s: 1 })).toEqual({ cx: 960, cy: 520, s: 1 });
+  });
+
+  it("«آثار مساكن» لها نسخة بطاقة تُستعمل في lib-evidence (الأمر 019، L2)", () => {
+    expect(FINDS.find((f) => f.key === "home")?.card).toBeTruthy();
+    const s = labScenes.find((x) => x.props.shot === "lib-evidence")!;
+    const tl = buildTimeline(hzSentences(s.narration), HZ_LEAD);
+    const html = renderToStaticMarkup(React.createElement(LIB_SCENES["lib-evidence"]!, { t: sceneSeconds(s) - 1.5, tl, dur: sceneSeconds(s), exit: "none", p: s.props as Record<string, string> }));
+    expect(html).toContain("آثار مساكن");
+  });
 });
+

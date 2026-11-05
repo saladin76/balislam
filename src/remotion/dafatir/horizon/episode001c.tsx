@@ -73,9 +73,11 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const seal = pop(t, at(tl, "القرآن"));
   const blank = prog(t, at(tl, "نوع") - 0.05, at(tl, "الشجرة") + 0.3);
   const guesses = [
-    { w: "تفاح", x: 1560, a: at(tl, "تفاح") },
-    { w: "تين", x: 1375, a: at(tl, "تين") },
-    { w: "غير ذلك", x: 1160, a: at(tl, "غير") },
+    // الأمر 019 (E3): الكلمات أعلى ومتباعدة، والختم أسفلها بلا تداخل
+    { w: "تفاح", x: 1590, a: at(tl, "تفاح") },
+    { w: "تين", x: 1400, a: at(tl, "تين") },
+    // مسافة أوسع بين الكلمتين (لا تنضم «غير ذلك» تحت خط الشطب)
+    { w: "غير\u2002ذلك", x: 1165, a: at(tl, "غير") },
   ];
   const noJazm = pop(t, at(tl, "نجزم"));
   const flip = prog(t, at(tl, "معرفة") - 0.1, at(tl, "العبرة") - 0.1, (x) => x * x * (3 - 2 * x));
@@ -109,16 +111,16 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
               const st = prog(t, g.a + 0.3, g.a + 0.65);
               return (
                 <g key={i}>
-                  <Word x={g.x} y={605} size={60} p={q} font="tajawal" weight={700} color={C.inkText}>
+                  <Word x={g.x} y={575} size={60} p={q} font="tajawal" weight={700} color={C.inkText}>
                     {g.w}
                   </Word>
-                  <Strike x1={g.x + 70 + (i === 2 ? 60 : 0)} x2={g.x - 70 - (i === 2 ? 60 : 0)} y={586} p={st} w={8} />
+                  <Strike x1={g.x + 66 + (i === 2 ? 64 : 0)} x2={g.x - 66 - (i === 2 ? 64 : 0)} y={556} p={st} w={6} />
                 </g>
               );
             })}
-            <g opacity={noJazm} transform={`rotate(-6 ${cx} 690) translate(${cx} 690) scale(${1 + 0.5 * (1 - noJazm)}) translate(${-cx} -690)`}>
-              <rect x={cx - 170} y={640} width={340} height={90} rx={8} fill="rgba(215,55,43,0.1)" stroke={C.ribbon} strokeWidth={7} />
-              <SText x={cx} y={703} size={60} font="tajawal" weight={800} color={C.ribbon}>
+            <g opacity={noJazm} transform={`rotate(-4 ${cx} 690) translate(${cx} 690) scale(${1 + 0.5 * (1 - noJazm)}) translate(${-cx} -690)`}>
+              <rect x={cx - 160} y={652} width={320} height={78} rx={8} fill="rgba(215,55,43,0.1)" stroke={C.ribbon} strokeWidth={6} />
+              <SText x={cx} y={708} size={54} font="tajawal" weight={800} color={C.ribbon}>
                 لا نجزم
               </SText>
             </g>

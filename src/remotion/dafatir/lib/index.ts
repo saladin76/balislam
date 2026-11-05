@@ -6,4 +6,4 @@ export { VerseRefPanel } from "../horizon/verseRef";
 export * from "./text";
 export * from "./drawings";
 export * from "./compare";
-export { LIB_SCENES, cues, libAnchors, parseItems, sacredWindows, type ShotProps } from "./scenes";
+export { LIB_SCENES, QuranRefBadge, boundCam, cues, libAnchors, parseItems, sacredWindows, type ShotProps } from "./scenes";

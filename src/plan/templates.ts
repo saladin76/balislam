@@ -369,6 +369,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "tafsirSource", label: "مكتبة · مصدر الحاشية", type: "text" },
       { key: "note", label: "مكتبة · تعليق القناة", type: "textarea" },
       { key: "noteWord", label: "مكتبة · كلمة ظهور التعليق", type: "text" },
+      { key: "titleWord", label: "مكتبة · كلمة موضوع المقارنة (حقل العنوان)", type: "text" },
       { key: "aLabel", label: "مكتبة · وسم الطرف الأول", type: "text" },
       { key: "aText", label: "مكتبة · نص الطرف الأول", type: "text" },
       { key: "aWord", label: "مكتبة · كلمة الطرف الأول", type: "text" },

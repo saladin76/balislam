@@ -62,7 +62,11 @@ export const GATE = [
   "M1290 722 V736 H1430 V722",
 ];
 
-export type FindDef = { key: string; word: string; label: string; lx: number; ly: number; ax: number; ay: number; cx: number; cy: number; rx: number; ry: number; draw: (p: number) => React.ReactNode };
+export type FindDef = {
+  key: string; word: string; label: string; lx: number; ly: number; ax: number; ay: number; cx: number; cy: number; rx: number; ry: number; draw: (p: number) => React.ReactNode;
+  /** نسخة لبطاقة الفهرس (مرسومة حول 0،0 بنصف عرض 130 ونصف ارتفاع 70 تقريبًا) حين يصغر الرسم الأصلي فلا يُقرأ — الأمر 019 (L2) */
+  card?: (p: number) => React.ReactNode;
+};
 
 export const stone = "#CFC4B0";
 
@@ -93,6 +97,21 @@ export const FINDS: FindDef[] = [
           return <circle key={i} cx={1380 + Math.cos(a) * 34} cy={1206 - Math.sin(a) * 16} r={8} fill={stone} stroke="#2B1E14" strokeWidth={2} opacity={prog(p, 0.4 + i * 0.05, 0.6 + i * 0.05)} />;
         })}
         <ellipse cx={1380} cy={1208} rx={24} ry={9} fill="#2B1E14" opacity={0.75 * prog(p, 0.8, 1)} />
+      </g>
+    ),
+    // بالمقطع نفسه بحجم البطاقة: سطح الأرض، وثلاث حفر أعمدة تنزل فيها، وموقد من حجارة على السطح. لا جدران ولا سقف: ما بقي فقط
+    card: (p) => (
+      <g>
+        <rect x={-132} y={0} width={264} height={62} fill="#D9C29A" opacity={0.55 * prog(p, 0, 0.3)} />
+        <Ink d="M-132 0 H132" w={4} p={prog(p, 0, 0.35)} c="#2B1E14" />
+        {[-104, -52, 0].map((x, i) => (
+          <rect key={x} x={x - 13} y={2} width={26} height={54} rx={13} fill="#3A2418" opacity={0.85 * prog(p, 0.2 + i * 0.12, 0.45 + i * 0.12)} />
+        ))}
+        {Array.from({ length: 9 }, (_, i) => {
+          const a = Math.PI + (i / 8) * Math.PI;
+          return <circle key={i} cx={78 + Math.cos(a) * 40} cy={-4 - Math.sin(a) * 18} r={10} fill={stone} stroke="#2B1E14" strokeWidth={2.5} opacity={prog(p, 0.55 + i * 0.04, 0.75 + i * 0.04)} />;
+        })}
+        <ellipse cx={78} cy={-2} rx={28} ry={10} fill="#2B1E14" opacity={0.75 * prog(p, 0.85, 1)} />
       </g>
     ),
   },

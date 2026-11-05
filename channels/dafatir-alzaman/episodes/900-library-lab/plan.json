@@ -156,7 +156,9 @@
             "verdict": "open",
             "verdictText": "لم تُحسم بعد",
             "verdictWord": "لا",
-            "exit": "fade"
+            "exit": "fade",
+            "title": "سبب هجر المدينة",
+            "titleWord": "سبب"
           },
           "sfx": [],
           "edited": true

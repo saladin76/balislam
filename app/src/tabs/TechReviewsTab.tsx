@@ -68,6 +68,7 @@ export const TechReviewsTab: React.FC<{ channel: string }> = ({ channel }) => {
               <figcaption>
                 <b>{t.label}</b>
                 {t.duration ? <span className="help">{t.duration}</span> : null}
+                {t.note ? <span className="err">{t.note}</span> : null}
                 <span>
                   <a href={videoUrl(t)} target="_blank" rel="noreferrer">فتح</a> · <a href={`${videoUrl(t)}${sep(videoUrl(t))}download=1`} download={`${t.dir}-${t.preview}`}>تنزيل</a>
                 </span>

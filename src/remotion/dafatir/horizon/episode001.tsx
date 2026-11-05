@@ -5,7 +5,7 @@
  */
 import React from "react";
 import { at, end, type Timeline } from "./timeline";
-import { C, CoverLeaf, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
+import { C, CoverLeaf, Dusk, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
 import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
 import { Shot2, Shot4, Shot5, Shot6 } from "./shots";
 import { GATE, GLYPHS, Hatch, RUINS, Sunset } from "../lib/drawings";
@@ -546,18 +546,40 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
 };
 
 // ─────────── لقطتان مصممتان قبل هذا البناء (اختبار «خط الأفق»)، بخروج بخفوت الحبر ───────────
-const legacy = (Comp: React.FC<{ t: number; tl: Timeline }>, endCam: Cam): React.FC<HzProps> =>
-  function Legacy({ t, tl, dur, exit }) {
+const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, endCam: Cam): React.FC<HzProps> =>
+  function Legacy({ t, tl, dur, exit, p }) {
     return (
       // خفوت الحبر: الدفتر الفارغ بالكادر نفسه تحت اللقطة، واللقطة تخفت فوقه
       <>
         {exit === "fade" && t > dur - 0.8 ? <BlankBookOver id="lg" cam={endCam} o={1} /> : null}
         <div style={{ position: "absolute", inset: 0, opacity: exit === "fade" ? 1 - prog(t, dur - 0.75, dur - 0.15) : 1 }}>
-          <Comp t={t} tl={tl} />
+          <Comp t={t} tl={tl} refText={p.ref} />
         </div>
       </>
     );
   };
+
+// الأثر وحدوده (الأمر 019، E2): يبدأ بالدفتر نفسه بدل كادر ممتلئ بلون الورق. يتراجع من قرب «العتبة» إلى الدفتر كاملًا
+// في أول 0.8 ث (قبل نافذة ذكر الله)، ويسكن عليه حتى «شواهد»، ثم يخفت الدفتر ويُكمل النزول في الطبقات كما كان.
+const EvidenceLegacy = legacy(Shot6, NEUTRAL);
+const EvidenceScene: React.FC<HzProps> = (props) => {
+  const { t, tl, p } = props;
+  const sh = at(tl, "شواهد");
+  const pull = prog(t, 0, 0.8, (x) => x * x * (3 - 2 * x));
+  const o = 1 - prog(t, sh - 0.1, sh + 0.6);
+  const cam = { cx: mix(1365, 960, pull), cy: mix(760, 520, pull), s: mix(4.2, 1, pull) };
+  return (
+    <>
+      <EvidenceLegacy {...props} />
+      {o > 0 ? (
+        <div style={{ position: "absolute", inset: 0, opacity: o }}>
+          <Dusk />
+          <Book id="ev0" t={t} dur={1e4} exit="none" cam={cam} R={p.head ? <ChapterHead label={p.head} /> : undefined} />
+        </div>
+      ) : null}
+    </>
+  );
+};
 
 /** كل مشاهد «خط الأفق»: المكتبة العامة (../lib/scenes) ثم مشاهد الحلقة 001 */
 export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
@@ -579,7 +601,7 @@ export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
   ...HZ_SCENES_C,
   "return-line": legacy(Shot5, { cx: 1405, cy: 500, s: 1.24 }),
   ...HZ_SCENES_D,
-  evidence: legacy(Shot6, NEUTRAL),
+  evidence: EvidenceScene,
 };
 
 // كل مشهد مسجل له بياناته، والعكس

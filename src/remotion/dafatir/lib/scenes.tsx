@@ -6,7 +6,7 @@
 import React from "react";
 import { at as atStrict, end as endStrict, type Timeline } from "../horizon/timeline";
 import { C, Ink, easeOut, mix, prog } from "../horizon/kit";
-import { Book, ChapterHead, NEUTRAL, QuranSeal, SText, TafsirTab, WriteIn, camPath, fonts, type Cam, type CamKey, type Exit } from "../horizon/book";
+import { Book, ChapterHead, NEUTRAL, SText, TafsirTab, WriteIn, camPath, fonts, type Cam, type CamKey, type Exit } from "../horizon/book";
 import { VerseRefPanel } from "../horizon/verseRef";
 import { FINDS, FindAt } from "./drawings";
 import { Stamp } from "./compare";
@@ -29,7 +29,20 @@ export const sacredWindows = (tl: Timeline): [number, number][] => tl.words.filt
  * مرسى الحدث: «كلمة» أو «كلمة#2» (الورود الثاني). إن غابت الكلمة عن النص يُستعمل البديل، ويُسجَّل الغياب
  * (فحص المكتبة يرفض أي مرسى غائب في الخطة). safe يؤخر أي حركة تتقاطع مع نافذة ذكر الله إلى ما بعدها.
  */
-export const cues = (tl: Timeline) => {
+/**
+ * حدود الكاميرا في مشاهد المكتبة (الأمر 019): لا يُظهر الكادر المقرَّب ما وراء حدود الكادر المحايد (فلا يتسع ما خلف الصفحة)،
+ * ومع رأس الصفحة (keepTop) لا يُقص الرأس من الأعلى.
+ */
+export const boundCam = (c: Cam, keepTop = false): Cam => {
+  if (c.s <= 1) return c;
+  const hw = 960 / c.s;
+  const hh = 540 / c.s;
+  let cy = Math.min(Math.max(c.cy, hh), 1080 - hh);
+  if (keepTop) cy = Math.min(cy, 60 + hh);
+  return { cx: Math.min(Math.max(c.cx, hw), 1920 - hw), cy, s: c.s };
+};
+
+export const cues = (tl: Timeline, opts: { keepTop?: boolean } = {}) => {
   const wins = sacredWindows(tl);
   const missing: string[] = [];
   const parse = (a: string) => {
@@ -67,7 +80,16 @@ export const cues = (tl: Timeline) => {
   };
   /** كاميرا بمفاتيح آمنة: كل مفتاح يتأخر عن نافذة ذكر الله إن تقاطع معها */
   const cam = (t: number, start: Cam, keys: CamKey[]) =>
-    camPath(t, start, keys.map((k) => { const a = safe(k.a, k.b - k.a); return { ...k, a, b: a + (k.b - k.a) }; }).sort((x, y) => x.a - y.a));
+    camPath(
+      t,
+      boundCam(start, opts.keepTop),
+      keys
+        .map((k) => {
+          const a = safe(k.a, k.b - k.a);
+          return { ...k, ...boundCam(k, opts.keepTop), a, b: a + (k.b - k.a) };
+        })
+        .sort((x, y) => x.a - y.a),
+    );
   return { at, end, safe, cam, missing, last: tl.words.length ? tl.words[tl.words.length - 1]!.e : 0.3 };
 };
 
@@ -94,7 +116,7 @@ export const libAnchors = (shot: string, p: Record<string, string | undefined>):
     case "lib-gloss":
       return [...f("matnWord"), ...f("tafsirWord"), ...f("noteWord")];
     case "lib-compare":
-      return [...f("aWord"), ...f("bWord"), ...f("verdictWord")];
+      return [...(p.title ? [p.titleWord || firstWord(p.title)] : []), ...f("aWord"), ...f("bWord"), ...f("verdictWord")];
     case "lib-timeline":
     case "lib-evidence":
       return [...parseItems(p.items).map((x) => x.anchor), ...f("limitWord")];
@@ -194,10 +216,32 @@ const Pending: React.FC<ShotProps> = ({ t, dur, exit, p }) => (
 
 // ───────────────────────── شارة المصدر (فصل المصادر) ─────────────────────────
 
+/**
+ * شارة المرجع القرآني في المكتبة (الأمر 019، L1b): ختم أكبر على ورق فاتح بحد ذهبي، و«القرآن» بالحبر الداكن (تباين عالٍ)،
+ * والمرجع بالأميري بحجم يُقرأ في المشغّل وعلى عرض هاتف. بلا نص آية أبدًا. لا يغيّر ختم الحلقة 001 (QuranSeal).
+ */
+export const QuranRefBadge: React.FC<{ x: number; y: number; o: number; refText: string }> = ({ x, y, o, refText }) => {
+  if (o <= 0) return null;
+  const ref = refText.replace(" · ", ": ");
+  const w = Math.max(320, 34 * letterCount(ref) + 210);
+  return (
+    <g opacity={o} transform={`translate(${x} ${y}) scale(${0.94 + 0.06 * o}) translate(${-x} ${-y})`}>
+      <rect x={x - w / 2} y={y - 50} width={w} height={100} rx={50} fill="#FFFAF0" stroke={C.gold} strokeWidth={4} />
+      <circle cx={x + w / 2 - 56} cy={y} r={44} fill="#F3E3BC" stroke={C.gold} strokeWidth={4} />
+      <SText x={x + w / 2 - 56} y={y + 10} size={29} font="tajawal" weight={800} color={C.ink}>
+        القرآن
+      </SText>
+      <SText x={x - 40} y={y + 18} size={54} color={C.ink}>
+        {ref}
+      </SText>
+    </g>
+  );
+};
+
 /** quran: ختم ذهبي بمرجعه (بلا نص آية) · tafsir: لسان أحمر باسم المفسر · note: تعليق القناة بحبر خفيف */
 const SourceBadge: React.FC<{ kind?: string; source?: string; o: number; x: number; y: number }> = ({ kind, source, o, x, y }) => {
   if (o <= 0 || !kind) return null;
-  if (kind === "quran") return <QuranSeal x={x} y={y} o={o} s={0.9} refText={source} />;
+  if (kind === "quran") return <QuranRefBadge x={x} y={y} o={o} refText={source ?? ""} />;
   if (kind === "tafsir") return <TafsirTab x={x + 290} y={y - 30} o={o} label={source ?? "تفسير"} w={Math.max(220, 26 * letterCount(source ?? "تفسير") + 70)} />;
   return (
     <SText x={x} y={y} size={30} font="tajawal" weight={500} color={C.inkSoft} o={o}>
@@ -212,7 +256,7 @@ const SourceBadge: React.FC<{ kind?: string; source?: string; o: number; x: numb
  * ثم سطر شرح يُكتب كلمة كلمة، وشارة المصدر، وتعليق اختياري في هامش الصفحة اليسرى. الكاميرا تقترب عند الكتابة وتتراجع عند الشرح.
  */
 const Term: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
-  const q = cues(tl);
+  const q = cues(tl, { keepTop: Boolean(p.head) });
   const term = p.term ?? "";
   const n = letterCount(term);
   const len = Math.min(1.4, 0.4 + 0.08 * n);
@@ -254,7 +298,7 @@ const Term: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
  * وتحتها تعليق القناة (note) بإطار متقطع وحبر خفيف. الكاميرا تتبع القراءة من الأصل إلى الحاشية إلى التعليق.
  */
 const Gloss: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
-  const q = cues(tl);
+  const q = cues(tl, { keepTop: Boolean(p.head) });
   const mA = q.safe(q.at(p.matnWord, 0.4) - 0.05, 0.6);
   const tA = p.tafsir ? q.safe(q.at(p.tafsirWord || firstWord(p.tafsir), mA + 1.6) - 0.1, 0.6) : Infinity;
   const nA = p.note ? q.safe(q.at(p.noteWord || firstWord(p.note), Math.min(tA, 99) + 2) - 0.1, 0.6) : Infinity;
@@ -308,7 +352,10 @@ const Gloss: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
  */
 const COMPARE_BOX = { R: { x: 1040, cx: 1365 }, L: { x: 230, cx: 555 } };
 const Compare: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
-  const q = cues(tl);
+  const q = cues(tl, { keepTop: Boolean(p.head) });
+  // موضوع المقارنة (اختياري، الأمر 019): قصاصة فوق الكعب تُكتب عند كلمتها، فلا تبقى جملة التمهيد بلا عنصر
+  const tiA = p.title ? q.safe(q.at(p.titleWord || firstWord(p.title), 0.3) - 0.05, 0.5) : Infinity;
+  const ti = prog(t, tiA, tiA + 0.5, easeOut);
   const aA = q.safe(q.at(p.aWord, 0.4) - 0.1, 0.7);
   const bA = q.safe(q.at(p.bWord, aA + 2) - 0.1, 0.7);
   const vA = p.verdict ? q.safe(q.at(p.verdictWord, bA + 2) - 0.05, 0.6) : Infinity;
@@ -354,7 +401,16 @@ const Compare: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   );
   // الحكم المشترك يُكتب على قصاصة ورق موضوعة فوق الكعب، فلا يُقطع النص بالكعب
   const slipW = Math.max(260, 30 * (p.verdictText ?? "").length + 80);
-  const over =
+  const titleW = Math.max(300, 30 * letterCount(p.title ?? "") + 110);
+  const titleSlip = p.title ? (
+    <g opacity={ti} transform={`translate(0 ${(1 - ti) * -10}) rotate(1 960 196)`}>
+      <rect x={960 - titleW / 2} y={154} width={titleW} height={80} rx={6} fill="#FFFAF0" stroke={C.ink} strokeWidth={2.5} />
+      <SText x={960} y={208} size={42} font="tajawal" weight={700} color={C.ink}>
+        {p.title}
+      </SText>
+    </g>
+  ) : null;
+  const verdictLayer =
     verdict === "open" || verdict === "both" ? (
       <g opacity={v} transform={`translate(0 ${(1 - v) * 12})`}>
         {verdict === "open" ? (
@@ -374,7 +430,13 @@ const Compare: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
           </g>
         ) : null}
       </g>
-    ) : undefined;
+    ) : null;
+  const over = titleSlip || verdictLayer ? (
+    <g>
+      {titleSlip}
+      {verdictLayer}
+    </g>
+  ) : undefined;
   const htmlR = (
     <>
       {label("R", p.aLabel, a, dimA)}
@@ -397,7 +459,7 @@ const Compare: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
  */
 const TL_Y = 600;
 const Timeline_: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
-  const q = cues(tl);
+  const q = cues(tl, { keepTop: Boolean(p.head) });
   const items = parseItems(p.items).slice(0, 7);
   const n = Math.max(1, items.length);
   // لا تقع علامة على الكعب نفسه
@@ -461,7 +523,7 @@ const SLOTS: Record<number, [number, number][]> = {
   3: [[1540, 380], [1190, 380], [1365, 650]],
 };
 const Evidence: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
-  const q = cues(tl);
+  const q = cues(tl, { keepTop: Boolean(p.head) });
   const items = parseItems(p.items)
     .map((it) => {
       const [key, lbl] = it.text.split("=").map((s) => s.trim());
@@ -487,7 +549,8 @@ const Evidence: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
     return (
       <g key={i}>
         <Ink d={`M${x + 160} ${y - 120} H${x - 160} V${y + 130} H${x + 160} Z`} w={2.5} p={pr} c={C.inkSoft} />
-        <FindAt k={it.f.key} x={x} y={y - 10} s={s} p={pr} />
+        {/* نسخة البطاقة إن وُجدت (الأمر 019، L2)، وإلا الرسم الأصلي مصغرًا */}
+        {it.f.card ? <g transform={`translate(${x} ${y - 20})`}>{it.f.card(pr)}</g> : <FindAt k={it.f.key} x={x} y={y - 10} s={s} p={pr} />}
         <SText x={x} y={y + 108} size={32} font="tajawal" weight={700} color={C.inkText} o={prog(t, times[i]! + 0.4, times[i]! + 0.8)}>
           {it.label}
         </SText>
