@@ -115,6 +115,67 @@ const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: 
   );
 };
 
+/** A channel preference for listening only; production requires a separate rights-gated episode choice. */
+const CloudPreviewPicker: React.FC<{
+  value?: { edition: string; name: string };
+  onChange: (v: { edition: string; name: string } | undefined) => void;
+}> = ({ value, onChange }) => {
+  const [list, setList] = React.useState<{ identifier: string; name: string }[] | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [message, setMessage] = React.useState("");
+  const [search, setSearch] = React.useState("");
+  const load = async () => {
+    if (loading) return;
+    setLoading(true);
+    setMessage("جارٍ تحميل قرّاء AlQuran Cloud…");
+    try {
+      const res = await api.alquranEditions();
+      setList(res.editions);
+      setMessage(res.editions.length ? "" : "لم تُرجع الخدمة أي تسجيلات متاحة.");
+    } catch (e) {
+      setList(null);
+      setMessage(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+  const filtered = (list ?? []).filter((r) =>
+    r.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) ||
+    r.identifier.toLowerCase().includes(search.trim().toLowerCase()));
+  return (
+    <div className="field channel-cloud-preview">
+      <strong>قارئ AlQuran Cloud الافتراضي للمعاينة</strong>
+      <p className="help">يُستخدم لتجربة الاستماع داخل مكتبة قرّاء الحلقة فقط. لا يغيّر قارئ الإنتاج، ولا يُدرج التسجيل في الرندر، ولا يمنح إذن نشر.</p>
+      <div className="channel-provider-controls">
+        <span>{value ? <><b>{value.name}</b> <code dir="ltr">{value.edition}</code></> : <span className="help">لم يُحدد قارئ للمعاينة</span>}</span>
+        <button type="button" className="btn small" disabled={loading} onClick={load}>
+          {loading ? "جارٍ التحميل…" : list ? "تحديث القرّاء" : "اختيار من AlQuran Cloud"}
+        </button>
+        {value && <button type="button" className="btn ghost small" onClick={() => onChange(undefined)}>إزالة الاختيار</button>}
+      </div>
+      {list && list.length > 0 && (
+        <div className="channel-cloud-results">
+          <label htmlFor="ch-cloud-search">البحث عن قارئ</label>
+          <input id="ch-cloud-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم القارئ أو معرّفه" />
+          <label htmlFor="ch-cloud-edition">التسجيلات المتاحة</label>
+          <select id="ch-cloud-edition" value={value?.edition ?? ""} onChange={(e) => {
+            const selected = list.find((item) => item.identifier === e.target.value);
+            onChange(selected ? { edition: selected.identifier, name: selected.name } : undefined);
+          }}>
+            <option value="">اختر قارئًا للمعاينة</option>
+            {value && !list.some((item) => item.identifier === value.edition) && <option value={value.edition}>{value.name} (الاختيار المحفوظ)</option>}
+            {filtered.map((item) => <option key={item.identifier} value={item.identifier}>{item.name} — {item.identifier}</option>)}
+            {value && list.some((item) => item.identifier === value.edition) && !filtered.some((item) => item.identifier === value.edition) &&
+              <option value={value.edition}>{value.name} (المختار)</option>}
+          </select>
+          <span className="help" role="status">{filtered.length} قارئًا في نتائج البحث</span>
+        </div>
+      )}
+      {message && <span className="help" role="status">{message}</span>}
+    </div>
+  );
+};
+
 export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void; identity?: Identity }> = ({ onCreated, onSaved, identity }) => {
   const [c, setC] = useState<ChannelConfig | null>(null);
   const [saved, setSaved] = useState("");
@@ -246,6 +307,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           <label className="check"><input type="checkbox" checked={!c.rules.faces} onChange={(e) => set({ rules: { ...c.rules, faces: !e.target.checked } })} /><span>إخفاء ملامح وجوه الشخصيات</span></label>
           <label className="check"><input type="checkbox" checked={!c.rules.music} onChange={(e) => set({ rules: { ...c.rules, music: !e.target.checked } })} /><span>منع الموسيقى (السماح بالمؤثرات غير الموسيقية فقط)</span></label>
           {c.rules.quran ? <ReciterPicker value={c.recitation} onChange={(recitation) => set({ recitation })} /> : null}
+          {c.rules.quran ? <CloudPreviewPicker value={c.alquranPreviewRecitation} onChange={(alquranPreviewRecitation) => set({ alquranPreviewRecitation })} /> : null}
           {c.rules.quran ? <MeaningPicker key={c.language} value={c.quranTranslation} language={c.language} onChange={(quranTranslation) => set({ quranTranslation })} /> : null}
           <h3>يوتيوب</h3>
           <label className="field"><span>وسوم القناة</span><TagsInput id="ch-tags" value={c.youtube.tags} onChange={(tags) => set({ youtube: { ...c.youtube, tags } })} /></label>
