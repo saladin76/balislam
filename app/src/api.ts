@@ -4,6 +4,7 @@ import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
+import type { CloudRecitation } from "../../src/quran/provider";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -67,6 +68,10 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  recitationChoice: (episode: string, channel: string) =>
+    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
+  saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
+    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, { method: "PUT", json: { recitation } }, channel),
   alquranEditions: () => call<{ editions: AlQuranAudioEdition[] }>("/api/alquran-cloud/editions"),
   alquranAyah: (surah: number, ayah: number, edition: string) =>
     call<AlQuranAyahPreview>(`/api/alquran-cloud/ayah?surah=${surah}&ayah=${ayah}&edition=${encodeURIComponent(edition)}`),
