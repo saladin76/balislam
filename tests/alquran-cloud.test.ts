@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createAlQuranClient, AlQuranError } from "../src/quran/alquranCloud";
-import { filterAudioEditions, previewReciterKey } from "../app/src/workspace/AlQuranCloudBrowser";
+import { filterAudioEditions, previewReciterKey, previewEditionFor } from "../app/src/workspace/AlQuranCloudBrowser";
 
 const edition = { identifier: "ar.alafasy", name: "مشاري العفاسي" };
 const text = { surah: { number: 1 }, numberInSurah: 1, number: 1, text: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ" };
@@ -41,6 +41,13 @@ describe("AlQuran Cloud read-only ayah integration", () => {
       .ayah(1, 1, "ar.alafasy")).rejects.toThrow(/يطابق/);
     await expect(createAlQuranClient(mock({ edition: { identifier: "ar.husary" } }))
       .ayah(1, 1, "ar.alafasy")).rejects.toThrow(/لا تطابق القارئ أو الآية/);
+  });
+
+  it("uses the channel's AlQuran preview reciter unless the episode overrides it", () => {
+    expect(previewEditionFor(null, "ar.husary")).toBe("ar.husary");
+    expect(previewEditionFor("ar.minshawi", "ar.husary")).toBe("ar.minshawi");
+    expect(previewEditionFor(null, "../../bad")).toBe("ar.alafasy");
+    expect(previewEditionFor("wrong", "ar.husary")).toBe("ar.husary");
   });
 
   it("filters multiple reciters and keeps preview selection scoped to channel and episode", () => {
