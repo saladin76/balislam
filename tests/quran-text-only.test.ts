@@ -92,8 +92,7 @@ describe("جلب نصوص الآيات الناقصة دون مساس بالإن
     const cacheFile = path.join(episodeDir, "quran.json");
     const untouched = JSON.stringify({ custom: "معلومة محلية" });
     writeFileSync(cacheFile, untouched);
-    const wrong = { verse: async () => ({ key: "53:40", number: 40, text: "نص آية مختلفة" }) }
-      as unknown as Pick<QuranClient, "verse">;
+    const wrong = { verse: async () => ({ key: "53:40", number: 40, text: "نص آية مختلفة" }) } as unknown as Pick<QuranClient, "verse">;
     const result = await fillMissingQuranTexts("999", wrong);
     expect(result.fetched).toEqual([]);
     expect(result.failed).toHaveLength(1);
