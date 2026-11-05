@@ -115,3 +115,66 @@
 .app.episode-workspace-app > .publish { min-height: 0; min-width: 0; }
 .app.episode-workspace-app > .ew-storyboard-wrap,
 .app.episode-workspace-app > .ew-voice-stage { overflow-y: auto; }
+
+/* المرحلة الثانية من تحسين UX: بطاقتا صوت واضحتان، مع اعتماد الحقوق ضمن مسار منفصل. */
+.ew-audio-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ew-audio-summary > div { padding: 13px 16px; border: 1px solid var(--line, #d4d2cb); border-radius: 14px; background: var(--surface, #fff); display: grid; gap: 4px; }
+.ew-audio-summary strong { font-size: 25px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ew-audio-summary span { color: var(--muted, #67645e); font-size: 12px; line-height: 1.6; }
+.ew-voice-lane { border: 1px solid var(--line, #d4d2cb); border-radius: 16px; padding: clamp(12px, 2vw, 22px); background: var(--surface, #fff); min-width: 0; display: grid; gap: 16px; }
+.ew-lane-heading { display: flex; align-items: flex-start; gap: 12px; }
+.ew-lane-index { width: 37px; height: 37px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; color: var(--accent, #207f67); background: var(--panel, #f2f1eb); font-weight: 750; }
+.ew-lane-heading h3 { margin: 0 0 5px; font-size: 17px; }
+.ew-lane-heading p { margin: 0; line-height: 1.7; font-size: 13px; color: var(--muted, #67645e); }
+.ew-voice-lane > .group { margin: 0; min-width: 0; }
+.ew-production-licence { margin-block-start: 16px; border: 1px solid var(--line, #d4d2cb); border-radius: 12px; overflow: hidden; }
+.ew-production-licence > summary { padding: 13px 16px; cursor: pointer; font-weight: 700; background: var(--panel, #f2f1eb); line-height: 1.7; }
+.ew-production-licence[open] > summary { border-bottom: 1px solid var(--line, #d4d2cb); }
+.ew-licence-fields { padding: 15px; display: grid; gap: 12px; }
+.ew-licence-fields p { margin: 0; font-size: 13px; line-height: 1.85; }
+.ew-licence-fields label { font-size: 13px; font-weight: 600; }
+.ew-licence-fields > input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line, #d4d2cb); border-radius: 9px; font: inherit; min-width: 0; }
+.ew-licence-confirm { display: flex; gap: 9px; align-items: flex-start; line-height: 1.8; }
+.ew-licence-confirm input { margin-block-start: 6px; }
+.ew-production-ok { color: var(--ok, #207f67); font-weight: 650; }
+@media (max-width: 760px) {
+  .ew-audio-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ew-audio-summary > div:last-child { grid-column: 1 / -1; }
+}
+
+.ew-current-reciter { padding: 12px 14px; background: var(--panel, #f2f1eb); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 13px; line-height: 1.7; }
+.ew-current-reciter strong { color: var(--ok, #207f67); }
+
+/* قارئ الآيات: الاختيار والاستماع أساسيان؛ إعداد الحقوق ثانوي ومتدرج. */
+.ew-reciter-panel { display: grid; gap: 16px; font-size: 14px; line-height: 1.85; }
+.ew-reciter-title { margin: 0; font-size: 17px; line-height: 1.5; font-weight: 750; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.ew-reciter-title span { font-size: 13px; color: var(--muted, #67645e); font-weight: 500; direction: ltr; }
+.ew-reciter-subtitle { margin: 0; max-width: 75ch; font-size: 14px; line-height: 1.85; color: var(--muted, #67645e); }
+.ew-reciter-close { justify-self: start; }
+.ew-reciter-controls { display: grid; grid-template-columns: 1fr; gap: 9px; padding: 16px; border: 1px solid var(--line, #d4d2cb); border-radius: 13px; background: var(--panel, #f7f6f2); min-width: 0; }
+.ew-reciter-controls > label, .ew-reciter-verse-row > label { display: block; font-size: 14px; font-weight: 650; }
+.ew-reciter-controls > input, .ew-reciter-controls > select, .ew-reciter-verse-row > input { width: 100%; box-sizing: border-box; min-width: 0; min-height: 41px; padding: 9px 12px; color: inherit; background: var(--surface, #fff); border: 1px solid var(--line, #d4d2cb); border-radius: 9px; font: inherit; font-size: 14px; }
+.ew-reciter-controls > input:focus-visible, .ew-reciter-controls > select:focus-visible, .ew-reciter-verse-row > input:focus-visible { outline: 2px solid var(--accent, #207f67); outline-offset: 2px; }
+.ew-reciter-count { font-size: 12px; color: var(--muted, #67645e); }
+.ew-reciter-verse-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 10px; align-items: end; }
+.ew-reciter-verse-row > label:first-child { grid-column: 1; grid-row: 1; }
+.ew-reciter-verse-row > input:nth-child(2) { grid-column: 1; grid-row: 2; }
+.ew-reciter-verse-row > label:nth-child(3) { grid-column: 2; grid-row: 1; }
+.ew-reciter-verse-row > input:nth-child(4) { grid-column: 2; grid-row: 2; }
+.ew-listen-action { grid-column: 3; grid-row: 2; min-height: 41px; padding-inline: 18px; }
+.ew-ayah-preview { padding: 16px; border: 1px solid var(--line, #d4d2cb); border-radius: 12px; display: grid; gap: 12px; }
+.ew-ayah-preview > p:first-child { font-size: clamp(19px, 2.2vw, 26px); line-height: 2.15; text-align: center; margin: 0; }
+.ew-ayah-preview > audio { width: 100%; max-width: 650px; justify-self: center; }
+.ew-reciter-rights-note { margin: 0; padding: 10px 14px; border-inline-start: 3px solid var(--accent, #207f67); background: var(--panel, #f7f6f2); font-size: 13px; line-height: 1.9; }
+.ew-reciter-panel .ew-production-licence { margin-block-start: 0; }
+.ew-reciter-panel .ew-production-licence > summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 16px; row-gap: 4px; font-size: 14px; }
+.ew-reciter-panel .ew-production-licence > summary > span { color: var(--muted, #67645e); font-size: 12px; font-weight: 400; }
+.ew-reciter-panel .ew-licence-fields { gap: 14px; padding: clamp(14px, 2vw, 22px); }
+.ew-reciter-panel .ew-licence-fields > p, .ew-reciter-panel .ew-licence-fields > label { font-size: 14px; }
+.ew-reciter-panel .ew-licence-fields > input { min-height: 42px; font-size: 14px; }
+.ew-reciter-panel .ew-licence-help { color: var(--muted, #67645e); }
+@media (max-width: 700px) {
+  .ew-reciter-verse-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ew-listen-action { grid-column: 1 / -1; grid-row: 3; width: 100%; }
+  .ew-reciter-controls { padding: 12px; }
+}

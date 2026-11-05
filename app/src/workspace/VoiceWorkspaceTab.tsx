@@ -28,8 +28,25 @@ export const VoiceWorkspaceTab: React.FC<{
         <h2>صوت الحلقة</h2>
         <p>راجع التشكيل وإعدادات الصوت قبل التوليد. المقاطع التي لم يتغير نصها تبقى محفوظة كما في المحرك الحالي.</p>
       </div>
-      <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} />
-      <AlQuranCloudBrowser key={`${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} />
+      <div className="ew-audio-summary" role="status">
+        <div><strong>{ready}</strong><span>مقطع تعليق مطابق</span></div>
+        <div><strong>{scenes.length - ready}</strong><span>مقطع يحتاج توليدًا</span></div>
+        <div><strong>2</strong><span>مساران مستقلان: التعليق والتلاوة</span></div>
+      </div>
+      <section className="ew-voice-lane" aria-label="التعليق الصوتي">
+        <div className="ew-lane-heading"><span className="ew-lane-index">01</span><div>
+          <h3>التعليق الصوتي</h3>
+          <p>توليد الراوي والتحقق من التشكيل والمقاطع المتغيّرة.</p>
+        </div></div>
+        <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} />
+      </section>
+      <section className="ew-voice-lane" aria-label="تلاوة القرآن">
+        <div className="ew-lane-heading"><span className="ew-lane-index">02</span><div>
+          <h3>تلاوة الآيات داخل الفيديو</h3>
+          <p>اختر قارئًا وعاين صوته، ثم اعتمده للإنتاج بعد توثيق حقوق التسجيل. تُسحب الآيات تلقائيًا إلى بطاقة الآية.</p>
+        </div></div>
+        <AlQuranCloudBrowser key={`${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} onMedia={onMedia} />
+      </section>
       <div className="ew-voice-heading">
         <h3>حالة المقاطع الصوتية</h3>
         <span>{ready} من {scenes.length} مطابق للنص الحالي</span>

@@ -30,6 +30,7 @@ export type ChannelConfig = {
   /** ترجمة معاني القرآن للقنوات غير العربية: معرّف المورد في Quran Foundation واسمه للنسبة. */
   quranTranslation?: { id: number; name: string };
   /** تلاوة الآيات من Quran Foundation (اختياري): معرّف التلاوة واسم القارئ. بدونها تُعرض الآية نصًّا فقط. */
+  /** Default Quran Foundation reciter; AlQuran Cloud is selected independently per episode. */
   recitation?: { id: number; name: string };
   domains: Record<string, ChannelDomain>;
   /** جدول النشر: يوم الحلقة الطويلة (0 الأحد … 6 السبت) وعدد الشورتس اليومية */
