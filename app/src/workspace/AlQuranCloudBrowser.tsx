@@ -40,12 +40,14 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [saving, setSaving] = useState(false);
   const mounted = useRef(true);
   const previewManuallyChanged = useRef(false);
+  const auditionRequest = useRef(0);
   const visibleEditions = useMemo(() => filterAudioEditions(filterRecitersByRights(editions, rightsFilter), search), [editions, search, rightsFilter]);
 
   useEffect(() => {
     setEnabled(false); setEditions([]); setPreview(null); setError(""); setSearch(""); setSurah(1); setAyah(1);
     setLicenceHolder(""); setLicenceEvidence(""); setConfirmed(false); setProductionStatus(""); setActiveProduction(null);
     let alive = true;
+    auditionRequest.current++;
     previewManuallyChanged.current = false;
     mounted.current = true;
     api.recitationChoice(episodeId, channelId).then(({ recitation }) => {
@@ -66,10 +68,11 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
         if (alive && !previewManuallyChanged.current) setEdition(previewEditionFor(null, preferred));
       }).catch(() => { /* keep safe preview fallback */ });
     }
-    return () => { alive = false; mounted.current = false; };
+    return () => { alive = false; mounted.current = false; auditionRequest.current++; };
   }, [channelId, episodeId]);
 
   const selectEdition = (id: string) => {
+    auditionRequest.current++;
     previewManuallyChanged.current = true;
     setEdition(id); setPreview(null);
     try { localStorage.setItem(previewReciterKey(channelId, episodeId), id); } catch { /* restricted browser storage */ }
@@ -90,10 +93,15 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   };
 
   const listen = async () => {
+    const request = ++auditionRequest.current;
+    const requestedEdition = edition;
     setLoading(true); setPreview(null); setError("");
-    try { setPreview(await api.alquranAyah(surah, ayah, edition)); }
-    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
-    finally { setLoading(false); }
+    try {
+      const response = await api.alquranAyah(surah, ayah, requestedEdition);
+      if (mounted.current && request === auditionRequest.current) setPreview(response);
+    } catch (e) {
+      if (mounted.current && request === auditionRequest.current) setError(e instanceof Error ? e.message : String(e));
+    } finally { if (mounted.current) setLoading(false); }
   };
 
   const activateProduction = async () => {
@@ -194,6 +202,7 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
             {visibleEditions.map((e) => <option key={e.identifier} value={e.identifier}>{e.name} — {e.identifier}</option>)}
           </select>
           {!visibleEditions.length && <p>{rightsFilter === "verified" ? "لا توجد تسجيلات موثقة تجاريًا في سجل المراجعة حاليًا. يمكنك اختيار «جميع القرّاء» للاستماع." : "لا توجد نتائج مطابقة. غيّر التصنيف أو امسح البحث."}</p>}
+          {rightsFilter !== "all" && <button type="button" className="btn ghost small" onClick={() => { setRightsFilter("all"); setSearch(""); }}>عرض جميع القرّاء ومسح البحث</button>}}
           <p className="help">القارئ المحدد: {commercialEvidenceFor(edition) ? "استخدام تجاري موثّق" : "حقوق الاستخدام التجاري تحتاج مراجعة"}</p>
           <div className="ew-reciter-verse-row"><label htmlFor="alquran-surah">رقم السورة (1–114)</label>
           <input id="alquran-surah" type="number" min={1} max={114} value={surah} onChange={(e) => {
