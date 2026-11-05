@@ -141,3 +141,6 @@
   .ew-audio-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ew-audio-summary > div:last-child { grid-column: 1 / -1; }
 }
+
+.ew-current-reciter { padding: 12px 14px; background: var(--panel, #f2f1eb); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 13px; line-height: 1.7; }
+.ew-current-reciter strong { color: var(--ok, #207f67); }
