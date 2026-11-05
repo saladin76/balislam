@@ -206,7 +206,7 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
             {visibleEditions.map((e) => <option key={e.identifier} value={e.identifier}>{e.name} — {e.identifier}</option>)}
           </select>
           {!visibleEditions.length && <p>{rightsFilter === "verified" ? "لا توجد تسجيلات موثقة تجاريًا في سجل المراجعة حاليًا. يمكنك اختيار «جميع القرّاء» للاستماع." : "لا توجد نتائج مطابقة. غيّر التصنيف أو امسح البحث."}</p>}
-          {rightsFilter !== "all" && <button type="button" className="btn ghost small" onClick={() => { setRightsFilter("all"); setSearch(""); }}>عرض جميع القرّاء ومسح البحث</button>}}
+          {rightsFilter !== "all" && <button type="button" className="btn ghost small" onClick={() => { setRightsFilter("all"); setSearch(""); }}>عرض جميع القرّاء ومسح البحث</button>}
           <p className="help">القارئ المحدد: {commercialEvidenceFor(edition) ? "استخدام تجاري موثّق" : "حقوق الاستخدام التجاري تحتاج مراجعة"}</p>
           <div className="ew-reciter-verse-row"><label htmlFor="alquran-surah">رقم السورة (1–114)</label>
           <input id="alquran-surah" type="number" min={1} max={114} value={surah} onChange={(e) => {
