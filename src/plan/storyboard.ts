@@ -9,6 +9,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { sceneHash } from "./sceneReview";
 import type { Plan } from "./types";
+import { VERSE_PLACEHOLDER } from "./quranText";
 
 export type StoryboardRecord = { version: 1; approvedAt?: string; scenes: Record<string, string>; audit?: { note: string; inputHash?: string; at: string } };
 export type StoryboardSceneStatus = "approved" | "changed" | "new";
@@ -58,7 +59,13 @@ export const storyboardStatus = (plan: Plan, rec: StoryboardRecord): StoryboardS
 };
 
 /** اعتماد الستوري بورد كما هو الآن (كل المشاهد ببصماتها الحالية). */
+/** بطاقات الآيات التي لم يُجلب نصها بعد: لا يُعتمد ستوري بورد يعرض نصًا مؤقتًا مكان كلام الله. */
+export const versesMissingText = (plan: Plan) =>
+  plan.chapters.flatMap((c) => c.scenes).filter((s) => s.template === "verse-card" && (!s.props.text?.trim() || s.props.text === VERSE_PLACEHOLDER)).map((s) => s.id);
+
 export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: { note: string; inputHash?: string }): Promise<StoryboardRecord> => {
+  const missing = versesMissingText(plan);
+  if (missing.length) throw new Error(`لا يُعتمد الستوري بورد وفيه ${missing.length} آية بلا نصها (${missing.slice(0, 6).join("، ")}${missing.length > 6 ? "…" : ""}). اجلب نصوص الآيات أولًا: زر «اجلب نصوص الآيات» في الاستوديو.`);
   const rec: StoryboardRecord = {
     version: 1,
     approvedAt: new Date().toISOString(),

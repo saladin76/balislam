@@ -1,10 +1,12 @@
 import React from "react";
-import { useVideoConfig } from "remotion";
+import { interpolate, useVideoConfig } from "remotion";
 import { useMotionSettings, useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { Element } from "../../../brand/elements/Element";
 import { SceneShell } from "./SceneShell";
 import { useLang } from "../../i18n/context";
+import { useChannel } from "../../channel/context";
+import { estimateTimings, spreadOverSpeech } from "./timing";
 import { enter, fade, float, useBoil, useSceneFrame } from "./motion";
 import { splitWords } from "./timing";
 import type { BigQuestionProps } from "./types";
@@ -45,10 +47,15 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
   const fontPx = Math.round(questionSize * fit);
   const iconPx = Math.round((portrait ? 280 : 250) * (fit < 1 ? Math.max(0.6, fit) : 1));
   const iconIn = enter(frame, 0, 30, 140);
-  const wordsFrom = 12;
-  const perWord = motion.wordInterval;
+  // التزامن مع الكلام (خاص بالقناة): كلمات السؤال تُكتب على مدى الجملة المنطوقة لا في أول ثانية
+  const sync = useChannel().pacing?.speechSync === true && Boolean(props.narration);
+  const spoken = sync ? spreadOverSpeech(2, props.narrationTimings ?? estimateTimings(props.narration ?? "", 6, durationInFrames - 12), 6, durationInFrames - 40) : [];
+  const wordsFrom = spoken.length ? Math.max(8, spoken[0]!) : 12;
+  const perWord = spoken.length ? Math.max(3, (spoken[1]! - wordsFrom) / Math.max(1, words.length)) : motion.wordInterval;
   const wordsDone = wordsFrom + words.length * perWord;
   const marker = fade(frame, wordsDone + 4, 14);
+  const dig = element === "soil-strata";
+  const digIn = interpolate(frame, [wordsFrom, Math.max(wordsFrom + 1, wordsDone)], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
     <SceneShell {...props} durationInFrames={durationInFrames}>
@@ -70,7 +77,10 @@ export const BigQuestion: React.FC<BigQuestionProps> = (props) => {
             opacity: iconIn,
           }}
         >
-          <Element id={element} theme={t} size={iconPx} />
+          {/* «طبقات الأرض»: تنكشف من الأعلى إلى الأسفل كما يكشف التنقيب الطبقات، على مدى السؤال المنطوق */}
+          <div style={dig ? { clipPath: `inset(0 0 ${(1 - digIn) * 82}% 0)` } : undefined}>
+            <Element id={element} theme={t} size={dig ? Math.round(iconPx * 1.45) : iconPx} />
+          </div>
         </div>
         <div
           style={{

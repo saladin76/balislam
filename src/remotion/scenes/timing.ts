@@ -24,3 +24,15 @@ export const estimateTimings = (text: string, fromFrame: number, toFrame: number
 /** يحوّل توقيتات بالثواني (من ElevenLabs) إلى إطارات. */
 export const toFrames = (timings: { word: string; start: number; end: number }[], fps: number): WordTiming[] =>
   timings.map((t) => ({ word: t.word, start: Math.round(t.start * fps), end: Math.round(t.end * fps) }));
+
+/**
+ * لحظات متتالية لـ n عنصرًا موزعة على مدى الكلام المنطوق في المشهد (من أول كلمة إلى آخرها)،
+ * فلا تظهر العناصر كلها في البداية ثم يسكن المشهد. بلا كلام: من from إلى to.
+ */
+export const spreadOverSpeech = (n: number, timings: WordTiming[], from: number, to: number): number[] => {
+  if (n <= 0) return [];
+  const a = timings.length ? Math.max(from, timings[0]!.start) : from;
+  const b = timings.length ? Math.max(a + 1, timings[timings.length - 1]!.start) : to;
+  if (n === 1) return [a];
+  return Array.from({ length: n }, (_, i) => Math.round(a + ((b - a) * i) / (n - 1)));
+};

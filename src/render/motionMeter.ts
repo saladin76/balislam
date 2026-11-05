@@ -20,9 +20,13 @@ const LAG = 5; // نصف ثانية
 const PIXEL_DELTA = 28;
 export const ACTIVE_PCT = 2.5;
 
-export type MotionReport = { percent: number; seconds: number; activeSeconds: number; perSecond: number[]; still: { from: number; to: number }[] };
+export type MotionReport = { percent: number; seconds: number; activeSeconds: number; perSecond: number[]; still: { from: number; to: number }[]; exempt?: number[] };
 
-export const measureMotion = async (file: string, orientation: "landscape" | "portrait" = "landscape"): Promise<MotionReport> => {
+/**
+ * exempt: ثوانٍ سكونها مقصود (الآيات وتمهيدها وذكر الله، انظر stillness.ts): لا تدخل في النسبة
+ * ولا تُعد «مقطعًا ساكنًا»، وتُذكر في التقرير منفصلة.
+ */
+export const measureMotion = async (file: string, orientation: "landscape" | "portrait" = "landscape", exempt?: Set<number>): Promise<MotionReport> => {
   const proc = RenderInternals.callFf({
     bin: "ffmpeg",
     args: ["-v", "error", "-i", file, "-r", String(FPS), "-vf", `scale=${orientation === "portrait" ? `${H}:${W}` : `${W}:${H}`},format=gray`, "-c:v", "rawvideo", "-f", "image2pipe", "-"],
@@ -59,18 +63,28 @@ export const measureMotion = async (file: string, orientation: "landscape" | "po
     return Math.max(0, ...changed.slice(from, to));
   });
   const active = perSecond.map((v) => v >= ACTIVE_PCT);
+  const ex = (s: number) => Boolean(exempt?.has(s));
   const still: { from: number; to: number }[] = [];
   let s0 = -1;
   active.forEach((on, s) => {
-    if (!on && s0 < 0) s0 = s;
-    if ((on || s === active.length - 1) && s0 >= 0) {
-      const end = on ? s : s + 1;
+    const breakHere = on || ex(s);
+    if (!breakHere && s0 < 0) s0 = s;
+    if ((breakHere || s === active.length - 1) && s0 >= 0) {
+      const end = breakHere ? s : s + 1;
       if (end - s0 >= 2) still.push({ from: s0, to: end });
       s0 = -1;
     }
   });
-  const activeSeconds = active.filter(Boolean).length;
-  return { percent: seconds ? Math.round((activeSeconds / seconds) * 100) : 0, seconds, activeSeconds, perSecond: perSecond.map((v) => Math.round(v * 10) / 10), still };
+  const counted = active.map((_, s) => s).filter((s) => !ex(s));
+  const activeSeconds = counted.filter((s) => active[s]).length;
+  return {
+    percent: counted.length ? Math.round((activeSeconds / counted.length) * 100) : 0,
+    seconds: counted.length,
+    activeSeconds,
+    perSecond: perSecond.map((v) => Math.round(v * 10) / 10),
+    still,
+    ...(exempt && exempt.size ? { exempt: [...exempt].filter((s) => s < seconds).sort((a, b) => a - b) } : {}),
+  };
 };
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -78,5 +92,6 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2,
 export const motionSummary = (r: MotionReport, label: string) => {
   const verdict = r.percent < MOTION_MIN ? "أقل من الحد" : r.percent > MOTION_BUSY ? "مزدحمة (راجع الإيقاع)" : r.percent >= MOTION_TARGET ? "ممتاز" : "مقبول";
   const still = r.still.length ? `\nمقاطع ساكنة (ثانيتان فأكثر): ${r.still.map((x) => `${clock(x.from)}–${clock(x.to)}`).join("، ")}` : "";
-  return `${label}: الحركة ${r.percent}% (${r.activeSeconds}/${r.seconds} ثانية) · ${verdict} · الحد ${MOTION_MIN}% والهدف ${MOTION_TARGET}%${still}`;
+  const ex = r.exempt?.length ? ` · سكون مقصود مستثنى: ${r.exempt.length} ثانية (الآيات وتمهيدها وذكر الله)` : "";
+  return `${label}: الحركة ${r.percent}% (${r.activeSeconds}/${r.seconds} ثانية) · ${verdict} · الحد ${MOTION_MIN}% والهدف ${MOTION_TARGET}%${ex}${still}`;
 };

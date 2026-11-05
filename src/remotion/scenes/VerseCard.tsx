@@ -4,6 +4,8 @@ import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
 import { T } from "../../i18n/context";
+import { useChannel } from "../../channel/context";
+import { VERSE_PLACEHOLDER } from "../../plan/quranText";
 import { enter, fade, useSceneFrame } from "./motion";
 import type { VerseCardProps } from "./types";
 
@@ -20,7 +22,125 @@ const Star8: React.FC<{ size: number; fill: string; stroke?: string; sw?: number
  * احترامًا لتلاوة الآية)، ثم المرجع. لا ترجمة سطرية تحت الآية؛ الشريط السفلي يختفي.
  * النص يُعرض كما ورد من المصدر بلا أي تعديل.
  */
+/** علامات الوقف في الرسم العثماني: حدود طبيعية لمقاطع الكشف */
+const WAQF = /[ۖ-ۜ]/;
+
+/**
+ * مقاطع الآية بترتيبها: عند علامات الوقف أولًا، ثم كل مقطع أطول من maxWords يُقسَم بالتساوي.
+ * النص لا يتغيّر: ضمّ المقاطع بمسافة يعيد الآية كما وردت.
+ */
+export const verseChunks = (text: string, maxWords = 7): string[] => {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const parts: string[][] = [[]];
+  for (const w of words) {
+    parts[parts.length - 1]!.push(w);
+    if (WAQF.test(w)) parts.push([]);
+  }
+  return parts
+    .filter((p) => p.length)
+    .flatMap((p) => {
+      const n = Math.ceil(p.length / maxWords);
+      const size = Math.ceil(p.length / n);
+      return Array.from({ length: n }, (_, i) => p.slice(i * size, (i + 1) * size).join(" ")).filter(Boolean);
+    });
+};
+
+const HZ = { dusk: "#2A1E3F", duskDeep: "#140E20", parchment: "#F1E4CB", ink: "#4A2E1F", sand: "#C8A15A" } as const;
+
+/**
+ * «صفحة الآية» (دفاتر الزمن): صفحة رَقّ هادئة على الغسق، بلا نجمة ولا شريط ولا رمز بجوار كلام الله.
+ * الآية تُكشف مقطعًا مقطعًا بترتيبها على مدى التلاوة، وكل الآية في مكانها النهائي من البداية فلا يتحرك سطر.
+ */
+const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
+  const { orientation, text, reference, reciter, reveal } = props;
+  const frame = useSceneFrame();
+  const { durationInFrames } = useVideoConfig();
+  const baseVerse = useSize("verse", orientation);
+  const refSize = useSize("reference", orientation);
+  const portrait = orientation === "portrait";
+  const letters = text.replace(/[ً-ٰٟۖ-ۭ\s]/g, "").length;
+  const room = portrait ? 80 : 90;
+  const verseFit = letters > room ? Math.max(0.42, Math.sqrt(room / letters)) : 1;
+  const verseSize = Math.round(baseVerse * verseFit);
+
+  const page = enter(frame, 0, 26, 100);
+  // نص لم يُجلب بعد: سطور فارغة في مكان الآية، ولا يظهر نص مؤقت ولا اسم مصدر مكان كلام الله
+  const pending = !text.trim() || text === VERSE_PLACEHOLDER;
+  const chunks = reveal ? verseChunks(text) : [text];
+  // الكشف يبدأ بعد انفتاح الصفحة وينتهي قبل آخر التلاوة بقليل، فتبقى الآية كاملة لحظة الختام
+  const start = 18;
+  const end = Math.max(start + 1, Math.round(durationInFrames * 0.78));
+  const step = chunks.length > 1 ? (end - start) / chunks.length : 0;
+  const refIn = fade(frame, reveal ? Math.max(30, end - 10) : 40, 16);
+
+  return (
+    <SceneShell {...props} themeId="night" motif={false} background={HZ.duskDeep} captions={false} durationInFrames={durationInFrames} eyebrowColors={{ text: HZ.parchment, border: HZ.sand }}>
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 55%, ${HZ.dusk} 0%, ${HZ.duskDeep} 80%)` }} />
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: portrait ? "0 56px 280px" : "40px 220px 40px" }}>
+        <div
+          style={{
+            position: "relative",
+            background: HZ.parchment,
+            borderRadius: 10,
+            padding: portrait ? "104px 60px 76px" : "92px 120px 64px",
+            width: "100%",
+            maxWidth: portrait ? 960 : 1400,
+            opacity: page,
+            transform: `translateY(${(1 - page) * 24}px)`,
+            boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: portrait ? 40 : 32,
+          }}
+        >
+          <div style={{ position: "absolute", inset: 16, border: `2px solid ${HZ.sand}`, borderRadius: 6, opacity: 0.55 * page, pointerEvents: "none" }} />
+          <div style={{ position: "absolute", inset: 24, border: `1px solid ${HZ.sand}`, borderRadius: 4, opacity: 0.35 * page, pointerEvents: "none" }} />
+          {pending ? (
+            <div style={{ display: "grid", gap: verseSize * 0.7, width: "78%", padding: `${verseSize * 0.4}px 0` }}>
+              {[1, 0.86, 0.6].map((w, i) => (
+                <div key={i} style={{ height: 3, width: `${w * 100 * fade(frame, start + i * 14, 24)}%`, marginInline: "auto", background: HZ.sand, opacity: 0.55 }} />
+              ))}
+            </div>
+          ) : (
+          <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance" }}>
+            <span style={{ color: HZ.sand, opacity: fade(frame, 10, 14) }}>﴿</span>{" "}
+            {chunks.map((c, i) => {
+              const at = start + i * step;
+              const o = fade(frame, at, 20);
+              return (
+                <span key={i} style={{ opacity: o, filter: `blur(${(1 - o) * 6}px)` }}>
+                  {c}
+                  {i < chunks.length - 1 ? " " : ""}
+                </span>
+              );
+            })}{" "}
+            <span style={{ color: HZ.sand, opacity: fade(frame, start + Math.max(0, chunks.length - 1) * step, 20) }}>﴾</span>
+          </div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 18, opacity: refIn, transform: `translateY(${(1 - refIn) * 8}px)` }}>
+            <div style={{ width: 56, height: 2, background: HZ.sand, opacity: 0.6 }} />
+            <div style={{ fontFamily: fontFamilies.heading, fontWeight: 600, fontSize: refSize, color: HZ.ink }}>{reference}</div>
+            <div style={{ width: 56, height: 2, background: HZ.sand, opacity: 0.6 }} />
+          </div>
+          {reciter ? (
+            <div style={{ fontSize: portrait ? 26 : 22, color: HZ.ink, opacity: refIn * 0.75, marginTop: -14 }}>
+              <T k="recitedBy" /> {reciter}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </SceneShell>
+  );
+};
+
 export const VerseCard: React.FC<VerseCardProps> = (props) => {
+  const v = useChannel().verse;
+  if (v?.style === "page") return <VersePage {...props} reveal={v.reveal === "lines"} />;
+  return <VerseCardClassic {...props} />;
+};
+
+const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
   const { themeId, orientation, text, reference, reciter, meaning, meaningSource } = props;
   const frame = useSceneFrame();
   const baseVerse = useSize("verse", orientation);

@@ -80,3 +80,25 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
     expect(chapterEyebrow(undefined, "الفصل", ch)).toBe("الفصل 3 · خلق آدم وتعليمه");
   });
 });
+
+import { verseChunks } from "../src/remotion/scenes/VerseCard";
+import { spreadOverSpeech } from "../src/remotion/scenes/timing";
+
+describe("صفحة الآية وتوزيع الأحداث على الكلام", () => {
+  it("مقاطع الآية تعيد نصها كما هو وتُقسم عند علامات الوقف", () => {
+    const text = "وَإِذْ قَالَ رَبُّكَ لِلْمَلَٰٓئِكَةِ إِنِّى جَاعِلٌ فِى ٱلْأَرْضِ خَلِيفَةً ۖ قَالُوٓا۟ أَتَجْعَلُ فِيهَا مَن يُفْسِدُ فِيهَا";
+    const parts = verseChunks(text);
+    expect(parts.join(" ")).toBe(text);
+    // علامة الوقف تُغلق مقطعها ولا تبدأ مقطعًا جديدًا
+    expect(parts.some((p) => p.endsWith("ۖ"))).toBe(true);
+    expect(parts.some((p) => /^[\u06D6-\u06DC]/.test(p))).toBe(false);
+    expect(parts.every((p) => p.split(" ").length <= 7)).toBe(true);
+  });
+  it("الأحداث تتوزع من أول كلمة منطوقة إلى آخرها بترتيبها", () => {
+    const t = [{ word: "أ", start: 20, end: 30 }, { word: "ب", start: 50, end: 60 }, { word: "ج", start: 120, end: 130 }];
+    const s = spreadOverSpeech(5, t as never, 4, 200);
+    expect(s[0]).toBe(20);
+    expect(s[4]).toBe(120);
+    expect([...s].sort((a, b) => a - b)).toEqual(s);
+  });
+});
