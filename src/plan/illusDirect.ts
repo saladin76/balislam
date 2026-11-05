@@ -88,13 +88,13 @@ export const directIllus = (chapters: PlanChapter[], episode: string) => {
       if (p.moodTo === "" && last && next !== mood && ci < n - 1) p.moodTo = next;
       if (s.template === "alley-tale") {
         if (!p.place) p.place = PLACES[(ci + seed) % PLACES.length]!;
-        if (!p.camera) p.camera = CAMERAS[(si + ci) % CAMERAS.length]!;
+        if (!p.camera) p.camera = p.cameraMode === "directed" ? "still" : CAMERAS[(si + ci) % CAMERAS.length]!;
       }
       if (s.template === "road-journey" && !p.biome) p.biome = BIOMES[Math.min(BIOMES.length - 1, Math.floor((ci / Math.max(1, n - 1)) * (BIOMES.length - 1) + (ci === n - 1 ? 1 : 0)))]!;
       // «الأول يراه ظلمًا، والثاني عدلًا» بعد مشهد الشاهدين: يبقى الشاهدان في المشهد
       const prev = illus[si - 1];
       if (p.cast === "" && prev && /witnesses/.test(prev.props.cues ?? "") && /wrong/.test(p.cues ?? "") && /just/.test(p.cues ?? "")) p.cast = "witnesses";
-      if (!p.poses) p.poses = s.template === "road-journey" ? "walk" : posesFor(s.narration, si + ci);
+      if (!p.poses) p.poses = s.template === "alley-tale" && p.cameraMode === "directed" ? "stand" : s.template === "road-journey" ? "walk" : posesFor(s.narration, si + ci);
       // مع الشاهدين أو شخص أمامه: البطل واقف
       if (p.cast && p.cast !== "solo" && /sit|head-down/.test(p.poses)) p.poses = p.poses.replace(/sit-low|head-down|sit/g, "stand");
     });
