@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
+import { filterRecitersByRights, type ReciterRightsFilter, commercialEvidenceFor } from "../workspace/recitationRights";
 import type { ChannelConfig, ChannelDomain } from "../../../src/channel/types";
 import { langPacks } from "../../../src/i18n/packs";
 import { useTheme } from "../../../brand/identity/index";
@@ -124,6 +125,7 @@ const CloudPreviewPicker: React.FC<{
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState("");
   const [search, setSearch] = React.useState("");
+  const [rightsFilter, setRightsFilter] = React.useState<ReciterRightsFilter>("all");
   const [sample, setSample] = React.useState<{ text: string; audio: string } | null>(null);
   const [sampleBusy, setSampleBusy] = React.useState(false);
   const [sampleError, setSampleError] = React.useState("");
@@ -155,7 +157,8 @@ const CloudPreviewPicker: React.FC<{
       setLoading(false);
     }
   };
-  const filtered = (list ?? []).filter((r) =>
+  const byRights = filterRecitersByRights(list ?? [], rightsFilter);
+  const filtered = byRights.filter((r) =>
     r.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) ||
     r.identifier.toLowerCase().includes(search.trim().toLowerCase()));
   return (
@@ -172,6 +175,13 @@ const CloudPreviewPicker: React.FC<{
       </div>
       {list && list.length > 0 && (
         <div className="channel-cloud-results">
+          <label htmlFor="ch-cloud-rights">تصنيف حقوق الاستخدام التجاري</label>
+          <select id="ch-cloud-rights" value={rightsFilter} onChange={(e) => setRightsFilter(e.target.value as ReciterRightsFilter)}>
+            <option value="all">جميع القرّاء</option>
+            <option value="verified">استخدام تجاري موثّق</option>
+            <option value="review">يحتاج مراجعة</option>
+          </select>
+          <span className="help">المصدر لا يرسل حالة ترخيص تجاري لكل تسجيل. «موثّق» يتطلب دليلًا تمت مراجعته لهذا الإصدار تحديدًا، لا مجرد توافره للاستماع.</span>
           <label htmlFor="ch-cloud-search">البحث عن قارئ</label>
           <input id="ch-cloud-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم القارئ أو معرّفه" />
           <label htmlFor="ch-cloud-edition">التسجيلات المتاحة</label>
@@ -186,7 +196,8 @@ const CloudPreviewPicker: React.FC<{
             {value && list.some((item) => item.identifier === value.edition) && !filtered.some((item) => item.identifier === value.edition) &&
               <option value={value.edition}>{value.name} (المختار)</option>}
           </select>
-          <span className="help" role="status">{filtered.length} قارئًا في نتائج البحث</span>
+          <span className="help" role="status">{filtered.length} نتيجة ضمن التصنيف المحدد. {rightsFilter === "verified" && !filtered.length ? "لا توجد تسجيلات ذات دليل تجاري متحقق منه حاليًا؛ ليست هذه نتيجة تفيد منع جميع التسجيلات." : ""}</span>
+          {value && <span className="help">حالة القارئ المحدد: {commercialEvidenceFor(value.edition) ? "استخدام تجاري موثّق بدليل" : "يحتاج مراجعة حقوق الاستخدام"}</span>}
         </div>
       )}
       {sampleError && <span className="help" role="alert">{sampleError}</span>}
