@@ -29,8 +29,8 @@ describe("دليل دفاتر الزمن", () => {
     expect(await readGuidePage("dafatir-alzaman", "../../.env")).toBeNull();
     expect(await readGuidePage("dafatir-alzaman", "../../CLAUDE.md")).toBeNull();
     expect(await readGuideIndex("../balislam")).toBeNull();
-    // قناة بلا دليل لا يظهر لها القسم (لزبدة الكتب دليلها منذ ٥ نوفمبر: tests/zubdat-reference.test.ts)
-    expect(await readGuideIndex("balislam")).toBeNull();
+    // لكل قناة دليلها المستقل (بالإسلام: tests/balislam-reference.test.ts، زبدة الكتب: tests/zubdat-reference.test.ts)
+    expect((await readGuideIndex("balislam"))?.channel).toBe("balislam");
   });
 
   it("الروابط بين الصفحات ومسارات المشروع المذكورة موجودة", () => {
@@ -85,6 +85,7 @@ describe("تزامن التوثيق (بوابة التسليم)", () => {
   it("مع تحديث السجل، أو بتغيير ملفات حلقة أو قناة أخرى فقط، مقبول", () => {
     expect(docsSyncProblems(["src/remotion/dafatir/lib/scenes.tsx", "docs/dafatir-alzaman/07-decisions.md"])).toEqual([]);
     expect(docsSyncProblems(["channels/dafatir-alzaman/episodes/001-adam-beginning/plan.json"])).toEqual([]);
-    expect(docsSyncProblems(["channels/balislam/channel.json", "src/remotion/illus/x.tsx"])).toEqual([]);
+    // ملفات قناة أخرى لا تُلزم بسجل دفاتر الزمن (ولـ«بالإسلام» قاعدتها هي: tests/balislam-reference.test.ts)
+    expect(docsSyncProblems(["channels/balislam/channel.json", "src/remotion/illus/x.tsx"]).filter((p: { channel: string }) => p.channel === "dafatir-alzaman")).toEqual([]);
   });
 });

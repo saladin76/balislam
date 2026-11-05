@@ -12,7 +12,11 @@
 | `motion-scenes` | `balislam-lab-motion-scenes` | الحركة نفسها في «الطريق» و«الحارة» عبر الطبقة المشتركة (الأمر 007) |
 | `light` | `balislam-lab-light-*` (`src/remotion/lab/LightLab.tsx`) | الإضاءة والظلال والعمق: خمس مقارنات قبل وبعد (الأمر 008) |
 | `light-009` | `balislam-lab-light9-*` (`src/remotion/lab/LightLab.tsx`) | الإضاءة الداخلية مقابل الأمر 008، وضوء النافذة، والعمق في «الطريق» والعمودي (الأمر 009) |
+| `transitions-011` و`transitions-011-portrait` | `lab-transitions-landscape` و`lab-transitions-portrait` (`src/remotion/lab/TransitionLab.tsx`) | الانتقالات بين المشاهد عبر محرك الحلقة الحقيقي، أولها بلا حقل للمقارنة (الأمر 011) |
+| `engine-permanent` و`engine-permanent-portrait` | `lab-permanent-ch2-landscape` و`lab-permanent-ch2-portrait` (`src/remotion/lab/PermanentLab.tsx`) | الفصل ٢ من الحلقة 001 كما اعتُمد مقابل الخطة نفسها لو أُنشئت جديدة بعد اعتماد الأساس (التوجيه الدائم) |
+| `engine-styles` | `lab-permanent-styles` (`src/remotion/lab/PermanentLab.tsx`) | الحركة القديمة والطبيعية في «الطريق» و«ظل ونور» (التوجيه الدائم) |
 
 النسخ السابقة لكل خانة محفوظة في سجل git (`git log -- channels/balislam/episodes/900-engine-lab/previews`).
 الرفع: `npx bal -c balislam upload-preview 900 <الخانة> <الملف> --title … --note …`
+المرجع الهندسي الكامل للمحرك وحالة كل أداة: `docs/balislam/03-engine.md`.
 الرندر المتعدد عبر الطابور الآمن: `npx bal -c balislam render-batch <تكوين…> --out <مجلد>` (و`--retry` لإعادة الفاشل وحده)

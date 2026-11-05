@@ -32,14 +32,52 @@ export const DOC_RULES = [
       /^templates\/zubdat-alkutub\//,
     ],
   },
+  {
+    // المرجع الهندسي لـ«بالإسلام» (الأمر 012): ملفات منظومتها وحدها، لا الكود المشترك بين القنوات
+    channel: "balislam",
+    log: "docs/balislam/06-decisions.md",
+    // تغيير لا يمس السلوك يُعفى بسطر «Docs-Unaffected: سبب» في كل commit يمس المنظومة
+    waiver: "Docs-Unaffected",
+    watch: [
+      /^src\/plan\/(engine|transitions|lighting|director|illusDirect|sceneCues)\.ts$/,
+      /^src\/remotion\/illus\//,
+      /^src\/remotion\/scenes\/(AlleyTale|RoadJourney|LightStage|DuaBoard|MihrabIntro|transitions)\.tsx$/,
+      /^src\/remotion\/lab\/(BalislamLab|LightLab|MotionLab007|TransitionLab|PermanentLab)\.tsx$/,
+      /^src\/render\/pool\.ts$/,
+      /^scripts\/(gate|docs-sync)\.mjs$/,
+      /^\.githooks\//,
+      /^channels\/balislam\/(channel|identity|identity\.default)\.json$/,
+      /^templates\/balislam\//,
+    ],
+  },
 ];
 
-/** المخالفات لقائمة ملفات متغيرة: قناة تغيّرت منظومتها ولم يتغير سجلها */
-export const docsSyncProblems = (files) =>
+/**
+ * المخالفات لقائمة ملفات متغيرة: قناة تغيّرت منظومتها ولم يتغير سجلها.
+ * commits (اختياري): [{ files, message }] لكل commit في المدى؛ يُقبل إعفاء القاعدة (waiver) إن كان سطرًا
+ * «<waiver>: سبب» في رسالة كل commit يمس ملفات المنظومة.
+ */
+export const docsSyncProblems = (files, commits = []) =>
   DOC_RULES.flatMap((r) => {
     const touched = files.filter((f) => r.watch.some((re) => re.test(f)));
-    return touched.length && !files.includes(r.log) ? [{ channel: r.channel, log: r.log, files: touched }] : [];
+    if (!touched.length || files.includes(r.log)) return [];
+    if (r.waiver) {
+      const re = new RegExp(`^${r.waiver}:\\s*\\S`, "m");
+      const relevant = commits.filter((c) => c.files.some((f) => r.watch.some((w) => w.test(f))));
+      if (relevant.length && relevant.every((c) => re.test(c.message))) return [];
+    }
+    return [{ channel: r.channel, log: r.log, files: touched, waiver: r.waiver }];
   });
+
+/** commits مدى بملفاتها ورسائلها (للإعفاء) */
+const commitsIn = (range, cwd) => {
+  const r = spawnSync("git", ["log", "--format=%H", range], { cwd, encoding: "utf8" });
+  if (r.status !== 0) return [];
+  return r.stdout.split("\n").filter(Boolean).map((sha) => ({
+    message: spawnSync("git", ["log", "-1", "--format=%B", sha], { cwd, encoding: "utf8" }).stdout,
+    files: spawnSync("git", ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha], { cwd, encoding: "utf8" }).stdout.split("\n").filter(Boolean),
+  }));
+};
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename);
 if (isMain) {
@@ -48,16 +86,18 @@ if (isMain) {
     console.log("تزامن التوثيق: لا مدى للفحص؛ تُرك.");
     process.exit(0);
   }
-  const r = spawnSync("git", ["diff", "--name-only", range], { cwd: path.resolve(import.meta.dirname, ".."), encoding: "utf8" });
+  const cwd = path.resolve(import.meta.dirname, "..");
+  const r = spawnSync("git", ["diff", "--name-only", range], { cwd, encoding: "utf8" });
   if (r.status !== 0) {
     console.error(`تزامن التوثيق: تعذّر حساب الملفات المتغيرة (${range}): ${r.stderr}`);
     process.exit(2);
   }
-  const problems = docsSyncProblems(r.stdout.split("\n").filter(Boolean));
+  const problems = docsSyncProblems(r.stdout.split("\n").filter(Boolean), commitsIn(range, cwd));
   for (const p of problems) {
     console.error(`✗ منظومة «${p.channel}» تغيّرت دون تحديث ${p.log}:`);
     for (const f of p.files.slice(0, 12)) console.error(`   - ${f}`);
     console.error(`  حدّث الوثيقة المرتبطة وأضف إدخالًا في ${p.log} ثم أعد الدفع.`);
+    if (p.waiver) console.error(`  وإن لم يمس التغيير السلوك ولا البنية ولا القواعد: أضف سطر «${p.waiver}: <السبب>» في رسالة كل commit يمسها.`);
   }
   process.exit(problems.length ? 1 : 0);
 }
