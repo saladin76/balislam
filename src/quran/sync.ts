@@ -85,14 +85,20 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
             const bytes = Buffer.from(await res.arrayBuffer());
             if (bytes.length < 100 || bytes.length > 20_000_000) throw new Error("ملف التلاوة غير صالح أو كبير جدًا.");
             // Preserve the existing Quran Foundation filename contract for old episodes.
-            const file = isCloudRecitation(recitation) ? `${id}-${surah}-${n}.mp3` : `${recitation.id}-${surah}-${n}.mp3`;
+            // A fresh Cloud filename prevents a failed refresh from deleting previous good clips.
+            // Keep Quran Foundation's legacy filenames unchanged for existing episodes.
+            const file = isCloudRecitation(recitation)
+              ? `${id}-${surah}-${n}-${Date.now().toString(36)}.mp3`
+              : `${recitation.id}-${surah}-${n}.mp3`;
+            const destination = path.join(recDir, file);
+            const existedBefore = existsSync(destination);
             const temp = path.join(recDir, `${file}.tmp`);
             await writeFile(temp, bytes);
             try {
               const duration = await audioDuration(temp);
               if (!duration || duration <= 0) throw new Error("تعذّر التحقق من مدة تلاوة الآية.");
-              await rename(temp, path.join(recDir, file));
-              created.push(file);
+              await rename(temp, destination);
+              if (!existedBefore) created.push(file);
               parts.push({ file, duration });
             } finally { await unlink(temp).catch(() => {}); }
           }
