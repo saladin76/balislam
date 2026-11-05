@@ -567,7 +567,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         const v = channel.alquranPreviewRecitation;
         if (typeof v !== "object" || Array.isArray(v) ||
             Object.keys(v).some((k) => k !== "edition" && k !== "name") ||
-            typeof v.edition !== "string" || !/^ar\\.[a-z0-9._-]{1,75}$/i.test(v.edition) ||
+            typeof v.edition !== "string" || !/^ar\.[a-z0-9._-]{1,75}$/i.test(v.edition) ||
             typeof v.name !== "string" || !v.name.trim() || v.name.length > 160)
           return send(res, 400, { error: "اختيار قارئ AlQuran Cloud للمعاينة غير صالح." }), true;
       }
