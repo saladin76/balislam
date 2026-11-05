@@ -9,13 +9,15 @@ export type AyahPreview = { surah: number; ayah: number; text: string; audio: st
 
 const validNumber = (v: number, max: number) => Number.isSafeInteger(v) && v >= 1 && v <= max;
 const validEdition = (v: string) => /^ar\.[a-z0-9._-]{1,75}$/i.test(v);
-const safeAudio = (raw: unknown) => {
+const safeAudio = (raw: unknown, edition: string, globalAyah: number) => {
   if (typeof raw !== "string") throw new AlQuranError("لم يرجع رابط صوت صالح.");
   let u: URL;
   try { u = new URL(raw); } catch { throw new AlQuranError("رابط الصوت غير صالح."); }
   if (u.protocol !== "https:" || u.hostname !== "cdn.islamic.network" || u.port || u.username || u.password || u.hash ||
       !/^\/quran\/audio\/(?:32|40|48|64|128|192)\/ar\.[a-z0-9._-]+\/\d+\.mp3$/i.test(u.pathname))
     throw new AlQuranError("رابط التلاوة لا ينتمي إلى خادم AlQuran Cloud المسموح.");
+  if (!Number.isSafeInteger(globalAyah) || globalAyah < 1 || !u.pathname.endsWith(`/${edition}/${globalAyah}.mp3`))
+    throw new AlQuranError("رابط التلاوة لا يطابق القارئ أو رقم الآية المطلوب.");
   return u.href;
 };
 
@@ -52,7 +54,10 @@ export const createAlQuranClient = (fetchImpl: typeof fetch = fetch) => {
     const same = (a: any) => a?.surah?.number === surah && a?.numberInSurah === number;
     if (!same(text) || !same(audio) || typeof text?.text !== "string" || !text.text.trim())
       throw new AlQuranError("نص الآية أو التلاوة لا يطابق المرجع المطلوب.");
-    return { surah, ayah: number, text: text.text, audio: safeAudio(audio.audio), reciter: edition, rightsVerified: false, publicationAllowed: false };
+    if (!Number.isSafeInteger(text.number) || text.number < 1 || audio.number !== text.number ||
+        (audio.edition?.identifier && audio.edition.identifier !== edition))
+      throw new AlQuranError("استجابة التسجيل لا تطابق القارئ أو الآية المطلوبة.");
+    return { surah, ayah: number, text: text.text, audio: safeAudio(audio.audio, edition, text.number), reciter: edition, rightsVerified: false, publicationAllowed: false };
   };
   return { editions, ayah };
 };
