@@ -29,7 +29,7 @@ export const VoiceWorkspaceTab: React.FC<{
         <p>راجع التشكيل وإعدادات الصوت قبل التوليد. المقاطع التي لم يتغير نصها تبقى محفوظة كما في المحرك الحالي.</p>
       </div>
       <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} />
-      <AlQuranCloudBrowser key={channelId} channelId={channelId} />
+      <AlQuranCloudBrowser key={`${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} />
       <div className="ew-voice-heading">
         <h3>حالة المقاطع الصوتية</h3>
         <span>{ready} من {scenes.length} مطابق للنص الحالي</span>
