@@ -134,7 +134,8 @@ export const balApi = (): Plugin => ({
             await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title });
             return send(res, 200, { ok: true });
           }
-          const dirs = existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d)).sort() : [];
+          // الجاهزة للتشغيل فقط (لها script.md)؛ مجلدات الخطة وحدها (000-trailer، المختبرات) لا تُفتح حلقاتٍ
+          const dirs: string[] = await (await load("/src/script/episodes.ts")).listScriptEpisodeDirs(episodesDir);
           const list = await Promise.all(
             dirs.map(async (d) => {
               const script = path.join(episodesDir, d, "script.md");

@@ -17,6 +17,14 @@ const scriptEpisodeDirectories = async (episodesDir: string, number: string): Pr
     .sort();
 };
 
+/**
+ * قائمة الحلقات الجاهزة للتشغيل في الاستوديو: مجلدات NNN-… التي تمتلك script.md فقط.
+ * المجلدات التي فيها plan.json بلا سكريبت (مشروع غير مكتمل مثل 000-trailer، أو مختبر مثل 900-…) تبقى كما هي
+ * ولا تُعرض حلقاتٍ، لأن فتحها حلقةً يفشل («الحلقة غير موجودة»). القاعدة نفسها في resolveScriptPath.
+ */
+export const listScriptEpisodeDirs = async (episodesDir: string): Promise<string[]> =>
+  existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d) && existsSync(path.join(episodesDir, d, "script.md"))).sort() : [];
+
 export const resolveScriptPath = async (arg: string): Promise<string> => {
   const episodesDir = channelPaths().episodes;
   if (/^\d{3}$/.test(arg)) {
