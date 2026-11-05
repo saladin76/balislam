@@ -282,8 +282,10 @@ export const App: React.FC = () => {
               {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           ) : null}
-          <nav className="tabs" role="tablist">
-            <button role="tab" aria-selected={tab === "home"} onClick={() => confirmLeaveScript() && setTab("home")}>غرفة العمليات</button>
+          <nav className="studio-primary-nav" aria-label="الأقسام الرئيسية للاستوديو">
+            <button type="button" className={tab === "home" ? "active" : ""} aria-current={tab === "home" ? "page" : undefined} onClick={() => { if (confirmLeaveScript()) setTab("home"); }}>الرئيسية وغرفة العمليات</button>
+            <button type="button" className={tab === "channel" ? "active" : ""} aria-current={tab === "channel" ? "page" : undefined} onClick={async () => { if (!confirmLeaveScript()) return; await flushPlan(); setTab("channel"); }}>إعدادات القناة</button>
+            <button type="button" className={tab === "settings" ? "active" : ""} aria-current={tab === "settings" ? "page" : undefined} onClick={async () => { if (!confirmLeaveScript()) return; await flushPlan(); setTab("settings"); }}>الاتصالات والمفاتيح</button>
           </nav>
           {EPISODE_TABS.includes(tab) ? (
             <select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} style={{ width: 280 }} aria-label="الحلقة">
