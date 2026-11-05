@@ -191,10 +191,9 @@ const CloudPreviewPicker: React.FC<{
             onChange(selected ? { edition: selected.identifier, name: selected.name } : undefined);
           }}>
             <option value="">اختر قارئًا للمعاينة</option>
-            {value && !list.some((item) => item.identifier === value.edition) && <option value={value.edition}>{value.name} (الاختيار المحفوظ)</option>}
+            {value && !filtered.some((item) => item.identifier === value.edition) && <option value={value.edition}>{value.name} (الاختيار المحفوظ خارج نتائج الفلتر)</option>}
             {filtered.map((item) => <option key={item.identifier} value={item.identifier}>{item.name} — {item.identifier}</option>)}
-            {value && list.some((item) => item.identifier === value.edition) && !filtered.some((item) => item.identifier === value.edition) &&
-              <option value={value.edition}>{value.name} (المختار)</option>}
+            
           </select>
           <span className="help" role="status">{filtered.length} نتيجة ضمن التصنيف المحدد. {rightsFilter === "verified" && !filtered.length ? "لا توجد تسجيلات ذات دليل تجاري متحقق منه حاليًا؛ ليست هذه نتيجة تفيد منع جميع التسجيلات." : ""}</span>
           {value && <span className="help">حالة القارئ المحدد: {commercialEvidenceFor(value.edition) ? "استخدام تجاري موثّق بدليل" : "يحتاج مراجعة حقوق الاستخدام"}</span>}
