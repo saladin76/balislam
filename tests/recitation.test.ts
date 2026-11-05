@@ -63,16 +63,15 @@ describe("تلاوة AlQuran Cloud داخل الفيديو بعد إثبات ا�
   });
 
   it("يجلب الآية تلقائيًا من القارئ المرخّص ويجهزها لرندر بطاقة الآية", async () => {
-    const ch = path.join(tmp, "balislam", "channel.json");
-    const original = readFileSync(ch, "utf8");
+    const scriptPath = path.join(tmp, "balislam", "episodes", "000-demo", "script.md");
     const recitation = {
-      provider: "alquran-cloud", edition: "ar.alafasy", name: "قارئ تجريبي متعدد",
+      provider: "alquran-cloud" as const, edition: "ar.alafasy", name: "قارئ تجريبي متعدد",
       licence: { holder: "المالك المصرّح", evidence: "https://rights.example.org/licence/recording-1",
         scope: "إذن نشر على يوتيوب للاستخدام التجاري", verifiedAt: new Date().toISOString() },
     };
     const calls: string[] = [];
     try {
-      writeFileSync(ch, JSON.stringify({ ...JSON.parse(original), recitation }));
+      await saveEpisodeRecitation(scriptPath, recitation);
       const f = (async (url: string) => {
         calls.push(url);
         if (url.includes("/oauth2/token")) return new Response(JSON.stringify({ access_token: "T", expires_in: 3600 }));
@@ -101,7 +100,7 @@ describe("تلاوة AlQuran Cloud داخل الفيديو بعد إثبات ا�
       expect(calls.some((url) => url.includes("/ayah/53:39/ar.alafasy"))).toBe(true);
       expect(calls.some((url) => url.endsWith("/ar.alafasy/4782.mp3"))).toBe(true);
     } finally {
-      writeFileSync(ch, original);
+      await saveEpisodeRecitation(scriptPath, null);
     }
   });
 });
