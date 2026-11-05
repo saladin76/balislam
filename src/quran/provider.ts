@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { readFile, mkdir, rename, rm, writeFile } from "node:fs/promises";
 
 /** Explicit, rights-gated production source. A preview selection is NOT a publishing licence. */
@@ -60,9 +61,9 @@ export const saveEpisodeRecitation = async (scriptPath: string, choice: CloudRec
   if (!isCloudRecitation(choice)) throw new Error("مصدر القارئ المطلوب غير صالح.");
   requireCloudPublicationRights(choice);
   await mkdir(path.dirname(target), { recursive: true });
-  const temp = target + ".tmp";
+  const temp = `${target}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temp, JSON.stringify({ version: 1, recitation: choice }, null, 2) + "\n", { mode: 0o600 });
+    await writeFile(temp, JSON.stringify({ version: 1, recitation: choice }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
     await rename(temp, target);
   } finally { await rm(temp, { force: true }); }
 };
