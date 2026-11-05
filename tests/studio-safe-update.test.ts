@@ -57,7 +57,7 @@ describe("safe studio updater", () => {
     const applied = await applyUpdate(dir);
     expect(applied.ok).toBe(false);
     expect(applied.message).toMatch(/عملية Git غير مكتملة/);
-    expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("original\\n");
+    expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("original\n");
   });
 
   it("refuses a rebase in progress, even when status is otherwise clean", async () => {
