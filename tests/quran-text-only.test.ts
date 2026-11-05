@@ -1,5 +1,5 @@
 import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -61,4 +61,31 @@ describe("جلب نصوص الآيات الناقصة دون مساس بالإن
     expect(again.existing).toContain("53:39");
     expect(queried).toEqual([]);
   });
+  it("يرفض استبدال المخزن إذا تغير أثناء طلب Quran Foundation", async () => {
+    const cacheFile = path.join(episodeDir, "quran.json");
+    const initial = JSON.stringify({ "other": "لا تغير هذا" });
+    writeFileSync(cacheFile, initial);
+    const concurrent = JSON.stringify({ "other": "تعديل صاحب المشروع", "custom#at": "2026-11-05" });
+    const client = { verse: async (key: string) => {
+      writeFileSync(cacheFile, concurrent);
+      return { key, number: 39, text: "نص للمراجعة" };
+    } } as Pick<QuranClient, "verse">;
+    await expect(fillMissingQuranTexts("999", client)).rejects.toThrow(/تغير مخزن القرآن/);
+    expect(readFileSync(cacheFile, "utf8")).toBe(concurrent);
+  });
+
+  it("يفشل الجلب دون كتابة نص ناقص أو تغيير ملف الخطة", async () => {
+    const cacheFile = path.join(episodeDir, "quran.json");
+    const planFile = path.join(episodeDir, "plan.json");
+    writeFileSync(cacheFile, JSON.stringify({ untouched: "بيانات سابقة" }));
+    const cacheBefore = readFileSync(cacheFile);
+    const planBefore = existsSync(planFile) ? readFileSync(planFile) : null;
+    const failingClient = { verse: async () => { throw new Error("QF offline"); } } as unknown as Pick<QuranClient, "verse">;
+    const result = await fillMissingQuranTexts("999", failingClient);
+    expect(result.fetched).toEqual([]);
+    expect(result.failed).toHaveLength(1);
+    expect(readFileSync(cacheFile).equals(cacheBefore)).toBe(true);
+    expect(existsSync(planFile) ? readFileSync(planFile).equals(planBefore!) : planBefore === null).toBe(true);
+  });
+
 });
