@@ -1,5 +1,6 @@
 /** Safely fill missing Quran text only. Does not touch plan, script, review ledger or audio. */
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { parseAyahRef } from "../script/quranMeta";
@@ -97,7 +98,7 @@ export const fillMissingQuranTexts = async (
     if (current !== snapshot)
       throw new Error("تغير مخزن القرآن أثناء الجلب؛ لم تُحفظ النتيجة، وأُبقيت التعديلات الجديدة.");
     await mkdir(path.dirname(file), { recursive: true });
-    const temp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.tmp`);
+    const temp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.${randomUUID()}.tmp`);
     try {
       await writeFile(temp, JSON.stringify({ ...existing, ...additional }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
       await rename(temp, file);
