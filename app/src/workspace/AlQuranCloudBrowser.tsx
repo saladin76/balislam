@@ -65,7 +65,11 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
       setEdition(previewEditionFor(null));
       api.channelFor(channelId).then((channel) => {
         const preferred = channel.alquranPreviewRecitation?.edition;
-        if (alive && !previewManuallyChanged.current) setEdition(previewEditionFor(null, preferred));
+        if (alive && !previewManuallyChanged.current) {
+          auditionRequest.current++;
+          setPreview(null);
+          setEdition(previewEditionFor(null, preferred));
+        }
       }).catch(() => { /* keep safe preview fallback */ });
     }
     return () => { alive = false; mounted.current = false; auditionRequest.current++; };
