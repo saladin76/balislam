@@ -36,32 +36,38 @@ const TagsInput: React.FC<{ value: string[]; onChange: (tags: string[]) => void;
 const MeaningPicker: React.FC<{ value?: { id: number; name: string }; language: string; onChange: (v: { id: number; name: string } | undefined) => void }> = ({ value, language, onChange }) => {
   const [list, setList] = React.useState<{ id: number; name: string; author: string }[] | null>(null);
   const [msg, setMsg] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
   const load = async () => {
+    if (loading) return;
+    setLoading(true);
     setMsg("جارٍ التحميل…");
     try {
       const r = await api.quranTranslations(language);
       setList(r.list);
       setMsg(r.ok ? (r.list.length ? "" : "لا توجد ترجمات بهذه اللغة.") : (r.message ?? ""));
     } catch (e) {
+      setList(null);
       setMsg((e as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
   return (
     <div className="field">
       <span>ترجمة معاني الآيات {language === "ar" ? <small>(لا حاجة لها في القناة العربية)</small> : null}</span>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="channel-provider-controls">
         {list && list.length ? (
-          <select id="ch-meaning" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }} style={{ flex: 1, minWidth: 220 }}>
+          <select id="ch-meaning" aria-label="ترجمة معاني الآيات" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }}>
             <option value="">بلا ترجمة</option>
             {list.map((t) => <option key={t.id} value={t.id}>{t.name}{t.author ? ` — ${t.author}` : ""} (#{t.id})</option>)}
           </select>
         ) : (
           <span style={{ flex: 1 }}>{value ? <><b>{value.name}</b> <code>#{value.id}</code></> : <span className="help">بلا ترجمة</span>}</span>
         )}
-        <button className="btn small" onClick={load}>اختيار من Quran Foundation</button>
+        <button className="btn small" type="button" disabled={loading} onClick={load}>{loading ? "جارٍ تحميل الترجمات…" : list ? "تحديث الترجمات" : "اختيار من Quran Foundation"}</button>
         {value ? <button className="btn ghost small" onClick={() => onChange(undefined)}>إزالة</button> : null}
       </div>
-      {msg ? <span className="help">{msg}</span> : <span className="help">تظهر تحت نص الآية بخط أصغر مع اسم الترجمة؛ تُجلب مع الآيات عند «جلب الآيات».</span>}
+      <span className="help" role={msg ? "status" : undefined}>{msg || "تظهر تحت نص الآية بخط أصغر مع اسم الترجمة؛ تُجلب مع الآيات عند «جلب الآيات»."}</span>
     </div>
   );
 };
@@ -70,33 +76,39 @@ const MeaningPicker: React.FC<{ value?: { id: number; name: string }; language: 
 const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: (v: { id: number; name: string } | undefined) => void }> = ({ value, onChange }) => {
   const [list, setList] = React.useState<{ id: number; name: string; style: string }[] | null>(null);
   const [msg, setMsg] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
   const load = async () => {
+    if (loading) return;
+    setLoading(true);
     setMsg("جارٍ التحميل…");
     try {
       const r = await api.quranRecitations();
       setList(r.list);
       setMsg(r.ok ? "" : (r.message ?? ""));
     } catch (e) {
+      setList(null);
       setMsg((e as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
   const styleAr = (s: string) => (/murattal/i.test(s) ? "مرتل" : /mujawwad/i.test(s) ? "مجوّد" : /muallim/i.test(s) ? "معلّم" : s);
   return (
     <div className="field">
       <span>تلاوة الآيات</span>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="channel-provider-controls">
         {list && list.length ? (
-          <select id="ch-reciter" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }} style={{ flex: 1, minWidth: 220 }}>
+          <select id="ch-reciter" aria-label="القارئ المختار" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }}>
             <option value="">بلا تلاوة (نص الآية فقط)</option>
             {list.map((t) => <option key={t.id} value={t.id}>{t.name}{t.style ? ` · ${styleAr(t.style)}` : ""}</option>)}
           </select>
         ) : (
           <span style={{ flex: 1 }}>{value ? <b>{value.name}</b> : <span className="help">بلا تلاوة (نص الآية فقط)</span>}</span>
         )}
-        <button className="btn small" onClick={load}>اختيار قارئ</button>
+        <button className="btn small" type="button" disabled={loading} onClick={load}>{loading ? "جارٍ تحميل القرّاء…" : list ? "تحديث القرّاء" : "اختيار قارئ"}</button>
         {value ? <button className="btn ghost small" onClick={() => onChange(undefined)}>إيقاف التلاوة</button> : null}
       </div>
-      <span className="help">{msg || "تُجلب تلاوة كل آية مع نصها من Quran Foundation وتُشغَّل في بطاقة الآية، ويُذكر القارئ في الوصف. التلاوة المرخّصة في assets/recitations لها الأولوية."}</span>
+      <span className="help" role={msg ? "status" : undefined}>{msg || "تُجلب تلاوة كل آية مع نصها من Quran Foundation وتُشغَّل في بطاقة الآية، ويُذكر القارئ في الوصف. التلاوة المرخّصة في assets/recitations لها الأولوية."}</span>
     </div>
   );
 };
@@ -106,6 +118,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
   const [saved, setSaved] = useState("");
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
   const [newDomain, setNewDomain] = useState("");
+  const [saving, setSaving] = useState(false);
   const logoTheme = useTheme(c?.masterTheme ?? "warm");
   const themeNames: Record<string, string> = { paper: useTheme("paper").nameAr, family: useTheme("family").nameAr, night: useTheme("night").nameAr, warm: useTheme("warm").nameAr };
 
@@ -126,12 +139,13 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         <h2>القناة</h2>
         <code className="help" style={{ direction: "ltr" }}>channels/{c.id}/channel.json</code>
         <span className="spacer" />
-        <span className="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{dirty ? "غير محفوظ" : "محفوظ"}</span>
-        <button className="btn" disabled={!dirty} onClick={() => setC(JSON.parse(saved))}>تراجع</button>
+        <span className="status" role="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{saving ? "جارٍ الحفظ…" : dirty ? "تغييرات غير محفوظة" : "محفوظ"}</span>
+        <button className="btn" disabled={!dirty || saving} onClick={() => setC(JSON.parse(saved))}>تراجع</button>
         <button
           className="btn primary"
-          disabled={!dirty}
+          disabled={!dirty || saving}
           onClick={async () => {
+            setSaving(true);
             try {
               await api.saveChannel(c);
               setSaved(JSON.stringify(c));
@@ -139,10 +153,12 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
               onSaved();
             } catch (e) {
               setMsg({ text: (e as Error).message, err: true });
+            } finally {
+              setSaving(false);
             }
           }}
         >
-          حفظ
+          {saving ? "جارٍ الحفظ…" : "حفظ"}
         </button>
       </div>
       {msg ? <div className={`note ${msg.err ? "err" : ""}`}>{msg.text}</div> : null}
@@ -216,16 +232,16 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         </section>
 
         <section className="group">
-          <h3>القواعد</h3>
+          <h3>القواعد <small>تحدد ما يُسمح باستخدامه في إنتاج القناة</small></h3>
           <label className="check"><input type="checkbox" checked={c.rules.quran} onChange={(e) => set({ rules: { ...c.rules, quran: e.target.checked } })} /><span>القناة تستشهد بالقرآن (بطاقات الآيات وجلب النصوص)</span></label>
           <label className="check"><input type="checkbox" checked={c.rules.hadith} onChange={(e) => set({ rules: { ...c.rules, hadith: e.target.checked } })} /><span>القناة تستشهد بالحديث (المقبول: {c.rules.hadithGrades.join(" و")})</span></label>
-          <label className="check"><input type="checkbox" checked={!c.rules.faces} onChange={(e) => set({ rules: { ...c.rules, faces: !e.target.checked } })} /><span>شخصيات بلا ملامح وجه</span></label>
-          <label className="check"><input type="checkbox" checked={!c.rules.music} onChange={(e) => set({ rules: { ...c.rules, music: !e.target.checked } })} /><span>بلا موسيقى (مؤثرات وآهات بشرية فقط)</span></label>
+          <label className="check"><input type="checkbox" checked={!c.rules.faces} onChange={(e) => set({ rules: { ...c.rules, faces: !e.target.checked } })} /><span>إخفاء ملامح وجوه الشخصيات</span></label>
+          <label className="check"><input type="checkbox" checked={!c.rules.music} onChange={(e) => set({ rules: { ...c.rules, music: !e.target.checked } })} /><span>منع الموسيقى (السماح بالمؤثرات غير الموسيقية فقط)</span></label>
           {c.rules.quran ? <ReciterPicker value={c.recitation} onChange={(recitation) => set({ recitation })} /> : null}
-          {c.rules.quran ? <MeaningPicker value={c.quranTranslation} language={c.language} onChange={(quranTranslation) => set({ quranTranslation })} /> : null}
+          {c.rules.quran ? <MeaningPicker key={c.language} value={c.quranTranslation} language={c.language} onChange={(quranTranslation) => set({ quranTranslation })} /> : null}
           <h3>يوتيوب</h3>
           <label className="field"><span>وسوم القناة</span><TagsInput id="ch-tags" value={c.youtube.tags} onChange={(tags) => set({ youtube: { ...c.youtube, tags } })} /></label>
-          <label className="field"><span>موعد النشر</span><input id="ch-time" type="text" dir="ltr" value={c.youtube.postingTime} onChange={(e) => set({ youtube: { ...c.youtube, postingTime: e.target.value } })} /></label>
+          <label className="field"><span>وقت النشر والمنطقة الزمنية</span><input id="ch-time" type="text" dir="ltr" placeholder="19:00 Asia/Riyadh" aria-describedby="ch-time-help" value={c.youtube.postingTime} onChange={(e) => set({ youtube: { ...c.youtube, postingTime: e.target.value } })} /><small className="help" id="ch-time-help">الصيغة المقترحة: 19:00 Asia/Riyadh. يُحفظ وقت النشر كإعداد للقناة ولا ينشر تلقائيًا.</small></label>
           <label className="field"><span>توقيع القناة (سطر ثابت في آخر كل وصف)</span><textarea id="ch-footer" rows={3} value={c.youtube.footer ?? ""} onChange={(e) => set({ youtube: { ...c.youtube, footer: e.target.value } })} /></label>
         </section>
 
