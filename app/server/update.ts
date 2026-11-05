@@ -34,15 +34,18 @@ const cleanTree = async (root: string): Promise<boolean> => {
 
 /** Detect unfinished operations even when 'git status --porcelain' is empty. */
 const pendingGitOperation = async (root: string): Promise<boolean> => {
-  for (const ref of ["MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "REBASE_HEAD"]) {
-    const checked = await git(root, ["rev-parse", "--verify", "-q", ref]);
-    if (checked.ok && checked.out) return true;
-  }
-  for (const dir of ["rebase-merge", "rebase-apply", "sequencer"]) {
-    const resolved = await git(root, ["rev-parse", "--git-path", dir]);
-    if (!resolved.ok) return true;
-    const folder = path.isAbsolute(resolved.out) ? resolved.out : path.resolve(root, resolved.out);
-    if (existsSync(folder)) return true;
+  // Check Git's actual control files, not rev-parse --verify: a malformed or
+  // partially written MERGE_HEAD must still block updates. --git-path also
+  // supports linked worktrees, where control files live outside the checkout.
+  for (const marker of [
+    "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "REBASE_HEAD",
+    "rebase-merge", "rebase-apply", "sequencer",
+  ]) {
+    const resolved = await git(root, ["rev-parse", "--git-path", marker]);
+    if (!resolved.ok || !resolved.out) return true;
+    const location = path.isAbsolute(resolved.out)
+      ? resolved.out : path.resolve(root, resolved.out);
+    if (existsSync(location)) return true;
   }
   return false;
 };
