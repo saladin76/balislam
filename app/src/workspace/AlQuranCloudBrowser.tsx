@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api, type AlQuranAudioEdition, type AlQuranAyahPreview } from "../api";
+import type { EpisodeMedia } from "../../../src/plan/media";
 
 /** A local preview preference only: NEVER an approved production recitation choice. */
 export const previewReciterKey = (channelId: string, episodeId: string) =>
@@ -12,7 +13,7 @@ export const filterAudioEditions = (editions: AlQuranAudioEdition[], term: strin
 };
 
 /** Read-only per-episode preview; never writes video plans, sound assets or rights approvals. */
-export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: string }> = ({ channelId, episodeId }) => {
+export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: string; onMedia?: (media: EpisodeMedia) => void }> = ({ channelId, episodeId, onMedia }) => {
   const [enabled, setEnabled] = useState(false);
   const [editions, setEditions] = useState<AlQuranAudioEdition[]>([]);
   const [edition, setEdition] = useState("ar.alafasy");
@@ -22,10 +23,16 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
   const [preview, setPreview] = useState<AlQuranAyahPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [licenceHolder, setLicenceHolder] = useState("");
+  const [licenceEvidence, setLicenceEvidence] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [productionStatus, setProductionStatus] = useState("");
+  const [saving, setSaving] = useState(false);
   const visibleEditions = useMemo(() => filterAudioEditions(editions, search), [editions, search]);
 
   useEffect(() => {
     setEnabled(false); setEditions([]); setPreview(null); setError(""); setSearch(""); setSurah(1); setAyah(1);
+    setLicenceHolder(""); setLicenceEvidence(""); setConfirmed(false); setProductionStatus("");
     try {
       const stored = localStorage.getItem(previewReciterKey(channelId, episodeId));
       setEdition(stored && /^ar\.[a-z0-9._-]{1,75}$/i.test(stored) ? stored : "ar.alafasy");
@@ -56,6 +63,49 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
     try { setPreview(await api.alquranAyah(surah, ayah, edition)); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setLoading(false); }
+  };
+
+  const activateProduction = async () => {
+    if (!confirmed || !licenceHolder.trim()) {
+      setError("لا بد من تحديد صاحب التسجيل وتأكيد امتلاك إذن النشر قبل الاعتماد.");
+      return;
+    }
+    try {
+      const evidence = new URL(licenceEvidence.trim());
+      if (evidence.protocol !== "https:" || !evidence.hostname || evidence.username || evidence.password)
+        throw new Error("رابط الإذن يجب أن يكون HTTPS صالحًا.");
+    } catch {
+      setError("أضف رابط HTTPS مباشرًا إلى مستند الإذن الفعلي من صاحب التسجيل.");
+      return;
+    }
+    setSaving(true); setError(""); setProductionStatus("");
+    try {
+      const original = await api.channelFor(channelId);
+      const selectedName = editions.find((e) => e.identifier === edition)?.name || edition;
+      const updated = { ...original, recitation: {
+        provider: "alquran-cloud" as const, edition, name: selectedName,
+        licence: {
+          holder: licenceHolder.trim(), evidence: licenceEvidence.trim(),
+          scope: "إذن نشر تسجيل القارئ على يوتيوب للاستخدام التجاري",
+          verifiedAt: new Date().toISOString(),
+        },
+      } };
+      await api.saveChannelFor(channelId, updated);
+      try {
+        const r = await api.quran(episodeId, channelId);
+        if (r.result.failed.length)
+          throw new Error(r.result.failed.map((x) => `${x.ref}: ${x.reason}`).join("؛ "));
+        if (onMedia) {
+          const episode = await api.episode(episodeId, channelId);
+          onMedia(episode.media);
+        }
+        setProductionStatus(`تم اعتماد ${selectedName} للقناة وجلب تلاوات الحلقة المطابقة؛ اعرض معاينة الرندر قبل النشر.`);
+      } catch (e) {
+        await api.saveChannelFor(channelId, original);
+        throw e;
+      }
+    } catch (e) { setError(`فشل اعتماد التلاوة، ولم يُستكمل تغيير المصدر: ${e instanceof Error ? e.message : String(e)}`); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -99,6 +149,25 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
           <p className="note">سورة {preview.surah}، الآية {preview.ayah} · القارئ: {editions.find((e) => e.identifier === preview.reciter)?.name ?? preview.reciter}</p>
         </div>}
         <p className="note">المعاينة ليست إذن نشر. حقوق التسجيلات لأصحابها؛ لا يتاح إدراج تلاوة AlQuran Cloud في الرندر أو التصدير قبل توثيق ترخيص التسجيل المحدد. يبقى مصدر التلاوة الإنتاجي الحالي دون تغيير.</p>
+        <details className="ew-production-licence">
+          <summary>إدراج القارئ المحدد تلقائيًا في فيديوهات هذه القناة — بعد توثيق الإذن</summary>
+          <div className="ew-licence-fields">
+            <p>بعد التفعيل، سيجلب محرك الآيات صوت القارئ المحدد لكل آية ويضعه في بطاقة الآية أثناء الرندر، بنفس مسار Quran Foundation. هذا الاختيار يغيّر <strong>القارئ الافتراضي للقناة كلها</strong>، وليس المعاينة فقط.</p>
+            <p>لا يُعتبر رابط AlQuran Cloud نفسه ترخيصًا. يلزم إذن فعلي صريح من صاحب حقوق التسجيل يسمح بالنشر على يوتيوب والاستخدام التجاري؛ إدخال الرابط هنا توثيق منك وليس تحققًا قانونيًا آليًا.</p>
+            <label htmlFor="alquran-holder">اسم صاحب حقوق التسجيل أو الجهة المخوِّلة</label>
+            <input id="alquran-holder" value={licenceHolder} onChange={(e) => setLicenceHolder(e.target.value)} placeholder="الجهة التي منحت الإذن" />
+            <label htmlFor="alquran-evidence">رابط HTTPS إلى وثيقة الإذن الخاصة بهذا التسجيل</label>
+            <input id="alquran-evidence" type="url" value={licenceEvidence} onChange={(e) => setLicenceEvidence(e.target.value)} placeholder="https://..." dir="ltr" />
+            <label className="ew-licence-confirm">
+              <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+              لديّ إذن صريح من صاحب الحقوق لنشر تسجيل هذا القارئ على يوتيوب، بما يشمل الاستخدام التجاري.
+            </label>
+            <button type="button" className="btn small" onClick={activateProduction} disabled={saving || loading || !edition || !confirmed || !licenceHolder.trim() || !licenceEvidence.trim()}>
+              {saving ? "جارٍ اعتماد المصدر وجلب الآيات…" : "اعتماد القارئ للإنتاج وجلب آيات الحلقة"}
+            </button>
+            {productionStatus && <p role="status" className="ew-production-ok">{productionStatus}</p>}
+          </div>
+        </details>
       </>}
     </section>
   );
