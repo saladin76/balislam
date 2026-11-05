@@ -7,10 +7,11 @@ import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, CoverLeaf, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
 import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, SText, camPath, fonts, type Cam, type Exit } from "./book";
-import { GATE, Hatch, RUINS, Shot2, Shot4, Shot5, Sunset } from "./shots";
+import { GATE, Hatch, RUINS, Shot2, Shot4, Shot5, Shot6, Sunset } from "./shots";
 import { HZ_META } from "./meta";
 import { HZ_SCENES_B } from "./episode001b";
 import { HZ_SCENES_C } from "./episode001c";
+import { HZ_SCENES_D } from "./episode001d";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const { Amiri, Tajawal } = fonts;
@@ -604,6 +605,8 @@ export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
   ...HZ_SCENES_B,
   ...HZ_SCENES_C,
   "return-line": legacy(Shot5, { cx: 1405, cy: 500, s: 1.24 }),
+  ...HZ_SCENES_D,
+  evidence: legacy(Shot6, NEUTRAL),
 };
 
 // كل مشهد مسجل له بياناته، والعكس

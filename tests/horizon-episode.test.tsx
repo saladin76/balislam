@@ -39,5 +39,5 @@ describe("دفاتر الزمن 001 — خطة «خط الأفق»", () => {
         expect(() => renderToStaticMarkup(<Comp t={t} tl={tl} dur={dur} exit={HZ_META[shot]!.exit} p={s.props as Record<string, string>} />), `${s.id} @${t}`).not.toThrow();
       }
     }
-  });
+  }, 120_000);
 });

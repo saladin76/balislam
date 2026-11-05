@@ -123,16 +123,16 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
               const st = prog(t, g.a + 0.3, g.a + 0.65);
               return (
                 <g key={i}>
-                  <Word x={g.x} y={600} size={50} p={q} font="tajawal" weight={500} color={C.inkSoft}>
+                  <Word x={g.x} y={605} size={60} p={q} font="tajawal" weight={700} color={C.inkText}>
                     {g.w}
                   </Word>
-                  <Strike x1={g.x + 60 + (i === 2 ? 50 : 0)} x2={g.x - 60 - (i === 2 ? 50 : 0)} y={584} p={st} />
+                  <Strike x1={g.x + 70 + (i === 2 ? 60 : 0)} x2={g.x - 70 - (i === 2 ? 60 : 0)} y={586} p={st} w={8} />
                 </g>
               );
             })}
-            <g opacity={noJazm} transform={`rotate(-6 ${cx} 690)`}>
-              <rect x={cx - 130} y={652} width={260} height={64} rx={6} fill="none" stroke={C.ribbon} strokeWidth={4} />
-              <SText x={cx} y={698} size={40} font="tajawal" weight={800} color={C.ribbon}>
+            <g opacity={noJazm} transform={`rotate(-6 ${cx} 690) translate(${cx} 690) scale(${1 + 0.5 * (1 - noJazm)}) translate(${-cx} -690)`}>
+              <rect x={cx - 170} y={640} width={340} height={90} rx={8} fill="rgba(215,55,43,0.1)" stroke={C.ribbon} strokeWidth={7} />
+              <SText x={cx} y={703} size={60} font="tajawal" weight={800} color={C.ribbon}>
                 لا نجزم
               </SText>
             </g>
@@ -376,7 +376,7 @@ const EarthWords: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 
 // ─── c6-s3: نقطة التحول: أفق الدفتر يمتد خارج الصفحات إلى أفق الأرض، فتتصل قصة آدم بالتاريخ البشري ───
 const Bridge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const inner = prog(t, 0.05, at(tl, "تتصل"));
+  const inner = 1;
   const extend = prog(t, at(tl, "قصة") + 0.2, at(tl, "بالتاريخ") + 0.3, easeOut);
   const ground = prog(t, at(tl, "بالتاريخ") - 0.05, at(tl, "البشري") + 0.6);
   const lbl = pop(t, at(tl, "البشري"));
@@ -484,9 +484,9 @@ const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         const q = prog(t, a, a + 0.4, easeOut);
         return (
           <g key={i} opacity={q}>
-            <circle cx={x} cy={y} r={r * (0.7 + 0.3 * q)} fill={C.ribbon} opacity={0.08} />
-            <circle cx={x} cy={y} r={r * (0.7 + 0.3 * q)} fill="none" stroke={C.ribbon} strokeWidth={3} strokeDasharray="8 8" />
-            <SText x={x} y={y + 18} size={50} o={q} color={C.ribbon}>
+            <circle cx={x} cy={y} r={r * (0.7 + 0.3 * q)} fill={C.ribbon} opacity={0.2} />
+            <circle cx={x} cy={y} r={r * (0.7 + 0.3 * q)} fill="none" stroke={EMBER} strokeWidth={5} strokeDasharray="12 9" />
+            <SText x={x} y={y + 22} size={64} o={q} color={EMBER}>
               ؟
             </SText>
           </g>

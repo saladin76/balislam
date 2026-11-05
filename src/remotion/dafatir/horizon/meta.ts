@@ -57,6 +57,14 @@ export const HZ_META: Record<string, HzMeta> = {
   bridge: { nameAr: "نقطة التحول: أفق الخبر يتصل بأفق التاريخ البشري", tail: 1.4, exit: "fade" },
   "no-map": { nameAr: "خريطة بلا معالم: روايات، ودبوس لا يستقر، وتاريخ فارغ", tail: 1.4, exit: "fade" },
   limit: { nameAr: "نؤمن به ونثبته، ولا نزيد عليه إلا بدليل", tail: 1.6, exit: "turn" },
+  "gen-fan": { nameAr: "النسل مراوح أجيال من أصل واحد (النساء 1)", tail: 1.2, exit: "fade" },
+  lineline: { nameAr: "خط الأجيال: معايش تتنوع، وفجوات بلا سجل، وأسئلة", tail: 1.4, exit: "fade" },
+  threshold: { nameAr: "مرحلة أخرى: العبور من الورق إلى أرض الشواهد", tail: 1.6, exit: "none" },
+  "evidence": { nameAr: "الأثر وحدوده: أدوات ومساكن وأطعمة ومستوطنات ومدافن ونقوش", tail: 1.4, exit: "fade" },
+  method: { nameAr: "من الشاهد إلى الحكم: ثبت / اختُلف فيه / ظن", tail: 1.3, exit: "fade" },
+  roadmap: { nameAr: "طريق الحلقات: قبل الكتابة، القرى والمدن، الحضارات", tail: 1.2, exit: "fade" },
+  questions: { nameAr: "أسئلة الحلقة القادمة، لكل سؤال أداته", tail: 1.6, exit: "turn" },
+  closing: { nameAr: "الختام: صفحة «دفاتر الزمن» الأولى", tail: 3.2, exit: "none" },
   pending: { nameAr: "قيد التصميم (مكان المشهد في الخطة)", tail: 1.0, exit: "none" },
 };
 

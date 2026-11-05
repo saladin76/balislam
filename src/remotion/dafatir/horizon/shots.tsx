@@ -493,7 +493,7 @@ type Find = { key: string; word: string; label: string; lx: number; ly: number; 
 /** مواضع الآثار على ترتيب نطقها من اليمين إلى اليسار، لتتبعها الكاميرا (الرسوم مصممة حول مواضعها الأصلية cx,cy وتُنقل إلى هنا) */
 const PLACE: Record<string, [number, number]> = { tool: [1720, 1570], home: [1330, 1190], food: [1290, 1580], settle: [720, 1190], burial: [860, 1590], art: [380, 1580] };
 const stone = "#CFC4B0";
-const FINDS: Find[] = [
+export const FINDS: Find[] = [
   {
     key: "tool", word: "أدوات", label: "أدوات من الحجر", lx: 1400, ly: 1520, ax: 1528, ay: 1612, cx: 1562, cy: 1646, rx: 80, ry: 92,
     draw: (p) => (
