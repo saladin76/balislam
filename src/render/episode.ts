@@ -13,6 +13,7 @@ import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, getServeUrl } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
+import { activeRecitation } from "../quran/provider";
 import { QUALITY, type Quality } from "./quality";
 import { loadSceneLedger, sceneReviewItems, sceneReviewSummary, sceneReviewBlockMessage } from "../plan/sceneReview";
 
@@ -69,7 +70,8 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   }).map((s) => s.id);
   if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
   // القناة التي اختارت قارئًا: لا آية في النسخة النهائية بلا تلاوتها (مرخّصة أو من القارئ المختار)
-  const verseGaps = versesWithoutRecitation(plan, media, ids, Boolean(o.channel.recitation?.id));
+  const chosenReciter = await activeRecitation(scriptPath, o.channel.recitation);
+  const verseGaps = versesWithoutRecitation(plan, media, ids, Boolean(chosenReciter));
   if (verseGaps.length) throw new Error(`لا يمكن رندر نسخة نهائية وفيها آية بلا تلاوة: ${verseGaps.slice(0, 10).join("، ")}${verseGaps.length > 10 ? "…" : ""}. اجلب نصوص الآيات وتلاواتها أولًا.`);
   const sbRecord = await loadStoryboard(scriptPath);
   const sb = storyboardStatus(plan, sbRecord);
