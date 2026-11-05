@@ -181,7 +181,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const edition = query.get("edition") ?? "";
       try { return send(res, 200, await client.ayah(surah, ayah, edition)), true; }
       catch (e) {
-        if (e instanceof AlQuranError) return send(res, 422, { error: e.message }), true;
+        if (e instanceof AlQuranError) return send(res, 422, { error: e instanceof Error ? e.message : String(e) }), true;
         throw e;
       }
     }
