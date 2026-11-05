@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runWithChannel } from "../src/channel";
-import { resolveScriptPath, createEpisode } from "../src/script/episodes";
+import { resolveScriptPath } from "../src/script/episodes";
 
 const tempDirs: string[] = [];
 const prevDir = process.env.BAL_CHANNELS_DIR;
@@ -38,6 +38,7 @@ describe("اكتشاف الحلقات عند وجود مختبر المحرك", 
     const script = scripted(episodes, "000-demo");
     const found = await runWithChannel("balislam", () => resolveScriptPath("000"));
     expect(found).toBe(script);
+    expect(existsSync(path.join(lab, "plan.json"))).toBe(true);
   });
 
   it("المختبر وحده لا يتحول إلى حلقة نصية", async () => {
@@ -55,11 +56,4 @@ describe("اكتشاف الحلقات عند وجود مختبر المحرك", 
     await expect(runWithChannel("balislam", () => resolveScriptPath("000"))).rejects.toThrow("أكثر من مجلد");
   });
 
-  it("إنشاء حلقة بالرقم نفسه لا يتعطل بسبب مختبر بلا سكريبت", async () => {
-    const episodes = setup();
-    mkdirSync(path.join(episodes, "000-engine-lab"));
-    // createEpisode requires a real channel config and template; test the resolution
-    // boundary without modifying production files.
-    await expect(runWithChannel("balislam", () => resolveScriptPath("000"))).rejects.toThrow("غير موجودة");
-  });
 });
