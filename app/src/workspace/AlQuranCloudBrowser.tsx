@@ -13,7 +13,7 @@ export const filterAudioEditions = (editions: AlQuranAudioEdition[], term: strin
     e.name.toLocaleLowerCase().includes(query) || e.identifier.toLowerCase().includes(query)) : editions;
 };
 
-/** Read-only per-episode preview; never writes video plans, sound assets or rights approvals. */
+/** Per-episode preview and explicit rights-gated reciter selection; never writes plan.json. */
 export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: string; onMedia?: (media: EpisodeMedia) => void }> = ({ channelId, episodeId, onMedia }) => {
   const [enabled, setEnabled] = useState(false);
   const [editions, setEditions] = useState<AlQuranAudioEdition[]>([]);
@@ -117,11 +117,33 @@ export const AlQuranCloudBrowser: React.FC<{ channelId: string; episodeId: strin
     finally { setSaving(false); }
   };
 
+  const restoreChannelDefault = async () => {
+    setSaving(true); setError(""); setProductionStatus("");
+    try {
+      const original = (await api.recitationChoice(episodeId, channelId)).recitation;
+      await api.saveRecitationChoice(episodeId, channelId, null);
+      try {
+        const r = await api.quran(episodeId, channelId);
+        if (r.result.failed.length) throw new Error(r.result.failed.map((x) => x.reason).join("؛ "));
+        if (onMedia) onMedia((await api.episode(episodeId, channelId)).media);
+        setActiveProduction(null);
+        setProductionStatus("أُلغي تخصيص قارئ هذه الحلقة؛ عاد المصدر الافتراضي للقناة.");
+      } catch (e) {
+        await api.saveRecitationChoice(episodeId, channelId, original);
+        throw e;
+      }
+    } catch (e) { setError(`تعذر الرجوع للمصدر الافتراضي: ${e instanceof Error ? e.message : String(e)}`); }
+    finally { setSaving(false); }
+  };
+
   return (
     <section className="group" aria-label="مكتبة AlQuran Cloud للقرآن">
       <h3>AlQuran Cloud <small>معاينة القرّاء وربط التلاوة بالإنتاج</small></h3>
       <p>ابحث عن قارئ واستمع إلى الآية. يمكن ربط القارئ تلقائيًا بفيديو <strong>هذه الحلقة فقط</strong> بعد توثيق إذن تسجيله؛ الاختيار التجريبي لا يغير الرندر.</p>
-      {activeProduction && <p role="status" className="ew-production-ok">القارئ الإنتاجي للحلقة: {activeProduction.name} ({activeProduction.edition})</p>}
+      {activeProduction && <div className="ew-current-reciter" role="status">
+        <span>القارئ الإنتاجي لهذه الحلقة: <strong>{activeProduction.name}</strong> ({activeProduction.edition})</span>
+        <button type="button" className="btn ghost small" disabled={saving} onClick={restoreChannelDefault}>العودة لقارئ القناة الافتراضي</button>
+      </div>}
       {!enabled ? <button className="btn small" type="button" onClick={open}>استعراض القرّاء لهذه الحلقة</button> : <>
         <button className="btn ghost small" type="button" onClick={() => {
           setEnabled(false); setPreview(null); setEditions([]); setError("");
