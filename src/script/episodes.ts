@@ -60,6 +60,7 @@ export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> =>
   if (existing.length) throw new Error(`الحلقة ${opts.episode} موجودة بالفعل: episodes/${existing[0]}`);
 
   const dir = path.join(episodesDir, `${opts.episode}-${opts.slug}`);
+  if (existsSync(dir)) throw new Error(`المجلد ${path.basename(dir)} موجود مسبقًا؛ لا يمكن تحويل مختبر أو مجلد قائم إلى حلقة جديدة.`);
   await mkdir(path.join(dir, "voice"), { recursive: true });
   await mkdir(path.join(dir, "out"), { recursive: true });
   const fill = (t: string) =>
