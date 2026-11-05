@@ -580,3 +580,95 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .md blockquote { margin: 0.6em 0; padding: 6px 12px; border-inline-start: 4px solid rgba(127, 127, 127, 0.5); }
 @media (max-width: 760px) { .guide-tab { grid-template-columns: 1fr; } .guide-toc { position: static; } }
 .md code, .md a { unicode-bidi: isolate; }
+
+/* Studio-wide UI/UX: consistent readable controls and layouts; no production logic. */
+:where(.channel-tab, .home, .ops, .settings-tab, .studio-provider) :is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+:where(.channel-tab, .home, .ops) .help { line-height: 1.65; }
+.channel-tab > .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--panel);
+  padding: 10px 12px;
+  margin: -10px -12px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 4px 18px #00000009;
+}
+.channel-section-nav { scroll-margin-block-start: 75px; }
+.channel-section-nav a { min-height: 36px; line-height: 1.4; }
+.channel-settings-grid :is(.group, .channel-brand-slot, .channel-new-slot) { min-width: 0; }
+.channel-settings-quran > .field { margin-block: 12px; }
+.channel-settings-quran .channel-cloud-results { background: var(--panel); }
+.channel-settings-quran .channel-cloud-preview .channel-provider-controls > button { justify-self: start; }
+.channel-settings-quran .channel-cloud-preview audio { max-width: 680px; }
+.channel-settings-grid .dom-table { display: block; overflow-x: auto; max-width: 100%; }
+.channel-settings-grid .dom-table td { min-width: 100px; }
+.channel-settings-grid .dom-table td:first-child { min-width: 125px; }
+.episode-list-tools {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) repeat(2, minmax(140px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.episode-list-tools .field { min-width: 0; margin: 0; }
+.episode-list-tools :is(input, select) { width: 100%; min-width: 0; }
+.episode-list-count { color: var(--muted); white-space: nowrap; padding-block: 8px; font-size: 13px; }
+.episode-list-empty {
+  border: 1px dashed var(--line);
+  padding: 22px;
+  border-radius: 14px;
+  background: var(--panel);
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.episode-list-empty p { margin: 0; }
+.ep-card { min-width: 0; }
+.ep-card footer { flex-wrap: wrap; gap: 6px; }
+.ep-card .ep-title b { white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+.kpis { flex-wrap: wrap; }
+.ops { min-width: 0; }
+.ops-sec { min-width: 0; }
+.ops-board { max-width: 100%; }
+.ops-ideas { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+.ops .home-head { gap: 14px; }
+.studio-manage-nav { gap: 6px; }
+@media (max-width: 1100px) {
+  .episode-list-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .episode-list-count { align-self: center; }
+  .top { gap: 10px; }
+  .top #episode-select { max-width: 100%; }
+}
+@media (max-width: 720px) {
+  .episode-list-tools { grid-template-columns: minmax(0, 1fr); }
+  .home { padding: 16px 12px 48px; }
+  .home-head { align-items: stretch; gap: 12px; }
+  .home-head h1 { font-size: 25px; }
+  .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .kpis > div { min-width: 0; }
+  .ep-grid { grid-template-columns: minmax(0, 1fr); }
+  .ep-card { padding: 12px; }
+  .ep-card .stages { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .top { padding: 10px 12px; }
+  .top .brand { width: 100%; }
+  .top #channel-select, .top #episode-select { width: auto !important; max-width: 100%; flex: 1; min-width: 135px; }
+  .studio-manage-nav { width: 100%; }
+  .studio-home-switch { width: auto; }
+  .studio-home-switch button { flex: 1 1 160px; }
+  .ops { padding: 16px 12px 4px; }
+  .ops-sec { padding: 12px; }
+  .ops-week { overflow-x: auto; }
+  .channel-tab > .toolbar { position: static; }
+  .channel-settings-quran .channel-cloud-preview { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .channel-tab *, .home *, .ops * { scroll-behavior: auto !important; }
+}
