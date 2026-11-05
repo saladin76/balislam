@@ -327,7 +327,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "batch", label: "الدفعة", type: "text" },
       { key: "ref", label: "مرجع الختم القرآني (مثل: ص ٧١–٧٢)", type: "text" },
       { key: "tagWord", label: "كلمة ظهور الختم (تمهيد الآية)", type: "text" },
-      // مشاهد المكتبة العامة (lib-*): كل حقل «كلمة …» مرسى الحدث في الكلام («كلمة#2» للورود الثاني). التوثيق: src/remotion/dafatir/LIBRARY.md
+      // مشاهد المكتبة العامة (lib-*): كل حقل «كلمة …» مرسى الحدث في الكلام («كلمة#2» للورود الثاني). التوثيق: docs/dafatir-alzaman/03-tools.md
       { key: "term", label: "مكتبة · المصطلح (كلمة أو كلمتان)", type: "text" },
       { key: "termWord", label: "مكتبة · كلمة كتابة المصطلح", type: "text" },
       { key: "sub", label: "مكتبة · سطر الشرح", type: "text" },

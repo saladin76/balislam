@@ -1,4 +1,4 @@
-/** مكتبة «دفتر الأفق» الإخراجية لقناة «دفاتر الزمن» — الواجهة العامة. التوثيق: LIBRARY.md */
+/** مكتبة «دفتر الأفق» الإخراجية لقناة «دفاتر الزمن» — الواجهة العامة. التوثيق: docs/dafatir-alzaman/03-tools.md */
 export * from "../horizon/kit";
 export * from "../horizon/book";
 export { at, end, buildTimeline, timelineFromWords, type Timeline, type Word as TimedWord } from "../horizon/timeline";

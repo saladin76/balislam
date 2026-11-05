@@ -5,6 +5,7 @@ import type { PlanIssue } from "../../src/plan/validate";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
 import type { CloudRecitation } from "../../src/quran/provider";
+import type { GuideIndex } from "../../src/channel/guide";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -76,6 +77,9 @@ export const api = {
   alquranAyah: (surah: number, ayah: number, edition: string) =>
     call<AlQuranAyahPreview>(`/api/alquran-cloud/ayah?surah=${surah}&ayah=${ayah}&edition=${encodeURIComponent(edition)}`),
 
+  /** دليل الاستوديو للقناة (null إن لم يكن لها دليل) */
+  guideIndex: (channel: string) => call<{ index: GuideIndex | null }>("/api/guide", undefined, channel),
+  guidePage: (channel: string, file: string) => call<{ text: string }>(`/api/guide/${encodeURIComponent(file)}`, undefined, channel),
   /** غرفة العمليات: كل القنوات */
   ops: () => call<OpsChannel[]>("/api/ops"),
   saveCalendar: (channel: string, calendar: Record<string, CalendarDay>) => call("/api/calendar", { method: "PUT", json: { calendar } }, channel),

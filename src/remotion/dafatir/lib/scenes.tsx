@@ -1,7 +1,7 @@
 /**
  * مشاهد المكتبة العامة لـ«دفاتر الزمن»: تُضبط كلها من حقول الخطة (لا نص حلقة بعينها في الكود)،
  * وكل حدث فيها يقع لحظة نطق كلمته (حقول «…Word»)، وتتأخر الأحداث وحركة الكاميرا تلقائيًا عن نافذة ذكر الله.
- * التوثيق وحدود الاستعمال: LIBRARY.md. مشاهد الحلقة 001 الخاصة بها في horizon/episode001*.tsx.
+ * التوثيق وحدود الاستعمال: docs/dafatir-alzaman/03-tools.md. مشاهد الحلقة 001 الخاصة بها في horizon/episode001*.tsx.
  */
 import React from "react";
 import { at as atStrict, end as endStrict, type Timeline } from "../horizon/timeline";

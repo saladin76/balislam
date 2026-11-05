@@ -21,10 +21,11 @@ import { LibraryTab } from "./tabs/LibraryTab";
 import { ChannelTab } from "./tabs/ChannelTab";
 import { useStudioFonts } from "./ui/useStudioFonts";
 import { SettingsTab } from "./tabs/SettingsTab";
+import { GuideTab } from "./tabs/GuideTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
-type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings";
+type Tab = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide";
 const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "publish"];
 const store = {
   get: (k: string) => {
@@ -58,6 +59,16 @@ export const App: React.FC = () => {
   // القناة الحالية لطلبات الواجهة تُضبط أثناء الرسم لا في useEffect: تأثيرات الأبناء (مثل تحميل إعدادات القناة)
   // تعمل قبل تأثير الأب، فكانت تجلب بيانات القناة السابقة بعد التبديل
   if (channelId) setApiChannel(channelId);
+  // دليل الاستوديو: يظهر في القائمة فقط للقناة التي لها دليل (docs/<القناة>/guide.json)
+  const [hasGuide, setHasGuide] = useState(false);
+  useEffect(() => {
+    if (!channelId) return setHasGuide(false);
+    let live = true;
+    api.guideIndex(channelId).then((r) => live && setHasGuide(Boolean(r.index)), () => live && setHasGuide(false));
+    return () => {
+      live = false;
+    };
+  }, [channelId]);
   const channelRef = useRef(channelId);
   channelRef.current = channelId;
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
@@ -279,7 +290,7 @@ export const App: React.FC = () => {
             <span className="studio-nav-label">إدارة الاستوديو</span>
             <select
               aria-label="أدوات القناة والإعدادات"
-              value={["identity", "library", "channel", "settings"].includes(tab) ? tab : ""}
+              value={["identity", "library", "channel", "settings", "guide"].includes(tab) ? tab : ""}
               onChange={async (e) => {
                 const next = e.target.value as Tab;
                 if (!next || !confirmLeaveScript()) return;
@@ -291,6 +302,7 @@ export const App: React.FC = () => {
               <option value="channel">معلومات القناة</option>
               <option value="identity">الهوية البصرية{identDirty ? " • غير محفوظة" : ""}</option>
               <option value="library">مكتبة الأصول والقوالب</option>
+              {hasGuide ? <option value="guide">دليل الاستوديو</option> : null}
               <option value="settings">الاتصالات والمفاتيح{keysOk.voice ? "" : " • تحتاج إعدادًا"}</option>
             </select>
           </label>
@@ -382,6 +394,8 @@ export const App: React.FC = () => {
           />
           </>}
           </div>
+        ) : tab === "guide" && channelId ? (
+          <GuideTab key={channelId} channel={channelId} />
         ) : tab === "library" ? (
           <LibraryTab hasVoiceKeys={keysOk.voice} identity={ident?.draft} channel={channel} />
         ) : tab === "channel" ? (

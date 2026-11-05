@@ -553,6 +553,15 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
   }
 
+  // دليل الاستوديو (docs/<القناة>/): مرجع القناة الدائم للقراءة فقط؛ الفهرس guide.json وصفحاته
+  if (parts[0] === "guide" && req.method === "GET") {
+    const g = await load("/src/channel/guide.ts");
+    if (!parts[1]) return send(res, 200, { index: await g.readGuideIndex(ch) }), true;
+    const text = await g.readGuidePage(ch, decodeURIComponent(parts[1]));
+    if (text === null) return send(res, 404, { error: "الصفحة غير موجودة في دليل القناة" }), true;
+    return send(res, 200, { text }), true;
+  }
+
   // معاينات الحلقة (previews/ بجوار السكريبت): فيديوهات صامتة خفيفة للمراجعة، تُرفع مع المستودع ولا تُنشر أبدًا
   if (parts[0] === "episodes" && parts[1] && parts[2] === "previews") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;

@@ -1,4 +1,4 @@
-/** أدوات النص العربي المتحرك (انظر قواعد اللغة في LIBRARY.md) */
+/** أدوات النص العربي المتحرك (قواعد اللغة في docs/dafatir-alzaman/03-tools.md و04-technical.md) */
 
 import React from "react";
 import { C, Ink, easeOut, mix, prog, rng } from "../horizon/kit";

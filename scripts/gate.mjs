@@ -5,6 +5,7 @@
  *   node scripts/gate.mjs              يفحص المجلد الحالي كما هو
  *   node scripts/gate.mjs --commit SHA يفحص commit بعينه في نسخة مؤقتة منفصلة
  *                                      (ما سيُدفع فعلًا، لا ملفات العمل غير المحفوظة)
+ *   --range A..B                       يضيف فحص تزامن التوثيق للـcommits المدفوعة (الأمر 016)
  *
  * كل فحص يُشغَّل وحده ويُحفظ رمز خروجه الحقيقي؛ لا أنابيب ولا تصفية تخفي الفشل.
  * الخروج 0 فقط إذا نجحت كل الفحوص. لا يُستثنى اختبار ولا يُعطَّل.
@@ -17,11 +18,14 @@ import path from "node:path";
 const root = path.resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
 const commit = args.includes("--commit") ? args[args.indexOf("--commit") + 1] : null;
+const range = args.includes("--range") ? args[args.indexOf("--range") + 1] : null;
 
 /** الفحوص الإلزامية: الأنواع ثم الاختبارات كلها */
 const CHECKS = [
   { name: "فحص TypeScript", cmd: "npx", args: ["tsc", "--noEmit", "-p", "."] },
   { name: "اختبارات المشروع", cmd: "npx", args: ["vitest", "run"] },
+  // تغيير منظومة قناة لها دليل يصاحبه تحديث سجل قراراتها (scripts/docs-sync.mjs)
+  ...(range ? [{ name: "تزامن التوثيق", cmd: "node", args: [path.join(root, "scripts", "docs-sync.mjs"), range] }] : []),
 ];
 
 const sh = (cmd, a, cwd, inherit = true) => spawnSync(cmd, a, { cwd, stdio: inherit ? "inherit" : "pipe", encoding: "utf8", env: { ...process.env, CI: process.env.CI ?? "1" } });
