@@ -342,8 +342,10 @@ program
   .option("--max <n>", "حد أعلى للتوازي (الحد الفعلي هو الأصغر بينه وبين ما تسمح به الذاكرة)")
   .option("--frames <range>", "نطاق إطارات لكل تكوين (للقياس السريع)")
   .option("--props <json>", "خصائص تُمرر إلى كل تكوين")
-  .action(async (compositions: string[], opts: { out: string; retry?: boolean; max?: string; frames?: string; props?: string }) => {
-    const { RenderPool, memoryInfo, safeParallelism } = await import("../render/pool");
+  .option("--timeout <minutes>", "مهلة قصوى لكل مهمة بالدقائق (تُصنف «انتهاء المهلة»)")
+  .option("--stall <minutes>", "مهلة التقدم: مهمة لا تستهلك المعالج هذه المدة تُوقف (الافتراضي 5)", "5")
+  .action(async (compositions: string[], opts: { out: string; retry?: boolean; max?: string; frames?: string; props?: string; timeout?: string; stall: string }) => {
+    const { FAILURE_LABEL, RenderPool, memoryInfo, safeParallelism } = await import("../render/pool");
     const out = path.resolve(opts.out);
     const ledger = path.join(out, "render-queue.json");
     const prev = await RenderPool.readLedger(ledger);
@@ -351,12 +353,18 @@ program
       ledger,
       ...(prev ? { perJobMB: prev.perJobMB } : {}),
       ...(opts.max ? { maxParallel: Number(opts.max) } : {}),
-      onChange: (t) => console.log(`${t.status === "done" ? "✓" : t.status === "error" ? "✗" : t.status === "running" ? "▶" : "…"} ${t.id}${t.seconds ? ` ${t.seconds.toFixed(1)} ث` : ""}${t.peakMB ? ` ذروة ${t.peakMB} م.ب` : ""}${t.error ? ` — ${t.error}` : ""}`),
+      stallMs: Number(opts.stall) * 60_000,
+      onChange: (t) => console.log(`${t.status === "done" ? "✓" : t.status === "error" || t.status === "cancelled" ? "✗" : t.status === "running" ? "▶" : "…"} ${t.id}${t.seconds ? ` ${t.seconds.toFixed(1)} ث` : ""}${t.peakMB ? ` ذروة ${t.peakMB} م.ب` : ""}${t.failure ? ` — [${FAILURE_LABEL[t.failure.kind]}] ${t.failure.message}` : ""}`),
     });
     const done = new Set(opts.retry && prev ? prev.tasks.filter((t) => t.status === "done").map((t) => t.id) : []);
     // الناجح سابقًا يبقى في السجل ناجحًا كما هو
     // وعدد المحاولات يُحمل من السجل السابق
     if (opts.retry && prev) for (const t of prev.tasks) pool.tasks.set(t.id, { ...t, status: t.status === "done" ? "done" : "error", log: [] });
+    // Ctrl-C: إلغاء كل المهام المنتظرة والجارية بطلب المستخدم (تُسجل «ألغاها المستخدم»، ولا يُمس ناتج سابق)
+    process.once("SIGINT", () => {
+      console.log("\nإلغاء بطلب المستخدم…");
+      for (const t of pool.tasks.values()) if (t.status === "queued" || t.status === "running") pool.cancel(t.id);
+    });
     const mem = memoryInfo();
     console.log(`الذاكرة المتاحة ${Math.round(mem.availableMB)} م.ب · التوازي الآمن الآن ${safeParallelism(mem.availableMB, (await import("node:os")).cpus().length, pool.perJobMB, 900)} (ذروة المهمة ${Math.round(pool.perJobMB)} م.ب)`);
     const browser = process.env.REMOTION_BROWSER_EXECUTABLE;
@@ -370,11 +378,19 @@ program
       if (browser) args.push(`--browser-executable=${browser}`);
       if (opts.frames) args.push(`--frames=${opts.frames}`);
       if (opts.props) args.push(`--props=${opts.props}`);
-      pool.add({ id, cmd: "npx", args, cwd: projectRoot, output, outputArg: 4 });
+      pool.add({ id, cmd: "npx", args, cwd: projectRoot, output, outputArg: 4, costKey: id, ...(opts.timeout ? { timeoutMs: Number(opts.timeout) * 60_000 } : {}) });
     }
+    // شبكة أمان: لو انتهى البرنامج والمهام لم تكتمل فهذا فشل صريح لا نجاح صامت
+    process.once("beforeExit", () => {
+      const left = [...pool.tasks.values()].filter((t) => t.status === "queued" || t.status === "running");
+      if (left.length) {
+        console.error(`✗ انتهى البرنامج و${left.length} مهمة لم تكتمل: ${left.map((t) => t.id).join("، ")}`);
+        process.exitCode = 1;
+      }
+    });
     await pool.idle();
     await pool.save();
-    const failed = [...pool.tasks.values()].filter((t) => t.status === "error");
+    const failed = [...pool.tasks.values()].filter((t) => t.status === "error" || t.status === "cancelled");
     console.log(failed.length ? `فشل ${failed.length}؛ السجل: ${path.relative(projectRoot, ledger)} · أعد الفاشل وحده: bal render-batch … --retry` : "اكتملت كل المهام.");
     if (failed.length) process.exitCode = 1;
   });

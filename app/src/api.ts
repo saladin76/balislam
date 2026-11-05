@@ -135,6 +135,8 @@ export const api = {
   sfx: () => call<SfxItem[]>("/api/sfx"),
   sfxUrl: (id: string) => withChannel(`/api/sfx/${id}.mp3`),
   startJob: (b: { kind: "make" | "package" | "shorts" | "sfx" | "storyboard-motion"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }),
+  /** إلغاء مهمة منتظرة أو جارية (رندر أو صناعة) */
+  cancelJob: (id: string) => call<{ ok: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   storyboard: (id: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`),
   previewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`),
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),

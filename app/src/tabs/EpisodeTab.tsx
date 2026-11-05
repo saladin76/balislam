@@ -527,6 +527,7 @@ const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId
             {j.status === "running" ? (j.queued ? "في الطابور" : `${j.pct}%`) : j.status === "done" ? "جاهز" : j.error ?? "فشل"}
           </span>
           {j.status === "done" && j.output ? <a className="btn small" href={api.videoUrl(j.episode, j.output)} target="_blank" rel="noreferrer">فتح</a> : null}
+          {j.status === "running" ? <button className="btn ghost small" onClick={() => void api.cancelJob(j.id).catch((x) => setErr((x as Error).message))}>إلغاء</button> : null}
         </div>
       ))}
       {lastDone?.output ? <video src={api.videoUrl(lastDone.episode, lastDone.output)} controls style={{ width: "100%", maxHeight: 300, borderRadius: 8, background: "#000" }} /> : null}

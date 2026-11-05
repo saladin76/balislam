@@ -1,4 +1,4 @@
-import { queuePosition, RenderPool } from "../../src/render/pool.ts";
+import { FAILURE_LABEL, queuePosition, RenderPool, type TaskDef, type TaskSpec } from "../../src/render/pool.ts";
 import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -39,6 +39,9 @@ export type LongJob = {
   startedAt: number;
   /** ينتظر دوره في طابور الرندر (الحالة تبقى running كي لا تظنه الواجهة انتهى) */
   queued?: boolean;
+  /** نوع الفشل المصنَّف (نفاد الذاكرة، المهلة، الإلغاء…) */
+  failure?: string;
+  recovered?: boolean;
 };
 export const longJobs = new Map<string, LongJob>();
 
@@ -80,14 +83,58 @@ const progressFrom = (job: LongJob, line: string) => {
 };
 
 /**
- * كل المهام الثقيلة في الاستوديو (الرندر والصناعة والقياس) تمر بطابور واحد (الأمر 009):
+ * كل المهام الثقيلة في الاستوديو (الرندر والصناعة والقياس) تمر بطابور واحد (الأمران 009 و010):
  * تبدأ فورًا إن سمحت ذاكرة الجهاز، وإلا تنتظر دورها بدل أن تُسقط غيرها؛ وفشل إحداها مسجل بسببه
- * في renders/studio-queue.json ولا يمس غيرها.
+ * المصنَّف في renders/studio-queue.json ولا يمس غيرها. وعند إعادة تشغيل الاستوديو تُستعاد المنتظرة
+ * والمنقطعة منها (recoverStudioQueue) وتعود بطاقاتها إلى الواجهة.
  */
 export const studioPool = new RenderPool({ ledger: path.join(path.resolve(import.meta.dirname, "..", ".."), "renders", "studio-queue.json") });
 export const queued = (j: { log: string[] }, id: string) => {
   const ahead = queuePosition(studioPool, id);
   j.log.push(`في الطابور: ينتظر ذاكرة كافية لبدء الرندر${ahead ? ` (${ahead} قبله)` : ""}…`);
+};
+
+/** بطاقة رندر الحلقة (تبويب الحلقة) */
+export type RenderJob = { id: string; channel: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; log: string[]; queued?: boolean; failure?: string; recovered?: boolean };
+export const renderJobs = new Map<string, RenderJob>();
+
+type View = { status: "running" | "done" | "error"; pct: number; log: string[]; output?: string; error?: string; queued?: boolean; failure?: string; recovered?: boolean };
+/** يربط مهمة الطابور ببطاقتها: التقدم، والانتهاء، وسبب الفشل المصنَّف بلغة واضحة */
+const attach = (def: TaskDef, view: View, key: string, onLine: (line: string) => void, keepLog: number): TaskSpec => ({
+  ...def,
+  onStart: () => {
+    view.queued = false;
+    if ("startedAt" in view) (view as LongJob).startedAt = Date.now();
+  },
+  onLine: (line) => {
+    onLine(line);
+    view.log.push(line);
+    if (view.log.length > keepLog) view.log.shift();
+  },
+  onEnd: (t) => {
+    busy.delete(key);
+    view.queued = false;
+    view.status = t.status === "done" ? "done" : "error";
+    if (t.status === "done") view.pct = 100;
+    else {
+      view.failure = t.failure ? FAILURE_LABEL[t.failure.kind] : undefined;
+      const detail = view.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-2).join(" ");
+      view.error = [t.failure ? `${FAILURE_LABEL[t.failure.kind]}: ${t.failure.message}` : t.error, detail].filter(Boolean).join(" · ") || "توقفت العملية";
+    }
+  },
+});
+
+const longLine = (j: LongJob) => (line: string) => {
+  if (/emory|docker|Detected differing/.test(line)) return;
+  progressFrom(j, line);
+  const done = line.match(/^DONE (.+)$/);
+  if (done) j.output = path.basename(done[1]!.trim());
+};
+const renderLine = (job: RenderJob) => (line: string) => {
+  const p = line.match(/^PROGRESS (\d+)/);
+  if (p) job.pct = Number(p[1]);
+  const done = line.match(/^DONE (.+)$/);
+  if (done) job.output = path.basename(done[1]!.trim());
 };
 
 export const startJob = (ctx: Pick<ExtraCtx, "root">, job: Omit<LongJob, "id" | "status" | "pct" | "log" | "startedAt">, args: string[]) => {
@@ -96,34 +143,61 @@ export const startJob = (ctx: Pick<ExtraCtx, "root">, job: Omit<LongJob, "id" | 
   busy.add(key);
   longJobs.set(j.id, j);
   trimJobs(longJobs);
-  studioPool.add({
-    id: j.id,
-    cmd: process.execPath,
-    args: ["bin/bal.mjs", "--channel", job.channel, ...args],
-    cwd: ctx.root,
-    onStart: () => {
-      j.queued = false;
-      j.startedAt = Date.now();
-    },
-    onLine: (line) => {
-      if (/emory|docker|Detected differing/.test(line)) return;
-      progressFrom(j, line);
-      const done = line.match(/^DONE (.+)$/);
-      if (done) j.output = path.basename(done[1]!.trim());
-      j.log.push(line);
-      if (j.log.length > 300) j.log.shift();
-    },
-    onEnd: (t) => {
-      busy.delete(key);
-      j.status = t.status === "done" ? "done" : "error";
-      if (t.status === "done") j.pct = 100;
-      else j.error = j.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-3).join(" ") || t.error || "توقفت العملية";
-      if (t.status === "error" && t.error && !(j.error ?? "").includes(t.error)) j.error = `${t.error} ${j.error ?? ""}`.trim();
-    },
-  });
+  const def: TaskDef = { id: j.id, cmd: process.execPath, args: ["bin/bal.mjs", "--channel", job.channel, ...args], cwd: ctx.root, costKey: `long:${job.kind}`, meta: { type: "long", job: { ...job } } };
+  studioPool.add(attach(def, j, key, longLine(j), 300));
   if (j.queued) queued(j, j.id);
   return j;
 };
+
+/** رندر حلقة من تبويبها */
+export const startRenderJob = (root: string, ch: string, b: { episode: string; orientation: string; chapter?: number }) => {
+  const key = `${ch}/${b.episode}`;
+  busy.add(key);
+  const id = newJobId();
+  const job: RenderJob = { id, channel: ch, episode: b.episode, orientation: b.orientation, chapter: b.chapter, status: "running", pct: 0, log: [], queued: true };
+  renderJobs.set(id, job);
+  trimJobs(renderJobs);
+  const args = ["bin/bal.mjs", "--channel", ch, "render", b.episode];
+  if (b.orientation === "portrait") args.push("--portrait");
+  if (b.chapter) args.push("--chapter", String(b.chapter));
+  const def: TaskDef = { id, cmd: process.execPath, args, cwd: root, costKey: `render:${b.orientation === "portrait" ? "portrait" : "landscape"}${b.chapter ? ":chapter" : ""}`, meta: { type: "render", job: { channel: ch, episode: b.episode, orientation: b.orientation, chapter: b.chapter } } };
+  studioPool.add(attach(def, job, key, renderLine(job), 50));
+  if (job.queued) queued(job, id);
+  return job;
+};
+
+/**
+ * استعادة الطابور بعد إعادة تشغيل الاستوديو: كل مهمة منتظرة أو منقطعة تعود ببطاقتها،
+ * ومفتاح «مشغول» لحلقتها فلا تُطلق مرتين. المنتهية تبقى في السجل ولا تُعاد.
+ */
+let recovering: Promise<unknown> | null = null;
+export const recoverStudioQueue = () =>
+  (recovering ??= studioPool
+    .recover((def) => {
+      const meta = def.meta as { type?: string; job?: Record<string, unknown> } | undefined;
+      if (meta?.type === "long" && meta.job) {
+        const job = meta.job as Omit<LongJob, "id" | "status" | "pct" | "log" | "startedAt">;
+        const j: LongJob = { ...job, id: def.id, status: "running", pct: 1, log: ["استُعيدت بعد إعادة تشغيل الاستوديو"], startedAt: Date.now(), queued: true, recovered: true };
+        const key = `${job.channel}/${job.episode ?? job.kind}`;
+        busy.add(key);
+        longJobs.set(j.id, j);
+        return attach(def, j, key, longLine(j), 300);
+      }
+      if (meta?.type === "render" && meta.job) {
+        const m = meta.job as { channel: string; episode: string; orientation: string; chapter?: number };
+        const job: RenderJob = { id: def.id, ...m, status: "running", pct: 0, log: ["استُعيدت بعد إعادة تشغيل الاستوديو"], queued: true, recovered: true };
+        const key = `${m.channel}/${m.episode}`;
+        busy.add(key);
+        renderJobs.set(job.id, job);
+        return attach(def, job, key, renderLine(job), 50);
+      }
+      return null;
+    })
+    .then((r) => {
+      if (r.requeued.length) console.log(`استُعيدت ${r.requeued.length} مهمة من طابور الرندر${r.killedOrphans.length ? `، وأُوقفت ${r.killedOrphans.length} عملية يتيمة` : ""}.`);
+      return r;
+    })
+    .catch((e) => console.error(`تعذّرت استعادة طابور الرندر: ${(e as Error).message}`)));
 
 const episodeDirs = async (episodesDir: string) => (existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d)).sort() : []);
 
@@ -715,6 +789,14 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
 
   // المهام الطويلة
   if (parts[0] === "jobs") {
+    // إلغاء مهمة (منتظرة أو جارية) بطلب المستخدم: تُصنف «ألغاها المستخدم» ولا يُمس ناتج سابق
+    if (req.method === "POST" && parts[1] && parts[2] === "cancel") {
+      const job = longJobs.get(parts[1]) ?? renderJobs.get(parts[1]);
+      if (!job || job.channel !== ch) return send(res, 404, { error: "لا توجد مهمة بهذا المعرّف" }), true;
+      if (job.status !== "running") return send(res, 409, { error: "المهمة انتهت بالفعل" }), true;
+      studioPool.cancel(parts[1]);
+      return send(res, 200, { ok: true }), true;
+    }
     if (req.method === "POST") {
       const b = await readBody(req);
       if (b.kind === "make" || b.kind === "package" || b.kind === "shorts") {

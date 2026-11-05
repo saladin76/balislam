@@ -3,7 +3,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyMessage, handleExtra, newJobId, queued, studioPool, trimJobs } from "./extra.ts";
+import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName } from "./util.ts";
 
 /**
@@ -13,8 +13,6 @@ import { HttpError, safeName } from "./util.ts";
 const root = path.resolve(import.meta.dirname, "..", "..");
 const configFile = path.join(root, "config.json");
 
-type Job = { id: string; channel: string; episode: string; orientation: string; chapter?: number; status: "running" | "done" | "error"; pct: number; output?: string; error?: string; log: string[]; queued?: boolean };
-const jobs = new Map<string, Job>();
 
 const send = (res: ServerResponse, status: number, body: unknown) => {
   res.statusCode = status;
@@ -87,6 +85,8 @@ const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type
 export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
+    // استعادة طابور الرندر بعد إعادة تشغيل الاستوديو (الأمر 010)
+    void recoverStudioQueue();
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
     // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
     const load = async <T = any>(file: string): Promise<T> => {
@@ -314,42 +314,12 @@ export const balApi = (): Plugin => ({
           if (req.method === "POST") {
             const b = await readBody(req);
             if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
-            const key = `${ch}/${b.episode}`;
-            if (busy.has(key)) return send(res, 409, { error: busyMessage });
-            busy.add(key);
-            const id = newJobId();
-            const job: Job = { id, channel: ch, episode: b.episode, orientation: b.orientation, chapter: b.chapter, status: "running", pct: 0, log: [] };
-            jobs.set(id, job);
-            trimJobs(jobs);
-            const args = ["bin/bal.mjs", "--channel", ch, "render", b.episode];
-            if (b.orientation === "portrait") args.push("--portrait");
-            if (b.chapter) args.push("--chapter", String(b.chapter));
-            job.queued = true;
-            // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره (الأمر 009)
-            studioPool.add({
-              id,
-              cmd: process.execPath,
-              args,
-              cwd: root,
-              onStart: () => (job.queued = false),
-              onLine: (line) => {
-                const p = line.match(/^PROGRESS (\d+)/);
-                if (p) job.pct = Number(p[1]);
-                const done = line.match(/^DONE (.+)$/);
-                if (done) job.output = path.basename(done[1]!.trim());
-                job.log.push(line);
-                if (job.log.length > 50) job.log.shift();
-              },
-              onEnd: (t) => {
-                busy.delete(key);
-                job.status = t.status === "done" ? "done" : "error";
-                if (t.status !== "done") job.error = [t.error, job.log.filter((l) => /خطأ|Error/.test(l)).pop()].filter(Boolean).join(" ") || "فشل الرندر";
-              },
-            });
-            if (job.queued) queued(job, id);
+            if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage });
+            // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره، ويُستعاد بعد إعادة التشغيل
+            const job = startRenderJob(root, ch, b);
             return send(res, 200, job);
           }
-          return send(res, 200, [...jobs.values()].filter((j) => j.channel === ch).reverse());
+          return send(res, 200, [...renderJobs.values()].filter((j) => j.channel === ch).reverse());
         }
 
         return send(res, 404, { error: "مسار غير معروف" });
