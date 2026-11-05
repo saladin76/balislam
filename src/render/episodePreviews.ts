@@ -4,7 +4,8 @@
  * لكل موضوع «خانة» واحدة: أي تعديل يحذف الفيديو القديم ويضع الجديد مكانه، فلا تتراكم نسخ قديمة.
  */
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { resolveScriptPath } from "../script/episodes";
 
@@ -36,16 +37,42 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   await mkdir(dir, { recursive: true });
   const index = await readIndex(dir);
   const target = `${name}.mp4`;
-  const stale = (await readdir(dir)).filter((n) => n !== target && /\.mp4$/i.test(n) && (n === `${name}.mp4` || n.startsWith(`${name}-v`)));
-  for (const n of stale) {
-    await rm(path.join(dir, n), { force: true });
-    delete index[n];
-  }
+  const stale = (await readdir(dir)).filter((n) => n !== target && /\.mp4$/i.test(n) && n.startsWith(`${name}-v`) && /^v\d+\.mp4$/i.test(n.slice(name.length + 1)));
   const prev = index[target];
-  await copyFile(file, path.join(dir, target));
-  index[target] = { title: meta.title, note: meta.note, version: (prev?.version ?? stale.length) + 1, updatedAt: new Date().toISOString() };
-  await writeFile(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
-  return { file: path.join(dir, target), removed: stale, version: index[target]!.version };
+  const output = path.join(dir, target);
+  const pending = path.join(dir, `.${name}.${randomUUID()}.pending`);
+  const pendingIndex = path.join(dir, `.index.${randomUUID()}.pending`);
+  const backup = path.join(dir, `.${name}.${randomUUID()}.backup`);
+  let replacedVideo = false;
+  let committedIndex = false;
+  // جهّز بديلًا صالح الحجم قبل لمس النسخة الحالية.
+  try {
+    const sourceSize = (await stat(file)).size;
+    if (sourceSize === 0) throw new Error("ملف المعاينة فارغ؛ النسخة القديمة محفوظة.");
+    await copyFile(file, pending);
+    if ((await stat(pending)).size !== sourceSize) throw new Error("نسخ المعاينة غير مكتمل؛ النسخة القديمة محفوظة.");
+    const nextIndex = { ...index };
+    for (const n of stale) delete nextIndex[n];
+    nextIndex[target] = { title: meta.title, note: meta.note, version: (prev?.version ?? stale.length) + 1, updatedAt: new Date().toISOString() };
+    await writeFile(pendingIndex, JSON.stringify(nextIndex, null, 2) + "\n");
+    if (existsSync(output)) await copyFile(output, backup);
+    await rename(pending, output);
+    replacedVideo = true;
+    await rename(pendingIndex, path.join(dir, "index.json"));
+    committedIndex = true;
+    // لا تجعل فشل تنظيف نسخة قديمة يُخفي نجاح الاستبدال.
+    await Promise.allSettled(stale.map((n) => rm(path.join(dir, n), { force: true })));
+    return { file: output, removed: stale.filter((n) => !existsSync(path.join(dir, n))), version: nextIndex[target]!.version };
+  } catch (error) {
+    // إذا فشل تحديث الفهرس، أعد الفيديو السابق لتظل النسخة المعروضة والفهرس متوافقين.
+    if (replacedVideo && !committedIndex) {
+      if (existsSync(backup)) await rename(backup, output);
+      else await rm(output, { force: true });
+    }
+    throw error;
+  } finally {
+    await Promise.allSettled([rm(pending, { force: true }), rm(pendingIndex, { force: true }), rm(backup, { force: true })]);
+  }
 };
 
 export const putEpisodePreview = async (episode: string, slot: string, file: string, meta: { title: string; note?: string }) => putPreview(await resolveScriptPath(episode), slot, file, meta);
