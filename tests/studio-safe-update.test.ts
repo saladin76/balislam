@@ -29,6 +29,33 @@ describe("safe studio updater", () => {
     expect(execFileSync("git", ["log", "-1", "--format=%s"], { cwd: dir }).toString().trim()).toBe("init");
   });
 
+  it("refuses an unfinished merge even if the tracked tree is clean", async () => {
+    const dir = repo();
+    execFileSync("git", ["branch", "-m", "main"], { cwd: dir });
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir }).toString().trim();
+    const gitDir = execFileSync("git", ["rev-parse", "--absolute-git-dir"], { cwd: dir }).toString().trim();
+    writeFileSync(path.join(gitDir, "MERGE_HEAD"), head + "\\n");
+    const before = readFileSync(path.join(dir, "note.txt"), "utf8");
+    const status = await updateStatus(dir, true);
+    expect(status.available).toBe(false);
+    expect(status.error).toMatch(/عملية Git غير مكتملة/);
+    const result = await applyUpdate(dir);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/عملية Git غير مكتملة/);
+    expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe(before);
+    expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir }).toString().trim()).toBe(head);
+  });
+
+  it("refuses a rebase in progress, even when status is otherwise clean", async () => {
+    const dir = repo();
+    execFileSync("git", ["branch", "-m", "main"], { cwd: dir });
+    const gitDir = execFileSync("git", ["rev-parse", "--absolute-git-dir"], { cwd: dir }).toString().trim();
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(path.join(gitDir, "rebase-merge"));
+    expect((await applyUpdate(dir)).ok).toBe(false);
+    expect((await updateStatus(dir, true)).error).toMatch(/عملية Git غير مكتملة/);
+  });
+
   it("does not overwrite dirty work on main", async () => {
     const dir = repo();
     execFileSync("git", ["branch", "-m", "main"], { cwd: dir });
