@@ -84,6 +84,15 @@ def upload(a):
         index[key] = {"remote":cloud,"url":url,"md5":digest,"updated":datetime.now(timezone.utc).isoformat()}
         atomic_json(manifest, index)
         handoff = write_handoff(base, index, channel, a.episode)
+        # A stable per-episode review handoff accessible to cloud reviewers.
+        # No credentials or original media are stored in this text-only report.
+        handoff_cloud = f"{ROOT}/{channel}/episodes/{a.episode}/handoff.md"
+        run("rclone", "copyto", str(handoff), handoff_cloud)
+        if cloud_md5(handoff_cloud) != md5(handoff):
+            raise RuntimeError("Cloud handoff checksum mismatch")
+        handoff_url = run("rclone", "link", handoff_cloud)
+        if not handoff_url.startswith("https://"):
+            raise RuntimeError("No handoff URL")
         lines = ["# Balislam Studio - Live Previews", "", "Updated: "+datetime.now(timezone.utc).isoformat(), ""]
         for name, item in sorted(index.items()):
             lines.append("- [" + name.replace("|", " / ") + "](" + item["url"] + ")")
@@ -91,7 +100,7 @@ def upload(a):
         md.write_text("\n".join(lines)+"\n", encoding="utf-8")
         # Separate index: never overwrite existing legacy index without review.
         run("rclone", "copyto", str(md), ROOT + "/production-preview-index.md")
-        print("VERIFIED "+cloud+"\nLINK "+url+"\nHANDOFF "+str(handoff))
+        print("VERIFIED "+cloud+"\nLINK "+url+"\nHANDOFF "+str(handoff)+"\nHANDOFF_LINK "+handoff_url)
 
 
 def make_handoff(index, channel, episode):
