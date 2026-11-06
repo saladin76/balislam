@@ -126,7 +126,9 @@ export const prepareStoryboardMedia = async (
     file: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
   }));
   for (const asset of assets) {
-    if (!/^[a-z0-9][a-z0-9_.-]{0,180}$/i.test(asset.name)) throw new Error("اسم صورة غير آمن للـStoryboard.");
+    if (!asset.name || asset.name === "." || asset.name === ".." || asset.name.length > 240 ||
+      path.basename(asset.name) !== asset.name || asset.name.includes("\\") || asset.name.includes("\0"))
+      throw new Error("اسم صورة غير آمن للـStoryboard.");
     digest.update(asset.name);
     for await (const part of createReadStream(asset.file)) digest.update(part);
   }
