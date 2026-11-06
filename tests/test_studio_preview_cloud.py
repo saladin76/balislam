@@ -56,7 +56,7 @@ class TestPreviewSafety(unittest.TestCase):
                     import hashlib
                     return hashlib.md5(cloud[key]).hexdigest() + "  " + key
                 if operation == "copyto":
-                    if cmd[2] == str(source):
+                    if Path(cmd[2]).resolve() == source.resolve():
                         cloud[cmd[3]] = source.read_bytes()
                     elif cmd[2].endswith(".md"):
                         cloud[cmd[3]] = Path(cmd[2]).read_bytes()
