@@ -27,6 +27,45 @@ export type StoryboardStatus = {
 
 export const storyboardFileFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "storyboard.json");
 
+/**
+ * Keep a readable, stable storyboard snapshot separate from source plans.
+ * Cloud sync is opt-in and never blocks approval or revocation.
+ */
+const syncStoryboardFiles = async (scriptPath: string, markdown: string) => {
+  const { uploadCloudPreview } = await import("../render/cloudPreview");
+  const folder = path.dirname(scriptPath);
+  const episode = path.basename(folder);
+  const sheet = path.join(folder, "storyboard-review.md");
+  await writeFile(sheet, markdown);
+  await uploadCloudPreview(storyboardFileFor(scriptPath), episode, "approval-record", "storyboard");
+  await uploadCloudPreview(sheet, episode, "review-sheet", "storyboard");
+};
+
+const storyboardSheet = (plan: Plan, approved: boolean) => {
+  const lines = [
+    "# Storyboard — " + plan.title.replace(/\n/g, " "),
+    "",
+    "Episode: " + plan.episode,
+    "Approval: " + (approved ? "approved" : "revoked"),
+    "Generated: " + new Date().toISOString(),
+    "",
+  ];
+  for (const chapter of plan.chapters) {
+    lines.push("## " + chapter.number + " — " + chapter.title.replace(/\n/g, " "), "");
+    for (const scene of chapter.scenes) {
+      lines.push("### " + scene.id + " — " + scene.template);
+      lines.push("", "**Narration:** " + scene.narration.replace(/\n/g, " "), "");
+      lines.push("**On-screen / visual properties:**");
+      for (const [key, value] of Object.entries(scene.props)) {
+        lines.push("- " + key + ": " + String(value).replace(/\n/g, " "));
+      }
+      lines.push("");
+    }
+  }
+  return lines.join("\n") + "\n";
+};
+
+
 export const loadStoryboard = async (scriptPath: string): Promise<StoryboardRecord> => {
   const f = storyboardFileFor(scriptPath);
   if (!existsSync(f)) return { version: 1, scenes: {} };
@@ -73,6 +112,11 @@ export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: 
     scenes: Object.fromEntries(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, sceneHash(s)])),
   };
   await writeFile(storyboardFileFor(scriptPath), JSON.stringify(rec, null, 2) + "\n");
+  try {
+    await syncStoryboardFiles(scriptPath, storyboardSheet(plan, true));
+  } catch (error) {
+    console.warn("STORYBOARD_CLOUD_FAILED: " + (error as Error).message);
+  }
   return rec;
 };
 
@@ -80,6 +124,11 @@ export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: 
 export const revokeStoryboard = async (scriptPath: string): Promise<StoryboardRecord> => {
   const rec: StoryboardRecord = { version: 1, scenes: {} };
   await writeFile(storyboardFileFor(scriptPath), JSON.stringify(rec, null, 2) + "\n");
+  try {
+    await syncStoryboardFiles(scriptPath, "# Storyboard — approval revoked\n\nNo approved storyboard is current for this episode.\n");
+  } catch (error) {
+    console.warn("STORYBOARD_CLOUD_FAILED: " + (error as Error).message);
+  }
   return rec;
 };
 
