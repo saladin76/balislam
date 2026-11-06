@@ -1,4 +1,6 @@
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { projectRoot } from "../config/paths";
@@ -102,4 +104,37 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
   const sp2 = await resolveScriptPath(episode);
   for (const f of m.images ?? []) await cp(f.startsWith(LIB) ? path.join(libraryDirFor(sp2), f.slice(LIB.length)) : path.join(imagesDirFor(sp2), f), path.join(dest, "images", imageKey(f)));
   return { ...m, mode: "static", base: rel };
+};
+
+/**
+ * Stage ONLY the illustrated storyboard's referenced image assets.
+ * This deliberately never calls prepareRenderMedia(): it must not remove or
+ * replace the currently served _render/<episode> files or copy paid/protected
+ * voice recordings into a storyboard meant to be prepared BEFORE narration.
+ * Content-hashed namespaces keep different source-asset revisions separate.
+ */
+export const prepareStoryboardMedia = async (episode: string, plan: Plan): Promise<EpisodeMedia> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const images = usedImages(plan, imagesDirFor(scriptPath), libraryDirFor(scriptPath));
+  const digest = createHash("sha256").update(JSON.stringify({
+    version: 1, episode, theme: plan.themeId, chapters: plan.chapters, overlays: plan.overlays,
+  }));
+  const assets = images.map((f) => ({
+    name: imageKey(f),
+    file: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
+  }));
+  for (const asset of assets) {
+    if (!/^[a-z0-9][a-z0-9_.-]{0,180}$/i.test(asset.name)) throw new Error("اسم صورة غير آمن للـStoryboard.");
+    digest.update(asset.name);
+    for await (const part of createReadStream(asset.file)) digest.update(part);
+  }
+  const safeEpisode = path.basename(String(episode)).replace(/[^a-z0-9_-]/gi, "_");
+  const rel = `_storyboard_media/${safeEpisode}-${digest.digest("hex").slice(0, 16)}/`;
+  const dest = path.join(projectRoot, "public", rel);
+  await mkdir(path.join(dest, "images"), { recursive: true });
+  for (const asset of assets) {
+    const output = path.join(dest, "images", asset.name);
+    if (!existsSync(output)) await cp(asset.file, output, { force: false, errorOnExist: true });
+  }
+  return { mode: "static", base: rel, voice: {}, sfx: [], recitations: {}, images };
 };
