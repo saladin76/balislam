@@ -78,7 +78,9 @@ for NAME in "${SOURCE_FILES[@]}"; do
 
   # If the file already exists with same hash rclone copyto is idempotent;
   # never update unrelated handoff.md, index, voice or video files.
-  rclone copyto "$SOURCE" "$TARGET" "${DRIVE_ARGS[@]}" --retries 3
+  # Even a concurrent upload must never cause this command to overwrite
+  # an existing version; verify the final hash after the transfer.
+  rclone copyto "$SOURCE" "$TARGET" "${DRIVE_ARGS[@]}" --retries 3 --ignore-existing
   CLOUD_MD5="$(rclone md5sum "$TARGET" "${DRIVE_ARGS[@]}" | awk 'NR==1 { print tolower($1) }')"
   [[ "$CLOUD_MD5" == "$MD5" ]] || {
     printf 'FAILED_MISMATCH file=%s local_md5=%s remote_md5=%s\n' "$NAME" "$MD5" "$CLOUD_MD5" >> "$LOG"
