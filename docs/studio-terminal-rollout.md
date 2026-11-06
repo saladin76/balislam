@@ -10,15 +10,15 @@ From Terminal on the owner's Mac:
 
 ```bash
 cd "$HOME/balislam"
-git fetch origin fix/studio-handoff-acceptance-followup
-bash <(git show origin/fix/studio-handoff-acceptance-followup:scripts/studio-terminal-preview.sh) check
+git fetch origin integration/studio-localhost-acceptance-20261106
+bash <(git show origin/integration/studio-localhost-acceptance-20261106:scripts/studio-terminal-preview.sh) check
 ```
 
 Expected success is `CHECK_OK <commit>`. Do not claim tests passed until the Mac prints this. To open an isolated Studio preview after the gate succeeds:
 
 ```bash
 cd "$HOME/balislam"
-bash <(git show origin/fix/studio-handoff-acceptance-followup:scripts/studio-terminal-preview.sh) serve
+bash <(git show origin/integration/studio-localhost-acceptance-20261106:scripts/studio-terminal-preview.sh) serve
 ```
 
 Then open `http://127.0.0.1:4322`. Use Ctrl+C to stop. A successful preview is **not a production release**. The preview uses a distinct checkout but shares the same home-directory runtime services; avoid changing episodes, approvals, and local production data during UI inspection. The intended use is read-only verification.
