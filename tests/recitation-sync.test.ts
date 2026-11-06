@@ -42,6 +42,13 @@ describe("Quran recitation synchronized to verse display", () => {
     expect(sceneFrames(verse(), media, 30)).toBe(210);
   });
 
+  it("does not artificially add a whole second to a short verified recording", () => {
+    const rec = { file: "short.mp3", duration: 0.6 };
+    const media = { voice: {}, recitations: { "1:1": rec } };
+    expect(sceneFrames(verse(), media, 30)).toBe(18);
+    expect(recitationFrameSchedule(rec, 30).at(-1)!.durationInFrames).toBe(18);
+  });
+
   it("keeps previous silent preview estimates when no recording has been provided", () => {
     const seconds = sceneSeconds(verse(), { voice: {}, recitations: {} });
     expect(seconds).toBeGreaterThan(0);
