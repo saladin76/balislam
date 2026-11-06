@@ -29,7 +29,7 @@ const STAGES: { key: Stage; label: string }[] = [
   { key: "scheduled", label: "مجدولة" },
   { key: "published", label: "منشورة" },
 ];
-const stageOf = (e: Overview): Stage => {
+export const stageOf = (e: Overview): Stage => {
   if (e.status.published) return "published";
   if (e.status.scheduled) return "scheduled";
   const s = stagesOf(e);
