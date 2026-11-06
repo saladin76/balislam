@@ -159,6 +159,13 @@ export const api = {
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  missingQuranTexts: (id: string) =>
+    call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+      `/api/episodes/${id}/quran-text-only`),
+  fetchMissingQuranTexts: (id: string) =>
+    call<{ result: { fetched: string[]; existing: string[]; failed: { ref: string; reason: string }[] };
+      status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+      `/api/episodes/${id}/quran-text-only`, { method: "POST", json: { confirm: true } }),
   storyboardReport: (id: string) => call<{ markdown: string }>(`/api/episodes/${id}/storyboard-report`),
   setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs"),
