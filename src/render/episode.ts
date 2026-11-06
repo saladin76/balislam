@@ -135,6 +135,25 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     });
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
     await rename(tempOutput, output);
+    // Cloud preview is opt-in and runs only after a successful atomic render.
+    // Upload errors never invalidate or delete the completed local video.
+    if (process.env.BAL_PREVIEW_CLOUD_AUTO === "1" && opts.quality !== "master") {
+      try {
+        const { execFile } = await import("node:child_process");
+        const { promisify } = await import("node:util");
+        const { currentChannelId } = await import("../channel");
+        const scriptFile = path.join(projectRoot, "scripts", "studio-preview-cloud.py");
+        const episodeSlug = path.basename(path.dirname(await resolveScriptPath(opts.episode)));
+        const slot = `episode-${opts.orientation}${opts.chapter ? `-ch${opts.chapter}` : ""}`;
+        const { stdout } = await promisify(execFile)("python3", [
+          scriptFile, "upload", "--file", output, "--channel", currentChannelId(),
+          "--episode", episodeSlug, "--slot", slot,
+        ], { maxBuffer: 1024 * 1024 });
+        log(100, stdout.trim());
+      } catch (error) {
+        console.warn(`CLOUD_PREVIEW_FAILED: ${(error as Error).message}`);
+      }
+    }
     return output;
   } finally {
     await unlink(tempOutput).catch(() => {});
