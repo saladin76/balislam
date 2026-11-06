@@ -1,0 +1,23 @@
+name: Cloud preview safety tests
+
+on:
+  pull_request:
+    paths:
+      - "scripts/studio-preview-cloud.py"
+      - "tests/studio-preview-cloud.test.py"
+      - ".github/workflows/cloud-preview-safety.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile uploader
+        run: python3 -m py_compile scripts/studio-preview-cloud.py
+      - name: Test without Drive credentials
+        run: python3 -m unittest discover -s tests -p "studio-preview-cloud.test.py" -v
