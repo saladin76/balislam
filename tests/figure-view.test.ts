@@ -40,7 +40,7 @@ describe("زاوية النظر", () => {
       }
     }
     expect(n).toBe(Object.keys(baseline).length);
-  });
+  }, 20_000); // All baseline SVG variants are rendered twice; slower Macs need more than Vitest's 5s default.
 
   /** عرض الجسد المرسوم: أقصى امتداد أفقي لنقاط الجذع والكتفين */
   const widthAt = (view: number) => {
