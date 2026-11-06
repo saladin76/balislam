@@ -45,6 +45,11 @@ export const verseChunks = (text: string, maxWords = 7): string[] => {
     });
 };
 
+/** A real recitation shows the COMPLETE Quran verse from its first audible frame.
+ * Only an audio-less storyboard may use a staggered line reveal. */
+export const verseTextOpacity = (frame: number, at: number, duration: number, hasRecitation: boolean) =>
+  hasRecitation ? 1 : fade(frame, at, duration);
+
 const HZ = { dusk: "#2A1E3F", duskDeep: "#140E20", parchment: "#F1E4CB", ink: "#4A2E1F", sand: "#C8A15A" } as const;
 
 /**
@@ -105,10 +110,10 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
             </div>
           ) : (
           <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance" }}>
-            <span style={{ color: HZ.sand, opacity: fade(frame, 10, 14) }}>﴿</span>{" "}
+            <span style={{ color: HZ.sand, opacity: verseTextOpacity(frame, 10, 14, synchronized) }}>﴿</span>{" "}
             {chunks.map((c, i) => {
               const at = start + i * step;
-              const o = synchronized && i === 0 ? 1 : fade(frame, at, 20);
+              const o = verseTextOpacity(frame, at, 20, synchronized);
               return (
                 <span key={i} style={{ opacity: o, filter: `blur(${(1 - o) * 6}px)` }}>
                   {c}
@@ -116,7 +121,7 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
                 </span>
               );
             })}{" "}
-            <span style={{ color: HZ.sand, opacity: fade(frame, start + Math.max(0, chunks.length - 1) * step, 20) }}>﴾</span>
+            <span style={{ color: HZ.sand, opacity: verseTextOpacity(frame, start + Math.max(0, chunks.length - 1) * step, 20, synchronized) }}>﴾</span>
           </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 18, opacity: refIn, transform: `translateY(${(1 - refIn) * 8}px)` }}>
