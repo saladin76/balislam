@@ -229,7 +229,7 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
         const clip = vIndex[s.id];
         const name = clip?.file;
         return clip?.text === s.narration.trim() && typeof name === "string"
-          && name !== "." && name !== ".." && !name.startsWith(".") && !/[\\/]/.test(name)
+          && name !== "." && name !== ".." && !name.startsWith(".") && !name.includes("/") && !name.includes("\\")
           && existsSync(path.join(dir, "voice", name));
       }).length;
       const issues = plan ? planIssues(plan, loadChannel(plan.channel)) : [];
