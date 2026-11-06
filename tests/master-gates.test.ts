@@ -16,6 +16,7 @@ const { setReview, reviewItems } = await import("../src/script/review");
 const { approveStoryboard } = await import("../src/plan/storyboard");
 const { setSceneReview } = await import("../src/plan/sceneReview");
 const { assertMasterReady } = await import("../src/render/episode");
+const { approveVoiceScene } = await import("../src/voice/review");
 
 const SCRIPT = `---
 title: "حلقة اختبار البوابات"
@@ -58,11 +59,13 @@ const fresh = async () => {
   };
   for (const s of scenes) if (s.template === "verse-card") s.props.text = "نص الآية للاختبار";
   // المشهد المنطوق بقالب لا يحتاج صورة (القالب الافتراضي للقناة لوحة وثائقية تحتاج صورة)
+  spoken.tone = "documentary";
   spoken.template = "noor-text";
   spoken.props = { text: "", light: "ink", subtitle: "" };
   for (const item of reviewItems(parsed, null)) await setReview(scriptPath, parsed, item.key, "verified");
   await approveStoryboard(scriptPath, plan);
   for (const s of scenes) await setSceneReview(scriptPath, plan, s.id, "ok");
+  await approveVoiceScene(scriptPath, plan, media.voice as never, spoken.id, "owner-test", "تم الاستماع الكامل إلى الملف وتأكيد النبرة");
   return { dir, scriptPath, parsed, plan, media, spoken, verse };
 };
 
@@ -104,6 +107,16 @@ describe("بوابات النسخة النهائية", () => {
     const s = await fresh();
     const media = { ...s.media, voice: { [s.spoken.id]: { ...s.media.voice[s.spoken.id]!, text: "نص قديم" } } };
     await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: media as never, channel })).rejects.toThrow(/صوتي/);
+  });
+
+  it("تغيّر نبرة الراوي بعد اعتماد الصوت يمنع حتى إعادة الاستماع", async () => {
+    const s = await fresh();
+    s.spoken.tone = "warm";
+    await approveStoryboard(s.scriptPath, s.plan);
+    for (const scene of s.plan.chapters.flatMap((c) => c.scenes))
+      await setSceneReview(s.scriptPath, s.plan, scene.id, "ok");
+    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel }))
+      .rejects.toThrow(/اعتماد الاستماع/);
   });
 
   it("آية بلا نصها تمنع", async () => {
