@@ -23,6 +23,8 @@ echo "=== TYPESCRIPT ==="
 npm run typecheck
 echo "=== STUDIO REVIEW TESTS ==="
 npm exec -- vitest run tests/studio-delivery-center.test.ts tests/studio-review-notes.test.ts
+echo "=== FULL EXISTING TEST SUITE ==="
+npm test
 echo "=== CLOUD AND BRIDGE PYTHON SAFETY ==="
 PYTHON="$(cat "$BASE/verified-python-path.txt")"
 PYTHONDONTWRITEBYTECODE=1 "$PYTHON" -m unittest discover -s tests -p 'test_studio_preview_cloud.py' -v
