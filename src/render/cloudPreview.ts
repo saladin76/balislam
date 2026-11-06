@@ -14,7 +14,8 @@ export const uploadCloudPreview = async (file: string, episode: string, slot: st
   if (process.env.BAL_PREVIEW_CLOUD_AUTO !== "1" || slot.endsWith("-audio")) return;
   try {
     const script = path.join(projectRoot, "scripts", "studio-preview-cloud.py");
-    const { stdout } = await exec("python3", [
+    const python = process.env.BAL_PREVIEW_PYTHON || "python3";
+    const { stdout } = await exec(python, [
       script, "upload", "--file", path.resolve(file),
       "--channel", currentChannelId(), "--episode", episode, "--slot", slot,
     ], { maxBuffer: 1024 * 1024 });
