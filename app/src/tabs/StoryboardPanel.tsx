@@ -339,6 +339,9 @@ const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
 const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   const [files, setFiles] = useState<{ name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[]>([]);
+  const [compareA, setCompareA] = useState("");
+  const [compareB, setCompareB] = useState("");
+  const [showCompare, setShowCompare] = useState(false);
   useEffect(() => {
     api.previews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
   }, [episodeId]);
@@ -347,6 +350,24 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
     <section className="sb-previews">
       <h3>المعاينات</h3>
       <p className="help">كل فيديو يُصنع للحلقة يظهر هنا، وأي تعديل يستبدل القديم بالجديد. المعاينات لا تُنشر.</p>
+      {files.length > 1 && <div className="sb-compare-tools">
+        <button type="button" className="btn" aria-expanded={showCompare} onClick={() => setShowCompare((v) => !v)}>
+          {showCompare ? "إغلاق المقارنة" : "مقارنة معاينتين"}
+        </button>
+        {showCompare && <div className="sb-compare-layout" aria-label="مقارنة معاينات متجاورة">
+          {[compareA || files[0]!.name, compareB || files[1]!.name].map((selected, i) => (
+            <div key={i}>
+              <label>النسخة {i === 0 ? "الأولى" : "الثانية"}
+                <select value={selected} onChange={(e) => i === 0 ? setCompareA(e.target.value) : setCompareB(e.target.value)}>
+                  {files.map((f) => <option key={f.name} value={f.name}>{f.title} — رفع {f.version}</option>)}
+                </select>
+              </label>
+              <video src={api.previewUrl(episodeId, selected)} controls preload="metadata" playsInline />
+              <p className="help">{files.find((f) => f.name === selected)?.note || "معاينة للمقارنة فقط — ليست اعتمادًا"}</p>
+            </div>
+          ))}
+        </div>}
+      </div>}
       <div className="sb-previews-grid">
         {files.map((f) => (
           <figure key={f.name} className="sb-preview">
