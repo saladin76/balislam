@@ -70,7 +70,16 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
 export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
+export type StudioDelivery = {
+  id: string; channel: string; episode: string; kind: "video" | "storyboard";
+  slot: string; url: string; md5: string; updated: string; status: "delivered_pending_review";
+};
+export type StudioTransferOverview = {
+  configured: boolean; deliveries: StudioDelivery[]; bridgeDeliveredJobs: number; note: string;
+};
+
 export const api = {
+  studioTransfers: () => call<StudioTransferOverview>("/api/studio-transfers"),
   recitationChoice: (episode: string, channel: string) =>
     call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
   saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
