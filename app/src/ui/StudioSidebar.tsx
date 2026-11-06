@@ -1,9 +1,9 @@
 import React from "react";
 
-export type StudioSection = "home" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs" | "treviews";
+export type StudioSection = "home" | "ops" | "deliveries" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs" | "treviews";
 
 export const SECTION_TITLES: Record<StudioSection, string> = {
-  home: "الحلقات وغرفة العمليات", research: "البحث والتحضير", script: "السكريبت",
+  home: "الحلقات", ops: "غرفة العمليات", deliveries: "مركز التسليمات", research: "البحث والتحضير", script: "السكريبت",
   storyboard: "الستوري بورد", voice: "صوت الحلقة", episode: "محرر المشاهد", publish: "النشر والتسليم",
   identity: "الهوية البصرية", library: "مكتبة الأصول والقوالب", channel: "إعدادات القناة",
   settings: "الاتصالات والمفاتيح", guide: "دليل الاستوديو", labs: "مختبرات الإنتاج", treviews: "المراجعات الفنية",
@@ -38,7 +38,7 @@ export const StudioSidebar: React.FC<{
     <div className="studio-sidebar-heading"><div className="studio-product-mark"><span /><span /><span /></div><div><strong>الاستوديو</strong><small>مساحة الإنتاج</small></div><button type="button" className="studio-close-nav" onClick={p.onClose} aria-label="إغلاق القائمة"><StudioIcon name="close" /></button></div>
     <div className="studio-channel-card"><div className="studio-channel-mark">{p.channelMark}</div><div><span>القناة الحالية</span><strong>{p.channelName}</strong></div></div>
     <nav className="studio-sidebar-nav" aria-label="الأقسام الرئيسية للاستوديو">
-      <div className="studio-nav-group"><p>مساحة العمل</p>{item("home", "grid", "الحلقات وغرفة العمليات")}{item("library", "library")}{p.hasLabs && item("labs", "lab")}{p.hasTechReviews && item("treviews", "review")}</div>
+      <div className="studio-nav-group"><p>مساحة العمل</p>{item("home", "grid", "الحلقات")}{item("ops", "grid", "غرفة العمليات")}{item("deliveries", "review", "مركز التسليمات")}{item("library", "library")}{p.hasLabs && item("labs", "lab")}{p.hasTechReviews && item("treviews", "review")}</div>
       <div className="studio-nav-group"><p>إدارة القناة</p>{item("identity", "palette", undefined, p.identityDirty ? "تعديلات غير محفوظة" : undefined)}{item("channel", "sliders")}{item("settings", "plug", undefined, p.voiceConnected ? undefined : "تحتاج إعداد الاتصال")}</div>
       {p.hasGuide && <div className="studio-nav-group studio-guide-link">{item("guide", "book", p.guideLabel)}</div>}
     </nav>
