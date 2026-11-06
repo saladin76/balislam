@@ -16,7 +16,7 @@ const { setReview, reviewItems } = await import("../src/script/review");
 const { approveStoryboard } = await import("../src/plan/storyboard");
 const { setSceneReview } = await import("../src/plan/sceneReview");
 const { assertMasterReady } = await import("../src/render/episode");
-const { approveVoiceScene } = await import("../src/voice/review");
+const { approveVoiceScene, approveVoiceEpisode } = await import("../src/voice/review");
 
 const SCRIPT = `---
 title: "حلقة اختبار البوابات"
@@ -66,6 +66,7 @@ const fresh = async () => {
   await approveStoryboard(scriptPath, plan);
   for (const s of scenes) await setSceneReview(scriptPath, plan, s.id, "ok");
   await approveVoiceScene(scriptPath, plan, media.voice as never, spoken.id, "owner-test", "تم الاستماع الكامل إلى الملف وتأكيد النبرة");
+  await approveVoiceEpisode(scriptPath, plan, media.voice as never, "owner-test", "تم الاستماع للتعليق الصوتي كاملًا ومراجعة تتابع الوقفات والإيقاع");
   return { dir, scriptPath, parsed, plan, media, spoken, verse };
 };
 
