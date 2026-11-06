@@ -49,6 +49,16 @@ export const DeliveryCenter: React.FC<{ onOpenEpisode?: (channel: string, episod
     </div>
     {error && <p className="delivery-error" role="alert">{error}</p>}
     {!overview?.configured && !loading && <p className="delivery-empty">فهرس التسليمات غير موجود في بيئة Studio الحالية. تأكد أن Studio يعمل على Mac الذي توجد عليه أداة المزامنة.</p>}
+    {!!overview?.pendingJobs.length && <section className="delivery-queue" aria-label="قائمة طلبات الجسر">
+      <h2>طلبات التسليم من Claude السحابي</h2>
+      <p>هذه الحالات من نسخة GitHub المحفوظة محليًا على Mac. لا تعني وصول الملفات أو اعتمادها.</p>
+      <div className="delivery-queue-items">
+        {overview.pendingJobs.map((job) => <div key={job.id}>
+          <span>{CHANNELS[job.channel]} · {job.episode} · {job.slot}</span>
+          <strong>{job.state === "delivered" ? "سُجل تنفيذ الطلب" : "بانتظار تنفيذ Mac"}</strong>
+        </div>)}
+      </div>
+    </section>}
     <div className="delivery-toolbar">
       <label>القناة <select value={filter} onChange={(e) => { setFilter(e.target.value); setSelected([]); }}>
         <option value="all">جميع القنوات</option>
