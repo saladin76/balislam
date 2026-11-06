@@ -25,12 +25,13 @@ if [[ ! -e "$TARGET" ]]; then
   git -C "$REPO" worktree add --detach "$TARGET" "$REF"
 else
   [[ "$(git -C "$TARGET" rev-parse --is-inside-work-tree 2>/dev/null || true)" == true ]] || fail 'Existing target is not a Git worktree'
-  [[ -z "$(git -C "$TARGET" status --porcelain --untracked-files=normal)" ]] || fail 'Preview worktree has changes; refusing overwrite'
+  [[ -z "$(git -C "$TARGET" status --porcelain --untracked-files=normal)" ]] || fail "Preview worktree has changes; preserved them. For a new clean check, set BAL_STUDIO_PREVIEW_DIR to a FRESH path, e.g. \$HOME/balislam-recitation-next-preview. Do not reset or delete the existing worktree."
   git -C "$TARGET" switch --detach "$REF"
 fi
 printf 'Preview commit: %s\n' "$REF"
 printf 'Installing exact locked dependencies in isolated preview...\n'
-(cd "$TARGET" && npm ci --no-audit --no-fund)
+# Linked worktrees must never run npm prepare, which can rewrite the primary Git hooks config.
+(cd "$TARGET" && npm ci --ignore-scripts --no-audit --no-fund)
 printf 'Running the project gate before any server starts...\n'
 (cd "$TARGET" && npm run gate)
 if [[ "$MODE" == check ]]; then
