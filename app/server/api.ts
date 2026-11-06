@@ -122,6 +122,71 @@ export const balApi = (): Plugin => ({
         const identityFile: string = cp.identity;
         const identityDefaultFile: string = cp.identityDefault;
 
+        // Read-only, channel-scoped gate inventory. Never generates a plan,
+        // initiates a render, approves a scene or touches another worktree.
+        if (url.pathname === "/api/studio-release-readiness" && req.method === "GET") {
+          const { summarizeStudioRelease } = await import("./studioReleaseReadiness.ts");
+          const empty = { done: 0, total: 0 };
+          const base = { channel: ch, episode: "001", found: false, folder: null,
+            scriptValid: false, storyboard: empty, scenes: empty, sources: empty,
+            narration: empty, verseTextMissing: 0, master: false, masterVoiced: false,
+            approved: false, publishFiles: { done: 0, total: 6 } };
+          const { listScriptEpisodeDirs, resolveScriptPath } = await load("/src/script/episodes.ts");
+          const dirs: string[] = (await listScriptEpisodeDirs(episodesDir)).filter((d: string) => d.startsWith("001-"));
+          if (dirs.length !== 1) return send(res, 200, { ...summarizeStudioRelease(base),
+            blockers: [dirs.length ? "أكثر من مجلد إنتاج للحلقة 001 في هذه القناة." : "الحلقة 001 غير موجودة في مجلد Studio الحالي؛ قد تكون في Git worktree آخر."] });
+          const scriptPath: string = await resolveScriptPath("001");
+          const folder = path.dirname(scriptPath);
+          const { readPlanFile } = await load("/src/plan/io.ts");
+          const plan = await readPlanFile(scriptPath);
+          if (!plan) return send(res, 200, { ...summarizeStudioRelease({ ...base, found: true, folder: dirs[0] }),
+            blockers: ["خطة الحلقة الحالية غير موجودة أو غير قابلة للقراءة."] });
+          const scenes = plan.chapters.flatMap((c: any) => c.scenes);
+          const [storyboardMod, sceneMod, reviewMod, parseMod, checkMod, qualityMod] = await Promise.all([
+            load("/src/plan/storyboard.ts"), load("/src/plan/sceneReview.ts"), load("/src/script/review.ts"),
+            load("/src/script/parse.ts"), load("/src/script/checkChannel.ts"), load("/src/render/quality.ts")
+          ]);
+          const script = parseMod.parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+          const check = checkMod.checkForChannel(script);
+          const sb = storyboardMod.storyboardStatus(plan, await storyboardMod.loadStoryboard(scriptPath));
+          const sr = sceneMod.sceneReviewSummary(sceneMod.sceneReviewItems(plan, await sceneMod.loadSceneLedger(scriptPath)));
+          const reviewed = reviewMod.reviewSummary(reviewMod.reviewItems(script, await reviewMod.loadLedger(scriptPath)));
+          let voice: Record<string, { text?: string; file?: string }> = {};
+          try { voice = JSON.parse(await readFile(path.join(folder, "voice", "index.json"), "utf8")); } catch { /* no voice index */ }
+          const narrated = scenes.filter((s: any) => s.narration?.trim());
+          const voiceDone = narrated.filter((s: any) => {
+            const clip = voice[s.id];
+            return clip?.text === s.narration.trim() && typeof clip.file === "string" &&
+              /^[A-Za-z0-9_.-]+$/.test(clip.file) && !clip.file.startsWith(".") &&
+              existsSync(path.join(folder, "voice", clip.file));
+          }).length;
+          const pkg = path.join(folder, "out", "package");
+          const video = path.join(pkg, `${plan.episode || "001"}-episode.mp4`);
+          const files = ["youtube.md", "social.md", "publish-checklist.md"];
+          let pkgNames: string[] = [];
+          try { pkgNames = await readdir(pkg); } catch { /* package not created */ }
+          const fileCount = files.filter((name) => pkgNames.includes(name)).length +
+            Number(pkgNames.some((name) => name.startsWith((plan.episode || "001") + "-episode.") && name.endsWith(".srt"))) +
+            Number(pkgNames.some((name) => /^\d{3}-thumbnail-\d+\.png$/.test(name)));
+          let render: { quality?: string; voiced?: boolean } | null = null;
+          let ownerStatus: { approved?: { at: string; size: number; mtime: number } } = {};
+          try { render = JSON.parse(await readFile(path.join(pkg, "render.json"), "utf8")); } catch { /* no metadata */ }
+          try { ownerStatus = JSON.parse(await readFile(path.join(folder, "status.json"), "utf8")); } catch { /* no approval */ }
+          return send(res, 200, summarizeStudioRelease({
+            channel: ch, episode: "001", found: true, folder: dirs[0],
+            scriptValid: Boolean(check.ok),
+            storyboard: { done: sb.approved, total: sb.total },
+            scenes: { done: sr.ok, total: sr.total },
+            sources: { done: reviewed.verified, total: reviewed.total },
+            narration: { done: voiceDone, total: narrated.length },
+            verseTextMissing: storyboardMod.versesMissingText(plan).length,
+            master: existsSync(video) && statSync(video).size > 100000 && render?.quality === "master",
+            masterVoiced: render?.voiced === true,
+            approved: qualityMod.approvalValid(ownerStatus.approved, video),
+            publishFiles: { done: fileCount, total: 5 },
+          }));
+        }
+
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
         if (parts[0] === "channels") {
