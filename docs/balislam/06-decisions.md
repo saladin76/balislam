@@ -5,6 +5,15 @@
 
 ---
 
+## ٦ نوفمبر ٢٠٢٦ — التوجيه 019 (مسار المطوّر): تخطيط v3 للوحة، وخطوط PDF، وخلفية الكابشن (الفرع `dev/balislam-019-tools`)
+
+- **المشكلة:** صور اللوحة صغيرة، والأفقي والعمودي متباعدان، ولا تمييز للمشاهد المعدّلة؛ وفي PDF كانت الأرقام والعلامات تسقط إلى `LiberationSerif` لأن ملف Tajawal المحمّل عربي فقط؛ والكابشن ضعيف التباين فوق الخلفيات الفاتحة (الغرفة البيج، ضباب الفجر).
+- **الحل:** `boardHtml` بتخطيط v3، و`compareWithVersion` و`--compare`، وخطوط بـ`unicode-range` (`src/render/storyboardBoard.ts`).
+- **خلفية الكابشن:** `captionBackdrop` الاختياري في `Shot` (`src/remotion/illus/shots/index.tsx`)، و`captionGradient` (`src/remotion/scenes/AlleyTale.tsx`)، و`contrast` في `TopCaption` (`src/remotion/illus/TopCaption.tsx`).
+- **التحقق:** لوحة الفصل 1 من هذا الفرع مطابقة لـv2 بالبايت في المشاهد الـ12 (اختبار ذاتي للمقارنة ولأن الخلفية الاختيارية لا تغيّر شيئًا وهي مطفأة)؛ `pdffonts` بلا خط بديل.
+- **قيد معروف:** النص المستخرج من PDF (نسخ ولصق) يعكس تراكيب «لا» والتنوين؛ الرسم سليم، والنص الكامل في `board.html`.
+- **الاختبارات:** `tests/storyboard-tools-019.test.ts`.
+
 ## ٦ نوفمبر ٢٠٢٦ — الأمر 018: تسليم v1، والمصادر، والستوري بورد v2 للفصل 1 (الفرع `feat/balislam-001-storyboard`)
 
 - **P0 (عزل بيئة Git):** في فرع مستقل `fix/gate-git-env-isolation` (commit `b80b32c`) ينتظر المراجعة؛ إدخاله في سجل ذلك الفرع. هذا الفرع لم يُدفع من worktree.

@@ -28,7 +28,8 @@ export const captionLines = (timings: WordTiming[], max: number) => {
   return out;
 };
 
-export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTiming[]; keys: string[]; portrait: boolean; out?: number; keyColor?: string; size?: number }> = ({ frame, fps, timings, keys, portrait, out = 1, keyColor = ID.dawn, size: sizeOverride }) => {
+/** contrast (0..1، الأمر 019): الكلمات القادمة أوضح وظل النص أعمق فوق الخلفيات الفاتحة؛ 0 = القائم */
+export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTiming[]; keys: string[]; portrait: boolean; out?: number; keyColor?: string; size?: number; contrast?: number }> = ({ frame, fps, timings, keys, portrait, out = 1, keyColor = ID.dawn, size: sizeOverride, contrast = 0 }) => {
   if (!timings.length) return null;
   const lines = captionLines(timings, portrait ? 6 : 10);
   const idx = Math.max(
@@ -57,7 +58,7 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
         lineHeight: 1.35,
         opacity: out * lineIn,
         transform: `translateY(${(1 - lineIn) * -10}px)`,
-        textShadow: "0 2px 14px rgba(0,0,0,.55)",
+        textShadow: contrast > 0 ? `0 2px 14px rgba(0,0,0,${(0.55 + 0.3 * contrast).toFixed(2)}), 0 0 3px rgba(0,0,0,${(0.5 * contrast).toFixed(2)})` : "0 2px 14px rgba(0,0,0,.55)",
       }}
     >
       {line.map((w, i) => {
@@ -69,7 +70,7 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
             key={`${idx}-${i}`}
             style={{
               color: key && said > 0.5 ? keyColor : ID.paper,
-              opacity: 0.38 + 0.62 * said,
+              opacity: 0.38 + 0.22 * contrast + (0.62 - 0.22 * contrast) * said,
               display: "inline-block",
               transform: key ? `scale(${1 + 0.1 * pop * (1 - Math.min(1, (frame - w.start) / 30))})` : undefined,
             }}

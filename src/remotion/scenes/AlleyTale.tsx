@@ -21,6 +21,18 @@ import { Grade, Texture } from "../illus/texture";
 import { AmbientGrade, BackHalo, DepthLayer, ForegroundFrame, LitFigure, SceneFigure, WorldLight, lightAt, parallaxDepth, parseLighting } from "../illus/light";
 
 /**
+ * تدرّج أعلى الإطار خلف الكابشن: القائم (0.5 إلى 20%) بلا captionBackdrop؛ ومعه يزيد عمقًا وامتدادًا
+ * حتى يغطي السطرين في العمودي، فيبقى النص مقروءًا فوق الخلفيات الفاتحة (الأمر 019).
+ */
+export const captionGradient = (portrait: boolean, b: number) => {
+  if (b <= 0) return "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,0) 20%)";
+  const a = (0.5 + 0.3 * b).toFixed(2);
+  const end = portrait ? 20 + 12 * b : 20 + 6 * b;
+  const hold = portrait ? 12 + 8 * b : 8 + 4 * b;
+  return `linear-gradient(180deg, rgba(0,0,0,${a}) 0%, rgba(0,0,0,${a}) ${hold.toFixed(1)}%, rgba(0,0,0,0) ${end.toFixed(1)}%)`;
+};
+
+/**
  * «حكايات الحارة»: كل جملة لقطة في مكان مرسوم (حارة، سوق، بيت)، وبطل بلا ملامح يمثّل ما يُقال،
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
@@ -59,9 +71,9 @@ const ShotScene: React.FC<AlleyTaleProps> = (props) => {
           <Grade w={WW} h={WH} tint={shot.tint} tintOpacity={shot.tintOpacity} vignette={0.5} />
           <Texture kind="grain" w={WW} h={WH} opacity={0.18} tile={256} blend="overlay" />
         </svg>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,0) 20%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: captionGradient(portrait, shot.captionBackdrop ?? 0) }} />
       </AbsoluteFill>
-      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} {...(shot.captionSize ? { size: shot.captionSize } : {})} />
+      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} {...(shot.captionSize ? { size: shot.captionSize } : {})} {...(shot.captionBackdrop ? { contrast: shot.captionBackdrop } : {})} />
     </SceneShell>
   );
 };

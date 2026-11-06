@@ -18,7 +18,8 @@ import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeat
  */
 /** overlay: طبقة بإحداثيات الشاشة فوق المشهد (لقطة «بعين البطل») */
 /** captionSize: حجم السطر المكتوب إن احتاجت اللقطة نصًا أكبر ليُقرأ على الهاتف (الأمر 015)؛ بلا الحقل الحجم القائم */
-export type Shot = { cam: CamKey[]; world: React.ReactNode; tint?: string; tintOpacity?: number; overlay?: React.ReactNode; captionSize?: number };
+/** captionBackdrop (0..1، الأمر 019): تقوية خلفية الكابشن للقطة فاتحة الخلفية (تدرّج أعمق وكلمات قادمة أوضح)؛ بلا الحقل كما هو */
+export type Shot = { cam: CamKey[]; world: React.ReactNode; tint?: string; tintOpacity?: number; overlay?: React.ReactNode; captionSize?: number; captionBackdrop?: number };
 export type ShotDef = { nameAr: string; place: string; render: (c: ShotCtx) => Shot };
 
 const hero = LOOKS.hero;
