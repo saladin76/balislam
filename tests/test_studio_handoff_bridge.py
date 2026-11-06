@@ -57,6 +57,15 @@ class BridgeSafety(unittest.TestCase):
             with self.assertRaises(ValueError):
                 bridge.artifact(repo,dict(job,sha256="0"*64))
 
+    def test_reject_unapproved_episode_files(self):
+        for path, kind in [
+            ("channels/balislam/episodes/001-test/secrets.json", "storyboard"),
+            ("channels/balislam/episodes/001-test/media/audio.mp4", "video"),
+            ("channels/balislam/episodes/001-test/images/portrait.png", "storyboard"),
+        ]:
+            with self.assertRaises(ValueError):
+                bridge.validate(self.job(path=path, kind=kind))
+
     def test_empty_queue_no_upload(self):
         self.assertEqual(bridge.parse_queue('{"version":1,"jobs":[]}'),[])
 
