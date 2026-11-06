@@ -71,6 +71,22 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(readFileSync(x.file).equals(before)).toBe(true);
     expect(()=>exportStoryboard({manifestPath:x.file,pdfPath:output,htmlOnly:true})).toThrow(/overwrite/);
   });
+  it("keeps Dafatir chapter one to nine review pages without losing scene c1-s5 narration",()=>{
+    const root=path.join(import.meta.dirname,"..");
+    const file=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
+    const raw=JSON.parse(readFileSync(file,"utf8"));
+    const board=normalizeStoryboard(raw,file);
+    const {html,scenes}=buildStoryboardHtml(board,{chapter:1});
+    expect(scenes).toBe(9);
+    expect((html.match(/<article class="page">/g)??[]).length).toBe(9);
+    const scene=raw.scenes.find((s:{id:string;narration:string})=>s.id==="c1-s5");
+    expect(scene.narration.length).toBeGreaterThan(135);
+    expect(scene.narration.length).toBeLessThanOrEqual(160);
+    expect(html).toContain(scene.narration);
+    expect(html).not.toContain("النص كامل في الملحق");
+    expect(html).toContain("height:121mm");
+    expect(html).toContain("height:130mm");
+  });
   it("reads actual Dafatir V1.1 and Zubdat v021 without modifying episodes",()=>{
     const root=path.join(import.meta.dirname,"..");
     const p1=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
