@@ -405,22 +405,16 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { action, auditNote } = await readBody(req);
       if (action === "approve") {
-        const measured = await loadStoryboardMotion(parts[1]);
-        const note = typeof auditNote === "string" ? auditNote.trim() : "";
-        if (measured) {
-          const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
-          const currentHash = await currentMotionFingerprint(parts[1], plan, measured.orientation);
-          const { staleMotionScenes } = await load("/src/render/motionValidity.ts");
-          if (staleMotionScenes(plan, measured, currentHash).length)
-            return send(res, 409, { error: "القياس قديم أو غير مكتمل؛ أعد الفحص قبل اعتماد الستوري بورد." }), true;
-          const warnings = Object.values(measured.scenes).filter((s: any) => s.logic?.status === "needs-review").length;
-          if (warnings && note.length < 10)
-            return send(res, 400, { error: `هناك ${warnings} مشهدًا بها تحذيرات. شاهدها واكتب سبب الاعتماد أو الاستثناء (10 أحرف على الأقل).` }), true;
-          await S.approveStoryboard(file, plan, note ? { note, inputHash: measured.inputHash } : undefined);
-        } else {
-          // الاعتماد اليدوي التقليدي متاح دون تقرير آلي؛ لا يُعرض باعتباره اجتيازًا للفحص.
-          await S.approveStoryboard(file, plan);
-        }
+        const { checkVisualStoryboardSignoff } = await load("/src/plan/storyboardVisualGate.ts");
+        const checked = checkVisualStoryboardSignoff(plan, auditNote);
+        if (!checked.ok)
+          return send(res, 400, { error: checked.reason }), true;
+        // The illustrated storyboard is reviewed BEFORE voice/video production.
+        // A motion-audit of a provisional silent video is intentionally NOT its
+        // acceptance gate. Preserve the technical motion report as QA evidence.
+        await S.approveStoryboard(file, plan, {
+          note: checked.note,
+        });
       } else if (action === "revoke") await S.revokeStoryboard(file);
       else return send(res, 400, { error: "إجراء غير صالح." }), true;
     }
@@ -435,8 +429,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       motionStale = staleMotionScenes(plan, motion, hash);
     }
     const { auditNeedsJustification } = await load("/src/render/motionValidity.ts");
-    const auditNeedsReview = Boolean(motion && !motionStale.length && auditNeedsJustification(motion, status.audit));
-    send(res, 200, { status, motion, motionStale, auditNeedsReview });
+    const motionAuditNeedsReview = Boolean(motion && !motionStale.length && auditNeedsJustification(motion, status.audit));
+    // Kept separate: motion QA must not revoke a human-approved pre-voice storyboard.
+    send(res, 200, { status, motion, motionStale, motionAuditNeedsReview, auditNeedsReview: false });
     return true;
   }
 
