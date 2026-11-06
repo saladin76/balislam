@@ -130,7 +130,7 @@ export const balApi = (): Plugin => ({
           const base = { channel: ch, episode: "001", found: false, folder: null,
             scriptValid: false, storyboard: empty, scenes: empty, sources: empty,
             narration: empty, verseTextMissing: 0, master: false, masterVoiced: false,
-            approved: false, publishFiles: { done: 0, total: 6 } };
+            approved: false, publishFiles: { done: 0, total: 5 } };
           const { listScriptEpisodeDirs, resolveScriptPath } = await load("/src/script/episodes.ts");
           const dirs: string[] = (await listScriptEpisodeDirs(episodesDir)).filter((d: string) => d.startsWith("001-"));
           if (dirs.length !== 1) return send(res, 200, { ...summarizeStudioRelease(base),
