@@ -9,6 +9,16 @@
 - Owner: transfers reports, watches the complete produced episode in Studio, grants or refuses final approval and publishes.
 - Google Drive handoff means **delivered for review**, not publish-approved. Restricted audio and private content must not be made link-public.
 
+## Recommended: two-command Mac bootstrap and audit
+
+```bash
+cd "$HOME/balislam"
+git fetch origin feat/studio-local-release-audit
+bash <(git show origin/feat/studio-local-release-audit:scripts/setup-studio-release-audit.sh)
+```
+
+This installs the audit scripts under `~/Balislam-Preview-Sync/release-audit/`, runs all five isolated Node fixture tests, prints the diagnostic status for the main checkout and lists the **explicit** Git worktree locations. The diagnostic may print `AUDIT_BLOCKED` even though `AUDIT_TESTS_OK` appears; they represent different things. No episode data is changed. For the accurate active media state of each channel, run the suggested command using that channel's worktree path.
+
 ## Mac: one local diagnostic command (read-only)
 From Terminal with the existing `~/balislam` checkout:
 
