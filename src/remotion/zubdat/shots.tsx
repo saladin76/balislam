@@ -180,13 +180,15 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
               <rect x={160} y={-292} width={38} height={580} fill={z.paper} opacity={0.14} />
               <rect x={-170} y={-210} width={290} height={26} rx={6} fill={z.hl} />
               <Write id="bt" x={-12} y={-60} text="أول مرة أصلي" size={62} p={wp(frame, tT, end("أصلي", 0.1))} c={z.paper} font="head" z={z} />
-              <Write id="bs" x={-12} y={34} text="وكان للصلاة طعم آخر" size={50} p={wp(frame, tSub, end("آخر", 0.22))} c={z.hl} z={z} />
+              {/* الأمر 018: سطران بحجم 62 بدل سطر بحجم 50 (غير مقروء بعرض 390)، والغلاف بعرضه */}
+              <Write id="bs" x={-12} y={24} text="وكان للصلاة" size={62} p={wp(frame, tSub, at("طعم", 0.2))} c={z.hl} z={z} />
+              <Write id="bs2" x={-12} y={104} text="طعم آخر" size={62} p={wp(frame, at("طعم", 0.2), end("آخر", 0.22))} c={z.hl} z={z} />
               <rect x={-12 - t1w / 2} y={190} width={t1w} height={4} fill={z.paper} opacity={0.5 * bIn} />
             </g>
             {/* بطاقة المؤلف تنزلق من تحت الكتاب */}
             <g transform={`translate(${1250 - 60 * (1 - slip)} ${750 + 120 * (1 - slip)})`} opacity={slip}>
               <Card x={0} y={0} w={560} h={104} z={z} rot={-2}>
-                <Write id="au" x={0} y={16} text="الدكتور خالد أبو شادي" size={50} p={wp(frame, tDr, end("شادي", 0.4))} c={z.ink} font="body" weight={600} z={z} />
+                <Write id="au" x={0} y={16} text="الدكتور خالد أبو شادي" size={54} p={wp(frame, tDr, end("شادي", 0.4))} c={z.ink} font="body" weight={600} z={z} />
               </Card>
             </g>
             {/* الرحلة: من الكتاب إلى محطتين */}

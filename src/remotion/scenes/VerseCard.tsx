@@ -262,13 +262,22 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
   const fit = letters > room ? Math.max(0.45, Math.sqrt(room / letters)) : 1;
   const size = Math.round(baseVerse * fit * (portrait ? 1 : 1.08));
   const inP = fade(frame, 0, 14);
+  const pending = !text.trim() || text === VERSE_PLACEHOLDER;
   const ref = reference.replace(/\s*·\s*/, /[–-]/.test(reference) ? " · الآيتان " : " · الآية ");
   return (
     <SceneShell {...props} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: portrait ? 56 : 44, padding: portrait ? "0 80px 220px" : "0 220px 40px", opacity: inP }}>
         <div style={{ fontFamily: fontFamilies.heading, fontSize: Math.round(refSize * (portrait ? 2.1 : 2.2)), lineHeight: 1.2, color: c.ink, letterSpacing: 0.5 }}>سورة {arabicDigits(ref)}</div>
         <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />
-        <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400 }}>{text}</div>
+        {pending ? (
+          // نص الآية لم يُجلب: لا يُعرض شيء بهيئة الآية (لا خط المصحف ولا موضع النص)، بل تنبيه مراجعة صريح بخط النص (الأمر 018)
+          <div style={{ fontFamily: fontFamilies.body, fontWeight: 700, fontSize: Math.round(refSize * 1.15), lineHeight: 1.6, color: c.secondary, textAlign: "center", direction: "rtl", border: `4px dashed ${c.secondary}`, borderRadius: 12, padding: portrait ? "28px 36px" : "24px 48px", maxWidth: portrait ? 860 : 1100 }}>
+            تنبيه مراجعة: نص الآية لم يُجلب من مصدره المعتمد
+            <div style={{ fontWeight: 400, fontSize: Math.round(refSize * 0.9), color: c.inkSoft }}>البطاقة غير مكتملة ولا تُعتمد — اجلب نصوص الآيات ثم أعد المعاينة</div>
+          </div>
+        ) : (
+          <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400 }}>{text}</div>
+        )}
         <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />
         {reciter ? (
           <div style={{ fontFamily: fontFamilies.body, fontSize: refSize, color: c.inkSoft }}>
