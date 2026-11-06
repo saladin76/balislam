@@ -11,7 +11,7 @@ This protocol is for the three independent channels: `balislam`, `dafatir-alzama
    "$HOME/Balislam-Preview-Sync/studio-handoff.sh" upload --kind storyboard --file "/absolute/path/to/board.pdf" --channel balislam --episode 001-know-the-truth --slot visual-board
    ```
    Specify a real, verified file; do not scan all worktrees to select a recent match. Use a stable slot for each deliverable. Preserve the actual episode slug.
-4. The uploader checks source integrity and Drive MD5, returns `VERIFIED`, `LINK` and a local `HANDOFF` path. Claude must report any failure rather than claim cloud success.
+4. The uploader checks source integrity and Drive MD5, returns `VERIFIED`, `LINK`, a local `HANDOFF` path and a stable Drive `HANDOFF_LINK` for the same episode. Claude must report any failure rather than claim cloud success.
 5. **Claude's report** should include the original task/directive, branch and commit, changed files, exact artifact slot and link, test command/results, visual checks performed versus not performed, known issues, and what reviewer should examine next. It should also copy the relevant channel/episode handoff markdown from `$HOME/Balislam-Preview-Sync/handoffs/<mapped-channel>/<episode>.md`. Reports must never invent an approval.
 6. **ChatGPT** reviews the linked storyboard/preview and the implementer's report, and sends one unambiguous corrective directive per iteration. Distinguish an actual continuous realtime playback review from frame-only or sampled review. Do not equate passing code checks with visual approval.
 7. Owner transfers reports/decisions between conversations and makes final approval decisions.
@@ -82,3 +82,7 @@ Do not issue permanent per-chat instruction templates until these rollout gates 
 ## Mac verification for stable revision links
 
 Successfully executed on owner's Mac (2026-11-06); to recheck if required, run `bash "$HOME/balislam-cloud-preview-ready/scripts/verify-cloud-overwrite.sh"`. The test uploads a small synthetic JSON document twice to a dedicated `sync-system-validation/storyboard/overwrite-json.json` cloud slot, compares links, confirms exactly one logical file, and leaves production files untouched. The test artifact remains in Drive for audit; its content contains no sensitive production material. A link change or duplicate fails verification and blocks rollout.
+
+## Stable shared review report
+
+Each successful upload also verifies a Markdown report at `Balislam-Studio-Previews/<cloud-channel>/episodes/<episode>/handoff.md`, and prints `HANDOFF_LINK`. This is the stable link that may be pinned in the corresponding ChatGPT review conversation; it is updated in place with subsequent verified deliveries. The report itself is a list of available links/checksums and does not replace Claude's implementation and quality report. The report is link-accessible; do not place sensitive material in it. Cloud-side authors should not claim they have a new handoff link until the Mac confirmed its upload.
