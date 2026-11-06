@@ -13,16 +13,16 @@ import { parseMarkdown } from "../app/src/ui/Markdown";
 const EPS = "channels/dafatir-alzaman/episodes";
 
 describe("المراجعات الفنية", () => {
-  it("مراجعات الأوامر 018 و019 و020 موجودة، وقرار المشرف فارغ", async () => {
+  it("مراجعات الأوامر 018 و019 و020 و021 موجودة، وقرار المشرف فارغ", async () => {
     const list = await listTechReviews(EPS);
     const keys = list.map((r) => `${r.dir}/${r.id}`).sort();
-    expect(keys).toEqual(["001-adam-beginning/018", "001-adam-beginning/019", "001-adam-beginning/020", "900-library-lab/018", "900-library-lab/019"]);
+    expect(keys).toEqual(["001-adam-beginning/018", "001-adam-beginning/019", "001-adam-beginning/020", "001-adam-beginning/021", "900-library-lab/018", "900-library-lab/019"]);
     for (const r of list) {
       expect(r.supervisorDecision).toBeNull();
       expect(r.hasReport).toBe(true);
       expect(r.strips.length).toBeGreaterThan(0);
       // ستوري بورد الأمر 020 لوحات وPDF بلا مقاطع؛ مراجعات الفيديو (018، 019) لها مقاطع قبل/بعد
-      if (r.id !== "020") expect(r.clips.length).toBeGreaterThan(0);
+      if (r.id !== "020" && r.id !== "021") expect(r.clips.length).toBeGreaterThan(0);
     }
   });
 
