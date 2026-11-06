@@ -70,7 +70,7 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   });
 };
 
-export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary };
+export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary };
 
 export type GenerateVoiceOptions = {
   client?: ElevenLabsClient | null;
@@ -117,6 +117,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     cached: jobs.filter(isCached).map((j) => j.id),
     chars,
     credits: Math.ceil(chars * config.voice.creditsPerChar),
+    missingTones: plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && (!opts.only || opts.only.includes(s.id)) && !isTone(s.tone)).map((s) => s.id),
     tashkeel: tashkeelReport(
       plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && (!opts.only || opts.only.includes(s.id))),
       await loadTashkeel(scriptPath),
@@ -125,6 +126,10 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
   if (opts.dryRun) return report;
+  // Explicit tone decisions precede paid audio production. The existing
+  // ignoreStoryboard maintenance override remains separate from normal workflow.
+  if (todo.length && report.missingTones.length && !opts.ignoreStoryboard)
+    throw new Error(`حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`);
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
