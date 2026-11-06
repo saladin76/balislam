@@ -74,3 +74,11 @@
 - **الحل:** `cameraMode` (`automatic`، `directed`، `composed`) وخطة الكاميرا في `src/plan/director.ts` و`src/remotion/scenes/AlleyTale.tsx`؛ طبقة الحركة `src/remotion/illus/gait.ts` (المشيات، القدم الثابتة، الالتفاتة بدوران الجسد، `characterAt`)؛ و`motion = natural` في «الطريق»؛ ومختبر المحرك `channels/balislam/episodes/900-engine-lab/`.
 - **الاختبارات:** `tests/camera-composed.test.ts`، `tests/character-motion.test.ts`، `tests/figure-view.test.ts`.
 - **الحالة:** متاحة من المحرر منذ التوجيه الدائم، لم تُعتمد فنيًا.
+
+
+## ٦ نوفمبر ٢٠٢٦ — تنظيم واجهة الاستوديو المشتركة
+
+- قائمة جانبية للأقسام العامة، وشريط علوي لسياق القناة والحلقة، وتحسين عرض البطاقات والحقول وعلى الهاتف.
+- الانتقال يعيد استخدام تأكيد مغادرة النص غير المحفوظ والحفظ القائم. مسارات API وملفات القناة والمحرك والاعتمادات لم تتغير.
+- لا اعتماد فني جديد ولا توليد صوت أو تلاوة ولا رندر إنتاجي نتيجة لهذا التحديث.
+- المرجع: `docs/studio-interface.md`.
