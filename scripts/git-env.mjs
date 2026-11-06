@@ -34,7 +34,7 @@ export const cleanGitEnv = (env = process.env) => {
 };
 
 /** بيئة العملية الفرعية: نظيفة من متغيرات المستودع، مع إضافات صريحة */
-export const childEnv = (extra = {}, env = process.env) => ({ ...cleanGitEnv(env), ...extra });
+export const childEnv = (extra = {}, env = process.env) => cleanGitEnv({ ...env, ...extra });
 
 /** يزيل متغيرات المستودع من بيئة العملية الحالية نفسها (للاختبارات وما تشغّله) */
 export const scrubProcessGitEnv = (env = process.env) => {
