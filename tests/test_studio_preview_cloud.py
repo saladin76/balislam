@@ -78,6 +78,34 @@ class TestPreviewSafety(unittest.TestCase):
             self.assertEqual(len([c for c in calls if c[1] == "copyto" and c[3] == key]), 2)
             self.assertTrue(source.exists())
 
+    def test_storyboard_upload_uses_dedicated_folder_and_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "storyboard.md"
+            source.write_text("# Storyboard\\nScene A")
+            cloud = {}
+            def fake_rclone(*cmd):
+                if cmd[1] == "md5sum":
+                    if cmd[2] not in cloud:
+                        raise RuntimeError("missing")
+                    import hashlib
+                    return hashlib.md5(cloud[cmd[2]]).hexdigest() + "  source"
+                if cmd[1] == "copyto":
+                    cloud[cmd[3]] = Path(cmd[2]).read_bytes()
+                    return ""
+                if cmd[1] == "link":
+                    return "https://drive.google.com/open?id=storyboard-preview-id"
+                raise AssertionError(cmd)
+            args = type("Args", (), {"file":str(source), "channel":"dafatir-alzaman",
+                "episode":"001-adam-beginning", "slot":"review-sheet", "kind":"storyboard"})
+            with mock.patch.dict(os.environ, {"BAL_PREVIEW_HOME":tmp}):
+                with mock.patch.object(module, "run", side_effect=fake_rclone):
+                    module.upload(args())
+            target = "studio_drive:Balislam-Studio-Previews/dafatir-alzaman/episodes/001-adam-beginning/storyboard/review-sheet.md"
+            self.assertEqual(cloud[target], source.read_bytes())
+            index = json.loads((Path(tmp) / "preview-cloud-index.json").read_text())
+            self.assertIn("dafatir-alzaman|001-adam-beginning|storyboard|review-sheet|md", index)
+            self.assertTrue(source.is_file())
+
     def test_checksum_failure_never_publishes_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "video.mp4"
