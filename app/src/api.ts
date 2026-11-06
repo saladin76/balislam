@@ -83,7 +83,10 @@ export type StudioTransferOverview = {
   pendingJobs: StudioPendingJob[]; note: string;
 };
 
+export type StudioReviewNote = { id: string; sceneId: string; timeSec: number; text: string; createdAt: string };
 export const api = {
+  reviewNotes: (episode: string) => call<{ notes: StudioReviewNote[] }>(`/api/episodes/${encodeURIComponent(episode)}/review-notes`),
+  saveReviewNotes: (episode: string, notes: StudioReviewNote[]) => call<{ notes: StudioReviewNote[] }>(`/api/episodes/${encodeURIComponent(episode)}/review-notes`, { method: "PUT", json: { notes } }),
   studioTransfers: () => call<StudioTransferOverview>("/api/studio-transfers"),
   recitationChoice: (episode: string, channel: string) =>
     call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
