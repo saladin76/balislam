@@ -29,8 +29,12 @@ This protocol is for the three independent channels: `balislam`, `dafatir-alzama
 - Offline Python tests and read-only Drive access: **passed on owner's Mac** (8 tests, 2026-11-06).
 - Real video and real `plan.json` upload: **passed**.
 - Actual visual storyboard frames upload: **not yet tested**.
-- Cloud overwrite/ID stability on an edited real slot: **not yet verified**.
+- Cloud overwrite/ID stability on an edited real slot: **awaiting Mac execution of** `bash scripts/verify-cloud-overwrite.sh` using a standalone synthetic JSON test slot (never production media).
 - Automated trigger from actual Claude production render flows and full workflow review: **not yet verified**.
 - Main branch merge: **not approved**.
 
 Do not issue permanent per-chat instruction templates until these rollout gates are resolved; the owner has requested a final operational message for each of the 3 ChatGPT reviewer conversations and 3 Claude implementer conversations.
+
+## Mac verification for stable revision links
+
+Once the safe installer has updated the isolated checkout, run `bash "$HOME/balislam-cloud-preview-ready/scripts/verify-cloud-overwrite.sh"`. The test uploads a small synthetic JSON document twice to a dedicated `sync-system-validation/storyboard/overwrite-json.json` cloud slot, compares links, confirms exactly one logical file, and leaves production files untouched. The test artifact remains in Drive for audit; its content contains no sensitive production material. A link change or duplicate fails verification and blocks rollout.
