@@ -7,6 +7,7 @@ import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
+import { childEnv } from "../../scripts/git-env.mjs";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -343,7 +344,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const dir = path.dirname(await resolveScriptPath(parts[1]));
     const rel = path.relative(ctx.root, dir);
     if (!/^channels\/[^/]+\/episodes\/\d{3}-[^/]+$/.test(rel.split(path.sep).join("/"))) return send(res, 400, { error: "مسار الحلقة غير متوقع؛ لم يُحذف شيء." }), true;
-    const git = (args: string[]) => new Promise<{ ok: boolean; out: string }>((resolve) => execFile("git", args, { cwd: ctx.root, timeout: 120_000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }, (err, so, se) => resolve({ ok: !err, out: `${so}${se}`.trim() })));
+    const git = (args: string[]) => new Promise<{ ok: boolean; out: string }>((resolve) => execFile("git", args, { cwd: ctx.root, timeout: 120_000, env: childEnv({ GIT_TERMINAL_PROMPT: "0" }) }, (err, so, se) => resolve({ ok: !err, out: `${so}${se}`.trim() })));
     // ١) من Git (إن كانت مرفوعة) ثم من القرص كله، بما فيه الصوت والفيديو غير المرفوعين
     const tracked = (await git(["ls-files", "--", rel])).out.length > 0;
     if (tracked) await git(["rm", "-r", "-q", "--cached", "--", rel]);

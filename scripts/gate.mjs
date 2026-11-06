@@ -14,6 +14,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { childEnv } from "./git-env.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
@@ -28,7 +29,9 @@ const CHECKS = [
   ...(range ? [{ name: "تزامن التوثيق", cmd: "node", args: [path.join(root, "scripts", "docs-sync.mjs"), range] }] : []),
 ];
 
-const sh = (cmd, a, cwd, inherit = true) => spawnSync(cmd, a, { cwd, stdio: inherit ? "inherit" : "pipe", encoding: "utf8", env: { ...process.env, CI: process.env.CI ?? "1" } });
+// لا تُورَّث متغيرات تحديد المستودع (GIT_DIR وأخواته) التي يضعها git للخطّاف: الفحوص واختباراتها
+// تعمل على مستودعات مؤقتة، ولو ورثتها لعملت على المستودع الحقيقي (scripts/git-env.mjs، الأمر 018)
+const sh = (cmd, a, cwd, inherit = true) => spawnSync(cmd, a, { cwd, stdio: inherit ? "inherit" : "pipe", encoding: "utf8", env: childEnv({ CI: process.env.CI ?? "1" }) });
 
 let dir = root;
 let cleanup = () => {};

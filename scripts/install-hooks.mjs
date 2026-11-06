@@ -6,12 +6,13 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { cleanGitEnv } from "./git-env.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
-const inRepo = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: root, encoding: "utf8" });
+const inRepo = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: root, encoding: "utf8", env: cleanGitEnv() });
 if (inRepo.status !== 0 || inRepo.stdout.trim() !== "true" || !existsSync(path.join(root, ".githooks", "pre-push"))) process.exit(0);
-const cur = spawnSync("git", ["config", "--get", "core.hooksPath"], { cwd: root, encoding: "utf8" }).stdout.trim();
+const cur = spawnSync("git", ["config", "--get", "core.hooksPath"], { cwd: root, encoding: "utf8", env: cleanGitEnv() }).stdout.trim();
 if (cur !== ".githooks") {
-  const r = spawnSync("git", ["config", "core.hooksPath", ".githooks"], { cwd: root, encoding: "utf8" });
+  const r = spawnSync("git", ["config", "core.hooksPath", ".githooks"], { cwd: root, encoding: "utf8", env: cleanGitEnv() });
   if (r.status === 0) console.log("فُعّلت بوابة التسليم: كل git push يفحص الأنواع والاختبارات أولًا.");
 }

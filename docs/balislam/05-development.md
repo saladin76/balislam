@@ -106,3 +106,4 @@ git worktree remove --force /tmp/oldwt
 3. المرجع وسجل القرارات محدّثان.
 4. commit برسالة تذكر الأمر والتغيير، ثم `git fetch && git rebase origin/main` ثم `git push origin HEAD:main`: البوابة تفحص الـcommit المدفوع نفسه. إن رفضت، أصلح السبب ولا تتجاوزها.
 5. إن كان الفشل من تغيير غيرك على main (حدث في الأمر 011)، أصلحه في commit مستقل يوضح مصدره.
+6. **عزل بيئة Git (الأمر 018):** حين يشغّل git خطّافًا من worktree يضع `GIT_DIR` للمستودع الحقيقي. لا تورّث أي عملية فرعية متغيرات تحديد المستودع: استعمل `childEnv()` أو `cleanGitEnv()` من `scripts/git-env.mjs` (البوابة و`scripts/docs-sync.mjs` و`scripts/install-hooks.mjs` و`app/server/update.ts` و`app/server/extra.ts`)، وبيئة الاختبارات تُنظَّف قبل كل ملف (`tests/setup/git-env.ts` في `vitest.config.ts`). أي اختبار ينشئ مستودع git مؤقتًا يمرّر `env: cleanGitEnv()` صراحة. اختبار الارتداد: `tests/git-env-isolation.test.ts`.
