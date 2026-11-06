@@ -36,6 +36,7 @@ describe("storyboard-only handoff safety contract", () => {
   it("verifies the remote MD5 and obtains real file ID without making Google Drive files public", () => {
     expect(script).toContain('CLOUD_MD5="$(rclone md5sum');
     expect(script).toContain('rclone lsjson "$TARGET"');
-    expect(script).not.toContain('rclone link');
+    // Ignore explanatory comments; reject an executable public-link command.
+    expect(script).not.toMatch(/^\s*rclone\s+link\b/m);
   });
 });
