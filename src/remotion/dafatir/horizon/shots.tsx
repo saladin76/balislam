@@ -455,7 +455,7 @@ const PLACE: Record<string, [number, number]> = { tool: [1720, 1570], home: [133
 const K6 = 1.3;
 const ORDER = ["tool", "home", "food", "settle", "burial", "art"];
 
-export const Shot6: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
+export const Shot6: React.FC<{ t: number; tl: Timeline; noHead?: boolean }> = ({ t, tl, noHead }) => {
   const hz = prog(t, 0.05, 0.8, easeOut);
   const words = ORDER.map((k) => FINDS.find((f) => f.key === k)!);
   // نافذة الوصول إلى كل أثر: تبدأ بعد نطق السابق، وتنتهي عند نطق اسمه
@@ -542,7 +542,7 @@ export const Shot6: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
         <Ink d="M1720 1420 C1770 1330 1670 1250 1716 1160 C1744 1100 1700 1064 1708 1030" w={5} p={thread} c={C.ribbon} />
         <circle cx={1708} cy={1030} r={7} fill={C.ribbon} opacity={thread >= 0.99 ? 1 : 0} />
       </svg>
-      <div style={{ position: "absolute", right: W - 1820, top: 110, fontFamily: Amiri, fontWeight: 700, fontSize: 44, color: C.ink, direction: "rtl" }}>الفصل السابع</div>
+      {noHead ? null : <div style={{ position: "absolute", right: W - 1820, top: 110, fontFamily: Amiri, fontWeight: 700, fontSize: 44, color: C.ink, direction: "rtl" }}>الفصل السابع</div>}
       {words.map((f, i) => {
         const o = prog(t, arrive[i]!.T + 0.25, arrive[i]!.T + 0.65);
         const [nx, ny] = PLACE[f.key]!;

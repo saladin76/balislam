@@ -46,7 +46,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
                   <video src={api.labPreviewUrl(channel, l.dir, f.name)} controls preload="metadata" playsInline />
                   <figcaption>
                     <b>{f.title}</b> <Badge s={f.status} />
-                    <span className="help">النسخة {f.version} · {date(f.updatedAt)}</span>
+                    <span className="help">رفع رقم {f.version} · {date(f.updatedAt)}</span>
                     {f.note ? <span className="help">{f.note}</span> : null}
                   </figcaption>
                 </figure>

@@ -332,7 +332,7 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
             <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
             <figcaption>
               <b>{f.title}</b>
-              <span className="help">النسخة {f.version}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
+              <span className="help">رفع رقم {f.version}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
               {f.note ? <span className="help">{f.note}</span> : null}
             </figcaption>
           </figure>

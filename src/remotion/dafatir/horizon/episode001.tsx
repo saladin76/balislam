@@ -561,7 +561,9 @@ const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, e
 
 // الأثر وحدوده (الأمر 019، E2): يبدأ بالدفتر نفسه بدل كادر ممتلئ بلون الورق. يتراجع من قرب «العتبة» إلى الدفتر كاملًا
 // في أول 0.8 ث (قبل نافذة ذكر الله)، ويسكن عليه حتى «شواهد»، ثم يخفت الدفتر ويُكمل النزول في الطبقات كما كان.
-const EvidenceLegacy = legacy(Shot6, NEUTRAL);
+// العنوان يحمله الدفتر وحده: عنوان اللقطة القديمة كان يظهر تحته أثناء الخفوت فيتكرر «الفصل السابع» نحو 0.6 ث (10:21.4)
+const Shot6Body: React.FC<{ t: number; tl: Timeline }> = (q) => <Shot6 {...q} noHead />;
+const EvidenceLegacy = legacy(Shot6Body, NEUTRAL);
 const EvidenceScene: React.FC<HzProps> = (props) => {
   const { t, tl, p } = props;
   const sh = at(tl, "شواهد");

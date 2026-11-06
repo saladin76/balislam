@@ -332,7 +332,7 @@ program
     const { renderShotsPreview } = await import("../render/shotsPreview");
     try {
       const r = await renderShotsPreview(episode, ids.split(/[,،\s]+/).filter(Boolean), { ...opts, onProgress: (p, m) => console.log(`PROGRESS ${p} ${m}`) });
-      console.log(`رُفعت إلى الاستوديو: ${path.relative(projectRoot, r.file)} (النسخة ${r.version})`);
+      console.log(`رُفعت إلى الاستوديو: ${path.relative(projectRoot, r.file)} (رفع رقم ${r.version})`);
       for (const t of r.timing) console.log(`  ${t.id}: ${t.seconds} ث${t.voice ? ` · صوت ${t.voice.toFixed(1)} ث` : ""}${t.recitation ? ` · تلاوة ${t.recitation.toFixed(1)} ث` : ""}`);
     } catch (e) {
       console.error((e as Error).message);
@@ -349,7 +349,7 @@ program
     const { renderHorizonAudio } = await import("../render/horizonAudio");
     try {
       const r = await renderHorizonAudio(episode, { ...opts, onProgress: (m) => console.log(m) });
-      console.log(`رُفعت إلى الاستوديو: ${path.relative(projectRoot, r.file)} (النسخة ${r.version})${r.replaced ? ` · أُزيلت ${r.replaced} من العرض` : ""}`);
+      console.log(`رُفعت إلى الاستوديو: ${path.relative(projectRoot, r.file)} (رفع رقم ${r.version})${r.replaced ? ` · أُزيلت ${r.replaced} من العرض` : ""}`);
       console.log(`المدة: ${r.seconds} ث`);
       for (const s of r.shots) console.log(`  اللقطة ${s.id}: ${s.seconds} ث · الراوي ${s.voice} ث${s.recitation ? ` · التلاوة ${s.recitation} ث` : ""}`);
       for (const v of r.verses) console.log(`  ${v.key}: ${v.words} كلمة · ${v.parts} ملف تلاوة · ${v.seconds} ث · ${v.reciter}`);
@@ -368,7 +368,7 @@ program
   .action(async (episode: string, slot: string, file: string, opts: { title: string; note?: string }) => {
     const { putEpisodePreview } = await import("../render/episodePreviews");
     const r = await putEpisodePreview(episode, slot, path.resolve(file), { title: opts.title, note: opts.note });
-    console.log(`رُفع إلى الاستوديو: ${path.relative(projectRoot, r.file)} (النسخة ${r.version})${r.removed.length ? `؛ حُذف القديم: ${r.removed.join("، ")}` : ""}`);
+    console.log(`رُفع إلى الاستوديو: ${path.relative(projectRoot, r.file)} (رفع رقم ${r.version})${r.removed.length ? `؛ حُذف القديم: ${r.removed.join("، ")}` : ""}`);
   });
 
 program

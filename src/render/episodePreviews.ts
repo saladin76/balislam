@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { resolveEpisodeDir } from "../script/episodes";
 
+/** `version` عدّاد مرات الرفع في الخانة («رفع رقم»)، وليس رقم إصدار المحتوى؛ إصدار المحتوى يُكتب في العنوان («نسخة المحتوى V7»). */
 export type PreviewEntry = { title: string; note?: string; version: number; updatedAt: string };
 export type PreviewIndex = Record<string, PreviewEntry>;
 
