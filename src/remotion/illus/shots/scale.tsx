@@ -45,6 +45,8 @@ const COUNTER_TOP = GROUND - 232;
 const PIVOT_Y = COUNTER_TOP - 150;
 const ARM = 92;
 const PAN_DROP = 96;
+/** أقصى ميل للعاتق بالدرجات (أخف / أثقل): فرق ارتفاع الكفتين نحو 54 وحدة، يُقرأ على الهاتف (الأمر 017) */
+export const MAX_TILT = 17;
 const STALL = { x0: 860, x1: 1340 };
 const VENDOR_Y = GROUND + 6;
 
@@ -121,6 +123,8 @@ const reach = (target: { x: number; y: number }, base: PoseSpec = POSES.stand): 
   return { ...base, armFront: { s: best.s, e: best.e } };
 };
 const STALL_VENDOR = { x: 1262 };
+/** مدة انزلاق العاتق إلى الاستواء بعد رفع الحبة (إطارات) */
+export const LEVEL_FRAMES = 56;
 const pivotX = 1020;
 const panR0 = { x: pivotX + ARM, y: PIVOT_Y };
 const ARM_POSES = (() => {
@@ -174,15 +178,23 @@ export const scaleState = (frame: number, b: ScaleBeats) => {
   const carryOut = frame >= b.lift + 4 && frame < b.lift + 42 ? 1 : 0;
   const goods = 4 + (frame >= b.add + 6 ? 2 : 0) - (frame >= b.lift + 4 ? 1 : 0);
   const crate = 6 - (frame >= b.add - 10 ? 2 : 0) + (frame >= b.lift + 42 ? 1 : 0);
-  // الميل: أخف (-13)، أثقل (+13)، مستوٍ (0)، بارتداد يسكن بعد كل تغيّر (والاستواء أبطأ قليلًا)
+  // الميل: أخف (-MAX_TILT)، ثم أثقل (+MAX_TILT) بنزول سريع يرتد ويسكن (وُضعت حبتان دفعة)،
+  // ثم يعود إلى الاستواء ببطء بعد رفع الحبة (الأمر 017): العاتق ينزلق تدريجيًا نحو الاستواء
+  // فيتجاوزه قليلًا ثم يسكن، فيُرى التغير كله في زاوية الشاهدة الثانية والحبة ما زالت في اليد.
+  const T = MAX_TILT;
   const resp = (f: number, at: number, from: number, to: number, slow: number) => {
     if (f < at) return from;
     const t = f - at;
     return to + (from - to) * Math.exp(-t / slow) * Math.cos(t / (slow * 0.55));
   };
-  let tilt = -13;
-  if (frame >= b.add + 6) tilt = resp(frame, b.add + 6, -13, 13, 7);
-  if (frame >= b.lift + 4) tilt = resp(frame, b.lift + 4, resp(b.lift + 4, b.add + 6, -13, 13, 7), 0, 11);
+  const smooth = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+  let tilt = -T;
+  if (frame >= b.add + 6) tilt = resp(frame, b.add + 6, -T, T, 7);
+  if (frame >= b.lift + 4) {
+    const from = resp(b.lift + 4, b.add + 6, -T, T, 7);
+    const t = frame - (b.lift + 4);
+    tilt = t < LEVEL_FRAMES ? from + (-1.2 - from) * smooth(t / LEVEL_FRAMES) : -1.2 * (1 - smooth((t - LEVEL_FRAMES) / 24));
+  }
   return { pose, hand, carried: carryIn || carryOut, goods, crate, tilt };
 };
 
@@ -263,11 +275,11 @@ const StallAt: React.FC<{ frame: number; b: ScaleBeats }> = ({ frame, b }) => {
 // ———————————————————— بطاقة الحكم ————————————————————
 
 /** بطاقة تفسير الشخصية مربوطة بها: ذيل يشير إلى رأسها، فوق الرأس بفراغ ومائلة نحو الداخل (أو بجواره بـ above = false) */
-export const VerdictTag: React.FC<{ head: { x: number; y: number }; side: 1 | -1; text: string; color: string; t: number; size?: number; above?: boolean }> = ({ head, side, text, color, t, size = 54, above = false }) => {
+export const VerdictTag: React.FC<{ head: { x: number; y: number }; side: 1 | -1; text: string; color: string; t: number; size?: number; above?: boolean; dx?: number }> = ({ head, side, text, color, t, size = 54, above = false, dx }) => {
   if (t <= 0.001) return null;
   const w = text.length * size * 0.58 + 70;
   const h = size * 1.6;
-  const cx = above ? head.x - side * 90 : head.x + side * (70 + w / 2);
+  const cx = above ? head.x + (dx ?? -side * 90) : head.x + side * (70 + w / 2);
   const cy = above ? head.y - 80 - h / 2 - 34 : head.y - 20;
   const bg = darken(ID.night, 0.4);
   const tail = above
@@ -295,7 +307,7 @@ export const FIRST_ANGLE = { far: 0.85, lift: 40, customerX: 1082, customerDy: 1
 /** نقطة من الدكان في زاوية الشاهد الأول (التحويل نفسه الذي يُرسم به) */
 export const firstAngleMap = (p: { x: number; y: number }) => ({ x: pivotX + (p.x - pivotX) * FIRST_ANGLE.far, y: GROUND - FIRST_ANGLE.lift + (p.y - GROUND) * FIRST_ANGLE.far });
 /** حدود الميزان (العاتق والكفتان وما فيهما) في العالم، مهما كان ميله */
-export const scaleBounds = () => ({ x0: pivotX - ARM - 50, x1: pivotX + ARM + 50, y0: PIVOT_Y - ARM * Math.sin((13 * Math.PI) / 180) - 4, y1: PIVOT_Y + ARM * Math.sin((13 * Math.PI) / 180) + PAN_DROP + 14 });
+export const scaleBounds = () => ({ x0: pivotX - ARM - 50, x1: pivotX + ARM + 50, y0: PIVOT_Y - ARM * Math.sin((MAX_TILT * Math.PI) / 180) - 4, y1: PIVOT_Y + ARM * Math.sin((MAX_TILT * Math.PI) / 180) + PAN_DROP + 14 });
 
 /**
  * الزاوية الرئيسية: الجميع على خط واحد جانبيًا، والميزان ظاهر كاملًا.
@@ -334,11 +346,11 @@ export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: b
       <Figure x={lay.customer} y={GROUND + 6} scale={S.customer} pose={cast.customer} look={SCALE_CAST.customer} holding="bundle" frame={frame + 9} />
       <Figure x={lay.first} y={GROUND + 6} scale={S.first} pose={cast.first} look={SCALE_CAST.first} frame={frame} />
       {angle === "second" ? null : <Figure x={lay.second} y={GROUND + 6} scale={S.second} pose={cast.second} look={SCALE_CAST.second} flip frame={frame + 13} />}
-      {angle === "second" ? <Figure x={pivotX + (portrait ? 330 : 470)} y={GROUND + 230} scale={2.9} pose={POSES.listen} look={SCALE_CAST.second} flip silhouette={SIL_SECOND} shadow={false} frame={frame} /> : null}
+      {angle === "second" ? <Figure x={pivotX + (portrait ? SECOND_SIL_PORTRAIT_DX : 470)} y={GROUND + (portrait ? 300 : 230)} scale={2.9} pose={POSES.listen} look={SCALE_CAST.second} flip silhouette={SIL_SECOND} shadow={false} frame={frame} /> : null}
       {angle === "main" && cast.tags ? (
         <>
-          <VerdictTag head={fHead} side={-1} text={verdicts.first} color={ID.seal} t={cast.tags.first} size={size} above />
-          <VerdictTag head={sHead} side={1} text={verdicts.second} color={ID.dawn} t={cast.tags.second} size={size} above />
+          <VerdictTag head={fHead} side={-1} text={verdicts.first} color={ID.seal} t={cast.tags.first} size={size} above dx={verdictTagDx("first", portrait, verdicts.first, size)} />
+          <VerdictTag head={sHead} side={1} text={verdicts.second} color={ID.dawn} t={cast.tags.second} size={size} above dx={verdictTagDx("second", portrait, verdicts.second, size)} />
         </>
       ) : null}
     </g>
@@ -352,12 +364,45 @@ export const witnessHead = (who: "first" | "second", portrait: boolean) => {
 };
 
 /** مستطيل بطاقة التفسير في العالم (الحساب نفسه الذي ترسم به VerdictTag فوق الرأس) */
-export const verdictTagRect = (head: { x: number; y: number }, side: 1 | -1, text: string, size: number) => {
+export const verdictTagRect = (head: { x: number; y: number }, side: 1 | -1, text: string, size: number, dx = -side * 90) => {
   const w = text.length * size * 0.58 + 70;
   const h = size * 1.6;
-  const cx = head.x - side * 90;
+  const cx = head.x + dx;
   const cy = head.y - 80 - h / 2 - 34;
   return { x0: cx - w / 2, x1: cx + w / 2, y0: cy - h / 2, y1: head.y - 66 };
+};
+
+/** عمود رأس شخص في العالم (لمنع البطاقة من الوقوف فوق رأس غير صاحبها) */
+export const headColumn = (who: "customer" | "vendor") =>
+  who === "customer" ? { x0: 790 - 34 * SCALE_SIZES.customer, x1: 790 + 34 * SCALE_SIZES.customer } : { x0: STALL_VENDOR.x - 34 * SCALE_SIZES.vendor, x1: STALL_VENDOR.x + 34 * SCALE_SIZES.vendor };
+
+/**
+ * إزاحة بطاقة الحكم عن رأس صاحبها (الأمر 017): فوق رأسه مباشرة، ولا تمتد فوق رأس جاره
+ * (الزبون للأول، والبائع للثانية) بفراغ 8 وحدات، فلا يُظن أنها لغيره.
+ */
+export const verdictTagDx = (who: "first" | "second", portrait: boolean, text: string, size: number) => {
+  const w = text.length * size * 0.58 + 70;
+  const head = witnessHead(who, portrait);
+  return who === "first" ? Math.min(0, headColumn("customer").x0 - 8 - w / 2 - head.x) : Math.max(0, headColumn("vendor").x1 + 8 + w / 2 - head.x);
+};
+
+/** ظل الشاهدة الثانية في زاويتها العمودية: عند الحافة اليمنى، بعيدًا عن الصندوق فلا يحجب الحبة العائدة */
+export const SECOND_SIL_PORTRAIT_DX = 365;
+/** حجم بطاقتي الحكم في c1-s2 */
+export const SCALE_TAG_SIZE = (portrait: boolean) => (portrait ? 58 : 66);
+
+/**
+ * وضعيتا الحكم (الأمر 017): الأول يُصدم بما رأى فيضم كفيه إلى صدره ووجهه إلى الدكان حيث رأى اليد
+ * (لا ذراع ممدودة تُقرأ إشارة إلى الزبون)، ثم يتراجع بجذعه عند «ظلمًا» (استنكار)؛
+ * والثانية تنظر إلى الميزان من موضعها (رأس مائل نحو الكفتين) ثم تومئ مرة واحدة ويدها على صدرها.
+ * ميل الأول في c1-s1 لا يتجاوز -3: اللقطة العامة العمودية محسوبة على حدوده (الأمر 017، البند 3).
+ */
+const FIRST_REACT: PoseSpec = { lean: -3, head: 6, armBack: { s: 26, e: 120 }, armFront: { s: 34, e: 116 }, legBack: { s: -5, e: 0 }, legFront: { s: 5, e: 0 } };
+export const VERDICT_POSES = {
+  firstReact: FIRST_REACT,
+  firstJudge: { ...FIRST_REACT, lean: -9, head: 4 } satisfies PoseSpec,
+  secondWatch: { ...POSES.nod, head: 16 } satisfies PoseSpec,
+  secondJudge: { ...POSES.sincere, head: 16 } satisfies PoseSpec,
 };
 
 const pb = (a: PoseSpec, b2: PoseSpec, t: number) => (t <= 0 ? a : t >= 1 ? b2 : blendPose(a, b2, t));
@@ -376,8 +421,8 @@ export const scaleEventBeats = (at: (w: string, frac: number) => number) => {
   return { b, back, diverge, end: back + 50 };
 };
 export const scaleEventCast = (frame: number, e: ReturnType<typeof scaleEventBeats>): ScaleCast => ({
-  first: pb(pb(POSES.stand, POSES.listen, prog(frame, e.b.witnesses - 4, e.b.witnesses + 10)), POSES.cross, prog(frame, e.diverge, e.diverge + 12)),
-  second: pb(pb(POSES.stand, POSES.listen, prog(frame, e.b.witnesses + 2, e.b.witnesses + 16)), POSES.nod, prog(frame, e.diverge + 6, e.diverge + 18)),
+  first: pb(pb(POSES.stand, POSES.listen, prog(frame, e.b.witnesses - 4, e.b.witnesses + 10)), VERDICT_POSES.firstReact, prog(frame, e.diverge, e.diverge + 12)),
+  second: pb(pb(POSES.stand, POSES.listen, prog(frame, e.b.witnesses + 2, e.b.witnesses + 16)), VERDICT_POSES.secondWatch, prog(frame, e.diverge + 6, e.diverge + 18)),
   // الزبون واقف ينتظر وزنته: يده لا تمتد فوق كفة الثقل، ولا تدخل لقطتي الكفتين القريبتين
   customer: POSES.stand,
 });
@@ -394,9 +439,14 @@ export const scaleVerdictBeats = (at: (w: string, frac: number) => number) => {
   return { firstSay, second, secondSay, link: secondSay + 14 };
 };
 export const scaleVerdictCast = (frame: number, v: ReturnType<typeof scaleVerdictBeats>): ScaleCast => ({
-  // الأول عاقد ذراعيه ثم يُعرض عن الدكان عند «ظلمًا» (رفض ما رآه)؛ لا يمد يده نحو كيس الزبون
-  first: pb(POSES.cross, POSES["turn-away"], prog(frame, v.firstSay - 4, v.firstSay + 10)),
-  second: pb(POSES.nod, POSES.sincere, prog(frame, v.secondSay - 4, v.secondSay + 10)),
+  // الأول كفاه إلى صدره ووجهه إلى الدكان، ويتراجع بجذعه عند «ظلمًا» (استنكار ما رآه)؛ لا يمد يده نحو كيس الزبون
+  first: pb(VERDICT_POSES.firstReact, VERDICT_POSES.firstJudge, prog(frame, v.firstSay - 4, v.firstSay + 10)),
+  // الثانية تنظر إلى الكفتين، ويدها إلى صدرها عند «عدلًا» مع إيماءة واحدة (لا تكرار)
+  second: (() => {
+    const p = pb(VERDICT_POSES.secondWatch, VERDICT_POSES.secondJudge, prog(frame, v.secondSay - 4, v.secondSay + 10));
+    const nodT = prog(frame, v.secondSay - 2, v.secondSay + 14, (t) => t);
+    return { ...p, head: p.head + 12 * Math.sin(Math.PI * nodT) };
+  })(),
   customer: POSES.stand,
   // بطاقة الأول تخبو حين تنتقل الكاميرا إلى الثانية (صاحبها خارج الإطار فلا تُقص) وتعود في اللقطة الرابطة
   tags: {

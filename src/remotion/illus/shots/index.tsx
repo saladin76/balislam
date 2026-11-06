@@ -8,7 +8,7 @@ import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow 
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, PhonePOV } from "./phone";
-import { DONE_BEATS, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleVerdictBeats, scaleVerdictCast } from "./scale";
+import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleVerdictBeats, scaleVerdictCast } from "./scale";
 
 /**
  * اللقطات المصمَّمة: كل لقطة تحكي جملتها بمكانها وشخوصها وكاميرتها، وأحداثها تقع لحظة نطق كلماتها.
@@ -120,9 +120,12 @@ export const SHOTS: Record<string, ShotDef> = {
       const { b } = e;
       const angle = scaleAngleAt(frame, b);
       const C = (t: number, x: number, z: number, y: number, cut = false): CamKey => ({ t, x, y, z, ...(cut ? { cut } : {}) });
+      // الأمر 017: العمودي محسوب لا مقصوص من الأفقي. العامة بأقرب تقريب يتسع للشاهدين كاملين (0.59)؛
+      // زاوية الثانية تتسع للكفتين والصندوق واليد حتى تستقر الحبة؛ ثم تقترب في آخر المشهد من الشاهد الأول
+      // بتأطير أول c1-s2 نفسه (مع تعويض الانجراف) فلا يقفز القطع بين المشهدين.
       const cam = portrait
-        ? [C(0, 1020, 0.58, 310), C(b.add - 12, 1105, 1.25, 520), C(b.lift - 10, 1110, 1.2, 390, true), C(b.lift + 28, 1030, 1.8, 490, true), C(e.back, 1020, 0.58, 310, true)]
-        : [C(0, 1040, 1.0, 470), C(b.add - 12, 1180, 1.7, 470), C(b.lift - 10, 1080, 1.6, 360, true), C(b.lift + 28, 1100, 2.0, 440, true), C(e.back, 1040, 1.0, 470, true)];
+        ? [C(0, 1021, 0.59, 310), C(b.add - 12, 1105, 1.25, 520), C(b.lift - 10, 1110, 1.2, 390, true), C(b.lift + 28, 1118, 1.2, 470, true), C(e.back, 1021, 0.59, 310, true), C(e.diverge + 22, 700, 1.05 / 1.045, 390)]
+        : [C(0, 1040, 1.0, 470), C(b.add - 12, 1128, 1.86, 450), C(b.lift - 10, 1080, 1.6, 360, true), C(b.lift + 28, 1100, 2.0, 440, true), C(e.back, 1040, 1.0, 470, true)];
       return {
         cam,
         world: <ScaleIncident frame={frame} b={b} portrait={portrait} angle={angle} cast={scaleEventCast(frame, e)} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={portrait ? 64 : 66} />,
@@ -137,11 +140,12 @@ export const SHOTS: Record<string, ShotDef> = {
       const v = scaleVerdictBeats(at);
       const C = (t: number, x: number, z: number, y: number): CamKey => ({ t, x, y, z });
       const cam = portrait
-        ? [C(0, 700, 1.05, 390), C(v.second, 1330, 1.05, 390), C(v.link, 1015, 0.58, 330)]
+        ? [C(0, 700, 1.05, 390), C(v.second, 1330, 1.05, 390), C(v.link, 1023, 0.533, 330)]
         : [C(0, 700, 1.3, 375), C(v.second, 1610, 1.3, 375), C(v.link, 1040, 1.25, 370)];
       return {
         cam,
-        world: <ScaleIncident frame={frame} b={DONE_BEATS} portrait={portrait} angle="main" cast={scaleVerdictCast(frame, v)} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={portrait ? 64 : 66} />,
+        // البطاقة فوق رأس صاحبها مباشرة (الأمر 017)، فاللقطة الرابطة العمودية تتسع لها بين حافتي الإطار: حجمها 58
+        world: <ScaleIncident frame={frame} b={DONE_BEATS} portrait={portrait} angle="main" cast={scaleVerdictCast(frame, v)} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={SCALE_TAG_SIZE(portrait)} />,
       };
     },
   },

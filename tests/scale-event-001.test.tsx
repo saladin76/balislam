@@ -6,7 +6,12 @@ import { camAt, makeAt } from "../src/remotion/illus/shots/kit";
 import {
   DONE_BEATS,
   FIRST_ANGLE,
+  LEVEL_FRAMES,
+  MAX_TILT,
   SCALE_SIZES,
+  SCALE_TAG_SIZE,
+  SECOND_SIL_PORTRAIT_DX,
+  headColumn,
   firstAngleMap,
   scaleAngleAt,
   scaleBounds,
@@ -16,6 +21,7 @@ import {
   scaleState,
   scaleVerdictBeats,
   scaleVerdictCast,
+  verdictTagDx,
   verdictTagRect,
   witnessHead,
 } from "../src/remotion/illus/shots/scale";
@@ -38,18 +44,20 @@ const s2 = scene("c1-s2");
 /** أسفل السطر المكتوب بوحدات المشهد، بأسوأ حالة (سطران): أفقي 34 + 2×54×1.35؛ عمودي (250 + 2×62×1.35) ÷ 1.776 */
 const CAPTION_BOTTOM = { landscape: 34 + 2 * 54 * 1.35, portrait: (250 + 2 * 62 * 1.35) / (1920 / 1080) };
 
-type Person = { name: string; x: number; scale: number; poses: (keyof typeof POSES)[]; facing: "left" | "right"; back?: number; reach?: number };
-/** وضعيات كل شخص في كل مشهد كما في scaleEventCast وscaleVerdictCast (غلاف حدوده عبرها) */
+type Person = { name: string; x: number; scale: number; poses: (keyof typeof POSES)[]; facing: "left" | "right"; back?: number; reach?: number; recoil?: number };
+/** وضعيات كل شخص في كل مشهد كما في scaleEventCast وscaleVerdictCast (غلاف حدوده عبرها).
+ * ردة فعل الأول (كفان إلى الصدر، ميل -3) داخل غلاف «cross» (خلف 67، أمام 116) فيُحسب به. */
 const POSES_OF = {
   "souq-scale-event": { first: ["stand", "listen", "cross"], second: ["stand", "listen", "nod"], customer: ["stand"] },
-  "souq-scale-verdicts": { first: ["cross", "turn-away"], second: ["nod", "sincere"], customer: ["stand"] },
+  // الأول: «cross» ثم تراجع الجذع (lean -9، ميل 6° فوق الورك ≈ 180×1.75×sin6° ≈ 33 وحدة إلى الخلف، ونحسب 36)؛ الثانية: nod ثم sincere برأس مائل
+  "souq-scale-verdicts": { first: ["cross"], second: ["nod", "sincere"], customer: ["stand"] },
 } as const;
 const people = (shotId: keyof typeof POSES_OF, portrait: boolean, second: boolean, vendorReach: number): Person[] => {
   const lay = scaleLayout(portrait);
   const S = SCALE_SIZES;
   const P = POSES_OF[shotId];
   return [
-    { name: "الشاهد الأول", x: lay.first, scale: S.first, poses: [...P.first], facing: "right" },
+    { name: "الشاهد الأول", x: lay.first, scale: S.first, poses: [...P.first], facing: "right", ...(shotId === "souq-scale-verdicts" ? { recoil: 36 } : {}) },
     // الزبون يحمل كيسه على ظهره (نحو 84 وحدة خلفه بمقياس 1)
     { name: "الزبون", x: lay.customer, scale: S.customer, poses: [...P.customer], facing: "right", back: 84 * S.customer },
     // البائع ممتلئ (build 1.3) وذراعه تمتد إلى الكفة: أبعد ما تبلغه كفه من scaleState
@@ -83,9 +91,8 @@ const check = (shotId: string, sc: { narration: string }, durFrames: number, por
     for (const p of people(shotId as keyof typeof POSES_OF, portrait, angle === "second", reach)) {
       const sp0 = figureSpan(p.x, p.poses, p.facing, p.scale);
       const sp = { lo: Math.min(sp0.lo, p.reach ?? Infinity), hi: sp0.hi };
-      // لقطة الكفتين القريبة في العمودي من زاوية الثانية: ذراع البائع تدخل الإطار من حافته (مقصود)
-      if (p.name === "البائع" && angle === "second" && portrait) continue;
-      const lo = p.back && p.facing === "right" ? Math.min(sp.lo, p.x - p.back) : sp.lo;
+      const lo0 = p.back && p.facing === "right" ? Math.min(sp.lo, p.x - p.back) : sp.lo;
+      const lo = lo0 - (p.recoil ?? 0);
       const inside = sp.hi > vx0 && lo < vx1;
       if (!inside) continue;
       if (lo < vx0 - 1 || sp.hi > vx1 + 1) bad.push(`${frame}: ${p.name} مقصوص على حافة الإطار`);
@@ -99,7 +106,11 @@ const check = (shotId: string, sc: { narration: string }, durFrames: number, por
       const cast = scaleVerdictCast(frame, v);
       for (const [who, side, text, t] of [["first", -1, "ظلمًا", cast.tags!.first], ["second", 1, "عدلًا", cast.tags!.second]] as const) {
         if (t < 0.05) continue;
-        const r = verdictTagRect(witnessHead(who, portrait), side, text, portrait ? 64 : 66);
+        const size = SCALE_TAG_SIZE(portrait);
+        const r = verdictTagRect(witnessHead(who, portrait), side, text, size, verdictTagDx(who, portrait, text, size));
+        // البطاقة لا تمتد فوق رأس جار صاحبها (الزبون للأول، والبائع للثانية)
+        const n = headColumn(who === "first" ? "customer" : "vendor");
+        if (r.x1 > n.x0 - 8 && r.x0 < n.x1 + 8) bad.push(`${frame}: بطاقة «${text}» فوق عمود رأس غير صاحبها`);
         if (r.x0 < vx0 + 4 || r.x1 > vx1 - 4) bad.push(`${frame}: بطاقة «${text}» خارج الإطار أفقيًا`);
         if (sy(r.y0) < capBottom) bad.push(`${frame}: بطاقة «${text}» تحت السطر المكتوب`);
         if (sy(r.y1) > 1080) bad.push(`${frame}: بطاقة «${text}» خارج الإطار رأسيًا`);
@@ -182,6 +193,84 @@ describe("الحلقة 001 · حدث الميزان: منطق الواقعة و�
       return h.x > torso.x1 + 6 || h.y < yShoulder - 70 * k;
     });
     expect(visible.length).toBeGreaterThanOrEqual(8);
+  });
+  it("قراءة الميزان: فرق واضح قبل رفع الحبة، والاستواء تدريجي يُرى في زاوية الثانية والحبة في اليد", () => {
+    expect(MAX_TILT).toBeGreaterThanOrEqual(16);
+    expect(scaleState(e.b.add - 12, e.b).tilt).toBeLessThan(-(MAX_TILT - 0.5));
+    expect(scaleState(e.b.lift - 12, e.b).tilt).toBeGreaterThan(MAX_TILT - 1.5);
+    const start = e.b.lift + 28;
+    // عند القطع إلى زاوية الثانية ما زال العاتق مائلًا ميلًا ظاهرًا، والحبة في اليد
+    expect(scaleState(start, e.b).tilt).toBeGreaterThan(6);
+    expect(scaleState(start, e.b).carried).toBe(1);
+    // ينخفض بلا قفز (لا يتغير أكثر من درجة في الإطار) حتى يستوي قبل العودة إلى الرئيسية
+    for (let f = start; f < e.back; f++) expect(Math.abs(scaleState(f + 1, e.b).tilt - scaleState(f, e.b).tilt)).toBeLessThan(1);
+    expect(Math.abs(scaleState(e.back, e.b).tilt)).toBeLessThan(1.5);
+    expect(e.b.lift + 4 + LEVEL_FRAMES).toBeLessThan(e.back);
+  });
+  it("عمودي، زاوية الثانية: اليد والحبة والصندوق والكفتان داخل الإطار حتى تستقر الحبة، وظلها لا يحجب الصندوق", () => {
+    const sc = SHOTS["souq-scale-event"]!;
+    const at = makeAt(spokenTimings(s1.narration, d1), d1);
+    const sb = scaleBounds();
+    for (let f = e.b.lift + 28; f < e.back; f++) {
+      const c = camAt(f, sc.render({ frame: f, fps: 30, dur: d1, portrait: true, at }).cam);
+      const Z = c.z * (1 + 0.045 * (f / d1));
+      const vx0 = c.x - 304 / Z;
+      const vx1 = c.x + 304 / Z;
+      const capY = c.y + ((CAPTION_BOTTOM.portrait - 540) / Z);
+      const st = scaleState(f, e.b);
+      expect(sb.x0).toBeGreaterThanOrEqual(vx0);
+      expect(sb.x1).toBeLessThanOrEqual(vx1);
+      // الصندوق (1174..1298)
+      expect(1236 + 62).toBeLessThanOrEqual(vx1 - 4);
+      if (st.carried) {
+        expect(st.hand.x + 20).toBeLessThanOrEqual(vx1);
+        expect(st.hand.y - 30).toBeGreaterThan(capY);
+      }
+    }
+    // الظل يبدأ يمين الصندوق
+    expect(1020 + SECOND_SIL_PORTRAIT_DX - 29 * 2.9).toBeGreaterThan(1236 + 62);
+  });
+  it("القطع: لا تتغير حالة الواقعة عند أي قطع (الحبة، الميل، العدد)", () => {
+    const cuts = [e.b.lift - 10, e.b.lift + 28, e.back];
+    for (const f of cuts) {
+      const a = scaleState(f - 1, e.b);
+      const z = scaleState(f, e.b);
+      // خطوة اليد عند القطع مثل خطوتيها قبله وبعده (حركة متصلة لا قفز ولا إعادة)
+      const step = (g: number) => {
+        const p0 = scaleState(g - 1, e.b).hand;
+        const p1 = scaleState(g, e.b).hand;
+        return Math.hypot(p1.x - p0.x, p1.y - p0.y);
+      };
+      expect(step(f)).toBeLessThanOrEqual(Math.max(step(f - 1), step(f + 1)) * 1.25 + 1);
+      expect(Math.abs(z.tilt - a.tilt)).toBeLessThan(1);
+      expect(z.goods).toBe(a.goods);
+      expect(z.crate).toBe(a.crate);
+      expect(z.carried).toBe(a.carried);
+    }
+  });
+  it("الحكمان: الأول يتراجع ووجهه إلى الدكان، والثانية تنظر إلى الكفتين وتومئ مرة واحدة", () => {
+    const d2 = sceneFrames(s2);
+    const v = scaleVerdictBeats(makeAt(spokenTimings(s2.narration, d2), d2));
+    const after = scaleVerdictCast(v.firstSay + 12, v).first;
+    expect(after.lean).toBeLessThan(-6);
+    // وجهه إلى الدكان: لا التفات ولا رفع للرأس
+    expect(Math.abs(after.head)).toBeLessThan(6);
+    const heads = Array.from({ length: d2 }, (_, f) => scaleVerdictCast(f, v).second.head);
+    expect(Math.min(...heads)).toBeGreaterThanOrEqual(15);
+    // إيماءة واحدة: صعود ثم نزول واحد
+    const ups = heads.filter((h, i) => i > 0 && h > heads[i - 1]! + 1e-6 && (i === 1 || heads[i - 1]! <= heads[i - 2]! + 1e-6)).length;
+    expect(ups).toBe(1);
+  });
+  it("c1-s1 العمودي ينتهي بتأطير أول c1-s2 (بعد تعويض الانجراف)", () => {
+    const at = makeAt(spokenTimings(s1.narration, d1), d1);
+    const c = camAt(d1 - 1, SHOTS["souq-scale-event"]!.render({ frame: d1 - 1, fps: 30, dur: d1, portrait: true, at }).cam);
+    const endZ = c.z * (1 + 0.045 * ((d1 - 1) / d1));
+    const d2 = sceneFrames(s2);
+    const at2 = makeAt(spokenTimings(s2.narration, d2), d2);
+    const c2 = camAt(0, SHOTS["souq-scale-verdicts"]!.render({ frame: 0, fps: 30, dur: d2, portrait: true, at: at2 }).cam);
+    expect(Math.abs(c.x - c2.x)).toBeLessThan(1);
+    expect(Math.abs(c.y - c2.y)).toBeLessThan(1);
+    expect(Math.abs(endZ - c2.z) / c2.z).toBeLessThan(0.01);
   });
   it("c1-s2 يبدأ من حالة آخر c1-s1: الميزان مستوٍ، والشاهدان بوضعيتي آخر الجملة", () => {
     const end = scaleState(d1 - 1, e.b);
