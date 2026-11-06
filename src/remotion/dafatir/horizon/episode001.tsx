@@ -567,7 +567,10 @@ const EvidenceScene: React.FC<HzProps> = (props) => {
   const sh = at(tl, "شواهد");
   const pull = prog(t, 0, 0.8, (x) => x * x * (3 - 2 * x));
   const o = 1 - prog(t, sh - 0.1, sh + 0.6);
-  const cam = { cx: mix(1365, 960, pull), cy: mix(760, 520, pull), s: mix(4.2, 1, pull) };
+  // تراجع بسرعة إدراك ثابتة: المقياس على سلّم لوغاريتمي، والمركز يتبع عرض الرؤية، فلا يتكدس الاتساع في آخر الإطارات
+  const s = Math.pow(4.2, 1 - pull);
+  const w = (1 / s - 1 / 4.2) / (1 - 1 / 4.2);
+  const cam = { cx: mix(1365, 960, w), cy: mix(760, 520, w), s };
   return (
     <>
       <EvidenceLegacy {...props} />
