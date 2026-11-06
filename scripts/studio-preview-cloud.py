@@ -83,6 +83,7 @@ def upload(a):
         key = f"{channel}|{a.episode}|{a.slot}|{source.suffix.lower()[1:]}" if kind == "video" else f"{channel}|{a.episode}|storyboard|{a.slot}|{source.suffix.lower()[1:]}"
         index[key] = {"remote":cloud,"url":url,"md5":digest,"updated":datetime.now(timezone.utc).isoformat()}
         atomic_json(manifest, index)
+        handoff = write_handoff(base, index, channel, a.episode)
         lines = ["# Balislam Studio - Live Previews", "", "Updated: "+datetime.now(timezone.utc).isoformat(), ""]
         for name, item in sorted(index.items()):
             lines.append("- [" + name.replace("|", " / ") + "](" + item["url"] + ")")
@@ -90,7 +91,68 @@ def upload(a):
         md.write_text("\n".join(lines)+"\n", encoding="utf-8")
         # Separate index: never overwrite existing legacy index without review.
         run("rclone", "copyto", str(md), ROOT + "/production-preview-index.md")
-        print("VERIFIED "+cloud+"\nLINK "+url)
+        print("VERIFIED "+cloud+"\nLINK "+url+"\nHANDOFF "+str(handoff))
+
+
+def make_handoff(index, channel, episode):
+    """A channel-scoped handoff. No approval or publication is inferred."""
+    prefix = channel + "|" + episode + "|"
+    items = [(key, item) for key, item in index.items() if key.startswith(prefix)]
+    lines = [
+        "# Balislam Studio — Review Handoff",
+        "",
+        "Channel: " + channel,
+        "Episode: " + episode,
+        "Generated (UTC): " + datetime.now(timezone.utc).isoformat(),
+        "Review status: PENDING — no visual approval inferred",
+        "",
+        "## Review files",
+        "",
+    ]
+    if not items:
+        lines.append("No verified uploaded files in the local index.")
+    for key, item in sorted(items):
+        part = key[len(prefix):].replace("|", " / ")
+        lines.extend([
+            "- " + part + ": " + item["url"],
+            "  - MD5: " + item["md5"],
+            "  - Verified upload: " + item["updated"],
+        ])
+    lines.extend([
+        "",
+        "## For the reviewer (ChatGPT)",
+        "",
+        "Check the linked storyboard and videos; inspect content, framing, transitions and timing.",
+        "Record exact defects with scene IDs and give the next directive to Claude.",
+        "Do not mark a deliverable approved merely because it was uploaded.",
+        "",
+        "## For the implementer (Claude)",
+        "",
+        "Include commands executed, tests, files changed, known limitations, and any failures in the execution report.",
+        "Re-upload updated artifacts into their existing logical slots.",
+        "",
+    ])
+    return "\n".join(lines)
+
+def write_handoff(base, index, channel, episode):
+    directory = base / "handoffs" / channel
+    directory.mkdir(parents=True, exist_ok=True)
+    destination = directory / (episode + ".md")
+    destination.write_text(make_handoff(index, channel, episode), encoding="utf-8")
+    return destination
+
+def handoff_report(a):
+    for value in (a.episode,):
+        if not SAFE.fullmatch(value):
+            raise ValueError("Unsafe episode")
+    channel = CHANNELS[a.channel]
+    base = Path(os.environ.get("BAL_PREVIEW_HOME", str(Path.home() / "Balislam-Preview-Sync")))
+    index_file = base / "preview-cloud-index.json"
+    if not index_file.exists():
+        raise ValueError("No verified previews in local index")
+    index = json.loads(index_file.read_text(encoding="utf-8"))
+    report = write_handoff(base, index, channel, a.episode)
+    print("HANDOFF " + str(report))
 
 def cleanup_report(a):
     record = json.loads(Path(a.publish_json).expanduser().read_text(encoding="utf-8"))
@@ -108,6 +170,10 @@ def main():
     p.add_argument("--slot", required=True)
     p.add_argument("--kind", choices=KINDS.keys(), default="video")
     p.set_defaults(action=upload)
+    p = sub.add_parser("handoff")
+    p.add_argument("--channel", required=True, choices=CHANNELS.keys())
+    p.add_argument("--episode", required=True)
+    p.set_defaults(action=handoff_report)
     p = sub.add_parser("cleanup-report")
     p.add_argument("--publish-json", required=True)
     p.set_defaults(action=cleanup_report)
