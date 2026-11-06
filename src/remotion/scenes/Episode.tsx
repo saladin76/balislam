@@ -64,6 +64,10 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
   );
 };
 
+/** A verse with active recitation may not be crossfaded before/after its actual audio. */
+export const isRecitedVerse = (scene: PlanScene | undefined, media: EpisodeMedia) =>
+  Boolean(scene?.template === "verse-card" && scene.ayahKey && media.recitations[scene.ayahKey]);
+
 /** الانتقال الصالح بين مشهدين (لا يُطبَّق ما يرفضه فحص الخطة) */
 export const activeTransition = (scene: PlanScene, prev: PlanScene, channelId?: string): Transition | null => {
   if (!scene.transition || !engineEnabled("transitions", channelId)) return null;
@@ -110,8 +114,10 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           return <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
         };
         // الانتقال (الأمر 011): يُطبَّق فقط إن كان صالحًا لهذا الزوج؛ وبدونه يبقى السلوك القائم حرفيًا
-        const tIn = prev ? activeTransition(scene, prev, plan.channel) : null;
-        const tOut = next ? activeTransition(next, scene, plan.channel) : null;
+        const tIn = prev && !isRecitedVerse(scene, media) && !isRecitedVerse(prev, media)
+          ? activeTransition(scene, prev, plan.channel) : null;
+        const tOut = next && !isRecitedVerse(scene, media) && !isRecitedVerse(next, media)
+          ? activeTransition(next, scene, plan.channel) : null;
         const ctx: TransitionCtx = {
           ...(tOut ? { holdExit: true } : {}),
           ...(tIn ? { skipEnter: true } : {}),
