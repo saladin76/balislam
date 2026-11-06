@@ -43,7 +43,11 @@ command -v rclone >/dev/null || { echo "ERROR: rclone missing"; exit 1; }
 test -d "$ROOT/.git" || { echo "ERROR: $ROOT not a git checkout"; exit 1; }
 mkdir -p "$BASE"
 echo "=== ISOLATED WORKTREE ==="
-REF="$(git -C "$ROOT" rev-parse FETCH_HEAD)"
+# FETCH_HEAD is not stable here: another Git operation may replace it.
+# Resolve the explicit remote-tracking branch and require our upload file.
+REF="$(git -C "$ROOT" rev-parse --verify refs/remotes/origin/fix/studio-preview-safe-cloud-sync^{commit})"
+git -C "$ROOT" cat-file -e "$REF:scripts/studio-preview-cloud.py" ||
+  { echo "ERROR: selected branch lacks uploader; refusing to switch"; exit 1; }
 if [ ! -d "$TARGET" ]; then
   git -C "$ROOT" worktree add --detach "$TARGET" "$REF"
 else
