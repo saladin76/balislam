@@ -13,6 +13,21 @@ const planWithImage = () => ({
 }) as unknown as Plan;
 
 describe("visual storyboard preparation never wipes current production render media", () => {
+  it("supports legitimate Arabic image names without allowing path traversal", async () => {
+    const base = await mkdtemp(path.join(tmpdir(), "studio-arabic-image-"));
+    const episode = path.join(base, "channels", "balislam", "episodes", "001-test");
+    const publicRoot = path.join(base, "public");
+    await mkdir(path.join(episode, "images"), { recursive: true });
+    const name = "صورة المشهد الأول.png";
+    await writeFile(path.join(episode, "images", name), "safe image content");
+    const plan = planWithImage();
+    plan.chapters[0]!.scenes[0]!.props.image = name;
+    const media = await prepareStoryboardMedia("001", plan, {
+      scriptPath: path.join(episode, "script.md"), publicRoot,
+    });
+    expect(media.images).toContain(name);
+    expect(await readFile(path.join(publicRoot, media.base, "images", name), "utf8")).toBe("safe image content");
+  });
   it("stages only referenced imagery into a separate content-hashed directory", async () => {
     const base = await mkdtemp(path.join(tmpdir(), "studio-sb-assets-"));
     const episode = path.join(base, "channels", "balislam", "episodes", "001-test");
