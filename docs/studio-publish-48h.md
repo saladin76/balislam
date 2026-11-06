@@ -17,7 +17,7 @@ git fetch origin feat/studio-local-release-audit
 bash <(git show origin/feat/studio-local-release-audit:scripts/setup-studio-release-audit.sh)
 ```
 
-This installs the audit scripts under `~/Balislam-Preview-Sync/release-audit/`, runs all five isolated Node fixture tests, prints the diagnostic status for the main checkout and lists the **explicit** Git worktree locations. The diagnostic may print `AUDIT_BLOCKED` even though `AUDIT_TESTS_OK` appears; they represent different things. No episode data is changed. For the accurate active media state of each channel, run the suggested command using that channel's worktree path.
+This installs the audit scripts under `~/Balislam-Preview-Sync/release-audit/`, runs all **nine** isolated Node fixture tests (five audit + four locator), prints the diagnostic status for the current checkout, and locates candidate episode script folders in **registered** Git worktrees using filename metadata only. The diagnostic may print `AUDIT_BLOCKED` even though `AUDIT_TESTS_OK` appears; they represent different things. No episode data is changed. For the accurate active media state of each channel, run the suggested command using that channel's worktree path.
 
 ## Mac: one local diagnostic command (read-only)
 From Terminal with the existing `~/balislam` checkout:
@@ -29,6 +29,15 @@ mkdir -p "$HOME/Balislam-Preview-Sync/tools"
 git show origin/feat/studio-local-release-audit:scripts/studio-release-audit.mjs > "$HOME/Balislam-Preview-Sync/tools/studio-release-audit.mjs"
 node "$HOME/Balislam-Preview-Sync/tools/studio-release-audit.mjs" --root "$HOME/balislam" --episode 001
 ```
+
+## Observed owner Mac audit — 6 November 2026
+
+The standalone audit passed **5/5 unit tests**, then examined `/Users/sword/balislam` on the local branch `review/balislam-directed`. It reported:
+- `balislam/001`: no script-backed episode 001 in **that root**
+- `dafatir-alzaman/001`: no script-backed episode 001 in **that root**
+- `zubdat-alkutub/001`: 31 plan scenes; storyboard hashes 0/31; scene approvals 1/31; matching voice clips 0/27; no master/package/owner approval **in that root**.
+
+This does **not** mean the other episodes were deleted, nor that their current production assets are missing from all Mac worktrees. The registered-worktree locator was added in response, to explicitly identify paths for owner/Claude confirmation without touching files. **Never merge/recreate/re-render based only on a missing file in the inspected branch.**
 
 If each Claude conversation uses a **different channel worktree**, do **not** assume `~/balislam` contains its current untracked voice/video renders. Use the exact worktree path explicitly and one channel at a time, e.g.:
 
