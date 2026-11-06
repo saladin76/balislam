@@ -166,9 +166,19 @@ export const LightStage: React.FC<LightStageProps> = (props) => {
             {news > 0 ? <Glow cx={heroX + 40} cy={GROUND - 250} r={300} color={ID.dawn} opacity={news * 0.8} /> : null}
             {sitting ? <g><rect x={heroX - 70} y={GROUND + 30 - 112} width={150} height={112} fill={darken(ID.night, 0.2)} /><rect x={heroX - 76} y={GROUND + 30 - 120} width={162} height={12} fill={mix(ID.night, ID.copper, 0.3)} /></g> : null}
             <Figure x={heroX} y={GROUND + 30} scale={sitting ? 1.75 : 1.8} pose={pose} look={look} flip={facingLeft} {...(loco ? { facing: loco.facing, view: loco.view, sway: loco.sway } : {})} holding={holding} frame={frame} rim={Math.max(truth, news) * 0.9} />
-            {memory.map((c, i) => (
-              <WordPill key={c.word} x={natural ? stagePillX(heroX + (i % 2 ? 360 : -360), heroX, zoom, c.word, portrait) : heroX + (i % 2 ? 360 : -360)} y={GROUND - 470 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
-            ))}
+            {memory.map((c, i) => {
+              const y = GROUND - 470 - i * 60;
+              const x0 = heroX + (i % 2 ? 360 : -360);
+              if (!natural) return <WordPill key={c.word} x={x0} y={y} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />;
+              // الحركة الطبيعية: الكلمة لا تغطي الرأس ولا السطر المكتوب؛ إن لم تتسع لها اللقطة القريبة تخبو مع حركة الكاميرا (الأمر 014)
+              const shown = (z: number) => (stagePillClear(y, heroX, stagePillX(x0, heroX, z, c.word, portrait), z, c.word, portrait) ? 1 : 0);
+              const vis = shown(za) * (1 - tz) + shown(Z[cut % Z.length]!) * tz;
+              return (
+                <g key={c.word} opacity={vis}>
+                  <WordPill x={stagePillX(x0, heroX, zoom, c.word, portrait)} y={y} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
+                </g>
+              );
+            })}
           </g>
         </svg>
       </AbsoluteFill>
@@ -190,6 +200,18 @@ export const stagePillX = (x: number, heroX: number, zoom: number, word: string,
   const lo = v0 + w / 2 + 24 / zoom;
   const hi = v1 - w / 2 - 24 / zoom;
   return lo > hi ? (v0 + v1) / 2 : Math.max(lo, Math.min(hi, x));
+};
+
+/**
+ * هل تتسع كلمة المعنى في اللقطة بلا تغطية رأس البطل ويده المرفوعة (نحو 105 وحدة حوله بمقياس 1.8) ولا السطر
+ * المكتوب أعلى الإطار (الأمر 014)؟ الإحداثي الرأسي بعد التكبير حول (البطل، GROUND - 220).
+ */
+export const stagePillClear = (y: number, heroX: number, x: number, zoom: number, word: string, portrait: boolean, size = 46) => {
+  const w = word.length * size * 0.58 + 64;
+  const top = GROUND - 220 + (y - size * 1.05 - (GROUND - 220)) * zoom;
+  const captionBottom = portrait ? 245 : 190;
+  const clear = 105;
+  return top >= captionBottom && (x + w / 2 <= heroX - clear || x - w / 2 >= heroX + clear);
 };
 
 export const lightStageSample: Omit<LightStageProps, "themeId" | "orientation"> = {

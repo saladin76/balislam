@@ -17,6 +17,7 @@ import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/E
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
 import { MotionLab007, MotionScenes007, SEG7, SEGMENTS_007 } from "./lab/MotionLab007";
+import { ReviewReel014, review014Frames } from "./lab/ReviewReel014";
 import { FramingLab, FramingTiming, framingLabFrames } from "./lab/FramingLab";
 import { PermanentCh2, PermanentStyles, permanentCh2Frames, permanentStylesFrames } from "./lab/PermanentLab";
 import { TransitionLab, TransitionLabBaseline, transitionLabFrames } from "./lab/TransitionLab";
@@ -143,6 +144,9 @@ export const RemotionRoot: React.FC = () => (
       ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
+    {/* نسخة المراجعة البصرية (الأمر 014): بملء الإطار، بلا صوت، ولا تُنشر */}
+    <Composition id="review-014-landscape" component={ReviewReel014} durationInFrames={review014Frames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "landscape" as const }} />
+    <Composition id="review-014-portrait" component={ReviewReel014} durationInFrames={review014Frames()} fps={config.video.fps} {...sizes.portrait} defaultProps={{ orientation: "portrait" as const }} />
     {/* مختبر التأطير (الأمر 013): قبل/بعد framing = fit، بلا صوت، ولا يُنشر */}
     <Composition id="lab-framing-landscape" component={FramingLab} durationInFrames={framingLabFrames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "landscape" as const }} />
     {(["landscape", "portrait"] as const).map((o) => (

@@ -13,7 +13,7 @@ vi.mock("remotion", async (orig) => {
   const m = (await orig()) as Record<string, unknown>;
   return { ...m, useCurrentFrame: () => F, useVideoConfig: () => ({ fps: 30, width: ORI === "portrait" ? 1080 : 1920, height: ORI === "portrait" ? 1920 : 1080, durationInFrames: 240, id: "t", defaultProps: {}, props: {}, defaultCodec: null }) };
 });
-const { AlleyTale, fitFor, shotFrame, witnessPillAt, pillWidth } = await import("../src/remotion/scenes/AlleyTale");
+const { AlleyTale, fitFor, shotFrame, witnessPillAt, witnessClear, pillWidth } = await import("../src/remotion/scenes/AlleyTale");
 
 /** ما يُرى من العالم بتأطير */
 const view = (c: { x: number; z: number }, portrait: boolean) => ({ lo: c.x - (portrait ? 304 : 960) / c.z, hi: c.x + (portrait ? 304 : 960) / c.z });
@@ -124,6 +124,15 @@ describe("الكاميرا: الشاهدان في العمودي، وخطط ال
     const x = witnessPillAt(640, 1, "ظلمًا", c, true)!;
     expect(Math.abs(x - 640)).toBeGreaterThanOrEqual(45 + pillWidth("ظلمًا") / 2 - 1);
     expect(witnessPillAt(1300, -1, "عدلًا", c, true)).toBeNull();
+  });
+  it("كلمة الشاهد الثاني لا تغطي يده المرفوعة ولا تلامس رأسه (الأمر 014)", () => {
+    for (const portrait of [true, false]) {
+      const c = fitFor(base({ stage: "witnesses", heroX: 640, portrait, verdicts: { wrong: "ظلمًا", just: "عدلًا" } }))(portrait ? "other" : "hero", "medium");
+      const x = witnessPillAt(1300, -1, "عدلًا", c, portrait, 46, witnessClear("just"));
+      if (x === null) continue;
+      // حافة الكلمة اليمنى خارج امتداد وضعية التفكير من جهة الموقف (98 بمقياس 1.75)
+      expect(x + pillWidth("عدلًا") / 2).toBeLessThanOrEqual(1300 - 98);
+    }
   });
   it("الهدف other مقبول في خطة المخرج، ويُرفض بلا التأطير المحتوي", () => {
     expect(parseCameraPlan("الحكم | medium other")[0]?.target).toBe("other");

@@ -160,7 +160,7 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
               <Figure x={heroX} y={GROUND + 10} scale={1.95} pose={pose} look={look} flip {...(hero ? { sway: hero.sway } : {})} holding={holding} frame={frame} rim={truth * 0.8} />
             )}
             {memory.map((c, i) => (
-              <WordPill key={c.word} x={heroX + (i % 2 ? 330 : -330)} y={GROUND - 480 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
+              <WordPill key={c.word} x={natural ? roadPillX(heroX + (i % 2 ? 330 : -330), heroX, push, c.word, portrait) : heroX + (i % 2 ? 330 : -330)} y={GROUND - 480 - i * 60} text={c.word} color={c.kind === "wrong" ? ID.seal : ID.dawn} t={rise(frame, c.at, 12)} />
             ))}
           </g>
         </svg>
@@ -169,6 +169,24 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
       <TopCaption frame={frame} fps={fps} timings={timings} keys={cues.map((c) => c.word)} portrait={portrait} out={out} />
     </SceneShell>
   );
+};
+
+/**
+ * مع الحركة الطبيعية (الأمر 014): كلمة المعنى داخل ما يراه الإطار كاملة؛ في العمودي يرى الإطار من البطل
+ * 380 وحدة خلفه و228 أمامه قبل الاقتراب، والاقتراب حول البطل.
+ */
+export const roadPillX = (x: number, heroX: number, zoom: number, word: string, portrait: boolean, size = 46) => {
+  const w = word.length * size * 0.58 + 64;
+  const v0 = portrait ? heroX - 380 / zoom : heroX - heroX / zoom;
+  const v1 = portrait ? heroX + 228 / zoom : heroX + (WW - heroX) / zoom;
+  const lo = v0 + w / 2 + 24 / zoom;
+  const hi = v1 - w / 2 - 24 / zoom;
+  const place = (t: number) => (lo > hi ? (v0 + v1) / 2 : Math.max(lo, Math.min(hi, t)));
+  // لا تغطي رأس البطل (نحو 90 وحدة حوله بمقياس 1.95): إن ضاقت جهتها تنتقل إلى الجهة الأخرى
+  const overHead = (p: number) => p + w / 2 > heroX - 90 && p - w / 2 < heroX + 90;
+  const p = place(x);
+  const q = place(2 * heroX - x);
+  return overHead(p) && !overHead(q) ? q : p;
 };
 
 export const roadJourneySample: Omit<RoadJourneyProps, "themeId" | "orientation"> = {

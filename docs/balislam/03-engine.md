@@ -84,6 +84,8 @@
 
 **المعاينة:** `lab-framing-landscape` و`lab-framing-portrait` (`src/remotion/lab/FramingLab.tsx`): ست حالات قبل/بعد بالتوقيت نفسه.
 
+**نسخة المراجعة (الأمر 014):** `review-014-landscape` و`review-014-portrait` (`src/remotion/lab/ReviewReel014.tsx`): الأساليب الثلاثة بملء الإطار بالأدوات حيث يدعمها القالب، صامتة، بلا تقسيم ولا تشخيص. ومعها: كلمة الشاهد الثاني تبتعد عن يده المرفوعة (`witnessClear` في `src/remotion/scenes/AlleyTale.tsx`)؛ ومع `motion = natural` كلمة «الطريق» داخل الإطار ولا تغطي الرأس (`roadPillX` في `src/remotion/scenes/RoadJourney.tsx`)، وكلمة «ظل ونور» تخبو مع حركة الكاميرا إن لم تتسع اللقطة القريبة لها بلا تغطية الرأس والسطر (`stagePillClear` في `src/remotion/scenes/LightStage.tsx`). الاختبار `tests/review-014.test.tsx`.
+
 **الاختبارات:** `tests/camera-composed.test.ts`، `tests/framing-fit.test.tsx` (كل حالة × كل هدف × كل حجم × الاتجاهين: المطلوب كامل؛ وبلا الحقل الرسم القائم حرفيًا)، `src/plan/director.test.ts`، `tests/illus-direction.test.ts`.
 
 **القيود:**

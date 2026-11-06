@@ -404,7 +404,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               const x0 = witnessPill ? (c.kind === "wrong" ? 640 : 1300) : heroX + side * (300 + i * 40);
               if (fitMode && witnessPill && composedCam) {
                 // التأطير المحتوي: حكم كل شاهد بجوار رأسه من جهة الموقف (لا فوق رأسه)، ويخرج معه إن خرج من الإطار
-                const p = witnessPillAt(x0, c.kind === "wrong" ? 1 : -1, c.word, composedCam, portrait);
+                const p = witnessPillAt(x0, c.kind === "wrong" ? 1 : -1, c.word, composedCam, portrait, 46, witnessClear(c.kind));
                 return p === null ? null : <WordPill key={c.word} x={p} y={GROUND - 420 - 40} text={c.word} color={col} t={rise(frame, c.at, 12)} />;
               }
               // الكاميرا المؤلَّفة: الكلمة داخل الإطار الظاهر كاملة (لا تُقص على حافته، خاصة في العمودي)
@@ -506,7 +506,7 @@ export const fitFor = (s: {
   const board = s.hasBoard ? { lo: s.propX - 430, hi: s.propX - 430 + 266, name: "board" } : null;
   const situation = s.stage === "witnesses" ? { lo: figureSpan(920, ["point", "talk"], "right", 1.15).lo, hi: figureSpan(1010, ["hold", "flinch"], "left", 1.15).hi, name: "situation" } : null;
   const second0 = s.stage === "witnesses" ? figureSpan(1300, ["stand", "think"], "left", 1.75, "witness2") : null;
-  const second = second0 && s.verdicts?.just ? { ...second0, lo: Math.min(second0.lo, 1300 - 48 - vw(s.verdicts.just)) } : second0;
+  const second = second0 && s.verdicts?.just ? { ...second0, lo: Math.min(second0.lo, 1300 - witnessClear("just") - vw(s.verdicts.just)) } : second0;
   const ghosts = s.ghosts ? [-330, -560, 300].map((dx, i) => figureSpan(s.heroX + dx, ["stand"], "both", 1.25, `ghost${i}`)) : [];
   const all = [heroAll, comp, door, board, situation, second, ...ghosts].filter((x): x is NonNullable<typeof x> => Boolean(x));
   const pick = (req: (typeof all)[number] | null | undefined, ...more: ((typeof all)[number] | null | undefined)[]) => [req, ...more].filter((x): x is NonNullable<typeof x> => Boolean(x));
@@ -590,15 +590,21 @@ export const pillInView = (x: number, word: string, c: CamState, portrait: boole
  * حكم الشاهد (framing = fit، الأمر 013): بجوار رأسه من جهة الموقف بلا تداخل مع الرأس، داخل الإطار إن كان
  * الشاهد ظاهرًا، ولا يُرسم (null) إن كان الشاهد خارج الإطار، فلا تُسحب كلمته إلى غير صاحبها.
  */
-export const witnessPillAt = (wx: number, inward: 1 | -1, word: string, c: CamState, portrait: boolean, size = 46) => {
+export const witnessPillAt = (wx: number, inward: 1 | -1, word: string, c: CamState, portrait: boolean, size = 46, clear = 48) => {
   const half = (portrait ? 304 : 960) / c.z;
   if (wx < c.x - half || wx > c.x + half) return null;
   const w = pillWidth(word, size);
-  // الرأس نحو 45 وحدة حول محور الشخصية
-  const beside = wx + inward * (48 + w / 2);
+  // clear: امتداد الرأس واليد المرفوعة من جهة الموقف حول محور الشخصية
+  const beside = wx + inward * (clear + w / 2);
   const x = pillInView(beside, word, c, portrait, size);
   return x;
 };
+/**
+ * امتداد الشاهد من جهة الموقف عند مستوى رأسه (الأمر 014): الأول واقف (الرأس نحو 45)، والثاني في وضعية
+ * التفكير ويده مرفوعة إلى ذقنه من جهة الموقف ومعها طرف الخمار (نحو 98 بمقياس 1.75، `figureSpan`)، فتُبعد
+ * كلمته عنها ولا تغطي يده ولا تلامس رأسه.
+ */
+export const witnessClear = (kind: string) => (kind === "just" ? 108 : 48);
 /** عرض بطاقة كلمة (كما في WordPill) */
 export const pillWidth = (word: string, size = 46) => word.length * size * 0.58 + 64;
 /** تحويل طبقة بعمق depth: الطبقات البعيدة تتحرك وتكبر أقل (منظور) */

@@ -16,6 +16,7 @@
 | `engine-permanent` و`engine-permanent-portrait` | `lab-permanent-ch2-landscape` و`lab-permanent-ch2-portrait` (`src/remotion/lab/PermanentLab.tsx`) | الفصل ٢ من الحلقة 001 كما اعتُمد مقابل الخطة نفسها لو أُنشئت جديدة بعد اعتماد الأساس (التوجيه الدائم) |
 | `framing-013` و`framing-013-portrait` | `lab-framing-landscape` و`lab-framing-portrait` (`src/remotion/lab/FramingLab.tsx`) | التأطير القائم مقابل المحتوي (`framing = fit`) في ست حالات: وحده، جالس، شخص أمامه، شاهدان، لوحة، ذكر الله (الأمر 013) |
 | `motion-013` و`motion-013-portrait` | `lab-motion-013-landscape` و`lab-motion-013-portrait` (`src/remotion/lab/PermanentLab.tsx`) | الحركة القديمة والطبيعية في «الطريق» و«ظل ونور» بالاتجاهين (الأمر 013) |
+| `review-014` و`review-014-portrait` | `review-014-landscape` و`review-014-portrait` (`src/remotion/lab/ReviewReel014.tsx`) | نسخة المراجعة البصرية الأولى بملء الإطار: الحارة والطريق وظل ونور، صامتة ومحايدة (الأمر 014) |
 | `engine-styles` | `lab-permanent-styles` (`src/remotion/lab/PermanentLab.tsx`) | الحركة القديمة والطبيعية في «الطريق» و«ظل ونور» (التوجيه الدائم) |
 
 النسخ السابقة لكل خانة محفوظة في سجل git (`git log -- channels/balislam/episodes/900-engine-lab/previews`).
