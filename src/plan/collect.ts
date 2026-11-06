@@ -113,8 +113,10 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
  * voice recordings into a storyboard meant to be prepared BEFORE narration.
  * Content-hashed namespaces keep different source-asset revisions separate.
  */
-export const prepareStoryboardMedia = async (episode: string, plan: Plan): Promise<EpisodeMedia> => {
-  const scriptPath = await resolveScriptPath(episode);
+export const prepareStoryboardMedia = async (
+  episode: string, plan: Plan, opts: { scriptPath?: string; publicRoot?: string } = {},
+): Promise<EpisodeMedia> => {
+  const scriptPath = opts.scriptPath ?? await resolveScriptPath(episode);
   const images = usedImages(plan, imagesDirFor(scriptPath), libraryDirFor(scriptPath));
   const digest = createHash("sha256").update(JSON.stringify({
     version: 1, episode, theme: plan.themeId, chapters: plan.chapters, overlays: plan.overlays,
@@ -130,7 +132,7 @@ export const prepareStoryboardMedia = async (episode: string, plan: Plan): Promi
   }
   const safeEpisode = path.basename(String(episode)).replace(/[^a-z0-9_-]/gi, "_");
   const rel = `_storyboard_media/${safeEpisode}-${digest.digest("hex").slice(0, 16)}/`;
-  const dest = path.join(projectRoot, "public", rel);
+  const dest = path.join(opts.publicRoot ?? path.join(projectRoot, "public"), rel);
   await mkdir(path.join(dest, "images"), { recursive: true });
   for (const asset of assets) {
     const output = path.join(dest, "images", asset.name);
