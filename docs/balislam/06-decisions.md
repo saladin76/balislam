@@ -5,7 +5,7 @@
 
 ---
 
-## ٦ نوفمبر ٢٠٢٦ — ملحق الأمر 015: حفظ ستوري بورد المختبرات في الاستوديو
+## ٦ نوفمبر ٢٠٢٦ — ملحق الأمر 015: حفظ ستوري بورد المختبرات في الاستوديو (commit `040aae1`)
 
 - **المشكلة:** صور الستوري بورد (مراجعات التكوين قبل الرندر) كانت تُرسل في المحادثة فقط، فلا تبقى في الاستوديو ولا في المستودع، ولا يُعرف أي نسخة هي الأحدث ولا ما قرره صاحب القناة في كل نسخة.
 - **الحل:** `src/channel/labStoryboards.ts` (`addLabStoryboard`، `decideLabStoryboard`، `listLabStoryboards`، `labStoryboardFile`، `resolveLabDir`) والجزء الخالص `src/channel/labStoryboardsShared.ts`؛ الأمران `upload-storyboard` و`storyboard-decision` في `src/cli/index.ts`؛ مسارات `labs/<المختبر>/storyboards` في `app/server/extra.ts`؛ القسم `app/src/tabs/LabStoryboards.tsx` داخل `app/src/tabs/LabsTab.tsx`.
