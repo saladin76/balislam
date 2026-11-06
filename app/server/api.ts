@@ -105,6 +105,12 @@ export const balApi = (): Plugin => ({
       if (!url.pathname.startsWith("/api/")) return next();
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
+        // Read-only handoff index; no network requests, jobs or uploads from the UI.
+        if (url.pathname === "/api/studio-transfers" && req.method === "GET") {
+          const { readStudioTransferOverview } = await import("./studioTransfers");
+          return send(res, 200, await readStudioTransferOverview());
+        }
+
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
