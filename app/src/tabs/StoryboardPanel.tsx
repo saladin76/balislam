@@ -212,10 +212,15 @@ export const StoryboardPanel: React.FC<{
             <span>المدة {fmt(totalSec)}{Object.keys(media.voice).length ? "" : " (بلا صوت: أقل مدة لكل قالب)"}</span>
             {st ? <span className={st.ok ? "ok" : "warn"}>معتمد {st.approved} من {st.total}</span> : null}
             {motion ? <span className="help">فحص حركة تشخيصي لاحق: {motion.percent}٪{staleCount ? " (نسخة قديمة)" : ""}</span> : null}
-            {staleCount ? <span className="warn">{staleCount} مشهدًا تغيّر منذ القياس — أعد الفحص قبل الاعتماد.</span> : null}
-            {stills.length ? <span className="warn">سكون فوق ثانيتين: {stills.join("، ")}</span> : null}
-            {motion && <span className={logicNeedsReview.length || logicNotAssessable.length ? "warn" : "help"}>مطابقة النص: {logicNeedsReview.length} بها تحذيرات · {logicNotAssessable.length} غير قابلة للتقييم الآلي (لا تعادل اعتمادًا فنيًا)</span>}
+
           </p>
+          {motion && <details className="sb-technical-metrics">
+            <summary>نتائج فحص الحركة القديم — للمرحلة اللاحقة بعد الصوت فقط</summary>
+            <p className="help">هذا فحص استرشادي لتوقيت العناصر قبل اعتماد الصوت. التحذيرات لا تعادل رفض تصميم اللوحات ولا يطلب منك تجاوزها الآن.</p>
+            {staleCount > 0 && <p>مشاهد تحتاج تحديث القياس عند إنتاج الحركة: {staleCount}</p>}
+            {stills.length > 0 && <p>مشاهد لها سكون أكثر من ثانيتين: {stills.join("، ")}</p>}
+            <p>تحذيرات منطق الحركة: {logicNeedsReview.length} · غير قابلة للتقييم آليًا: {logicNotAssessable.length}</p>
+          </details>}
           {st?.changed.length ? <p className="help warn">تغيّر بعد الاعتماد: {st.changed.join("، ")}</p> : null}
           {st?.audit?.note ? <p className="help">ملاحظة اعتماد المراجع: {st.audit.note}</p> : null}
           {info?.motionAuditNeedsReview ? <p className="help">تنبيه فني مستقل: تقرير الحركة يحتوي ملاحظات تُراجع بعد اعتماد الصوت وأثناء إنتاج الفيديو؛ لا تُعامل باعتبارها رفضًا للـStoryboard المرئي.</p> : null}
@@ -233,7 +238,7 @@ export const StoryboardPanel: React.FC<{
             </button>
           ) : (
             <button className="btn primary" onClick={() => act("approve")} disabled={busy || !st}>
-              "اعتماد اللوحات المرئية بعد مراجعتها"
+              اعتماد اللوحات المرئية بعد مراجعتها
             </button>
           )}
         </div>
@@ -315,8 +320,9 @@ export const StoryboardPanel: React.FC<{
                       <b>العناصر:</b> {els.length ? els.map((id) => elName.get(id) ?? id).join("، ") : "بلا عناصر"}
                     </p>
                     {m ? (
-                      <>
-                        <p className={`sb-motion${m.stale ? " stale" : m.still > 2 ? " warn" : ""}`}>
+                      <details className="sb-motion-after-voice" onClick={(e) => e.stopPropagation()}>
+                        <summary>تقرير الحركة الفني (مرحلة لاحقة)</summary>
+                        <p className={`sb-motion${m.stale ? " stale" : ""}`}>
                           {m.stale ? "تغيّر بعد القياس" : `${m.pct}٪ حركة · أطول سكون ${m.still} ث`}
                         </p>
                         {!m.stale && m.logic ? (
@@ -334,7 +340,7 @@ export const StoryboardPanel: React.FC<{
                             </details>
                           </div>
                         ) : null}
-                      </>
+                      </details>
                     ) : null}
                   </div>
                 </article>
