@@ -103,7 +103,7 @@
             "look": "hero",
             "cast": "",
             "cues": "memory | بتجاربنا\nmemory | ومخاوفنا\npeople | والأشخاص\nmemory | والأفكار",
-            "shot": "home-what-shapes-us"
+            "shot": "lattice-what-tints-us"
           },
           "id": "c1-s5",
           "sfx": [],
@@ -260,7 +260,8 @@
             "poses": "head-down",
             "look": "hero",
             "cast": "",
-            "cues": "wrong | باطل"
+            "cues": "wrong | باطل",
+            "shot": "scale-shiny-weight"
           },
           "id": "c2-s1",
           "sfx": []
@@ -277,7 +278,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "scale-weight-wrong-pan"
           },
           "id": "c2-s2",
           "sfx": []
@@ -294,7 +296,8 @@
             "poses": "talk,think,nod",
             "look": "hero",
             "cast": "",
-            "cues": "think | تأمل\nharsh | يجرح\npeople | الآخرين"
+            "cues": "think | تأمل\nharsh | يجرح\npeople | الآخرين",
+            "shot": "cafe-harsh-candor"
           },
           "id": "c2-s3",
           "sfx": []
@@ -311,7 +314,8 @@
             "poses": "stand,talk",
             "look": "hero",
             "cast": "",
-            "cues": "harsh | القسوة\npeople | الناس"
+            "cues": "harsh | القسوة\npeople | الناس",
+            "shot": "cafe-harsh-cost"
           },
           "id": "c2-s4",
           "sfx": []
@@ -328,7 +332,8 @@
             "poses": "proud,think,nod",
             "look": "hero",
             "cast": "",
-            "cues": "proud | يتكبر\ncompanion | غيره"
+            "cues": "proud | يتكبر\ncompanion | غيره",
+            "shot": "courtyard-pride"
           },
           "id": "c2-s5",
           "sfx": []
@@ -345,7 +350,8 @@
             "poses": "proud",
             "look": "hero",
             "cast": "",
-            "cues": "proud | احتقار\npeople | الآخرين"
+            "cues": "proud | احتقار\npeople | الآخرين",
+            "shot": "courtyard-confident-greets"
           },
           "id": "c2-s6",
           "sfx": []
@@ -362,7 +368,8 @@
             "poses": "hold,stand",
             "look": "hero",
             "cast": "",
-            "cues": "spread | ينشر\nnews | خبرًا"
+            "cues": "spread | ينشر\nnews | خبرًا",
+            "shot": "roof-news-spreads"
           },
           "id": "c2-s7",
           "sfx": []
@@ -379,7 +386,8 @@
             "poses": "hold",
             "look": "hero",
             "cast": "",
-            "cues": "news | الخبر"
+            "cues": "news | الخبر",
+            "shot": "stall-truth-unchanged"
           },
           "id": "c2-s8",
           "sfx": []
@@ -396,7 +404,8 @@
             "poses": "sit,sit-low,sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "scale-values-misused"
           },
           "id": "c2-s9",
           "sfx": []
@@ -413,7 +422,8 @@
             "poses": "stand,stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "stall-still"
           },
           "id": "c2-s10",
           "sfx": []
@@ -443,7 +453,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": "wrong | باطلًا"
+            "cues": "wrong | باطلًا",
+            "shot": "scale-not-moved"
           },
           "id": "c2-s12",
           "sfx": []
@@ -460,7 +471,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "scale-principle-application"
           },
           "id": "c2-s13",
           "sfx": []
@@ -477,7 +489,8 @@
             "poses": "sit,sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "cafe-harsh-alone"
           },
           "id": "c2-s14",
           "sfx": []
@@ -494,7 +507,8 @@
             "poses": "stand,proud",
             "look": "hero",
             "cast": "",
-            "cues": "proud | تكبرًا"
+            "cues": "proud | تكبرًا",
+            "shot": "courtyard-proud-alone"
           },
           "id": "c2-s15",
           "sfx": []
@@ -511,7 +525,8 @@
             "poses": "look-up,look-up,head-down",
             "look": "hero",
             "cast": "",
-            "cues": "truth | حقيقتها"
+            "cues": "truth | حقيقتها",
+            "shot": "scale-name-vs-act"
           },
           "id": "c2-s16",
           "sfx": []

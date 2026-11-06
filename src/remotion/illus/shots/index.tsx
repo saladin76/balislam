@@ -1,13 +1,14 @@
 import React from "react";
 import { ID, darken, mix } from "../palette";
-import { Figure, LOOKS, POSES, walkPose, type FigureLook, type PoseName } from "../Figure";
+import { Figure, LOOKS, POSES, blendPose, walkPose, type FigureLook, type PoseName, type PoseSpec } from "../Figure";
 import { GROUND, Glow, useSvgId } from "../world";
 import { LightPool } from "../texture";
 import { SouqStreet, FruitCart } from "./street";
-import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow } from "./interior";
+import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow, PhotoFrame, LATTICE } from "./interior";
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, PhonePOV } from "./phone";
+import { CH2_SHOTS } from "./ch2";
 import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleSincereBeats, scaleSincereCast, scaleSincereEvidence, scaleVerdictBeats, scaleVerdictCast } from "./scale";
 
 /**
@@ -157,9 +158,12 @@ export const SHOTS: Record<string, ShotDef> = {
       // الحلقة 001 · c1-s3 (الأمر 018): يبدأ بتأطير آخر c1-s2 نفسه، ثم إلى الميزان عند «لإثبات»
       const s = scaleSincereBeats(at);
       const C = (t: number, x: number, z: number, y: number): CamKey => ({ t, x, y, z });
-      const cam = portrait ? [C(0, 1023, 0.533, 330), C(s.proof - 8, 1105, 1.25, 520)] : [C(0, 1040, 1.25, 370), C(s.proof - 8, 1128, 1.8, 450)];
+      // التوجيه 019: لا اقتراب يُخرج الشاهدين؛ اللقطة كلها بتأطير آخر c1-s2 (الشاهدان والميزان معًا)،
+      // والدليل ضوء يشتد على الميزان بينهما، فتبقى المقابلة بين صدقهما وصحة الحكم في إطار واحد
+      const cam = portrait ? [C(0, 1023, 0.533, 330)] : [C(0, 1040, 1.25, 370)];
       return {
         cam,
+        captionBackdrop: 0.6,
         world: <ScaleIncident frame={frame} b={DONE_BEATS} portrait={portrait} angle="main" cast={scaleSincereCast(frame, s)} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={SCALE_TAG_SIZE(portrait)} evidence={scaleSincereEvidence(frame, s)} />,
       };
     },
@@ -309,6 +313,53 @@ export const SHOTS: Record<string, ShotDef> = {
       };
     },
   },
+  "lattice-what-tints-us": {
+    nameAr: "المشربية: ما يلوّن نظرنا (تجاربنا، مخاوفنا، من نحب، ما اعتدناه)",
+    place: "مشربية تطل على السوق",
+    render: ({ frame, at, portrait }) => {
+      // التوجيه 019 (c1-s5): امتداد c1-s4 عند النافذة نفسها. كل كلمة تلوّن عمودًا من الزجاج ويظهر فيه انعكاس مصدره،
+      // حتى يُرى السوق كله من خلال الألوان الأربعة: أثرها في النظر، لا رموزًا مجمّعة في غرفة. القراءة من اليمين.
+      const tE = at("بتجاربنا", 0.15);
+      const tF = at("ومخاوفنا", 0.38);
+      const tP = at("والأشخاص", 0.55);
+      const tI = at("والأفكار", 0.8);
+      const on = (t: number) => prog(frame, t - 2, t + 16);
+      const col = (i: number) => LATTICE.x + (i + 0.5) * (LATTICE.w / 4);
+      const sil = mix(ID.night, ID.paper, 0.55);
+      const books = (cx: number) => (
+        <g transform={`translate(${cx - 70} ${LATTICE.y + 390})`} fill={sil} stroke={sil}>
+          {[0, 1, 2, 3, 4].map((k) => <rect key={k} x={k * 28} y={-120 + (k % 2) * 14} width={22} height={170 - (k % 2) * 14} rx={3} />)}
+          <rect x={-10} y={50} width={160} height={14} />
+        </g>
+      );
+      const columns = [
+        { tint: mix(ID.night, ID.paper, 0.35), amount: on(tI), reflection: books(col(0)) },
+        { tint: mix(ID.seal, ID.dawn, 0.4), amount: on(tP), reflection: <g><Figure x={col(1) - 34} y={LATTICE.y + 560} scale={0.95} pose={POSES.stand} look={LOOKS.woman} silhouette={sil} shadow={false} /><Figure x={col(1) + 40} y={LATTICE.y + 560} scale={0.6} pose={POSES.stand} look={LOOKS.boy} flip silhouette={sil} shadow={false} /></g> },
+        { tint: darken(ID.night, 0.2), amount: on(tF), reflection: <Figure x={col(2)} y={LATTICE.y + 640} scale={1.55} pose={POSES.flinch} look={hero} silhouette={darken(ID.night, 0.5)} shadow={false} /> },
+        { tint: ID.dawn, amount: on(tE), reflection: <g transform={`translate(${col(3) - 60} ${LATTICE.y + 150})`}><PhotoFrame x={0} y={0} w={120} glow={0.3} people={2} /></g> },
+      ];
+      const outside = (
+        <g transform="translate(520 120) scale(0.46) translate(-200 -260)">
+          <SouqStreet frame={frame} />
+          <Incident frame={frame} {...AFTER} fallAt={AFTER.grab + 2} />
+        </g>
+      );
+      const lastWord = Math.max(tE, tF, tP, tI);
+      return {
+        // الأفقي يبدأ بتأطير آخر c1-s4؛ العمودي يمر على كل عمود عند كلمته ثم يعود إلى البطل والنافذة
+        cam: portrait
+          ? [{ t: 0, x: 640, y: 500, z: 0.9 }, { t: tE - 6, x: col(3), y: 440, z: 1.25 }, { t: tF - 6, x: col(2), y: 440, z: 1.25 }, { t: tP - 6, x: col(1), y: 440, z: 1.25 }, { t: tI - 6, x: col(0), y: 440, z: 1.25 }, { t: lastWord + 22, x: 700, y: 500, z: 0.86 }]
+          : [{ t: 0, x: 960, y: 450, z: 1.22 }, { t: lastWord + 18, x: 900, y: 460, z: 1.12 }],
+        captionBackdrop: 0.5,
+        world: (
+          <g>
+            <TintedLattice frame={frame} tint={GOLD} tintAmount={0.2} outside={outside} columns={columns} />
+            <Figure x={470} y={GROUND + 520} scale={2.6} pose={pz(frame, [[0, "listen"], [tF, "flinch"], [tP, "listen"], [tI, "think"]])} look={hero} frame={frame} rim={0.4 + 0.4 * on(tI)} rimColor={ID.dawn} shadow={false} />
+          </g>
+        ),
+      };
+    },
+  },
   "home-what-shapes-us": {
     nameAr: "البيت: تجاربنا ومخاوفنا ومن نحب وأفكارنا",
     place: "بيت بمكتبة وصور",
@@ -374,16 +425,28 @@ export const SHOTS: Record<string, ShotDef> = {
       const tR = at("نرفض", 0.12);
       const tA = at("صحيحة", 0.35);
       const tD = at("نحبه", 0.85);
-      const wob = (from: number) => (frame > from ? Math.sin((frame - from) / 3) * 2.4 * Math.exp(-(frame - from) / 36) : 0);
+      // التأرجح (التوجيه 019): الساق القصيرة معلّقة، ومنذ «صحيحة» يتأرجح الكرسي فتهبط وترتفع ثم يسكن معلّقًا
+      const rock = frame > tA ? Math.max(0, Math.sin((frame - tA) / 4)) * Math.exp(-(frame - tA) / 40) : 0;
+      // الزميل ينحني ويشير إلى الساق القصيرة (لا إشارة أفقية إلى الفراغ)، ثم يلتفت إلى البطل، ثم يعود إلى الكرسي عند «صحيحة»
+      const POINT_DOWN: PoseSpec = { ...POSES.point, lean: 14, head: 24, armFront: { s: 46, e: 6 } };
+      const tl: [number, PoseSpec][] = [[0, POINT_DOWN], [tR + 30, POSES.talk], [tA - 6, POINT_DOWN], [tD, POSES.stand], [tD + 20, POSES.nod]];
+      const friendPose = (() => {
+        let i = 0;
+        while (i + 1 < tl.length && frame >= tl[i + 1]![0]) i++;
+        const [t0, p0] = tl[i]!;
+        const prev = i > 0 ? tl[i - 1]![1] : p0;
+        return i > 0 && frame < t0 + 10 ? blendPose(prev, p0, prog(frame, t0, t0 + 10)) : p0;
+      })();
       return {
-        // العمودي (الأمر 018): الزميل يشير إلى الكرسي، ثم البطل يرفض، ثم الكرسي وحده يتأرجح، ثم الزميل؛ لا أحد نصف مقصوص
+        // التوجيه 019: الكرسي على الأرض أمام الزميل؛ عند «صحيحة» لقطة قريبة على الزميل منحنيًا يشير إلى الساق القصيرة
+        // والفراغ تحتها مضاء (الاثنان كاملان)، والبطل خارجها؛ العمودي بتكوينه، ولا أحد نصف مقصوص
         cam: portrait
-          ? [K(0, 1060, 1.0), K(tR, 1520, 1.15), K(tA, 1250, 1.6), K(tD, 960, 1.1)]
-          : [K(0, 1080, 1.15), K(tR, 1420, 1.67), K(tA, 1230, 1.78), K(tD, 1080, 1.24)],
+          ? [K(0, 1000, 1.0), K(tR, 1520, 1.15), K(tA - 6, 900, 1.45), K(tD, 930, 1.1)]
+          : [K(0, 1080, 1.15), K(tR, 1530, 1.67), K(tA - 6, 920, 2.0), K(tD, 1060, 1.24)],
         world: (
           <g>
-            <Workshop frame={frame} chairTilt={2.5 + wob(0) + wob(tA)} />
-            <Figure x={880} y={GROUND + 8} scale={1.18} pose={pz(frame, [[0, "point"], [tR + 30, "talk"], [tA, "point"], [tD, "stand"], [tD + 20, "nod"]])} look={LOOKS.friend} frame={frame} />
+            <Workshop frame={frame} chairRock={rock} chairMark={prog(frame, tA - 4, tA + 10) * (1 - prog(frame, tD - 10, tD + 6))} />
+            <Figure x={800} y={GROUND + 8} scale={1.18} pose={friendPose} look={LOOKS.friend} frame={frame} />
             <Figure x={1580} y={GROUND + 8} scale={1.2} pose={pz(frame, [[0, "hold"], [tR, "wave-off"], [tR + 34, "turn-away"], [tD, "cross"]])} look={hero} flip={frame < tR + 34} frame={frame} />
           </g>
         ),
@@ -400,17 +463,34 @@ export const SHOTS: Record<string, ShotDef> = {
       const tC = at("الاعتراف", 0.7);
       const tP = at("مؤلما", 0.88);
       const dim = prog(frame, tC, tC + 30);
+      // التوجيه 019: الفعل مفهوم قبل الكابشن. الورقة (قراره) في يده من أول المشهد إلى آخره؛ الشيخ يتقدم ويفتح الكتاب
+      // فيضيء (الدليل)؛ البطل ينظر إليه ثم يضم ورقته إلى صدره ويعطيه ظهره؛ يضيء الباب خلف الشيخ (طريق الاعتراف) فلا يمضي إليه؛
+      // ثم يجلس منكسرًا وورقته ما زالت في يده.
+      const elderX = 620 + 70 * prog(frame, tE - 14, tE + 6);
+      const proof = prog(frame, tE - 4, tE + 12) * (1 - 0.6 * prog(frame, tP, tP + 20));
+      const CLUTCH: PoseSpec = { ...POSES.sincere, lean: -4, head: 14 };
       return {
+        captionBackdrop: 0.5,
         // العمودي (الأمر 018): الاثنان، ثم البطل بورقة قراره، ثم الشيخ بالدليل، ثم البطل وحده حتى ينكسر
         cam: portrait
           ? [K(0, 855, 0.85), K(tQ, 1080, 1.3), K(tE, 640, 1.2), K(tC, 1080, 1.4), K(tP, 1080, 1.6)]
           : [K(0, 900, 1.32), K(tQ, 1050, 1.72), K(tE, 860, 1.29), K(tC, 1060, 1.78), K(tP, 1060, 1.95)],
         world: (
           <g>
-            <HomeRoom frame={frame} mood="night" />
+            <HomeRoom frame={frame} mood="night" door={prog(frame, tC - 4, tC + 14) * (1 - 0.5 * prog(frame, tP, tP + 20))} />
             <Chair x={1110} flip />
-            <Figure x={620} y={GROUND + 8} scale={1.18} pose={pz(frame, [[0, "listen"], [tE - 10, "talk"], [tE + 30, "hold"], [tC, "stand"]])} look={LOOKS.elder} holding={frame > tE - 10 ? "book" : "none"} frame={frame + 5} />
-            <Figure x={1090} y={frame > tP - 6 ? GROUND : GROUND + 8} scale={1.2} pose={pz(frame, [[0, "talk"], [tD, "point"], [tQ, "hold"], [tE + 8, "turn-away"], [tC, "cross"], [tP - 6, "sit-low"], [tP + 20, "head-down"]])} look={hero} flip holding={frame > tQ - 4 && frame < tC ? "paper" : "none"} frame={frame} />
+            <Glow cx={elderX + 70} cy={GROUND - 230} r={150} color={ID.dawn} opacity={0.75 * proof} />
+            <Figure x={elderX} y={GROUND + 8} scale={1.18} pose={pz(frame, [[0, "listen"], [tE - 10, "hold"], [tP, "stand"]])} look={LOOKS.elder} holding={frame > tE - 14 ? "book" : "none"} frame={frame + 5} rim={0.6 * proof} />
+            <Figure
+              x={1090}
+              y={frame > tP - 6 ? GROUND : GROUND + 8}
+              scale={1.2}
+              pose={frame >= tE + 8 && frame < tP - 6 ? blendPose(pz(frame, [[0, "talk"], [tD, "point"], [tQ, "hold"]]), CLUTCH, prog(frame, tE + 8, tE + 20)) : pz(frame, [[0, "hold"], [tD, "point"], [tQ, "hold"], [tP - 6, "sit-low"], [tP + 20, "head-down"]])}
+              look={hero}
+              flip={!(frame >= tE + 14 && frame < tP - 6)}
+              holding="paper"
+              frame={frame}
+            />
             <rect x={-300} y={-300} width={2520} height={1500} fill="#000" opacity={0.25 * dim} />
           </g>
         ),
@@ -631,6 +711,7 @@ export const SHOTS: Record<string, ShotDef> = {
       const tU = at("نحن", 0.85);
       const turn = frame > tB;
       return {
+        captionBackdrop: 0.4,
         cam: [
           K(0, 640, 1.72, -90),
           K(tO - 10, 820, 1.32, -90),
@@ -640,7 +721,10 @@ export const SHOTS: Record<string, ShotDef> = {
         world: (
           <g>
             <Rooftops frame={frame} mood="night" streetPeople />
-            <Figure x={1400 - 390 * prog(frame, 0, 44, (t) => t)} y={GROUND + 40} scale={1.3} pose={frame < 44 ? walkPose(POSES.stand, (frame / 30) * Math.PI * 2 * 0.95) : pz(frame, [[44, "lean-rail"], [tO, "point"], [tO + 50, "lean-rail"], [tB, "stand"], [tB + 14, "sincere"]])} look={hero} flip={!turn} frame={frame} />
+            {/* التوجيه 019: قراءة أوضح في الليل بضوء هادئ: الناس في الشارع حين يذكرهم الكلام، ثم البطل حين يلتفت إلى نفسه */}
+            <Glow cx={760} cy={GROUND - 330} r={520} color={ID.dawn} opacity={0.35 * prog(frame, tO - 8, tO + 14) * (1 - 0.6 * prog(frame, tB, tB + 20))} />
+            <Glow cx={1010} cy={GROUND - 200} r={300} color={ID.dawn} opacity={0.18 + 0.4 * prog(frame, tB, tB + 20)} />
+            <Figure rim={0.45 + 0.4 * prog(frame, tB, tB + 20)} rimColor={ID.paper} x={1400 - 390 * prog(frame, 0, 44, (t) => t)} y={GROUND + 40} scale={1.3} pose={frame < 44 ? walkPose(POSES.stand, (frame / 30) * Math.PI * 2 * 0.95) : pz(frame, [[44, "lean-rail"], [tO, "point"], [tO + 50, "lean-rail"], [tB, "stand"], [tB + 14, "sincere"]])} look={hero} flip={!turn} frame={frame} />
             <Birds frame={frame} start={tO + 10} y={160} n={5} />
             <RoofWall frame={frame} />
           </g>
@@ -658,22 +742,44 @@ export const SHOTS: Record<string, ShotDef> = {
       const tC = at("الواضحة", 0.92);
       const dawn = prog(frame, 0, Math.min(dur, tM + 40), (t) => t);
       return {
-        // العمودي (الأمر 018): الكاميرا تتبع البطل حيث يمشي (لا يبقى على الحافة)، والضباب والفجر في الإطار كله
+        // التوجيه 019: البطل والمصباحان في الإطار كله (لا يمشي)؛ العمودي يقترب من كل مصباح عند كلمته ثم يتسع للوهج المختلط
+        captionBackdrop: 0.7,
         cam: portrait
-          ? [K(0, 980, 1.3, -90), K(tB, 960, 1.3, -90), K(tL, 980, 1.3, -90), K(tM, 800, 1.0, -90), K(tC, 780, 0.95, -90), K(Math.max(tC + 20, dur - 70), 900, 0.9, -110)]
-          : [K(0, 980, 1.72, -90), K(tB, 900, 1.6, -90), K(tL, 1000, 1.55, -90), K(tM, 960, 1.15, -90), K(tC, 960, 1.12, -90), K(Math.max(tC + 20, dur - 70), 1020, 0.98, -110)],
+          ? [K(0, 1000, 1.1, -90), K(tB - 8, 850, 1.25, -90), K(tL - 8, 1150, 1.25, -90), K(tM, 1000, 1.08, -90), K(Math.max(tC + 20, dur - 70), 1000, 1.02, -100)]
+          : [K(0, 1000, 1.3, -90), K(tB - 8, 900, 1.45, -90), K(tL - 8, 1100, 1.45, -90), K(tM, 1000, 1.25, -90), K(Math.max(tC + 20, dur - 70), 1000, 1.15, -100)],
         world: (
           <g>
             <Rooftops frame={frame} mood="predawn" to="dawn" t={dawn} fog={prog(frame, tM, tM + 50)} />
+            {/* التوجيه 019: مصباحان مختلفا اللون على السطوح: ما نقتنع به (يشير إليه البطل) وما لا يعجبنا (يعرض عنه).
+                عند «يختلط» يمتد الضباب فيذوب الضوءان في وهج واحد لا يُعرف مصدره: لا يظهر الخطأ في صورته الواضحة */}
+            {(() => {
+              const mixT = prog(frame, tM, tM + 50);
+              const a = prog(frame, tB - 6, tB + 10);
+              const b2 = prog(frame, tL - 6, tL + 10);
+              return (
+                <g>
+                  <Glow cx={700} cy={GROUND - 300} r={300 + 120 * mixT} color={ID.dawn} opacity={(0.25 + 0.5 * a) * (1 - 0.65 * mixT)} />
+                  <Glow cx={1300} cy={GROUND - 300} r={300 + 120 * mixT} color={mix(ID.paper, ID.copper, 0.15)} opacity={(0.25 + 0.5 * b2) * (1 - 0.65 * mixT)} />
+                  <Glow cx={1000} cy={GROUND - 310} r={620} color={mix(ID.dawn, ID.paper, 0.5)} opacity={0.55 * mixT} />
+                  <rect x={690} y={GROUND - 300} width={20} height={300} fill={darken(ID.night, 0.25)} opacity={1 - 0.7 * mixT} />
+                  <rect x={1290} y={GROUND - 300} width={20} height={300} fill={darken(ID.night, 0.25)} opacity={1 - 0.7 * mixT} />
+                  <circle cx={700} cy={GROUND - 310} r={20} fill={ID.dawn} opacity={(0.5 + 0.5 * a) * (1 - 0.6 * mixT)} />
+                  <circle cx={1300} cy={GROUND - 310} r={20} fill={mix(ID.paper, ID.copper, 0.15)} opacity={(0.5 + 0.5 * b2) * (1 - 0.6 * mixT)} />
+                </g>
+              );
+            })()}
             <Birds frame={frame} start={Math.round(dur * 0.06)} y={260} n={8} color={darken(ID.night, 0.2)} />
             <Birds frame={frame} start={Math.round(dur * 0.62)} y={180} n={5} dir={1} color={darken(ID.night, 0.2)} />
-            <Figure x={980 - 220 * prog(frame, tM - 10, tM + 60, (t) => t) + 260 * prog(frame, tC, dur, (t) => t)} y={GROUND + 40} scale={1.3} pose={(frame > tM - 10 && frame < tM + 60) || frame > tC ? walkPose(POSES.stand, (frame / 30) * Math.PI * 2 * 0.95) : pz(frame, [[0, "hold"], [tB + 20, "stand"], [tB + 50, "think"], [tL, "hold"], [tL + 40, "think"], [tL + 70, "hold"], [tM + 60, "look-up"]])} look={hero} flip={frame > tM - 10 && frame < tM + 60} holding={frame < tB + 20 ? "phone" : frame >= tL - 4 && frame < tM ? "paper" : "none"} frame={frame} rim={dawn} />
+            {/* البطل بين المصباحين: يلتفت إلى ما يقتنع به (يسارًا)، ثم يعرض عمّا لا يعجبه (يمينًا)، ثم يقف في الوهج المختلط لا يعرف أيهما */}
+            <Figure x={1000} y={GROUND + 40} scale={1.3} pose={pz(frame, [[0, "stand"], [tB - 4, "point"], [tB + 30, "stand"], [tL - 4, "wave-off"], [tL + 30, "stand"], [tM + 10, "look-up"], [tC, "think"]])} look={hero} flip={frame < tL - 4 || frame >= tM + 10} frame={frame} rim={dawn} />
             <RoofWall frame={frame} />
           </g>
         ),
       };
     },
   },
+  // الحلقة 001 · الفصل 2 (التوجيه 019): وحدات المقهى وصحن الدار والسطوح والميزان
+  ...CH2_SHOTS,
 };
 
 export const SHOT_IDS = Object.keys(SHOTS);
@@ -685,7 +791,7 @@ export const RICH_SETS: { id: string; nameAr: string; render: (frame: number) =>
   { id: "home-room", nameAr: "البيت: مكتبة وصور وصندوق رسائل ونافذة الغروب", render: (f) => <HomeRoom frame={f} mood="dusk" /> },
   { id: "home-room-night", nameAr: "البيت ليلًا", render: (f) => <HomeRoom frame={f} mood="night" /> },
   { id: "cafe", nameAr: "مقهى الحارة: أقواس وفوانيس وروّاد وطاولة شاي", render: (f) => <><Cafe frame={f} /><Chair x={800} /><Chair x={1120} flip /><CafeTable x={960} frame={f} /></> },
-  { id: "workshop", nameAr: "ورشة نجارة: لوح أدوات ومنضدة وكرسي قيد الصنع", render: (f) => <Workshop frame={f} chairTilt={2.5} /> },
+  { id: "workshop", nameAr: "ورشة نجارة: لوح أدوات ومنضدة وكرسي قيد الصنع", render: (f) => <Workshop frame={f} /> },
   { id: "night-window", nameAr: "غرفة ليلًا بنافذة تعكس صاحبها", render: (f) => <NightWindow frame={f} /> },
   { id: "courtyard", nameAr: "صحن دار بنافورة ليلًا", render: (f) => <Courtyard frame={f} /> },
   { id: "rooftops-night", nameAr: "أسطح المدينة ليلًا والشارع في الأسفل", render: (f) => <><Rooftops frame={f} mood="night" streetPeople /><RoofWall frame={f} /></> },

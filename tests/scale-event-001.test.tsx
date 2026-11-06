@@ -299,7 +299,9 @@ describe("الحلقة 001 · حدث الميزان: منطق الواقعة و�
     // اليد على الصدر عند «صادقًا»، والبطاقتان أخفت بعد «لكن»، ولا بطاقة عند الدليل
     expect(scaleSincereCast(b.sincere + 12, b).first.armFront.e).toBeGreaterThan(110);
     expect(scaleSincereCast(b.but + 22, b).tags!.first).toBeLessThan(0.3);
-    expect(scaleSincereCast(b.proof, b).tags!.second).toBe(0);
+    // تبقيان خافتتين بجوار صاحبيهما (لا تختفيان، فالشاهدان في الإطار كله)
+    expect(scaleSincereCast(b.proof + 10, b).tags!.second).toBeCloseTo(0.25, 2);
+    for (const portrait of [false, true]) expect(SHOTS["souq-scale-sincere"]!.render({ frame: 0, fps: 30, dur: d3, portrait, at: at3 }).cam.length).toBe(1);
     expect(scaleSincereEvidence(b.proof - 6, b)).toBe(0);
     expect(scaleSincereEvidence(b.proof + 20, b)).toBe(1);
     // الميزان على حاله (مستوٍ، 5 و5)

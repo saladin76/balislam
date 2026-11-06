@@ -65,7 +65,7 @@ const slot = (p: { x: number; y: number }, i: number) => {
 };
 
 /** الثقل المعياري: كتلة نحاسية بعنق ومقبض، وحزّان محفوران (بلا كتابة) */
-const StandardWeight: React.FC<{ x: number; y: number }> = ({ x, y }) => (
+export const StandardWeight: React.FC<{ x: number; y: number }> = ({ x, y }) => (
   <g>
     <path d={`M${x - 24} ${y} L${x - 18} ${y - 34} L${x + 18} ${y - 34} L${x + 24} ${y} Z`} fill={mix(BRASS, ID.night, 0.25)} stroke={INK} strokeWidth={2.4} strokeLinejoin="round" />
     <rect x={x - 7} y={y - 44} width={14} height={11} fill={mix(BRASS, ID.night, 0.2)} stroke={INK} strokeWidth={2} />
@@ -200,7 +200,7 @@ export const scaleState = (frame: number, b: ScaleBeats) => {
 
 // ———————————————————— الدكان ————————————————————
 
-const Crate: React.FC<{ x: number; n: number }> = ({ x, n }) => (
+export const Crate: React.FC<{ x: number; n: number }> = ({ x, n }) => (
   <g>
     {Array.from({ length: Math.max(0, n) }, (_, i) => (
       <circle key={i} cx={x - 40 + (i % 4) * 27} cy={COUNTER_TOP - 52 - Math.floor(i / 4) * 20} r={13} fill={ORANGE} stroke={INK} strokeWidth={2} />
@@ -210,7 +210,7 @@ const Crate: React.FC<{ x: number; n: number }> = ({ x, n }) => (
   </g>
 );
 
-const Counter: React.FC<{ x0: number; x1: number }> = ({ x0, x1 }) => (
+export const Counter: React.FC<{ x0: number; x1: number }> = ({ x0, x1 }) => (
   <g>
     <rect x={x0} y={COUNTER_TOP} width={x1 - x0} height={GROUND - COUNTER_TOP} fill={WOOD} stroke={INK} strokeWidth={2.6} />
     <rect x={x0 - 12} y={COUNTER_TOP - 8} width={x1 - x0 + 24} height={14} fill={mix(WOOD, ID.copper, 0.4)} stroke={INK} strokeWidth={2.6} />
@@ -221,7 +221,7 @@ const Counter: React.FC<{ x0: number; x1: number }> = ({ x0, x1 }) => (
 );
 
 /** الجدار والمظلة والأرض: جدار هادئ بقوسين خافتين، وضوء داخلي واحد على موضع الوزن */
-const StallBack: React.FC<{ frame: number }> = ({ frame }) => {
+export const StallBack: React.FC<{ frame: number }> = ({ frame }) => {
   const wall = mix(darken(ID.copper, 0.5), ID.night, 0.35);
   const wallFar = mix(wall, ID.night, 0.35);
   const { x0, x1 } = STALL;
@@ -343,7 +343,7 @@ export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: b
     <g>
       <StallBack frame={frame} />
       {/* الدليل (c1-s3، الأمر 018): ضوء الدكان يشتد على الميزان المستوي، خلفه لا فوقه */}
-      {evidence > 0.001 ? <Glow cx={pivotX} cy={PIVOT_Y + 60} r={190} color={ID.dawn} opacity={0.6 * evidence} /> : null}
+      {evidence > 0.001 ? <Glow cx={pivotX} cy={PIVOT_Y + 60} r={260} color={ID.dawn} opacity={0.8 * evidence} /> : null}
       <StallAt frame={frame} b={b} />
       <Figure x={lay.customer} y={GROUND + 6} scale={S.customer} pose={cast.customer} look={SCALE_CAST.customer} holding="bundle" frame={frame + 9} />
       <Figure x={lay.first} y={GROUND + 6} scale={S.first} pose={cast.first} look={SCALE_CAST.first} frame={frame} />
@@ -475,11 +475,8 @@ export const scaleSincereCast = (frame: number, s: ReturnType<typeof scaleSincer
   first: pb(VERDICT_POSES.firstJudge, SINCERE_POSE, prog(frame, s.sincere - 4, s.sincere + 10)),
   second: VERDICT_POSES.secondJudge,
   customer: POSES.stand,
-  // تخبوان عند «لكن… لا يكفي»، ثم تختفيان تمامًا حين تنتقل الكاميرا إلى الميزان (لا بطاقة مقصوصة على الحافة)
-  tags: {
-    first: (1 - 0.75 * prog(frame, s.but, s.but + 16)) * (1 - prog(frame, s.proof - 12, s.proof - 4)),
-    second: (1 - 0.75 * prog(frame, s.but + 4, s.but + 20)) * (1 - prog(frame, s.proof - 12, s.proof - 4)),
-  },
+  // تخبوان عند «لكن… لا يكفي» وتبقيان خافتتين بجوار صاحبيهما (التوجيه 019)، والضوء على الميزان بينهما
+  tags: { first: 1 - 0.75 * prog(frame, s.but, s.but + 16), second: 1 - 0.75 * prog(frame, s.but + 4, s.but + 20) },
 });
 export const scaleSincereEvidence = (frame: number, s: ReturnType<typeof scaleSincereBeats>) => prog(frame, s.proof - 4, s.proof + 18);
 

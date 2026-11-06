@@ -49,11 +49,13 @@ describe("اللقطات المصمَّمة", () => {
     const plan = JSON.parse(readFileSync("channels/balislam/episodes/001-know-the-truth/plan.json", "utf8"));
     const used = plan.chapters.flatMap((c: { scenes: { props: { shot?: string } }[] }) => c.scenes.map((s) => s.props.shot).filter(Boolean)) as string[];
     expect(used.length).toBeGreaterThanOrEqual(12);
+    // كاميرا ثابتة مقصودة (التوجيه 019): c1-s3 لقطة عريضة واحدة تُبقي الشاهدين، وc2-s10 تمهيد الآية بسكون تام
+    const FIXED_CAM = new Set(["souq-scale-sincere", "stall-still"]);
     for (const id of used) {
       const d = SHOTS[id];
       expect(d, id).toBeDefined();
       const shot = d!.render({ frame: 40, fps: 30, dur: 200, portrait: false, at: (_w, f) => Math.round(f * 200) });
-      expect(shot.cam.length, id).toBeGreaterThan(1);
+      expect(shot.cam.length, id).toBeGreaterThan(FIXED_CAM.has(id) ? 0 : 1);
     }
   });
 });

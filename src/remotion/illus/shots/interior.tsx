@@ -242,7 +242,52 @@ export const Chair: React.FC<{ x: number; flip?: boolean }> = ({ x, flip = false
 );
 
 /** ورشة نجارة: لوح أدوات، ألواح خشب، منضدة، وكرسي قيد الصنع */
-export const Workshop: React.FC<{ frame: number; chairTilt?: number }> = ({ frame, chairTilt = 0 }) => {
+/**
+ * كرسي قيد الصنع على أرض الورشة (التوجيه 019، c1-s7): بمقاس الإنسان (المقعد ربع قامته تقريبًا)، جانبيًا ووجهه إلى اليسار.
+ * ثلاث أرجل على الأرض (الخلفيتان، والأمامية البعيدة أخفّ لونًا للعمق) بظلال تماسّها، والأمامية القريبة أقصر:
+ * بينها وبين الأرض فراغ مضاء هو موضع الخلل. rock (0..1): 0 الساق القصيرة معلّقة، 1 الكرسي مال حتى لامستها (يتأرجح).
+ */
+export const SHOP_CHAIR = { x: 940, seat: 100, back: 222, depth: 112, leg: 12, short: 15 };
+export const shopChairGap = (rock: number) => SHOP_CHAIR.short * (1 - Math.max(0, Math.min(1, rock)));
+export const ShopChair: React.FC<{ x: number; rock?: number; wood: string; mark?: number }> = ({ x, rock = 0, wood, mark = 0 }) => {
+  const { seat, back, depth, leg, short } = SHOP_CHAIR;
+  const fx = x - depth / 2;
+  const rx = x + depth / 2;
+  const r = Math.max(0, Math.min(1, rock));
+  // الدوران حول قدم الساق الخلفية القريبة حتى تهبط الأمامية القصيرة بمقدار الفراغ
+  const ang = (-Math.asin((short * r) / depth) * 180) / Math.PI;
+  const lite = lighten(wood, 0.22);
+  const far = darken(wood, 0.12);
+  const sy = GROUND - seat;
+  const gap = shopChairGap(r);
+  return (
+    <g>
+      {/* ظلال التماس: تحت الأرجل الثلاث اللامسة، وتحت القصيرة ظل باهت منفصل (لا تلمس) */}
+      <ellipse cx={rx + 4} cy={GROUND + 2} rx={22} ry={5} fill="#000" opacity={0.32} />
+      <ellipse cx={fx + 14} cy={GROUND - 5} rx={18} ry={4} fill="#000" opacity={0.22} />
+      <ellipse cx={fx + 4} cy={GROUND + 3} rx={16} ry={4} fill="#000" opacity={0.12 + 0.18 * r} />
+      <g transform={`rotate(${ang.toFixed(3)} ${rx + leg / 2} ${GROUND})`}>
+        {/* الرجلان البعيدتان (عمق): أخفّ وأعلى قليلًا، كاملتا الطول */}
+        <rect x={fx + 10} y={sy - 7} width={leg - 2} height={seat + 2} fill={far} stroke={INK} strokeWidth={1.6} opacity={0.85} />
+        <rect x={rx + 10} y={GROUND - back - 7} width={leg - 2} height={back + 2} fill={far} stroke={INK} strokeWidth={1.6} opacity={0.85} />
+        {/* المقعد بسمكه، والعارضة السفلية */}
+        <rect x={fx - 6} y={sy - 14} width={depth + leg + 12} height={16} rx={3} fill={lite} stroke={INK} strokeWidth={2.6} />
+        <rect x={fx + leg} y={GROUND - 38} width={depth - leg} height={8} fill={wood} stroke={INK} strokeWidth={1.8} />
+        {/* الظهر: القائم الخلفي متصل بالرجل الخلفية، ولوحان أفقيان */}
+        <rect x={rx} y={GROUND - back} width={leg} height={back} fill={lite} stroke={INK} strokeWidth={2.4} />
+        <rect x={rx - 2} y={GROUND - back + 12} width={leg + 4} height={10} fill={lite} stroke={INK} strokeWidth={1.8} />
+        <rect x={rx - 2} y={GROUND - back + 52} width={leg + 4} height={10} fill={lite} stroke={INK} strokeWidth={1.8} />
+        {/* الساق الأمامية القريبة: أقصر بمقدار short */}
+        <rect x={fx} y={sy + 2} width={leg} height={seat - 2 - short} fill={lite} stroke={INK} strokeWidth={2.4} />
+      </g>
+      {/* الفراغ تحت الساق القصيرة: ضوء الأرض يظهر من تحتها ما دامت لا تلمس */}
+      {gap > 0.6 ? <rect x={fx - 3} y={GROUND - gap} width={leg + 6} height={gap} fill={lighten(ID.dawn, 0.25)} opacity={0.55} /> : null}
+      {mark > 0.01 ? <Glow cx={fx + leg / 2} cy={GROUND - 8} r={46} color={ID.dawn} opacity={0.55 * mark} /> : null}
+    </g>
+  );
+};
+
+export const Workshop: React.FC<{ frame: number; chairRock?: number; chairMark?: number }> = ({ frame, chairRock = 0, chairMark = 0 }) => {
   const wall = mix(mix(ID.copper, ID.paper, 0.3), ID.night, 0.18);
   const floor = mix(darken(ID.copper, 0.38), ID.paper, 0.05);
   const wood = darken(ID.copper, 0.35);
@@ -274,16 +319,10 @@ export const Workshop: React.FC<{ frame: number; chairTilt?: number }> = ({ fram
       <rect x={1060} y={GROUND - 210} width={420} height={26} fill={lighten(wood, 0.1)} stroke={INK} strokeWidth={3} />
       <rect x={1080} y={GROUND - 186} width={22} height={186} fill={wood} />
       <rect x={1438} y={GROUND - 186} width={22} height={186} fill={wood} />
-      {/* كرسي قيد الصنع: ساق قصيرة فيميل */}
-      {/* الكرسي على المنضدة (الأمر 018): الساق الطويلة تستقر على سطحها، والدوران حول قدمها، فلا يطفو الكرسي؛
-          والساق القصيرة وحدها لا تبلغ السطح (موضع النصيحة الصحيحة) */}
-      <g transform={`rotate(${chairTilt} 1195 ${GROUND - 210})`}>
-        <rect x={1180} y={GROUND - 324} width={140} height={14} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2.4} />
-        <rect x={1190} y={GROUND - 310} width={10} height={100} fill={lighten(wood, 0.15)} />
-        <rect x={1300} y={GROUND - 310} width={10} height={86} fill={lighten(wood, 0.15)} />
-        <rect x={1180} y={GROUND - 464} width={12} height={140} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2} />
-      </g>
       <LightPool cx={1300} cy={GROUND + 40} rx={600} ry={80} color={ID.dawn} opacity={0.4} />
+      {/* كرسي جديد على أرض الورشة أمام المنضدة (التوجيه 019): ساق قصيرة لا تبلغ الأرض */}
+      <ShopChair x={SHOP_CHAIR.x} rock={chairRock} wood={wood} mark={chairMark} />
+
       {/* نشارة خشب تتطاير ببطء في شعاع الشمس */}
       {Array.from({ length: 16 }, (_, i) => {
         const p = ((frame * 0.6 + i * 37) % 300) / 300;
@@ -294,7 +333,10 @@ export const Workshop: React.FC<{ frame: number; chairTilt?: number }> = ({ fram
 };
 
 /** مشربية بزجاج ملوّن يُنظر منها إلى الشارع: كل لوح يلوّن ما وراءه */
-export const TintedLattice: React.FC<{ frame: number; tint: string; tintAmount: number; outside: React.ReactNode }> = ({ frame, tint, tintAmount, outside }) => {
+/** عمود من المشربية (4 أعمدة، من اليسار): لون زجاجه وقوته، وانعكاس يظهر فيه (التوجيه 019، c1-s5) */
+export type LatticeColumn = { tint: string; amount: number; reflection?: React.ReactNode };
+export const LATTICE = { x: 520, y: 120, w: 880, h: 640 };
+export const TintedLattice: React.FC<{ frame: number; tint: string; tintAmount: number; outside: React.ReactNode; columns?: LatticeColumn[] }> = ({ frame, tint, tintAmount, outside, columns }) => {
   const wall = mix(darken(ID.copper, 0.3), ID.night, 0.25);
   const wood = darken(ID.copper, 0.55);
   const x = 520;
@@ -315,6 +357,16 @@ export const TintedLattice: React.FC<{ frame: number; tint: string; tintAmount: 
         {outside}
         <rect x={x} y={y} width={w} height={h} fill={tint} opacity={tintAmount * 0.5} style={{ mixBlendMode: "multiply" }} />
         <rect x={x} y={y} width={w} height={h} fill={tint} opacity={tintAmount * 0.25} />
+        {/* كل عمود يُلوَّن بمؤثر واحد، وفي زجاجه انعكاسه (ما نراه من خلاله لا ما في الغرفة) */}
+        {(columns ?? []).map((c, i) =>
+          c.amount > 0.001 ? (
+            <g key={i}>
+              <rect x={x + (i * w) / 4} y={y} width={w / 4} height={h} fill={c.tint} opacity={c.amount * 0.55} style={{ mixBlendMode: "multiply" }} />
+              <rect x={x + (i * w) / 4} y={y} width={w / 4} height={h} fill={c.tint} opacity={c.amount * 0.22} />
+              {c.reflection ? <g opacity={0.5 * c.amount}>{c.reflection}</g> : null}
+            </g>
+          ) : null,
+        )}
       </g>
       {/* الشبكة الخشبية وألواح الزجاج الملوّن */}
       {Array.from({ length: 4 }, (_, i) =>
