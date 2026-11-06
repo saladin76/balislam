@@ -123,13 +123,14 @@ program
   .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
   .argument("<episode>", "رقم الحلقة")
   .option("--approve <sceneId>", "معرّف مقطع مسموع ومراجع يدويًا")
+  .option("--approve-episode", "اعتماد الاستماع إلى جميع المقاطع متصلة بعد اعتماد كل مقطع")
   .option("--reviewer <name>", "اسم المراجع البشري")
   .option("--note <text>", "ملاحظة الاستماع الفعلي إلى المقطع")
-  .action(async (episode: string, opts: { approve?: string; reviewer?: string; note?: string }) => {
+  .action(async (episode: string, opts: { approve?: string; approveEpisode?: boolean; reviewer?: string; note?: string }) => {
     const { resolveScriptPath } = await import("../script/episodes");
     const { loadPlan } = await import("../plan/io");
     const { loadVoiceIndex } = await import("../voice/generate");
-    const { approveVoiceScene, voiceReviewItems } = await import("../voice/review");
+    const { approveVoiceScene, approveVoiceEpisode, voiceReviewItems, episodeVoiceApproved } = await import("../voice/review");
     const plan = await loadPlan(episode);
     if (!plan) throw new Error("الخطة غير موجودة.");
     const scriptPath = await resolveScriptPath(episode);
@@ -138,11 +139,16 @@ program
       if (!opts.reviewer || !opts.note) throw new Error("الموافقة تتطلب --reviewer و--note بعد الاستماع الحقيقي.");
       await approveVoiceScene(scriptPath, plan, voice, opts.approve, opts.reviewer, opts.note);
     }
+    if (opts.approveEpisode) {
+      if (!opts.reviewer || !opts.note) throw new Error("اعتماد الحلقة الصوتية الكاملة يتطلب --reviewer و--note بعد الاستماع.");
+      await approveVoiceEpisode(scriptPath, plan, voice, opts.reviewer, opts.note);
+    }
     const items = await voiceReviewItems(scriptPath, plan, voice);
     for (const item of items) console.log(`${item.id}: ${item.state}`);
     const pending = items.filter((item) => item.state !== "approved");
-    console.log(`الصوت المعتمد ${items.length - pending.length}/${items.length}. النجاح البرمجي لا يثبت الاستماع.`);
-    if (pending.length) process.exitCode = 1;
+    const whole = await episodeVoiceApproved(scriptPath, plan, voice);
+    console.log(`الصوت المعتمد ${items.length - pending.length}/${items.length}؛ الاستماع الكامل ${whole ? "معتمد" : "غير معتمد"}.`);
+    if (pending.length || !whole) process.exitCode = 1;
   });
 
 program
