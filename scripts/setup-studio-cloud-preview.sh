@@ -7,6 +7,8 @@ TARGET="$HOME/balislam-cloud-preview-ready"
 SERVICE="gui/$(id -u)/com.balislam.preview-sync"
 echo "=== STOP LEGACY SCANNER ==="
 launchctl bootout "$SERVICE" 2>/dev/null || true
+# Prevent the old broad-scanning LaunchAgent from restarting at next login.
+launchctl disable "$SERVICE" 2>/dev/null || true
 if launchctl list | grep -q 'com.balislam.preview-sync'; then
   echo "ERROR: legacy service still running"; exit 1
 fi
