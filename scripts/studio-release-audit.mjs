@@ -54,7 +54,7 @@ export const inspectEpisode = (root,channel,episode) => {
   warnings.push("هذا جرد فقط؛ لا يغني عن bal check/review/storyboard/scenes-review، أو فحص الفيديو كاملا بسرعة طبيعية، أو حقوق المواد والاعتماد النهائي");
   return {channel,channelName:NAMES[channel],episode,sceneTotal:scenes.length,boardOk,sceneOk,sceneFix,narrated:narrated.length,voiced,masterAvailable,masterQuality:info?.quality??null,masterVoiced:info?.voiced===true,approved,state:reasons.length?"BLOCKED":"READY_FOR_FINAL_HUMAN_REVIEW",reasons,warnings};
 };
-export const inspect=(root,episode="001")=>Object.keys(NAMES).map(channel=>{
+export const inspect=(root,episode="001",channels=Object.keys(NAMES))=>channels.map(channel=>{
   const eps=path.join(root,"channels",channel,"episodes");
   const list=stat(eps)?.isDirectory()?readdirSync(eps).filter(n=>n.startsWith(episode+"-")&&size(path.join(eps,n,"script.md"))>0):[];
   if(list.length!==1)return {channel,channelName:NAMES[channel],episode,state:"BLOCKED",reasons:["عدد الحلقات "+episode+" ذات سكريبت: "+list.length+"؛ المطلوب واحدة"],warnings:[]};
@@ -62,13 +62,13 @@ export const inspect=(root,episode="001")=>Object.keys(NAMES).map(channel=>{
 });
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   const args=process.argv.slice(2),flag=(name,fallback)=>{const i=args.indexOf(name);return i<0?fallback:args[i+1]};
-  const root=path.resolve(flag("--root",process.cwd())),episode=flag("--episode","001");
-  if(!/^\d{3}$/.test(episode)){console.error("Usage: node studio-release-audit.mjs --root /path/to/balislam --episode 001 [--json]");process.exitCode=2;}
+  const root=path.resolve(flag("--root",process.cwd())),episode=flag("--episode","001"),selected=flag("--channel",null);
+  if(!/^\d{3}$/.test(episode)||(selected!==null&&!Object.hasOwn(NAMES,selected))){console.error("Usage: node studio-release-audit.mjs --root /path/to/channel-worktree --episode 001 [--channel balislam|dafatir-alzaman|zubdat-alkutub] [--json]");process.exitCode=2;}
   else{
-    const results=inspect(root,episode);
+    const results=inspect(root,episode,selected?[selected]:Object.keys(NAMES));
     if(args.includes("--json"))console.log(JSON.stringify({root,episode,results},null,2));
     else{
-      console.log("Studio LOCAL release audit — READ ONLY; no render, upload or publication. Root: "+root+"\n");
+      console.log("Studio LOCAL release audit — READ ONLY; no render, upload or publication. Root: "+root+"\nIf channels use different Git worktrees, run --channel separately with each exact worktree root.\n");
       for(const r of results){
         console.log((r.state==="BLOCKED"?"✗ ":"✓ ")+r.channelName+" / "+r.episode+" — "+r.state);
         if(r.sceneTotal!==undefined)console.log("  Storyboard "+r.boardOk+"/"+r.sceneTotal+"; scenes "+r.sceneOk+"/"+r.sceneTotal+"; voice "+r.voiced+"/"+r.narrated+"; master "+(r.masterAvailable?"exists":"missing")+"; owner approval "+(r.approved?"valid":"missing"));
