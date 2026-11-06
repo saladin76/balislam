@@ -275,11 +275,13 @@ export const Workshop: React.FC<{ frame: number; chairTilt?: number }> = ({ fram
       <rect x={1080} y={GROUND - 186} width={22} height={186} fill={wood} />
       <rect x={1438} y={GROUND - 186} width={22} height={186} fill={wood} />
       {/* كرسي قيد الصنع: ساق قصيرة فيميل */}
-      <g transform={`rotate(${chairTilt} 1250 ${GROUND - 210})`}>
-        <rect x={1180} y={GROUND - 330} width={140} height={14} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2.4} />
-        <rect x={1190} y={GROUND - 316} width={10} height={100} fill={lighten(wood, 0.15)} />
-        <rect x={1300} y={GROUND - 316} width={10} height={86} fill={lighten(wood, 0.15)} />
-        <rect x={1180} y={GROUND - 470} width={12} height={140} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2} />
+      {/* الكرسي على المنضدة (الأمر 018): الساق الطويلة تستقر على سطحها، والدوران حول قدمها، فلا يطفو الكرسي؛
+          والساق القصيرة وحدها لا تبلغ السطح (موضع النصيحة الصحيحة) */}
+      <g transform={`rotate(${chairTilt} 1195 ${GROUND - 210})`}>
+        <rect x={1180} y={GROUND - 324} width={140} height={14} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2.4} />
+        <rect x={1190} y={GROUND - 310} width={10} height={100} fill={lighten(wood, 0.15)} />
+        <rect x={1300} y={GROUND - 310} width={10} height={86} fill={lighten(wood, 0.15)} />
+        <rect x={1180} y={GROUND - 464} width={12} height={140} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2} />
       </g>
       <LightPool cx={1300} cy={GROUND + 40} rx={600} ry={80} color={ID.dawn} opacity={0.4} />
       {/* نشارة خشب تتطاير ببطء في شعاع الشمس */}

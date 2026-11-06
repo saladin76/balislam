@@ -18,6 +18,9 @@ import {
   scaleEventBeats,
   scaleEventCast,
   scaleLayout,
+  scaleSincereBeats,
+  scaleSincereCast,
+  scaleSincereEvidence,
   scaleState,
   scaleVerdictBeats,
   scaleVerdictCast,
@@ -40,6 +43,7 @@ const plan = JSON.parse(fs.readFileSync(path.join(__dirname, "../channels/balisl
 const scene = (id: string) => plan.chapters.flatMap((c: { scenes: unknown[] }) => c.scenes).find((s: { id: string }) => s.id === id);
 const s1 = scene("c1-s1");
 const s2 = scene("c1-s2");
+const s3 = scene("c1-s3");
 
 /** أسفل السطر المكتوب بوحدات المشهد، بأسوأ حالة (سطران): أفقي 34 + 2×54×1.35؛ عمودي (250 + 2×62×1.35) ÷ 1.776 */
 const CAPTION_BOTTOM = { landscape: 34 + 2 * 54 * 1.35, portrait: (250 + 2 * 62 * 1.35) / (1920 / 1080) };
@@ -51,13 +55,15 @@ const POSES_OF = {
   "souq-scale-event": { first: ["stand", "listen", "cross"], second: ["stand", "listen", "nod"], customer: ["stand"] },
   // الأول: «cross» ثم تراجع الجذع (lean -9، ميل 6° فوق الورك ≈ 180×1.75×sin6° ≈ 33 وحدة إلى الخلف، ونحسب 36)؛ الثانية: nod ثم sincere برأس مائل
   "souq-scale-verdicts": { first: ["cross"], second: ["nod", "sincere"], customer: ["stand"] },
+  // c1-s3 (الأمر 018): الأول من وضعية حكمه إلى اليد على الصدر (غلاف cross مع التراجع)، والثانية يدها على صدرها
+  "souq-scale-sincere": { first: ["cross"], second: ["nod", "sincere"], customer: ["stand"] },
 } as const;
 const people = (shotId: keyof typeof POSES_OF, portrait: boolean, second: boolean, vendorReach: number): Person[] => {
   const lay = scaleLayout(portrait);
   const S = SCALE_SIZES;
   const P = POSES_OF[shotId];
   return [
-    { name: "الشاهد الأول", x: lay.first, scale: S.first, poses: [...P.first], facing: "right", ...(shotId === "souq-scale-verdicts" ? { recoil: 36 } : {}) },
+    { name: "الشاهد الأول", x: lay.first, scale: S.first, poses: [...P.first], facing: "right", ...(shotId !== "souq-scale-event" ? { recoil: 36 } : {}) },
     // الزبون يحمل كيسه على ظهره (نحو 84 وحدة خلفه بمقياس 1)
     { name: "الزبون", x: lay.customer, scale: S.customer, poses: [...P.customer], facing: "right", back: 84 * S.customer },
     // البائع ممتلئ (build 1.3) وذراعه تمتد إلى الكفة: أبعد ما تبلغه كفه من scaleState
@@ -101,9 +107,8 @@ const check = (shotId: string, sc: { narration: string }, durFrames: number, por
       const hw = 34 * p.scale;
       heads.push({ x0: p.x - hw, x1: p.x + hw, y0: top, y1: top + 75 * p.scale });
     }
-    if (shotId === "souq-scale-verdicts") {
-      const v = scaleVerdictBeats(at);
-      const cast = scaleVerdictCast(frame, v);
+    if (shotId !== "souq-scale-event") {
+      const cast = shotId === "souq-scale-sincere" ? scaleSincereCast(frame, scaleSincereBeats(at)) : scaleVerdictCast(frame, scaleVerdictBeats(at));
       for (const [who, side, text, t] of [["first", -1, "ظلمًا", cast.tags!.first], ["second", 1, "عدلًا", cast.tags!.second]] as const) {
         if (t < 0.05) continue;
         const size = SCALE_TAG_SIZE(portrait);
@@ -142,7 +147,7 @@ describe("الحلقة 001 · حدث الميزان: الخطة", () => {
 
 describe("الحلقة 001 · حدث الميزان: التأطير والنص في كل إطار", () => {
   for (const portrait of [false, true])
-    for (const [id, sc] of [["souq-scale-event", s1], ["souq-scale-verdicts", s2]] as const)
+    for (const [id, sc] of [["souq-scale-event", s1], ["souq-scale-verdicts", s2], ["souq-scale-sincere", s3]] as const)
       it(`${id} · ${portrait ? "عمودي" : "أفقي"}`, () => {
         expect(check(id, sc, sceneFrames(sc), portrait)).toEqual([]);
       });
@@ -271,6 +276,35 @@ describe("الحلقة 001 · حدث الميزان: منطق الواقعة و�
     expect(Math.abs(c.x - c2.x)).toBeLessThan(1);
     expect(Math.abs(c.y - c2.y)).toBeLessThan(1);
     expect(Math.abs(endZ - c2.z) / c2.z).toBeLessThan(0.01);
+  });
+  it("c1-s3 على الدكان نفسه: يبدأ بحالة آخر c1-s2 وتأطيرها، والبطاقتان تخبوان ثم تختفيان، والدليل عند «لإثبات»", () => {
+    expect(s3.props.shot).toBe("souq-scale-sincere");
+    expect(s3.narration).toMatch(/لكن صدق الاعتقاد لا يكفي وحده لإثبات صحته\.$/);
+    const d2 = sceneFrames(s2);
+    const d3 = sceneFrames(s3);
+    const v = scaleVerdictBeats(makeAt(spokenTimings(s2.narration, d2), d2));
+    const at3 = makeAt(spokenTimings(s3.narration, d3), d3);
+    const b = scaleSincereBeats(at3);
+    const end2 = scaleVerdictCast(d2 - 1, v);
+    const start3 = scaleSincereCast(0, b);
+    expect(start3.first).toEqual(end2.first);
+    expect(start3.second).toEqual(end2.second);
+    expect(start3.tags!.first).toBeCloseTo(end2.tags!.first, 2);
+    expect(start3.tags!.second).toBeCloseTo(end2.tags!.second, 2);
+    for (const portrait of [false, true]) {
+      const c2 = camAt(d2 - 1, SHOTS["souq-scale-verdicts"]!.render({ frame: d2 - 1, fps: 30, dur: d2, portrait, at: makeAt(spokenTimings(s2.narration, d2), d2) }).cam);
+      const c3 = camAt(0, SHOTS["souq-scale-sincere"]!.render({ frame: 0, fps: 30, dur: d3, portrait, at: at3 }).cam);
+      expect([c3.x, c3.y, c3.z]).toEqual([c2.x, c2.y, c2.z]);
+    }
+    // اليد على الصدر عند «صادقًا»، والبطاقتان أخفت بعد «لكن»، ولا بطاقة عند الدليل
+    expect(scaleSincereCast(b.sincere + 12, b).first.armFront.e).toBeGreaterThan(110);
+    expect(scaleSincereCast(b.but + 22, b).tags!.first).toBeLessThan(0.3);
+    expect(scaleSincereCast(b.proof, b).tags!.second).toBe(0);
+    expect(scaleSincereEvidence(b.proof - 6, b)).toBe(0);
+    expect(scaleSincereEvidence(b.proof + 20, b)).toBe(1);
+    // الميزان على حاله (مستوٍ، 5 و5)
+    const st = scaleState(0, DONE_BEATS);
+    expect([st.goods, st.crate, Math.abs(st.tilt) < 0.2]).toEqual([5, 5, true]);
   });
   it("c1-s2 يبدأ من حالة آخر c1-s1: الميزان مستوٍ، والشاهدان بوضعيتي آخر الجملة", () => {
     const end = scaleState(d1 - 1, e.b);

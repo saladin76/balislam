@@ -158,11 +158,23 @@ export const chapterSheetHtml = (m: Pick<BoardManifest, "title" | "version" | "s
     .join("")}</div></body></html>`;
 };
 
+/** ورقة اختبار الهاتف: كل مشهد من الفصل بلقطته الأساسية العمودية بعرض 390 بكسل، كما تُرى على شاشة الهاتف */
+export const phoneSheetHtml = (m: Pick<BoardManifest, "title" | "version" | "scenes">, chapter: number, imgBase: string) => {
+  const ss = m.scenes.filter((s) => s.chapter === chapter);
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>${fontCss()}
+  body{margin:0;background:#0B1F1C;color:#F4EEE2;font-family:Tajawal;padding:24px;width:max-content}
+  h1{font-family:Ruqaa;color:#F2B35B;font-size:34px;margin:0 0 6px}p{margin:0 0 14px;font-size:17px;opacity:.85}
+  .g{display:grid;grid-template-columns:repeat(4,390px);gap:16px}.c img{width:390px;display:block;border-radius:4px}.id{font-family:Mono;color:#F2B35B;direction:ltr;display:block;margin-bottom:4px}
+  </style></head><body><h1>اختبار القراءة بعرض 390 بكسل · الفصل ${chapter} · ${esc(m.version)} · PENDING_REVIEW</h1><p>كل صورة معروضة بعرض 390 بكسل فعليًا (عرض شاشة هاتف شائع)، من اللقطة الأساسية العمودية لكل مشهد.</p><div class="g">${ss
+    .map((s) => `<div class="c"><span class="id">${esc(s.id)}</span><img src="${imgBase}/${s.images.portrait[s.images.portrait.length - 1]}"></div>`)
+    .join("")}</div></body></html>`;
+};
+
 /**
  * يبني اللوحة كاملة: الصور، وPDF، وورقة لكل فصل، والبيان. يعيد البيان.
  * deliver: نسخ الملفات المسلَّمة إلى storyboard/ بأسماء ثابتة (visual-board.pdf، chapter-N.png، board-manifest.json).
  */
-export const buildStoryboardBoard = async (o: { episode: string; version: string; note: string; only?: string[]; onProgress?: (msg: string) => void }) => {
+export const buildStoryboardBoard = async (o: { episode: string; version: string; note: string; only?: string[]; chapter?: number; onProgress?: (msg: string) => void }) => {
   const log = o.onProgress ?? (() => {});
   const scriptPath = await resolveScriptPath(o.episode);
   const epDir = path.dirname(scriptPath);
@@ -174,8 +186,11 @@ export const buildStoryboardBoard = async (o: { episode: string; version: string
   const channel = loadChannel();
   const notes = await loadBoardNotes(sbDir);
   const rows = boardScenes(plan, (s) => sceneFrames(s, media), notes, planIssues(plan, channel), config.video.fps);
-  log(`لقطات ${rows.length} مشهدًا بالاتجاهين…`);
-  const images = await renderBoardStills({ episode: o.episode, outDir, rows, only: o.only, onProgress: (d, t, id) => d % 20 === 0 && log(`${d}/${t} · ${id}`) });
+  // فصل واحد (الأمر 018): لوحة إصدار جديد لفصل بعينه، في مجلد إصداره وحده؛ لا تُنسخ فوق ملفات الإصدار الكامل
+  const only = o.chapter ? rows.filter((r) => r.chapter === o.chapter).map((r) => r.id) : o.only;
+  const partial = Boolean(only);
+  log(`لقطات ${only?.length ?? rows.length} مشهدًا بالاتجاهين…`);
+  const images = await renderBoardStills({ episode: o.episode, outDir, rows, only, onProgress: (d, t, id) => d % 20 === 0 && log(`${d}/${t} · ${id}`) });
   const hashOf = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, sceneHash(s)]));
   const scenes = rows.filter((r) => images[r.id]).map((r) => ({ ...r, hash: hashOf.get(r.id)!, images: images[r.id]! }));
   const manifest: BoardManifest = { episode: plan.episode, title: plan.title, version: o.version, createdAt: new Date().toISOString(), status: "PENDING_REVIEW", note: o.note, scenes, files: [] };
@@ -207,15 +222,30 @@ export const buildStoryboardBoard = async (o: { episode: string; version: string
       await p.screenshot({ path: png, fullPage: true });
       await p.close();
       sheets.push(png);
+      // اختبار القراءة على الهاتف: كل مشهد بلقطته الأساسية العمودية بعرض 390 بكسل فعليًا (لا تصغير لاحق)
+      const ph = path.join(outDir, `phone-390-chapter-${ch}.html`);
+      await writeFile(ph, phoneSheetHtml(manifest, ch, "."));
+      const pp = await browser.newPage({ viewport: { width: 1800, height: 900 }, deviceScaleFactor: 1 });
+      await pp.goto(`file://${ph}`, { waitUntil: "load" });
+      await pp.evaluate(() => document.fonts.ready);
+      const ppng = path.join(outDir, `phone-390-chapter-${ch}.png`);
+      await pp.screenshot({ path: ppng, fullPage: true });
+      await pp.close();
+      sheets.push(ppng);
     }
-    for (const f of [pdf, ...sheets]) manifest.files.push({ path: path.relative(epDir, f), sha256: await sha256(f), bytes: (await readFile(f)).length, kind: f.endsWith(".pdf") ? "board-pdf" : "chapter-sheet" });
+    for (const f of [pdf, ...sheets]) manifest.files.push({ path: path.relative(epDir, f), sha256: await sha256(f), bytes: (await readFile(f)).length, kind: f.endsWith(".pdf") ? "board-pdf" : f.includes("phone-390") ? "phone-390" : "chapter-sheet" });
   } finally {
     await browser.close();
   }
   const mf = path.join(outDir, "board-manifest.json");
   await writeFile(mf, JSON.stringify(manifest, null, 2) + "\n");
-  // الملفات المسلَّمة بأسماء ثابتة في storyboard/ (خانة ثابتة لكل منها، كما يطلب ناقل Drive)
+  // الملفات المسلَّمة بأسماء ثابتة في storyboard/ (خانة ثابتة لكل منها، كما يطلب ناقل Drive)؛
+  // لوحة جزئية (فصل) تبقى في مجلد إصدارها، فلا تحل محل ملفات الإصدار الكامل السابق
   const delivered: { path: string; sha256: string }[] = [];
+  if (partial) {
+    for (const f of [...manifest.files.map((x) => path.join(epDir, x.path)), mf]) delivered.push({ path: path.relative(epDir, f), sha256: await sha256(f) });
+    return { manifest, outDir, delivered };
+  }
   for (const f of [path.join(outDir, "visual-board.pdf"), ...manifest.files.filter((x) => x.kind === "chapter-sheet").map((x) => path.join(epDir, x.path)), mf]) {
     const dest = path.join(sbDir, path.basename(f) === "board-manifest.json" ? "board-manifest.json" : path.basename(f));
     await copyFile(f, dest);

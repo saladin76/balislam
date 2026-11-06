@@ -318,7 +318,7 @@ export const scaleBounds = () => ({ x0: pivotX - ARM - 50, x1: pivotX + ARM + 50
 /** وضعيات الشخوص في الزاوية الرئيسية، وظهور بطاقتي التفسير (0..1) */
 export type ScaleCast = { first: PoseSpec; second: PoseSpec; customer: PoseSpec; tags?: { first: number; second: number } };
 
-export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: boolean; angle: ScaleAngle; cast: ScaleCast; verdicts: { first: string; second: string }; size: number }> = ({ frame, b, portrait, angle, cast, verdicts, size }) => {
+export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: boolean; angle: ScaleAngle; cast: ScaleCast; verdicts: { first: string; second: string }; size: number; evidence?: number }> = ({ frame, b, portrait, angle, cast, verdicts, size, evidence = 0 }) => {
   const lay = scaleLayout(portrait);
   const S = SCALE_SIZES;
   if (angle === "first") {
@@ -342,6 +342,8 @@ export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: b
   return (
     <g>
       <StallBack frame={frame} />
+      {/* الدليل (c1-s3، الأمر 018): ضوء الدكان يشتد على الميزان المستوي، خلفه لا فوقه */}
+      {evidence > 0.001 ? <Glow cx={pivotX} cy={PIVOT_Y + 60} r={190} color={ID.dawn} opacity={0.6 * evidence} /> : null}
       <StallAt frame={frame} b={b} />
       <Figure x={lay.customer} y={GROUND + 6} scale={S.customer} pose={cast.customer} look={SCALE_CAST.customer} holding="bundle" frame={frame + 9} />
       <Figure x={lay.first} y={GROUND + 6} scale={S.first} pose={cast.first} look={SCALE_CAST.first} frame={frame} />
@@ -454,6 +456,32 @@ export const scaleVerdictCast = (frame: number, v: ReturnType<typeof scaleVerdic
     second: prog(frame, v.secondSay, v.secondSay + 12),
   },
 });
+
+/**
+ * الحلقة 001 · c1-s3 «وقد يكون كلٌّ منهما صادقًا في وصف ما يعتقده، لكن صدق الاعتقاد لا يكفي وحده لإثبات صحته.» (الأمر 018):
+ * الدكان نفسه بعد الواقعة (حالة آخر c1-s2: الميزان مستوٍ، والبطاقتان ظاهرتان)، فلا قفزة إلى سوق آخر.
+ * «صادقًا»: كلاهما يده على صدره (صدقه في وصف ما يعتقد)؛ «لكن… لا يكفي»: البطاقتان تخبوان؛
+ * «لإثبات صحته»: الكاميرا إلى الميزان وضوؤه يشتد: الدليل يثبت، لا صدق الشعور.
+ */
+export const scaleSincereBeats = (at: (w: string, frac: number) => number) => {
+  const sincere = at("صادقا", 0.25);
+  const but = Math.max(at("لكن", 0.55), sincere + 20);
+  const proof = Math.max(at("لإثبات", 0.82), but + 24);
+  return { sincere, but, proof };
+};
+export const SINCERE_POSE: PoseSpec = { ...POSES.sincere, lean: -3, head: 2 };
+export const scaleSincereCast = (frame: number, s: ReturnType<typeof scaleSincereBeats>): ScaleCast => ({
+  // يبدأ الشاهدان بوضعيتي آخر c1-s2 (استمرار)، ثم اليد على الصدر عند «صادقًا»
+  first: pb(VERDICT_POSES.firstJudge, SINCERE_POSE, prog(frame, s.sincere - 4, s.sincere + 10)),
+  second: VERDICT_POSES.secondJudge,
+  customer: POSES.stand,
+  // تخبوان عند «لكن… لا يكفي»، ثم تختفيان تمامًا حين تنتقل الكاميرا إلى الميزان (لا بطاقة مقصوصة على الحافة)
+  tags: {
+    first: (1 - 0.75 * prog(frame, s.but, s.but + 16)) * (1 - prog(frame, s.proof - 12, s.proof - 4)),
+    second: (1 - 0.75 * prog(frame, s.but + 4, s.but + 20)) * (1 - prog(frame, s.proof - 12, s.proof - 4)),
+  },
+});
+export const scaleSincereEvidence = (frame: number, s: ReturnType<typeof scaleSincereBeats>) => prog(frame, s.proof - 4, s.proof + 18);
 
 /** الزاوية في كل إطار: الرئيسية، ثم من عند الأول لحظة الرفع، ثم من عند الثانية لحظة الاستواء، ثم الرئيسية */
 export const scaleAngleAt = (frame: number, b: ScaleBeats): ScaleAngle =>

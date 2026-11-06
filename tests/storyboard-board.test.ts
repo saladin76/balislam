@@ -53,4 +53,16 @@ describe("لوحة الستوري بورد للحلقة 001", () => {
     expect(m.files.every((f: { sha256: string }) => /^[0-9a-f]{64}$/.test(f.sha256))).toBe(true);
     for (const s of m.scenes) expect(s.images.landscape.length).toBe(s.shots.length);
   });
+  it("v2 للفصل 1 وحده في مجلده، وv1 كاملًا كما هو (114 مشهدًا) بملفاته المسلَّمة", () => {
+    const v2 = JSON.parse(fs.readFileSync(path.join(ep, "storyboard/v2/board-manifest.json"), "utf8"));
+    expect(v2.status).toBe("PENDING_REVIEW");
+    expect(v2.scenes.map((s: { id: string }) => s.id)).toEqual(plan.chapters[0]!.scenes.map((s) => s.id));
+    expect(v2.files.map((f: { path: string }) => f.path).sort()).toEqual(["storyboard/v2/chapter-1.png", "storyboard/v2/phone-390-chapter-1.png", "storyboard/v2/visual-board.pdf"]);
+    const v1 = JSON.parse(fs.readFileSync(path.join(ep, "storyboard/v1/board-manifest.json"), "utf8"));
+    expect(v1.scenes.length).toBe(114);
+    const top = JSON.parse(fs.readFileSync(path.join(ep, "storyboard/board-manifest.json"), "utf8"));
+    expect(top.version).toBe("v1");
+    // c1-s3 في v2 على الدكان نفسه
+    expect(v2.scenes.find((s: { id: string }) => s.id === "c1-s3").camera).toMatch(/ميزان البائع \(3\)/);
+  });
 });

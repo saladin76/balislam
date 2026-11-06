@@ -63,9 +63,9 @@
             "camera": "rise",
             "poses": "stand,think",
             "look": "hero",
-            "cast": "",
+            "cast": "witnesses",
             "cues": "think | صادقًا",
-            "shot": "souq-both-sincere"
+            "shot": "souq-scale-sincere"
           },
           "id": "c1-s3",
           "sfx": [],

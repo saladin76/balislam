@@ -8,7 +8,7 @@ import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow 
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, PhonePOV } from "./phone";
-import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleVerdictBeats, scaleVerdictCast } from "./scale";
+import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleSincereBeats, scaleSincereCast, scaleSincereEvidence, scaleVerdictBeats, scaleVerdictCast } from "./scale";
 
 /**
  * اللقطات المصمَّمة: كل لقطة تحكي جملتها بمكانها وشخوصها وكاميرتها، وأحداثها تقع لحظة نطق كلماتها.
@@ -149,6 +149,20 @@ export const SHOTS: Record<string, ShotDef> = {
       };
     },
   },
+  "souq-scale-sincere": {
+    nameAr: "ميزان البائع (3): كلاهما صادق، والدليل هو الميزان لا الشعور",
+    place: "سوق الحارة",
+    render: ({ frame, at, portrait }) => {
+      // الحلقة 001 · c1-s3 (الأمر 018): يبدأ بتأطير آخر c1-s2 نفسه، ثم إلى الميزان عند «لإثبات»
+      const s = scaleSincereBeats(at);
+      const C = (t: number, x: number, z: number, y: number): CamKey => ({ t, x, y, z });
+      const cam = portrait ? [C(0, 1023, 0.533, 330), C(s.proof - 8, 1105, 1.25, 520)] : [C(0, 1040, 1.25, 370), C(s.proof - 8, 1128, 1.8, 450)];
+      return {
+        cam,
+        world: <ScaleIncident frame={frame} b={DONE_BEATS} portrait={portrait} angle="main" cast={scaleSincereCast(frame, s)} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={SCALE_TAG_SIZE(portrait)} evidence={scaleSincereEvidence(frame, s)} />,
+      };
+    },
+  },
   "souq-scale-witnesses": {
     nameAr: "ميزان البائع (مختبر الأمر 015): الواقعة والتفسيران في لقطة واحدة",
     place: "سوق الحارة",
@@ -262,7 +276,7 @@ export const SHOTS: Record<string, ShotDef> = {
   "lattice-tinted-eye": {
     nameAr: "نافذة بزجاج ملوّن: لا ننظر بعين محايدة",
     place: "مشربية تطل على السوق",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tL = at("ينظر", 0.35);
       const tE = at("الأحداث", 0.6);
       const tN = at("محايدة", 0.85);
@@ -277,11 +291,14 @@ export const SHOTS: Record<string, ShotDef> = {
         </g>
       );
       return {
-        cam: [
-          { t: 0, x: 760, y: 470, z: 1.35 },
-          { t: tL, x: 900, y: 460, z: 1.12 },
-          { t: tN, x: 960, y: 450, z: 1.22 },
-        ],
+        // العمودي (الأمر 018): البطل كاملًا مع طرف النافذة، ثم النافذة وحدها (البطل خارج الإطار كله)، ثم الاثنان
+        cam: portrait
+          ? [{ t: 0, x: 560, y: 520, z: 1.0 }, { t: tL, x: 960, y: 470, z: 1.1 }, { t: tE + 8, x: 640, y: 500, z: 0.9 }]
+          : [
+              { t: 0, x: 760, y: 470, z: 1.35 },
+              { t: tL, x: 900, y: 460, z: 1.12 },
+              { t: tN, x: 960, y: 450, z: 1.22 },
+            ],
         world: (
           <g>
             <TintedLattice frame={frame} tint={tint} tintAmount={amount} outside={outside} />
@@ -294,20 +311,17 @@ export const SHOTS: Record<string, ShotDef> = {
   "home-what-shapes-us": {
     nameAr: "البيت: تجاربنا ومخاوفنا ومن نحب وأفكارنا",
     place: "بيت بمكتبة وصور",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tE = at("بتجاربنا", 0.15);
       const tF = at("ومخاوفنا", 0.38);
       const tP = at("والأشخاص", 0.55);
       const tI = at("والأفكار", 0.8);
       const fear = prog(frame, tF, tF + 20) * (1 - prog(frame, tP + 10, tP + 30));
       return {
-        cam: [
-          K(0, 960, 1.15),
-          K(tE, 1100, 1.67),
-          K(tF, 900, 1.21),
-          K(tP, 520, 1.26),
-          K(tI, 420, 1.55),
-        ],
+        // العمودي (الأمر 018): البطل، ثم هو وظل مخاوفه معًا، ثم الأهل عند الباب، ثم البطل والمكتبة والأهل في إطار واحد
+        cam: portrait
+          ? [K(0, 900, 0.95), K(tE, 1040, 1.15), K(tF, 790, 0.78), K(tP, 330, 0.9), K(tI - 12, 430, 0.76)]
+          : [K(0, 960, 1.15), K(tE, 1100, 1.67), K(tF, 900, 1.21), K(tP, 520, 1.26), K(tI, 420, 1.55)],
         world: (
           <g>
             <HomeRoom frame={frame} mood="dusk" box={prog(frame, tE, tE + 24)} door={prog(frame, tP - 10, tP + 10)} frames={prog(frame, tP, tP + 20)} shelf={prog(frame, tI, tI + 20)} />
@@ -326,17 +340,14 @@ export const SHOTS: Record<string, ShotDef> = {
   "cafe-news-agrees": {
     nameAr: "المقهى: خبر يوافق رأيه فيصدّقه",
     place: "مقهى الحارة",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tN = at("خبرا", 0.3);
       const tA = at("يؤكد", 0.6);
       const tR = at("رأينا", 0.85);
       const glow = prog(frame, tN - 4, tN + 10);
       return {
-        cam: [
-          K(0, 960, 1.5),
-          K(tN - 6, 860, 1.95),
-          K(tA + 10, 960, 1.44),
-        ],
+        // العمودي: الجالسان كاملان في اللقطتين الواسعتين (لا يُقص الصديق على الحافة)
+        cam: portrait ? [K(0, 960, 1.3), K(tN - 6, 780, 1.95), K(tA + 10, 960, 1.3)] : [K(0, 960, 1.5), K(tN - 6, 860, 1.95), K(tA + 10, 960, 1.44)],
         world: (
           <g>
             <Cafe frame={frame} />
@@ -356,7 +367,7 @@ export const SHOTS: Record<string, ShotDef> = {
   "workshop-rejected-advice": {
     nameAr: "الورشة: نصيحة صحيحة يرفضها لأنه لا يحب قائلها",
     place: "ورشة نجارة",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       // الزميل يشير إلى ساق الكرسي القصيرة منذ أول المشهد؛ «نرفض» يلوّح البطل رافضًا،
       // و«نصيحة صحيحة» تقترب الكاميرا من الكرسي فيتأرجح فعلًا، و«لا نحبه» ينكفئ الزميل.
       const tR = at("نرفض", 0.12);
@@ -364,12 +375,10 @@ export const SHOTS: Record<string, ShotDef> = {
       const tD = at("نحبه", 0.85);
       const wob = (from: number) => (frame > from ? Math.sin((frame - from) / 3) * 2.4 * Math.exp(-(frame - from) / 36) : 0);
       return {
-        cam: [
-          K(0, 1080, 1.15),
-          K(tR, 1420, 1.67),
-          K(tA, 1230, 1.78),
-          K(tD, 1080, 1.24),
-        ],
+        // العمودي (الأمر 018): الزميل يشير إلى الكرسي، ثم البطل يرفض، ثم الكرسي وحده يتأرجح، ثم الزميل؛ لا أحد نصف مقصوص
+        cam: portrait
+          ? [K(0, 1060, 1.0), K(tR, 1520, 1.15), K(tA, 1250, 1.6), K(tD, 960, 1.1)]
+          : [K(0, 1080, 1.15), K(tR, 1420, 1.67), K(tA, 1230, 1.78), K(tD, 1080, 1.24)],
         world: (
           <g>
             <Workshop frame={frame} chairTilt={2.5 + wob(0) + wob(tA)} />
@@ -383,7 +392,7 @@ export const SHOTS: Record<string, ShotDef> = {
   "home-defending-decision": {
     nameAr: "البيت: يدافع عن قراره لأن الاعتراف بالخطأ مؤلم",
     place: "بيت بمكتبة وصور",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tD = at("ندافع", 0.1);
       const tQ = at("قرار", 0.2);
       const tE = at("الأدلة", 0.45);
@@ -391,13 +400,10 @@ export const SHOTS: Record<string, ShotDef> = {
       const tP = at("مؤلما", 0.88);
       const dim = prog(frame, tC, tC + 30);
       return {
-        cam: [
-          K(0, 900, 1.32),
-          K(tQ, 1050, 1.72),
-          K(tE, 860, 1.29),
-          K(tC, 1060, 1.78),
-          K(tP, 1060, 1.95),
-        ],
+        // العمودي (الأمر 018): الاثنان، ثم البطل بورقة قراره، ثم الشيخ بالدليل، ثم البطل وحده حتى ينكسر
+        cam: portrait
+          ? [K(0, 855, 0.85), K(tQ, 1080, 1.3), K(tE, 640, 1.2), K(tC, 1080, 1.4), K(tP, 1080, 1.6)]
+          : [K(0, 900, 1.32), K(tQ, 1050, 1.72), K(tE, 860, 1.29), K(tC, 1060, 1.78), K(tP, 1060, 1.95)],
         world: (
           <g>
             <HomeRoom frame={frame} mood="night" />
@@ -586,7 +592,7 @@ export const SHOTS: Record<string, ShotDef> = {
   "window-wished-reflection": {
     nameAr: "نافذة الليل: ما يراه وما يتمنى أن يكون",
     place: "غرفة ليلًا بنافذة",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tS = at("يراه", 0.35);
       const tW = at("يتمنى", 0.65);
       const diverge = prog(frame, tW, tW + 26);
@@ -595,11 +601,8 @@ export const SHOTS: Record<string, ShotDef> = {
       const heroPose = walking ? walkPose(POSES.stand, (frame / 30) * Math.PI * 2 * 0.95) : pz(frame, [[arrive, "stand"], [tS, "point"], [tS + 40, "think"], [tW + 30, "listen"]]);
       const reflPose = diverge > 0.5 ? pz(frame, [[0, "stand"], [tW, "proud"]]) : heroPose;
       return {
-        cam: [
-          K(0, 700, 1.75),
-          K(tS, 860, 1.5),
-          K(tW, 1060, 1.67),
-        ],
+        // العمودي (الأمر 018): البطل يمشي إلى النافذة، ثم يشير إليها، ثم هو وصورته المتمناة معًا في إطار واحد (معنى الجملة)
+        cam: portrait ? [K(0, 470, 1.0), K(tS, 800, 0.95), K(tW - 16, 985, 0.74)] : [K(0, 700, 1.75), K(tS, 860, 1.5), K(tW, 1060, 1.67)],
         world: (
           <g>
             <NightWindow frame={frame} />
@@ -647,21 +650,17 @@ export const SHOTS: Record<string, ShotDef> = {
   "rooftop-dawn-fog": {
     nameAr: "السطح فجرًا: يراجع ما صدّقه وما رفضه، والضباب يخلط الحدود",
     place: "أسطح المدينة",
-    render: ({ frame, dur, at }) => {
+    render: ({ frame, dur, at, portrait }) => {
       const tB = at("نقتنع", 0.15);
       const tL = at("يعجبنا", 0.4);
       const tM = at("يختلط", 0.65);
       const tC = at("الواضحة", 0.92);
       const dawn = prog(frame, 0, Math.min(dur, tM + 40), (t) => t);
       return {
-        cam: [
-          K(0, 980, 1.72, -90),
-          K(tB, 900, 1.6, -90),
-          K(tL, 1000, 1.55, -90),
-          K(tM, 960, 1.15, -90),
-          K(tC, 960, 1.12, -90),
-          K(Math.max(tC + 20, dur - 70), 1020, 0.98, -110),
-        ],
+        // العمودي (الأمر 018): الكاميرا تتبع البطل حيث يمشي (لا يبقى على الحافة)، والضباب والفجر في الإطار كله
+        cam: portrait
+          ? [K(0, 980, 1.3, -90), K(tB, 960, 1.3, -90), K(tL, 980, 1.3, -90), K(tM, 800, 1.0, -90), K(tC, 780, 0.95, -90), K(Math.max(tC + 20, dur - 70), 900, 0.9, -110)]
+          : [K(0, 980, 1.72, -90), K(tB, 900, 1.6, -90), K(tL, 1000, 1.55, -90), K(tM, 960, 1.15, -90), K(tC, 960, 1.12, -90), K(Math.max(tC + 20, dur - 70), 1020, 0.98, -110)],
         world: (
           <g>
             <Rooftops frame={frame} mood="predawn" to="dawn" t={dawn} fog={prog(frame, tM, tM + 50)} />
