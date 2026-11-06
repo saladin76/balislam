@@ -215,21 +215,26 @@ export const balApi = (): Plugin => ({
             const plan = await io.loadPlan(ep);
             if (!plan) throw new HttpError(404, "خطة الحلقة غير موجودة.");
             const { loadVoiceIndex } = await load("/src/voice/generate.ts");
-            const { voiceReviewItems, approveVoiceScene } = await load("/src/voice/review.ts");
+            const { voiceReviewItems, approveVoiceScene, approveVoiceEpisode, episodeVoiceApproved } = await load("/src/voice/review.ts");
             const voice = await loadVoiceIndex(ep);
             if (req.method === "GET") {
-              return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice) });
+              return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice), episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
             }
             if (req.method === "PUT") {
               const body = await readBody(req);
               if (!body || typeof body !== "object" || Array.isArray(body) ||
-                  typeof body.sceneId !== "string" || typeof body.reviewer !== "string" ||
+                  (body.scope !== "episode" && typeof body.sceneId !== "string") || typeof body.reviewer !== "string" ||
                   typeof body.note !== "string")
                 throw new HttpError(400, "اعتماد الصوت يتطلب المشهد واسم المراجع وملاحظة الاستماع.");
-              if (body.sceneId.length > 85 || body.reviewer.length > 120 || body.note.length > 2000)
+              if ((typeof body.sceneId === "string" && body.sceneId.length > 85) || body.reviewer.length > 120 || body.note.length > 2000)
                 throw new HttpError(400, "حقول المراجعة طويلة جدًا.");
-              const items = await approveVoiceScene(scriptPath, plan, voice, body.sceneId, body.reviewer, body.note);
-              return send(res, 200, { items });
+              if (body.scope === "episode") {
+                await approveVoiceEpisode(scriptPath, plan, voice, body.reviewer, body.note);
+              } else {
+                await approveVoiceScene(scriptPath, plan, voice, body.sceneId, body.reviewer, body.note);
+              }
+              return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice),
+                episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
             }
             return send(res, 405, { error: "Method not allowed" });
           }
