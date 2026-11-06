@@ -1,12 +1,16 @@
-# ستوري بورد بصري كامل — الحلقة 001 (الإصدار v1)
+# ستوري بورد بصري كامل — الحلقة 001 (الإصدار v1.1)
 
-**الأمر 020 · المنفّذ · ٦ نوفمبر ٢٠٢٦ · الحالة: جاهز للمراجعة (PENDING_REVIEW) — غير معتمد.**
+**الأمر 020 · المنفّذ · ٦ نوفمبر ٢٠٢٦ · الحالة: جاهز للمراجعة (PENDING_REVIEW) — غير معتمد إخراجيًا.** المسودة مكتملة التغطية؛ لا نبرة ولا صوت ولا رندر قبل اعتمادها صراحة.
+
+**الجديد في v1.1:** شارة مصدر على كل قسم في كل لوحة (من V7 / من الخطة والمحرك / خطة الإنتاج / تقدير آلي)، وملاحظة صريحة أن أوقات الأحداث مقيسة من V7 ووصفها وحركة الكاميرا تقدير آلي. وصُحح وصف `c4-s7` ومشاهد الفصل السابع (`c7-s3` إلى `c7-s8`) في `production-plan.md` من المشاهد المصممة فعلًا؛ كانت مزاحة مشهدًا واحدًا بعد إضافة `c7-s3`، وصار للخاتمة `c7-s8` وصف كامل. لا تعديل في أي مشهد ولا في V7. الإصدار v1 محفوظ بجواره.
 
 لوحة لكل مشهد من المشاهد الثمانين وللافتتاحية، مستخرجة من إطارات المرجع الصامت «نسخة المحتوى V7 — رفع رقم 9» (`previews/episode.mp4`، البصمة `df30cd648bd7e78a…`) بلا رندر ولا رسم جديد. كل لوحة: الإطارات عند لحظات الاستقرار برقمها في V7، والمنطوق، والفكرة البصرية والعناصر، والكادر والكاميرا، وتسلسل الأحداث، والانتقالات والعلاقة بالمشهد قبله وبعده، ومواضع الآيات وذكر الله، والمصادر، وقص الهاتف.
 
-![ستوري بورد الحلقة كاملًا — PDF، 85 صفحة (فتح أو تنزيل)](docs/storyboard-001-v1.pdf)
+![ستوري بورد الحلقة كاملًا v1.1 — PDF، 85 صفحة (فتح أو تنزيل)](docs/storyboard-001-v1.1.pdf)
 
-![بيانات الستوري بورد وبصمات اللوحات — JSON](docs/storyboard-001-v1.json)
+![بيانات الستوري بورد v1.1 وبصمات اللوحات ومصدر كل حقل — JSON](docs/storyboard-001-v1.1.json)
+
+![الإصدار السابق v1 — PDF (محفوظ)](docs/storyboard-001-v1.pdf)
 
 ## ما يُراجَع في كل لوحة
 
@@ -24,8 +28,8 @@
 1. مواضع الآيات الـ22 عناصر نائبة (4 ث، بلا نص): معالجة عرض الآية ومدتها تُحدَّد بعد اعتماد النص والتلاوة المرخّصة.
 2. المدد كلها تقديرية قبل الصوت؛ المدة النهائية ستطول بالتلاوة (تقدير `verse-plan.md`: 15–18 دقيقة).
 3. لا لوحات رأسية 9:16 مستقلة (الشورتس بعد الـ Master)، ولا تصميم صوتي في اللوحات (لا موسيقى بقرار القناة؛ النبرة في المرحلة التالية).
-4. سجل التوثيق 0 من 22 موثّقًا؛ ومنها T02 وE01 معلّقان.
-5. `c7-s8` بلا فكرة مكتوبة في خطة الإنتاج؛ لوحته من إطاراته واسمه فقط.
+4. سجل التوثيق 0 من 22 موثّقًا، ومطابقة نص الآيات بمصدر معتمد لم تُجرَ (التفصيل في مراجعة السجل في `source-audit.md`). وتعارض مفتوح: قرار E4 يجعل الأعراف 14–16 مقطعًا متصلًا «ولا يصح إسقاط 15»، والخطة الحالية بطاقتان 14 و16 بلا 15.
+5. الفكرة البصرية من `production-plan.md` (وصف مكتوب)؛ صُحح فيه الفصل السابع و`c4-s7` في v1.1، والإطارات تبقى المرجع.
 6. ملاحظتان من الفحص الآلي (ليستا عيبين مؤكدين): عبور ورقة القلب للكعب في إطار واحد، وحركات كاميرا سريعة في `c7-s2` و`c4-s2` و`c7-s7`.
 
 ## Google Drive
@@ -35,13 +39,13 @@
 الأوامر على جهاز صاحب المشروع، من نسخة فرع PR #47، و`<main>` مسار نسخة `main` المحدثة:
 
 ```
-python3 scripts/studio-preview-cloud.py upload --kind storyboard --channel dafatir-alzaman --episode 001-adam-beginning --slot storyboard-v1 --file <main>/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.pdf
-python3 scripts/studio-preview-cloud.py upload --kind storyboard --channel dafatir-alzaman --episode 001-adam-beginning --slot storyboard-v1 --file <main>/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.json
+python3 scripts/studio-preview-cloud.py upload --kind storyboard --channel dafatir-alzaman --episode 001-adam-beginning --slot storyboard-v1.1 --file <main>/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.pdf
+python3 scripts/studio-preview-cloud.py upload --kind storyboard --channel dafatir-alzaman --episode 001-adam-beginning --slot storyboard-v1.1 --file <main>/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json
 for f in <main>/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/strips/sb*.jpg; do python3 scripts/studio-preview-cloud.py upload --kind storyboard --channel dafatir-alzaman --episode 001-adam-beginning --slot "$(basename "$f" .jpg)" --file "$f"; done
 python3 scripts/studio-preview-cloud.py upload --kind video --channel dafatir-alzaman --episode 001-adam-beginning --slot v7-u9-silent-reference --file <main>/channels/dafatir-alzaman/episodes/001-adam-beginning/previews/episode.mp4
 ```
 
-بعد الرفع: نتيجة `VERIFIED` لكل ملف ورابطه، ومطابقة البصمات بما في ملف JSON (بصمة PDF: `2f94715946b32661…`). «VERIFIED» وصول سليم، لا اعتماد.
+بعد الرفع: نتيجة `VERIFIED` لكل ملف ورابطه، ومطابقة البصمات بما في ملف JSON (بصمة PDF v1.1: `454b58578062c89d…`). «VERIFIED» وصول سليم، لا اعتماد. ولتسهيل ذلك: `drive-upload.sh` في هذا المجلد يشغّل الأوامر كلها ويكتب سجلًا `drive-upload.log` يُعاد إلى المنفّذ.
 
 ## اللوحات
 

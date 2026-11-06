@@ -1,0 +1,5474 @@
+{
+ "episode": "001-adam-beginning",
+ "channel": "dafatir-alzaman",
+ "storyboardVersion": "v1.1",
+ "supersedes": "v1 (docs/storyboard-001-v1.pdf, kept)",
+ "order": "020",
+ "date": "2026-11-06",
+ "status": "PENDING_REVIEW",
+ "approved": false,
+ "note": "لوحات مستخرجة من إطارات المرجع الصامت بلا رندر؛ ليست سجل اعتماد. v1.1: شارات المصدر على كل قسم، وتصحيح أوصاف c4-s7 والفصل السابع، ووصف c7-s8 من المشهد المصمم.",
+ "provenance": {
+  "frames": "V7",
+  "keyframeTimes": "V7",
+  "narration": "plan",
+  "transitions": "engine+plan",
+  "sacred": "plan+engine",
+  "idea": "production-plan.md",
+  "camera": "automatic-estimate",
+  "events.times": "V7 (frame differences)",
+  "events.region/strength": "automatic-estimate",
+  "sources": "automatic-link (not documentation)",
+  "mobile": "automatic-estimate"
+ },
+ "source": {
+  "file": "previews/episode.mp4",
+  "label": "نسخة المحتوى V7 — رفع رقم 9",
+  "sha256": "df30cd648bd7e78a407e3c966016f096262a9b9cafa9bcdda7c345fe2a94b597",
+  "frames": 21333,
+  "seconds": 711.1
+ },
+ "pdf": {
+  "file": "docs/storyboard-001-v1.1.pdf",
+  "sha256": "454b58578062c89d92f541d112e7f3b558c7557f74a79b14bf18f0bd67b48059",
+  "pages": 85,
+  "bytes": 20160831
+ },
+ "pages": [
+  {
+   "page": 1,
+   "file": "strips/sb000-cover.jpg",
+   "sha256": "acb78cd901b99ba64af2eb8f6f98be1763904a23fbe15154f86ab39beff240bb"
+  },
+  {
+   "page": 2,
+   "file": "strips/sb001-index-1.jpg",
+   "sha256": "1907d6d1b19bd49d5cfcda2bc55312f1cc98a6cc2bf6f02ef44cdf4b150d72a5"
+  },
+  {
+   "page": 3,
+   "file": "strips/sb002-index-2.jpg",
+   "sha256": "06d8acf03150490967535ba487922492ce1221e0f8bfd77bf0f05f4959e0e378"
+  },
+  {
+   "page": 4,
+   "file": "strips/sb003-index-3.jpg",
+   "sha256": "10483f31e6b79070d0b0ba95f00b0572bb6ed3cacf0ed75147e4ab48f6b1eb30"
+  },
+  {
+   "page": 5,
+   "file": "strips/sb004-intro.jpg",
+   "sha256": "73d42b2a2f072d227ce135cd827fca391c45b9acb83df6964ba40f478560ccfe"
+  },
+  {
+   "page": 6,
+   "file": "strips/sb005-c1-s0.jpg",
+   "sha256": "9136110fc1ae7e73bea17cf57942183736985650c3e60e1918218dfeed39f738"
+  },
+  {
+   "page": 7,
+   "file": "strips/sb006-c1-s1.jpg",
+   "sha256": "f44646a77e4e506b8c0bd0155ffadf3594d479f72affcca7a850cc66725cdde6"
+  },
+  {
+   "page": 8,
+   "file": "strips/sb007-c1-s2.jpg",
+   "sha256": "fe8b80b9b1bd0f553707204abf320b1afa3b39eac42cd520620a97035632a3cc"
+  },
+  {
+   "page": 9,
+   "file": "strips/sb008-c1-s3.jpg",
+   "sha256": "c8bb60bd7d60c5ebb5c813949a3f7ec155fb07217307606afb55d53095ef9862"
+  },
+  {
+   "page": 10,
+   "file": "strips/sb009-c1-s4.jpg",
+   "sha256": "52b9d18d1708bb5397a388c883aa80d1854c6790a1cf92b6ff01620fabfe78c8"
+  },
+  {
+   "page": 11,
+   "file": "strips/sb010-c1-s5.jpg",
+   "sha256": "8f34c2c67de2b25ce931259b8b4e11321354de57c8e2621527137047f4457481"
+  },
+  {
+   "page": 12,
+   "file": "strips/sb011-c1-s6.jpg",
+   "sha256": "905f521e9aafcf75346aed33f5b29f6f4ab19858e9ca61412b5950bd89d2b306"
+  },
+  {
+   "page": 13,
+   "file": "strips/sb012-c1-s7.jpg",
+   "sha256": "13fceeaf895c422c8e43795e77f35b538ca52491af796c57aca58290ea93d828"
+  },
+  {
+   "page": 14,
+   "file": "strips/sb013-c1-s8.jpg",
+   "sha256": "d17d09c68ab895b00567afc99b756565155e89e643c4c93ead4f4139e5151631"
+  },
+  {
+   "page": 15,
+   "file": "strips/sb014-c2-s0.jpg",
+   "sha256": "1c221960ff06d0411933d25074e3a52f3bb3b3c958583bb1fd0b2aee4f2fd5dd"
+  },
+  {
+   "page": 16,
+   "file": "strips/sb015-c2-s1.jpg",
+   "sha256": "1b825261ace459f64905d64712ab48fc4bb72bcc4e31803dd6bcd53b5603a0e8"
+  },
+  {
+   "page": 17,
+   "file": "strips/sb016-c2-v1.jpg",
+   "sha256": "004cbea34c994fccc1d07c5ec921169df26935a5302b79355a5c192fd0cd5468"
+  },
+  {
+   "page": 18,
+   "file": "strips/sb017-c2-s2.jpg",
+   "sha256": "bdb339d6dd68aba20a47da2670a8e37395dadc57279a77d77997d4f0372e758c"
+  },
+  {
+   "page": 19,
+   "file": "strips/sb018-c2-s3.jpg",
+   "sha256": "1be1703136b91d10dafe193839dec0a031e3f6f3ef2aed20274b3702978fe58c"
+  },
+  {
+   "page": 20,
+   "file": "strips/sb019-c2-s4.jpg",
+   "sha256": "4ce61bf7eb7ce070c79797cf0b8275f545fa2e99d5009462c96a668bdf1cbc36"
+  },
+  {
+   "page": 21,
+   "file": "strips/sb020-c2-s5.jpg",
+   "sha256": "480d42008b9310e5a3b6d1e83a3fb4d4827f230ef4532631596a6d9a02c4a536"
+  },
+  {
+   "page": 22,
+   "file": "strips/sb021-c3-s0.jpg",
+   "sha256": "cda5fb108aab89ceeea388a609bdc900696a91b47bc0e198f4f666c9d4ab4207"
+  },
+  {
+   "page": 23,
+   "file": "strips/sb022-c3-s1.jpg",
+   "sha256": "41e995d156480398068ccd1dcade955c7de372a95b5ff3ccfa3ed40b82b8c7fd"
+  },
+  {
+   "page": 24,
+   "file": "strips/sb023-c3-s2.jpg",
+   "sha256": "4ed94979b95d8617d8107da709578751345e627a15b2e533e1e01c5bbe456259"
+  },
+  {
+   "page": 25,
+   "file": "strips/sb024-c3-v1.jpg",
+   "sha256": "6567cd5e92367cbbb8ecf02d974fa640558e6e81851281c6fd9ad21e2c815ad6"
+  },
+  {
+   "page": 26,
+   "file": "strips/sb025-c3-s3.jpg",
+   "sha256": "9e28ed6a61a7356f3029880c341d506194bad86bda099f6feb8f5ba5bb9e95a4"
+  },
+  {
+   "page": 27,
+   "file": "strips/sb026-c3-v2.jpg",
+   "sha256": "7aff50f991d9299a14b4013f63e9811b1e2fabb7026106f641a7d9325704795e"
+  },
+  {
+   "page": 28,
+   "file": "strips/sb027-c3-s4.jpg",
+   "sha256": "c195ba17f23ce95639d77bb0deba1a8c981a01bcd3cca9a86edff0ef9e7acee9"
+  },
+  {
+   "page": 29,
+   "file": "strips/sb028-c3-s5.jpg",
+   "sha256": "62e0fd41dc1ddcc581ed74323cafaefd6e521468dfbb30f00a7f4775f2d21c2c"
+  },
+  {
+   "page": 30,
+   "file": "strips/sb029-c3-v3.jpg",
+   "sha256": "6ddd4a4f669839f8d11ff638d9c6134b8a9ff1d9eeea2a381d592508e0fd26e4"
+  },
+  {
+   "page": 31,
+   "file": "strips/sb030-c3-s6.jpg",
+   "sha256": "15936f7584f90e5ae1004df95f404b3b71f1d64c187cfe205e0d48e6e7a84d8c"
+  },
+  {
+   "page": 32,
+   "file": "strips/sb031-c3-s7.jpg",
+   "sha256": "4396bbbd1c33c337cba4629a0ab23f0eedfc8704ed7803faabffacd246f5af9d"
+  },
+  {
+   "page": 33,
+   "file": "strips/sb032-c3-v4.jpg",
+   "sha256": "a3286e89715a673ef81b3672268bee2b8b3181ca4f4fd0e04d7a4774384a468e"
+  },
+  {
+   "page": 34,
+   "file": "strips/sb033-c3-s8.jpg",
+   "sha256": "c4b0652401007c54c78cba9e53ae0a8a0eb8126959419f07dcddcfcb501510bb"
+  },
+  {
+   "page": 35,
+   "file": "strips/sb034-c3-v5.jpg",
+   "sha256": "3d1a54f02b6845f9508653f8251111bedf49573638e506c5a5d181dcbccc3c9a"
+  },
+  {
+   "page": 36,
+   "file": "strips/sb035-c3-s9.jpg",
+   "sha256": "9a493c7078f29ec9149a0b8c51d15066b2df5f2b1d7e980e3ed795241627cac9"
+  },
+  {
+   "page": 37,
+   "file": "strips/sb036-c4-s0.jpg",
+   "sha256": "7c94b6219cd8e81798971717f92f4df1cbffe6da380c9e2c343591cc813c1ccc"
+  },
+  {
+   "page": 38,
+   "file": "strips/sb037-c4-s1.jpg",
+   "sha256": "4fbf7fbeb42f9e90b1141195e2bc733608fc26886daa7abc8c8ef6539265f1ed"
+  },
+  {
+   "page": 39,
+   "file": "strips/sb038-c4-v1.jpg",
+   "sha256": "49b963e988ec1fc2a6f7a9bf44cb0c0a3bfc7a5085a2a81a704b0f247d4a6892"
+  },
+  {
+   "page": 40,
+   "file": "strips/sb039-c4-s2.jpg",
+   "sha256": "83c54a9e8511b6391a47acfd1a882922aab0a885b9355801a64fbc914936523a"
+  },
+  {
+   "page": 41,
+   "file": "strips/sb040-c4-s3.jpg",
+   "sha256": "5d26c72d1deb6b942a8dd22730ac645f7146358844a78783f39514f2c50e10c0"
+  },
+  {
+   "page": 42,
+   "file": "strips/sb041-c4-v2.jpg",
+   "sha256": "102a78cb9a6f6e297fb91085ef99ace8f06c4f281b800a6397caa42fca47b98d"
+  },
+  {
+   "page": 43,
+   "file": "strips/sb042-c4-s4.jpg",
+   "sha256": "4664cc9b55fb772eeba14d62c2a44b7e56f69f0ed85066dcb51a00a5a01c9b9b"
+  },
+  {
+   "page": 44,
+   "file": "strips/sb043-c4-v3.jpg",
+   "sha256": "edebd8dc46bac26ebf946f52425d5e5066b2f58076e41db87c03ed2fd211ff52"
+  },
+  {
+   "page": 45,
+   "file": "strips/sb044-c4-s5.jpg",
+   "sha256": "01dcb57bdce8f6b3e337f21568ef3ebcb9f6a64d7faeb24dbd71a30dde842e82"
+  },
+  {
+   "page": 46,
+   "file": "strips/sb045-c4-s6.jpg",
+   "sha256": "0c6bc41fab39fa552d1cda4355206e46c71f826058f37b8e74937c84371b059a"
+  },
+  {
+   "page": 47,
+   "file": "strips/sb046-c4-v4.jpg",
+   "sha256": "79b41eea16917a10b2ca12d59e8f037fa34531a29da89ef917122406d2d3b323"
+  },
+  {
+   "page": 48,
+   "file": "strips/sb047-c4-v5.jpg",
+   "sha256": "1342146d2a0a23f80fa621e5c254ad9fa999c971f49f1da1074ceb091760b6ed"
+  },
+  {
+   "page": 49,
+   "file": "strips/sb048-c4-s7.jpg",
+   "sha256": "0a9053e00614887ffce868e3ca7e489f9668f60eac00308bcf8400e443011dcf"
+  },
+  {
+   "page": 50,
+   "file": "strips/sb049-c4-v6.jpg",
+   "sha256": "31ddb3109e49d5ba6ae4ca6f1fcc053c20ec4577505e118e63ccd247536064ae"
+  },
+  {
+   "page": 51,
+   "file": "strips/sb050-c4-s8.jpg",
+   "sha256": "31ed1ba639a26d7368d37a2e851cf0f8f1a3685d7136a93cc45182386b3f3870"
+  },
+  {
+   "page": 52,
+   "file": "strips/sb051-c5-s0.jpg",
+   "sha256": "2b1243f26234caff5c13f69140a417e6858fdc58babc596f3ba62a814beb9b2f"
+  },
+  {
+   "page": 53,
+   "file": "strips/sb052-c5-s1.jpg",
+   "sha256": "be26aa3c9ec7a8806bfd79a55247f70de1a3ef27069072651e4a2de7f4227a4d"
+  },
+  {
+   "page": 54,
+   "file": "strips/sb053-c5-v1.jpg",
+   "sha256": "4d2b97b339d79bc95ad3e0af22a8ed7163f4ac18d51060d66a31af06cddd50b3"
+  },
+  {
+   "page": 55,
+   "file": "strips/sb054-c5-s2.jpg",
+   "sha256": "d178c6abc62ba88cd7100acbf2da857bbf2433b2f357a0dbf1fcb85cb0e995fa"
+  },
+  {
+   "page": 56,
+   "file": "strips/sb055-c5-s3.jpg",
+   "sha256": "ca8b67ab8785ee1a33eadb13f93f5cacf22e730dcede32e7920298af0abb445d"
+  },
+  {
+   "page": 57,
+   "file": "strips/sb056-c5-v2.jpg",
+   "sha256": "83c5d63b2f7791c13a9726100bcb7439676d2c264b806f49b278855e915bf3c4"
+  },
+  {
+   "page": 58,
+   "file": "strips/sb057-c5-s4.jpg",
+   "sha256": "7583c87e6a32aa97792b734333f244d39453a737a7df0ddd4cd8179b4663f6da"
+  },
+  {
+   "page": 59,
+   "file": "strips/sb058-c5-v3.jpg",
+   "sha256": "4c31fc7a04a4ed02057233bccaee03b4f054548e5ff407f0f2be249d5afa5db4"
+  },
+  {
+   "page": 60,
+   "file": "strips/sb059-c5-s5.jpg",
+   "sha256": "701be9b59e552072c51442b57a7d2cff2ac13ac44a8f571655f8a3ee3607d628"
+  },
+  {
+   "page": 61,
+   "file": "strips/sb060-c5-v4.jpg",
+   "sha256": "dbd1e2a17e933174cc107457b827a0de7977e4a16d84a016eed7ed13a2a55c78"
+  },
+  {
+   "page": 62,
+   "file": "strips/sb061-c5-s6.jpg",
+   "sha256": "cbe8a4f0e74aa62d949a6560f8b5beb3078164a6ef47f58b398a54d047ad0227"
+  },
+  {
+   "page": 63,
+   "file": "strips/sb062-c5-v5.jpg",
+   "sha256": "83b5ad4c4d08877ba8aef96e251b4a9709455f409405db5cdec59b398fcd3d3b"
+  },
+  {
+   "page": 64,
+   "file": "strips/sb063-c5-s7.jpg",
+   "sha256": "3003c45146204941d10229e7b934c04b293756609a874e6b59e4c88345503e4c"
+  },
+  {
+   "page": 65,
+   "file": "strips/sb064-c5-v6.jpg",
+   "sha256": "72d3db1bcfe1b524e18a28552d93827a280aedc6f22cdc3136b16178b8e5601e"
+  },
+  {
+   "page": 66,
+   "file": "strips/sb065-c5-s8.jpg",
+   "sha256": "af6f7bdb75c03eda6e3a693468140c8dd72b7c17a32bffdf224d084671daf306"
+  },
+  {
+   "page": 67,
+   "file": "strips/sb066-c6-s0.jpg",
+   "sha256": "1d3bc45eb4f5629cf18316b1ecd06b0cab6026d761578200f30175799b15a32e"
+  },
+  {
+   "page": 68,
+   "file": "strips/sb067-c6-s1.jpg",
+   "sha256": "b1fd3c6468ffbf99fbba1100c715d7062de47987094b4e001f54bc281805863a"
+  },
+  {
+   "page": 69,
+   "file": "strips/sb068-c6-v1.jpg",
+   "sha256": "18e28a6404371a99ffc7386f71a4f529d136d6be8c7e0aa0880edd0e7bcfbed9"
+  },
+  {
+   "page": 70,
+   "file": "strips/sb069-c6-s2.jpg",
+   "sha256": "dcfc58a95ceffde4680e451b6c092be8bf49c80f8a7709d433f2423f05ab8598"
+  },
+  {
+   "page": 71,
+   "file": "strips/sb070-c6-v2.jpg",
+   "sha256": "86dbcdabae01446c2b81cdb0b0200246dd6099edd28fc1f73cae446fa9ce1833"
+  },
+  {
+   "page": 72,
+   "file": "strips/sb071-c6-v3.jpg",
+   "sha256": "755622554bc98724ea32cf58b1ac91dc52518c6396a28223ad86283205f4a3f4"
+  },
+  {
+   "page": 73,
+   "file": "strips/sb072-c6-s3.jpg",
+   "sha256": "3d80e945689113d8507864aeac847cba463d2f4c684f8da7ccaaf7f8d87da7a6"
+  },
+  {
+   "page": 74,
+   "file": "strips/sb073-c6-s4.jpg",
+   "sha256": "a176053c98a777145cb383960b06e622a7fec489fe11bcdf1b23eacafbf1f88d"
+  },
+  {
+   "page": 75,
+   "file": "strips/sb074-c6-s5.jpg",
+   "sha256": "ae45f6a7b922ba247e2ccf13ad9bc94b2c2a2e82778c4125e475578104a27c2a"
+  },
+  {
+   "page": 76,
+   "file": "strips/sb075-c7-s0.jpg",
+   "sha256": "134d7c341696258a745d2eefea3a24dcea6fdb17ac725abbe598da4cbb2c6717"
+  },
+  {
+   "page": 77,
+   "file": "strips/sb076-c7-s1.jpg",
+   "sha256": "02c8129aaf012c99d3b444782a5aa0b6b9f7e42e99551bb0d7fc4b88126118d5"
+  },
+  {
+   "page": 78,
+   "file": "strips/sb077-c7-v1.jpg",
+   "sha256": "a202b6cab6b7b7bf461a2301f766604b4a4d438cf0f584cb4f96363ea9107eb7"
+  },
+  {
+   "page": 79,
+   "file": "strips/sb078-c7-s2.jpg",
+   "sha256": "3ba46955f1e66493f7109f19305bd7b58c4aeee8023396d1222d8d2d3dc9edbd"
+  },
+  {
+   "page": 80,
+   "file": "strips/sb079-c7-s3.jpg",
+   "sha256": "51b4937450c80e4d8cb515bf2e860f1c2c68c25c7d00af651eccb345eda82739"
+  },
+  {
+   "page": 81,
+   "file": "strips/sb080-c7-s4.jpg",
+   "sha256": "1fe393ae00841c1d22285fd4d8c82cffc3252b8cd03f3010d4c0c8b572d30fc5"
+  },
+  {
+   "page": 82,
+   "file": "strips/sb081-c7-s5.jpg",
+   "sha256": "218ea3e54bef2e29c8b20f55ce733785e9c97e2b024c281f7b55de543eda1a00"
+  },
+  {
+   "page": 83,
+   "file": "strips/sb082-c7-s6.jpg",
+   "sha256": "ef872306c901c4e56ea27b34d78dac92ed49434e79af804dfa1456707e874b1d"
+  },
+  {
+   "page": 84,
+   "file": "strips/sb083-c7-s7.jpg",
+   "sha256": "82a9af5db78d966026881a5e73fed7130933de0593e88c87b6c27d154c2f9195"
+  },
+  {
+   "page": 85,
+   "file": "strips/sb084-c7-s8.jpg",
+   "sha256": "6ef0815ff4154beb0a8d2f0913dce28a3840760dd3fb3cd5caa8a6e6083bdeb0"
+  }
+ ],
+ "scenes": [
+  {
+   "id": "c1-s0",
+   "index": 1,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "فتح الدفتر (بلا كلام)",
+   "template": "horizon-shot",
+   "shot": "cover",
+   "sceneVersion": "7ba13732",
+   "start": 105,
+   "frames": 78,
+   "seconds": 2.6,
+   "narration": "",
+   "idea": "الدفتر المغلق يُفتح غلافه؛ على الصفحة الأولى البسملة مكتوبة",
+   "camera": "صفحة داكنة/غير محدد (+0.2s) ← الدفتر كاملًا (+2.0s)",
+   "events": [
+    {
+     "s": 13,
+     "e": 57,
+     "peak": 26.1,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    111,
+    166,
+    181
+   ],
+   "framing": [
+    "صفحة داكنة/غير محدد",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "بداية الحلقة",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c1-s1",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb005-c1-s0.jpg",
+   "boardSha256": "9136110fc1ae7e73bea17cf57942183736985650c3e60e1918218dfeed39f738"
+  },
+  {
+   "id": "c1-s1",
+   "index": 2,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "البسملة على الصفحة الأولى",
+   "template": "horizon-shot",
+   "shot": "basmala",
+   "sceneVersion": "8446d52f",
+   "start": 183,
+   "frames": 126,
+   "seconds": 4.2,
+   "narration": "بسم الله الرحمن الرحيم.",
+   "idea": "البسملة ساكنة على الصفحة الأولى",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 101,
+     "e": 117,
+     "peak": 22.4,
+     "frac": 0.12,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 121,
+     "e": 122,
+     "peak": 2.6,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    189,
+    304
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c1-s0 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قلب صفحة إلى c1-s2",
+   "sacred": [
+    "سكون مقصود: ذكر الله"
+   ],
+   "sources": [],
+   "still": "dhikr",
+   "ref": null,
+   "board": "strips/sb006-c1-s1.jpg",
+   "boardSha256": "f44646a77e4e506b8c0bd0155ffadf3594d479f72affcca7a850cc66725cdde6"
+  },
+  {
+   "id": "c1-s2",
+   "index": 3,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "أمم وأجيال على الأفق",
+   "template": "horizon-shot",
+   "shot": "nations",
+   "sceneVersion": "1b1db06d",
+   "start": 309,
+   "frames": 228,
+   "seconds": 7.6,
+   "narration": "عرفت الأرض أمما كثيرة، وتعاقبت فيها أجيال لا يعلم عددها إلا الله.",
+   "idea": "أفق تتعاقب عليه علامات مستوطنات تبتعد وتبهت حتى حافة الصفحة (أجيال لا يُحصى عددها)",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+2.2s) ← مقرَّب نحو الصفحة اليمنى (+3.7s) ← الدفتر كاملًا (+4.9s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.1,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 30,
+     "e": 61,
+     "peak": 6.2,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 67,
+     "e": 108,
+     "peak": 6.8,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 118,
+     "e": 142,
+     "peak": 7.3,
+     "frac": 0.08,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    315,
+    374,
+    421,
+    455,
+    535
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c1-s1 (قلب صفحة)",
+   "transitionOut": "خفوت إلى c1-s3",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb007-c1-s2.jpg",
+   "boardSha256": "fe8b80b9b1bd0f553707204abf320b1afa3b39eac42cd520620a97035632a3cc"
+  },
+  {
+   "id": "c1-s3",
+   "index": 4,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "الرجوع إلى البداية: الأطلال ثم البوابة ثم الاسم",
+   "template": "horizon-shot",
+   "shot": "return",
+   "sceneVersion": "faca29c4",
+   "start": 537,
+   "frames": 363,
+   "seconds": 12.1,
+   "narration": "ولكن رحلتنا هذه لا تبدأ من مدينة قديمة، ولا من مملكة نسي الناس اسمها. إننا نبدأ من أبي البشر، آدم عليه السلام.",
+   "idea": "الرجوع: أطلال مدينة ← بوابة مملكة تُنسى ← صفحة فارغة واسم «آدم عليه السلام» (المعتمد)",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+3.2s)",
+   "events": [
+    {
+     "s": 31,
+     "e": 93,
+     "peak": 3.3,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 116,
+     "e": 133,
+     "peak": 22.0,
+     "frac": 0.12,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 146,
+     "e": 146,
+     "peak": 2.7,
+     "frac": 0.26,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": false
+    },
+    {
+     "s": 202,
+     "e": 219,
+     "peak": 22.0,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 232,
+     "e": 232,
+     "peak": 2.5,
+     "frac": 0.17,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": false
+    },
+    {
+     "s": 358,
+     "e": 358,
+     "peak": 1.3,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    543,
+    634,
+    674,
+    687,
+    760,
+    898
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى"
+   ],
+   "transitionIn": "من c1-s2 (خفوت)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c1-s4",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb008-c1-s3.jpg",
+   "boardSha256": "c8bb60bd7d60c5ebb5c813949a3f7ec155fb07217307606afb55d53095ef9862"
+  },
+  {
+   "id": "c1-s4",
+   "index": 5,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "النسل ينتشر في الأرض",
+   "template": "horizon-shot",
+   "shot": "lineage",
+   "sceneVersion": "5af80cce",
+   "start": 900,
+   "frames": 267,
+   "seconds": 8.9,
+   "narration": "من أول إنسان خلقه الله سبحانه وتعالى، ومنه بدأ نسل البشر الذي انتشر في الأرض.",
+   "idea": "من الاسم تتفرع سلسلة نسل تنتشر على الصفحة حتى حواف الأرض",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← الدفتر كاملًا (+7.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.7,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 22,
+     "e": 34,
+     "peak": 1.4,
+     "frac": 0.02,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 115,
+     "e": 136,
+     "peak": 2.9,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 172,
+     "e": 211,
+     "peak": 4.3,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 250,
+     "e": 252,
+     "peak": 0.9,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    906,
+    938,
+    1040,
+    1115,
+    1156,
+    1165
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c1-s3 (يستمر على الدفتر نفسه)",
+   "transitionOut": "خفوت إلى c1-s5",
+   "sacred": [
+    "فيه ذكر الله (3): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb009-c1-s4.jpg",
+   "boardSha256": "52b9d18d1708bb5397a388c883aa80d1854c6790a1cf92b6ff01620fabfe78c8"
+  },
+  {
+   "id": "c1-s5",
+   "index": 6,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "لا تاريخ ثابتًا: الخانة الفارغة",
+   "template": "horizon-shot",
+   "shot": "no-date",
+   "sceneVersion": "611ff6bc",
+   "start": 1167,
+   "frames": 447,
+   "seconds": 14.9,
+   "narration": "ولا نملك تاريخا ثابتا لخلق آدم عليه السلام. فلم يخبرنا القرآن الكريم بالسنة التي خلق فيها، ولا بالزمن الذي يفصله عن أقدم الحضارات التي وصلت إلينا آثارها.",
+   "idea": "الشريط بخانته الفارغة، وزمن لا نعلم قدره عبر الكعب (المعتمد)",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+11.8s) ← الدفتر كاملًا (+14.6s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.5,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 29,
+     "e": 33,
+     "peak": 1.3,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 83,
+     "e": 132,
+     "peak": 1.8,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 253,
+     "e": 292,
+     "peak": 6.1,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 302,
+     "e": 349,
+     "peak": 11.8,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 403,
+     "e": 434,
+     "peak": 8.3,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 442,
+     "e": 442,
+     "peak": 1.0,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    1173,
+    1204,
+    1303,
+    1463,
+    1520,
+    1605
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c1-s4 (خفوت)",
+   "transitionOut": "خفوت إلى c1-s6",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb010-c1-s5.jpg",
+   "boardSha256": "8f34c2c67de2b25ce931259b8b4e11321354de57c8e2621527137047f4457481"
+  },
+  {
+   "id": "c1-s6",
+   "index": 7,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "ما هو أعظم من السنة والمكان",
+   "template": "horizon-shot",
+   "shot": "greater",
+   "sceneVersion": "955f8e3f",
+   "start": 1614,
+   "frames": 198,
+   "seconds": 6.6,
+   "narration": "ولكن الله أخبرنا بما هو أعظم من تحديد سنة أو مكان.",
+   "idea": "الشريط ودبوس المكان يتراجعان صغيرين إلى الهامش، فتفرغ الصفحة لما هو أعظم",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+4.0s) ← الدفتر كاملًا (+5.8s)",
+   "events": [
+    {
+     "s": 67,
+     "e": 116,
+     "peak": 11.6,
+     "frac": 0.08,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 151,
+     "e": 171,
+     "peak": 6.3,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    1620,
+    1734,
+    1789,
+    1810
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c1-s5 (خفوت)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c1-s7",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb011-c1-s6.jpg",
+   "boardSha256": "905f521e9aafcf75346aed33f5b29f6f4ab19858e9ca61412b5950bd89d2b306"
+  },
+  {
+   "id": "c1-s7",
+   "index": 8,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "فهرس الأخبار",
+   "template": "horizon-shot",
+   "shot": "index",
+   "sceneVersion": "322fb7c8",
+   "start": 1812,
+   "frames": 414,
+   "seconds": 13.8,
+   "narration": "أخبرنا عن خلق آدم، وتكريمه، وتعليمه، وعن أمر الملائكة بالسجود له، وعن عداوة إبليس. ثم أخبرنا عما جرى لآدم وزوجه، وهبوطهما إلى الأرض.",
+   "idea": "فهرس الدفتر: يُكتب كل موضوع لحظة نطقه، ومعه رقم فصله",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+1.7s) ← الدفتر كاملًا (+13.7s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.1,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 27,
+     "e": 48,
+     "peak": 13.2,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 85,
+     "e": 98,
+     "peak": 2.2,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 118,
+     "e": 134,
+     "peak": 4.0,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 193,
+     "e": 208,
+     "peak": 2.8,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 268,
+     "e": 270,
+     "peak": 0.8,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 388,
+     "e": 411,
+     "peak": 12.7,
+     "frac": 0.15,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    1818,
+    1864,
+    1914,
+    1950,
+    2024,
+    2224
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c1-s6 (يستمر على الدفتر نفسه)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c1-s8",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb012-c1-s7.jpg",
+   "boardSha256": "13fceeaf895c422c8e43795e77f35b538ca52491af796c57aca58290ea93d828"
+  },
+  {
+   "id": "c1-s8",
+   "index": 9,
+   "chapter": 1,
+   "chapterTitle": "بداية القصة",
+   "name": "من هذه الأخبار نبدأ (قلب الصفحة)",
+   "template": "horizon-shot",
+   "shot": "begin",
+   "sceneVersion": "c769b02a",
+   "start": 2226,
+   "frames": 123,
+   "seconds": 4.1,
+   "narration": "ومن هذه الأخبار نبدأ قصتنا.",
+   "idea": "قلب صفحة إلى الأمام: بداية القصة",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 52,
+     "e": 66,
+     "peak": 22.3,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 73,
+     "e": 73,
+     "peak": 2.6,
+     "frac": 0.18,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    2232,
+    2296,
+    2347
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c1-s7 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قلب صفحة إلى c2-s0",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb013-c1-s8.jpg",
+   "boardSha256": "d17d09c68ab895b00567afc99b756565155e89e643c4c93ead4f4139e5151631"
+  },
+  {
+   "id": "c2-s0",
+   "index": 10,
+   "chapter": 2,
+   "chapterTitle": "إني جاعل في الأرض خليفة",
+   "name": "عنوان الفصل (بلا كلام)",
+   "template": "horizon-shot",
+   "shot": "chapter",
+   "sceneVersion": "d8e3ed98",
+   "start": 2349,
+   "frames": 96,
+   "seconds": 3.2,
+   "narration": "",
+   "idea": "عنوان الفصل (رقمه فقط مؤقتًا)",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 63,
+     "e": 68,
+     "peak": 1.0,
+     "frac": 0.02,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    2355,
+    2421,
+    2443
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "بداية الفصل · من c1-s8 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c2-s1",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb014-c2-s0.jpg",
+   "boardSha256": "1c221960ff06d0411933d25074e3a52f3bb3b3c958583bb1fd0b2aee4f2fd5dd"
+  },
+  {
+   "id": "c2-s1",
+   "index": 11,
+   "chapter": 2,
+   "chapterTitle": "إني جاعل في الأرض خليفة",
+   "name": "تمهيد آية (صفحة ساكنة)",
+   "template": "horizon-shot",
+   "shot": "verse-intro",
+   "sceneVersion": "1d793d05",
+   "start": 2445,
+   "frames": 276,
+   "seconds": 9.2,
+   "narration": "قبل أن نتحدث عن حياة آدم عليه السلام، نقف عند ما أخبرنا الله به في سورة البقرة.",
+   "idea": "تمهيد الآية: صفحة ساكنة (المعتمد)",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    2451
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c2-s0 (يستمر على الدفتر نفسه)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c2-v1",
+   "sacred": [
+    "سكون مقصود للمشهد كله: تمهيد آية، بلا حركة مضافة",
+    "مرجع الآية على الصفحة: البقرة · ٣٠"
+   ],
+   "sources": [
+    "Q01",
+    "T01",
+    "T02"
+   ],
+   "still": "verse-intro",
+   "ref": "البقرة · ٣٠",
+   "board": "strips/sb015-c2-s1.jpg",
+   "boardSha256": "1b825261ace459f64905d64712ab48fc4bb72bcc4e31803dd6bcd53b5603a0e8"
+  },
+  {
+   "id": "c2-v1",
+   "index": 12,
+   "chapter": 2,
+   "chapterTitle": "إني جاعل في الأرض خليفة",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "d78de1bf",
+   "start": 2721,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    2727
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c2-s1 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c2-s2",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q01",
+    "T01",
+    "T02"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣٠",
+   "board": "strips/sb016-c2-v1.jpg",
+   "boardSha256": "004cbea34c994fccc1d07c5ec921169df26935a5302b79355a5c192fd0cd5468"
+  },
+  {
+   "id": "c2-s2",
+   "index": 13,
+   "chapter": 2,
+   "chapterTitle": "إني جاعل في الأرض خليفة",
+   "name": "معنى الخلافة: أقوال المفسرين",
+   "template": "horizon-shot",
+   "shot": "interpreters",
+   "sceneVersion": "ea7d4443",
+   "start": 2841,
+   "frames": 429,
+   "seconds": 14.3,
+   "narration": "أخبر الله ملائكته أنه جاعل في الأرض خليفة. وقد ذكر المفسرون في معنى الخلافة أقوالا، منها أن البشر يخلف بعضهم بعضا في عمارة الأرض والحياة عليها.",
+   "idea": "لفظ الآية في إطار، وأقوال المفسرين تنفرج (المعتمد)",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+6.0s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 150,
+     "e": 177,
+     "peak": 4.9,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 208,
+     "e": 213,
+     "peak": 1.1,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": false
+    },
+    {
+     "s": 230,
+     "e": 233,
+     "peak": 1.6,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": false
+    },
+    {
+     "s": 263,
+     "e": 292,
+     "peak": 7.2,
+     "frac": 0.08,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 406,
+     "e": 424,
+     "peak": 5.9,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    2847,
+    3022,
+    3058,
+    3078,
+    3137,
+    3268
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى"
+   ],
+   "transitionIn": "من c2-v1 (قطع)",
+   "transitionOut": "خفوت إلى c2-s3",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)",
+    "مرجع الآية على الصفحة: البقرة · ٣٠"
+   ],
+   "sources": [
+    "Q01",
+    "T01",
+    "T02"
+   ],
+   "still": null,
+   "ref": "البقرة · ٣٠",
+   "board": "strips/sb017-c2-s2.jpg",
+   "boardSha256": "bdb339d6dd68aba20a47da2670a8e37395dadc57279a77d77997d4f0372e758c"
+  },
+  {
+   "id": "c2-s3",
+   "index": 14,
+   "chapter": 2,
+   "chapterTitle": "إني جاعل في الأرض خليفة",
+   "name": "سؤال للفهم لا اعتراض (حاشية ابن كثير)",
+   "template": "horizon-shot",
+   "shot": "question",
+   "sceneVersion": "e8061601",
+   "start": 3270,
+   "frames": 504,
+   "seconds": 16.8,
+   "narration": "وسألت الملائكة ربها عن جعل من يكون منه الفساد وسفك الدماء، مع أنهم يسبحون بحمده ويقدسون له. ولم يكن سؤالهم اعتراضا على حكم الله، وإنما كان سؤالا لطلب الفهم ومعرفة الحكمة.",
+   "idea": "بطاقة حاشية: «سؤال للفهم» يُدائَر، و«اعتراض» يُشطب (T02، ابن كثير)",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+1.1s) ← مقرَّب نحو الصفحة اليسرى (+10.3s)",
+   "events": [
+    {
+     "s": 2,
+     "e": 29,
+     "peak": 20.3,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 105,
+     "e": 128,
+     "peak": 4.3,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 168,
+     "e": 176,
+     "peak": 8.1,
+     "frac": 0.08,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 273,
+     "e": 305,
+     "peak": 17.5,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 468,
+     "e": 468,
+     "peak": 2.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 487,
+     "e": 490,
+     "peak": 0.8,
+     "frac": 0.02,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    3303,
+    3402,
+    3450,
+    3579,
+    3764,
+    3772
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى"
+   ],
+   "transitionIn": "من c2-s2 (خفوت)",
+   "transitionOut": "خفوت إلى c2-s4",
+   "sacred": [
+    "فيه ذكر الله (2): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb018-c2-s3.jpg",
+   "boardSha256": "1be1703136b91d10dafe193839dec0a031e3f6f3ef2aed20274b3702978fe58c"
+  },
+  {
+   "id": "c2-s4",
+   "index": 15,
+   "chapter": 2,
+   "chapterTitle": "إني جاعل في الأرض خليفة",
+   "name": "معرفتنا محدودة",
+   "template": "horizon-shot",
+   "shot": "known",
+   "sceneVersion": "a83115fa",
+   "start": 3774,
+   "frames": 498,
+   "seconds": 16.6,
+   "narration": "فأجابهم الله بأنه يعلم ما لا يعلمون. إن معرفتنا محدودة، وعلم الله محيط بكل شيء. وقد نعرف بعض الحكم من أمر من أمور الله، ولكننا لا ندعي الإحاطة بجميع حكمه.",
+   "idea": "دائرة صغيرة لمعرفتنا: نقاط قليلة تضيء فيها، وحدها مفتوحة. لا يُرسم ما يرمز إلى علم الله",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+5.2s) ← أبعد: الدفتر أصغر من الكادر (+14.1s)",
+   "events": [
+    {
+     "s": 121,
+     "e": 153,
+     "peak": 8.9,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 386,
+     "e": 418,
+     "peak": 11.3,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    3780,
+    3931,
+    4196,
+    4270
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "أبعد: الدفتر أصغر من الكادر",
+    "أبعد: الدفتر أصغر من الكادر"
+   ],
+   "transitionIn": "من c2-s3 (خفوت)",
+   "transitionOut": "خفوت إلى c2-s5",
+   "sacred": [
+    "فيه ذكر الله (3): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb019-c2-s4.jpg",
+   "boardSha256": "4ce61bf7eb7ce070c79797cf0b8275f545fa2e99d5009462c96a668bdf1cbc36"
+  },
+  {
+   "id": "c2-s5",
+   "index": 16,
+   "chapter": 2,
+   "chapterTitle": "إني جاعل في الأرض خليفة",
+   "name": "الخلق ثم التعليم",
+   "template": "horizon-shot",
+   "shot": "two-titles",
+   "sceneVersion": "2916c51f",
+   "start": 4272,
+   "frames": 363,
+   "seconds": 12.1,
+   "narration": "وبعد هذا الإخبار، يحدثنا القرآن الكريم عن خلق آدم عليه السلام، ثم عن أمر من أعظم ما خصه الله به: التعليم.",
+   "idea": "عنوانان يُكتبان: «الخلق» ثم «التعليم»، وقلب إلى الفصل الثالث",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+7.5s) ← الدفتر كاملًا (+11.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 3.0,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 171,
+     "e": 220,
+     "peak": 11.6,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 315,
+     "e": 333,
+     "peak": 11.0,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 337,
+     "e": 354,
+     "peak": 22.6,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 358,
+     "e": 359,
+     "peak": 2.6,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    4278,
+    4496,
+    4609,
+    4630
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c2-s4 (خفوت)",
+   "transitionOut": "قلب صفحة إلى c3-s0",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb020-c2-s5.jpg",
+   "boardSha256": "480d42008b9310e5a3b6d1e83a3fb4d4827f230ef4532631596a6d9a02c4a536"
+  },
+  {
+   "id": "c3-s0",
+   "index": 17,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "عنوان الفصل (بلا كلام)",
+   "template": "horizon-shot",
+   "shot": "chapter",
+   "sceneVersion": "67f607b2",
+   "start": 4635,
+   "frames": 96,
+   "seconds": 3.2,
+   "narration": "",
+   "idea": "عنوان الفصل",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 63,
+     "e": 69,
+     "peak": 1.4,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    4641,
+    4708,
+    4729
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "بداية الفصل · من c2-s5 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c3-s1",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb021-c3-s0.jpg",
+   "boardSha256": "cda5fb108aab89ceeea388a609bdc900696a91b47bc0e198f4f666c9d4ab4207"
+  },
+  {
+   "id": "c3-s1",
+   "index": 18,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "«طين» كلمةً، ومواضع ذكره في القرآن",
+   "template": "horizon-shot",
+   "shot": "clay",
+   "sceneVersion": "01192de2",
+   "start": 4731,
+   "frames": 294,
+   "seconds": 9.8,
+   "narration": "خلق الله آدم عليه السلام من طين. وقد جاء ذكر خلقه في مواضع متعددة من القرآن الكريم.",
+   "idea": "كلمة «طين» تُكتب، ثم ألسنة إشارة تبرز من حافة الدفتر (مواضع متعددة)، أحدها «ص 71–72»",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+3.2s) ← الدفتر كاملًا (+5.7s)",
+   "events": [
+    {
+     "s": 45,
+     "e": 92,
+     "peak": 7.6,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 110,
+     "e": 167,
+     "peak": 8.5,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 275,
+     "e": 283,
+     "peak": 2.1,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": false
+    },
+    {
+     "s": 289,
+     "e": 289,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    4737,
+    4827,
+    4902,
+    5018
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s0 (يستمر على الدفتر نفسه)",
+   "transitionOut": "خفوت إلى c3-s2",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb022-c3-s1.jpg",
+   "boardSha256": "41e995d156480398068ccd1dcade955c7de372a95b5ff3ccfa3ed40b82b8c7fd"
+  },
+  {
+   "id": "c3-s2",
+   "index": 19,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "تمهيد آية (صفحة ساكنة)",
+   "template": "horizon-shot",
+   "shot": "verse-intro",
+   "sceneVersion": "bf8fd8ce",
+   "start": 5025,
+   "frames": 90,
+   "seconds": 3.0,
+   "narration": "قال الله تعالى:",
+   "idea": "تمهيدان قصيران ساكنان",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    5031
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s1 (خفوت)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c3-v1",
+   "sacred": [
+    "سكون مقصود للمشهد كله: تمهيد آية، بلا حركة مضافة",
+    "مرجع الآية على الصفحة: ص · ٧١"
+   ],
+   "sources": [
+    "Q02"
+   ],
+   "still": "verse-intro",
+   "ref": "ص · ٧١",
+   "board": "strips/sb023-c3-s2.jpg",
+   "boardSha256": "4ed94979b95d8617d8107da709578751345e627a15b2e533e1e01c5bbe456259"
+  },
+  {
+   "id": "c3-v1",
+   "index": 20,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "b9217b9c",
+   "start": 5115,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضعا آيتين",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    5121
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s2 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c3-s3",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q02"
+   ],
+   "still": "verse",
+   "ref": "ص · ٧١",
+   "board": "strips/sb024-c3-v1.jpg",
+   "boardSha256": "6567cd5e92367cbbb8ecf02d974fa640558e6e81851281c6fd9ad21e2c815ad6"
+  },
+  {
+   "id": "c3-s3",
+   "index": 21,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "تمهيد آية (صفحة ساكنة)",
+   "template": "horizon-shot",
+   "shot": "verse-intro",
+   "sceneVersion": "dcb99cdc",
+   "start": 5235,
+   "frames": 90,
+   "seconds": 3.0,
+   "narration": "ثم قال سبحانه:",
+   "idea": "تمهيدان قصيران ساكنان",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    5241
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-v1 (قطع)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c3-v2",
+   "sacred": [
+    "سكون مقصود للمشهد كله: تمهيد آية، بلا حركة مضافة",
+    "مرجع الآية على الصفحة: ص · ٧٢"
+   ],
+   "sources": [
+    "Q03"
+   ],
+   "still": "verse-intro",
+   "ref": "ص · ٧٢",
+   "board": "strips/sb025-c3-s3.jpg",
+   "boardSha256": "9e28ed6a61a7356f3029880c341d506194bad86bda099f6feb8f5ba5bb9e95a4"
+  },
+  {
+   "id": "c3-v2",
+   "index": 22,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "b1c48397",
+   "start": 5325,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضعا آيتين",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    5331
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s3 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c3-s4",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q03"
+   ],
+   "still": "verse",
+   "ref": "ص · ٧٢",
+   "board": "strips/sb026-c3-v2.jpg",
+   "boardSha256": "7aff50f991d9299a14b4013f63e9811b1e2fabb7026106f641a7d9325704795e"
+  },
+  {
+   "id": "c3-s4",
+   "index": 23,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "الخلق · التسوية · نفخ الروح (كلمات على خط)",
+   "template": "horizon-shot",
+   "shot": "steps",
+   "sceneVersion": "5564638a",
+   "start": 5445,
+   "frames": 243,
+   "seconds": 8.1,
+   "narration": "وفي هذه الآيات خبر خلق آدم عليه السلام، وتسويته، ونفخ الروح فيه.",
+   "idea": "ثلاثة عناوين تُكتب: الخلق · التسوية · نفخ الروح (بلا أي رسم)",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+5.1s) ← الدفتر كاملًا (+7.1s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.0,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 106,
+     "e": 124,
+     "peak": 5.1,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 128,
+     "e": 149,
+     "peak": 13.6,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 193,
+     "e": 208,
+     "peak": 10.7,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 218,
+     "e": 232,
+     "peak": 22.4,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 238,
+     "e": 239,
+     "peak": 2.6,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    5451,
+    5573,
+    5598,
+    5657,
+    5681
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-v2 (قطع)",
+   "transitionOut": "قلب صفحة إلى c3-s5",
+   "sacred": [
+    "مرجع الآية على الصفحة: ص ٧١–٧٢"
+   ],
+   "sources": [
+    "Q02",
+    "Q03"
+   ],
+   "still": null,
+   "ref": "ص ٧١–٧٢",
+   "board": "strips/sb027-c3-s4.jpg",
+   "boardSha256": "c195ba17f23ce95639d77bb0deba1a8c981a01bcd3cca9a86edff0ef9e7acee9"
+  },
+  {
+   "id": "c3-s5",
+   "index": 24,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "تمهيد آية (صفحة ساكنة)",
+   "template": "horizon-shot",
+   "shot": "verse-intro",
+   "sceneVersion": "b671bbbe",
+   "start": 5688,
+   "frames": 159,
+   "seconds": 5.3,
+   "narration": "ثم أخبرنا الله بأنه علم آدم الأسماء كلها.",
+   "idea": "تمهيد ساكن",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    5694
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s4 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c3-v3",
+   "sacred": [
+    "سكون مقصود للمشهد كله: تمهيد آية، بلا حركة مضافة",
+    "مرجع الآية على الصفحة: البقرة · ٣١"
+   ],
+   "sources": [
+    "Q04",
+    "T04"
+   ],
+   "still": "verse-intro",
+   "ref": "البقرة · ٣١",
+   "board": "strips/sb028-c3-s5.jpg",
+   "boardSha256": "62e0fd41dc1ddcc581ed74323cafaefd6e521468dfbb30f00a7f4775f2d21c2c"
+  },
+  {
+   "id": "c3-v3",
+   "index": 25,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "09a84ca3",
+   "start": 5847,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    5853
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s5 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c3-s6",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q04",
+    "T04"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣١",
+   "board": "strips/sb029-c3-v3.jpg",
+   "boardSha256": "6ddd4a4f669839f8d11ff638d9c6134b8a9ff1d9eeea2a381d592508e0fd26e4"
+  },
+  {
+   "id": "c3-s6",
+   "index": 26,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "درج أقوال المفسرين، وبطاقة ما هو واضح في الآيات",
+   "template": "horizon-shot",
+   "shot": "catalog",
+   "sceneVersion": "ff2d1443",
+   "start": 5967,
+   "frames": 405,
+   "seconds": 13.5,
+   "narration": "وقد اختلف المفسرون في تفصيل المقصود بالأسماء، وذكروا في ذلك أقوالا متعددة. ولكن المعنى الواضح في الآيات أن الله خص آدم بعلم علمه إياه.",
+   "idea": "حواشٍ متعددة تنفرج (أقوال في الأسماء)، ثم سطر واحد يثبت: «خصّ الله آدم بعلم»",
+   "camera": "ثابت: مقرَّب نحو الصفحة اليمنى (+0.2s)",
+   "events": [
+    {
+     "s": 5,
+     "e": 16,
+     "peak": 1.8,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 22,
+     "e": 26,
+     "peak": 1.0,
+     "frac": 0.02,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": true
+    },
+    {
+     "s": 52,
+     "e": 92,
+     "peak": 1.4,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 111,
+     "e": 118,
+     "peak": 1.0,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 143,
+     "e": 147,
+     "peak": 0.8,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 201,
+     "e": 235,
+     "peak": 4.9,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 386,
+     "e": 394,
+     "peak": 2.0,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 400,
+     "e": 400,
+     "peak": 2.5,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    5973,
+    5987,
+    6063,
+    6089,
+    6206,
+    6365
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى"
+   ],
+   "transitionIn": "من c3-v3 (قطع)",
+   "transitionOut": "خفوت إلى c3-s7",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb030-c3-s6.jpg",
+   "boardSha256": "15936f7584f90e5ae1004df95f404b3b71f1d64c187cfe205e0d48e6e7a84d8c"
+  },
+  {
+   "id": "c3-s7",
+   "index": 27,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "تمهيد آية (صفحة ساكنة)",
+   "template": "horizon-shot",
+   "shot": "verse-intro",
+   "sceneVersion": "5133ba07",
+   "start": 6372,
+   "frames": 234,
+   "seconds": 7.8,
+   "narration": "وعندما عرض الله المسميات على الملائكة، لم يدعوا علم ما لم يعلمهم الله.",
+   "idea": "تمهيد ساكن (فيه ذكر الله)",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.4,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    6378,
+    6604
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s6 (خفوت)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c3-v4",
+   "sacred": [
+    "سكون مقصود للمشهد كله: تمهيد آية، بلا حركة مضافة",
+    "مرجع الآية على الصفحة: البقرة · ٣٢"
+   ],
+   "sources": [
+    "Q04"
+   ],
+   "still": "verse-intro",
+   "ref": "البقرة · ٣٢",
+   "board": "strips/sb031-c3-s7.jpg",
+   "boardSha256": "4396bbbd1c33c337cba4629a0ab23f0eedfc8704ed7803faabffacd246f5af9d"
+  },
+  {
+   "id": "c3-v4",
+   "index": 28,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "56d04777",
+   "start": 6606,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    6612
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s7 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c3-s8",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q04"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣٢",
+   "board": "strips/sb032-c3-v4.jpg",
+   "boardSha256": "a3286e89715a673ef81b3672268bee2b8b3181ca4f4fd0e04d7a4774384a468e"
+  },
+  {
+   "id": "c3-s8",
+   "index": 29,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "تمهيد آية (صفحة ساكنة)",
+   "template": "horizon-shot",
+   "shot": "verse-intro",
+   "sceneVersion": "9c5c63a0",
+   "start": 6726,
+   "frames": 144,
+   "seconds": 4.8,
+   "narration": "ثم أمر الله آدم أن ينبئهم بأسمائها.",
+   "idea": "تمهيد ساكن",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    6732
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-v4 (قطع)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c3-v5",
+   "sacred": [
+    "سكون مقصود للمشهد كله: تمهيد آية، بلا حركة مضافة",
+    "مرجع الآية على الصفحة: البقرة · ٣٣"
+   ],
+   "sources": [
+    "Q04"
+   ],
+   "still": "verse-intro",
+   "ref": "البقرة · ٣٣",
+   "board": "strips/sb033-c3-s8.jpg",
+   "boardSha256": "c4b0652401007c54c78cba9e53ae0a8a0eb8126959419f07dcddcfcb501510bb"
+  },
+  {
+   "id": "c3-v5",
+   "index": 30,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "3babddaa",
+   "start": 6870,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    6876
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-s8 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c3-s9",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q04"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣٣",
+   "board": "strips/sb034-c3-v5.jpg",
+   "boardSha256": "3d1a54f02b6845f9508653f8251111bedf49573638e506c5a5d181dcbccc3c9a"
+  },
+  {
+   "id": "c3-s9",
+   "index": 31,
+   "chapter": 3,
+   "chapterTitle": "خلق آدم وتعليمه",
+   "name": "الدفتر على مكتب الكاتب: أسباب المعرفة، والغرور يُشطب",
+   "template": "horizon-shot",
+   "shot": "knowledge",
+   "sceneVersion": "4d59e86c",
+   "start": 6990,
+   "frames": 651,
+   "seconds": 21.7,
+   "narration": "وهكذا أظهر الله لملائكته ما علمه لآدم عليه السلام. ونتعلم من هذا الموقف أن العلم نعمة من الله، وأن ما نعرفه إنما نعرفه بما يسره لنا من أسباب المعرفة. فلا مكان للغرور بالعلم، ولا لادعاء معرفة ما لم يقم عليه دليل.",
+   "idea": "دفتر يُفتح على صفحة «العلم»: أدوات المعرفة (قلم، كتاب، مسطرة) تظهر عند «أسباب المعرفة»، و«الغرور» يُشطب، و«دليل» يُدائَر",
+   "camera": "الدفتر كاملًا (+0.2s) ← أبعد: الدفتر أصغر من الكادر (+7.0s) ← مقرَّب نحو الصفحة اليسرى (+15.3s) ← الدفتر كاملًا (+20.8s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.0,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 144,
+     "e": 205,
+     "peak": 2.5,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 420,
+     "e": 456,
+     "peak": 8.7,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 573,
+     "e": 585,
+     "peak": 2.4,
+     "frac": 0.02,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 603,
+     "e": 621,
+     "peak": 12.5,
+     "frac": 0.15,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 625,
+     "e": 640,
+     "peak": 22.5,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 646,
+     "e": 647,
+     "peak": 2.6,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    6996,
+    7199,
+    7450,
+    7579,
+    7615,
+    7634
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "أبعد: الدفتر أصغر من الكادر",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c3-v5 (قطع)",
+   "transitionOut": "قلب صفحة إلى c4-s0",
+   "sacred": [
+    "فيه ذكر الله (2): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb035-c3-s9.jpg",
+   "boardSha256": "9a493c7078f29ec9149a0b8c51d15066b2df5f2b1d7e980e3ed795241627cac9"
+  },
+  {
+   "id": "c4-s0",
+   "index": 32,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "عنوان الفصل (بلا كلام)",
+   "template": "horizon-shot",
+   "shot": "chapter",
+   "sceneVersion": "6a1a76d7",
+   "start": 7641,
+   "frames": 96,
+   "seconds": 3.2,
+   "narration": "",
+   "idea": "عنوان الفصل",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 63,
+     "e": 69,
+     "peak": 1.6,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    7647,
+    7714,
+    7735
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "بداية الفصل · من c3-s9 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c4-s1",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb036-c4-s0.jpg",
+   "boardSha256": "7c94b6219cd8e81798971717f92f4df1cbffe6da380c9e2c343591cc813c1ccc"
+  },
+  {
+   "id": "c4-s1",
+   "index": 33,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "السجود تكريم لا عبادة، والعبادة لله وحده",
+   "template": "horizon-shot",
+   "shot": "honor",
+   "sceneVersion": "a03972c2",
+   "start": 7737,
+   "frames": 480,
+   "seconds": 16.0,
+   "narration": "بعد أن خلق الله آدم عليه السلام، أمر الملائكة أن يسجدوا له. وكان هذا السجود بأمر الله، تكريما لآدم عليه السلام، وليس عبادة له. فالعبادة حق لله وحده.",
+   "idea": "بطاقة حاشية (T05، ابن كثير): «تكريم» يُدائَر، و«عبادة» تُفصل بخط: «حق لله وحده» ساكنة",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+5.4s) ← مقرَّب نحو الصفحة اليسرى (+13.1s)",
+   "events": [
+    {
+     "s": 139,
+     "e": 159,
+     "peak": 10.2,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 262,
+     "e": 277,
+     "peak": 9.0,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 367,
+     "e": 389,
+     "peak": 20.0,
+     "frac": 0.18,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 475,
+     "e": 475,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    7743,
+    7900,
+    8018,
+    8130,
+    8215
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى"
+   ],
+   "transitionIn": "من c4-s0 (يستمر على الدفتر نفسه)",
+   "transitionOut": "خفوت إلى c4-v1",
+   "sacred": [
+    "فيه ذكر الله (3): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb037-c4-s1.jpg",
+   "boardSha256": "4fbf7fbeb42f9e90b1141195e2bc733608fc26886daa7abc8c8ef6539265f1ed"
+  },
+  {
+   "id": "c4-v1",
+   "index": 34,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "fb5b221f",
+   "start": 8217,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    8223
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-s1 (خفوت)",
+   "transitionOut": "قطع إلى c4-s2",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q05",
+    "T05"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣٤",
+   "board": "strips/sb038-c4-v1.jpg",
+   "boardSha256": "49b963e988ec1fc2a6f7a9bf44cb0c0a3bfc7a5085a2a81a704b0f247d4a6892"
+  },
+  {
+   "id": "c4-s2",
+   "index": 35,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "على مسار الأمر: استجابة، وإباء واستكبار",
+   "template": "horizon-shot",
+   "shot": "comply",
+   "sceneVersion": "44a077c8",
+   "start": 8337,
+   "frames": 189,
+   "seconds": 6.3,
+   "narration": "استجابت الملائكة لأمر ربها. ولكن إبليس أبى واستكبر.",
+   "idea": "سطران متقابلان: «استجابة» و«إباء واستكبار»، ينفصلان بخط",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+1.6s) ← مقرَّب نحو الصفحة اليمنى (+3.4s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.4,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 19,
+     "e": 43,
+     "peak": 16.7,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 86,
+     "e": 99,
+     "peak": 28.3,
+     "frac": 0.16,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 122,
+     "e": 150,
+     "peak": 6.7,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    8343,
+    8384,
+    8440,
+    8491,
+    8524
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى"
+   ],
+   "transitionIn": "من c4-v1 (قطع)",
+   "transitionOut": "خفوت إلى c4-s3",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb039-c4-s2.jpg",
+   "boardSha256": "83c54a9e8511b6391a47acfd1a882922aab0a885b9355801a64fbc914936523a"
+  },
+  {
+   "id": "c4-s3",
+   "index": 36,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "إبليس من الجن لا من الملائكة (تصنيف)",
+   "template": "horizon-shot",
+   "shot": "sort",
+   "sceneVersion": "f4e3f9c2",
+   "start": 8526,
+   "frames": 345,
+   "seconds": 11.5,
+   "narration": "ومن المهم هنا أن نعرف أن إبليس لم يكن من الملائكة. بل كان من الجن، كما أخبرنا الله في سورة الكهف.",
+   "idea": "تصنيف: بطاقة «الملائكة» وبطاقة «الجن»؛ اسم إبليس (كلمة) ينتقل إلى الثانية",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+4.3s) ← مقرَّب نحو الصفحة اليسرى (+7.1s)",
+   "events": [
+    {
+     "s": 81,
+     "e": 124,
+     "peak": 4.6,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 161,
+     "e": 208,
+     "peak": 6.3,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 340,
+     "e": 340,
+     "peak": 1.0,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    8532,
+    8654,
+    8738,
+    8869
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى"
+   ],
+   "transitionIn": "من c4-s2 (خفوت)",
+   "transitionOut": "خفوت إلى c4-v2",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb040-c4-s3.jpg",
+   "boardSha256": "5d26c72d1deb6b942a8dd22730ac645f7146358844a78783f39514f2c50e10c0"
+  },
+  {
+   "id": "c4-v2",
+   "index": 37,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "80de84e4",
+   "start": 8871,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    8877
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-s3 (خفوت)",
+   "transitionOut": "قطع إلى c4-s4",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "T05",
+    "Q06"
+   ],
+   "still": "verse",
+   "ref": "الكهف · ٥٠",
+   "board": "strips/sb041-c4-v2.jpg",
+   "boardSha256": "102a78cb9a6f6e297fb91085ef99ace8f06c4f281b800a6397caa42fca47b98d"
+  },
+  {
+   "id": "c4-s4",
+   "index": 38,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "تمهيد آية بختم سورتها",
+   "template": "horizon-shot",
+   "shot": "verse-tag",
+   "sceneVersion": "6b5e5f27",
+   "start": 8991,
+   "frames": 234,
+   "seconds": 7.8,
+   "narration": "وقد جاء في سورة الأعراف خبر سؤال الله لإبليس عن سبب امتناعه عن السجود.",
+   "idea": "تمهيد ساكن",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    8997
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-v2 (قطع)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c4-v3",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)",
+    "مرجع الآية على الصفحة: الأعراف ١٢"
+   ],
+   "sources": [
+    "Q07"
+   ],
+   "still": null,
+   "ref": "الأعراف ١٢",
+   "board": "strips/sb042-c4-s4.jpg",
+   "boardSha256": "4664cc9b55fb772eeba14d62c2a44b7e56f69f0ed85066dcb51a00a5a01c9b9b"
+  },
+  {
+   "id": "c4-v3",
+   "index": 39,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "a5189eb7",
+   "start": 9225,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    9231
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-s4 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c4-s5",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q07"
+   ],
+   "still": "verse",
+   "ref": "الأعراف · ١٢",
+   "board": "strips/sb043-c4-v3.jpg",
+   "boardSha256": "edebd8dc46bac26ebf946f52425d5e5066b2f58076e41db87c03ed2fd211ff52"
+  },
+  {
+   "id": "c4-s5",
+   "index": 40,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "ميزان «نار / طين» الذي ظنه حجة، و«أمر واجب الطاعة»",
+   "template": "horizon-shot",
+   "shot": "scale",
+   "sceneVersion": "c29de464",
+   "start": 9345,
+   "frames": 687,
+   "seconds": 22.9,
+   "narration": "فقدم إبليس ما ظنه حجة، حين رأى أن خلقه من نار يجعله أفضل من آدم الذي خلق من طين. ولكنه أخطأ حين جعل هذا الظن مقدما على أمر الله. لم يكن الأمر مجرد مقارنة بين مادتين. بل كان أمرا إلهيا وجبت طاعته، فاستكبر إبليس عنه.",
+   "idea": "ميزان «نار / طين» يُرسم ثم يُشطب، ويعلوه سطر «أمر واجب الطاعة»",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+5.7s) ← الدفتر كاملًا (+15.6s)",
+   "events": [
+    {
+     "s": 135,
+     "e": 167,
+     "peak": 4.1,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 299,
+     "e": 329,
+     "peak": 3.4,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 437,
+     "e": 463,
+     "peak": 7.3,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 534,
+     "e": 569,
+     "peak": 3.8,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 682,
+     "e": 682,
+     "peak": 1.7,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    9351,
+    9516,
+    9678,
+    9812,
+    9918,
+    10030
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-v3 (قطع)",
+   "transitionOut": "خفوت إلى c4-s6",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb044-c4-s5.jpg",
+   "boardSha256": "01dcb57bdce8f6b3e337f21568ef3ebcb9f6a64d7faeb24dbd71a30dde842e82"
+  },
+  {
+   "id": "c4-s6",
+   "index": 41,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "العداوة والإمهال وعزم الإغواء",
+   "template": "horizon-shot",
+   "shot": "enmity",
+   "sceneVersion": "e9c830cd",
+   "start": 10032,
+   "frames": 372,
+   "seconds": 12.4,
+   "narration": "وهكذا أصبح إبليس عدوا لآدم وذريته. وقد ذكر القرآن الكريم أن إبليس سأل الله أن يمهله، وأنه أعلن عزمه على إغواء البشر.",
+   "idea": "سهم عداوة يمتد من «إبليس» إلى «آدم وذريته»",
+   "camera": "مقرَّب نحو الصفحة اليسرى (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+3.2s) ← الدفتر كاملًا (+4.1s) ← مقرَّب نحو الصفحة اليسرى (+8.1s) ← الدفتر كاملًا (+10.0s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 3.0,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 49,
+     "e": 92,
+     "peak": 11.2,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 100,
+     "e": 118,
+     "peak": 10.5,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 223,
+     "e": 240,
+     "peak": 13.9,
+     "frac": 0.14,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 252,
+     "e": 295,
+     "peak": 6.1,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    10038,
+    10128,
+    10154,
+    10276,
+    10331,
+    10402
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-s5 (خفوت)",
+   "transitionOut": "خفوت إلى c4-v4",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb045-c4-s6.jpg",
+   "boardSha256": "0c6bc41fab39fa552d1cda4355206e46c71f826058f37b8e74937c84371b059a"
+  },
+  {
+   "id": "c4-v4",
+   "index": 42,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "ad5f1f4f",
+   "start": 10404,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضعا آيتين (E4 المعتمد: يُعرضان متصلين 14–16 عند إدراج النص)",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    10410
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-s6 (خفوت)",
+   "transitionOut": "قطع إلى c4-v5",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q08"
+   ],
+   "still": "verse",
+   "ref": "الأعراف · ١٤",
+   "board": "strips/sb046-c4-v4.jpg",
+   "boardSha256": "79b41eea16917a10b2ca12d59e8f037fa34531a29da89ef917122406d2d3b323"
+  },
+  {
+   "id": "c4-v5",
+   "index": 43,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "a1cda07f",
+   "start": 10524,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضعا آيتين (E4 المعتمد: يُعرضان متصلين 14–16 عند إدراج النص)",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    10530
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-v4 (قطع)",
+   "transitionOut": "قطع إلى c4-s7",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [],
+   "still": "verse",
+   "ref": "الأعراف · ١٦",
+   "board": "strips/sb047-c4-v5.jpg",
+   "boardSha256": "1342146d2a0a23f80fa621e5c254ad9fa999c971f49f1da1074ceb091760b6ed"
+  },
+  {
+   "id": "c4-s7",
+   "index": 44,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "لا سلطان له على عباد الله إلا من اتبعه",
+   "template": "horizon-shot",
+   "shot": "authority",
+   "sceneVersion": "aff08c20",
+   "start": 10644,
+   "frames": 333,
+   "seconds": 11.1,
+   "narration": "وفي مقابل هذا الوعيد، أخبر الله في سورة الحجر أن عباده ليس لإبليس عليهم سلطان، إلا من اتبعه من الغاوين.",
+   "idea": "المشهد المصمم (`authority`): سلسلة النسل على الصفحة اليمنى وسهام عداوة متقطعة نحوها؛ ختم سورة «الحجر» يظهر عند لفظها، وحلقة ذهبية تحيط بالنسل من «عباده» إلى «عليهم» مع تقدم هادئ للكاميرا، و«لا سلطان له عليهم» تُكتب تحتها، والسهام تخفت عند «سلطان»؛ وعند «اتبعه … الغاوين» تمتد خطوط إلى النقاط الواقعة خارج الحلقة وحدها. «إبليس» كلمةً والساعة الرملية على اليسرى. لا حدث عند لفظ الجلالة. *(صُحِّح ٦ نوفمبر من المشهد المصمم فعلًا)*",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+6.5s)",
+   "events": [
+    {
+     "s": 143,
+     "e": 190,
+     "peak": 3.4,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    10650,
+    10838,
+    10975
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى"
+   ],
+   "transitionIn": "من c4-v5 (قطع)",
+   "transitionOut": "خفوت إلى c4-v6",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb048-c4-s7.jpg",
+   "boardSha256": "0a9053e00614887ffce868e3ca7e489f9668f60eac00308bcf8400e443011dcf"
+  },
+  {
+   "id": "c4-v6",
+   "index": 45,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "3f32f0bf",
+   "start": 10977,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    10983
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-s7 (خفوت)",
+   "transitionOut": "قطع إلى c4-s8",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q15",
+    "T06"
+   ],
+   "still": "verse",
+   "ref": "الحجر · ٤٢",
+   "board": "strips/sb049-c4-v6.jpg",
+   "boardSha256": "31ddb3109e49d5ba6ae4ca6f1fcc053c20ec4577505e118e63ccd247536064ae"
+  },
+  {
+   "id": "c4-s8",
+   "index": 46,
+   "chapter": 4,
+   "chapterTitle": "سجود الملائكة ومعصية إبليس",
+   "name": "عداوة قديمة وتحذير صريح",
+   "template": "horizon-shot",
+   "shot": "warning",
+   "sceneVersion": "9acb8d9c",
+   "start": 11097,
+   "frames": 270,
+   "seconds": 9.0,
+   "narration": "ومن هنا نفهم أن عداوة الشيطان للإنسان قديمة، وأن القرآن يحذرنا منها تحذيرا صريحا.",
+   "idea": "لافتة تحذير هادئة على الهامش: «عداوة قديمة»",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← الدفتر كاملًا (+3.6s) ← مقرَّب نحو الصفحة اليسرى (+5.5s) ← الدفتر كاملًا (+8.1s)",
+   "events": [
+    {
+     "s": 58,
+     "e": 103,
+     "peak": 5.2,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 142,
+     "e": 160,
+     "peak": 10.0,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 214,
+     "e": 214,
+     "peak": 1.5,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 222,
+     "e": 240,
+     "peak": 11.9,
+     "frac": 0.12,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 244,
+     "e": 261,
+     "peak": 22.9,
+     "frac": 0.12,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 266,
+     "e": 266,
+     "peak": 2.6,
+     "frac": 0.18,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    11103,
+    11204,
+    11261,
+    11315,
+    11341,
+    11362
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c4-v6 (قطع)",
+   "transitionOut": "قلب صفحة إلى c5-s0",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb050-c4-s8.jpg",
+   "boardSha256": "31ed1ba639a26d7368d37a2e851cf0f8f1a3685d7136a93cc45182386b3f3870"
+  },
+  {
+   "id": "c5-s0",
+   "index": 47,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "عنوان الفصل (بلا كلام)",
+   "template": "horizon-shot",
+   "shot": "chapter",
+   "sceneVersion": "873d800d",
+   "start": 11367,
+   "frames": 96,
+   "seconds": 3.2,
+   "narration": "",
+   "idea": "عنوان الفصل",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 63,
+     "e": 69,
+     "peak": 1.5,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    11373,
+    11440,
+    11461
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "بداية الفصل · من c4-s8 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c5-s1",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb051-c5-s0.jpg",
+   "boardSha256": "2b1243f26234caff5c13f69140a417e6858fdc58babc596f3ba62a814beb9b2f"
+  },
+  {
+   "id": "c5-s1",
+   "index": 48,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "الإباحة واسعة، والنهي علامة واحدة بحدّ «لا تقربا»",
+   "template": "horizon-shot",
+   "shot": "permit",
+   "sceneVersion": "8822a41a",
+   "start": 11463,
+   "frames": 318,
+   "seconds": 10.6,
+   "narration": "خلق الله لآدم زوجه، وأسكنهما الجنة. وأباح لهما أن يأكلا منها، ونهاهما عن الاقتراب من شجرة معينة.",
+   "idea": "عنوانان: «الإباحة» بقائمة مفتوحة، و«النهي» بعلامة واحدة. لا رسم للجنة",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+5.6s) ← مقرَّب نحو الصفحة اليسرى (+7.3s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.1,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 114,
+     "e": 165,
+     "peak": 4.6,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 180,
+     "e": 216,
+     "peak": 15.4,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 313,
+     "e": 313,
+     "peak": 1.6,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    11469,
+    11632,
+    11683,
+    11779
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى"
+   ],
+   "transitionIn": "من c5-s0 (يستمر على الدفتر نفسه)",
+   "transitionOut": "خفوت إلى c5-v1",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb052-c5-s1.jpg",
+   "boardSha256": "be26aa3c9ec7a8806bfd79a55247f70de1a3ef27069072651e4a2de7f4227a4d"
+  },
+  {
+   "id": "c5-v1",
+   "index": 49,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "9eccc711",
+   "start": 11781,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    11787
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-s1 (خفوت)",
+   "transitionOut": "قطع إلى c5-s2",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q09"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣٥",
+   "board": "strips/sb053-c5-v1.jpg",
+   "boardSha256": "4d2b97b339d79bc95ad3e0af22a8ed7163f4ac18d51060d66a31af06cddd50b3"
+  },
+  {
+   "id": "c5-s2",
+   "index": 50,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "بطاقة «نوع الشجرة»: فارغة، ثم العبرة",
+   "template": "horizon-shot",
+   "shot": "species",
+   "sceneVersion": "1fadd2e0",
+   "start": 11901,
+   "frames": 465,
+   "seconds": 15.5,
+   "narration": "ولم يسم القرآن الكريم نوع تلك الشجرة. ولذلك لا نجزم بأنها شجرة تفاح، أو تين، أو غير ذلك. فليس في معرفة نوعها ما تتوقف عليه العبرة من القصة.",
+   "idea": "بطاقة فهرسة: «نوع الشجرة: —»، و«تفاح؟ تين؟» تُشطبان، وختم «لم يسمّه القرآن»",
+   "camera": "ثابت: مقرَّب نحو الصفحة اليمنى (+0.3s)",
+   "events": [
+    {
+     "s": 2,
+     "e": 6,
+     "peak": 2.4,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 136,
+     "e": 150,
+     "peak": 10.5,
+     "frac": 0.12,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 308,
+     "e": 358,
+     "peak": 4.5,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 447,
+     "e": 451,
+     "peak": 1.0,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 460,
+     "e": 460,
+     "peak": 2.0,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    11911,
+    12055,
+    12263,
+    12356,
+    12364
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى"
+   ],
+   "transitionIn": "من c5-v1 (قطع)",
+   "transitionOut": "خفوت إلى c5-s3",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb054-c5-s2.jpg",
+   "boardSha256": "d178c6abc62ba88cd7100acbf2da857bbf2433b2f357a0dbf1fcb85cb0e995fa"
+  },
+  {
+   "id": "c5-s3",
+   "index": 51,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "تحذير من عداوة الشيطان (قبل آية)",
+   "template": "horizon-shot",
+   "shot": "warn-recall",
+   "sceneVersion": "b6e39986",
+   "start": 12366,
+   "frames": 171,
+   "seconds": 5.7,
+   "narration": "وقد حذر الله آدم عليه السلام من عداوة الشيطان.",
+   "idea": "تمهيد",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 96,
+     "e": 99,
+     "peak": 1.0,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    12372,
+    12469,
+    12535
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-s2 (خفوت)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c5-v2",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb055-c5-s3.jpg",
+   "boardSha256": "ca8b67ab8785ee1a33eadb13f93f5cacf22e730dcede32e7920298af0abb445d"
+  },
+  {
+   "id": "c5-v2",
+   "index": 52,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "de772496",
+   "start": 12537,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    12543
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-s3 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c5-s4",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q10"
+   ],
+   "still": "verse",
+   "ref": "طه · ١١٧",
+   "board": "strips/sb056-c5-v2.jpg",
+   "boardSha256": "83c5d63b2f7791c13a9726100bcb7439676d2c264b806f49b278855e915bf3c4"
+  },
+  {
+   "id": "c5-s4",
+   "index": 53,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "الوسوسة خط متموج، والوعدان الكاذبان يُشطبان",
+   "template": "horizon-shot",
+   "shot": "whisper",
+   "sceneVersion": "b3c2218d",
+   "start": 12657,
+   "frames": 501,
+   "seconds": 16.7,
+   "narration": "ولكن إبليس وسوس إلى آدم وزوجه، وسعى إلى إيقاعهما فيما نهاهما الله عنه. وفي سورة الأعراف، يخبرنا الله أن الشيطان أغراهما بما زعم أنه يؤدي إلى منزلة الملائكة أو إلى الخلد.",
+   "idea": "سطر «الوسوسة» يلتف حول وعدين يُكتبان («منزلة الملائكة»، «الخلد») ثم يُشطبان",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+14.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.1,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 37,
+     "e": 64,
+     "peak": 2.1,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 335,
+     "e": 423,
+     "peak": 4.8,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 468,
+     "e": 468,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    12663,
+    12725,
+    13084,
+    13129,
+    13156
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى"
+   ],
+   "transitionIn": "من c5-v2 (قطع)",
+   "transitionOut": "خفوت إلى c5-v3",
+   "sacred": [
+    "فيه ذكر الله (2): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb057-c5-s4.jpg",
+   "boardSha256": "7583c87e6a32aa97792b734333f244d39453a737a7df0ddd4cd8179b4663f6da"
+  },
+  {
+   "id": "c5-v3",
+   "index": 54,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "a2b7e214",
+   "start": 13158,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    13164
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-s4 (خفوت)",
+   "transitionOut": "قطع إلى c5-s5",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q11"
+   ],
+   "still": "verse",
+   "ref": "الأعراف · ٢٠",
+   "board": "strips/sb058-c5-v3.jpg",
+   "boardSha256": "4c31fc7a04a4ed02057233bccaee03b4f054548e5ff407f0f2be249d5afa5db4"
+  },
+  {
+   "id": "c5-s5",
+   "index": 55,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "ثم وقع: ثغرة في حدّ النهي (قبل آية)",
+   "template": "horizon-shot",
+   "shot": "breach",
+   "sceneVersion": "2d599179",
+   "start": 13278,
+   "frames": 129,
+   "seconds": 4.3,
+   "narration": "ثم وقع ما حذرهما الله منه.",
+   "idea": "تمهيد ساكن",
+   "camera": "ثابت: مقرَّب نحو الصفحة اليسرى (+0.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 124,
+     "e": 124,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    13284,
+    13405
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى"
+   ],
+   "transitionIn": "من c5-v3 (قطع)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c5-v4",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb059-c5-s5.jpg",
+   "boardSha256": "701be9b59e552072c51442b57a7d2cff2ac13ac44a8f571655f8a3ee3607d628"
+  },
+  {
+   "id": "c5-v4",
+   "index": 56,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "76d68646",
+   "start": 13407,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    13413
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-s5 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c5-s6",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [],
+   "still": "verse",
+   "ref": "الأعراف · ٢٢",
+   "board": "strips/sb060-c5-v4.jpg",
+   "boardSha256": "dbd1e2a17e933174cc107457b827a0de7977e4a16d84a016eed7ed13a2a55c78"
+  },
+  {
+   "id": "c5-s6",
+   "index": 57,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "الخط العائد: لم يصر بل رجع (قبل الدعاء)",
+   "template": "horizon-shot",
+   "shot": "return-line",
+   "sceneVersion": "2beef03b",
+   "start": 13527,
+   "frames": 339,
+   "seconds": 11.3,
+   "narration": "ولكن آدم عليه السلام لم يصر على معصيته، بل رجع إلى ربه. وقد حكى الله عن آدم وزوجه دعاءهما:",
+   "idea": "الخط العائد (المعتمد)",
+   "camera": "ثابت: مقرَّب نحو الصفحة اليمنى (+0.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 37,
+     "e": 56,
+     "peak": 0.8,
+     "frac": 0.02,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 121,
+     "e": 136,
+     "peak": 3.3,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 291,
+     "e": 291,
+     "peak": 1.3,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 321,
+     "e": 327,
+     "peak": 1.5,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 334,
+     "e": 334,
+     "peak": 1.6,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    13533,
+    13587,
+    13667,
+    13822,
+    13858
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى"
+   ],
+   "transitionIn": "من c5-v4 (قطع)",
+   "transitionOut": "خفوت إلى c5-v5",
+   "sacred": [
+    "فيه ذكر الله (2): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb061-c5-s6.jpg",
+   "boardSha256": "cbe8a4f0e74aa62d949a6560f8b5beb3078164a6ef47f58b398a54d047ad0227"
+  },
+  {
+   "id": "c5-v5",
+   "index": 58,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "5900664e",
+   "start": 13866,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    13872
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-s6 (خفوت)",
+   "transitionOut": "قطع إلى c5-s7",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q12"
+   ],
+   "still": "verse",
+   "ref": "الأعراف · ٢٣",
+   "board": "strips/sb062-c5-v5.jpg",
+   "boardSha256": "83b5ad4c4d08877ba8aef96e251b4a9709455f409405db5cdec59b398fcd3d3b"
+  },
+  {
+   "id": "c5-s7",
+   "index": 59,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "تمهيد آية بختم سورتها",
+   "template": "horizon-shot",
+   "shot": "verse-tag",
+   "sceneVersion": "adf1e755",
+   "start": 13986,
+   "frames": 234,
+   "seconds": 7.8,
+   "narration": "وفي سورة البقرة، أخبرنا الله أن آدم تلقى من ربه كلمات، فتاب عليه.",
+   "idea": "تمهيد",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    13992
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-v5 (قطع)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c5-v6",
+   "sacred": [
+    "فيه ذكر الله (2): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)",
+    "مرجع الآية على الصفحة: البقرة ٣٧"
+   ],
+   "sources": [
+    "Q12",
+    "T07"
+   ],
+   "still": null,
+   "ref": "البقرة ٣٧",
+   "board": "strips/sb063-c5-s7.jpg",
+   "boardSha256": "3003c45146204941d10229e7b934c04b293756609a874e6b59e4c88345503e4c"
+  },
+  {
+   "id": "c5-v6",
+   "index": 60,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "05147bf6",
+   "start": 14220,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    14226
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-s7 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c5-s8",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q12",
+    "T07"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣٧",
+   "board": "strips/sb064-c5-v6.jpg",
+   "boardSha256": "72d3db1bcfe1b524e18a28552d93827a280aedc6f22cdc3136b16178b8e5601e"
+  },
+  {
+   "id": "c5-s8",
+   "index": 61,
+   "chapter": 5,
+   "chapterTitle": "آدم وزوجه في الجنة",
+   "name": "موقفان: استكبر وأصر / تاب وأناب، وباب التوبة",
+   "template": "horizon-shot",
+   "shot": "stances",
+   "sceneVersion": "1b02631d",
+   "start": 14340,
+   "frames": 531,
+   "seconds": 17.7,
+   "narration": "وهنا يظهر الفرق بين الموقفين: فإبليس استكبر وأصر، وآدم عليه السلام تاب وأناب. وفي ذلك بيان لسعة رحمة الله، وأن باب التوبة ليس مغلقا أمام من أذنب ثم رجع إلى ربه صادقا.",
+   "idea": "عمودان متقابلان: «استكبر · أصرّ» و«تاب · أناب»، ثم باب مفتوح مرسوم بالحبر",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+3.4s) ← مقرَّب نحو الصفحة اليمنى (+5.0s) ← الدفتر كاملًا (+7.7s) ← مقرَّب نحو الصفحة اليمنى (+11.3s) ← الدفتر كاملًا (+17.5s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 81,
+     "e": 97,
+     "peak": 13.2,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 129,
+     "e": 147,
+     "peak": 21.2,
+     "frac": 0.17,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 209,
+     "e": 228,
+     "peak": 13.9,
+     "frac": 0.14,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 309,
+     "e": 335,
+     "peak": 10.2,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 353,
+     "e": 355,
+     "peak": 0.9,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 483,
+     "e": 522,
+     "peak": 21.9,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 527,
+     "e": 527,
+     "peak": 2.6,
+     "frac": 0.18,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    14346,
+    14441,
+    14491,
+    14572,
+    14679,
+    14866
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c5-v6 (قطع)",
+   "transitionOut": "قلب صفحة إلى c6-s0",
+   "sacred": [
+    "فيه ذكر الله (2): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb065-c5-s8.jpg",
+   "boardSha256": "af6f7bdb75c03eda6e3a693468140c8dd72b7c17a32bffdf224d084671daf306"
+  },
+  {
+   "id": "c6-s0",
+   "index": 62,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "عنوان الفصل (بلا كلام)",
+   "template": "horizon-shot",
+   "shot": "chapter",
+   "sceneVersion": "c45ffdd9",
+   "start": 14871,
+   "frames": 96,
+   "seconds": 3.2,
+   "narration": "",
+   "idea": "عنوان الفصل",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 63,
+     "e": 69,
+     "peak": 1.5,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    14877,
+    14944,
+    14965
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "بداية الفصل · من c5-s8 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c6-s1",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb066-c6-s0.jpg",
+   "boardSha256": "1d3bc45eb4f5629cf18316b1ecd06b0cab6026d761578200f30175799b15a32e"
+  },
+  {
+   "id": "c6-s1",
+   "index": 63,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "تمهيد آية (صفحة ساكنة)",
+   "template": "horizon-shot",
+   "shot": "verse-intro",
+   "sceneVersion": "ad8723db",
+   "start": 14967,
+   "frames": 159,
+   "seconds": 5.3,
+   "narration": "أخبرنا الله أن آدم وزوجه هبطا إلى الأرض.",
+   "idea": "تمهيد",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.1,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    14973,
+    15124
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c6-s0 (يستمر على الدفتر نفسه)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c6-v1",
+   "sacred": [
+    "سكون مقصود للمشهد كله: تمهيد آية، بلا حركة مضافة",
+    "مرجع الآية على الصفحة: البقرة · ٣٨"
+   ],
+   "sources": [
+    "Q13"
+   ],
+   "still": "verse-intro",
+   "ref": "البقرة · ٣٨",
+   "board": "strips/sb067-c6-s1.jpg",
+   "boardSha256": "b1fd3c6468ffbf99fbba1100c715d7062de47987094b4e001f54bc281805863a"
+  },
+  {
+   "id": "c6-v1",
+   "index": 64,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "a0547325",
+   "start": 15126,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    15132
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c6-s1 (يستمر على الدفتر نفسه)",
+   "transitionOut": "قطع إلى c6-s2",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q13"
+   ],
+   "still": "verse",
+   "ref": "البقرة · ٣٨",
+   "board": "strips/sb068-c6-v1.jpg",
+   "boardSha256": "18e28a6404371a99ffc7386f71a4f529d136d6be8c7e0aa0880edd0e7bcfbed9"
+  },
+  {
+   "id": "c6-s2",
+   "index": 65,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "مستقر ومتاع إلى حين، وحياة وموت وإخراج",
+   "template": "horizon-shot",
+   "shot": "earth-words",
+   "sceneVersion": "0b7fde50",
+   "start": 15246,
+   "frames": 348,
+   "seconds": 11.6,
+   "narration": "وفي سورة الأعراف، جاء بيان أن في الأرض مستقرا ومتاعا إلى حين، وأن فيها حياة البشر وموتهم، ومنها يكون إخراجهم.",
+   "idea": "ثلاث كلمات على الأفق: «مستقر · متاع · إلى حين»",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← الدفتر كاملًا (+5.6s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.6,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 129,
+     "e": 164,
+     "peak": 6.5,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 213,
+     "e": 258,
+     "peak": 2.0,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 330,
+     "e": 335,
+     "peak": 1.1,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    15252,
+    15414,
+    15508,
+    15585
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c6-v1 (قطع)",
+   "transitionOut": "خفوت إلى c6-v2",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb069-c6-s2.jpg",
+   "boardSha256": "dcfc58a95ceffde4680e451b6c092be8bf49c80f8a7709d433f2423f05ab8598"
+  },
+  {
+   "id": "c6-v2",
+   "index": 66,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "b25e5999",
+   "start": 15594,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضعا آيتين",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    15600
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c6-s2 (خفوت)",
+   "transitionOut": "قطع إلى c6-v3",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q13"
+   ],
+   "still": "verse",
+   "ref": "الأعراف · ٢٤",
+   "board": "strips/sb070-c6-v2.jpg",
+   "boardSha256": "86dbcdabae01446c2b81cdb0b0200246dd6099edd28fc1f73cae446fa9ce1833"
+  },
+  {
+   "id": "c6-v3",
+   "index": 67,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "f5e19bc3",
+   "start": 15714,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضعا آيتين",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    15720
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c6-v2 (قطع)",
+   "transitionOut": "قطع إلى c6-s3",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q13"
+   ],
+   "still": "verse",
+   "ref": "الأعراف · ٢٥",
+   "board": "strips/sb071-c6-v3.jpg",
+   "boardSha256": "755622554bc98724ea32cf58b1ac91dc52518c6396a28223ad86283205f4a3f4"
+  },
+  {
+   "id": "c6-s3",
+   "index": 68,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "نقطة التحول: أفق الخبر يتصل بأفق التاريخ البشري",
+   "template": "horizon-shot",
+   "shot": "bridge",
+   "sceneVersion": "25f766ac",
+   "start": 15834,
+   "frames": 213,
+   "seconds": 7.1,
+   "narration": "ومن هنا تتصل قصة آدم عليه السلام بالتاريخ البشري على الأرض.",
+   "idea": "النزول عبر خط الأفق: من صفحة الخبر إلى صفحة التاريخ",
+   "camera": "الدفتر كاملًا (+0.2s) ← أبعد: الدفتر أصغر من الكادر (+4.4s)",
+   "events": [
+    {
+     "s": 56,
+     "e": 128,
+     "peak": 3.7,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    15840,
+    15966,
+    16045
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "أبعد: الدفتر أصغر من الكادر",
+    "أبعد: الدفتر أصغر من الكادر"
+   ],
+   "transitionIn": "من c6-v3 (قطع)",
+   "transitionOut": "خفوت إلى c6-s4",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb072-c6-s3.jpg",
+   "boardSha256": "3d80e945689113d8507864aeac847cba463d2f4c684f8da7ccaaf7f8d87da7a6"
+  },
+  {
+   "id": "c6-s4",
+   "index": 69,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "خريطة بلا معالم: روايات، ودبوس لا يستقر، وتاريخ فارغ",
+   "template": "horizon-shot",
+   "shot": "no-map",
+   "sceneVersion": "a900c22b",
+   "start": 16047,
+   "frames": 618,
+   "seconds": 20.6,
+   "narration": "وأما موضع هبوطه، فقد اشتهرت فيه روايات مختلفة، ولا نعلم نصا صحيحا صريحا يحدده. كما لا نملك تاريخا محددا لذلك الهبوط. ولذلك لا ننسب إليه مكانا ولا تاريخا على سبيل الجزم، ونقول فيما لا نعلمه: الله أعلم.",
+   "idea": "خريطة بلا معالم: دوائر روايات تظهر وتبهت، وشريط تاريخ فارغ، ثم «الله أعلم» ساكنة",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+4.5s) ← الدفتر كاملًا (+14.7s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 1.2,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 87,
+     "e": 132,
+     "peak": 21.1,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 139,
+     "e": 154,
+     "peak": 7.4,
+     "frac": 0.08,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 258,
+     "e": 279,
+     "peak": 3.6,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 365,
+     "e": 436,
+     "peak": 3.2,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    16053,
+    16183,
+    16205,
+    16330,
+    16487,
+    16663
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c6-s3 (خفوت)",
+   "transitionOut": "خفوت إلى c6-s5",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb073-c6-s4.jpg",
+   "boardSha256": "a176053c98a777145cb383960b06e622a7fec489fe11bcdf1b23eacafbf1f88d"
+  },
+  {
+   "id": "c6-s5",
+   "index": 70,
+   "chapter": 6,
+   "chapterTitle": "الهبوط إلى الأرض",
+   "name": "نؤمن به ونثبته، ولا نزيد عليه إلا بدليل",
+   "template": "horizon-shot",
+   "shot": "limit",
+   "sceneVersion": "14a8b955",
+   "start": 16665,
+   "frames": 300,
+   "seconds": 10.0,
+   "narration": "وما أخبرنا الله به عن آدم نؤمن به ونثبته، دون أن نزيد عليه ما لم يثبت به دليل.",
+   "idea": "سطران: «نؤمن به ونثبته» و«لا نزيد عليه» بخط يحدّهما",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+6.8s) ← الدفتر كاملًا (+9.1s)",
+   "events": [
+    {
+     "s": 156,
+     "e": 201,
+     "peak": 2.3,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 252,
+     "e": 269,
+     "peak": 9.1,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 275,
+     "e": 291,
+     "peak": 22.4,
+     "frac": 0.12,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 295,
+     "e": 296,
+     "peak": 2.6,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    16671,
+    16870,
+    16938,
+    16960
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c6-s4 (خفوت)",
+   "transitionOut": "قلب صفحة إلى c7-s0",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb074-c6-s5.jpg",
+   "boardSha256": "ae45f6a7b922ba247e2ccf13ad9bc94b2c2a2e82778c4125e475578104a27c2a"
+  },
+  {
+   "id": "c7-s0",
+   "index": 71,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "عنوان الفصل (بلا كلام)",
+   "template": "horizon-shot",
+   "shot": "chapter",
+   "sceneVersion": "a3c50264",
+   "start": 16965,
+   "frames": 96,
+   "seconds": 3.2,
+   "narration": "",
+   "idea": "عنوان الفصل",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [
+    {
+     "s": 63,
+     "e": 69,
+     "peak": 1.5,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "يمين",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    16971,
+    17038,
+    17059
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "بداية الفصل · من c6-s5 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c7-s1",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb075-c7-s0.jpg",
+   "boardSha256": "134d7c341696258a745d2eefea3a24dcea6fdb17ac725abbe598da4cbb2c6717"
+  },
+  {
+   "id": "c7-s1",
+   "index": 72,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "النسل مراوح أجيال من أصل واحد (النساء 1)",
+   "template": "horizon-shot",
+   "shot": "gen-fan",
+   "sceneVersion": "7aaad1a1",
+   "start": 17061,
+   "frames": 444,
+   "seconds": 14.8,
+   "narration": "بدأ نسل البشر من آدم عليه السلام وزوجه. وأخبرنا الله في سورة النساء أنه خلق الناس من نفس واحدة، وخلق منها زوجها، وبث منهما رجالا كثيرا ونساء.",
+   "idea": "سلسلة النسل من جديد تتسع جيلًا بعد جيل",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← الدفتر كاملًا (+12.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.3,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 37,
+     "e": 54,
+     "peak": 2.2,
+     "frac": 0.03,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 325,
+     "e": 361,
+     "peak": 3.8,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    17067,
+    17119,
+    17426,
+    17503
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c7-s0 (يستمر على الدفتر نفسه)",
+   "transitionOut": "خفوت إلى c7-v1",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb076-c7-s1.jpg",
+   "boardSha256": "02c8129aaf012c99d3b444782a5aa0b6b9f7e42e99551bb0d7fc4b88126118d5"
+  },
+  {
+   "id": "c7-v1",
+   "index": 73,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "موضع آية",
+   "template": "verse-card",
+   "shot": "",
+   "sceneVersion": "f52660b3",
+   "start": 17505,
+   "frames": 120,
+   "seconds": 4.0,
+   "narration": "",
+   "idea": "موضع آية",
+   "camera": "ثابت: الدفتر كاملًا (+0.2s)",
+   "events": [],
+   "keyframes": [
+    17511
+   ],
+   "framing": [
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c7-s1 (خفوت)",
+   "transitionOut": "قطع إلى c7-s2",
+   "sacred": [
+    "سكون كامل: موضع آية (مستثنى من قياس الحركة)"
+   ],
+   "sources": [
+    "Q14"
+   ],
+   "still": "verse",
+   "ref": "النساء · ١",
+   "board": "strips/sb077-c7-v1.jpg",
+   "boardSha256": "a202b6cab6b7b7bf461a2301f766604b4a4d438cf0f584cb4f96363ea9107eb7"
+  },
+  {
+   "id": "c7-s2",
+   "index": 74,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "خط الأجيال: معايش تتنوع، وفجوات بلا سجل، وأسئلة",
+   "template": "horizon-shot",
+   "shot": "lineline",
+   "sceneVersion": "0023ccf3",
+   "start": 17625,
+   "frames": 750,
+   "seconds": 25.0,
+   "narration": "ومع تعاقب الأجيال، امتد التاريخ البشري، وتنوعت أحوال الناس ومعايشهم. ولكننا لا نملك سجلا متصلا يخبرنا بتفاصيل كل جيل، من آدم عليه السلام إلى أقدم المجتمعات التي وصلت إلينا آثارها. فلا نعرف أسماء جميع الأمم الأولى، ولا أماكن إقامتها، ولا كل ما جرى لها من أحداث.",
+   "idea": "الأجيال تمتد على خط زمني بلا تدريج، تتخلله فجوات معتمة (لا سجل متصل)، وثلاثة أسئلة: أسماء؟ أماكن؟ أحداث؟",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+14.9s) ← مقرَّب نحو الصفحة اليمنى (+17.0s) ← مقرَّب نحو الصفحة اليسرى (+19.5s) ← الدفتر كاملًا (+24.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.4,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 26,
+     "e": 90,
+     "peak": 5.2,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 109,
+     "e": 156,
+     "peak": 5.0,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 189,
+     "e": 228,
+     "peak": 2.4,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 234,
+     "e": 238,
+     "peak": 0.9,
+     "frac": 0.01,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 313,
+     "e": 332,
+     "peak": 18.6,
+     "frac": 0.15,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 370,
+     "e": 443,
+     "peak": 14.2,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 489,
+     "e": 506,
+     "peak": 41.7,
+     "frac": 0.23,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 564,
+     "e": 580,
+     "peak": 26.4,
+     "frac": 0.19,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 669,
+     "e": 685,
+     "peak": 15.8,
+     "frac": 0.14,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 700,
+     "e": 721,
+     "peak": 17.8,
+     "frac": 0.16,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 731,
+     "e": 739,
+     "peak": 1.8,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    17631,
+    18072,
+    18135,
+    18209,
+    18350,
+    18368
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c7-v1 (قطع)",
+   "transitionOut": "خفوت إلى c7-s3",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb078-c7-s2.jpg",
+   "boardSha256": "3ba46955f1e66493f7109f19305bd7b58c4aeee8023396d1222d8d2d3dc9edbd"
+  },
+  {
+   "id": "c7-s3",
+   "index": 75,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "مرحلة أخرى: العبور من الورق إلى أرض الشواهد",
+   "template": "horizon-shot",
+   "shot": "threshold",
+   "sceneVersion": "383f75bf",
+   "start": 18375,
+   "frames": 153,
+   "seconds": 5.1,
+   "narration": "وهنا تبدأ مرحلة أخرى من رحلتنا.",
+   "idea": "المشهد المصمم (`threshold`): «وهنا تبدأ مرحلة أخرى من رحلتنا» — خط أفق على الصفتين، ومسار نقاط الباحث يبدأ أعلى الصفحة اليمنى عند «تبدأ» وينزل نحو الأفق حتى «رحلتنا»، وطبقة تراب تظهر تحت الأفق عند «أخرى»؛ والكاميرا تتقدم متسارعة من الدفتر كاملًا إلى الأرض تحت الأفق (حتى ×4.2)، ثم يلتقي الكادر بأرض مشهد الأثر التالي (ورق فوق وتراب تحت) في آخر 0.7 ث",
+   "camera": "الدفتر كاملًا (+0.2s) ← مقرَّب: الورق يملأ الكادر (+5.0s)",
+   "events": [
+    {
+     "s": 48,
+     "e": 149,
+     "peak": 8.3,
+     "frac": 0.06,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    18381,
+    18526
+   ],
+   "framing": [
+    "الدفتر كاملًا",
+    "مقرَّب: الورق يملأ الكادر"
+   ],
+   "transitionIn": "من c7-s2 (خفوت)",
+   "transitionOut": "يستمر على الدفتر نفسه إلى c7-s4",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb079-c7-s3.jpg",
+   "boardSha256": "51b4937450c80e4d8cb515bf2e860f1c2c68c25c7d00af651eccb345eda82739"
+  },
+  {
+   "id": "c7-s4",
+   "index": 76,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "الأثر وحدوده: أدوات ومساكن وأطعمة ومستوطنات ومدافن ونقوش",
+   "template": "horizon-shot",
+   "shot": "evidence",
+   "sceneVersion": "1ddaf24d",
+   "start": 18528,
+   "frames": 1011,
+   "seconds": 33.7,
+   "narration": "فإلى جانب ما أخبرنا الله به، هناك شواهد مادية درسها الباحثون للتعرف إلى حياة المجتمعات البشرية القديمة. منها أدوات صنعت من الحجر، وآثار مساكن، وبقايا أطعمة، ومواقع استيطان، ومدافن، ونقوش ورسوم تركتها مجتمعات في أزمنة مختلفة. وتساعدنا هذه الآثار على دراسة جوانب من حياة أصحابها. ولكنها لا تخبرنا بكل شيء، ولا تمكننا من ربط كل اكتشاف بشخصية ورد ذكرها في القرآن الكريم.",
+   "idea": "الأثر وحدوده (المعتمد): الشواهد على طبقات الأرض — أدوات من الحجر، وآثار مساكن، وبقايا أطعمة، ومواقع استيطان، ومدافن، ونقوش ورسوم، كل بطاقة عند كلمتها؛ والحد: لا تخبرنا بكل شيء ولا تربط كل اكتشاف بشخصية ورد ذكرها في القرآن",
+   "camera": "مقرَّب: الورق يملأ الكادر (+0.2s) ← أبعد: الدفتر أصغر من الكادر (+29.6s) ← الدفتر كاملًا (+33.6s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 24,
+     "peak": 16.8,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "يسار",
+     "inCrop": false
+    },
+    {
+     "s": 103,
+     "e": 147,
+     "peak": 8.5,
+     "frac": 0.15,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 263,
+     "e": 284,
+     "peak": 2.4,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 338,
+     "e": 363,
+     "peak": 9.3,
+     "frac": 0.17,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 374,
+     "e": 398,
+     "peak": 11.9,
+     "frac": 0.2,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 410,
+     "e": 435,
+     "peak": 14.9,
+     "frac": 0.25,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 440,
+     "e": 459,
+     "peak": 17.5,
+     "frac": 0.28,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 463,
+     "e": 480,
+     "peak": 8.9,
+     "frac": 0.14,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 550,
+     "e": 621,
+     "peak": 10.5,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 768,
+     "e": 790,
+     "peak": 3.5,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 829,
+     "e": 885,
+     "peak": 7.4,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 990,
+     "e": 1006,
+     "peak": 14.5,
+     "frac": 0.3,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    18534,
+    18679,
+    18967,
+    19153,
+    19417,
+    19537
+   ],
+   "framing": [
+    "مقرَّب: الورق يملأ الكادر",
+    "مقرَّب: الورق يملأ الكادر",
+    "مقرَّب: الورق يملأ الكادر",
+    "مقرَّب: الورق يملأ الكادر",
+    "أبعد: الدفتر أصغر من الكادر",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c7-s3 (يستمر على الدفتر نفسه)",
+   "transitionOut": "خفوت إلى c7-s5",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb080-c7-s4.jpg",
+   "boardSha256": "1fe393ae00841c1d22285fd4d8c82cffc3252b8cd03f3010d4c0c8b572d30fc5"
+  },
+  {
+   "id": "c7-s5",
+   "index": 77,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "من الشاهد إلى الحكم: ثبت / اختُلف فيه / ظن",
+   "template": "horizon-shot",
+   "shot": "method",
+   "sceneVersion": "3a7a6679",
+   "start": 19539,
+   "frames": 246,
+   "seconds": 8.2,
+   "narration": "ولذلك سنذكر منها ما ثبت، ونبين ما اختلف فيه، ولن نجعل الظنون حقائق.",
+   "idea": "ثلاثة أختام: «ثبت» · «اختُلف فيه» · و«ظن» لا يُختم حقيقة",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← الدفتر كاملًا (+3.8s) ← مقرَّب نحو الصفحة اليسرى (+6.2s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.8,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 25,
+     "e": 54,
+     "peak": 3.5,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 61,
+     "e": 64,
+     "peak": 1.5,
+     "frac": 0.04,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 77,
+     "e": 110,
+     "peak": 5.6,
+     "frac": 0.07,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 146,
+     "e": 181,
+     "peak": 7.2,
+     "frac": 0.08,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    19545,
+    19597,
+    19607,
+    19653,
+    19724,
+    19783
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليسرى"
+   ],
+   "transitionIn": "من c7-s4 (خفوت)",
+   "transitionOut": "خفوت إلى c7-s6",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb081-c7-s5.jpg",
+   "boardSha256": "218ea3e54bef2e29c8b20f55ce733785e9c97e2b024c281f7b55de543eda1a00"
+  },
+  {
+   "id": "c7-s6",
+   "index": 78,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "طريق الحلقات: قبل الكتابة، القرى والمدن، الحضارات",
+   "template": "horizon-shot",
+   "shot": "roadmap",
+   "sceneVersion": "85d805f7",
+   "start": 19785,
+   "frames": 342,
+   "seconds": 11.4,
+   "narration": "ومع تقدم حلقاتنا، سنتعرف إلى أحوال البشر قبل الكتابة، ثم إلى نشأة القرى والمدن، والحضارات التي تعاقبت على الأرض.",
+   "idea": "خريطة الطريق للحلقات: قبل الكتابة ← القرى والمدن ← الحضارات",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+7.7s) ← الدفتر كاملًا (+10.2s)",
+   "events": [
+    {
+     "s": 106,
+     "e": 115,
+     "peak": 2.0,
+     "frac": 0.05,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 168,
+     "e": 192,
+     "peak": 11.7,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 201,
+     "e": 226,
+     "peak": 15.8,
+     "frac": 0.14,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 249,
+     "e": 301,
+     "peak": 8.0,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 309,
+     "e": 309,
+     "peak": 1.1,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    19791,
+    19904,
+    19981,
+    20015,
+    20090,
+    20125
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c7-s5 (خفوت)",
+   "transitionOut": "خفوت إلى c7-s7",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb082-c7-s6.jpg",
+   "boardSha256": "ef872306c901c4e56ea27b34d78dac92ed49434e79af804dfa1456707e874b1d"
+  },
+  {
+   "id": "c7-s7",
+   "index": 79,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "أسئلة الحلقة القادمة، لكل سؤال أداته",
+   "template": "horizon-shot",
+   "shot": "questions",
+   "sceneVersion": "3d30939f",
+   "start": 20127,
+   "frames": 603,
+   "seconds": 20.1,
+   "narration": "وأول ما نحتاج إلى فهمه: كيف يعرف الباحثون شيئا عن حياة قوم لم يتركوا لنا سجلا مكتوبا؟ وكيف يقدرون أعمار الأدوات والمساكن والآثار؟ وما الذي يمكن لهذه الأدلة أن تخبرنا به، وما الذي يبقى خارج حدودها؟",
+   "idea": "ثلاثة أسئلة الحلقة القادمة، كل سؤال بأداته (طبقة، أداة، حد)",
+   "camera": "مقرَّب نحو الصفحة اليمنى (+0.2s) ← مقرَّب نحو الصفحة اليسرى (+14.4s) ← أبعد: الدفتر أصغر من الكادر (+19.0s) ← الدفتر كاملًا (+19.9s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.5,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 203,
+     "e": 219,
+     "peak": 9.2,
+     "frac": 0.13,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 258,
+     "e": 277,
+     "peak": 16.2,
+     "frac": 0.24,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 396,
+     "e": 427,
+     "peak": 23.2,
+     "frac": 0.25,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 546,
+     "e": 565,
+     "peak": 12.5,
+     "frac": 0.18,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 577,
+     "e": 594,
+     "peak": 26.3,
+     "frac": 0.12,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 598,
+     "e": 599,
+     "peak": 2.6,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    }
+   ],
+   "keyframes": [
+    20133,
+    20350,
+    20408,
+    20558,
+    20696,
+    20725
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "مقرَّب نحو الصفحة اليسرى",
+    "أبعد: الدفتر أصغر من الكادر",
+    "الدفتر كاملًا"
+   ],
+   "transitionIn": "من c7-s6 (خفوت)",
+   "transitionOut": "قلب صفحة إلى c7-s8",
+   "sacred": [],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb083-c7-s7.jpg",
+   "boardSha256": "82a9af5db78d966026881a5e73fed7130933de0593e88c87b6c27d154c2f9195"
+  },
+  {
+   "id": "c7-s8",
+   "index": 80,
+   "chapter": 7,
+   "chapterTitle": "من آدم إلى تاريخ البشرية",
+   "name": "الختام: صفحة «دفاتر الزمن» الأولى",
+   "template": "horizon-shot",
+   "shot": "closing",
+   "sceneVersion": "02c62d90",
+   "start": 20730,
+   "frames": 603,
+   "seconds": 20.1,
+   "narration": "هذا ما سنبدأ به في الحلقة القادمة من «قصة الإنسان عبر الزمن». أما اليوم، فقد بدأنا من آدم عليه السلام، أبي البشر، ومن هنا نفتح أولى صفحات «دفاتر الزمن». والحمد لله رب العالمين.",
+   "idea": "الختام (المشهد المصمم `closing`): على اليسرى لسان أحمر «الحلقة القادمة»، ثم «قصة · الإنسان · عبر · الزمن» تُكتب كل كلمة عند نطقها، تحتها خط ذهبي ونقش صغير (من شواهد المكتبة)؛ الكاميرا قريبة (×1.12) على اليسرى، ثم تنتقل عند «اليوم … بدأنا» إلى اليمنى حيث يُرسم خط أفق، ويظهر «آدم عليه السلام» عند لفظه و«أبو البشر» عند «أبي». عند «نفتح» تُقلب الصفحة إلى الصفحة الأولى: ساعة رملية ذهبية تمتلئ، و«دفاتر الزمن» يُكتب عند لفظه بخط ذهبي تحته، والرقم «١» على اليسرى عند «أولى»، وشريط القراءة الأحمر ينزل بعد «الزمن»، وتراجع هادئ للكاميرا (×1 إلى ×0.86) ينتهي قبل «والحمد». «والحمد لله رب العالمين» بلا حدث ولا حركة، ثم خفوت إلى الليل في آخر 1.2 ث. *(وصف من المشهد المصمم فعلًا، ٦ نوفمبر؛ لا تعديل في التصميم)*",
+   "camera": "مقرَّب نحو الصفحة اليسرى (+0.2s) ← مقرَّب نحو الصفحة اليمنى (+7.8s) ← الدفتر كاملًا (+11.7s) ← أبعد: الدفتر أصغر من الكادر (+14.5s) ← صفحة داكنة/غير محدد (+20.0s)",
+   "events": [
+    {
+     "s": 6,
+     "e": 6,
+     "peak": 2.5,
+     "frac": 0.02,
+     "kind": "موضعي",
+     "region": "وسط أعلى",
+     "inCrop": true
+    },
+    {
+     "s": 87,
+     "e": 87,
+     "peak": 1.1,
+     "frac": 0.0,
+     "kind": "موضعي",
+     "region": "وسط أسفل",
+     "inCrop": true
+    },
+    {
+     "s": 187,
+     "e": 231,
+     "peak": 14.7,
+     "frac": 0.1,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 330,
+     "e": 348,
+     "peak": 13.1,
+     "frac": 0.14,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 352,
+     "e": 369,
+     "peak": 23.0,
+     "frac": 0.11,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 374,
+     "e": 374,
+     "peak": 2.6,
+     "frac": 0.18,
+     "kind": "موضعي",
+     "region": "يمين أسفل",
+     "inCrop": false
+    },
+    {
+     "s": 423,
+     "e": 432,
+     "peak": 11.7,
+     "frac": 0.09,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    },
+    {
+     "s": 569,
+     "e": 598,
+     "peak": 8.5,
+     "frac": 0.19,
+     "kind": "موضعي",
+     "region": "وسط",
+     "inCrop": true
+    }
+   ],
+   "keyframes": [
+    20736,
+    20965,
+    21082,
+    21103,
+    21166,
+    21331
+   ],
+   "framing": [
+    "مقرَّب نحو الصفحة اليسرى",
+    "مقرَّب نحو الصفحة اليمنى",
+    "الدفتر كاملًا",
+    "الدفتر كاملًا",
+    "أبعد: الدفتر أصغر من الكادر",
+    "صفحة داكنة/غير محدد"
+   ],
+   "transitionIn": "من c7-s7 (قلب صفحة)",
+   "transitionOut": "يستمر على الدفتر نفسه، نهاية الحلقة",
+   "sacred": [
+    "فيه ذكر الله (1): لا حدث ولا حركة كاميرا عند اللفظ (مراسٍ آمنة)"
+   ],
+   "sources": [],
+   "still": null,
+   "ref": null,
+   "board": "strips/sb084-c7-s8.jpg",
+   "boardSha256": "6ef0815ff4154beb0a8d2f0913dce28a3840760dd3fb3cd5caa8a6e6083bdeb0"
+  }
+ ]
+}

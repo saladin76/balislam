@@ -60,6 +60,7 @@ describe("المراجعات الفنية", () => {
     // الأمر 020: PDF الستوري بورد وبياناته تُخدم من docs/ وحدها، ولا شيء غيرهما
     expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/storyboard-001-v1.pdf")).not.toBeNull();
     expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/storyboard-001-v1.json")).not.toBeNull();
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/storyboard-001-v1.1.pdf")).not.toBeNull();
     expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/../review.json")).toBeNull();
     expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/x.mp4")).toBeNull();
   });
@@ -80,15 +81,19 @@ describe("المراجعات الفنية", () => {
     expect(parseMarkdown("![وصف](clips/a.mp4)")).toEqual([{ k: "media", alt: "وصف", src: "clips/a.mp4" }]);
   });
 
-  it("ستوري بورد الأمر 020: لوحة لكل مشهد من مشاهد الخطة، وPDF وبيانات ببصمة المرجع، وغير معتمد", () => {
+  it("ستوري بورد الأمر 020 (v1.1، وv1 محفوظ): لوحة لكل مشهد من مشاهد الخطة، وPDF وبيانات ببصمة المرجع، ومصدر كل حقل، وغير معتمد", () => {
     const dir = path.join(EPS, "001-adam-beginning");
-    const data = JSON.parse(readFileSync(path.join(dir, "tech-reviews/020/docs/storyboard-001-v1.json"), "utf8"));
+    const data = JSON.parse(readFileSync(path.join(dir, "tech-reviews/020/docs/storyboard-001-v1.1.json"), "utf8"));
     const plan = JSON.parse(readFileSync(path.join(dir, "plan.json"), "utf8"));
     const ids = plan.chapters.flatMap((c: { scenes: { id: string }[] }) => c.scenes.map((s) => s.id));
     expect(data.scenes.map((s: { id: string }) => s.id)).toEqual(ids);
     expect(data.status).toBe("PENDING_REVIEW");
+    expect(data.approved).toBe(false);
+    expect(data.provenance.camera).toBe("automatic-estimate");
+    expect(data.provenance.frames).toBe("V7");
+    expect(data.scenes.find((s: { id: string; idea: string }) => s.id === "c7-s8").idea).toContain("closing");
     expect(data.source.sha256.startsWith("df30cd648bd7e78a")).toBe(true);
     for (const s of data.scenes) expect(readFileSync(path.join(dir, "tech-reviews/020", s.board)).length).toBeGreaterThan(0);
-    expect(readFileSync(path.join(dir, "tech-reviews/020/docs/storyboard-001-v1.pdf")).subarray(0, 4).toString()).toBe("%PDF");
+    for (const v of ["v1", "v1.1"]) expect(readFileSync(path.join(dir, `tech-reviews/020/docs/storyboard-001-${v}.pdf`)).subarray(0, 4).toString()).toBe("%PDF");
   });
 });
