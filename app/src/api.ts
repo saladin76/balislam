@@ -74,8 +74,13 @@ export type StudioDelivery = {
   id: string; channel: string; episode: string; kind: "video" | "storyboard";
   slot: string; url: string; md5: string; updated: string; status: "delivered_pending_review";
 };
+export type StudioPendingJob = {
+  id: string; channel: string; episode: string; slot: string;
+  kind: "video" | "storyboard"; state: "waiting_for_mac" | "delivered";
+};
 export type StudioTransferOverview = {
-  configured: boolean; deliveries: StudioDelivery[]; bridgeDeliveredJobs: number; note: string;
+  configured: boolean; deliveries: StudioDelivery[]; bridgeDeliveredJobs: number;
+  pendingJobs: StudioPendingJob[]; note: string;
 };
 
 export const api = {
