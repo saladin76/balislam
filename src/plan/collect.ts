@@ -72,7 +72,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
       ? q.provider === "alquran-cloud" && q.edition === chosen.edition
       : q.provider !== "alquran-cloud" && q.recitationId === chosen.id);
     if (q && matching && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
-      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration + 0.25, -0.25), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
+      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration, 0), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
     }
   }
   const sp = await resolveScriptPath(episode);
