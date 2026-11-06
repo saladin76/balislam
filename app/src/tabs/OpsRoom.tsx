@@ -84,7 +84,7 @@ export const OpsRoom: React.FC<{
 
   const longThisWeek = data.filter((d) => d.channel.schedule && week.some((day) => day.getDay() === d.channel.schedule!.longDay && d.episodes.some((e) => e.status.scheduled === iso(day) || e.status.published?.date === iso(day)))).length;
   const scheduledCount = data.filter((d) => d.channel.schedule).length;
-  const readyCount = all.filter((x) => x.stage === "ready").length;
+  const readyCount = all.filter((x) => x.e.release?.ready === true && !x.e.status.published).length;
   const ideasCount = data.reduce((n, d) => n + d.ideas.length, 0);
 
   const setScheduled = async (ch: string, e: Overview, date: string | undefined) => {
@@ -197,9 +197,9 @@ export const OpsRoom: React.FC<{
                     used.add(fixed.id);
                     const st = stageOf(fixed);
                     return (
-                      <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
+                      <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : fixed.release?.ready ? "ok" : "risk"}`} style={{ borderColor: color(d.channel.id) }}>
                         <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {fixed.id} · {fixed.title || fixed.dir}</button>
-                        <small>{st === "published" ? "منشورة" : stagesOf(fixed)[3]!.state === "done" ? "الفيديو جاهز" : "الفيديو لم يكتمل بعد!"}</small>
+                        <small>{st === "published" ? "منشورة" : fixed.release?.ready ? "اجتازت بوابات الجاهزية المحلية" : "لم تجتز اعتماد النشر بعد"}</small>
                         {shortsLine ? <small>+ {shortsLine}</small> : null}
                         {cal?.note ? <small className="ops-note">{cal.note}</small> : null}
                       </div>
