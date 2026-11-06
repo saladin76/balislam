@@ -68,5 +68,9 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
   return Math.max(min, Math.round(spoken * 10) / 10);
 };
 
-export const sceneFrames = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice" | "recitations">, fps = config.video.fps) =>
-  Math.max(fps, Math.round(sceneSeconds(scene, media) * fps));
+export const sceneFrames = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice" | "recitations">, fps = config.video.fps) => {
+  const rec = scene.template === "verse-card" && scene.ayahKey ? media?.recitations[scene.ayahKey] : undefined;
+  if (rec && recitationSeconds(rec) > 0)
+    return Math.max(1, Math.round(recitationSeconds(rec) * fps));
+  return Math.max(fps, Math.round(sceneSeconds(scene, media) * fps));
+};
