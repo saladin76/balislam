@@ -9,7 +9,7 @@ import { sceneFrames } from "../plan/duration";
 import { storyboardHash } from "../plan/storyboard";
 import { versesMissingText } from "../plan/storyboard";
 import { shotFrame, shotKind, shotText } from "../plan/storyboardView";
-import { prepareRenderMedia } from "../plan/collect";
+import { prepareStoryboardMedia } from "../plan/collect";
 import { loadChannel, loadChannelIdentity, channelInfo } from "../channel";
 import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { scenesOf } from "../remotion/scenes/Episode";
@@ -59,7 +59,8 @@ export const renderStoryboardFrames = async (
   const missingVerses = versesMissingText(plan);
   if (missingVerses.length)
     throw new Error("لا يمكن إخراج لوحات آيات بنصوص ناقصة: " + missingVerses.slice(0, 12).join("، "));
-  const media = await prepareRenderMedia(episode, plan);
+  // Storyboard comes before VO; stage only visual assets in a separate, non-destructive namespace.
+  const media = await prepareStoryboardMedia(episode, plan);
   const channel = loadChannel();
   const identity = loadChannelIdentity();
   const channelDetails = channelInfo(channel);
@@ -68,13 +69,14 @@ export const renderStoryboardFrames = async (
   const frames = storyboardFramePlan(plan, media, channelDetails);
   if (!frames.length) throw new Error("لا توجد مشاهد في خطة الحلقة.");
   const inputProps = { plan, media, identity, channel: channelDetails, orientation };
+  const visualVersion = createHash("sha256").update(JSON.stringify({ mediaBase: media.base, identity, channel: channelDetails, orientation })).digest("hex").slice(0, 12);
   log("تجميع نسخة الصور الثابتة للستوري بورد…");
   const serveUrl = await getServeUrl(true);
   const composition = await selectComposition({ serveUrl, id: `episode-${orientation}`, inputProps, browserExecutable: browserExecutable() });
   const rows: { scene: string; file: string; frame: number; duration: number; chapter: number; hash: string }[] = [];
   for (const [index, item] of frames.entries()) {
     if (!/^[a-z0-9][a-z0-9_-]{0,80}$/i.test(item.scene.id)) throw new Error("معرّف مشهد غير آمن للصور الثابتة.");
-    const name = `${item.scene.id}-${orientation}-${item.hash}.png`;
+    const name = `${item.scene.id}-${orientation}-${item.hash}-${visualVersion}.png`;
     const out = path.join(storyboardDir, name);
     if (!existsSync(out)) {
       log(`${index + 1}/${frames.length}: ${item.scene.id}`);
