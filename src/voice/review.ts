@@ -39,8 +39,9 @@ export const voiceFingerprint = async (scene: PlanScene, clip: VoiceClip | undef
 };
 
 export const voiceReviewItems = async (
-  scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"], record = await loadVoiceReview(scriptPath),
+  scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"], existingRecord?: VoiceReviewRecord,
 ): Promise<VoiceReviewItem[]> => {
+  const record = existingRecord ?? await loadVoiceReview(scriptPath);
   const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   return Promise.all(scenes.map(async (scene) => {
     if (!isTone(scene.tone)) return { id: scene.id, state: "needs_tone" as const };
