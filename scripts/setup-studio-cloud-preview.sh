@@ -58,7 +58,7 @@ else
 fi
 test -f "$TARGET/scripts/studio-preview-cloud.py" || { echo "ERROR: uploader missing"; exit 1; }
 echo "=== OFFLINE TESTS ==="
-(cd "$TARGET" && "$PYTHON_BIN" -m unittest discover -s tests -p 'test_studio_preview_cloud.py' -v)
+(cd "$TARGET" && PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -m unittest discover -s tests -p 'test_studio_preview_cloud.py' -v)
 echo "=== DRIVE CONNECTION (READ ONLY) ==="
 rclone lsf "studio_drive:Balislam-Studio-Previews/" --dirs-only >/dev/null
 printf '%s\n' "$PYTHON_BIN" > "$BASE/verified-python-path.txt"
