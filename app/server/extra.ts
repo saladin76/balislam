@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
 import { assessReleaseEvidence } from "./releaseEvidence.ts";
+import { statusTransitionError } from "./releaseStatusTransition.ts";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -557,6 +558,17 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { status } = await readBody(req);
       if (!status || typeof status !== "object" || Array.isArray(status)) return send(res, 400, { error: "حالة النشر غير صالحة؛ لم تُحفظ." }), true;
+      const previous = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {};
+      const newApproval = Boolean(status.approved && JSON.stringify(status.approved) !== JSON.stringify(previous.approved ?? null));
+      const newPublication = Boolean(status.published && JSON.stringify(status.published) !== JSON.stringify(previous.published ?? null));
+      if (newApproval || newPublication) {
+        const local = (await buildOverview(episodesDir, load)).find((e) => e.id === parts[1]);
+        const masterFile = path.join(path.dirname(file), "out", "package", parts[1] + "-episode.mp4");
+        const video = existsSync(masterFile) ? statSync(masterFile) : null;
+        const error = statusTransitionError(previous, status, local?.release ?? null,
+          video ? { size: video.size, mtime: video.mtimeMs } : null);
+        if (error) return send(res, 409, { error }), true;
+      }
       await writeFile(file, JSON.stringify(status, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {});
