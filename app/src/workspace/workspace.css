@@ -178,3 +178,14 @@
   .ew-listen-action { grid-column: 1 / -1; grid-row: 3; width: 100%; }
   .ew-reciter-controls { padding: 12px; }
 }
+
+/* Review-first storyboard workspace: visual content receives priority. */
+.sb-review-controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:14px 16px;margin:15px 0;border:1px solid var(--line,#d4d2cb);border-radius:12px;background:var(--surface,#fff)}
+.sb-review-controls label{display:grid;gap:6px;font-size:12px;color:var(--ink,#243443)}
+.sb-review-controls select{padding:9px 12px;border:1px solid var(--line,#d4d2cb);border-radius:8px;background:var(--surface,#fff);color:inherit}
+.sb-review-controls .help{margin-inline-start:auto;font-size:12px;align-self:center}
+.sb-focus-view .sb-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,540px),1fr))}
+.sb-focus-view .sb-shot{min-width:0}
+.sb-focus-view .sb-frame{aspect-ratio:16/9}
+.sb-focus-view .sb-said{line-height:1.9}
+@media(max-width:760px){.sb-review-controls{align-items:stretch}.sb-review-controls label{width:100%}.sb-review-controls .help{margin-inline-start:0}}
