@@ -22,7 +22,7 @@ else
 fi
 test -f "$TARGET/scripts/studio-preview-cloud.py" || { echo "ERROR: uploader missing"; exit 1; }
 echo "=== OFFLINE TESTS ==="
-(cd "$TARGET" && python3 -m unittest discover -s tests -p 'studio-preview-cloud.test.py' -v)
+(cd "$TARGET" && python3 -m unittest discover -s tests -p 'test_studio_preview_cloud.py' -v)
 echo "=== DRIVE CONNECTION (READ ONLY) ==="
 rclone lsf "studio_drive:Balislam-Studio-Previews/" --dirs-only >/dev/null
 cat > "$BASE/render-cloud-preview.sh" <<'INNER'
