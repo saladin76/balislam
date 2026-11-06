@@ -48,7 +48,8 @@ def atomic_json(path, data):
 
 def upload(a):
     source = Path(a.file).expanduser().resolve(strict=True)
-    folder, allowed = KINDS[a.kind]
+    kind = getattr(a, "kind", "video")
+    folder, allowed = KINDS[kind]
     if not source.is_file() or source.suffix.lower() not in allowed or not source.stat().st_size:
         raise ValueError("Expected a nonempty completed file of supported kind")
     for value in (a.episode, a.slot):
@@ -79,7 +80,7 @@ def upload(a):
             raise RuntimeError("No preview URL")
         manifest = base / "preview-cloud-index.json"
         index = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
-        key = f"{channel}|{a.episode}|{a.slot}|{source.suffix.lower()[1:]}" if a.kind == "video" else f"{channel}|{a.episode}|storyboard|{a.slot}|{source.suffix.lower()[1:]}"
+        key = f"{channel}|{a.episode}|{a.slot}|{source.suffix.lower()[1:]}" if kind == "video" else f"{channel}|{a.episode}|storyboard|{a.slot}|{source.suffix.lower()[1:]}"
         index[key] = {"remote":cloud,"url":url,"md5":digest,"updated":datetime.now(timezone.utc).isoformat()}
         atomic_json(manifest, index)
         lines = ["# Balislam Studio - Live Previews", "", "Updated: "+datetime.now(timezone.utc).isoformat(), ""]
