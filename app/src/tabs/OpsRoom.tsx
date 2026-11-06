@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
 import "./ReleaseReadiness.css";
+import { releaseHandoffReport } from "./releaseHandoff";
 
 /**
  * «غرفة العمليات»: القنوات كلها في شاشة واحدة.
@@ -60,6 +61,7 @@ export const OpsRoom: React.FC<{
 }> = ({ onOpen, onStartIdea, refreshKey }) => {
   const [data, setData] = useState<OpsChannel[] | null>(null);
   const [err, setErr] = useState("");
+  const [copiedRelease, setCopiedRelease] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     api.ops().then(setData).catch((e) => setErr((e as Error).message));
@@ -141,7 +143,14 @@ export const OpsRoom: React.FC<{
                   <p className="ops-release-numbers">الستوري بورد {release.storyboard.done}/{release.storyboard.total} · المشاهد {release.scenes.done}/{release.scenes.total} · الصوت {release.voice.done}/{release.voice.total}</p>
                   {release.blockers.length ? <details className="release-blockers" open><summary>الموانع ({release.blockers.length})</summary><ul>{release.blockers.slice(0, 5).map((reason, i) => <li key={i}>{reason}</li>)}</ul>{release.blockers.length > 5 ? <p className="help">و{release.blockers.length - 5} موانع أخرى في صفحة الحلقة.</p> : null}</details> : <p className="help">يظل النشر الفعلي والرفع إلى المنصة قرارًا بشريًا.</p>}
                 </> : <p className="help">بيانات فحص الجاهزية غير متاحة في نسخة Studio الحالية؛ لا تعتمد الحالة تلقائيًا.</p>}
-                <button className="btn small" type="button" onClick={() => onOpen(d.channel.id, episode.id, "publish")}>فتح مراجعة النشر</button>
+                <div className="ops-release-actions">
+                  <button className="btn small" type="button" onClick={() => onOpen(d.channel.id, episode.id, "publish")}>فتح مراجعة النشر</button>
+                  <button className="btn small" type="button" onClick={() => {
+                    const report = releaseHandoffReport(d.channel.name, episode.id, episode.title || episode.dir, release ?? null);
+                    void navigator.clipboard.writeText(report).then(() => setCopiedRelease(d.channel.id + "/" + episode.id))
+                      .catch(() => window.prompt("انسخ تقرير المراجعة يدويًا:", report));
+                  }}>{copiedRelease === d.channel.id + "/" + episode.id ? "نُسخ تقرير الموانع" : "نسخ تقرير للمحادثة"}</button>
+                </div>
               </>}
             </article>;
           })}
