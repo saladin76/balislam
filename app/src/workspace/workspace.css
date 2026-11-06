@@ -202,3 +202,12 @@
 .sb-notebook-list p{margin:0;flex:1;min-width:220px;line-height:1.7;font-size:13px}
 @media(max-width:1100px){.sb-notebook-form{grid-template-columns:1fr 1fr}.sb-notebook-text{grid-column:1/-1}}
 @media(max-width:620px){.sb-notebook-form{grid-template-columns:1fr}.sb-notebook-text{grid-column:auto}}
+
+/* Side-by-side preview comparison uses existing local slots only. */
+.sb-compare-tools{margin:15px 0;padding:14px;border:1px solid var(--line,#d4d2cb);border-radius:12px;background:var(--surface,#fff)}
+.sb-compare-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.sb-compare-layout>div{min-width:0}
+.sb-compare-layout label{display:grid;gap:7px;font-size:12px;margin-bottom:10px}
+.sb-compare-layout select{padding:9px 11px;border:1px solid var(--line,#d4d2cb);border-radius:9px;min-width:0}
+.sb-compare-layout video{width:100%;aspect-ratio:16/9;background:#101820;border-radius:10px}
+@media(max-width:760px){.sb-compare-layout{grid-template-columns:1fr}}
