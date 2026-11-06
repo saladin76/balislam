@@ -52,6 +52,8 @@ export const StoryboardPanel: React.FC<{
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<"all" | "pending" | "warnings">("all");
+  const [focusView, setFocusView] = useState(false);
   const fps = config.video.fps;
   const W = config.video.episode.width;
   const H = config.video.episode.height;
@@ -176,7 +178,7 @@ export const StoryboardPanel: React.FC<{
   const logicNotAssessable = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && (!v.logic || v.logic.status === "not-assessable")).map(([id]) => id) : [];
 
   return (
-    <div className="storyboard">
+    <div className={focusView ? "storyboard sb-focus-view" : "storyboard"}>
       <div className="sb-head">
         <div style={{ display: "grid", gap: 4 }}>
           <h2>ستوري بورد الحلقة {episodeId}</h2>
@@ -218,7 +220,24 @@ export const StoryboardPanel: React.FC<{
       <Reviews episodeId={episodeId} />
       <Previews episodeId={episodeId} />
 
-      {rows.map(({ ch, shots }) => (
+      <div className="sb-review-controls" role="group" aria-label="أدوات عرض ستوري بورد المراجعة">
+        <label>تصفية المشاهد
+          <select value={reviewFilter} onChange={(e) => setReviewFilter(e.target.value as "all" | "pending" | "warnings")}>
+            <option value="all">جميع المشاهد</option>
+            <option value="pending">لم تُعتمد أو تغيّرت</option>
+            <option value="warnings">تحذيرات الحركة والمنطق</option>
+          </select>
+        </label>
+        <button type="button" className="btn" aria-pressed={focusView} onClick={() => setFocusView((v) => !v)}>
+          {focusView ? "عرض البطاقات المعتاد" : "عرض موسّع للمراجعة"}
+        </button>
+        <span className="help">اختيار العرض لا يُغير أي اعتماد.</span>
+      </div>
+
+      {rows.map(({ ch, shots }) => ({ ch, shots: shots.filter(({ s }) => reviewFilter === "all" ? true :
+        reviewFilter === "pending" ? st?.scenes[s.id] !== "approved" :
+        Boolean(info?.motionStale?.includes(s.id) || motionOf(s)?.logic?.status === "needs-review" || (motionOf(s)?.still ?? 0) > 2)) }))
+        .filter(({ shots }) => shots.length > 0).map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter">
           <h3>
             <span className="sb-tape">الفصل {ch.number}</span> {ch.title}
