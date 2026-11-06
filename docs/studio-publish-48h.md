@@ -20,6 +20,14 @@ git show origin/feat/studio-local-release-audit:scripts/studio-release-audit.mjs
 node "$HOME/Balislam-Preview-Sync/tools/studio-release-audit.mjs" --root "$HOME/balislam" --episode 001
 ```
 
+If each Claude conversation uses a **different channel worktree**, do **not** assume `~/balislam` contains its current untracked voice/video renders. Use the exact worktree path explicitly and one channel at a time, e.g.:
+
+```bash
+node "$HOME/Balislam-Preview-Sync/tools/studio-release-audit.mjs" --root "/absolute/path/to/zubdat-worktree" --channel zubdat-alkutub --episode 001
+```
+
+To locate existing worktree paths (read only): `git -C "$HOME/balislam" worktree list`. Choose the correct branch/worktree deliberately; **the audit never scans every worktree or chooses the newest video by timestamp**.
+
 The command writes **only a copy of the audit tool** under `Balislam-Preview-Sync/tools`, then reads episode state. The diagnostic exits 1 when any channel remains blocked; that is expected during production and is not an application crash. It never uploads, renders, publishes, deletes, changes status, or updates the production checkout.
 
 Run `node --test tests/studio-release-audit.node.test.mjs` from a checkout of this feature branch to test the audit itself. The four test cases use synthetic fixture files only. The audit is an extra inventory: **the existing authoritative `bal` gates and the owner's full video review remain compulsory**.
