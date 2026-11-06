@@ -382,6 +382,23 @@ program
   });
 
 program
+  .command("storyboard-board <episode>")
+  .description("لوحة الستوري بورد المرئية للحلقة كاملة: لقطات ثابتة من المحرك لكل مشهد بالاتجاهين، وPDF وورقة لكل فصل وبيان بالبصمات؛ لا فيديو ولا صوت ولا اعتماد")
+  .requiredOption("--version <v>", "إصدار اللوحة (v1، v2…): مجلد storyboard/<v>/ لا يُكتب فوق إصدار سابق")
+  .option("--note <text>", "ملاحظة الغلاف", "لوحة للمراجعة قبل النبرة والصوت. لم تُعتمد.")
+  .option("--only <ids>", "مشاهد بعينها فقط (اختبار)")
+  .action(async (episode: string, opts: { version: string; note: string; only?: string }) => {
+    const { buildStoryboardBoard } = await import("../render/storyboardBoard");
+    const { existsSync } = await import("node:fs");
+    const { resolveScriptPath } = await import("../script/episodes");
+    const dir = path.join(path.dirname(await resolveScriptPath(episode)), "storyboard", opts.version);
+    if (!opts.only && existsSync(path.join(dir, "board-manifest.json"))) throw new Error(`الإصدار ${opts.version} موجود؛ استعمل إصدارًا جديدًا فلا تُفقد نسخة سابقة.`);
+    const r = await buildStoryboardBoard({ episode, version: opts.version, note: opts.note, only: opts.only?.split(/[,،\s]+/).filter(Boolean), onProgress: (m) => console.log(m) });
+    for (const f of r.delivered) console.log(`FILE ${f.path} sha256=${f.sha256}`);
+    console.log(`DONE ${path.relative(projectRoot, r.outDir)} · ${r.manifest.scenes.length} مشهدًا · PENDING_REVIEW`);
+  });
+
+program
   .command("upload-preview <episode> <slot> <file>")
   .description("رفع فيديو للحلقة إلى «المعاينات» في الاستوديو: يحذف النسخة القديمة لنفس الخانة ويضع الجديدة مكانها")
   .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو")
