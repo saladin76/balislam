@@ -80,6 +80,18 @@ export BAL_PREVIEW_CLOUD_AUTO=1
 exec npm run bal -- "$@"
 INNER
 chmod 700 "$BASE/render-cloud-preview.sh"
+# Shared explicit handoff entrypoint: Claude can call this from any worktree
+# after successfully writing a specific file; no folder scans or deletions.
+cat > "$BASE/studio-handoff.sh" <<'INNER'
+#!/bin/bash
+set -euo pipefail
+SCRIPT="$HOME/balislam-cloud-preview-ready/scripts/studio-preview-cloud.py"
+PYTHON="$(cat "$HOME/Balislam-Preview-Sync/verified-python-path.txt")"
+test -f "$SCRIPT" || { echo "Cloud uploader not installed"; exit 1; }
+exec "$PYTHON" "$SCRIPT" "$@"
+INNER
+chmod 700 "$BASE/studio-handoff.sh"
 echo "=== SETUP OK: NO FILES UPLOADED OR DELETED ==="
 echo "To render using new opt-in sync: $BASE/render-cloud-preview.sh -c balislam render 001"
+echo "Claude explicit uploads from any worktree: $BASE/studio-handoff.sh upload --file /absolute/path/clip.mp4 --channel balislam --episode 001-example --slot scene-c1-s1"
 echo "Existing production apps and worktrees are NOT modified."
