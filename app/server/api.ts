@@ -107,7 +107,7 @@ export const balApi = (): Plugin => ({
       try {
         // Read-only handoff index; no network requests, jobs or uploads from the UI.
         if (url.pathname === "/api/studio-transfers" && req.method === "GET") {
-          const { readStudioTransferOverview } = await import("./studioTransfers");
+          const { readStudioTransferOverview } = await import("./studioTransfers.ts");
           return send(res, 200, await readStudioTransferOverview());
         }
 
@@ -195,14 +195,14 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
           if (parts[2] === "review-notes" && parts.length === 3) {
-            const { readReviewNotes, saveReviewNotes } = await import("./reviewNotes");
+            const { readReviewNotes, saveReviewNotes } = await import("./reviewNotes.ts");
             if (req.method === "GET") return send(res, 200, { notes: await readReviewNotes(scriptPath) });
             if (req.method === "PUT") {
               const b = await readBody(req);
               const { loadPlan } = await load("/src/plan/io.ts");
               const plan = await loadPlan(ep);
               const sceneIds = new Set((plan?.chapters ?? []).flatMap((chapter: { scenes: { id: string }[] }) => chapter.scenes.map((scene) => scene.id)));
-              const { validateReviewNotes } = await import("./reviewNotes");
+              const { validateReviewNotes } = await import("./reviewNotes.ts");
               const notes = validateReviewNotes(b.notes);
               if (notes.some((n) => !sceneIds.has(n.sceneId))) throw new HttpError(400, "توجد ملاحظة لمشهد غير موجود في الحلقة.");
               return send(res, 200, { notes: await saveReviewNotes(scriptPath, notes) });
