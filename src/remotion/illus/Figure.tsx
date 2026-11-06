@@ -129,6 +129,23 @@ export const legGeometry = (pose: PoseSpec) => {
   return { hipY, back: leg(pose.legBack), front: leg(pose.legFront) };
 };
 export const LEG_LEN = THIGH + SHIN;
+/**
+ * موضع كفّ الشخصية في العالم (الرسم الجانبي)، بالحساب نفسه الذي ترسم به Figure، ليمسك العنصرُ المحمول
+ * الكفَّ فعلًا (الأمر 015). front: الذراع القريبة من الناظر.
+ */
+export const handAt = (pose: PoseSpec, o: { x: number; y: number; scale: number; flip?: boolean; front?: boolean }) => {
+  const drop = (l: Limb) => THIGH * Math.cos(rad(l.s)) + SHIN * Math.cos(rad(l.s - l.e));
+  const hipY = -Math.max(drop(pose.legBack), drop(pose.legFront)) - 6;
+  const shY = hipY - TORSO;
+  const sh = rot(0, shY + 8, 0, hipY, pose.lean);
+  const l = o.front === false ? pose.armBack : pose.armFront;
+  const e = step(sh[0], sh[1], UPPER, l.s + pose.lean * 0.6);
+  const h = step(e[0], e[1], FORE, l.s + l.e + pose.lean * 0.6);
+  const d = norm(sub(h, e));
+  const hx = h[0] + d[0] * 7;
+  const hy = h[1] + d[1] * 7;
+  return { x: o.x + (o.flip ? -1 : 1) * hx * o.scale, y: o.y + hy * o.scale };
+};
 const step = (x: number, y: number, len: number, ang: number) => [x + len * Math.sin(rad(ang)), y + len * Math.cos(rad(ang))] as const;
 /** دوران نقطة حول مركز (لإمالة الجذع) */
 const rot = (x: number, y: number, cx: number, cy: number, ang: number) => {
@@ -140,7 +157,11 @@ const rot = (x: number, y: number, cx: number, cy: number, ang: number) => {
 
 export type Outfit = "jacket" | "thobe" | "abaya" | "shirt";
 export type HeadWear = "hair" | "kufi" | "hijab" | "bare" | "ghutra";
-export type FigureLook = { outfit: Outfit; cloth: ClothId; head: HeadWear; skin: 0 | 1; hair?: string; inner?: string; pants?: string; head2?: string };
+/**
+ * build (اختياري، الأمر 015): عرض الجذع نسبةً إلى المعتاد (1)، لتمييز الهيئة (ممتلئ 1.25، نحيل 0.9) مع بقاء
+ * الأسلوب نفسه؛ بلا الحقل الرسم القائم حرفيًا.
+ */
+export type FigureLook = { outfit: Outfit; cloth: ClothId; head: HeadWear; skin: 0 | 1; hair?: string; inner?: string; pants?: string; head2?: string; build?: number };
 
 export const LOOKS = {
   hero: { outfit: "jacket", cloth: "emerald", head: "hair", skin: 1 },
@@ -339,15 +360,18 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
   const waist = hipY + (robe ? -2 : 18);
   // ذيل الجاكيت يتأخر قليلًا مع الحركة
   const tail = L.outfit === "jacket" ? sway * 0.35 : 0;
-  const torsoPath = `M${E(-29, -40)} ${shY + 14} Q${E(-30, -41)} ${shY + 2} ${E(-18, -28)} ${shY} L${E(20, 28)} ${shY} Q${E(31, 41)} ${shY + 2} ${E(30, 40)} ${shY + 16} Q${E(29, 39)} ${(shY + waist) / 2} ${E(25, 32)} ${waist} L${E(-25, -32) - tail} ${waist} Q${E(-31, -39)} ${(shY + waist) / 2} ${E(-29, -40)} ${shY + 14} Z`;
-  const backShade = `M${E(-29, -40)} ${shY + 14} Q${E(-30, -41)} ${shY + 2} ${E(-18, -28)} ${shY} L${P(-4, -14)} ${shY} Q${P(-8, -18)} ${(shY + waist) / 2} ${P(-10, -20)} ${waist} L${E(-25, -32) - tail} ${waist} Q${E(-31, -39)} ${(shY + waist) / 2} ${E(-29, -40)} ${shY + 14} Z`;
+  // الهيئة: بلا build المعامل 1 فالأرقام نفسها حرفيًا
+  const B = L.build ?? 1;
+  const Eb = (xp: number, xf: number) => (B === 1 ? E(xp, xf) : E(xp * B, xf * B));
+  const torsoPath = `M${Eb(-29, -40)} ${shY + 14} Q${Eb(-30, -41)} ${shY + 2} ${Eb(-18, -28)} ${shY} L${Eb(20, 28)} ${shY} Q${Eb(31, 41)} ${shY + 2} ${Eb(30, 40)} ${shY + 16} Q${Eb(29, 39)} ${(shY + waist) / 2} ${Eb(25, 32)} ${waist} L${Eb(-25, -32) - tail} ${waist} Q${Eb(-31, -39)} ${(shY + waist) / 2} ${Eb(-29, -40)} ${shY + 14} Z`;
+  const backShade = `M${Eb(-29, -40)} ${shY + 14} Q${Eb(-30, -41)} ${shY + 2} ${Eb(-18, -28)} ${shY} L${P(-4, -14)} ${shY} Q${P(-8, -18)} ${(shY + waist) / 2} ${P(-10, -20)} ${waist} L${Eb(-25, -32) - tail} ${waist} Q${Eb(-31, -39)} ${(shY + waist) / 2} ${Eb(-29, -40)} ${shY + 14} Z`;
   // تفاصيل الصدر في منتصفه الأمامي: تُسقط بموضعها (تتجه نحو المنتصف كلما واجه الناظر)
   const chest = (center: number, half: number, halfFront: number): [number, number, number] => (flat ? [center - half, center, center + half] : [center * cY - (half * cY + halfFront * sY), center * cY, center * cY + half * cY + halfFront * sY]);
   const [jL, jC, jR] = chest(12, 8, 12);
   const [shL, shC, shR] = chest(12, 6, 8);
   const [thL, thC, thR] = chest(13, 5, 7);
-  const bandX = E(-25, -32);
-  const bandW = E(25, 32) - bandX;
+  const bandX = Eb(-25, -32);
+  const bandW = Eb(25, 32) - bandX;
   const sideDetail = flat ? 1 : cY;
   const torso = (
     <g>

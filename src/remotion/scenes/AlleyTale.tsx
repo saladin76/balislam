@@ -61,7 +61,7 @@ const ShotScene: React.FC<AlleyTaleProps> = (props) => {
         </svg>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,0) 20%)" }} />
       </AbsoluteFill>
-      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} />
+      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} {...(shot.captionSize ? { size: shot.captionSize } : {})} />
     </SceneShell>
   );
 };
