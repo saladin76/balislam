@@ -24,11 +24,11 @@ Claude sessions may run in two different environments, and this must be reported
 
 **Cloud Claude (no Mac access):** It must not pretend that `$HOME/Balislam-Preview-Sync`, `rclone studio_drive`, or Mac secrets are available. It should verify the existing artifact/Studio preview, provide commit/path/checksum and its review report, then mark cloud handoff as `PENDING_TRANSFER`. Do not install or export Mac credentials to the cloud, and do not switch to an unrelated uploader while claiming to have tested this system. A pre-existing Drive link can be referenced as prior evidence but never presented as a new successful transfer.
 
-**GitHub-to-Mac bridge:** A guarded Mac consumer and a dedicated empty GitHub queue are implemented on the unmerged development branch (details below). Automatic polling is **not** enabled; a real queued artifact and verified end-to-end delivery are still pending. Cloud agents must not claim success until the Mac uploader returns its verified link.
+**GitHub-to-Mac bridge:** A guarded Mac consumer and dedicated GitHub queue are implemented on the unmerged development branch. An 81-byte **synthetic non-production JSON** was delivered GitHub → Mac → Google Drive with checksum verification on 2026-11-06. Automatic polling remains **disabled**; production media handoff and owner acceptance are still pending. Cloud agents must not claim success until the Mac uploader returns its verified link.
 
 ## GitHub-to-Mac bridge: implemented, NOT scheduled
 
-An empty queue has been initialized on the dedicated GitHub branch `studio-handoff-queue` at `studio-handoff/queue.json`. This branch does not modify `main`. The Mac-side consumer is `scripts/studio-handoff-bridge.py`, shipped in the protected local installer branch. It only reads the named queue from `origin/studio-handoff-queue`, validates every request, extracts the content of an exact **reachable Git commit** and path, verifies SHA-256, then passes the resulting immutable bytes to the existing checked uploader. It never runs scripts from the queue and never scans folders.
+The dedicated queue exists on GitHub branch `studio-handoff-queue` at `studio-handoff/queue.json`; a synthetic validation job has been processed. Do not assume all queue entries have been removed. This branch does not modify `main`. The Mac-side consumer is `scripts/studio-handoff-bridge.py`, shipped in the protected local installer branch. It only reads the named queue from `origin/studio-handoff-queue`, validates every request, extracts the content of an exact **reachable Git commit** and path, verifies SHA-256, then passes the resulting immutable bytes to the existing checked uploader. It never runs scripts from the queue and never scans folders.
 
 Example request (for documentation only; no real artifact is requested yet):
 
@@ -58,7 +58,7 @@ Run **read-only transfer dry-run** after installer:
 /opt/homebrew/bin/python3 "$HOME/balislam-cloud-preview-ready/scripts/studio-handoff-bridge.py" --fetch --dry-run
 ```
 
-On the initial empty queue, expected: `BRIDGE_OK DRY_RUN 0 jobs`. This fetches only the named Git branch and validates queue structure, **without uploading**. To apply after a user-reviewed job is placed in the queue, omit `--dry-run`; currently there is deliberately no LaunchAgent or background schedule. The installer never activates one. Every verified job is recorded under `$HOME/Balislam-Preview-Sync/bridge-delivered.json`, enabling idempotent runs. The bridge is not an access-control boundary against malicious GitHub writers who can push to the queue branch; restrict branch write permissions before unattended automation.
+When the queue is empty, expect `BRIDGE_OK DRY_RUN 0 jobs`; otherwise inspect the remaining job ID and fingerprint. Previously processed synthetic jobs must not trigger duplicate deliveries. This fetches only the named Git branch and validates queue structure, **without uploading**. To apply after a user-reviewed job is placed in the queue, omit `--dry-run`; currently there is deliberately no LaunchAgent or background schedule. The installer never activates one. Every verified job is recorded under `$HOME/Balislam-Preview-Sync/bridge-delivered.json`, enabling idempotent runs. The bridge is not an access-control boundary against malicious GitHub writers who can push to the queue branch; restrict branch write permissions before unattended automation.
 
 ## Artifact policy
 - Videos and storyboard artifacts use separate Drive folders and each logical slot replaces its previous version. Revisions do not create duplicate revision-named cloud objects.
@@ -73,11 +73,12 @@ On the initial empty queue, expected: `BRIDGE_OK DRY_RUN 0 jobs`. This fetches o
 - Offline Python tests and read-only Drive access: **passed on owner's Mac** (8 tests, 2026-11-06).
 - Real video and real `plan.json` upload: **passed**.
 - Actual visual storyboard frames upload: **not yet tested**.
+- Guarded GitHub → Mac → Drive **synthetic queue** handoff: **passed 2026-11-06** (`bridge-smoke-balislam-001`, 81-byte JSON, verified Drive ID `1xgt3ulA6MGs8fpx6FbrdAGsyexbVhgZy`). This does not verify a real Claude-generated production video, owner review, or branch writer permissions.
 - Cloud overwrite/ID stability on an edited real slot: **passed on owner's Mac** (2026-11-06). Real uploads of synthetic JSON revisions 1 and 2 verified MD5, one remote file, and unchanged sharing URL `https://drive.google.com/open?id=1xCDBR1is6z5H9KSiR9a48Z26rgDLSRQf`.
 - Automated trigger from actual Claude production render flows and full workflow review: **not yet verified**. First Claude cloud session confirmed it cannot reach Mac's rclone or shared uploader; it appropriately reported no new upload.
 - Main branch merge: **not approved**.
 
-Do not issue permanent per-chat instruction templates until these rollout gates are resolved; the owner has requested a final operational message for each of the 3 ChatGPT reviewer conversations and 3 Claude implementer conversations.
+The six per-channel reviewer/implementer conversations may continue **manual production work**, with owner-managed handoff reports, while unattended bridge rollout remains blocked. Do not represent the synthetic transfer as production-media approval.
 
 ## Mac verification for stable revision links
 
