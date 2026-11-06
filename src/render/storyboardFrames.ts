@@ -6,7 +6,7 @@ import { renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan } from "../plan/io";
 import { sceneFrames } from "../plan/duration";
-import { sceneHash } from "../plan/sceneReview";
+import { storyboardHash } from "../plan/storyboard";
 import { versesMissingText } from "../plan/storyboard";
 import { shotFrame, shotKind, shotText } from "../plan/storyboardView";
 import { prepareRenderMedia } from "../plan/collect";
@@ -30,7 +30,7 @@ export const storyboardFramePlan = (
     const duration = sceneFrames(scene, media, fps);
     const frame = start + shotFrame(scene, duration);
     start += duration;
-    return { scene, chapter: chapter.number, frame, duration, hash: sceneHash(scene) };
+    return { scene, chapter: chapter.number, frame, duration, hash: storyboardHash(scene) };
   });
 };
 
@@ -73,6 +73,7 @@ export const renderStoryboardFrames = async (
   const composition = await selectComposition({ serveUrl, id: `episode-${orientation}`, inputProps, browserExecutable: browserExecutable() });
   const rows: { scene: string; file: string; frame: number; duration: number; chapter: number; hash: string }[] = [];
   for (const [index, item] of frames.entries()) {
+    if (!/^[a-z0-9][a-z0-9_-]{0,80}$/i.test(item.scene.id)) throw new Error("معرّف مشهد غير آمن للصور الثابتة.");
     const name = `${item.scene.id}-${orientation}-${item.hash}.png`;
     const out = path.join(storyboardDir, name);
     if (!existsSync(out)) {
