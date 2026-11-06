@@ -75,21 +75,21 @@ const css = [
   "body{direction:rtl;font-size:11pt;line-height:1.4}",
   ".page{position:relative;width:277mm;height:186mm;max-height:186mm;overflow:hidden;break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always}",
   ".page:last-child{break-after:auto;page-break-after:auto}",
-  ".head{position:absolute;top:0;right:0;left:0;height:21mm;border-bottom:2px solid #18475b}",
+  ".head{position:absolute;top:0;right:0;left:0;height:19mm;border-bottom:2px solid #18475b}",
   ".head .name{float:right}.eyebrow{font-size:9pt;color:#64748b}",
   ".head h2{font-size:17pt;line-height:1.2;margin:1mm 0}.head small{font-size:11pt;font-weight:400;color:#506273}",
   ".status{float:left;font-size:9pt;color:#9a5a14;border:1px solid #ebc98b;background:#fff8e9;padding:2mm 4mm;border-radius:3mm}",
-  ".frames{position:absolute;top:23mm;right:0;left:0;height:119mm;overflow:hidden}",
-  "figure{position:relative;display:block;margin:0;height:119mm;padding:2mm;overflow:hidden;background:#f3f6f7;border:1px solid #dce3e8;border-radius:2mm;text-align:center}",
+  ".frames{position:absolute;top:20mm;right:0;left:0;height:130mm;overflow:hidden}",
+  "figure{position:relative;display:block;margin:0;height:130mm;padding:2mm;overflow:hidden;background:#f3f6f7;border:1px solid #dce3e8;border-radius:2mm;text-align:center}",
   ".single figure{width:100%}.comparison figure:first-child{float:right;width:69%}.comparison figure:last-child{float:left;width:29%}",
-  "figure img{width:100%;height:108mm;object-fit:contain;display:block}",
+  "figure img{width:100%;height:121mm;object-fit:contain;display:block}",
   "figcaption{font-size:8pt;line-height:1.4;color:#53616a;margin-top:1mm}",
   "figure.missing{padding-top:40mm;color:#777}figure.missing span{display:block;font-size:9pt}",
-  ".info{position:absolute;top:145mm;left:0;right:0;height:32mm;overflow:hidden}",
-  ".info section{float:right;width:49%;height:26mm;overflow:hidden}.info section:nth-child(2){float:left}",
-  ".info h3{margin:0 0 1mm;font-size:10pt;color:#18475b}",
-  ".info p{margin:0;overflow:hidden;overflow-wrap:anywhere;font-size:10.5pt;line-height:1.5;max-height:22mm}",
-  ".info .details{width:100%;height:5mm;clear:both;border-top:1px solid #d5dee5;color:#546471;font-size:8.5pt}",
+  ".info{position:absolute;top:151mm;left:0;right:0;height:27mm;overflow:hidden}",
+  ".info section{float:right;width:49%;height:23mm;overflow:hidden}.info section:nth-child(2){float:left}",
+  ".info h3{margin:0 0 0.5mm;font-size:10pt;line-height:1.15;color:#18475b}",
+  ".info p{margin:0;overflow:hidden;overflow-wrap:anywhere;font-size:10.2pt;line-height:1.3;max-height:19mm}",
+  ".info .details{width:100%;height:4mm;clear:both;border-top:1px solid #d5dee5;color:#546471;font-size:8.5pt}",
   ".details span{margin-left:7mm}",
   "footer{position:absolute;bottom:0;left:0;right:0;height:7mm;font-size:8pt;color:#65737d;border-top:1px solid #d9e2e7}",
   ".appendix{position:absolute;top:30mm;left:8mm;right:8mm;bottom:13mm;overflow:hidden}",
@@ -124,15 +124,15 @@ export function buildStoryboardHtml(storyboard, { chapter = null } = {}) {
       '</small></h2></div><div class="status">مراجعة بصرية · غير معتمد</div></header>';
     const frames = '<div class="frames ' + (port ? "comparison" : "single") + '">' +
       panel(land, "أفقي 16:9") + (port ? panel(port, "عمودي 9:16") : "") + "</div>";
-    const info = '<div class="info"><section><h3>الوصف والملاحظات</h3><p>' + esc(excerpt(notes, 145)) +
-      '</p></section><section><h3>نص المقطع</h3><p>' + esc(excerpt(narration, 135)) +
+    const info = '<div class="info"><section><h3>الوصف والملاحظات</h3><p>' + esc(excerpt(notes, 160)) +
+      '</p></section><section><h3>نص المقطع</h3><p>' + esc(excerpt(narration, 160)) +
       '</p></section><section class="details"><span>الفصل: ' + esc(scene.chapterTitle || scene.chapter || "غير محدد") +
       '</span><span>النوع: ' + esc(scene.type || "غير محدد") +
       '</span><span>الإصدار: ' + ltr(storyboard.version) + '</span></section></div>';
     return '<article class="page">' + header + frames + info +
       '<footer>Storyboard للمراجعة فقط · ' + ltr(storyboard.episode) + '</footer></article>' +
-      (notes.length > 145 ? appendix(scene.id,"الوصف والملاحظات",notes) : "") +
-      (narration.length > 135 ? appendix(scene.id,"النص والتعليق",narration) : "");
+      (notes.length > 160 ? appendix(scene.id,"الوصف والملاحظات",notes) : "") +
+      (narration.length > 160 ? appendix(scene.id,"النص والتعليق",narration) : "");
   });
   return {html:'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/>' +
     '<title>Storyboard · ' + esc(storyboard.episode) + ' · ' + esc(storyboard.version) +
