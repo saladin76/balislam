@@ -63,18 +63,19 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
   const verseFit = letters > room ? Math.max(0.42, Math.sqrt(room / letters)) : 1;
   const verseSize = Math.round(baseVerse * verseFit);
 
-  const page = enter(frame, 0, 26, 100);
+  const synchronized = Boolean(props.recitationDuration && props.recitationDuration > 0);
+  const page = synchronized ? 1 : enter(frame, 0, 26, 100);
   // نص لم يُجلب بعد: سطور فارغة في مكان الآية، ولا يظهر نص مؤقت ولا اسم مصدر مكان كلام الله
   const pending = !text.trim() || text === VERSE_PLACEHOLDER;
   const chunks = reveal ? verseChunks(text) : [text];
   // الكشف يبدأ بعد انفتاح الصفحة وينتهي قبل آخر التلاوة بقليل، فتبقى الآية كاملة لحظة الختام
-  const start = 18;
+  const start = synchronized ? 0 : 18;
   const end = Math.max(start + 1, Math.round(durationInFrames * 0.78));
   const step = chunks.length > 1 ? (end - start) / chunks.length : 0;
-  const refIn = fade(frame, reveal ? Math.max(30, end - 10) : 40, 16);
+  const refIn = synchronized ? 1 : fade(frame, reveal ? Math.max(30, end - 10) : 40, 16);
 
   return (
-    <SceneShell {...props} themeId="night" motif={false} background={HZ.duskDeep} captions={false} durationInFrames={durationInFrames} eyebrowColors={{ text: HZ.parchment, border: HZ.sand }}>
+    <SceneShell {...props} exitFrames={props.recitationDuration ? 0 : undefined} themeId="night" motif={false} background={HZ.duskDeep} captions={false} durationInFrames={durationInFrames} eyebrowColors={{ text: HZ.parchment, border: HZ.sand }}>
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 55%, ${HZ.dusk} 0%, ${HZ.duskDeep} 80%)` }} />
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: portrait ? "0 56px 280px" : "40px 220px 40px" }}>
         <div
@@ -107,7 +108,7 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
             <span style={{ color: HZ.sand, opacity: fade(frame, 10, 14) }}>﴿</span>{" "}
             {chunks.map((c, i) => {
               const at = start + i * step;
-              const o = fade(frame, at, 20);
+              const o = synchronized && i === 0 ? 1 : fade(frame, at, 20);
               return (
                 <span key={i} style={{ opacity: o, filter: `blur(${(1 - o) * 6}px)` }}>
                   {c}
@@ -158,16 +159,17 @@ const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
   const verseFit = letters > room ? Math.max(0.42, Math.sqrt(room / letters)) : 1;
   const verseSize = Math.round(baseVerse * verseFit);
 
-  const card = enter(frame, 0, 30, 90);
-  const textIn = fade(frame, 14, 30);
+  const synchronized = Boolean(props.recitationDuration && props.recitationDuration > 0);
+  const card = synchronized ? 1 : enter(frame, 0, 30, 90);
+  const textIn = synchronized ? 1 : fade(frame, 14, 30);
   const blur = interpolate(textIn, [0, 1], [8, 0]);
-  const refIn = fade(frame, 40, 16);
-  const meaningIn = fade(frame, 34, 20);
+  const refIn = synchronized ? 1 : fade(frame, 40, 16);
+  const meaningIn = synchronized ? 1 : fade(frame, 34, 20);
   const meaningSize = Math.round(refSize * 1.25);
-  const ornament = enter(frame, 8, 30, 120);
+  const ornament = synchronized ? 1 : enter(frame, 8, 30, 120);
 
   return (
-    <SceneShell {...props} captions={false} durationInFrames={durationInFrames}>
+    <SceneShell {...props} exitFrames={props.recitationDuration ? 0 : undefined} captions={false} durationInFrames={durationInFrames}>
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: verseFit < 1 ? (portrait ? "330px 60px 300px" : "140px 200px 20px") : portrait ? "0 60px 300px" : "0 200px 20px" }}>
         <div
           style={{
@@ -261,11 +263,11 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
   const room = portrait ? 80 : 95;
   const fit = letters > room ? Math.max(0.45, Math.sqrt(room / letters)) : 1;
   const size = Math.round(baseVerse * fit * (portrait ? 1 : 1.08));
-  const inP = fade(frame, 0, 14);
+  const inP = props.recitationDuration && props.recitationDuration > 0 ? 1 : fade(frame, 0, 14);
   const pending = !text.trim() || text === VERSE_PLACEHOLDER;
   const ref = reference.replace(/\s*·\s*/, /[–-]/.test(reference) ? " · الآيتان " : " · الآية ");
   return (
-    <SceneShell {...props} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
+    <SceneShell {...props} exitFrames={props.recitationDuration ? 0 : undefined} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: portrait ? 56 : 44, padding: portrait ? "0 80px 220px" : "0 220px 40px", opacity: inP }}>
         <div style={{ fontFamily: fontFamilies.heading, fontSize: Math.round(refSize * (portrait ? 2.1 : 2.2)), lineHeight: 1.2, color: c.ink, letterSpacing: 0.5 }}>سورة {arabicDigits(ref)}</div>
         <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />
