@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sceneFrames, sceneSeconds } from "../src/plan/duration";
 import { recitationFrameSchedule, recitationSeconds } from "../src/quran/recitationTimeline";
+import { isRecitedVerse } from "../src/remotion/scenes/Episode";
 import type { PlanScene } from "../src/plan/types";
 
 const verse = (durationSec?: number): PlanScene => ({
@@ -44,5 +45,12 @@ describe("Quran recitation synchronized to verse display", () => {
   it("keeps previous silent preview estimates when no recording has been provided", () => {
     const seconds = sceneSeconds(verse(), { voice: {}, recitations: {} });
     expect(seconds).toBeGreaterThan(0);
+  });
+  it("only suppresses transitions where recorded Quran is actually present", () => {
+    const recited = verse();
+    expect(isRecitedVerse(recited, { mode: "url", base: "", voice: {}, sfx: [],
+      recitations: { "1:1": { file: "r.mp3", duration: 2 } } })).toBe(true);
+    expect(isRecitedVerse(recited, { mode: "url", base: "", voice: {}, sfx: [], recitations: {} })).toBe(false);
+    expect(isRecitedVerse(undefined, { mode: "url", base: "", voice: {}, sfx: [], recitations: {} })).toBe(false);
   });
 });
