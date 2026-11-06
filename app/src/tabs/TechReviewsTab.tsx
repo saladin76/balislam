@@ -77,7 +77,7 @@ export const TechReviewsTab: React.FC<{ channel: string }> = ({ channel }) => {
           ))}
         </div>
 
-        {report && report.key === `${r.dir}/${r.id}` ? <article className="guide-page"><Markdown text={report.text} onLink={() => undefined} resolveMedia={(src) => (/^(strips|clips)\/[\w.-]+\.(jpg|mp4)$/.test(src) ? fileUrl(src) : null)} /></article> : null}
+        {report && report.key === `${r.dir}/${r.id}` ? <article className="guide-page"><Markdown text={report.text} onLink={() => undefined} resolveMedia={(src) => (/^((strips|clips)\/[\w.-]+\.(jpg|mp4)|docs\/[\w.-]+\.(pdf|json))$/.test(src) ? fileUrl(src) : null)} /></article> : null}
 
         {r.strips.length ? (
           <details className="treviews-strips">

@@ -13,15 +13,16 @@ import { parseMarkdown } from "../app/src/ui/Markdown";
 const EPS = "channels/dafatir-alzaman/episodes";
 
 describe("المراجعات الفنية", () => {
-  it("مراجعات الأمرين 018 و019 موجودة للحلقة 001 والمختبر 900، وقرار المشرف فارغ", async () => {
+  it("مراجعات الأوامر 018 و019 و020 موجودة، وقرار المشرف فارغ", async () => {
     const list = await listTechReviews(EPS);
     const keys = list.map((r) => `${r.dir}/${r.id}`).sort();
-    expect(keys).toEqual(["001-adam-beginning/018", "001-adam-beginning/019", "900-library-lab/018", "900-library-lab/019"]);
+    expect(keys).toEqual(["001-adam-beginning/018", "001-adam-beginning/019", "001-adam-beginning/020", "900-library-lab/018", "900-library-lab/019"]);
     for (const r of list) {
       expect(r.supervisorDecision).toBeNull();
       expect(r.hasReport).toBe(true);
       expect(r.strips.length).toBeGreaterThan(0);
-      expect(r.clips.length).toBeGreaterThan(0);
+      // ستوري بورد الأمر 020 لوحات وPDF بلا مقاطع؛ مراجعات الفيديو (018، 019) لها مقاطع قبل/بعد
+      if (r.id !== "020") expect(r.clips.length).toBeGreaterThan(0);
     }
   });
 
@@ -56,6 +57,11 @@ describe("المراجعات الفنية", () => {
     expect(await techReviewFilePath(EPS, "../001-adam-beginning", "018", "report.md")).toBeNull();
     expect(await techReviewFilePath(EPS, "001-adam-beginning", "..", "report.md")).toBeNull();
     expect(await techReviewFilePath(EPS, "001-adam-beginning", "018", "report.md")).not.toBeNull();
+    // الأمر 020: PDF الستوري بورد وبياناته تُخدم من docs/ وحدها، ولا شيء غيرهما
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/storyboard-001-v1.pdf")).not.toBeNull();
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/storyboard-001-v1.json")).not.toBeNull();
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/../review.json")).toBeNull();
+    expect(await techReviewFilePath(EPS, "001-adam-beginning", "020", "docs/x.mp4")).toBeNull();
   });
 
   it("لا مراجعات فنية في القناتين الأخريين", async () => {
@@ -72,5 +78,17 @@ describe("المراجعات الفنية", () => {
 
   it("عارض Markdown يقرأ سطر الوسائط صورةً أو فيديو", () => {
     expect(parseMarkdown("![وصف](clips/a.mp4)")).toEqual([{ k: "media", alt: "وصف", src: "clips/a.mp4" }]);
+  });
+
+  it("ستوري بورد الأمر 020: لوحة لكل مشهد من مشاهد الخطة، وPDF وبيانات ببصمة المرجع، وغير معتمد", () => {
+    const dir = path.join(EPS, "001-adam-beginning");
+    const data = JSON.parse(readFileSync(path.join(dir, "tech-reviews/020/docs/storyboard-001-v1.json"), "utf8"));
+    const plan = JSON.parse(readFileSync(path.join(dir, "plan.json"), "utf8"));
+    const ids = plan.chapters.flatMap((c: { scenes: { id: string }[] }) => c.scenes.map((s) => s.id));
+    expect(data.scenes.map((s: { id: string }) => s.id)).toEqual(ids);
+    expect(data.status).toBe("PENDING_REVIEW");
+    expect(data.source.sha256.startsWith("df30cd648bd7e78a")).toBe(true);
+    for (const s of data.scenes) expect(readFileSync(path.join(dir, "tech-reviews/020", s.board)).length).toBeGreaterThan(0);
+    expect(readFileSync(path.join(dir, "tech-reviews/020/docs/storyboard-001-v1.pdf")).subarray(0, 4).toString()).toBe("%PDF");
   });
 });

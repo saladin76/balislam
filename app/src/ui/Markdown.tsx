@@ -144,6 +144,9 @@ export const Markdown: React.FC<{ text: string; onLink: (href: string) => void; 
         case "media": {
           const url = resolveMedia?.(b.src);
           if (!url) return <p key={k} className="muted">[{b.alt || b.src}]</p>;
+          // ملف مرافق (PDF أو JSON): رابط يفتحه في تبويب جديد ويتيح تنزيله كما هو
+          if (/\.(pdf|json)$/i.test(b.src))
+            return <p key={k} className="md-file"><a href={url} target="_blank" rel="noreferrer">{b.alt || b.src}</a></p>;
           return /\.mp4$/i.test(b.src) ? (
             <figure key={k} className="md-media"><video src={url} controls preload="metadata" playsInline /><figcaption>{b.alt}</figcaption></figure>
           ) : (

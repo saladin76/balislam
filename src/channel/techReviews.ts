@@ -24,7 +24,8 @@ export type TechReviewMeta = {
 };
 export type TechReviewSummary = TechReviewMeta & { dir: string; id: string; strips: string[]; clips: string[]; hasReport: boolean };
 
-const OK_FILE = /^(report\.md|strips\/[\w.-]+\.jpg|clips\/[\w.-]+\.mp4)$/;
+/** docs/: ملفات مرافقة للمراجعة تُفتح وتُنزَّل كما هي (PDF الستوري بورد، وبياناته JSON) — الأمر 020 */
+const OK_FILE = /^(report\.md|strips\/[\w.-]+\.jpg|clips\/[\w.-]+\.mp4|docs\/[\w.-]+\.(?:pdf|json))$/;
 
 /** يتحقق من بنية review.json */
 export const techReviewProblems = (m: Partial<TechReviewMeta>): string[] => {

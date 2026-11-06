@@ -560,7 +560,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const rel = parts.slice(3).map((x) => decodeURIComponent(x)).join("/");
     const file: string | null = await rv.techReviewFilePath(episodesDir, parts[1], parts[2] ?? "", rel);
     if (!file) return send(res, 404, { error: "الملف غير موجود في المراجعة" }), true;
-    const type = file.endsWith(".mp4") ? "video/mp4" : file.endsWith(".jpg") ? "image/jpeg" : "text/markdown; charset=utf-8";
+    const type = file.endsWith(".mp4") ? "video/mp4" : file.endsWith(".jpg") ? "image/jpeg" : file.endsWith(".pdf") ? "application/pdf" : file.endsWith(".json") ? "application/json; charset=utf-8" : "text/markdown; charset=utf-8";
     ctx.serveFile(req, res, file, type);
     return true;
   }
