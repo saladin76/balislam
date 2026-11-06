@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 CHANNELS = {"balislam":"bilislam","dafatir-alzaman":"dafatir-alzaman","zubdat-alkutub":"zubdat-al-kutub"}
 ROOT = "studio_drive:Balislam-Studio-Previews"
 SAFE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,100}$")
+KINDS = {"video": ("previews", {".mp4", ".webm"}), "storyboard": ("storyboard", {".md", ".json", ".pdf", ".png", ".jpg", ".jpeg", ".webp"})}
 
 def run(*args):
     result = subprocess.run(args, capture_output=True, text=True)
@@ -47,13 +48,14 @@ def atomic_json(path, data):
 
 def upload(a):
     source = Path(a.file).expanduser().resolve(strict=True)
-    if not source.is_file() or source.suffix.lower() not in (".mp4", ".webm") or not source.stat().st_size:
-        raise ValueError("Expected nonempty completed mp4/webm file")
+    folder, allowed = KINDS[a.kind]
+    if not source.is_file() or source.suffix.lower() not in allowed or not source.stat().st_size:
+        raise ValueError("Expected a nonempty completed file of supported kind")
     for value in (a.episode, a.slot):
         if not SAFE.fullmatch(value) or value in (".", ".."):
             raise ValueError("Unsafe episode or slot")
     channel = CHANNELS[a.channel]
-    cloud = f"{ROOT}/{channel}/episodes/{a.episode}/previews/{a.slot}{source.suffix.lower()}"
+    cloud = f"{ROOT}/{channel}/episodes/{a.episode}/{folder}/{a.slot}{source.suffix.lower()}"
     base = Path(os.environ.get("BAL_PREVIEW_HOME", str(Path.home() / "Balislam-Preview-Sync")))
     base.mkdir(parents=True, exist_ok=True)
     with (base / "preview-cloud.lock").open("a+") as lock:
@@ -77,7 +79,7 @@ def upload(a):
             raise RuntimeError("No preview URL")
         manifest = base / "preview-cloud-index.json"
         index = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
-        key = f"{channel}|{a.episode}|{a.slot}|{source.suffix.lower()[1:]}"
+        key = f"{channel}|{a.episode}|{a.slot}|{source.suffix.lower()[1:]}" if a.kind == "video" else f"{channel}|{a.episode}|storyboard|{a.slot}|{source.suffix.lower()[1:]}"
         index[key] = {"remote":cloud,"url":url,"md5":digest,"updated":datetime.now(timezone.utc).isoformat()}
         atomic_json(manifest, index)
         lines = ["# Balislam Studio - Live Previews", "", "Updated: "+datetime.now(timezone.utc).isoformat(), ""]
@@ -103,6 +105,7 @@ def main():
     p.add_argument("--channel", required=True, choices=CHANNELS.keys())
     p.add_argument("--episode", required=True)
     p.add_argument("--slot", required=True)
+    p.add_argument("--kind", choices=KINDS.keys(), default="video")
     p.set_defaults(action=upload)
     p = sub.add_parser("cleanup-report")
     p.add_argument("--publish-json", required=True)
