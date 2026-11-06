@@ -40,6 +40,24 @@ Use the verified interpreter from `$HOME/Balislam-Preview-Sync/verified-python-p
 
 The slot must be reused for the same logical scene so updates replace older content. Different portrait/landscape clips must use distinct slots.
 
+## Two-agent production handoff
+
+Each channel has a Claude implementation conversation and a ChatGPT review conversation. The owner relays approvals and execution reports; no upload is an approval.
+
+After successful Mac setup, Claude can upload from **any active worktree**, using an explicit, finished video or storyboard source:
+
+    "$HOME/Balislam-Preview-Sync/studio-handoff.sh" upload --file /absolute/path/scene.mp4 --kind video --channel balislam --episode 001-know-the-truth --slot scene-c1-s1
+
+    "$HOME/Balislam-Preview-Sync/studio-handoff.sh" upload --file /absolute/path/board.pdf --kind storyboard --channel balislam --episode 001-know-the-truth --slot visual-board
+
+The hook returns VERIFIED, LINK and HANDOFF. The HANDOFF is a **local review report** under `$HOME/Balislam-Preview-Sync/handoffs/<channel>/<episode>.md`; Claude may copy its content into its execution reply to the owner. Reports contain only links to successful uploads for that channel/episode, timestamps and checksum metadata, plus a PENDING review flag. Execution/testing notes still need to be supplied by Claude.
+
+For regenerating the report without upload:
+
+    "$HOME/Balislam-Preview-Sync/studio-handoff.sh" handoff --channel balislam --episode 001-know-the-truth
+
+The shared wrapper is available from any worktree after installation, but it does **not** automatically intercept external/CLI renders launched by Claude unless those workflows explicitly call it after completion. The legacy scanner remains disabled. Never upload copyrighted/restricted recitations or sensitive files via this link-sharing mechanism without proper authorization.
+
 ## Important limitations
 
 - Upload after render is integrated with the bal render CLI only. Other preview workflows are not automatically integrated.
