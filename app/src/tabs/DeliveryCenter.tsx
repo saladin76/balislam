@@ -19,7 +19,7 @@ export const DeliveryCenter: React.FC<{ onOpenEpisode?: (channel: string, episod
   const [selected, setSelected] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const refresh = useCallback(() => {
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setCopied(false);
     api.studioTransfers().then(setOverview).catch((e: Error) => setError(e.message)).finally(() => setLoading(false));
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
@@ -60,11 +60,11 @@ export const DeliveryCenter: React.FC<{ onOpenEpisode?: (channel: string, episod
       </div>
     </section>}
     <div className="delivery-toolbar">
-      <label>القناة <select value={filter} onChange={(e) => { setFilter(e.target.value); setSelected([]); }}>
+      <label>القناة <select value={filter} onChange={(e) => { setFilter(e.target.value); setSelected([]); setCopied(false); }}>
         <option value="all">جميع القنوات</option>
         {Object.entries(CHANNELS).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
       </select></label>
-      <label>البحث <input type="search" value={query} placeholder="رقم الحلقة أو اسم الخانة" onChange={(e) => setQuery(e.target.value)} /></label>
+      <label>البحث <input type="search" value={query} placeholder="رقم الحلقة أو اسم الخانة" onChange={(e) => { setQuery(e.target.value); setCopied(false); }} /></label>
       <span className="delivery-count">{deliveries.length} ملف</span>
     </div>
     {loading ? <p role="status" className="delivery-empty">جارٍ قراءة التسليمات…</p> : deliveries.length === 0 ?
@@ -72,7 +72,7 @@ export const DeliveryCenter: React.FC<{ onOpenEpisode?: (channel: string, episod
       <div className="delivery-list">{deliveries.map((d) => <article key={d.id} className="delivery-item">
         <div className="delivery-item-top">
           <label><input type="checkbox" checked={selected.includes(d.id)} aria-label={"تحديد " + d.slot}
-            onChange={(e) => setSelected((old) => e.target.checked ? [...old, d.id] : old.filter((id) => id !== d.id))} />
+            onChange={(e) => { setSelected((old) => e.target.checked ? [...old, d.id] : old.filter((id) => id !== d.id)); setCopied(false); }} />
             <span>{d.kind === "video" ? "فيديو" : "Storyboard"}</span></label>
           <span className="delivery-state">تم الرفع · بانتظار المراجعة</span>
         </div>

@@ -127,6 +127,19 @@ export const processTree = (pid: number): ProcTree => {
 export const treeRssMB = (pid: number) => processTree(pid).rssMB;
 /** وقت بدء العملية (للتمييز بين عملية قديمة ورقم أُعيد استعماله) */
 const procStart = (pid: number): string | null => {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return null;
+  if (process.platform === "darwin") {
+    // macOS has no /proc. lstart identifies the process incarnation rather than PID alone.
+    // Never kill a recovered PID unless its recorded start time still matches.
+    try {
+      const started = execFileSync("/bin/ps", ["-p", String(pid), "-o", "lstart="], {
+        encoding: "utf8", timeout: 1500, stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      return started ? `darwin:${started}` : null;
+    } catch {
+      return null;
+    }
+  }
   try {
     const st = readFileSync(`/proc/${pid}/stat`, "utf8");
     return st.slice(st.lastIndexOf(")") + 2).split(" ")[19] ?? null;
