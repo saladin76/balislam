@@ -24,7 +24,41 @@ Claude sessions may run in two different environments, and this must be reported
 
 **Cloud Claude (no Mac access):** It must not pretend that `$HOME/Balislam-Preview-Sync`, `rclone studio_drive`, or Mac secrets are available. It should verify the existing artifact/Studio preview, provide commit/path/checksum and its review report, then mark cloud handoff as `PENDING_TRANSFER`. Do not install or export Mac credentials to the cloud, and do not switch to an unrelated uploader while claiming to have tested this system. A pre-existing Drive link can be referenced as prior evidence but never presented as a new successful transfer.
 
-**Planned unattended bridge:** An authenticated, explicitly authorized Mac-side job consumer can poll a narrow GitHub handoff manifest (not scan worktree mtimes), retrieve *only* exact immutable commit+repository-path artifacts, confirm content hashes and allowed channel/episode/slot, and invoke the existing uploader. It must refuse credentials/secrets, arbitrary paths, unknown channels, and changes to protected media. This bridge is NOT implemented or enabled yet; Cloud Claude cannot automatically trigger an upload to the owner's Mac at present. Cloud-only agents can operate with the prior verified Drive links, but end-to-end new delivery remains pending until bridge/local connection is verified.
+**GitHub-to-Mac bridge:** A guarded Mac consumer and a dedicated empty GitHub queue are implemented on the unmerged development branch (details below). Automatic polling is **not** enabled; a real queued artifact and verified end-to-end delivery are still pending. Cloud agents must not claim success until the Mac uploader returns its verified link.
+
+## GitHub-to-Mac bridge: implemented, NOT scheduled
+
+An empty queue has been initialized on the dedicated GitHub branch `studio-handoff-queue` at `studio-handoff/queue.json`. This branch does not modify `main`. The Mac-side consumer is `scripts/studio-handoff-bridge.py`, shipped in the protected local installer branch. It only reads the named queue from `origin/studio-handoff-queue`, validates every request, extracts the content of an exact **reachable Git commit** and path, verifies SHA-256, then passes the resulting immutable bytes to the existing checked uploader. It never runs scripts from the queue and never scans folders.
+
+Example request (for documentation only; no real artifact is requested yet):
+
+```json
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "review-001-scene-a-v1",
+      "channel": "balislam",
+      "episode": "001-know-the-truth",
+      "slot": "scene-a",
+      "kind": "video",
+      "commit": "FULL_40_CHARACTER_GIT_COMMIT_HASH",
+      "path": "channels/balislam/episodes/001-know-the-truth/previews/scene-a.mp4",
+      "sha256": "FULL_64_CHARACTER_FILE_SHA256"
+    }
+  ]
+}
+```
+
+The example is **not valid until hashes are replaced with genuine values**. The specified commit must be a reachable ancestor of `studio-handoff-queue`; the file must be committed as a regular Git file and actually exist in that commit. A Claude session without Mac access can publish an authorized, exact artifact into the queue branch and append the job, but must report `PENDING_TRANSFER` until a Mac run reports `DELIVERED` with a verified link. It must not expose secrets or include restricted audio. For large videos, Git LFS pointers cannot stand in for actual Git blobs: currently unsupported; the bridge rejects checksum mismatches.
+
+Run **read-only transfer dry-run** after installer:
+
+```bash
+/opt/homebrew/bin/python3 "$HOME/balislam-cloud-preview-ready/scripts/studio-handoff-bridge.py" --fetch --dry-run
+```
+
+On the initial empty queue, expected: `BRIDGE_OK DRY_RUN 0 jobs`. This fetches only the named Git branch and validates queue structure, **without uploading**. To apply after a user-reviewed job is placed in the queue, omit `--dry-run`; currently there is deliberately no LaunchAgent or background schedule. The installer never activates one. Every verified job is recorded under `$HOME/Balislam-Preview-Sync/bridge-delivered.json`, enabling idempotent runs. The bridge is not an access-control boundary against malicious GitHub writers who can push to the queue branch; restrict branch write permissions before unattended automation.
 
 ## Artifact policy
 - Videos and storyboard artifacts use separate Drive folders and each logical slot replaces its previous version. Revisions do not create duplicate revision-named cloud objects.
