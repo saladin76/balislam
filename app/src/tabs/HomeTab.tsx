@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, type Overview } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
+import "./ReleaseReadiness.css";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
@@ -26,6 +27,7 @@ export const stagesOf = (e: Overview): Stage[] => {
 };
 
 const nextStep = (e: Overview): { text: string; tab: "script" | "episode" | "publish" } => {
+  if (e.status.published) return { text: "منشورة", tab: "publish" };
   const s = stagesOf(e);
   if (s[0]!.state !== "done") return { text: "أصلح أخطاء السكريبت", tab: "script" };
   if (s[1]!.state !== "done") return { text: "راجع المشاهد وأكمل الناقص", tab: "episode" };
