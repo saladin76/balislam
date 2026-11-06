@@ -106,6 +106,33 @@ class TestPreviewSafety(unittest.TestCase):
             self.assertIn("dafatir-alzaman|001-adam-beginning|storyboard|review-sheet|md", index)
             self.assertTrue(source.is_file())
 
+    def test_handoff_keeps_channels_separate_and_pending(self):
+        index = {
+            "bilislam|001|scene|mp4": {
+                "url":"https://drive.google.com/a", "md5":"abc", "updated":"2026-11-06"},
+            "dafatir-alzaman|001|storyboard|review-sheet|md": {
+                "url":"https://drive.google.com/b", "md5":"def", "updated":"2026-11-06"}
+        }
+        handoff = module.make_handoff(index, "bilislam", "001")
+        self.assertIn("https://drive.google.com/a", handoff)
+        self.assertNotIn("https://drive.google.com/b", handoff)
+        self.assertIn("PENDING", handoff)
+        self.assertNotIn("Review status: APPROVED", handoff)
+
+    def test_handoff_report_from_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            (base / "preview-cloud-index.json").write_text(json.dumps({
+                "bilislam|001|scene|mp4": {
+                    "url":"https://drive.google.com/a", "md5":"abc", "updated":"2026-11-06"}
+            }))
+            args = type("Args", (), {"channel":"balislam", "episode":"001"})
+            with mock.patch.dict(os.environ, {"BAL_PREVIEW_HOME":tmp}):
+                module.handoff_report(args())
+            report = base / "handoffs" / "bilislam" / "001.md"
+            self.assertTrue(report.exists())
+            self.assertIn("ChatGPT", report.read_text())
+
     def test_checksum_failure_never_publishes_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "video.mp4"
