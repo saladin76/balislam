@@ -1,10 +1,11 @@
 import { SocialKit } from "./SocialKit";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
+import type { ReleaseEvidence } from "../../server/releaseEvidence";
 
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
-  { id: "watched", group: "قبل الرفع", text: "شاهدت الحلقة كاملة والشورتس الستة إلى آخر ثانية" },
+  { id: "watched", group: "قبل الرفع", text: "شاهدت النسخة النهائية كاملة بالسرعة الطبيعية، والشورتس إن وُجدت" },
   { id: "review", group: "قبل الرفع", text: "المراجع الشرعي وافق على كل آية وحديث" },
   { id: "pronunciation", group: "قبل الرفع", text: "لا أخطاء نطق (وإن وُجدت: قاموس النطق ثم إعادة المشهد فقط)" },
   { id: "upload", group: "يوتيوب ستوديو", text: "رفعت الفيديو والصورة المصغّرة" },
@@ -64,12 +65,14 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const [jobs, setJobs] = useState<LongJob[]>([]);
   const [showLog, setShowLog] = useState(false);
   const [err, setErr] = useState("");
+  const [releaseGate, setReleaseGate] = useState<ReleaseEvidence | null>(null);
   const job = jobs.find((j) => j.episode === episodeId);
   const running = job?.status === "running";
 
   const reload = useCallback(() => {
     api.packageInfo(episodeId).then(setPkg).catch(() => setPkg({ files: [], youtube: "", checklist: "" }));
     api.status(episodeId).then(setStatus).catch(() => {});
+    api.overview().then((list) => setReleaseGate(list.find((e) => e.id === episodeId)?.release ?? null)).catch(() => setReleaseGate(null));
   }, [episodeId]);
   useEffect(reload, [reload]);
   useEffect(() => {
@@ -102,7 +105,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
 
   const saveStatus = (s: EpisodeStatus) => {
     setStatus(s);
-    api.saveStatus(episodeId, s).then(onChanged).catch((e) => setErr((e as Error).message));
+    api.saveStatus(episodeId, s).then(() => { reload(); onChanged(); }).catch((e) => setErr((e as Error).message));
   };
 
   const yt = useMemo(() => parseYoutube(pkg?.youtube ?? ""), [pkg?.youtube]);
@@ -115,6 +118,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   // الاعتماد صالح ما دام ملف الحلقة نفسه (أي رندر جديد يلغيه)
   const approved = Boolean(video && status.approved && status.approved.size === video.size && Math.abs(status.approved.mtime - video.mtime) < 1);
   const checked = status.checklist ?? {};
+  const preApprovalBlockers = releaseGate?.blockers.filter((b) => !b.startsWith("اعتماد المالك")) ?? ["فحص الجاهزية غير متاح"];
+  const canApprove = Boolean(isMaster && !running && preApprovalBlockers.length === 0);
   const doneCount = CHECKLIST.filter((c) => checked[c.id]).length;
   const groups = [...new Set(CHECKLIST.map((c) => c.group))];
 
@@ -170,8 +175,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
               ) : (
                 <button
                   className="btn small"
-                  disabled={!isMaster || running}
-                  title={isMaster ? "" : "الاعتماد للنسخة النهائية بأعلى جودة وبصوت كامل فقط"}
+                  disabled={!canApprove}
+                  title={canApprove ? "" : "راجع الموانع والمشاهدة والمصادر والنطق قبل اعتماد النسخة النهائية"}
                   onClick={() => window.confirm("هل شاهدت النسخة الأساسية كاملة وتعتمدها؟ بعد الاعتماد تُصنع منها الشورتس والريلز.") && saveStatus({ ...status, approved: { at: new Date().toISOString(), size: video.size, mtime: video.mtime } })}
                 >
                   اعتمد النسخة الأساسية
@@ -263,9 +268,9 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                   <button className="btn small" onClick={() => window.confirm("إلغاء تسجيل النشر لهذه الحلقة؟") && saveStatus({ ...status, published: undefined })}>تراجع</button>
                 </>
               ) : (
-                <PublishForm disabled={!checked.watched} onSave={(p) => saveStatus({ ...status, published: p })} />
+                <PublishForm disabled={!releaseGate?.ready} onSave={(p) => saveStatus({ ...status, published: p })} />
               )}
-              {!checked.watched && !status.published ? <span className="help">علّم «شاهدت الحلقة كاملة» أولًا.</span> : null}
+              {!releaseGate?.ready && !status.published ? <div className="release-blockers"><strong>النشر غير متاح قبل اكتمال الاعتماد.</strong><ul>{(releaseGate?.blockers ?? ["فحص الجاهزية غير متاح"]).slice(0, 6).map((b, i) => <li key={i}>{b}</li>)}</ul></div> : null}
             </div>
           </section>
         </div>
