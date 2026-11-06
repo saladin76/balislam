@@ -13,7 +13,8 @@ const render = (options: Partial<React.ComponentProps<typeof StudioSidebar>> = {
 describe("تنقل الاستوديو", () => {
   it("keeps every unconditional destination visible and identifies the active page", () => {
     const html = render({ active: "settings" });
-    for (const text of ["الحلقات وغرفة العمليات", "مكتبة الأصول والقوالب", "الهوية البصرية", "إعدادات القناة", "الاتصالات والمفاتيح"]) expect(html).toContain(text);
+    for (const text of ["الحلقات", "غرفة العمليات", "مركز التسليمات", "مكتبة الأصول والقوالب", "الهوية البصرية", "إعدادات القناة", "الاتصالات والمفاتيح"]) expect(html).toContain(text);
+    expect(html).not.toContain("الحلقات وغرفة العمليات");
     expect(html).toMatch(/aria-current="page"[^>]*>.*?الاتصالات والمفاتيح/s);
     expect(html).toContain('aria-label="الأقسام الرئيسية للاستوديو"');
     expect(html).not.toContain('type="submit"');
