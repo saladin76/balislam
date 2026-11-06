@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from "vitest";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { REPO_LOCATING_GIT_VARS, childEnv, cleanGitEnv, scrubProcessGitEnv } from "../scripts/git-env.mjs";
@@ -49,6 +49,7 @@ describe("عزل بيئة Git للعمليات الفرعية", () => {
     for (const k of REPO_LOCATING_GIT_VARS) expect(e[k]).toBeUndefined();
     expect(e).toMatchObject({ GIT_CONFIG_COUNT: "1", GIT_SSL_CAINFO: "/ca", GIT_TERMINAL_PROMPT: "0", PATH: "/bin" });
     expect(childEnv({ CI: "1" }, { GIT_DIR: "/x", HOME: "/h" })).toEqual({ HOME: "/h", CI: "1" });
+    expect(childEnv({ GIT_DIR: "/malicious/.git", GIT_WORK_TREE: "/malicious", CI: "1" }, { HOME: "/h" })).toEqual({ HOME: "/h", CI: "1" });
     const p: NodeJS.ProcessEnv = { GIT_DIR: "/x", GIT_PREFIX: "", HOME: "/h" };
     expect(scrubProcessGitEnv(p).sort()).toEqual(["GIT_DIR", "GIT_PREFIX"]);
     expect(p).toEqual({ HOME: "/h" });
@@ -66,6 +67,34 @@ describe("عزل بيئة Git للعمليات الفرعية", () => {
     const r = setup(`T="$(dirname "$(git rev-parse --git-common-dir)")/../other"; node -e '${probe}' "$T"`);
     expect(r.after).toBe(r.before);
     expect(existsSync(path.join(r.target, ".git"))).toBe(true);
+  });
+
+  it("npm prepare from a linked worktree leaves original Git config, stash and branches untouched", () => {
+    const base = tmp("git-hooks-linked-");
+    const primary = path.join(base, "primary");
+    const linked = path.join(base, "preview-wt");
+    git(base, "init", "-q", "-b", "main", primary);
+    git(primary, "commit", "-q", "--allow-empty", "-m", "start");
+    git(primary, "worktree", "add", "-q", "-b", "preview", linked);
+    mkdirSync(path.join(linked, "scripts"), { recursive: true });
+    mkdirSync(path.join(linked, ".githooks"), { recursive: true });
+    writeFileSync(path.join(linked, ".githooks", "pre-push"), "#!/bin/sh\\nexit 0\\n");
+    for (const name of ["install-hooks.mjs", "git-env.mjs"])
+      writeFileSync(path.join(linked, "scripts", name),
+        readFileSync(path.join(root, "scripts", name), "utf8"));
+    const configuration = path.join(primary, ".git", "config");
+    const configBefore = readFileSync(configuration, "utf8");
+    const branchesBefore = git(primary, "for-each-ref", "--format=%(refname):%(objectname)", "refs/heads");
+    const stashBefore = git(primary, "stash", "list", "--format=%H");
+    const run = spawnSync(process.execPath, [path.join(linked, "scripts", "install-hooks.mjs")], {
+      cwd: linked, encoding: "utf8", env: cleanGitEnv({ ...process.env, GIT_DIR: path.join(primary, ".git") }),
+    });
+    expect(run.status, run.stderr).toBe(0);
+    expect(run.stdout).toContain("skipping shared Git hook configuration");
+    expect(readFileSync(configuration, "utf8")).toBe(configBefore);
+    expect(git(primary, "for-each-ref", "--format=%(refname):%(objectname)", "refs/heads")).toBe(branchesBefore);
+    expect(git(primary, "stash", "list", "--format=%H")).toBe(stashBefore);
+    expect(git(primary, "rev-parse", "--is-bare-repository")).toBe("false");
   });
 
   it("البوابة وكل ما يشغّل git في المشروع لا يورّث process.env كما هو", () => {
