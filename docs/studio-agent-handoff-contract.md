@@ -16,6 +16,16 @@ This protocol is for the three independent channels: `balislam`, `dafatir-alzama
 6. **ChatGPT** reviews the linked storyboard/preview and the implementer's report, and sends one unambiguous corrective directive per iteration. Distinguish an actual continuous realtime playback review from frame-only or sampled review. Do not equate passing code checks with visual approval.
 7. Owner transfers reports/decisions between conversations and makes final approval decisions.
 
+## Execution environments and transfer boundary
+
+Claude sessions may run in two different environments, and this must be reported honestly.
+
+**Local Mac-connected Claude:** When the session has authorized access to the owner's Mac, Claude can call the installed `$HOME/Balislam-Preview-Sync/studio-handoff.sh` directly with the exact finished file path. Treat the `VERIFIED` / `LINK` / `HANDOFF` output as proof of transfer, not visual approval.
+
+**Cloud Claude (no Mac access):** It must not pretend that `$HOME/Balislam-Preview-Sync`, `rclone studio_drive`, or Mac secrets are available. It should verify the existing artifact/Studio preview, provide commit/path/checksum and its review report, then mark cloud handoff as `PENDING_TRANSFER`. Do not install or export Mac credentials to the cloud, and do not switch to an unrelated uploader while claiming to have tested this system. A pre-existing Drive link can be referenced as prior evidence but never presented as a new successful transfer.
+
+**Planned unattended bridge:** An authenticated, explicitly authorized Mac-side job consumer can poll a narrow GitHub handoff manifest (not scan worktree mtimes), retrieve *only* exact immutable commit+repository-path artifacts, confirm content hashes and allowed channel/episode/slot, and invoke the existing uploader. It must refuse credentials/secrets, arbitrary paths, unknown channels, and changes to protected media. This bridge is NOT implemented or enabled yet; Cloud Claude cannot automatically trigger an upload to the owner's Mac at present. Cloud-only agents can operate with the prior verified Drive links, but end-to-end new delivery remains pending until bridge/local connection is verified.
+
 ## Artifact policy
 - Videos and storyboard artifacts use separate Drive folders and each logical slot replaces its previous version. Revisions do not create duplicate revision-named cloud objects.
 - `plan.json` is a *plan*, not an approved storyboard. `storyboard.json` is a state/approval record, not visual storyboard frames. A PDF/PNG visual board must exist before claiming visual-board delivery.
@@ -30,7 +40,7 @@ This protocol is for the three independent channels: `balislam`, `dafatir-alzama
 - Real video and real `plan.json` upload: **passed**.
 - Actual visual storyboard frames upload: **not yet tested**.
 - Cloud overwrite/ID stability on an edited real slot: **passed on owner's Mac** (2026-11-06). Real uploads of synthetic JSON revisions 1 and 2 verified MD5, one remote file, and unchanged sharing URL `https://drive.google.com/open?id=1xCDBR1is6z5H9KSiR9a48Z26rgDLSRQf`.
-- Automated trigger from actual Claude production render flows and full workflow review: **not yet verified**.
+- Automated trigger from actual Claude production render flows and full workflow review: **not yet verified**. First Claude cloud session confirmed it cannot reach Mac's rclone or shared uploader; it appropriately reported no new upload.
 - Main branch merge: **not approved**.
 
 Do not issue permanent per-chat instruction templates until these rollout gates are resolved; the owner has requested a final operational message for each of the 3 ChatGPT reviewer conversations and 3 Claude implementer conversations.
