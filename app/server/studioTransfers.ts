@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 
 const CHANNELS: Record<string, string> = {
@@ -99,8 +100,15 @@ const readQueuedJobs = async (delivered: unknown): Promise<StudioPendingJob[]> =
       if (![v.id, v.channel, v.episode, v.slot].every((x) => typeof x === "string" && SAFE.test(x))) return [];
       if (v.kind !== "video" && v.kind !== "storyboard") return [];
       if (!["balislam", "dafatir-alzaman", "zubdat-alkutub"].includes(v.channel as string)) return [];
+      // The Python consumer fingerprints sorted JSON with default json.dumps spacing.
+      // Compare the full job, not just its ID: a modified request cannot inherit
+      // an earlier successful delivery in the review UI.
+      const canonical = "{" + Object.keys(v).sort().map((key) =>
+        JSON.stringify(key) + ": " + JSON.stringify(v[key])).join(", ") + "}";
+      const fingerprint = createHash("sha256").update(canonical).digest("hex");
+      const delivered = done[v.id as string] === fingerprint;
       return [{ id: v.id as string, channel: v.channel as string, episode: v.episode as string,
-        slot: v.slot as string, kind: v.kind, state: typeof done[v.id as string] === "string" ? "delivered" as const : "waiting_for_mac" as const }];
+        slot: v.slot as string, kind: v.kind, state: delivered ? "delivered" as const : "waiting_for_mac" as const }];
     });
   } catch {
     return [];
