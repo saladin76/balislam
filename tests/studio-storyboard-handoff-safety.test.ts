@@ -17,6 +17,13 @@ describe("storyboard-only handoff safety contract", () => {
     expect(script).toContain("1wiFhT_4u98hLMpJQQwk1TUvNft54pMbp");
     expect(script).not.toMatch(/\bpreview[s]?\/episode\.mp4|\b--kind video|\bvoice\/|\brender\b/i);
   });
+  it("checks the existence of all 4 sources before any upload is permitted", () => {
+    const preflight = script.indexOf("# Preflight the ENTIRE versioned source batch");
+    const remoteWrite = script.indexOf('rclone copyto "$SOURCE" "$TARGET"');
+    expect(preflight).toBeGreaterThan(-1);
+    expect(remoteWrite).toBeGreaterThan(preflight);
+    expect(script.slice(preflight, remoteWrite)).toContain("PRECHECK_FAILED");
+  });
   it("never truncates an old delivery log or overwrites remote version slots", () => {
     expect(script).toContain('>> "$LOG"');
     expect(script).toContain('--ignore-existing');
