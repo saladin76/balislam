@@ -3,6 +3,7 @@ import { assessReleaseEvidence, type ReleaseEvidenceInput } from "../app/server/
 import { statusTransitionError } from "../app/server/releaseStatusTransition";
 import { stagesOf } from "../app/src/tabs/HomeTab";
 import { stageOf } from "../app/src/tabs/OpsRoom";
+import { releaseHandoffReport } from "../app/src/tabs/releaseHandoff";
 import type { Overview } from "../app/src/api";
 
 const valid = (): ReleaseEvidenceInput => ({
@@ -136,5 +137,25 @@ describe("Studio localhost status transitions cannot bypass release gates", () =
     const previous = { approved: approval, published: { date: "2026-11-05" } };
     expect(statusTransitionError(previous, {}, null, null)).toBe(null);
     expect(statusTransitionError(previous, previous, null, null)).toBe(null);
+  });
+});
+
+describe("Studio reviewer/Claude local evidence handoff", () => {
+  it("copies blockers and counts without turning delivery into owner approval", () => {
+    const i = valid();
+    i.sceneReview.done = 1;
+    i.ownerApprovalMatches = false;
+    const report = releaseHandoffReport("زبدة الكتب", "001", "أول مرة أصلي", assessReleaseEvidence(i));
+    expect(report).toContain("زبدة الكتب");
+    expect(report).toContain("001");
+    expect(report).toContain("المشاهد المعتمدة: 1/2");
+    expect(report).toContain("غير مكتملة");
+    expect(report).toContain("اعتماد المالك للملف: غير مثبت");
+    expect(report).toContain("ليس");
+  });
+  it("does not assume ready when the local evidence API is unavailable", () => {
+    const report = releaseHandoffReport("بالإسلام", "001", "اختبار", null);
+    expect(report).toContain("بيانات الجاهزية غير متاحة");
+    expect(report).toContain("غير مكتملة");
   });
 });
