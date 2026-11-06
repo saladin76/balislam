@@ -82,7 +82,6 @@ def upload(a):
         index = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
         key = f"{channel}|{a.episode}|{a.slot}|{source.suffix.lower()[1:]}" if kind == "video" else f"{channel}|{a.episode}|storyboard|{a.slot}|{source.suffix.lower()[1:]}"
         index[key] = {"remote":cloud,"url":url,"md5":digest,"updated":datetime.now(timezone.utc).isoformat()}
-        atomic_json(manifest, index)
         handoff = write_handoff(base, index, channel, a.episode)
         # A stable per-episode review handoff accessible to cloud reviewers.
         # No credentials or original media are stored in this text-only report.
@@ -93,6 +92,8 @@ def upload(a):
         handoff_url = run("rclone", "link", handoff_cloud)
         if not handoff_url.startswith("https://"):
             raise RuntimeError("No handoff URL")
+        # Publish local manifest only after artifact AND handoff are verified.
+        atomic_json(manifest, index)
         lines = ["# Balislam Studio - Live Previews", "", "Updated: "+datetime.now(timezone.utc).isoformat(), ""]
         for name, item in sorted(index.items()):
             lines.append("- [" + name.replace("|", " / ") + "](" + item["url"] + ")")
