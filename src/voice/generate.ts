@@ -126,10 +126,6 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
   if (opts.dryRun) return report;
-  // Explicit tone decisions precede paid audio production. The existing
-  // ignoreStoryboard maintenance override remains separate from normal workflow.
-  if (todo.length && report.missingTones.length && !opts.ignoreStoryboard)
-    throw new Error(`حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`);
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
@@ -138,6 +134,9 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     const blocked = unapprovedScenes(sb, todo.map((j) => j.id));
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
   }
+  // After storyboard approval, require per-scene tone before spending on voice.
+  if (todo.length && report.missingTones.length && !opts.ignoreStoryboard)
+    throw new Error(`حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`);
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)
   if (todo.length && opts.client?.voiceInfo) {
