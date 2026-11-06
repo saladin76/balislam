@@ -25,6 +25,17 @@ SECOND="$("$UPLOADER" upload --kind storyboard --file "$SOURCE" --channel "$CHAN
 printf '%s\n' "$SECOND"
 URL2="$(printf '%s\n' "$SECOND" | sed -n 's/^LINK //p' | tail -n 1)"
 test -n "$URL2" || { echo "ERROR: no second link"; exit 1; }
+HANDOFF1="$(printf '%s\n' "$FIRST" | sed -n 's/^HANDOFF_LINK //p' | tail -n 1)"
+HANDOFF2="$(printf '%s\n' "$SECOND" | sed -n 's/^HANDOFF_LINK //p' | tail -n 1)"
+test -n "$HANDOFF1" && test -n "$HANDOFF2" || {
+  echo "ERROR: no stable cloud Handoff report link"
+  exit 1
+}
+test "$HANDOFF1" = "$HANDOFF2" || {
+  echo "ERROR: Handoff report URL changed between uploads"
+  exit 1
+}
+
 COUNT="$(rclone lsf "$REMOTE/" --files-only | grep -Fc "$SLOT.json" || true)"
 test "$COUNT" -eq 1 || { echo "ERROR: expected exactly one file in test slot; got $COUNT"; exit 1; }
 if [ "$URL1" != "$URL2" ]; then
@@ -35,4 +46,5 @@ if [ "$URL1" != "$URL2" ]; then
 fi
 echo "=== REAL OVERWRITE VERIFIED: SAME LINK, ONE FILE, CHECKSUMS MATCH ==="
 echo "TEST URL: $URL2"
+echo "HANDOFF URL: $HANDOFF2"
 echo "Production video and storyboard files were not changed."
