@@ -4,9 +4,9 @@ This replaces the unsafe global Mac worktree scanner with an explicit post-rende
 
 ## Features
 
-- Only a successful preview render from `bal render`, or a successfully committed `putPreview` studio slot, triggers uploading.
+- Successful `bal render` previews, committed video preview slots, and saved storyboard approvals/revocations trigger the same opt-in upload service.
 - Disabled by default: set BAL_PREVIEW_CLOUD_AUTO=1 to enable after verification.
-- A fixed Drive key per channel / episode / orientation / chapter overwrites that preview slot.
+- Stable Drive keys are grouped by channel / episode / type / slot: `previews/` for MP4/WebM, `storyboard/` for storyboard approval JSON and readable Markdown. Image/PDF storyboard artifacts can also be uploaded explicitly.
 - MD5 verification is required before publishing a preview link.
 - Maintains a deduplicated production-preview-index.md separate from the legacy preview-index.md.
 - Does NOT scan or delete Git worktrees or local media.
@@ -32,6 +32,12 @@ For any explicit completed MP4 or WebM within the installed worktree, run:
 
    python3 scripts/studio-preview-cloud.py upload --file /absolute/path/video.mp4 --channel balislam --episode 001-know-the-truth --slot scene-c1-s1
 
+For a manually produced storyboard image, PDF or document, use the same uploader with `--kind storyboard`:
+
+    /opt/homebrew/bin/python3 scripts/studio-preview-cloud.py upload --kind storyboard --file /absolute/path/storyboard.pdf --channel dafatir-alzaman --episode 001-adam-beginning --slot storyboard-final
+
+Use the verified interpreter from `$HOME/Balislam-Preview-Sync/verified-python-path.txt` if the example path differs. The auto-hook uploads approved storyboard **text/metadata**, not a rendered gallery of storyboard frames. Such PNG/PDF panels must be generated first and explicitly passed to the uploader.
+
 The slot must be reused for the same logical scene so updates replace older content. Different portrait/landscape clips must use distinct slots.
 
 ## Important limitations
@@ -44,6 +50,8 @@ The slot must be reused for the same logical scene so updates replace older cont
 - If an upload errors after replacing cloud data, the index is not updated; the previous remote object may already have changed. Local original is never deleted.
 - Google Drive may retain deleted items or old revisions in its storage accounting.
 - Audio review slots ending in `-audio` are skipped; do not use the tool to upload externally restricted recitations.
+- Storyboard approvals and revocations write `storyboard-review.md` locally, but the uploader only transfers when `BAL_PREVIEW_CLOUD_AUTO=1`.
+- Storyboard JSON/Markdown are review records, not graphic frames. Only explicitly produced image/PDF storyboard assets can be transferred as visual files.
 - Running rclone link may grant link-based access. Do not upload sensitive or unpublished footage unless this sharing mode is acceptable.
 - OAuth testing tokens may expire; monitor auth failures and use approved Google OAuth settings.
 - Cleanup-report ONLY validates evidence and never deletes Mac files. Local cleanup is not automated until exact per-episode ownership, immutable final backup, approval and verified publication are implemented.
