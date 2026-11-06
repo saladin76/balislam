@@ -38,6 +38,16 @@ SOURCE_FILES=(
   "storyboard-001-v1.1.json"
 )
 
+# Preflight the ENTIRE versioned source batch before any network write.
+# A missing later file must never leave a partial delivery of earlier files.
+for NAME in "${SOURCE_FILES[@]}"; do
+  SOURCE="$DOCS/$NAME"
+  [[ -f "$SOURCE" && -s "$SOURCE" && ! -L "$SOURCE" ]] || {
+    echo "PRECHECK_FAILED: Missing, empty or symlink source: $SOURCE" >&2
+    exit 1
+  }
+done
+
 # An exact Google Drive ID avoids duplicate "episodes" folder ambiguity.
 DRIVE_ARGS=(--drive-root-folder-id "$FOLDER_ID")
 if ! REMOTE_FILES="$(rclone lsf "$REMOTE:" "${DRIVE_ARGS[@]}" --files-only 2>&1)"; then
