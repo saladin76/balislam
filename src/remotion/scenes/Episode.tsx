@@ -4,6 +4,7 @@ import { Audio, Sequence, Series, staticFile, type CalculateMetadataFunction } f
 import config from "../../../config.json";
 import type { Plan, PlanChapter, PlanScene } from "../../plan/types";
 import { sceneFrames } from "../../plan/duration";
+import { recitationFrameSchedule } from "../../quran/recitationTimeline";
 import { emptyMedia, type EpisodeMedia } from "../../plan/media";
 import { SceneFromPlan } from "./components";
 import { toFrames } from "./timing";
@@ -45,15 +46,12 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
     <>
       {clip && clip.text === scene.narration.trim() ? <Audio src={mediaSrc(media, `voice/${clip.file}`)} volume={config.audio.narrationVolume} /> : null}
       {scene.template === "verse-card" && rec
-        ? (rec.parts ?? [{ file: rec.file, duration: rec.duration }]).map((p, i, all) => {
-            // آيات المقطع متتالية بفاصل قصير
-            const from = Math.round((0.8 + all.slice(0, i).reduce((n, x) => n + x.duration + 0.25, 0)) * fps);
-            return (
-              <Sequence key={p.file} from={from} name={`تلاوة ${i + 1}`}>
-                <Audio src={mediaSrc(media, `recitations/${p.file}`)} volume={config.audio.recitationVolume} />
-              </Sequence>
-            );
-          })
+        ? recitationFrameSchedule(rec, fps).map((part, i) => (
+            <Sequence key={part.file + "-" + i} from={part.from}
+              durationInFrames={part.durationInFrames} name={`تلاوة ${i + 1}`}>
+              <Audio src={mediaSrc(media, `recitations/${part.file}`)} volume={config.audio.recitationVolume} />
+            </Sequence>
+          ))
         : null}
       {scene.sfx
         .filter((x) => media.sfx.includes(x.id))
