@@ -28,7 +28,7 @@ export const captionLines = (timings: WordTiming[], max: number) => {
   return out;
 };
 
-export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTiming[]; keys: string[]; portrait: boolean; out?: number; keyColor?: string }> = ({ frame, fps, timings, keys, portrait, out = 1, keyColor = ID.dawn }) => {
+export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTiming[]; keys: string[]; portrait: boolean; out?: number; keyColor?: string; size?: number }> = ({ frame, fps, timings, keys, portrait, out = 1, keyColor = ID.dawn, size: sizeOverride }) => {
   if (!timings.length) return null;
   const lines = captionLines(timings, portrait ? 6 : 10);
   const idx = Math.max(
@@ -38,7 +38,7 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
   const line = lines[idx] ?? [];
   const keySet = new Set(keys.map(bareWord).filter(Boolean));
   const lineIn = spring({ frame: frame - ((line[0]?.start ?? 0) - 4), fps, config: { damping: 20, stiffness: 160 } });
-  const size = portrait ? 62 : 54;
+  const size = sizeOverride ?? (portrait ? 62 : 54);
   return (
     <div
       style={{

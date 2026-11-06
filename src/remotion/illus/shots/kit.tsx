@@ -27,7 +27,8 @@ export const makeAt = (timings: WordTiming[], dur: number) => (word: string, fra
   return hit ? hit.start : Math.round(frac * dur);
 };
 
-export type CamKey = { t: number; x: number; y: number; z: number };
+/** cut (اختياري، الأمر 015): قطع مباشر إلى هذا المفتاح بلا انتقال؛ بلا الحقل الانتقال الناعم القائم */
+export type CamKey = { t: number; x: number; y: number; z: number; cut?: boolean };
 const ease = Easing.inOut(Easing.cubic);
 /** موضع الكاميرا: بين مفتاحين انتقال ناعم مدته len، ثم انجراف بطيء جدًا حتى المفتاح التالي */
 export const camAt = (frame: number, keys: CamKey[], len = 22) => {
@@ -37,7 +38,7 @@ export const camAt = (frame: number, keys: CamKey[], len = 22) => {
   for (let i = 1; i < ks.length; i++) {
     const k = ks[i]!;
     if (frame < k.t) break;
-    const p = interpolate(frame, [k.t, k.t + len], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
+    const p = k.cut ? 1 : interpolate(frame, [k.t, k.t + len], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
     out = { x: cur.x + (k.x - cur.x) * p, y: cur.y + (k.y - cur.y) * p, z: cur.z + (k.z - cur.z) * p };
     cur = { ...k, x: out.x, y: out.y, z: out.z };
   }
