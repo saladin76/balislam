@@ -8,6 +8,8 @@ renders/
 
 # الملفات الكبيرة: تُحفظ على تخزين سحابي لا في Git
 channels/*/episodes/*/voice/
+# Generated per-scene storyboard PNG/HTML: deliver through verified Drive uploader, not Git
+channels/*/episodes/*/storyboard/
 channels/*/episodes/*/out/
 channels/*/episodes/*/status.json
 # نسخة الخطة المحلية عند تعارض التحديث
