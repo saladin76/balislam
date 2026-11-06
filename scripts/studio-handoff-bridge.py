@@ -51,6 +51,14 @@ def validate(job):
         raise ValueError("Unsafe path component")
     if path.suffix.lower() not in KINDS[job["kind"]]:
         raise ValueError("Unsupported artifact type")
+    relative = path.parts[4:]
+    if job["kind"] == "video" and not (
+        len(relative) == 2 and relative[0] == "previews"):
+        raise ValueError("Video must be an episode preview slot")
+    if job["kind"] == "storyboard" and not (
+        len(relative) == 1 and relative[0] in ("plan.json", "storyboard.json", "storyboard-review.md")
+        or len(relative) == 2 and relative[0] in ("storyboard", "storyboards")):
+        raise ValueError("Storyboard source must use a dedicated folder or approved record name")
     if job["kind"] == "video" and "audio" in job["slot"].lower():
         raise ValueError("Protected audio slot")
     return job
@@ -80,6 +88,8 @@ def artifact(repo, job):
     if length <= 0 or length > MAX_BYTES:
         raise ValueError("Artifact is empty or exceeds bridge size limit")
     content = git(repo, "show", object_name)
+    if content.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        raise ValueError("Git LFS pointer is not a real media file")
     if len(content) != length or hashlib.sha256(content).hexdigest() != job["sha256"]:
         raise ValueError("Git content checksum mismatch")
     return content
@@ -89,7 +99,9 @@ def deliver(repo, base, jobs, dry_run):
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
     for job in jobs:
         fingerprint = hashlib.sha256(json.dumps(job, sort_keys=True).encode()).hexdigest()
-        if state.get(job["id"]) == fingerprint:
+        if job["id"] in state:
+            if state[job["id"]] != fingerprint:
+                raise ValueError("Job ID was already delivered with different content")
             print("ALREADY_DELIVERED", job["id"])
             continue
         data = artifact(repo, job)
