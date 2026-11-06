@@ -60,6 +60,7 @@ npx remotion still src/remotion/index.ts <تكوين> out.png --frame=120 --scal
 
 - التكوينات في `src/remotion/Root.tsx`؛ المختبر الجديد يُضاف إلى `src/remotion/lab/` ويُسجَّل هناك.
 - بعد كل رندر: افحص لقطات عند كل كلمة مرسومة وبينها (القاعدة السادسة في `CLAUDE.md`) قبل عرضه، ثم ارفعه إلى الاستوديو (`upload-preview`) بعنوان يذكر حالته، وحدّث فهرس المختبر في `channels/balislam/episodes/900-engine-lab/README.md`.
+- الستوري بورد (صور) قبل الرندر يُحفظ في المختبر نفسه بـ`upload-storyboard` (نسخة جديدة لكل تعديل، والسابقة باقية)، وقرار صاحب القناة يُسجَّل بـ`storyboard-decision` بنصه، لا قبله.
 
 ## ٨. التحقق من التوافق مع الإنتاج السابق
 

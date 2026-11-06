@@ -66,6 +66,7 @@
 
 - **المعاينات:** كل فيديو يُصنع لحلقة يُرفع إلى `previews/` في مجلدها بـ`npx bal -c balislam upload-preview <الحلقة> <الخانة> <الملف> --title … --note …` (`putEpisodePreview` في `src/render/episodePreviews.ts`، والفهرس `previews/index.json` برقم نسخة لكل خانة). خانة لكل موضوع: الرفع الجديد يحل محل القديم في العرض، والنسخ السابقة في سجل git.
 - **العنوان يذكر الحالة الفنية** («جاهز للمراجعة · لم يُعتمد فنيًا» أو «معتمد»)، فالرفع ليس اعتمادًا.
+- **ستوري بورد المختبرات (صور، ملحق الأمر 015):** صور التخطيط قبل الرندر تُحفظ في `storyboards/` بجوار `lab.json` بـ`npx bal -c balislam upload-storyboard <المختبر> <الخانة> <الصورة> --topic … --title … --note … --order …` (`addLabStoryboard` في `src/channel/labStoryboards.ts`، والفهرس `storyboards/index.json`). **بخلاف الفيديو تبقى كل النسخ** (‎<الخانة>-v<الرقم>.png‎) للمقارنة، ولكل نسخة رقمها وتاريخها واسم ملفها الأصلي وحالتها: «جاهز للمراجعة» عند الرفع دائمًا، و«معتمد فنيًا» أو «يحتاج تعديلًا» بقرار صاحب القناة الصريح وحده، بنصه واسمه (`decideLabStoryboard`، أو `npx bal -c balislam storyboard-decision <المختبر> <الخانة> <النسخة> approved|changes|review --by … --decision …`، أو زر القرار في الاستوديو مع نص إلزامي). «معتمد» بلا قرار مسجل يُعرض «جاهز للمراجعة» ويُبلَّغ عنه (`shownStatus` و`storyboardProblems` في `src/channel/labStoryboardsShared.ts`). مفعّل لبالإسلام وحدها (`LAB_STORYBOARD_CHANNELS`).
 - **مخرجات الرندر** النهائية في مجلد الحلقة (`outDirFor` في `src/render/episode.ts`) ومعلومات جودتها (`renderInfoFile` في `src/render/quality.ts`). المؤقت في `renders/` (غير مرفوع).
 
 ## الاستوديو وعلاقته بالباك إند
@@ -75,7 +76,7 @@
   - `ScriptTab.tsx` و`StoryboardPanel.tsx` و`ReviewPanel.tsx` و`PublishTab.tsx`.
   - `ChannelTab.tsx` و`ChannelBrand.tsx`: إعدادات القناة، ولوحة «أدوات المحرك» (`EnginePanel`).
   - `GuideTab.tsx`: «مرجع الاستوديو» (هذا المرجع).
-  - `LabsTab.tsx`: «مختبرات الإنتاج».
+  - `LabsTab.tsx`: «مختبرات الإنتاج»؛ وفي «بالإسلام» قسم «ستوري بورد · صور» (`app/src/tabs/LabStoryboards.tsx`): الأحدث أولًا، والنسخ السابقة بأزرار، والمقارنة جنبًا إلى جنب، والتكبير (ملء الشاشة و100% و200% والأصل في تبويب جديد)، وزر القرار. ومعاينات الفيديو تحت «المعاينات · فيديو» كما هي.
 - **الخادم** `app/server/api.ts` و`app/server/extra.ts`: يقرأ ويكتب ملفات القناة والحلقات مباشرة (لا قاعدة بيانات)، ويشغّل المهام الطويلة والرندر عبر `bin/bal.mjs` داخل طابور الاستوديو `studioPool` (`startRenderJob`، `startJob`). حفظ القناة يمر بفحص الشكل (ومنه `engineDefaultsIssues`).
 - **الدليل:** `src/channel/guide.ts` يقرأ `docs/balislam/guide.json` وصفحاته فقط (للقراءة، ولا يقبل مسارًا خارجه).
 - مصدر الحقيقة ملفات المستودع؛ الاستوديو يعرضها ويعدّلها، فلا نسختان مختلفتان.

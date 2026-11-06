@@ -565,6 +565,34 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // ستوري بورد المختبرات (ملحق الأمر 015): صور بكل نسخها في storyboards/؛ لبالإسلام وحدها
+  if (parts[0] === "labs" && parts[1] && parts[2] === "storyboards") {
+    const sb = await load("/src/channel/labStoryboards.ts");
+    if (!sb.labStoryboardsEnabled(ch)) return send(res, 404, { error: "ستوري بورد المختبرات غير مفعّل لهذه القناة" }), true;
+    const labs = await load("/src/channel/labs.ts");
+    const dirs: string[] = await labs.listLabDirs(episodesDir);
+    if (!dirs.includes(parts[1])) return send(res, 404, { error: "المختبر غير موجود" }), true;
+    const labDir = path.join(episodesDir, parts[1]);
+    if (req.method === "GET" && !parts[3]) return send(res, 200, { entries: await sb.listLabStoryboards(labDir) }), true;
+    if (req.method === "GET" && parts[3] && !parts[4]) {
+      const file: string | null = sb.labStoryboardFile(labDir, decodeURIComponent(parts[3]));
+      if (!file) return send(res, 404, { error: "الصورة غير موجودة" }), true;
+      ctx.serveFile(req, res, file, file.endsWith(".png") ? "image/png" : file.endsWith(".webp") ? "image/webp" : "image/jpeg");
+      return true;
+    }
+    // قرار صاحب القناة من الاستوديو: زر صريح بنص مكتوب؛ لا يُسجَّل اعتماد بغيره
+    if (req.method === "POST" && parts[3] && parts[4] && parts[5] === "decision") {
+      const { status, note } = await readBody(req);
+      try {
+        const v = await sb.decideLabStoryboard(ch, labDir, decodeURIComponent(parts[3]), Number(parts[4]), { status, note, by: "صاحب القناة (من الاستوديو)" });
+        return send(res, 200, { version: v }), true;
+      } catch (e) {
+        return send(res, 400, { error: (e as Error).message }), true;
+      }
+    }
+    return send(res, 404, { error: "غير موجود" }), true;
+  }
+
   // مختبرات الإنتاج (الأمر 017): مجلدات lab.json لهذه القناة وحدها، ومعايناتها؛ ليست حلقات ولا تُنشر
   if (parts[0] === "labs" && req.method === "GET") {
     const labs = await load("/src/channel/labs.ts");

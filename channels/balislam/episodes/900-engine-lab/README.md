@@ -17,6 +17,7 @@
 | `framing-013` و`framing-013-portrait` | `lab-framing-landscape` و`lab-framing-portrait` (`src/remotion/lab/FramingLab.tsx`) | التأطير القائم مقابل المحتوي (`framing = fit`) في ست حالات: وحده، جالس، شخص أمامه، شاهدان، لوحة، ذكر الله (الأمر 013) |
 | `motion-013` و`motion-013-portrait` | `lab-motion-013-landscape` و`lab-motion-013-portrait` (`src/remotion/lab/PermanentLab.tsx`) | الحركة القديمة والطبيعية في «الطريق» و«ظل ونور» بالاتجاهين (الأمر 013) |
 | `review-014` و`review-014-portrait` | `review-014-landscape` و`review-014-portrait` (`src/remotion/lab/ReviewReel014.tsx`) | نسخة المراجعة البصرية الأولى بملء الإطار: الحارة والطريق وظل ونور، صامتة ومحايدة (الأمر 014) |
+| (صورة) `storyboards/witnesses-015-v1.png` و`-v2.png` | — | ستوري بورد مشهد الشاهدين «ميزان البائع» (الأمر 015): النسخة 1 «يحتاج تعديلًا» بقرار صاحب القناة، والنسخة 2 «جاهز للمراجعة»؛ تظهر في «مختبرات الإنتاج ← ستوري بورد · صور» |
 | `engine-styles` | `lab-permanent-styles` (`src/remotion/lab/PermanentLab.tsx`) | الحركة القديمة والطبيعية في «الطريق» و«ظل ونور» (التوجيه الدائم) |
 
 النسخ السابقة لكل خانة محفوظة في سجل git (`git log -- channels/balislam/episodes/900-engine-lab/previews`).

@@ -730,6 +730,46 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .lab-card code { unicode-bidi: isolate; }
 .sb-preview figcaption .lab-badge { align-self: flex-start; }
 
+/* ستوري بورد المختبرات (ملحق الأمر 015، بالإسلام): صور منفصلة بوضوح عن معاينات الفيديو */
+.sbi { border: 1px dashed rgba(127, 127, 127, 0.45); border-radius: 12px; padding: 10px 14px 14px; margin: 12px 0; }
+.sbi h4 { margin-top: 0.4em; }
+.sbi-entry + .sbi-entry { border-top: 1px solid rgba(127, 127, 127, 0.25); margin-top: 12px; padding-top: 12px; }
+.sbi-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sbi-head h5 { margin: 0; font-size: 1.02em; }
+.sbi-order { font-size: 0.8em; padding: 1px 8px; border-radius: 6px; background: rgba(127, 127, 127, 0.14); }
+.sbi-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.sbi-tabs button, .sbi-decide button, .sbi-zoom button { padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(127, 127, 127, 0.4); background: transparent; cursor: pointer; font: inherit; font-size: 0.88em; }
+.sbi-tabs button.on, .sbi-zoom button.on { background: #1f5f8a; border-color: #1f5f8a; color: #fff; }
+.sbi-version { margin: 10px 0 0; display: grid; gap: 6px; min-width: 0; }
+.sbi-thumb { border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 8px; background: #0b1f1c; max-height: 78vh; overflow: auto; overscroll-behavior: contain; }
+.sbi-thumb img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+.sbi-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sbi-zoom-btn { padding: 3px 10px; border-radius: 8px; border: 1px solid rgba(127, 127, 127, 0.4); background: transparent; cursor: pointer; font: inherit; font-size: 0.86em; }
+.sbi-version figcaption { display: grid; gap: 2px; }
+.sbi-kind { display: inline-block; font-size: 0.75em; padding: 0 7px; border-radius: 5px; background: #f4eee2; color: #0b1f1c; border: 1px solid #c9a24a; }
+.sbi-decision { font-size: 0.9em; padding: 4px 8px; border-inline-start: 3px solid currentColor; background: rgba(127, 127, 127, 0.08); }
+.sbi-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sbi-review { color: #1f5f8a; }
+.sbi-approved { color: #1f7a3f; }
+.sbi-changes { color: #a3322a; }
+.sbi-decide { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.sbi-decide.open { display: grid; gap: 6px; max-width: 640px; }
+.sbi-decide textarea { width: 100%; font: inherit; }
+.sbi-lightbox { position: fixed; inset: 0; z-index: 1000; background: rgba(8, 14, 13, 0.94); display: grid; grid-template-rows: auto 1fr; }
+.sbi-lightbox-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 12px; color: #f4eee2; }
+.sbi-zoom { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sbi-zoom button, .sbi-zoom a { color: #f4eee2; border-color: rgba(244, 238, 226, 0.4); }
+.sbi-zoom a { padding: 4px 10px; border: 1px solid rgba(244, 238, 226, 0.4); border-radius: 8px; font-size: 0.88em; text-decoration: none; }
+.sbi-lightbox-body { overflow: auto; touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; text-align: center; }
+.sbi-lightbox-body img { display: inline-block; }
+.sbi-lightbox-body.z-fit img { max-width: 100%; height: auto; }
+.sbi-lightbox-body.z-100 img { width: auto; max-width: none; }
+.sbi-lightbox-body.z-200 img { width: 200%; max-width: none; }
+@media (max-width: 700px) {
+  .sbi-compare { grid-template-columns: 1fr; }
+  .sbi-thumb { max-height: 70vh; }
+}
+
 /* Visible shared-studio navigation: settings must not be buried in a select menu. */
 .studio-primary-nav {
   display: flex;

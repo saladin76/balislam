@@ -372,6 +372,36 @@ program
   });
 
 program
+  .command("upload-storyboard <lab> <slot> <file>")
+  .description("حفظ صورة ستوري بورد في مختبر (بالإسلام): نسخة جديدة برقمها وتاريخها «جاهز للمراجعة»، ولا تُحذف النسخ السابقة")
+  .requiredOption("--title <title>", "عنوان النسخة كما يظهر في الاستوديو")
+  .option("--note <note>", "ما تغيّر في هذه النسخة")
+  .option("--order <order>", "رقم الأمر الذي تنتمي إليه (مثل 015)")
+  .option("--at <iso>", "تاريخ صنع النسخة إن حُفظت لاحقًا (الافتراضي الآن)")
+  .option("--topic <topic>", "عنوان الموضوع (الخانة) كما يظهر فوق نسخه")
+  .action(async (lab: string, slot: string, file: string, opts: { title: string; note?: string; order?: string; at?: string; topic?: string }) => {
+    const { channelPaths, currentChannelId } = await import("../channel");
+    const sb = await import("../channel/labStoryboards");
+    const dir = await sb.resolveLabDir(channelPaths().episodes, lab);
+    const r = await sb.addLabStoryboard(currentChannelId(), dir, slot, path.resolve(file), { title: opts.title, note: opts.note, order: opts.order, uploadedAt: opts.at, topic: opts.topic });
+    console.log(`حُفظ في المختبر: ${path.relative(projectRoot, r.file)} (النسخة ${r.version} · جاهز للمراجعة)`);
+  });
+
+program
+  .command("storyboard-decision <lab> <slot> <version> <status>")
+  .description("تسجيل قرار صاحب القناة على نسخة ستوري بورد: approved (معتمد فنيًا) أو changes (يحتاج تعديلًا) أو review؛ لا يُستعمل إلا بقراره الصريح")
+  .requiredOption("--by <name>", "صاحب القرار")
+  .requiredOption("--decision <text>", "نص القرار")
+  .option("--at <iso>", "تاريخ القرار (الافتراضي الآن)")
+  .action(async (lab: string, slot: string, version: string, status: string, opts: { by: string; decision: string; at?: string }) => {
+    const { channelPaths, currentChannelId } = await import("../channel");
+    const sb = await import("../channel/labStoryboards");
+    const dir = await sb.resolveLabDir(channelPaths().episodes, lab);
+    const v = await sb.decideLabStoryboard(currentChannelId(), dir, slot, Number(version), { status: status as never, by: opts.by, note: opts.decision, at: opts.at });
+    console.log(`${slot} v${v.version}: ${sb.STORYBOARD_STATUS_AR[v.status]} (${v.decision?.by})`);
+  });
+
+program
   .command("render-batch <compositions...>")
   .description("رندر عدة تكوينات عبر الطابور الآمن: التوازي من موارد الجهاز، والفاشل لا يوقف غيره، وسببه مسجَّل في render-queue.json (--retry يعيد الفاشل وحده)")
   .option("--out <dir>", "مجلد النواتج", "renders/batch")

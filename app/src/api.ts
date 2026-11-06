@@ -7,6 +7,7 @@ import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channe
 import type { CloudRecitation } from "../../src/quran/provider";
 import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
+import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
 import type { TechReviewSummary } from "../../src/channel/techReviews";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
@@ -84,6 +85,10 @@ export const api = {
   techReviewFileUrl: (channel: string, dir: string, id: string, rel: string) => `/api/tech-reviews/${encodeURIComponent(dir)}/${encodeURIComponent(id)}/${rel.split("/").map(encodeURIComponent).join("/")}?channel=${encodeURIComponent(channel)}`,
   /** مختبرات الإنتاج للقناة (ليست حلقات) */
   labs: (channel: string) => call<{ labs: LabSummary[] }>("/api/labs", undefined, channel),
+  labStoryboards: (channel: string, dir: string) => call<{ entries: StoryboardEntry[] }>(`/api/labs/${encodeURIComponent(dir)}/storyboards`, undefined, channel),
+  labStoryboardUrl: (channel: string, dir: string, file: string) => `/api/labs/${encodeURIComponent(dir)}/storyboards/${encodeURIComponent(file)}?channel=${encodeURIComponent(channel)}`,
+  decideLabStoryboard: (channel: string, dir: string, slot: string, version: number, status: StoryboardStatus, note: string) =>
+    call<{ version: StoryboardVersion }>(`/api/labs/${encodeURIComponent(dir)}/storyboards/${encodeURIComponent(slot)}/${version}/decision`, { method: "POST", json: { status, note } }, channel),
   labPreviewUrl: (channel: string, dir: string, name: string) => `/api/labs/${encodeURIComponent(dir)}/previews/${encodeURIComponent(name)}?channel=${encodeURIComponent(channel)}`,
   /** دليل الاستوديو للقناة (null إن لم يكن لها دليل) */
   guideIndex: (channel: string) => call<{ index: GuideIndex | null }>("/api/guide", undefined, channel),

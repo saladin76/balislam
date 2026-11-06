@@ -5,6 +5,8 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import type { LabStatus, LabSummary } from "../../../src/channel/labs";
+import { labStoryboardsEnabled } from "../../../src/channel/labStoryboardsShared";
+import { LabStoryboards } from "./LabStoryboards";
 
 const STATUS_AR: Record<LabStatus, string> = { experimental: "تجريبي", review: "جاهز للمراجعة", approved: "معتمد", rejected: "مرفوض" };
 const Badge: React.FC<{ s: LabStatus }> = ({ s }) => <span className={`lab-badge lab-${s}`}>{STATUS_AR[s]}</span>;
@@ -38,7 +40,10 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
           </div>
           <p>{l.purpose}</p>
 
-          <h4>المعاينات</h4>
+          {/* ستوري بورد المختبرات (صور) لبالإسلام وحدها؛ القنوات الأخرى كما هي */}
+          <LabStoryboards channel={channel} dir={l.dir} />
+
+          <h4>{labStoryboardsEnabled(channel) ? "المعاينات · فيديو" : "المعاينات"}</h4>
           {l.previews.length ? (
             <div className="sb-previews-grid">
               {l.previews.map((f) => (
