@@ -2,6 +2,14 @@
 
 This protocol is for the three independent channels: `balislam`, `dafatir-alzaman`, and `zubdat-alkutub`. It is an opt-in operational contract; it does **not** activate any background watcher.
 
+## Mandatory new editorial sequence (owner order, 2026-11-06)
+
+Before initiating production for **any channel or episode**, read [studio-voice-first-production-contract.md](studio-voice-first-production-contract.md). The **complete real visual Storyboard for all scenes** must be prepared, transferred for review and accepted **before any paid narration and before full motion video**. Then document each spoken segment's tone/voice/delivery (not merely global default). Generate short samples and full voice-over, listen and correct it, and obtain an explicit **VOICE_APPROVED_FOR_VIDEO** editorial decision. Only then animate to the approved voice and its actual timed words. Review the assembled video **with sound and picture together, continuously at 1×**. This is the primary creative-review path, not a silent first full video.
+
+Storyboard/PDF/PNG and video MP4 are both handoff assets governed by the same checksum-verified Mac uploader and their appropriate `--kind` and fixed slots. **Never** assume a Google Drive folder exists merely because GitHub has files, or that a verified upload proves human approval. Protected narration and Quran recitations are not silently made broadly accessible. A voice-finalization report must include text version, tone map, samples and approved clip IDs; an assembled video report must include the corresponding voice ID or digest and sync review.
+
+**Actual Drive structure verified on 2026-11-06:** `Balislam-Studio-Previews/bilislam/episodes/001-know-the-truth/{storyboard,previews}`, `.../dafatir-alzaman/episodes/001-adam-beginning/{storyboard,previews}`, `.../zubdat-al-kutub/episodes/001-awwal-marra-osalli/{storyboard,previews}`. The latter two episode trees were newly created empty; **not** evidence of uploaded production clips. A tested GitHub→Mac→Drive **synthetic** delivery is not proof that actual channel video or all storyboard frames have been transferred.
+
 ## Authority and workflow
 1. **Owner** assigns an instruction from the channel's ChatGPT reviewer to its Claude implementer, and watches the actual results in Studio. Only the owner makes final approval/publication decisions.
 2. **Claude** works only on the designated channel/episode/worktree, keeps render or edit source tracked, and verifies the finished artifact locally. A partial, rendering, pending, or failed output must never be uploaded.
