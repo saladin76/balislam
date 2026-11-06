@@ -10,6 +10,6 @@ export const searchFoundationReciters = (list: FoundationReciter[], search: stri
   const needle = canonical(search);
   return list
     .filter((r) => Number.isSafeInteger(r.id) && r.id > 0 && r.name.trim())
-    .filter((r) => !needle || canonical(`${r.name} ${r.style} ${r.id}`).includes(needle))
+    .filter((r) => !needle || canonical(`${r.name} ${r.style} ${r.id} ${/mujawwad/i.test(r.style) ? "مجود" : /murattal/i.test(r.style) ? "مرتل" : /muallim/i.test(r.style) ? "معلم" : ""}`).includes(needle))
     .sort((a, b) => a.name.localeCompare(b.name, "ar") || a.id - b.id);
 };
