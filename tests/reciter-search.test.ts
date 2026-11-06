@@ -12,7 +12,7 @@ describe("Full Quran Foundation reciter discovery", () => {
   });
   it("searches Arabic names with or without hamzas and Latin recitation styles", () => {
     expect(searchFoundationReciters(voices, "المنشاوي").map((v) => v.id)).toEqual([7]);
-    expect(searchFoundationReciters(voices, "مجود")).toEqual([]); // Provider returns English style keys
+    expect(searchFoundationReciters(voices, "مجود").map((v) => v.id)).toEqual([7]);
     expect(searchFoundationReciters(voices, "mujawwad").map((v) => v.id)).toEqual([7]);
     expect(searchFoundationReciters(voices, "6").map((v) => v.id)).toEqual([6]);
   });
