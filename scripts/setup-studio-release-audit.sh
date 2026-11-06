@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Safe localhost publication diagnostics. Does NOT change the active Git checkout.
 set -euo pipefail
-REPO="\${BAL_STUDIO_REPO:-$HOME/balislam}"
+REPO="${BAL_STUDIO_REPO:-$HOME/balislam}"
 BASE="$HOME/Balislam-Preview-Sync/release-audit"
 BRANCH=feat/studio-local-release-audit
 [[ -d "$REPO/.git" ]] || { echo 'ERROR: expected ~/balislam checkout' >&2; exit 2; }
