@@ -1,4 +1,15 @@
 {
   "version": 1,
-  "jobs": []
+  "jobs": [
+    {
+      "id": "bridge-smoke-balislam-001",
+      "channel": "balislam",
+      "episode": "sync-bridge-validation",
+      "slot": "plan-bridge-test",
+      "kind": "storyboard",
+      "commit": "992f4f27787b8ab682fc5466a0b967cd6b087605",
+      "path": "channels/balislam/episodes/sync-bridge-validation/plan.json",
+      "sha256": "aecfe947cb14413991bf4ce07fc54ad6d7cb4604d72ecf3628609d8a2c8d9e97"
+    }
+  ]
 }
