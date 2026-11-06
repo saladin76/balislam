@@ -83,11 +83,26 @@ export type StudioTransferOverview = {
   pendingJobs: StudioPendingJob[]; note: string;
 };
 
+export type StudioReleaseReadiness = {
+  channel: string; episode: string; found: boolean; folder: string | null;
+  scriptValid: boolean;
+  storyboard: { done: number; total: number };
+  scenes: { done: number; total: number };
+  sources: { done: number; total: number };
+  narration: { done: number; total: number };
+  verseTextMissing: number;
+  master: boolean; masterVoiced: boolean; approved: boolean;
+  publishFiles: { done: number; total: number };
+  blockers: string[];
+  state: "blocked" | "needs_human_review";
+};
+
 export type StudioReviewNote = { id: string; sceneId: string; timeSec: number; text: string; createdAt: string };
 export const api = {
   reviewNotes: (episode: string) => call<{ notes: StudioReviewNote[] }>(`/api/episodes/${encodeURIComponent(episode)}/review-notes`),
   saveReviewNotes: (episode: string, notes: StudioReviewNote[]) => call<{ notes: StudioReviewNote[] }>(`/api/episodes/${encodeURIComponent(episode)}/review-notes`, { method: "PUT", json: { notes } }),
   studioTransfers: () => call<StudioTransferOverview>("/api/studio-transfers"),
+  studioReleaseReadiness: (channel: string) => call<StudioReleaseReadiness>("/api/studio-release-readiness", undefined, channel),
   recitationChoice: (episode: string, channel: string) =>
     call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
   saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>

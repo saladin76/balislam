@@ -35,3 +35,23 @@
 .delivery-queue-items strong{font-size:12px;white-space:nowrap;color:var(--muted,#68757b)}
 .delivery-center :is(button,a,input,select):focus-visible{outline:3px solid var(--accent,#177d76);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.delivery-center *{scroll-behavior:auto;transition:none!important}}
+
+/* Local release gates are separate from Drive deliveries; never display as approval. */
+.delivery-readiness{border:1px solid var(--line,#d8e0e4);border-radius:16px;background:var(--surface,#fff);padding:20px;margin:24px 0}
+.delivery-readiness-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.delivery-readiness-header h2{font-size:19px;margin:0 0 6px}
+.delivery-readiness-header p,.delivery-readiness-note{font-size:13px;line-height:1.75;color:var(--muted,#68757b);margin:0}
+.delivery-readiness-header>span{font-size:12px;border:1px solid var(--line,#d8e0e4);border-radius:20px;padding:6px 10px}
+.delivery-readiness-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:14px;margin-top:18px}
+.delivery-readiness-card{min-width:0;border:1px solid var(--line,#d8e0e4);border-radius:13px;padding:17px;display:flex;flex-direction:column;gap:12px}
+.delivery-readiness-card-head{display:flex;justify-content:space-between;gap:8px;align-items:start;flex-wrap:wrap}
+.delivery-readiness-card h3{font-size:16px;margin:0}
+.delivery-readiness-card-head strong{font-size:12px;color:#a34727}
+.delivery-readiness-card>p{font-size:12px;color:var(--muted,#68757b);overflow-wrap:anywhere;margin:0}
+.delivery-release-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.delivery-release-metrics span{font-size:12px;border:1px solid var(--line,#d8e0e4);padding:8px;border-radius:8px}
+.delivery-readiness-card ul{padding-inline-start:18px;margin:0;font-size:12px;line-height:1.8}
+.delivery-readiness-card .btn{align-self:flex-start;margin-top:auto}
+.delivery-readiness-human{color:#31755b!important}
+.delivery-readiness-note{margin-top:16px}
+@media(max-width:760px){.delivery-readiness{padding:14px}.delivery-release-metrics{grid-template-columns:1fr}}

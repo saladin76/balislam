@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO="${BAL_STUDIO_REPO:-$HOME/balislam}"
 TARGET="${BAL_STUDIO_PREVIEW_DIR:-$HOME/balislam-studio-terminal-preview}"
-BRANCH="integration/studio-localhost-acceptance-20261106"
+BRANCH="feat/studio-local-release-board-20261106"
 PORT="${BAL_STUDIO_PREVIEW_PORT:-4322}"
 MODE="${1:-check}"
 
