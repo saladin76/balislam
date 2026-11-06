@@ -1,6 +1,5 @@
 import type { ChannelConfig } from "../channel/types";
 import path from "node:path";
-import { projectRoot } from "../config/paths";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir } from "node:fs/promises";
