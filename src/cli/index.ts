@@ -104,6 +104,54 @@ program
   });
 
 program
+  .command("storyboard-frames")
+  .description("إنتاج صورة حقيقية لكل مشهد للحلقة كاملة، ثم فهرس مراجعة، قبل الصوت والفيديو (لا اعتماد آلي)")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--portrait", "صور عمودية بدل 16:9")
+  .action(async (episode: string, opts: { portrait?: boolean }) => {
+    const { renderStoryboardFrames } = await import("../render/storyboardFrames");
+    const r = await renderStoryboardFrames(episode, {
+      orientation: opts.portrait ? "portrait" : "landscape",
+      onProgress: (m) => console.log(m),
+    });
+    console.log(`Storyboard PENDING_REVIEW: ${r.rows.length} لوحة مرئية\n${r.manifest}\n${r.htmlFile}`);
+    console.log("الصور لا تعني قبول Storyboard أو إنتاج صوت أو فيديو. اطلب مراجعة كل المشاهد أولًا.");
+  });
+
+program
+  .command("voice-review")
+  .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--approve <sceneId>", "معرّف مقطع مسموع ومراجع يدويًا")
+  .option("--approve-episode", "اعتماد الاستماع إلى جميع المقاطع متصلة بعد اعتماد كل مقطع")
+  .option("--reviewer <name>", "اسم المراجع البشري")
+  .option("--note <text>", "ملاحظة الاستماع الفعلي إلى المقطع")
+  .action(async (episode: string, opts: { approve?: string; approveEpisode?: boolean; reviewer?: string; note?: string }) => {
+    const { resolveScriptPath } = await import("../script/episodes");
+    const { loadPlan } = await import("../plan/io");
+    const { loadVoiceIndex } = await import("../voice/generate");
+    const { approveVoiceScene, approveVoiceEpisode, voiceReviewItems, episodeVoiceApproved } = await import("../voice/review");
+    const plan = await loadPlan(episode);
+    if (!plan) throw new Error("الخطة غير موجودة.");
+    const scriptPath = await resolveScriptPath(episode);
+    const voice = await loadVoiceIndex(episode);
+    if (opts.approve) {
+      if (!opts.reviewer || !opts.note) throw new Error("الموافقة تتطلب --reviewer و--note بعد الاستماع الحقيقي.");
+      await approveVoiceScene(scriptPath, plan, voice, opts.approve, opts.reviewer, opts.note);
+    }
+    if (opts.approveEpisode) {
+      if (!opts.reviewer || !opts.note) throw new Error("اعتماد الحلقة الصوتية الكاملة يتطلب --reviewer و--note بعد الاستماع.");
+      await approveVoiceEpisode(scriptPath, plan, voice, opts.reviewer, opts.note);
+    }
+    const items = await voiceReviewItems(scriptPath, plan, voice);
+    for (const item of items) console.log(`${item.id}: ${item.state}`);
+    const pending = items.filter((item) => item.state !== "approved");
+    const whole = await episodeVoiceApproved(scriptPath, plan, voice);
+    console.log(`الصوت المعتمد ${items.length - pending.length}/${items.length}؛ الاستماع الكامل ${whole ? "معتمد" : "غير معتمد"}.`);
+    if (pending.length || !whole) process.exitCode = 1;
+  });
+
+program
   .command("render")
   .description("رندر الحلقة من plan.json")
   .argument("<episode>", "رقم الحلقة")

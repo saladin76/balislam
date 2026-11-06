@@ -8,6 +8,8 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { sceneHash } from "./sceneReview";
+import { createHash } from "node:crypto";
+import type { PlanScene } from "./types";
 import type { Plan } from "./types";
 import { VERSE_PLACEHOLDER } from "./quranText";
 
@@ -24,6 +26,26 @@ export type StoryboardStatus = {
   audit?: StoryboardRecord["audit"];
   scenes: Record<string, StoryboardSceneStatus>;
 };
+
+/** Visual/storyboard identity is deliberately independent of later tone and voice decisions.
+ * Voice-only edits must not reset an already reviewed picture. Narration/shot edits still do. */
+export const storyboardHash = (s: PlanScene): string => {
+  const props = Object.fromEntries(Object.entries(s.props ?? {})
+    .filter(([, v]) => v !== "" && v != null)
+    .sort(([a], [b]) => a.localeCompare(b)));
+  return createHash("sha1").update(JSON.stringify({
+    v: 3, t: s.template, p: props, n: s.narration.trim(),
+    bg: s.backdrop ?? "", duration: s.durationSec ?? null,
+    sfx: s.sfx ?? [], overlays: s.overlays ?? {},
+    captions: s.captions ?? null, ayahKey: s.ayahKey ?? "",
+    ...(s.transition ? { transition: s.transition } : {}),
+  })).digest("hex").slice(0, 12);
+};
+
+/** Backward-compatible: existing approvals with the older full-scene hash remain valid
+ * until the visual or voice decisions themselves change; new approvals use visual v3. */
+const storyboardMatches = (saved: string, scene: PlanScene) =>
+  saved === storyboardHash(scene) || saved === sceneHash(scene);
 
 export const storyboardFileFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "storyboard.json");
 
@@ -81,7 +103,7 @@ export const storyboardStatus = (plan: Plan, rec: StoryboardRecord): StoryboardS
   const scenes: Record<string, StoryboardSceneStatus> = {};
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     const h = rec.scenes[s.id];
-    scenes[s.id] = !h ? "new" : h === sceneHash(s) ? "approved" : "changed";
+    scenes[s.id] = !h ? "new" : storyboardMatches(h, s) ? "approved" : "changed";
   }
   const ids = Object.keys(scenes);
   const approved = ids.filter((i) => scenes[i] === "approved").length;
@@ -109,7 +131,7 @@ export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: 
     version: 1,
     approvedAt: new Date().toISOString(),
     audit: audit ? { ...audit, at: new Date().toISOString() } : undefined,
-    scenes: Object.fromEntries(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, sceneHash(s)])),
+    scenes: Object.fromEntries(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, storyboardHash(s)])),
   };
   await writeFile(storyboardFileFor(scriptPath), JSON.stringify(rec, null, 2) + "\n");
   try {

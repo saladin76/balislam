@@ -55,7 +55,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
  * موضع آية في «خط الأفق»: بلا نص معتمد يظهر وسم إنتاج واضح (المرجع، ومصدر النص والتلاوة) فوق صفحة ساكنة،
  * ولا إطار آية ولا نص مؤقت. عند إدراج نص Quran Foundation يتحول المشهد نفسه إلى بطاقة الآية بتلاوتها.
  */
-export type HorizonVerseProps = SceneBase & { text?: string; ayahKey?: string; reciter?: string; head?: string };
+export type HorizonVerseProps = SceneBase & { text?: string; ayahKey?: string; reciter?: string; recitationDuration?: number; head?: string };
 export const HorizonVerse: React.FC<HorizonVerseProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -68,7 +68,7 @@ export const HorizonVerse: React.FC<HorizonVerseProps> = (props) => {
         <Dusk />
         <Book id="vs" t={t} dur={durationInFrames / fps} cam={NEUTRAL} R={props.head ? <ChapterHead label={props.head} /> : undefined} />
         {has ? (
-          <VerseCard show={prog(t, 0.1, 0.6)} text={props.text!} refKey={key} reciter={props.reciter!} />
+          <VerseCard show={props.recitationDuration ? 1 : prog(t, 0.1, 0.6)} text={props.text!} refKey={key} reciter={props.reciter!} />
         ) : (
           <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", background: "rgba(13,10,20,0.35)" }}>
             <div style={{ padding: "26px 48px 30px", border: "3px dashed rgba(241,228,203,0.75)", borderRadius: 14, background: "rgba(13,10,20,0.82)", color: C.parchment, direction: "rtl", textAlign: "center", fontFamily: "'Tajawal', sans-serif" }}>

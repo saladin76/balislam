@@ -1,4 +1,6 @@
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { projectRoot } from "../config/paths";
@@ -72,7 +74,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
       ? q.provider === "alquran-cloud" && q.edition === chosen.edition
       : q.provider !== "alquran-cloud" && q.recitationId === chosen.id);
     if (q && matching && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
-      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration + 0.25, -0.25), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
+      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration, 0), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
     }
   }
   const sp = await resolveScriptPath(episode);
@@ -102,4 +104,41 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
   const sp2 = await resolveScriptPath(episode);
   for (const f of m.images ?? []) await cp(f.startsWith(LIB) ? path.join(libraryDirFor(sp2), f.slice(LIB.length)) : path.join(imagesDirFor(sp2), f), path.join(dest, "images", imageKey(f)));
   return { ...m, mode: "static", base: rel };
+};
+
+/**
+ * Stage ONLY the illustrated storyboard's referenced image assets.
+ * This deliberately never calls prepareRenderMedia(): it must not remove or
+ * replace the currently served _render/<episode> files or copy paid/protected
+ * voice recordings into a storyboard meant to be prepared BEFORE narration.
+ * Content-hashed namespaces keep different source-asset revisions separate.
+ */
+export const prepareStoryboardMedia = async (
+  episode: string, plan: Plan, opts: { scriptPath?: string; publicRoot?: string } = {},
+): Promise<EpisodeMedia> => {
+  const scriptPath = opts.scriptPath ?? await resolveScriptPath(episode);
+  const images = usedImages(plan, imagesDirFor(scriptPath), libraryDirFor(scriptPath));
+  const digest = createHash("sha256").update(JSON.stringify({
+    version: 1, episode, theme: plan.themeId, chapters: plan.chapters, overlays: plan.overlays,
+  }));
+  const assets = images.map((f) => ({
+    name: imageKey(f),
+    file: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
+  }));
+  for (const asset of assets) {
+    if (!asset.name || asset.name === "." || asset.name === ".." || asset.name.length > 240 ||
+      path.basename(asset.name) !== asset.name || asset.name.includes("\\") || asset.name.includes("\0"))
+      throw new Error("اسم صورة غير آمن للـStoryboard.");
+    digest.update(asset.name);
+    for await (const part of createReadStream(asset.file)) digest.update(part);
+  }
+  const safeEpisode = path.basename(String(episode)).replace(/[^a-z0-9_-]/gi, "_");
+  const rel = `_storyboard_media/${safeEpisode}-${digest.digest("hex").slice(0, 16)}/`;
+  const dest = path.join(opts.publicRoot ?? path.join(projectRoot, "public"), rel);
+  await mkdir(path.join(dest, "images"), { recursive: true });
+  for (const asset of assets) {
+    const output = path.join(dest, "images", asset.name);
+    if (!existsSync(output)) await cp(asset.file, output, { force: false, errorOnExist: true });
+  }
+  return { mode: "static", base: rel, voice: {}, sfx: [], recitations: {}, images };
 };

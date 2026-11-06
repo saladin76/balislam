@@ -4,6 +4,7 @@ import { Audio, Sequence, Series, staticFile, type CalculateMetadataFunction } f
 import config from "../../../config.json";
 import type { Plan, PlanChapter, PlanScene } from "../../plan/types";
 import { sceneFrames } from "../../plan/duration";
+import { recitationFrameSchedule } from "../../quran/recitationTimeline";
 import { emptyMedia, type EpisodeMedia } from "../../plan/media";
 import { SceneFromPlan } from "./components";
 import { toFrames } from "./timing";
@@ -45,15 +46,12 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
     <>
       {clip && clip.text === scene.narration.trim() ? <Audio src={mediaSrc(media, `voice/${clip.file}`)} volume={config.audio.narrationVolume} /> : null}
       {scene.template === "verse-card" && rec
-        ? (rec.parts ?? [{ file: rec.file, duration: rec.duration }]).map((p, i, all) => {
-            // آيات المقطع متتالية بفاصل قصير
-            const from = Math.round((0.8 + all.slice(0, i).reduce((n, x) => n + x.duration + 0.25, 0)) * fps);
-            return (
-              <Sequence key={p.file} from={from} name={`تلاوة ${i + 1}`}>
-                <Audio src={mediaSrc(media, `recitations/${p.file}`)} volume={config.audio.recitationVolume} />
-              </Sequence>
-            );
-          })
+        ? recitationFrameSchedule(rec, fps).map((part, i) => (
+            <Sequence key={part.file + "-" + i} from={part.from}
+              durationInFrames={part.durationInFrames} name={`تلاوة ${i + 1}`}>
+              <Audio src={mediaSrc(media, `recitations/${part.file}`)} volume={config.audio.recitationVolume} />
+            </Sequence>
+          ))
         : null}
       {scene.sfx
         .filter((x) => media.sfx.includes(x.id))
@@ -65,6 +63,10 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
     </>
   );
 };
+
+/** A verse with active recitation may not be crossfaded before/after its actual audio. */
+export const isRecitedVerse = (scene: PlanScene | undefined, media: EpisodeMedia) =>
+  Boolean(scene?.template === "verse-card" && scene.ayahKey && media.recitations[scene.ayahKey]);
 
 /** الانتقال الصالح بين مشهدين (لا يُطبَّق ما يرفضه فحص الخطة) */
 export const activeTransition = (scene: PlanScene, prev: PlanScene, channelId?: string): Transition | null => {
@@ -112,8 +114,10 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           return <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
         };
         // الانتقال (الأمر 011): يُطبَّق فقط إن كان صالحًا لهذا الزوج؛ وبدونه يبقى السلوك القائم حرفيًا
-        const tIn = prev ? activeTransition(scene, prev, plan.channel) : null;
-        const tOut = next ? activeTransition(next, scene, plan.channel) : null;
+        const tIn = prev && !isRecitedVerse(scene, media) && !isRecitedVerse(prev, media)
+          ? activeTransition(scene, prev, plan.channel) : null;
+        const tOut = next && !isRecitedVerse(scene, media) && !isRecitedVerse(next, media)
+          ? activeTransition(next, scene, plan.channel) : null;
         const ctx: TransitionCtx = {
           ...(tOut ? { holdExit: true } : {}),
           ...(tIn ? { skipEnter: true } : {}),
