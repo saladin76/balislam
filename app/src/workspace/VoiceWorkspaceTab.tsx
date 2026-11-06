@@ -24,6 +24,9 @@ export const VoiceWorkspaceTab: React.FC<{
   ), [plan, media]);
   const ready = scenes.filter((s) => s.state === "ready").length;
   const [review, setReview] = useState<{ id: string; state: string }[]>([]);
+  const [fullApproved, setFullApproved] = useState(false);
+  const [fullHeard, setFullHeard] = useState(false);
+  const [fullNote, setFullNote] = useState("");
   const [selected, setSelected] = useState("");
   const [reviewer, setReviewer] = useState("");
   const [note, setNote] = useState("");
@@ -32,9 +35,9 @@ export const VoiceWorkspaceTab: React.FC<{
   const [reviewBusy, setReviewBusy] = useState(false);
   useEffect(() => {
     let alive = true;
-    setReview([]); setSelected(""); setHeard(false); setReviewError("");
-    api.voiceReview(episodeId, channelId).then(({ items }) => {
-      if (alive) setReview(items);
+    setReview([]); setFullApproved(false); setFullHeard(false); setSelected(""); setHeard(false); setReviewError("");
+    api.voiceReview(episodeId, channelId).then(({ items, episodeApproved }) => {
+      if (alive) { setReview(items); setFullApproved(episodeApproved); }
     }).catch((e) => { if (alive) setReviewError("تعذر قراءة سجل مراجعة الصوت: " + (e as Error).message); });
     return () => { alive = false; };
   }, [episodeId, channelId, media.voice, plan]);
@@ -49,7 +52,20 @@ export const VoiceWorkspaceTab: React.FC<{
     setReviewBusy(true); setReviewError("");
     try {
       const result = await api.approveVoiceScene(episodeId, channelId, { sceneId: selected, reviewer, note });
-      setReview(result.items); setNote(""); setHeard(false);
+      setReview(result.items); setFullApproved(result.episodeApproved); setNote(""); setHeard(false); setFullHeard(false);
+    } catch (e) { setReviewError((e as Error).message); }
+    finally { setReviewBusy(false); }
+  };
+  const approveWholeAudio = async () => {
+    if (!fullHeard || !reviewer.trim() || fullNote.trim().length < 20) {
+      setReviewError("استمع إلى التعليق الصوتي كاملًا 1×، وسجّل المراجع وملاحظات الإيقاع والانتقالات.");
+      return;
+    }
+    setReviewBusy(true); setReviewError("");
+    try {
+      const result = await api.approveVoiceEpisode(episodeId, channelId, reviewer, fullNote);
+      setReview(result.items); setFullApproved(result.episodeApproved);
+      setFullHeard(false); setFullNote("");
     } catch (e) { setReviewError((e as Error).message); }
     finally { setReviewBusy(false); }
   };
@@ -119,6 +135,21 @@ export const VoiceWorkspaceTab: React.FC<{
             {reviewBusy ? "جارٍ الحفظ…" : "اعتماد المقطع الصوتي المسموع"}
           </button>
         </div>}
+        <div className="field">
+          <h4>الاعتماد الصوتي الكامل قبل إنتاج الفيديو</h4>
+          <p role="status">حالة التعليق الصوتي كاملًا: {fullApproved ? "معتمد بالبصمة الحالية" : "بانتظار مراجعة الاستماع المتصل"}</p>
+          <p>استمع إلى جميع المقاطع متصلة بالترتيب الصحيح خارج هذا النموذج، ثم أكد المراجعة. لا يكفي الاستماع إلى مقتطفات منفصلة.</p>
+          <label htmlFor="voice-full-note">ملاحظات المراجعة الكاملة: الإيقاع، انتقالات المشاهد، النطق والوقفات</label>
+          <textarea id="voice-full-note" rows={3} value={fullNote} maxLength={2000}
+            onChange={(e) => setFullNote(e.target.value)} placeholder="استمعت للتعليق كاملًا بالترتيب وتحققت من انتقالات المقاطع…" />
+          <label><input type="checkbox" checked={fullHeard} onChange={(e) => setFullHeard(e.target.checked)} />
+            أؤكد أنني استمعت إلى كامل التعليق الصوتي بالترتيب بسرعة طبيعية.</label>
+          <button type="button" className="btn small" onClick={approveWholeAudio}
+            disabled={reviewBusy || review.length !== scenes.length || review.some((r) => r.state !== "approved") ||
+              !fullHeard || !reviewer.trim() || fullNote.trim().length < 20}>
+            {reviewBusy ? "جارٍ الحفظ…" : "اعتماد التعليق الصوتي كاملًا للمونتاج"}
+          </button>
+        </div>
         <p className="help">يُبطل تغيير النص أو النبرة أو ملف MP3 الاعتماد تلقائيًا عند إعادة الفحص. هذه الخطوة لا تمنح إذن النشر ولا تثبت استماع الفيلم كاملًا.</p>
       </section>
       {scenes.length ? (
