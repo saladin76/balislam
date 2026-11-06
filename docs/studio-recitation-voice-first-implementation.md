@@ -16,6 +16,22 @@ The implementation now shares one schedule between video/audio:
 
 **Known physical limitation:** Some source MP3 files may contain silence *inside the recording*. Starting the MP3 at time zero cannot remove that silence, and the current patch does **not** auto-trim Quran audio (to avoid clipping sacred words). Before approval, render and listen to first/last audible phoneme in representative scenes from all three channels. If a clip contains real silence, handle its source/trim deliberately with waveform-level verification; no silent fallback.
 
+### Follow-up hardening after the first Mac 599/599 PASS
+
+- The `VersePage` style with `reveal=lines` previously displayed only its **first chunk** on audio frame zero. Now **every chunk and both Quran brackets** display fully from frame zero through the last frame whenever real recitation audio is attached. The line-by-line reveal remains only for audio-less visual planning.
+- `bal storyboard-frames` now calls a **separate image-only stage**, not `prepareRenderMedia`. Its content-hashed `public/_storyboard_media/` cache does **not delete or overwrite** the existing `public/_render/` voice, audio or media of a parallel preview. It copies only images referenced in the plan. A regression test checks that changing an image creates a fresh separate cache while the original staged image and production MP3 remain untouched.
+- Source MP3 files can contain silence *inside their own audio stream*. The new **read-only** command below reports likely leading/trailing silence. It does not modify the MP3 or automatically trim Quran.
+
+```bash
+# Run on an explicitly chosen real audio file from the verified episode worktree:
+node scripts/studio-recitation-silence.mjs "/ABSOLUTE/EPISODE/recitations/recording.mp3"
+# More files may be listed explicitly after the first.
+```
+
+The silence audit requires `ffprobe` and `ffmpeg` installed in the Mac shell. Its readings are thresholds/diagnostics, **not a guarantee** that a soft reciter syllable is silent; listen to the first and last phonemes before deciding whether any source file needs deliberate correction. Its tests are included in the ordinary Vitest gate.
+
+The earlier **599/599 Mac gate and 4322 Vite startup apply only to commit `d1a88fb`**. These follow-up fixes have not yet run on the user's Mac and are not approved for publishing.
+
 ## 2. More reciters
 
 - Quran Foundation already offers the live `/resources/recitations?language=ar` reciter and style catalog. The channel picker now includes Arabic-normalized search by name, style (مرتل/مجود) or recording ID, and shows all entries returned rather than a curated shortlist.
