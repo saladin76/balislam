@@ -71,9 +71,18 @@ export const createQuranClient = (opts: QuranClientOptions) => {
     const q = opts.translationId ? `&translations=${opts.translationId}` : "";
     const data = await get<{ verse?: { verse_key?: string; verse_number?: number; text_uthmani?: string; translations?: { text?: string }[] } }>(`/verses/by_key/${key}?fields=text_uthmani${q}`);
     const text = data.verse?.text_uthmani;
-    if (!text) throw new QuranApiError(`لم يرجع نص للآية ${key}.`);
+    if (!text?.trim()) throw new QuranApiError(`لم يرجع نص للآية ${key}.`);
+    // Do not trust the requested key alone: validate the source's real verse key
+    // and verse number whenever Quran Foundation includes them in its payload.
+    const returnedKey = data.verse?.verse_key;
+    const expectedNumber = Number(key.split(":")[1]);
+    const returnedNumber = data.verse?.verse_number;
+    if (returnedKey && returnedKey !== key)
+      throw new QuranApiError(`مفتاح الآية في Quran Foundation (${returnedKey}) لا يطابق المرجع المطلوب (${key}).`);
+    if (returnedNumber !== undefined && returnedNumber !== expectedNumber)
+      throw new QuranApiError(`رقم الآية المستلمة (${returnedNumber}) لا يطابق المرجع المطلوب (${key}).`);
     const raw = data.verse?.translations?.[0]?.text;
-    return { key, number: data.verse?.verse_number ?? Number(key.split(":")[1]), text, meaning: raw ? cleanTranslation(raw) : undefined };
+    return { key: returnedKey ?? key, number: returnedNumber ?? expectedNumber, text, meaning: raw ? cleanTranslation(raw) : undefined };
   };
 
   /** ترجمات المعاني المتاحة (اختياريًا بلغة معيّنة مثل en أو turkish). */
