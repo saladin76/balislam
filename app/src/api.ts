@@ -92,7 +92,7 @@ export const api = {
     call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, undefined, channel),
   approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string }) =>
-    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[] }>(
+    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, { method: "PUT", json: data }, channel),
   approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
     call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
