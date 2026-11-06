@@ -12,6 +12,7 @@ import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
 import { api, type LongJob, type StoryboardInfo } from "../api";
+import { ReviewNotesPanel } from "./ReviewNotesPanel";
 import config from "../../../config.json";
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
@@ -219,6 +220,7 @@ export const StoryboardPanel: React.FC<{
 
       <Reviews episodeId={episodeId} />
       <Previews episodeId={episodeId} />
+      <ReviewNotesPanel episodeId={episodeId} sceneIds={plan.chapters.flatMap((chapter) => chapter.scenes.map((scene) => scene.id))} onOpenScene={onOpenScene} />
 
       <div className="sb-review-controls" role="group" aria-label="أدوات عرض ستوري بورد المراجعة">
         <label>تصفية المشاهد
