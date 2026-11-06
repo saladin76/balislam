@@ -63,6 +63,7 @@ fi
 test -f "$TARGET/scripts/studio-preview-cloud.py" || { echo "ERROR: uploader missing"; exit 1; }
 echo "=== OFFLINE TESTS ==="
 (cd "$TARGET" && PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -m unittest discover -s tests -p 'test_studio_preview_cloud.py' -v)
+(cd "$TARGET" && PYTHONDONTWRITEBYTECODE=1 "$PYTHON_BIN" -m unittest discover -s tests -p 'test_studio_handoff_bridge.py' -v)
 echo "=== DRIVE CONNECTION (READ ONLY) ==="
 rclone lsf "studio_drive:Balislam-Studio-Previews/" --dirs-only >/dev/null
 printf '%s\n' "$PYTHON_BIN" > "$BASE/verified-python-path.txt"
@@ -94,4 +95,5 @@ chmod 700 "$BASE/studio-handoff.sh"
 echo "=== SETUP OK: NO FILES UPLOADED OR DELETED ==="
 echo "To render using new opt-in sync: $BASE/render-cloud-preview.sh -c balislam render 001"
 echo "Claude explicit uploads from any worktree: $BASE/studio-handoff.sh upload --file /absolute/path/clip.mp4 --channel balislam --episode 001-example --slot scene-c1-s1"
-echo "Existing production apps and worktrees are NOT modified."
+echo "Bridge preview (NO UPLOAD): $PYTHON_BIN $TARGET/scripts/studio-handoff-bridge.py --fetch --dry-run"
+echo "Bridge scheduler NOT installed or enabled. Existing production apps and worktrees are NOT modified."
