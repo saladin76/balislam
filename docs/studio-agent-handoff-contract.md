@@ -24,13 +24,13 @@ Claude sessions may run in two different environments, and this must be reported
 
 **Cloud Claude (no Mac access):** It must not pretend that `$HOME/Balislam-Preview-Sync`, `rclone studio_drive`, or Mac secrets are available. It should verify the existing artifact/Studio preview, provide commit/path/checksum and its review report, then mark cloud handoff as `PENDING_TRANSFER`. Do not install or export Mac credentials to the cloud, and do not switch to an unrelated uploader while claiming to have tested this system. A pre-existing Drive link can be referenced as prior evidence but never presented as a new successful transfer.
 
-**GitHub-to-Mac bridge:** A guarded Mac consumer and a dedicated empty GitHub queue are implemented on the unmerged development branch (details below). Automatic polling is **not** enabled; a real queued artifact and verified end-to-end delivery are still pending. Cloud agents must not claim success until the Mac uploader returns its verified link.
+**GitHub-to-Mac bridge:** A guarded Mac consumer and a dedicated GitHub queue are implemented on the unmerged development branch (details below). The first synthetic queued artifact was successfully delivered GitHub → Mac → Google Drive on 2026-11-06, with checksum verification. Automatic polling is **not** enabled; a real production-channel artifact handoff and owner review are still pending. Cloud agents must not claim success until the Mac uploader returns its verified link.
 
 ## GitHub-to-Mac bridge: implemented, NOT scheduled
 
-An empty queue has been initialized on the dedicated GitHub branch `studio-handoff-queue` at `studio-handoff/queue.json`. This branch does not modify `main`. The Mac-side consumer is `scripts/studio-handoff-bridge.py`, shipped in the protected local installer branch. It only reads the named queue from `origin/studio-handoff-queue`, validates every request, extracts the content of an exact **reachable Git commit** and path, verifies SHA-256, then passes the resulting immutable bytes to the existing checked uploader. It never runs scripts from the queue and never scans folders.
+A dedicated queue exists on GitHub branch `studio-handoff-queue` at `studio-handoff/queue.json`; it has contained a synthetic validation job. Do not assume the queue is empty or that old jobs are automatically removed. This branch does not modify `main`. The Mac-side consumer is `scripts/studio-handoff-bridge.py`, shipped in the protected local installer branch. It only reads the named queue from `origin/studio-handoff-queue`, validates every request, extracts the content of an exact **reachable Git commit** and path, verifies SHA-256, then passes the resulting immutable bytes to the existing checked uploader. It never runs scripts from the queue and never scans folders.
 
-Example request (for documentation only; no real artifact is requested yet):
+Example request (documentation only; this does not request any new transfer):
 
 ```json
 {
@@ -58,7 +58,7 @@ Run **read-only transfer dry-run** after installer:
 /opt/homebrew/bin/python3 "$HOME/balislam-cloud-preview-ready/scripts/studio-handoff-bridge.py" --fetch --dry-run
 ```
 
-On the initial empty queue, expected: `BRIDGE_OK DRY_RUN 0 jobs`. This fetches only the named Git branch and validates queue structure, **without uploading**. To apply after a user-reviewed job is placed in the queue, omit `--dry-run`; currently there is deliberately no LaunchAgent or background schedule. The installer never activates one. Every verified job is recorded under `$HOME/Balislam-Preview-Sync/bridge-delivered.json`, enabling idempotent runs. The bridge is not an access-control boundary against malicious GitHub writers who can push to the queue branch; restrict branch write permissions before unattended automation.
+When the queue is empty, expected: `BRIDGE_OK DRY_RUN 0 jobs`. If the previously staged synthetic validation job remains, dry-run may instead show one already-delivered job; inspect its ID and fingerprint, never assume a fresh upload is required. This fetches only the named Git branch and validates queue structure, **without uploading**. To apply after a user-reviewed job is placed in the queue, omit `--dry-run`; currently there is deliberately no LaunchAgent or background schedule. The installer never activates one. Every verified job is recorded under `$HOME/Balislam-Preview-Sync/bridge-delivered.json`, enabling idempotent runs. The bridge is not an access-control boundary against malicious GitHub writers who can push to the queue branch; restrict branch write permissions before unattended automation.
 
 ## Artifact policy
 - Videos and storyboard artifacts use separate Drive folders and each logical slot replaces its previous version. Revisions do not create duplicate revision-named cloud objects.
@@ -74,6 +74,9 @@ On the initial empty queue, expected: `BRIDGE_OK DRY_RUN 0 jobs`. This fetches o
 - Real video and real `plan.json` upload: **passed**.
 - Actual visual storyboard frames upload: **not yet tested**.
 - Cloud overwrite/ID stability on an edited real slot: **passed on owner's Mac** (2026-11-06). Real uploads of synthetic JSON revisions 1 and 2 verified MD5, one remote file, and unchanged sharing URL `https://drive.google.com/open?id=1xCDBR1is6z5H9KSiR9a48Z26rgDLSRQf`.
+- Synthetic GitHub → Mac → Drive bridge queue delivery: **passed 2026-11-06**. Job `bridge-smoke-balislam-001` delivered an 81-byte non-production JSON file with verified MD5 at `https://drive.google.com/open?id=1xgt3ulA6MGs8fpx6FbrdAGsyexbVhgZy`; this establishes transfer only, not channel-production acceptance.
+- Queue write restrictions/branch protection: **not verified**. Production automation must not be enabled without restricting queue writers and testing authorization.
+- Production Claude artifact handoff and report visibility inside Studio: **not yet verified**.
 - Automated trigger from actual Claude production render flows and full workflow review: **not yet verified**. First Claude cloud session confirmed it cannot reach Mac's rclone or shared uploader; it appropriately reported no new upload.
 - Main branch merge: **not approved**.
 
