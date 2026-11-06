@@ -393,6 +393,28 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // Text-only Quran repair. Never regenerates the plan, downloads voice,
+  // changes reviewer approvals or fills missing verses with placeholders.
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "quran-text-only" && parts.length === 3) {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { inspectMissingQuranTexts, fillMissingQuranTexts } = await load("/src/quran/fillMissingText.ts");
+    if (req.method === "GET") {
+      return send(res, 200, { status: await inspectMissingQuranTexts(parts[1]) }), true;
+    }
+    if (req.method === "POST") {
+      const body = await readBody(req);
+      if (!body || body.confirm !== true)
+        return send(res, 400, { error: "يجب طلب جلب نصوص الآيات الناقصة صراحة. لا يُجلب صوت ولا يُعدَّل الفيديو." }), true;
+      const { quranClientFromEnv } = await load("/src/quran/client.ts");
+      const client = quranClientFromEnv();
+      if (!client)
+        return send(res, 400, { error: "مفاتيح Quran Foundation غير متاحة لهذه النسخة على Mac؛ اضبط QF_CLIENT_ID وQF_CLIENT_SECRET في .env ولا تُدخل نصوصًا تخمينية." }), true;
+      const result = await fillMissingQuranTexts(parts[1], client);
+      return send(res, 200, { result, status: await inspectMissingQuranTexts(parts[1]) }), true;
+    }
+    return send(res, 405, { error: "Method not allowed" }), true;
+  }
+
   // ستوري بورد الفيديو قبل تنفيذه (storyboard.json): الحالة، والاعتماد، وحركة كل مشهد إن قيست
   if (parts[0] === "episodes" && parts[1] && parts[2] === "storyboard") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
