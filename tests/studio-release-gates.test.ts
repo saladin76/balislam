@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { assessReleaseEvidence, type ReleaseEvidenceInput } from "../app/server/releaseEvidence";
+import { statusTransitionError } from "../app/server/releaseStatusTransition";
 import { stagesOf } from "../app/src/tabs/HomeTab";
 import { stageOf } from "../app/src/tabs/OpsRoom";
 import type { Overview } from "../app/src/api";
@@ -107,5 +108,33 @@ describe("Studio publication evidence must fail closed", () => {
     e.status.published = { date: "2026-11-05" };
     expect(stageOf(e)).toBe("published");
     expect(e.release?.ready).toBe(false);
+  });
+});
+
+describe("Studio localhost status transitions cannot bypass release gates", () => {
+  const video = { size: 100_000_000, mtime: 1720000000000 };
+  const approval = { at: "2026-11-06T00:00:00.000Z", ...video };
+  it("only accepts new owner approval after all non-owner gates and exact file stats match", () => {
+    const current = valid();
+    current.ownerApprovalMatches = false;
+    const evidence = assessReleaseEvidence(current);
+    expect(statusTransitionError({}, { approved: approval }, evidence, video)).toBe(null);
+    expect(statusTransitionError({}, { approved: { ...approval, size: 2 } }, evidence, video)).toContain("لا يطابق");
+    current.storyboard.done = 0;
+    expect(statusTransitionError({}, { approved: approval }, assessReleaseEvidence(current), video)).toContain("موانع");
+  });
+  it("requires prior complete release evidence to record a published URL", () => {
+    const next = { published: { date: "2026-11-08", url: "https://example.org/watch" } };
+    const noApproval = valid();
+    noApproval.ownerApprovalMatches = false;
+    expect(statusTransitionError({}, next, assessReleaseEvidence(noApproval), video)).toContain("لا يمكن تسجيل النشر");
+    expect(statusTransitionError({}, next, assessReleaseEvidence(valid()), video)).toBe(null);
+    expect(statusTransitionError({}, { published: { date: "wrong" } }, assessReleaseEvidence(valid()), video)).toContain("تاريخ");
+    expect(statusTransitionError({}, { published: { date: "2026-11-08", url: "http://example.org" } }, assessReleaseEvidence(valid()), video)).toContain("https");
+  });
+  it("still allows removal of old approval and publication markers without edits to source media", () => {
+    const previous = { approved: approval, published: { date: "2026-11-05" } };
+    expect(statusTransitionError(previous, {}, null, null)).toBe(null);
+    expect(statusTransitionError(previous, previous, null, null)).toBe(null);
   });
 });
