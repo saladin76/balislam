@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { approveVoiceScene, assertVoiceApproved, voiceReviewItems } from "../src/voice/review";
+import { approveVoiceScene, approveVoiceEpisode, assertVoiceApproved, voiceReviewItems, episodeVoiceApproved } from "../src/voice/review";
 import type { Plan } from "../src/plan/types";
 
 const sample = async () => {
@@ -29,7 +29,18 @@ describe("human-approved, fingerprint-bound voice gate", () => {
     await expect(approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "", "")).rejects.toThrow();
     const items = await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "سمعت المقطع كله وتم اعتماد النطق والنبرة");
     expect(items[0]?.state).toBe("approved");
+    await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow(/الحلقة|التعليق الصوتي كامل/);
+    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "المراجع", "استمعت للحلقة الصوتية كاملة وتأكدت من الاستمرارية والوقفات");
+    expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(true);
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).resolves.toBe(true);
+  });
+  it("full episode signoff is invalidated when a new clip is approved or a recording changes", async () => {
+    const x = await sample();
+    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "تم الاستماع إلى المقطع والتحقق من نطقه");
+    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "المراجع", "استمعت للتعليق كاملًا دون توقف وراجعت الانتقالات");
+    expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(true);
+    await writeFile(path.join(x.dir, "voice", "spoken.mp3"), "CHANGED");
+    expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(false);
   });
   it("invalidates the file-bound approval after bytes change, even if name is unchanged", async () => {
     const x = await sample();
