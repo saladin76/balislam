@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - "scripts/studio-preview-cloud.py"
-      - "tests/studio-preview-cloud.test.py"
+      - "tests/test_studio_preview_cloud.py"
       - ".github/workflows/cloud-preview-safety.yml"
   workflow_dispatch:
 
@@ -20,4 +20,4 @@ jobs:
       - name: Compile uploader
         run: python3 -m py_compile scripts/studio-preview-cloud.py
       - name: Test without Drive credentials
-        run: python3 -m unittest discover -s tests -p "studio-preview-cloud.test.py" -v
+        run: python3 -m unittest discover -s tests -p "test_studio_preview_cloud.py" -v
