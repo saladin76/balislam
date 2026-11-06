@@ -71,7 +71,8 @@ describe("المزامنة والتغليف", () => {
     expect(sceneSeconds(first, media)).toBeGreaterThanOrEqual(3.5);
     expect(sceneSeconds(first, media)).toBeLessThan(4.5);
     const verse = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
-    expect(sceneSeconds(verse, media)).toBeCloseTo(10.6);
+    // Quran picture and recording now end together: no added 1.6s silent tail.
+    expect(sceneSeconds(verse, media)).toBeCloseTo(9);
   });
 
   it("المدة اليدوية لا تقطع الصوت", () => {
