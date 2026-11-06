@@ -56,3 +56,11 @@ test("inspects all 3 channels independently and excludes lab-only dirs",()=>{
   assert.deepEqual(r.map(x=>x.episode),["001-valid","001-valid","001-valid"]);
   assert.ok(r.every(x=>x.state==="BLOCKED"));
 });
+
+test("explicit --channel root scan does not mix different worktrees",()=>{
+  const base=root();
+  put(path.join(base,"channels","zubdat-alkutub","episodes","001-only","script.md"),"test");
+  const r=inspect(base,"001",["zubdat-alkutub"]);
+  assert.equal(r.length,1);assert.equal(r[0].channel,"zubdat-alkutub");
+  assert.equal(r[0].episode,"001-only");
+});
