@@ -68,7 +68,7 @@ describe("safe studio updater", () => {
     mkdirSync(path.join(gitDir, "rebase-merge"));
     expect((await applyUpdate(dir)).ok).toBe(false);
     expect((await updateStatus(dir, true)).error).toMatch(/عملية Git غير مكتملة/);
-  });
+  }, 15_000); // Real Git subprocesses contend with parallel test workers on macOS.
 
   it("does not overwrite dirty work on main", async () => {
     const dir = repo();
