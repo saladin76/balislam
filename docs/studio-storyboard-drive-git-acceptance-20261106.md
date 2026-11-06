@@ -49,7 +49,18 @@ bash scripts/handoff-storyboard.sh check --source-root "/ABSOLUTE/EXISTING/WORKT
 bash scripts/handoff-storyboard.sh upload --source-root "/ABSOLUTE/EXISTING/WORKTREE"
 ```
 
-The actual `upload` command **has NOT run on the owner's Mac in this conversation**. No new Dafatir file is claimed delivered.
+**Updated 2026-11-06 after the owner's later Mac log:** the explicit `upload` **did run** from `$HOME/balislam-storyboard-visual-preview`, and the Mac transport reported `VERIFIED` for all four assets. We independently listed the exact Google Drive folder with the connected Drive account; it contains these four files with matching IDs, names, and sizes:
+
+| Version | File | Bytes | Provider file ID | SHA256 logged on Mac |
+| --- | --- | ---: | --- | --- |
+| V1 | `storyboard-001-v1.pdf` | 18555254 | `1DKkmkEG29doyJXkayIkeQJA4x0rLTzzS` | `2f94715946b32661b833281d2382441fba6d938c84da5fefbd87e8cfa5d990dd` |
+| V1 | `storyboard-001-v1.json` | 148796 | `10oRG3FT08J8kaWFmamsFpoViQ055fIPe` | `325ae5586c40671b34b84c0bb8bc8e700110c7ccfcd7562006cea6c3e12f258e` |
+| V1.1 | `storyboard-001-v1.1.pdf` | 20160831 | `18xQXzJFR6VPyYj9lqJYS6959yxeDA7pU` | `454b58578062c89d92f541d112e7f3b558c7557f74a79b14bf18f0bd67b48059` |
+| V1.1 | `storyboard-001-v1.1.json` | 152238 | `1aWF6jCDec9HjGcAvq3RiGUxmTTpoHNWL` | `99d4fb0596b8ee7470909a14651895f3ae47d649e9784aea5e161ecad794b2b3` |
+
+Destination: https://drive.google.com/drive/folders/1wiFhT_4u98hLMpJQQwk1TUvNft54pMbp . Mac append-only receipt: `~/Balislam-Preview-Sync/storyboard-receipts/dafatir-001-storyboards-20261106T202743Z-88043.log`. The connector also verified one uploaded PDF was **not publicly shared**, preserving its owner-only permission. The Mac transport compared remote MD5 with local MD5; connected Drive readback independently corroborated IDs/sizes. Neither the remote content hashes nor editor approvals were independently regenerated in this cloud session. **This confirms delivery of bytes, never an approval to publish.**
+
+For **other asset kinds**, retain the existing explicit guarded Mac transporter `$HOME/Balislam-Preview-Sync/studio-handoff.sh`: `upload --kind storyboard --file /ABSOLUTE/PDF_OR_PNG --channel <channel> --episode <slug> --slot <unique-versioned-slot>` for PDF/images, and `upload --kind video --file /ABSOLUTE/MP4 --channel <channel> --episode <slug> --slot <unique-versioned-slot>` for previews. Use a unique versioned slot for each immutable review deliverable, and require fresh `VERIFIED` + `LINK` (with local+remote hash proof); do not enable the unattended GitHub→Mac bridge. Independent Drive evidence: existing Zubdat V021 artifacts (31 PNG + 1 PDF) in the **historical** folder `1gNe-PQp20mqZa9x0VNusY16zq-lzAfyL`, whereas its newly created canonical folder `1UQM0_IGkDVieu5C4LfCYBgDfYm-5T1QF` remains empty. The balislam episode preview folder contains a **technical validation** `sync-validation.mp4`, not a signed production video. Do not claim three-channel production MP4 acceptance.
 
 The documented `studio-preview-cloud.py upload` interface uses `--kind storyboard --channel ... --episode ... --slot ... --file ...` and prints `VERIFIED` and `LINK` if the real rclone upload and MD5 verification complete. **Each artifact/version must have a distinct stable slot** or an upload may overwrite another version. Any scripts use an existing authenticated rclone remote on the owner's Mac; this chat does not have Mac shell access. After explicit owner-run uploads, inspect the actual Drive folder by ID, read every file ID/size/MD5 if available, and append delivery evidence to an **append-only versioned log**. `VERIFIED` is byte delivery, not editorial approval.
 
