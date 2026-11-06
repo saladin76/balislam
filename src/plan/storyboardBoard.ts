@@ -109,10 +109,16 @@ export const sceneConstraints = (s: PlanScene): string[] => {
   return out;
 };
 
+/** اللقطة المصمَّمة لا تقرأ من الإشارات إلا كلماتها المبرزة في الكابشن (ShotScene)، وأحداثها مرسومة فيها لا من القائمة */
 const cueText = (s: PlanScene) => {
   const cues = parseCues(s.props.cues);
-  return cues.length ? `أحداث على الكلمات: ${cues.map((c) => `${cueNamesAr[c.kind] ?? c.kind} عند «${c.word}»`).join("، ")}` : "";
+  if (!cues.length) return "";
+  if (designedShot(s)) return `كلمات مبرزة في الكابشن: ${cues.map((c) => `«${c.word}»`).join("، ")}`;
+  return `أحداث على الكلمات: ${cues.map((c) => `${cueNamesAr[c.kind] ?? c.kind} عند «${c.word}»`).join("، ")}`;
 };
+const designedShot = (s: PlanScene) => (s.props.shot ? SHOTS[s.props.shot] : undefined);
+/** حقول الإخراج العام التي لا تقرؤها اللقطة المصمَّمة (مكانها ومزاجها وشخوصها منها هي) */
+export const SHOT_IGNORED_KEYS = ["poses", "poseTimeline", "look", "gait", "place", "mood", "moodTo", "cast"];
 
 /** صفوف اللوحة بترتيب الحلقة. frameOf: مدة المشهد بالإطارات (sceneFrames مع وسائط الحلقة) */
 export const boardScenes = (plan: Plan, frameOf: (s: PlanScene) => number, notes: BoardNotes = {}, issues: { sceneId: string; level: string; message: string }[] = [], fps = 30): BoardScene[] => {
@@ -127,8 +133,9 @@ export const boardScenes = (plan: Plan, frameOf: (s: PlanScene) => number, notes
       const shots = notes.keyframes?.[s.id]?.filter((f) => f >= 0 && f < frames) ?? [...new Set([Math.round(frames * 0.35), shotFrame(s, frames)])];
       const composition = [
         `نوع اللقطة: ${shotKind(s)}`,
-        // اللقطة المصمَّمة تحدد شخوصها ووضعياتها بنفسها: لا تُعرض حقول الإخراج العام التي لا أثر لها فيها
-        ...describeProps(s, [...CAMERA_KEYS, ...TEXT_KEYS, "cues", "shot", ...(s.props.shot && SHOTS[s.props.shot] ? ["poses", "poseTimeline", "look", "gait"] : [])]),
+        // اللقطة المصمَّمة تحدد مكانها وشخوصها ووضعياتها بنفسها: يُعرض مكانها هي، ولا تُعرض حقول الإخراج العام التي لا أثر لها فيها
+        ...(designedShot(s) ? [`المكان: ${designedShot(s)!.place}`] : []),
+        ...describeProps(s, [...CAMERA_KEYS, ...TEXT_KEYS, "cues", "shot", ...(designedShot(s) ? SHOT_IGNORED_KEYS : [])]),
         cueText(s),
         shotElements(s).length ? `عناصر المكتبة: ${shotElements(s).join("، ")}` : "",
       ].filter(Boolean);

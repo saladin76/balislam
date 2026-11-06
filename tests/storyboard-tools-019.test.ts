@@ -37,3 +37,21 @@ describe("لوحة v3", () => {
     expect(captionGradient(true, 1)).toBe("linear-gradient(180deg, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.80) 20.0%, rgba(0,0,0,0) 32.0%)");
   });
 });
+
+describe("وصف اللقطة المصمَّمة في اللوحة", () => {
+  it("مكانها من اللقطة نفسها، ولا تُعرض حقول الإخراج العام التي لا تقرؤها، والإشارات كلمات مبرزة لا أحداث", async () => {
+    const { boardScenes } = await import("../src/plan/storyboardBoard");
+    const s = { id: "x-s1", template: "alley-tale", narration: "ليس كل باطل يأتي في صورة يسهل رفضها.", line: 1, sfx: [], props: { place: "home", mood: "dusk", cast: "", poses: "stand", cues: "wrong | باطل", shot: "souq-scale-sincere" } };
+    const plan = { chapters: [{ number: 1, title: "ف", scenes: [s] }] } as never;
+    const [row] = boardScenes(plan, () => 90);
+    const text = row!.composition.join(" | ");
+    expect(text).toContain("المكان: سوق الحارة");
+    expect(text).not.toMatch(/بيت|غروب/);
+    expect(text).toContain("كلمات مبرزة في الكابشن: «باطل»");
+    expect(text).not.toContain("أحداث على الكلمات");
+    // المشهد العام بلا لقطة: كما كان
+    const g = { ...s, id: "x-s2", props: { ...s.props, shot: "" } };
+    const [row2] = boardScenes({ chapters: [{ number: 1, title: "ف", scenes: [g] }] } as never, () => 90);
+    expect(row2!.composition.join(" | ")).toContain("أحداث على الكلمات");
+  });
+});
