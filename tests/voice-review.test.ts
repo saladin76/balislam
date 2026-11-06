@@ -13,7 +13,7 @@ const sample = async () => {
   await writeFile(path.join(dir, "voice", "spoken.mp3"), "immutable-audio-1");
   const plan = { chapters: [{ number: 1, title: "sample", scenes: [{
     id: "c1-s1", template: "noor-text", line: 1, props: {}, narration: "النص المشكول", sfx: [], tone: "calm",
-  }] }] } as Plan;
+  }] }] } as unknown as Plan;
   const voice = { "c1-s1": { file: "spoken.mp3", text: "النص المشكول", hash: "voice-cache-v1", duration: 1.5, words: [] } };
   return { dir, scriptPath, plan, voice };
 };
