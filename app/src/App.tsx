@@ -1,6 +1,7 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
 import { StudioSidebar, StudioIcon, SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
 import "./studio-shell.css";
+import "./studio-design-system.css";
 import { StudioStartGuide } from "./ui/StudioStartGuide";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
