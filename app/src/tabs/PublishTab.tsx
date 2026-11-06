@@ -66,6 +66,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const [showLog, setShowLog] = useState(false);
   const [err, setErr] = useState("");
   const [releaseGate, setReleaseGate] = useState<ReleaseEvidence | null>(null);
+  const [savingStatus, setSavingStatus] = useState(false);
   const job = jobs.find((j) => j.episode === episodeId);
   const running = job?.status === "running";
 
@@ -103,9 +104,19 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
     }
   };
 
-  const saveStatus = (s: EpisodeStatus) => {
-    setStatus(s);
-    api.saveStatus(episodeId, s).then(() => { reload(); onChanged(); }).catch((e) => setErr((e as Error).message));
+  const saveStatus = async (s: EpisodeStatus) => {
+    if (savingStatus) return;
+    setErr("");
+    setSavingStatus(true);
+    try {
+      await api.saveStatus(episodeId, s);
+      setStatus(s);
+      reload();
+      onChanged();
+    } catch (e) {
+      setErr((e as Error).message);
+      reload(); // A rejected 409 must never appear as a saved approval or publication.
+    } finally { setSavingStatus(false); }
   };
 
   const yt = useMemo(() => parseYoutube(pkg?.youtube ?? ""), [pkg?.youtube]);
@@ -119,7 +130,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const approved = Boolean(isMaster && video && status.approved && status.approved.size === video.size && Math.abs(status.approved.mtime - video.mtime) < 1);
   const checked = status.checklist ?? {};
   const preApprovalBlockers = releaseGate?.blockers.filter((b) => !b.startsWith("اعتماد المالك")) ?? ["فحص الجاهزية غير متاح"];
-  const canApprove = Boolean(isMaster && !running && preApprovalBlockers.length === 0);
+  const canApprove = Boolean(isMaster && !running && !savingStatus && preApprovalBlockers.length === 0);
   const doneCount = CHECKLIST.filter((c) => checked[c.id]).length;
   const groups = [...new Set(CHECKLIST.map((c) => c.group))];
 
@@ -253,7 +264,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                 <b>{g}</b>
                 {CHECKLIST.filter((c) => c.group === g).map((c) => (
                   <label key={c.id} className="check">
-                    <input type="checkbox" checked={Boolean(checked[c.id])} onChange={(e) => saveStatus({ ...status, checklist: { ...checked, [c.id]: e.target.checked } })} />
+                    <input type="checkbox" disabled={savingStatus} checked={Boolean(checked[c.id])} onChange={(e) => saveStatus({ ...status, checklist: { ...checked, [c.id]: e.target.checked } })} />
                     <span>{c.text}</span>
                   </label>
                 ))}
@@ -268,7 +279,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                   <button className="btn small" onClick={() => window.confirm("إلغاء تسجيل النشر لهذه الحلقة؟") && saveStatus({ ...status, published: undefined })}>تراجع</button>
                 </>
               ) : (
-                <PublishForm disabled={!releaseGate?.ready} onSave={(p) => saveStatus({ ...status, published: p })} />
+                <PublishForm disabled={!releaseGate?.ready || savingStatus} onSave={(p) => saveStatus({ ...status, published: p })} />
               )}
               {!releaseGate?.ready && !status.published ? <div className="release-blockers"><strong>النشر غير متاح قبل اكتمال الاعتماد.</strong><ul>{(releaseGate?.blockers ?? ["فحص الجاهزية غير متاح"]).slice(0, 6).map((b, i) => <li key={i}>{b}</li>)}</ul></div> : null}
             </div>
