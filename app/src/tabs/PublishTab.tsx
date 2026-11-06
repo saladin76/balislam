@@ -116,7 +116,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const render = pkg?.render ?? null;
   const isMaster = render?.quality === "master" && render.voiced;
   // الاعتماد صالح ما دام ملف الحلقة نفسه (أي رندر جديد يلغيه)
-  const approved = Boolean(video && status.approved && status.approved.size === video.size && Math.abs(status.approved.mtime - video.mtime) < 1);
+  const approved = Boolean(isMaster && video && status.approved && status.approved.size === video.size && Math.abs(status.approved.mtime - video.mtime) < 1);
   const checked = status.checklist ?? {};
   const preApprovalBlockers = releaseGate?.blockers.filter((b) => !b.startsWith("اعتماد المالك")) ?? ["فحص الجاهزية غير متاح"];
   const canApprove = Boolean(isMaster && !running && preApprovalBlockers.length === 0);
@@ -188,7 +188,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             <h3>الشورتس والريلز <small>{shorts.length ? `${shorts.length} · 9:16 بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية"}</small></h3>
             {approved ? (
               <div className="pub-actions">
-                <button className="btn primary small" disabled={running} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (فصل لكل مقطع)"}</button>
+                <button className="btn primary small" disabled={running || !releaseGate?.ready} title={releaseGate?.ready ? "" : "أكمل المراجعات قبل الشورتس"} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (فصل لكل مقطع)"}</button>
               </div>
             ) : null}
             <div className="shorts-row">
