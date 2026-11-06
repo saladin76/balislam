@@ -25,11 +25,12 @@
             "look": "hero",
             "cast": "",
             "cues": "witnesses | شخصان",
-            "shot": "souq-two-witnesses"
+            "shot": "souq-scale-event"
           },
           "id": "c1-s1",
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 7.5
         },
         {
           "template": "alley-tale",
@@ -44,11 +45,12 @@
             "look": "hero",
             "cast": "witnesses",
             "cues": "wrong | ظلمًا\njust | عدلًا",
-            "shot": "souq-two-verdicts"
+            "shot": "souq-scale-verdicts"
           },
           "id": "c1-s2",
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 6
         },
         {
           "template": "alley-tale",

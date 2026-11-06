@@ -32,6 +32,7 @@
 - `npx bal -c balislam upload-preview <الحلقة> <الخانة> <الملف> --title "… · جاهز للمراجعة · لم يُعتمد فنيًا" --note "…"` (`putEpisodePreview` في `src/render/episodePreviews.ts`). يُرفع ثم يُتحقق من تشغيله من الاستوديو، ثم يُدفع إلى main.
 - خانة لكل موضوع، ورقم نسخة في `previews/index.json`؛ النسخ السابقة في `git log -- <مجلد المعاينات>`.
 - لا تُحذف معاينة سابقة دون إذن.
+- **معاينة موضعية لمشاهد بعينها:** `npx bal -c balislam scenes-preview <الحلقة> <معرّفات بفاصلة> [--portrait] [--out ملف]` (`renderScenesPreview` و`planForScenes` في `src/render/scenesPreview.ts`): المشاهد المختارة وحدها بترتيبها، بلا افتتاحية ولا نهاية، بجودة preview وتوقيت الحلقة (التقديري بلا صوت)؛ المخرج الافتراضي `renders/scenes/<الحلقة>-<المعرّفات>-<الاتجاه>.mp4`. لا تغيّر الخطة ولا الاعتمادات، ولا تُنشر.
 - **صور الستوري بورد** للمختبرات غير معاينات الفيديو: `npx bal -c balislam upload-storyboard <المختبر> <الخانة> <الصورة> --topic … --title … --order …` (`addLabStoryboard` في `src/channel/labStoryboards.ts`) تضيف نسخة ولا تحذف شيئًا، وتظهر في «مختبرات الإنتاج ← ستوري بورد · صور». حفظها أو عرضها ليس اعتمادًا.
 
 ## المراجعة والقياس

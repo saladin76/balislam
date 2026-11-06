@@ -6,7 +6,7 @@ import type { Plan, PlanChapter, PlanScene } from "../../plan/types";
 import { sceneFrames } from "../../plan/duration";
 import { emptyMedia, type EpisodeMedia } from "../../plan/media";
 import { SceneFromPlan } from "./components";
-import { toFrames } from "./timing";
+import { estimateTimings, toFrames } from "./timing";
 import { ChannelIntro, introFramesFor, introKindFor } from "./ChannelIntro";
 import type { Orientation } from "./types";
 import { Providers } from "../Providers";
@@ -27,6 +27,13 @@ export type EpisodeProps = {
   /** هوية القناة (إن غابت: الهوية الافتراضية) */
   identity?: Identity;
   channel?: ChannelInfo;
+};
+
+/** توقيت تقديري بسرعة الكلام في config.json (بلا صوت)، داخل مدة المشهد */
+export const spokenTimings = (narration: string, sceneLen: number) => {
+  const n = narration.trim().split(/\s+/).filter(Boolean).length;
+  const spoken = Math.round(((n / config.speech.wordsPerMinute) * 60 + 1.2) * config.video.fps);
+  return estimateTimings(narration, 6, Math.min(sceneLen, spoken) - 12);
 };
 
 /** في الشورت (فصل واحد) لا تُعرض شاشة النهاية. */
@@ -108,7 +115,10 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           const p = i > 0 && all[i - 1]!.chapter.number === c.number ? all[i - 1]!.scene : undefined;
           const n = i < all.length - 1 && all[i + 1]!.chapter.number === c.number ? all[i + 1]!.scene : undefined;
           const clip = media.voice[sc.id];
-          const timings = clip && clip.text === sc.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
+          const voiced = clip && clip.text === sc.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
+          // «حكايات الحارة» (بالإسلام) بمدة يدوية وبلا صوت بعد: تُقدَّر الكلمات بسرعة الكلام لا بطول المشهد كله،
+          // فتبقى المعاينة على إيقاع النطق ويُرى ما بعد آخر كلمة كما سيكون مع الصوت (الحلقة 001 · حدث الميزان)
+          const timings = voiced ?? (sc.template === "alley-tale" && sc.durationSec && sc.narration.trim() ? spokenTimings(sc.narration, sceneFrames(sc, media)) : undefined);
           return <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
         };
         // الانتقال (الأمر 011): يُطبَّق فقط إن كان صالحًا لهذا الزوج؛ وبدونه يبقى السلوك القائم حرفيًا

@@ -361,6 +361,27 @@ program
   });
 
 program
+  .command("scenes-preview <episode> <ids>")
+  .description("معاينة موضعية صامتة لمشاهد مختارة (مثل c1-s1,c1-s2) بتوقيت الحلقة وهويتها، بلا افتتاحية؛ لا تغيّر الخطة ولا الاعتمادات")
+  .option("--portrait", "العمودي 9:16")
+  .option("--out <file>", "مسار الملف (الافتراضي renders/scenes/)")
+  .action(async (episode: string, ids: string, opts: { portrait?: boolean; out?: string }) => {
+    const { renderScenesPreview } = await import("../render/scenesPreview");
+    let last = -1;
+    const out = await renderScenesPreview({
+      episode,
+      ids: ids.split(/[,،\s]+/).filter(Boolean),
+      orientation: opts.portrait ? "portrait" : "landscape",
+      out: opts.out ? path.resolve(opts.out) : undefined,
+      onProgress: (pct) => {
+        const step = Math.floor(pct / 20) * 20;
+        if (step !== last) console.log(`PROGRESS ${(last = step)}`);
+      },
+    });
+    console.log(`DONE ${path.relative(projectRoot, out)}`);
+  });
+
+program
   .command("upload-preview <episode> <slot> <file>")
   .description("رفع فيديو للحلقة إلى «المعاينات» في الاستوديو: يحذف النسخة القديمة لنفس الخانة ويضع الجديدة مكانها")
   .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو")

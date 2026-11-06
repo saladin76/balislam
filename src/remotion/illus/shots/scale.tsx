@@ -1,5 +1,5 @@
 import React from "react";
-import { ID, darken, mix } from "../palette";
+import { CLOTH, ID, darken, mix } from "../palette";
 import { Figure, LOOKS, POSES, blendPose, handAt, type FigureLook, type PoseSpec } from "../Figure";
 import { GROUND, Glow, archPath } from "../world";
 import { LightPool, Texture } from "../texture";
@@ -18,7 +18,9 @@ const INK = darken(ID.night, 0.55);
 const ORANGE = mix(ID.dawn, ID.seal, 0.28);
 const WOOD = mix(darken(ID.copper, 0.45), ID.night, 0.25);
 const BRASS = mix(ID.copper, ID.paper, 0.15);
-const SIL = mix(darken(ID.night, 0.35), ID.copper, 0.08);
+/** ظلّا الشاهدين في المقدمة (زاويتا النظر): داكنان بلون لباس كلٍّ منهما، فيُعرف صاحب الزاوية بلا شرح */
+const SIL_FIRST = mix(darken(CLOTH.emerald, 0.62), ID.night, 0.25);
+const SIL_SECOND = mix(darken(CLOTH.ink, 0.2), ID.night, 0.15);
 
 /** الشخوص: هيئات مختلفة بالأسلوب نفسه وبلا ملامح، وكلهم بالغون بأحجام متقاربة */
 export const SCALE_CAST = {
@@ -31,8 +33,9 @@ export const SCALE_SIZES = { vendor: 1.62, customer: 1.8, first: 1.75, second: 1
 
 /** مواضع ثابتة في العالم (الزاوية الرئيسية)؛ الشاهدان أقرب في العمودي */
 export const scaleLayout = (portrait: boolean) => ({
-  first: portrait ? 600 : 520,
-  customer: 770,
+  // بين الشاهد الأول وكيس الزبون فراغ يسمح بحافة إطار بينهما (لقطة الفعل القريبة تُخرج الأول كاملًا)
+  first: portrait ? 600 : 480,
+  customer: 790,
   pivot: 1020,
   crate: 1236,
   vendor: 1262,
@@ -127,7 +130,7 @@ const ARM_POSES = (() => {
     crate: reach({ x: 1220, y: COUNTER_TOP - 60 }, lean),
     pan: reach({ x: panR0.x + 6, y: PIVOT_Y + PAN_DROP - 40 }, lean),
     // فوق الكفة وإلى جهة البائع: في زاوية الأول تظهر اليد بالحبة بجانب الزبون لا خلفه
-    up: reach({ x: 1180, y: PIVOT_Y - 150 }, lean),
+    up: reach({ x: 1205, y: PIVOT_Y - 170 }, lean),
   };
 })();
 
@@ -247,6 +250,8 @@ const StallAt: React.FC<{ frame: number; b: ScaleBeats }> = ({ frame, b }) => {
       <Counter x0={STALL.x0 - 20} x1={STALL.x1 - 10} />
       <Crate x={1236} n={st.crate} />
       <MarketScale x={pivotX} tilt={st.tilt} goods={st.goods} />
+      {/* الحبة المحمولة في كف البائع، بهالة خفيفة من ضوء الدكان تقود العين إليها (وهي محور الواقعة) */}
+      {st.carried ? <Glow cx={st.hand.x + 4} cy={st.hand.y - 8} r={52} color={ID.dawn} opacity={0.55} /> : null}
       {st.carried
         ? Array.from({ length: st.carried }, (_, i) => <circle key={i} cx={st.hand.x - 4 + i * 20} cy={st.hand.y - 6 - i * 6} r={13} fill={ORANGE} stroke={INK} strokeWidth={2} />)
         : null}
@@ -285,57 +290,120 @@ export const VerdictTag: React.FC<{ head: { x: number; y: number }; side: 1 | -1
 
 export type ScaleAngle = "main" | "first" | "second";
 
+/** زاوية الشاهد الأول: الدكان مصغّر (أبعد) حول محور الميزان، والزبون أقرب وأكبر بينه وبين الميزان */
+export const FIRST_ANGLE = { far: 0.85, lift: 40, customerX: 1082, customerDy: 110, customerScale: 2.5 };
+/** نقطة من الدكان في زاوية الشاهد الأول (التحويل نفسه الذي يُرسم به) */
+export const firstAngleMap = (p: { x: number; y: number }) => ({ x: pivotX + (p.x - pivotX) * FIRST_ANGLE.far, y: GROUND - FIRST_ANGLE.lift + (p.y - GROUND) * FIRST_ANGLE.far });
+/** حدود الميزان (العاتق والكفتان وما فيهما) في العالم، مهما كان ميله */
+export const scaleBounds = () => ({ x0: pivotX - ARM - 50, x1: pivotX + ARM + 50, y0: PIVOT_Y - ARM * Math.sin((13 * Math.PI) / 180) - 4, y1: PIVOT_Y + ARM * Math.sin((13 * Math.PI) / 180) + PAN_DROP + 14 });
+
 /**
  * الزاوية الرئيسية: الجميع على خط واحد جانبيًا، والميزان ظاهر كاملًا.
  * first: من خلف كتف الشاهد الأول (ظله في المقدمة): الزبون وكيسه أقرب إلى الكاميرا فيحجبان الميزان،
  *   ويد البائع ترتفع بالحبة فوق كتفه ثم تنزل إلى الصندوق، فيُرى الأخذ ولا يُرى الوزن.
  * second: من عند الشاهدة الثانية (ظلها في المقدمة): الكفتان ظاهرتان.
  */
-export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: boolean; angle: ScaleAngle; verdicts: { first: string; second: string }; size: number }> = ({ frame, b, portrait, angle, verdicts, size }) => {
+/** وضعيات الشخوص في الزاوية الرئيسية، وظهور بطاقتي التفسير (0..1) */
+export type ScaleCast = { first: PoseSpec; second: PoseSpec; customer: PoseSpec; tags?: { first: number; second: number } };
+
+export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: boolean; angle: ScaleAngle; cast: ScaleCast; verdicts: { first: string; second: string }; size: number }> = ({ frame, b, portrait, angle, cast, verdicts, size }) => {
   const lay = scaleLayout(portrait);
   const S = SCALE_SIZES;
   if (angle === "first") {
     // الدكان أبعد (أصغر)، والزبون أقرب بين الكاميرا والميزان
-    const far = 0.85;
+    const far = FIRST_ANGLE.far;
     const fx = pivotX;
-    const custX = 1075;
+    const custX = FIRST_ANGLE.customerX;
     return (
       <g>
         <StallBack frame={frame} />
-        <g transform={`translate(${fx} ${GROUND - 40}) scale(${far}) translate(${-fx} ${-GROUND})`}>
+        <g transform={`translate(${fx} ${GROUND - FIRST_ANGLE.lift}) scale(${far}) translate(${-fx} ${-GROUND})`}>
           <StallAt frame={frame} b={b} />
         </g>
-        <Figure x={custX} y={GROUND + 90} scale={2.5} pose={POSES.stand} look={SCALE_CAST.customer} holding="bundle" frame={frame + 9} shade={1.2} />
-        <Figure x={custX - 440} y={GROUND + 280} scale={3.1} pose={POSES.listen} look={SCALE_CAST.first} silhouette={SIL} shadow={false} frame={frame} />
+        <Figure x={custX} y={GROUND + FIRST_ANGLE.customerDy} scale={FIRST_ANGLE.customerScale} pose={POSES.stand} look={SCALE_CAST.customer} holding="bundle" frame={frame + 9} shade={1.2} />
+        <Figure x={custX - 440} y={GROUND + 280} scale={3.1} pose={POSES.listen} look={SCALE_CAST.first} silhouette={SIL_FIRST} shadow={false} frame={frame} />
       </g>
     );
   }
-  // بطاقة الأول تخبو حين تنتقل الكاميرا إلى الثانية (صاحبها خارج الإطار فلا تُقص) وتعود في اللقطة الرابطة
-  const f1 = prog(frame, b.firstSay, b.firstSay + 12) * (1 - prog(frame, b.second, b.second + 12) * (1 - prog(frame, b.link, b.link + 14)));
-  const f2 = prog(frame, b.secondSay, b.secondSay + 12);
-  // الشاهدان واقفان ينظران وقت الواقعة، ثم يلتفتان عند «شاهدان»، ثم وضعية التفسير عند كلمته
-  const fPose = blendPose(blendPose(POSES.stand, POSES.listen, prog(frame, b.witnesses - 6, b.witnesses + 8)), POSES.think, prog(frame, b.firstSay - 6, b.firstSay + 8));
-  const sPose = blendPose(blendPose(POSES.stand, POSES.listen, prog(frame, b.witnesses, b.witnesses + 14)), POSES.sincere, prog(frame, b.secondSay - 6, b.secondSay + 8));
-  const cPose = blendPose(POSES.stand, POSES.nod, prog(frame, b.lift + 60, b.lift + 72) * (1 - prog(frame, b.lift + 90, b.lift + 104)));
   const fHead = { x: lay.first + 6, y: GROUND - 6 - 300 * S.first };
   const sHead = { x: lay.second - 6, y: GROUND - 6 - 300 * S.second };
   return (
     <g>
       <StallBack frame={frame} />
       <StallAt frame={frame} b={b} />
-      <Figure x={lay.customer} y={GROUND + 6} scale={S.customer} pose={cPose} look={SCALE_CAST.customer} holding="bundle" frame={frame + 9} />
-      <Figure x={lay.first} y={GROUND + 6} scale={S.first} pose={fPose} look={SCALE_CAST.first} frame={frame} />
-      {angle === "second" ? null : <Figure x={lay.second} y={GROUND + 6} scale={S.second} pose={sPose} look={SCALE_CAST.second} flip frame={frame + 13} />}
-      {angle === "second" ? <Figure x={pivotX + (portrait ? 330 : 470)} y={GROUND + 230} scale={2.9} pose={POSES.listen} look={SCALE_CAST.second} flip silhouette={SIL} shadow={false} frame={frame} /> : null}
-      {angle === "main" ? (
+      <Figure x={lay.customer} y={GROUND + 6} scale={S.customer} pose={cast.customer} look={SCALE_CAST.customer} holding="bundle" frame={frame + 9} />
+      <Figure x={lay.first} y={GROUND + 6} scale={S.first} pose={cast.first} look={SCALE_CAST.first} frame={frame} />
+      {angle === "second" ? null : <Figure x={lay.second} y={GROUND + 6} scale={S.second} pose={cast.second} look={SCALE_CAST.second} flip frame={frame + 13} />}
+      {angle === "second" ? <Figure x={pivotX + (portrait ? 330 : 470)} y={GROUND + 230} scale={2.9} pose={POSES.listen} look={SCALE_CAST.second} flip silhouette={SIL_SECOND} shadow={false} frame={frame} /> : null}
+      {angle === "main" && cast.tags ? (
         <>
-          <VerdictTag head={fHead} side={-1} text={verdicts.first} color={ID.seal} t={f1} size={size} above />
-          <VerdictTag head={sHead} side={1} text={verdicts.second} color={ID.dawn} t={f2} size={size} above />
+          <VerdictTag head={fHead} side={-1} text={verdicts.first} color={ID.seal} t={cast.tags.first} size={size} above />
+          <VerdictTag head={sHead} side={1} text={verdicts.second} color={ID.dawn} t={cast.tags.second} size={size} above />
         </>
       ) : null}
     </g>
   );
 };
+
+/** رأس الشاهد في العالم (لموضع بطاقته ولفحص التأطير) */
+export const witnessHead = (who: "first" | "second", portrait: boolean) => {
+  const lay = scaleLayout(portrait);
+  return who === "first" ? { x: lay.first + 6, y: GROUND - 6 - 300 * SCALE_SIZES.first } : { x: lay.second - 6, y: GROUND - 6 - 300 * SCALE_SIZES.second };
+};
+
+/** مستطيل بطاقة التفسير في العالم (الحساب نفسه الذي ترسم به VerdictTag فوق الرأس) */
+export const verdictTagRect = (head: { x: number; y: number }, side: 1 | -1, text: string, size: number) => {
+  const w = text.length * size * 0.58 + 70;
+  const h = size * 1.6;
+  const cx = head.x - side * 90;
+  const cy = head.y - 80 - h / 2 - 34;
+  return { x0: cx - w / 2, x1: cx + w / 2, y0: cy - h / 2, y1: head.y - 66 };
+};
+
+const pb = (a: PoseSpec, b2: PoseSpec, t: number) => (t <= 0 ? a : t >= 1 ? b2 : blendPose(a, b2, t));
+
+/**
+ * الحلقة 001 · c1-s1 «قد يشاهد شخصان الموقف نفسه، ثم يخرجان منه بحكمين مختلفين تمامًا.»
+ * الواقعة كاملة بثلاث زوايا متصلة زمنيًا. اللحظات على كلمات الجملة، بحد أدنى للمسافات فلا تنضغط الواقعة إن أسرع الصوت.
+ */
+export const scaleEventBeats = (at: (w: string, frac: number) => number) => {
+  const witnesses = at("شخصان", 0.15);
+  const add = Math.max(at("الموقف", 0.24), 40);
+  const lift = Math.max(at("ثم", 0.42), add + 48);
+  const back = lift + 76;
+  const diverge = Math.max(at("بحكمين", 0.6), back + 6);
+  const b: ScaleBeats = { add, lift, witnesses, first: 1e6, firstSay: 1e6, second: 1e6, secondSay: 1e6, link: 1e6 };
+  return { b, back, diverge, end: back + 50 };
+};
+export const scaleEventCast = (frame: number, e: ReturnType<typeof scaleEventBeats>): ScaleCast => ({
+  first: pb(pb(POSES.stand, POSES.listen, prog(frame, e.b.witnesses - 4, e.b.witnesses + 10)), POSES.cross, prog(frame, e.diverge, e.diverge + 12)),
+  second: pb(pb(POSES.stand, POSES.listen, prog(frame, e.b.witnesses + 2, e.b.witnesses + 16)), POSES.nod, prog(frame, e.diverge + 6, e.diverge + 18)),
+  // الزبون واقف ينتظر وزنته: يده لا تمتد فوق كفة الثقل، ولا تدخل لقطتي الكفتين القريبتين
+  customer: POSES.stand,
+});
+
+/**
+ * الحلقة 001 · c1-s2 «الأول يراه ظلمًا، والثاني يراه عدلًا.»: الواقعة انتهت (الميزان مستوٍ، والحبة في الصندوق)،
+ * والشاهدان يبدآن بوضعيتي آخر c1-s1 (استمرار)، ثم تفسير كلٍّ عند كلمته وبطاقته.
+ */
+export const DONE_BEATS: ScaleBeats = { add: -2000, lift: -1000, witnesses: -900, first: -1, firstSay: -1, second: -1, secondSay: -1, link: -1 };
+export const scaleVerdictBeats = (at: (w: string, frac: number) => number) => {
+  const firstSay = at("ظلمًا", 0.3);
+  const second = Math.max(at("والثاني", 0.45), firstSay + 16);
+  const secondSay = Math.max(at("عدلًا", 0.75), second + 24);
+  return { firstSay, second, secondSay, link: secondSay + 14 };
+};
+export const scaleVerdictCast = (frame: number, v: ReturnType<typeof scaleVerdictBeats>): ScaleCast => ({
+  // الأول عاقد ذراعيه ثم يُعرض عن الدكان عند «ظلمًا» (رفض ما رآه)؛ لا يمد يده نحو كيس الزبون
+  first: pb(POSES.cross, POSES["turn-away"], prog(frame, v.firstSay - 4, v.firstSay + 10)),
+  second: pb(POSES.nod, POSES.sincere, prog(frame, v.secondSay - 4, v.secondSay + 10)),
+  customer: POSES.stand,
+  // بطاقة الأول تخبو حين تنتقل الكاميرا إلى الثانية (صاحبها خارج الإطار فلا تُقص) وتعود في اللقطة الرابطة
+  tags: {
+    first: prog(frame, v.firstSay, v.firstSay + 12) * (1 - prog(frame, v.second, v.second + 10) * (1 - prog(frame, v.link + 8, v.link + 20))),
+    second: prog(frame, v.secondSay, v.secondSay + 12),
+  },
+});
 
 /** الزاوية في كل إطار: الرئيسية، ثم من عند الأول لحظة الرفع، ثم من عند الثانية لحظة الاستواء، ثم الرئيسية */
 export const scaleAngleAt = (frame: number, b: ScaleBeats): ScaleAngle =>

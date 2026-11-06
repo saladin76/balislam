@@ -8,7 +8,7 @@ import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow 
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, PhonePOV } from "./phone";
-import { ScaleIncident, scaleAngleAt } from "./scale";
+import { DONE_BEATS, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleVerdictBeats, scaleVerdictCast } from "./scale";
 
 /**
  * اللقطات المصمَّمة: كل لقطة تحكي جملتها بمكانها وشخوصها وكاميرتها، وأحداثها تقع لحظة نطق كلماتها.
@@ -111,31 +111,56 @@ const souqEvent = (at: ShotCtx["at"]) => {
 };
 
 export const SHOTS: Record<string, ShotDef> = {
-  "souq-scale-witnesses": {
-    nameAr: "ميزان البائع: واقعة واحدة يراها شاهدان من جهتين",
+  "souq-scale-event": {
+    nameAr: "ميزان البائع (1): واقعة واحدة بثلاث زوايا متصلة زمنيًا",
     place: "سوق الحارة",
     render: ({ frame, at, portrait }) => {
-      // الواقعة أولًا ثم الشاهدان، في زمن واحد: الزاويتان قطعان في لحظة الرفع نفسها لا إعادة لها (الأمر 015)
-      const add = at("البرتقال", 0.1);
-      const lift = at("يعيد", 0.2);
-      const witnesses = at("شاهدان", 0.42);
-      const pan = at("الموقف", 0.5);
-      const first = at("الأول", 0.6);
-      const firstSay = at("ظلمًا", 0.68);
-      const second = at("والثاني", 0.74);
-      const secondSay = at("عدلًا", 0.8);
-      const link = secondSay + 30;
-      const b = { add, lift, witnesses, first, firstSay, second, secondSay, link };
+      // الحلقة 001 · c1-s1: الواقعة أولًا. الزاويتان قطعان في لحظة الرفع نفسها (لا إعادة)، ثم عودة إلى الرئيسية
+      const e = scaleEventBeats(at);
+      const { b } = e;
       const angle = scaleAngleAt(frame, b);
       const C = (t: number, x: number, z: number, y: number, cut = false): CamKey => ({ t, x, y, z, ...(cut ? { cut } : {}) });
       const cam = portrait
-        ? [C(0, 1010, 0.62, 310), C(add - 24, 1150, 1.35, 520), C(lift - 10, 1070, 0.95, 430, true), C(lift + 28, 1060, 1.5, 520, true), C(lift + 76, 860, 0.85, 400, true), C(pan, 1215, 0.85, 400), C(first, 760, 1.05, 430), C(second, 1300, 1.05, 430), C(link, 1010, 0.6, 310)]
-        : [C(0, 1040, 1.0, 470), C(add - 24, 1180, 1.75, 528), C(lift - 10, 1000, 1.3, 360, true), C(lift + 28, 1080, 1.7, 520, true), C(lift + 76, 1040, 1.0, 470, true), C(first, 780, 1.45, 384), C(second, 1300, 1.45, 384), C(link, 1040, 1.25, 425)];
+        ? [C(0, 1020, 0.58, 310), C(b.add - 12, 1105, 1.25, 520), C(b.lift - 10, 1110, 1.2, 390, true), C(b.lift + 28, 1030, 1.8, 490, true), C(e.back, 1020, 0.58, 310, true)]
+        : [C(0, 1040, 1.0, 470), C(b.add - 12, 1180, 1.7, 470), C(b.lift - 10, 1080, 1.6, 360, true), C(b.lift + 28, 1100, 2.0, 440, true), C(e.back, 1040, 1.0, 470, true)];
       return {
         cam,
-        captionSize: portrait ? 62 : 76,
-        world: <ScaleIncident frame={frame} b={b} portrait={portrait} angle={angle} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={portrait ? 64 : 66} />,
+        world: <ScaleIncident frame={frame} b={b} portrait={portrait} angle={angle} cast={scaleEventCast(frame, e)} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={portrait ? 64 : 66} />,
       };
+    },
+  },
+  "souq-scale-verdicts": {
+    nameAr: "ميزان البائع (2): تفسير كل شاهد للواقعة نفسها، ثم لقطة تجمعهما",
+    place: "سوق الحارة",
+    render: ({ frame, at, portrait }) => {
+      // الحلقة 001 · c1-s2: الميزان مستوٍ والحبة في الصندوق (حالة آخر c1-s1)؛ الشاهد الأول، ثم الثانية، ثم الرابطة
+      const v = scaleVerdictBeats(at);
+      const C = (t: number, x: number, z: number, y: number): CamKey => ({ t, x, y, z });
+      const cam = portrait
+        ? [C(0, 700, 1.05, 390), C(v.second, 1330, 1.05, 390), C(v.link, 1015, 0.58, 330)]
+        : [C(0, 700, 1.3, 375), C(v.second, 1610, 1.3, 375), C(v.link, 1040, 1.25, 370)];
+      return {
+        cam,
+        world: <ScaleIncident frame={frame} b={DONE_BEATS} portrait={portrait} angle="main" cast={scaleVerdictCast(frame, v)} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={portrait ? 64 : 66} />,
+      };
+    },
+  },
+  "souq-scale-witnesses": {
+    nameAr: "ميزان البائع (مختبر الأمر 015): الواقعة والتفسيران في لقطة واحدة",
+    place: "سوق الحارة",
+    render: ({ frame, at, portrait }) => {
+      // مختبر 900 بنص الاختبار: الواقعة من scaleEventBeats بكلمات المختبر، ثم التفسيران
+      const e = scaleEventBeats((w, f) => at(w === "شخصان" ? "شاهدان" : w === "الموقف" ? "البرتقال" : w === "ثم" ? "يعيد" : w === "بحكمين" ? "الموقف" : w, f));
+      const v = scaleVerdictBeats(at);
+      const angle = scaleAngleAt(frame, e.b);
+      const C = (t: number, x: number, z: number, y: number, cut = false): CamKey => ({ t, x, y, z, ...(cut ? { cut } : {}) });
+      const cam = portrait
+        ? [C(0, 1010, 0.6, 310), C(e.b.add - 12, 1150, 1.35, 520), C(e.b.lift - 10, 1070, 0.95, 430, true), C(e.b.lift + 28, 1060, 1.5, 520, true), C(e.back, 1010, 0.6, 310, true), C(v.firstSay - 14, 700, 1.05, 400), C(v.second, 1330, 1.05, 400), C(v.link, 1025, 0.6, 330)]
+        : [C(0, 1040, 1.0, 470), C(e.b.add - 12, 1170, 1.75, 528), C(e.b.lift - 10, 1000, 1.3, 360, true), C(e.b.lift + 28, 1080, 1.7, 520, true), C(e.back, 1040, 1.0, 470, true), C(v.firstSay - 14, 720, 1.3, 375), C(v.second, 1380, 1.3, 375), C(v.link, 1040, 1.25, 390)];
+      const ev = scaleEventCast(frame, e);
+      const vc = scaleVerdictCast(frame, v);
+      const cast = frame < v.firstSay - 14 ? ev : vc;
+      return { cam, world: <ScaleIncident frame={frame} b={e.b} portrait={portrait} angle={angle} cast={cast} verdicts={{ first: "ظلمًا", second: "عدلًا" }} size={portrait ? 64 : 66} /> };
     },
   },
   "souq-two-witnesses": {

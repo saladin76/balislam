@@ -96,8 +96,9 @@ describe("ستوري بورد المختبرات", () => {
   it("يجد المختبر برقمه، والمختبر الحقيقي في المستودع يحفظ صورتي الأمر 015 بقرار النسخة الأولى", async () => {
     expect(await resolveLabDir(eps, "900")).toBe(lab);
     const real = path.join(__dirname, "..", "channels", "balislam", "episodes", "900-engine-lab");
-    const [e] = await listLabStoryboards(real);
-    expect(e!.slot).toBe("witnesses-015");
+    const all = await listLabStoryboards(real);
+    const e = all.find((x) => x.slot === "witnesses-015");
+    expect(e).toBeTruthy();
     expect(e!.problems).toEqual([]);
     expect(e!.latest.version).toBe(2);
     expect(e!.latest.status).toBe("review");
@@ -105,5 +106,11 @@ describe("ستوري بورد المختبرات", () => {
     expect(e!.versions.find((v) => v.version === 1)!.status).toBe("changes");
     // لا اعتماد فني لأي نسخة
     expect(e!.versions.some((v) => v.status === "approved")).toBe(false);
+    // ستوري بورد حدث الميزان للحلقة 001 (issue #53): محفوظ «جاهز للمراجعة» بلا قرار
+    const s = all.find((x) => x.slot === "scale-event-001");
+    expect(s!.order).toBe("001");
+    expect(s!.problems).toEqual([]);
+    expect(s!.versions.every((v) => v.status === "review" && !v.decision)).toBe(true);
+    expect(all.flatMap((x) => x.versions).some((v) => v.status === "approved")).toBe(false);
   });
 });
