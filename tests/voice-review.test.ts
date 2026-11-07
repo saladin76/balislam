@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -37,6 +37,27 @@ describe("human-approved, fingerprint-bound voice gate", () => {
     await expect(approveVoiceEpisode(x.scriptPath, x.plan, x.voice,
       "مراجع", "استمعت إلى الحلقة بالصوت كاملًا", false)).rejects.toThrow(/الاستماع الكامل/);
     expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(false);
+  });
+  it("does not trust a forged or incomplete legacy approval even with an exact clip hash", async () => {
+    const x = await sample();
+    const items = await voiceReviewItems(x.scriptPath, x.plan, x.voice);
+    expect(items[0]?.fingerprint).toBeTruthy();
+    const fingerprint = items[0]!.fingerprint!;
+    const forged = { version: 1, scenes: {
+      "c1-s1": { fingerprint, reviewer: "", note: "", at: "2026-11-07T00:00:00Z" },
+    }, episode: { fingerprint, reviewer: "", note: "", at: "2026-11-07T00:00:00Z" } };
+    await writeFile(path.join(x.dir, "voice-review.json"), JSON.stringify(forged));
+    expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("pending");
+    expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(false);
+    await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow();
+  });
+  it("refuses symbolic links even when the referenced MP3 is playable", async () => {
+    const x = await sample();
+    const audio = path.join(x.dir, "voice", "spoken.mp3");
+    const external = path.join(x.dir, "not-the-approved-voice.mp3");
+    await rename(audio, external);
+    await symlink(external, audio);
+    expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
   });
   it("requires a reviewer and a meaningful note, then permits unchanged audio", async () => {
     const x = await sample();
