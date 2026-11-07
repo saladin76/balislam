@@ -16,7 +16,7 @@ describe("episode plan storage resilience", () => {
     dirs.push(root);
     // Script-first Quran integration reads the companion script even for non-Quran plans.
     // Keep this a valid minimal fixture; never weaken the atomic-write assertion.
-    writeFileSync(path.join(root, "script.md"), "---\\ntitle: QA fixture\\n---\\n\\n## الفصل 1 · اختبار\\n\\nنص تجريبي.\\n".replace(/\\n/g, "\n"), "utf8");
+    writeFileSync(path.join(root, "script.md"), "---\ntitle: QA fixture\n---\n\n## الفصل 1 · اختبار\n\nنص تجريبي.\n", "utf8");
     const file = path.join(root, "plan.json");
     const plan = {
       channel: "balislam", title: "حفظ خطة الاختبار",
