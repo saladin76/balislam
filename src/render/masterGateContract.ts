@@ -53,3 +53,16 @@ export const masterRenderSubject = async (
 export const assertMasterStageAuthorized = async (_subject: MasterRenderSubject): Promise<void> => {
   throw new Error("رندر Master المرشّح محظور: لم يُربط بعد تحقق محرك المراحل من الاعتمادات حتى مراجعة AV لهذه البصمة. اعتماد ملف Master والنشر إجراءان منفصلان لاحقان.");
 };
+
+
+/** A previously approved input fingerprint cannot authorize a newly changed
+ * script, plan, channel, media snapshot or orientation at final commit time.
+ * This comparison alone is NOT approval; the PR #77 gate must run again.
+ */
+export const assertMasterSubjectUnchanged = (
+  before: MasterRenderSubject, after: MasterRenderSubject,
+): void => {
+  if (before.inputSha256 !== after.inputSha256 ||
+      JSON.stringify(before) !== JSON.stringify(after))
+    throw new Error("تغيّرت بصمة مدخلات Master أثناء الرندر؛ يجب إعادة فحص واعتماد النسخة الجديدة.");
+};
