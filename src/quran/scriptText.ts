@@ -66,3 +66,22 @@ export const historicalMeanings = (
   }
   return result;
 };
+
+/**
+ * A fetched edition is not permission to replace a historical translation.
+ * Keep the old text AND its true source until a separately reviewed migration.
+ */
+export const historicalMeaningConflict = (
+  store: Record<string, string>, key: string, nextMeaning: string, nextSource: string,
+): string | null => {
+  const old = store[`${key}#meaning`];
+  if (!old) return null;
+  const oldSource = attributedMeaningSource(store[`${key}#meaningSource`]);
+  if (!oldSource)
+    return "الترجمة التاريخية موجودة دون نسبة مصدر موثقة؛ يجب تحديد مصدرها قبل أي مزامنة جديدة.";
+  if (oldSource !== nextSource)
+    return `الترجمة التاريخية من «${oldSource}» ولا يمكن استبدالها صامتًا بترجمة «${nextSource}».`;
+  if (old !== nextMeaning)
+    return "نص الترجمة التاريخية تغيّر رغم بقاء اسم المصدر؛ يلزم حفظ النسخة القديمة ومراجعة التغيير يدويًا.";
+  return null;
+};
