@@ -70,3 +70,32 @@
 - Run full `npm run typecheck` and all Vitest suites on the **exact head** of Draft PR #76, including `tests/quran-script-source.test.ts`, `tests/quran-tts-guard.test.ts`, `tests/audio-integrity.test.ts`, `tests/voice-review.test.ts`, `tests/script-approval.test.ts`, and `tests/studio-final-motion-gate.test.ts`.
 - Check that GitHub Actions actually execute `npm ci`, typecheck, tests and channel smoke checks. A job failing with **zero steps** is an infrastructure failure and does not prove code passed or failed.
 - Require a real independently reviewed Quran/text and MP3/source-rights exemplar, plus owner signoff of a full 1× listening session, before any real production acceptance. Test sine-wave recordings are decoder fixtures, never religious review evidence.
+
+
+## 7. Follow-up hardening and handoff to render owner (7 November 2026)
+
+### Implementation added only in this workstream
+
+- **Named, affirmative citation review:** `src/script/review.ts` records a named reviewer, timestamp, substantive note, SHA-256 over the **exact** citation (including Arabic harakat) and the exact authored Quran text. Anonymous/legacy `verified` entries remain in the historical file but are treated as pending until a new human decision. `setReview` re-reads the current script to prevent a stale in-memory signoff. The `ReviewPanel` and HTTP API require reviewer + explicit confirmation. Nobody is approved automatically.
+- **No optional-config bypass:** `src/script/approval.ts` requires every present citation to be explicitly verified independently of `REVIEW.required`, and every Quran verse written into the script must appear in its reference/citation section. Citation verification is not scripture expertise; it remains a human action.
+- **Plan/script identity check:** `src/voice/motionGate.ts` fails final motion if any `verse-card` uses a stale or unknown reference, omits a script-authored verse, or displays text not **byte-for-byte** equal to the script's current Quran text. An approved script can never validate an unrelated old plan.
+- **No cached Quran TTS escape:** `generateVoice` checks all selected jobs including previously cached voice clips, rather than only newly synthesized jobs. The separate special-line synthesis path remains guarded. All Quranic recitation must use a pre-recorded, attributable human reader.
+- **Source and playable file integrity:** a full FFmpeg decode, audio SHA-256, valid review timestamp, reciter/source evidence and explicit listening declarations are necessary for audio review eligibility. A valid MP3 name hiding a symlink is rejected; both the original and processed files for manual Quran audio are checked. Historical lacking-source recitation pointers remain stored but **not eligible**.
+- **Concurrency protection:** `syncQuran` writes Quran meaning data and recitation indexes via separate same-directory atomic rename operations. Provider-index updates take the same `.manual-audio.lock` as manual recitation review and merge the current manual entries, so a slow remote sync cannot replace a newly approved human recording. On a concurrent manual review it fails closed and requests a retry; no foreign temporary directory cleanup.
+- **Reference trust:** Quran text matching from prelive or an unknown environment reports `pending` rather than `match`; differences are still shown, and nothing silently corrects the script.
+- **Tests added/expanded:** citation reviewer proof and exact reference tashkil, old anonymous ledger, script citation coverage, source-translation conflicts, Unicode alignment completeness, manual sync preservation, symlink/forged MP3 reviews, corrupt original file, unintegrated audio, old or missing plan verse cards, source environment, strict listening and TTS protection. Decoder fixtures contain synthetic sine waves **only for codec integrity**, never Quran recitation.
+
+### Required renderer integration before claiming 100%
+
+The other workstream owns `src/plan/collect.ts`, `src/render/episode.ts`, package/Master entrypoints, `app/server/extra.ts` queue recovery and any resumed jobs. This branch deliberately does not modify renderer-owned files. The renderer must:
+
+1. Call `assertMotionStartAuthorized(scriptPath, activePlan, activeVoiceIndex)` at **actual execution time** for every final render, whether launched via HTTP, direct CLI, package, batch, Master or recovered queue. Recheck before final output commit. Silent storyboard QA is explicitly exempt **only** when producing a clearly non-final review.
+2. Implement a **verified manual recitation source** in the collector. Use `verifiedOwnRecitations(scriptPath)`, verify original and processed SHA-256, decode both, match the exact current script verse text/ref, and verify reader and rights evidence immediately before each stage. Do not infer permission merely from `provider: "manual"` or `reviewed`.
+3. For every `verse-card` in final render, require a playable, licensed and correctly attributed recitation and validate the content source. No missing recitation, obsolete Quran Foundation cache, unsupported manual recording, or synthetic/voice-cloned Quran.
+4. Write acceptance tests against every public entrypoint: unsigned/modified script; revised Quran text/ref/tashkeel; unknown Quran source; missing/changed recorded file and changed original; missing/skipped card; unapproved scene/storyboard/full narration; denied provider rights; direct CLI/package/queue recovery bypass; concurrent audio approval/sync; silent QA distinct from final. Tests must fail before output mutation and pass only with deliberately reviewed synthetic **non-Quran** audio fixtures.
+
+### Operational acceptance status
+
+- GitHub CI and Studio parity **have been repeatedly unable to execute any workflow steps** on recent SHA values (including previous attempt #816/#474). This is **not** proof that TypeScript or tests pass. Prior green checks from older SHAs do not cover the follow-up changes.
+- No full repository `npm run typecheck` / `npm test` completion on this newest head, no published Master, and no owner scholarly or 1× continuous-listening decision has been claimed.
+- **Do not mark the PR Ready or 100% end-to-end** until a full exact-SHA run and renderer-owner integration passes. Draft PR #76 is the sole deliverable for this branch; do not modify `main`, Mac production assets, episode files, other branches, or deploy via Vercel.
