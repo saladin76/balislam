@@ -5,6 +5,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName } from "./util.ts";
+import { readBody } from "./body.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -19,31 +20,6 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
   res.setHeader("content-type", "application/json; charset=utf-8");
   res.end(JSON.stringify(body));
 };
-
-/** Uploads are Base64 encoded; cap them, and cap all JSON before buffering. */
-const MAX_BODY_BYTES = 180 * 1024 * 1024;
-export const readBody = async (req: IncomingMessage, maxBytes = MAX_BODY_BYTES): Promise<any> => {
-  const length = Number(req.headers["content-length"] ?? 0);
-  if (!Number.isFinite(length) || length > maxBytes)
-    throw new HttpError(413, "حجم الطلب أكبر من الحد المسموح.");
-  const chunks: Buffer[] = [];
-  let received = 0;
-  for await (const chunk of req) {
-    const piece = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    received += piece.length;
-    if (received > maxBytes) throw new HttpError(413, "حجم الطلب أكبر من الحد المسموح.");
-    chunks.push(piece);
-  }
-  const raw = Buffer.concat(chunks).toString("utf8");
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new HttpError(400, "بيانات الطلب غير صالحة.");
-  }
-};
-
-
 
 /** config.json مع رسالة واضحة إن تلف (مثلًا علامات تعارض من git pull أو stash pop) */
 const readConfig = async () => {
