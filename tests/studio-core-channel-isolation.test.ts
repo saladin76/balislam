@@ -5,6 +5,7 @@ import path from "node:path";
 import { createChannel } from "../src/channel/create";
 import { channelPaths, isChannelId, listChannels, loadChannel, runWithChannel, currentChannelId } from "../src/channel";
 import { jsonRevision, writeJsonAtomic, writeJsonWithRevision } from "../src/channel/storage";
+import { inspectChannel } from "../src/channel/inspect";
 import { createEpisode, listScriptEpisodeDirs, resolveScriptPath } from "../src/script/episodes";
 
 const project = path.resolve(import.meta.dirname, "..");
@@ -84,6 +85,25 @@ describe("channel boundaries and crash-safe storage", () => {
     expect(await listScriptEpisodeDirs(own)).toEqual([]);
     await expect(runWithChannel("balislam", () => resolveScriptPath("001"))).rejects.toThrow("غير موجودة");
     expect(readFileSync(path.join(other, "script.md"), "utf8")).toBe("Foreign channel content");
+  });
+
+  it("inspects damaged channel without hiding healthy channels or mutating originals", () => {
+    const ids = ["balislam", "dafatir-alzaman", "zubdat-alkutub"];
+    for (const id of ids) {
+      const state = inspectChannel(id);
+      expect(state.config?.id).toBe(id);
+      expect(state.error).toBeNull();
+    }
+    const file = channelPaths("zubdat-alkutub").channelFile;
+    writeFileSync(file, "{corrupt");
+    const savedBytes = readFileSync(file, "utf8");
+    const results = ids.map(inspectChannel);
+    expect(results.filter((x) => x.config)).toHaveLength(2);
+    expect(results[2]!.config).toBeNull();
+    expect(results[2]!.error).toMatch(/تالف/);
+    expect(readFileSync(file, "utf8")).toBe(savedBytes);
+    expect(results.slice(0, 2).map((x) => x.config?.id))
+      .toEqual(["balislam", "dafatir-alzaman"]);
   });
 
   it("rejects damaged or mismatched config without rewriting it or other channels", () => {
