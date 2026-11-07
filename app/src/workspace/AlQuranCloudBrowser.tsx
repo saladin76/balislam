@@ -48,7 +48,7 @@ export const AlQuranCloudBrowser: React.FC<{channelId:string;episodeId:string}> 
   };
   return <section className="group ew-reciter-panel" aria-label="معاينة AlQuran Cloud">
     <h4 className="ew-reciter-title">AlQuran Cloud <span>استماع اختياري فقط</span></h4>
-    <p className="ew-reciter-subtitle">للاستماع والمقارنة فقط؛ لن يُنزَّل تسجيل خارجي أو يُستخدم في الفيديو. التلاوة الإنتاجية هي تسجيلك الذي اعتمدته أعلاه.</p>
+    <p className="ew-reciter-subtitle">للاستماع والمقارنة فقط؛ لن يُنزَّل تسجيل خارجي أو يُستخدم في الفيديو. التلاوة الإنتاجية هي التسجيل الذي اعتُمد أعلاه باسم قارئه.</p>
     {!opened ? <button className="btn small" type="button" onClick={open}>استعراض التلاوات</button> : <>
       <button className="btn ghost small" type="button" onClick={()=>{setOpened(false);setPreview(null);}}>إغلاق المعاينة</button>
       {busy && <p role="status">جارٍ تحميل المعاينة…</p>}

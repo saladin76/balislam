@@ -1,7 +1,7 @@
 /**
  * تدقيق نص بطاقات الآيات المعروض فعلًا في الحلقة مقابل المرجع المعتمد (مراجعة صاحب القناة).
  *
- * - النص المحلي: quran.json بجوار السكريبت، وهو المصدر الوحيد الذي يدمجه withQuran في بطاقات verse-card عند الرندر.
+ * - النص المعروض: نص السكريبت ([آية: … | النص]) أولًا، ثم quran.json للعلامات القديمة بلا نص؛ كلاهما يدمجه withQuran في بطاقات verse-card.
  * - المقارنة بعد توحيد يونيكود (NFC) وحده؛ لا يُحذف تشكيل ولا علامة قرآنية. وتُصنَّف الفروق:
  *   الحروف، والتشكيل، والرسم العثماني، والعلامات الخاصة (الوقف ونهاية الآية وأرقامها).
  * - نص المرجع لا يُكتب في المستودع (شروط مراجعة صاحب القناة)؛ يُعرض الفرق بموضعه ورموزه فقط.
@@ -80,7 +80,9 @@ export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<Q
   const dir = path.dirname(scriptPath);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const qfile = quranPathFor(scriptPath);
-  const store = (await readJson<Record<string, string>>(qfile)) ?? {};
+  // النص المعروض فعلًا في البطاقة: نص السكريبت أولًا ([آية: … | النص])، ثم quran.json للعلامات القديمة
+  const { effectiveAyahTexts } = await import("./scriptText");
+  const store: Record<string, string> = Object.fromEntries((await effectiveAyahTexts(scriptPath)).ayahs.map((a) => [a.key, a.text]));
   const plan = await readPlanFile(scriptPath);
   const refs = parsed.chapters.flatMap((c) => c.blocks).filter((b) => b.kind === "ayah") as { ref: string }[];
   const storeInfo = existsSync(qfile) ? { file: path.basename(qfile), sha256: createHash("sha256").update(await readFile(qfile)).digest("hex"), mtime: (await stat(qfile)).mtime.toISOString() } : null;
@@ -188,7 +190,7 @@ export const writeQuranAuditReport = async (episode: string, result: Awaited<Ret
     return `<article><header><b>${esc(a.surahName)} ${a.from === a.to ? a.from : `${a.from}–${a.to}`}</b><code>${esc(a.key)}</code><span>${a.sceneId ? `بطاقة ${esc(a.sceneId)}` : ""}</span>${STATUS[a.status]}</header>
 <dl>
 <div><dt>النص المعروض (المحلي)</dt><dd class="ar q">${a.shown ? esc(a.shown) : "—"}</dd></div>
-<div><dt>مصدره الإنتاجي</dt><dd><code>quran.json</code> ← المفتاح <code>${esc(a.key)}</code> ← تدمجه <code>withQuran</code> في <code>props.text</code> لبطاقة ${esc(a.sceneId ?? "—")} (المفتاح <code>ayahKey</code> في plan.json)، ويرسمه VerseCard نصًّا بخط Amiri. بصمة النص: <code>${a.shownSha256?.slice(0, 16) ?? "—"}</code> · ${chars.length} رمزًا (حروف ${counts.letter ?? 0}، تشكيل ${counts.haraka ?? 0}، رسم عثماني ${counts.uthmani ?? 0}، علامات ${counts.mark ?? 0}).</dd></div>
+<div><dt>مصدره الإنتاجي</dt><dd>نص السكريبت إن كُتب في العلامة، وإلا <code>quran.json</code> ← المفتاح <code>${esc(a.key)}</code> ← تدمجه <code>withQuran</code> في <code>props.text</code> لبطاقة ${esc(a.sceneId ?? "—")} (المفتاح <code>ayahKey</code> في plan.json)، ويرسمه VerseCard نصًّا بخط Amiri. بصمة النص: <code>${a.shownSha256?.slice(0, 16) ?? "—"}</code> · ${chars.length} رمزًا (حروف ${counts.letter ?? 0}، تشكيل ${counts.haraka ?? 0}، رسم عثماني ${counts.uthmani ?? 0}، علامات ${counts.mark ?? 0}).</dd></div>
 <div><dt>البطاقة في المعاينة النشطة</dt><dd>${a.frame ? `<img src="${a.frame}" alt="بطاقة ${esc(a.key)}"><br>` : "—"}${a.frameAt ? `previews/episode.mp4 عند ${a.frameAt.toFixed(1)} ث` : ""}</dd></div>
 <div><dt>النص المرجعي ومصدره</dt><dd>${a.reference ? `${esc(a.reference.source)}، الحقل <code>${a.reference.field}</code>، البيئة <code>${esc(a.reference.env)}</code>${a.reference.env !== "production" ? " <span class=no>ليست بيئة الإنتاج</span>" : ""}، جُلب ${esc(a.reference.fetchedAt)}. أعاد: ${a.reference.returned.map((v) => `${v.key} (الآية ${v.number})`).join("، ")}. بصمته <code>${a.reference.sha256.slice(0, 16)}</code>. نصه لا يُحفظ في المستودع.` : `<span class=hold>لم يُجلب</span>${a.reason ? ` · ${esc(a.reason)}` : ""}`}</dd></div>
 <div><dt>رقم السورة والآية</dt><dd>${a.numbers.ok ? "<span class=ok>سليم</span>" : "<span class=no>يحتاج مراجعة</span>"}<ul>${a.numbers.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></dd></div>

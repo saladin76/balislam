@@ -37,7 +37,9 @@ export const compareVerseText = (shown: string, approved: string): TextDiff[] =>
 export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClient, "verse">): Promise<VerseCheck[]> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-  const store = (await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {};
+  // النص المعروض فعلًا: نص السكريبت أولًا، ثم quran.json للعلامات القديمة
+  const { effectiveAyahTexts } = await import("./scriptText");
+  const store = Object.fromEntries((await effectiveAyahTexts(scriptPath)).ayahs.map((a) => [a.key, a.text]));
   const refs = parsed.chapters.flatMap((c) => c.blocks).filter((b) => b.kind === "ayah") as { ref: string }[];
   const out: VerseCheck[] = [];
   for (const { ref } of refs) {

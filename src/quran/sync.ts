@@ -20,6 +20,10 @@ export type RecitationIndex = Record<string, {
   approvedAt?: string;
   sha256?: string;
   textSha256?: string;
+  /** رفض صريح من المراجع: لا يُستعمل التسجيل في أي رندر، ولا يظهر معتمدًا في الواجهة. */
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectReason?: string;
 }>;
 export const recitationsDirFor = (scriptPath: string) =>
   path.join(path.dirname(scriptPath), "recitations");

@@ -62,6 +62,15 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
   if (!citations.ok) throw new Error(`توثيق الاستشهادات غير مكتمل: ${citations.verified} من ${citations.total}. راجع سجل التوثيق قبل الرندر النهائي.`);
   const ids = new Set(plan.chapters.filter((c) => !o.chapter || c.number === o.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
+  // نص كل آية في النطاق: يدوي، ومقابَل بالمصحف المعتمد، ومعتمد ببصمة النص الحالي (مستقل عن بقية الاعتمادات)
+  {
+    const { unapprovedAyahTexts, AYAH_TEXT_STATE_AR } = await import("../quran/scriptText");
+    const keys = new Set(plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.template === "verse-card" && s.ayahKey).map((s) => s.ayahKey!));
+    const noKey = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.template === "verse-card" && !s.ayahKey).map((s) => s.id);
+    if (noKey.length) throw new Error(`بطاقة آية بلا مرجع صالح: ${noKey.join("، ")}.`);
+    const pending = keys.size ? await unapprovedAyahTexts(scriptPath, keys) : [];
+    if (pending.length) throw new Error(`لا يمكن رندر نسخة نهائية قبل اعتماد نص الآيات: ${pending.map((p) => `${p.ref} (${AYAH_TEXT_STATE_AR[p.state]})`).join("؛ ")}.`);
+  }
   const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
   const missing = required.filter((s) => {
     const clip = media.voice[s.id];

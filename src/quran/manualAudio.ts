@@ -8,7 +8,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { open, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
-import { quranPathFor } from "../plan/io";
+import { effectiveAyahText, effectiveAyahTexts } from "./scriptText";
 import { recitationsDirFor, type RecitationIndex } from "./sync";
 import { inspectMissingQuranTexts } from "./fillMissingText";
 import { audioDuration } from "../voice/generate";
@@ -115,21 +115,31 @@ export const prepareOwnRecitation = async (
     }
   });
 };
+/** حالة التلاوات للواجهة: «معتمد» يعني ما اجتاز فحص الرندر نفسه (verifiedOwnRecitations) فقط.
+ * التسجيل الفاسد أو المفقود أو المرفوض أو الذي تغيّر نص آيته يظهر في invalid بسببه، لا في approved. */
 export const ownAudioStatus = async (episode: string) => {
   const scriptPath = await resolveScriptPath(episode);
   const dir = recitationsDirFor(scriptPath);
   const pending = await readJson<OwnAudioReview>(ownAudioReviewFile(scriptPath), {});
-  const approved = await readJson<RecitationIndex>(path.join(dir,"index.json"), {});
-  return { pending, approved:Object.fromEntries(Object.entries(approved).filter(([,v])=>v.provider==="manual")) };
+  const index = await readJson<RecitationIndex>(path.join(dir,"index.json"), {});
+  const verified = await verifiedOwnRecitations(scriptPath);
+  const invalid: Record<string, { reason: string }> = {};
+  for (const [key, rec] of Object.entries(index)) {
+    if (!rec || rec.provider !== "manual" || verified[key]) continue;
+    invalid[key] = { reason: await whyUnverified(scriptPath, key, rec) };
+  }
+  return { pending, approved: verified, invalid };
 };
-/** Explicit owner signoff after listening; never changes the script, plan or other approvals. */
-export const approveOwnRecitation = async (episode: string, key: string, reviewer: string, note: string, listened: boolean) => {
+/** Explicit signoff after listening; never changes the script, plan or other approvals.
+ * The reciter is named explicitly: writing the ayah never implies the owner recites it. */
+export const approveOwnRecitation = async (episode: string, key: string, reviewer: string, note: string, listened: boolean, reciter = "") => {
   if (!listened || !reviewer?.trim() || note?.trim().length < 12)
     throw Error("استمع إلى التلاوة كاملةً وأدخل اسم المراجع وملاحظة فعلية قبل الاعتماد.");
+  if (!reciter?.trim()) throw Error("اذكر اسم القارئ ومصدر التلاوة صراحةً؛ لا يُفترض أن صاحب القناة هو القارئ.");
   await requested(episode,key);
   const scriptPath = await resolveScriptPath(episode);
-  const texts = await readJson<Record<string,string>>(quranPathFor(scriptPath), {});
-  const approvedText = texts[key];
+  // بصمة النص الفعّال (نص السكريبت أولًا): تغيّر الآية في السكريبت يُسقط اعتماد تلاوتها
+  const approvedText = (await effectiveAyahText(scriptPath, key))?.text;
   if (!approvedText?.trim()) throw Error("نص الآية غير موجود؛ أدخله وراجعه قبل اعتماد الصوت.");
   return withLock(scriptPath, async dir => {
     const file=ownAudioReviewFile(scriptPath);
@@ -141,7 +151,7 @@ export const approveOwnRecitation = async (episode: string, key: string, reviewe
     const indexFile=path.join(dir,"index.json");
     const current=await readJson<RecitationIndex>(indexFile,{});
     const entry:RecitationIndex[string]={
-      provider:"manual",reciter:"تلاوة بصوت صاحب القناة",
+      provider:"manual",reciter:reciter.trim(),
       parts:[{file:candidate.file,duration:candidate.duration}],
       fetchedAt:candidate.createdAt,approvedAt:new Date().toISOString(),
       approvedBy:reviewer.trim(),sha256:candidate.sha256,
@@ -162,10 +172,10 @@ export const approveOwnRecitation = async (episode: string, key: string, reviewe
 export const verifiedOwnRecitations = async (scriptPath: string): Promise<RecitationIndex> => {
   const dir = recitationsDirFor(scriptPath);
   const index = await readJson<RecitationIndex>(path.join(dir, "index.json"), {});
-  const texts = await readJson<Record<string,string>>(quranPathFor(scriptPath), {});
+  const texts = Object.fromEntries((await effectiveAyahTexts(scriptPath)).ayahs.map((a) => [a.key, a.text]));
   const ready: RecitationIndex = {};
   for (const [key, rec] of Object.entries(index)) {
-    if (!rec || rec.provider !== "manual" || !rec.approvedAt || !rec.approvedBy ||
+    if (!rec || rec.provider !== "manual" || !rec.approvedAt || !rec.approvedBy || rec.rejectedAt ||
         !rec.sha256 || !rec.textSha256 || rec.parts?.length !== 1) continue;
     const part = rec.parts[0]!;
     if (!validName(part.file) || !Number.isFinite(part.duration) || part.duration <= 0 ||
@@ -178,4 +188,47 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
     }
   }
   return ready;
+};
+
+/** سبب عدم اجتياز تسجيل لفحص الرندر (للواجهة)، بالترتيب نفسه لشروط verifiedOwnRecitations. */
+const whyUnverified = async (scriptPath: string, key: string, rec: RecitationIndex[string]): Promise<string> => {
+  if (rec.rejectedAt) return "التسجيل مرفوض.";
+  if (!rec.approvedAt || !rec.approvedBy || !rec.sha256 || !rec.textSha256) return "لم يُعتمد بعد اكتمال بياناته.";
+  if (rec.parts?.length !== 1) return "بيانات الأجزاء غير صالحة.";
+  const part = rec.parts[0]!;
+  if (!validName(part.file) || !Number.isFinite(part.duration) || part.duration <= 0) return "اسم الملف أو مدته غير صالح.";
+  const text = (await effectiveAyahText(scriptPath, key))?.text;
+  if (!text) return "لا نص لهذه الآية الآن.";
+  if (sha(Buffer.from(text, "utf8")) !== rec.textSha256) return "تغيّر نص الآية بعد اعتماد التلاوة.";
+  try {
+    const data = await readFile(path.join(recitationsDirFor(scriptPath), part.file));
+    if (sha(data) !== rec.sha256) return "ملف التلاوة تغيّر أو تلف بعد الاعتماد.";
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return "ملف التلاوة مفقود.";
+    throw e;
+  }
+  return "لم يجتز فحص الرندر.";
+};
+
+/** رفض صريح لتسجيل ينتظر المراجعة أو معتمد سابقًا. الملف يبقى للرجوع إليه، ولا يُستعمل أبدًا. */
+export const rejectOwnRecitation = async (episode: string, key: string, reviewer: string, reason: string) => {
+  if (!reviewer?.trim() || !reason?.trim()) throw Error("اذكر اسم المراجع وسبب الرفض.");
+  await requested(episode, key);
+  const scriptPath = await resolveScriptPath(episode);
+  return withLock(scriptPath, async (dir) => {
+    const reviewFile = ownAudioReviewFile(scriptPath);
+    const pending = await readJson<OwnAudioReview>(reviewFile, {});
+    const indexFile = path.join(dir, "index.json");
+    const index = await readJson<RecitationIndex>(indexFile, {});
+    const stamp = { rejectedAt: new Date().toISOString(), rejectedBy: reviewer.trim(), rejectReason: reason.trim() };
+    const candidate = pending[key];
+    if (candidate) {
+      index[key] = { provider: "manual", reciter: "", parts: [{ file: candidate.file, duration: candidate.duration }], fetchedAt: candidate.createdAt, sha256: candidate.sha256, ...stamp };
+      delete pending[key];
+      await atomicJson(reviewFile, pending);
+    } else if (index[key]?.provider === "manual") index[key] = { ...index[key]!, ...stamp };
+    else throw Error("لا تسجيل لهذه الآية لرفضه.");
+    await atomicJson(indexFile, index);
+    return index[key]!;
+  });
 };

@@ -1,6 +1,6 @@
 /**
- * دفاتر الزمن 001 — المعاينة المتكاملة للقطات الست (اتجاه «خط الأفق»): صوت الراوي المعتمد، ونص الآيتين اللتين يقدمهما صاحب القناة
- * وتلاوة صاحب القناة المعتمدة، والمشاهد مضبوطة على توقيت الكلام الفعلي. تعمل على جهاز الإنتاج فقط (المفاتيح والتلاوات عليه).
+ * دفاتر الزمن 001 — المعاينة المتكاملة للقطات الست (اتجاه «خط الأفق»): صوت الراوي المعتمد، ونص الآيتين من السكريبت (أو المخزن للعلامات القديمة)
+ * والتلاوة المعتمدة باسم قارئها، والمشاهد مضبوطة على توقيت الكلام الفعلي. تعمل على جهاز الإنتاج فقط (المفاتيح والتلاوات عليه).
  *
  * لا يُنتَج شيء ناقص: يتوقف قبل أي صرف أو رندر إن اختلف نص اللقطات عن السكريبت المعتمد، أو نقص مفتاح، أو قلّ التشكيل عن 98%،
  * أو لم يُدرج نص آية أو تُعتمد تلاوتها. الملف بخانة تنتهي بـ «-audio» فيبقى على الجهاز (شروط التلاوة)، ولا تُزال المعاينة الصامتة
@@ -14,6 +14,7 @@ import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
 import { loadChannel } from "../channel/index";
 import { readJson, quranPathFor } from "../plan/io";
+import { effectiveAyahTexts } from "../quran/scriptText";
 import { elevenLabsFromEnv, type ElevenLabsClient } from "../voice/elevenlabs";
 import { synthesizeLines, tashkeelBlockMessage, tashkeelForLines, voiceDirFor } from "../voice/generate";
 import { recitationsDirFor } from "../quran/sync";
@@ -42,14 +43,15 @@ export const horizonPreflight = async (scriptPath: string, clients: { voice: Ele
       if (!script.includes(plain)) problems.push(`نص اللقطة ${id} لا يطابق السكريبت المعتمد: «${plain.slice(0, 60)}…»`);
     }
   if (!clients.voice) problems.push("مفتاح صوت الراوي أو معرّف الصوت غير موجود في .env (ElevenLabs).");
-  const localTexts = (await readJson<Record<string,string>>(quranPathFor(scriptPath))) ?? {};
+  // النص الفعّال: نص السكريبت أولًا ثم quran.json للعلامات القديمة (الأمر 024)
+  const localTexts = Object.fromEntries((await effectiveAyahTexts(scriptPath)).ayahs.map((a) => [a.key, a.text]));
   const recDir = recitationsDirFor(scriptPath);
   const recordings = await verifiedOwnRecitations(scriptPath);
   for (const key of HORIZON_VERSES) {
-    if (!localTexts[key]?.trim()) problems.push("نص الآية " + key + " لم يقدمه صاحب القناة.");
+    if (!localTexts[key]?.trim()) problems.push("نص الآية " + key + " غير مكتوب في السكريبت ولا في المخزن المحلي.");
     const rec = recordings[key];
     if (!rec)
-      problems.push("تلاوة " + key + " بصوت صاحب القناة غير معتمدة.");
+      problems.push("تلاوة " + key + " غير معتمدة (تُعتمد باسم قارئها بعد الاستماع).");
   }
   const tk = await tashkeelForLines(scriptPath, HORIZON_SHOTS.map((id) => ({ id: `horizon-${id}`, text: spokenText(id) })));
   if (!tk.ok) problems.push(tashkeelBlockMessage(tk));
@@ -86,7 +88,7 @@ export const renderHorizonAudio = async (
   if (problems.length) throw new Error(`لم تُصنع المعاينة الصوتية:\n${problems.map((p) => `- ${p}`).join("\n")}`);
 
   log("التحقق من النصوص والتلاوات اليدوية المعتمدة…");
-  const store = (await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {};
+  const store: Record<string, string> = Object.fromEntries((await effectiveAyahTexts(scriptPath)).ayahs.map((a) => [a.key, a.text]));
   const recDir = recitationsDirFor(scriptPath);
   const recIndex = await verifiedOwnRecitations(scriptPath);
   const channel = loadChannel();
@@ -94,7 +96,9 @@ export const renderHorizonAudio = async (
 
   log("توليد صوت الراوي للقطات الست…");
   const voiceDir = path.join(voiceDirFor(scriptPath), "horizon");
-  const clips = await synthesizeLines(scriptPath, HORIZON_SHOTS.map((id) => ({ id, text: spokenText(id) })), { client: voice!, dir: voiceDir, onProgress: log });
+  // الصوت المستنسخ لا يتلو القرآن: حاجز بنصوص آيات الحلقة نفسها، لا بعلامات المصحف وحدها
+  const guard = [...new Set([...Object.values(store), ...Object.entries((await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {}).filter(([k, v]) => !k.includes("#") && typeof v === "string").map(([, v]) => v)])];
+  const clips = await synthesizeLines(scriptPath, HORIZON_SHOTS.map((id) => ({ id, text: spokenText(id) })), { client: voice!, dir: voiceDir, onProgress: log, quranGuard: guard });
 
   // الوسائط تُنسخ إلى public قبل التجميع (Remotion يضم public وقت التجميع)
   const rel = `_render/horizon-${path.basename(path.dirname(scriptPath)).replace(/[^\w.-]/g, "_")}/`;
@@ -107,7 +111,8 @@ export const renderHorizonAudio = async (
   for (const key of HORIZON_VERSES) {
     const rec = recIndex[key]!;
     for (const p of rec.parts) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
-    verses[key] = { text: store[key]!, reciter: `الشيخ ${rec.reciter}`, parts: rec.parts };
+    // اسم القارئ كما سُجّل عند اعتماد التلاوة، بلا لقب مفترض
+    verses[key] = { text: store[key]!, reciter: rec.reciter, parts: rec.parts };
   }
   const audio: HorizonAudio = { base: rel, voice: Object.fromEntries(Object.entries(clips).map(([id, c]) => [id, { file: c.file, duration: c.duration, words: c.words }])), verses };
   const shots = buildShots(audio); // يرمي خطأ إن لم يطابق عدد كلمات الصوت نص اللقطة

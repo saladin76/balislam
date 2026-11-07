@@ -17,6 +17,7 @@ const { approveStoryboard } = await import("../src/plan/storyboard");
 const { setSceneReview } = await import("../src/plan/sceneReview");
 const { assertMasterReady } = await import("../src/render/episode");
 const { approveVoiceScene, approveVoiceEpisode } = await import("../src/voice/review");
+const { checkAyahText, approveAyahText } = await import("../src/quran/scriptText");
 
 const SCRIPT = `---
 title: "حلقة اختبار البوابات"
@@ -28,7 +29,7 @@ episode: "999"
 
 أخبر الله ملائكته أنه جاعل في الأرض خليفة.
 
-[آية: البقرة 30]
+[آية: البقرة 30 | نص الآية للاختبار]
 
 ## الاستشهادات
 
@@ -66,6 +67,9 @@ const fresh = async () => {
   spoken.template = "noor-text";
   spoken.props = { text: "", light: "ink", subtitle: "" };
   for (const item of reviewItems(parsed, null)) await setReview(scriptPath, parsed, item.key, "verified");
+  // نص الآية اليدوي: مقابلة مطابقة ثم اعتماد (مستقل عن بقية الاعتمادات)
+  await checkAyahText(scriptPath, "2:30", "نص الآية للاختبار", "مرجع الاختبار", "owner-test");
+  await approveAyahText(scriptPath, "2:30", "owner-test", "قوبل بمرجع الاختبار حرفًا بحرف");
   await approveStoryboard(scriptPath, plan);
   for (const s of scenes) await setSceneReview(scriptPath, plan, s.id, "ok");
   await approveVoiceScene(scriptPath, plan, media.voice as never, spoken.id, "owner-test", "استمعت للمقطع كاملًا وتحققت من النبرة والنطق");

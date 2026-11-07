@@ -170,7 +170,15 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
           const [template = "", ...options] = value.split("|").map((s) => s.trim());
           block = { kind, template, options, line: lineNo };
         } else if (kind === "ayah") {
-          block = { kind, ref: value, line: lineNo };
+          // [آية: طه 14 | النص]: المرجع قبل أول «|» والنص بعده كما كُتب حرفًا بحرف (بلا توحيد ولا حذف تشكيل).
+          // ويُقرأ النص من السطر الأصلي لا من value، فلا تُمس مسافاته الداخلية.
+          const bar = value.indexOf("|");
+          if (bar < 0) block = { kind, ref: value, line: lineNo };
+          else {
+            const rawValue = raw.slice(raw.indexOf("|") + 1, raw.lastIndexOf("]"));
+            const text = rawValue.replace(/^[ \t]+|[ \t]+$/g, "");
+            block = { kind, ref: value.slice(0, bar).trim(), ...(text ? { text } : {}), line: lineNo };
+          }
         } else if (kind === "hadith") {
           const [ref = value, text, narrator] = value.split("|").map((s) => s.trim());
           block = { kind, ref, text: text || undefined, narrator: narrator || undefined, line: lineNo };

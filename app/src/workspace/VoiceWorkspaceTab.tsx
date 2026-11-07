@@ -116,7 +116,7 @@ export const VoiceWorkspaceTab: React.FC<{
       <section className="ew-voice-lane" aria-label="تلاوة القرآن">
         <div className="ew-lane-heading"><span className="ew-lane-index">02</span><div>
           <h3>تلاوة الآيات داخل الفيديو</h3>
-          <p>استخرج الآيات المطلوبة وأدخل النص يدويًا، ثم ارفع تلاوتك بصوتك واعتمدها بعد الاستماع. AlQuran Cloud للمعاينة فقط.</p>
+          <p>اكتب نص الآية في السكريبت وقابله بالمصحف المعتمد، ثم ارفع التلاوة المختارة باسم قارئها واعتمدها بعد الاستماع. AlQuran Cloud للمعاينة فقط.</p>
         </div></div>
         <ManualQuranPanel key={`manual:${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} onMedia={onMedia} onReload={onReload} />
         <AlQuranCloudBrowser key={`${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} />

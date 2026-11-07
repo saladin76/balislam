@@ -64,11 +64,14 @@ describe("Owner Quran recording: no remote reciters or unreviewed render",()=>{
   },30000);
   it("requires text, actual listening and reviewer note before approval",async()=>{
     await prepareOwnRecitation("000","53:39","my-voice.mp3",sample);
-    await expect(approveOwnRecitation("000","53:39","reviewer","سمعت النص كاملًا",true)).rejects.toThrow(/نص الآية/);
+    await expect(approveOwnRecitation("000","53:39","reviewer","سمعت النص كاملًا",true,"قارئ الاختبار")).rejects.toThrow(/نص الآية/);
     await saveManualQuranText("000","53:39",verse);
-    await expect(approveOwnRecitation("000","53:39","reviewer","سمعت النص كاملًا",false)).rejects.toThrow(/استمع/);
-    await expect(approveOwnRecitation("000","53:39","reviewer","short",true)).rejects.toThrow(/ملاحظة/);
-    const ready=await approveOwnRecitation("000","53:39","مراجع","استمعت إلى الملف كاملًا وتأكدت من تلاوة الآية",true);
+    await expect(approveOwnRecitation("000","53:39","reviewer","سمعت النص كاملًا",false,"قارئ الاختبار")).rejects.toThrow(/استمع/);
+    await expect(approveOwnRecitation("000","53:39","reviewer","short",true,"قارئ الاختبار")).rejects.toThrow(/ملاحظة/);
+    // الأمر 024: لا يُفترض أن صاحب القناة هو القارئ
+    await expect(approveOwnRecitation("000","53:39","مراجع","استمعت إلى الملف كاملًا وتأكدت من تلاوة الآية",true)).rejects.toThrow(/القارئ/);
+    const ready=await approveOwnRecitation("000","53:39","مراجع","استمعت إلى الملف كاملًا وتأكدت من تلاوة الآية",true,"قارئ الاختبار");
+    expect(ready.reciter).toBe("قارئ الاختبار");
     expect(ready.provider).toBe("manual");
     expect(ready.approvedAt).toBeTruthy();
     expect((await ownAudioStatus("000")).pending["53:39"]).toBeUndefined();

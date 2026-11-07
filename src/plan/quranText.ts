@@ -14,7 +14,8 @@ export const stripQuran = (plan: Plan): Plan => ({
     scenes: c.scenes.map((s) => {
       if (s.template !== "verse-card" || !s.ayahKey) return s;
       const { meaning: _m, ...props } = s.props;
-      return { ...s, props: { ...props, text: "" } };
+      // نص السكريبت يبقى كما هو في الخطة (هو نص صاحب المشروع وموجود في السكريبت أصلًا)؛ وما جاء من quran.json وحده يُفرَّغ
+      return { ...s, props: { ...props, text: s.ayahText ?? "" } };
     }),
   })),
 });
@@ -26,7 +27,9 @@ export const withQuran = (plan: Plan, quran: QuranTexts): Plan => ({
     scenes: c.scenes.map((s) => {
       if (s.template !== "verse-card" || !s.ayahKey) return s;
       const meaning = quran[`${s.ayahKey}#meaning`];
-      return { ...s, props: { ...s.props, text: quran[s.ayahKey] || VERSE_PLACEHOLDER, ...(meaning ? { meaning } : {}) } };
+      // نص السكريبت أولًا ودائمًا: لا يستبدله quran.json ولا النص البديل
+      const text = s.ayahText ? s.ayahText : quran[s.ayahKey] || VERSE_PLACEHOLDER;
+      return { ...s, props: { ...s.props, text, ...(meaning ? { meaning } : {}) } };
     }),
   })),
 });

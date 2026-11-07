@@ -161,18 +161,24 @@ export const api = {
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
   missingQuranTexts: (id: string, channel?: string) =>
-    call<{ status: { required: { key: string; label: string; status: "missing" | "existing" }[]; missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+    call<{ status: { required: { key: string; label: string; status: "missing" | "existing"; source?: "script" | "store" }[]; missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
       `/api/episodes/${id}/quran-text-only`, undefined, channel),
+  ayahTextStatus: (id: string, channel: string) =>
+    call<{ ayahs: AyahTextStatusView[] }>(`/api/episodes/${id}/quran-text`, undefined, channel),
+  checkAyahText: (id: string, channel: string, data: { key: string; reference: string; source: string; by: string }) =>
+    call<{ ayahs: AyahTextStatusView[] }>(`/api/episodes/${id}/quran-text`, { method: "POST", json: { action: "check", ...data } }, channel),
+  approveAyahText: (id: string, channel: string, data: { key: string; by: string; note: string }) =>
+    call<{ ayahs: AyahTextStatusView[] }>(`/api/episodes/${id}/quran-text`, { method: "POST", json: { action: "approve", ...data } }, channel),
   saveManualQuranText: (id: string, channel: string, key: string, text: string) =>
     call<{ result: { saved: boolean; key: string }; status: { required: { key: string; label: string; status: "missing" | "existing" }[]; missing: string[]; existing: string[] } }>(
       `/api/episodes/${id}/quran-text-only`, { method:"POST", json:{ key,text } }, channel),
   ownQuranAudioStatus: (id: string, channel: string) =>
-    call<{ pending: Record<string,{ file:string; duration:number; sha256:string }>; approved: Record<string,{ reciter:string; approvedAt?:string }> }>(
+    call<{ pending: Record<string,{ file:string; duration:number; sha256:string }>; approved: Record<string,{ reciter:string; approvedAt?:string }>; invalid?: Record<string,{ reason:string }> }>(
       `/api/episodes/${id}/quran-audio`,undefined,channel),
   uploadOwnQuranAudio: (id: string, channel: string, data: {key:string;name:string;data:string}) =>
     call<{ recording: {file:string; duration:number}; status: unknown }>(
       `/api/episodes/${id}/quran-audio`,{method:"POST",json:data},channel),
-  approveOwnQuranAudio: (id: string, channel: string, data: {key:string;reviewer:string;note:string;listened:boolean}) =>
+  approveOwnQuranAudio: (id: string, channel: string, data: {key:string;reviewer:string;note:string;listened:boolean;reciter?:string;reject?:string}) =>
     call<{ status: unknown; media: EpisodeMedia }>(
       `/api/episodes/${id}/quran-audio`,{method:"PUT",json:data},channel),
   ownQuranPreviewUrl: (id:string, channel:string, file:string) =>
@@ -181,4 +187,12 @@ export const api = {
   setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs"),
   videoUrl: (episode: string, file: string) => withChannel(`/api/episodes/${episode}/video/${encodeURIComponent(file)}`),
+};
+
+/** حالة نص آية يدوي كما يعرضها الاستوديو (بلا نص المرجع). */
+export type AyahTextStatusView = {
+  key: string; ref: string; source: "script" | "store" | null;
+  state: "missing" | "unchecked" | "differs" | "stale" | "checked" | "approved"; reason: string;
+  check?: { status: "match" | "differs"; referenceSource: string; checkedBy: string; checkedAt: string; diffs: { at: number; op: string; shown: string; reference: string; cls: string }[] };
+  approval?: { approvedBy: string; approvedAt: string };
 };

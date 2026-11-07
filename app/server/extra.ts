@@ -410,6 +410,34 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 405, { error: "Method not allowed" }), true;
   }
 
+  // نص الآيات اليدوي في السكريبت: الحالة، والمقابلة بالمصحف المعتمد، والاعتماد (الأمر 024؛ كل مرحلة مستقلة)
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "quran-text" && parts.length === 3) {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const st = await load("/src/quran/scriptText.ts");
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const statuses = async () => st.ayahTextStatuses(await resolveScriptPath(parts[1]!));
+    if (req.method === "GET") return send(res, 200, { ayahs: await statuses() }), true;
+    if (req.method === "POST") {
+      const b = await readBody(req);
+      if (typeof b?.key !== "string") return send(res, 400, { error: "حدّد مرجع الآية." }), true;
+      try {
+        if (b.action === "check") {
+          if (typeof b.reference !== "string") return send(res, 400, { error: "أرسل نص المصحف المعتمد للمقابلة." }), true;
+          const check = await st.checkAyahText(parts[1], b.key, b.reference, String(b.source ?? ""), String(b.by ?? ""));
+          return send(res, 200, { check, ayahs: await statuses() }), true;
+        }
+        if (b.action === "approve") {
+          const approval = await st.approveAyahText(parts[1], b.key, String(b.by ?? ""), String(b.note ?? ""));
+          return send(res, 200, { approval, ayahs: await statuses() }), true;
+        }
+      } catch (e) {
+        return send(res, 400, { error: (e as Error).message }), true;
+      }
+      return send(res, 400, { error: "الإجراء غير معروف (check أو approve)." }), true;
+    }
+    return send(res, 405, { error: "Method not allowed" }), true;
+  }
+
   // ستوري بورد الفيديو قبل تنفيذه (storyboard.json): الحالة، والاعتماد، وحركة كل مشهد إن قيست
   if (parts[0] === "episodes" && parts[1] && parts[2] === "storyboard") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
@@ -772,7 +800,11 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         const { applyTempo } = await load("/src/voice/tempo.ts");
         const cfg = (await load("/config.json")).default;
         const speed = capsFor(model).speed === "post" ? (tune?.speed ?? cfg.voice.speed) : 1;
-        const audio = await applyTempo(await el.sample(text, { tune, modelId: model }), speed);
+        // العيّنة لا تحمل قرآنًا: علامات المصحف، أو نص أي آية في حلقات القناة
+      const { assertNoQuranInSpeech, channelQuranGuardTexts } = await load("/src/voice/quranGuard.ts");
+      try { assertNoQuranInSpeech([{ label: "نص العيّنة", text }], await runWithChannel(ch, () => channelQuranGuardTexts())); }
+      catch (e) { return send(res, 400, { error: (e as Error).message }), true; }
+      const audio = await applyTempo(await el.sample(text, { tune, modelId: model }), speed);
         const { mkdir } = await import("node:fs/promises");
         await mkdir(dir, { recursive: true });
         await writeFile(file, audio);
