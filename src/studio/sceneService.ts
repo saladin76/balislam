@@ -39,6 +39,10 @@ type SignedSceneLedger = {
   revision: number;
   history: AuditEvent[];
   previewEpochs: Record<string, string>;
+  /** A trusted render-to-input binding; old ledgers cannot submit new AV without rerender. */
+  previewInputs?: Record<string, {
+    sourceSha256: string; videoSha256: string; generation: string;
+  }>;
   assemblyEpoch?: string;
   masterEpoch?: string;
   mac: string;
@@ -69,7 +73,8 @@ export const assertSceneOwner = (token: unknown): void => {
 };
 const signature = (doc: Omit<SignedSceneLedger, "mac">): string =>
   createHmac("sha256", ownerSecret())
-    .update(JSON.stringify(["studio-scene-ledger-v1", doc.version, doc.state, doc.revision, doc.history, doc.previewEpochs, doc.assemblyEpoch, doc.masterEpoch]))
+    .update(JSON.stringify(["studio-scene-ledger-v1", doc.version, doc.state, doc.revision, doc.history, doc.previewEpochs, doc.assemblyEpoch, doc.masterEpoch,
+      ...(doc.previewInputs === undefined ? [] : [doc.previewInputs])]))
     .digest("hex");
 const sign = (doc: Omit<SignedSceneLedger, "mac">): SignedSceneLedger =>
   ({ ...doc, mac: signature(doc) });
@@ -170,7 +175,7 @@ const readLedger = async (file: string, fresh: CurrentInput): Promise<SignedScen
     data = JSON.parse(await readFile(file, "utf8")) as SignedSceneLedger;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    return sign({ version: 1, state: fresh.initial, revision: 0, history: [], previewEpochs: {} });
+    return sign({ version: 1, state: fresh.initial, revision: 0, history: [], previewEpochs: {}, previewInputs: {} });
   }
   if (!data || data.version !== 1 || !hex64(data.mac) || !data.state ||
       !Array.isArray(data.history) || !data.previewEpochs || typeof data.previewEpochs !== "object" ||
@@ -372,7 +377,12 @@ export const decideSceneProduction = async (episode: string,
         const file = sceneFile(current.scriptPath, id);
         await verifyVideoEvidence(file);
         resultSha256 = await byteSha256(file);
-        previewEpochs[id] = await fileGeneration(file);
+        const proof = doc.previewInputs?.[id];
+        const generation = await fileGeneration(file);
+        if (!proof || proof.sourceSha256 !== scene.sourceSha256 ||
+            proof.videoSha256 !== resultSha256 || proof.generation !== generation)
+          throw Error("Preview lacks a current trusted render-to-source proof; rerender this scene.");
+        previewEpochs[id] = generation;
         assemblyEpoch = undefined; masterEpoch = undefined;
         next = submitSceneAvPreview(p, id, scene.sourceSha256, resultSha256);
       } else if (command.action === "correct-scene") {
@@ -436,6 +446,36 @@ export const assertCurrentSceneRenderAllowed = async (
       throw Error("The scene is not current or its inputs changed.");
     if (!current.ready[sceneId])
       throw Error("The scene narration or human Quran recording is not ready for AV production.");
+  });
+};
+
+/**
+ * Persist the relationship between the actual produced AV bytes and the
+ * input snapshot under the same signed scene ledger, without treating a
+ * successful render as a human approval.
+ */
+export const recordSceneRenderEvidence = async (
+  episode: string, sceneId: string, expectedSha256: string, token: unknown,
+): Promise<void> => {
+  await assertCurrentSceneRenderAllowed(episode, sceneId, expectedSha256, token);
+  await withState(episode, async (doc, current) => {
+    const state = doc.state;
+    const scene = state.scenes.find(s => s.id === sceneId);
+    if (sceneFirstProgress(state).currentScene !== sceneId ||
+        scene?.sourceSha256 !== expectedSha256 || !current.ready[sceneId])
+      throw Error("Scene changed before the AV evidence was recorded.");
+    const video = sceneFile(current.scriptPath, sceneId);
+    await verifyVideoEvidence(video);
+    const proof = {
+      sourceSha256: expectedSha256,
+      videoSha256: await byteSha256(video),
+      generation: await fileGeneration(video),
+    };
+    const next = sign({
+      ...doc, revision: doc.revision + 1,
+      previewInputs: { ...doc.previewInputs, [sceneId]: proof },
+    });
+    await saveLedger(stateFileFor(current.scriptPath), next);
   });
 };
 
