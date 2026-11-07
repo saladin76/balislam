@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { lstat, mkdir, mkdtemp, open, readFile, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { assertNoLinkedPath, copyUnlinkedFile, ensureUnlinkedDirectory } from "../render/fsIsolation";
 
@@ -16,9 +16,20 @@ const assertLive = (signal?: AbortSignal) => {
   if (signal?.aborted) throw new Error("أُلغيت تهيئة وسائط الرندر؛ لم تُمس ملفات أي مهمة أخرى.");
 };
 const sha256File = async (file: string) => {
-  const hash = createHash("sha256");
-  for await (const chunk of createReadStream(file)) hash.update(chunk);
-  return hash.digest("hex");
+  await assertNoLinkedPath(file, true);
+  const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const hash = createHash("sha256");
+    const buffer = Buffer.allocUnsafe(256 * 1024);
+    while (true) {
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+      if (!bytesRead) break;
+      hash.update(buffer.subarray(0, bytesRead));
+    }
+    return hash.digest("hex");
+  } finally {
+    await handle.close();
+  }
 };
 const safeName = (name: string) =>
   name !== "." && name !== ".." && name.length > 0 && name.length <= 240 &&
@@ -30,6 +41,26 @@ const verifyExisting = async (target: string, manifest: Manifest): Promise<void>
   const ready = path.join(target, ".ready.json");
   await assertNoLinkedPath(ready, true);
   const existing = JSON.parse(await readFile(ready, "utf8")) as Manifest;
+  if (!existing || existing.version !== 1 || !Array.isArray(existing.files) ||
+      !/^[a-f0-9]{16}$|^[a-f0-9]{24}$/.test(existing.digest) ||
+      (existing.salt !== undefined && !/^[a-f0-9]{64}$/.test(existing.salt)))
+    throw new Error("بيان لقطة الوسائط غير صالح.");
+  const expectedDigest = createHash("sha256").update(JSON.stringify({
+    files: existing.files, salt: existing.salt ?? null,
+  })).digest("hex").slice(0, existing.digest.length);
+  if (expectedDigest !== existing.digest)
+    throw new Error("بصمة بيان اللقطة غير صحيحة.");
+  const identities = new Set<string>();
+  for (const file of existing.files) {
+    if (!file || !kinds.includes(file.kind) || !safeName(file.name) ||
+        !/^[a-f0-9]{64}$/.test(file.sha256) ||
+        identities.has(`${file.kind}/${file.name}`))
+      throw new Error("بيان لقطة الوسائط يحوي عنصرًا غير آمن أو مكررًا.");
+    identities.add(`${file.kind}/${file.name}`);
+  }
+  const rootItems = (await readdir(target)).sort();
+  if (JSON.stringify(rootItems) !== JSON.stringify([".ready.json", ...kinds].sort()))
+    throw new Error("تغيّرت محتويات جذر لقطة الوسائط؛ يوجد ملف غير مدرج.");
   if (JSON.stringify(existing) !== JSON.stringify(manifest))
     throw new Error("ملفات رندر موجودة لا تطابق البصمة؛ لن تُستبدل.");
   for (const kind of kinds) {
@@ -125,6 +156,24 @@ const stageSnapshot = async (
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
+};
+
+/** Fail closed before Remotion copies any snapshot. An old or unverified
+ * directory is NOT promoted to a trusted static asset merely by naming it. */
+export const verifyStagedMedia = async (publicRoot: string, base: string): Promise<void> => {
+  const render = /^_render\\/[a-z0-9]+(?:-[a-z0-9]+)*\\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*\\/[a-f0-9]{24}\\/$/;
+  const storyboard = /^_storyboard_media\\/[a-z0-9]+(?:-[a-z0-9]+)*\\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*-[a-f0-9]{16}\\/$/;
+  if (!render.test(base) && !storyboard.test(base))
+    throw new Error("اسم لقطة وسائط غير موثوق.");
+  const expectedDigest = base.slice(0, -1).split("/").at(-1)!.slice(render.test(base) ? -24 : -16);
+  const target = path.join(publicRoot, base);
+  await assertNoLinkedPath(target);
+  const ready = path.join(target, ".ready.json");
+  await assertNoLinkedPath(ready, true);
+  const manifest = JSON.parse(await readFile(ready, "utf8")) as Manifest;
+  if (manifest?.digest !== expectedDigest || (Boolean(manifest.salt) !== storyboard.test(base)))
+    throw new Error("بيان الوسائط لا يطابق اسم المجلد أو نوع اللقطة.");
+  await verifyExisting(target, manifest);
 };
 
 /** A content-addressed Remotion snapshot owned by ONE channel and episode. */
