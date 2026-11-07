@@ -3,7 +3,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import { existsSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite, copyUnlinkedFile } from "../src/render/fsIsolation";
+import { ensureUnlinkedDirectory, assertEpisodeOutputConfined, publishOutputWithoutOverwrite, copyUnlinkedFile } from "../src/render/fsIsolation";
 
 const owned: string[] = [];
 const make = async () => {
@@ -80,4 +80,39 @@ describe("exclusive and atomic output ownership", () => {
     expect(existsSync(input)).toBe(true);
     expect(existsSync(output)).toBe(false);
   });
+  it("rejects escaped episode outputs before staging and does not write outside the episode", async () => {
+    const root = await make();
+    const episode = path.join(root, "channels", "balislam", "episodes", "001-demo");
+    await mkdir(episode, { recursive: true });
+    const scriptPath = path.join(episode, "script.md");
+    await writeFile(scriptPath, "SAFE");
+    const external = path.join(root, "other.mp4");
+    await expect(assertEpisodeOutputConfined(scriptPath, external)).rejects.toThrow(/داخل out/);
+    await expect(assertEpisodeOutputConfined(scriptPath, path.join(episode, "voice", "fake.mp4")))
+      .rejects.toThrow(/داخل out/);
+    await expect(assertEpisodeOutputConfined(scriptPath, path.join(episode, "out", "fake.txt")))
+      .rejects.toThrow(/MP4/);
+    expect(existsSync(external)).toBe(false);
+    const target = path.join(episode, "out", "new.mp4");
+    await expect(assertEpisodeOutputConfined(scriptPath, target)).resolves.toBeUndefined();
+    expect(existsSync(path.dirname(target))).toBe(true);
+  });
+
+  it("rejects a symlinked output directory even if its path is lexically inside out", async () => {
+    const root = await make();
+    const episode = path.join(root, "channels", "balislam", "episodes", "001-demo");
+    const safeOut = path.join(episode, "out");
+    const other = path.join(root, "other-episode");
+    await mkdir(safeOut, { recursive: true });
+    await mkdir(other);
+    const scriptPath = path.join(episode, "script.md");
+    await writeFile(scriptPath, "SCRIPT");
+    await writeFile(path.join(other, "old.mp4"), "PROTECTED");
+    await symlink(other, path.join(safeOut, "linked"));
+    await expect(assertEpisodeOutputConfined(scriptPath, path.join(safeOut, "linked", "new.mp4")))
+      .rejects.toThrow(/غير آمن/);
+    expect(await readFile(path.join(other, "old.mp4"), "utf8")).toBe("PROTECTED");
+    expect(existsSync(path.join(other, "new.mp4"))).toBe(false);
+  });
+
 });
