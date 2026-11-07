@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, existsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createChannel } from "../src/channel/create";
@@ -174,6 +174,17 @@ describe("channel boundaries and crash-safe storage", () => {
       .rejects.toMatchObject({ status: 409 });
     expect(readFileSync(file, "utf8")).toBe(winner);
     expect(readdirSync(path.dirname(file)).some((n) => n.endsWith(".json.lock"))).toBe(false);
+  });
+
+  it("cleans only the owned temp when rename fails after a complete staged write", async () => {
+    const target = path.join(dir, "balislam", "occupied.json");
+    mkdirSync(target);
+    writeFileSync(path.join(target, "owner.txt"), "another component");
+    await expect(writeJsonAtomic(target, { updated: true })).rejects.toThrow();
+    expect(statSync(target).isDirectory()).toBe(true);
+    expect(readFileSync(path.join(target, "owner.txt"), "utf8")).toBe("another component");
+    expect(readdirSync(path.dirname(target)).filter((name) =>
+      name.startsWith(".occupied.json.") && name.endsWith(".tmp"))).toEqual([]);
   });
 
   it("atomically replaces JSON and preserves the prior bytes on serialization failure", async () => {
