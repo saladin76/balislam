@@ -33,7 +33,7 @@ export const compareVerseText = (shown: string, approved: string): TextDiff[] =>
   return diffs;
 };
 
-/** يجلب نص كل آية في السكريبت من Quran Foundation ويقابله بالنص المعروض، ولا يكتب في script.md. */
+/** يقارن نص كل آية في السكريبت بمرجع يقدمه المراجع صراحةً دون تغيير script.md أو استخدام خدمة قرآنية تلقائية. */
 export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClient, "verse">): Promise<VerseCheck[]> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
@@ -72,10 +72,10 @@ export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClien
   return out;
 };
 
-const STATUS: Record<VerseCheck["status"], string> = { match: "مطابق", differs: "فيه فروق", missing: "لا نص معروض", failed: "تعذّر الجلب" };
+const STATUS: Record<VerseCheck["status"], string> = { match: "مطابق", differs: "فيه فروق", missing: "لا نص معروض", failed: "تعذّرت المقارنة" };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-/** يكتب نتيجة المقابلة في reviews/quran-check.html (بلا نص الآيات نفسه، احترامًا لشروط Quran Foundation). */
+/** يكتب نتيجة المقابلة في reviews/quran-check.html (بلا نص الآيات نفسه، لحماية بيانات النص المرجعي المقدم أثناء المراجعة). */
 export const writeQuranCheckReport = async (episode: string, checks: VerseCheck[]): Promise<string> => {
   const dir = path.join(path.dirname(await resolveScriptPath(episode)), "reviews");
   await mkdir(dir, { recursive: true });
