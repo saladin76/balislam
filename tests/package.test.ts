@@ -44,7 +44,12 @@ describe("الخطة: الحديث والربط وشاشة النهاية", () =
 
   it("الخطة السليمة بلا موانع، والآية بنص مؤقت تمنع النسخة النهائية", () => {
     expect(planIssues(plan).filter((i) => i.level === "error")).toEqual([]);
-    const noQuran = generatePlan(parsed, null, {});
+    // script.md is now the only verse-text authority. An empty legacy Quran cache
+    // cannot hide a correctly authored verse, nor provide one missing from script.
+    const stillReady = generatePlan(parsed, null, {});
+    expect(planIssues(stillReady).filter((i) => i.level === "error")).toEqual([]);
+    const noVerseText = parseScript(src.replace(/\[آية:\s*النجم\s*39\s*\|[^\]]+\]/, "[آية: النجم 39]"));
+    const noQuran = generatePlan(noVerseText, null, quran);
     expect(planIssues(noQuran).some((i) => i.level === "error" && i.message.includes("بنص مؤقت"))).toBe(true);
   });
 });
