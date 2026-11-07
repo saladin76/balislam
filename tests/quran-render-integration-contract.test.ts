@@ -113,7 +113,7 @@ describe("PR #73 Quran audio integration contract — negative safety scenarios"
     const { media } = await manual(x);
     await writeFile(x.scriptPath, script(verse.replace("وَأَنْ", "وَأَنِ")));
     await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, undefined, media, x.renderRoot))
-      .rejects.toThrow(/المراجعة|اعتماد|البصمة/);
+      .rejects.toThrow(/التلاوة اليدوية|المراجعة|اعتماد|البصمة/);
     await writeFile(x.scriptPath, script(verse, "الإخلاص 1"));
     await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, undefined, media, x.renderRoot))
       .rejects.toThrow(/غير موجود/);
