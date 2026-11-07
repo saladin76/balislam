@@ -21,7 +21,6 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   const step = parsed.practicalStep?.text ?? "";
   const L = langPack(plan.lang ?? channel.language);
   const fill = (tpl: string, v: Record<string, string>) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
-  const translation = channel.quranTranslation?.name;
 
   const sources: string[] = [];
   for (const c of parsed.citations) {
@@ -37,7 +36,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
         : reciter && reciter !== "…" && rec
           ? fill(L.strings.descRecitation, { name: reciter })
           : "";
-      const extras = [translation && L.code !== "ar" ? translation : "", recitationLine].filter(Boolean);
+      const extras = [recitationLine].filter(Boolean);
       sources.push(`- ${name} (${extras.join(L.code === "ar" ? "، " : ", ")})`);
     } else if (c.kind === "hadith") {
       sources.push(`- ${c.fields[0] ?? ""}${c.fields[1] ? ` — ${c.fields[1]}` : ""}${c.fields[2] ? ` (${c.fields[2]})` : ""}`);
