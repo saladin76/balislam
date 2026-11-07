@@ -145,3 +145,13 @@
 - `df -h` بعد الجولة الثالثة: **5.2 GiB free، 98% used**. تشخيص الملفات السابق: `.qa-tmp` نحو 7.7 MB و`node_modules` 332 MB، واختبارات Render Isolation المملوكة 548 KB؛ لم تُرصد عمليات اختبار نشطة وقت الفحص السابق. لا توجد أدلة كافية لإسناد تغير المساحة لأي دفعة اختبارات بعينها.
 
 **البوابة التالية:** اختبارات ارتداد إضافية صغيرة بلا Remotion/Chrome/FFmpeg، ثم مراجعة توافق API/واجهة Studio؛ تأجيل رندر الفيديو والاختبارات الثقيلة بسبب المساحة. **لا يزال PR Draft، ولم يُجر اختبار المستودع الكامل أو قبول تكاملي على فرع release candidate؛ ليس 100%.**
+
+## جولة التحقق الرابعة — Production gates على Mac (7 نوفمبر 2026، 20:25 Istanbul)
+
+استلمنا سجل Terminal جديدًا من نسخة QA المستقلة `~/studio-core-channels-qa-20261107` على SHA `37b9c029c529be18c72e6e5076be4c18f8adcafb`:
+
+- `npm run typecheck` ← **PASS**، فحص `tsc --noEmit` الكامل للمستودع دون خطأ.
+- تشغيل Vitest لـ **11 ملفًا محددًا** (script, storyboard handoff safety, Quran source identity, publish quality, narration review playlist, studio production stage integration, episode previews, voice review, master gates, scene review, review ledger) ← **11/11 ملفات ناجحة و63/63 اختبارًا ناجحًا**، Vitest v5.0.5 في 2.62 ثانية.
+- بالجمع مع الجولات الثلاث المنفذة سابقًا: **35 ملف اختبار مختلف / 189 اختبارًا ناجحًا من 189 داخل هذه المجموعات المنتقاة**. العدد لا يعبّر عن كامل مجموعة اختبارات المستودع، ولا عن اختبار HTTP أو متصفح.
+- المساحة الحرة بعد الاختبارات: **8.1 GiB / 96% مستخدم**. لا تختبر الرندر الثقيل قبل تدقيق موارد الإنتاج المؤقتة.
+- حالة طلب السحب: `Draft` مفتوح، بلا دمج في `main` أو نشر. **تظل بوابات التكامل النهائي وVitest الكامل وAPI/Browser غير مجتازة، فلا تُسجل جاهزية 100%.**
