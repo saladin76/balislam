@@ -4,6 +4,7 @@
  */
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { selectComposition, renderMedia, renderStill } from "@remotion/renderer";
 import { browserExecutable, createIsolatedRenderBundle } from "../src/render/bundle";
@@ -57,9 +58,25 @@ try {
     const mp4 = await readFile(videoOutput);
     if (mp4.length < 1000 || mp4.subarray(4, 8).toString() !== "ftyp")
       throw new Error(`Invalid MP4 smoke output: ${orientation}`);
+    // A valid ftyp atom alone is not proof of playable 16:9/9:16 video.
+    // Independently probe the on-disk H.264 stream and actual frame count.
+    const probe = JSON.parse(execFileSync("ffprobe", [
+      "-v", "error", "-select_streams", "v:0", "-count_frames",
+      "-show_entries", "stream=codec_name,width,height,nb_read_frames",
+      "-of", "json", videoOutput,
+    ], { cwd: actualRoot, encoding: "utf8", timeout: 30000, maxBuffer: 1024 * 1024 }));
+    const video = probe.streams?.[0];
+    const vw = Number(video?.width), vh = Number(video?.height);
+    const frames = Number(video?.nb_read_frames);
+    if (video?.codec_name !== "h264" || !Number.isInteger(vw) || !Number.isInteger(vh) ||
+        !Number.isInteger(frames) || frames < 2 ||
+        (orientation === "landscape" && vw <= vh) ||
+        (orientation === "portrait" && vh <= vw))
+      throw new Error(`Invalid probed MP4 ${orientation}: ${JSON.stringify(video)}`);
     (result.files as any[]).push({
       path: videoOutput, bytes: (await stat(videoOutput)).size,
       sha256: createHash("sha256").update(mp4).digest("hex"),
+      width: vw, height: vh, frames, codec: video.codec_name,
     });
   }
   result.result = "PASS_SYNTHETIC_ONLY";
