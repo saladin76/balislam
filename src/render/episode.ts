@@ -1,5 +1,6 @@
 import type { ChannelConfig } from "../channel/types";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir } from "node:fs/promises";
@@ -111,14 +112,20 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     }
   }
   log(0, "تجميع المشروع…");
-  const serveUrl = await getServeUrl(!opts.media);
+  // A static snapshot may have been prepared by a caller (e.g. shotsPreview).
+  // Always bundle after staging so Remotion sees precisely this immutable base.
+  const serveUrl = await getServeUrl(media.mode === "static");
   const channel = loadChannel();
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
-  const tempOutput = output.replace(/\.mp4$/i, "") + ".rendering.mp4";
+  if (!/\\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
+  await mkdir(path.dirname(output), { recursive: true });
+  // Unique per invocation: concurrent landscape/portrait attempts cannot overwrite
+  // or remove one another's partial file. Rename is only performed after success.
+  const tempOutput = output.replace(/\\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
   try {
     await renderMedia({
       serveUrl,
