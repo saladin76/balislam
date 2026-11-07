@@ -81,7 +81,7 @@ let cleanupFailed = false;
 const reportAndClean = () => {
   let allocated = -1;
   try { allocated = tempDiskBytes(runTemp); }
-  catch (e) { console.error("GATE_TEMP_MEASUREMENT_FAILED " + e.message); }
+  catch (e) { cleanupFailed = true; console.error("GATE_TEMP_MEASUREMENT_FAILED " + e.message); }
   try { cleanup(); }
   catch (e) { cleanupFailed = true; console.error("GATE_TEMP_CLEANUP_FAILED " + e.message); }
   console.log("GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES " + allocated);
