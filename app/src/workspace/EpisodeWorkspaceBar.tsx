@@ -68,7 +68,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     }), [episodeId, channelId]);
   useEffect(() => {
     refreshWorkflow();
-    const timer = window.setInterval(refreshWorkflow, 60000);
+    const timer = window.setInterval(refreshWorkflow, 300000);
     return () => window.clearInterval(timer);
   }, [refreshWorkflow, plan]);
 

@@ -50,6 +50,14 @@ describe("real-byte Studio workflow snapshots (read-only)", () => {
     await writeFile(path.join(x.dir, "voice", "clip.mp3"), "VOICE-V2");
     const voice2 = (await snapshotFromFiles(x.script, x.plan)).voice;
     expect(voice2?.sha256).not.toBe(voice1?.sha256);
+    await mkdir(path.join(x.dir, "recitations"));
+    await writeFile(path.join(x.dir, "recitations", "index.json"), JSON.stringify({
+      "53:39": { provider: "alquran-cloud", parts: [{ file: "cloud.mp3", duration: 3 }] },
+    }));
+    await writeFile(path.join(x.dir, "recitations", "cloud.mp3"), "CLOUD-RECITATION-ORIGINAL");
+    const originalCloud = (await snapshotFromFiles(x.script, x.plan)).voice?.sha256;
+    await writeFile(path.join(x.dir, "recitations", "cloud.mp3"), "CLOUD-RECITATION-TAMPERED");
+    expect((await snapshotFromFiles(x.script, x.plan)).voice?.sha256).not.toBe(originalCloud);
   });
 
   it("hashes the EXACT preview and Master bytes and never treats existence as an approval", async () => {

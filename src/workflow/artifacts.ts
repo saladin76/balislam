@@ -10,6 +10,7 @@ import { channelsDir, currentChannelId } from "../channel";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
 import { storyboardVisualHash } from "../plan/storyboard";
+import { currentMotionFingerprint } from "../render/motionFingerprint";
 import type { Plan } from "../plan/types";
 import { STUDIO_CHANNELS, type WorkflowIdentity } from "./store";
 import type { ArtifactVersion, WorkflowSnapshot } from "./gates";
@@ -101,8 +102,8 @@ export const snapshotFromFiles = async (scriptPath: string, plan: Plan | null): 
   const quranIndex = recitations ? JSON.parse(recitations.toString("utf8")) as Record<string, { provider?: string; parts?: { file: string }[] }> : {};
   const recorded: [string, string, string | null][] = [];
   for (const [key, rec] of Object.entries(quranIndex).sort(([a], [b]) => a.localeCompare(b))) {
-    if (rec?.provider !== "manual") continue;
-    for (const part of rec.parts ?? []) {
+    // Every Quran audio source is content-bound, not only manually uploaded ones.
+    for (const part of rec?.parts ?? []) {
       if (!safeClip(part.file)) throw Error("Unsafe Quran clip reference in workflow snapshot.");
       const bytes = await optionalBytes(path.join(dir, "recitations", part.file));
       recorded.push([key, part.file, bytes ? hash(bytes) : null]);
@@ -128,5 +129,23 @@ export const snapshotFromFiles = async (scriptPath: string, plan: Plan | null): 
 export const collectWorkflowSnapshot = async (episode: string): Promise<{ scope: WorkflowIdentity; scriptPath: string; snapshot: WorkflowSnapshot }> => {
   const { scope, scriptPath } = await workflowIdentity(episode);
   const plan = await readPlanFile(scriptPath);
-  return { scope, scriptPath, snapshot: await snapshotFromFiles(scriptPath, plan) };
+  const snapshot = await snapshotFromFiles(scriptPath, plan);
+  if (snapshot.motion && plan) {
+    // Motion approvals must also change when actual image/audio/render code changes
+    // even if somebody leaves the old storyboard-motion.json untouched.
+    try {
+      const reportFile = path.join(path.dirname(scriptPath), "out", "storyboard-motion.json");
+      const report = JSON.parse(await readFile(reportFile, "utf8")) as { orientation?: "landscape" | "portrait" };
+      if (report.orientation !== "landscape" && report.orientation !== "portrait")
+        throw Error("Invalid motion review orientation.");
+      const liveFingerprint = await currentMotionFingerprint(episode, plan, report.orientation);
+      snapshot.motion = versioned(JSON.stringify(["current-render-v2", snapshot.motion.sha256, liveFingerprint]));
+    } catch {
+      // Fail closed when current renderer evidence cannot be verified.
+      delete snapshot.motion;
+      delete snapshot.av_review;
+      delete snapshot.master;
+    }
+  }
+  return { scope, scriptPath, snapshot };
 };

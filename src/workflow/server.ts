@@ -105,8 +105,8 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
     const verses = plan!.chapters.flatMap(c => c.scenes).filter(s => s.template === "verse-card");
     for (const scene of verses) {
       const rec = scene.ayahKey ? media.recitations[scene.ayahKey] : undefined;
-      required(Boolean(rec) && rec?.source !== "licensed",
-        "Every Quran recitation in the Master requires independently verified usage rights.");
+      required(Boolean(rec) && (rec?.source === "manual" || rec?.source === "alquran-cloud"),
+        "Each Quran recitation requires authenticated manual rights evidence or verified AlQuran Cloud publishing rights.");
     }
     required(confirmWatched, "Owner must explicitly watch and approve these exact Master bytes.");
   }
