@@ -528,14 +528,19 @@ export const App: React.FC = () => {
               setIdent(next);
             }}
             onSave={async () => {
+              const ownerChannel = channelId, snapshot = ident.draft;
               try {
-                await api.saveIdentity(ident.draft);
-                const next = { ...ident, saved: ident.draft };
-                identityDrafts.current.set(channelId, next);
-                setIdent(next);
-                say("حُفظت الهوية. الرندر القادم يستخدمها.");
+                await api.saveIdentity(snapshot);
+                const current = identityDrafts.current.get(ownerChannel);
+                // Preserve typing while a save is in-flight; do not overwrite another channel's identity.
+                const next = { ...ident, draft: current?.draft ?? snapshot, saved: snapshot };
+                identityDrafts.current.set(ownerChannel, next);
+                if (channelRef.current === ownerChannel) {
+                  setIdent(next);
+                  say("حُفظت الهوية. الرندر القادم يستخدمها.");
+                }
               } catch (e) {
-                say(`تعذّر حفظ الهوية: ${(e as Error).message}`, true);
+                if (channelRef.current === ownerChannel) say(`تعذّر حفظ الهوية: ${(e as Error).message}`, true);
               }
             }}
           />
