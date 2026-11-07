@@ -9,7 +9,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { readFile, rm, stat } from "node:fs/promises";
 import { RenderInternals, renderMedia, selectComposition } from "@remotion/renderer";
 import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
@@ -24,7 +24,8 @@ import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { defaultRenderMediaRoot, stageRenderFiles, type RenderStageFile } from "../plan/renderStage";
 import { studioMediaNamespace } from "../plan/collect";
 import { QUALITY } from "./quality";
-import { cleanMetadata } from "./episode";
+import { cleanMetadata, assertRenderChannelOwnership } from "./episode";
+import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite, assertNoLinkedPath } from "./fsIsolation";
 import { putEpisodePreview, removePreview } from "./episodePreviews";
 import { measureMotion } from "./motionMeter";
 import { SHOT_SPECS, buildShots, type HorizonAudio } from "../remotion/dafatir/horizon/shots";
@@ -75,8 +76,10 @@ export const renderHorizonAudio = async (
 ): Promise<HorizonAudioResult> => {
   const log = opts.onProgress ?? (() => {});
   const slot = opts.slot ?? "six-shots-audio";
-  if (!slot.endsWith("-audio")) throw new Error("خانة المعاينة الصوتية يجب أن تنتهي بـ -audio (تبقى على الجهاز ولا تُرفع، لأن فيها تلاوة).");
+  if (!/^[a-z0-9][a-z0-9_-]{0,70}-audio$/.test(slot)) throw new Error("خانة المعاينة الصوتية غير آمنة، ويجب أن تنتهي بـ -audio.");
   const scriptPath = await resolveScriptPath(episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
   const voice = opts.voiceClient === undefined ? elevenLabsFromEnv() : opts.voiceClient;
   const quran = opts.quranClient === undefined ? quranClientFromEnv() : opts.quranClient;
 
@@ -129,9 +132,10 @@ export const renderHorizonAudio = async (
 
   log("رندر المعاينة…");
   const outDir = path.join(path.dirname(scriptPath), "out");
-  await mkdir(outDir, { recursive: true });
+  await ensureUnlinkedDirectory(outDir);
   const output = path.join(outDir, `${slot}-preview.mp4`);
   const temp = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
+  let actualOutput: string | undefined;
   const sandbox = await createIsolatedRenderBundle({
     mode: "static", base: rel, voice: {}, recitations: {}, sfx: [],
   });
@@ -142,14 +146,15 @@ export const renderHorizonAudio = async (
     await renderMedia({ serveUrl, composition, inputProps: { audio }, codec: "h264", scale: q.scale, crf: q.crf, x264Preset: q.x264Preset, audioCodec: "aac", audioBitrate: q.audioBitrate, colorSpace: "bt709", outputLocation: temp, browserExecutable: browserExecutable(), onProgress: ({ progress }) => log(`رندر ${Math.round(progress * 100)}%`) });
     await cleanMetadata(temp, { title: "دفاتر الزمن 001 — اللقطات الست", artist: channel.name });
     if (!(await decodes(temp))) throw new Error("الملف المرندر لا يعمل كاملًا؛ لم يُرفع شيء.");
-    await rename(temp, output);
+    actualOutput = await publishOutputWithoutOverwrite(temp, output);
   } finally {
     await rm(temp, { force: true });
     await sandbox.cleanup();
   }
 
   log("الرفع إلى الاستوديو والتحقق…");
-  const up = await putEpisodePreview(episode, slot, output, {
+  if (!actualOutput) throw new Error("لم يكتمل إصدار المعاينة؛ لا يجوز رفع ملف سابق بدلًا منها.");
+  const up = await putEpisodePreview(episode, slot, actualOutput, {
     title: "اللقطات الست بالصوت والتلاوة — معاينة متكاملة (جاهزة للمراجعة)",
     note: `اتجاه «خط الأفق». صوت الراوي المعتمد، ونص البقرة 30 والأعراف 23 من Quran Foundation بتلاوة ${chosenReciter?.name ?? "القارئ المختار"}. توقيت المشاهد من الكلام الفعلي. لا موسيقى ولا مؤثرات. لا تُنشر.`,
   });
