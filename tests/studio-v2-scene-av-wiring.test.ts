@@ -21,6 +21,11 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(server).toContain('parts[2] === "scene-av-render"');
     expect(server).toContain("await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token)");
     expect(server).toContain("verifyBeforePublish: () => assertCurrentSceneRenderAllowed(");
+    expect(server).toContain("await recordSceneRenderEvidence(ep, sceneId, expectedSha256, token)");
+    const ledger = src("src/studio/sceneService.ts");
+    expect(ledger).toContain("previewInputs?: Record<string");
+    expect(ledger).toContain("proof.sourceSha256 !== scene.sourceSha256");
+    expect(ledger).toContain("proof.videoSha256 !== resultSha256");
     const renderer = src("src/render/shotsPreview.ts");
     expect(renderer).toContain("await opts.verifyBeforePublish?.()");
     expect(renderer).toContain("requireApprovedQuran: true");
