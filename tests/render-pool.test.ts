@@ -386,13 +386,17 @@ describe("لا خروج صامت", () => {
     `;
     const file = path.join(d, "probe.mts");
     writeFileSync(file, script);
-    const out = await new Promise<string>((res) => {
-      const c = spawn(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), file], { cwd: path.resolve(".") });
-      let o = "";
-      c.stdout.on("data", (b) => (o += b));
-      c.on("close", () => res(o));
+    const result = await new Promise<{ out: string; error: string; code: number | null }>((res) => {
+      const c = spawn(process.execPath, ["--import", "tsx", file], { cwd: path.resolve(".") });
+      let out = "";
+      let error = "";
+      c.stdout.on("data", (b) => (out += b));
+      c.stderr.on("data", (b) => (error += b));
+      c.once("error", (e) => (error += e.message));
+      c.once("close", (code) => res({ out, error, code }));
     });
-    expect(out).toContain("STATUS done");
+    expect(result.code, result.error).toBe(0);
+    expect(result.out, result.error).toContain("STATUS done");
     expect(readFileSync(path.join(d, "w.mp4"), "utf8")).toBe("ok");
   }, 20000);
 });
