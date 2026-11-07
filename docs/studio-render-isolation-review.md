@@ -109,3 +109,28 @@ BAL_STUDIO_REVIEW_APPROVED=YES BAL_STUDIO_REVIEW_ROOT="$(pwd -P)" node scripts/s
 | تكامل PR #76 وPR #77 وبوابات Master والنشر | BLOCKED، عقد الربط منفصل والبوابة تغلق بأمان |
 
 **قرار القبول:** لا يمكن إعلان جاهزية 100% قبل نتائج الاختبارات الفعلية والتكامل والمراجعة البشرية. يبقى PR #73 Draft دون دمج أو تشغيل إنتاج أو نشر أو استخدام Vercel.
+
+
+## 8. تشغيل Mac الفعلي الأول ومتابعة ثلاثة إخفاقات
+
+**نسخة المراجعة المستقلة:** `~/studio-render-isolation-qa-20261107` على commit `51d14b3`، بتاريخ 7 نوفمبر 2026؛ لم يمس المستخدم نسخة `~/balislam` بعد إنشاء النسخة المنفصلة.
+
+- `npm ci --ignore-scripts`: نفّذ التثبيت؛ أشار npm إلى 10 ثغرات high في شجرة الاعتمادات، ولم يُنفذ أي تحديث تلقائي يغيّر lockfile. فحص `npm audit` وفهم نطاق الثغرات بند مستقل قبل التسليم.
+- `npm run typecheck`: **PASS** (تجربة Mac حقيقية على SHA السابق، لا يثبت TypeScript لآخر تعديل).
+- اختبارات العزل: **75 PASS / 3 FAIL / 78 TOTAL** عبر 9 ملفات؛ فشل اثنان في `render-output-ownership` لأن ترتيب التحقق أرجع رفض اختلاف المجلدات قبل رفض رابط رمزي، وصيغة رسالة المجلد لم تطابق التحقق النصي.
+- فشل اختبار `render-pool` الخاص ببقاء Node حيًا عند انتظار طابور خارجي: انتهت العملية الفرعية بلا أي stdout، ولم يكن الاختبار يجمع stderr أو exit code؛ السبب التشغيلي الدقيق **لم يتأكد بعد**.
+- **إصلاحات دُفعت لاحقًا:** `src/render/fsIsolation.ts` يتحقق من سلامة أجزاء المسارين أولًا ثم يقارن المجلدين، مع رسالة رفض واضحة. اختبار `render-pool` يشغّل Node عبر `--import=tsx` الرسمي ويجمع stderr ورمز الخروج لتشخيص السبب الحقيقي، دون إضعاف التحقق من إنجاز المهمة.
+- **نتيجة الإصلاحات الجديدة:** `NOT_RUN` على Mac حتى سحب أحدث الفرع وتشغيل الاختبارات؛ لا إعلان تمرير اختبارات بناءً على تعديل الكود وحده.
+- `Remotion smoke` و`npm test` الكامل و`npm run gate` لم ينفذوا في الجولة الأولى لأن فحص العزل فشل فتوقف قبول Mac قبلها؛ مشاهدة AV وMaster لا تزال منفصلة.
+
+**أوامر المراجعة اللاحقة من النسخة المنفصلة فقط:**
+
+```bash
+cd ~/studio-render-isolation-qa-20261107
+git pull --ff-only origin work/studio-render-isolation-20261107
+npx vitest run tests/render-output-ownership.test.ts tests/render-pool.test.ts
+# بعد نجاحهما فقط، أعد بوابة القبول الكاملة:
+BAL_STUDIO_REVIEW_APPROVED=YES BAL_STUDIO_REVIEW_ROOT="$(pwd -P)" node scripts/studio-render-isolation-acceptance.mjs
+```
+
+لا تشغّل `npm audit fix --force` على فرع العمل؛ يجب تقييم الاعتمادات المتأثرة دون إدخال ترقية كاسرة صامتة.
