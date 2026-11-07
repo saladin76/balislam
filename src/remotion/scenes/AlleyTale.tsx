@@ -9,7 +9,8 @@ import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { useTransition } from "./transitions";
 import { figureSpan, fitFrame } from "../illus/framing";
-import { fitDistance, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
+import { pillClearOfOwner, requiresFocusCut } from "../illus/compositionSafety";
+import { fitDistance, fitDistanceWithin, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
 import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
 import { TopCaption, captionLines } from "../illus/TopCaption";
@@ -163,8 +164,14 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
       const s0 = groupStarts[g]!;
       const s1 = groupStarts[g + 1] ?? dur;
       if (actionOf(g) === "walk") {
-        const d = Math.min(room, fitDistance(gait, s1 - s0 - 6, HERO_SCALE, fps));
-        if (d > 4) moves.push({ start: s0 + 2, dx: -d, gait });
+        const available = Math.max(0, s1 - s0 - 6);
+        // New contained scenes stop walking before their next cue. Legacy authored
+        // locomotion keeps its original distance and duration.
+        const bounded = props.framing === "fit";
+        const d = Math.min(room, bounded
+          ? fitDistanceWithin(gait, available, HERO_SCALE, fps)
+          : fitDistance(gait, available, HERO_SCALE, fps));
+        if (d > 4) moves.push({ start: s0 + 2, dx: -d, gait, ...(bounded ? { durationFrames: available } : {}) });
         room -= d;
       } else if (actionOf(g) === "turn-away") turns.push({ at: s0 + 2, to: -1 });
     }
@@ -422,7 +429,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
         </svg>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(0,0,0,.4) 100%)" }} />
       </AbsoluteFill>
-      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} />
+      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} safeWrap={fitMode} />
     </SceneShell>
   );
 };
@@ -564,6 +571,15 @@ export const composedCamera = (o: {
   for (let i = 1; i < beats.length; i++) {
     const b = beats[i]!;
     const to = frameFor(b.target, b.shot);
+    // In a contained portrait two-witness scene, crossing the gap by a moving camera
+    // briefly reveals partial people/labels. A speech-timed hard cut preserves composition.
+    // Existing scenes and landscape motion keep their original interpolation.
+    if (requiresFocusCut({ portrait: pt, contained: Boolean(o.fit), stage: o.stage, from: beats[i - 1]!.target, to: b.target })) {
+      if (o.frame < b.frame) break;
+      cur = to;
+      free = b.frame;
+      continue;
+    }
     const len = b.dur ?? moveFrames(to.z - cur.z, to.x - cur.x);
     // تصل الكاميرا مع الحدث تقريبًا: تبدأ قبله بنحو 40% من مدة الحركة (والإزاحة في الخطة تضبط موضع الحدث)
     const start = Math.max(free, b.frame - Math.round(len * 0.4));
@@ -574,7 +590,7 @@ export const composedCamera = (o: {
     if (p < 1) break;
   }
   // تنفس خفيف للكاميرا (1.5% على طول المشهد) إلا في المشهد الثابت ومشهد الذكر والآية
-  const breath = o.sacred || still ? 0 : 0.015 * (o.frame / Math.max(1, o.dur));
+  const breath = o.sacred || still || (pt && Boolean(o.fit)) ? 0 : 0.015 * (o.frame / Math.max(1, o.dur));
   return { ...frameOn(cur.x, cur.z * (1 + breath), pt), keys: beats.length, still };
 };
 
@@ -597,7 +613,9 @@ export const witnessPillAt = (wx: number, inward: 1 | -1, word: string, c: CamSt
   // clear: امتداد الرأس واليد المرفوعة من جهة الموقف حول محور الشخصية
   const beside = wx + inward * (clear + w / 2);
   const x = pillInView(beside, word, c, portrait, size);
-  return x;
+  // A safe label may disappear with its owner; it must never slide over the owner's
+  // head or raised hand when the portrait crop is too narrow.
+  return pillClearOfOwner({ x, ownerX: wx, direction: inward, width: w, clearance: clear, camera: c, portrait }) ? x : null;
 };
 /**
  * امتداد الشاهد من جهة الموقف عند مستوى رأسه (الأمر 014): الأول واقف (الرأس نحو 45)، والثاني في وضعية
