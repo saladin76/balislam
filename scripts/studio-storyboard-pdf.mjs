@@ -210,15 +210,15 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
       .slice(0, 40).map(({ segment }) => segment).join("") + "…" : scene.title;
     const header = '<header class="head"><div class="name"><span class="eyebrow">اللوحة ' +
       ltr(index+1) + " من " + ltr(chosen.length) + ' · ' + esc(metadataPreview(storyboard.channel, 22)) +
-      '</span><h2>' + ltr(scene.id) + '<span class="arabic-title" lang="ar" dir="rtl">' + esc(titleExcerpt) +
+      '</span><h2>' + ltr(scene.id) + '<span class="arabic-title" lang="ar" dir="rtl" data-annex="' + (titleAnnex ? 'true':'false') + '">' + esc(titleExcerpt) +
       '</span></h2></div><div class="status">مراجعة بصرية · غير معتمد</div></header>';
     const frames = '<div class="frames ' + (port ? "comparison" : "single") + '">' +
       panel(land, "أفقي 16:9") + (port ? panel(port, "عمودي 9:16") : "") + "</div>";
     const info = '<div class="info"><section><h3>الوصف والملاحظات</h3><p lang="ar" dir="rtl">' + esc(safeExcerpt(notes, 160, notesAnnex)) +
       '</p></section><section><h3>نص المقطع</h3><p lang="ar" dir="rtl">' + esc(safeExcerpt(narration, 160, narrationAnnex)) +
-      '</p></section><section class="details"><span>الفصل: ' + esc(metadataPreview(chapterMeta)) +
-      '</span><span>النوع: ' + esc(metadataPreview(typeMeta)) +
-      '</span><span>الإصدار: ' + ltr(metadataPreview(storyboard.version, 22)) + '</span></section></div>';
+      '</p></section><section class="details"><span data-annex="' + (chapterMetaAnnex || (chapterCover && chapterMeta === title) ? 'true':'false') + '">الفصل: ' + esc(metadataPreview(chapterMeta)) +
+      '</span><span data-annex="' + (typeMetaAnnex ? 'true':'false') + '">النوع: ' + esc(metadataPreview(typeMeta)) +
+      '</span><span data-annex="' + (needsMetadataAnnex(storyboard.version, 22) ? 'true':'false') + '">الإصدار: ' + ltr(metadataPreview(storyboard.version, 22)) + '</span></section></div>';
     return '<article class="page">' + header + frames + info +
       '<footer>Storyboard للمراجعة فقط · ' + ltr(metadataPreview(storyboard.episode, 22)) + '</footer></article>' +
       (titleAnnex ? appendix(scene.id, "عنوان المشهد", scene.title) : "") +
