@@ -6,7 +6,8 @@
  *   node scripts/studio-render-isolation-acceptance.mjs
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { lstat, mkdir, mkdtemp, readdir, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
+import { cleanupOwnedAcceptanceTemp } from "./studio-acceptance-temp.mjs";
 import os from "node:os";
 import path from "node:path";
 
@@ -92,24 +93,14 @@ try {
   // is the freshly mkdtemp-created run directory, never system /tmp or a
   // different worktree. Never sweep files outside this specific temp child.
   try {
-    const canonicalEvidence = await realpath(evidenceDir);
-    const canonicalTemp = await realpath(testsTemp);
-    const tempInfo = await lstat(testsTemp);
-    if (canonicalEvidence !== path.resolve(evidenceDir) ||
-        canonicalTemp !== path.join(canonicalEvidence, "temp") ||
-        !tempInfo.isDirectory() || tempInfo.isSymbolicLink())
-      throw new Error("Unsafe acceptance temp ownership; cleanup aborted.");
-    report.temporaryResidueBeforeCleanup = await readdir(testsTemp);
-    report.temporaryLeakSuspects = report.temporaryResidueBeforeCleanup.filter(
+    const cleanup = await cleanupOwnedAcceptanceTemp(evidenceDir, testsTemp);
+    report.temporaryResidueBeforeCleanup = cleanup.before;
+    report.temporaryLeakSuspects = cleanup.before.filter(
       (name) => /^(?:bal-rec|bal-voice|bal-channels)-/.test(name),
     );
-    await rm(testsTemp, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
-    const stillExists = await lstat(testsTemp).then(
-      () => true, (e) => { if (e.code === "ENOENT") return false; throw e; },
-    );
-    report.temporaryClean = !stillExists;
-    report.temporaryResidue = stillExists ? await readdir(testsTemp) : [];
-    if (stillExists) failed = true;
+    report.temporaryClean = cleanup.clean;
+    report.temporaryResidue = cleanup.after;
+    if (!cleanup.clean) failed = true;
   } catch (e) {
     report.temporaryCleanupError = String(e);
     failed = true;
