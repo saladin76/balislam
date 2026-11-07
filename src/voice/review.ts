@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { decodedAudioDuration } from "./audioIntegrity";
+import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { decodedAudioDuration, isOwnedRegularAudio } from "./audioIntegrity";
 import { isTone } from "./tones";
 import type { Plan, PlanScene } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
@@ -32,23 +32,30 @@ export const loadVoiceReview = async (scriptPath: string): Promise<VoiceReviewRe
 /** An approval is tied to the actual MP3 bytes, narration, tone and voice settings. */
 export const voiceFingerprint = async (scene: PlanScene, clip: VoiceClip | undefined, scriptPath: string): Promise<string | null> => {
   if (!isTone(scene.tone) || !clip || clip.text !== scene.narration.trim()) return null;
+  if (!Number.isFinite(clip.duration) || clip.duration <= 0) return null;
+  if (!Array.isArray(clip.words) || clip.words.some((word) =>
+    typeof word?.word !== "string" || !word.word.trim() ||
+    !Number.isFinite(word.start) || !Number.isFinite(word.end) ||
+    word.start < 0 || word.end < word.start || word.end > clip.duration + 0.25)) return null;
   if (typeof clip.file !== "string" || !/^[a-z0-9][a-z0-9_.-]{0,150}\.mp3$/i.test(clip.file)) return null;
-  const audioPath = path.join(path.dirname(scriptPath), "voice", clip.file);
+  const audioRoot = path.join(path.dirname(scriptPath), "voice");
+  const audioPath = path.join(audioRoot, clip.file);
   let bytes: Buffer;
   try {
-    // Do not follow symlinks out of the episode through a trusted-looking name.
-    if (!(await lstat(audioPath)).isFile()) return null;
+    if (!await isOwnedRegularAudio(audioRoot, clip.file)) return null;
     bytes = await readFile(audioPath);
   } catch { return null; }
   if (!bytes.length) return null;
   // Probe every decoded frame, not merely a valid MP3 header or duration tag.
   // Any unreadable part invalidates the same fingerprint used by UI and gate.
-  if (!await decodedAudioDuration(audioPath, { mp3Only: true }))
+  const actualDuration = await decodedAudioDuration(audioPath, { mp3Only: true });
+  if (!actualDuration || Math.abs(actualDuration - clip.duration) > Math.max(0.2, clip.duration * 0.04))
     return null;
   const digest = createHash("sha256").update(bytes).digest("hex");
   return createHash("sha256").update(JSON.stringify({
     version: 1, sceneId: scene.id, text: scene.narration.trim(), tone: scene.tone,
     speaker: scene.voice ?? "", cacheHash: clip.hash ?? "", audioSha256: digest,
+    duration: clip.duration, words: clip.words,
   })).digest("hex");
 };
 
