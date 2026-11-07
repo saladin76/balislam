@@ -316,7 +316,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const channelMod = await load("/src/channel/index.ts");
     const { calendar } = await readBody(req);
     if (!calendar || typeof calendar !== "object" || Array.isArray(calendar) || Object.keys(calendar).some((k) => !/^\d{4}-\d{2}-\d{2}$/.test(k))) return send(res, 400, { error: "التقويم غير صالح." }), true;
-    await writeFile(path.join(channelMod.channelPaths(ch).dir, "calendar.json"), JSON.stringify(calendar, null, 2) + "\n", "utf8");
+    const { writeJsonAtomic } = await load("/src/channel/storage.ts");
+    await writeJsonAtomic(path.join(channelMod.channelPaths(ch).dir, "calendar.json"), calendar);
     send(res, 200, { ok: true });
     return true;
   }
@@ -328,7 +329,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { ideas } = await readBody(req);
       if (!Array.isArray(ideas) || ideas.some((i: any) => typeof i?.id !== "string" || typeof i?.title !== "string")) return send(res, 400, { error: "قائمة الأفكار غير صالحة." }), true;
-      await writeFile(file, JSON.stringify(ideas, null, 2) + "\n", "utf8");
+      const { writeJsonAtomic } = await load("/src/channel/storage.ts");
+      await writeJsonAtomic(file, ideas);
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : []);
     return true;
@@ -705,7 +707,10 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const { channel } = await readBody(req);
       const { langPacks } = await load("/src/i18n/packs.ts");
       const slots = ["paper", "family", "night", "warm"];
-      if (!channel || channel.id !== ch) return send(res, 400, { error: "معرّف القناة لا يُغيَّر." }), true;
+      if (!channel || typeof channel !== "object" || Array.isArray(channel) || channel.id !== ch)
+        return send(res, 400, { error: "معرّف القناة لا يُغيَّر أو أن البيانات غير صالحة." }), true;
+      try { ch_.assertChannelConfig(channel, ch); }
+      catch (e) { return send(res, 400, { error: (e as Error).message }), true; }
       if (!channel.name?.trim()) return send(res, 400, { error: "اسم القناة مطلوب." }), true;
       if (!langPacks[channel.language]) return send(res, 400, { error: "لغة غير معروفة." }), true;
       const ids = Object.keys(channel.domains ?? {});
@@ -731,7 +736,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         const bad = engineDefaultsIssues(channel.production.defaults, (t: string) => !templateExclusion(channel, t), ch);
         if (bad.length) return send(res, 400, { error: bad.join(" ") }), true;
       }
-      await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(channel, null, 2) + "\n");
+      const { writeJsonAtomic } = await load("/src/channel/storage.ts");
+      await writeJsonAtomic(ch_.channelPaths(ch).channelFile, channel);
       send(res, 200, { ok: true });
     } else send(res, 200, ch_.loadChannel(ch));
     return true;
@@ -739,6 +745,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   if (parts[0] === "channels" && req.method === "POST") {
     const b = await readBody(req);
     const { createChannel } = await load("/src/channel/create.ts");
+    if (!b || typeof b !== "object" || Array.isArray(b))
+      return send(res, 400, { error: "بيانات إنشاء القناة غير صالحة." }), true;
     await createChannel({ id: b.id, name: b.name, language: b.language, nameLatin: b.nameLatin, quran: b.quran });
     send(res, 200, { ok: true });
     return true;
