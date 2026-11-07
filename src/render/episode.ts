@@ -12,7 +12,7 @@ import { prepareRenderMedia } from "../plan/collect";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
-import { browserExecutable, getServeUrl } from "./bundle";
+import { browserExecutable, getServeUrl, createIsolatedRenderBundle } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { activeRecitation } from "../quran/provider";
 import { QUALITY, type Quality } from "./quality";
@@ -119,9 +119,11 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     }
   }
   log(0, "تجميع المشروع…");
-  // A static snapshot may have been prepared by a caller (e.g. shotsPreview).
-  // Always bundle after staging so Remotion sees precisely this immutable base.
-  const serveUrl = await getServeUrl(media.mode === "static");
+  // Include this episode's immutable media snapshot and shared public assets,
+  // never other channels' staged voice/recitation in the Remotion bundle.
+  const bundleScope = await createIsolatedRenderBundle(media);
+  try {
+  const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
   const timingMode = await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
@@ -155,6 +157,9 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     return output;
   } finally {
     await unlink(tempOutput).catch(() => {});
+  }
+  } finally {
+    await bundleScope.cleanup();
   }
 };
 
