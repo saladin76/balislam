@@ -11,7 +11,7 @@
  * الخروج 0 فقط إذا نجحت كل الفحوص. لا يُستثنى اختبار ولا يُعطَّل.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { childEnv } from "./git-env.mjs";
@@ -20,6 +20,26 @@ const root = path.resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
 const commit = args.includes("--commit") ? args[args.indexOf("--commit") + 1] : null;
 const range = args.includes("--range") ? args[args.indexOf("--range") + 1] : null;
+
+// Per-invocation sandbox: Remotion, webpack, Vitest, ffmpeg and child processes
+// inherit a PRIVATE temp root. Never scan or delete the system's shared /tmp.
+const runTemp = mkdtempSync(path.join(os.tmpdir(), "bal-gate-run-"));
+const tempDiskBytes = (root) => {
+  if (!existsSync(root)) return 0;
+  const walk = (entry) => {
+    const s = lstatSync(entry);
+    if (s.isSymbolicLink()) return 0; // Never traverse another owner's files.
+    if (s.isDirectory()) return readdirSync(entry).reduce((n, name) => n + walk(path.join(entry, name)), 0);
+    return s.blocks * 512; // allocated bytes, not just file apparent size
+  };
+  return walk(root);
+};
+let cleanedTemp = false;
+const cleanRunTemp = () => {
+  if (cleanedTemp) return;
+  cleanedTemp = true;
+  rmSync(runTemp, { recursive: true, force: true });
+};
 
 /** الفحوص الإلزامية: الأنواع ثم الاختبارات كلها */
 const CHECKS = [
@@ -31,10 +51,10 @@ const CHECKS = [
 
 // لا تُورَّث متغيرات تحديد المستودع (GIT_DIR وأخواته) التي يضعها git للخطّاف: الفحوص واختباراتها
 // تعمل على مستودعات مؤقتة، ولو ورثتها لعملت على المستودع الحقيقي (scripts/git-env.mjs، الأمر 018)
-const sh = (cmd, a, cwd, inherit = true) => spawnSync(cmd, a, { cwd, stdio: inherit ? "inherit" : "pipe", encoding: "utf8", env: childEnv({ CI: process.env.CI ?? "1" }) });
+const sh = (cmd, a, cwd, inherit = true) => spawnSync(cmd, a, { cwd, stdio: inherit ? "inherit" : "pipe", encoding: "utf8", env: childEnv({ CI: process.env.CI ?? "1", TMPDIR: runTemp, TMP: runTemp, TEMP: runTemp }) });
 
 let dir = root;
-let cleanup = () => {};
+let cleanup = cleanRunTemp;
 /** خروج مع تنظيف مضمون: لا تبقى نسخة مؤقتة معلقة أيًا كان سبب الخروج */
 const fail = (msg, code = 1) => {
   cleanup();
@@ -48,12 +68,12 @@ if (commit) {
   const tmp = mkdtempSync(path.join(os.tmpdir(), "bal-gate-"));
   const add = sh("git", ["worktree", "add", "--detach", "--quiet", tmp, commit], root, false);
   if (add.status !== 0) {
-    console.error(`بوابة التسليم: تعذّر تجهيز نسخة للـ commit ${commit}: ${add.stderr}`);
-    process.exit(2);
+    fail(`بوابة التسليم: تعذّر تجهيز نسخة للـ commit ${commit}: ${add.stderr}`, 2);
   }
   cleanup = () => {
     sh("git", ["worktree", "remove", "--force", tmp], root, false);
     rmSync(tmp, { recursive: true, force: true });
+    cleanRunTemp();
   };
   dir = tmp;
   // الاعتماديات: نفس node_modules إن لم يتغير package-lock، وإلا تثبيت نظيف داخل النسخة المؤقتة
@@ -78,8 +98,12 @@ try {
     const ok = r.status === 0;
     results.push({ name: c.name, ok, code: r.status, signal: r.signal, seconds: (Date.now() - t0) / 1000 });
   }
-} finally {
+ } finally {
+  // Test leftovers may exist even if a worker exits abruptly. Only OUR root is removed.
+  const allocated = tempDiskBytes(runTemp);
   cleanup();
+  console.log("GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES " + allocated);
+  console.log("GATE_TEMP_CLEANED " + (!existsSync(runTemp)));
 }
 
 console.log("\nبوابة التسليم:");
