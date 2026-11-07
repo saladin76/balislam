@@ -44,15 +44,17 @@ describe("مرحلة الصوت", () => {
         media={{ voice: {} } as EpisodeMedia}
         hasKeys={false}
         onMedia={() => {}}
+        onReload={() => {}}
         onOpenScene={() => {}}
       />,
     );
     expect(html).toContain("صوت الحلقة");
     expect(html).toContain("التعليق الصوتي");
     expect(html).toContain("تلاوة الآيات داخل الفيديو");
-    expect(html).toContain("مكتبة القرّاء");
-    // نموذج ترخيص الإنتاج يظهر فقط بعد اختيار فتح مكتبة القرّاء، وليس في الشاشة الأولية.
-    expect(html).toContain("استعراض القرّاء لهذه الحلقة");
+    expect(html).toContain("الآيات المطلوبة وتلاوتك بصوتك");
+    expect(html).toContain("AlQuran Cloud");
+    expect(html).toContain("استعراض التلاوات");
+    expect(html).not.toContain("Quran Foundation");
     expect(html).not.toContain("رابط HTTPS إلى وثيقة الإذن");
     expect(html).toContain("مساران مستقلان");
     expect(html).toContain("c1-s1");
