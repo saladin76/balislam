@@ -18,7 +18,7 @@ import {
   approveScript, approveStoryboard, approveSceneAv, approveFinalMaster,
   createSceneFirstProduction, changeScript, changeStoryboard, reviseSceneInput,
   submitSceneAvPreview, requestSceneCorrection, submitAssembly, sceneFirstProgress,
-  assertExactMasterReadyForPublish, type SceneFirstProduction,
+  assertExactMasterReadyForPublish, approvedSceneInputsSha256, type SceneFirstProduction,
 } from "./sceneProduction";
 
 type CommandAction = "approve-script" | "approve-storyboard" | "submit-scene" |
@@ -406,6 +406,18 @@ export const decideSceneProduction = async (episode: string,
     return view(saved, current.ready);
   });
 };
+/** Protect every final-Master queue/CLI/API entrypoint before expensive rendering. */
+export const requireScenesReadyForMaster = async (episode: string): Promise<void> => {
+  await withState(episode, async (doc, current) => {
+    approvedSceneInputsSha256(doc.state);
+    if (!doc.state.assembly || !doc.assemblyEpoch ||
+        doc.assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||
+        doc.state.assembly.videoSha256 !== await byteSha256(assemblyFile(current.scriptPath)))
+      throw Error("Approve and assemble all current audiovisual scenes before creating Master.");
+    await verifyVideoEvidence(assemblyFile(current.scriptPath));
+  });
+};
+
 export const requireSceneMasterReady = async (episode: string): Promise<void> => {
   await withState(episode, async (doc, current) => {
     const file = masterFile(current.scriptPath);
