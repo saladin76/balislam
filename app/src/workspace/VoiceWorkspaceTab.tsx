@@ -43,10 +43,20 @@ export const VoiceWorkspaceTab: React.FC<{
     let alive = true;
     setReview([]); setFullApproved(false); setFullHeard(false); setSelected(""); setHeard(false); setReviewError("");
     setPlayerIndex(null); setPlaylistComplete(false); setPlayerError("");
-    api.voiceReview(episodeId, channelId).then(({ items, episodeApproved }) => {
-      if (alive) { setReview(items); setFullApproved(episodeApproved); }
-    }).catch((e) => { if (alive) setReviewError("تعذر قراءة سجل مراجعة الصوت: " + (e as Error).message); });
-    return () => { alive = false; };
+    const refresh = () => {
+      api.voiceReview(episodeId, channelId).then(({ items, episodeApproved }) => {
+        if (alive) { setReview(items); setFullApproved(episodeApproved); setReviewError(""); }
+      }).catch((e) => {
+        // Never retain an old "approved" badge after a failed integrity check.
+        if (alive) { setReview([]); setFullApproved(false);
+          setReviewError("تعذر التحقق من صلاحية التسجيل؛ لا يعتبر معتمدًا: " + (e as Error).message); }
+      });
+    };
+    refresh();
+    // External corruption/replacement of an MP3 does not alter React props;
+    // periodically recompute the same server fingerprint used by the render gate.
+    const poll = setInterval(refresh, 10000);
+    return () => { alive = false; clearInterval(poll); };
   }, [episodeId, channelId, media.voice, plan]);
   useEffect(() => {
     if (playerIndex === null) return;
@@ -120,14 +130,15 @@ export const VoiceWorkspaceTab: React.FC<{
       </section>
       <div className="ew-voice-heading">
         <h3>حالة المقاطع الصوتية</h3>
-        <span>{ready} من {scenes.length} مطابق للنص الحالي</span>
+        <span>{ready} من {scenes.length} مدرج بالنص، و{review.filter((r) => r.state === "approved").length} صالح ومعتمد بالبصمة</span>
       </div>
       <section className="ew-voice-lane" aria-label="الاستماع والاعتماد البشري">
         <div className="ew-lane-heading"><span className="ew-lane-index">03</span><div>
           <h3>اعتماد التعليق الصوتي بعد الاستماع</h3>
           <p>التطابق مع النص لا يعني الاعتماد. يلزم استماع حقيقي لكل مقطع، ثم مراجعة التسجيل الكامل 1× قبل تحريك الفيديو.</p>
         </div></div>
-        <p role="status">المقاطع المعتمدة: {review.filter((r) => r.state === "approved").length} من {scenes.length}</p>
+        <p role="status">المقاطع المعتمدة بملف صالح والبصمة الحالية: {review.filter((r) => r.state === "approved").length} من {scenes.length}</p>
+        {review.some((r) => r.state === "missing_audio" || r.state === "changed") && <p role="alert">توجد تسجيلات تالفة أو متغيّرة أو غير مطابقة؛ الاعتماد السابق غير صالح للحركة حتى إعادة المراجعة.</p>}
         {reviewError && <p role="alert" className="note err">{reviewError}</p>}
         <div className="field">
           <label htmlFor="voice-review-scene">اختر المقطع للاستماع</label>

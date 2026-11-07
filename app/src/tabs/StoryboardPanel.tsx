@@ -57,6 +57,7 @@ export const StoryboardPanel: React.FC<{
   const [visualReviewed, setVisualReviewed] = useState(false);
   const [quranStatus, setQuranStatus] = useState<{ missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } | null>(null);
   const [quranBusy, setQuranBusy] = useState(false);
+  const [quranAudit, setQuranAudit] = useState<Awaited<ReturnType<typeof api.auditQuranScript>> | null>(null);
   const [quranMessage, setQuranMessage] = useState("");
 
   const fps = config.video.fps;
@@ -66,7 +67,7 @@ export const StoryboardPanel: React.FC<{
 
   useEffect(() => {
     let alive = true;
-    setQuranStatus(null); setQuranMessage("");
+    setQuranStatus(null); setQuranMessage(""); setQuranAudit(null);
     api.missingQuranTexts(episodeId).then(({ status }) => {
       if (alive) setQuranStatus(status);
     }).catch((e) => {
@@ -75,20 +76,10 @@ export const StoryboardPanel: React.FC<{
     return () => { alive = false; };
   }, [episodeId]);
 
-  const requestMissingTexts = async () => {
-    setQuranBusy(true); setQuranMessage("");
-    try {
-      const { result, status } = await api.fetchMissingQuranTexts(episodeId);
-      setQuranStatus(status);
-      if (result.failed.length) {
-        setQuranMessage("تعذّر جلب النصوص من المصدر المعتمد؛ لم تُحفظ نتيجة جزئية: " +
-          result.failed.map((x) => x.ref + ": " + x.reason).join(" | "));
-      } else {
-        setQuranMessage(`جُلبت ${result.fetched.length} مراجع من Quran Foundation إلى quran.json دون تعديل السكريبت أو الخطة أو الصوت. نصوصها لا تُعتمد شرعيًا تلقائيًا.`);
-        setVisualReviewNote(""); setVisualReviewed(false);
-        onReload();
-      }
-    } catch (e) { setQuranMessage("تعذّر الجلب: " + (e instanceof Error ? e.message : String(e))); }
+  const reviewAgainstMushaf = async () => {
+    setQuranBusy(true); setQuranMessage(""); setQuranAudit(null);
+    try { setQuranAudit(await api.auditQuranScript(episodeId)); }
+    catch (e) { setQuranMessage("تعذّر فحص المصحف: " + (e instanceof Error ? e.message : String(e))); }
     finally { setQuranBusy(false); }
   };
 
@@ -246,7 +237,7 @@ export const StoryboardPanel: React.FC<{
 
       <section className="sb-quran-text-source" aria-label="نصوص الآيات" style={{ display: "grid", gap: 8, padding: 18, border: "1px solid var(--line, #d5dbe2)", borderRadius: 12, marginBottom: 18 }}>
         <h3>نصوص الآيات — قبل اعتماد اللوحات</h3>
-        <p className="help">هذه خطوة نصية فقط. الفحص لا يتصل بالمصدر، والجلب لا يُنشئ تعليقًا صوتيًا ولا يُعدّل الخطة أو يوافق على الآيات آليًا.</p>
+        <p className="help">صاحب المشروع يكتب الآية داخل السكريبت: [آية: النجم 39 | النص بالتشكيل]. مقارنة المصحف تعرض الفروق دون تعديل النص أو تسجيل اعتماد شرعي آلي.</p>
         {quranStatus && <p role="status">مراجع نصية محلية موجودة: {quranStatus.existing.length} · ناقصة: {quranStatus.missing.length} · غير صالحة: {quranStatus.invalid.length}</p>}
         {!!quranStatus?.missing.length && <p className="warn">الناقص: {quranStatus.missing.join("، ")}</p>}
         {!!quranStatus?.invalid.length && <p className="warn">مراجع تحتاج تصحيحًا من المصدر: {quranStatus.invalid.map((x) => x.ref + " (" + x.reason + ")").join("، ")}</p>}
@@ -255,9 +246,19 @@ export const StoryboardPanel: React.FC<{
           <button className="btn" type="button" onClick={() => { setQuranMessage(""); api.missingQuranTexts(episodeId).then(({ status }) => setQuranStatus(status)).catch((e) => setQuranMessage(String(e))); }}>
             إعادة فحص النصوص المحلية
           </button>
-          <button className="btn" type="button" disabled={quranBusy || !quranStatus?.missing.length || !!quranStatus.invalid.length}
-            onClick={() => void requestMissingTexts()}>{quranBusy ? "جارٍ جلب النصوص…" : "اجلب النصوص الناقصة فقط من Quran Foundation"}</button>
+          <button className="btn" type="button" disabled={quranBusy}
+             onClick={() => void reviewAgainstMushaf()}>{quranBusy ? "جارٍ مقارنة النص…" : "مقارنة نص السكريبت مع المصحف — قراءة فقط"}</button>
         </div>
+        {quranAudit && <div role="status" className="field">
+          <p>بيئة مرجع المصحف: {quranAudit.environment}. المطابقة التقنية ليست اعتمادًا شرعيًا.</p>
+          {quranAudit.audits.map((a) => <div key={a.key} className="field">
+            <strong>{a.key}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? a.status}</strong>
+            {!a.numbers.ok && <p className="warn">{a.numbers.notes.join("؛ ")}</p>}
+            {a.ops.length > 0 && <ul>{a.ops.map((op, i) => <li key={i}>
+              الموضع {op.at + 1}، {op.cls}، {op.op}: في السكريبت «{op.shown || "∅"}»، في المصحف «{op.ref || "∅"}»
+            </li>)}</ul>}
+          </div>)}
+        </div>}
       </section>
 
       <section className="sb-visual-approval" aria-label="مراجعة Storyboard المرئي" style={{ display: "grid", gap: 10, padding: 18, border: "1px solid var(--line, #d5dbe2)", borderRadius: 12, marginBottom: 20 }}>
@@ -275,7 +276,7 @@ export const StoryboardPanel: React.FC<{
           placeholder="راجعت كل لوحات الإصدار ...، والتكوين والنصوص متطابقة، والمشاهد التي تحتاج إصلاحًا..." />
         <label><input type="checkbox" checked={visualReviewed} onChange={(e) => setVisualReviewed(e.target.checked)} />
           أؤكد أنني شاهدت جميع اللوحات المرئية لهذه الحلقة، وليس عينات متفرقة فقط.</label>
-        <p className="help">إذا كانت الآيات المعروضة ناقصة، أبقِ الإصدار للمراجعة PENDING_REVIEW حتى يتم جلب النصوص الصحيحة؛ لن تتحول ملفات PDF المرفوعة إلى اعتماد تلقائي.</p>
+        <p className="help">إذا كانت الآيات ناقصة، اكتبها داخل السكريبت ثم أعد مقارنة المصحف والمراجعة الشرعية؛ يبقى Storyboard في PENDING_REVIEW ولا تعتمد ملفات PDF تلقائيًا.</p>
       </section>
 
       <Reviews episodeId={episodeId} />

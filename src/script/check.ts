@@ -1,6 +1,7 @@
 import { z } from "zod";
 import defaultConfig from "../../config.json";
 import { normalizeArabic, parseAyahRef } from "./quranMeta";
+import { quranFromScript } from "../quran/scriptText";
 import { isSceneTemplate, SCENE_TEMPLATES } from "./sceneTemplates";
 import type { Chapter, Frontmatter, Issue, ParsedScript } from "./types";
 import { defaultChannel, domainIds } from "../channel/types";
@@ -102,6 +103,10 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
     } else {
       for (const issue of parsed.error.issues) err("frontmatter-invalid", issue.message, script.frontmatterLine);
     }
+  }
+  // A reference without authored text, or a conflicting repeated text, cannot be approved.
+  for (const problem of quranFromScript(script).problems) {
+    if (problem.code !== "invalid-ref") err(`quran-${problem.code}`, problem.reason, problem.line);
   }
   const isArabic = (fm?.lang ?? "ar") === "ar";
   const trailer = (script.frontmatter as { format?: string } | undefined)?.format === "trailer";

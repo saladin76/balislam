@@ -1,9 +1,10 @@
 import path from "node:path";
 import { toEasternDigits } from "../i18n/packs";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { audioDuration } from "../voice/generate";
 import { parseScript } from "../script/parse";
+import { quranFromScript } from "./scriptText";
 import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
 import { quranPathFor, readJson } from "../plan/io";
@@ -32,13 +33,14 @@ const atKey = (key: string) => `${key}#at`;
 const fresh = (iso?: string) => Boolean(iso && Date.now() - Date.parse(iso) < QF_MAX_AGE_MS);
 
 /** فهرس تلاوات Quran Foundation للحلقة: recitations/index.json بجوار السكريبت. */
-export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation"; edition?: string; fetchedAt: string }>;
+export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; sha256?: string; textSha256?: string; rightsEvidence?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
 
-/** يجلب نصوص كل آيات السكريبت غير المخزنة ويحفظها في quran.json بجوار السكريبت. */
+/** Synchronize licensed recitations and optional meaning translations; never write Quran text. */
 export const syncQuran = async (episode: string, client: QuranClient, opts: { force?: boolean } = {}): Promise<QuranSyncResult> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  const authored = quranFromScript(parsed);
   const file = quranPathFor(scriptPath);
   const store = (await readJson<Record<string, string>>(file)) ?? {};
   const result: QuranSyncResult = { fetched: [], cached: [], failed: [], recited: [] };
@@ -61,8 +63,13 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       continue;
     }
     const { key, surah, from, to } = r.ref;
+    if (!authored.texts[key] || authored.problems.some((p) => p.key === key)) {
+      result.failed.push({ ref, reason: "يجب كتابة نص الآية داخل السكريبت وإزالة أي تعارض قبل تنزيل تلاوتها." });
+      continue;
+    }
     // تلاوة الآيات من المصدر المختار؛ يبقى نص المصحف وترجمته من Quran Foundation.
-    if (recitation) {
+    // A human-approved local recording is never overwritten by an automatic provider sync.
+    if (recitation && recIndex[key]?.provider !== "manual") {
       const id = recitationIdentity(recitation);
       const have = recIndex[key];
       const same = have && (isCloudRecitation(recitation)
@@ -116,18 +123,35 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
         }
       }
     }
-    if (store[key] && fresh(store[atKey(key)]) && (!translationId || store[meaningKey(key)]) && !opts.force) {
+    // The script is always the source of Quran text. A separate historical
+    // quran.json may retain meanings, but sync never creates/overwrites verse text.
+    if (fresh(store[atKey(key)]) && (!translationId ||
+        (store[meaningKey(key)] && store[`${key}#meaningSource`])) && !opts.force) {
+      result.cached.push(key);
+      continue;
+    }
+    if (!translationId) {
+      store[atKey(key)] = new Date().toISOString();
       result.cached.push(key);
       continue;
     }
     try {
       const verses: Verse[] = [];
-      for (let n = from; n <= to; n++) verses.push(await client.verse(`${surah}:${n}`, { translationId }));
-      store[key] = composeVerses(verses);
-      if (translationId) {
-        const meanings = verses.map((v) => v.meaning ?? "").filter(Boolean);
-        if (meanings.length === verses.length) store[meaningKey(key)] = verses.length === 1 ? meanings[0]! : verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
+      for (let n = from; n <= to; n++) {
+        const expected = `${surah}:${n}`;
+        const verse = await client.verse(expected, { translationId });
+        if (verse.key !== expected || verse.number !== n)
+          throw new Error(`المصحف أعاد مرجعًا مغايرًا لـ ${expected}؛ لن تُحفظ ترجمة غير موثّقة.`);
+        verses.push(verse);
       }
+      const meanings = verses.map((v) => v.meaning ?? "").filter(Boolean);
+      if (meanings.length !== verses.length)
+        throw new Error("الترجمة غير مكتملة؛ احتُفظ بالنسخة التاريخية دون استبدال.");
+      const source = channel.quranTranslation?.name?.trim();
+      if (!source) throw new Error("المترجم غير محدد؛ لن تُحفظ ترجمة بلا نسبة صحيحة.");
+      store[meaningKey(key)] = verses.length === 1 ? meanings[0]! :
+        verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
+      store[`${key}#meaningSource`] = source;
       store[atKey(key)] = new Date().toISOString();
       result.fetched.push(key);
     } catch (err) {
@@ -137,9 +161,10 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
   await writeFile(file, JSON.stringify(store, null, 2) + "\n", "utf8");
   if (recitation || Object.keys(recIndex).length) {
     // بلا قارئ مختار: تُحذف تلاوات Quran Foundation المخزنة؛ ومع قارئ: تُحذف الملفات غير المستخدمة
-    const keep = recitation ? recIndex : {};
-    const used = new Set(Object.values(keep).flatMap((r) => r.parts.map((p) => p.file)));
-    if (existsSync(recDir)) for (const f of await readdir(recDir)) if (f.endsWith(".mp3") && !used.has(f)) await unlink(path.join(recDir, f)).catch(() => {});
+    const keep: RecitationIndex = recitation ? recIndex : Object.fromEntries(
+      Object.entries(recIndex).filter(([, value]) => value?.provider === "manual"));
+    // Never delete unindexed MP3s or another producer's clips. Retiring a
+    // provider selection changes the pointer, not the original recordings.
     await mkdir(recDir, { recursive: true });
     await writeFile(recIndexFile, JSON.stringify(keep, null, 2) + "\n", "utf8");
   }

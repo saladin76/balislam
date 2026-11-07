@@ -1,6 +1,7 @@
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { parseFile } from "music-metadata";
 import { isTone } from "./tones";
 import type { Plan, PlanScene } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
@@ -31,6 +32,13 @@ export const voiceFingerprint = async (scene: PlanScene, clip: VoiceClip | undef
   try { bytes = await readFile(path.join(path.dirname(scriptPath), "voice", clip.file)); }
   catch { return null; }
   if (!bytes.length) return null;
+  // A hash of corrupt bytes is not a usable recording. The same test serves the
+  // interface and the render gate; no "approved" state for an undecodable MP3.
+  try {
+    const meta = await parseFile(path.join(path.dirname(scriptPath), "voice", clip.file), { duration: true });
+    if (!meta.format.duration || !Number.isFinite(meta.format.duration) || meta.format.duration <= 0 ||
+        !/MPEG.*Layer 3|MP3/i.test(meta.format.codec ?? "")) return null;
+  } catch { return null; }
   const digest = createHash("sha256").update(bytes).digest("hex");
   return createHash("sha256").update(JSON.stringify({
     version: 1, sceneId: scene.id, text: scene.narration.trim(), tone: scene.tone,

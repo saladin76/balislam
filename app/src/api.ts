@@ -72,6 +72,11 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  scriptSignoff: (episode: string) =>
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
+  approveScriptSignoff: (episode: string, reviewer: string, note: string) =>
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(
+      `/api/episodes/${episode}/script-signoff`, { method: "PUT", json: { reviewer, note, confirm: true } }),
   voiceReview: (episode: string, channel: string) =>
     call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, undefined, channel),
@@ -168,6 +173,11 @@ export const api = {
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  auditQuranScript: (id: string) =>
+    call<{ environment: string; audits: { key: string; status: "match" | "differs" | "pending" | "missing" | "failed";
+      reason?: string; categories: Record<string, string>; numbers: { ok: boolean; notes: string[] };
+      ops: { at: number; op: string; shown: string; ref: string; cls: string }[] }[] }>(
+      `/api/episodes/${id}/quran-audit`),
   missingQuranTexts: (id: string) =>
     call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
       `/api/episodes/${id}/quran-text-only`),
