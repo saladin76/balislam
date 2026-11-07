@@ -16,9 +16,9 @@ const channelScope = new AsyncLocalStorage<string>();
 export const isChannelId = (id: unknown): id is string =>
   typeof id === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id);
 
-const assertChannelId = (id: unknown): asserts id is string => {
+function assertChannelId(id: unknown): asserts id is string {
   if (!isChannelId(id)) throw new Error("معرّف القناة غير صالح.");
-};
+}
 
 const assertLocalEntry = (file: string) => {
   if (existsSync(file) && lstatSync(file).isSymbolicLink())
@@ -29,7 +29,7 @@ const record = (x: unknown): x is Record<string, unknown> =>
   Boolean(x) && typeof x === "object" && !Array.isArray(x);
 
 /** Validate the minimal runtime contract, keeping optional historical fields intact. */
-export const assertChannelConfig = (value: unknown, expectedId: string): asserts value is ChannelConfig => {
+export function assertChannelConfig(value: unknown, expectedId: string): asserts value is ChannelConfig {
   if (!record(value) || value.id !== expectedId ||
       typeof value.name !== "string" || !value.name.trim() ||
       typeof value.language !== "string" ||
@@ -47,7 +47,7 @@ export const assertChannelConfig = (value: unknown, expectedId: string): asserts
       throw new Error(`إعدادات مجال القناة «${expectedId}/${id}» غير صالحة.`);
     }
   }
-};
+}
 
 /**
  * يشغّل fn وكل ما يتفرع عنه (حتى بعد await) على قناة محددة، دون متغير عام مشترك.
