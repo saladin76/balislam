@@ -158,7 +158,7 @@ export const isCurrentApproval = (ledger: WorkflowLedger, snapshot: WorkflowSnap
       approval.artifactEpoch !== input.epoch ||
       !Array.isArray(approval.evidence) || !STAGE_EVIDENCE[stage].every((key) => approval.evidence.includes(key)) ||
       !Array.isArray(approval.evidenceProofs) ||
-      !STAGE_EVIDENCE[stage].every((key) => approval.evidenceProofs.some((proof) => proof.key === key && /^[a-f0-9]{64}$/.test(proof.sha256)))) return false;
+      !STAGE_EVIDENCE[stage].every((key) => approval.evidenceProofs.some((proof) => proof.key === key && /^[a-f0-9]{64}$/.test(proof.sha256) && /^[a-f0-9]{64}$/.test(proof.epoch)))) return false;
   try {
     if (approval.fingerprint !== stageFingerprint(snapshot, stage)) return false;
   } catch { return false; }
