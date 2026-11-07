@@ -143,7 +143,9 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
     }
   };
   const gate = async (action: WorkflowAction) => {
-    await principal();
+    const actor = await principal();
+    if (action === "publish" && actor.role !== "owner")
+      throw new Error("Only the authenticated project owner may publish the approved Master.");
     const before = await capture();
     await requireWorkflowGate(deps.scope, before.snapshot, action);
     await assertEvidenceCurrent(before.snapshot, action);
@@ -163,7 +165,8 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
   ): Promise<T> => deps.withArtifactLock(async () => {
     // Unlike the read-only gate checker, the publication side effect always
     // owns the shared artifact lock from capture through uploader completion.
-    await principal();
+    const actor = await principal();
+    if (actor.role !== "owner") throw new Error("Only the authenticated project owner may publish.");
     const frozen = await mkdtemp(path.join(os.tmpdir(), "studio-approved-master-"));
     try {
       const initial = await capture();
