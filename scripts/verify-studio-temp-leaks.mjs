@@ -8,7 +8,7 @@
  * node scripts/verify-studio-temp-leaks.mjs --failure   # induced gate failure
  * node scripts/verify-studio-temp-leaks.mjs --cancel    # terminate child gate
  */
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync, statfsSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -93,6 +93,22 @@ try {
   // already nearly full. Never try to reclaim another process's files.
   if (parallel && before < 6 * 1024 ** 3) {
     throw new Error("Parallel audit refused: fewer than 6 GiB of free disk space; no test gates started.");
+  }
+  if (parallel) {
+    // Run a tiny real Vitest command with the exact audit-only worker flag
+    // before starting TWO full gates. This catches CLI incompatibilities
+    // early without changing suite coverage or touching production files.
+    const probe = spawnSync("npx", ["vitest", "run", "--maxWorkers", "1", "tests/quran-compare.test.ts"], {
+      cwd: repo,
+      env: { ...process.env, CI: "1" },
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+    if (probe.status !== 0) {
+      throw new Error("Parallel audit refused: Vitest worker-option smoke test failed (no full gates started). " +
+        (probe.stderr || probe.stdout || probe.error?.message || "").slice(0, 900));
+    }
+    console.log("VITEST_WORKER_PREFLIGHT passed");
   }
   const swapBefore=swapUsage();
   const samples=[];
