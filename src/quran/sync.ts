@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
 import { audioDuration } from "../voice/generate";
 import { parseScript } from "../script/parse";
+import { quranFromScript } from "./scriptText";
 import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
 import { quranPathFor, readJson } from "../plan/io";
@@ -35,10 +36,11 @@ const fresh = (iso?: string) => Boolean(iso && Date.now() - Date.parse(iso) < QF
 export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; sha256?: string; textSha256?: string; rightsEvidence?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
 
-/** يجلب نصوص كل آيات السكريبت غير المخزنة ويحفظها في quran.json بجوار السكريبت. */
+/** Synchronize licensed recitations and optional meaning translations; never write Quran text. */
 export const syncQuran = async (episode: string, client: QuranClient, opts: { force?: boolean } = {}): Promise<QuranSyncResult> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  const authored = quranFromScript(parsed);
   const file = quranPathFor(scriptPath);
   const store = (await readJson<Record<string, string>>(file)) ?? {};
   const result: QuranSyncResult = { fetched: [], cached: [], failed: [], recited: [] };
@@ -61,6 +63,10 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       continue;
     }
     const { key, surah, from, to } = r.ref;
+    if (!authored.texts[key] || authored.problems.some((p) => p.key === key)) {
+      result.failed.push({ ref, reason: "يجب كتابة نص الآية داخل السكريبت وإزالة أي تعارض قبل تنزيل تلاوتها." });
+      continue;
+    }
     // تلاوة الآيات من المصدر المختار؛ يبقى نص المصحف وترجمته من Quran Foundation.
     if (recitation) {
       const id = recitationIdentity(recitation);
@@ -116,22 +122,35 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
         }
       }
     }
-    if (store[key] && fresh(store[atKey(key)]) && (!translationId || store[meaningKey(key)]) && !opts.force) {
+    // The script is always the source of Quran text. A separate historical
+    // quran.json may retain meanings, but sync never creates/overwrites verse text.
+    if (fresh(store[atKey(key)]) && (!translationId ||
+        (store[meaningKey(key)] && store[`${key}#meaningSource`])) && !opts.force) {
+      result.cached.push(key);
+      continue;
+    }
+    if (!translationId) {
+      store[atKey(key)] = new Date().toISOString();
       result.cached.push(key);
       continue;
     }
     try {
       const verses: Verse[] = [];
-      for (let n = from; n <= to; n++) verses.push(await client.verse(`${surah}:${n}`, { translationId }));
-      store[key] = composeVerses(verses);
-      if (translationId) {
-        const meanings = verses.map((v) => v.meaning ?? "").filter(Boolean);
-        if (meanings.length === verses.length) {
-          store[meaningKey(key)] = verses.length === 1 ? meanings[0]! : verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
-          // Capture provenance at the time of fetching, never infer it later from channel settings.
-          if (channel.quranTranslation?.name) store[`${key}#meaningSource`] = channel.quranTranslation.name;
-        }
+      for (let n = from; n <= to; n++) {
+        const expected = `${surah}:${n}`;
+        const verse = await client.verse(expected, { translationId });
+        if (verse.key !== expected || verse.number !== n)
+          throw new Error(`المصحف أعاد مرجعًا مغايرًا لـ ${expected}؛ لن تُحفظ ترجمة غير موثّقة.`);
+        verses.push(verse);
       }
+      const meanings = verses.map((v) => v.meaning ?? "").filter(Boolean);
+      if (meanings.length !== verses.length)
+        throw new Error("الترجمة غير مكتملة؛ احتُفظ بالنسخة التاريخية دون استبدال.");
+      const source = channel.quranTranslation?.name?.trim();
+      if (!source) throw new Error("المترجم غير محدد؛ لن تُحفظ ترجمة بلا نسبة صحيحة.");
+      store[meaningKey(key)] = verses.length === 1 ? meanings[0]! :
+        verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
+      store[`${key}#meaningSource`] = source;
       store[atKey(key)] = new Date().toISOString();
       result.fetched.push(key);
     } catch (err) {
