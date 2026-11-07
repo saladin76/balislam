@@ -2,6 +2,7 @@ import { applyEngineDefaults } from "./engine";
 import { beatsFor, beatsToText, isCuratedBeat } from "./beats";
 import { normalizeArabic, parseAyahRef, surahNameFor, toLatinDigits } from "../script/quranMeta";
 import { VERSE_PLACEHOLDER } from "./quranText";
+import { attributedMeaningSource } from "../quran/scriptText";
 import type { ParsedScript } from "../script/types";
 import type { Domain } from "../../brand/themes";
 import { defaultChannel, themeIdForDomainIn, type ChannelConfig } from "../channel/types";
@@ -170,9 +171,11 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
             text: (key && quran[key]) || VERSE_PLACEHOLDER,
             reference,
             reciter: reciterFor(key),
-            ...(key && quran[`${key}#meaning`] ? {
+            // Preserve historical translations in storage, but never render an
+            // unattributed legacy meaning as if the owner manually supplied it.
+            ...(key && quran[`${key}#meaning`] && attributedMeaningSource(quran[`${key}#meaningSource`]) ? {
               meaning: quran[`${key}#meaning`],
-              ...(quran[`${key}#meaningSource`] ? { meaningSource: quran[`${key}#meaningSource`] } : {}),
+              meaningSource: attributedMeaningSource(quran[`${key}#meaningSource`])!,
             } : {}),
           },
         });
