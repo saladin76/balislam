@@ -89,7 +89,9 @@ describe("Studio workspace separation", () => {
     const html = renderToStaticMarkup(<WorkflowApprovalDetails approvals={snapshot} />);
     expect(html).toContain('data-workflow-status="approved"');
     expect(html).toContain("المراجع المفوض");
-    expect(html).toContain("نوفمبر");
+    // Arabic Intl dateStyle may be numeric or written depending on Node/ICU runtime.
+    expect(html).toContain("تاريخ الاعتماد");
+    expect(html).toContain(new Date(approval.at).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }));
     expect(html).toContain("v1");
     expect(html).toContain("طابقت النسخة");
     expect(html).toContain("تحتاج إعادة اعتماد");
