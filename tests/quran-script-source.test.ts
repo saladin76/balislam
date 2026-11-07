@@ -69,8 +69,9 @@ describe("Quran script-first text, review and historical meanings", () => {
       expect(historicalMeanings(unknown, { "53:39": "مدخل يدويًا — يحتاج مراجعة" })["53:39#meaningSource"])
         .toBeUndefined();
       const regenerated = generatePlan(parseScript(makeScript(verse)), null,
-        { "53:39": verse, "53:39#meaning": unknown["53:39#meaning"]!, "53:39#meaningSource": "مدخل يدويًا — يحتاج مراجعة" });
+        { "53:39": "EXTERNAL CONTENT MUST NOT REPLACE THE SCRIPT", "53:39#meaning": unknown["53:39#meaning"]!, "53:39#meaningSource": "مدخل يدويًا — يحتاج مراجعة" });
       const freshCard = regenerated.chapters.flatMap((ch) => ch.scenes).find((s) => s.template === "verse-card");
+      expect(freshCard?.props.text).toBe(verse);
       expect(freshCard?.props.meaning).toBeUndefined();
       expect(freshCard?.props.meaningSource).toBeUndefined();
       // An explicitly attributed old translation remains available after migration.
