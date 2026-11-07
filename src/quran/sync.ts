@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { audioDuration } from "../voice/generate";
 import { parseScript } from "../script/parse";
-import { quranFromScript } from "./scriptText";
+import { quranFromScript, historicalMeaningConflict } from "./scriptText";
 import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
 import { quranPathFor, readJson } from "../plan/io";
@@ -149,8 +149,11 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
         throw new Error("الترجمة غير مكتملة؛ احتُفظ بالنسخة التاريخية دون استبدال.");
       const source = channel.quranTranslation?.name?.trim();
       if (!source) throw new Error("المترجم غير محدد؛ لن تُحفظ ترجمة بلا نسبة صحيحة.");
-      store[meaningKey(key)] = verses.length === 1 ? meanings[0]! :
+      const nextMeaning = verses.length === 1 ? meanings[0]! :
         verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
+      const conflict = historicalMeaningConflict(store, key, nextMeaning, source);
+      if (conflict) throw new Error(conflict);
+      store[meaningKey(key)] = nextMeaning;
       store[`${key}#meaningSource`] = source;
       store[atKey(key)] = new Date().toISOString();
       result.fetched.push(key);
