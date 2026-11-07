@@ -177,3 +177,44 @@ BAL_STUDIO_REVIEW_APPROVED=YES BAL_STUDIO_REVIEW_ROOT="$(pwd -P)" node scripts/s
 المساحة الحرة حسب `df -h "$HOME"`: قبل هذا التنفيذ **6.2 GiB** وبعده **6.7 GiB** (مقدار تحسن ظاهر ≈0.5 GiB)، رغم أن حجم مجلدات `temp` الذي قُدّر من `du` كان ≈1.07 GiB؛ قياسات macOS/APFS لا تبرر مساواة الحجم الاسمي للمجلدات مع الاسترجاع الفعلي فورًا.
 
 **نتيجة هذه الجولة:** نجاح التنظيف اليدوي للآثار السابقة. لا يثبت ذلك بعد أن الاختبارات المعدلة الثلاثة لا تترك نسخًا جديدة؛ لذلك تظل تجربة القبول الكاملة على أحدث SHA، والـsynthetic Remotion smoke في الاتجاهين، ومراجعة الاستعادة بعد SIGKILL، بوابات **NOT_RUN**. مساحة القرص ما زالت ضيقة (~6.7 GiB متاحة) ويُنصح بتحرير مزيد من المساحة من الكاش عبر واجهة التطبيق أو نقل بيانات غير لازمة بأمان، وليس حذف المستودعات أو ملفات التقارير.
+
+
+## 12. إغلاق أمني إضافي واشتراط اختبار HEAD — 7 نوفمبر 2026
+
+**الملفات التي عُدّلت بعد آخر تشغيل Mac الناجح:** `src/render/episode.ts`، `src/render/fsIsolation.ts`، `src/render/masterGateContract.ts`، `src/plan/collect.ts`، `scripts/studio-render-isolation-acceptance.mjs`، `scripts/studio-render-isolation-smoke.mts`، واختبارات `master-gates`، `render-output-ownership`، `render-master-gate-contract`، `render-media-snapshots` و`studio-acceptance-temp`. **لم تنفذ بعد اختبارات TypeScript/Vitest/Remotion على SHA الذي يشمل هذه التغييرات**. نتيجة 679/679 التاريخية تخص commit `6532c65` فقط، ولا تمنح قبولًا للإصلاحات اللاحقة.
+
+### الدفاعات الجديدة
+
+1. أُزيل تجاوز `allowUnreviewed` من مراجعة مشاهد Master؛ لا يمكن اعتباره تصريحًا بعد تسجيل الصوت ولا بعد تغيير النبرة.
+2. يتحقق `assertEpisodeOutputConfined` من امتداد MP4 والنطاق `out` قبل نقل أي وسائط خاصة أو إطلاق webpack/Chrome؛ يرفض مسارًا خارج الحلقة أو مسارًا يحتوي على أب مُرمّز كرابط رمزي.
+3. يوقف `assertManualRecitationIntegration` أي بطاقة آية مختارة يشير فهرسها إلى `provider:manual` ما لم يُستبدل بحارس التكامل الحقيقي؛ ولا يخلط التسجيل اليدوي بمصدر Quran Foundation. **هذا منع آمن، وليس تنفيذًا لاستهلاك التلاوة المعتمدة بعد**.
+4. أضيفت مقارنة `assertMasterSubjectUnchanged` إلى مسار الرندر قبل نشر الملف: إعادة قراءة خطة العمل والسكريبت، إعادة تقييم مراجعات المشاهد والصوت، التأكد من سلامة لقطة الوسائط الثابتة، مقارنة بصمة المدخلات، ثم طلب تحقق الاعتماد مرة أخرى. **محرك Workflow ما زال يمنع Master أصلًا حتى ربط PR #77**، وأي فجوة سباق تحتاج قفل الأصول المشترك الحقيقي.
+5. `studio-render-isolation-smoke.mts` يتحقق الآن من ملف PNG ومقاسه، ويفحص H.264 MP4 عبر `ffprobe` للتحقق من الاتجاه (أفقي/عمودي) والأبعاد وعدد الإطارات، مع تسجيل SHA-256 الفعلي لكل ملف.
+6. قبل أي `npm ci` أو رندر، يرفض مشغّل قبول Mac مساحة أقل من **10 GiB**، ويرفض تشغيله إذا رأى عملية Remotion/webpack فعالة. آخر قياس موثق في محادثة المالك كان نحو **6.0 GiB** فقط؛ إذًا لا يجوز تشغيل البوابة حتى توفر المساحة المطلوبة.
+7. توسعت اختبارات التنظيف لتشمل تكرار ثلاث دورات وتنظيف تشغيلين مستقلين دون حذف أثر تشغيل آخر، فضلًا عن اختبارات الروابط الرمزية والفشل السابقة.
+
+### عقد الربط الإلزامي في #78 (حالة: BLOCKED)
+
+- **القرآن #76:** يجب استدعاء `verifiedOwnRecitations(scriptPath)` من `src/quran/manualAudio.ts` مباشرةً داخل جامع الوسائط بعد دمج الوحدات. يجب أن يثبت توافق SHA-256 لبايتات التسجيل الأصلي والمعالج، فك ترميزهما، المدة، النص القرآني المرجعي الحالي، المراجع وحقوقه. عند `provider:manual`، يرفض الجامع مدخلًا غير موجود في نتيجة `verifiedOwnRecitations`، وينسخ الملف المعالج من `recitationsDirFor(scriptPath)` إلى لقطة رندر ثابتة، لا من `assets/recitations`. تحفظ نسبة القارئ ومصدر التلاوة ضمن وسائط الحلقة. التلاوات من Quran Foundation/Cloud تحتاج `verifiedProviderPart` لكل جزء (بصمة SHA ومدة فك الترميز وصلاحية المصدر). لا تُنقل هذه الحسابات إلى الرندر ولا يعتمد الرندر على نص علمي مصطنع.
+- **بوابة الحركة #76:** استدعاء `assertMotionStartAuthorized(scriptPath, activePlan, activeVoiceIndex)` قبل بدء أي إنتاج نهائي عند التنفيذ الفعلي **وليس عند الإضافة للطابور فقط**، ثم إعادة تقييمها قبل نقل الناتج النهائي. يشمل ذلك CLI وAPI و`make/package` واستعادة الطابور. تعفى المعاينة الصامتة للـStoryboard وحدها من شرط الحركة النهائية؛ لا يجوز استخدام `--allowUnreviewed` أو `--ignore-review` للتجاوز.
+- **مراحل #77:** جميع W01–W13 داخل `docs/studio/workflow-entrypoint-inventory.md` يجب أن تستخدم خدمة `createTrustedWorkflowService` والواجهة `createWorkflowProtectedPorts` تحت **قفل أصول مشترك** مع جميع محرري السكريبت/الصور/الصوت، بمدخلات الهوية والبصمة المحسوبة على الخادم. يجب ربط `renderFinalMotion` و`renderMasterCandidate` بـAPI/CLI والطابور ومسار الرندر الحقيقي؛ مسار النشر وحده يستخدم `publishExactMaster` بنسخة MP4 الثابتة التي يراجع المالك بصمة بايتاتها.
+- **رفض إلزامي للاختبارات المجمّعة:** سكريبت غير موقع، آية مفقودة/مبتورة، مؤشر تلاوة يدوية قديمة أو متلاعب بها، تبدّل الملف الأصلي أو المعالج، موافقة صوت قديمة بعد تعديل النبرة، تغيير أي بصمة أثناء الرندر، طابور مستعاد يحمل قرارًا سابقًا، تجاوز من API أو CLI، ورفع Master غير مطابق لنسخته المعتمدة. جميعها يجب أن توقف الآثار الجانبية (لا تشغيل رندر، لا إنفاق TTS، لا استبدال MP4، لا نشر).
+
+**النتيجة:** تقدم أمني واختبارات مكتوبة، لا تسليم 100% بعد. PR #73 يبقى Draft دون دمج ولا أي رندر إنتاجي أو نشر حتى يثبت Mac على HEAD والدمج/البوابات البشرية الحقيقية في #78.
+
+### أمر فحص Mac بعد تحرير المساحة
+
+نفّذ في `~/studio-render-isolation-qa-20261107` **فقط**:
+
+```bash
+git pull --ff-only origin work/studio-render-isolation-20261107
+git status --short
+node -v
+command -v ffmpeg
+command -v ffprobe
+df -h "$HOME"
+pgrep -fl 'studio-render-isolation-smoke|remotion.*render|webpack.*watch' || true
+BAL_STUDIO_REVIEW_APPROVED=YES BAL_STUDIO_REVIEW_ROOT="$(pwd -P)" node scripts/studio-render-isolation-acceptance.mjs
+```
+
+اشترط `npm ci` وTypeScript وVitest والبوابة كاملة و`remotion-synthetic-smoke:PASS` مع `temporaryClean:true` و`temporaryLeakSuspects:[]` و`result:PASS_AUTOMATED_ONLY`. افحص `remotion-smoke.json` وصور/MP4 عبر `ffprobe` وبصماتها؛ سجّل أي فشل ولا تُنشئ موافقة بشرية تلقائيًا.
