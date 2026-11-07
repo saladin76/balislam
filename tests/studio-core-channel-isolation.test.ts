@@ -5,6 +5,7 @@ import path from "node:path";
 import { createChannel } from "../src/channel/create";
 import { channelPaths, isChannelId, listChannels, loadChannel, runWithChannel, currentChannelId } from "../src/channel";
 import { writeJsonAtomic } from "../src/channel/storage";
+import { listScriptEpisodeDirs, resolveScriptPath } from "../src/script/episodes";
 
 const project = path.resolve(import.meta.dirname, "..");
 let dir: string;
@@ -47,6 +48,17 @@ describe("channel boundaries and crash-safe storage", () => {
     expect(() => channelPaths("copy-of-balislam")).toThrow("رابط رمزي");
     symlinkSync(path.join(dir, "dafatir-alzaman", "episodes"), path.join(dir, "balislam", "images"), "dir");
     expect(() => channelPaths("balislam")).toThrow("رابط رمزي");
+  });
+
+  it("never resolves a symlinked episode into another channel", async () => {
+    const other = path.join(channelPaths("dafatir-alzaman").episodes, "001-real");
+    mkdirSync(other);
+    writeFileSync(path.join(other, "script.md"), "Foreign channel content");
+    const own = channelPaths("balislam").episodes;
+    symlinkSync(other, path.join(own, "001-aliased"), "dir");
+    expect(await listScriptEpisodeDirs(own)).toEqual([]);
+    await expect(runWithChannel("balislam", () => resolveScriptPath("001"))).rejects.toThrow("غير موجودة");
+    expect(readFileSync(path.join(other, "script.md"), "utf8")).toBe("Foreign channel content");
   });
 
   it("rejects damaged or mismatched config without rewriting it or other channels", () => {
