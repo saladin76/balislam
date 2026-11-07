@@ -12,7 +12,7 @@ describe("mandatory Studio production ports — integration acceptance contract"
     master: { version: "f1", sha256: "f".repeat(64) },
   };
   it("never starts protected side effects when the server gate denies the operation", async () => {
-    const gate = vi.fn(async () => { throw new Error("Stage has no owner approval"); });
+    const gate = vi.fn(async (_action: string) => { throw new Error("Stage has no owner approval"); });
     const publisherGate = vi.fn(async () => { throw new Error("Master bytes not approved"); });
     const lock = vi.fn(async <T>(work: () => Promise<T>) => work()) as WorkflowArtifactLock;
     const ports = createWorkflowProtectedPorts({ gate, withVerifiedMasterPublication: publisherGate } as never, lock);
