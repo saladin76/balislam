@@ -218,23 +218,8 @@ export const balApi = (): Plugin => ({
           }
 
           if (parts[2] === "recitation" && parts.length === 3) {
-            const { readEpisodeRecitation, saveEpisodeRecitation } = await load("/src/quran/provider.ts");
-            if (req.method === "GET") {
-              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
-            }
-            if (req.method === "PUT") {
-              const body = await readBody(req);
-              if (!body || typeof body !== "object" || Array.isArray(body) ||
-                  !Object.prototype.hasOwnProperty.call(body, "recitation"))
-                throw new HttpError(400, "يجب تحديد recitation صراحةً؛ استخدم null فقط عند طلب العودة للقارئ الافتراضي.");
-              if (body.recitation !== null && (
-                  typeof body.recitation !== "object" || Array.isArray(body.recitation)))
-                throw new HttpError(400, "بيانات القارئ المختار غير صالحة.");
-              await saveEpisodeRecitation(scriptPath, body.recitation);
-              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
-            }
+            return send(res, 410, { error: "أُلغيت خيارات قارئ الإنتاج الخارجي؛ استخدم تسجيلك الصوتي المعتمد داخل الحلقة." });
           }
-
           const mediaFor = async (plan: unknown) => {
             const { collectMedia } = await load("/src/plan/collect.ts");
             return { ...(await collectMedia(ep, plan)), mode: "url", base: `/api/episodes/${ep}/media/`, query: `?channel=${ch}` };
