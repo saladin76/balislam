@@ -41,7 +41,11 @@ export const resolveArtifact = async (scope: WorkflowIdentity, name: string): Pr
   }
   const base = isLibrary ? library : episodeDir;
   const sub = isLibrary ? name.slice("channel-images/".length) : name;
-  if (!validRelative(sub)) throw new Error("Unsafe shared image path.");
+  if (!validRelative(sub) ||
+      (!isLibrary && (sub === "workflow-approvals.json" ||
+        sub.startsWith("workflow-approvals.json."))) ||
+      (isLibrary && !/\.(png|jpe?g|webp|svg|mov|mp4|webm)$/i.test(sub)))
+    throw new Error("Unsafe or self-referential artifact path.");
   const candidate = path.resolve(base, sub);
   if (!within(base, candidate)) throw new Error("Artifact escapes owning episode/channel library.");
   // Reject *any* symlink in the source path, not just the final file.
@@ -72,8 +76,9 @@ export const collectActualArtifactDigests = async (
   for (const stage of WORKFLOW_STAGES) {
     if (stage === "master") {
       if (!manifest.master) continue;
-      if (!validVersion(manifest.master.version) || !/\.mp4$/i.test(manifest.master.file))
-        throw new Error("Master must be a versioned MP4 candidate.");
+      if (!validVersion(manifest.master.version) || !/\.mp4$/i.test(manifest.master.file) ||
+          manifest.master.file.startsWith("channel-images/"))
+        throw new Error("Master must be a versioned episode-owned MP4 candidate.");
       // Exact bytes, not a JSON container, filename, video metadata or preview hash.
       const file = await resolveArtifact(scope, manifest.master.file);
       snapshot.master = { version: manifest.master.version, sha256: await sha256File(file) };
