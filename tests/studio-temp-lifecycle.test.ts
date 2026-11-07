@@ -26,14 +26,19 @@ const fixture = () => {
   writeFileSync(path.join(foreign, "DO-NOT-DELETE"), "foreign fixture\n");
   const shim = path.join(bin, "npx");
   writeFileSync(shim, `#!/usr/bin/env node
-const { appendFileSync, mkdirSync, writeFileSync } = require("node:fs");
+const { appendFileSync, existsSync, mkdirSync, symlinkSync, writeFileSync } = require("node:fs");
 const path = require("node:path");
 const temp = process.env.TMPDIR;
-if (!temp) process.exit(98);
+if (!temp || process.env.TMP !== temp || process.env.TEMP !== temp) process.exit(98);
 for (const name of ["remotion-test", "webpack-test"]) {
   const dir = path.join(temp, name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, "cache"), "test-only-cache");
+}
+if (process.platform !== "win32") {
+  const link = path.join(temp, "foreign-link");
+  if (!existsSync(link)) symlinkSync(process.env.BAL_P0_FOREIGN, link, "dir");
+  appendFileSync(process.env.BAL_P0_TRACE, "foreign-link-created\\n");
 }
 appendFileSync(process.env.BAL_P0_TRACE, "npx-start " + process.pid + "\\n");
 if (process.env.BAL_P0_MODE === "fail") process.exit(17);
@@ -46,14 +51,14 @@ else process.exit(0);
 type Fixture = ReturnType<typeof fixture>;
 type RunResult = { code: number | null; signal: NodeJS.Signals | null; out: string };
 
-const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
+const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel: "SIGTERM" | "SIGINT" | null = null,
   target: { script: string; cwd: string; args: string[] } = { script: gate, cwd: projectRoot, args: [] }): Promise<RunResult> =>
   new Promise((resolve, reject) => {
     const env = {
       ...process.env,
       PATH: f.bin + path.delimiter + (process.env.PATH ?? ""),
       TMPDIR: f.root, TMP: f.root, TEMP: f.root,
-      BAL_P0_TRACE: f.trace, BAL_P0_MODE: mode,
+      BAL_P0_TRACE: f.trace, BAL_P0_MODE: mode, BAL_P0_FOREIGN: f.foreign,
     };
     // Tests never pass --commit and hence cannot create real git worktrees.
     const child = spawn(process.execPath, [target.script, ...target.args], {
@@ -81,7 +86,7 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
       // Wait for the mocked child to start before signaling the real gate.
       if (existsSync(f.trace) && readFileSync(f.trace, "utf8").includes("npx-start")) {
         clearInterval(poll!);
-        child.kill("SIGTERM");
+        child.kill(cancel!);
       }
     }, 20) : null;
     child.once("error", (err) => {
@@ -168,7 +173,7 @@ describe("P0 gate-owned temporary files", () => {
 
   it.skipIf(process.platform === "win32")("cancels the active process group before deleting its temp root", async () => {
     const f = fixture();
-    const r = await execute(f, "hang", true);
+    const r = await execute(f, "hang", "SIGTERM");
     expect(r.code, r.out).toBe(143);
     expect(r.out).toContain("GATE_CANCELLED SIGTERM");
     expect(r.out).toContain("GATE_TEMP_CLEANED true");
@@ -178,7 +183,7 @@ describe("P0 gate-owned temporary files", () => {
   it.skipIf(process.platform === "win32")("preserves a separate Git repo and its episode while removing a temporary commit worktree", async () => {
     const f = fixture();
     const isolated = isolatedGitRepository(f);
-    const r = await execute(f, "ok", false, isolated.target);
+    const r = await execute(f, "ok", null, isolated.target);
     expect(r.code, r.out).toBe(0);
     expect(r.out).toContain("GATE_TEMP_CLEANED true");
     expect(isolated.git("rev-parse", "HEAD")).toBe(isolated.sha);
@@ -197,6 +202,33 @@ describe("P0 gate-owned temporary files", () => {
     const b = fixture();
     const [one, two] = await Promise.all([execute(a, "ok"), execute(b, "ok")]);
     expect(one.code, one.out).toBe(0);
+    expect(two.code, two.out).toBe(0);
+    checkIsolated(a);
+    checkIsolated(b);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("does not follow child-created symlinks to a foreign sibling", async () => {
+    const f = fixture();
+    const r = await execute(f, "ok");
+    expect(r.code, r.out).toBe(0);
+    expect(readFileSync(f.trace, "utf8")).toContain("foreign-link-created");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("handles SIGINT as a rejected gate and cleans its own root", async () => {
+    const f = fixture();
+    const r = await execute(f, "hang", "SIGINT");
+    expect(r.code, r.out).toBe(130);
+    expect(r.out).toContain("GATE_CANCELLED SIGINT");
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    checkIsolated(f);
+  }, 15_000);
+
+  it("does not remove another worker's files when one of two parallel gates fails", async () => {
+    const a = fixture();
+    const b = fixture();
+    const [one, two] = await Promise.all([execute(a, "fail"), execute(b, "ok")]);
+    expect(one.code, one.out).toBe(1);
     expect(two.code, two.out).toBe(0);
     checkIsolated(a);
     checkIsolated(b);
