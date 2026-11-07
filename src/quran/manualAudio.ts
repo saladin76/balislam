@@ -16,7 +16,8 @@ import { decodedAudioDuration, isOwnedRegularAudio } from "../voice/audioIntegri
 
 const ffmpeg = promisify(execFile);
 export type OwnAudioCandidate = {
-  file: string; originalFile: string; duration: number; sha256: string; originalSha256: string; createdAt: string;
+  file: string; originalFile: string; duration: number; sha256: string; originalSha256: string;
+  textSha256: string; createdAt: string;
 };
 export type OwnAudioReview = Record<string, OwnAudioCandidate>;
 export const ownAudioReviewFile = (scriptPath: string) => path.join(recitationsDirFor(scriptPath), "review.json");
@@ -26,6 +27,11 @@ const validOriginal = (f: string) =>
 const durationClose = (expected: number, actual: number) =>
   Number.isFinite(expected) && expected > 0 && Math.abs(actual - expected) <= Math.max(0.15, expected * 0.03);
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
+export const pendingRecitationMatchesText = (candidate: { textSha256?: string } | null | undefined,
+  text: string): boolean =>
+  Boolean(candidate && typeof candidate.textSha256 === "string" &&
+    /^[a-f0-9]{64}$/.test(candidate.textSha256) &&
+    candidate.textSha256 === sha(Buffer.from(text, "utf8")));
 const readJson = async <T>(file: string, fallback: T): Promise<T> => {
   try {
     const info = await lstat(file);
@@ -69,7 +75,7 @@ const requested = async (episode: string, key: string): Promise<string> => {
 export const prepareOwnRecitation = async (
   episode: string, key: string, filename: string, source: Uint8Array,
 ): Promise<OwnAudioCandidate> => {
-  await requested(episode, key);
+  const authoredText = await requested(episode, key);
   if (!/^\d{1,3}:\d{1,3}(?:-\d{1,3})?$/.test(key)) throw Error("مرجع التلاوة غير صالح.");
   const ext = path.extname(filename).toLowerCase();
   if (![".wav",".mp3",".m4a",".aac",".ogg",".flac"].includes(ext))
@@ -114,8 +120,13 @@ export const prepareOwnRecitation = async (
       if (!bytes.length) throw Error("الناتج الصوتي فارغ.");
       await rename(temp, output);
       moved = true;
+      // Do not queue a recording against a script verse that changed while
+      // FFmpeg was processing the original audio.
+      if ((await requested(episode, key)) !== authoredText)
+        throw Error("تغيّر نص الآية أثناء رفع التسجيل؛ أعد الاستماع والرفع للنص الجديد.");
       const record = {
         file:name, originalFile, duration, sha256:sha(bytes), originalSha256:sha(source),
+        textSha256:sha(Buffer.from(authoredText, "utf8")),
         createdAt:new Date().toISOString(),
       };
       await atomicJson(reviewFile, { ...pending, [key]:record });
@@ -168,6 +179,8 @@ export const approveOwnRecitation = async (
     const candidate=pending[key];
     if (!candidate || !validName(candidate.file) || !validOriginal(candidate.originalFile))
       throw Error("لا توجد نسخة تلاوة أصلية وصالحة تنتظر المراجعة.");
+    if (!pendingRecitationMatchesText(candidate, approvedText))
+      throw Error("تغيّر نص الآية منذ رفع التسجيل أو فُقدت بصمته؛ ارفع تلاوة جديدة للمراجعة.");
     if (!await isOwnedRegularAudio(dir, candidate.file) ||
         !await isOwnedRegularAudio(dir, candidate.originalFile))
       throw Error("لا يُقبل اعتماد تسجيل بملف مرتبط رمزيًا خارج المجلد.");
