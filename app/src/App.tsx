@@ -328,13 +328,29 @@ export const App: React.FC = () => {
     if (navOpen) menuButton.current?.focus();
   };
   const closeNavigation = () => { setNavOpen(false); menuButton.current?.focus(); };
+  useEffect(() => {
+    if (navOpen && window.matchMedia("(max-width: 880px)").matches) {
+      document.querySelector<HTMLButtonElement>(".studio-close-nav")?.focus();
+    }
+  }, [navOpen]);
+  const trapMobileNavigation = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!navOpen) return;
+    if (event.key === "Escape") { event.preventDefault(); closeNavigation(); return; }
+    if (event.key !== "Tab" || !window.matchMedia("(max-width: 880px)").matches) return;
+    const focusable = [...document.querySelectorAll<HTMLElement>(".studio-sidebar button:not([disabled]), .studio-sidebar a[href]")]
+      .filter((item) => item.getClientRects().length > 0);
+    if (!focusable.length) return;
+    const first = focusable[0]!, last = focusable[focusable.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
 
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
-      <div className={`studio-shell${navOpen ? " is-nav-open" : ""}`} onKeyDown={(e) => { if (e.key === "Escape" && navOpen) closeNavigation(); }}>
+      <div className={`studio-shell${navOpen ? " is-nav-open" : ""}`} onKeyDown={trapMobileNavigation}>
       <StudioSidebar
         active={tab} channelName={channel.nameDisplay ?? channel.name} channelMark={<BrandMark channel={channel} />}
         hasGuide={hasGuide} guideLabel={guideLabel} hasLabs={hasLabs} hasTechReviews={hasTechReviews}
