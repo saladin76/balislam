@@ -19,6 +19,7 @@ export const IntegratedReviewWorkspace: React.FC<{
 }> = ({ episodeId, channelId, hasUnsavedChanges = false, onOpen }) => {
   const [workflow, setWorkflow] = useState<WorkflowApprovalSnapshot | null>(null);
   const [workflowError, setWorkflowError] = useState("");
+  const [videoState, setVideoState] = useState<"loading" | "available" | "ready" | "error">("loading");
   useEffect(() => {
     let alive = true;
     setWorkflow(null);
@@ -64,6 +65,7 @@ export const IntegratedReviewWorkspace: React.FC<{
   const video = data?.pkg?.files.find((file) => file.name.endsWith("-episode.mp4"));
   const latestPreview = data?.previews.slice().sort((a, b) => b.mtime - a.mtime)[0];
   const source = video ? api.packageUrl(episodeId, video.name, false, channelId) : latestPreview ? api.previewUrl(episodeId, latestPreview.name, channelId) : null;
+  useEffect(() => { setVideoState("loading"); }, [source]);
 
   return <main className="studio-review-workspace" aria-label="المراجعة المتكاملة للحلقة">
     <header className="studio-workspace-intro">
@@ -72,14 +74,28 @@ export const IntegratedReviewWorkspace: React.FC<{
       <p>شاهد الحلقة كاملة بسرعة طبيعية 1×، وسجّل الملاحظات في مواضعها داخل الأدوات الأصلية. وجود معاينة أو اكتمال الفحوص لا يمثل اعتمادًا للنسخة.</p>
     </header>
     {errors.length > 0 && <div className="studio-review-warning" role="alert">تعذر تحميل: {errors.join("، ")}. لا تعتمد على ملخص غير مكتمل.</div>}
-    <section className="studio-review-screen" aria-label="معاينة الفيديو">
-      {source ? <video key={source} controls preload="metadata" playsInline onRateChange={(event) => { event.currentTarget.playbackRate = 1; }} src={source} aria-label={video ? "معاينة ملف الحلقة المجمع" : "معاينة الحلقة للمراجعة"} /> : <div className="studio-review-no-video">{data ? "لا يوجد فيديو مجمع أو معاينة متاحة بعد." : "جارٍ تحميل المعاينات…"}</div>}
-      <div className="studio-review-caption">
-        <strong>{video ? "ملف الحلقة الحالي" : latestPreview ? latestPreview.title || latestPreview.name : "المعاينة الرئيسية"}</strong>
-        <span>{video ? "ملف مُنتج؛ ليس اعتماد Master" : latestPreview ? "معاينة عمل غير معتمدة للنشر" : "لم يُنتج فيديو بعد"}</span>
-      </div>
-    </section>
-    <section className="studio-review-evidence" aria-label="أدلة المراجعة الفنية">
+    <div className="studio-review-main-grid">
+      <section className="studio-review-screen" aria-label="معاينة الفيديو">
+        {source ? <div className="studio-review-video-frame">
+          <video key={source} controls preload="metadata" playsInline
+            onLoadStart={() => setVideoState("loading")}
+            onLoadedMetadata={() => setVideoState((current) => current === "error" ? current : "available")}
+            onLoadedData={() => setVideoState("ready")}
+            onPlaying={() => setVideoState("ready")}
+            onError={() => setVideoState("error")}
+            onRateChange={(event) => { event.currentTarget.playbackRate = 1; }}
+            src={source} aria-label={video ? "معاينة ملف الحلقة المجمع" : "معاينة الحلقة للمراجعة"} />
+          {videoState !== "ready" && <div className={`studio-review-video-state ${videoState === "error" ? "is-error" : ""}`} role="status" aria-live="polite">
+            {videoState === "error" ? "تعذّر تشغيل المعاينة. تحقّق من الملف أو جرّب معاينة أخرى." :
+              videoState === "available" ? "المعاينة متاحة · اضغط تشغيل للمراجعة بسرعة 1×" : "جارٍ تحميل صورة المعاينة… يمكنك الضغط على تشغيل عند جاهزيتها."}
+          </div>}
+        </div> : <div className="studio-review-no-video">{data ? "لا يوجد فيديو مجمع أو معاينة متاحة بعد." : "جارٍ تحميل المعاينات…"}</div>}
+        <div className="studio-review-caption">
+          <strong>{video ? "ملف الحلقة الحالي" : latestPreview ? latestPreview.title || latestPreview.name : "المعاينة الرئيسية"}</strong>
+          <span>{video ? "ملف مُنتج؛ ليس اعتماد Master" : latestPreview ? "معاينة عمل غير معتمدة للنشر" : "لم يُنتج فيديو بعد"}</span>
+        </div>
+      </section>
+      <section className="studio-review-evidence" aria-label="أدلة المراجعة الفنية">
       <article><span>المصادر الموثقة</span><strong>{data?.citations ? `${data.citations.verified}/${data.citations.total}` : "غير متاح"}</strong><small>فحص توثيق، لا اعتماد السكريبت</small></article>
       <article><span>المشاهد المراجَعة</span><strong>{data?.scenes ? `${data.scenes.ok}/${data.scenes.total}` : "غير متاح"}</strong><small>مراجعات منفردة، لا مراجعة AV كاملة</small></article>
       <article data-workflow-stage="av_review"><span>اعتماد AV الرسمي</span>
@@ -87,7 +103,8 @@ export const IntegratedReviewWorkspace: React.FC<{
         <small>{hasUnsavedChanges ? "توجد تعديلات محلية غير محفوظة؛ الاعتماد السابق لا يغطي هذه المسودة." :
           workflow?.stages.av_review?.status === "approved" ? `اعتماد ${workflow.stages.av_review.approval?.by.id} · ${workflow.stages.av_review.approval?.contentVersion}` :
           workflow?.stages.av_review?.reason || workflowError || "بانتظار الربط بمحرك الاعتمادات الموثوق"}</small></article>
-    </section>
+      </section>
+    </div>
     <section className="studio-review-notes" aria-label="ملاحظات المراجعة">
       <h2>الملاحظات التي تحتاج متابعة</h2>
       {!data ? <p>جارٍ تحميل الملاحظات…</p> : data.notes.length === 0 ? <p>لا توجد ملاحظات مسجلة في مصادر المراجعة الحالية؛ هذا لا يثبت اكتمال مشاهدة AV.</p> :
