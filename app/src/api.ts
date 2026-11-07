@@ -73,9 +73,9 @@ export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; au
 
 export const api = {
   scriptSignoff: (episode: string) =>
-    call<{ approved: boolean; changed: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
   approveScriptSignoff: (episode: string, reviewer: string, note: string) =>
-    call<{ approved: boolean; changed: boolean; signedAt?: string; reviewer?: string }>(
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(
       `/api/episodes/${episode}/script-signoff`, { method: "PUT", json: { reviewer, note, confirm: true } }),
   voiceReview: (episode: string, channel: string) =>
     call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
