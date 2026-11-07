@@ -159,7 +159,8 @@ export const api = {
   packageUrl: (id: string, file: string, download = false, channel?: string) =>
     withChannel(`/api/episodes/${encodeURIComponent(id)}/package/${encodeURIComponent(file)}${download ? "?download=1" : ""}`, channel),
   channel: (channel?: string) => call<ChannelConfig>("/api/channel", undefined, channel),
-  saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
+  saveChannel: (channel: ChannelConfig, explicitChannel?: string) =>
+    call("/api/channel", { method: "PUT", json: { channel } }, explicitChannel),
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
   quranRecitations: () => call<{ ok: boolean; message?: string; list: { id: number; name: string; style: string }[] }>("/api/quran/recitations"),
   quranTranslations: (lang: string) => call<{ ok: boolean; message?: string; list: { id: number; name: string; author: string; language: string }[] }>(`/api/quran/translations?lang=${lang}`),
