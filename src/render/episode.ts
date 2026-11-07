@@ -3,7 +3,8 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
+import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
@@ -132,7 +133,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
   if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
-  await mkdir(path.dirname(output), { recursive: true });
+  const scriptForOutput = await resolveScriptPath(opts.episode);
+  const outputRoot = path.join(path.dirname(scriptForOutput), "out");
+  const relativeOutput = path.relative(outputRoot, output);
+  if (relativeOutput === ".." || relativeOutput.startsWith(`..${path.sep}`) || path.isAbsolute(relativeOutput) || relativeOutput === "")
+    throw new Error("يجب حفظ فيديو الحلقة داخل out/ للحلقة المختارة فقط.");
+  await ensureUnlinkedDirectory(path.dirname(output));
   // Unique per invocation: concurrent landscape/portrait attempts cannot overwrite
   // or remove one another's partial file. Rename is only performed after success.
   const tempOutput = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
@@ -153,8 +159,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
-    await rename(tempOutput, output);
-    return output;
+    return await publishOutputWithoutOverwrite(tempOutput, output);
   } finally {
     await unlink(tempOutput).catch(() => {});
   }
@@ -195,11 +200,19 @@ export const renderThumbnail = async (input: { themeId: string; title: string; h
     const channel = loadChannel();
     const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
     const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
-    for (const scale of [2, 1.5, 1]) {
-      await renderStill({ serveUrl, composition, inputProps: props, output, scale, overwrite: true, browserExecutable: browserExecutable() });
-      if ((await stat(output)).size <= THUMB_MAX_BYTES) break;
+    await ensureUnlinkedDirectory(path.dirname(output));
+    const ext = path.extname(output);
+    if (ext.toLowerCase() !== ".png") throw new Error("الصورة المصغّرة يجب أن تكون PNG.");
+    const pending = output.slice(0, -ext.length) + `.${randomUUID()}.part.png`;
+    try {
+      for (const scale of [2, 1.5, 1]) {
+        await renderStill({ serveUrl, composition, inputProps: props, output: pending, scale, overwrite: true, browserExecutable: browserExecutable() });
+        if ((await stat(pending)).size <= THUMB_MAX_BYTES) break;
+      }
+      return await publishOutputWithoutOverwrite(pending, output);
+    } finally {
+      await rm(pending, { force: true });
     }
-    return output;
   } finally {
     await sandbox.cleanup();
   }
