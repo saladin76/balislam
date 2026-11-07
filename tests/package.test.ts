@@ -100,7 +100,7 @@ describe("المزامنة والتغليف", () => {
   it("وصف يوتيوب فيه الفصول من 0:00 والمصادر وتوقيع القناة، بلا أي أثر لأدوات الإنتاج", () => {
     const text = buildYoutubeText(plan, src, media, 6);
     expect(text).toContain("0:00 السؤال");
-    expect(text).toContain("Quran.Foundation");
+    expect(text).not.toContain("Quran.Foundation");
     expect(text).toContain("صحيح البخاري 6446");
     expect(text).toContain("مراجَع شرعيًا");
     expect(findTraces(text)).toEqual([]);
