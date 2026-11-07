@@ -10,6 +10,7 @@ import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
 import { quranFromScript } from "./scriptText";
 import { composeVerses } from "./sync";
+import { alignDiff } from "./audit";
 import type { QuranClient, Verse } from "./client";
 
 export type TextDiff = { at: number; shown: string; approved: string };
@@ -18,20 +19,13 @@ export type VerseCheck = { key: string; status: "match" | "differs" | "missing" 
 const cp = (s: string) => Array.from(s).map((c) => `U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`).join(" ");
 
 /** يقابل نصين ويعيد مواضع الاختلاف (بعد NFC). الفرق يُعرض برموز يونيكود لا بنص الآية. */
-export const compareVerseText = (shown: string, approved: string): TextDiff[] => {
-  const a = Array.from(shown.normalize("NFC").trim());
-  const b = Array.from(approved.normalize("NFC").trim());
-  if (a.join("") === b.join("")) return [];
-  const diffs: TextDiff[] = [];
-  let i = 0;
-  while (i < Math.max(a.length, b.length) && diffs.length < 20) {
-    if (a[i] !== b[i]) {
-      diffs.push({ at: i, shown: cp(a.slice(i, i + 3).join("")), approved: cp(b.slice(i, i + 3).join("")) });
-      i += 3;
-    } else i++;
-  }
-  return diffs;
-};
+export const compareVerseText = (shown: string, approved: string): TextDiff[] =>
+  // Shared, exhaustive NFC alignment: no 20-item or 3-codepoint truncation,
+  // and no discarded leading/trailing whitespace or tashkeel.
+  alignDiff(shown, approved).map((op) => ({
+    at: op.at, shown: op.shown ? cp(op.shown) : "—",
+    approved: op.ref ? cp(op.ref) : "—",
+  }));
 
 /** يجلب نص كل آية في السكريبت من Quran Foundation ويقابله بالنص المعروض، ولا يكتب في script.md. */
 export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClient, "verse">): Promise<VerseCheck[]> => {
