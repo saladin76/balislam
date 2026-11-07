@@ -5,6 +5,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
+import { assertScriptApproved } from "../script/approval";
 import { quranFromScript } from "../quran/scriptText";
 import { loadLedger, reviewItems, reviewSummary } from "../script/review";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
@@ -15,6 +16,7 @@ import { assertVoiceApproved } from "./review";
 export const assertMotionStartAuthorized = async (
   scriptPath: string, plan: Plan, voice: VoiceIndex,
 ): Promise<true> => {
+  await assertScriptApproved(scriptPath);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const authored = quranFromScript(parsed);
   if (authored.problems.length)
