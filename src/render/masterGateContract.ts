@@ -45,9 +45,11 @@ export const masterRenderSubject = async (
 };
 
 /** Integration seam: replace only this fail-closed assertion in workflow PR.
- * Required evidence: signed off AV review AND human owner Master authorization
- * for this exact inputSha256, channel/episode/orientation, with approver identity,
- * timestamp, content version and durable evidence. No caller override allowed. */
+ * Candidate render requires approved script, storyboard, full voice, motion,
+ * and 1x audiovisual review for the exact source snapshot. The human owner
+ * approves the resulting Master FILE only after this render; publication must
+ * then require the separate publish gate over the exact final video bytes.
+ * No caller override and no automatic Master approval. */
 export const assertMasterStageAuthorized = async (_subject: MasterRenderSubject): Promise<void> => {
-  throw new Error("رندر Master محظور: لم يُربط بعد تحقق محرك المراحل من مراجعة AV واعتماد المالك لهذه البصمة. لا يُنشأ أي اعتماد تلقائي.");
+  throw new Error("رندر Master المرشّح محظور: لم يُربط بعد تحقق محرك المراحل من الاعتمادات حتى مراجعة AV لهذه البصمة. اعتماد ملف Master والنشر إجراءان منفصلان لاحقان.");
 };
