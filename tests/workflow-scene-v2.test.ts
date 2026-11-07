@@ -54,6 +54,8 @@ describe("Studio V2 — AV scene as the approval unit", () => {
     const doc = ledger();
     expect(() => beginFinalSceneProduction(doc, "c1-s1", now, undefined as never))
       .toThrow(/Script\/Storyboard gate/);
+    expect(() => beginFinalSceneProduction(doc, "c1-s1", now, (async () => {}) as never))
+      .toThrow(/Async Script\/Storyboard/);
     beginFinalSceneProduction(doc, "c1-s1", now, () => undefined);
     expect(() => submitSceneAvReview(doc, "c1-s1", now)).toThrow(/No composited AV/);
     const material = inputs("c1-s1");
@@ -74,6 +76,8 @@ describe("Studio V2 — AV scene as the approval unit", () => {
       .toThrow(/owner/);
     expect(() => approveSceneAv(doc, "c1-s1", decision, () => { throw Error("No AV evidence"); }))
       .toThrow(/No AV evidence/);
+    expect(() => approveSceneAv(doc, "c1-s1", decision, (async () => {}) as never))
+      .toThrow(/Async AV evidence/);
     expect(isSceneApproved(doc, "c1-s1")).toBe(false);
     approveSceneAv(doc, "c1-s1", decision, verifier);
     expect(isSceneApproved(doc, "c1-s1")).toBe(true);
