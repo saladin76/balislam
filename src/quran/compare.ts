@@ -14,7 +14,11 @@ import { alignDiff } from "./audit";
 import type { QuranClient, Verse } from "./client";
 
 export type TextDiff = { at: number; shown: string; approved: string };
-export type VerseCheck = { key: string; status: "match" | "differs" | "missing" | "failed"; diffs: TextDiff[]; reason?: string };
+export type VerseCheck = { key: string; status: "match" | "differs" | "pending" | "missing" | "failed"; diffs: TextDiff[]; reason?: string };
+
+export const legacyComparisonStatus = (diffs: number, environment?: string):
+  "match" | "differs" | "pending" =>
+    diffs > 0 ? "differs" : environment === "production" ? "match" : "pending";
 
 const cp = (s: string) => Array.from(s).map((c) => `U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`).join(" ");
 
@@ -28,7 +32,9 @@ export const compareVerseText = (shown: string, approved: string): TextDiff[] =>
   }));
 
 /** يجلب نص كل آية في السكريبت من Quran Foundation ويقابله بالنص المعروض، ولا يكتب في script.md. */
-export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClient, "verse">): Promise<VerseCheck[]> => {
+export const checkEpisodeQuran = async (
+  episode: string, client: Pick<QuranClient, "verse"> & { env?: string },
+): Promise<VerseCheck[]> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const authored = quranFromScript(parsed);
@@ -58,7 +64,9 @@ export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClien
         verses.push(verse);
       }
       const diffs = compareVerseText(shown, composeVerses(verses));
-      out.push({ key, status: diffs.length ? "differs" : "match", diffs });
+      const status = legacyComparisonStatus(diffs.length, client.env);
+      out.push({ key, status, diffs, ...(status === "pending" ?
+        { reason: "هذا مصدر تجريبي أو غير محدد؛ لا تُسجَّل مطابقة مع المصحف المعتمد." } : {}) });
     } catch (err) {
       out.push({ key, status: "failed", diffs: [], reason: (err as Error).message });
     }
@@ -66,7 +74,7 @@ export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClien
   return out;
 };
 
-const STATUS: Record<VerseCheck["status"], string> = { match: "مطابق", differs: "فيه فروق", missing: "لا نص معروض", failed: "تعذّر الجلب" };
+const STATUS: Record<VerseCheck["status"], string> = { match: "مطابق", differs: "فيه فروق", pending: "مراجعة تجريبية فقط", missing: "لا نص معروض", failed: "تعذّر الجلب" };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 /** يكتب نتيجة المقابلة في reviews/quran-check.html (بلا نص الآيات نفسه، احترامًا لشروط Quran Foundation). */
