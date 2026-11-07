@@ -43,7 +43,7 @@ export const IntegratedReviewWorkspace: React.FC<{
   useEffect(() => {
     let live = true;
     setData(null); setErrors([]);
-    const sources = [api.review(episodeId), api.sceneReview(episodeId), api.packageInfo(episodeId), api.previews(episodeId)] as const;
+    const sources = [api.review(episodeId, channelId), api.sceneReview(episodeId, channelId), api.packageInfo(episodeId, channelId), api.previews(episodeId, channelId)] as const;
     void Promise.allSettled(sources).then(([citations, scenes, pkg, previews]) => {
       if (!live) return;
       setData({
@@ -59,11 +59,11 @@ export const IntegratedReviewWorkspace: React.FC<{
       setErrors([citations, scenes, pkg, previews].map((r, i) => r.status === "rejected" ? ["توثيق المصادر", "مراجعات المشاهد", "ملف الفيديو", "المعاينات"][i]! : "").filter(Boolean));
     });
     return () => { live = false; };
-  }, [episodeId]);
+  }, [episodeId, channelId]);
 
   const video = data?.pkg?.files.find((file) => file.name.endsWith("-episode.mp4"));
   const latestPreview = data?.previews.slice().sort((a, b) => b.mtime - a.mtime)[0];
-  const source = video ? api.packageUrl(episodeId, video.name) : latestPreview ? api.previewUrl(episodeId, latestPreview.name) : null;
+  const source = video ? api.packageUrl(episodeId, video.name, false, channelId) : latestPreview ? api.previewUrl(episodeId, latestPreview.name, channelId) : null;
 
   return <main className="studio-review-workspace" aria-label="المراجعة المتكاملة للحلقة">
     <header className="studio-workspace-intro">
