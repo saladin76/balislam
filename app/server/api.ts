@@ -345,6 +345,16 @@ export const balApi = (): Plugin => ({
             if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
             if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage });
             // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره، ويُستعاد بعد إعادة التشغيل
+            // Final animation may not start before separate storyboard and full-audio approval.
+            // Silent storyboard-motion audit has its own route and is intentionally not blocked.
+            const { resolveScriptPath } = await load("/src/script/episodes.ts");
+            const { readPlanFile } = await load("/src/plan/io.ts");
+            const { loadVoiceIndex } = await load("/src/voice/generate.ts");
+            const { assertMotionStartAuthorized } = await load("/src/voice/motionGate.ts");
+            const scriptPath = await resolveScriptPath(b.episode);
+            const plan = await readPlanFile(scriptPath);
+            if (!plan) throw new HttpError(409, "اعتمد السكريبت والـStoryboard والصوت قبل بدء الحركة النهائية.");
+            await assertMotionStartAuthorized(scriptPath, plan, await loadVoiceIndex(b.episode));
             const job = startRenderJob(root, ch, b);
             return send(res, 200, job);
           }
