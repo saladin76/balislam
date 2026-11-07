@@ -4,7 +4,8 @@
  * لكل موضوع «خانة» واحدة: أي تعديل يحذف الفيديو القديم ويضع الجديد مكانه، فلا تتراكم نسخ قديمة.
  */
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, link, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { assertNoLinkedPath, ensureUnlinkedDirectory } from "./fsIsolation";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { resolveEpisodeDir } from "../script/episodes";
@@ -14,7 +15,11 @@ export type PreviewEntry = { title: string; note?: string; version: number; upda
 export type PreviewIndex = Record<string, PreviewEntry>;
 
 export const previewsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "previews");
-const slotName = (slot: string) => slot.trim().replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+const slotName = (slot: string) => {
+  if (!/^[a-z0-9][a-z0-9_-]{0,80}$/i.test(slot))
+    throw new Error("اسم خانة المعاينة غير آمن؛ استخدم أحرفًا لاتينية وأرقامًا وشرطات فقط.");
+  return slot.toLowerCase();
+};
 
 const readIndex = async (dir: string): Promise<PreviewIndex> => {
   const f = path.join(dir, "index.json");
@@ -35,7 +40,11 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   if (!name) throw new Error("اسم الخانة فارغ.");
   if (!/\.mp4$/i.test(file) || !existsSync(file)) throw new Error(`الفيديو غير موجود أو ليس mp4: ${file}`);
   const dir = previewsDirFor(scriptPath);
-  await mkdir(dir, { recursive: true });
+  await assertNoLinkedPath(scriptPath, true);
+  await assertNoLinkedPath(file, true);
+  await ensureUnlinkedDirectory(dir);
+  const history = path.join(dir, "history", name);
+  await ensureUnlinkedDirectory(history);
   const index = await readIndex(dir);
   const target = `${name}.mp4`;
   const stale = (await readdir(dir)).filter((n) => n !== target && /\.mp4$/i.test(n) && n.startsWith(`${name}-v`) && /^v\d+\.mp4$/i.test(n.slice(name.length + 1)));
@@ -56,14 +65,27 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
     for (const n of stale) delete nextIndex[n];
     nextIndex[target] = { title: meta.title, note: meta.note, version: (prev?.version ?? stale.length) + 1, updatedAt: new Date().toISOString() };
     await writeFile(pendingIndex, JSON.stringify(nextIndex, null, 2) + "\n");
-    if (existsSync(output)) await copyFile(output, backup);
+    if (existsSync(output)) {
+      await assertNoLinkedPath(output, true);
+      // Keep the previous byte-perfect file version before updating the slot
+      // alias used by the UI. Hardlink is atomic and preserves the old inode.
+      await link(output, path.join(history, `previous-${randomUUID()}.mp4`));
+      await copyFile(output, backup);
+    }
     await rename(pending, output);
     replacedVideo = true;
     await rename(pendingIndex, path.join(dir, "index.json"));
     committedIndex = true;
-    // لا تجعل فشل تنظيف نسخة قديمة يُخفي نجاح الاستبدال.
-    await Promise.allSettled(stale.map((n) => rm(path.join(dir, n), { force: true })));
-    return { file: output, removed: stale.filter((n) => !existsSync(path.join(dir, n))), version: nextIndex[target]!.version };
+    // Archive old named versions too. Never destroy another revision's bytes.
+    const removed: string[] = [];
+    for (const n of stale) {
+      const file = path.join(dir, n);
+      if (!existsSync(file)) continue;
+      await assertNoLinkedPath(file, true);
+      await rename(file, path.join(history, `${randomUUID()}-${n}`));
+      removed.push(n);
+    }
+    return { file: output, removed, version: nextIndex[target]!.version };
   } catch (error) {
     // إذا فشل تحديث الفهرس، أعد الفيديو السابق لتظل النسخة المعروضة والفهرس متوافقين.
     if (replacedVideo && !committedIndex) {
@@ -82,9 +104,17 @@ export const putEpisodePreview = async (episode: string, slot: string, file: str
 /** حذف خانة من المعاينات */
 export const removePreview = async (scriptPath: string, slot: string) => {
   const dir = previewsDirFor(scriptPath);
-  const target = `${slotName(slot)}.mp4`;
+  const name = slotName(slot);
+  const target = `${name}.mp4`;
   const index = await readIndex(dir);
-  await rm(path.join(dir, target), { force: true });
+  const output = path.join(dir, target);
+  if (existsSync(output)) {
+    await assertNoLinkedPath(output, true);
+    const history = path.join(dir, "history", name);
+    await ensureUnlinkedDirectory(history);
+    await link(output, path.join(history, `removed-${randomUUID()}.mp4`));
+    await rm(output, { force: true });
+  }
   delete index[target];
   if (existsSync(dir)) await writeFile(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
 };
