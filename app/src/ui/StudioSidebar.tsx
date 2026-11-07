@@ -31,13 +31,15 @@ export const StudioSidebar: React.FC<{
   hasGuide: boolean; guideLabel: string; hasLabs: boolean; hasTechReviews: boolean;
   identityDirty: boolean; voiceConnected: boolean; episodeTitle?: string; episodeId?: string;
   onHome: () => void; onNavigate: (section: StudioSection) => void; onClose: () => void;
+  mobileOpen?: boolean;
 }> = (p) => {
   const item = (id: StudioSection, icon: IconName, label = SECTION_TITLES[id], hint?: string) => (
     <button type="button" key={id} className={`studio-nav-item${p.active === id ? " is-active" : ""}`} aria-current={p.active === id ? "page" : undefined} onClick={() => id === "home" ? p.onHome() : p.onNavigate(id)}>
       <StudioIcon name={icon} /><span>{label}</span>{hint && <span className="studio-nav-dot" title={hint} aria-label={hint} />}
     </button>
   );
-  return <aside className="studio-sidebar" id="studio-navigation" aria-label="التنقل في الاستوديو">
+  return <aside className="studio-sidebar" id="studio-navigation" role={p.mobileOpen ? "dialog" : undefined}
+    aria-modal={p.mobileOpen ? true : undefined} aria-label="التنقل في الاستوديو">
     <div className="studio-sidebar-heading"><div className="studio-product-mark"><span /><span /><span /></div><div><strong>الاستوديو</strong><small>مساحات عمل مستقلة</small></div><button type="button" className="studio-close-nav" onClick={p.onClose} aria-label="إغلاق القائمة"><StudioIcon name="close" /></button></div>
     <div className="studio-channel-card"><div className="studio-channel-mark">{p.channelMark}</div><div><span>القناة الحالية</span><strong>{p.channelName}</strong></div></div>
     <nav className="studio-sidebar-nav" aria-label="الأقسام الرئيسية للاستوديو">
