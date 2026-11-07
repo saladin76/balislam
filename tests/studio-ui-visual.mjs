@@ -224,6 +224,7 @@ try {
   await waitFor("#research-editor");
   assert("research draft survives navigation", await evaluate("document.querySelector('#research-editor')?.value.endsWith(" + JSON.stringify(researchMarker) + ")"));
   await resize(390, 844, true);
+  assert("mobile stage scroll instruction", await evaluate("(() => {const el=document.querySelector('.ew-stage-scroll-hint');return Boolean(el && getComputedStyle(el).display!=='none' && el.textContent.includes('مرّر'));})()"));
   await screenshot("12-research-mobile-390.png");
   assert("mobile navigation can open", await click(".studio-menu-toggle"));
   await until(() => evaluate("document.querySelector('.studio-shell')?.classList.contains('is-nav-open')"), "mobile sidebar");
@@ -233,6 +234,7 @@ try {
   const openedReview = await evaluate("(() => {const b=[...document.querySelectorAll('.ew-stages button')].find(x=>x.textContent.includes('المراجعة المتكاملة'));if(!b)return false;b.click();return true;})()");
   assert("integrated AV stage opens", openedReview);
   await waitFor(".studio-review-workspace");
+  assert("AV media and evidence share responsive layout", await evaluate("Boolean(document.querySelector('.studio-review-main-grid .studio-review-screen') && document.querySelector('.studio-review-main-grid .studio-review-evidence'))"));
   await screenshot("14-av-mobile-390.png");
   await resize(820, 1180);
   await screenshot("15-av-tablet-820.png");
@@ -240,7 +242,8 @@ try {
   await screenshot("16-av-desktop-1440.png");
   await writeFile(path.join(output, "result.json"), JSON.stringify({
     passed: true, testCount: tests.length, tests, date: new Date().toISOString(), chrome: version.Browser,
-    origin: "isolated CI runner", wroteEpisodeFiles: false, renderStarted: false, approvalGranted: false,
+    origin: process.env.CI === "true" ? "isolated CI runner" : "disposable local checkout",
+    wroteEpisodeFiles: false, renderStarted: false, approvalGranted: false,
   }, null, 2));
   console.log("STUDIO_UI_VISUAL_PASS", JSON.stringify({ checks: tests.length, screenshots: 16 }));
 } catch (error) {
