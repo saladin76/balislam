@@ -168,6 +168,11 @@ export const api = {
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  auditQuranScript: (id: string) =>
+    call<{ environment: string; audits: { key: string; status: "match" | "differs" | "pending" | "missing" | "failed";
+      reason?: string; categories: Record<string, string>; numbers: { ok: boolean; notes: string[] };
+      ops: { at: number; op: string; shown: string; ref: string; cls: string }[] }[] }>(
+      `/api/episodes/${id}/quran-audit`),
   missingQuranTexts: (id: string) =>
     call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
       `/api/episodes/${id}/quran-text-only`),
