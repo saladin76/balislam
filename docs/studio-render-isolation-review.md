@@ -218,3 +218,21 @@ BAL_STUDIO_REVIEW_APPROVED=YES BAL_STUDIO_REVIEW_ROOT="$(pwd -P)" node scripts/s
 ```
 
 اشترط `npm ci` وTypeScript وVitest والبوابة كاملة و`remotion-synthetic-smoke:PASS` مع `temporaryClean:true` و`temporaryLeakSuspects:[]` و`result:PASS_AUTOMATED_ONLY`. افحص `remotion-smoke.json` وصور/MP4 عبر `ffprobe` وبصماتها؛ سجّل أي فشل ولا تُنشئ موافقة بشرية تلقائيًا.
+
+
+## 13. قبول Mac الحقيقي لأول مرة: 688/688 ناجح — فشل التحقق من مدى الفيديو (7 نوفمبر 2026)
+
+الدليل الذي أرسله المالك من التشغيل المعزول `~/studio-render-isolation-qa-20261107` على HEAD `e4b4cbb35c14a8fe2406ba1770e9b691dff554e8`:
+
+- `npm ci --ignore-scripts`: **PASS** (311 حزمة مثبّتة، تحذير `npm audit` بوجود 10 ثغرات high يحتاج مراجعة منفصلة، لا `audit fix --force`).
+- `npm run typecheck`: **PASS**، وبالتالي تم التحقق من نجاح إصلاح ملف تعريف الأنواع `studio-acceptance-temp.d.mts`.
+- `isolation-targets`: **10/10 ملفات و86/86 اختبارًا ناجحًا**، بما فيها حماية الإخراج وملفات القبول والعزل ثلاثي القنوات ومراجعة Master والـRenderPool.
+- `npm test`: **88/88 ملفات و688/688 اختبارًا ناجحًا**.
+- `npm run gate`: **PASS** (TypeScript والـ688 اختبارًا ثانية).
+- Remotion: تم تنزيل Chrome Headless Shell وتشغيل الرندر الصناعي الحقيقي أفقيًا. فحص `ffprobe` قرأ **H.264, 480×270, 495 frames** لكن الفحص اشترط **30 frames**. لذلك `remotion-synthetic-smoke` **FAIL** قبل اختبار الفيديو العمودي؛ تقرير القبول محفوظ في `renders/isolated-acceptance/run-4NJ9NR/acceptance.json`. لا يوجد دليل على نجاح الفحص النهائي أو على أن `temporaryClean` تحقق ما لم نقرأ التقرير.
+
+**تحليل السبب من الكود والتوثيق الرسمي:** استخدم `scripts/studio-render-isolation-smoke.mts` خيارًا غير معتمد في واجهة `renderMedia()` اسمه `framesToRender`؛ يتجاهله Remotion فيُخرج مدة تكوين `reel-paper-landscape` كاملة (495 إطارًا). الخيار الصحيح هو `frameRange: [0, 29]` بنهايتين شاملتين؛ وثيقة Remotion: https://www.remotion.dev/docs/renderer/render-media . لم يُعطّل شرط عدد الإطارات أو بروفات H.264 أو نسبتي 16:9/9:16.
+
+**الإصلاح الجديد (غير منفذ بعد على Mac):** `scripts/studio-render-frame-range.mts` يحدد `frameRange` وعدد الإطارات المتوقع من أصل واحد (بحد أقصى 30). يستخدمه سكريبت الدخان الحقيقي، ويسجل النطاق والعدد في ملف `remotion-smoke.json` لكل MP4. اختبارات `tests/studio-render-frame-range.test.ts` تفحص تكوينات 1/10/30/31/**495** إطارًا والمدخلات غير الصالحة، وتفحص تمرير الخيار الصحيح حرفيًا. أضيفت هذه الاختبارات إلى بوابة Mac المركّزة.
+
+**التسليم:** لا يجوز نسبة نجاح 688/688 إلى HEAD الجديد بعد إصلاح `frameRange`. أعد قبول Mac المعزول على SHA الإصلاح؛ احتفظ بملفات التقرير والصور والفيديو القديم كدليل. لا تستخدم حلقات إنتاجية ولا تُنشئ Master ولا تنشر ولا تدمج `main`. تكامل #76/#77 داخل #78، وقبول الإلغاء القسري والـAV 1× البشري لا تزال شروطًا مفتوحة.
