@@ -40,6 +40,13 @@ const fresh = (iso?: string) => {
 export type RecitationIndex = Record<string, { parts: { file: string; duration: number; sha256?: string }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; reviewNote?: string; sha256?: string; textSha256?: string;
   rightsEvidence?: string; originalFile?: string; originalName?: string; originalSha256?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
+const ensureSafeRecitationDirectory = async (dir: string) => {
+  await mkdir(dir, { recursive: true });
+  const info = await lstat(dir);
+  if (!info.isDirectory() || info.isSymbolicLink())
+    throw new Error("مجلد التلاوات مرتبط رمزيًا خارج نطاق الحلقة؛ رُفضت المزامنة.");
+};
+
 
 /**
  * Write-once provider MP3 publication. A hard link is an atomic no-overwrite
@@ -150,7 +157,7 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
         (await Promise.all(have.parts.map((part) => verifiedProviderPart(recDir, part)))).every(Boolean));
       if (opts.force || !same || !fresh(have?.fetchedAt) || !cacheReady) {
         try {
-          await mkdir(recDir, { recursive: true });
+          await ensureSafeRecitationDirectory(recDir);
           const parts: { file: string; duration: number; sha256: string }[] = [];
           for (let n = from; n <= to; n++) {
             const url = cloud
@@ -238,7 +245,7 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       Object.entries(recIndex).filter(([, value]) => value?.provider === "manual"));
     // Never delete unindexed MP3s or another producer's clips. Retiring a
     // provider selection changes the pointer, not the original recordings.
-    await mkdir(recDir, { recursive: true });
+    await ensureSafeRecitationDirectory(recDir);
     // The manual uploader/approver uses the SAME lock file; a simultaneous
     // approval must never be silently overwritten by a slower provider sync.
     const lockFile = path.join(recDir, ".manual-audio.lock");
