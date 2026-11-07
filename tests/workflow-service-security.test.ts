@@ -95,7 +95,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
 
   it("never honors client-submitted role, identity, snapshot, evidence, or arbitrary source paths", async () => {
     const x = await make();
-    const { snapshot } = await x.service.inspect();
+    const { snapshot } = await x.service.inspectInternal();
     const allowed = { action: "submit", stage: "script", expectedFingerprint: stageFingerprint(snapshot, "script"),
       note: "Sent for owner review" };
     await expect(x.service.command({ ...allowed, actor: { id: "hacker", role: "owner" } } as never))
@@ -108,14 +108,14 @@ describe("trusted workflow API, evidence and exact-master publication contract",
       .rejects.toThrow(/owner/);
     x.owner();
     await x.service.command({ ...allowed, action: "approve", note: "Actual owner approved every verified source" } as never);
-    const doc = (await x.service.inspect()).ledger;
+    const doc = (await x.service.inspectInternal()).ledger;
     expect(doc.stages.script.approval?.by.id).toBe("actual-owner-session");
     expect(doc.stages.script.approval?.evidenceProofs).toHaveLength(3);
   });
 
   it("blocks a stage when evidence changed during independent server verification", async () => {
     const x = await make(); x.owner();
-    const { snapshot } = await x.service.inspect();
+    const { snapshot } = await x.service.inspectInternal();
     const cmd = { stage: "script" as const, expectedFingerprint: stageFingerprint(snapshot, "script"),
       note: "Reviewed all source citations and Qur'an matches" };
     await x.service.command({ action: "submit", ...cmd });
@@ -123,7 +123,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
       await writeFile(path.join(x.dir, "script-review.json"), "changed during verification");
     });
     await expect(x.service.command({ action: "approve", ...cmd })).rejects.toThrow(/evidence source changed/i);
-    expect((await x.service.inspect()).ledger.stages.script.status).toBe("draft");
+    expect((await x.service.inspectInternal()).ledger.stages.script.status).toBe("draft");
   });
 
   it("exposes a sanitized role-sensitive inspect().view contract for Studio UI PR #74", async () => {
@@ -140,6 +140,8 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     expect(pending.view.stages[1]?.canSubmit).toBe(false);
     expect(pending.view.gates.generate_voice.allowed).toBe(false);
     expect(pending.view.gates.publish.allowed).toBe(false);
+    expect("ledger" in pending).toBe(false);
+    expect("snapshot" in pending).toBe(false);
     const serialized = JSON.stringify(pending.view);
     expect(serialized).not.toMatch(/BAL_WORKFLOW_HMAC_KEY|integrity|evidenceProofs|script\.md|mac/);
     expect(JSON.stringify(pending.uiSnapshot)).not.toMatch(/integrity|evidenceProofs|script\.md|mac/);
@@ -166,9 +168,9 @@ describe("trusted workflow API, evidence and exact-master publication contract",
   it("requires a valid human session and prevents skipped stage approval", async () => {
     const x = await make();
     x.user.current = { id: "fake", role: "owner", authenticated: false } as never;
-    await expect(x.service.inspect()).rejects.toThrow(/authenticated/);
+    await expect(x.service.inspectInternal()).rejects.toThrow(/authenticated/);
     x.owner();
-    const { snapshot } = await x.service.inspect();
+    const { snapshot } = await x.service.inspectInternal();
     await expect(x.service.command({ action: "submit", stage: "voice", expectedFingerprint: stageFingerprint(snapshot, "voice"),
       note: "Attempt to bypass storyboard" })).rejects.toThrow(/script/);
     await expect(x.service.gate("publish")).rejects.toThrow();
@@ -179,10 +181,10 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     const original = await readFile(path.join(x.dir, "script.md"));
     await writeFile(path.join(x.dir, "script.md"), "changed script and Quran refs");
     await expect(x.service.gate("publish")).rejects.toThrow();
-    let doc = (await x.service.inspect()).ledger;
+    let doc = (await x.service.inspectInternal()).ledger;
     expect(WORKFLOW_STAGES.map((stage) => doc.stages[stage].status)).toEqual(Array(6).fill("needs_reapproval"));
     await writeFile(path.join(x.dir, "script.md"), original);
-    doc = (await x.service.inspect()).ledger;
+    doc = (await x.service.inspectInternal()).ledger;
     expect(WORKFLOW_STAGES.map((stage) => doc.stages[stage].status)).toEqual(Array(6).fill("needs_reapproval"));
   });
 
@@ -195,12 +197,12 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     const original = await readFile(path.join(x.dir, file));
     await writeFile(path.join(x.dir, file), Buffer.concat([original, Buffer.from("changed-bytes")]));
     await expect(x.service.gate("publish")).rejects.toThrow();
-    const invalid = (await x.service.inspect()).ledger;
+    const invalid = (await x.service.inspectInternal()).ledger;
     const changedIndex = WORKFLOW_STAGES.indexOf(stage);
     expect(WORKFLOW_STAGES.map((k, i) => invalid.stages[k].status))
       .toEqual(WORKFLOW_STAGES.map((_k, i) => i < changedIndex ? "approved" : "needs_reapproval"));
     await writeFile(path.join(x.dir, file), original);
-    const restored = (await x.service.inspect()).ledger;
+    const restored = (await x.service.inspectInternal()).ledger;
     expect(WORKFLOW_STAGES.map((k, i) => restored.stages[k].status))
       .toEqual(WORKFLOW_STAGES.map((_k, i) => i < changedIndex ? "approved" : "needs_reapproval"));
   });
@@ -216,7 +218,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     expect(after.script?.sha256).toBe(before.script?.sha256);
     expect(after.script?.epoch).not.toBe(before.script?.epoch);
     await expect(x.service.gate("publish")).rejects.toThrow(/script/);
-    const doc = (await x.service.inspect()).ledger;
+    const doc = (await x.service.inspectInternal()).ledger;
     expect(WORKFLOW_STAGES.map((stage) => doc.stages[stage].status))
       .toEqual(Array(6).fill("needs_reapproval"));
   });
@@ -234,7 +236,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     const after = await collectActualArtifactDigests(x.scope, x.manifest);
     expect(after.script).toEqual(before.script);
     await expect(x.service.gate("publish")).rejects.toThrow(/evidence for script changed/i);
-    const result = await x.service.inspect();
+    const result = await x.service.inspectInternal();
     expect(result.ledger.stages.script.status).toBe("needs_reapproval");
     expect(result.view.gates.publish.allowed).toBe(false);
   });
@@ -244,7 +246,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     await x.service.gate("publish");
     await writeFile(path.join(x.dir, "master-review.json"), "review was revoked");
     await expect(x.service.gate("publish")).rejects.toThrow(/evidence.*master changed/);
-    const doc = (await x.service.inspect()).ledger;
+    const doc = (await x.service.inspectInternal()).ledger;
     expect(doc.stages.master.status).toBe("needs_reapproval");
   });
 
@@ -325,7 +327,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     const tampered = JSON.parse(saved);
     tampered.stages.master.approval.artifactSha256 = sha("forged");
     await writeFile(ledger, JSON.stringify(tampered));
-    await expect(x.service.inspect()).rejects.toThrow(/Invalid workflow ledger/);
+    await expect(x.service.inspectInternal()).rejects.toThrow(/Invalid workflow ledger/);
     await writeFile(ledger, saved);
     const outside = await mkdtemp(path.join(os.tmpdir(), "foreign-artifact-")); roots.push(outside);
     await writeFile(path.join(outside, "other.mp4"), "outside");
@@ -336,7 +338,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     const oldKey = process.env.BAL_WORKFLOW_HMAC_KEY;
     try {
       delete process.env.BAL_WORKFLOW_HMAC_KEY;
-      await expect(x.service.inspect()).rejects.toThrow(/signing key/);
+      await expect(x.service.inspectInternal()).rejects.toThrow(/signing key/);
     } finally { process.env.BAL_WORKFLOW_HMAC_KEY = oldKey; }
   });
 });
