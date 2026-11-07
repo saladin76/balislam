@@ -11,6 +11,7 @@ import { generatePlan } from "../src/plan/generate";
 import { reviewItems, type ReviewLedger } from "../src/script/review";
 import { verifiedOwnRecitations, ownAudioStatusForScript } from "../src/quran/manualAudio";
 import { alignDiff } from "../src/quran/audit";
+import { compareVerseText } from "../src/quran/compare";
 import type { Plan } from "../src/plan/types";
 
 const verse = "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ";
@@ -38,6 +39,19 @@ describe("Quran script-first text, review and historical meanings", () => {
     expect(ops.some((op) => op.cls === "haraka")).toBe(true);
   });
 
+  it("reports every Unicode discrepancy including leading spaces and long insertions", () => {
+    const original = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+    const other = " " + original + "ى".repeat(72);
+    const ops = alignDiff(other, original);
+    expect(ops.length).toBe(73);
+    expect(ops[0]?.cls).toBe("space");
+    expect(ops.filter((op) => op.op === "del").length).toBe(73);
+    const previousCliReport = compareVerseText(other, original);
+    expect(previousCliReport.length).toBe(73);
+    expect(previousCliReport.at(-1)?.shown).toBe("U+0649");
+    expect(alignDiff(original.replace("بِ", "بَ"), original).some((op) => op.cls === "haraka")).toBe(true);
+    expect(alignDiff(original.normalize("NFD"), original)).toEqual([]);
+  });
   it("invalidates human citation approval after editing only a Quranic diacritic", () => {
     const item = reviewItems(parseScript(makeScript(verse)), null)[0]!;
     const ledger: ReviewLedger = { version: 1, items: {
@@ -113,14 +127,19 @@ describe("local approved Quran recordings are bound to script text and real play
     const file = path.join(recitations, name);
     try {
       await mkdir(recitations);
+      await mkdir(path.join(recitations, "originals"));
       await writeFile(scriptPath, makeScript(verse));
       execFileSync("ffmpeg", ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=420:duration=1.2",
         "-c:a", "libmp3lame", file]);
       const bytes = await readFile(file);
+      const sourceName = "originals/00000000-0000-4000-8000-000000000001.mp3";
+      const originalPath = path.join(recitations, sourceName);
+      await writeFile(originalPath, bytes);
       const approved = { "53:39": {
         provider: "manual", reciter: "قارئ مسموح بنشره", rightsEvidence: "https://rights.example.com/permission",
         parts: [{ file: name, duration: 1.2 }], fetchedAt: "2026-11-01", approvedAt: "2026-11-02",
         approvedBy: "مراجع شرعي", sha256: sha(bytes), textSha256: sha(verse),
+        originalFile: sourceName, originalSha256: sha(bytes),
       } };
       const indexFile = path.join(recitations, "index.json");
       await writeFile(indexFile, JSON.stringify(approved));
@@ -134,6 +153,11 @@ describe("local approved Quran recordings are bound to script text and real play
       expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
       expect((await ownAudioStatusForScript(scriptPath)).stale).toEqual(["53:39"]);
       await writeFile(scriptPath, makeScript(verse));
+      expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
+      await writeFile(originalPath, "DAMAGED ORIGINAL SOURCE");
+      expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
+      expect((await ownAudioStatusForScript(scriptPath)).stale).toEqual(["53:39"]);
+      await writeFile(originalPath, bytes);
       expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
       await writeFile(file, "corrupt MP3 with no sound");
       expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
