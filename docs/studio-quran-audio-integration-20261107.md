@@ -167,3 +167,18 @@ The command must be executed in an environment with the repository dependencies;
 ### Final acceptance boundary
 
 No scholarly Quran approval, real reciter license validation, complete-speed human listening or actual production acceptance has been issued. Final 100% remains impossible to claim without (1) a full exact-SHA green TypeScript/Vitest run, (2) renderer PR #73 integrating verified manual audio and enforcing `assertMotionStartAuthorized` at **every final render entry point, dequeue, and output commit**, (3) final audio/rights and script reviewer decisions by the owner. The independent Draft PR #76 stays unmerged.
+
+
+## 11. First Mac exact-head TypeScript / Vitest execution and three addressed failures
+
+The operator executed `npm ci --ignore-scripts --no-audit --no-fund` followed by
+`node scripts/run-quran-audio-qa.mjs` in the dedicated local worktree
+`~/studio-quran-audio-qa-20261107` at **`e447821ef26b79645d6adf237fc5f64eddaee27c`**.
+
+- `npm run typecheck`: exit **0**.
+- `npm test` / Vitest: **86 of 89 test files passed; 664 of 667 tests passed; 3 tests failed**. The exact-head local tool runner exited **1**; no 100% acceptance.
+- Failures were isolated to `tests/quran-script-source.test.ts` (published audio remained mutable via staging hard-link), `tests/recitation.test.ts` (legacy fixed filename expectation predating SHA-addressed storage), and `tests/voice-review.test.ts` (Arabic full-listening error message not matching the asserted wording).
+- Remediation in newer commits: `publishImmutableRecitationPart` now removes its staging hard-link **as soon as** its immutable output is verified, with a new explicit `ENOENT` regression assertion; Quran Foundation test now confirms `qf-7-53-39-<hash>.mp3` in its index, its part SHA and actual file existence; full-episode listening rejection wording consistently includes «الاستماع الكامل».
+- The preceding 664 green tests and zero-error `tsc` apply **only to commit `e447821`**, not automatically to the newer fixes. The full suite needs to be executed again on the new SHA and its JSON result archived for acceptance.
+
+No main or production episode files were changed, renderer-owned files remain unmodified, and no human scholar or reciter-rights approval has been issued.
