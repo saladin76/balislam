@@ -106,8 +106,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
             <select id="ch-lang" value={c.language} onChange={(e) => {
               const language = e.target.value;
               if (language !== c.language) {
-                set({ language, quranTranslation: undefined });
-                if (c.quranTranslation) setMsg({ text: "تغيّرت لغة القناة؛ أُزيل اختيار الترجمة السابق من المسودة فقط. راجع الترجمة المناسبة قبل الحفظ." });
+                set({ language });
               }
             }}>
               {Object.values(langPacks).map((p) => <option key={p.code} value={p.code}>{p.nameAr} · {p.nativeName}{p.ready ? "" : " (تجهيز)"}</option>)}
