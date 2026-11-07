@@ -1,6 +1,6 @@
 import path from "node:path";
 import { existsSync, lstatSync } from "node:fs";
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { templatesDir } from "../config/paths";
 import { channelPaths, domainIds, loadChannel } from "../channel";
 
@@ -100,23 +100,48 @@ export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> =>
   if (!DOMAINS.includes(opts.domain)) throw new Error(`المجال يجب أن يكون واحدًا من: ${DOMAINS.join("، ")}.`);
   const episodesDir = channelPaths().episodes;
 
-  const existing = await scriptEpisodeDirectories(episodesDir, opts.episode);
-  if (existing.length) throw new Error(`الحلقة ${opts.episode} موجودة بالفعل: episodes/${existing[0]}`);
+  // A number-scoped exclusive claim prevents concurrent Studio processes from
+  // creating different slugs for the same episode number.
+  await mkdir(episodesDir, { recursive: true });
+  const lockPath = path.join(episodesDir, `.${opts.episode}.create.lock`);
+  let lock: Awaited<ReturnType<typeof open>>;
+  try {
+    lock = await open(lockPath, "wx", 0o600);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST")
+      throw new Error(`إنشاء الحلقة ${opts.episode} قيد التنفيذ أو يحتاج فحص قفل قديم؛ لا يمكن الكتابة فوق حلقة أخرى.`);
+    throw error;
+  }
+  let staging: string | undefined;
+  try {
+    const existing = await scriptEpisodeDirectories(episodesDir, opts.episode);
+    if (existing.length) throw new Error(`الحلقة ${opts.episode} موجودة بالفعل: episodes/${existing[0]}`);
 
-  const dir = path.join(episodesDir, `${opts.episode}-${opts.slug}`);
-  if (existsSync(dir)) throw new Error(`المجلد ${path.basename(dir)} موجود مسبقًا؛ لا يمكن تحويل مختبر أو مجلد قائم إلى حلقة جديدة.`);
-  await mkdir(path.join(dir, "voice"), { recursive: true });
-  await mkdir(path.join(dir, "out"), { recursive: true });
-  const fill = (t: string) =>
-    t
-      .replaceAll("{{TITLE}}", (opts.title ?? "").replace(/"/g, "'"))
-      .replace("{{DOMAIN}}", opts.domain)
-      .replace("{{EPISODE}}", opts.episode);
-  const file = path.join(dir, "script.md");
-  await writeFile(file, fill(await readFile(templateFor(channel.id, "script.md"), "utf8")), "utf8");
-  // ملف البحث (أو دراسة الكتاب) بقالب القناة: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
-  const research = templateFor(channel.id, "research.md", false);
-  if (research) await writeFile(path.join(dir, RESEARCH_FILE), fill(await readFile(research, "utf8")), "utf8");
-  await writeFile(path.join(dir, "voice", ".gitkeep"), "");
-  return file;
+    const dir = path.join(episodesDir, `${opts.episode}-${opts.slug}`);
+    if (existsSync(dir)) throw new Error(`المجلد ${path.basename(dir)} موجود مسبقًا؛ لا يمكن تحويل مختبر أو مجلد قائم إلى حلقة جديدة.`);
+    const fill = (t: string) =>
+      t
+        .replaceAll("{{TITLE}}", (opts.title ?? "").replace(/"/g, "'"))
+        .replace("{{DOMAIN}}", opts.domain)
+        .replace("{{EPISODE}}", opts.episode);
+
+    // Assemble the complete new episode privately before making it discoverable.
+    staging = await mkdtemp(path.join(episodesDir, `.${opts.episode}.creating-`));
+    await mkdir(path.join(staging, "voice"));
+    await mkdir(path.join(staging, "out"));
+    await writeFile(path.join(staging, "script.md"), fill(await readFile(templateFor(channel.id, "script.md"), "utf8")), "utf8");
+    const research = templateFor(channel.id, "research.md", false);
+    if (research) await writeFile(path.join(staging, RESEARCH_FILE), fill(await readFile(research, "utf8")), "utf8");
+    await writeFile(path.join(staging, "voice", ".gitkeep"), "");
+    if (existsSync(dir)) throw new Error(`مجلد الحلقة ${path.basename(dir)} ظهر أثناء الإنشاء؛ لم تُستبدل أي ملفات.`);
+    await rename(staging, dir);
+    return path.join(dir, "script.md");
+  } finally {
+    try {
+      if (staging) await rm(staging, { recursive: true, force: true });
+    } finally {
+      await lock.close();
+      await rm(lockPath, { force: true });
+    }
+  }
 };
