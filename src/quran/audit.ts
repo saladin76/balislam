@@ -68,6 +68,11 @@ export const alignDiff = (shown: string, ref: string): DiffOp[] => {
 export const ayahEndNumbers = (text: string): number[] => Array.from(text.matchAll(/۝\s*([٠-٩۰-۹\d]+)/g)).map((m) => Number(toLatinDigits(m[1]!.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0)))));
 
 export type CategoryResult = "match" | "differs" | "pending";
+export const comparisonAuditStatus = (
+  differs: boolean, numbersOk: boolean, environment: string | undefined,
+): "match" | "differs" | "pending" =>
+  differs || !numbersOk ? "differs" : environment === "production" ? "match" : "pending";
+
 export type VerseAudit = {
   key: string; surah: number; surahName: string; from: number; to: number;
   sceneId?: string; label?: string; shown?: string; shownSha256?: string;
@@ -156,7 +161,9 @@ export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<Q
         base.ops = ops;
         base.categories = { letter: cat("letter"), haraka: cat("haraka"), uthmani: cat("uthmani"), mark: cat("mark") };
         base.reference = { source: "مصحف معتمد للمقارنة (ببيانات المصدر المقدّمة)", field: "text_uthmani", env: opts.client.env ?? "؟", fetchedAt: new Date().toISOString(), returned: verses.map((v) => ({ key: v.key, number: v.number })), sha256: sha(refText) };
-        base.status = ops.length || !base.numbers.ok ? "differs" : "match";
+        base.status = comparisonAuditStatus(ops.length > 0, base.numbers.ok, opts.client.env);
+        if (base.status === "pending")
+          base.reason = "المصدر المرجعي ليس في بيئة Quran Foundation production؛ المطابقة ليست اعتمادًا شرعيًا.";
       } catch (err) {
         base.status = "failed";
         base.reason = `تعذّر جلب المرجع: ${(err as Error).message}`;
