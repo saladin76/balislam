@@ -2,7 +2,8 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { mkdir, cp } from "node:fs/promises";
+import { stageRenderFiles, type RenderStageFile } from "./renderStage";
 import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
 import { loadVoiceIndex, voiceDirFor, audioDuration } from "../voice/generate";
@@ -98,27 +99,38 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
 };
 
 /** ينسخ الوسائط إلى public/_render/<الحلقة> ليضمّها Remotion في الرندر. */
-export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<EpisodeMedia> => {
+export const prepareRenderMedia = async (
+  episode: string,
+  plan: Plan,
+  opts: { publicRoot?: string; signal?: AbortSignal } = {},
+): Promise<EpisodeMedia> => {
   const m = await collectMedia(episode, plan);
-  // Stage media in its owning channel + episode, never another channel's 001.
-  const sourceScript = await resolveScriptPath(episode);
-  const rel = studioMediaNamespace(sourceScript).render;
-  const dest = path.join(projectRoot, "public", rel);
-  await rm(dest, { recursive: true, force: true });
-  for (const d of ["voice", "sfx", "recitations", "images"]) await mkdir(path.join(dest, d), { recursive: true });
-  const vdir = voiceDirFor(await resolveScriptPath(episode));
+  const scriptPath = await resolveScriptPath(episode);
+  const files: RenderStageFile[] = [];
+  const vdir = voiceDirFor(scriptPath);
   for (const clip of Object.values(m.voice)) {
-    const src = path.join(vdir, clip.file);
-    if (existsSync(src)) await cp(src, path.join(dest, "voice", clip.file));
+    // Preserve existing behavior: an absent voice clip is not invented.
+    // The filename itself is validated before any copy by stageRenderFiles.
+    files.push({ kind: "voice", name: clip.file, source: path.join(vdir, clip.file) });
   }
-  for (const id of m.sfx) await cp(sfxFile(id), path.join(dest, "sfx", `${id}.mp3`));
-  const recDir = recitationsDirFor(await resolveScriptPath(episode));
+  for (const id of m.sfx) files.push({ kind: "sfx", name: `${id}.mp3`, source: sfxFile(id) });
+  const recDir = recitationsDirFor(scriptPath);
   for (const r of Object.values(m.recitations)) {
-    if (r.source === "quran-foundation" || r.source === "alquran-cloud") for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
-    else await cp(path.join(recitationsDir, r.file), path.join(dest, "recitations", r.file));
+    if (r.source === "quran-foundation" || r.source === "alquran-cloud") {
+      for (const part of r.parts ?? []) files.push({ kind: "recitations", name: part.file, source: path.join(recDir, part.file) });
+    } else {
+      files.push({ kind: "recitations", name: r.file, source: path.join(recitationsDir, r.file) });
+    }
   }
-  const sp2 = await resolveScriptPath(episode);
-  for (const f of m.images ?? []) await cp(f.startsWith(LIB) ? path.join(libraryDirFor(sp2), f.slice(LIB.length)) : path.join(imagesDirFor(sp2), f), path.join(dest, "images", imageKey(f)));
+  for (const f of m.images ?? []) files.push({
+    kind: "images",
+    name: imageKey(f),
+    source: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
+  });
+  const rel = await stageRenderFiles(studioMediaNamespace(scriptPath).render, files, {
+    publicRoot: opts.publicRoot ?? path.join(projectRoot, "public"),
+    signal: opts.signal,
+  });
   return { ...m, mode: "static", base: rel };
 };
 
