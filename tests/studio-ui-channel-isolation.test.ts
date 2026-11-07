@@ -61,7 +61,7 @@ describe("Studio asynchronous channel isolation", () => {
     ]);
     expect(urls).toHaveLength(11);
     for (const url of urls) expect(url).toMatch(/\bchannel=balislam(?:&|$)/);
-    expect(urls.filter((url) => url.includes("/episodes/001"))).toHaveLength(8);
+    expect(urls.filter((url) => url.includes("/episodes/001"))).toHaveLength(9);
     expect(api.previewUrl("001", "review.mp4", "balislam")).toContain("channel=balislam");
     expect(api.packageUrl("001", "master.mp4", false, "balislam")).toContain("channel=balislam");
     expect(api.packageUrl("001", "master.mp4", true, "balislam")).toContain("download=1&channel=balislam");
