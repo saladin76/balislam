@@ -238,14 +238,67 @@ const withState = async <T>(episode: string,
     let doc = await readLedger(file, current);
     const reconciled = reconcile(doc.state, current.initial);
     if (JSON.stringify(doc.state) !== JSON.stringify(reconciled)) {
-      doc = sign({ ...doc, state: reconciled, revision: doc.revision + 1 }); // invalidate changes permanently, even if a command later fails
+      const epochs = Object.fromEntries(Object.entries(doc.previewEpochs).filter(([id]) =>
+        reconciled.scenes.some(scene => scene.id === id &&
+          (scene.status === "approved" || scene.status === "in_review"))));
+      doc = sign({ ...doc, state: reconciled, revision: doc.revision + 1,
+        previewEpochs: epochs,
+        ...(reconciled.assembly ? {} : { assemblyEpoch: undefined, masterEpoch: undefined }) });
+      await saveLedger(file, doc);
+    }
+    // Detect a changed or edit-and-restored preview/assembly/Master by inode
+    // generation as well as bytes. Never silently revive a former approval.
+    let next = doc.state;
+    const epochs = { ...doc.previewEpochs };
+    let stale = false;
+    for (const scene of next.scenes) {
+      if (scene.status !== "approved" && scene.status !== "in_review") continue;
+      const currentEpoch = await optionalFileGeneration(sceneFile(current.scriptPath, scene.id));
+      if (!epochs[scene.id] || epochs[scene.id] !== currentEpoch) {
+        next = { ...next, scenes: next.scenes.map(other => other.id === scene.id ?
+          { id: other.id, sourceSha256: other.sourceSha256, status: "needs_revision" as const } : other),
+          assembly: undefined, master: undefined };
+        delete epochs[scene.id];
+        stale = true;
+      }
+    }
+    if (next.assembly && (!doc.assemblyEpoch ||
+        doc.assemblyEpoch !== await optionalFileGeneration(assemblyFile(current.scriptPath)))) {
+      next = { ...next, assembly: undefined, master: undefined };
+      stale = true;
+    }
+    if (next.master && (!doc.masterEpoch ||
+        doc.masterEpoch !== await optionalFileGeneration(masterFile(current.scriptPath)))) {
+      next = { ...next, master: undefined };
+      stale = true;
+    }
+    if (stale) {
+      doc = sign({ ...doc, state: next, revision: doc.revision + 1,
+        previewEpochs: epochs,
+        ...(next.assembly ? {} : { assemblyEpoch: undefined }),
+        ...(next.master ? {} : { masterEpoch: undefined }) });
       await saveLedger(file, doc);
     }
     return operation(doc, current);
   });
 };
+const optionalSha = async (file: string): Promise<string | null> => {
+  try { return await byteSha256(file); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+};
 export const inspectSceneProduction = (episode: string) =>
-  withState(episode, async (doc, current) => view(doc, current.ready));
+  withState(episode, async (doc, current) => ({
+    ...view(doc, current.ready),
+    candidates: {
+      scenes: Object.fromEntries(await Promise.all(doc.state.scenes.map(async scene =>
+        [scene.id, await optionalSha(sceneFile(current.scriptPath, scene.id))] as const))),
+      assemblySha256: await optionalSha(assemblyFile(current.scriptPath)),
+      masterSha256: await optionalSha(masterFile(current.scriptPath)),
+    },
+  }));
 
 const sceneFile = (scriptPath: string, id: string) => {
   if (!safeSceneId(id)) throw Error("Invalid scene id.");
@@ -269,6 +322,9 @@ export const decideSceneProduction = async (episode: string,
     const p = doc.state, at = new Date().toISOString(), by = "owner";
     let next: SceneFirstProduction;
     let resultSha256 = command.expectedSha256;
+    const previewEpochs = { ...doc.previewEpochs };
+    let assemblyEpoch = doc.assemblyEpoch;
+    let masterEpoch = doc.masterEpoch;
     if (command.action === "approve-script") {
       if (p.script.sha256 !== command.expectedSha256) throw Error("Script changed before review.");
       next = approveScript(p, by, at, command.expectedSha256);
@@ -278,15 +334,22 @@ export const decideSceneProduction = async (episode: string,
     } else if (command.action === "assemble") {
       const file = assemblyFile(current.scriptPath);
       await verifyVideoEvidence(file);
-      resultSha256 = await fileGeneration(file);
+      resultSha256 = await byteSha256(file);
       if (resultSha256 !== command.expectedSha256) throw Error("The assembled video changed.");
+      assemblyEpoch = await fileGeneration(file);
+      masterEpoch = undefined;
       next = submitAssembly(p, resultSha256);
     } else if (command.action === "approve-master") {
       if (command.confirmedWatched !== true) throw Error("Full-episode human 1× review is required.");
       const file = masterFile(current.scriptPath);
       await verifyVideoEvidence(file);
-      resultSha256 = await fileGeneration(file);
+      resultSha256 = await byteSha256(file);
       if (resultSha256 !== command.expectedSha256) throw Error("The Master file changed.");
+      if (!p.assembly || !assemblyEpoch ||
+          assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||
+          p.assembly.videoSha256 !== await byteSha256(assemblyFile(current.scriptPath)))
+        throw Error("Assembled episode changed before Master review.");
+      masterEpoch = await fileGeneration(file);
       next = approveFinalMaster(p, {
         by, at, masterSha256: resultSha256,
         assembledVideoSha256: p.assembly?.videoSha256 ?? "",
@@ -301,18 +364,24 @@ export const decideSceneProduction = async (episode: string,
         if (scene.sourceSha256 !== command.expectedSha256) throw Error("Scene inputs changed.");
         const file = sceneFile(current.scriptPath, id);
         await verifyVideoEvidence(file);
-        resultSha256 = await fileGeneration(file);
+        resultSha256 = await byteSha256(file);
+        previewEpochs[id] = await fileGeneration(file);
+        assemblyEpoch = undefined; masterEpoch = undefined;
         next = submitSceneAvPreview(p, id, scene.sourceSha256, resultSha256);
       } else if (command.action === "correct-scene") {
         if (scene.previewSha256 !== command.expectedSha256 || !command.note?.trim())
           throw Error("A current scene preview and a correction reason are required.");
+        delete previewEpochs[id];
+        assemblyEpoch = undefined; masterEpoch = undefined;
         next = requestSceneCorrection(p, id);
       } else {
         if (command.confirmedWatched !== true)
           throw Error("Please review the complete scene with picture and sound.");
         const file = sceneFile(current.scriptPath, id);
         await verifyVideoEvidence(file);
-        resultSha256 = await fileGeneration(file);
+        resultSha256 = await byteSha256(file);
+        if (!previewEpochs[id] || previewEpochs[id] !== await fileGeneration(file))
+          throw Error("Preview generation changed; submit it again.");
         if (scene.previewSha256 !== resultSha256 ||
             command.expectedSha256 !== resultSha256)
           throw Error("The preview changed since it was shown for review.");
@@ -331,7 +400,8 @@ export const decideSceneProduction = async (episode: string,
       ...(command.sceneId ? { sceneId: command.sceneId } : {}),
       at, by, resultSha256, note: command.note?.trim() || "تأكيد مراجعة المالك",
     }];
-    const saved = sign({ version: 1, state: next, revision: doc.revision + 1, history });
+    const saved = sign({ version: 1, state: next, revision: doc.revision + 1,
+      history, previewEpochs, assemblyEpoch, masterEpoch });
     await saveLedger(stateFileFor(current.scriptPath), saved);
     return view(saved, current.ready);
   });
@@ -340,6 +410,12 @@ export const requireSceneMasterReady = async (episode: string): Promise<void> =>
   await withState(episode, async (doc, current) => {
     const file = masterFile(current.scriptPath);
     await verifyVideoEvidence(file);
-    assertExactMasterReadyForPublish(doc.state, await fileGeneration(file));
+    if (!doc.masterEpoch || doc.masterEpoch !== await fileGeneration(file))
+      throw Error("Master changed after the owner's final approval.");
+    if (!doc.assemblyEpoch ||
+        doc.assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||
+        doc.state.assembly?.videoSha256 !== await byteSha256(assemblyFile(current.scriptPath)))
+      throw Error("Final assembly changed after approval.");
+    assertExactMasterReadyForPublish(doc.state, await byteSha256(file));
   });
 };
