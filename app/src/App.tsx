@@ -95,6 +95,7 @@ export const App: React.FC = () => {
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
   const [researchDirty, setResearchDirty] = useState(false);
+  const [channelConfigDirty, setChannelConfigDirty] = useState(false);
   const [check, setCheck] = useState<CheckResult | null>(null);
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
@@ -254,10 +255,11 @@ export const App: React.FC = () => {
   const scriptDirty = script !== savedScript;
   scriptDirtyRef.current = scriptDirty;
 
-  // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
+  const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
+  // Warn before browser close for drafts from every editing workspace.
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
-      if (scriptDirtyRef.current || researchDirty || pendingPlan.current) {
+      if (scriptDirtyRef.current || researchDirty || pendingPlan.current || channelConfigDirty || identDirty) {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
         e.returnValue = "";
@@ -265,13 +267,14 @@ export const App: React.FC = () => {
     };
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
-  }, [researchDirty]);
+  }, [researchDirty, channelConfigDirty, identDirty]);
   const confirmLeaveScript = () => {
     if (scriptDirty && !window.confirm("في السكريبت تعديلات غير محفوظة. هل تريد مغادرة المحرر؟")) return false;
     if (scriptRef.current?.hasUnsavedResearch() && !window.confirm("في ملف البحث تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟")) return false;
+    if (channelConfigDirty && !window.confirm("إعدادات القناة تحتوي تغييرات غير محفوظة. هل تريد مغادرتها دون حفظ؟")) return false;
+    if (identDirty && !window.confirm("الهوية تحتوي تغييرات غير محفوظة. هل تريد مغادرتها دون حفظ؟")) return false;
     return true;
   };
-  const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
   const navigateManage = async (next: Tab) => {
     if (!next || !confirmLeaveScript()) return;
@@ -297,7 +300,7 @@ export const App: React.FC = () => {
       />
       {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
       <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty || channelConfigDirty} />
         <header className="top studio-topbar">
           <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
           <div className="studio-page-heading"><span>الاستوديو <i aria-hidden="true">/</i> {channel.name}</span><strong>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</strong></div>
@@ -412,6 +415,7 @@ export const App: React.FC = () => {
         ) : tab === "channel" ? (
           <ChannelTab
             key={channelId}
+            onDirtyChange={setChannelConfigDirty}
             identity={ident?.draft}
             onSaved={() => {
               reloadChannels();
