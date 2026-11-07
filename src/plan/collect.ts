@@ -1,9 +1,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
-import { mkdir, cp } from "node:fs/promises";
-import { stageRenderFiles, type RenderStageFile } from "./renderStage";
+import { stageRenderFiles, stageStoryboardFiles, type RenderStageFile } from "./renderStage";
 import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
 import { loadVoiceIndex, voiceDirFor, audioDuration } from "../voice/generate";
@@ -145,7 +143,7 @@ export const prepareRenderMedia = async (
  * Content-hashed namespaces keep different source-asset revisions separate.
  */
 export const prepareStoryboardMedia = async (
-  episode: string, plan: Plan, opts: { scriptPath?: string; publicRoot?: string } = {},
+  episode: string, plan: Plan, opts: { scriptPath?: string; publicRoot?: string; signal?: AbortSignal } = {},
 ): Promise<EpisodeMedia> => {
   const scriptPath = opts.scriptPath ?? await resolveScriptPath(episode);
   const images = usedImages(plan, imagesDirFor(scriptPath), libraryDirFor(scriptPath));
@@ -156,20 +154,11 @@ export const prepareStoryboardMedia = async (
     name: imageKey(f),
     file: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
   }));
-  for (const asset of assets) {
-    if (!asset.name || asset.name === "." || asset.name === ".." || asset.name.length > 240 ||
-      path.basename(asset.name) !== asset.name || asset.name.includes("\\") || asset.name.includes("\0"))
-      throw new Error("اسم صورة غير آمن للـStoryboard.");
-    digest.update(asset.name);
-    for await (const part of createReadStream(asset.file)) digest.update(part);
-  }
-  const { channelName, episodeName } = studioMediaNamespace(scriptPath);
-  const rel = `_storyboard_media/${channelName}/${episodeName}-${digest.digest("hex").slice(0, 16)}/`;
-  const dest = path.join(opts.publicRoot ?? path.join(projectRoot, "public"), rel);
-  await mkdir(path.join(dest, "images"), { recursive: true });
-  for (const asset of assets) {
-    const output = path.join(dest, "images", asset.name);
-    if (!existsSync(output)) await cp(asset.file, output, { force: false, errorOnExist: true });
-  }
+  const rel = await stageStoryboardFiles(
+    studioMediaNamespace(scriptPath).render,
+    assets.map((asset) => ({ kind: "images" as const, name: asset.name, source: asset.file })),
+    digest.digest("hex"),
+    { publicRoot: opts.publicRoot ?? path.join(projectRoot, "public"), signal: opts.signal },
+  );
   return { mode: "static", base: rel, voice: {}, sfx: [], recitations: {}, images };
 };
