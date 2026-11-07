@@ -193,6 +193,16 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     expect(doc.stages.master.status).toBe("needs_reapproval");
   });
 
+  it("an authenticated reviewer cannot publish, even if every stage was previously approved by the owner", async () => {
+    const x = await make(); await x.allApproved();
+    x.user.current = { id: "reviewer-session", role: "reviewer", authenticated: true };
+    await expect(x.service.gate("publish")).rejects.toThrow(/owner/);
+    let dispatched = false;
+    await expect(x.service.withVerifiedMasterPublication(async () => { dispatched = true; }))
+      .rejects.toThrow(/owner/);
+    expect(dispatched).toBe(false);
+  });
+
   it("publication receives only a frozen exact-byte Master and cleans the private copy even when callback fails", async () => {
     const x = await make(); await x.allApproved();
     const old = await readFile(path.join(x.dir, "master.mp4"), "utf8");
