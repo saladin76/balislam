@@ -53,3 +53,8 @@ channels/*/*.json.lock
 # Hidden, owned staging areas for atomic episode creation (not media data)
 channels/*/episodes/.*.create.lock
 channels/*/episodes/.*.creating-*/
+
+# macOS Finder metadata in disposable QA clones
+.DS_Store
+# Locally owned QA scratch only; never a production asset
+.qa-tmp/
