@@ -3,16 +3,14 @@ import React from "react";
 /** Presentation contract only: the workflow engine must provide verified records.
  * This file does not fetch, infer, persist or issue approvals.
  */
-export type WorkflowStage = "script" | "storyboard" | "voice" | "motion" | "review" | "master";
-export type WorkflowApprovalStatus = "draft" | "in_review" | "approved" | "rejected" | "reapproval_required";
-export type WorkflowApprovalRecord = {
-  status: WorkflowApprovalStatus;
-  reviewer?: string;
-  reviewedAt?: string;
-  version?: string;
-  note?: string;
-};
-export type WorkflowApprovalSnapshot = Partial<Record<WorkflowStage, WorkflowApprovalRecord>>;
+import type {
+  WorkflowDisplayStage, WorkflowDisplayStatus, WorkflowDisplayRecord, WorkflowApprovalView,
+} from "../../../src/workflow/uiProjection";
+
+export type WorkflowStage = WorkflowDisplayStage;
+export type WorkflowApprovalStatus = WorkflowDisplayStatus;
+export type WorkflowApprovalRecord = WorkflowDisplayRecord;
+export type WorkflowApprovalSnapshot = WorkflowApprovalView;
 
 export const WORKFLOW_STAGES: ReadonlyArray<{ key: WorkflowStage; title: string; tab: "script" | "storyboard" | "voice" | "episode" | "review" | "publish" }> = [
   { key: "script", title: "السكريبت والمصادر", tab: "script" },
