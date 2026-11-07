@@ -2,10 +2,10 @@
  * بوابات النسخة النهائية: كل حالة تستوجب المنع تمنع فعلًا، والحالة السليمة تمر.
  * حلقة صغيرة مصطنعة لقناة «دفاتر الزمن» (لها قارئ): جملة واحدة وآية واحدة.
  */
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 process.env.BAL_CHANNEL = "dafatir-alzaman";
 
@@ -37,10 +37,13 @@ episode: "999"
 
 type Plan = Awaited<ReturnType<typeof generatePlan>>;
 const channel = loadChannel("dafatir-alzaman");
+const ownedGateDirs: string[] = [];
+afterAll(async () => { for (const dir of ownedGateDirs.splice(0)) await rm(dir, { recursive: true, force: true }); });
 
 /** حالة سليمة كاملة في مجلد مؤقت، ثم يكسر كل اختبار شرطًا واحدًا */
 const fresh = async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "gates-"));
+  ownedGateDirs.push(dir);
   const scriptPath = path.join(dir, "script.md");
   await writeFile(scriptPath, SCRIPT);
   const parsed = parseScript(SCRIPT, scriptPath);
