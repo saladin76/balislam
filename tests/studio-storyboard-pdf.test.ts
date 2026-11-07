@@ -292,7 +292,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(plan.channel).toBe("balislam");
     const first=plan.chapters[0];
     const data={channel:plan.channel,episode:plan.episode,version:String(plan.version),
-      scenes:first.scenes.slice(0,3).map((scene:{id:string;narration:string;template:string;props?:{shot?:string}},i:number)=>({
+      scenes:first.scenes.slice(0,3).map((scene:{id:string;narration:string;template:string;props?:{shot?:string}})=>({
         id:scene.id,chapter:first.number??1,chapterTitle:first.title,
         title:scene.props?.shot??scene.template,narration:scene.narration,notes:"مراجعة نص واقعي",
         image:null,portraitImage:null
