@@ -4,12 +4,14 @@ import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import type { PlanIssue } from "../../../src/plan/validate";
 import { WORKFLOW_STAGES, WorkflowApprovalDetails, approvalLabel, type WorkflowApprovalSnapshot, type WorkflowStage } from "./WorkflowApprovalDetails";
+import { parseWorkflowReadModel } from "./workflowReadModel";
 
 export type WorkspaceStage = "research" | "script" | "storyboard" | "voice" | "episode" | "review" | "publish";
 
 /** واجهة عرض فقط؛ ليست مصدرًا جديدًا لحالة الاعتماد ولا تتجاوز بوابات المحرك. */
 export const EpisodeWorkspaceBar: React.FC<{
   episodeId: string;
+  channelId: string;
   title: string;
   stage: WorkspaceStage;
   onStage: (stage: WorkspaceStage, target?: { sceneId?: string; line?: number }) => void;
@@ -20,9 +22,31 @@ export const EpisodeWorkspaceBar: React.FC<{
   saveState: "saved" | "dirty" | "saving" | "error";
   scriptDirty: boolean;
   researchDirty?: boolean;
-  /** Provided only by the unified workflow engine, never inferred here. */
-  approvals?: WorkflowApprovalSnapshot;
-}> = ({ episodeId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false, approvals }) => {
+}> = ({ episodeId, channelId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false }) => {
+  const [approvals, setApprovals] = useState<WorkflowApprovalSnapshot | null>(null);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    setApprovals(null);
+    setWorkflowError(null);
+    const refresh = async () => {
+      try {
+        const raw = await api.workflowApprovals(episodeId, channelId);
+        const parsed = parseWorkflowReadModel(raw, channelId, episodeId);
+        if (alive) { setApprovals(parsed); setWorkflowError(null); }
+      } catch (error) {
+        if (alive) {
+          setApprovals(null); // Never display a stale green approval after a failed refresh.
+          setWorkflowError((error as Error).message.includes("404") || (error as Error).message.includes("مسار غير معروف")
+            ? "بانتظار ربط واجهة القراءة بمحرك الاعتمادات الموثوق"
+            : "تعذر التحقق من سجل الاعتمادات: " + String((error as Error).message));
+        }
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 15000);
+    return () => { alive = false; window.clearInterval(timer); };
+  }, [episodeId, channelId, plan]);
   const [review, setReview] = useState<ReviewSummary | null>(null);
   const [sceneReview, setSceneReview] = useState<SceneReviewSummary | null>(null);
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
@@ -70,7 +94,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     storyboard: board ? `مراجعة اللوحات الحالية: ${board.approved}/${board.total} (لا تعادل اعتماد المحرك)` : "تقرير اللوحات غير متاح",
     voice: `المقاطع الصوتية المطابقة: ${narration.length - missingAudio}/${narration.length}؛ لا يثبت الاستماع أو الاعتماد`,
     motion: sceneReview ? `مراجعة المشاهد: ${sceneReview.ok}/${sceneReview.total}؛ لا تعادل اعتماد الحركة` : "مراجعة المشاهد غير متاحة",
-    review: "تتطلب مشاهدة الفيلم كاملًا بالصوت والصورة بسرعة طبيعية وتوثيق الملاحظات",
+    av_review: "تتطلب مشاهدة الفيلم كاملًا بالصوت والصورة بسرعة طبيعية وتوثيق الملاحظات",
     master: published ? "توجد بيانات نشر؛ الاعتماد الرسمي يحتاج سجله الخاص" : "لا يثبت الرندر أو وجود الملفات موافقة صاحب المشروع",
   };
   const visible = showAll ? notes : notes.slice(0, 3);
@@ -91,11 +115,11 @@ export const EpisodeWorkspaceBar: React.FC<{
             aria-current={stage === item.tab || (stage === "research" && item.key === "script") ? "step" : undefined}
             onClick={() => onStage(item.tab)}>
             <span className="ew-stage-number">{index + 1}</span>
-            <span><strong>{item.title}</strong><small>{approvalLabel(approvals?.[item.key])}</small></span>
+            <span><strong>{item.title}</strong><small>{approvalLabel(approvals?.stages[item.key])}</small></span>
           </button>
         ))}
       </nav>
-      <WorkflowApprovalDetails approvals={approvals} technical={technical} />
+      <WorkflowApprovalDetails approvals={approvals} error={workflowError} technical={technical} />
       {notes.length ? (
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
           <button className="ew-attention-title" type="button" aria-expanded={attentionOpen}
