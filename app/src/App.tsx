@@ -5,14 +5,15 @@ import { StudioStartGuide } from "./ui/StudioStartGuide";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
-import { planIssues } from "../../src/plan/validate";
 import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
-import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import type { WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import { EpisodeJourneyBar } from "./workspace/EpisodeJourneyBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
+import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
 import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
@@ -116,8 +117,6 @@ export const App: React.FC = () => {
   const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
   /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
   const scriptDirtyRef = useRef(false);
-  /** الحلقات التي جُلبت آياتها في هذه الجلسة */
-  const quranSynced = useRef(new Set<string>());
 
   const say = (msg: string, err = false) => {
     setToast({ msg, err });
@@ -127,7 +126,7 @@ export const App: React.FC = () => {
   const reloadChannels = useCallback(() => api.channels().then(setChannels).catch((e) => say(e.message, true)), []);
   const reloadKeys = useCallback(
     () =>
-      api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: Boolean(keys.QF_CLIENT_ID?.set && keys.QF_CLIENT_SECRET?.set) })).catch(() => {}),
+      api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: false })).catch(() => {}),
     [],
   );
   useEffect(() => {
@@ -198,19 +197,7 @@ export const App: React.FC = () => {
       setMedia(d.media);
       setExtra({ issues: d.issues, keys: d.keys });
       setPlanState("saved");
-      // مرة لكل حلقة في الجلسة: جلب نصوص الآيات (والتلاوة إن اختيرت) تلقائيًا من Quran Foundation
-      if (d.keys.quran && !quranSynced.current.has(`${channelId}:${id}`)) {
-        quranSynced.current.add(`${channelId}:${id}`);
-        api.quran(id, ch).then((r) => {
-          if (r.result?.failed?.length) say(`تعذّر جلب: ${r.result.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`, true);
-          return api.episode(id, ch);
-        }).then((n) => {
-          if (channelRef.current !== ch || episodeRef.current !== id) return;
-          setPlan(n.plan);
-          setMedia(n.media);
-          setExtra({ issues: n.issues, keys: n.keys });
-        }).catch((e) => say(`تعذّر جلب الآيات: ${(e as Error).message}`, true));
-      }
+
     }).catch((e) => say(e.message, true));
   }, [flushPlan, channelId]);
   // تُحمَّل الحلقة بعد وصول قائمة حلقات القناة الحالية فقط، فلا تُطلب حلقة القناة السابقة بعد التبديل
@@ -324,27 +311,19 @@ export const App: React.FC = () => {
         </header>
 
         {EPISODE_TABS.includes(tab) && plan && check && epId ? (
-           <EpisodeWorkspaceBar
-             key={`${channelId}:${epId}`}
+           <EpisodeJourneyBar
+             key={`journey:${channelId}:${epId}`}
              episodeId={epId}
              channelId={channelId}
              title={plan.title}
+             refreshKey={homeKey}
              stage={tab as WorkspaceStage}
-             onStage={(stage, target) => {
+             onStage={(stage) => {
                if (stage !== tab && !confirmLeaveScript()) return;
-               if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
                setTab(stage);
-               if (target?.line && stage === "script") {
-                 setTimeout(() => scriptRef.current?.goToLine(target.line!), 50);
-               }
              }}
-             check={check}
-             issues={planIssues(plan, channel)}
-             plan={plan}
-             media={media}
              saveState={planState}
-             scriptDirty={scriptDirty}
-             researchDirty={researchDirty}
+             unsaved={scriptDirty || researchDirty}
            />
          ) : null}
 
@@ -494,6 +473,17 @@ export const App: React.FC = () => {
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
+          <>
+          <SceneProductionPanel
+            key={`scene-workflow:${channelId}:${epId}`}
+            episodeId={epId}
+            channelId={channelId}
+            onOpenScene={(id) => setRequestedSceneId(id)}
+            onOpenStoryboard={() => setTab("storyboard")}
+            onOpenScript={() => setTab("script")}
+            onOpenPublish={() => setTab("publish")}
+            onUpdated={() => setHomeKey(k => k + 1)}
+          />
           <EpisodeTab
             key={epId}
             episodeId={epId}
@@ -513,6 +503,7 @@ export const App: React.FC = () => {
             }}
             onOpenVoice={() => setTab("voice")}
           />
+          </>
         ) : (
           <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}

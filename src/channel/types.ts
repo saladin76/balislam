@@ -27,13 +27,6 @@ export type ChannelConfig = {
   masterTheme: "paper" | "family" | "night" | "warm";
   /** رمز القناة (افتراضيًا باء التشغيل) */
   logo?: LogoSpec;
-  /** ترجمة معاني القرآن للقنوات غير العربية: معرّف المورد في Quran Foundation واسمه للنسبة. */
-  quranTranslation?: { id: number; name: string };
-  /** تلاوة الآيات من Quran Foundation (اختياري): معرّف التلاوة واسم القارئ. بدونها تُعرض الآية نصًّا فقط. */
-  /** Default Quran Foundation reciter; AlQuran Cloud is selected independently per episode. */
-  recitation?: { id: number; name: string };
-  /** AlQuran Cloud preview-only reciter for this channel: never grants rights or affects production rendering. */
-  alquranPreviewRecitation?: { edition: string; name: string };
   domains: Record<string, ChannelDomain>;
   /** جدول النشر: يوم الحلقة الطويلة (0 الأحد … 6 السبت) وعدد الشورتس اليومية */
   schedule?: { longDay: number; time?: string; shortsPerDay?: number };

@@ -86,7 +86,7 @@ describe("local approved Quran recordings are bound to script text and real play
       const approved = { "53:39": {
         provider: "manual", reciter: "قارئ مسموح بنشره", rightsEvidence: "https://rights.example.com/permission",
         parts: [{ file: name, duration: 1.2 }], fetchedAt: "2026-11-01", approvedAt: "2026-11-02",
-        approvedBy: "مراجع شرعي", sha256: sha(bytes), textSha256: sha(verse),
+        approvedBy: "مراجع شرعي", reviewNote: "استمعت إلى المقطع كاملًا وراجعت الإذن والنطق", sha256: sha(bytes), textSha256: sha(verse),
       } };
       const indexFile = path.join(recitations, "index.json");
       await writeFile(indexFile, JSON.stringify(approved));

@@ -25,8 +25,8 @@ export type EpisodeProps = {
   /** فصل واحد فقط (للشورت) */
   chapter?: number;
   media?: EpisodeMedia;
-  /** Word motion stays estimated until full narration approval. Recitation is unchanged. */
-  timingMode?: "estimated" | "approved";
+  /** Scene-preview timings use the real clip for review, not final approval. */
+  timingMode?: "estimated" | "scene-preview" | "approved";
   /** هوية القناة (إن غابت: الهوية الافتراضية) */
   identity?: Identity;
   channel?: ChannelInfo;
@@ -41,9 +41,9 @@ export const scenesOf = (p: Pick<EpisodeProps, "plan" | "chapter">): { chapter: 
 export const mediaSrc = (media: EpisodeMedia, rel: string) => (media.mode === "static" ? staticFile(`${media.base}${rel}`) : `${media.base}${rel}${media.query ?? ""}`);
 
 /** Never use unapproved or stale narration word stamps for final motion. */
-export const visualNarrationTimings = (scene: PlanScene, media: EpisodeMedia, timingMode: "estimated" | "approved" = "estimated") => {
+export const visualNarrationTimings = (scene: PlanScene, media: EpisodeMedia, timingMode: "estimated" | "scene-preview" | "approved" = "estimated") => {
   const clip = media.voice[scene.id];
-  return timingMode === "approved" && clip && clip.text === scene.narration.trim()
+  return timingMode !== "estimated" && clip && clip.text === scene.narration.trim()
     ? toFrames(clip.words, config.video.fps) : undefined;
 };
 

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { createQuranClient, QF_URLS } from "../src/quran/client";
 import { composeVerses } from "../src/quran/sync";
 import { parseAyahRef } from "../src/script/quranMeta";
 import { createElevenLabs } from "../src/voice/elevenlabs";
@@ -18,43 +17,7 @@ const mockFetch = (routes: Record<string, (init: RequestInit) => { status?: numb
   return { f, calls };
 };
 
-describe("Quran Foundation", () => {
-  it("يأخذ رمز الدخول بـ Basic ويرسل الترويستين المطلوبتين", async () => {
-    const { f, calls } = mockFetch({
-      "/oauth2/token": () => ({ json: { access_token: "T1", expires_in: 3600 } }),
-      "/verses/by_key/53:39": () => ({ json: { verse: { verse_key: "53:39", verse_number: 39, text_uthmani: "وَأَن لَّيْسَ لِلْإِنسَٰنِ إِلَّا مَا سَعَىٰ" } } }),
-    });
-    const qf = createQuranClient({ clientId: "ID", clientSecret: "SECRET", env: "prelive", fetchImpl: f });
-    const v = await qf.verse("53:39");
-    expect(v.text).toContain("سَعَىٰ");
-    expect(calls[0]!.url).toBe(`${QF_URLS.prelive.auth}/oauth2/token`);
-    expect((calls[0]!.init.headers as Record<string, string>).authorization).toBe(`Basic ${Buffer.from("ID:SECRET").toString("base64")}`);
-    expect(String(calls[0]!.init.body)).toBe("grant_type=client_credentials&scope=content");
-    expect(calls[1]!.url).toBe(`${QF_URLS.prelive.api}/content/api/v4/verses/by_key/53:39?fields=text_uthmani`);
-    expect(calls[1]!.init.headers).toMatchObject({ "x-auth-token": "T1", "x-client-id": "ID" });
-  });
-
-  it("يجدد الرمز مرة عند 401", async () => {
-    let n = 0;
-    const { f } = mockFetch({
-      "/oauth2/token": () => ({ json: { access_token: `T${++n}`, expires_in: 3600 } }),
-      "/verses/by_key/1:1": (init) => ((init.headers as Record<string, string>)["x-auth-token"] === "T1" ? { status: 401 } : { json: { verse: { verse_number: 1, text_uthmani: "بِسْمِ ٱللَّهِ" } } }),
-    });
-    const qf = createQuranClient({ clientId: "a", clientSecret: "b", fetchImpl: f });
-    expect((await qf.verse("1:1")).text).toBe("بِسْمِ ٱللَّهِ");
-  });
-
-  it("يجلب ترجمة المعنى عند طلبها ويحذف الحواشي", async () => {
-    const { f, calls } = mockFetch({
-      "/oauth2/token": () => ({ json: { access_token: "T", expires_in: 3600 } }),
-      "/verses/by_key/53:39": () => ({ json: { verse: { verse_number: 39, text_uthmani: "ن", translations: [{ text: "And that there is not for man<sup foot_note=1>1</sup> except that for which he strives" }] } } }),
-    });
-    const qf = createQuranClient({ clientId: "a", clientSecret: "b", fetchImpl: f });
-    const v = await qf.verse("53:39", { translationId: 20 });
-    expect(calls[1]!.url).toContain("?fields=text_uthmani&translations=20");
-    expect(v.meaning).toBe("And that there is not for man except that for which he strives");
-  });
-
+describe("Local Quran references and verse formatting", () => {
   it("مرجع الآية بالعربية أو اللاتينية أو بالأرقام", () => {
     for (const r of ["النجم 39", "An-Najm 39", "Surah an najm 39", "53:39", "53 39"]) {
       const res = parseAyahRef(r);

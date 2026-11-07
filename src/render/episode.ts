@@ -8,13 +8,14 @@ import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
-import { prepareRenderMedia } from "../plan/collect";
+import { prepareRenderMedia, studioMediaNamespace } from "../plan/collect";
+import { defaultRenderMediaRoot } from "../plan/renderStage";
 import { emptyMedia, type EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
+import { assertEpisodeOutputConfined, assertNoLinkedPath, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
-import { activeRecitation } from "../quran/provider";
 import { QUALITY, type Quality } from "./quality";
 import { loadSceneLedger, sceneReviewItems, sceneReviewSummary, sceneReviewBlockMessage } from "../plan/sceneReview";
 
@@ -30,6 +31,8 @@ export type RenderEpisodeOptions = {
   media?: EpisodeMedia;
   /** استثناء صريح للصيانة فقط؛ لا يُستخدم من الواجهة العامة. */
   allowUnreviewed?: boolean;
+  /** True only for an owner-authorized single-scene review cut. Never a Master approval. */
+  scenePreview?: boolean;
   onProgress?: (pct: number, msg: string) => void;
 };
 
@@ -71,18 +74,22 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   }).map((s) => s.id);
   if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
   // القناة التي اختارت قارئًا: لا آية في النسخة النهائية بلا تلاوتها (مرخّصة أو من القارئ المختار)
-  const chosenReciter = await activeRecitation(scriptPath, o.channel.recitation);
-  const verseGaps = versesWithoutRecitation(plan, media, ids, Boolean(chosenReciter));
-  if (verseGaps.length) throw new Error(`لا يمكن رندر نسخة نهائية وفيها آية بلا تلاوة: ${verseGaps.slice(0, 10).join("، ")}${verseGaps.length > 10 ? "…" : ""}. اجلب نصوص الآيات وتلاواتها أولًا.`);
+  const verseGaps = versesWithoutRecitation(plan, media, ids, true);
+  const unsafeVerseScenes = plan.chapters.flatMap((chapter) => chapter.scenes)
+    .filter((scene) => ids.has(scene.id) && scene.template === "verse-card" &&
+      (!scene.ayahKey || media.recitations[scene.ayahKey]?.source !== "manual"))
+    .map((scene) => scene.id);
+  if (unsafeVerseScenes.length)
+    throw new Error("لا يجوز استخدام تلاوة من مصدر خارجي أو مشهد قرآني بلا تسجيل بشري معتمد: " + unsafeVerseScenes.join("، "));
+  if (verseGaps.length) throw new Error(`لا يمكن رندر نسخة نهائية وفيها آية بلا تلاوة: ${verseGaps.slice(0, 10).join("، ")}${verseGaps.length > 10 ? "…" : ""}. أرفق التلاوة البشرية الخاصة بالحلقة وراجعها أولًا.`);
   const sbRecord = await loadStoryboard(scriptPath);
   const sb = storyboardStatus(plan, sbRecord);
   const blocked = unapprovedScenes(sb, [...ids]);
   if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-  if (!o.allowUnreviewed) {
-    const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
-    const review = sceneReviewSummary(items);
-    if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
-  }
+  // Legacy maintenance flags cannot bypass final AV or scene review.
+  const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
+  const review = sceneReviewSummary(items);
+  if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
   const { assertVoiceApproved } = await import("../voice/review");
   await assertVoiceApproved(scriptPath, plan, media.voice);
   return true;
@@ -95,18 +102,51 @@ export const voiceTimingMode = async (scriptPath: string, plan: Plan, media: Epi
   return await episodeVoiceApproved(scriptPath, plan, media.voice) ? "approved" : "estimated";
 };
 
+/** Reject snapshots from other channels or episodes, including caller supplied media. */
+export const assertRenderMediaOwnership = (scriptPath: string, media: EpisodeMedia): void => {
+  const expected = studioMediaNamespace(scriptPath).render;
+  const valid = new RegExp("^_render/[a-z0-9]+(?:-[a-z0-9]+)*/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*/[a-f0-9]{24}/$");
+  if (media.mode !== "static" || !valid.test(media.base) || !media.base.startsWith(expected))
+    throw new Error("وسائط الرندر لا تخص القناة والحلقة المختارتين.");
+};
+export const assertRenderChannelOwnership = (scriptPath: string, activeChannelId: string): void => {
+  if (studioMediaNamespace(scriptPath).channelName !== activeChannelId)
+    throw new Error("مسار السكريبت لا يخص القناة النشطة.");
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
+  if (opts.scenePreview && opts.quality === "master")
+    throw Error("A scene review preview cannot be used as a Master approval.");
   const log = opts.onProgress ?? (() => {});
+  const scriptPath = await resolveScriptPath(opts.episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
+  const requestedOutput = opts.outFile ?? path.join(await outDirFor(opts.episode),
+    `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
+  await assertEpisodeOutputConfined(scriptPath, requestedOutput);
+  if (opts.quality === "master") {
+    const { requireScenesReadyForMaster } = await import("../studio/sceneService");
+    await requireScenesReadyForMaster(opts.episode);
+  }
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
-  const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
+  const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan, {
+    requireApprovedQuran: opts.quality === "master",
+  }));
+  assertRenderMediaOwnership(scriptPath, media);
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
     const scriptPath = await resolveScriptPath(opts.episode);
     // Every direct Master path (Studio queue, CLI, package/shorts) must enforce
     // distinct explicit script, visual and complete-audio human signoffs BEFORE
     // assembling the expensive animated Master. Preview remains estimated.
+    // The stage snapshot must carry the exact human-reviewed Quran MP3 bytes.
+    // Reject fake/old/cloud recordings and any untrusted caller-supplied media.
+    const { assertRenderedRecitationsMatchApprovals } = await import("../quran/renderContract");
+    await assertRenderedRecitationsMatchApprovals(
+      scriptPath, undefined, media, defaultRenderMediaRoot(),
+    );
     const { assertMotionStartAuthorized } = await import("../voice/motionGate");
     await assertMotionStartAuthorized(scriptPath, plan, media.voice);
     const { assertWorkflowForEpisode } = await import("../workflow/server");
@@ -132,11 +172,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   try {
   const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
-  const timingMode = await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
+  const timingMode = opts.scenePreview ? "scene-preview" as const
+    : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
-  const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
+  const output = requestedOutput;
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
   if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
   await mkdir(path.dirname(output), { recursive: true });
@@ -160,8 +201,11 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
-    await rename(tempOutput, output);
-    return output;
+    if (opts.quality === "master") {
+      const { requireScenesReadyForMaster } = await import("../studio/sceneService");
+      await requireScenesReadyForMaster(opts.episode);
+    }
+    return await publishOutputWithoutOverwrite(tempOutput, output);
   } finally {
     await unlink(tempOutput).catch(() => {});
   }

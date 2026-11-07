@@ -5,7 +5,7 @@ import type { VoiceClip } from "../voice/generate";
  * mode=static: الملفات منسوخة داخل public/_render (للرندر)، وmode=url: تُخدم من الاستوديو.
  */
 /** تلاوة بطاقة آية: ملف واحد، أو عدة ملفات متتالية لمقطع من عدة آيات. */
-export type Recitation = { file: string; duration: number; parts?: { file: string; duration: number }[]; reciter?: string; source?: "licensed" | "quran-foundation" | "alquran-cloud" | "manual" };
+export type Recitation = { file: string; duration: number; parts?: { file: string; duration: number; sha256?: string }[]; reciter?: string; source?: "licensed" | "manual" | "quran-foundation" | "alquran-cloud" };
 export type EpisodeMedia = {
   mode: "static" | "url";
   base: string;
