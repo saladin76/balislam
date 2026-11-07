@@ -67,7 +67,7 @@ export const StoryboardPanel: React.FC<{
 
   useEffect(() => {
     let alive = true;
-    setQuranStatus(null); setQuranMessage("");
+    setQuranStatus(null); setQuranMessage(""); setQuranAudit(null);
     api.missingQuranTexts(episodeId).then(({ status }) => {
       if (alive) setQuranStatus(status);
     }).catch((e) => {
