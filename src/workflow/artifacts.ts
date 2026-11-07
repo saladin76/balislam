@@ -32,6 +32,13 @@ export const resolveArtifact = async (scope: WorkflowIdentity, name: string): Pr
   // Shared channel imagery may be explicitly included as `channel-images/...`.
   const library = path.join(scope.channelsRoot, scope.channel, "images");
   const isLibrary = name.startsWith("channel-images/");
+  if (isLibrary) {
+    const channelDir = await realpath(path.join(scope.channelsRoot, scope.channel));
+    const st = await lstat(library);
+    if (!st.isDirectory() || st.isSymbolicLink() ||
+        await realpath(library) !== path.join(channelDir, "images"))
+      throw new Error("Unsafe shared image library.");
+  }
   const base = isLibrary ? library : episodeDir;
   const sub = isLibrary ? name.slice("channel-images/".length) : name;
   if (!validRelative(sub)) throw new Error("Unsafe shared image path.");
