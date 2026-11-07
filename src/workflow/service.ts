@@ -17,7 +17,7 @@ import {
 } from "./store.ts";
 import { collectActualArtifactDigests, resolveArtifact, sha256File, sha256FileAndEpoch, type ArtifactManifest } from "./artifacts.ts";
 import { signServerEvidence, type EvidenceProof } from "./trust.ts";
-import { toWorkflowInspectionView } from "./view.ts";
+import { toWorkflowInspectionView, toStudioWorkflowUiSnapshot } from "./view.ts";
 
 export type WorkflowClientCommand = {
   action: "submit" | "approve" | "reject" | "reopen";
@@ -105,6 +105,8 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
       snapshot, ledger: verifiedLedger,
       // Only the sanitized view is suitable for serialized HTTP responses.
       view: toWorkflowInspectionView(verifiedLedger, snapshot, actor.role),
+      // PR #74 expects schemaVersion 3 with signed event chain and server-computed currentApproval.
+      uiSnapshot: toStudioWorkflowUiSnapshot(verifiedLedger, snapshot),
     };
   });
   const command = async (raw: WorkflowClientCommand) => {
