@@ -58,3 +58,42 @@ Calls requiring integration after merging this independent PR (none are patched 
 ### Verification
 
 New regression tests: `tests/workflow-gates.test.ts` cover six-stage progression, blocked renders and publication, required human role/evidence, post-approval edits, no resurrection of old approvals, rejection/resubmission, in-review changes, simultaneous writers, path/symlink protection, corrupted-ledger fail-closed behavior and cross-channel isolation. After integration, rerun TypeScript, all Vitest and the isolated Mac review against the final integration SHA. **No production render, auto-Master, publishing, migration or Vercel calls in this PR.**
+
+## PR #77 — hardened engine contract and mandatory integration
+
+**Security boundary:** this branch is an isolated server-side engine, NOT an activated production gate. No route, audio generator, render process or uploader is modified in this PR. The central integration must wire every entrypoint and test all four gates before declaring 100%.
+
+### Signed durable decisions
+
+- Set BAL_WORKFLOW_HMAC_KEY in the trusted server environment to a high-entropy secret of at least 32 bytes. There is no default. Never commit or expose it. Missing key means fail closed. Key rotation requires a verified migration.
+- Every persisted workflow-approvals.json ledger uses HMAC-SHA256, an exclusive episode lock, exclusive temporary file, file sync, atomic rename and directory sync. Invalid signatures, corrupt JSON and foreign-episode paths fail closed.
+- Approval records carry authenticated owner ID, UTC date, content version, artifact SHA-256, cumulative fingerprint, evidence source receipts, approvalEventSeq and prerequisiteApprovalSeq. New upstream approvals cannot silently revive prior downstream signoffs even if old bytes return.
+- The history and its stage states are signed as one document; attempts to edit approval events or Master SHA without the server key fail validation. A privileged rollback of the entire previously signed file would still need an external monotonic revision authority to detect.
+
+### Server-only artifact and evidence verification
+
+- src/workflow/artifacts.ts accepts a configuration-owned manifest and rehashes real regular files inside the owning episode, plus explicitly listed channel-images. Missing files, traversal, symlinks and other episodes are rejected.
+- The script stage must include script.md plus all material Quran/source review ledgers. Storyboard inputs include approved scene/visual manifests and image files. Voice inputs include MP3 bytes, narration/tone and full listening-review records. Motion and AV inputs include real output and review records. Missing a material dependency is a blocker.
+- Master stage SHA is exactly SHA-256 of the final Master MP4 file bytes; never a preview, filename, JSON wrapper or timestamp.
+- src/workflow/trust.ts signs short-lived evidence attestations bound to stage, current fingerprint and authenticated approver. Each required evidence key has a source file, file SHA and independent checker name. src/workflow/service.ts independently rehashes the evidence files, including when inspecting current status and before guarded operations.
+- A cryptographically valid evidence record does NOT prove its semantic truth: the central integration must implement qualified script/Quran checks, visual review, full audio listening, synchronized motion checks, full 1x audiovisual viewing and real publication rights validators. File existence, UI booleans, test success or Drive delivery are not approvals.
+
+### Restricted API/production port contract
+
+- src/workflow/service.ts exports createTrustedWorkflowService with three trusted callbacks: authenticate, currentManifest and verifiedEvidence. Authentication must be based on real server-side credentials, not caller-supplied role or a localhost header.
+- The only permitted client command fields are action, stage, expectedFingerprint and note. The service rejects any supplied actor, role, snapshot, source path or evidence. GET status must also use authenticated server-derived state.
+- src/workflow/ports.ts exports createWorkflowProtectedPorts(service, withArtifactLock). The edit/read lock must be the same lock used by all script, Storyboard, voice, motion, Master and publishing writes. Without it, no production authorization is safe.
+- Protected ports are generateVoice (script and Storyboard), renderFinalMotion (plus approved full audio), renderMasterCandidate (plus motion and complete 1x AV review), and publishExactMaster (all six approvals). Master rendering creates an unapproved candidate, never automatic approval.
+- Publishing receives only a private frozen copy of the previously owner-approved Master, verified byte-for-byte with the current Master SHA. The copy is deleted after callback success/failure and never reused as a human approval.
+- REST routes, desktop/CLI commands, queue runners, batch jobs and uploaders must call these ports. An alternative unguarded route is a blocker. The central integration must test zero side effects for denied operations with an isolated fake renderer/uploader.
+
+### Mandatory acceptance and status
+
+1. Run npm ci, npm run typecheck, the workflow-gates, workflow-service-security and workflow-integration-contract Vitest files, then npm test and npm run gate on a complete isolated repository clone.
+2. Run isolated concurrent mutation and cancellation tests using cloned episode files, check signed history integrity, invalidations, cross-channel isolation, symlinks, missing or altered review evidence, untrusted client role/evidence and old-byte restoration.
+3. Test actual API, CLI, audio, final-motion, Master and publish endpoints after central integration. Verify that every failed gate prevents work starting, and that the publication dispatch uploads precisely the frozen approved bytes.
+4. Carry out the full normal-speed 1x AV review and real-device landscape/portrait tests; mark NOT_RUN until actual signed owner review. Do not confuse test-generated synthetic evidence with a human check.
+
+**GitHub CI environment blocker:** on 2026-11-07, initial workflow runs for this branch failed within seconds with zero executed job steps and inaccessible job logs (BlobNotFound). This does not establish pass or code failure. Recheck latest commit after runner availability is restored.
+
+**Status: DRAFT / NOT PRODUCTION-READY.** No merge, Vercel, automatic Master, publishing or Mac-production edits were performed.
