@@ -12,7 +12,7 @@ import { parseScript } from "../script/parse";
 import { quranFromScript } from "./scriptText";
 import { recitationsDirFor, type RecitationIndex } from "./sync";
 
-import { decodedAudioDuration } from "../voice/audioIntegrity";
+import { decodedAudioDuration, isOwnedRegularAudio } from "../voice/audioIntegrity";
 
 const ffmpeg = promisify(execFile);
 export type OwnAudioCandidate = {
@@ -28,8 +28,10 @@ const durationClose = (expected: number, actual: number) =>
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
 const readJson = async <T>(file: string, fallback: T): Promise<T> => {
   try {
-    const content = await readFile(file, "utf8");
-    const value: unknown = JSON.parse(content);
+    const info = await lstat(file);
+    if (!info.isFile() || info.isSymbolicLink())
+      throw Error("ملف مراجعة القرآن ليس ملفًا محليًا عاديًا.");
+    const value: unknown = JSON.parse(await readFile(file, "utf8"));
     if (!value || typeof value !== "object" || Array.isArray(value)) throw Error("بيانات المراجعة غير صالحة.");
     return value as T;
   } catch(e) {
@@ -83,6 +85,11 @@ export const prepareOwnRecitation = async (
     const name = `manual-${key.replace(/[:]/g, "-")}-${nonce.replace(/-/g,"").slice(0,12)}.mp3`;
     const originalDir = path.join(dir, "originals");
     await mkdir(originalDir, { recursive: true });
+    const rootInfo = await lstat(dir);
+    const originalsInfo = await lstat(originalDir);
+    if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink() ||
+        !originalsInfo.isDirectory() || originalsInfo.isSymbolicLink())
+      throw Error("مجلد التسجيلات الأصلي مرتبط رمزيًا خارج مساحة الحلقة.");
     const originalFile = path.join("originals", nonce + ext);
     const input = path.join(dir, originalFile);
     const temp = path.join(dir, "." + name + ".tmp.mp3");
@@ -161,8 +168,8 @@ export const approveOwnRecitation = async (
     const candidate=pending[key];
     if (!candidate || !validName(candidate.file) || !validOriginal(candidate.originalFile))
       throw Error("لا توجد نسخة تلاوة أصلية وصالحة تنتظر المراجعة.");
-    if (!(await lstat(path.join(dir, candidate.file))).isFile() ||
-        !(await lstat(path.join(dir, candidate.originalFile))).isFile())
+    if (!await isOwnedRegularAudio(dir, candidate.file) ||
+        !await isOwnedRegularAudio(dir, candidate.originalFile))
       throw Error("لا يُقبل اعتماد تسجيل بملف مرتبط رمزيًا خارج المجلد.");
     const bytes=await readFile(path.join(dir,candidate.file));
     const original=await readFile(path.join(dir,candidate.originalFile));
@@ -212,8 +219,8 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
         !Number.isFinite(part.duration) || part.duration <= 0 ||
         !texts[key] || sha(Buffer.from(texts[key], "utf8")) !== rec.textSha256) continue;
     try {
-      if (!(await lstat(path.join(dir, part.file))).isFile() ||
-          !(await lstat(path.join(dir, rec.originalFile!))).isFile()) continue;
+      if (!await isOwnedRegularAudio(dir, part.file) ||
+          !await isOwnedRegularAudio(dir, rec.originalFile!)) continue;
       const data = await readFile(path.join(dir, part.file));
       const original = await readFile(path.join(dir, rec.originalFile!));
       if (sha(data) === rec.sha256 && sha(original) === rec.originalSha256 &&
