@@ -41,3 +41,4 @@ channels/*/episodes/*/out/*-audio-preview.mp4
 .env.*.tmp
 channels/.*.creating-*/
 channels/*/.*.tmp
+channels/*/episodes/*/.*.tmp
