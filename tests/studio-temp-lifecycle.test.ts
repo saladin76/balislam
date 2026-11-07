@@ -77,7 +77,7 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel: "SIGTERM" | "
       TMPDIR: f.root, TMP: f.root, TEMP: f.root,
       BAL_P0_TRACE: f.trace, BAL_P0_MODE: mode, BAL_P0_FOREIGN: f.foreign,
     };
-    // Tests never pass --commit and hence cannot create real git worktrees.
+    // --commit tests use only the synthetic Git repository in this fixture.
     const child = spawn(process.execPath, [target.script, ...target.args], {
       cwd: target.cwd, env, stdio: ["ignore", "pipe", "pipe"],
     });
@@ -302,6 +302,20 @@ describe("P0 gate-owned temporary files", () => {
     expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
       l.startsWith("worktree "))).toHaveLength(1);
     expect(isolated.git("status", "--porcelain")).toBe("");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("rejects an invalid commit without leaving Git registrations or temp roots", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    const target = { ...isolated.target, args: ["--commit", "this-commit-does-not-exist"] };
+    const r = await execute(f, "ok", null, target);
+    expect(r.code, r.out).toBe(2);
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    expect(readFileSync(path.join(isolated.episode, "script.md"), "utf8")).toBe("IMMUTABLE EPISODE CONTENT\n");
     checkIsolated(f);
   }, 15_000);
 });

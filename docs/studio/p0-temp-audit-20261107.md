@@ -51,3 +51,19 @@ Regression tests additionally cover SIGHUP, failed check after `--commit`, faile
 
 Audit reporting no longer asserts that *all* unrelated /tmp files were inspected and untouched; only root ownership and absence of shared-directory sweeps are verified.
 
+
+## Measured isolated safety evidence (Linux fixture)
+
+Verification used the exact old `scripts/gate.mjs` Git blob `0b1987e47b1d6d2f82a363e28c0583010ecf3d66` as the baseline. The amended cancellable `npm ci` variant was exercised in the same isolated fixture; this is **not** equivalent to running the full GitHub branch on Mac.
+
+- Three independent smoke batches, **13 gate invocations each (39 total)**, all expected statuses observed: four serial passes, expected check failure, SIGTERM (143), SIGINT (130), SIGHUP (129), two parallel successes, mixed parallel success/failure, and synthetic commit-worktree success. Each mock `npx` executed real local `/usr/bin/ffmpeg` against a short test audio sample, created 512 KiB of fake Remotion/webpack-style cache, and linked a sentinel-owned foreign directory. **No gate-owned roots remained once each batch finished.**
+- Allocated blocks before cleanup: **532,480 bytes** for normal fixture cases, **569,344 bytes** for synthetic commit-worktree case. Host free-byte deltas after deleting the entire owned fixture: **+20,480 bytes**, **+20,480 bytes**, **+20,480 bytes**, not interpreted as universal host-leak proof.
+- Four additional synthetic `npm ci` cases returned **0, 1, 143, 130** for success, failure, SIGTERM and SIGINT. Their exact owned roots were removed; each synthetic Git repository retained its original HEAD, one worktree, Git configuration, clean status, and episode file.
+- Simulated SIGKILL left **one** owned temp root and an owned cache file, proving in-process cleanup is impossible on force kill. The isolated supervisor then removed only its own fixture root. Never run automatic stale-root deletion on system `/tmp` by prefix alone.
+- Standalone Chromium probe in this Linux container reached its 20-second timeout; all probe-owned resources were removed by the test supervisor, but **no Chromium/Remotion production leak-free claim** follows.
+
+### Exact head and acceptance blocker
+
+At `8127c45fbe596041d6cb5fd866881b33a7cc4988`, CI, Studio parity and P0 stress workflow all failed **before any job step** (zero steps). These three GitHub Actions outcomes contain no TypeScript, Vitest, or disk audit measurements. Other unrelated PR workflows also showed matching immediate failures around the same time, consistent with a runner/account-level blocker but not enough to establish its precise cause.
+
+The 100% release condition is **not achieved** until GitHub Actions can execute again and the exact-head full-gate serial/parallel/failure/cancellation runs pass with `TEMP_LEAK_AUDIT` measurements. No modification to production Mac, `main`, unrelated components, or Vercel is authorized by this audit.
