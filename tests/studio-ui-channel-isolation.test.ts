@@ -26,10 +26,11 @@ describe("Studio asynchronous channel isolation", () => {
       api.saveScript("001", "دفاتر الزمن", "dafatir-alzaman"),
       api.saveResearch("001", "بحث عن التاريخ", "dafatir-alzaman"),
       api.saveIdentity({} as Parameters<typeof api.saveIdentity>[0], "dafatir-alzaman"),
+      api.saveChannel({} as Parameters<typeof api.saveChannel>[0], "dafatir-alzaman"),
     ];
     setApiChannel("balislam"); // switched while requests are in flight
     await Promise.all(saved);
-    expect(calls).toHaveLength(3);
+    expect(calls).toHaveLength(4);
     for (const call of calls) {
       expect(call.url).toContain("channel=dafatir-alzaman");
       expect(call.url).not.toContain("channel=balislam");
@@ -37,6 +38,7 @@ describe("Studio asynchronous channel isolation", () => {
     }
     expect(calls[0]?.json).toEqual({ text: "دفاتر الزمن" });
     expect(calls[1]?.json).toEqual({ text: "بحث عن التاريخ" });
+    expect(calls[3]?.json).toEqual({ channel: {} });
   });
 
   it("reads episode, research and verification data from the requested channel", async () => {
