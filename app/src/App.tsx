@@ -356,7 +356,7 @@ export const App: React.FC = () => {
         hasGuide={hasGuide} guideLabel={guideLabel} hasLabs={hasLabs} hasTechReviews={hasTechReviews}
         identityDirty={identDirty} voiceConnected={keysOk.voice} episodeId={epId} episodeTitle={plan?.title}
         onHome={() => void navigateManage("home")}
-        onNavigate={navigateManage} onClose={closeNavigation}
+        onNavigate={navigateManage} onClose={closeNavigation} mobileOpen={navOpen}
       />
       {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
       <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
