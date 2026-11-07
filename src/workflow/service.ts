@@ -15,7 +15,7 @@ import {
   approveWorkflowStage, readWorkflow, rejectWorkflowStage, reopenWorkflowStage,
   requireWorkflowGate, submitWorkflowStage, invalidateWorkflowStage, type WorkflowIdentity,
 } from "./store.ts";
-import { collectActualArtifactDigests, resolveArtifact, sha256File, type ArtifactManifest } from "./artifacts.ts";
+import { collectActualArtifactDigests, resolveArtifact, sha256File, sha256FileAndEpoch, type ArtifactManifest } from "./artifacts.ts";
 import { signServerEvidence, type EvidenceProof } from "./trust.ts";
 import { toWorkflowInspectionView } from "./view.ts";
 
@@ -73,7 +73,8 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
           typeof proof.verifier !== "string" || !proof.verifier.trim())
         throw new Error("Malformed independent evidence.");
       const file = await resolveArtifact(deps.scope, proof.file);
-      if (await sha256File(file) !== proof.sha256)
+      const current = await sha256FileAndEpoch(file);
+      if (current.sha256 !== proof.sha256 || current.epoch !== proof.epoch)
         throw new Error(`Trusted evidence source changed: ${proof.key}`);
     }
   };
