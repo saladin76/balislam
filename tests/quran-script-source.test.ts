@@ -190,10 +190,21 @@ describe("local approved Quran recordings are bound to script text and real play
       const approved = { "53:39": {
         provider: "manual", reciter: "قارئ مسموح بنشره", rightsEvidence: "https://rights.example.com/permission",
         parts: [{ file: name, duration: 1.2 }], fetchedAt: "2026-11-01", approvedAt: "2026-11-02",
-        approvedBy: "مراجع شرعي", sha256: sha(bytes), textSha256: sha(verse),
-        originalFile: sourceName, originalSha256: sha(bytes),
+        approvedBy: "مراجع شرعي", reviewNote: "استمعت للتلاوة كاملة وتحققت من مصدرها",
+        sha256: sha(bytes), textSha256: sha(verse),
+        originalFile: sourceName, originalName: "licensed-reader.mp3", originalSha256: sha(bytes),
       } };
       const indexFile = path.join(recitations, "index.json");
+      await writeFile(indexFile, JSON.stringify(approved));
+      expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
+      await writeFile(indexFile, JSON.stringify({
+        "53:39": { ...approved["53:39"], reviewNote: "" },
+      }));
+      expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
+      await writeFile(indexFile, JSON.stringify({
+        "53:39": { ...approved["53:39"], approvedAt: "2999-01-01T00:00:00Z" },
+      }));
+      expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
       await writeFile(indexFile, JSON.stringify(approved));
       expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
       const initially = await ownAudioStatusForScript(scriptPath);
