@@ -89,6 +89,7 @@ let failures=[];
 try {
   writeFileSync(marker,"Audit sandbox owner; other temp directories are out of scope.\n",{flag:"wx",mode:0o600});
   const before=available();
+  const swapBefore=swapUsage();
   // Fail closed before launching two gates if the Mac's system volume is
   // already nearly full. Never try to reclaim another process's files.
   if (parallel && before < 6 * 1024 ** 3) {
@@ -110,7 +111,6 @@ try {
     }
     console.log("VITEST_WORKER_PREFLIGHT passed");
   }
-  const swapBefore=swapUsage();
   const samples=[];
   if (exercise) {
     const root=mkdtempSync(path.join(base,exercise+"-"));
