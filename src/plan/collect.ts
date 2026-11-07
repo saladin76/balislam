@@ -14,6 +14,21 @@ import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
 import { loadChannel } from "../channel";
 import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
 
+/** One predictable namespace per channel + actual episode folder, not a shared
+ * temporary _render/001 folder that collides across the three channels.
+ * scriptPath is the resolved source of truth; no TMPDIR or random identifier.
+ */
+export const studioMediaNamespace = (scriptPath: string) => {
+  const episodeName = path.basename(path.dirname(scriptPath));
+  const episodesFolder = path.basename(path.dirname(path.dirname(scriptPath)));
+  const channelName = path.basename(path.dirname(path.dirname(path.dirname(scriptPath))));
+  if (episodesFolder !== "episodes" ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(channelName) ||
+      !/^[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(episodeName))
+    throw Error("مسار الحلقة غير قياسي؛ لا يمكن مشاركة وسائطها مع قناة أخرى.");
+  return { channelName, episodeName, render: `_render/${channelName}/${episodeName}/` };
+};
+
 export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 
 /** صور اللوحات الوثائقية: مجلد images/ بجوار سكريبت الحلقة (لا تُرفع إلى Git لحجمها) */
@@ -85,8 +100,9 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
 /** ينسخ الوسائط إلى public/_render/<الحلقة> ليضمّها Remotion في الرندر. */
 export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<EpisodeMedia> => {
   const m = await collectMedia(episode, plan);
-  // اسم مجلد آمن حتى لو مُرّر مسار كامل للحلقة
-  const rel = `_render/${path.basename(String(episode)).replace(/[^\w.-]/g, "_")}/`;
+  // Stage media in its owning channel + episode, never another channel's 001.
+  const sourceScript = await resolveScriptPath(episode);
+  const rel = studioMediaNamespace(sourceScript).render;
   const dest = path.join(projectRoot, "public", rel);
   await rm(dest, { recursive: true, force: true });
   for (const d of ["voice", "sfx", "recitations", "images"]) await mkdir(path.join(dest, d), { recursive: true });
@@ -132,8 +148,8 @@ export const prepareStoryboardMedia = async (
     digest.update(asset.name);
     for await (const part of createReadStream(asset.file)) digest.update(part);
   }
-  const safeEpisode = path.basename(String(episode)).replace(/[^a-z0-9_-]/gi, "_");
-  const rel = `_storyboard_media/${safeEpisode}-${digest.digest("hex").slice(0, 16)}/`;
+  const { channelName, episodeName } = studioMediaNamespace(scriptPath);
+  const rel = `_storyboard_media/${channelName}/${episodeName}-${digest.digest("hex").slice(0, 16)}/`;
   const dest = path.join(opts.publicRoot ?? path.join(projectRoot, "public"), rel);
   await mkdir(path.join(dest, "images"), { recursive: true });
   for (const asset of assets) {
