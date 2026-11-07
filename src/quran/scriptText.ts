@@ -41,6 +41,15 @@ export const quranFromScript = (script: ParsedScript): {
   return { texts, ayahs, problems };
 };
 
+/** A provenance label is not proof of review. Old placeholder labels are not sources. */
+export const attributedMeaningSource = (candidate: unknown): string | null => {
+  if (typeof candidate !== "string") return null;
+  const source = candidate.trim();
+  if (!source || /^(?:مدخل يدويًا|مصدر غير موثق|المصدر غير معروف|المصدر التاريخي غير معروف|غير معروف|unknown\b)/iu.test(source))
+    return null;
+  return source;
+};
+
 /** A historical quran.json is read ONLY for meaning/provenance, never verse text. */
 export const historicalMeanings = (
   historical: Record<string, string>,
@@ -51,8 +60,9 @@ export const historicalMeanings = (
     if (!key.endsWith("#meaning") || typeof value !== "string" || !value.trim()) continue;
     result[key] = value;
     const verseKey = key.slice(0, -"#meaning".length);
-    const source = historical[`${verseKey}#meaningSource`] ?? previousSources[verseKey];
-    if (typeof source === "string" && source.trim()) result[`${verseKey}#meaningSource`] = source;
+    const source = attributedMeaningSource(historical[`${verseKey}#meaningSource`]) ??
+      attributedMeaningSource(previousSources[verseKey]);
+    if (source) result[`${verseKey}#meaningSource`] = source;
   }
   return result;
 };
