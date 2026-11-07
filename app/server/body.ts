@@ -6,7 +6,7 @@ export const MAX_BODY_BYTES = 180 * 1024 * 1024;
 
 export const readBody = async (req: IncomingMessage, maxBytes = MAX_BODY_BYTES): Promise<any> => {
   const length = Number(req.headers["content-length"] ?? 0);
-  if (!Number.isFinite(length) || length > maxBytes)
+  if (!Number.isSafeInteger(length) || length < 0 || length > maxBytes)
     throw new HttpError(413, "حجم الطلب أكبر من الحد المسموح.");
   const chunks: Buffer[] = [];
   let received = 0;
@@ -19,8 +19,12 @@ export const readBody = async (req: IncomingMessage, maxBytes = MAX_BODY_BYTES):
   const raw = Buffer.concat(chunks).toString("utf8");
   if (!raw) return {};
   try {
-    return JSON.parse(raw);
-  } catch {
+    const data: unknown = JSON.parse(raw);
+    if (!data || typeof data !== "object" || Array.isArray(data))
+      throw new HttpError(400, "بيانات الطلب يجب أن تكون كائن JSON صالحًا.");
+    return data;
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
     throw new HttpError(400, "بيانات الطلب غير صالحة.");
   }
 };
