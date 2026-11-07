@@ -100,24 +100,29 @@ for (const spec of inputs) {
   const pages=Number(pdfinfo(target).match(/^Pages:\s*(\d+)/m)?.[1]);
   const fonts=tool("pdffonts",[target]).split("\n").slice(2).filter(Boolean);
   const unembedded=fonts.filter(row => !/\s+yes\s+(?:yes|no)\s+(?:yes|no)\s+\d+\s+\d+\s*$/.test(row));
+  const expectedFont=spec.name.startsWith("dafatir-") ? /Amiri/i :
+    spec.name.startsWith("zubdat-") ? /Tajawal/i : /(?:PlexSansArabic|ElMessiri)/i;
+  const expectedFontFound=fonts.some(row => expectedFont.test(row));
   const extracted=tool("pdftotext",["-layout",target,"-"]);
   const board=normalizeStoryboard(JSON.parse(readFileSync(spec.source,"utf8")),spec.source);
   const chosen=board.scenes.filter(scene=>spec.chapter===null||String(scene.chapter)===String(spec.chapter));
   const missingIds=chosen.map(s=>s.id).filter(id=>!extracted.includes(id));
   const numbers=[...html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
   if(pages!==physical||result.scenes!==spec.expectedScenes||numbers.length!==pages||missingIds.length||
-     unembedded.length||!fonts.length) {
+     unembedded.length||!fonts.length||!expectedFontFound) {
     errors.push({case:spec.name,pages,physical,scenes:result.scenes,expected:spec.expectedScenes,
-      labels:numbers.length,missingIds,unembedded});
+      labels:numbers.length,missingIds,unembedded,expectedFontFound});
   }
-  // Render first two and final pages; the full PDF remains in the artifact.
+  // Every physical page is rasterized, including chapter covers and appendices,
+  // to make full-page human visual review possible, not merely spot sampling.
   const previewBase=path.join(out,spec.name+"-preview");
-  tool("pdftoppm",["-f","1","-l",String(Math.min(pages,2)),"-r","115","-png",target,previewBase]);
-  if (pages>2)tool("pdftoppm",["-f",String(pages),"-l",String(pages),"-r","115","-png",target,previewBase+"-last"]);
+  tool("pdftoppm",["-f","1","-l",String(pages),"-r","115","-png",target,previewBase]);
+  const pngs=readdirSync(out).filter(x=>x.startsWith(spec.name+"-preview") && x.endsWith(".png"));
+  if(pngs.length!==pages)errors.push({case:spec.name,issue:"missing page rasters",rasterCount:pngs.length,pages});
   cases.push({name:spec.name,channel:board.channel,status:result.status,sceneCount:result.scenes,
     physicalPages:pages,htmlPages:physical,pdfSha256:result.pdfSha256,
     manifestSha256:result.manifestSha256,fontRecords:fonts.length,unembeddedFonts:unembedded.length,
-    missingSceneIdsInExtract:missingIds,previews:readdirSync(out).filter(x=>x.startsWith(spec.name+"-preview"))});
+    missingSceneIdsInExtract:missingIds,expectedFontFound,previews:pngs});
 }
 for (const [file,original] of sourceHashes)
   if (hash(readFileSync(file))!==original) errors.push({type:"source-changed",file});
