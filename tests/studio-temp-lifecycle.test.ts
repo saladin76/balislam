@@ -1,8 +1,8 @@
 /**
  * P0 regression: exercise the real gate with a fake, local npx executable.
  *
- * No real Vitest/tsc, renderer, Mac production instance or Git worktree is
- * invoked. All children inherit their OWN test-root TMPDIR. Neither the gate
+ * No real Vitest/tsc, renderer or Mac production instance is invoked;
+ * commit-mode worktrees are created only inside a synthetic test repository. All children inherit their OWN test-root TMPDIR. Neither the gate
  * nor these tests may enumerate, clean or modify unrelated system temp paths.
  */
 import { execFileSync, spawn } from "node:child_process";
@@ -26,8 +26,8 @@ const fixture = () => {
   writeFileSync(path.join(foreign, "DO-NOT-DELETE"), "foreign fixture\n");
   const shim = path.join(bin, "npx");
   writeFileSync(shim, `#!/usr/bin/env node
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
-import path from "node:path";
+const { appendFileSync, mkdirSync, writeFileSync } = require("node:fs");
+const path = require("node:path");
 const temp = process.env.TMPDIR;
 if (!temp) process.exit(98);
 for (const name of ["remotion-test", "webpack-test"]) {
@@ -66,7 +66,7 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
       // Kill only process groups whose PIDs were recorded by this fixture.
       // Avoid leaving hanging child test processes after an assertion timeout.
       if (process.platform !== "win32" && existsSync(f.trace)) {
-        const pids = readFileSync(f.trace, "utf8").match(/npx-start (\\d+)/g) ?? [];
+        const pids = readFileSync(f.trace, "utf8").match(/npx-start (\d+)/g) ?? [];
         for (const entry of pids) {
           const pid = Number(entry.slice("npx-start ".length));
           try { process.kill(-pid, "SIGKILL"); } catch { /* already exited */ }
@@ -107,8 +107,8 @@ const isolatedGitRepository = (f: Fixture) => {
   copyFileSync(path.join(projectRoot, "scripts", "git-env.mjs"), path.join(scripts, "git-env.mjs"));
   writeFileSync(path.join(directory, "package.json"), '{"name":"synthetic-gate-repo","private":true}');
   writeFileSync(path.join(directory, "package-lock.json"), '{"name":"synthetic-gate-repo"}');
-  writeFileSync(path.join(directory, ".gitignore"), "node_modules/\\n");
-  writeFileSync(path.join(episode, "script.md"), "IMMUTABLE EPISODE CONTENT\\n");
+  writeFileSync(path.join(directory, ".gitignore"), "node_modules/\n");
+  writeFileSync(path.join(episode, "script.md"), "IMMUTABLE EPISODE CONTENT\n");
   mkdirSync(path.join(directory, "node_modules"));
   const env = cleanGitEnv();
   const git = (...args: string[]) => execFileSync("git", args, { cwd: directory, env, encoding: "utf8" }).trim();
@@ -170,12 +170,12 @@ describe("P0 gate-owned temporary files", () => {
     expect(r.out).toContain("GATE_TEMP_CLEANED true");
     expect(isolated.git("rev-parse", "HEAD")).toBe(isolated.sha);
     expect(isolated.git("status", "--porcelain")).toBe("");
-    expect(isolated.git("worktree", "list", "--porcelain").split("\\n").filter((line) =>
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((line) =>
       line.startsWith("worktree "))).toHaveLength(1);
     expect(readFileSync(path.join(isolated.directory, ".git", "config"), "utf8"))
       .toBe(isolated.configuration);
     expect(readFileSync(path.join(isolated.episode, "script.md"), "utf8"))
-      .toBe("IMMUTABLE EPISODE CONTENT\\n");
+      .toBe("IMMUTABLE EPISODE CONTENT\n");
     checkIsolated(f);
   }, 15_000);
 
