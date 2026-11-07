@@ -9,10 +9,10 @@ import { RenderInternals, renderMedia, renderStill, selectComposition } from "@r
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
-import type { EpisodeMedia } from "../plan/media";
+import { emptyMedia, type EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
-import { browserExecutable, getServeUrl, createIsolatedRenderBundle } from "./bundle";
+import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { activeRecitation } from "../quran/provider";
 import { QUALITY, type Quality } from "./quality";
@@ -188,13 +188,19 @@ const THUMB_MAX_BYTES = 1.9 * 1024 * 1024;
  * إن تجاوز الملف حد يوتيوب تنزل الدقة (1.5× ثم 1×) فلا تُرفض عند الرفع.
  */
 export const renderThumbnail = async (input: { themeId: string; title: string; highlight?: string; element?: string; book?: string; lang?: string }, output: string) => {
-  const serveUrl = await getServeUrl();
-  const channel = loadChannel();
-  const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
-  const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
-  for (const scale of [2, 1.5, 1]) {
-    await renderStill({ serveUrl, composition, inputProps: props, output, scale, overwrite: true, browserExecutable: browserExecutable() });
-    if ((await stat(output)).size <= THUMB_MAX_BYTES) break;
+  // A thumbnail uses shared fonts and art, never unpublished episode audio.
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+    const serveUrl = sandbox.serveUrl;
+    const channel = loadChannel();
+    const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+    const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
+    for (const scale of [2, 1.5, 1]) {
+      await renderStill({ serveUrl, composition, inputProps: props, output, scale, overwrite: true, browserExecutable: browserExecutable() });
+      if ((await stat(output)).size <= THUMB_MAX_BYTES) break;
+    }
+    return output;
+  } finally {
+    await sandbox.cleanup();
   }
-  return output;
 };
