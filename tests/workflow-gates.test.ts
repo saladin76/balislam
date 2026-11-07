@@ -81,6 +81,25 @@ describe("durable Studio workflow — six explicit stages", () => {
     await approveWorkflowStage(scope, { ...inputs(scope, "script", current), evidence: evidence("script") });
   });
 
+  it("rejects missing, forged or mismatched signed evidence even if every client boolean is true", async () => {
+    const { scope, current } = await fixture();
+    const args = inputs(scope, "script", current);
+    await submitWorkflowStage(scope, args);
+    await expect(approveWorkflowStage(scope, { ...args, evidence: Object.fromEntries(STAGE_EVIDENCE.script.map((key) => [key, true])) } as never))
+      .rejects.toThrow(/attestation/);
+    const signed = attestation("script", current);
+    await expect(approveWorkflowStage(scope, { ...args,
+      attestation: { ...signed, mac: hash("forged-signature") },
+    })).rejects.toThrow(/forged|altered/);
+    await expect(approveWorkflowStage(scope, { ...args,
+      attestation: { ...signed, actorId: "fake-owner" },
+    })).rejects.toThrow(/attestation/);
+    await expect(approveWorkflowStage(scope, { ...args,
+      attestation: { ...signed, checkedAt: new Date(Date.now() - 600_000).toISOString() },
+    })).rejects.toThrow(/expired/);
+    expect((await readWorkflow(scope, current)).stages.script.status).toBe("in_review");
+  });
+
   it("invalidates all dependent stages durably when script changes and never resurrects an old approval", async () => {
     const { scope, current } = await fixture();
     await approveAll(scope, current);
@@ -91,6 +110,12 @@ describe("durable Studio workflow — six explicit stages", () => {
     expect(WORKFLOW_STAGES.map((s) => state.stages[s].status)).toEqual(Array(6).fill("needs_reapproval"));
     expect(state.history.filter((e) => e.action === "invalidate")).toHaveLength(6);
     expect((await readWorkflow(scope, current)).stages.script.status).toBe("needs_reapproval");
+    // Re-sign the old exact bytes with a new owner event. Older downstream signoffs
+    // must stay invalid even though their cumulative content hashes match again.
+    await approve(scope, "script", current);
+    const afterNewApproval = await readWorkflow(scope, current);
+    expect(afterNewApproval.stages.script.status).toBe("approved");
+    expect(afterNewApproval.stages.storyboard.status).toBe("needs_reapproval");
     await expect(requireWorkflowGate(scope, current, "publish")).rejects.toThrow();
     const second = await readWorkflow(scope, current);
     expect(second.history.filter((e) => e.action === "invalidate")).toHaveLength(6);
