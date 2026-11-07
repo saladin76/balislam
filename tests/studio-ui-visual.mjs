@@ -115,8 +115,10 @@ try {
     assert("navigate " + name, ok);
   };
   const typeDraft = async (selector, marker) => evaluate("(() => {" +
-    "const el=document.querySelector(" + JSON.stringify(selector) + ");if(!(el instanceof HTMLTextAreaElement))return false;" +
-    "Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,el.value+" + JSON.stringify(marker) + ");" +
+    "const el=document.querySelector(" + JSON.stringify(selector) + ");" +
+    "if(!(el instanceof HTMLTextAreaElement)&&!(el instanceof HTMLInputElement))return false;" +
+    "const owner=el instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;" +
+    "Object.getOwnPropertyDescriptor(owner,'value').set.call(el,el.value+" + JSON.stringify(marker) + ");" +
     "el.dispatchEvent(new Event('input',{bubbles:true}));return el.value.endsWith(" + JSON.stringify(marker) + ");})()");
   const key = async (name, code, value) => {
     await cmd("Input.dispatchKeyEvent", { type: "keyDown", key: name, code, windowsVirtualKeyCode: value });
@@ -134,14 +136,26 @@ try {
   await until(() => evaluate("document.querySelector('[aria-controls=\"ops-pipeline\"]')?.getAttribute('aria-pressed')==='true'"), "keyboard pipeline selection");
   assert("hidden week section not displayed", await evaluate("(() => {const el=document.querySelector('#ops-week');return el?.hidden && getComputedStyle(el).display==='none';})()"));
   await screenshot("02-pipeline-desktop-1440.png");
-
+  assert("ideas subsection open", await click('[aria-controls="ops-ideas"]'));
+  await waitFor(".ops-ideas-col input");
+  const ideaMarker = " [UNSAVED-IDEA-UI]";
+  const ideaInput = ".ops-ideas-col input[placeholder*='عنوان']";
+  assert("new idea typed without saving", await typeDraft(ideaInput, ideaMarker));
+  await delay(200);
+  await screenshot("03-ideas-draft-desktop-1440.png");
   await navigate("إدارة القنوات");
   await waitFor(".studio-channel-grid");
   assert("all three channels rendered", await evaluate("document.querySelectorAll('.studio-channel-tile').length===3"));
-  await screenshot("03-channels-desktop-1440.png");
+  await screenshot("04-channels-desktop-1440.png");
   await resize(820, 1180);
-  await screenshot("04-channels-tablet-820.png");
+  await screenshot("05-channels-tablet-820.png");
   await resize(1440, 900);
+  await navigate("غرف العمليات");
+  await waitFor(".ops-section-nav");
+  assert("ideas subsection reopens", await click('[aria-controls="ops-ideas"]'));
+  await waitFor(ideaInput);
+  assert("unsaved idea survives workspace navigation",
+    await evaluate("document.querySelector(" + JSON.stringify(ideaInput) + ")?.value.endsWith(" + JSON.stringify(ideaMarker) + ")"));
   await navigate("مساحة الحلقة المفتوحة");
   await waitFor(".ew-stages");
   assert("six episode steps", await evaluate("document.querySelectorAll('.ew-stages button').length===6"));
@@ -153,13 +167,13 @@ try {
     await waitFor(selector);
   };
   await goStage("الستوري بورد", ".ew-storyboard-wrap");
-  await screenshot("05-storyboard-desktop-1440.png");
+  await screenshot("06-storyboard-desktop-1440.png");
   await goStage("التعليق الصوتي", ".ew-voice-stage");
-  await screenshot("06-voice-desktop-1440.png");
+  await screenshot("07-voice-desktop-1440.png");
   await goStage("الحركة والمشاهد", ".episode-workspace-app .work");
-  await screenshot("07-scenes-desktop-1440.png");
+  await screenshot("08-scenes-desktop-1440.png");
   await goStage("Master والنشر", ".publish");
-  await screenshot("08-master-desktop-1440.png");
+  await screenshot("09-master-desktop-1440.png");
   await goStage("السكريبت والمصادر", "#script-editor");
   const scriptMarker = " [UI-UNSAVED-SCRIPT]";
   assert("script editor changed locally", await typeDraft("#script-editor", scriptMarker));
@@ -169,7 +183,7 @@ try {
   await navigate("مساحة الحلقة المفتوحة");
   await waitFor("#script-editor");
   assert("script draft survives navigation", await evaluate("document.querySelector('#script-editor')?.value.endsWith(" + JSON.stringify(scriptMarker) + ")"));
-  await screenshot("09-episode-draft-desktop-1440.png");
+  await screenshot("10-episode-draft-desktop-1440.png");
 
   assert("research shortcut available", await click(".ew-research-shortcut"));
   await waitFor("#research-editor");
@@ -185,25 +199,25 @@ try {
   await waitFor("#research-editor");
   assert("research draft survives navigation", await evaluate("document.querySelector('#research-editor')?.value.endsWith(" + JSON.stringify(researchMarker) + ")"));
   await resize(390, 844, true);
-  await screenshot("10-research-mobile-390.png");
+  await screenshot("11-research-mobile-390.png");
   assert("mobile navigation can open", await click(".studio-menu-toggle"));
   await until(() => evaluate("document.querySelector('.studio-shell')?.classList.contains('is-nav-open')"), "mobile sidebar");
-  await screenshot("11-navigation-mobile-390.png");
+  await screenshot("12-navigation-mobile-390.png");
   await key("Escape", "Escape", 27);
   await until(() => evaluate("!document.querySelector('.studio-shell')?.classList.contains('is-nav-open')"), "mobile Escape");
   const openedReview = await evaluate("(() => {const b=[...document.querySelectorAll('.ew-stages button')].find(x=>x.textContent.includes('المراجعة المتكاملة'));if(!b)return false;b.click();return true;})()");
   assert("integrated AV stage opens", openedReview);
   await waitFor(".studio-review-workspace");
-  await screenshot("12-av-mobile-390.png");
+  await screenshot("13-av-mobile-390.png");
   await resize(820, 1180);
-  await screenshot("13-av-tablet-820.png");
+  await screenshot("14-av-tablet-820.png");
   await resize(1440, 900);
-  await screenshot("14-av-desktop-1440.png");
+  await screenshot("15-av-desktop-1440.png");
   await writeFile(path.join(output, "result.json"), JSON.stringify({
     passed: true, testCount: tests.length, tests, date: new Date().toISOString(), chrome: version.Browser,
     origin: "isolated CI runner", wroteEpisodeFiles: false, renderStarted: false, approvalGranted: false,
   }, null, 2));
-  console.log("STUDIO_UI_VISUAL_PASS", JSON.stringify({ checks: tests.length, screenshots: 14 }));
+  console.log("STUDIO_UI_VISUAL_PASS", JSON.stringify({ checks: tests.length, screenshots: 15 }));
 } catch (error) {
   await mkdir(output, { recursive: true });
   await writeFile(path.join(output, "failure.txt"), String(error?.stack || error));
