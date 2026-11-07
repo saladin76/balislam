@@ -42,8 +42,17 @@ const make = async (channel: WorkflowIdentity["channel"] = "balislam", episode =
     current: { id: "logged-in-reviewer", role: "reviewer", authenticated: true },
   };
   let checkFileChange: (() => Promise<void>) | undefined;
+  let pending: Promise<void> = Promise.resolve();
+  const sharedLock = async <T>(work: () => Promise<T>): Promise<T> => {
+    const previous = pending;
+    let release!: () => void;
+    pending = new Promise<void>((resolve) => { release = resolve; });
+    await previous;
+    try { return await work(); } finally { release(); }
+  };
   const service = createTrustedWorkflowService({
     scope,
+    withArtifactLock: sharedLock,
     authenticate: async () => user.current,
     currentManifest: async () => manifest,
     verifiedEvidence: async (stage) => {
