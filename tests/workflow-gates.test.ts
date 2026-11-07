@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { WORKFLOW_STAGES, STAGE_EVIDENCE, stageFingerprint, type WorkflowSnapshot, type WorkflowStage } from "../src/workflow/gates";
+import { signServerEvidence } from "../src/workflow/trust";
+
+process.env.BAL_WORKFLOW_HMAC_KEY = "LOCAL_TEST_ONLY__workflow_gates_256_bit_key_2026_testing";
 import {
   approveWorkflowStage, readWorkflow, rejectWorkflowStage, reopenWorkflowStage,
   requireWorkflowGate, submitWorkflowStage, workflowFileFor,
@@ -15,7 +18,10 @@ const reviewer = { id: "scene-reviewer", role: "reviewer" as const };
 const approvedNote = "I explicitly reviewed this exact artifact at its current revision.";
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const snapshot = (): WorkflowSnapshot => Object.fromEntries(WORKFLOW_STAGES.map((s) => [s, { version: `${s}-v1`, sha256: hash(s + "-v1") }]));
-const evidence = (stage: WorkflowStage) => Object.fromEntries(STAGE_EVIDENCE[stage].map((key) => [key, true]));
+const attestation = (stage: WorkflowStage, current: WorkflowSnapshot, actor = owner, subset = STAGE_EVIDENCE[stage]) => signServerEvidence({
+  stage, fingerprint: stageFingerprint(current, stage), actorId: actor.id, checkedAt: new Date().toISOString(),
+  proofs: subset.map((key) => ({ key, file: "script.md", sha256: hash(stage + ":" + key), verifier: "test_checker" })),
+});
 const inputs = (scope: WorkflowIdentity, stage: WorkflowStage, current: WorkflowSnapshot) => ({
   stage, snapshot: current, expectedFingerprint: stageFingerprint(current, stage), actor: owner, note: approvedNote,
 });
@@ -30,7 +36,7 @@ const fixture = async (channel: StudioChannel = "balislam", episode = "001-sampl
 const approve = async (scope: WorkflowIdentity, stage: WorkflowStage, current: WorkflowSnapshot) => {
   const args = inputs(scope, stage, current);
   await submitWorkflowStage(scope, args);
-  return approveWorkflowStage(scope, { ...args, evidence: evidence(stage) });
+  return approveWorkflowStage(scope, { ...args, attestation: attestation(stage, current) });
 };
 const approveAll = async (scope: WorkflowIdentity, current: WorkflowSnapshot) => {
   for (const stage of WORKFLOW_STAGES) await approve(scope, stage, current);
@@ -45,10 +51,10 @@ describe("durable Studio workflow — six explicit stages", () => {
     await approve(scope, "storyboard", current);
     await expect(requireWorkflowGate(scope, current, "generate_voice")).resolves.toBeUndefined();
     await submitWorkflowStage(scope, inputs(scope, "voice", current));
-    await expect(approveWorkflowStage(scope, { ...inputs(scope, "voice", current), evidence: { every_clip_reviewed: true } }))
+    await expect(approveWorkflowStage(scope, { ...inputs(scope, "voice", current), attestation: attestation("voice", current, owner, ["every_clip_reviewed"]) }))
       .rejects.toThrow(/full_audio_listened/);
     await expect(requireWorkflowGate(scope, current, "final_motion_render")).rejects.toThrow(/voice/);
-    await approveWorkflowStage(scope, { ...inputs(scope, "voice", current), evidence: evidence("voice") });
+    await approveWorkflowStage(scope, { ...inputs(scope, "voice", current), attestation: attestation("voice", current) });
     await expect(requireWorkflowGate(scope, current, "final_motion_render")).resolves.toBeUndefined();
     await expect(requireWorkflowGate(scope, current, "publish")).rejects.toThrow(/motion/);
     await approve(scope, "motion", current);
@@ -66,11 +72,12 @@ describe("durable Studio workflow — six explicit stages", () => {
   it("refuses bypass, forged owner role, stale UI fingerprint and skipped evidence", async () => {
     const { scope, current } = await fixture();
     await expect(submitWorkflowStage(scope, inputs(scope, "voice", current))).rejects.toThrow(/script/);
-    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), evidence: evidence("script") })).rejects.toThrow(/submitted/);
+    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), attestation: attestation("script", current) })).rejects.toThrow(/submitted/);
+    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current) })).rejects.toThrow(/submitted/);
     await submitWorkflowStage(scope, inputs(scope, "script", current));
     await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), actor: reviewer, evidence: evidence("script") })).rejects.toThrow(/owner/);
     await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), expectedFingerprint: hash("old"), evidence: evidence("script") })).rejects.toThrow(/changed/);
-    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), evidence: { script_validated: true } })).rejects.toThrow(/sources_reviewed/);
+    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), attestation: attestation("script", current, owner, ["script_validated"]) })).rejects.toThrow(/sources_reviewed/);
     await approveWorkflowStage(scope, { ...inputs(scope, "script", current), evidence: evidence("script") });
   });
 
