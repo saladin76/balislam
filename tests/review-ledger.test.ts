@@ -1,4 +1,5 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { open, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -39,6 +40,39 @@ describe("سجل التوثيق", () => {
     const after = reviewItems(parseScript(edited, file), await loadLedger(file));
     expect(after.find((i) => i.key === first.key)?.status).toBe("changed");
     expect(reviewSummary(after).ok).toBe(false);
+  });
+
+  it("does not lose historical reviewer evidence on corrupt ledger JSON", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "review-"));
+    testDirs.push(dir);
+    const file = path.join(dir, "script.md");
+    writeFileSync(file, base);
+    const historical = "{ damaged ledger; keep for recovery";
+    const ledgerPath = path.join(dir, "review.json");
+    writeFileSync(ledgerPath, historical);
+    const script = parseScript(base, file);
+    const key = reviewItems(script, null)[0]!.key;
+    await expect(setReview(file, script, key, "verified",
+      "راجعت المصحف والمصدر", "مراجع شرعي", true)).rejects.toThrow(/التاريخي/);
+    expect(await readFile(ledgerPath, "utf8")).toBe(historical);
+  });
+
+  it("serializes concurrent reviewer decisions with an owned lock", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "review-"));
+    testDirs.push(dir);
+    const file = path.join(dir, "script.md");
+    writeFileSync(file, base);
+    const script = parseScript(base, file);
+    const key = reviewItems(script, null)[0]!.key;
+    const lockFile = path.join(dir, "review.json.lock");
+    const held = await open(lockFile, "wx");
+    try {
+      await expect(setReview(file, script, key, "verified",
+        "راجعت المصدر الحالي", "مراجع شرعي", true)).rejects.toThrow(/قيد الحفظ/);
+    } finally { await held.close(); await rm(lockFile); }
+    const items = await setReview(file, script, key, "verified",
+      "راجعت المصدر الحالي", "مراجع شرعي", true);
+    expect(items.find((item) => item.key === key)?.status).toBe("verified");
   });
 
   it("الرفض يحتاج سببًا", async () => {
