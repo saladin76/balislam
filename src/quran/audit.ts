@@ -42,9 +42,15 @@ export type DiffOp = { at: number; op: "sub" | "ins" | "del"; shown: string; ref
 
 /** محاذاة رمزًا برمز (أطول تتابع مشترك) بعد NFC، فلا تتسلسل الفروق بعد أول إضافة أو حذف. */
 export const alignDiff = (shown: string, ref: string): DiffOp[] => {
-  const a = Array.from(shown.normalize("NFC").trim());
-  const b = Array.from(ref.normalize("NFC").trim());
+  // Preserve leading and trailing spaces too: the report must never silently
+  // hide a difference that exists in the manually authored script.
+  const a = Array.from(shown.normalize("NFC"));
+  const b = Array.from(ref.normalize("NFC"));
   const m = a.length, n = b.length;
+  // A long erroneous range must fail explicitly rather than exhaust memory.
+  // Splitting into individual ayah references permits an exhaustive comparison.
+  if (m * n > 4_000_000)
+    throw new Error("المقارنة كبيرة جدًا؛ قسّم نطاق الآيات إلى مراجع أصغر حتى تُعرض جميع الفروق دون اختصار.");
   const L: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0));
   for (let i = m - 1; i >= 0; i--) for (let j = n - 1; j >= 0; j--) L[i]![j] = a[i] === b[j] ? L[i + 1]![j + 1]! + 1 : Math.max(L[i + 1]![j]!, L[i]![j + 1]!);
   const ops: DiffOp[] = [];
@@ -188,7 +194,7 @@ export const writeQuranAuditReport = async (episode: string, result: Awaited<Ret
     const chars = a.shown ? Array.from(a.shown.normalize("NFC")) : [];
     const counts = chars.reduce<Record<string, number>>((m, c) => ((m[classifyChar(c)] = (m[classifyChar(c)] ?? 0) + 1), m), {});
     const ops = a.ops.length
-      ? `<table><thead><tr><th>الموضع</th><th>النوع</th><th>الفئة</th><th>في المعروض</th><th>في المرجع</th><th>سياق المعروض</th></tr></thead><tbody>${a.ops.slice(0, 40).map((o) => `<tr><td>${o.at}</td><td>${OP[o.op]}</td><td>${CLASS_AR[o.cls]}</td><td>${o.shown ? codepoint(o.shown) : "—"}</td><td>${o.ref ? codepoint(o.ref) : "—"}</td><td class=ar>${esc(chars.slice(Math.max(0, o.at - 4), o.at + 4).join(""))}</td></tr>`).join("")}</tbody></table>`
+      ? `<table><thead><tr><th>الموضع</th><th>النوع</th><th>الفئة</th><th>في المعروض</th><th>في المرجع</th><th>سياق المعروض</th></tr></thead><tbody>${a.ops.map((o) => `<tr><td>${o.at}</td><td>${OP[o.op]}</td><td>${CLASS_AR[o.cls]}</td><td>${o.shown ? codepoint(o.shown) : "—"}</td><td>${o.ref ? codepoint(o.ref) : "—"}</td><td class=ar>${esc(chars.slice(Math.max(0, o.at - 4), o.at + 4).join(""))}</td></tr>`).join("")}</tbody></table>`
       : a.reference ? "<p>لا فرق في أي رمز بعد توحيد يونيكود (NFC).</p>" : "";
     return `<article><header><b>${esc(a.surahName)} ${a.from === a.to ? a.from : `${a.from}–${a.to}`}</b><code>${esc(a.key)}</code><span>${a.sceneId ? `بطاقة ${esc(a.sceneId)}` : ""}</span>${STATUS[a.status]}</header>
 <dl>
