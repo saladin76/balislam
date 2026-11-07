@@ -44,6 +44,24 @@ export const SceneProductionPanel: React.FC<Props> = ({
     return () => { alive = false; };
   }, [episodeId, channelId]);
 
+  const renderCurrentScene = async (sceneId: string, sourceSha256: string) => {
+    if (!sessionSecret.trim()) {
+      setError("فعّل جلسة المالك المحلية أولًا لتشغيل المعاينة.");
+      return;
+    }
+    setPending(true);
+    setError("");
+    try {
+      await api.renderSceneAv(episodeId, channelId, sessionSecret, sceneId, sourceSha256);
+      await refresh();
+      setReviewed(false);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
   const currentId = data?.progress.currentScene ?? null;
   const scene = data?.scenes.find(item => item.id === currentId);
   const candidate = currentId ? data?.candidates.scenes[currentId] : null;
@@ -139,7 +157,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
                   ? "الصوت المربوط بالنص متاح. راجع الفيديو كاملًا قبل اعتماده."
                   : "أكمل التعليق الصوتي أو التلاوة البشرية المرفوعة والمراجَعة قبل إنتاج المشهد."}
               </p>
-              <button className="btn small" type="button" onClick={() => onOpenScene(currentId)}>فتح أدوات المشهد</button>
+              <div className="scene-first-actions">
+                <button className="btn small" type="button" onClick={() => onOpenScene(currentId)}>فتح أدوات المشهد</button>
+                {scene.status !== "in_review" && (
+                  <button className="btn primary" type="button"
+                    disabled={pending || !scene.readyForAv}
+                    onClick={() => void renderCurrentScene(currentId, scene.sourceSha256)}>
+                    {pending ? "جارٍ إنتاج معاينة المشهد…" : "إنتاج المشهد بالصوت والصورة"}
+                  </button>
+                )}
+              </div>
             </>
           ) : allApproved && !data.assembly ? (
             <div className="scene-first-task">
