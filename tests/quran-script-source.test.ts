@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { parseScript } from "../src/script/parse";
 import { quranFromScript, historicalMeanings } from "../src/quran/scriptText";
 import { readPlanFile } from "../src/plan/io";
+import { generatePlan } from "../src/plan/generate";
 import { reviewItems, type ReviewLedger } from "../src/script/review";
 import { verifiedOwnRecitations } from "../src/quran/manualAudio";
 import { alignDiff } from "../src/quran/audit";
@@ -44,6 +45,38 @@ describe("Quran script-first text, review and historical meanings", () => {
     } };
     expect(reviewItems(parseScript(makeScript(verse)), ledger)[0]?.status).toBe("verified");
     expect(reviewItems(parseScript(makeScript(verse.replace("وَأَنْ", "وَأَنِ"))), ledger)[0]?.status).toBe("changed");
+  });
+
+  it("keeps legacy meaning in storage but withholds it from verse cards without real attribution", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "script-unknown-translation-"));
+    const scriptPath = path.join(dir, "script.md");
+    const plan: Plan = { chapters: [{ number: 1, title: "Test", scenes: [{
+      id: "c1-s1", template: "verse-card", ayahKey: "53:39",
+      narration: "", line: 7, sfx: [],
+      props: { text: "historical", reference: "النجم 39", meaningSource: "مدخل يدويًا — يحتاج مراجعة" },
+    }] }] } as unknown as Plan;
+    const unknown = { "53:39#meaning": "ترجمة تاريخية غير موثقة" };
+    try {
+      await writeFile(scriptPath, makeScript(verse));
+      await writeFile(path.join(dir, "plan.json"), JSON.stringify(plan));
+      await writeFile(path.join(dir, "quran.json"), JSON.stringify(unknown));
+      const loaded = await readPlanFile(scriptPath);
+      const card = loaded?.chapters[0]?.scenes[0];
+      expect(card?.props.text).toBe(verse);
+      expect(card?.props.meaning).toBeUndefined();
+      expect(card?.props.meaningSource).toBeUndefined();
+      expect(historicalMeanings(unknown)["53:39#meaning"]).toBe(unknown["53:39#meaning"]);
+      expect(historicalMeanings(unknown, { "53:39": "مدخل يدويًا — يحتاج مراجعة" })["53:39#meaningSource"])
+        .toBeUndefined();
+      const regenerated = generatePlan(parseScript(makeScript(verse)), null,
+        { "53:39": verse, "53:39#meaning": unknown["53:39#meaning"]!, "53:39#meaningSource": "مدخل يدويًا — يحتاج مراجعة" });
+      const freshCard = regenerated.chapters.flatMap((ch) => ch.scenes).find((s) => s.template === "verse-card");
+      expect(freshCard?.props.meaning).toBeUndefined();
+      expect(freshCard?.props.meaningSource).toBeUndefined();
+      // An explicitly attributed old translation remains available after migration.
+      const attributed = historicalMeanings({ ...unknown, "53:39#meaningSource": "المترجم الأصلي" });
+      expect(attributed["53:39#meaningSource"]).toBe("المترجم الأصلي");
+    } finally { await rm(dir, { recursive: true, force: true }); }
   });
 
   it("never allows old quran.json verses to override the script, nor new channel attribution to rewrite historical translations", async () => {
