@@ -63,19 +63,36 @@ export const resolveArtifact = async (scope: WorkflowIdentity, name: string): Pr
   if (!within(realBase, real)) throw new Error("Artifact real path escapes scope.");
   return real;
 };
-export const sha256File = async (file: string): Promise<string> => {
-  // O_NOFOLLOW prevents an attacker swapping the leaf to a symlink after lstat.
-  // All parents and writers still require the trusted shared artifact lock.
+/**
+ * Hash the actual file, plus a separately signed on-disk generation marker.
+ * The marker catches edit-then-byte-restore without an intervening workflow read.
+ * ctime is changed by the OS on a real write, and inode changes on atomic replace.
+ * Privileged filesystem rollback still requires an external monotonic anchor.
+ */
+export const sha256FileAndEpoch = async (file: string): Promise<{ sha256: string; epoch: string }> => {
+  // O_NOFOLLOW prevents the final component being swapped to a symlink.
+  // Parents and writers must also be guarded by the shared episode artifact lock.
   const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
-    const stat = await handle.stat();
-    if (!stat.isFile() || stat.nlink !== 1)
+    const before = await handle.stat({ bigint: true });
+    if (!before.isFile() || before.nlink !== 1n)
       throw new Error("Cannot hash a linked or non-regular artifact.");
     const hash = createHash("sha256");
     for await (const bytes of handle.createReadStream({ autoClose: false })) hash.update(bytes);
-    return hash.digest("hex");
+    const after = await handle.stat({ bigint: true });
+    if (before.dev !== after.dev || before.ino !== after.ino ||
+        before.size !== after.size || before.ctimeNs !== after.ctimeNs ||
+        before.mtimeNs !== after.mtimeNs)
+      throw new Error("Artifact changed while being hashed; retry under the shared artifact lock.");
+    const epoch = createHash("sha256").update(JSON.stringify([
+      "studio-file-epoch-v1", before.dev.toString(), before.ino.toString(),
+      before.size.toString(), before.ctimeNs.toString(), before.mtimeNs.toString(),
+    ])).digest("hex");
+    return { sha256: hash.digest("hex"), epoch };
   } finally { await handle.close(); }
 };
+export const sha256File = async (file: string): Promise<string> =>
+  (await sha256FileAndEpoch(file)).sha256;
 const validVersion = (v: string) => typeof v === "string" && v.length > 0 && v.length <= 200;
 
 export const collectActualArtifactDigests = async (
@@ -90,7 +107,7 @@ export const collectActualArtifactDigests = async (
         throw new Error("Master must be a versioned episode-owned MP4 candidate.");
       // Exact bytes, not a JSON container, filename, video metadata or preview hash.
       const file = await resolveArtifact(scope, manifest.master.file);
-      snapshot.master = { version: manifest.master.version, sha256: await sha256File(file) };
+      snapshot.master = { version: manifest.master.version, ...await sha256FileAndEpoch(file) };
       continue;
     }
     const input = manifest.stages[stage];
@@ -100,12 +117,16 @@ export const collectActualArtifactDigests = async (
     if (new Set(names).size !== names.length) throw new Error(`Duplicate artifact reference: ${stage}`);
     if (stage === "script" && !names.includes("script.md")) throw new Error("Script must include actual script.md.");
     const hash = createHash("sha256");
+    const epochHash = createHash("sha256");
     hash.update(JSON.stringify(["studio-stage-artifact-v1", stage, input.version, scope.channel, scope.episode]));
+    epochHash.update(JSON.stringify(["studio-stage-epoch-v1", stage, input.version, scope.channel, scope.episode]));
     for (const name of names) {
       const file = await resolveArtifact(scope, name);
-      hash.update(JSON.stringify([name, await sha256File(file)]));
+      const { sha256, epoch } = await sha256FileAndEpoch(file);
+      hash.update(JSON.stringify([name, sha256]));
+      epochHash.update(JSON.stringify([name, epoch]));
     }
-    snapshot[stage] = { version: input.version, sha256: hash.digest("hex") };
+    snapshot[stage] = { version: input.version, sha256: hash.digest("hex"), epoch: epochHash.digest("hex") };
   }
   return snapshot;
 };
