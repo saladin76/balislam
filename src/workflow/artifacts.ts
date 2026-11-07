@@ -109,7 +109,12 @@ export const snapshotFromFiles = async (scriptPath: string, plan: Plan | null): 
       recorded.push([key, part.file, bytes ? hash(bytes) : null]);
     }
   }
-  snapshot.voice = versioned(JSON.stringify(["voice-v2", index, clips,
+  // Voice approval is of this exact narration and tone, not merely stored MP3 bytes.
+  // Changing tone after storyboard signoff must invalidate voice and later stages,
+  // without invalidating the independently approved visual storyboard.
+  const spokenPlan = plan.chapters.flatMap(c => c.scenes.map(s =>
+    [s.id, s.narration, s.tone ?? null])).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  snapshot.voice = versioned(JSON.stringify(["voice-v3", spokenPlan, index, clips,
     voiceReview ? hash(voiceReview) : null, recitations ? hash(recitations) : null, recorded]));
   const motion = await optionalBytes(path.join(dir, "out", "storyboard-motion.json"));
   if (!motion) return snapshot;

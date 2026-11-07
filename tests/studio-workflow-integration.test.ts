@@ -37,6 +37,11 @@ describe("real-byte Studio workflow snapshots (read-only)", () => {
     x.scene.tone = "dramatic";
     const changedTone = await snapshotFromFiles(x.script, x.plan);
     expect(changedTone.storyboard).toEqual(first.storyboard);
+    expect(changedTone.voice?.sha256).not.toBe(first.voice?.sha256);
+    x.scene.narration = "Rewritten narration after approval";
+    const changedNarration = await snapshotFromFiles(x.script, x.plan);
+    expect(changedNarration.storyboard).toEqual(changedTone.storyboard);
+    expect(changedNarration.voice?.sha256).not.toBe(changedTone.voice?.sha256);
     await writeFile(path.join(x.dir, "review.json"), '{"items":{"citations":"new"}}');
     expect((await snapshotFromFiles(x.script, x.plan)).script?.sha256).not.toBe(first.script?.sha256);
     await writeFile(path.join(x.dir, "script.md"), "sample script v2");
