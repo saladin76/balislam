@@ -121,11 +121,11 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
-  if (!/\\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
+  if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
   await mkdir(path.dirname(output), { recursive: true });
   // Unique per invocation: concurrent landscape/portrait attempts cannot overwrite
   // or remove one another's partial file. Rename is only performed after success.
-  const tempOutput = output.replace(/\\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
+  const tempOutput = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
   try {
     await renderMedia({
       serveUrl,
