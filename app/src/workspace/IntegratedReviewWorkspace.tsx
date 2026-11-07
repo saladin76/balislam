@@ -14,8 +14,9 @@ type ReviewData = {
 export const IntegratedReviewWorkspace: React.FC<{
   episodeId: string;
   channelId: string;
+  hasUnsavedChanges?: boolean;
   onOpen: (stage: "script" | "storyboard" | "voice" | "episode" | "publish", sceneId?: string) => void;
-}> = ({ episodeId, channelId, onOpen }) => {
+}> = ({ episodeId, channelId, hasUnsavedChanges = false, onOpen }) => {
   const [workflow, setWorkflow] = useState<WorkflowApprovalSnapshot | null>(null);
   const [workflowError, setWorkflowError] = useState("");
   useEffect(() => {
@@ -81,8 +82,10 @@ export const IntegratedReviewWorkspace: React.FC<{
     <section className="studio-review-evidence" aria-label="أدلة المراجعة الفنية">
       <article><span>المصادر الموثقة</span><strong>{data?.citations ? `${data.citations.verified}/${data.citations.total}` : "غير متاح"}</strong><small>فحص توثيق، لا اعتماد السكريبت</small></article>
       <article><span>المشاهد المراجَعة</span><strong>{data?.scenes ? `${data.scenes.ok}/${data.scenes.total}` : "غير متاح"}</strong><small>مراجعات منفردة، لا مراجعة AV كاملة</small></article>
-      <article data-workflow-stage="av_review"><span>اعتماد AV الرسمي</span><strong>{workflowLabel(workflow?.stages.av_review?.status)}</strong>
-        <small>{workflow?.stages.av_review?.status === "approved" ? `اعتماد ${workflow.stages.av_review.approval?.by.id} · ${workflow.stages.av_review.approval?.contentVersion}` :
+      <article data-workflow-stage="av_review"><span>اعتماد AV الرسمي</span>
+        <strong>{workflowLabel(hasUnsavedChanges ? undefined : workflow?.stages.av_review?.status)}</strong>
+        <small>{hasUnsavedChanges ? "توجد تعديلات محلية غير محفوظة؛ الاعتماد السابق لا يغطي هذه المسودة." :
+          workflow?.stages.av_review?.status === "approved" ? `اعتماد ${workflow.stages.av_review.approval?.by.id} · ${workflow.stages.av_review.approval?.contentVersion}` :
           workflow?.stages.av_review?.reason || workflowError || "بانتظار الربط بمحرك الاعتمادات الموثوق"}</small></article>
     </section>
     <section className="studio-review-notes" aria-label="ملاحظات المراجعة">
