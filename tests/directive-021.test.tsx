@@ -36,7 +36,8 @@ describe("التوجيه 021", () => {
     const { x, depth, leg, short } = SHOP_CHAIR;
     const gapRect = `<rect x="${x - depth / 2 - 3}" y="${GROUND - short}" width="${leg + 6}" height="${short}"`;
     for (let f = 0; f < p0; f++) expect(world("c1-s7", f), `إطار ${f}`).toContain(gapRect);
-    for (let f = p0 + 30 + 24; f < dur; f++) expect(world("c1-s7", f), `إطار ${f}`).toContain(gapRect);
+    // دورة ضغط واحدة (التوجيه 022): الرفع ينتهي عند p0 + 26
+    for (let f = p0 + 26; f < dur; f++) expect(world("c1-s7", f), `إطار ${f}`).toContain(gapRect);
     // في ذروة الضغط تلمس الساق الأرض فيختفي الفراغ
     expect(world("c1-s7", p0 + 12)).not.toContain(`width="${leg + 6}" height="${short}"`);
   });

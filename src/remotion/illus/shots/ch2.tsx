@@ -6,7 +6,7 @@ import { Cafe, CafeTable, Chair } from "./interior";
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { BuzzArcs } from "./phone";
 import { K, Walker, prog, pz, type CamKey, type ShotCtx } from "./kit";
-import { Counter, Crate, StallBack, StandardWeight } from "./scale";
+import { Counter, Crate, ScaleIncident, StallBack, StandardWeight, scaleEventBeats, scaleEventCast } from "./scale";
 
 /**
  * الحلقة 001 · الفصل 2 «عندما يرتدي الباطل ثوب الحق» (التوجيه 019): أربع وحدات بصرية مترابطة بدل الإخراج العام.
@@ -164,38 +164,36 @@ const COURT = { worker: 1160, proud: 1430 };
 const WINDOWS = [
   { x: 380, y: GROUND - 520 }, { x: 560, y: GROUND - 470 }, { x: 1440, y: GROUND - 560 }, { x: 1640, y: GROUND - 500 }, { x: 260, y: GROUND - 600 }, { x: 1820, y: GROUND - 590 },
 ];
-/** يد البائع تعيد الحبة الزائدة إلى صندوقه (الفصل 1)؛ من زاوية الشاهد الأول تُرى يدًا ترفع حبة من كفة الزبون */
-// الكف فوق كفة البرتقال مباشرة (محسوبة بـhandAt: نحو 1125، 530)
-const VENDOR_RETURN: PoseSpec = { ...POSES.point, lean: 0, head: 18, armFront: { s: 35, e: 58 } };
-/** إطار ما رآه الشاهد الأول (الصورة): اليد والحبة وطرف الكفة، والعاتق ومحوره والكفة الأخرى خارجه */
+/** موضع إطار الصورة على الدكان في c2-s8 (الكفة والصندوق): جزء صغير من المشهد كله */
 const CROP = { x: 1056, y: 470, w: 210, h: 170 };
-/** الدكان كاملًا لحظة الواقعة: الكفتان مستويتان (خمس حبات = الثقل)، ويد البائع تحمل السادسة إلى صندوقه */
-const StallWhole: React.FC<{ frame: number }> = ({ frame }) => {
-  const hand = handAt(VENDOR_RETURN, { x: 1262, y: GROUND + 6, scale: 1.62, flip: true });
-  return (
-    <g>
-      <StallSet frame={frame} vendor={VENDOR_RETURN} />
-      <ValueScale x={1020} tilt={0} left={(p) => <StandardWeight x={p.x} y={p.y} />} right={(p) => <g>{oranges(p, 5)}</g>} />
-      <circle cx={hand.x - 6} cy={hand.y - 4} r={13} fill={ORANGE} stroke={INK} strokeWidth={2} />
-    </g>
-  );
-};
-/** الصورة: ما داخل الإطار ساطع، وما خارجه (الحقيقة كاملة) يظهر خافتًا بمقدار reveal */
-const CroppedView: React.FC<{ frame: number; reveal: number; id: string }> = ({ frame, reveal, id }) => (
-  <g>
-    <defs>
-      <clipPath id={id}>
-        <rect x={CROP.x} y={CROP.y} width={CROP.w} height={CROP.h} />
-      </clipPath>
-    </defs>
-    <rect x={600} y={150} width={1000} height={760} fill={darken(ID.night, 0.4)} />
-    {reveal > 0.01 ? <g opacity={0.5 * reveal}><StallWhole frame={frame} /></g> : null}
-    <g clipPath={`url(#${id})`}>
-      <StallWhole frame={frame} />
-    </g>
-    <rect x={CROP.x} y={CROP.y} width={CROP.w} height={CROP.h} fill="none" stroke={ID.paper} strokeWidth={5} strokeDasharray={reveal > 0.01 ? "16 10" : undefined} />
-  </g>
+/**
+ * التوجيه 022: صورة الشاهد هي ما رآه من زاويته في الفصل 1 حرفيًا: واقعة الميزان نفسها (ScaleIncident) بزاوية «الأول»
+ * مجمَّدة لحظة الرفع؛ الزبون وكيسه يحجبان الكفتين، ولا يظهر إلا يد البائع ترفع حبة. وظل الشاهد نفسه خارج الإطار (هو المصوِّر).
+ * والحقيقة الأوسع طبقة إخراجية منفصلة: اللحظة نفسها بالزاوية الرئيسية بعدها بقليل (الكفتان مستويتان، والحبة إلى الصندوق).
+ */
+const C1S1_WORDS: Record<string, number> = { شخصان: 28, الموقف: 44, ثم: 80, بحكمين: 115 };
+const C1S1 = scaleEventBeats((w, f) => C1S1_WORDS[w] ?? Math.round(225 * f));
+/** لحظة الرفع كما رآها الأول (داخل نافذة زاوية «الأول» في c1-s1) */
+const SEEN_AT = C1S1.b.lift + 13;
+/** اللحظة نفسها كاملة بعد استقرار الكفتين */
+const WHOLE_AT = C1S1.b.lift + 43;
+/** إطار الصورة في عالم الواقعة بزاوية الأول: الزبون من الخلف ويد البائع والحبة؛ ظل الشاهد خارجه */
+const SEEN_VIEW = { x: 830, y: 120, w: 700, h: 394 };
+/** إطار الحقيقة: الدكان كله بالكفتين والصندوق والزبون */
+const WHOLE_VIEW = { x: 700, y: 250, w: 760, h: 428 };
+const WitnessView: React.FC<{ x: number; y: number; w: number; h: number }> = ({ x, y, w, h }) => (
+  <svg x={x} y={y} width={w} height={h} viewBox={`${SEEN_VIEW.x} ${SEEN_VIEW.y} ${SEEN_VIEW.w} ${SEEN_VIEW.h}`} preserveAspectRatio="xMidYMid slice">
+    <rect x={SEEN_VIEW.x - 200} y={SEEN_VIEW.y - 200} width={SEEN_VIEW.w + 400} height={SEEN_VIEW.h + 400} fill={mix(ID.night, ID.copper, 0.3)} />
+    <ScaleIncident frame={SEEN_AT} b={C1S1.b} portrait={false} angle="first" cast={scaleEventCast(SEEN_AT, C1S1)} verdicts={{ first: "", second: "" }} size={0} />
+  </svg>
 );
+const WholeView: React.FC<{ x: number; y: number; w: number; h: number }> = ({ x, y, w, h }) => (
+  <svg x={x} y={y} width={w} height={h} viewBox={`${WHOLE_VIEW.x} ${WHOLE_VIEW.y} ${WHOLE_VIEW.w} ${WHOLE_VIEW.h}`} preserveAspectRatio="xMidYMid slice">
+    <rect x={WHOLE_VIEW.x - 200} y={WHOLE_VIEW.y - 200} width={WHOLE_VIEW.w + 400} height={WHOLE_VIEW.h + 400} fill={mix(ID.night, ID.copper, 0.3)} />
+    <ScaleIncident frame={WHOLE_AT} b={C1S1.b} portrait={false} angle="main" cast={scaleEventCast(WHOLE_AT, C1S1)} verdicts={{ first: "", second: "" }} size={0} />
+  </svg>
+);
+
 /** الهاتف بيد الشاهد الأول (منطقة مستقلة في العالم تقطع إليها الكاميرا بالاتجاهين) */
 const PH = { x: 3600, y: 540 };
 const HeldPhone: React.FC<{ frame: number; thumb: number; sent: number }> = ({ frame, thumb, sent }) => {
@@ -220,9 +218,7 @@ const HeldPhone: React.FC<{ frame: number; thumb: number; sent: number }> = ({ f
       <rect x={PH.x - 60} y={y0 + 16} width={120} height={22} rx={11} fill={darken(ID.night, 0.6)} />
       {/* الصورة: ما رآه من زاويته */}
       <g transform={`translate(${cx} ${cy}) scale(${k}) translate(${-cx} ${-cy})`} opacity={1 - prog(sent, 0.7, 1)}>
-        <svg x={card.x} y={card.y} width={card.w} height={card.h} viewBox={`${CROP.x} ${CROP.y} ${CROP.w} ${CROP.h}`} preserveAspectRatio="xMidYMid slice">
-          <StallWhole frame={frame} />
-        </svg>
+        <WitnessView x={card.x} y={card.y} w={card.w} h={card.h} />
         <rect x={card.x} y={card.y} width={card.w} height={card.h} fill="none" stroke={ID.paper} strokeWidth={4} />
       </g>
       {sent > 0.05 ? <BuzzArcs x={cx} y={card.y - 40} p={sent} /> : null}
@@ -292,27 +288,25 @@ export const CH2_SHOTS: Record<string, Ch2Shot> = {
     },
   },
   "stall-lantern-misused": {
-    nameAr: "الدكان مساءً: مصباح ينير البضاعة (معنى صحيح) ثم يُرفع إلى وجه الزبونة (في غير موضعه)",
+    nameAr: "الدكان مساءً: مصباح ينير البضاعة (معنى صحيح) ثم يُرفع مرة إلى وجه الزبونة (في غير موضعه)",
     place: "دكان الميزان مساءً",
     render: ({ frame, at, portrait }) => {
-      // التوجيه 021: فعل بشري بدل حركة الميزان. البائع يرفع المصباح إلى وجه الزبونة فتحجب عينيها (التصرف الخاطئ)،
-      // ثم يُرى المعنى الصحيح وراءه: يخفضه فتضيء البرتقالات (الضوء يُري)، ثم يرفعه إلى وجهها ثانية: الضوء نفسه في غير موضعه.
-      const tW = at("الخاطئ", 0.3);
+      // التوجيه 022: الترتيب من الاستعمال الصحيح إلى الخاطئ، مرة واحدة. البائع يخفض المصباح فوق البرتقال فتضيء البضاعة
+      // وتنظر إليها الزبونة (الضوء يُري)، ويشتد ضوؤها عند «معنى صحيح»؛ ثم عند «يستخدمه» يرفعه إلى وجهها فتحجب عينيها
+      // وتميل للخلف ويبقى كذلك حتى «موضعه»: الضوء نفسه في غير موضعه.
       const tM = at("معنى", 0.42);
       const tU = at("يستخدمه", 0.7);
-      const highA = prog(frame, tW - 16, tW) * (1 - prog(frame, tM - 14, tM));
-      const highB = prog(frame, tU - 10, tU + 6);
-      const high = Math.max(highA, highB);
+      const high = prog(frame, tU - 10, tU + 6);
       const vendorPose = blendPose(LAMP_LOW, LAMP_HIGH, high);
       const VX = 1340;
       const hand = handAt(vendorPose, { x: VX, y: GROUND + 6, scale: 1.5, flip: true });
       const glare = high;
-      const fruitLit = prog(frame, tM - 6, tM + 10) * (1 - prog(frame, tU - 10, tU));
-      // الزبونة: تنظر إلى البرتقال حين يُضاء، وتحجب عينيها وتميل للخلف حين يُرفع المصباح إلى وجهها
-      const custPose = blendPose(blendPose(POSES.stand, { ...POSES.listen, head: 26, lean: 8 }, fruitLit), { ...POSES.halt, head: -10, lean: -8, armFront: { s: 150, e: 30 } }, glare);
+      const fruitLit = (0.55 + 0.45 * prog(frame, tM - 6, tM + 10)) * (1 - high);
+      const custPose = blendPose(blendPose(POSES.stand, { ...POSES.listen, head: 26, lean: 8 }, prog(frame, 6, 20)), { ...POSES.halt, head: -10, lean: -8, armFront: { s: 150, e: 30 } }, glare);
       return {
         captionBackdrop: 0.3,
-        cam: portrait ? [V(0, 1180, 1.0, 560), V(tW - 18, 1160, 1.2, 520), V(tM - 8, 1200, 1.2, 580), V(tU - 12, 1160, 1.2, 520)] : [K(0, 1160, 1.4, -40), K(tW - 18, 1180, 1.6, -60), K(tM - 8, 1200, 1.6, -20), K(tU - 12, 1180, 1.6, -60)],
+        // العريضة، ثم البضاعة المضاءة عند «معنى»، ثم الوجهان والمصباح عند «يستخدمه»
+        cam: portrait ? [V(0, 1180, 1.0, 560), V(tM - 8, 1200, 1.25, 580), V(tU - 12, 1160, 1.2, 520)] : [K(0, 1160, 1.4, -40), K(tM - 8, 1200, 1.7, -20), K(tU - 12, 1180, 1.6, -60)],
         world: (
           <g>
             <StallBack frame={frame} />
@@ -480,22 +474,26 @@ export const CH2_SHOTS: Record<string, Ch2Shot> = {
 
   // ——— الوحدة 3: الخبر ———
   "roof-news-spreads": {
-    nameAr: "الخبر: الشاهد الأول ينشر ما رآه من زاويته (يد ترفع حبة)، وما حجبه عنه الزبون خارج الصورة، والخبر ينتشر",
+    nameAr: "الخبر: الشاهد الأول ينشر صورة ما رآه من زاويته، والحقيقة الأوسع طبقة منفصلة بجوارها، والخبر ينتشر",
     place: "أسطح المدينة ليلًا، وهاتفه",
     render: ({ frame, at, portrait }) => {
-      // التوجيه 021: النشر والانتقال والنتيجة مفهومة على الهاتف، بلا نص صغير. ينشر صورة صادقة لكنها ناقصة (الفصل 1):
+      // التوجيه 022: صورة الهاتف لا تحتوي إلا ما كان يستطيع رؤيته (زاوية «الأول» في الفصل 1: ظهر الزبون ويد البائع ترفع حبة).
       // 1) على السطح بهاتفه؛ 2) «ينشر»: الصورة على شاشته والإبهام يضغط الإرسال عند «خبرًا» فتطير؛
-      // 3) «لم يتحقق»: الصورة نفسها كبيرة ثم يظهر حولها خافتًا ما لم تلتقطه: الكفتان مستويتان والحبة عائدة إلى الصندوق؛
-      // 4) «لأنه»: النوافذ تضيء واحدة بعد أخرى بالصورة نفسها، وهو يضع يده على صدره عند «عادلة» (مقتنع، لا يكذب).
+      // 3) «لم يتحقق»: صورته وحدها كبيرة، ثم تدخل بجوارها لوحة منفصلة بإطار ذهبي: اللحظة نفسها كاملة (الكفتان مستويتان،
+      //    والحبة إلى الصندوق)؛ صورته تخفت قليلًا ولا تتغير. 4) «لأنه»: النوافذ تضيء واحدة بعد أخرى بصورته هو (ما انتشر)،
+      //    ويده على صدره عند «عادلة» (مقتنع، لا يكذب).
       const tN = at("ينشر", 0.11);
       const tX = at("خبرا", 0.18);
       const tU = at("يتحقق", 0.28);
       const tL = at("لأنه", 0.43);
       const tJ = at("عادلة", 0.84);
-      const PHOTO = { x: 6000, y: 540 };
+      const O = { x: 6000, y: 540 };
+      const seen = portrait ? { x: O.x - 300, y: O.y - 380, w: 600, h: 338 } : { x: O.x + 30, y: O.y - 190, w: 660, h: 371 };
+      const whole = portrait ? { x: O.x - 300, y: O.y + 40, w: 600, h: 338 } : { x: O.x - 690, y: O.y - 190, w: 660, h: 371 };
+      const wIn = prog(frame, tU + 6, tU + 20);
       const cam: CamKey[] = portrait
-        ? [K(0, 980, 1.35, -90), { t: tN - 2, x: PH.x, y: PH.y, z: 1.05, cut: true }, { t: tU - 6, x: PHOTO.x + CROP.w / 2 - 1000 + CROP.x, y: PHOTO.y + CROP.y + CROP.h / 2 - 540, z: 2.4, cut: true }, { t: tU + 2, x: PHOTO.x + 1060 - 1000, y: PHOTO.y, z: 0.95 }, { ...K(tL + 6, 980, 0.95, -60), cut: true }, K(tJ - 10, 980, 1.3, -80)]
-        : [K(0, 980, 1.7, -90), { t: tN - 2, x: PH.x, y: PH.y, z: 1.0, cut: true }, { t: tU - 6, x: PHOTO.x + CROP.w / 2 - 1000 + CROP.x, y: PHOTO.y + CROP.y + CROP.h / 2 - 540, z: 3.4, cut: true }, { t: tU + 2, x: PHOTO.x + 1060 - 1000, y: PHOTO.y - 60, z: 1.45 }, { ...K(tL + 6, 980, 1.1, -60), cut: true }, K(tJ - 10, 980, 1.5, -80)];
+        ? [K(0, 980, 1.35, -90), { t: tN - 2, x: PH.x, y: PH.y, z: 1.05, cut: true }, { t: tU - 6, x: O.x, y: seen.y + seen.h / 2, z: 0.95, cut: true }, { t: tU + 4, x: O.x, y: O.y, z: 0.88 }, { ...K(tL + 6, 980, 0.95, -60), cut: true }, K(tJ - 10, 980, 1.3, -80)]
+        : [K(0, 980, 1.7, -90), { t: tN - 2, x: PH.x, y: PH.y, z: 1.0, cut: true }, { t: tU - 6, x: seen.x + seen.w / 2, y: O.y, z: 2.2, cut: true }, { t: tU + 4, x: O.x, y: O.y, z: 1.3 }, { ...K(tL + 6, 980, 1.1, -60), cut: true }, K(tJ - 10, 980, 1.5, -80)];
       return {
         captionBackdrop: 0.4,
         cam,
@@ -508,21 +506,29 @@ export const CH2_SHOTS: Record<string, Ch2Shot> = {
                 <g key={i}>
                   <Glow cx={w.x} cy={w.y} r={90} color={ID.dawn} opacity={0.6 * on} />
                   <rect x={w.x - 16} y={w.y - 13} width={32} height={26} fill={ID.dawn} opacity={0.3 + 0.7 * on} stroke={INK} strokeWidth={2} />
-                  {/* الصورة نفسها في كل نافذة */}
-                  {on > 0.05 ? (
-                    <svg x={w.x - 13} y={w.y - 10} width={26} height={20} viewBox={`${CROP.x} ${CROP.y} ${CROP.w} ${CROP.h}`} preserveAspectRatio="xMidYMid slice" opacity={on}>
-                      <StallWhole frame={frame} />
-                    </svg>
-                  ) : null}
+                  {/* صورته هو في كل نافذة: ما انتشر هو الجزء الذي رآه */}
+                  {on > 0.05 ? <g opacity={on}><WitnessView x={w.x - 13} y={w.y - 10} w={26} h={20} /></g> : null}
                 </g>
               );
             })}
             <Figure x={980} y={GROUND + 40} scale={1.3} pose={pz(frame, [[0, "hold"], [tJ - 8, "sincere"]])} look={hero} holding={frame >= tJ - 8 ? "none" : "phone"} frame={frame} rim={0.4} rimColor={ID.paper} />
             <RoofWall frame={frame} />
             <HeldPhone frame={frame} thumb={prog(frame, tN + 4, tX)} sent={prog(frame, tX + 2, tX + 16)} />
-            <g transform={`translate(${PHOTO.x - 1000} ${PHOTO.y - 540})`}>
-              <CroppedView frame={frame} reveal={prog(frame, tU + 6, tU + 24)} id="c2s7-crop" />
+            {/* منطقة الصورتين: صورته (إطار ورقي كصورة الهاتف) والحقيقة (إطار ذهبي مضيء) منفصلتان */}
+            <rect x={O.x - 1600} y={O.y - 1100} width={3200} height={2200} fill={darken(ID.night, 0.4)} />
+            <g opacity={1 - 0.35 * wIn}>
+              <rect x={seen.x - 10} y={seen.y - 10} width={seen.w + 20} height={seen.h + 20} rx={18} fill={darken(ID.night, 0.6)} />
+              <WitnessView x={seen.x} y={seen.y} w={seen.w} h={seen.h} />
+              <rect x={seen.x} y={seen.y} width={seen.w} height={seen.h} fill="none" stroke={ID.paper} strokeWidth={5} />
             </g>
+            {wIn > 0.01 ? (
+              <g opacity={wIn} transform={`translate(${(1 - wIn) * (portrait ? 0 : -60)} ${(1 - wIn) * (portrait ? 60 : 0)})`}>
+                <Glow cx={whole.x + whole.w / 2} cy={whole.y + whole.h / 2} r={whole.w * 0.75} color={ID.dawn} opacity={0.35} />
+                <rect x={whole.x - 14} y={whole.y - 14} width={whole.w + 28} height={whole.h + 28} rx={6} fill="none" stroke={ID.copper} strokeWidth={6} />
+                <WholeView x={whole.x} y={whole.y} w={whole.w} h={whole.h} />
+                <rect x={whole.x} y={whole.y} width={whole.w} height={whole.h} fill="none" stroke={ID.dawn} strokeWidth={3} />
+              </g>
+            ) : null}
           </g>
         ),
       };

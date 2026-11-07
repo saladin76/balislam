@@ -486,24 +486,23 @@ export const SHOTS: Record<string, ShotDef> = {
     place: "ورشة نجارة",
     render: ({ frame, at, portrait }) => {
       // التوجيه 021: لا يتحرك الكرسي إلا بيد. الزميل يشير إلى الساق القصيرة، ثم عند «صحيحة» ينحني ويضغط مقدّم المقعد
-      // فيميل الكرسي على ساقه القصيرة حتى تلمس الأرض، ثم يرفع يده فيعود إلى أرجله الثلاث ويظهر الفراغ؛ مرتين (هذا سبب النصيحة)،
+      // فيميل الكرسي على ساقه القصيرة حتى تلمس الأرض، ثم يرفع يده فيعود إلى أرجله الثلاث ويظهر الفراغ؛ دورة واحدة (التوجيه 022)،
       // في لقطة قريبة على الفراغ واليد. والبطل يرفض ويعطي ظهره دون أن ينظر.
       const tR = at("نرفض", 0.12);
       const tA = at("صحيحة", 0.35);
       const tJ = at("جاءت", 0.55);
       const tD = at("نحبه", 0.85);
       const p0 = tA - 6;
-      // ميل الكرسي = مقدار ضغط اليد: ضغطتان، كل منهما نزول ثم رفع
-      const press = (t0: number) => prog(frame, t0, t0 + 8) * (1 - prog(frame, t0 + 16, t0 + 24));
-      const rock = Math.max(press(p0), press(p0 + 30));
+      // ميل الكرسي = مقدار ضغط اليد: ضغطة واحدة، نزول ثم ثبات قصير ثم رفع
+      const rock = prog(frame, p0, p0 + 8) * (1 - prog(frame, p0 + 18, p0 + 26));
       // يجثو على ركبته القريبة بجانب الكرسي (لا ينحني فوقه)، وكفه على مقدّم المقعد فوق الساق القصيرة؛ ومع الضغط يميل قليلًا
       // فتنزل الكف مع مقدّم المقعد إلى موضعه بعد الميل حول قدم الساق الخلفية (المواضع محسوبة بـhandAt)
       const KNEEL = { legFront: { s: 4, e: 96 }, legBack: { s: 70, e: 70 } };
       const PRESS_UP: PoseSpec = { ...POSES.point, lean: 26, head: 22, armFront: { s: 14, e: 12 }, ...KNEEL };
       const PRESS_DOWN: PoseSpec = { ...PRESS_UP, lean: 30, armFront: { s: -2, e: 16 } };
       const POINT_DOWN: PoseSpec = { ...POSES.point, lean: 14, head: 24, armFront: { s: 46, e: 6 } };
-      const pressing = frame >= p0 - 12 && frame < p0 + 58;
-      const tl: [number, PoseSpec][] = [[0, POINT_DOWN], [tR + 6, POSES.talk], [p0 - 12, PRESS_UP], [p0 + 58, POINT_DOWN], [tJ + 14, POSES.talk], [tD, POSES.stand], [tD + 14, POSES.nod]];
+      const pressing = frame >= p0 - 12 && frame < p0 + 32;
+      const tl: [number, PoseSpec][] = [[0, POINT_DOWN], [tR + 6, POSES.talk], [p0 - 12, PRESS_UP], [p0 + 32, POINT_DOWN], [tJ + 14, POSES.talk], [tD, POSES.stand], [tD + 14, POSES.nod]];
       const friendPose = (() => {
         if (pressing && frame >= p0 - 2) return blendPose(PRESS_UP, PRESS_DOWN, rock);
         let i = 0;
@@ -515,8 +514,8 @@ export const SHOTS: Record<string, ShotDef> = {
       return {
         // اللقطات: الاثنان والكرسي؛ البطل يرفض؛ لقطة قريبة على الساق القصيرة واليد طول الضغطتين؛ ثم الاثنان والبطل يعطيه ظهره
         cam: portrait
-          ? [K(0, 880, 1.0), K(tR, 1520, 1.15), { t: p0 - 8, x: 870, y: 730, z: 2.0, cut: true }, { ...K(p0 + 62, 1530, 1.1), cut: true }, K(tD, 1530, 1.25)]
-          : [K(0, 1150, 1.15), K(tR, 1530, 1.67), { t: p0 - 8, x: 880, y: 720, z: 2.5, cut: true }, { ...K(p0 + 62, 1190, 1.15), cut: true }, K(tD, 1220, 1.3)],
+          ? [K(0, 880, 1.0), K(tR, 1520, 1.15), { t: p0 - 8, x: 870, y: 730, z: 2.0, cut: true }, { ...K(p0 + 34, 1530, 1.1), cut: true }, K(tD, 1530, 1.25)]
+          : [K(0, 1150, 1.15), K(tR, 1530, 1.67), { t: p0 - 8, x: 880, y: 720, z: 2.5, cut: true }, { ...K(p0 + 34, 1190, 1.15), cut: true }, K(tD, 1220, 1.3)],
         world: (
           <g>
             <Workshop frame={frame} chairRock={rock} chairMark={prog(frame, p0 - 10, p0) * (1 - prog(frame, tD - 10, tD + 6))} />
