@@ -4,6 +4,11 @@ import { constants } from "node:fs";
 import { lstat, mkdir, mkdtemp, open, readFile, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { assertNoLinkedPath, copyUnlinkedFile, ensureUnlinkedDirectory } from "../render/fsIsolation";
+import { projectRoot } from "../config/paths";
+
+/** Persistent local staging lives outside Vite publicDir; each Remotion bundle
+ * receives only the specific immutable snapshot it is authorized to consume. */
+export const defaultRenderMediaRoot = () => path.join(projectRoot, "renders", ".private-media");
 
 export type RenderStageFile = { kind: "voice" | "sfx" | "recitations" | "images"; name: string; source: string };
 export type RenderStageOptions = { publicRoot: string; signal?: AbortSignal };
