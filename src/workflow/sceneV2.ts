@@ -186,8 +186,17 @@ export const markScenePrepared = (ledger: SceneLedgerV2, sceneId: string, at: st
   event(ledger, sceneId, "prepared", at);
 };
 
-export const beginFinalSceneProduction = (ledger: SceneLedgerV2, sceneId: string, at: string): void => {
+/**
+ * The trusted adapter MUST check current locked Script + Storyboard approvals
+ * under its shared artifact lock. This callback is never provided by clients.
+ */
+export const beginFinalSceneProduction = (
+  ledger: SceneLedgerV2, sceneId: string, at: string,
+  verifyLockedSources: (sceneId: string) => void,
+): void => {
   assertCanProduceScene(ledger, sceneId);
+  insist(typeof verifyLockedSources === "function", "Trusted Script/Storyboard gate is required.");
+  verifyLockedSources(sceneId);
   const s = current(ledger, sceneId);
   insist(["draft", "prepared", "changes_requested", "needs_reapproval"].includes(s.status),
     "Scene is already producing, in review, or approved.");
