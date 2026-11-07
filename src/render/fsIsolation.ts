@@ -82,10 +82,12 @@ export const copyUnlinkedFile = async (source: string, destination: string): Pro
  * If the preferred name exists, choose a unique revision name and return it.
  * Hard links make existence testing and publication one atomic operation. */
 export const publishOutputWithoutOverwrite = async (partial: string, preferred: string): Promise<string> => {
-  if (absoluteMediaPath(path.dirname(partial)) !== absoluteMediaPath(path.dirname(preferred)))
-    throw new Error("يجب أن يكون الملف المرحلي داخل مجلد المخرج نفسه لضمان النشر الذري.");
+  // Validate the paths BEFORE comparing their directories. A linked output
+  // parent is a security failure even when it is also a different directory.
   await assertNoLinkedPath(partial, true);
   await assertNoLinkedPath(path.dirname(preferred));
+  if (absoluteMediaPath(path.dirname(partial)) !== absoluteMediaPath(path.dirname(preferred)))
+    throw new Error("يجب أن يكون الملف المرحلي داخل المجلد نفسه المخصص للمخرج لضمان النشر الذري.");
   const ext = path.extname(preferred);
   for (let n = 0; n < 5; n++) {
     const candidate = n === 0 ? preferred : preferred.slice(0, -ext.length) + `-revision-${randomUUID()}${ext}`;
