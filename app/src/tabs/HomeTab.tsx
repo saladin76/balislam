@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, type Overview } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
+import "./ReleaseReadiness.css";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
@@ -13,25 +14,27 @@ export const stagesOf = (e: Overview): Stage[] => {
   const stale = e.package.video && e.planUpdatedAt && e.package.updatedAt && e.planUpdatedAt > e.package.updatedAt;
   return [
     { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? `صالح · ${fmt(e.check.seconds)}` : `${e.check.errors} خطأ` },
-    { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${e.blocking} يمنع النسخة النهائية` : `${e.scenes} مشهدًا` },
+    { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.release ? (e.release.storyboard.done === e.scenes && e.release.scenes.done === e.scenes && !e.blocking ? "done" : "warn") : "warn", note: !e.scenes ? "لم تُولَّد" : e.release ? `اللوحات ${e.release.storyboard.done}/${e.scenes} · المراجعة ${e.release.scenes.done}/${e.scenes}` : "يلزم فحص اعتماد المشاهد" },
     {
       key: "voice",
       label: "الصوت",
       state: e.voice.total === 0 ? "na" : e.voice.done === e.voice.total ? "done" : e.voice.done ? "warn" : "todo",
       note: e.voice.total === 0 ? "—" : `${e.voice.done} من ${e.voice.total}`,
     },
-    { key: "video", label: "الفيديو", state: e.package.video ? (stale ? "warn" : "done") : "todo", note: e.package.video ? (stale ? "أقدم من آخر تعديل" : `حلقة + ${e.package.shorts} شورت`) : "لم يُصنع" },
+    { key: "video", label: "الفيديو", state: e.release?.master && !stale ? "done" : e.package.video ? "warn" : "todo", note: e.package.video ? (stale ? "أقدم من آخر تعديل" : e.release?.master ? "Master بصوت كامل" : "معاينة / Master غير مثبت") : "لم يُصنع" },
     { key: "publish", label: "النشر", state: e.status.published ? "done" : "todo", note: e.status.published ? e.status.published.date : "لم يُنشر" },
   ];
 };
 
 const nextStep = (e: Overview): { text: string; tab: "script" | "episode" | "publish" } => {
+  if (e.status.published) return { text: "منشورة", tab: "publish" };
   const s = stagesOf(e);
   if (s[0]!.state !== "done") return { text: "أصلح أخطاء السكريبت", tab: "script" };
   if (s[1]!.state !== "done") return { text: "راجع المشاهد وأكمل الناقص", tab: "episode" };
   if (s[2]!.state === "todo" || s[2]!.state === "warn") return { text: "ولّد الصوت", tab: "episode" };
   if (s[3]!.state !== "done") return { text: "اصنع الحلقة وملفات النشر", tab: "publish" };
-  if (s[4]!.state !== "done") return { text: "شاهدها كاملة ثم انشرها", tab: "publish" };
+  if (!e.release?.ready) return { text: `موانع النشر: ${e.release?.blockers.length ?? "فحص غير متاح"}`, tab: "publish" };
+  if (s[4]!.state !== "done") return { text: "النسخة معتمدة · انتقل لخطوات النشر", tab: "publish" };
   return { text: "منشورة", tab: "publish" };
 };
 
@@ -61,10 +64,10 @@ export const HomeTab: React.FC<{
   if (!items) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
   const published = items.filter((e) => e.status.published).length;
-  const ready = items.filter((e) => stagesOf(e).slice(0, 4).every((s) => s.state === "done" || s.state === "na") && !e.status.published).length;
+  const ready = items.filter((e) => e.release?.ready === true && !e.status.published).length;
   const minutes = items.reduce((n, e) => n + e.check.seconds, 0) / 60;
   const visible = selectHomeCards(items, search, filter, sort, (e) =>
-    stagesOf(e).slice(0, 4).every((stage) => stage.state === "done" || stage.state === "na"));
+    e.release?.ready === true);
 
   return (
     <div className="home">
@@ -151,6 +154,7 @@ export const HomeTab: React.FC<{
                     </li>
                   ))}
                 </ol>
+                {!e.status.published && e.release && !e.release.ready ? <details className="release-blockers"><summary>موانع النشر ({e.release.blockers.length})</summary><ul>{e.release.blockers.map((reason, i) => <li key={i}>{reason}</li>)}</ul></details> : null}
                 <footer>
                   <button className={`btn ${next.text === "منشورة" ? "" : "primary"} small`} onClick={() => onOpen(e.id, next.tab)}>
                     {next.text === "منشورة" ? "عرض" : `التالي: ${next.text}`}

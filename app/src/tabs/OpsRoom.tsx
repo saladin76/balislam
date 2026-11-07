@@ -2,6 +2,8 @@ import { styleIds, styleNameAr, styleTemplate } from "../../../src/plan/styles";
 import React, { useEffect, useMemo, useState } from "react";
 import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
+import "./ReleaseReadiness.css";
+import { releaseHandoffReport } from "./releaseHandoff";
 
 /**
  * «غرفة العمليات»: القنوات كلها في شاشة واحدة.
@@ -17,17 +19,18 @@ const styleKey = (s: string) => styleTemplate(s) ?? s;
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-type Stage = "script" | "scenes" | "voice" | "video" | "ready" | "scheduled" | "published";
+type Stage = "script" | "scenes" | "voice" | "video" | "review" | "ready" | "scheduled" | "published";
 const STAGES: { key: Stage; label: string }[] = [
   { key: "script", label: "النص" },
   { key: "scenes", label: "المشاهد" },
   { key: "voice", label: "الصوت" },
   { key: "video", label: "الفيديو" },
+  { key: "review", label: "مراجعة واعتماد" },
   { key: "ready", label: "جاهزة للنشر" },
   { key: "scheduled", label: "مجدولة" },
   { key: "published", label: "منشورة" },
 ];
-const stageOf = (e: Overview): Stage => {
+export const stageOf = (e: Overview): Stage => {
   if (e.status.published) return "published";
   if (e.status.scheduled) return "scheduled";
   const s = stagesOf(e);
@@ -35,6 +38,7 @@ const stageOf = (e: Overview): Stage => {
   if (s[1]!.state !== "done") return "scenes";
   if (s[2]!.state === "todo" || s[2]!.state === "warn") return "voice";
   if (s[3]!.state !== "done") return "video";
+  if (!e.release?.ready) return "review";
   return "ready";
 };
 const tabFor = (st: Stage): "script" | "episode" | "publish" => (st === "script" ? "script" : st === "scenes" || st === "voice" ? "episode" : "publish");
@@ -57,6 +61,7 @@ export const OpsRoom: React.FC<{
 }> = ({ onOpen, onStartIdea, refreshKey }) => {
   const [data, setData] = useState<OpsChannel[] | null>(null);
   const [err, setErr] = useState("");
+  const [copiedRelease, setCopiedRelease] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     api.ops().then(setData).catch((e) => setErr((e as Error).message));
@@ -81,7 +86,7 @@ export const OpsRoom: React.FC<{
 
   const longThisWeek = data.filter((d) => d.channel.schedule && week.some((day) => day.getDay() === d.channel.schedule!.longDay && d.episodes.some((e) => e.status.scheduled === iso(day) || e.status.published?.date === iso(day)))).length;
   const scheduledCount = data.filter((d) => d.channel.schedule).length;
-  const readyCount = all.filter((x) => x.stage === "ready").length;
+  const readyCount = all.filter((x) => x.e.release?.ready === true && !x.e.status.published).length;
   const ideasCount = data.reduce((n, d) => n + d.ideas.length, 0);
 
   const setScheduled = async (ch: string, e: Overview, date: string | undefined) => {
@@ -113,10 +118,44 @@ export const OpsRoom: React.FC<{
       </div>
 
       <nav className="ops-section-nav" aria-label="أقسام غرفة العمليات">
+        <a href="#ops-release">جاهزية النشر</a>
         <a href="#ops-week">الجدول الأسبوعي</a>
         <a href="#ops-pipeline">خط الإنتاج</a>
         <a href="#ops-ideas">بنك الأفكار</a>
       </nav>
+
+      {/* أدلة محلية للجاهزية، لا تعني أن ملفات Claude في worktree آخر ظهرت هنا. */}
+      <section id="ops-release" className="ops-sec ops-release" aria-label="أدلة جاهزية النشر">
+        <div className="ops-release-heading">
+          <div><h2>جاهزية أول حلقة للنشر</h2><p className="help">الفحص للملفات الموجودة في مجلد Studio الحالي فقط. وجود معاينة أو رابط Drive لا يعني اعتماد الفيديو.</p></div>
+          <button className="btn small" type="button" onClick={() => setTick((t) => t + 1)}>تحديث الأدلة</button>
+        </div>
+        <div className="ops-release-grid">
+          {data.map((d) => {
+            const episode = [...d.episodes].filter((e) => !e.status.published && e.id !== "000").sort((a, b) => a.id.localeCompare(b.id))[0];
+            const release = episode?.release;
+            return <article key={d.channel.id} className="ops-release-card" style={{ borderBlockStartColor: color(d.channel.id) }}>
+              <span className="ops-release-channel">{d.channel.name}</span>
+              {!episode ? <p className="help">لا توجد حلقة غير منشورة في هذا المجلد. قد تكون موجودة في worktree آخر.</p> : <>
+                <h3 dir="auto">{episode.id} · {episode.title || episode.dir}</h3>
+                <strong className={release?.ready ? "ops-release-ready" : "ops-release-blocked"}>{release?.ready ? "اجتازت بوابات الجاهزية المحلية" : "ليست جاهزة للنشر"}</strong>
+                {release ? <>
+                  <p className="ops-release-numbers">الستوري بورد {release.storyboard.done}/{release.storyboard.total} · المشاهد {release.scenes.done}/{release.scenes.total} · الصوت {release.voice.done}/{release.voice.total}</p>
+                  {release.blockers.length ? <details className="release-blockers" open><summary>الموانع ({release.blockers.length})</summary><ul>{release.blockers.slice(0, 5).map((reason, i) => <li key={i}>{reason}</li>)}</ul>{release.blockers.length > 5 ? <p className="help">و{release.blockers.length - 5} موانع أخرى في صفحة الحلقة.</p> : null}</details> : <p className="help">يظل النشر الفعلي والرفع إلى المنصة قرارًا بشريًا.</p>}
+                </> : <p className="help">بيانات فحص الجاهزية غير متاحة في نسخة Studio الحالية؛ لا تعتمد الحالة تلقائيًا.</p>}
+                <div className="ops-release-actions">
+                  <button className="btn small" type="button" onClick={() => onOpen(d.channel.id, episode.id, "publish")}>فتح مراجعة النشر</button>
+                  <button className="btn small" type="button" onClick={() => {
+                    const report = releaseHandoffReport(d.channel.name, episode.id, episode.title || episode.dir, release ?? null);
+                    void navigator.clipboard.writeText(report).then(() => setCopiedRelease(d.channel.id + "/" + episode.id))
+                      .catch(() => window.prompt("انسخ تقرير المراجعة يدويًا:", report));
+                  }}>{copiedRelease === d.channel.id + "/" + episode.id ? "نُسخ تقرير الموانع" : "نسخ تقرير للمحادثة"}</button>
+                </div>
+              </>}
+            </article>;
+          })}
+        </div>
+      </section>
 
       {/* الأسبوع */}
       <section id="ops-week" className="ops-sec">
@@ -167,9 +206,9 @@ export const OpsRoom: React.FC<{
                     used.add(fixed.id);
                     const st = stageOf(fixed);
                     return (
-                      <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
+                      <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : fixed.release?.ready ? "ok" : "risk"}`} style={{ borderColor: color(d.channel.id) }}>
                         <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {fixed.id} · {fixed.title || fixed.dir}</button>
-                        <small>{st === "published" ? "منشورة" : stagesOf(fixed)[3]!.state === "done" ? "الفيديو جاهز" : "الفيديو لم يكتمل بعد!"}</small>
+                        <small>{st === "published" ? "منشورة" : fixed.release?.ready ? "اجتازت بوابات الجاهزية المحلية" : "لم تجتز اعتماد النشر بعد"}</small>
                         {shortsLine ? <small>+ {shortsLine}</small> : null}
                         {cal?.note ? <small className="ops-note">{cal.note}</small> : null}
                       </div>

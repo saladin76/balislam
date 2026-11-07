@@ -7,6 +7,8 @@ import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
+import { assessReleaseEvidence } from "./releaseEvidence.ts";
+import { statusTransitionError } from "./releaseStatusTransition.ts";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -207,6 +209,9 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
     const { checkForChannel } = await load("/src/script/checkChannel.ts");
     const { planIssues } = await load("/src/plan/validate.ts");
     const { loadChannel } = await load("/src/channel/index.ts");
+    const { loadStoryboard, storyboardStatus, versesMissingText } = await load("/src/plan/storyboard.ts");
+    const { loadSceneLedger, sceneReviewItems, sceneReviewSummary } = await load("/src/plan/sceneReview.ts");
+    const { loadLedger, reviewItems, reviewSummary } = await load("/src/script/review.ts");
     const out = [];
     for (const d of await episodeDirs(episodesDir)) {
       const dir = path.join(episodesDir, d);
@@ -220,13 +225,55 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
       const scenes = plan ? plan.chapters.flatMap((c: any) => c.scenes) : [];
       const voiced = scenes.filter((s: any) => s.narration?.trim());
       const vIndex = existsSync(path.join(dir, "voice", "index.json")) ? JSON.parse(await readFile(path.join(dir, "voice", "index.json"), "utf8")) : {};
-      const voiceOk = voiced.filter((s: any) => vIndex[s.id]?.text === s.narration.trim()).length;
+      // A narration text match is not enough: the referenced audio must exist locally.
+      const voiceOk = voiced.filter((s: any) => {
+        const clip = vIndex[s.id];
+        const name = clip?.file;
+        return clip?.text === s.narration.trim() && typeof name === "string"
+          && name !== "." && name !== ".." && !name.startsWith(".") && !name.includes("/") && !name.includes("\\")
+          && existsSync(path.join(dir, "voice", name));
+      }).length;
       const issues = plan ? planIssues(plan, loadChannel(plan.channel)) : [];
+      const board = plan ? storyboardStatus(plan, await loadStoryboard(scriptFile)) : { approved: 0, total: 0 };
+      const reviewed = plan ? sceneReviewSummary(sceneReviewItems(plan, await loadSceneLedger(scriptFile))) : { ok: 0, total: 0 };
+      const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptFile)));
       const pkgDir = path.join(dir, "out", "package");
       const pkgFiles = existsSync(pkgDir) ? await readdir(pkgDir) : [];
       const id = d.slice(0, 3);
-      const video = pkgFiles.find((f) => f.endsWith("-episode.mp4"));
+      const video = pkgFiles.find((f) => f === id + "-episode.mp4");
+      const videoStat = video ? statSync(path.join(pkgDir, video)) : null;
+      let renderInfo: { quality?: string; voiced?: boolean } | null = null;
+      try {
+        if (pkgFiles.includes("render.json")) renderInfo = JSON.parse(await readFile(path.join(pkgDir, "render.json"), "utf8"));
+      } catch { /* a corrupt render manifest cannot prove a Master */ }
       const status = existsSync(path.join(dir, "status.json")) ? JSON.parse(await readFile(path.join(dir, "status.json"), "utf8")) : {};
+      const approved = Boolean(videoStat && status.approved
+        && status.approved.size === videoStat.size && Math.abs(status.approved.mtime - videoStat.mtimeMs) < 1);
+      const planUpdatedAt = plan?.updatedAt ? Date.parse(plan.updatedAt) : null;
+      const release = assessReleaseEvidence({
+        scriptOk: check.ok,
+        planSceneCount: scenes.length,
+        planErrors: issues.filter((i: any) => i.level === "error").length,
+        storyboard: { done: board.approved, total: board.total },
+        sceneReview: { done: reviewed.ok, total: reviewed.total },
+        sources: { done: citations.verified, total: citations.total },
+        voice: { done: voiceOk, total: voiced.length },
+        missingVerseText: plan ? versesMissingText(plan).length : 0,
+        master: { exists: Boolean(videoStat), quality: renderInfo?.quality ?? null, voiced: renderInfo?.voiced === true },
+        planStale: Boolean(videoStat && planUpdatedAt && planUpdatedAt > videoStat.mtimeMs),
+        ownerApprovalMatches: approved,
+        packageFiles: {
+          youtube: pkgFiles.includes("youtube.md"), social: pkgFiles.includes("social.md"),
+          checklist: pkgFiles.includes("publish-checklist.md"),
+          srt: pkgFiles.some((n) => n.startsWith(id + "-episode.") && n.endsWith(".srt")),
+          thumbnail: pkgFiles.some((n) => n.startsWith(id + "-thumbnail-") && n.endsWith(".png")),
+        },
+        humanChecks: {
+          watched: status.checklist?.watched === true,
+          review: status.checklist?.review === true,
+          pronunciation: status.checklist?.pronunciation === true,
+        },
+      });
       out.push({
         id,
         dir: d,
@@ -237,9 +284,10 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
         scenes: scenes.length,
         voice: { done: voiceOk, total: voiced.length },
         blocking: issues.filter((i: any) => i.level === "error").length,
-        package: { video: Boolean(video), shorts: pkgFiles.filter((f) => /-short-\d\.mp4$/.test(f)).length, thumbnails: pkgFiles.filter((f) => f.endsWith(".png")).length, updatedAt: video ? statSync(path.join(pkgDir, video)).mtimeMs : null },
-        planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
+        package: { video: Boolean(video), shorts: pkgFiles.filter((f) => /-short-\d\.mp4$/.test(f)).length, thumbnails: pkgFiles.filter((f) => f.endsWith(".png")).length, updatedAt: videoStat?.mtimeMs ?? null },
+        planUpdatedAt,
         style: styleOf((fm as { style?: string }).style, scenes),
+        release,
         status,
       });
     }
@@ -510,6 +558,17 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { status } = await readBody(req);
       if (!status || typeof status !== "object" || Array.isArray(status)) return send(res, 400, { error: "حالة النشر غير صالحة؛ لم تُحفظ." }), true;
+      const previous = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {};
+      const newApproval = Boolean(status.approved && JSON.stringify(status.approved) !== JSON.stringify(previous.approved ?? null));
+      const newPublication = Boolean(status.published && JSON.stringify(status.published) !== JSON.stringify(previous.published ?? null));
+      if (newApproval || newPublication) {
+        const local = (await buildOverview(episodesDir, load)).find((e) => e.id === parts[1]);
+        const masterFile = path.join(path.dirname(file), "out", "package", parts[1] + "-episode.mp4");
+        const video = existsSync(masterFile) ? statSync(masterFile) : null;
+        const error = statusTransitionError(previous, status, local?.release ?? null,
+          video ? { size: video.size, mtime: video.mtimeMs } : null);
+        if (error) return send(res, 409, { error }), true;
+      }
       await writeFile(file, JSON.stringify(status, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {});

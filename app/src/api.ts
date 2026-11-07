@@ -1,4 +1,5 @@
 import type { Plan } from "../../src/plan/types";
+import type { ReleaseEvidence } from "../server/releaseEvidence";
 import type { Identity } from "../../brand/identity/index";
 import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
@@ -35,6 +36,8 @@ export type Overview = {
   /** الأسلوب الغالب على الحلقة (للتنوّع) */
   style: string;
   status: EpisodeStatus;
+  /** Read-only local release gates; a Drive upload or MP4 alone cannot authorize publication. */
+  release?: ReleaseEvidence;
 };
 export type EpisodeStatus = { /** اعتماد النسخة الأساسية بعد مشاهدتها كاملة (بصمة ملف الحلقة) */ approved?: { at: string; size: number; mtime: number }; checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string; /** يوم نشر الحلقة الطويلة المخطط (YYYY-MM-DD) */ scheduled?: string };
 export type Idea = { id: string; title: string; note?: string; domain?: string; style?: string; createdAt: string };

@@ -1,0 +1,22 @@
+/* Read-only publication evidence. Neutral states: this screen never approves a release. */
+.studio-shell .ops-release-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.studio-shell .ops-release-heading h2 { margin: 0 0 6px; }
+.studio-shell .ops-release-heading p { max-width: 66ch; margin: 0; }
+.studio-shell .ops-release-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.studio-shell .ops-release-card { border: 1px solid #d9e2e8; border-block-start: 3px solid #94a7b1; border-radius: 12px; background: #fff; padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.studio-shell .ops-release-channel { font-size: 12px; font-weight: 700; color: #526778; }
+.studio-shell .ops-release-card h3 { font-size: 16px; line-height: 1.5; color: #1e3648; margin: 0; overflow-wrap: anywhere; }
+.studio-shell .ops-release-ready, .studio-shell .ops-release-blocked { font-size: 13px; font-weight: 700; line-height: 1.5; }
+.studio-shell .ops-release-ready { color: #276747; }
+.studio-shell .ops-release-blocked { color: #8a4a27; }
+.studio-shell .ops-release-numbers { font-size: 12px; line-height: 1.8; color: #526778; margin: 0; }
+.studio-shell .ops-release-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: auto; }
+.studio-shell .ops-release-actions .btn { flex: 0 1 auto; }
+.studio-shell .release-blockers { padding: 10px 11px; border-radius: 9px; background: #f5f7f8; color: #415360; font-size: 12px; line-height: 1.7; }
+.studio-shell .release-blockers summary { font-weight: 700; cursor: pointer; }
+.studio-shell .release-blockers ul { padding-inline-start: 20px; margin: 8px 0 3px; }
+.studio-shell .release-blockers li { margin: 4px 0; }
+.studio-shell .release-blockers .help { margin-top: 6px; }
+.studio-shell .ep-card .release-blockers { margin: 0 0 12px; }
+@media (max-width: 1100px) { .studio-shell .ops-release-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .studio-shell .ops-release-grid { grid-template-columns: 1fr; } .studio-shell .ops-release-card { padding: 13px; } }
