@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -393,4 +393,37 @@ describe("لا خروج صامت", () => {
     expect(out).toContain("STATUS done");
     expect(readFileSync(path.join(d, "w.mp4"), "utf8")).toBe("ok");
   }, 20000);
+});
+
+// Same output requested twice must not share a .part path. Cancellation removes
+// only the cancelled attempt and cannot destroy either a peer or the old output.
+describe("render-pool partial ownership under parallel cancellation", () => {
+  it("keeps an existing render until the surviving job completes", async () => {
+    const d = dir();
+    try {
+      const out = path.join(d, "episode.mp4");
+      writeFileSync(out, "previous-good");
+      const h = harness(20000, { cancelled: { ms: 0, hang: true }, survivor: { ms: 75 } });
+      const pool = new RenderPool({ cpus: 2, maxParallel: 2, memory: h.memory, tree: h.tree, spawnFn: h.spawnFn, pollMs: 5, ...noEvidence });
+      const job = (id: string) => spec(d, id, { output: out, args: ["out", out] });
+      pool.add(job("cancelled"));
+      pool.add(job("survivor"));
+      await new Promise((r) => setTimeout(r, 15));
+      const a = pool.tasks.get("cancelled")!.partialOutput!;
+      const b = pool.tasks.get("survivor")!.partialOutput!;
+      expect(a).not.toBe(b);
+      expect(a).toMatch(/\.part-[a-f0-9-]+\.mp4$/);
+      expect(b).toMatch(/\.part-[a-f0-9-]+\.mp4$/);
+      expect(pool.cancel("cancelled")).toBe(true);
+      expect(readFileSync(out, "utf8")).toBe("previous-good");
+      await pool.idle();
+      expect(pool.tasks.get("cancelled")?.status).toBe("cancelled");
+      expect(pool.tasks.get("survivor")?.status).toBe("done");
+      expect(readFileSync(out, "utf8")).toBe("ok");
+      expect(existsSync(a)).toBe(false);
+      expect(existsSync(b)).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
 });
