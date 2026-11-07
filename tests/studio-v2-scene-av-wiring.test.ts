@@ -39,6 +39,19 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
 
   });
 
+  it("builds the episode review cut from approved scene files without substituting a new render", () => {
+    const assembly = src("src/studio/assembleScenes.ts");
+    expect(assembly).toContain("approvedSceneCutsForAssembly(episode, ownerToken)");
+    expect(assembly).toContain("await approvedSceneCutsForAssembly(episode, ownerToken)");
+    expect(assembly).toContain('putEpisodePreview(episode, "episode", tempVideo');
+    expect(assembly).toContain('"ffmpeg"');
+    expect(assembly).not.toMatch(/quranClient|syncQuran|elevenLabs|renderEpisode/);
+    const server = src("app/server/api.ts");
+    expect(server).toContain('parts[2] === "scene-av-assemble"');
+    const ui = src("app/src/workspace/SceneProductionPanel.tsx");
+    expect(ui).toContain("api.assembleSceneAv(");
+  });
+
   it("builds a combined video/audio review UI without auto-accepting a preview", () => {
     const ui = src("app/src/workspace/SceneProductionPanel.tsx");
     expect(ui).toContain("api.renderSceneAv(");
