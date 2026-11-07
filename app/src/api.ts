@@ -103,6 +103,13 @@ export const api = {
     call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, {
       method: "POST", json: decision, headers: { "x-studio-owner-token": token },
     }, channel),
+  renderSceneAv: (episode: string, channel: string, token: string, sceneId: string,
+    expectedSha256: string) =>
+    call<{ ok: true; version: number; preview: string }>(
+      `/api/episodes/${episode}/scene-av-render`, {
+        method: "POST", json: { sceneId, expectedSha256 },
+        headers: { "x-studio-owner-token": token },
+      }, channel),
   workflow: (episode: string, channel?: string) => call<{
     approvals: WorkflowApprovalView;
     fingerprints: Partial<Record<WorkflowStage, string>>;
