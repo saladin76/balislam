@@ -1,9 +1,9 @@
 /**
- * دفاتر الزمن 001 — المعاينة المتكاملة للقطات الست (اتجاه «خط الأفق»): صوت الراوي المعتمد، ونص الآيتين من Quran Foundation
- * وتلاوة القارئ المختار للقناة، والمشاهد مضبوطة على توقيت الكلام الفعلي. تعمل على جهاز الإنتاج فقط (المفاتيح والتلاوات عليه).
+ * دفاتر الزمن 001 — المعاينة المتكاملة للقطات الست (اتجاه «خط الأفق»): صوت الراوي المعتمد، ونص الآيتين اللتين يقدمهما صاحب القناة
+ * وتلاوة صاحب القناة المعتمدة، والمشاهد مضبوطة على توقيت الكلام الفعلي. تعمل على جهاز الإنتاج فقط (المفاتيح والتلاوات عليه).
  *
  * لا يُنتَج شيء ناقص: يتوقف قبل أي صرف أو رندر إن اختلف نص اللقطات عن السكريبت المعتمد، أو نقص مفتاح، أو قلّ التشكيل عن 98%،
- * أو لم يُجلب نص آية أو تلاوتها. الملف بخانة تنتهي بـ «-audio» فيبقى على الجهاز (شروط التلاوة)، ولا تُزال المعاينة الصامتة
+ * أو لم يُدرج نص آية أو تُعتمد تلاوتها. الملف بخانة تنتهي بـ «-audio» فيبقى على الجهاز (شروط التلاوة)، ولا تُزال المعاينة الصامتة
  * السابقة من العرض إلا بعد التحقق من تشغيل الجديدة كاملة.
  */
 import path from "node:path";
@@ -16,9 +16,7 @@ import { loadChannel } from "../channel/index";
 import { readJson, quranPathFor } from "../plan/io";
 import { elevenLabsFromEnv, type ElevenLabsClient } from "../voice/elevenlabs";
 import { synthesizeLines, tashkeelBlockMessage, tashkeelForLines, voiceDirFor } from "../voice/generate";
-import { quranClientFromEnv, type QuranClient } from "../quran/client";
-import { recitationsDirFor, syncQuran, type RecitationIndex } from "../quran/sync";
-import { activeRecitation, isCloudRecitation } from "../quran/provider";
+import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
 import { browserExecutable, getServeUrl } from "./bundle";
 import { QUALITY } from "./quality";
 import { cleanMetadata } from "./episode";
@@ -34,7 +32,7 @@ const spokenText = (id: string) => SHOT_SPECS[id]!.sentences.join(" ").replace(/
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 
 /** فحوص ما قبل التوليد: كل نقص يُذكر بعينه، ولا تُكشف قيم المفاتيح */
-export const horizonPreflight = async (scriptPath: string, clients: { voice: ElevenLabsClient | null; quran: QuranClient | null }) => {
+export const horizonPreflight = async (scriptPath: string, clients: { voice: ElevenLabsClient | null }) => {
   const problems: string[] = [];
   const script = norm(await readFile(scriptPath, "utf8"));
   for (const id of HORIZON_SHOTS)
@@ -43,9 +41,16 @@ export const horizonPreflight = async (scriptPath: string, clients: { voice: Ele
       if (!script.includes(plain)) problems.push(`نص اللقطة ${id} لا يطابق السكريبت المعتمد: «${plain.slice(0, 60)}…»`);
     }
   if (!clients.voice) problems.push("مفتاح صوت الراوي أو معرّف الصوت غير موجود في .env (ElevenLabs).");
-  if (!clients.quran) problems.push("مفاتيح Quran Foundation غير موجودة في .env.");
-  const channel = loadChannel();
-  if (!(await activeRecitation(scriptPath, channel.recitation))) problems.push("لم يُحدَّد قارئ للقناة أو للحلقة.");
+  const localTexts = (await readJson<Record<string,string>>(quranPathFor(scriptPath))) ?? {};
+  const recDir = recitationsDirFor(scriptPath);
+  const recordings = (await readJson<RecitationIndex>(path.join(recDir,"index.json"))) ?? {};
+  for (const key of HORIZON_VERSES) {
+    if (!localTexts[key]?.trim()) problems.push("نص الآية " + key + " لم يقدمه صاحب القناة.");
+    const rec = recordings[key];
+    if (rec?.provider !== "manual" || !rec.approvedAt || !rec.approvedBy ||
+        !rec.parts?.length || rec.parts.some(p => !p.duration || !existsSync(path.join(recDir,p.file))))
+      problems.push("تلاوة " + key + " بصوت صاحب القناة غير معتمدة.");
+  }
   const tk = await tashkeelForLines(scriptPath, HORIZON_SHOTS.map((id) => ({ id: `horizon-${id}`, text: spokenText(id) })));
   if (!tk.ok) problems.push(tashkeelBlockMessage(tk));
   return problems;
@@ -68,38 +73,24 @@ const decodes = async (file: string) => {
 
 export const renderHorizonAudio = async (
   episode: string,
-  opts: { slot?: string; replaces?: string; voiceClient?: ElevenLabsClient | null; quranClient?: QuranClient | null; onProgress?: (m: string) => void } = {},
+  opts: { slot?: string; replaces?: string; voiceClient?: ElevenLabsClient | null; onProgress?: (m: string) => void } = {},
 ): Promise<HorizonAudioResult> => {
   const log = opts.onProgress ?? (() => {});
   const slot = opts.slot ?? "six-shots-audio";
   if (!slot.endsWith("-audio")) throw new Error("خانة المعاينة الصوتية يجب أن تنتهي بـ -audio (تبقى على الجهاز ولا تُرفع، لأن فيها تلاوة).");
   const scriptPath = await resolveScriptPath(episode);
   const voice = opts.voiceClient === undefined ? elevenLabsFromEnv() : opts.voiceClient;
-  const quran = opts.quranClient === undefined ? quranClientFromEnv() : opts.quranClient;
 
   log("فحص النص والمفاتيح والتشكيل…");
-  const problems = await horizonPreflight(scriptPath, { voice, quran });
+  const problems = await horizonPreflight(scriptPath, { voice });
   if (problems.length) throw new Error(`لم تُصنع المعاينة الصوتية:\n${problems.map((p) => `- ${p}`).join("\n")}`);
 
-  log("جلب نصوص الآيات وتلاوة القارئ المحدد للحلقة…");
-  const sync = await syncQuran(episode, quran!);
+  log("التحقق من النصوص والتلاوات اليدوية المعتمدة…");
   const store = (await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {};
   const recDir = recitationsDirFor(scriptPath);
   const recIndex = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
   const channel = loadChannel();
-  const chosenReciter = await activeRecitation(scriptPath, channel.recitation);
-  const missing: string[] = [];
-  for (const key of HORIZON_VERSES) {
-    const failed = sync.failed.filter((f) => f.ref.includes(key.split(":")[1]!)).map((f) => f.reason);
-    if (!store[key]?.trim()) missing.push(`نص الآية ${key} لم يُجلب${failed.length ? `: ${failed.join("؛ ")}` : ""}`);
-    const rec = recIndex[key];
-    const matches = rec && chosenReciter && (isCloudRecitation(chosenReciter)
-      ? rec.provider === "alquran-cloud" && rec.edition === chosenReciter.edition
-      : rec.provider !== "alquran-cloud" && rec.recitationId === chosenReciter.id);
-    if (!matches) missing.push(`تلاوة ${key} للقارئ المختار غير موجودة`);
-    else if (!rec.parts.length || rec.parts.some((p) => !p.duration || !existsSync(path.join(recDir, p.file)))) missing.push(`ملف تلاوة ${key} ناقص أو بلا مدة`);
-  }
-  if (missing.length) throw new Error(`لم تُصنع المعاينة الصوتية:\n${missing.map((p) => `- ${p}`).join("\n")}`);
+  // No network access or automatic overwrite of historical episode assets.
 
   log("توليد صوت الراوي للقطات الست…");
   const voiceDir = path.join(voiceDirFor(scriptPath), "horizon");
@@ -137,7 +128,7 @@ export const renderHorizonAudio = async (
   log("الرفع إلى الاستوديو والتحقق…");
   const up = await putEpisodePreview(episode, slot, output, {
     title: "اللقطات الست بالصوت والتلاوة — معاينة متكاملة (جاهزة للمراجعة)",
-    note: `اتجاه «خط الأفق». صوت الراوي المعتمد، ونص البقرة 30 والأعراف 23 من Quran Foundation بتلاوة ${chosenReciter?.name ?? "القارئ المختار"}. توقيت المشاهد من الكلام الفعلي. لا موسيقى ولا مؤثرات. لا تُنشر.`,
+    note: `اتجاه «خط الأفق». صوت الراوي المعتمد، ونص البقرة 30 والأعراف 23 المراجعين يدويًا بتلاوة صاحب القناة. توقيت المشاهد من الكلام الفعلي. لا موسيقى ولا مؤثرات. لا تُنشر.`,
   });
   if (!(await decodes(up.file))) throw new Error("النسخة المرفوعة إلى الاستوديو لا تعمل كاملًا؛ أُبقيت المعاينة السابقة.");
   const replaced = opts.replaces && opts.replaces !== slot ? opts.replaces : null;
