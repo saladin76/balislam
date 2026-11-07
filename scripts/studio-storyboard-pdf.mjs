@@ -25,13 +25,17 @@ const channelFonts = {
 };
 export function pdfFontCss(channel) {
  const typography = channelFonts[channel] || channelFonts.balislam;
- const faces = [["StudioHeading",typography.heading],["StudioBody",typography.body],["StudioBody",typography.bold],["StudioMono",["IBMPlexMono-500.woff2","500"]]];
+ const latin = channel === "zubdat-alkutub"
+   ? [["Tajawal-latin-400.woff2","400"],["Tajawal-latin-700.woff2","700"]]
+   : [["IBMPlexSans.ttf","400"],["IBMPlexSans.ttf","700"]];
+ const faces = [["StudioHeading",typography.heading],["StudioBody",typography.body],["StudioBody",typography.bold],
+   ["StudioLatin",latin[0]],["StudioLatin",latin[1]],["StudioMono",["IBMPlexMono-500.woff2","500"]]];
  const declarations = faces.map(([family,[filename,weight]])=>{
    const data=readFileSync(path.join(fontRoot,filename));
    const woff=filename.endsWith(".woff2");
    return `@font-face{font-family:"${family}";src:url(data:${woff?"font/woff2":"font/ttf"};base64,${data.toString("base64")}) format("${woff?"woff2":"truetype"}");font-style:normal;font-weight:${weight};font-display:block}`;
  });
- declarations.push(`:root{--studio-accent:${typography.accent};--studio-heading:"StudioHeading";--studio-body:"StudioBody"}`);
+ declarations.push(`:root{--studio-accent:${typography.accent};--studio-heading:"StudioHeading","StudioLatin";--studio-body:"StudioBody","StudioLatin"}`);
  return declarations.join("\n");
 }
 
@@ -91,7 +95,7 @@ const css = [
   "@page{size:A4 landscape;margin:9mm 10mm}*{box-sizing:border-box}",
   "html,body{margin:0;padding:0;background:#fff;color:#213344;font-family:var(--studio-body);font-synthesis:none;text-rendering:optimizeLegibility}",
   "body{direction:rtl;font-size:11pt;line-height:1.4;unicode-bidi:isolate}",
-  "h1,h2,h3,small,strong{font-synthesis:none}bdi{unicode-bidi:isolate;direction:ltr;font-family:StudioMono,monospace}",
+  "h1,h2,h3,small,strong{font-synthesis:none}bdi{unicode-bidi:isolate;direction:ltr;font-family:StudioMono,var(--studio-body)}",
   ".page{position:relative;width:277mm;height:186mm;max-height:186mm;overflow:hidden;break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always}",
   ".page:last-child{break-after:auto;page-break-after:auto}",
   ".head{position:absolute;top:0;right:0;left:0;height:19mm;border-bottom:2px solid var(--studio-accent)}",
@@ -108,13 +112,13 @@ const css = [
   ".info section{float:right;width:49%;height:23mm;overflow:hidden}.info section:nth-child(2){float:left}",
   ".info h3{margin:0 0 0.5mm;font-family:var(--studio-heading);font-size:10pt;line-height:1.3;color:var(--studio-accent)}",
   ".info p{margin:0;overflow:hidden;overflow-wrap:anywhere;font-size:10.2pt;line-height:1.3;max-height:19mm;unicode-bidi:plaintext}",
-  ".info .details{width:100%;height:4mm;clear:both;border-top:1px solid #d5dee5;color:#546471;font-size:8.5pt}",
-  ".details span{margin-left:7mm;display:inline-block;max-width:43%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top;unicode-bidi:isolate}",
+  ".info .details{width:100%;height:4mm;clear:both;display:flex;align-items:start;justify-content:space-between;gap:2mm;white-space:nowrap;border-top:1px solid #d5dee5;color:#546471;font-size:8.5pt}",
+  ".details span{margin:0;display:block;flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;unicode-bidi:isolate}",
   "footer{position:absolute;bottom:0;left:0;right:0;height:7mm;font-size:8pt;color:#65737d;border-top:1px solid #d9e2e7}",
   ".appendix{position:absolute;top:30mm;left:8mm;right:8mm;bottom:13mm;overflow:hidden}",
   ".appendix p{font-size:15pt;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:1mm 0 0}",
   ".page.cover{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:3mm solid var(--studio-accent);padding:14mm}",
-  ".cover .label{font-family:var(--studio-body);font-size:15pt;direction:rtl}.cover h1{font-family:var(--studio-heading);font-size:32pt;line-height:1.65;direction:rtl;unicode-bidi:isolate;max-width:240mm;margin:10mm 0}",
+  ".cover .label{font-family:var(--studio-body);font-size:15pt;direction:rtl}.cover h1{font-family:var(--studio-heading);font-size:32pt;line-height:1.65;direction:rtl;unicode-bidi:isolate;max-width:240mm;max-height:80mm;overflow:hidden;overflow-wrap:anywhere;margin:10mm 0}",
   ".cover p{direction:rtl;font-size:13pt}.cover .series{font-size:12pt;color:#53616a}",
   ".page-index{position:absolute;bottom:1mm;left:0;direction:rtl;font-family:var(--studio-body);font-size:8pt;color:#65737d;line-height:5mm;min-width:29mm;text-align:left;z-index:2}.page.cover .page-index{left:11mm;bottom:6mm}",
 ].join("\n");
