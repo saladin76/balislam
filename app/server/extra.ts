@@ -706,7 +706,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       // channel files remain untouched until their owner explicitly saves.
       const { recitation: _legacyRecitation, alquranPreviewRecitation: _legacyPreview,
         quranTranslation: _legacyTranslation, ...localChannel } = channel;
-      await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(localChannel, null, 2) + "\\n");
+      await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(localChannel, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, ch_.loadChannel(ch));
     return true;
