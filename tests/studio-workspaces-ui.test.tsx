@@ -83,6 +83,20 @@ describe("Studio workspace separation", () => {
     expect(approvalLabel()).toBe("بيانات المحرك غير متاحة");
   });
 
+  it("never displays a prior approval as current for an unsaved local script, plan or research draft", () => {
+    const plan = { title: "Draft", chapters: [{ number: 1, scenes: [] }] } as unknown as Plan;
+    const check: CheckResult = { ok: true, issues: [], stats: { chapters: [], totalWords: 0, totalSeconds: 0 } };
+    const dirty = renderToStaticMarkup(<EpisodeWorkspaceBar episodeId="001" channelId="balislam"
+      title="Draft" stage="script" onStage={() => {}} check={check} issues={[]} plan={plan}
+      media={{ voice: {} } as EpisodeMedia} saveState="dirty" scriptDirty={true} researchDirty={true} />);
+    expect(dirty).toContain("الاعتمادات السابقة لا تخص هذه المسودة");
+    expect(dirty).not.toContain('data-workflow-status="approved"');
+    const av = renderToStaticMarkup(<IntegratedReviewWorkspace episodeId="001" channelId="balislam"
+      hasUnsavedChanges onOpen={() => {}} />);
+    expect(av).toContain("الاعتماد السابق لا يغطي هذه المسودة");
+    expect(av).not.toContain("اعتماد Master");
+  });
+
   it("keeps integrated AV review read-only and clearly distinct from Master approval", () => {
     const html = renderToStaticMarkup(<IntegratedReviewWorkspace episodeId="001" channelId="balislam" onOpen={() => {}} />);
     expect(html).toContain('aria-label="المراجعة المتكاملة للحلقة"');
