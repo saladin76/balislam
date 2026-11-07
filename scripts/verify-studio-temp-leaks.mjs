@@ -8,7 +8,7 @@
  * node scripts/verify-studio-temp-leaks.mjs --failure   # induced gate failure
  * node scripts/verify-studio-temp-leaks.mjs --cancel    # terminate child gate
  */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync, statfsSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,6 +23,26 @@ const dirs = [];
 const available = () => {
   const s=statfsSync(base);
   return Number(s.bavail)*Number(s.bsize);
+};
+// Read-only host pressure probe. On macOS an increase in APFS-allocated VM
+// swap files can resemble a leaked 1 GiB folder, although the audit's own
+// TMPDIR is empty. Report values; do not attribute or delete anything.
+const swapUsage = () => {
+  if (process.platform !== "darwin") return null;
+  try {
+    const raw = execFileSync("/usr/sbin/sysctl", ["vm.swapusage"], {
+      encoding: "utf8", timeout: 3000, stdio: ["ignore", "pipe", "ignore"],
+    });
+    const bytes = (key) => {
+      const m = raw.match(new RegExp("\\b" + key + "\\s*=\\s*([0-9.]+)\\s*([KMGTP])", "i"));
+      if (!m) return null;
+      const power = { K: 1, M: 2, G: 3, T: 4, P: 5 }[m[2].toUpperCase()];
+      return Math.round(Number(m[1]) * 1024 ** power);
+    };
+    return { totalBytes: bytes("total"), usedBytes: bytes("used"), freeBytes: bytes("free") };
+  } catch {
+    return { unavailable: true };
+  }
 };
 const entries = d => readdirSync(d).filter(n=>n!=="OWNER-DO-NOT-DELETE");
 const disk = d => {
@@ -64,6 +84,7 @@ let failures=[];
 try {
   writeFileSync(marker,"Audit sandbox owner; other temp directories are out of scope.\n",{flag:"wx",mode:0o600});
   const before=available();
+  const swapBefore=swapUsage();
   const samples=[];
   if (exercise) {
     const root=mkdtempSync(path.join(base,exercise+"-"));
@@ -94,9 +115,15 @@ try {
   }
   if(!existsSync(marker)||!readFileSync(marker,"utf8").includes("owner"))failures.push("sentinel-touched");
   const after=available();
+  const swapAfter=swapUsage();
   console.log("TEMP_LEAK_AUDIT "+JSON.stringify({
     mode:exercise || (parallel?"parallel":"serial"),results:samples,freeBytesBefore:before,
     freeBytesAfter:after,freeBytesDelta:after-before,
+    swapBefore,swapAfter,
+    swapTotalDeltaBytes: swapBefore?.totalBytes != null && swapAfter?.totalBytes != null
+      ? swapAfter.totalBytes - swapBefore.totalBytes : null,
+    swapUsedDeltaBytes: swapBefore?.usedBytes != null && swapAfter?.usedBytes != null
+      ? swapAfter.usedBytes - swapBefore.usedBytes : null,
     privateTempBytesAfter:dirs.reduce((n,d)=>n+disk(d),0),
     otherSystemTmpFilesUntouched:true,passed:failures.length===0
   }));
