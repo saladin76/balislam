@@ -1,7 +1,8 @@
 import path from "node:path";
 import { toEasternDigits } from "../i18n/packs";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { audioDuration } from "../voice/generate";
 import { parseScript } from "../script/parse";
 import { quranFromScript, historicalMeaningConflict } from "./scriptText";
@@ -35,6 +36,22 @@ const fresh = (iso?: string) => Boolean(iso && Date.now() - Date.parse(iso) < QF
 /** فهرس تلاوات Quran Foundation للحلقة: recitations/index.json بجوار السكريبت. */
 export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; sha256?: string; textSha256?: string; rightsEvidence?: string; originalFile?: string; originalSha256?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
+
+/** Never let an external-provider sync replace a new, explicitly reviewed human clip. */
+export const preserveManualRecitations = (staged: RecitationIndex, latest: RecitationIndex): RecitationIndex => {
+  const result = { ...staged };
+  for (const [key, value] of Object.entries(latest))
+    if (value?.provider === "manual") result[key] = value;
+  return result;
+};
+
+const atomicJson = async (file: string, value: unknown) => {
+  const tmp = file + "." + randomUUID() + ".tmp";
+  try {
+    await writeFile(tmp, JSON.stringify(value, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+    await rename(tmp, file);
+  } finally { await rm(tmp, { force: true }); }
+};
 
 /** Synchronize licensed recitations and optional meaning translations; never write Quran text. */
 export const syncQuran = async (episode: string, client: QuranClient, opts: { force?: boolean } = {}): Promise<QuranSyncResult> => {
@@ -161,7 +178,7 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       result.failed.push({ ref, reason: (err as Error).message });
     }
   }
-  await writeFile(file, JSON.stringify(store, null, 2) + "\n", "utf8");
+  await atomicJson(file, store);
   if (recitation || Object.keys(recIndex).length) {
     // بلا قارئ مختار: تُحذف تلاوات Quran Foundation المخزنة؛ ومع قارئ: تُحذف الملفات غير المستخدمة
     const keep: RecitationIndex = recitation ? recIndex : Object.fromEntries(
@@ -169,7 +186,21 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
     // Never delete unindexed MP3s or another producer's clips. Retiring a
     // provider selection changes the pointer, not the original recordings.
     await mkdir(recDir, { recursive: true });
-    await writeFile(recIndexFile, JSON.stringify(keep, null, 2) + "\n", "utf8");
+    // The manual uploader/approver uses the SAME lock file; a simultaneous
+    // approval must never be silently overwritten by a slower provider sync.
+    const lockFile = path.join(recDir, ".manual-audio.lock");
+    const lock = await open(lockFile, "wx", 0o600).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "EEXIST")
+        throw new Error("توجد مراجعة تلاوة يدوية جارية؛ أعد مزامنة القارئ بعد انتهائها.");
+      throw error;
+    });
+    try {
+      const latest = (await readJson<RecitationIndex>(recIndexFile)) ?? {};
+      await atomicJson(recIndexFile, preserveManualRecitations(keep, latest));
+    } finally {
+      await lock.close();
+      await rm(lockFile, { force: true });
+    }
   }
   return result;
 };
