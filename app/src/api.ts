@@ -127,6 +127,8 @@ export const api = {
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
   saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan }>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
   savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
+  savePlanFor: (id: string, plan: Plan, channel: string) =>
+    call(`/api/episodes/${encodeURIComponent(id)}/plan`, { method: "PUT", json: { plan } }, channel),
   regenerate: (id: string) => call<{ plan: Plan }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: {} }),
   check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
   identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
