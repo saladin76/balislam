@@ -47,7 +47,7 @@ export const inspectMissingQuranTexts = async (episode: string): Promise<ManualT
   const seen = new Set<string>();
   for (const entry of refs) {
     if (!("key" in entry) || !entry.key) {
-      invalid.push({ ref: entry.label, reason: "error" in entry ? entry.error : "مرجع غير صالح" });
+      invalid.push({ ref: entry.label, reason: ("error" in entry && entry.error) ? entry.error : "مرجع غير صالح" });
       continue;
     }
     if (seen.has(entry.key)) continue;
