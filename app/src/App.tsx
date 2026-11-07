@@ -11,7 +11,8 @@ import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
-import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import type { WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import { EpisodeJourneyBar } from "./workspace/EpisodeJourneyBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
 import "./workspace/workspace.css";
@@ -311,27 +312,18 @@ export const App: React.FC = () => {
         </header>
 
         {EPISODE_TABS.includes(tab) && plan && check && epId ? (
-           <EpisodeWorkspaceBar
-             key={`${channelId}:${epId}`}
+           <EpisodeJourneyBar
+             key={`journey:${channelId}:${epId}`}
              episodeId={epId}
              channelId={channelId}
              title={plan.title}
              stage={tab as WorkspaceStage}
-             onStage={(stage, target) => {
+             onStage={(stage) => {
                if (stage !== tab && !confirmLeaveScript()) return;
-               if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
                setTab(stage);
-               if (target?.line && stage === "script") {
-                 setTimeout(() => scriptRef.current?.goToLine(target.line!), 50);
-               }
              }}
-             check={check}
-             issues={planIssues(plan, channel)}
-             plan={plan}
-             media={media}
              saveState={planState}
-             scriptDirty={scriptDirty}
-             researchDirty={researchDirty}
+             unsaved={scriptDirty || researchDirty}
            />
          ) : null}
 
