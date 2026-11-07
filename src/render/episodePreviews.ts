@@ -56,7 +56,7 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   if (!name) throw new Error("اسم الخانة فارغ.");
   if (!/\.mp4$/i.test(file) || !existsSync(file)) throw new Error(`الفيديو غير موجود أو ليس mp4: ${file}`);
   const dir = previewsDirFor(scriptPath);
-  await assertNoLinkedPath(scriptPath, true);
+  await assertNoLinkedPath(path.dirname(scriptPath));
   await assertNoLinkedPath(file, true);
   await ensureUnlinkedDirectory(dir);
   return withPreviewIndexLock(dir, async () => {
