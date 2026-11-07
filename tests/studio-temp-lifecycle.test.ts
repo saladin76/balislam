@@ -62,10 +62,12 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
     let out = "";
     child.stdout.on("data", (buf: Buffer) => { out += buf.toString(); });
     child.stderr.on("data", (buf: Buffer) => { out += buf.toString(); });
+    let timedOut = false;
     const timeout = setTimeout(() => {
-      // Kill only process groups whose PIDs were recorded by this fixture.
+      timedOut = true;
+      // Kill only a known hanging mock worker, never any previously exited PIDs.
       // Avoid leaving hanging child test processes after an assertion timeout.
-      if (process.platform !== "win32" && existsSync(f.trace)) {
+      if (mode === "hang" && process.platform !== "win32" && existsSync(f.trace)) {
         const pids = readFileSync(f.trace, "utf8").match(/npx-start (\d+)/g) ?? [];
         for (const entry of pids) {
           const pid = Number(entry.slice("npx-start ".length));
@@ -73,7 +75,7 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
         }
       }
       child.kill("SIGKILL");
-      reject(new Error("Gate fixture timed out, output: " + out.slice(-1000)));
+      // Wait for the process to close before afterEach deletes its fixture.
     }, 12_000);
     const poll = cancel ? setInterval(() => {
       // Wait for the mocked child to start before signaling the real gate.
@@ -90,7 +92,8 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
     child.once("close", (code, signal) => {
       clearTimeout(timeout);
       if (poll) clearInterval(poll);
-      resolve({ code, signal, out });
+      if (timedOut) reject(new Error("Gate fixture timed out, output: " + out.slice(-1000)));
+      else resolve({ code, signal, out });
     });
   });
 
@@ -143,6 +146,16 @@ describe("P0 gate-owned temporary files", () => {
     expect(r.out).toContain("GATE_TEMP_CLEANED true");
     expect(readFileSync(f.trace, "utf8")).toContain("npx-start");
     checkIsolated(f);
+  }, 15_000);
+
+  it("does not accumulate private temp folders over repeated successful runs", async () => {
+    const f = fixture();
+    for (let run = 0; run < 3; run++) {
+      const r = await execute(f, "ok");
+      expect(r.code, r.out).toBe(0);
+      checkIsolated(f);
+    }
+    expect(readFileSync(f.trace, "utf8").match(/npx-start/g)).toHaveLength(6);
   }, 15_000);
 
   it("removes all owned files when a check fails, rejecting the push", async () => {
