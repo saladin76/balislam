@@ -9,7 +9,16 @@ import { approveVoiceScene, approveVoiceEpisode } from "../src/voice/review";
 import { assertMotionStartAuthorized } from "../src/voice/motionGate";
 import { assertVoiceApproved } from "../src/voice/review";
 import { scriptSignoffFile } from "../src/script/approval";
+import { parseScript } from "../src/script/parse";
+import { reviewItems, setReview } from "../src/script/review";
 import type { Plan } from "../src/plan/types";
+
+const verifyExampleCitation = async (scriptPath: string, source: string) => {
+  const parsed = parseScript(source, scriptPath);
+  for (const item of reviewItems(parsed, null))
+    await setReview(scriptPath, parsed, item.key, "verified",
+      "راجعت الآية ومرجعها بالمصحف المعتمد", "المراجع المختص", true);
+};
 
 describe("pre-motion human approval safety", () => {
   it("fails closed when no full-episode narration exists to approve", async () => {
@@ -27,9 +36,13 @@ episode: "999"
 ---
 ## الفصل 1 · مراجعة
 [آية: النجم 39 | وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ]
+
+## الاستشهادات
+- آية | النجم 39 | المصحف المعتمد
 `;
     try {
       await writeFile(scriptPath, script);
+      await verifyExampleCitation(scriptPath, script);
       await writeFile(scriptSignoffFile(scriptPath), JSON.stringify({
         version: 1, sha256: createHash("sha256").update(script).digest("hex"),
         reviewer: "مراجع", note: "راجعت هذا النص والفصل كاملًا", at: new Date().toISOString(),
@@ -57,9 +70,13 @@ episode: "999"
 ---
 ## الفصل 1 · اختبار
 [آية: النجم 39 | وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ]
+
+## الاستشهادات
+- آية | النجم 39 | المصحف المعتمد
 `;
     try {
       await writeFile(scriptPath, source);
+      await verifyExampleCitation(scriptPath, source);
       await writeFile(scriptSignoffFile(scriptPath), JSON.stringify({
         version: 1, sha256: createHash("sha256").update(source).digest("hex"),
         reviewer: "مراجع", note: "فحص السكريبت والمصادر يدويًا", at: new Date().toISOString(),
