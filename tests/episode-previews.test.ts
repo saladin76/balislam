@@ -7,7 +7,7 @@ import { putPreview } from "../src/render/episodePreviews";
 
 const owned: string[] = [];
 const previewTemp = async () => {
-  const dir = await previewTemp();
+  const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
   owned.push(dir);
   return dir;
 };
