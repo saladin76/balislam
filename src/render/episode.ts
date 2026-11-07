@@ -82,6 +82,8 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
     const review = sceneReviewSummary(items);
     if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
   }
+  const { assertVoiceApproved } = await import("../voice/review");
+  await assertVoiceApproved(scriptPath, plan, media.voice);
   return true;
 };
 
