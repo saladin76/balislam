@@ -127,13 +127,14 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
   if (opts.dryRun) return report;
-  if (todo.length) {
+  if (jobs.length) {
     const script = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-    assertNoQuranInTts(script, todo.map((j) => j.spoken));
+    // The same prohibition applies to reused cache records, not just TTS calls.
+    assertNoQuranInTts(script, jobs.map((j) => j.spoken));
     // Verse cards themselves are never narrator jobs even if somebody edits a plan.
     const verseIds = new Set(plan.chapters.flatMap((c) => c.scenes)
       .filter((scene) => scene.template === "verse-card").map((scene) => scene.id));
-    if (todo.some((job) => verseIds.has(job.id)))
+    if (jobs.some((job) => verseIds.has(job.id)))
       throw new Error("يُحظر تحويل بطاقة آية إلى تلاوة اصطناعية عبر محرك التعليق.");
   }
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
