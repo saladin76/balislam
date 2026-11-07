@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir, rm } from "node:fs/promises";
 import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
+import { assertMasterStageAuthorized, masterRenderSubject } from "./masterGateContract";
 import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
@@ -118,6 +119,11 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       if (auditNeedsJustification(measured, sbRecord.audit))
         throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
     }
+    // Workflow gate is intentionally fail-closed until the separate persistent
+    // approvals branch verifies the exact AV and owner approvals for this input.
+    await assertMasterStageAuthorized(await masterRenderSubject(
+      scriptPath, loadChannel().id, plan, media, opts.orientation, opts.chapter,
+    ));
   }
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
