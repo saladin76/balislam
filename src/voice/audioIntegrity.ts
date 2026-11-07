@@ -22,11 +22,21 @@ export const decodedAudioDuration = async (
         (opts.mp3Only && !/MPEG.*Layer 3|MP3/i.test(metadata.format.codec ?? ""))) return null;
     // A decode to the null muxer is read-only and inspects the whole stream,
     // including trailing frames that music-metadata may never examine.
-    await run("ffmpeg", [
+    const result = await run("ffmpeg", [
       "-nostdin", "-hide_banner", "-loglevel", "error", "-xerror", "-err_detect", "explode",
       "-i", file, "-map", "0:a:0", "-vn", "-f", "null", "-",
+      "-progress", "pipe:1", "-nostats",
     ], { timeout: 120000, maxBuffer: 1024 * 1024 });
-    return duration;
+    // FFmpeg can exit 0 for a truncated MP3 whose Xing header still claims
+    // its *original* duration. Compare decoded sample time with metadata.
+    const times = [...result.stdout.matchAll(/(?:^|\n)out_time_us=(\d+)/g)];
+    const last = times.at(-1)?.[1];
+    if (!last) return null;
+    const decoded = Number(last) / 1_000_000;
+    if (!Number.isFinite(decoded) || decoded <= 0 ||
+        Math.abs(decoded - duration) > Math.max(0.25, Math.min(1, duration * 0.005)))
+      return null;
+    return decoded;
   } catch { return null; }
 };
 
