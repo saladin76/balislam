@@ -1,6 +1,8 @@
 import path from "node:path";
-import { mkdir } from "node:fs/promises";
-import { bundle } from "@remotion/bundler";
+import { randomUUID } from "node:crypto";
+import { mkdir, rename, rm } from "node:fs/promises";
+import { createIsolatedRenderBundle } from "./bundle";
+import { emptyMedia } from "../plan/media";
 import { getCompositions, renderStill } from "@remotion/renderer";
 import { projectRoot } from "../config/paths";
 
@@ -18,10 +20,9 @@ export const renderBrandStills = async (opts: StillsOptions = {}): Promise<strin
   await mkdir(outDir, { recursive: true });
 
   log("تجميع المشروع…");
-  const serveUrl = await bundle({
-    entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"),
-    publicDir: path.join(projectRoot, "public"),
-  });
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+  const serveUrl = sandbox.serveUrl;
 
   const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
   const comps = await getCompositions(serveUrl, { browserExecutable });
@@ -32,10 +33,19 @@ export const renderBrandStills = async (opts: StillsOptions = {}): Promise<strin
   for (const composition of targets) {
     const output = path.join(outDir, `${composition.id}.png`);
     log(`رندر ${composition.id}…`);
-    await renderStill({ serveUrl, composition, output, scale: 2, browserExecutable });
-    written.push(output);
+    const pending = output + `.${randomUUID()}.part.png`;
+    try {
+      await renderStill({ serveUrl, composition, output: pending, scale: 2, browserExecutable });
+      await rename(pending, output);
+      written.push(output);
+    } finally {
+      await rm(pending, { force: true });
+    }
   }
   return written;
+  } finally {
+    await sandbox.cleanup();
+  }
 };
 
 /** يرندر صور القنوات للمنصات (صورة الحساب وأغلفة يوتيوب وفيسبوك وX) إلى renders/brand/<القناة>/ */
@@ -44,7 +54,9 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
   const { listChannels, loadChannel, loadChannelIdentity, channelInfo } = await import("../channel");
   const ids = opts.channels?.length ? opts.channels : listChannels();
   log("تجميع المشروع…");
-  const serveUrl = await bundle({ entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"), publicDir: path.join(projectRoot, "public") });
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+  const serveUrl = sandbox.serveUrl;
   const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
   const written: string[] = [];
   for (const id of ids) {
@@ -57,8 +69,14 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
       log(`رندر ${id} ← ${composition.id}…`);
       // دقة مضاعفة للتنزيل الحاد، ما عدا غلاف يوتيوب: 2560×1440 هو أقصى مقاس يقبله
       const scale = composition.defaultProps.kind === "youtube" ? 1 : 2;
-      await renderStill({ serveUrl, composition, output, scale, browserExecutable, inputProps: { ...inputProps, kind: composition.defaultProps.kind } });
-      written.push(output);
+      const pending = output + `.${randomUUID()}.part.png`;
+      try {
+        await renderStill({ serveUrl, composition, output: pending, scale, browserExecutable, inputProps: { ...inputProps, kind: composition.defaultProps.kind } });
+        await rename(pending, output);
+        written.push(output);
+      } finally {
+        await rm(pending, { force: true });
+      }
     }
   }
   return written;
