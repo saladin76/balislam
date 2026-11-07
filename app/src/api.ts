@@ -71,7 +71,24 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
 export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
+export type StudioDelivery = {
+  id: string; channel: string; episode: string; kind: "video" | "storyboard";
+  slot: string; url: string; md5: string; updated: string; status: "delivered_pending_review";
+};
+export type StudioPendingJob = {
+  id: string; channel: string; episode: string; slot: string;
+  kind: "video" | "storyboard"; state: "waiting_for_mac" | "delivered";
+};
+export type StudioTransferOverview = {
+  configured: boolean; deliveries: StudioDelivery[]; bridgeDeliveredJobs: number;
+  pendingJobs: StudioPendingJob[]; note: string;
+};
+
+export type StudioReviewNote = { id: string; sceneId: string; timeSec: number; text: string; createdAt: string };
 export const api = {
+  reviewNotes: (episode: string) => call<{ notes: StudioReviewNote[] }>(`/api/episodes/${encodeURIComponent(episode)}/review-notes`),
+  saveReviewNotes: (episode: string, notes: StudioReviewNote[]) => call<{ notes: StudioReviewNote[] }>(`/api/episodes/${encodeURIComponent(episode)}/review-notes`, { method: "PUT", json: { notes } }),
+  studioTransfers: () => call<StudioTransferOverview>("/api/studio-transfers"),
   recitationChoice: (episode: string, channel: string) =>
     call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
   saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>

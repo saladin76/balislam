@@ -105,6 +105,12 @@ export const balApi = (): Plugin => ({
       if (!url.pathname.startsWith("/api/")) return next();
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
+        // Read-only handoff index; no network requests, jobs or uploads from the UI.
+        if (url.pathname === "/api/studio-transfers" && req.method === "GET") {
+          const { readStudioTransferOverview } = await import("./studioTransfers.ts");
+          return send(res, 200, await readStudioTransferOverview());
+        }
+
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
@@ -188,6 +194,22 @@ export const balApi = (): Plugin => ({
           const { resolveScriptPath } = await load("/src/script/episodes.ts");
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
+          if (parts[2] === "review-notes" && parts.length === 3) {
+            const { readReviewNotes, saveReviewNotes } = await import("./reviewNotes.ts");
+            if (req.method === "GET") return send(res, 200, { notes: await readReviewNotes(scriptPath) });
+            if (req.method === "PUT") {
+              const b = await readBody(req);
+              const { loadPlan } = await load("/src/plan/io.ts");
+              const plan = await loadPlan(ep);
+              const sceneIds = new Set((plan?.chapters ?? []).flatMap((chapter: { scenes: { id: string }[] }) => chapter.scenes.map((scene) => scene.id)));
+              const { validateReviewNotes } = await import("./reviewNotes.ts");
+              const notes = validateReviewNotes(b.notes);
+              if (notes.some((n) => !sceneIds.has(n.sceneId))) throw new HttpError(400, "توجد ملاحظة لمشهد غير موجود في الحلقة.");
+              return send(res, 200, { notes: await saveReviewNotes(scriptPath, notes) });
+            }
+            return send(res, 405, { error: "Method not allowed" });
+          }
+
 
           if (parts[2] === "recitation" && parts.length === 3) {
             const { readEpisodeRecitation, saveEpisodeRecitation } = await load("/src/quran/provider.ts");

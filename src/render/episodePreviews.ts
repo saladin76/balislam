@@ -63,6 +63,12 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
     committedIndex = true;
     // لا تجعل فشل تنظيف نسخة قديمة يُخفي نجاح الاستبدال.
     await Promise.allSettled(stale.map((n) => rm(path.join(dir, n), { force: true })));
+    // The local slot is committed. Publish the exact completed file to Drive,
+    // without scanning other worktrees. Protected -audio slots are never uploaded.
+    if (!name.endsWith("-audio")) {
+      const { uploadCloudPreview } = await import("./cloudPreview");
+      await uploadCloudPreview(output, path.basename(path.dirname(scriptPath)), name);
+    }
     return { file: output, removed: stale.filter((n) => !existsSync(path.join(dir, n))), version: nextIndex[target]!.version };
   } catch (error) {
     // إذا فشل تحديث الفهرس، أعد الفيديو السابق لتظل النسخة المعروضة والفهرس متوافقين.

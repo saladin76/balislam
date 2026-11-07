@@ -1,6 +1,7 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
 import { StudioSidebar, StudioIcon, SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
 import "./studio-shell.css";
+import "./studio-design-system.css";
 import { StudioStartGuide } from "./ui/StudioStartGuide";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
@@ -18,6 +19,7 @@ import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
 import { OpsRoom } from "./tabs/OpsRoom";
+import { DeliveryCenter } from "./tabs/DeliveryCenter";
 import { PublishTab } from "./tabs/PublishTab";
 import { LibraryTab } from "./tabs/LibraryTab";
 import { ChannelTab } from "./tabs/ChannelTab";
@@ -55,7 +57,6 @@ export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
-  const [homeView, setHomeView] = useState<"channel" | "all">("channel");
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [channelId, setChannelId] = useState<string>(() => {
     const c = store.get("bal-channel") || "";
@@ -346,14 +347,8 @@ export const App: React.FC = () => {
            />
          ) : null}
 
-         {tab === "home" ? (
-          <div className="home-wrap">
-          <StudioStartGuide />
-          <nav className="studio-home-switch" aria-label="عرض الاستوديو">
-            <button type="button" aria-pressed={homeView === "channel"} className={homeView === "channel" ? "active" : ""} onClick={() => setHomeView("channel")}>حلقات القناة الحالية</button>
-            <button type="button" aria-pressed={homeView === "all"} className={homeView === "all" ? "active" : ""} onClick={() => setHomeView("all")}>جميع القنوات · غرفة العمليات</button>
-          </nav>
-          {homeView === "all" ? <OpsRoom
+         {tab === "ops" ? (
+          <OpsRoom
             refreshKey={homeKey}
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
@@ -376,7 +371,22 @@ export const App: React.FC = () => {
               setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
               setShowNew(true);
             }}
-          /> : <>
+          />
+        ) : tab === "deliveries" ? (
+          <DeliveryCenter onOpenEpisode={async (ch, id) => {
+            if (!confirmLeaveScript()) return;
+            await flushPlan();
+            if (ch !== channelId) {
+              pendingOpen.current = { ep: id, tab: "storyboard" };
+              setChannelId(ch);
+            } else {
+              setEpId(id);
+              setTab("storyboard");
+            }
+          }} />
+        ) : tab === "home" ? (
+          <div className="home-wrap">
+            <StudioStartGuide />
           <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
           <HomeTab
             key={`${channelId}-${homeKey}`}
@@ -399,7 +409,7 @@ export const App: React.FC = () => {
               setTab(t);
             }}
           />
-          </>}
+
           </div>
         ) : tab === "treviews" && channelId ? (
           <TechReviewsTab key={channelId} channel={channelId} />

@@ -12,6 +12,7 @@ import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
 import { api, type LongJob, type StoryboardInfo } from "../api";
+import { ReviewNotesPanel } from "./ReviewNotesPanel";
 import config from "../../../config.json";
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
@@ -52,6 +53,8 @@ export const StoryboardPanel: React.FC<{
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<"all" | "pending" | "warnings">("all");
+  const [focusView, setFocusView] = useState(false);
   const fps = config.video.fps;
   const W = config.video.episode.width;
   const H = config.video.episode.height;
@@ -176,7 +179,7 @@ export const StoryboardPanel: React.FC<{
   const logicNotAssessable = motion ? Object.entries(motion.scenes).filter(([id, v]) => !info?.motionStale?.includes(id) && (!v.logic || v.logic.status === "not-assessable")).map(([id]) => id) : [];
 
   return (
-    <div className="storyboard">
+    <div className={focusView ? "storyboard sb-focus-view" : "storyboard"}>
       <div className="sb-head">
         <div style={{ display: "grid", gap: 4 }}>
           <h2>ستوري بورد الحلقة {episodeId}</h2>
@@ -217,8 +220,26 @@ export const StoryboardPanel: React.FC<{
 
       <Reviews episodeId={episodeId} />
       <Previews episodeId={episodeId} />
+      <ReviewNotesPanel episodeId={episodeId} sceneIds={plan.chapters.flatMap((chapter) => chapter.scenes.map((scene) => scene.id))} onOpenScene={onOpenScene} />
 
-      {rows.map(({ ch, shots }) => (
+      <div className="sb-review-controls" role="group" aria-label="أدوات عرض ستوري بورد المراجعة">
+        <label>تصفية المشاهد
+          <select value={reviewFilter} onChange={(e) => setReviewFilter(e.target.value as "all" | "pending" | "warnings")}>
+            <option value="all">جميع المشاهد</option>
+            <option value="pending">لم تُعتمد أو تغيّرت</option>
+            <option value="warnings">تحذيرات الحركة والمنطق</option>
+          </select>
+        </label>
+        <button type="button" className="btn" aria-pressed={focusView} onClick={() => setFocusView((v) => !v)}>
+          {focusView ? "عرض البطاقات المعتاد" : "عرض موسّع للمراجعة"}
+        </button>
+        <span className="help">اختيار العرض لا يُغير أي اعتماد.</span>
+      </div>
+
+      {rows.map(({ ch, shots }) => ({ ch, shots: shots.filter(({ s }) => reviewFilter === "all" ? true :
+        reviewFilter === "pending" ? st?.scenes[s.id] !== "approved" :
+        Boolean(info?.motionStale?.includes(s.id) || motionOf(s)?.logic?.status === "needs-review" || (motionOf(s)?.still ?? 0) > 2)) }))
+        .filter(({ shots }) => shots.length > 0).map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter">
           <h3>
             <span className="sb-tape">الفصل {ch.number}</span> {ch.title}
@@ -318,6 +339,9 @@ const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
 const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   const [files, setFiles] = useState<{ name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[]>([]);
+  const [compareA, setCompareA] = useState("");
+  const [compareB, setCompareB] = useState("");
+  const [showCompare, setShowCompare] = useState(false);
   useEffect(() => {
     api.previews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
   }, [episodeId]);
@@ -326,6 +350,24 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
     <section className="sb-previews">
       <h3>المعاينات</h3>
       <p className="help">كل فيديو يُصنع للحلقة يظهر هنا، وأي تعديل يستبدل القديم بالجديد. المعاينات لا تُنشر.</p>
+      {files.length > 1 && <div className="sb-compare-tools">
+        <button type="button" className="btn" aria-expanded={showCompare} onClick={() => setShowCompare((v) => !v)}>
+          {showCompare ? "إغلاق المقارنة" : "مقارنة معاينتين"}
+        </button>
+        {showCompare && <div className="sb-compare-layout" aria-label="مقارنة معاينات متجاورة">
+          {[compareA || files[0]!.name, compareB || files[1]!.name].map((selected, i) => (
+            <div key={i}>
+              <label>النسخة {i === 0 ? "الأولى" : "الثانية"}
+                <select value={selected} onChange={(e) => i === 0 ? setCompareA(e.target.value) : setCompareB(e.target.value)}>
+                  {files.map((f) => <option key={f.name} value={f.name}>{f.title} — رفع {f.version}</option>)}
+                </select>
+              </label>
+              <video src={api.previewUrl(episodeId, selected)} controls preload="metadata" playsInline />
+              <p className="help">{files.find((f) => f.name === selected)?.note || "معاينة للمقارنة فقط — ليست اعتمادًا"}</p>
+            </div>
+          ))}
+        </div>}
+      </div>}
       <div className="sb-previews-grid">
         {files.map((f) => (
           <figure key={f.name} className="sb-preview">

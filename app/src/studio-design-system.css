@@ -1,0 +1,33 @@
+/* Studio layout design system. Scoped to the shell so media/channel branding is untouched. */
+.studio-shell{
+  --studio-space-1:4px;--studio-space-2:8px;--studio-space-3:12px;
+  --studio-space-4:16px;--studio-space-5:20px;--studio-space-6:24px;
+  --studio-radius-sm:8px;--studio-radius-md:12px;--studio-radius-lg:16px;
+  --studio-focus:#117e75;
+  --studio-text:var(--ink,#192b3d);
+  --studio-muted:var(--muted,#758394);
+  --studio-border:var(--line,#e4e9ef);
+  --studio-canvas:var(--bg,#f5f7fa);
+}
+.studio-shell :is(button,a,select,input,textarea,[role="button"]):focus-visible{
+  outline:3px solid var(--studio-focus);
+  outline-offset:2px;
+}
+.studio-shell :is(button,input,textarea,select):disabled{
+  cursor:not-allowed;opacity:.56;
+}
+.studio-shell .studio-nav-group>p{
+  letter-spacing:.045em;
+}
+.studio-shell .home-wrap,.studio-shell .ops,.studio-shell .delivery-center{
+  min-width:0;
+}
+.studio-shell .sb-shot,.studio-shell .delivery-item{
+  overflow-wrap:anywhere;
+}
+@media(prefers-reduced-motion:reduce){
+  .studio-shell *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+@media(max-width:700px){
+  .studio-shell .home-wrap,.studio-shell .delivery-center{max-width:100%}
+}

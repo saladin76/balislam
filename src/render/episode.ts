@@ -135,6 +135,13 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     });
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
     await rename(tempOutput, output);
+    // Upload only a complete public preview; custom outFile may contain protected audio.
+    if (!opts.outFile && opts.quality !== "master") {
+      const { uploadCloudPreview } = await import("./cloudPreview");
+      const episodeSlug = path.basename(path.dirname(await resolveScriptPath(opts.episode)));
+      const slot = `episode-${opts.orientation}${opts.chapter ? `-ch${opts.chapter}` : ""}`;
+      await uploadCloudPreview(output, episodeSlug, slot);
+    }
     return output;
   } finally {
     await unlink(tempOutput).catch(() => {});
