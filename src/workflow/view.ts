@@ -38,9 +38,19 @@ export const toStudioWorkflowUiSnapshot = (
 ): StudioWorkflowUiSnapshot => {
   const stages = Object.fromEntries(WORKFLOW_STAGES.map((stage) => {
     const state = ledger.stages[stage];
-    const approval = state.approval
-      ? (({ evidenceProofs: _privateReceipts, ...publicFields }) => publicFields)(state.approval)
-      : undefined;
+    const approval: WorkflowUiApproval | undefined = state.approval ? {
+      // Explicit allow-list. Future ledger secrets must never be exposed by rest/spread.
+      by: structuredClone(state.approval.by),
+      at: state.approval.at,
+      contentVersion: state.approval.contentVersion,
+      artifactSha256: state.approval.artifactSha256,
+      artifactEpoch: state.approval.artifactEpoch,
+      fingerprint: state.approval.fingerprint,
+      note: state.approval.note,
+      evidence: [...state.approval.evidence],
+      approvalEventSeq: state.approval.approvalEventSeq,
+      prerequisiteApprovalSeq: [...state.approval.prerequisiteApprovalSeq],
+    } : undefined;
     return [stage, {
       status: state.status,
       ...(approval ? { approval: structuredClone(approval) } : {}),
