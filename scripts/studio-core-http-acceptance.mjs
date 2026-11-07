@@ -193,6 +193,28 @@ try {
       `foreign fixture channel modified: ${id}`);
   }
   console.log("PASS: all original files and both other channels remain byte-identical");
+
+  assert.equal((await request("/api/channel?channel=../bad")).status, 400);
+  assert.equal((await request("/api/channel?channel=not-a-channel")).status, 404);
+  console.log("PASS: malformed and absent channel selectors rejected");
+
+  // Failure injection occurs in the disposable fixture only, after verifying
+  // that ordinary operations never touched either other channel.
+  await writeFile(path.join(channels, "zubdat-alkutub", "channel.json"), "{invalid");
+  const degraded = await (await request("/api/channels")).json();
+  assert.ok(degraded.some((x) => x.id === "zubdat-alkutub" && x.error));
+  for (const id of ids.slice(0, 2))
+    assert.ok(degraded.some((x) => x.id === id && !x.error));
+  const opsResponse = await request("/api/ops?channel=balislam");
+  assert.equal(opsResponse.status, 200);
+  const degradedOps = await opsResponse.json();
+  assert.ok(degradedOps.some((x) => x.channel?.id === "zubdat-alkutub" && x.error));
+  for (const id of ids.slice(0, 2))
+    assert.ok(degradedOps.some((x) => x.channel?.id === id && !x.error));
+  for (let i = 0; i < originals.length; i++)
+    assert.ok((await readFile(originals[i])).equals(before[i]));
+  console.log("PASS: damaged temporary channel degrades independently without rewriting originals");
+
   console.log("ALL ISOLATED CORE HTTP WRITE ACCEPTANCE CHECKS PASSED");
 } catch (error) {
   console.error("FAIL:", error instanceof Error ? error.stack : String(error));
