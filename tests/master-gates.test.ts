@@ -110,11 +110,16 @@ describe("بوابات النسخة النهائية", () => {
     await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: media as never, channel })).rejects.toThrow(/صوتي/);
   });
 
-  it("تغيير نبرة الراوي بعد اعتماد الصوت يلغي توقيع التسجيل", async () => {
+  it("تغيير النبرة يبطل مراجعة المشهد، وبعد إعادة مراجعتها يظل اعتماد الصوت القديم مرفوضًا", async () => {
     const sample = await fresh();
     sample.spoken.tone = "warm";
+    // Motion/scene review includes tone and must be repeated when narration changes.
     await expect(assertMasterReady({ scriptPath: sample.scriptPath, plan: sample.plan, media: sample.media as never, channel }))
-      .rejects.toThrow(/اعتماد الاستماع/);
+      .rejects.toThrow(/مراجعة المشاهد غير مكتملة/);
+    // Reapproving ONLY the scene must not magically reapprove the old voice recording.
+    await setSceneReview(sample.scriptPath, sample.plan, sample.spoken.id, "ok");
+    await expect(assertMasterReady({ scriptPath: sample.scriptPath, plan: sample.plan, media: sample.media as never, channel }))
+      .rejects.toThrow(/اعتماد الاستماع|مقطع.*changed|نبرة/);
   });
 
   it("آية بلا نصها تمنع", async () => {
