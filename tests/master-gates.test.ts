@@ -67,11 +67,12 @@ const fresh = async () => {
   spoken.tone = "documentary";
   spoken.template = "noor-text";
   spoken.props = { text: "", light: "ink", subtitle: "" };
-  for (const item of reviewItems(parsed, null)) await setReview(scriptPath, parsed, item.key, "verified");
+  for (const item of reviewItems(parsed, null)) await setReview(scriptPath, parsed, item.key, "verified",
+    "راجعت مصدر الاستشهاد نصًا ومطابقةً", "owner-test", true);
   await approveStoryboard(scriptPath, plan);
   for (const s of scenes) await setSceneReview(scriptPath, plan, s.id, "ok");
-  await approveVoiceScene(scriptPath, plan, media.voice as never, spoken.id, "owner-test", "استمعت للمقطع كاملًا وتحققت من النبرة والنطق");
-  await approveVoiceEpisode(scriptPath, plan, media.voice as never, "owner-test", "تم الاستماع المتصل للتعليق الصوتي كاملًا وتحقق انتقال المقاطع");
+  await approveVoiceScene(scriptPath, plan, media.voice as never, spoken.id, "owner-test", "استمعت للمقطع كاملًا وتحققت من النبرة والنطق", true);
+  await approveVoiceEpisode(scriptPath, plan, media.voice as never, "owner-test", "تم الاستماع المتصل للتعليق الصوتي كاملًا وتحقق انتقال المقاطع", true);
   return { dir, scriptPath, parsed, plan, media, spoken, verse };
 };
 
@@ -100,7 +101,7 @@ describe("بوابات النسخة النهائية", () => {
   it("مصدر مرفوض يمنع", async () => {
     const s = await fresh();
     const key = reviewItems(s.parsed, null)[0]!.key;
-    await setReview(s.scriptPath, s.parsed, key, "rejected", "لا تطابق التلاوة نص الآية");
+    await setReview(s.scriptPath, s.parsed, key, "rejected", "لا تطابق التلاوة نص الآية", "owner-test", true);
     await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow(/التوثيق/);
   });
 
