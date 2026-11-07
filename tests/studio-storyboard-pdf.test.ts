@@ -206,6 +206,8 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(r.html).toContain(".head .name{position:absolute;right:0;left:46mm");
     expect(r.html).toContain(".status{position:absolute;left:0;top:2mm");
     expect(r.html).toContain(".page-index{position:absolute");
+    // Arabic glyph extents and tashkeel need sufficient leading in the fixed review panel.
+    expect(r.html).toContain("font-size:10.2pt;line-height:1.55;max-height:19mm");
     expect(r.html).toContain("height:130mm");
     expect(r.status).toBe("PENDING_REVIEW");
   });
