@@ -150,6 +150,18 @@ try {
   await resize(820, 1180);
   await screenshot("05-channels-tablet-820.png");
   await resize(1440, 900);
+  await navigate("إعدادات القناة");
+  await waitFor("#ch-name");
+  const settingsMarker = " [UNSAVED-CHANNEL-UI]";
+  assert("channel settings edited locally", await typeDraft("#ch-name", settingsMarker));
+  await delay(200);
+  await screenshot("06-channel-settings-draft-desktop-1440.png");
+  await navigate("غرف العمليات");
+  await waitFor(".ops-section-nav");
+  await navigate("إعدادات القناة");
+  await waitFor("#ch-name");
+  assert("channel settings survive workspace navigation",
+    await evaluate("document.querySelector('#ch-name')?.value.endsWith(" + JSON.stringify(settingsMarker) + ")"));
   await navigate("غرف العمليات");
   await waitFor(".ops-section-nav");
   assert("ideas subsection reopens", await click('[aria-controls="ops-ideas"]'));
@@ -167,13 +179,13 @@ try {
     await waitFor(selector);
   };
   await goStage("الستوري بورد", ".ew-storyboard-wrap");
-  await screenshot("06-storyboard-desktop-1440.png");
+  await screenshot("07-storyboard-desktop-1440.png");
   await goStage("التعليق الصوتي", ".ew-voice-stage");
-  await screenshot("07-voice-desktop-1440.png");
+  await screenshot("08-voice-desktop-1440.png");
   await goStage("الحركة والمشاهد", ".episode-workspace-app .work");
-  await screenshot("08-scenes-desktop-1440.png");
+  await screenshot("09-scenes-desktop-1440.png");
   await goStage("Master والنشر", ".publish");
-  await screenshot("09-master-desktop-1440.png");
+  await screenshot("10-master-desktop-1440.png");
   await goStage("السكريبت والمصادر", "#script-editor");
   const scriptMarker = " [UI-UNSAVED-SCRIPT]";
   assert("script editor changed locally", await typeDraft("#script-editor", scriptMarker));
@@ -183,7 +195,7 @@ try {
   await navigate("مساحة الحلقة المفتوحة");
   await waitFor("#script-editor");
   assert("script draft survives navigation", await evaluate("document.querySelector('#script-editor')?.value.endsWith(" + JSON.stringify(scriptMarker) + ")"));
-  await screenshot("10-episode-draft-desktop-1440.png");
+  await screenshot("11-episode-draft-desktop-1440.png");
 
   assert("research shortcut available", await click(".ew-research-shortcut"));
   await waitFor("#research-editor");
@@ -199,25 +211,25 @@ try {
   await waitFor("#research-editor");
   assert("research draft survives navigation", await evaluate("document.querySelector('#research-editor')?.value.endsWith(" + JSON.stringify(researchMarker) + ")"));
   await resize(390, 844, true);
-  await screenshot("11-research-mobile-390.png");
+  await screenshot("12-research-mobile-390.png");
   assert("mobile navigation can open", await click(".studio-menu-toggle"));
   await until(() => evaluate("document.querySelector('.studio-shell')?.classList.contains('is-nav-open')"), "mobile sidebar");
-  await screenshot("12-navigation-mobile-390.png");
+  await screenshot("13-navigation-mobile-390.png");
   await key("Escape", "Escape", 27);
   await until(() => evaluate("!document.querySelector('.studio-shell')?.classList.contains('is-nav-open')"), "mobile Escape");
   const openedReview = await evaluate("(() => {const b=[...document.querySelectorAll('.ew-stages button')].find(x=>x.textContent.includes('المراجعة المتكاملة'));if(!b)return false;b.click();return true;})()");
   assert("integrated AV stage opens", openedReview);
   await waitFor(".studio-review-workspace");
-  await screenshot("13-av-mobile-390.png");
+  await screenshot("14-av-mobile-390.png");
   await resize(820, 1180);
-  await screenshot("14-av-tablet-820.png");
+  await screenshot("15-av-tablet-820.png");
   await resize(1440, 900);
-  await screenshot("15-av-desktop-1440.png");
+  await screenshot("16-av-desktop-1440.png");
   await writeFile(path.join(output, "result.json"), JSON.stringify({
     passed: true, testCount: tests.length, tests, date: new Date().toISOString(), chrome: version.Browser,
     origin: "isolated CI runner", wroteEpisodeFiles: false, renderStarted: false, approvalGranted: false,
   }, null, 2));
-  console.log("STUDIO_UI_VISUAL_PASS", JSON.stringify({ checks: tests.length, screenshots: 15 }));
+  console.log("STUDIO_UI_VISUAL_PASS", JSON.stringify({ checks: tests.length, screenshots: 16 }));
 } catch (error) {
   await mkdir(output, { recursive: true });
   await writeFile(path.join(output, "failure.txt"), String(error?.stack || error));
