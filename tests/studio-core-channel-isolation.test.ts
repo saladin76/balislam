@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createChannel } from "../src/channel/create";
 import { channelPaths, isChannelId, listChannels, loadChannel, runWithChannel, currentChannelId } from "../src/channel";
-import { writeJsonAtomic } from "../src/channel/storage";
+import { jsonRevision, writeJsonAtomic, writeJsonWithRevision } from "../src/channel/storage";
 import { listScriptEpisodeDirs, resolveScriptPath } from "../src/script/episodes";
 
 const project = path.resolve(import.meta.dirname, "..");
@@ -110,6 +110,25 @@ describe("channel boundaries and crash-safe storage", () => {
     expect(selected.map((x) => x.scope)).toEqual(ids);
     expect(selected.map((x) => x.channel)).toEqual(ids);
     expect(new Set(selected.map((x) => x.file)).size).toBe(3);
+  });
+
+  it("prevents stale or simultaneous writes from replacing the newest channel config", async () => {
+    const file = channelPaths("balislam").channelFile;
+    const expected = await jsonRevision(file);
+    const original = loadChannel("balislam");
+    const outcome = await Promise.allSettled([
+      writeJsonWithRevision(file, { ...original, description: "first editor" }, expected),
+      writeJsonWithRevision(file, { ...original, description: "second editor" }, expected),
+    ]);
+    expect(outcome.filter((x) => x.status === "fulfilled")).toHaveLength(1);
+    expect(outcome.filter((x) => x.status === "rejected")).toHaveLength(1);
+    const saved = loadChannel("balislam");
+    expect(["first editor", "second editor"]).toContain(saved.description);
+    const winner = readFileSync(file, "utf8");
+    await expect(writeJsonWithRevision(file, original, expected))
+      .rejects.toMatchObject({ status: 409 });
+    expect(readFileSync(file, "utf8")).toBe(winner);
+    expect(readdirSync(path.dirname(file)).some((n) => n.endsWith(".json.lock"))).toBe(false);
   });
 
   it("atomically replaces JSON and preserves the prior bytes on serialization failure", async () => {
