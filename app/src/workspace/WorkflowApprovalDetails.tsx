@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  STAGES, workflowLabel,
+  workflowLabel,
   type WorkflowStage, type WorkflowApprovalSnapshot, type WorkflowStageRecord,
 } from "./workflowReadModel";
 
