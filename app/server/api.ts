@@ -207,7 +207,7 @@ export const balApi = (): Plugin => ({
             const sceneId = body?.sceneId;
             const expectedSha256 = body?.expectedSha256;
             const token = req.headers["x-studio-owner-token"];
-            const { assertCurrentSceneRenderAllowed } =
+            const { assertCurrentSceneRenderAllowed, recordSceneRenderEvidence } =
               await load("/src/studio/sceneService.ts");
             await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token);
             const { renderShotsPreview } = await load("/src/render/shotsPreview.ts");
@@ -219,6 +219,7 @@ export const balApi = (): Plugin => ({
                 ep, sceneId, expectedSha256, token,
               ),
             });
+            await recordSceneRenderEvidence(ep, sceneId, expectedSha256, token);
             return send(res, 200, { ok: true, version: output.version,
               preview: `scene-${sceneId}-av.mp4` });
           }
