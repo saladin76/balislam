@@ -123,8 +123,22 @@ export const balApi = (): Plugin => ({
         if (parts[0] === "episodes" && parts.length === 1) {
           if (req.method === "POST") {
             const b = await readBody(req);
+            if (typeof b.episode !== "string" || !EP.test(b.episode) ||
+                typeof b.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(b.slug) ||
+                typeof b.domain !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(b.domain) ||
+                (b.title !== undefined && (typeof b.title !== "string" || b.title.length > 200)))
+              return send(res, 400, { error: "بيانات إنشاء الحلقة غير صالحة؛ لم يُنشأ أي ملف." });
             const { createEpisode } = await load("/src/script/episodes.ts");
-            await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title });
+            try {
+              await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title });
+            } catch (error) {
+              const message = (error as Error).message;
+              if (/موجودة|موجود مسبقًا|قيد التنفيذ|قفل قديم/.test(message))
+                return send(res, 409, { error: message });
+              if (/المجال|رقم الحلقة|الاسم المختصر/.test(message))
+                return send(res, 400, { error: message });
+              throw error;
+            }
             return send(res, 200, { ok: true });
           }
           // الجاهزة للتشغيل فقط (لها script.md)؛ مجلدات الخطة وحدها (000-trailer، المختبرات) لا تُفتح حلقاتٍ
