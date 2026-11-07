@@ -486,7 +486,7 @@ export const App: React.FC = () => {
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           />
         ) : tab === "review" ? (
-          <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage, sceneId) => {
+          <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} channelId={channelId} onOpen={(stage, sceneId) => {
             if (!confirmLeaveScript()) return;
             if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
             setTab(stage);
