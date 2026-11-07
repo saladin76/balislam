@@ -102,6 +102,10 @@ export const voiceTimingMode = async (scriptPath: string, plan: Plan, media: Epi
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   const log = opts.onProgress ?? (() => {});
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
+  if (opts.quality === "master") {
+    const { requireScenesReadyForMaster } = await import("../studio/sceneService");
+    await requireScenesReadyForMaster(opts.episode);
+  }
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan, {
@@ -172,6 +176,10 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
+    if (opts.quality === "master") {
+      const { requireScenesReadyForMaster } = await import("../studio/sceneService");
+      await requireScenesReadyForMaster(opts.episode);
+    }
     await rename(tempOutput, output);
     return output;
   } finally {
