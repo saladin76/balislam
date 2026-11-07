@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -27,6 +27,9 @@ beforeAll(() => {
 afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
+  // This fixture copies the real channel tree (~130 MB). Delete ONLY the
+  // per-test directory created by mkdtempSync, including on assertion failure.
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
 

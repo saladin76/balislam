@@ -2,14 +2,13 @@ import path from "node:path";
 import { channelInfo } from "../channel/types";
 import { chaptersText, generatePublishKit, kitToMarkdown } from "./social";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { link, mkdir, readdir, readFile, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
 import { scenesOf } from "../remotion/scenes/Episode";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
-import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
@@ -20,6 +19,29 @@ import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
 import { approvalValid, QUALITY, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
 import { unlink } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { masterRenderSubject, assertMasterStageAuthorized } from "../render/masterGateContract";
+import { assertNoLinkedPath, ensureUnlinkedDirectory } from "../render/fsIsolation";
+
+/** Protect previous package alias content before writing the next revision. */
+const writePackageText = async (dir: string, name: string, content: string) => {
+  if (!name || path.basename(name) !== name || name.includes("\\") || name.startsWith("."))
+    throw new Error("اسم ملف حزمة غير آمن.");
+  const target = path.join(dir, name);
+  const pending = path.join(dir, `.pending-${randomUUID()}`);
+  try {
+    await writeFile(pending, content, { flag: "wx", mode: 0o600 });
+    if (existsSync(target)) {
+      await assertNoLinkedPath(target, true);
+      const history = path.join(dir, "history", "metadata");
+      await ensureUnlinkedDirectory(history);
+      await link(target, path.join(history, `${randomUUID()}-${name}`));
+    }
+    await rename(pending, target);
+  } finally {
+    await rm(pending, { force: true });
+  }
+};
 
 export type PackageOptions = {
   episode: string;
@@ -48,17 +70,26 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const log = opts.onProgress ?? (() => {});
   const ep = opts.episode;
   const scriptPath = await resolveScriptPath(ep);
+  await assertNoLinkedPath(scriptPath, true);
   const script = await readFile(scriptPath, "utf8");
   const plan = (await loadPlan(ep)) ?? (await regeneratePlan(ep));
   const dir = path.join(await outDirFor(ep), "package");
-  await mkdir(dir, { recursive: true });
+  await ensureUnlinkedDirectory(dir);
+  const packageLock = path.join(dir, ".package-write.lock");
+  await mkdir(packageLock, { mode: 0o700 });
+  try {
   const id = plan.episode || ep;
+  if (!/^[a-z0-9][a-z0-9_-]{0,79}$/i.test(id)) throw new Error("معرف الحلقة غير آمن لحزمة النشر.");
   const shorts = Math.min(opts.shorts ?? 6, plan.chapters.length);
   const stage = opts.stage ?? "episode";
   const quality: Quality = opts.quality ?? "master";
   const episodePath = path.join(dir, `${id}-episode.mp4`);
   const statusFile = path.join(path.dirname(scriptPath), "status.json");
-  const readStatus = async () => (existsSync(statusFile) ? JSON.parse(await readFile(statusFile, "utf8")) : {});
+  const readStatus = async () => {
+    if (!existsSync(statusFile)) return {};
+    await assertNoLinkedPath(statusFile, true);
+    return JSON.parse(await readFile(statusFile, "utf8"));
+  };
   // قاعدة: كل مشهد يُراجَع بعد تنفيذه (حركاته سليمة ومتناسقة مع النص وغير عشوائية) قبل النسخة النهائية
   if (quality === "master" && !opts.skipVideo && !opts.ignoreSceneReview) {
     const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath));
@@ -66,13 +97,23 @@ export const packageEpisode = async (opts: PackageOptions) => {
     if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
   }
   if (stage === "shorts") {
-    const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
+    const infoPath = renderInfoFile(dir);
+    if (existsSync(infoPath)) await assertNoLinkedPath(infoPath, true);
+    const info = existsSync(infoPath) ? (JSON.parse(await readFile(infoPath, "utf8")) as RenderInfo) : null;
+    if (info?.outputFile && (path.basename(info.outputFile) !== info.outputFile || info.outputFile.startsWith(".") || !info.outputFile.endsWith(".mp4")))
+      throw new Error("مسار فيديو الحزمة السابق غير آمن.");
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
-    if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
+    if (!approvalValid((await readStatus()).approved, path.join(dir, info.outputFile ?? path.basename(episodePath)))) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
   }
 
   log("تجهيز الوسائط…");
   const media = await prepareRenderMedia(ep, plan);
+  // Do not mutate an earlier package when the persistent Master/AV gate is
+  // not linked. The real per-chapter gate is checked again in renderEpisode.
+  if (quality === "master" && !opts.skipVideo)
+    await assertMasterStageAuthorized(await masterRenderSubject(
+      scriptPath, loadChannel().id, plan, media, stage === "shorts" ? "portrait" : "landscape",
+    ));
   // الصوت «كامل» فقط إن كان لكل مشهد متكلَّم مقطع يطابق نصه الحالي
   const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   const voicedOk = narrated.filter((s) => {
@@ -89,13 +130,14 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const channel = loadChannel();
   const identity = loadChannelIdentity();
   const lang = plan.lang ?? channel.language;
-  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, shorts, channel));
-  await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice, channel));
-  await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
+  if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i.test(lang)) throw new Error("رمز لغة الترجمة غير آمن.");
+  await writePackageText(dir, "youtube.md", buildYoutubeText(plan, script, media, shorts, channel));
+  await writePackageText(dir, "publish-checklist.md", publishChecklist(plan, hasVoice, channel));
+  await writePackageText(dir, `${id}-episode.${lang}.srt`, buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
   if (stage === "shorts")
     for (let n = 1; n <= shorts; n++) {
       const ch = plan.chapters[n - 1]!;
-      await writeFile(path.join(dir, `${id}-short-${n}.${lang}.srt`), buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media, identity));
+      await writePackageText(dir, `${id}-short-${n}.${lang}.srt`, buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media, identity));
     }
   files.push("youtube.md", "publish-checklist.md", `${id}-episode.${lang}.srt`);
 
@@ -103,11 +145,11 @@ export const packageEpisode = async (opts: PackageOptions) => {
   {
     const kitFile = path.join(path.dirname(scriptPath), "publish.json");
     const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
-    if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
+    if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n", { flag: "wx" });
     // جودة النشر: لا عنوان عام ولا جملة مكررة ولا نص مبتور ولا وسم مكرر (قبل أي رندر مكلف)
     const kq = kitIssues(kit);
     if (kq.some((i) => i.level === "error")) throw new Error(kitBlockMessage(kq));
-    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()))));
+    await writePackageText(dir, "social.md", kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()))));
     files.push("social.md");
   }
 
@@ -115,9 +157,6 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const published = (await readdir(dir)).filter((f) => f === "youtube.md" || f === "social.md" || f.endsWith(".srt"));
   assertNoTraces(await Promise.all(published.map(async (name) => ({ name, text: await readFile(path.join(dir, name), "utf8") }))));
   assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
-
-  log("تجميع المشروع…");
-  await getServeUrl(true);
 
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
@@ -141,22 +180,18 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const motion: { label: string; report: MotionReport }[] = [];
     const reportFile = path.join(dir, "motion-report.md");
     const q = QUALITY[quality];
+    let pendingRenderInfo: RenderInfo | null = null;
     if (stage === "episode") {
-      // نسخة أساسية جديدة: تلغي الاعتماد السابق والشورتس القديمة (كانت من نسخة أخرى)
-      for (const f of await readdir(dir)) if (/-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f)) await unlink(path.join(dir, f));
-      const st = await readStatus();
-      if (st.approved) {
-        delete st.approved;
-        await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
-      }
+      // Keep previous approved assets untouched until the new video succeeds.
+      // Old shorts will be archived (never deleted) only after that point.
       log(`الحلقة بجودة: ${q.label}`);
       const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
       log(motionSummary(motion[0]!.report, "الحلقة"));
-      const info: RenderInfo = { quality, label: q.label, width: 1920 * q.scale, height: 1080 * q.scale, voiced: hasVoice, at: new Date().toISOString() };
-      await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
-      await writeFile(reportFile, `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
+      const info: RenderInfo = { quality, label: q.label, width: 1920 * q.scale, height: 1080 * q.scale, voiced: hasVoice, at: new Date().toISOString(), outputFile: path.basename(episodeFile) };
+      pendingRenderInfo = info;
+      await writePackageText(dir, path.basename(reportFile), `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     } else {
       for (let n = 1; n <= shorts; n++) {
         last = -1;
@@ -167,20 +202,57 @@ export const packageEpisode = async (opts: PackageOptions) => {
         motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait", await exemptForRender(plan, media, ch.number)) });
       }
       const prev = existsSync(reportFile) ? (await readFile(reportFile, "utf8")).trimEnd() : `# مقياس الحركة · ${plan.title}\n`;
-      await writeFile(reportFile, `${prev}\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
+      await writePackageText(dir, path.basename(reportFile), `${prev}\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     }
     files.push("motion-report.md");
     const weak = motion.filter((m) => m.report.percent < MOTION_MIN);
     if (weak.length) {
       // يظل المقطع متاحًا للتشخيص، لكنه يُعزل خارج ملفات النشر المعتمدة.
       const quarantine = path.join(dir, "qc-failed");
-      await mkdir(quarantine, { recursive: true });
+      await ensureUnlinkedDirectory(quarantine);
       for (const name of files.filter((f) => f.endsWith(".mp4"))) {
-        await rename(path.join(dir, name), path.join(quarantine, name));
+        const original = path.join(dir, name);
+        await assertNoLinkedPath(original, true);
+        const next = path.join(quarantine, `${randomUUID()}-${name}`);
+        await link(original, next);
+        await unlink(original);
       }
-      if (stage === "episode") await unlink(renderInfoFile(dir)).catch(() => {});
       throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. نُقلت الفيديوهات إلى qc-failed/ للتشخيص ولن تظهر ضمن ملفات النشر؛ راجع motion-report.md.`);
+    }
+    if (stage === "episode" && pendingRenderInfo) {
+      // Only a QC-passing render can supersede the previously approved package.
+      // Never change the current publication pointer when a new clip fails QC.
+      const oldShorts = (await readdir(dir)).filter((f) => /-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f));
+      if (oldShorts.length) {
+        const archiveDir = path.join(dir, "history", `superseded-${randomUUID()}`);
+        await ensureUnlinkedDirectory(archiveDir);
+        for (const file of oldShorts) {
+          await assertNoLinkedPath(path.join(dir, file), true);
+          await rename(path.join(dir, file), path.join(archiveDir, file));
+        }
+      }
+      const st = await readStatus();
+      if (st.approved) {
+        delete st.approved;
+        const pendingStatus = path.join(path.dirname(statusFile), `.status-${randomUUID()}.pending`);
+        try {
+          await writeFile(pendingStatus, JSON.stringify(st, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+          if (existsSync(statusFile)) {
+            await assertNoLinkedPath(statusFile, true);
+            const history = path.join(dir, "history", "status");
+            await ensureUnlinkedDirectory(history);
+            await link(statusFile, path.join(history, `previous-${randomUUID()}.json`));
+          }
+          await rename(pendingStatus, statusFile);
+        } finally {
+          await rm(pendingStatus, { force: true });
+        }
+      }
+      await writePackageText(dir, path.basename(renderInfoFile(dir)), JSON.stringify(pendingRenderInfo, null, 2) + "\n");
     }
   }
   return { dir, files, hasVoice };
+  } finally {
+    await rmdir(packageLock);
+  }
 };

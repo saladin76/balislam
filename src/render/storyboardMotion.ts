@@ -4,17 +4,20 @@
  * مع بصمة كل مشهد، فالمشهد الذي تغيّر بعد القياس يظهر «يحتاج قياسًا جديدًا».
  */
 import { existsSync } from "node:fs";
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile, rename, link } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { loadPlan, regeneratePlan } from "../plan/io";
-import { prepareRenderMedia } from "../plan/collect";
+import { prepareRenderMedia, studioMediaNamespace } from "../plan/collect";
 import { sceneFrames } from "../plan/duration";
 import { sceneHash } from "../plan/sceneReview";
 import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
-import { browserExecutable, getServeUrl } from "./bundle";
-import { outDirFor } from "./episode";
+import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
+import { assertRenderChannelOwnership, outDirFor, voiceTimingMode } from "./episode";
+import { assertNoLinkedPath, ensureUnlinkedDirectory } from "./fsIsolation";
+import { resolveScriptPath } from "../script/episodes";
 import { ACTIVE_PCT, measureMotion } from "./motionMeter";
 import { inspectMotionLogic, type MotionLogicReview } from "../plan/motionLogic";
 import { currentMotionFingerprint } from "./motionFingerprint";
@@ -38,16 +41,23 @@ export const loadStoryboardMotion = async (episode: string): Promise<StoryboardM
 export const measureStoryboardMotion = async (episode: string, opts: { orientation?: "landscape" | "portrait"; onProgress?: (pct: number, msg: string) => void } = {}) => {
   const log = opts.onProgress ?? (() => {});
   const orientation = opts.orientation ?? "landscape";
+  const scriptPath = await resolveScriptPath(episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
+  const { episodeName } = studioMediaNamespace(scriptPath);
   const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
   log(0, "تجهيز الوسائط…");
   const media = await prepareRenderMedia(episode, plan);
-  const serveUrl = await getServeUrl(true);
+  const sandbox = await createIsolatedRenderBundle(media);
+  try {
+  const serveUrl = sandbox.serveUrl;
   const channel = loadChannel();
   const info = channelInfo(channel);
-  const inputProps = { plan, orientation, media, identity: loadChannelIdentity(), channel: info };
+  const timingMode = await voiceTimingMode(scriptPath, plan, media);
+  const inputProps = { plan, orientation, media, timingMode, identity: loadChannelIdentity(), channel: info };
   const inputHash = await currentMotionFingerprint(episode, plan, orientation);
   const composition = await selectComposition({ serveUrl, id: `episode-${orientation}`, inputProps, browserExecutable: browserExecutable() });
-  const video = path.join(await outDirFor(episode), `${episode}-storyboard-${orientation}.mp4`);
+  const video = path.join(await outDirFor(episode), `${episodeName}-storyboard-${orientation}.${randomUUID()}.mp4`);
   let last = -1;
   try {
   await renderMedia({
@@ -83,7 +93,7 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
       still = Math.max(still, run);
     }
     const pct = Math.round((100 * secs.filter((v) => v >= ACTIVE_PCT).length) / Math.max(1, secs.length));
-    scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still, perSecond: secs, activityThreshold: ACTIVE_PCT }, media.voice[s.id]?.text === s.narration.trim() ? media.voice[s.id]?.words : undefined) };
+    scenes[s.id] = { hash: sceneHash(s), pct, still, from: t / fps, logic: inspectMotionLogic(s, { pct, still, perSecond: secs, activityThreshold: ACTIVE_PCT }, timingMode === "approved" && media.voice[s.id]?.text === s.narration.trim() ? media.voice[s.id]?.words : undefined) };
     t += d;
   }
   // لا تنشر نتيجةً جديدة لو تغيّرت المصادر أو هوية القناة أثناء الرندر الطويل.
@@ -95,20 +105,31 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, inputHash, scenes };
   const outputFile = await storyboardMotionFile(episode);
   const reportFile = path.join(path.dirname(outputFile), "storyboard-motion-report.md");
-  // كتابة نص التقرير قبل JSON: لا نعرض نتيجة جديدة إلا بعد وجود نصها.
-  await writeFile(reportFile, renderMotionAuditMarkdown(plan, out));
-  const tmpFile = outputFile + ".tmp";
+  // Stage both reports, archive old versions, then expose the current JSON
+  // pointer last. A failed attempt never destroys earlier evidence.
+  const history = path.join(path.dirname(outputFile), "history", "motion");
+  await ensureUnlinkedDirectory(history);
+  const tmpFile = `${outputFile}.${randomUUID()}.tmp`;
+  const tmpReport = `${reportFile}.${randomUUID()}.tmp`;
   try {
-    await writeFile(tmpFile, JSON.stringify(out, null, 2) + "\n");
-    const { rename } = await import("node:fs/promises");
+    await writeFile(tmpReport, renderMotionAuditMarkdown(plan, out), { flag: "wx" });
+    await writeFile(tmpFile, JSON.stringify(out, null, 2) + "\n", { flag: "wx" });
+    for (const target of [reportFile, outputFile]) if (existsSync(target)) {
+      await assertNoLinkedPath(target, true);
+      await link(target, path.join(history, `${randomUUID()}-${path.basename(target)}`));
+    }
+    await rename(tmpReport, reportFile);
     await rename(tmpFile, outputFile);
   } finally {
-    await rm(tmpFile, { force: true });
+    await Promise.allSettled([rm(tmpFile, { force: true }), rm(tmpReport, { force: true })]);
   }
   log(100, "تم");
   return out;
   } finally {
     // لا تترك معاينة ضخمة حتى إذا فشل الرندر أو تحليل الحركة.
     await rm(video, { force: true });
+  }
+  } finally {
+    await sandbox.cleanup();
   }
 };

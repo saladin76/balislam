@@ -14,7 +14,7 @@ export type QualitySpec = { label: string; scale: number; crf: number; x264Prese
 export const QUALITY = config.video.quality as Record<Quality, QualitySpec>;
 
 /** ما يُكتب بجوار ملفات الحزمة: بأي جودة رُندرت الحلقة، وهل بصوت كامل */
-export type RenderInfo = { quality: Quality; label: string; width: number; height: number; voiced: boolean; at: string };
+export type RenderInfo = { quality: Quality; label: string; width: number; height: number; voiced: boolean; at: string; /** Selected immutable output filename, when a previous filename was already occupied. */ outputFile?: string };
 export const renderInfoFile = (packageDir: string) => path.join(packageDir, "render.json");
 export const readRenderInfo = async (packageDir: string): Promise<RenderInfo | null> =>
   existsSync(renderInfoFile(packageDir)) ? JSON.parse(await readFile(renderInfoFile(packageDir), "utf8")) : null;

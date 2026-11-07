@@ -1,17 +1,21 @@
 import type { ChannelConfig } from "../channel/types";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
-import { mkdir } from "node:fs/promises";
+import { rm } from "node:fs/promises";
+import { assertNoLinkedPath, assertEpisodeOutputConfined, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
+import { assertMasterStageAuthorized, assertMasterSubjectUnchanged, masterRenderSubject, type MasterRenderSubject } from "./masterGateContract";
 import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
-import { prepareRenderMedia } from "../plan/collect";
-import type { EpisodeMedia } from "../plan/media";
+import { prepareRenderMedia, studioMediaNamespace } from "../plan/collect";
+import { defaultRenderMediaRoot, verifyStagedMedia } from "../plan/renderStage";
+import { emptyMedia, type EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
-import { browserExecutable, getServeUrl } from "./bundle";
+import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { activeRecitation } from "../quran/provider";
 import { QUALITY, type Quality } from "./quality";
@@ -27,14 +31,17 @@ export type RenderEpisodeOptions = {
   quality?: Quality;
   plan?: Plan;
   media?: EpisodeMedia;
-  /** استثناء صريح للصيانة فقط؛ لا يُستخدم من الواجهة العامة. */
+  /** Legacy option. Never bypasses production or Master review. */
   allowUnreviewed?: boolean;
   onProgress?: (pct: number, msg: string) => void;
 };
 
 export const outDirFor = async (episode: string) => {
-  const dir = path.join(path.dirname(await resolveScriptPath(episode)), "out");
-  await mkdir(dir, { recursive: true });
+  const scriptPath = await resolveScriptPath(episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
+  const dir = path.join(path.dirname(scriptPath), "out");
+  await ensureUnlinkedDirectory(dir);
   return dir;
 };
 
@@ -77,25 +84,59 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   const sb = storyboardStatus(plan, sbRecord);
   const blocked = unapprovedScenes(sb, [...ids]);
   if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-  if (!o.allowUnreviewed) {
-    const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
-    const review = sceneReviewSummary(items);
-    if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
-  }
+  // Legacy repair/CLI flags must never waive scene review for Master.
+  // This assertion remains mandatory even if caller supplied allowUnreviewed.
+  const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
+  const review = sceneReviewSummary(items);
+  if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
   const { assertVoiceApproved } = await import("../voice/review");
   await assertVoiceApproved(scriptPath, plan, media.voice);
   return true;
 };
 
+/** Real narration word cues are eligible only when every clip AND the complete
+ * episode recording have a valid, current human listening approval. */
+export const voiceTimingMode = async (scriptPath: string, plan: Plan, media: EpisodeMedia): Promise<"estimated" | "approved"> => {
+  const { episodeVoiceApproved } = await import("../voice/review");
+  return await episodeVoiceApproved(scriptPath, plan, media.voice) ? "approved" : "estimated";
+};
+
+/** Never accept a snapshot belonging to a different channel or episode,
+ * even when an internal caller supplies EpisodeMedia directly. */
+export const assertRenderMediaOwnership = (scriptPath: string, media: EpisodeMedia): void => {
+  const expected = studioMediaNamespace(scriptPath).render;
+  const valid = /^_render\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*\/[a-f0-9]{24}\/$/;
+  if (media.mode !== "static" || !valid.test(media.base) || !media.base.startsWith(expected))
+    throw new Error("وسائط الرندر لا تخص القناة والحلقة المختارتين؛ لا يمكن تضمينها.");
+};
+
+/** Do not blend the identity/configuration of the active channel with
+ * another channel's explicitly supplied script pathname. */
+export const assertRenderChannelOwnership = (scriptPath: string, activeChannelId: string): void => {
+  if (studioMediaNamespace(scriptPath).channelName !== activeChannelId)
+    throw new Error("مسار السكريبت لا يخص القناة النشطة؛ يجب تغيير القناة قبل الرندر.");
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   const log = opts.onProgress ?? (() => {});
+  const scriptPath = await resolveScriptPath(opts.episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
+  // Check destination confinement and symlinked parents before copying episode
+  // audio or starting a renderer. Unknown custom output paths fail with no job.
+  const outputRoot = path.join(path.dirname(scriptPath), "out");
+  const output = opts.outFile ?? path.join(outputRoot,
+    `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
+  await assertEpisodeOutputConfined(scriptPath, output);
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
+  assertRenderMediaOwnership(scriptPath, media);
+  // No render output can promote its own success to workflow approval.
+  let masterInput: MasterRenderSubject | null = null;
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
-    const scriptPath = await resolveScriptPath(opts.episode);
     const sbRecord = await loadStoryboard(scriptPath);
     await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
     const { loadStoryboardMotion } = await import("./storyboardMotion");
@@ -109,16 +150,28 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       if (auditNeedsJustification(measured, sbRecord.audit))
         throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
     }
+    // Workflow gate is intentionally fail-closed until the separate persistent
+    // approvals branch verifies the exact AV and owner approvals for this input.
+    masterInput = await masterRenderSubject(
+      scriptPath, loadChannel().id, plan, media, opts.orientation, opts.chapter,
+    );
+    await assertMasterStageAuthorized(masterInput);
   }
   log(0, "تجميع المشروع…");
-  const serveUrl = await getServeUrl(!opts.media);
+  // Include this episode's immutable media snapshot and shared public assets,
+  // never other channels' staged voice/recitation in the Remotion bundle.
+  const bundleScope = await createIsolatedRenderBundle(media);
+  try {
+  const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+  const timingMode = await voiceTimingMode(scriptPath, plan, media);
+  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
-  const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
-  // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
-  const tempOutput = output.replace(/\.mp4$/i, "") + ".rendering.mp4";
+  // A previous output is never replaced: partials publish as new revisions.
+  // Unique per invocation: concurrent landscape/portrait attempts cannot overwrite
+  // or remove one another's partial file. Rename is only performed after success.
+  const tempOutput = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
   try {
     await renderMedia({
       serveUrl,
@@ -136,10 +189,29 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
-    await rename(tempOutput, output);
-    return output;
+    if (masterInput) {
+      // Checks at enqueue/start are not sufficient: source, voice approval and
+      // staged bytes may change while Chrome/FFmpeg renders. Revalidate at
+      // the final commit boundary. PR #77 must hold the shared artifact lock
+      // across this boundary once integrated into the real entrypoints.
+      const currentPlan = await loadPlan(opts.episode);
+      if (!currentPlan) throw new Error("تعذّر إعادة التحقق من خطة Master الحالية قبل نشر الملف.");
+      await assertMasterReady({
+        scriptPath, plan: currentPlan, media, channel: loadChannel(), chapter: opts.chapter,
+      });
+      await verifyStagedMedia(defaultRenderMediaRoot(), media.base);
+      const currentSubject = await masterRenderSubject(
+        scriptPath, loadChannel().id, currentPlan, media, opts.orientation, opts.chapter,
+      );
+      assertMasterSubjectUnchanged(masterInput, currentSubject);
+      await assertMasterStageAuthorized(currentSubject);
+    }
+    return await publishOutputWithoutOverwrite(tempOutput, output);
   } finally {
     await unlink(tempOutput).catch(() => {});
+  }
+  } finally {
+    await bundleScope.cleanup();
   }
 };
 
@@ -168,13 +240,27 @@ const THUMB_MAX_BYTES = 1.9 * 1024 * 1024;
  * إن تجاوز الملف حد يوتيوب تنزل الدقة (1.5× ثم 1×) فلا تُرفض عند الرفع.
  */
 export const renderThumbnail = async (input: { themeId: string; title: string; highlight?: string; element?: string; book?: string; lang?: string }, output: string) => {
-  const serveUrl = await getServeUrl();
-  const channel = loadChannel();
-  const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
-  const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
-  for (const scale of [2, 1.5, 1]) {
-    await renderStill({ serveUrl, composition, inputProps: props, output, scale, overwrite: true, browserExecutable: browserExecutable() });
-    if ((await stat(output)).size <= THUMB_MAX_BYTES) break;
+  // A thumbnail uses shared fonts and art, never unpublished episode audio.
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+    const serveUrl = sandbox.serveUrl;
+    const channel = loadChannel();
+    const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+    const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
+    await ensureUnlinkedDirectory(path.dirname(output));
+    const ext = path.extname(output);
+    if (ext.toLowerCase() !== ".png") throw new Error("الصورة المصغّرة يجب أن تكون PNG.");
+    const pending = output.slice(0, -ext.length) + `.${randomUUID()}.part.png`;
+    try {
+      for (const scale of [2, 1.5, 1]) {
+        await renderStill({ serveUrl, composition, inputProps: props, output: pending, scale, overwrite: true, browserExecutable: browserExecutable() });
+        if ((await stat(pending)).size <= THUMB_MAX_BYTES) break;
+      }
+      return await publishOutputWithoutOverwrite(pending, output);
+    } finally {
+      await rm(pending, { force: true });
+    }
+  } finally {
+    await sandbox.cleanup();
   }
-  return output;
 };

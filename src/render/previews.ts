@@ -1,8 +1,12 @@
 import path from "node:path";
-import { mkdir } from "node:fs/promises";
-import { bundle } from "@remotion/bundler";
+import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
+import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
+import { createIsolatedRenderBundle } from "./bundle";
+import { emptyMedia } from "../plan/media";
 import { getCompositions, renderMedia, renderStill } from "@remotion/renderer";
 import { projectRoot } from "../config/paths";
+import { loadChannel } from "../channel";
 
 export type PreviewOptions = {
   /** بادئة أو أكثر لمعرّف التكوين، مثل reel-paper أو scene-verse-card-night */
@@ -16,10 +20,12 @@ export type PreviewOptions = {
 /** يرندر تكوينات المعاينة (فيديو MP4 أو لقطات ثابتة). */
 export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> => {
   const log = opts.onProgress ?? (() => {});
-  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "previews");
-  await mkdir(outDir, { recursive: true });
+  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "previews", loadChannel().id);
+  await ensureUnlinkedDirectory(outDir);
   log("تجميع المشروع…");
-  const serveUrl = await bundle({ entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"), publicDir: path.join(projectRoot, "public") });
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+  const serveUrl = sandbox.serveUrl;
   const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
   const prefixes = Array.isArray(opts.prefix) ? opts.prefix : [opts.prefix];
   const comps = (await getCompositions(serveUrl, { browserExecutable })).filter((c) => prefixes.some((p) => c.id.startsWith(p)));
@@ -30,20 +36,27 @@ export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> =>
       for (const wanted of opts.stills) {
         const frame = Math.min(wanted, composition.durationInFrames - 1);
         const output = path.join(outDir, `${composition.id}-f${frame}.png`);
-        await renderStill({ serveUrl, composition, output, frame, browserExecutable });
-        written.push(output);
+        const pending = output + `.${randomUUID()}.part.png`;
+        try {
+          await renderStill({ serveUrl, composition, output: pending, frame, browserExecutable });
+          written.push(await publishOutputWithoutOverwrite(pending, output));
+        } finally {
+          await rm(pending, { force: true });
+        }
       }
       log(`لقطات ${composition.id}`);
     } else {
       const output = path.join(outDir, `${composition.id}.mp4`);
+      const pending = output + `.${randomUUID()}.part.mp4`;
       let last = -1;
+      try {
       await renderMedia({
         serveUrl,
         composition,
         codec: "h264",
         crf: 20,
         x264Preset: "veryfast",
-        outputLocation: output,
+        outputLocation: pending,
         browserExecutable,
         onProgress: ({ progress }) => {
           const pct = Math.floor(progress * 10) * 10;
@@ -53,8 +66,14 @@ export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> =>
           }
         },
       });
-      written.push(output);
+      written.push(await publishOutputWithoutOverwrite(pending, output));
+      } finally {
+        await rm(pending, { force: true });
+      }
     }
   }
   return written;
+  } finally {
+    await sandbox.cleanup();
+  }
 };

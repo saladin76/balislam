@@ -1,8 +1,10 @@
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { assertNoLinkedPath, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { spawn, type ChildProcess } from "node:child_process";
 
 /**
@@ -357,6 +359,8 @@ export type TaskState = {
   error?: string;
   failure?: Failure;
   output?: string;
+  /** المخرج الجزئي الذي تملكه هذه المحاولة وحدها، للاستعادة والإلغاء الآمنين. */
+  partialOutput?: string;
   /** أُوقفت مؤقتًا وأُعيدت إلى الطابور لحماية الذاكرة (لا تُحسب محاولة فاشلة) */
   preemptions?: number;
   /** استُعيدت بعد إعادة تشغيل */
@@ -597,10 +601,11 @@ export class RenderPool {
 
   private start(t: TaskState) {
     const spec = this.specs.get(t.id)!;
-    const tmp = spec.output ? `${spec.output}.part${path.extname(spec.output)}` : undefined;
+    const tmp = spec.output ? `${spec.output}.part-${randomUUID()}${path.extname(spec.output)}` : undefined;
     const args = [...spec.args];
     if (tmp && spec.outputArg !== undefined) args[spec.outputArg] = tmp;
     t.status = "running";
+    t.partialOutput = tmp;
     t.attempts += 1;
     t.startedAt = Date.now();
     t.error = undefined;
@@ -656,6 +661,7 @@ export class RenderPool {
       if (rec.preempted && !rec.cancelled) {
         // توقيف مقصود لحماية الذاكرة: تعود إلى الطابور، ولا تُحسب محاولة
         if (tmp) await rm(tmp, { force: true });
+        t.partialOutput = undefined;
         t.attempts -= 1;
         t.preemptions = (t.preemptions ?? 0) + 1;
         t.status = "queued";
@@ -668,9 +674,17 @@ export class RenderPool {
       if (code === 0 && !spawnError && !rec.cancelled && !rec.timedOut && !rec.stalled) {
         if (tmp && spec.output) {
           if (existsSync(tmp)) {
-            await rename(tmp, spec.output);
-            t.output = spec.output;
-            t.status = "done";
+            try {
+              // Atomic no-clobber publication; identical output names from two
+              // workers become distinct versions rather than replacing one another.
+              t.output = await publishOutputWithoutOverwrite(tmp, spec.output);
+              t.status = "done";
+            } catch (e) {
+              t.status = "error";
+              t.failure = { kind: "no-output", message: `فشل نشر الملف دون استبدال مخرج سابق: ${(e as Error).message}`, evidence: [tmp], diagnostics: classifyFailure({ code, signal, log: t.log }).diagnostics };
+              t.error = t.failure.message;
+              await rm(tmp, { force: true });
+            }
           } else {
             t.status = "error";
             t.failure = { kind: "no-output", message: "انتهت العملية بنجاح لكن بلا ملف ناتج.", evidence: [`لا يوجد ${tmp}`], diagnostics: classifyFailure({ code, signal, log: t.log }).diagnostics };
@@ -704,6 +718,7 @@ export class RenderPool {
         // الناتج الجزئي يُحذف؛ والناتج السليم السابق (إن وجد) يبقى كما هو
         if (tmp) await rm(tmp, { force: true });
       }
+      t.partialOutput = undefined;
       this.emit(t);
       spec.onEnd?.(t);
       await this.save();
@@ -730,7 +745,7 @@ export class RenderPool {
   }
   private async write() {
     if (!this.o.ledger) return;
-    await mkdir(path.dirname(this.o.ledger), { recursive: true });
+    await ensureUnlinkedDirectory(path.dirname(this.o.ledger));
     const def = (id: string): TaskDef | undefined => {
       const s = this.specs.get(id);
       if (!s) return undefined;
@@ -743,8 +758,14 @@ export class RenderPool {
       costPeaks: Object.fromEntries([...this.costPeaks].map(([k, v]) => [k, Math.round(v)])),
       tasks: [...this.tasks.values()].map(({ log, ...t }) => ({ ...t, log: t.status === "error" ? log.slice(-8) : [], def: def(t.id) })),
     };
-    await writeFile(`${this.o.ledger}.tmp`, JSON.stringify(body, null, 2) + "\n");
-    await rename(`${this.o.ledger}.tmp`, this.o.ledger);
+    const pending = `${this.o.ledger}.tmp-${randomUUID()}`;
+    try {
+      await writeFile(pending, JSON.stringify(body, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+      // Ledger atomic replacement is internal queue state, NOT a published video.
+      await rename(pending, this.o.ledger);
+    } finally {
+      await rm(pending, { force: true });
+    }
   }
 
   /** يقرأ سجلًا سابقًا: المهام الناجحة تبقى ناجحة، والفاشلة يمكن إعادتها وحدها */
@@ -752,8 +773,8 @@ export class RenderPool {
     if (!existsSync(file)) return null;
     try {
       return JSON.parse(await readFile(file, "utf8"));
-    } catch {
-      return null;
+    } catch (e) {
+      throw new Error(`سجل طابور الرندر موجود لكنه غير صالح، لن نتجاهل مهامًا قد تكون قيد التشغيل: ${(e as Error).message}`);
     }
   }
 
@@ -773,15 +794,49 @@ export class RenderPool {
     for (const t of ledger.tasks) {
       if (this.tasks.has(t.id)) continue;
       if (t.status === "queued" || t.status === "running") {
-        if (t.status === "running" && t.pid !== undefined && t.pidStart && procStart(t.pid) === t.pidStart) {
+        const identity = t.status === "running" && t.pid !== undefined && t.pidStart
+          ? procStart(t.pid) : null;
+        if (identity !== null && identity === t.pidStart && t.pid !== undefined) {
           killTree(t.pid, "SIGTERM");
           await new Promise((r) => setTimeout(r, 1500));
-          if (procStart(t.pid) === t.pidStart) killTree(t.pid, "SIGKILL");
+          if (procStart(t.pid) === t.pidStart) {
+            killTree(t.pid, "SIGKILL");
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          if (procStart(t.pid) === t.pidStart)
+            throw new Error(`فشل إيقاف عملية الرندر السابقة ${t.pid}؛ يجب عدم حذف ملفها أو بدء مهمة بديلة.`);
           out.killedOrphans.push(t.pid);
+        }
+        // Without a confirmed process incarnation, a LIVE PID might belong to
+        // another task. Fail closed rather than deleting its partial file.
+        if (t.status === "running" && t.pid !== undefined && (!t.pidStart || identity === null)) {
+          try {
+            process.kill(t.pid, 0);
+            throw new Error(`تعذّر التحقق من ملكية عملية الرندر ${t.pid}؛ أُوقفت الاستعادة حفاظًا على ملفاتها.`);
+          } catch (e) {
+            if ((e as NodeJS.ErrnoException).code !== "ESRCH") throw e;
+          }
         }
         const spec = t.def ? attach(t.def, t) : null;
         if (!spec) continue;
-        if (spec.output) await rm(`${spec.output}.part${path.extname(spec.output)}`, { force: true });
+        // Only a generated UUID partial with a matching output and safe parent
+        // can be removed, after the old writer has verifiably stopped.
+        const candidate = t.partialOutput;
+        if (spec.output && candidate) {
+          const ext = path.extname(spec.output);
+          const uuidPart = candidate.slice(`${spec.output}.part-`.length, candidate.length - ext.length);
+          if (candidate.startsWith(`${spec.output}.part-`) &&
+              candidate.endsWith(ext) &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuidPart) &&
+              path.dirname(candidate) === path.dirname(spec.output)) {
+            try {
+              await assertNoLinkedPath(candidate, true);
+              await rm(candidate, { force: true });
+            } catch (e) {
+              if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+            }
+          }
+        }
         this.tasks.set(t.id, { ...t, status: "error", log: [] });
         toQueue.push(spec);
       } else {

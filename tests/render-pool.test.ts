@@ -1,9 +1,9 @@
 import { EventEmitter } from "node:events";
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { canStart, classifyFailure, RenderPool, safeParallelism, type TaskSpec } from "../src/render/pool";
 
 /**
@@ -45,7 +45,16 @@ const harness = (availableMB: number, plan: Record<string, Fake>, perTaskMB = 10
   const tree = (pid: number) => ({ pids: [pid], rssMB: running.get(pid) ?? 0 });
   return { spawnFn, memory, tree, stats: () => ({ peak, started }), setUsed: (fn: () => number) => (used = fn) };
 };
-const dir = () => mkdtempSync(path.join(os.tmpdir(), "pool-"));
+const ownedQueueFixtures: string[] = [];
+const dir = () => {
+  const location = mkdtempSync(path.join(os.tmpdir(), "pool-"));
+  ownedQueueFixtures.push(location);
+  return location;
+};
+afterEach(() => {
+  for (const location of ownedQueueFixtures.splice(0))
+    rmSync(location, { recursive: true, force: true });
+});
 const spec = (d: string, id: string, extra: Partial<TaskSpec> = {}): TaskSpec => ({ id, cmd: "x", args: ["out", path.join(d, `${id}.mp4`)], cwd: d, output: path.join(d, `${id}.mp4`), outputArg: 1, ...extra });
 const noEvidence = { oomCount: () => null, oomVictims: () => new Set<number>() };
 
@@ -384,13 +393,94 @@ describe("لا خروج صامت", () => {
     `;
     const file = path.join(d, "probe.mts");
     writeFileSync(file, script);
-    const out = await new Promise<string>((res) => {
-      const c = spawn(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), file], { cwd: path.resolve(".") });
-      let o = "";
-      c.stdout.on("data", (b) => (o += b));
-      c.on("close", () => res(o));
+    const childResult = await new Promise<{ stdout: string; stderr: string; code: number | null; signal: NodeJS.Signals | null }>((res, rej) => {
+      // Node 20.12+ and modern tsx use the official --import loader entry.
+      // Do not couple the probe to tsx's private dist/cli.mjs implementation.
+      const c = spawn(process.execPath, ["--import=tsx", file], { cwd: path.resolve(".") });
+      let stdout = "";
+      let stderr = "";
+      c.stdout.on("data", (b: Buffer) => (stdout += b.toString()));
+      c.stderr.on("data", (b: Buffer) => (stderr += b.toString()));
+      c.on("error", rej);
+      c.on("close", (code, signal) => res({ stdout, stderr, code, signal }));
     });
-    expect(out).toContain("STATUS done");
+    expect(childResult, `Child process failed before finishing queue: ${childResult.stderr}`).toMatchObject({ code: 0, signal: null });
+    expect(childResult.stdout, `Child stdout empty; stderr: ${childResult.stderr}`).toContain("STATUS done");
     expect(readFileSync(path.join(d, "w.mp4"), "utf8")).toBe("ok");
   }, 20000);
+});
+
+// Same output requested twice must not share a .part path. Cancellation removes
+// only the cancelled attempt and cannot destroy either a peer or the old output.
+describe("render-pool partial ownership under parallel cancellation", () => {
+  it("keeps an existing render until the surviving job completes", async () => {
+    const d = dir();
+    try {
+      const out = path.join(d, "episode.mp4");
+      writeFileSync(out, "previous-good");
+      const h = harness(20000, { cancelled: { ms: 0, hang: true }, survivor: { ms: 75 } });
+      const pool = new RenderPool({ cpus: 2, maxParallel: 2, memory: h.memory, tree: h.tree, spawnFn: h.spawnFn, pollMs: 5, ...noEvidence });
+      const job = (id: string) => spec(d, id, { output: out, args: ["out", out] });
+      pool.add(job("cancelled"));
+      pool.add(job("survivor"));
+      await new Promise((r) => setTimeout(r, 15));
+      const a = pool.tasks.get("cancelled")!.partialOutput!;
+      const b = pool.tasks.get("survivor")!.partialOutput!;
+      expect(a).not.toBe(b);
+      expect(a).toMatch(/\.part-[a-f0-9-]+\.mp4$/);
+      expect(b).toMatch(/\.part-[a-f0-9-]+\.mp4$/);
+      expect(pool.cancel("cancelled")).toBe(true);
+      expect(readFileSync(out, "utf8")).toBe("previous-good");
+      await pool.idle();
+      expect(pool.tasks.get("cancelled")?.status).toBe("cancelled");
+      expect(pool.tasks.get("survivor")?.status).toBe("done");
+      // Publishing a new render must never replace an earlier successful file.
+      expect(readFileSync(out, "utf8")).toBe("previous-good");
+      const versioned = pool.tasks.get("survivor")?.output;
+      expect(versioned).toBeDefined();
+      expect(versioned).not.toBe(out);
+      expect(readFileSync(versioned!, "utf8")).toBe("ok");
+      expect(existsSync(a)).toBe(false);
+      expect(existsSync(b)).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+});
+
+
+describe("recovery must not delete another live process's partial output", () => {
+  it("fails closed when the ledger PID is alive but lacks a verifiable incarnation", async () => {
+    const d = dir();
+    try {
+      const ledger = path.join(d, "recover.json");
+      const output = path.join(d, "episode.mp4");
+      const partial = output + ".part-123e4567-e89b-42d3-a456-426614174000.mp4";
+      writeFileSync(output, "PREVIOUS GOOD");
+      writeFileSync(partial, "UNVERIFIED WRITER");
+      const def = spec(d, "previous", { output, args: ["out", output] });
+      writeFileSync(ledger, JSON.stringify({ perJobMB: 10, tasks: [{
+        id: "previous", status: "running", attempts: 1,
+        queuedAt: 1, pid: process.pid, pidStart: null,
+        partialOutput: partial, def,
+      }] }));
+      const pool = new RenderPool({ ledger, cpus: 1, ...noEvidence });
+      await expect(pool.recover((saved) => saved as TaskSpec)).rejects.toThrow(/ملكية عملية الرندر/);
+      expect(readFileSync(partial, "utf8")).toBe("UNVERIFIED WRITER");
+      expect(readFileSync(output, "utf8")).toBe("PREVIOUS GOOD");
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects corrupted persistent queue state rather than silently forgetting unfinished jobs", async () => {
+    const d = dir();
+    try {
+      const ledger = path.join(d, "corrupt.json");
+      writeFileSync(ledger, '{"tasks":');
+      await expect(RenderPool.readLedger(ledger)).rejects.toThrow(/سجل طابور الرندر/);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
 });

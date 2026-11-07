@@ -1,8 +1,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { defaultRenderMediaRoot, stageRenderFiles, stageStoryboardFiles, type RenderStageFile } from "./renderStage";
 import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
 import { loadVoiceIndex, voiceDirFor, audioDuration } from "../voice/generate";
@@ -13,6 +12,21 @@ import { readJson } from "./io";
 import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
 import { loadChannel } from "../channel";
 import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
+
+/** One predictable namespace per channel + actual episode folder, not a shared
+ * temporary _render/001 folder that collides across the three channels.
+ * scriptPath is the resolved source of truth; no TMPDIR or random identifier.
+ */
+export const studioMediaNamespace = (scriptPath: string) => {
+  const episodeName = path.basename(path.dirname(scriptPath));
+  const episodesFolder = path.basename(path.dirname(path.dirname(scriptPath)));
+  const channelName = path.basename(path.dirname(path.dirname(path.dirname(scriptPath))));
+  if (episodesFolder !== "episodes" ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(channelName) ||
+      !/^[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(episodeName))
+    throw Error("مسار الحلقة غير قياسي؛ لا يمكن مشاركة وسائطها مع قناة أخرى.");
+  return { channelName, episodeName, render: `_render/${channelName}/${episodeName}/` };
+};
 
 export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 
@@ -46,6 +60,22 @@ export const usedImages = (plan: Plan, dir: string, libDir?: string) => {
 /** يطابق مرجع المشهد مع الملف الفعلي في قائمة الوسائط (يدعم مراجع المكتبة بلا امتداد) */
 export const resolveImageRef = (ref: string, images: string[] = []) => images.find((x) => x === ref || x.replace(/\.[^.]+$/, "") === ref);
 
+
+/** PR #76 owns verification of reviewed manual Quran audio, including original
+ * and processed MP3 SHA-256, full decoding, exact ayah text, rights and review.
+ * This isolated branch MUST fail closed until #78 wires verifiedOwnRecitations
+ * into the collector; a bare index.json manual pointer is not render authority.
+ */
+export const assertManualRecitationIntegration = (
+  index: Record<string, { provider?: string } | undefined>, plan: Plan,
+): void => {
+  for (const scene of plan.chapters.flatMap((chapter) => chapter.scenes)) {
+    if (scene.template === "verse-card" && scene.ayahKey &&
+        index[scene.ayahKey]?.provider === "manual")
+      throw new Error("تلاوة القرآن اليدوية لا تُستهلك من الفهرس مباشرة؛ يجب ربط التحقق الكامل من PR #76 قبل الرندر.");
+  }
+};
+
 /** يجمع وسائط الحلقة الموجودة فعلًا على القرص (بلا نسخ). */
 export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<EpisodeMedia, "mode" | "base">> => {
   const voice = await loadVoiceIndex(episode);
@@ -54,6 +84,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const recitations: Record<string, Recitation> = {};
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
+  assertManualRecitationIntegration(qf, plan);
   const chosen = await activeRecitation(await resolveScriptPath(episode), loadChannel().recitation);
   if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
@@ -72,7 +103,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
     const q = qf[s.ayahKey];
     const matching = q && chosen && (isCloudRecitation(chosen)
       ? q.provider === "alquran-cloud" && q.edition === chosen.edition
-      : q.provider !== "alquran-cloud" && q.recitationId === chosen.id);
+      : q.provider === "quran-foundation" && q.recitationId === chosen.id);
     if (q && matching && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
       recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration, 0), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
     }
@@ -82,27 +113,42 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   return { voice, sfx, recitations, images };
 };
 
-/** ينسخ الوسائط إلى public/_render/<الحلقة> ليضمّها Remotion في الرندر. */
-export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<EpisodeMedia> => {
+/** ينسخ وسائط الحلقة إلى لقطة ثابتة ببصمة محتوى ونطاق خاص بالقناة والحلقة؛ لا تُحذف النتائج السابقة. */
+export const prepareRenderMedia = async (
+  episode: string,
+  plan: Plan,
+  opts: { publicRoot?: string; signal?: AbortSignal } = {},
+): Promise<EpisodeMedia> => {
   const m = await collectMedia(episode, plan);
-  // اسم مجلد آمن حتى لو مُرّر مسار كامل للحلقة
-  const rel = `_render/${path.basename(String(episode)).replace(/[^\w.-]/g, "_")}/`;
-  const dest = path.join(projectRoot, "public", rel);
-  await rm(dest, { recursive: true, force: true });
-  for (const d of ["voice", "sfx", "recitations", "images"]) await mkdir(path.join(dest, d), { recursive: true });
-  const vdir = voiceDirFor(await resolveScriptPath(episode));
+  const scriptPath = await resolveScriptPath(episode);
+  const files: RenderStageFile[] = [];
+  const vdir = voiceDirFor(scriptPath);
   for (const clip of Object.values(m.voice)) {
-    const src = path.join(vdir, clip.file);
-    if (existsSync(src)) await cp(src, path.join(dest, "voice", clip.file));
+    // Preserve existing behavior: an absent voice clip is not invented.
+    // The filename itself is validated before any copy by stageRenderFiles.
+    if (path.basename(clip.file) !== clip.file || clip.file.includes("\\") || clip.file.startsWith("."))
+      throw new Error("اسم ملف تعليق صوتي غير آمن.");
+    const source = path.join(vdir, clip.file);
+    if (existsSync(source)) files.push({ kind: "voice", name: clip.file, source });
   }
-  for (const id of m.sfx) await cp(sfxFile(id), path.join(dest, "sfx", `${id}.mp3`));
-  const recDir = recitationsDirFor(await resolveScriptPath(episode));
+  for (const id of m.sfx) files.push({ kind: "sfx", name: `${id}.mp3`, source: sfxFile(id) });
+  const recDir = recitationsDirFor(scriptPath);
   for (const r of Object.values(m.recitations)) {
-    if (r.source === "quran-foundation" || r.source === "alquran-cloud") for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
-    else await cp(path.join(recitationsDir, r.file), path.join(dest, "recitations", r.file));
+    if (r.source === "quran-foundation" || r.source === "alquran-cloud") {
+      for (const part of r.parts ?? []) files.push({ kind: "recitations", name: part.file, source: path.join(recDir, part.file) });
+    } else {
+      files.push({ kind: "recitations", name: r.file, source: path.join(recitationsDir, r.file) });
+    }
   }
-  const sp2 = await resolveScriptPath(episode);
-  for (const f of m.images ?? []) await cp(f.startsWith(LIB) ? path.join(libraryDirFor(sp2), f.slice(LIB.length)) : path.join(imagesDirFor(sp2), f), path.join(dest, "images", imageKey(f)));
+  for (const f of m.images ?? []) files.push({
+    kind: "images",
+    name: imageKey(f),
+    source: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
+  });
+  const rel = await stageRenderFiles(studioMediaNamespace(scriptPath).render, files, {
+    publicRoot: opts.publicRoot ?? defaultRenderMediaRoot(),
+    signal: opts.signal,
+  });
   return { ...m, mode: "static", base: rel };
 };
 
@@ -114,7 +160,7 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
  * Content-hashed namespaces keep different source-asset revisions separate.
  */
 export const prepareStoryboardMedia = async (
-  episode: string, plan: Plan, opts: { scriptPath?: string; publicRoot?: string } = {},
+  episode: string, plan: Plan, opts: { scriptPath?: string; publicRoot?: string; signal?: AbortSignal } = {},
 ): Promise<EpisodeMedia> => {
   const scriptPath = opts.scriptPath ?? await resolveScriptPath(episode);
   const images = usedImages(plan, imagesDirFor(scriptPath), libraryDirFor(scriptPath));
@@ -125,20 +171,11 @@ export const prepareStoryboardMedia = async (
     name: imageKey(f),
     file: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
   }));
-  for (const asset of assets) {
-    if (!asset.name || asset.name === "." || asset.name === ".." || asset.name.length > 240 ||
-      path.basename(asset.name) !== asset.name || asset.name.includes("\\") || asset.name.includes("\0"))
-      throw new Error("اسم صورة غير آمن للـStoryboard.");
-    digest.update(asset.name);
-    for await (const part of createReadStream(asset.file)) digest.update(part);
-  }
-  const safeEpisode = path.basename(String(episode)).replace(/[^a-z0-9_-]/gi, "_");
-  const rel = `_storyboard_media/${safeEpisode}-${digest.digest("hex").slice(0, 16)}/`;
-  const dest = path.join(opts.publicRoot ?? path.join(projectRoot, "public"), rel);
-  await mkdir(path.join(dest, "images"), { recursive: true });
-  for (const asset of assets) {
-    const output = path.join(dest, "images", asset.name);
-    if (!existsSync(output)) await cp(asset.file, output, { force: false, errorOnExist: true });
-  }
+  const rel = await stageStoryboardFiles(
+    studioMediaNamespace(scriptPath).render,
+    assets.map((asset) => ({ kind: "images" as const, name: asset.name, source: asset.file })),
+    digest.digest("hex"),
+    { publicRoot: opts.publicRoot ?? defaultRenderMediaRoot(), signal: opts.signal },
+  );
   return { mode: "static", base: rel, voice: {}, sfx: [], recitations: {}, images };
 };

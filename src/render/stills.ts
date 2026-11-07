@@ -1,8 +1,12 @@
 import path from "node:path";
-import { mkdir } from "node:fs/promises";
-import { bundle } from "@remotion/bundler";
+import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
+import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
+import { createIsolatedRenderBundle } from "./bundle";
+import { emptyMedia } from "../plan/media";
 import { getCompositions, renderStill } from "@remotion/renderer";
 import { projectRoot } from "../config/paths";
+import { loadChannel } from "../channel";
 
 export type StillsOptions = {
   /** يرندر ثيمًا واحدًا فقط إن حُدد */
@@ -14,14 +18,13 @@ export type StillsOptions = {
 /** يرندر لوحات الهوية (صورة لكل ثيم بكل مقاس) للتحقق البصري. */
 export const renderBrandStills = async (opts: StillsOptions = {}): Promise<string[]> => {
   const log = opts.onProgress ?? (() => {});
-  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "brand");
-  await mkdir(outDir, { recursive: true });
+  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "brand", loadChannel().id);
+  await ensureUnlinkedDirectory(outDir);
 
   log("تجميع المشروع…");
-  const serveUrl = await bundle({
-    entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"),
-    publicDir: path.join(projectRoot, "public"),
-  });
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+  const serveUrl = sandbox.serveUrl;
 
   const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
   const comps = await getCompositions(serveUrl, { browserExecutable });
@@ -32,10 +35,18 @@ export const renderBrandStills = async (opts: StillsOptions = {}): Promise<strin
   for (const composition of targets) {
     const output = path.join(outDir, `${composition.id}.png`);
     log(`رندر ${composition.id}…`);
-    await renderStill({ serveUrl, composition, output, scale: 2, browserExecutable });
-    written.push(output);
+    const pending = output + `.${randomUUID()}.part.png`;
+    try {
+      await renderStill({ serveUrl, composition, output: pending, scale: 2, browserExecutable });
+      written.push(await publishOutputWithoutOverwrite(pending, output));
+    } finally {
+      await rm(pending, { force: true });
+    }
   }
   return written;
+  } finally {
+    await sandbox.cleanup();
+  }
 };
 
 /** يرندر صور القنوات للمنصات (صورة الحساب وأغلفة يوتيوب وفيسبوك وX) إلى renders/brand/<القناة>/ */
@@ -43,13 +54,17 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
   const log = opts.onProgress ?? (() => {});
   const { listChannels, loadChannel, loadChannelIdentity, channelInfo } = await import("../channel");
   const ids = opts.channels?.length ? opts.channels : listChannels();
+  const known = new Set(listChannels());
+  if (ids.some((id) => !known.has(id))) throw new Error("هوية قناة غير معروفة؛ يحظر استخدام مسار خارج القنوات المسجلة.");
   log("تجميع المشروع…");
-  const serveUrl = await bundle({ entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"), publicDir: path.join(projectRoot, "public") });
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+  const serveUrl = sandbox.serveUrl;
   const browserExecutable = process.env.REMOTION_BROWSER_EXECUTABLE || null;
   const written: string[] = [];
   for (const id of ids) {
     const outDir = path.join(projectRoot, "renders", "brand", id);
-    await mkdir(outDir, { recursive: true });
+    await ensureUnlinkedDirectory(outDir);
     const inputProps = { identity: loadChannelIdentity(id), channel: channelInfo(loadChannel(id)) };
     const comps = await getCompositions(serveUrl, { browserExecutable, inputProps });
     for (const composition of comps.filter((c) => c.id.startsWith("channel-art-"))) {
@@ -57,9 +72,17 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
       log(`رندر ${id} ← ${composition.id}…`);
       // دقة مضاعفة للتنزيل الحاد، ما عدا غلاف يوتيوب: 2560×1440 هو أقصى مقاس يقبله
       const scale = composition.defaultProps.kind === "youtube" ? 1 : 2;
-      await renderStill({ serveUrl, composition, output, scale, browserExecutable, inputProps: { ...inputProps, kind: composition.defaultProps.kind } });
-      written.push(output);
+      const pending = output + `.${randomUUID()}.part.png`;
+      try {
+        await renderStill({ serveUrl, composition, output: pending, scale, browserExecutable, inputProps: { ...inputProps, kind: composition.defaultProps.kind } });
+        written.push(await publishOutputWithoutOverwrite(pending, output));
+      } finally {
+        await rm(pending, { force: true });
+      }
     }
   }
   return written;
+  } finally {
+    await sandbox.cleanup();
+  }
 };

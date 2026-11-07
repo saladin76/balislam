@@ -1,13 +1,23 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, writeFile, readdir } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, readdir, rm, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { putPreview } from "../src/render/episodePreviews";
 
-describe("معاينات الاستوديو: كل تعديل يحذف القديم ويضع الجديد", () => {
+const owned: string[] = [];
+const previewTemp = async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+  owned.push(dir);
+  return dir;
+};
+afterEach(async () => {
+  for (const dir of owned.splice(0)) await rm(dir, { recursive: true, force: true });
+});
+
+describe("معاينات الاستوديو: تحفظ النسخ القديمة وتعرض الحالية", () => {
   it("الخانة نفسها تحتفظ بفيديو واحد فقط، والنسخ القديمة تُحذف", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const dir = await previewTemp();
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const a = path.join(dir, "a.mp4");
@@ -29,9 +39,14 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
     expect(index["six-shots.mp4"].title).toBe("الثانية");
     expect(index["six-shots.mp4"].version).toBe(2);
     expect(existsSync(path.join(dir, "previews", "six-shots-v3.mp4"))).toBe(false);
+    const versions = await readdir(path.join(dir, "previews", "history", "six-shots"));
+    expect(versions).toHaveLength(2);
+    const archived = await Promise.all(versions.map((name) =>
+      readFile(path.join(dir, "previews", "history", "six-shots", name), "utf8")));
+    expect(archived.sort()).toEqual(["A", "old"].sort());
   });
   it("يرفض ملفًا بديلًا فارغًا ويحافظ على المعاينة والفهرس السابقين", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const dir = await previewTemp();
     const script = path.join(dir, "script.md");
     const good = path.join(dir, "good.mp4");
     const empty = path.join(dir, "empty.mp4");
@@ -48,7 +63,7 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
   });
 
   it("الخانات المختلفة لا تمس بعضها", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const dir = await previewTemp();
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const a = path.join(dir, "a.mp4");
@@ -58,6 +73,35 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
     const files = (await readdir(path.join(dir, "previews"))).filter((n) => n.endsWith(".mp4")).sort();
     expect(files).toEqual(["chapter-1.mp4", "six-shots.mp4"]);
   });
+  it("rejects an unsafe slot and never mutates a valid slot", async () => {
+    const dir = await previewTemp();
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    const file = path.join(dir, "good.mp4");
+    await writeFile(file, "ORIGINAL");
+    await putPreview(script, "six-shots", file, { title: "safe" });
+    await expect(putPreview(script, "../six-shots", file, { title: "unsafe" })).rejects.toThrow(/غير آمن/);
+    expect(await readFile(path.join(dir, "previews", "six-shots.mp4"), "utf8")).toBe("ORIGINAL");
+  });
+
+  it("does not overwrite a preview when its index is corrupt or actively locked", async () => {
+    const dir = await previewTemp();
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    const a = path.join(dir, "a.mp4"), b = path.join(dir, "b.mp4");
+    await writeFile(a, "OLD");
+    await writeFile(b, "NEW");
+    await putPreview(script, "chapter-1", a, { title: "old" });
+    const prevDir = path.join(dir, "previews");
+    await mkdir(path.join(prevDir, ".preview-index.lock"));
+    await expect(putPreview(script, "chapter-1", b, { title: "new" })).rejects.toThrow();
+    expect(await readFile(path.join(prevDir, "chapter-1.mp4"), "utf8")).toBe("OLD");
+    await rm(path.join(prevDir, ".preview-index.lock"), { recursive: true });
+    await writeFile(path.join(prevDir, "index.json"), "{");
+    await expect(putPreview(script, "chapter-1", b, { title: "new" })).rejects.toThrow(/فهرس المعاينات/);
+    expect(await readFile(path.join(prevDir, "chapter-1.mp4"), "utf8")).toBe("OLD");
+  });
+
 });
 
 import { shotGaps } from "../src/render/shotsPreview";
