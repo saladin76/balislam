@@ -4,7 +4,6 @@ import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
-import type { CloudRecitation } from "../../src/quran/provider";
 import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
@@ -81,10 +80,6 @@ export const api = {
   approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
     call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
-  recitationChoice: (episode: string, channel: string) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
-  saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, { method: "PUT", json: { recitation } }, channel),
   alquranEditions: () => call<{ editions: AlQuranAudioEdition[] }>("/api/alquran-cloud/editions"),
   alquranAyah: (surah: number, ayah: number, edition: string) =>
     call<AlQuranAyahPreview>(`/api/alquran-cloud/ayah?surah=${surah}&ayah=${ayah}&edition=${encodeURIComponent(edition)}`),
