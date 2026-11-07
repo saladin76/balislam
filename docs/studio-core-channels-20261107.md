@@ -155,3 +155,16 @@
 - بالجمع مع الجولات الثلاث المنفذة سابقًا: **35 ملف اختبار مختلف / 189 اختبارًا ناجحًا من 189 داخل هذه المجموعات المنتقاة**. العدد لا يعبّر عن كامل مجموعة اختبارات المستودع، ولا عن اختبار HTTP أو متصفح.
 - المساحة الحرة بعد الاختبارات: **8.1 GiB / 96% مستخدم**. لا تختبر الرندر الثقيل قبل تدقيق موارد الإنتاج المؤقتة.
 - حالة طلب السحب: `Draft` مفتوح، بلا دمج في `main` أو نشر. **تظل بوابات التكامل النهائي وVitest الكامل وAPI/Browser غير مجتازة، فلا تُسجل جاهزية 100%.**
+
+## بوابة HTTP الحقيقية — قراءة القنوات الثلاث وحماية المسارات (7 نوفمبر 2026، نحو 20:30 Istanbul)
+
+نفذ صاحب المشروع اختبار HTTP على `127.0.0.1:4324` من نسخة Mac QA المنفصلة عبر Vite وخادم `balApi` الحقيقي. أفادت مخرجات Terminal: `ALL READ-ONLY HTTP CHECKS PASSED`. تفاصيل التأكيد التي طُبعت فعليًا:
+
+1. `PASS: All three channels discovered` — `GET /api/channels` يحوي القنوات الثلاث دون أخطاء.
+2. `PASS: Channel configuration and identity isolation` — `GET /api/channel?channel=<id>` و`GET /api/identity?channel=<id>` لكل قناة، مع ETag لبيانات القناة.
+3. `PASS: Operations room includes all channels` — `GET /api/ops` يشمل القنوات الثلاث.
+4. `PASS: Invalid channel selectors blocked` — رفض `../bad` بـ400 وقناة غير موجودة بـ404.
+5. `PASS: External write blocked` — رفض `PUT /api/channel` بطلب `sec-fetch-site: cross-site` وOrigin خارجي بـ403.
+6. `PASS: Channel JSON files unchanged` — مقارنة البايتات قبل/بعد لكل ملفات `channel.json` في النسخة الاختبارية.
+
+المساحة الحرة بعد الاختبار: **8.8 GiB / 96% capacity**. لا دليل على تغيير ملفات القنوات. اختبارات PUT الناجح وETag/If-Match المتضارب **لم تنفَّذ بعد عبر HTTP**؛ اختبارات المتصفح الكاملة والدمج والإنتاج الشامل أيضًا معلقة. لا يشكل هذا الاختبار ترخيصًا لتشغيل رندر أو نشر، وPR #80 **يبقى Draft**.
