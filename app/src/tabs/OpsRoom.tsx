@@ -12,6 +12,7 @@ import { stagesOf } from "./HomeTab";
  */
 
 export type OpsSection = "week" | "pipeline" | "ideas";
+export type IdeaDraft = { title: string; note: string; domain: string };
 
 /** Focused subsections preserve the underlying calendar, pipeline and idea-bank components. */
 export const OpsSectionNav: React.FC<{ active: OpsSection; onSelect: (section: OpsSection) => void }> = ({ active, onSelect }) => (
@@ -65,9 +66,12 @@ export const OpsRoom: React.FC<{
   onOpen: (channel: string, episode: string, tab: "script" | "episode" | "publish") => void;
   onStartIdea: (channel: string, idea: Idea, suggested: string) => void;
   refreshKey?: number;
-}> = ({ onOpen, onStartIdea, refreshKey }) => {
+  ideaDrafts?: Record<string, IdeaDraft>;
+  onIdeaDraftChange?: (channel: string, draft: IdeaDraft) => void;
+}> = ({ onOpen, onStartIdea, refreshKey, ideaDrafts, onIdeaDraftChange }) => {
   const [data, setData] = useState<OpsChannel[] | null>(null);
   const [err, setErr] = useState("");
+  const [ideaSaveError, setIdeaSaveError] = useState("");
   const [tick, setTick] = useState(0);
   useEffect(() => {
     api.ops().then(setData).catch((e) => setErr((e as Error).message));
@@ -104,9 +108,16 @@ export const OpsRoom: React.FC<{
     setTick((t) => t + 1);
   };
 
-  const saveIdeas = async (ch: string, ideas: Idea[]) => {
-    setData((cur) => cur?.map((d) => (d.channel.id === ch ? { ...d, ideas } : d)) ?? cur);
-    await api.saveIdeas(ch, ideas);
+  const saveIdeas = async (ch: string, ideas: Idea[]): Promise<boolean> => {
+    try {
+      await api.saveIdeas(ch, ideas);
+      setData((cur) => cur?.map((d) => (d.channel.id === ch ? { ...d, ideas } : d)) ?? cur);
+      setIdeaSaveError("");
+      return true;
+    } catch (error) {
+      setIdeaSaveError("لم تُحفظ أفكار " + ch + ": " + (error as Error).message);
+      return false;
+    }
   };
 
   return (
@@ -263,6 +274,7 @@ export const OpsRoom: React.FC<{
 
       {/* بنك الأفكار */}
       <section id="ops-ideas" className="ops-sec" hidden={section !== "ideas"}>
+        {ideaSaveError ? <p className="ew-workflow-error" role="alert">{ideaSaveError}</p> : null}
         <h2>بنك الأفكار</h2>
         <div className="ops-ideas">
           {data.map((d) => (
@@ -271,6 +283,8 @@ export const OpsRoom: React.FC<{
               ops={d}
               color={color(d.channel.id)}
               lastStyle={[...d.episodes].sort((a, b) => b.id.localeCompare(a.id))[0]?.style ?? ""}
+              initialDraft={ideaDrafts?.[d.channel.id]}
+              onDraftChange={(draft) => onIdeaDraftChange?.(d.channel.id, draft)}
               onSave={(ideas) => saveIdeas(d.channel.id, ideas)}
               onStart={(idea) => onStartIdea(d.channel.id, idea, String(d.episodes.reduce((m, e) => Math.max(m, Number(e.id)), 0) + 1).padStart(3, "0"))}
             />
@@ -445,16 +459,26 @@ const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: 
 
 const STYLE_OPTIONS = styleIds;
 
-const IdeasColumn: React.FC<{ ops: OpsChannel; color: string; lastStyle: string; onSave: (ideas: Idea[]) => void; onStart: (idea: Idea) => void }> = ({ ops, color, lastStyle, onSave, onStart }) => {
-  const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
+const IdeasColumn: React.FC<{
+  ops: OpsChannel; color: string; lastStyle: string;
+  initialDraft?: IdeaDraft;
+  onDraftChange?: (draft: IdeaDraft) => void;
+  onSave: (ideas: Idea[]) => Promise<boolean>;
+  onStart: (idea: Idea) => void;
+}> = ({ ops, color, lastStyle, initialDraft, onDraftChange, onSave, onStart }) => {
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [note, setNote] = useState(initialDraft?.note ?? "");
   const domains = Object.entries(ops.channel.domains);
-  const [domain, setDomain] = useState(domains[0]?.[0] ?? "");
-  const add = () => {
-    if (!title.trim()) return;
-    onSave([{ id: `i${Date.now().toString(36)}`, title: title.trim(), note: note.trim() || undefined, domain, createdAt: new Date().toISOString() }, ...ops.ideas]);
-    setTitle("");
-    setNote("");
+  const [domain, setDomain] = useState(initialDraft?.domain || domains[0]?.[0] || "");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { onDraftChange?.({ title, note, domain }); }, [title, note, domain, onDraftChange]);
+  const add = async () => {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+    try {
+      const ok = await onSave([{ id: `i${Date.now().toString(36)}`, title: title.trim(), note: note.trim() || undefined, domain, createdAt: new Date().toISOString() }, ...ops.ideas]);
+      if (ok) { setTitle(""); setNote(""); }
+    } finally { setSaving(false); }
   };
   return (
     <div className="ops-ideas-col" style={{ borderTopColor: color }}>
@@ -465,7 +489,7 @@ const IdeasColumn: React.FC<{ ops: OpsChannel; color: string; lastStyle: string;
         <select value={domain} onChange={(e) => setDomain(e.target.value)} style={{ flex: 1 }}>
           {domains.map(([id, dm]) => <option key={id} value={id}>{dm.name}</option>)}
         </select>
-        <button className="btn small primary" onClick={add} disabled={!title.trim()}>أضف</button>
+        <button className="btn small primary" type="button" onClick={() => void add()} disabled={!title.trim() || saving}>{saving ? "جارٍ الحفظ…" : "أضف"}</button>
       </div>
       {ops.ideas.map((idea) => (
         <div key={idea.id} className="ops-idea">
