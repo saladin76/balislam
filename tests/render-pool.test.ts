@@ -1,9 +1,9 @@
 import { EventEmitter } from "node:events";
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { canStart, classifyFailure, RenderPool, safeParallelism, type TaskSpec } from "../src/render/pool";
 
 /**
@@ -45,7 +45,9 @@ const harness = (availableMB: number, plan: Record<string, Fake>, perTaskMB = 10
   const tree = (pid: number) => ({ pids: [pid], rssMB: running.get(pid) ?? 0 });
   return { spawnFn, memory, tree, stats: () => ({ peak, started }), setUsed: (fn: () => number) => (used = fn) };
 };
-const dir = () => mkdtempSync(path.join(os.tmpdir(), "pool-"));
+const ownedPoolDirs: string[] = [];
+const dir = () => { const d = mkdtempSync(path.join(os.tmpdir(), "pool-")); ownedPoolDirs.push(d); return d; };
+afterEach(() => { for (const d of ownedPoolDirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 const spec = (d: string, id: string, extra: Partial<TaskSpec> = {}): TaskSpec => ({ id, cmd: "x", args: ["out", path.join(d, `${id}.mp4`)], cwd: d, output: path.join(d, `${id}.mp4`), outputArg: 1, ...extra });
 const noEvidence = { oomCount: () => null, oomVictims: () => new Set<number>() };
 
@@ -356,8 +358,11 @@ describe("طوابير متعددة على الجهاز نفسه", () => {
     // طابور آخر (الاستوديو مثلًا) يشغّل مهمة تقديرها 2500 لم تبلغ ذروتها بعد (300 الآن)
     const pool = new RenderPool({ cpus: 4, perJobMB: 1800, reserveMB: 900, memory: h.memory, tree: (pid) => ({ pids: [pid], rssMB: pid === 9999 ? 300 : 0 }), spawnFn: h.spawnFn, foreign: () => [{ pid: 9999, estimateMB: 2500 }], pollMs: 5, ...noEvidence });
     pool.add(spec(d, "a"));
-    await new Promise((r) => setTimeout(r, 30));
     // 5000 − (2500 − 300) − 1800 = 1000 ≥ 900: تبدأ
+    // Check the capacity decision immediately; do not guess when the event
+    // loop will run the 10 ms mock task under a loaded parallel test suite.
+    expect(pool.tasks.get("a")!.status).toBe("running");
+    await pool.idle();
     expect(pool.tasks.get("a")!.status).toBe("done");
     const pool2 = new RenderPool({ cpus: 4, perJobMB: 1800, reserveMB: 900, memory: () => ({ availableMB: 4000 }), tree: () => ({ pids: [], rssMB: 300 }), spawnFn: h.spawnFn, foreign: () => [{ pid: 9999, estimateMB: 2500 }], pollMs: 5, ...noEvidence });
     pool2.add(spec(d, "b"));
@@ -384,13 +389,17 @@ describe("لا خروج صامت", () => {
     `;
     const file = path.join(d, "probe.mts");
     writeFileSync(file, script);
-    const out = await new Promise<string>((res) => {
-      const c = spawn(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), file], { cwd: path.resolve(".") });
-      let o = "";
-      c.stdout.on("data", (b) => (o += b));
-      c.on("close", () => res(o));
+    const result = await new Promise<{ out: string; error: string; code: number | null }>((res) => {
+      const c = spawn(process.execPath, ["--import", "tsx", file], { cwd: path.resolve(".") });
+      let out = "";
+      let error = "";
+      c.stdout.on("data", (b) => (out += b));
+      c.stderr.on("data", (b) => (error += b));
+      c.once("error", (e) => (error += e.message));
+      c.once("close", (code) => res({ out, error, code }));
     });
-    expect(out).toContain("STATUS done");
+    expect(result.code, result.error).toBe(0);
+    expect(result.out, result.error).toContain("STATUS done");
     expect(readFileSync(path.join(d, "w.mp4"), "utf8")).toBe("ok");
   }, 20000);
 });

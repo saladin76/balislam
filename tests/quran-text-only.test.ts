@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -14,8 +14,10 @@ beforeAll(() => {
   tempRoot = mkdtempSync(path.join(os.tmpdir(), "bal-text-only-"));
   const channelDir = path.join(tempRoot, "balislam");
   cpSync(path.join(__dirname, "..", "channels", "balislam"), channelDir, {
-    recursive: true, filter: (src) => !/[\\/](recitations|voice|out)([\\/]|$)/.test(src),
+    recursive: true, filter: (src) => !/[\\/](episodes|recitations|voice|out)([\\/]|$)/.test(src),
   });
+  // Test fixture only: create an episode folder without production media copies.
+  mkdirSync(path.join(channelDir, "episodes"), { recursive: true });
   episodeDir = path.join(channelDir, "episodes", "999-demo");
   cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), episodeDir, { recursive: true });
   process.env.BAL_CHANNELS_DIR = tempRoot;

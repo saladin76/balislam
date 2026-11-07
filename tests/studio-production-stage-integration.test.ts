@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { approveStoryboard, loadStoryboard, storyboardStatus } from "../src/plan/storyboard";
@@ -7,8 +7,12 @@ import { checkVisualStoryboardSignoff } from "../src/plan/storyboardVisualGate";
 import { approveVoiceScene, approveVoiceEpisode, assertVoiceApproved, voiceReviewItems } from "../src/voice/review";
 import type { Plan } from "../src/plan/types";
 
+const ownedStageDirs: string[] = [];
+afterEach(async () => { for (const d of ownedStageDirs.splice(0)) await rm(d, { recursive:true, force:true }); });
+
 const build = async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "studio-release-stages-"));
+  ownedStageDirs.push(root);
   const scriptPath = path.join(root, "script.md");
   await writeFile(scriptPath, "synthetic test fixture");
   await mkdir(path.join(root, "voice"));

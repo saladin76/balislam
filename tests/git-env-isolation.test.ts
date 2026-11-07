@@ -99,7 +99,8 @@ describe("عزل بيئة Git للعمليات الفرعية", () => {
 
   it("البوابة وكل ما يشغّل git في المشروع لا يورّث process.env كما هو", () => {
     const gate = readFileSync(path.join(root, "scripts", "gate.mjs"), "utf8");
-    expect(gate).toMatch(/env: childEnv\(/);
+    expect(gate).toMatch(/const gateEnv = \(\) => childEnv\(/);
+    expect(gate).toMatch(/env: gateEnv\(\)/);
     for (const f of ["scripts/gate.mjs", "scripts/docs-sync.mjs", "scripts/install-hooks.mjs", "app/server/update.ts", "app/server/extra.ts"]) {
       const s = readFileSync(path.join(root, f), "utf8");
       // لا عملية git فرعية ببيئة منسوخة من process.env دون تنظيف

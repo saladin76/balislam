@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 // The exporter is a standalone Node script, independent of the React/TS render engine.
@@ -7,8 +7,11 @@ import path from "node:path";
 import { normalizeStoryboard, safeImageData, buildStoryboardHtml, exportStoryboard } from "../scripts/studio-storyboard-pdf.mjs";
 
 const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAOwO+wAAAABJRU5ErkJggg==","base64");
+const ownedPdfDirs: string[] = [];
+afterEach(() => { for (const d of ownedPdfDirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 const setup=()=>{
   const dir=mkdtempSync(path.join(os.tmpdir(),"studio-pdf-"));
+  ownedPdfDirs.push(dir);
   writeFileSync(path.join(dir,"landscape.png"),png);
   writeFileSync(path.join(dir,"portrait.png"),png);
   const file=path.join(dir,"manifest.json");
