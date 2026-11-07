@@ -6,6 +6,7 @@ import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName } from "./util.ts";
 import { readBody } from "./body.ts";
+import { isTrustedLocalRequest } from "./security.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -92,6 +93,8 @@ export const balApi = (): Plugin => ({
       if (!url.pathname.startsWith("/api/")) return next();
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
+        if (!isTrustedLocalRequest(req))
+          return send(res, 403, { error: "طلب من مصدر خارجي غير مسموح به في Studio المحلي." });
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
