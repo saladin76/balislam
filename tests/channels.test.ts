@@ -107,12 +107,12 @@ Bugün başla. Hangisini seçtin?
     }
   });
 
-  it("الآية في حلقة إنجليزية: اسم السورة لاتيني، وترجمة المعنى من القناة", () => {
+  it("الآية في حلقة إنجليزية: اسم السورة لاتيني ونسبة الترجمة من بيانات المشهد المراجعة", () => {
     const en = `---\ntitle: "Why we delay"\ndomain: psychology\nepisode: "901"\nlang: en\n---\n\n## Chapter 1 · Question\n\nWe all delay.\n\n[verse: An-Najm 39]\n\n## Sources\n\n- verse | An-Najm 39\n\n## Practical step\n\nStart now. Which task?\n`;
     const parsed = parseScript(en);
     const ayah = parsed.chapters[0]!.blocks.find((b) => b.kind === "ayah");
     expect(ayah, "verse directive").toBeTruthy();
-    const channel = { ...defaultChannel, language: "en", quranTranslation: { id: 20, name: "Saheeh International" } };
+    const channel = { ...defaultChannel, language: "en" };
     const plan = generatePlan(parsed, null, { "53:39": "وَأَن لَّيْسَ", "53:39#meaning": "And that there is not for man except that for which he strives", "53:39#meaningSource": "Saheeh International" }, channel);
     const verse = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
     expect(verse.props.reference).toBe("An-Najm · 53:39");
