@@ -193,7 +193,7 @@
 .ew-approval-card-title span { background: var(--panel-2, #f7f7f5); border-radius: 7px; padding: 2px 7px; color: var(--muted, #67645e); }
 .ew-approval-grid article[data-workflow-status="approved"] .ew-approval-card-title span { color: var(--ok, #237859); background: var(--ok-soft, #e7f4ec); }
 .ew-approval-grid article[data-workflow-status="rejected"] .ew-approval-card-title span,
-.ew-approval-grid article[data-workflow-status="reapproval_required"] .ew-approval-card-title span { color: var(--err, #bc4e4e); background: var(--err-soft, #fcecec); }
+.ew-approval-grid article[data-workflow-status="needs_reapproval"] .ew-approval-card-title span { color: var(--err, #bc4e4e); background: var(--err-soft, #fcecec); }
 .ew-approval-grid p { color: var(--muted, #67645e); line-height: 1.65; margin: 8px 0; }
 .ew-approval-grid dl { display: grid; grid-template-columns: minmax(75px, auto) minmax(0, 1fr); gap: 6px; font-size: 11px; overflow-wrap: anywhere; }
 .ew-approval-grid dt { color: var(--muted, #67645e); }
@@ -205,4 +205,25 @@
   .ew-stages { display: flex; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
   .ew-stage, .studio-shell .ew-stages > button { flex: 0 0 165px; }
   .ew-stage small { display: block; font-size: 10px; }
+}
+
+
+/* Engine-backed ledger: invalidation/history are visually distinct from current approval. */
+.ew-approval-reason { border-inline-start: 3px solid var(--err, #bc4e4e); padding: 7px 11px; background: var(--err-soft, #fff3f1); border-radius: 6px; overflow-wrap: anywhere; }
+.ew-workflow-error { margin: 9px 12px; padding: 10px 12px; border: 1px solid var(--err, #bc4e4e); border-radius: 8px; color: var(--err, #bc4e4e); background: var(--err-soft, #fff3f1); }
+.ew-workflow-history { margin-block: 10px 2px; border-block-start: 1px solid var(--line, #d4d2cb); }
+.ew-workflow-history > summary { cursor: pointer; padding-block: 9px; font-weight: 650; }
+.ew-workflow-history ol { margin: 0; padding-inline-start: 20px; max-height: 170px; overflow-y: auto; }
+.ew-workflow-history li { margin-block: 8px; line-height: 1.8; overflow-wrap: anywhere; }
+.ew-workflow-history li span { display: block; color: var(--muted, #67645e); }
+.ew-hash { overflow-wrap: anywhere; text-align: start; font-variant-numeric: tabular-nums; font-size: 10px; }
+.ew-technical-evidence { margin-block-start: 10px; padding-block-start: 8px; border-block-start: 1px dashed var(--line, #d4d2cb); }
+.ew-workflow-revision { display: block; padding: 0 12px 10px; color: var(--muted, #67645e); }
+.ew-approval-grid article[data-workflow-status="needs_reapproval"] { border-color: var(--err, #bc4e4e); }
+.ew-approval-grid article[data-workflow-status="unavailable"] .ew-approval-card-title span { color: var(--muted, #67645e); }
+.ew-approval-details summary:focus-visible, .ew-workflow-history summary:focus-visible { outline: 3px solid var(--accent, #177d76); outline-offset: -2px; }
+@media (max-width: 560px) {
+  .ew-approval-grid { padding: 8px; max-height: 57vh; }
+  .ew-approval-grid article { padding: 11px; }
+  .ew-workflow-history ol { max-height: 140px; }
 }
