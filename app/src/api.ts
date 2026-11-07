@@ -75,7 +75,37 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
 export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
+export type SceneProductionRead = {
+  schemaVersion: 1;
+  channel: string; episode: string; revision: number;
+  progress: { currentScene: string | null; approvedScenes: number; totalScenes: number;
+    canAssemble: boolean; masterApproved: boolean };
+  script: { sha256: string; approved: boolean };
+  storyboard: { sha256: string; approved: boolean };
+  scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
+    sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean }[];
+  assembly: { sha256: string } | null;
+  master: { sha256: string; approved: true } | null;
+  candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
+    masterSha256: string | null };
+};
+export type SceneOwnerAction = {
+  action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
+    "correct-scene" | "assemble" | "approve-master";
+  expectedSha256: string;
+  sceneId?: string;
+  note?: string;
+  confirmedWatched?: boolean;
+};
+
 export const api = {
+  /** One scene = one combined audiovisual review; no Quran provider selection. */
+  sceneProduction: (episode: string, channel?: string) =>
+    call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, undefined, channel),
+  decideScene: (episode: string, channel: string, token: string, decision: SceneOwnerAction) =>
+    call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, {
+      method: "POST", json: decision, headers: { "x-studio-owner-token": token },
+    }, channel),
   workflow: (episode: string, channel?: string) => call<{
     approvals: WorkflowApprovalView;
     fingerprints: Partial<Record<WorkflowStage, string>>;
