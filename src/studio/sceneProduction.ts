@@ -96,6 +96,12 @@ export const approveStoryboard = (p: SceneFirstProduction, by: string, at: strin
   return { ...p, storyboard: { ...p.storyboard, approval: { by, at, sha256 } } };
 };
 
+const validSceneApproval = (s: SceneState): boolean =>
+  s.status === "approved" && Boolean(s.approval && s.previewSha256 &&
+    s.approval.previewSha256 === s.previewSha256 &&
+    s.approval.sourceSha256 === s.sourceSha256 &&
+    s.approval.by.trim() && Number.isFinite(Date.parse(s.approval.at)));
+
 const sceneIndex = (p: SceneFirstProduction, sceneId: string): number => {
   const index = p.scenes.findIndex((s) => s.id === sceneId);
   if (index < 0) return block("Unknown scene.");
@@ -105,7 +111,7 @@ const canWorkOn = (p: SceneFirstProduction, index: number): void => {
   if (!p.script.approval || p.script.approval.sha256 !== p.script.sha256 ||
       !p.storyboard.approval || p.storyboard.approval.sha256 !== p.storyboard.sha256)
     return block("Script and storyboard must be approved first.");
-  if (p.scenes.slice(0, index).some((s) => s.status !== "approved"))
+  if (p.scenes.slice(0, index).some((s) => !validSceneApproval(s)))
     return block("Approve the previous scene, with its sound and video, first.");
 };
 const replaceScene = (p: SceneFirstProduction, index: number, scene: SceneState): SceneFirstProduction => ({
@@ -148,11 +154,23 @@ export const approveSceneAv = (p: SceneFirstProduction, sceneId: string,
       sourceSha256: s.sourceSha256 } });
 };
 
+export const requestSceneCorrection = (p: SceneFirstProduction, sceneId: string): SceneFirstProduction => {
+  const i = sceneIndex(p, sceneId);
+  canWorkOn(p, i);
+  const scene = p.scenes[i]!;
+  if (scene.status !== "in_review") return block("Only a submitted AV scene can be returned for correction.");
+  return replaceScene(p, i, { id: scene.id, sourceSha256: scene.sourceSha256,
+    status: "needs_revision" });
+};
+
 export const nextSceneId = (p: SceneFirstProduction): string | null =>
-  p.scenes.find((s) => s.status !== "approved")?.id ?? null;
+  p.scenes.find((s) => !validSceneApproval(s))?.id ?? null;
 
 export const approvedSceneInputsSha256 = (p: SceneFirstProduction): string => {
-  if (nextSceneId(p)) return block("All audiovisual scenes must be reviewed and approved.");
+  if (nextSceneId(p) || !p.script.approval || !p.storyboard.approval ||
+      p.script.approval.sha256 !== p.script.sha256 ||
+      p.storyboard.approval.sha256 !== p.storyboard.sha256)
+    return block("All audiovisual scenes and upstream sources must be approved.");
   const payload = [p.channel, p.episode, p.script.sha256, p.storyboard.sha256,
     ...p.scenes.map((s) => [s.id, s.sourceSha256, s.previewSha256,
       s.approval?.at, s.approval?.by])];
@@ -192,7 +210,7 @@ export const assertExactMasterReadyForPublish = (p: SceneFirstProduction, actual
 
 export const sceneFirstProgress = (p: SceneFirstProduction) => ({
   currentScene: nextSceneId(p),
-  approvedScenes: p.scenes.filter((s) => s.status === "approved").length,
+  approvedScenes: p.scenes.filter(validSceneApproval).length,
   totalScenes: p.scenes.length,
   canAssemble: p.scenes.length > 0 && nextSceneId(p) === null,
   masterApproved: Boolean(p.master && p.assembly &&
