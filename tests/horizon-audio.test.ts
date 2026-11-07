@@ -70,13 +70,13 @@ describe("دفاتر الزمن 001 — المعاينة المتكاملة", ()
   });
 
   it("نص اللقطات الست يطابق السكريبت المعتمد حرفيًا، والنقص يُذكر بعينه", async () => {
-    const problems = await horizonPreflight(EP, { voice: null, quran: null });
+    const problems = await horizonPreflight(EP, { voice: null });
     expect(problems.filter((p) => p.includes("لا يطابق"))).toEqual([]);
     expect(problems.some((p) => p.includes("ElevenLabs"))).toBe(true);
-    expect(problems.some((p) => p.includes("Quran Foundation"))).toBe(true);
+    expect(problems.some((p) => p.includes("تلاوة") || p.includes("نص الآية"))).toBe(true);
   });
 
   it("خانة المعاينة الصوتية يجب أن تنتهي بـ -audio", async () => {
-    await expect(renderHorizonAudio(EP, { slot: "six-shots", voiceClient: null, quranClient: null })).rejects.toThrow(/-audio/);
+    await expect(renderHorizonAudio(EP, { slot: "six-shots", voiceClient: null })).rejects.toThrow(/-audio/);
   });
 });
