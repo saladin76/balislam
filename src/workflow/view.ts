@@ -10,6 +10,52 @@ import {
   type WorkflowSnapshot, type WorkflowStage, type WorkflowStatus,
 } from "./gates.ts";
 
+/**
+ * Exact read-only DTO expected by PR #74:
+ * app/src/workspace/workflowReadModel.ts (parseWorkflowReadModel).
+ * Schema 3 describes the underlying signed approval ledger, but neither the
+ * signature nor trusted file receipts may cross the HTTP response boundary.
+ */
+export type WorkflowUiApproval = Omit<NonNullable<WorkflowLedger["stages"]["script"]["approval"]>, "evidenceProofs">;
+export type WorkflowUiStage = {
+  status: WorkflowStatus;
+  approval?: WorkflowUiApproval;
+  submitted?: NonNullable<WorkflowLedger["stages"]["script"]["submitted"]>;
+  reason?: string;
+  currentApproval?: true;
+};
+export type StudioWorkflowUiSnapshot = {
+  schemaVersion: 3;
+  channel: string;
+  episode: string;
+  revision: number;
+  stages: Record<WorkflowStage, WorkflowUiStage>;
+  history: WorkflowLedger["history"];
+};
+
+export const toStudioWorkflowUiSnapshot = (
+  ledger: WorkflowLedger, snapshot: WorkflowSnapshot,
+): StudioWorkflowUiSnapshot => {
+  const stages = Object.fromEntries(WORKFLOW_STAGES.map((stage) => {
+    const state = ledger.stages[stage];
+    const approval = state.approval
+      ? (({ evidenceProofs: _privateReceipts, ...publicFields }) => publicFields)(state.approval)
+      : undefined;
+    return [stage, {
+      status: state.status,
+      ...(approval ? { approval: structuredClone(approval) } : {}),
+      ...(state.status === "in_review" && state.submitted ? { submitted: structuredClone(state.submitted) } : {}),
+      ...(state.reason ? { reason: state.reason } : {}),
+      ...(isCurrentApproval(ledger, snapshot, stage) ? { currentApproval: true as const } : {}),
+    }];
+  })) as Record<WorkflowStage, WorkflowUiStage>;
+  return {
+    schemaVersion: 3,
+    channel: ledger.channel, episode: ledger.episode, revision: ledger.revision,
+    stages, history: structuredClone(ledger.history),
+  };
+};
+
 export type WorkflowStageView = {
   stage: WorkflowStage;
   index: number;
