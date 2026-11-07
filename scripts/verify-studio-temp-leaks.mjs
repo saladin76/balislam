@@ -62,7 +62,30 @@ const run = (root, label, mode = null) => new Promise(resolve=>{
   else delete env.BAL_STUDIO_AUDIT_VITEST_WORKERS;
   // This deliberately fails only the npx command within the test child.
   if (mode === "failure") env.PATH = path.join(root, "missing-bin-directory");
-  const child=spawn(process.execPath,[path.join(repo,"scripts/gate.mjs")],{cwd:repo,env,stdio:"inherit"});
+  // Tee the exact gate output, retaining only a bounded tail for audit evidence.
+  // Sample ONLY this audit invocation's private root, never a shared /tmp path.
+  let outputTail = "";
+  let peakOwnedBytes = 0;
+  let samplingErrors = 0;
+  let samplesTaken = 0;
+  const sample = () => {
+    try {
+      peakOwnedBytes = Math.max(peakOwnedBytes, disk(root));
+      samplesTaken++;
+    } catch { samplingErrors++; }
+  };
+  sample();
+  const child=spawn(process.execPath,[path.join(repo,"scripts/gate.mjs")],{
+    cwd:repo,env,stdio:["ignore","pipe","pipe"]
+  });
+  const consume = (stream, chunk) => {
+    stream.write(chunk);
+    outputTail = (outputTail + chunk.toString("utf8")).slice(-8192);
+  };
+  child.stdout?.on("data", chunk => consume(process.stdout, chunk));
+  child.stderr?.on("data", chunk => consume(process.stderr, chunk));
+  const monitor = setInterval(sample, 1000);
+  monitor.unref();
   children.add(child);
   let timer = null;
   if (mode === "cancel") timer = setTimeout(()=>child.kill("SIGTERM"), 1200);
@@ -72,7 +95,18 @@ const run = (root, label, mode = null) => new Promise(resolve=>{
     finished = true;
     children.delete(child);
     if (timer) clearTimeout(timer);
-    resolve(result);
+    clearInterval(monitor);
+    sample();
+    const allocations = [...outputTail.matchAll(/GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES\s+(-?\d+)/g)];
+    const cleanups = [...outputTail.matchAll(/GATE_TEMP_CLEANED\s+(true|false)/g)];
+    const bytes = allocations.length ? Number(allocations.at(-1)[1]) : null;
+    const cleaned = cleanups.length ? cleanups.at(-1)[1] === "true" : null;
+    resolve({
+      ...result, ownedRootBytesBeforeGate:0, ownedPeakBytes:peakOwnedBytes,
+      ownedRootBytesAfterGate:disk(root),
+      peakSamples:samplesTaken, samplingErrors,
+      gateAllocatedBeforeCleanupBytes:bytes, gateReportedCleaned:cleaned,
+    });
   };
   child.once("error", e=>finish({label,status:1,error:e.message}));
   child.once("close", (code,signal)=>finish({label,status:code,signal}));
@@ -165,7 +199,9 @@ try {
     const result=await run(root,exercise,exercise);
     const unexpected=entries(root);
     samples.push({run:1,...result,leftoverFiles:unexpected,diskBytes:disk(root)});
-    if (result.status !== (exercise === "cancel" ? 143 : 1) || unexpected.length) failures.push(exercise+"-unexpected-result");
+    if (result.status !== (exercise === "cancel" ? 143 : 1) || unexpected.length ||
+        result.gateReportedCleaned !== true || result.gateAllocatedBeforeCleanupBytes === null ||
+        result.samplingErrors) failures.push(exercise+"-unexpected-result");
   } else if (parallel) {
     const roots=[mkdtempSync(path.join(base,"parallel-A-")),mkdtempSync(path.join(base,"parallel-B-"))];
     dirs.push(...roots);
@@ -174,7 +210,10 @@ try {
     for (let i=0;i<roots.length;i++) {
       const unexpected=entries(roots[i]);
       samples.push({run:i+1,...results[i],leftoverFiles:unexpected,diskBytes:disk(roots[i])});
-      if (results[i].status!==0 || unexpected.length) failures.push("parallel-"+(i+1));
+      if (results[i].status!==0 || unexpected.length ||
+          results[i].gateReportedCleaned !== true ||
+          results[i].gateAllocatedBeforeCleanupBytes === null ||
+          results[i].samplingErrors) failures.push("parallel-"+(i+1));
     }
   } else {
     const root=mkdtempSync(path.join(base,"serial-"));
@@ -183,7 +222,10 @@ try {
       const result=await run(root,"serial-"+i);
       const unexpected=entries(root);
       samples.push({run:i,...result,leftoverFiles:unexpected,diskBytes:disk(root)});
-      if(result.status!==0 || unexpected.length){failures.push("serial-"+i);break;}
+      if(result.status!==0 || unexpected.length ||
+         result.gateReportedCleaned !== true ||
+         result.gateAllocatedBeforeCleanupBytes === null ||
+         result.samplingErrors){failures.push("serial-"+i);break;}
     }
   }
   if (interrupted) failures.push("audit-interrupted-"+interruptSignal);
