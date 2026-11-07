@@ -59,7 +59,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const statusFile = path.join(path.dirname(scriptPath), "status.json");
   const readStatus = async () => (existsSync(statusFile) ? JSON.parse(await readFile(statusFile, "utf8")) : {});
   // قاعدة: كل مشهد يُراجَع بعد تنفيذه (حركاته سليمة ومتناسقة مع النص وغير عشوائية) قبل النسخة النهائية
-  if (quality === "master" && !opts.skipVideo && !opts.ignoreSceneReview) {
+  if (quality === "master" && !opts.skipVideo) {
     const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath));
     const sum = sceneReviewSummary(items);
     if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
