@@ -72,6 +72,10 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  /** Server-only read contract: GET must reconcile current artifact hashes and
+   * run isCurrentApproval for every stage; client supplies NO approval/evidence. */
+  workflowApprovals: (episode: string, channel: string): Promise<unknown> =>
+    call<unknown>(`/api/episodes/${encodeURIComponent(episode)}/workflow`, undefined, channel),
   voiceReview: (episode: string, channel: string) =>
     call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, undefined, channel),
