@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { link, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { WORKFLOW_STAGES, STAGE_EVIDENCE, stageFingerprint, type WorkflowStage } from "../src/workflow/gates";
@@ -335,6 +335,15 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     const forgedManifest: ArtifactManifest = { stages: { ...x.manifest.stages,
       motion: { version: "M2", files: ["borrowed.mp4"] } }, master: x.manifest.master };
     await expect(collectActualArtifactDigests(x.scope, forgedManifest)).rejects.toThrow(/Symlink/);
+    await link(path.join(outside, "other.mp4"), path.join(x.dir, "borrowed-hardlink.mp4"));
+    const hardlinkManifest: ArtifactManifest = { ...x.manifest,
+      stages: { ...x.manifest.stages, motion: { version: "M3", files: ["borrowed-hardlink.mp4"] } } };
+    await expect(collectActualArtifactDigests(x.scope, hardlinkManifest)).rejects.toThrow(/hardlinks|linked/);
+    // A signed ledger is not allowed to share an inode with another episode.
+    const alias = path.join(x.dir, "ledger-hardlink.json");
+    await link(ledger, alias);
+    await expect(x.service.inspectInternal()).rejects.toThrow(/isolated regular file/);
+    await rm(alias);
     const oldKey = process.env.BAL_WORKFLOW_HMAC_KEY;
     try {
       delete process.env.BAL_WORKFLOW_HMAC_KEY;
