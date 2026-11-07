@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { publishOutputWithoutOverwrite } from "./fsIsolation";
 import { spawn, type ChildProcess } from "node:child_process";
 
 /**
@@ -673,9 +674,17 @@ export class RenderPool {
       if (code === 0 && !spawnError && !rec.cancelled && !rec.timedOut && !rec.stalled) {
         if (tmp && spec.output) {
           if (existsSync(tmp)) {
-            await rename(tmp, spec.output);
-            t.output = spec.output;
-            t.status = "done";
+            try {
+              // Atomic no-clobber publication; identical output names from two
+              // workers become distinct versions rather than replacing one another.
+              t.output = await publishOutputWithoutOverwrite(tmp, spec.output);
+              t.status = "done";
+            } catch (e) {
+              t.status = "error";
+              t.failure = { kind: "no-output", message: `فشل نشر الملف دون استبدال مخرج سابق: ${(e as Error).message}`, evidence: [tmp], diagnostics: classifyFailure({ code, signal, log: t.log }).diagnostics };
+              t.error = t.failure.message;
+              await rm(tmp, { force: true });
+            }
           } else {
             t.status = "error";
             t.failure = { kind: "no-output", message: "انتهت العملية بنجاح لكن بلا ملف ناتج.", evidence: [`لا يوجد ${tmp}`], diagnostics: classifyFailure({ code, signal, log: t.log }).diagnostics };
