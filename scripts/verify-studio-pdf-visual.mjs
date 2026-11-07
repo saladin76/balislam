@@ -120,6 +120,15 @@ for (const spec of inputs) {
               faults.push({index,sel,kind:"outside-page",bottom:box.bottom,limit:bounds.bottom});
           }
         }
+        for(const header of page.querySelectorAll(".head")){
+          const status=header.querySelector(".status");
+          if(status){
+            const statusBox=status.getBoundingClientRect();
+            const headerBox=header.getBoundingClientRect();
+            if(statusBox.bottom > headerBox.bottom - 1)
+              faults.push({index,sel:".status",kind:"status-overlap",bottom:statusBox.bottom,limit:headerBox.bottom});
+          }
+        }
         for(const p of page.querySelectorAll(".appendix p")){
           const holder=p.closest(".appendix").getBoundingClientRect();
           const text=p.getBoundingClientRect();
