@@ -318,7 +318,9 @@ export const balApi = (): Plugin => ({
               return send(res, 200, { approved, status: await ownAudioStatus(ep), media: await mediaFor((await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep))) });
             }
             if (parts.length === 5 && parts[3] === "preview" && req.method === "GET") {
-              const name = safeName(parts[4]);
+              const rawName = parts[4];
+              if (!rawName) return send(res, 400, { error: "اسم تسجيل المراجعة غير صالح." });
+              const name = safeName(rawName);
               const status = await ownAudioStatus(ep);
               const record = Object.values(status.pending).find((r: any) => r.file === name);
               if (!record) return send(res, 404, { error: "تسجيل المراجعة غير موجود." });
