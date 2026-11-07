@@ -38,6 +38,16 @@ describe("atomic environment settings", () => {
     expect(keyStatus().ELEVENLABS_API_KEY?.preview).toBe("••••7777");
   });
 
+  it("never overrides a competing or abandoned .env lock", async () => {
+    const { file } = setup();
+    writeFileSync(`${file}.lock`, "another Studio process owns this");
+    const originalBytes = readFileSync(file, "utf8");
+    await expect(writeKeys({ ELEVENLABS_VOICE_ID: "should-not-save" })).rejects.toThrow("قيد التعديل");
+    expect(readFileSync(file, "utf8")).toBe(originalBytes);
+    expect(readFileSync(`${file}.lock`, "utf8")).toBe("another Studio process owns this");
+    expect(process.env.ELEVENLABS_VOICE_ID).toBe(original.ELEVENLABS_VOICE_ID);
+  });
+
   it("rejects malformed input without saving secrets or changing process env", async () => {
     const { file } = setup();
     await writeKeys({ ELEVENLABS_VOICE_ID: "original" });
