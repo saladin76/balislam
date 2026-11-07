@@ -96,7 +96,7 @@ const css = [
   ".page:last-child{break-after:auto;page-break-after:auto}",
   ".head{position:absolute;top:0;right:0;left:0;height:19mm;border-bottom:2px solid var(--studio-accent)}",
   ".head .name{float:right}.eyebrow{font-size:9pt;color:#64748b}",
-  ".head h2{display:flex;align-items:baseline;direction:rtl;gap:3mm;font-family:var(--studio-heading);font-size:17pt;line-height:1.35;margin:1mm 0}.head .arabic-title{direction:rtl;unicode-bidi:isolate;font-family:var(--studio-heading);font-size:12pt;color:#506273}",
+  ".head h2{display:flex;align-items:baseline;direction:rtl;gap:3mm;font-family:var(--studio-heading);font-size:17pt;line-height:1.35;margin:1mm 0;min-width:0;max-width:260mm}.head h2 bdi{flex:0 0 auto;max-width:52mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.head .arabic-title{direction:rtl;unicode-bidi:plaintext;font-family:var(--studio-heading);font-size:12pt;color:#506273;min-width:0;max-width:198mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
   ".status{float:left;font-size:9pt;color:#9a5a14;border:1px solid #ebc98b;background:#fff8e9;padding:2mm 4mm;border-radius:3mm}",
   ".frames{position:absolute;top:20mm;right:0;left:0;height:130mm;overflow:hidden}",
   "figure{position:relative;display:block;margin:0;height:130mm;padding:2mm;overflow:hidden;background:#f3f6f7;border:1px solid #dce3e8;border-radius:2mm;text-align:center}",
@@ -107,15 +107,16 @@ const css = [
   ".info{position:absolute;top:151mm;left:0;right:0;height:27mm;overflow:hidden}",
   ".info section{float:right;width:49%;height:23mm;overflow:hidden}.info section:nth-child(2){float:left}",
   ".info h3{margin:0 0 0.5mm;font-family:var(--studio-heading);font-size:10pt;line-height:1.3;color:var(--studio-accent)}",
-  ".info p{margin:0;overflow:hidden;overflow-wrap:anywhere;font-size:10.2pt;line-height:1.3;max-height:19mm}",
+  ".info p{margin:0;overflow:hidden;overflow-wrap:anywhere;font-size:10.2pt;line-height:1.3;max-height:19mm;unicode-bidi:plaintext}",
   ".info .details{width:100%;height:4mm;clear:both;border-top:1px solid #d5dee5;color:#546471;font-size:8.5pt}",
-  ".details span{margin-left:7mm}",
+  ".details span{margin-left:7mm;display:inline-block;max-width:43%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top;unicode-bidi:isolate}",
   "footer{position:absolute;bottom:0;left:0;right:0;height:7mm;font-size:8pt;color:#65737d;border-top:1px solid #d9e2e7}",
   ".appendix{position:absolute;top:30mm;left:8mm;right:8mm;bottom:13mm;overflow:hidden}",
-  ".appendix p{font-size:15pt;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}",
+  ".appendix p{font-size:15pt;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:1mm 0 0}",
   ".page.cover{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:3mm solid var(--studio-accent);padding:14mm}",
   ".cover .label{font-family:var(--studio-body);font-size:15pt;direction:rtl}.cover h1{font-family:var(--studio-heading);font-size:32pt;line-height:1.65;direction:rtl;unicode-bidi:isolate;max-width:240mm;margin:10mm 0}",
   ".cover p{direction:rtl;font-size:13pt}.cover .series{font-size:12pt;color:#53616a}",
+  ".page-index{position:absolute;bottom:1mm;left:0;direction:rtl;font-family:var(--studio-body);font-size:8pt;color:#65737d;line-height:5mm;min-width:29mm;text-align:left;z-index:2}.page.cover .page-index{left:11mm;bottom:6mm}",
 ].join("\n");
 
 // Divide printable annexes only between full Unicode grapheme clusters. A code-unit
@@ -141,6 +142,11 @@ export function splitAppendixText(value) {
 
 const needsTextAnnex = value => value.length > 160 ||
   (value.match(/\r\n|\n|\r/g) ?? []).length >= 3 || /[^\s]{80,}/u.test(value);
+const metadataPreview = (value, limit = 36) => {
+  const fragments = [...new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(String(value))];
+  return fragments.length > limit || /[\r\n]/.test(value)
+    ? fragments.slice(0, limit).map(({ segment }) => segment).join("").trimEnd() + "…" : String(value);
+};
 const safeExcerpt = (value, limit, annexNeeded) => {
   if (!annexNeeded) return value;
   // Keep the already-reviewed <=160-character Dafatir text fully on its scene page.
@@ -189,6 +195,11 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
     const notesAnnex = needsTextAnnex(notes);
     const narrationAnnex = needsTextAnnex(narration);
     const titleAnnex = scene.title.length > 48 || /[\r\n]/.test(scene.title);
+    const chapterMeta = String(scene.chapterTitle || scene.chapter || "غير محدد");
+    const typeMeta = String(scene.type || "غير محدد");
+    const chapterMetaAnnex = chapterMeta.length > 40 || /[\r\n]/.test(chapterMeta);
+    const typeMetaAnnex = typeMeta.length > 40 || /[\r\n]/.test(typeMeta);
+    const idAnnex = scene.id.length > 28 || /[\r\n]/.test(scene.id);
     const titleExcerpt = titleAnnex ? [...new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(scene.title)]
       .slice(0, 40).map(({ segment }) => segment).join("") + "…" : scene.title;
     const header = '<header class="head"><div class="name"><span class="eyebrow">اللوحة ' +
@@ -199,8 +210,8 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
       panel(land, "أفقي 16:9") + (port ? panel(port, "عمودي 9:16") : "") + "</div>";
     const info = '<div class="info"><section><h3>الوصف والملاحظات</h3><p lang="ar" dir="rtl">' + esc(safeExcerpt(notes, 160, notesAnnex)) +
       '</p></section><section><h3>نص المقطع</h3><p lang="ar" dir="rtl">' + esc(safeExcerpt(narration, 160, narrationAnnex)) +
-      '</p></section><section class="details"><span>الفصل: ' + esc(scene.chapterTitle || scene.chapter || "غير محدد") +
-      '</span><span>النوع: ' + esc(scene.type || "غير محدد") +
+      '</p></section><section class="details"><span>الفصل: ' + esc(metadataPreview(chapterMeta)) +
+      '</span><span>النوع: ' + esc(metadataPreview(typeMeta)) +
       '</span><span>الإصدار: ' + ltr(storyboard.version) + '</span></section></div>';
     return '<article class="page">' + header + frames + info +
       '<footer>Storyboard للمراجعة فقط · ' + ltr(storyboard.episode) + '</footer></article>' +
