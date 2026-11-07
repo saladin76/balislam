@@ -27,6 +27,19 @@ describe("Studio workspace separation", () => {
     expect(html).not.toContain("اعتماد تلقائي");
   });
 
+  it("distinguishes channel list loading, empty results and recoverable API failure", () => {
+    const base = { channels: [], activeId: "", onOpen: () => {}, onRetry: () => {} };
+    const loading = renderToStaticMarkup(<ChannelsWorkspace {...base} loadState="loading" />);
+    expect(loading).toContain("جارٍ تحميل سجلات القنوات");
+    expect(loading).not.toContain("إعادة تحميل القنوات");
+    const failed = renderToStaticMarkup(<ChannelsWorkspace {...base} loadState="error" />);
+    expect(failed).toContain('role="alert"');
+    expect(failed).toContain("تعذر تحميل القنوات");
+    expect(failed).toContain("إعادة تحميل القنوات");
+    const empty = renderToStaticMarkup(<ChannelsWorkspace {...base} loadState="ready" />);
+    expect(empty).toContain("لا توجد قنوات مسجلة");
+  });
+
   it("gives the operations calendar, pipeline and idea bank accessible, focused navigation", () => {
     const html = renderToStaticMarkup(<OpsSectionNav active="pipeline" onSelect={() => {}} />);
     expect(html).toContain('aria-label="أقسام غرفة العمليات"');
