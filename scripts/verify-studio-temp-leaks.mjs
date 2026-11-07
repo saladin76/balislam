@@ -63,13 +63,14 @@ const run = (root, label, mode = null) => new Promise(resolve=>{
   // This deliberately fails only the npx command within the test child.
   if (mode === "failure") env.PATH = path.join(root, "missing-bin-directory");
   const child=spawn(process.execPath,[path.join(repo,"scripts/gate.mjs")],{cwd:repo,env,stdio:"inherit"});
-  children.push(child);
+  children.add(child);
   let timer = null;
   if (mode === "cancel") timer = setTimeout(()=>child.kill("SIGTERM"), 1200);
   let finished = false;
   const finish = result => {
     if (finished) return;
     finished = true;
+    children.delete(child);
     if (timer) clearTimeout(timer);
     resolve(result);
   };
@@ -78,7 +79,7 @@ const run = (root, label, mode = null) => new Promise(resolve=>{
 });
 let interrupted=false;
 let interruptSignal=null;
-const children=[];
+const children=new Set();
 const clean=(signal)=>{
   if (interrupted) return;
   interrupted=true;
@@ -156,7 +157,8 @@ try {
     swapUsedDeltaBytes: swapBefore?.usedBytes != null && swapAfter?.usedBytes != null
       ? swapAfter.usedBytes - swapBefore.usedBytes : null,
     privateTempBytesAfter:dirs.reduce((n,d)=>n+disk(d),0),
-    otherSystemTmpFilesUntouched:true,passed:failures.length===0
+    // We never inspect every other process's /tmp; say what is demonstrated.
+    onlyOwnedRootsCleaned:true,sharedTmpNotScanned:true,passed:failures.length===0
   }));
 } finally {
   // Only this invocation's randomly named audit root; never rm /tmp or wildcard.

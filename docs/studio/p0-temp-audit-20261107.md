@@ -40,3 +40,14 @@ The dedicated GitHub Actions workflow `.github/workflows/studio-p0-temp-audit.ym
 - SIGKILL, machine power loss, process escape from its group, disk errors, and files deliberately written outside the inherited temp/cache environment cannot be cleaned reliably by the killed process.
 - The tests verify the containerized / CI checkout, not production Mac's APFS VM swap, other users' caches, or end-to-end Chromium/Remotion production renders.
 - **100% acceptance is withheld** until repeated full-gate CI evidence and any required isolated Mac diagnostics are reviewed. A successful single CI run of `npm test` is insufficient.
+
+## Additional audit: commit-mode installation cancellation
+
+An additional source of uncancellable work was identified in `scripts/gate.mjs --commit`: if no matching local `node_modules` is present, `npm ci` formerly used `spawnSync`. Its Node signal handlers cannot stop that long synchronous child promptly. `npm ci` now uses the same detached, tracked, asynchronous child runner as TypeScript and Vitest.
+
+The early-failure path now reports `GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES` and `GATE_TEMP_CLEANED`. Failure to deregister its own Git worktree is reported as `GATE_WORKTREE_REMOVE_FAILED` and fails the gate; it never prunes unrelated registrations. A measurable cleanup error is never interpreted as success.
+
+Regression tests additionally cover SIGHUP, failed check after `--commit`, failed mocked `npm ci`, and SIGTERM during mocked `npm ci`. A node/FFmpeg isolated smoke fixture (outside GitHub, not the real Vitest suite) ran 3 x 13 gate cases with success/failure/cancellation/parallelism and a separate 4-case mocked `npm ci` fixture; all expected exit codes, synthetic Git worktree ownership and foreign sentinels were preserved. The synthetic fixture uses `/usr/bin/ffmpeg` to produce a short private WAV, not an actual Remotion render. These local results do **not** substitute for the exact-head full CI / Mac stress requirement.
+
+Audit reporting no longer asserts that *all* unrelated /tmp files were inspected and untouched; only root ownership and absence of shared-directory sweeps are verified.
+

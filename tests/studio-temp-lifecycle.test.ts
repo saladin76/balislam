@@ -51,8 +51,25 @@ else process.exit(0);
 type Fixture = ReturnType<typeof fixture>;
 type RunResult = { code: number | null; signal: NodeJS.Signals | null; out: string };
 
-const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel: "SIGTERM" | "SIGINT" | null = null,
-  target: { script: string; cwd: string; args: string[] } = { script: gate, cwd: projectRoot, args: [] }): Promise<RunResult> =>
+const mockNpm = (f: Fixture) => {
+  const shim = path.join(f.bin, "npm");
+  writeFileSync(shim, `#!/usr/bin/env node
+const { appendFileSync, writeFileSync } = require("node:fs");
+const path = require("node:path");
+const temp = process.env.TMPDIR;
+if (!temp || process.env.TMP !== temp || process.env.TEMP !== temp) process.exit(98);
+writeFileSync(path.join(temp, "npm-install-cache"), "owned npm install cache");
+appendFileSync(process.env.BAL_P0_TRACE, "npm-start " + process.pid + "\\n");
+if (process.env.BAL_P0_MODE === "fail") process.exit(17);
+if (process.env.BAL_P0_MODE === "hang") setInterval(() => {}, 1000);
+else process.exit(0);
+`);
+  chmodSync(shim, 0o755);
+};
+
+const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel: "SIGTERM" | "SIGINT" | "SIGHUP" | null = null,
+  target: { script: string; cwd: string; args: string[] } = { script: gate, cwd: projectRoot, args: [] },
+  cancelMarker = "npx-start"): Promise<RunResult> =>
   new Promise((resolve, reject) => {
     const env = {
       ...process.env,
@@ -73,9 +90,9 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel: "SIGTERM" | "
       // Kill only a known hanging mock worker, never any previously exited PIDs.
       // Avoid leaving hanging child test processes after an assertion timeout.
       if (mode === "hang" && process.platform !== "win32" && existsSync(f.trace)) {
-        const pids = readFileSync(f.trace, "utf8").match(/npx-start (\d+)/g) ?? [];
+        const pids = readFileSync(f.trace, "utf8").match(/(?:npx|npm)-start (\d+)/g) ?? [];
         for (const entry of pids) {
-          const pid = Number(entry.slice("npx-start ".length));
+          const pid = Number(entry.split(" ")[1]);
           try { process.kill(-pid, "SIGKILL"); } catch { /* already exited */ }
         }
       }
@@ -84,7 +101,7 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel: "SIGTERM" | "
     }, 12_000);
     const poll = cancel ? setInterval(() => {
       // Wait for the mocked child to start before signaling the real gate.
-      if (existsSync(f.trace) && readFileSync(f.trace, "utf8").includes("npx-start")) {
+      if (existsSync(f.trace) && readFileSync(f.trace, "utf8").includes(cancelMarker)) {
         clearInterval(poll!);
         child.kill(cancel!);
       }
@@ -232,5 +249,59 @@ describe("P0 gate-owned temporary files", () => {
     expect(two.code, two.out).toBe(0);
     checkIsolated(a);
     checkIsolated(b);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("handles SIGHUP and cleans the private root", async () => {
+    const f = fixture();
+    const r = await execute(f, "hang", "SIGHUP");
+    expect(r.code, r.out).toBe(129);
+    expect(r.out).toContain("GATE_CANCELLED SIGHUP");
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("removes a synthetic commit worktree after an unsuccessful check", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    const r = await execute(f, "fail", null, isolated.target);
+    expect(r.code, r.out).toBe(1);
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(isolated.git("rev-parse", "HEAD")).toBe(isolated.sha);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(readFileSync(path.join(isolated.episode, "script.md"), "utf8")).toBe("IMMUTABLE EPISODE CONTENT\n");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("cleans a failed npm ci and its synthetic commit worktree", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    rmSync(path.join(isolated.directory, "node_modules"), { recursive: true, force: true });
+    mockNpm(f);
+    const r = await execute(f, "fail", null, isolated.target);
+    expect(r.code, r.out).toBe(1);
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(readFileSync(f.trace, "utf8")).toContain("npm-start");
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("cancels an active npm ci before removing its synthetic worktree", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    rmSync(path.join(isolated.directory, "node_modules"), { recursive: true, force: true });
+    mockNpm(f);
+    const r = await execute(f, "hang", "SIGTERM", isolated.target, "npm-start");
+    expect(r.code, r.out).toBe(143);
+    expect(r.out).toContain("GATE_CANCELLED SIGTERM during npm ci");
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(isolated.git("rev-parse", "HEAD")).toBe(isolated.sha);
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    checkIsolated(f);
   }, 15_000);
 });

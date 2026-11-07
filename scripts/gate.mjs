@@ -37,8 +37,8 @@ const tempDiskBytes = (root) => {
 let cleanedTemp = false;
 const cleanRunTemp = () => {
   if (cleanedTemp) return;
-  cleanedTemp = true;
   rmSync(runTemp, { recursive: true, force: true });
+  cleanedTemp = true;
 };
 
 /** الفحوص الإلزامية: الأنواع ثم الاختبارات كلها */
@@ -75,11 +75,25 @@ const runCheck = (cmd, a, cwd) => new Promise((resolve) => {
 
 let dir = root;
 let cleanup = cleanRunTemp;
-/** خروج مع تنظيف مضمون: لا تبقى نسخة مؤقتة معلقة أيًا كان سبب الخروج */
+let cleanupFailed = false;
+// Measure disk blocks even when --commit preparation or npm ci fails.
+// Measurement errors must not bypass cleanup; cleanup failures never pass.
+const reportAndClean = () => {
+  let allocated = -1;
+  try { allocated = tempDiskBytes(runTemp); }
+  catch (e) { console.error("GATE_TEMP_MEASUREMENT_FAILED " + e.message); }
+  try { cleanup(); }
+  catch (e) { cleanupFailed = true; console.error("GATE_TEMP_CLEANUP_FAILED " + e.message); }
+  console.log("GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES " + allocated);
+  const removed = !existsSync(runTemp);
+  console.log("GATE_TEMP_CLEANED " + removed);
+  if (!removed) cleanupFailed = true;
+};
+/** Reject the push and report cleanup even on preparation failure. */
 const fail = (msg, code = 1) => {
-  cleanup();
+  reportAndClean();
   console.error(msg);
-  process.exit(code);
+  process.exit(cleanupFailed ? 2 : code);
 };
 process.on("uncaughtException", (e) => fail(`بوابة التسليم: خطأ داخلي (${e.message}); رُفض الدفع احتياطًا.`, 2));
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => {
@@ -105,7 +119,12 @@ if (commit) {
     fail(`بوابة التسليم: تعذّر تجهيز نسخة للـ commit ${commit}: ${add.stderr}`, 2);
   }
   cleanup = () => {
-    sh("git", ["worktree", "remove", "--force", tmp], root, false);
+    const removed = sh("git", ["worktree", "remove", "--force", tmp], root, false);
+    if (removed.status !== 0) {
+      cleanupFailed = true;
+      console.error("GATE_WORKTREE_REMOVE_FAILED " + (removed.stderr || removed.error?.message || removed.status));
+    }
+    // This path is under our private runTemp only; never prune unrelated worktrees.
     rmSync(tmp, { recursive: true, force: true });
     cleanRunTemp();
   };
@@ -117,7 +136,13 @@ if (commit) {
   if (lock(tmp) === lock(root) && existsSync(path.join(root, "node_modules"))) symlinkSync(path.join(root, "node_modules"), nm, "dir");
   else {
     console.log("بوابة التسليم: package-lock تغيّر في هذا الـ commit؛ تثبيت نظيف للاعتماديات…");
-    const ci = sh("npm", ["ci", "--no-audit", "--no-fund"], tmp);
+    // npm ci may take minutes: asynchronous execution lets signals stop its
+    // dedicated process group before deleting the private worktree.
+    const ci = await runCheck("npm", ["ci", "--no-audit", "--no-fund"], tmp);
+    if (interrupted) {
+      fail(`GATE_CANCELLED ${interrupted} during npm ci (owned temp cleaned; push rejected)`,
+        interrupted === "SIGINT" ? 130 : interrupted === "SIGTERM" ? 143 : 129);
+    }
     if (ci.status !== 0) fail("بوابة التسليم: فشل تثبيت الاعتماديات؛ رُفض الدفع.");
   }
 }
@@ -135,13 +160,14 @@ try {
     if (interrupted) break;
   }
  } finally {
-  // Test leftovers may exist even if a worker exits abruptly. Only OUR root is removed.
-  let allocated = -1;
-  try { allocated = tempDiskBytes(runTemp); } finally { cleanup(); }
-  console.log("GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES " + allocated);
-  console.log("GATE_TEMP_CLEANED " + (!existsSync(runTemp)));
+  // Only OUR root is removed, and every attempt records its outcome.
+  reportAndClean();
 }
 
+if (cleanupFailed) {
+  console.error("GATE_CLEANUP_INCOMPLETE: push rejected");
+  process.exit(2);
+}
 if (interrupted) {
   console.error("GATE_CANCELLED " + interrupted + " (owned temp cleaned; push rejected)");
   process.exit(interrupted === "SIGINT" ? 130 : interrupted === "SIGTERM" ? 143 : 129);
