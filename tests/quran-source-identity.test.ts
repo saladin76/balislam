@@ -27,7 +27,7 @@ describe("Single-owner Quran text source integrity",()=>{
       "src/plan/collect.ts",
     ]){
       const source=readFileSync(path.join(root,file),"utf8");
-      expect(source,file).not.toMatch(/quranClientFromEnv|syncQuran\\(|activeRecitation\\(|Quran Foundation|quran-foundation|quran\\/provider/);
+      expect(source,file).not.toMatch(/quranClientFromEnv|syncQuran\(|activeRecitation\(|Quran Foundation|quran-foundation|quran\/provider/);
     }
   });
   it("parses script ayah refs locally without opening Quran Foundation URLs",()=>{
