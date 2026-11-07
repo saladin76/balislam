@@ -70,7 +70,9 @@ describe("Studio workspace separation", () => {
     expect(empty).not.toContain("معتمدة");
     const approval = { by: { id: "المراجع المفوض", role: "owner" as const },
       at: "2026-11-07T10:00:00Z", contentVersion: "v1",
-      fingerprint: "a".repeat(64), artifactSha256: "b".repeat(64), note: "طابقت النسخة", evidence: ["script_validated"] };
+      fingerprint: "a".repeat(64), artifactSha256: "b".repeat(64), artifactEpoch: "c".repeat(64),
+      approvalEventSeq: 1, prerequisiteApprovalSeq: [],
+      note: "طابقت النسخة", evidence: ["script_validated"] };
     const stages: WorkflowApprovalSnapshot["stages"] = {
       script: { status: "approved", approval, currentApproval: true },
       storyboard: { status: "draft" },
@@ -80,7 +82,7 @@ describe("Studio workspace separation", () => {
       master: { status: "draft" },
     };
     const snapshot: WorkflowApprovalSnapshot = {
-      schemaVersion: 1, channel: "balislam", episode: "001", revision: 7, stages,
+      schemaVersion: 3, channel: "balislam", episode: "001", revision: 7, stages,
       history: [{ seq: 1, stage: "script", action: "approve", by: "المراجع المفوض", at: approval.at,
         fingerprint: approval.fingerprint, note: approval.note }],
     };
