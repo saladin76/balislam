@@ -7,8 +7,8 @@ import { normWord, stripTashkeel } from "../src/voice/tashkeel";
 
 /**
  * خريطة الأداء الصوتي للحلقة 001.
- * v1 (الأمر 023) محفوظة كما هي؛ وv1.1 (الأمر 024) تثبّت قرارات D1–D9 دون أن تغيّر نص أي مقطع أو مشهده أو رقمه،
- * وتصحيحات التشكيل فيها معدّة غير مطبقة، والتلاوات خارجها معلّقة، وكل حد صمت له مالك واحد.
+ * v1 (الأمر 023) وv1.1 (الأمر 024) محفوظتان كما سُلّمتا. الحالية v1.2 (الأمر 025): تصحيحات التشكيل D2–D4 مطبقة،
+ * ولا يتغير رقم مقطع ولا مشهده ولا معرّفه؛ والتلاوات خارجها معلّقة، وكل حد صمت له مالك واحد.
  */
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
 const read = (f: string) => readFileSync(path.join(EP, f), "utf8");
@@ -26,6 +26,8 @@ type Map = {
 };
 const v1 = JSON.parse(read("tone-map.v1.json")) as Map;
 const map = JSON.parse(read("tone-map.json")) as Map;
+const v11 = JSON.parse(read("tone-map.v1.1.json")) as Map;
+const CORRECTED = [16, 29, 32];
 const tashkeel = read("tashkeel.md");
 const plain = (s: string) => stripTashkeel(s).split(/\s+/).map(normWord).filter(Boolean).join(" ");
 
@@ -38,11 +40,13 @@ describe("خريطة الأداء الصوتي v1 — محفوظة (الأمر 0
   });
 });
 
-describe("خريطة الأداء الصوتي v1.1 — الأمر 024", () => {
-  it("الإصدار v1.1، غير معتمد نهائيًا، ونسخة المراجعة 024 مطابقة له", () => {
-    expect(map.version).toBe("v1.1");
+describe("خريطة الأداء الصوتي — الإصدار الحالي v1.2 (الأمر 025)", () => {
+  it("v1.1 محفوظة كما سُلّمت في المراجعة 024، والحالية v1.2 غير معتمدة نهائيًا ومطابقة لنسخة المراجعة 025", () => {
+    expect(v11.version).toBe("v1.1");
+    expect(read("tone-map.v1.1.json")).toBe(readFileSync(path.join(EP, "tech-reviews/024/docs/tone-map-001-v1.1.json"), "utf8"));
+    expect(map.version).toBe("v1.2");
     expect(map.approved).toBe(false);
-    expect(read("tone-map.json")).toBe(readFileSync(path.join(EP, "tech-reviews/024/docs/tone-map-001-v1.1.json"), "utf8"));
+    expect(read("tone-map.json")).toBe(readFileSync(path.join(EP, "tech-reviews/025/docs/tone-map-001-v1.2.json"), "utf8"));
   });
 
   it("مبنية على التشكيل الحالي: البصمة مطابقة، وكل مقطع مطابق لسطره حرفًا، والعلامات لا تغيّر النص", () => {
@@ -59,10 +63,13 @@ describe("خريطة الأداء الصوتي v1.1 — الأمر 024", () => {
     expect(v1.segments).toHaveLength(88);
     map.segments.forEach((s, i) => {
       const o = v1.segments[i]!;
-      expect({ n: s.n, scene: s.scene, text: s.text, line: s.tashkeelLine, marked: s.marked, emphasis: s.emphasis, pauses: s.pauses, speed: s.speed }).toEqual({
-        n: o.n, scene: o.scene, text: o.text, line: o.tashkeelLine, marked: o.marked, emphasis: o.emphasis, pauses: o.pauses, speed: o.speed,
+      // المقاطع المصححة تشكيلها وحده تغيّر (D2–D4)؛ حروفها كما هي
+      const t = (x: string) => (CORRECTED.includes(s.n) ? stripTashkeel(x) : x);
+      expect({ n: s.n, scene: s.scene, text: t(s.text), line: s.tashkeelLine, marked: t(s.marked), emphasis: s.emphasis.map(t), pauses: s.pauses, speed: s.speed }).toEqual({
+        n: o.n, scene: o.scene, text: t(o.text), line: o.tashkeelLine, marked: t(o.marked), emphasis: o.emphasis.map(t), pauses: o.pauses, speed: o.speed,
       });
     });
+    expect(map.segments.filter((s, i) => s.text !== v1.segments[i]!.text).map((s) => s.n)).toEqual(CORRECTED);
     expect(map.recitations).toEqual(v1.recitations);
   });
 
@@ -112,19 +119,22 @@ describe("خريطة الأداء الصوتي v1.1 — الأمر 024", () => {
     for (const s of map.segments) expect(s.marked, `مقطع ${s.n}`).not.toMatch(/[|‖] عَلَيْهِ السَّلَامُ/);
   });
 
-  it("D2–D4: التصحيحات معدّة غير مطبقة، كلمة واحدة في سطرها، والصياغة لا تتغير", () => {
+  it("D2–D4: التصحيحات مطبقة على التشكيل، كلمة واحدة في سطرها، والصياغة وعلامات الآيات لا تتغير", () => {
     const lines = tashkeel.split("\n");
     const c = map.tashkeelCorrections!;
     expect(c.map((x) => [x.decision, x.segment, x.tashkeelLine])).toEqual([["D4", 16, 42], ["D2", 29, 77], ["D3", 32, 87]]);
     for (const x of c) {
-      expect(x.status).toContain("لم يُطبَّق");
-      expect(lines[x.tashkeelLine - 1]).toBe(x.lineBefore);
+      expect(x.status).toContain("مطبَّق");
+      expect(lines[x.tashkeelLine - 1]).toBe(x.lineAfter);
+      expect(v11.segments[x.segment - 1]!.text).toBe(x.lineBefore);
+      expect(map.segments[x.segment - 1]!.text).toBe(x.lineAfter);
       expect(x.lineBefore.split(x.before)).toHaveLength(2);
       expect(x.lineAfter).toBe(x.lineBefore.replace(x.before, x.after));
       expect(stripTashkeel(x.after)).toBe(stripTashkeel(x.before));
       expect(plain(x.lineAfter)).toBe(plain(x.lineBefore));
       expect(map.segments[x.segment - 1]!.tashkeelCorrection).toMatchObject({ decision: x.decision, before: x.before, after: x.after });
     }
+    expect([...tashkeel.matchAll(/\[آية: (.+)\]/g)]).toHaveLength(22);
     // النص بعد التصحيح يبقى مطابقًا للسكريبت بلا تشكيل
     const script = read("script.md");
     for (const x of c) expect(plain(script)).toContain(plain(x.lineAfter));
