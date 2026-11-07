@@ -121,7 +121,7 @@ export const balApi = (): Plugin => ({
         if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
         const channelMod = await load("/src/channel/index.ts");
         // Reject unknown and symlinked channels before any write-capable route.
-        if (!channelMod.listChannels().includes(ch) && !["channels", "ops"].includes(parts[0]))
+        if (!channelMod.listChannels().includes(ch) && !["channels", "ops"].includes(parts[0] ?? ""))
           return send(res, 404, { error: "القناة غير موجودة أو مسارها غير آمن." });
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
         return await channelMod.runWithChannel(ch, async () => {
