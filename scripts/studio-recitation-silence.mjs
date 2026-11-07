@@ -33,9 +33,12 @@ export const findSilentEdges = (log, duration) => {
     : segments;
   const lead = normalized.find(({ start }) => start <= 0.025);
   const trail = [...normalized].reverse().find(({ end }) => end >= duration - 0.035);
+  // ffmpeg reports decimal timestamps; round durations to milliseconds so
+  // 4.000 - 3.770 is exposed as 0.230, never 0.22999999999999998.
+  const seconds = (value) => Math.round(Math.min(duration, Math.max(0, value)) * 1000) / 1000;
   return {
-    leadingSec: lead ? Math.min(duration, Math.max(0, lead.end)) : 0,
-    trailingSec: trail ? Math.min(duration, Math.max(0, duration - trail.start)) : 0,
+    leadingSec: lead ? seconds(lead.end) : 0,
+    trailingSec: trail ? seconds(duration - trail.start) : 0,
     middlePauses: normalized.filter(({ start, end }) => start > 0.025 && end < duration - 0.035).length,
   };
 };
