@@ -16,7 +16,7 @@ import { decodedAudioDuration, isOwnedRegularAudio } from "../voice/audioIntegri
 
 const ffmpeg = promisify(execFile);
 export type OwnAudioCandidate = {
-  file: string; originalFile: string; duration: number; sha256: string; originalSha256: string;
+  file: string; originalFile: string; originalName: string; duration: number; sha256: string; originalSha256: string;
   textSha256: string; createdAt: string;
 };
 export type OwnAudioReview = Record<string, OwnAudioCandidate>;
@@ -77,7 +77,12 @@ export const prepareOwnRecitation = async (
 ): Promise<OwnAudioCandidate> => {
   const authoredText = await requested(episode, key);
   if (!/^\d{1,3}:\d{1,3}(?:-\d{1,3})?$/.test(key)) throw Error("مرجع التلاوة غير صالح.");
-  const ext = path.extname(filename).toLowerCase();
+  if (typeof filename !== "string" || filename.length > 255)
+    throw Error("اسم الملف الأصلي غير صالح.");
+  const originalName = filename.replace(/\\/g, "/").split("/").pop()?.trim() ?? "";
+  if (!originalName || originalName === "." || originalName === "..")
+    throw Error("اسم الملف الأصلي غير صالح.");
+  const ext = path.extname(originalName).toLowerCase();
   if (![".wav",".mp3",".m4a",".aac",".ogg",".flac"].includes(ext))
     throw Error("التسجيل يجب أن يكون WAV أو MP3 أو M4A أو AAC أو OGG أو FLAC.");
   if (source.byteLength < 500 || source.byteLength > 25 * 1024 * 1024)
@@ -125,7 +130,7 @@ export const prepareOwnRecitation = async (
       if ((await requested(episode, key)) !== authoredText)
         throw Error("تغيّر نص الآية أثناء رفع التسجيل؛ أعد الاستماع والرفع للنص الجديد.");
       const record = {
-        file:name, originalFile, duration, sha256:sha(bytes), originalSha256:sha(source),
+        file:name, originalFile, originalName, duration, sha256:sha(bytes), originalSha256:sha(source),
         textSha256:sha(Buffer.from(authoredText, "utf8")),
         createdAt:new Date().toISOString(),
       };
@@ -177,7 +182,8 @@ export const approveOwnRecitation = async (
     const file=ownAudioReviewFile(scriptPath);
     const pending=await readJson<OwnAudioReview>(file,{});
     const candidate=pending[key];
-    if (!candidate || !validName(candidate.file) || !validOriginal(candidate.originalFile))
+    if (!candidate || !validName(candidate.file) || !validOriginal(candidate.originalFile) ||
+        typeof candidate.originalName !== "string" || !candidate.originalName.trim())
       throw Error("لا توجد نسخة تلاوة أصلية وصالحة تنتظر المراجعة.");
     if (!pendingRecitationMatchesText(candidate, approvedText))
       throw Error("تغيّر نص الآية منذ رفع التسجيل أو فُقدت بصمته؛ ارفع تلاوة جديدة للمراجعة.");
@@ -199,8 +205,9 @@ export const approveOwnRecitation = async (
       provider:"manual",reciter:attribution.reciter.trim(),rightsEvidence:attribution.rightsEvidence.trim(),
       parts:[{file:candidate.file,duration:candidate.duration}],
       fetchedAt:candidate.createdAt,approvedAt:new Date().toISOString(),
-      approvedBy:reviewer.trim(),sha256:candidate.sha256,
-      originalFile:candidate.originalFile, originalSha256:candidate.originalSha256,
+      approvedBy:reviewer.trim(),reviewNote:note.trim(),sha256:candidate.sha256,
+      originalFile:candidate.originalFile, originalName:candidate.originalName,
+      originalSha256:candidate.originalSha256,
       textSha256:sha(Buffer.from(approvedText,"utf8")),
     };
     // Keep old/source recordings intact; only the approved pointer changes.
@@ -223,7 +230,11 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
   const texts = authored.texts;
   const ready: RecitationIndex = {};
   for (const [key, rec] of Object.entries(index)) {
-    if (!rec || rec.provider !== "manual" || !rec.approvedAt || !rec.approvedBy ||
+    if (!rec || rec.provider !== "manual" || !rec.approvedAt ||
+        !Number.isFinite(Date.parse(rec.approvedAt)) || Date.parse(rec.approvedAt) > Date.now() + 60000 ||
+        typeof rec.approvedBy !== "string" || rec.approvedBy.trim().length < 2 ||
+        typeof rec.reviewNote !== "string" || rec.reviewNote.trim().length < 12 ||
+        typeof rec.originalName !== "string" || !rec.originalName.trim() ||
         !rec.reciter?.trim() || !rec.rightsEvidence?.trim() ||
         authored.problems.some((p) => p.key === key) ||
         !rec.sha256 || !rec.textSha256 || rec.parts?.length !== 1) continue;
