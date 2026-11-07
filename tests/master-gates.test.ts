@@ -60,7 +60,7 @@ const fresh = async () => {
     base: "",
     sfx: [],
     voice: { [spoken.id]: { file: "a.mp3", text: spoken.narration.trim(), duration: 3, words: [] } },
-    recitations: { [verse.ayahKey!]: { file: "r.mp3", duration: 6, source: "quran-foundation" as const } },
+    recitations: { [verse.ayahKey!]: { file: "r.mp3", duration: 6, source: "manual" as const } },
   };
   for (const s of scenes) if (s.template === "verse-card") s.props.text = "نص الآية للاختبار";
   // المشهد المنطوق بقالب لا يحتاج صورة (القالب الافتراضي للقناة لوحة وثائقية تحتاج صورة)
