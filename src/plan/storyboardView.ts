@@ -19,7 +19,7 @@ export const shotText = (s: PlanScene): string => {
     case "noor-text":
       return (p.text || "جملة التعليق نفسها، كلمة كلمة وقت نطقها") + (p.subtitle ? ` · ${p.subtitle}` : "");
     case "verse-card":
-      return `${p.reference ?? ""} (نص الآية بالرسم العثماني من Quran Foundation)`;
+      return `${p.reference ?? ""} (نص الآية المكتوب في السكريبت، ينتظر التدقيق الشرعي)`;
     case "symbolic":
       return p.caption ?? "";
     case "timeline":
