@@ -11,6 +11,8 @@ export type EvidenceProof = {
   /** Relative file path in the owning episode or channel image library. */
   file: string;
   sha256: string;
+  /** Distinct OS file generation marker: prevents edit/restore of evidence receipts. */
+  epoch: string;
   /** Name of the server-side semantic validator that checked this record. */
   verifier: string;
 };
@@ -52,6 +54,7 @@ export const verifyServerEvidence = (a: WorkflowEvidenceAttestation | undefined,
     throw new Error("Server evidence attestation was forged or altered.");
   if (new Set(a.proofs.map((p) => p.key)).size !== a.proofs.length ||
       a.proofs.some((p) => !p.key || !p.file || !/^[a-f0-9]{64}$/.test(p.sha256) ||
+        !/^[a-f0-9]{64}$/.test(p.epoch) ||
         !/^[a-z0-9][a-z0-9_-]{2,99}$/.test(p.verifier)))
     throw new Error("Invalid or duplicate server evidence proof.");
   return a.proofs;
