@@ -325,10 +325,17 @@ export const balApi = (): Plugin => ({
                 !["themes", "palettes", "typography", "motion"].every((k) =>
                   identity[k] && typeof identity[k] === "object" && !Array.isArray(identity[k])))
               return send(res, 400, { error: "ملف الهوية ناقص" });
-            const { writeJsonAtomic } = await load("/src/channel/storage.ts");
-            await writeJsonAtomic(identityFile, identity);
+            const storage = await load("/src/channel/storage.ts");
+            const rev = await storage.writeJsonWithRevision(
+              identityFile, identity,
+              typeof req.headers["if-match"] === "string" ? req.headers["if-match"] : undefined,
+            );
+            res.setHeader("etag", rev);
             return send(res, 200, { ok: true });
           }
+          const storage = await load("/src/channel/storage.ts");
+          res.setHeader("cache-control", "no-store");
+          res.setHeader("etag", await storage.jsonRevision(identityFile));
           return send(res, 200, {
             identity: JSON.parse(await readFile(identityFile, "utf8")),
             defaults: JSON.parse(await readFile(identityDefaultFile, "utf8")),
@@ -352,6 +359,8 @@ export const balApi = (): Plugin => ({
         });
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
+        if (err && typeof err === "object" && "status" in err && err.status === 409)
+          return send(res, 409, { error: (err as Error).message });
         return send(res, 500, { error: (err as Error).message });
       }
     });
