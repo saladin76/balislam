@@ -6,9 +6,7 @@
  *   node scripts/studio-render-isolation-acceptance.mjs
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -39,7 +37,8 @@ const env = { ...process.env, TMPDIR: testsTemp, TMP: testsTemp, TEMP: testsTemp
 const report = {
   stage: "isolated-mac-review",
   branch, sha, mac: process.platform, node: process.version, startedAt,
-  evidenceDir, tests: [], temporaryResidue: [], visualReview: "NOT_RUN",
+  evidenceDir, tests: [], temporaryResidue: [], temporaryResidueBeforeCleanup: [],
+  temporaryClean: false, visualReview: "NOT_RUN",
   avReviewAt1x: "NOT_RUN", ownerMasterApproval: "NOT_RUN",
   productionRender: false, publishing: false,
 };
@@ -74,20 +73,52 @@ try {
       seconds: Math.round((Date.now() - started) / 1000),
       state: run.status === 0 ? "PASS" : "FAIL" });
     await writeFile(reportPath, JSON.stringify(report, null, 2) + "\n");
-    if (run.status !== 0 || run.signal) { failed = true; break; }
+    if (run.status !== 0 || run.signal || run.error) {
+      if (run.error) report.processError = String(run.error);
+      failed = true;
+      break;
+    }
   }
-  const items = await readdir(testsTemp);
-  report.temporaryResidue = items;
   const after = command("git", ["status", "--porcelain"]);
   if (after) { report.trackedWorktreeChanged = after; failed = true; }
-  if (items.length) { report.temporaryClean = false; failed = true; }
-  else report.temporaryClean = true;
+} catch (e) {
+  // Even when npm or Git fails unexpectedly, the temp directory belongs to
+  // this unique acceptance run and must be cleaned before retaining evidence.
+  report.runnerError = String(e);
+  failed = true;
 } finally {
+  // Preserve diagnostics without preserving gigabytes of copied fixture data.
+  // Every subprocess has exited before reaching here (spawnSync). The owner
+  // is the freshly mkdtemp-created run directory, never system /tmp or a
+  // different worktree. Never sweep files outside this specific temp child.
+  try {
+    const canonicalEvidence = await realpath(evidenceDir);
+    const canonicalTemp = await realpath(testsTemp);
+    const tempInfo = await lstat(testsTemp);
+    if (canonicalEvidence !== path.resolve(evidenceDir) ||
+        canonicalTemp !== path.join(canonicalEvidence, "temp") ||
+        !tempInfo.isDirectory() || tempInfo.isSymbolicLink())
+      throw new Error("Unsafe acceptance temp ownership; cleanup aborted.");
+    report.temporaryResidueBeforeCleanup = await readdir(testsTemp);
+    report.temporaryLeakSuspects = report.temporaryResidueBeforeCleanup.filter(
+      (name) => /^(?:bal-rec|bal-voice|bal-channels)-/.test(name),
+    );
+    await rm(testsTemp, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    const stillExists = await lstat(testsTemp).then(
+      () => true, (e) => { if (e.code === "ENOENT") return false; throw e; },
+    );
+    report.temporaryClean = !stillExists;
+    report.temporaryResidue = stillExists ? await readdir(testsTemp) : [];
+    if (stillExists) failed = true;
+  } catch (e) {
+    report.temporaryCleanupError = String(e);
+    failed = true;
+  }
   report.finishedAt = new Date().toISOString();
   report.result = failed ? "FAIL" : "PASS_AUTOMATED_ONLY";
   await writeFile(reportPath, JSON.stringify(report, null, 2) + "\n");
 }
-// Deliberately preserve the result/evidenceDir for an owner to audit. Only
-// explicitly named owned scratch files may be removed after inspection.
+// Leave evidence files (acceptance.json, synthetic PNG/MP4 when successful)
+// in the uniquely owned run directory. Delete ONLY its temporary scratch.
 console.log("Acceptance evidence:", reportPath);
 if (failed) process.exitCode = 1;
