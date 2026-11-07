@@ -108,6 +108,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     ? "توجد تعديلات محلية غير محفوظة أو قيد الحفظ؛ الاعتمادات السابقة لا تخص هذه المسودة."
     : workflowError;
   const saveLabel = scriptDirty || researchDirty || saveState === "dirty" ? "تعديلات غير محفوظة" : saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذر الحفظ" : "تعديلات المشاهد محفوظة";
+  const activeStageIndex = Math.max(0, WORKFLOW_STAGES.findIndex((item) => item.tab === (stage === "research" ? "script" : stage)));
 
   return (
     <section className="episode-workspace-header" aria-label="مساحة عمل الحلقة">
@@ -124,10 +125,12 @@ export const EpisodeWorkspaceBar: React.FC<{
             aria-current={stage === item.tab || (stage === "research" && item.key === "script") ? "step" : undefined}
             onClick={() => onStage(item.tab)}>
             <span className="ew-stage-number">{index + 1}</span>
-            <span><strong>{item.title}</strong><small>{approvalLabel(visibleApprovals?.stages[item.key])}</small></span>
+            <span><strong>{item.title}</strong>{visibleApprovals && <small>{approvalLabel(visibleApprovals.stages[item.key])}</small>}</span>
           </button>
         ))}
       </nav>
+      <p className="ew-stage-scroll-hint">المرحلة {activeStageIndex + 1} من 6 · مرّر شريط المراحل أفقيًا لعرض بقية الخطوات</p>
+      {!visibleApprovals && <p className="ew-stages-status" role="status">{visibleWorkflowError || "بيانات المحرك غير متاحة حاليًا؛ لا تُعرض أي مرحلة كمعتمدة."}</p>}
       <WorkflowApprovalDetails approvals={visibleApprovals} error={visibleWorkflowError} technical={technical} />
       {notes.length ? (
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
