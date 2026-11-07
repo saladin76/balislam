@@ -188,6 +188,15 @@ for (const spec of inputs) {
         for(const p of page.querySelectorAll(".info p")){
           if(p.scrollHeight > p.clientHeight+2)
             faults.push({index,sel:".info p",kind:"text-clipped",scroll:p.scrollHeight,client:p.clientHeight});
+          // The text itself may fit its max-height but still protrude into
+          // a fixed-height, overflow:hidden section and lose its last line.
+          const section=p.closest(".info section");
+          if(section){
+            const textRect=p.getBoundingClientRect();
+            const sectionRect=section.getBoundingClientRect();
+            if(textRect.bottom > sectionRect.bottom-1)
+              faults.push({index,sel:".info section",kind:"section-clipped",bottom:textRect.bottom,limit:sectionRect.bottom});
+          }
         }
       }
       document.getElementById("studio-layout-result").textContent=JSON.stringify({faults,pageCount:document.querySelectorAll("article.page").length});
