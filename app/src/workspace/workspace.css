@@ -203,6 +203,6 @@
 @media (max-width: 700px) {
   .ew-approval-grid { grid-template-columns: minmax(0, 1fr); }
   .ew-stages { display: flex; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
-  .ew-stage { flex: 0 0 165px; }
+  .ew-stage, .studio-shell .ew-stages > button { flex: 0 0 165px; }
   .ew-stage small { display: block; font-size: 10px; }
 }
