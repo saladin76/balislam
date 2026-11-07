@@ -26,7 +26,7 @@ export const decodedAudioDuration = async (
       "-nostdin", "-hide_banner", "-loglevel", "error", "-xerror", "-err_detect", "explode",
       "-i", file, "-map", "0:a:0", "-vn", "-f", "null", "-",
       "-progress", "pipe:1", "-nostats",
-    ], { timeout: 120000, maxBuffer: 1024 * 1024 });
+    ], { timeout: 120000, maxBuffer: 1024 * 1024, encoding: "utf8" });
     // FFmpeg can exit 0 for a truncated MP3 whose Xing header still claims
     // its *original* duration. Compare decoded sample time with metadata.
     const times = [...result.stdout.matchAll(/(?:^|\n)out_time_us=(\d+)/g)];
