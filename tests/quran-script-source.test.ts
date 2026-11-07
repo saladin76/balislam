@@ -73,6 +73,23 @@ describe("Quran script-first text, review and historical meanings", () => {
     expect(reviewItems(parseScript(makeScript(verse.replace("وَأَنْ", "وَأَنِ"))), ledger)[0]?.status).toBe("changed");
   });
 
+  it("revokes a citation when the exact written reference or its haraka changes", () => {
+    const pristine = makeScript(verse);
+    const item = reviewItems(parseScript(pristine), null)[0]!;
+    const saved: ReviewLedger = { version: 1, items: {
+      [item.key]: { hash: item.hash, status: "verified", ref: item.ref,
+        reviewer: "قارئ للمراجعة", note: "فحصت المرجع وتشكيله كاملًا",
+        at: "2026-11-07T00:00:00Z" },
+    } };
+    expect(reviewItems(parseScript(pristine), saved)[0]?.status).toBe("verified");
+    const modified = pristine.replace("- آية | النجم 39", "- آية | النَّجم 39");
+    expect(reviewItems(parseScript(modified), saved)[0]?.status).toBe("changed");
+    const unknownActor: ReviewLedger = { version: 1, items: {
+      [item.key]: { hash: item.hash, status: "verified", ref: item.ref, at: "2026-11-07T00:00:00Z" },
+    } };
+    expect(reviewItems(parseScript(pristine), unknownActor)[0]?.status).toBe("pending");
+  });
+
   it("keeps legacy meaning in storage but withholds it from verse cards without real attribution", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "script-unknown-translation-"));
     const scriptPath = path.join(dir, "script.md");
