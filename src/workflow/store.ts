@@ -3,7 +3,8 @@
  * This module deliberately does not modify render, voice, app, or episode content files.
  */
 import path from "node:path";
-import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { workflowSigningKey, workflowKeyId, verifyServerEvidence, type WorkflowEvidenceAttestation } from "./trust.ts";
 import { lstat, open, readFile, realpath, rename, rm } from "node:fs/promises";
 import {
   WORKFLOW_STAGES, appendEvent, assertPrerequisites, assertRequiredEvidence, assertWorkflowGate, stagePrerequisites,
@@ -21,7 +22,8 @@ export type WorkflowDecision = {
   snapshot: WorkflowSnapshot;
   expectedFingerprint: string;
   note: string;
-  evidence?: Evidence;
+  /** Trusted-server signed evidence; rejected if absent, forged, expired or mismatched. */
+  attestation?: WorkflowEvidenceAttestation;
 };
 
 const safeIdentity = (scope: WorkflowIdentity): void => {
@@ -48,20 +50,15 @@ const validActor = (actor: WorkflowActor): void => {
 
 /** A private 256-bit signing key is mandatory. If missing/weak, fail closed.
  * Tests use an isolated dummy key. Never embed a production key in Git/JSON. */
-const integrityKey = (): Buffer => {
-  const value = process.env.BAL_WORKFLOW_HMAC_KEY;
-  if (!value || value.length < 32) throw new Error("Workflow signing key is not configured (minimum 32 characters).");
-  return Buffer.from(value, "utf8");
-};
 const ledgerPayload = (doc: WorkflowLedger) => {
   const { integrity: _integrity, ...payload } = doc;
   return JSON.stringify(payload);
 };
 const sign = (doc: WorkflowLedger): NonNullable<WorkflowLedger["integrity"]> => {
-  const key = integrityKey();
+  const key = workflowSigningKey();
   return {
     alg: "HMAC-SHA256",
-    keyId: createHash("sha256").update(key).digest("hex").slice(0,16),
+    keyId: workflowKeyId(),
     mac: createHmac("sha256", key).update(ledgerPayload(doc)).digest("hex"),
   };
 };
@@ -91,7 +88,7 @@ const validLedger = (data: unknown, scope: WorkflowIdentity): data is WorkflowLe
 };
 
 const load = async (file: string, scope: WorkflowIdentity): Promise<WorkflowLedger> => {
-  integrityKey();
+  workflowSigningKey();
   try {
     const stat = await lstat(file);
     if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("Workflow ledger is not a regular file.");
@@ -208,13 +205,14 @@ export const approveWorkflowStage = (scope: WorkflowIdentity, decision: Workflow
     if (state.status !== "in_review" || state.submitted?.fingerprint !== fp)
       throw new Error("Stage must be submitted for review with the current fingerprint before explicit approval.");
     if (!decision.note || decision.note.trim().length < 15) throw new Error("Explicit approval requires a meaningful human review note.");
-    const evidence = assertRequiredEvidence(decision.stage, decision.evidence ?? {});
+    const proofs = verifyServerEvidence(decision.attestation, decision.stage, fp, decision.actor.id);
+    const evidence = assertRequiredEvidence(decision.stage, Object.fromEntries(proofs.map((proof) => [proof.key, true])));
     state.status = "approved";
     state.reason = undefined;
     state.approval = {
       by: decision.actor, at: new Date().toISOString(), contentVersion: decision.snapshot[decision.stage]!.version,
       artifactSha256: decision.snapshot[decision.stage]!.sha256, fingerprint: fp,
-      note: decision.note.trim(), evidence,
+      note: decision.note.trim(), evidence, evidenceProofs: proofs,
       prerequisiteApprovalSeq: stagePrerequisites(decision.stage).map((parent) =>
         doc.stages[parent].approval!.approvalEventSeq),
       approvalEventSeq: doc.history.length + 1,
