@@ -34,6 +34,6 @@ export const createWorkflowProtectedPorts = (service: WorkflowGateService, withA
       guard("master_render", work),
     /** No publication path can choose its own file: receives the frozen approved bytes. */
     publishExactMaster: <T>(publisher: (verified: ApprovedMasterFile) => Promise<T>) =>
-      withArtifactLock(() => service.withVerifiedMasterPublication(publisher)),
+      service.withVerifiedMasterPublication(publisher), // service owns the shared lock through dispatch
   };
 };
