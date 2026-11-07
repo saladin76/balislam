@@ -80,7 +80,9 @@ export const IntegratedReviewWorkspace: React.FC<{
           <video key={source} controls preload="metadata" playsInline
             onLoadStart={() => setVideoState("loading")}
             onLoadedMetadata={() => setVideoState((current) => current === "error" ? current : "available")}
-            onLoadedData={() => setVideoState("ready")}
+            // Metadata and the first decoded frame do not mean the user has started reviewing.
+            // Keep the play guidance visible until playback actually begins.
+            onLoadedData={() => setVideoState((current) => current === "ready" || current === "error" ? current : "available")}
             onPlaying={() => setVideoState("ready")}
             onError={() => setVideoState("error")}
             onRateChange={(event) => { event.currentTarget.playbackRate = 1; }}
