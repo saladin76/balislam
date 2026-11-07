@@ -161,8 +161,8 @@ const stageSnapshot = async (
 /** Fail closed before Remotion copies any snapshot. An old or unverified
  * directory is NOT promoted to a trusted static asset merely by naming it. */
 export const verifyStagedMedia = async (publicRoot: string, base: string): Promise<void> => {
-  const render = /^_render\\/[a-z0-9]+(?:-[a-z0-9]+)*\\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*\\/[a-f0-9]{24}\\/$/;
-  const storyboard = /^_storyboard_media\\/[a-z0-9]+(?:-[a-z0-9]+)*\\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*-[a-f0-9]{16}\\/$/;
+  const render = /^_render\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*\/[a-f0-9]{24}\/$/;
+  const storyboard = /^_storyboard_media\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*-[a-f0-9]{16}\/$/;
   if (!render.test(base) && !storyboard.test(base))
     throw new Error("اسم لقطة وسائط غير موثوق.");
   const expectedDigest = base.slice(0, -1).split("/").at(-1)!.slice(render.test(base) ? -24 : -16);
