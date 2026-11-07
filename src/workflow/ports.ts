@@ -10,12 +10,18 @@ import type { WorkflowSnapshot } from "./gates.ts";
 import type { createTrustedWorkflowService } from "./service.ts";
 
 export type WorkflowGateService = Pick<ReturnType<typeof createTrustedWorkflowService>,
-  "gate" | "withVerifiedMasterPublication">;
+  "gate" | "withVerifiedMasterPublication" | "withArtifactLock">;
 export type WorkflowArtifactLock = <T>(work: () => Promise<T>) => Promise<T>;
 export type ApprovedMasterFile = { file: string; sha256: string; snapshot: WorkflowSnapshot };
 
-export const createWorkflowProtectedPorts = (service: WorkflowGateService, withArtifactLock: WorkflowArtifactLock) => {
-  if (typeof withArtifactLock !== "function") throw new Error("A shared artifact lock is mandatory for production gates.");
+export const createWorkflowProtectedPorts = (
+  service: WorkflowGateService, expectedArtifactLock?: WorkflowArtifactLock,
+) => {
+  if (!service || typeof service.withArtifactLock !== "function")
+    throw new Error("A shared artifact lock is mandatory for production gates.");
+  if (expectedArtifactLock && expectedArtifactLock !== service.withArtifactLock)
+    throw new Error("Workflow ports and trusted service have different artifact locks.");
+  const withArtifactLock = service.withArtifactLock;
   const guard = <T>(action: "generate_voice" | "final_motion_render" | "master_render",
     work: (verified: { snapshot: WorkflowSnapshot }) => Promise<T>): Promise<T> =>
     withArtifactLock(async () => {
