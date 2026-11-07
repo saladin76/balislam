@@ -6,6 +6,7 @@ import { createIsolatedRenderBundle } from "./bundle";
 import { emptyMedia } from "../plan/media";
 import { getCompositions, renderMedia, renderStill } from "@remotion/renderer";
 import { projectRoot } from "../config/paths";
+import { loadChannel } from "../channel";
 
 export type PreviewOptions = {
   /** بادئة أو أكثر لمعرّف التكوين، مثل reel-paper أو scene-verse-card-night */
@@ -19,7 +20,7 @@ export type PreviewOptions = {
 /** يرندر تكوينات المعاينة (فيديو MP4 أو لقطات ثابتة). */
 export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> => {
   const log = opts.onProgress ?? (() => {});
-  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "previews");
+  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "previews", loadChannel().id);
   await ensureUnlinkedDirectory(outDir);
   log("تجميع المشروع…");
   const sandbox = await createIsolatedRenderBundle(emptyMedia);
