@@ -747,7 +747,16 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const { createChannel } = await load("/src/channel/create.ts");
     if (!b || typeof b !== "object" || Array.isArray(b))
       return send(res, 400, { error: "بيانات إنشاء القناة غير صالحة." }), true;
-    await createChannel({ id: b.id, name: b.name, language: b.language, nameLatin: b.nameLatin, quran: b.quran });
+    try {
+      await createChannel({ id: b.id, name: b.name, language: b.language, nameLatin: b.nameLatin, quran: b.quran });
+    } catch (error) {
+      const message = (error as Error).message;
+      if (/موجودة|محجوز|قيد التنفيذ|قفل قديم/.test(message))
+        return send(res, 409, { error: message }), true;
+      if (/معرّف|اسم القناة|اللغة|خيار القرآن/.test(message))
+        return send(res, 400, { error: message }), true;
+      throw error;
+    }
     send(res, 200, { ok: true });
     return true;
   }
