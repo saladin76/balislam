@@ -419,6 +419,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { action, auditNote } = await readBody(req);
       if (action === "approve") {
+        const { assertScriptApproved } = await load("/src/script/approval.ts");
+        await assertScriptApproved(file);
         const { checkVisualStoryboardSignoff } = await load("/src/plan/storyboardVisualGate.ts");
         const checked = checkVisualStoryboardSignoff(plan, auditNote);
         if (!checked.ok)
