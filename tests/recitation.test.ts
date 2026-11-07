@@ -3,12 +3,9 @@ import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createQuranClient } from "../src/quran/client";
-import { syncQuran } from "../src/quran/sync";
 import { collectMedia, prepareRenderMedia } from "../src/plan/collect";
 import { prepareOwnRecitation, approveOwnRecitation } from "../src/quran/manualAudio";
 import { renderEpisode } from "../src/render/episode";
-import { requireCloudPublicationRights, activeRecitation, episodeRecitationFile, saveEpisodeRecitation, readEpisodeRecitation } from "../src/quran/provider";
 import { regeneratePlan } from "../src/plan/io";
 
 let tmp = "";
@@ -21,7 +18,7 @@ beforeAll(() => {
   // الحلقة التجريبية للاختبارات (القنوات نفسها تبدأ بلا حلقات)
   cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
   const ch = path.join(tmp, "balislam", "channel.json");
-  writeFileSync(ch, JSON.stringify({ ...JSON.parse(readFileSync(ch, "utf8")), recitation: { id: 7, name: "قارئ تجريبي" } }));
+  // The test channel has no selected online reciter; only reviewed uploads may render.
   process.env.BAL_CHANNELS_DIR = tmp;
   process.env.BAL_CHANNEL = "balislam";
   const f = path.join(tmp, "tone.mp3");
