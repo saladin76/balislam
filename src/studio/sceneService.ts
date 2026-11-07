@@ -10,7 +10,7 @@ import path from "node:path";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { lstat, open, readFile, rename, rm, stat } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
-import { readPlanFile, planPathFor } from "../plan/io";
+import { readPlanFile } from "../plan/io";
 import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { verifiedOwnRecitations } from "../quran/manualAudio";
 import { verifyVideoEvidence } from "../workflow/videoEvidence";
@@ -37,6 +37,9 @@ type SignedSceneLedger = {
   state: SceneFirstProduction;
   revision: number;
   history: AuditEvent[];
+  previewEpochs: Record<string, string>;
+  assemblyEpoch?: string;
+  masterEpoch?: string;
   mac: string;
 };
 type CurrentInput = {
@@ -65,10 +68,11 @@ export const assertSceneOwner = (token: unknown): void => {
 };
 const signature = (doc: Omit<SignedSceneLedger, "mac">): string =>
   createHmac("sha256", ownerSecret())
-    .update(JSON.stringify(["studio-scene-ledger-v1", doc.version, doc.state, doc.revision, doc.history]))
+    .update(JSON.stringify(["studio-scene-ledger-v1", doc.version, doc.state, doc.revision, doc.history, doc.previewEpochs, doc.assemblyEpoch, doc.masterEpoch]))
     .digest("hex");
 const sign = (doc: Omit<SignedSceneLedger, "mac">): SignedSceneLedger =>
   ({ ...doc, mac: signature(doc) });
+const byteSha256 = async (file: string): Promise<string> => sha(await readFile(file));
 const fileGeneration = async (file: string): Promise<string> => {
   const st = await lstat(file, { bigint: true });
   if (!st.isFile() || st.isSymbolicLink()) throw Error("A Studio source is not a regular file.");
@@ -94,26 +98,28 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
   if (!scenes.length || scenes.some(scene => !safeSceneId(scene.id)))
     throw Error("Every scene needs a stable, safe, unique identifier.");
   const scriptSha256 = await fileGeneration(scriptPath);
+  // Keep local scene edits separate from the approved overall storyboard.
   const boardSha256 = sha(JSON.stringify([
-    await fileGeneration(planPathFor(scriptPath)),
     await optionalFileGeneration(path.join(path.dirname(scriptPath), "storyboard.json")),
   ]));
   const voice = await loadVoiceIndex(episode);
   const manual = await verifiedOwnRecitations(scriptPath);
   const ready: Record<string, boolean> = {};
   const refs = [];
-  for (const scene of scenes) {
+  for (const chapter of plan.chapters) for (const scene of chapter.scenes) {
     const narration = scene.narration?.trim() ?? "";
     const clip = voice[scene.id];
     let voiceFingerprint = "no-narration";
     let voiceReady = narration.length === 0;
     if (narration) {
       voiceReady = Boolean(clip && clip.text === narration);
+      const audioFile = clip && path.basename(clip.file) === clip.file &&
+        !clip.file.startsWith(".") ? await optionalFileGeneration(
+          path.join(voiceDirFor(scriptPath), clip.file)) : "missing";
+      voiceReady = voiceReady && audioFile !== "missing";
       voiceFingerprint = clip
-        ? sha(JSON.stringify([clip.text, clip.hash, clip.duration,
-          await optionalFileGeneration(path.join(voiceDirFor(scriptPath), clip.file))]))
+        ? sha(JSON.stringify([clip.text, clip.hash, clip.duration, audioFile]))
         : "missing-narration";
-      if (voiceFingerprint.includes("missing")) voiceReady = false;
     }
     const rec = scene.template === "verse-card" && scene.ayahKey
       ? manual[scene.ayahKey] : undefined;
@@ -123,7 +129,7 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
     ready[scene.id] = voiceReady && verseReady;
     refs.push({
       id: scene.id,
-      sourceSha256: sha(JSON.stringify([scene, scriptSha256, boardSha256,
+      sourceSha256: sha(JSON.stringify([chapter.title, scene, scriptSha256, boardSha256,
         voiceFingerprint, rec?.sha256 ?? "no-recitation",
         rec?.approvedAt ?? null, rec?.rightsEvidence ?? null])),
     });
@@ -160,10 +166,11 @@ const readLedger = async (file: string, fresh: CurrentInput): Promise<SignedScen
     data = JSON.parse(await readFile(file, "utf8")) as SignedSceneLedger;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    return sign({ version: 1, state: fresh.initial, revision: 0, history: [] });
+    return sign({ version: 1, state: fresh.initial, revision: 0, history: [], previewEpochs: {} });
   }
   if (!data || data.version !== 1 || !hex64(data.mac) || !data.state ||
-      !Array.isArray(data.history) || !Number.isSafeInteger(data.revision) ||
+      !Array.isArray(data.history) || !data.previewEpochs || typeof data.previewEpochs !== "object" ||
+      !Number.isSafeInteger(data.revision) ||
       data.state.channel !== fresh.initial.channel ||
       data.state.episode !== fresh.initial.episode)
     throw Error("Scene approval ledger is invalid; manual recovery required.");
@@ -223,14 +230,15 @@ const view = (data: SignedSceneLedger, ready: Record<string, boolean>) => {
 const withState = async <T>(episode: string,
   operation: (data: SignedSceneLedger, current: CurrentInput) => Promise<T>,
 ): Promise<T> => {
-  const current = await sourceNow(episode);
-  const file = stateFileFor(current.scriptPath);
+  const initial = await sourceNow(episode);
+  const file = stateFileFor(initial.scriptPath);
   return serialized(file, async () => {
+    const current = await sourceNow(episode);
+    if (current.scriptPath !== initial.scriptPath) throw Error("Episode changed while locking.");
     let doc = await readLedger(file, current);
     const reconciled = reconcile(doc.state, current.initial);
     if (JSON.stringify(doc.state) !== JSON.stringify(reconciled)) {
-      doc = sign({ version: 1, state: reconciled, revision: doc.revision + 1,
-        history: doc.history }); // invalidate changes permanently, even if a command later fails
+      doc = sign({ ...doc, state: reconciled, revision: doc.revision + 1 }); // invalidate changes permanently, even if a command later fails
       await saveLedger(file, doc);
     }
     return operation(doc, current);
