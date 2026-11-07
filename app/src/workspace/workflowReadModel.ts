@@ -76,20 +76,18 @@ export const parseWorkflowReadModel = (raw: unknown, channel: string, episode: s
     if (value.status === "in_review" && !submitted(value.submitted))
       throw new Error("مرحلة قيد المراجعة بلا طلب مراجعة صالح.");
     if (value.status === "approved") {
-      // The server MUST recompute isCurrentApproval with current artifact bytes.
-      // Never treat a persisted status alone, or a historical approval, as current.
-      if (!approval(value.approval) || value.currentApproval !== true ||
-          value.approval.prerequisiteApprovalSeq.length !== STAGES.indexOf(key) ||
-          !history[value.approval.approvalEventSeq - 1] ||
-          !(() => {
-            const event = history[value.approval.approvalEventSeq - 1]!;
-            return event.seq === value.approval.approvalEventSeq &&
-              event.stage === key && event.action === "approve" &&
-              event.by === value.approval.by.id &&
-              event.at === value.approval.at &&
-              event.fingerprint === value.approval.fingerprint;
-          })())
+      // The trusted server must derive currentApproval from service.inspect()
+      // with the current artifact generation, evidence files and signed ledger.
+      const current = value.approval;
+      if (!approval(current) || value.currentApproval !== true)
         throw new Error("المرحلة " + key + " تفتقر إلى تحقق المحرك الحي من اعتمادها.");
+      const event = history[current.approvalEventSeq - 1];
+      if (current.prerequisiteApprovalSeq.length !== STAGES.indexOf(key) ||
+          !event || event.seq !== current.approvalEventSeq ||
+          event.stage !== key || event.action !== "approve" ||
+          event.by !== current.by.id || event.at !== current.at ||
+          event.fingerprint !== current.fingerprint)
+        throw new Error("المرحلة " + key + " تفتقر إلى حدث اعتماد متطابق مع سجل المحرك.");
     }
     if (value.status !== "approved" && value.currentApproval === true)
       throw new Error("حالة المرحلة " + key + " متناقضة مع صلاحية الاعتماد.");
