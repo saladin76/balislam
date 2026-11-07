@@ -105,6 +105,49 @@ describe("immutable Remotion assets across channels and episodes", () => {
     expect(await readFile(staged(publicRoot, base), "utf8")).toBe("TAMPERED");
   });
 
+  it("rejects symlinked source ancestors and public namespace ancestors", async () => {
+    const { root, publicRoot } = await scratch();
+    const images = path.join(root, "images");
+    const foreign = path.join(root, "foreign");
+    await mkdir(images);
+    await mkdir(foreign);
+    await writeFile(path.join(foreign, "secret.png"), "OUTSIDE");
+    await symlink(foreign, path.join(images, "linked"));
+    const ns = namespace(root, "balislam");
+    await expect(stageRenderFiles(ns, [imageFile(path.join(images, "linked", "secret.png"))], { publicRoot })).rejects.toThrow(/غير آمن/);
+    expect(await readFile(path.join(foreign, "secret.png"), "utf8")).toBe("OUTSIDE");
+    const rootWithLink = path.join(root, "linked-public");
+    await mkdir(rootWithLink);
+    await symlink(foreign, path.join(rootWithLink, "_render"));
+    const valid = path.join(foreign, "secret.png");
+    await expect(stageRenderFiles(ns, [imageFile(valid)], { publicRoot: rootWithLink })).rejects.toThrow(/غير آمن/);
+  });
+
+  it("detects extra and missing files in an already-published snapshot", async () => {
+    const { root, publicRoot } = await scratch();
+    const source = path.join(root, "shot.png");
+    await writeFile(source, "V1");
+    const ns = namespace(root, "balislam");
+    const base = await stageRenderFiles(ns, [imageFile(source)], { publicRoot });
+    await writeFile(path.join(publicRoot, base, "images", "unlisted.png"), "INJECTED");
+    await expect(stageRenderFiles(ns, [imageFile(source)], { publicRoot })).rejects.toThrow(/تغيّرت/);
+    expect(await readFile(staged(publicRoot, base), "utf8")).toBe("V1");
+  });
+
+  it("fails closed when a shared public asset has a nested symlink", async () => {
+    const { root, publicRoot } = await scratch();
+    const shared = path.join(publicRoot, "fonts", "deep");
+    await mkdir(shared, { recursive: true });
+    const foreign = path.join(root, "private");
+    await mkdir(foreign);
+    await writeFile(path.join(foreign, "do-not-read.txt"), "SECRET");
+    await symlink(foreign, path.join(shared, "linked"));
+    await expect(stageRemotionPublicDir({ mode: "url", base: "", voice: {}, sfx: [], recitations: {} }, { publicRoot, tempRoot: root }))
+      .rejects.toThrow(/غير آمن|رمزي/);
+    expect((await readdir(root)).filter((name) => name.startsWith("studio-remotion-public-"))).toEqual([]);
+    expect(await readFile(path.join(foreign, "do-not-read.txt"), "utf8")).toBe("SECRET");
+  });
+
   it("Remotion staticFile resolves the owning snapshot in both landscape and mobile layouts", async () => {
     const { root, publicRoot } = await scratch();
     const source = path.join(root, "صورة.png");
