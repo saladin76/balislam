@@ -210,6 +210,22 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     await expect(x.service.gate("publish")).rejects.toThrow(/master/);
   });
 
+  it("rejects a Master rewritten with identical bytes before publication, even without a status read", async () => {
+    const x = await make(); await x.allApproved();
+    const masterFile = path.join(x.dir, "master.mp4");
+    const exact = await readFile(masterFile);
+    // Content SHA remains identical. The OS generation epoch must not.
+    const before = await collectActualArtifactDigests(x.scope, x.manifest);
+    await writeFile(masterFile, exact);
+    const after = await collectActualArtifactDigests(x.scope, x.manifest);
+    expect(after.master?.sha256).toBe(before.master?.sha256);
+    expect(after.master?.epoch).not.toBe(before.master?.epoch);
+    let published = false;
+    await expect(x.service.withVerifiedMasterPublication(async () => { published = true; }))
+      .rejects.toThrow(/master|changed/i);
+    expect(published).toBe(false);
+  });
+
   it("rejects changed exact Master bytes before invoking publisher callback", async () => {
     const x = await make(); await x.allApproved();
     await writeFile(path.join(x.dir, "master.mp4"), "unapproved bytes");
