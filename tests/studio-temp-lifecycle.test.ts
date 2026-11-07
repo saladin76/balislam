@@ -35,6 +35,10 @@ const { appendFileSync, existsSync, mkdirSync, symlinkSync, writeFileSync } = re
 const path = require("node:path");
 const temp = process.env.TMPDIR;
 if (!temp || process.env.TMP !== temp || process.env.TEMP !== temp) process.exit(98);
+// The preflight is intentionally small; keep the ordinary full-gate fixture
+// behavior intact, but permit an opt-in clean preflight for the audit contract.
+if (process.argv.includes("tests/quran-compare.test.ts") &&
+    process.env.BAL_P0_MODE === "clean-preflight") process.exit(0);
 for (const name of ["remotion-test", "webpack-test"]) {
   const dir = path.join(temp, name);
   mkdirSync(dir, { recursive: true });
@@ -72,7 +76,7 @@ else process.exit(0);
   chmodSync(shim, 0o755);
 };
 
-const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel: "SIGTERM" | "SIGINT" | "SIGHUP" | null = null,
+const execute = (f: Fixture, mode: "ok" | "fail" | "hang" | "clean-preflight", cancel: "SIGTERM" | "SIGINT" | "SIGHUP" | null = null,
   target: { script: string; cwd: string; args: string[] } = { script: gate, cwd: projectRoot, args: [] },
   cancelMarker = "npx-start"): Promise<RunResult> =>
   new Promise((resolve, reject) => {
@@ -350,5 +354,46 @@ describe("P0 gate-owned temporary files", () => {
       expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
       checkIsolated(f);
     }, 15_000,
+  );
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "runs two parallel complete synthetic gates after a clean Vitest preflight", async () => {
+      const f = fixture();
+      const r = await execute(f, "clean-preflight", null,
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(0);
+      const summary = r.out.split("\n").find((line) => line.startsWith("TEMP_LEAK_AUDIT "));
+      expect(summary, r.out).toBeDefined();
+      const report = JSON.parse(summary!.slice("TEMP_LEAK_AUDIT ".length));
+      expect(report).toMatchObject({
+        mode: "parallel", passed: true, privateTempBytesAfter: 0,
+        maxVitestWorkersPerGate: 1,
+      });
+      expect(report.results).toHaveLength(2);
+      for (const result of report.results) {
+        expect(result.status).toBe(0);
+        expect(result.gateReportedCleaned).toBe(true);
+        expect(result.gateAllocatedBeforeCleanupBytes).toBeGreaterThanOrEqual(0);
+        expect(result.ownedRootBytesAfterGate).toBe(0);
+        expect(result.samplingErrors).toBe(0);
+      }
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 20_000,
+  );
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "rejects a preflight with temp residue instead of starting parallel gates", async () => {
+      const f = fixture();
+      const r = await execute(f, "ok", null,
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(1);
+      expect(r.out).toContain("preflight left");
+      expect(r.out).toContain("no full gates started");
+      expect(r.out).toContain('"passed":false');
+      expect(readFileSync(f.trace, "utf8").match(/npx-start/g)).toHaveLength(1);
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 20_000,
   );
 });
