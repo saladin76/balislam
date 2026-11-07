@@ -4,7 +4,6 @@ import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
-import type { CloudRecitation } from "../../src/quran/provider";
 import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
@@ -72,8 +71,6 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   return data as T;
 };
 
-export type AlQuranAudioEdition = { identifier: string; name: string };
-export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export type SceneProductionRead = {
   schemaVersion: 1;
@@ -131,13 +128,6 @@ export const api = {
   approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
     call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
-  recitationChoice: (episode: string, channel: string) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
-  saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, { method: "PUT", json: { recitation } }, channel),
-  alquranEditions: () => call<{ editions: AlQuranAudioEdition[] }>("/api/alquran-cloud/editions"),
-  alquranAyah: (surah: number, ayah: number, edition: string) =>
-    call<AlQuranAyahPreview>(`/api/alquran-cloud/ayah?surah=${surah}&ayah=${ayah}&edition=${encodeURIComponent(edition)}`),
 
   /** المراجعات الفنية للقناة (توصيات المنفّذ وشرائطها ومقاطعها) */
   techReviews: (channel: string) => call<{ reviews: TechReviewSummary[] }>("/api/tech-reviews", undefined, channel),
@@ -184,7 +174,6 @@ export const api = {
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
   uploadImage: (id: string, b: { name: string; data: string; scene: string }) => call<{ file: string; media: EpisodeMedia }>(`/api/episodes/${id}/images`, { method: "POST", json: b }),
   voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport; generated: boolean; media: EpisodeMedia }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
-  quran: (id: string, channel?: string) => call<{ plan: Plan; result: { fetched: string[]; recited: string[]; failed: { ref: string; reason: string }[] } }>(`/api/episodes/${id}/quran`, { method: "POST", json: {} }, channel),
   overview: () => call<Overview[]>("/api/overview"),
   status: (id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`),
   saveStatus: (id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }),
@@ -193,8 +182,6 @@ export const api = {
   channel: () => call<ChannelConfig>("/api/channel"),
   saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
-  quranRecitations: () => call<{ ok: boolean; message?: string; list: { id: number; name: string; style: string }[] }>("/api/quran/recitations"),
-  quranTranslations: (lang: string) => call<{ ok: boolean; message?: string; list: { id: number; name: string; author: string; language: string }[] }>(`/api/quran/translations?lang=${lang}`),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string }>(`/api/episodes/${id}/kit`),
