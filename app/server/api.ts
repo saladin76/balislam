@@ -249,8 +249,9 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
             const name = safeName(parts[4]);
-            // التلاوات: من مجلد الحلقة (Quran Foundation) أو من assets/recitations (المرخّصة)
-            const epRec = path.join(path.dirname(scriptPath), "recitations");
+            // التلاوات: ملفات الصوت اليدوية المعتمدة الخاصة بهذه الحلقة فقط
+            const { recitationsDirFor } = await load("/src/quran/sync.ts");
+            const epRec = recitationsDirFor(scriptPath);
             const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
             const file = dir ? path.join(dir, kind === "images" ? name.replace(/^lib__/, "") : name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
@@ -284,14 +285,44 @@ export const balApi = (): Plugin => ({
             const plan = await io.readPlanFile(scriptPath);
             return send(res, 200, { report, generated: Boolean(client && !b.dryRun), media: await mediaFor(plan) });
           }
+          // Automatic Quran downloads are intentionally disabled. All source text
+          // is supplied explicitly via /quran-text-only and local owner audio via /quran-audio.
           if (parts[2] === "quran" && req.method === "POST") {
-            const { quranClientFromEnv } = await load("/src/quran/client.ts");
-            const { syncQuran } = await load("/src/quran/sync.ts");
-            const client = quranClientFromEnv();
-            if (!client) return send(res, 400, { error: "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»." });
-            const result = await syncQuran(ep, client);
-            // Fetching Quran audio must never rewrite an existing hand-edited episode plan.
-            return send(res, 200, { result, plan: (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep)) });
+            return send(res, 410, { error: "الجلب الآلي أُوقف. افتح «الآيات المطلوبة» وأدخل النص يدويًا." });
+          }
+          if (parts[2] === "quran-audio") {
+            const { ownAudioStatus, prepareOwnRecitation, approveOwnRecitation } = await load("/src/quran/manualAudio.ts");
+            if (parts.length === 3 && req.method === "GET")
+              return send(res, 200, await ownAudioStatus(ep));
+            if (parts.length === 3 && req.method === "POST") {
+              // Refuse oversized encoded uploads *before* accumulating request chunks.
+              if (Number(req.headers["content-length"] ?? 0) > 36 * 1024 * 1024)
+                return send(res, 413, { error: "حجم التسجيل أكبر من الحد الآمن." });
+              const b = await readBody(req);
+              if (typeof b?.key !== "string" || typeof b?.name !== "string" || typeof b?.data !== "string" ||
+                  b.data.length > 35 * 1024 * 1024 || !/^(?:data:audio\\/[a-z0-9.+-]+;base64,)?[a-zA-Z0-9+/=]+$/.test(b.data))
+                return send(res, 400, { error: "أرسل تسجيلًا صوتيًا صحيحًا مع مرجع الآية." });
+              const encoded = b.data.replace(/^data:audio\\/[a-z0-9.+-]+;base64,/, "");
+              const recording = await prepareOwnRecitation(ep, b.key, b.name, Buffer.from(encoded, "base64"));
+              return send(res, 200, { recording, status: await ownAudioStatus(ep) });
+            }
+            if (parts.length === 3 && req.method === "PUT") {
+              const b = await readBody(req);
+              const approved = await approveOwnRecitation(ep, b.key, b.reviewer, b.note, b.listened === true);
+              return send(res, 200, { approved, status: await ownAudioStatus(ep), media: await mediaFor((await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep))) });
+            }
+            if (parts.length === 5 && parts[3] === "preview" && req.method === "GET") {
+              const name = safeName(parts[4]);
+              const status = await ownAudioStatus(ep);
+              const record = Object.values(status.pending).find((r: any) => r.file === name);
+              if (!record) return send(res, 404, { error: "تسجيل المراجعة غير موجود." });
+              const { recitationsDirFor } = await load("/src/quran/sync.ts");
+              const candidate = path.join(recitationsDirFor(scriptPath), name);
+              if (!existsSync(candidate)) return send(res, 404, { error: "ملف التلاوة غير موجود." });
+              serveFile(req,res,candidate,"audio/mpeg");
+              return;
+            }
+            return send(res, 405, { error: "Method not allowed" });
           }
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
