@@ -72,6 +72,15 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  voiceReview: (episode: string, channel: string) =>
+    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, undefined, channel),
+  approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string }) =>
+    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: data }, channel),
+  approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
+    call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
   recitationChoice: (episode: string, channel: string) =>
     call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
   saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
