@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promis
 import os from "node:os";
 import path from "node:path";
 import { WORKFLOW_STAGES, STAGE_EVIDENCE, stageFingerprint, type WorkflowStage } from "../src/workflow/gates";
-import { collectActualArtifactDigests, sha256File, type ArtifactManifest } from "../src/workflow/artifacts";
+import { collectActualArtifactDigests, sha256File, sha256FileAndEpoch, type ArtifactManifest } from "../src/workflow/artifacts";
 import { createTrustedWorkflowService, type AuthenticatedWorkflowPrincipal } from "../src/workflow/service";
 import { workflowFileFor, type WorkflowIdentity } from "../src/workflow/store";
 
@@ -57,10 +57,10 @@ const make = async (channel: WorkflowIdentity["channel"] = "balislam", episode =
     currentManifest: async () => manifest,
     verifiedEvidence: async (stage) => {
       const file = stageEvidenceFile[stage];
-      const proofHash = await sha256File(path.join(dir, file));
+      const proof = await sha256FileAndEpoch(path.join(dir, file));
       if (checkFileChange) await checkFileChange();
       return STAGE_EVIDENCE[stage].map((key) =>
-        ({ key, file, sha256: proofHash, verifier: "server_review_ledger_validator" }));
+        ({ key, file, sha256: proof.sha256, epoch: proof.epoch, verifier: "server_review_ledger_validator" }));
     },
   });
   const owner = () => { user.current = { id: "actual-owner-session", role: "owner", authenticated: true }; };
