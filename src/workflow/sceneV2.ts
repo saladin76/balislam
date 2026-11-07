@@ -196,7 +196,9 @@ export const beginFinalSceneProduction = (
 ): void => {
   assertCanProduceScene(ledger, sceneId);
   insist(typeof verifyLockedSources === "function", "Trusted Script/Storyboard gate is required.");
-  verifyLockedSources(sceneId);
+  const gateResult: unknown = verifyLockedSources(sceneId);
+  insist(!(gateResult && typeof gateResult === "object" && "then" in gateResult),
+    "Async Script/Storyboard checks must finish in the trusted adapter before scene production.");
   const s = current(ledger, sceneId);
   insist(["draft", "prepared", "changes_requested", "needs_reapproval"].includes(s.status),
     "Scene is already producing, in review, or approved.");
@@ -234,8 +236,10 @@ export const approveSceneAv = (
     decision.reviewedAvSha256 === s.inputs.video.sha256,
     "Scene AV changed since it was shown to reviewer.");
   // A thrown error from a trusted verifier cannot leave a new approval.
-  verifyEvidence({ sceneId, fingerprint: actual,
+  const verified: unknown = verifyEvidence({ sceneId, fingerprint: actual,
     avSha256: s.inputs.video.sha256, ownerId: decision.ownerId });
+  insist(!(verified && typeof verified === "object" && "then" in verified),
+    "Async AV evidence must be verified before signing an approval.");
   const approvalSeq = event(ledger, sceneId, "approved", decision.at, decision.ownerId, actual);
   s.approval = { ownerId: decision.ownerId, at: decision.at,
     fingerprint: actual, avSha256: decision.reviewedAvSha256, eventSeq: approvalSeq };
