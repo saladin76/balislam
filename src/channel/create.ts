@@ -55,7 +55,11 @@ export const createChannel = async (opts: NewChannelOptions) => {
   const src = channelPaths(source);
   const base = loadChannel(source);
   // Build and validate all input BEFORE publishing any new channel directory.
-  const identity = JSON.stringify(neutralIdentity(JSON.parse(await readFile(src.identityDefault, "utf8"))), null, 2) + "\n";
+  const baseIdentity: unknown = JSON.parse(await readFile(src.identityDefault, "utf8"));
+  if (!baseIdentity || typeof baseIdentity !== "object" || Array.isArray(baseIdentity) ||
+      !["themes", "palettes", "typography", "motion"].every((k) => k in baseIdentity))
+    throw new Error("قالب الهوية المصدر غير مكتمل؛ لم تُنشأ القناة.");
+  const identity = JSON.stringify(neutralIdentity(baseIdentity as Record<string, unknown>), null, 2) + "\n";
   const quran = opts.quran ?? base.rules.quran;
   const channel: ChannelConfig = {
     id: opts.id,
