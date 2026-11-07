@@ -11,6 +11,7 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto
 import { lstat, open, readFile, rename, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
+import { loadStoryboard, storyboardStatus } from "../plan/storyboard";
 import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { verifiedOwnRecitations } from "../quran/manualAudio";
 import { verifyVideoEvidence } from "../workflow/videoEvidence";
@@ -98,7 +99,10 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
   if (!scenes.length || scenes.some(scene => !safeSceneId(scene.id)))
     throw Error("Every scene needs a stable, safe, unique identifier.");
   const scriptSha256 = await fileGeneration(scriptPath);
-  // Keep local scene edits separate from the approved overall storyboard.
+  // A real storyboard approval must cover every current scene; a mere JSON
+  // file on disk, including an old/stale one, never authorizes production.
+  const boardRecord = await loadStoryboard(scriptPath);
+  const boardStatus = storyboardStatus(plan, boardRecord);
   const boardSha256 = sha(JSON.stringify([
     await optionalFileGeneration(path.join(path.dirname(scriptPath), "storyboard.json")),
   ]));
@@ -135,7 +139,7 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
     });
   }
   return {
-    scriptPath, ready, planReady: true,
+    scriptPath, ready, planReady: boardStatus.ok && Boolean(boardStatus.audit?.note?.trim()),
     initial: createSceneFirstProduction({
       channel: path.basename(path.dirname(path.dirname(path.dirname(scriptPath)))),
       episode: path.basename(path.dirname(scriptPath)),
@@ -330,6 +334,8 @@ export const decideSceneProduction = async (episode: string,
       if (p.script.sha256 !== command.expectedSha256) throw Error("Script changed before review.");
       next = approveScript(p, by, at, command.expectedSha256);
     } else if (command.action === "approve-storyboard") {
+      if (!current.planReady)
+        throw Error("Review and approve every current storyboard scene with a review note before starting AV production.");
       if (p.storyboard.sha256 !== command.expectedSha256) throw Error("Storyboard changed before review.");
       next = approveStoryboard(p, by, at, command.expectedSha256);
     } else if (command.action === "assemble") {
