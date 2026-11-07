@@ -231,22 +231,6 @@ program
   });
 
 program
-  .command("quran")
-  .description("مزامنة التلاوات المرخصة وترجمات المعاني فقط؛ نص الآية يُكتب في السكريبت")
-  .argument("<episode>", "رقم الحلقة")
-  .option("--force", "إعادة الجلب حتى للمخزّن")
-  .action(async (episode: string, opts: { force?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { syncQuran } = await import("../quran/sync");
-    const client = quranClientFromEnv();
-    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
-    const r = await syncQuran(episode, client, { force: opts.force });
-    console.log(`ترجمات جديدة ${r.fetched.length}، مراجع محفوظة ${r.cached.length}، تلاوات ${r.recited.length}. النص لا يُعدل تلقائيًا.`);
-    for (const f of r.failed) console.log(`تعذّر: ${f.ref}: ${f.reason}`);
-    if (r.failed.length) process.exitCode = 1;
-  });
-
-program
   .command("quran-text-only")
   .description("فحص وجود نص كل آية في السكريبت فقط؛ لا يجلب نصًا ولا يكتب ملفات")
   .argument("<episode>", "رقم الحلقة")
@@ -264,27 +248,23 @@ program
       return;
     }
     if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص؛ نص الآيات يُكتب في السكريبت مباشرة.");
-    throw new Error("أُلغي الحفظ المستقل لنص القرآن. اكتب [آية: المرجع | النص] داخل السكريبت ثم استخدم quran-compare.");
+    throw new Error("أُلغي الحفظ المستقل لنص القرآن. اكتب [آية: المرجع | النص] داخل السكريبت ثم استخدم quran-evidence.");
   });
 
 program
-  .command("quran-compare")
-  .description("مقابلة نص الآيات المكتوب في السكريبت بالمصحف المعتمد حرفًا وحركةً، دون تعديله (النتيجة في «ملفات المراجعة»)")
+  .command("quran-evidence")
+  .description("فحص الأدلة المحلية لنص الآيات المكتوب في السكريبت دون تحميل نص خارجي أو ادعاء مطابقة شرعية")
   .argument("<episode>", "رقم الحلقة")
-  .option("--evidence-only", "تقرير الأدلة المحلية فقط (النص المعروض ومصدره وصورة البطاقة وأرقامها) دون جلب المرجع؛ لا يُعد مطابقة")
-  .action(async (episode: string, opts: { evidenceOnly?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { auditEpisodeQuran, writeQuranAuditReport, CLASS_AR } = await import("../quran/audit");
-    const client = opts.evidenceOnly ? null : quranClientFromEnv();
-    if (!client && !opts.evidenceOnly) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV=production) إلى ملف .env، أو استعمل --evidence-only لتقرير الأدلة وحدها.");
-    const result = await auditEpisodeQuran(episode, { client });
-    for (const a of result.audits) {
-      const kinds = [...new Set(a.ops.map((o) => CLASS_AR[o.cls]))].join("، ");
-      console.log(`${a.key}: ${a.status === "match" ? "مطابق" : a.status === "differs" ? `فيه ${a.ops.length} فرق${kinds ? ` (${kinds})` : ""}${a.numbers.ok ? "" : "، ورقم السورة/الآية يحتاج مراجعة"}` : a.status === "pending" ? "لم يُقابَل بالمرجع" : a.reason ?? a.status}`);
+  .action(async (episode: string) => {
+    const { auditEpisodeQuran, writeQuranAuditReport } = await import("../quran/audit");
+    const result = await auditEpisodeQuran(episode, { frames: false });
+    for (const audit of result.audits) {
+      console.log(`${audit.key}: ${audit.reason ?? audit.status} — يحتاج تدقيقًا بشريًا مستقلًا`);
     }
-    if (client && client.env !== "production") console.log("تنبيه: QF_ENV ليست production؛ اجعلها production للمطابقة بالمرجع المعتمد.");
-    console.log(`التقرير: ${await writeQuranAuditReport(episode, result, { environment: client ? `<b>بيئة المرجع:</b> Quran Foundation (${client.env}).` : "<b>بيئة المرجع:</b> لم يُجلب المرجع في هذا التشغيل (--evidence-only)." })}`);
-    if (result.audits.some((a) => a.status !== "match")) process.exitCode = 1;
+    const file = await writeQuranAuditReport(episode, result, {
+      environment: "أدلة نص السكريبت فقط؛ لم تحدث مقابلة مع المصحف في هذا التشغيل."
+    });
+    console.log(`التقرير: ${file}`);
   });
 
 program
