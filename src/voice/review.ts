@@ -95,6 +95,7 @@ export const approveVoiceEpisode = async (
 
 export const assertVoiceApproved = async (scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"]) => {
   const items = await voiceReviewItems(scriptPath, plan, voice);
+  if (!items.length) throw new Error("لا توجد مقاطع تعليق صوتي يمكن الاستماع إليها واعتمادها؛ لا تبدأ الحركة النهائية.");
   const pending = items.filter((item) => item.state !== "approved");
   if (pending.length) throw new Error(
     "لا يُرندر Master قبل تحديد النبرة واعتماد الاستماع للصوت لكل مقطع: " +
