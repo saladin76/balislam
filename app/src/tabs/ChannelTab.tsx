@@ -246,7 +246,9 @@ export const ChannelTab: React.FC<{
       if (!live) return;
       // Keep unsaved text in memory, even after returning from another workspace.
       const dirtyDraft = draftCache && JSON.stringify(draftCache.draft) !== draftCache.saved;
-      setC(dirtyDraft ? draftCache.draft : x);
+      // Do not overwrite edits typed into a cached draft while the fetch was in flight.
+      if (!dirtyDraft) setC((current) =>
+        current && JSON.stringify(current) !== saved ? current : x);
       setSaved(JSON.stringify(x));
     }).catch((x) => {
       if (live) setMsg({ text: `تعذّر تحميل إعدادات القناة: ${(x as Error).message}`, err: true });
