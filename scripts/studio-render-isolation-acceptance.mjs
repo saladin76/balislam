@@ -6,7 +6,7 @@
  *   node scripts/studio-render-isolation-acceptance.mjs
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, statfs, writeFile } from "node:fs/promises";
 import { cleanupOwnedAcceptanceTemp } from "./studio-acceptance-temp.mjs";
 import os from "node:os";
 import path from "node:path";
@@ -26,6 +26,20 @@ if (root === os.homedir() || root === path.join(os.homedir(), "balislam"))
   throw new Error("Refusing to run acceptance checks in the production checkout.");
 if (command("git", ["status", "--porcelain"]))
   throw new Error("Review worktree must be clean before acceptance tests.");
+// A real webpack/Remotion pass needs disk headroom. Fail BEFORE npm ci or any
+// synthetic render instead of filling the owner's already constrained Mac.
+const disk = await statfs(root);
+const availableBytes = Number(disk.bavail) * Number(disk.bsize);
+const minimumBytes = 10 * 1024 ** 3;
+if (availableBytes < minimumBytes)
+  throw new Error(`Isolated Mac acceptance requires at least 10 GiB free. Available: ${(availableBytes / 1024 ** 3).toFixed(1)} GiB. No test or render started.`);
+const active = spawnSync("pgrep", ["-fl", "studio-render-isolation-smoke|remotion.*render|webpack.*watch"], {
+  cwd: root, encoding: "utf8", timeout: 5000,
+});
+if (active.status === 0)
+  throw new Error("Another Remotion/webpack smoke or render appears active; do not run concurrent acceptance.");
+if (active.status !== 1)
+  throw new Error("Cannot confirm that no other render process is active; acceptance refused.");
 
 const startedAt = new Date().toISOString();
 const parent = path.join(root, "renders", "isolated-acceptance");
@@ -38,7 +52,8 @@ const env = { ...process.env, TMPDIR: testsTemp, TMP: testsTemp, TEMP: testsTemp
 const report = {
   stage: "isolated-mac-review",
   branch, sha, mac: process.platform, node: process.version, startedAt,
-  evidenceDir, tests: [], temporaryResidue: [], temporaryResidueBeforeCleanup: [],
+  evidenceDir, diskFreeGiBAtStart: Number((availableBytes / 1024 ** 3).toFixed(2)),
+  tests: [], temporaryResidue: [], temporaryResidueBeforeCleanup: [],
   temporaryClean: false, visualReview: "NOT_RUN",
   avReviewAt1x: "NOT_RUN", ownerMasterApproval: "NOT_RUN",
   productionRender: false, publishing: false,
