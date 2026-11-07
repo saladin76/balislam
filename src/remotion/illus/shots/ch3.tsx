@@ -27,7 +27,7 @@ export const CH3_CAST = {
 
 type Ch3Shot = { nameAr: string; place: string; render: (c: ShotCtx) => { cam: CamKey[]; world: React.ReactNode; captionBackdrop?: number } };
 const V = (t: number, x: number, z: number, y: number, cut = false): CamKey => ({ t, x, y, z, ...(cut ? { cut } : {}) });
-const tlPose = (frame: number, tl: [number, PoseSpec][]) => {
+export const tlPose = (frame: number, tl: [number, PoseSpec][]) => {
   let i = 0;
   while (i + 1 < tl.length && frame >= tl[i + 1]![0]) i++;
   const [t0, p0] = tl[i]!;
@@ -57,7 +57,7 @@ const GIVE: PoseSpec = { ...POSES.stand, lean: 8, head: 22, armFront: { s: 62, e
 /** قبضة عند الباب بارتفاع الكتف، لم تلمسه */
 const KNOCK: PoseSpec = { ...POSES.stand, lean: 2, head: -2, armFront: { s: 88, e: 64 } };
 /** يحمل الظرف أمامه */
-const CARRY: PoseSpec = { ...POSES.stand, armFront: { s: 34, e: 52 } };
+export const CARRY: PoseSpec = { ...POSES.stand, armFront: { s: 34, e: 52 } };
 
 // ———————————————————— سلسلة الدليل: الصفحة والقطعة والمخالب بشكل واحد ————————————————————
 /** الصفحة 100×130 بزاوية علوية ممزقة؛ PIECE هي القطعة الناقصة نفسها بالضبط */
@@ -102,14 +102,14 @@ const PageGlyph: React.FC<{ x: number; y: number; s: number; piece?: number; pie
 const pageAtHand = (h: { x: number; y: number }, sc: number, flip: boolean) => ({ x: h.x + (flip ? -1 : 1) * 14 * sc, y: h.y - 16 * sc });
 const PAGE_S = 0.46;
 /** نقود: ثلاث قطع نحاسية */
-const CoinsGlyph: React.FC<{ x: number; y: number; glint?: number }> = ({ x, y, glint = 0 }) => (
+export const CoinsGlyph: React.FC<{ x: number; y: number; glint?: number }> = ({ x, y, glint = 0 }) => (
   <g>
     {glint > 0.01 ? <Glow cx={x} cy={y} r={44} color={ID.dawn} opacity={0.6 * glint} /> : null}
     {[[0, 0], [7, -5], [-6, -8]].map(([dx, dy], i) => <circle key={i} cx={x + dx!} cy={y + dy!} r={7} fill={mix(ID.copper, ID.dawn, 0.3)} stroke={INK} strokeWidth={1.8} />)}
   </g>
 );
 /** ظرف صغير مغلق في اليد */
-const EnvelopeGlyph: React.FC<{ x: number; y: number; s?: number }> = ({ x, y, s = 1.2 }) => {
+export const EnvelopeGlyph: React.FC<{ x: number; y: number; s?: number }> = ({ x, y, s = 1.2 }) => {
   const w = 26 * s;
   const h = 17 * s;
   return (
@@ -283,7 +283,7 @@ const LANE_STONES = Array.from({ length: 14 }, (_, i) => 0.06 + i * 0.066);
  * reverse: اللقطة المقابلة من عند باب أخيه (التوجيه 023): صدر الزقاق بيته هو، والجدار الأيسر القريب بيت أخيه؛
  * والموضع على الطريق حينئذٍ lanePos(1 - d).
  */
-const Lane: React.FC<{ frame: number; mood: "dusk" | "dawn" | "predawn"; lit: number; heroDoor: number; brotherDoor: number; reverse?: boolean }> = ({ frame, mood, lit, heroDoor, brotherDoor, reverse = false }) => {
+export const Lane: React.FC<{ frame: number; mood: "dusk" | "dawn" | "predawn"; lit: number; heroDoor: number; brotherDoor: number; reverse?: boolean }> = ({ frame, mood, lit, heroDoor, brotherDoor, reverse = false }) => {
   const dawn = mood === "dawn";
   const dark = mood === "predawn" ? 0.45 : dawn ? 0.18 : 0.3;
   const nearDoor = reverse ? brotherDoor : heroDoor;
@@ -349,7 +349,7 @@ const Lane: React.FC<{ frame: number; mood: "dusk" | "dawn" | "predawn"; lit: nu
   );
 };
 /** يمشي على الطريق بين d0 وd1 بين إطارين، بخطوة تصغر مع العمق */
-const LaneWalker: React.FC<{ frame: number; d0: number; d1: number; start: number; end: number; flip?: boolean; reverse?: boolean; carry?: boolean }> = ({ frame, d0, d1, start, end, flip, reverse = false, carry = true }) => {
+export const LaneWalker: React.FC<{ frame: number; d0: number; d1: number; start: number; end: number; flip?: boolean; reverse?: boolean; carry?: boolean }> = ({ frame, d0, d1, start, end, flip, reverse = false, carry = true }) => {
   const t = prog(frame, start, end, (x) => x);
   const d = d0 + (d1 - d0) * t;
   const walking = frame > start && frame < end;
@@ -357,7 +357,7 @@ const LaneWalker: React.FC<{ frame: number; d0: number; d1: number; start: numbe
   return <LaneHero d={d} pose={pose} frame={frame} flip={flip} reverse={reverse} carry={carry} />;
 };
 /** البطل على الطريق؛ والظرف في يده (carry) من الفصل نفسه: لم يُسلَّم بعد */
-const LaneHero: React.FC<{ d: number; pose: PoseSpec; frame: number; flip?: boolean; reverse?: boolean; carry?: boolean }> = ({ d, pose, frame, flip, reverse = false, carry = true }) => {
+export const LaneHero: React.FC<{ d: number; pose: PoseSpec; frame: number; flip?: boolean; reverse?: boolean; carry?: boolean }> = ({ d, pose, frame, flip, reverse = false, carry = true }) => {
   const p = lanePos(reverse ? 1 - d : d);
   const h = handAt(pose, { x: p.x, y: p.y, scale: p.s, flip });
   return (

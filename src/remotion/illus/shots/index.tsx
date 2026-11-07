@@ -10,6 +10,7 @@ import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type Sh
 import { BuzzArcs, PhonePOV } from "./phone";
 import { CH2_SHOTS } from "./ch2";
 import { CH3_SHOTS } from "./ch3";
+import { CH4_SHOTS } from "./ch4";
 import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleSincereBeats, scaleSincereCast, scaleSincereEvidence, scaleVerdictBeats, scaleVerdictCast } from "./scale";
 
 /**
@@ -27,6 +28,19 @@ export type ShotDef = { nameAr: string; place: string; render: (c: ShotCtx) => S
 const hero = LOOKS.hero;
 /** تأطير مشهد جلوس: مركز الإطار عند الصدر والطاولة، فلا يضيع الجالس أسفل إطار نصفه جدار */
 const S = (t: number, x: number, z: number): CamKey => ({ t, x, y: 672, z });
+/**
+ * لقطة «بعين البطل» في العمودي (التوجيه 023، الفصل 4): الطبقة العلوية (overlay) لا تُرسم في العمودي،
+ * فيُرسم الهاتف نفسه فوق نسخة من المقهى في منطقة مستقلة وتقطع الكاميرا إليها.
+ */
+const POV = { dx: 5000, cam: { x: 5000 + 1225, y: 545, z: 1.0 } };
+const PovRegion: React.FC<{ frame: number; children: React.ReactNode }> = ({ frame, children }) => (
+  <g transform={`translate(${POV.dx} 0)`}>
+    <Cafe frame={frame} />
+    <CafeTable x={960} frame={frame} />
+    {children}
+  </g>
+);
+const povCam = (t: number): CamKey => ({ t, ...POV.cam, cut: true });
 const RED = ID.seal;
 const GOLD = ID.dawn;
 
@@ -586,7 +600,7 @@ export const SHOTS: Record<string, ShotDef> = {
   "home-knows-cant": {
     nameAr: "البيت: يعرف ما ينبغي فعله ثم تعجز نفسه عن الالتزام",
     place: "بيت بمكتبة وصور (ليلًا)",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       // الكتاب الذي ينبغي أن يقرأه على الطاولة؛ يأخذه ويفتحه، ثم يهتز الهاتف فيترك الكتاب ويُغلق
       const tK = at("يعرف", 0.3);
       const tS = at("ينبغي", 0.45);
@@ -601,7 +615,8 @@ export const SHOTS: Record<string, ShotDef> = {
       const by = GROUND - 190;
       const pw = frame < tK + 6 ? 0 : 62 * (1 - close);
       return {
-        cam: [S(0, 1040, 1.7), S(tK, 1060, 2.0), S(tC, 1030, 1.9), S(tL, 1040, 1.75)],
+        // العمودي (التوجيه 023، الفصل 4): الطاولة والكتاب والهاتف والبطل معًا في العرض الضيق
+        cam: portrait ? [K(0, 1045, 1.45), K(tK, 1040, 1.7), K(tC, 1045, 1.65), K(tL, 1050, 1.5)] : [S(0, 1040, 1.7), S(tK, 1060, 2.0), S(tC, 1030, 1.9), S(tL, 1040, 1.75)],
         world: (
           <g>
             <HomeRoom frame={frame} mood="night" />
@@ -627,15 +642,20 @@ export const SHOTS: Record<string, ShotDef> = {
   "cafe-rumor-looks-fine": {
     nameAr: "المقهى: خطأ لا يبدو قبيحًا (رسالة جميلة الشكل)",
     place: "مقهى الحارة",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tW = at("خطأ", 0.3);
       const tL = at("يبدو", 0.45);
       const tQ = at("قبيحا", 0.6);
       const tE = at("أعيننا", 0.85);
       return {
-        cam: [S(0, 1030, 1.6), S(tW, 1060, 1.95)],
+        cam: portrait ? [K(0, 1085, 1.3), K(tW, 1100, 1.55), povCam(tL - 4)] : [S(0, 1030, 1.6), S(tW, 1060, 1.95)],
         world: (
           <g>
+            {portrait ? (
+              <PovRegion frame={frame}>
+                <PhonePOV frame={frame} show={prog(frame, tL - 4, tL + 14)} buzz={prog(frame, tL - 4, tL + 20, (t) => t)} shine={prog(frame, tQ, tQ + 28, (t) => t)} tempt={0.5 * prog(frame, tE, tE + 18)} near={prog(frame, tE - 4, tE + 22)} />
+              </PovRegion>
+            ) : null}
             <Cafe frame={frame} />
             <Chair x={800} />
             <Chair x={1140} flip />
@@ -652,16 +672,21 @@ export const SHOTS: Record<string, ShotDef> = {
   "cafe-rumor-tempting": {
     nameAr: "المقهى: مغرٍ وسهل وموافق لرغباته",
     place: "مقهى الحارة",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tM = at("مغريا", 0.25);
       const tS = at("سهلا", 0.5);
       const tA = at("موافقا", 0.7);
       const tR = at("لرغباتنا", 0.86);
       const agree = prog(frame, tA + 6, tA + 24);
       return {
-        cam: [S(0, 1060, 1.95), S(tA, 1060, 1.75)],
+        cam: portrait ? [povCam(0), { ...K(tA + 4, 1100, 1.4), cut: true }, K(tR, 1110, 1.6)] : [S(0, 1060, 1.95), S(tA, 1060, 1.75)],
         world: (
           <g>
+            {portrait ? (
+              <PovRegion frame={frame}>
+                <PhonePOV frame={frame} show={1 - prog(frame, tA - 2, tA + 16)} tempt={0.5 + 0.5 * prog(frame, tM, tM + 14)} thumb={prog(frame, tS, tS + 18)} near={1 - prog(frame, tS - 6, tS + 14)} />
+              </PovRegion>
+            ) : null}
             <Cafe frame={frame} />
             <Chair x={800} />
             <Chair x={1140} flip />
@@ -677,7 +702,7 @@ export const SHOTS: Record<string, ShotDef> = {
   "cafe-rumor-spreads": {
     nameAr: "المقهى: يزداد قبوله لأن الناس اعتادوه",
     place: "مقهى الحارة",
-    render: ({ frame, at }) => {
+    render: ({ frame, at, portrait }) => {
       const tI = at("يزداد", 0.2);
       const tQ = at("قبولنا", 0.35);
       const tN = at("الناس", 0.65);
@@ -698,7 +723,8 @@ export const SHOTS: Record<string, ShotDef> = {
         { from: 2, to: 4, at: tN - 10 },
       ];
       return {
-        cam: [S(0, 1060, 1.75), S(tI + 4, 975, 1.3), S(tH, 975, 1.36)],
+        // العمودي: الرسالة تنتقل من البطل إلى من حوله ثم إلى الطرف الآخر، ثم تبتعد الكاميرا على المقهى كله عند «اعتادوه»
+        cam: portrait ? [K(0, 1110, 1.25), K(tI + 4, 480, 1.0), K(tN - 6, 1480, 1.0), K(tH, 975, 0.62)] : [S(0, 1060, 1.75), S(tI + 4, 975, 1.3), S(tH, 975, 1.36)],
         world: (
           <g>
             <Cafe frame={frame} />
@@ -888,6 +914,7 @@ export const SHOTS: Record<string, ShotDef> = {
   ...CH2_SHOTS,
   // الحلقة 001 · الفصل 3 (التوجيه 022)
   ...CH3_SHOTS,
+  ...CH4_SHOTS,
 };
 
 export const SHOT_IDS = Object.keys(SHOTS);

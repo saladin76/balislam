@@ -1198,7 +1198,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-threshold-still"
           },
           "id": "c4-s16",
           "sfx": []
@@ -1215,7 +1216,8 @@
             "poses": "stand,think,stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-threshold-still"
           },
           "id": "c4-s17",
           "sfx": []
@@ -1232,7 +1234,8 @@
             "poses": "stand,look-up,nod",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-dawn-follows"
           },
           "id": "c4-s18",
           "sfx": []
