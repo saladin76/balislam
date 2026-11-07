@@ -9,8 +9,9 @@ import { parseScript } from "../script/parse";
 import { assertScriptApproved } from "../script/approval";
 import { quranFromScript } from "../quran/scriptText";
 import { ownAudioStatusForScript } from "../quran/manualAudio";
+import { assertReciterPublicationRights } from "../quran/renderContract";
 import { recitationsDirFor, verifiedProviderPart, type RecitationIndex } from "../quran/sync";
-import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
+import { activeRecitation, isCloudRecitation } from "../quran/provider";
 import { loadChannel } from "../channel/index";
 import { readJson } from "../plan/io";
 import { assertNoQuranInTts } from "../quran/ttsGuard";
@@ -56,7 +57,9 @@ export const assertMotionStartAuthorized = async (
 
     const chosen = await activeRecitation(scriptPath, loadChannel().recitation);
     if (!chosen) throw new Error("لا تبدأ الحركة النهائية مع آيات دون اختيار قارئ بشري مرخّص وتسجيلاته.");
-    if (isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
+    // A QF recording is available for fetch/preview without proving publication
+    // permission. Final motion requires explicit rights for BOTH source types.
+    assertReciterPublicationRights(chosen);
     const recitationsDir = recitationsDirFor(scriptPath);
     const index = (await readJson<RecitationIndex>(path.join(recitationsDir, "index.json"))) ?? {};
     for (const key of current) {
