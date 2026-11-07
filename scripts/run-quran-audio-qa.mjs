@@ -18,27 +18,34 @@ const run = (command, args, opts = {}) => {
 };
 const git = (...args) => run("git", args);
 const branch = git("branch", "--show-current");
+const actualBranch = branch.stdout || process.env.GITHUB_HEAD_REF || "";
 const sha = git("rev-parse", "HEAD");
 const ffmpeg = run("ffmpeg", ["-version"]);
 const summary = {
   scope: "quran-audio", expectedBranch,
-  branch: branch.stdout, sha: sha.stdout,
+  branch: actualBranch, sha: sha.stdout,
   generatedAt: new Date().toISOString(),
   prerequisites: { git: sha.exit === 0, ffmpeg: ffmpeg.exit === 0 },
   tests: [],
   acceptance: "TECHNICAL_ONLY_HUMAN_REVIEW_REQUIRED",
 };
-if (branch.exit !== 0 || sha.exit !== 0 || branch.stdout !== expectedBranch || ffmpeg.exit !== 0) {
+if (branch.exit !== 0 || sha.exit !== 0 || actualBranch !== expectedBranch || ffmpeg.exit !== 0) {
   summary.error = "Run from the sole Quran/audio branch with FFmpeg installed; no checks were executed.";
   process.stdout.write(JSON.stringify(summary, null, 2) + "\n");
   process.exit(2);
 }
-const changed = git("diff", "--name-only", `${base}...HEAD`);
+let changed = git("diff", "--name-only", `${base}...HEAD`);
+let diffBase = base;
 if (changed.exit !== 0) {
-  summary.error = "Cannot resolve the integration base; refusal to claim scoped verification.";
+  diffBase = `origin/${base}`;
+  changed = git("diff", "--name-only", `${diffBase}...HEAD`);
+}
+if (changed.exit !== 0) {
+  summary.error = "Cannot resolve the integration base locally or in origin; no scoped verification was possible.";
   process.stdout.write(JSON.stringify(summary, null, 2) + "\n");
   process.exit(2);
 }
+summary.diffBase = diffBase;
 const files = changed.stdout.split("\n").filter(Boolean);
 summary.scopedChanges = files.length;
 const forbidden = files.filter((file) =>
