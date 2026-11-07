@@ -4,7 +4,7 @@
  */
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { selectComposition, renderMedia, renderStill } from "@remotion/renderer";
 import { browserExecutable, createIsolatedRenderBundle } from "../src/render/bundle";
 import { emptyMedia } from "../src/plan/media";
@@ -15,8 +15,8 @@ if (process.platform !== "darwin" || process.env.BAL_STUDIO_REVIEW_APPROVED !== 
 const evidenceDir = process.argv[2];
 if (!evidenceDir || !path.isAbsolute(evidenceDir))
   throw new Error("Absolute isolated evidence directory required.");
-const actualRoot = path.resolve(evidenceDir);
-const approvedRoot = path.resolve(process.env.BAL_STUDIO_REVIEW_ROOT);
+const actualRoot = await realpath(evidenceDir);
+const approvedRoot = await realpath(process.env.BAL_STUDIO_REVIEW_ROOT);
 if (!actualRoot.startsWith(path.join(approvedRoot, "renders", "isolated-acceptance") + path.sep))
   throw new Error("Synthetic output must remain inside the approved isolated review root.");
 
