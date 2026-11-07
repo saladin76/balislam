@@ -15,8 +15,9 @@ export const VoiceWorkspaceTab: React.FC<{
   media: EpisodeMedia;
   hasKeys: boolean;
   onMedia: (media: EpisodeMedia) => void;
+  onReload: () => void;
   onOpenScene: (id: string) => void;
-}> = ({ episodeId, channelId, plan, media, hasKeys, onMedia, onOpenScene }) => {
+}> = ({ episodeId, channelId, plan, media, hasKeys, onMedia, onReload, onOpenScene }) => {
   const scenes = useMemo(() => plan.chapters.flatMap((ch) =>
     ch.scenes.filter((scene) => scene.narration.trim()).map((scene) => ({
       scene,
@@ -117,7 +118,7 @@ export const VoiceWorkspaceTab: React.FC<{
           <h3>تلاوة الآيات داخل الفيديو</h3>
           <p>استخرج الآيات المطلوبة وأدخل النص يدويًا، ثم ارفع تلاوتك بصوتك واعتمدها بعد الاستماع. AlQuran Cloud للمعاينة فقط.</p>
         </div></div>
-        <ManualQuranPanel key={`manual:${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} onMedia={onMedia} />
+        <ManualQuranPanel key={`manual:${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} onMedia={onMedia} onReload={onReload} />
         <AlQuranCloudBrowser key={`${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} />
       </section>
       <div className="ew-voice-heading">
