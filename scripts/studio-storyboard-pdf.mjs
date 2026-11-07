@@ -217,11 +217,20 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
       '<footer>Storyboard للمراجعة فقط · ' + ltr(storyboard.episode) + '</footer></article>' +
       (titleAnnex ? appendix(scene.id, "عنوان المشهد", scene.title) : "") +
       (notesAnnex ? appendix(scene.id,"الوصف والملاحظات",notes) : "") +
-      (narrationAnnex ? appendix(scene.id,"النص والتعليق",narration) : "");
+      (narrationAnnex ? appendix(scene.id,"النص والتعليق",narration) : "") +
+      (chapterMetaAnnex && !(chapterCover && coverTitleAnnex && index === 0) ? appendix(scene.id, "عنوان الفصل الكامل", chapterMeta) : "") +
+      (typeMetaAnnex ? appendix(scene.id, "نوع المشهد الكامل", typeMeta) : "") +
+      (idAnnex ? appendix(scene.id, "معرّف المشهد الكامل", scene.id) : "");
   });
+  // Page numbering includes chapter covers and all full-text annex pages.
+  const documentPages = cover + pages.join("\n");
+  const pageCount = (documentPages.match(/<\/article>/g) ?? []).length;
+  let pageIndex = 0;
+  const numberedPages = documentPages.replace(/<\/article>/g, () =>
+    '<div class="page-index" aria-label="رقم الصفحة">صفحة ' + (++pageIndex) + " من " + pageCount + "</div></article>");
   return {html:'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/>' +
     '<title>Storyboard · ' + esc(storyboard.episode) + ' · ' + esc(storyboard.version) +
-    '</title><style>' + pdfFontCss(storyboard.channel) + css + '</style></head><body>' + cover + pages.join("\n") + '</body></html>',
+    '</title><style>' + pdfFontCss(storyboard.channel) + css + '</style></head><body>' + numberedPages + '</body></html>',
     status:pending,scenes:chosen.length};
 }
 
