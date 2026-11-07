@@ -111,7 +111,7 @@ const css = [
   ".info{position:absolute;top:151mm;left:0;right:0;height:27mm;overflow:hidden}",
   ".info section{float:right;width:49%;height:23mm;overflow:hidden}.info section:nth-child(2){float:left}",
   ".info h3{margin:0 0 0.5mm;font-family:var(--studio-heading);font-size:10pt;line-height:1.3;color:var(--studio-accent)}",
-  ".info p{margin:0;overflow:hidden;overflow-wrap:anywhere;font-size:10.2pt;line-height:1.3;max-height:19mm;unicode-bidi:plaintext}",
+  ".info p{margin:0;overflow:hidden;overflow-wrap:anywhere;font-size:10.2pt;line-height:1.55;max-height:19mm;unicode-bidi:plaintext}",
   ".info .details{width:100%;height:4mm;clear:both;display:flex;align-items:start;justify-content:space-between;gap:2mm;white-space:nowrap;border-top:1px solid #d5dee5;color:#546471;font-size:8.5pt}",
   ".details span{margin:0;display:block;flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;unicode-bidi:isolate}",
   "footer{position:absolute;bottom:0;left:0;right:0;height:7mm;font-size:8pt;color:#65737d;border-top:1px solid #d9e2e7}",
