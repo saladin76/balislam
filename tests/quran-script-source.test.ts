@@ -12,7 +12,7 @@ import { reviewItems, type ReviewLedger } from "../src/script/review";
 import { verifiedOwnRecitations, ownAudioStatusForScript, pendingRecitationMatchesText } from "../src/quran/manualAudio";
 import { alignDiff } from "../src/quran/audit";
 import { compareVerseText } from "../src/quran/compare";
-import { preserveManualRecitations } from "../src/quran/sync";
+import { preserveManualRecitations, publishImmutableRecitationPart } from "../src/quran/sync";
 import type { Plan } from "../src/plan/types";
 
 const verse = "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ";
@@ -154,6 +154,26 @@ describe("local approved Quran recordings are bound to script text and real play
     expect(pendingRecitationMatchesText(exact, verse.replace("وَأَنْ", "وَأَنِ"))).toBe(false);
     expect(pendingRecitationMatchesText({ textSha256: "" }, verse)).toBe(false);
     expect(pendingRecitationMatchesText({}, verse)).toBe(false);
+  });
+
+  it("never overwrites a prior provider MP3 even on hash collision, race or failed refresh", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "quran-provider-atomic-"));
+    try {
+      const first = Buffer.from("existing audio bytes preserved");
+      const second = Buffer.from("another attempted version");
+      const output = `qf-53-39-${sha(first).slice(0,24)}.mp3`;
+      const temp = path.join(dir, ".staged.mp3");
+      await writeFile(temp, first);
+      await publishImmutableRecitationPart(dir, output, temp, sha(first));
+      expect(await readFile(path.join(dir, output))).toEqual(first);
+      await writeFile(temp, second);
+      await expect(publishImmutableRecitationPart(dir, output, temp, sha(second)))
+        .rejects.toThrow(/تغيّر/);
+      expect(await readFile(path.join(dir, output))).toEqual(first);
+      await writeFile(temp, first);
+      await publishImmutableRecitationPart(dir, output, temp, sha(first));
+      expect(await readFile(path.join(dir, output))).toEqual(first);
+    } finally { await rm(dir, { recursive: true, force: true }); }
   });
 
   it("never overwrites manual reviewed audio with a slow external-provider update", () => {
