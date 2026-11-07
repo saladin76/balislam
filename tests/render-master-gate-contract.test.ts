@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { assertRenderMediaOwnership } from "../src/render/episode";
+import { assertRenderMediaOwnership, assertRenderChannelOwnership } from "../src/render/episode";
 import { assertMasterStageAuthorized, masterRenderSubject } from "../src/render/masterGateContract";
 import type { EpisodeMedia } from "../src/plan/media";
 import type { Plan } from "../src/plan/types";
@@ -28,6 +28,8 @@ describe("render input identity and permanent Master gate contract", () => {
     const script = await setup();
     const own = media("a".repeat(24));
     expect(() => assertRenderMediaOwnership(script, own)).not.toThrow();
+    expect(() => assertRenderChannelOwnership(script, "balislam")).not.toThrow();
+    expect(() => assertRenderChannelOwnership(script, "dafatir-alzaman")).toThrow(/لا يخص القناة/);
     expect(() => assertRenderMediaOwnership(script, { ...own, base: own.base.replace("balislam", "dafatir-alzaman") })).toThrow(/لا تخص/);
     expect(() => assertRenderMediaOwnership(script, { ...own, base: own.base.replace("001-test", "002-other") })).toThrow(/لا تخص/);
     expect(() => assertRenderMediaOwnership(script, { ...own, mode: "url" })).toThrow(/لا تخص/);
