@@ -217,6 +217,18 @@ export const balApi = (): Plugin => ({
             return send(res, 405, { error: "Method not allowed" });
           }
 
+          if (parts[2] === "quran-audit" && parts.length === 3) {
+            if (req.method !== "GET") return send(res, 405, { error: "المقارنة للقراءة فقط." });
+            const { quranClientFromEnv } = await load("/src/quran/client.ts");
+            const client = quranClientFromEnv();
+            if (!client) return send(res, 409, { error: "يلزم مرجع المصحف المعتمد لفحص الفروق؛ لا يُصحَّح النص تلقائيًا." });
+            const { auditEpisodeQuran } = await load("/src/quran/audit.ts");
+            const result = await auditEpisodeQuran(ep, { client, frames: false });
+            return send(res, 200, { environment: client.env, audits: result.audits.map((a: any) => ({
+              key: a.key, status: a.status, reason: a.reason, ops: a.ops,
+              categories: a.categories, numbers: a.numbers, reference: a.reference,
+            })) });
+          }
           if (parts[2] === "recitation" && parts.length === 3) {
             const { readEpisodeRecitation, saveEpisodeRecitation } = await load("/src/quran/provider.ts");
             if (req.method === "GET") {
