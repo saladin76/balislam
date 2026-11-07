@@ -27,7 +27,7 @@ const verifier = (ev: { sceneId: string; fingerprint: string; avSha256: string; 
 
 const approve = (doc: SceneLedgerV2, sceneId: string, material = inputs(sceneId)) => {
   reconcileSceneInputs(doc, sceneId, material, now);
-  beginFinalSceneProduction(doc, sceneId, now);
+  beginFinalSceneProduction(doc, sceneId, now, () => undefined);
   const fingerprint = submitSceneAvReview(doc, sceneId, now);
   approveSceneAv(doc, sceneId, {
     ownerId: "studio-owner", expectedFingerprint: fingerprint,
@@ -42,21 +42,23 @@ describe("Studio V2 — AV scene as the approval unit", () => {
     const doc = ledger();
     markScenePrepared(doc, "c1-s3", now);
     expect(doc.scenes["c1-s3"]?.status).toBe("prepared");
-    expect(() => beginFinalSceneProduction(doc, "c1-s2", now)).toThrow(/c1-s1/);
+    expect(() => beginFinalSceneProduction(doc, "c1-s2", now, () => undefined)).toThrow(/c1-s1/);
     approve(doc, "c1-s1");
-    expect(() => beginFinalSceneProduction(doc, "c1-s3", now)).toThrow(/c1-s2/);
+    expect(() => beginFinalSceneProduction(doc, "c1-s3", now, () => undefined)).toThrow(/c1-s2/);
     approve(doc, "c1-s2");
-    beginFinalSceneProduction(doc, "c1-s3", now);
+    beginFinalSceneProduction(doc, "c1-s3", now, () => undefined);
     expect(doc.scenes["c1-s3"]?.status).toBe("producing");
   });
 
   it("requires a composited video input, submitted version, actual owner decision and verifier", () => {
     const doc = ledger();
-    beginFinalSceneProduction(doc, "c1-s1", now);
+    expect(() => beginFinalSceneProduction(doc, "c1-s1", now, undefined as never))
+      .toThrow(/Script\/Storyboard gate/);
+    beginFinalSceneProduction(doc, "c1-s1", now, () => undefined);
     expect(() => submitSceneAvReview(doc, "c1-s1", now)).toThrow(/No composited AV/);
     const material = inputs("c1-s1");
     reconcileSceneInputs(doc, "c1-s1", material, now);
-    beginFinalSceneProduction(doc, "c1-s1", now);
+    beginFinalSceneProduction(doc, "c1-s1", now, () => undefined);
     expect(isSceneApproved(doc, "c1-s1")).toBe(false);
     const fingerprint = submitSceneAvReview(doc, "c1-s1", now);
     const decision = {
@@ -91,7 +93,7 @@ describe("Studio V2 — AV scene as the approval unit", () => {
     expect(isSceneApproved(doc, "c1-s3")).toBe(true);
     expect(() => assemblySceneFingerprint(doc)).toThrow(/c1-s2/);
     expect(() => assertCanProduceScene(doc, "c1-s3")).toThrow(/c1-s2/);
-    beginFinalSceneProduction(doc, "c1-s2", now);
+    beginFinalSceneProduction(doc, "c1-s2", now, () => undefined);
     const fp = submitSceneAvReview(doc, "c1-s2", now);
     approveSceneAv(doc, "c1-s2", {
       ownerId: "studio-owner", expectedFingerprint: fp,
@@ -129,8 +131,8 @@ describe("Studio V2 — AV scene as the approval unit", () => {
     expect(isSceneApproved(doc, "c1-s1")).toBe(false);
     expect(doc.scenes["c1-s1"]?.notes[0]).toMatchObject({ second: 7, seq: doc.events.length });
     expect(() => assemblySceneFingerprint(doc)).toThrow();
-    expect(() => beginFinalSceneProduction(doc, "c1-s2", now)).toThrow();
-    beginFinalSceneProduction(doc, "c1-s1", now);
+    expect(() => beginFinalSceneProduction(doc, "c1-s2", now, () => undefined)).toThrow();
+    beginFinalSceneProduction(doc, "c1-s1", now, () => undefined);
     const fp = submitSceneAvReview(doc, "c1-s1", now);
     approveSceneAv(doc, "c1-s1", {
       ownerId: "studio-owner", expectedFingerprint: fp,
