@@ -44,6 +44,8 @@ export type SceneLedgerV2 = {
   schemaVersion: typeof SCENE_V2_SCHEMA;
   channel: string; episode: string; order: string[];
   revision: number; scenes: Record<string, SceneEntry>; events: SceneEvent[];
+  /** Present only on sealed, persisted ledgers; do not trust client-owned copies. */
+  integrity?: { alg: "HMAC-SHA256"; keyId: string; mac: string };
 };
 export type SceneEvidenceVerifier = (
   evidence: Readonly<{ sceneId: string; fingerprint: string; avSha256: string; ownerId: string }>
