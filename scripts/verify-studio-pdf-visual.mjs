@@ -89,10 +89,10 @@ for (const spec of inputs) {
     errors.push({case:spec.name,pages,physical,scenes:result.scenes,expected:spec.expectedScenes,
       labels:numbers.length,missingIds,unembedded});
   }
-  // Render 1st / last page of every PDF, with both comparison layouts visible
-  // in complete resolution on the original PDF downloadable as a CI artifact.
+  // Render first two and final pages; the full PDF remains in the artifact.
   const previewBase=path.join(out,spec.name+"-preview");
-  tool("pdftoppm",["-f","1","-l","2","-r","115","-png",target,previewBase]);
+  tool("pdftoppm",["-f","1","-l",String(Math.min(pages,2)),"-r","115","-png",target,previewBase]);
+  if (pages>2)tool("pdftoppm",["-f",String(pages),"-l",String(pages),"-r","115","-png",target,previewBase+"-last"]);
   cases.push({name:spec.name,channel:board.channel,status:result.status,sceneCount:result.scenes,
     physicalPages:pages,htmlPages:physical,pdfSha256:result.pdfSha256,
     manifestSha256:result.manifestSha256,fontRecords:fonts.length,unembeddedFonts:unembedded.length,
@@ -135,7 +135,12 @@ for (const spec of inputs) {
     });
   <\/script>`;
   const auditPath=path.join(out,spec.name+"-layout-audit.html");
-  writeFileSync(auditPath,original.replace("</body>",auditCode+"</body>"));
+  // Audit the actual CSS/text but substitute image payloads: Chrome --dump-dom
+  // must not emit multi-megabyte base64 assets into the child stdout buffer.
+  const smallPng="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAOwO+wAAAABJRU5ErkJggg==";
+  const audited=original.replace(/src="data:image\/(?:png|jpeg|webp);base64,[^"]+"/g,
+    'src="data:image/png;base64,'+smallPng+'"');
+  writeFileSync(auditPath,audited.replace("</body>",auditCode+"</body>"));
   const dom=tool(chrome,["--headless","--disable-gpu","--no-first-run","--no-sandbox",
     "--disable-background-networking","--virtual-time-budget=9000","--window-size=1650,1200",
     "--dump-dom",pathToFileURL(auditPath).href]);
