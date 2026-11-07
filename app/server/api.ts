@@ -189,6 +189,27 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
 
+          // Single-owner vNext: one authenticated approval for each complete
+          // audiovisual scene. Hashes, actor and paths are server-derived.
+          if (parts[2] === "scene-production" && parts.length === 3) {
+            const { inspectSceneProduction, decideSceneProduction } =
+              await load("/src/studio/sceneService.ts");
+            if (req.method === "GET") return send(res, 200, await inspectSceneProduction(ep));
+            if (req.method === "POST") {
+              const body = await readBody(req);
+              try {
+                return send(res, 200, await decideSceneProduction(
+                  ep, body, req.headers["x-studio-owner-token"],
+                ));
+              } catch (error) {
+                const message = (error as Error).message;
+                const forbidden = /authentication|owner session|not configured/i.test(message);
+                return send(res, forbidden ? 403 : 409, { error: message });
+              }
+            }
+            return send(res, 405, { error: "Method not allowed" });
+          }
+
           if (parts[2] === "workflow" && parts.length === 3) {
             const { workflowReadForEpisode, workflowOwnerDecision } = await load("/src/workflow/server.ts");
             if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
