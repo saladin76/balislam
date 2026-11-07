@@ -53,6 +53,7 @@ export const WorkflowOwnerControls: React.FC<{
       setNote("");
       setConfirmed(false);
       onUpdated();
+      window.dispatchEvent(new CustomEvent("studio-workflow-updated", { detail: { episodeId } }));
     } catch (e) {
       setError((e as Error).message || "تعذّر تسجيل القرار.");
       onUpdated();
