@@ -16,6 +16,7 @@ import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } f
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { parseScript } from "../script/parse";
+import { assertNoQuranInTts } from "../quran/ttsGuard";
 import { loadLedger, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { capsFor, dropTagWords } from "./models";
@@ -126,6 +127,20 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
   if (opts.dryRun) return report;
+  if (jobs.length) {
+    const script = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+    // The same prohibition applies to reused cache records, not just TTS calls.
+    // Both transformed prompts AND the original/neighbor context reach the
+    // speech provider. A pronunciation dictionary must not launder Quranic
+    // text through a cache hit or previousText/nextText fields.
+    assertNoQuranInTts(script, jobs.flatMap((j) =>
+      [j.narration, j.spoken, j.prev ?? "", j.next ?? ""]));
+    // Verse cards themselves are never narrator jobs even if somebody edits a plan.
+    const verseIds = new Set(plan.chapters.flatMap((c) => c.scenes)
+      .filter((scene) => scene.template === "verse-card").map((scene) => scene.id));
+    if (jobs.some((job) => verseIds.has(job.id)))
+      throw new Error("يُحظر تحويل بطاقة آية إلى تلاوة اصطناعية عبر محرك التعليق.");
+  }
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
@@ -133,6 +148,11 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
     const blocked = unapprovedScenes(sb, todo.map((j) => j.id));
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+  }
+  // A full script signoff is independent of storyboard and voice approval.
+  if (todo.length && !opts.ignoreStoryboard) {
+    const { assertScriptApproved } = await import("../script/approval");
+    await assertScriptApproved(scriptPath);
   }
   // Order: storyboard signoff, then explicit tone decisions, then paid voice generation.
   if (todo.length && report.missingTones.length && !opts.ignoreStoryboard)
@@ -241,10 +261,15 @@ export const synthesizeLines = async (
   const tune = voiceSettingsFor(profile, toneId);
   const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
   const out: Record<string, LineClip> = {};
+  // Special line previews also invoke ElevenLabs; guard them independently.
+  const parsedForVoice = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  assertNoQuranInTts(parsedForVoice, lines.map((line) => line.text));
   for (const [k, line] of lines.entries()) {
     const text = line.text.trim();
     const words = text.split(/\s+/).filter(Boolean);
     const d = applyDictionary(text, dict, tk ? vowelize(words, tk) : undefined);
+    // Check the actual post-dictionary prompt BEFORE cached reuse or API TTS.
+    assertNoQuranInTts(parsedForVoice, [d.spoken]);
     const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
     const have = index[line.id];
     if (!opts.force && have && have.hash === hash && existsSync(path.join(opts.dir, have.file))) {

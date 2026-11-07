@@ -7,6 +7,7 @@ import { generatePlan, type QuranTexts } from "./generate";
 import { loadChannel } from "../channel";
 import type { Plan } from "./types";
 import { stripQuran, withQuran } from "./quranText";
+import { quranFromScript, historicalMeanings } from "../quran/scriptText";
 export { stripQuran, withQuran, VERSE_PLACEHOLDER } from "./quranText";
 
 export const planPathFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "plan.json");
@@ -21,7 +22,12 @@ export const writePlanFile = (file: string, plan: Plan) => writeFile(file, JSON.
 export const readPlanFile = async (scriptPath: string): Promise<Plan | null> => {
   const plan = await readJson<Plan>(planPathFor(scriptPath));
   if (!plan) return null;
-  return withQuran(plan, (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {});
+  const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  const authored = quranFromScript(parsed);
+  const legacy = (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {};
+  const sources = Object.fromEntries(plan.chapters.flatMap((c) => c.scenes)
+    .filter((s) => s.ayahKey && s.props?.meaningSource).map((s) => [s.ayahKey!, s.props.meaningSource!]));
+  return withQuran(plan, { ...historicalMeanings(legacy, sources), ...authored.texts });
 };
 
 export const loadPlan = async (episode: string): Promise<Plan | null> => readPlanFile(await resolveScriptPath(episode));
@@ -37,7 +43,10 @@ export const regeneratePlan = async (episode: string): Promise<Plan> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const previous = await readJson<Plan>(planPathFor(scriptPath));
-  const quran = (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {};
+  const legacy = (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {};
+  const sources = Object.fromEntries((previous?.chapters ?? []).flatMap((c) => c.scenes)
+    .filter((s) => s.ayahKey && s.props?.meaningSource).map((s) => [s.ayahKey!, s.props.meaningSource!]));
+  const quran = { ...historicalMeanings(legacy, sources), ...quranFromScript(parsed).texts };
   const plan = generatePlan(parsed, previous, quran, loadChannel());
   await writePlanFile(planPathFor(scriptPath), plan);
   return plan;

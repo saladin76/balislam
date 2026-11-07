@@ -189,6 +189,19 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
 
+          if (parts[2] === "script-signoff" && parts.length === 3) {
+            const { scriptSignoffStatus, approveScript } = await load("/src/script/approval.ts");
+            if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));
+            if (req.method === "PUT") {
+              const body = await readBody(req);
+              if (typeof body?.reviewer !== "string" || typeof body?.note !== "string" ||
+                  body.reviewer.length > 120 || body.note.length > 2000 || body.confirm !== true)
+                throw new HttpError(400, "يلزم تأكيد الاعتماد واسم المراجع وملاحظة النص.");
+              await approveScript(scriptPath, body.reviewer, body.note, true);
+              return send(res, 200, await scriptSignoffStatus(scriptPath));
+            }
+            return send(res, 405, { error: "Method not allowed" });
+          }
           if (parts[2] === "voice-review" && parts.length === 3) {
             const plan = await io.loadPlan(ep);
             if (!plan) throw new HttpError(404, "خطة الحلقة غير موجودة.");
@@ -202,14 +215,14 @@ export const balApi = (): Plugin => ({
               const body = await readBody(req);
               if (!body || typeof body !== "object" || Array.isArray(body) ||
                   (body.scope !== "episode" && typeof body.sceneId !== "string") || typeof body.reviewer !== "string" ||
-                  typeof body.note !== "string")
+                  typeof body.note !== "string" || body.listened !== true)
                 throw new HttpError(400, "اعتماد الصوت يتطلب المشهد واسم المراجع وملاحظة الاستماع.");
               if ((typeof body.sceneId === "string" && body.sceneId.length > 85) || body.reviewer.length > 120 || body.note.length > 2000)
                 throw new HttpError(400, "حقول المراجعة طويلة جدًا.");
               if (body.scope === "episode") {
-                await approveVoiceEpisode(scriptPath, plan, voice, body.reviewer, body.note);
+                await approveVoiceEpisode(scriptPath, plan, voice, body.reviewer, body.note, body.listened === true);
               } else {
-                await approveVoiceScene(scriptPath, plan, voice, body.sceneId, body.reviewer, body.note);
+                await approveVoiceScene(scriptPath, plan, voice, body.sceneId, body.reviewer, body.note, body.listened === true);
               }
               return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice),
                 episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
@@ -217,6 +230,18 @@ export const balApi = (): Plugin => ({
             return send(res, 405, { error: "Method not allowed" });
           }
 
+          if (parts[2] === "quran-audit" && parts.length === 3) {
+            if (req.method !== "GET") return send(res, 405, { error: "المقارنة للقراءة فقط." });
+            const { quranClientFromEnv } = await load("/src/quran/client.ts");
+            const client = quranClientFromEnv();
+            if (!client) return send(res, 409, { error: "يلزم مرجع المصحف المعتمد لفحص الفروق؛ لا يُصحَّح النص تلقائيًا." });
+            const { auditEpisodeQuran } = await load("/src/quran/audit.ts");
+            const result = await auditEpisodeQuran(ep, { client, frames: false });
+            return send(res, 200, { environment: client.env, audits: result.audits.map((a: any) => ({
+              key: a.key, status: a.status, reason: a.reason, ops: a.ops,
+              categories: a.categories, numbers: a.numbers, reference: a.reference,
+            })) });
+          }
           if (parts[2] === "recitation" && parts.length === 3) {
             const { readEpisodeRecitation, saveEpisodeRecitation } = await load("/src/quran/provider.ts");
             if (req.method === "GET") {
@@ -345,6 +370,16 @@ export const balApi = (): Plugin => ({
             if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
             if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage });
             // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره، ويُستعاد بعد إعادة التشغيل
+            // Final animation may not start before separate storyboard and full-audio approval.
+            // Silent storyboard-motion audit has its own route and is intentionally not blocked.
+            const { resolveScriptPath } = await load("/src/script/episodes.ts");
+            const { readPlanFile } = await load("/src/plan/io.ts");
+            const { loadVoiceIndex } = await load("/src/voice/generate.ts");
+            const { assertMotionStartAuthorized } = await load("/src/voice/motionGate.ts");
+            const scriptPath = await resolveScriptPath(b.episode);
+            const plan = await readPlanFile(scriptPath);
+            if (!plan) throw new HttpError(409, "اعتمد السكريبت والـStoryboard والصوت قبل بدء الحركة النهائية.");
+            await assertMotionStartAuthorized(scriptPath, plan, await loadVoiceIndex(b.episode));
             const job = startRenderJob(root, ch, b);
             return send(res, 200, job);
           }

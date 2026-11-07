@@ -1,6 +1,7 @@
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, open, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { decodedAudioDuration, isOwnedRegularAudio } from "./audioIntegrity";
 import { isTone } from "./tones";
 import type { Plan, PlanScene } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
@@ -13,28 +14,63 @@ export type VoiceReviewItem = {
   id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved";
   fingerprint?: string
 };
+const hasHumanEvidence = (item: { reviewer?: string; note?: string; at?: string } | undefined, minNote: number) =>
+  Boolean(item && typeof item.reviewer === "string" && item.reviewer.trim().length >= 2 &&
+    typeof item.note === "string" && item.note.trim().length >= minNote &&
+    typeof item.at === "string" && Number.isFinite(Date.parse(item.at)) &&
+    Date.parse(item.at) <= Date.now() + 60000);
 export const voiceReviewFile = (scriptPath: string) => path.join(path.dirname(scriptPath), "voice-review.json");
 export const loadVoiceReview = async (scriptPath: string): Promise<VoiceReviewRecord> => {
+  const file = voiceReviewFile(scriptPath);
   try {
-    const doc = JSON.parse(await readFile(voiceReviewFile(scriptPath), "utf8")) as VoiceReviewRecord;
-    return { version: 1, scenes: doc?.version === 1 && doc.scenes && typeof doc.scenes === "object" ? doc.scenes : {},
-      ...(doc?.version === 1 && doc.episode && typeof doc.episode.fingerprint === "string" ? { episode: doc.episode } : {}),
-    };
-  } catch { return { version: 1, scenes: {} }; }
+    if (!(await lstat(file)).isFile()) throw new Error("ملف اعتماد الصوت ليس ملفًا محليًا عاديًا.");
+    const doc = JSON.parse(await readFile(file, "utf8")) as VoiceReviewRecord;
+    if (doc?.version !== 1 || !doc.scenes || typeof doc.scenes !== "object" ||
+        Array.isArray(doc.scenes))
+      throw new Error("صيغة سجل اعتماد التعليق الصوتي غير صالحة.");
+    // Do not silently erase old human decisions after malformed or partial JSON.
+    const entries = Object.values(doc.scenes);
+    if (entries.some((entry) => !entry || typeof entry !== "object" ||
+        typeof entry.fingerprint !== "string"))
+      throw new Error("سجل اعتماد المقاطع الصوتية ناقص أو تالف.");
+    if (doc.episode != null && (typeof doc.episode !== "object" ||
+        typeof doc.episode.fingerprint !== "string"))
+      throw new Error("سجل اعتماد الاستماع إلى الحلقة كاملًا تالف.");
+    return { version: 1, scenes: doc.scenes, ...(doc.episode ? { episode: doc.episode } : {}) };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      return { version: 1, scenes: {} };
+    throw new Error("تعذّر قراءة سجل الاعتماد الصوتي التاريخي؛ لن يُستبدل دون استعادته.", { cause: error });
+  }
 };
 
 /** An approval is tied to the actual MP3 bytes, narration, tone and voice settings. */
 export const voiceFingerprint = async (scene: PlanScene, clip: VoiceClip | undefined, scriptPath: string): Promise<string | null> => {
   if (!isTone(scene.tone) || !clip || clip.text !== scene.narration.trim()) return null;
+  if (!Number.isFinite(clip.duration) || clip.duration <= 0) return null;
+  if (!Array.isArray(clip.words) || clip.words.some((word) =>
+    typeof word?.word !== "string" || !word.word.trim() ||
+    !Number.isFinite(word.start) || !Number.isFinite(word.end) ||
+    word.start < 0 || word.end < word.start || word.end > clip.duration + 0.25)) return null;
   if (typeof clip.file !== "string" || !/^[a-z0-9][a-z0-9_.-]{0,150}\.mp3$/i.test(clip.file)) return null;
+  const audioRoot = path.join(path.dirname(scriptPath), "voice");
+  const audioPath = path.join(audioRoot, clip.file);
   let bytes: Buffer;
-  try { bytes = await readFile(path.join(path.dirname(scriptPath), "voice", clip.file)); }
-  catch { return null; }
+  try {
+    if (!await isOwnedRegularAudio(audioRoot, clip.file)) return null;
+    bytes = await readFile(audioPath);
+  } catch { return null; }
   if (!bytes.length) return null;
+  // Probe every decoded frame, not merely a valid MP3 header or duration tag.
+  // Any unreadable part invalidates the same fingerprint used by UI and gate.
+  const actualDuration = await decodedAudioDuration(audioPath, { mp3Only: true });
+  if (!actualDuration || Math.abs(actualDuration - clip.duration) > Math.max(0.2, clip.duration * 0.04))
+    return null;
   const digest = createHash("sha256").update(bytes).digest("hex");
   return createHash("sha256").update(JSON.stringify({
     version: 1, sceneId: scene.id, text: scene.narration.trim(), tone: scene.tone,
     speaker: scene.voice ?? "", cacheHash: clip.hash ?? "", audioSha256: digest,
+    duration: clip.duration, words: clip.words,
   })).digest("hex");
 };
 
@@ -49,7 +85,8 @@ export const voiceReviewItems = async (
     if (!fingerprint) return { id: scene.id, state: "missing_audio" as const };
     const old = record.scenes[scene.id];
     return { id: scene.id, fingerprint, state: !old ? "pending" as const :
-      old.fingerprint === fingerprint ? "approved" as const : "changed" as const };
+      old.fingerprint !== fingerprint ? "changed" as const :
+      hasHumanEvidence(old, 12) ? "approved" as const : "pending" as const };
   }));
 };
 
@@ -62,31 +99,55 @@ export const episodeVoiceApproved = async (scriptPath: string, plan: Plan, voice
   const record = await loadVoiceReview(scriptPath);
   const items = await voiceReviewItems(scriptPath, plan, voice, record);
   const fingerprint = episodeVoiceFingerprint(items);
-  return Boolean(fingerprint && record.episode?.fingerprint === fingerprint);
+  return Boolean(fingerprint && record.episode?.fingerprint === fingerprint &&
+    hasHumanEvidence(record.episode, 20));
 };
 
 /** The full narration approval is separate from the approval of each voice clip. */
-export const approveVoiceEpisode = async (
-  scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"], reviewer: string, note: string,
-) => {
-  if (!reviewer.trim() || note.trim().length < 20)
-    throw new Error("اعتماد الحلقة الصوتية يتطلب اسم المراجع وملاحظة الاستماع الكامل.");
-  const record = await loadVoiceReview(scriptPath);
-  const items = await voiceReviewItems(scriptPath, plan, voice, record);
-  const fingerprint = episodeVoiceFingerprint(items);
-  if (!fingerprint) throw new Error("أكمل اعتماد جميع المقاطع الصوتية قبل الاستماع واعتماد الحلقة كاملة.");
-  record.episode = { fingerprint, reviewer: reviewer.trim(), note: note.trim(), at: new Date().toISOString() };
+const withVoiceReviewLock = async <T>(scriptPath: string, job: () => Promise<T>): Promise<T> => {
+  const file = voiceReviewFile(scriptPath) + ".lock";
+  const lock = await open(file, "wx", 0o600).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "EEXIST")
+      throw new Error("مراجعة صوتية أخرى قيد الحفظ؛ أعد المحاولة بعد انتهائها.");
+    throw error;
+  });
+  try { return await job(); }
+  finally { await lock.close(); await rm(file, { force: true }); }
+};
+
+const persistVoiceReview = async (scriptPath: string, value: VoiceReviewRecord) => {
   const target = voiceReviewFile(scriptPath);
   const temp = `${target}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temp, JSON.stringify(record, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+    await writeFile(temp, JSON.stringify(value, null, 2) + "\n", { flag: "wx", mode: 0o600 });
     await rename(temp, target);
   } finally { await rm(temp, { force: true }); }
-  return record.episode;
+};
+
+/** The episode-wide decision must not race a simultaneous clip review. */
+export const approveVoiceEpisode = async (
+  scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"], reviewer: string, note: string,
+  listenedInFull: boolean,
+) => {
+  if (listenedInFull !== true)
+    throw new Error("يلزم التأكيد الصريح على الاستماع الكامل بالترتيب الطبيعي قبل اعتماد الحلقة الصوتية.");
+  if (!reviewer.trim() || note.trim().length < 20)
+    throw new Error("اعتماد الحلقة الصوتية يتطلب اسم المراجع وملاحظة الاستماع الكامل.");
+  return withVoiceReviewLock(scriptPath, async () => {
+    const record = await loadVoiceReview(scriptPath);
+    const items = await voiceReviewItems(scriptPath, plan, voice, record);
+    const fingerprint = episodeVoiceFingerprint(items);
+    if (!fingerprint)
+      throw new Error("أكمل اعتماد جميع المقاطع الصوتية قبل الاستماع واعتماد الحلقة كاملة.");
+    record.episode = { fingerprint, reviewer: reviewer.trim(), note: note.trim(), at: new Date().toISOString() };
+    await persistVoiceReview(scriptPath, record);
+    return record.episode;
+  });
 };
 
 export const assertVoiceApproved = async (scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"]) => {
   const items = await voiceReviewItems(scriptPath, plan, voice);
+  if (!items.length) throw new Error("لا توجد مقاطع تعليق صوتي يمكن الاستماع إليها واعتمادها؛ لا تبدأ الحركة النهائية.");
   const pending = items.filter((item) => item.state !== "approved");
   if (pending.length) throw new Error(
     "لا يُرندر Master قبل تحديد النبرة واعتماد الاستماع للصوت لكل مقطع: " +
@@ -95,7 +156,7 @@ export const assertVoiceApproved = async (scriptPath: string, plan: Plan, voice:
   );
   const record = await loadVoiceReview(scriptPath);
   const digest = episodeVoiceFingerprint(items);
-  if (digest && record.episode?.fingerprint !== digest)
+  if (!digest || record.episode?.fingerprint !== digest || !hasHumanEvidence(record.episode, 20))
     throw new Error("لا يُرندر Master قبل الاستماع إلى التعليق الصوتي كاملًا واعتماده للمونتاج.");
   return true;
 };
@@ -103,19 +164,20 @@ export const assertVoiceApproved = async (scriptPath: string, plan: Plan, voice:
 /** Must be called only after an actual human listens to the clip. */
 export const approveVoiceScene = async (
   scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"],
-  sceneId: string, reviewer: string, note: string,
+  sceneId: string, reviewer: string, note: string, listened: boolean,
 ) => {
+  if (listened !== true)
+    throw new Error("يلزم التأكيد الصريح أنك استمعت إلى التسجيل كاملًا قبل اعتماد المقطع.");
   if (!reviewer.trim() || note.trim().length < 12)
     throw new Error("اذكر المراجع وملاحظة الاستماع الفعلية قبل اعتماد الصوت.");
   const scene = plan.chapters.flatMap((c) => c.scenes).find((s) => s.id === sceneId && s.narration.trim());
   if (!scene) throw new Error("المقطع المنطوق غير موجود في الخطة الحالية.");
-  const fingerprint = await voiceFingerprint(scene, voice[sceneId], scriptPath);
-  if (!fingerprint) throw new Error("لا يمكن اعتماد مقطع بلا نبرة صريحة وصوت موجود مطابق.");
-  const record = await loadVoiceReview(scriptPath);
-  record.scenes[sceneId] = { fingerprint, reviewer: reviewer.trim(), note: note.trim(), at: new Date().toISOString() };
-  const target = voiceReviewFile(scriptPath);
-  const temp = `${target}.${process.pid}.${randomUUID()}.tmp`;
-  try { await writeFile(temp, JSON.stringify(record, null, 2) + "\n", { flag: "wx", mode: 0o600 }); await rename(temp, target); }
-  finally { await rm(temp, { force: true }); }
-  return voiceReviewItems(scriptPath, plan, voice, record);
+  return withVoiceReviewLock(scriptPath, async () => {
+    const fingerprint = await voiceFingerprint(scene, voice[sceneId], scriptPath);
+    if (!fingerprint) throw new Error("لا يمكن اعتماد مقطع بلا نبرة صريحة وصوت موجود مطابق.");
+    const record = await loadVoiceReview(scriptPath);
+    record.scenes[sceneId] = { fingerprint, reviewer: reviewer.trim(), note: note.trim(), at: new Date().toISOString() };
+    await persistVoiceReview(scriptPath, record);
+    return voiceReviewItems(scriptPath, plan, voice, record);
+  });
 };

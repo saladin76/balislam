@@ -12,6 +12,7 @@ import { styleNameAr, styleTemplate } from "../../../src/plan/styles";
 import { Thumbnail } from "../../../src/remotion/Thumbnail";
 import config from "../../../config.json";
 import { tones, toneIds, voiceSettingsFor } from "../../../src/voice/tones";
+import { voiceSampleTextFor } from "../../../src/voice/sampleText";
 import type { VoiceProfile } from "../../../src/channel/types";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -264,15 +265,9 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
 type PlayState = { busy: boolean; playing?: string; request?: { tone?: string; n: number }; msg?: string };
 
 /** نص تجربة لكل قناة: سطران بروح محتواها (بلا آيات: الصوت المستنسخ لا يتلو القرآن). */
-const SAMPLE_TEXT: Record<string, string> = {
-  balislam: "أحيانًا نؤجّل ما نعرف أنه مهم، لا لأننا كسالى، بل لأننا نخاف من الشعور الذي ينتظرنا عند البداية. فماذا لو بدأنا بخطوةٍ واحدةٍ صغيرة؟",
-  "dafatir-alzaman": "في صيف عام ألفٍ ومئتين وثمانيةٍ وخمسين، وقف رجلٌ على أسوار بغداد يراقب الأفق، ولم يكن يعلم أن الأيام القادمة ستغيّر وجه التاريخ.",
-  "zubdat-alkutub": "الفكرة الأولى في هذا الكتاب بسيطة جدًا: العادات الصغيرة تصنع النتائج الكبيرة. تحسّنٌ بواحدٍ في المئة كل يوم، يجعلك بعد سنةٍ شخصًا مختلفًا تمامًا.",
-};
-
 /** تجربة السماع: النص والنموذج، ويُشغَّل الصوت من أزرار جدول النبرات. */
 const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: PlayState; setPlay: (s: PlayState) => void }> = ({ c, profile, play, setPlay }) => {
-  const [text, setText] = useState(SAMPLE_TEXT[c.id] ?? "اكتب هنا سطرين بروح القناة لتسمع صوتك بطبقتها ونبراتها.");
+  const text = voiceSampleTextFor(c.id);
   const [models, setModels] = useState<{ id: string; name: string; arabic: boolean }[] | null>(null);
   const [model, setModel] = useState("");
   const [spent, setSpent] = useState(0);
@@ -304,7 +299,8 @@ const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: Pl
     <div className="listen-panel">
       <label className="field">
         <span>تجربة السماع <small>(صوتك بطبقة القناة الحالية — حتى قبل الحفظ — وبكل نبرة؛ اضغط ▶ في الجدول)</small></span>
-        <textarea rows={2} value={text} maxLength={400} onChange={(e) => setText(e.target.value)} />
+        <textarea rows={2} value={text} readOnly aria-label="النص الاختباري الثابت غير القرآني" />
+        <small className="help">النص ثابت لضمان عدم إرسال آية أو تلاوة قرآنية لمحرك استنساخ الصوت.</small>
       </label>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <span className="help">النموذج:</span>

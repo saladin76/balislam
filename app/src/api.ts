@@ -16,7 +16,7 @@ export type EpisodeSummary = { id: string; dir: string; title: string; domain: s
 export type ChannelSummary = { id: string; name: string; language: string; domains: Record<string, ChannelDomain> };
 export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; check: CheckResult; media: EpisodeMedia; issues: PlanIssue[]; keys: { voice: boolean; quran: boolean } };
 export type TashkeelReport = { file: boolean; words: number; covered: number; coverage: number; min: number; ok: boolean; gaps: { sceneId: string; words: string[]; narration: string }[]; ambiguous: { word: string; forms: string[]; scenes: string[] }[] };
-export type ReviewItem = { key: string; kind: "ayah" | "hadith" | "other"; label: string; ref: string; detail: string; text?: string; line: number; hash: string; status: "pending" | "changed" | "verified" | "rejected"; note?: string; at?: string };
+export type ReviewItem = { key: string; kind: "ayah" | "hadith" | "other"; label: string; ref: string; detail: string; text?: string; line: number; hash: string; status: "pending" | "changed" | "verified" | "rejected"; note?: string; at?: string; reviewer?: string };
 export type ReviewSummary = { total: number; verified: number; pending: number; changed: number; rejected: number; ok: boolean };
 export type SceneReviewItem = { id: string; hash: string; status: "pending" | "changed" | "ok" | "fix"; note?: string; at?: string };
 export type SceneReviewSummary = { total: number; ok: number; fix: number; pending: number; changed: number; done: boolean };
@@ -72,15 +72,20 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  scriptSignoff: (episode: string) =>
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
+  approveScriptSignoff: (episode: string, reviewer: string, note: string) =>
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(
+      `/api/episodes/${episode}/script-signoff`, { method: "PUT", json: { reviewer, note, confirm: true } }),
   voiceReview: (episode: string, channel: string) =>
     call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, undefined, channel),
-  approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string }) =>
+  approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string; listened: true }) =>
     call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, { method: "PUT", json: data }, channel),
   approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
     call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
-      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
+      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note, listened: true } }, channel),
   recitationChoice: (episode: string, channel: string) =>
     call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
   saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
@@ -118,7 +123,7 @@ export const api = {
   sceneReview: (id: string) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`),
   setSceneReview: (id: string, b: { id: string; status: "ok" | "fix" | "pending"; note?: string }) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`, { method: "PUT", json: b }),
   review: (id: string) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`),
-  setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
+  setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string; reviewer?: string; confirm?: boolean }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
   deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; archived: number; pushed: boolean; note?: string }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
   saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan }>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
@@ -168,6 +173,11 @@ export const api = {
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  auditQuranScript: (id: string) =>
+    call<{ environment: string; audits: { key: string; status: "match" | "differs" | "pending" | "missing" | "failed";
+      reason?: string; categories: Record<string, string>; numbers: { ok: boolean; notes: string[] };
+      ops: { at: number; op: string; shown: string; ref: string; cls: string }[] }[] }>(
+      `/api/episodes/${id}/quran-audit`),
   missingQuranTexts: (id: string) =>
     call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
       `/api/episodes/${id}/quran-text-only`),

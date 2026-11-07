@@ -398,21 +398,12 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   // changes reviewer approvals or fills missing verses with placeholders.
   if (parts[0] === "episodes" && parts[1] && parts[2] === "quran-text-only" && parts.length === 3) {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-    const { inspectMissingQuranTexts, fillMissingQuranTexts } = await load("/src/quran/fillMissingText.ts");
+    const { inspectMissingQuranTexts } = await load("/src/quran/fillMissingText.ts");
     if (req.method === "GET") {
       return send(res, 200, { status: await inspectMissingQuranTexts(parts[1]) }), true;
     }
-    if (req.method === "POST") {
-      const body = await readBody(req);
-      if (!body || body.confirm !== true)
-        return send(res, 400, { error: "يجب طلب جلب نصوص الآيات الناقصة صراحة. لا يُجلب صوت ولا يُعدَّل الفيديو." }), true;
-      const { quranClientFromEnv } = await load("/src/quran/client.ts");
-      const client = quranClientFromEnv();
-      if (!client)
-        return send(res, 400, { error: "مفاتيح Quran Foundation غير متاحة لهذه النسخة على Mac؛ اضبط QF_CLIENT_ID وQF_CLIENT_SECRET في .env ولا تُدخل نصوصًا تخمينية." }), true;
-      const result = await fillMissingQuranTexts(parts[1], client);
-      return send(res, 200, { result, status: await inspectMissingQuranTexts(parts[1]) }), true;
-    }
+    if (req.method === "POST")
+      return send(res, 409, { error: "لا يُجلب نص القرآن إلى quran.json. اكتب الآية في السكريبت ثم استخدم مقارنة المصحف للقراءة فقط." }), true;
     return send(res, 405, { error: "Method not allowed" }), true;
   }
 
@@ -428,6 +419,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { action, auditNote } = await readBody(req);
       if (action === "approve") {
+        const { assertScriptApproved } = await load("/src/script/approval.ts");
+        await assertScriptApproved(file);
         const { checkVisualStoryboardSignoff } = await load("/src/plan/storyboardVisualGate.ts");
         const checked = checkVisualStoryboardSignoff(plan, auditNote);
         if (!checked.ok)
@@ -508,10 +501,11 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const script = parseScript(await readFile(file, "utf8"), file);
     let items;
     if (req.method === "PUT") {
-      const { key, status, note } = await readBody(req);
+      const { key, status, note, reviewer, confirm } = await readBody(req);
       if (typeof key !== "string" || !["verified", "rejected", "pending"].includes(status)) return send(res, 400, { error: "قرار غير صالح." }), true;
       try {
-        items = await R.setReview(file, script, key, status, typeof note === "string" ? note : "");
+        items = await R.setReview(file, script, key, status, typeof note === "string" ? note : "",
+          typeof reviewer === "string" ? reviewer : "", confirm === true);
       } catch (e) {
         return send(res, 400, { error: (e as Error).message }), true;
       }
@@ -748,7 +742,11 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   if (parts[0] === "voice-sample") {
     const dir = path.join(ctx.root, "renders", "voice-samples", ch);
     if (parts[1] === "file" && parts[2] && req.method === "GET") {
-      const f = path.join(dir, safeName(parts[2]));
+      const requestedSample = safeName(parts[2]);
+      // Old unbounded text samples stay on disk for history but are not served.
+      if (!/^curated-v1-[a-f0-9]{16}\.mp3$/.test(requestedSample))
+        return send(res, 403, { error: "العيّنة القديمة غير مراجعة؛ استخدم عينة القناة الثابتة." }), true;
+      const f = path.join(dir, requestedSample);
       if (!existsSync(f)) return send(res, 404, { error: "العيّنة غير موجودة." }), true;
       ctx.serveFile(req, res, f, "audio/mpeg");
       return true;
@@ -763,14 +761,15 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     }
     if (!parts[1] && req.method === "POST") {
       const b = await readBody(req);
-      const text = String(b.text ?? "").trim();
-      if (!text) return send(res, 400, { error: "اكتب نص العيّنة." }), true;
-      if (text.length > 400) return send(res, 400, { error: "العيّنة أطول من 400 حرف؛ يكفي سطران لضبط الصوت." }), true;
+      const { assertCuratedVoiceSample } = await load("/src/voice/sampleText.ts");
+      let text: string;
+      try { text = assertCuratedVoiceSample(ch, b.text); }
+      catch (error) { return send(res, 400, { error: (error as Error).message }), true; }
       const { voiceSettingsFor, isTone } = await load("/src/voice/tones.ts");
       const tune = voiceSettingsFor(b.profile ?? undefined, isTone(b.tone) ? b.tone : undefined);
       const model = String(b.model || el.modelId);
       const { createHash } = await import("node:crypto");
-      const name = `${createHash("sha1").update(JSON.stringify({ text, tune, model, v: process.env.ELEVENLABS_VOICE_ID })).digest("hex").slice(0, 16)}.mp3`;
+      const name = `curated-v1-${createHash("sha1").update(JSON.stringify({ text, tune, model, v: process.env.ELEVENLABS_VOICE_ID })).digest("hex").slice(0, 16)}.mp3`;
       const file = path.join(dir, name);
       const cached = existsSync(file);
       if (!cached) {

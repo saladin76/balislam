@@ -7,9 +7,13 @@ export type CloudRecitation = {
   provider: "alquran-cloud";
   edition: string;
   name: string;
-  licence: { holder: string; evidence: string; scope: string; verifiedAt: string };
+  licence: { holder: string; evidence: string; scope: string; verifiedAt: string;
+    verifiedBy?: string; reviewNote?: string };
 };
-export type FoundationRecitation = { id: number; name: string; provider?: "quran-foundation" };
+/** An ID/name is enough for preview fetching, not permission to publish. */
+export type FoundationRecitation = { id: number; name: string; provider?: "quran-foundation";
+  licence?: { holder: string; evidence: string; scope: string; verifiedAt: string;
+    verifiedBy?: string; reviewNote?: string } };
 export type RecitationChoice = CloudRecitation | FoundationRecitation;
 
 export const isCloudRecitation = (value: RecitationChoice | undefined): value is CloudRecitation =>
