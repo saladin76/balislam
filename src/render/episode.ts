@@ -127,7 +127,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const outputRoot = path.join(path.dirname(scriptPath), "out");
   const output = opts.outFile ?? path.join(outputRoot,
     `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
-  if (!/\\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
+  if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
   const relativeOutput = path.relative(outputRoot, output);
   if (relativeOutput === ".." || relativeOutput.startsWith(`..${path.sep}`) ||
       path.isAbsolute(relativeOutput) || relativeOutput === "")
