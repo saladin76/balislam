@@ -479,6 +479,31 @@ export const recordSceneRenderEvidence = async (
   });
 };
 
+/** Verify each exact reviewed scene cut before and after a full-episode assembly. */
+export const approvedSceneCutsForAssembly = async (
+  episode: string, token: unknown,
+): Promise<{ sceneId: string; file: string; sha256: string }[]> => {
+  assertSceneOwner(token);
+  return withState(episode, async (doc, current) => {
+    approvedSceneInputsSha256(doc.state);
+    if (!current.planReady)
+      throw Error("Current storyboard review is missing or stale.");
+    const cuts: { sceneId: string; file: string; sha256: string }[] = [];
+    for (const scene of doc.state.scenes) {
+      const file = sceneFile(current.scriptPath, scene.id);
+      if (!scene.previewSha256 || !scene.approval ||
+          scene.approval.previewSha256 !== scene.previewSha256 ||
+          scene.approval.sourceSha256 !== scene.sourceSha256 ||
+          doc.previewEpochs[scene.id] !== await fileGeneration(file) ||
+          scene.previewSha256 !== await byteSha256(file))
+        throw Error("Scene " + scene.id + " has changed after audiovisual approval.");
+      await verifyVideoEvidence(file);
+      cuts.push({ sceneId: scene.id, file, sha256: scene.previewSha256 });
+    }
+    return cuts;
+  });
+};
+
 /** Protect every final-Master queue/CLI/API entrypoint before expensive rendering. */
 export const requireScenesReadyForMaster = async (episode: string): Promise<void> => {
   await withState(episode, async (doc, current) => {
