@@ -3,17 +3,9 @@ import { api, type CheckResult, type EpisodeStatus, type SceneReviewSummary, typ
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import type { PlanIssue } from "../../../src/plan/validate";
+import { WORKFLOW_STAGES, WorkflowApprovalDetails, approvalLabel, type WorkflowApprovalSnapshot, type WorkflowStage } from "./WorkflowApprovalDetails";
 
-export type WorkspaceStage = "research" | "script" | "storyboard" | "voice" | "episode" | "publish";
-
-const stages: { id: WorkspaceStage; title: string }[] = [
-  { id: "research", title: "البحث" },
-  { id: "script", title: "السكريبت" },
-  { id: "storyboard", title: "الستوري بورد" },
-  { id: "voice", title: "الصوت" },
-  { id: "episode", title: "المشاهد" },
-  { id: "publish", title: "النشر" },
-];
+export type WorkspaceStage = "research" | "script" | "storyboard" | "voice" | "episode" | "review" | "publish";
 
 /** واجهة عرض فقط؛ ليست مصدرًا جديدًا لحالة الاعتماد ولا تتجاوز بوابات المحرك. */
 export const EpisodeWorkspaceBar: React.FC<{
@@ -28,7 +20,9 @@ export const EpisodeWorkspaceBar: React.FC<{
   saveState: "saved" | "dirty" | "saving" | "error";
   scriptDirty: boolean;
   researchDirty?: boolean;
-}> = ({ episodeId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false }) => {
+  /** Provided only by the unified workflow engine, never inferred here. */
+  approvals?: WorkflowApprovalSnapshot;
+}> = ({ episodeId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false, approvals }) => {
   const [review, setReview] = useState<ReviewSummary | null>(null);
   const [sceneReview, setSceneReview] = useState<SceneReviewSummary | null>(null);
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
@@ -68,16 +62,16 @@ export const EpisodeWorkspaceBar: React.FC<{
   if (scriptDirty) notes.unshift({ id: "unsaved-script", stage: "script", text: "السكريبت يحتوي على تغييرات غير محفوظة", critical: true });
   if (saveState === "error") notes.unshift({ id: "failed-save", stage: "episode", text: "تعذر حفظ تعديلات المشاهد؛ راجع الحفظ قبل المتابعة", critical: true });
   if (review && !review.ok) notes.push({ id: "citations", stage: "script", text: `الاستشهادات: ${review.verified} من ${review.total} معتمد`, critical: true });
-  if (board && !board.ok) notes.push({ id: "storyboard", stage: "storyboard", text: `الستوري بورد: ${board.approved} من ${board.total} معتمد`, critical: false });
+  if (board && !board.ok) notes.push({ id: "storyboard", stage: "storyboard", text: `لوحات Storyboard: ${board.approved} من ${board.total} اجتازت مراجعة اللوحات الحالية`, critical: false });
   if (missingAudio) notes.push({ id: "voice", stage: "voice", text: `${missingAudio} مشهدًا بلا صوت مطابق للنص الحالي`, critical: false });
   if (sceneReview && !sceneReview.done) notes.push({ id: "scenes", stage: "episode", text: `مراجعة المشاهد: ${sceneReview.ok} من ${sceneReview.total} سليم`, critical: false });
-  const stageState = (id: WorkspaceStage): string => {
-    if (id === "research") return researchExists ? "الملف موجود" : "ملف البحث";
-    if (id === "script") return check.ok && review?.ok && !scriptDirty ? "مكتمل" : "مراجعة";
-    if (id === "storyboard") return board?.ok ? "معتمد" : "بانتظار الاعتماد";
-    if (id === "voice") return narration.length > 0 && missingAudio === 0 ? "الصوت جاهز" : "قيد العمل";
-    if (id === "episode") return sceneReview?.done ? "المشاهد معتمدة" : "قيد المراجعة";
-    return published ? "منشور" : "قيد العمل";
+  const technical: Partial<Record<WorkflowStage, string>> = {
+    script: `المصادر: ${review ? `${review.verified}/${review.total} موثّقة` : "لم يُحمّل سجل المصادر"}؛ ${check.ok && !scriptDirty ? "فحص النص بلا أخطاء" : "النص يحتاج مراجعة"}؛ البحث: ${researchExists === null ? "غير متاح" : researchExists ? "موجود" : "غير موجود"}`,
+    storyboard: board ? `مراجعة اللوحات الحالية: ${board.approved}/${board.total} (لا تعادل اعتماد المحرك)` : "تقرير اللوحات غير متاح",
+    voice: `المقاطع الصوتية المطابقة: ${narration.length - missingAudio}/${narration.length}؛ لا يثبت الاستماع أو الاعتماد`,
+    motion: sceneReview ? `مراجعة المشاهد: ${sceneReview.ok}/${sceneReview.total}؛ لا تعادل اعتماد الحركة` : "مراجعة المشاهد غير متاحة",
+    review: "تتطلب مشاهدة الفيلم كاملًا بالصوت والصورة بسرعة طبيعية وتوثيق الملاحظات",
+    master: published ? "توجد بيانات نشر؛ الاعتماد الرسمي يحتاج سجله الخاص" : "لا يثبت الرندر أو وجود الملفات موافقة صاحب المشروع",
   };
   const visible = showAll ? notes : notes.slice(0, 3);
   const saveLabel = scriptDirty || researchDirty || saveState === "dirty" ? "تعديلات غير محفوظة" : saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذر الحفظ" : "تعديلات المشاهد محفوظة";
@@ -89,17 +83,19 @@ export const EpisodeWorkspaceBar: React.FC<{
           <p className="ew-eyebrow">الحلقة {episodeId} · مساحة الإنتاج</p>
           <h1>{title || plan.title || "حلقة بلا عنوان"}</h1>
         </div>
-        <span className={`ew-save ${saveState === "error" ? "error" : ""}`} role="status">{saveLabel}</span>
+        <div className="ew-heading-actions"><button type="button" className="ew-research-shortcut" onClick={() => onStage("research")} aria-current={stage === "research" ? "step" : undefined}>ملف البحث والتحضير</button><span className={`ew-save ${saveState === "error" ? "error" : ""}`} role="status">{saveLabel}</span></div>
       </div>
       <nav className="ew-stages" aria-label="مراحل إنتاج الحلقة">
-        {stages.map((item, index) => (
-          <button key={item.id} type="button" className={`ew-stage ${stage === item.id ? "active" : ""}`}
-            aria-current={stage === item.id ? "step" : undefined} onClick={() => onStage(item.id)}>
+        {WORKFLOW_STAGES.map((item, index) => (
+          <button key={item.key} type="button" className={`ew-stage ${stage === item.tab || (stage === "research" && item.key === "script") ? "active" : ""}`}
+            aria-current={stage === item.tab || (stage === "research" && item.key === "script") ? "step" : undefined}
+            onClick={() => onStage(item.tab)}>
             <span className="ew-stage-number">{index + 1}</span>
-            <span><strong>{item.title}</strong><small>{stageState(item.id)}</small></span>
+            <span><strong>{item.title}</strong><small>{approvalLabel(approvals?.[item.key])}</small></span>
           </button>
         ))}
       </nav>
+      <WorkflowApprovalDetails approvals={approvals} technical={technical} />
       {notes.length ? (
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
           <button className="ew-attention-title" type="button" aria-expanded={attentionOpen}
