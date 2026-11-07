@@ -167,7 +167,7 @@ export const App: React.FC = () => {
     loadedKey.current = "";
     episodesOf.current = "";
     const ch = channelId;
-    api.episodes().then((list) => {
+    api.episodes(ch).then((list) => {
       if (channelRef.current !== ch) return;
       episodesOf.current = ch;
       setEpisodes(list);
@@ -178,14 +178,14 @@ export const App: React.FC = () => {
         setTab(want.tab);
       } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
-    api.identity().then(({ identity, defaults }) => {
+    api.identity(ch).then(({ identity, defaults }) => {
       if (channelRef.current !== ch) return;
       const prior = identityDrafts.current.get(ch);
       const dirty = prior && JSON.stringify(prior.draft) !== JSON.stringify(prior.saved);
       setIdent({ draft: dirty ? prior.draft : identity, saved: identity, defaults });
     }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
     // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
-    if (channelId) api.channel().then((c) => {
+    if (channelId) api.channel(ch).then((c) => {
       if (channelRef.current === ch) setChannel(channelInfo(c));
     }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -280,7 +280,7 @@ export const App: React.FC = () => {
     if (!(await flushPlan())) return;
     let r;
     try {
-      r = await api.saveScript(episode, snapshot);
+      r = await api.saveScript(episode, snapshot, ch);
     } catch (e) {
       say(`تعذّر حفظ السكريبت: ${(e as Error).message}`, true);
       return;
@@ -467,7 +467,7 @@ export const App: React.FC = () => {
             onNew={() => setShowNew(true)}
             onDeleted={(id) => {
               // الحلقة المحذوفة لا تبقى مفتوحة ولا في القائمة
-              api.episodes().then((list) => {
+              api.episodes(channelId).then((list) => {
                 setEpisodes(list);
                 if (id === epId) {
                   loadedKey.current = "";
@@ -530,7 +530,7 @@ export const App: React.FC = () => {
             onSave={async () => {
               const ownerChannel = channelId, snapshot = ident.draft;
               try {
-                await api.saveIdentity(snapshot);
+                await api.saveIdentity(snapshot, ownerChannel);
                 const current = identityDrafts.current.get(ownerChannel);
                 // Preserve typing while a save is in-flight; do not overwrite another channel's identity.
                 const next = { ...ident, draft: current?.draft ?? snapshot, saved: snapshot };
@@ -607,7 +607,7 @@ export const App: React.FC = () => {
             onOpenVoice={() => setTab("voice")}
           />
         ) : (
-          <ScriptTab key={`${channelId}:${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} researchDraft={researchDrafts.current.get(sessionKey) ?? null} onResearchDraftChange={onResearchDraftChange}
+          <ScriptTab key={`${channelId}:${epId}:${tab}`} ref={scriptRef} episodeId={epId} channelId={channelId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} researchDraft={researchDrafts.current.get(sessionKey) ?? null} onResearchDraftChange={onResearchDraftChange}
              onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check}
              onChange={(next) => {
                scriptDrafts.current.set(sessionKey, { text: next, saved: savedScript });
