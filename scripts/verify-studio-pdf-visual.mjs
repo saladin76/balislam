@@ -39,7 +39,9 @@ mkdirSync(out, { recursive: false, mode: 0o700 });
 const cases = [];
 const firstDafatir = path.join(repo,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
 const realZubdat = path.join(repo,"channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/storyboard-visual/v021/manifest.json");
-const sourceHashes = new Map([[firstDafatir,hash(readFileSync(firstDafatir))],[realZubdat,hash(readFileSync(realZubdat))]]);
+const realBalislamPlan = path.join(repo,"channels/balislam/episodes/001-know-the-truth/plan.json");
+const sourceHashes = new Map([firstDafatir,realZubdat,realBalislamPlan]
+  .map(file => [file,hash(readFileSync(file))]));
 
 // Synthetic balislam: generated 16:9/9:16 test-pattern images and deliberately
 // difficult mixed Arabic/Latin/numerals/newlines/emoji. Clearly not production assets.
@@ -62,10 +64,29 @@ writeFileSync(manifest,JSON.stringify({
   ]
 },null,2));
 
+// The Balislam episode stores its actual data as a production plan rather
+// than a board-image manifest. Adapt the first six *real* scene texts into an
+// ephemeral, strictly read-only review manifest. Missing images remain marked
+// missing, and are NEVER replaced with synthetic "real" storyboard frames.
+const realPlan=JSON.parse(readFileSync(realBalislamPlan,"utf8"));
+if(realPlan.channel!=="balislam" || !Array.isArray(realPlan.chapters?.[0]?.scenes) ||
+   realPlan.chapters[0].scenes.length<6)throw Error("Real Balislam episode plan is incompatible");
+const realChapter=realPlan.chapters[0];
+const realBalislamReview=path.join(out,"balislam-real-plan-review-manifest.json");
+writeFileSync(realBalislamReview,JSON.stringify({
+  channel:realPlan.channel,episode:String(realPlan.episode),version:String(realPlan.version),
+  scenes:realChapter.scenes.slice(0,6).map(scene=>({
+    id:scene.id,chapter:realChapter.number??1,chapterTitle:realChapter.title,
+    title:scene.props?.shot||scene.template||"",narration:scene.narration||"",
+    notes:scene.props?.cues||"",shot:scene.template||"",image:null,portraitImage:null
+  }))
+},null,2));
+
 const inputs = [
   {name:"dafatir-chapter-1",source:firstDafatir,chapter:1,cover:true,expectedScenes:9},
   {name:"dafatir-chapter-2",source:firstDafatir,chapter:2,cover:true,expectedScenes:7},
   {name:"zubdat-real-v021",source:realZubdat,chapter:null,cover:false,expectedScenes:31},
+  {name:"balislam-real-plan",source:realBalislamReview,chapter:1,cover:true,expectedScenes:6},
   {name:"balislam-synthetic-stress",source:manifest,chapter:1,cover:true,expectedScenes:2},
 ];
 
@@ -161,6 +182,9 @@ for (const spec of inputs) {
   }catch{domErrors.push({case:spec.name,issue:"invalid audit JSON",preview:reportText.slice(0,500)});}
 }
 const report={head:process.env.GITHUB_SHA??null,status:"PENDING_REVIEW",chrome,createdAt:new Date().toISOString(),
+  inputs:{dafatir:"actual storyboard frames",zubdat:"actual storyboard frames",
+    balislamReal:"actual plan narration, no storyboard frame files",
+    balislamStress:"synthetic 16:9/9:16 media and difficult mixed Arabic"},
   cases,errors,domErrors,realEpisodeInputsUntouched:true,pass:!errors.length&&!domErrors.length};
 writeFileSync(path.join(out,"audit.json"),JSON.stringify(report,null,2));
 console.log("STUDIO_PDF_VISUAL_AUDIT "+JSON.stringify(report));
