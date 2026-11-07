@@ -393,13 +393,19 @@ describe("لا خروج صامت", () => {
     `;
     const file = path.join(d, "probe.mts");
     writeFileSync(file, script);
-    const out = await new Promise<string>((res) => {
-      const c = spawn(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), file], { cwd: path.resolve(".") });
-      let o = "";
-      c.stdout.on("data", (b) => (o += b));
-      c.on("close", () => res(o));
+    const childResult = await new Promise<{ stdout: string; stderr: string; code: number | null; signal: NodeJS.Signals | null }>((res, rej) => {
+      // Node 20.12+ and modern tsx use the official --import loader entry.
+      // Do not couple the probe to tsx's private dist/cli.mjs implementation.
+      const c = spawn(process.execPath, ["--import=tsx", file], { cwd: path.resolve(".") });
+      let stdout = "";
+      let stderr = "";
+      c.stdout.on("data", (b: Buffer) => (stdout += b.toString()));
+      c.stderr.on("data", (b: Buffer) => (stderr += b.toString()));
+      c.on("error", rej);
+      c.on("close", (code, signal) => res({ stdout, stderr, code, signal }));
     });
-    expect(out).toContain("STATUS done");
+    expect(childResult, `Child process failed before finishing queue: ${childResult.stderr}`).toMatchObject({ code: 0, signal: null });
+    expect(childResult.stdout, `Child stdout empty; stderr: ${childResult.stderr}`).toContain("STATUS done");
     expect(readFileSync(path.join(d, "w.mp4"), "utf8")).toBe("ok");
   }, 20000);
 });
