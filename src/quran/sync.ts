@@ -33,7 +33,7 @@ const atKey = (key: string) => `${key}#at`;
 const fresh = (iso?: string) => Boolean(iso && Date.now() - Date.parse(iso) < QF_MAX_AGE_MS);
 
 /** فهرس تلاوات Quran Foundation للحلقة: recitations/index.json بجوار السكريبت. */
-export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; sha256?: string; textSha256?: string; rightsEvidence?: string }>;
+export type RecitationIndex = Record<string, { parts: { file: string; duration: number; sha256?: string }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; reviewNote?: string; sha256?: string; originalFile?: string; originalName?: string; originalSha256?: string; textSha256?: string; rightsEvidence?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
 
 /** Synchronize licensed recitations and optional meaning translations; never write Quran text. */
