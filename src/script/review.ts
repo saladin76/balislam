@@ -64,7 +64,7 @@ export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): 
     const e = ledger?.items[key];
     // Legacy status without a named reviewer/note is historical evidence only;
     // it is NOT a current approval and must be explicitly re-reviewed.
-    const hasHumanProof = Boolean(e?.reviewer?.trim() && e?.note?.trim() &&
+    const hasHumanProof = Boolean(e && e.reviewer?.trim() && e.note?.trim() &&
       e.at && Number.isFinite(Date.parse(e.at)) && Date.parse(e.at) <= Date.now() + 60000);
     const status: ReviewStatus = !e ? "pending" : e.hash !== hash ? "changed" :
       hasHumanProof ? e.status : "pending";
