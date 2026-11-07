@@ -200,6 +200,15 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(pageCount(withoutCover.html) - annexCount(withoutCover.html)).toBe(7);
     expect(withoutCover.html).not.toContain('class="page cover"');
   });
+  it("positions review badges inside the header, away from scene frames",()=>{
+    const x=setup();
+    const r=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1});
+    expect(r.html).toContain(".head .name{position:absolute;right:0;left:46mm");
+    expect(r.html).toContain(".status{position:absolute;left:0;top:2mm");
+    expect(r.html).toContain(".page-index{position:absolute");
+    expect(r.html).toContain("height:130mm");
+    expect(r.status).toBe("PENDING_REVIEW");
+  });
   it("numbers each real physical cover, scene and annex page without gaps or duplicates",()=>{
     const x=setup();
     x.data.scenes[0]!.narration=("عَرَبِيٌّ بِتَشْكِيلٍ English API v2.1 2026 👩🏽‍💻\\n").repeat(35);
