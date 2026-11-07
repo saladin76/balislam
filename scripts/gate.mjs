@@ -10,7 +10,7 @@
  * كل فحص يُشغَّل وحده ويُحفظ رمز خروجه الحقيقي؛ لا أنابيب ولا تصفية تخفي الفشل.
  * الخروج 0 فقط إذا نجحت كل الفحوص. لا يُستثنى اختبار ولا يُعطَّل.
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -51,7 +51,20 @@ const CHECKS = [
 
 // لا تُورَّث متغيرات تحديد المستودع (GIT_DIR وأخواته) التي يضعها git للخطّاف: الفحوص واختباراتها
 // تعمل على مستودعات مؤقتة، ولو ورثتها لعملت على المستودع الحقيقي (scripts/git-env.mjs، الأمر 018)
-const sh = (cmd, a, cwd, inherit = true) => spawnSync(cmd, a, { cwd, stdio: inherit ? "inherit" : "pipe", encoding: "utf8", env: childEnv({ CI: process.env.CI ?? "1", TMPDIR: runTemp, TMP: runTemp, TEMP: runTemp }) });
+const gateEnv = () => childEnv({ CI: process.env.CI ?? "1", TMPDIR: runTemp, TMP: runTemp, TEMP: runTemp });
+const sh = (cmd, a, cwd, inherit = true) => spawnSync(cmd, a, { cwd, stdio: inherit ? "inherit" : "pipe", encoding: "utf8", env: gateEnv() });
+let activeChild = null;
+let interrupted = null;
+const runCheck = (cmd, a, cwd) => new Promise((resolve) => {
+  const child = spawn(cmd, a, { cwd, stdio: "inherit", env: gateEnv(), detached: process.platform !== "win32" });
+  activeChild = child;
+  let error = null;
+  child.on("error", (e) => { error = e; });
+  child.on("close", (status, signal) => {
+    if (activeChild === child) activeChild = null;
+    resolve({ status, signal, error });
+  });
+});
 
 let dir = root;
 let cleanup = cleanRunTemp;
@@ -62,7 +75,21 @@ const fail = (msg, code = 1) => {
   process.exit(code);
 };
 process.on("uncaughtException", (e) => fail(`بوابة التسليم: خطأ داخلي (${e.message}); رُفض الدفع احتياطًا.`, 2));
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => fail(`بوابة التسليم: أُوقفت (${sig})؛ رُفض الدفع.`, 130));
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => {
+  if (interrupted) return;
+  interrupted = sig;
+  if (!activeChild?.pid) return;
+  const pid = activeChild.pid;
+  const stop = (signal) => {
+    try {
+      if (process.platform !== "win32") process.kill(-pid, signal);
+      else activeChild?.kill(signal);
+    } catch { activeChild?.kill(signal); }
+  };
+  stop(sig);
+  // A stubborn worker must not keep using a temp directory after the owner cancels.
+  setTimeout(() => { if (activeChild?.pid === pid) stop("SIGKILL"); }, 8000).unref();
+});
 if (commit) {
   // نسخة عمل مؤقتة على الـ commit المطلوب بالضبط
   const tmp = mkdtempSync(path.join(runTemp, "bal-gate-"));
@@ -93,10 +120,11 @@ try {
   for (const c of CHECKS) {
     console.log(`\n▶ ${c.name}${commit ? ` (commit ${commit.slice(0, 7)})` : ""}`);
     const t0 = Date.now();
-    const r = sh(c.cmd, c.args, dir);
+    const r = await runCheck(c.cmd, c.args, dir);
     // status null = أُوقف بإشارة: فشل لا نجاح
-    const ok = r.status === 0;
+    const ok = r.status === 0 && !interrupted;
     results.push({ name: c.name, ok, code: r.status, signal: r.signal, seconds: (Date.now() - t0) / 1000 });
+    if (interrupted) break;
   }
  } finally {
   // Test leftovers may exist even if a worker exits abruptly. Only OUR root is removed.
@@ -106,6 +134,10 @@ try {
   console.log("GATE_TEMP_CLEANED " + (!existsSync(runTemp)));
 }
 
+if (interrupted) {
+  console.error("GATE_CANCELLED " + interrupted + " (owned temp cleaned; push rejected)");
+  process.exit(interrupted === "SIGINT" ? 130 : interrupted === "SIGTERM" ? 143 : 129);
+}
 console.log("\nبوابة التسليم:");
 for (const r of results) console.log(`  ${r.ok ? "✓" : "✗"} ${r.name} (${r.seconds.toFixed(0)} ث${r.ok ? "" : `، رمز الخروج ${r.code ?? r.signal}`})`);
 const failed = results.filter((r) => !r.ok);
