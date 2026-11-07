@@ -142,6 +142,12 @@
 - **الفصل 5 (التوجيه 024):** `CH5_SHOTS` في `src/remotion/illus/shots/ch5.tsx` بست وحدات وأربعة أماكن (`Courtyard`، `SouqStreet`، `StallSet`، `Workshop`، `Rooftops`). تُعاد فيها عناصر الفصل 2 من `ch2.tsx` (`ValueScale` و`ShinyWeight` و`StallSet`) وعناصر الفصل 3 من `ch3.tsx` (`reachTo` و`KNEEL` و`CoinsGlyph`). العناصر الجديدة (`Purse` و`BrickWall` و`PlanSheet` و`FoodTray` و`ToolBox` و`CopperTray` و`FruitBox`) داخل لقطات الفصل حتى المراجعة. السكون في `court-fountain-still` و`roof-night-still`. التخطيط في `storyboard/ch5-plan.md`، والاختبار: `tests/ch5-024.test.tsx`.
   - التوجيه 025 (ch5-v2) في `src/remotion/illus/shots/ch5.tsx`: `PlanSheet` لوح مخطط قائم بطوابق مخططة متقطعة؛ ورفض النجار برقعة تحت الساق القصيرة لكرسي الورشة؛ وصورة البطل في `CopperTray` أكبر؛ وفي دكان الميزان صرّة الثقة والحجر تحت الكفة، والاستواء بالبرتقالة الناقصة.
 - **الفصل 6 (التوجيه 025):** `CH6_SHOTS` في `src/remotion/illus/shots/ch6.tsx`، ختام الحلقة. باب الأخ في صدر الزقاق (`Lane` و`BRO_DOOR` و`END` من `ch3.tsx`) مع العتبة الجانبية `DoorStep` والأخ في عتبته `BrotherInDoor`. والمصطبة لاثنين `PairBench` في اللقطة المقابلة، بجانب `SEAT` من `ch4.tsx`. وتُعاد فيه لقطة الصفحة `PageInsert` من `ch3.tsx`، والمقهى، وصحن الدار، والميزان. السكون في `cafe-still` و`brother-bench-still`. التخطيط في `storyboard/ch6-plan.md`، والاختبار: `tests/ch6-025.test.tsx`.
+  - التوجيه 026 في `src/remotion/illus/shots/ch6.tsx` (الترتيب الزمني):
+    - `lane-sits-wide`: يقوم ويمشي عائدًا.
+    - `lane-returns-at-dawn`: بدل `lane-rises-to-door`، يعود قبيل الفجر التالي بطبقتي `Lane` (قبيل الفجر ثم الفجر).
+    - `court-elder-humble`: الشيخ مع الصبي.
+    - `SECOND_MSG`: لون رأس الرسالة الثانية.
+  - وفي `src/remotion/illus/shots/phone.tsx` يقبل `MsgCard` خاصية `tone` للون رأس البطاقة.
 - **خلفية الكابشن الاختيارية (التوجيه 019):** حقل `captionBackdrop` (0..1) في نتيجة اللقطة المصمَّمة (`Shot` في `src/remotion/illus/shots/index.tsx`): تدرّج أعمق وأطول أعلى الإطار (`captionGradient` في `src/remotion/scenes/AlleyTale.tsx`) وكلمات قادمة أوضح وظل أعمق (`contrast` في `TopCaption`)، للقطات فاتحة الخلفية. بلا الحقل كل شيء كما كان حرفيًا (اختبار، ولوحة الفصل 1 مطابقة لـv2 بالبايت).
 - **ورشة النجارة:** الكرسي على المنضدة بساقه الطويلة والدوران حول قدمها (`Workshop` في `src/remotion/illus/shots/interior.tsx`، `tests/workshop-chair.test.tsx`).
 - **القيود:** فحص الحجب هندسي لا بكسلي؛ ظل الشاهدة في زاويتها العمودية حافة داكنة لا هيئة كاملة؛ العامة العمودية لا تكبر أكثر من 0.59 دون تغيير مواضع الشخوص؛ اللقطة الرابطة العمودية في c1-s2 أوسع (0.533) لتتسع البطاقتان فوق صاحبيهما.

@@ -8,7 +8,7 @@ import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow,
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, MsgCard, PhonePOV, flight, seatedPhone } from "./phone";
-import { CH2_SHOTS } from "./ch2";
+import { CH2_CAST, CH2_SHOTS } from "./ch2";
 import { CH3_SHOTS } from "./ch3";
 import { CH4_SHOTS } from "./ch4";
 import { CH5_SHOTS } from "./ch5";
@@ -730,7 +730,8 @@ export const SHOTS: Record<string, ShotDef> = {
         { x: 1120, look: hero, flip: true, got: -100 },
         { x: 380, look: LOOKS.stranger, flip: false, got: -100 },
         { x: 560, look: LOOKS.friend, flip: true, got: tI + 20 },
-        { x: 1400, look: LOOKS.elder, flip: false, got: tI + 26 },
+        // التوجيه 026: لا الشيخ (LOOKS.elder شيخ الفصول 1 و5 و6)، بل قارئة الأخبار من الفصل 2
+        { x: 1400, look: CH2_CAST.reader, flip: false, got: tI + 26 },
         { x: 1570, look: LOOKS.womanSand, flip: true, got: tN + 6 },
       ];
       const sends: { from: number; to: number; at: number }[] = [

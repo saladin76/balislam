@@ -50,10 +50,11 @@ const EnvelopeInsert: React.FC<{ flap: number; coins: number; glint: number }> =
       {/* الغطاء مفتوحًا خلف النقود (flap > 0.5)، ومغلقًا فوقها (flap ≤ 0.5) */}
       {flap > 0.5 ? <path d={`M${x0} ${y0} L${ENV.x} ${flapY} L${x0 + w} ${y0} Z`} fill={mix(ID.paper, ID.copper, 0.15)} stroke={INK} strokeWidth={7} strokeLinejoin="round" /> : null}
       {/* النقود داخل الظرف تطل من فتحته معًا: المبلغ نفسه الذي أُخذ من أخيه، وتعود إليه عند الإغلاق */}
-      {[0, 1, 2, 3, 4].map((i) => {
-        const on = prog(coins * 5, i, i + 1) * Math.min(1, flap * 1.6);
+      {[0, 1, 2].map((i) => {
+        // ثلاث قطع: العدد نفسه الذي أُخذ من الأخ في c3-s2 ووُضع في الظرف في c3-s11 (التوجيه 026)
+        const on = prog(coins * 3, i, i + 1) * Math.min(1, flap * 1.6);
         if (on <= 0.01) return null;
-        const cx = x0 + 150 + i * 80;
+        const cx = x0 + 230 + i * 80;
         const cy = y0 + 40 - 70 * on - (i % 2) * 16;
         return (
           <g key={i}>

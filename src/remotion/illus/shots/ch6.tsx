@@ -78,6 +78,12 @@ const TALK_A: PoseSpec = { ...POSES.sit, head: 6, armFront: { s: 46, e: 50 } };
 const TALK_B: PoseSpec = { ...POSES.sit, head: 12, armFront: { s: 30, e: 66 } };
 const LISTEN: PoseSpec = { ...POSES.sit, head: 14, lean: 8 };
 
+/**
+ * رسالة ثانية من المرسِل نفسه (التوجيه 026): ليست إعادة تداول رسالة c4-s9، فرأسها بلون الختم لا بلون الفجر،
+ * ولا نص ولا مضمون لها (لا يضيف السكريبت مضمونًا).
+ */
+const SECOND_MSG = mix(ID.seal, ID.copper, 0.35);
+
 // ———————————————————— صحن الدار ————————————————————
 const COURT = { bench: 420, benchW: 470, harsh: 530, hero: 790 };
 
@@ -177,25 +183,32 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
     },
   },
   "lane-sits-wide": {
-    nameAr: "الزقاق (عريضة): جالس على العتبة عند باب أخيه، والطريق المضيء خلفه إلى بيته",
+    nameAr: "الزقاق (عريضة): يقوم عن العتبة ويمضي عائدًا في الطريق والظرف معه، ولم يطرق",
     place: "الزقاق عند باب الأخ صباحًا",
     render: ({ frame, at, portrait }) => {
-      // انتقال إلى الممارسات الثلاث: الكاميرا تبتعد عنه إلى الزقاق كله؛ لا حدث آخر
+      // التوجيه 026 (الترتيب الزمني): الكاميرا تبتعد إلى الزقاق كله عند «ثلاث»، فيقوم عند «ممارسات» ويمشي عائدًا
+      // نحو بيته: يغادر الباب في اليوم نفسه، فالمقهى وصحن الدار بعده أحداث تقع فعلًا قبل عودته في c6-s14.
       const tT = at("ثلاث", 0.2);
+      const tP = at("ممارسات", 0.31);
+      const READY: PoseSpec = { ...POSES.stand, head: 10, armFront: { s: 34, e: 52 } };
+      const rising = frame >= tP && frame < tP + 10;
+      const walking = frame >= tP + 10;
       return {
         cam: portrait ? [V(0, 1010, 1.85, 500), V(tT, 840, 0.75, 600)] : [DOOR_CAM(0, portrait, 2.6), V(tT, 960, 1.0, 540)],
         world: (
           <g>
             <Lane frame={frame} mood="dawn" lit={1} heroDoor={0.5} brotherDoor={0.3} />
             <DoorStep />
-            <Figure x={STEP.x} y={STEP.base} scale={STEP_S} pose={SITTING} look={hero} frame={frame} />
+            {walking ? (
+              <LaneWalker frame={frame} d0={0.9} d1={0.55} start={tP + 10} end={tP + 10 + 90} flip />
+            ) : (
+              <Figure x={STEP.x} y={STEP.base} scale={STEP_S} pose={rising ? blendPose(SITTING, READY, prog(frame, tP, tP + 10)) : SITTING} look={hero} frame={frame} />
+            )}
           </g>
         ),
       };
     },
   },
-
-  // ——— ب. التثبت ———
   "cafe-message-again": {
     nameAr: "المقهى: يرسل الرجل نفسه رسالة إلى البطل، فيرفع هاتفه وينظر",
     place: "مقهى الحارة",
@@ -218,9 +231,9 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
             <Chair x={1140} flip />
             <CafeTable x={960} frame={frame} />
             <Figure x={SENDER.x} y={GROUND} scale={1.04} pose={pz(frame, [[0, "sit-show"], [tSend - 4, "sit-nod"], [tSend + 8, "sit-show"]])} look={LOOKS.stranger as FigureLook} holding="phone" frame={frame + 7} />
-            {fly > 0 && fly < 1 ? <MsgCard x={f.x} y={f.y - 20} s={1.1} /> : null}
+            {fly > 0 && fly < 1 ? <MsgCard x={f.x} y={f.y - 20} s={1.1} tone={SECOND_MSG} /> : null}
             <BuzzArcs x={to.x} y={to.y} p={prog(frame, tT - 2, tT + 24, (t) => t)} />
-            <MsgCard x={to.x} y={to.y - 34} s={0.8} o={prog(frame, tT, tT + 6)} />
+            <MsgCard x={to.x} y={to.y - 34} s={0.8} o={prog(frame, tT, tT + 6)} tone={SECOND_MSG} />
             <Figure x={1120} y={GROUND} scale={1.1} pose={pz(frame, [[0, "sit"], [tT + 4, "sit-show"]])} look={hero} flip holding="phone" frame={frame} />
           </g>
         ),
@@ -250,7 +263,7 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
             <Chair x={1140} flip />
             <CafeTable x={960} frame={frame} />
             {down ? <rect x={990} y={GROUND - 186} width={46} height={12} rx={3} fill={darken(ID.night, 0.3)} stroke="#1a1208" strokeWidth={2} /> : null}
-            {!down ? <MsgCard x={to.x} y={to.y - 34} s={0.8} o={1 - prog(frame, tN, tN + 8)} /> : null}
+            {!down ? <MsgCard x={to.x} y={to.y - 34} s={0.8} o={1 - prog(frame, tN, tN + 8)} tone={SECOND_MSG} /> : null}
             <Figure x={560} y={GROUND} scale={1.04} pose={pz(frame, [[0, "sit-show"], [tM + 10, "sit-low"]])} look={LOOKS.stranger as FigureLook} holding={frame < tM + 10 ? "phone" : "none"} frame={frame + 7} />
             {walking ? (
               <Walker frame={frame} from={1120} to={790} y={GROUND} start={tV} end={tM} look={hero} scale={1.1} />
@@ -376,28 +389,30 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
   },
 
   // ——— د. تصحيح الموقف ———
-  "lane-rises-to-door": {
-    nameAr: "الزقاق: يقوم من العتبة، يضم الظرف، ويقف أمام باب أخيه",
-    place: "الزقاق عند باب الأخ صباحًا",
+  "lane-returns-at-dawn": {
+    nameAr: "الزقاق قبيل الفجر التالي: المصابيح مضاءة، يعود ماشيًا إلى باب أخيه والظرف معه، ويقف أمامه",
+    place: "الزقاق عند باب الأخ قبيل الفجر",
     render: ({ frame, at, portrait }) => {
-      const tR = at("الاستعداد", 0.2);
+      // التوجيه 026: العودة في يوم تالٍ تُفهم من الضوء لا من لافتة: مصابيح الزقاق مضاءة (قبيل الفجر، كما في c3-s22)
+      // ثم يطلع الضوء، والعتبة خالية (لم يبت عندها). يمشي من وسط الطريق إلى الباب؛ «لتصحيح»: يضم الظرف؛ «الموقف»: يقف.
+      const tR = at("لتصحيح", 0.39);
       const tM = at("الموقف", 0.52);
       const READY: PoseSpec = { ...POSES.stand, head: 4, armFront: { s: 64, e: 86 } };
-      const p = lanePos(0.9);
-      const moving = frame >= tR + 10 && frame < tM;
-      const k = prog(frame, tR + 10, tM, (v) => v);
+      const day = prog(frame, tR - 6, tM + 40, (t) => t);
+      const arriving = frame < tR;
       return {
-        cam: portrait ? [V(0, 1010, 1.85, 500), DOOR_CAM(tM, portrait, 2.5)] : [DOOR_CAM(0, portrait, 2.6), DOOR_CAM(tM, portrait, 2.8)],
+        cam: portrait ? [V(0, 720, 1.1, 640), DOOR_CAM(tR, portrait, 2.3)] : [V(0, 800, 1.5, 600), DOOR_CAM(tR, portrait, 2.6)],
         world: (
           <g>
-            <Lane frame={frame} mood="dawn" lit={1} heroDoor={0.5} brotherDoor={0.3} />
+            <Lane frame={frame} mood="predawn" lit={1} heroDoor={0.5} brotherDoor={0.3} />
+            <g opacity={day}>
+              <Lane frame={frame} mood="dawn" lit={1} heroDoor={0.5} brotherDoor={0.3} />
+            </g>
             <DoorStep />
-            {frame < tR + 10 ? (
-              <Figure x={STEP.x} y={STEP.base} scale={STEP_S} pose={tlPose(frame, [[0, SITTING], [tR - 2, SITTING], [tR + 10, blendPose(POSES.sit, READY, 0.6)]])} look={hero} frame={frame} />
-            ) : moving ? (
-              <Figure x={STEP.x + (p.x - STEP.x) * k} y={STEP.base + (p.y - STEP.base) * k} scale={STEP_S + (p.s - STEP_S) * k} pose={walkPose(READY, (frame / 30) * Math.PI * 2)} look={hero} flip frame={frame} />
+            {arriving ? (
+              <LaneWalker frame={frame} d0={0.45} d1={0.9} start={0} end={tR} />
             ) : (
-              <LaneHero d={0.9} pose={READY} frame={frame} />
+              <LaneHero d={0.9} pose={tlPose(frame, [[tR, CARRY], [tR + 10, READY]])} frame={frame} />
             )}
           </g>
         ),
@@ -479,17 +494,19 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
     },
   },
   "court-elder-humble": {
-    nameAr: "صحن الدار: يأتي البطل إلى الشيخ ويجلس عند طرف المصطبة مطرقًا، ويفتح الشيخ كتابه له",
+    nameAr: "صحن الدار: يأتي الصبي (من c5-s1) إلى الشيخ ويجلس عند طرف المصطبة مطرقًا، ويفتح الشيخ كتابه له",
     place: "صحن دار بنافورة ليلًا",
     render: ({ frame, at, portrait }) => {
-      // «نثبت»: يصل والصفحة في يده؛ «ونتواضع»: يجلس عند طرف المصطبة مطرقًا؛ «الوحي»: سكون (لا حدث)؛
-      // «العلم»: يفتح الشيخ كتابه نحوه فيميل البطل مستمعًا
+      // التوجيه 026: الشيخ مع الصبي الذي كان يستمع له في c5-s1، لا البطل: مثال عام للضابط لا حلقة في يوم البطل،
+      // فلا يتعارض زمنه مع الطرق صباحًا (c6-s15) والجلسة مساءً (c6-s19).
+      // «نثبت»: يصل؛ «ونتواضع»: يجلس عند طرف المصطبة مطرقًا؛ «الوحي»: سكون (لا حدث)؛ «العلم»: يفتح الشيخ كتابه نحوه
       const tT = at("نثبت", 0.07);
       const tH = at("ونتواضع", 0.4);
       const tW = at("الوحي", 0.7);
       const tI = at("العلم", 0.8);
       const arrive = tH - 6;
       const OPEN: PoseSpec = { ...POSES.sit, head: 14, armFront: { s: 60, e: 30 } };
+      const boy = LOOKS.boy as FigureLook;
       return {
         cam: portrait ? [K(0, 900, 0.95), K(tH, 700, 1.3)] : [K(0, 900, 1.25), K(tH, 700, 1.75)],
         world: (
@@ -498,17 +515,15 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
             <Bench x={460} w={380} mood="night" />
             <Figure x={590} y={GROUND} scale={1.1} pose={tlPose(frame, [[0, { ...POSES.sit, head: 16 }], [tW - 14, { ...POSES.sit, head: 16 }], [tI, OPEN]])} look={LOOKS.elder as FigureLook} holding="book" frame={frame} />
             {frame < arrive ? (
-              <Walker frame={frame} from={1400} to={780} y={GROUND} start={tT} end={arrive} look={hero} scale={1.1} holding="paper" />
+              <Walker frame={frame} from={1400} to={770} y={GROUND} start={tT} end={arrive} look={boy} scale={1.0} />
             ) : (
-              <Figure x={780} y={GROUND} scale={1.1} pose={tlPose(frame, [[arrive, { ...POSES.stand, head: 14 }], [tH + 4, { ...POSES["sit-low"], head: 30 }], [tI + 8, { ...POSES.sit, head: 18, lean: 10 }]])} look={hero} flip holding="paper" frame={frame} />
+              <Figure x={770} y={GROUND} scale={1.0} pose={tlPose(frame, [[arrive, { ...POSES.stand, head: 14 }], [tH + 4, { ...POSES["sit-low"], head: 30 }], [tI + 8, { ...POSES.sit, head: 18, lean: 10 }]])} look={boy} flip frame={frame} />
             )}
           </g>
         ),
       };
     },
   },
-
-  // ——— هـ. الاستماع ———
   "brother-bench-talks": {
     nameAr: "مساءً عند باب الأخ: يجلس الأخ على مصطبة بابه ويتكلم، والبطل بجانبه يستمع؛ تهمّ يده بالرد فيُنزلها",
     place: "الزقاق عند باب الأخ مساءً",

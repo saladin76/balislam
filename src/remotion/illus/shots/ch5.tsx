@@ -32,7 +32,8 @@ const V = (t: number, x: number, z: number, y: number, cut = false): CamKey => (
 const CAST = {
   elder: LOOKS.elder as FigureLook,
   listener: LOOKS.boy as FigureLook,
-  buyer: LOOKS.stranger as FigureLook,
+  // التوجيه 026: لا مرسِل الإشاعة (LOOKS.stranger)، بل الواثق المتواضع من الفصل 2
+  buyer: CH2_CAST.confident,
   cartVendor: LOOKS.vendor as FigureLook,
   needy: { outfit: "thobe", cloth: "sand", head: "kufi", skin: 1, hair: "#B9B2A6" } as FigureLook,
   rich: CH2_CAST.proud,
@@ -41,7 +42,8 @@ const CAST = {
   apprentice: CH2_CAST.young,
   builder: CH2_CAST.worker,
   son: LOOKS.boy as FigureLook,
-  friend: LOOKS.friend as FigureLook,
+  // التوجيه 026: صاحب دكان الميزان نفسه (الفصول 1 و2 وc5-s6)، لا وجه آخر في الدكان نفسه
+  friend: CH2_CAST.vendor,
   rival: CH2_CAST.harsh,
   customer: LOOKS.womanSand as FigureLook,
 };

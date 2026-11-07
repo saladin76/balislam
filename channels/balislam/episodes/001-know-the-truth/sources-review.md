@@ -14,6 +14,11 @@
 - **مصدر المشروع المعتمد:** Quran Foundation بالرسم العثماني (`npx bal -c balislam quran 001`، `src/quran/client.ts`)، وبديل alquran.cloud في `src/quran/alquranCloud.ts`.
 - **سبب عدم الجلب من هذه الجلسة:** الاتصال بـ`oauth2.quran.foundation` و`apis.quran.foundation` و`api.alquran.cloud` مرفوض من شبكة الجلسة السحابية (connect_rejected)، ولا مفاتيح Quran Foundation هنا (`.env` على جهاز صاحب المشروع وحده، وهو الصحيح). لم يُكتب نص آية من الذاكرة، ولا توجد نسخة موثقة من هذه الآيات في أي فرع من المستودع.
 - **التنفيذ على الـMac:** `cd ~/balislam` ثم `npx bal -c balislam quran 001` (يكتب `quran.json` بجوار السكريبت ويملأ البطاقات)، ثم مطابقة كل نص بالمصحف المعتمد قبل التوثيق.
+- **محاولة 026 (٧ نوفمبر):**
+  - `npx bal quran-text-only 001 --dry-run`: «ناقص: 4 · موجود: 0».
+  - `--confirm-cache-write`: «أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env».
+  - لم يُكتب شيء في `quran.json` ولا `plan.json`. الحالة **محجوبة**، ولا مصدر بديل دون مراجعة.
+  - الأمر الأدق على الـMac: `npx bal -c balislam quran-text-only 001 --confirm-cache-write`، ثم `npx bal -c balislam quran-compare 001`، ثم ملء هذا الجدول (النص، والرسم العثماني، والرواية، والمصدر، والتاريخ).
 - **ملاحظة قراءة (من `research.md`):** في الحجرات 6 قراءة «فتبيّنوا» (حفص) وقراءة «فتثبّتوا»؛ النص المعروض يكون برواية حفص كما في المصدر، والتلاوة تطابقه، والتعليق لا يخلط بين القراءتين.
 
 ## الدعاءان

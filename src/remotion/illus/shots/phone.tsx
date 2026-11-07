@@ -110,11 +110,12 @@ export const BuzzArcs: React.FC<{ x: number; y: number; p: number; color?: strin
  * الرسالة نفسها مصغّرة (التوجيه 024): بطاقة بألوان بطاقة الهاتف بعين البطل (رأس فجري وسطران)، بلا نص مقروء.
  * تطير من هاتف المرسِل إلى هاتف المستقبِل، وتبقى صغيرة فوق هاتف من وصلته: يرى المشاهد أن الرسالة واحدة.
  */
-export const MsgCard: React.FC<{ x: number; y: number; s?: number; o?: number }> = ({ x, y, s = 1, o = 1 }) =>
+/** tone: لون رأس البطاقة؛ رسالة ثانية من المرسِل نفسه (c6-s6) برأس آخر حتى لا تُقرأ أنها الرسالة الأولى (التوجيه 026) */
+export const MsgCard: React.FC<{ x: number; y: number; s?: number; o?: number; tone?: string }> = ({ x, y, s = 1, o = 1, tone = ID.dawn }) =>
   o <= 0.01 ? null : (
     <g transform={`translate(${x} ${y}) scale(${s})`} opacity={o}>
       <rect x={-20} y={-15} width={40} height={30} rx={5} fill={ID.paper} stroke="#1a1208" strokeWidth={2.2} />
-      <path d="M-20 -10 Q-20 -15 -15 -15 L15 -15 Q20 -15 20 -10 L20 -1 L-20 -1 Z" fill={ID.dawn} />
+      <path d="M-20 -10 Q-20 -15 -15 -15 L15 -15 Q20 -15 20 -10 L20 -1 L-20 -1 Z" fill={tone} />
       <rect x={-14} y={3} width={28} height={3.5} rx={1.7} fill={mix(ID.night, ID.paper, 0.4)} />
       <rect x={-8} y={9} width={22} height={3.5} rx={1.7} fill={mix(ID.night, ID.paper, 0.55)} />
     </g>
