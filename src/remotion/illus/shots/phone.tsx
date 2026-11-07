@@ -1,6 +1,6 @@
 import React from "react";
 import { CLOTH, ID, SKIN, darken, mix } from "../palette";
-import { useSvgId } from "../world";
+import { GROUND, useSvgId } from "../world";
 
 /**
  * لقطة «بعين البطل»: هاتفه في يده يملأ نصف الإطار، وعليه رسالة مُعاد توجيهها جذابة الشكل.
@@ -105,3 +105,21 @@ export const BuzzArcs: React.FC<{ x: number; y: number; p: number; color?: strin
       ))}
     </g>
   ) : null;
+
+/**
+ * الرسالة نفسها مصغّرة (التوجيه 024): بطاقة بألوان بطاقة الهاتف بعين البطل (رأس فجري وسطران)، بلا نص مقروء.
+ * تطير من هاتف المرسِل إلى هاتف المستقبِل، وتبقى صغيرة فوق هاتف من وصلته: يرى المشاهد أن الرسالة واحدة.
+ */
+export const MsgCard: React.FC<{ x: number; y: number; s?: number; o?: number }> = ({ x, y, s = 1, o = 1 }) =>
+  o <= 0.01 ? null : (
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={o}>
+      <rect x={-20} y={-15} width={40} height={30} rx={5} fill={ID.paper} stroke="#1a1208" strokeWidth={2.2} />
+      <path d="M-20 -10 Q-20 -15 -15 -15 L15 -15 Q20 -15 20 -10 L20 -1 L-20 -1 Z" fill={ID.dawn} />
+      <rect x={-14} y={3} width={28} height={3.5} rx={1.7} fill={mix(ID.night, ID.paper, 0.4)} />
+      <rect x={-8} y={9} width={22} height={3.5} rx={1.7} fill={mix(ID.night, ID.paper, 0.55)} />
+    </g>
+  );
+/** موضع كف الجالس التي تمسك الهاتف في وضعية sit-show (تقريبي بمقياس 1.1) */
+export const seatedPhone = (x: number, flip: boolean) => ({ x: x + (flip ? -62 : 62), y: GROUND - 222 });
+/** مسار الرسالة بين كفين: قوس فوق الطاولات */
+export const flight = (a: { x: number; y: number }, b: { x: number; y: number }, t: number) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t - Math.sin(Math.PI * t) * 150 });

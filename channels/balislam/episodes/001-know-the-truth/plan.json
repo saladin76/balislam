@@ -1613,7 +1613,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-before-brother-door"
           },
           "id": "c6-s1",
           "sfx": []
@@ -1630,7 +1631,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "page-mended-insert"
           },
           "id": "c6-s2",
           "sfx": []
@@ -1647,7 +1649,8 @@
             "poses": "hold,think",
             "look": "hero",
             "cast": "",
-            "cues": "evidence | بالدليل\nwrong | خطؤه"
+            "cues": "evidence | بالدليل\nwrong | خطؤه",
+            "shot": "lane-weighs-evidence"
           },
           "id": "c6-s3",
           "sfx": []
@@ -1664,7 +1667,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": "wrong | الخطأ"
+            "cues": "wrong | الخطأ",
+            "shot": "lane-sits-at-door"
           },
           "id": "c6-s4",
           "sfx": []
@@ -1681,7 +1685,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-sits-wide"
           },
           "id": "c6-s5",
           "sfx": []
@@ -1698,7 +1703,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "cafe-message-again"
           },
           "id": "c6-s6",
           "sfx": []
@@ -1715,7 +1721,8 @@
             "poses": "hold,stand",
             "look": "hero",
             "cast": "",
-            "cues": "news | خبرًا\nspread | تنشر"
+            "cues": "news | خبرًا\nspread | تنشر",
+            "shot": "cafe-checks-source"
           },
           "id": "c6-s7",
           "sfx": []
@@ -1732,7 +1739,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "cafe-still"
           },
           "id": "c6-s8",
           "sfx": []
@@ -1762,7 +1770,8 @@
             "poses": "look-up",
             "look": "hero",
             "cast": "",
-            "cues": "heart | النية"
+            "cues": "heart | النية",
+            "shot": "court-debate-finger"
           },
           "id": "c6-s10",
           "sfx": []
@@ -1779,7 +1788,8 @@
             "poses": "talk,think",
             "look": "hero",
             "cast": "",
-            "cues": "debate | تختلف\ncompanion | أحد\nthink | اسأل"
+            "cues": "debate | تختلف\ncompanion | أحد\nthink | اسأل",
+            "shot": "court-debate-pause"
           },
           "id": "c6-s11",
           "sfx": []
@@ -1796,7 +1806,8 @@
             "poses": "look-up,talk",
             "look": "hero",
             "cast": "",
-            "cues": "truth | الصواب\ndebate | النقاش"
+            "cues": "truth | الصواب\ndebate | النقاش",
+            "shot": "court-debate-listens"
           },
           "id": "c6-s12",
           "sfx": []
@@ -1813,7 +1824,8 @@
             "poses": "stand,listen,talk",
             "look": "hero",
             "cast": "",
-            "cues": "listen | نستمع\ndebate | ونناقش"
+            "cues": "listen | نستمع\ndebate | ونناقش",
+            "shot": "court-debate-receives"
           },
           "id": "c6-s13",
           "sfx": []
@@ -1830,7 +1842,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-rises-to-door"
           },
           "id": "c6-s14",
           "sfx": []
@@ -1847,7 +1860,8 @@
             "poses": "stand,turn-away",
             "look": "hero",
             "cast": "",
-            "cues": "door | الاعتراف\nwrong | بالخطأ"
+            "cues": "door | الاعتراف\nwrong | بالخطأ",
+            "shot": "lane-knock-confess"
           },
           "id": "c6-s15",
           "sfx": []
@@ -1864,7 +1878,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": "wrong | الباطل"
+            "cues": "wrong | الباطل",
+            "shot": "lane-returns-envelope"
           },
           "id": "c6-s16",
           "sfx": []
@@ -1881,7 +1896,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": "wrong | والباطل"
+            "cues": "wrong | والباطل",
+            "shot": "stall-two-views-one-weight"
           },
           "id": "c6-s17",
           "sfx": []
@@ -1898,7 +1914,8 @@
             "poses": "hold,think,stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "court-elder-humble"
           },
           "id": "c6-s18",
           "sfx": []
@@ -1915,7 +1932,8 @@
             "poses": "talk,listen,nod",
             "look": "hero",
             "cast": "",
-            "cues": "debate | تختلف\nlisten | تستمع"
+            "cues": "debate | تختلف\nlisten | تستمع",
+            "shot": "brother-bench-talks"
           },
           "id": "c6-s19",
           "sfx": []
@@ -1932,7 +1950,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": "think | اسأل"
+            "cues": "think | اسأل",
+            "shot": "brother-bench-asks-self"
           },
           "id": "c6-s20",
           "sfx": []
@@ -1949,7 +1968,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": "companion | معه"
+            "cues": "companion | معه",
+            "shot": "brother-bench-accepts"
           },
           "id": "c6-s21",
           "sfx": []
@@ -1966,7 +1986,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "brother-bench-still"
           },
           "id": "c6-s22",
           "sfx": []
@@ -1995,7 +2016,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "brother-bench-tea"
           },
           "id": "c6-s24",
           "sfx": []
@@ -2012,7 +2034,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-dusk-wide-end"
           },
           "id": "c6-s25",
           "sfx": []

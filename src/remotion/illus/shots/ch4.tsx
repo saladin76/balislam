@@ -20,19 +20,19 @@ type Ch4Shot = { nameAr: string; place: string; render: (c: ShotCtx) => { cam: C
 const V = (t: number, x: number, z: number, y: number, cut = false): CamKey => ({ t, x, y, z, ...(cut ? { cut } : {}) });
 
 /** مصطبة حجرية عند بابه (عنصر جديد للمراجعة): عليها يجلس عند d=0 */
-const SEAT = (() => {
+export const SEAT = (() => {
   const p = lanePos(0);
   const h = 82 * (p.s / 1.1);
   return { x: p.x - 18 * (p.s / 1.1), y: p.y, w: 150 * (p.s / 1.1), h };
 })();
-const Mastaba: React.FC = () => (
+export const Mastaba: React.FC = () => (
   <g>
     <rect x={SEAT.x - SEAT.w / 2} y={SEAT.y - SEAT.h} width={SEAT.w} height={SEAT.h} fill={mix(darken(ID.copper, 0.35), ID.night, 0.35)} stroke={INK} strokeWidth={3} />
     <rect x={SEAT.x - SEAT.w / 2 - 8} y={SEAT.y - SEAT.h - 12} width={SEAT.w + 16} height={14} fill={mix(darken(ID.copper, 0.2), ID.night, 0.3)} stroke={INK} strokeWidth={3} />
   </g>
 );
 /** جالس والظرف بين يديه في حجره */
-const SIT_HOLD: PoseSpec = { ...POSES.sit, head: 10, armFront: { s: 40, e: 70 }, armBack: { s: 36, e: 64 } };
+export const SIT_HOLD: PoseSpec = { ...POSES.sit, head: 10, armFront: { s: 40, e: 70 }, armBack: { s: 36, e: 64 } };
 const READY: PoseSpec = { ...POSES.stand, head: 4, armFront: { s: 64, e: 86 } };
 
 /** لقطة قريبة للظرف بين يديه (منطقة مستقلة): الغطاء مفتوح والنقود كلها ظاهرة معًا كما هي (لا عدّ)، ثم يُغلق عليها (التوجيه 024) */

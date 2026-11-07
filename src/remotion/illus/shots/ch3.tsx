@@ -55,7 +55,7 @@ const PAGE_LOW: PoseSpec = { ...POSES.stand, head: -8, lean: -2, armBack: { s: 2
 export const PALM: PoseSpec = { ...PAGE_LOW, lean: 4, head: 14, armFront: { s: 58, e: 20 } };
 export const GIVE: PoseSpec = { ...POSES.stand, lean: 8, head: 22, armFront: { s: 62, e: 14 } };
 /** قبضة عند الباب بارتفاع الكتف، لم تلمسه */
-const KNOCK: PoseSpec = { ...POSES.stand, lean: 2, head: -2, armFront: { s: 88, e: 64 } };
+export const KNOCK: PoseSpec = { ...POSES.stand, lean: 2, head: -2, armFront: { s: 88, e: 64 } };
 /** يحمل الظرف أمامه */
 export const CARRY: PoseSpec = { ...POSES.stand, armFront: { s: 34, e: 52 } };
 
@@ -68,7 +68,7 @@ const PAWS: [number, number, number][] = [[56, 62, 20], [34, 98, -10]];
  * الصفحة بمركزها (x,y) ومقياس s. piece: 0 ناقصة، 1 القطعة في موضعها (ومعها خط الوصل)؛ pieceFrom موضع القطعة قبل الانطباق.
  * آثار المخالب حاضرة دائمًا خافتة، وpaws يضيئها.
  */
-const PageGlyph: React.FC<{ x: number; y: number; s: number; piece?: number; pieceFrom?: { x: number; y: number }; paws?: number; glow?: number }> = ({ x, y, s, piece = 0, pieceFrom, paws = 0, glow = 0 }) => {
+export const PageGlyph: React.FC<{ x: number; y: number; s: number; piece?: number; pieceFrom?: { x: number; y: number }; paws?: number; glow?: number }> = ({ x, y, s, piece = 0, pieceFrom, paws = 0, glow = 0 }) => {
   const ox = x - 50 * s;
   const oy = y - 65 * s;
   const sw = Math.max(1.4, 2.6 * s) / s;
@@ -255,8 +255,8 @@ const Reflection: React.FC<{ pose: PoseSpec; frame: number; id: string }> = ({ p
 );
 
 // ———————————————————— اللقطة القريبة للصفحة ————————————————————
-const PAGE = { x: 5000, y: 540 };
-const PageInsert: React.FC<{ paws: number }> = ({ paws }) => (
+export const PAGE = { x: 5000, y: 540 };
+export const PageInsert: React.FC<{ paws: number }> = ({ paws }) => (
   <g>
     <rect x={PAGE.x - 1400} y={PAGE.y - 900} width={2800} height={1800} fill={darken(ID.copper, 0.55)} />
     <Glow cx={PAGE.x} cy={PAGE.y} r={600} color={ID.dawn} opacity={0.25} />
@@ -272,10 +272,10 @@ const PageInsert: React.FC<{ paws: number }> = ({ paws }) => (
  * وطريق حجارة يتراجع بينهما. d على الطريق: 0 عتبة بابه (أمام الكاميرا)، 1 عتبة باب أخيه.
  */
 const VP = { x: 960, y: 470 };
-const END = { x0: 700, x1: 1220, top: 210, base: 560 };
+export const END = { x0: 700, x1: 1220, top: 210, base: 560 };
 const wallFloorL = (x: number) => 1100 - 0.54 * (x + 300);
 const wallTopL = (x: number) => -300 + 0.51 * (x + 300);
-const BRO_DOOR = { x: 900, w: 120, h: 200 };
+export const BRO_DOOR = { x: 900, w: 120, h: 200 };
 /** موضع وحجم الشخص على الطريق عند d */
 export const lanePos = (d: number) => ({ x: 330 + (955 - 330) * d, y: 1000 + (568 - 1000) * d, s: 1.75 + (0.62 - 1.75) * d });
 const LANE_STONES = Array.from({ length: 14 }, (_, i) => 0.06 + i * 0.066);

@@ -72,20 +72,38 @@ const BrickWall: React.FC<{ x0: number; n: number }> = ({ x0, n }) => (
     <path d={`M${x0 - 10} ${GROUND} L${x0 - 10} ${GROUND - 300} M${x0 + BRICK.per * BRICK.w + 40} ${GROUND} L${x0 + BRICK.per * BRICK.w + 40} ${GROUND - 300}`} stroke={darken(ID.copper, 0.35)} strokeWidth={10} />
   </g>
 );
-/** مخطط بناء مفروش على صندوق: u مقدار الفرش، extra خطوط الطابق المضاف */
+/**
+ * مخطط البناء على لوح قائم فوق صندوق (التوجيه 025: أوضح من الورقة المفروشة): u مقدار فرد الورقة من لفّتها،
+ * والرسم واجهة البيت: الطابق القائم خطًا متصلًا، والطوابق المخططة خطوطًا متقطعة تُضاف بمقدار extra.
+ */
+const PLAN = { w: 250, h: 190 };
 const PlanSheet: React.FC<{ x: number; y: number; u: number; extra: number }> = ({ x, y, u, extra }) => {
-  const w = 40 + 170 * u;
+  const top = y - PLAN.h - 20;
+  const h = PLAN.h * u;
+  const blue = darken("#3E6C8C", 0.1);
+  const floorY = (k: number) => top + PLAN.h - 30 - k * 44;
   return (
     <g>
-      <rect x={x} y={y - 8} width={w} height={70} fill={mix(ID.paper, "#9DB7C8", 0.25)} stroke={INK} strokeWidth={2.2} transform={`skewX(-18)`} />
-      {u > 0.6 ? (
-        <g stroke={darken("#3E6C8C", 0.1)} strokeWidth={2.4} fill="none" transform={`skewX(-18)`}>
-          <rect x={x + 40} y={y + 30} width={80} height={24} />
-          <rect x={x + 40} y={y + 6} width={80} height={24} opacity={Math.min(1, extra * 2)} />
-          <rect x={x + 130} y={y + 30} width={60} height={24} opacity={Math.min(1, Math.max(0, extra * 2 - 1))} />
+      {/* الصندوق واللوح المسنود عليه */}
+      <rect x={x - 30} y={y} width={PLAN.w + 60} height={GROUND - y} fill={darken(ID.copper, 0.45)} stroke={INK} strokeWidth={2.4} />
+      <rect x={x - 8} y={top - 8} width={PLAN.w + 16} height={PLAN.h + 30} fill={darken(ID.copper, 0.3)} stroke={INK} strokeWidth={2.4} />
+      {/* الورقة تنفرد من لفّتها في الأعلى */}
+      <rect x={x} y={top} width={PLAN.w} height={Math.max(4, h)} fill={mix(ID.paper, "#9DB7C8", 0.3)} stroke={INK} strokeWidth={2} />
+      <rect x={x - 6} y={top + h - 8} width={PLAN.w + 12} height={16} rx={8} fill={mix(ID.paper, "#9DB7C8", 0.45)} stroke={INK} strokeWidth={2} />
+      {u > 0.95 ? (
+        <g fill="none" stroke={blue} strokeWidth={3}>
+          <line x1={x + 20} y1={floorY(0) + 22} x2={x + PLAN.w - 20} y2={floorY(0) + 22} />
+          <rect x={x + 50} y={floorY(0) - 22} width={150} height={44} />
+          <rect x={x + 112} y={floorY(0) - 4} width={26} height={26} />
+          {[1, 2].map((k) => (
+            <g key={k} opacity={Math.max(0, Math.min(1, extra * 2 - (k - 1)))}>
+              <rect x={x + 50} y={floorY(k) - 22} width={150} height={44} strokeDasharray="10 7" />
+              <rect x={x + 70} y={floorY(k) - 10} width={22} height={18} strokeDasharray="5 4" />
+              <rect x={x + 158} y={floorY(k) - 10} width={22} height={18} strokeDasharray="5 4" />
+            </g>
+          ))}
         </g>
       ) : null}
-      <rect x={x - 30} y={y + 62} width={260} height={60} fill={darken(ID.copper, 0.45)} stroke={INK} strokeWidth={2.4} />
     </g>
   );
 };
@@ -273,62 +291,74 @@ export const CH5_SHOTS: Record<string, Ch5Shot> = {
 
   // ——— ج. النجاح ———
   "workshop-success": {
-    nameAr: "الورشة: نجار يمسح بيده على كرسي أتمه، ثم يتراجع خطوة وينظر إليه",
+    nameAr: "الورشة: الكرسي المنجز في الضوء ويد النجار تمسح ظهره، ثم يتراجع خطوة وينظر إليه",
     place: "ورشة نجارة",
     render: ({ frame, at, portrait }) => {
+      // التوجيه 025: الكرسي المنجز واضح قبل رد فعل النجار: اللقطة تبدأ قريبة على الكرسي كاملًا في ضوء النافذة ويده
+      // تمسح ظهره (اكتمال العمل)، وعند «النجاح» تبتعد فيتراجع النجار خطوة وينظر إليه.
       const tN = at("النجاح", 0.2);
-      const TOUCH: PoseSpec = { ...POSES.point, lean: 20, head: 24, armFront: { s: 40, e: 10 } };
+      const o = { x: 1080, y: GROUND + 8, scale: 1.2, flip: true };
+      const TOUCH = reachTo({ x: 1004, y: GROUND - 214 }, o, { ...POSES.stand, lean: 8, head: 20 });
       const back = prog(frame, tN, tN + 18);
       return {
-        cam: portrait ? [K(0, 1000, 1.3), K(tN, 1060, 1.05)] : [K(0, 1000, 1.7), K(tN, 1060, 1.35)],
+        cam: portrait ? [V(0, 960, 1.9, GROUND - 140), K(tN, 1040, 1.1)] : [V(0, 970, 2.6, GROUND - 130), K(tN, 1040, 1.45)],
         world: (
           <g>
             <Workshop frame={frame} />
-            <Glow cx={940} cy={GROUND - 120} r={200} opacity={0.6 * back} />
-            <Figure x={1040 + 140 * back} y={GROUND + 8} scale={1.2} pose={frame < tN ? TOUCH : blendPose(TOUCH, { ...POSES.stand, head: 10 }, back)} look={CAST.carpenter} flip frame={frame} />
+            <Glow cx={950} cy={GROUND - 120} r={220} opacity={0.35 + 0.35 * back} />
+            <Figure x={1080 + 120 * back} y={GROUND + 8} scale={1.2} pose={blendPose(TOUCH, { ...POSES.stand, head: 14 }, back)} look={CAST.carpenter} flip frame={frame} />
           </g>
         ),
       };
     },
   },
   "workshop-success-pride": {
-    nameAr: "الورشة: يصقل الكرسي (جهد)، يقف ساكنًا، ثم يعرض عن ملاحظة صبيه ويعقد ذراعيه",
+    nameAr: "الورشة: يصقل الكرسي، ثم يجثو صبيه ويدل على الساق القصيرة، فيدفع النجار رقعة خشب تحتها ليخفيها ويرفع رأسه",
     place: "ورشة نجارة",
     render: ({ frame, at, portrait }) => {
-      // «جهد»: يصقل بحركة ذهاب وإياب؛ «وتوفيق من الله»: يقف ساكنًا والكاميرا ثابتة (من «وتوفيق» حتى «لكنه»)؛
-      // «يتحول»: يدخل الصبي ويشير إلى موضع في الكرسي؛ «صاحبه»: يرفع رأسه؛ «للغرور»: يلوّح بيده ويعقد ذراعيه
-      const tJ = at("جهد", 0.18);
+      // التوجيه 025، ثلاث لحظات: (1) الجهد: يصقل الكرسي، ثم يقف ساكنًا عند «وتوفيق من الله» والكاميرا ثابتة؛
+      // (2) ملاحظة مفيدة: عند «يتحول» يدخل الصبي ويجثو عند الساق القصيرة ويدل على الفراغ المضاء تحتها؛
+      // (3) الرفض بفعل في الكرسي نفسه: عند «للغرور» يدفع النجار رقعة خشب تحت الساق فيخفي الفراغ بدل إصلاحه،
+      //     ويضع يده على ظهر الكرسي مرفوع الرأس؛ ويقوم الصبي مطرقًا. بلا تلويح ولا عقد ذراعين.
       const tT = at("وتوفيق", 0.22);
-      const tL = at("لكنه", 0.43);
       const tY = at("يتحول", 0.52);
       const tS = at("صاحبه", 0.67);
       const tG = at("للغرور", 0.84);
       const sanding = frame >= 4 && frame < tT - 4;
       const SAND_A: PoseSpec = { ...POSES.point, lean: 22, head: 26, armFront: { s: 34, e: 6 } };
       const SAND_B: PoseSpec = { ...POSES.point, lean: 26, head: 26, armFront: { s: 22, e: 4 } };
+      const o = { x: 1080, y: GROUND + 8, scale: 1.2, flip: true };
+      const PUSH = reachTo({ x: 912, y: GROUND - 10 }, o, { ...POSES.stand, lean: 34, head: 30 });
+      const PROUD_HAND = reachTo({ x: 1004, y: GROUND - 214 }, o, { ...POSES.stand, lean: -4, head: -14 });
       const carpPose = sanding
         ? blendPose(SAND_A, SAND_B, 0.5 + 0.5 * Math.sin(frame / 3.2))
-        : tlPose(frame, [[0, SAND_A], [tT - 4, { ...POSES.stand, head: 12 }], [tS, { ...POSES.stand, head: -10 }], [tG - 4, POSES["wave-off"]], [tG + 18, POSES.cross]]);
+        : tlPose(frame, [[0, SAND_A], [tT - 4, { ...POSES.stand, head: 12 }], [tS, { ...POSES.stand, head: -8 }], [tG - 10, PUSH], [tG + 12, PROUD_HAND]]);
+      // رقعة الخشب: من يد النجار إلى تحت الساق القصيرة (fx = 940 - 56)
+      const shim = prog(frame, tG - 4, tG + 10);
+      const shimX = 1000 + (884 - 1000) * shim;
+      const KNEEL_POINT: PoseSpec = { ...POSES.point, lean: 20, head: 34, armFront: { s: 40, e: 6 }, ...KNEEL };
+      const apprIn = frame >= tY;
+      const apprWalk = frame < tY + 24;
+      const apprPose = tlPose(frame, [[tY + 24, KNEEL_POINT], [tG + 14, { ...KNEEL_POINT, head: 40 }], [tG + 30, { ...POSES.stand, head: 30 }]]);
       return {
-        cam: portrait ? [K(0, 1040, 1.25), K(tY, 900, 0.95), K(tG - 6, 1020, 1.15)] : [K(0, 1040, 1.6), K(tY, 960, 1.25), K(tG - 6, 1040, 1.5)],
+        cam: portrait ? [K(0, 1040, 1.25), K(tY, 900, 1.05), V(tG - 12, 930, 1.6, GROUND - 160)] : [K(0, 1040, 1.6), K(tY, 940, 1.35), V(tG - 12, 940, 2.0, GROUND - 160)],
         world: (
           <g>
-            <Workshop frame={frame} chairMark={prog(frame, tY + 20, tY + 30) * (1 - prog(frame, tG, tG + 16))} />
-            {frame >= tY ? (
-              frame < tY + 26 ? (
-                <Walker frame={frame} from={560} to={720} y={GROUND + 8} start={tY} end={tY + 26} look={CAST.apprentice} scale={1.05} />
+            <Workshop frame={frame} chairMark={prog(frame, tY + 26, tY + 36) * (1 - shim)} />
+            {frame >= tG - 4 ? <path d={`M${shimX - 8} ${GROUND} L${shimX + 22} ${GROUND} L${shimX + 22} ${GROUND - 16} Z`} fill={mix(darken(ID.copper, 0.2), ID.paper, 0.2)} stroke={INK} strokeWidth={2} /> : null}
+            {apprIn ? (
+              apprWalk ? (
+                <Walker frame={frame} from={520} to={790} y={GROUND + 8} start={tY} end={tY + 24} look={CAST.apprentice} scale={1.05} />
               ) : (
-                <Figure x={720} y={GROUND + 8} scale={1.05} pose={tlPose(frame, [[tY + 26, { ...POSES.point, head: 18, lean: 8 }], [tG + 8, { ...POSES.stand, head: 22 }]])} look={CAST.apprentice} frame={frame + 5} />
+                <Figure x={790} y={GROUND + 8} scale={1.05} pose={apprPose} look={CAST.apprentice} frame={frame + 5} />
               )
             ) : null}
-            <Figure x={1080} y={GROUND + 8} scale={1.2} pose={carpPose} look={CAST.carpenter} flip={frame < tG + 18} frame={frame} />
+            <Figure x={1080} y={GROUND + 8} scale={1.2} pose={carpPose} look={CAST.carpenter} flip frame={frame} />
           </g>
         ),
       };
     },
   },
-
-  // ——— د. الدنيا ———
   "roofs-whole-world": {
     nameAr: "الأسطح غروبًا: تبتعد الكاميرا من سطح واحد إلى المدينة كلها، وسرب طير يعبر",
     place: "أسطح المدينة غروبًا",
@@ -366,7 +396,7 @@ export const CH5_SHOTS: Record<string, Ch5Shot> = {
       const pose = atPlan || atPlan2 ? { ...POSES.point, lean: 18, head: 34, armFront: { s: 30, e: 30 } } : blendPose(LAY, { ...LAY, armFront: { s: 70, e: 30 } }, 0.5 + 0.5 * Math.sin(frame / 4));
       const night = prog(frame, tA, tA + 40);
       return {
-        cam: portrait ? [K(0, 1200, 1.15), K(tP - 6, 960, 1.0), K(tA, 1080, 0.85), K(tS - 8, 1200, 1.1)] : [K(0, 1200, 1.45), K(tP - 6, 1000, 1.55), K(tA, 1060, 1.05), K(tS - 8, 1200, 1.4)],
+        cam: portrait ? [K(0, 1200, 1.15), V(tP - 6, ROOF.crate + 60, 1.35, GROUND - 230), K(tA, 1080, 0.85), V(tB - 8, ROOF.crate + 60, 1.35, GROUND - 230), K(tS - 2, 1200, 1.1)] : [K(0, 1200, 1.45), V(tP - 6, ROOF.crate + 120, 1.9, GROUND - 230), K(tA, 1060, 1.05), V(tB - 8, ROOF.crate + 120, 1.9, GROUND - 230), K(tS - 2, 1200, 1.4)],
         world: (
           <g>
             <Rooftops frame={frame} mood="dusk" to="night" t={night} />
@@ -511,12 +541,12 @@ export const CH5_SHOTS: Record<string, Ch5Shot> = {
       const head = walking ? (frame >= tT && frame < tT + 30 ? 30 : 6) : -6;
       const pose = walking ? walkPose({ ...POSES.stand, head }, (frame / 30) * Math.PI * 2 * 0.95) : { ...POSES.stand, head };
       const reflect = (
-        <g transform={`translate(${TRAY.x + 6} ${TRAY.y + 118}) scale(-0.42 0.42)`}>
+        <g transform={`translate(${TRAY.x + 4} ${TRAY.y + 150}) scale(-0.6 0.6)`}>
           <Figure x={0} y={0} scale={1.2} pose={{ ...POSES.stand, head: -6 }} look={hero} frame={frame} />
         </g>
       );
       return {
-        cam: portrait ? [K(0, 500, 1.0), K(tT, 820, 1.0), V(tN - 4, TRAY.x - 40, 1.7, TRAY.y + 40)] : [K(0, 600, 1.25), K(tT, 820, 1.35), V(tN - 4, TRAY.x - 60, 2.3, TRAY.y + 30)],
+        cam: portrait ? [K(0, 500, 1.0), K(tT, 820, 1.0), V(tN - 4, TRAY.x - 80, 2.1, TRAY.y + 60)] : [K(0, 600, 1.25), K(tT, 820, 1.35), V(tN - 4, TRAY.x - 90, 2.4, TRAY.y + 50)],
         world: (
           <g>
             <SouqStreet frame={frame} />
@@ -596,41 +626,88 @@ export const CH5_SHOTS: Record<string, Ch5Shot> = {
     },
   },
   "stall-fair-to-others": {
-    nameAr: "دكان الميزان: يرى خطأ صديقه في الثقل اللامع فيصححه، ثم يقبل ملاحظة رجل لا يحبه عن ميل الميزان",
+    nameAr: "دكان الميزان: يأتمنه صديقه البائع على صرّته، فيرى خطأه في الثقل اللامع ويصححه؛ ثم يدل رجل بينه وبينه خلاف على حجر في الكفة، فيقبل ويزيله",
     place: "دكان الميزان",
     render: ({ frame, at, portrait }) => {
-      // «محبتهم»: يده على كتف صديقه البائع؛ «أخطائهم»: يرى الثقل اللامع (المزيف من الفصل 2) فيرفعه ويضع المعياري؛
-      // «كراهيتهم»: يمر الرجل القاسي من مقهى الفصل 2 ويشير إلى الميزان المائل، فيعقد البطل ذراعيه؛
-      // «عندهم»: ينظر إلى الميزان؛ «حق»: يومئ ويضبط الكفة بيده
+      // التوجيه 025، العلاقات تُقرأ بالفعل:
+      // ثقة: عند «محبتهم» يناوله صديقه البائع صرّة الدكان فيمسكها؛ ومع ذلك عند «أخطائهم» يرى الثقل اللامع (المزيف) فيضع
+      //   المعياري مكانه، فتهبط كفة الثقل، ويضيف صديقه برتقالتين: الخطأ صُحح بمعيار لا بمجاملة.
+      // خلاف: عند «كراهيتهم» يقبل الرجل القاسي فيلتفت عنه البطل ويتراجع خطوة؛ عند «إنكار» يشير الرجل إلى حجر تحت البرتقال
+      //   (يضيء)؛ عند «عندهم» ينظر البطل؛ عند «حق» يرفعه بيده: يقبل الملاحظة الصحيحة. فتميل كفة الثقل قليلًا (نقص برتقالة)،
+      //   ويُستكمل في c5-s20.
       const tL = at("محبتهم", 0.3);
       const tE = at("أخطائهم", 0.44);
       const tH = at("كراهيتهم", 0.64);
       const tI = at("إنكار", 0.76);
       const tO = at("عندهم", 0.84);
       const tR = at("حق", 0.92);
-      const swapped = frame >= tE + 14;
-      const fixed = frame >= tR + 6;
-      const tilt = !swapped ? 0 : !fixed ? settle(frame, tE + 14, 0, 4) : settle(frame, tR + 6, 4, 0);
-      const HX = 1480;
+      const handed = frame >= tL + 6;
+      const swapped = frame >= tE + 12;
+      const added = frame >= tE + 40;
+      const pebbleOff = frame >= tR + 8;
+      const tilt = !swapped ? 0 : !added ? settle(frame, tE + 12, 0, 12) : !pebbleOff ? settle(frame, tE + 40, 12, 0) : settle(frame, tR + 8, 0, 5);
+      // مواضع البطل أمام الطاولة: بجانب صديقه، ثم عند كفة الثقل، ثم يتراجع عن الرجل، ثم عند كفة البرتقال
+      const XS: [number, number][] = [[0, 1420], [tE - 16, 1420], [tE - 4, 1190], [tH + 2, 1190], [tH + 14, 1330], [tO - 2, 1330], [tR - 10, 1080]];
+      const heroAt = (f: number) => {
+        let i = 0;
+        while (i + 1 < XS.length && f >= XS[i + 1]![0]) i++;
+        const [t0, x0] = XS[i]!;
+        const nx = XS[i + 1];
+        return nx ? x0 + (nx[1] - x0) * prog(f, t0, nx[0], (v) => v) * (x0 === nx[1] ? 0 : 1) : x0;
+      };
+      const walkingHero = XS.some(([t, x], k) => k > 0 && x !== XS[k - 1]![1] && frame > XS[k - 1]![0] && frame < t);
+      const HX = heroAt(frame);
       const o = { x: HX, y: GROUND + 6, scale: 1.22, flip: true };
-      const TAKE = reachTo({ x: STALL.scale + 92, y: COUNTER_TOP - 160 }, o, { ...POSES.stand, lean: 10, head: 16 });
-      const SHOULDER = reachTo({ x: STALL.vendor + 40, y: GROUND - 300 }, o, { ...POSES.stand, head: 6 });
-      const heroPose = tlPose(frame, [[0, { ...POSES.stand, head: 8 }], [tL - 4, SHOULDER], [tE - 6, TAKE], [tE + 20, { ...POSES.stand, head: 10 }], [tH + 6, POSES.cross], [tO, { ...POSES.cross, head: 22 }], [tR - 4, TAKE], [tR + 16, POSES.nod]]);
-      const rivalIn = frame >= tH - 24;
+      const TAKE_PURSE = reachTo({ x: STALL.vendor - 70, y: GROUND - 330 }, o, { ...POSES.stand, head: 10 });
+      const SWAP = reachTo({ x: STALL.scale + 92, y: COUNTER_TOP - 150 }, o, { ...POSES.stand, lean: 10, head: 16 });
+      const LIFT_STONE = reachTo({ x: STALL.scale - 70, y: COUNTER_TOP - 150 }, o, { ...POSES.stand, lean: 16, head: 20 });
+      const heroX = HX;
+      const heroPoseStill = tlPose(frame, [
+        [0, { ...POSES.stand, head: 8 }],
+        [tL - 4, TAKE_PURSE],
+        [tL + 14, { ...POSES.stand, head: 10 }],
+        [tE - 8, SWAP],
+        [tE + 22, { ...POSES.stand, head: 10 }],
+        [tH + 4, { ...POSES["turn-away"], head: -10 }],
+        [tO, { ...POSES.stand, head: 24 }],
+        [tR - 6, LIFT_STONE],
+        [tR + 20, { ...POSES.stand, head: 12 }],
+      ]);
+      const heroPose = walkingHero ? walkPose({ ...POSES.stand, head: 8 }, (frame / 30) * Math.PI * 2) : heroPoseStill;
+      const back = handAt(heroPose, { x: heroX, y: GROUND + 6, scale: 1.22, flip: true, front: false });
+      const front = handAt(heroPose, { x: heroX, y: GROUND + 6, scale: 1.22, flip: true });
+      const friendPose = tlPose(frame, [[0, { ...POSES.stand, head: 10 }], [tL - 10, { ...GIVE, head: 6 }], [tL + 10, { ...POSES.stand, head: 10 }], [tE - 30, { ...POSES.point, head: 20 }], [tE + 6, { ...POSES.stand, head: 26 }], [tE + 26, { ...GIVE, head: 30 }], [tE + 44, POSES.stand]]);
+      const rivalIn = frame >= tH - 26;
+      const ORANGES = swapped ? (added ? 5 : 3) : 3;
       return {
-        cam: portrait ? [V(0, 1180, 0.9, 540), V(tE - 6, 1140, 1.3, 520), V(tH - 10, 900, 0.85, 560), V(tO, 1060, 1.2, 520)] : [K(0, 1160, 1.25, 30), K(tE - 6, 1120, 1.75, 0), K(tH - 10, 1000, 1.15, 40), K(tO, 1080, 1.6, 10)],
+        cam: portrait
+          ? [V(0, 1240, 0.9, 540), V(tE - 8, 1100, 1.25, 520), V(tH - 12, 960, 0.8, 560), V(tO - 4, 1060, 1.25, 520)]
+          : [K(0, 1180, 1.25, 30), K(tE - 8, 1120, 1.7, 0), K(tH - 12, 1000, 1.12, 40), K(tO - 4, 1080, 1.6, 10)],
         world: (
           <g>
             <StallSet frame={frame} />
-            <Figure x={STALL.vendor} y={GROUND + 6} scale={1.5} pose={tlPose(frame, [[0, { ...POSES.stand, head: 10 }], [tE + 14, { ...POSES.stand, head: 26 }], [tH, POSES.stand]])} look={CAST.friend} flip frame={frame + 4} />
-            <ValueScale x={STALL.scale} tilt={tilt} left={(p) => <g>{oranges(p, 5)}</g>} right={(p) => (swapped ? <StandardWeight x={p.x} y={p.y} /> : <ShinyWeight x={p.x} y={p.y} glow={prog(frame, tE - 8, tE + 4)} />)} />
-            <Figure x={HX} y={GROUND + 6} scale={1.22} pose={heroPose} look={hero} flip frame={frame} />
+            <Figure x={STALL.vendor} y={GROUND + 6} scale={1.5} pose={friendPose} look={CAST.friend} flip frame={frame + 4} />
+            <ValueScale
+              x={STALL.scale}
+              tilt={tilt}
+              left={(p) => (
+                <g>
+                  {!pebbleOff ? <path d={`M${p.x + 20} ${p.y} q-2 -12 10 -14 q14 -2 14 10 l-2 4 z`} fill={darken(ID.night, 0.2)} stroke={INK} strokeWidth={1.8} /> : null}
+                  {!pebbleOff && frame >= tI - 6 ? <Glow cx={p.x + 30} cy={p.y - 6} r={34} opacity={0.7 * prog(frame, tI - 6, tI + 6)} /> : null}
+                  {oranges(p, ORANGES)}
+                </g>
+              )}
+              right={(p) => (swapped ? <StandardWeight x={p.x} y={p.y} /> : <ShinyWeight x={p.x} y={p.y} glow={prog(frame, tE - 14, tE)} />)}
+            />
+            <Figure x={heroX} y={GROUND + 6} scale={1.22} pose={heroPose} look={hero} flip frame={frame} />
+            {handed ? <Purse x={back.x} y={back.y + 30} s={0.75} /> : <Purse x={STALL.vendor - 60} y={GROUND - 300} s={0.75} />}
+            {pebbleOff && frame < tR + 40 ? <path d={`M${front.x - 10} ${front.y + 4} q-2 -12 10 -14 q14 -2 14 10 l-2 4 z`} fill={darken(ID.night, 0.2)} stroke={INK} strokeWidth={1.8} /> : null}
             <Figure x={640} y={GROUND + 6} scale={1.15} pose={{ ...POSES.stand, head: 10 }} look={CAST.customer} frame={frame + 2} />
             {rivalIn ? (
               frame < tH ? (
-                <Walker frame={frame} from={200} to={820} y={GROUND + 6} start={tH - 24} end={tH} look={CAST.rival} scale={1.2} />
+                <Walker frame={frame} from={180} to={800} y={GROUND + 6} start={tH - 26} end={tH} look={CAST.rival} scale={1.2} />
               ) : (
-                <Figure x={820} y={GROUND + 6} scale={1.2} pose={tlPose(frame, [[tH, { ...POSES.point, armFront: { s: 70, e: 8 } }], [tR + 10, { ...POSES.stand, head: 6 }]])} look={CAST.rival} frame={frame + 6} />
+                <Figure x={800} y={GROUND + 6} scale={1.2} pose={tlPose(frame, [[tH, { ...POSES.stand, head: 6 }], [tI - 6, { ...POSES.point, lean: 6, armFront: { s: 64, e: 10 } }], [tR + 10, { ...POSES.stand, head: 6 }]])} look={CAST.rival} frame={frame + 6} />
               )
             ) : null}
           </g>
@@ -639,35 +716,50 @@ export const CH5_SHOTS: Record<string, Ch5Shot> = {
     },
   },
   "stall-scale-of-justice": {
-    nameAr: "دكان الميزان: ينحني ليرى الكفتين بمستوى عينه، يستوي الميزان عند «بميزان العدل»، ثم يمضي إلى الحارة",
+    nameAr: "دكان الميزان: تتأرجح الكفتان بعد إزالة الحجر، ينحني فيرى نقص برتقالة، يضيفها صديقه فيستوي الميزان على الثقل المعياري، يعيد الصرّة ويمضي",
     place: "دكان الميزان ثم الطريق",
     render: ({ frame, at, portrait }) => {
-      // «نحب»: الكاميرا على الميزان؛ «نجتهد في رؤية»: ينحني فيرى الكفتين بمستوى عينه؛ «بميزان العدل»: يستوي الميزان ويضيء؛
-      // «السؤال العملي»: يلتفت إلى الطريق؛ «كيف ندرّب»: يمشي خارجًا من الدكان والكاميرا تتبعه
+      // التوجيه 025: الاستواء نتيجة مفهومة: بعد إزالة الحجر (c5-s19) كفة الثقل المعياري أثقل قليلًا (نقص برتقالة).
+      // «نجتهد في رؤية»: ينحني فيرى الكفتين بمستوى عينه؛ «بميزان»: يضع صديقه البرتقالة السادسة فيستوي الميزان ويهدأ؛
+      // «والحق»: يعيد الصرّة إلى صديقه (الثقة باقية)؛ «السؤال العملي»: يلتفت إلى الطريق؛ «كيف ندرّب»: يمشي إلى الحارة.
       const tJ = at("نجتهد", 0.22);
       const tM = at("بميزان", 0.35);
+      const tT = at("والحق", 0.44);
       const tQ = at("السؤال", 0.52);
       const tK = at("كيف", 0.62);
-      const tilt = frame < tM ? 6 + 2 * Math.sin(frame / 14) : settle(frame, tM, 6, 0);
-      const level = prog(frame, tM + 10, tM + 30) * (1 - prog(frame, tQ, tQ + 30));
-      const HX = 1440;
+      const added = frame >= tM;
+      const tilt = !added ? 5 + 1.2 * Math.sin(frame / 9) * Math.exp(-frame / 80) : settle(frame, tM, 5, 0);
+      const level = prog(frame, tM + 14, tM + 30) * (1 - prog(frame, tQ, tQ + 30));
+      // يبدأ حيث انتهى c5-s19 (عند كفة البرتقال) ثم يقف بجانب صديقه
+      const HX = 1150;
+      const o = { x: HX, y: GROUND + 6, scale: 1.22, flip: true };
       const LOOK: PoseSpec = { ...POSES.stand, lean: 26, head: 10, armBack: { s: -20, e: 30 } };
+      const RETURN = reachTo({ x: STALL.vendor - 70, y: GROUND - 330 }, o, { ...POSES.stand, head: 8 });
       const walking = frame >= tK;
-      const heroX = walking ? HX - 1500 * prog(frame, tK, tK + 160, (v) => v) : HX;
+      const pose = tlPose(frame, [[0, { ...POSES.stand, head: 10 }], [tJ, LOOK], [tM + 20, { ...POSES.stand, head: 6 }], [tT - 4, RETURN], [tT + 16, POSES.stand]]);
+      const back = handAt(pose, { ...o, front: false });
+      const front = handAt(pose, o);
+      const returned = frame >= tT + 6;
+      const friendPose = tlPose(frame, [[0, { ...POSES.stand, head: 22 }], [tM - 14, { ...GIVE, head: 30 }], [tM + 10, POSES.stand], [tT - 6, { ...GIVE, head: 8 }], [tT + 14, POSES.stand]]);
       return {
         cam: portrait
-          ? [V(0, STALL.scale, 1.5, COUNTER_TOP - 170), V(tJ, 1200, 1.1, 520), V(tM - 4, STALL.scale, 1.9, COUNTER_TOP - 180), V(tQ, 1150, 0.95, 540), V(tK + 30, 600, 0.95, 560)]
-          : [V(0, STALL.scale, 2.2, COUNTER_TOP - 170), V(tJ, 1180, 1.5, 520), V(tM - 4, STALL.scale, 2.6, COUNTER_TOP - 180), V(tQ, 1120, 1.3, 540), V(tK + 30, 700, 1.2, 560)],
+          ? [V(0, STALL.scale, 1.5, COUNTER_TOP - 170), V(tJ, 1200, 1.1, 520), V(tM - 6, STALL.scale, 1.9, COUNTER_TOP - 180), V(tT - 6, 1250, 1.0, 520), V(tK + 30, 600, 0.95, 560)]
+          : [V(0, STALL.scale, 2.2, COUNTER_TOP - 170), V(tJ, 1180, 1.5, 520), V(tM - 6, STALL.scale, 2.6, COUNTER_TOP - 180), V(tT - 6, 1220, 1.4, 520), V(tK + 30, 700, 1.2, 560)],
         world: (
           <g>
-            <StallSet frame={frame} vendor={{ ...POSES.stand, head: 10 }} />
-            <Glow cx={STALL.scale} cy={COUNTER_TOP - 150} r={220} opacity={0.55 * level} />
-            <ValueScale x={STALL.scale} tilt={tilt} left={(p) => <g>{oranges(p, 5)}</g>} right={(p) => <StandardWeight x={p.x} y={p.y} />} />
+            <StallSet frame={frame} />
+            <Figure x={STALL.vendor} y={GROUND + 6} scale={1.5} pose={friendPose} look={CAST.friend} flip frame={frame + 4} />
+            <Glow cx={STALL.scale} cy={COUNTER_TOP - 150} r={220} opacity={0.5 * level} />
+            <ValueScale x={STALL.scale} tilt={tilt} left={(p) => <g>{oranges(p, 5)}{added ? <circle cx={p.x} cy={p.y - 52} r={13} fill={mix(ID.dawn, ID.seal, 0.3)} stroke={INK} strokeWidth={2} /> : null}</g>} right={(p) => <StandardWeight x={p.x} y={p.y} />} />
             {walking ? (
               <Walker frame={frame} from={HX} to={HX - 1500} y={GROUND + 6} start={tK} end={tK + 160} look={hero} scale={1.22} />
             ) : (
-              <Figure x={heroX} y={GROUND + 6} scale={1.22} pose={tlPose(frame, [[0, { ...POSES.stand, head: 10 }], [tJ, LOOK], [tM + 20, { ...POSES.stand, head: 6 }], [tQ, POSES.stand]])} look={hero} flip={frame < tQ + 10} frame={frame} />
+              <g>
+                <Figure x={HX} y={GROUND + 6} scale={1.22} pose={pose} look={hero} flip={frame < tQ + 10} frame={frame} />
+                {!returned ? <Purse x={(frame >= tT - 4 ? front : back).x} y={(frame >= tT - 4 ? front : back).y + 30} s={0.75} /> : null}
+              </g>
             )}
+            {returned ? <Purse x={STALL.vendor - 60} y={GROUND - 300} s={0.75} /> : null}
           </g>
         ),
       };
