@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, open, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -83,6 +83,27 @@ describe("human-approved, fingerprint-bound voice gate", () => {
     await writeFile(path.join(x.dir, "voice", "spoken.mp3"), "CHANGED AUDIO WITHOUT RENAMING");
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow();
+  });
+  it("does not overwrite damaged historical voice-review records", async () => {
+    const x = await sample();
+    const ledger = path.join(x.dir, "voice-review.json");
+    const old = "{ damaged voice review; preserve";
+    await writeFile(ledger, old);
+    await expect(approveVoiceScene(x.scriptPath, x.plan, x.voice,
+      "c1-s1", "مراجع", "استمعت إلى هذا المقطع كاملًا", true)).rejects.toThrow(/التاريخي/);
+    expect(await readFile(ledger, "utf8")).toBe(old);
+  });
+  it("prevents simultaneous voice signoffs from overwriting one another", async () => {
+    const x = await sample();
+    const lockFile = path.join(x.dir, "voice-review.json.lock");
+    const held = await open(lockFile, "wx");
+    try {
+      await expect(approveVoiceScene(x.scriptPath, x.plan, x.voice,
+        "c1-s1", "مراجع", "استمعت إلى هذا المقطع كاملًا", true)).rejects.toThrow(/قيد الحفظ/);
+    } finally { await held.close(); await rm(lockFile); }
+    const approved = await approveVoiceScene(x.scriptPath, x.plan, x.voice,
+      "c1-s1", "مراجع", "استمعت إلى هذا المقطع كاملًا", true);
+    expect(approved[0]?.state).toBe("approved");
   });
   it("invalidates time metadata even when audio bytes and narration are unchanged", async () => {
     const x = await sample();
