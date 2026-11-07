@@ -5,7 +5,7 @@ import path from "node:path";
 import { createChannel } from "../src/channel/create";
 import { channelPaths, isChannelId, listChannels, loadChannel, runWithChannel, currentChannelId } from "../src/channel";
 import { jsonRevision, writeJsonAtomic, writeJsonWithRevision } from "../src/channel/storage";
-import { listScriptEpisodeDirs, resolveScriptPath } from "../src/script/episodes";
+import { createEpisode, listScriptEpisodeDirs, resolveScriptPath } from "../src/script/episodes";
 
 const project = path.resolve(import.meta.dirname, "..");
 let dir: string;
@@ -48,6 +48,31 @@ describe("channel boundaries and crash-safe storage", () => {
     expect(() => channelPaths("copy-of-balislam")).toThrow("رابط رمزي");
     symlinkSync(path.join(dir, "dafatir-alzaman", "episodes"), path.join(dir, "balislam", "images"), "dir");
     expect(() => channelPaths("balislam")).toThrow("رابط رمزي");
+  });
+
+  it("creates only one episode number across concurrent slugs within one channel", async () => {
+    const opts = { episode: "777", domain: "psychology", title: "اختبار العزل" };
+    const results = await Promise.allSettled([
+      runWithChannel("balislam", () => createEpisode({ ...opts, slug: "first" })),
+      runWithChannel("balislam", () => createEpisode({ ...opts, slug: "second" })),
+    ]);
+    expect(results.filter((x) => x.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((x) => x.status === "rejected")).toHaveLength(1);
+    const own = channelPaths("balislam").episodes;
+    const others = channelPaths("dafatir-alzaman").episodes;
+    expect((await listScriptEpisodeDirs(own)).filter((d) => d.startsWith("777-"))).toHaveLength(1);
+    expect(await listScriptEpisodeDirs(others)).toEqual([]);
+    expect(readdirSync(own).some((d) => d.includes(".creating-") || d.includes(".create.lock"))).toBe(false);
+  });
+
+  it("allows the same episode number in two different channel namespaces", async () => {
+    const created = await Promise.all([
+      runWithChannel("balislam", () => createEpisode({ episode: "778", slug: "own", domain: "psychology" })),
+      runWithChannel("dafatir-alzaman", () => createEpisode({ episode: "778", slug: "own", domain: "world" })),
+    ]);
+    expect(new Set(created).size).toBe(2);
+    expect(created[0]).toContain("balislam");
+    expect(created[1]).toContain("dafatir-alzaman");
   });
 
   it("never resolves a symlinked episode into another channel", async () => {
