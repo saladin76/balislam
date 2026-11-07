@@ -1,9 +1,9 @@
 import path from "node:path";
 import { toEasternDigits } from "../i18n/packs";
 import { existsSync } from "node:fs";
-import { link, mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
+import { link, lstat, mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
-import { decodedAudioDuration } from "../voice/audioIntegrity";
+import { decodedAudioDuration, isOwnedRegularAudio } from "../voice/audioIntegrity";
 import { parseScript } from "../script/parse";
 import { quranFromScript, historicalMeaningConflict } from "./scriptText";
 import { parseAyahRef } from "../script/quranMeta";
@@ -41,6 +41,38 @@ const fresh = (iso?: string) => {
 export type RecitationIndex = Record<string, { parts: { file: string; duration: number; sha256?: string }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; reviewNote?: string; sha256?: string; textSha256?: string;
   rightsEvidence?: string; originalFile?: string; originalName?: string; originalSha256?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
+
+/**
+ * Write-once provider MP3 publication. A hard link is an atomic no-overwrite
+ * operation on the same filesystem. Content mismatch fails WITHOUT replacing
+ * the old source; newly-created temp files remain owned by the caller.
+ */
+export const publishImmutableRecitationPart = async (
+  dir: string, name: string, temp: string, expectedSha256: string,
+): Promise<string> => {
+  const base = path.resolve(dir);
+  if (!/^[a-z0-9][a-z0-9._-]{0,190}\.mp3$/i.test(name) || name.includes("..") ||
+      !/^[a-f0-9]{64}$/.test(expectedSha256) || path.dirname(path.resolve(temp)) !== base)
+    throw new Error("اسم أو بصمة التسجيل القادم من المصدر غير آمنة.");
+  const root = await lstat(base);
+  if (!root.isDirectory() || root.isSymbolicLink() ||
+      !await isOwnedRegularAudio(base, path.basename(temp)))
+    throw new Error("ملف التلاوة المؤقت ليس مملوكًا لمجلد الحلقة.");
+  const source = await readFile(temp);
+  if (createHash("sha256").update(source).digest("hex") !== expectedSha256)
+    throw new Error("محتوى التسجيل المؤقت لا يطابق بصمته.");
+  const destination = path.join(base, name);
+  try { await link(temp, destination); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  if (!await isOwnedRegularAudio(base, name))
+    throw new Error("التسجيل الموجود ليس ملفًا محليًا عاديًا.");
+  const stored = await readFile(destination);
+  if (createHash("sha256").update(stored).digest("hex") !== expectedSha256)
+    throw new Error("تسجيل سابق بهذا الاسم تغيّر؛ لن يُكتب فوقه.");
+  return destination;
+};
 
 /** Never let an external-provider sync replace a new, explicitly reviewed human clip. */
 export const preserveManualRecitations = (staged: RecitationIndex, latest: RecitationIndex): RecitationIndex => {
@@ -122,15 +154,7 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
             try {
               const duration = await decodedAudioDuration(temp, { mp3Only: true, maxSeconds: 600 });
               if (!duration) throw new Error("تسجيل المصدر الخارجي غير قابل لفك الترميز كاملًا.");
-              // Hard-link in the SAME directory is an atomic create-if-absent,
-              // unlike rename(), which overwrites an existing validated MP3.
-              try { await link(temp, destination); }
-              catch (error) {
-                if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-              }
-              const stored = await readFile(destination);
-              if (createHash("sha256").update(stored).digest("hex") !== digest)
-                throw new Error("تسجيل تلاوة سابق بالاسم نفسه تغيّر؛ لا يُكتب فوقه.");
+              await publishImmutableRecitationPart(recDir, file, temp, digest);
               const storedDuration = await decodedAudioDuration(destination, { mp3Only: true, maxSeconds: 600 });
               if (!storedDuration || Math.abs(storedDuration - duration) > Math.max(0.15, duration * 0.03))
                 throw new Error("مدة التسجيل المخزّن لا تطابق الملف القادم من المصدر.");
