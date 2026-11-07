@@ -22,6 +22,7 @@ describe("Studio unsaved-work and channel recovery wiring", () => {
     expect(app).toContain("scriptDirty || researchDirty || identDirty || channelConfigDirty");
     expect(app).toContain('window.addEventListener("beforeunload"');
     expect(app).toContain("if (!confirmLeaveScript()) return");
+    expect(app).toContain("أُنشئت القناة الجديدة، وبقيت في الحالية حتى تحفظ تعديلاتك.");
   });
 
   it("preserves healthy channel listings when another channel's JSON is invalid", () => {
