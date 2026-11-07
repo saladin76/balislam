@@ -19,8 +19,10 @@ Run on this branch, in an isolated Mac worktree:
     npm run gate
     node scripts/verify-studio-temp-leaks.mjs
     node scripts/verify-studio-temp-leaks.mjs --parallel
+    node scripts/verify-studio-temp-leaks.mjs --failure
+    node scripts/verify-studio-temp-leaks.mjs --cancel
 
-The verification performs two full gate runs in sequence or concurrently with distinct private temp roots, checks that each ends empty, preserves its sentinel, and records free disk before/after. Its report is meaningful only after actual Mac execution. Do not present simulated or stale numbers as Mac benchmarks.
+The verification performs two full gate runs in sequence or concurrently with distinct private temp roots. The --failure variant deliberately removes npx from the private child PATH; the --cancel variant sends SIGTERM after 1.2 seconds and expects a rejected run. All modes check that each run root ends empty, preserve their sentinels, and record free disk before/after. Its report is meaningful only after actual Mac execution. Do not present simulated or stale numbers as Mac benchmarks.
 
 ## Arabic PDF
 
