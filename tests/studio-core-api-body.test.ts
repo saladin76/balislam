@@ -24,6 +24,14 @@ describe("core API request limits", () => {
     await expect(readBody(request, 14)).rejects.toMatchObject({ status: 413 });
   });
 
+  it("rejects scalar, array and null payloads before handlers destructure them", async () => {
+    for (const body of ["null", "false", "123", '[]', '"text"']) {
+      await expect(readBody(req([body]))).rejects.toMatchObject({ status: 400 });
+    }
+    await expect(readBody(req(['{}']))).resolves.toEqual({});
+    await expect(readBody(req([], { "content-length": "-1" }))).rejects.toMatchObject({ status: 413 });
+  });
+
   it("reports invalid JSON with a stable HTTP 400", async () => {
     await expect(readBody(req(['{"broken"']))).rejects.toMatchObject({ status: 400 });
   });
