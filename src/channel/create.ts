@@ -73,6 +73,7 @@ export const createChannel = async (opts: NewChannelOptions) => {
 
   // A sibling staging directory is invisible to listChannels. A failed write or
   // process interruption never exposes a half-created production channel.
+  await mkdir(path.dirname(p.dir), { recursive: true });
   const staging = await mkdtemp(path.join(path.dirname(p.dir), `.${opts.id}.creating-`));
   try {
     await mkdir(path.join(staging, "episodes"));
