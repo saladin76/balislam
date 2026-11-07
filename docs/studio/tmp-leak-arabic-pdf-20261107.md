@@ -43,3 +43,24 @@ Sample commands (choose NEW output filenames):
 Visual acceptance: inspect all generated pages at 100%, verify no detached Arabic letters/diacritics, correct chapter titles and scene numbers, check PDF fonts (pdffonts), page counts and no clipped notes. A screenshot of rasterized source scene art is not fixed merely by changing PDF shell typography. Previously exported PDFs remain historical, not overwritten.
 
 Full Mac gate, repeat/parallel audit, Chrome render and visual page signoff remain PENDING. Do not merge, activate background bridge, or publish until those gates pass.
+
+
+## Canonical Studio paths and manual Quran production
+
+One approved directory convention across all three channels:
+
+    channels/<channel>/episodes/<NNN-slug>/script.md          # owner-authored script
+    channels/<channel>/episodes/<NNN-slug>/quran.json         # owner-supplied ayah text only
+    channels/<channel>/episodes/<NNN-slug>/recitations/       # original + review + signed-off manual recording
+    channels/<channel>/episodes/<NNN-slug>/voice/             # ordinary narration, separate from Qur'an
+    channels/<channel>/episodes/<NNN-slug>/previews/          # reviewed preview slots
+    channels/<channel>/episodes/<NNN-slug>/out/               # rendered episode outputs
+    public/_render/<channel>/<NNN-slug>/                      # disposable render staging, per channel
+    public/_storyboard_media/<channel>/<NNN-slug>-<hash>/     # content-hashed visual-only staging
+    $TMPDIR/bal-gate-run-<unique>/                           # owned ephemeral gate test files only
+
+The canonical resolved script path determines the namespace. Never infer the production channel from a random temp basename, never use the same _render/001 folder for three channels, and never remove other channels' media. Paths stored inside an approved episode remain local and unchanged.
+
+Quran workflow: list exact required ayah references from script; owner sends tashkeel-preserving text via conversation, then it is explicitly entered in Studio and reviewed. Owner submits an original audio recording via the Studio upload panel, which preserves its original bytes and makes a gently leveled preview without pitch shifts or speed changes. The clip is excluded from render until listened to, signed off and checked by text/audio SHA hashes. AlQuran Cloud is optional for listening previews only; Quran Foundation, external translations and borrowed reciter tracks do not enter the production pipeline. A ChatGPT conversation attachment is NOT automatically copied to the owner's Mac; this requires explicit Studio upload or a separately reviewed, safe bridge action.
+
+Mac observations from the 2026-11-07 attached terminal report: first gate: 636/638 tests passed, 2 failed; second gate: 635/638 passed, 3 failed. Test names included PDF chapter-cover page matcher and Git isolation gate source matcher, with intermittent child probe failure under parallel CPU stress. The first two test assertions have since been updated to match actual markup/cleanGitEnv structure. Failure/cancel audit produced privateTempBytesAfter=0. Serial and parallel audits remained FAIL because their full-gate tests did not all pass. Under parallel stress, freeBytesDelta=-1085489152 (roughly 1.09 GB of total disk free decrease) while private root bytes after cleanup=0, so this delta MUST NOT be attributed to the test root without more per-path tracing. Full verification of this newer branch head remains pending; no merge approval.
