@@ -43,5 +43,12 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(ui).not.toMatch(/localStorage|sessionStorage|setTimeout|autoApprove/i);
     const app = src("app/src/App.tsx");
     expect(app).toContain("<SceneProductionPanel");
+    expect(app).toContain("<EpisodeJourneyBar");
+    expect(app).not.toContain("<EpisodeWorkspaceBar");
+    const journey = src("app/src/workspace/EpisodeJourneyBar.tsx");
+    for (const name of ["إعداد الحلقة", "Storyboard", "إنتاج المشاهد", "مراجعة الحلقة", "Master والنشر"])
+      expect(journey).toContain(name);
+    expect(journey).toContain("api.sceneProduction(episodeId, channelId)");
+    expect(journey).not.toMatch(/WorkflowOwnerControls|localStorage|autoApprove/);
   });
 });
