@@ -4,6 +4,7 @@
  * Evidence is supplied only by trusted server-side adapters, never client-provided booleans.
  */
 import { createHash } from "node:crypto";
+import type { EvidenceProof } from "./trust.ts";
 
 export const WORKFLOW_STAGES = ["script", "storyboard", "voice", "motion", "av_review", "master"] as const;
 export type WorkflowStage = (typeof WORKFLOW_STAGES)[number];
@@ -33,6 +34,7 @@ export type WorkflowApproval = {
   fingerprint: string;
   note: string;
   evidence: string[];
+  evidenceProofs: EvidenceProof[];
   /** Exact approval event sequence of every earlier stage; byte rollback cannot reuse a later signoff. */
   prerequisiteApprovalSeq: number[];
   /** Own immutable approval event number in the append-only log. */
@@ -151,7 +153,9 @@ export const isCurrentApproval = (ledger: WorkflowLedger, snapshot: WorkflowSnap
   if (state?.status !== "approved" || !approval || !input || approval.by?.role !== "owner" ||
       !approval.by.id || !Number.isFinite(Date.parse(approval.at)) ||
       approval.contentVersion !== input.version || approval.artifactSha256 !== input.sha256 ||
-      !Array.isArray(approval.evidence) || !STAGE_EVIDENCE[stage].every((key) => approval.evidence.includes(key))) return false;
+      !Array.isArray(approval.evidence) || !STAGE_EVIDENCE[stage].every((key) => approval.evidence.includes(key)) ||
+      !Array.isArray(approval.evidenceProofs) ||
+      !STAGE_EVIDENCE[stage].every((key) => approval.evidenceProofs.some((proof) => proof.key === key && /^[a-f0-9]{64}$/.test(proof.sha256)))) return false;
   try {
     if (approval.fingerprint !== stageFingerprint(snapshot, stage)) return false;
   } catch { return false; }
