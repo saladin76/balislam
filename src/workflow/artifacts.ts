@@ -5,7 +5,7 @@
  */
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { lstat, readFile } from "node:fs/promises";
+import { lstat, open, readFile } from "node:fs/promises";
 import { channelsDir, currentChannelId } from "../channel";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
@@ -31,6 +31,32 @@ const optionalBytes = async (file: string): Promise<Buffer | null> => {
     throw error;
   }
 };
+/** Hash large videos by streaming, checking the opened inode before/after hashing. */
+const optionalFileHash = async (file: string): Promise<string | null> => {
+  let expected: Awaited<ReturnType<typeof lstat>>;
+  try { expected = await lstat(file); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+  if (!expected.isFile() || expected.isSymbolicLink()) throw Error("Video evidence is not a regular file.");
+  const handle = await open(file, "r");
+  try {
+    const before = await handle.stat();
+    if (before.ino !== expected.ino || before.dev !== expected.dev || before.size !== expected.size ||
+        before.mtimeMs !== expected.mtimeMs) throw Error("Video changed before hashing.");
+    const dig = createHash("sha256");
+    for await (const chunk of handle.createReadStream({ autoClose: false })) dig.update(chunk);
+    const after = await handle.stat();
+    const current = await lstat(file);
+    if (after.size !== before.size || after.mtimeMs !== before.mtimeMs ||
+        after.ctimeMs !== before.ctimeMs || current.ino !== before.ino ||
+        current.dev !== before.dev || current.size !== before.size ||
+        current.mtimeMs !== before.mtimeMs) throw Error("Video changed while hashing.");
+    return dig.digest("hex");
+  } finally { await handle.close(); }
+};
+const fromHash = (sha256: string): ArtifactVersion => ({ sha256, version: sha256.slice(0, 16) });
 const optionalText = async (file: string) => (await optionalBytes(file))?.toString("utf8") ?? "";
 const safeClip = (name: string) => /^[a-zA-Z0-9_.-]{1,180}\.mp3$/.test(name) && !name.startsWith(".");
 
@@ -89,13 +115,13 @@ export const snapshotFromFiles = async (scriptPath: string, plan: Plan | null): 
   const sceneReview = await optionalBytes(path.join(dir, "scene-review.json"));
   snapshot.motion = versioned(JSON.stringify(["motion-v1", hash(motion), sceneReview ? hash(sceneReview) : null]));
   // Review is of the actual integrated AV preview; presence never implies approval.
-  const preview = await optionalBytes(path.join(dir, "previews", "episode.mp4"));
-  if (!preview) return snapshot;
-  snapshot.av_review = versioned(preview);
+  const previewHash = await optionalFileHash(path.join(dir, "previews", "episode.mp4"));
+  if (!previewHash) return snapshot;
+  snapshot.av_review = fromHash(previewHash);
   const masterId = plan.episode || path.basename(dir).slice(0, 3);
   if (!/^\d{3}$/.test(masterId)) throw Error("Unsafe Master episode identifier.");
-  const master = await optionalBytes(path.join(dir, "out", "package", `${masterId}-episode.mp4`));
-  if (master) snapshot.master = versioned(master); // SHA-256 of EXACT final Master bytes.
+  const masterHash = await optionalFileHash(path.join(dir, "out", "package", `${masterId}-episode.mp4`));
+  if (masterHash) snapshot.master = fromHash(masterHash); // SHA-256 of EXACT final Master bytes.
   return snapshot;
 };
 

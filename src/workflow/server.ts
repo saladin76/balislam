@@ -104,7 +104,7 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
     const media = await collectMedia(episode, plan!);
     const verses = plan!.chapters.flatMap(c => c.scenes).filter(s => s.template === "verse-card");
     for (const scene of verses) {
-      const rec = scene.ayahKey && media.recitations[scene.ayahKey];
+      const rec = scene.ayahKey ? media.recitations[scene.ayahKey] : undefined;
       required(Boolean(rec) && rec?.source !== "licensed",
         "Every Quran recitation in the Master requires independently verified usage rights.");
     }

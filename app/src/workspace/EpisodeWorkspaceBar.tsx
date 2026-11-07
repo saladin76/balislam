@@ -24,6 +24,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   approvals?: WorkflowApprovalSnapshot;
 }> = ({ episodeId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false, approvals }) => {
   const [review, setReview] = useState<ReviewSummary | null>(null);
+  const [engineApprovals, setEngineApprovals] = useState<WorkflowApprovalSnapshot | undefined>();
   const [sceneReview, setSceneReview] = useState<SceneReviewSummary | null>(null);
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
   const [published, setPublished] = useState<EpisodeStatus["published"] | null>(null);
@@ -50,6 +51,18 @@ export const EpisodeWorkspaceBar: React.FC<{
     const timer = window.setInterval(refresh, 15000);
     return () => { alive = false; window.clearInterval(timer); };
   }, [episodeId, plan, stage]);
+
+  // Read-only engine status; separate interval avoids rehashing potentially large
+  // Master files every 15 seconds with ordinary technical counters.
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => void api.workflow(episodeId)
+      .then(result => { if (alive) setEngineApprovals(result.approvals); })
+      .catch(() => { if (alive) setEngineApprovals(undefined); });
+    refresh();
+    const timer = window.setInterval(refresh, 60000);
+    return () => { alive = false; window.clearInterval(timer); };
+  }, [episodeId, plan]);
 
   const narration = useMemo(() => plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim()), [plan]);
   const missingAudio = narration.filter((s) => !media.voice[s.id] || media.voice[s.id]?.text !== s.narration.trim()).length;
@@ -91,11 +104,11 @@ export const EpisodeWorkspaceBar: React.FC<{
             aria-current={stage === item.tab || (stage === "research" && item.key === "script") ? "step" : undefined}
             onClick={() => onStage(item.tab)}>
             <span className="ew-stage-number">{index + 1}</span>
-            <span><strong>{item.title}</strong><small>{approvalLabel(approvals?.[item.key])}</small></span>
+            <span><strong>{item.title}</strong><small>{approvalLabel((approvals ?? engineApprovals)?.[item.key])}</small></span>
           </button>
         ))}
       </nav>
-      <WorkflowApprovalDetails approvals={approvals} technical={technical} />
+      <WorkflowApprovalDetails approvals={approvals ?? engineApprovals} technical={technical} />
       {notes.length ? (
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
           <button className="ew-attention-title" type="button" aria-expanded={attentionOpen}

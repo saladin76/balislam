@@ -65,6 +65,9 @@ export const packageEpisode = async (opts: PackageOptions) => {
     if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
   }
   if (stage === "shorts") {
+    // Shorts are distribution artifacts: require owner approval of the exact Master.
+    const { assertWorkflowForEpisode } = await import("../workflow/server");
+    await assertWorkflowForEpisode(ep, "publish");
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
     if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");

@@ -109,6 +109,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     // assembling the expensive animated Master. Preview remains estimated.
     const { assertMotionStartAuthorized } = await import("../voice/motionGate");
     await assertMotionStartAuthorized(scriptPath, plan, media.voice);
+    const { assertWorkflowForEpisode } = await import("../workflow/server");
+    await assertWorkflowForEpisode(opts.episode, "master_render");
     const sbRecord = await loadStoryboard(scriptPath);
     await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
     const { loadStoryboardMotion } = await import("./storyboardMotion");

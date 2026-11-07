@@ -521,6 +521,14 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { status } = await readBody(req);
       if (!status || typeof status !== "object" || Array.isArray(status)) return send(res, 400, { error: "حالة النشر غير صالحة؛ لم تُحفظ." }), true;
+      const old = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {};
+      // A legacy size/mtime marker never authorizes publishing. Check the exact
+      // current Master hash before recording any NEW publication/approval.
+      if ((status.published && JSON.stringify(status.published) !== JSON.stringify(old.published)) ||
+          (status.approved && JSON.stringify(status.approved) !== JSON.stringify(old.approved))) {
+        const { assertWorkflowForEpisode } = await load("/src/workflow/server.ts");
+        await assertWorkflowForEpisode(parts[1], "publish");
+      }
       await writeFile(file, JSON.stringify(status, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {});

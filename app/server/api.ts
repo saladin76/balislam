@@ -189,6 +189,24 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
 
+          if (parts[2] === "workflow" && parts.length === 3) {
+            const { workflowReadForEpisode, workflowOwnerDecision } = await load("/src/workflow/server.ts");
+            if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
+            if (req.method === "POST") {
+              const body = await readBody(req);
+              try {
+                const token = req.headers["x-studio-owner-token"];
+                const updated = await workflowOwnerDecision(ep, body, token);
+                return send(res, 200, updated);
+              } catch (error) {
+                const message = (error as Error).message;
+                const auth = /authentication|required.*token|not configured/i.test(message);
+                return send(res, auth ? 403 : 409, { error: message });
+              }
+            }
+            return send(res, 405, { error: "Method not allowed" });
+          }
+
           if (parts[2] === "script-signoff" && parts.length === 3) {
             const { scriptSignoffStatus, approveScript } = await load("/src/script/approval.ts");
             if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));

@@ -9,6 +9,8 @@ import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
 import type { TechReviewSummary } from "../../src/channel/techReviews";
+import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
+import type { WorkflowStage } from "../../src/workflow/gates";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -60,7 +62,9 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
     ...init,
-    headers: init?.json !== undefined ? { "content-type": "application/json" } : undefined,
+    headers: init?.json !== undefined
+      ? { "content-type": "application/json", ...(init.headers as Record<string, string> | undefined) }
+      : init?.headers,
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
@@ -72,6 +76,17 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  workflow: (episode: string, channel?: string) => call<{
+    approvals: WorkflowApprovalView;
+    fingerprints: Partial<Record<WorkflowStage, string>>;
+    revision: number;
+  }>(`/api/episodes/${episode}/workflow`, undefined, channel),
+  workflowDecision: (episode: string, channel: string, token: string,
+    decision: { action: "submit" | "approve" | "reject" | "reopen"; stage: WorkflowStage;
+      expectedFingerprint: string; note: string; confirmWatched?: boolean }) =>
+    call<{ approvals: WorkflowApprovalView }>(`/api/episodes/${episode}/workflow`, {
+      method: "POST", json: decision, headers: { "x-studio-owner-token": token },
+    }, channel),
   scriptSignoff: (episode: string) =>
     call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
   approveScriptSignoff: (episode: string, reviewer: string, note: string) =>
