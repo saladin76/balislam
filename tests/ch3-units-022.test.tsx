@@ -69,3 +69,16 @@ describe("الفصل 3: الوحدات الخمس (التوجيه 022)", () => {
     });
   }
 });
+
+describe("التوجيه 023: سلسلة الدليل في الفصل 3", () => {
+  it("القطعة في فم القط هي الزاوية الناقصة من الصفحة نفسها (الحافة الممزقة مشتركة بالنقاط نفسها)", async () => {
+    const { TORN, PIECE } = await import("../src/remotion/illus/shots/ch3");
+    const pts = (d: string) => [...d.matchAll(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g)].map((m) => `${m[1]},${m[2]}`);
+    const edge = pts(PIECE).slice(0, 6);
+    const tornEdge = pts(TORN).slice(1, 7);
+    expect(edge).toEqual(tornEdge);
+    // الصفحة بالقطعة تكتمل مستطيلًا: الزاوية العلوية اليمنى (100,0) في القطعة لا في الصفحة
+    expect(pts(PIECE)).toContain("100,0");
+    expect(pts(TORN)).not.toContain("100,0");
+  });
+});
