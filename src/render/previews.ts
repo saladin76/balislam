@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { mkdir, rename, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
+import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { createIsolatedRenderBundle } from "./bundle";
 import { emptyMedia } from "../plan/media";
 import { getCompositions, renderMedia, renderStill } from "@remotion/renderer";
@@ -19,7 +20,7 @@ export type PreviewOptions = {
 export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> => {
   const log = opts.onProgress ?? (() => {});
   const outDir = opts.outDir ?? path.join(projectRoot, "renders", "previews");
-  await mkdir(outDir, { recursive: true });
+  await ensureUnlinkedDirectory(outDir);
   log("تجميع المشروع…");
   const sandbox = await createIsolatedRenderBundle(emptyMedia);
   try {
@@ -37,8 +38,7 @@ export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> =>
         const pending = output + `.${randomUUID()}.part.png`;
         try {
           await renderStill({ serveUrl, composition, output: pending, frame, browserExecutable });
-          await rename(pending, output);
-          written.push(output);
+          written.push(await publishOutputWithoutOverwrite(pending, output));
         } finally {
           await rm(pending, { force: true });
         }
@@ -65,8 +65,7 @@ export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> =>
           }
         },
       });
-      await rename(pending, output);
-      written.push(output);
+      written.push(await publishOutputWithoutOverwrite(pending, output));
       } finally {
         await rm(pending, { force: true });
       }
