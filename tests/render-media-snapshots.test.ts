@@ -186,6 +186,40 @@ describe("immutable Remotion assets across channels and episodes", () => {
     expect((await readdir(root)).filter((name) => name.startsWith("studio-remotion-public-"))).toEqual([]);
   });
 
+  it("stages private media outside shared public and bundles only the selected channel", async () => {
+    const { root, publicRoot } = await scratch();
+    const mediaRoot = path.join(root, "private-media");
+    await mkdir(path.join(publicRoot, "fonts"), { recursive: true });
+    await writeFile(path.join(publicRoot, "fonts", "font.woff2"), "SHARED");
+    const source = path.join(root, "narration.mp3");
+    await writeFile(source, "PRIVATE VOICE BYTES");
+    const base = await stageRenderFiles(namespace(root, "balislam"), [
+      { kind: "voice", name: "c1-s1.mp3", source },
+    ], { publicRoot: mediaRoot });
+    expect(existsSync(path.join(publicRoot, base))).toBe(false);
+    const media: EpisodeMedia = { mode: "static", base, voice: {}, sfx: [], recitations: {} };
+    const scope = await stageRemotionPublicDir(media, { publicRoot, mediaRoot, tempRoot: root });
+    try {
+      expect(await readFile(path.join(scope.dir, base, "voice", "c1-s1.mp3"), "utf8"))
+        .toBe("PRIVATE VOICE BYTES");
+      expect(await readFile(path.join(scope.dir, "fonts", "font.woff2"), "utf8")).toBe("SHARED");
+    } finally { await scope.cleanup(); }
+    expect(existsSync(scope.dir)).toBe(false);
+  });
+
+  it("refuses any unmanifested file at the snapshot root before copying to Remotion", async () => {
+    const { root, publicRoot } = await scratch();
+    const src = path.join(root, "shot.png");
+    await writeFile(src, "safe");
+    const base = await stageRenderFiles(namespace(root, "zubdat-alkutub"), [imageFile(src)], { publicRoot });
+    await writeFile(path.join(publicRoot, base, ".hidden-secret"), "UNDECLARED");
+    const media: EpisodeMedia = { mode: "static", base, voice: {}, sfx: [], recitations: {} };
+    await expect(stageRemotionPublicDir(media, { publicRoot, tempRoot: root }))
+      .rejects.toThrow(/جذر لقطة الوسائط/);
+    expect((await readdir(root)).filter((name) => name.startsWith("studio-remotion-public-"))).toEqual([]);
+    expect(await readFile(path.join(publicRoot, base, ".hidden-secret"), "utf8")).toBe("UNDECLARED");
+  });
+
   it("uses estimated word motion until narration is explicitly approved; leaves recitations untouched", () => {
     const scene = { id: "c1-s1", narration: "هذا اختبار", template: "noor-text" } as PlanScene;
     const clip = { file: "c1-s1.mp3", hash: "hash", text: scene.narration, duration: 3,
