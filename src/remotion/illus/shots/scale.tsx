@@ -41,7 +41,7 @@ export const scaleLayout = (portrait: boolean) => ({
   vendor: 1262,
   second: portrait ? 1450 : 1560,
 });
-const COUNTER_TOP = GROUND - 232;
+export const COUNTER_TOP = GROUND - 232;
 const PIVOT_Y = COUNTER_TOP - 150;
 const ARM = 92;
 const PAN_DROP = 96;

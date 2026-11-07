@@ -11,6 +11,7 @@ import { BuzzArcs, PhonePOV } from "./phone";
 import { CH2_SHOTS } from "./ch2";
 import { CH3_SHOTS } from "./ch3";
 import { CH4_SHOTS } from "./ch4";
+import { CH5_SHOTS } from "./ch5";
 import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleSincereBeats, scaleSincereCast, scaleSincereEvidence, scaleVerdictBeats, scaleVerdictCast } from "./scale";
 
 /**
@@ -41,6 +42,23 @@ const PovRegion: React.FC<{ frame: number; children: React.ReactNode }> = ({ fra
   </g>
 );
 const povCam = (t: number): CamKey => ({ t, ...POV.cam, cut: true });
+/**
+ * الرسالة نفسها مصغّرة (التوجيه 024): بطاقة بألوان بطاقة الهاتف بعين البطل (رأس فجري وسطران)، بلا نص مقروء.
+ * تطير من هاتف المرسِل إلى هاتف المستقبِل، وتبقى صغيرة فوق هاتف من وصلته: يرى المشاهد أن الرسالة واحدة.
+ */
+const MsgCard: React.FC<{ x: number; y: number; s?: number; o?: number }> = ({ x, y, s = 1, o = 1 }) =>
+  o <= 0.01 ? null : (
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={o}>
+      <rect x={-20} y={-15} width={40} height={30} rx={5} fill={ID.paper} stroke="#1a1208" strokeWidth={2.2} />
+      <path d="M-20 -10 Q-20 -15 -15 -15 L15 -15 Q20 -15 20 -10 L20 -1 L-20 -1 Z" fill={ID.dawn} />
+      <rect x={-14} y={3} width={28} height={3.5} rx={1.7} fill={mix(ID.night, ID.paper, 0.4)} />
+      <rect x={-8} y={9} width={22} height={3.5} rx={1.7} fill={mix(ID.night, ID.paper, 0.55)} />
+    </g>
+  );
+/** موضع كف الجالس التي تمسك الهاتف في وضعية sit-show (تقريبي بمقياس 1.1) */
+const seatedPhone = (x: number, flip: boolean) => ({ x: x + (flip ? -62 : 62), y: GROUND - 222 });
+/** مسار الرسالة بين كفين: قوس فوق الطاولات */
+const flight = (a: { x: number; y: number }, b: { x: number; y: number }, t: number) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t - Math.sin(Math.PI * t) * 150 });
 const RED = ID.seal;
 const GOLD = ID.dawn;
 
@@ -640,32 +658,45 @@ export const SHOTS: Record<string, ShotDef> = {
     },
   },
   "cafe-rumor-looks-fine": {
-    nameAr: "المقهى: خطأ لا يبدو قبيحًا (رسالة جميلة الشكل)",
+    nameAr: "المقهى: رجل على الطاولة المجاورة يرسل رسالة جميلة الشكل، فتصل إلى هاتف البطل (خطأ لا يبدو قبيحًا)",
     place: "مقهى الحارة",
     render: ({ frame, at, portrait }) => {
+      // التوجيه 024: مصدر الرسالة ظاهر. المرسِل على الطاولة المجاورة يضغط «إرسال» عند «فليس»، والبطاقة نفسها
+      // تطير إلى هاتف البطل فيهتز عند «خطأ»، ثم بعين البطل عند «يبدو»: البطاقة الجميلة نفسها مكبرة.
+      const tSend = at("فليس", 0.05) + 2;
       const tW = at("خطأ", 0.3);
       const tL = at("يبدو", 0.45);
       const tQ = at("قبيحا", 0.6);
       const tE = at("أعيننا", 0.85);
+      const SENDER = { x: 560, flip: false };
+      const from = seatedPhone(SENDER.x, SENDER.flip);
+      const to = seatedPhone(1120, true);
+      const fly = prog(frame, tSend, tW, (v) => v);
+      const pov = (
+        <PhonePOV frame={frame} show={prog(frame, tL - 4, tL + 14)} buzz={prog(frame, tL - 4, tL + 20, (t) => t)} shine={prog(frame, tQ, tQ + 28, (t) => t)} tempt={0.5 * prog(frame, tE, tE + 18)} near={prog(frame, tE - 4, tE + 22)} />
+      );
+      const f = flight(from, to, fly);
       return {
-        cam: portrait ? [K(0, 1085, 1.3), K(tW, 1100, 1.55), povCam(tL - 4)] : [S(0, 1030, 1.6), S(tW, 1060, 1.95)],
+        cam: portrait ? [K(0, 840, 0.9), K(tW, 1100, 1.55), povCam(tL - 4)] : [S(0, 860, 1.25), S(tW, 1060, 1.95)],
         world: (
           <g>
-            {portrait ? (
-              <PovRegion frame={frame}>
-                <PhonePOV frame={frame} show={prog(frame, tL - 4, tL + 14)} buzz={prog(frame, tL - 4, tL + 20, (t) => t)} shine={prog(frame, tQ, tQ + 28, (t) => t)} tempt={0.5 * prog(frame, tE, tE + 18)} near={prog(frame, tE - 4, tE + 22)} />
-              </PovRegion>
-            ) : null}
+            {portrait ? <PovRegion frame={frame}>{pov}</PovRegion> : null}
             <Cafe frame={frame} />
-            <Chair x={800} />
+            <Chair x={SENDER.x - 20} />
+            <CafeTable x={700} frame={frame} />
             <Chair x={1140} flip />
             <CafeTable x={960} frame={frame} />
-            <Glow cx={1050} cy={GROUND - 220} r={120} opacity={0.8 * prog(frame, tW - 2, tW + 8)} />
-            <BuzzArcs x={1050} y={GROUND - 222} p={prog(frame, tW - 2, tW + 24, (t) => t)} />
+            {/* المرسِل: يحمل الرسالة من البداية، يضغط «إرسال» فتنطلق */}
+            <Figure x={SENDER.x} y={GROUND} scale={1.04} pose={pz(frame, [[0, "sit-show"], [tSend - 4, "sit-nod"], [tSend + 8, "sit-show"], [tW + 10, "sit"]])} look={LOOKS.stranger} holding="phone" frame={frame + 7} />
+            <MsgCard x={from.x} y={from.y - 34} s={0.8} o={1 - 0.6 * prog(frame, tSend, tSend + 6)} />
+            {fly > 0 && fly < 1 ? <MsgCard x={f.x} y={f.y - 20} s={1.1} /> : null}
+            <Glow cx={to.x} cy={to.y} r={120} opacity={0.8 * prog(frame, tW - 2, tW + 8)} />
+            <BuzzArcs x={to.x} y={to.y} p={prog(frame, tW - 2, tW + 24, (t) => t)} />
+            <MsgCard x={to.x} y={to.y - 34} s={0.8} o={prog(frame, tW, tW + 6)} />
             <Figure x={1120} y={GROUND} scale={1.1} pose={pz(frame, [[0, "sit"], [tW + 4, "sit-show"]])} look={hero} flip holding="phone" frame={frame} />
           </g>
         ),
-        overlay: <PhonePOV frame={frame} show={prog(frame, tL - 4, tL + 14)} buzz={prog(frame, tL - 4, tL + 20, (t) => t)} shine={prog(frame, tQ, tQ + 28, (t) => t)} tempt={0.5 * prog(frame, tE, tE + 18)} near={prog(frame, tE - 4, tE + 22)} />,
+        overlay: pov,
       };
     },
   },
@@ -700,60 +731,68 @@ export const SHOTS: Record<string, ShotDef> = {
     },
   },
   "cafe-rumor-spreads": {
-    nameAr: "المقهى: يزداد قبوله لأن الناس اعتادوه",
+    nameAr: "المقهى: يعيد البطل إرسالها فتنتقل إلى من حوله، ثم يتلقاها المقهى كله ويقبلها (لأن الناس اعتادوه)",
     place: "مقهى الحارة",
     render: ({ frame, at, portrait }) => {
       const tI = at("يزداد", 0.2);
       const tQ = at("قبولنا", 0.35);
       const tN = at("الناس", 0.65);
       const tH = at("اعتادوه", 0.85);
-      // كل من تصله الرسالة يضيء هاتفه ثم يومئ ويعيد إرسالها؛ تنتقل من البطل إلى من حوله ثم إلى المقهى كله
+      // التوجيه 024: سلسلة سبب ونتيجة. البطل يضغط «إرسال» عند «يزداد» فتطير البطاقة نفسها إلى جاريه؛
+      // كل من تصله يقرأ ثم يومئ ثم يرسلها لمن بعده؛ وفوق هاتف كل من وصلته البطاقة نفسها مصغرة.
+      // عند «اعتادوه» يومئ الجميع واحدًا بعد الآخر والرسالة في أيديهم: القبول نتيجة الانتقال، لا إضاءة عامة.
+      // المرسِل الأول من c4-s9 على الطاولة اليسرى، والرسالة عنده من البداية.
       const people: { x: number; look: FigureLook; flip: boolean; got: number }[] = [
         { x: 1120, look: hero, flip: true, got: -100 },
-        { x: 560, look: LOOKS.stranger, flip: true, got: tQ },
-        { x: 380, look: LOOKS.elder, flip: false, got: tQ + 10 },
-        { x: 1400, look: LOOKS.friend, flip: false, got: tN - 4 },
+        { x: 380, look: LOOKS.stranger, flip: false, got: -100 },
+        { x: 560, look: LOOKS.friend, flip: true, got: tI + 20 },
+        { x: 1400, look: LOOKS.elder, flip: false, got: tI + 26 },
         { x: 1570, look: LOOKS.womanSand, flip: true, got: tN + 6 },
       ];
-      const hand = (x: number, flip: boolean) => ({ x: x + (flip ? -62 : 62), y: GROUND - 222 });
       const sends: { from: number; to: number; at: number }[] = [
-        { from: 0, to: 1, at: tI },
-        { from: 0, to: 2, at: tI + 6 },
-        { from: 1, to: 3, at: tN - 18 },
-        { from: 2, to: 4, at: tN - 10 },
+        { from: 0, to: 2, at: tI },
+        { from: 0, to: 3, at: tI + 6 },
+        { from: 3, to: 4, at: tN - 14 },
       ];
+      const tapAt = (i: number) => sends.filter((x) => x.from === i).map((x) => x.at);
+      const poseFor = (i: number): [number, PoseName][] => {
+        const pp = people[i]!;
+        const tl: [number, PoseName][] = pp.got < 0 ? [[0, "sit-show"]] : [[0, "sit"], [pp.got, "sit-show"], [pp.got + 18, "sit-nod"], [pp.got + 30, "sit-show"]];
+        for (const t of tapAt(i)) tl.push([t - 4, "sit-nod"], [t + 6, "sit-show"]);
+        tl.push([tH + i * 4, "sit-nod"], [tH + i * 4 + 16, "sit-show"]);
+        return tl.sort((a, b) => a[0] - b[0]);
+      };
       return {
-        // العمودي: الرسالة تنتقل من البطل إلى من حوله ثم إلى الطرف الآخر، ثم تبتعد الكاميرا على المقهى كله عند «اعتادوه»
-        cam: portrait ? [K(0, 1110, 1.25), K(tI + 4, 480, 1.0), K(tN - 6, 1480, 1.0), K(tH, 975, 0.62)] : [S(0, 1060, 1.75), S(tI + 4, 975, 1.3), S(tH, 975, 1.36)],
+        // العمودي: من البطل إلى جاره على الطاولة اليسرى (والمرسِل الأول معه)، ثم إلى الطرف الآخر، ثم المقهى كله عند «اعتادوه»
+        cam: portrait ? [K(0, 1110, 1.25), K(tI + 8, 520, 1.0), K(tN - 18, 1480, 1.0), K(tH - 4, 975, 0.62)] : [S(0, 1060, 1.75), S(tI + 4, 975, 1.3), S(tH, 975, 1.36)],
         world: (
           <g>
             <Cafe frame={frame} />
             {[470, 1485].map((x) => (
               <CafeTable key={x} x={x} frame={frame} />
             ))}
-            <Chair x={800} />
             <CafeTable x={960} frame={frame} />
             {people.map((pp, i) => {
-              const lit = prog(frame, pp.got - 2, pp.got + 8) * (1 - 0.5 * prog(frame, pp.got + 40, pp.got + 70)) + (frame > tH ? prog(frame, tH, tH + 10) * (1 - prog(frame, tH + 30, tH + 60)) : 0);
-              const h = hand(pp.x, pp.flip);
+              const h = seatedPhone(pp.x, pp.flip);
+              const has = pp.got < 0 ? 1 : prog(frame, pp.got, pp.got + 6);
               return (
                 <g key={i}>
                   <Chair x={pp.x + (pp.flip ? 20 : -20)} flip={pp.flip} />
-                  <Glow cx={h.x} cy={h.y} r={90} opacity={0.8 * Math.min(1, lit)} />
-                  <BuzzArcs x={h.x} y={h.y} p={prog(frame, pp.got - 2, pp.got + 22, (t) => t)} />
-                  <Figure x={pp.x} y={GROUND} scale={i === 0 ? 1.1 : 1.02} pose={pz(frame, i === 0 ? [[0, "sit-show"], [tI - 6, "sit-nod"], [tI + 10, "sit-show"], [tH, "sit-nod"]] : [[0, "sit"], [pp.got, "sit-show"], [pp.got + 20, "sit-nod"], [tH + 4, "sit-show"]])} look={pp.look} flip={pp.flip} holding="phone" frame={frame + i * 11} />
+                  {pp.got > 0 ? <Glow cx={h.x} cy={h.y} r={80} opacity={0.7 * prog(frame, pp.got - 2, pp.got + 6) * (1 - prog(frame, pp.got + 30, pp.got + 50))} /> : null}
+                  {pp.got > 0 ? <BuzzArcs x={h.x} y={h.y} p={prog(frame, pp.got - 2, pp.got + 22, (t) => t)} /> : null}
+                  <Figure x={pp.x} y={GROUND} scale={i === 0 ? 1.1 : 1.02} pose={pz(frame, poseFor(i))} look={pp.look} flip={pp.flip} holding="phone" frame={frame + i * 11} />
+                  <MsgCard x={h.x} y={h.y - 34} s={0.75} o={has} />
                 </g>
               );
             })}
-            {/* الرسالة تنتقل من هاتف إلى هاتف */}
-            {[...sends, ...(frame > tH ? people.slice(1).map((_, k) => ({ from: k + 1, to: ((k + 2) % people.length) || 1, at: tH + k * 4 })) : [])].map((s, i) => {
-              const t = prog(frame, s.at, s.at + 20, (v) => v);
+            {/* البطاقة نفسها تطير من هاتف إلى هاتف */}
+            {sends.map((x, k) => {
+              const t = prog(frame, x.at, x.at + 20, (v) => v);
               if (t <= 0 || t >= 1) return null;
-              const a = hand(people[s.from]!.x, people[s.from]!.flip);
-              const b = hand(people[s.to]!.x, people[s.to]!.flip);
-              const x = a.x + (b.x - a.x) * t;
-              const y = a.y + (b.y - a.y) * t - Math.sin(Math.PI * t) * 160;
-              return <rect key={i} x={x - 16} y={y - 11} width={32} height={22} rx={5} fill={GOLD} stroke="#1a1208" strokeWidth={2} />;
+              const a = seatedPhone(people[x.from]!.x, people[x.from]!.flip);
+              const b = seatedPhone(people[x.to]!.x, people[x.to]!.flip);
+              const f = flight(a, b, t);
+              return <MsgCard key={k} x={f.x} y={f.y - 20} s={1.1} />;
             })}
           </g>
         ),
@@ -915,6 +954,7 @@ export const SHOTS: Record<string, ShotDef> = {
   // الحلقة 001 · الفصل 3 (التوجيه 022)
   ...CH3_SHOTS,
   ...CH4_SHOTS,
+  ...CH5_SHOTS,
 };
 
 export const SHOT_IDS = Object.keys(SHOTS);

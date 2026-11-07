@@ -75,14 +75,14 @@ export const ValueScale: React.FC<{ x: number; tilt: number; left: (p: { x: numb
     </g>
   );
 };
-const oranges = (p: { x: number; y: number }, n: number) =>
+export const oranges = (p: { x: number; y: number }, n: number) =>
   Array.from({ length: n }, (_, i) => {
     const row = i < 3 ? 0 : 1;
     const col = row === 0 ? i - 1 : i - 3.5;
     return <circle key={i} cx={p.x + col * 25} cy={p.y - 12 - row * 21} r={13} fill={ORANGE} stroke={INK} strokeWidth={2} />;
   });
 /** ثقل لامع مزيّف: أجمل شكلًا من المعياري وأخف وزنًا */
-const ShinyWeight: React.FC<{ x: number; y: number; glow?: number }> = ({ x, y, glow = 1 }) => (
+export const ShinyWeight: React.FC<{ x: number; y: number; glow?: number }> = ({ x, y, glow = 1 }) => (
   <g>
     <Glow cx={x} cy={y - 26} r={70} color={lighten(ID.dawn, 0.2)} opacity={0.6 * glow} />
     <path d={`M${x - 22} ${y} L${x - 16} ${y - 34} L${x + 16} ${y - 34} L${x + 22} ${y} Z`} fill={lighten(ID.dawn, 0.25)} stroke={INK} strokeWidth={2.4} strokeLinejoin="round" />
@@ -95,7 +95,7 @@ const ShinyWeight: React.FC<{ x: number; y: number; glow?: number }> = ({ x, y, 
 const ActStone: React.FC<{ x: number; y: number }> = ({ x, y }) => <path d={`M${x - 26} ${y} Q${x - 30} ${y - 30} ${x - 6} ${y - 38} Q${x + 24} ${y - 40} ${x + 28} ${y - 8} L${x + 24} ${y} Z`} fill={darken(ID.night, 0.25)} stroke={INK} strokeWidth={2.4} />;
 
 /** الدكان بلا شاهدين: الخلفية والطاولة والصندوق، والبائع إن طُلب */
-const StallSet: React.FC<{ frame: number; vendor?: PoseSpec; vendorFlip?: boolean }> = ({ frame, vendor, vendorFlip = true }) => (
+export const StallSet: React.FC<{ frame: number; vendor?: PoseSpec; vendorFlip?: boolean }> = ({ frame, vendor, vendorFlip = true }) => (
   <g>
     <StallBack frame={frame} />
     {vendor ? <Figure x={1262} y={GROUND + 6} scale={1.62} pose={vendor} look={CH2_CAST.vendor} flip={vendorFlip} frame={frame + 4} /> : null}
@@ -109,7 +109,7 @@ const SC = (t: number, portrait: boolean, close: boolean, x?: number): CamKey =>
 const V = (t: number, x: number, z: number, y: number): CamKey => ({ t, x, y, z });
 const easeIn = (frame: number, a: number, b: number) => prog(frame, a, b);
 /** ميل يرتد ثم يسكن عند الهدف */
-const settle = (frame: number, at: number, from: number, to: number) => {
+export const settle = (frame: number, at: number, from: number, to: number) => {
   if (frame < at) return from;
   const t = frame - at;
   return to + (from - to) * Math.exp(-t / 9) * Math.cos(t / 5);

@@ -1008,7 +1008,7 @@
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
             "shown": "source, dua, dock, grid, ask1, focus:1, cam:c1",
-            "cues": "note1:البصيرة | البصيرة\nnote1:الصواب | الصواب\nhaze1 | تلتبس\nwarn1:الجهل | الجهل\nwarn1:الهوى | الهوى"
+            "cues": "note1:البصيرة | البصيرة\nnote1:الصواب | الصواب\nwarn1:الجهل | الجهل\nwarn1:الهوى | الهوى"
           },
           "id": "c4-s5",
           "sfx": [],
@@ -1258,7 +1258,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": "people | الناس"
+            "cues": "people | الناس",
+            "shot": "court-saying"
           },
           "id": "c5-s1",
           "sfx": []
@@ -1287,7 +1288,8 @@
             "poses": "sit,sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "court-fountain-still"
           },
           "id": "c5-s3",
           "sfx": []
@@ -1304,7 +1306,8 @@
             "poses": "hold",
             "look": "hero",
             "cast": "",
-            "cues": "think | تأمل\nmoney | المال"
+            "cues": "think | تأمل\nmoney | المال",
+            "shot": "souq-coins-palm"
           },
           "id": "c5-s4",
           "sfx": []
@@ -1321,7 +1324,8 @@
             "poses": "stand,think,nod",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "souq-money-uses"
           },
           "id": "c5-s5",
           "sfx": []
@@ -1338,7 +1342,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": "people | الآخرين"
+            "cues": "people | الآخرين",
+            "shot": "stall-money-measure"
           },
           "id": "c5-s6",
           "sfx": []
@@ -1355,7 +1360,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": "think | وتأمل\nsuccess | النجاح"
+            "cues": "think | وتأمل\nsuccess | النجاح",
+            "shot": "workshop-success"
           },
           "id": "c5-s7",
           "sfx": []
@@ -1372,7 +1378,8 @@
             "poses": "stand,proud",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "workshop-success-pride"
           },
           "id": "c5-s8",
           "sfx": []
@@ -1389,7 +1396,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": "think | وتأمل"
+            "cues": "think | وتأمل",
+            "shot": "roofs-whole-world"
           },
           "id": "c5-s9",
           "sfx": []
@@ -1406,7 +1414,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": "work | بأعمالنا"
+            "cues": "work | بأعمالنا",
+            "shot": "roof-building-forever"
           },
           "id": "c5-s10",
           "sfx": []
@@ -1423,7 +1432,8 @@
             "poses": "sit,sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "roof-night-still"
           },
           "id": "c5-s11",
           "sfx": []
@@ -1453,7 +1463,8 @@
             "poses": "stand,stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "roof-morning-work-meal"
           },
           "id": "c5-s13",
           "sfx": []
@@ -1470,7 +1481,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "roof-tools-in-place"
           },
           "id": "c5-s14",
           "sfx": []
@@ -1487,7 +1499,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "roof-not-the-end"
           },
           "id": "c5-s15",
           "sfx": []
@@ -1504,7 +1517,8 @@
             "poses": "sit,sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "souq-tray-reflection"
           },
           "id": "c5-s16",
           "sfx": []
@@ -1521,7 +1535,8 @@
             "poses": "stand,proud",
             "look": "hero",
             "cast": "",
-            "cues": "proud | غرور"
+            "cues": "proud | غرور",
+            "shot": "souq-strength-humble"
           },
           "id": "c5-s17",
           "sfx": []
@@ -1538,7 +1553,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "souq-spill-no-despair"
           },
           "id": "c5-s18",
           "sfx": []
@@ -1555,7 +1571,8 @@
             "poses": "stand,think,nod",
             "look": "hero",
             "cast": "",
-            "cues": "people | الآخرين"
+            "cues": "people | الآخرين",
+            "shot": "stall-fair-to-others"
           },
           "id": "c5-s19",
           "sfx": []
@@ -1572,7 +1589,8 @@
             "poses": "look-up,sit-low,look-up",
             "look": "hero",
             "cast": "",
-            "cues": "truth | فالبصيرة\njust | العدل"
+            "cues": "truth | فالبصيرة\njust | العدل",
+            "shot": "stall-scale-of-justice"
           },
           "id": "c5-s20",
           "sfx": []

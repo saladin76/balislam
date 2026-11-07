@@ -51,8 +51,8 @@ describe("اللقطات المصمَّمة", () => {
     expect(used.length).toBeGreaterThanOrEqual(12);
     // كاميرا ثابتة مقصودة (التوجيه 019): c1-s3 لقطة عريضة واحدة تُبقي الشاهدين، وc2-s10 تمهيد الآية بسكون تام؛
     // والتوجيه 022: c3-s13 وc3-s15 (الآية) وc3-s22 (الدعاء) ساكنة
-    // والتوجيه 023: c4-s16 وc4-s17 (ذكر الله) ساكنان
-    const FIXED_CAM = new Set(["souq-scale-sincere", "stall-still", "night-window-still", "lane-dawn-still", "lane-threshold-still"]);
+    // والتوجيه 023: c4-s16 وc4-s17 (ذكر الله) ساكنان؛ والتوجيه 024: c5-s3 (ذكر الله) وc5-s11 (تمهيد الآية)
+    const FIXED_CAM = new Set(["souq-scale-sincere", "stall-still", "night-window-still", "lane-dawn-still", "lane-threshold-still", "court-fountain-still", "roof-night-still"]);
     for (const id of used) {
       const d = SHOTS[id];
       expect(d, id).toBeDefined();

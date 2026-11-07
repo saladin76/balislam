@@ -34,7 +34,7 @@ export const tlPose = (frame: number, tl: [number, PoseSpec][]) => {
   return i > 0 && frame < t0 + 10 ? blendPose(tl[i - 1]![1], p0, prog(frame, t0, t0 + 10)) : p0;
 };
 /** يد أمامية تصل إلى نقطة: أقرب ذراع بالبحث (كذراع البائع في الفصل 1) */
-const reachTo = (target: { x: number; y: number }, o: { x: number; y: number; scale: number; flip?: boolean }, base: PoseSpec): PoseSpec => {
+export const reachTo = (target: { x: number; y: number }, o: { x: number; y: number; scale: number; flip?: boolean }, base: PoseSpec): PoseSpec => {
   let best = { d: Infinity, s: 0, e: 0 };
   for (let s = -20; s <= 170; s += 4)
     for (let e = -10; e <= 100; e += 4) {
@@ -47,13 +47,13 @@ const reachTo = (target: { x: number; y: number }, o: { x: number; y: number; sc
 
 // ———————————————————— مواضع الغرفة (HomeRoom) ————————————————————
 const ROOM = { door: -20, bag: 140, shelf: 180, brother: 600, hero: 900, sideboard: 1000, envelope: 1210, jar: 1180 };
-const KNEEL = { legFront: { s: 4, e: 96 }, legBack: { s: 70, e: 70 } };
+export const KNEEL = { legFront: { s: 4, e: 96 }, legBack: { s: 70, e: 70 } };
 /** يرفع الصفحة نحو أخيه (الاتهام بالدليل لا بالإصبع) */
 const SHOW: PoseSpec = { ...POSES.stand, lean: 6, head: 4, armFront: { s: 86, e: 12 } };
 /** الصفحة في اليد الخلفية منخفضة، والأمامية حرة */
 const PAGE_LOW: PoseSpec = { ...POSES.stand, head: -8, lean: -2, armBack: { s: 28, e: 46 } };
-const PALM: PoseSpec = { ...PAGE_LOW, lean: 4, head: 14, armFront: { s: 58, e: 20 } };
-const GIVE: PoseSpec = { ...POSES.stand, lean: 8, head: 22, armFront: { s: 62, e: 14 } };
+export const PALM: PoseSpec = { ...PAGE_LOW, lean: 4, head: 14, armFront: { s: 58, e: 20 } };
+export const GIVE: PoseSpec = { ...POSES.stand, lean: 8, head: 22, armFront: { s: 62, e: 14 } };
 /** قبضة عند الباب بارتفاع الكتف، لم تلمسه */
 const KNOCK: PoseSpec = { ...POSES.stand, lean: 2, head: -2, armFront: { s: 88, e: 64 } };
 /** يحمل الظرف أمامه */

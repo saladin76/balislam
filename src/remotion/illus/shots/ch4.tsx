@@ -35,7 +35,7 @@ const Mastaba: React.FC = () => (
 const SIT_HOLD: PoseSpec = { ...POSES.sit, head: 10, armFront: { s: 40, e: 70 }, armBack: { s: 36, e: 64 } };
 const READY: PoseSpec = { ...POSES.stand, head: 4, armFront: { s: 64, e: 86 } };
 
-/** لقطة قريبة للظرف بين يديه (منطقة مستقلة): الغطاء يُفتح فتظهر النقود كما هي، ثم يُغلق عليها */
+/** لقطة قريبة للظرف بين يديه (منطقة مستقلة): الغطاء مفتوح والنقود كلها ظاهرة معًا كما هي (لا عدّ)، ثم يُغلق عليها (التوجيه 024) */
 const ENV = { x: 6000, y: 560 };
 const EnvelopeInsert: React.FC<{ flap: number; coins: number; glint: number }> = ({ flap, coins, glint }) => {
   const w = 620;
@@ -49,7 +49,7 @@ const EnvelopeInsert: React.FC<{ flap: number; coins: number; glint: number }> =
       <Glow cx={ENV.x} cy={ENV.y - 60} r={620} color={ID.dawn} opacity={0.28} />
       {/* الغطاء مفتوحًا خلف النقود (flap > 0.5)، ومغلقًا فوقها (flap ≤ 0.5) */}
       {flap > 0.5 ? <path d={`M${x0} ${y0} L${ENV.x} ${flapY} L${x0 + w} ${y0} Z`} fill={mix(ID.paper, ID.copper, 0.15)} stroke={INK} strokeWidth={7} strokeLinejoin="round" /> : null}
-      {/* النقود داخل الظرف تطل من فتحته واحدة بعد أخرى: العدد نفسه الذي أُخذ من أخيه، ثم تعود إليه عند الإغلاق */}
+      {/* النقود داخل الظرف تطل من فتحته معًا: المبلغ نفسه الذي أُخذ من أخيه، وتعود إليه عند الإغلاق */}
       {[0, 1, 2, 3, 4].map((i) => {
         const on = prog(coins * 5, i, i + 1) * Math.min(1, flap * 1.6);
         if (on <= 0.01) return null;
@@ -93,54 +93,66 @@ export const CH4_SHOTS: Record<string, Ch4Shot> = {
     }),
   },
   "lane-dawn-follows": {
-    nameAr: "الزقاق يطلع عليه الفجر: يضيء الطريق، يقوم ويمضي نحو باب أخيه متجاوزًا موضع تراجعه، والظرف كما هو",
+    nameAr: "الزقاق يطلع عليه الفجر: يرفع رأسه نحو باب أخيه، يقوم ويمضي متجاوزًا موضع تراجعه، نظرة قصيرة إلى الظرف، ثم يكمل الطريق",
     place: "الزقاق بين البيتين فجرًا",
     render: ({ frame, at, portrait }) => {
+      // التوجيه 024، أربع حركات بالترتيب:
+      // 1. الفجر وبداية القرار: يطلع الفجر، تضيء الحجارة عند «الحق»، ويرفع رأسه نحو باب أخيه عند «فحسب».
+      // 2. يقوم عند «نحبه» ويمشي عند «ونتبعه» حتى يتجاوز d=0.5 (موضع تراجعه في c3-s20) عند «أهواءنا».
+      // 3. إشارة مختصرة إلى المال (نحو ثانيتين): ينظر إلى الظرف، لقطة قريبة والنقود فيه كما هي بلا عدّ، يُغلق عليها.
+      // 4. العودة إلى الطريق من «أكبر» إلى آخر المشهد: يكمل المشي والظرف معه وباب أخيه أمامه كما هو؛ الوصول للفصل 6.
       const tH = at("الحق", 0.14);
+      const tB = at("فحسب", 0.17);
       const tL = at("نحبه", 0.24);
       const tF = at("ونتبعه", 0.27);
       const tW = at("أهواءنا", 0.38);
       const tQ = at("قدر", 0.6);
       const tS = at("الأشياء", 0.63);
-      const tN = at("ننقصها", 0.88);
-      const tR = at("حقها", 0.93);
+      const PASSED = 0.62;
       const day = prog(frame, 0, tH + 20, (t) => t);
       const lit = prog(frame, tH - 6, tH + 26, (t) => t);
-      const walk1 = { start: tF, end: tW + 22, d0: 0, d1: 0.55 };
-      const walk2 = { start: tR + 8, end: tR + 40, d0: 0.55, d1: 0.64 };
-      const insert = frame >= tQ - 4 && frame < tR;
-      const flap = prog(frame, tQ + 2, tQ + 16) * (1 - prog(frame, tN, tN + 16));
-      const coins = prog(frame, tQ + 10, tS + 20, (t) => t);
-      const glint = prog(frame, tS + 10, tS + 30) * (1 - prog(frame, tN - 10, tN + 10));
-      const standPose = tlPose(frame, [[0, SIT_HOLD], [tL - 2, SIT_HOLD], [tL + 12, blendPose(POSES.sit, READY, 0.6)], [tL + 16, READY], [tF, CARRY]]);
+      const walk1 = { start: tF, end: tW + 30, d0: 0, d1: PASSED };
+      const insertIn = tQ - 4;
+      const insertOut = tQ + 56;
+      // يبقى ماشيًا حتى آخر المشهد: لا وقوف ولا وصول
+      const walk2 = { start: insertOut + 4, end: insertOut + 130, d0: PASSED, d1: 0.8 };
+      const insert = frame >= insertIn && frame < insertOut;
+      const flap = 1 - prog(frame, tQ + 32, tQ + 48);
+      const glint = prog(frame, tS - 4, tS + 10) * (1 - prog(frame, tS + 24, tS + 40));
+      const LOOK_UP: PoseSpec = { ...SIT_HOLD, head: -10 };
+      const standPose = tlPose(frame, [[0, SIT_HOLD], [tB - 4, SIT_HOLD], [tB + 10, LOOK_UP], [tL - 2, LOOK_UP], [tL + 12, blendPose(POSES.sit, READY, 0.6)], [tL + 16, READY], [tF, CARRY]]);
       const seated = frame < tL + 12;
-      const heroNode =
-        frame < walk1.start ? (
-          <LaneHero d={0} pose={standPose} frame={frame} />
-        ) : frame < walk1.end ? (
-          <LaneWalker frame={frame} d0={walk1.d0} d1={walk1.d1} start={walk1.start} end={walk1.end} />
-        ) : frame < walk2.start ? (
-          <LaneHero d={0.55} pose={{ ...CARRY, head: -4 }} frame={frame} />
-        ) : (
-          <LaneWalker frame={frame} d0={walk2.d0} d1={walk2.d1} start={walk2.start} end={walk2.end} />
-        );
-      const follow = (d: number) => lanePos(d);
-      const p1 = follow(0.3);
-      const p2 = follow(0.55);
+      // واقفًا: الظرف عند جنبه لا ممدودًا (لا إيحاء بالتسليم)؛ وحين ينظر إليه يرفعه قليلًا إلى صدره
+      const SIDE: PoseSpec = { ...CARRY, armFront: { s: 10, e: 22 } };
+      const LOOK_DOWN: PoseSpec = { ...SIDE, head: 20, armFront: { s: 46, e: 96 } };
+      const heroNode = seated ? (
+        <LaneHero d={0} pose={standPose} frame={frame} />
+      ) : frame < walk1.start ? (
+        <LaneHero d={0} pose={standPose} frame={frame} />
+      ) : frame < walk1.end ? (
+        <LaneWalker frame={frame} d0={walk1.d0} d1={walk1.d1} start={walk1.start} end={walk1.end} />
+      ) : frame < walk2.start ? (
+        <LaneHero d={PASSED} pose={tlPose(frame, [[walk1.end, SIDE], [insertIn - 14, SIDE], [insertIn - 2, LOOK_DOWN], [insertOut, LOOK_DOWN], [insertOut + 4, SIDE]])} frame={frame} />
+      ) : (
+        <LaneWalker frame={frame} d0={walk2.d0} d1={walk2.d1} start={walk2.start} end={walk2.end} />
+      );
+      const p1 = lanePos(0.3);
+      const p2 = lanePos(PASSED);
+      const p3 = lanePos(0.72);
       const cam: CamKey[] = portrait
-        ? [V(0, 560, 0.72, 600), V(tF + 10, p1.x + 60, 1.0, p1.y - 170), V(tW, p2.x + 20, 1.2, p2.y - 120), V(tQ - 4, ENV.x, 0.62, ENV.y, true), V(tR, p2.x + 60, 1.05, p2.y - 140, true), V(tR + 14, 860, 1.15, 520)]
-        : [V(0, 900, 0.9, 500), V(tF + 10, 820, 1.05, 560), V(tW, 880, 1.35, 520), V(tQ - 4, ENV.x, 1.1, ENV.y - 70, true), V(tR, 880, 1.35, 520, true), V(tR + 14, 920, 1.5, 480)];
+        ? [V(0, 560, 0.72, 600), V(tF + 10, p1.x + 60, 1.0, p1.y - 170), V(tW, p2.x + 20, 1.2, p2.y - 120), V(insertIn, ENV.x, 0.62, ENV.y, true), V(insertOut, p2.x + 40, 1.2, p2.y - 120, true), V(insertOut + 30, p3.x + 20, 1.1, p3.y - 140)]
+        : [V(0, 900, 0.9, 500), V(tF + 10, 820, 1.05, 560), V(tW, 880, 1.35, 520), V(insertIn, ENV.x, 1.1, ENV.y - 70, true), V(insertOut, 880, 1.35, 520, true), V(insertOut + 30, 920, 1.45, 480)];
       return {
         cam,
         world: (
           <g>
             <Lane frame={frame} mood="predawn" lit={lit} heroDoor={0.6} brotherDoor={0.5} />
             <g opacity={day}>
-              <Lane frame={frame} mood="dawn" lit={lit} heroDoor={0.6} brotherDoor={0.6 + 0.3 * prog(frame, tR, tR + 18)} />
+              <Lane frame={frame} mood="dawn" lit={lit} heroDoor={0.6} brotherDoor={0.6} />
             </g>
             <Mastaba />
-            {seated ? <LaneHero d={0} pose={standPose} frame={frame} /> : heroNode}
-            {insert ? <EnvelopeInsert flap={flap} coins={coins} glint={glint} /> : null}
+            {heroNode}
+            {insert ? <EnvelopeInsert flap={flap} coins={1} glint={glint} /> : null}
           </g>
         ),
       };
