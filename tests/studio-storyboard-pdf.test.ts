@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 // The exporter is a standalone Node script, independent of the React/TS render engine.
 // @ts-ignore intentionally importing the standalone .mjs tool
-import { normalizeStoryboard, safeImageData, buildStoryboardHtml, exportStoryboard } from "../scripts/studio-storyboard-pdf.mjs";
+import { normalizeStoryboard, safeImageData, buildStoryboardHtml, exportStoryboard, pdfFontCss, splitAppendixText } from "../scripts/studio-storyboard-pdf.mjs";
 
 const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAOwO+wAAAABJRU5ErkJggg==","base64");
 const ownedPdfDirs: string[] = [];
@@ -105,6 +105,79 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
       expect(r.html).not.toContain("Tahoma,Arial");
     }
   });
+  it("uses the exact local Arabic font files and distinct accents for all three channels",()=>{
+    const root=path.join(import.meta.dirname,"..","public","fonts");
+    const mappings=[
+      {channel:"balislam",font:"ElMessiri.ttf",body:"IBMPlexSansArabic-Medium.ttf",accent:"#245b4c"},
+      {channel:"dafatir-alzaman",font:"Amiri-Bold.ttf",body:"Amiri-Regular.ttf",accent:"#18475b"},
+      {channel:"zubdat-alkutub",font:"Tajawal-arabic-700.woff2",body:"Tajawal-arabic-400.woff2",accent:"#85653a"},
+    ];
+    const faces=new Set<string>();
+    for(const {channel,font,body,accent} of mappings){
+      const css=pdfFontCss(channel);
+      expect(css).toContain("--studio-accent:"+accent);
+      const headingBase64=readFileSync(path.join(root,font)).toString("base64");
+      const bodyBase64=readFileSync(path.join(root,body)).toString("base64");
+      expect(css).toContain(headingBase64);
+      expect(css).toContain(bodyBase64);
+      faces.add(headingBase64);
+    }
+    expect(faces.size).toBe(3);
+  });
+  it("keeps Arabic graphemes, emoji and hard line breaks intact across annex pages",()=>{
+    const source="بِّ".repeat(210)+"🙂"+"\\n".repeat(27)+"وَصْفٌ".repeat(36);
+    const chunks=splitAppendixText(source);
+    expect(chunks.length).toBeGreaterThan(2);
+    expect(chunks.join("")).toBe(source);
+    for(const chunk of chunks){
+      expect(chunk.length).toBeLessThanOrEqual(400);
+      expect(chunk).not.toMatch(/^[\\u064B-\\u065F]/u);
+      expect(chunk).not.toMatch(/[\\uD800-\\uDBFF]$/u);
+      expect(chunk).not.toMatch(/^[\\uDC00-\\uDFFF]/u);
+    }
+    const x=setup();
+    x.data.scenes[0]!.narration=source;
+    const result=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1});
+    expect((result.html.match(/<section class="appendix">/g)??[]).length).toBe(chunks.length);
+    for(const chunk of chunks) expect(result.html).toContain(chunk);
+    expect(result.html).toContain("النص كامل في الملحق");
+  });
+  it("preserves multiline and long Arabic titles on dedicated annex pages without changing approved chapters",()=>{
+    const x=setup();
+    const longTitle="الْعُنْوَانُ الْكَامِلُ ".repeat(12);
+    const longChapter="فَصْلٌ مُفَصَّلٌ ".repeat(55);
+    x.data.scenes[0]!.title=longTitle;
+    x.data.scenes[0]!.chapterTitle=longChapter;
+    x.data.scenes[1]!.chapterTitle=longChapter;
+    x.data.scenes[0]!.notes="السطر الأول\\nالسطر الثاني\\nالسطر الثالث\\nالسطر الرابع";
+    const r=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
+    expect(r.scenes).toBe(2);
+    expect((r.html.match(/class="page cover"/g)??[]).length).toBe(1);
+    expect(r.html).toContain("عنوان الفصل");
+    expect(r.html).toContain("عنوان المشهد");
+    expect(r.html).toContain("الوصف والملاحظات");
+    expect(r.html).toContain("السطر الرابع");
+    for(const part of splitAppendixText(longTitle)) expect(r.html).toContain(part);
+    for(const part of splitAppendixText(longChapter)) expect(r.html).toContain(part);
+  });
+  it("prints isolated balislam and Zubdat synthetic chapters without mixed fonts or approvals",()=>{
+    const x=setup();
+    for(const channel of ["balislam","zubdat-alkutub"]){
+      x.data.channel=channel;
+      x.data.scenes[0]!.chapterTitle="بِدَايَةُ الْحِكَايَةِ";
+      x.data.scenes[1]!.chapterTitle="بِدَايَةُ الْحِكَايَةِ";
+      const r=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
+      expect(r.status).toBe("PENDING_REVIEW");
+      expect(r.scenes).toBe(2);
+      expect((r.html.match(/<article class="page(?: cover)?"/g)??[]).length).toBe(3);
+      expect(r.html).toContain("بِدَايَةُ الْحِكَايَةِ");
+      expect(r.html).toContain('<bdi dir="ltr">c1-s1</bdi>');
+      expect(r.html).toContain("comparison");
+      expect(r.html).toContain("single");
+      expect(r.html).toContain("--studio-accent:");
+      expect(r.html).toContain("غير معتمد");
+    }
+  });
   it("prints optional independent covers for the first two real Dafatir chapters with correct names/counts",()=>{
     const root=path.join(import.meta.dirname,"..");
     const file=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
@@ -139,5 +212,12 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(z.scenes.length).toBe(31);
     expect(z.scenes[0]!.id).toBe("c1-s1");
     expect(safeImageData(z.root,z.scenes[0]!.landscape).sha256).toMatch(/^[a-f0-9]{64}$/);
+    const preview=buildStoryboardHtml({...z,scenes:z.scenes.slice(0,2)});
+    expect(preview.scenes).toBe(2);
+    expect((preview.html.match(/<article class="page">/g)??[]).length).toBe(2);
+    expect(preview.html).not.toContain('class="page cover"');
+    expect(preview.html).toContain('<bdi dir="ltr">c1-s1</bdi>');
+    expect(preview.html).toContain("--studio-accent:#85653a");
+    expect(preview.html).toContain("غير معتمد");
   });
 });
