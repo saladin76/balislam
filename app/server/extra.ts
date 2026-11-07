@@ -298,14 +298,26 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const channelMod = await load("/src/channel/index.ts");
     const out = [];
     for (const id of channelMod.listChannels() as string[]) {
-      const c = channelMod.loadChannel(id);
-      const cp = channelMod.channelPaths(id);
-      const episodes = await channelMod.runWithChannel(id, () => buildOverview(cp.episodes, load));
-      const ideasFile = path.join(cp.dir, "ideas.json");
-      const ideas = existsSync(ideasFile) ? JSON.parse(await readFile(ideasFile, "utf8")) : [];
-      const calFile = path.join(cp.dir, "calendar.json");
-      const calendar = existsSync(calFile) ? JSON.parse(await readFile(calFile, "utf8")) : {};
-      out.push({ channel: { id: c.id, name: c.name, language: c.language, schedule: c.schedule ?? null, domains: c.domains }, episodes, ideas, calendar });
+      try {
+        const c = channelMod.loadChannel(id);
+        const cp = channelMod.channelPaths(id);
+        const episodes = await channelMod.runWithChannel(id, () => buildOverview(cp.episodes, load));
+        const ideasFile = path.join(cp.dir, "ideas.json");
+        const ideas = existsSync(ideasFile) ? JSON.parse(await readFile(ideasFile, "utf8")) : [];
+        const calFile = path.join(cp.dir, "calendar.json");
+        const calendar = existsSync(calFile) ? JSON.parse(await readFile(calFile, "utf8")) : {};
+        if (!Array.isArray(ideas) || !calendar || typeof calendar !== "object" || Array.isArray(calendar))
+          throw new Error("ملف أفكار القناة أو تقويمها غير صالح.");
+        out.push({ channel: { id: c.id, name: c.name, language: c.language, schedule: c.schedule ?? null, domains: c.domains }, episodes, ideas, calendar });
+      } catch (error) {
+        // Preserve all other channels, and surface this channel's original error
+        // without replacing its damaged JSON with empty defaults on disk.
+        out.push({
+          channel: { id, name: `⚠ ${id} — تحتاج إصلاح البيانات`, language: "", schedule: null, domains: {} },
+          episodes: [], ideas: [], calendar: {},
+          error: error instanceof Error ? error.message : "تعذّر قراءة بيانات القناة.",
+        });
+      }
     }
     send(res, 200, out);
     return true;
