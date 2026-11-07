@@ -4,7 +4,8 @@
  * مع بصمة كل مشهد، فالمشهد الذي تغيّر بعد القياس يظهر «يحتاج قياسًا جديدًا».
  */
 import { existsSync } from "node:fs";
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile, rename } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { loadPlan, regeneratePlan } from "../plan/io";
@@ -13,8 +14,9 @@ import { sceneFrames } from "../plan/duration";
 import { sceneHash } from "../plan/sceneReview";
 import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
-import { browserExecutable, getServeUrl } from "./bundle";
-import { outDirFor } from "./episode";
+import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
+import { outDirFor, voiceTimingMode } from "./episode";
+import { resolveScriptPath } from "../script/episodes";
 import { ACTIVE_PCT, measureMotion } from "./motionMeter";
 import { inspectMotionLogic, type MotionLogicReview } from "../plan/motionLogic";
 import { currentMotionFingerprint } from "./motionFingerprint";
@@ -41,13 +43,16 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
   log(0, "تجهيز الوسائط…");
   const media = await prepareRenderMedia(episode, plan);
-  const serveUrl = await getServeUrl(true);
+  const sandbox = await createIsolatedRenderBundle(media);
+  try {
+  const serveUrl = sandbox.serveUrl;
   const channel = loadChannel();
   const info = channelInfo(channel);
-  const inputProps = { plan, orientation, media, identity: loadChannelIdentity(), channel: info };
+  const timingMode = await voiceTimingMode(await resolveScriptPath(episode), plan, media);
+  const inputProps = { plan, orientation, media, timingMode, identity: loadChannelIdentity(), channel: info };
   const inputHash = await currentMotionFingerprint(episode, plan, orientation);
   const composition = await selectComposition({ serveUrl, id: `episode-${orientation}`, inputProps, browserExecutable: browserExecutable() });
-  const video = path.join(await outDirFor(episode), `${episode}-storyboard-${orientation}.mp4`);
+  const video = path.join(await outDirFor(episode), `${episode}-storyboard-${orientation}.${randomUUID()}.mp4`);
   let last = -1;
   try {
   await renderMedia({
@@ -97,10 +102,9 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   const reportFile = path.join(path.dirname(outputFile), "storyboard-motion-report.md");
   // كتابة نص التقرير قبل JSON: لا نعرض نتيجة جديدة إلا بعد وجود نصها.
   await writeFile(reportFile, renderMotionAuditMarkdown(plan, out));
-  const tmpFile = outputFile + ".tmp";
+  const tmpFile = `${outputFile}.${randomUUID()}.tmp`;
   try {
     await writeFile(tmpFile, JSON.stringify(out, null, 2) + "\n");
-    const { rename } = await import("node:fs/promises");
     await rename(tmpFile, outputFile);
   } finally {
     await rm(tmpFile, { force: true });
@@ -110,5 +114,8 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   } finally {
     // لا تترك معاينة ضخمة حتى إذا فشل الرندر أو تحليل الحركة.
     await rm(video, { force: true });
+  }
+  } finally {
+    await sandbox.cleanup();
   }
 };

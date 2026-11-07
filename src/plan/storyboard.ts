@@ -85,7 +85,7 @@ export const versesMissingText = (plan: Plan) =>
 
 export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: { note: string; inputHash?: string }): Promise<StoryboardRecord> => {
   const missing = versesMissingText(plan);
-  if (missing.length) throw new Error(`لا يُعتمد الستوري بورد وفيه ${missing.length} آية بلا نصها (${missing.slice(0, 6).join("، ")}${missing.length > 6 ? "…" : ""}). اجلب نصوص الآيات أولًا: زر «اجلب نصوص الآيات» في الاستوديو.`);
+  if (missing.length) throw new Error(`لا يُعتمد الستوري بورد وفيه ${missing.length} آية بلا نصها (${missing.slice(0, 6).join("، ")}${missing.length > 6 ? "…" : ""}). أضف نص الآيات كاملًا داخل السكريبت وراجعه قبل الاعتماد.`);
   const rec: StoryboardRecord = {
     version: 1,
     approvedAt: new Date().toISOString(),

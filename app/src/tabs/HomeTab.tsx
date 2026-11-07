@@ -31,7 +31,7 @@ const nextStep = (e: Overview): { text: string; tab: "script" | "episode" | "pub
   if (s[1]!.state !== "done") return { text: "راجع المشاهد وأكمل الناقص", tab: "episode" };
   if (s[2]!.state === "todo" || s[2]!.state === "warn") return { text: "ولّد الصوت", tab: "episode" };
   if (s[3]!.state !== "done") return { text: "اصنع الحلقة وملفات النشر", tab: "publish" };
-  if (s[4]!.state !== "done") return { text: "شاهدها كاملة ثم انشرها", tab: "publish" };
+  if (s[4]!.state !== "done") return { text: "راجع النسخة واعتمادها قبل النشر", tab: "publish" };
   return { text: "منشورة", tab: "publish" };
 };
 
@@ -103,11 +103,11 @@ export const HomeTab: React.FC<{
       <div className="home-head">
         <div>
           <h1>{channel.name}</h1>
-          <p className="help">كل حلقات القناة ومرحلة كل واحدة. اضغط على الخطوة التالية لتنتقل إليها.</p>
+          <p className="help">كل حلقات القناة وتقدم تنفيذها. المؤشرات الفنية ليست موافقات إنتاج أو نشر. اضغط على الخطوة التالية لتنتقل إليها.</p>
         </div>
         <div className="kpis">
           <div><b>{items.length}</b><span>حلقة</span></div>
-          <div><b>{ready}</b><span>جاهزة للنشر</span></div>
+          <div><b>{ready}</b><span>فحوص فنية مكتملة</span></div>
           <div><b>{published}</b><span>منشورة</span></div>
           <div><b>{minutes.toFixed(0)}</b><span>دقيقة محتوى</span></div>
         </div>
@@ -124,7 +124,7 @@ export const HomeTab: React.FC<{
         <>
           <div className="episode-list-tools" role="search" aria-label="البحث في حلقات القناة">
             <label className="field"><span>البحث عن حلقة</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم الحلقة أو رقمها أو المجال" /></label>
-            <label className="field"><span>حالة الحلقة</span><select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}><option value="all">جميع الحالات</option><option value="attention">قيد العمل</option><option value="ready">جاهزة للنشر</option><option value="published">منشورة</option></select></label>
+            <label className="field"><span>حالة الحلقة</span><select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}><option value="all">جميع الحالات</option><option value="attention">قيد العمل</option><option value="ready">فحوص فنية مكتملة</option><option value="published">منشورة</option></select></label>
             <label className="field"><span>الترتيب</span><select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}><option value="recent">الأحدث رقمًا</option><option value="oldest">الأقدم رقمًا</option><option value="title">العنوان أبجديًا</option></select></label>
             <span className="episode-list-count" role="status">{visible.length} من {items.length} حلقة</span>
           </div>

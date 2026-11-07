@@ -1,0 +1,65 @@
+name: Studio P0 temporary-resource stress audit
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  temporary-resources:
+    if: github.event.pull_request.number == 72 && github.head_ref == 'work/studio-p0-temp-20261107'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install FFmpeg and exact dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          npm ci
+      - name: Snapshot repository and episode checksums (isolated CI checkout)
+        shell: bash
+        run: |
+          git rev-parse HEAD | tee "$RUNNER_TEMP/p0-head.txt"
+          git status --porcelain=v1 --untracked-files=all > "$RUNNER_TEMP/p0-status-before.txt"
+          git worktree list --porcelain > "$RUNNER_TEMP/p0-worktrees-before.txt"
+          sha256sum .git/config > "$RUNNER_TEMP/p0-config-before.txt"
+          find channels -type f -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/p0-episodes-before.txt"
+          df -B1 "$RUNNER_TEMP" /
+      - name: Expected failure — gate must clean its own root
+        shell: bash
+        run: node scripts/verify-studio-temp-leaks.mjs --failure | tee "$RUNNER_TEMP/p0-failure.log"
+      - name: SIGTERM cancellation — gate must clean its own root
+        shell: bash
+        run: node scripts/verify-studio-temp-leaks.mjs --cancel | tee "$RUNNER_TEMP/p0-cancel.log"
+      - name: Two successive complete TypeScript and Vitest gates
+        shell: bash
+        run: node scripts/verify-studio-temp-leaks.mjs | tee "$RUNNER_TEMP/p0-serial.log"
+      - name: Two concurrent complete TypeScript and Vitest gates
+        shell: bash
+        run: node scripts/verify-studio-temp-leaks.mjs --parallel | tee "$RUNNER_TEMP/p0-parallel.log"
+      - name: Verify Git worktrees, config and episode files unchanged
+        if: always()
+        shell: bash
+        run: |
+          git status --porcelain=v1 --untracked-files=all > "$RUNNER_TEMP/p0-status-after.txt"
+          git worktree list --porcelain > "$RUNNER_TEMP/p0-worktrees-after.txt"
+          sha256sum .git/config > "$RUNNER_TEMP/p0-config-after.txt"
+          find channels -type f -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/p0-episodes-after.txt"
+          diff -u "$RUNNER_TEMP/p0-status-before.txt" "$RUNNER_TEMP/p0-status-after.txt"
+          diff -u "$RUNNER_TEMP/p0-worktrees-before.txt" "$RUNNER_TEMP/p0-worktrees-after.txt"
+          diff -u "$RUNNER_TEMP/p0-config-before.txt" "$RUNNER_TEMP/p0-config-after.txt"
+          diff -u "$RUNNER_TEMP/p0-episodes-before.txt" "$RUNNER_TEMP/p0-episodes-after.txt"
+          git diff --exit-code
+          df -B1 "$RUNNER_TEMP" /
+      - name: Save exact audit output including before/after byte measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-p0-temp-audit-${{ github.run_id }}
+          path: ${{ runner.temp }}/p0-*.log
+          if-no-files-found: warn
+          retention-days: 14

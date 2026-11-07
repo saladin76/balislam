@@ -235,7 +235,7 @@ const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
             <div style={{ fontFamily: fontFamilies.heading, fontWeight: 600, fontSize: refSize, color: c.inkSoft }}>{reference}</div>
             <div style={{ width: 56, height: 2, background: c.inkSoft, opacity: 0.4 }} />
           </div>
-          {/* نسبة النص لـ Quran Foundation في وصف الفيديو لا على الشاشة؛ ويبقى هنا اسم القارئ فقط إن وُجدت تلاوة */}
+          {/* النص من السكريبت المعتمد، ويظهر اسم القارئ الحقيقي عند استخدام تسجيل بشري موثّق */}
           {reciter ? (
             <div style={{ fontSize: portrait ? 26 : 22, color: c.inkSoft, opacity: refIn * 0.8, marginTop: -16 }}>
               <T k="recitedBy" /> {reciter}

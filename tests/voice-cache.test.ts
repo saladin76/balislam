@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, readdirSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -28,7 +28,9 @@ const mock = {
 
 beforeAll(() => {
   tmp = mkdtempSync(path.join(os.tmpdir(), "bal-voice-"));
-  cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(tmp, "balislam"), { recursive: true, filter: (s) => !/[\\/](voice|out)([\\/]|$)/.test(s) });
+  cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(tmp, "balislam"), { recursive: true, filter: (s) => !/[\\/](episodes|voice|out|recitations)([\\/]|$)/.test(s) });
+  // Test fixture only: never duplicate production episode media into /tmp.
+  mkdirSync(path.join(tmp, "balislam", "episodes"), { recursive: true });
   // الحلقة التجريبية للاختبارات (القنوات نفسها تبدأ بلا حلقات)
   cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
   process.env.BAL_CHANNELS_DIR = tmp;
@@ -40,6 +42,8 @@ afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
   delete process.env.ELEVENLABS_MODEL_ID;
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
+  tmp = "";
 });
 
 describe("ذاكرة الصوت دون اشتراط توثيق الاستشهادات", () => {

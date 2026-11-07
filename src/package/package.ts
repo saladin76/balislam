@@ -9,7 +9,6 @@ import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
 import { scenesOf } from "../remotion/scenes/Episode";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
-import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
@@ -60,19 +59,26 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const statusFile = path.join(path.dirname(scriptPath), "status.json");
   const readStatus = async () => (existsSync(statusFile) ? JSON.parse(await readFile(statusFile, "utf8")) : {});
   // قاعدة: كل مشهد يُراجَع بعد تنفيذه (حركاته سليمة ومتناسقة مع النص وغير عشوائية) قبل النسخة النهائية
-  if (quality === "master" && !opts.skipVideo && !opts.ignoreSceneReview) {
+  if (quality === "master" && !opts.skipVideo) {
     const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath));
     const sum = sceneReviewSummary(items);
     if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
   }
   if (stage === "shorts") {
+    // Shorts are distribution artifacts: require owner approval of the exact Master.
+    const { assertWorkflowForEpisode } = await import("../workflow/server");
+    await assertWorkflowForEpisode(ep, "publish");
+    const { requireSceneMasterReady } = await import("../studio/sceneService");
+    await requireSceneMasterReady(ep);
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
     if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
   }
 
   log("تجهيز الوسائط…");
-  const media = await prepareRenderMedia(ep, plan);
+  const media = await prepareRenderMedia(ep, plan, {
+    requireApprovedQuran: quality === "master" || stage === "shorts",
+  });
   // الصوت «كامل» فقط إن كان لكل مشهد متكلَّم مقطع يطابق نصه الحالي
   const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   const voicedOk = narrated.filter((s) => {
@@ -115,9 +121,6 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const published = (await readdir(dir)).filter((f) => f === "youtube.md" || f === "social.md" || f.endsWith(".srt"));
   assertNoTraces(await Promise.all(published.map(async (name) => ({ name, text: await readFile(path.join(dir, name), "utf8") }))));
   assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
-
-  log("تجميع المشروع…");
-  await getServeUrl(true);
 
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };

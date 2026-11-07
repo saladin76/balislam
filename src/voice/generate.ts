@@ -134,6 +134,11 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     const blocked = unapprovedScenes(sb, todo.map((j) => j.id));
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
   }
+  // A full script signoff is independent of storyboard and voice approval.
+  if (todo.length && !opts.ignoreStoryboard) {
+    const { assertScriptApproved } = await import("../script/approval");
+    await assertScriptApproved(scriptPath);
+  }
   // Order: storyboard signoff, then explicit tone decisions, then paid voice generation.
   if (todo.length && report.missingTones.length && !opts.ignoreStoryboard)
     throw new Error(`حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`);

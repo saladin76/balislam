@@ -1,7 +1,6 @@
 import { parseScript } from "../script/parse";
 import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import { langPack } from "../i18n/packs";
-import { QF_ATTRIBUTION } from "../quran/attribution";
 import { chapterStarts } from "../remotion/scenes/Episode";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
@@ -22,7 +21,6 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   const step = parsed.practicalStep?.text ?? "";
   const L = langPack(plan.lang ?? channel.language);
   const fill = (tpl: string, v: Record<string, string>) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
-  const translation = channel.quranTranslation?.name;
 
   const sources: string[] = [];
   for (const c of parsed.citations) {
@@ -31,15 +29,20 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
       const name = r.ok ? fill(L.strings.descVerse, { name: surahNameFor(r.ref.surah, L.code), ayah: `${r.ref.from}${r.ref.to !== r.ref.from ? `–${r.ref.to}` : ""}` }) : c.fields[0];
       const reciter = (c.fields.find((f) => f.startsWith("القارئ")) ?? "").replace(/^القارئ\s*:\s*/, "").trim();
       const rec = r.ok ? media.recitations[r.ref.key] : undefined;
-      // المرخّصة: اسم القارئ من الاستشهادات «بإذن مكتوب»؛ وتلاوة Quran Foundation: اسم القارئ مع نسبتها
-      const recitationLine = !rec
-        ? ""
-        : rec.source === "quran-foundation"
-          ? `${L.code === "ar" ? "التلاوة" : "Recitation"}: ${rec.reciter ?? ""} (Quran.Foundation)`
-          : reciter && reciter !== "…"
-            ? fill(L.strings.descRecitation, { name: reciter })
-            : "";
-      const extras = [L.code === "ar" ? QF_ATTRIBUTION : L.strings.quranAttribution, translation && L.code !== "ar" ? translation : "", recitationLine].filter(Boolean);
+      // Never invent a Quran text provider attribution. Text originates in the
+      // reviewed script, and audio comes only from the owner's recording.
+      const recitationLine = rec?.source === "manual" && rec.reciter
+        ? fill(L.strings.descRecitation, { name: rec.reciter })
+        : reciter && reciter !== "…" && rec
+          ? fill(L.strings.descRecitation, { name: reciter })
+          : "";
+      // Translation attribution comes from the reviewed scene's actual meaning
+      // source, not an obsolete channel/provider preference.
+      const meaningSource = r.ok
+        ? plan.chapters.flatMap(chapter => chapter.scenes)
+            .find(scene => scene.ayahKey === r.ref.key)?.props?.meaningSource?.trim()
+        : undefined;
+      const extras = [L.code !== "ar" ? meaningSource ?? "" : "", recitationLine].filter(Boolean);
       sources.push(`- ${name} (${extras.join(L.code === "ar" ? "، " : ", ")})`);
     } else if (c.kind === "hadith") {
       sources.push(`- ${c.fields[0] ?? ""}${c.fields[1] ? ` — ${c.fields[1]}` : ""}${c.fields[2] ? ` (${c.fields[2]})` : ""}`);
