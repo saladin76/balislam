@@ -31,6 +31,8 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   // ملف البحث / دراسة الكتاب: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
   const [doc, setDoc] = useState<"script" | "research">(initialDoc);
   const [research, setResearch] = useState<ResearchDraft | null>(researchDraft ?? null);
+  const [researchError, setResearchError] = useState("");
+  const [researchSaving, setResearchSaving] = useState(false);
   useEffect(() => {
     let active = true;
     if (researchDraft) { setResearch(researchDraft); setResearchError(""); return () => { active = false; }; }
@@ -44,8 +46,6 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [episodeId]);
   const researchDirty = research ? research.text !== research.saved : false;
-  const [researchError, setResearchError] = useState("");
-  const [researchSaving, setResearchSaving] = useState(false);
   useEffect(() => {
     onResearchDirtyChange?.(researchDirty);
     if (research) onResearchDraftChange?.(research);
