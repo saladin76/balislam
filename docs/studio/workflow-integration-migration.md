@@ -1,3 +1,5 @@
+> **تحذير: تكامل V1 فقط.** نقل نظام المراحل الست الموضح أدناه إلى إنتاج فعلي **ليس** تنفيذًا لـStudio V2 الجديد. مرجع الترحيل والحراسة والاختبارات الجديد: [scene-first-production-v2.md](scene-first-production-v2.md). لا ترحيل تلقائي من `workflow-approvals.json` القديم إلى موافقات المشاهد، ولا اعتماد تلقائي من الحالة القديمة.
+
 # Studio — trusted workflow integration checkpoint (PR #78)
 
 **Status: isolated Draft. No merge, Mac production change, render or publication authorized.**
