@@ -268,6 +268,42 @@ program
   });
 
 program
+  .command("recitation-attach")
+  .description("إضافة ملف التلاوة البشرية الذي يرفعه المالك إلى الآية المكتوبة في السكريبت (للمراجعة، وليس اعتمادًا تلقائيًا)")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<ayah-key>", "مفتاح الآية مثل 2:255")
+  .argument("<file>", "مسار ملف الصوت الذي قدّمه المالك")
+  .action(async (episode: string, key: string, file: string) => {
+    const { prepareOwnRecitation } = await import("../quran/manualAudio");
+    const source = await readFile(file);
+    const candidate = await prepareOwnRecitation(episode, key, path.basename(file), source);
+    console.log(`أُرفقت التلاوة للآية ${key} وتنتظر الاستماع والتدقيق؛ البصمة: ${candidate.sha256}`);
+    console.log("لم يُعتمد التسجيل للمشهد أو للنشر تلقائيًا.");
+  });
+
+program
+  .command("recitation-review")
+  .description("اعتماد بشري صريح لتلاوة مرفوعة بعد الاستماع والتحقق من القارئ وحق النشر")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<ayah-key>", "مفتاح الآية مثل 2:255")
+  .requiredOption("--reciter <name>", "الاسم الحقيقي للقارئ")
+  .requiredOption("--rights-evidence <text>", "دليل إذن استخدام التسجيل")
+  .requiredOption("--reviewer <name>", "اسم المراجع البشري")
+  .requiredOption("--note <text>", "ملاحظة المراجعة بعد الاستماع")
+  .requiredOption("--listened", "إقرار بشري صريح بالاستماع الكامل")
+  .action(async (episode: string, key: string, opts: {
+    reciter: string; rightsEvidence: string; reviewer: string; note: string; listened: boolean;
+  }) => {
+    if (!opts.listened) throw new Error("لا تُعتمد التلاوة قبل الاستماع إليها بالفعل.");
+    const { approveOwnRecitation } = await import("../quran/manualAudio");
+    const approved = await approveOwnRecitation(episode, key, opts.reviewer, opts.note, true, {
+      reciter: opts.reciter, rightsEvidence: opts.rightsEvidence,
+    });
+    console.log(`تم تسجيل اعتماد الاستماع للتلاوة ${key}: ${approved.sha256}`);
+    console.log("هذا اعتماد ملف التلاوة فقط؛ لا يعتمد مشهد AV أو Master أو النشر.");
+  });
+
+program
   .command("voice")
   .description("توليد صوت المشاهد من ElevenLabs (المشاهد التي لم تتغير لا يُعاد توليدها)")
   .argument("<episode>", "رقم الحلقة")
