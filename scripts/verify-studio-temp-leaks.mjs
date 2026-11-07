@@ -53,6 +53,7 @@ const disk = d => {
   return Number(s.blocks)*512;
 };
 const run = (root, label, mode = null) => new Promise(resolve=>{
+  if (interrupted) { resolve({ label, status: null, error: "audit cancelled before launch" }); return; }
   const env = { ...process.env, TMPDIR:root, TMP:root, TEMP:root };
   // Stress two independent gates concurrently, but allow only one Vitest
   // worker per gate on RAM-constrained Macs. All 638 tests still execute.
@@ -76,15 +77,17 @@ const run = (root, label, mode = null) => new Promise(resolve=>{
   child.once("close", (code,signal)=>finish({label,status:code,signal}));
 });
 let interrupted=false;
+let interruptSignal=null;
 const children=[];
-const clean=()=>{
+const clean=(signal)=>{
   if (interrupted) return;
   interrupted=true;
-  for (const ch of children) if (ch && !ch.killed) ch.kill("SIGTERM");
-  // The owner-only root is removed after tracked child processes stop.
+  interruptSignal=signal;
+  for (const ch of children) if (ch && !ch.killed) ch.kill(signal);
+  // Do not delete the owner sandbox until every tracked gate has closed.
 };
-process.once("SIGINT",clean);
-process.once("SIGTERM",clean);
+process.once("SIGINT",()=>clean("SIGINT"));
+process.once("SIGTERM",()=>clean("SIGTERM"));
 let failures=[];
 try {
   writeFileSync(marker,"Audit sandbox owner; other temp directories are out of scope.\n",{flag:"wx",mode:0o600});
@@ -101,7 +104,7 @@ try {
     // early without changing suite coverage or touching production files.
     const probe = spawnSync("npx", ["vitest", "run", "--maxWorkers", "1", "tests/quran-compare.test.ts"], {
       cwd: repo,
-      env: { ...process.env, CI: "1" },
+      env: { ...process.env, CI: "1", TMPDIR: base, TMP: base, TEMP: base },
       encoding: "utf8",
       timeout: 30_000,
     });
@@ -118,7 +121,7 @@ try {
     const result=await run(root,exercise,exercise);
     const unexpected=entries(root);
     samples.push({run:1,...result,leftoverFiles:unexpected,diskBytes:disk(root)});
-    if (result.status === 0 || unexpected.length) failures.push(exercise+"-unexpected-result");
+    if (result.status !== (exercise === "cancel" ? 143 : 1) || unexpected.length) failures.push(exercise+"-unexpected-result");
   } else if (parallel) {
     const roots=[mkdtempSync(path.join(base,"parallel-A-")),mkdtempSync(path.join(base,"parallel-B-"))];
     dirs.push(...roots);
@@ -139,6 +142,7 @@ try {
       if(result.status!==0 || unexpected.length){failures.push("serial-"+i);break;}
     }
   }
+  if (interrupted) failures.push("audit-interrupted-"+interruptSignal);
   if(!existsSync(marker)||!readFileSync(marker,"utf8").includes("owner"))failures.push("sentinel-touched");
   const after=available();
   const swapAfter=swapUsage();
