@@ -113,3 +113,18 @@ The shared Studio `/api/voice-sample` route previously accepted any caller-provi
 This is a deliberately restrictive safety trade-off. If editable narrator samples are needed later, they must use an independent audited non-Quran text policy and new acceptance tests, never remove the server-side gate.
 
 **Still required for 100%:** exact-head TypeScript/Vitest run through an executable CI environment; renderer-owner collection and execution-time gates for direct/package/queue/Master; and human source/rights and full-speed listening review. Review outcomes must not be inferred from synthetic test fixtures.
+
+
+## 9. Read-only inspection of the existing Master implementation — concrete bypasses
+
+At the time of this PR, `src/render/episode.ts` remains **renderer-owned** and was read but not modified. The following must be corrected by the renderer team; these are concrete defects, not hypothetical concerns:
+
+1. `assertMasterReady` checks `checkForChannel`, citation ledger, storyboard, scene and voice approval, but **does not call `assertScriptApproved`**. A current, properly reviewed but **not explicitly signed** script may therefore reach a Master render. Call `assertMotionStartAuthorized` from every final entrypoint in addition to the existing checks.
+2. `versesWithoutRecitation(..., Boolean(chosenReciter))` permits an authored verse-card to have **no recitation** if the channel has not selected a reciter. For a final film, fail closed on every verse-card unless an actually licensed, verified human recitation exists.
+3. `if (!o.allowUnreviewed)` makes the explicit `allowUnreviewed` option bypass scene review in a **Master**. Restrict this flag to visibly non-final QA/previews; never allow it to waive final acceptance.
+4. `renderEpisode` calls `prepareRenderMedia` **before** `assertMasterReady`, causing media staging mutations before an authorization failure. Gate before staging, then recheck current script, MP3 bytes and provider license at the execution/final-commit boundary.
+5. The collector considers several provider-index entries based on filenames and durations rather than verifying current SHA-256, complete decode and rights at collection; it currently does not consume `provider: "manual"`. The render-owned workstream must integrate `verifiedOwnRecitations`, then reject stale originals or processed MP3s and missing/unknown provenance.
+
+**Regression matrix required on the renderer branch:** Master with unchanged approved citation ledger but no `script-signoff.json` must fail; Master with verse and no chosen reciter or valid recording must fail; Master with `allowUnreviewed:true` and an unreviewed scene must fail; final render with a swapped MP3 before actual execution or before commit must fail without replacing any previous Master; direct CLI/package and recovered queued jobs must not bypass these failures.
+
+The workstream boundary is deliberate: this branch only supplies `src/voice/motionGate.ts`, verifiers, tests, API safeguards and this contract. It must remain Draft until the renderer owner delivers the above changes and the combined integration tests execute successfully.
