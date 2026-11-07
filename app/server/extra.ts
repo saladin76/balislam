@@ -736,10 +736,21 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         const bad = engineDefaultsIssues(channel.production.defaults, (t: string) => !templateExclusion(channel, t), ch);
         if (bad.length) return send(res, 400, { error: bad.join(" ") }), true;
       }
-      const { writeJsonAtomic } = await load("/src/channel/storage.ts");
-      await writeJsonAtomic(ch_.channelPaths(ch).channelFile, channel);
+      const storage = await load("/src/channel/storage.ts");
+      const rev = await storage.writeJsonWithRevision(
+        ch_.channelPaths(ch).channelFile, channel,
+        typeof req.headers["if-match"] === "string" ? req.headers["if-match"] : undefined,
+      );
+      res.setHeader("etag", rev);
       send(res, 200, { ok: true });
-    } else send(res, 200, ch_.loadChannel(ch));
+    } else {
+      const file = ch_.channelPaths(ch).channelFile;
+      const c = ch_.loadChannel(ch);
+      const storage = await load("/src/channel/storage.ts");
+      res.setHeader("cache-control", "no-store");
+      res.setHeader("etag", await storage.jsonRevision(file));
+      send(res, 200, c);
+    }
     return true;
   }
   if (parts[0] === "channels" && req.method === "POST") {
