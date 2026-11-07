@@ -128,3 +128,42 @@ At the time of this PR, `src/render/episode.ts` remains **renderer-owned** and w
 **Regression matrix required on the renderer branch:** Master with unchanged approved citation ledger but no `script-signoff.json` must fail; Master with verse and no chosen reciter or valid recording must fail; Master with `allowUnreviewed:true` and an unreviewed scene must fail; final render with a swapped MP3 before actual execution or before commit must fail without replacing any previous Master; direct CLI/package and recovered queued jobs must not bypass these failures.
 
 The workstream boundary is deliberate: this branch only supplies `src/voice/motionGate.ts`, verifiers, tests, API safeguards and this contract. It must remain Draft until the renderer owner delivers the above changes and the combined integration tests execute successfully.
+
+
+## 10. Latest full-stack Quran/audio safety hardening and reproducible test runner
+
+### Recorded audio review and source attribution
+- A pending locally uploaded human recitation now carries `textSha256` from the **upload-time** authored verse. Before approval the reviewer must be looking at the **same** verse; a change while pending requires a fresh upload and review, never a retroactive signature.
+- Review evidence persists the original uploaded filename (`originalName`), the safely stored source filename and SHA-256 (`originalFile`, `originalSha256`), processed audio SHA-256, verbatim reviewer note (`reviewNote`), reviewer, reciter, rights evidence, approval time and current authored verse SHA-256. Legacy records lacking source or reviewer proof remain historical but are not render-eligible.
+- Neither the original recording nor its processing directory may use symlinks; parent directories are checked before files are read or created. The reviewer signoff files are write-once-per-atomic-rename under an exclusive per-episode lock. Corrupt reviewer/approval JSON is preserved and blocked, never reset and overwritten as an empty ledger.
+- An approved narrator clip now binds actual MP3 bytes **plus playback duration and word timing**. Impossible word time ranges, a playback duration different from the file, damaged or substituted files, and symlink parents revoke the clip and the entire narration signoff.
+
+### Full MP3 decode validation (verified locally, branch tests still pending)
+- Running FFmpeg to `-f null -` with `-xerror` is **not sufficient**: an actual independently generated MP3 was truncated to 50%, FFmpeg exited **0**, but its Xing header retained the original ~1.228-second duration while only ~0.576 seconds decoded.
+- `decodedAudioDuration` now extracts FFmpeg's `out_time_us` and compares the actual decoded duration against music-metadata's declared duration. It returns **null** on significant discrepancy. `tests/audio-integrity.test.ts` includes this deterministic truncated-MP3 regression, in addition to empty/invalid codecs and legitimate MP3/WAV.
+- This validates decoder integrity and metadata coherence, **not** Quranic recitation identity, reader correctness, melodic quality or theological accuracy. No synthetic Quran was generated.
+
+### Provider recording safety and parallel sync
+- Quran Foundation and licensed AlQuran Cloud recordings now stage in unique temporary files. The final filename contains a prefix of the incoming SHA-256 and the index records the **full SHA-256 per part**. File publication uses same-directory atomic hard-link creation rather than `rename` that could overwrite an older functioning MP3.
+- A partial multi-verse download failure leaves the previous index and recordings intact; immutable shared files are not removed by another failing task.
+- Reusing a provider MP3 requires valid filename/path, SHA-256 and full decoded duration, not merely an index entry and a recent timestamp. Future-dated cache timestamps are invalid. Existing older provider indexes without per-part SHA require a fresh sync before they're trusted.
+- `assertMotionStartAuthorized` now checks each authored Quran card has a selected human reciter, valid source identity, explicit Cloud publishing rights where applicable, and all provider recording parts valid. It also rejects Quran text hidden in the narration voice index even when cached. Unintegrated manual recordings remain blocked pending the renderer-owned collector integration.
+- These pre-enqueue checks are **not a substitute** for renderer-owned execution-time and pre-commit rechecks in PR #73.
+
+### Evidence-producing QA command
+
+Run locally from this branch with installed node modules and FFmpeg:
+
+```bash
+cd ~/balislam
+git switch work/studio-quran-audio-20261107
+node scripts/run-quran-audio-qa.mjs
+```
+
+`scripts/run-quran-audio-qa.mjs` fails closed on the wrong branch, an unresolvable integration base, unexpected changed renderer/episode/shared-CI paths, missing FFmpeg, TypeScript failure, or any Vitest failure. It prints the **exact Git SHA**, base diff, stage exit status and a machine-readable JSON summary. It does not publish, create approvals, edit episode files or invoke Vercel.
+
+The command must be executed in an environment with the repository dependencies; the presence of the runner does **not** imply the command passed. The existing GitHub CI jobs have repeatedly failed with zero executed steps. Do not reuse an older successful SHA as evidence for the new branch tip.
+
+### Final acceptance boundary
+
+No scholarly Quran approval, real reciter license validation, complete-speed human listening or actual production acceptance has been issued. Final 100% remains impossible to claim without (1) a full exact-SHA green TypeScript/Vitest run, (2) renderer PR #73 integrating verified manual audio and enforcing `assertMotionStartAuthorized` at **every final render entry point, dequeue, and output commit**, (3) final audio/rights and script reviewer decisions by the owner. The independent Draft PR #76 stays unmerged.
