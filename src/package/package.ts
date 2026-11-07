@@ -97,7 +97,11 @@ export const packageEpisode = async (opts: PackageOptions) => {
     if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
   }
   if (stage === "shorts") {
-    const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
+    const infoPath = renderInfoFile(dir);
+    if (existsSync(infoPath)) await assertNoLinkedPath(infoPath, true);
+    const info = existsSync(infoPath) ? (JSON.parse(await readFile(infoPath, "utf8")) as RenderInfo) : null;
+    if (info?.outputFile && (path.basename(info.outputFile) !== info.outputFile || info.outputFile.startsWith(".") || !info.outputFile.endsWith(".mp4")))
+      throw new Error("مسار فيديو الحزمة السابق غير آمن.");
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
     if (!approvalValid((await readStatus()).approved, path.join(dir, info.outputFile ?? path.basename(episodePath)))) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
   }
@@ -176,27 +180,17 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const motion: { label: string; report: MotionReport }[] = [];
     const reportFile = path.join(dir, "motion-report.md");
     const q = QUALITY[quality];
+    let pendingRenderInfo: RenderInfo | null = null;
     if (stage === "episode") {
       // Keep previous approved assets untouched until the new video succeeds.
       // Old shorts will be archived (never deleted) only after that point.
       log(`الحلقة بجودة: ${q.label}`);
       const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
-      const oldShorts = (await readdir(dir)).filter((f) => /-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f));
-      if (oldShorts.length) {
-        const archiveDir = path.join(dir, "history", `superseded-${randomUUID()}`);
-        await mkdir(archiveDir, { recursive: true });
-        for (const file of oldShorts) await rename(path.join(dir, file), path.join(archiveDir, file));
-      }
-      const st = await readStatus();
-      if (st.approved) {
-        delete st.approved;
-        await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
-      }
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
       log(motionSummary(motion[0]!.report, "الحلقة"));
       const info: RenderInfo = { quality, label: q.label, width: 1920 * q.scale, height: 1080 * q.scale, voiced: hasVoice, at: new Date().toISOString(), outputFile: path.basename(episodeFile) };
-      await writePackageText(dir, path.basename(renderInfoFile(dir)), JSON.stringify(info, null, 2) + "\n");
+      pendingRenderInfo = info;
       await writePackageText(dir, path.basename(reportFile), `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     } else {
       for (let n = 1; n <= shorts; n++) {
@@ -223,8 +217,38 @@ export const packageEpisode = async (opts: PackageOptions) => {
         await link(original, next);
         await unlink(original);
       }
-      if (stage === "episode") await unlink(renderInfoFile(dir)).catch(() => {});
       throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. نُقلت الفيديوهات إلى qc-failed/ للتشخيص ولن تظهر ضمن ملفات النشر؛ راجع motion-report.md.`);
+    }
+    if (stage === "episode" && pendingRenderInfo) {
+      // Only a QC-passing render can supersede the previously approved package.
+      // Never change the current publication pointer when a new clip fails QC.
+      const oldShorts = (await readdir(dir)).filter((f) => /-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f));
+      if (oldShorts.length) {
+        const archiveDir = path.join(dir, "history", `superseded-${randomUUID()}`);
+        await ensureUnlinkedDirectory(archiveDir);
+        for (const file of oldShorts) {
+          await assertNoLinkedPath(path.join(dir, file), true);
+          await rename(path.join(dir, file), path.join(archiveDir, file));
+        }
+      }
+      const st = await readStatus();
+      if (st.approved) {
+        delete st.approved;
+        const pendingStatus = path.join(path.dirname(statusFile), `.status-${randomUUID()}.pending`);
+        try {
+          await writeFile(pendingStatus, JSON.stringify(st, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+          if (existsSync(statusFile)) {
+            await assertNoLinkedPath(statusFile, true);
+            const history = path.join(dir, "history", "status");
+            await ensureUnlinkedDirectory(history);
+            await link(statusFile, path.join(history, `previous-${randomUUID()}.json`));
+          }
+          await rename(pendingStatus, statusFile);
+        } finally {
+          await rm(pendingStatus, { force: true });
+        }
+      }
+      await writePackageText(dir, path.basename(renderInfoFile(dir)), JSON.stringify(pendingRenderInfo, null, 2) + "\n");
     }
   }
   return { dir, files, hasVoice };
