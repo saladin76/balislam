@@ -14,13 +14,15 @@ import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import "./workspace/workspace.css";
-import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
+import { ScriptTab, type ScriptTabHandle, type ResearchDraft } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
-import { OpsRoom } from "./tabs/OpsRoom";
+import { OpsRoom, type IdeaDraft } from "./tabs/OpsRoom";
+import { ChannelsWorkspace } from "./tabs/ChannelsWorkspace";
+import { IntegratedReviewWorkspace } from "./workspace/IntegratedReviewWorkspace";
 import { PublishTab } from "./tabs/PublishTab";
 import { LibraryTab } from "./tabs/LibraryTab";
-import { ChannelTab } from "./tabs/ChannelTab";
+import { ChannelTab, type ChannelSettingsDraft } from "./tabs/ChannelTab";
 import { useStudioFonts } from "./ui/useStudioFonts";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
@@ -30,7 +32,7 @@ import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
 type Tab = StudioSection;
-const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "publish"];
+const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
 const store = {
   get: (k: string) => {
     try {
@@ -55,8 +57,8 @@ export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
-  const [homeView, setHomeView] = useState<"channel" | "all">("channel");
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
+  const [channelsLoadState, setChannelsLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [channelId, setChannelId] = useState<string>(() => {
     const c = store.get("bal-channel") || "";
     setApiChannel(c);
@@ -86,12 +88,14 @@ export const App: React.FC = () => {
   channelRef.current = channelId;
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
+  const [episodesLoadError, setEpisodesLoadError] = useState("");
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
   const episodeRef = useRef(epId);
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   useEffect(() => setRequestedSceneId(undefined), [channelId, epId]);
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [episodeLoadError, setEpisodeLoadError] = useState("");
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
   const [researchDirty, setResearchDirty] = useState(false);
@@ -100,6 +104,7 @@ export const App: React.FC = () => {
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
+  const [identityLoadError, setIdentityLoadError] = useState("");
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
   const [showNew, setShowNew] = useState(false);
   /** فكرة من بنك الأفكار تتحول حلقة: تملأ نموذج الحلقة الجديدة */
@@ -110,9 +115,25 @@ export const App: React.FC = () => {
   /** القناة التي تخصها قائمة الحلقات المعروضة */
   const episodesOf = useRef("");
   const scriptRef = useRef<ScriptTabHandle>(null);
+  /** Unsaved text is kept by channel/episode through in-app navigation, never in production files. */
+  const scriptDrafts = useRef(new Map<string, { text: string; saved: string }>());
+  const researchDrafts = useRef(new Map<string, ResearchDraft>());
+  const identityDrafts = useRef(new Map<string, { draft: Identity; saved: Identity; defaults: Identity }>());
+  const channelSettingsDrafts = useRef(new Map<string, ChannelSettingsDraft>());
+  const ideaDrafts = useRef(new Map<string, IdeaDraft>());
+  const sessionKey = `${channelId}/${epId}`;
+  const onResearchDraftChange = useCallback((draft: ResearchDraft) => {
+    researchDrafts.current.set(`${channelId}/${epId}`, draft);
+    setResearchDirty(draft.text !== draft.saved);
+  }, [channelId, epId]);
+  useEffect(() => {
+    const saved = researchDrafts.current.get(`${channelId}/${epId}`);
+    setResearchDirty(Boolean(saved && saved.text !== saved.saved));
+  }, [channelId, epId]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** آخر خطة لم تُحفظ بعد (تنتظر مؤقت الحفظ التلقائي) */
-  const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
+  const pendingPlan = useRef<{ ep: string; channel: string; plan: Plan } | null>(null);
+  const savingPlan = useRef<Promise<boolean> | null>(null);
   /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
   const scriptDirtyRef = useRef(false);
   /** الحلقات التي جُلبت آياتها في هذه الجلسة */
@@ -123,7 +144,12 @@ export const App: React.FC = () => {
     setTimeout(() => setToast(null), 2600);
   };
 
-  const reloadChannels = useCallback(() => api.channels().then(setChannels).catch((e) => say(e.message, true)), []);
+  const reloadChannels = useCallback(() => {
+    setChannelsLoadState("loading");
+    return api.channels().then((items) => {
+      setChannels(items); setChannelsLoadState("ready");
+    }).catch((e) => { setChannelsLoadState("error"); say(e.message, true); });
+  }, []);
   const reloadKeys = useCallback(
     () =>
       api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: Boolean(keys.QF_CLIENT_ID?.set && keys.QF_CLIENT_SECRET?.set) })).catch(() => {}),
@@ -139,11 +165,15 @@ export const App: React.FC = () => {
     setApiChannel(channelId);
     store.set("bal-channel", channelId);
     setEpisodes(null);
+    setEpisodesLoadError("");
     setPlan(null);
+    setEpisodeLoadError("");
+    setIdent(null); // Never show another channel's identity while this one loads.
+    setIdentityLoadError("");
     loadedKey.current = "";
     episodesOf.current = "";
     const ch = channelId;
-    api.episodes().then((list) => {
+    api.episodes(ch).then((list) => {
       if (channelRef.current !== ch) return;
       episodesOf.current = ch;
       setEpisodes(list);
@@ -153,44 +183,66 @@ export const App: React.FC = () => {
         setEpId(want.ep);
         setTab(want.tab);
       } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
-    }).catch((e) => say(e.message, true));
-    api.identity().then(({ identity, defaults }) => {
-      if (channelRef.current === ch) setIdent({ draft: identity, saved: identity, defaults });
-    }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
+    }).catch((e) => {
+      if (channelRef.current === ch) {
+        setEpisodesLoadError((e as Error).message);
+        say(e.message, true);
+      }
+    });
+    api.identity(ch).then(({ identity, defaults }) => {
+      if (channelRef.current !== ch) return;
+      const prior = identityDrafts.current.get(ch);
+      const dirty = prior && JSON.stringify(prior.draft) !== JSON.stringify(prior.saved);
+      setIdent({ draft: dirty ? prior.draft : identity, saved: identity, defaults });
+    }).catch((e) => {
+      if (channelRef.current === ch) {
+        setIdentityLoadError((e as Error).message);
+        say(e.message, true);
+      }
+    });
     // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
-    if (channelId) api.channel().then((c) => {
+    if (channelId) api.channel(ch).then((c) => {
       if (channelRef.current === ch) setChannel(channelInfo(c));
     }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** يحفظ فورًا أي تعديل ينتظر الحفظ التلقائي، حتى لا يكتب فوق خطة أحدث لاحقًا. */
-  const flushPlan = useCallback(async () => {
+  const flushPlan = useCallback(async (): Promise<boolean> => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = null;
+    if (savingPlan.current && !(await savingPlan.current)) return false;
     const p = pendingPlan.current;
+    if (!p) return true;
     pendingPlan.current = null;
-    if (!p) return;
     setPlanState("saving");
-    try {
-      await api.savePlan(p.ep, p.plan);
-      setPlanState("saved");
-    } catch (e) {
+    const work = api.savePlanFor(p.ep, p.plan, p.channel).then(() => {
+      if (!pendingPlan.current) setPlanState("saved");
+      return true;
+    }).catch((e: unknown) => {
+      if (!pendingPlan.current) pendingPlan.current = p; // Never lose an unsaved plan on failure.
       setPlanState("error");
-      say((e as Error).message, true);
-    }
+      say("فشل حفظ الخطة، ولن نغادر حتى ينجح الحفظ: " + (e as Error).message, true);
+      return false;
+    });
+    savingPlan.current = work;
+    const ok = await work;
+    if (savingPlan.current === work) savingPlan.current = null;
+    return ok;
   }, []);
 
   const loadEpisode = useCallback(async (id: string, opts: { keepScript?: boolean } = {}) => {
-    // الحلقة تخص القناة الحالية لحظة الطلب؛ إن تبدّلت القناة أثناء الحفظ يُلغى التحميل
+    // Keep the previous draft, but never show stale approval/data from another episode.
     const ch = channelRef.current;
-    await flushPlan();
+    setEpisodeLoadError("");
+    if (!(await flushPlan())) return;
     if (channelRef.current !== ch || episodeRef.current !== id) return;
     api.episode(id, ch).then((d) => {
       if (channelRef.current !== ch || episodeRef.current !== id) return;
       setPlan(d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
-        setScript(d.script);
+        const draft = scriptDrafts.current.get(`${ch}/${id}`);
+        setScript(draft && draft.text !== draft.saved ? draft.text : d.script);
         setSavedScript(d.script);
       }
       setCheck(d.check);
@@ -210,7 +262,12 @@ export const App: React.FC = () => {
           setExtra({ issues: n.issues, keys: n.keys });
         }).catch((e) => say(`تعذّر جلب الآيات: ${(e as Error).message}`, true));
       }
-    }).catch((e) => say(e.message, true));
+    }).catch((e) => {
+      if (channelRef.current !== ch || episodeRef.current !== id) return;
+      setEpisodeLoadError((e as Error).message);
+      loadedKey.current = "";
+      say((e as Error).message, true);
+    });
   }, [flushPlan, channelId]);
   // تُحمَّل الحلقة بعد وصول قائمة حلقات القناة الحالية فقط، فلا تُطلب حلقة القناة السابقة بعد التبديل
   useEffect(() => {
@@ -228,27 +285,37 @@ export const App: React.FC = () => {
   const onPlanChange = useCallback((p: Plan) => {
     setPlan(p);
     setPlanState("dirty");
-    pendingPlan.current = { ep: epId, plan: p };
+    pendingPlan.current = { ep: epId, channel: channelId, plan: p };
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => void flushPlan(), 700);
-  }, [epId, flushPlan]);
+  }, [epId, channelId, flushPlan]);
 
   const saveScript = async () => {
-    // تعديلات المشاهد المعلّقة تُحفظ أولًا، ثم يعيد الخادم بناء الخطة مع إبقائها
-    await flushPlan();
+    // Preserve edits typed while a save is in flight; do not rebind the reply to another episode.
+    const snapshot = script, ch = channelId, episode = epId;
+    if (!(await flushPlan())) return;
     let r;
     try {
-      r = await api.saveScript(epId, script);
+      r = await api.saveScript(episode, snapshot, ch);
     } catch (e) {
       say(`تعذّر حفظ السكريبت: ${(e as Error).message}`, true);
       return;
     }
-    setSavedScript(script);
-    setCheck(r.check);
-    setPlan(r.plan);
-    setPlanState("saved");
-    api.episode(epId).then((d) => { setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys }); }).catch(() => {});
-    say("حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك");
+    scriptDrafts.current.set(`${ch}/${episode}`, {
+      text: scriptDrafts.current.get(`${ch}/${episode}`)?.text ?? snapshot, saved: snapshot,
+    });
+    if (channelRef.current === ch && episodeRef.current === episode) {
+      setSavedScript(snapshot);
+      setCheck(r.check);
+      setPlan(r.plan);
+      setPlanState("saved");
+      api.episode(episode, ch).then((d) => {
+        if (channelRef.current === ch && episodeRef.current === episode) {
+          setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys });
+        }
+      }).catch(() => {});
+      say("حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك");
+    }
   };
 
   const scriptDirty = script !== savedScript;
@@ -257,7 +324,13 @@ export const App: React.FC = () => {
   // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
-      if (scriptDirtyRef.current || researchDirty || pendingPlan.current) {
+      if (scriptDirtyRef.current || researchDirty || pendingPlan.current ||
+          [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
+          [...channelSettingsDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== d.saved) ||
+          [...ideaDrafts.current.values()].some((d) => Boolean(d.title.trim() || d.note.trim())) ||
+          Boolean(savingPlan.current) || planState !== "saved") {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
         e.returnValue = "";
@@ -265,50 +338,88 @@ export const App: React.FC = () => {
     };
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
-  }, [researchDirty]);
-  const confirmLeaveScript = () => {
-    if (scriptDirty && !window.confirm("في السكريبت تعديلات غير محفوظة. هل تريد مغادرة المحرر؟")) return false;
-    if (scriptRef.current?.hasUnsavedResearch() && !window.confirm("في ملف البحث تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟")) return false;
-    return true;
-  };
+  }, [researchDirty, planState, ident]);
+  // Navigating between workspaces cannot discard an unsaved script or research draft.
+  // Both are restored from the per-channel, per-episode in-memory maps on return.
+  const confirmLeaveScript = () => true;
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
   const navigateManage = async (next: Tab) => {
     if (!next || !confirmLeaveScript()) return;
-    await flushPlan();
+    if (!(await flushPlan())) return;
     setTab(next);
     setNavOpen(false);
     if (navOpen) menuButton.current?.focus();
   };
   const closeNavigation = () => { setNavOpen(false); menuButton.current?.focus(); };
+  useEffect(() => {
+    if (navOpen && window.matchMedia("(max-width: 880px)").matches) {
+      document.querySelector<HTMLButtonElement>(".studio-close-nav")?.focus();
+    }
+  }, [navOpen]);
+  const trapMobileNavigation = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!navOpen) return;
+    if (event.key === "Escape") { event.preventDefault(); closeNavigation(); return; }
+    if (event.key !== "Tab" || !window.matchMedia("(max-width: 880px)").matches) return;
+    const focusable = [...document.querySelectorAll<HTMLElement>(".studio-sidebar button:not([disabled]), .studio-sidebar a[href]")]
+      .filter((item) => item.getClientRects().length > 0);
+    if (!focusable.length) return;
+    const first = focusable[0]!, last = focusable[focusable.length - 1]!;
+    if (!document.querySelector(".studio-sidebar")?.contains(document.activeElement)) {
+      event.preventDefault();
+      first.focus();
+      return;
+    }
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
 
-  if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
+  if (!ident) return <main className="empty-state" dir="rtl" role={identityLoadError ? "alert" : "status"}>
+    <h2>{identityLoadError ? "تعذّر تحميل هوية القناة" : "جارٍ تحميل هوية القناة…"}</h2>
+    {identityLoadError ? <><p>{identityLoadError}</p><button type="button" className="btn primary"
+      onClick={() => {
+        const requested = channelId;
+        setIdentityLoadError("");
+        void api.identity(requested).then(({ identity, defaults }) => {
+          if (channelRef.current !== requested) return;
+          const previous = identityDrafts.current.get(requested);
+          setIdent({ draft: previous && JSON.stringify(previous.draft) !== JSON.stringify(previous.saved) ? previous.draft : identity,
+            saved: identity, defaults });
+        }).catch((e) => { if (channelRef.current === requested) setIdentityLoadError((e as Error).message); });
+      }}>إعادة المحاولة</button></> : null}
+  </main>;
 
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
-      <div className={`studio-shell${navOpen ? " is-nav-open" : ""}`} onKeyDown={(e) => { if (e.key === "Escape" && navOpen) closeNavigation(); }}>
+      <div className={`studio-shell${navOpen ? " is-nav-open" : ""}`} onKeyDown={trapMobileNavigation}>
       <StudioSidebar
         active={tab} channelName={channel.nameDisplay ?? channel.name} channelMark={<BrandMark channel={channel} />}
         hasGuide={hasGuide} guideLabel={guideLabel} hasLabs={hasLabs} hasTechReviews={hasTechReviews}
         identityDirty={identDirty} voiceConnected={keysOk.voice} episodeId={epId} episodeTitle={plan?.title}
-        onHome={() => { if (confirmLeaveScript()) { setTab("home"); setNavOpen(false); } }}
-        onNavigate={navigateManage} onClose={closeNavigation}
+        onHome={() => void navigateManage("home")}
+        onNavigate={navigateManage} onClose={closeNavigation} mobileOpen={navOpen}
       />
       {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
       <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
+        <UpdateBanner beforeUpdate={async () => { if (!(await flushPlan())) throw new Error("تعذر حفظ الخطة؛ لن يُحدّث الاستوديو."); }} hasUnsaved={scriptDirty || researchDirty || identDirty ||
+          [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
+          [...channelSettingsDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== d.saved) ||
+          [...ideaDrafts.current.values()].some((d) => Boolean(d.title.trim() || d.note.trim())) ||
+          Boolean(pendingPlan.current) || Boolean(savingPlan.current) || planState !== "saved"} />
         <header className="top studio-topbar">
           <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
           <div className="studio-page-heading"><span>الاستوديو <i aria-hidden="true">/</i> {channel.name}</span><strong>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</strong></div>
           <div className="studio-topbar-controls">
           {channels.length > 1 ? (
-            <label className="studio-context-select"><span>القناة النشطة</span><select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { const next = e.target.value; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }} aria-label="القناة">
+            <label className="studio-context-select"><span>القناة النشطة</span><select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { const next = e.target.value; if (!confirmLeaveScript() || !(await flushPlan())) return; setChannelId(next); }} aria-label="القناة">
               {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select></label>
           ) : null}
           {EPISODE_TABS.includes(tab) ? (
-            <label className="studio-context-select studio-episode-select"><span>الحلقة الحالية</span><select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} aria-label="الحلقة">
+            <label className="studio-context-select studio-episode-select"><span>الحلقة الحالية</span><select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript() || !(await flushPlan())) return; setEpId(e.target.value); }} aria-label="الحلقة">
               {episodes?.length ? null : <option value="">لا توجد حلقات</option>}
               {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
             </select></label>
@@ -326,15 +437,18 @@ export const App: React.FC = () => {
            <EpisodeWorkspaceBar
              key={`${channelId}:${epId}`}
              episodeId={epId}
+             channelId={channelId}
              title={plan.title}
              stage={tab as WorkspaceStage}
              onStage={(stage, target) => {
-               if (stage !== tab && !confirmLeaveScript()) return;
-               if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
-               setTab(stage);
-               if (target?.line && stage === "script") {
-                 setTimeout(() => scriptRef.current?.goToLine(target.line!), 50);
-               }
+               void (async () => {
+                 if (stage !== tab && (!confirmLeaveScript() || !(await flushPlan()))) return;
+                 if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
+                 setTab(stage);
+                 if (target?.line && stage === "script") {
+                   setTimeout(() => scriptRef.current?.goToLine(target.line!), 50);
+                 }
+               })();
              }}
              check={check}
              issues={planIssues(plan, channel)}
@@ -343,48 +457,57 @@ export const App: React.FC = () => {
              saveState={planState}
              scriptDirty={scriptDirty}
              researchDirty={researchDirty}
+             identityDirty={identDirty}
            />
          ) : null}
 
-         {tab === "home" ? (
-          <div className="home-wrap">
-          <StudioStartGuide />
-          <nav className="studio-home-switch" aria-label="عرض الاستوديو">
-            <button type="button" aria-pressed={homeView === "channel"} className={homeView === "channel" ? "active" : ""} onClick={() => setHomeView("channel")}>حلقات القناة الحالية</button>
-            <button type="button" aria-pressed={homeView === "all"} className={homeView === "all" ? "active" : ""} onClick={() => setHomeView("all")}>جميع القنوات · غرفة العمليات</button>
-          </nav>
-          {homeView === "all" ? <OpsRoom
+         {tab === "ops" ? (
+          <div className="home-wrap studio-ops-workspace">
+            <OpsRoom
             refreshKey={homeKey}
+            ideaDrafts={Object.fromEntries(ideaDrafts.current)}
+            onIdeaDraftChange={(ch, draft) => ideaDrafts.current.set(ch, draft)}
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
-                if (id !== epId && !confirmLeaveScript()) return;
+                if (id !== epId && (!confirmLeaveScript() || !(await flushPlan()))) return;
                 setEpId(id);
                 setTab(t);
                 return;
               }
               if (!confirmLeaveScript()) return;
-              await flushPlan();
+              if (!(await flushPlan())) return;
               pendingOpen.current = { ep: id, tab: t };
               setChannelId(ch);
             }}
             onStartIdea={async (ch, idea, suggested) => {
               if (ch !== (channelId || channels[0]?.id)) {
                 if (!confirmLeaveScript()) return;
-                await flushPlan();
+                if (!(await flushPlan())) return;
                 setChannelId(ch);
               }
               setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
               setShowNew(true);
             }}
-          /> : <>
-          <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
+          />
+          </div>
+        ) : tab === "channels" ? (
+          <ChannelsWorkspace channels={channels} loadState={channelsLoadState} activeId={channelId || channels[0]?.id || ""} onRetry={() => void reloadChannels()} onOpen={async (id, destination) => {
+            if (!confirmLeaveScript()) return;
+            if (!(await flushPlan())) return;
+            if (id !== channelId) setChannelId(id);
+            setTab(destination);
+          }} />
+        ) : tab === "home" ? (
+          <div className="home-wrap studio-episodes-workspace">
+            <StudioStartGuide />
+            <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
           <HomeTab
             key={`${channelId}-${homeKey}`}
             channel={channel}
             onNew={() => setShowNew(true)}
             onDeleted={(id) => {
               // الحلقة المحذوفة لا تبقى مفتوحة ولا في القائمة
-              api.episodes().then((list) => {
+              api.episodes(channelId).then((list) => {
                 setEpisodes(list);
                 if (id === epId) {
                   loadedKey.current = "";
@@ -394,12 +517,14 @@ export const App: React.FC = () => {
               }).catch(() => {});
             }}
             onOpen={(id, t) => {
-              if (id !== epId && !confirmLeaveScript()) return;
-              setEpId(id);
-              setTab(t);
+              void (async () => {
+                if (id !== epId && (!confirmLeaveScript() || !(await flushPlan()))) return;
+                setEpId(id);
+                setTab(t);
+              })();
             }}
           />
-          </>}
+          
           </div>
         ) : tab === "treviews" && channelId ? (
           <TechReviewsTab key={channelId} channel={channelId} />
@@ -413,6 +538,9 @@ export const App: React.FC = () => {
           <ChannelTab
             key={channelId}
             identity={ident?.draft}
+            channelId={channelId}
+            draftCache={channelSettingsDrafts.current.get(channelId) ?? null}
+            onDraftCache={(value) => channelSettingsDrafts.current.set(channelId, value)}
             onSaved={() => {
               reloadChannels();
               if (epId) loadEpisode(epId, { keepScript: true });
@@ -437,17 +565,43 @@ export const App: React.FC = () => {
             draft={ident.draft}
             saved={ident.saved}
             defaults={ident.defaults}
-            onChange={(draft) => setIdent({ ...ident, draft })}
+            onChange={(draft) => {
+              const next = { ...ident, draft };
+              identityDrafts.current.set(channelId, next);
+              setIdent(next);
+            }}
             onSave={async () => {
+              const ownerChannel = channelId, snapshot = ident.draft;
               try {
-                await api.saveIdentity(ident.draft);
-                setIdent({ ...ident, saved: ident.draft });
-                say("حُفظت الهوية. الرندر القادم يستخدمها.");
+                await api.saveIdentity(snapshot, ownerChannel);
+                const current = identityDrafts.current.get(ownerChannel);
+                // Preserve typing while a save is in-flight; do not overwrite another channel's identity.
+                const next = { ...ident, draft: current?.draft ?? snapshot, saved: snapshot };
+                identityDrafts.current.set(ownerChannel, next);
+                if (channelRef.current === ownerChannel) {
+                  setIdent(next);
+                  say("حُفظت الهوية. الرندر القادم يستخدمها.");
+                }
               } catch (e) {
-                say(`تعذّر حفظ الهوية: ${(e as Error).message}`, true);
+                if (channelRef.current === ownerChannel) say(`تعذّر حفظ الهوية: ${(e as Error).message}`, true);
               }
             }}
           />
+        ) : episodesLoadError && !episodes ? (
+          <div className="empty-state" role="alert">
+            <h2>تعذّر تحميل قائمة الحلقات</h2>
+            <p>{episodesLoadError}</p>
+            <button type="button" className="btn primary" onClick={() => {
+              const requested = channelId;
+              setEpisodesLoadError("");
+              void api.episodes(requested).then((list) => {
+                if (channelRef.current !== requested) return;
+                episodesOf.current = requested;
+                setEpisodes(list);
+                setEpId((current) => list.some((item) => item.id === current) ? current : list[0]?.id ?? "");
+              }).catch((error) => { if (channelRef.current === requested) setEpisodesLoadError((error as Error).message); });
+            }}>إعادة تحميل الحلقات</button>
+          </div>
         ) : !episodes?.length ? (
           <div className="empty-state">
             <h2>لا توجد حلقات بعد</h2>
@@ -455,7 +609,11 @@ export const App: React.FC = () => {
             <button className="btn primary" onClick={() => setShowNew(true)}>+ حلقة جديدة</button>
           </div>
         ) : !plan || !check ? (
-          <div className="empty-state"><h2>جارٍ فتح الحلقة…</h2></div>
+          <div className="empty-state" role={episodeLoadError ? "alert" : "status"}>
+            <h2>{episodeLoadError ? "تعذّر فتح الحلقة" : "جارٍ فتح الحلقة…"}</h2>
+            {episodeLoadError ? <><p>{episodeLoadError}</p>
+              <button className="btn primary" type="button" onClick={() => { if (epId) { loadedKey.current = `${channelId}/${epId}`; void loadEpisode(epId, { keepScript: true }); } }}>إعادة المحاولة</button></> : null}
+          </div>
         ) : tab === "storyboard" ? (
           <div className="ew-storyboard-wrap"><StoryboardPanel
             key={`${channelId}:${epId}`}
@@ -477,6 +635,13 @@ export const App: React.FC = () => {
             onMedia={setMedia}
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           />
+        ) : tab === "review" ? (
+          <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} channelId={channelId}
+             hasUnsavedChanges={scriptDirty || researchDirty || identDirty || planState !== "saved" || Boolean(pendingPlan.current)} onOpen={(stage, sceneId) => {
+            if (!confirmLeaveScript()) return;
+            if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
+            setTab(stage);
+          }} />
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
@@ -500,7 +665,12 @@ export const App: React.FC = () => {
             onOpenVoice={() => setTab("voice")}
           />
         ) : (
-          <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
+          <ScriptTab key={`${channelId}:${epId}:${tab}`} ref={scriptRef} episodeId={epId} channelId={channelId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} researchDraft={researchDrafts.current.get(sessionKey) ?? null} onResearchDraftChange={onResearchDraftChange}
+             onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check}
+             onChange={(next) => {
+               scriptDrafts.current.set(sessionKey, { text: next, saved: savedScript });
+               setScript(next);
+             }} onSave={saveScript} />
         )}
 
         {showNew ? (

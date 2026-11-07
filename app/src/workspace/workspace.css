@@ -178,3 +178,81 @@
   .ew-listen-action { grid-column: 1 / -1; grid-row: 3; width: 100%; }
   .ew-reciter-controls { padding: 12px; }
 }
+
+
+/* Six official stages. Approval evidence belongs to the workflow engine alone. */
+.ew-heading-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.ew-research-shortcut { border: 1px solid var(--line, #d4d2cb); background: var(--panel, #fff); border-radius: 9px; padding: 7px 11px; font: inherit; font-size: 12px; color: inherit; cursor: pointer; }
+.ew-research-shortcut[aria-current] { border-color: var(--accent, #207f67); color: var(--accent, #207f67); }
+.ew-approval-details { border: 1px solid var(--line, #d4d2cb); border-radius: 10px; overflow: hidden; font-size: 12px; }
+.ew-approval-details > summary { padding: 8px 13px; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; background: var(--panel-2, #f7f7f5); }
+.ew-approval-details > summary span { color: var(--muted, #67645e); font-size: 11px; }
+.ew-approval-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px; max-height: min(440px, 50vh); overflow-y: auto; }
+.ew-approval-grid article { background: var(--surface, #fff); border: 1px solid var(--line, #d4d2cb); border-radius: 10px; padding: 12px; min-width: 0; }
+.ew-approval-card-title { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 5px 8px; }
+.ew-approval-card-title span { background: var(--panel-2, #f7f7f5); border-radius: 7px; padding: 2px 7px; color: var(--muted, #67645e); }
+.ew-approval-grid article[data-workflow-status="approved"] .ew-approval-card-title span { color: var(--ok, #237859); background: var(--ok-soft, #e7f4ec); }
+.ew-approval-grid article[data-workflow-status="rejected"] .ew-approval-card-title span,
+.ew-approval-grid article[data-workflow-status="needs_reapproval"] .ew-approval-card-title span { color: var(--err, #bc4e4e); background: var(--err-soft, #fcecec); }
+.ew-approval-grid p { color: var(--muted, #67645e); line-height: 1.65; margin: 8px 0; }
+.ew-approval-grid dl { display: grid; grid-template-columns: minmax(75px, auto) minmax(0, 1fr); gap: 6px; font-size: 11px; overflow-wrap: anywhere; }
+.ew-approval-grid dt { color: var(--muted, #67645e); }
+.ew-approval-grid dd { margin: 0; }
+.ew-approval-grid small { color: var(--muted, #67645e); line-height: 1.75; }
+@media (max-width: 1100px) { .ew-approval-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .ew-approval-grid { grid-template-columns: minmax(0, 1fr); }
+  .ew-stages { display: flex; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; }
+  .ew-stage, .studio-shell .ew-stages > button { flex: 0 0 165px; }
+  .ew-stage small { display: block; font-size: 10px; }
+}
+
+
+/* Engine-backed ledger: invalidation/history are visually distinct from current approval. */
+.ew-approval-reason { border-inline-start: 3px solid var(--err, #bc4e4e); padding: 7px 11px; background: var(--err-soft, #fff3f1); border-radius: 6px; overflow-wrap: anywhere; }
+.ew-workflow-error { margin: 9px 12px; padding: 10px 12px; border: 1px solid var(--err, #bc4e4e); border-radius: 8px; color: var(--err, #bc4e4e); background: var(--err-soft, #fff3f1); }
+.ew-workflow-history { margin-block: 10px 2px; border-block-start: 1px solid var(--line, #d4d2cb); }
+.ew-workflow-history > summary { cursor: pointer; padding-block: 9px; font-weight: 650; }
+.ew-workflow-history ol { margin: 0; padding-inline-start: 20px; max-height: 170px; overflow-y: auto; }
+.ew-workflow-history li { margin-block: 8px; line-height: 1.8; overflow-wrap: anywhere; }
+.ew-workflow-history li span { display: block; color: var(--muted, #67645e); }
+.ew-hash { overflow-wrap: anywhere; text-align: start; font-variant-numeric: tabular-nums; font-size: 10px; }
+.ew-technical-evidence { margin-block-start: 10px; padding-block-start: 8px; border-block-start: 1px dashed var(--line, #d4d2cb); }
+.ew-workflow-revision { display: block; padding: 0 12px 10px; color: var(--muted, #67645e); }
+.ew-approval-grid article[data-workflow-status="needs_reapproval"] { border-color: var(--err, #bc4e4e); }
+.ew-approval-grid article[data-workflow-status="unavailable"] .ew-approval-card-title span { color: var(--muted, #67645e); }
+.ew-approval-details summary:focus-visible, .ew-workflow-history summary:focus-visible { outline: 3px solid var(--accent, #177d76); outline-offset: -2px; }
+@media (max-width: 560px) {
+  .ew-approval-grid { padding: 8px; max-height: 57vh; }
+  .ew-approval-grid article { padding: 11px; }
+  .ew-workflow-history ol { max-height: 140px; }
+}
+
+/* Visual QA refinements: mobile stage discovery and one authoritative workflow status. */
+.ew-stage-scroll-hint { display: none; margin: 0; }
+.ew-stages-status {
+  margin: 0;
+  padding: 7px 11px;
+  border-inline-start: 3px solid var(--accent, #177d76);
+  background: var(--panel-2, #f7f9fb);
+  color: var(--muted, #67645e);
+  border-radius: 7px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+@media (max-width: 700px) {
+  .ew-stage-scroll-hint {
+    display: block;
+    padding-inline: 3px;
+    color: var(--muted, #67645e);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .ew-stages {
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+  }
+  .ew-stages > .ew-stage { scroll-snap-align: start; }
+  .ew-stage:focus-visible { outline: 2px solid var(--accent, #177d76); outline-offset: -2px; }
+}

@@ -21,6 +21,7 @@ const check = (error = false): CheckResult => ({
 const render = (narration: string, error = false, researchDirty = false) => renderToStaticMarkup(
   <EpisodeWorkspaceBar
     episodeId="001"
+    channelId="balislam"
     title="حلقة اختبار"
     stage="script"
     onStage={() => {}}

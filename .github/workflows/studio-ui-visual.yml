@@ -1,0 +1,37 @@
+# Read-only Studio browser QA; screenshots remain private PR artifacts.
+# Runs only on an isolated GitHub runner for the dedicated UI branch.
+name: Studio UI browser visual evidence
+on:
+  pull_request:
+    paths:
+      - "app/src/**"
+      - "tests/studio-ui-visual.mjs"
+      - ".github/workflows/studio-ui-visual.yml"
+  workflow_dispatch:
+jobs:
+  visual:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'work/studio-ui-workspaces-20261107'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install dependencies (disposable checkout)
+        run: npm ci
+      - name: Confirm browser exists
+        run: command -v google-chrome || command -v chromium || command -v chromium-browser
+      - name: Validate real workflows and capture RTL responsive Studio screens
+        run: node tests/studio-ui-visual.mjs
+      - name: Upload private screenshot and interaction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-ui-visual-${{ github.sha }}
+          path: artifacts/studio-ui/
+          if-no-files-found: warn
+          retention-days: 14

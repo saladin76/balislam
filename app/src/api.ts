@@ -54,7 +54,10 @@ let currentChannel = "";
 export const setApiChannel = (id: string) => {
   currentChannel = id;
 };
-const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(currentChannel)}` : url);
+const withChannel = (url: string, explicitChannel?: string) => {
+  const channel = explicitChannel ?? currentChannel;
+  return channel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : url;
+};
 
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
@@ -72,6 +75,10 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  /** Server-only read contract: GET must reconcile current artifact hashes and
+   * run isCurrentApproval for every stage; client supplies NO approval/evidence. */
+  workflowApprovals: (episode: string, channel: string): Promise<unknown> =>
+    call<unknown>(`/api/episodes/${encodeURIComponent(episode)}/workflow`, undefined, channel),
   voiceReview: (episode: string, channel: string) =>
     call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, undefined, channel),
@@ -111,22 +118,31 @@ export const api = {
   statusFor: (channel: string, id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`, undefined, channel),
   saveStatusFor: (channel: string, id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }, channel),
   channels: () => call<ChannelSummary[]>("/api/channels"),
-  episodes: () => call<EpisodeSummary[]>("/api/episodes"),
+  episodes: (channel?: string) => call<EpisodeSummary[]>("/api/episodes", undefined, channel),
   createEpisode: (b: { episode: string; slug: string; domain: string; title: string }) => call("/api/episodes", { method: "POST", json: b }),
-  research: (id: string) => call<{ text: string; exists: boolean; label: string }>(`/api/episodes/${id}/research`),
-  saveResearch: (id: string, text: string) => call<{ ok: boolean }>(`/api/episodes/${id}/research`, { method: "PUT", json: { text } }),
-  sceneReview: (id: string) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`),
+  research: (id: string, channel?: string) =>
+    call<{ text: string; exists: boolean; label: string }>(`/api/episodes/${encodeURIComponent(id)}/research`, undefined, channel),
+  saveResearch: (id: string, text: string, channel?: string) =>
+    call<{ ok: boolean }>(`/api/episodes/${encodeURIComponent(id)}/research`, { method: "PUT", json: { text } }, channel),
+  sceneReview: (id: string, channel?: string) =>
+    call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${encodeURIComponent(id)}/scene-review`, undefined, channel),
   setSceneReview: (id: string, b: { id: string; status: "ok" | "fix" | "pending"; note?: string }) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`, { method: "PUT", json: b }),
-  review: (id: string) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`),
+  review: (id: string, channel?: string) =>
+    call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${encodeURIComponent(id)}/review`, undefined, channel),
   setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
   deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; archived: number; pushed: boolean; note?: string }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
-  saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan }>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
+  saveScript: (id: string, text: string, channel?: string) =>
+    call<{ check: CheckResult; plan: Plan }>(`/api/episodes/${encodeURIComponent(id)}/script`, { method: "PUT", json: { text } }, channel),
   savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
+  savePlanFor: (id: string, plan: Plan, channel: string) =>
+    call(`/api/episodes/${encodeURIComponent(id)}/plan`, { method: "PUT", json: { plan } }, channel),
   regenerate: (id: string) => call<{ plan: Plan }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: {} }),
   check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
-  identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
-  saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity } }),
+  identity: (channel?: string) =>
+    call<{ identity: Identity; defaults: Identity }>("/api/identity", undefined, channel),
+  saveIdentity: (identity: Identity, channel?: string) =>
+    call("/api/identity", { method: "PUT", json: { identity } }, channel),
   render: (b: { episode: string; orientation: string; chapter?: number }) => call<RenderJob>("/api/render", { method: "POST", json: b }),
   jobs: () => call<RenderJob[]>("/api/render"),
   libraryImages: () => call<{ files: string[] }>("/api/library-images"),
@@ -136,12 +152,15 @@ export const api = {
   voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport; generated: boolean; media: EpisodeMedia }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
   quran: (id: string, channel?: string) => call<{ plan: Plan; result: { fetched: string[]; recited: string[]; failed: { ref: string; reason: string }[] } }>(`/api/episodes/${id}/quran`, { method: "POST", json: {} }, channel),
   overview: () => call<Overview[]>("/api/overview"),
-  status: (id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`),
+  status: (id: string, channel?: string) => call<EpisodeStatus>(`/api/episodes/${encodeURIComponent(id)}/status`, undefined, channel),
   saveStatus: (id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }),
-  packageInfo: (id: string) => call<PackageInfo>(`/api/episodes/${id}/package`),
-  packageUrl: (id: string, file: string, download = false) => withChannel(`/api/episodes/${id}/package/${encodeURIComponent(file)}${download ? "?download=1" : ""}`),
-  channel: () => call<ChannelConfig>("/api/channel"),
-  saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
+  packageInfo: (id: string, channel?: string) =>
+    call<PackageInfo>(`/api/episodes/${encodeURIComponent(id)}/package`, undefined, channel),
+  packageUrl: (id: string, file: string, download = false, channel?: string) =>
+    withChannel(`/api/episodes/${encodeURIComponent(id)}/package/${encodeURIComponent(file)}${download ? "?download=1" : ""}`, channel),
+  channel: (channel?: string) => call<ChannelConfig>("/api/channel", undefined, channel),
+  saveChannel: (channel: ChannelConfig, explicitChannel?: string) =>
+    call("/api/channel", { method: "PUT", json: { channel } }, explicitChannel),
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
   quranRecitations: () => call<{ ok: boolean; message?: string; list: { id: number; name: string; style: string }[] }>("/api/quran/recitations"),
   quranTranslations: (lang: string) => call<{ ok: boolean; message?: string; list: { id: number; name: string; author: string; language: string }[] }>(`/api/quran/translations?lang=${lang}`),
@@ -163,11 +182,14 @@ export const api = {
   startJob: (b: { kind: "make" | "package" | "shorts" | "sfx" | "storyboard-motion"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }),
   /** إلغاء مهمة منتظرة أو جارية (رندر أو صناعة) */
   cancelJob: (id: string) => call<{ ok: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
-  storyboard: (id: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`),
-  previewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`),
+  storyboard: (id: string, channel?: string) =>
+    call<StoryboardInfo>(`/api/episodes/${encodeURIComponent(id)}/storyboard`, undefined, channel),
+  previewUrl: (id: string, name: string, channel?: string) =>
+    withChannel(`/api/episodes/${encodeURIComponent(id)}/previews/${encodeURIComponent(name)}`, channel),
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
-  previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  previews: (id: string, channel?: string) =>
+    call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${encodeURIComponent(id)}/previews`, undefined, channel),
   missingQuranTexts: (id: string) =>
     call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
       `/api/episodes/${id}/quran-text-only`),

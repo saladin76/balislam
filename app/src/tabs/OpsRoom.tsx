@@ -11,6 +11,18 @@ import { stagesOf } from "./HomeTab";
  * - التنوّع: تنبيه إن تكرر أسلوب الحلقة السابقة في القناة نفسها.
  */
 
+export type OpsSection = "week" | "pipeline" | "ideas";
+export type IdeaDraft = { title: string; note: string; domain: string };
+
+/** Focused subsections preserve the underlying calendar, pipeline and idea-bank components. */
+export const OpsSectionNav: React.FC<{ active: OpsSection; onSelect: (section: OpsSection) => void }> = ({ active, onSelect }) => (
+  <nav className="ops-section-nav" aria-label="أقسام غرفة العمليات">
+    <button type="button" aria-controls="ops-week" aria-pressed={active === "week"} onClick={() => onSelect("week")}>الجدول الأسبوعي</button>
+    <button type="button" aria-controls="ops-pipeline" aria-pressed={active === "pipeline"} onClick={() => onSelect("pipeline")}>خط الإنتاج</button>
+    <button type="button" aria-controls="ops-ideas" aria-pressed={active === "ideas"} onClick={() => onSelect("ideas")}>بنك الأفكار</button>
+  </nav>
+);
+
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const COLORS = ["#B5562E", "#2E6F8E", "#5B7F3A", "#7A4E9A", "#A07A1E"];
 const styleKey = (s: string) => styleTemplate(s) ?? s;
@@ -23,7 +35,7 @@ const STAGES: { key: Stage; label: string }[] = [
   { key: "scenes", label: "المشاهد" },
   { key: "voice", label: "الصوت" },
   { key: "video", label: "الفيديو" },
-  { key: "ready", label: "جاهزة للنشر" },
+  { key: "ready", label: "فحوص فنية مكتملة" },
   { key: "scheduled", label: "مجدولة" },
   { key: "published", label: "منشورة" },
 ];
@@ -54,14 +66,18 @@ export const OpsRoom: React.FC<{
   onOpen: (channel: string, episode: string, tab: "script" | "episode" | "publish") => void;
   onStartIdea: (channel: string, idea: Idea, suggested: string) => void;
   refreshKey?: number;
-}> = ({ onOpen, onStartIdea, refreshKey }) => {
+  ideaDrafts?: Record<string, IdeaDraft>;
+  onIdeaDraftChange?: (channel: string, draft: IdeaDraft) => void;
+}> = ({ onOpen, onStartIdea, refreshKey, ideaDrafts, onIdeaDraftChange }) => {
   const [data, setData] = useState<OpsChannel[] | null>(null);
   const [err, setErr] = useState("");
+  const [ideaSaveError, setIdeaSaveError] = useState("");
   const [tick, setTick] = useState(0);
   useEffect(() => {
     api.ops().then(setData).catch((e) => setErr((e as Error).message));
   }, [tick, refreshKey]);
 
+  const [section, setSection] = useState<OpsSection>("week");
   const [weekOffset, setWeekOffset] = useState(0);
   const [editDay, setEditDay] = useState<{ ch: string; date: string } | null>(null);
   const [editCh, setEditCh] = useState<string | null>(null);
@@ -72,7 +88,7 @@ export const OpsRoom: React.FC<{
   }, [weekOffset]);
   const todayIso = iso(new Date());
 
-  if (err) return <div className="render-box"><b>غرفة العمليات</b><span className="help">{err}</span></div>;
+  if (err) return <div className="render-box" role="alert"><b>تعذر تحميل غرفة العمليات</b><span className="help">{err}</span><button type="button" className="btn small" onClick={() => { setErr(""); setTick((n) => n + 1); }}>إعادة المحاولة</button></div>;
   if (!data) return <div className="render-box"><span className="help">جارٍ تجهيز غرفة العمليات…</span></div>;
 
   const color = (id: string) => COLORS[data.findIndex((d) => d.channel.id === id) % COLORS.length]!;
@@ -92,9 +108,16 @@ export const OpsRoom: React.FC<{
     setTick((t) => t + 1);
   };
 
-  const saveIdeas = async (ch: string, ideas: Idea[]) => {
-    setData((cur) => cur?.map((d) => (d.channel.id === ch ? { ...d, ideas } : d)) ?? cur);
-    await api.saveIdeas(ch, ideas);
+  const saveIdeas = async (ch: string, ideas: Idea[]): Promise<boolean> => {
+    try {
+      await api.saveIdeas(ch, ideas);
+      setData((cur) => cur?.map((d) => (d.channel.id === ch ? { ...d, ideas } : d)) ?? cur);
+      setIdeaSaveError("");
+      return true;
+    } catch (error) {
+      setIdeaSaveError("لم تُحفظ أفكار " + ch + ": " + (error as Error).message);
+      return false;
+    }
   };
 
   return (
@@ -102,24 +125,20 @@ export const OpsRoom: React.FC<{
       <div className="home-head">
         <div>
           <h1>غرفة العمليات</h1>
-          <p className="help">القنوات كلها في مكان واحد: ما ينزل هذا الأسبوع، وأين وصلت كل حلقة، وبنك الأفكار.</p>
+          <p className="help">القنوات كلها في مكان واحد: الجدول، التقدم الفني وبنك الأفكار. اكتمال الفحوص لا يعني اعتماد Master.</p>
         </div>
         <div className="kpis">
           <div><b>{longThisWeek}/{scheduledCount}</b><span>حلقات الأسبوع</span></div>
-          <div><b>{readyCount}</b><span>جاهزة للنشر</span></div>
+          <div><b>{readyCount}</b><span>فحوص فنية مكتملة</span></div>
           <div><b>{all.length}</b><span>حلقة في الإنتاج</span></div>
           <div><b>{ideasCount}</b><span>فكرة في البنك</span></div>
         </div>
       </div>
 
-      <nav className="ops-section-nav" aria-label="أقسام غرفة العمليات">
-        <a href="#ops-week">الجدول الأسبوعي</a>
-        <a href="#ops-pipeline">خط الإنتاج</a>
-        <a href="#ops-ideas">بنك الأفكار</a>
-      </nav>
+      <OpsSectionNav active={section} onSelect={setSection} />
 
       {/* الأسبوع */}
-      <section id="ops-week" className="ops-sec">
+      <section id="ops-week" className="ops-sec" hidden={section !== "week"}>
         <div className="toolbar" style={{ marginBottom: 10 }}>
           <h2 style={{ margin: 0 }}>{weekOffset === 0 ? "هذا الأسبوع" : weekOffset === 1 ? "الأسبوع القادم" : weekOffset === -1 ? "الأسبوع الماضي" : `أسبوع ${week[0]!.getDate()}/${week[0]!.getMonth() + 1}`}</h2>
           <span className="help">اضغط على أي يوم لتعدّله، أو على اسم القناة لتغيّر يومها وساعتها.</span>
@@ -167,7 +186,8 @@ export const OpsRoom: React.FC<{
                     used.add(fixed.id);
                     const st = stageOf(fixed);
                     return (
-                      <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
+                      <div key={i} role="button" tabIndex={0} onClick={open}
+                        onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } }} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
                         <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {fixed.id} · {fixed.title || fixed.dir}</button>
                         <small>{st === "published" ? "منشورة" : stagesOf(fixed)[3]!.state === "done" ? "الفيديو جاهز" : "الفيديو لم يكتمل بعد!"}</small>
                         {shortsLine ? <small>+ {shortsLine}</small> : null}
@@ -179,7 +199,8 @@ export const OpsRoom: React.FC<{
                     const next = queue.find((e) => !used.has(e.id));
                     if (next) used.add(next.id);
                     return next ? (
-                      <div key={i} role="button" tabIndex={0} onClick={open} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
+                      <div key={i} role="button" tabIndex={0} onClick={open}
+                        onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } }} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
                         <span>مقترح: {next.id} · {next.title || next.dir}</span>
                         <button className="btn small primary" onClick={(e) => { e.stopPropagation(); setScheduled(d.channel.id, next, date); }}>ثبّتها لهذا اليوم</button>
                       </div>
@@ -218,7 +239,7 @@ export const OpsRoom: React.FC<{
       {editCh ? <ChannelScheduleEditor channel={editCh} name={data.find((d) => d.channel.id === editCh)?.channel.name ?? ""} onClose={() => setEditCh(null)} onSaved={() => { setEditCh(null); setTick((t) => t + 1); }} /> : null}
 
       {/* خط الإنتاج */}
-      <section id="ops-pipeline" className="ops-sec">
+      <section id="ops-pipeline" className="ops-sec" hidden={section !== "pipeline"}>
         <h2>خط الإنتاج</h2>
         <div className="ops-board">
           {STAGES.map((st) => {
@@ -252,7 +273,8 @@ export const OpsRoom: React.FC<{
       </section>
 
       {/* بنك الأفكار */}
-      <section id="ops-ideas" className="ops-sec">
+      <section id="ops-ideas" className="ops-sec" hidden={section !== "ideas"}>
+        {ideaSaveError ? <p className="ew-workflow-error" role="alert">{ideaSaveError}</p> : null}
         <h2>بنك الأفكار</h2>
         <div className="ops-ideas">
           {data.map((d) => (
@@ -261,6 +283,8 @@ export const OpsRoom: React.FC<{
               ops={d}
               color={color(d.channel.id)}
               lastStyle={[...d.episodes].sort((a, b) => b.id.localeCompare(a.id))[0]?.style ?? ""}
+              initialDraft={ideaDrafts?.[d.channel.id]}
+              onDraftChange={(draft) => onIdeaDraftChange?.(d.channel.id, draft)}
               onSave={(ideas) => saveIdeas(d.channel.id, ideas)}
               onStart={(idea) => onStartIdea(d.channel.id, idea, String(d.episodes.reduce((m, e) => Math.max(m, Number(e.id)), 0) + 1).padStart(3, "0"))}
             />
@@ -435,16 +459,26 @@ const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: 
 
 const STYLE_OPTIONS = styleIds;
 
-const IdeasColumn: React.FC<{ ops: OpsChannel; color: string; lastStyle: string; onSave: (ideas: Idea[]) => void; onStart: (idea: Idea) => void }> = ({ ops, color, lastStyle, onSave, onStart }) => {
-  const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
+const IdeasColumn: React.FC<{
+  ops: OpsChannel; color: string; lastStyle: string;
+  initialDraft?: IdeaDraft;
+  onDraftChange?: (draft: IdeaDraft) => void;
+  onSave: (ideas: Idea[]) => Promise<boolean>;
+  onStart: (idea: Idea) => void;
+}> = ({ ops, color, lastStyle, initialDraft, onDraftChange, onSave, onStart }) => {
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [note, setNote] = useState(initialDraft?.note ?? "");
   const domains = Object.entries(ops.channel.domains);
-  const [domain, setDomain] = useState(domains[0]?.[0] ?? "");
-  const add = () => {
-    if (!title.trim()) return;
-    onSave([{ id: `i${Date.now().toString(36)}`, title: title.trim(), note: note.trim() || undefined, domain, createdAt: new Date().toISOString() }, ...ops.ideas]);
-    setTitle("");
-    setNote("");
+  const [domain, setDomain] = useState(initialDraft?.domain || domains[0]?.[0] || "");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { onDraftChange?.({ title, note, domain }); }, [title, note, domain, onDraftChange]);
+  const add = async () => {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+    try {
+      const ok = await onSave([{ id: `i${Date.now().toString(36)}`, title: title.trim(), note: note.trim() || undefined, domain, createdAt: new Date().toISOString() }, ...ops.ideas]);
+      if (ok) { setTitle(""); setNote(""); }
+    } finally { setSaving(false); }
   };
   return (
     <div className="ops-ideas-col" style={{ borderTopColor: color }}>
@@ -455,7 +489,7 @@ const IdeasColumn: React.FC<{ ops: OpsChannel; color: string; lastStyle: string;
         <select value={domain} onChange={(e) => setDomain(e.target.value)} style={{ flex: 1 }}>
           {domains.map(([id, dm]) => <option key={id} value={id}>{dm.name}</option>)}
         </select>
-        <button className="btn small primary" onClick={add} disabled={!title.trim()}>أضف</button>
+        <button className="btn small primary" type="button" onClick={() => void add()} disabled={!title.trim() || saving}>{saving ? "جارٍ الحفظ…" : "أضف"}</button>
       </div>
       {ops.ideas.map((idea) => (
         <div key={idea.id} className="ops-idea">
