@@ -24,8 +24,7 @@ The trusted adapter provides a `WorkflowSnapshot`, one `{ version, sha256 }` for
 ## Server-only integration example (contract only, not a deployed endpoint)
 
 ```ts
-import { createTrustedWorkflowService } from "../../src/workflow/service";
-import { createWorkflowProtectedPorts } from "../../src/workflow/ports";
+import { createTrustedWorkflowService, createWorkflowProtectedPorts } from "../../src/workflow/index";
 
 // These are trusted server implementations required from central integration.
 // None of them may be populated from raw HTTP request fields.
@@ -118,3 +117,6 @@ Signed schemaVersion 3 is intentionally incompatible with any unsigned early dra
 A material file can be modified and restored **between two workflow reads**, returning to precisely the same SHA-256 bytes. Content-only cumulative fingerprints would then silently reuse the old approval. The hardened server collector now captures both real-byte `sha256` and a separate `epoch` digest over the opened file descriptor's `dev / ino / size / ctimeNs / mtimeNs` on a trusted filesystem. The collector checks metadata before and after hashing, refuses hardlinked artifacts, and uses `O_NOFOLLOW` to block a swapped leaf symlink. Cumulative stage fingerprints include the file-generation epochs, and approvals store `artifactEpoch` alongside the byte SHA. Even after the previous contents are restored before inspection, a normal filesystem write changes `ctimeNs` or inode and automatically invalidates approval. Master publication still compares the exact SHA-256 bytes, **and also checks the approved file epoch**.
 
 This is a conservative content-generation test, not an immutable/replay-proof cryptographic filesystem. It may revoke approval on benign copy/chmod/checkout changes, which is preferable to approving unreviewed bytes. It does **not** prove detection after a privileged attacker rolls back the whole filesystem to an old signed state; use an independently durable monotonic revision authority if that threat is in scope. All writers still need the same shared content lock and an isolated integration run.
+
+### Supported import boundary
+Production server adapters must import the public API from `src/workflow/index.ts`. `src/workflow/store.ts` is an internal persistence/state-machine test dependency; its direct `approveWorkflowStage` and `requireWorkflowGate(scope, snapshot, action)` calls are **not trustworthy browser/API endpoints** because they accept snapshots and actor values supplied by their caller. Use only the `createTrustedWorkflowService` facade to authenticate the real session and collect current bytes and verified proofs, then the protected ports for side effects. The low-level exports exist for isolated engine testing but must never be directly wired to an external request.
