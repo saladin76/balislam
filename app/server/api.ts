@@ -105,20 +105,25 @@ export const balApi = (): Plugin => ({
           return send(res, 404, { error: "القناة غير موجودة أو مسارها غير آمن." });
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
         return await channelMod.runWithChannel(ch, async () => {
+        // Channel discovery is a recovery operation. A single corrupt channel
+        // (including the selected one) must not make the other channels vanish.
+        if (parts[0] === "channels" && req.method === "GET") {
+          const { inspectChannel } = await load("/src/channel/inspect.ts");
+          const list = channelMod.listChannels().map((id: string) => {
+            const item = inspectChannel(id);
+            const c = item.config;
+            return c
+              ? { id: c.id, name: c.name, language: c.language, domains: c.domains, rules: c.rules }
+              : { id, name: `⚠ ${id} — تحتاج إصلاح الإعدادات`, language: "", domains: {}, rules: null, error: item.error };
+          });
+          return send(res, 200, list);
+        }
         const cp = channelMod.channelPaths(ch);
         const episodesDir: string = cp.episodes;
         const identityFile: string = cp.identity;
         const identityDefaultFile: string = cp.identityDefault;
 
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
-
-        if (parts[0] === "channels") {
-          const list = channelMod.listChannels().map((id: string) => {
-            const c = channelMod.loadChannel(id);
-            return { id: c.id, name: c.name, language: c.language, domains: c.domains, rules: c.rules };
-          });
-          return send(res, 200, list);
-        }
 
         // الحلقات
         if (parts[0] === "episodes" && parts.length === 1) {
