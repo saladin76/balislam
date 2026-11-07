@@ -31,6 +31,8 @@ export type RenderEpisodeOptions = {
   media?: EpisodeMedia;
   /** استثناء صريح للصيانة فقط؛ لا يُستخدم من الواجهة العامة. */
   allowUnreviewed?: boolean;
+  /** True only for an owner-authorized single-scene review cut. Never a Master approval. */
+  scenePreview?: boolean;
   onProgress?: (pct: number, msg: string) => void;
 };
 
@@ -113,6 +115,8 @@ export const assertRenderChannelOwnership = (scriptPath: string, activeChannelId
 };
 
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
+  if (opts.scenePreview && opts.quality === "master")
+    throw Error("A scene review preview cannot be used as a Master approval.");
   const log = opts.onProgress ?? (() => {});
   const scriptPath = await resolveScriptPath(opts.episode);
   await assertNoLinkedPath(scriptPath, true);
@@ -168,7 +172,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   try {
   const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
-  const timingMode = await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
+  const timingMode = opts.scenePreview ? "scene-preview" as const
+    : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
