@@ -1,7 +1,7 @@
 /**
  * تدقيق نص بطاقات الآيات المعروض فعلًا في الحلقة مقابل المرجع المعتمد (Quran Foundation).
  *
- * - النص المحلي: quran.json بجوار السكريبت، وهو المصدر الوحيد الذي يدمجه withQuran في بطاقات verse-card عند الرندر.
+ * - النص المكتوب في script.md، وهو المصدر الوحيد الذي يدمجه withQuran في بطاقات verse-card عند الرندر.
  * - المقارنة بعد توحيد يونيكود (NFC) وحده؛ لا يُحذف تشكيل ولا علامة قرآنية. وتُصنَّف الفروق:
  *   الحروف، والتشكيل، والرسم العثماني، والعلامات الخاصة (الوقف ونهاية الآية وأرقامها).
  * - نص المرجع لا يُكتب في المستودع (شروط Quran Foundation)؛ يُعرض الفرق بموضعه ورموزه فقط.
@@ -16,7 +16,8 @@ import { mkdir, readFile, stat, writeFile, rm } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { parseAyahRef, SURAH_NAMES, toLatinDigits } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
-import { quranPathFor, readJson, readPlanFile } from "../plan/io";
+import { readPlanFile } from "../plan/io";
+import { quranFromScript } from "./scriptText";
 import { sceneSeconds } from "../plan/duration";
 import type { QuranClient } from "./client";
 import { composeVerses } from "./sync";
@@ -78,12 +79,13 @@ const AR_DIGITS = (n: number) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦
 export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<QuranClient, "verse"> & { env?: string } | null; frames?: boolean } = {}): Promise<{ audits: VerseAudit[]; store: { file: string; sha256: string; mtime: string } | null; preview: { file: string; sha256: string; mtime: string } | null }> => {
   const scriptPath = await resolveScriptPath(episode);
   const dir = path.dirname(scriptPath);
-  const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-  const qfile = quranPathFor(scriptPath);
-  const store = (await readJson<Record<string, string>>(qfile)) ?? {};
+  const scriptBytes = await readFile(scriptPath);
+  const parsed = parseScript(scriptBytes.toString("utf8"), scriptPath);
+  const authored = quranFromScript(parsed);
+  const store = authored.texts;
   const plan = await readPlanFile(scriptPath);
   const refs = parsed.chapters.flatMap((c) => c.blocks).filter((b) => b.kind === "ayah") as { ref: string }[];
-  const storeInfo = existsSync(qfile) ? { file: path.basename(qfile), sha256: createHash("sha256").update(await readFile(qfile)).digest("hex"), mtime: (await stat(qfile)).mtime.toISOString() } : null;
+  const storeInfo = { file: "script.md", sha256: createHash("sha256").update(scriptBytes).digest("hex"), mtime: (await stat(scriptPath)).mtime.toISOString() };
   const previewFile = path.join(dir, "previews", "episode.mp4");
   const previewInfo = existsSync(previewFile) ? { file: "previews/episode.mp4", sha256: createHash("sha256").update(await readFile(previewFile)).digest("hex"), mtime: (await stat(previewFile)).mtime.toISOString() } : null;
   // مواضع البطاقات في المعاينة النشطة (من الخطة الحالية؛ تُعرض الصورة ليُتحقق منها بالعين)
@@ -108,6 +110,7 @@ export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<Q
     const { key, surah, surahName, from, to } = r.ref;
     const card = starts.get(key);
     const shown = store[key];
+    const problem = authored.problems.find((p) => p.key === key);
     const notes: string[] = [];
     let numbersOk = true;
     // رقم السورة والآية: اسم السورة في السكريبت، ومفتاح البطاقة في الخطة، والتسمية المعروضة، وأرقام نهايات الآيات في النص
@@ -127,24 +130,26 @@ export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<Q
       notes.push(from === to ? (ends.length ? `في النص علامة نهاية آية (${ends.map(AR_DIGITS).join("، ")}) لآية واحدة` : "آية واحدة بلا علامة نهاية داخل النص (كما في طريقة البطاقة)") : `علامات نهاية الآيات في النص: ${ends.map(AR_DIGITS).join("، ") || "لا شيء"} (المتوقع ${expected.map(AR_DIGITS).join("، ")})`);
       if (!endsOk) numbersOk = false;
     }
-    const base: VerseAudit = { key, surah, surahName, from, to, sceneId: card?.id, label: card?.label, shown, shownSha256: shown ? sha(shown) : undefined, numbers: { ok: numbersOk, notes }, categories: { letter: "pending", haraka: "pending", uthmani: "pending", mark: "pending" }, ops: [], status: shown ? "pending" : "missing", reason: shown ? undefined : "لا نص معروض لهذه الآية في quran.json" };
+    const base: VerseAudit = { key, surah, surahName, from, to, sceneId: card?.id, label: card?.label, shown, shownSha256: shown ? sha(shown) : undefined, numbers: { ok: numbersOk, notes }, categories: { letter: "pending", haraka: "pending", uthmani: "pending", mark: "pending" }, ops: [], status: shown ? "pending" : "missing", reason: problem?.reason ?? (shown ? undefined : "لا نص آية مكتوب داخل السكريبت") };
     if (card && opts.frames !== false && previewInfo) {
       const at = card.at + Math.max(0, card.dur - 0.7);
       base.frameAt = at;
       base.frame = await grabFrame(previewFile, at).catch(() => undefined);
     }
-    if (shown && opts.client) {
+    if (problem?.code === "conflicting-text") {
+      base.status = "failed"; base.reason = problem.reason;
+    } else if (shown && opts.client) {
       try {
         const verses = [];
         for (let n = from; n <= to; n++) verses.push(await opts.client.verse(`${surah}:${n}`));
         const refText = composeVerses(verses);
-        const returnedOk = verses.every((v, k) => v.number === from + k);
+        const returnedOk = verses.every((v, k) => v.number === from + k && v.key === `${surah}:${from + k}`);
         if (!returnedOk) { base.numbers.ok = false; base.numbers.notes.push("رقم الآية الذي أعاده المرجع لا يطابق المطلوب"); }
         const ops = alignDiff(shown, refText);
         const cat = (c: string): CategoryResult => (ops.some((o) => o.cls === c || (c === "mark" && o.cls === "other")) ? "differs" : "match");
         base.ops = ops;
         base.categories = { letter: cat("letter"), haraka: cat("haraka"), uthmani: cat("uthmani"), mark: cat("mark") };
-        base.reference = { source: "Quran Foundation Content API v4", field: "text_uthmani", env: opts.client.env ?? "؟", fetchedAt: new Date().toISOString(), returned: verses.map((v) => ({ key: v.key, number: v.number })), sha256: sha(refText) };
+        base.reference = { source: "مصحف معتمد للمقارنة (ببيانات المصدر المقدّمة)", field: "text_uthmani", env: opts.client.env ?? "؟", fetchedAt: new Date().toISOString(), returned: verses.map((v) => ({ key: v.key, number: v.number })), sha256: sha(refText) };
         base.status = ops.length || !base.numbers.ok ? "differs" : "match";
       } catch (err) {
         base.status = "failed";
