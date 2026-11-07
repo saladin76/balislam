@@ -31,10 +31,15 @@ export type QuranSyncResult = { fetched: string[]; cached: string[]; failed: { r
 /** شروط Quran Foundation: لا يُحتفظ بمحتواها أكثر من أسبوع؛ ما هو أقدم يُجلب من جديد. */
 export const QF_MAX_AGE_MS = 6.5 * 24 * 3600 * 1000;
 const atKey = (key: string) => `${key}#at`;
-const fresh = (iso?: string) => Boolean(iso && Date.now() - Date.parse(iso) < QF_MAX_AGE_MS);
+const fresh = (iso?: string) => {
+  const at = Date.parse(iso ?? "");
+  const age = Date.now() - at;
+  return Number.isFinite(at) && age >= -60_000 && age < QF_MAX_AGE_MS;
+};
 
 /** فهرس تلاوات Quran Foundation للحلقة: recitations/index.json بجوار السكريبت. */
-export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; sha256?: string; textSha256?: string; rightsEvidence?: string; originalFile?: string; originalSha256?: string }>;
+export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; reviewNote?: string; sha256?: string; textSha256?: string;
+  rightsEvidence?: string; originalFile?: string; originalName?: string; originalSha256?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
 
 /** Never let an external-provider sync replace a new, explicitly reviewed human clip. */
