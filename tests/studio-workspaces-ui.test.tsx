@@ -64,6 +64,19 @@ describe("Studio workspace separation", () => {
     expect(html).not.toContain('data-workflow-status="approved"');
   });
 
+  it("keeps unavailable workflow status in one visible notice and guides mobile stage scrolling", () => {
+    const plan = { title: "حلقة تجريبية", chapters: [{ number: 1, scenes: [] }] } as unknown as Plan;
+    const check: CheckResult = { ok: true, issues: [], stats: { chapters: [], totalWords: 0, totalSeconds: 0 } };
+    const html = renderToStaticMarkup(<EpisodeWorkspaceBar episodeId="001" channelId="balislam"
+      title="حلقة تجريبية" stage="review" onStage={() => {}} check={check} issues={[]}
+      plan={plan} media={{ voice: {} } as EpisodeMedia} saveState="saved" scriptDirty={false} />);
+    expect(html).toContain('class="ew-stage-scroll-hint"');
+    expect(html).toContain("المرحلة 5 من 6");
+    expect(html).toContain('class="ew-stages-status"');
+    expect(html.match(/بيانات المحرك غير متاحة/g)).toHaveLength(1);
+    expect(html).not.toContain('data-workflow-status="approved"');
+  });
+
   it("renders only externally supplied approval status, owner, timestamp, version and note", () => {
     const empty = renderToStaticMarkup(<WorkflowApprovalDetails />);
     expect(empty.match(/data-workflow-status="unavailable"/g)).toHaveLength(6);
@@ -117,6 +130,8 @@ describe("Studio workspace separation", () => {
   it("keeps integrated AV review read-only and clearly distinct from Master approval", () => {
     const html = renderToStaticMarkup(<IntegratedReviewWorkspace episodeId="001" channelId="balislam" onOpen={() => {}} />);
     expect(html).toContain('aria-label="المراجعة المتكاملة للحلقة"');
+    expect(html).toContain('class="studio-review-main-grid"');
+    expect(html).toContain('class="studio-review-no-video"');
     expect(html).toContain("بسرعة طبيعية 1×");
     expect(html).toContain("بيانات المحرك غير متاحة");
     expect(html).toContain("ملفات Master والتسليم");
