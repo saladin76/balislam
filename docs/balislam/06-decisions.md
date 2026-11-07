@@ -5,6 +5,14 @@
 
 ---
 
+## ٦ نوفمبر ٢٠٢٦ — الأمر 018 (P0): عزل بيئة Git في البوابة والاختبارات (الفرع `fix/gate-git-env-isolation`)
+
+- **المشكلة:** دفعٌ من worktree مؤقت (فرع الطابور) جعل المستودع الأصلي «bare». git يضع للخطّاف `GIT_DIR=<المستودع>/.git/worktrees/<الاسم>`، و`scripts/gate.mjs` كان يمرّر `...process.env` كما هو إلى `tsc` وvitest، فورث `tests/studio-safe-update.test.ts` المتغير، فصار `git init` في مجلده المؤقت إعادة تهيئة للمستودع الحقيقي (`core.bare = true`) و`git commit` فيه commit «init» على فرع الـworktree. أُعيد الإعداد يدويًا (`core.bare = false`) ولم يُدفع شيء خاطئ.
+- **إعادة الإنتاج:** في مستودع مؤقت بـworktree وخطّاف pre-push: `git init` في مجلد آخر داخل الخطّاف يطبع «re-init: ignored --initial-branch» ويكتب `bare = true` في المستودع الحقيقي.
+- **الحل من المصدر:** `scripts/git-env.mjs` (`REPO_LOCATING_GIT_VARS`، `cleanGitEnv`، `childEnv`، `scrubProcessGitEnv`): كل عملية فرعية بلا متغيرات تحديد المستودع أو شجرة العمل أو الفهرس أو الكائنات، فيكتشف git مستودعه من `cwd` وحده؛ إعدادات الشبكة والاعتماد (`GIT_CONFIG_*`، `GIT_SSL_CAINFO`…) تبقى. طُبّق في البوابة و`scripts/docs-sync.mjs` و`scripts/install-hooks.mjs` و`app/server/update.ts` و`app/server/extra.ts`، ونُظّفت بيئة الاختبارات قبل كل ملف (`tests/setup/git-env.ts`)، و`tests/studio-safe-update.test.ts` يمرّر بيئة نظيفة صراحة.
+- **الاختبارات:** `tests/git-env-isolation.test.ts` يُثبت الخطر بلا عزل (دفع حقيقي من worktree في مستودع مؤقت) ثم أن العزل يمنعه، ويقفل استعمال البيئة النظيفة في كل ما يشغّل git. وفُحصت البوابة كاملة بدفع حقيقي من worktree مستقل مع مقارنة حالة المستودع الأصلي قبل الدفع وبعده.
+- **ما بقي:** فرع الطابور `studio-handoff-queue` يُفشل البوابة بسبب ملفه التجريبي قبل هذا الإصلاح؛ قرار صاحب المشروع.
+
 ## ٦ نوفمبر ٢٠٢٦ — ملحق الأمر 015: حفظ ستوري بورد المختبرات في الاستوديو (commit `040aae1`)
 
 - **المشكلة:** صور الستوري بورد (مراجعات التكوين قبل الرندر) كانت تُرسل في المحادثة فقط، فلا تبقى في الاستوديو ولا في المستودع، ولا يُعرف أي نسخة هي الأحدث ولا ما قرره صاحب القناة في كل نسخة.

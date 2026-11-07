@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
+import { childEnv } from "../../scripts/git-env.mjs";
 
 /**
  * Safe, explicit studio update.
@@ -9,12 +10,12 @@ import { execFile } from "node:child_process";
  */
 const git = (root: string, args: string[], timeout = 60_000) =>
   new Promise<{ ok: boolean; out: string }>((resolve) => {
-    execFile("git", args, { cwd: root, timeout, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } },
+    execFile("git", args, { cwd: root, timeout, env: childEnv({ GIT_TERMINAL_PROMPT: "0" }) },
       (err, stdout, stderr) => resolve({ ok: !err, out: `${stdout}${stderr}`.trim() }));
   });
 const run = (cmd: string, args: string[], root: string, timeout = 600_000) =>
   new Promise<{ ok: boolean; out: string }>((resolve) => {
-    execFile(cmd, args, { cwd: root, timeout, shell: process.platform === "win32" },
+    execFile(cmd, args, { cwd: root, timeout, shell: process.platform === "win32", env: childEnv() },
       (err, stdout, stderr) => resolve({ ok: !err, out: `${stdout}${stderr}`.trim() }));
   });
 

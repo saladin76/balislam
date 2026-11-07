@@ -7,6 +7,7 @@
  * لا يفحص ملفات الحلقات (السكريبت، الخطة، المعاينات): لها production-log.md. الخروج 0 إن لم توجد مخالفة.
  */
 import { spawnSync } from "node:child_process";
+import { cleanGitEnv } from "./git-env.mjs";
 import path from "node:path";
 
 /** منظومة كل قناة لها دليل، وسجلها الذي يجب أن يتغير معها */
@@ -71,11 +72,11 @@ export const docsSyncProblems = (files, commits = []) =>
 
 /** commits مدى بملفاتها ورسائلها (للإعفاء) */
 const commitsIn = (range, cwd) => {
-  const r = spawnSync("git", ["log", "--format=%H", range], { cwd, encoding: "utf8" });
+  const r = spawnSync("git", ["log", "--format=%H", range], { cwd, encoding: "utf8", env: cleanGitEnv() });
   if (r.status !== 0) return [];
   return r.stdout.split("\n").filter(Boolean).map((sha) => ({
-    message: spawnSync("git", ["log", "-1", "--format=%B", sha], { cwd, encoding: "utf8" }).stdout,
-    files: spawnSync("git", ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha], { cwd, encoding: "utf8" }).stdout.split("\n").filter(Boolean),
+    message: spawnSync("git", ["log", "-1", "--format=%B", sha], { cwd, encoding: "utf8", env: cleanGitEnv() }).stdout,
+    files: spawnSync("git", ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha], { cwd, encoding: "utf8", env: cleanGitEnv() }).stdout.split("\n").filter(Boolean),
   }));
 };
 
@@ -87,7 +88,7 @@ if (isMain) {
     process.exit(0);
   }
   const cwd = path.resolve(import.meta.dirname, "..");
-  const r = spawnSync("git", ["diff", "--name-only", range], { cwd, encoding: "utf8" });
+  const r = spawnSync("git", ["diff", "--name-only", range], { cwd, encoding: "utf8", env: cleanGitEnv() });
   if (r.status !== 0) {
     console.error(`تزامن التوثيق: تعذّر حساب الملفات المتغيرة (${range}): ${r.stderr}`);
     process.exit(2);
