@@ -179,6 +179,9 @@ const GATE_STAGE: Record<WorkflowAction, WorkflowStage> = {
 };
 
 export const assertWorkflowGate = (ledger: WorkflowLedger, snapshot: WorkflowSnapshot, action: WorkflowAction): void => {
+  // A forged runtime action must never map to an empty prerequisite slice.
+  if (typeof action !== "string" || !Object.prototype.hasOwnProperty.call(GATE_STAGE, action))
+    throw new Error("Unknown workflow action; fail closed.");
   const last = GATE_STAGE[action];
   for (const stage of WORKFLOW_STAGES.slice(0, WORKFLOW_STAGES.indexOf(last) + 1)) {
     if (!isCurrentApproval(ledger, snapshot, stage))
