@@ -13,7 +13,7 @@ import type { TechReviewSummary } from "../../src/channel/techReviews";
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
 export type EpisodeSummary = { id: string; dir: string; title: string; domain: string; hasPlan: boolean };
-export type ChannelSummary = { id: string; name: string; language: string; domains: Record<string, ChannelDomain> };
+export type ChannelSummary = { id: string; name: string; language: string; domains: Record<string, ChannelDomain>; error?: string };
 export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; check: CheckResult; media: EpisodeMedia; issues: PlanIssue[]; keys: { voice: boolean; quran: boolean } };
 export type TashkeelReport = { file: boolean; words: number; covered: number; coverage: number; min: number; ok: boolean; gaps: { sceneId: string; words: string[]; narration: string }[]; ambiguous: { word: string; forms: string[]; scenes: string[] }[] };
 export type ReviewItem = { key: string; kind: "ayah" | "hadith" | "other"; label: string; ref: string; detail: string; text?: string; line: number; hash: string; status: "pending" | "changed" | "verified" | "rejected"; note?: string; at?: string };
@@ -41,7 +41,7 @@ export type EpisodeStatus = { /** اعتماد النسخة الأساسية ب�
 export type Idea = { id: string; title: string; note?: string; domain?: string; style?: string; createdAt: string };
 /** يوم في تقويم القناة: شورتس محددة (حلقة + رقم الشورت)، أو بلا نشر، وملاحظة */
 export type CalendarDay = { shorts?: { ep: string; n: number }[]; off?: boolean; note?: string };
-export type OpsChannel = { calendar: Record<string, CalendarDay>; channel: { id: string; name: string; language: string; schedule: { longDay: number; time?: string; shortsPerDay?: number } | null; domains: Record<string, ChannelDomain> }; episodes: Overview[]; ideas: Idea[] };
+export type OpsChannel = { calendar: Record<string, CalendarDay>; channel: { id: string; name: string; language: string; schedule: { longDay: number; time?: string; shortsPerDay?: number } | null; domains: Record<string, ChannelDomain> }; episodes: Overview[]; ideas: Idea[]; error?: string };
 export type PackageInfo = { files: { name: string; size: number; mtime: number }[]; youtube: string; checklist: string; /** بأي جودة رُندرت الحلقة */ render?: { quality: "master" | "preview"; label: string; width: number; height: number; voiced: boolean; at: string } | null };
 export type StoryboardInfo = { status: import("../../src/plan/storyboard").StoryboardStatus; motion: import("../../src/render/storyboardMotion").StoryboardMotion | null; motionStale?: string[]; auditNeedsReview?: boolean; motionAuditNeedsReview?: boolean };
 export type LongJob = { id: string; kind: string; episode?: string; title: string; status: "running" | "done" | "error"; pct: number; log: string[]; error?: string; startedAt: number; queued?: boolean };
@@ -56,15 +56,28 @@ export const setApiChannel = (id: string) => {
 };
 const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(currentChannel)}` : url);
 
+/** Revision keys include the explicit channel URL so a save in one channel
+ * cannot reuse another channel's If-Match. Old GET/PUT bodies stay unchanged.
+ */
+const channelRevisions = new Map<string, string>();
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
+  const headers = new Headers(init?.headers);
+  if (init?.json !== undefined) headers.set("content-type", "application/json");
+  const versioned = path === "/api/channel" || path === "/api/identity";
+  if (versioned && init?.method === "PUT" && channelRevisions.has(url))
+    headers.set("if-match", channelRevisions.get(url)!);
   const res = await fetch(url, {
     ...init,
-    headers: init?.json !== undefined ? { "content-type": "application/json" } : undefined,
+    headers,
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string }).error ?? `خطأ ${res.status}`);
+  if (versioned) {
+    const revision = res.headers.get("etag");
+    if (revision) channelRevisions.set(url, revision);
+  }
   return data as T;
 };
 

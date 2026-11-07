@@ -36,3 +36,25 @@ channels/*/images/
 # المعاينات الصوتية فيها تلاوة Quran Foundation: تبقى على جهاز صاحب القناة ولا تُرفع
 channels/*/episodes/*/previews/*-audio.mp4
 channels/*/episodes/*/out/*-audio-preview.mp4
+
+# Atomic core writes and interrupted channel-creation staging (inspect before manual cleanup)
+.env.*.tmp
+channels/.*.creating-*/
+channels/*/.*.tmp
+channels/*/episodes/*/.*.tmp
+channels/.*.create.lock
+
+# Explicit optimistic-concurrency locks, never committed
+channels/*/*.json.lock
+
+# A crash may leave an exclusive settings claim; inspect before removing
+.env.lock
+
+# Hidden, owned staging areas for atomic episode creation (not media data)
+channels/*/episodes/.*.create.lock
+channels/*/episodes/.*.creating-*/
+
+# macOS Finder metadata in disposable QA clones
+.DS_Store
+# Locally owned QA scratch only; never a production asset
+.qa-tmp/

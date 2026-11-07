@@ -25,3 +25,10 @@ To absolutely separate execution for potentially untrusted `git push` hooks or t
 - On any red gate, keep PR draft and do not force push, reset or merge.
 
 No Vercel, no automatic launch agent, no public publishing.
+
+## تحديث 7 نوفمبر 2026 — فرع Core & Channels
+
+- أُضيف منع صريح للتحديث من linked worktree حتى لو حمل فرع `main`، مع التحقق من عدم تغيّر `HEAD` أو الفرع أثناء `git fetch`، دون تغيير سلوك `merge --ff-only` الآمن.
+- الاختبار `tests/studio-safe-update.test.ts` يفحص linked worktree محليًا مع مستودع مؤقت، ويجب تنفيذه قبل الدمج.
+- ملفات الإنشاء الذرّي للقنوات تُستخدم في staging خاص بها فقط؛ الملفات المتبقية بعد قتل العملية قسرًا لا تُحذف تلقائيًا ولا تُمس بيانات قناة أخرى.
+- **القرار:** تظل `worktree` مساحة تطوير لا حاوية أمنية، وأي اختبارات Git تُشغّل في مستودع مستقل عند الحاجة لعزل كامل. راجع `docs/studio-core-channels-20261107.md` للتفاصيل وبوابة القبول.

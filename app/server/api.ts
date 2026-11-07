@@ -4,7 +4,9 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
-import { HttpError, safeName } from "./util.ts";
+import { HttpError, safeName, assertSafeMediaFile } from "./util.ts";
+import { readBody } from "./body.ts";
+import { isTrustedLocalRequest } from "./security.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -20,27 +22,13 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
   res.end(JSON.stringify(body));
 };
 
-const readBody = async (req: IncomingMessage): Promise<any> => {
-  const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
-  const raw = Buffer.concat(chunks).toString("utf8");
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new HttpError(400, "بيانات الطلب غير صالحة.");
-  }
-};
-
-
-
 /** config.json مع رسالة واضحة إن تلف (مثلًا علامات تعارض من git pull أو stash pop) */
 const readConfig = async () => {
   const raw = await readFile(configFile, "utf8");
   try {
     return JSON.parse(raw);
   } catch (e) {
-    const hint = /^(<<<<<<<|=======|>>>>>>>)/m.test(raw) ? "فيه علامات تعارض من git. أصلحه بالأمر: git checkout origin/main -- config.json" : (e as Error).message;
+    const hint = /^(<<<<<<<|=======|>>>>>>>)/m.test(raw) ? "توجد علامات تعارض Git؛ احتفظ بنسخة من الملف وأصلح التعارض يدويًا دون استبدال تعديلاتك" : (e as Error).message;
     throw new HttpError(500, `ملف config.json تالف: ${hint}`);
   }
 };
@@ -49,6 +37,7 @@ const EP = /^\d{3}$/;
 
 /** يخدم ملفًا مع دعم المقاطع (Range) حتى يستطيع المشغل التقديم والتأخير. */
 const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type: string) => {
+  assertSafeMediaFile(file, root);
   const size = statSync(file).size;
   // مقطع واحد فقط: bytes=start-end أو bytes=start- أو bytes=-suffix
   const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
@@ -105,12 +94,30 @@ export const balApi = (): Plugin => ({
       if (!url.pathname.startsWith("/api/")) return next();
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
+        if (!isTrustedLocalRequest(req))
+          return send(res, 403, { error: "طلب من مصدر خارجي غير مسموح به في Studio المحلي." });
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
-        if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
         const channelMod = await load("/src/channel/index.ts");
+        // Reject unknown and symlinked channels before any write-capable route.
+        if (!channelMod.listChannels().includes(ch) && !["channels", "ops"].includes(parts[0] ?? ""))
+          return send(res, 404, { error: "القناة غير موجودة أو مسارها غير آمن." });
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
         return await channelMod.runWithChannel(ch, async () => {
+        // Channel discovery is a recovery operation. A single corrupt channel
+        // (including the selected one) must not make the other channels vanish.
+        if (parts[0] === "channels" && req.method === "GET") {
+          const { inspectChannel } = await load("/src/channel/inspect.ts");
+          const list = channelMod.listChannels().map((id: string) => {
+            const item = inspectChannel(id);
+            const c = item.config;
+            return c
+              ? { id: c.id, name: c.name, language: c.language, domains: c.domains, rules: c.rules }
+              : { id, name: `⚠ ${id} — تحتاج إصلاح الإعدادات`, language: "", domains: {}, rules: null, error: item.error };
+          });
+          return send(res, 200, list);
+        }
         const cp = channelMod.channelPaths(ch);
         const episodesDir: string = cp.episodes;
         const identityFile: string = cp.identity;
@@ -118,20 +125,26 @@ export const balApi = (): Plugin => ({
 
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
-        if (parts[0] === "channels") {
-          const list = channelMod.listChannels().map((id: string) => {
-            const c = channelMod.loadChannel(id);
-            return { id: c.id, name: c.name, language: c.language, domains: c.domains, rules: c.rules };
-          });
-          return send(res, 200, list);
-        }
-
         // الحلقات
         if (parts[0] === "episodes" && parts.length === 1) {
           if (req.method === "POST") {
             const b = await readBody(req);
+            if (typeof b.episode !== "string" || !EP.test(b.episode) ||
+                typeof b.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(b.slug) ||
+                typeof b.domain !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(b.domain) ||
+                (b.title !== undefined && (typeof b.title !== "string" || b.title.length > 200)))
+              return send(res, 400, { error: "بيانات إنشاء الحلقة غير صالحة؛ لم يُنشأ أي ملف." });
             const { createEpisode } = await load("/src/script/episodes.ts");
-            await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title });
+            try {
+              await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title });
+            } catch (error) {
+              const message = (error as Error).message;
+              if (/موجودة|موجود مسبقًا|قيد التنفيذ|قفل قديم/.test(message))
+                return send(res, 409, { error: message });
+              if (/المجال|رقم الحلقة|الاسم المختصر/.test(message))
+                return send(res, 400, { error: message });
+              throw error;
+            }
             return send(res, 200, { ok: true });
           }
           // الجاهزة للتشغيل فقط (لها script.md)؛ مجلدات الخطة وحدها (000-trailer، المختبرات) لا تُفتح حلقاتٍ
@@ -328,10 +341,21 @@ export const balApi = (): Plugin => ({
         if (parts[0] === "identity") {
           if (req.method === "PUT") {
             const { identity } = await readBody(req);
-            if (!identity?.themes || !identity?.palettes || !identity?.typography || !identity?.motion) return send(res, 400, { error: "ملف الهوية ناقص" });
-            await writeFile(identityFile, JSON.stringify(identity, null, 2) + "\n", "utf8");
+            if (!identity || typeof identity !== "object" || Array.isArray(identity) ||
+                !["themes", "palettes", "typography", "motion"].every((k) =>
+                  identity[k] && typeof identity[k] === "object" && !Array.isArray(identity[k])))
+              return send(res, 400, { error: "ملف الهوية ناقص" });
+            const storage = await load("/src/channel/storage.ts");
+            const rev = await storage.writeJsonWithRevision(
+              identityFile, identity,
+              typeof req.headers["if-match"] === "string" ? req.headers["if-match"] : undefined,
+            );
+            res.setHeader("etag", rev);
             return send(res, 200, { ok: true });
           }
+          const storage = await load("/src/channel/storage.ts");
+          res.setHeader("cache-control", "no-store");
+          res.setHeader("etag", await storage.jsonRevision(identityFile));
           return send(res, 200, {
             identity: JSON.parse(await readFile(identityFile, "utf8")),
             defaults: JSON.parse(await readFile(identityDefaultFile, "utf8")),
@@ -355,6 +379,8 @@ export const balApi = (): Plugin => ({
         });
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
+        if (err && typeof err === "object" && "status" in err && err.status === 409)
+          return send(res, 409, { error: err instanceof Error ? err.message : "تعارض في تعديل البيانات." });
         return send(res, 500, { error: (err as Error).message });
       }
     });

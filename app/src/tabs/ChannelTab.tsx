@@ -226,7 +226,7 @@ const CloudPreviewPicker: React.FC<{
   );
 };
 
-export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void; identity?: Identity }> = ({ onCreated, onSaved, identity }) => {
+export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void; onDirtyChange?: (dirty: boolean) => void; identity?: Identity }> = ({ onCreated, onSaved, onDirtyChange, identity }) => {
   const [c, setC] = useState<ChannelConfig | null>(null);
   const [saved, setSaved] = useState("");
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
@@ -241,8 +241,12 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
       setSaved(JSON.stringify(x));
     }).catch((x) => setMsg({ text: `تعذّر تحميل إعدادات القناة: ${(x as Error).message}`, err: true }));
   }, []);
+  const dirty = Boolean(c) && JSON.stringify(c) !== saved;
+  useEffect(() => {
+    onDirtyChange?.(dirty || saving);
+  }, [dirty, saving, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
   if (!c) return <div className="empty-state"><h2>{msg?.err ? msg.text : "جارٍ التحميل…"}</h2></div>;
-  const dirty = JSON.stringify(c) !== saved;
   const set = (patch: Partial<ChannelConfig>) => setC({ ...c, ...patch });
   const setDomain = (id: string, patch: Partial<ChannelDomain>) => set({ domains: { ...c.domains, [id]: { ...c.domains[id]!, ...patch } } });
 
