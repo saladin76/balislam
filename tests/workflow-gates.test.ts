@@ -46,6 +46,7 @@ afterEach(async () => { await Promise.all(roots.splice(0).map((r) => rm(r, { rec
 describe("durable Studio workflow — six explicit stages", () => {
   it("blocks final motion before full voice approval and publication before exact Master signoff", async () => {
     const { scope, current } = await fixture();
+    await expect(requireWorkflowGate(scope, current, "bypass_all_gates" as never)).rejects.toThrow(/Unknown workflow action/);
     await expect(requireWorkflowGate(scope, current, "final_motion_render")).rejects.toThrow(/script/);
     await approve(scope, "script", current);
     await approve(scope, "storyboard", current);
