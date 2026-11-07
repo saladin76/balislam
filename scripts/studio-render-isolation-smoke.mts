@@ -9,6 +9,7 @@ import { readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { selectComposition, renderMedia, renderStill } from "@remotion/renderer";
 import { browserExecutable, createIsolatedRenderBundle } from "../src/render/bundle";
 import { emptyMedia } from "../src/plan/media";
+import { syntheticFramePlan } from "./studio-render-frame-range.mts";
 
 if (process.platform !== "darwin" || process.env.BAL_STUDIO_REVIEW_APPROVED !== "YES" ||
     !process.env.BAL_STUDIO_REVIEW_ROOT)
@@ -50,10 +51,11 @@ try {
     const reelId = `reel-paper-${orientation}`;
     const videoComp = await selectComposition({ serveUrl, id: reelId, browserExecutable: browser });
     const videoOutput = path.join(actualRoot, `synthetic-${orientation}.mp4`);
+    const framePlan = syntheticFramePlan(videoComp.durationInFrames);
     await renderMedia({
       serveUrl, composition: videoComp, codec: "h264",
       outputLocation: videoOutput, browserExecutable: browser,
-      framesToRender: [0, Math.min(29, videoComp.durationInFrames - 1)],
+      frameRange: framePlan.frameRange,
       scale: 0.25, crf: 28, x264Preset: "ultrafast", muted: true,
     });
     const mp4 = await readFile(videoOutput);
@@ -69,14 +71,15 @@ try {
     const video = probe.streams?.[0];
     const vw = Number(video?.width), vh = Number(video?.height);
     const frames = Number(video?.nb_read_frames);
-    const expectedFrames = Math.min(30, videoComp.durationInFrames);
+    const expectedFrames = framePlan.expectedFrames;
     if (video?.codec_name !== "h264" || !Number.isInteger(vw) || !Number.isInteger(vh) ||
         !Number.isInteger(frames) || frames !== expectedFrames ||
         (orientation === "landscape" && (vw <= vh || Math.abs(vw * 9 - vh * 16) > 18)) ||
         (orientation === "portrait" && (vh <= vw || Math.abs(vh * 9 - vw * 16) > 18)))
       throw new Error(`Invalid probed MP4 ${orientation}: ${JSON.stringify(video)}`);
     (result.files as any[]).push({
-      path: videoOutput, bytes: (await stat(videoOutput)).size,
+      path: videoOutput, frameRange: framePlan.frameRange, expectedFrames,
+      bytes: (await stat(videoOutput)).size,
       sha256: createHash("sha256").update(mp4).digest("hex"),
       width: vw, height: vh, frames, codec: video.codec_name,
     });
