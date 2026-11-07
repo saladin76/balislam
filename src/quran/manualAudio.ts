@@ -137,6 +137,7 @@ export const approveOwnRecitation = async (episode: string, key: string, reviewe
       parts:[{file:candidate.file,duration:candidate.duration}],
       fetchedAt:candidate.createdAt,approvedAt:new Date().toISOString(),
       approvedBy:reviewer.trim(),sha256:candidate.sha256,
+      textSha256:sha(Buffer.from(texts[key],"utf8")),
     };
     // Keep old/source recordings intact; only the approved pointer changes.
     await atomicJson(indexFile,{...current,[key]:entry});
@@ -144,4 +145,29 @@ export const approveOwnRecitation = async (episode: string, key: string, reviewe
     await atomicJson(file,pending);
     return entry;
   });
+};
+
+/** Shared, fail-closed verification for both full video renders and special previews.
+ * A manual clip is usable only while both audio bytes and the reviewed ayah
+ * text match the exact hashes at the moment of human approval.
+ */
+export const verifiedOwnRecitations = async (scriptPath: string): Promise<RecitationIndex> => {
+  const dir = recitationsDirFor(scriptPath);
+  const index = await readJson<RecitationIndex>(path.join(dir, "index.json"), {});
+  const texts = await readJson<Record<string,string>>(quranPathFor(scriptPath), {});
+  const ready: RecitationIndex = {};
+  for (const [key, rec] of Object.entries(index)) {
+    if (!rec || rec.provider !== "manual" || !rec.approvedAt || !rec.approvedBy ||
+        !rec.sha256 || !rec.textSha256 || rec.parts?.length !== 1) continue;
+    const part = rec.parts[0]!;
+    if (!validName(part.file) || !Number.isFinite(part.duration) || part.duration <= 0 ||
+        !texts[key] || sha(Buffer.from(texts[key], "utf8")) !== rec.textSha256) continue;
+    try {
+      const data = await readFile(path.join(dir, part.file));
+      if (sha(data) === rec.sha256) ready[key] = rec;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    }
+  }
+  return ready;
 };
