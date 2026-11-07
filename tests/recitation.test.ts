@@ -144,7 +144,7 @@ describe("تلاوة Quran Foundation", () => {
     expect(saved.provider).toBe("quran-foundation");
     expect(saved.recitationId).toBe(7);
     expect(saved.parts).toHaveLength(1);
-    expect(saved.parts[0].file).toMatch(/^7-53-39-[a-f0-9]{24}\.mp3$/);
+    expect(saved.parts[0].file).toMatch(/^qf-7-53-39-[a-f0-9]{24}\.mp3$/);
     expect(saved.parts[0].sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(existsSync(path.join(recDir, saved.parts[0].file))).toBe(true);
   });
