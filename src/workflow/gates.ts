@@ -12,7 +12,7 @@ export type WorkflowStatus = "draft" | "in_review" | "approved" | "rejected" | "
 export type WorkflowAction = "generate_voice" | "final_motion_render" | "master_render" | "publish";
 export type WorkflowRole = "owner" | "reviewer";
 export type WorkflowActor = { id: string; role: WorkflowRole };
-export type ArtifactVersion = { version: string; sha256: string };
+export type ArtifactVersion = { version: string; sha256: string; /** Immutable file epoch, changes on any real edit, even if bytes revert. */ epoch: string };
 export type WorkflowSnapshot = Partial<Record<WorkflowStage, ArtifactVersion>>;
 
 /** These tokens are attestations from an independently checked source, not user input. */
@@ -31,6 +31,7 @@ export type WorkflowApproval = {
   at: string;
   contentVersion: string;
   artifactSha256: string;
+  artifactEpoch: string;
   fingerprint: string;
   note: string;
   evidence: string[];
@@ -64,7 +65,7 @@ export type WorkflowEvent = {
   note?: string;
 };
 export type WorkflowLedger = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   channel: string;
   episode: string;
   revision: number;
@@ -75,7 +76,7 @@ export type WorkflowLedger = {
 };
 
 export const initialLedger = (channel: string, episode: string): WorkflowLedger => ({
-  schemaVersion: 2, channel, episode, revision: 0,
+  schemaVersion: 3, channel, episode, revision: 0,
   stages: Object.fromEntries(WORKFLOW_STAGES.map((stage) => [stage, { status: "draft" }])) as Record<WorkflowStage, StageState>,
   history: [],
 });
@@ -85,11 +86,12 @@ export const stageFingerprint = (snapshot: WorkflowSnapshot, stage: WorkflowStag
   if (index < 0) throw new Error("Unknown workflow stage.");
   const inputs = WORKFLOW_STAGES.slice(0, index + 1).map((key) => {
     const item = snapshot[key];
-    if (!item || !/^[a-f0-9]{64}$/.test(item.sha256) || !item.version || item.version.length > 200)
+    if (!item || !/^[a-f0-9]{64}$/.test(item.sha256) || !/^[a-f0-9]{64}$/.test(item.epoch) ||
+        !item.version || item.version.length > 200)
       throw new Error(`Missing or invalid current artifact fingerprint for ${key}.`);
-    return [key, item.version, item.sha256];
+    return [key, item.version, item.sha256, item.epoch];
   });
-  return createHash("sha256").update(JSON.stringify([2, stage, inputs])).digest("hex");
+  return createHash("sha256").update(JSON.stringify([3, stage, inputs])).digest("hex");
 };
 
 export const stagePrerequisites = (stage: WorkflowStage): WorkflowStage[] =>
@@ -153,6 +155,7 @@ export const isCurrentApproval = (ledger: WorkflowLedger, snapshot: WorkflowSnap
   if (state?.status !== "approved" || !approval || !input || approval.by?.role !== "owner" ||
       !approval.by.id || !Number.isFinite(Date.parse(approval.at)) ||
       approval.contentVersion !== input.version || approval.artifactSha256 !== input.sha256 ||
+      approval.artifactEpoch !== input.epoch ||
       !Array.isArray(approval.evidence) || !STAGE_EVIDENCE[stage].every((key) => approval.evidence.includes(key)) ||
       !Array.isArray(approval.evidenceProofs) ||
       !STAGE_EVIDENCE[stage].every((key) => approval.evidenceProofs.some((proof) => proof.key === key && /^[a-f0-9]{64}$/.test(proof.sha256)))) return false;
