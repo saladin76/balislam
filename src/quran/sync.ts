@@ -1,6 +1,5 @@
 import path from "node:path";
 import { toEasternDigits } from "../i18n/packs";
-import { existsSync } from "node:fs";
 import { link, lstat, mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { decodedAudioDuration, isOwnedRegularAudio } from "../voice/audioIntegrity";
