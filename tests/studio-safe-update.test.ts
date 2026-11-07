@@ -74,6 +74,23 @@ describe("safe studio updater", () => {
     expect((await updateStatus(dir, true)).error).toMatch(/عملية Git غير مكتملة/);
   });
 
+  it("does not update a linked worktree even when its branch is named main", async () => {
+    const primary = repo();
+    const parent = mkdtempSync(path.join(os.tmpdir(), "studio-linked-checkout-"));
+    dirs.push(parent);
+    const linked = path.join(parent, "main-wt");
+    execFileSync("git", ["worktree", "add", "-q", "-b", "main", linked], { cwd: primary, env: gitEnv });
+    const original = readFileSync(path.join(linked, "note.txt"), "utf8");
+    const before = execFileSync("git", ["rev-parse", "HEAD"], { cwd: linked, env: gitEnv }).toString().trim();
+    const status = await updateStatus(linked, true);
+    expect(status.available).toBe(false);
+    expect(status.error).toBeTruthy();
+    const applied = await applyUpdate(linked);
+    expect(applied.ok).toBe(false);
+    expect(readFileSync(path.join(linked, "note.txt"), "utf8")).toBe(original);
+    expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: linked, env: gitEnv }).toString().trim()).toBe(before);
+  });
+
   it("does not overwrite dirty work on main", async () => {
     const dir = repo();
     execFileSync("git", ["branch", "-m", "main"], { cwd: dir, env: gitEnv });
