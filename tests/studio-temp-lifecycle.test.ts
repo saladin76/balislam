@@ -383,15 +383,27 @@ describe("P0 gate-owned temporary files", () => {
   );
 
   it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
-    "rejects a preflight with temp residue instead of starting parallel gates", async () => {
+    "measures and reclaims a preflight's own temporary cache before parallel gates", async () => {
       const f = fixture();
       const r = await execute(f, "ok", null,
         { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
-      expect(r.code, r.out).toBe(1);
-      expect(r.out).toContain("preflight left");
-      expect(r.out).toContain("no full gates started");
-      expect(r.out).toContain('"passed":false');
-      expect(readFileSync(f.trace, "utf8").match(/npx-start/g)).toHaveLength(1);
+      expect(r.code, r.out).toBe(0);
+      const preflight = r.out.split("\n").find((line) => line.startsWith("VITEST_WORKER_PREFLIGHT "));
+      expect(preflight, r.out).toBeDefined();
+      const summary = JSON.parse(preflight!.slice("VITEST_WORKER_PREFLIGHT ".length));
+      expect(summary).toMatchObject({
+        status: "passed", cleaned: true, tempBytesAfterCleanup: 0,
+      });
+      expect(summary.tempBytesBeforeCleanup).toBeGreaterThan(0);
+      expect(summary.leftoverPathsBeforeCleanup).toEqual(expect.arrayContaining(["remotion-test", "webpack-test"]));
+      const reportLine = r.out.split("\n").find((line) => line.startsWith("TEMP_LEAK_AUDIT "));
+      expect(reportLine, r.out).toBeDefined();
+      expect(JSON.parse(reportLine!.slice("TEMP_LEAK_AUDIT ".length))).toMatchObject({
+        mode: "parallel", passed: true, privateTempBytesAfter: 0,
+      });
+      // Exactly one preflight npx, followed by two npx checks per each of
+      // the two full mock gates. An audit must not touch the foreign sentinel.
+      expect(readFileSync(f.trace, "utf8").match(/npx-start/g)).toHaveLength(5);
       expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
       checkIsolated(f);
     }, 20_000,
