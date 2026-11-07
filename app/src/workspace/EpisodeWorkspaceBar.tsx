@@ -32,7 +32,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   const [showAll, setShowAll] = useState(false);
   const [unavailableChecks, setUnavailableChecks] = useState(0);
 
-  // تُحدّث الملخصات عند تغيير الحلقة أو الخطة؛ اعتماد أي مرحلة يتم داخل مكوّنها الأصلي فقط.
+  // تُحدّث الملخصات عند تغيير الحلقة أو الخطة؛ لا تمنح هذه الواجهة أي اعتماد؛ تعرض سجلات الفحوص الأصلية فقط.
   useEffect(() => {
     let alive = true;
     const refresh = () => {
@@ -61,7 +61,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   if (researchDirty) notes.unshift({ id: "unsaved-research", stage: "research", text: "ملف البحث يحتوي على تعديلات غير محفوظة", critical: true });
   if (scriptDirty) notes.unshift({ id: "unsaved-script", stage: "script", text: "السكريبت يحتوي على تغييرات غير محفوظة", critical: true });
   if (saveState === "error") notes.unshift({ id: "failed-save", stage: "episode", text: "تعذر حفظ تعديلات المشاهد؛ راجع الحفظ قبل المتابعة", critical: true });
-  if (review && !review.ok) notes.push({ id: "citations", stage: "script", text: `الاستشهادات: ${review.verified} من ${review.total} معتمد`, critical: true });
+  if (review && !review.ok) notes.push({ id: "citations", stage: "script", text: `الاستشهادات: ${review.verified} من ${review.total} موثّق`, critical: true });
   if (board && !board.ok) notes.push({ id: "storyboard", stage: "storyboard", text: `لوحات Storyboard: ${board.approved} من ${board.total} اجتازت مراجعة اللوحات الحالية`, critical: false });
   if (missingAudio) notes.push({ id: "voice", stage: "voice", text: `${missingAudio} مشهدًا بلا صوت مطابق للنص الحالي`, critical: false });
   if (sceneReview && !sceneReview.done) notes.push({ id: "scenes", stage: "episode", text: `مراجعة المشاهد: ${sceneReview.ok} من ${sceneReview.total} سليم`, critical: false });
