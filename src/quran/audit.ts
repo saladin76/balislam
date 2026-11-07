@@ -114,7 +114,7 @@ export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<Q
     const notes: string[] = [];
     let numbersOk = true;
     // رقم السورة والآية: اسم السورة في السكريبت، ومفتاح البطاقة في الخطة، والتسمية المعروضة، وأرقام نهايات الآيات في النص
-    if (!card) { numbersOk = false; notes.push("لا بطاقة verse-card بهذا المفتاح في الخطة"); }
+    if (!card) { notes.push("لا بطاقة verse-card لهذا المرجع بعد؛ المقارنة النصية للسكريبت مستقلة عن اللوحة."); }
     else {
       const label = toLatinDigits(card.label);
       const nameOk = label.includes(SURAH_NAMES[surah - 1] ?? "\u0000");
@@ -192,8 +192,8 @@ export const writeQuranAuditReport = async (episode: string, result: Awaited<Ret
       : a.reference ? "<p>لا فرق في أي رمز بعد توحيد يونيكود (NFC).</p>" : "";
     return `<article><header><b>${esc(a.surahName)} ${a.from === a.to ? a.from : `${a.from}–${a.to}`}</b><code>${esc(a.key)}</code><span>${a.sceneId ? `بطاقة ${esc(a.sceneId)}` : ""}</span>${STATUS[a.status]}</header>
 <dl>
-<div><dt>النص المعروض (المحلي)</dt><dd class="ar q">${a.shown ? esc(a.shown) : "—"}</dd></div>
-<div><dt>مصدره الإنتاجي</dt><dd><code>quran.json</code> ← المفتاح <code>${esc(a.key)}</code> ← تدمجه <code>withQuran</code> في <code>props.text</code> لبطاقة ${esc(a.sceneId ?? "—")} (المفتاح <code>ayahKey</code> في plan.json)، ويرسمه VerseCard نصًّا بخط Amiri. بصمة النص: <code>${a.shownSha256?.slice(0, 16) ?? "—"}</code> · ${chars.length} رمزًا (حروف ${counts.letter ?? 0}، تشكيل ${counts.haraka ?? 0}، رسم عثماني ${counts.uthmani ?? 0}، علامات ${counts.mark ?? 0}).</dd></div>
+<div><dt>نص الآية المكتوب في السكريبت</dt><dd class="ar q">${a.shown ? esc(a.shown) : "—"}</dd></div>
+<div><dt>مصدره الإنتاجي</dt><dd><code>script.md</code> ← العلامة <code>[آية: المرجع | النص]</code> ← يستخرجها <code>quranFromScript</code> ويعرضها <code>withQuran</code> في <code>props.text</code> لبطاقة ${esc(a.sceneId ?? "—")} (المفتاح <code>ayahKey</code> في plan.json)، ويرسمه VerseCard نصًّا بخط Amiri. بصمة النص: <code>${a.shownSha256?.slice(0, 16) ?? "—"}</code> · ${chars.length} رمزًا (حروف ${counts.letter ?? 0}، تشكيل ${counts.haraka ?? 0}، رسم عثماني ${counts.uthmani ?? 0}، علامات ${counts.mark ?? 0}).</dd></div>
 <div><dt>البطاقة في المعاينة النشطة</dt><dd>${a.frame ? `<img src="${a.frame}" alt="بطاقة ${esc(a.key)}"><br>` : "—"}${a.frameAt ? `previews/episode.mp4 عند ${a.frameAt.toFixed(1)} ث` : ""}</dd></div>
 <div><dt>النص المرجعي ومصدره</dt><dd>${a.reference ? `${esc(a.reference.source)}، الحقل <code>${a.reference.field}</code>، البيئة <code>${esc(a.reference.env)}</code>${a.reference.env !== "production" ? " <span class=no>ليست بيئة الإنتاج</span>" : ""}، جُلب ${esc(a.reference.fetchedAt)}. أعاد: ${a.reference.returned.map((v) => `${v.key} (الآية ${v.number})`).join("، ")}. بصمته <code>${a.reference.sha256.slice(0, 16)}</code>. نصه لا يُحفظ في المستودع.` : `<span class=hold>لم يُجلب</span>${a.reason ? ` · ${esc(a.reason)}` : ""}`}</dd></div>
 <div><dt>رقم السورة والآية</dt><dd>${a.numbers.ok ? "<span class=ok>سليم</span>" : "<span class=no>يحتاج مراجعة</span>"}<ul>${a.numbers.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></dd></div>
