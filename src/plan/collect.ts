@@ -111,7 +111,10 @@ export const prepareRenderMedia = async (
   for (const clip of Object.values(m.voice)) {
     // Preserve existing behavior: an absent voice clip is not invented.
     // The filename itself is validated before any copy by stageRenderFiles.
-    files.push({ kind: "voice", name: clip.file, source: path.join(vdir, clip.file) });
+    if (path.basename(clip.file) !== clip.file || clip.file.includes("\\") || clip.file.startsWith("."))
+      throw new Error("اسم ملف تعليق صوتي غير آمن.");
+    const source = path.join(vdir, clip.file);
+    if (existsSync(source)) files.push({ kind: "voice", name: clip.file, source });
   }
   for (const id of m.sfx) files.push({ kind: "sfx", name: `${id}.mp3`, source: sfxFile(id) });
   const recDir = recitationsDirFor(scriptPath);
