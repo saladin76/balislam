@@ -172,6 +172,13 @@ for (const spec of inputs) {
               faults.push({index,sel:".status",kind:"status-overlap",bottom:statusBox.bottom,limit:headerBox.bottom});
           }
         }
+        // A visually ellipsized preview is acceptable only if its complete
+        // original text is available on a cover or dedicated annex page.
+        for(const el of page.querySelectorAll(".head .arabic-title,.info .details span")){
+          if(el.scrollWidth>el.clientWidth+2 && el.getAttribute("data-annex")!=="true")
+            faults.push({index,sel:el.className||"metadata",kind:"unbacked-ellipsis",
+              scroll:el.scrollWidth,client:el.clientWidth});
+        }
         for(const p of page.querySelectorAll(".appendix p")){
           const holder=p.closest(".appendix").getBoundingClientRect();
           const text=p.getBoundingClientRect();
