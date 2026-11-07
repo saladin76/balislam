@@ -195,17 +195,26 @@ try {
         "(no full gates started). " +
         (probe.error || probe.stderr || probe.stdout || probe.signal || "no output").slice(0, 900));
     }
+    // Node's compile cache and tsx may persist by design after a successful
+    // command. They are not a failed preflight: measure them, then reclaim ONLY
+    // the exact private root created above, after the preflight child has closed.
+    // Never sweep a shared TMPDIR, another run, or a same-prefix directory.
     const preflightLeftovers = entries(preflightRoot);
     const preflightAllocated = disk(preflightRoot);
+    const preflightStat = lstatSync(preflightRoot);
+    if (!preflightStat.isDirectory() || preflightStat.isSymbolicLink() ||
+        path.dirname(preflightRoot) !== base) {
+      throw new Error("Parallel audit refused: unsafe preflight root ownership.");
+    }
+    rmSync(preflightRoot, { recursive: true, force: true });
+    if (existsSync(preflightRoot)) {
+      throw new Error("Parallel audit refused: owned preflight root was not removed.");
+    }
     console.log("VITEST_WORKER_PREFLIGHT " + JSON.stringify({
       status: "passed", tempBytesBeforeCleanup: preflightAllocated,
-      leftoverPaths: preflightLeftovers
+      leftoverPathsBeforeCleanup: preflightLeftovers,
+      tempBytesAfterCleanup: 0, cleaned: true
     }));
-    if (preflightLeftovers.length) {
-      throw new Error("Parallel audit refused: Vitest preflight left " +
-        preflightLeftovers.length + " owned temporary entries (" + preflightAllocated +
-        " allocated bytes); no full gates started.");
-    }
   }
   const samples=[];
   if (exercise) {
