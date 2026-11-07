@@ -20,7 +20,7 @@ const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const snapshot = (): WorkflowSnapshot => Object.fromEntries(WORKFLOW_STAGES.map((s) => [s, { version: `${s}-v1`, sha256: hash(s + "-v1"), epoch: hash(s + "-epoch-v1") }]));
 const attestation = (stage: WorkflowStage, current: WorkflowSnapshot, actor = owner, subset = STAGE_EVIDENCE[stage]) => signServerEvidence({
   stage, fingerprint: stageFingerprint(current, stage), actorId: actor.id, checkedAt: new Date().toISOString(),
-  proofs: subset.map((key) => ({ key, file: "script.md", sha256: hash(stage + ":" + key), verifier: "test_checker" })),
+  proofs: subset.map((key) => ({ key, file: "script.md", sha256: hash(stage + ":" + key), epoch: hash(stage + ":" + key + ":epoch"), verifier: "test_checker" })),
 });
 const inputs = (scope: WorkflowIdentity, stage: WorkflowStage, current: WorkflowSnapshot) => ({
   stage, snapshot: current, expectedFingerprint: stageFingerprint(current, stage), actor: owner, note: approvedNote,
