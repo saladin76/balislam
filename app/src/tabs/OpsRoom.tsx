@@ -84,7 +84,7 @@ export const OpsRoom: React.FC<{
   }, [weekOffset]);
   const todayIso = iso(new Date());
 
-  if (err) return <div className="render-box"><b>غرفة العمليات</b><span className="help">{err}</span></div>;
+  if (err) return <div className="render-box" role="alert"><b>تعذر تحميل غرفة العمليات</b><span className="help">{err}</span><button type="button" className="btn small" onClick={() => { setErr(""); setTick((n) => n + 1); }}>إعادة المحاولة</button></div>;
   if (!data) return <div className="render-box"><span className="help">جارٍ تجهيز غرفة العمليات…</span></div>;
 
   const color = (id: string) => COLORS[data.findIndex((d) => d.channel.id === id) % COLORS.length]!;
@@ -175,7 +175,8 @@ export const OpsRoom: React.FC<{
                     used.add(fixed.id);
                     const st = stageOf(fixed);
                     return (
-                      <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
+                      <div key={i} role="button" tabIndex={0} onClick={open}
+                        onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } }} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
                         <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {fixed.id} · {fixed.title || fixed.dir}</button>
                         <small>{st === "published" ? "منشورة" : stagesOf(fixed)[3]!.state === "done" ? "الفيديو جاهز" : "الفيديو لم يكتمل بعد!"}</small>
                         {shortsLine ? <small>+ {shortsLine}</small> : null}
@@ -187,7 +188,8 @@ export const OpsRoom: React.FC<{
                     const next = queue.find((e) => !used.has(e.id));
                     if (next) used.add(next.id);
                     return next ? (
-                      <div key={i} role="button" tabIndex={0} onClick={open} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
+                      <div key={i} role="button" tabIndex={0} onClick={open}
+                        onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(); } }} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
                         <span>مقترح: {next.id} · {next.title || next.dir}</span>
                         <button className="btn small primary" onClick={(e) => { e.stopPropagation(); setScheduled(d.channel.id, next, date); }}>ثبّتها لهذا اليوم</button>
                       </div>
