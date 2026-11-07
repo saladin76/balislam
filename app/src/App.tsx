@@ -93,6 +93,7 @@ export const App: React.FC = () => {
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   useEffect(() => setRequestedSceneId(undefined), [channelId, epId]);
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [episodeLoadError, setEpisodeLoadError] = useState("");
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
   const [researchDirty, setResearchDirty] = useState(false);
@@ -155,6 +156,7 @@ export const App: React.FC = () => {
     store.set("bal-channel", channelId);
     setEpisodes(null);
     setPlan(null);
+    setEpisodeLoadError("");
     setIdent(null); // Never show another channel's identity while this one loads.
     loadedKey.current = "";
     episodesOf.current = "";
@@ -207,8 +209,9 @@ export const App: React.FC = () => {
   }, []);
 
   const loadEpisode = useCallback(async (id: string, opts: { keepScript?: boolean } = {}) => {
-    // الحلقة تخص القناة الحالية لحظة الطلب؛ إن تبدّلت القناة أثناء الحفظ يُلغى التحميل
+    // Keep the previous draft, but never show stale approval/data from another episode.
     const ch = channelRef.current;
+    setEpisodeLoadError("");
     if (!(await flushPlan())) return;
     if (channelRef.current !== ch || episodeRef.current !== id) return;
     api.episode(id, ch).then((d) => {
@@ -237,7 +240,12 @@ export const App: React.FC = () => {
           setExtra({ issues: n.issues, keys: n.keys });
         }).catch((e) => say(`تعذّر جلب الآيات: ${(e as Error).message}`, true));
       }
-    }).catch((e) => say(e.message, true));
+    }).catch((e) => {
+      if (channelRef.current !== ch || episodeRef.current !== id) return;
+      setEpisodeLoadError((e as Error).message);
+      loadedKey.current = "";
+      say((e as Error).message, true);
+    });
   }, [flushPlan, channelId]);
   // تُحمَّل الحلقة بعد وصول قائمة حلقات القناة الحالية فقط، فلا تُطلب حلقة القناة السابقة بعد التبديل
   useEffect(() => {
@@ -515,7 +523,11 @@ export const App: React.FC = () => {
             <button className="btn primary" onClick={() => setShowNew(true)}>+ حلقة جديدة</button>
           </div>
         ) : !plan || !check ? (
-          <div className="empty-state"><h2>جارٍ فتح الحلقة…</h2></div>
+          <div className="empty-state" role={episodeLoadError ? "alert" : "status"}>
+            <h2>{episodeLoadError ? "تعذّر فتح الحلقة" : "جارٍ فتح الحلقة…"}</h2>
+            {episodeLoadError ? <><p>{episodeLoadError}</p>
+              <button className="btn primary" type="button" onClick={() => { if (epId) { loadedKey.current = `${channelId}/${epId}`; void loadEpisode(epId, { keepScript: true }); } }}>إعادة المحاولة</button></> : null}
+          </div>
         ) : tab === "storyboard" ? (
           <div className="ew-storyboard-wrap"><StoryboardPanel
             key={`${channelId}:${epId}`}
