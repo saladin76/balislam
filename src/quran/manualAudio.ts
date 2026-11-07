@@ -119,14 +119,27 @@ export const prepareOwnRecitation = async (
     }
   });
 };
-export const ownAudioStatus = async (episode: string) => {
-  const scriptPath = await resolveScriptPath(episode);
+/** Separate human-reviewed audio from production eligibility.
+ * The render team's collector has not integrated provider=manual yet.
+ * Never expose a clip as render-approved merely because the review index says approved.
+ */
+export const ownAudioStatusForScript = async (scriptPath: string) => {
   const dir = recitationsDirFor(scriptPath);
   const pending = await readJson<OwnAudioReview>(ownAudioReviewFile(scriptPath), {});
-  const approved = await verifiedOwnRecitations(scriptPath);
-  // Verified means hashes and decoding match. Final renderer integration remains separate.
-  return { pending, approved, renderIntegrated: false };
+  const index = await readJson<RecitationIndex>(path.join(dir, "index.json"), {});
+  const reviewed = await verifiedOwnRecitations(scriptPath);
+  const stale = Object.keys(index).filter((key) => index[key]?.provider === "manual" && !reviewed[key]);
+  return {
+    pending,
+    reviewed, // Recorded human decision, hashes and audio decode rechecked right now.
+    stale, // Previously approved but changed, missing or corrupt: needs explicit rereview.
+    approved: {} as RecitationIndex, // No manual clip may claim production readiness yet.
+    renderIntegrated: false as const,
+  };
 };
+
+export const ownAudioStatus = async (episode: string) =>
+  ownAudioStatusForScript(await resolveScriptPath(episode));
 /** Explicit owner signoff after listening; never changes the script, plan or other approvals. */
 export const approveOwnRecitation = async (
   episode: string, key: string, reviewer: string, note: string, listened: boolean,
