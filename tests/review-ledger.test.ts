@@ -1,15 +1,20 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { parseScript } from "../src/script/parse";
 import { loadLedger, reviewItems, reviewSummary, setReview } from "../src/script/review";
 
 const base = readFileSync("tests/fixtures/valid.md", "utf8");
+const testDirs: string[] = [];
+afterEach(() => {
+  for (const dir of testDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
 
 describe("سجل التوثيق", () => {
   it("كل استشهاد يبدأ بانتظار المراجعة، والتوثيق يكمل السجل", async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "review-"));
+    testDirs.push(dir);
     const file = path.join(dir, "script.md");
     writeFileSync(file, base);
     const script = parseScript(base, file);
@@ -23,6 +28,7 @@ describe("سجل التوثيق", () => {
 
   it("تعديل الاستشهاد بعد اعتماده يعيده للمراجعة", async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "review-"));
+    testDirs.push(dir);
     const file = path.join(dir, "script.md");
     writeFileSync(file, base);
     const script = parseScript(base, file);
@@ -37,6 +43,7 @@ describe("سجل التوثيق", () => {
 
   it("الرفض يحتاج سببًا", async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "review-"));
+    testDirs.push(dir);
     const file = path.join(dir, "script.md");
     writeFileSync(file, base);
     const script = parseScript(base, file);
