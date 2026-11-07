@@ -85,6 +85,10 @@ try {
   const cmd = (method, params = {}) => send(method, params, attach.sessionId);
   await cmd("Page.enable");
   await cmd("Runtime.enable");
+  // CDP keyboard input must target the foreground page, not a background tab.
+  await send("Target.activateTarget", { targetId: target.targetId });
+  await cmd("Page.bringToFront");
+  await cmd("Emulation.setFocusEmulationEnabled", { enabled: true });
   const evaluate = async (expression) => {
     const response = await cmd("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
     if (response.exceptionDetails) throw new Error("Chrome JS error: " + response.exceptionDetails.text);
@@ -121,7 +125,10 @@ try {
     "Object.getOwnPropertyDescriptor(owner,'value').set.call(el,el.value+" + JSON.stringify(marker) + ");" +
     "el.dispatchEvent(new Event('input',{bubbles:true}));return el.value.endsWith(" + JSON.stringify(marker) + ");})()");
   const key = async (name, code, value) => {
-    await cmd("Input.dispatchKeyEvent", { type: "keyDown", key: name, code, windowsVirtualKeyCode: value });
+    // Enter uses a trusted CDP event and carriage-return text for default button activation.
+    const text = name === "Enter" ? "\r" : undefined;
+    await cmd("Input.dispatchKeyEvent", { type: "keyDown", key: name, code,
+      windowsVirtualKeyCode: value, ...(text ? { text, unmodifiedText: text } : {}) });
     await cmd("Input.dispatchKeyEvent", { type: "keyUp", key: name, code, windowsVirtualKeyCode: value });
   };
 
@@ -131,9 +138,15 @@ try {
   await navigate("غرف العمليات");
   await waitFor(".ops-section-nav");
   await screenshot("01-ops-desktop-1440.png");
+  await evaluate("window.__studioQaKeys=[];document.addEventListener('keydown',e=>window.__studioQaKeys.push({key:e.key,controls:e.target?.getAttribute('aria-controls'),trusted:e.isTrusted}),true)");
   assert("keyboard focus on pipeline selector", await evaluate("(() => {const b=document.querySelector('[aria-controls=\"ops-pipeline\"]');if(!b)return false;b.focus();return document.activeElement===b;})()"));
   await key("Enter", "Enter", 13);
-  await until(() => evaluate("document.querySelector('[aria-controls=\"ops-pipeline\"]')?.getAttribute('aria-pressed')==='true'"), "keyboard pipeline selection");
+  try {
+    await until(() => evaluate("document.querySelector('[aria-controls=\"ops-pipeline\"]')?.getAttribute('aria-pressed')==='true'"), "keyboard pipeline selection", 6000);
+  } catch (error) {
+    const diagnostics = await evaluate("({pageFocused:document.hasFocus(),activeTag:document.activeElement?.tagName,activeControls:document.activeElement?.getAttribute('aria-controls'),pressed:document.querySelector('[aria-controls=\\\"ops-pipeline\\\"]')?.getAttribute('aria-pressed'),keyEvents:window.__studioQaKeys})");
+    throw new Error("Keyboard pipeline selection failed: " + JSON.stringify(diagnostics) + "; " + error.message);
+  }
   assert("hidden week section not displayed", await evaluate("(() => {const el=document.querySelector('#ops-week');return el?.hidden && getComputedStyle(el).display==='none';})()"));
   await screenshot("02-pipeline-desktop-1440.png");
   assert("ideas subsection open", await click('[aria-controls="ops-ideas"]'));
