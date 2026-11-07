@@ -9,7 +9,7 @@ import { quranFromScript, historicalMeanings } from "../src/quran/scriptText";
 import { readPlanFile } from "../src/plan/io";
 import { generatePlan } from "../src/plan/generate";
 import { reviewItems, type ReviewLedger } from "../src/script/review";
-import { verifiedOwnRecitations } from "../src/quran/manualAudio";
+import { verifiedOwnRecitations, ownAudioStatusForScript } from "../src/quran/manualAudio";
 import { alignDiff } from "../src/quran/audit";
 import type { Plan } from "../src/plan/types";
 
@@ -125,12 +125,22 @@ describe("local approved Quran recordings are bound to script text and real play
       const indexFile = path.join(recitations, "index.json");
       await writeFile(indexFile, JSON.stringify(approved));
       expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
+      const initially = await ownAudioStatusForScript(scriptPath);
+      expect(Object.keys(initially.reviewed)).toEqual(["53:39"]);
+      expect(initially.approved).toEqual({});
+      expect(initially.renderIntegrated).toBe(false);
+      expect(initially.stale).toEqual([]);
       await writeFile(scriptPath, makeScript(verse.replace("وَأَنْ", "وَأَنِ")));
       expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
+      expect((await ownAudioStatusForScript(scriptPath)).stale).toEqual(["53:39"]);
       await writeFile(scriptPath, makeScript(verse));
       expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
       await writeFile(file, "corrupt MP3 with no sound");
       expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
+      const corrupt = await ownAudioStatusForScript(scriptPath);
+      expect(corrupt.approved).toEqual({});
+      expect(corrupt.reviewed).toEqual({});
+      expect(corrupt.stale).toEqual(["53:39"]);
       expect(JSON.parse(await readFile(indexFile, "utf8"))).toEqual(approved);
     } finally { await rm(dir, { recursive: true, force: true }); }
   });
