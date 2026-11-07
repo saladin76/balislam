@@ -168,6 +168,22 @@ describe("trusted workflow API, evidence and exact-master publication contract",
       .toEqual(WORKFLOW_STAGES.map((_k, i) => i < changedIndex ? "approved" : "needs_reapproval"));
   });
 
+  it("detects rewrite-then-restore without any intervening workflow read", async () => {
+    const x = await make(); await x.allApproved();
+    const original = await readFile(path.join(x.dir, "script.md"));
+    const before = await collectActualArtifactDigests(x.scope, x.manifest);
+    await writeFile(path.join(x.dir, "script.md"), "TEMPORARY DIFFERENT SCRIPT");
+    await writeFile(path.join(x.dir, "script.md"), original);
+    // Exact same SHA-256 content, but a new file generation invalidates old signoffs.
+    const after = await collectActualArtifactDigests(x.scope, x.manifest);
+    expect(after.script?.sha256).toBe(before.script?.sha256);
+    expect(after.script?.epoch).not.toBe(before.script?.epoch);
+    await expect(x.service.gate("publish")).rejects.toThrow(/script/);
+    const doc = (await x.service.inspect()).ledger;
+    expect(WORKFLOW_STAGES.map((stage) => doc.stages[stage].status))
+      .toEqual(Array(6).fill("needs_reapproval"));
+  });
+
   it("revokes signed master and later publish even if Master bytes were not edited but its review proof changed", async () => {
     const x = await make(); await x.allApproved();
     await x.service.gate("publish");
