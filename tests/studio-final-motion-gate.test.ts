@@ -40,10 +40,40 @@ episode: "999"
           reciter: "قارئ منفصل", rightsEvidence: "وثيقة ترخيص مستقلة", parts: [] },
       }));
       await expect(assertMotionStartAuthorized(scriptPath, {
-        chapters: [{ number: 1, title: "مراجعة", scenes: [] }],
+        chapters: [{ number: 1, title: "مراجعة", scenes: [{
+          id: "c1-s1", template: "verse-card", ayahKey: "53:39",
+          props: { text: "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ" }, narration: "", sfx: [],
+        }] }],
       } as unknown as Plan, {})).rejects.toThrow(/غير موصول|تغيّر/);
     } finally { await rm(dir, { recursive: true, force: true }); }
   });
+  it("rejects forged or stale verse cards instead of trusting a separate script approval", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "studio-stale-verse-plan-"));
+    const scriptPath = path.join(dir, "script.md");
+    const source = `---
+title: "آية معتمدة"
+domain: psychology
+episode: "999"
+---
+## الفصل 1 · اختبار
+[آية: النجم 39 | وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ]
+`;
+    try {
+      await writeFile(scriptPath, source);
+      await writeFile(scriptSignoffFile(scriptPath), JSON.stringify({
+        version: 1, sha256: createHash("sha256").update(source).digest("hex"),
+        reviewer: "مراجع", note: "فحص السكريبت والمصادر يدويًا", at: new Date().toISOString(),
+      }));
+      const plan = { chapters: [{ number: 1, title: "اختبار", scenes: [{
+        id: "c1-s1", template: "verse-card", ayahKey: "53:39",
+        props: { text: "نص آية مستبدل" }, narration: "", sfx: [],
+      }] }] } as unknown as Plan;
+      await expect(assertMotionStartAuthorized(scriptPath, plan, {})).rejects.toThrow(/بطاقة آية/);
+      plan.chapters[0]!.scenes = [];
+      await expect(assertMotionStartAuthorized(scriptPath, plan, {})).rejects.toThrow(/دون بطاقة/);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
+
   it("requires separate storyboard and full-episode voice decisions, and rechecks audio bytes", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "studio-final-motion-gate-"));
     const scriptPath = path.join(dir, "script.md");
