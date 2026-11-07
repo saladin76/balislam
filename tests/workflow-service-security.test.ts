@@ -207,6 +207,24 @@ describe("trusted workflow API, evidence and exact-master publication contract",
       .toEqual(Array(6).fill("needs_reapproval"));
   });
 
+  it("revokes an independently verified review receipt even if its exact bytes were restored and it was omitted from manifest", async () => {
+    const x = await make();
+    // Deliberately leave this receipt out of the trusted stage artifact manifest.
+    // Gate security must still be enforced by the separately signed proof epoch.
+    x.manifest.stages.script = { version: "script-V1", files: ["script.md"] };
+    await x.allApproved();
+    const original = await readFile(path.join(x.dir, "script-review.json"));
+    const before = await collectActualArtifactDigests(x.scope, x.manifest);
+    await writeFile(path.join(x.dir, "script-review.json"), "ATTEMPTED REVIEW TAMPER");
+    await writeFile(path.join(x.dir, "script-review.json"), original);
+    const after = await collectActualArtifactDigests(x.scope, x.manifest);
+    expect(after.script).toEqual(before.script);
+    await expect(x.service.gate("publish")).rejects.toThrow(/evidence for script changed/i);
+    const result = await x.service.inspect();
+    expect(result.ledger.stages.script.status).toBe("needs_reapproval");
+    expect(result.view.gates.publish.allowed).toBe(false);
+  });
+
   it("revokes signed master and later publish even if Master bytes were not edited but its review proof changed", async () => {
     const x = await make(); await x.allApproved();
     await x.service.gate("publish");
