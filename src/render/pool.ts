@@ -1,7 +1,7 @@
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { assertNoLinkedPath, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
