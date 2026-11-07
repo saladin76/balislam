@@ -16,6 +16,8 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [reviewer, setReviewer] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
 
@@ -32,7 +34,9 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
     setBusy(it.key);
     setMsg("");
     try {
-      apply(await api.setReview(episodeId, { key: it.key, status, note: notes[it.key] ?? it.note ?? "" }));
+      apply(await api.setReview(episodeId, { key: it.key, status, note: notes[it.key] ?? it.note ?? "",
+        reviewer, confirm: status === "pending" ? false : confirmed }));
+      setConfirmed(false);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -51,6 +55,13 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
         </span>
       </div>
       {!summary.ok ? <p className="help">لا يُولَّد صوت الحلقة قبل توثيق كل استشهاد. الفحص البرمجي للصيغ والدرجات لا يغني عن مراجعة المضمون؛ والمسائل الشرعية المتخصصة لمراجع مؤهل.</p> : null}
+      <label htmlFor="citation-reviewer">اسم المراجع الذي اطلع بنفسه على المصدر</label>
+      <input id="citation-reviewer" value={reviewer} maxLength={120}
+        onChange={(event) => { setReviewer(event.target.value); setConfirmed(false); }}
+        placeholder="اسم المراجع البشري" />
+      <label><input type="checkbox" checked={confirmed}
+        onChange={(event) => setConfirmed(event.target.checked)} />
+        أؤكد أنني راجعت النص والمصدر بنفسي، وأتحمل مسؤولية هذا القرار.</label>
       {items.map((it) => {
         const st = STATUS[it.status];
         return (
@@ -65,7 +76,7 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
             {it.text ? <span className="help">النص في التعليق: {it.text}</span> : null}
             {it.status === "verified" || it.status === "rejected" ? (
               <span className="help">
-                {it.note ? `ملاحظة: ${it.note} · ` : ""}
+                {it.reviewer ? `المراجع: ${it.reviewer} · ` : ""}{it.note ? `ملاحظة: ${it.note} · ` : ""}
                 {it.at ? new Date(it.at).toLocaleDateString("ar") : ""}
               </span>
             ) : null}
@@ -76,8 +87,8 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
               onChange={(e) => setNotes({ ...notes, [it.key]: e.target.value })}
             />
             <div style={{ display: "flex", gap: 6 }}>
-              <button className="btn small primary" disabled={busy === it.key || it.status === "verified"} onClick={() => decide(it, "verified")}>موثّق</button>
-              <button className="btn small danger" disabled={busy === it.key} onClick={() => decide(it, "rejected")}>مرفوض</button>
+              <button className="btn small primary" disabled={busy === it.key || it.status === "verified" || !confirmed || reviewer.trim().length < 2 || (notes[it.key] ?? it.note ?? "").trim().length < 12} onClick={() => decide(it, "verified")}>موثّق</button>
+              <button className="btn small danger" disabled={busy === it.key || !confirmed || reviewer.trim().length < 2 || (notes[it.key] ?? it.note ?? "").trim().length < 12} onClick={() => decide(it, "rejected")}>مرفوض</button>
               {it.status === "verified" || it.status === "rejected" ? <button className="btn small ghost" disabled={busy === it.key} onClick={() => decide(it, "pending")}>إلغاء القرار</button> : null}
             </div>
           </div>
