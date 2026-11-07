@@ -9,6 +9,7 @@ type Props = {
   onOpenStoryboard: () => void;
   onOpenScript: () => void;
   onOpenPublish: () => void;
+  onUpdated?: () => void;
 };
 
 /**
@@ -17,7 +18,7 @@ type Props = {
  * All decisions are server-authenticated, bound to real bytes and serialized.
  */
 export const SceneProductionPanel: React.FC<Props> = ({
-  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish,
+  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onUpdated,
 }) => {
   const [data, setData] = useState<SceneProductionRead | null>(null);
   const [error, setError] = useState("");
@@ -54,6 +55,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     try {
       await api.renderSceneAv(episodeId, channelId, sessionSecret, sceneId, sourceSha256);
       await refresh();
+      onUpdated?.();
       setReviewed(false);
     } catch (e) {
       setError((e as Error).message);
@@ -86,6 +88,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
       setData(updated);
       const fresh = await api.sceneProduction(episodeId, channelId);
       setData(fresh);
+      onUpdated?.();
       setNote("");
       setReviewed(false);
     } catch (e) {
