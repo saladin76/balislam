@@ -17,6 +17,7 @@ import {
 } from "./store.ts";
 import { collectActualArtifactDigests, resolveArtifact, sha256File, type ArtifactManifest } from "./artifacts.ts";
 import { signServerEvidence, type EvidenceProof } from "./trust.ts";
+import { toWorkflowInspectionView } from "./view.ts";
 
 export type WorkflowClientCommand = {
   action: "submit" | "approve" | "reject" | "reopen";
@@ -85,7 +86,7 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
     return proofs;
   };
   const inspect = async () => deps.withArtifactLock(async () => {
-    await principal();
+    const actor = await principal();
     const { snapshot } = await capture();
     const ledger = await readWorkflow(deps.scope, snapshot);
     // Inspection itself is an invalidation boundary, not only publishing.
@@ -98,7 +99,12 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
           "Approved evidence file changed; explicit review required.");
       }
     }
-    return { snapshot, ledger: await readWorkflow(deps.scope, snapshot) };
+    const verifiedLedger = await readWorkflow(deps.scope, snapshot);
+    return {
+      snapshot, ledger: verifiedLedger,
+      // Only the sanitized view is suitable for serialized HTTP responses.
+      view: toWorkflowInspectionView(verifiedLedger, snapshot, actor.role),
+    };
   });
   const command = async (raw: WorkflowClientCommand) => {
     const input = validateClientCommand(raw);
