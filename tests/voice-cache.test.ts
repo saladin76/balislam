@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync, readdirSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -40,6 +40,8 @@ afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
   delete process.env.ELEVENLABS_MODEL_ID;
+  // Generated mock voice assets are private test fixtures, not production data.
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
 describe("ذاكرة الصوت دون اشتراط توثيق الاستشهادات", () => {
