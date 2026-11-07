@@ -3,10 +3,10 @@
  * This module deliberately does not modify render, voice, app, or episode content files.
  */
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { lstat, open, readFile, realpath, rename, rm } from "node:fs/promises";
 import {
-  WORKFLOW_STAGES, appendEvent, assertPrerequisites, assertRequiredEvidence, assertWorkflowGate,
+  WORKFLOW_STAGES, appendEvent, assertPrerequisites, assertRequiredEvidence, assertWorkflowGate, stagePrerequisites,
   initialLedger, reconcileWorkflow, stageFingerprint,
   type Evidence, type WorkflowAction, type WorkflowActor, type WorkflowLedger,
   type WorkflowSnapshot, type WorkflowStage,
@@ -46,6 +46,34 @@ const validActor = (actor: WorkflowActor): void => {
   if (actor.role !== "owner" && actor.role !== "reviewer") throw new Error("Invalid review role.");
 };
 
+/** A private 256-bit signing key is mandatory. If missing/weak, fail closed.
+ * Tests use an isolated dummy key. Never embed a production key in Git/JSON. */
+const integrityKey = (): Buffer => {
+  const value = process.env.BAL_WORKFLOW_HMAC_KEY;
+  if (!value || value.length < 32) throw new Error("Workflow signing key is not configured (minimum 32 characters).");
+  return Buffer.from(value, "utf8");
+};
+const ledgerPayload = (doc: WorkflowLedger) => {
+  const { integrity: _integrity, ...payload } = doc;
+  return JSON.stringify(payload);
+};
+const sign = (doc: WorkflowLedger): NonNullable<WorkflowLedger["integrity"]> => {
+  const key = integrityKey();
+  return {
+    alg: "HMAC-SHA256",
+    keyId: createHash("sha256").update(key).digest("hex").slice(0,16),
+    mac: createHmac("sha256", key).update(ledgerPayload(doc)).digest("hex"),
+  };
+};
+const verifyLedger = (doc: WorkflowLedger): boolean => {
+  const integrity = doc.integrity;
+  if (integrity?.alg !== "HMAC-SHA256" || !/^[a-f0-9]{64}$/.test(integrity.mac) ||
+      !/^[a-f0-9]{16}$/.test(integrity.keyId)) return false;
+  const expected = sign(doc);
+  return integrity.keyId === expected.keyId &&
+    timingSafeEqual(Buffer.from(integrity.mac, "hex"), Buffer.from(expected.mac, "hex"));
+};
+
 const validLedger = (data: unknown, scope: WorkflowIdentity): data is WorkflowLedger => {
   if (!data || typeof data !== "object") return false;
   const doc = data as WorkflowLedger;
@@ -58,10 +86,12 @@ const validLedger = (data: unknown, scope: WorkflowIdentity): data is WorkflowLe
     if (state.status === "in_review" && (!state.submitted || !/^[a-f0-9]{64}$/.test(state.submitted.fingerprint))) return false;
     return true;
   })) return false;
-  return doc.history.every((event, i) => event && event.seq === i + 1 && WORKFLOW_STAGES.includes(event.stage));
+  return doc.history.every((event, i) => event && event.seq === i + 1 && WORKFLOW_STAGES.includes(event.stage)) &&
+    verifyLedger(doc);
 };
 
 const load = async (file: string, scope: WorkflowIdentity): Promise<WorkflowLedger> => {
+  integrityKey();
   try {
     const stat = await lstat(file);
     if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("Workflow ledger is not a regular file.");
@@ -75,6 +105,7 @@ const load = async (file: string, scope: WorkflowIdentity): Promise<WorkflowLedg
 };
 
 const persist = async (file: string, doc: WorkflowLedger): Promise<void> => {
+  doc.integrity = sign(doc);
   const tmp = `${file}.${process.pid}.${randomUUID()}.tmp`;
   const fd = await open(tmp, "wx", 0o600);
   try {
@@ -83,6 +114,9 @@ const persist = async (file: string, doc: WorkflowLedger): Promise<void> => {
       await fd.sync();
     } finally { await fd.close(); }
     await rename(tmp, file);
+    // fsync the containing directory so atomic rename survives a sudden power loss.
+    const directory = await open(path.dirname(file), "r");
+    try { await directory.sync(); } finally { await directory.close(); }
   } finally { await rm(tmp, { force: true }); }
 };
 
@@ -127,6 +161,9 @@ const run = async <T>(
     }
     const reconciled = JSON.stringify(doc);
     const result = await operation(doc);
+    // A decision can invalidate downstream approvals even with unchanged bytes.
+    // Do this in the same critical section, before returning to any caller.
+    reconcileWorkflow(doc, snapshot, new Date().toISOString());
     if (JSON.stringify(doc) !== reconciled) {
       doc.revision++;
       await persist(file, doc);
@@ -178,6 +215,9 @@ export const approveWorkflowStage = (scope: WorkflowIdentity, decision: Workflow
       by: decision.actor, at: new Date().toISOString(), contentVersion: decision.snapshot[decision.stage]!.version,
       artifactSha256: decision.snapshot[decision.stage]!.sha256, fingerprint: fp,
       note: decision.note.trim(), evidence,
+      prerequisiteApprovalSeq: stagePrerequisites(decision.stage).map((parent) =>
+        doc.stages[parent].approval!.approvalEventSeq),
+      approvalEventSeq: doc.history.length + 1,
     };
     appendEvent(doc, decision.stage, "approve", decision.actor.id, state.approval.at, decision.note.trim(), fp, state.approval.contentVersion);
     return doc;
