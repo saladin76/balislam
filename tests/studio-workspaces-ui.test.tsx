@@ -6,6 +6,7 @@ import { OpsSectionNav } from "../app/src/tabs/OpsRoom";
 import { IntegratedReviewWorkspace } from "../app/src/workspace/IntegratedReviewWorkspace";
 import { EpisodeWorkspaceBar } from "../app/src/workspace/EpisodeWorkspaceBar";
 import { WorkflowApprovalDetails, WORKFLOW_STAGES, approvalLabel } from "../app/src/workspace/WorkflowApprovalDetails";
+import { WorkflowOwnerControls } from "../app/src/workspace/WorkflowOwnerControls";
 import type { ChannelSummary, CheckResult } from "../app/src/api";
 import type { Plan } from "../src/plan/types";
 import type { EpisodeMedia } from "../src/plan/media";
@@ -68,6 +69,18 @@ describe("Studio workspace separation", () => {
     expect(html).toContain("مرفوضة");
     expect(approvalLabel({ status: "in_review" })).toBe("قيد المراجعة");
     expect(approvalLabel()).toBe("بانتظار ربط المحرك");
+  });
+
+  it("renders manual owner controls collapsed, without storing secret or granting automatic approvals", () => {
+    const html = renderToStaticMarkup(<WorkflowOwnerControls episodeId="001" channelId="balislam"
+      approvals={{ script: { status: "draft" } }} fingerprints={{ script: "a".repeat(64) }}
+      onUpdated={() => {}} />);
+    expect(html).toContain("قرارات صاحب المشروع");
+    expect(html).toContain("رمز مالك المشروع");
+    expect(html).toContain('type="password"');
+    expect(html).toContain("اعتماد صريح للنسخة الحالية");
+    expect(html).toContain('disabled=""');
+    expect(html).not.toContain("تم تسجيل القرار");
   });
 
   it("keeps integrated AV review read-only and clearly distinct from Master approval", () => {

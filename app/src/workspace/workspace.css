@@ -206,3 +206,21 @@
   .ew-stage, .studio-shell .ew-stages > button { flex: 0 0 165px; }
   .ew-stage small { display: block; font-size: 10px; }
 }
+
+/* Owner-only stage decisions — collapsible, never inferred from progress counters. */
+.ew-owner-controls { border: 1px solid var(--line, #d4d2cb); border-radius: 10px; padding: 11px 14px; background: var(--panel, #fff); font-size: 12px; }
+.ew-owner-controls > summary { cursor: pointer; font-weight: 600; }
+.ew-owner-controls > p, .ew-owner-controls > small { color: var(--muted, #67645e); line-height: 1.7; }
+.ew-owner-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 13px; }
+.ew-owner-fields label { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ew-owner-fields input, .ew-owner-fields textarea, .ew-owner-fields select { font: inherit; width: 100%; min-height: 40px; border: 1px solid var(--line, #d4d2cb); border-radius: 8px; padding: 9px; background: var(--panel, #fff); color: inherit; }
+.ew-owner-fields textarea { resize: vertical; }
+.ew-owner-fields .ew-owner-note { grid-column: 1 / -1; }
+.ew-owner-status { word-break: break-word; }
+.ew-owner-confirm { display: flex; align-items: flex-start; gap: 9px; line-height: 1.7; margin-block: 12px; }
+.ew-owner-confirm input { margin-block-start: 4px; }
+.ew-owner-submit { cursor: pointer; border: 0; background: var(--accent, #207f67); color: white; border-radius: 8px; padding: 10px 14px; font: inherit; font-weight: 600; }
+.ew-owner-submit:disabled { opacity: .55; cursor: not-allowed; }
+.ew-owner-controls .ew-owner-error { color: var(--err, #bc4e4e); }
+.ew-owner-controls .ew-owner-success { color: var(--ok, #237859); }
+@media (max-width: 760px) { .ew-owner-fields { grid-template-columns: 1fr; } }

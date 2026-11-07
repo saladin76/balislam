@@ -327,6 +327,7 @@ export const App: React.FC = () => {
            <EpisodeWorkspaceBar
              key={`${channelId}:${epId}`}
              episodeId={epId}
+             channelId={channelId}
              title={plan.title}
              stage={tab as WorkspaceStage}
              onStage={(stage, target) => {

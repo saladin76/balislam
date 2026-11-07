@@ -1,15 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type CheckResult, type EpisodeStatus, type SceneReviewSummary, type ReviewSummary } from "../api";
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import type { PlanIssue } from "../../../src/plan/validate";
 import { WORKFLOW_STAGES, WorkflowApprovalDetails, approvalLabel, type WorkflowApprovalSnapshot, type WorkflowStage } from "./WorkflowApprovalDetails";
+import { WorkflowOwnerControls } from "./WorkflowOwnerControls";
+import type { WorkflowStage as EngineStage } from "../../../src/workflow/gates";
 
 export type WorkspaceStage = "research" | "script" | "storyboard" | "voice" | "episode" | "review" | "publish";
 
 /** واجهة عرض فقط؛ ليست مصدرًا جديدًا لحالة الاعتماد ولا تتجاوز بوابات المحرك. */
 export const EpisodeWorkspaceBar: React.FC<{
   episodeId: string;
+  channelId?: string;
   title: string;
   stage: WorkspaceStage;
   onStage: (stage: WorkspaceStage, target?: { sceneId?: string; line?: number }) => void;
@@ -22,9 +25,10 @@ export const EpisodeWorkspaceBar: React.FC<{
   researchDirty?: boolean;
   /** Provided only by the unified workflow engine, never inferred here. */
   approvals?: WorkflowApprovalSnapshot;
-}> = ({ episodeId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false, approvals }) => {
+}> = ({ episodeId, channelId = "", title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false, approvals }) => {
   const [review, setReview] = useState<ReviewSummary | null>(null);
   const [engineApprovals, setEngineApprovals] = useState<WorkflowApprovalSnapshot | undefined>();
+  const [engineFingerprints, setEngineFingerprints] = useState<Partial<Record<EngineStage, string>>>({});
   const [sceneReview, setSceneReview] = useState<SceneReviewSummary | null>(null);
   const [board, setBoard] = useState<{ ok: boolean; approved: number; total: number } | null>(null);
   const [published, setPublished] = useState<EpisodeStatus["published"] | null>(null);
@@ -54,15 +58,19 @@ export const EpisodeWorkspaceBar: React.FC<{
 
   // Read-only engine status; separate interval avoids rehashing potentially large
   // Master files every 15 seconds with ordinary technical counters.
+  const refreshWorkflow = useCallback(() => void api.workflow(episodeId, channelId)
+    .then(result => {
+      setEngineApprovals(result.approvals);
+      setEngineFingerprints(result.fingerprints);
+    }).catch(() => {
+      setEngineApprovals(undefined);
+      setEngineFingerprints({});
+    }), [episodeId, channelId]);
   useEffect(() => {
-    let alive = true;
-    const refresh = () => void api.workflow(episodeId)
-      .then(result => { if (alive) setEngineApprovals(result.approvals); })
-      .catch(() => { if (alive) setEngineApprovals(undefined); });
-    refresh();
-    const timer = window.setInterval(refresh, 60000);
-    return () => { alive = false; window.clearInterval(timer); };
-  }, [episodeId, plan]);
+    refreshWorkflow();
+    const timer = window.setInterval(refreshWorkflow, 60000);
+    return () => window.clearInterval(timer);
+  }, [refreshWorkflow, plan]);
 
   const narration = useMemo(() => plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim()), [plan]);
   const missingAudio = narration.filter((s) => !media.voice[s.id] || media.voice[s.id]?.text !== s.narration.trim()).length;
@@ -109,6 +117,8 @@ export const EpisodeWorkspaceBar: React.FC<{
         ))}
       </nav>
       <WorkflowApprovalDetails approvals={approvals ?? engineApprovals} technical={technical} />
+      {engineApprovals ? <WorkflowOwnerControls episodeId={episodeId} channelId={channelId}
+        approvals={engineApprovals} fingerprints={engineFingerprints} onUpdated={refreshWorkflow} /> : null}
       {notes.length ? (
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
           <button className="ew-attention-title" type="button" aria-expanded={attentionOpen}
