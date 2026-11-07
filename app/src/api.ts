@@ -103,6 +103,11 @@ export const api = {
     call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, {
       method: "POST", json: decision, headers: { "x-studio-owner-token": token },
     }, channel),
+  assembleSceneAv: (episode: string, channel: string, token: string) =>
+    call<{ ok: true; version: number; scenes: number }>(
+      `/api/episodes/${episode}/scene-av-assemble`, {
+        method: "POST", headers: { "x-studio-owner-token": token },
+      }, channel),
   renderSceneAv: (episode: string, channel: string, token: string, sceneId: string,
     expectedSha256: string) =>
     call<{ ok: true; version: number; preview: string }>(
