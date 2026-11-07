@@ -1,5 +1,6 @@
 import type { Plan } from "./types";
 import type { QuranTexts } from "./generate";
+import { attributedMeaningSource } from "../quran/scriptText";
 
 export const VERSE_PLACEHOLDER = "‹نص الآية مطلوب داخل السكريبت›";
 
@@ -26,10 +27,11 @@ export const withQuran = (plan: Plan, quran: QuranTexts): Plan => ({
     scenes: c.scenes.map((s) => {
       if (s.template !== "verse-card" || !s.ayahKey) return s;
       const meaning = quran[`${s.ayahKey}#meaning`];
-      const meaningSource = quran[`${s.ayahKey}#meaningSource`] || s.props.meaningSource;
+      // Do not borrow a stale source from plan.json to attribute unrelated legacy text.
+      const meaningSource = attributedMeaningSource(quran[`${s.ayahKey}#meaningSource`]);
       const { meaning: _oldMeaning, meaningSource: _oldSource, ...props } = s.props;
       return { ...s, props: { ...props, text: quran[s.ayahKey] || VERSE_PLACEHOLDER,
-        ...(meaning ? { meaning, ...(meaningSource ? { meaningSource } : {}) } : {}) } };
+        ...(meaning && meaningSource ? { meaning, meaningSource } : {}) } };
     }),
   })),
 });
