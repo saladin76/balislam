@@ -15,7 +15,7 @@ import { audioDuration } from "../voice/generate";
 
 const ffmpeg = promisify(execFile);
 export type OwnAudioCandidate = {
-  file: string; duration: number; sha256: string; originalSha256: string; createdAt: string;
+  file: string; originalFile: string; duration: number; sha256: string; originalSha256: string; createdAt: string;
 };
 export type OwnAudioReview = Record<string, OwnAudioCandidate>;
 export const ownAudioReviewFile = (scriptPath: string) => path.join(recitationsDirFor(scriptPath), "review.json");
@@ -73,15 +73,21 @@ export const prepareOwnRecitation = async (
     if (pending[key]) throw Error("يوجد تسجيل ينتظر المراجعة لهذه الآية؛ راجعه أولًا.");
     const nonce = randomUUID();
     const name = `manual-${key.replace(/[:]/g, "-")}-${nonce.replace(/-/g,"").slice(0,12)}.mp3`;
-    const input = path.join(dir, ".incoming-" + nonce + ext);
+    const originalDir = path.join(dir, "originals");
+    await mkdir(originalDir, { recursive: true });
+    const originalFile = path.join("originals", nonce + ext);
+    const input = path.join(dir, originalFile);
     const temp = path.join(dir, "." + name + ".tmp.mp3");
     const output = path.join(dir, name);
     let moved = false;
     try {
       await writeFile(input, source, { flag:"wx", mode:0o600 });
+      const inputDuration = await audioDuration(input);
+      if (!inputDuration || inputDuration < 0.3 || inputDuration > 600)
+        throw Error("مدة التلاوة الأصلية غير صالحة أو تزيد على عشر دقائق؛ لن نقتطع منها شيئًا.");
       await ffmpeg("ffmpeg", [
         "-nostdin","-hide_banner","-loglevel","error","-y",
-        "-i",input,"-t","600","-vn",
+        "-i",input,"-vn",
         "-af","highpass=f=70,lowpass=f=14000,loudnorm=I=-18:TP=-2:LRA=11",
         "-ar","48000","-ac","1","-c:a","libmp3lame","-b:a","192k",
         temp,
@@ -94,16 +100,17 @@ export const prepareOwnRecitation = async (
       await rename(temp, output);
       moved = true;
       const record = {
-        file:name, duration, sha256:sha(bytes), originalSha256:sha(source),
+        file:name, originalFile, duration, sha256:sha(bytes), originalSha256:sha(source),
         createdAt:new Date().toISOString(),
       };
       await atomicJson(reviewFile, { ...pending, [key]:record });
       return record;
     } catch(e) {
       if (moved) await rm(output, { force:true });
+      await rm(input, { force: true });
       throw e;
     } finally {
-      await rm(input, { force:true });
+      // Keep the original recording beside its review candidate for lossless rollback.
       await rm(temp, { force:true });
     }
   });
