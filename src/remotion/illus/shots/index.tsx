@@ -9,6 +9,7 @@ import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, PhonePOV } from "./phone";
 import { CH2_SHOTS } from "./ch2";
+import { CH3_SHOTS } from "./ch3";
 import { DONE_BEATS, SCALE_TAG_SIZE, ScaleIncident, scaleAngleAt, scaleEventBeats, scaleEventCast, scaleSincereBeats, scaleSincereCast, scaleSincereEvidence, scaleVerdictBeats, scaleVerdictCast } from "./scale";
 
 /**
@@ -885,6 +886,8 @@ export const SHOTS: Record<string, ShotDef> = {
   },
   // الحلقة 001 · الفصل 2 (التوجيه 019): وحدات المقهى وصحن الدار والسطوح والميزان
   ...CH2_SHOTS,
+  // الحلقة 001 · الفصل 3 (التوجيه 022)
+  ...CH3_SHOTS,
 };
 
 export const SHOT_IDS = Object.keys(SHOTS);

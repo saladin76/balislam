@@ -549,7 +549,8 @@
             "poses": "talk",
             "look": "hero",
             "cast": "",
-            "cues": "think | تخيل\ndebate | اختلفت\ncompanion | قريب"
+            "cues": "think | تخيل\ndebate | اختلفت\ncompanion | قريب",
+            "shot": "home-accuse-brother"
           },
           "id": "c3-s1",
           "sfx": []
@@ -566,7 +567,8 @@
             "poses": "stand,hold",
             "look": "hero",
             "cast": "",
-            "cues": "news | معلومة"
+            "cues": "news | معلومة",
+            "shot": "home-cat-reveals"
           },
           "id": "c3-s2",
           "sfx": []
@@ -583,7 +585,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "home-brother-leaves"
           },
           "id": "c3-s3",
           "sfx": []
@@ -600,7 +603,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "home-standpoint"
           },
           "id": "c3-s4",
           "sfx": []
@@ -617,7 +621,8 @@
             "poses": "apologize",
             "look": "hero",
             "cast": "",
-            "cues": "apologize | تعتذر"
+            "cues": "apologize | تعتذر",
+            "shot": "home-door-step"
           },
           "id": "c3-s5",
           "sfx": []
@@ -634,7 +639,8 @@
             "poses": "turn-away",
             "look": "hero",
             "cast": "",
-            "cues": "door | تعترف"
+            "cues": "door | تعترف",
+            "shot": "page-paw-insert"
           },
           "id": "c3-s6",
           "sfx": []
@@ -651,7 +657,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "home-window-excuse"
           },
           "id": "c3-s7",
           "sfx": []
@@ -668,7 +675,8 @@
             "poses": "look-up,sit-low",
             "look": "hero",
             "cast": "",
-            "cues": "truth | الحقائق"
+            "cues": "truth | الحقائق",
+            "shot": "home-turns-from-evidence"
           },
           "id": "c3-s8",
           "sfx": []
@@ -685,7 +693,8 @@
             "poses": "apologize",
             "look": "hero",
             "cast": "",
-            "cues": "door | فالاعتراف\napologize | اعتذارًا"
+            "cues": "door | فالاعتراف\napologize | اعتذارًا",
+            "shot": "lane-knock-hesitates"
           },
           "id": "c3-s9",
           "sfx": []
@@ -702,7 +711,8 @@
             "poses": "cross",
             "look": "hero",
             "cast": "",
-            "cues": "decide | قرار"
+            "cues": "decide | قرار",
+            "shot": "home-unpack-bag"
           },
           "id": "c3-s10",
           "sfx": []
@@ -719,7 +729,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "home-coins-returned"
           },
           "id": "c3-s11",
           "sfx": []
@@ -736,7 +747,8 @@
             "poses": "sit,sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "night-window-reflection"
           },
           "id": "c3-s12",
           "sfx": []
@@ -753,7 +765,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "night-window-still"
           },
           "id": "c3-s13",
           "sfx": []
@@ -783,7 +796,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "night-window-still"
           },
           "id": "c3-s15",
           "sfx": []
@@ -800,7 +814,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-two-doors"
           },
           "id": "c3-s16",
           "sfx": []
@@ -817,7 +832,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-path-lights"
           },
           "id": "c3-s17",
           "sfx": []
@@ -834,7 +850,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-first-step"
           },
           "id": "c3-s18",
           "sfx": []
@@ -851,7 +868,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "lane-standing-still"
           },
           "id": "c3-s19",
           "sfx": []
@@ -868,7 +886,8 @@
             "poses": "apologize,proud",
             "look": "hero",
             "cast": "",
-            "cues": "apologize | الاعتذار\nproud | الكبر"
+            "cues": "apologize | الاعتذار\nproud | الكبر",
+            "shot": "lane-pride-turns"
           },
           "id": "c3-s20",
           "sfx": []
@@ -885,7 +904,8 @@
             "poses": "sit,sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "night-sweets-habit"
           },
           "id": "c3-s21",
           "sfx": []
@@ -902,7 +922,8 @@
             "poses": "walk,walk,stand",
             "look": "hero",
             "cast": "",
-            "cues": "truth | الهداية\nwalk | الطريق"
+            "cues": "truth | الهداية\nwalk | الطريق",
+            "shot": "lane-dawn-still"
           },
           "id": "c3-s22",
           "sfx": []
