@@ -6,7 +6,8 @@ export const ChannelsWorkspace: React.FC<{
   channels: ChannelSummary[];
   activeId: string;
   onOpen: (channelId: string, destination: "home" | "channel" | "identity") => void;
-}> = ({ channels, activeId, onOpen }) => (
+  onRetry?: () => void;
+}> = ({ channels, activeId, onOpen, onRetry }) => (
   <main className="studio-channels-workspace" aria-label="إدارة القنوات الثلاث">
     <header className="studio-workspace-intro">
       <p className="studio-workspace-kicker">إدارة القنوات</p>
@@ -30,6 +31,9 @@ export const ChannelsWorkspace: React.FC<{
         </article>
       ))}
     </div>
-    {!channels.length && <p role="status">جارٍ تحميل القنوات من النظام…</p>}
+    {!channels.length && <div role="alert" className="studio-channel-empty">
+      <p>لا تتوفر سجلات القنوات حاليًا. تحقق من الاتصال ثم أعد المحاولة.</p>
+      {onRetry ? <button type="button" onClick={onRetry}>إعادة تحميل القنوات</button> : null}
+    </div>
   </main>
 );
