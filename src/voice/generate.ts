@@ -130,7 +130,11 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   if (jobs.length) {
     const script = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
     // The same prohibition applies to reused cache records, not just TTS calls.
-    assertNoQuranInTts(script, jobs.map((j) => j.spoken));
+    // Both transformed prompts AND the original/neighbor context reach the
+    // speech provider. A pronunciation dictionary must not launder Quranic
+    // text through a cache hit or previousText/nextText fields.
+    assertNoQuranInTts(script, jobs.flatMap((j) =>
+      [j.narration, j.spoken, j.prev ?? "", j.next ?? ""]));
     // Verse cards themselves are never narrator jobs even if somebody edits a plan.
     const verseIds = new Set(plan.chapters.flatMap((c) => c.scenes)
       .filter((scene) => scene.template === "verse-card").map((scene) => scene.id));
@@ -258,11 +262,14 @@ export const synthesizeLines = async (
   const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
   const out: Record<string, LineClip> = {};
   // Special line previews also invoke ElevenLabs; guard them independently.
-  assertNoQuranInTts(parseScript(await readFile(scriptPath, "utf8"), scriptPath), lines.map((line) => line.text));
+  const parsedForVoice = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  assertNoQuranInTts(parsedForVoice, lines.map((line) => line.text));
   for (const [k, line] of lines.entries()) {
     const text = line.text.trim();
     const words = text.split(/\s+/).filter(Boolean);
     const d = applyDictionary(text, dict, tk ? vowelize(words, tk) : undefined);
+    // Check the actual post-dictionary prompt BEFORE cached reuse or API TTS.
+    assertNoQuranInTts(parsedForVoice, [d.spoken]);
     const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
     const have = index[line.id];
     if (!opts.force && have && have.hash === hash && existsSync(path.join(opts.dir, have.file))) {
