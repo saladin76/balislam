@@ -21,7 +21,7 @@ describe("explicit script approval lifecycle", () => {
       const items = reviewItems(script, null);
       expect(items.length).toBeGreaterThan(0);
       for (const item of items) {
-        await setReview(file, script, item.key, "verified", "مقارنة بشرية مع المصدر المعتمد");
+        await setReview(file, script, item.key, "verified", "مقارنة بشرية مع المصدر المعتمد", "المراجع", true);
       }
       await approveScript(file, "المراجع", "راجعت السكريبت والآيات مع مصادرها ووافقت على النسخة الحالية", true);
       expect((await scriptSignoffStatus(file)).approved).toBe(true);
