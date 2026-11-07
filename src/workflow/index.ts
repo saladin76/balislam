@@ -24,3 +24,5 @@ export {
 } from "./gates.ts";
 export { type ArtifactManifest, type StageArtifactFiles } from "./artifacts.ts";
 export { type WorkflowIdentity, type StudioChannel } from "./store.ts";
+
+export { type WorkflowInspectionView, type WorkflowStageView, type WorkflowGateView } from "./view.ts";
