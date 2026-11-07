@@ -9,7 +9,7 @@ import { quranFromScript, historicalMeanings, historicalMeaningConflict } from "
 import { readPlanFile } from "../src/plan/io";
 import { generatePlan } from "../src/plan/generate";
 import { reviewItems, type ReviewLedger } from "../src/script/review";
-import { verifiedOwnRecitations, ownAudioStatusForScript } from "../src/quran/manualAudio";
+import { verifiedOwnRecitations, ownAudioStatusForScript, pendingRecitationMatchesText } from "../src/quran/manualAudio";
 import { alignDiff } from "../src/quran/audit";
 import { compareVerseText } from "../src/quran/compare";
 import { preserveManualRecitations } from "../src/quran/sync";
@@ -148,6 +148,14 @@ describe("Quran script-first text, review and historical meanings", () => {
 });
 
 describe("local approved Quran recordings are bound to script text and real playable files", () => {
+  it("cannot retroactively bind an old pending upload to changed Quran text", () => {
+    const exact = { textSha256: sha(verse) };
+    expect(pendingRecitationMatchesText(exact, verse)).toBe(true);
+    expect(pendingRecitationMatchesText(exact, verse.replace("وَأَنْ", "وَأَنِ"))).toBe(false);
+    expect(pendingRecitationMatchesText({ textSha256: "" }, verse)).toBe(false);
+    expect(pendingRecitationMatchesText({}, verse)).toBe(false);
+  });
+
   it("never overwrites manual reviewed audio with a slow external-provider update", () => {
     const manual = {
       provider: "manual" as const, reciter: "قارئ بشري", rightsEvidence: "ترخيص مكتوب",
