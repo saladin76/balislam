@@ -40,7 +40,8 @@ describe("real-byte Studio workflow snapshots (read-only)", () => {
     expect(changedTone.voice?.sha256).not.toBe(first.voice?.sha256);
     x.scene.narration = "Rewritten narration after approval";
     const changedNarration = await snapshotFromFiles(x.script, x.plan);
-    expect(changedNarration.storyboard).toEqual(changedTone.storyboard);
+    // Narration edits also change the visual storyboard content; tone alone does not.
+    expect(changedNarration.storyboard).not.toEqual(changedTone.storyboard);
     expect(changedNarration.voice?.sha256).not.toBe(changedTone.voice?.sha256);
     await writeFile(path.join(x.dir, "review.json"), '{"items":{"citations":"new"}}');
     expect((await snapshotFromFiles(x.script, x.plan)).script?.sha256).not.toBe(first.script?.sha256);
