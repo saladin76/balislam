@@ -27,32 +27,32 @@ describe("human-approved, fingerprint-bound voice gate", () => {
   });
   it("requires a reviewer and a meaningful note, then permits unchanged audio", async () => {
     const x = await sample();
-    await expect(approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "", "")).rejects.toThrow();
-    const items = await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "سمعت المقطع كله وتم اعتماد النطق والنبرة");
+    await expect(approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "", "", false)).rejects.toThrow();
+    const items = await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "سمعت المقطع كله وتم اعتماد النطق والنبرة", true);
     expect(items[0]?.state).toBe("approved");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow(/الحلقة|التعليق الصوتي كامل/);
-    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "المراجع", "استمعت للحلقة الصوتية كاملة وتأكدت من الاستمرارية والوقفات");
+    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "المراجع", "استمعت للحلقة الصوتية كاملة وتأكدت من الاستمرارية والوقفات", true);
     expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(true);
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).resolves.toBe(true);
   });
   it("full episode signoff is invalidated when a new clip is approved or a recording changes", async () => {
     const x = await sample();
-    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "تم الاستماع إلى المقطع والتحقق من نطقه");
-    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "المراجع", "استمعت للتعليق كاملًا دون توقف وراجعت الانتقالات");
+    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "تم الاستماع إلى المقطع والتحقق من نطقه", true);
+    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "المراجع", "استمعت للتعليق كاملًا دون توقف وراجعت الانتقالات", true);
     expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(true);
     await writeFile(path.join(x.dir, "voice", "spoken.mp3"), "CHANGED");
     expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(false);
   });
   it("invalidates the file-bound approval after bytes change, even if name is unchanged", async () => {
     const x = await sample();
-    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "سمعت المقطع كله وتم اعتماد النطق والنبرة");
+    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "سمعت المقطع كله وتم اعتماد النطق والنبرة", true);
     await writeFile(path.join(x.dir, "voice", "spoken.mp3"), "CHANGED AUDIO WITHOUT RENAMING");
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow();
   });
   it("invalidates the review after tone or script change", async () => {
     const x = await sample();
-    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "سمعت المقطع كله وتم اعتماد النطق والنبرة");
+    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "المراجع", "سمعت المقطع كله وتم اعتماد النطق والنبرة", true);
     x.plan.chapters[0]!.scenes[0]!.tone = "dramatic";
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("changed");
     x.plan.chapters[0]!.scenes[0]!.tone = "calm";
