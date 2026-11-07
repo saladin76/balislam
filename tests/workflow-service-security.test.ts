@@ -130,6 +130,11 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     const x = await make();
     const pending = await x.service.inspect();
     expect(pending.view.schemaVersion).toBe(1);
+    expect(pending.uiSnapshot.schemaVersion).toBe(3);
+    expect(pending.uiSnapshot.channel).toBe(x.scope.channel);
+    expect(pending.uiSnapshot.episode).toBe(x.scope.episode);
+    expect(Object.keys(pending.uiSnapshot.stages)).toEqual([...WORKFLOW_STAGES]);
+    expect(pending.uiSnapshot.stages.script.status).toBe("draft");
     expect(pending.view.stages.map((stage) => stage.stage)).toEqual([...WORKFLOW_STAGES]);
     expect(pending.view.stages[0]?.canSubmit).toBe(true);
     expect(pending.view.stages[1]?.canSubmit).toBe(false);
@@ -137,11 +142,20 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     expect(pending.view.gates.publish.allowed).toBe(false);
     const serialized = JSON.stringify(pending.view);
     expect(serialized).not.toMatch(/BAL_WORKFLOW_HMAC_KEY|integrity|evidenceProofs|script\.md|mac/);
+    expect(JSON.stringify(pending.uiSnapshot)).not.toMatch(/integrity|evidenceProofs|script\.md|mac/);
     await x.allApproved();
     const ownerView = (await x.service.inspect()).view;
     expect(ownerView.stages.every((stage) => stage.status === "approved")).toBe(true);
     expect(ownerView.gates.publish.allowed).toBe(true);
     expect(ownerView.stages[5]?.approved?.by).toBe("actual-owner-session");
+    const ownerUi = (await x.service.inspect()).uiSnapshot;
+    for (const stage of WORKFLOW_STAGES) {
+      expect(ownerUi.stages[stage].currentApproval).toBe(true);
+      expect(ownerUi.stages[stage].approval?.artifactEpoch).toMatch(/^[a-f0-9]{64}$/);
+      expect(ownerUi.stages[stage].approval?.approvalEventSeq).toBeGreaterThan(0);
+      expect((ownerUi.stages[stage].approval as any)?.evidenceProofs).toBeUndefined();
+    }
+    expect(ownerUi.history.filter((event) => event.action === "approve")).toHaveLength(6);
     x.user.current = { id: "authenticated-reviewer", role: "reviewer", authenticated: true };
     const reviewerView = (await x.service.inspect()).view;
     expect(reviewerView.gates.publish.allowed).toBe(false);
