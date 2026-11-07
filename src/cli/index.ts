@@ -109,9 +109,10 @@ program
   .argument("<episode>", "رقم الحلقة")
   .option("--approve <sceneId>", "معرّف مقطع مسموع ومراجع يدويًا")
   .option("--approve-episode", "اعتماد الاستماع إلى جميع المقاطع متصلة بعد اعتماد كل مقطع")
+  .option("--listened", "إقرار بشري صريح بالاستماع الكامل للمقاطع المعتمدة؛ لا يستعمل آليًا")
   .option("--reviewer <name>", "اسم المراجع البشري")
   .option("--note <text>", "ملاحظة الاستماع الفعلي إلى المقطع")
-  .action(async (episode: string, opts: { approve?: string; approveEpisode?: boolean; reviewer?: string; note?: string }) => {
+  .action(async (episode: string, opts: { approve?: string; approveEpisode?: boolean; listened?: boolean; reviewer?: string; note?: string }) => {
     const { resolveScriptPath } = await import("../script/episodes");
     const { loadPlan } = await import("../plan/io");
     const { loadVoiceIndex } = await import("../voice/generate");
@@ -121,12 +122,12 @@ program
     const scriptPath = await resolveScriptPath(episode);
     const voice = await loadVoiceIndex(episode);
     if (opts.approve) {
-      if (!opts.reviewer || !opts.note) throw new Error("الموافقة تتطلب --reviewer و--note بعد الاستماع الحقيقي.");
-      await approveVoiceScene(scriptPath, plan, voice, opts.approve, opts.reviewer, opts.note);
+      if (!opts.reviewer || !opts.note || !opts.listened) throw new Error("الموافقة تتطلب --reviewer و--note و--listened بعد الاستماع الحقيقي.");
+      await approveVoiceScene(scriptPath, plan, voice, opts.approve, opts.reviewer, opts.note, opts.listened === true);
     }
     if (opts.approveEpisode) {
-      if (!opts.reviewer || !opts.note) throw new Error("اعتماد الحلقة الصوتية الكاملة يتطلب --reviewer و--note بعد الاستماع.");
-      await approveVoiceEpisode(scriptPath, plan, voice, opts.reviewer, opts.note);
+      if (!opts.reviewer || !opts.note || !opts.listened) throw new Error("اعتماد الحلقة الصوتية الكاملة يتطلب --reviewer و--note و--listened بعد الاستماع.");
+      await approveVoiceEpisode(scriptPath, plan, voice, opts.reviewer, opts.note, opts.listened === true);
     }
     const items = await voiceReviewItems(scriptPath, plan, voice);
     for (const item of items) console.log(`${item.id}: ${item.state}`);
