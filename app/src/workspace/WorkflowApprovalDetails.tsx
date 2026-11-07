@@ -16,7 +16,7 @@ export type WorkflowApprovalSnapshot = Partial<Record<WorkflowStage, WorkflowApp
 
 export const WORKFLOW_STAGES: ReadonlyArray<{ key: WorkflowStage; title: string; tab: "script" | "storyboard" | "voice" | "episode" | "review" | "publish" }> = [
   { key: "script", title: "السكريبت والمصادر", tab: "script" },
-  { key: "storyboard", title: "Storyboard", tab: "storyboard" },
+  { key: "storyboard", title: "الستوري بورد", tab: "storyboard" },
   { key: "voice", title: "التعليق الصوتي", tab: "voice" },
   { key: "motion", title: "الحركة والمشاهد", tab: "episode" },
   { key: "review", title: "المراجعة المتكاملة", tab: "review" },
