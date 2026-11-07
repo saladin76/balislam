@@ -64,6 +64,21 @@ export const SceneProductionPanel: React.FC<Props> = ({
     }
   };
 
+  const assembleScenes = async () => {
+    if (!sessionSecret.trim()) return setError("فعّل جلسة المالك المحلية قبل تجميع المشاهد.");
+    setPending(true);
+    setError("");
+    try {
+      await api.assembleSceneAv(episodeId, channelId, sessionSecret);
+      await refresh();
+      onUpdated?.();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  };
+
   const currentId = data?.progress.currentScene ?? null;
   const scene = data?.scenes.find(item => item.id === currentId);
   const candidate = currentId ? data?.candidates.scenes[currentId] : null;
@@ -159,8 +174,21 @@ export const SceneProductionPanel: React.FC<Props> = ({
           ) : allApproved && !data.assembly ? (
             <div className="scene-first-task">
               <h3>اكتملت مراجعة كل المشاهد</h3>
-              <p>ادمج النسخ المعتمدة، ثم راجع الحلقة كاملة بسرعة 1×.</p>
-              <button className="btn small" type="button" onClick={onOpenPublish}>فتح التجميع</button>
+              <p>تُجمَّع ملفات المشاهد المعتمدة نفسها بالترتيب في نسخة للمشاهدة الكاملة بسرعة 1×.</p>
+              {data.candidates.assemblySha256 ? (
+                <>
+                  <video className="scene-first-video" controls preload="metadata"
+                    src={api.previewUrl(episodeId, "episode.mp4")}
+                    aria-label="معاينة الحلقة المجمعة بالصوت والصورة" />
+                  <p>النسخة المجمعة جاهزة للمراجعة، وليست Master معتمدة.</p>
+                  <button className="btn small" type="button" onClick={onOpenPublish}>فتح المراجعة والنشر</button>
+                </>
+              ) : (
+                <button className="btn primary" type="button" disabled={pending}
+                  onClick={() => void assembleScenes()}>
+                  {pending ? "جارٍ تجميع المشاهد…" : "دمج المشاهد المعتمدة"}
+                </button>
+              )}
             </div>
           ) : data.assembly && !data.master ? (
             <div className="scene-first-task">
