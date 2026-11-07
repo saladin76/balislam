@@ -74,6 +74,23 @@ export const publishImmutableRecitationPart = async (
   return destination;
 };
 
+/** A provider cache is trustworthy only while actual bytes, decode and timing agree. */
+export const verifiedProviderPart = async (
+  dir: string, part: { file: string; duration: number; sha256?: string },
+): Promise<boolean> => {
+  if (!part || typeof part.file !== "string" ||
+      !/^[a-z0-9][a-z0-9._-]{0,190}\.mp3$/i.test(part.file) ||
+      part.file.includes("..") || !/^[a-f0-9]{64}$/.test(part.sha256 ?? "") ||
+      !Number.isFinite(part.duration) || part.duration <= 0 ||
+      !await isOwnedRegularAudio(dir, part.file)) return false;
+  try {
+    const bytes = await readFile(path.join(dir, part.file));
+    if (createHash("sha256").update(bytes).digest("hex") !== part.sha256) return false;
+    const decoded = await decodedAudioDuration(path.join(dir, part.file), { mp3Only: true, maxSeconds: 600 });
+    return Boolean(decoded && Math.abs(decoded - part.duration) <= Math.max(0.15, part.duration * 0.03));
+  } catch { return false; }
+};
+
 /** Never let an external-provider sync replace a new, explicitly reviewed human clip. */
 export const preserveManualRecitations = (staged: RecitationIndex, latest: RecitationIndex): RecitationIndex => {
   const result = { ...staged };
@@ -129,8 +146,10 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       const same = have && (isCloudRecitation(recitation)
         ? have.provider === "alquran-cloud" && have.edition === recitation.edition
         : have.provider !== "alquran-cloud" && have.recitationId === recitation.id);
-      if (opts.force || !same || !fresh(have?.fetchedAt) ||
-          have?.parts.some((p) => !existsSync(path.join(recDir, p.file)))) {
+      // A parseable, recent index with missing SHA or broken MP3 is never a hit.
+      const cacheReady = Boolean(have && have.parts.length &&
+        (await Promise.all(have.parts.map((part) => verifiedProviderPart(recDir, part)))).every(Boolean));
+      if (opts.force || !same || !fresh(have?.fetchedAt) || !cacheReady) {
         try {
           await mkdir(recDir, { recursive: true });
           const parts: { file: string; duration: number; sha256: string }[] = [];
