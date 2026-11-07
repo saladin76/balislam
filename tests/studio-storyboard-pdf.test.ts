@@ -16,9 +16,9 @@ const setup=()=>{
   writeFileSync(path.join(dir,"portrait.png"),png);
   const file=path.join(dir,"manifest.json");
   const data={channel:"dafatir-alzaman",episode:"001",version:"preview-v2",status:"PENDING_REVIEW",scenes:[
-    {id:"c1-s1",chapter:1,chapterTitle:"",title:"الفتح",narration:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",notes:"مراجعة التشكيل",image:"landscape.png",portraitImage:"portrait.png"},
-    {id:"c1-s2",chapter:1,chapterTitle:"",title:"التالي",image:"landscape.png"},
-    {id:"c2-s1",chapter:2,chapterTitle:"",title:"الفصل الثاني",image:"landscape.png"},
+    {id:"c1-s1",chapter:1,chapterTitle:"",title:"الفتح",narration:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",notes:"مراجعة التشكيل",image:"landscape.png",portraitImage:"portrait.png",shot:""},
+    {id:"c1-s2",chapter:1,chapterTitle:"",title:"التالي",image:"landscape.png",shot:""},
+    {id:"c2-s1",chapter:2,chapterTitle:"",title:"الفصل الثاني",image:"landscape.png",shot:""},
   ]};
   writeFileSync(file,JSON.stringify(data));
   return {dir,file,data};
@@ -215,7 +215,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     x.data.scenes[0]!.notes=("ملاحظة طويلة يليه رقم ۱۲٣٤ ورمز A-9. ").repeat(30);
     x.data.scenes[0]!.chapterTitle=("الفصل الطويل المختلط API V5. ").repeat(12);
     x.data.scenes[0]!.title=("عنوان عربي واختبار English v2. ").repeat(8);
-    x.data.scenes[0]!.type=("تصنيف التصوير cinematic 16:9 portrait 9:16 ").repeat(5);
+    x.data.scenes[0]!.shot=("تصنيف التصوير cinematic 16:9 portrait 9:16 ").repeat(5);
     const output=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
     const html=output.html;
     const pages=(html.match(/<article class="page(?: cover)?"/g)??[]).length;
@@ -230,7 +230,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(html).toContain("الوصف والملاحظات");
     expect(html).toContain("unicode-bidi:plaintext");
     expect(html).toContain("text-overflow:ellipsis");
-    for(const raw of [x.data.scenes[0]!.chapterTitle,x.data.scenes[0]!.type]){
+    for(const raw of [x.data.scenes[0]!.chapterTitle,x.data.scenes[0]!.shot]){
       for(const chunk of splitAppendixText(raw))expect(html).toContain(chunk);
     }
     expect(output.status).toBe("PENDING_REVIEW");
@@ -269,7 +269,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     x.data.scenes[0]!.id="c1-s1-English-مُشَكَّل-".repeat(9);
     x.data.scenes[0]!.chapterTitle="الفصل الحقيقِيُّ-API 16:9 ".repeat(20);
     x.data.scenes[1]!.chapterTitle=x.data.scenes[0]!.chapterTitle;
-    x.data.scenes[0]!.type="Cinematic-مصوّر-9:16 ".repeat(10);
+    x.data.scenes[0]!.shot="Cinematic-مصوّر-9:16 ".repeat(10);
     const b=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
     for(const label of ["إصدار المحتوى الكامل","معرّف الحلقة الكامل","معرّف المشهد الكامل","نوع المشهد الكامل"]){
       expect(b.html).toContain(label);
