@@ -185,5 +185,5 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
       await rm(frozen, { recursive: true, force: true });
     }
   });
-  return { inspect, command, gate, withVerifiedMasterPublication };
+  return { inspect, command, gate, withVerifiedMasterPublication, withArtifactLock: deps.withArtifactLock };
 };
