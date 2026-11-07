@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { readPlanFile, writePlanFile } from "../src/plan/io";
@@ -14,6 +14,9 @@ describe("episode plan storage resilience", () => {
   it("does not truncate an existing plan when a later JSON serialization fails", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "studio-core-plan-"));
     dirs.push(root);
+    // Script-first Quran integration reads the companion script even for non-Quran plans.
+    // Keep this a valid minimal fixture; never weaken the atomic-write assertion.
+    writeFileSync(path.join(root, "script.md"), "---\\ntitle: QA fixture\\n---\\n\\n## الفصل 1 · اختبار\\n\\nنص تجريبي.\\n".replace(/\\n/g, "\n"), "utf8");
     const file = path.join(root, "plan.json");
     const plan = {
       channel: "balislam", title: "حفظ خطة الاختبار",
@@ -24,6 +27,6 @@ describe("episode plan storage resilience", () => {
     await expect(writePlanFile(file, { ...plan, unsafe: BigInt(1) } as never)).rejects.toThrow();
     expect(readFileSync(file, "utf8")).toBe(before);
     expect((await readPlanFile(path.join(root, "script.md")))?.title).toBe(plan.title);
-    expect(readdirSync(root)).toEqual(["plan.json"]);
+    expect(readdirSync(root).sort()).toEqual(["plan.json", "script.md"]);
   });
 });
