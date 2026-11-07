@@ -423,6 +423,13 @@ export const App: React.FC = () => {
             }}
             onCreated={async (id) => {
               await reloadChannels();
+              // Creation has already succeeded; do not discard the currently
+              // open channel's unsaved settings by switching automatically.
+              if (!confirmLeaveScript()) {
+                say("أُنشئت القناة الجديدة، وبقيت في الحالية حتى تحفظ تعديلاتك.");
+                return;
+              }
+              await flushPlan();
               setChannelId(id);
               setTab("home");
               say("أُنشئت القناة. عدّل مجالاتها وألوانها، ثم أنشئ أول حلقة.");
