@@ -293,7 +293,7 @@ export const App: React.FC = () => {
         active={tab} channelName={channel.nameDisplay ?? channel.name} channelMark={<BrandMark channel={channel} />}
         hasGuide={hasGuide} guideLabel={guideLabel} hasLabs={hasLabs} hasTechReviews={hasTechReviews}
         identityDirty={identDirty} voiceConnected={keysOk.voice} episodeId={epId} episodeTitle={plan?.title}
-        onHome={() => { if (confirmLeaveScript()) { setTab("home"); setNavOpen(false); } }}
+        onHome={() => void navigateManage("home")}
         onNavigate={navigateManage} onClose={closeNavigation}
       />
       {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
@@ -485,8 +485,9 @@ export const App: React.FC = () => {
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           />
         ) : tab === "review" ? (
-          <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage) => {
+          <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage, sceneId) => {
             if (!confirmLeaveScript()) return;
+            if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
             setTab(stage);
           }} />
         ) : tab === "publish" ? (
