@@ -17,6 +17,33 @@ describe("pre-motion human approval safety", () => {
     await expect(assertVoiceApproved(path.join(os.tmpdir(), "not-an-episode", "script.md"), plan, {}))
       .rejects.toThrow(/لا توجد مقاطع تعليق صوتي/);
   });
+  it("blocks approved-but-unintegrated manual Quran recordings at the final motion gate", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "studio-unintegrated-quran-"));
+    const scriptPath = path.join(dir, "script.md");
+    const script = `---
+title: "تجربة التلاوة"
+domain: psychology
+episode: "999"
+---
+## الفصل 1 · مراجعة
+[آية: النجم 39 | وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ]
+`;
+    try {
+      await writeFile(scriptPath, script);
+      await writeFile(scriptSignoffFile(scriptPath), JSON.stringify({
+        version: 1, sha256: createHash("sha256").update(script).digest("hex"),
+        reviewer: "مراجع", note: "راجعت هذا النص والفصل كاملًا", at: new Date().toISOString(),
+      }));
+      await mkdir(path.join(dir, "recitations"));
+      await writeFile(path.join(dir, "recitations", "index.json"), JSON.stringify({
+        "53:39": { provider: "manual", approvedAt: "2026-11-07", approvedBy: "مراجع",
+          reciter: "قارئ منفصل", rightsEvidence: "وثيقة ترخيص مستقلة", parts: [] },
+      }));
+      await expect(assertMotionStartAuthorized(scriptPath, {
+        chapters: [{ number: 1, title: "مراجعة", scenes: [] }],
+      } as unknown as Plan, {})).rejects.toThrow(/غير موصول|تغيّر/);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
   it("requires separate storyboard and full-episode voice decisions, and rechecks audio bytes", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "studio-final-motion-gate-"));
     const scriptPath = path.join(dir, "script.md");
