@@ -39,6 +39,7 @@ const ports = createWorkflowProtectedPorts(service, sharedEpisodeContentReadWrit
 
 // UI may send ONLY action, stage, expectedFingerprint, note.
 const current = await service.inspect();
+// Use current.view.stages[0].fingerprint as the UI expectedFingerprint.
 // await service.command({ action: 'submit', stage: 'script',
 //   expectedFingerprint: stageFingerprint(current.snapshot, 'script'), note: '...' });
 // await service.command({ action: 'approve', stage: 'script', ... });
@@ -117,6 +118,25 @@ Signed schemaVersion 3 is intentionally incompatible with any unsigned early dra
 A material file can be modified and restored **between two workflow reads**, returning to precisely the same SHA-256 bytes. Content-only cumulative fingerprints would then silently reuse the old approval. The hardened server collector now captures both real-byte `sha256` and a separate `epoch` digest over the opened file descriptor's `dev / ino / size / ctimeNs / mtimeNs` on a trusted filesystem. The collector checks metadata before and after hashing, refuses hardlinked artifacts, and uses `O_NOFOLLOW` to block a swapped leaf symlink. Cumulative stage fingerprints include the file-generation epochs, and approvals store `artifactEpoch` alongside the byte SHA. Even after the previous contents are restored before inspection, a normal filesystem write changes `ctimeNs` or inode and automatically invalidates approval. Master publication still compares the exact SHA-256 bytes, **and also checks the approved file epoch**.
 
 This is a conservative content-generation test, not an immutable/replay-proof cryptographic filesystem. It may revoke approval on benign copy/chmod/checkout changes, which is preferable to approving unreviewed bytes. It does **not** prove detection after a privileged attacker rolls back the whole filesystem to an old signed state; use an independently durable monotonic revision authority if that threat is in scope. All writers still need the same shared content lock and an isolated integration run.
+
+### PR #74 exact, browser-safe inspection response
+
+The UI branch `work/studio-ui-workspaces-20261107` contains `app/src/workspace/workflowReadModel.ts` with `parseWorkflowReadModel(raw, channel, episode)`. The **precise supported endpoint contract** is:
+
+```ts
+import { createTrustedWorkflowService } from "../../src/workflow/index.ts";
+
+// Authenticate and authorize channel/episode scope first, using server session.
+// Never use browser actor, role, source paths, evidence or claimed approval.
+const service = createTrustedWorkflowService(trustedServerDependencies);
+const { uiSnapshot, view } = await service.inspect();
+// Send { uiSnapshot, view } or only uiSnapshot to the authenticated browser.
+// For existing PR #74 parser: parseWorkflowReadModel(uiSnapshot, channel, episode).
+```
+
+`uiSnapshot` has `schemaVersion:3`, `channel`, `episode`, `revision`, `stages` keyed by the six stage IDs, and `history`. `stages[stage].currentApproval=true` is **set by the server only** after HMAC, current file SHA/epoch, exact prerequisite event chain and actual evidence receipt verification. The DTO deliberately omits HMAC (`integrity`), trusted evidence source paths, proof signing tokens and raw file manifests, while preserving the already authenticated approver, date, version, SHA, epoch, decision event seq and history needed by the PR #74 display. `view` is a separate schemaVersion:1 convenience projection showing stage blockers and role-dependent allowed actions.
+
+`service.inspect()` now returns **only** `{uiSnapshot, view}` and is safe by construction for a browser GET handler. `service.inspectInternal()` explicitly returns `{snapshot, ledger, view, uiSnapshot}` for trusted server-only checks and test fixtures, and **must never** be serialized to browser responses. The pending PR #74 integration tests must invoke the actual server endpoint and its existing parser together. Never interpret missing/failed/invalid data as approval.
 
 ### Supported import boundary
 Production server adapters must import the public API from `src/workflow/index.ts`. `src/workflow/store.ts` is an internal persistence/state-machine test dependency; its direct `approveWorkflowStage` and `requireWorkflowGate(scope, snapshot, action)` calls are **not trustworthy browser/API endpoints** because they accept snapshots and actor values supplied by their caller. Use only the `createTrustedWorkflowService` facade to authenticate the real session and collect current bytes and verified proofs, then the protected ports for side effects. The low-level exports exist for isolated engine testing but must never be directly wired to an external request.
