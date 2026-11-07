@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fireflyPrompt, fullImagePrompt, midjourneyPrompt } from "../src/visual/prompts";
@@ -8,6 +8,14 @@ import { channelLibraries } from "../src/visual/library";
 import { planIssues } from "../src/plan/validate";
 import { defaultsFor } from "../src/plan/generate";
 import type { Plan } from "../src/plan/types";
+
+const ownedPlateDirs: string[] = [];
+const fixture = (prefix: string) => {
+  const d=mkdtempSync(path.join(tmpdir(), prefix));
+  ownedPlateDirs.push(d);
+  return d;
+};
+afterEach(() => { for (const d of ownedPlateDirs.splice(0)) rmSync(d, { recursive:true, force:true }); });
 
 const planWith = (image: string): Plan =>
   ({ title: "t", themeId: "night", chapters: [{ number: 1, title: "c", scenes: [{ id: "c1-s1", template: "doc-plate", narration: "", props: { ...defaultsFor("doc-plate", "", { title: "t", chapterTitle: "c" }), image }, sfx: [] }] }] }) as unknown as Plan;
@@ -28,14 +36,14 @@ describe("لوحة وثائقية", () => {
     expect(midjourneyPrompt({ channel: "dafatir-alzaman", prompt: "x", orientation: "portrait" })).toContain("--ar 9:16");
   });
   it("يجمع الصور المستعملة الموجودة فقط", () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "img-"));
+    const dir = fixture("img-");
     writeFileSync(path.join(dir, "a.jpg"), "x");
     expect(usedImages(planWith("a.jpg"), dir)).toEqual(["a.jpg"]);
     expect(usedImages(planWith("b.jpg"), dir)).toEqual([]);
   });
   it("مراجع مكتبة القناة: بامتداد أو بدونه", () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "ep-"));
-    const lib = mkdtempSync(path.join(tmpdir(), "lib-"));
+    const dir = fixture("ep-");
+    const lib = fixture("lib-");
     writeFileSync(path.join(lib, "caravan-dunes.png"), "x");
     expect(usedImages(planWith("lib:caravan-dunes"), dir, lib)).toEqual(["lib:caravan-dunes.png"]);
     expect(usedImages(planWith("lib:caravan-dunes.png"), dir, lib)).toEqual(["lib:caravan-dunes.png"]);
