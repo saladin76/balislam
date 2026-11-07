@@ -58,7 +58,10 @@ const steps = [
     "tests/episode-previews.test.ts"]],
   ["full-vitest", "npm", ["test"]],
   ["project-gate", "npm", ["run", "gate"]],
-  ["remotion-synthetic-smoke", "npx", ["tsx", "scripts/studio-render-isolation-smoke.mts", evidenceDir]],
+  // Load tsx via Node's supported ESM import hook instead of its CLI process.
+    // On macOS the CLI socket pathname exceeds the Unix domain socket limit
+    // when the acceptance runner uses a long, isolated TMPDIR.
+    ["remotion-synthetic-smoke", process.execPath, ["--import=tsx", "scripts/studio-render-isolation-smoke.mts", evidenceDir]],
 ];
 let failed = false;
 try {
