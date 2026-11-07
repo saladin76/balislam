@@ -116,7 +116,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
   it("blocks a stage when evidence changed during independent server verification", async () => {
     const x = await make(); x.owner();
     const { snapshot } = await x.service.inspect();
-    const cmd = { stage: "script", expectedFingerprint: stageFingerprint(snapshot, "script"),
+    const cmd = { stage: "script" as const, expectedFingerprint: stageFingerprint(snapshot, "script"),
       note: "Reviewed all source citations and Qur'an matches" };
     await x.service.command({ action: "submit", ...cmd });
     x.changeWhileChecking(async () => {
