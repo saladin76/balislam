@@ -117,11 +117,11 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(second.html).toContain("إني جاعل في الأرض خليفة");
     expect((first.html.match(/class="page cover"/g)??[]).length).toBe(1);
     expect((second.html.match(/class="page cover"/g)??[]).length).toBe(1);
-    expect((first.html.match(/<article class="page"/g)??[]).length).toBe(10);
-    expect((second.html.match(/<article class="page"/g)??[]).length).toBe(8);
+    expect((first.html.match(/<article class="page(?: cover)?"/g)??[]).length).toBe(10);
+    expect((second.html.match(/<article class="page(?: cover)?"/g)??[]).length).toBe(8);
     expect(second.html).toContain('<bdi dir="ltr">c2-s0</bdi>');
     const withoutCover=buildStoryboardHtml(board,{chapter:2});
-    expect((withoutCover.html.match(/<article class="page"/g)??[]).length).toBe(7);
+    expect((withoutCover.html.match(/<article class="page(?: cover)?"/g)??[]).length).toBe(7);
     expect(withoutCover.html).not.toContain('class="page cover"');
   });
   it("reads actual Dafatir V1.1 and Zubdat v021 without modifying episodes",()=>{
