@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { stageRemotionPublicDir } from "../src/render/bundle";
-import { studioMediaNamespace } from "../src/plan/collect";
+import { studioMediaNamespace, assertManualRecitationIntegration } from "../src/plan/collect";
 import { stageRenderFiles, type RenderStageFile } from "../src/plan/renderStage";
 import { mediaSrc, visualNarrationTimings } from "../src/remotion/scenes/Episode";
 import type { EpisodeMedia } from "../src/plan/media";
@@ -238,4 +238,19 @@ describe("immutable Remotion assets across channels and episodes", () => {
     expect(media.recitations["2:255"]?.duration).toBe(10);
     expect(visualNarrationTimings({ ...scene, narration: "نص مختلف" }, media, "approved")).toBeUndefined();
   });
+  it("fails closed on a manual Quran index even if an older licensed or QF pointer exists", () => {
+    const plan = { chapters: [{ scenes: [
+      { id: "c1-s1", template: "verse-card", ayahKey: "53:39" },
+    ] }] } as never;
+    expect(() => assertManualRecitationIntegration({
+      "53:39": { provider: "manual" },
+    }, plan)).toThrow(/PR #76/);
+    expect(() => assertManualRecitationIntegration({
+      "53:39": { provider: "quran-foundation" },
+    }, plan)).not.toThrow();
+    expect(() => assertManualRecitationIntegration({
+      "2:255": { provider: "manual" },
+    }, plan)).not.toThrow();
+  });
+
 });
