@@ -10,8 +10,6 @@ import { checkForChannel } from "../script/checkChannel";
 import { assertScriptApproved } from "../script/approval";
 import { loadLedger, reviewItems, reviewSummary } from "../script/review";
 import { quranFromScript } from "../quran/scriptText";
-import { quranClientFromEnv } from "../quran/client";
-import { auditEpisodeQuran } from "../quran/audit";
 import { loadStoryboard, storyboardStatus } from "../plan/storyboard";
 import { readPlanFile } from "../plan/io";
 import { loadVoiceIndex } from "../voice/generate";
@@ -21,8 +19,6 @@ import { loadStoryboardMotion } from "../render/storyboardMotion";
 import { currentMotionFingerprint } from "../render/motionFingerprint";
 import { staleMotionScenes, auditNeedsJustification } from "../render/motionValidity";
 import { collectMedia } from "../plan/collect";
-import { activeRecitation } from "../quran/provider";
-import { loadChannel } from "../channel";
 import type { Plan } from "../plan/types";
 import type { Recitation } from "../plan/media";
 import { readRenderInfo } from "../render/quality";
@@ -60,7 +56,7 @@ export const unsafeQuranRecitationScenes = (
   .filter(scene => {
     const rec = scene.ayahKey ? recitations[scene.ayahKey] : undefined;
     if (!rec && !requireRecitation) return false;
-    return !rec || (rec.source !== "manual" && rec.source !== "alquran-cloud");
+    return !rec || rec.source !== "manual";
   }).map(scene => scene.id);
 const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatched: boolean): Promise<Evidence> => {
   const { scriptPath } = await collectWorkflowSnapshot(episode);
@@ -75,13 +71,10 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
       "All citations and religious sources must be reviewed.");
     const ayahs = quranFromScript(parsed);
     required(ayahs.problems.length === 0, "Quran text and references in script require review.");
-    if (ayahs.ayahs.length) {
-      const client = quranClientFromEnv();
-      required(Boolean(client), "An approved Mushaf reference is required to verify Quran text.");
-      const audit = await auditEpisodeQuran(episode, { client, frames: false });
-      required(audit.audits.length > 0 && audit.audits.every(a => a.status === "match"),
-        "Quran verses differ from the approved Mushaf or remain unverified.");
-    }
+    // Script approval and human citation review are the trust source. No external
+    // Quran API may verify or mutate the authored verse text implicitly.
+    // Any additional Mushaf comparison is a separate explicit human review.
+
   }
   if (stage === "storyboard") {
     required(Boolean(plan), "Storyboard plan is missing.");
@@ -93,7 +86,7 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
     required(Boolean(plan), "Voice plan is missing.");
     await assertVoiceApproved(scriptPath, plan!, await loadVoiceIndex(episode));
     // If a Quran recording is present, its content hash and rights must still be current.
-    await collectMedia(episode, plan!);
+    await collectMedia(episode, plan!, { requireApprovedQuran: true });
     required(confirmWatched, "Owner must explicitly confirm listening to the complete voice track.");
   }
   if (stage === "motion") {
@@ -126,11 +119,10 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
       info?.width ?? 3840, info?.height ?? 2160);
     required(Boolean(plan), "Final episode plan is missing.");
     // Licensed Quran audio cannot be inferred merely from the presence of an MP3.
-    const media = await collectMedia(episode, plan!);
-    const selected = await activeRecitation(scriptPath, loadChannel().recitation);
-    const unsafe = unsafeQuranRecitationScenes(plan!, media.recitations, Boolean(selected));
+    const media = await collectMedia(episode, plan!, { requireApprovedQuran: true });
+    const unsafe = unsafeQuranRecitationScenes(plan!, media.recitations, true);
     required(unsafe.length === 0,
-      "Selected Quran recitations must have independently verified rights: " + unsafe.join(", "));
+      "Only the owner-uploaded human Quran recording with documented rights is eligible: " + unsafe.join(", "));
     required(confirmWatched, "Owner must explicitly watch and approve these exact Master bytes.");
   }
   return Object.fromEntries(STAGE_EVIDENCE[stage].map(key => [key, true]));
