@@ -1,7 +1,6 @@
 import { parseScript } from "../script/parse";
 import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import { langPack } from "../i18n/packs";
-import { QF_ATTRIBUTION } from "../quran/attribution";
 import { chapterStarts } from "../remotion/scenes/Episode";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
@@ -22,7 +21,6 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   const step = parsed.practicalStep?.text ?? "";
   const L = langPack(plan.lang ?? channel.language);
   const fill = (tpl: string, v: Record<string, string>) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
-  const translation = channel.quranTranslation?.name;
 
   const sources: string[] = [];
   for (const c of parsed.citations) {
@@ -31,16 +29,10 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
       const name = r.ok ? fill(L.strings.descVerse, { name: surahNameFor(r.ref.surah, L.code), ayah: `${r.ref.from}${r.ref.to !== r.ref.from ? `–${r.ref.to}` : ""}` }) : c.fields[0];
       const reciter = (c.fields.find((f) => f.startsWith("القارئ")) ?? "").replace(/^القارئ\s*:\s*/, "").trim();
       const rec = r.ok ? media.recitations[r.ref.key] : undefined;
-      // المرخّصة: اسم القارئ من الاستشهادات «بإذن مكتوب»؛ وتلاوة Quran Foundation: اسم القارئ مع نسبتها
-      const recitationLine = !rec
-        ? ""
-        : rec.source === "quran-foundation"
-          ? `${L.code === "ar" ? "التلاوة" : "Recitation"}: ${rec.reciter ?? ""} (Quran.Foundation)`
-          : reciter && reciter !== "…"
-            ? fill(L.strings.descRecitation, { name: reciter })
-            : "";
-      const extras = [L.code === "ar" ? QF_ATTRIBUTION : L.strings.quranAttribution, translation && L.code !== "ar" ? translation : "", recitationLine].filter(Boolean);
-      sources.push(`- ${name} (${extras.join(L.code === "ar" ? "، " : ", ")})`);
+      // اسم القارئ يُذكر فقط عند استخدام تلاوة صاحب القناة المعتمدة.
+      const recitationLine = rec?.source === "manual"
+        ? fill(L.strings.descRecitation, { name: rec.reciter ?? "صاحب القناة" }) : "";
+      sources.push(`- ${name}${recitationLine ? ` (${recitationLine})` : ""}`);
     } else if (c.kind === "hadith") {
       sources.push(`- ${c.fields[0] ?? ""}${c.fields[1] ? ` — ${c.fields[1]}` : ""}${c.fields[2] ? ` (${c.fields[2]})` : ""}`);
     } else sources.push(`- ${c.fields.join(" — ")}`);
