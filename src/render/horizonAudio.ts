@@ -20,7 +20,7 @@ import { approvedRecitationsForRender } from "../quran/renderContract";
 import { parseScript } from "../script/parse";
 import { quranFromScript } from "../quran/scriptText";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
-import { stageRenderFiles, type RenderStageFile } from "../plan/renderStage";
+import { stageRenderFiles, defaultRenderMediaRoot, type RenderStageFile } from "../plan/renderStage";
 import { studioMediaNamespace } from "../plan/collect";
 import { QUALITY } from "./quality";
 import { cleanMetadata } from "./episode";
@@ -115,7 +115,7 @@ export const renderHorizonAudio = async (
     verses[key] = { text: authored.texts[key]!, reciter: rec.reciter, parts: rec.parts };
   }
   const rel = await stageRenderFiles(studioMediaNamespace(scriptPath).render, files, {
-    publicRoot: path.join(projectRoot, "public"),
+    publicRoot: defaultRenderMediaRoot(),
   });
   const audio: HorizonAudio = { base: rel, voice: Object.fromEntries(Object.entries(clips).map(([id, c]) => [id, { file: c.file, duration: c.duration, words: c.words }])), verses };
   const shots = buildShots(audio); // يرمي خطأ إن لم يطابق عدد كلمات الصوت نص اللقطة
