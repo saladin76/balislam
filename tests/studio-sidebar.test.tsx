@@ -24,6 +24,15 @@ describe("تنقل الاستوديو", () => {
     const present = render({ hasGuide: true, hasLabs: true, hasTechReviews: true });
     for (const label of ["مختبرات الإنتاج", "المراجعات الفنية", "دليل القناة"]) expect(present).toContain(label);
   });
+  it("exposes an accessible modal navigation when mobile menu is open, not on desktop", () => {
+    const closed = render();
+    const open = render({ mobileOpen: true });
+    expect(closed).not.toContain('aria-modal="true"');
+    expect(open).toContain('role="dialog"');
+    expect(open).toContain('aria-modal="true"');
+    expect(open).toContain("إغلاق القائمة");
+  });
+
   it("shows current channel and episode context without inventing an approval state", () => {
     const html = render({ channelName: "دفاتر الزمن", episodeId: "001", episodeTitle: "بداية البشرية", identityDirty: true, voiceConnected: false });
     for (const label of ["دفاتر الزمن", "بداية البشرية", "تعديلات غير محفوظة", "تحتاج إعداد الاتصال"]) expect(html).toContain(label);
