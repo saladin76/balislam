@@ -1,28 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { createQuranClient } from "../src/quran/client";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { parseAyahRef } from "../src/script/quranMeta";
+import { composeVerses } from "../src/quran/sync";
 
-const source = (verse: { verse_key?: string; verse_number?: number; text_uthmani?: string }) => {
-  const requests: string[] = [];
-  const fetchImpl = async (input: RequestInfo | URL) => {
-    const url = String(input);
-    requests.push(url);
-    if (url.includes("/oauth2/token")) return new Response(JSON.stringify({ access_token: "safe-test-token", expires_in: 3600 }), { status: 200 });
-    return new Response(JSON.stringify({ verse }), { status: 200 });
-  };
-  return { client: createQuranClient({ clientId: "test-client", clientSecret: "test-secret", fetchImpl: fetchImpl as typeof fetch }), requests };
-};
-describe("Quran text-only API source identity", () => {
-  it("never caches a different verse returned for the requested Quran key", async () => {
-    const { client } = source({ verse_key: "20:15", verse_number: 15, text_uthmani: "نص ليس للمرجع المطلوب" });
-    await expect(client.verse("20:14")).rejects.toThrow(/لا يطابق/);
+describe("Single-owner Quran text source integrity",()=>{
+  it("preserves the complete Arabic Unicode and tashkeel of one supplied verse",()=>{
+    const text="إِنَّ ٱللَّهَ غَفُورٌ رَّحِيمٌ";
+    expect(composeVerses([{key:"1:1",number:1,text}])).toBe(text);
   });
-  it("rejects a wrong verse number even if the verse key is correct", async () => {
-    const { client } = source({ verse_key: "20:14", verse_number: 15, text_uthmani: "نص خاطئ" });
-    await expect(client.verse("20:14")).rejects.toThrow(/لا يطابق/);
+  it("retains source verse numbering and ordering in multi-ayah segments",()=>{
+    const text=composeVerses([
+      {key:"1:1",number:1,text:"نصٌّ تجريبيٌّ ١"},
+      {key:"1:2",number:2,text:"نصٌّ تجريبيٌّ ٢"},
+    ]);
+    expect(text).toContain("۝١");
+    expect(text).toContain("۝٢");
+    expect(text.indexOf("۝١")).toBeLessThan(text.indexOf("۝٢"));
   });
-  it("accepts source text as-is only with matching ayah key and number", async () => {
-    const { client, requests } = source({ verse_key: "20:14", verse_number: 14, text_uthmani: "نص اختباري غير قرآني" });
-    expect(await client.verse("20:14")).toMatchObject({ key: "20:14", number: 14, text: "نص اختباري غير قرآني" });
-    expect(requests.some((url) => url.includes("/verses/by_key/20:14"))).toBe(true);
+  it("parses script ayah refs locally without opening Quran Foundation URLs",()=>{
+    const ref=parseAyahRef("النجم 39");
+    expect(ref.ok).toBe(true);
+    if(ref.ok)expect(ref.ref.key).toBe("53:39");
+    const legacy=readFileSync(path.join(import.meta.dirname,"..","src","quran","client.ts"),"utf8");
+    expect(legacy).not.toContain("quran.foundation");
+    expect(legacy).not.toContain("oauth2/token");
+    expect(legacy).not.toContain("createQuranClient");
+    expect(legacy).not.toContain("quranClientFromEnv");
   });
 });
