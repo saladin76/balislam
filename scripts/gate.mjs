@@ -65,7 +65,7 @@ process.on("uncaughtException", (e) => fail(`بوابة التسليم: خطأ �
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => fail(`بوابة التسليم: أُوقفت (${sig})؛ رُفض الدفع.`, 130));
 if (commit) {
   // نسخة عمل مؤقتة على الـ commit المطلوب بالضبط
-  const tmp = mkdtempSync(path.join(os.tmpdir(), "bal-gate-"));
+  const tmp = mkdtempSync(path.join(runTemp, "bal-gate-"));
   const add = sh("git", ["worktree", "add", "--detach", "--quiet", tmp, commit], root, false);
   if (add.status !== 0) {
     fail(`بوابة التسليم: تعذّر تجهيز نسخة للـ commit ${commit}: ${add.stderr}`, 2);
@@ -100,8 +100,8 @@ try {
   }
  } finally {
   // Test leftovers may exist even if a worker exits abruptly. Only OUR root is removed.
-  const allocated = tempDiskBytes(runTemp);
-  cleanup();
+  let allocated = -1;
+  try { allocated = tempDiskBytes(runTemp); } finally { cleanup(); }
   console.log("GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES " + allocated);
   console.log("GATE_TEMP_CLEANED " + (!existsSync(runTemp)));
 }
