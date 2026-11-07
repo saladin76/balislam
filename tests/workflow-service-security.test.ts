@@ -149,6 +149,25 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     expect(WORKFLOW_STAGES.map((stage) => doc.stages[stage].status)).toEqual(Array(6).fill("needs_reapproval"));
   });
 
+  it.each([
+    ["script", "script.md"], ["storyboard", "images/shot.png"],
+    ["voice", "voice/clip.mp3"], ["motion", "motion.mp4"],
+    ["av_review", "av.mp4"], ["master", "master.mp4"],
+  ] as const)("changing actual %s bytes revokes only that and dependent decisions permanently", async (stage, file) => {
+    const x = await make(); await x.allApproved();
+    const original = await readFile(path.join(x.dir, file));
+    await writeFile(path.join(x.dir, file), Buffer.concat([original, Buffer.from("changed-bytes")]));
+    await expect(x.service.gate("publish")).rejects.toThrow();
+    const invalid = (await x.service.inspect()).ledger;
+    const changedIndex = WORKFLOW_STAGES.indexOf(stage);
+    expect(WORKFLOW_STAGES.map((k, i) => invalid.stages[k].status))
+      .toEqual(WORKFLOW_STAGES.map((_k, i) => i < changedIndex ? "approved" : "needs_reapproval"));
+    await writeFile(path.join(x.dir, file), original);
+    const restored = (await x.service.inspect()).ledger;
+    expect(WORKFLOW_STAGES.map((k, i) => restored.stages[k].status))
+      .toEqual(WORKFLOW_STAGES.map((_k, i) => i < changedIndex ? "approved" : "needs_reapproval"));
+  });
+
   it("revokes signed master and later publish even if Master bytes were not edited but its review proof changed", async () => {
     const x = await make(); await x.allApproved();
     await x.service.gate("publish");
