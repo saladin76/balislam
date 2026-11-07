@@ -60,7 +60,10 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
     throw e;
   }
   const outFile = path.join(path.dirname(scriptPath), "out", `${opts.slot}-audio-preview.mp4`);
-  const file = await renderEpisode({ episode, orientation: "landscape", quality: "preview", plan, media, outFile, onProgress: opts.onProgress });
+  const file = await renderEpisode({ episode, orientation: "landscape", quality: "preview",
+    plan, media, outFile, onProgress: opts.onProgress,
+    scenePreview: /^scene-[a-z0-9-]+-av$/.test(opts.slot),
+  });
   const timing = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, seconds: Math.round((sceneFrames(s, media) / 30) * 10) / 10, voice: media.voice[s.id]?.duration ?? null, recitation: s.ayahKey ? media.recitations[s.ayahKey]?.duration ?? null : null }));
   // A scene edited while Remotion was running must never publish its stale cut.
   await opts.verifyBeforePublish?.();
