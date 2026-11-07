@@ -5,14 +5,12 @@ import { existsSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
-import { loadVoiceIndex, voiceDirFor, audioDuration } from "../voice/generate";
+import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { availableSfx, sfxFile } from "../voice/sfx";
-import { recitationFileFor, type EpisodeMedia, type Recitation } from "./media";
+import { type EpisodeMedia, type Recitation } from "./media";
 import type { Plan } from "./types";
-import { readJson } from "./io";
-import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
-import { loadChannel } from "../channel";
-import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
+import { recitationsDirFor } from "../quran/sync";
+import { approvedRecitationsForRender } from "../quran/renderContract";
 
 export const recitationsDir = path.join(projectRoot, "assets", "recitations");
 
@@ -52,30 +50,16 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const used = new Set(plan.chapters.flatMap((c) => c.scenes.flatMap((s) => s.sfx.map((x) => x.id))));
   const sfx = availableSfx().filter((id) => used.has(id));
   const recitations: Record<string, Recitation> = {};
-  const recDir = recitationsDirFor(await resolveScriptPath(episode));
-  const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
-  const chosen = await activeRecitation(await resolveScriptPath(episode), loadChannel().recitation);
-  if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
-  for (const s of plan.chapters.flatMap((c) => c.scenes)) {
-    if (s.template !== "verse-card" || !s.ayahKey) continue;
-    // 1) تلاوة مرخّصة بإذن مكتوب (assets/recitations) لها الأولوية
-    const file = recitationFileFor(s.ayahKey);
-    const full = path.join(recitationsDir, file);
-    if (existsSync(full)) {
-      const duration = await audioDuration(full);
-      if (duration) {
-        recitations[s.ayahKey] = { file, duration, source: "licensed" };
-        continue;
-      }
-    }
-    // 2) تلاوة من Quran Foundation (إن اختارت القناة قارئًا وجُلبت)
-    const q = qf[s.ayahKey];
-    const matching = q && chosen && (isCloudRecitation(chosen)
-      ? q.provider === "alquran-cloud" && q.edition === chosen.edition
-      : q.provider !== "alquran-cloud" && q.recitationId === chosen.id);
-    if (q && matching && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
-      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration, 0), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
-    }
+  const scriptPath = await resolveScriptPath(episode);
+  // Only the human recording uploaded to this episode, explicitly listened to
+  // and rights-reviewed, can enter an audiovisual scene. No provider, shared
+  // asset library, or silent fallback may supply a Quran recitation.
+  const verified = await approvedRecitationsForRender(scriptPath, undefined);
+  for (const scene of plan.chapters.flatMap((chapter) => chapter.scenes)) {
+    if (scene.template !== "verse-card") continue;
+    if (!scene.ayahKey || !verified[scene.ayahKey])
+      throw new Error("تلاوة المشهد مفقودة أو غير معتمدة؛ ارفع التسجيل البشري وطابقه مع نص السكريبت.");
+    recitations[scene.ayahKey] = verified[scene.ayahKey]!;
   }
   const sp = await resolveScriptPath(episode);
   const images = usedImages(plan, imagesDirFor(sp), libraryDirFor(sp));
@@ -98,8 +82,10 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
   for (const id of m.sfx) await cp(sfxFile(id), path.join(dest, "sfx", `${id}.mp3`));
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   for (const r of Object.values(m.recitations)) {
-    if (r.source === "quran-foundation" || r.source === "alquran-cloud") for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
-    else await cp(path.join(recitationsDir, r.file), path.join(dest, "recitations", r.file));
+    if (r.source !== "manual" || !r.parts?.length)
+      throw new Error("رندر القرآن يقبل التسجيل المرفوع والمعتمد للحلقة فقط.");
+    for (const part of r.parts)
+      await cp(path.join(recDir, part.file), path.join(dest, "recitations", part.file));
   }
   const sp2 = await resolveScriptPath(episode);
   for (const f of m.images ?? []) await cp(f.startsWith(LIB) ? path.join(libraryDirFor(sp2), f.slice(LIB.length)) : path.join(imagesDirFor(sp2), f), path.join(dest, "images", imageKey(f)));

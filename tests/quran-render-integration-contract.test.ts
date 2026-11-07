@@ -5,7 +5,6 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { EpisodeMedia } from "../src/plan/media";
-import type { FoundationRecitation } from "../src/quran/provider";
 import { decodedAudioDuration } from "../src/voice/audioIntegrity";
 import {
   approvedRecitationsForRender, assertReciterPublicationRights,
@@ -76,7 +75,7 @@ const provider = async (x: Awaited<ReturnType<typeof fixture>>) => {
   const file = "qf-7-53-39-" + sha(x.bytes).slice(0, 24) + ".mp3";
   await writeFile(path.join(x.rec, file), x.bytes);
   await copyFile(path.join(x.rec, file), path.join(x.renderDir, file));
-  const choice: FoundationRecitation = {
+  const choice = {
     id: 7, name: "قارئ المصحف التجريبي",
     licence: { holder: "مالك التسجيل", evidence: "https://rights.example.test/permission",
       scope: "YouTube commercial publish", verifiedAt: new Date().toISOString(),
@@ -114,7 +113,7 @@ describe("PR #73 Quran audio integration contract — negative safety scenarios"
     const { media } = await manual(x);
     await writeFile(x.scriptPath, script(verse.replace("وَأَنْ", "وَأَنِ")));
     await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, undefined, media, x.renderRoot))
-      .rejects.toThrow(/المراجعة|اعتماد|البصمة/);
+      .rejects.toThrow(/التلاوة اليدوية|المراجعة|اعتماد|البصمة/);
     await writeFile(x.scriptPath, script(verse, "الإخلاص 1"));
     await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, undefined, media, x.renderRoot))
       .rejects.toThrow(/غير موجود/);
@@ -144,55 +143,35 @@ describe("PR #73 Quran audio integration contract — negative safety scenarios"
     expect(sha(await readFile(path.join(x.rec, file)))).toBe(sha(x.bytes));
   });
 
-  it("requires a QF reciter with explicit rights and correct SHA-addressed staged file", async () => {
+  it("rejects a previously verified external reciter even when its file and rights proof are intact", async () => {
     const x = await fixture();
-    const { choice, record, media } = await provider(x);
-    expect(assertReciterPublicationRights(choice)).toBe(true);
+    const { choice, media } = await provider(x);
+    expect(() => assertReciterPublicationRights(choice)).toThrow(/أُلغيت/);
+    await expect(approvedRecitationsForRender(x.scriptPath, choice))
+      .rejects.toThrow(/مصدر تلاوة خارجي/);
+    await expect(approvedRecitationsForRender(x.scriptPath, undefined))
+      .rejects.toThrow(/التلاوة اليدوية/);
     await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, choice, media, x.renderRoot))
-      .resolves.toBe(true);
-    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath,
-      { id: 7, name: choice.name }, media, x.renderRoot)).rejects.toThrow(/دليل حقوق/);
-    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath,
-      { ...choice, id: 99 }, media, x.renderRoot)).rejects.toThrow(/مصدر/);
-    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath,
-      { ...choice, licence: { ...choice.licence!, verifiedBy: "" } }, media, x.renderRoot))
-      .rejects.toThrow(/المراجع البشري/);
-    await writeFile(x.indexFile, JSON.stringify({ "53:39": { ...record, parts: [
-      { ...record.parts[0], sha256: undefined },
-    ] } }));
-    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, choice, media, x.renderRoot))
-      .rejects.toThrow(/بصمة/);
+      .rejects.toThrow(/مصدر تلاوة خارجي/);
   });
 
-  it("does not treat a preview-only Cloud reciter licence as a named human publishing review", () => {
+  it("does not accept an online preview or publishing rights proof as owner-uploaded audio", async () => {
     const preview = { provider: "alquran-cloud" as const, edition: "ar.alafasy", name: "قارئ",
       licence: { holder: "مالك التلاوة", evidence: "https://rights.example.test/cloud",
-        scope: "YouTube commercial publish", verifiedAt: new Date().toISOString() },
+        scope: "YouTube commercial publish", verifiedAt: new Date().toISOString(),
+        verifiedBy: "مراجع حقوق بشرية", reviewNote: "تحققت من الإذن ونطاق النشر" },
     };
-    expect(() => assertReciterPublicationRights(preview)).toThrow(/المراجع البشري/);
-    expect(assertReciterPublicationRights({ ...preview, licence: {
-      ...preview.licence, verifiedBy: "مراجع حقوق بشرية",
-      reviewNote: "تحققت من الإذن ونطاق نشر التسجيل على يوتيوب",
-    } })).toBe(true);
-    expect(() => assertReciterPublicationRights({ ...preview, licence: {
-      ...preview.licence, verifiedBy: "مراجع حقوق", reviewNote: "راجعت إذن التسجيل",
-      evidence: "http://rights.example.test/unsafe",
-    } })).toThrow(/HTTPS/);
+    expect(() => assertReciterPublicationRights(preview)).toThrow(/أُلغيت/);
   });
 
-  it("rejects stale provider cache, missing verse and private-stage boundary tampering", async () => {
+  it("rejects missing verses and private-stage boundary tampering for uploaded manual audio", async () => {
     const x = await fixture();
-    const { choice, record, media } = await provider(x);
+    const { media } = await manual(x);
     const outside = { ...media, base: "_render/another/000-demo/" + "1".repeat(24) + "/" };
-    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, choice, outside, x.renderRoot))
+    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, undefined, outside, x.renderRoot))
       .rejects.toThrow(/لا تخص/);
     const missing: typeof media = { ...media, recitations: {} };
-    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, choice, missing, x.renderRoot))
+    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, undefined, missing, x.renderRoot))
       .rejects.toThrow(/مجموعة الآيات/);
-    await writeFile(x.indexFile, JSON.stringify({
-      "53:39": { ...record, fetchedAt: "2000-01-01T00:00:00Z" },
-    }));
-    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath, choice, media, x.renderRoot))
-      .rejects.toThrow(/صلاحية/);
   });
 });

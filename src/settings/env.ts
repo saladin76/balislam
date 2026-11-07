@@ -8,9 +8,6 @@ export const MANAGED_KEYS = {
   ELEVENLABS_API_KEY: { secret: true, label: "مفتاح ElevenLabs" },
   ELEVENLABS_VOICE_ID: { secret: false, label: "معرّف الصوت" },
   ELEVENLABS_MODEL_ID: { secret: false, label: "نموذج الصوت (اختياري)" },
-  QF_CLIENT_ID: { secret: true, label: "Quran Foundation Client ID" },
-  QF_CLIENT_SECRET: { secret: true, label: "Quran Foundation Client Secret" },
-  QF_ENV: { secret: false, label: "بيئة Quran Foundation" },
 } as const;
 
 export type ManagedKey = keyof typeof MANAGED_KEYS;

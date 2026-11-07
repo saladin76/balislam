@@ -8,12 +8,7 @@ import path from "node:path";
 import { parseScript } from "../script/parse";
 import { assertScriptApproved } from "../script/approval";
 import { quranFromScript } from "../quran/scriptText";
-import { ownAudioStatusForScript } from "../quran/manualAudio";
-import { assertReciterPublicationRights } from "../quran/renderContract";
-import { recitationsDirFor, verifiedProviderPart, type RecitationIndex } from "../quran/sync";
-import { activeRecitation, isCloudRecitation } from "../quran/provider";
-import { loadChannel } from "../channel/index";
-import { readJson } from "../plan/io";
+import { approvedRecitationsForRender } from "../quran/renderContract";
 import { assertNoQuranInTts } from "../quran/ttsGuard";
 import { loadLedger, reviewItems, reviewSummary } from "../script/review";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
@@ -46,31 +41,16 @@ export const assertMotionStartAuthorized = async (
   // narration; this check applies even when no TTS job is started today.
   assertNoQuranInTts(parsed, plan.chapters.flatMap((chapter) =>
     chapter.scenes.filter((scene) => scene.narration.trim()).map((scene) => scene.narration)));
-  // The render collector in the separate render workstream has not integrated
-  // provider=manual. A reviewed manual recitation is NOT render eligibility.
-  // Block final motion instead of silently omitting the verse recitation.
   if (Object.keys(authored.texts).length) {
-    const manual = await ownAudioStatusForScript(scriptPath);
-    const current = new Set(Object.keys(authored.texts));
-    if ([...Object.keys(manual.reviewed), ...manual.stale].some((key) => current.has(key)))
-      throw new Error("تسجيل القرآن اليدوي غير موصول بجامع الرندر أو تغيّر؛ لا تبدأ الحركة النهائية قبل تكامل التلاوة المعتمدة.");
-
-    const chosen = await activeRecitation(scriptPath, loadChannel().recitation);
-    if (!chosen) throw new Error("لا تبدأ الحركة النهائية مع آيات دون اختيار قارئ بشري مرخّص وتسجيلاته.");
-    // A QF recording is available for fetch/preview without proving publication
-    // permission. Final motion requires explicit rights for BOTH source types.
-    assertReciterPublicationRights(chosen);
-    const recitationsDir = recitationsDirFor(scriptPath);
-    const index = (await readJson<RecitationIndex>(path.join(recitationsDir, "index.json"))) ?? {};
-    for (const key of current) {
-      const entry = index[key];
-      const matches = entry && (isCloudRecitation(chosen)
-        ? entry.provider === "alquran-cloud" && entry.edition === chosen.edition
-        : entry.provider === "quran-foundation" && entry.recitationId === chosen.id);
-      if (!matches || !entry?.parts?.length ||
-          !(await Promise.all(entry.parts.map((part) => verifiedProviderPart(recitationsDir, part)))).every(Boolean))
-        throw new Error(`تلاوة الآية ${key} مفقودة أو تغيّرت أو لم تثبت بصمتها وفك ترميزها؛ لا تبدأ الحركة النهائية.`);
+    const recordings = await approvedRecitationsForRender(scriptPath, undefined);
+    for (const key of Object.keys(authored.texts)) {
+      if (recordings[key]?.source !== "manual")
+        throw new Error("لا تبدأ الحركة: يجب إرفاق واعتماد التلاوة البشرية الخاصة بكل آية.");
     }
+    // This standalone branch is not yet connected to every direct/queued
+    // renderer and final-Master commit boundary. Keep final motion fail-closed
+    // until PR #78 verifies immutable staged bytes and workflow locks.
+    throw new Error("المشاهد القرآنية تنتظر ربط بوابات الرندر والإنتاج النهائي بالتلاوة المرفوعة المعتمدة.");
   }
   const reviewed = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
   if (!reviewed.ok)

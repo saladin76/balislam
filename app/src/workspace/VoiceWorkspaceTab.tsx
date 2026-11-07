@@ -3,7 +3,6 @@ import { api } from "../api";
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { VoiceBox } from "../tabs/EpisodeTab";
-import { AlQuranCloudBrowser } from "./AlQuranCloudBrowser";
 import { narrationReviewPlaylist } from "./reviewPlaylist";
 
 /** واجهة خفيفة فوق منظومة الصوت الأصلية؛ لا توليد ولا تخزين إضافي. */
@@ -112,7 +111,7 @@ export const VoiceWorkspaceTab: React.FC<{
       <div className="ew-audio-summary" role="status">
         <div><strong>{ready}</strong><span>مقطع تعليق مطابق</span></div>
         <div><strong>{scenes.length - ready}</strong><span>مقطع يحتاج توليدًا</span></div>
-        <div><strong>2</strong><span>مساران مستقلان: التعليق والتلاوة</span></div>
+        <div><strong>1</strong><span>مراجعة صوت وصورة لكل مشهد بعد التركيب</span></div>
       </div>
       <section className="ew-voice-lane" aria-label="التعليق الصوتي">
         <div className="ew-lane-heading"><span className="ew-lane-index">01</span><div>
@@ -121,12 +120,11 @@ export const VoiceWorkspaceTab: React.FC<{
         </div></div>
         <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} />
       </section>
-      <section className="ew-voice-lane" aria-label="تلاوة القرآن">
+      <section className="ew-voice-lane" aria-label="التلاوة المرفوعة">
         <div className="ew-lane-heading"><span className="ew-lane-index">02</span><div>
-          <h3>تلاوة الآيات داخل الفيديو</h3>
-          <p>اختر قارئًا وعاين صوته، ثم اعتمده للإنتاج بعد توثيق حقوق التسجيل. تُسحب الآيات تلقائيًا إلى بطاقة الآية.</p>
+          <h3>التلاوة المرفوعة</h3>
+          <p>تصل تلاوة القرآن مع ملفات الحلقة من Claude بعد رفعها يدويًا. لا تُنشأ تلاوة آلية ولا تُجلب من مكتبة خارجية؛ تظهر مع صورة المشهد لمراجعة واحدة قبل الاعتماد.</p>
         </div></div>
-        <AlQuranCloudBrowser key={`${channelId}:${episodeId}`} channelId={channelId} episodeId={episodeId} onMedia={onMedia} />
       </section>
       <div className="ew-voice-heading">
         <h3>حالة المقاطع الصوتية</h3>
