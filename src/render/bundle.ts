@@ -2,6 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import { lstat, mkdtemp, readdir, rm } from "node:fs/promises";
 import type { EpisodeMedia } from "../plan/media";
+import { verifyStagedMedia } from "../plan/renderStage";
 import { bundle } from "@remotion/bundler";
 import { projectRoot } from "../config/paths";
 import { assertNoLinkedPath, copyUnlinkedFile, ensureUnlinkedDirectory } from "./fsIsolation";
@@ -48,6 +49,7 @@ export const stageRemotionPublicDir = async (
       const storyboard = /^_storyboard_media\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*-[a-f0-9]{16}\/$/;
       if (!render.test(base) && !storyboard.test(base))
         throw new Error("مسار وسائط غير معزول في حزمة Remotion.");
+      await verifyStagedMedia(publicRoot, base);
       const source = path.join(publicRoot, base);
       await assertNoLinkedPath(source);
       const target = path.join(dir, base);
