@@ -122,6 +122,17 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   await assertNoLinkedPath(scriptPath, true);
   assertRenderChannelOwnership(scriptPath, loadChannel().id);
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
+  // Check destination confinement and symlinked parents before copying episode
+  // audio or starting a renderer. Unknown custom output paths fail with no job.
+  const outputRoot = path.join(path.dirname(scriptPath), "out");
+  const output = opts.outFile ?? path.join(outputRoot,
+    `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
+  if (!/\\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
+  const relativeOutput = path.relative(outputRoot, output);
+  if (relativeOutput === ".." || relativeOutput.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeOutput) || relativeOutput === "")
+    throw new Error("يجب حفظ فيديو الحلقة داخل out/ للحلقة المختارة فقط.");
+  await ensureUnlinkedDirectory(path.dirname(output));
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
@@ -158,14 +169,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
-  const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
-  // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
-  if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
-  const outputRoot = path.join(path.dirname(scriptPath), "out");
-  const relativeOutput = path.relative(outputRoot, output);
-  if (relativeOutput === ".." || relativeOutput.startsWith(`..${path.sep}`) || path.isAbsolute(relativeOutput) || relativeOutput === "")
-    throw new Error("يجب حفظ فيديو الحلقة داخل out/ للحلقة المختارة فقط.");
-  await ensureUnlinkedDirectory(path.dirname(output));
+  // A previous output is never replaced: partials publish as new revisions.
   // Unique per invocation: concurrent landscape/portrait attempts cannot overwrite
   // or remove one another's partial file. Rename is only performed after success.
   const tempOutput = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
