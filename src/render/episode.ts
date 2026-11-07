@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir, rm } from "node:fs/promises";
-import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
+import { assertNoLinkedPath, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { assertMasterStageAuthorized, masterRenderSubject } from "./masterGateContract";
 import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
@@ -106,16 +106,25 @@ export const assertRenderMediaOwnership = (scriptPath: string, media: EpisodeMed
     throw new Error("وسائط الرندر لا تخص القناة والحلقة المختارتين؛ لا يمكن تضمينها.");
 };
 
+/** Do not blend the identity/configuration of the active channel with
+ * another channel's explicitly supplied script pathname. */
+export const assertRenderChannelOwnership = (scriptPath: string, activeChannelId: string): void => {
+  if (studioMediaNamespace(scriptPath).channelName !== activeChannelId)
+    throw new Error("مسار السكريبت لا يخص القناة النشطة؛ يجب تغيير القناة قبل الرندر.");
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   const log = opts.onProgress ?? (() => {});
+  const scriptPath = await resolveScriptPath(opts.episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
-  assertRenderMediaOwnership(await resolveScriptPath(opts.episode), media);
+  assertRenderMediaOwnership(scriptPath, media);
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
-    const scriptPath = await resolveScriptPath(opts.episode);
     const sbRecord = await loadStoryboard(scriptPath);
     await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
     const { loadStoryboardMotion } = await import("./storyboardMotion");
@@ -142,15 +151,14 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   try {
   const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
-  const timingMode = await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
+  const timingMode = await voiceTimingMode(scriptPath, plan, media);
   const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
   if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
-  const scriptForOutput = await resolveScriptPath(opts.episode);
-  const outputRoot = path.join(path.dirname(scriptForOutput), "out");
+  const outputRoot = path.join(path.dirname(scriptPath), "out");
   const relativeOutput = path.relative(outputRoot, output);
   if (relativeOutput === ".." || relativeOutput.startsWith(`..${path.sep}`) || path.isAbsolute(relativeOutput) || relativeOutput === "")
     throw new Error("يجب حفظ فيديو الحلقة داخل out/ للحلقة المختارة فقط.");
