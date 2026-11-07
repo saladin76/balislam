@@ -67,6 +67,29 @@ describe("trust-boundary for Studio workflow approval presentation", () => {
     expect(parse(raw).stages.script.currentApproval).toBe(true);
   });
 
+  it("verifies the cumulative signed approval sequence of every upstream stage", () => {
+    const raw = make();
+    const next = {
+      ...approved, by: { id: "صاحب المشروع", role: "owner" },
+      artifactSha256: sha("d"), artifactEpoch: sha("e"), fingerprint: sha("f"),
+      approvalEventSeq: 2, prerequisiteApprovalSeq: [1],
+    };
+    raw.stages.script = { status: "approved", approval: { ...approved }, currentApproval: true };
+    raw.stages.storyboard = { status: "approved", approval: next, currentApproval: true };
+    raw.history = [
+      { seq: 1, stage: "script", action: "approve", by: approved.by.id,
+        at: approved.at, fingerprint: approved.fingerprint },
+      { seq: 2, stage: "storyboard", action: "approve", by: next.by.id,
+        at: next.at, fingerprint: next.fingerprint },
+    ];
+    expect(parse(raw).stages.storyboard.status).toBe("approved");
+    raw.stages.storyboard.approval.prerequisiteApprovalSeq = [9];
+    expect(() => parse(raw)).toThrow(/الأسلاف/);
+    raw.stages.storyboard.approval.prerequisiteApprovalSeq = [1];
+    raw.stages.script.status = "needs_reapproval";
+    expect(() => parse(raw)).toThrow(/الأسلاف/);
+  });
+
   it("preserves invalidation reason and history but never labels a stale approval as current", () => {
     const raw = make();
     raw.stages.voice = { status: "needs_reapproval", approval: approved, reason: "MP3 تغيّر بعد الاعتماد" };
