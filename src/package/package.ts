@@ -150,7 +150,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
       // Old shorts will be archived (never deleted) only after that point.
       log(`الحلقة بجودة: ${q.label}`);
       const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
-      const oldShorts = (await readdir(dir)).filter((f) => /-short-\\d+\\.(mp4|[a-z]+\\.srt)$/.test(f));
+      const oldShorts = (await readdir(dir)).filter((f) => /-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f));
       if (oldShorts.length) {
         const archiveDir = path.join(dir, "history", `superseded-${randomUUID()}`);
         await mkdir(archiveDir, { recursive: true });
@@ -159,7 +159,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
       const st = await readStatus();
       if (st.approved) {
         delete st.approved;
-        await writeFile(statusFile, JSON.stringify(st, null, 2) + "\\n");
+        await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
       }
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
