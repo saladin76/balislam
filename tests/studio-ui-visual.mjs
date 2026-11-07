@@ -234,6 +234,7 @@ try {
   const openedReview = await evaluate("(() => {const b=[...document.querySelectorAll('.ew-stages button')].find(x=>x.textContent.includes('المراجعة المتكاملة'));if(!b)return false;b.click();return true;})()");
   assert("integrated AV stage opens", openedReview);
   await waitFor(".studio-review-workspace");
+  await until(() => evaluate("(() => { const n=document.querySelector('.ew-stages'); const a=n?.querySelector('[aria-current=step]'); if(!n||!a)return false; const b=n.getBoundingClientRect(),x=a.getBoundingClientRect(); return x.left>=b.left-3 && x.right<=b.right+3; })()"), "active mobile stage visible", 6000);
   assert("AV media and evidence share responsive layout", await evaluate("Boolean(document.querySelector('.studio-review-main-grid .studio-review-screen') && document.querySelector('.studio-review-main-grid .studio-review-evidence'))"));
   await screenshot("14-av-mobile-390.png");
   await resize(820, 1180);
