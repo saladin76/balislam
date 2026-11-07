@@ -14,7 +14,7 @@ import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import "./workspace/workspace.css";
-import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
+import { ScriptTab, type ScriptTabHandle, type ResearchDraft } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
 import { OpsRoom } from "./tabs/OpsRoom";
@@ -111,6 +111,18 @@ export const App: React.FC = () => {
   /** القناة التي تخصها قائمة الحلقات المعروضة */
   const episodesOf = useRef("");
   const scriptRef = useRef<ScriptTabHandle>(null);
+  /** Unsaved text is kept by channel/episode through in-app navigation, never in production files. */
+  const scriptDrafts = useRef(new Map<string, { text: string; saved: string }>());
+  const researchDrafts = useRef(new Map<string, ResearchDraft>());
+  const sessionKey = `${channelId}/${epId}`;
+  const onResearchDraftChange = useCallback((draft: ResearchDraft) => {
+    researchDrafts.current.set(`${channelId}/${epId}`, draft);
+    setResearchDirty(draft.text !== draft.saved);
+  }, [channelId, epId]);
+  useEffect(() => {
+    const saved = researchDrafts.current.get(`${channelId}/${epId}`);
+    setResearchDirty(Boolean(saved && saved.text !== saved.saved));
+  }, [channelId, epId]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** آخر خطة لم تُحفظ بعد (تنتظر مؤقت الحفظ التلقائي) */
   const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
@@ -191,7 +203,8 @@ export const App: React.FC = () => {
       setPlan(d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
-        setScript(d.script);
+        const draft = scriptDrafts.current.get(`${ch}/${id}`);
+        setScript(draft && draft.text !== draft.saved ? draft.text : d.script);
         setSavedScript(d.script);
       }
       setCheck(d.check);
@@ -235,21 +248,31 @@ export const App: React.FC = () => {
   }, [epId, flushPlan]);
 
   const saveScript = async () => {
-    // تعديلات المشاهد المعلّقة تُحفظ أولًا، ثم يعيد الخادم بناء الخطة مع إبقائها
+    // Preserve edits typed while a save is in flight; do not rebind the reply to another episode.
+    const snapshot = script, ch = channelId, episode = epId;
     await flushPlan();
     let r;
     try {
-      r = await api.saveScript(epId, script);
+      r = await api.saveScript(episode, snapshot);
     } catch (e) {
       say(`تعذّر حفظ السكريبت: ${(e as Error).message}`, true);
       return;
     }
-    setSavedScript(script);
-    setCheck(r.check);
-    setPlan(r.plan);
-    setPlanState("saved");
-    api.episode(epId).then((d) => { setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys }); }).catch(() => {});
-    say("حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك");
+    scriptDrafts.current.set(`${ch}/${episode}`, {
+      text: scriptDrafts.current.get(`${ch}/${episode}`)?.text ?? snapshot, saved: snapshot,
+    });
+    if (channelRef.current === ch && episodeRef.current === episode) {
+      setSavedScript(snapshot);
+      setCheck(r.check);
+      setPlan(r.plan);
+      setPlanState("saved");
+      api.episode(episode, ch).then((d) => {
+        if (channelRef.current === ch && episodeRef.current === episode) {
+          setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys });
+        }
+      }).catch(() => {});
+      say("حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك");
+    }
   };
 
   const scriptDirty = script !== savedScript;
@@ -258,7 +281,9 @@ export const App: React.FC = () => {
   // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
-      if (scriptDirtyRef.current || researchDirty || pendingPlan.current) {
+      if (scriptDirtyRef.current || researchDirty || pendingPlan.current ||
+          [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          [...researchDrafts.current.values()].some((d) => d.text !== d.saved)) {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
         e.returnValue = "";
@@ -267,11 +292,9 @@ export const App: React.FC = () => {
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
   }, [researchDirty]);
-  const confirmLeaveScript = () => {
-    if (scriptDirty && !window.confirm("في السكريبت تعديلات غير محفوظة. هل تريد مغادرة المحرر؟")) return false;
-    if (scriptRef.current?.hasUnsavedResearch() && !window.confirm("في ملف البحث تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟")) return false;
-    return true;
-  };
+  // Navigating between workspaces cannot discard an unsaved script or research draft.
+  // Both are restored from the per-channel, per-episode in-memory maps on return.
+  const confirmLeaveScript = () => true;
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
   const navigateManage = async (next: Tab) => {
@@ -298,7 +321,10 @@ export const App: React.FC = () => {
       />
       {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
       <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty ||
+          [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          Boolean(pendingPlan.current) || planState === "error"} />
         <header className="top studio-topbar">
           <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
           <div className="studio-page-heading"><span>الاستوديو <i aria-hidden="true">/</i> {channel.name}</span><strong>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</strong></div>
@@ -514,7 +540,12 @@ export const App: React.FC = () => {
             onOpenVoice={() => setTab("voice")}
           />
         ) : (
-          <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
+          <ScriptTab key={`${channelId}:${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} researchDraft={researchDrafts.current.get(sessionKey) ?? null} onResearchDraftChange={onResearchDraftChange}
+             onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check}
+             onChange={(next) => {
+               scriptDrafts.current.set(sessionKey, { text: next, saved: savedScript });
+               setScript(next);
+             }} onSave={saveScript} />
         )}
 
         {showNew ? (
