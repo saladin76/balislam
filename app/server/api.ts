@@ -215,14 +215,14 @@ export const balApi = (): Plugin => ({
               const body = await readBody(req);
               if (!body || typeof body !== "object" || Array.isArray(body) ||
                   (body.scope !== "episode" && typeof body.sceneId !== "string") || typeof body.reviewer !== "string" ||
-                  typeof body.note !== "string")
+                  typeof body.note !== "string" || body.listened !== true)
                 throw new HttpError(400, "اعتماد الصوت يتطلب المشهد واسم المراجع وملاحظة الاستماع.");
               if ((typeof body.sceneId === "string" && body.sceneId.length > 85) || body.reviewer.length > 120 || body.note.length > 2000)
                 throw new HttpError(400, "حقول المراجعة طويلة جدًا.");
               if (body.scope === "episode") {
-                await approveVoiceEpisode(scriptPath, plan, voice, body.reviewer, body.note);
+                await approveVoiceEpisode(scriptPath, plan, voice, body.reviewer, body.note, body.listened === true);
               } else {
-                await approveVoiceScene(scriptPath, plan, voice, body.sceneId, body.reviewer, body.note);
+                await approveVoiceScene(scriptPath, plan, voice, body.sceneId, body.reviewer, body.note, body.listened === true);
               }
               return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice),
                 episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
