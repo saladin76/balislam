@@ -4,18 +4,19 @@
  * مع بصمة كل مشهد، فالمشهد الذي تغيّر بعد القياس يظهر «يحتاج قياسًا جديدًا».
  */
 import { existsSync } from "node:fs";
-import { readFile, rm, writeFile, rename } from "node:fs/promises";
+import { readFile, rm, writeFile, rename, link } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { loadPlan, regeneratePlan } from "../plan/io";
-import { prepareRenderMedia } from "../plan/collect";
+import { prepareRenderMedia, studioMediaNamespace } from "../plan/collect";
 import { sceneFrames } from "../plan/duration";
 import { sceneHash } from "../plan/sceneReview";
 import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
-import { outDirFor, voiceTimingMode } from "./episode";
+import { assertRenderChannelOwnership, outDirFor, voiceTimingMode } from "./episode";
+import { assertNoLinkedPath, ensureUnlinkedDirectory } from "./fsIsolation";
 import { resolveScriptPath } from "../script/episodes";
 import { ACTIVE_PCT, measureMotion } from "./motionMeter";
 import { inspectMotionLogic, type MotionLogicReview } from "../plan/motionLogic";
@@ -40,6 +41,10 @@ export const loadStoryboardMotion = async (episode: string): Promise<StoryboardM
 export const measureStoryboardMotion = async (episode: string, opts: { orientation?: "landscape" | "portrait"; onProgress?: (pct: number, msg: string) => void } = {}) => {
   const log = opts.onProgress ?? (() => {});
   const orientation = opts.orientation ?? "landscape";
+  const scriptPath = await resolveScriptPath(episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
+  const { episodeName } = studioMediaNamespace(scriptPath);
   const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
   log(0, "تجهيز الوسائط…");
   const media = await prepareRenderMedia(episode, plan);
@@ -48,11 +53,11 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   const serveUrl = sandbox.serveUrl;
   const channel = loadChannel();
   const info = channelInfo(channel);
-  const timingMode = await voiceTimingMode(await resolveScriptPath(episode), plan, media);
+  const timingMode = await voiceTimingMode(scriptPath, plan, media);
   const inputProps = { plan, orientation, media, timingMode, identity: loadChannelIdentity(), channel: info };
   const inputHash = await currentMotionFingerprint(episode, plan, orientation);
   const composition = await selectComposition({ serveUrl, id: `episode-${orientation}`, inputProps, browserExecutable: browserExecutable() });
-  const video = path.join(await outDirFor(episode), `${episode}-storyboard-${orientation}.${randomUUID()}.mp4`);
+  const video = path.join(await outDirFor(episode), `${episodeName}-storyboard-${orientation}.${randomUUID()}.mp4`);
   let last = -1;
   try {
   await renderMedia({
@@ -100,14 +105,23 @@ export const measureStoryboardMotion = async (episode: string, opts: { orientati
   const out: StoryboardMotion = { at: new Date().toISOString(), percent: m.percent, orientation, inputHash, scenes };
   const outputFile = await storyboardMotionFile(episode);
   const reportFile = path.join(path.dirname(outputFile), "storyboard-motion-report.md");
-  // كتابة نص التقرير قبل JSON: لا نعرض نتيجة جديدة إلا بعد وجود نصها.
-  await writeFile(reportFile, renderMotionAuditMarkdown(plan, out));
+  // Stage both reports, archive old versions, then expose the current JSON
+  // pointer last. A failed attempt never destroys earlier evidence.
+  const history = path.join(path.dirname(outputFile), "history", "motion");
+  await ensureUnlinkedDirectory(history);
   const tmpFile = `${outputFile}.${randomUUID()}.tmp`;
+  const tmpReport = `${reportFile}.${randomUUID()}.tmp`;
   try {
-    await writeFile(tmpFile, JSON.stringify(out, null, 2) + "\n");
+    await writeFile(tmpReport, renderMotionAuditMarkdown(plan, out), { flag: "wx" });
+    await writeFile(tmpFile, JSON.stringify(out, null, 2) + "\n", { flag: "wx" });
+    for (const target of [reportFile, outputFile]) if (existsSync(target)) {
+      await assertNoLinkedPath(target, true);
+      await link(target, path.join(history, `${randomUUID()}-${path.basename(target)}`));
+    }
+    await rename(tmpReport, reportFile);
     await rename(tmpFile, outputFile);
   } finally {
-    await rm(tmpFile, { force: true });
+    await Promise.allSettled([rm(tmpFile, { force: true }), rm(tmpReport, { force: true })]);
   }
   log(100, "تم");
   return out;
