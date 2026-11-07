@@ -13,7 +13,12 @@ describe("core API file selectors", () => {
       "..", ".", "../secret.png", "..%2Fsecret.png", "media%2Fsecret.png",
       "folder%5Csecret.png", "%00private", "%E0%A4%A",
     ]) {
-      expect(() => safeName(name), name).toThrow(expect.objectContaining({ status: 400 }));
+      try {
+        safeName(name);
+        throw new Error(`Allowed invalid filename: ${name}`);
+      } catch (e) {
+        expect(e).toMatchObject({ status: 400 });
+      }
     }
   });
 });
