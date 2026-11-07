@@ -98,6 +98,13 @@ export const EpisodeWorkspaceBar: React.FC<{
     master: published ? "توجد بيانات نشر؛ الاعتماد الرسمي يحتاج سجله الخاص" : "لا يثبت الرندر أو وجود الملفات موافقة صاحب المشروع",
   };
   const visible = showAll ? notes : notes.slice(0, 3);
+  // The backend verifies persisted bytes; an unsaved editor draft is a different version.
+  // Hide green approvals instead of presenting the last saved version as approved.
+  const localChanges = scriptDirty || researchDirty || saveState !== "saved";
+  const visibleApprovals = localChanges ? null : approvals;
+  const visibleWorkflowError = localChanges
+    ? "توجد تعديلات محلية غير محفوظة أو قيد الحفظ؛ الاعتمادات السابقة لا تخص هذه المسودة."
+    : workflowError;
   const saveLabel = scriptDirty || researchDirty || saveState === "dirty" ? "تعديلات غير محفوظة" : saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذر الحفظ" : "تعديلات المشاهد محفوظة";
 
   return (
@@ -115,11 +122,11 @@ export const EpisodeWorkspaceBar: React.FC<{
             aria-current={stage === item.tab || (stage === "research" && item.key === "script") ? "step" : undefined}
             onClick={() => onStage(item.tab)}>
             <span className="ew-stage-number">{index + 1}</span>
-            <span><strong>{item.title}</strong><small>{approvalLabel(approvals?.stages[item.key])}</small></span>
+            <span><strong>{item.title}</strong><small>{approvalLabel(visibleApprovals?.stages[item.key])}</small></span>
           </button>
         ))}
       </nav>
-      <WorkflowApprovalDetails approvals={approvals} error={workflowError} technical={technical} />
+      <WorkflowApprovalDetails approvals={visibleApprovals} error={visibleWorkflowError} technical={technical} />
       {notes.length ? (
         <div className="ew-attention" aria-label="ملاحظات الحلقة">
           <button className="ew-attention-title" type="button" aria-expanded={attentionOpen}
