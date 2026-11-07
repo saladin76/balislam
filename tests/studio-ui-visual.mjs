@@ -55,6 +55,9 @@ const tests = [];
 function assert(label, ok) { if (!ok) throw new Error("UI failed: " + label); tests.push(label); }
 try {
   if (!binary) throw new Error("Real Chromium is required for visual evidence.");
+  if (process.env.CI !== "true" && process.env.STUDIO_UI_ISOLATED_QA !== "yes") {
+    throw new Error("Run visual QA only inside a disposable checkout; set STUDIO_UI_ISOLATED_QA=yes after isolating test files.");
+  }
   await mkdir(output, { recursive: true });
   tmp = await mkdtemp(path.join(os.tmpdir(), "studio-ui-ci-"));
   vite = spawn("npm", ["run", "app", "--", "--host", "127.0.0.1", "--port", "4321", "--strictPort"], {
@@ -122,7 +125,7 @@ try {
 
   await resize(1440, 900);
   await cmd("Page.navigate", { url: "http://127.0.0.1:4321/" });
-  await waitFor("#studio-navigation");
+  await waitFor("#studio-navigation .studio-nav-item");
   await navigate("غرف العمليات");
   await waitFor(".ops-section-nav");
   await screenshot("01-ops-desktop-1440.png");
@@ -143,6 +146,21 @@ try {
   await waitFor(".ew-stages");
   assert("six episode steps", await evaluate("document.querySelectorAll('.ew-stages button').length===6"));
   await waitFor("#script-editor");
+  const goStage = async (name, selector) => {
+    const selected = await evaluate("(() => {const item=[...document.querySelectorAll('.ew-stages button')].find(x=>x.textContent.includes(" +
+      JSON.stringify(name) + "));if(!item)return false;item.click();return true;})()");
+    assert("stage reachable: " + name, selected);
+    await waitFor(selector);
+  };
+  await goStage("الستوري بورد", ".ew-storyboard-wrap");
+  await screenshot("05-storyboard-desktop-1440.png");
+  await goStage("التعليق الصوتي", ".ew-voice-stage");
+  await screenshot("06-voice-desktop-1440.png");
+  await goStage("الحركة والمشاهد", ".episode-workspace-app .work");
+  await screenshot("07-scenes-desktop-1440.png");
+  await goStage("Master والنشر", ".publish");
+  await screenshot("08-master-desktop-1440.png");
+  await goStage("السكريبت والمصادر", "#script-editor");
   const scriptMarker = " [UI-UNSAVED-SCRIPT]";
   assert("script editor changed locally", await typeDraft("#script-editor", scriptMarker));
   await delay(250);
@@ -151,10 +169,11 @@ try {
   await navigate("مساحة الحلقة المفتوحة");
   await waitFor("#script-editor");
   assert("script draft survives navigation", await evaluate("document.querySelector('#script-editor')?.value.endsWith(" + JSON.stringify(scriptMarker) + ")"));
-  await screenshot("05-episode-desktop-1440.png");
+  await screenshot("09-episode-draft-desktop-1440.png");
 
   assert("research shortcut available", await click(".ew-research-shortcut"));
   await waitFor("#research-editor");
+  await until(() => evaluate("!document.querySelector('#research-editor')?.disabled"), "research content loaded");
   const researchMarker = " [UI-UNSAVED-RESEARCH]";
   assert("research editor changed locally", await typeDraft("#research-editor", researchMarker));
   await delay(250);
@@ -166,25 +185,25 @@ try {
   await waitFor("#research-editor");
   assert("research draft survives navigation", await evaluate("document.querySelector('#research-editor')?.value.endsWith(" + JSON.stringify(researchMarker) + ")"));
   await resize(390, 844, true);
-  await screenshot("06-research-mobile-390.png");
+  await screenshot("10-research-mobile-390.png");
   assert("mobile navigation can open", await click(".studio-menu-toggle"));
   await until(() => evaluate("document.querySelector('.studio-shell')?.classList.contains('is-nav-open')"), "mobile sidebar");
-  await screenshot("07-navigation-mobile-390.png");
+  await screenshot("11-navigation-mobile-390.png");
   await key("Escape", "Escape", 27);
   await until(() => evaluate("!document.querySelector('.studio-shell')?.classList.contains('is-nav-open')"), "mobile Escape");
   const openedReview = await evaluate("(() => {const b=[...document.querySelectorAll('.ew-stages button')].find(x=>x.textContent.includes('المراجعة المتكاملة'));if(!b)return false;b.click();return true;})()");
   assert("integrated AV stage opens", openedReview);
   await waitFor(".studio-review-workspace");
-  await screenshot("08-av-mobile-390.png");
+  await screenshot("12-av-mobile-390.png");
   await resize(820, 1180);
-  await screenshot("09-av-tablet-820.png");
+  await screenshot("13-av-tablet-820.png");
   await resize(1440, 900);
-  await screenshot("10-av-desktop-1440.png");
+  await screenshot("14-av-desktop-1440.png");
   await writeFile(path.join(output, "result.json"), JSON.stringify({
     passed: true, testCount: tests.length, tests, date: new Date().toISOString(), chrome: version.Browser,
     origin: "isolated CI runner", wroteEpisodeFiles: false, renderStarted: false, approvalGranted: false,
   }, null, 2));
-  console.log("STUDIO_UI_VISUAL_PASS", JSON.stringify({ checks: tests.length, screenshots: 10 }));
+  console.log("STUDIO_UI_VISUAL_PASS", JSON.stringify({ checks: tests.length, screenshots: 14 }));
 } catch (error) {
   await mkdir(output, { recursive: true });
   await writeFile(path.join(output, "failure.txt"), String(error?.stack || error));
