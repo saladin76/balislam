@@ -119,7 +119,7 @@ describe("trusted workflow API, evidence and exact-master publication contract",
 
   it("requires a valid human session and prevents skipped stage approval", async () => {
     const x = await make();
-    x.user.current = { id: "fake", role: "owner", authenticated: false };
+    x.user.current = { id: "fake", role: "owner", authenticated: false } as never;
     await expect(x.service.inspect()).rejects.toThrow(/authenticated/);
     x.owner();
     const { snapshot } = await x.service.inspect();
