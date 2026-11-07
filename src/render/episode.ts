@@ -104,6 +104,11 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
     const scriptPath = await resolveScriptPath(opts.episode);
+    // Every direct Master path (Studio queue, CLI, package/shorts) must enforce
+    // distinct explicit script, visual and complete-audio human signoffs BEFORE
+    // assembling the expensive animated Master. Preview remains estimated.
+    const { assertMotionStartAuthorized } = await import("../voice/motionGate");
+    await assertMotionStartAuthorized(scriptPath, plan, media.voice);
     const sbRecord = await loadStoryboard(scriptPath);
     await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
     const { loadStoryboardMotion } = await import("./storyboardMotion");

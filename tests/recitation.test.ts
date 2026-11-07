@@ -7,6 +7,7 @@ import { createQuranClient } from "../src/quran/client";
 import { syncQuran } from "../src/quran/sync";
 import { collectMedia, prepareRenderMedia } from "../src/plan/collect";
 import { prepareOwnRecitation, approveOwnRecitation } from "../src/quran/manualAudio";
+import { renderEpisode } from "../src/render/episode";
 import { requireCloudPublicationRights, activeRecitation, episodeRecitationFile, saveEpisodeRecitation, readEpisodeRecitation } from "../src/quran/provider";
 import { regeneratePlan } from "../src/plan/io";
 
@@ -162,4 +163,15 @@ describe("integrated manual recitation staging", () => {
     writeFileSync(path.join(tmp, "balislam", "episodes", "000-demo", "recitations", candidate.file), Buffer.from("invalid audio bytes"));
     await expect(collectMedia("000", plan)).rejects.toThrow(/تغيّرت أو فقدت اعتمادها/);
   }, 35000);
+});
+
+describe("final-motion entrypoint integration", () => {
+  it("blocks a direct CLI/API-equivalent Master before Remotion when full owner signoffs are absent", async () => {
+    const plan = await regeneratePlan("000");
+    const raw = await collectMedia("000", plan).catch(() => ({ voice: {}, sfx: [], recitations: {}, images: [] }));
+    await expect(renderEpisode({
+      episode: "000", orientation: "landscape", quality: "master", plan,
+      media: { ...raw, mode: "url", base: "" },
+    })).rejects.toThrow(/السكريبت|اعتماد|المصادر/);
+  }, 30000);
 });
