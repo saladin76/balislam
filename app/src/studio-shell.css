@@ -256,3 +256,58 @@
   .studio-shell .studio-topbar-controls { flex-wrap: wrap; }
   .studio-shell .studio-channels-workspace, .studio-shell .studio-review-workspace { padding: 14px; }
 }
+
+
+/* Visual acceptance refinements: denser AV review on large screens without losing native video controls. */
+.studio-shell .studio-review-workspace { padding-block: clamp(12px, 2vw, 24px); }
+.studio-review-workspace .studio-workspace-intro { margin-bottom: 14px; }
+.studio-review-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  max-width: 1380px;
+  margin-inline: auto;
+  min-width: 0;
+}
+.studio-review-main-grid > * { min-width: 0; }
+.studio-review-main-grid .studio-review-evidence { margin: 0; max-width: none; }
+.studio-review-video-frame { position: relative; min-width: 0; }
+.studio-review-video-state {
+  position: absolute;
+  inset-inline: 8%;
+  top: 40%;
+  transform: translateY(-50%);
+  padding: 12px 16px;
+  border-radius: 10px;
+  color: #ecf5f1;
+  background: #102a31e8;
+  border: 1px solid #55877f88;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.7;
+  pointer-events: none;
+}
+.studio-review-video-state.is-error { color: #fff2ea; border-color: #ffb39a; background: #562e2ee8; }
+@media (min-width: 1200px) {
+  .studio-review-main-grid { grid-template-columns: minmax(0, 1.75fr) minmax(240px, .7fr); }
+  .studio-review-main-grid .studio-review-evidence { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .studio-review-main-grid .studio-review-evidence article { padding: 13px 15px; gap: 4px; }
+  .studio-review-main-grid .studio-review-screen video { max-height: 56vh; }
+}
+@media (max-width: 700px) {
+  .studio-review-video-state { inset-inline: 5%; padding: 9px 11px; font-size: 11px; }
+  .studio-shell .ew-stages > button { flex: 0 0 clamp(155px, 46vw, 183px); }
+  .studio-shell .ew-stages { gap: 6px; scroll-padding-inline: 6px; }
+}
+.studio-shell .episode-workspace-header { padding-block: 14px 11px; }
+.studio-shell .ew-voice-stage { gap: 11px; padding-block: 10px 20px; }
+.studio-shell .episode-workspace-app > .publish > .empty-state {
+  box-sizing: border-box;
+  max-width: 650px;
+  margin: 14px auto !important;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
