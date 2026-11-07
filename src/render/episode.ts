@@ -104,7 +104,7 @@ export const voiceTimingMode = async (scriptPath: string, plan: Plan, media: Epi
 /** Reject snapshots from other channels or episodes, including caller supplied media. */
 export const assertRenderMediaOwnership = (scriptPath: string, media: EpisodeMedia): void => {
   const expected = studioMediaNamespace(scriptPath).render;
-  const valid = /^_render\\/[a-z0-9]+(?:-[a-z0-9]+)*\\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*\\/[a-f0-9]{24}\\/$/;
+  const valid = new RegExp("^_render/[a-z0-9]+(?:-[a-z0-9]+)*/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*/[a-f0-9]{24}/$");
   if (media.mode !== "static" || !valid.test(media.base) || !media.base.startsWith(expected))
     throw new Error("وسائط الرندر لا تخص القناة والحلقة المختارتين.");
 };
