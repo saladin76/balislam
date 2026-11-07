@@ -235,3 +235,24 @@
 .studio-review-notes-list button > span { font-variant-numeric: tabular-nums; color: var(--muted); }
 .studio-review-notes-list button > strong { max-width: 100%; overflow-wrap: anywhere; line-height: 1.7; }
 .studio-review-notes-list button > em { color: var(--accent); font-style: normal; margin-inline-start: auto; }
+
+
+/* Keyboard, touch and RTL safeguards for all three separate workspaces. */
+.studio-shell .ops-cell[role="button"]:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.studio-shell .studio-channel-actions button:focus-visible,
+.studio-shell .studio-review-actions button:focus-visible,
+.studio-shell .studio-review-notes-list button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.studio-shell .studio-ops-workspace .ops-sec[hidden] { display: none !important; }
+.studio-shell .studio-ops-workspace .ops-section-nav button,
+.studio-shell .studio-channel-actions button,
+.studio-shell .studio-review-actions button { min-height: 44px; }
+.studio-review-screen video { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
+.studio-review-no-video { min-height: min(38vh, 290px); display: grid; place-items: center; padding: 16px; text-align: center; }
+.studio-review-workspace, .studio-channels-workspace, .episode-workspace-header { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .studio-shell .studio-ops-workspace .ops-section-nav { flex-wrap: nowrap; overflow-x: auto; }
+  .studio-shell .studio-ops-workspace .ops-section-nav button { white-space: nowrap; flex-shrink: 0; }
+  .studio-shell .studio-review-screen video { max-height: 48vh; }
+  .studio-shell .studio-topbar-controls { flex-wrap: wrap; }
+  .studio-shell .studio-channels-workspace, .studio-shell .studio-review-workspace { padding: 14px; }
+}
