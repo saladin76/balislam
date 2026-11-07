@@ -164,6 +164,7 @@ describe("immutable Remotion assets across channels and episodes", () => {
     const { root, publicRoot } = await scratch();
     await mkdir(path.join(publicRoot, "fonts"), { recursive: true });
     await writeFile(path.join(publicRoot, "fonts", "common.woff2"), "SHARED");
+    await writeFile(path.join(publicRoot, "accidental-private.mp3"), "NEVER BUNDLE");
     const one = path.join(root, "one.png");
     const two = path.join(root, "two.png");
     await writeFile(one, "EPISODE ONE");
@@ -175,6 +176,7 @@ describe("immutable Remotion assets across channels and episodes", () => {
     try {
       expect(await readFile(staged(scope.dir, own), "utf8")).toBe("EPISODE ONE");
       expect(await readFile(path.join(scope.dir, "fonts", "common.woff2"), "utf8")).toBe("SHARED");
+      expect(existsSync(path.join(scope.dir, "accidental-private.mp3"))).toBe(false);
       expect(existsSync(path.join(scope.dir, foreign))).toBe(false);
       expect(existsSync(path.join(scope.dir, "_render", "dafatir-alzaman"))).toBe(false);
     } finally {
