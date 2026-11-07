@@ -84,7 +84,7 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
     await verifyProofFiles(proofs);
     return proofs;
   };
-  const inspect = async () => {
+  const inspect = async () => deps.withArtifactLock(async () => {
     await principal();
     const { snapshot } = await capture();
     const ledger = await readWorkflow(deps.scope, snapshot);
@@ -99,7 +99,7 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
       }
     }
     return { snapshot, ledger: await readWorkflow(deps.scope, snapshot) };
-  };
+  });
   const command = async (raw: WorkflowClientCommand) => {
     const input = validateClientCommand(raw);
     return deps.withArtifactLock(async () => {
