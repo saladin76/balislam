@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseScript } from "../src/script/parse";
-import { quranFromScript, historicalMeanings } from "../src/quran/scriptText";
+import { quranFromScript, historicalMeanings, historicalMeaningConflict } from "../src/quran/scriptText";
 import { readPlanFile } from "../src/plan/io";
 import { generatePlan } from "../src/plan/generate";
 import { reviewItems, type ReviewLedger } from "../src/script/review";
@@ -29,6 +29,15 @@ episode: "999"
 const sha = (text: string | Buffer) => createHash("sha256").update(text).digest("hex");
 
 describe("Quran script-first text, review and historical meanings", () => {
+  it("never silently replaces an older meaning, its translator or unknown provenance", () => {
+    const stored = { "53:39#meaning": "النص التاريخي", "53:39#meaningSource": "المترجم القديم" };
+    expect(historicalMeaningConflict(stored, "53:39", "النص التاريخي", "المترجم القديم")).toBeNull();
+    expect(historicalMeaningConflict(stored, "53:39", "النص التاريخي", "مترجم جديد")).toMatch(/لا يمكن استبدالها/);
+    expect(historicalMeaningConflict(stored, "53:39", "ترجمة مختلفة", "المترجم القديم")).toMatch(/تغيّر/);
+    expect(historicalMeaningConflict({ "53:39#meaning": "نص قديم" }, "53:39", "نص بديل", "مترجم جديد")).toMatch(/دون نسبة/);
+    expect(stored["53:39#meaning"]).toBe("النص التاريخي");
+    expect(stored["53:39#meaningSource"]).toBe("المترجم القديم");
+  });
   it("retains exact author text and makes every tashkeel difference reviewable", () => {
     const parsed = parseScript(makeScript(verse));
     const extracted = quranFromScript(parsed);
