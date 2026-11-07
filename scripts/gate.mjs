@@ -118,6 +118,7 @@ if (commit) {
 const results = [];
 try {
   for (const c of CHECKS) {
+    if (interrupted) break;
     console.log(`\n▶ ${c.name}${commit ? ` (commit ${commit.slice(0, 7)})` : ""}`);
     const t0 = Date.now();
     const r = await runCheck(c.cmd, c.args, dir);
