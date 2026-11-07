@@ -8,7 +8,7 @@
  */
 import path from "node:path";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { lstat, open, readFile, rename, rm, stat } from "node:fs/promises";
+import { lstat, open, readFile, rename, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
 import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
@@ -319,7 +319,8 @@ export const decideSceneProduction = async (episode: string,
       (command.note !== undefined && (typeof command.note !== "string" || command.note.length > 4000)))
     throw Error("Malformed scene review command.");
   return withState(episode, async (doc, current) => {
-    const p = doc.state, at = new Date().toISOString(), by = "owner";
+    const p = doc.state, at = new Date().toISOString();
+    const by: "owner" = "owner";
     let next: SceneFirstProduction;
     let resultSha256 = command.expectedSha256;
     const previewEpochs = { ...doc.previewEpochs };
