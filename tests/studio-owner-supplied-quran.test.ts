@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -11,6 +11,12 @@ describe("Studio owner-supplied Quran media, no external provider UI or dispatch
     for (const file of [".env.example", "src/settings/env.ts", "app/src/tabs/SettingsTab.tsx"]) {
       expect(source(file)).not.toMatch(/QF_CLIENT_ID|QF_CLIENT_SECRET|QF_ENV|quran\.foundation/i);
     }
+  });
+
+  it("removes the obsolete public reciter browser and its client-side provider calls", () => {
+    for (const old of ["app/src/workspace/AlQuranCloudBrowser.tsx", "app/src/workspace/recitationRights.ts"])
+      expect(existsSync(path.join(root, old))).toBe(false);
+    expect(source("app/src/api.ts")).not.toMatch(/alquranEditions|alquranAyah|saveRecitationChoice|quranRecitations|quranTranslations/);
   });
 
   it("never invokes a Quran provider on episode open or package production", () => {
