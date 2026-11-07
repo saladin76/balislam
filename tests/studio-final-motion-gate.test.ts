@@ -7,10 +7,16 @@ import { describe, expect, it } from "vitest";
 import { approveStoryboard } from "../src/plan/storyboard";
 import { approveVoiceScene, approveVoiceEpisode } from "../src/voice/review";
 import { assertMotionStartAuthorized } from "../src/voice/motionGate";
+import { assertVoiceApproved } from "../src/voice/review";
 import { scriptSignoffFile } from "../src/script/approval";
 import type { Plan } from "../src/plan/types";
 
 describe("pre-motion human approval safety", () => {
+  it("fails closed when no full-episode narration exists to approve", async () => {
+    const plan = { chapters: [{ number: 1, title: "Empty voice", scenes: [] }] } as unknown as Plan;
+    await expect(assertVoiceApproved(path.join(os.tmpdir(), "not-an-episode", "script.md"), plan, {}))
+      .rejects.toThrow(/لا توجد مقاطع تعليق صوتي/);
+  });
   it("requires separate storyboard and full-episode voice decisions, and rechecks audio bytes", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "studio-final-motion-gate-"));
     const scriptPath = path.join(dir, "script.md");
