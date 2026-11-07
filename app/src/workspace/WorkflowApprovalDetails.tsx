@@ -43,7 +43,7 @@ export const WorkflowApprovalDetails: React.FC<{
           record?.status === "in_review" ? record.submitted?.contentVersion : previous?.contentVersion;
         const lastEvents = (approvals?.history ?? []).filter((event) => event.stage === key).slice(-3).reverse();
         return <article key={key} data-workflow-stage={key} data-workflow-status={record?.status ?? "unavailable"}>
-          <div className="ew-approval-card-title"><strong>{index + 1}. {title}</strong><span>{approvalLabel(record)}</span></div>
+          <div className="ew-approval-card-title"><strong>{index + 1}. {title}</strong><span>{record ? approvalLabel(record) : "غير متاح"}</span></div>
           {record ? <>
             {record.reason ? <p className="ew-approval-reason" role="status">{record.reason}</p> : null}
             <dl>
