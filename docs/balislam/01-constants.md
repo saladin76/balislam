@@ -66,8 +66,8 @@
 
 | القيد | الموضع |
 | --- | --- |
-| نص الآية من Quran Foundation لا من الكتابة اليدوية، ويُفحص حرفًا حرفًا | `syncQuran` (`src/quran/sync.ts`)، `compareVerseText` (`src/quran/compare.ts`)، `auditEpisodeQuran` (`src/quran/audit.ts`)؛ وبطاقة الآية بنص مؤقت خطأ في `planIssues` (`src/plan/validate.ts`) |
-| لا آية في النسخة النهائية بلا تلاوتها المرخّصة أو من القارئ المختار، والصوت المستنسخ لا يتلو القرآن | `versesWithoutRecitation` و`assertMasterReady` (`src/render/episode.ts`)، و`requireCloudPublicationRights` (`src/quran/provider.ts`) |
+| النص القرآني من السكريبت المكتوب والمُراجع فقط؛ لا يُجلب أو يُبدّل من مصدر خارجي | `quranFromScript` (`src/quran/scriptText.ts`)، `compareVerseText` (`src/quran/compare.ts`)، `auditEpisodeQuran` (`src/quran/audit.ts`)، `planIssues` (`src/plan/validate.ts`) |
+| التلاوة البشرية يرفعها المالك وتُراجع حقوقها وبصمتها؛ لا يُستخدم أي ملف تلاوة خارجي بديل في الرندر | `approvedRecitationsForRender` و`assertRenderedRecitationsMatchApprovals` (`src/quran/renderContract.ts`)، `assertMasterReady` (`src/render/episode.ts`) |
 | الحديث بدرجته (صحيح أو حسن فقط) وبنصه | `rules.hadithGrades` في `channels/balislam/channel.json`، وبطاقة حديث بلا نص خطأ في `planIssues` |
 | لا يُولَّد صوت قبل اكتمال توثيق الاستشهادات | سجل التوثيق `src/script/review.ts`، ويُفحص في `assertMasterReady` (`src/render/episode.ts`) |
 | تشكيل 98% على الأقل قبل الصوت | `TASHKEEL` في `src/voice/tashkeelReport.ts` |
