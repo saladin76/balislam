@@ -22,7 +22,7 @@ import { ChannelsWorkspace } from "./tabs/ChannelsWorkspace";
 import { IntegratedReviewWorkspace } from "./workspace/IntegratedReviewWorkspace";
 import { PublishTab } from "./tabs/PublishTab";
 import { LibraryTab } from "./tabs/LibraryTab";
-import { ChannelTab } from "./tabs/ChannelTab";
+import { ChannelTab, type ChannelSettingsDraft } from "./tabs/ChannelTab";
 import { useStudioFonts } from "./ui/useStudioFonts";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
@@ -119,6 +119,7 @@ export const App: React.FC = () => {
   const scriptDrafts = useRef(new Map<string, { text: string; saved: string }>());
   const researchDrafts = useRef(new Map<string, ResearchDraft>());
   const identityDrafts = useRef(new Map<string, { draft: Identity; saved: Identity; defaults: Identity }>());
+  const channelSettingsDrafts = useRef(new Map<string, ChannelSettingsDraft>());
   const sessionKey = `${channelId}/${epId}`;
   const onResearchDraftChange = useCallback((draft: ResearchDraft) => {
     researchDrafts.current.set(`${channelId}/${epId}`, draft);
@@ -326,6 +327,7 @@ export const App: React.FC = () => {
           [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
           [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
           [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
+          [...channelSettingsDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== d.saved) ||
           Boolean(savingPlan.current) || planState !== "saved") {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
@@ -402,6 +404,7 @@ export const App: React.FC = () => {
           [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
           [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
           [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
+          [...channelSettingsDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== d.saved) ||
           Boolean(pendingPlan.current) || Boolean(savingPlan.current) || planState !== "saved"} />
         <header className="top studio-topbar">
           <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
@@ -530,6 +533,9 @@ export const App: React.FC = () => {
           <ChannelTab
             key={channelId}
             identity={ident?.draft}
+            channelId={channelId}
+            draftCache={channelSettingsDrafts.current.get(channelId) ?? null}
+            onDraftCache={(value) => channelSettingsDrafts.current.set(channelId, value)}
             onSaved={() => {
               reloadChannels();
               if (epId) loadEpisode(epId, { keepScript: true });
