@@ -15,7 +15,7 @@ describe("mandatory Studio production ports — integration acceptance contract"
     const gate = vi.fn(async (_action: string) => { throw new Error("Stage has no owner approval"); });
     const publisherGate = vi.fn(async () => { throw new Error("Master bytes not approved"); });
     const lock = vi.fn(async <T>(work: () => Promise<T>) => work()) as WorkflowArtifactLock;
-    const ports = createWorkflowProtectedPorts({ gate, withVerifiedMasterPublication: publisherGate } as never, lock);
+    const ports = createWorkflowProtectedPorts({ gate, withVerifiedMasterPublication: publisherGate, withArtifactLock: lock } as never, lock);
     const runner = vi.fn(async () => "ran");
     await expect(ports.generateVoice(runner)).rejects.toThrow(/approval/);
     await expect(ports.renderFinalMotion(runner)).rejects.toThrow(/approval/);
@@ -48,7 +48,7 @@ describe("mandatory Studio production ports — integration acceptance contract"
         expect(locked).toBe(true);
         return fn({ file: "/private/frozen-approved-master.mp4", sha256: snapshot.master!.sha256, snapshot });
       }));
-    const ports = createWorkflowProtectedPorts({ gate, withVerifiedMasterPublication: publish } as never, lock);
+    const ports = createWorkflowProtectedPorts({ gate, withVerifiedMasterPublication: publish, withArtifactLock: lock } as never, lock);
     const received = await ports.renderFinalMotion(async (verified) => {
       expect(locked).toBe(true);
       expect(verified.snapshot).toEqual(snapshot);
@@ -70,5 +70,10 @@ describe("mandatory Studio production ports — integration acceptance contract"
   it("requires a real shared artifact edit lock; cannot silently run without it", () => {
     const fake = { gate: vi.fn(), withVerifiedMasterPublication: vi.fn() } as unknown as WorkflowGateService;
     expect(() => createWorkflowProtectedPorts(fake, undefined as never)).toThrow(/lock/);
+    const lock: WorkflowArtifactLock = (job) => job();
+    const anotherLock: WorkflowArtifactLock = async (job) => job();
+    expect(() => createWorkflowProtectedPorts({
+      ...fake, withArtifactLock: lock,
+    }, anotherLock)).toThrow(/different artifact locks/);
   });
 });
