@@ -94,6 +94,8 @@ export const balApi = (): Plugin => ({
       if (!url.pathname.startsWith("/api/")) return next();
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
+        if (!isTrustedLocalRequest(req))
+          return send(res, 403, { error: "طلب من موقع خارجي غير مسموح به في Studio المحلي." });
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
