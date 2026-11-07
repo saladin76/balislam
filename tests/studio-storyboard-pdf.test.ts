@@ -211,7 +211,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
   });
   it("numbers each real physical cover, scene and annex page without gaps or duplicates",()=>{
     const x=setup();
-    x.data.scenes[0]!.narration=("عَرَبِيٌّ بِتَشْكِيلٍ English API v2.1 2026 👩🏽‍💻\\n").repeat(35);
+    x.data.scenes[0]!.narration=("عَرَبِيٌّ بِتَشْكِيلٍ English API v2.1 2026 👩🏽‍💻\n").repeat(35);
     x.data.scenes[0]!.notes=("ملاحظة طويلة يليه رقم ۱۲٣٤ ورمز A-9. ").repeat(30);
     x.data.scenes[0]!.chapterTitle=("الفصل الطويل المختلط API V5. ").repeat(12);
     x.data.scenes[0]!.title=("عنوان عربي واختبار English v2. ").repeat(8);
@@ -219,7 +219,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     const output=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
     const html=output.html;
     const pages=(html.match(/<article class="page(?: cover)?"/g)??[]).length;
-    const labels=[...html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\\d+) من (\\d+)/g)];
+    const labels=[...html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
     expect(labels).toHaveLength(pages);
     expect(labels.map((m)=>Number(m[1]))).toEqual(Array.from({length:pages},(_,i)=>i+1));
     expect(labels.every((m)=>Number(m[2])===pages)).toBe(true);
@@ -244,7 +244,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
       const r=buildStoryboardHtml(board,{chapter,chapterCover:true});
       expect(r.scenes).toBe(sceneCount);
       const physicalPages=(r.html.match(/<article class="page(?: cover)?"/g)??[]).length;
-      const numbers=[...r.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\\d+) من (\\d+)/g)];
+      const numbers=[...r.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
       expect(numbers).toHaveLength(physicalPages);
       expect(numbers.map(x=>Number(x[1]))).toEqual(Array.from({length:physicalPages},(_,i)=>i+1));
       expect(numbers.every(x=>Number(x[2])===physicalPages)).toBe(true);
@@ -280,11 +280,11 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(b.html).toContain(x.data.version);
     expect(b.html).toContain(x.data.scenes[0]!.id);
     const total=(b.html.match(/<article class="page(?: cover)?"/g)??[]).length;
-    const numbered=[...b.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\\d+) من (\\d+)/g)];
+    const numbered=[...b.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
     expect(numbered).toHaveLength(total);
     expect(numbered.every((m,i)=>Number(m[1])===i+1 && Number(m[2])===total)).toBe(true);
     // One full chapter-title annex on the cover, not one duplicate per scene.
-    expect((b.html.match(/<h3>عنوان الفصل<\\/h3>/g)??[]).length).toBeGreaterThan(0);
+    expect((b.html.match(/<h3>عنوان الفصل<\/h3>/g)??[]).length).toBeGreaterThan(0);
     expect(b.status).toBe("PENDING_REVIEW");
   });
   it("renders actual Balislam episode plan scene text in a read-only PDF review model",()=>{
