@@ -413,6 +413,32 @@ export const decideSceneProduction = async (episode: string,
     return view(saved, current.ready);
   });
 };
+/**
+ * The only scene eligible for the next final audiovisual preview is the first
+ * unapproved scene. Source fingerprint and human approvals are verified by the
+ * trusted local server, never by client-supplied flags.
+ */
+export const assertCurrentSceneRenderAllowed = async (
+  episode: string, sceneId: string, expectedSha256: string, token: unknown,
+): Promise<void> => {
+  assertSceneOwner(token);
+  if (!safeSceneId(sceneId) || !hex64(expectedSha256))
+    throw Error("Invalid scene preview request.");
+  await withState(episode, async (doc, current) => {
+    const state = doc.state;
+    const target = state.scenes.find(scene => scene.id === sceneId);
+    if (!state.script.approval || state.script.approval.sha256 !== state.script.sha256 ||
+        !state.storyboard.approval || state.storyboard.approval.sha256 !== state.storyboard.sha256 ||
+        !current.planReady)
+      throw Error("Approve the current script and complete storyboard before producing a scene.");
+    if (!target || sceneFirstProgress(state).currentScene !== sceneId ||
+        target.sourceSha256 !== expectedSha256)
+      throw Error("The scene is not current or its inputs changed.");
+    if (!current.ready[sceneId])
+      throw Error("The scene narration or human Quran recording is not ready for AV production.");
+  });
+};
+
 /** Protect every final-Master queue/CLI/API entrypoint before expensive rendering. */
 export const requireScenesReadyForMaster = async (episode: string): Promise<void> => {
   await withState(episode, async (doc, current) => {
