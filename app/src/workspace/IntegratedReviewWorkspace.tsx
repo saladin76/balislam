@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, type PackageInfo, type ReviewSummary, type SceneReviewSummary } from "../api";
+import { parseWorkflowReadModel, workflowLabel, type WorkflowApprovalSnapshot } from "./workflowReadModel";
 
 type ReviewData = {
   citations: ReviewSummary | null;
@@ -12,13 +13,35 @@ type ReviewData = {
 /** Read-only, evidence-first AV review. Approval writes are owned by the workflow engine, not this screen. */
 export const IntegratedReviewWorkspace: React.FC<{
   episodeId: string;
+  channelId: string;
   onOpen: (stage: "script" | "storyboard" | "voice" | "episode" | "publish", sceneId?: string) => void;
-}> = ({ episodeId, onOpen }) => {
+}> = ({ episodeId, channelId, onOpen }) => {
+  const [workflow, setWorkflow] = useState<WorkflowApprovalSnapshot | null>(null);
+  const [workflowError, setWorkflowError] = useState("");
+  useEffect(() => {
+    let alive = true;
+    setWorkflow(null);
+    const refresh = async () => {
+      try {
+        const raw = await api.workflowApprovals(episodeId, channelId);
+        const record = parseWorkflowReadModel(raw, channelId, episodeId);
+        if (alive) { setWorkflow(record); setWorkflowError(""); }
+      } catch (e) {
+        if (alive) {
+          setWorkflow(null);
+          setWorkflowError("اعتماد AV الرسمي غير متاح: " + (e as Error).message);
+        }
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 15000);
+    return () => { alive = false; window.clearInterval(timer); };
+  }, [episodeId, channelId]);
   const [data, setData] = useState<ReviewData | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   useEffect(() => {
     let live = true;
-    setData(null);
+    setData(null); setErrors([]);
     const sources = [api.review(episodeId), api.sceneReview(episodeId), api.packageInfo(episodeId), api.previews(episodeId)] as const;
     void Promise.allSettled(sources).then(([citations, scenes, pkg, previews]) => {
       if (!live) return;
@@ -49,7 +72,7 @@ export const IntegratedReviewWorkspace: React.FC<{
     </header>
     {errors.length > 0 && <div className="studio-review-warning" role="alert">تعذر تحميل: {errors.join("، ")}. لا تعتمد على ملخص غير مكتمل.</div>}
     <section className="studio-review-screen" aria-label="معاينة الفيديو">
-      {source ? <video key={source} controls preload="metadata" src={source} aria-label={video ? "معاينة ملف الحلقة المجمع" : "معاينة الحلقة للمراجعة"} /> : <div className="studio-review-no-video">{data ? "لا يوجد فيديو مجمع أو معاينة متاحة بعد." : "جارٍ تحميل المعاينات…"}</div>}
+      {source ? <video key={source} controls preload="metadata" playsInline onRateChange={(event) => { event.currentTarget.playbackRate = 1; }} src={source} aria-label={video ? "معاينة ملف الحلقة المجمع" : "معاينة الحلقة للمراجعة"} /> : <div className="studio-review-no-video">{data ? "لا يوجد فيديو مجمع أو معاينة متاحة بعد." : "جارٍ تحميل المعاينات…"}</div>}
       <div className="studio-review-caption">
         <strong>{video ? "ملف الحلقة الحالي" : latestPreview ? latestPreview.title || latestPreview.name : "المعاينة الرئيسية"}</strong>
         <span>{video ? "ملف مُنتج؛ ليس اعتماد Master" : latestPreview ? "معاينة عمل غير معتمدة للنشر" : "لم يُنتج فيديو بعد"}</span>
@@ -58,7 +81,9 @@ export const IntegratedReviewWorkspace: React.FC<{
     <section className="studio-review-evidence" aria-label="أدلة المراجعة الفنية">
       <article><span>المصادر الموثقة</span><strong>{data?.citations ? `${data.citations.verified}/${data.citations.total}` : "غير متاح"}</strong><small>فحص توثيق، لا اعتماد السكريبت</small></article>
       <article><span>المشاهد المراجَعة</span><strong>{data?.scenes ? `${data.scenes.ok}/${data.scenes.total}` : "غير متاح"}</strong><small>مراجعات منفردة، لا مراجعة AV كاملة</small></article>
-      <article><span>اعتماد AV الرسمي</span><strong>بانتظار المحرك</strong><small>يُربط بمحرك الاعتمادات الموحد لاحقًا</small></article>
+      <article data-workflow-stage="av_review"><span>اعتماد AV الرسمي</span><strong>{workflowLabel(workflow?.stages.av_review?.status)}</strong>
+        <small>{workflow?.stages.av_review?.status === "approved" ? `اعتماد ${workflow.stages.av_review.approval?.by.id} · ${workflow.stages.av_review.approval?.contentVersion}` :
+          workflow?.stages.av_review?.reason || workflowError || "بانتظار الربط بمحرك الاعتمادات الموثوق"}</small></article>
     </section>
     <section className="studio-review-notes" aria-label="ملاحظات المراجعة">
       <h2>الملاحظات التي تحتاج متابعة</h2>
