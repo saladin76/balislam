@@ -59,7 +59,7 @@ export const parseWorkflowReadModel = (raw: unknown, channel: string, episode: s
         (e.fingerprint !== undefined && !sha(e.fingerprint)) ||
         (e.contentVersion !== undefined && !string(e.contentVersion)))
       throw new Error("سجل أحداث الاعتماد غير صالح، لن تُعرض موافقة غير متحقَّق منها.");
-    history.push(e as WorkflowEvent);
+    history.push(e as unknown as WorkflowEvent);
   }
   const stages = {} as Record<WorkflowStage, WorkflowStageRecord>;
   for (const key of STAGES) {
