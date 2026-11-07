@@ -16,9 +16,9 @@ const setup=()=>{
   writeFileSync(path.join(dir,"portrait.png"),png);
   const file=path.join(dir,"manifest.json");
   const data={channel:"dafatir-alzaman",episode:"001",version:"preview-v2",status:"PENDING_REVIEW",scenes:[
-    {id:"c1-s1",chapter:1,title:"الفتح",narration:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",notes:"مراجعة التشكيل",image:"landscape.png",portraitImage:"portrait.png"},
-    {id:"c1-s2",chapter:1,title:"التالي",image:"landscape.png"},
-    {id:"c2-s1",chapter:2,title:"الفصل الثاني",image:"landscape.png"},
+    {id:"c1-s1",chapter:1,chapterTitle:"",title:"الفتح",narration:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",notes:"مراجعة التشكيل",image:"landscape.png",portraitImage:"portrait.png"},
+    {id:"c1-s2",chapter:1,chapterTitle:"",title:"التالي",image:"landscape.png"},
+    {id:"c2-s1",chapter:2,chapterTitle:"",title:"الفصل الثاني",image:"landscape.png"},
   ]};
   writeFileSync(file,JSON.stringify(data));
   return {dir,file,data};
