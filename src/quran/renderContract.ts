@@ -1,7 +1,7 @@
 /**
- * Fail-closed Quran audio → renderer contract, for integration by PR #73.
- * Never choose unverified global licensed recordings or missing audio.
- * These checks cannot grant publication rights or human listening approval.
+ * Owner-supplied, human-reviewed Quran recitation contract.
+ * No external Quran provider, TTS or shared-library fallback is eligible.
+ * These checks are not substitutes for trusted workflow/scene AV signoffs.
  */
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -9,15 +9,13 @@ import path from "node:path";
 import { parseScript } from "../script/parse";
 import { quranFromScript } from "./scriptText";
 import { verifiedOwnRecitations } from "./manualAudio";
-import { QF_MAX_AGE_MS, recitationsDirFor, verifiedProviderPart, type RecitationIndex } from "./sync";
-import { isCloudRecitation, requireCloudPublicationRights, type RecitationChoice } from "./provider";
 import { isOwnedRegularAudio } from "../voice/audioIntegrity";
 import type { EpisodeMedia } from "../plan/media";
 
 export type AuthorizedRecitationPart = { file: string; duration: number; sha256: string };
 export type AuthorizedRecitation = {
   file: string; duration: number; parts: AuthorizedRecitationPart[];
-  reciter: string; source: "manual" | "quran-foundation" | "alquran-cloud";
+  reciter: string; source: "manual";
 };
 export type AuthorizedRecitations = Record<string, AuthorizedRecitation>;
 const validSha = (v: unknown): v is string =>
@@ -27,89 +25,41 @@ const close = (a: number, b: number) =>
   Number.isFinite(a) && Number.isFinite(b) && a > 0 && b > 0 &&
   Math.abs(a - b) <= Math.max(0.15, b * 0.03);
 const present = (value: unknown) => typeof value === "string" && value.trim().length > 0;
-/** A declared never-returning function lets strict TypeScript narrow after every rejection. */
 function reject(reason: string): never {
   throw new Error("تم رفض تلاوة الرندر: " + reason);
 }
 
-/** Quran Foundation serves audio but does not automatically grant publication rights. */
-export const assertReciterPublicationRights = (choice: RecitationChoice): true => {
-  if (!choice || !present(choice.name)) reject("اسم القارئ غير موثق.");
-  if (isCloudRecitation(choice)) {
-    requireCloudPublicationRights(choice);
-    const proof = choice.licence;
-    if (!present(proof.verifiedBy) || !present(proof.reviewNote) || proof.reviewNote!.trim().length < 12)
-      reject("تلاوة القارئ تحتاج اسم المراجع البشري وملاحظة تدقيق الحقوق قبل النشر.");
-    return true;
-  }
-  const r = choice.licence;
-  let https = false;
-  try {
-    const u = new URL(r?.evidence ?? "");
-    https = u.protocol === "https:" && Boolean(u.hostname) && !u.username && !u.password;
-  } catch { /* no proof */ }
-  const when = Date.parse(r?.verifiedAt ?? "");
-  if (!Number.isInteger(choice.id) || choice.id <= 0 || !r || !present(r.holder) ||
-      !https || !present(r.scope) || !/youtube|يوتيوب/i.test(r.scope) ||
-      !/publish|نشر|commercial|تجاري/i.test(r.scope) ||
-      !Number.isFinite(when) || when > Date.now() + 60_000)
-    reject("تسجيل Quran Foundation يحتاج دليل حقوق نشر مرتبطًا بالقارئ؛ جلب الصوت ليس إذن نشر.");
-  if (!present(r.verifiedBy) || !present(r.reviewNote) || r.reviewNote!.trim().length < 12)
-    reject("تلاوة القارئ تحتاج اسم المراجع البشري وملاحظة تدقيق الحقوق قبل النشر.");
-  return true;
-};
+/** Compatibility-only fail-closed export. External reciters are retired. */
+export const assertReciterPublicationRights = (_choice: unknown): true =>
+  reject("أُلغيت خدمات القراء الخارجية؛ ارفع التلاوة البشرية إلى ملفات الحلقة وراجعها.");
 
-/** Select only reviewed recordings bound to script.md and current source. */
+/** Select only current, human-approved, episode-owned recordings bound to script.md. */
 export const approvedRecitationsForRender = async (
-  scriptPath: string, choice: RecitationChoice | undefined,
+  scriptPath: string, choice?: unknown,
 ): Promise<AuthorizedRecitations> => {
+  if (choice !== undefined && choice !== null)
+    reject("لا يُسمح باختيار مصدر تلاوة خارجي؛ استخدم التسجيل الذي قدّمه صاحب المشروع.");
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const authored = quranFromScript(parsed);
   if (authored.problems.length) reject("مرجع الآية أو نصها في السكريبت غير صالح.");
   const keys = Object.keys(authored.texts);
   if (!keys.length) return {};
-  const dir = recitationsDirFor(scriptPath);
-  const index = JSON.parse(await readFile(path.join(dir, "index.json"), "utf8")) as RecitationIndex;
-  if (!index || typeof index !== "object" || Array.isArray(index)) reject("فهرس التسجيلات غير صالح.");
+
   const manual = await verifiedOwnRecitations(scriptPath);
   const result: AuthorizedRecitations = {};
   for (const key of keys) {
-    const entry = index[key];
-    if (!entry) reject("تسجيل الآية " + key + " غير موجود.");
-    if (entry.provider === "manual") {
-      const approved = manual[key];
-      if (!approved || !validSha(approved.sha256) ||
-          !present(approved.reciter) || !present(approved.rightsEvidence) ||
-          approved.rightsEvidence!.trim().length < 12 || approved.parts.length !== 1)
-        reject("اعتماد التلاوة اليدوية أو دليل الحقوق أو البصمة للآية " + key + " غير صالح.");
-      const part = approved.parts[0]!;
-      result[key] = {
-        file: part.file, duration: part.duration,
-        parts: [{ file: part.file, duration: part.duration, sha256: approved.sha256 }],
-        reciter: approved.reciter.trim(), source: "manual",
-      };
-      continue;
-    }
-    if (!choice) reject("القارئ المصرح به مفقود للآية " + key + ".");
-    assertReciterPublicationRights(choice);
-    const cloud = isCloudRecitation(choice);
-    const matches = cloud
-      ? entry.provider === "alquran-cloud" && entry.edition === choice.edition
-      : entry.provider === "quran-foundation" && entry.recitationId === choice.id;
-    const age = Date.now() - Date.parse(entry.fetchedAt ?? "");
-    if (!matches || !present(entry.reciter) || entry.reciter !== choice.name ||
-        !Array.isArray(entry.parts) || !entry.parts.length ||
-        !Number.isFinite(age) || age < -60_000 || (!cloud && age >= QF_MAX_AGE_MS))
-      reject("مصدر الآية " + key + " لا يطابق اختيار القارئ أو صلاحية التسجيل.");
-    const parts: AuthorizedRecitationPart[] = [];
-    for (const part of entry.parts) {
-      if (!validSha(part.sha256) || !(await verifiedProviderPart(dir, part)))
-        reject("ملف الآية " + key + " فاسد أو بلا بصمة صحيحة.");
-      parts.push({ file: part.file, duration: part.duration, sha256: part.sha256 });
-    }
+    const approved = manual[key];
+    if (!approved || approved.provider !== "manual" ||
+        !validSha(approved.sha256) || !present(approved.reciter) ||
+        !present(approved.rightsEvidence) || !approved.approvedBy?.trim() ||
+        !approved.reviewNote?.trim() || approved.reviewNote.trim().length < 12 ||
+        approved.rightsEvidence!.trim().length < 12 || approved.parts.length !== 1)
+      reject("التلاوة اليدوية للآية " + key + " غير موجودة أو غير معتمدة أو تفتقد حقوق المصدر.");
+    const part = approved.parts[0]!;
     result[key] = {
-      file: parts[0]!.file, duration: parts.reduce((n, part) => n + part.duration, 0),
-      parts, reciter: entry.reciter.trim(), source: cloud ? "alquran-cloud" : "quran-foundation",
+      file: part.file, duration: part.duration,
+      parts: [{ file: part.file, duration: part.duration, sha256: approved.sha256 }],
+      reciter: approved.reciter.trim(), source: "manual",
     };
   }
   return result;
