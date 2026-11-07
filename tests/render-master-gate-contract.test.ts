@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { assertRenderMediaOwnership, assertRenderChannelOwnership } from "../src/render/episode";
-import { assertMasterStageAuthorized, masterRenderSubject } from "../src/render/masterGateContract";
+import { assertMasterStageAuthorized, assertMasterSubjectUnchanged, masterRenderSubject } from "../src/render/masterGateContract";
 import type { EpisodeMedia } from "../src/plan/media";
 import type { Plan } from "../src/plan/types";
 
@@ -43,6 +43,10 @@ describe("render input identity and permanent Master gate contract", () => {
     await writeFile(script, "# changed source");
     const changedScript = await masterRenderSubject(script, "balislam", plan, media("a".repeat(24)), "landscape");
     expect(new Set([v1.inputSha256, anotherMedia.inputSha256, portrait.inputSha256, changedScript.inputSha256]).size).toBe(4);
+    expect(() => assertMasterSubjectUnchanged(v1, v1)).not.toThrow();
+    expect(() => assertMasterSubjectUnchanged(v1, anotherMedia)).toThrow(/تغيّرت بصمة/);
+    expect(() => assertMasterSubjectUnchanged(v1, portrait)).toThrow(/تغيّرت بصمة/);
+    expect(() => assertMasterSubjectUnchanged(v1, changedScript)).toThrow(/تغيّرت بصمة/);
     expect(v1.quality).toBe("master");
     expect(v1.episodeFolder).toBe("001-test");
     await expect(assertMasterStageAuthorized(v1)).rejects.toThrow(/محظور/);
