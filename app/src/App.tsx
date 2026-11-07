@@ -114,6 +114,7 @@ export const App: React.FC = () => {
   /** Unsaved text is kept by channel/episode through in-app navigation, never in production files. */
   const scriptDrafts = useRef(new Map<string, { text: string; saved: string }>());
   const researchDrafts = useRef(new Map<string, ResearchDraft>());
+  const identityDrafts = useRef(new Map<string, { draft: Identity; saved: Identity; defaults: Identity }>());
   const sessionKey = `${channelId}/${epId}`;
   const onResearchDraftChange = useCallback((draft: ResearchDraft) => {
     researchDrafts.current.set(`${channelId}/${epId}`, draft);
@@ -154,6 +155,7 @@ export const App: React.FC = () => {
     store.set("bal-channel", channelId);
     setEpisodes(null);
     setPlan(null);
+    setIdent(null); // Never show another channel's identity while this one loads.
     loadedKey.current = "";
     episodesOf.current = "";
     const ch = channelId;
@@ -169,7 +171,10 @@ export const App: React.FC = () => {
       } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
     api.identity().then(({ identity, defaults }) => {
-      if (channelRef.current === ch) setIdent({ draft: identity, saved: identity, defaults });
+      if (channelRef.current !== ch) return;
+      const prior = identityDrafts.current.get(ch);
+      const dirty = prior && JSON.stringify(prior.draft) !== JSON.stringify(prior.saved);
+      setIdent({ draft: dirty ? prior.draft : identity, saved: identity, defaults });
     }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
     // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
     if (channelId) api.channel().then((c) => {
@@ -253,7 +258,7 @@ export const App: React.FC = () => {
     pendingPlan.current = { ep: epId, channel: channelId, plan: p };
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => void flushPlan(), 700);
-  }, [epId, flushPlan]);
+  }, [epId, channelId, flushPlan]);
 
   const saveScript = async () => {
     // Preserve edits typed while a save is in flight; do not rebind the reply to another episode.
@@ -291,7 +296,9 @@ export const App: React.FC = () => {
     const h = (e: BeforeUnloadEvent) => {
       if (scriptDirtyRef.current || researchDirty || pendingPlan.current ||
           [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
-          [...researchDrafts.current.values()].some((d) => d.text !== d.saved)) {
+          [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
+          [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
+          Boolean(savingPlan.current) || planState !== "saved") {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
         e.returnValue = "";
@@ -299,7 +306,7 @@ export const App: React.FC = () => {
     };
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
-  }, [researchDirty]);
+  }, [researchDirty, planState, ident]);
   // Navigating between workspaces cannot discard an unsaved script or research draft.
   // Both are restored from the per-channel, per-episode in-memory maps on return.
   const confirmLeaveScript = () => true;
@@ -332,7 +339,8 @@ export const App: React.FC = () => {
         <UpdateBanner beforeUpdate={async () => { if (!(await flushPlan())) throw new Error("تعذر حفظ الخطة؛ لن يُحدّث الاستوديو."); }} hasUnsaved={scriptDirty || researchDirty || identDirty ||
           [...scriptDrafts.current.values()].some((d) => d.text !== d.saved) ||
           [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
-          Boolean(pendingPlan.current) || planState === "error"} />
+          [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
+          Boolean(pendingPlan.current) || Boolean(savingPlan.current) || planState !== "saved"} />
         <header className="top studio-topbar">
           <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
           <div className="studio-page-heading"><span>الاستوديو <i aria-hidden="true">/</i> {channel.name}</span><strong>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</strong></div>
@@ -483,11 +491,17 @@ export const App: React.FC = () => {
             draft={ident.draft}
             saved={ident.saved}
             defaults={ident.defaults}
-            onChange={(draft) => setIdent({ ...ident, draft })}
+            onChange={(draft) => {
+              const next = { ...ident, draft };
+              identityDrafts.current.set(channelId, next);
+              setIdent(next);
+            }}
             onSave={async () => {
               try {
                 await api.saveIdentity(ident.draft);
-                setIdent({ ...ident, saved: ident.draft });
+                const next = { ...ident, saved: ident.draft };
+                identityDrafts.current.set(channelId, next);
+                setIdent(next);
                 say("حُفظت الهوية. الرندر القادم يستخدمها.");
               } catch (e) {
                 say(`تعذّر حفظ الهوية: ${(e as Error).message}`, true);
