@@ -249,33 +249,22 @@ export const balApi = (): Plugin => ({
           }
 
           if (parts[2] === "quran-audit" && parts.length === 3) {
-            if (req.method !== "GET") return send(res, 405, { error: "المقارنة للقراءة فقط." });
-            const { quranClientFromEnv } = await load("/src/quran/client.ts");
-            const client = quranClientFromEnv();
-            if (!client) return send(res, 409, { error: "يلزم مرجع المصحف المعتمد لفحص الفروق؛ لا يُصحَّح النص تلقائيًا." });
+            if (req.method !== "GET") return send(res, 405, { error: "التدقيق للقراءة فقط." });
             const { auditEpisodeQuran } = await load("/src/quran/audit.ts");
-            const result = await auditEpisodeQuran(ep, { client, frames: false });
-            return send(res, 200, { environment: client.env, audits: result.audits.map((a: any) => ({
-              key: a.key, status: a.status, reason: a.reason, ops: a.ops,
-              categories: a.categories, numbers: a.numbers, reference: a.reference,
-            })) });
+            const result = await auditEpisodeQuran(ep, { frames: false });
+            return send(res, 200, {
+              environment: "local-script-evidence-only",
+              message: "هذا فحص أدلة السكريبت، وليس اعتمادًا آليًا لمطابقة المصحف.",
+              audits: result.audits.map((item: any) => ({
+                key: item.key, status: item.status, reason: item.reason,
+                ops: item.ops, categories: item.categories,
+                numbers: item.numbers, reference: item.reference,
+              })),
+            });
           }
           if (parts[2] === "recitation" && parts.length === 3) {
-            const { readEpisodeRecitation, saveEpisodeRecitation } = await load("/src/quran/provider.ts");
-            if (req.method === "GET") {
-              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
-            }
-            if (req.method === "PUT") {
-              const body = await readBody(req);
-              if (!body || typeof body !== "object" || Array.isArray(body) ||
-                  !Object.prototype.hasOwnProperty.call(body, "recitation"))
-                throw new HttpError(400, "يجب تحديد recitation صراحةً؛ استخدم null فقط عند طلب العودة للقارئ الافتراضي.");
-              if (body.recitation !== null && (
-                  typeof body.recitation !== "object" || Array.isArray(body.recitation)))
-                throw new HttpError(400, "بيانات القارئ المختار غير صالحة.");
-              await saveEpisodeRecitation(scriptPath, body.recitation);
-              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
-            }
+            if (req.method === "GET") return send(res, 200, { recitation: null, method: "owner-supplied" });
+            return send(res, 410, { error: "أُلغِي اختيار قرّاء الخدمات الخارجية؛ أرفق التسجيل البشري بالحَلقة." });
           }
 
           const mediaFor = async (plan: unknown) => {
@@ -287,14 +276,14 @@ export const balApi = (): Plugin => ({
             const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
             const c = channelMod.loadChannel(ch);
-            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
+            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: false } });
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
             const name = safeName(parts[4]);
-            // التلاوات: من مجلد الحلقة (Quran Foundation) أو من assets/recitations (المرخّصة)
+            // تُعرض تسجيلات الحلقة المحلية فقط، دون مصدر خارجي أو مكتبة مشتركة
             const epRec = path.join(path.dirname(scriptPath), "recitations");
-            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? epRec : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
             const file = dir ? path.join(dir, kind === "images" ? name.replace(/^lib__/, "") : name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
             const imgType = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : /\.mp4$/i.test(name) ? "video/mp4" : /\.webm$/i.test(name) ? "video/webm" : /\.mov$/i.test(name) ? "video/quicktime" : "image/jpeg";
@@ -328,13 +317,7 @@ export const balApi = (): Plugin => ({
             return send(res, 200, { report, generated: Boolean(client && !b.dryRun), media: await mediaFor(plan) });
           }
           if (parts[2] === "quran" && req.method === "POST") {
-            const { quranClientFromEnv } = await load("/src/quran/client.ts");
-            const { syncQuran } = await load("/src/quran/sync.ts");
-            const client = quranClientFromEnv();
-            if (!client) return send(res, 400, { error: "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»." });
-            const result = await syncQuran(ep, client);
-            // Fetching Quran audio must never rewrite an existing hand-edited episode plan.
-            return send(res, 200, { result, plan: (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep)) });
+            return send(res, 410, { error: "أُلغِي الجلب الخارجي. نص الآيات من السكريبت والتلاوة من الملف الذي يرفعه المالك." });
           }
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
