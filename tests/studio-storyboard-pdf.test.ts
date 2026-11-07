@@ -274,6 +274,8 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     for(const label of ["إصدار المحتوى الكامل","معرّف الحلقة الكامل","معرّف المشهد الكامل","نوع المشهد الكامل"]){
       expect(b.html).toContain(label);
     }
+    expect(b.html).toContain('class="arabic-title" lang="ar" dir="rtl" data-annex="false"');
+    expect(b.html).toContain('<span data-annex="true">النوع:');
     expect(b.html).toContain(x.data.episode);
     expect(b.html).toContain(x.data.version);
     expect(b.html).toContain(x.data.scenes[0]!.id);
