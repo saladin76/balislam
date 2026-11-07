@@ -230,22 +230,6 @@ program
   });
 
 program
-  .command("quran")
-  .description("مزامنة التلاوات المرخصة وترجمات المعاني فقط؛ نص الآية يُكتب في السكريبت")
-  .argument("<episode>", "رقم الحلقة")
-  .option("--force", "إعادة الجلب حتى للمخزّن")
-  .action(async (episode: string, opts: { force?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { syncQuran } = await import("../quran/sync");
-    const client = quranClientFromEnv();
-    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
-    const r = await syncQuran(episode, client, { force: opts.force });
-    console.log(`ترجمات جديدة ${r.fetched.length}، مراجع محفوظة ${r.cached.length}، تلاوات ${r.recited.length}. النص لا يُعدل تلقائيًا.`);
-    for (const f of r.failed) console.log(`تعذّر: ${f.ref}: ${f.reason}`);
-    if (r.failed.length) process.exitCode = 1;
-  });
-
-program
   .command("quran-text-only")
   .description("فحص وجود نص كل آية في السكريبت فقط؛ لا يجلب نصًا ولا يكتب ملفات")
   .argument("<episode>", "رقم الحلقة")
@@ -263,27 +247,54 @@ program
       return;
     }
     if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص؛ نص الآيات يُكتب في السكريبت مباشرة.");
-    throw new Error("أُلغي الحفظ المستقل لنص القرآن. اكتب [آية: المرجع | النص] داخل السكريبت ثم استخدم quran-compare.");
+    throw new Error("أُلغي الحفظ المستقل لنص القرآن. اكتب [آية: المرجع | النص] داخل السكريبت ثم استخدم quran-evidence.");
   });
 
 program
-  .command("quran-compare")
-  .description("مقابلة نص الآيات المكتوب في السكريبت بالمصحف المعتمد حرفًا وحركةً، دون تعديله (النتيجة في «ملفات المراجعة»)")
+  .command("quran-evidence")
+  .description("فحص أدلة الآيات المكتوبة في السكريبت محليًا، دون استدعاء مزود قرآن خارجي")
   .argument("<episode>", "رقم الحلقة")
-  .option("--evidence-only", "تقرير الأدلة المحلية فقط (النص المعروض ومصدره وصورة البطاقة وأرقامها) دون جلب المرجع؛ لا يُعد مطابقة")
-  .action(async (episode: string, opts: { evidenceOnly?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { auditEpisodeQuran, writeQuranAuditReport, CLASS_AR } = await import("../quran/audit");
-    const client = opts.evidenceOnly ? null : quranClientFromEnv();
-    if (!client && !opts.evidenceOnly) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV=production) إلى ملف .env، أو استعمل --evidence-only لتقرير الأدلة وحدها.");
-    const result = await auditEpisodeQuran(episode, { client });
-    for (const a of result.audits) {
-      const kinds = [...new Set(a.ops.map((o) => CLASS_AR[o.cls]))].join("، ");
-      console.log(`${a.key}: ${a.status === "match" ? "مطابق" : a.status === "differs" ? `فيه ${a.ops.length} فرق${kinds ? ` (${kinds})` : ""}${a.numbers.ok ? "" : "، ورقم السورة/الآية يحتاج مراجعة"}` : a.status === "pending" ? "لم يُقابَل بالمرجع" : a.reason ?? a.status}`);
-    }
-    if (client && client.env !== "production") console.log("تنبيه: QF_ENV ليست production؛ اجعلها production للمطابقة بالمرجع المعتمد.");
-    console.log(`التقرير: ${await writeQuranAuditReport(episode, result, { environment: client ? `<b>بيئة المرجع:</b> Quran Foundation (${client.env}).` : "<b>بيئة المرجع:</b> لم يُجلب المرجع في هذا التشغيل (--evidence-only)." })}`);
-    if (result.audits.some((a) => a.status !== "match")) process.exitCode = 1;
+  .action(async (episode: string) => {
+    const { auditEpisodeQuran, writeQuranAuditReport } = await import("../quran/audit");
+    const result = await auditEpisodeQuran(episode, { frames: false });
+    const file = await writeQuranAuditReport(episode, result, {
+      environment: "سكريبت محلي فقط؛ المقارنة الشرعية المستقلة تبقى مراجعة بشرية"
+    });
+    console.log("تقرير أدلة السكريبت: " + file);
+  });
+
+program
+  .command("recitation-attach")
+  .description("إرفاق تسجيل التلاوة الذي يرفعه المالك للآية الموجودة في السكريبت")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<ayah-key>", "مثل 2:255")
+  .argument("<file>", "ملف التلاوة المحلي")
+  .action(async (episode: string, key: string, file: string) => {
+    const { prepareOwnRecitation } = await import("../quran/manualAudio");
+    const candidate = await prepareOwnRecitation(episode, key, path.basename(file), await readFile(file));
+    console.log(`التلاوة ${key} رُفعت للمراجعة؛ بصمة التسجيل ${candidate.sha256}`);
+    console.log("لا تُعتمد التلاوة أو المشهد تلقائيًا.");
+  });
+
+program
+  .command("recitation-review")
+  .description("تسجيل اعتماد استماع بشري للتلاوة المرفوعة، وليس اعتماد مشهد AV")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<ayah-key>", "مثل 2:255")
+  .requiredOption("--reciter <name>", "الاسم الحقيقي للقارئ")
+  .requiredOption("--rights-evidence <text>", "دليل حق نشر هذا التسجيل")
+  .requiredOption("--reviewer <name>", "اسم المراجع بعد الاستماع")
+  .requiredOption("--note <text>", "تفاصيل المراجعة")
+  .requiredOption("--listened", "تأكيد الاستماع الكامل البشري")
+  .action(async (episode: string, key: string, opts: {
+    reciter: string; rightsEvidence: string; reviewer: string; note: string; listened: boolean;
+  }) => {
+    if (!opts.listened) throw new Error("الاستماع الكامل للتلاوة شرط اعتمادها.");
+    const { approveOwnRecitation } = await import("../quran/manualAudio");
+    const result = await approveOwnRecitation(episode, key, opts.reviewer, opts.note, true, {
+      reciter: opts.reciter, rightsEvidence: opts.rightsEvidence
+    });
+    console.log("تم اعتماد الاستماع للتسجيل " + result.sha256 + "؛ اعتماد المشهد والنشر منفصلان.");
   });
 
 program
@@ -364,7 +375,7 @@ program
 
 program
   .command("horizon-audio <episode>")
-  .description("دفاتر الزمن 001: اللقطات الست («خط الأفق») بصوت الراوي المعتمد وآيتي البقرة 30 والأعراف 23 بتلاوة قارئ القناة، مضبوطة على توقيت الكلام؛ تُرفع إلى «المعاينات» (خانة -audio تبقى على الجهاز) وتحل محل المعاينة الصامتة بعد التحقق من تشغيلها. تتوقف بقائمة النواقص دون إنتاج نسخة ناقصة.")
+  .description("دفاتر الزمن 001: اللقطات الست («خط الأفق») بصوت الراوي المعتمد وآيتي البقرة 30 والأعراف 23 بالتلاوة المرفوعة للحلقة، مضبوطة على توقيت الكلام؛ تُرفع إلى «المعاينات» (خانة -audio تبقى على الجهاز) وتحل محل المعاينة الصامتة بعد التحقق من تشغيلها. تتوقف بقائمة النواقص دون إنتاج نسخة ناقصة.")
   .option("--slot <slot>", "خانة المعاينة (تنتهي بـ -audio)", "six-shots-audio")
   .option("--replaces <slot>", "المعاينة الصامتة التي تحل محلها بعد النجاح", "horizon-test-v2")
   .action(async (episode: string, opts: { slot: string; replaces: string }) => {
