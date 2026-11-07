@@ -11,11 +11,12 @@ const sha = (char: string) => char.repeat(64);
 const approved = {
   by: { id: "صاحب المشروع", role: "owner" },
   at: "2026-11-07T09:00:00Z", contentVersion: "v7",
-  artifactSha256: sha("a"), fingerprint: sha("b"),
+  artifactSha256: sha("a"), artifactEpoch: sha("c"), fingerprint: sha("b"),
+  approvalEventSeq: 1, prerequisiteApprovalSeq: [],
   note: "اعتمدت المادة بعد مراجعة كاملة وتوثيق الأدلة", evidence: ["script_validated", "sources_reviewed", "quran_compared"],
 };
 const make = (): Record<string, any> => ({
-  schemaVersion: 1, channel: "balislam", episode: "001", revision: 3,
+  schemaVersion: 3, channel: "balislam", episode: "001", revision: 3,
   stages: Object.fromEntries(STAGES.map((stage) => [stage, { status: "draft" }])),
   history: [],
 });
@@ -78,7 +79,7 @@ describe("trust-boundary for Studio workflow approval presentation", () => {
       null,
       { ...make(), episode: "002" },
       { ...make(), channel: "zubdat-alkutub" },
-      { ...make(), schemaVersion: 2 },
+      { ...make(), schemaVersion: 1 },
       { ...make(), stages: { ...make().stages, av_review: undefined } },
       { ...make(), stages: { ...make().stages, av_review: { status: "reapproval_required" } } },
       { ...make(), stages: { ...make().stages, av_review: { status: "approved" } } },
