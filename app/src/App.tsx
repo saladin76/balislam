@@ -316,6 +316,7 @@ export const App: React.FC = () => {
              episodeId={epId}
              channelId={channelId}
              title={plan.title}
+             refreshKey={homeKey}
              stage={tab as WorkspaceStage}
              onStage={(stage) => {
                if (stage !== tab && !confirmLeaveScript()) return;
@@ -481,6 +482,7 @@ export const App: React.FC = () => {
             onOpenStoryboard={() => setTab("storyboard")}
             onOpenScript={() => setTab("script")}
             onOpenPublish={() => setTab("publish")}
+            onUpdated={() => setHomeKey(k => k + 1)}
           />
           <EpisodeTab
             key={epId}
