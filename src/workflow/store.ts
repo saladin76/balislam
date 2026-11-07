@@ -101,7 +101,8 @@ const load = async (file: string, scope: WorkflowIdentity): Promise<WorkflowLedg
   workflowSigningKey();
   try {
     const stat = await lstat(file);
-    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("Workflow ledger is not a regular file.");
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1)
+      throw new Error("Workflow ledger is not an isolated regular file.");
     const doc: unknown = JSON.parse(await readFile(file, "utf8"));
     if (!validLedger(doc, scope)) throw new Error("Invalid workflow ledger; manual recovery required.");
     return doc;
