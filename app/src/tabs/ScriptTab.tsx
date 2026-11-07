@@ -4,6 +4,7 @@ import config from "../../../config.json";
 import { ReviewPanel } from "./ReviewPanel";
 
 export type ScriptTabHandle = { goToLine: (line: number) => void; hasUnsavedResearch: () => boolean };
+export type ResearchDraft = { text: string; saved: string; label: string; exists: boolean };
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 
@@ -14,30 +15,41 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   workspaceMode?: boolean;
   onOpenScriptLine?: (line: number) => void;
   onResearchDirtyChange?: (dirty: boolean) => void;
+  /** In-memory draft handed back by the parent after navigation. Never silently discard it. */
+  researchDraft?: ResearchDraft | null;
+  onResearchDraftChange?: (draft: ResearchDraft) => void;
   text: string;
   savedText: string;
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
-}> (({ episodeId, initialDoc = "script", workspaceMode = false, onOpenScriptLine, onResearchDirtyChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+}> (({ episodeId, initialDoc = "script", workspaceMode = false, onOpenScriptLine, onResearchDirtyChange, researchDraft, onResearchDraftChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
   const dirty = text !== savedText;
   // ملف البحث / دراسة الكتاب: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
   const [doc, setDoc] = useState<"script" | "research">(initialDoc);
-  const [research, setResearch] = useState<{ text: string; saved: string; label: string; exists: boolean } | null>(null);
+  const [research, setResearch] = useState<ResearchDraft | null>(researchDraft ?? null);
   useEffect(() => {
+    let active = true;
+    if (researchDraft) { setResearch(researchDraft); return () => { active = false; }; }
     setResearch(null);
-    if (episodeId) api.research(episodeId).then((r) => setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists })).catch(() => {});
+    if (episodeId) api.research(episodeId).then((r) => {
+      if (active) setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists });
+    }).catch(() => {});
+    return () => { active = false; };
+    // Only reload when the actual episode identity changes, not on a parent callback render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [episodeId]);
   const researchDirty = research ? research.text !== research.saved : false;
   const [researchError, setResearchError] = useState("");
   const [researchSaving, setResearchSaving] = useState(false);
   useEffect(() => {
     onResearchDirtyChange?.(researchDirty);
-    return () => onResearchDirtyChange?.(false);
-  }, [researchDirty, onResearchDirtyChange]);
+    if (research) onResearchDraftChange?.(research);
+    // The parent retains the draft when this editor unmounts. Never reset dirty on cleanup.
+  }, [research, researchDirty, onResearchDirtyChange, onResearchDraftChange]);
   const saveResearch = async () => {
     if (!research || researchSaving) return;
     const snapshot = research.text;
