@@ -1,114 +1,111 @@
-/** Safely fill missing Quran text only. Does not touch plan, script, review ledger or audio. */
+/**
+ * One Quran text workflow for every Studio channel:
+ * inspect scripted ayah references -> ask the owner -> save the exact supplied
+ * text -> manual review. No external API, generated verses or plan rewrites.
+ */
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { open, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
 import { quranPathFor } from "../plan/io";
-import { composeVerses } from "./sync";
-import type { QuranClient, Verse } from "./client";
 
-export type TextOnlyResult = {
-  fetched: string[];
-  existing: string[];
-  failed: { ref: string; reason: string }[];
-};
-
-/** Read-only scan: report missing Quran references, never contact the API or write files. */
-export const inspectMissingQuranTexts = async (episode: string): Promise<{
+export type RequiredAyah = { key: string; label: string; status: "missing" | "existing" };
+export type ManualTextStatus = {
+  required: RequiredAyah[];
   missing: string[];
   existing: string[];
   invalid: { ref: string; reason: string }[];
-}> => {
-  const scriptPath = await resolveScriptPath(episode);
-  const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-  const file = quranPathFor(scriptPath);
-  const source = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
+};
+export type ManualTextResult = { key: string; saved: boolean; status: ManualTextStatus };
+const textFile = async (file: string): Promise<string | null> =>
+  readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
     if (e.code === "ENOENT") return null;
     throw e;
   });
-  const cache = source === null ? {} : JSON.parse(source) as Record<string, string>;
-  const missing = new Set<string>();
-  const existing = new Set<string>();
+const parseStore = (raw: string | null): Record<string, string> => {
+  if (raw === null) return {};
+  const value: unknown = JSON.parse(raw);
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw Error("ملف quran.json غير صالح.");
+  return value as Record<string, string>;
+};
+const requiredRefs = (script: string, scriptPath: string) =>
+  parseScript(script, scriptPath).chapters.flatMap(ch => ch.blocks)
+    .filter(block => block.kind === "ayah").map(block => {
+      const label = (block as { ref: string }).ref;
+      const parsed = parseAyahRef(label);
+      return parsed.ok ? { label, key: parsed.ref.key } : { label, error: parsed.reason };
+    });
+
+export const inspectMissingQuranTexts = async (episode: string): Promise<ManualTextStatus> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const refs = requiredRefs(await readFile(scriptPath, "utf8"), scriptPath);
+  const saved = parseStore(await textFile(quranPathFor(scriptPath)));
+  const required: RequiredAyah[] = [];
   const invalid: { ref: string; reason: string }[] = [];
-  for (const block of parsed.chapters.flatMap((chapter) => chapter.blocks)) {
-    if (block.kind !== "ayah") continue;
-    const ref = parseAyahRef((block as { ref: string }).ref);
-    if (!ref.ok) { invalid.push({ ref: (block as { ref: string }).ref, reason: ref.reason }); continue; }
-    if (cache[ref.ref.key]) existing.add(ref.ref.key);
-    else missing.add(ref.ref.key);
+  const seen = new Set<string>();
+  for (const entry of refs) {
+    if (!("key" in entry) || !entry.key) {
+      invalid.push({ ref: entry.label, reason: "error" in entry ? entry.error : "مرجع غير صالح" });
+      continue;
+    }
+    if (seen.has(entry.key)) continue;
+    seen.add(entry.key);
+    required.push({ key: entry.key, label: entry.label, status: saved[entry.key]?.trim() ? "existing" : "missing" });
   }
-  return { missing: [...missing], existing: [...existing], invalid };
+  return {
+    required, invalid,
+    missing: required.filter(r => r.status === "missing").map(r => r.key),
+    existing: required.filter(r => r.status === "existing").map(r => r.key),
+  };
 };
 
-/** Adds only missing text keys and timestamps, preserving every existing cache value. */
-export const fillMissingQuranTexts = async (
-  episode: string,
-  client: Pick<QuranClient, "verse">,
-): Promise<TextOnlyResult> => {
+/**
+ * Single-key insert only. An existing value cannot be silently overwritten.
+ * Exclusive per-episode lock ensures concurrent manual edits do not lose data.
+ * The original Unicode text (including tashkeel) is persisted byte-for-byte.
+ */
+export const saveManualQuranText = async (episode: string, key: string, text: string): Promise<ManualTextResult> => {
+  if (typeof key !== "string" || !/^\d{1,3}:\d{1,3}(?:-\d{1,3})?$/.test(key))
+    throw Error("مفتاح السورة والآية غير صالح.");
+  if (typeof text !== "string" || !text.trim() || text.length > 16000 ||
+      !/\p{Script=Arabic}/u.test(text) || /[<>\u0000-\u0008\u000E-\u001F]/u.test(text))
+    throw Error("نص الآية غير صالح؛ أرسل النص العربي كما هو مع تشكيله.");
   const scriptPath = await resolveScriptPath(episode);
   const scriptSnapshot = await readFile(scriptPath, "utf8");
-  const parsed = parseScript(scriptSnapshot, scriptPath);
-  const file = quranPathFor(scriptPath);
-  // Capture the complete file BEFORE any network request so edits to ANY key are protected.
-  const snapshot = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
-    if (e.code === "ENOENT") return null;
+  const required = requiredRefs(scriptSnapshot, scriptPath);
+  if (!required.some(r => "key" in r && r.key === key))
+    throw Error("الآية غير مطلوبة في سكريبت هذه الحلقة؛ لم يُغيّر أي ملف.");
+  const target = quranPathFor(scriptPath);
+  const lock = target + ".manual.lock";
+  const handle = await open(lock, "wx", 0o600).catch((e: NodeJS.ErrnoException) => {
+    if (e.code === "EEXIST") throw Error("هناك تعديل متزامن لنصوص القرآن؛ أعد المحاولة بعد انتهائه.");
     throw e;
   });
-  const existing = snapshot === null ? {} : JSON.parse(snapshot) as Record<string, string>;
-  const additional: Record<string, string> = {};
-  const result: TextOnlyResult = { fetched: [], existing: [], failed: [] };
-  const refs = parsed.chapters.flatMap((chapter) => chapter.blocks)
-    .filter((block) => block.kind === "ayah") as { ref: string }[];
-
-  for (const { ref } of refs) {
-    const parsedRef = parseAyahRef(ref);
-    if (!parsedRef.ok) { result.failed.push({ ref, reason: parsedRef.reason }); continue; }
-    const { key, surah, from, to } = parsedRef.ref;
-    if (existing[key]) { result.existing.push(key); continue; }
-    if (additional[key]) continue;
-    try {
-      const verses: Verse[] = [];
-      for (let n = from; n <= to; n++) {
-        const expected = `${surah}:${n}`;
-        const verse = await client.verse(expected);
-        if (verse.key !== expected || verse.number !== n || !verse.text?.trim())
-          throw new Error(`استجابة الآية ${expected} لا تطابق المرجع المطلوب.`);
-        verses.push(verse);
-      }
-      const text = composeVerses(verses);
-      if (!text.trim()) throw new Error("لم يرجع نص صالح لهذه الآية.");
-      additional[key] = text;
-      additional[`${key}#at`] = new Date().toISOString();
-      result.fetched.push(key);
-    } catch (error) {
-      result.failed.push({ ref, reason: error instanceof Error ? error.message : String(error) });
+  const temp = path.join(path.dirname(target), "." + path.basename(target) + "." + randomUUID() + ".tmp");
+  let saved = false;
+  try {
+    const current = parseStore(await textFile(target));
+    if (current[key]?.trim()) {
+      if (current[key] !== text) throw Error("هناك نص محفوظ لهذه الآية؛ لا يُستبدل دون مراجعة صريحة.");
+    } else {
+      if ((await readFile(scriptPath, "utf8")) !== scriptSnapshot)
+        throw Error("تغيّر السكريبت أثناء إدراج الآية؛ لم يُغيَّر المخزن.");
+      current[key] = text;
+      current[key + "#source"] = "manual-owner";
+      current[key + "#at"] = new Date().toISOString();
+      await writeFile(temp, JSON.stringify(current, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+      // Verify script a second time before atomic replacement.
+      if ((await readFile(scriptPath, "utf8")) !== scriptSnapshot)
+        throw Error("تغيّر السكريبت أثناء الحفظ؛ لم يُغيَّر المخزن.");
+      await rename(temp, target);
+      saved = true;
     }
+  } finally {
+    await handle.close();
+    await rm(temp, { force: true });
+    await rm(lock, { force: true });
   }
-
-  // All-or-nothing: a failed reference must not leave a misleading partial comparison cache.
-  if (result.failed.length) return { fetched: [], existing: result.existing, failed: result.failed };
-
-  if (Object.keys(additional).length) {
-    // The episode script may change while remote text is being fetched.
-    // Refuse writing a Quran cache derived from an obsolete script snapshot.
-    const scriptCurrent = await readFile(scriptPath, "utf8");
-    if (scriptCurrent !== scriptSnapshot)
-      throw new Error("تغير سكريبت الحلقة أثناء جلب الآيات؛ أُوقف حفظ النصوص لحماية التعديلات.");
-    // Never overwrite any edit that occurred while the API requests were in flight.
-    const current = await readFile(file, "utf8").catch((e: NodeJS.ErrnoException) => {
-      if (e.code === "ENOENT") return null;
-      throw e;
-    });
-    if (current !== snapshot)
-      throw new Error("تغير مخزن القرآن أثناء الجلب؛ لم تُحفظ النتيجة، وأُبقيت التعديلات الجديدة.");
-    await mkdir(path.dirname(file), { recursive: true });
-    const temp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.${randomUUID()}.tmp`);
-    try {
-      await writeFile(temp, JSON.stringify({ ...existing, ...additional }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
-      await rename(temp, file);
-    } finally { await rm(temp, { force: true }); }
-  }
-  return result;
+  return { key, saved, status: await inspectMissingQuranTexts(episode) };
 };
