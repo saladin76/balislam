@@ -160,7 +160,9 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
         {doc === "script" ? (
           <textarea id="script-editor" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
         ) : (
-          <textarea id="research-editor" value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
+          <textarea id="research-editor" value={research?.text ?? ""} disabled={!research} aria-busy={!research && !researchError}
+            placeholder={!research ? "جارٍ تحميل ملف البحث…" : ""}
+            onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
         )}
       </div>
       {doc === "research" ? (
