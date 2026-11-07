@@ -84,7 +84,7 @@ const verifyLedger = (doc: WorkflowLedger): boolean => {
 const validLedger = (data: unknown, scope: WorkflowIdentity): data is WorkflowLedger => {
   if (!data || typeof data !== "object") return false;
   const doc = data as WorkflowLedger;
-  if (doc.schemaVersion !== 1 || doc.channel !== scope.channel || doc.episode !== scope.episode ||
+  if (doc.schemaVersion !== 2 || doc.channel !== scope.channel || doc.episode !== scope.episode ||
       !Number.isSafeInteger(doc.revision) || doc.revision < 0 || !doc.stages || !Array.isArray(doc.history)) return false;
   if (!WORKFLOW_STAGES.every((s) => {
     const state = doc.stages[s];
