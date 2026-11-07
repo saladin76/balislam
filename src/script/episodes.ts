@@ -13,9 +13,18 @@ import { channelPaths, domainIds, loadChannel } from "../channel";
 const isLocalEpisodeFile = (episodesDir: string, name: string, file: string): boolean => {
   const dir = path.join(episodesDir, name);
   const target = path.join(dir, file);
-  return existsSync(target) &&
-    lstatSync(dir).isDirectory() && !lstatSync(dir).isSymbolicLink() &&
-    lstatSync(target).isFile() && !lstatSync(target).isSymbolicLink();
+  if (!existsSync(target)) return false;
+  try {
+    const folder = lstatSync(dir);
+    const document = lstatSync(target);
+    return folder.isDirectory() && !folder.isSymbolicLink() &&
+      document.isFile() && !document.isSymbolicLink();
+  } catch (e) {
+    // A concurrent delete must make the episode disappear from discovery,
+    // not cause a different channel's listing to crash.
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw e;
+  }
 };
 
 const scriptEpisodeDirectories = async (episodesDir: string, number: string): Promise<string[]> => {
