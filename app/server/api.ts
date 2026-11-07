@@ -27,7 +27,7 @@ const readConfig = async () => {
   try {
     return JSON.parse(raw);
   } catch (e) {
-    const hint = /^(<<<<<<<|=======|>>>>>>>)/m.test(raw) ? "فيه علامات تعارض من git. أصلحه بالأمر: git checkout origin/main -- config.json" : (e as Error).message;
+    const hint = /^(<<<<<<<|=======|>>>>>>>)/m.test(raw) ? "توجد علامات تعارض Git؛ احتفظ بنسخة من الملف وأصلح التعارض يدويًا دون استبدال تعديلاتك" : (e as Error).message;
     throw new HttpError(500, `ملف config.json تالف: ${hint}`);
   }
 };
