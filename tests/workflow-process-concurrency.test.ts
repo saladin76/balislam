@@ -11,7 +11,7 @@ import { WORKFLOW_STAGES, type WorkflowSnapshot } from "../src/workflow/gates";
 const tmp: string[] = [];
 const hash = (v: string) => createHash("sha256").update(v).digest("hex");
 const snapshot = (): WorkflowSnapshot => Object.fromEntries(
-  WORKFLOW_STAGES.map((s) => [s, { version: s + "-v1", sha256: hash(s) }]));
+  WORKFLOW_STAGES.map((s) => [s, { version: s + "-v1", sha256: hash(s), epoch: hash(s + "-epoch") }]));
 afterEach(async () => {
   await Promise.all(tmp.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
