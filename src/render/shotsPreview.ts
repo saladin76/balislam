@@ -11,8 +11,6 @@ import { prepareRenderMedia } from "../plan/collect";
 import { VERSE_PLACEHOLDER } from "../plan/quranText";
 import { sceneFrames } from "../plan/duration";
 import { resolveScriptPath } from "../script/episodes";
-import { loadChannel } from "../channel/index";
-import { activeRecitation } from "../quran/provider";
 import type { Plan } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
 import { renderEpisode } from "./episode";
@@ -31,8 +29,8 @@ export const shotGaps = (plan: Plan, media: EpisodeMedia, ids: string[], scriptP
       continue;
     }
     if (s.template === "verse-card") {
-      if (!s.props.text?.trim() || s.props.text === VERSE_PLACEHOLDER) gaps.push({ id, what: `نص الآية ${s.ayahKey ?? ""} لم يُجلب (quran.json)` });
-      if (needsRecitation && (!s.ayahKey || !media.recitations[s.ayahKey])) gaps.push({ id, what: `تلاوة الآية ${s.ayahKey ?? ""} غير موجودة (recitations/)` });
+      if (!s.props.text?.trim() || s.props.text === VERSE_PLACEHOLDER) gaps.push({ id, what: `نص الآية ${s.ayahKey ?? ""} غير مرفق في السكريبت` });
+      if (needsRecitation && (!s.ayahKey || !media.recitations[s.ayahKey])) gaps.push({ id, what: `التلاوة البشرية للآية ${s.ayahKey ?? ""} غير مرفوعة أو لم تُعتمد` });
     }
     if (s.narration.trim()) {
       const clip = media.voice[s.id];
@@ -45,7 +43,7 @@ export const shotGaps = (plan: Plan, media: EpisodeMedia, ids: string[], scriptP
 };
 
 /**
- * المعاينة الصوتية تحمل تلاوة Quran Foundation، فتبقى على جهاز صاحب القناة (الاستوديو يعمل عليه) ولا تُرفع إلى المستودع:
+ * المعاينة الصوتية تحتوي التسجيل البشري الذي أرفقه المالك فقط، وتبقى على الجهاز دون رفعها إلى المستودع:
  * خانتها تنتهي بـ «-audio» وملفاتها مستثناة في .gitignore. وعند نجاحها تحل محل المعاينة الصامتة القديمة (replaces).
  */
 export const renderShotsPreview = async (episode: string, ids: string[], opts: { slot: string; title: string; note?: string; replaces?: string; onProgress?: (p: number, m: string) => void }) => {
@@ -54,9 +52,8 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   const full = await loadPlan(episode);
   if (!full) throw new Error("لا توجد خطة للحلقة.");
   const plan: Plan = { ...full, chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
-  const media = await prepareRenderMedia(episode, plan);
-  const chosenReciter = await activeRecitation(scriptPath, loadChannel().recitation);
-  const gaps = shotGaps(plan, media, ids, scriptPath, Boolean(chosenReciter));
+  const media = await prepareRenderMedia(episode, plan, { requireApprovedQuran: true });
+  const gaps = shotGaps(plan, media, ids, scriptPath, true);
   if (gaps.length) {
     const e = new Error(`لم تُصنع المعاينة الصوتية لأن فيها نواقص:\n${gaps.map((g) => `- ${g.id}: ${g.what}`).join("\n")}`) as Error & { gaps: ShotGap[] };
     e.gaps = gaps;
