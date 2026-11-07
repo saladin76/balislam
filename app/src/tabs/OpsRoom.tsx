@@ -34,7 +34,7 @@ const STAGES: { key: Stage; label: string }[] = [
   { key: "scenes", label: "المشاهد" },
   { key: "voice", label: "الصوت" },
   { key: "video", label: "الفيديو" },
-  { key: "ready", label: "جاهزة للنشر" },
+  { key: "ready", label: "فحوص فنية مكتملة" },
   { key: "scheduled", label: "مجدولة" },
   { key: "published", label: "منشورة" },
 ];
@@ -114,11 +114,11 @@ export const OpsRoom: React.FC<{
       <div className="home-head">
         <div>
           <h1>غرفة العمليات</h1>
-          <p className="help">القنوات كلها في مكان واحد: ما ينزل هذا الأسبوع، وأين وصلت كل حلقة، وبنك الأفكار.</p>
+          <p className="help">القنوات كلها في مكان واحد: الجدول، التقدم الفني وبنك الأفكار. اكتمال الفحوص لا يعني اعتماد Master.</p>
         </div>
         <div className="kpis">
           <div><b>{longThisWeek}/{scheduledCount}</b><span>حلقات الأسبوع</span></div>
-          <div><b>{readyCount}</b><span>جاهزة للنشر</span></div>
+          <div><b>{readyCount}</b><span>فحوص فنية مكتملة</span></div>
           <div><b>{all.length}</b><span>حلقة في الإنتاج</span></div>
           <div><b>{ideasCount}</b><span>فكرة في البنك</span></div>
         </div>
