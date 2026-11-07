@@ -36,7 +36,13 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
         : reciter && reciter !== "…" && rec
           ? fill(L.strings.descRecitation, { name: reciter })
           : "";
-      const extras = [recitationLine].filter(Boolean);
+      // Translation attribution comes from the reviewed scene's actual meaning
+      // source, not an obsolete channel/provider preference.
+      const meaningSource = r.ok
+        ? plan.chapters.flatMap(chapter => chapter.scenes)
+            .find(scene => scene.ayahKey === r.ref.key)?.props?.meaningSource?.trim()
+        : undefined;
+      const extras = [L.code !== "ar" ? meaningSource ?? "" : "", recitationLine].filter(Boolean);
       sources.push(`- ${name} (${extras.join(L.code === "ar" ? "، " : ", ")})`);
     } else if (c.kind === "hadith") {
       sources.push(`- ${c.fields[0] ?? ""}${c.fields[1] ? ` — ${c.fields[1]}` : ""}${c.fields[2] ? ` (${c.fields[2]})` : ""}`);
