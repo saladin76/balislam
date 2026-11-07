@@ -236,6 +236,7 @@ try {
   await waitFor(".studio-review-workspace");
   await until(() => evaluate("(() => { const n=document.querySelector('.ew-stages'); const a=n?.querySelector('[aria-current=step]'); if(!n||!a)return false; const b=n.getBoundingClientRect(),x=a.getBoundingClientRect(); return x.left>=b.left-3 && x.right<=b.right+3; })()"), "active mobile stage visible", 6000);
   assert("AV media and evidence share responsive layout", await evaluate("Boolean(document.querySelector('.studio-review-main-grid .studio-review-screen') && document.querySelector('.studio-review-main-grid .studio-review-evidence'))"));
+  assert("idle AV preview retains playback guidance", await evaluate("(() => { const player = document.querySelector('.studio-review-video-frame video'); return !player || !player.paused || Boolean(document.querySelector('.studio-review-video-state')); })()"));
   await screenshot("14-av-mobile-390.png");
   await resize(820, 1180);
   await screenshot("15-av-tablet-820.png");
