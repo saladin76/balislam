@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, lstatSync } from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { childEnv } from "../../scripts/git-env.mjs";
@@ -25,6 +25,9 @@ let cached: UpdateStatus | null = null;
 let updating = false;
 
 const activeMain = async (root: string): Promise<boolean> => {
+  // Never run the production updater from linked review/temporary worktrees.
+  const dotGit = path.join(root, ".git");
+  if (!existsSync(dotGit) || !lstatSync(dotGit).isDirectory()) return false;
   const branch = await git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
   return branch.ok && branch.out === "main";
 };
@@ -78,10 +81,16 @@ export const applyUpdate = async (root: string): Promise<{ ok: boolean; message:
     if (await pendingGitOperation(root)) return { ok: false, message: "أوقف التحديث: توجد عملية Git غير مكتملة؛ لم يُعدل أي ملف." };
     if (!await cleanTree(root)) return { ok: false, message: "أوقف التحديث: توجد ملفات محلية غير محفوظة؛ لم يُعدل أي ملف." };
     const before = await git(root, ["rev-parse", "HEAD"]);
+    if (!before.ok) return { ok: false, message: "تعذر تحديد إصدار Git الحالي؛ أُلغي التحديث." };
     const fetch = await git(root, ["fetch", "--quiet", "origin", "main"]);
     if (!fetch.ok) return { ok: false, message: "فشل التحقق من GitHub؛ لم يُطبّق التحديث." };
     const ahead = await git(root, ["rev-list", "--count", "origin/main..HEAD"]);
     if (!ahead.ok || Number(ahead.out) > 0) return { ok: false, message: "توجد commits محلية؛ يلزم دمجها يدويًا. لم يُعدل أي ملف." };
+    // A checkout/commit can happen while network fetch is in progress.
+    // Never apply an update to a different branch or an unexpectedly moved HEAD.
+    const afterFetch = await git(root, ["rev-parse", "HEAD"]);
+    if (!await activeMain(root) || !afterFetch.ok || afterFetch.out !== before.out)
+      return { ok: false, message: "تغير فرع العمل أو إصداره أثناء جلب التحديث؛ أُلغي التطبيق." };
     // Recheck after network operation: never override edits or pending operations.
     if (await pendingGitOperation(root)) return { ok: false, message: "بدأت عملية Git أثناء جلب التحديث؛ أُوقف التحديث لحمايتها." };
     if (!await cleanTree(root)) return { ok: false, message: "ظهرت تعديلات أثناء الفحص؛ أُوقف التحديث لحمايتها." };
