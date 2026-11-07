@@ -18,6 +18,18 @@ describe("Single-owner Quran text source integrity",()=>{
     expect(text).toContain("۝٢");
     expect(text.indexOf("۝١")).toBeLessThan(text.indexOf("۝٢"));
   });
+  it("keeps obsolete Quran Foundation clients out of production make, shot previews and audit",()=>{
+    const root=path.join(import.meta.dirname,"..");
+    for(const file of [
+      "src/package/make.ts",
+      "src/render/shotsPreview.ts",
+      "src/render/motionFingerprint.ts",
+      "src/plan/collect.ts",
+    ]){
+      const source=readFileSync(path.join(root,file),"utf8");
+      expect(source,file).not.toMatch(/quranClientFromEnv|syncQuran\\(|activeRecitation\\(|Quran Foundation|quran-foundation|quran\\/provider/);
+    }
+  });
   it("parses script ayah refs locally without opening Quran Foundation URLs",()=>{
     const ref=parseAyahRef("النجم 39");
     expect(ref.ok).toBe(true);
