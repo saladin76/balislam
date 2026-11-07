@@ -49,7 +49,7 @@ export const shotGaps = (plan: Plan, media: EpisodeMedia, ids: string[], scriptP
  * خانتها تنتهي بـ «-audio» وملفاتها مستثناة في .gitignore. وعند نجاحها تحل محل المعاينة الصامتة القديمة (replaces).
  */
 export const renderShotsPreview = async (episode: string, ids: string[], opts: { slot: string; title: string; note?: string; replaces?: string; onProgress?: (p: number, m: string) => void }) => {
-  if (!opts.slot.endsWith("-audio")) throw new Error("خانة المعاينة الصوتية يجب أن تنتهي بـ -audio (تبقى على الجهاز ولا تُرفع، لأن فيها تلاوة).");
+  if (!/^[a-z0-9][a-z0-9_-]{0,70}-audio$/.test(opts.slot)) throw new Error("خانة المعاينة الصوتية غير آمنة، ويجب أن تنتهي بـ -audio.");
   const scriptPath = await resolveScriptPath(episode);
   const full = await loadPlan(episode);
   if (!full) throw new Error("لا توجد خطة للحلقة.");
