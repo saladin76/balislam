@@ -21,7 +21,7 @@ const fixture = () => {
   const bin = path.join(root, "bin");
   mkdirSync(bin);
   // Nested TMPDIR may be inside a type=module QA repository; this mock uses require().
-  writeFileSync(path.join(bin, "package.json"), '{"type":"commonjs"}\\n'.replace(/\\n/g, "\n"));
+  writeFileSync(path.join(bin, "package.json"), '{"type":"commonjs"}\n');
   const trace = path.join(root, "trace.log");
   const foreign = path.join(root, "bal-gate-run-foreign");
   mkdirSync(foreign);
