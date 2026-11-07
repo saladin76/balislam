@@ -4,7 +4,7 @@ Status: ENGINEERING DRAFT. This branch is based on the isolated Studio integrati
 
 ## Cause and fixes
 
-- Old voice-cache and recitation tests copied the whole balislam channel, including unrelated episode MP4 previews, and never removed their temporary roots. The Git tree's balislam channel alone contains ~136.1 MB. The owner-reported 278 MB per temp directory is not a measurement we reproduced; filesystem allocation and other files affect it.
+- Old voice-cache and recitation tests copied the whole balislam channel, including unrelated episode MP4 previews, and never removed their temporary roots. The Git tree's balislam channel alone contains ~136.1 MB. The owner-reported 278 MB per temp directory is not a measurement we reproduced; filesystem allocation and other files affect it. A Git tree source-byte inventory of the exact parent candidate calculated 136,057,002 bytes copied into each old balislam fixture (excluding voice/out), versus 5,314,536 source bytes copied into a new episode-isolated fixture including the 000-demo sample: a 96.09% reduction in input fixture bytes. These are not before/after Mac allocated-disk measurements; Mac run verification is still mandatory.
 - Quran text-only test already cleaned up, but needlessly copied large episode media.
 - Render-pool tests accumulated pool-* directories; PDF tests left studio-pdf-* directories; the tempo sample created bal-tone-*.mp3 directly in shared /tmp.
 - Updated fixtures now exclude production episodes and copy only the small test episode; all owned fixture directories are removed in teardown or finally.
