@@ -164,6 +164,22 @@ describe("PR #73 Quran audio integration contract — negative safety scenarios"
       .rejects.toThrow(/بصمة/);
   });
 
+  it("does not treat a preview-only Cloud reciter licence as a named human publishing review", () => {
+    const preview = { provider: "alquran-cloud" as const, edition: "ar.alafasy", name: "قارئ",
+      licence: { holder: "مالك التلاوة", evidence: "https://rights.example.test/cloud",
+        scope: "YouTube commercial publish", verifiedAt: new Date().toISOString() },
+    };
+    expect(() => assertReciterPublicationRights(preview)).toThrow(/المراجع البشري/);
+    expect(assertReciterPublicationRights({ ...preview, licence: {
+      ...preview.licence, verifiedBy: "مراجع حقوق بشرية",
+      reviewNote: "تحققت من الإذن ونطاق نشر التسجيل على يوتيوب",
+    } })).toBe(true);
+    expect(() => assertReciterPublicationRights({ ...preview, licence: {
+      ...preview.licence, verifiedBy: "مراجع حقوق", reviewNote: "راجعت إذن التسجيل",
+      evidence: "http://rights.example.test/unsafe",
+    } })).toThrow(/HTTPS/);
+  });
+
   it("rejects stale provider cache, missing verse and private-stage boundary tampering", async () => {
     const x = await fixture();
     const { choice, record, media } = await provider(x);
