@@ -248,6 +248,31 @@ export const reopenWorkflowStage = (scope: WorkflowIdentity, decision: WorkflowD
     return doc;
   });
 
+/**
+ * Called only by the trusted server adapter when previously approved evidence
+ * no longer matches its actual source file. This is a durable revocation, not
+ * a bypass or an approval. All later stages are invalidated in the same lock.
+ */
+export const invalidateWorkflowStage = async (
+  scope: WorkflowIdentity, snapshot: WorkflowSnapshot, stage: WorkflowStage, reason: string,
+): Promise<WorkflowLedger> =>
+  run(scope, snapshot, (doc) => {
+    if (!WORKFLOW_STAGES.includes(stage) || typeof reason !== "string" || reason.length < 10)
+      throw new Error("Invalid evidence revocation.");
+    const state = doc.stages[stage];
+    if (state.status === "approved") {
+      state.status = "needs_reapproval";
+      state.reason = reason;
+      appendEvent(doc, stage, "invalidate", "server-evidence-check", new Date().toISOString(), reason);
+    } else if (state.status === "in_review") {
+      state.status = "draft";
+      state.submitted = undefined;
+      state.reason = reason;
+      appendEvent(doc, stage, "reset_review", "server-evidence-check", new Date().toISOString(), reason);
+    }
+    return doc;
+  });
+
 export const requireWorkflowGate = async (
   scope: WorkflowIdentity, snapshot: WorkflowSnapshot, action: WorkflowAction,
 ): Promise<void> => { await run(scope, snapshot, (doc) => assertWorkflowGate(doc, snapshot, action)); };
