@@ -428,7 +428,7 @@ export const App: React.FC = () => {
           />
           </div>
         ) : tab === "channels" ? (
-          <ChannelsWorkspace channels={channels} activeId={channelId || channels[0]?.id || ""} onOpen={async (id, destination) => {
+          <ChannelsWorkspace channels={channels} activeId={channelId || channels[0]?.id || ""} onRetry={() => void reloadChannels()} onOpen={async (id, destination) => {
             if (!confirmLeaveScript()) return;
             if (!(await flushPlan())) return;
             if (id !== channelId) setChannelId(id);
