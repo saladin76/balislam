@@ -4,12 +4,12 @@ import type { WorkflowSnapshot } from "../src/workflow/gates";
 
 describe("mandatory Studio production ports — integration acceptance contract", () => {
   const snapshot: WorkflowSnapshot = {
-    script: { version: "s1", sha256: "a".repeat(64) },
-    storyboard: { version: "b1", sha256: "b".repeat(64) },
-    voice: { version: "v1", sha256: "c".repeat(64) },
-    motion: { version: "m1", sha256: "d".repeat(64) },
-    av_review: { version: "av1", sha256: "e".repeat(64) },
-    master: { version: "f1", sha256: "f".repeat(64) },
+    script: { version: "s1", sha256: "a".repeat(64), epoch: "a".repeat(64) },
+    storyboard: { version: "b1", sha256: "b".repeat(64), epoch: "b".repeat(64) },
+    voice: { version: "v1", sha256: "c".repeat(64), epoch: "c".repeat(64) },
+    motion: { version: "m1", sha256: "d".repeat(64), epoch: "d".repeat(64) },
+    av_review: { version: "av1", sha256: "e".repeat(64), epoch: "e".repeat(64) },
+    master: { version: "f1", sha256: "f".repeat(64), epoch: "f".repeat(64) },
   };
   it("never starts protected side effects when the server gate denies the operation", async () => {
     const gate = vi.fn(async (_action: string) => { throw new Error("Stage has no owner approval"); });
