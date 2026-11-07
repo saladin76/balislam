@@ -129,7 +129,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
           )}
           {doc === "script" ? (
             <>
-              <span className="help">العلامات: [مشهد: …] [آية: النجم 39] [حديث: …] [صوت: page-turn] · bridge: …</span>
+              <span className="help">العلامات: [مشهد: …] [آية: النجم 39 | نص الآية بالتشكيل] [حديث: …] [صوت: page-turn] · bridge: …</span>
               <span className="spacer" />
               <span className="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{dirty ? "تعديلات غير محفوظة" : "محفوظ"}</span>
               <button className="btn primary" disabled={!dirty || saving} onClick={save}>{saving ? "جارٍ الحفظ…" : "حفظ (Ctrl+S)"}</button>
