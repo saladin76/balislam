@@ -806,12 +806,6 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
           const info = voiceFound ? await el.voiceInfo().catch(() => null) : null;
           const cfg = (await load("/config.json")).default;
           send(res, 200, { ok: true, account: acc, voices, voiceFound, models, training: info?.training ?? {}, voiceCategory: info?.category, model: process.env.ELEVENLABS_MODEL_ID || cfg.voice.modelId });
-        } else if (service === "quran") {
-          const { quranClientFromEnv } = await load("/src/quran/client.ts");
-          const qf = quranClientFromEnv();
-          if (!qf) return send(res, 200, { ok: false, message: "لم تُضف مفاتيح Quran Foundation بعد." }), true;
-          const v = await qf.verse("1:1");
-          send(res, 200, { ok: true, sample: v.text, env: qf.env });
         } else send(res, 400, { error: "خدمة غير معروفة" });
       } catch (e) {
         send(res, 200, { ok: false, message: (e as Error).message });
@@ -828,34 +822,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
-  // القرّاء المتاحون (تلاوة آية بآية)
-  if (parts[0] === "quran" && parts[1] === "recitations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      send(res, 200, { ok: true, list: await qf.recitations() });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
-    return true;
-  }
-
-  // ترجمات معاني القرآن المتاحة (لقنوات غير عربية)
-  if (parts[0] === "quran" && parts[1] === "translations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      const names: Record<string, string> = { en: "english", tr: "turkish", ar: "arabic" };
-      const lang = new URL(req.url ?? "/", "http://x").searchParams.get("lang") ?? "";
-      const all = await qf.translations();
-      const want = names[lang] ?? lang;
-      const list = all.filter((t: { language: string }) => !want || t.language.toLowerCase() === want);
-      send(res, 200, { ok: true, list });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
+  // Provider catalog endpoints are retired; Quran audio is supplied by the owner.
+  if (parts[0] === "quran" && (parts[1] === "recitations" || parts[1] === "translations")) {
+    send(res, 410, { error: "الخدمة متوقفة. مصدر الآيات هو السكريبت والتلاوة ملف يرفعه المالك." });
     return true;
   }
 
