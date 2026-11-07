@@ -1,5 +1,5 @@
 import path from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, lstatSync } from "node:fs";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { templatesDir } from "../config/paths";
 import { channelPaths, domainIds, loadChannel } from "../channel";
@@ -9,12 +9,20 @@ import { channelPaths, domainIds, loadChannel } from "../channel";
  * مجلد الحلقة الإنتاجية يمتلك script.md؛ المختبرات التي تحتوي plan.json فقط
  * ليست حلقات سكريبت ولا يجوز أن تتسبب بتصادم الرقم مع حلقة حقيقية.
  */
+/** Reject symlinked episode folders and script files to avoid cross-channel aliases. */
+const isLocalEpisodeFile = (episodesDir: string, name: string, file: string): boolean => {
+  const dir = path.join(episodesDir, name);
+  const target = path.join(dir, file);
+  return existsSync(target) &&
+    lstatSync(dir).isDirectory() && !lstatSync(dir).isSymbolicLink() &&
+    lstatSync(target).isFile() && !lstatSync(target).isSymbolicLink();
+};
+
 const scriptEpisodeDirectories = async (episodesDir: string, number: string): Promise<string[]> => {
   if (!existsSync(episodesDir)) return [];
   const entries = await readdir(episodesDir);
-  return entries
-    .filter((entry) => entry.startsWith(`${number}-`) && existsSync(path.join(episodesDir, entry, "script.md")))
-    .sort();
+  return entries.filter((entry) => entry.startsWith(`${number}-`) &&
+    isLocalEpisodeFile(episodesDir, entry, "script.md")).sort();
 };
 
 /**
@@ -23,7 +31,7 @@ const scriptEpisodeDirectories = async (episodesDir: string, number: string): Pr
  * ولا تُعرض حلقاتٍ، لأن فتحها حلقةً يفشل («الحلقة غير موجودة»). القاعدة نفسها في resolveScriptPath.
  */
 export const listScriptEpisodeDirs = async (episodesDir: string): Promise<string[]> =>
-  existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d) && existsSync(path.join(episodesDir, d, "script.md"))).sort() : [];
+  existsSync(episodesDir) ? (await readdir(episodesDir)).filter((d) => /^\d{3}-/.test(d) && isLocalEpisodeFile(episodesDir, d, "script.md")).sort() : [];
 
 export const resolveScriptPath = async (arg: string): Promise<string> => {
   const episodesDir = channelPaths().episodes;
@@ -49,7 +57,7 @@ export const resolveEpisodeDir = async (arg: string): Promise<string> => {
     const scripted = await scriptEpisodeDirectories(episodesDir, arg);
     if (scripted.length) return path.dirname(await resolveScriptPath(arg));
     const labs = existsSync(episodesDir)
-      ? (await readdir(episodesDir)).filter((e) => e.startsWith(`${arg}-`) && existsSync(path.join(episodesDir, e, "plan.json"))).sort()
+      ? (await readdir(episodesDir)).filter((e) => e.startsWith(`${arg}-`) && isLocalEpisodeFile(episodesDir, e, "plan.json")).sort()
       : [];
     if (labs.length === 1) return path.join(episodesDir, labs[0]!);
     if (labs.length > 1) throw new Error(`أكثر من مجلد يبدأ بـ ${arg}-: ${labs.join("، ")}`);
