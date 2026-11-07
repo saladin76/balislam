@@ -1,13 +1,17 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, writeFile, readdir } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { putPreview } from "../src/render/episodePreviews";
+
+const ownedPreviewDirs: string[] = [];
+const previewTmp = async () => { const d = await mkdtemp(path.join(os.tmpdir(), "prev-")); ownedPreviewDirs.push(d); return d; };
+afterEach(async () => { for (const d of ownedPreviewDirs.splice(0)) await rm(d, { recursive:true, force:true }); });
 
 describe("معاينات الاستوديو: كل تعديل يحذف القديم ويضع الجديد", () => {
   it("الخانة نفسها تحتفظ بفيديو واحد فقط، والنسخ القديمة تُحذف", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const dir = await previewTmp();
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const a = path.join(dir, "a.mp4");
@@ -31,7 +35,7 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
     expect(existsSync(path.join(dir, "previews", "six-shots-v3.mp4"))).toBe(false);
   });
   it("يرفض ملفًا بديلًا فارغًا ويحافظ على المعاينة والفهرس السابقين", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const dir = await previewTmp();
     const script = path.join(dir, "script.md");
     const good = path.join(dir, "good.mp4");
     const empty = path.join(dir, "empty.mp4");
@@ -48,7 +52,7 @@ describe("معاينات الاستوديو: كل تعديل يحذف القدي
   });
 
   it("الخانات المختلفة لا تمس بعضها", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "prev-"));
+    const dir = await previewTmp();
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const a = path.join(dir, "a.mp4");
