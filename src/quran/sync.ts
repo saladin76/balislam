@@ -32,7 +32,7 @@ const atKey = (key: string) => `${key}#at`;
 const fresh = (iso?: string) => Boolean(iso && Date.now() - Date.parse(iso) < QF_MAX_AGE_MS);
 
 /** فهرس تلاوات Quran Foundation للحلقة: recitations/index.json بجوار السكريبت. */
-export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation"; edition?: string; fetchedAt: string }>;
+export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; sha256?: string; textSha256?: string; rightsEvidence?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
 
 /** يجلب نصوص كل آيات السكريبت غير المخزنة ويحفظها في quran.json بجوار السكريبت. */
@@ -126,7 +126,11 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       store[key] = composeVerses(verses);
       if (translationId) {
         const meanings = verses.map((v) => v.meaning ?? "").filter(Boolean);
-        if (meanings.length === verses.length) store[meaningKey(key)] = verses.length === 1 ? meanings[0]! : verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
+        if (meanings.length === verses.length) {
+          store[meaningKey(key)] = verses.length === 1 ? meanings[0]! : verses.map((v, i) => `(${v.number}) ${meanings[i]}`).join(" ");
+          // Capture provenance at the time of fetching, never infer it later from channel settings.
+          if (channel.quranTranslation?.name) store[`${key}#meaningSource`] = channel.quranTranslation.name;
+        }
       }
       store[atKey(key)] = new Date().toISOString();
       result.fetched.push(key);
