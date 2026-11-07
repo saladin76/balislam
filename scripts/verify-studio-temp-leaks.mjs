@@ -89,6 +89,11 @@ let failures=[];
 try {
   writeFileSync(marker,"Audit sandbox owner; other temp directories are out of scope.\n",{flag:"wx",mode:0o600});
   const before=available();
+  // Fail closed before launching two gates if the Mac's system volume is
+  // already nearly full. Never try to reclaim another process's files.
+  if (parallel && before < 6 * 1024 ** 3) {
+    throw new Error("Parallel audit refused: fewer than 6 GiB of free disk space; no test gates started.");
+  }
   const swapBefore=swapUsage();
   const samples=[];
   if (exercise) {
