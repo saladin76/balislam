@@ -43,3 +43,6 @@ channels/.*.creating-*/
 channels/*/.*.tmp
 channels/*/episodes/*/.*.tmp
 channels/.*.create.lock
+
+# Explicit optimistic-concurrency locks, never committed
+channels/*/*.json.lock
