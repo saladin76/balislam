@@ -18,7 +18,7 @@ const sample = async () => {
   const plan = { chapters: [{ number: 1, title: "sample", scenes: [{
     id: "c1-s1", template: "noor-text", line: 1, props: {}, narration: "النص المشكول", sfx: [], tone: "calm",
   }] }] } as unknown as Plan;
-  const voice = { "c1-s1": { file: "spoken.mp3", text: "النص المشكول", hash: "voice-cache-v1", duration: 1.5, words: [] } };
+  const voice = { "c1-s1": { file: "spoken.mp3", text: "النص المشكول", hash: "voice-cache-v1", duration: 1.2, words: [] } };
   return { dir, scriptPath, plan, voice };
 };
 
@@ -83,6 +83,29 @@ describe("human-approved, fingerprint-bound voice gate", () => {
     await writeFile(path.join(x.dir, "voice", "spoken.mp3"), "CHANGED AUDIO WITHOUT RENAMING");
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow();
+  });
+  it("invalidates time metadata even when audio bytes and narration are unchanged", async () => {
+    const x = await sample();
+    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1",
+      "المراجع", "سمعت المقطع كاملًا وراجعت مدته وتوقيتاته", true);
+    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice,
+      "المراجع", "استمعت للتعليق كاملًا دون توقف وتحققت من التزامن", true);
+    expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(true);
+    // The same file with fabricated playback metadata must not remain approved.
+    x.voice["c1-s1"]!.duration = 1.45;
+    expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
+    x.voice["c1-s1"]!.duration = 1.2;
+    x.voice["c1-s1"]!.words = [{ word: "النص", start: 0, end: 0.5 }];
+    expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("changed");
+    expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(false);
+  });
+  it("refuses an audio directory that is a symlink, not just a symlinked filename", async () => {
+    const x = await sample();
+    const voiceRoot = path.join(x.dir, "voice");
+    const displaced = path.join(x.dir, "displaced-voice");
+    await rename(voiceRoot, displaced);
+    await symlink(displaced, voiceRoot);
+    expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
   });
   it("invalidates the review after tone or script change", async () => {
     const x = await sample();
