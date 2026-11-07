@@ -380,7 +380,7 @@ export const balApi = (): Plugin => ({
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
         if (err && typeof err === "object" && "status" in err && err.status === 409)
-          return send(res, 409, { error: (err as Error).message });
+          return send(res, 409, { error: err instanceof Error ? err.message : "تعارض في تعديل البيانات." });
         return send(res, 500, { error: (err as Error).message });
       }
     });
