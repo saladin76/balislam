@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -202,6 +202,14 @@ describe("local approved Quran recordings are bound to script text and real play
       expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
       expect((await ownAudioStatusForScript(scriptPath)).stale).toEqual(["53:39"]);
       await writeFile(originalPath, bytes);
+      expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
+      const originalsRoot = path.join(recitations, "originals");
+      const displaced = path.join(recitations, "real-originals");
+      await rename(originalsRoot, displaced);
+      await symlink(displaced, originalsRoot);
+      expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
+      await rm(originalsRoot);
+      await rename(displaced, originalsRoot);
       expect(Object.keys(await verifiedOwnRecitations(scriptPath))).toEqual(["53:39"]);
       await writeFile(file, "corrupt MP3 with no sound");
       expect(await verifiedOwnRecitations(scriptPath)).toEqual({});
