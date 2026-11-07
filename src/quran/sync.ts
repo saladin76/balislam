@@ -155,9 +155,9 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       const have = recIndex[key];
       const same = have && (isCloudRecitation(recitation)
         ? have.provider === "alquran-cloud" && have.edition === recitation.edition
-        : have.provider !== "alquran-cloud" && have.recitationId === recitation.id);
+        : have.provider === "quran-foundation" && have.recitationId === recitation.id);
       // A parseable, recent index with missing SHA or broken MP3 is never a hit.
-      const cacheReady = Boolean(have && have.parts.length &&
+      const cacheReady = Boolean(have && Array.isArray(have.parts) && have.parts.length &&
         (await Promise.all(have.parts.map((part) => verifiedProviderPart(recDir, part)))).every(Boolean));
       if (opts.force || !same || !fresh(have?.fetchedAt) || !cacheReady) {
         try {
