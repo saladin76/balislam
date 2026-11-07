@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -13,7 +13,9 @@ let tmp = "";
 let mp3: Buffer;
 beforeAll(() => {
   tmp = mkdtempSync(path.join(os.tmpdir(), "bal-rec-"));
-  cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(tmp, "balislam"), { recursive: true, filter: (s) => !/[\\/](voice|out|recitations)([\\/]|$)/.test(s) && !s.endsWith("quran.json") });
+  cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(tmp, "balislam"), { recursive: true, filter: (s) => !/[\\/](episodes|voice|out|recitations)([\\/]|$)/.test(s) && !s.endsWith("quran.json") });
+  // Create a fresh test episode instead of copying production episodes.
+  mkdirSync(path.join(tmp, "balislam", "episodes"), { recursive: true });
   // الحلقة التجريبية للاختبارات (القنوات نفسها تبدأ بلا حلقات)
   cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
   const ch = path.join(tmp, "balislam", "channel.json");
@@ -27,6 +29,8 @@ beforeAll(() => {
 afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
+  tmp = "";
 });
 
 
