@@ -64,7 +64,7 @@ export type WorkflowEvent = {
   note?: string;
 };
 export type WorkflowLedger = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   channel: string;
   episode: string;
   revision: number;
@@ -75,7 +75,7 @@ export type WorkflowLedger = {
 };
 
 export const initialLedger = (channel: string, episode: string): WorkflowLedger => ({
-  schemaVersion: 1, channel, episode, revision: 0,
+  schemaVersion: 2, channel, episode, revision: 0,
   stages: Object.fromEntries(WORKFLOW_STAGES.map((stage) => [stage, { status: "draft" }])) as Record<WorkflowStage, StageState>,
   history: [],
 });
@@ -89,7 +89,7 @@ export const stageFingerprint = (snapshot: WorkflowSnapshot, stage: WorkflowStag
       throw new Error(`Missing or invalid current artifact fingerprint for ${key}.`);
     return [key, item.version, item.sha256];
   });
-  return createHash("sha256").update(JSON.stringify([1, stage, inputs])).digest("hex");
+  return createHash("sha256").update(JSON.stringify([2, stage, inputs])).digest("hex");
 };
 
 export const stagePrerequisites = (stage: WorkflowStage): WorkflowStage[] =>
