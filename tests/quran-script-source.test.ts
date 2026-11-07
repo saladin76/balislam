@@ -167,6 +167,9 @@ describe("local approved Quran recordings are bound to script text and real play
       await writeFile(temp, first);
       await publishImmutableRecitationPart(dir, output, temp, sha(first));
       expect(await readFile(path.join(dir, output))).toEqual(first);
+      // An old staging pathname must not remain as a writable hard link
+      // to immutable published bytes.
+      await expect(readFile(temp)).rejects.toMatchObject({ code: "ENOENT" });
       await writeFile(temp, second);
       await expect(publishImmutableRecitationPart(dir, output, temp, sha(second)))
         .rejects.toThrow(/تغيّر/);
