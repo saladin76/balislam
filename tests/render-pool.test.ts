@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { canStart, classifyFailure, RenderPool, safeParallelism, type TaskSpec } from "../src/render/pool";
 
 /**
@@ -45,7 +45,9 @@ const harness = (availableMB: number, plan: Record<string, Fake>, perTaskMB = 10
   const tree = (pid: number) => ({ pids: [pid], rssMB: running.get(pid) ?? 0 });
   return { spawnFn, memory, tree, stats: () => ({ peak, started }), setUsed: (fn: () => number) => (used = fn) };
 };
-const dir = () => mkdtempSync(path.join(os.tmpdir(), "pool-"));
+const ownedPoolDirs: string[] = [];
+const dir = () => { const d = mkdtempSync(path.join(os.tmpdir(), "pool-")); ownedPoolDirs.push(d); return d; };
+afterEach(() => { for (const d of ownedPoolDirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 const spec = (d: string, id: string, extra: Partial<TaskSpec> = {}): TaskSpec => ({ id, cmd: "x", args: ["out", path.join(d, `${id}.mp4`)], cwd: d, output: path.join(d, `${id}.mp4`), outputArg: 1, ...extra });
 const noEvidence = { oomCount: () => null, oomVictims: () => new Set<number>() };
 

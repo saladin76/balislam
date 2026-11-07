@@ -1,4 +1,4 @@
-import { mkdtempSync, cpSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, cpSync, readFileSync, existsSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -22,6 +22,8 @@ beforeAll(() => {
 afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
+  tmp = "";
 });
 
 describe("القنوات", () => {

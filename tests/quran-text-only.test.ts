@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -13,8 +13,10 @@ const previousChannel = process.env.BAL_CHANNEL;
 beforeAll(() => {
   root = mkdtempSync(path.join(os.tmpdir(), "bal-script-quran-"));
   cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(root, "balislam"), {
-    recursive: true, filter: (src) => !/[\\/](recitations|voice|out)([\\/]|$)/.test(src),
+    recursive: true, filter: (src) => !/[\\/](episodes|recitations|voice|out)([\\/]|$)/.test(src),
   });
+  // Never copy production episodes or their heavy media into test-owned /tmp.
+  mkdirSync(path.join(root, "balislam", "episodes"), { recursive: true });
   episode = path.join(root, "balislam", "episodes", "999-demo");
   cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), episode, { recursive: true });
   process.env.BAL_CHANNELS_DIR = root;
