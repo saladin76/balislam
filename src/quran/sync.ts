@@ -19,6 +19,7 @@ export type RecitationIndex = Record<string, {
   approvedBy?: string;
   approvedAt?: string;
   sha256?: string;
+  textSha256?: string;
 }>;
 export const recitationsDirFor = (scriptPath: string) =>
   path.join(path.dirname(scriptPath), "recitations");
