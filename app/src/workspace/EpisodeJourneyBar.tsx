@@ -7,6 +7,7 @@ type Props = {
   episodeId: string; channelId: string; title: string;
   stage: WorkspaceStage; onStage: (stage: WorkspaceStage) => void;
   unsaved: boolean;
+  refreshKey?: number;
   saveState: "saved" | "dirty" | "saving" | "error";
 };
 
@@ -20,7 +21,7 @@ const STEPS: { title: string; tab: WorkspaceStage }[] = [
 
 /** A simple user journey; real approval values always come from the server. */
 export const EpisodeJourneyBar: React.FC<Props> = ({
-  episodeId, channelId, title, stage, onStage, unsaved, saveState,
+  episodeId, channelId, title, stage, onStage, unsaved, saveState, refreshKey,
 }) => {
   const [workflow, setWorkflow] = useState<SceneProductionRead | null>(null);
   const [unavailable, setUnavailable] = useState(false);
@@ -34,7 +35,7 @@ export const EpisodeJourneyBar: React.FC<Props> = ({
       () => { if (active) setUnavailable(true); },
     );
     return () => { active = false; };
-  }, [episodeId, channelId, stage]);
+  }, [episodeId, channelId, stage, refreshKey]);
 
   const done = [
     Boolean(workflow?.script.approved),
