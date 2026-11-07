@@ -1,6 +1,6 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { createReadStream, readFileSync } from "node:fs";
+import { createReadStream } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { projectRoot } from "../config/paths";
@@ -9,8 +9,8 @@ import { loadVoiceIndex, voiceDirFor, audioDuration } from "../voice/generate";
 import { availableSfx, sfxFile } from "../voice/sfx";
 import { type EpisodeMedia, type Recitation } from "./media";
 import type { Plan } from "./types";
-import { readJson } from "./io";
-import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
+import { recitationsDirFor } from "../quran/sync";
+import { verifiedOwnRecitations } from "../quran/manualAudio";
 
 
 // Quran recitation audio is private, per episode, and approved by its owner.
@@ -52,22 +52,15 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const sfx = availableSfx().filter((id) => used.has(id));
   const recitations: Record<string, Recitation> = {};
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
-  const approved = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
+  const approved = await verifiedOwnRecitations(await resolveScriptPath(episode));
   for (const s of plan.chapters.flatMap(ch => ch.scenes)) {
     if (s.template !== "verse-card" || !s.ayahKey) continue;
-    const recording = approved[s.ayahKey];
-    if (recording?.provider !== "manual" || !recording.approvedBy || !recording.approvedAt ||
-        !recording.sha256 || recording.parts.length !== 1) continue;
-    const part = recording.parts[0]!;
-    if (!/^manual-\d+-\d+(?:-\d+)?-[a-f0-9]{12}\.mp3$/.test(part.file) ||
-        !Number.isFinite(part.duration) || part.duration <= 0) continue;
-    const file = path.join(recDir, part.file);
-    if (!existsSync(file)) continue;
-    const digest = createHash("sha256").update(readFileSync(file)).digest("hex");
-    if (digest !== recording.sha256) continue;
+    const rec = approved[s.ayahKey];
+    if (!rec) continue;
+    const part = rec.parts[0]!;
     recitations[s.ayahKey] = {
-      file:part.file, duration:part.duration, parts:recording.parts,
-      reciter:recording.reciter, source:"manual",
+      file: part.file, duration: part.duration, parts: rec.parts,
+      reciter: rec.reciter, source: "manual",
     };
   }
   const sp = await resolveScriptPath(episode);
