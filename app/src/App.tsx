@@ -13,6 +13,7 @@ import { EpisodeTab } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
+import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
 import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
@@ -480,6 +481,16 @@ export const App: React.FC = () => {
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
+          <>
+          <SceneProductionPanel
+            key={`scene-workflow:${channelId}:${epId}`}
+            episodeId={epId}
+            channelId={channelId}
+            onOpenScene={(id) => setRequestedSceneId(id)}
+            onOpenStoryboard={() => setTab("storyboard")}
+            onOpenScript={() => setTab("script")}
+            onOpenPublish={() => setTab("publish")}
+          />
           <EpisodeTab
             key={epId}
             episodeId={epId}
@@ -499,6 +510,7 @@ export const App: React.FC = () => {
             }}
             onOpenVoice={() => setTab("voice")}
           />
+          </>
         ) : (
           <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}
