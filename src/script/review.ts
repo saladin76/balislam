@@ -7,7 +7,7 @@
  */
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { open, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, open, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import config from "../../config.json";
 import { normalizeArabic, parseAyahRef } from "./quranMeta";
@@ -64,10 +64,13 @@ export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): 
     const e = ledger?.items[key];
     // Legacy status without a named reviewer/note is historical evidence only;
     // it is NOT a current approval and must be explicitly re-reviewed.
-    const hasHumanProof = Boolean(e && e.reviewer?.trim() && e.note?.trim() &&
-      e.at && Number.isFinite(Date.parse(e.at)) && Date.parse(e.at) <= Date.now() + 60000);
+    const hasHumanProof = Boolean(e && e.status === "verified" || e?.status === "rejected");
+    const hasValidHumanProof = hasHumanProof && typeof e?.reviewer === "string" &&
+      e.reviewer.trim().length >= 2 && typeof e.note === "string" &&
+      e.note.trim().length >= 12 && typeof e.at === "string" &&
+      Number.isFinite(Date.parse(e.at)) && Date.parse(e.at) <= Date.now() + 60000;
     const status: ReviewStatus = !e ? "pending" : e.hash !== hash ? "changed" :
-      hasHumanProof ? e.status : "pending";
+      hasValidHumanProof ? e.status : "pending";
     return { key, kind: c.kind, label, ref, detail: c.fields.slice(1).join(" | "), text, line: c.line, hash, status, note: e?.note, at: e?.at, reviewer: e?.reviewer };
   });
 };
@@ -82,8 +85,11 @@ export const loadLedger = async (scriptPath: string): Promise<ReviewLedger> => {
   const f = reviewFileFor(scriptPath);
   if (!existsSync(f)) return { version: 1, items: {} };
   try {
+    if (!(await lstat(f)).isFile()) throw new Error("سجل التوثيق يجب أن يكون ملفًا محليًا عاديًا.");
     const j = JSON.parse(await readFile(f, "utf8")) as ReviewLedger;
-    return { version: 1, items: j.items ?? {} };
+    if (j?.version !== 1 || !j.items || typeof j.items !== "object" || Array.isArray(j.items))
+      throw new Error("صيغة سجل التوثيق التاريخي غير صالحة.");
+    return { version: 1, items: j.items };
   } catch (error) {
     // Do not erase historical reviewer evidence on malformed JSON or permission
     // errors: the operator must repair the file intentionally.
