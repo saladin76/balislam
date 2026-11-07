@@ -276,7 +276,7 @@ export const StoryboardPanel: React.FC<{
           placeholder="راجعت كل لوحات الإصدار ...، والتكوين والنصوص متطابقة، والمشاهد التي تحتاج إصلاحًا..." />
         <label><input type="checkbox" checked={visualReviewed} onChange={(e) => setVisualReviewed(e.target.checked)} />
           أؤكد أنني شاهدت جميع اللوحات المرئية لهذه الحلقة، وليس عينات متفرقة فقط.</label>
-        <p className="help">إذا كانت الآيات المعروضة ناقصة، أبقِ الإصدار للمراجعة PENDING_REVIEW حتى يتم جلب النصوص الصحيحة؛ لن تتحول ملفات PDF المرفوعة إلى اعتماد تلقائي.</p>
+        <p className="help">إذا كانت الآيات ناقصة، اكتبها داخل السكريبت ثم أعد مقارنة المصحف والمراجعة الشرعية؛ يبقى Storyboard في PENDING_REVIEW ولا تعتمد ملفات PDF تلقائيًا.</p>
       </section>
 
       <Reviews episodeId={episodeId} />
