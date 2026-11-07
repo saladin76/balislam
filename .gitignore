@@ -20,6 +20,8 @@ assets/sfx/**/*.wav
 # مكتبة العناصر المصدَّرة لكل قناة (bal elements) تُولَّد من الكود في renders/elements
 assets/elements/
 public/_render/
+# مخزن صور Storyboard المؤقت؛ لا يُرفع إلى Git
+public/_storyboard_media/
 # محتوى Quran Foundation لا يُحتفظ به أكثر من أسبوع (شروطهم): يُجلب على جهازك ولا يُرفع
 channels/*/episodes/*/quran.json
 channels/*/episodes/*/recitations/

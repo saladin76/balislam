@@ -164,6 +164,7 @@ export const EpisodeTab: React.FC<{
           identity={identity}
           channel={channel}
           media={media}
+          onReload={onReload}
           onOpenScene={(id) => {
             setSelectedId(id);
             setScope("scene");

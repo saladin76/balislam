@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
+import { searchFoundationReciters } from "../workspace/reciterSearch";
 import { filterRecitersByRights, type ReciterRightsFilter, commercialEvidenceFor } from "../workspace/recitationRights";
 import type { ChannelConfig, ChannelDomain } from "../../../src/channel/types";
 import { langPacks } from "../../../src/i18n/packs";
@@ -79,6 +80,8 @@ const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: 
   const [list, setList] = React.useState<{ id: number; name: string; style: string }[] | null>(null);
   const [msg, setMsg] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const found = searchFoundationReciters(list ?? [], search);
   const load = async () => {
     if (loading) return;
     setLoading(true);
@@ -98,20 +101,25 @@ const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: 
   return (
     <div className="field">
       <span>تلاوة الآيات</span>
+      {list && list.length > 0 && <div className="field">
+        <label htmlFor="ch-reciter-search">ابحث في جميع القرّاء والأداءات المتاحة</label>
+        <input id="ch-reciter-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم القارئ، مرتل، مجود، أو رقم التسجيل" />
+        <span className="help" role="status">{found.length} تسجيلًا مطابقًا من أصل {list.length} تسجيلًا لدى Quran Foundation</span>
+      </div>}
       <div className="channel-provider-controls">
         {list && list.length ? (
           <select id="ch-reciter" aria-label="القارئ المختار" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }}>
             <option value="">بلا تلاوة (نص الآية فقط)</option>
-            {value && !list.some((t) => t.id === value.id) ? <option value={value.id}>{value.name} (اختيار محفوظ؛ غير موجود في القائمة الحالية)</option> : null}
-            {list.map((t) => <option key={t.id} value={t.id}>{t.name}{t.style ? ` · ${styleAr(t.style)}` : ""}</option>)}
+            {value && !found.some((t) => t.id === value.id) ? <option value={value.id}>{value.name} (المختار حاليًا خارج نتائج البحث)</option> : null}
+            {found.map((t) => <option key={t.id} value={t.id}>{t.name}{t.style ? ` · ${styleAr(t.style)}` : ""}</option>)}
           </select>
         ) : (
           <span style={{ flex: 1 }}>{value ? <b>{value.name}</b> : <span className="help">بلا تلاوة (نص الآية فقط)</span>}</span>
         )}
         <button className="btn small" type="button" disabled={loading} onClick={load}>{loading ? "جارٍ تحميل القرّاء…" : list ? "تحديث القرّاء" : "اختيار قارئ"}</button>
-        {value ? <button className="btn ghost small" onClick={() => onChange(undefined)}>إيقاف التلاوة</button> : null}
+        {value ? <button className="btn ghost small" type="button" onClick={() => onChange(undefined)}>إيقاف التلاوة</button> : null}
       </div>
-      <span className="help" role={msg ? "status" : undefined}>{msg || "تُجلب تلاوة كل آية مع نصها من Quran Foundation وتُشغَّل في بطاقة الآية، ويُذكر القارئ في الوصف. التلاوة المرخّصة في assets/recitations لها الأولوية."}</span>
+      <span className="help" role={msg ? "status" : undefined}>{msg || "قائمة القرّاء تُجلب كاملة من Quran Foundation بلا حصر مسبق، ويمكن البحث فيها؛ مكتبة AlQuran Cloud في مساحة الحلقة تتيح الاستماع إلى تسجيلات أخرى. توفر التسجيل لا يعني تلقائيًا إذن نشره تجاريًا."}</span>
     </div>
   );
 };

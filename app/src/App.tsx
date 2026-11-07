@@ -465,6 +465,7 @@ export const App: React.FC = () => {
             channel={channel}
             media={media}
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+            onReload={() => loadEpisode(epId, { keepScript: true })}
           /></div>
         ) : tab === "voice" ? (
           <VoiceWorkspaceTab

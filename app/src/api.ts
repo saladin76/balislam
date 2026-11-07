@@ -43,7 +43,7 @@ export type Idea = { id: string; title: string; note?: string; domain?: string; 
 export type CalendarDay = { shorts?: { ep: string; n: number }[]; off?: boolean; note?: string };
 export type OpsChannel = { calendar: Record<string, CalendarDay>; channel: { id: string; name: string; language: string; schedule: { longDay: number; time?: string; shortsPerDay?: number } | null; domains: Record<string, ChannelDomain> }; episodes: Overview[]; ideas: Idea[] };
 export type PackageInfo = { files: { name: string; size: number; mtime: number }[]; youtube: string; checklist: string; /** بأي جودة رُندرت الحلقة */ render?: { quality: "master" | "preview"; label: string; width: number; height: number; voiced: boolean; at: string } | null };
-export type StoryboardInfo = { status: import("../../src/plan/storyboard").StoryboardStatus; motion: import("../../src/render/storyboardMotion").StoryboardMotion | null; motionStale?: string[]; auditNeedsReview?: boolean };
+export type StoryboardInfo = { status: import("../../src/plan/storyboard").StoryboardStatus; motion: import("../../src/render/storyboardMotion").StoryboardMotion | null; motionStale?: string[]; auditNeedsReview?: boolean; motionAuditNeedsReview?: boolean };
 export type LongJob = { id: string; kind: string; episode?: string; title: string; status: "running" | "done" | "error"; pct: number; log: string[]; error?: string; startedAt: number; queued?: boolean };
 export type KeyState = Record<string, { label: string; set: boolean; preview: string }>;
 export type SfxItem = { id: string; nameAr: string; category: string; categoryAr: string; useAr: string; seconds: number; guard?: string; available: boolean };
@@ -72,6 +72,15 @@ export type AlQuranAudioEdition = { identifier: string; name: string };
 export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
 
 export const api = {
+  voiceReview: (episode: string, channel: string) =>
+    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, undefined, channel),
+  approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string }) =>
+    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: data }, channel),
+  approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
+    call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
   recitationChoice: (episode: string, channel: string) =>
     call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
   saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
@@ -159,6 +168,13 @@ export const api = {
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  missingQuranTexts: (id: string) =>
+    call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+      `/api/episodes/${id}/quran-text-only`),
+  fetchMissingQuranTexts: (id: string) =>
+    call<{ result: { fetched: string[]; existing: string[]; failed: { ref: string; reason: string }[] };
+      status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+      `/api/episodes/${id}/quran-text-only`, { method: "POST", json: { confirm: true } }),
   storyboardReport: (id: string) => call<{ markdown: string }>(`/api/episodes/${id}/storyboard-report`),
   setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs"),
