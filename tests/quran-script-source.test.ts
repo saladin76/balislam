@@ -12,6 +12,7 @@ import { reviewItems, type ReviewLedger } from "../src/script/review";
 import { verifiedOwnRecitations, ownAudioStatusForScript } from "../src/quran/manualAudio";
 import { alignDiff } from "../src/quran/audit";
 import { compareVerseText } from "../src/quran/compare";
+import { preserveManualRecitations } from "../src/quran/sync";
 import type { Plan } from "../src/plan/types";
 
 const verse = "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ";
@@ -130,6 +131,21 @@ describe("Quran script-first text, review and historical meanings", () => {
 });
 
 describe("local approved Quran recordings are bound to script text and real playable files", () => {
+  it("never overwrites manual reviewed audio with a slow external-provider update", () => {
+    const manual = {
+      provider: "manual" as const, reciter: "قارئ بشري", rightsEvidence: "ترخيص مكتوب",
+      fetchedAt: "2026-11-07T12:00:00Z", approvedAt: "2026-11-07T12:05:00Z",
+      approvedBy: "مراجع بشري", parts: [{ file: "manual-53-39-abcabcabcabc.mp3", duration: 3 }],
+    };
+    const remote = { provider: "quran-foundation" as const, reciter: "مصدر",
+      fetchedAt: "2026-11-07T11:00:00Z", recitationId: 4,
+      parts: [{ file: "remote.mp3", duration: 3 }] };
+    const result = preserveManualRecitations({ "53:39": remote }, { "53:39": manual });
+    expect(result["53:39"]).toEqual(manual);
+    expect(result["53:39"]?.provider).toBe("manual");
+    expect(preserveManualRecitations({ "53:39": remote }, {})["53:39"]).toEqual(remote);
+  });
+
   it("rejects modified text and corrupt audio without touching the historical approval file", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "quran-script-recitation-"));
     const scriptPath = path.join(dir, "script.md");
