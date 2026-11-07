@@ -201,6 +201,28 @@ export const balApi = (): Plugin => ({
             return send(res, 405, { error: "Method not allowed" });
           }
 
+          if (parts[2] === "scene-av-render" && parts.length === 3) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const body = await readBody(req);
+            const sceneId = body?.sceneId;
+            const expectedSha256 = body?.expectedSha256;
+            const token = req.headers["x-studio-owner-token"];
+            const { assertCurrentSceneRenderAllowed } =
+              await load("/src/studio/sceneService.ts");
+            await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token);
+            const { renderShotsPreview } = await load("/src/render/shotsPreview.ts");
+            const output = await renderShotsPreview(ep, [sceneId], {
+              slot: `scene-${sceneId}-av`,
+              title: `المشهد ${sceneId} — صوت وصورة للمراجعة`,
+              note: "نسخة مرشحة غير معتمدة حتى مشاهدة المشهد واتخاذ قرار المالك.",
+              verifyBeforePublish: () => assertCurrentSceneRenderAllowed(
+                ep, sceneId, expectedSha256, token,
+              ),
+            });
+            return send(res, 200, { ok: true, version: output.version,
+              preview: `scene-${sceneId}-av.mp4` });
+          }
+
           if (parts[2] === "workflow" && parts.length === 3) {
             const { workflowReadForEpisode, workflowOwnerDecision } = await load("/src/workflow/server.ts");
             if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
