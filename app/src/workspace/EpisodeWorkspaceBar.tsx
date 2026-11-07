@@ -61,7 +61,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   useEffect(() => {
     let alive = true;
     const refresh = () => {
-      void Promise.allSettled([api.review(episodeId), api.sceneReview(episodeId), api.storyboard(episodeId), api.status(episodeId), api.research(episodeId)]).then(([r, s, b, p, research]) => {
+      void Promise.allSettled([api.review(episodeId, channelId), api.sceneReview(episodeId, channelId), api.storyboard(episodeId, channelId), api.status(episodeId, channelId), api.research(episodeId, channelId)]).then(([r, s, b, p, research]) => {
         if (!alive) return;
         setUnavailableChecks([r, s, b, p, research].filter((item) => item.status === "rejected").length);
         setReview(r.status === "fulfilled" ? r.value.summary : null);
@@ -74,7 +74,7 @@ export const EpisodeWorkspaceBar: React.FC<{
     refresh();
     const timer = window.setInterval(refresh, 15000);
     return () => { alive = false; window.clearInterval(timer); };
-  }, [episodeId, plan, stage]);
+  }, [episodeId, channelId, plan, stage]);
 
   const narration = useMemo(() => plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim()), [plan]);
   const missingAudio = narration.filter((s) => !media.voice[s.id] || media.voice[s.id]?.text !== s.narration.trim()).length;
