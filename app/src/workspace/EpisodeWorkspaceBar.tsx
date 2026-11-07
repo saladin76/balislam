@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api, type CheckResult, type EpisodeStatus, type SceneReviewSummary, type ReviewSummary } from "../api";
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
@@ -24,6 +24,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   researchDirty?: boolean;
   identityDirty?: boolean;
 }> = ({ episodeId, channelId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false, identityDirty = false }) => {
+  const stageNavRef = useRef<HTMLElement | null>(null);
   const [approvals, setApprovals] = useState<WorkflowApprovalSnapshot | null>(null);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   useEffect(() => {
@@ -109,6 +110,13 @@ export const EpisodeWorkspaceBar: React.FC<{
     : workflowError;
   const saveLabel = scriptDirty || researchDirty || saveState === "dirty" ? "تعديلات غير محفوظة" : saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذر الحفظ" : "تعديلات المشاهد محفوظة";
   const activeStageIndex = Math.max(0, WORKFLOW_STAGES.findIndex((item) => item.tab === (stage === "research" ? "script" : stage)));
+  // Keep the selected stage visible on phone screens, even when opened from a deep link.
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 700px)").matches) return;
+    stageNavRef.current?.querySelector<HTMLElement>('[aria-current="step"]')?.scrollIntoView({
+      block: "nearest", inline: "center", behavior: "auto",
+    });
+  }, [stage]);
 
   return (
     <section className="episode-workspace-header" aria-label="مساحة عمل الحلقة">
@@ -119,7 +127,7 @@ export const EpisodeWorkspaceBar: React.FC<{
         </div>
         <div className="ew-heading-actions"><button type="button" className="ew-research-shortcut" onClick={() => onStage("research")} aria-current={stage === "research" ? "step" : undefined}>ملف البحث والتحضير</button><span className={`ew-save ${saveState === "error" ? "error" : ""}`} role="status">{saveLabel}</span></div>
       </div>
-      <nav className="ew-stages" aria-label="مراحل إنتاج الحلقة">
+      <nav ref={stageNavRef} className="ew-stages" aria-label="مراحل إنتاج الحلقة">
         {WORKFLOW_STAGES.map((item, index) => (
           <button key={item.key} type="button" className={`ew-stage ${stage === item.tab || (stage === "research" && item.key === "script") ? "active" : ""}`}
             aria-current={stage === item.tab || (stage === "research" && item.key === "script") ? "step" : undefined}
