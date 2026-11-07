@@ -133,3 +133,15 @@
 - في مسار اختبار Render Isolation منفصل، تم تنظيف ملفات الاختبارات المملوكة للتشغيلات `run-bkb7oH` و`run-ow30OQ` و`run-wNlz9Y` بنتيجة `CLEANED`. تقرير قبول الرندر السابق ظل **FAIL** ويخص فرعًا آخر، ولا يُحسب نجاحًا لهذا الفرع.
 
 **تحديث حالة البوابة:** فحص TypeScript الكامل **نجح رسميًا**، واختبارات Core المحددة **نجحت رسميًا**، وهو أقوى من أدلة الـ70 حالة smoke المعزولة السابقة ولا يتعارض معها. **لم تُشغل بعد جميع ملفات Vitest، أو التكامل الحقيقي لقنوات Studio عبر HTTP/Browser، أو اختبارات دمج الفروع على SHA release candidate**. لهذا لا نعتمد جاهزية 100% ولا نحول Draft إلى Ready ولا ندمج.
+
+## جولة التحقق الثالثة — QA على Mac المعزول (2026-11-07 20:15 Europe/Istanbul)
+
+قدّم المستخدم نتيجة Terminal من `~/studio-core-channels-qa-20261107` بعد نجاح تشغيل فحوص التوافق، على commit `eb6de6df38d6266045732579a4bb29324cf25359`:
+
+- `npx --no-install vitest run tests/studio-labs.test.ts tests/channel-samples.test.ts tests/episode-workspace.test.tsx tests/identity-approved.test.ts tests/studio-preview-audit-parity.test.ts tests/git-env-isolation.test.ts`: **6/6 files PASS، 42/42 tests PASS**، Vitest v5.0.5 خلال 2.57s.
+- الجولة الأولى: `npm run typecheck` PASS و`37/37` اختبارًا في 9 ملفات Core على `8b75d5d`؛ التغيير التالي حتى `eb6de6d` كان توثيقًا فقط.
+- الجولة الثانية: `47/47` اختبار توافق في 9 ملفات على `eb6de6d`.
+- **حصيلة اختبارات Vitest الرسمية المنفذة في ثلاث دفعات مستقلة: 126/126 ناجحًا في 24 ملف اختبار مختلف.** هذه إحصائية تراكمية وليست تشغيلًا واحدًا للمجموعة الكاملة.
+- `df -h` بعد الجولة الثالثة: **5.2 GiB free، 98% used**. تشخيص الملفات السابق: `.qa-tmp` نحو 7.7 MB و`node_modules` 332 MB، واختبارات Render Isolation المملوكة 548 KB؛ لم تُرصد عمليات اختبار نشطة وقت الفحص السابق. لا توجد أدلة كافية لإسناد تغير المساحة لأي دفعة اختبارات بعينها.
+
+**البوابة التالية:** اختبارات ارتداد إضافية صغيرة بلا Remotion/Chrome/FFmpeg، ثم مراجعة توافق API/واجهة Studio؛ تأجيل رندر الفيديو والاختبارات الثقيلة بسبب المساحة. **لا يزال PR Draft، ولم يُجر اختبار المستودع الكامل أو قبول تكاملي على فرع release candidate؛ ليس 100%.**
