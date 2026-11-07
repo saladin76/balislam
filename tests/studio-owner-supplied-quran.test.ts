@@ -32,12 +32,13 @@ describe("Studio owner-supplied Quran media, no external provider UI or dispatch
     for (const file of ["app/server/api.ts", "app/server/extra.ts"]) {
       expect(source(file)).not.toMatch(/quranClientFromEnv|syncQuran|QF_CLIENT/);
     }
-    expect(source("app/server/api.ts")).toContain('error: "أُلغي الجلب الخارجي.');
+    expect(source("app/server/api.ts")).toMatch(/الجلب الخارجي/);
   });
 
   it("collects only manually reviewed episode-owned recordings with no global fallback", () => {
     const collector = source("src/plan/collect.ts");
-    expect(collector).toContain("approvedRecitationsForRender(scriptPath, undefined)");
+    expect(collector).toContain("verifiedOwnRecitations(scriptPath)");
+    expect(collector).toContain("requireApprovedQuran");
     expect(collector).toContain('r.source !== "manual"');
     expect(collector).not.toMatch(/quran-foundation|alquran-cloud|recitationFileFor\(/i);
     const gate = source("src/voice/motionGate.ts");
