@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { rm } from "node:fs/promises";
-import { assertNoLinkedPath, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
+import { assertNoLinkedPath, assertEpisodeOutputConfined, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { assertMasterStageAuthorized, masterRenderSubject } from "./masterGateContract";
 import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
@@ -127,12 +127,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const outputRoot = path.join(path.dirname(scriptPath), "out");
   const output = opts.outFile ?? path.join(outputRoot,
     `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
-  if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
-  const relativeOutput = path.relative(outputRoot, output);
-  if (relativeOutput === ".." || relativeOutput.startsWith(`..${path.sep}`) ||
-      path.isAbsolute(relativeOutput) || relativeOutput === "")
-    throw new Error("يجب حفظ فيديو الحلقة داخل out/ للحلقة المختارة فقط.");
-  await ensureUnlinkedDirectory(path.dirname(output));
+  await assertEpisodeOutputConfined(scriptPath, output);
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
