@@ -55,6 +55,9 @@ const atomicJson = async (target: string, value: unknown) => {
 const withLock = async <T>(scriptPath: string, fn: (dir: string) => Promise<T>): Promise<T> => {
   const dir = recitationsDirFor(scriptPath);
   await mkdir(dir, { recursive: true });
+  const state = await lstat(dir);
+  if (!state.isDirectory() || state.isSymbolicLink())
+    throw Error("مجلد تسجيلات الحلقة ليس مجلدًا محليًا آمنًا.");
   const lockFile = path.join(dir, ".manual-audio.lock");
   const lock = await open(lockFile, "wx", 0o600).catch((e: NodeJS.ErrnoException) => {
     if (e.code === "EEXIST") throw Error("هناك عملية تلاوة أخرى قيد التنفيذ؛ جرّب بعد انتهائها.");
