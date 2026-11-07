@@ -42,10 +42,12 @@ describe("mandatory Studio production ports — integration acceptance contract"
       order.push("gate:" + action);
       return { snapshot, manifest: { stages: {} } };
     });
-    const publish = vi.fn(async (fn: (v: { file: string; sha256: string; snapshot: WorkflowSnapshot }) => Promise<string>) => {
-      expect(locked).toBe(true);
-      return fn({ file: "/private/frozen-approved-master.mp4", sha256: snapshot.master!.sha256, snapshot });
-    });
+    const publish = vi.fn(async (fn: (v: { file: string; sha256: string; snapshot: WorkflowSnapshot }) => Promise<string>) =>
+      lock(async () => {
+        // The real service takes the lock even when the caller bypasses ports.
+        expect(locked).toBe(true);
+        return fn({ file: "/private/frozen-approved-master.mp4", sha256: snapshot.master!.sha256, snapshot });
+      }));
     const ports = createWorkflowProtectedPorts({ gate, withVerifiedMasterPublication: publish } as never, lock);
     const received = await ports.renderFinalMotion(async (verified) => {
       expect(locked).toBe(true);
