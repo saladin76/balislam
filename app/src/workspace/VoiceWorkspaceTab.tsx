@@ -85,7 +85,7 @@ export const VoiceWorkspaceTab: React.FC<{
     }
     setReviewBusy(true); setReviewError("");
     try {
-      const result = await api.approveVoiceScene(episodeId, channelId, { sceneId: selected, reviewer, note });
+      const result = await api.approveVoiceScene(episodeId, channelId, { sceneId: selected, reviewer, note, listened: true });
       setReview(result.items); setFullApproved(result.episodeApproved); setNote(""); setHeard(false); setFullHeard(false);
     } catch (e) { setReviewError((e as Error).message); }
     finally { setReviewBusy(false); }
