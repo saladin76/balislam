@@ -6,7 +6,7 @@
  * nor these tests may enumerate, clean or modify unrelated system temp paths.
  */
 import { execFileSync, spawn } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statfsSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -14,6 +14,11 @@ import { cleanGitEnv } from "../scripts/git-env.mjs";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 const gate = path.join(projectRoot, "scripts", "gate.mjs");
+const tempAudit = path.join(projectRoot, "scripts", "verify-studio-temp-leaks.mjs");
+const availableTempBytes = (() => {
+  const s = statfsSync(os.tmpdir());
+  return Number(s.bavail) * Number(s.bsize);
+})();
 const ownedRoots: string[] = [];
 const fixture = () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "bal-p0-gate-test-"));
@@ -318,4 +323,32 @@ describe("P0 gate-owned temporary files", () => {
     expect(readFileSync(path.join(isolated.episode, "script.md"), "utf8")).toBe("IMMUTABLE EPISODE CONTENT\n");
     checkIsolated(f);
   }, 15_000);
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "reports a failed async parallel preflight without launching any full gates", async () => {
+      const f = fixture();
+      const r = await execute(f, "fail", null,
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(1);
+      expect(r.out).toContain("TEMP_LEAK_AUDIT_ERROR");
+      expect(r.out).toContain('"passed":false');
+      expect(r.out).toContain("no full gates started");
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 15_000,
+  );
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "cancels a hanging parallel preflight before deleting only its own root", async () => {
+      const f = fixture();
+      const r = await execute(f, "hang", "SIGTERM",
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(1);
+      expect(r.out).toContain("TEMP_LEAK_AUDIT_ERROR");
+      expect(r.out).toContain('"passed":false');
+      expect(r.out).toContain("no full gates started");
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 15_000,
+  );
 });
