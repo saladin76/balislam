@@ -103,6 +103,7 @@ export const App: React.FC = () => {
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
+  const [identityLoadError, setIdentityLoadError] = useState("");
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
   const [showNew, setShowNew] = useState(false);
   /** فكرة من بنك الأفكار تتحول حلقة: تملأ نموذج الحلقة الجديدة */
@@ -164,6 +165,7 @@ export const App: React.FC = () => {
     setPlan(null);
     setEpisodeLoadError("");
     setIdent(null); // Never show another channel's identity while this one loads.
+    setIdentityLoadError("");
     loadedKey.current = "";
     episodesOf.current = "";
     const ch = channelId;
@@ -183,7 +185,12 @@ export const App: React.FC = () => {
       const prior = identityDrafts.current.get(ch);
       const dirty = prior && JSON.stringify(prior.draft) !== JSON.stringify(prior.saved);
       setIdent({ draft: dirty ? prior.draft : identity, saved: identity, defaults });
-    }).catch((e) => { if (channelRef.current === ch) say(e.message, true); });
+    }).catch((e) => {
+      if (channelRef.current === ch) {
+        setIdentityLoadError((e as Error).message);
+        say(e.message, true);
+      }
+    });
     // بيانات القناة نفسها (الاسم والشعار والقواعد) حتى بلا حلقات، فلا يبقى الاستوديو على قناة سابقة
     if (channelId) api.channel(ch).then((c) => {
       if (channelRef.current === ch) setChannel(channelInfo(c));
@@ -351,7 +358,20 @@ export const App: React.FC = () => {
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
 
-  if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
+  if (!ident) return <main className="empty-state" dir="rtl" role={identityLoadError ? "alert" : "status"}>
+    <h2>{identityLoadError ? "تعذّر تحميل هوية القناة" : "جارٍ تحميل هوية القناة…"}</h2>
+    {identityLoadError ? <><p>{identityLoadError}</p><button type="button" className="btn primary"
+      onClick={() => {
+        const requested = channelId;
+        setIdentityLoadError("");
+        void api.identity(requested).then(({ identity, defaults }) => {
+          if (channelRef.current !== requested) return;
+          const previous = identityDrafts.current.get(requested);
+          setIdent({ draft: previous && JSON.stringify(previous.draft) !== JSON.stringify(previous.saved) ? previous.draft : identity,
+            saved: identity, defaults });
+        }).catch((e) => { if (channelRef.current === requested) setIdentityLoadError((e as Error).message); });
+      }}>إعادة المحاولة</button></> : null}
+  </main>;
 
   return (
     <IdentityProvider identity={ident.draft}>
