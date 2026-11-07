@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { stageRemotionPublicDir } from "../src/render/bundle";
 import { studioMediaNamespace } from "../src/plan/collect";
 import { stageRenderFiles, type RenderStageFile } from "../src/plan/renderStage";
 import { mediaSrc, visualNarrationTimings } from "../src/remotion/scenes/Episode";
@@ -113,6 +115,32 @@ describe("immutable Remotion assets across channels and episodes", () => {
     expect(decodeURIComponent(url)).toContain(base + "images/صورة.png");
     expect(media.mode).toBe("static");
     expect(await readFile(staged(publicRoot, base, "images", "صورة.png"), "utf8")).toBe("bytes");
+  });
+
+  it("Remotion's bundled publicDir excludes other channels and keeps shared fonts", async () => {
+    const { root, publicRoot } = await scratch();
+    await mkdir(path.join(publicRoot, "fonts"), { recursive: true });
+    await writeFile(path.join(publicRoot, "fonts", "common.woff2"), "SHARED");
+    const one = path.join(root, "one.png");
+    const two = path.join(root, "two.png");
+    await writeFile(one, "EPISODE ONE");
+    await writeFile(two, "EPISODE TWO");
+    const own = await stageRenderFiles(namespace(root, "balislam"), [imageFile(one)], { publicRoot });
+    const foreign = await stageRenderFiles(namespace(root, "dafatir-alzaman"), [imageFile(two)], { publicRoot });
+    const media: EpisodeMedia = { mode: "static", base: own, voice: {}, sfx: [], recitations: {} };
+    const scope = await stageRemotionPublicDir(media, { publicRoot, tempRoot: root });
+    try {
+      expect(await readFile(staged(scope.dir, own), "utf8")).toBe("EPISODE ONE");
+      expect(await readFile(path.join(scope.dir, "fonts", "common.woff2"), "utf8")).toBe("SHARED");
+      expect(existsSync(path.join(scope.dir, foreign))).toBe(false);
+      expect(existsSync(path.join(scope.dir, "_render", "dafatir-alzaman"))).toBe(false);
+    } finally {
+      await scope.cleanup();
+    }
+    expect(existsSync(scope.dir)).toBe(false);
+    await expect(stageRemotionPublicDir({ ...media, base: "../other/" }, { publicRoot, tempRoot: root }))
+      .rejects.toThrow(/غير معزول/);
+    expect((await readdir(root)).filter((name) => name.startsWith("studio-remotion-public-"))).toEqual([]);
   });
 
   it("uses estimated word motion until narration is explicitly approved; leaves recitations untouched", () => {
