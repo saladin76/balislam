@@ -16,7 +16,7 @@ export const safeName = (s: string) => {
     throw new HttpError(400, "اسم الملف غير صالح.");
   }
   if (!decoded || decoded === "." || decoded === ".." ||
-      decoded !== path.basename(decoded) || /[\\\\/\0]/.test(decoded))
+      decoded !== path.basename(decoded) || decoded.includes("/") || decoded.includes("\\") || decoded.includes("\0"))
     throw new HttpError(400, "اسم الملف غير صالح.");
   return decoded;
 };
