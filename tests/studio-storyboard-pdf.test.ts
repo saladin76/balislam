@@ -125,15 +125,15 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(faces.size).toBe(3);
   });
   it("keeps Arabic graphemes, emoji and hard line breaks intact across annex pages",()=>{
-    const source="بِّ".repeat(210)+"🙂"+"\\n".repeat(27)+"وَصْفٌ".repeat(36);
+    const source="بِّ".repeat(210)+"🙂"+"\n".repeat(27)+"وَصْفٌ".repeat(36);
     const chunks=splitAppendixText(source);
     expect(chunks.length).toBeGreaterThan(2);
     expect(chunks.join("")).toBe(source);
     for(const chunk of chunks){
       expect(chunk.length).toBeLessThanOrEqual(400);
-      expect(chunk).not.toMatch(/^[\\u064B-\\u065F]/u);
-      expect(chunk).not.toMatch(/[\\uD800-\\uDBFF]$/u);
-      expect(chunk).not.toMatch(/^[\\uDC00-\\uDFFF]/u);
+      expect(chunk).not.toMatch(/^[\u064B-\u065F]/u);
+      expect(chunk).not.toMatch(/[\uD800-\uDBFF]$/u);
+      expect(chunk).not.toMatch(/^[\uDC00-\uDFFF]/u);
     }
     const x=setup();
     x.data.scenes[0]!.narration=source;
@@ -149,7 +149,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     x.data.scenes[0]!.title=longTitle;
     x.data.scenes[0]!.chapterTitle=longChapter;
     x.data.scenes[1]!.chapterTitle=longChapter;
-    x.data.scenes[0]!.notes="السطر الأول\\nالسطر الثاني\\nالسطر الثالث\\nالسطر الرابع";
+    x.data.scenes[0]!.notes="السطر الأول\nالسطر الثاني\nالسطر الثالث\nالسطر الرابع";
     const r=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
     expect(r.scenes).toBe(2);
     expect((r.html.match(/class="page cover"/g)??[]).length).toBe(1);
