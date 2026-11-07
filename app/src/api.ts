@@ -56,15 +56,28 @@ export const setApiChannel = (id: string) => {
 };
 const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(currentChannel)}` : url);
 
+/** Revision keys include the explicit channel URL so a save in one channel
+ * cannot reuse another channel's If-Match. Old GET/PUT bodies stay unchanged.
+ */
+const channelRevisions = new Map<string, string>();
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
+  const headers = new Headers(init?.headers);
+  if (init?.json !== undefined) headers.set("content-type", "application/json");
+  const versioned = path === "/api/channel" || path === "/api/identity";
+  if (versioned && init?.method === "PUT" && channelRevisions.has(url))
+    headers.set("if-match", channelRevisions.get(url)!);
   const res = await fetch(url, {
     ...init,
-    headers: init?.json !== undefined ? { "content-type": "application/json" } : undefined,
+    headers,
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string }).error ?? `خطأ ${res.status}`);
+  if (versioned) {
+    const revision = res.headers.get("etag");
+    if (revision) channelRevisions.set(url, revision);
+  }
   return data as T;
 };
 
