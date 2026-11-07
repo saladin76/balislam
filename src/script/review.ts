@@ -15,7 +15,7 @@ import { quranFromScript } from "../quran/scriptText";
 import type { ParsedScript } from "./types";
 
 export type ReviewStatus = "pending" | "changed" | "verified" | "rejected";
-export type ReviewEntry = { hash: string; status: "verified" | "rejected"; note?: string; at: string; ref: string };
+export type ReviewEntry = { hash: string; status: "verified" | "rejected"; reviewer?: string; note?: string; at: string; ref: string };
 export type ReviewLedger = { version: 1; items: Record<string, ReviewEntry> };
 export type ReviewItem = {
   key: string;
@@ -32,6 +32,7 @@ export type ReviewItem = {
   status: ReviewStatus;
   note?: string;
   at?: string;
+  reviewer?: string;
 };
 export type ReviewSummary = { total: number; verified: number; pending: number; changed: number; rejected: number; ok: boolean };
 
@@ -39,7 +40,7 @@ export const REVIEW = { required: true, ...((config as { review?: { required?: b
 export const reviewFileFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "review.json");
 
 const norm = (s: string) => normalizeArabic(s).replace(/\s+/g, " ").trim();
-const sha = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 12);
+const sha = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
 
 export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): ReviewItem[] => {
   // نصوص الأحاديث في التعليق: [حديث: المرجع | النص | الراوي]
@@ -59,11 +60,15 @@ export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): 
     const ayah = c.kind === "ayah" ? parseAyahRef(ref) : null;
     const sourceText = ayah?.ok ? (ayahTexts[ayah.ref.key] ?? "") : "";
     // Exact tashkeel and Quranic markers must invalidate prior human review.
-    const hash = sha([norm(c.raw.replace(/^\s*[-*]\s*/, "")), text ? norm(text) : "",
-      c.kind === "ayah" ? sourceText : ""].join("\n"));
+    const hash = sha([c.raw, text ?? "", c.kind === "ayah" ? sourceText : ""].join("\n"));
     const e = ledger?.items[key];
-    const status: ReviewStatus = !e ? "pending" : e.hash !== hash ? "changed" : e.status;
-    return { key, kind: c.kind, label, ref, detail: c.fields.slice(1).join(" | "), text, line: c.line, hash, status, note: e?.note, at: e?.at };
+    // Legacy status without a named reviewer/note is historical evidence only;
+    // it is NOT a current approval and must be explicitly re-reviewed.
+    const hasHumanProof = Boolean(e?.reviewer?.trim() && e?.note?.trim() &&
+      e.at && Number.isFinite(Date.parse(e.at)) && Date.parse(e.at) <= Date.now() + 60000);
+    const status: ReviewStatus = !e ? "pending" : e.hash !== hash ? "changed" :
+      hasHumanProof ? e.status : "pending";
+    return { key, kind: c.kind, label, ref, detail: c.fields.slice(1).join(" | "), text, line: c.line, hash, status, note: e?.note, at: e?.at, reviewer: e?.reviewer };
   });
 };
 
@@ -85,14 +90,27 @@ export const loadLedger = async (scriptPath: string): Promise<ReviewLedger> => {
 };
 
 /** يسجل قرار المراجع على الاستشهاد بحالته الحالية (البصمة الحالية). */
-export const setReview = async (scriptPath: string, script: ParsedScript, key: string, status: "verified" | "rejected" | "pending", note = ""): Promise<ReviewItem[]> => {
+export const setReview = async (
+  scriptPath: string, script: ParsedScript, key: string,
+  status: "verified" | "rejected" | "pending", note = "",
+  reviewer = "", confirmed = false,
+): Promise<ReviewItem[]> => {
   const ledger = await loadLedger(scriptPath);
   const item = reviewItems(script, ledger).find((i) => i.key === key);
   if (!item) throw new Error("الاستشهاد غير موجود في السكريبت الحالي؛ احفظ السكريبت ثم أعد المحاولة.");
   if (status === "pending") delete ledger.items[key];
   else {
-    if (status === "rejected" && !note.trim()) throw new Error("اكتب سبب الرفض في الملاحظة.");
-    ledger.items[key] = { hash: item.hash, status, note: note.trim() || undefined, at: new Date().toISOString(), ref: item.ref };
+    if (confirmed !== true || typeof reviewer !== "string" || reviewer.trim().length < 2 || reviewer.trim().length > 120)
+      throw new Error("توثيق الاستشهاد يتطلب تأكيدًا بشريًا واسم المراجع.");
+    if (typeof note !== "string" || note.trim().length < 12 || note.length > 2000)
+      throw new Error(status === "rejected" ? "اكتب سبب الرفض في الملاحظة." : "اذكر مصدر التحقق وملاحظته قبل توثيق الاستشهاد.");
+    // Do not approve a stale in-memory script snapshot after the file changes.
+    const liveScript = await readFile(scriptPath, "utf8");
+    if (reviewItems((await import("./parse")).parseScript(liveScript, scriptPath), null)
+        .find((current) => current.key === key)?.hash !== item.hash)
+      throw new Error("تغير الاستشهاد أثناء المراجعة؛ أعد تحميل السكريبت قبل الاعتماد.");
+    ledger.items[key] = { hash: item.hash, status, reviewer: reviewer.trim(), note: note.trim(),
+      at: new Date().toISOString(), ref: item.ref };
   }
   // لا تبقى في السجل استشهادات حُذفت من السكريبت
   const live = new Set(reviewItems(script, null).map((i) => i.key));
