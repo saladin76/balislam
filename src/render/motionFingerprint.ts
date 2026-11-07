@@ -44,7 +44,7 @@ export const currentMotionFingerprint = async (
   const { stat } = await import("node:fs/promises");
   const { resolveScriptPath } = await import("../script/episodes");
   const { sfxFile } = await import("../voice/sfx");
-  const { imagesDirFor, libraryDirFor, recitationsDir, LIB } = await import("../plan/collect");
+  const { imagesDirFor, libraryDirFor, LIB } = await import("../plan/collect");
   const { recitationsDirFor } = await import("../quran/sync");
   const script = await resolveScriptPath(episode);
   const sources: string[] = [
@@ -52,8 +52,8 @@ export const currentMotionFingerprint = async (
     ...media.sfx.map((id) => sfxFile(id)),
     ...(media.images ?? []).map((f) => f.startsWith(LIB) ? path.join(libraryDirFor(script), f.slice(LIB.length)) : path.join(imagesDirFor(script), f)),
     ...Object.values(media.recitations).flatMap((rec) =>
-      rec.source === "quran-foundation" ? (rec.parts ?? []).map((p) => path.join(recitationsDirFor(script), p.file))
-        : [path.join(recitationsDir, rec.file)]),
+      (rec.parts?.length ? rec.parts : [{ file: rec.file, duration: rec.duration }])
+        .map((part) => path.join(recitationsDirFor(script), part.file))),
   ];
   const assets = await Promise.all([...new Set(sources)].sort().map(async (file) => {
     const data = await stat(file).catch(() => null);
