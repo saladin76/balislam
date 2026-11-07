@@ -6,7 +6,7 @@ import path from "node:path";
 import { randomUUID, createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { open, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, open, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { quranFromScript } from "./scriptText";
@@ -161,6 +161,9 @@ export const approveOwnRecitation = async (
     const candidate=pending[key];
     if (!candidate || !validName(candidate.file) || !validOriginal(candidate.originalFile))
       throw Error("لا توجد نسخة تلاوة أصلية وصالحة تنتظر المراجعة.");
+    if (!(await lstat(path.join(dir, candidate.file))).isFile() ||
+        !(await lstat(path.join(dir, candidate.originalFile))).isFile())
+      throw Error("لا يُقبل اعتماد تسجيل بملف مرتبط رمزيًا خارج المجلد.");
     const bytes=await readFile(path.join(dir,candidate.file));
     const original=await readFile(path.join(dir,candidate.originalFile));
     const decoded = await decodedAudioDuration(path.join(dir,candidate.file), { mp3Only:true, maxSeconds:600 });
@@ -209,6 +212,8 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
         !Number.isFinite(part.duration) || part.duration <= 0 ||
         !texts[key] || sha(Buffer.from(texts[key], "utf8")) !== rec.textSha256) continue;
     try {
+      if (!(await lstat(path.join(dir, part.file))).isFile() ||
+          !(await lstat(path.join(dir, rec.originalFile!))).isFile()) continue;
       const data = await readFile(path.join(dir, part.file));
       const original = await readFile(path.join(dir, rec.originalFile!));
       if (sha(data) === rec.sha256 && sha(original) === rec.originalSha256 &&
