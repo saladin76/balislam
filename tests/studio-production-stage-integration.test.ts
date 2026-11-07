@@ -31,9 +31,9 @@ describe("Studio release candidate: visual → tone → approved audio", () => {
     x.scene.tone = "warm";
     // Tone is decided AFTER visual signoff; it must not invalidate the picture.
     expect(storyboardStatus(x.plan, await loadStoryboard(x.scriptPath)).ok).toBe(true);
-    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "اختبار", "سمعت المقطع كله وتأكدت من لفظه ونبرته");
+    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "اختبار", "سمعت المقطع كله وتأكدت من لفظه ونبرته", true);
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow(/الحلقة|التعليق الصوتي كامل/);
-    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "اختبار", "استمعت إلى النسخة الصوتية كاملة وتأكدت من سلامة الانتقالات");
+    await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "اختبار", "استمعت إلى النسخة الصوتية كاملة وتأكدت من سلامة الانتقالات", true);
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).resolves.toBe(true);
     await writeFile(path.join(x.root, "voice", "c1-s1.mp3"), "CHANGED AUDIO BYTES");
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
