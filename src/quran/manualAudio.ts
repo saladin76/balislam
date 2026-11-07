@@ -155,7 +155,7 @@ export const approveOwnRecitation = async (
       provider:"manual",reciter:attribution.reciter.trim(),rightsEvidence:attribution.rightsEvidence.trim(),
       parts:[{file:candidate.file,duration:candidate.duration}],
       fetchedAt:candidate.createdAt,approvedAt:new Date().toISOString(),
-      approvedBy:reviewer.trim(),sha256:candidate.sha256,
+      approvedBy:reviewer.trim(),reviewNote:note.trim(),sha256:candidate.sha256,
       textSha256:sha(Buffer.from(approvedText,"utf8")),
     };
     // Keep old/source recordings intact; only the approved pointer changes.
@@ -180,6 +180,10 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
   for (const [key, rec] of Object.entries(index)) {
     if (!rec || rec.provider !== "manual" || !rec.approvedAt || !rec.approvedBy ||
         !rec.reciter?.trim() || !rec.rightsEvidence?.trim() ||
+        rec.rightsEvidence.trim().length < 12 ||
+        !rec.reviewNote?.trim() || rec.reviewNote.trim().length < 12 ||
+        !Number.isFinite(Date.parse(rec.approvedAt)) ||
+        Date.parse(rec.approvedAt) > Date.now() + 60_000 ||
         authored.problems.some((p) => p.key === key) ||
         !rec.sha256 || !rec.textSha256 || rec.parts?.length !== 1) continue;
     const part = rec.parts[0]!;
