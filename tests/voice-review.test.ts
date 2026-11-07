@@ -1,13 +1,16 @@
-import { describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { approveVoiceScene, approveVoiceEpisode, assertVoiceApproved, voiceReviewItems, episodeVoiceApproved } from "../src/voice/review";
 import type { Plan } from "../src/plan/types";
 
+const owned: string[] = [];
+afterEach(async () => { for (const dir of owned.splice(0)) await rm(dir, { recursive: true, force: true }); });
 const sample = async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "voice-reviewed-"));
+  owned.push(dir);
   const scriptPath = path.join(dir, "script.md");
   await writeFile(scriptPath, "test");
   await mkdir(path.join(dir, "voice"));
@@ -24,6 +27,16 @@ describe("human-approved, fingerprint-bound voice gate", () => {
     const x = await sample();
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("pending");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow(/اعتماد/);
+  });
+  it("blocks scene and episode approval without explicit human listening acknowledgements", async () => {
+    const x = await sample();
+    await expect(approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1",
+      "مراجع", "سمعت المقطع كاملًا", false)).rejects.toThrow(/التأكيد الصريح/);
+    await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1",
+      "مراجع", "سمعت المقطع كاملًا", true);
+    await expect(approveVoiceEpisode(x.scriptPath, x.plan, x.voice,
+      "مراجع", "استمعت إلى الحلقة بالصوت كاملًا", false)).rejects.toThrow(/الاستماع الكامل/);
+    expect(await episodeVoiceApproved(x.scriptPath, x.plan, x.voice)).toBe(false);
   });
   it("requires a reviewer and a meaningful note, then permits unchanged audio", async () => {
     const x = await sample();
