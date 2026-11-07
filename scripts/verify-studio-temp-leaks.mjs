@@ -101,9 +101,11 @@ const run = (root, label, mode = null) => new Promise(resolve=>{
     const cleanups = [...outputTail.matchAll(/GATE_TEMP_CLEANED\s+(true|false)/g)];
     const bytes = allocations.length ? Number(allocations.at(-1)[1]) : null;
     const cleaned = cleanups.length ? cleanups.at(-1)[1] === "true" : null;
+    let finalOwnedBytes = null;
+    try { finalOwnedBytes = disk(root); } catch { samplingErrors++; }
     resolve({
       ...result, ownedRootBytesBeforeGate:0, ownedPeakBytes:peakOwnedBytes,
-      ownedRootBytesAfterGate:disk(root),
+      ownedRootBytesAfterGate:finalOwnedBytes,
       peakSamples:samplesTaken, samplingErrors,
       gateAllocatedBeforeCleanupBytes:bytes, gateReportedCleaned:cleaned,
     });
@@ -277,7 +279,14 @@ try {
 } finally {
   // Only this invocation's randomly named audit root; never rm /tmp or wildcard.
   // Child runs have completed before this normal exit path.
-  for (const d of dirs) rmSync(d,{recursive:true,force:true});
-  rmSync(base,{recursive:true,force:true});
+  // A failure removing one owned child must never prevent attempting the
+  // parent cleanup, nor be presented as a successful audit.
+  for (const d of dirs) {
+    try { rmSync(d,{recursive:true,force:true}); }
+    catch (e) { failures.push("owned-child-cleanup-failed"); console.error("TEMP_LEAK_CHILD_CLEANUP_ERROR " + e.message); }
+  }
+  try { rmSync(base,{recursive:true,force:true}); }
+  catch (e) { failures.push("owned-audit-cleanup-failed"); console.error("TEMP_LEAK_AUDIT_CLEANUP_ERROR " + e.message); }
+  if (existsSync(base)) failures.push("owned-audit-root-still-present");
 }
 if(failures.length){console.error("TEMP_LEAK_AUDIT_FAILED",failures.join(","));process.exitCode=1;}
