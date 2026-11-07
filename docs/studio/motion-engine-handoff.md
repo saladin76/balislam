@@ -66,3 +66,13 @@ Open a scene with template `alley-tale`; set `cameraMode=composed` and `framing=
 **Reproducible isolated acceptance:** use the exact PR branch in an isolated checkout, run `npm ci`, `npm run check`, then `node scripts/run-motion-qa.mjs`. This produces a printed temporary evidence directory. Play the actual generated videos in full at 1× and approve/reject them **explicitly**, paying attention to 9:16 cropping, labels, Arabic wrapping, multi-actor coverage, foot plant and pose transitions. Keep `production.defaults` unchanged; do not render an actual episode. The script itself does not record human approval or make a production render eligible.
 
 **Open blockers:** Runner provisioning, full repository TypeScript/Vitest verification, real Remotion outputs, whole-clip natural-speed visual inspection, comparative regression against prior episode snapshots, and independent human signoff. **Not delivered at 100%.**
+
+## Actual Remotion visual QA — operator upload, 2026-11-07, commit 9b5714c
+
+Operator supplied an 8-video ZIP. All MP4 SHA-256 checksums matched, ffprobe confirmed H.264 30fps at the expected 1920×1080 or 1080×1920 sizes, and the manifest reported `rendered-awaiting-explicit-human-visual-review`. A reviewer sampled every 0.5s across all eight videos and inspected key original-resolution frames. These are authentic Remotion output videos, not geometry-only mocks.
+
+**Observed benefit:** The landscape witnesses baseline places verdict labels across actor faces at ~5s/~7s. The contained version positions verdict labels beside the corresponding witness. Portrait cuts at speech beats made the speaker's focus much clearer than the baseline edges-only crop.
+
+**Observed blocker and code-only remediation:** In `motion-qa-witnesses-portrait-fit.mp4` around **7.0s**, a central supporting character is cut at the left edge in the reaction shot. Added `groupFullyVisible` and opt-in visibility for the *pair* of center-stage supporting characters: render both if their complete horizontal envelopes fit, otherwise omit both from the focused reaction shot. No change to baseline, landscape or other channels. Adds a regression case to `tests/motion-composition-safety.test.ts`.
+
+**Critical status:** The supplied MP4s were rendered at old commit `9b5714c`; they are now **stale evidence after this patch**. This patch has NOT been rerendered or reviewed; do not declare it 100%, do not merge. The 1× natural-speed uninterrupted subjective watch and approval of the updated eight videos also remain outstanding. Re-run `npm run check` then `node scripts/run-motion-qa.mjs` on the newest PR head and upload fresh renders and manifest + sha256 before signoff.

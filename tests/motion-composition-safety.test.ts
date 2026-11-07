@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compositionIssues, requiresFocusCut, pillClearOfOwner, visibleHorizontal } from "../src/remotion/illus/compositionSafety";
+import { compositionIssues, requiresFocusCut, pillClearOfOwner, visibleHorizontal, groupFullyVisible } from "../src/remotion/illus/compositionSafety";
 import { composedCamera, witnessPillAt } from "../src/remotion/scenes/AlleyTale";
 import { captionLines } from "../src/remotion/illus/TopCaption";
 
@@ -51,6 +51,17 @@ describe("Studio motion safety: isolated opt-in portrait composition", () => {
       camera, portrait: true })).toBe(false);
     expect(pillClearOfOwner({ x: 850, ownerX: 700, direction: 1, width: 100, clearance: 70,
       camera, portrait: true })).toBe(true);
+  });
+
+  it("hides an indivisible central cast group on portrait reaction crops, never on its full establishment", () => {
+    // The two central actors (world x ≈ 880…1092) must both fit or both disappear.
+    const pair = [{ lo: 880, hi: 1059 }, { lo: 896, hi: 1092 }];
+    expect(groupFullyVisible({ camera: { x: 960, z: 1 }, portrait: true, spans: pair })).toBe(true);
+    expect(groupFullyVisible({ camera: { x: 700, z: 1 }, portrait: true, spans: pair })).toBe(false);
+    expect(groupFullyVisible({ camera: { x: 1300, z: 1 }, portrait: true, spans: pair })).toBe(false);
+    expect(groupFullyVisible({ camera: { x: 960, z: 1 }, portrait: false, spans: pair })).toBe(true);
+    expect(groupFullyVisible({ camera: { x: 960, z: 1 }, portrait: true, spans: [{ lo: 880, hi: 1280 }] })).toBe(false);
+    expect(groupFullyVisible({ camera: { x: 960, z: 1 }, portrait: true, spans: [] })).toBe(false);
   });
 
   it("hard-limits only opted captions; existing caption grouping remains byte-identical", () => {

@@ -9,7 +9,7 @@ import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { useTransition } from "./transitions";
 import { figureSpan, fitFrame } from "../illus/framing";
-import { pillClearOfOwner, requiresFocusCut } from "../illus/compositionSafety";
+import { groupFullyVisible, pillClearOfOwner, requiresFocusCut } from "../illus/compositionSafety";
 import { fitDistance, fitDistanceWithin, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
 import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
@@ -286,6 +286,18 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const fitMode = composed && props.framing === "fit";
   const fit = fitMode ? fitFor({ heroX, propX, stage, portrait, sitting, walking, timeline, compTimeline, compX: heroX - compGap, hasDoor: at("door") !== undefined, hasBoard: newsAt !== undefined && place !== "home", ghosts: at("people") !== undefined, facingLeft, turnsAway: poses.includes("turn-away"), verdicts: { wrong: cues.find((c) => c.kind === "wrong")?.word, just: cues.find((c) => c.kind === "just")?.word } }) : undefined;
   const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: portrait && props.cameraPlanPortrait ? props.cameraPlanPortrait : props.cameraPlan, cues, timings, ...(fit ? { fit, alternate: portrait } : {}) }) : null;
+  // Visual QA at 7s found one of the two background actors cut at the left edge.
+  // In opt-in contained portrait witnesses only, cut to a clean reaction shot:
+  // show the two-person central action together or omit it together, never as half-figures.
+  // Their visibility can change only when the existing authored camera framing changes.
+  const showSituation = !fitMode || !portrait || stage !== "witnesses" || !composedCam ||
+    groupFullyVisible({
+      camera: composedCam, portrait, margin: 12,
+      spans: [
+        figureSpan(920, ["point", "talk"], "right", 1.15),
+        figureSpan(1010, ["hold", "flinch"], "left", 1.15),
+      ],
+    });
   // الإضاءة والظلال والعمق (الأمر 008): اختيارية بحقل lighting، وبدونه لا يتغير شيء
   const rig = parseLighting(props.lighting);
   const light = rig ? lightAt(rig, frame, (w) => cueFrames([{ kind: "truth", word: w }], timings)[0]?.at) : null;
@@ -390,8 +402,12 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               <g>
                 {/* الموقف نفسه في الوسط، والشاهدان على طرفيه */}
                 <Glow cx={960} cy={GROUND - 200} r={300} color={ID.paper} opacity={0.35} />
-                <SceneFigure light={light} x={920} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "point" }, { at: 50, pose: "talk" }])} look={LOOKS.stranger} opacity={0.85} frame={frame + 5} />
-                <SceneFigure light={light} x={1010} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "hold" }, { at: 60, pose: "flinch" }])} look={LOOKS.elder} flip opacity={0.85} frame={frame + 9} />
+                {showSituation ? (
+                  <>
+                    <SceneFigure light={light} x={920} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "point" }, { at: 50, pose: "talk" }])} look={LOOKS.stranger} opacity={0.85} frame={frame + 5} />
+                    <SceneFigure light={light} x={1010} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "hold" }, { at: 60, pose: "flinch" }])} look={LOOKS.elder} flip opacity={0.85} frame={frame + 9} />
+                  </>
+                ) : null}
                 <SceneFigure light={light} x={1300} y={GROUND + 6} scale={1.75} pose={poseAt(frame, [{ at: 0, pose: "stand" }, { at: 40, pose: "think" }])} look={LOOKS.woman} flip frame={frame + 3} />
               </g>
             ) : null}

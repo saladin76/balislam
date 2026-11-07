@@ -59,3 +59,19 @@ export const pillClearOfOwner = (opts: {
     ? opts.x - half >= opts.ownerX + opts.clearance
     : opts.x + half <= opts.ownerX - opts.clearance;
 };
+
+/**
+ * Portrait reaction shots never show only half of the central two-person action.
+ * This is opt-in at the caller; it does not affect scene geometry or other channels.
+ * Treat both actors as one indivisible group to avoid a stray arm at the crop edge.
+ */
+export const groupFullyVisible = (opts: {
+  camera: CameraFrame; portrait: boolean; spans: readonly HorizontalSpan[]; margin?: number;
+}): boolean => {
+  const { lo, hi } = visibleHorizontal(opts.camera, opts.portrait);
+  const margin = opts.margin ?? 12;
+  if (!Number.isFinite(margin) || margin < 0 || opts.spans.length === 0) return false;
+  return opts.spans.every((s) =>
+    Number.isFinite(s.lo) && Number.isFinite(s.hi) && s.hi >= s.lo &&
+    s.lo >= lo + margin && s.hi <= hi - margin);
+};
