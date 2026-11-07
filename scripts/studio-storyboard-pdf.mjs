@@ -118,28 +118,64 @@ const css = [
   ".cover p{direction:rtl;font-size:13pt}.cover .series{font-size:12pt;color:#53616a}",
 ].join("\n");
 
+// Divide printable annexes only between full Unicode grapheme clusters. A code-unit
+// slice can separate Arabic tashkeel from its base letter or split an emoji surrogate.
+export function splitAppendixText(value) {
+  const parts = [];
+  let part = "", rows = 1, columns = 0;
+  const flush = () => { if (part) parts.push(part); part = ""; rows = 1; columns = 0; };
+  for (const { segment } of new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(String(value))) {
+    const newline = segment === "\n" || segment === "\r" || segment === "\r\n";
+    const nextRow = newline || columns >= 40;
+    // Conservative line budget for the 15pt annex text on an A4 landscape page.
+    // In particular, explicit newlines must not be hidden by an overflow box.
+    if (part && (part.length + segment.length > 400 || (nextRow && rows >= 11))) flush();
+    if (segment.length > 400) throw Error("Oversized Unicode grapheme in storyboard annex");
+    part += segment;
+    if (newline) { rows++; columns = 0; }
+    else { if (columns >= 40) { rows++; columns = 0; } columns++; }
+  }
+  flush();
+  return parts;
+}
+
+const needsTextAnnex = value => value.length > 160 ||
+  (value.match(/\r\n|\n|\r/g) ?? []).length >= 3 || /[^\s]{80,}/u.test(value);
+const safeExcerpt = (value, limit, annexNeeded) => {
+  if (!annexNeeded) return value;
+  // Keep the already-reviewed <=160-character Dafatir text fully on its scene page.
+  const max = value.length > limit ? limit : Math.min(96, limit);
+  let excerpt = "";
+  for (const { segment } of new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(value)) {
+    if (excerpt.length + segment.length > max) break;
+    excerpt += segment;
+  }
+  return excerpt.trimEnd() + "… (النص كامل في الملحق)";
+};
+
 export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover = false } = {}) {
   const chosen = storyboard.scenes.filter(s => chapter === null || String(s.chapter) === String(chapter));
   if (!chosen.length || chosen.length > 250) throw Error("Empty or oversized storyboard selection");
-  const chunks = text => String(text).match(/[\s\S]{1,560}/gu) ?? [];
-  const appendix = (id, label, text) => chunks(text).map((piece, i, a) =>
+  const appendix = (id, label, text) => splitAppendixText(text).map((piece, i, a) =>
     '<article class="page"><header class="head"><div class="name"><span class="eyebrow">ملحق ' + ltr(id) +
     " · " + esc(label) + " · " + ltr((i+1)+"/"+a.length) +
     '</span><h2>النص الكامل للمراجعة</h2></div><div class="status">غير معتمد</div></header>' +
     '<section class="appendix"><h3>' + esc(label) + '</h3><p>' + esc(piece) + '</p></section>' +
     '<footer>ملحق Storyboard: النص الأصلي دون تعديل أو حذف</footer></article>').join("\n");
-  const excerpt = (value, max) => value.length > max ?
-    value.slice(0, max).trim() + "… (النص كامل في الملحق)" : value;
   if (chapterCover && (new Set(chosen.map(scene => String(scene.chapter))).size !== 1 || chosen[0]?.chapter == null))
     throw Error("Chapter cover requires exactly one named chapter");
   const title = chosen[0]?.chapterTitle?.trim();
+  const coverTitleAnnex = !!title && (title.length > 80 || /[\r\n]/.test(title));
+  const coverTitle = coverTitleAnnex ? [...new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(title)]
+    .slice(0, 55).map(({ segment }) => segment).join("") + "…" : title;
   const cover = chapterCover
     ? '<article class="page cover" lang="ar" dir="rtl"><div class="label">لوحات المراجعة البصرية · ' +
         esc(storyboard.channel) + '</div><h1>الفصل ' + ltr(chosen[0].chapter) +
-        (title ? ' — <span dir="rtl">' + esc(title) + '</span>' : '') +
+        (title ? ' — <span dir="rtl">' + esc(coverTitle) + '</span>' : '') +
         '</h1><p>عدد المشاهد: ' + ltr(chosen.length) +
         ' · الإصدار ' + ltr(storyboard.version) +
-        '</p><p class="series">Storyboard · غير معتمد للنشر</p></article>' : "";
+        '</p><p class="series">Storyboard · غير معتمد للنشر</p></article>' +
+        (coverTitleAnnex ? appendix("الفصل " + chosen[0].chapter, "عنوان الفصل", title) : "") : "";
   const pages = chosen.map((scene, index) => {
     const land = safeImageData(storyboard.root, scene.landscape);
     const port = safeImageData(storyboard.root, scene.portrait);
@@ -150,21 +186,27 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
         '</strong><span>لم تُرفق صورة لهذا المقاس؛ لا نُنشئ معاينة تخمينية.</span></figure>';
     const notes = scene.notes || "لا توجد ملاحظات فنية مسجلة";
     const narration = scene.narration || "بلا نص مسجل في ملف Storyboard";
+    const notesAnnex = needsTextAnnex(notes);
+    const narrationAnnex = needsTextAnnex(narration);
+    const titleAnnex = scene.title.length > 48 || /[\r\n]/.test(scene.title);
+    const titleExcerpt = titleAnnex ? [...new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(scene.title)]
+      .slice(0, 40).map(({ segment }) => segment).join("") + "…" : scene.title;
     const header = '<header class="head"><div class="name"><span class="eyebrow">اللوحة ' +
       ltr(index+1) + " من " + ltr(chosen.length) + ' · ' + esc(storyboard.channel) +
-      '</span><h2>' + ltr(scene.id) + '<span class="arabic-title" lang="ar" dir="rtl">' + esc(scene.title) +
+      '</span><h2>' + ltr(scene.id) + '<span class="arabic-title" lang="ar" dir="rtl">' + esc(titleExcerpt) +
       '</span></h2></div><div class="status">مراجعة بصرية · غير معتمد</div></header>';
     const frames = '<div class="frames ' + (port ? "comparison" : "single") + '">' +
       panel(land, "أفقي 16:9") + (port ? panel(port, "عمودي 9:16") : "") + "</div>";
-    const info = '<div class="info"><section><h3>الوصف والملاحظات</h3><p>' + esc(excerpt(notes, 160)) +
-      '</p></section><section><h3>نص المقطع</h3><p>' + esc(excerpt(narration, 160)) +
+    const info = '<div class="info"><section><h3>الوصف والملاحظات</h3><p lang="ar" dir="rtl">' + esc(safeExcerpt(notes, 160, notesAnnex)) +
+      '</p></section><section><h3>نص المقطع</h3><p lang="ar" dir="rtl">' + esc(safeExcerpt(narration, 160, narrationAnnex)) +
       '</p></section><section class="details"><span>الفصل: ' + esc(scene.chapterTitle || scene.chapter || "غير محدد") +
       '</span><span>النوع: ' + esc(scene.type || "غير محدد") +
       '</span><span>الإصدار: ' + ltr(storyboard.version) + '</span></section></div>';
     return '<article class="page">' + header + frames + info +
       '<footer>Storyboard للمراجعة فقط · ' + ltr(storyboard.episode) + '</footer></article>' +
-      (notes.length > 160 ? appendix(scene.id,"الوصف والملاحظات",notes) : "") +
-      (narration.length > 160 ? appendix(scene.id,"النص والتعليق",narration) : "");
+      (titleAnnex ? appendix(scene.id, "عنوان المشهد", scene.title) : "") +
+      (notesAnnex ? appendix(scene.id,"الوصف والملاحظات",notes) : "") +
+      (narrationAnnex ? appendix(scene.id,"النص والتعليق",narration) : "");
   });
   return {html:'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/>' +
     '<title>Storyboard · ' + esc(storyboard.episode) + ' · ' + esc(storyboard.version) +
