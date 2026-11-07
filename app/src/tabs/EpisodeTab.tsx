@@ -749,49 +749,18 @@ const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
   );
 };
 
-/** ما يمنع النسخة النهائية، وجلب الآيات. */
-const IssuesBox: React.FC<{ issues: PlanIssue[]; keys: { quran: boolean }; episodeId: string; onSelect: (id: string) => void; onReload: () => void }> = ({ issues, keys, episodeId, onSelect, onReload }) => {
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+/** Master blockers are displayed here. Quran text and own recitation are in Voice. */
+const IssuesBox: React.FC<{ issues: PlanIssue[]; keys: { quran: boolean }; episodeId: string; onSelect: (id: string) => void; onReload: () => void }> = ({ issues, onSelect }) => {
   if (!issues.length) return null;
-  const needsQuran = issues.some((i) => i.message.includes("bal quran"));
-  return (
-    <div className="render-box" style={{ borderColor: "var(--err)", background: "var(--err-soft)" }}>
-      <div className="toolbar">
-        <b style={{ color: "var(--err)" }}>قبل النسخة النهائية</b>
-        <span className="spacer" />
-        {needsQuran ? (
-          <button
-            className="btn small"
-            disabled={busy || !keys.quran}
-            title={keys.quran ? "" : "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»"}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                setMsg("");
-                const r = await api.quran(episodeId);
-                const failed = r.result?.failed ?? [];
-                if (failed.length) setMsg(`تعذّر جلب ${failed.length}: ${failed.map((f) => `${f.ref} ← ${f.reason}`).join(" | ")}`);
-                else setMsg(`تم: جُلبت ${r.result?.fetched?.length ?? 0} آية/مقطع.`);
-                onReload();
-              } catch (e) {
-                setMsg((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {busy ? "جارٍ الجلب…" : "اجلب نصوص الآيات"}
-          </button>
-        ) : null}
-      </div>
-      {issues.map((i, k) => (
-        <button key={k} className="issue" style={{ gridTemplateColumns: "auto 1fr" }} onClick={() => onSelect(i.sceneId)}>
-          <span className="lv" style={{ background: i.level === "error" ? "var(--panel)" : "var(--warn-soft)", color: i.level === "error" ? "var(--err)" : "var(--warn)" }}>{i.level === "error" ? "يمنع" : "تنبيه"}</span>
-          <span>{i.message}</span>
-        </button>
-      ))}
-      {msg ? <div className="help">{msg}</div> : null}
+  const needsQuran = issues.some(i => /آية|القرآن|bal quran/.test(i.message));
+  return <div className="render-box" style={{ borderColor:"var(--err)",background:"var(--err-soft)" }}>
+    <div className="toolbar">
+      <b style={{color:"var(--err)"}}>قبل النسخة النهائية</b>
+      {needsQuran && <span className="help">لإكمال الآيات افتح «صوت الحلقة ← الآيات المطلوبة» وأدخل النص وتسجيلك اليدوي.</span>}
     </div>
-  );
+    {issues.map((i,k)=><button key={k} className="issue" style={{gridTemplateColumns:"auto 1fr"}} onClick={()=>onSelect(i.sceneId)}>
+      <span className="lv" style={{background:i.level==="error"?"var(--panel)":"var(--warn-soft)",color:i.level==="error"?"var(--err)":"var(--warn)"}}>{i.level==="error"?"يمنع":"تنبيه"}</span>
+      <span>{i.message}</span>
+    </button>)}
+  </div>;
 };
