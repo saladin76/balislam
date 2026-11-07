@@ -5,7 +5,8 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createQuranClient } from "../src/quran/client";
 import { syncQuran } from "../src/quran/sync";
-import { collectMedia } from "../src/plan/collect";
+import { collectMedia, prepareRenderMedia } from "../src/plan/collect";
+import { prepareOwnRecitation, approveOwnRecitation } from "../src/quran/manualAudio";
 import { requireCloudPublicationRights, activeRecitation, episodeRecitationFile, saveEpisodeRecitation, readEpisodeRecitation } from "../src/quran/provider";
 import { regeneratePlan } from "../src/plan/io";
 
@@ -142,4 +143,23 @@ describe("تلاوة Quran Foundation", () => {
     expect(again.cached).toContain("53:39");
     expect(existsSync(path.join(tmp, "balislam", "episodes", "000-demo", "recitations", "7-53-39.mp3"))).toBe(true);
   });
+});
+
+describe("integrated manual recitation staging", () => {
+  it("uses approved script-bound original recitation and rejects changed bytes without fallback", async () => {
+    const candidate = await prepareOwnRecitation("000", "53:39", "recording.mp3", mp3);
+    await approveOwnRecitation("000", "53:39", "مراجع", "استمعت إلى التلاوة كاملة وأجزت التسجيل الحالي",
+      true, { reciter: "القارئ المسجل", rightsEvidence: "إذن صاحب حقوق التسجيل لهذا الإنتاج" });
+    const plan = await regeneratePlan("000");
+    const found = await collectMedia("000", plan);
+    expect(found.recitations["53:39"]).toMatchObject({
+      source: "manual", file: candidate.file, reciter: "القارئ المسجل",
+    });
+    const destRoot = path.join(tmp, "public-review-only");
+    const staged = await prepareRenderMedia("000", plan, { publicRoot: destRoot });
+    const copied = readFileSync(path.join(destRoot, staged.base, "recitations", candidate.file));
+    expect(copied.equals(readFileSync(path.join(tmp, "balislam", "episodes", "000-demo", "recitations", candidate.file)))).toBe(true);
+    writeFileSync(path.join(tmp, "balislam", "episodes", "000-demo", "recitations", candidate.file), Buffer.from("invalid audio bytes"));
+    await expect(collectMedia("000", plan)).rejects.toThrow(/تغيّرت أو فقدت اعتمادها/);
+  }, 35000);
 });

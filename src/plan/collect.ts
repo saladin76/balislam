@@ -12,6 +12,7 @@ import { recitationFileFor, type EpisodeMedia, type Recitation } from "./media";
 import type { Plan } from "./types";
 import { readJson } from "./io";
 import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
+import { verifiedOwnRecitations } from "../quran/manualAudio";
 import { loadChannel } from "../channel";
 import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
 
@@ -70,10 +71,22 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const recitations: Record<string, Recitation> = {};
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
+  // The script text, exact approved bytes and publishing rights are reverified at collection time.
+  const approvedManual = await verifiedOwnRecitations(await resolveScriptPath(episode));
   const chosen = await activeRecitation(await resolveScriptPath(episode), loadChannel().recitation);
   if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     if (s.template !== "verse-card" || !s.ayahKey) continue;
+    // An invalidated manual approval must never silently fall through to an old provider.
+    const own = approvedManual[s.ayahKey];
+    if (qf[s.ayahKey]?.provider === "manual" && !own)
+      throw new Error(`تلاوة الآية ${s.ayahKey} تغيّرت أو فقدت اعتمادها؛ أعد المراجعة قبل الرندر.`);
+    if (own) {
+      const part = own.parts[0]!;
+      recitations[s.ayahKey] = { file: part.file, duration: part.duration, parts: own.parts,
+        reciter: own.reciter, source: "manual" };
+      continue;
+    }
     // 1) تلاوة مرخّصة بإذن مكتوب (assets/recitations) لها الأولوية
     const file = recitationFileFor(s.ayahKey);
     const full = path.join(recitationsDir, file);
@@ -119,7 +132,7 @@ export const prepareRenderMedia = async (
   for (const id of m.sfx) files.push({ kind: "sfx", name: `${id}.mp3`, source: sfxFile(id) });
   const recDir = recitationsDirFor(scriptPath);
   for (const r of Object.values(m.recitations)) {
-    if (r.source === "quran-foundation" || r.source === "alquran-cloud") {
+    if (r.source === "quran-foundation" || r.source === "alquran-cloud" || r.source === "manual") {
       for (const part of r.parts ?? []) files.push({ kind: "recitations", name: part.file, source: path.join(recDir, part.file) });
     } else {
       files.push({ kind: "recitations", name: r.file, source: path.join(recitationsDir, r.file) });
