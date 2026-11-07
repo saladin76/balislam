@@ -59,7 +59,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
     if (recording?.provider !== "manual" || !recording.approvedBy || !recording.approvedAt ||
         !recording.sha256 || recording.parts.length !== 1) continue;
     const part = recording.parts[0]!;
-    if (!/^manual-\\d+-\\d+(?:-\\d+)?-[a-f0-9]{12}\\.mp3$/.test(part.file) ||
+    if (!/^manual-\d+-\d+(?:-\d+)?-[a-f0-9]{12}\.mp3$/.test(part.file) ||
         !Number.isFinite(part.duration) || part.duration <= 0) continue;
     const file = path.join(recDir, part.file);
     if (!existsSync(file)) continue;
