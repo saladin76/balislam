@@ -6,6 +6,7 @@ import { createIsolatedRenderBundle } from "./bundle";
 import { emptyMedia } from "../plan/media";
 import { getCompositions, renderStill } from "@remotion/renderer";
 import { projectRoot } from "../config/paths";
+import { loadChannel } from "../channel";
 
 export type StillsOptions = {
   /** يرندر ثيمًا واحدًا فقط إن حُدد */
@@ -17,7 +18,7 @@ export type StillsOptions = {
 /** يرندر لوحات الهوية (صورة لكل ثيم بكل مقاس) للتحقق البصري. */
 export const renderBrandStills = async (opts: StillsOptions = {}): Promise<string[]> => {
   const log = opts.onProgress ?? (() => {});
-  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "brand");
+  const outDir = opts.outDir ?? path.join(projectRoot, "renders", "brand", loadChannel().id);
   await ensureUnlinkedDirectory(outDir);
 
   log("تجميع المشروع…");
@@ -53,6 +54,8 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
   const log = opts.onProgress ?? (() => {});
   const { listChannels, loadChannel, loadChannelIdentity, channelInfo } = await import("../channel");
   const ids = opts.channels?.length ? opts.channels : listChannels();
+  const known = new Set(listChannels());
+  if (ids.some((id) => !known.has(id))) throw new Error("هوية قناة غير معروفة؛ يحظر استخدام مسار خارج القنوات المسجلة.");
   log("تجميع المشروع…");
   const sandbox = await createIsolatedRenderBundle(emptyMedia);
   try {
