@@ -8,4 +8,4 @@ export type QuranClient = {
   verse: (key: string, options?: { translationId?: number }) => Promise<Verse>;
 };
 export const cleanTranslation = (html: string): string =>
-  html.replace(/<sup\\b[^>]*>.*?<\\/sup>/gis, "").replace(/<[^>]+>/g, "").trim();
+  html.replace(/<sup\b[^>]*>[\s\S]*?<\/sup>/gi, "").replace(/<[^>]+>/g, "").trim();
