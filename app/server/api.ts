@@ -314,7 +314,12 @@ export const balApi = (): Plugin => ({
             }
             if (parts.length === 3 && req.method === "PUT") {
               const b = await readBody(req);
-              const approved = await approveOwnRecitation(ep, b.key, b.reviewer, b.note, b.listened === true);
+              if (b.reject) {
+                const { rejectOwnRecitation } = await load("/src/quran/manualAudio.ts");
+                const rejected = await rejectOwnRecitation(ep, b.key, b.reviewer, String(b.reject));
+                return send(res, 200, { rejected, status: await ownAudioStatus(ep), media: await mediaFor((await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep))) });
+              }
+              const approved = await approveOwnRecitation(ep, b.key, b.reviewer, b.note, b.listened === true, String(b.reciter ?? ""));
               return send(res, 200, { approved, status: await ownAudioStatus(ep), media: await mediaFor((await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep))) });
             }
             if (parts.length === 5 && parts[3] === "preview" && req.method === "GET") {

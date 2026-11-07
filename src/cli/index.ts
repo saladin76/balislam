@@ -278,20 +278,59 @@ program
   .option("--reviewer <name>", "اسم من استمع للتلاوة")
   .option("--note <text>", "ملاحظة الاستماع")
   .option("--listened", "تأكيد الاستماع الكامل للنسخة المُحسنة")
-  .action(async (episode: string, opts: { ref: string; file?: string; approve?: boolean; reviewer?: string; note?: string; listened?: boolean }) => {
-    const { prepareOwnRecitation, approveOwnRecitation, ownAudioStatus } = await import("../quran/manualAudio");
+  .option("--reciter <name>", "اسم القارئ ومصدر التلاوة (إلزامي عند الاعتماد؛ لا يُفترض أنه صاحب القناة)")
+  .option("--reject <reason>", "رفض التسجيل المنتظر أو المعتمد سابقًا مع ذكر السبب")
+  .action(async (episode: string, opts: { ref: string; file?: string; approve?: boolean; reviewer?: string; note?: string; listened?: boolean; reciter?: string; reject?: string }) => {
+    const { prepareOwnRecitation, approveOwnRecitation, ownAudioStatus, rejectOwnRecitation } = await import("../quran/manualAudio");
+    if (opts.reject) {
+      await rejectOwnRecitation(episode, opts.ref, opts.reviewer ?? "", opts.reject);
+      console.log(`رُفض تسجيل الآية ${opts.ref}؛ لن يُستعمل في أي رندر.`);
+      return;
+    }
     if (opts.file && opts.approve) throw Error("ارفع التسجيل أولًا، ثم استمع إليه واعتمده في طلب منفصل.");
     if (opts.file) {
       const file = path.resolve(opts.file);
       const recording = await prepareOwnRecitation(episode, opts.ref, path.basename(file), await readFile(file));
       console.log(`نسخة للمراجعة: ${recording.file}، المدة ${recording.duration.toFixed(1)} ثانية. لم تُعتمد بعد.`);
     } else if (opts.approve) {
-      const approved = await approveOwnRecitation(episode, opts.ref, opts.reviewer ?? "", opts.note ?? "", Boolean(opts.listened));
+      const approved = await approveOwnRecitation(episode, opts.ref, opts.reviewer ?? "", opts.note ?? "", Boolean(opts.listened), opts.reciter ?? "");
       console.log(`اعتمد التسجيل الصوتي البشري للآية ${opts.ref}: ${approved.parts[0]?.file}`);
     } else {
       const status = await ownAudioStatus(episode);
-      console.log(JSON.stringify({ pending:status.pending[opts.ref] ?? null, approved:status.approved[opts.ref] ?? null },null,2));
+      console.log(JSON.stringify({ pending:status.pending[opts.ref] ?? null, approved:status.approved[opts.ref] ?? null, invalid:status.invalid[opts.ref] ?? null },null,2));
     }
+  });
+
+program
+  .command("quran-text")
+  .description("حالة نص الآيات اليدوي في السكريبت، ومقابلته بالمصحف المعتمد، واعتماده (كل مرحلة مستقلة)")
+  .argument("<episode>")
+  .option("--ref <key>", "مرجع الآية، مثل 20:14")
+  .option("--reference-file <file>", "ملف نص المصحف المعتمد لهذه الآية (لا يُحفظ نصه؛ بصمته وفروقه فقط)")
+  .option("--source <name>", "اسم المصحف أو المصدر الذي قوبل به")
+  .option("--by <name>", "اسم من قابل أو اعتمد")
+  .option("--approve", "اعتماد نص الآية بعد مقابلة مطابقة")
+  .option("--note <text>", "ملاحظة الاعتماد")
+  .action(async (episode: string, opts: { ref?: string; referenceFile?: string; source?: string; by?: string; approve?: boolean; note?: string }) => {
+    const st = await import("../quran/scriptText");
+    if (opts.referenceFile) {
+      if (!opts.ref) throw Error("حدّد --ref للآية.");
+      const check = await st.checkAyahText(episode, opts.ref, await readFile(path.resolve(opts.referenceFile), "utf8"), opts.source ?? "", opts.by ?? "");
+      console.log(check.status === "match" ? `${opts.ref}: مطابق للمرجع (${check.referenceSource}). لم يُعتمد بعد.` : `${opts.ref}: ${check.diffs.length} فرق؛ لم يُصحَّح شيء:`);
+      for (const d of check.diffs) console.log(`  الموضع ${d.at} (${d.op}، ${d.cls}): النص ${d.shown || "—"} · المرجع ${d.reference || "—"}`);
+      if (check.status !== "match") process.exitCode = 1;
+      return;
+    }
+    if (opts.approve) {
+      if (!opts.ref) throw Error("حدّد --ref للآية.");
+      const a = await st.approveAyahText(episode, opts.ref, opts.by ?? "", opts.note ?? "");
+      console.log(`اعتُمد نص ${opts.ref} (بصمة ${a.textSha256.slice(0, 12)}…). التلاوة واعتمادها مستقلان.`);
+      return;
+    }
+    const { resolveScriptPath } = await import("../script/episodes");
+    const all = await st.ayahTextStatuses(await resolveScriptPath(episode));
+    for (const s of all) console.log(`${s.ref} [${s.key}] · ${s.source === "script" ? "السكريبت" : s.source === "store" ? "quran.json" : "—"} · ${st.AYAH_TEXT_STATE_AR[s.state]} · ${s.reason}`);
+    if (all.some((s) => s.state !== "approved")) process.exitCode = 1;
   });
 
 program

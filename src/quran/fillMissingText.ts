@@ -11,7 +11,7 @@ import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
 import { quranPathFor } from "../plan/io";
 
-export type RequiredAyah = { key: string; label: string; status: "missing" | "existing" };
+export type RequiredAyah = { key: string; label: string; status: "missing" | "existing"; source?: "script" | "store" };
 export type ManualTextStatus = {
   required: RequiredAyah[];
   missing: string[];
@@ -33,9 +33,9 @@ const parseStore = (raw: string | null): Record<string, string> => {
 const requiredRefs = (script: string, scriptPath: string) =>
   parseScript(script, scriptPath).chapters.flatMap(ch => ch.blocks)
     .filter(block => block.kind === "ayah").map(block => {
-      const label = (block as { ref: string }).ref;
+      const { ref: label, text } = block as { ref: string; text?: string };
       const parsed = parseAyahRef(label);
-      return parsed.ok ? { label, key: parsed.ref.key } : { label, error: parsed.reason };
+      return parsed.ok ? { label, key: parsed.ref.key, text } : { label, error: parsed.reason };
     });
 
 export const inspectMissingQuranTexts = async (episode: string): Promise<ManualTextStatus> => {
@@ -52,7 +52,7 @@ export const inspectMissingQuranTexts = async (episode: string): Promise<ManualT
     }
     if (seen.has(entry.key)) continue;
     seen.add(entry.key);
-    required.push({ key: entry.key, label: entry.label, status: saved[entry.key]?.trim() ? "existing" : "missing" });
+    required.push({ key: entry.key, label: entry.label, status: entry.text || saved[entry.key]?.trim() ? "existing" : "missing", ...(entry.text ? { source: "script" as const } : saved[entry.key]?.trim() ? { source: "store" as const } : {}) });
   }
   return {
     required, invalid,
@@ -77,6 +77,9 @@ export const saveManualQuranText = async (episode: string, key: string, text: st
   const required = requiredRefs(scriptSnapshot, scriptPath);
   if (!required.some(r => "key" in r && r.key === key))
     throw Error("الآية غير مطلوبة في سكريبت هذه الحلقة؛ لم يُغيّر أي ملف.");
+  // السكريبت هو المصدر الأساسي: آية مكتوب نصها في السكريبت لا يُنشأ لها نص موازٍ في quran.json
+  if (required.some(r => "key" in r && r.key === key && r.text))
+    throw Error("نص هذه الآية مكتوب في السكريبت وهو المصدر المعتمد؛ عدّله في السكريبت لا هنا.");
   const target = quranPathFor(scriptPath);
   const lock = target + ".manual.lock";
   const handle = await open(lock, "wx", 0o600).catch((e: NodeJS.ErrnoException) => {

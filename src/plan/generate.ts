@@ -1,3 +1,4 @@
+import { VERSE_PLACEHOLDER } from "./quranText";
 import { applyEngineDefaults } from "./engine";
 import { beatsFor, beatsToText, isCuratedBeat } from "./beats";
 import { normalizeArabic, parseAyahRef, surahNameFor, toLatinDigits } from "../script/quranMeta";
@@ -160,16 +161,25 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         const ayahs = r.ok ? `${digits(r.ref.from)}${r.ref.to !== r.ref.from ? `–${digits(r.ref.to)}` : ""}` : "";
         // العربية: «النجم · ٣٩»، وغيرها: «An-Najm · 53:39»
         const reference = !r.ok ? b.ref : L.code === "ar" ? `${surah} · ${ayahs}` : `${surah} · ${r.ref.surah}:${ayahs}`;
+        // النص المكتوب في السكريبت هو المصدر الإنتاجي، ولا يستبدله quran.json. وquran.json للعلامات القديمة بلا نص فقط.
+        const scriptText = b.text;
+        // مصدر الترجمة: المسجل مع الترجمة نفسها، ثم مصدرها التاريخي في الخطة السابقة إن لم تتغير الترجمة، ثم الوسم اليدوي
+        const meaning = key ? quran[`${key}#meaning`] : undefined;
+        const prevVerse = key ? prevList.find((p) => p.template === "verse-card" && p.ayahKey === key) : undefined;
+        const meaningSource = meaning
+          ? (key && quran[`${key}#meaningSource`]) || (prevVerse?.props.meaning === meaning && prevVerse?.props.meaningSource) || "مدخل يدويًا — يحتاج مراجعة"
+          : "";
         push({
           template: "verse-card",
           narration: "",
           line: b.line,
           ayahKey: key,
+          ...(scriptText ? { ayahText: scriptText } : {}),
           props: {
-            text: (key && quran[key]) || "‹نص الآية مطلوب من صاحب القناة›",
+            text: scriptText || (key && quran[key]) || VERSE_PLACEHOLDER,
             reference,
             reciter: reciterFor(key),
-            ...(key && quran[`${key}#meaning`] ? { meaning: quran[`${key}#meaning`], meaningSource: "مدخل يدويًا — يحتاج مراجعة" } : {}),
+            ...(meaning ? { meaning, meaningSource: String(meaningSource) } : {}),
           },
         });
       } else if (b.kind === "hadith") {

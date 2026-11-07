@@ -51,7 +51,7 @@ describe("مرحلة الصوت", () => {
     expect(html).toContain("صوت الحلقة");
     expect(html).toContain("التعليق الصوتي");
     expect(html).toContain("تلاوة الآيات داخل الفيديو");
-    expect(html).toContain("الآيات المطلوبة وتلاوتك بصوتك");
+    expect(html).toContain("الآيات المطلوبة: النص والتلاوة");
     expect(html).toContain("AlQuran Cloud");
     expect(html).toContain("استعراض التلاوات");
     expect(html).not.toContain("Quran Foundation");

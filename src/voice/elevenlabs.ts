@@ -1,3 +1,4 @@
+import { assertNoQuranInSpeech } from "./quranGuard";
 import config from "../../config.json";
 import { loadChannel } from "../channel/index";
 import { capsFor, stabilityFor, withDirection } from "./models";
@@ -48,7 +49,11 @@ const explain = (status: number, body: string) => {
   return `ElevenLabs أعاد خطأ ${status}: ${body.slice(0, 200)}`;
 };
 
-export type ElevenLabsOptions = { apiKey: string; voiceId: string; modelId?: string; settings?: VoiceSettings; fetchImpl?: typeof fetch };
+export type ElevenLabsOptions = {
+  apiKey: string; voiceId: string; modelId?: string; settings?: VoiceSettings; fetchImpl?: typeof fetch;
+  /** نصوص آيات لا يجوز إرسالها (إضافة إلى علامات المصحف التي تُرفض دائمًا). */
+  quranGuard?: string[];
+};
 
 export const createElevenLabs = (opts: ElevenLabsOptions) => {
   const f = opts.fetchImpl ?? fetch;
@@ -78,6 +83,8 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
    * وأمر الأداء أول النص للنماذج الحديثة. السرعة في النماذج التي لا تقبلها تُطبَّق بعد التوليد (tempo.ts).
    */
   const bodyFor = (text: string, model: string, t: Tune | undefined, ctx: { previousText?: string; nextText?: string } = {}) => {
+    // آخر حاجز قبل الشبكة: كل طلب صوت (عيّنة أو مشهد أو إعادة توليد) يمر من هنا
+    assertNoQuranInSpeech([{ label: "النص", text }, { label: "النص السابق", text: ctx.previousText }, { label: "النص التالي", text: ctx.nextText }], opts.quranGuard ?? []);
     const caps = capsFor(model);
     const tune = t ?? { stability: s.stability, style: s.style, speed: s.speed };
     return {

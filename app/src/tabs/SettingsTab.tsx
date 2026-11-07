@@ -129,7 +129,7 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
 
       <section className="group studio-provider">
         <strong>الآيات والتلاوة</strong>
-        <p className="help">لا تحتاج مفاتيح قرآن إضافية. افتح «صوت الحلقة» لنسخ قائمة الآيات المطلوبة، ثم الصق نصها وارفع تلاوتك بصوتك. توجد معاينة اختيارية عبر AlQuran Cloud.</p>
+        <p className="help">لا تحتاج مفاتيح قرآن إضافية. افتح «صوت الحلقة» لنسخ قائمة الآيات المطلوبة، ثم اكتب نصها في السكريبت وارفع التلاوة المختارة باسم قارئها. توجد معاينة اختيارية عبر AlQuran Cloud.</p>
       </section>
     </div>
   );

@@ -143,6 +143,7 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
         const r = parseAyahRef(b.ref);
         if (r.ok) ayahMarkers.push({ ref: b.ref, key: r.ref.key, line: b.line });
         else err("ayah-ref", r.reason, b.line);
+        if (b.text !== undefined && !/\p{Script=Arabic}/u.test(b.text)) err("ayah-text", `نص الآية [${b.ref}] بعد «|» ليس نصًّا عربيًا.`, b.line);
       }
       if (b.kind === "hadith") {
         hadithMarkers.push({ ref: b.ref, line: b.line });

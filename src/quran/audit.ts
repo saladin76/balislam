@@ -80,7 +80,9 @@ export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<Q
   const dir = path.dirname(scriptPath);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const qfile = quranPathFor(scriptPath);
-  const store = (await readJson<Record<string, string>>(qfile)) ?? {};
+  // النص المعروض فعلًا في البطاقة: نص السكريبت أولًا ([آية: … | النص])، ثم quran.json للعلامات القديمة
+  const { effectiveAyahTexts } = await import("./scriptText");
+  const store: Record<string, string> = Object.fromEntries((await effectiveAyahTexts(scriptPath)).ayahs.map((a) => [a.key, a.text]));
   const plan = await readPlanFile(scriptPath);
   const refs = parsed.chapters.flatMap((c) => c.blocks).filter((b) => b.kind === "ayah") as { ref: string }[];
   const storeInfo = existsSync(qfile) ? { file: path.basename(qfile), sha256: createHash("sha256").update(await readFile(qfile)).digest("hex"), mtime: (await stat(qfile)).mtime.toISOString() } : null;

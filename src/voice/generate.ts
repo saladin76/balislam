@@ -125,6 +125,13 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     ),
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
+  // الصوت المستنسخ لا يتلو القرآن: يُرفض أي نص آية في التعليق أو النص المجاور، حتى في الحساب التجريبي
+  {
+    const { quranGuardTexts, assertNoQuranInSpeech } = await import("./quranGuard");
+    const { quranPathFor } = await import("../plan/io");
+    const guards = quranGuardTexts(plan, (await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {});
+    for (const j of jobs) assertNoQuranInSpeech([{ label: `تعليق ${j.id}`, text: j.spoken }, { label: `النص السابق لـ${j.id}`, text: j.prev }, { label: `النص التالي لـ${j.id}`, text: j.next }], guards);
+  }
   if (opts.dryRun) return report;
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
@@ -217,7 +224,7 @@ export type LineClip = { file: string; hash: string; text: string; duration: num
 export const synthesizeLines = async (
   scriptPath: string,
   lines: { id: string; text: string }[],
-  opts: { client: ElevenLabsClient; dir: string; force?: boolean; onProgress?: (m: string) => void },
+  opts: { client: ElevenLabsClient; dir: string; force?: boolean; onProgress?: (m: string) => void; quranGuard?: string[] },
 ): Promise<Record<string, LineClip>> => {
   const log = opts.onProgress ?? (() => {});
   await mkdir(opts.dir, { recursive: true });
@@ -252,6 +259,8 @@ export const synthesizeLines = async (
       continue;
     }
     log(`(${k + 1}/${lines.length}) ${line.id}: ${d.spoken.length} حرفًا`);
+    const { assertNoQuranInSpeech } = await import("./quranGuard");
+    assertNoQuranInSpeech([{ label: `السطر ${line.id}`, text: d.spoken }, { label: "النص السابق", text: lines[k - 1]?.text }, { label: "النص التالي", text: lines[k + 1]?.text }], opts.quranGuard ?? []);
     const r = await opts.client.tts(d.spoken, { previousText: lines[k - 1]?.text, nextText: lines[k + 1]?.text, tune });
     const speed = caps.speed === "post" ? (tune?.speed ?? config.voice.speed) : 1;
     const audio = await applyTempo(r.audio, speed);
