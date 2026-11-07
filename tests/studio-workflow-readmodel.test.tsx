@@ -34,7 +34,7 @@ describe("trust-boundary for Studio workflow approval presentation", () => {
     raw.stages.script = { status: "approved", approval: approved };
     expect(() => parse(raw)).toThrow(/تحقق المحرك الحي/);
     raw.stages.script.currentApproval = true;
-    expect(() => parse(raw)).toThrow(/تحقق المحرك الحي/); // No matching human approval event.
+    expect(() => parse(raw)).toThrow(/حدث اعتماد متطابق/); // Missing matching human approval event despite the asserted current flag.
     raw.history = [{ seq: 1, stage: "script", action: "approve", by: approved.by.id,
       at: approved.at, fingerprint: approved.fingerprint, note: approved.note }];
     const model = parse(raw);
@@ -87,6 +87,7 @@ describe("trust-boundary for Studio workflow approval presentation", () => {
     expect(() => parse(raw)).toThrow(/الأسلاف/);
     raw.stages.storyboard.approval.prerequisiteApprovalSeq = [1];
     raw.stages.script.status = "needs_reapproval";
+    delete raw.stages.script.currentApproval; // Invalidation must clear the stale current flag first.
     expect(() => parse(raw)).toThrow(/الأسلاف/);
   });
 
