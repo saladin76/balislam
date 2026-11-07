@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -6,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { approveStoryboard } from "../src/plan/storyboard";
 import { approveVoiceScene, approveVoiceEpisode } from "../src/voice/review";
 import { assertMotionStartAuthorized } from "../src/voice/motionGate";
+import { scriptSignoffFile } from "../src/script/approval";
 import type { Plan } from "../src/plan/types";
 
 describe("pre-motion human approval safety", () => {
@@ -31,6 +33,10 @@ episode: "999"
       execFileSync("ffmpeg", ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=430:duration=1.2",
         "-c:a", "libmp3lame", path.join(voiceDir, "clip.mp3")]);
       await expect(assertMotionStartAuthorized(scriptPath, plan, voice)).rejects.toThrow();
+      await writeFile(scriptSignoffFile(scriptPath), JSON.stringify({
+        version: 1, sha256: createHash("sha256").update(await (await import("node:fs/promises")).readFile(scriptPath, "utf8")).digest("hex"),
+        reviewer: "مراجع", note: "مراجعة كاملة للسكريبت مع اعتماد مستقل", at: new Date().toISOString(),
+      }));
       await approveStoryboard(scriptPath, plan, { note: "راجعت اللوحة الاختبارية بصريًا قبل اعتماد الصوت الكامل" });
       await expect(assertMotionStartAuthorized(scriptPath, plan, voice)).rejects.toThrow(/اعتماد|الصوت/);
       await approveVoiceScene(scriptPath, plan, voice, "c1-s1", "مراجع", "استمعت للمقطع بعناية وراجعت مخارجه");
