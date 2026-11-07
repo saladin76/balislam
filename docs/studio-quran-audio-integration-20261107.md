@@ -99,3 +99,17 @@ The other workstream owns `src/plan/collect.ts`, `src/render/episode.ts`, packag
 - GitHub CI and Studio parity **have been repeatedly unable to execute any workflow steps** on recent SHA values (including previous attempt #816/#474). This is **not** proof that TypeScript or tests pass. Prior green checks from older SHAs do not cover the follow-up changes.
 - No full repository `npm run typecheck` / `npm test` completion on this newest head, no published Master, and no owner scholarly or 1× continuous-listening decision has been claimed.
 - **Do not mark the PR Ready or 100% end-to-end** until a full exact-SHA run and renderer-owner integration passes. Draft PR #76 is the sole deliverable for this branch; do not modify `main`, Mac production assets, episode files, other branches, or deploy via Vercel.
+
+
+## 8. Free-form voice samples closed
+
+The shared Studio `/api/voice-sample` route previously accepted any caller-provided text. That was a genuine alternative path into ElevenLabs, so guarding only scene narration could not prove Quran was never synthesized.
+
+- `src/voice/sampleText.ts`: a small, curated and read-only set of **non-Quran** sample passages for the three channels, plus a safe generic fallback. `assertCuratedVoiceSample` rejects all arbitrary text.
+- The backend refuses non-exact sample text **before** calling `el.sample`. It now serves only newly namespaced `curated-v1-<hash>.mp3` samples, never historical free-form samples. Historical files are **not deleted**.
+- `ChannelBrand` displays the immutable sample and explains why editing is disabled.
+- `tests/voice-sample-policy.test.ts` covers per-channel exact matches and arbitrary Quran/voice-cloning requests.
+
+This is a deliberately restrictive safety trade-off. If editable narrator samples are needed later, they must use an independent audited non-Quran text policy and new acceptance tests, never remove the server-side gate.
+
+**Still required for 100%:** exact-head TypeScript/Vitest run through an executable CI environment; renderer-owner collection and execution-time gates for direct/package/queue/Master; and human source/rights and full-speed listening review. Review outcomes must not be inferred from synthetic test fixtures.
