@@ -11,6 +11,7 @@ const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 
 /** محرر السكريبت مع فحص مباشر أثناء الكتابة. الحفظ يحدّث المشاهد تلقائيًا مع إبقاء تعديلاتك. */
 export const ScriptTab = forwardRef<ScriptTabHandle, {
   episodeId: string;
+  channelId?: string;
   initialDoc?: "script" | "research";
   workspaceMode?: boolean;
   onOpenScriptLine?: (line: number) => void;
@@ -23,7 +24,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   check: CheckResult;
   onChange: (text: string) => void;
   onSave: () => Promise<void>;
-}> (({ episodeId, initialDoc = "script", workspaceMode = false, onOpenScriptLine, onResearchDirtyChange, researchDraft, onResearchDraftChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
+}> (({ episodeId, channelId, initialDoc = "script", workspaceMode = false, onOpenScriptLine, onResearchDirtyChange, researchDraft, onResearchDraftChange, text, savedText, check: initialCheck, onChange, onSave }, ref) => {
   const area = useRef<HTMLTextAreaElement>(null);
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
@@ -38,13 +39,13 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     if (researchDraft) { setResearch(researchDraft); setResearchError(""); return () => { active = false; }; }
     setResearch(null);
     setResearchError("");
-    if (episodeId) api.research(episodeId).then((r) => {
+    if (episodeId) api.research(episodeId, channelId).then((r) => {
       if (active) setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists });
     }).catch((error) => { if (active) setResearchError("تعذر تحميل ملف البحث: " + (error as Error).message); });
     return () => { active = false; };
     // Only reload when the actual episode identity changes, not on a parent callback render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodeId]);
+  }, [episodeId, channelId]);
   const researchDirty = research ? research.text !== research.saved : false;
   useEffect(() => {
     onResearchDirtyChange?.(researchDirty);
@@ -57,7 +58,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
     setResearchError("");
     setResearchSaving(true);
     try {
-      await api.saveResearch(episodeId, snapshot);
+      await api.saveResearch(episodeId, snapshot, channelId);
       // لا تستبدل نصًا تغيّر أثناء انتظار الشبكة بنسخة أقدم.
       setResearch((current) => current ? { ...current, saved: snapshot, exists: true } : null);
     } catch (error) {
