@@ -47,8 +47,8 @@ const stopChild = async (child) => {
 let fixture;
 let server;
 try {
-  assert.ok(/^studio-core-channels-qa-/.test(path.basename(root)),
-    "STOP: run only from the standalone studio-core-channels QA clone, never the main checkout");
+  assert.ok(/^studio-core-(?:channels|integration)-qa-[0-9]{8}$/.test(path.basename(root)),
+    "STOP: run only in a named standalone Core/Integration QA checkout, never the main checkout");
   assert.ok(!existsSync(queue), "STOP: render queue exists; starting Vite could resume work");
   assert.ok(existsSync(vite), "STOP: install QA dependencies before acceptance");
   assert.ok(freeBytes() >= 6 * 1024 ** 3, "STOP: fewer than 6 GiB of disk free");
