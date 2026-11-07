@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { publishOutputWithoutOverwrite } from "./fsIsolation";
+import { assertNoLinkedPath, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { spawn, type ChildProcess } from "node:child_process";
 
 /**
@@ -745,7 +745,7 @@ export class RenderPool {
   }
   private async write() {
     if (!this.o.ledger) return;
-    await mkdir(path.dirname(this.o.ledger), { recursive: true });
+    await ensureUnlinkedDirectory(path.dirname(this.o.ledger));
     const def = (id: string): TaskDef | undefined => {
       const s = this.specs.get(id);
       if (!s) return undefined;
@@ -758,8 +758,14 @@ export class RenderPool {
       costPeaks: Object.fromEntries([...this.costPeaks].map(([k, v]) => [k, Math.round(v)])),
       tasks: [...this.tasks.values()].map(({ log, ...t }) => ({ ...t, log: t.status === "error" ? log.slice(-8) : [], def: def(t.id) })),
     };
-    await writeFile(`${this.o.ledger}.tmp`, JSON.stringify(body, null, 2) + "\n");
-    await rename(`${this.o.ledger}.tmp`, this.o.ledger);
+    const pending = `${this.o.ledger}.tmp-${randomUUID()}`;
+    try {
+      await writeFile(pending, JSON.stringify(body, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+      // Ledger atomic replacement is internal queue state, NOT a published video.
+      await rename(pending, this.o.ledger);
+    } finally {
+      await rm(pending, { force: true });
+    }
   }
 
   /** يقرأ سجلًا سابقًا: المهام الناجحة تبقى ناجحة، والفاشلة يمكن إعادتها وحدها */
@@ -767,8 +773,8 @@ export class RenderPool {
     if (!existsSync(file)) return null;
     try {
       return JSON.parse(await readFile(file, "utf8"));
-    } catch {
-      return null;
+    } catch (e) {
+      throw new Error(`سجل طابور الرندر موجود لكنه غير صالح، لن نتجاهل مهامًا قد تكون قيد التشغيل: ${(e as Error).message}`);
     }
   }
 
@@ -788,21 +794,49 @@ export class RenderPool {
     for (const t of ledger.tasks) {
       if (this.tasks.has(t.id)) continue;
       if (t.status === "queued" || t.status === "running") {
-        if (t.status === "running" && t.pid !== undefined && t.pidStart && procStart(t.pid) === t.pidStart) {
+        const identity = t.status === "running" && t.pid !== undefined && t.pidStart
+          ? procStart(t.pid) : null;
+        if (identity !== null && identity === t.pidStart && t.pid !== undefined) {
           killTree(t.pid, "SIGTERM");
           await new Promise((r) => setTimeout(r, 1500));
-          if (procStart(t.pid) === t.pidStart) killTree(t.pid, "SIGKILL");
+          if (procStart(t.pid) === t.pidStart) {
+            killTree(t.pid, "SIGKILL");
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          if (procStart(t.pid) === t.pidStart)
+            throw new Error(`فشل إيقاف عملية الرندر السابقة ${t.pid}؛ يجب عدم حذف ملفها أو بدء مهمة بديلة.`);
           out.killedOrphans.push(t.pid);
+        }
+        // Without a confirmed process incarnation, a LIVE PID might belong to
+        // another task. Fail closed rather than deleting its partial file.
+        if (t.status === "running" && t.pid !== undefined && !t.pidStart) {
+          try {
+            process.kill(t.pid, 0);
+            throw new Error(`تعذّر التحقق من ملكية عملية الرندر ${t.pid}؛ أُوقفت الاستعادة حفاظًا على ملفاتها.`);
+          } catch (e) {
+            if ((e as NodeJS.ErrnoException).code !== "ESRCH") throw e;
+          }
         }
         const spec = t.def ? attach(t.def, t) : null;
         if (!spec) continue;
-        // A previous process may have left its own partial output. Never remove
-        // the generic .part file: a separate active render may be using it.
-        if (spec.output && t.partialOutput &&
-            t.partialOutput.startsWith(`${spec.output}.part-`) &&
-            t.partialOutput.endsWith(path.extname(spec.output)) &&
-            path.dirname(t.partialOutput) === path.dirname(spec.output))
-          await rm(t.partialOutput, { force: true });
+        // Only a generated UUID partial with a matching output and safe parent
+        // can be removed, after the old writer has verifiably stopped.
+        const candidate = t.partialOutput;
+        if (spec.output && candidate) {
+          const ext = path.extname(spec.output);
+          const uuidPart = candidate.slice(`${spec.output}.part-`.length, candidate.length - ext.length);
+          if (candidate.startsWith(`${spec.output}.part-`) &&
+              candidate.endsWith(ext) &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuidPart) &&
+              path.dirname(candidate) === path.dirname(spec.output)) {
+            try {
+              await assertNoLinkedPath(candidate, true);
+              await rm(candidate, { force: true });
+            } catch (e) {
+              if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+            }
+          }
+        }
         this.tasks.set(t.id, { ...t, status: "error", log: [] });
         toQueue.push(spec);
       } else {
