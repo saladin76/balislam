@@ -1,6 +1,6 @@
 import React from "react";
 import { ID, darken, mix } from "../palette";
-import { Figure, LOOKS, POSES, blendPose, walkPose, type FigureLook, type PoseName, type PoseSpec } from "../Figure";
+import { Figure, LOOKS, POSES, blendPose, handAt, walkPose, type FigureLook, type PoseName, type PoseSpec } from "../Figure";
 import { GROUND, Glow, useSvgId } from "../world";
 import { LightPool } from "../texture";
 import { SouqStreet, FruitCart } from "./street";
@@ -325,19 +325,70 @@ export const SHOTS: Record<string, ShotDef> = {
       const tI = at("والأفكار", 0.8);
       const on = (t: number) => prog(frame, t - 2, t + 16);
       const col = (i: number) => LATTICE.x + (i + 0.5) * (LATTICE.w / 4);
-      const sil = mix(ID.night, ID.paper, 0.55);
-      const books = (cx: number) => (
-        <g transform={`translate(${cx - 70} ${LATTICE.y + 390})`} fill={sil} stroke={sil}>
-          {[0, 1, 2, 3, 4].map((k) => <rect key={k} x={k * 28} y={-120 + (k % 2) * 14} width={22} height={170 - (k % 2) * 14} rx={3} />)}
-          <rect x={-10} y={50} width={160} height={14} />
+      const cw = LATTICE.w / 4;
+      // التوجيه 021: أربعة ألوان متمايزة داخل المشربية الواحدة (الإطار والشبكة لا يتغيران)، وانعكاس كل عمود بلونه وشكله:
+      // التجارب كهرماني دافئ (صورة قديمة)، المخاوف رمادي بارد (ظل كبير فوق شخص صغير، وزجاج متموّج)،
+      // الأحباب وردي (أم وطفل يدًا بيد)، والأفكار المعتادة أخضر (صف كتب متطابقة: العادة تكرار).
+      const INKC = darken(ID.night, 0.55);
+      const C = {
+        exp: { tint: ID.dawn, ink: darken(ID.dawn, 0.55), lite: mix(ID.dawn, ID.paper, 0.4) },
+        fear: { tint: darken(ID.night, 0.2), ink: darken(ID.night, 0.7), lite: mix(ID.night, ID.paper, 0.6) },
+        love: { tint: mix(ID.seal, ID.paper, 0.32), ink: darken(ID.seal, 0.5), lite: mix(ID.seal, ID.paper, 0.6) },
+        idea: { tint: mix(mix(ID.night, ID.copper, 0.35), ID.paper, 0.45), ink: darken(ID.night, 0.3), lite: mix(mix(ID.night, ID.copper, 0.3), ID.paper, 0.75) },
+      };
+      const aE = on(tE);
+      const aF = on(tF);
+      const aP = on(tP);
+      const aI = on(tI);
+      // الأعمدة من اليسار: الأفكار، الأحباب، المخاوف، التجارب (القراءة من اليمين)
+      const columns = [
+        { tint: C.idea.tint, amount: aI },
+        { tint: C.love.tint, amount: aP },
+        { tint: C.fear.tint, amount: aF },
+        { tint: C.exp.tint, amount: aE },
+      ];
+      const ripple = (cx: number) => (
+        <g stroke={C.fear.lite} strokeWidth={3} fill="none" opacity={0.5}>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
+            const yy = LATTICE.y + 40 + k * 78 + 6 * Math.sin(frame / 9 + k);
+            return <path key={k} d={`M${cx - cw / 2} ${yy} q${cw / 8} -12 ${cw / 4} 0 t${cw / 4} 0 t${cw / 4} 0 t${cw / 4} 0`} />;
+          })}
         </g>
       );
-      const columns = [
-        { tint: mix(ID.night, ID.paper, 0.35), amount: on(tI), reflection: books(col(0)) },
-        { tint: mix(ID.seal, ID.dawn, 0.4), amount: on(tP), reflection: <g><Figure x={col(1) - 34} y={LATTICE.y + 560} scale={0.95} pose={POSES.stand} look={LOOKS.woman} silhouette={sil} shadow={false} /><Figure x={col(1) + 40} y={LATTICE.y + 560} scale={0.6} pose={POSES.stand} look={LOOKS.boy} flip silhouette={sil} shadow={false} /></g> },
-        { tint: darken(ID.night, 0.2), amount: on(tF), reflection: <Figure x={col(2)} y={LATTICE.y + 640} scale={1.55} pose={POSES.flinch} look={hero} silhouette={darken(ID.night, 0.5)} shadow={false} /> },
-        { tint: ID.dawn, amount: on(tE), reflection: <g transform={`translate(${col(3) - 60} ${LATTICE.y + 150})`}><PhotoFrame x={0} y={0} w={120} glow={0.3} people={2} /></g> },
+      const reflections = [
+        // الأفكار المعتادة: رف كتب متطابقة (العادة تكرار)، وكتاب مفتوح فوقها
+        <g key="i" opacity={0.95 * aI}>
+          <rect x={col(0) - 92} y={LATTICE.y + 470} width={184} height={14} fill={C.idea.ink} />
+          {[0, 1, 2, 3, 4].map((k) => (
+            <g key={k}>
+              <rect x={col(0) - 84 + k * 34} y={LATTICE.y + 330 + (k % 2) * 12} width={30} height={140 - (k % 2) * 12} rx={3} fill={[darken(ID.copper, 0.25), ID.seal, darken(ID.night, 0.05), mix(ID.copper, ID.paper, 0.3), darken(ID.seal, 0.25)][k]} stroke={INKC} strokeWidth={3} />
+              <rect x={col(0) - 80 + k * 34} y={LATTICE.y + 356 + (k % 2) * 12} width={22} height={5} fill={ID.paper} opacity={0.8} />
+              <rect x={col(0) - 80 + k * 34} y={LATTICE.y + 436} width={22} height={5} fill={ID.paper} opacity={0.8} />
+            </g>
+          ))}
+          {/* كتاب مسنود مائلًا في طرف الرف: يُقرأ رف كتب لا سياجًا */}
+          <rect x={col(0) + 88} y={LATTICE.y + 336} width={28} height={134} rx={3} fill={mix(ID.copper, ID.night, 0.3)} stroke={INKC} strokeWidth={3} transform={`rotate(14 ${col(0) + 88} ${LATTICE.y + 470})`} />
+        </g>,
+        // الأحباب: أم وطفل يدًا بيد
+        <g key="p" opacity={0.9 * aP}>
+          <Glow cx={col(1)} cy={LATTICE.y + 420} r={150} color={C.love.lite} opacity={0.5} />
+          <Figure x={col(1) - 36} y={LATTICE.y + 580} scale={1.05} pose={{ ...POSES.stand, armFront: { s: 22, e: 8 } }} look={LOOKS.woman} silhouette={C.love.ink} shadow={false} />
+          <Figure x={col(1) + 42} y={LATTICE.y + 580} scale={0.66} pose={{ ...POSES.stand, armBack: { s: -30, e: 4 } }} look={LOOKS.boy} silhouette={C.love.ink} shadow={false} />
+        </g>,
+        // المخاوف: ظل كبير يعلو شخصًا صغيرًا منكمشًا، والزجاج يتموّج
+        <g key="f" opacity={0.9 * aF}>
+          {ripple(col(2))}
+          <Figure x={col(2) + 30} y={LATTICE.y + 630} scale={1.6} pose={{ ...POSES.stand, lean: 16, head: 22, armFront: { s: 40, e: 30 } }} look={hero} silhouette={C.fear.ink} shadow={false} />
+          <Figure x={col(2) - 52} y={LATTICE.y + 620} scale={0.72} pose={POSES.flinch} look={hero} silhouette={C.fear.lite} shadow={false} />
+        </g>,
+        // التجارب: صورة قديمة تضيء
+        <g key="e" opacity={0.95 * aE} transform={`translate(${col(3) - 80} ${LATTICE.y + 130})`}>
+          <PhotoFrame x={0} y={0} w={160} glow={0.6} people={2} />
+        </g>,
       ];
+      const edges = columns.map((c, i) =>
+        c.amount > 0.01 ? <rect key={i} x={LATTICE.x + i * cw + 14} y={LATTICE.y + 14} width={cw - 28} height={LATTICE.h - 28} fill="none" stroke={[C.idea, C.love, C.fear, C.exp][i]!.lite} strokeWidth={6} opacity={0.75 * c.amount} /> : null,
+      );
       const outside = (
         <g transform="translate(520 120) scale(0.46) translate(-200 -260)">
           <SouqStreet frame={frame} />
@@ -345,6 +396,9 @@ export const SHOTS: Record<string, ShotDef> = {
         </g>
       );
       const lastWord = Math.max(tE, tF, tP, tI);
+      // حافة الضوء على البطل بلون آخر عمود أضاء
+      const rimColor = frame >= tI ? C.idea.lite : frame >= tP ? C.love.lite : frame >= tF ? C.fear.lite : C.exp.lite;
+      const clipId = "lattice-reflections-c1s5";
       return {
         // الأفقي يبدأ بتأطير آخر c1-s4؛ العمودي يمر على كل عمود عند كلمته ثم يعود إلى البطل والنافذة
         cam: portrait
@@ -353,8 +407,19 @@ export const SHOTS: Record<string, ShotDef> = {
         captionBackdrop: 0.5,
         world: (
           <g>
-            <TintedLattice frame={frame} tint={GOLD} tintAmount={0.2} outside={outside} columns={columns} />
-            <Figure x={470} y={GROUND + 520} scale={2.6} pose={pz(frame, [[0, "listen"], [tF, "flinch"], [tP, "listen"], [tI, "think"]])} look={hero} frame={frame} rim={0.4 + 0.4 * on(tI)} rimColor={ID.dawn} shadow={false} />
+            <TintedLattice frame={frame} tint={mix(ID.paper, ID.copper, 0.3)} tintAmount={0.05} outside={outside} columns={columns} />
+            <defs>
+              {[0, 1, 2, 3].map((i) => (
+                <clipPath key={i} id={`${clipId}-${i}`}>
+                  <rect x={LATTICE.x + i * cw + 9} y={LATTICE.y} width={cw - 18} height={LATTICE.h} />
+                </clipPath>
+              ))}
+            </defs>
+            {/* كل انعكاس داخل عموده وحده؛ وعمود المخاوف أعتم من غيره */}
+            <rect x={LATTICE.x + 2 * cw} y={LATTICE.y} width={cw} height={LATTICE.h} fill={darken(ID.night, 0.4)} opacity={0.35 * aF} />
+            {reflections.map((r, i) => <g key={i} clipPath={`url(#${clipId}-${i})`}>{r}</g>)}
+            {edges}
+            <Figure x={470} y={GROUND + 520} scale={2.6} pose={pz(frame, [[0, "listen"], [tF, "flinch"], [tP, "listen"], [tI, "think"]])} look={hero} frame={frame} rim={0.5 + 0.4 * Math.max(aE, aF, aP, aI)} rimColor={rimColor} shadow={false} />
           </g>
         ),
       };
@@ -420,33 +485,42 @@ export const SHOTS: Record<string, ShotDef> = {
     nameAr: "الورشة: نصيحة صحيحة يرفضها لأنه لا يحب قائلها",
     place: "ورشة نجارة",
     render: ({ frame, at, portrait }) => {
-      // الزميل يشير إلى ساق الكرسي القصيرة منذ أول المشهد؛ «نرفض» يلوّح البطل رافضًا،
-      // و«نصيحة صحيحة» تقترب الكاميرا من الكرسي فيتأرجح فعلًا، و«لا نحبه» ينكفئ الزميل.
+      // التوجيه 021: لا يتحرك الكرسي إلا بيد. الزميل يشير إلى الساق القصيرة، ثم عند «صحيحة» ينحني ويضغط مقدّم المقعد
+      // فيميل الكرسي على ساقه القصيرة حتى تلمس الأرض، ثم يرفع يده فيعود إلى أرجله الثلاث ويظهر الفراغ؛ مرتين (هذا سبب النصيحة)،
+      // في لقطة قريبة على الفراغ واليد. والبطل يرفض ويعطي ظهره دون أن ينظر.
       const tR = at("نرفض", 0.12);
       const tA = at("صحيحة", 0.35);
+      const tJ = at("جاءت", 0.55);
       const tD = at("نحبه", 0.85);
-      // التأرجح (التوجيه 019): الساق القصيرة معلّقة، ومنذ «صحيحة» يتأرجح الكرسي فتهبط وترتفع ثم يسكن معلّقًا
-      const rock = frame > tA ? Math.max(0, Math.sin((frame - tA) / 4)) * Math.exp(-(frame - tA) / 40) : 0;
-      // الزميل ينحني ويشير إلى الساق القصيرة (لا إشارة أفقية إلى الفراغ)، ثم يلتفت إلى البطل، ثم يعود إلى الكرسي عند «صحيحة»
+      const p0 = tA - 6;
+      // ميل الكرسي = مقدار ضغط اليد: ضغطتان، كل منهما نزول ثم رفع
+      const press = (t0: number) => prog(frame, t0, t0 + 8) * (1 - prog(frame, t0 + 16, t0 + 24));
+      const rock = Math.max(press(p0), press(p0 + 30));
+      // يجثو على ركبته القريبة بجانب الكرسي (لا ينحني فوقه)، وكفه على مقدّم المقعد فوق الساق القصيرة؛ ومع الضغط يميل قليلًا
+      // فتنزل الكف مع مقدّم المقعد إلى موضعه بعد الميل حول قدم الساق الخلفية (المواضع محسوبة بـhandAt)
+      const KNEEL = { legFront: { s: 4, e: 96 }, legBack: { s: 70, e: 70 } };
+      const PRESS_UP: PoseSpec = { ...POSES.point, lean: 26, head: 22, armFront: { s: 14, e: 12 }, ...KNEEL };
+      const PRESS_DOWN: PoseSpec = { ...PRESS_UP, lean: 30, armFront: { s: -2, e: 16 } };
       const POINT_DOWN: PoseSpec = { ...POSES.point, lean: 14, head: 24, armFront: { s: 46, e: 6 } };
-      const tl: [number, PoseSpec][] = [[0, POINT_DOWN], [tR + 30, POSES.talk], [tA - 6, POINT_DOWN], [tD, POSES.stand], [tD + 20, POSES.nod]];
+      const pressing = frame >= p0 - 12 && frame < p0 + 58;
+      const tl: [number, PoseSpec][] = [[0, POINT_DOWN], [tR + 6, POSES.talk], [p0 - 12, PRESS_UP], [p0 + 58, POINT_DOWN], [tJ + 14, POSES.talk], [tD, POSES.stand], [tD + 14, POSES.nod]];
       const friendPose = (() => {
+        if (pressing && frame >= p0 - 2) return blendPose(PRESS_UP, PRESS_DOWN, rock);
         let i = 0;
         while (i + 1 < tl.length && frame >= tl[i + 1]![0]) i++;
-        const [t0, p0] = tl[i]!;
-        const prev = i > 0 ? tl[i - 1]![1] : p0;
-        return i > 0 && frame < t0 + 10 ? blendPose(prev, p0, prog(frame, t0, t0 + 10)) : p0;
+        const [t0, p] = tl[i]!;
+        const prev = i > 0 ? tl[i - 1]![1] : p;
+        return i > 0 && frame < t0 + 10 ? blendPose(prev, p, prog(frame, t0, t0 + 10)) : p;
       })();
       return {
-        // التوجيه 019: الكرسي على الأرض أمام الزميل؛ عند «صحيحة» لقطة قريبة على الزميل منحنيًا يشير إلى الساق القصيرة
-        // والفراغ تحتها مضاء (الاثنان كاملان)، والبطل خارجها؛ العمودي بتكوينه، ولا أحد نصف مقصوص
+        // اللقطات: الاثنان والكرسي؛ البطل يرفض؛ لقطة قريبة على الساق القصيرة واليد طول الضغطتين؛ ثم الاثنان والبطل يعطيه ظهره
         cam: portrait
-          ? [K(0, 1000, 1.0), K(tR, 1520, 1.15), K(tA - 6, 900, 1.45), K(tD, 930, 1.1)]
-          : [K(0, 1080, 1.15), K(tR, 1530, 1.67), K(tA - 6, 920, 2.0), K(tD, 1060, 1.24)],
+          ? [K(0, 880, 1.0), K(tR, 1520, 1.15), { t: p0 - 8, x: 870, y: 730, z: 2.0, cut: true }, { ...K(p0 + 62, 1530, 1.1), cut: true }, K(tD, 1530, 1.25)]
+          : [K(0, 1150, 1.15), K(tR, 1530, 1.67), { t: p0 - 8, x: 880, y: 720, z: 2.5, cut: true }, { ...K(p0 + 62, 1190, 1.15), cut: true }, K(tD, 1220, 1.3)],
         world: (
           <g>
-            <Workshop frame={frame} chairRock={rock} chairMark={prog(frame, tA - 4, tA + 10) * (1 - prog(frame, tD - 10, tD + 6))} />
-            <Figure x={800} y={GROUND + 8} scale={1.18} pose={friendPose} look={LOOKS.friend} frame={frame} />
+            <Workshop frame={frame} chairRock={rock} chairMark={prog(frame, p0 - 10, p0) * (1 - prog(frame, tD - 10, tD + 6))} />
+            <Figure x={765} y={GROUND + 8} scale={1.18} pose={friendPose} look={LOOKS.friend} frame={frame} />
             <Figure x={1580} y={GROUND + 8} scale={1.2} pose={pz(frame, [[0, "hold"], [tR, "wave-off"], [tR + 34, "turn-away"], [tD, "cross"]])} look={hero} flip={frame < tR + 34} frame={frame} />
           </g>
         ),
@@ -466,28 +540,40 @@ export const SHOTS: Record<string, ShotDef> = {
       // التوجيه 019: الفعل مفهوم قبل الكابشن. الورقة (قراره) في يده من أول المشهد إلى آخره؛ الشيخ يتقدم ويفتح الكتاب
       // فيضيء (الدليل)؛ البطل ينظر إليه ثم يضم ورقته إلى صدره ويعطيه ظهره؛ يضيء الباب خلف الشيخ (طريق الاعتراف) فلا يمضي إليه؛
       // ثم يجلس منكسرًا وورقته ما زالت في يده.
-      const elderX = 620 + 70 * prog(frame, tE - 14, tE + 6);
+      // التوجيه 021: الشيخ يقترب أكثر فيجتمع الدليل والورقة في لقطة واحدة بالاتجاهين، ولكلٍّ ضوؤه:
+      // الكتاب بنور الفجر (الدليل)، والورقة بضوء نحاسي خافت (القرار) يتبع كف البطل حيث كانت.
+      const elderX = 620 + 140 * prog(frame, tE - 14, tE + 6);
       const proof = prog(frame, tE - 4, tE + 12) * (1 - 0.6 * prog(frame, tP, tP + 20));
       const CLUTCH: PoseSpec = { ...POSES.sincere, lean: -4, head: 14 };
+      const heroPose =
+        frame >= tE + 8 && frame < tP - 6
+          ? blendPose(pz(frame, [[0, "talk"], [tD, "point"], [tQ, "hold"]]), CLUTCH, prog(frame, tE + 8, tE + 20))
+          : pz(frame, [[0, "hold"], [tD, "point"], [tQ, "hold"], [tP - 6, "sit-low"], [tP + 20, "head-down"]]);
+      const heroFlip = !(frame >= tE + 14 && frame < tP - 6);
+      const heroY = frame > tP - 6 ? GROUND : GROUND + 8;
+      const hand = handAt(heroPose, { x: 1090, y: heroY, scale: 1.2, flip: heroFlip });
+      // مركز الورقة من الكف (الورقة ترسم من الكف إلى أعلى وإلى الأمام)
+      const paperGlow = { x: hand.x + (heroFlip ? -1 : 1) * 16 * 1.2, y: hand.y - 14 * 1.2 };
       return {
         captionBackdrop: 0.5,
-        // العمودي (الأمر 018): الاثنان، ثم البطل بورقة قراره، ثم الشيخ بالدليل، ثم البطل وحده حتى ينكسر
+        // التوجيه 021: الاثنان، ثم البطل بورقة قراره، ثم الدليل والورقة معًا في لقطة واحدة (بالاتجاهين) حتى ينكسر والكتاب في الإطار
         cam: portrait
-          ? [K(0, 855, 0.85), K(tQ, 1080, 1.3), K(tE, 640, 1.2), K(tC, 1080, 1.4), K(tP, 1080, 1.6)]
-          : [K(0, 900, 1.32), K(tQ, 1050, 1.72), K(tE, 860, 1.29), K(tC, 1060, 1.78), K(tP, 1060, 1.95)],
+          ? [K(0, 855, 0.85), K(tQ, 1080, 1.3), K(tE - 12, 905, 1.05), K(tC, 960, 1.12), K(tP, 945, 1.1)]
+          : [K(0, 900, 1.32), K(tQ, 1050, 1.72), K(tE, 925, 1.4), K(tC, 1000, 1.7), K(tP, 1000, 1.85)],
         world: (
           <g>
             <HomeRoom frame={frame} mood="night" door={prog(frame, tC - 4, tC + 14) * (1 - 0.5 * prog(frame, tP, tP + 20))} />
             <Chair x={1110} flip />
             <Glow cx={elderX + 70} cy={GROUND - 230} r={150} color={ID.dawn} opacity={0.75 * proof} />
+            <Glow cx={paperGlow.x} cy={paperGlow.y} r={80} color={ID.copper} opacity={0.55} />
             <Figure x={elderX} y={GROUND + 8} scale={1.18} pose={pz(frame, [[0, "listen"], [tE - 10, "hold"], [tP, "stand"]])} look={LOOKS.elder} holding={frame > tE - 14 ? "book" : "none"} frame={frame + 5} rim={0.6 * proof} />
             <Figure
               x={1090}
-              y={frame > tP - 6 ? GROUND : GROUND + 8}
+              y={heroY}
               scale={1.2}
-              pose={frame >= tE + 8 && frame < tP - 6 ? blendPose(pz(frame, [[0, "talk"], [tD, "point"], [tQ, "hold"]]), CLUTCH, prog(frame, tE + 8, tE + 20)) : pz(frame, [[0, "hold"], [tD, "point"], [tQ, "hold"], [tP - 6, "sit-low"], [tP + 20, "head-down"]])}
+              pose={heroPose}
               look={hero}
-              flip={!(frame >= tE + 14 && frame < tP - 6)}
+              flip={heroFlip}
               holding="paper"
               frame={frame}
             />
@@ -733,45 +819,65 @@ export const SHOTS: Record<string, ShotDef> = {
     },
   },
   "rooftop-dawn-fog": {
-    nameAr: "السطح فجرًا: يراجع ما صدّقه وما رفضه، والضباب يخلط الحدود",
+    nameAr: "السطح فجرًا: مصباحان يتشابه ضوؤهما فيتردد حكمه بينهما",
     place: "أسطح المدينة",
     render: ({ frame, dur, at, portrait }) => {
       const tB = at("نقتنع", 0.15);
       const tL = at("يعجبنا", 0.4);
+      const tH = at("تزداد", 0.45);
       const tM = at("يختلط", 0.65);
-      const tC = at("الواضحة", 0.92);
+      const tN = at("يظهر", 0.8);
+      const tW = at("الخطأ", 0.85);
       const dawn = prog(frame, 0, Math.min(dur, tM + 40), (t) => t);
+      // التوجيه 021: الاختلاط التباس حكم لا امتزاج ألوان. المصباحان قائمان طوال المشهد ولكلٍّ ظل يلقيه على البطل.
+      // قبل «يختلط» إيماءاته حاسمة: يشير إلى الأول كاملًا، ويعرض عن الثاني كاملًا. عند «يختلط» يقترب لون الضوءين حتى يتطابقا،
+      // ويتساوى ظلاه عند قدميه، فيرفع يده نصف رفعة نحو الأول ثم نحو الثاني ثم يعود فلا يتم الإشارة؛ ثم يده إلى ذقنه.
+      const mixT = prog(frame, tM, tM + 40);
+      const a = prog(frame, tB - 6, tB + 10);
+      const b2 = prog(frame, tL - 6, tL + 10);
+      const MID = mix(ID.dawn, ID.paper, 0.5);
+      const colA = mix(ID.dawn, MID, mixT);
+      const colB = mix(mix(ID.paper, ID.night, 0.12), MID, mixT);
+      const iA = 0.3 + 0.5 * a;
+      const iB = 0.3 + 0.5 * b2;
+      // يد نصف مرفوعة بكف مفتوحة نحو المصباح ومرفق مثني: إشارة لم تكتمل
+      const HALF: PoseSpec = { ...POSES.stand, lean: 3, head: -4, armFront: { s: 62, e: 38 } };
+      const pose = (() => {
+        const tl: [number, PoseSpec][] = [
+          [0, POSES.stand], [tB - 4, POSES.point], [tB + 30, POSES.stand], [tL - 4, POSES["wave-off"]], [tL + 30, POSES.stand],
+          [tH, { ...POSES.stand, head: 22 }], [tM + 4, HALF], [tM + 26, POSES.stand], [tM + 34, HALF], [tN - 10, POSES.stand], [tN - 2, HALF], [tW + 4, POSES.think],
+        ];
+        let i = 0;
+        while (i + 1 < tl.length && frame >= tl[i + 1]![0]) i++;
+        const [t0, p] = tl[i]!;
+        return i > 0 && frame < t0 + 10 ? blendPose(tl[i - 1]![1], p, prog(frame, t0, t0 + 10)) : p;
+      })();
+      // الوجهة: -1 نحو الأول (يسار)، 1 نحو الثاني (يمين)؛ التفات متدرّج
+      const turns: [number, 1 | -1][] = [[0, -1], [tL - 8, 1], [tM, -1], [tM + 26, 1], [tN - 10, -1]];
+      let sx: number = -1;
+      for (let k = 1; k < turns.length; k++) if (frame >= turns[k]![0]) sx = turnSx(frame, turns[k]![0], turns[k - 1]![1], turns[k]![1], 10);
       return {
-        // التوجيه 019: البطل والمصباحان في الإطار كله (لا يمشي)؛ العمودي يقترب من كل مصباح عند كلمته ثم يتسع للوهج المختلط
         captionBackdrop: 0.7,
+        // البطل والمصباحان في الإطار دائمًا (العمودي أوسع ليبقيا)، والكاميرا تقترب من البطل عند الالتباس فيُقرأ تردده
         cam: portrait
-          ? [K(0, 1000, 1.1, -90), K(tB - 8, 850, 1.25, -90), K(tL - 8, 1150, 1.25, -90), K(tM, 1000, 1.08, -90), K(Math.max(tC + 20, dur - 70), 1000, 1.02, -100)]
-          : [K(0, 1000, 1.3, -90), K(tB - 8, 900, 1.45, -90), K(tL - 8, 1100, 1.45, -90), K(tM, 1000, 1.25, -90), K(Math.max(tC + 20, dur - 70), 1000, 1.15, -100)],
+          ? [K(0, 1000, 0.9, -60), K(tB - 8, 820, 1.2, -60), K(tL - 8, 1180, 1.2, -60), K(tH, 1000, 0.9, -50), K(tM - 4, 1000, 0.9, -30)]
+          : [K(0, 1000, 1.25, -60), K(tB - 8, 860, 1.5, -60), K(tL - 8, 1140, 1.5, -60), K(tH, 1000, 1.35, -50), K(tM - 4, 1000, 1.6, -30), K(tN - 10, 1000, 1.85, -10)],
         world: (
           <g>
-            <Rooftops frame={frame} mood="predawn" to="dawn" t={dawn} fog={prog(frame, tM, tM + 50)} />
-            {/* التوجيه 019: مصباحان مختلفا اللون على السطوح: ما نقتنع به (يشير إليه البطل) وما لا يعجبنا (يعرض عنه).
-                عند «يختلط» يمتد الضباب فيذوب الضوءان في وهج واحد لا يُعرف مصدره: لا يظهر الخطأ في صورته الواضحة */}
-            {(() => {
-              const mixT = prog(frame, tM, tM + 50);
-              const a = prog(frame, tB - 6, tB + 10);
-              const b2 = prog(frame, tL - 6, tL + 10);
-              return (
-                <g>
-                  <Glow cx={700} cy={GROUND - 300} r={300 + 120 * mixT} color={ID.dawn} opacity={(0.25 + 0.5 * a) * (1 - 0.65 * mixT)} />
-                  <Glow cx={1300} cy={GROUND - 300} r={300 + 120 * mixT} color={mix(ID.paper, ID.copper, 0.15)} opacity={(0.25 + 0.5 * b2) * (1 - 0.65 * mixT)} />
-                  <Glow cx={1000} cy={GROUND - 310} r={620} color={mix(ID.dawn, ID.paper, 0.5)} opacity={0.55 * mixT} />
-                  <rect x={690} y={GROUND - 300} width={20} height={300} fill={darken(ID.night, 0.25)} opacity={1 - 0.7 * mixT} />
-                  <rect x={1290} y={GROUND - 300} width={20} height={300} fill={darken(ID.night, 0.25)} opacity={1 - 0.7 * mixT} />
-                  <circle cx={700} cy={GROUND - 310} r={20} fill={ID.dawn} opacity={(0.5 + 0.5 * a) * (1 - 0.6 * mixT)} />
-                  <circle cx={1300} cy={GROUND - 310} r={20} fill={mix(ID.paper, ID.copper, 0.15)} opacity={(0.5 + 0.5 * b2) * (1 - 0.6 * mixT)} />
-                </g>
-              );
-            })()}
+            <Rooftops frame={frame} mood="predawn" to="dawn" t={dawn} fog={0.5 * prog(frame, tH, tM + 50)} />
+            <Glow cx={700} cy={GROUND - 300} r={300} color={colA} opacity={iA * 0.75} />
+            <Glow cx={1300} cy={GROUND - 300} r={300} color={colB} opacity={iB * 0.75} />
+            <rect x={690} y={GROUND - 300} width={20} height={340} fill={darken(ID.night, 0.25)} />
+            <rect x={1290} y={GROUND - 300} width={20} height={340} fill={darken(ID.night, 0.25)} />
+            <circle cx={700} cy={GROUND - 310} r={22} fill={colA} opacity={0.6 + 0.4 * a} stroke={darken(ID.night, 0.25)} strokeWidth={3} />
+            <circle cx={1300} cy={GROUND - 310} r={22} fill={colB} opacity={0.6 + 0.4 * b2} stroke={darken(ID.night, 0.25)} strokeWidth={3} />
             <Birds frame={frame} start={Math.round(dur * 0.06)} y={260} n={8} color={darken(ID.night, 0.2)} />
-            <Birds frame={frame} start={Math.round(dur * 0.62)} y={180} n={5} dir={1} color={darken(ID.night, 0.2)} />
-            {/* البطل بين المصباحين: يلتفت إلى ما يقتنع به (يسارًا)، ثم يعرض عمّا لا يعجبه (يمينًا)، ثم يقف في الوهج المختلط لا يعرف أيهما */}
-            <Figure x={1000} y={GROUND + 40} scale={1.3} pose={pz(frame, [[0, "stand"], [tB - 4, "point"], [tB + 30, "stand"], [tL - 4, "wave-off"], [tL + 30, "stand"], [tM + 10, "look-up"], [tC, "think"]])} look={hero} flip={frame < tL - 4 || frame >= tM + 10} frame={frame} rim={dawn} />
+            {/* ضوء كل مصباح على جانب البطل الذي يليه؛ يتطابقان حين يختلط الضوءان فلا يميز جانبًا من جانب */}
+            <Glow cx={930} cy={GROUND - 190} r={110} color={colA} opacity={0.4 * iA} />
+            <Glow cx={1070} cy={GROUND - 190} r={110} color={colB} opacity={0.4 * iB} />
+            <Turn x={1000} sx={sx}>
+              <Figure x={1000} y={GROUND + 40} scale={1.3} pose={pose} look={hero} frame={frame} rim={0.5 + 0.5 * dawn} rimColor={sx < 0 ? colA : colB} />
+            </Turn>
             <RoofWall frame={frame} />
           </g>
         ),

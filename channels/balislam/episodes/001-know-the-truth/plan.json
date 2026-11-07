@@ -279,7 +279,7 @@
             "look": "hero",
             "cast": "",
             "cues": "",
-            "shot": "scale-weight-wrong-pan"
+            "shot": "stall-lantern-misused"
           },
           "id": "c2-s2",
           "sfx": []
@@ -405,7 +405,7 @@
             "look": "hero",
             "cast": "",
             "cues": "",
-            "shot": "scale-values-misused"
+            "shot": "values-three-panels"
           },
           "id": "c2-s9",
           "sfx": []
@@ -472,7 +472,7 @@
             "look": "hero",
             "cast": "",
             "cues": "",
-            "shot": "scale-principle-application"
+            "shot": "scale-right-pan"
           },
           "id": "c2-s13",
           "sfx": []
