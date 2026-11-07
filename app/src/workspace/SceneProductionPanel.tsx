@@ -67,13 +67,6 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const candidate = currentId ? data?.candidates.scenes[currentId] : null;
   const previewUrl = currentId && candidate ? api.previewUrl(episodeId, `scene-${currentId}-av.mp4`) : "";
   const allApproved = Boolean(data?.progress.canAssemble);
-  const stages = [
-    { title: "إعداد الحلقة", done: Boolean(data?.script.approved) },
-    { title: "Storyboard", done: Boolean(data?.storyboard.approved) },
-    { title: "إنتاج المشاهد", done: allApproved },
-    { title: "مراجعة الحلقة", done: Boolean(data?.assembly) },
-    { title: "Master والنشر", done: Boolean(data?.master?.approved) },
-  ];
 
   const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string) => {
     if (!data || pending || !sessionSecret.trim()) return setError("فعّل جلسة المالك المحلية أولًا.");
@@ -114,14 +107,6 @@ export const SceneProductionPanel: React.FC<Props> = ({
           تحديث الحالة
         </button>
       </header>
-      <ol className="scene-first-stages">
-        {stages.map((stage, index) => (
-          <li key={stage.title} className={stage.done ? "is-complete" : ""}>
-            <b>{stage.done ? "✓" : index + 1}</b>
-            <span>{stage.title}</span>
-          </li>
-        ))}
-      </ol>
       {!data && !error ? <p role="status">جارٍ تحميل حالة الحلقة…</p> : null}
       {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
       {!data ? null : (
