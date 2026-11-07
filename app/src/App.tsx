@@ -413,6 +413,7 @@ export const App: React.FC = () => {
              saveState={planState}
              scriptDirty={scriptDirty}
              researchDirty={researchDirty}
+             identityDirty={identDirty}
            />
          ) : null}
 
@@ -567,7 +568,7 @@ export const App: React.FC = () => {
           />
         ) : tab === "review" ? (
           <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} channelId={channelId}
-             hasUnsavedChanges={scriptDirty || researchDirty || planState !== "saved" || Boolean(pendingPlan.current)} onOpen={(stage, sceneId) => {
+             hasUnsavedChanges={scriptDirty || researchDirty || identDirty || planState !== "saved" || Boolean(pendingPlan.current)} onOpen={(stage, sceneId) => {
             if (!confirmLeaveScript()) return;
             if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
             setTab(stage);
