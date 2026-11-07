@@ -1,6 +1,7 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
+import { writeJsonAtomic } from "../channel/storage";
 import { parseScript } from "../script/parse";
 import { resolveScriptPath } from "../script/episodes";
 import { generatePlan, type QuranTexts } from "./generate";
@@ -15,7 +16,7 @@ export const quranPathFor = (scriptPath: string) => path.join(path.dirname(scrip
 export const readJson = async <T>(file: string): Promise<T | null> => (existsSync(file) ? (JSON.parse(await readFile(file, "utf8")) as T) : null);
 
 /** يكتب الخطة بلا نصوص الآيات. */
-export const writePlanFile = (file: string, plan: Plan) => writeFile(file, JSON.stringify(stripQuran(plan), null, 2) + "\n", "utf8");
+export const writePlanFile = (file: string, plan: Plan) => writeJsonAtomic(file, stripQuran(plan));
 
 /** يقرأ الخطة ويدمج نصوص الآيات المخزنة على الجهاز. */
 export const readPlanFile = async (scriptPath: string): Promise<Plan | null> => {
