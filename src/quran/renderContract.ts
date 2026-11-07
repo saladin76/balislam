@@ -27,7 +27,10 @@ const close = (a: number, b: number) =>
   Number.isFinite(a) && Number.isFinite(b) && a > 0 && b > 0 &&
   Math.abs(a - b) <= Math.max(0.15, b * 0.03);
 const present = (value: unknown) => typeof value === "string" && value.trim().length > 0;
-const reject = (reason: string): never => { throw new Error("تم رفض تلاوة الرندر: " + reason); };
+/** A declared never-returning function lets strict TypeScript narrow after every rejection. */
+function reject(reason: string): never {
+  throw new Error("تم رفض تلاوة الرندر: " + reason);
+}
 
 /** Quran Foundation serves audio but does not automatically grant publication rights. */
 export const assertReciterPublicationRights = (choice: RecitationChoice): true => {
