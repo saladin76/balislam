@@ -189,6 +189,19 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
 
+          if (parts[2] === "script-signoff" && parts.length === 3) {
+            const { scriptSignoffStatus, approveScript } = await load("/src/script/approval.ts");
+            if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));
+            if (req.method === "PUT") {
+              const body = await readBody(req);
+              if (typeof body?.reviewer !== "string" || typeof body?.note !== "string" ||
+                  body.reviewer.length > 120 || body.note.length > 2000 || body.confirm !== true)
+                throw new HttpError(400, "يلزم تأكيد الاعتماد واسم المراجع وملاحظة النص.");
+              await approveScript(scriptPath, body.reviewer, body.note, true);
+              return send(res, 200, await scriptSignoffStatus(scriptPath));
+            }
+            return send(res, 405, { error: "Method not allowed" });
+          }
           if (parts[2] === "voice-review" && parts.length === 3) {
             const plan = await io.loadPlan(ep);
             if (!plan) throw new HttpError(404, "خطة الحلقة غير موجودة.");
