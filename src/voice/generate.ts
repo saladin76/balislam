@@ -16,6 +16,7 @@ import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } f
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { parseScript } from "../script/parse";
+import { assertNoQuranInTts } from "../quran/ttsGuard";
 import { loadLedger, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { capsFor, dropTagWords } from "./models";
@@ -126,6 +127,15 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
   if (opts.dryRun) return report;
+  if (todo.length) {
+    const script = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+    assertNoQuranInTts(script, todo.map((j) => j.spoken));
+    // Verse cards themselves are never narrator jobs even if somebody edits a plan.
+    const verseIds = new Set(plan.chapters.flatMap((c) => c.scenes)
+      .filter((scene) => scene.template === "verse-card").map((scene) => scene.id));
+    if (todo.some((job) => verseIds.has(job.id)))
+      throw new Error("يُحظر تحويل بطاقة آية إلى تلاوة اصطناعية عبر محرك التعليق.");
+  }
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
@@ -246,6 +256,8 @@ export const synthesizeLines = async (
   const tune = voiceSettingsFor(profile, toneId);
   const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
   const out: Record<string, LineClip> = {};
+  // Special line previews also invoke ElevenLabs; guard them independently.
+  assertNoQuranInTts(parseScript(await readFile(scriptPath, "utf8"), scriptPath), lines.map((line) => line.text));
   for (const [k, line] of lines.entries()) {
     const text = line.text.trim();
     const words = text.split(/\s+/).filter(Boolean);
