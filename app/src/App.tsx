@@ -361,6 +361,11 @@ export const App: React.FC = () => {
       .filter((item) => item.getClientRects().length > 0);
     if (!focusable.length) return;
     const first = focusable[0]!, last = focusable[focusable.length - 1]!;
+    if (!document.querySelector(".studio-sidebar")?.contains(document.activeElement)) {
+      event.preventDefault();
+      first.focus();
+      return;
+    }
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
