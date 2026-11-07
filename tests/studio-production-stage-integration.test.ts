@@ -1,18 +1,16 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { describe, expect, it } from "vitest";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { approveStoryboard, loadStoryboard, storyboardStatus } from "../src/plan/storyboard";
 import { checkVisualStoryboardSignoff } from "../src/plan/storyboardVisualGate";
 import { approveVoiceScene, approveVoiceEpisode, assertVoiceApproved, voiceReviewItems } from "../src/voice/review";
 import type { Plan } from "../src/plan/types";
-
-const ownedStageDirs: string[] = [];
-afterEach(async () => { for (const d of ownedStageDirs.splice(0)) await rm(d, { recursive:true, force:true }); });
+import { voiceTimingMode } from "../src/render/episode";
+import type { EpisodeMedia } from "../src/plan/media";
 
 const build = async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "studio-release-stages-"));
-  ownedStageDirs.push(root);
   const scriptPath = path.join(root, "script.md");
   await writeFile(scriptPath, "synthetic test fixture");
   await mkdir(path.join(root, "voice"));
@@ -27,6 +25,8 @@ const build = async () => {
 describe("Studio release candidate: visual → tone → approved audio", () => {
   it("keeps approved visual boards after tone selection, but invalidates MP3 approval on byte changes", async () => {
     const x = await build();
+    const media: EpisodeMedia = { mode: "url", base: "", voice: x.voice, sfx: [], recitations: {} };
+    expect(await voiceTimingMode(x.scriptPath, x.plan, media)).toBe("estimated");
     await approveStoryboard(x.scriptPath, x.plan, { note: "تمت مراجعة اللوحة الاختبارية، وهذا اعتماد تجريبي فقط" });
     expect(storyboardStatus(x.plan, await loadStoryboard(x.scriptPath)).ok).toBe(true);
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("pending");
@@ -35,11 +35,14 @@ describe("Studio release candidate: visual → tone → approved audio", () => {
     // Tone is decided AFTER visual signoff; it must not invalidate the picture.
     expect(storyboardStatus(x.plan, await loadStoryboard(x.scriptPath)).ok).toBe(true);
     await approveVoiceScene(x.scriptPath, x.plan, x.voice, "c1-s1", "اختبار", "سمعت المقطع كله وتأكدت من لفظه ونبرته");
+    expect(await voiceTimingMode(x.scriptPath, x.plan, media)).toBe("estimated");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow(/الحلقة|التعليق الصوتي كامل/);
     await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "اختبار", "استمعت إلى النسخة الصوتية كاملة وتأكدت من سلامة الانتقالات");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).resolves.toBe(true);
+    expect(await voiceTimingMode(x.scriptPath, x.plan, media)).toBe("approved");
     await writeFile(path.join(x.root, "voice", "c1-s1.mp3"), "CHANGED AUDIO BYTES");
     expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("changed");
+    expect(await voiceTimingMode(x.scriptPath, x.plan, media)).toBe("estimated");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow();
     x.scene.narration = "نص جديد مختلف";
     expect(storyboardStatus(x.plan, await loadStoryboard(x.scriptPath)).ok).toBe(false);

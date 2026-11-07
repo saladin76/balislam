@@ -1,5 +1,6 @@
 import type { ChannelConfig } from "../channel/types";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { mkdir } from "node:fs/promises";
@@ -8,10 +9,10 @@ import { RenderInternals, renderMedia, renderStill, selectComposition } from "@r
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
-import type { EpisodeMedia } from "../plan/media";
+import { emptyMedia, type EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
-import { browserExecutable, getServeUrl } from "./bundle";
+import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { activeRecitation } from "../quran/provider";
 import { QUALITY, type Quality } from "./quality";
@@ -87,6 +88,13 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   return true;
 };
 
+/** Real narration word cues are eligible only when every clip AND the complete
+ * episode recording have a valid, current human listening approval. */
+export const voiceTimingMode = async (scriptPath: string, plan: Plan, media: EpisodeMedia): Promise<"estimated" | "approved"> => {
+  const { episodeVoiceApproved } = await import("../voice/review");
+  return await episodeVoiceApproved(scriptPath, plan, media.voice) ? "approved" : "estimated";
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   const log = opts.onProgress ?? (() => {});
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
@@ -111,14 +119,23 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     }
   }
   log(0, "تجميع المشروع…");
-  const serveUrl = await getServeUrl(!opts.media);
+  // Include this episode's immutable media snapshot and shared public assets,
+  // never other channels' staged voice/recitation in the Remotion bundle.
+  const bundleScope = await createIsolatedRenderBundle(media);
+  try {
+  const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+  const timingMode = await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
+  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
-  const tempOutput = output.replace(/\.mp4$/i, "") + ".rendering.mp4";
+  if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
+  await mkdir(path.dirname(output), { recursive: true });
+  // Unique per invocation: concurrent landscape/portrait attempts cannot overwrite
+  // or remove one another's partial file. Rename is only performed after success.
+  const tempOutput = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
   try {
     await renderMedia({
       serveUrl,
@@ -140,6 +157,9 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     return output;
   } finally {
     await unlink(tempOutput).catch(() => {});
+  }
+  } finally {
+    await bundleScope.cleanup();
   }
 };
 
@@ -168,13 +188,19 @@ const THUMB_MAX_BYTES = 1.9 * 1024 * 1024;
  * إن تجاوز الملف حد يوتيوب تنزل الدقة (1.5× ثم 1×) فلا تُرفض عند الرفع.
  */
 export const renderThumbnail = async (input: { themeId: string; title: string; highlight?: string; element?: string; book?: string; lang?: string }, output: string) => {
-  const serveUrl = await getServeUrl();
-  const channel = loadChannel();
-  const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
-  const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
-  for (const scale of [2, 1.5, 1]) {
-    await renderStill({ serveUrl, composition, inputProps: props, output, scale, overwrite: true, browserExecutable: browserExecutable() });
-    if ((await stat(output)).size <= THUMB_MAX_BYTES) break;
+  // A thumbnail uses shared fonts and art, never unpublished episode audio.
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+    const serveUrl = sandbox.serveUrl;
+    const channel = loadChannel();
+    const props = { ...input, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+    const composition = await selectComposition({ serveUrl, id: "thumbnail", inputProps: props, browserExecutable: browserExecutable() });
+    for (const scale of [2, 1.5, 1]) {
+      await renderStill({ serveUrl, composition, inputProps: props, output, scale, overwrite: true, browserExecutable: browserExecutable() });
+      if ((await stat(output)).size <= THUMB_MAX_BYTES) break;
+    }
+    return output;
+  } finally {
+    await sandbox.cleanup();
   }
-  return output;
 };

@@ -25,6 +25,8 @@ export type EpisodeProps = {
   /** فصل واحد فقط (للشورت) */
   chapter?: number;
   media?: EpisodeMedia;
+  /** Word motion stays estimated until full narration approval. Recitation is unchanged. */
+  timingMode?: "estimated" | "approved";
   /** هوية القناة (إن غابت: الهوية الافتراضية) */
   identity?: Identity;
   channel?: ChannelInfo;
@@ -37,6 +39,13 @@ export const scenesOf = (p: Pick<EpisodeProps, "plan" | "chapter">): { chapter: 
   );
 
 export const mediaSrc = (media: EpisodeMedia, rel: string) => (media.mode === "static" ? staticFile(`${media.base}${rel}`) : `${media.base}${rel}${media.query ?? ""}`);
+
+/** Never use unapproved or stale narration word stamps for final motion. */
+export const visualNarrationTimings = (scene: PlanScene, media: EpisodeMedia, timingMode: "estimated" | "approved" = "estimated") => {
+  const clip = media.voice[scene.id];
+  return timingMode === "approved" && clip && clip.text === scene.narration.trim()
+    ? toFrames(clip.words, config.video.fps) : undefined;
+};
 
 export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = ({ scene, media }) => {
   const fps = config.video.fps;
@@ -109,8 +118,7 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           const { chapter: c, scene: sc } = all[i]!;
           const p = i > 0 && all[i - 1]!.chapter.number === c.number ? all[i - 1]!.scene : undefined;
           const n = i < all.length - 1 && all[i + 1]!.chapter.number === c.number ? all[i + 1]!.scene : undefined;
-          const clip = media.voice[sc.id];
-          const timings = clip && clip.text === sc.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
+          const timings = visualNarrationTimings(sc, media, props.timingMode);
           return <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
         };
         // الانتقال (الأمر 011): يُطبَّق فقط إن كان صالحًا لهذا الزوج؛ وبدونه يبقى السلوك القائم حرفيًا

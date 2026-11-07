@@ -13,12 +13,8 @@ const planWithImage = () => ({
 }) as unknown as Plan;
 
 const ownedStoryboardDirs: string[] = [];
-const isolatedStoryboardTmp = async () => {
-  const d = await mkdtemp(path.join(tmpdir(), "studio-sb-assets-"));
-  ownedStoryboardDirs.push(d);
-  return d;
-};
-afterEach(async () => { for (const d of ownedStoryboardDirs.splice(0)) await rm(d, { recursive: true, force: true }); });
+const isolatedStoryboardTmp = async () => { const d = await mkdtemp(path.join(tmpdir(), "studio-sb-assets-")); ownedStoryboardDirs.push(d); return d; };
+afterEach(async () => { for (const d of ownedStoryboardDirs.splice(0)) await rm(d, { recursive:true, force:true }); });
 
 describe("visual storyboard preparation never wipes current production render media", () => {
   it("supports legitimate Arabic image names without allowing path traversal", async () => {
@@ -49,7 +45,7 @@ describe("visual storyboard preparation never wipes current production render me
     const args = { scriptPath: path.join(episode, "script.md"), publicRoot };
     const first = await prepareStoryboardMedia("001", planWithImage(), args);
     expect(first.mode).toBe("static");
-    expect(first.base).toMatch(/^_storyboard_media\/001-[a-f0-9]{16}\/$/);
+    expect(first.base).toMatch(/^_storyboard_media\/balislam\/001-test-[a-f0-9]{16}\/$/);
     expect(first.voice).toEqual({});
     expect(first.recitations).toEqual({});
     expect(first.sfx).toEqual([]);

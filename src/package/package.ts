@@ -9,7 +9,6 @@ import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
 import { scenesOf } from "../remotion/scenes/Episode";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
-import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
@@ -115,9 +114,6 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const published = (await readdir(dir)).filter((f) => f === "youtube.md" || f === "social.md" || f.endsWith(".srt"));
   assertNoTraces(await Promise.all(published.map(async (name) => ({ name, text: await readFile(path.join(dir, name), "utf8") }))));
   assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
-
-  log("تجميع المشروع…");
-  await getServeUrl(true);
 
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
