@@ -200,6 +200,47 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(pageCount(withoutCover.html) - annexCount(withoutCover.html)).toBe(7);
     expect(withoutCover.html).not.toContain('class="page cover"');
   });
+  it("numbers each real physical cover, scene and annex page without gaps or duplicates",()=>{
+    const x=setup();
+    x.data.scenes[0]!.narration=("عَرَبِيٌّ بِتَشْكِيلٍ English API v2.1 2026 👩🏽‍💻\\n").repeat(35);
+    x.data.scenes[0]!.notes=("ملاحظة طويلة يليه رقم ۱۲٣٤ ورمز A-9. ").repeat(30);
+    x.data.scenes[0]!.chapterTitle=("الفصل الطويل المختلط API V5. ").repeat(12);
+    x.data.scenes[0]!.title=("عنوان عربي واختبار English v2. ").repeat(8);
+    x.data.scenes[0]!.type=("تصنيف التصوير cinematic 16:9 portrait 9:16 ").repeat(5);
+    const output=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
+    const html=output.html;
+    const pages=(html.match(/<article class="page(?: cover)?"/g)??[]).length;
+    const labels=[...html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\\d+) من (\\d+)/g)];
+    expect(labels).toHaveLength(pages);
+    expect(labels.map((m)=>Number(m[1]))).toEqual(Array.from({length:pages},(_,i)=>i+1));
+    expect(labels.every((m)=>Number(m[2])===pages)).toBe(true);
+    expect(html).toContain("عنوان الفصل الكامل");
+    expect(html).toContain("نوع المشهد الكامل");
+    expect(html).toContain("عنوان المشهد");
+    expect(html).toContain("النص والتعليق");
+    expect(html).toContain("الوصف والملاحظات");
+    expect(html).toContain("unicode-bidi:plaintext");
+    expect(html).toContain("text-overflow:ellipsis");
+    for(const raw of [x.data.scenes[0]!.chapterTitle,x.data.scenes[0]!.type]){
+      for(const chunk of splitAppendixText(raw))expect(html).toContain(chunk);
+    }
+    expect(output.status).toBe("PENDING_REVIEW");
+  });
+  it("does not introduce annexes into the previously reviewed short Dafatir 1/2 and numbers every page",()=>{
+    const root=path.join(import.meta.dirname,"..");
+    const file=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
+    const board=normalizeStoryboard(JSON.parse(readFileSync(file,"utf8")),file);
+    const actual=[{chapter:1,sceneCount:9},{chapter:2,sceneCount:7}];
+    for(const {chapter,sceneCount} of actual){
+      const r=buildStoryboardHtml(board,{chapter,chapterCover:true});
+      expect(r.scenes).toBe(sceneCount);
+      const physicalPages=(r.html.match(/<article class="page(?: cover)?"/g)??[]).length;
+      const numbers=[...r.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\\d+) من (\\d+)/g)];
+      expect(numbers).toHaveLength(physicalPages);
+      expect(numbers.map(x=>Number(x[1]))).toEqual(Array.from({length:physicalPages},(_,i)=>i+1));
+      expect(numbers.every(x=>Number(x[2])===physicalPages)).toBe(true);
+    }
+  });
   it("reads actual Dafatir V1.1 and Zubdat v021 without modifying episodes",()=>{
     const root=path.join(import.meta.dirname,"..");
     const p1=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
