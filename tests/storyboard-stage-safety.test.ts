@@ -45,7 +45,7 @@ describe("visual storyboard preparation never wipes current production render me
     const args = { scriptPath: path.join(episode, "script.md"), publicRoot };
     const first = await prepareStoryboardMedia("001", planWithImage(), args);
     expect(first.mode).toBe("static");
-    expect(first.base).toMatch(/^_storyboard_media\/001-[a-f0-9]{16}\/$/);
+    expect(first.base).toMatch(/^_storyboard_media\/balislam\/001-test-[a-f0-9]{16}\/$/);
     expect(first.voice).toEqual({});
     expect(first.recitations).toEqual({});
     expect(first.sfx).toEqual([]);
