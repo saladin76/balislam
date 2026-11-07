@@ -24,6 +24,25 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
   const dirty = text !== savedText;
+  const [signoff, setSignoff] = useState<{ approved: boolean; changed: boolean; reviewer?: string } | null>(null);
+  const [signer, setSigner] = useState("");
+  const [signoffNote, setSignoffNote] = useState("");
+  const [signoffError, setSignoffError] = useState("");
+  const [signoffBusy, setSignoffBusy] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setSignoff(null); setSignoffError("");
+    api.scriptSignoff(episodeId).then((record) => { if (active) setSignoff(record); })
+      .catch((e) => { if (active) setSignoffError("تعذر فحص اعتماد السكريبت: " + String(e)); });
+    return () => { active = false; };
+  }, [episodeId, savedText]);
+  const approveSavedScript = async () => {
+    if (dirty || !signer.trim() || signoffNote.trim().length < 20) return;
+    setSignoffBusy(true); setSignoffError("");
+    try { setSignoff(await api.approveScriptSignoff(episodeId, signer, signoffNote)); setSignoffNote(""); }
+    catch (e) { setSignoffError(e instanceof Error ? e.message : String(e)); }
+    finally { setSignoffBusy(false); }
+  };
   // ملف البحث / دراسة الكتاب: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
   const [doc, setDoc] = useState<"script" | "research">(initialDoc);
   const [research, setResearch] = useState<{ text: string; saved: string; label: string; exists: boolean } | null>(null);
@@ -190,6 +209,24 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
           ))}
         </div>
         <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
+        <section className="field" aria-label="اعتماد السكريبت الكامل">
+          <h3>اعتماد السكريبت — مرحلة مستقلة</h3>
+          <p role="status">{dirty ? "هناك تغييرات لم تُحفظ؛ الاعتماد غير صالح للتغييرات الحالية" :
+            signoff?.approved ? "السكريبت معتمد بالبصمة الحالية" :
+            signoff?.changed ? "تغيّر السكريبت بعد اعتماده؛ يلزم مراجعة جديدة" : "السكريبت بانتظار الاعتماد الصريح"}</p>
+          <p>أكمل توثيق الاستشهادات ومطابقة الآيات مع المصحف، ثم راجع السكريبت كاملًا قبل بدء اعتماد Storyboard.</p>
+          {signoffError && <p role="alert" className="note err">{signoffError}</p>}
+          <label htmlFor="script-signer">اسم المراجع</label>
+          <input id="script-signer" value={signer} maxLength={120}
+            onChange={(e) => setSigner(e.target.value)} />
+          <label htmlFor="script-signoff-note">ملاحظات المراجعة الشاملة، بما فيها المقابلة الشرعية</label>
+          <textarea id="script-signoff-note" value={signoffNote} maxLength={2000} rows={3}
+            onChange={(e) => setSignoffNote(e.target.value)} />
+          <button type="button" className="btn small" disabled={dirty || !check.ok || signoffBusy ||
+            !signer.trim() || signoffNote.trim().length < 20} onClick={() => void approveSavedScript()}>
+            {signoffBusy ? "جارٍ الحفظ…" : "أعتمد نص السكريبت الحالي صراحةً"}
+          </button>
+        </section>
       </div>
       )}
     </div>
