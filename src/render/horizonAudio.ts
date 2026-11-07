@@ -131,7 +131,7 @@ export const renderHorizonAudio = async (
   const outDir = path.join(path.dirname(scriptPath), "out");
   await mkdir(outDir, { recursive: true });
   const output = path.join(outDir, `${slot}-preview.mp4`);
-  const temp = output.replace(/\\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
+  const temp = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
   const sandbox = await createIsolatedRenderBundle({
     mode: "static", base: rel, voice: {}, recitations: {}, sfx: [],
   });
