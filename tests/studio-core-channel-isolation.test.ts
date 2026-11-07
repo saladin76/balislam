@@ -82,6 +82,16 @@ describe("channel boundaries and crash-safe storage", () => {
     expect(loadChannel(opts.id).rules.quran).toBe(false);
     expect(JSON.parse(readFileSync(channelPaths(opts.id).identity, "utf8")).themes.paper).toBeTruthy();
     expect(readdirSync(dir).some((name) => name.startsWith(".fourth-channel.creating-"))).toBe(false);
+    expect(readdirSync(dir).some((name) => name.includes("fourth-channel.create.lock"))).toBe(false);
+  });
+
+  it("refuses a concurrent or abandoned creation lock without altering another channel", async () => {
+    const claim = path.join(dir, ".locked-channel.create.lock");
+    writeFileSync(claim, "owned by another process");
+    const before = readFileSync(claim, "utf8");
+    await expect(createChannel({ id: "locked-channel", name: "Locked", language: "ar" })).rejects.toThrow("قفل");
+    expect(readFileSync(claim, "utf8")).toBe(before);
+    expect(listChannels()).not.toContain("locked-channel");
   });
 
   it("preserves an existing empty directory and does not convert it into a channel", async () => {
