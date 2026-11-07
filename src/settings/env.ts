@@ -49,6 +49,18 @@ export const writeKeys = (updates: Partial<Record<ManagedKey, string>>): Promise
       values[key as ManagedKey] = raw.trim();
     }
     const file = envFile();
+    // A shared BAL_ENV_FILE can be written from two Studio processes. A
+    // cross-process exclusive claim avoids losing one process's newer edits.
+    const claimFile = `${file}.lock`;
+    let claim: Awaited<ReturnType<typeof open>>;
+    try {
+      claim = await open(claimFile, "wx", 0o600);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST")
+        throw new Error("ملف الإعدادات قيد التعديل من عملية أخرى أو يحتاج فحص قفل متروك؛ لم تُحفظ تغييرات.");
+      throw error;
+    }
+    try {
     const example = path.join(projectRoot, ".env.example");
     let contents = existsSync(file) ? await readFile(file, "utf8") : existsSync(example) ? await readFile(example, "utf8") : "";
     for (const [key, value] of Object.entries(values)) {
@@ -72,6 +84,10 @@ export const writeKeys = (updates: Partial<Record<ManagedKey, string>>): Promise
     for (const [key, value] of Object.entries(values)) {
       if (value) process.env[key] = value;
       else delete process.env[key];
+    }
+    } finally {
+      await claim.close();
+      await rm(claimFile, { force: true });
     }
   };
   const next = pendingWrite.then(operation, operation);
