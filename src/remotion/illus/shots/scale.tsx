@@ -1,7 +1,7 @@
 import React from "react";
 import { CLOTH, ID, darken, mix } from "../palette";
 import { Figure, LOOKS, POSES, blendPose, handAt, type FigureLook, type PoseSpec } from "../Figure";
-import { GROUND, Glow, archPath } from "../world";
+import { GROUND, Glow, archPath, useSvgId } from "../world";
 import { LightPool, Texture } from "../texture";
 import { prog } from "./kit";
 
@@ -349,12 +349,37 @@ export const ScaleIncident: React.FC<{ frame: number; b: ScaleBeats; portrait: b
       <Figure x={lay.first} y={GROUND + 6} scale={S.first} pose={cast.first} look={SCALE_CAST.first} frame={frame} />
       {angle === "second" ? null : <Figure x={lay.second} y={GROUND + 6} scale={S.second} pose={cast.second} look={SCALE_CAST.second} flip frame={frame + 13} />}
       {angle === "second" ? <Figure x={pivotX + (portrait ? SECOND_SIL_PORTRAIT_DX : 470)} y={GROUND + (portrait ? 300 : 230)} scale={2.9} pose={POSES.listen} look={SCALE_CAST.second} flip silhouette={SIL_SECOND} shadow={false} frame={frame} /> : null}
+      {angle === "main" && evidence > 0.001 ? <EvidenceFocus t={evidence} /> : null}
       {angle === "main" && cast.tags ? (
         <>
           <VerdictTag head={fHead} side={-1} text={verdicts.first} color={ID.seal} t={cast.tags.first} size={size} above dx={verdictTagDx("first", portrait, verdicts.first, size)} />
           <VerdictTag head={sHead} side={1} text={verdicts.second} color={ID.dawn} t={cast.tags.second} size={size} above dx={verdictTagDx("second", portrait, verdicts.second, size)} />
         </>
       ) : null}
+    </g>
+  );
+};
+
+/**
+ * «لإثبات صحته» (التوجيه 028): يخفت السوق قليلًا ويتركز الضوء على الميزان بكفتيه بالتساوي.
+ * مركز الضوء محور العاتق نفسه، فلا تُرجَّح كفة؛ والشاهدان يبقيان ظاهرين (خفوت نحو 15% عند موضعيهما).
+ * إضاءة فقط: لا يتحرك العاتق ولا الكفتان ولا البرتقال.
+ */
+export const EVIDENCE_FOCUS = { cx: pivotX, cy: PIVOT_Y + 60, r: 1150, clear: 0.3, dim: 0.55, pan: 190 };
+const EvidenceFocus: React.FC<{ t: number }> = ({ t }) => {
+  const id = useSvgId("focus");
+  const F = EVIDENCE_FOCUS;
+  return (
+    <g>
+      <defs>
+        <radialGradient id={id} gradientUnits="userSpaceOnUse" cx={F.cx} cy={F.cy} r={F.r}>
+          <stop offset={0} stopColor={ID.night} stopOpacity={0} />
+          <stop offset={F.clear} stopColor={ID.night} stopOpacity={0} />
+          <stop offset={1} stopColor={ID.night} stopOpacity={F.dim} />
+        </radialGradient>
+      </defs>
+      <rect x={F.cx - 3000} y={F.cy - 3000} width={6000} height={6000} fill={`url(#${id})`} opacity={t} />
+      <Glow cx={F.cx} cy={F.cy} r={F.pan} color={ID.dawn} opacity={0.6 * t} />
     </g>
   );
 };
@@ -466,14 +491,20 @@ export const scaleVerdictCast = (frame: number, v: ReturnType<typeof scaleVerdic
 export const scaleSincereBeats = (at: (w: string, frac: number) => number) => {
   const sincere = at("صادقا", 0.25);
   const but = Math.max(at("لكن", 0.55), sincere + 20);
-  const proof = Math.max(at("لإثبات", 0.82), but + 24);
-  return { sincere, but, proof };
+  // التوجيه 028: «لا يكفي وحده»: تتجه نظرتا الشاهدين إلى الميزان، قبل الضوء عند «لإثبات»
+  const enough = Math.max(at("يكفي", 0.7), but + 12);
+  const proof = Math.max(at("لإثبات", 0.82), enough + 12);
+  return { sincere, but, enough, proof };
 };
 export const SINCERE_POSE: PoseSpec = { ...POSES.sincere, lean: -3, head: 2 };
+/** نظرتا الشاهدين إلى الميزان (التوجيه 028): الرأس وحده يميل نحو الكفتين، والجسد واليد على الصدر كما هما */
+export const SINCERE_LOOK: PoseSpec = { ...SINCERE_POSE, head: 16 };
+export const SECOND_LOOK: PoseSpec = { ...VERDICT_POSES.secondJudge, head: 26 };
 export const scaleSincereCast = (frame: number, s: ReturnType<typeof scaleSincereBeats>): ScaleCast => ({
   // يبدأ الشاهدان بوضعيتي آخر c1-s2 (استمرار)، ثم اليد على الصدر عند «صادقًا»
-  first: pb(VERDICT_POSES.firstJudge, SINCERE_POSE, prog(frame, s.sincere - 4, s.sincere + 10)),
-  second: VERDICT_POSES.secondJudge,
+  // ثم عند «لا يكفي» تنزل نظرته إلى الكفتين (التفاتة رأس فقط، بلا مشي ولا إشارة)، والثانية بعده بإطارات
+  first: pb(pb(VERDICT_POSES.firstJudge, SINCERE_POSE, prog(frame, s.sincere - 4, s.sincere + 10)), SINCERE_LOOK, prog(frame, s.enough, s.enough + 16)),
+  second: pb(VERDICT_POSES.secondJudge, SECOND_LOOK, prog(frame, s.enough + 4, s.enough + 20)),
   customer: POSES.stand,
   // تخبوان عند «لكن… لا يكفي» وتبقيان خافتتين بجوار صاحبيهما (التوجيه 019)، والضوء على الميزان بينهما
   tags: { first: 1 - 0.75 * prog(frame, s.but, s.but + 16), second: 1 - 0.75 * prog(frame, s.but + 4, s.but + 20) },

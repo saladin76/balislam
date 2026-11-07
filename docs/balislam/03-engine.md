@@ -148,6 +148,11 @@
     - `court-elder-humble`: الشيخ مع الصبي.
     - `SECOND_MSG`: لون رأس الرسالة الثانية.
   - وفي `src/remotion/illus/shots/phone.tsx` يقبل `MsgCard` خاصية `tone` للون رأس البطاقة.
+  - التوجيه 028 في `src/remotion/illus/shots/ch6.tsx` (إغلاق الستوري بورد):
+    - زاويتا المصطبة الحقيقيتان `BroAngleSet` (من وراء كتف البطل نحو الأخ) و`HeroAngleSet` (من وراء كتف الأخ نحو البطل)، كلٌّ في منطقة من العالم بخلفيتها (`BRO_ANGLE` و`HERO_ANGLE`)، والشخصان بزاوية ثلاثة أرباع (`view`) والظل في المقدمة (`silhouette`). كاميراتها `BRO_OTS` و`HERO_OTS` و`HERO_CLOSE`. تستعملها `brother-bench-talks` و`brother-bench-asks-self` و`brother-bench-accepts`، و`brother-bench-still` مجمَّد على `BENCH_ACCEPT`.
+    - `S3_CAM`: تأطير `lane-weighs-evidence` المتوسط القريب الثابت.
+    - `lane-returns-at-dawn` في الأفقي: طبقة برودة قبيل الفجر ومصباح `PREDAWN_LAMP` مضاء، تزولان مع الضوء.
+  - وفي `src/remotion/illus/shots/scale.tsx` (التوجيه 028، c1-s3): `scaleSincereBeats` بلحظة `enough` («لا يكفي») تتجه عندها النظرتان (`SINCERE_LOOK` و`SECOND_LOOK`)، و`EvidenceFocus` بإعدادات `EVIDENCE_FOCUS` يخفت السوق ويتركز الضوء على محور الميزان عند «لإثبات». الاختبار: `tests/storyboard-028.test.tsx`.
 - **خلفية الكابشن الاختيارية (التوجيه 019):** حقل `captionBackdrop` (0..1) في نتيجة اللقطة المصمَّمة (`Shot` في `src/remotion/illus/shots/index.tsx`): تدرّج أعمق وأطول أعلى الإطار (`captionGradient` في `src/remotion/scenes/AlleyTale.tsx`) وكلمات قادمة أوضح وظل أعمق (`contrast` في `TopCaption`)، للقطات فاتحة الخلفية. بلا الحقل كل شيء كما كان حرفيًا (اختبار، ولوحة الفصل 1 مطابقة لـv2 بالبايت).
 - **ورشة النجارة:** الكرسي على المنضدة بساقه الطويلة والدوران حول قدمها (`Workshop` في `src/remotion/illus/shots/interior.tsx`، `tests/workshop-chair.test.tsx`).
 - **القيود:** فحص الحجب هندسي لا بكسلي؛ ظل الشاهدة في زاويتها العمودية حافة داكنة لا هيئة كاملة؛ العامة العمودية لا تكبر أكثر من 0.59 دون تغيير مواضع الشخوص؛ اللقطة الرابطة العمودية في c1-s2 أوسع (0.533) لتتسع البطاقتان فوق صاحبيهما.

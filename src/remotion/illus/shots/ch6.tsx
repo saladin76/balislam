@@ -1,7 +1,7 @@
 import React from "react";
-import { ID, darken, mix } from "../palette";
+import { CLOTH, ID, darken, mix } from "../palette";
 import { Figure, LOOKS, POSES, blendPose, handAt, walkPose, type FigureLook, type PoseSpec } from "../Figure";
-import { Bench, GROUND, Glow } from "../world";
+import { Bench, GROUND, Glow, WallLamp, archPath } from "../world";
 import { Courtyard } from "./outdoor";
 import { Cafe, CafeTable, Chair } from "./interior";
 import { StandardWeight } from "./scale";
@@ -54,6 +54,10 @@ const BrotherInDoor: React.FC<{ frame: number; pose: PoseSpec; o?: number; envel
 };
 const DOOR_CAM = (t: number, portrait: boolean, z = 2.4, cut = false) => (portrait ? V(t, 930, z * 0.8, 500, cut) : V(t, 930, z, 495, cut));
 const SITTING: PoseSpec = { ...SIT_HOLD, head: 16 };
+/** مصباح الجدار الأيسر في الزقاق (WallLamp في Lane) */
+const PREDAWN_LAMP = { x: 620, y: 330 };
+/** c6-s3 (التوجيه 028): متوسطة قريبة على البطل عند الباب، من الرأس إلى الركبتين، ويداه في وسط الإطار */
+const S3_CAM = (portrait: boolean) => (portrait ? V(0, 905, 3.3, 480) : V(0, 905, 3.9, 475));
 
 // ———————————————————— مصطبة باب الأخ (اللقطة المقابلة: بابه على الجدار الأيسر القريب) ————————————————————
 const BENCH_BRO = { x: SEAT.x - 70, y: SEAT.y };
@@ -77,6 +81,84 @@ const PAIR_CAM = (t: number, portrait: boolean, cut = false) => (portrait ? V(t,
 const TALK_A: PoseSpec = { ...POSES.sit, head: 6, armFront: { s: 46, e: 50 } };
 const TALK_B: PoseSpec = { ...POSES.sit, head: 12, armFront: { s: 30, e: 66 } };
 const LISTEN: PoseSpec = { ...POSES.sit, head: 14, lean: 8 };
+
+// ———————————————————— زوايا المصطبة (التوجيه 028): لقطة ولقطة مقابلة حقيقيتان، لا قص من الأفقي ————————————————————
+/**
+ * الجلسة نفسها من زاويتين أقرب، كلٌّ في منطقة من العالم بخلفيتها، على خط المحور نفسه (الأخ يسار الإطار والبطل يمينه):
+ * - BRO_ANGLE: من وراء كتف البطل الأيمن نحو الأخ؛ خلفه جدار بيته وبابه المضيء ومصباحه، والبطل ظلٌّ كبير في مقدمة اليمين.
+ * - HERO_ANGLE: من وراء كتف الأخ الأيسر نحو البطل؛ خلفه الجدار المقابل بنافذته ومصباحه، والأخ ظلٌّ في مقدمة اليسار.
+ * الشخصان بزاوية ثلاثة أرباع (view) لا جانبيان، فتُقرأ الإيماءة القائمة (اليد تهمّ ثم تنزل، والسكوت) على الهاتف.
+ */
+const BRO_ANGLE = { x: 9000, floor: 1000 };
+const HERO_ANGLE = { x: 13000, floor: 1000 };
+const ANG_S = 2.4;
+const FG_S = 3.6;
+const ANG_VIEW = 0.45;
+const silOf = (look: FigureLook) => mix(darken(CLOTH[look.cloth as keyof typeof CLOTH] ?? ID.night, 0.62), ID.night, 0.3);
+const duskWall = mix(mix(ID.copper, ID.paper, 0.5), ID.night, 0.3);
+/** مصطبة عريضة بالمنظور القريب: سطح وواجهة، بارتفاع يناسب حجم الجالس */
+const NearBench: React.FC<{ x0: number; x1: number; floor: number; s: number }> = ({ x0, x1, floor, s }) => {
+  const h = 74 * s;
+  return (
+    <g>
+      <rect x={x0} y={floor - h} width={x1 - x0} height={h} fill={mix(darken(ID.copper, 0.35), ID.night, 0.35)} stroke={INK} strokeWidth={4} />
+      <rect x={x0 - 10} y={floor - h - 16} width={x1 - x0 + 20} height={18} fill={mix(darken(ID.copper, 0.2), ID.night, 0.3)} stroke={INK} strokeWidth={4} />
+    </g>
+  );
+};
+/** زاوية الأخ: جدار بيته وبابه المضيء (الباب نفسه على يسار المصطبة في لقطة الاثنين) */
+const BroAngleSet: React.FC<{ frame: number; broPose: PoseSpec; heroPose: PoseSpec; portrait: boolean }> = ({ frame, broPose, heroPose, portrait }) => {
+  const { x, floor } = BRO_ANGLE;
+  const wallBase = floor - 120;
+  const door = { x: x - 520, w: 230, h: 400 };
+  const fgX = x + (portrait ? 600 : 960);
+  return (
+    <g>
+      <rect x={x - 2400} y={-1400} width={4800} height={wallBase + 1400} fill={duskWall} stroke={INK} strokeWidth={4} />
+      <rect x={x - 2400} y={wallBase} width={4800} height={1600} fill={mix(darken(ID.copper, 0.4), ID.night, 0.3)} />
+      <line x1={x - 2400} y1={wallBase} x2={x + 2400} y2={wallBase} stroke={INK} strokeWidth={4} />
+      <Glow cx={door.x + door.w / 2} cy={wallBase - 180} r={420} color={ID.dawn} opacity={0.5} />
+      <path d={archPath(door.x - 18, wallBase, door.w + 36, door.h + 20)} fill={darken(ID.copper, 0.45)} stroke={INK} strokeWidth={4} />
+      <path d={archPath(door.x, wallBase, door.w, door.h)} fill={mix(darken(ID.copper, 0.25), ID.dawn, 0.55 * 0.7)} stroke={INK} strokeWidth={3} />
+      <g transform={`translate(${x + 380} ${wallBase - 560}) scale(1.8) translate(${-620} ${-330})`}>
+        <WallLamp x={620} y={330} frame={frame} on={1} />
+      </g>
+      <NearBench x0={x - 300} x1={x + 1400} floor={floor} s={ANG_S} />
+      <Figure x={x} y={floor} scale={ANG_S} pose={broPose} look={brother} view={ANG_VIEW} frame={frame + 9} />
+      <Figure x={fgX} y={floor + 300} scale={FG_S} pose={heroPose} look={hero} flip silhouette={silOf(hero)} shadow={false} frame={frame} />
+    </g>
+  );
+};
+/** زاوية البطل: الجدار المقابل بنافذته ومصباحه، والأخ ظلٌّ في المقدمة */
+const HeroAngleSet: React.FC<{ frame: number; broPose: PoseSpec; heroPose: PoseSpec; portrait: boolean }> = ({ frame, broPose, heroPose, portrait }) => {
+  const { x, floor } = HERO_ANGLE;
+  const wallBase = floor - 120;
+  const fgX = x - (portrait ? 600 : 960);
+  const wall = darken(duskWall, 0.12);
+  return (
+    <g>
+      <rect x={x - 2400} y={-1400} width={4800} height={wallBase + 1400} fill={wall} stroke={INK} strokeWidth={4} />
+      <rect x={x - 2400} y={wallBase} width={4800} height={1600} fill={mix(darken(ID.copper, 0.4), ID.night, 0.3)} />
+      <line x1={x - 2400} y1={wallBase} x2={x + 2400} y2={wallBase} stroke={INK} strokeWidth={4} />
+      <Glow cx={x + 470} cy={wallBase - 520} r={260} color={ID.dawn} opacity={0.35} />
+      <rect x={x + 380} y={wallBase - 620} width={180} height={200} fill={mix(darken(ID.night, 0.15), ID.dawn, 0.35)} stroke={INK} strokeWidth={4} />
+      <line x1={x + 470} y1={wallBase - 620} x2={x + 470} y2={wallBase - 420} stroke={INK} strokeWidth={3} />
+      <g transform={`translate(${x - 420} ${wallBase - 560}) scale(1.8) translate(${-620} ${-330})`}>
+        <WallLamp x={620} y={330} frame={frame} on={1} />
+      </g>
+      <NearBench x0={x - 1400} x1={x + 300} floor={floor} s={ANG_S} />
+      <Figure x={x} y={floor} scale={ANG_S} pose={heroPose} look={hero} flip view={ANG_VIEW} frame={frame} />
+      <Figure x={fgX} y={floor + 300} scale={FG_S} pose={broPose} look={brother} silhouette={silOf(brother)} shadow={false} frame={frame + 9} />
+    </g>
+  );
+};
+/** كاميرات الزاويتين: OTS بظل المقدمة، والقريبة على البطل وحده (سؤال النفس) */
+const BRO_OTS = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, BRO_ANGLE.x + 160, 0.95, 640, cut) : V(t, BRO_ANGLE.x + 330, 1.2, 600, cut));
+const HERO_OTS = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, HERO_ANGLE.x - 160, 0.95, 640, cut) : V(t, HERO_ANGLE.x - 330, 1.2, 600, cut));
+const HERO_CLOSE = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, HERO_ANGLE.x - 40, 1.35, 580, cut) : V(t, HERO_ANGLE.x - 10, 1.75, 520, cut));
+/** آخر وضعية في c6-s21 (اليد على الصدر)، ويبقى عليها مجمَّدًا في c6-s22: اللقطة نفسها تستمر ساكنة */
+const BENCH_ACCEPT: PoseSpec = { ...POSES.sit, head: 20, armFront: { s: 38, e: 118 } };
+const broTalking = (frame: number) => blendPose(TALK_A, TALK_B, 0.5 + 0.5 * Math.sin(frame / 8));
 
 /**
  * رسالة ثانية من المرسِل نفسه (التوجيه 026): ليست إعادة تداول رسالة c4-s9، فرأسها بلون الختم لا بلون الفجر،
@@ -135,7 +217,9 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
       const h = handAt(pose, { x: p.x, y: p.y, scale: p.s });
       const pageOn = frame >= tW - 2 && frame < tR + 6;
       return {
-        cam: portrait ? [DOOR_CAM(0, portrait, 2.1), DOOR_CAM(tE, portrait, 2.3)] : [DOOR_CAM(0, portrait, 2.4), DOOR_CAM(tE, portrait, 2.6)],
+        // التوجيه 028: تأطير مختلف عن c6-s1 وc6-s4: لقطة متوسطة قريبة ثابتة على يديه (الصفحة ثم الظرف) والباب بجانبه،
+        // فيُقرأ الاستعداد للتصحيح من اليدين. الزمن والمكان وحركة الظرف والخطوة كما هي
+        cam: [S3_CAM(portrait)],
         world: (
           <g>
             <Lane frame={frame} mood="dawn" lit={1} heroDoor={0.5} brotherDoor={0.3} />
@@ -401,10 +485,19 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
       const day = prog(frame, tR - 6, tM + 40, (t) => t);
       const arriving = frame < tR;
       return {
-        cam: portrait ? [V(0, 720, 1.1, 640), DOOR_CAM(tR, portrait, 2.3)] : [V(0, 800, 1.5, 600), DOOR_CAM(tR, portrait, 2.6)],
+        // التوجيه 028 (الأفقي): قبيل الفجر أبرد قليلًا، والمصباح المضاء على الجدار الأيسر داخل الإطار وواضح،
+        // ثم يدفأ الضوء مع «day» كما كان. حركة العودة نفسها
+        cam: portrait ? [V(0, 720, 1.1, 640), DOOR_CAM(tR, portrait, 2.3)] : [V(0, 800, 1.5, 560), V(tR, 860, 2.3, 470)],
         world: (
           <g>
             <Lane frame={frame} mood="predawn" lit={1} heroDoor={0.5} brotherDoor={0.3} />
+            {portrait ? null : (
+              <g opacity={1 - day}>
+                <rect x={-400} y={-400} width={2800} height={1900} fill={ID.night} opacity={0.22} />
+                <Glow cx={PREDAWN_LAMP.x} cy={PREDAWN_LAMP.y} r={170} color={ID.dawn} opacity={0.75} />
+                <WallLamp x={PREDAWN_LAMP.x} y={PREDAWN_LAMP.y} frame={frame} on={1} />
+              </g>
+            )}
             <g opacity={day}>
               <Lane frame={frame} mood="dawn" lit={1} heroDoor={0.5} brotherDoor={0.3} />
             </g>
@@ -525,60 +618,73 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
     },
   },
   "brother-bench-talks": {
-    nameAr: "مساءً عند باب الأخ: يجلس الأخ على مصطبة بابه ويتكلم، والبطل بجانبه يستمع؛ تهمّ يده بالرد فيُنزلها",
+    nameAr: "مساءً عند باب الأخ: لقطة الاثنين، ثم الأخ يتكلم من وراء كتف البطل، ثم البطل يستمع وتهمّ يده بالرد فيُنزلها",
     place: "الزقاق عند باب الأخ مساءً",
     render: ({ frame, at, portrait }) => {
+      // التوجيه 028: ثلاث زوايا بقطعات، والأحداث القائمة نفسها. «حاول»: الأخ يتكلم (OTS)؛ «دون»: البطل يستمع، ويده تهمّ عند «بإعداد» ثم تنزل
+      const tA = at("حاول", 0.3);
+      const tD = at("دون", 0.62);
       const tL = at("تستمع", 0.45);
-      const tB = at("بإعداد", 0.85);
+      const tB = Math.max(at("بإعداد", 0.85), tD + 12);
       const RISE: PoseSpec = { ...LISTEN, armFront: { s: 62, e: 10 }, head: 6 };
       const heroPose = tlPose(frame, [[0, { ...POSES.sit, head: 10 }], [tL, LISTEN], [tB - 4, RISE], [tB + 10, LISTEN]]);
+      const broPose = broTalking(frame);
       return {
-        cam: portrait ? [PAIR_CAM(0, portrait), V(tL, 376, 1.3, 760)] : [PAIR_CAM(0, portrait), V(tL, 420, 1.5, 740)],
+        cam: [PAIR_CAM(0, portrait), BRO_OTS(tA - 4, portrait), HERO_OTS(tD - 4, portrait)],
         world: (
           <g>
             <Lane frame={frame} mood="dusk" lit={0.6} heroDoor={0.6} brotherDoor={0.7} reverse />
             <PairBench />
-            <Figure x={BRO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={blendPose(TALK_A, TALK_B, 0.5 + 0.5 * Math.sin(frame / 8))} look={brother} frame={frame + 9} />
+            <Figure x={BRO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={broPose} look={brother} frame={frame + 9} />
             <Figure x={HERO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={heroPose} look={hero} flip frame={frame} />
+            <BroAngleSet frame={frame} broPose={broPose} heroPose={heroPose} portrait={portrait} />
+            <HeroAngleSet frame={frame} broPose={broPose} heroPose={heroPose} portrait={portrait} />
           </g>
         ),
       };
     },
   },
   "brother-bench-asks-self": {
-    nameAr: "عند باب الأخ: البطل ساكن يستمع والأخ يكمل كلامه، والكاميرا تقترب منه",
+    nameAr: "عند باب الأخ: البطل يستمع من وراء كتف أخيه، ثم تقترب الكاميرا منه وحده عند «بصدق»",
     place: "الزقاق عند باب الأخ مساءً",
     render: ({ frame, at, portrait }) => {
+      // التوجيه 028: يستمر تأطير آخر c6-s19 (البطل من وراء كتف الأخ)، ثم الحدث القائم نفسه: تقترب الكاميرا منه عند «بصدق»
+      // فيخرج كتف الأخ من الإطار ويبقى البطل وحده مع سؤاله
       const tS = at("بصدق", 0.45);
+      const broPose = broTalking(frame);
+      const heroPose: PoseSpec = { ...LISTEN, head: 18 };
       return {
-        cam: portrait ? [V(0, 376, 1.3, 760), V(tS - 10, HERO_SEAT_X - 10, 1.9, 740)] : [V(0, 420, 1.5, 740), V(tS - 10, HERO_SEAT_X - 60, 2.1, 720)],
+        cam: [HERO_OTS(0, portrait, false), HERO_CLOSE(tS - 6, portrait, false)],
         world: (
           <g>
-            <Lane frame={frame} mood="dusk" lit={0.6} heroDoor={0.6} brotherDoor={0.7} reverse />
-            <PairBench />
-            <Figure x={BRO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={blendPose(TALK_A, TALK_B, 0.5 + 0.5 * Math.sin(frame / 8))} look={brother} frame={frame + 9} />
-            <Figure x={HERO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={{ ...LISTEN, head: 18 }} look={hero} flip frame={frame} />
+            <HeroAngleSet frame={frame} broPose={broPose} heroPose={heroPose} portrait={portrait} />
           </g>
         ),
       };
     },
   },
   "brother-bench-accepts": {
-    nameAr: "عند باب الأخ: يسكت الأخ، فيومئ البطل ببطء ويضع يده على صدره (مستعد لقبول الحق)",
+    nameAr: "عند باب الأخ: البطل، ثم الأخ يسكت عند «معه»، ثم لقطة الاثنين: يومئ البطل ويده على صدره (مستعد لقبول الحق)",
     place: "الزقاق عند باب الأخ مساءً",
     render: ({ frame, at, portrait }) => {
+      // التوجيه 028: «الحق»: عودة قصيرة إلى الأخ (OTS) فيسكت عند «معه»؛ «مستعدًا»: يجمعهما الإطار من جديد عند القبول،
+      // بتأطير c6-s22 نفسه فيستمر ساكنًا بلا قفز
+      const tH = at("الحق", 0.2);
       const tM = at("معه", 0.31);
-      const tQ = at("لقبوله", 0.74);
-      const broPose = frame < tM ? blendPose(TALK_A, TALK_B, 0.5 + 0.5 * Math.sin(frame / 8)) : tlPose(frame, [[tM, TALK_B], [tM + 12, { ...POSES.sit, head: 10 }]]);
-      const ACCEPT: PoseSpec = { ...POSES.sit, head: 20, armFront: { s: 38, e: 118 } };
+      const tR = Math.max(at("مستعدا", 0.55), tM + 24);
+      const tQ = Math.max(at("لقبوله", 0.74), tR + 12);
+      const broPose = frame < tM ? broTalking(frame) : tlPose(frame, [[tM, TALK_B], [tM + 12, { ...POSES.sit, head: 10 }]]);
+      const heroPose = tlPose(frame, [[0, { ...LISTEN, head: 18 }], [tQ - 6, { ...LISTEN, head: 26 }], [tQ + 6, BENCH_ACCEPT]]);
       return {
-        cam: portrait ? [V(0, HERO_SEAT_X - 10, 1.9, 740), PAIR_CAM(tM, portrait)] : [V(0, HERO_SEAT_X - 60, 2.1, 720), PAIR_CAM(tM, portrait)],
+        cam: [HERO_CLOSE(0, portrait, false), BRO_OTS(tH - 4, portrait), PAIR_CAM(tR - 4, portrait, true)],
         world: (
           <g>
             <Lane frame={frame} mood="dusk" lit={0.6} heroDoor={0.6} brotherDoor={0.7} reverse />
             <PairBench />
             <Figure x={BRO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={broPose} look={brother} frame={frame + 9} />
-            <Figure x={HERO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={tlPose(frame, [[0, { ...LISTEN, head: 18 }], [tQ - 6, { ...LISTEN, head: 26 }], [tQ + 6, ACCEPT]])} look={hero} flip frame={frame} />
+            <Figure x={HERO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={heroPose} look={hero} flip frame={frame} />
+            <BroAngleSet frame={frame} broPose={broPose} heroPose={heroPose} portrait={portrait} />
+            <HeroAngleSet frame={frame} broPose={broPose} heroPose={heroPose} portrait={portrait} />
           </g>
         ),
       };
@@ -597,7 +703,7 @@ export const CH6_SHOTS: Record<string, Ch6Shot> = {
           <Lane frame={0} mood="dusk" lit={0.6} heroDoor={0.6} brotherDoor={0.7} reverse />
           <PairBench />
           <Figure x={BRO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={{ ...POSES.sit, head: 10 }} look={brother} frame={0} />
-          <Figure x={HERO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={{ ...POSES.sit, head: 14 }} look={hero} flip frame={0} />
+          <Figure x={HERO_SEAT_X} y={SEAT.y} scale={PAIR_S} pose={BENCH_ACCEPT} look={hero} flip frame={0} />
         </g>
       ),
     }),
