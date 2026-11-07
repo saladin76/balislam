@@ -59,6 +59,7 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
     watermark: ov.watermark && scene.template !== "end-screen",
   };
   const hasRecitation = Boolean(scene.ayahKey && media?.recitations[scene.ayahKey]);
+  const recitationDuration = hasRecitation ? media!.recitations[scene.ayahKey!]!.duration : undefined;
   switch (scene.template) {
     case "big-question":
       return <BigQuestion {...base} question={p.question || "…"} highlight={p.highlight || undefined} element={p.element || "question-mark"} />;
@@ -75,10 +76,11 @@ export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, 
       );
     case "verse-card":
       if (p.look === "horizon")
-        return <HorizonVerse {...base} text={p.text || ""} ayahKey={scene.ayahKey} head={p.head || undefined} reciter={hasRecitation ? p.reciter || media?.recitations[scene.ayahKey!]?.reciter || undefined : undefined} />;
+        return <HorizonVerse {...base} recitationDuration={recitationDuration} text={p.text || ""} ayahKey={scene.ayahKey} head={p.head || undefined} reciter={hasRecitation ? p.reciter || media?.recitations[scene.ayahKey!]?.reciter || undefined : undefined} />;
       return (
         <VerseCard
           {...base}
+          recitationDuration={recitationDuration}
           text={p.text || ""}
           reference={p.reference || ""}
           reciter={hasRecitation ? p.reciter || media?.recitations[scene.ayahKey!]?.reciter || undefined : undefined}
