@@ -43,7 +43,7 @@ describe("workflow ledger cannot be double-submitted by separate Node processes"
         const child = spawn(process.execPath, ["--import", "tsx", worker, JSON.stringify(scope), JSON.stringify(current)],
           { cwd: path.resolve("."), env, stdio: ["ignore", "ignore", "pipe"] });
         let stderr = "";
-        child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+        child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
         child.on("error", reject);
         child.on("close", (code) => resolve({ code, stderr }));
       })));
