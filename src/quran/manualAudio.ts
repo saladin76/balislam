@@ -129,7 +129,8 @@ export const approveOwnRecitation = async (episode: string, key: string, reviewe
   await requested(episode,key);
   const scriptPath = await resolveScriptPath(episode);
   const texts = await readJson<Record<string,string>>(quranPathFor(scriptPath), {});
-  if (!texts[key]?.trim()) throw Error("نص الآية غير موجود؛ أدخله وراجعه قبل اعتماد الصوت.");
+  const approvedText = texts[key];
+  if (!approvedText?.trim()) throw Error("نص الآية غير موجود؛ أدخله وراجعه قبل اعتماد الصوت.");
   return withLock(scriptPath, async dir => {
     const file=ownAudioReviewFile(scriptPath);
     const pending=await readJson<OwnAudioReview>(file,{});
@@ -144,7 +145,7 @@ export const approveOwnRecitation = async (episode: string, key: string, reviewe
       parts:[{file:candidate.file,duration:candidate.duration}],
       fetchedAt:candidate.createdAt,approvedAt:new Date().toISOString(),
       approvedBy:reviewer.trim(),sha256:candidate.sha256,
-      textSha256:sha(Buffer.from(texts[key],"utf8")),
+      textSha256:sha(Buffer.from(approvedText,"utf8")),
     };
     // Keep old/source recordings intact; only the approved pointer changes.
     await atomicJson(indexFile,{...current,[key]:entry});
