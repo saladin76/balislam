@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { mkdir, rename, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
+import { ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { createIsolatedRenderBundle } from "./bundle";
 import { emptyMedia } from "../plan/media";
 import { getCompositions, renderStill } from "@remotion/renderer";
@@ -17,7 +18,7 @@ export type StillsOptions = {
 export const renderBrandStills = async (opts: StillsOptions = {}): Promise<string[]> => {
   const log = opts.onProgress ?? (() => {});
   const outDir = opts.outDir ?? path.join(projectRoot, "renders", "brand");
-  await mkdir(outDir, { recursive: true });
+  await ensureUnlinkedDirectory(outDir);
 
   log("تجميع المشروع…");
   const sandbox = await createIsolatedRenderBundle(emptyMedia);
@@ -36,8 +37,7 @@ export const renderBrandStills = async (opts: StillsOptions = {}): Promise<strin
     const pending = output + `.${randomUUID()}.part.png`;
     try {
       await renderStill({ serveUrl, composition, output: pending, scale: 2, browserExecutable });
-      await rename(pending, output);
-      written.push(output);
+      written.push(await publishOutputWithoutOverwrite(pending, output));
     } finally {
       await rm(pending, { force: true });
     }
@@ -61,7 +61,7 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
   const written: string[] = [];
   for (const id of ids) {
     const outDir = path.join(projectRoot, "renders", "brand", id);
-    await mkdir(outDir, { recursive: true });
+    await ensureUnlinkedDirectory(outDir);
     const inputProps = { identity: loadChannelIdentity(id), channel: channelInfo(loadChannel(id)) };
     const comps = await getCompositions(serveUrl, { browserExecutable, inputProps });
     for (const composition of comps.filter((c) => c.id.startsWith("channel-art-"))) {
@@ -72,8 +72,7 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
       const pending = output + `.${randomUUID()}.part.png`;
       try {
         await renderStill({ serveUrl, composition, output: pending, scale, browserExecutable, inputProps: { ...inputProps, kind: composition.defaultProps.kind } });
-        await rename(pending, output);
-        written.push(output);
+        written.push(await publishOutputWithoutOverwrite(pending, output));
       } finally {
         await rm(pending, { force: true });
       }
