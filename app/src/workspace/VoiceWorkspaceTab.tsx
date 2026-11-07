@@ -43,10 +43,20 @@ export const VoiceWorkspaceTab: React.FC<{
     let alive = true;
     setReview([]); setFullApproved(false); setFullHeard(false); setSelected(""); setHeard(false); setReviewError("");
     setPlayerIndex(null); setPlaylistComplete(false); setPlayerError("");
-    api.voiceReview(episodeId, channelId).then(({ items, episodeApproved }) => {
-      if (alive) { setReview(items); setFullApproved(episodeApproved); }
-    }).catch((e) => { if (alive) setReviewError("تعذر قراءة سجل مراجعة الصوت: " + (e as Error).message); });
-    return () => { alive = false; };
+    const refresh = () => {
+      api.voiceReview(episodeId, channelId).then(({ items, episodeApproved }) => {
+        if (alive) { setReview(items); setFullApproved(episodeApproved); setReviewError(""); }
+      }).catch((e) => {
+        // Never retain an old "approved" badge after a failed integrity check.
+        if (alive) { setReview([]); setFullApproved(false);
+          setReviewError("تعذر التحقق من صلاحية التسجيل؛ لا يعتبر معتمدًا: " + (e as Error).message); }
+      });
+    };
+    refresh();
+    // External corruption/replacement of an MP3 does not alter React props;
+    // periodically recompute the same server fingerprint used by the render gate.
+    const poll = setInterval(refresh, 10000);
+    return () => { alive = false; clearInterval(poll); };
   }, [episodeId, channelId, media.voice, plan]);
   useEffect(() => {
     if (playerIndex === null) return;
