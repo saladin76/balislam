@@ -151,6 +151,8 @@ const metadataPreview = (value, limit = 36) => {
   return fragments.length > limit || /[\r\n]/.test(value)
     ? fragments.slice(0, limit).map(({ segment }) => segment).join("").trimEnd() + "…" : String(value);
 };
+const needsMetadataAnnex = (value, limit) => /[\r\n]/.test(String(value)) ||
+  [...new Intl.Segmenter("ar", {granularity:"grapheme"}).segment(String(value))].length > limit;
 const safeExcerpt = (value, limit, annexNeeded) => {
   if (!annexNeeded) return value;
   // Keep the already-reviewed <=160-character Dafatir text fully on its scene page.
@@ -167,7 +169,7 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
   const chosen = storyboard.scenes.filter(s => chapter === null || String(s.chapter) === String(chapter));
   if (!chosen.length || chosen.length > 250) throw Error("Empty or oversized storyboard selection");
   const appendix = (id, label, text) => splitAppendixText(text).map((piece, i, a) =>
-    '<article class="page"><header class="head"><div class="name"><span class="eyebrow">ملحق ' + ltr(id) +
+    '<article class="page"><header class="head"><div class="name"><span class="eyebrow">ملحق ' + ltr(metadataPreview(id, 18)) +
     " · " + esc(label) + " · " + ltr((i+1)+"/"+a.length) +
     '</span><h2>النص الكامل للمراجعة</h2></div><div class="status">غير معتمد</div></header>' +
     '<section class="appendix"><h3>' + esc(label) + '</h3><p>' + esc(piece) + '</p></section>' +
@@ -177,13 +179,13 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
   const title = chosen[0]?.chapterTitle?.trim();
   const coverTitleAnnex = !!title && (title.length > 80 || /[\r\n]/.test(title));
   const coverTitle = coverTitleAnnex ? [...new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(title)]
-    .slice(0, 55).map(({ segment }) => segment).join("") + "…" : title;
+    .slice(0, 38).map(({ segment }) => segment).join("") + "…" : title;
   const cover = chapterCover
     ? '<article class="page cover" lang="ar" dir="rtl"><div class="label">لوحات المراجعة البصرية · ' +
-        esc(storyboard.channel) + '</div><h1>الفصل ' + ltr(chosen[0].chapter) +
+        esc(metadataPreview(storyboard.channel, 22)) + '</div><h1>الفصل ' + ltr(chosen[0].chapter) +
         (title ? ' — <span dir="rtl">' + esc(coverTitle) + '</span>' : '') +
         '</h1><p>عدد المشاهد: ' + ltr(chosen.length) +
-        ' · الإصدار ' + ltr(storyboard.version) +
+        ' · الإصدار ' + ltr(metadataPreview(storyboard.version, 22)) +
         '</p><p class="series">Storyboard · غير معتمد للنشر</p></article>' +
         (coverTitleAnnex ? appendix("الفصل " + chosen[0].chapter, "عنوان الفصل", title) : "") : "";
   const pages = chosen.map((scene, index) => {
@@ -201,13 +203,13 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
     const titleAnnex = scene.title.length > 48 || /[\r\n]/.test(scene.title);
     const chapterMeta = String(scene.chapterTitle || scene.chapter || "غير محدد");
     const typeMeta = String(scene.type || "غير محدد");
-    const chapterMetaAnnex = chapterMeta.length > 40 || /[\r\n]/.test(chapterMeta);
-    const typeMetaAnnex = typeMeta.length > 40 || /[\r\n]/.test(typeMeta);
-    const idAnnex = scene.id.length > 28 || /[\r\n]/.test(scene.id);
+    const chapterMetaAnnex = needsMetadataAnnex(chapterMeta, 36);
+    const typeMetaAnnex = needsMetadataAnnex(typeMeta, 36);
+    const idAnnex = needsMetadataAnnex(scene.id, 18);
     const titleExcerpt = titleAnnex ? [...new Intl.Segmenter("ar", { granularity: "grapheme" }).segment(scene.title)]
       .slice(0, 40).map(({ segment }) => segment).join("") + "…" : scene.title;
     const header = '<header class="head"><div class="name"><span class="eyebrow">اللوحة ' +
-      ltr(index+1) + " من " + ltr(chosen.length) + ' · ' + esc(storyboard.channel) +
+      ltr(index+1) + " من " + ltr(chosen.length) + ' · ' + esc(metadataPreview(storyboard.channel, 22)) +
       '</span><h2>' + ltr(scene.id) + '<span class="arabic-title" lang="ar" dir="rtl">' + esc(titleExcerpt) +
       '</span></h2></div><div class="status">مراجعة بصرية · غير معتمد</div></header>';
     const frames = '<div class="frames ' + (port ? "comparison" : "single") + '">' +
@@ -216,18 +218,22 @@ export function buildStoryboardHtml(storyboard, { chapter = null, chapterCover =
       '</p></section><section><h3>نص المقطع</h3><p lang="ar" dir="rtl">' + esc(safeExcerpt(narration, 160, narrationAnnex)) +
       '</p></section><section class="details"><span>الفصل: ' + esc(metadataPreview(chapterMeta)) +
       '</span><span>النوع: ' + esc(metadataPreview(typeMeta)) +
-      '</span><span>الإصدار: ' + ltr(storyboard.version) + '</span></section></div>';
+      '</span><span>الإصدار: ' + ltr(metadataPreview(storyboard.version, 22)) + '</span></section></div>';
     return '<article class="page">' + header + frames + info +
-      '<footer>Storyboard للمراجعة فقط · ' + ltr(storyboard.episode) + '</footer></article>' +
+      '<footer>Storyboard للمراجعة فقط · ' + ltr(metadataPreview(storyboard.episode, 22)) + '</footer></article>' +
       (titleAnnex ? appendix(scene.id, "عنوان المشهد", scene.title) : "") +
       (notesAnnex ? appendix(scene.id,"الوصف والملاحظات",notes) : "") +
       (narrationAnnex ? appendix(scene.id,"النص والتعليق",narration) : "") +
-      (chapterMetaAnnex && !(chapterCover && coverTitleAnnex && index === 0) ? appendix(scene.id, "عنوان الفصل الكامل", chapterMeta) : "") +
+      (chapterMetaAnnex && !(chapterCover && coverTitleAnnex && chapterMeta === title) ? appendix(scene.id, "عنوان الفصل الكامل", chapterMeta) : "") +
       (typeMetaAnnex ? appendix(scene.id, "نوع المشهد الكامل", typeMeta) : "") +
       (idAnnex ? appendix(scene.id, "معرّف المشهد الكامل", scene.id) : "");
   });
   // Page numbering includes chapter covers and all full-text annex pages.
-  const documentPages = cover + pages.join("\n");
+  const metadataAnnexes = [["القناة الكاملة", storyboard.channel],["معرّف الحلقة الكامل", storyboard.episode],
+    ["إصدار المحتوى الكامل", storyboard.version]]
+    .filter(([,value]) => needsMetadataAnnex(value, 22))
+    .map(([label,value]) => appendix("Storyboard", label, value)).join("\n");
+  const documentPages = cover + metadataAnnexes + pages.join("\n");
   const pageCount = (documentPages.match(/<\/article>/g) ?? []).length;
   let pageIndex = 0;
   const numberedPages = documentPages.replace(/<\/article>/g, () =>
