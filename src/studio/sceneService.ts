@@ -418,7 +418,7 @@ export const decideSceneProduction = async (episode: string,
       at, by, resultSha256, note: command.note?.trim() || "تأكيد مراجعة المالك",
     }];
     const saved = sign({ version: 1, state: next, revision: doc.revision + 1,
-      history, previewEpochs, assemblyEpoch, masterEpoch });
+      history, previewEpochs, previewInputs: doc.previewInputs, assemblyEpoch, masterEpoch });
     await saveLedger(stateFileFor(current.scriptPath), saved);
     return view(saved, current.ready);
   });
