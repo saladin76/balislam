@@ -30,6 +30,13 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(renderer).toContain("await opts.verifyBeforePublish?.()");
     expect(renderer).toContain("requireApprovedQuran: true");
     expect(renderer).toContain("putEpisodePreview(episode, opts.slot, file");
+    expect(renderer).toContain("scenePreview: /^scene-[a-z0-9-]+-av$/.test(opts.slot)");
+    const renderEpisode = src("src/render/episode.ts");
+    expect(renderEpisode).toContain('opts.scenePreview && opts.quality === "master"');
+    expect(renderEpisode).toContain('"scene-preview" as const');
+    const motion = src("src/remotion/scenes/Episode.tsx");
+    expect(motion).toContain('"scene-preview" | "approved"');
+
   });
 
   it("builds a combined video/audio review UI without auto-accepting a preview", () => {
