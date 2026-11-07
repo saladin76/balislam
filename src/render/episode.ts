@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
-import { mkdir, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { assertNoLinkedPath, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { assertMasterStageAuthorized, masterRenderSubject } from "./masterGateContract";
 import { rename, stat, unlink } from "node:fs/promises";
@@ -36,8 +36,11 @@ export type RenderEpisodeOptions = {
 };
 
 export const outDirFor = async (episode: string) => {
-  const dir = path.join(path.dirname(await resolveScriptPath(episode)), "out");
-  await mkdir(dir, { recursive: true });
+  const scriptPath = await resolveScriptPath(episode);
+  await assertNoLinkedPath(scriptPath, true);
+  assertRenderChannelOwnership(scriptPath, loadChannel().id);
+  const dir = path.join(path.dirname(scriptPath), "out");
+  await ensureUnlinkedDirectory(dir);
   return dir;
 };
 
