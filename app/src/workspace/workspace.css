@@ -227,3 +227,32 @@
   .ew-approval-grid article { padding: 11px; }
   .ew-workflow-history ol { max-height: 140px; }
 }
+
+/* Visual QA refinements: mobile stage discovery and one authoritative workflow status. */
+.ew-stage-scroll-hint { display: none; margin: 0; }
+.ew-stages-status {
+  margin: 0;
+  padding: 7px 11px;
+  border-inline-start: 3px solid var(--accent, #177d76);
+  background: var(--panel-2, #f7f9fb);
+  color: var(--muted, #67645e);
+  border-radius: 7px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+@media (max-width: 700px) {
+  .ew-stage-scroll-hint {
+    display: block;
+    padding-inline: 3px;
+    color: var(--muted, #67645e);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .ew-stages {
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+  }
+  .ew-stages > .ew-stage { scroll-snap-align: start; }
+  .ew-stage:focus-visible { outline: 2px solid var(--accent, #177d76); outline-offset: -2px; }
+}
