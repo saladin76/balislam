@@ -35,11 +35,21 @@ const safeIdentity = (scope: WorkflowIdentity): void => {
 /** Resolve a real existing episode; reject symlinked episode directories and traversal. */
 export const workflowFileFor = async (scope: WorkflowIdentity): Promise<string> => {
   safeIdentity(scope);
-  const base = await realpath(path.join(scope.channelsRoot, scope.channel, "episodes"));
-  const candidate = path.join(base, scope.episode);
+  const channelsBase = await realpath(scope.channelsRoot);
+  const channelRoot = path.join(channelsBase, scope.channel);
+  const channelInfo = await lstat(channelRoot);
+  if (!channelInfo.isDirectory() || channelInfo.isSymbolicLink() ||
+      await realpath(channelRoot) !== channelRoot)
+    throw new Error("Channel must be a real directory, not a symlink.");
+  const episodesRoot = path.join(channelRoot, "episodes");
+  const episodesInfo = await lstat(episodesRoot);
+  if (!episodesInfo.isDirectory() || episodesInfo.isSymbolicLink() ||
+      await realpath(episodesRoot) !== episodesRoot)
+    throw new Error("Episodes directory must not redirect outside its channel.");
+  const candidate = path.join(episodesRoot, scope.episode);
   if (!(await lstat(candidate)).isDirectory()) throw new Error("Episode must be a real directory.");
   const resolved = await realpath(candidate);
-  if (path.dirname(resolved) !== base) throw new Error("Episode escapes channel directory.");
+  if (path.dirname(resolved) !== episodesRoot) throw new Error("Episode escapes channel directory.");
   return path.join(resolved, "workflow-approvals.json");
 };
 
