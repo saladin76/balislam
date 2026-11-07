@@ -16,8 +16,8 @@ const fileAsDataUrl = (file: File) => new Promise<string>((resolve,reject)=>{
 });
 /** Shared by all channels: no Quran API keys and no automatic verse/audio generation. */
 export const ManualQuranPanel: React.FC<{
-  episodeId:string; channelId:string; onMedia?:(media:EpisodeMedia)=>void;
-}> = ({episodeId,channelId,onMedia}) => {
+  episodeId:string; channelId:string; onMedia?:(media:EpisodeMedia)=>void; onReload?:()=>void|Promise<void>;
+}> = ({episodeId,channelId,onMedia,onReload}) => {
   const [status,setStatus] = useState<TextStatus|null>(null);
   const [audio,setAudio] = useState<AudioStatus>({pending:{},approved:{}});
   const [selected,setSelected] = useState("");
@@ -61,7 +61,7 @@ export const ManualQuranPanel: React.FC<{
   const saveText = () => operation(async()=>{
     if(!selected||!text.trim())throw Error("اختر مرجع الآية والصق نصها أولًا.");
     const result=await api.saveManualQuranText(episodeId,channelId,selected,text);
-    if(result.result.saved){setText("");setFeedback("حُفظ النص كما أرسلته؛ راجعه قبل الإنتاج.");}
+    if(result.result.saved){setText("");setFeedback("حُفظ النص كما أرسلته؛ راجعه قبل الإنتاج.");await onReload?.();}
     else setFeedback("النص موجود ومطابق؛ لم يُستبدل.");
   });
   const upload = () => operation(async()=>{
