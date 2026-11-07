@@ -79,7 +79,8 @@ const provider = async (x: Awaited<ReturnType<typeof fixture>>) => {
   const choice: FoundationRecitation = {
     id: 7, name: "قارئ المصحف التجريبي",
     licence: { holder: "مالك التسجيل", evidence: "https://rights.example.test/permission",
-      scope: "YouTube commercial publish", verifiedAt: new Date().toISOString() },
+      scope: "YouTube commercial publish", verifiedAt: new Date().toISOString(),
+      verifiedBy: "مراجع حقوق", reviewNote: "راجعت دليل الاستخدام والإذن التجاري للقارئ" },
   };
   const record = { provider: "quran-foundation", reciter: choice.name, recitationId: 7,
     fetchedAt: new Date().toISOString(),
@@ -153,6 +154,9 @@ describe("PR #73 Quran audio integration contract — negative safety scenarios"
       { id: 7, name: choice.name }, media, x.renderRoot)).rejects.toThrow(/دليل حقوق/);
     await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath,
       { ...choice, id: 99 }, media, x.renderRoot)).rejects.toThrow(/مصدر/);
+    await expect(assertRenderedRecitationsMatchApprovals(x.scriptPath,
+      { ...choice, licence: { ...choice.licence!, verifiedBy: "" } }, media, x.renderRoot))
+      .rejects.toThrow(/المراجع البشري/);
     await writeFile(x.indexFile, JSON.stringify({ "53:39": { ...record, parts: [
       { ...record.parts[0], sha256: undefined },
     ] } }));
