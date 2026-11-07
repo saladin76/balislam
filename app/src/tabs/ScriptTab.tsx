@@ -33,11 +33,12 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   const [research, setResearch] = useState<ResearchDraft | null>(researchDraft ?? null);
   useEffect(() => {
     let active = true;
-    if (researchDraft) { setResearch(researchDraft); return () => { active = false; }; }
+    if (researchDraft) { setResearch(researchDraft); setResearchError(""); return () => { active = false; }; }
     setResearch(null);
+    setResearchError("");
     if (episodeId) api.research(episodeId).then((r) => {
       if (active) setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists });
-    }).catch(() => {});
+    }).catch((error) => { if (active) setResearchError("تعذر تحميل ملف البحث: " + (error as Error).message); });
     return () => { active = false; };
     // Only reload when the actual episode identity changes, not on a parent callback render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
