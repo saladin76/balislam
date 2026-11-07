@@ -5,12 +5,13 @@ import { existsSync } from "node:fs";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { rm } from "node:fs/promises";
 import { assertNoLinkedPath, assertEpisodeOutputConfined, ensureUnlinkedDirectory, publishOutputWithoutOverwrite } from "./fsIsolation";
-import { assertMasterStageAuthorized, masterRenderSubject } from "./masterGateContract";
+import { assertMasterStageAuthorized, assertMasterSubjectUnchanged, masterRenderSubject, type MasterRenderSubject } from "./masterGateContract";
 import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia, studioMediaNamespace } from "../plan/collect";
+import { defaultRenderMediaRoot, verifyStagedMedia } from "../plan/renderStage";
 import { emptyMedia, type EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import type { Orientation } from "../remotion/scenes/types";
@@ -132,6 +133,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
   const media = opts.media ?? (await prepareRenderMedia(opts.episode, plan));
   assertRenderMediaOwnership(scriptPath, media);
+  // No render output can promote its own success to workflow approval.
+  let masterInput: MasterRenderSubject | null = null;
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
     const sbRecord = await loadStoryboard(scriptPath);
@@ -149,9 +152,10 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     }
     // Workflow gate is intentionally fail-closed until the separate persistent
     // approvals branch verifies the exact AV and owner approvals for this input.
-    await assertMasterStageAuthorized(await masterRenderSubject(
+    masterInput = await masterRenderSubject(
       scriptPath, loadChannel().id, plan, media, opts.orientation, opts.chapter,
-    ));
+    );
+    await assertMasterStageAuthorized(masterInput);
   }
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
@@ -185,6 +189,23 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
+    if (masterInput) {
+      // Checks at enqueue/start are not sufficient: source, voice approval and
+      // staged bytes may change while Chrome/FFmpeg renders. Revalidate at
+      // the final commit boundary. PR #77 must hold the shared artifact lock
+      // across this boundary once integrated into the real entrypoints.
+      const currentPlan = await loadPlan(opts.episode);
+      if (!currentPlan) throw new Error("تعذّر إعادة التحقق من خطة Master الحالية قبل نشر الملف.");
+      await assertMasterReady({
+        scriptPath, plan: currentPlan, media, channel: loadChannel(), chapter: opts.chapter,
+      });
+      await verifyStagedMedia(defaultRenderMediaRoot(), media.base);
+      const currentSubject = await masterRenderSubject(
+        scriptPath, loadChannel().id, currentPlan, media, opts.orientation, opts.chapter,
+      );
+      assertMasterSubjectUnchanged(masterInput, currentSubject);
+      await assertMasterStageAuthorized(currentSubject);
+    }
     return await publishOutputWithoutOverwrite(tempOutput, output);
   } finally {
     await unlink(tempOutput).catch(() => {});
