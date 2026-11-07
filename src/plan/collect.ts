@@ -98,7 +98,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   return { voice, sfx, recitations, images };
 };
 
-/** ينسخ الوسائط إلى public/_render/<الحلقة> ليضمّها Remotion في الرندر. */
+/** ينسخ وسائط الحلقة إلى لقطة ثابتة ببصمة محتوى ونطاق خاص بالقناة والحلقة؛ لا تُحذف النتائج السابقة. */
 export const prepareRenderMedia = async (
   episode: string,
   plan: Plan,
