@@ -80,4 +80,7 @@ export const renderChannelArt = async (opts: { channels?: string[]; onProgress?:
     }
   }
   return written;
+  } finally {
+    await sandbox.cleanup();
+  }
 };
