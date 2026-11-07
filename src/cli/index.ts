@@ -229,72 +229,81 @@ program
     spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit", shell: process.platform === "win32" });
   });
 
+/** One Quran workflow: list the required ayahs, accept owner text, and review owner audio.
+ * Old commands stay as safe aliases; they no longer contact external Quran APIs.
+ */
 program
   .command("quran")
-  .description("جلب نصوص آيات الحلقة بالرسم العثماني من Quran Foundation (تُخزن في quran.json)")
+  .description("الآيات المطلوبة لهذه الحلقة؛ لا جلب تلقائي ولا تعديل للسكريبت")
   .argument("<episode>", "رقم الحلقة")
-  .option("--force", "إعادة الجلب حتى للمخزّن")
-  .action(async (episode: string, opts: { force?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { syncQuran } = await import("../quran/sync");
-    const { regeneratePlan } = await import("../plan/io");
-    const client = quranClientFromEnv();
-    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
-    const r = await syncQuran(episode, client, { force: opts.force });
-    await regeneratePlan(episode);
-    console.log(`جُلبت ${r.fetched.length} آية/مقطع، ومخزّنة ${r.cached.length}.`);
-    for (const f of r.failed) console.log(`تعذّر: ${f.ref}: ${f.reason}`);
-    if (r.failed.length) process.exitCode = 1;
+  .option("--ref <key>", "مرجع الآية الذي أرسلت نصه")
+  .option("--text-file <file>", "ملف UTF-8 يحتوي نص الآية من صاحب القناة")
+  .action(async (episode: string, opts: { ref?: string; textFile?: string }) => {
+    const { inspectMissingQuranTexts, saveManualQuranText } = await import("../quran/fillMissingText");
+    if (Boolean(opts.ref) !== Boolean(opts.textFile))
+      throw Error("أدخل --ref و--text-file معًا، أو اتركهما لعرض قائمة الآيات فقط.");
+    if (opts.ref && opts.textFile) {
+      const supplied = await readFile(path.resolve(opts.textFile), "utf8");
+      const saved = await saveManualQuranText(episode, opts.ref, supplied);
+      console.log(saved.saved ? "تم حفظ نص الآية اليدوي، بانتظار مراجعة المحتوى." : "النص محفوظ من قبل، لم يُستبدل.");
+    }
+    const items = await inspectMissingQuranTexts(episode);
+    for (const item of items.required)
+      console.log(`${item.label} [${item.key}]: ${item.status === "existing" ? "موجود محليًا" : "مطلوب من صاحب القناة"}`);
+    for (const bad of items.invalid) console.error(`مرجع غير صالح: ${bad.ref}: ${bad.reason}`);
+    console.log(`مطلوب ${items.missing.length} · محفوظ ${items.existing.length} · غير صالح ${items.invalid.length} — أرسل القائمة للمحادثة.`);
+    if (items.invalid.length) process.exitCode = 1;
   });
 
 program
   .command("quran-text-only")
-  .description("جلب نصوص الآيات الناقصة فقط إلى quran.json؛ لا يكتب plan.json ولا يجلب صوتًا أو يغيّر مراجعات الحلقة")
-  .argument("<episode>", "رقم الحلقة")
-  .option("--dry-run", "عرض المراجع الناقصة دون اتصال أو كتابة أي ملف")
-  .option("--confirm-cache-write", "إقرار صريح بحفظ النصوص الناقصة في quran.json فقط")
-  .action(async (episode: string, opts: { dryRun?: boolean; confirmCacheWrite?: boolean }) => {
-    if (opts.dryRun) {
-      const { inspectMissingQuranTexts } = await import("../quran/fillMissingText");
-      const result = await inspectMissingQuranTexts(episode);
-      for (const key of result.missing) console.log(`${key}: نص محلي ناقص`);
-      for (const key of result.existing) console.log(`${key}: نص محلي موجود`);
-      for (const failure of result.invalid) console.log(`${failure.ref}: مرجع غير صالح — ${failure.reason}`);
-      console.log(`ناقص: ${result.missing.length} · موجود: ${result.existing.length} · غير صالح: ${result.invalid.length} (فحص دون كتابة)`);
-      if (result.invalid.length) process.exitCode = 1;
-      return;
+  .description("فحص مراجع الآيات الناقصة فقط؛ إدخال النص عبر bal quran --ref --text-file")
+  .argument("<episode>")
+  .option("--dry-run", "فحص فقط")
+  .action(async (episode: string) => {
+    const { inspectMissingQuranTexts } = await import("../quran/fillMissingText");
+    const items = await inspectMissingQuranTexts(episode);
+    for (const item of items.required)
+      console.log(`${item.label} [${item.key}]: ${item.status === "existing" ? "موجود" : "مطلوب"}`);
+    if (items.invalid.length) process.exitCode = 1;
+  });
+
+program
+  .command("quran-audio")
+  .description("استلام تلاوتك بصوتك وتحسين مستواها محليًا، أو اعتماد نسخة بعد الاستماع")
+  .argument("<episode>")
+  .requiredOption("--ref <key>", "مرجع الآية")
+  .option("--file <file>", "التسجيل الأصلي WAV/MP3/M4A/...")
+  .option("--approve", "اعتماد النسخة الصوتية بعد الاستماع إليها")
+  .option("--reviewer <name>", "اسم من استمع للتلاوة")
+  .option("--note <text>", "ملاحظة الاستماع")
+  .option("--listened", "تأكيد الاستماع الكامل للنسخة المُحسنة")
+  .action(async (episode: string, opts: { ref: string; file?: string; approve?: boolean; reviewer?: string; note?: string; listened?: boolean }) => {
+    const { prepareOwnRecitation, approveOwnRecitation, ownAudioStatus } = await import("../quran/manualAudio");
+    if (opts.file && opts.approve) throw Error("ارفع التسجيل أولًا، ثم استمع إليه واعتمده في طلب منفصل.");
+    if (opts.file) {
+      const file = path.resolve(opts.file);
+      const recording = await prepareOwnRecitation(episode, opts.ref, path.basename(file), await readFile(file));
+      console.log(`نسخة للمراجعة: ${recording.file}، المدة ${recording.duration.toFixed(1)} ثانية. لم تُعتمد بعد.`);
+    } else if (opts.approve) {
+      const approved = await approveOwnRecitation(episode, opts.ref, opts.reviewer ?? "", opts.note ?? "", Boolean(opts.listened));
+      console.log(`اعتمد التسجيل الصوتي البشري للآية ${opts.ref}: ${approved.parts[0]?.file}`);
+    } else {
+      const status = await ownAudioStatus(episode);
+      console.log(JSON.stringify({ pending:status.pending[opts.ref] ?? null, approved:status.approved[opts.ref] ?? null },null,2));
     }
-    if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص أو --confirm-cache-write للإذن بحفظ النصوص الناقصة.");
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { fillMissingQuranTexts } = await import("../quran/fillMissingText");
-    const client = quranClientFromEnv();
-    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
-    const result = await fillMissingQuranTexts(episode, client);
-    for (const key of result.fetched) console.log(`${key}: جُلب النص الناقص`);
-    for (const key of result.existing) console.log(`${key}: النص المحلي موجود؛ لم يُعدّل`);
-    for (const failure of result.failed) console.log(`${failure.ref}: تعذّر الجلب — ${failure.reason}`);
-    console.log(`نصوص مضافة: ${result.fetched.length} · موجودة: ${result.existing.length} · تعذّرت: ${result.failed.length}`);
-    if (result.failed.length) process.exitCode = 1;
   });
 
 program
   .command("quran-compare")
-  .description("مقابلة نص بطاقات الآيات بنص Quran Foundation حرفًا وحركةً، دون تغيير quran.json (النتيجة في «ملفات المراجعة»)")
-  .argument("<episode>", "رقم الحلقة")
-  .option("--evidence-only", "تقرير الأدلة المحلية فقط (النص المعروض ومصدره وصورة البطاقة وأرقامها) دون جلب المرجع؛ لا يُعد مطابقة")
-  .action(async (episode: string, opts: { evidenceOnly?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { auditEpisodeQuran, writeQuranAuditReport, CLASS_AR } = await import("../quran/audit");
-    const client = opts.evidenceOnly ? null : quranClientFromEnv();
-    if (!client && !opts.evidenceOnly) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV=production) إلى ملف .env، أو استعمل --evidence-only لتقرير الأدلة وحدها.");
-    const result = await auditEpisodeQuran(episode, { client });
-    for (const a of result.audits) {
-      const kinds = [...new Set(a.ops.map((o) => CLASS_AR[o.cls]))].join("، ");
-      console.log(`${a.key}: ${a.status === "match" ? "مطابق" : a.status === "differs" ? `فيه ${a.ops.length} فرق${kinds ? ` (${kinds})` : ""}${a.numbers.ok ? "" : "، ورقم السورة/الآية يحتاج مراجعة"}` : a.status === "pending" ? "لم يُقابَل بالمرجع" : a.reason ?? a.status}`);
-    }
-    if (client && client.env !== "production") console.log("تنبيه: QF_ENV ليست production؛ اجعلها production للمطابقة بالمرجع المعتمد.");
-    console.log(`التقرير: ${await writeQuranAuditReport(episode, result, { environment: client ? `<b>بيئة المرجع:</b> Quran Foundation (${client.env}).` : "<b>بيئة المرجع:</b> لم يُجلب المرجع في هذا التشغيل (--evidence-only)." })}`);
-    if (result.audits.some((a) => a.status !== "match")) process.exitCode = 1;
+  .description("تقرير أدلة مراجع الآيات المحلية دون جلب خارجي أو ادّعاء مطابقة غير مدققة")
+  .argument("<episode>")
+  .option("--evidence-only", "تقرير الأدلة المحلية")
+  .action(async (episode: string) => {
+    const { auditEpisodeQuran, writeQuranAuditReport } = await import("../quran/audit");
+    const result = await auditEpisodeQuran(episode, { client: null });
+    console.log(`التقرير: ${await writeQuranAuditReport(episode,result,{environment:"نصوص صاحب القناة، بانتظار المراجعة البشرية"})}`);
+    if (result.audits.some(a=>a.status!=="match")) process.exitCode=1;
   });
 
 program

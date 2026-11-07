@@ -1,22 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { searchFoundationReciters } from "../app/src/workspace/reciterSearch";
+import { filterAudioEditions, previewReciterKey } from "../app/src/workspace/AlQuranCloudBrowser";
 
-const voices = [
-  { id: 5, name: "محمود خليل الحصري", style: "Murattal" },
-  { id: 6, name: "مشاري العفاسي", style: "Murattal" },
-  { id: 7, name: "محمد صديق المنشاوي", style: "Mujawwad" },
+const voices=[
+  {identifier:"ar.husary",name:"محمود خليل الحصري"},
+  {identifier:"ar.alafasy",name:"مشاري العفاسي"},
+  {identifier:"ar.minshawi",name:"محمد صديق المنشاوي"},
 ];
-describe("Full Quran Foundation reciter discovery", () => {
-  it("shows every provider voice rather than a short hardcoded list", () => {
-    expect(searchFoundationReciters(voices, "")).toHaveLength(3);
+describe("Only AlQuran Cloud preview: three-channel isolation",()=>{
+  it("lists the full returned catalog; no hard-coded list or Foundation search",()=>{
+    expect(filterAudioEditions(voices,"")).toHaveLength(3);
   });
-  it("searches Arabic names with or without hamzas and Latin recitation styles", () => {
-    expect(searchFoundationReciters(voices, "المنشاوي").map((v) => v.id)).toEqual([7]);
-    expect(searchFoundationReciters(voices, "مجود").map((v) => v.id)).toEqual([7]);
-    expect(searchFoundationReciters(voices, "mujawwad").map((v) => v.id)).toEqual([7]);
-    expect(searchFoundationReciters(voices, "6").map((v) => v.id)).toEqual([6]);
+  it("filters Arabic names and edition identifiers",()=>{
+    expect(filterAudioEditions(voices,"المنشاوي")).toEqual([voices[2]]);
+    expect(filterAudioEditions(voices,"MIN")).toEqual([voices[2]]);
   });
-  it("keeps duplicate reciter names when their styles and recording IDs differ", () => {
-    expect(searchFoundationReciters([...voices, { id: 17, name: voices[0]!.name, style: "Mujawwad" }], "الحصري")).toHaveLength(2);
+  it("keeps reciter preview preferences separate between channel and episode",()=>{
+    expect(previewReciterKey("balislam","001")).not.toBe(previewReciterKey("dafatir-alzaman","001"));
+    expect(previewReciterKey("balislam","001")).not.toBe(previewReciterKey("balislam","002"));
   });
 });

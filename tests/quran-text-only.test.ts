@@ -1,155 +1,85 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { fillMissingQuranTexts, inspectMissingQuranTexts } from "../src/quran/fillMissingText";
-import type { QuranClient } from "../src/quran/client";
+import path from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { inspectMissingQuranTexts, saveManualQuranText } from "../src/quran/fillMissingText";
 
-let tempRoot = "";
-let episodeDir = "";
-const oldChannels = process.env.BAL_CHANNELS_DIR;
-const oldChannel = process.env.BAL_CHANNEL;
-beforeAll(() => {
-  tempRoot = mkdtempSync(path.join(os.tmpdir(), "bal-text-only-"));
-  const channelDir = path.join(tempRoot, "balislam");
-  cpSync(path.join(__dirname, "..", "channels", "balislam"), channelDir, {
-    recursive: true, filter: (src) => !/[\\/](recitations|voice|out)([\\/]|$)/.test(src),
+let tmp = "";
+const original = { directory: process.env.BAL_CHANNELS_DIR, channel: process.env.BAL_CHANNEL };
+const verseText = "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ";
+const file = () => path.join(tmp, "balislam", "episodes", "999-demo", "quran.json");
+const script = () => path.join(tmp, "balislam", "episodes", "999-demo", "script.md");
+const plan = () => path.join(tmp, "balislam", "episodes", "999-demo", "plan.json");
+beforeAll(()=>{
+  tmp=mkdtempSync(path.join(os.tmpdir(),"bal-manual-quran-"));
+  const dir=path.join(tmp,"balislam");
+  cpSync(path.join(import.meta.dirname,"..","channels","balislam"),dir,{
+    recursive:true,filter:src=>!/[\\/](episodes|voice|out|recitations)([\\/]|$)/.test(src),
   });
-  episodeDir = path.join(channelDir, "episodes", "999-demo");
-  cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), episodeDir, { recursive: true });
-  process.env.BAL_CHANNELS_DIR = tempRoot;
-  process.env.BAL_CHANNEL = "balislam";
+  mkdirSync(path.join(dir,"episodes"),{recursive:true});
+  cpSync(path.join(import.meta.dirname,"fixtures","episodes","000-demo"),path.join(dir,"episodes","999-demo"),{recursive:true});
+  process.env.BAL_CHANNELS_DIR=tmp;
+  process.env.BAL_CHANNEL="balislam";
 });
-afterAll(async () => {
-  if (oldChannels === undefined) delete process.env.BAL_CHANNELS_DIR;
-  else process.env.BAL_CHANNELS_DIR = oldChannels;
-  if (oldChannel === undefined) delete process.env.BAL_CHANNEL;
-  else process.env.BAL_CHANNEL = oldChannel;
-  if (tempRoot) await rm(tempRoot, { recursive: true, force: true });
+beforeEach(async()=>{
+  await rm(file(),{force:true});
+  await rm(file()+".manual.lock",{force:true});
 });
-
-describe("جلب نصوص الآيات الناقصة دون مساس بالإنتاج", () => {
-  it("يضيف الناقص فقط ويحفظ النصوص القديمة والخطة والسكريبت والتسجيلات كما هي", async () => {
-    const planFile = path.join(episodeDir, "plan.json");
-    const scriptFile = path.join(episodeDir, "script.md");
-    const cacheFile = path.join(episodeDir, "quran.json");
-    const planBefore = existsSync(planFile) ? readFileSync(planFile) : null;
-    const scriptBefore = readFileSync(scriptFile);
-    const existing = { "20:14": "نص سابق معتمد", "20:14#at": "2026-11-01T00:00:00.000Z" };
-    writeFileSync(cacheFile, JSON.stringify(existing));
-    const queried: string[] = [];
-    const client = { verse: async (key: string) => {
-      queried.push(key);
-      return { key, number: Number(key.split(":")[1]), text: "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ" };
-    } } as Pick<QuranClient, "verse">;
-    const result = await fillMissingQuranTexts("999", client);
-    expect(result.failed).toEqual([]);
-    expect(result.fetched).toContain("53:39");
-    expect(queried).toEqual(["53:39"]);
-    const cache = JSON.parse(readFileSync(cacheFile, "utf8"));
-    expect(cache["53:39"]).toContain("وَأَنْ");
-    expect(cache["53:39#at"]).toBeTruthy();
-    expect(cache["20:14"]).toBe("نص سابق معتمد");
-    expect(cache["20:14#at"]).toBe(existing["20:14#at"]);
-    expect(existsSync(planFile) ? readFileSync(planFile).equals(planBefore!) : planBefore === null).toBe(true);
-    expect(readFileSync(scriptFile).equals(scriptBefore)).toBe(true);
-    expect(existsSync(path.join(episodeDir, "recitations"))).toBe(false);
-    queried.length = 0;
-    const again = await fillMissingQuranTexts("999", client);
-    expect(again.fetched).toEqual([]);
-    expect(again.existing).toContain("53:39");
-    expect(queried).toEqual([]);
+afterAll(async()=>{
+  if(original.directory===undefined)delete process.env.BAL_CHANNELS_DIR;
+  else process.env.BAL_CHANNELS_DIR=original.directory;
+  if(original.channel===undefined)delete process.env.BAL_CHANNEL;
+  else process.env.BAL_CHANNEL=original.channel;
+  if(tmp)await rm(tmp,{recursive:true,force:true});
+});
+describe("Manual owner-supplied Quran verses: no Foundation or automatic writes",()=>{
+  it("lists requested ayahs from the script with explicit labels and no file writes",async()=>{
+    const r=await inspectMissingQuranTexts("999");
+    expect(r.missing).toContain("53:39");
+    expect(r.required.find(v=>v.key==="53:39")?.status).toBe("missing");
+    expect(existsSync(file())).toBe(false);
   });
-  it("يرفض استبدال المخزن إذا تغير أثناء طلب Quran Foundation", async () => {
-    const cacheFile = path.join(episodeDir, "quran.json");
-    const initial = JSON.stringify({ "other": "لا تغير هذا" });
-    writeFileSync(cacheFile, initial);
-    const concurrent = JSON.stringify({ "other": "تعديل صاحب المشروع", "custom#at": "2026-11-05" });
-    const client = { verse: async (key: string) => {
-      writeFileSync(cacheFile, concurrent);
-      return { key, number: 39, text: "نص للمراجعة" };
-    } } as Pick<QuranClient, "verse">;
-    await expect(fillMissingQuranTexts("999", client)).rejects.toThrow(/تغير مخزن القرآن/);
-    expect(readFileSync(cacheFile, "utf8")).toBe(concurrent);
+  it("persists exact supplied tashkeel and preserves the script and plan byte-for-byte",async()=>{
+    const s=readFileSync(script()),p=existsSync(plan())?readFileSync(plan()):null;
+    const result=await saveManualQuranText("999","53:39",verseText);
+    expect(result.saved).toBe(true);
+    const data=JSON.parse(readFileSync(file(),"utf8"));
+    expect(data["53:39"]).toBe(verseText);
+    expect(data["53:39#source"]).toBe("manual-owner");
+    expect(data["53:39#at"]).toBeTruthy();
+    expect(readFileSync(script()).equals(s)).toBe(true);
+    expect(existsSync(plan())?readFileSync(plan()).equals(p!):p===null).toBe(true);
+    expect(result.status.missing).not.toContain("53:39");
   });
-
-  it("يرفض كتابة مخزن آيات استُخرج من سكريبت تغير أثناء الجلب", async () => {
-    const cacheFile = path.join(episodeDir, "quran.json");
-    const scriptFile = path.join(episodeDir, "script.md");
-    const originalScript = readFileSync(scriptFile, "utf8");
-    const originalCache = JSON.stringify({ local: "نص محفوظ" });
-    writeFileSync(cacheFile, originalCache);
-    const modifiedScript = originalScript + "\\n<!-- تعديل معتمد بعد بداية طلب الآية -->\\n";
-    const client = { verse: async (key: string) => {
-      writeFileSync(scriptFile, modifiedScript);
-      return { key, number: 39, text: "نص تجريبي" };
-    } } as Pick<QuranClient, "verse">;
-    try {
-      await expect(fillMissingQuranTexts("999", client)).rejects.toThrow(/تغير سكريبت الحلقة/);
-      expect(readFileSync(cacheFile, "utf8")).toBe(originalCache);
-      expect(readFileSync(scriptFile, "utf8")).toBe(modifiedScript);
-    } finally {
-      writeFileSync(scriptFile, originalScript);
-    }
+  it("does not replace a different existing ayah, even if the caller demands it",async()=>{
+    await saveManualQuranText("999","53:39",verseText);
+    const previous=readFileSync(file());
+    await expect(saveManualQuranText("999","53:39","نص مختلف")).rejects.toThrow(/لا يُستبدل/);
+    expect(readFileSync(file()).equals(previous)).toBe(true);
   });
-
-  it("يفشل الجلب دون كتابة نص ناقص أو تغيير ملف الخطة", async () => {
-    const cacheFile = path.join(episodeDir, "quran.json");
-    const planFile = path.join(episodeDir, "plan.json");
-    writeFileSync(cacheFile, JSON.stringify({ untouched: "بيانات سابقة" }));
-    const cacheBefore = readFileSync(cacheFile);
-    const planBefore = existsSync(planFile) ? readFileSync(planFile) : null;
-    const failingClient = { verse: async () => { throw new Error("QF offline"); } } as unknown as Pick<QuranClient, "verse">;
-    const result = await fillMissingQuranTexts("999", failingClient);
-    expect(result.fetched).toEqual([]);
-    expect(result.failed).toHaveLength(1);
-    expect(readFileSync(cacheFile).equals(cacheBefore)).toBe(true);
-    expect(existsSync(planFile) ? readFileSync(planFile).equals(planBefore!) : planBefore === null).toBe(true);
+  it("does not rewrite the exact same text when submitted twice",async()=>{
+    await saveManualQuranText("999","53:39",verseText);
+    const previous=readFileSync(file());
+    const same=await saveManualQuranText("999","53:39",verseText);
+    expect(same.saved).toBe(false);
+    expect(readFileSync(file()).equals(previous)).toBe(true);
   });
-
-  it("يرفض نصًا لآية أخرى حتى إن أعاد الخادم استجابة ناجحة", async () => {
-    const cacheFile = path.join(episodeDir, "quran.json");
-    const untouched = JSON.stringify({ custom: "معلومة محلية" });
-    writeFileSync(cacheFile, untouched);
-    const wrong = { verse: async () => ({ key: "53:40", number: 40, text: "نص آية مختلفة" }) } as unknown as Pick<QuranClient, "verse">;
-    const result = await fillMissingQuranTexts("999", wrong);
-    expect(result.fetched).toEqual([]);
-    expect(result.failed).toHaveLength(1);
-    expect(result.failed[0]?.reason).toMatch(/لا تطابق المرجع/);
-    expect(readFileSync(cacheFile, "utf8")).toBe(untouched);
+  it("rejects unrequested or malformed refs without producing an ayah cache",async()=>{
+    await expect(saveManualQuranText("999","1:1",verseText)).rejects.toThrow(/غير مطلوبة/);
+    await expect(saveManualQuranText("999","../../bad",verseText)).rejects.toThrow(/غير صالح/);
+    expect(existsSync(file())).toBe(false);
   });
-
-  it("لا يخزن نتيجة جزئية إذا نجحت آية وفشلت أخرى", async () => {
-    const cacheFile = path.join(episodeDir, "quran.json");
-    const scriptFile = path.join(episodeDir, "script.md");
-    const originalScript = readFileSync(scriptFile, "utf8");
-    const originalCache = JSON.stringify({ untouched: "احتفظ بالقيمة" });
-    try {
-      writeFileSync(cacheFile, originalCache);
-      // Two distinct references to exercise a partial failure after a successful fetch.
-      writeFileSync(scriptFile, originalScript.replace("[آية: النجم 39]", "[آية: النجم 39]\n[آية: طه 14]"));
-      const client = { verse: async (key: string) => {
-        if (key === "20:14") throw new Error("network unavailable");
-        return { key, number: 39, text: "نص تجريبي" };
-      } } as Pick<QuranClient, "verse">;
-      const result = await fillMissingQuranTexts("999", client);
-      expect(result.failed).toHaveLength(1);
-      expect(result.fetched).toEqual([]);
-      expect(readFileSync(cacheFile, "utf8")).toBe(originalCache);
-    } finally {
-      writeFileSync(scriptFile, originalScript);
-    }
+  it("rejects missing Arabic text and embedded markup",async()=>{
+    await expect(saveManualQuranText("999","53:39","No Arabic")).rejects.toThrow(/غير صالح/);
+    await expect(saveManualQuranText("999","53:39","<script>س</script>")).rejects.toThrow(/غير صالح/);
+    expect(existsSync(file())).toBe(false);
   });
-
-  it("يستعرض المراجع الناقصة دون جلب أو كتابة ملفات", async () => {
-    const cacheFile = path.join(episodeDir, "quran.json");
-    const original = JSON.stringify({ existing: "محلي" });
-    writeFileSync(cacheFile, original);
-    const found = await inspectMissingQuranTexts("999");
-    expect(found.missing).toContain("53:39");
-    expect(found.invalid).toEqual([]);
-    expect(readFileSync(cacheFile, "utf8")).toBe(original);
+  it("rejects simultaneous writes under the same lock and preserves the existing file",async()=>{
+    writeFileSync(file(),JSON.stringify({safe:"أصل محفوظ"}));
+    const previous=readFileSync(file());
+    writeFileSync(file()+".manual.lock","other owner");
+    await expect(saveManualQuranText("999","53:39",verseText)).rejects.toThrow(/متزامن/);
+    expect(readFileSync(file()).equals(previous)).toBe(true);
   });
-
 });

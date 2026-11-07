@@ -1,12 +1,16 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { approveStoryboard, loadStoryboard, storyboardStatus, unapprovedScenes, storyboardVisualHash } from "../src/plan/storyboard";
 import { sceneHash } from "../src/plan/sceneReview";
 import { shotElements, shotKind, shotText } from "../src/plan/storyboardView";
 import { chapterEyebrow } from "../src/remotion/scenes/eyebrow";
 import type { Plan } from "../src/plan/types";
+
+const ownedStoryboardDirs: string[] = [];
+const storyboardFixture = async (prefix: string) => { const d=await mkdtemp(path.join(os.tmpdir(), prefix)); ownedStoryboardDirs.push(d); return d; };
+afterEach(async () => { for (const d of ownedStoryboardDirs.splice(0)) await rm(d, { recursive:true, force:true }); });
 
 const plan = (text = "بسم الله الرحمن الرحيم."): Plan =>
   ({
@@ -29,7 +33,7 @@ const plan = (text = "بسم الله الرحمن الرحيم."): Plan =>
 
 describe("ستوري بورد الفيديو قبل تنفيذه", () => {
   it("لا اعتماد ← كل المشاهد غير معتمدة؛ والاعتماد يربط كل مشهد ببصمته", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-"));
+    const dir = await storyboardFixture("sb-");
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const p = plan();
@@ -46,7 +50,7 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
   });
 
   it("يحفظ سبب اعتماد التحذيرات ويزيله عند سحب الاعتماد", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-audit-"));
+    const dir = await storyboardFixture("sb-audit-");
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     await approveStoryboard(script, plan(), { note: "شوهدت حركة المشهد والسكوت مقصود", inputHash: "hash-1" });
@@ -55,7 +59,7 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
   });
 
   it("تغير المدة أو التراكبات يعيد الاعتماد بدل الاحتفاظ ببصمة مشهد قديمة", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-hash-"));
+    const dir = await storyboardFixture("sb-hash-");
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const p = plan();
@@ -69,7 +73,7 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
   });
 
   it("تحديد نبرة الراوي أو اختيار صوت آخر لا يُلغي اعتماد اللوحات المصورة", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-voice-first-"));
+    const dir = await storyboardFixture("sb-voice-first-");
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const p = plan();

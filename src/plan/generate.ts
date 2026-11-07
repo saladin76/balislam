@@ -166,10 +166,10 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
           line: b.line,
           ayahKey: key,
           props: {
-            text: (key && quran[key]) || "‹نص الآية يُجلب من Quran Foundation›",
+            text: (key && quran[key]) || "‹نص الآية مطلوب من صاحب القناة›",
             reference,
             reciter: reciterFor(key),
-            ...(key && quran[`${key}#meaning`] ? { meaning: quran[`${key}#meaning`], meaningSource: channel.quranTranslation?.name ?? "" } : {}),
+            ...(key && quran[`${key}#meaning`] ? { meaning: quran[`${key}#meaning`], meaningSource: "مدخل يدويًا — يحتاج مراجعة" } : {}),
           },
         });
       } else if (b.kind === "hadith") {

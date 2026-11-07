@@ -394,24 +394,18 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
-  // Text-only Quran repair. Never regenerates the plan, downloads voice,
-  // changes reviewer approvals or fills missing verses with placeholders.
+  // One explicit, manual Quran text workflow, shared by the three channels.
   if (parts[0] === "episodes" && parts[1] && parts[2] === "quran-text-only" && parts.length === 3) {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-    const { inspectMissingQuranTexts, fillMissingQuranTexts } = await load("/src/quran/fillMissingText.ts");
-    if (req.method === "GET") {
+    const { inspectMissingQuranTexts, saveManualQuranText } = await load("/src/quran/fillMissingText.ts");
+    if (req.method === "GET")
       return send(res, 200, { status: await inspectMissingQuranTexts(parts[1]) }), true;
-    }
     if (req.method === "POST") {
       const body = await readBody(req);
-      if (!body || body.confirm !== true)
-        return send(res, 400, { error: "يجب طلب جلب نصوص الآيات الناقصة صراحة. لا يُجلب صوت ولا يُعدَّل الفيديو." }), true;
-      const { quranClientFromEnv } = await load("/src/quran/client.ts");
-      const client = quranClientFromEnv();
-      if (!client)
-        return send(res, 400, { error: "مفاتيح Quran Foundation غير متاحة لهذه النسخة على Mac؛ اضبط QF_CLIENT_ID وQF_CLIENT_SECRET في .env ولا تُدخل نصوصًا تخمينية." }), true;
-      const result = await fillMissingQuranTexts(parts[1], client);
-      return send(res, 200, { result, status: await inspectMissingQuranTexts(parts[1]) }), true;
+      if (typeof body?.key !== "string" || typeof body?.text !== "string")
+        return send(res, 400, { error: "أرسل مرجع الآية ونصها العربي كما هو؛ لا يحدث جلب آلي." }), true;
+      const result = await saveManualQuranText(parts[1], body.key, body.text);
+      return send(res, 200, { result, status: result.status }), true;
     }
     return send(res, 405, { error: "Method not allowed" }), true;
   }
@@ -807,13 +801,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
           const info = voiceFound ? await el.voiceInfo().catch(() => null) : null;
           const cfg = (await load("/config.json")).default;
           send(res, 200, { ok: true, account: acc, voices, voiceFound, models, training: info?.training ?? {}, voiceCategory: info?.category, model: process.env.ELEVENLABS_MODEL_ID || cfg.voice.modelId });
-        } else if (service === "quran") {
-          const { quranClientFromEnv } = await load("/src/quran/client.ts");
-          const qf = quranClientFromEnv();
-          if (!qf) return send(res, 200, { ok: false, message: "لم تُضف مفاتيح Quran Foundation بعد." }), true;
-          const v = await qf.verse("1:1");
-          send(res, 200, { ok: true, sample: v.text, env: qf.env });
-        } else send(res, 400, { error: "خدمة غير معروفة" });
+        } else send(res, 400, { error: "خدمة غير معروفة؛ القرآن يدوي مع إمكانية معاينة AlQuran Cloud." });
       } catch (e) {
         send(res, 200, { ok: false, message: (e as Error).message });
       }
@@ -829,35 +817,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
-  // القرّاء المتاحون (تلاوة آية بآية)
-  if (parts[0] === "quran" && parts[1] === "recitations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      send(res, 200, { ok: true, list: await qf.recitations() });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
-    return true;
-  }
-
-  // ترجمات معاني القرآن المتاحة (لقنوات غير عربية)
-  if (parts[0] === "quran" && parts[1] === "translations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      const names: Record<string, string> = { en: "english", tr: "turkish", ar: "arabic" };
-      const lang = new URL(req.url ?? "/", "http://x").searchParams.get("lang") ?? "";
-      const all = await qf.translations();
-      const want = names[lang] ?? lang;
-      const list = all.filter((t: { language: string }) => !want || t.language.toLowerCase() === want);
-      send(res, 200, { ok: true, list });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
-    return true;
+  // Obsolete provider endpoints are intentionally disabled; do not make remote calls.
+  if (parts[0] === "quran" && ["recitations","translations"].includes(parts[1] ?? "")) {
+    return send(res, 410, { error: "المصدر الخارجي القديم أُزيل. استخدم التسجيل اليدوي أو معاينة AlQuran Cloud." }), true;
   }
 
   // المؤثرات الصوتية

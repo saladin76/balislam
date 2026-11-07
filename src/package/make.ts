@@ -3,8 +3,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { checkForChannel } from "../script/checkChannel";
 import { formatReport } from "../script/report";
-import { quranClientFromEnv } from "../quran/client";
-import { syncQuran } from "../quran/sync";
+import { inspectMissingQuranTexts } from "../quran/fillMissingText";
 import { regeneratePlan } from "../plan/io";
 import { loadChannel } from "../channel";
 import { elevenLabsFromEnv } from "../voice/elevenlabs";
@@ -34,13 +33,15 @@ export const makeEpisode = async (opts: MakeOptions) => {
   const check = checkForChannel(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
   if (!check.ok) throw new Error(`السكريبت فيه أخطاء، أصلحها أولًا:\n${formatReport(scriptPath, check)}`);
 
-  log("٢/٥ نصوص الآيات…");
-  const qf = quranClientFromEnv();
-  if (qf) {
-    const r = await syncQuran(ep, qf);
-    if (r.failed.length) throw new Error(`تعذّر جلب آيات: ${r.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`);
-    log(`   جُلبت ${r.fetched.length}، ومخزّنة ${r.cached.length}.`);
-  } else log("   مفاتيح Quran Foundation غير موجودة: سيُستخدم المخزّن من النصوص فقط، وأي آية غير مخزّنة ستمنع النسخة النهائية.");
+  log("٢/٥ مراجعة الآيات المرسلة يدويًا…");
+  const verses = await inspectMissingQuranTexts(ep);
+  if (verses.invalid.length)
+    throw new Error("السكريبت يحتوي مراجع آيات غير صالحة: " + verses.invalid.map(v => v.ref + " (" + v.reason + ")").join("، "));
+  if (verses.missing.length) {
+    log("   النصوص المطلوبة من صاحب القناة: " + verses.missing.join("، "));
+    if (!opts.noVoice)
+      throw new Error("لا يمكن إنتاج Master قبل إدخال نصوص الآيات المطلوبة يدويًا: " + verses.missing.join("، ") + ". افتح تبويب الصوت ← الآيات المطلوبة.");
+  } else log("   النصوص المطلوبة الموجودة: " + verses.existing.length + ". لا جلب خارجي.");
 
   log("٣/٥ خطة المشاهد…");
   const plan = await regeneratePlan(ep);

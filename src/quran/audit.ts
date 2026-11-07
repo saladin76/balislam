@@ -1,10 +1,10 @@
 /**
- * تدقيق نص بطاقات الآيات المعروض فعلًا في الحلقة مقابل المرجع المعتمد (Quran Foundation).
+ * تدقيق نص بطاقات الآيات المعروض فعلًا في الحلقة مقابل المرجع المعتمد (مراجعة صاحب القناة).
  *
  * - النص المحلي: quran.json بجوار السكريبت، وهو المصدر الوحيد الذي يدمجه withQuran في بطاقات verse-card عند الرندر.
  * - المقارنة بعد توحيد يونيكود (NFC) وحده؛ لا يُحذف تشكيل ولا علامة قرآنية. وتُصنَّف الفروق:
  *   الحروف، والتشكيل، والرسم العثماني، والعلامات الخاصة (الوقف ونهاية الآية وأرقامها).
- * - نص المرجع لا يُكتب في المستودع (شروط Quran Foundation)؛ يُعرض الفرق بموضعه ورموزه فقط.
+ * - نص المرجع لا يُكتب في المستودع (شروط مراجعة صاحب القناة)؛ يُعرض الفرق بموضعه ورموزه فقط.
  */
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -144,7 +144,7 @@ export const auditEpisodeQuran = async (episode: string, opts: { client?: Pick<Q
         const cat = (c: string): CategoryResult => (ops.some((o) => o.cls === c || (c === "mark" && o.cls === "other")) ? "differs" : "match");
         base.ops = ops;
         base.categories = { letter: cat("letter"), haraka: cat("haraka"), uthmani: cat("uthmani"), mark: cat("mark") };
-        base.reference = { source: "Quran Foundation Content API v4", field: "text_uthmani", env: opts.client.env ?? "؟", fetchedAt: new Date().toISOString(), returned: verses.map((v) => ({ key: v.key, number: v.number })), sha256: sha(refText) };
+        base.reference = { source: "مرجع مراجعة يدوي مُقدَّم من صاحب القناة", field: "text_uthmani", env: opts.client.env ?? "؟", fetchedAt: new Date().toISOString(), returned: verses.map((v) => ({ key: v.key, number: v.number })), sha256: sha(refText) };
         base.status = ops.length || !base.numbers.ok ? "differs" : "match";
       } catch (err) {
         base.status = "failed";

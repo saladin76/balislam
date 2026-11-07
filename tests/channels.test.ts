@@ -1,4 +1,4 @@
-import { mkdtempSync, cpSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, cpSync, readFileSync, existsSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -22,6 +22,8 @@ beforeAll(() => {
 afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
+  if (tmp) rmSync(tmp, { recursive:true, force:true });
+  tmp = "";
 });
 
 describe("القنوات", () => {
@@ -110,15 +112,16 @@ Bugün başla. Hangisini seçtin?
     const parsed = parseScript(en);
     const ayah = parsed.chapters[0]!.blocks.find((b) => b.kind === "ayah");
     expect(ayah, "verse directive").toBeTruthy();
-    const channel = { ...defaultChannel, language: "en", quranTranslation: { id: 20, name: "Saheeh International" } };
+    const channel = { ...defaultChannel, language: "en" };
     const plan = generatePlan(parsed, null, { "53:39": "وَأَن لَّيْسَ", "53:39#meaning": "And that there is not for man except that for which he strives" }, channel);
     const verse = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
     expect(verse.props.reference).toBe("An-Najm · 53:39");
     expect(verse.props.meaning).toContain("strives");
-    expect(verse.props.meaningSource).toBe("Saheeh International");
+    expect(verse.props.meaningSource).toContain("مدخل يدويًا");
     const yt = buildYoutubeText(plan, en, { mode: "file", base: "", voice: {}, sfx: {}, recitations: {} } as never, 1, channel);
     expect(yt).toContain("Chapters:");
-    expect(yt).toContain("Surah An-Najm, verse 39 (Verse text: Quran.Foundation, Saheeh International)");
+    expect(yt).toContain("Surah An-Najm, verse 39");
+    expect(yt).not.toContain("Quran.Foundation");
     expect(yt).not.toContain("فصول الحلقة");
   });
 

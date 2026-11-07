@@ -1,5 +1,5 @@
 /**
- * مقابلة نص الآيات المعروض في بطاقات الحلقة (quran.json) بنص Quran Foundation المعتمد، دون كتابة شيء في quran.json.
+ * مقابلة نص الآيات المعروض في بطاقات الحلقة (quran.json) بنص مرجع قرآني يدوي مقدّم للمقارنة المعتمد، دون كتابة شيء في quran.json.
  * المقارنة حرفًا وحركةً بعد توحيد ترميز يونيكود (NFC)، فلا يُعد اختلاف طريقة ترميز الهمزة أو ترتيب الشدة والحركة فرقًا،
  * ويُعد أي حرف أو حركة أو علامة مختلفة فرقًا يُعرض بموضعه.
  */
@@ -33,7 +33,7 @@ export const compareVerseText = (shown: string, approved: string): TextDiff[] =>
   return diffs;
 };
 
-/** يجلب نص كل آية في السكريبت من Quran Foundation ويقابله بالنص المعروض، ولا يكتب في quran.json. */
+/** يجلب نص كل آية في السكريبت من مرجع قرآني يدوي مقدّم للمقارنة ويقابله بالنص المعروض، ولا يكتب في quran.json. */
 export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClient, "verse">): Promise<VerseCheck[]> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
@@ -67,7 +67,7 @@ export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClien
 const STATUS: Record<VerseCheck["status"], string> = { match: "مطابق", differs: "فيه فروق", missing: "لا نص معروض", failed: "تعذّر الجلب" };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-/** يكتب نتيجة المقابلة في reviews/quran-check.html (بلا نص الآيات نفسه، احترامًا لشروط Quran Foundation). */
+/** يكتب نتيجة المقابلة في reviews/quran-check.html (بلا نص الآيات نفسه، احترامًا لشروط مرجع قرآني يدوي مقدّم للمقارنة). */
 export const writeQuranCheckReport = async (episode: string, checks: VerseCheck[]): Promise<string> => {
   const dir = path.join(path.dirname(await resolveScriptPath(episode)), "reviews");
   await mkdir(dir, { recursive: true });
@@ -78,7 +78,7 @@ export const writeQuranCheckReport = async (episode: string, checks: VerseCheck[
   const when = new Date().toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
   await writeFile(
     file,
-    `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مقابلة الآيات بنص Quran Foundation — الحلقة ${esc(episode)}</title><meta name="description" content="المقابلة حرفًا وحركةً بين بطاقات الآيات والنص المعتمد (${when}). لا تعتمد شيئًا."><style>body{font:16px/1.7 system-ui,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;background:#fff;color:#111}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:6px 8px;text-align:start;vertical-align:top}</style></head><body><h1>مقابلة الآيات بنص Quran Foundation</h1><p>الحلقة ${esc(episode)} · ${when}. المقارنة حرفًا وحركةً بعد توحيد ترميز يونيكود. الفروق تُعرض برموز يونيكود لا بنص الآية. النتيجة دليل للمراجعة ولا تعتمد شيئًا؛ القرار في «سجل التوثيق».</p><table><thead><tr><th>الآية</th><th>النتيجة</th><th>الفروق</th></tr></thead><tbody>${rows}</tbody></table></body></html>\n`,
+    `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مقابلة الآيات بنص مرجع قرآني يدوي مقدّم للمقارنة — الحلقة ${esc(episode)}</title><meta name="description" content="المقابلة حرفًا وحركةً بين بطاقات الآيات والنص المعتمد (${when}). لا تعتمد شيئًا."><style>body{font:16px/1.7 system-ui,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;background:#fff;color:#111}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:6px 8px;text-align:start;vertical-align:top}</style></head><body><h1>مقابلة الآيات بنص مرجع قرآني يدوي مقدّم للمقارنة</h1><p>الحلقة ${esc(episode)} · ${when}. المقارنة حرفًا وحركةً بعد توحيد ترميز يونيكود. الفروق تُعرض برموز يونيكود لا بنص الآية. النتيجة دليل للمراجعة ولا تعتمد شيئًا؛ القرار في «سجل التوثيق».</p><table><thead><tr><th>الآية</th><th>النتيجة</th><th>الفروق</th></tr></thead><tbody>${rows}</tbody></table></body></html>\n`,
     "utf8",
   );
   return file;

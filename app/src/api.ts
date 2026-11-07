@@ -4,7 +4,6 @@ import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
-import type { CloudRecitation } from "../../src/quran/provider";
 import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
@@ -81,10 +80,6 @@ export const api = {
   approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
     call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
       `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
-  recitationChoice: (episode: string, channel: string) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
-  saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, { method: "PUT", json: { recitation } }, channel),
   alquranEditions: () => call<{ editions: AlQuranAudioEdition[] }>("/api/alquran-cloud/editions"),
   alquranAyah: (surah: number, ayah: number, edition: string) =>
     call<AlQuranAyahPreview>(`/api/alquran-cloud/ayah?surah=${surah}&ayah=${ayah}&edition=${encodeURIComponent(edition)}`),
@@ -134,7 +129,6 @@ export const api = {
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
   uploadImage: (id: string, b: { name: string; data: string; scene: string }) => call<{ file: string; media: EpisodeMedia }>(`/api/episodes/${id}/images`, { method: "POST", json: b }),
   voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport; generated: boolean; media: EpisodeMedia }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
-  quran: (id: string, channel?: string) => call<{ plan: Plan; result: { fetched: string[]; recited: string[]; failed: { ref: string; reason: string }[] } }>(`/api/episodes/${id}/quran`, { method: "POST", json: {} }, channel),
   overview: () => call<Overview[]>("/api/overview"),
   status: (id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`),
   saveStatus: (id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }),
@@ -143,8 +137,6 @@ export const api = {
   channel: () => call<ChannelConfig>("/api/channel"),
   saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
-  quranRecitations: () => call<{ ok: boolean; message?: string; list: { id: number; name: string; style: string }[] }>("/api/quran/recitations"),
-  quranTranslations: (lang: string) => call<{ ok: boolean; message?: string; list: { id: number; name: string; author: string; language: string }[] }>(`/api/quran/translations?lang=${lang}`),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string }>(`/api/episodes/${id}/kit`),
@@ -168,13 +160,23 @@ export const api = {
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
-  missingQuranTexts: (id: string) =>
-    call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
-      `/api/episodes/${id}/quran-text-only`),
-  fetchMissingQuranTexts: (id: string) =>
-    call<{ result: { fetched: string[]; existing: string[]; failed: { ref: string; reason: string }[] };
-      status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
-      `/api/episodes/${id}/quran-text-only`, { method: "POST", json: { confirm: true } }),
+  missingQuranTexts: (id: string, channel?: string) =>
+    call<{ status: { required: { key: string; label: string; status: "missing" | "existing" }[]; missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+      `/api/episodes/${id}/quran-text-only`, undefined, channel),
+  saveManualQuranText: (id: string, channel: string, key: string, text: string) =>
+    call<{ result: { saved: boolean; key: string }; status: { required: { key: string; label: string; status: "missing" | "existing" }[]; missing: string[]; existing: string[] } }>(
+      `/api/episodes/${id}/quran-text-only`, { method:"POST", json:{ key,text } }, channel),
+  ownQuranAudioStatus: (id: string, channel: string) =>
+    call<{ pending: Record<string,{ file:string; duration:number; sha256:string }>; approved: Record<string,{ reciter:string; approvedAt?:string }> }>(
+      `/api/episodes/${id}/quran-audio`,undefined,channel),
+  uploadOwnQuranAudio: (id: string, channel: string, data: {key:string;name:string;data:string}) =>
+    call<{ recording: {file:string; duration:number}; status: unknown }>(
+      `/api/episodes/${id}/quran-audio`,{method:"POST",json:data},channel),
+  approveOwnQuranAudio: (id: string, channel: string, data: {key:string;reviewer:string;note:string;listened:boolean}) =>
+    call<{ status: unknown; media: EpisodeMedia }>(
+      `/api/episodes/${id}/quran-audio`,{method:"PUT",json:data},channel),
+  ownQuranPreviewUrl: (id:string, channel:string, file:string) =>
+    `/api/episodes/${encodeURIComponent(id)}/quran-audio/preview/${encodeURIComponent(file)}?channel=${encodeURIComponent(channel)}`,
   storyboardReport: (id: string) => call<{ markdown: string }>(`/api/episodes/${id}/storyboard-report`),
   setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs"),
