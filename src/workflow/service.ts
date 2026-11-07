@@ -86,7 +86,7 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
     await verifyProofFiles(proofs);
     return proofs;
   };
-  const inspect = async () => deps.withArtifactLock(async () => {
+  const inspectInternal = async () => deps.withArtifactLock(async () => {
     const actor = await principal();
     const { snapshot } = await capture();
     const ledger = await readWorkflow(deps.scope, snapshot);
@@ -109,6 +109,12 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
       uiSnapshot: toStudioWorkflowUiSnapshot(verifiedLedger, snapshot),
     };
   });
+  /** Safe by construction for an authenticated browser read endpoint. */
+  const inspect = async () => {
+    const { uiSnapshot, view } = await inspectInternal();
+    return { uiSnapshot, view };
+  };
+
   const command = async (raw: WorkflowClientCommand) => {
     const input = validateClientCommand(raw);
     return deps.withArtifactLock(async () => {
@@ -197,5 +203,5 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
       await rm(frozen, { recursive: true, force: true });
     }
   });
-  return { inspect, command, gate, withVerifiedMasterPublication, withArtifactLock: deps.withArtifactLock };
+  return { inspect, inspectInternal, command, gate, withVerifiedMasterPublication, withArtifactLock: deps.withArtifactLock };
 };
