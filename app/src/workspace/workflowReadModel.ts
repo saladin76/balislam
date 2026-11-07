@@ -98,6 +98,18 @@ export const parseWorkflowReadModel = (raw: unknown, channel: string, episode: s
       ...(value.status === "approved" ? { currentApproval: true } : {}),
     } as WorkflowStageRecord;
   }
+  // Verify the signed engine's parent-approval event chain is self-consistent
+  // in the read DTO. This is an extra display safeguard, NOT HMAC verification.
+  for (const key of STAGES) {
+    const record = stages[key];
+    if (record.status !== "approved" || !record.approval) continue;
+    for (const [index, parent] of STAGES.slice(0, STAGES.indexOf(key)).entries()) {
+      const earlier = stages[parent];
+      if (earlier.status !== "approved" ||
+          earlier.approval?.approvalEventSeq !== record.approval.prerequisiteApprovalSeq[index])
+        throw new Error("سلسلة اعتماد الأسلاف غير متطابقة؛ يجب إعادة التحقق من المحرك.");
+    }
+  }
   return { schemaVersion: 3, channel, episode, revision: raw.revision as number, stages, history };
 };
 
