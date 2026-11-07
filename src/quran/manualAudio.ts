@@ -12,7 +12,7 @@ import { parseScript } from "../script/parse";
 import { quranFromScript } from "./scriptText";
 import { recitationsDirFor, type RecitationIndex } from "./sync";
 
-import { audioDuration } from "../voice/generate";
+import { decodedAudioDuration } from "../voice/audioIntegrity";
 
 const ffmpeg = promisify(execFile);
 export type OwnAudioCandidate = {
@@ -21,6 +21,10 @@ export type OwnAudioCandidate = {
 export type OwnAudioReview = Record<string, OwnAudioCandidate>;
 export const ownAudioReviewFile = (scriptPath: string) => path.join(recitationsDirFor(scriptPath), "review.json");
 const validName = (f: string) => /^manual-\d+-\d+(?:-\d+)?-[a-f0-9]{12}\.mp3$/.test(f);
+const validOriginal = (f: string) =>
+  /^originals\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(?:wav|mp3|m4a|aac|ogg|flac)$/.test(f);
+const durationClose = (expected: number, actual: number) =>
+  Number.isFinite(expected) && expected > 0 && Math.abs(actual - expected) <= Math.max(0.15, expected * 0.03);
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
 const readJson = async <T>(file: string, fallback: T): Promise<T> => {
   try {
@@ -86,7 +90,7 @@ export const prepareOwnRecitation = async (
     let moved = false;
     try {
       await writeFile(input, source, { flag:"wx", mode:0o600 });
-      const inputDuration = await audioDuration(input);
+      const inputDuration = await decodedAudioDuration(input, { maxSeconds: 600 });
       if (!inputDuration || inputDuration < 0.3 || inputDuration > 600)
         throw Error("مدة التلاوة الأصلية غير صالحة أو تزيد على عشر دقائق؛ لن نقتطع منها شيئًا.");
       await ffmpeg("ffmpeg", [
@@ -96,7 +100,7 @@ export const prepareOwnRecitation = async (
         "-ar","48000","-ac","1","-c:a","libmp3lame","-b:a","192k",
         temp,
       ], { timeout:120000, maxBuffer:1024*1024 });
-      const duration = await audioDuration(temp);
+      const duration = await decodedAudioDuration(temp, { mp3Only: true, maxSeconds: 600 });
       if (!duration || duration < 0.3 || duration > 600)
         throw Error("تعذّر قراءة مدة تسجيل التلاوة بعد التحسين.");
       const bytes = await readFile(temp);
@@ -155,11 +159,15 @@ export const approveOwnRecitation = async (
     const file=ownAudioReviewFile(scriptPath);
     const pending=await readJson<OwnAudioReview>(file,{});
     const candidate=pending[key];
-    if (!candidate || !validName(candidate.file)) throw Error("لا توجد نسخة تلاوة صالحة تنتظر المراجعة.");
+    if (!candidate || !validName(candidate.file) || !validOriginal(candidate.originalFile))
+      throw Error("لا توجد نسخة تلاوة أصلية وصالحة تنتظر المراجعة.");
     const bytes=await readFile(path.join(dir,candidate.file));
-    if (sha(bytes)!==candidate.sha256 ||
-        !(await audioDuration(path.join(dir,candidate.file))))
-      throw Error("التسجيل تالف أو تغيّر بعد التحسين؛ أوقف الاعتماد.");
+    const original=await readFile(path.join(dir,candidate.originalFile));
+    const decoded = await decodedAudioDuration(path.join(dir,candidate.file), { mp3Only:true, maxSeconds:600 });
+    if (sha(bytes)!==candidate.sha256 || sha(original)!==candidate.originalSha256 ||
+        !(await decodedAudioDuration(path.join(dir,candidate.originalFile), { maxSeconds:600 })) ||
+        !decoded || !durationClose(candidate.duration,decoded))
+      throw Error("التسجيل الأصلي أو المعالج تالف أو تغيّر؛ أوقف الاعتماد.");
     if ((await requested(episode,key)) !== approvedText)
       throw Error("تغيّر نص الآية أثناء مراجعة التسجيل؛ أوقف الاعتماد.");
     const indexFile=path.join(dir,"index.json");
@@ -169,6 +177,7 @@ export const approveOwnRecitation = async (
       parts:[{file:candidate.file,duration:candidate.duration}],
       fetchedAt:candidate.createdAt,approvedAt:new Date().toISOString(),
       approvedBy:reviewer.trim(),sha256:candidate.sha256,
+      originalFile:candidate.originalFile, originalSha256:candidate.originalSha256,
       textSha256:sha(Buffer.from(approvedText,"utf8")),
     };
     // Keep old/source recordings intact; only the approved pointer changes.
@@ -196,12 +205,17 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
         authored.problems.some((p) => p.key === key) ||
         !rec.sha256 || !rec.textSha256 || rec.parts?.length !== 1) continue;
     const part = rec.parts[0]!;
-    if (!validName(part.file) || !Number.isFinite(part.duration) || part.duration <= 0 ||
+    if (!validName(part.file) || !validOriginal(rec.originalFile ?? "") || !rec.originalSha256 ||
+        !Number.isFinite(part.duration) || part.duration <= 0 ||
         !texts[key] || sha(Buffer.from(texts[key], "utf8")) !== rec.textSha256) continue;
     try {
       const data = await readFile(path.join(dir, part.file));
-      if (sha(data) === rec.sha256 && (await audioDuration(path.join(dir, part.file))))
-        ready[key] = rec;
+      const original = await readFile(path.join(dir, rec.originalFile!));
+      if (sha(data) === rec.sha256 && sha(original) === rec.originalSha256 &&
+          await decodedAudioDuration(path.join(dir, rec.originalFile!), { maxSeconds:600 })) {
+        const decoded = await decodedAudioDuration(path.join(dir, part.file), { mp3Only:true, maxSeconds:600 });
+        if (decoded && durationClose(part.duration, decoded)) ready[key] = rec;
+      }
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
     }
