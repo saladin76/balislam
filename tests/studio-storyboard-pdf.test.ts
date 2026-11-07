@@ -16,9 +16,9 @@ const setup=()=>{
   writeFileSync(path.join(dir,"portrait.png"),png);
   const file=path.join(dir,"manifest.json");
   const data={channel:"dafatir-alzaman",episode:"001",version:"preview-v2",status:"PENDING_REVIEW",scenes:[
-    {id:"c1-s1",chapter:1,chapterTitle:"",title:"الفتح",narration:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",notes:"مراجعة التشكيل",image:"landscape.png",portraitImage:"portrait.png"},
-    {id:"c1-s2",chapter:1,chapterTitle:"",title:"التالي",image:"landscape.png"},
-    {id:"c2-s1",chapter:2,chapterTitle:"",title:"الفصل الثاني",image:"landscape.png"},
+    {id:"c1-s1",chapter:1,chapterTitle:"",title:"الفتح",narration:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",notes:"مراجعة التشكيل",image:"landscape.png",portraitImage:"portrait.png",shot:""},
+    {id:"c1-s2",chapter:1,chapterTitle:"",title:"التالي",image:"landscape.png",shot:""},
+    {id:"c2-s1",chapter:2,chapterTitle:"",title:"الفصل الثاني",image:"landscape.png",shot:""},
   ]};
   writeFileSync(file,JSON.stringify(data));
   return {dir,file,data};
@@ -199,6 +199,114 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     const withoutCover=buildStoryboardHtml(board,{chapter:2});
     expect(pageCount(withoutCover.html) - annexCount(withoutCover.html)).toBe(7);
     expect(withoutCover.html).not.toContain('class="page cover"');
+  });
+  it("positions review badges inside the header, away from scene frames",()=>{
+    const x=setup();
+    const r=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1});
+    expect(r.html).toContain(".head .name{position:absolute;right:0;left:46mm");
+    expect(r.html).toContain(".status{position:absolute;left:0;top:2mm");
+    expect(r.html).toContain(".page-index{position:absolute");
+    // Arabic glyph extents and tashkeel need sufficient leading in the fixed review panel.
+    expect(r.html).toContain("font-size:10.2pt;line-height:1.55;max-height:19mm");
+    expect(r.html).toContain("height:130mm");
+    expect(r.status).toBe("PENDING_REVIEW");
+  });
+  it("numbers each real physical cover, scene and annex page without gaps or duplicates",()=>{
+    const x=setup();
+    x.data.scenes[0]!.narration=("عَرَبِيٌّ بِتَشْكِيلٍ English API v2.1 2026 👩🏽‍💻\n").repeat(35);
+    x.data.scenes[0]!.notes=("ملاحظة طويلة يليه رقم ۱۲٣٤ ورمز A-9. ").repeat(30);
+    x.data.scenes[0]!.chapterTitle=("الفصل الطويل المختلط API V5. ").repeat(12);
+    x.data.scenes[0]!.title=("عنوان عربي واختبار English v2. ").repeat(8);
+    x.data.scenes[0]!.shot=("تصنيف التصوير cinematic 16:9 portrait 9:16 ").repeat(5);
+    const output=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
+    const html=output.html;
+    const pages=(html.match(/<article class="page(?: cover)?"/g)??[]).length;
+    const labels=[...html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
+    expect(labels).toHaveLength(pages);
+    expect(labels.map((m)=>Number(m[1]))).toEqual(Array.from({length:pages},(_,i)=>i+1));
+    expect(labels.every((m)=>Number(m[2])===pages)).toBe(true);
+    expect(html).toContain("عنوان الفصل الكامل");
+    expect(html).toContain("نوع المشهد الكامل");
+    expect(html).toContain("عنوان المشهد");
+    expect(html).toContain("النص والتعليق");
+    expect(html).toContain("الوصف والملاحظات");
+    expect(html).toContain("unicode-bidi:plaintext");
+    expect(html).toContain("text-overflow:ellipsis");
+    for(const raw of [x.data.scenes[0]!.chapterTitle,x.data.scenes[0]!.shot]){
+      for(const chunk of splitAppendixText(raw))expect(html).toContain(chunk);
+    }
+    expect(output.status).toBe("PENDING_REVIEW");
+  });
+  it("does not introduce annexes into the previously reviewed short Dafatir 1/2 and numbers every page",()=>{
+    const root=path.join(import.meta.dirname,"..");
+    const file=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
+    const board=normalizeStoryboard(JSON.parse(readFileSync(file,"utf8")),file);
+    const actual=[{chapter:1,sceneCount:9},{chapter:2,sceneCount:7}];
+    for(const {chapter,sceneCount} of actual){
+      const r=buildStoryboardHtml(board,{chapter,chapterCover:true});
+      expect(r.scenes).toBe(sceneCount);
+      const physicalPages=(r.html.match(/<article class="page(?: cover)?"/g)??[]).length;
+      const numbers=[...r.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
+      expect(numbers).toHaveLength(physicalPages);
+      expect(numbers.map(x=>Number(x[1]))).toEqual(Array.from({length:physicalPages},(_,i)=>i+1));
+      expect(numbers.every(x=>Number(x[2])===physicalPages)).toBe(true);
+    }
+  });
+  it("embeds bundled Latin companions so English and numbers do not require OS fonts",()=>{
+    const root=path.join(import.meta.dirname,"..","public","fonts");
+    for(const channel of ["balislam","dafatir-alzaman","zubdat-alkutub"]){
+      const css=pdfFontCss(channel);
+      expect(css).toContain('font-family:"StudioLatin"');
+      expect(css).toContain('--studio-body:"StudioBody","StudioLatin"');
+      const latin=channel==="zubdat-alkutub"?"Tajawal-latin-400.woff2":"IBMPlexSans.ttf";
+      expect(css).toContain(readFileSync(path.join(root,latin)).toString("base64"));
+      expect(css).toContain("font-display:block");
+    }
+  });
+  it("preserves arbitrarily long global and scene identifiers, mixed direction and metadata",()=>{
+    const x=setup();
+    x.data.episode="E2026-الْعَرَبِيَّةُ-".repeat(12);
+    x.data.version="PR71-v42-مُرَاجَعَةٌ-".repeat(13);
+    x.data.channel="balislam";
+    x.data.scenes[0]!.id="c1-s1-English-مُشَكَّل-".repeat(9);
+    x.data.scenes[0]!.chapterTitle="الفصل الحقيقِيُّ-API 16:9 ".repeat(20);
+    x.data.scenes[1]!.chapterTitle=x.data.scenes[0]!.chapterTitle;
+    x.data.scenes[0]!.shot="Cinematic-مصوّر-9:16 ".repeat(10);
+    const b=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
+    for(const label of ["إصدار المحتوى الكامل","معرّف الحلقة الكامل","معرّف المشهد الكامل","نوع المشهد الكامل"]){
+      expect(b.html).toContain(label);
+    }
+    expect(b.html).toContain('class="arabic-title" lang="ar" dir="rtl" data-annex="false"');
+    expect(b.html).toContain('<span data-annex="true">النوع:');
+    expect(b.html).toContain(x.data.episode);
+    expect(b.html).toContain(x.data.version);
+    expect(b.html).toContain(x.data.scenes[0]!.id);
+    const total=(b.html.match(/<article class="page(?: cover)?"/g)??[]).length;
+    const numbered=[...b.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
+    expect(numbered).toHaveLength(total);
+    expect(numbered.every((m,i)=>Number(m[1])===i+1 && Number(m[2])===total)).toBe(true);
+    // One full chapter-title annex on the cover, not one duplicate per scene.
+    expect((b.html.match(/<h3>عنوان الفصل<\/h3>/g)??[]).length).toBeGreaterThan(0);
+    expect(b.status).toBe("PENDING_REVIEW");
+  });
+  it("renders actual Balislam episode plan scene text in a read-only PDF review model",()=>{
+    const root=path.join(import.meta.dirname,"..");
+    const file=path.join(root,"channels/balislam/episodes/001-know-the-truth/plan.json");
+    const plan=JSON.parse(readFileSync(file,"utf8"));
+    expect(plan.channel).toBe("balislam");
+    const first=plan.chapters[0];
+    const data={channel:plan.channel,episode:plan.episode,version:String(plan.version),
+      scenes:first.scenes.slice(0,3).map((scene:{id:string;narration:string;template:string;props?:{shot?:string}})=>({
+        id:scene.id,chapter:first.number??1,chapterTitle:first.title,
+        title:scene.props?.shot??scene.template,narration:scene.narration,notes:"مراجعة نص واقعي",
+        image:null,portraitImage:null
+      }))};
+    const r=buildStoryboardHtml(normalizeStoryboard(data,file),{chapter:1,chapterCover:true});
+    expect(r.scenes).toBe(3);
+    expect(r.html).toContain(first.scenes[0].narration);
+    expect(r.html).toContain(first.title);
+    expect(r.html).toContain("لم تُرفق صورة");
+    expect(r.status).toBe("PENDING_REVIEW");
   });
   it("reads actual Dafatir V1.1 and Zubdat v021 without modifying episodes",()=>{
     const root=path.join(import.meta.dirname,"..");

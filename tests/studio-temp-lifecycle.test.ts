@@ -6,7 +6,7 @@
  * nor these tests may enumerate, clean or modify unrelated system temp paths.
  */
 import { execFileSync, spawn } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statfsSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -14,28 +14,40 @@ import { cleanGitEnv } from "../scripts/git-env.mjs";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
 const gate = path.join(projectRoot, "scripts", "gate.mjs");
+const tempAudit = path.join(projectRoot, "scripts", "verify-studio-temp-leaks.mjs");
+const availableTempBytes = (() => {
+  const s = statfsSync(os.tmpdir());
+  return Number(s.bavail) * Number(s.bsize);
+})();
 const ownedRoots: string[] = [];
 const fixture = () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "bal-p0-gate-test-"));
   ownedRoots.push(root);
   const bin = path.join(root, "bin");
   mkdirSync(bin);
-  // Nested TMPDIR may be inside a type=module QA repository; this mock uses require().
-  writeFileSync(path.join(bin, "package.json"), '{"type":"commonjs"}\n');
   const trace = path.join(root, "trace.log");
   const foreign = path.join(root, "bal-gate-run-foreign");
   mkdirSync(foreign);
   writeFileSync(path.join(foreign, "DO-NOT-DELETE"), "foreign fixture\n");
   const shim = path.join(bin, "npx");
   writeFileSync(shim, `#!/usr/bin/env node
-const { appendFileSync, mkdirSync, writeFileSync } = require("node:fs");
+const { appendFileSync, existsSync, mkdirSync, symlinkSync, writeFileSync } = require("node:fs");
 const path = require("node:path");
 const temp = process.env.TMPDIR;
-if (!temp) process.exit(98);
+if (!temp || process.env.TMP !== temp || process.env.TEMP !== temp) process.exit(98);
+// The preflight is intentionally small; keep the ordinary full-gate fixture
+// behavior intact, but permit an opt-in clean preflight for the audit contract.
+if (process.argv.includes("tests/quran-compare.test.ts") &&
+    process.env.BAL_P0_MODE === "clean-preflight") process.exit(0);
 for (const name of ["remotion-test", "webpack-test"]) {
   const dir = path.join(temp, name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, "cache"), "test-only-cache");
+}
+if (process.platform !== "win32") {
+  const link = path.join(temp, "foreign-link");
+  if (!existsSync(link)) symlinkSync(process.env.BAL_P0_FOREIGN, link, "dir");
+  appendFileSync(process.env.BAL_P0_TRACE, "foreign-link-created\\n");
 }
 appendFileSync(process.env.BAL_P0_TRACE, "npx-start " + process.pid + "\\n");
 if (process.env.BAL_P0_MODE === "fail") process.exit(17);
@@ -48,16 +60,33 @@ else process.exit(0);
 type Fixture = ReturnType<typeof fixture>;
 type RunResult = { code: number | null; signal: NodeJS.Signals | null; out: string };
 
-const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
-  target: { script: string; cwd: string; args: string[] } = { script: gate, cwd: projectRoot, args: [] }): Promise<RunResult> =>
+const mockNpm = (f: Fixture) => {
+  const shim = path.join(f.bin, "npm");
+  writeFileSync(shim, `#!/usr/bin/env node
+const { appendFileSync, writeFileSync } = require("node:fs");
+const path = require("node:path");
+const temp = process.env.TMPDIR;
+if (!temp || process.env.TMP !== temp || process.env.TEMP !== temp) process.exit(98);
+writeFileSync(path.join(temp, "npm-install-cache"), "owned npm install cache");
+appendFileSync(process.env.BAL_P0_TRACE, "npm-start " + process.pid + "\\n");
+if (process.env.BAL_P0_MODE === "fail") process.exit(17);
+if (process.env.BAL_P0_MODE === "hang") setInterval(() => {}, 1000);
+else process.exit(0);
+`);
+  chmodSync(shim, 0o755);
+};
+
+const execute = (f: Fixture, mode: "ok" | "fail" | "hang" | "clean-preflight", cancel: "SIGTERM" | "SIGINT" | "SIGHUP" | null = null,
+  target: { script: string; cwd: string; args: string[] } = { script: gate, cwd: projectRoot, args: [] },
+  cancelMarker = "npx-start"): Promise<RunResult> =>
   new Promise((resolve, reject) => {
     const env = {
       ...process.env,
       PATH: f.bin + path.delimiter + (process.env.PATH ?? ""),
       TMPDIR: f.root, TMP: f.root, TEMP: f.root,
-      BAL_P0_TRACE: f.trace, BAL_P0_MODE: mode,
+      BAL_P0_TRACE: f.trace, BAL_P0_MODE: mode, BAL_P0_FOREIGN: f.foreign,
     };
-    // Tests never pass --commit and hence cannot create real git worktrees.
+    // --commit tests use only the synthetic Git repository in this fixture.
     const child = spawn(process.execPath, [target.script, ...target.args], {
       cwd: target.cwd, env, stdio: ["ignore", "pipe", "pipe"],
     });
@@ -70,9 +99,9 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
       // Kill only a known hanging mock worker, never any previously exited PIDs.
       // Avoid leaving hanging child test processes after an assertion timeout.
       if (mode === "hang" && process.platform !== "win32" && existsSync(f.trace)) {
-        const pids = readFileSync(f.trace, "utf8").match(/npx-start (\d+)/g) ?? [];
+        const pids = readFileSync(f.trace, "utf8").match(/(?:npx|npm)-start (\d+)/g) ?? [];
         for (const entry of pids) {
-          const pid = Number(entry.slice("npx-start ".length));
+          const pid = Number(entry.split(" ")[1]);
           try { process.kill(-pid, "SIGKILL"); } catch { /* already exited */ }
         }
       }
@@ -81,9 +110,9 @@ const execute = (f: Fixture, mode: "ok" | "fail" | "hang", cancel = false,
     }, 12_000);
     const poll = cancel ? setInterval(() => {
       // Wait for the mocked child to start before signaling the real gate.
-      if (existsSync(f.trace) && readFileSync(f.trace, "utf8").includes("npx-start")) {
+      if (existsSync(f.trace) && readFileSync(f.trace, "utf8").includes(cancelMarker)) {
         clearInterval(poll!);
-        child.kill("SIGTERM");
+        child.kill(cancel!);
       }
     }, 20) : null;
     child.once("error", (err) => {
@@ -170,7 +199,7 @@ describe("P0 gate-owned temporary files", () => {
 
   it.skipIf(process.platform === "win32")("cancels the active process group before deleting its temp root", async () => {
     const f = fixture();
-    const r = await execute(f, "hang", true);
+    const r = await execute(f, "hang", "SIGTERM");
     expect(r.code, r.out).toBe(143);
     expect(r.out).toContain("GATE_CANCELLED SIGTERM");
     expect(r.out).toContain("GATE_TEMP_CLEANED true");
@@ -180,7 +209,7 @@ describe("P0 gate-owned temporary files", () => {
   it.skipIf(process.platform === "win32")("preserves a separate Git repo and its episode while removing a temporary commit worktree", async () => {
     const f = fixture();
     const isolated = isolatedGitRepository(f);
-    const r = await execute(f, "ok", false, isolated.target);
+    const r = await execute(f, "ok", null, isolated.target);
     expect(r.code, r.out).toBe(0);
     expect(r.out).toContain("GATE_TEMP_CLEANED true");
     expect(isolated.git("rev-parse", "HEAD")).toBe(isolated.sha);
@@ -203,4 +232,180 @@ describe("P0 gate-owned temporary files", () => {
     checkIsolated(a);
     checkIsolated(b);
   }, 15_000);
+
+  it.skipIf(process.platform === "win32")("does not follow child-created symlinks to a foreign sibling", async () => {
+    const f = fixture();
+    const r = await execute(f, "ok");
+    expect(r.code, r.out).toBe(0);
+    expect(readFileSync(f.trace, "utf8")).toContain("foreign-link-created");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("handles SIGINT as a rejected gate and cleans its own root", async () => {
+    const f = fixture();
+    const r = await execute(f, "hang", "SIGINT");
+    expect(r.code, r.out).toBe(130);
+    expect(r.out).toContain("GATE_CANCELLED SIGINT");
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    checkIsolated(f);
+  }, 15_000);
+
+  it("does not remove another worker's files when one of two parallel gates fails", async () => {
+    const a = fixture();
+    const b = fixture();
+    const [one, two] = await Promise.all([execute(a, "fail"), execute(b, "ok")]);
+    expect(one.code, one.out).toBe(1);
+    expect(two.code, two.out).toBe(0);
+    checkIsolated(a);
+    checkIsolated(b);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("handles SIGHUP and cleans the private root", async () => {
+    const f = fixture();
+    const r = await execute(f, "hang", "SIGHUP");
+    expect(r.code, r.out).toBe(129);
+    expect(r.out).toContain("GATE_CANCELLED SIGHUP");
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("removes a synthetic commit worktree after an unsuccessful check", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    const r = await execute(f, "fail", null, isolated.target);
+    expect(r.code, r.out).toBe(1);
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(isolated.git("rev-parse", "HEAD")).toBe(isolated.sha);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(readFileSync(path.join(isolated.episode, "script.md"), "utf8")).toBe("IMMUTABLE EPISODE CONTENT\n");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("cleans a failed npm ci and its synthetic commit worktree", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    rmSync(path.join(isolated.directory, "node_modules"), { recursive: true, force: true });
+    mockNpm(f);
+    const r = await execute(f, "fail", null, isolated.target);
+    expect(r.code, r.out).toBe(1);
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(readFileSync(f.trace, "utf8")).toContain("npm-start");
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("cancels an active npm ci before removing its synthetic worktree", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    rmSync(path.join(isolated.directory, "node_modules"), { recursive: true, force: true });
+    mockNpm(f);
+    const r = await execute(f, "hang", "SIGTERM", isolated.target, "npm-start");
+    expect(r.code, r.out).toBe(143);
+    expect(r.out).toContain("GATE_CANCELLED SIGTERM during npm ci");
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(isolated.git("rev-parse", "HEAD")).toBe(isolated.sha);
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32")("rejects an invalid commit without leaving Git registrations or temp roots", async () => {
+    const f = fixture();
+    const isolated = isolatedGitRepository(f);
+    const target = { ...isolated.target, args: ["--commit", "this-commit-does-not-exist"] };
+    const r = await execute(f, "ok", null, target);
+    expect(r.code, r.out).toBe(2);
+    expect(r.out).toContain("GATE_TEMP_CLEANED true");
+    expect(isolated.git("worktree", "list", "--porcelain").split("\n").filter((l) =>
+      l.startsWith("worktree "))).toHaveLength(1);
+    expect(isolated.git("status", "--porcelain")).toBe("");
+    expect(readFileSync(path.join(isolated.episode, "script.md"), "utf8")).toBe("IMMUTABLE EPISODE CONTENT\n");
+    checkIsolated(f);
+  }, 15_000);
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "reports a failed async parallel preflight without launching any full gates", async () => {
+      const f = fixture();
+      const r = await execute(f, "fail", null,
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(1);
+      expect(r.out).toContain("TEMP_LEAK_AUDIT_ERROR");
+      expect(r.out).toContain('"passed":false');
+      expect(r.out).toContain("no full gates started");
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 15_000,
+  );
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "cancels a hanging parallel preflight before deleting only its own root", async () => {
+      const f = fixture();
+      const r = await execute(f, "hang", "SIGTERM",
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(1);
+      expect(r.out).toContain("TEMP_LEAK_AUDIT_ERROR");
+      expect(r.out).toContain('"passed":false');
+      expect(r.out).toContain("no full gates started");
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 15_000,
+  );
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "runs two parallel complete synthetic gates after a clean Vitest preflight", async () => {
+      const f = fixture();
+      const r = await execute(f, "clean-preflight", null,
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(0);
+      const summary = r.out.split("\n").find((line) => line.startsWith("TEMP_LEAK_AUDIT "));
+      expect(summary, r.out).toBeDefined();
+      const report = JSON.parse(summary!.slice("TEMP_LEAK_AUDIT ".length));
+      expect(report).toMatchObject({
+        mode: "parallel", passed: true, privateTempBytesAfter: 0,
+        maxVitestWorkersPerGate: 1,
+      });
+      expect(report.results).toHaveLength(2);
+      for (const result of report.results) {
+        expect(result.status).toBe(0);
+        expect(result.gateReportedCleaned).toBe(true);
+        expect(result.gateAllocatedBeforeCleanupBytes).toBeGreaterThanOrEqual(0);
+        expect(result.ownedRootBytesAfterGate).toBe(0);
+        expect(result.samplingErrors).toBe(0);
+      }
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 20_000,
+  );
+
+  it.skipIf(process.platform === "win32" || availableTempBytes < 6 * 1024 ** 3)(
+    "measures and reclaims a preflight's own temporary cache before parallel gates", async () => {
+      const f = fixture();
+      const r = await execute(f, "ok", null,
+        { script: tempAudit, cwd: projectRoot, args: ["--parallel"] });
+      expect(r.code, r.out).toBe(0);
+      const preflight = r.out.split("\n").find((line) => line.startsWith("VITEST_WORKER_PREFLIGHT "));
+      expect(preflight, r.out).toBeDefined();
+      const summary = JSON.parse(preflight!.slice("VITEST_WORKER_PREFLIGHT ".length));
+      expect(summary).toMatchObject({
+        status: "passed", cleaned: true, tempBytesAfterCleanup: 0,
+      });
+      expect(summary.tempBytesBeforeCleanup).toBeGreaterThan(0);
+      expect(summary.leftoverPathsBeforeCleanup).toEqual(expect.arrayContaining(["remotion-test", "webpack-test"]));
+      const reportLine = r.out.split("\n").find((line) => line.startsWith("TEMP_LEAK_AUDIT "));
+      expect(reportLine, r.out).toBeDefined();
+      expect(JSON.parse(reportLine!.slice("TEMP_LEAK_AUDIT ".length))).toMatchObject({
+        mode: "parallel", passed: true, privateTempBytesAfter: 0,
+      });
+      // Exactly one preflight npx, followed by two npx checks per each of
+      // the two full mock gates. An audit must not touch the foreign sentinel.
+      expect(readFileSync(f.trace, "utf8").match(/npx-start/g)).toHaveLength(5);
+      expect(readdirSync(f.root).filter((name) => name.startsWith("bal-test-leak-audit-"))).toEqual([]);
+      checkIsolated(f);
+    }, 20_000,
+  );
 });
