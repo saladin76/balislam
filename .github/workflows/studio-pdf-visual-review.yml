@@ -1,0 +1,45 @@
+name: Studio Arabic PDF — exact-head Chrome visual review
+on:
+  pull_request:
+    paths:
+      - 'scripts/studio-storyboard-pdf.mjs'
+      - 'scripts/verify-studio-pdf-visual.mjs'
+      - 'tests/studio-storyboard-pdf.test.ts'
+      - '.github/workflows/studio-pdf-visual-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install PDF/image audit dependencies (no renderer, no production actions)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg poppler-utils
+          (command -v google-chrome || command -v chromium)
+          command -v pdftotext
+          command -v pdffonts
+          command -v pdftoppm
+      - name: Build actual review PDFs (3 channels, real and synthetic stress data)
+        run: |
+          OUT="$RUNNER_TEMP/studio-pdf-review-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node scripts/verify-studio-pdf-visual.mjs --out "$OUT"
+      - name: Preserve produced PDFs, preview PNGs and audit even if gate reports a failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-arabic-pdf-visual-review
+          path: |
+            ${{ runner.temp }}/studio-pdf-review-*/*.pdf
+            ${{ runner.temp }}/studio-pdf-review-*/*preview*.png
+            ${{ runner.temp }}/studio-pdf-review-*/audit.json
+          if-no-files-found: warn
+          retention-days: 14
