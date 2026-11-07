@@ -225,3 +225,13 @@
   .studio-channel-tile { padding: 19px; }
   .studio-shell .ew-storyboard-wrap .sb-grid { grid-template-columns: 1fr; }
 }
+
+.studio-review-notes { max-width: 1380px; margin: 18px auto; }
+.studio-review-notes h2 { font-size: 16px; margin: 0 0 10px; }
+.studio-review-notes > p { font-size: 12px; color: var(--muted); margin: 0; }
+.studio-review-notes-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 9px; }
+.studio-review-notes-list button { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; text-align: start; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 13px; font: inherit; font-size: 12px; color: var(--ink); cursor: pointer; }
+.studio-review-notes-list button:hover { border-color: var(--accent); }
+.studio-review-notes-list button > span { font-variant-numeric: tabular-nums; color: var(--muted); }
+.studio-review-notes-list button > strong { max-width: 100%; overflow-wrap: anywhere; line-height: 1.7; }
+.studio-review-notes-list button > em { color: var(--accent); font-style: normal; margin-inline-start: auto; }
