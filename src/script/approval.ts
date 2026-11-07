@@ -15,8 +15,7 @@ const allVersesCited = (script: ReturnType<typeof parseScript>) => {
   const authored = quranFromScript(script);
   const cited = new Set(script.citations.filter((citation) => citation.kind === "ayah")
     .map((citation) => parseAyahRef(citation.fields[0] ?? ""))
-    .filter((r) => r.ok)
-    .map((r) => r.ref.key));
+    .flatMap((r) => r.ok ? [r.ref.key] : []));
   return Object.keys(authored.texts).every((key) => cited.has(key));
 };
 
