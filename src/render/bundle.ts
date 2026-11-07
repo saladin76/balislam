@@ -40,8 +40,11 @@ export const stageRemotionPublicDir = async (
   const dir = await mkdtemp(path.join(tempRoot, "studio-remotion-public-"));
   const cleanup = () => rm(dir, { recursive: true, force: true });
   try {
+    // Explicit allowlist: do not bundle a future misplaced private file from
+    // public/ merely because its filename does not start with an underscore.
+    const sharedAssets = new Set(["fonts", "illus"]);
     for (const entry of await readdir(publicRoot, { withFileTypes: true })) {
-      if (entry.name.startsWith("_")) continue;
+      if (!sharedAssets.has(entry.name)) continue;
       await copyPublicTree(path.join(publicRoot, entry.name), path.join(dir, entry.name));
     }
     if (media.mode === "static") {
