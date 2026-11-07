@@ -21,8 +21,13 @@ function assertChannelId(id: unknown): asserts id is string {
 }
 
 const assertLocalEntry = (file: string) => {
-  if (existsSync(file) && lstatSync(file).isSymbolicLink())
-    throw new Error("مسار القناة يشير إلى رابط رمزي خارج عزلها.");
+  // lstat (not existsSync) also detects dangling symlinks.
+  try {
+    if (lstatSync(file).isSymbolicLink())
+      throw new Error("مسار القناة يشير إلى رابط رمزي خارج عزلها.");
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+  }
 };
 
 const record = (x: unknown): x is Record<string, unknown> =>
