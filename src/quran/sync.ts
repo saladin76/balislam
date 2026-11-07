@@ -1,7 +1,7 @@
 import path from "node:path";
 import { toEasternDigits } from "../i18n/packs";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { audioDuration } from "../voice/generate";
 import { parseScript } from "../script/parse";
 import { quranFromScript } from "./scriptText";
@@ -68,7 +68,8 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
       continue;
     }
     // تلاوة الآيات من المصدر المختار؛ يبقى نص المصحف وترجمته من Quran Foundation.
-    if (recitation) {
+    // A human-approved local recording is never overwritten by an automatic provider sync.
+    if (recitation && recIndex[key]?.provider !== "manual") {
       const id = recitationIdentity(recitation);
       const have = recIndex[key];
       const same = have && (isCloudRecitation(recitation)
@@ -160,9 +161,10 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
   await writeFile(file, JSON.stringify(store, null, 2) + "\n", "utf8");
   if (recitation || Object.keys(recIndex).length) {
     // بلا قارئ مختار: تُحذف تلاوات Quran Foundation المخزنة؛ ومع قارئ: تُحذف الملفات غير المستخدمة
-    const keep = recitation ? recIndex : {};
-    const used = new Set(Object.values(keep).flatMap((r) => r.parts.map((p) => p.file)));
-    if (existsSync(recDir)) for (const f of await readdir(recDir)) if (f.endsWith(".mp3") && !used.has(f)) await unlink(path.join(recDir, f)).catch(() => {});
+    const keep: RecitationIndex = recitation ? recIndex : Object.fromEntries(
+      Object.entries(recIndex).filter(([, value]) => value?.provider === "manual"));
+    // Never delete unindexed MP3s or another producer's clips. Retiring a
+    // provider selection changes the pointer, not the original recordings.
     await mkdir(recDir, { recursive: true });
     await writeFile(recIndexFile, JSON.stringify(keep, null, 2) + "\n", "utf8");
   }
