@@ -67,7 +67,10 @@ export const channelPaths = (id = currentChannelId()) => {
   // A symlinked channel/episodes directory can alias another channel or escape
   // the channels root even though the identifier itself is safe.
   assertLocalEntry(dir);
-  assertLocalEntry(path.join(dir, "episodes"));
+  for (const local of [
+    "episodes", "images", "channel.json", "identity.json", "identity.default.json",
+    "pronunciation.json", "calendar.json", "ideas.json",
+  ]) assertLocalEntry(path.join(dir, local));
   return {
     dir,
     channelFile: path.join(dir, "channel.json"),
