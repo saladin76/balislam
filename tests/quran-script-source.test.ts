@@ -12,7 +12,8 @@ import { reviewItems, type ReviewLedger } from "../src/script/review";
 import { verifiedOwnRecitations, ownAudioStatusForScript, pendingRecitationMatchesText } from "../src/quran/manualAudio";
 import { alignDiff } from "../src/quran/audit";
 import { compareVerseText } from "../src/quran/compare";
-import { preserveManualRecitations, publishImmutableRecitationPart } from "../src/quran/sync";
+import { preserveManualRecitations, publishImmutableRecitationPart, verifiedProviderPart } from "../src/quran/sync";
+import { decodedAudioDuration } from "../src/voice/audioIntegrity";
 import type { Plan } from "../src/plan/types";
 
 const verse = "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ";
@@ -173,6 +174,25 @@ describe("local approved Quran recordings are bound to script text and real play
       await writeFile(temp, first);
       await publishImmutableRecitationPart(dir, output, temp, sha(first));
       expect(await readFile(path.join(dir, output))).toEqual(first);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
+
+  it("refuses a provider cache after a changed MP3, missing hash or unsafe time", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "quran-provider-validity-"));
+    try {
+      const file = "qf-53-39-test.mp3";
+      const full = path.join(dir, file);
+      execFileSync("ffmpeg", ["-nostdin", "-loglevel", "error", "-f", "lavfi",
+        "-i", "sine=frequency=420:duration=1.2", "-c:a", "libmp3lame", full]);
+      const bytes = await readFile(full);
+      const duration = await decodedAudioDuration(full, { mp3Only: true });
+      expect(duration).toBeGreaterThan(1);
+      const part = { file, duration: duration!, sha256: sha(bytes) };
+      expect(await verifiedProviderPart(dir, part)).toBe(true);
+      expect(await verifiedProviderPart(dir, { ...part, sha256: undefined })).toBe(false);
+      expect(await verifiedProviderPart(dir, { ...part, duration: 9 })).toBe(false);
+      await writeFile(full, "NOT THE APPROVED RECORDING");
+      expect(await verifiedProviderPart(dir, part)).toBe(false);
     } finally { await rm(dir, { recursive: true, force: true }); }
   });
 
