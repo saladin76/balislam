@@ -33,6 +33,10 @@ export type WorkflowApproval = {
   fingerprint: string;
   note: string;
   evidence: string[];
+  /** Exact approval event sequence of every earlier stage; byte rollback cannot reuse a later signoff. */
+  prerequisiteApprovalSeq: number[];
+  /** Own immutable approval event number in the append-only log. */
+  approvalEventSeq: number;
 };
 export type ReviewSubmission = {
   by: WorkflowActor;
@@ -64,6 +68,8 @@ export type WorkflowLedger = {
   revision: number;
   stages: Record<WorkflowStage, StageState>;
   history: WorkflowEvent[];
+  /** HMAC-SHA256 over the canonical ledger data; required on persisted ledgers. */
+  integrity?: { alg: "HMAC-SHA256"; keyId: string; mac: string };
 };
 
 export const initialLedger = (channel: string, episode: string): WorkflowLedger => ({
@@ -90,9 +96,10 @@ export const stagePrerequisites = (stage: WorkflowStage): WorkflowStage[] =>
 export const appendEvent = (
   ledger: WorkflowLedger, stage: WorkflowStage, action: WorkflowEvent["action"],
   by: string, at: string, note?: string, fingerprint?: string, contentVersion?: string,
-): void => {
+): number => {
   ledger.history.push({ seq: ledger.history.length + 1, stage, action, by, at,
     ...(contentVersion ? { contentVersion } : {}), ...(fingerprint ? { fingerprint } : {}), ...(note ? { note } : {}) });
+  return ledger.history.length;
 };
 
 /**
@@ -103,7 +110,7 @@ export const reconcileWorkflow = (ledger: WorkflowLedger, snapshot: WorkflowSnap
   let dirty = false;
   for (const stage of WORKFLOW_STAGES) {
     const state = ledger.stages[stage];
-    const upstreamChanged = stagePrerequisites(stage).some((s) => ledger.stages[s].status === "needs_reapproval");
+    const upstreamChanged = stagePrerequisites(stage).some((before) => !isCurrentApproval(ledger, snapshot, before));
     let current: string | null = null;
     try { current = stageFingerprint(snapshot, stage); } catch { /* fail closed */ }
     if (state.status === "approved" && (upstreamChanged || !current || state.approval?.fingerprint !== current)) {
@@ -139,17 +146,25 @@ export const assertRequiredEvidence = (stage: WorkflowStage, evidence: Evidence)
 /** Verify both the bound content and a human approval audit event; never trust status alone. */
 export const isCurrentApproval = (ledger: WorkflowLedger, snapshot: WorkflowSnapshot, stage: WorkflowStage): boolean => {
   const state = ledger.stages[stage];
-  const approval = state.approval;
+  const approval = state?.approval;
   const input = snapshot[stage];
-  if (state.status !== "approved" || !approval || !input || approval.by?.role !== "owner" ||
+  if (state?.status !== "approved" || !approval || !input || approval.by?.role !== "owner" ||
       !approval.by.id || !Number.isFinite(Date.parse(approval.at)) ||
       approval.contentVersion !== input.version || approval.artifactSha256 !== input.sha256 ||
       !Array.isArray(approval.evidence) || !STAGE_EVIDENCE[stage].every((key) => approval.evidence.includes(key))) return false;
   try {
     if (approval.fingerprint !== stageFingerprint(snapshot, stage)) return false;
   } catch { return false; }
-  return ledger.history.some((event) => event.stage === stage && event.action === "approve" &&
-    event.by === approval.by.id && event.at === approval.at && event.fingerprint === approval.fingerprint);
+  const parents = stagePrerequisites(stage);
+  if (!Number.isSafeInteger(approval.approvalEventSeq) || approval.approvalEventSeq < 1 ||
+      !Array.isArray(approval.prerequisiteApprovalSeq) ||
+      approval.prerequisiteApprovalSeq.length !== parents.length ||
+      parents.some((parent, i) => !isCurrentApproval(ledger, snapshot, parent) ||
+        ledger.stages[parent].approval?.approvalEventSeq !== approval.prerequisiteApprovalSeq[i])) return false;
+  const event = ledger.history[approval.approvalEventSeq - 1];
+  return Boolean(event && event.seq === approval.approvalEventSeq && event.stage === stage &&
+    event.action === "approve" && event.by === approval.by.id &&
+    event.at === approval.at && event.fingerprint === approval.fingerprint);
 };
 
 const GATE_STAGE: Record<WorkflowAction, WorkflowStage> = {
