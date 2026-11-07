@@ -83,6 +83,17 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
   const inspect = async () => {
     await principal();
     const { snapshot } = await capture();
+    const ledger = await readWorkflow(deps.scope, snapshot);
+    // Inspection itself is an invalidation boundary, not only publishing.
+    for (const stage of WORKFLOW_STAGES) {
+      const state = ledger.stages[stage];
+      if (state.status !== "approved" || !state.approval) continue;
+      try { await verifyProofFiles(state.approval.evidenceProofs); }
+      catch {
+        await invalidateWorkflowStage(deps.scope, snapshot, stage,
+          "Approved evidence file changed; explicit review required.");
+      }
+    }
     return { snapshot, ledger: await readWorkflow(deps.scope, snapshot) };
   };
   const command = async (raw: WorkflowClientCommand) => {
