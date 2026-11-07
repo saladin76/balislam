@@ -91,6 +91,40 @@ episode: "999"
     } finally { await rm(dir, { recursive: true, force: true }); }
   });
 
+  it("blocks final Quran motion without the exact licensed recording, even if text is signed", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "studio-unlicensed-verse-"));
+    const scriptPath = path.join(dir, "script.md");
+    const verse = "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ";
+    const source = `---
+title: "النص القرآني المعتمد للمراجعة"
+domain: psychology
+episode: "999"
+---
+## الفصل 1 · تجربة
+[آية: النجم 39 | ${verse}]
+
+## الاستشهادات
+- آية | النجم 39 | المصدر المعتمد
+`;
+    const plan = { chapters: [{ number: 1, title: "تجربة", scenes: [{
+      id: "c1-s1", template: "verse-card", ayahKey: "53:39",
+      narration: "", props: { text: verse }, sfx: [],
+    }] }] } as unknown as Plan;
+    try {
+      await writeFile(scriptPath, source);
+      await verifyExampleCitation(scriptPath, source);
+      await writeFile(scriptSignoffFile(scriptPath), JSON.stringify({
+        version: 1, sha256: createHash("sha256").update(source).digest("hex"),
+        reviewer: "مراجع", note: "تحققت من النص والاستشهادات وحفظت القرار", at: new Date().toISOString(),
+      }));
+      await expect(assertMotionStartAuthorized(scriptPath, plan, {}))
+        .rejects.toThrow(/تلاوة|قارئ/);
+      plan.chapters[0]!.scenes[0]!.narration = verse;
+      await expect(assertMotionStartAuthorized(scriptPath, plan, {}))
+        .rejects.toThrow(/قرآني|القرآن/);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
+
   it("requires separate storyboard and full-episode voice decisions, and rechecks audio bytes", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "studio-final-motion-gate-"));
     const scriptPath = path.join(dir, "script.md");
