@@ -17,26 +17,39 @@ Each stage can be `draft`, `in_review`, `approved`, `rejected` or `needs_reappro
 
 ## Source/version binding
 
-`src/workflow/gates.ts` is a pure state machine; `src/workflow/store.ts` persists a versioned `workflow-approvals.json` inside **only** `channels/<channel>/episodes/<NNN-slug>/`. File changes use exclusive per-episode locks, atomic replacement and no cleanup of other processes' locks or assets. Path traversal, unknown channels, symlinked episode directories and corrupted state fail closed. Reads re-check the snapshot and durably mark stale approvals `needs_reapproval`; blocked operations do so as well. Changed in-review input resets that submission to draft. Restoring old bytes cannot revive a previously invalidated approval: a fresh explicit decision is required. Three channels and episodes have isolated paths, not global state.
+`src/workflow/gates.ts` is a pure state machine; `src/workflow/store.ts` persists a versioned `workflow-approvals.json` inside **only** `channels/<channel>/episodes/<NNN-slug>/`. File changes use exclusive per-episode locks, signed schemaVersion 2, atomic replacement and no cleanup of other processes' locks or assets. Path traversal, unknown channels, symlinked episode directories and corrupted state fail closed. Reads re-check the snapshot and durably mark stale approvals `needs_reapproval`; blocked operations do so as well. Changed in-review input resets that submission to draft. Restoring old bytes cannot revive a previously invalidated approval: a fresh explicit decision is required. Three channels and episodes have isolated paths, not global state.
 
 The trusted adapter provides a `WorkflowSnapshot`, one `{ version, sha256 }` for each existing artifact up to its current stage. SHA-256 must be **computed from the current bytes** by the server, never supplied by browser requests. For `script`, hash the *complete script text and material source verification/religious review state*; for `storyboard`, hash the approved visual scene/version manifest (exclude later tone/voice choices); for `voice`, hash **all current MP3 bytes, scene IDs, transcript, selected voices, tones and listening review evidence**; for `motion`, hash the current scene/video build, synchronisation report and timing data; for `av_review`, hash the actual audiovisual review cut and its human 1× review record; for `master`, hash **the exact master video bytes** being approved and eventually uploaded, not filename, preview, metadata or render time. Include all material source ledger revisions in the appropriate stage's input, otherwise the engine cannot detect those outside changes. Use deterministic canonical serialization for compound artifacts. Every input includes a stable human-readable content version (`version`). A stage fingerprint binds all preceding artifacts and its own artifact, including versions. Approvals from an earlier version never transfer to a changed artifact.
 
-## Minimal server-only integration
+## Server-only integration example (contract only, not a deployed endpoint)
 
 ```ts
-import { stageFingerprint } from "./src/workflow/gates";
-import { submitWorkflowStage, approveWorkflowStage, requireWorkflowGate } from "./src/workflow/store";
+import { createTrustedWorkflowService } from "../../src/workflow/service";
+import { createWorkflowProtectedPorts } from "../../src/workflow/ports";
 
-// Server only: identity is authenticated, evidence computed from existing review records.
-// const scope = { channelsRoot: ..., channel: "balislam", episode: "001-some-episode" };
-// const snapshot = await collectActualArtifactDigests(scope); // NOT client-controlled
-// const fp = stageFingerprint(snapshot, "voice");
-// await submitWorkflowStage(scope, { stage: "voice", snapshot, expectedFingerprint: fp,
-//   actor: authenticatedReviewer, note: "Submitted the currently recorded audio." });
-// await approveWorkflowStage(scope, { stage: "voice", snapshot, expectedFingerprint: fp,
-//   actor: authenticatedOwner, note: "Listened to the full current recording and approved it.",
-//   evidence: verifiedAudioEvidence });
-// await requireWorkflowGate(scope, await collectActualArtifactDigests(scope), "final_motion_render");
+// These are trusted server implementations required from central integration.
+// None of them may be populated from raw HTTP request fields.
+const service = createTrustedWorkflowService({
+  scope: trustedEpisodeScope,
+  authenticate: authenticatedServerSessionPrincipal,
+  currentManifest: collectConfiguredEpisodeFilesFromDisk,
+  verifiedEvidence: independentSourceStoryboardAudioAVRightsValidators,
+  withArtifactLock: sharedEpisodeContentReadWriteLock,
+});
+const ports = createWorkflowProtectedPorts(service, sharedEpisodeContentReadWriteLock);
+
+// UI may send ONLY action, stage, expectedFingerprint, note.
+const current = await service.inspect();
+// await service.command({ action: 'submit', stage: 'script',
+//   expectedFingerprint: stageFingerprint(current.snapshot, 'script'), note: '...' });
+// await service.command({ action: 'approve', stage: 'script', ... });
+
+// Inside actual production routes AFTER the host shared lock is implemented:
+// await ports.generateVoice(() => originalVoiceSynthesizer());
+// await ports.renderFinalMotion(() => originalFinalMotionRenderer());
+// await ports.renderMasterCandidate(() => originalMasterRenderer());
+// await ports.publishExactMaster(({ file }) => originalUploader(file));
+// The final callback is given a frozen approved Master copy.
 ```
 
 Calls requiring integration after merging this independent PR (none are patched here):
@@ -97,3 +110,5 @@ New regression tests: `tests/workflow-gates.test.ts` cover six-stage progression
 **GitHub CI environment blocker:** on 2026-11-07, initial workflow runs for this branch failed within seconds with zero executed job steps and inaccessible job logs (BlobNotFound). This does not establish pass or code failure. Recheck latest commit after runner availability is restored.
 
 **Status: DRAFT / NOT PRODUCTION-READY.** No merge, Vercel, automatic Master, publishing or Mac-production edits were performed.
+
+Signed schemaVersion 2 is intentionally incompatible with any unsigned early draft ledger; migration must be explicitly authorized and must NEVER auto-approve an old episode. Cross-process contention is exercised by tests/workflow-process-concurrency.test.ts; full-suite execution remains blocked by GitHub Actions runner availability.
