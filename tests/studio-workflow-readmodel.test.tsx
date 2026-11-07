@@ -49,6 +49,24 @@ describe("trust-boundary for Studio workflow approval presentation", () => {
     expect(html).toContain(approved.note);
   });
 
+  it("requires signed-engine v3 epoch and the exact owner approval event number", () => {
+    const raw = make();
+    raw.stages.script = { status: "approved", approval: { ...approved }, currentApproval: true };
+    raw.history = [{ seq: 1, stage: "script", action: "approve", by: approved.by.id,
+      at: approved.at, fingerprint: approved.fingerprint }];
+    expect(parse(raw).schemaVersion).toBe(3);
+    raw.stages.script.approval.artifactEpoch = undefined;
+    expect(() => parse(raw)).toThrow(/غير موثوقة/);
+    raw.stages.script.approval.artifactEpoch = sha("c");
+    raw.stages.script.approval.approvalEventSeq = 2;
+    expect(() => parse(raw)).toThrow(/حدث اعتماد/);
+    raw.stages.script.approval.approvalEventSeq = 1;
+    raw.stages.script.approval.prerequisiteApprovalSeq = [2];
+    expect(() => parse(raw)).toThrow(/حدث اعتماد/);
+    raw.stages.script.approval.prerequisiteApprovalSeq = [];
+    expect(parse(raw).stages.script.currentApproval).toBe(true);
+  });
+
   it("preserves invalidation reason and history but never labels a stale approval as current", () => {
     const raw = make();
     raw.stages.voice = { status: "needs_reapproval", approval: approved, reason: "MP3 تغيّر بعد الاعتماد" };
