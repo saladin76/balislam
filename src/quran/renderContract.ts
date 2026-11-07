@@ -71,7 +71,7 @@ export const approvedRecitationsForRender = async (
  * ALSO call verifyStagedMedia(root, media.base) to verify the snapshot manifest.
  */
 export const assertRenderedRecitationsMatchApprovals = async (
-  scriptPath: string, choice: RecitationChoice | undefined,
+  scriptPath: string, choice: unknown,
   media: Pick<EpisodeMedia, "base" | "mode" | "recitations">,
   privateStageRoot: string,
 ): Promise<true> => {
