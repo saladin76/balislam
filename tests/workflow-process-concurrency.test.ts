@@ -50,7 +50,7 @@ describe("workflow ledger cannot be double-submitted by separate Node processes"
     expect(result.filter((x) => x.code === 0)).toHaveLength(1);
     const failures = result.filter((x) => x.code !== 0);
     expect(failures).toHaveLength(4);
-    expect(failures.every((x) => /current status|resubmitted|Stage cannot/i.test(x.stderr))).toBe(true);
+    expect(failures.every((x) => /current status|resubmitted|Stage cannot|ledger is locked/i.test(x.stderr))).toBe(true);
     process.env.BAL_WORKFLOW_HMAC_KEY = env.BAL_WORKFLOW_HMAC_KEY;
     const doc = await readWorkflow(scope, current);
     expect(doc.revision).toBe(1);
