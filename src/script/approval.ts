@@ -12,17 +12,23 @@ export const scriptSignoffFile = (scriptPath: string) => path.join(path.dirname(
 const hash = (data: string) => createHash("sha256").update(data, "utf8").digest("hex");
 
 export const scriptSignoffStatus = async (scriptPath: string): Promise<{
-  approved: boolean; changed: boolean; signedAt?: string; reviewer?: string;
+  approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string;
 }> => {
   let old: ScriptSignoff | null = null;
   try { old = JSON.parse(await readFile(scriptSignoffFile(scriptPath), "utf8")) as ScriptSignoff; }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  const current = hash(await readFile(scriptPath, "utf8"));
-  const valid = old?.version === 1 && Boolean(old.reviewer?.trim() && old.note?.trim()) &&
+  const script = await readFile(scriptPath, "utf8");
+  const current = hash(script);
+  const fingerprintMatches = old?.version === 1 && Boolean(old.reviewer?.trim() && old.note?.trim()) &&
     old.sha256 === current;
-  return { approved: Boolean(valid), changed: Boolean(old && !valid),
+  const parsed = parseScript(script, scriptPath);
+  const citationsOk = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath))).ok;
+  const quranOk = !quranFromScript(parsed).problems.length;
+  const valid = fingerprintMatches && citationsOk && quranOk;
+  return { approved: Boolean(valid), changed: Boolean(old && old.sha256 !== current),
+    needsReview: Boolean(old && old.sha256 === current && (!citationsOk || !quranOk)),
     signedAt: old?.at, reviewer: old?.reviewer };
 };
 
