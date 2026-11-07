@@ -20,9 +20,14 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
   res.end(JSON.stringify(body));
 };
 
-const readBody = async (req: IncomingMessage): Promise<any> => {
+const readBody = async (req: IncomingMessage, maxBytes = 180 * 1024 * 1024): Promise<any> => {
   const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
+  let size = 0;
+  for await (const c of req) {
+    size += (c as Buffer).length;
+    if (size > maxBytes) throw new HttpError(413, "حجم الطلب أكبر من الحد المسموح.");
+    chunks.push(c as Buffer);
+  }
   const raw = Buffer.concat(chunks).toString("utf8");
   if (!raw) return {};
   try {
@@ -229,7 +234,7 @@ export const balApi = (): Plugin => ({
             const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
             const c = channelMod.loadChannel(ch);
-            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
+            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: Boolean(c.rules.quran) } });
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
@@ -237,7 +242,18 @@ export const balApi = (): Plugin => ({
             // التلاوات: ملفات الصوت اليدوية المعتمدة الخاصة بهذه الحلقة فقط
             const { recitationsDirFor } = await load("/src/quran/sync.ts");
             const epRec = recitationsDirFor(scriptPath);
-            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
+            if (kind === "recitations") {
+              // Only reviewed owner recordings present in the verified media index may be served.
+              const plan = await io.readPlanFile(scriptPath);
+              const m = plan ? await mediaFor(plan) : { recitations: {} };
+              const allowed = Object.values(m.recitations).some((r: any) =>
+                r.source === "manual" && (r.parts ?? []).some((part: any) => part.file === name));
+              if (!allowed) return send(res, 404, { error: "لا توجد تلاوة معتمدة بهذا الاسم." });
+            }
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") :
+              kind === "sfx" ? path.join(root, "assets", "sfx") :
+              kind === "recitations" ? epRec :
+              kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
             const file = dir ? path.join(dir, kind === "images" ? name.replace(/^lib__/, "") : name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
             const imgType = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : /\.mp4$/i.test(name) ? "video/mp4" : /\.webm$/i.test(name) ? "video/webm" : /\.mov$/i.test(name) ? "video/quicktime" : "image/jpeg";
@@ -283,11 +299,16 @@ export const balApi = (): Plugin => ({
               // Refuse oversized encoded uploads *before* accumulating request chunks.
               if (Number(req.headers["content-length"] ?? 0) > 36 * 1024 * 1024)
                 return send(res, 413, { error: "حجم التسجيل أكبر من الحد الآمن." });
-              const b = await readBody(req);
+              const b = await readBody(req, 36 * 1024 * 1024);
               if (typeof b?.key !== "string" || typeof b?.name !== "string" || typeof b?.data !== "string" ||
-                  b.data.length > 35 * 1024 * 1024 || !/^(?:data:audio\\/[a-z0-9.+-]+;base64,)?[a-zA-Z0-9+/=]+$/.test(b.data))
+                  b.data.length > 35 * 1024 * 1024)
                 return send(res, 400, { error: "أرسل تسجيلًا صوتيًا صحيحًا مع مرجع الآية." });
-              const encoded = b.data.replace(/^data:audio\\/[a-z0-9.+-]+;base64,/, "");
+              const comma = b.data.startsWith("data:") ? b.data.indexOf(",") : -1;
+              if (b.data.startsWith("data:") && (comma < 0 || !b.data.slice(0, comma).endsWith(";base64")))
+                return send(res, 400, { error: "التسجيل يجب أن يكون Base64." });
+              const encoded = comma >= 0 ? b.data.slice(comma + 1) : b.data;
+              if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))
+                return send(res, 400, { error: "ملف الصوت المُرسل غير صالح." });
               const recording = await prepareOwnRecitation(ep, b.key, b.name, Buffer.from(encoded, "base64"));
               return send(res, 200, { recording, status: await ownAudioStatus(ep) });
             }
