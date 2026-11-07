@@ -11,7 +11,8 @@ export type WorkflowStatus = typeof STATUSES[number];
 export type ApprovalActor = { id: string; role: "owner" | "reviewer" };
 export type WorkflowApproval = {
   by: ApprovalActor; at: string; contentVersion: string; artifactSha256: string;
-  fingerprint: string; note: string; evidence: string[];
+  artifactEpoch: string; fingerprint: string; note: string; evidence: string[];
+  approvalEventSeq: number; prerequisiteApprovalSeq: number[];
 };
 export type ReviewSubmission = {
   by: ApprovalActor; at: string; contentVersion: string; fingerprint: string; note: string;
@@ -26,7 +27,7 @@ export type WorkflowStageRecord = {
   reason?: string; currentApproval?: boolean;
 };
 export type WorkflowApprovalSnapshot = {
-  schemaVersion: 1; channel: string; episode: string; revision: number;
+  schemaVersion: 3; channel: string; episode: string; revision: number;
   stages: Record<WorkflowStage, WorkflowStageRecord>;
   history: WorkflowEvent[];
 };
@@ -38,8 +39,11 @@ const actor = (v: unknown): v is ApprovalActor => object(v) && string(v.id) && B
   (v.role === "owner" || v.role === "reviewer");
 const approval = (v: unknown): v is WorkflowApproval => object(v) && actor(v.by) &&
   v.by.role === "owner" && date(v.at) && string(v.contentVersion) && Boolean(v.contentVersion) &&
-  sha(v.artifactSha256) && sha(v.fingerprint) && string(v.note) && Array.isArray(v.evidence) &&
-  v.evidence.every(string);
+  sha(v.artifactSha256) && sha(v.artifactEpoch) && sha(v.fingerprint) &&
+  Number.isSafeInteger(v.approvalEventSeq) && (v.approvalEventSeq as number) > 0 &&
+  Array.isArray(v.prerequisiteApprovalSeq) &&
+  v.prerequisiteApprovalSeq.every((n: unknown) => Number.isSafeInteger(n) && (n as number) > 0) &&
+  string(v.note) && Array.isArray(v.evidence) && v.evidence.every(string);
 const submitted = (v: unknown): v is ReviewSubmission => object(v) && actor(v.by) &&
   date(v.at) && string(v.contentVersion) && sha(v.fingerprint) && string(v.note);
 const actions = ["submit", "approve", "reject", "reopen", "invalidate", "reset_review"];
@@ -47,7 +51,7 @@ const stageValid = (v: unknown): v is WorkflowStage => STAGES.includes(v as Work
 const statusValid = (v: unknown): v is WorkflowStatus => STATUSES.includes(v as WorkflowStatus);
 
 export const parseWorkflowReadModel = (raw: unknown, channel: string, episode: string): WorkflowApprovalSnapshot => {
-  if (!object(raw) || raw.schemaVersion !== 1 || raw.channel !== channel || raw.episode !== episode ||
+  if (!object(raw) || raw.schemaVersion !== 3 || raw.channel !== channel || raw.episode !== episode ||
       !Number.isSafeInteger(raw.revision) || (raw.revision as number) < 0 ||
       !object(raw.stages) || !Array.isArray(raw.history)) throw new Error("سجل الاعتمادات لا يطابق القناة والحلقة أو صيغته غير صالحة.");
   const history: WorkflowEvent[] = [];
@@ -75,10 +79,16 @@ export const parseWorkflowReadModel = (raw: unknown, channel: string, episode: s
       // The server MUST recompute isCurrentApproval with current artifact bytes.
       // Never treat a persisted status alone, or a historical approval, as current.
       if (!approval(value.approval) || value.currentApproval !== true ||
-          !history.some((e) => e.stage === key && e.action === "approve" &&
-            e.by === (value.approval as WorkflowApproval).by.id &&
-            e.at === (value.approval as WorkflowApproval).at &&
-            e.fingerprint === (value.approval as WorkflowApproval).fingerprint))
+          value.approval.prerequisiteApprovalSeq.length !== STAGES.indexOf(key) ||
+          !history[value.approval.approvalEventSeq - 1] ||
+          !(() => {
+            const event = history[value.approval.approvalEventSeq - 1]!;
+            return event.seq === value.approval.approvalEventSeq &&
+              event.stage === key && event.action === "approve" &&
+              event.by === value.approval.by.id &&
+              event.at === value.approval.at &&
+              event.fingerprint === value.approval.fingerprint;
+          })())
         throw new Error("المرحلة " + key + " تفتقر إلى تحقق المحرك الحي من اعتمادها.");
     }
     if (value.status !== "approved" && value.currentApproval === true)
@@ -90,7 +100,7 @@ export const parseWorkflowReadModel = (raw: unknown, channel: string, episode: s
       ...(value.status === "approved" ? { currentApproval: true } : {}),
     } as WorkflowStageRecord;
   }
-  return { schemaVersion: 1, channel, episode, revision: raw.revision as number, stages, history };
+  return { schemaVersion: 3, channel, episode, revision: raw.revision as number, stages, history };
 };
 
 export const workflowLabel = (status?: WorkflowStatus): string => {
