@@ -398,21 +398,12 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   // changes reviewer approvals or fills missing verses with placeholders.
   if (parts[0] === "episodes" && parts[1] && parts[2] === "quran-text-only" && parts.length === 3) {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-    const { inspectMissingQuranTexts, fillMissingQuranTexts } = await load("/src/quran/fillMissingText.ts");
+    const { inspectMissingQuranTexts } = await load("/src/quran/fillMissingText.ts");
     if (req.method === "GET") {
       return send(res, 200, { status: await inspectMissingQuranTexts(parts[1]) }), true;
     }
-    if (req.method === "POST") {
-      const body = await readBody(req);
-      if (!body || body.confirm !== true)
-        return send(res, 400, { error: "يجب طلب جلب نصوص الآيات الناقصة صراحة. لا يُجلب صوت ولا يُعدَّل الفيديو." }), true;
-      const { quranClientFromEnv } = await load("/src/quran/client.ts");
-      const client = quranClientFromEnv();
-      if (!client)
-        return send(res, 400, { error: "مفاتيح Quran Foundation غير متاحة لهذه النسخة على Mac؛ اضبط QF_CLIENT_ID وQF_CLIENT_SECRET في .env ولا تُدخل نصوصًا تخمينية." }), true;
-      const result = await fillMissingQuranTexts(parts[1], client);
-      return send(res, 200, { result, status: await inspectMissingQuranTexts(parts[1]) }), true;
-    }
+    if (req.method === "POST")
+      return send(res, 409, { error: "لا يُجلب نص القرآن إلى quran.json. اكتب الآية في السكريبت ثم استخدم مقارنة المصحف للقراءة فقط." }), true;
     return send(res, 405, { error: "Method not allowed" }), true;
   }
 
@@ -428,6 +419,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { action, auditNote } = await readBody(req);
       if (action === "approve") {
+        const { assertScriptApproved } = await load("/src/script/approval.ts");
+        await assertScriptApproved(file);
         const { checkVisualStoryboardSignoff } = await load("/src/plan/storyboardVisualGate.ts");
         const checked = checkVisualStoryboardSignoff(plan, auditNote);
         if (!checked.ok)
@@ -528,6 +521,14 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { status } = await readBody(req);
       if (!status || typeof status !== "object" || Array.isArray(status)) return send(res, 400, { error: "حالة النشر غير صالحة؛ لم تُحفظ." }), true;
+      const old = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {};
+      // A legacy size/mtime marker never authorizes publishing. Check the exact
+      // current Master hash before recording any NEW publication/approval.
+      if ((status.published && JSON.stringify(status.published) !== JSON.stringify(old.published)) ||
+          (status.approved && JSON.stringify(status.approved) !== JSON.stringify(old.approved))) {
+        const { assertWorkflowForEpisode } = await load("/src/workflow/server.ts");
+        await assertWorkflowForEpisode(parts[1], "publish");
+      }
       await writeFile(file, JSON.stringify(status, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {});

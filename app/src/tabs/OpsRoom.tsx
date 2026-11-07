@@ -11,6 +11,17 @@ import { stagesOf } from "./HomeTab";
  * - التنوّع: تنبيه إن تكرر أسلوب الحلقة السابقة في القناة نفسها.
  */
 
+export type OpsSection = "week" | "pipeline" | "ideas";
+
+/** Focused subsections preserve the underlying calendar, pipeline and idea-bank components. */
+export const OpsSectionNav: React.FC<{ active: OpsSection; onSelect: (section: OpsSection) => void }> = ({ active, onSelect }) => (
+  <nav className="ops-section-nav" aria-label="أقسام غرفة العمليات">
+    <button type="button" aria-controls="ops-week" aria-pressed={active === "week"} onClick={() => onSelect("week")}>الجدول الأسبوعي</button>
+    <button type="button" aria-controls="ops-pipeline" aria-pressed={active === "pipeline"} onClick={() => onSelect("pipeline")}>خط الإنتاج</button>
+    <button type="button" aria-controls="ops-ideas" aria-pressed={active === "ideas"} onClick={() => onSelect("ideas")}>بنك الأفكار</button>
+  </nav>
+);
+
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const COLORS = ["#B5562E", "#2E6F8E", "#5B7F3A", "#7A4E9A", "#A07A1E"];
 const styleKey = (s: string) => styleTemplate(s) ?? s;
@@ -23,7 +34,7 @@ const STAGES: { key: Stage; label: string }[] = [
   { key: "scenes", label: "المشاهد" },
   { key: "voice", label: "الصوت" },
   { key: "video", label: "الفيديو" },
-  { key: "ready", label: "جاهزة للنشر" },
+  { key: "ready", label: "فحوص فنية مكتملة" },
   { key: "scheduled", label: "مجدولة" },
   { key: "published", label: "منشورة" },
 ];
@@ -62,6 +73,7 @@ export const OpsRoom: React.FC<{
     api.ops().then(setData).catch((e) => setErr((e as Error).message));
   }, [tick, refreshKey]);
 
+  const [section, setSection] = useState<OpsSection>("week");
   const [weekOffset, setWeekOffset] = useState(0);
   const [editDay, setEditDay] = useState<{ ch: string; date: string } | null>(null);
   const [editCh, setEditCh] = useState<string | null>(null);
@@ -102,24 +114,20 @@ export const OpsRoom: React.FC<{
       <div className="home-head">
         <div>
           <h1>غرفة العمليات</h1>
-          <p className="help">القنوات كلها في مكان واحد: ما ينزل هذا الأسبوع، وأين وصلت كل حلقة، وبنك الأفكار.</p>
+          <p className="help">القنوات كلها في مكان واحد: الجدول، التقدم الفني وبنك الأفكار. اكتمال الفحوص لا يعني اعتماد Master.</p>
         </div>
         <div className="kpis">
           <div><b>{longThisWeek}/{scheduledCount}</b><span>حلقات الأسبوع</span></div>
-          <div><b>{readyCount}</b><span>جاهزة للنشر</span></div>
+          <div><b>{readyCount}</b><span>فحوص فنية مكتملة</span></div>
           <div><b>{all.length}</b><span>حلقة في الإنتاج</span></div>
           <div><b>{ideasCount}</b><span>فكرة في البنك</span></div>
         </div>
       </div>
 
-      <nav className="ops-section-nav" aria-label="أقسام غرفة العمليات">
-        <a href="#ops-week">الجدول الأسبوعي</a>
-        <a href="#ops-pipeline">خط الإنتاج</a>
-        <a href="#ops-ideas">بنك الأفكار</a>
-      </nav>
+      <OpsSectionNav active={section} onSelect={setSection} />
 
       {/* الأسبوع */}
-      <section id="ops-week" className="ops-sec">
+      <section id="ops-week" className="ops-sec" hidden={section !== "week"}>
         <div className="toolbar" style={{ marginBottom: 10 }}>
           <h2 style={{ margin: 0 }}>{weekOffset === 0 ? "هذا الأسبوع" : weekOffset === 1 ? "الأسبوع القادم" : weekOffset === -1 ? "الأسبوع الماضي" : `أسبوع ${week[0]!.getDate()}/${week[0]!.getMonth() + 1}`}</h2>
           <span className="help">اضغط على أي يوم لتعدّله، أو على اسم القناة لتغيّر يومها وساعتها.</span>
@@ -218,7 +226,7 @@ export const OpsRoom: React.FC<{
       {editCh ? <ChannelScheduleEditor channel={editCh} name={data.find((d) => d.channel.id === editCh)?.channel.name ?? ""} onClose={() => setEditCh(null)} onSaved={() => { setEditCh(null); setTick((t) => t + 1); }} /> : null}
 
       {/* خط الإنتاج */}
-      <section id="ops-pipeline" className="ops-sec">
+      <section id="ops-pipeline" className="ops-sec" hidden={section !== "pipeline"}>
         <h2>خط الإنتاج</h2>
         <div className="ops-board">
           {STAGES.map((st) => {
@@ -252,7 +260,7 @@ export const OpsRoom: React.FC<{
       </section>
 
       {/* بنك الأفكار */}
-      <section id="ops-ideas" className="ops-sec">
+      <section id="ops-ideas" className="ops-sec" hidden={section !== "ideas"}>
         <h2>بنك الأفكار</h2>
         <div className="ops-ideas">
           {data.map((d) => (

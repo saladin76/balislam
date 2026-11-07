@@ -40,7 +40,10 @@ describe("زاوية النظر", () => {
       }
     }
     expect(n).toBe(Object.keys(baseline).length);
-  });
+    // This exhaustively renders and hashes all reference poses twice; two concurrent
+    // Studio gates can push the rendering work beyond Vitest's default 5s timeout.
+    // Keep every baseline comparison, with a bounded 20s limit for CPU contention.
+  }, 20_000);
 
   /** عرض الجسد المرسوم: أقصى امتداد أفقي لنقاط الجذع والكتفين */
   const widthAt = (view: number) => {

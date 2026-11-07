@@ -9,7 +9,6 @@ import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
 import { scenesOf } from "../remotion/scenes/Episode";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
-import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
@@ -66,6 +65,9 @@ export const packageEpisode = async (opts: PackageOptions) => {
     if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
   }
   if (stage === "shorts") {
+    // Shorts are distribution artifacts: require owner approval of the exact Master.
+    const { assertWorkflowForEpisode } = await import("../workflow/server");
+    await assertWorkflowForEpisode(ep, "publish");
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
     if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
@@ -115,9 +117,6 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const published = (await readdir(dir)).filter((f) => f === "youtube.md" || f === "social.md" || f.endsWith(".srt"));
   assertNoTraces(await Promise.all(published.map(async (name) => ({ name, text: await readFile(path.join(dir, name), "utf8") }))));
   assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
-
-  log("تجميع المشروع…");
-  await getServeUrl(true);
 
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };

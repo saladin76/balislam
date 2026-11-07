@@ -3,7 +3,7 @@ import type { Domain } from "../../brand/themes";
 export type Block =
   | { kind: "narration"; text: string; line: number }
   | { kind: "scene"; template: string; options: string[]; line: number }
-  | { kind: "ayah"; ref: string; line: number }
+  | { kind: "ayah"; ref: string; text?: string; line: number }
   /** [حديث: المصدر | النص | الراوي] — النص والراوي اختياريان */
   | { kind: "hadith"; ref: string; text?: string; narrator?: string; line: number }
   | { kind: "sfx"; id: string; line: number }

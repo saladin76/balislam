@@ -1,17 +1,20 @@
-import { mkdtempSync, readFileSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { keyStatus, writeKeys } from "../src/settings/env";
 
 const saved = { ...process.env };
+const ownedEnvDirs: string[] = [];
 afterEach(() => {
   process.env = { ...saved };
+  for (const dir of ownedEnvDirs.splice(0)) rmSync(dir, { recursive:true, force:true });
 });
 
 describe("إعدادات المفاتيح", () => {
   it("تُكتب في .env بصلاحية 600 وتُخفى القيم السرية", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "bal-env-"));
+    ownedEnvDirs.push(dir);
     process.env.BAL_ENV_FILE = path.join(dir, ".env");
     await writeKeys({ ELEVENLABS_API_KEY: "sk_test_$&abcd1234", ELEVENLABS_VOICE_ID: "voice42" });
     const text = readFileSync(process.env.BAL_ENV_FILE, "utf8");

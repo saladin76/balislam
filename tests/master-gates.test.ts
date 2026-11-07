@@ -2,10 +2,11 @@
  * بوابات النسخة النهائية: كل حالة تستوجب المنع تمنع فعلًا، والحالة السليمة تمر.
  * حلقة صغيرة مصطنعة لقناة «دفاتر الزمن» (لها قارئ): جملة واحدة وآية واحدة.
  */
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, afterAll, describe, expect, it } from "vitest";
 
 process.env.BAL_CHANNEL = "dafatir-alzaman";
 
@@ -18,6 +19,9 @@ const { setSceneReview } = await import("../src/plan/sceneReview");
 const { assertMasterReady } = await import("../src/render/episode");
 const { approveVoiceScene, approveVoiceEpisode } = await import("../src/voice/review");
 
+const tempDirs: string[] = [];
+afterAll(async () => { await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true }))); });
+
 const SCRIPT = `---
 title: "حلقة اختبار البوابات"
 domain: islamic
@@ -28,7 +32,7 @@ episode: "999"
 
 أخبر الله ملائكته أنه جاعل في الأرض خليفة.
 
-[آية: البقرة 30]
+[آية: البقرة 30 | نص الآية للاختبار]
 
 ## الاستشهادات
 
@@ -41,6 +45,7 @@ const channel = loadChannel("dafatir-alzaman");
 /** حالة سليمة كاملة في مجلد مؤقت، ثم يكسر كل اختبار شرطًا واحدًا */
 const fresh = async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "gates-"));
+  tempDirs.push(dir);
   const scriptPath = path.join(dir, "script.md");
   await writeFile(scriptPath, SCRIPT);
   const parsed = parseScript(SCRIPT, scriptPath);
@@ -49,7 +54,7 @@ const fresh = async () => {
   const spoken = scenes.find((s) => s.narration.trim())!;
   const verse = scenes.find((s) => s.template === "verse-card")!;
   await mkdir(path.join(dir, "voice"), { recursive: true });
-  await writeFile(path.join(dir, "voice", "a.mp3"), "x");
+  execFileSync("ffmpeg", ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=3.0", "-c:a", "libmp3lame", path.join(dir, "voice", "a.mp3")]);
   const media = {
     mode: "url" as const,
     base: "",

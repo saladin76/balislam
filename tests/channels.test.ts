@@ -1,4 +1,4 @@
-import { mkdtempSync, cpSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, cpSync, readFileSync, existsSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -22,6 +22,8 @@ beforeAll(() => {
 afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
+  tmp = "";
 });
 
 describe("القنوات", () => {
@@ -111,7 +113,7 @@ Bugün başla. Hangisini seçtin?
     const ayah = parsed.chapters[0]!.blocks.find((b) => b.kind === "ayah");
     expect(ayah, "verse directive").toBeTruthy();
     const channel = { ...defaultChannel, language: "en", quranTranslation: { id: 20, name: "Saheeh International" } };
-    const plan = generatePlan(parsed, null, { "53:39": "وَأَن لَّيْسَ", "53:39#meaning": "And that there is not for man except that for which he strives" }, channel);
+    const plan = generatePlan(parsed, null, { "53:39": "وَأَن لَّيْسَ", "53:39#meaning": "And that there is not for man except that for which he strives", "53:39#meaningSource": "Saheeh International" }, channel);
     const verse = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
     expect(verse.props.reference).toBe("An-Najm · 53:39");
     expect(verse.props.meaning).toContain("strives");

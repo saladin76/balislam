@@ -231,28 +231,26 @@ program
 
 program
   .command("quran")
-  .description("جلب نصوص آيات الحلقة بالرسم العثماني من Quran Foundation (تُخزن في quran.json)")
+  .description("مزامنة التلاوات المرخصة وترجمات المعاني فقط؛ نص الآية يُكتب في السكريبت")
   .argument("<episode>", "رقم الحلقة")
   .option("--force", "إعادة الجلب حتى للمخزّن")
   .action(async (episode: string, opts: { force?: boolean }) => {
     const { quranClientFromEnv } = await import("../quran/client");
     const { syncQuran } = await import("../quran/sync");
-    const { regeneratePlan } = await import("../plan/io");
     const client = quranClientFromEnv();
     if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
     const r = await syncQuran(episode, client, { force: opts.force });
-    await regeneratePlan(episode);
-    console.log(`جُلبت ${r.fetched.length} آية/مقطع، ومخزّنة ${r.cached.length}.`);
+    console.log(`ترجمات جديدة ${r.fetched.length}، مراجع محفوظة ${r.cached.length}، تلاوات ${r.recited.length}. النص لا يُعدل تلقائيًا.`);
     for (const f of r.failed) console.log(`تعذّر: ${f.ref}: ${f.reason}`);
     if (r.failed.length) process.exitCode = 1;
   });
 
 program
   .command("quran-text-only")
-  .description("جلب نصوص الآيات الناقصة فقط إلى quran.json؛ لا يكتب plan.json ولا يجلب صوتًا أو يغيّر مراجعات الحلقة")
+  .description("فحص وجود نص كل آية في السكريبت فقط؛ لا يجلب نصًا ولا يكتب ملفات")
   .argument("<episode>", "رقم الحلقة")
   .option("--dry-run", "عرض المراجع الناقصة دون اتصال أو كتابة أي ملف")
-  .option("--confirm-cache-write", "إقرار صريح بحفظ النصوص الناقصة في quran.json فقط")
+  .option("--confirm-cache-write", "خيار قديم غير مدعوم؛ لا تُكتب الآيات خارج السكريبت")
   .action(async (episode: string, opts: { dryRun?: boolean; confirmCacheWrite?: boolean }) => {
     if (opts.dryRun) {
       const { inspectMissingQuranTexts } = await import("../quran/fillMissingText");
@@ -264,22 +262,13 @@ program
       if (result.invalid.length) process.exitCode = 1;
       return;
     }
-    if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص أو --confirm-cache-write للإذن بحفظ النصوص الناقصة.");
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { fillMissingQuranTexts } = await import("../quran/fillMissingText");
-    const client = quranClientFromEnv();
-    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
-    const result = await fillMissingQuranTexts(episode, client);
-    for (const key of result.fetched) console.log(`${key}: جُلب النص الناقص`);
-    for (const key of result.existing) console.log(`${key}: النص المحلي موجود؛ لم يُعدّل`);
-    for (const failure of result.failed) console.log(`${failure.ref}: تعذّر الجلب — ${failure.reason}`);
-    console.log(`نصوص مضافة: ${result.fetched.length} · موجودة: ${result.existing.length} · تعذّرت: ${result.failed.length}`);
-    if (result.failed.length) process.exitCode = 1;
+    if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص؛ نص الآيات يُكتب في السكريبت مباشرة.");
+    throw new Error("أُلغي الحفظ المستقل لنص القرآن. اكتب [آية: المرجع | النص] داخل السكريبت ثم استخدم quran-compare.");
   });
 
 program
   .command("quran-compare")
-  .description("مقابلة نص بطاقات الآيات بنص Quran Foundation حرفًا وحركةً، دون تغيير quran.json (النتيجة في «ملفات المراجعة»)")
+  .description("مقابلة نص الآيات المكتوب في السكريبت بالمصحف المعتمد حرفًا وحركةً، دون تعديله (النتيجة في «ملفات المراجعة»)")
   .argument("<episode>", "رقم الحلقة")
   .option("--evidence-only", "تقرير الأدلة المحلية فقط (النص المعروض ومصدره وصورة البطاقة وأرقامها) دون جلب المرجع؛ لا يُعد مطابقة")
   .action(async (episode: string, opts: { evidenceOnly?: boolean }) => {
