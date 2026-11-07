@@ -3,7 +3,7 @@ import {
   createSceneFirstProduction, approveScript, approveStoryboard,
   submitSceneAvPreview, approveSceneAv, reviseSceneInput, changeScript,
   changeStoryboard, nextSceneId, submitAssembly, approveFinalMaster,
-  assertExactMasterReadyForPublish, sceneFirstProgress,
+  assertExactMasterReadyForPublish, sceneFirstProgress, requestSceneCorrection,
 } from "../src/studio/sceneProduction";
 
 const h = (c: string) => c.repeat(64);
@@ -53,6 +53,20 @@ describe("Studio scene-first audiovisual review", () => {
       submitSceneAvPreview(revised, "c1-s2", h("2"), h("3")),
       "c1-s2", { by: "owner", at, previewSha256: h("3"), watchedWithAudio: true });
     expect(sceneFirstProgress(rebuilt)).toMatchObject({ approvedScenes: 2, canAssemble: true });
+  });
+
+  it("requires a real matching scene signoff and supports requesting a correction", () => {
+    const candidate = submitSceneAvPreview(planned(), "c1-s1", h("c"), h("e"));
+    const needsCorrection = requestSceneCorrection(candidate, "c1-s1");
+    expect(needsCorrection.scenes[0]?.status).toBe("needs_revision");
+    expect(() => approveSceneAv(needsCorrection, "c1-s1", {
+      by: "owner", at, previewSha256: h("e"), watchedWithAudio: true,
+    })).toThrow(/latest rendered/);
+    const forged = allApproved();
+    const invalid = { ...forged, scenes: forged.scenes.map((scene, i) =>
+      i === 0 ? { ...scene, approval: undefined } : scene) };
+    expect(nextSceneId(invalid)).toBe("c1-s1");
+    expect(() => submitAssembly(invalid, h("1"))).toThrow(/All audiovisual scenes/);
   });
 
   it("a script edit invalidates storyboard and every scene; reverting bytes does not restore approvals", () => {
