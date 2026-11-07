@@ -19,6 +19,8 @@ import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
 import { approvalValid, QUALITY, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
 import { unlink } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { masterRenderSubject, assertMasterStageAuthorized } from "../render/masterGateContract";
 
 export type PackageOptions = {
   episode: string;
@@ -67,11 +69,17 @@ export const packageEpisode = async (opts: PackageOptions) => {
   if (stage === "shorts") {
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
-    if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
+    if (!approvalValid((await readStatus()).approved, path.join(dir, info.outputFile ?? path.basename(episodePath)))) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
   }
 
   log("تجهيز الوسائط…");
   const media = await prepareRenderMedia(ep, plan);
+  // Do not mutate an earlier package when the persistent Master/AV gate is
+  // not linked. The real per-chapter gate is checked again in renderEpisode.
+  if (quality === "master" && !opts.skipVideo)
+    await assertMasterStageAuthorized(await masterRenderSubject(
+      scriptPath, loadChannel().id, plan, media, stage === "shorts" ? "portrait" : "landscape",
+    ));
   // الصوت «كامل» فقط إن كان لكل مشهد متكلَّم مقطع يطابق نصه الحالي
   const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   const voicedOk = narrated.filter((s) => {
@@ -138,19 +146,25 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const reportFile = path.join(dir, "motion-report.md");
     const q = QUALITY[quality];
     if (stage === "episode") {
-      // نسخة أساسية جديدة: تلغي الاعتماد السابق والشورتس القديمة (كانت من نسخة أخرى)
-      for (const f of await readdir(dir)) if (/-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f)) await unlink(path.join(dir, f));
+      // Keep previous approved assets untouched until the new video succeeds.
+      // Old shorts will be archived (never deleted) only after that point.
+      log(`الحلقة بجودة: ${q.label}`);
+      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
+      const oldShorts = (await readdir(dir)).filter((f) => /-short-\\d+\\.(mp4|[a-z]+\\.srt)$/.test(f));
+      if (oldShorts.length) {
+        const archiveDir = path.join(dir, "history", `superseded-${randomUUID()}`);
+        await mkdir(archiveDir, { recursive: true });
+        for (const file of oldShorts) await rename(path.join(dir, file), path.join(archiveDir, file));
+      }
       const st = await readStatus();
       if (st.approved) {
         delete st.approved;
-        await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
+        await writeFile(statusFile, JSON.stringify(st, null, 2) + "\\n");
       }
-      log(`الحلقة بجودة: ${q.label}`);
-      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
       log(motionSummary(motion[0]!.report, "الحلقة"));
-      const info: RenderInfo = { quality, label: q.label, width: 1920 * q.scale, height: 1080 * q.scale, voiced: hasVoice, at: new Date().toISOString() };
+      const info: RenderInfo = { quality, label: q.label, width: 1920 * q.scale, height: 1080 * q.scale, voiced: hasVoice, at: new Date().toISOString(), outputFile: path.basename(episodeFile) };
       await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
       await writeFile(reportFile, `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     } else {
