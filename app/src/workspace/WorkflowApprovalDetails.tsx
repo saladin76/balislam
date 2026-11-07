@@ -53,6 +53,9 @@ export const WorkflowApprovalDetails: React.FC<{
               <dd>{when ? formattedDate(when) : "—"}</dd>
               <dt>إصدار المحتوى</dt><dd dir="auto">{version || "غير متاح"}</dd>
               {previous?.artifactSha256 && <><dt>بصمة الملف</dt><dd dir="ltr" className="ew-hash">{previous.artifactSha256}</dd></>}
+              {currentApproval && previous?.artifactEpoch && <><dt>جيل الملف المعتمد</dt>
+                <dd dir="ltr" className="ew-hash" title={previous.artifactEpoch}>{previous.artifactEpoch}</dd>
+                <dt>رقم حدث الاعتماد</dt><dd>{previous.approvalEventSeq}</dd></>}
               {currentApproval && previous?.note ? <><dt>ملاحظة الاعتماد</dt><dd>{previous.note}</dd></> : null}
               {record.status === "in_review" && record.submitted?.note ? <><dt>طلب المراجعة</dt><dd>{record.submitted.note}</dd></> : null}
               {record.status === "needs_reapproval" && previous ? <><dt>آخر اعتماد (ملغى)</dt><dd>{previous.by.id} · {formattedDate(previous.at)}</dd></> : null}
