@@ -160,7 +160,9 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
    */
   const withVerifiedMasterPublication = async <T>(
     publish: (approved: { file: string; sha256: string; snapshot: WorkflowSnapshot }) => Promise<T>,
-  ): Promise<T> => {
+  ): Promise<T> => deps.withArtifactLock(async () => {
+    // Unlike the read-only gate checker, the publication side effect always
+    // owns the shared artifact lock from capture through uploader completion.
     await principal();
     const frozen = await mkdtemp(path.join(os.tmpdir(), "studio-approved-master-"));
     try {
@@ -182,6 +184,6 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
     } finally {
       await rm(frozen, { recursive: true, force: true });
     }
-  };
+  });
   return { inspect, command, gate, withVerifiedMasterPublication };
 };
