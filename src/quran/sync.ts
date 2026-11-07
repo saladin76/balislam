@@ -77,6 +77,10 @@ export const publishImmutableRecitationPart = async (
   const stored = await readFile(destination);
   if (createHash("sha256").update(stored).digest("hex") !== expectedSha256)
     throw new Error("تسجيل سابق بهذا الاسم تغيّر؛ لن يُكتب فوقه.");
+  // A hard link keeps the staging pathname writable against the published
+  // inode. Retire it as soon as the immutable destination has been verified.
+  // The caller's finally-cleanup remains safe if a later step fails.
+  await unlink(temp);
   return destination;
 };
 
