@@ -174,7 +174,9 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
       if (sha256 !== initial.snapshot.master.sha256)
         throw new Error("Master video changed during secure publication snapshot.");
       const checked = await gate("publish");
-      if (checked.snapshot.master?.sha256 !== sha256 || checked.snapshot.master.version !== initial.snapshot.master.version)
+      if (checked.snapshot.master?.sha256 !== sha256 ||
+          checked.snapshot.master.version !== initial.snapshot.master.version ||
+          checked.snapshot.master.epoch !== initial.snapshot.master.epoch)
         throw new Error("Approved Master has changed; publication refused.");
       return await publish({ file: copy, sha256, snapshot: checked.snapshot });
     } finally {
