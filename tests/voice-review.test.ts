@@ -1,12 +1,16 @@
-import { describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { approveVoiceScene, approveVoiceEpisode, assertVoiceApproved, voiceReviewItems, episodeVoiceApproved } from "../src/voice/review";
 import type { Plan } from "../src/plan/types";
 
+const ownedVoiceReviewDirs: string[] = [];
+afterEach(async () => { for (const d of ownedVoiceReviewDirs.splice(0)) await rm(d, { recursive:true, force:true }); });
+
 const sample = async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "voice-reviewed-"));
+  ownedVoiceReviewDirs.push(dir);
   const scriptPath = path.join(dir, "script.md");
   await writeFile(scriptPath, "test");
   await mkdir(path.join(dir, "voice"));
