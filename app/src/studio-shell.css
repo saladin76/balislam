@@ -99,6 +99,24 @@
 .studio-shell .labs-wrap, .studio-shell .guide-wrap, .studio-shell .tech-reviews-wrap { background: var(--bg); }
 .studio-shell .studio-main > :is(.labs-tab, .settings-tab, .channel-tab, .identity-tab, .library-tab, .guide-tab, .publish, .empty-state) { min-width: 0; min-height: 0; overflow-y: auto; }
 .studio-shell .studio-main > :is(.labs-tab, .settings-tab, .channel-tab) { max-width: none; width: 100%; padding: 26px 30px 40px; }
+/* Keep channel Save / Revert and dirty status visible while scrolling settings. */
+.studio-shell .studio-main > .channel-tab > .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  margin: -26px -30px 20px;
+  padding: 13px 30px;
+  min-height: 62px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgb(18 36 50 / 0.06);
+}
+@media (max-width: 760px) {
+  .studio-shell .studio-main > .channel-tab > .toolbar {
+    margin: -18px -14px 16px;
+    padding: 12px 14px;
+  }
+}
 .studio-shell .labs-head { max-width: 1280px; margin: 0 auto 23px; }
 .studio-shell .labs-head h2 { font-size: 24px; font-family: var(--f-head); margin-bottom: 5px; }
 .studio-shell .labs-head p { max-width: 900px; color: var(--muted); font-size: 12px; line-height: 1.9; }
