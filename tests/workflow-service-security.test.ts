@@ -126,6 +126,29 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     expect((await x.service.inspect()).ledger.stages.script.status).toBe("draft");
   });
 
+  it("exposes a sanitized role-sensitive inspect().view contract for Studio UI PR #74", async () => {
+    const x = await make();
+    const pending = await x.service.inspect();
+    expect(pending.view.schemaVersion).toBe(1);
+    expect(pending.view.stages.map((stage) => stage.stage)).toEqual([...WORKFLOW_STAGES]);
+    expect(pending.view.stages[0]?.canSubmit).toBe(true);
+    expect(pending.view.stages[1]?.canSubmit).toBe(false);
+    expect(pending.view.gates.generate_voice.allowed).toBe(false);
+    expect(pending.view.gates.publish.allowed).toBe(false);
+    const serialized = JSON.stringify(pending.view);
+    expect(serialized).not.toMatch(/BAL_WORKFLOW_HMAC_KEY|integrity|evidenceProofs|script\.md|mac/);
+    await x.allApproved();
+    const ownerView = (await x.service.inspect()).view;
+    expect(ownerView.stages.every((stage) => stage.status === "approved")).toBe(true);
+    expect(ownerView.gates.publish.allowed).toBe(true);
+    expect(ownerView.stages[5]?.approved?.by).toBe("actual-owner-session");
+    x.user.current = { id: "authenticated-reviewer", role: "reviewer", authenticated: true };
+    const reviewerView = (await x.service.inspect()).view;
+    expect(reviewerView.gates.publish.allowed).toBe(false);
+    expect(reviewerView.gates.publish.reason).toMatch(/owner/);
+    expect(reviewerView.stages[5]?.approved?.by).toBe("actual-owner-session");
+  });
+
   it("requires a valid human session and prevents skipped stage approval", async () => {
     const x = await make();
     x.user.current = { id: "fake", role: "owner", authenticated: false } as never;
