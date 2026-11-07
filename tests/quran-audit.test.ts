@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { alignDiff, ayahEndNumbers, classifyChar } from "../src/quran/audit";
+import { alignDiff, ayahEndNumbers, classifyChar, comparisonAuditStatus } from "../src/quran/audit";
 
 describe("تدقيق نص بطاقات الآيات", () => {
+  it("never calls a prelive or unidentified Quran source an official match", () => {
+    expect(comparisonAuditStatus(false, true, "production")).toBe("match");
+    expect(comparisonAuditStatus(false, true, "prelive")).toBe("pending");
+    expect(comparisonAuditStatus(false, true, undefined)).toBe("pending");
+    expect(comparisonAuditStatus(true, true, "production")).toBe("differs");
+    expect(comparisonAuditStatus(false, false, "production")).toBe("differs");
+  });
+
   it("يصنّف الحروف والتشكيل والرسم العثماني والعلامات", () => {
     expect(classifyChar("ق")).toBe("letter");
     expect(classifyChar("َ")).toBe("haraka");
