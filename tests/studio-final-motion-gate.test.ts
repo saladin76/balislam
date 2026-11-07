@@ -45,9 +45,9 @@ episode: "999"
       }));
       await approveStoryboard(scriptPath, plan, { note: "راجعت اللوحة الاختبارية بصريًا قبل اعتماد الصوت الكامل" });
       await expect(assertMotionStartAuthorized(scriptPath, plan, voice)).rejects.toThrow(/اعتماد|الصوت/);
-      await approveVoiceScene(scriptPath, plan, voice, "c1-s1", "مراجع", "استمعت للمقطع بعناية وراجعت مخارجه");
+      await approveVoiceScene(scriptPath, plan, voice, "c1-s1", "مراجع", "استمعت للمقطع بعناية وراجعت مخارجه", true);
       await expect(assertMotionStartAuthorized(scriptPath, plan, voice)).rejects.toThrow(/الحلقة|كامل/);
-      await approveVoiceEpisode(scriptPath, plan, voice, "مراجع", "استمعت إلى كل التسجيل بالترتيب الطبيعي وأوافق على بدء الحركة");
+      await approveVoiceEpisode(scriptPath, plan, voice, "مراجع", "استمعت إلى كل التسجيل بالترتيب الطبيعي وأوافق على بدء الحركة", true);
       await expect(assertMotionStartAuthorized(scriptPath, plan, voice)).resolves.toBe(true);
       await writeFile(path.join(voiceDir, "clip.mp3"), "BROKEN");
       await expect(assertMotionStartAuthorized(scriptPath, plan, voice)).rejects.toThrow();
