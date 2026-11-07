@@ -200,7 +200,9 @@ try {
       leftoverPaths: preflightLeftovers
     }));
     if (preflightLeftovers.length) {
-      failures.push("preflight-owned-temp-residue");
+      throw new Error("Parallel audit refused: Vitest preflight left " +
+        preflightLeftovers.length + " owned temporary entries (" + preflightAllocated +
+        " allocated bytes); no full gates started.");
     }
   }
   const samples=[];
