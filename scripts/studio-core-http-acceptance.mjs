@@ -8,7 +8,7 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statfsSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import os from "node:os";
@@ -23,13 +23,9 @@ const queue = path.join(root, "renders", "studio-queue.json");
 const vite = path.join(root, "node_modules", "vite", "bin", "vite.js");
 
 const freeBytes = () => {
-  const { statfsSync } = requireFs();
   const fs = statfsSync(root);
   return fs.bavail * fs.bsize;
 };
-// Avoid dynamic imports while still giving the human operator a hard disk-space gate.
-import { statfsSync } from "node:fs";
-function requireFs() { return { statfsSync }; }
 
 const freePort = () => new Promise((resolve, reject) => {
   const server = createServer();
@@ -51,6 +47,8 @@ const stopChild = async (child) => {
 let fixture;
 let server;
 try {
+  assert.ok(/^studio-core-channels-qa-/.test(path.basename(root)),
+    "STOP: run only from the standalone studio-core-channels QA clone, never the main checkout");
   assert.ok(!existsSync(queue), "STOP: render queue exists; starting Vite could resume work");
   assert.ok(existsSync(vite), "STOP: install QA dependencies before acceptance");
   assert.ok(freeBytes() >= 6 * 1024 ** 3, "STOP: fewer than 6 GiB of disk free");
