@@ -20,9 +20,20 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
   res.end(JSON.stringify(body));
 };
 
-const readBody = async (req: IncomingMessage): Promise<any> => {
+/** Uploads are Base64 encoded; cap them, and cap all JSON before buffering. */
+const MAX_BODY_BYTES = 180 * 1024 * 1024;
+export const readBody = async (req: IncomingMessage, maxBytes = MAX_BODY_BYTES): Promise<any> => {
+  const length = Number(req.headers["content-length"] ?? 0);
+  if (!Number.isFinite(length) || length > maxBytes)
+    throw new HttpError(413, "حجم الطلب أكبر من الحد المسموح.");
   const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
+  let received = 0;
+  for await (const chunk of req) {
+    const piece = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    received += piece.length;
+    if (received > maxBytes) throw new HttpError(413, "حجم الطلب أكبر من الحد المسموح.");
+    chunks.push(piece);
+  }
   const raw = Buffer.concat(chunks).toString("utf8");
   if (!raw) return {};
   try {
@@ -107,8 +118,11 @@ export const balApi = (): Plugin => ({
       try {
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
-        if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
         const channelMod = await load("/src/channel/index.ts");
+        // Reject unknown and symlinked channels before any write-capable route.
+        if (!channelMod.listChannels().includes(ch) && !["channels", "ops"].includes(parts[0]))
+          return send(res, 404, { error: "القناة غير موجودة أو مسارها غير آمن." });
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
         return await channelMod.runWithChannel(ch, async () => {
         const cp = channelMod.channelPaths(ch);
@@ -328,8 +342,12 @@ export const balApi = (): Plugin => ({
         if (parts[0] === "identity") {
           if (req.method === "PUT") {
             const { identity } = await readBody(req);
-            if (!identity?.themes || !identity?.palettes || !identity?.typography || !identity?.motion) return send(res, 400, { error: "ملف الهوية ناقص" });
-            await writeFile(identityFile, JSON.stringify(identity, null, 2) + "\n", "utf8");
+            if (!identity || typeof identity !== "object" || Array.isArray(identity) ||
+                !["themes", "palettes", "typography", "motion"].every((k) =>
+                  identity[k] && typeof identity[k] === "object" && !Array.isArray(identity[k])))
+              return send(res, 400, { error: "ملف الهوية ناقص" });
+            const { writeJsonAtomic } = await load("/src/channel/storage.ts");
+            await writeJsonAtomic(identityFile, identity);
             return send(res, 200, { ok: true });
           }
           return send(res, 200, {
