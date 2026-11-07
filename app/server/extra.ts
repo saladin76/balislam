@@ -695,16 +695,6 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         if (!/^[a-z0-9-]+$/.test(id)) return send(res, 400, { error: `معرّف المجال «${id}» بالإنجليزية الصغيرة والشرطات فقط.` }), true;
         if (!slots.includes(channel.domains[id].theme)) return send(res, 400, { error: `ثيم المجال «${id}» غير صالح.` }), true;
       }
-      // AlQuran Cloud at channel level is a preview preference, never a licence.
-      // Restrict the shape so rights-gated episode production remains separate.
-      if (channel.alquranPreviewRecitation != null) {
-        const v = channel.alquranPreviewRecitation;
-        if (typeof v !== "object" || Array.isArray(v) ||
-            Object.keys(v).some((k) => k !== "edition" && k !== "name") ||
-            typeof v.edition !== "string" || !/^ar\.[a-z0-9._-]{1,75}$/i.test(v.edition) ||
-            typeof v.name !== "string" || !v.name.trim() || v.name.length > 160)
-          return send(res, 400, { error: "اختيار قارئ AlQuran Cloud للمعاينة غير صالح." }), true;
-      }
       // أدوات المحرك الافتراضية للحلقات الجديدة: لا يُقبل إلا أساس يعمل في مكتبة هذه القناة
       if (channel.production != null) {
         const { engineDefaultsIssues } = await load("/src/plan/engine.ts");
@@ -712,7 +702,11 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         const bad = engineDefaultsIssues(channel.production.defaults, (t: string) => !templateExclusion(channel, t), ch);
         if (bad.length) return send(res, 400, { error: bad.join(" ") }), true;
       }
-      await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(channel, null, 2) + "\n");
+      // Legacy provider selections are no longer Studio settings. Old on-disk
+      // channel files remain untouched until their owner explicitly saves.
+      const { recitation: _legacyRecitation, alquranPreviewRecitation: _legacyPreview,
+        quranTranslation: _legacyTranslation, ...localChannel } = channel;
+      await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(localChannel, null, 2) + "\\n");
       send(res, 200, { ok: true });
     } else send(res, 200, ch_.loadChannel(ch));
     return true;
