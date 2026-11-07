@@ -63,9 +63,9 @@ export const createSceneLedger = (channel: string, episode: string, order: reado
   };
 };
 
-const insist = (condition: unknown, message: string): asserts condition => {
+function insist(condition: unknown, message: string): asserts condition {
   if (!condition) throw Error(message);
-};
+}
 
 const hash = (input: unknown): string =>
   createHash("sha256").update(JSON.stringify(input)).digest("hex");
@@ -130,8 +130,9 @@ export const isSceneApproved = (ledger: SceneLedgerV2, sceneId: string): boolean
   try { s = current(ledger, sceneId); } catch { return false; }
   const a = s.approval;
   if (s.status !== "approved" || !s.inputs || !a || !validOwner(a.ownerId) ||
-      !Number.isFinite(Date.parse(a.at)) || a.avSha256 !== s.inputs.video.sha256 ||
-      !Number.isSafeInteger(a.eventSeq)) return false;
+      !Number.isFinite(Date.parse(a.at)) || !s.inputs.video ||
+      a.avSha256 !== s.inputs.video.sha256 ||
+      !Number.isSafeInteger(a.eventSeq) || !Array.isArray(ledger.events)) return false;
   const ev = ledger.events[a.eventSeq - 1];
   if (!ev || ev.seq !== a.eventSeq || ev.sceneId !== sceneId ||
       ev.action !== "approved" || ev.ownerId !== a.ownerId ||
@@ -213,6 +214,7 @@ export const approveSceneAv = (
   verifyEvidence: SceneEvidenceVerifier,
 ): void => {
   const s = current(ledger, sceneId);
+  assertCanProduceScene(ledger, sceneId);
   insist(s.status === "in_review" && s.inputs, "Scene must be explicitly submitted for AV review.");
   insist(validOwner(decision.ownerId), "Authenticated owner is required.");
   insist(typeof verifyEvidence === "function", "Trusted scene AV verifier is required.");
