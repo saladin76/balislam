@@ -22,6 +22,7 @@ import { currentMotionFingerprint } from "../render/motionFingerprint";
 import { staleMotionScenes, auditNeedsJustification } from "../render/motionValidity";
 import { collectMedia } from "../plan/collect";
 import { readRenderInfo } from "../render/quality";
+import { verifyVideoEvidence } from "./videoEvidence";
 import { collectWorkflowSnapshot } from "./artifacts";
 import { toWorkflowApprovalView } from "./uiProjection";
 import { readWorkflow, submitWorkflowStage, approveWorkflowStage, rejectWorkflowStage,
@@ -92,6 +93,7 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
   if (stage === "av_review") {
     const { snapshot } = await collectWorkflowSnapshot(episode);
     required(Boolean(snapshot.av_review), "The complete integrated audiovisual review cut is missing.");
+    await verifyVideoEvidence(path.join(dir, "previews", "episode.mp4"));
     required(confirmWatched, "Owner must confirm watching the complete cut at natural 1× speed.");
   }
   if (stage === "master") {
@@ -99,6 +101,10 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
     required(Boolean(snapshot.master), "Exact Master video is missing.");
     const info = await readRenderInfo(path.join(dir, "out", "package"));
     required(info?.quality === "master" && info.voiced, "The final Master must be full quality with approved audio.");
+    const masterId = plan?.episode || path.basename(dir).slice(0, 3);
+    if (!/^\d{3}$/.test(masterId)) throw Error("Invalid Master episode identifier.");
+    await verifyVideoEvidence(path.join(dir, "out", "package", `${masterId}-episode.mp4`),
+      info?.width ?? 3840, info?.height ?? 2160);
     required(Boolean(plan), "Final episode plan is missing.");
     // Licensed Quran audio cannot be inferred merely from the presence of an MP3.
     const media = await collectMedia(episode, plan!);
