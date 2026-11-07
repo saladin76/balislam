@@ -10,12 +10,11 @@
  * CI uploads the real PDF files, page previews and machine-readable audit.
  */
 import { createHash } from "node:crypto";
-import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import os from "node:os";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { buildStoryboardHtml, exportStoryboard, normalizeStoryboard } from "./studio-storyboard-pdf.mjs";
+import { exportStoryboard, normalizeStoryboard, splitAppendixText } from "./studio-storyboard-pdf.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -26,6 +25,16 @@ if (!args.includes("--out") || !path.isAbsolute(out ?? "") ||
   process.exit(2);
 }
 const hash = data => createHash("sha256").update(data).digest("hex");
+// HTML-escaped source text must be present, complete and ordered. The full
+// Unicode-grapheme pieces may live on separate appendix pages.
+const htmlEscape = value => String(value).replaceAll("&","&amp;").replaceAll("<","&lt;")
+  .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+const sourceTextPresent = (html, value) => {
+  if(!value)return true;
+  const full=htmlEscape(value);
+  return html.includes(full) ||
+    splitAppendixText(value).every(piece => html.includes(htmlEscape(piece)));
+};
 const tool = (bin, args, opts = {}) => {
   const r = spawnSync(bin, args, { encoding: "utf8", timeout: 180000, maxBuffer: 8 * 1024 * 1024, ...opts });
   if (r.error || r.status !== 0) throw Error(bin + " " + args.join(" ") + ": " +
@@ -107,11 +116,19 @@ for (const spec of inputs) {
   const board=normalizeStoryboard(JSON.parse(readFileSync(spec.source,"utf8")),spec.source);
   const chosen=board.scenes.filter(scene=>spec.chapter===null||String(scene.chapter)===String(spec.chapter));
   const missingIds=chosen.map(s=>s.id).filter(id=>!extracted.includes(id));
+  const sourceFields=[...chosen.flatMap(s=>[
+    ["id",s.id],["title",s.title],["narration",s.narration],["notes",s.notes],
+    ["shot",s.type],["chapterTitle",s.chapterTitle]
+  ].map(([name,value])=>({scene:s.id,name,value}))),
+  ...[["channel",board.channel],["episode",board.episode],["version",board.version]]
+    .map(([name,value])=>({scene:"storyboard",name,value}))];
+  const missingSourceText=sourceFields.filter(({value})=>!sourceTextPresent(html,value))
+    .map(({scene,name})=>({scene,name}));
   const numbers=[...html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\d+) من (\d+)/g)];
   if(pages!==physical||result.scenes!==spec.expectedScenes||numbers.length!==pages||missingIds.length||
-     unembedded.length||!fonts.length||!expectedFontFound) {
+     unembedded.length||!fonts.length||!expectedFontFound||missingSourceText.length) {
     errors.push({case:spec.name,pages,physical,scenes:result.scenes,expected:spec.expectedScenes,
-      labels:numbers.length,missingIds,unembedded,expectedFontFound});
+      labels:numbers.length,missingIds,unembedded,expectedFontFound,missingSourceText});
   }
   // Every physical page is rasterized, including chapter covers and appendices,
   // to make full-page human visual review possible, not merely spot sampling.
@@ -122,7 +139,7 @@ for (const spec of inputs) {
   cases.push({name:spec.name,channel:board.channel,status:result.status,sceneCount:result.scenes,
     physicalPages:pages,htmlPages:physical,pdfSha256:result.pdfSha256,
     manifestSha256:result.manifestSha256,fontRecords:fonts.length,unembeddedFonts:unembedded.length,
-    missingSceneIdsInExtract:missingIds,expectedFontFound,previews:pngs});
+    missingSceneIdsInExtract:missingIds,missingSourceText,expectedFontFound,previews:pngs});
 }
 for (const [file,original] of sourceHashes)
   if (hash(readFileSync(file))!==original) errors.push({type:"source-changed",file});
