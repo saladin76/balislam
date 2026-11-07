@@ -22,6 +22,19 @@ export const assertMotionStartAuthorized = async (
   const authored = quranFromScript(parsed);
   if (authored.problems.length)
     throw new Error("نصوص آيات السكريبت ناقصة أو متعارضة؛ لا تبدأ الحركة قبل المراجعة الشرعية.");
+  // A saved/forged plan may carry stale verse text even while the script itself
+  // has an otherwise valid signoff. Never export that mismatched plan.
+  const verseCards = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.template === "verse-card");
+  const displayed = new Set<string>();
+  for (const card of verseCards) {
+    const key = card.ayahKey ?? "";
+    if (!key || !Object.prototype.hasOwnProperty.call(authored.texts, key) ||
+        card.props?.text !== authored.texts[key])
+      throw new Error("بطاقة آية في خطة الرندر لا تطابق النص والمرجع الحاليين في السكريبت؛ أعد توليد الخطة ومراجعتها.");
+    displayed.add(key);
+  }
+  if (Object.keys(authored.texts).some((key) => !displayed.has(key)))
+    throw new Error("توجد آية في السكريبت دون بطاقة معروضة في خطة الرندر؛ لا يُسمح بإسقاطها من نسخة الإنتاج.");
   // The render collector in the separate render workstream has not integrated
   // provider=manual. A reviewed manual recitation is NOT render eligibility.
   // Block final motion instead of silently omitting the verse recitation.
