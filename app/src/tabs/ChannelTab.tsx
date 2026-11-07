@@ -226,9 +226,14 @@ const CloudPreviewPicker: React.FC<{
   );
 };
 
-export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void; identity?: Identity }> = ({ onCreated, onSaved, identity }) => {
-  const [c, setC] = useState<ChannelConfig | null>(null);
-  const [saved, setSaved] = useState("");
+export type ChannelSettingsDraft = { draft: ChannelConfig; saved: string };
+export const ChannelTab: React.FC<{
+  onCreated: (id: string) => void; onSaved: () => void; identity?: Identity;
+  channelId?: string; draftCache?: ChannelSettingsDraft | null;
+  onDraftCache?: (value: ChannelSettingsDraft) => void;
+}> = ({ onCreated, onSaved, identity, channelId, draftCache, onDraftCache }) => {
+  const [c, setC] = useState<ChannelConfig | null>(draftCache?.draft ?? null);
+  const [saved, setSaved] = useState(draftCache?.saved ?? "");
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
   const [newDomain, setNewDomain] = useState("");
   const [saving, setSaving] = useState(false);
@@ -236,11 +241,23 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
   const themeNames: Record<string, string> = { paper: useTheme("paper").nameAr, family: useTheme("family").nameAr, night: useTheme("night").nameAr, warm: useTheme("warm").nameAr };
 
   useEffect(() => {
-    api.channel().then((x) => {
-      setC(x);
+    let live = true;
+    api.channel(channelId).then((x) => {
+      if (!live) return;
+      // Keep unsaved text in memory, even after returning from another workspace.
+      const dirtyDraft = draftCache && JSON.stringify(draftCache.draft) !== draftCache.saved;
+      setC(dirtyDraft ? draftCache.draft : x);
       setSaved(JSON.stringify(x));
-    }).catch((x) => setMsg({ text: `تعذّر تحميل إعدادات القناة: ${(x as Error).message}`, err: true }));
-  }, []);
+    }).catch((x) => {
+      if (live) setMsg({ text: `تعذّر تحميل إعدادات القناة: ${(x as Error).message}`, err: true });
+    });
+    return () => { live = false; };
+    // Parent remounts this editor by its channelId. A callback identity change is not a reload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+  useEffect(() => {
+    if (c) onDraftCache?.({ draft: c, saved });
+  }, [c, saved, onDraftCache]);
   if (!c) return <div className="empty-state"><h2>{msg?.err ? msg.text : "جارٍ التحميل…"}</h2></div>;
   const dirty = JSON.stringify(c) !== saved;
   const set = (patch: Partial<ChannelConfig>) => setC({ ...c, ...patch });
@@ -260,7 +277,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           onClick={async () => {
             setSaving(true);
             try {
-              await api.saveChannel(c);
+              await api.saveChannel(c, channelId);
               setSaved(JSON.stringify(c));
               setMsg({ text: "حُفظت إعدادات القناة." });
               onSaved();
