@@ -2,7 +2,7 @@ import { applyEngineDefaults } from "./engine";
 import { beatsFor, beatsToText, isCuratedBeat } from "./beats";
 import { normalizeArabic, parseAyahRef, surahNameFor, toLatinDigits } from "../script/quranMeta";
 import { VERSE_PLACEHOLDER } from "./quranText";
-import { attributedMeaningSource } from "../quran/scriptText";
+import { attributedMeaningSource, quranFromScript } from "../quran/scriptText";
 import type { ParsedScript } from "../script/types";
 import type { Domain } from "../../brand/themes";
 import { defaultChannel, themeIdForDomainIn, type ChannelConfig } from "../channel/types";
@@ -94,6 +94,8 @@ export type QuranTexts = Record<string, string>;
  * - إن مُررت خطة سابقة تُحفظ تعديلات المستخدم للمشاهد التي لم يتغير قالبها.
  */
 export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}, channel: ChannelConfig = defaultChannel): Plan => {
+  // Callers may supply historical meanings, never override Quran text authored in the script.
+  const scriptVerses = quranFromScript(parsed).texts;
   const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string; style?: string; format?: string };
   // أسلوب الحلقة: المشاهد التي بلا علامة تُعرض بالسبورة المتصلة أو بالشخصية المتكلمة
   const defaultTemplate = styleTemplate(fm.style) ?? styleTemplate(channel.styles?.[0]) ?? "character-talk";
@@ -168,7 +170,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
           line: b.line,
           ayahKey: key,
           props: {
-            text: (key && quran[key]) || VERSE_PLACEHOLDER,
+            text: (key && scriptVerses[key]) || VERSE_PLACEHOLDER,
             reference,
             reciter: reciterFor(key),
             // Preserve historical translations in storage, but never render an
