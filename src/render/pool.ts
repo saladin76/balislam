@@ -809,7 +809,7 @@ export class RenderPool {
         }
         // Without a confirmed process incarnation, a LIVE PID might belong to
         // another task. Fail closed rather than deleting its partial file.
-        if (t.status === "running" && t.pid !== undefined && !t.pidStart) {
+        if (t.status === "running" && t.pid !== undefined && (!t.pidStart || identity === null)) {
           try {
             process.kill(t.pid, 0);
             throw new Error(`تعذّر التحقق من ملكية عملية الرندر ${t.pid}؛ أُوقفت الاستعادة حفاظًا على ملفاتها.`);
