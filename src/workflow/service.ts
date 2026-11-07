@@ -34,6 +34,8 @@ export type TrustedWorkflowDependencies = {
   authenticate: () => Promise<AuthenticatedWorkflowPrincipal>;
   currentManifest: () => Promise<ArtifactManifest>;
   verifiedEvidence: (stage: WorkflowStage, snapshot: WorkflowSnapshot) => Promise<EvidenceProof[]>;
+  /** Same per-episode artifact edit lock acquired by ALL production content writers. */
+  withArtifactLock: <T>(work: () => Promise<T>) => Promise<T>;
 };
 
 const validateClientCommand = (value: WorkflowClientCommand): WorkflowClientCommand => {
@@ -49,6 +51,8 @@ const validateClientCommand = (value: WorkflowClientCommand): WorkflowClientComm
 };
 
 export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) => {
+  if (typeof deps.withArtifactLock !== "function")
+    throw new Error("Trusted workflow service requires a shared artifact writer lock.");
   const capture = async () => {
     const manifest = await deps.currentManifest();
     const snapshot = await collectActualArtifactDigests(deps.scope, manifest);
@@ -98,6 +102,7 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
   };
   const command = async (raw: WorkflowClientCommand) => {
     const input = validateClientCommand(raw);
+    return deps.withArtifactLock(async () => {
     const actor = await principal();
     const { snapshot } = await capture();
     if (stageFingerprint(snapshot, input.stage) !== input.expectedFingerprint)
@@ -114,11 +119,13 @@ export const createTrustedWorkflowService = (deps: TrustedWorkflowDependencies) 
     const fresh = await capture();
     if (stageFingerprint(fresh.snapshot, input.stage) !== input.expectedFingerprint)
       throw new Error("Artifact changed while checking evidence.");
+    await verifyProofFiles(proofs);
     const attestation = signServerEvidence({
       stage: input.stage, fingerprint: input.expectedFingerprint,
       actorId: actor.id, checkedAt: new Date().toISOString(), proofs,
     });
     return approveWorkflowStage(deps.scope, { ...decision, snapshot: fresh.snapshot, attestation });
+    });
   };
 
   const assertEvidenceCurrent = async (snapshot: WorkflowSnapshot, action: WorkflowAction) => {
