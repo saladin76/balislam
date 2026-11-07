@@ -130,7 +130,7 @@ export const approveVoiceEpisode = async (
   listenedInFull: boolean,
 ) => {
   if (listenedInFull !== true)
-    throw new Error("يلزم التأكيد الصريح للاستماع الكامل بالترتيب الطبيعي قبل اعتماد الحلقة الصوتية.");
+    throw new Error("يلزم التأكيد الصريح على الاستماع الكامل بالترتيب الطبيعي قبل اعتماد الحلقة الصوتية.");
   if (!reviewer.trim() || note.trim().length < 20)
     throw new Error("اعتماد الحلقة الصوتية يتطلب اسم المراجع وملاحظة الاستماع الكامل.");
   return withVoiceReviewLock(scriptPath, async () => {
