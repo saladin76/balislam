@@ -24,7 +24,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   const [check, setCheck] = useState<CheckResult>(initialCheck);
   const [saving, setSaving] = useState(false);
   const dirty = text !== savedText;
-  const [signoff, setSignoff] = useState<{ approved: boolean; changed: boolean; reviewer?: string } | null>(null);
+  const [signoff, setSignoff] = useState<{ approved: boolean; changed: boolean; needsReview?: boolean; reviewer?: string } | null>(null);
   const [signer, setSigner] = useState("");
   const [signoffNote, setSignoffNote] = useState("");
   const [signoffError, setSignoffError] = useState("");
@@ -213,7 +213,8 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
           <h3>اعتماد السكريبت — مرحلة مستقلة</h3>
           <p role="status">{dirty ? "هناك تغييرات لم تُحفظ؛ الاعتماد غير صالح للتغييرات الحالية" :
             signoff?.approved ? "السكريبت معتمد بالبصمة الحالية" :
-            signoff?.changed ? "تغيّر السكريبت بعد اعتماده؛ يلزم مراجعة جديدة" : "السكريبت بانتظار الاعتماد الصريح"}</p>
+            signoff?.changed ? "تغيّر السكريبت بعد اعتماده؛ يلزم مراجعة جديدة" :
+            signoff?.needsReview ? "تغيرت حالة توثيق الاستشهادات؛ الاعتماد السابق غير سارٍ" : "السكريبت بانتظار الاعتماد الصريح"}</p>
           <p>أكمل توثيق الاستشهادات ومطابقة الآيات مع المصحف، ثم راجع السكريبت كاملًا قبل بدء اعتماد Storyboard.</p>
           {signoffError && <p role="alert" className="note err">{signoffError}</p>}
           <label htmlFor="script-signer">اسم المراجع</label>
