@@ -1,11 +1,11 @@
 /**
  * معاينات الحلقة في الاستوديو (previews/ بجوار السكريبت): كل فيديو يُصنع للحلقة يُرفع هنا مباشرة،
  * معاينة كان أو غيرها، لأن المراجعة كلها تجري في الاستوديو (قاعدة صاحب القناة، ٤ نوفمبر ٢٠٢٦).
- * لكل موضوع «خانة» واحدة: أي تعديل يحذف الفيديو القديم ويضع الجديد مكانه، فلا تتراكم نسخ قديمة.
+ * لكل موضوع «خانة» ظاهرة واحدة، مع حفظ كل فيديو سابق في history بدلاً من إتلافه.
  */
 import { existsSync } from "node:fs";
 import { copyFile, link, mkdir, readFile, readdir, rename, rm, rmdir, stat, writeFile } from "node:fs/promises";
-import { assertNoLinkedPath, ensureUnlinkedDirectory } from "./fsIsolation";
+import { assertNoLinkedPath, copyUnlinkedFile, ensureUnlinkedDirectory } from "./fsIsolation";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { resolveEpisodeDir } from "../script/episodes";
@@ -37,16 +37,19 @@ const withPreviewIndexLock = async <T>(dir: string, work: () => Promise<T>): Pro
 const readIndex = async (dir: string): Promise<PreviewIndex> => {
   const f = path.join(dir, "index.json");
   if (!existsSync(f)) return {};
+  await assertNoLinkedPath(f, true);
   try {
-    return JSON.parse(await readFile(f, "utf8")) as PreviewIndex;
-  } catch {
-    return {};
+    const data = JSON.parse(await readFile(f, "utf8")) as PreviewIndex;
+    if (!data || Array.isArray(data) || typeof data !== "object") throw new Error("Invalid preview index");
+    return data;
+  } catch (e) {
+    throw new Error(`فهرس المعاينات غير صالح؛ لن يُستبدل أي إصدار سابق: ${(e as Error).message}`);
   }
 };
 
 /**
- * يضع الفيديو في خانته: يحذف كل نسخة قديمة للخانة نفسها (ومنها الأسماء القديمة <الخانة>-v2.mp4…)
- * ثم ينسخ الجديد باسم <الخانة>.mp4 ويحدّث index.json برقم النسخة وتاريخها.
+ * يحدّث اسم العرض فقط بعد أرشفة كل نسخة سابقة داخل history؛
+ * ويمنع تجاوز صلاحية الخانة أو التخلص من النسخ التاريخية.
  */
 export const putPreview = async (scriptPath: string, slot: string, file: string, meta: { title: string; note?: string }) => {
   const name = slotName(slot);
@@ -73,7 +76,7 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   try {
     const sourceSize = (await stat(file)).size;
     if (sourceSize === 0) throw new Error("ملف المعاينة فارغ؛ النسخة القديمة محفوظة.");
-    await copyFile(file, pending);
+    await copyUnlinkedFile(file, pending);
     if ((await stat(pending)).size !== sourceSize) throw new Error("نسخ المعاينة غير مكتمل؛ النسخة القديمة محفوظة.");
     const nextIndex = { ...index };
     for (const n of stale) delete nextIndex[n];
@@ -132,6 +135,12 @@ export const removePreview = async (scriptPath: string, slot: string) => {
     await rm(output, { force: true });
   }
   delete index[target];
-  if (existsSync(dir)) await writeFile(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
+  const pending = path.join(dir, `.index.${randomUUID()}.pending`);
+  try {
+    await writeFile(pending, JSON.stringify(index, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+    await rename(pending, path.join(dir, "index.json"));
+  } finally {
+    await rm(pending, { force: true });
+  }
   });
 };
