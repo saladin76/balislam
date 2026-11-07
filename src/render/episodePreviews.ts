@@ -4,7 +4,7 @@
  * لكل موضوع «خانة» واحدة: أي تعديل يحذف الفيديو القديم ويضع الجديد مكانه، فلا تتراكم نسخ قديمة.
  */
 import { existsSync } from "node:fs";
-import { copyFile, link, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, link, mkdir, readFile, readdir, rename, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import { assertNoLinkedPath, ensureUnlinkedDirectory } from "./fsIsolation";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
@@ -19,6 +19,19 @@ const slotName = (slot: string) => {
   if (!/^[a-z0-9][a-z0-9_-]{0,80}$/i.test(slot))
     throw new Error("اسم خانة المعاينة غير آمن؛ استخدم أحرفًا لاتينية وأرقامًا وشرطات فقط.");
   return slot.toLowerCase();
+};
+
+/** One serialized writer per episode preview index. A crash keeps the lock
+ * rather than allowing another worker to overwrite a version accidentally. */
+const withPreviewIndexLock = async <T>(dir: string, work: () => Promise<T>): Promise<T> => {
+  await ensureUnlinkedDirectory(dir);
+  const lock = path.join(dir, ".preview-index.lock");
+  await mkdir(lock, { mode: 0o700 });
+  try {
+    return await work();
+  } finally {
+    await rmdir(lock);
+  }
 };
 
 const readIndex = async (dir: string): Promise<PreviewIndex> => {
@@ -43,6 +56,7 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   await assertNoLinkedPath(scriptPath, true);
   await assertNoLinkedPath(file, true);
   await ensureUnlinkedDirectory(dir);
+  return withPreviewIndexLock(dir, async () => {
   const history = path.join(dir, "history", name);
   await ensureUnlinkedDirectory(history);
   const index = await readIndex(dir);
@@ -96,6 +110,7 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
   } finally {
     await Promise.allSettled([rm(pending, { force: true }), rm(pendingIndex, { force: true }), rm(backup, { force: true })]);
   }
+  });
 };
 
 // المعاينات تخص مجلد الحلقة (ومنه مختبر المحرك الذي لا سكريبت له)
@@ -106,6 +121,7 @@ export const removePreview = async (scriptPath: string, slot: string) => {
   const dir = previewsDirFor(scriptPath);
   const name = slotName(slot);
   const target = `${name}.mp4`;
+  await withPreviewIndexLock(dir, async () => {
   const index = await readIndex(dir);
   const output = path.join(dir, target);
   if (existsSync(output)) {
@@ -117,4 +133,5 @@ export const removePreview = async (scriptPath: string, slot: string) => {
   }
   delete index[target];
   if (existsSync(dir)) await writeFile(path.join(dir, "index.json"), JSON.stringify(index, null, 2) + "\n");
+  });
 };
