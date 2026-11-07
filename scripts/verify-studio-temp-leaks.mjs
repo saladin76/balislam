@@ -54,6 +54,11 @@ const disk = d => {
 };
 const run = (root, label, mode = null) => new Promise(resolve=>{
   const env = { ...process.env, TMPDIR:root, TMP:root, TEMP:root };
+  // Stress two independent gates concurrently, but allow only one Vitest
+  // worker per gate on RAM-constrained Macs. All 638 tests still execute.
+  // The production gate and serial/failure/cancel audits remain unchanged.
+  if (parallel) env.BAL_STUDIO_AUDIT_VITEST_WORKERS = "1";
+  else delete env.BAL_STUDIO_AUDIT_VITEST_WORKERS;
   // This deliberately fails only the npx command within the test child.
   if (mode === "failure") env.PATH = path.join(root, "missing-bin-directory");
   const child=spawn(process.execPath,[path.join(repo,"scripts/gate.mjs")],{cwd:repo,env,stdio:"inherit"});
@@ -117,7 +122,8 @@ try {
   const after=available();
   const swapAfter=swapUsage();
   console.log("TEMP_LEAK_AUDIT "+JSON.stringify({
-    mode:exercise || (parallel?"parallel":"serial"),results:samples,freeBytesBefore:before,
+    mode:exercise || (parallel?"parallel":"serial"),
+    maxVitestWorkersPerGate:parallel?1:null,results:samples,freeBytesBefore:before,
     freeBytesAfter:after,freeBytesDelta:after-before,
     swapBefore,swapAfter,
     swapTotalDeltaBytes: swapBefore?.totalBytes != null && swapAfter?.totalBytes != null
