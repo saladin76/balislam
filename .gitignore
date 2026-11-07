@@ -46,3 +46,6 @@ channels/.*.create.lock
 
 # Explicit optimistic-concurrency locks, never committed
 channels/*/*.json.lock
+
+# A crash may leave an exclusive settings claim; inspect before removing
+.env.lock
