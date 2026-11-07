@@ -501,10 +501,11 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const script = parseScript(await readFile(file, "utf8"), file);
     let items;
     if (req.method === "PUT") {
-      const { key, status, note } = await readBody(req);
+      const { key, status, note, reviewer, confirm } = await readBody(req);
       if (typeof key !== "string" || !["verified", "rejected", "pending"].includes(status)) return send(res, 400, { error: "قرار غير صالح." }), true;
       try {
-        items = await R.setReview(file, script, key, status, typeof note === "string" ? note : "");
+        items = await R.setReview(file, script, key, status, typeof note === "string" ? note : "",
+          typeof reviewer === "string" ? reviewer : "", confirm === true);
       } catch (e) {
         return send(res, 400, { error: (e as Error).message }), true;
       }
