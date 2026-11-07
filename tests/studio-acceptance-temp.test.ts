@@ -53,4 +53,34 @@ describe("isolated Mac acceptance scratch lifecycle", () => {
     await expect(cleanupOwnedAcceptanceTemp(run, scratch)).rejects.toThrow(/ownership/);
     expect(await readFile(path.join(peer, "do-not-delete.txt"), "utf8")).toBe("PEER EVIDENCE");
   });
+  it("repeated cycles release their own large scratch while preserving all reports", async () => {
+    const { run, scratch } = await fixture();
+    for (let cycle = 0; cycle < 3; cycle++) {
+      if (cycle > 0) await mkdir(scratch);
+      const fixtureDir = path.join(scratch, `bal-voice-cycle-${cycle}`);
+      await mkdir(fixtureDir);
+      await writeFile(path.join(fixtureDir, "audio.bin"), Buffer.alloc(512 * 1024));
+      const result = await cleanupOwnedAcceptanceTemp(run, scratch);
+      expect(result.clean).toBe(true);
+      expect(existsSync(scratch)).toBe(false);
+      expect(await readFile(path.join(run, "acceptance.json"), "utf8")).toContain("FAIL");
+    }
+  });
+
+  it("parallel run cleanup never deletes a peer's scratch or its evidence", async () => {
+    const { root, run, scratch, peer } = await fixture();
+    const peerScratch = path.join(peer, "temp");
+    await mkdir(peerScratch);
+    await writeFile(path.join(scratch, "one.bin"), "ONE");
+    await writeFile(path.join(peerScratch, "two.bin"), "TWO");
+    const first = await cleanupOwnedAcceptanceTemp(run, scratch);
+    expect(first.clean).toBe(true);
+    expect(await readFile(path.join(peerScratch, "two.bin"), "utf8")).toBe("TWO");
+    // A peer is allowed to finish independently, not be swept by run-one.
+    const second = await cleanupOwnedAcceptanceTemp(peer, peerScratch);
+    expect(second.clean).toBe(true);
+    expect(await readFile(path.join(peer, "do-not-delete.txt"), "utf8")).toBe("PEER EVIDENCE");
+    expect(existsSync(path.join(root, "run-one", "acceptance.json"))).toBe(true);
+  });
+
 });
