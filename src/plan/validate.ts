@@ -98,7 +98,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
       }
       if (s.template === "hadith-card" && !p.text?.trim()) out.push({ level: "error", sceneId: s.id, message: `بطاقة الحديث «${p.reference ?? ""}» بلا نص.` });
       if (s.template === "verse-card" && (!p.text?.trim() || p.text.startsWith("‹")))
-        out.push({ level: "error", sceneId: s.id, message: `بطاقة الآية «${p.reference ?? ""}» بنص مؤقت؛ اجلب نصوص الآيات (زر «اجلب نصوص الآيات» في الاستوديو أو الأمر bal quran) بعد إضافة مفاتيح Quran Foundation.` });
+        out.push({ level: "error", sceneId: s.id, message: `بطاقة الآية «${p.reference ?? ""}» بنص مؤقت؛ اكتب النص القرآني والتشكيل داخل علامة [آية: المرجع | النص] في السكريبت، ثم قارنه بالمصحف المعتمد واطلب المراجعة الشرعية الصريحة.` });
       for (const k of ["element", "rightElement", "leftElement", "secondElement"])
         if (p[k] && !hasElement(p[k]!)) out.push({ level: "warning", sceneId: s.id, message: `العنصر «${p[k]}» غير موجود في المكتبة.` });
       // نصوص أطول من مساحة القالب: تُصغَّر تلقائيًا، لكن الأوضح تقصيرها
