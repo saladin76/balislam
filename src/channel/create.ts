@@ -1,6 +1,6 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { channelPaths, loadChannel, isChannelId } from "./index";
 import { langPacks } from "../i18n/packs";
 import type { ChannelConfig } from "./types";
@@ -78,8 +78,21 @@ export const createChannel = async (opts: NewChannelOptions) => {
   // A sibling staging directory is invisible to listChannels. A failed write or
   // process interruption never exposes a half-created production channel.
   await mkdir(path.dirname(p.dir), { recursive: true });
-  const staging = await mkdtemp(path.join(path.dirname(p.dir), `.${opts.id}.creating-`));
+  // Acquire a cross-process claim before staging. Exclusive creation ensures two
+  // Studio processes cannot both publish the same id; a crash leaves a visible
+  // lock that must be inspected manually rather than risking an overwrite.
+  const lockPath = path.join(path.dirname(p.dir), `.${opts.id}.create.lock`);
+  let lock: Awaited<ReturnType<typeof open>>;
   try {
+    lock = await open(lockPath, "wx", 0o600);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST")
+      throw new Error(`إنشاء القناة «${opts.id}» قيد التنفيذ أو يحتاج فحص قفل قديم؛ لن تُستبدل أي ملفات.`);
+    throw error;
+  }
+  let staging: string | undefined;
+  try {
+    staging = await mkdtemp(path.join(path.dirname(p.dir), `.${opts.id}.creating-`));
     await mkdir(path.join(staging, "episodes"));
     await writeFile(path.join(staging, "episodes", ".gitkeep"), "");
     await writeFile(path.join(staging, "identity.json"), identity);
@@ -91,8 +104,14 @@ export const createChannel = async (opts: NewChannelOptions) => {
     if (existsSync(p.dir)) throw new Error(`القناة «${opts.id}» موجودة بالفعل؛ لم تُستبدل.`);
     await rename(staging, p.dir);
   } finally {
-    // Never delete the final channel directory or files belonging to another run.
-    await rm(staging, { recursive: true, force: true });
+    // Only this invocation's unique staging path may be deleted. Always release
+    // the claim after success/failure; a process crash deliberately leaves it.
+    try {
+      if (staging) await rm(staging, { recursive: true, force: true });
+    } finally {
+      await lock.close();
+      await rm(lockPath, { force: true });
+    }
   }
   return p.dir;
 };
