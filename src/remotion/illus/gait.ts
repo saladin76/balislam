@@ -128,6 +128,20 @@ export const fitDistance = (g: GaitId, frames: number, scale: number, fps: numbe
   return gaitSpeed(g, scale, fps) * (T - ramps / 2);
 };
 
+/**
+ * For an explicitly authored short beat, compress the acceleration/deceleration ramps
+ * into the available frames. Legacy fitDistance stays unchanged for old scenes.
+ */
+export const fitDistanceWithin = (g: GaitId, frames: number, scale: number, fps: number) => {
+  if (!Number.isFinite(frames) || frames <= 0) return 0;
+  const spec = GAITS[g];
+  const T = Math.max(1, frames);
+  const rampScale = Math.min(1, T / (spec.accel + spec.decel));
+  const ra = spec.accel * rampScale;
+  const rd = spec.decel * rampScale;
+  return gaitSpeed(g, scale, fps) * (T - (ra + rd) / 2);
+};
+
 /** عدد الإطارات التي تستغرقها مسافة بمشية (عكس fitDistance)، مع البداية أو النهاية الطائرة */
 export const fitFrames = (g: GaitId, distance: number, scale: number, fps: number, flyIn = false, flyOut = false) => {
   const s = GAITS[g];
@@ -141,6 +155,8 @@ export type Move = {
   start: number;
   dx: number;
   gait: GaitId;
+  /** Opt-in authored duration; old moves without it remain byte-for-byte unchanged. */
+  durationFrames?: number;
   /**
    * استمرار الحركة عبر حدود المشاهد (الأمر 011): flyIn تبدأ بالسرعة الكاملة بلا استعداد ولا تسارع
    * (كان يمشي قبل بداية المشهد)، وflyOut تنتهي بالسرعة الكاملة بلا تباطؤ (يخرج من الإطار ماشيًا).
@@ -160,6 +176,15 @@ const profileOf = (m: Move, scale: number, fps: number): Profile => {
   let rd = m.flyOut ? 0 : g.decel;
   let T = D / vmax + (ra + rd) / 2;
   let vpk = vmax;
+  if (m.durationFrames !== undefined && Number.isFinite(m.durationFrames) && m.durationFrames > 0) {
+    // Beat duration is authoritative: no residual walking after the next pose/scene cue.
+    T = Math.max(1, m.durationFrames);
+    const rampScale = Math.min(1, T / Math.max(1, ra + rd));
+    ra *= rampScale;
+    rd *= rampScale;
+    vpk = Math.min(vmax, D / Math.max(0.1, T - (ra + rd) / 2));
+    return { start: m.start, end: m.start + T, vpk, ra, rd, dir: m.dx < 0 ? -1 : 1, gait: m.gait, ...(m.flyIn ? { flyIn: true } : {}) };
+  }
   if (T < ra + rd) {
     // مسافة قصيرة: لا تبلغ السرعة الكاملة (خطوات قليلة)
     vpk = D / ((ra + rd) / 2);
@@ -417,7 +442,7 @@ export const withCarry = (o: {
   if (o.carryOut) {
     const base = { x0, facing0, moves: [...moves], turns: o.turns, scale: o.scale, fps: o.fps };
     const target = o.carryOut === "left" ? -margin : o.worldW + margin;
-    const lastEnd = Math.max(0, ...moves.map((m) => m.start + fitFrames(m.gait, Math.abs(m.dx), o.scale, o.fps, Boolean(m.flyIn), Boolean(m.flyOut))));
+    const lastEnd = Math.max(0, ...moves.map((m) => m.start + (m.durationFrames ?? fitFrames(m.gait, Math.abs(m.dx), o.scale, o.fps, Boolean(m.flyIn), Boolean(m.flyOut)))));
     // يبدأ الخروج بحيث يغادر الإطار مع آخر إطار، ولا يبدأ قبل انتهاء ما قبله
     let start = o.dur - 1;
     for (let k = 0; k < 3; k++) {
