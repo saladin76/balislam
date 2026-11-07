@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
-import { stageRenderFiles, stageStoryboardFiles, type RenderStageFile } from "./renderStage";
+import { defaultRenderMediaRoot, stageRenderFiles, stageStoryboardFiles, type RenderStageFile } from "./renderStage";
 import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
 import { loadVoiceIndex, voiceDirFor, audioDuration } from "../voice/generate";
@@ -129,7 +129,7 @@ export const prepareRenderMedia = async (
     source: f.startsWith(LIB) ? path.join(libraryDirFor(scriptPath), f.slice(LIB.length)) : path.join(imagesDirFor(scriptPath), f),
   });
   const rel = await stageRenderFiles(studioMediaNamespace(scriptPath).render, files, {
-    publicRoot: opts.publicRoot ?? path.join(projectRoot, "public"),
+    publicRoot: opts.publicRoot ?? defaultRenderMediaRoot(),
     signal: opts.signal,
   });
   return { ...m, mode: "static", base: rel };
@@ -158,7 +158,7 @@ export const prepareStoryboardMedia = async (
     studioMediaNamespace(scriptPath).render,
     assets.map((asset) => ({ kind: "images" as const, name: asset.name, source: asset.file })),
     digest.digest("hex"),
-    { publicRoot: opts.publicRoot ?? path.join(projectRoot, "public"), signal: opts.signal },
+    { publicRoot: opts.publicRoot ?? defaultRenderMediaRoot(), signal: opts.signal },
   );
   return { mode: "static", base: rel, voice: {}, sfx: [], recitations: {}, images };
 };
