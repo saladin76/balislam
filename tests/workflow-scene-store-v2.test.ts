@@ -42,7 +42,7 @@ const stage = async (scope: SceneV2Scope) => {
   await mutateSceneLedgerV2(scope, order, (doc) =>
     reconcileSceneInputs(doc, "c1-s1", inputs("c1-s1"), clock));
   await mutateSceneLedgerV2(scope, order, (doc) =>
-    beginFinalSceneProduction(doc, "c1-s1", clock));
+    beginFinalSceneProduction(doc, "c1-s1", clock, () => undefined));
   return mutateSceneLedgerV2(scope, order, (doc) =>
     submitSceneAvReview(doc, "c1-s1", clock));
 };
