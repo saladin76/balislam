@@ -32,7 +32,13 @@ const reject = (reason: string): never => { throw new Error("تم رفض تلا�
 /** Quran Foundation serves audio but does not automatically grant publication rights. */
 export const assertReciterPublicationRights = (choice: RecitationChoice): true => {
   if (!choice || !present(choice.name)) reject("اسم القارئ غير موثق.");
-  if (isCloudRecitation(choice)) { requireCloudPublicationRights(choice); return true; }
+  if (isCloudRecitation(choice)) {
+    requireCloudPublicationRights(choice);
+    const proof = choice.licence;
+    if (!present(proof.verifiedBy) || !present(proof.reviewNote) || proof.reviewNote!.trim().length < 12)
+      reject("تلاوة القارئ تحتاج اسم المراجع البشري وملاحظة تدقيق الحقوق قبل النشر.");
+    return true;
+  }
   const r = choice.licence;
   let https = false;
   try {
@@ -45,6 +51,8 @@ export const assertReciterPublicationRights = (choice: RecitationChoice): true =
       !/publish|نشر|commercial|تجاري/i.test(r.scope) ||
       !Number.isFinite(when) || when > Date.now() + 60_000)
     reject("تسجيل Quran Foundation يحتاج دليل حقوق نشر مرتبطًا بالقارئ؛ جلب الصوت ليس إذن نشر.");
+  if (!present(r.verifiedBy) || !present(r.reviewNote) || r.reviewNote!.trim().length < 12)
+    reject("تلاوة القارئ تحتاج اسم المراجع البشري وملاحظة تدقيق الحقوق قبل النشر.");
   return true;
 };
 
