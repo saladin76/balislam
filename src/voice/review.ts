@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
-import { parseFile } from "music-metadata";
+import { decodedAudioDuration } from "./audioIntegrity";
 import { isTone } from "./tones";
 import type { Plan, PlanScene } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
@@ -32,13 +32,10 @@ export const voiceFingerprint = async (scene: PlanScene, clip: VoiceClip | undef
   try { bytes = await readFile(path.join(path.dirname(scriptPath), "voice", clip.file)); }
   catch { return null; }
   if (!bytes.length) return null;
-  // A hash of corrupt bytes is not a usable recording. The same test serves the
-  // interface and the render gate; no "approved" state for an undecodable MP3.
-  try {
-    const meta = await parseFile(path.join(path.dirname(scriptPath), "voice", clip.file), { duration: true });
-    if (!meta.format.duration || !Number.isFinite(meta.format.duration) || meta.format.duration <= 0 ||
-        !/MPEG.*Layer 3|MP3/i.test(meta.format.codec ?? "")) return null;
-  } catch { return null; }
+  // Probe every decoded frame, not merely a valid MP3 header or duration tag.
+  // Any unreadable part invalidates the same fingerprint used by UI and gate.
+  if (!await decodedAudioDuration(path.join(path.dirname(scriptPath), "voice", clip.file), { mp3Only: true }))
+    return null;
   const digest = createHash("sha256").update(bytes).digest("hex");
   return createHash("sha256").update(JSON.stringify({
     version: 1, sceneId: scene.id, text: scene.narration.trim(), tone: scene.tone,
@@ -76,7 +73,10 @@ export const episodeVoiceApproved = async (scriptPath: string, plan: Plan, voice
 /** The full narration approval is separate from the approval of each voice clip. */
 export const approveVoiceEpisode = async (
   scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"], reviewer: string, note: string,
+  listenedInFull: boolean,
 ) => {
+  if (listenedInFull !== true)
+    throw new Error("يلزم التأكيد الصريح للاستماع الكامل بالترتيب الطبيعي قبل اعتماد الحلقة الصوتية.");
   if (!reviewer.trim() || note.trim().length < 20)
     throw new Error("اعتماد الحلقة الصوتية يتطلب اسم المراجع وملاحظة الاستماع الكامل.");
   const record = await loadVoiceReview(scriptPath);
@@ -112,8 +112,10 @@ export const assertVoiceApproved = async (scriptPath: string, plan: Plan, voice:
 /** Must be called only after an actual human listens to the clip. */
 export const approveVoiceScene = async (
   scriptPath: string, plan: Plan, voice: EpisodeMedia["voice"],
-  sceneId: string, reviewer: string, note: string,
+  sceneId: string, reviewer: string, note: string, listened: boolean,
 ) => {
+  if (listened !== true)
+    throw new Error("يلزم التأكيد الصريح أنك استمعت إلى التسجيل كاملًا قبل اعتماد المقطع.");
   if (!reviewer.trim() || note.trim().length < 12)
     throw new Error("اذكر المراجع وملاحظة الاستماع الفعلية قبل اعتماد الصوت.");
   const scene = plan.chapters.flatMap((c) => c.scenes).find((s) => s.id === sceneId && s.narration.trim());
