@@ -4,7 +4,9 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
-import { HttpError, safeName } from "./util.ts";
+import { HttpError, safeName, assertSafeMediaFile } from "./util.ts";
+import { readBody } from "./body.ts";
+import { isTrustedLocalRequest } from "./security.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -19,20 +21,6 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
   res.setHeader("content-type", "application/json; charset=utf-8");
   res.end(JSON.stringify(body));
 };
-
-const readBody = async (req: IncomingMessage): Promise<any> => {
-  const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
-  const raw = Buffer.concat(chunks).toString("utf8");
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new HttpError(400, "بيانات الطلب غير صالحة.");
-  }
-};
-
-
 
 /** config.json مع رسالة واضحة إن تلف (مثلًا علامات تعارض من git pull أو stash pop) */
 const readConfig = async () => {
@@ -49,6 +37,7 @@ const EP = /^\d{3}$/;
 
 /** يخدم ملفًا مع دعم المقاطع (Range) حتى يستطيع المشغل التقديم والتأخير. */
 const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type: string) => {
+  assertSafeMediaFile(file, root);
   const size = statSync(file).size;
   // مقطع واحد فقط: bytes=start-end أو bytes=start- أو bytes=-suffix
   const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
