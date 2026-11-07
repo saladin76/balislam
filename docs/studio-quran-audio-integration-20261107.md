@@ -219,3 +219,31 @@ The runnable independent cases in `tests/quran-render-integration-contract.test.
 - Combined-head `npm run typecheck`, full `npm test`, scoped regression, render-isolation synthetic landscape/portrait smoke, three-channel isolation and immutable snapshot checks, followed by separate genuine human Quran/rights/audio/AV listening review. Archive exact SHAs, run evidence and output hashes.
 
 **Evidence boundaries:** last *executed and reported* Quran/audio Mac acceptance was SHA `9322aa2` (89/89 files and 667/667 Vitest, TypeScript exit 0). The new integration contracts, new negative tests and QF publish gates are **later commits** and have **NOT yet been executed on Mac/CI**. PR #73 does not yet call the exported functions, and PR #78 has not yet reconciled these heads. Therefore branch-wide testing at the *new* head, combined functional Master tests and human approvals are pending. **Do not claim 100%, merge or publish.**
+
+
+### Combined-only live collector acceptance (opt-in; deliberately not a green #76 signal)
+
+`tests/quran-render-live-collector.test.ts` imports and calls the **real**
+`collectMedia("000", plan)` against a disposable copied channel + episode fixture.
+Its two cases require (1) selection of the precise, human-reviewed manual
+`provider: manual` MP3 with full SHA in `parts[]` and (2) **rejection** when
+the approved MP3 bytes or a single Quran haraka change after approval. The test
+does not modify the shared repository's channel files, renderer code, public
+output, or production recordings.
+
+It is **skipped in ordinary independent PR #76 Vitest runs** because the
+current independent collector intentionally lacks this integration; a skipped
+test is not a pass for the combined rendering path. After PR #73 connects the
+API, integration PR #78 **MUST explicitly run**:
+
+```bash
+STUDIO_QURAN_RENDER_INTEGRATION=1 npx vitest run tests/quran-render-live-collector.test.ts
+```
+
+Both tests must run and pass (no skipped tests), on an exact combined branch SHA;
+also execute the whole suite and synthetic Remotion media-staging/actual-render
+negative tests. Failing the opt-in run is an integration blocker, not permission
+to weaken the assertion or bypass manual human signoff.
+
+Latest CI/parity workflow jobs on the independent branch continue to fail with
+no reported steps (not evidence of `tsc` or Vitest failure or success).
