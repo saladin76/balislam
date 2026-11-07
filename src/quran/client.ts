@@ -110,10 +110,9 @@ export const createQuranClient = (opts: QuranClientOptions) => {
 
 export type QuranClient = ReturnType<typeof createQuranClient>;
 
-export const quranClientFromEnv = (fetchImpl?: typeof fetch): QuranClient | null => {
-  const clientId = process.env.QF_CLIENT_ID;
-  const clientSecret = process.env.QF_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return null;
-  const env = process.env.QF_ENV === "production" ? "production" : "prelive";
-  return createQuranClient({ clientId, clientSecret, env, fetchImpl });
-};
+/**
+ * Disabled while retiring the historical external Quran provider.
+ * Studio uses authored script text and owner-uploaded recordings exclusively.
+ * Legacy test fixtures may still import createQuranClient until migration ends.
+ */
+export const quranClientFromEnv = (_fetchImpl?: typeof fetch): QuranClient | null => null;
