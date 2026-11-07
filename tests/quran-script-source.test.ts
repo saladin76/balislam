@@ -64,7 +64,9 @@ describe("Quran script-first text, review and historical meanings", () => {
   it("invalidates human citation approval after editing only a Quranic diacritic", () => {
     const item = reviewItems(parseScript(makeScript(verse)), null)[0]!;
     const ledger: ReviewLedger = { version: 1, items: {
-      [item.key]: { status: "verified", hash: item.hash, ref: item.ref, at: "2026-11-01T00:00:00Z" },
+      [item.key]: { status: "verified", hash: item.hash, ref: item.ref,
+        reviewer: "مراجع المصحف", note: "قورنت الآية مع المصحف المعتمد",
+        at: "2026-11-01T00:00:00Z" },
     } };
     expect(reviewItems(parseScript(makeScript(verse)), ledger)[0]?.status).toBe("verified");
     expect(reviewItems(parseScript(makeScript(verse.replace("وَأَنْ", "وَأَنِ"))), ledger)[0]?.status).toBe("changed");
