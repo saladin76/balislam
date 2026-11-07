@@ -5,9 +5,9 @@
  * الاعتماد مربوط ببصمة نص الاستشهاد (ونص الحديث في التعليق): إن تغيّر بعد الاعتماد عاد «تغيّر بعد الاعتماد».
  * الفحص البرمجي للصيغ والدرجات لا يغني عن هذه المراجعة، ولا يُولَّد صوت قبل اكتمالها.
  */
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { open, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import config from "../../config.json";
 import { normalizeArabic, parseAyahRef } from "./quranMeta";
@@ -84,8 +84,12 @@ export const loadLedger = async (scriptPath: string): Promise<ReviewLedger> => {
   try {
     const j = JSON.parse(await readFile(f, "utf8")) as ReviewLedger;
     return { version: 1, items: j.items ?? {} };
-  } catch {
-    return { version: 1, items: {} };
+  } catch (error) {
+    // Do not erase historical reviewer evidence on malformed JSON or permission
+    // errors: the operator must repair the file intentionally.
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      return { version: 1, items: {} };
+    throw new Error("تعذّر قراءة سجل التوثيق التاريخي؛ لم يُستبدل أو يُحذف.", { cause: error });
   }
 };
 
@@ -95,28 +99,52 @@ export const setReview = async (
   status: "verified" | "rejected" | "pending", note = "",
   reviewer = "", confirmed = false,
 ): Promise<ReviewItem[]> => {
-  const ledger = await loadLedger(scriptPath);
-  const item = reviewItems(script, ledger).find((i) => i.key === key);
-  if (!item) throw new Error("الاستشهاد غير موجود في السكريبت الحالي؛ احفظ السكريبت ثم أعد المحاولة.");
-  if (status === "pending") delete ledger.items[key];
-  else {
-    if (confirmed !== true || typeof reviewer !== "string" || reviewer.trim().length < 2 || reviewer.trim().length > 120)
-      throw new Error("توثيق الاستشهاد يتطلب تأكيدًا بشريًا واسم المراجع.");
-    if (typeof note !== "string" || note.trim().length < 12 || note.length > 2000)
-      throw new Error(status === "rejected" ? "اكتب سبب الرفض في الملاحظة." : "اذكر مصدر التحقق وملاحظته قبل توثيق الاستشهاد.");
-    // Do not approve a stale in-memory script snapshot after the file changes.
+  const target = reviewFileFor(scriptPath);
+  const lockFile = target + ".lock";
+  // One ledger transaction at a time. A concurrent reviewer must retry and
+  // evaluate the current record, never overwrite another human decision.
+  const lock = await open(lockFile, "wx", 0o600).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "EEXIST")
+      throw new Error("هناك قرار مراجعة آخر قيد الحفظ؛ أعد المحاولة بعد انتهائه.");
+    throw error;
+  });
+  try {
+    const ledger = await loadLedger(scriptPath);
+    const item = reviewItems(script, ledger).find((entry) => entry.key === key);
+    if (!item) throw new Error("الاستشهاد غير موجود في السكريبت الحالي؛ احفظ السكريبت ثم أعد المحاولة.");
+    // Re-evaluate the live script for all changes including an explicit revoke.
     const liveScript = await readFile(scriptPath, "utf8");
-    if (reviewItems((await import("./parse")).parseScript(liveScript, scriptPath), null)
-        .find((current) => current.key === key)?.hash !== item.hash)
+    const current = (await import("./parse")).parseScript(liveScript, scriptPath);
+    const liveItems = reviewItems(current, null);
+    if (liveItems.find((entry) => entry.key === key)?.hash !== item.hash)
       throw new Error("تغير الاستشهاد أثناء المراجعة؛ أعد تحميل السكريبت قبل الاعتماد.");
-    ledger.items[key] = { hash: item.hash, status, reviewer: reviewer.trim(), note: note.trim(),
-      at: new Date().toISOString(), ref: item.ref };
+    if (status === "pending") {
+      delete ledger.items[key];
+    } else {
+      if (confirmed !== true || typeof reviewer !== "string" || reviewer.trim().length < 2 ||
+          reviewer.trim().length > 120)
+        throw new Error("توثيق الاستشهاد يتطلب تأكيدًا بشريًا واسم المراجع.");
+      if (typeof note !== "string" || note.trim().length < 12 || note.length > 2000)
+        throw new Error(status === "rejected" ? "اكتب سبب الرفض في الملاحظة." :
+          "اذكر مصدر التحقق وملاحظته قبل توثيق الاستشهاد.");
+      ledger.items[key] = { hash: item.hash, status, reviewer: reviewer.trim(), note: note.trim(),
+        at: new Date().toISOString(), ref: item.ref };
+    }
+    // Do not prune source evidence for other citations in the same ledger.
+    // Removed citations remain historical but cannot be current: reviewItems
+    // derives only the live script's citations and their exact fingerprints.
+    const temp = target + "." + randomUUID() + ".tmp";
+    try {
+      await writeFile(temp, JSON.stringify(ledger, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+      if (await readFile(scriptPath, "utf8") !== liveScript)
+        throw new Error("تغيّر السكريبت أثناء حفظ الاعتماد؛ لن تُثبّت الموافقة.");
+      await rename(temp, target);
+    } finally { await rm(temp, { force: true }); }
+    return reviewItems(current, ledger);
+  } finally {
+    await lock.close();
+    await rm(lockFile, { force: true });
   }
-  // لا تبقى في السجل استشهادات حُذفت من السكريبت
-  const live = new Set(reviewItems(script, null).map((i) => i.key));
-  for (const k of Object.keys(ledger.items)) if (!live.has(k)) delete ledger.items[k];
-  await writeFile(reviewFileFor(scriptPath), JSON.stringify(ledger, null, 2) + "\n", "utf8");
-  return reviewItems(script, ledger);
 };
 
 export const reviewBlockMessage = (s: ReviewSummary) =>
