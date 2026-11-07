@@ -238,7 +238,7 @@ export const balApi = (): Plugin => ({
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
-            const name = safeName(parts[4]);
+            const name = safeName(parts[4]!);
             // التلاوات: ملفات الصوت اليدوية المعتمدة الخاصة بهذه الحلقة فقط
             const { recitationsDirFor } = await load("/src/quran/sync.ts");
             const epRec = recitationsDirFor(scriptPath);
