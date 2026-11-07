@@ -49,3 +49,7 @@ channels/*/*.json.lock
 
 # A crash may leave an exclusive settings claim; inspect before removing
 .env.lock
+
+# Hidden, owned staging areas for atomic episode creation (not media data)
+channels/*/episodes/.*.create.lock
+channels/*/episodes/.*.creating-*/
