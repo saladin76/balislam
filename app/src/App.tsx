@@ -17,7 +17,7 @@ import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle, type ResearchDraft } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
-import { OpsRoom } from "./tabs/OpsRoom";
+import { OpsRoom, type IdeaDraft } from "./tabs/OpsRoom";
 import { ChannelsWorkspace } from "./tabs/ChannelsWorkspace";
 import { IntegratedReviewWorkspace } from "./workspace/IntegratedReviewWorkspace";
 import { PublishTab } from "./tabs/PublishTab";
@@ -120,6 +120,7 @@ export const App: React.FC = () => {
   const researchDrafts = useRef(new Map<string, ResearchDraft>());
   const identityDrafts = useRef(new Map<string, { draft: Identity; saved: Identity; defaults: Identity }>());
   const channelSettingsDrafts = useRef(new Map<string, ChannelSettingsDraft>());
+  const ideaDrafts = useRef(new Map<string, IdeaDraft>());
   const sessionKey = `${channelId}/${epId}`;
   const onResearchDraftChange = useCallback((draft: ResearchDraft) => {
     researchDrafts.current.set(`${channelId}/${epId}`, draft);
@@ -328,6 +329,7 @@ export const App: React.FC = () => {
           [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
           [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
           [...channelSettingsDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== d.saved) ||
+          [...ideaDrafts.current.values()].some((d) => Boolean(d.title.trim() || d.note.trim())) ||
           Boolean(savingPlan.current) || planState !== "saved") {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
@@ -405,6 +407,7 @@ export const App: React.FC = () => {
           [...researchDrafts.current.values()].some((d) => d.text !== d.saved) ||
           [...identityDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== JSON.stringify(d.saved)) ||
           [...channelSettingsDrafts.current.values()].some((d) => JSON.stringify(d.draft) !== d.saved) ||
+          [...ideaDrafts.current.values()].some((d) => Boolean(d.title.trim() || d.note.trim())) ||
           Boolean(pendingPlan.current) || Boolean(savingPlan.current) || planState !== "saved"} />
         <header className="top studio-topbar">
           <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
@@ -462,6 +465,8 @@ export const App: React.FC = () => {
           <div className="home-wrap studio-ops-workspace">
             <OpsRoom
             refreshKey={homeKey}
+            ideaDrafts={Object.fromEntries(ideaDrafts.current)}
+            onIdeaDraftChange={(ch, draft) => ideaDrafts.current.set(ch, draft)}
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
                 if (id !== epId && (!confirmLeaveScript() || !(await flushPlan()))) return;
