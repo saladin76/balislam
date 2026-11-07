@@ -101,3 +101,18 @@ export const publishOutputWithoutOverwrite = async (partial: string, preferred: 
   }
   throw new Error("تعذّر إنشاء نسخة جديدة دون الكتابة فوق ملف سابق.");
 };
+
+/**
+ * A caller-supplied episode output path has no authority to escape its episode.
+ * Check it before staging audio or starting any Remotion/Chrome work.
+ */
+export const assertEpisodeOutputConfined = async (scriptPath: string, output: string): Promise<void> => {
+  if (typeof output !== "string" || !/\.mp4$/i.test(output))
+    throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
+  const root = path.join(path.dirname(scriptPath), "out");
+  const relative = path.relative(root, output);
+  if (!relative || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
+    throw new Error("يجب حفظ فيديو الحلقة داخل out/ للحلقة المختارة فقط.");
+  // No parent symlink is accepted; do not follow links into another episode.
+  await ensureUnlinkedDirectory(path.dirname(output));
+};
