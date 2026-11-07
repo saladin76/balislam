@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import type { Plan } from "../src/plan/types";
 import { snapshotFromFiles } from "../src/workflow/artifacts";
-import { assertOwnerToken, assertWorkflowForEpisode, workflowOwnerDecision, workflowReadForEpisode } from "../src/workflow/server";
+import { assertOwnerToken, assertWorkflowForEpisode, workflowOwnerDecision, workflowReadForEpisode, unsafeQuranRecitationScenes } from "../src/workflow/server";
 import { runWithChannel } from "../src/channel";
 
 const digest = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
@@ -139,5 +139,24 @@ describe("explicit authenticated owner decisions fail closed", () => {
       if (previousKey === undefined) delete process.env.BAL_STUDIO_OWNER_TOKEN;
       else process.env.BAL_STUDIO_OWNER_TOKEN = previousKey;
     }
+  });
+});
+
+describe("Quran recitation rights preserve the owner's silent-card choice", () => {
+  const plan = { chapters: [{ number: 1, title: "a", scenes: [{
+    id: "c1-s1", template: "verse-card", ayahKey: "53:39", narration: "", props: { text: "verse" }, sfx: [],
+  }] }] } as unknown as Plan;
+  it("does not invent a recitation when none is selected", () => {
+    expect(unsafeQuranRecitationScenes(plan, {}, false)).toEqual([]);
+    expect(unsafeQuranRecitationScenes(plan, {}, true)).toEqual(["c1-s1"]);
+  });
+  it("rejects unproven licensed/Foundation files and accepts verified own or Cloud sources", () => {
+    const media = (source: "licensed" | "quran-foundation" | "manual" | "alquran-cloud") => ({
+      "53:39": { source, file: "verse.mp3", duration: 2 },
+    });
+    expect(unsafeQuranRecitationScenes(plan, media("licensed"), false)).toEqual(["c1-s1"]);
+    expect(unsafeQuranRecitationScenes(plan, media("quran-foundation"), true)).toEqual(["c1-s1"]);
+    expect(unsafeQuranRecitationScenes(plan, media("manual"), true)).toEqual([]);
+    expect(unsafeQuranRecitationScenes(plan, media("alquran-cloud"), true)).toEqual([]);
   });
 });

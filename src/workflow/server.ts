@@ -21,6 +21,10 @@ import { loadStoryboardMotion } from "../render/storyboardMotion";
 import { currentMotionFingerprint } from "../render/motionFingerprint";
 import { staleMotionScenes, auditNeedsJustification } from "../render/motionValidity";
 import { collectMedia } from "../plan/collect";
+import { activeRecitation } from "../quran/provider";
+import { loadChannel } from "../channel";
+import type { Plan } from "../plan/types";
+import type { Recitation } from "../plan/media";
 import { readRenderInfo } from "../render/quality";
 import { verifyVideoEvidence } from "./videoEvidence";
 import { collectWorkflowSnapshot } from "./artifacts";
@@ -45,6 +49,19 @@ export const assertOwnerToken = (supplied: unknown, configured = process.env.BAL
 };
 
 const required = (ok: unknown, message: string) => { if (ok !== true) throw Error(message); };
+
+/** Silent verse cards are allowed when no recitation was selected.
+ * An actual or requested recitation must have a rights-verified origin.
+ */
+export const unsafeQuranRecitationScenes = (
+  plan: Plan, recitations: Record<string, Recitation>, requireRecitation: boolean,
+): string[] => plan.chapters.flatMap(c => c.scenes)
+  .filter(scene => scene.template === "verse-card")
+  .filter(scene => {
+    const rec = scene.ayahKey ? recitations[scene.ayahKey] : undefined;
+    if (!rec && !requireRecitation) return false;
+    return !rec || (rec.source !== "manual" && rec.source !== "alquran-cloud");
+  }).map(scene => scene.id);
 const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatched: boolean): Promise<Evidence> => {
   const { scriptPath } = await collectWorkflowSnapshot(episode);
   const plan = await readPlanFile(scriptPath);
@@ -75,6 +92,8 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
   if (stage === "voice") {
     required(Boolean(plan), "Voice plan is missing.");
     await assertVoiceApproved(scriptPath, plan!, await loadVoiceIndex(episode));
+    // If a Quran recording is present, its content hash and rights must still be current.
+    await collectMedia(episode, plan!);
     required(confirmWatched, "Owner must explicitly confirm listening to the complete voice track.");
   }
   if (stage === "motion") {
@@ -108,12 +127,10 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
     required(Boolean(plan), "Final episode plan is missing.");
     // Licensed Quran audio cannot be inferred merely from the presence of an MP3.
     const media = await collectMedia(episode, plan!);
-    const verses = plan!.chapters.flatMap(c => c.scenes).filter(s => s.template === "verse-card");
-    for (const scene of verses) {
-      const rec = scene.ayahKey ? media.recitations[scene.ayahKey] : undefined;
-      required(Boolean(rec) && (rec?.source === "manual" || rec?.source === "alquran-cloud"),
-        "Each Quran recitation requires authenticated manual rights evidence or verified AlQuran Cloud publishing rights.");
-    }
+    const selected = await activeRecitation(scriptPath, loadChannel().recitation);
+    const unsafe = unsafeQuranRecitationScenes(plan!, media.recitations, Boolean(selected));
+    required(unsafe.length === 0,
+      "Selected Quran recitations must have independently verified rights: " + unsafe.join(", "));
     required(confirmWatched, "Owner must explicitly watch and approve these exact Master bytes.");
   }
   return Object.fromEntries(STAGE_EVIDENCE[stage].map(key => [key, true]));
