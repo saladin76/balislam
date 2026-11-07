@@ -358,8 +358,11 @@ describe("طوابير متعددة على الجهاز نفسه", () => {
     // طابور آخر (الاستوديو مثلًا) يشغّل مهمة تقديرها 2500 لم تبلغ ذروتها بعد (300 الآن)
     const pool = new RenderPool({ cpus: 4, perJobMB: 1800, reserveMB: 900, memory: h.memory, tree: (pid) => ({ pids: [pid], rssMB: pid === 9999 ? 300 : 0 }), spawnFn: h.spawnFn, foreign: () => [{ pid: 9999, estimateMB: 2500 }], pollMs: 5, ...noEvidence });
     pool.add(spec(d, "a"));
-    await new Promise((r) => setTimeout(r, 30));
     // 5000 − (2500 − 300) − 1800 = 1000 ≥ 900: تبدأ
+    // Check the capacity decision immediately; do not guess when the event
+    // loop will run the 10 ms mock task under a loaded parallel test suite.
+    expect(pool.tasks.get("a")!.status).toBe("running");
+    await pool.idle();
     expect(pool.tasks.get("a")!.status).toBe("done");
     const pool2 = new RenderPool({ cpus: 4, perJobMB: 1800, reserveMB: 900, memory: () => ({ availableMB: 4000 }), tree: () => ({ pids: [], rssMB: 300 }), spawnFn: h.spawnFn, foreign: () => [{ pid: 9999, estimateMB: 2500 }], pollMs: 5, ...noEvidence });
     pool2.add(spec(d, "b"));
