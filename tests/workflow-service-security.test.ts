@@ -329,6 +329,16 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     await writeFile(ledger, JSON.stringify(tampered));
     await expect(x.service.inspectInternal()).rejects.toThrow(/Invalid workflow ledger/);
     await writeFile(ledger, saved);
+    const changedHistory = JSON.parse(saved);
+    changedHistory.history[0].by = "forged-owner";
+    await writeFile(ledger, JSON.stringify(changedHistory));
+    await expect(x.service.inspectInternal()).rejects.toThrow(/Invalid workflow ledger/);
+    await writeFile(ledger, saved);
+    const originalKey = process.env.BAL_WORKFLOW_HMAC_KEY;
+    try {
+      process.env.BAL_WORKFLOW_HMAC_KEY = "WRONG_TEST_KEY_SAME_LENGTH_SIGNING_SECRET_123456";
+      await expect(x.service.inspectInternal()).rejects.toThrow(/Invalid workflow ledger/);
+    } finally { process.env.BAL_WORKFLOW_HMAC_KEY = originalKey; }
     const outside = await mkdtemp(path.join(os.tmpdir(), "foreign-artifact-")); roots.push(outside);
     await writeFile(path.join(outside, "other.mp4"), "outside");
     await symlink(path.join(outside, "other.mp4"), path.join(x.dir, "borrowed.mp4"));
