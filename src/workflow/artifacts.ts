@@ -72,7 +72,8 @@ export const collectActualArtifactDigests = async (
   for (const stage of WORKFLOW_STAGES) {
     if (stage === "master") {
       if (!manifest.master) continue;
-      if (!validVersion(manifest.master.version)) throw new Error("Invalid Master content version.");
+      if (!validVersion(manifest.master.version) || !/\.mp4$/i.test(manifest.master.file))
+        throw new Error("Master must be a versioned MP4 candidate.");
       // Exact bytes, not a JSON container, filename, video metadata or preview hash.
       const file = await resolveArtifact(scope, manifest.master.file);
       snapshot.master = { version: manifest.master.version, sha256: await sha256File(file) };
