@@ -1,5 +1,5 @@
 /**
- * مقابلة نص الآيات المعروض في بطاقات الحلقة (quran.json) بنص Quran Foundation المعتمد، دون كتابة شيء في quran.json.
+ * مقابلة نص الآيات المعروض في بطاقات الحلقة (script.md) بنص المصحف المعتمد، دون كتابة شيء في script.md.
  * المقارنة حرفًا وحركةً بعد توحيد ترميز يونيكود (NFC)، فلا يُعد اختلاف طريقة ترميز الهمزة أو ترتيب الشدة والحركة فرقًا،
  * ويُعد أي حرف أو حركة أو علامة مختلفة فرقًا يُعرض بموضعه.
  */
@@ -8,7 +8,7 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
-import { quranPathFor, readJson } from "../plan/io";
+import { quranFromScript } from "./scriptText";
 import { composeVerses } from "./sync";
 import type { QuranClient, Verse } from "./client";
 
@@ -33,11 +33,12 @@ export const compareVerseText = (shown: string, approved: string): TextDiff[] =>
   return diffs;
 };
 
-/** يجلب نص كل آية في السكريبت من Quran Foundation ويقابله بالنص المعروض، ولا يكتب في quran.json. */
+/** يجلب نص كل آية في السكريبت من Quran Foundation ويقابله بالنص المعروض، ولا يكتب في script.md. */
 export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClient, "verse">): Promise<VerseCheck[]> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-  const store = (await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {};
+  const authored = quranFromScript(parsed);
+  const store = authored.texts;
   const refs = parsed.chapters.flatMap((c) => c.blocks).filter((b) => b.kind === "ayah") as { ref: string }[];
   const out: VerseCheck[] = [];
   for (const { ref } of refs) {
@@ -47,14 +48,21 @@ export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClien
       continue;
     }
     const { key, surah, from, to } = r.ref;
+    const conflict = authored.problems.find((problem) => problem.key === key && problem.code === "conflicting-text");
+    if (conflict) { out.push({ key, status: "failed", diffs: [], reason: conflict.reason }); continue; }
     const shown = store[key];
     if (!shown) {
-      out.push({ key, status: "missing", diffs: [], reason: "لا نص معروض لهذه الآية في quran.json" });
+      out.push({ key, status: "missing", diffs: [], reason: "نص الآية غير مكتوب داخل السكريبت" });
       continue;
     }
     try {
       const verses: Verse[] = [];
-      for (let n = from; n <= to; n++) verses.push(await client.verse(`${surah}:${n}`));
+      for (let n = from; n <= to; n++) {
+        const wanted = `${surah}:${n}`;
+        const verse = await client.verse(wanted);
+        if (verse.key !== wanted || verse.number !== n) throw new Error(`مرجع المصحف أعاد آية مختلفة عن ${wanted}.`);
+        verses.push(verse);
+      }
       const diffs = compareVerseText(shown, composeVerses(verses));
       out.push({ key, status: diffs.length ? "differs" : "match", diffs });
     } catch (err) {
@@ -78,7 +86,7 @@ export const writeQuranCheckReport = async (episode: string, checks: VerseCheck[
   const when = new Date().toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
   await writeFile(
     file,
-    `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مقابلة الآيات بنص Quran Foundation — الحلقة ${esc(episode)}</title><meta name="description" content="المقابلة حرفًا وحركةً بين بطاقات الآيات والنص المعتمد (${when}). لا تعتمد شيئًا."><style>body{font:16px/1.7 system-ui,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;background:#fff;color:#111}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:6px 8px;text-align:start;vertical-align:top}</style></head><body><h1>مقابلة الآيات بنص Quran Foundation</h1><p>الحلقة ${esc(episode)} · ${when}. المقارنة حرفًا وحركةً بعد توحيد ترميز يونيكود. الفروق تُعرض برموز يونيكود لا بنص الآية. النتيجة دليل للمراجعة ولا تعتمد شيئًا؛ القرار في «سجل التوثيق».</p><table><thead><tr><th>الآية</th><th>النتيجة</th><th>الفروق</th></tr></thead><tbody>${rows}</tbody></table></body></html>\n`,
+    `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مقابلة الآيات بنص المصحف المعتمد — الحلقة ${esc(episode)}</title><meta name="description" content="المقابلة حرفًا وحركةً بين بطاقات الآيات والنص المعتمد (${when}). لا تعتمد شيئًا."><style>body{font:16px/1.7 system-ui,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;background:#fff;color:#111}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:6px 8px;text-align:start;vertical-align:top}</style></head><body><h1>مقابلة الآيات بنص المصحف المعتمد</h1><p>الحلقة ${esc(episode)} · ${when}. المقارنة حرفًا وحركةً بعد توحيد ترميز يونيكود. الفروق تُعرض برموز يونيكود لا بنص الآية. النتيجة دليل للمراجعة ولا تعتمد شيئًا؛ القرار في «سجل التوثيق».</p><table><thead><tr><th>الآية</th><th>النتيجة</th><th>الفروق</th></tr></thead><tbody>${rows}</tbody></table></body></html>\n`,
     "utf8",
   );
   return file;
