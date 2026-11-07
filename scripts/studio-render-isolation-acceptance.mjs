@@ -48,6 +48,7 @@ const steps = [
   ["typecheck", "npm", ["run", "typecheck"]],
   ["isolation-targets", "npx", ["vitest", "run",
     "tests/render-output-ownership.test.ts",
+    "tests/studio-acceptance-temp.test.ts",
     "tests/render-master-gate-contract.test.ts",
     "tests/render-media-snapshots.test.ts",
     "tests/render-media-access.test.ts",
@@ -100,6 +101,13 @@ try {
     );
     report.temporaryClean = cleanup.clean;
     report.temporaryResidue = cleanup.after;
+    // A clean post-run temp directory is required, but the tests must ALSO
+    // release their own large voice/recitation/channel fixture copies. Report
+    // and fail on such leaks even though our last-resort cleanup reclaimed them.
+    if (report.temporaryLeakSuspects.length) {
+      report.temporaryLeakRegression = true;
+      failed = true;
+    }
     if (!cleanup.clean) failed = true;
   } catch (e) {
     report.temporaryCleanupError = String(e);
