@@ -58,6 +58,7 @@ export const App: React.FC = () => {
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
+  const [channelsLoadState, setChannelsLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [channelId, setChannelId] = useState<string>(() => {
     const c = store.get("bal-channel") || "";
     setApiChannel(c);
@@ -139,7 +140,12 @@ export const App: React.FC = () => {
     setTimeout(() => setToast(null), 2600);
   };
 
-  const reloadChannels = useCallback(() => api.channels().then(setChannels).catch((e) => say(e.message, true)), []);
+  const reloadChannels = useCallback(() => {
+    setChannelsLoadState("loading");
+    return api.channels().then((items) => {
+      setChannels(items); setChannelsLoadState("ready");
+    }).catch((e) => { setChannelsLoadState("error"); say(e.message, true); });
+  }, []);
   const reloadKeys = useCallback(
     () =>
       api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: Boolean(keys.QF_CLIENT_ID?.set && keys.QF_CLIENT_SECRET?.set) })).catch(() => {}),
@@ -445,7 +451,7 @@ export const App: React.FC = () => {
           />
           </div>
         ) : tab === "channels" ? (
-          <ChannelsWorkspace channels={channels} activeId={channelId || channels[0]?.id || ""} onRetry={() => void reloadChannels()} onOpen={async (id, destination) => {
+          <ChannelsWorkspace channels={channels} loadState={channelsLoadState} activeId={channelId || channels[0]?.id || ""} onRetry={() => void reloadChannels()} onOpen={async (id, destination) => {
             if (!confirmLeaveScript()) return;
             if (!(await flushPlan())) return;
             if (id !== channelId) setChannelId(id);
