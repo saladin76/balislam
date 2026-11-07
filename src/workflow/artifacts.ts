@@ -5,8 +5,8 @@
  */
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { lstat, realpath } from "node:fs/promises";
+import { constants } from "node:fs";
+import { lstat, open, realpath } from "node:fs/promises";
 import { WORKFLOW_STAGES, type WorkflowSnapshot, type WorkflowStage } from "./gates.ts";
 import { workflowFileFor, type WorkflowIdentity } from "./store.ts";
 
@@ -56,16 +56,25 @@ export const resolveArtifact = async (scope: WorkflowIdentity, name: string): Pr
     if (st.isSymbolicLink()) throw new Error("Symlink artifacts are not trusted.");
   }
   const st = await lstat(candidate);
-  if (!st.isFile() || st.isSymbolicLink()) throw new Error("Artifact is not a regular file.");
+  if (!st.isFile() || st.isSymbolicLink() || st.nlink !== 1)
+    throw new Error("Artifact must be a regular, episode-owned file without hardlinks.");
   const real = await realpath(candidate);
   const realBase = await realpath(base);
   if (!within(realBase, real)) throw new Error("Artifact real path escapes scope.");
   return real;
 };
 export const sha256File = async (file: string): Promise<string> => {
-  const hash = createHash("sha256");
-  for await (const bytes of createReadStream(file)) hash.update(bytes);
-  return hash.digest("hex");
+  // O_NOFOLLOW prevents an attacker swapping the leaf to a symlink after lstat.
+  // All parents and writers still require the trusted shared artifact lock.
+  const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.nlink !== 1)
+      throw new Error("Cannot hash a linked or non-regular artifact.");
+    const hash = createHash("sha256");
+    for await (const bytes of handle.createReadStream({ autoClose: false })) hash.update(bytes);
+    return hash.digest("hex");
+  } finally { await handle.close(); }
 };
 const validVersion = (v: string) => typeof v === "string" && v.length > 0 && v.length <= 200;
 
