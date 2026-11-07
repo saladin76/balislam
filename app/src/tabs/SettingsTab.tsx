@@ -49,7 +49,6 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
 export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysChanged }) => {
   const [keys, setKeys] = useState<KeyState | null>(null);
   const [el, setEl] = useState<TestResult | null>(null);
-  const [qf, setQf] = useState<TestResult | null>(null);
   const [busy, setBusy] = useState("");
   const [loadErr, setLoadErr] = useState("");
   useEffect(() => {
@@ -60,16 +59,14 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
     setKeys(r.keys);
     onKeysChanged();
   };
-  const test = async (service: "elevenlabs" | "quran") => {
+  const test = async (service: "elevenlabs") => {
     setBusy(service);
     try {
       const r = await api.testService(service);
-      if (service === "elevenlabs") setEl(r);
-      else setQf(r);
+      setEl(r);
     } catch (x) {
       const r = { ok: false, message: (x as Error).message };
-      if (service === "elevenlabs") setEl(r);
-      else setQf(r);
+      setEl(r);
     } finally {
       setBusy("");
     }
@@ -130,28 +127,10 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
         )}
       </details>
 
-      <details className="group studio-provider">
-        <summary><strong>Quran Foundation</strong> <span>نصوص الآيات بالرسم العثماني</span> <em>{keys.QF_CLIENT_ID?.set && keys.QF_CLIENT_SECRET?.set ? "المفاتيح موجودة" : "يحتاج إعدادًا"}</em></summary>
-        <ol className="steps">
-          <li>سجّل في بوابة المطورين: <a href="https://api-docs.quran.foundation/docs/quickstart" target="_blank" rel="noreferrer">api-docs.quran.foundation</a> واطلب مفاتيح Content API.</li>
-          <li>الصق Client ID وClient Secret، واختر البيئة (prelive للتجربة، production بعد الموافقة).</li>
-          <li>اضغط «اختبر الاتصال»: تظهر البسملة إن نجح.</li>
-        </ol>
-        <KeyInput id="k-qf-id" label="Client ID" state={keys.QF_CLIENT_ID} onSave={(v) => save({ QF_CLIENT_ID: v })} />
-        <KeyInput id="k-qf-secret" label="Client Secret" state={keys.QF_CLIENT_SECRET} onSave={(v) => save({ QF_CLIENT_SECRET: v })} />
-        <div className="key-row">
-          <label htmlFor="k-qf-env">البيئة</label>
-          <select id="k-qf-env" value={keys.QF_ENV?.preview || "prelive"} onChange={(e) => save({ QF_ENV: e.target.value })} style={{ width: 180 }}>
-            <option value="prelive">prelive (تجربة)</option>
-            <option value="production">production</option>
-          </select>
-          <span className="spacer" />
-          <button className="btn primary small" disabled={!keys.QF_CLIENT_ID?.set || !keys.QF_CLIENT_SECRET?.set || busy === "quran"} onClick={() => test("quran")}>
-            {busy === "quran" ? "جارٍ الاختبار…" : "اختبر الاتصال"}
-          </button>
-        </div>
-        {qf ? qf.ok ? <div className="test-ok"><b>الاتصال يعمل ✓</b><span style={{ fontFamily: "Amiri, serif", fontSize: 24 }}>{qf.sample}</span></div> : <div className="note err">{qf.message}</div> : null}
-      </details>
+      <section className="group studio-provider">
+        <strong>الآيات والتلاوة</strong>
+        <p className="help">لا تحتاج مفاتيح قرآن إضافية. افتح «صوت الحلقة» لنسخ قائمة الآيات المطلوبة، ثم الصق نصها وارفع تلاوتك بصوتك. توجد معاينة اختيارية عبر AlQuran Cloud.</p>
+      </section>
     </div>
   );
 };
