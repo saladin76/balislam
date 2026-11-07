@@ -419,7 +419,12 @@ describe("render-pool partial ownership under parallel cancellation", () => {
       await pool.idle();
       expect(pool.tasks.get("cancelled")?.status).toBe("cancelled");
       expect(pool.tasks.get("survivor")?.status).toBe("done");
-      expect(readFileSync(out, "utf8")).toBe("ok");
+      // Publishing a new render must never replace an earlier successful file.
+      expect(readFileSync(out, "utf8")).toBe("previous-good");
+      const versioned = pool.tasks.get("survivor")?.output;
+      expect(versioned).toBeDefined();
+      expect(versioned).not.toBe(out);
+      expect(readFileSync(versioned!, "utf8")).toBe("ok");
       expect(existsSync(a)).toBe(false);
       expect(existsSync(b)).toBe(false);
     } finally {
