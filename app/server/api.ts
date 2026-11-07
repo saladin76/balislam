@@ -201,6 +201,13 @@ export const balApi = (): Plugin => ({
             return send(res, 405, { error: "Method not allowed" });
           }
 
+          if (parts[2] === "scene-av-assemble" && parts.length === 3) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const { assembleApprovedSceneAv } = await load("/src/studio/assembleScenes.ts");
+            const output = await assembleApprovedSceneAv(ep, req.headers["x-studio-owner-token"]);
+            return send(res, 200, { ok: true, version: output.version, scenes: output.scenes });
+          }
+
           if (parts[2] === "scene-av-render" && parts.length === 3) {
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const body = await readBody(req);
