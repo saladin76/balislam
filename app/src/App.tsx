@@ -88,6 +88,7 @@ export const App: React.FC = () => {
   channelRef.current = channelId;
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
+  const [episodesLoadError, setEpisodesLoadError] = useState("");
   const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
   const episodeRef = useRef(epId);
   episodeRef.current = epId;
@@ -162,6 +163,7 @@ export const App: React.FC = () => {
     setApiChannel(channelId);
     store.set("bal-channel", channelId);
     setEpisodes(null);
+    setEpisodesLoadError("");
     setPlan(null);
     setEpisodeLoadError("");
     setIdent(null); // Never show another channel's identity while this one loads.
@@ -179,7 +181,12 @@ export const App: React.FC = () => {
         setEpId(want.ep);
         setTab(want.tab);
       } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
-    }).catch((e) => say(e.message, true));
+    }).catch((e) => {
+      if (channelRef.current === ch) {
+        setEpisodesLoadError((e as Error).message);
+        say(e.message, true);
+      }
+    });
     api.identity(ch).then(({ identity, defaults }) => {
       if (channelRef.current !== ch) return;
       const prior = identityDrafts.current.get(ch);
@@ -564,6 +571,21 @@ export const App: React.FC = () => {
               }
             }}
           />
+        ) : episodesLoadError && !episodes ? (
+          <div className="empty-state" role="alert">
+            <h2>تعذّر تحميل قائمة الحلقات</h2>
+            <p>{episodesLoadError}</p>
+            <button type="button" className="btn primary" onClick={() => {
+              const requested = channelId;
+              setEpisodesLoadError("");
+              void api.episodes(requested).then((list) => {
+                if (channelRef.current !== requested) return;
+                episodesOf.current = requested;
+                setEpisodes(list);
+                setEpId((current) => list.some((item) => item.id === current) ? current : list[0]?.id ?? "");
+              }).catch((error) => { if (channelRef.current === requested) setEpisodesLoadError((error as Error).message); });
+            }}>إعادة تحميل الحلقات</button>
+          </div>
         ) : !episodes?.length ? (
           <div className="empty-state">
             <h2>لا توجد حلقات بعد</h2>
