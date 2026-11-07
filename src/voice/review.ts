@@ -1,6 +1,6 @@
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { decodedAudioDuration } from "./audioIntegrity";
 import { isTone } from "./tones";
 import type { Plan, PlanScene } from "../plan/types";
@@ -14,6 +14,11 @@ export type VoiceReviewItem = {
   id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved";
   fingerprint?: string
 };
+const hasHumanEvidence = (item: { reviewer?: string; note?: string; at?: string } | undefined, minNote: number) =>
+  Boolean(item && typeof item.reviewer === "string" && item.reviewer.trim().length >= 2 &&
+    typeof item.note === "string" && item.note.trim().length >= minNote &&
+    typeof item.at === "string" && Number.isFinite(Date.parse(item.at)) &&
+    Date.parse(item.at) <= Date.now() + 60000);
 export const voiceReviewFile = (scriptPath: string) => path.join(path.dirname(scriptPath), "voice-review.json");
 export const loadVoiceReview = async (scriptPath: string): Promise<VoiceReviewRecord> => {
   try {
@@ -28,13 +33,17 @@ export const loadVoiceReview = async (scriptPath: string): Promise<VoiceReviewRe
 export const voiceFingerprint = async (scene: PlanScene, clip: VoiceClip | undefined, scriptPath: string): Promise<string | null> => {
   if (!isTone(scene.tone) || !clip || clip.text !== scene.narration.trim()) return null;
   if (typeof clip.file !== "string" || !/^[a-z0-9][a-z0-9_.-]{0,150}\.mp3$/i.test(clip.file)) return null;
+  const audioPath = path.join(path.dirname(scriptPath), "voice", clip.file);
   let bytes: Buffer;
-  try { bytes = await readFile(path.join(path.dirname(scriptPath), "voice", clip.file)); }
-  catch { return null; }
+  try {
+    // Do not follow symlinks out of the episode through a trusted-looking name.
+    if (!(await lstat(audioPath)).isFile()) return null;
+    bytes = await readFile(audioPath);
+  } catch { return null; }
   if (!bytes.length) return null;
   // Probe every decoded frame, not merely a valid MP3 header or duration tag.
   // Any unreadable part invalidates the same fingerprint used by UI and gate.
-  if (!await decodedAudioDuration(path.join(path.dirname(scriptPath), "voice", clip.file), { mp3Only: true }))
+  if (!await decodedAudioDuration(audioPath, { mp3Only: true }))
     return null;
   const digest = createHash("sha256").update(bytes).digest("hex");
   return createHash("sha256").update(JSON.stringify({
@@ -54,7 +63,8 @@ export const voiceReviewItems = async (
     if (!fingerprint) return { id: scene.id, state: "missing_audio" as const };
     const old = record.scenes[scene.id];
     return { id: scene.id, fingerprint, state: !old ? "pending" as const :
-      old.fingerprint === fingerprint ? "approved" as const : "changed" as const };
+      old.fingerprint !== fingerprint ? "changed" as const :
+      hasHumanEvidence(old, 12) ? "approved" as const : "pending" as const };
   }));
 };
 
@@ -67,7 +77,8 @@ export const episodeVoiceApproved = async (scriptPath: string, plan: Plan, voice
   const record = await loadVoiceReview(scriptPath);
   const items = await voiceReviewItems(scriptPath, plan, voice, record);
   const fingerprint = episodeVoiceFingerprint(items);
-  return Boolean(fingerprint && record.episode?.fingerprint === fingerprint);
+  return Boolean(fingerprint && record.episode?.fingerprint === fingerprint &&
+    hasHumanEvidence(record.episode, 20));
 };
 
 /** The full narration approval is separate from the approval of each voice clip. */
@@ -104,7 +115,7 @@ export const assertVoiceApproved = async (scriptPath: string, plan: Plan, voice:
   );
   const record = await loadVoiceReview(scriptPath);
   const digest = episodeVoiceFingerprint(items);
-  if (digest && record.episode?.fingerprint !== digest)
+  if (!digest || record.episode?.fingerprint !== digest || !hasHumanEvidence(record.episode, 20))
     throw new Error("لا يُرندر Master قبل الاستماع إلى التعليق الصوتي كاملًا واعتماده للمونتاج.");
   return true;
 };
