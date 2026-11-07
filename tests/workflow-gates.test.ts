@@ -17,7 +17,7 @@ const owner = { id: "project-owner", role: "owner" as const };
 const reviewer = { id: "scene-reviewer", role: "reviewer" as const };
 const approvedNote = "I explicitly reviewed this exact artifact at its current revision.";
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
-const snapshot = (): WorkflowSnapshot => Object.fromEntries(WORKFLOW_STAGES.map((s) => [s, { version: `${s}-v1`, sha256: hash(s + "-v1") }]));
+const snapshot = (): WorkflowSnapshot => Object.fromEntries(WORKFLOW_STAGES.map((s) => [s, { version: `${s}-v1`, sha256: hash(s + "-v1"), epoch: hash(s + "-epoch-v1") }]));
 const attestation = (stage: WorkflowStage, current: WorkflowSnapshot, actor = owner, subset = STAGE_EVIDENCE[stage]) => signServerEvidence({
   stage, fingerprint: stageFingerprint(current, stage), actorId: actor.id, checkedAt: new Date().toISOString(),
   proofs: subset.map((key) => ({ key, file: "script.md", sha256: hash(stage + ":" + key), verifier: "test_checker" })),
@@ -105,7 +105,7 @@ describe("durable Studio workflow — six explicit stages", () => {
     const { scope, current } = await fixture();
     await approveAll(scope, current);
     const changed = structuredClone(current);
-    changed.script = { version: "script-v2", sha256: hash("new-script-and-sources") };
+    changed.script = { version: "script-v2", sha256: hash("new-script-and-sources"), epoch: hash("new-script-epoch") };
     await expect(requireWorkflowGate(scope, changed, "publish")).rejects.toThrow();
     const state = await readWorkflow(scope, changed);
     expect(WORKFLOW_STAGES.map((s) => state.stages[s].status)).toEqual(Array(6).fill("needs_reapproval"));
@@ -127,7 +127,7 @@ describe("durable Studio workflow — six explicit stages", () => {
       const { scope, current } = await fixture();
       await approveAll(scope, current);
       const changed = structuredClone(current);
-      changed[stage] = { version: "v2", sha256: hash(`changed-${stage}`) };
+      changed[stage] = { version: "v2", sha256: hash(`changed-${stage}`), epoch: hash(`changed-epoch-${stage}`) };
       const state = await readWorkflow(scope, changed);
       const idx = WORKFLOW_STAGES.indexOf(stage);
       expect(WORKFLOW_STAGES.map((s, i) => state.stages[s].status)).toEqual(WORKFLOW_STAGES.map((_, i) => i < idx ? "approved" : "needs_reapproval"));
@@ -151,7 +151,7 @@ describe("durable Studio workflow — six explicit stages", () => {
     const { scope, current } = await fixture();
     await submitWorkflowStage(scope, inputs(scope, "script", current));
     const changed = structuredClone(current);
-    changed.script = { version: "v2", sha256: hash("update") };
+    changed.script = { version: "v2", sha256: hash("update"), epoch: hash("update-epoch") };
     expect((await readWorkflow(scope, changed)).stages.script.status).toBe("draft");
     await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", changed), attestation: attestation("script", changed) })).rejects.toThrow(/submitted/);
   });
@@ -176,7 +176,7 @@ describe("durable Studio workflow — six explicit stages", () => {
     const s = snapshot();
     await Promise.all(scopes.map((scope) => approve(scope, "script", s)));
     await Promise.all(scopes.map((scope) => approve(scope, "storyboard", s)));
-    const other = structuredClone(s); other.script = { version: "v2", sha256: hash("balislam-only") };
+    const other = structuredClone(s); other.script = { version: "v2", sha256: hash("balislam-only"), epoch: hash("balislam-epoch") };
     await readWorkflow(scopes[0]!, other);
     expect((await readWorkflow(scopes[0]!, other)).stages.storyboard.status).toBe("needs_reapproval");
     for (const scope of scopes.slice(1)) {
