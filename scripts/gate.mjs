@@ -42,9 +42,15 @@ const cleanRunTemp = () => {
 };
 
 /** الفحوص الإلزامية: الأنواع ثم الاختبارات كلها */
+// The two-gate P0 stress audit can cap each Vitest pool to one worker on
+// an 8-GiB Mac. This changes only scheduling, never test coverage or the
+// normal gate. No other env value is accepted as an audit override.
+const auditVitestArgs = process.env.BAL_STUDIO_AUDIT_VITEST_WORKERS === "1"
+  ? ["vitest", "run", "--maxWorkers", "1", "--minWorkers", "1"]
+  : ["vitest", "run"];
 const CHECKS = [
   { name: "فحص TypeScript", cmd: "npx", args: ["tsc", "--noEmit", "-p", "."] },
-  { name: "اختبارات المشروع", cmd: "npx", args: ["vitest", "run"] },
+  { name: "اختبارات المشروع", cmd: "npx", args: auditVitestArgs },
   // تغيير منظومة قناة لها دليل يصاحبه تحديث سجل قراراتها (scripts/docs-sync.mjs)
   ...(range ? [{ name: "تزامن التوثيق", cmd: "node", args: [path.join(root, "scripts", "docs-sync.mjs"), range] }] : []),
 ];
