@@ -65,4 +65,22 @@ describe("Studio owner-supplied Quran media, no external provider UI or dispatch
     const youtube = source("src/package/youtube.ts");
     expect(youtube).not.toMatch(/Quran\.Foundation|QF_ATTRIBUTION|quran-foundation/i);
   });
+  it("fully retires HTTP Quran provider implementations while preserving offline script helpers", () => {
+    for (const removed of [
+      "src/quran/alquranCloud.ts", "src/quran/provider.ts",
+      "src/quran/attribution.ts", "app/src/workspace/AlQuranCloudBrowser.tsx",
+    ]) expect(existsSync(path.join(root, removed))).toBe(false);
+    for (const file of ["src/quran/client.ts", "src/quran/sync.ts"]) {
+      expect(source(file)).not.toMatch(/QF_|quran\.foundation|createQuranClient|syncQuran|https?:\/\/api/i);
+    }
+  });
+
+  it("keeps the per-scene AV preview dependent on reviewed, owner-provided Quran audio", () => {
+    const preview = source("src/render/shotsPreview.ts");
+    expect(preview).toContain("requireApprovedQuran: true");
+    expect(preview).not.toMatch(/activeRecitation|Quran Foundation|quran\.json/);
+    const channel = source("src/channel/types.ts");
+    expect(channel).not.toMatch(/alquranPreviewRecitation|quranTranslation|Quran Foundation/);
+  });
+
 });
