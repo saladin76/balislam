@@ -133,6 +133,7 @@ const clean=(signal)=>{
 };
 process.once("SIGINT",()=>clean("SIGINT"));
 process.once("SIGTERM",()=>clean("SIGTERM"));
+process.once("SIGHUP",()=>clean("SIGHUP"));
 let failures=[];
 let baselineFree = null;
 let baselineSwap = null;
@@ -148,6 +149,8 @@ try {
     throw new Error("Parallel audit refused: fewer than 6 GiB of free disk space; no test gates started.");
   }
   if (parallel) {
+    const preflightRoot = mkdtempSync(path.join(base, "preflight-"));
+    dirs.push(preflightRoot);
     // Run a tiny real Vitest command with the exact audit-only worker flag
     // before starting TWO full gates. This catches CLI incompatibilities
     // early without changing suite coverage or touching production files.
@@ -156,7 +159,7 @@ try {
     const probe = await new Promise((resolve) => {
       const child = spawn("npx", ["vitest", "run", "--maxWorkers", "1", "tests/quran-compare.test.ts"], {
         cwd: repo,
-        env: { ...process.env, CI: "1", TMPDIR: base, TMP: base, TEMP: base },
+        env: { ...process.env, CI: "1", TMPDIR: preflightRoot, TMP: preflightRoot, TEMP: preflightRoot },
         stdio: ["ignore", "pipe", "pipe"],
         detached: process.platform !== "win32",
       });
@@ -190,7 +193,15 @@ try {
         "(no full gates started). " +
         (probe.error || probe.stderr || probe.stdout || probe.signal || "no output").slice(0, 900));
     }
-    console.log("VITEST_WORKER_PREFLIGHT passed");
+    const preflightLeftovers = entries(preflightRoot);
+    const preflightAllocated = disk(preflightRoot);
+    console.log("VITEST_WORKER_PREFLIGHT " + JSON.stringify({
+      status: "passed", tempBytesBeforeCleanup: preflightAllocated,
+      leftoverPaths: preflightLeftovers
+    }));
+    if (preflightLeftovers.length) {
+      failures.push("preflight-owned-temp-residue");
+    }
   }
   const samples=[];
   if (exercise) {
