@@ -179,7 +179,7 @@ export const VoiceWorkspaceTab: React.FC<{
               src={`/api/episodes/${encodeURIComponent(episodeId)}/media/voice/${encodeURIComponent(playingClip.file)}?channel=${encodeURIComponent(channelId)}`} />
           </div>}
           {playerError && <p role="alert">{playerError}</p>}
-          {playlistComplete && <p role="status">انتهى تشغيل جميع المقاطع بالترتيب. راجع ملاحظاتك ثم أكّد الاستماع.</p>
+          {playlistComplete && <p role="status">انتهى تشغيل جميع المقاطع بالترتيب. راجع ملاحظاتك ثم أكّد الاستماع.</p>}
           <label htmlFor="voice-full-note">ملاحظات المراجعة الكاملة: الإيقاع، انتقالات المشاهد، النطق والوقفات</label>
           <textarea id="voice-full-note" rows={3} value={fullNote} maxLength={2000}
             onChange={(e) => setFullNote(e.target.value)} placeholder="استمعت للتعليق كاملًا بالترتيب وتحققت من انتقالات المقاطع…" />
