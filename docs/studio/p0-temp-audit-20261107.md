@@ -67,3 +67,59 @@ Verification used the exact old `scripts/gate.mjs` Git blob `0b1987e47b1d6d2f82a
 At `8127c45fbe596041d6cb5fd866881b33a7cc4988`, CI, Studio parity and P0 stress workflow all failed **before any job step** (zero steps). These three GitHub Actions outcomes contain no TypeScript, Vitest, or disk audit measurements. Other unrelated PR workflows also showed matching immediate failures around the same time, consistent with a runner/account-level blocker but not enough to establish its precise cause.
 
 The 100% release condition is **not achieved** until GitHub Actions can execute again and the exact-head full-gate serial/parallel/failure/cancellation runs pass with `TEMP_LEAK_AUDIT` measurements. No modification to production Mac, `main`, unrelated components, or Vercel is authorized by this audit.
+
+
+## P0 audit update — head `1e0b05519ef7c125dd354396e15dad08223f8776`
+
+### Runtime execution status (strict evidence classes)
+
+- Last **proven successful full CI** on this P0 branch: previous head `d2f5814`, `npm run typecheck` and all 642 Vitest tests passed at run [42364764311](https://github.com/saladin76/balislam/actions/runs/42364764311). This **does not cover** subsequent P0 changes.
+- Exact-head [CI 42403794709](https://github.com/saladin76/balislam/actions/runs/42403794709), [parity 42403794704](https://github.com/saladin76/balislam/actions/runs/42403794704) and [stress 42403794739](https://github.com/saladin76/balislam/actions/runs/42403794739) all concluded failure **before a runner was assigned** (`runner_id=0`, `steps=[]`). No test assertion, installation, or resource check ran.
+- The current isolated analysis container has Node 22 and FFmpeg installed and ~30 GiB free, but the GitHub repository cannot be cloned or installed through its network connection (`git ls-remote ...` fails DNS resolution: `Could not resolve host: github.com`; no project `node_modules`). Hence **there are no exact-head TypeScript / P0 Vitest / full-gate / repeat / parallel runtime results from this environment**. Static inspection and JavaScript syntax parsing are not substitutes.
+- The earlier **39 synthetic gate cases** and four isolated mocked `npm ci` cases remain *prior-head*, **synthetic** evidence only. Representative allocated bytes recorded previously: 532,480 B normally, 569,344 B for a temporary synthetic worktree, zero remaining owned gate directories, and final host free-byte deltas +20,480 B for each of the three independent samples. Do not reuse these figures as present-head measurements.
+
+### Source changes after the earlier isolated evidence
+
+- `scripts/verify-studio-temp-leaks.mjs` now captures each full gate's `GATE_TEMP_ALLOCATED_BEFORE_CLEANUP_BYTES` and `GATE_TEMP_CLEANED`, samples only that gate's owned root while running, records `ownedPeakBytes`, `ownedRootBytesAfterGate`, sampling errors and counts, and **fails the audit** when cleanup is unreported or incomplete.
+- The parallel preflight now has a **dedicated owned root** and records allocated bytes and leftover paths; it refuses to launch full gates if even the preflight leaves unexplained files. The preflight child is signal-aware and is stopped before its private root is removed. SIGINT, SIGTERM and SIGHUP are handled at the audit level.
+- Added *source-defined but not yet CI-executed* regressions for successful full-**mock** parallel audit with a clean preflight and a rejected leaky preflight. The mock uses a fake `npx`; its passing result would **not** demonstrate a real Vitest run.
+
+### Cross-PR safety handoff — PR #73
+
+PR #73 `work/studio-render-isolation-20261107` is separate. The following **eight paths overlap**; retain both functional render changes from PR #73 and P0 resource safety when assembling a future integration branch:
+
+| Shared test file | Must preserve from PR #72 | Must preserve from PR #73 |
+| --- | --- | --- |
+| `tests/channels.test.ts` | Exact `mkdtemp` root cleanup; reset temp variable | Existing channel assertions; afterAll cleanup |
+| `tests/episode-previews.test.ts` | Own/root-tracked teardown on success and failure | Version history, hostile slot, corrupt/locked index regressions |
+| `tests/master-gates.test.ts` | Remove each `gates-*` root | Fail-closed `allowUnreviewed` gate assertions |
+| `tests/recitation.test.ts` | **Exclude `episodes` when copying channels**, use demo fixture, delete owned root | Audio/render-related assertions and teardown |
+| `tests/render-pool.test.ts` | Tracked `pool-*` teardown, official `tsx` invocation and stderr diagnostics | Unique `.part-` ownership, parallel cancellation, queue recovery / live writer guards |
+| `tests/storyboard-stage-safety.test.ts` | Tracked storyboard roots and teardown | Content-addressed staging/concurrency/path-symlink protections |
+| `tests/studio-production-stage-integration.test.ts` | **Add cleanup currently absent from PR #73** | `voiceTimingMode` approval and invalidation assertions |
+| `tests/voice-cache.test.ts` | **Exclude `episodes` and `recitations` before recursive copy**, demo fixture, cleanup | Existing voice assertions and teardown |
+
+In addition, carry PR #73's separate `scripts/studio-acceptance-temp.mjs` ownership-checked `run-*/temp` helper and its tests; do not replace P0 gate isolation with generic acceptance cleanup. Do **not** cherry-pick PR #73's entire branch into this PR or copy unrelated source, voice, Quran, PDF or UI changes. Resolve the eight files intentionally in a future reviewed integration branch; do not alter either production tree.
+
+### Exact acceptance commands and expected evidence
+
+```bash
+# In a fresh disposable checkout of the exact PR #72 head, NOT ~/balislam:
+git rev-parse HEAD
+git status --porcelain=v1
+git worktree list --porcelain
+npm ci
+npm run typecheck
+npx vitest run tests/studio-temp-lifecycle.test.ts
+npm test
+node scripts/verify-studio-temp-leaks.mjs --failure
+node scripts/verify-studio-temp-leaks.mjs --cancel
+node scripts/verify-studio-temp-leaks.mjs
+node scripts/verify-studio-temp-leaks.mjs --parallel
+```
+
+Require **all** running commands to succeed (the induced failure/cancel audits themselves must exit 0 with `passed:true`), at least two complete serial gates and two concurrent complete gates, no residual owned roots, every gate reporting cleanup true, preflight leftovers empty, and before/peak/after measurements. Rehash channel episode files and check Git config, refs and worktree registration before vs after. Retain the audit logs and report any storage anomaly by path; an APFS disk-space change alone cannot prove a test-owned leak.
+
+**SIGKILL/power loss:** no in-process cleanup guarantee. A separate supervisor may recover an exact, proven-owned root only after confirming no live writer/descendant is using it and independently verifying ownership, path type and symlink status. Never scan/delete by `bal-*` prefix or broadly clean `/tmp`.
+
+**P0 acceptance remains BLOCKED, not 100%.** The real full-stress gate has not run on this head; provider-side runner assignment diagnostics and a valid isolated checkout are still required.
