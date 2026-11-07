@@ -22,7 +22,8 @@ export const EpisodeWorkspaceBar: React.FC<{
   saveState: "saved" | "dirty" | "saving" | "error";
   scriptDirty: boolean;
   researchDirty?: boolean;
-}> = ({ episodeId, channelId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false }) => {
+  identityDirty?: boolean;
+}> = ({ episodeId, channelId, title, stage, onStage, check, issues, plan, media, saveState, scriptDirty, researchDirty = false, identityDirty = false }) => {
   const [approvals, setApprovals] = useState<WorkflowApprovalSnapshot | null>(null);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   useEffect(() => {
@@ -83,6 +84,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   ];
   if (unavailableChecks) notes.unshift({ id: "unavailable-checks", stage, text: `تعذر جلب ${unavailableChecks} من تقارير حالة الحلقة؛ لا يمكن تأكيد اكتمال المراجعات الآن`, critical: true });
   if (researchDirty) notes.unshift({ id: "unsaved-research", stage: "research", text: "ملف البحث يحتوي على تعديلات غير محفوظة", critical: true });
+  if (identityDirty) notes.unshift({ id: "unsaved-identity", stage: "episode", text: "الهوية البصرية تتضمن تعديلات غير محفوظة؛ اعتمادات المشاهد السابقة لا تخص هذه المسودة", critical: true });
   if (scriptDirty) notes.unshift({ id: "unsaved-script", stage: "script", text: "السكريبت يحتوي على تغييرات غير محفوظة", critical: true });
   if (saveState === "error") notes.unshift({ id: "failed-save", stage: "episode", text: "تعذر حفظ تعديلات المشاهد؛ راجع الحفظ قبل المتابعة", critical: true });
   if (review && !review.ok) notes.push({ id: "citations", stage: "script", text: `الاستشهادات: ${review.verified} من ${review.total} موثّق`, critical: true });
@@ -100,7 +102,7 @@ export const EpisodeWorkspaceBar: React.FC<{
   const visible = showAll ? notes : notes.slice(0, 3);
   // The backend verifies persisted bytes; an unsaved editor draft is a different version.
   // Hide green approvals instead of presenting the last saved version as approved.
-  const localChanges = scriptDirty || researchDirty || saveState !== "saved";
+  const localChanges = scriptDirty || researchDirty || identityDirty || saveState !== "saved";
   const visibleApprovals = localChanges ? null : approvals;
   const visibleWorkflowError = localChanges
     ? "توجد تعديلات محلية غير محفوظة أو قيد الحفظ؛ الاعتمادات السابقة لا تخص هذه المسودة."
