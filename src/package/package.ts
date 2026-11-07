@@ -68,13 +68,17 @@ export const packageEpisode = async (opts: PackageOptions) => {
     // Shorts are distribution artifacts: require owner approval of the exact Master.
     const { assertWorkflowForEpisode } = await import("../workflow/server");
     await assertWorkflowForEpisode(ep, "publish");
+    const { requireSceneMasterReady } = await import("../studio/sceneService");
+    await requireSceneMasterReady(ep);
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
     if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
   }
 
   log("تجهيز الوسائط…");
-  const media = await prepareRenderMedia(ep, plan);
+  const media = await prepareRenderMedia(ep, plan, {
+    requireApprovedQuran: quality === "master" || stage === "shorts",
+  });
   // الصوت «كامل» فقط إن كان لكل مشهد متكلَّم مقطع يطابق نصه الحالي
   const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   const voicedOk = narrated.filter((s) => {
