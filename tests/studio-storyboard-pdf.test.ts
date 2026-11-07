@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 // The exporter is a standalone Node script, independent of the React/TS render engine.
@@ -7,8 +7,11 @@ import path from "node:path";
 import { normalizeStoryboard, safeImageData, buildStoryboardHtml, exportStoryboard } from "../scripts/studio-storyboard-pdf.mjs";
 
 const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAOwO+wAAAABJRU5ErkJggg==","base64");
+const ownedPdfDirs: string[] = [];
+afterEach(() => { for (const d of ownedPdfDirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 const setup=()=>{
   const dir=mkdtempSync(path.join(os.tmpdir(),"studio-pdf-"));
+  ownedPdfDirs.push(dir);
   writeFileSync(path.join(dir,"landscape.png"),png);
   writeFileSync(path.join(dir,"portrait.png"),png);
   const file=path.join(dir,"manifest.json");
@@ -86,6 +89,43 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect(html).not.toContain("النص كامل في الملحق");
     expect(html).toContain("height:121mm");
     expect(html).toContain("height:130mm");
+  });
+  it("embeds channel-specific Arabic fonts, isolates bidi and keeps full diacritics without OS fallback",()=>{
+    const x=setup();
+    for(const channel of ["balislam","dafatir-alzaman","zubdat-alkutub"]){
+      x.data.channel=channel;
+      const r=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1});
+      expect(r.html).toContain("@font-face");
+      expect(r.html).toContain("data:font/");
+      expect(r.html).toContain("font-synthesis:none");
+      expect(r.html).toContain('lang="ar" dir="rtl"');
+      expect(r.html).toContain('<bdi dir="ltr">c1-s1</bdi>');
+      expect(r.html).toContain("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ");
+      expect(r.html).not.toContain("'Noto Naskh Arabic'");
+      expect(r.html).not.toContain("Tahoma,Arial");
+    }
+  });
+  it("prints optional independent covers for the first two real Dafatir chapters with correct names/counts",()=>{
+    const root=path.join(import.meta.dirname,"..");
+    const file=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
+    const board=normalizeStoryboard(JSON.parse(readFileSync(file,"utf8")),file);
+    const first=buildStoryboardHtml(board,{chapter:1,chapterCover:true});
+    const second=buildStoryboardHtml(board,{chapter:2,chapterCover:true});
+    expect(first.scenes).toBe(9);
+    expect(second.scenes).toBe(7);
+    expect(first.html).toContain("بداية القصة");
+    expect(second.html).toContain("إني جاعل في الأرض خليفة");
+    expect((first.html.match(/class="page cover"/g)??[]).length).toBe(1);
+    expect((second.html.match(/class="page cover"/g)??[]).length).toBe(1);
+    const pageCount = (html: string) => (html.match(/<article class="page(?: cover)?"/g)??[]).length;
+    const annexCount = (html: string) => (html.match(/<section class="appendix">/g)??[]).length;
+    // Appendix pages preserve long original notes rather than being silently cut.
+    expect(pageCount(first.html) - annexCount(first.html)).toBe(10);
+    expect(pageCount(second.html) - annexCount(second.html)).toBe(8);
+    expect(second.html).toContain('<bdi dir="ltr">c2-s0</bdi>');
+    const withoutCover=buildStoryboardHtml(board,{chapter:2});
+    expect(pageCount(withoutCover.html) - annexCount(withoutCover.html)).toBe(7);
+    expect(withoutCover.html).not.toContain('class="page cover"');
   });
   it("reads actual Dafatir V1.1 and Zubdat v021 without modifying episodes",()=>{
     const root=path.join(import.meta.dirname,"..");
