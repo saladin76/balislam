@@ -9,7 +9,7 @@ import { lstat, open, readFile, realpath, rename, rm } from "node:fs/promises";
 import {
   WORKFLOW_STAGES, appendEvent, assertPrerequisites, assertRequiredEvidence, assertWorkflowGate, stagePrerequisites,
   initialLedger, reconcileWorkflow, stageFingerprint,
-  type Evidence, type WorkflowAction, type WorkflowActor, type WorkflowLedger,
+  type WorkflowAction, type WorkflowActor, type WorkflowLedger,
   type WorkflowSnapshot, type WorkflowStage,
 } from "./gates.ts";
 
