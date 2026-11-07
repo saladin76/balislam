@@ -184,6 +184,24 @@ describe("trusted workflow API, evidence and exact-master publication contract",
     expect(called).toBe(false);
   });
 
+  it("rejects self-referential approval ledgers and Master files outside the episode", async () => {
+    const x = await make();
+    await expect(collectActualArtifactDigests(x.scope, {
+      ...x.manifest,
+      stages: { ...x.manifest.stages,
+        script: { version: "bad", files: ["script.md", "workflow-approvals.json"] } },
+    })).rejects.toThrow(/self-referential/);
+    await expect(collectActualArtifactDigests(x.scope, {
+      ...x.manifest, master: { version: "v2", file: "channel-images/master.mp4" },
+    })).rejects.toThrow(/episode-owned/);
+    const root = await mkdtemp(path.join(os.tmpdir(), "workflow-symlink-channel-")); roots.push(root);
+    const real = path.join(root, "original");
+    await mkdir(path.join(real, "episodes", "001-test"), { recursive: true });
+    await symlink(real, path.join(root, "balislam"));
+    await expect(workflowFileFor({ channelsRoot: root, channel: "balislam", episode: "001-test" }))
+      .rejects.toThrow(/Channel must be a real directory/);
+  });
+
   it("refuses symlink evidence, another episode path, corrupted signed ledger or missing signing secret", async () => {
     const x = await make(); await x.allApproved();
     const ledger = await workflowFileFor(x.scope);
