@@ -156,13 +156,13 @@ describe("Quran recitation rights preserve the owner's silent-card choice", () =
     expect(unsafeQuranRecitationScenes(plan, {}, false)).toEqual([]);
     expect(unsafeQuranRecitationScenes(plan, {}, true)).toEqual(["c1-s1"]);
   });
-  it("rejects unproven licensed/Foundation files and accepts verified own or Cloud sources", () => {
+  it("accepts owner-supplied recordings only and rejects every external source", () => {
     const media = (source: "licensed" | "quran-foundation" | "manual" | "alquran-cloud") => ({
       "53:39": { source, file: "verse.mp3", duration: 2 },
     });
     expect(unsafeQuranRecitationScenes(plan, media("licensed"), false)).toEqual(["c1-s1"]);
     expect(unsafeQuranRecitationScenes(plan, media("quran-foundation"), true)).toEqual(["c1-s1"]);
     expect(unsafeQuranRecitationScenes(plan, media("manual"), true)).toEqual([]);
-    expect(unsafeQuranRecitationScenes(plan, media("alquran-cloud"), true)).toEqual([]);
+    expect(unsafeQuranRecitationScenes(plan, media("alquran-cloud"), true)).toEqual(["c1-s1"]);
   });
 });
