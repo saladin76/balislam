@@ -168,4 +168,11 @@ export const workflowOwnerDecision = async (episode: string, request: OwnerWorkf
 export const assertWorkflowForEpisode = async (episode: string, action: WorkflowAction): Promise<void> => {
   const { scope, snapshot } = await collectWorkflowSnapshot(episode);
   await requireWorkflowGate(scope, snapshot, action);
+  if (action === "publish") {
+    // Old stage approvals are never enough to publish a new scene-first Master.
+    // The trusted scene ledger also pins the exact raw Master bytes and inode
+    // generation after the owner's complete 1× audiovisual review.
+    const { requireSceneMasterReady } = await import("../studio/sceneService");
+    await requireSceneMasterReady(episode);
+  }
 };
