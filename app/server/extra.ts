@@ -258,26 +258,6 @@ const styleOf = (fmStyle: string | undefined, scenes: { template?: string }[]) =
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
 
-  // AlQuran Cloud: قراءة نص الآية والمعاينة الصوتية فقط؛ لا تنزيل ولا تعديل للرندر.
-  if (parts[0] === "alquran-cloud") {
-    if (req.method !== "GET") return send(res, 405, { error: "طلبات القراءة فقط." }), true;
-    const { createAlQuranClient, AlQuranError } = await load("/src/quran/alquranCloud.ts");
-    const client = createAlQuranClient();
-    if (parts[1] === "editions") return send(res, 200, { editions: await client.editions() }), true;
-    if (parts[1] === "ayah") {
-      const query = new URL(req.url ?? "/", "http://localhost").searchParams;
-      const surah = Number(query.get("surah"));
-      const ayah = Number(query.get("ayah"));
-      const edition = query.get("edition") ?? "";
-      try { return send(res, 200, await client.ayah(surah, ayah, edition)), true; }
-      catch (e) {
-        if (e instanceof AlQuranError) return send(res, 422, { error: e instanceof Error ? e.message : String(e) }), true;
-        throw e;
-      }
-    }
-    return send(res, 404, { error: "مسار AlQuran Cloud غير موجود." }), true;
-  }
-
   // التحديث من GitHub
   if (parts[0] === "update") {
     if (req.method === "POST") {
@@ -808,12 +788,6 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
           const info = voiceFound ? await el.voiceInfo().catch(() => null) : null;
           const cfg = (await load("/config.json")).default;
           send(res, 200, { ok: true, account: acc, voices, voiceFound, models, training: info?.training ?? {}, voiceCategory: info?.category, model: process.env.ELEVENLABS_MODEL_ID || cfg.voice.modelId });
-        } else if (service === "quran") {
-          const { quranClientFromEnv } = await load("/src/quran/client.ts");
-          const qf = quranClientFromEnv();
-          if (!qf) return send(res, 200, { ok: false, message: "لم تُضف مفاتيح Quran Foundation بعد." }), true;
-          const v = await qf.verse("1:1");
-          send(res, 200, { ok: true, sample: v.text, env: qf.env });
         } else send(res, 400, { error: "خدمة غير معروفة" });
       } catch (e) {
         send(res, 200, { ok: false, message: (e as Error).message });
@@ -827,37 +801,6 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       return true;
     }
     send(res, 200, { keys: env.keyStatus() });
-    return true;
-  }
-
-  // القرّاء المتاحون (تلاوة آية بآية)
-  if (parts[0] === "quran" && parts[1] === "recitations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      send(res, 200, { ok: true, list: await qf.recitations() });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
-    return true;
-  }
-
-  // ترجمات معاني القرآن المتاحة (لقنوات غير عربية)
-  if (parts[0] === "quran" && parts[1] === "translations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      const names: Record<string, string> = { en: "english", tr: "turkish", ar: "arabic" };
-      const lang = new URL(req.url ?? "/", "http://x").searchParams.get("lang") ?? "";
-      const all = await qf.translations();
-      const want = names[lang] ?? lang;
-      const list = all.filter((t: { language: string }) => !want || t.language.toLowerCase() === want);
-      send(res, 200, { ok: true, list });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
     return true;
   }
 
