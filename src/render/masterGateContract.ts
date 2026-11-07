@@ -36,6 +36,8 @@ export const masterRenderSubject = async (
       !/^_render\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9]{3}-[a-z0-9]+(?:-[a-z0-9]+)*\/[a-f0-9]{24}\/$/.test(media.base))
     throw new Error("لا يمكن تقييم اعتماد Master دون نسخة وسائط ثابتة تخص الحلقة.");
   const episodeFolder = path.basename(path.dirname(scriptPath));
+  if (!media.base.startsWith(`_render/${channelId}/${episodeFolder}/`))
+    throw new Error("بصمة وسائط Master لا تخص القناة والحلقة المختارتين.");
   const scriptSha256 = createHash("sha256").update(await readFile(scriptPath)).digest("hex");
   const planSha256 = createHash("sha256").update(JSON.stringify(plan)).digest("hex");
   const base = { channelId, episodeFolder, orientation, chapter: chapter ?? null, quality: "master" as const, scriptSha256, planSha256, mediaBase: media.base };
