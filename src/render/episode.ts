@@ -84,11 +84,10 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   const sb = storyboardStatus(plan, sbRecord);
   const blocked = unapprovedScenes(sb, [...ids]);
   if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-  if (!o.allowUnreviewed) {
-    const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
-    const review = sceneReviewSummary(items);
-    if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
-  }
+  // Legacy maintenance flags cannot bypass final AV or scene review.
+  const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
+  const review = sceneReviewSummary(items);
+  if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
   const { assertVoiceApproved } = await import("../voice/review");
   await assertVoiceApproved(scriptPath, plan, media.voice);
   return true;
