@@ -432,3 +432,40 @@ describe("render-pool partial ownership under parallel cancellation", () => {
     }
   });
 });
+
+
+describe("recovery must not delete another live process's partial output", () => {
+  it("fails closed when the ledger PID is alive but lacks a verifiable incarnation", async () => {
+    const d = dir();
+    try {
+      const ledger = path.join(d, "recover.json");
+      const output = path.join(d, "episode.mp4");
+      const partial = output + ".part-123e4567-e89b-42d3-a456-426614174000.mp4";
+      writeFileSync(output, "PREVIOUS GOOD");
+      writeFileSync(partial, "UNVERIFIED WRITER");
+      const def = spec(d, "previous", { output, args: ["out", output] });
+      writeFileSync(ledger, JSON.stringify({ perJobMB: 10, tasks: [{
+        id: "previous", status: "running", attempts: 1,
+        queuedAt: 1, pid: process.pid, pidStart: null,
+        partialOutput: partial, def,
+      }] }));
+      const pool = new RenderPool({ ledger, cpus: 1, ...noEvidence });
+      await expect(pool.recover((saved) => saved as TaskSpec)).rejects.toThrow(/ملكية عملية الرندر/);
+      expect(readFileSync(partial, "utf8")).toBe("UNVERIFIED WRITER");
+      expect(readFileSync(output, "utf8")).toBe("PREVIOUS GOOD");
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects corrupted persistent queue state rather than silently forgetting unfinished jobs", async () => {
+    const d = dir();
+    try {
+      const ledger = path.join(d, "corrupt.json");
+      writeFileSync(ledger, '{"tasks":');
+      await expect(RenderPool.readLedger(ledger)).rejects.toThrow(/سجل طابور الرندر/);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+});
