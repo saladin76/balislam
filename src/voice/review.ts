@@ -1,6 +1,6 @@
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { decodedAudioDuration, isOwnedRegularAudio } from "./audioIntegrity";
 import { isTone } from "./tones";
 import type { Plan, PlanScene } from "../plan/types";
@@ -21,12 +21,27 @@ const hasHumanEvidence = (item: { reviewer?: string; note?: string; at?: string 
     Date.parse(item.at) <= Date.now() + 60000);
 export const voiceReviewFile = (scriptPath: string) => path.join(path.dirname(scriptPath), "voice-review.json");
 export const loadVoiceReview = async (scriptPath: string): Promise<VoiceReviewRecord> => {
+  const file = voiceReviewFile(scriptPath);
   try {
-    const doc = JSON.parse(await readFile(voiceReviewFile(scriptPath), "utf8")) as VoiceReviewRecord;
-    return { version: 1, scenes: doc?.version === 1 && doc.scenes && typeof doc.scenes === "object" ? doc.scenes : {},
-      ...(doc?.version === 1 && doc.episode && typeof doc.episode.fingerprint === "string" ? { episode: doc.episode } : {}),
-    };
-  } catch { return { version: 1, scenes: {} }; }
+    if (!(await lstat(file)).isFile()) throw new Error("ملف اعتماد الصوت ليس ملفًا محليًا عاديًا.");
+    const doc = JSON.parse(await readFile(file, "utf8")) as VoiceReviewRecord;
+    if (doc?.version !== 1 || !doc.scenes || typeof doc.scenes !== "object" ||
+        Array.isArray(doc.scenes))
+      throw new Error("صيغة سجل اعتماد التعليق الصوتي غير صالحة.");
+    // Do not silently erase old human decisions after malformed or partial JSON.
+    const entries = Object.values(doc.scenes);
+    if (entries.some((entry) => !entry || typeof entry !== "object" ||
+        typeof entry.fingerprint !== "string"))
+      throw new Error("سجل اعتماد المقاطع الصوتية ناقص أو تالف.");
+    if (doc.episode != null && (typeof doc.episode !== "object" ||
+        typeof doc.episode.fingerprint !== "string"))
+      throw new Error("سجل اعتماد الاستماع إلى الحلقة كاملًا تالف.");
+    return { version: 1, scenes: doc.scenes, ...(doc.episode ? { episode: doc.episode } : {}) };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      return { version: 1, scenes: {} };
+    throw new Error("تعذّر قراءة سجل الاعتماد الصوتي التاريخي؛ لن يُستبدل دون استعادته.", { cause: error });
+  }
 };
 
 /** An approval is tied to the actual MP3 bytes, narration, tone and voice settings. */
