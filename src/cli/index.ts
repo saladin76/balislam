@@ -270,7 +270,7 @@ program
 
 program
   .command("quran-audio")
-  .description("استلام تلاوتك بصوتك وتحسين مستواها محليًا، أو اعتماد نسخة بعد الاستماع")
+  .description("استلام تسجيل التلاوة وتحسين مستواها محليًا، ثم اعتمادها باسم قارئها بعد الاستماع، أو رفضها")
   .argument("<episode>")
   .requiredOption("--ref <key>", "مرجع الآية")
   .option("--file <file>", "التسجيل الأصلي WAV/MP3/M4A/...")

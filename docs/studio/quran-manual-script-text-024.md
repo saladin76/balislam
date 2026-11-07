@@ -67,3 +67,34 @@
 
 - `tests/quran-manual-script-text.test.ts`.
 - وتعديلات لازمة: `tests/master-gates.test.ts` (الحالة السليمة تشمل آية معتمدة)، و`tests/recitation.test.ts` (القارئ إلزامي)، و`tests/episode-workspace.test.tsx` (عنوان اللوحة).
+
+## مراجعة ما قبل الاعتماد (٧ نوفمبر)
+
+- **ثغرات أُغلقت في المسار البديل** (`src/render/horizonAudio.ts`، معاينة «خط الأفق» لدفاتر الزمن). قبل الإغلاق كان:
+  - يقرأ نص الآية من `quran.json` مباشرة.
+  - يولّد سطور الراوي بلا حاجز نصوص الآيات (علامات المصحف وحدها).
+  - يكتب «بصوت صاحب القناة» في رسائله، ويضيف لقب «الشيخ» إلى اسم القارئ.
+  - يعرض اسم قارئ ثابتًا في لوحة المعاينة.
+- **صياغات واجهة وأوامر** كانت تفترض أن صاحب القناة هو القارئ: وصف أمر `quran-audio`، ونص الحافظة في لوحة الآيات، وتبويب القناة.
+- **تقرير `quran-compare`:** صار يذكر نص السكريبت مصدرًا أوّل.
+- **حدود معروفة للحاجز:**
+  - يكشف الآية كاملة أو أربع كلمات متتالية منها.
+  - لا يكشف اقتباسًا قرآنيًا في التعليق لآية ليست في بطاقات الحلقة إلا إن كان فيه رسم المصحف.
+  - مولّد المؤثرات (`soundEffect`) ليس الصوت المستنسخ ولا يمر عليه.
+
+### اختبار معزول على Mac
+
+لا يمس نسخة الإنتاج ولا أي مجلد عمل ولا ملفات الحلقات:
+
+```bash
+T=$(mktemp -d /tmp/bal-pr75.XXXXXX)
+gh repo clone saladin76/balislam "$T/repo" -- --branch feat/quran-manual-script-text-024 --single-branch --depth 1
+cd "$T/repo" && npm ci
+env -u ELEVENLABS_API_KEY -u ELEVENLABS_VOICE_ID npm run typecheck
+env -u ELEVENLABS_API_KEY -u ELEVENLABS_VOICE_ID npx vitest run
+# تجربة الاستوديو على نسخة قنوات مؤقتة وحلقة اختبار، بلا مفاتيح
+mkdir -p "$T/channels" && cp -R channels/zubdat-alkutub "$T/channels/" && rm -rf "$T/channels/zubdat-alkutub/episodes" && mkdir -p "$T/channels/zubdat-alkutub/episodes"
+cp -R tests/fixtures/episodes/000-demo "$T/channels/zubdat-alkutub/episodes/998-quran-test"
+env -u ELEVENLABS_API_KEY -u ELEVENLABS_VOICE_ID BAL_CHANNELS_DIR="$T/channels" BAL_CHANNEL=zubdat-alkutub npm run app -- --port 5199
+# بعد الانتهاء: rm -rf "$T"
+```

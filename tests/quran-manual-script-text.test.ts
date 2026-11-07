@@ -19,7 +19,8 @@ const { writePlanFile, readPlanFile, planPathFor, quranPathFor } = await import(
 const ST = await import("../src/quran/scriptText");
 const { findQuranInSpeech, assertNoQuranInSpeech, quranGuardTexts, QuranInSpeechError } = await import("../src/voice/quranGuard");
 const { createElevenLabs } = await import("../src/voice/elevenlabs");
-const { generateVoice } = await import("../src/voice/generate");
+const { generateVoice, synthesizeLines } = await import("../src/voice/generate");
+const { checkEpisodeQuran } = await import("../src/quran/compare");
 const { ownAudioStatus, approveOwnRecitation, verifiedOwnRecitations } = await import("../src/quran/manualAudio");
 const { recitationsDirFor } = await import("../src/quran/sync");
 const { saveManualQuranText, inspectMissingQuranTexts } = await import("../src/quran/fillMissingText");
@@ -100,6 +101,13 @@ describe("كتابة الآية في السكريبت وحفظها واستعا�
     expect(await ST.unapprovedAyahTexts(scriptPath)).toHaveLength(1);
   });
 
+  it("المقابلة القديمة (quran-compare) تقابل نص السكريبت لا نص quran.json", async () => {
+    const scriptPath = await fresh(undefined, { "20:14": STORE_TEXT });
+    const client = { verse: async (key: string) => ({ key, number: 14, text: VERSE }) };
+    const [c] = await checkEpisodeQuran(scriptPath, client as never);
+    expect(c).toMatchObject({ key: "20:14", status: "match" });
+  });
+
   it("لا يُنشأ نص موازٍ في quran.json لآية مكتوبة في السكريبت", async () => {
     const scriptPath = await fresh();
     await expect(saveManualQuranText(scriptPath, "20:14", VERSE)).rejects.toThrow(/مكتوب في السكريبت/);
@@ -125,6 +133,14 @@ describe("لا يتسرب النص القرآني إلى الصوت المستن
     await expect(generateVoice(scriptPath, { client: { tts } as never, force: true, ignoreStoryboard: true, ignoreTashkeel: true })).rejects.toBeInstanceOf(QuranInSpeechError);
     expect(tts).not.toHaveBeenCalled();
     expect(quranGuardTexts(plan)).toContain(VERSE);
+  });
+
+  it("المسار البديل (synthesizeLines، معاينة خط الأفق) يرفض سطرًا فيه الآية قبل أي طلب", async () => {
+    const scriptPath = await fresh();
+    const tts = vi.fn();
+    await expect(synthesizeLines(scriptPath, [{ id: "l1", text: `قَالَ: ${VERSE}` }], { client: { tts } as never, dir: path.dirname(scriptPath), force: true, quranGuard: [VERSE] }))
+      .rejects.toBeInstanceOf(QuranInSpeechError);
+    expect(tts).not.toHaveBeenCalled();
   });
 
   it("عميل الصوت نفسه يرفض العيّنة والمشهد وإعادة التوليد قبل الشبكة", async () => {

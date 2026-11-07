@@ -69,7 +69,7 @@ export const ManualQuranPanel: React.FC<{
   const copyList = () => operation(async()=>{
     if(!required.length) throw Error("لا توجد آيات مطلوبة.");
     const lines = required.map(r=>`- ${r.label} [${r.key}] — ${r.status === "missing"?"النص مطلوب":"النص موجود"} — ${audio.approved[r.key]?"التلاوة معتمدة":"التلاوة مطلوبة"}`);
-    await navigator.clipboard.writeText("الآيات المطلوبة للحلقة "+episodeId+" ("+channelId+"):\n"+lines.join("\n")+"\nأرسل النصوص العربية المضبوطة لكل مرجع والتسجيلات بصوتي للمراجعة.");
+    await navigator.clipboard.writeText("الآيات المطلوبة للحلقة "+episodeId+" ("+channelId+"):\n"+lines.join("\n")+"\nاكتب نص كل آية في السكريبت بصيغة [آية: المرجع | النص]، وأرسل تسجيلات التلاوة المختارة مع اسم القارئ للمراجعة.");
     setFeedback("نُسخت قائمة الآيات إلى الحافظة لإرسالها للمحادثة.");
   });
   const saveText = () => operation(async()=>{

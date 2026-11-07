@@ -59,7 +59,7 @@ const ShotFrame: React.FC<{ shot: ShotDef; base?: string }> = ({ shot, base }) =
   );
 };
 
-const Slate: React.FC<{ audio?: boolean }> = ({ audio }) => {
+const Slate: React.FC<{ audio?: boolean; reciters?: string }> = ({ audio, reciters }) => {
   const frame = useCurrentFrame();
   const t = frame / HZ_FPS;
   const o = prog(t, 0, 0.5) * (1 - prog(t, SLATE - 0.5, SLATE));
@@ -73,8 +73,8 @@ const Slate: React.FC<{ audio?: boolean }> = ({ audio }) => {
           <>
             {line("اللقطات الست بالصوت والتلاوة — معاينة متكاملة", 44, C.sand)}
             <div style={{ height: 18 }} />
-            {line("اتجاه «خط الأفق» · صوت الراوي المعتمد · تلاوة الشيخ محمود خليل الحصري", 30, "rgba(241,228,203,0.85)")}
-            {line("نص الآيات: Quran.Foundation · لا موسيقى ولا مؤثرات · لا تُنشر", 26, "rgba(241,228,203,0.6)")}
+            {line(`اتجاه «خط الأفق» · صوت الراوي المعتمد · التلاوة: ${reciters || "—"}`, 30, "rgba(241,228,203,0.85)")}
+            {line("نص الآيات من السكريبت بعد مقابلته · لا موسيقى ولا مؤثرات · لا تُنشر", 26, "rgba(241,228,203,0.6)")}
           </>
         ) : (
           <>
@@ -113,7 +113,7 @@ const Reel: React.FC<{ audio?: HorizonAudio }> = ({ audio }) => {
   return (
     <AbsoluteFill style={{ background: C.night }}>
       <Sequence durationInFrames={Math.round(SLATE * HZ_FPS)}>
-        <Slate audio={Boolean(audio)} />
+        <Slate audio={Boolean(audio)} reciters={audio ? [...new Set(Object.values(audio.verses).map((v) => v.reciter).filter(Boolean))].join("، ") : undefined} />
       </Sequence>
       {hzSchedule(shots).map(({ shot, from, frames }) => (
         <Sequence key={shot.id} from={from} durationInFrames={frames}>

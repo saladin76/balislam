@@ -278,7 +278,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
 
         {c.rules.quran && <section id="channel-quran" className="group channel-settings-section channel-settings-quran ch-wide">
           <h3>معاينة تلاوات AlQuran Cloud <small>استماع اختياري فقط</small></h3>
-          <p className="help">الآيات وتلاوتك الخاصة تُدار داخل «صوت الحلقة». هنا يمكنك فقط اختيار قارئ مفضّل للاستماع إلى عيّنات AlQuran Cloud.</p>
+          <p className="help">نصوص الآيات وتلاواتها المعتمدة تُدار داخل «صوت الحلقة». هنا يمكنك فقط اختيار قارئ مفضّل للاستماع إلى عيّنات AlQuran Cloud.</p>
           <CloudPreviewPicker value={c.alquranPreviewRecitation} onChange={(alquranPreviewRecitation) => set({ alquranPreviewRecitation })} />
         </section>}
 
