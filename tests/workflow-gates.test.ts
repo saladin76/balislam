@@ -75,10 +75,10 @@ describe("durable Studio workflow — six explicit stages", () => {
     await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), attestation: attestation("script", current) })).rejects.toThrow(/submitted/);
     await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current) })).rejects.toThrow(/submitted/);
     await submitWorkflowStage(scope, inputs(scope, "script", current));
-    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), actor: reviewer, evidence: evidence("script") })).rejects.toThrow(/owner/);
-    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), expectedFingerprint: hash("old"), evidence: evidence("script") })).rejects.toThrow(/changed/);
+    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), actor: reviewer, attestation: attestation("script", current) })).rejects.toThrow(/owner/);
+    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), expectedFingerprint: hash("old"), attestation: attestation("script", current) })).rejects.toThrow(/changed/);
     await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", current), attestation: attestation("script", current, owner, ["script_validated"]) })).rejects.toThrow(/sources_reviewed/);
-    await approveWorkflowStage(scope, { ...inputs(scope, "script", current), evidence: evidence("script") });
+    await approveWorkflowStage(scope, { ...inputs(scope, "script", current), attestation: attestation("script", current) });
   });
 
   it("rejects missing, forged or mismatched signed evidence even if every client boolean is true", async () => {
@@ -152,13 +152,13 @@ describe("durable Studio workflow — six explicit stages", () => {
     const changed = structuredClone(current);
     changed.script = { version: "v2", sha256: hash("update") };
     expect((await readWorkflow(scope, changed)).stages.script.status).toBe("draft");
-    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", changed), evidence: evidence("script") })).rejects.toThrow(/submitted/);
+    await expect(approveWorkflowStage(scope, { ...inputs(scope, "script", changed), attestation: attestation("script", changed) })).rejects.toThrow(/submitted/);
   });
 
   it("serializes concurrent writers and keeps a valid audit ledger", async () => {
     const { scope, current, dir } = await fixture();
     await submitWorkflowStage(scope, inputs(scope, "script", current));
-    const results = await Promise.allSettled(Array.from({ length: 8 }, () => approveWorkflowStage(scope, { ...inputs(scope, "script", current), evidence: evidence("script") })));
+    const results = await Promise.allSettled(Array.from({ length: 8 }, () => approveWorkflowStage(scope, { ...inputs(scope, "script", current), attestation: attestation("script", current) })));
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     expect(results.filter((r) => r.status === "rejected")).toHaveLength(7);
     const doc = await readWorkflow(scope, current);
