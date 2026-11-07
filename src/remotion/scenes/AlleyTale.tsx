@@ -9,7 +9,8 @@ import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { useTransition } from "./transitions";
 import { figureSpan, fitFrame } from "../illus/framing";
-import { fitDistance, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
+import { groupFullyVisible, pillClearOfOwner, requiresFocusCut } from "../illus/compositionSafety";
+import { fitDistance, fitDistanceWithin, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
 import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
 import { TopCaption, captionLines } from "../illus/TopCaption";
@@ -163,8 +164,14 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
       const s0 = groupStarts[g]!;
       const s1 = groupStarts[g + 1] ?? dur;
       if (actionOf(g) === "walk") {
-        const d = Math.min(room, fitDistance(gait, s1 - s0 - 6, HERO_SCALE, fps));
-        if (d > 4) moves.push({ start: s0 + 2, dx: -d, gait });
+        const available = Math.max(0, s1 - s0 - 6);
+        // New contained scenes stop walking before their next cue. Legacy authored
+        // locomotion keeps its original distance and duration.
+        const bounded = props.framing === "fit";
+        const d = Math.min(room, bounded
+          ? fitDistanceWithin(gait, available, HERO_SCALE, fps)
+          : fitDistance(gait, available, HERO_SCALE, fps));
+        if (d > 4) moves.push({ start: s0 + 2, dx: -d, gait, ...(bounded ? { durationFrames: available } : {}) });
         room -= d;
       } else if (actionOf(g) === "turn-away") turns.push({ at: s0 + 2, to: -1 });
     }
@@ -279,6 +286,18 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const fitMode = composed && props.framing === "fit";
   const fit = fitMode ? fitFor({ heroX, propX, stage, portrait, sitting, walking, timeline, compTimeline, compX: heroX - compGap, hasDoor: at("door") !== undefined, hasBoard: newsAt !== undefined && place !== "home", ghosts: at("people") !== undefined, facingLeft, turnsAway: poses.includes("turn-away"), verdicts: { wrong: cues.find((c) => c.kind === "wrong")?.word, just: cues.find((c) => c.kind === "just")?.word } }) : undefined;
   const composedCam = composed ? composedCamera({ frame, dur, fps, heroX, stage, sacred: sacredScene, portrait, plan: portrait && props.cameraPlanPortrait ? props.cameraPlanPortrait : props.cameraPlan, cues, timings, ...(fit ? { fit, alternate: portrait } : {}) }) : null;
+  // Visual QA at 7s found one of the two background actors cut at the left edge.
+  // In opt-in contained portrait witnesses only, cut to a clean reaction shot:
+  // show the two-person central action together or omit it together, never as half-figures.
+  // Their visibility can change only when the existing authored camera framing changes.
+  const showSituation = !fitMode || !portrait || stage !== "witnesses" || !composedCam ||
+    groupFullyVisible({
+      camera: composedCam, portrait, margin: 12,
+      spans: [
+        figureSpan(920, ["point", "talk"], "right", 1.15),
+        figureSpan(1010, ["hold", "flinch"], "left", 1.15),
+      ],
+    });
   // الإضاءة والظلال والعمق (الأمر 008): اختيارية بحقل lighting، وبدونه لا يتغير شيء
   const rig = parseLighting(props.lighting);
   const light = rig ? lightAt(rig, frame, (w) => cueFrames([{ kind: "truth", word: w }], timings)[0]?.at) : null;
@@ -383,8 +402,12 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
               <g>
                 {/* الموقف نفسه في الوسط، والشاهدان على طرفيه */}
                 <Glow cx={960} cy={GROUND - 200} r={300} color={ID.paper} opacity={0.35} />
-                <SceneFigure light={light} x={920} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "point" }, { at: 50, pose: "talk" }])} look={LOOKS.stranger} opacity={0.85} frame={frame + 5} />
-                <SceneFigure light={light} x={1010} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "hold" }, { at: 60, pose: "flinch" }])} look={LOOKS.elder} flip opacity={0.85} frame={frame + 9} />
+                {showSituation ? (
+                  <>
+                    <SceneFigure light={light} x={920} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "point" }, { at: 50, pose: "talk" }])} look={LOOKS.stranger} opacity={0.85} frame={frame + 5} />
+                    <SceneFigure light={light} x={1010} y={GROUND + 6} scale={1.15} pose={poseAt(frame, [{ at: 0, pose: "hold" }, { at: 60, pose: "flinch" }])} look={LOOKS.elder} flip opacity={0.85} frame={frame + 9} />
+                  </>
+                ) : null}
                 <SceneFigure light={light} x={1300} y={GROUND + 6} scale={1.75} pose={poseAt(frame, [{ at: 0, pose: "stand" }, { at: 40, pose: "think" }])} look={LOOKS.woman} flip frame={frame + 3} />
               </g>
             ) : null}
@@ -422,7 +445,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
         </svg>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(0,0,0,.4) 100%)" }} />
       </AbsoluteFill>
-      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} />
+      <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} safeWrap={fitMode} />
     </SceneShell>
   );
 };
@@ -564,6 +587,15 @@ export const composedCamera = (o: {
   for (let i = 1; i < beats.length; i++) {
     const b = beats[i]!;
     const to = frameFor(b.target, b.shot);
+    // In a contained portrait two-witness scene, crossing the gap by a moving camera
+    // briefly reveals partial people/labels. A speech-timed hard cut preserves composition.
+    // Existing scenes and landscape motion keep their original interpolation.
+    if (requiresFocusCut({ portrait: pt, contained: Boolean(o.fit), stage: o.stage, from: beats[i - 1]!.target, to: b.target })) {
+      if (o.frame < b.frame) break;
+      cur = to;
+      free = b.frame;
+      continue;
+    }
     const len = b.dur ?? moveFrames(to.z - cur.z, to.x - cur.x);
     // تصل الكاميرا مع الحدث تقريبًا: تبدأ قبله بنحو 40% من مدة الحركة (والإزاحة في الخطة تضبط موضع الحدث)
     const start = Math.max(free, b.frame - Math.round(len * 0.4));
@@ -574,7 +606,7 @@ export const composedCamera = (o: {
     if (p < 1) break;
   }
   // تنفس خفيف للكاميرا (1.5% على طول المشهد) إلا في المشهد الثابت ومشهد الذكر والآية
-  const breath = o.sacred || still ? 0 : 0.015 * (o.frame / Math.max(1, o.dur));
+  const breath = o.sacred || still || (pt && Boolean(o.fit)) ? 0 : 0.015 * (o.frame / Math.max(1, o.dur));
   return { ...frameOn(cur.x, cur.z * (1 + breath), pt), keys: beats.length, still };
 };
 
@@ -597,7 +629,9 @@ export const witnessPillAt = (wx: number, inward: 1 | -1, word: string, c: CamSt
   // clear: امتداد الرأس واليد المرفوعة من جهة الموقف حول محور الشخصية
   const beside = wx + inward * (clear + w / 2);
   const x = pillInView(beside, word, c, portrait, size);
-  return x;
+  // A safe label may disappear with its owner; it must never slide over the owner's
+  // head or raised hand when the portrait crop is too narrow.
+  return pillClearOfOwner({ x, ownerX: wx, direction: inward, width: w, clearance: clear, camera: c, portrait }) ? x : null;
 };
 /**
  * امتداد الشاهد من جهة الموقف عند مستوى رأسه (الأمر 014): الأول واقف (الرأس نحو 45)، والثاني في وضعية
