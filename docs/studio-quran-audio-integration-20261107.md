@@ -43,3 +43,30 @@
 - `tests/voice-review.test.ts` و`tests/studio-production-stage-integration.test.ts`: MP3 حقيقي قابل للفك، لا اعتماد للفاسد.
 - `tests/studio-final-motion-gate.test.ts`: لا حركة نهائية قبل Storyboard وكل مقاطع الصوت والاعتماد الكامل، ورفض المسار بلا مقاطع تعليق.
 - لم يُعدّل أي ملف حلقة إنتاجية، أو فرع الرندر، أو `src/plan/collect.ts`. لا يُستخدم Vercel أو Mac الإنتاجي. يجب مرور GitHub CI وStudio parity والمراجعة البشرية على رأس فرع التكامل قبل الدمج.
+
+
+## 6. Hardening audit — Quran/audio workstream only
+
+**This work does not authorize production or scholarly signoff.** The source script remains authoritative; no AI-generated Quran recitation or voice-cloning of ayahs is permitted.
+
+### Arabic source/diff integrity
+- `alignDiff` and the legacy `compareVerseText` now use the same complete NFC codepoint alignment. Significant leading/trailing whitespace, Quran marks, letters and tashkeel are not trimmed. Neither the report nor legacy comparison truncates at 40/20 differences.
+- An unreasonably large quadratic alignment fails explicitly and requests smaller ayah ranges; it must **never** report a partial comparison as a match. The script itself and the approved remote text are never auto-edited.
+- `historicalMeaningConflict` stops a sync when an already stored translation is differently worded, from a different named translator, or has no verifiable original source. The previous text, old provenance and citation are left intact until human migration/review. A selected channel translation is not retroactively assigned to an older meaning.
+
+### Recording identity and human attestation
+- `src/voice/audioIntegrity.ts` checks MP3 metadata **and decodes the entire stream using FFmpeg**; a valid header or parseable duration alone is insufficient. Failure closes the audio approval gate.
+- `approveOwnRecitation` retains the original audio filename/hash along with the processed MP3 hash, the exact manually authored Quran text SHA, separate reader attribution, rights evidence, named reviewer and decision timestamp. `verifiedOwnRecitations` verifies **both** source and processed bytes/decodability and bounded duration drift at the moment of use. Historical manual index entries without original evidence remain on disk but require human re-review/re-upload before eligibility.
+- HTTP, UI and CLI all demand an explicit `listened: true` acknowledgement for each clip and full-episode signoff. CLI reviewers must pass `--listened`. It is an accountable human declaration, not a claim that software can prove a person listened.
+- `assertNoQuranInTts` prevents explicit verse directives, entire authored ayahs and substantial verbatim ayah excerpts in **script-derived narration and special-line TTS**. Verse-card scenes cannot become TTS narration jobs. The guard cannot identify every Quran fragment in arbitrary external prose; human review and separated recitation sources remain mandatory.
+
+### Final motion and the render-branch boundary
+- `assertMotionStartAuthorized` refuses final motion when a current Quran verse has any manual recording marked reviewed/stale **until** the independent render collector truly supports it. It never silently substitutes missing recitation with synthetic speech.
+- The renderer remains the **hard acceptance blocker**: `src/plan/collect.ts`, direct `src/render/episode.ts`, package/master paths, queue recovery and actual execution-time rechecks belong to the other team's branch. They have **not** been modified here. It is wrong to declare a 100% end-to-end technical delivery before each starts through the same gate and the collection path revalidates original/processed hashes.
+- Required render-team tests: (a) direct CLI final render with unsigned script must reject before output; (b) direct/package/Master with unchanged script but stale scene audio or unapproved full narration must reject; (c) recovered queued job must recheck at execution, not only enqueue; (d) manual ayah audio must render only after verified license/reader/source/hash and must stop after original or processed file corruption, ref/tashkeel mutation or revoked review; (e) storyboard silent QA remains usable as non-final review; (f) any `--allowUnreviewed` or legacy shortcut cannot bypass final motion.
+- Never change `main`, a production Mac checkout or episode files from this workstream.
+
+### Verification checklist
+- Run full `npm run typecheck` and all Vitest suites on the **exact head** of Draft PR #76, including `tests/quran-script-source.test.ts`, `tests/quran-tts-guard.test.ts`, `tests/audio-integrity.test.ts`, `tests/voice-review.test.ts`, `tests/script-approval.test.ts`, and `tests/studio-final-motion-gate.test.ts`.
+- Check that GitHub Actions actually execute `npm ci`, typecheck, tests and channel smoke checks. A job failing with **zero steps** is an infrastructure failure and does not prove code passed or failed.
+- Require a real independently reviewed Quran/text and MP3/source-rights exemplar, plus owner signoff of a full 1× listening session, before any real production acceptance. Test sine-wave recordings are decoder fixtures, never religious review evidence.
