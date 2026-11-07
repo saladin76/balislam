@@ -1,20 +1,19 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { projectRoot } from "../config/paths";
 import { resolveScriptPath } from "../script/episodes";
 import { loadVoiceIndex, voiceDirFor, audioDuration } from "../voice/generate";
 import { availableSfx, sfxFile } from "../voice/sfx";
-import { recitationFileFor, type EpisodeMedia, type Recitation } from "./media";
+import { type EpisodeMedia, type Recitation } from "./media";
 import type { Plan } from "./types";
 import { readJson } from "./io";
 import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
-import { loadChannel } from "../channel";
-import { activeRecitation, isCloudRecitation, requireCloudPublicationRights } from "../quran/provider";
 
-export const recitationsDir = path.join(projectRoot, "assets", "recitations");
+
+// Quran recitation audio is private, per episode, and approved by its owner.
 
 /** صور اللوحات الوثائقية: مجلد images/ بجوار سكريبت الحلقة (لا تُرفع إلى Git لحجمها) */
 export const imagesDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "images");
@@ -53,29 +52,23 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const sfx = availableSfx().filter((id) => used.has(id));
   const recitations: Record<string, Recitation> = {};
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
-  const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
-  const chosen = await activeRecitation(await resolveScriptPath(episode), loadChannel().recitation);
-  if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
-  for (const s of plan.chapters.flatMap((c) => c.scenes)) {
+  const approved = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
+  for (const s of plan.chapters.flatMap(ch => ch.scenes)) {
     if (s.template !== "verse-card" || !s.ayahKey) continue;
-    // 1) تلاوة مرخّصة بإذن مكتوب (assets/recitations) لها الأولوية
-    const file = recitationFileFor(s.ayahKey);
-    const full = path.join(recitationsDir, file);
-    if (existsSync(full)) {
-      const duration = await audioDuration(full);
-      if (duration) {
-        recitations[s.ayahKey] = { file, duration, source: "licensed" };
-        continue;
-      }
-    }
-    // 2) تلاوة من Quran Foundation (إن اختارت القناة قارئًا وجُلبت)
-    const q = qf[s.ayahKey];
-    const matching = q && chosen && (isCloudRecitation(chosen)
-      ? q.provider === "alquran-cloud" && q.edition === chosen.edition
-      : q.provider !== "alquran-cloud" && q.recitationId === chosen.id);
-    if (q && matching && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
-      recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration, 0), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
-    }
+    const recording = approved[s.ayahKey];
+    if (recording?.provider !== "manual" || !recording.approvedBy || !recording.approvedAt ||
+        !recording.sha256 || recording.parts.length !== 1) continue;
+    const part = recording.parts[0]!;
+    if (!/^manual-\\d+-\\d+(?:-\\d+)?-[a-f0-9]{12}\\.mp3$/.test(part.file) ||
+        !Number.isFinite(part.duration) || part.duration <= 0) continue;
+    const file = path.join(recDir, part.file);
+    if (!existsSync(file)) continue;
+    const digest = createHash("sha256").update(readFileSync(file)).digest("hex");
+    if (digest !== recording.sha256) continue;
+    recitations[s.ayahKey] = {
+      file:part.file, duration:part.duration, parts:recording.parts,
+      reciter:recording.reciter, source:"manual",
+    };
   }
   const sp = await resolveScriptPath(episode);
   const images = usedImages(plan, imagesDirFor(sp), libraryDirFor(sp));
@@ -98,8 +91,8 @@ export const prepareRenderMedia = async (episode: string, plan: Plan): Promise<E
   for (const id of m.sfx) await cp(sfxFile(id), path.join(dest, "sfx", `${id}.mp3`));
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   for (const r of Object.values(m.recitations)) {
-    if (r.source === "quran-foundation" || r.source === "alquran-cloud") for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
-    else await cp(path.join(recitationsDir, r.file), path.join(dest, "recitations", r.file));
+    if (r.source !== "manual") throw Error("تم تعطيل التلاوات الخارجية القديمة؛ استخدم تسجيلك المعتمد.");
+    for (const p of r.parts ?? []) await cp(path.join(recDir, p.file), path.join(dest, "recitations", p.file));
   }
   const sp2 = await resolveScriptPath(episode);
   for (const f of m.images ?? []) await cp(f.startsWith(LIB) ? path.join(libraryDirFor(sp2), f.slice(LIB.length)) : path.join(imagesDirFor(sp2), f), path.join(dest, "images", imageKey(f)));
