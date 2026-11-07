@@ -32,6 +32,7 @@ const disk = d => {
 const run = (root, label) => new Promise(resolve=>{
   const env = { ...process.env, TMPDIR:root, TMP:root, TEMP:root };
   const child=spawn(process.execPath,[path.join(repo,"scripts/gate.mjs")],{cwd:repo,env,stdio:"inherit"});
+  children.push(child);
   child.once("error", e=>resolve({label,status:1,error:e.message}));
   child.once("close", (code,signal)=>resolve({label,status:code,signal}));
 });
