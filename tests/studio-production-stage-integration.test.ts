@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
 import { approveStoryboard, loadStoryboard, storyboardStatus } from "../src/plan/storyboard";
@@ -12,7 +13,7 @@ const build = async () => {
   const scriptPath = path.join(root, "script.md");
   await writeFile(scriptPath, "synthetic test fixture");
   await mkdir(path.join(root, "voice"));
-  await writeFile(path.join(root, "voice", "c1-s1.mp3"), "FAKE MP3 BYTES - TEST ONLY");
+  execFileSync("ffmpeg", ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=400:duration=1.2", "-c:a", "libmp3lame", path.join(root, "voice", "c1-s1.mp3")]);
   const scene = { id: "c1-s1", line: 1, template: "noor-text",
     narration: "نص مشهد اختباري", tone: "documentary", props: { text: "عنوان اللوحة" }, sfx: [] };
   const plan = { episode: "001-test", title: "approval fixture", chapters: [{ number: 1, title: "test", scenes: [scene] }] } as unknown as Plan;
@@ -35,7 +36,7 @@ describe("Studio release candidate: visual → tone → approved audio", () => {
     await approveVoiceEpisode(x.scriptPath, x.plan, x.voice, "اختبار", "استمعت إلى النسخة الصوتية كاملة وتأكدت من سلامة الانتقالات");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).resolves.toBe(true);
     await writeFile(path.join(x.root, "voice", "c1-s1.mp3"), "CHANGED AUDIO BYTES");
-    expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("changed");
+    expect((await voiceReviewItems(x.scriptPath, x.plan, x.voice))[0]?.state).toBe("missing_audio");
     await expect(assertVoiceApproved(x.scriptPath, x.plan, x.voice)).rejects.toThrow();
     x.scene.narration = "نص جديد مختلف";
     expect(storyboardStatus(x.plan, await loadStoryboard(x.scriptPath)).ok).toBe(false);
