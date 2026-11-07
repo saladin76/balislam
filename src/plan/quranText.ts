@@ -1,10 +1,10 @@
 import type { Plan } from "./types";
 import type { QuranTexts } from "./generate";
 
-export const VERSE_PLACEHOLDER = "‹نص الآية يُجلب من Quran Foundation›";
+export const VERSE_PLACEHOLDER = "‹نص الآية مطلوب من صاحب القناة›";
 
 /**
- * نص الآيات وترجمة معانيها لا يُحفظان داخل plan.json (شروط Quran Foundation: لا تخزين أطول من أسبوع،
+ * نصوص الآيات المرسلة يدويًا تُحفظ فقط في quran.json لا داخل plan.json (بدون مزامنة خارجية؛
  * وplan.json يُرفع إلى GitHub). يُحفظان في quran.json على الجهاز فقط ويُدمجان عند القراءة.
  */
 export const stripQuran = (plan: Plan): Plan => ({
