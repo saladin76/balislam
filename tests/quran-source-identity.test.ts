@@ -1,28 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { createQuranClient } from "../src/quran/client";
+import { parseAyahRef } from "../src/script/quranMeta";
+import { composeVerses } from "../src/quran/sync";
+import { cleanTranslation } from "../src/quran/client";
 
-const source = (verse: { verse_key?: string; verse_number?: number; text_uthmani?: string }) => {
-  const requests: string[] = [];
-  const fetchImpl = async (input: RequestInfo | URL) => {
-    const url = String(input);
-    requests.push(url);
-    if (url.includes("/oauth2/token")) return new Response(JSON.stringify({ access_token: "safe-test-token", expires_in: 3600 }), { status: 200 });
-    return new Response(JSON.stringify({ verse }), { status: 200 });
-  };
-  return { client: createQuranClient({ clientId: "test-client", clientSecret: "test-secret", fetchImpl: fetchImpl as typeof fetch }), requests };
-};
-describe("Quran text-only API source identity", () => {
-  it("never caches a different verse returned for the requested Quran key", async () => {
-    const { client } = source({ verse_key: "20:15", verse_number: 15, text_uthmani: "نص ليس للمرجع المطلوب" });
-    await expect(client.verse("20:14")).rejects.toThrow(/لا يطابق/);
+/** Verse text is authored in script.md; these tests never contact a provider. */
+describe("Local Quran source and reference identity", () => {
+  it("rejects invalid verse references and identifies exact requested ranges", () => {
+    expect(parseAyahRef("غير موجود 100").ok).toBe(false);
+    const one = parseAyahRef("طه 14");
+    expect(one.ok && one.ref.key).toBe("20:14");
+    const range = parseAyahRef("البقرة 255-256");
+    expect(range.ok && range.ref.key).toBe("2:255-256");
   });
-  it("rejects a wrong verse number even if the verse key is correct", async () => {
-    const { client } = source({ verse_key: "20:14", verse_number: 15, text_uthmani: "نص خاطئ" });
-    await expect(client.verse("20:14")).rejects.toThrow(/لا يطابق/);
+
+  it("never changes locally authored verse text while formatting single verses", () => {
+    const text = "نَصٌّ تَجْرِيبِيٌّ";
+    expect(composeVerses([{ key: "20:14", number: 14, text }])).toBe(text);
   });
-  it("accepts source text as-is only with matching ayah key and number", async () => {
-    const { client, requests } = source({ verse_key: "20:14", verse_number: 14, text_uthmani: "نص اختباري غير قرآني" });
-    expect(await client.verse("20:14")).toMatchObject({ key: "20:14", number: 14, text: "نص اختباري غير قرآني" });
-    expect(requests.some((url) => url.includes("/verses/by_key/20:14"))).toBe(true);
+
+  it("keeps per-verse order and local numbers when composing ranges", () => {
+    expect(composeVerses([
+      { key: "2:255", number: 255, text: "أ" },
+      { key: "2:256", number: 256, text: "ب" },
+    ])).toBe("أ ۝٢٥٥ ب ۝٢٥٦");
+  });
+
+  it("sanitizes locally supplied translation notes without a network client", () => {
+    expect(cleanTranslation("A<sup foot_note=1>1</sup> B")).toBe("A B");
   });
 });
