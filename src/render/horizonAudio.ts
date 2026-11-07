@@ -16,7 +16,8 @@ import { loadChannel } from "../channel/index";
 import { readJson, quranPathFor } from "../plan/io";
 import { elevenLabsFromEnv, type ElevenLabsClient } from "../voice/elevenlabs";
 import { synthesizeLines, tashkeelBlockMessage, tashkeelForLines, voiceDirFor } from "../voice/generate";
-import { recitationsDirFor, type RecitationIndex } from "../quran/sync";
+import { recitationsDirFor } from "../quran/sync";
+import { verifiedOwnRecitations } from "../quran/manualAudio";
 import { browserExecutable, getServeUrl } from "./bundle";
 import { QUALITY } from "./quality";
 import { cleanMetadata } from "./episode";
@@ -43,12 +44,11 @@ export const horizonPreflight = async (scriptPath: string, clients: { voice: Ele
   if (!clients.voice) problems.push("مفتاح صوت الراوي أو معرّف الصوت غير موجود في .env (ElevenLabs).");
   const localTexts = (await readJson<Record<string,string>>(quranPathFor(scriptPath))) ?? {};
   const recDir = recitationsDirFor(scriptPath);
-  const recordings = (await readJson<RecitationIndex>(path.join(recDir,"index.json"))) ?? {};
+  const recordings = await verifiedOwnRecitations(scriptPath);
   for (const key of HORIZON_VERSES) {
     if (!localTexts[key]?.trim()) problems.push("نص الآية " + key + " لم يقدمه صاحب القناة.");
     const rec = recordings[key];
-    if (rec?.provider !== "manual" || !rec.approvedAt || !rec.approvedBy ||
-        !rec.parts?.length || rec.parts.some(p => !p.duration || !existsSync(path.join(recDir,p.file))))
+    if (!rec)
       problems.push("تلاوة " + key + " بصوت صاحب القناة غير معتمدة.");
   }
   const tk = await tashkeelForLines(scriptPath, HORIZON_SHOTS.map((id) => ({ id: `horizon-${id}`, text: spokenText(id) })));
@@ -88,7 +88,7 @@ export const renderHorizonAudio = async (
   log("التحقق من النصوص والتلاوات اليدوية المعتمدة…");
   const store = (await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {};
   const recDir = recitationsDirFor(scriptPath);
-  const recIndex = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
+  const recIndex = await verifiedOwnRecitations(scriptPath);
   const channel = loadChannel();
   // No network access or automatic overwrite of historical episode assets.
 
