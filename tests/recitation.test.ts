@@ -136,6 +136,16 @@ describe("تلاوة Quran Foundation", () => {
     const again = await syncQuran("000", qf);
     expect(again.recited).toEqual([]);
     expect(again.cached).toContain("53:39");
-    expect(existsSync(path.join(tmp, "balislam", "episodes", "000-demo", "recitations", "7-53-39.mp3"))).toBe(true);
+    // Provider recordings are immutable, SHA-addressed files; never depend on
+    // a legacy fixed basename that could overwrite an earlier valid download.
+    const recDir = path.join(tmp, "balislam", "episodes", "000-demo", "recitations");
+    const index = JSON.parse(readFileSync(path.join(recDir, "index.json"), "utf8"));
+    const saved = index["53:39"];
+    expect(saved.provider).toBe("quran-foundation");
+    expect(saved.recitationId).toBe(7);
+    expect(saved.parts).toHaveLength(1);
+    expect(saved.parts[0].file).toMatch(/^7-53-39-[a-f0-9]{24}\.mp3$/);
+    expect(saved.parts[0].sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(existsSync(path.join(recDir, saved.parts[0].file))).toBe(true);
   });
 });
