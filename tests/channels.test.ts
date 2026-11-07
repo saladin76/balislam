@@ -120,7 +120,8 @@ Bugün başla. Hangisini seçtin?
     expect(verse.props.meaningSource).toBe("Saheeh International");
     const yt = buildYoutubeText(plan, en, { mode: "file", base: "", voice: {}, sfx: {}, recitations: {} } as never, 1, channel);
     expect(yt).toContain("Chapters:");
-    expect(yt).toContain("Surah An-Najm, verse 39 (Verse text: Quran.Foundation, Saheeh International)");
+    expect(yt).toContain("Surah An-Najm, verse 39 (Saheeh International)");
+    expect(yt).not.toContain("Quran.Foundation");
     expect(yt).not.toContain("فصول الحلقة");
   });
 
