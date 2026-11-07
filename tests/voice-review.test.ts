@@ -18,7 +18,7 @@ const sample = async () => {
   const plan = { chapters: [{ number: 1, title: "sample", scenes: [{
     id: "c1-s1", template: "noor-text", line: 1, props: {}, narration: "النص المشكول", sfx: [], tone: "calm",
   }] }] } as unknown as Plan;
-  const voice = { "c1-s1": { file: "spoken.mp3", text: "النص المشكول", hash: "voice-cache-v1", duration: 1.2, words: [] } };
+  const voice = { "c1-s1": { file: "spoken.mp3", text: "النص المشكول", hash: "voice-cache-v1", duration: 1.2, words: [] as { word: string; start: number; end: number }[] } };
   return { dir, scriptPath, plan, voice };
 };
 
