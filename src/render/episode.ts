@@ -88,6 +88,13 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   return true;
 };
 
+/** Real narration word cues are eligible only when every clip AND the complete
+ * episode recording have a valid, current human listening approval. */
+export const voiceTimingMode = async (scriptPath: string, plan: Plan, media: EpisodeMedia): Promise<"estimated" | "approved"> => {
+  const { episodeVoiceApproved } = await import("../voice/review");
+  return await episodeVoiceApproved(scriptPath, plan, media.voice) ? "approved" : "estimated";
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   const log = opts.onProgress ?? (() => {});
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
@@ -116,7 +123,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   // Always bundle after staging so Remotion sees precisely this immutable base.
   const serveUrl = await getServeUrl(media.mode === "static");
   const channel = loadChannel();
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+  const timingMode = await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
+  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
   const output = opts.outFile ?? path.join(await outDirFor(opts.episode), `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
