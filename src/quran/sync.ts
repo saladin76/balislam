@@ -1,9 +1,9 @@
 import path from "node:path";
 import { toEasternDigits } from "../i18n/packs";
 import { existsSync } from "node:fs";
-import { mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
-import { audioDuration } from "../voice/generate";
+import { link, mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { decodedAudioDuration } from "../voice/audioIntegrity";
 import { parseScript } from "../script/parse";
 import { quranFromScript, historicalMeaningConflict } from "./scriptText";
 import { parseAyahRef } from "../script/quranMeta";
@@ -38,7 +38,7 @@ const fresh = (iso?: string) => {
 };
 
 /** فهرس تلاوات Quran Foundation للحلقة: recitations/index.json بجوار السكريبت. */
-export type RecitationIndex = Record<string, { parts: { file: string; duration: number }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; reviewNote?: string; sha256?: string; textSha256?: string;
+export type RecitationIndex = Record<string, { parts: { file: string; duration: number; sha256?: string }[]; reciter: string; recitationId?: number; provider?: "alquran-cloud" | "quran-foundation" | "manual"; edition?: string; fetchedAt: string; approvedAt?: string; approvedBy?: string; reviewNote?: string; sha256?: string; textSha256?: string;
   rightsEvidence?: string; originalFile?: string; originalName?: string; originalSha256?: string }>;
 export const recitationsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "recitations");
 
@@ -99,10 +99,9 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
         : have.provider !== "alquran-cloud" && have.recitationId === recitation.id);
       if (opts.force || !same || !fresh(have?.fetchedAt) ||
           have?.parts.some((p) => !existsSync(path.join(recDir, p.file)))) {
-        const created: string[] = [];
         try {
           await mkdir(recDir, { recursive: true });
-          const parts: { file: string; duration: number }[] = [];
+          const parts: { file: string; duration: number; sha256: string }[] = [];
           for (let n = from; n <= to; n++) {
             const url = cloud
               ? (await cloud.ayah(surah, n, recitation && isCloudRecitation(recitation) ? recitation.edition : "")).audio
@@ -113,22 +112,29 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
             if (len > 20_000_000) throw new Error("حجم ملف التلاوة أكبر من الحد الآمن.");
             const bytes = Buffer.from(await res.arrayBuffer());
             if (bytes.length < 100 || bytes.length > 20_000_000) throw new Error("ملف التلاوة غير صالح أو كبير جدًا.");
-            // Preserve the existing Quran Foundation filename contract for old episodes.
-            // A fresh Cloud filename prevents a failed refresh from deleting previous good clips.
-            // Keep Quran Foundation's legacy filenames unchanged for existing episodes.
-            const file = isCloudRecitation(recitation)
-              ? `${id}-${surah}-${n}-${Date.now().toString(36)}.mp3`
-              : `${recitation.id}-${surah}-${n}.mp3`;
+            // Immutable content-addressed filenames prevent a partial failed
+            // multi-ayah refresh from overwriting a prior working recording.
+            const digest = createHash("sha256").update(bytes).digest("hex");
+            const file = `${id}-${surah}-${n}-${digest.slice(0,24)}.mp3`;
             const destination = path.join(recDir, file);
-            const existedBefore = existsSync(destination);
-            const temp = path.join(recDir, `${file}.tmp`);
-            await writeFile(temp, bytes);
+            const temp = path.join(recDir, `.${file}.${randomUUID()}.tmp.mp3`);
+            await writeFile(temp, bytes, { flag: "wx", mode: 0o600 });
             try {
-              const duration = await audioDuration(temp);
-              if (!duration || duration <= 0) throw new Error("تعذّر التحقق من مدة تلاوة الآية.");
-              await rename(temp, destination);
-              if (!existedBefore) created.push(file);
-              parts.push({ file, duration });
+              const duration = await decodedAudioDuration(temp, { mp3Only: true, maxSeconds: 600 });
+              if (!duration) throw new Error("تسجيل المصدر الخارجي غير قابل لفك الترميز كاملًا.");
+              // Hard-link in the SAME directory is an atomic create-if-absent,
+              // unlike rename(), which overwrites an existing validated MP3.
+              try { await link(temp, destination); }
+              catch (error) {
+                if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+              }
+              const stored = await readFile(destination);
+              if (createHash("sha256").update(stored).digest("hex") !== digest)
+                throw new Error("تسجيل تلاوة سابق بالاسم نفسه تغيّر؛ لا يُكتب فوقه.");
+              const storedDuration = await decodedAudioDuration(destination, { mp3Only: true, maxSeconds: 600 });
+              if (!storedDuration || Math.abs(storedDuration - duration) > Math.max(0.15, duration * 0.03))
+                throw new Error("مدة التسجيل المخزّن لا تطابق الملف القادم من المصدر.");
+              parts.push({ file, duration: storedDuration, sha256: digest });
             } finally { await unlink(temp).catch(() => {}); }
           }
           recIndex[key] = {
@@ -139,8 +145,8 @@ export const syncQuran = async (episode: string, client: QuranClient, opts: { fo
           };
           result.recited.push(key);
         } catch (err) {
-          // Do not replace the previous verified index when a remote fetch fails.
-          for (const file of created) await unlink(path.join(recDir, file)).catch(() => {});
+          // An immutable, shared file may be used by another sync. Never
+          // delete it on a later ayah failure; the index stays unchanged.
           result.failed.push({ ref: `${ref} (التلاوة)`, reason: err instanceof Error ? err.message : String(err) });
         }
       }
