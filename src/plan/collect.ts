@@ -60,6 +60,22 @@ export const usedImages = (plan: Plan, dir: string, libDir?: string) => {
 /** يطابق مرجع المشهد مع الملف الفعلي في قائمة الوسائط (يدعم مراجع المكتبة بلا امتداد) */
 export const resolveImageRef = (ref: string, images: string[] = []) => images.find((x) => x === ref || x.replace(/\.[^.]+$/, "") === ref);
 
+
+/** PR #76 owns verification of reviewed manual Quran audio, including original
+ * and processed MP3 SHA-256, full decoding, exact ayah text, rights and review.
+ * This isolated branch MUST fail closed until #78 wires verifiedOwnRecitations
+ * into the collector; a bare index.json manual pointer is not render authority.
+ */
+export const assertManualRecitationIntegration = (
+  index: Record<string, { provider?: string } | undefined>, plan: Plan,
+): void => {
+  for (const scene of plan.chapters.flatMap((chapter) => chapter.scenes)) {
+    if (scene.template === "verse-card" && scene.ayahKey &&
+        index[scene.ayahKey]?.provider === "manual")
+      throw new Error("تلاوة القرآن اليدوية لا تُستهلك من الفهرس مباشرة؛ يجب ربط التحقق الكامل من PR #76 قبل الرندر.");
+  }
+};
+
 /** يجمع وسائط الحلقة الموجودة فعلًا على القرص (بلا نسخ). */
 export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<EpisodeMedia, "mode" | "base">> => {
   const voice = await loadVoiceIndex(episode);
@@ -68,6 +84,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
   const recitations: Record<string, Recitation> = {};
   const recDir = recitationsDirFor(await resolveScriptPath(episode));
   const qf = (await readJson<RecitationIndex>(path.join(recDir, "index.json"))) ?? {};
+  assertManualRecitationIntegration(qf, plan);
   const chosen = await activeRecitation(await resolveScriptPath(episode), loadChannel().recitation);
   if (chosen && isCloudRecitation(chosen)) requireCloudPublicationRights(chosen);
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
@@ -86,7 +103,7 @@ export const collectMedia = async (episode: string, plan: Plan): Promise<Omit<Ep
     const q = qf[s.ayahKey];
     const matching = q && chosen && (isCloudRecitation(chosen)
       ? q.provider === "alquran-cloud" && q.edition === chosen.edition
-      : q.provider !== "alquran-cloud" && q.recitationId === chosen.id);
+      : q.provider === "quran-foundation" && q.recitationId === chosen.id);
     if (q && matching && q.parts.length && q.parts.every((p) => p.duration > 0 && existsSync(path.join(recDir, p.file)))) {
       recitations[s.ayahKey] = { file: q.parts[0]!.file, duration: q.parts.reduce((n, p) => n + p.duration, 0), parts: q.parts, reciter: q.reciter, source: q.provider === "alquran-cloud" ? "alquran-cloud" : "quran-foundation" };
     }
