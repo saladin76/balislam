@@ -250,6 +250,60 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
       expect(numbers.every(x=>Number(x[2])===physicalPages)).toBe(true);
     }
   });
+  it("embeds bundled Latin companions so English and numbers do not require OS fonts",()=>{
+    const root=path.join(import.meta.dirname,"..","public","fonts");
+    for(const channel of ["balislam","dafatir-alzaman","zubdat-alkutub"]){
+      const css=pdfFontCss(channel);
+      expect(css).toContain('font-family:"StudioLatin"');
+      expect(css).toContain('--studio-body:"StudioBody","StudioLatin"');
+      const latin=channel==="zubdat-alkutub"?"Tajawal-latin-400.woff2":"IBMPlexSans.ttf";
+      expect(css).toContain(readFileSync(path.join(root,latin)).toString("base64"));
+      expect(css).toContain("font-display:block");
+    }
+  });
+  it("preserves arbitrarily long global and scene identifiers, mixed direction and metadata",()=>{
+    const x=setup();
+    x.data.episode="E2026-الْعَرَبِيَّةُ-".repeat(12);
+    x.data.version="PR71-v42-مُرَاجَعَةٌ-".repeat(13);
+    x.data.channel="balislam";
+    x.data.scenes[0]!.id="c1-s1-English-مُشَكَّل-".repeat(9);
+    x.data.scenes[0]!.chapterTitle="الفصل الحقيقِيُّ-API 16:9 ".repeat(20);
+    x.data.scenes[1]!.chapterTitle=x.data.scenes[0]!.chapterTitle;
+    x.data.scenes[0]!.type="Cinematic-مصوّر-9:16 ".repeat(10);
+    const b=buildStoryboardHtml(normalizeStoryboard(x.data,x.file),{chapter:1,chapterCover:true});
+    for(const label of ["إصدار المحتوى الكامل","معرّف الحلقة الكامل","معرّف المشهد الكامل","نوع المشهد الكامل"]){
+      expect(b.html).toContain(label);
+    }
+    expect(b.html).toContain(x.data.episode);
+    expect(b.html).toContain(x.data.version);
+    expect(b.html).toContain(x.data.scenes[0]!.id);
+    const total=(b.html.match(/<article class="page(?: cover)?"/g)??[]).length;
+    const numbered=[...b.html.matchAll(/class="page-index" aria-label="رقم الصفحة">صفحة (\\d+) من (\\d+)/g)];
+    expect(numbered).toHaveLength(total);
+    expect(numbered.every((m,i)=>Number(m[1])===i+1 && Number(m[2])===total)).toBe(true);
+    // One full chapter-title annex on the cover, not one duplicate per scene.
+    expect((b.html.match(/<h3>عنوان الفصل<\\/h3>/g)??[]).length).toBeGreaterThan(0);
+    expect(b.status).toBe("PENDING_REVIEW");
+  });
+  it("renders actual Balislam episode plan scene text in a read-only PDF review model",()=>{
+    const root=path.join(import.meta.dirname,"..");
+    const file=path.join(root,"channels/balislam/episodes/001-know-the-truth/plan.json");
+    const plan=JSON.parse(readFileSync(file,"utf8"));
+    expect(plan.channel).toBe("balislam");
+    const first=plan.chapters[0];
+    const data={channel:plan.channel,episode:plan.episode,version:String(plan.version),
+      scenes:first.scenes.slice(0,3).map((scene:{id:string;narration:string;template:string;props?:{shot?:string}},i:number)=>({
+        id:scene.id,chapter:first.number??1,chapterTitle:first.title,
+        title:scene.props?.shot??scene.template,narration:scene.narration,notes:"مراجعة نص واقعي",
+        image:null,portraitImage:null
+      }))};
+    const r=buildStoryboardHtml(normalizeStoryboard(data,file),{chapter:1,chapterCover:true});
+    expect(r.scenes).toBe(3);
+    expect(r.html).toContain(first.scenes[0].narration);
+    expect(r.html).toContain(first.title);
+    expect(r.html).toContain("لم تُرفق صورة");
+    expect(r.status).toBe("PENDING_REVIEW");
+  });
   it("reads actual Dafatir V1.1 and Zubdat v021 without modifying episodes",()=>{
     const root=path.join(import.meta.dirname,"..");
     const p1=path.join(root,"channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.json");
