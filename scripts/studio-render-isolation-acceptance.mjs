@@ -64,6 +64,7 @@ const steps = [
   ["isolation-targets", "npx", ["vitest", "run",
     "tests/render-output-ownership.test.ts",
     "tests/studio-acceptance-temp.test.ts",
+    "tests/studio-render-frame-range.test.ts",
     "tests/render-master-gate-contract.test.ts",
     "tests/render-media-snapshots.test.ts",
     "tests/render-media-access.test.ts",
