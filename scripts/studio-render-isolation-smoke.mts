@@ -39,7 +39,8 @@ try {
     if (png.subarray(1, 4).toString() !== "PNG" || png.length < 1000)
       throw new Error(`Invalid PNG smoke output: ${orientation}`);
     const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
-    if (orientation === "landscape" && !(w > h) || orientation === "portrait" && !(h > w))
+    if ((orientation === "landscape" && (w <= h || Math.abs(w * 9 - h * 16) > 18)) ||
+        (orientation === "portrait" && (h <= w || Math.abs(h * 9 - w * 16) > 18)))
       throw new Error(`Invalid screenshot orientation ${orientation}: ${w}x${h}`);
     (result.files as any[]).push({
       path: stillOutput, bytes: png.length,
@@ -68,10 +69,11 @@ try {
     const video = probe.streams?.[0];
     const vw = Number(video?.width), vh = Number(video?.height);
     const frames = Number(video?.nb_read_frames);
+    const expectedFrames = Math.min(30, videoComp.durationInFrames);
     if (video?.codec_name !== "h264" || !Number.isInteger(vw) || !Number.isInteger(vh) ||
-        !Number.isInteger(frames) || frames < 2 ||
-        (orientation === "landscape" && vw <= vh) ||
-        (orientation === "portrait" && vh <= vw))
+        !Number.isInteger(frames) || frames !== expectedFrames ||
+        (orientation === "landscape" && (vw <= vh || Math.abs(vw * 9 - vh * 16) > 18)) ||
+        (orientation === "portrait" && (vh <= vw || Math.abs(vh * 9 - vw * 16) > 18)))
       throw new Error(`Invalid probed MP4 ${orientation}: ${JSON.stringify(video)}`);
     (result.files as any[]).push({
       path: videoOutput, bytes: (await stat(videoOutput)).size,
