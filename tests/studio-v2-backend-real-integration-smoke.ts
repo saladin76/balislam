@@ -82,14 +82,16 @@ const main = async () => {
     return output;
   };
   const locked = <T>(work: () => Promise<T>) => withSceneArtifactLockV2(scope, work);
-  const ids = ["c1-s1", "c1-s2"];
+  const firstId = "c1-s1";
+  const secondId = "c1-s2";
+  const ids = [firstId, secondId];
   try {
     await mkdir(root, { recursive: true });
     await save("script.md", "Backend isolated synthetic QA; no religious material.");
     await save("plan.json", JSON.stringify({ version: 1, episode: "001", channel: "balislam",
       chapters: [{ number: 1, scenes: [
-        { id: ids[0], narration: "Hello" },
-        { id: ids[1], narration: "" },
+        { id: firstId, narration: "Hello" },
+        { id: secondId, narration: "" },
       ] }] }));
     for (const id of ids) {
       for (const name of ["vocalized", "tone", "sync", "rights"])
@@ -99,14 +101,14 @@ const main = async () => {
     await mkdir(path.join(root, "voice"), { recursive: true });
     await runFFmpeg(["-f", "lavfi", "-i",
       "sine=frequency=440:sample_rate=48000:duration=2",
-      "-c:a", "pcm_s16le", path.join(root, "voice", ids[0] + ".wav")]);
+      "-c:a", "pcm_s16le", path.join(root, "voice", firstId + ".wav")]);
     const src = await inspectSceneSourcesV2(scope);
     await approveSceneSourcesV2(scope, "script", src.script.fingerprint,
       "qa-studio-owner", "QA approved synthetic source");
     await approveSceneSourcesV2(scope, "storyboard", src.storyboard.fingerprint,
       "qa-studio-owner", "QA approved synthetic storyboard");
     for (const id of ids) {
-      const narrated = id === ids[0];
+      const narrated = id === firstId;
       const spec: TrustedSceneRenderSpecV2 = {
         sceneId: id, width: 320, height: 180, orientation: "landscape",
         durationSec: 2, manifest: makeManifest(id, narrated),
@@ -149,7 +151,7 @@ const main = async () => {
         });
       },
     });
-    await service.command({ action: "begin", sceneId: ids[0] });
+    await service.command({ action: "begin", sceneId: firstId });
     const testRenderer = async (request: any, adapters: any) =>
       adapters.withProductionLease(request.sceneId, async () => {
         await adapters.withArtifactLock(() => adapters.assertCanRender(request));
@@ -172,7 +174,7 @@ const main = async () => {
           planSha256: request.planSha256, file: output, relativeFile,
           sha256: hash(buf), bytes: buf.length, reviewStatus: "not_submitted" };
       });
-    const first = await runTrustedSceneProductionV2(scope, ids[0], {
+    const first = await runTrustedSceneProductionV2(scope, firstId, {
       renderer: testRenderer, ffprobeBinary: ffprobe,
       verifySourceReview: async () => {},
     });
@@ -182,9 +184,9 @@ const main = async () => {
     const status = await service.inspect();
     insist(status.scenes[0]?.currentVideo?.sha256 === first.video.sha256,
       "Server scene read model lost current video SHA.");
-    await service.command({ action: "submit", sceneId: ids[0],
+    await service.command({ action: "submit", sceneId: firstId,
       expectedFingerprint: first.fingerprint });
-    const manifest = await locked(() => readRegisteredSceneManifestV2(scope, ids[0]));
+    const manifest = await locked(() => readRegisteredSceneManifestV2(scope, firstId));
     const av = await locked(async () => {
       const media = await probeSceneAvLockedV2(scope, manifest, { ffprobeBinary: ffprobe });
       const size = (await stat(await resolveArtifact(scope, manifest.inputs.video.files[0]!))).size;
@@ -194,7 +196,7 @@ const main = async () => {
     });
     const started = startSceneReviewReceiptV2({
       sessionId: session, ownerId: "qa-studio-owner", scope: scope.channel + "/" + scope.episode,
-      sceneId: ids[0], fingerprint: first.fingerprint, avSha256: av.sha256,
+      sceneId: firstId, fingerprint: first.fingerprint, avSha256: av.sha256,
       avEpoch: av.epoch, videoVersion: first.video.version,
       durationSec: av.durationSec, mediaBytes: av.size,
     });
@@ -214,23 +216,23 @@ const main = async () => {
     const observedReceipt = inspectSceneReviewReceiptV2(reviewId, session);
     const receipt = {
       id: reviewId, sessionId: session, ownerId: "qa-studio-owner",
-      sceneId: ids[0], fingerprint: first.fingerprint,
+      sceneId: firstId, fingerprint: first.fingerprint,
       avSha256: av.sha256, avEpoch: av.epoch, videoVersion: first.video.version,
       durationSec: av.durationSec, mediaBytes: av.size,
       playedSec: observedReceipt.playedSec, startedAt: observedReceipt.startedAt,
       completedAt: observedReceipt.completedAt!, checkpoints: observedReceipt.checkpoints,
     };
     await locked(() => appendCompletedSceneAvReviewV2(scope, receipt));
-    await service.command({ action: "approve", sceneId: ids[0],
+    await service.command({ action: "approve", sceneId: firstId,
       expectedFingerprint: first.fingerprint });
     console.log("PASS signed owner-review protocol fixture -> signed scene 1 approval");
-    await service.command({ action: "begin", sceneId: ids[1] });
+    await service.command({ action: "begin", sceneId: secondId });
     console.log("PASS scene 2 opens only after scene 1 exact AV approval");
-    const originalVoice = await readFile(path.join(root, "voice", ids[0] + ".wav"));
-    await writeFile(path.join(root, "voice", ids[0] + ".wav"), originalVoice);
+    const originalVoice = await readFile(path.join(root, "voice", firstId + ".wav"));
+    await writeFile(path.join(root, "voice", firstId + ".wav"), originalVoice);
     let rendererCalled = false;
     try {
-      await runTrustedSceneProductionV2(scope, ids[1], {
+      await runTrustedSceneProductionV2(scope, secondId, {
         renderer: async () => { rendererCalled = true; throw Error("unsafe"); },
         ffprobeBinary: ffprobe, verifySourceReview: async () => {},
       });
