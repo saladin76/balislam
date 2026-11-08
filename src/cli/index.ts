@@ -104,6 +104,39 @@ program
   });
 
 program
+  .command("voice-review")
+  .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--approve <sceneId>", "معرّف مقطع مسموع ومراجع يدويًا")
+  .option("--approve-episode", "اعتماد الاستماع إلى جميع المقاطع متصلة بعد اعتماد كل مقطع")
+  .option("--reviewer <name>", "اسم المراجع البشري")
+  .option("--note <text>", "ملاحظة الاستماع الفعلي إلى المقطع")
+  .action(async (episode: string, opts: { approve?: string; approveEpisode?: boolean; reviewer?: string; note?: string }) => {
+    const { resolveScriptPath } = await import("../script/episodes");
+    const { loadPlan } = await import("../plan/io");
+    const { loadVoiceIndex } = await import("../voice/generate");
+    const { approveVoiceScene, approveVoiceEpisode, voiceReviewItems, episodeVoiceApproved } = await import("../voice/review");
+    const plan = await loadPlan(episode);
+    if (!plan) throw new Error("الخطة غير موجودة.");
+    const scriptPath = await resolveScriptPath(episode);
+    const voice = await loadVoiceIndex(episode);
+    if (opts.approve) {
+      if (!opts.reviewer || !opts.note) throw new Error("الموافقة تتطلب --reviewer و--note بعد الاستماع الحقيقي.");
+      await approveVoiceScene(scriptPath, plan, voice, opts.approve, opts.reviewer, opts.note);
+    }
+    if (opts.approveEpisode) {
+      if (!opts.reviewer || !opts.note) throw new Error("اعتماد الحلقة الصوتية الكاملة يتطلب --reviewer و--note بعد الاستماع.");
+      await approveVoiceEpisode(scriptPath, plan, voice, opts.reviewer, opts.note);
+    }
+    const items = await voiceReviewItems(scriptPath, plan, voice);
+    for (const item of items) console.log(`${item.id}: ${item.state}`);
+    const pending = items.filter((item) => item.state !== "approved");
+    const whole = await episodeVoiceApproved(scriptPath, plan, voice);
+    console.log(`الصوت المعتمد ${items.length - pending.length}/${items.length}؛ الاستماع الكامل ${whole ? "معتمد" : "غير معتمد"}.`);
+    if (pending.length || !whole) process.exitCode = 1;
+  });
+
+program
   .command("render")
   .description("رندر الحلقة من plan.json")
   .argument("<episode>", "رقم الحلقة")
@@ -197,29 +230,11 @@ program
   });
 
 program
-  .command("quran")
-  .description("جلب نصوص آيات الحلقة بالرسم العثماني من Quran Foundation (تُخزن في quran.json)")
-  .argument("<episode>", "رقم الحلقة")
-  .option("--force", "إعادة الجلب حتى للمخزّن")
-  .action(async (episode: string, opts: { force?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { syncQuran } = await import("../quran/sync");
-    const { regeneratePlan } = await import("../plan/io");
-    const client = quranClientFromEnv();
-    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
-    const r = await syncQuran(episode, client, { force: opts.force });
-    await regeneratePlan(episode);
-    console.log(`جُلبت ${r.fetched.length} آية/مقطع، ومخزّنة ${r.cached.length}.`);
-    for (const f of r.failed) console.log(`تعذّر: ${f.ref}: ${f.reason}`);
-    if (r.failed.length) process.exitCode = 1;
-  });
-
-program
   .command("quran-text-only")
-  .description("جلب نصوص الآيات الناقصة فقط إلى quran.json؛ لا يكتب plan.json ولا يجلب صوتًا أو يغيّر مراجعات الحلقة")
+  .description("فحص وجود نص كل آية في السكريبت فقط؛ لا يجلب نصًا ولا يكتب ملفات")
   .argument("<episode>", "رقم الحلقة")
   .option("--dry-run", "عرض المراجع الناقصة دون اتصال أو كتابة أي ملف")
-  .option("--confirm-cache-write", "إقرار صريح بحفظ النصوص الناقصة في quran.json فقط")
+  .option("--confirm-cache-write", "خيار قديم غير مدعوم؛ لا تُكتب الآيات خارج السكريبت")
   .action(async (episode: string, opts: { dryRun?: boolean; confirmCacheWrite?: boolean }) => {
     if (opts.dryRun) {
       const { inspectMissingQuranTexts } = await import("../quran/fillMissingText");
@@ -231,37 +246,55 @@ program
       if (result.invalid.length) process.exitCode = 1;
       return;
     }
-    if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص أو --confirm-cache-write للإذن بحفظ النصوص الناقصة.");
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { fillMissingQuranTexts } = await import("../quran/fillMissingText");
-    const client = quranClientFromEnv();
-    if (!client) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV) إلى ملف .env.");
-    const result = await fillMissingQuranTexts(episode, client);
-    for (const key of result.fetched) console.log(`${key}: جُلب النص الناقص`);
-    for (const key of result.existing) console.log(`${key}: النص المحلي موجود؛ لم يُعدّل`);
-    for (const failure of result.failed) console.log(`${failure.ref}: تعذّر الجلب — ${failure.reason}`);
-    console.log(`نصوص مضافة: ${result.fetched.length} · موجودة: ${result.existing.length} · تعذّرت: ${result.failed.length}`);
-    if (result.failed.length) process.exitCode = 1;
+    if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص؛ نص الآيات يُكتب في السكريبت مباشرة.");
+    throw new Error("أُلغي الحفظ المستقل لنص القرآن. اكتب [آية: المرجع | النص] داخل السكريبت ثم استخدم quran-evidence.");
   });
 
 program
-  .command("quran-compare")
-  .description("مقابلة نص بطاقات الآيات بنص Quran Foundation حرفًا وحركةً، دون تغيير quran.json (النتيجة في «ملفات المراجعة»)")
+  .command("quran-evidence")
+  .description("فحص أدلة الآيات المكتوبة في السكريبت محليًا، دون استدعاء مزود قرآن خارجي")
   .argument("<episode>", "رقم الحلقة")
-  .option("--evidence-only", "تقرير الأدلة المحلية فقط (النص المعروض ومصدره وصورة البطاقة وأرقامها) دون جلب المرجع؛ لا يُعد مطابقة")
-  .action(async (episode: string, opts: { evidenceOnly?: boolean }) => {
-    const { quranClientFromEnv } = await import("../quran/client");
-    const { auditEpisodeQuran, writeQuranAuditReport, CLASS_AR } = await import("../quran/audit");
-    const client = opts.evidenceOnly ? null : quranClientFromEnv();
-    if (!client && !opts.evidenceOnly) throw new Error("أضف QF_CLIENT_ID وQF_CLIENT_SECRET (وQF_ENV=production) إلى ملف .env، أو استعمل --evidence-only لتقرير الأدلة وحدها.");
-    const result = await auditEpisodeQuran(episode, { client });
-    for (const a of result.audits) {
-      const kinds = [...new Set(a.ops.map((o) => CLASS_AR[o.cls]))].join("، ");
-      console.log(`${a.key}: ${a.status === "match" ? "مطابق" : a.status === "differs" ? `فيه ${a.ops.length} فرق${kinds ? ` (${kinds})` : ""}${a.numbers.ok ? "" : "، ورقم السورة/الآية يحتاج مراجعة"}` : a.status === "pending" ? "لم يُقابَل بالمرجع" : a.reason ?? a.status}`);
-    }
-    if (client && client.env !== "production") console.log("تنبيه: QF_ENV ليست production؛ اجعلها production للمطابقة بالمرجع المعتمد.");
-    console.log(`التقرير: ${await writeQuranAuditReport(episode, result, { environment: client ? `<b>بيئة المرجع:</b> Quran Foundation (${client.env}).` : "<b>بيئة المرجع:</b> لم يُجلب المرجع في هذا التشغيل (--evidence-only)." })}`);
-    if (result.audits.some((a) => a.status !== "match")) process.exitCode = 1;
+  .action(async (episode: string) => {
+    const { auditEpisodeQuran, writeQuranAuditReport } = await import("../quran/audit");
+    const result = await auditEpisodeQuran(episode, { frames: false });
+    const file = await writeQuranAuditReport(episode, result, {
+      environment: "سكريبت محلي فقط؛ المقارنة الشرعية المستقلة تبقى مراجعة بشرية"
+    });
+    console.log("تقرير أدلة السكريبت: " + file);
+  });
+
+program
+  .command("recitation-attach")
+  .description("إرفاق تسجيل التلاوة الذي يرفعه المالك للآية الموجودة في السكريبت")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<ayah-key>", "مثل 2:255")
+  .argument("<file>", "ملف التلاوة المحلي")
+  .action(async (episode: string, key: string, file: string) => {
+    const { prepareOwnRecitation } = await import("../quran/manualAudio");
+    const candidate = await prepareOwnRecitation(episode, key, path.basename(file), await readFile(file));
+    console.log(`التلاوة ${key} رُفعت للمراجعة؛ بصمة التسجيل ${candidate.sha256}`);
+    console.log("لا تُعتمد التلاوة أو المشهد تلقائيًا.");
+  });
+
+program
+  .command("recitation-review")
+  .description("تسجيل اعتماد استماع بشري للتلاوة المرفوعة، وليس اعتماد مشهد AV")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<ayah-key>", "مثل 2:255")
+  .requiredOption("--reciter <name>", "الاسم الحقيقي للقارئ")
+  .requiredOption("--rights-evidence <text>", "دليل حق نشر هذا التسجيل")
+  .requiredOption("--reviewer <name>", "اسم المراجع بعد الاستماع")
+  .requiredOption("--note <text>", "تفاصيل المراجعة")
+  .requiredOption("--listened", "تأكيد الاستماع الكامل البشري")
+  .action(async (episode: string, key: string, opts: {
+    reciter: string; rightsEvidence: string; reviewer: string; note: string; listened: boolean;
+  }) => {
+    if (!opts.listened) throw new Error("الاستماع الكامل للتلاوة شرط اعتمادها.");
+    const { approveOwnRecitation } = await import("../quran/manualAudio");
+    const result = await approveOwnRecitation(episode, key, opts.reviewer, opts.note, true, {
+      reciter: opts.reciter, rightsEvidence: opts.rightsEvidence
+    });
+    console.log("تم اعتماد الاستماع للتسجيل " + result.sha256 + "؛ اعتماد المشهد والنشر منفصلان.");
   });
 
 program
@@ -271,14 +304,11 @@ program
   .option("--dry-run", "حساب الحروف والرصيد فقط بلا توليد")
   .option("--force", "إعادة توليد كل المشاهد")
   .option("--scene <ids>", "مشاهد محددة مفصولة بفواصل، مثل c2-s1,c4-s3")
-  .option("--ignore-tashkeel", "التوليد رغم نقص التشكيل (غير مستحسن)")
-  .option("--ignore-review", "التوليد قبل اكتمال سجل التوثيق (غير مستحسن)")
-  .option("--ignore-storyboard", "التوليد قبل اعتماد الستوري بورد (غير مستحسن)")
-  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string; ignoreTashkeel?: boolean; ignoreReview?: boolean; ignoreStoryboard?: boolean }) => {
+  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string }) => {
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
     const { generateVoice } = await import("../voice/generate");
     const client = elevenLabsFromEnv();
-    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, ignoreTashkeel: opts.ignoreTashkeel, ignoreReview: opts.ignoreReview, ignoreStoryboard: opts.ignoreStoryboard, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
+    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
     console.log(tashkeelLine(r.tashkeel));
     console.log(`التوثيق: ${r.review.verified} من ${r.review.total} موثّق ${r.review.ok ? "✓" : "✗"}`);
     console.log(`المشاهد: ${r.total} · للتوليد: ${r.toGenerate.length} · محفوظة: ${r.cached.length}`);
@@ -342,7 +372,7 @@ program
 
 program
   .command("horizon-audio <episode>")
-  .description("دفاتر الزمن 001: اللقطات الست («خط الأفق») بصوت الراوي المعتمد وآيتي البقرة 30 والأعراف 23 بتلاوة قارئ القناة، مضبوطة على توقيت الكلام؛ تُرفع إلى «المعاينات» (خانة -audio تبقى على الجهاز) وتحل محل المعاينة الصامتة بعد التحقق من تشغيلها. تتوقف بقائمة النواقص دون إنتاج نسخة ناقصة.")
+  .description("دفاتر الزمن 001: اللقطات الست («خط الأفق») بصوت الراوي المعتمد وآيتي البقرة 30 والأعراف 23 بالتلاوة المرفوعة للحلقة، مضبوطة على توقيت الكلام؛ تُرفع إلى «المعاينات» (خانة -audio تبقى على الجهاز) وتحل محل المعاينة الصامتة بعد التحقق من تشغيلها. تتوقف بقائمة النواقص دون إنتاج نسخة ناقصة.")
   .option("--slot <slot>", "خانة المعاينة (تنتهي بـ -audio)", "six-shots-audio")
   .option("--replaces <slot>", "المعاينة الصامتة التي تحل محلها بعد النجاح", "horizon-test-v2")
   .action(async (episode: string, opts: { slot: string; replaces: string }) => {
@@ -369,6 +399,24 @@ program
     const { putEpisodePreview } = await import("../render/episodePreviews");
     const r = await putEpisodePreview(episode, slot, path.resolve(file), { title: opts.title, note: opts.note });
     console.log(`رُفع إلى الاستوديو: ${path.relative(projectRoot, r.file)} (رفع رقم ${r.version})${r.removed.length ? `؛ حُذف القديم: ${r.removed.join("، ")}` : ""}`);
+    if (r.drive) console.log(`ونُسخ إلى Google Drive: ${r.drive}`);
+    else if (r.driveError) console.log(`لم يُنسخ إلى Google Drive: ${r.driveError}`);
+    else console.log("مجلد Google Drive غير مضبوط (BAL_DRIVE_PREVIEWS_DIR)؛ الفيديو محلي فقط.");
+    console.log(`البصمة: ${r.sha256}`);
+  });
+
+program
+  .command("link-drive-preview <episode> <slot>")
+  .description("تسجيل معاينة رُفعت إلى Google Drive من خارج جهاز المالك: الفهرس وحده يُحفظ في Git، والاستوديو يتحقق من البصمة عند التزامن")
+  .requiredOption("--id <id>", "معرّف الملف على Google Drive")
+  .requiredOption("--sha256 <sha>", "بصمة الفيديو")
+  .requiredOption("--size <bytes>", "حجم الفيديو بالبايت")
+  .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو")
+  .option("--note <note>", "ملاحظة قصيرة تحته")
+  .action(async (episode: string, slot: string, opts: { id: string; sha256: string; size: string; title: string; note?: string }) => {
+    const { linkDrivePreview } = await import("../render/episodePreviews");
+    const e = await linkDrivePreview(episode, slot, { id: opts.id, sha256: opts.sha256, size: Number(opts.size), title: opts.title, note: opts.note });
+    console.log(`سُجّل في المعاينات (رفع رقم ${e.version}): ${e.drive!.url}`);
   });
 
 program
@@ -485,7 +533,7 @@ program
 
 program
   .command("scenes-review")
-  .description("مراجعة المشاهد: هل حركات كل مشهد سليمة ومتناسقة مع النص وغير عشوائية؟")
+  .description("سجل المراجعة القديم للمشاهد (للقراءة فقط؛ الاعتماد الآن في «إنتاج المشاهد»)")
   .argument("<episode>", "رقم الحلقة")
   .action(async (episode: string) => {
     const { resolveScriptPath } = await import("../script/episodes");
@@ -532,10 +580,9 @@ program
   .option("--skip-video", "بلا رندر فيديو")
   .option("--shorts", "الشورتس/الريلز بأعلى جودة (بعد اعتماد النسخة الأساسية في الاستوديو)")
   .option("--preview", "معاينة سريعة 1080p بدل أعلى جودة (لا تُنشر)")
-  .option("--ignore-scene-review", "النسخة النهائية قبل اكتمال مراجعة المشاهد (غير مستحسن)")
-  .action(async (episode: string, opts: { skipVideo?: boolean; shorts?: boolean; preview?: boolean; ignoreSceneReview?: boolean }) => {
+  .action(async (episode: string, opts: { skipVideo?: boolean; shorts?: boolean; preview?: boolean }) => {
     const { packageEpisode } = await import("../package/package");
-    const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, ignoreSceneReview: opts.ignoreSceneReview, stage: opts.shorts ? "shorts" : "episode", quality: opts.preview ? "preview" : "master", onProgress: (m) => console.log(m) });
+    const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, stage: opts.shorts ? "shorts" : "episode", quality: opts.preview ? "preview" : "master", onProgress: (m) => console.log(m) });
     console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
   });
 

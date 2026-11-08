@@ -9,16 +9,14 @@ import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
 import { scenesOf } from "../remotion/scenes/Episode";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
-import { getServeUrl } from "../render/bundle";
 import { buildSrt } from "./captions";
 import { assertNoTraces } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
-import { loadSceneLedger, sceneReviewBlockMessage, sceneReviewItems, sceneReviewSummary } from "../plan/sceneReview";
 import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../render/motionMeter";
 import { exemptForRender } from "../render/stillness";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
-import { approvalValid, QUALITY, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
+import { QUALITY, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
 import { unlink } from "node:fs/promises";
 
 export type PackageOptions = {
@@ -35,8 +33,6 @@ export type PackageOptions = {
   /** جودة الرندر: master لما يُنشر (الافتراضي)، preview للمعاينة بلا صوت */
   quality?: Quality;
   onProgress?: (msg: string) => void;
-  /** صناعة النسخة النهائية قبل اكتمال مراجعة المشاهد (من سطر الأوامر فقط) */
-  ignoreSceneReview?: boolean;
 };
 
 /**
@@ -59,20 +55,18 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const episodePath = path.join(dir, `${id}-episode.mp4`);
   const statusFile = path.join(path.dirname(scriptPath), "status.json");
   const readStatus = async () => (existsSync(statusFile) ? JSON.parse(await readFile(statusFile, "utf8")) : {});
-  // قاعدة: كل مشهد يُراجَع بعد تنفيذه (حركاته سليمة ومتناسقة مع النص وغير عشوائية) قبل النسخة النهائية
-  if (quality === "master" && !opts.skipVideo && !opts.ignoreSceneReview) {
-    const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath));
-    const sum = sceneReviewSummary(items);
-    if (!sum.done) throw new Error(sceneReviewBlockMessage(sum, items));
-  }
   if (stage === "shorts") {
+    // Shorts/reels are cut from the exact Master the owner approved in «إنتاج المشاهد» (scene-first ledger).
+    const { requireSceneMasterReady } = await import("../studio/sceneService");
+    await requireSceneMasterReady(ep);
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
-    if (!approvalValid((await readStatus()).approved, episodePath)) throw new Error("اعتمد النسخة الأساسية من تبويب «النشر» بعد مشاهدتها كاملة، ثم اصنع الشورتس.");
   }
 
   log("تجهيز الوسائط…");
-  const media = await prepareRenderMedia(ep, plan);
+  const media = await prepareRenderMedia(ep, plan, {
+    requireApprovedQuran: quality === "master" || stage === "shorts",
+  });
   // الصوت «كامل» فقط إن كان لكل مشهد متكلَّم مقطع يطابق نصه الحالي
   const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   const voicedOk = narrated.filter((s) => {
@@ -116,9 +110,6 @@ export const packageEpisode = async (opts: PackageOptions) => {
   assertNoTraces(await Promise.all(published.map(async (name) => ({ name, text: await readFile(path.join(dir, name), "utf8") }))));
   assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
 
-  log("تجميع المشروع…");
-  await getServeUrl(true);
-
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
   const element = fm.thumbnail_element ?? plan.chapters.flatMap((c) => c.scenes).find((s) => s.props.element)?.props.element;
@@ -150,7 +141,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
         await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
       }
       log(`الحلقة بجودة: ${q.label}`);
-      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: episodePath, onProgress: progress("الحلقة") });
+      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, outFile: episodePath, onProgress: progress("الحلقة") });
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
       log(motionSummary(motion[0]!.report, "الحلقة"));
@@ -162,7 +153,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
         last = -1;
         const ch = plan.chapters[n - 1]!;
         log(`الشورت ${n} بجودة: ${q.label}`);
-        const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, quality, plan, media, allowUnreviewed: opts.ignoreSceneReview, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
+        const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
         files.push(path.basename(f));
         motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait", await exemptForRender(plan, media, ch.number)) });
       }

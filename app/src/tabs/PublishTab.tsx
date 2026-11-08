@@ -1,6 +1,6 @@
 import { SocialKit } from "./SocialKit";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { api, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
+import { api, type SceneProductionRead, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
 
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
@@ -16,6 +16,16 @@ const CHECKLIST: { id: string; group: string; text: string }[] = [
   { id: "shorts", group: "الشورتس", text: "جدولت الشورتس الستة: واحد يوميًا" },
   { id: "shortsLink", group: "الشورتس", text: "ربطت كل شورت بالحلقة الكاملة" },
 ];
+
+/**
+ * Unified engine: the only Master approval is the scene-first ledger's, bound to the exact bytes
+ * of the current Master file (the server re-hashes them). Legacy status.json / six-stage records
+ * are never a release approval.
+ */
+export const validPublishedMaster = (
+  production: Pick<SceneProductionRead, "master" | "candidates" | "progress"> | null, isMaster: boolean,
+): boolean => Boolean(isMaster && production?.progress.masterApproved && production.master &&
+  production.candidates.masterSha256 && production.master.sha256 === production.candidates.masterSha256);
 
 const sizeLabel = (n: number) => (n > 1e6 ? `${(n / 1e6).toFixed(1)} م.ب` : `${Math.ceil(n / 1e3)} ك.ب`);
 
@@ -61,6 +71,7 @@ const fresh = (url: string, mtime: number) => `${url}${url.includes("?") ? "&" :
 export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; onChanged: () => void }> = ({ episodeId, hasVoiceKeys, onChanged }) => {
   const [pkg, setPkg] = useState<PackageInfo | null>(null);
   const [status, setStatus] = useState<EpisodeStatus>({});
+  const [production, setProduction] = useState<SceneProductionRead | null>(null);
   const [jobs, setJobs] = useState<LongJob[]>([]);
   const [showLog, setShowLog] = useState(false);
   const [err, setErr] = useState("");
@@ -70,8 +81,16 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const reload = useCallback(() => {
     api.packageInfo(episodeId).then(setPkg).catch(() => setPkg({ files: [], youtube: "", checklist: "" }));
     api.status(episodeId).then(setStatus).catch(() => {});
+    api.sceneProduction(episodeId).then(setProduction).catch(() => setProduction(null));
   }, [episodeId]);
   useEffect(reload, [reload]);
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      if ((event as CustomEvent<{ episodeId: string }>).detail?.episodeId === episodeId) reload();
+    };
+    window.addEventListener("studio-workflow-updated", refresh);
+    return () => window.removeEventListener("studio-workflow-updated", refresh);
+  }, [episodeId, reload]);
   useEffect(() => {
     api.longJobs().then(setJobs).catch(() => {});
   }, []);
@@ -101,8 +120,15 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   };
 
   const saveStatus = (s: EpisodeStatus) => {
-    setStatus(s);
-    api.saveStatus(episodeId, s).then(onChanged).catch((e) => setErr((e as Error).message));
+    setErr("");
+    // Never show a forged or rejected approval optimistically.
+    api.saveStatus(episodeId, s).then(() => {
+      setStatus(s);
+      onChanged();
+    }).catch((e) => {
+      setErr((e as Error).message);
+      reload();
+    });
   };
 
   const yt = useMemo(() => parseYoutube(pkg?.youtube ?? ""), [pkg?.youtube]);
@@ -112,8 +138,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const thumbs = files.filter((f) => f.name.endsWith(".png"));
   const render = pkg?.render ?? null;
   const isMaster = render?.quality === "master" && render.voiced;
-  // الاعتماد صالح ما دام ملف الحلقة نفسه (أي رندر جديد يلغيه)
-  const approved = Boolean(video && status.approved && status.approved.size === video.size && Math.abs(status.approved.mtime - video.mtime) < 1);
+  const approved = validPublishedMaster(production, isMaster);
+  const publishAllowed = approved && Boolean(production?.master?.publishAllowed);
   const checked = status.checklist ?? {};
   const doneCount = CHECKLIST.filter((c) => checked[c.id]).length;
   const groups = [...new Set(CHECKLIST.map((c) => c.group))];
@@ -166,19 +192,13 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             <div className="pub-actions">
               <a className="btn primary small" href={api.packageUrl(episodeId, video.name, true)}>تنزيل الحلقة بأعلى جودة ({sizeLabel(video.size)})</a>
               {approved ? (
-                <span className="chip on">✓ النسخة الأساسية معتمدة {status.approved ? new Date(status.approved.at).toLocaleDateString("ar-EG") : ""}</span>
+                <span className="chip on">✓ Master معتمد{publishAllowed ? " · مأذون بنشره" : " · النشر بانتظار إذنك"}</span>
               ) : (
-                <button
-                  className="btn small"
-                  disabled={!isMaster || running}
-                  title={isMaster ? "" : "الاعتماد للنسخة النهائية بأعلى جودة وبصوت كامل فقط"}
-                  onClick={() => window.confirm("هل شاهدت النسخة الأساسية كاملة وتعتمدها؟ بعد الاعتماد تُصنع منها الشورتس والريلز.") && saveStatus({ ...status, approved: { at: new Date().toISOString(), size: video.size, mtime: video.mtime } })}
-                >
-                  اعتمد النسخة الأساسية
-                </button>
+                <span className="chip">بانتظار اعتماد Master في «إنتاج المشاهد»</span>
               )}
             </div>
-            {!isMaster ? <p className="help">هذه معاينة لا تُنشر. «اصنع النسخة النهائية» يرندر الحلقة بأعلى جودة (4K) وبصوتك، ثم تعتمدها وتُصنع منها الشورتس والريلز.</p> : null}
+            {!isMaster ? <p className="help">هذه معاينة لا تُنشر. «اصنع النسخة النهائية» يرندر الحلقة بأعلى جودة (4K) من المشاهد المعتمدة، ثم تشاهد ملف Master كاملًا وتعتمده من «إنتاج المشاهد».</p> : null}
+            {isMaster && !approved ? <p className="help">اعتماد Master يكون لهذا الملف بعينه من «إنتاج المشاهد» بكلمة مرور المالك؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
 
             <h3>الشورتس والريلز <small>{shorts.length ? `${shorts.length} · 9:16 بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية"}</small></h3>
             {approved ? (
@@ -263,9 +283,11 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                   <button className="btn small" onClick={() => window.confirm("إلغاء تسجيل النشر لهذه الحلقة؟") && saveStatus({ ...status, published: undefined })}>تراجع</button>
                 </>
               ) : (
-                <PublishForm disabled={!checked.watched} onSave={(p) => saveStatus({ ...status, published: p })} />
+                <PublishForm disabled={!checked.watched || !publishAllowed} onSave={(p) => saveStatus({ ...status, published: p })} />
               )}
               {!checked.watched && !status.published ? <span className="help">علّم «شاهدت الحلقة كاملة» أولًا.</span> : null}
+              {!publishAllowed && !status.published ? <span className="help">يلزم اعتماد Master ثم «إذن نشر هذا Master» من «إنتاج المشاهد» قبل تسجيل النشر.</span> : null}
+              {status.published && !approved ? <span className="help">هذا سجل نشر تاريخي؛ لا يثبت اعتماد نسخة Master الحالية.</span> : null}
             </div>
           </section>
         </div>

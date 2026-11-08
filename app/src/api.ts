@@ -4,11 +4,12 @@ import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
-import type { CloudRecitation } from "../../src/quran/provider";
 import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
 import type { TechReviewSummary } from "../../src/channel/techReviews";
+import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
+import type { WorkflowStage } from "../../src/workflow/gates";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -36,14 +37,19 @@ export type Overview = {
   /** الأسلوب الغالب على الحلقة (للتنوّع) */
   style: string;
   status: EpisodeStatus;
+  /** حالة الخطوات الخمس من سجل الإنتاج؛ null إن تعذّرت قراءته */
+  production?: ProductionSummary | null;
 };
+export type ProductionSummary = { script: boolean; storyboard: boolean; approvedScenes: number; totalScenes: number; canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
+/** معاينة حلقة: source يبيّن هل الفيديو على هذا الجهاز، أو في مجلد Drive المتزامن، أو رابط Drive فقط */
+export type EpisodePreview = { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null; source: "local" | "drive-mirror" | "drive-link" | "missing"; driveUrl: string | null };
 export type EpisodeStatus = { /** اعتماد النسخة الأساسية بعد مشاهدتها كاملة (بصمة ملف الحلقة) */ approved?: { at: string; size: number; mtime: number }; checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string; /** يوم نشر الحلقة الطويلة المخطط (YYYY-MM-DD) */ scheduled?: string };
 export type Idea = { id: string; title: string; note?: string; domain?: string; style?: string; createdAt: string };
 /** يوم في تقويم القناة: شورتس محددة (حلقة + رقم الشورت)، أو بلا نشر، وملاحظة */
 export type CalendarDay = { shorts?: { ep: string; n: number }[]; off?: boolean; note?: string };
 export type OpsChannel = { calendar: Record<string, CalendarDay>; channel: { id: string; name: string; language: string; schedule: { longDay: number; time?: string; shortsPerDay?: number } | null; domains: Record<string, ChannelDomain> }; episodes: Overview[]; ideas: Idea[] };
 export type PackageInfo = { files: { name: string; size: number; mtime: number }[]; youtube: string; checklist: string; /** بأي جودة رُندرت الحلقة */ render?: { quality: "master" | "preview"; label: string; width: number; height: number; voiced: boolean; at: string } | null };
-export type StoryboardInfo = { status: import("../../src/plan/storyboard").StoryboardStatus; motion: import("../../src/render/storyboardMotion").StoryboardMotion | null; motionStale?: string[]; auditNeedsReview?: boolean };
+export type StoryboardInfo = { status: import("../../src/plan/storyboard").StoryboardStatus; motion: import("../../src/render/storyboardMotion").StoryboardMotion | null; motionStale?: string[]; auditNeedsReview?: boolean; motionAuditNeedsReview?: boolean };
 export type LongJob = { id: string; kind: string; episode?: string; title: string; status: "running" | "done" | "error"; pct: number; log: string[]; error?: string; startedAt: number; queued?: boolean };
 export type KeyState = Record<string, { label: string; set: boolean; preview: string }>;
 export type SfxItem = { id: string; nameAr: string; category: string; categoryAr: string; useAr: string; seconds: number; guard?: string; available: boolean };
@@ -60,7 +66,9 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
     ...init,
-    headers: init?.json !== undefined ? { "content-type": "application/json" } : undefined,
+    headers: init?.json !== undefined
+      ? { "content-type": "application/json", ...(init.headers as Record<string, string> | undefined) }
+      : init?.headers,
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
@@ -68,17 +76,84 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   return data as T;
 };
 
-export type AlQuranAudioEdition = { identifier: string; name: string };
-export type AlQuranAyahPreview = { surah: number; ayah: number; text: string; audio: string; reciter: string; rightsVerified: false; publicationAllowed: false };
+
+export type SceneProductionRead = {
+  schemaVersion: 1;
+  channel: string; episode: string; revision: number;
+  progress: { currentScene: string | null; approvedScenes: number; totalScenes: number;
+    canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
+  script: { sha256: string; approved: boolean };
+  storyboard: { sha256: string; approved: boolean };
+  scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
+    sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean }[];
+  assembly: { sha256: string; approved: boolean } | null;
+  /** Every boundary between consecutive scenes, in order ("c1-s1>c1-s2"). */
+  seams: string[];
+  master: { sha256: string; approved: true; publishAllowed: boolean } | null;
+  candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
+    masterSha256: string | null };
+};
+export type SceneOwnerAction = {
+  action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
+    "correct-scene" | "assemble" | "approve-assembly" | "approve-master" | "grant-publish";
+  expectedSha256: string;
+  sceneId?: string;
+  note?: string;
+  confirmedWatched?: boolean;
+  seamsChecked?: string[];
+};
 
 export const api = {
-  recitationChoice: (episode: string, channel: string) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, undefined, channel),
-  saveRecitationChoice: (episode: string, channel: string, recitation: CloudRecitation | null) =>
-    call<{ recitation: CloudRecitation | null }>(`/api/episodes/${episode}/recitation`, { method: "PUT", json: { recitation } }, channel),
-  alquranEditions: () => call<{ editions: AlQuranAudioEdition[] }>("/api/alquran-cloud/editions"),
-  alquranAyah: (surah: number, ayah: number, edition: string) =>
-    call<AlQuranAyahPreview>(`/api/alquran-cloud/ayah?surah=${surah}&ayah=${ayah}&edition=${encodeURIComponent(edition)}`),
+  /** One scene = one combined audiovisual review; no Quran provider selection. */
+  /** كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة (أو تغييرها بالكلمة الحالية). */
+  ownerPassphrase: () => call<{ set: boolean }>("/api/owner-passphrase"),
+  setOwnerPassphrase: (passphrase: string, current?: string) =>
+    call<{ set: boolean }>("/api/owner-passphrase", { method: "POST", json: { passphrase, ...(current ? { current } : {}) } }),
+  checkOwnerPassphrase: (passphrase: string) =>
+    call<{ ok: boolean }>("/api/owner-passphrase/check", { method: "POST", json: { passphrase } }),
+  sceneProduction: (episode: string, channel?: string) =>
+    call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, undefined, channel),
+  decideScene: (episode: string, channel: string, token: string, decision: SceneOwnerAction) =>
+    call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, {
+      method: "POST", json: decision, headers: { "x-studio-owner-token": token },
+    }, channel),
+  assembleSceneAv: (episode: string, channel: string, token: string) =>
+    call<{ ok: true; version: number; scenes: number }>(
+      `/api/episodes/${episode}/scene-av-assemble`, {
+        method: "POST", headers: { "x-studio-owner-token": token },
+      }, channel),
+  renderSceneAv: (episode: string, channel: string, token: string, sceneId: string,
+    expectedSha256: string) =>
+    call<{ ok: true; version: number; preview: string }>(
+      `/api/episodes/${episode}/scene-av-render`, {
+        method: "POST", json: { sceneId, expectedSha256 },
+        headers: { "x-studio-owner-token": token },
+      }, channel),
+  workflow: (episode: string, channel?: string) => call<{
+    approvals: WorkflowApprovalView;
+    fingerprints: Partial<Record<WorkflowStage, string>>;
+    revision: number;
+  }>(`/api/episodes/${episode}/workflow`, undefined, channel),
+  workflowDecision: (episode: string, channel: string, token: string,
+    decision: { action: "submit" | "approve" | "reject" | "reopen"; stage: WorkflowStage;
+      expectedFingerprint: string; note: string; confirmWatched?: boolean }) =>
+    call<{ approvals: WorkflowApprovalView }>(`/api/episodes/${episode}/workflow`, {
+      method: "POST", json: decision, headers: { "x-studio-owner-token": token },
+    }, channel),
+  scriptSignoff: (episode: string) =>
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
+  approveScriptSignoff: (episode: string, reviewer: string, note: string) =>
+    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(
+      `/api/episodes/${episode}/script-signoff`, { method: "PUT", json: { reviewer, note, confirm: true } }),
+  voiceReview: (episode: string, channel: string) =>
+    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, undefined, channel),
+  approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string }) =>
+    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: data }, channel),
+  approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
+    call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
+      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
 
   /** المراجعات الفنية للقناة (توصيات المنفّذ وشرائطها ومقاطعها) */
   techReviews: (channel: string) => call<{ reviews: TechReviewSummary[] }>("/api/tech-reviews", undefined, channel),
@@ -125,7 +200,6 @@ export const api = {
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
   uploadImage: (id: string, b: { name: string; data: string; scene: string }) => call<{ file: string; media: EpisodeMedia }>(`/api/episodes/${id}/images`, { method: "POST", json: b }),
   voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport; generated: boolean; media: EpisodeMedia }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
-  quran: (id: string, channel?: string) => call<{ plan: Plan; result: { fetched: string[]; recited: string[]; failed: { ref: string; reason: string }[] } }>(`/api/episodes/${id}/quran`, { method: "POST", json: {} }, channel),
   overview: () => call<Overview[]>("/api/overview"),
   status: (id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`),
   saveStatus: (id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }),
@@ -134,8 +208,6 @@ export const api = {
   channel: () => call<ChannelConfig>("/api/channel"),
   saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
-  quranRecitations: () => call<{ ok: boolean; message?: string; list: { id: number; name: string; style: string }[] }>("/api/quran/recitations"),
-  quranTranslations: (lang: string) => call<{ ok: boolean; message?: string; list: { id: number; name: string; author: string; language: string }[] }>(`/api/quran/translations?lang=${lang}`),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string }>(`/api/episodes/${id}/kit`),
@@ -158,7 +230,19 @@ export const api = {
   previewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`),
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
-  previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  previews: (id: string) => call<{ files: EpisodePreview[] }>(`/api/episodes/${id}/previews`),
+  auditQuranScript: (id: string) =>
+    call<{ environment: string; audits: { key: string; status: "match" | "differs" | "pending" | "missing" | "failed";
+      reason?: string; categories: Record<string, string>; numbers: { ok: boolean; notes: string[] };
+      ops: { at: number; op: string; shown: string; ref: string; cls: string }[] }[] }>(
+      `/api/episodes/${id}/quran-audit`),
+  missingQuranTexts: (id: string) =>
+    call<{ status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+      `/api/episodes/${id}/quran-text-only`),
+  fetchMissingQuranTexts: (id: string) =>
+    call<{ result: { fetched: string[]; existing: string[]; failed: { ref: string; reason: string }[] };
+      status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
+      `/api/episodes/${id}/quran-text-only`, { method: "POST", json: { confirm: true } }),
   storyboardReport: (id: string) => call<{ markdown: string }>(`/api/episodes/${id}/storyboard-report`),
   setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs"),

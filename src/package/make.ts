@@ -3,8 +3,6 @@ import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { checkForChannel } from "../script/checkChannel";
 import { formatReport } from "../script/report";
-import { quranClientFromEnv } from "../quran/client";
-import { syncQuran } from "../quran/sync";
 import { regeneratePlan } from "../plan/io";
 import { loadChannel } from "../channel";
 import { elevenLabsFromEnv } from "../voice/elevenlabs";
@@ -22,7 +20,7 @@ export type MakeOptions = {
 
 /**
  * من السكريبت إلى ملفات النشر بأمر واحد:
- * فحص ← آيات ← خطة المشاهد ← الصوت ← رندر الحلقة والشورتس ← الصور والوصف والترجمة.
+ * فحص السكريبت والآيات المرفقة ← خطة المشاهد ← الصوت غير القرآني ← الرندر ← حزمة النشر.
  * يتوقف عند أول خطأ في السكريبت قبل صرف أي رصيد.
  */
 export const makeEpisode = async (opts: MakeOptions) => {
@@ -34,13 +32,8 @@ export const makeEpisode = async (opts: MakeOptions) => {
   const check = checkForChannel(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
   if (!check.ok) throw new Error(`السكريبت فيه أخطاء، أصلحها أولًا:\n${formatReport(scriptPath, check)}`);
 
-  log("٢/٥ نصوص الآيات…");
-  const qf = quranClientFromEnv();
-  if (qf) {
-    const r = await syncQuran(ep, qf);
-    if (r.failed.length) throw new Error(`تعذّر جلب آيات: ${r.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`);
-    log(`   جُلبت ${r.fetched.length}، ومخزّنة ${r.cached.length}.`);
-  } else log("   مفاتيح Quran Foundation غير موجودة: سيُستخدم المخزّن من النصوص فقط، وأي آية غير مخزّنة ستمنع النسخة النهائية.");
+  // The authored script is the only source of Quran text. Never fetch verse text or recordings.
+  log("٢/٥ نص الآيات المرفق بالسكريبت (لا جلب من خدمات خارجية)…");
 
   log("٣/٥ خطة المشاهد…");
   const plan = await regeneratePlan(ep);

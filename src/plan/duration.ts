@@ -2,6 +2,7 @@ import config from "../../config.json";
 import { templateById } from "./templates";
 import type { PlanScene } from "./types";
 import type { EpisodeMedia } from "./media";
+import { recitationSeconds } from "../quran/recitationTimeline";
 import { HZ_META, hzEstimateSeconds } from "../remotion/dafatir/horizon/meta";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
@@ -35,12 +36,15 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
   const rec = scene.ayahKey ? media?.recitations[scene.ayahKey] : undefined;
   const clip = media?.voice[scene.id];
   const voiced = clip && clip.text === scene.narration.trim() ? clip : undefined;
-  // المدة اليدوية تُحترم، لكنها لا تقطع الصوت أو التلاوة في منتصفهما
+  // قارئ الآية يبدأ مع كادر الآية وينتهي بانتهائه بالضبط؛ لا مقدمة أو ذيل صامت،
+  // حتى لو كانت للخطة مدة يدوية قديمة أو حد ثابت للقالب.
+  if (scene.template === "verse-card" && rec && recitationSeconds(rec) > 0)
+    return recitationSeconds(rec);
+  // المدة اليدوية لباقي القوالب تُحترم، لكنها لا تقطع صوت الراوي.
   if (scene.durationSec && scene.durationSec > 0) {
-    const audio = scene.template === "verse-card" && rec ? rec.duration + 1 : voiced ? voiced.duration + 0.2 : 0;
+    const audio = voiced ? voiced.duration + 0.2 : 0;
     return Math.max(scene.durationSec, audio);
   }
-  if (scene.template === "verse-card" && rec) return Math.max(base, rec.duration + 1.6);
   // خط الأفق: ذيل كل مشهد من تصميمه (قلب الصفحة يحتاج وقته بعد آخر كلمة)
   if (scene.template === "horizon-shot") {
     const shot = String(scene.props.shot ?? "");
@@ -64,5 +68,9 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
   return Math.max(min, Math.round(spoken * 10) / 10);
 };
 
-export const sceneFrames = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice" | "recitations">, fps = config.video.fps) =>
-  Math.max(fps, Math.round(sceneSeconds(scene, media) * fps));
+export const sceneFrames = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice" | "recitations">, fps = config.video.fps) => {
+  const rec = scene.template === "verse-card" && scene.ayahKey ? media?.recitations[scene.ayahKey] : undefined;
+  if (rec && recitationSeconds(rec) > 0)
+    return Math.max(1, Math.round(recitationSeconds(rec) * fps));
+  return Math.max(fps, Math.round(sceneSeconds(scene, media) * fps));
+};

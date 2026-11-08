@@ -4,7 +4,9 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
-import { HttpError, safeName } from "./util.ts";
+import { HttpError, safeName, assertSafeMediaFile } from "./util.ts";
+import { readBody } from "./body.ts";
+import { isTrustedLocalRequest } from "./security.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -19,20 +21,6 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
   res.setHeader("content-type", "application/json; charset=utf-8");
   res.end(JSON.stringify(body));
 };
-
-const readBody = async (req: IncomingMessage): Promise<any> => {
-  const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
-  const raw = Buffer.concat(chunks).toString("utf8");
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new HttpError(400, "بيانات الطلب غير صالحة.");
-  }
-};
-
-
 
 /** config.json مع رسالة واضحة إن تلف (مثلًا علامات تعارض من git pull أو stash pop) */
 const readConfig = async () => {
@@ -49,6 +37,7 @@ const EP = /^\d{3}$/;
 
 /** يخدم ملفًا مع دعم المقاطع (Range) حتى يستطيع المشغل التقديم والتأخير. */
 const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type: string) => {
+  assertSafeMediaFile(file, root);
   const size = statSync(file).size;
   // مقطع واحد فقط: bytes=start-end أو bytes=start- أو bytes=-suffix
   const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
@@ -86,6 +75,8 @@ export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
     // استعادة طابور الرندر بعد إعادة تشغيل الاستوديو (الأمر 010)
+    // Never replay legacy render/packaging jobs while V2's guarded API is enforced.
+    // A saved job payload is not a trusted V2 approval token.
     void recoverStudioQueue();
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
     // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
@@ -100,11 +91,16 @@ export const balApi = (): Plugin => ({
       return checkForChannel(parseScript(text, file));
     };
 
+    // أسرار الاعتماد المحلية تُولَّد مرة واحدة في .env، فيعمل الاعتماد بلا إعداد يدوي
+    const secretsReady = load("/src/settings/env.ts").then((m) => m.ensureLocalSecrets()).catch((e) => console.error("[studio] local secrets:", (e as Error).message));
     server.middlewares.use(async (req, res, next) => {
       const url = new URL(req.url ?? "/", "http://localhost");
       if (!url.pathname.startsWith("/api/")) return next();
+      await secretsReady;
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
+        if (!isTrustedLocalRequest(req))
+          return send(res, 403, { error: "طلب من موقع خارجي غير مسموح به في Studio المحلي." });
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
@@ -116,7 +112,33 @@ export const balApi = (): Plugin => ({
         const identityFile: string = cp.identity;
         const identityDefaultFile: string = cp.identityDefault;
 
+        // Unified engine (2026-11-08): the scene-first ledger (src/studio/sceneService.ts) is the only
+        // approval authority. The isolated V2 review API is no longer mounted, so it cannot act as a
+        // second authority; its modules stay in src/workflow/*V2* until the owner accepts the release.
+        if (parts[0] === "studio-v2")
+          return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بمحرك المشاهد الموحّد في «إنتاج المشاهد»." });
+
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
+
+        // كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة أو تغييرها بالكلمة الحالية
+        // فتح جلسة المالك في الواجهة: تحقق من كلمة المرور دون حفظ شيء
+        if (parts[0] === "owner-passphrase" && parts[1] === "check" && parts.length === 2 && req.method === "POST") {
+          const b = await readBody(req);
+          const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+          try { assertSceneOwner(b?.passphrase); return send(res, 200, { ok: true }); }
+          catch { await new Promise((r) => setTimeout(r, 400)); return send(res, 200, { ok: false }); }
+        }
+        if (parts[0] === "owner-passphrase" && parts.length === 1) {
+          const env = await load("/src/settings/env.ts");
+          if (req.method === "GET") return send(res, 200, { set: Boolean(process.env[env.OWNER_PASSPHRASE_KEY]) });
+          if (req.method === "POST") {
+            const b = await readBody(req);
+            try { await env.setOwnerPassphrase(b?.passphrase, b?.current); }
+            catch (e) { return send(res, 400, { error: (e as Error).message }); }
+            return send(res, 200, { set: true });
+          }
+          return send(res, 405, { error: "Method not allowed" });
+        }
 
         if (parts[0] === "channels") {
           const list = channelMod.listChannels().map((id: string) => {
@@ -189,22 +211,102 @@ export const balApi = (): Plugin => ({
           const io = await load("/src/plan/io.ts");
           const scriptPath: string = await resolveScriptPath(ep);
 
-          if (parts[2] === "recitation" && parts.length === 3) {
-            const { readEpisodeRecitation, saveEpisodeRecitation } = await load("/src/quran/provider.ts");
-            if (req.method === "GET") {
-              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
-            }
-            if (req.method === "PUT") {
+          // Single-owner vNext: one authenticated approval for each complete
+          // audiovisual scene. Hashes, actor and paths are server-derived.
+          if (parts[2] === "scene-production" && parts.length === 3) {
+            const { inspectSceneProduction, decideSceneProduction } =
+              await load("/src/studio/sceneService.ts");
+            if (req.method === "GET") return send(res, 200, await inspectSceneProduction(ep));
+            if (req.method === "POST") {
               const body = await readBody(req);
-              if (!body || typeof body !== "object" || Array.isArray(body) ||
-                  !Object.prototype.hasOwnProperty.call(body, "recitation"))
-                throw new HttpError(400, "يجب تحديد recitation صراحةً؛ استخدم null فقط عند طلب العودة للقارئ الافتراضي.");
-              if (body.recitation !== null && (
-                  typeof body.recitation !== "object" || Array.isArray(body.recitation)))
-                throw new HttpError(400, "بيانات القارئ المختار غير صالحة.");
-              await saveEpisodeRecitation(scriptPath, body.recitation);
-              return send(res, 200, { recitation: await readEpisodeRecitation(scriptPath) });
+              try {
+                return send(res, 200, await decideSceneProduction(
+                  ep, body, req.headers["x-studio-owner-token"],
+                ));
+              } catch (error) {
+                const message = (error as Error).message;
+                const forbidden = /authentication|owner session|not configured/i.test(message);
+                return send(res, forbidden ? 403 : 409, { error: message });
+              }
             }
+            return send(res, 405, { error: "Method not allowed" });
+          }
+
+          if (parts[2] === "scene-av-assemble" && parts.length === 3) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const { assembleApprovedSceneAv } = await load("/src/studio/assembleScenes.ts");
+            const output = await assembleApprovedSceneAv(ep, req.headers["x-studio-owner-token"]);
+            return send(res, 200, { ok: true, version: output.version, scenes: output.scenes });
+          }
+
+          if (parts[2] === "scene-av-render" && parts.length === 3) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const body = await readBody(req);
+            const sceneId = body?.sceneId;
+            const expectedSha256 = body?.expectedSha256;
+            const token = req.headers["x-studio-owner-token"];
+            const { assertCurrentSceneRenderAllowed, recordSceneRenderEvidence } =
+              await load("/src/studio/sceneService.ts");
+            await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token);
+            const { renderShotsPreview } = await load("/src/render/shotsPreview.ts");
+            const output = await renderShotsPreview(ep, [sceneId], {
+              slot: `scene-${sceneId}-av`,
+              title: `المشهد ${sceneId} — صوت وصورة للمراجعة`,
+              note: "نسخة مرشحة غير معتمدة حتى مشاهدة المشهد واتخاذ قرار المالك.",
+              verifyBeforePublish: () => assertCurrentSceneRenderAllowed(
+                ep, sceneId, expectedSha256, token,
+              ),
+            });
+            await recordSceneRenderEvidence(ep, sceneId, expectedSha256, token);
+            return send(res, 200, { ok: true, version: output.version,
+              preview: `scene-${sceneId}-av.mp4` });
+          }
+
+          if (parts[2] === "workflow" && parts.length === 3) {
+            const { workflowReadForEpisode } = await load("/src/workflow/server.ts");
+            if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
+            // Unified engine: the six-stage ledger is read-only (migration); it takes no new decisions.
+            if (req.method === "POST") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
+            return send(res, 405, { error: "Method not allowed" });
+          }
+
+          if (parts[2] === "script-signoff" && parts.length === 3) {
+            const { scriptSignoffStatus } = await load("/src/script/approval.ts");
+            if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));
+            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
+            return send(res, 405, { error: "Method not allowed" });
+          }
+          if (parts[2] === "voice-review" && parts.length === 3) {
+            const plan = await io.loadPlan(ep);
+            if (!plan) throw new HttpError(404, "خطة الحلقة غير موجودة.");
+            const { loadVoiceIndex } = await load("/src/voice/generate.ts");
+            const { voiceReviewItems, episodeVoiceApproved } = await load("/src/voice/review.ts");
+            const voice = await loadVoiceIndex(ep);
+            if (req.method === "GET") {
+              return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice), episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
+            }
+            // The voice is reviewed inside each scene's AV approval; no separate voice approval.
+            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
+            return send(res, 405, { error: "Method not allowed" });
+          }
+
+          if (parts[2] === "quran-audit" && parts.length === 3) {
+            if (req.method !== "GET") return send(res, 405, { error: "التدقيق للقراءة فقط." });
+            const { auditEpisodeQuran } = await load("/src/quran/audit.ts");
+            const result = await auditEpisodeQuran(ep, { frames: false });
+            return send(res, 200, {
+              environment: "local-script-evidence-only",
+              message: "هذا فحص أدلة السكريبت، وليس اعتمادًا آليًا لمطابقة المصحف.",
+              audits: result.audits.map((item: any) => ({
+                key: item.key, status: item.status, reason: item.reason,
+                ops: item.ops, categories: item.categories,
+                numbers: item.numbers, reference: item.reference,
+              })),
+            });
+          }
+          if (parts[2] === "recitation" && parts.length === 3) {
+            if (req.method === "GET") return send(res, 200, { recitation: null, method: "owner-supplied" });
+            return send(res, 410, { error: "أُلغِي اختيار قرّاء الخدمات الخارجية؛ أرفق التسجيل البشري بالحَلقة." });
           }
 
           const mediaFor = async (plan: unknown) => {
@@ -216,14 +318,14 @@ export const balApi = (): Plugin => ({
             const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
             const c = channelMod.loadChannel(ch);
-            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: Boolean(process.env.QF_CLIENT_ID && process.env.QF_CLIENT_SECRET) } });
+            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: false } });
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
             const name = safeName(parts[4]);
-            // التلاوات: من مجلد الحلقة (Quran Foundation) أو من assets/recitations (المرخّصة)
+            // تُعرض تسجيلات الحلقة المحلية فقط، دون مصدر خارجي أو مكتبة مشتركة
             const epRec = path.join(path.dirname(scriptPath), "recitations");
-            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? (existsSync(path.join(epRec, name)) ? epRec : path.join(root, "assets", "recitations")) : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? epRec : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
             const file = dir ? path.join(dir, kind === "images" ? name.replace(/^lib__/, "") : name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
             const imgType = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : /\.mp4$/i.test(name) ? "video/mp4" : /\.webm$/i.test(name) ? "video/webm" : /\.mov$/i.test(name) ? "video/quicktime" : "image/jpeg";
@@ -257,13 +359,7 @@ export const balApi = (): Plugin => ({
             return send(res, 200, { report, generated: Boolean(client && !b.dryRun), media: await mediaFor(plan) });
           }
           if (parts[2] === "quran" && req.method === "POST") {
-            const { quranClientFromEnv } = await load("/src/quran/client.ts");
-            const { syncQuran } = await load("/src/quran/sync.ts");
-            const client = quranClientFromEnv();
-            if (!client) return send(res, 400, { error: "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»." });
-            const result = await syncQuran(ep, client);
-            // Fetching Quran audio must never rewrite an existing hand-edited episode plan.
-            return send(res, 200, { result, plan: (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep)) });
+            return send(res, 410, { error: "أُلغِي الجلب الخارجي. نص الآيات من السكريبت والتلاوة من الملف الذي يرفعه المالك." });
           }
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
@@ -317,6 +413,16 @@ export const balApi = (): Plugin => ({
             if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
             if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage });
             // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره، ويُستعاد بعد إعادة التشغيل
+            // Final animation may not start before separate storyboard and full-audio approval.
+            // Silent storyboard-motion audit has its own route and is intentionally not blocked.
+            const { resolveScriptPath } = await load("/src/script/episodes.ts");
+            const { readPlanFile } = await load("/src/plan/io.ts");
+            const { loadVoiceIndex } = await load("/src/voice/generate.ts");
+            const { assertMotionStartAuthorized } = await load("/src/voice/motionGate.ts");
+            const scriptPath = await resolveScriptPath(b.episode);
+            const plan = await readPlanFile(scriptPath);
+            if (!plan) throw new HttpError(409, "اعتمد السكريبت والـStoryboard والصوت قبل بدء الحركة النهائية.");
+            await assertMotionStartAuthorized(b.episode, scriptPath, plan, await loadVoiceIndex(b.episode));
             const job = startRenderJob(root, ch, b);
             return send(res, 200, job);
           }

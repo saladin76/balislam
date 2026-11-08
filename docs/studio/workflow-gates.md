@@ -1,0 +1,174 @@
+# Studio: durable six-stage workflow gates (integration contract)
+
+**Status: isolated draft implementation. Not deployed or connected to the production Studio UI, voice generator, renderer or uploader.** This module does not approve existing episodes or infer approval from the existence of a file, test success or Drive delivery. Its use is opt-in until the independent integration and Mac checks are approved.
+
+## Six ordered approval states
+
+| Stage ID | Human approval | Required trusted evidence |
+| --- | --- | --- |
+| `script` | Script + Islamic/source references in this version | `script_validated`, `sources_reviewed`, `quran_compared` |
+| `storyboard` | All visual boards and compositions | `all_visual_boards_reviewed`, `storyboard_source_matches` |
+| `voice` | Exact complete voice recording | `every_clip_reviewed`, `full_audio_listened`, `audio_matches_script` |
+| `motion` | Final motion and scenes aligned to approved audio | `aligned_to_approved_audio`, `scene_checks_passed` |
+| `av_review` | Full continuous 1× episode audiovisual review | `full_episode_watched_at_1x`, `audio_visual_review_passed` |
+| `master` | The actual final Master file, not its preview | `exact_master_watched`, `master_quality_passed`, `publication_rights_checked` |
+
+Each stage can be `draft`, `in_review`, `approved`, `rejected` or `needs_reapproval`. Transition is `draft/rejected/needs_reapproval → in_review → approved/rejected`. `reopen` turns a rejected or invalidated stage back into a draft. `approve` requires an explicit authenticated `owner` action, a meaningful note, the current exact fingerprint and a trusted server-side evidence result. Approval stores approver identity, ISO timestamp, current content version, artifact SHA-256, cumulative fingerprint and evidence keys; the append-only event history records all decisions and invalidations. A `reviewer` may submit/reject but may not grant approval. No automatic approval occurs.
+
+## Source/version binding
+
+`src/workflow/gates.ts` is a pure state machine; `src/workflow/store.ts` persists a versioned `workflow-approvals.json` inside **only** `channels/<channel>/episodes/<NNN-slug>/`. File changes use exclusive per-episode locks, signed schemaVersion 3, atomic replacement and no cleanup of other processes' locks or assets. Path traversal, unknown channels, symlinked episode directories and corrupted state fail closed. Reads re-check the snapshot and durably mark stale approvals `needs_reapproval`; blocked operations do so as well. Changed in-review input resets that submission to draft. Restoring old bytes cannot revive a previously invalidated approval: a fresh explicit decision is required. Three channels and episodes have isolated paths, not global state.
+
+The trusted adapter provides a `WorkflowSnapshot`, one `{ version, sha256 }` for each existing artifact up to its current stage. SHA-256 must be **computed from the current bytes** by the server, never supplied by browser requests. For `script`, hash the *complete script text and material source verification/religious review state*; for `storyboard`, hash the approved visual scene/version manifest (exclude later tone/voice choices); for `voice`, hash **all current MP3 bytes, scene IDs, transcript, selected voices, tones and listening review evidence**; for `motion`, hash the current scene/video build, synchronisation report and timing data; for `av_review`, hash the actual audiovisual review cut and its human 1× review record; for `master`, hash **the exact master video bytes** being approved and eventually uploaded, not filename, preview, metadata or render time. Include all material source ledger revisions in the appropriate stage's input, otherwise the engine cannot detect those outside changes. Use deterministic canonical serialization for compound artifacts. Every input includes a stable human-readable content version (`version`). A stage fingerprint binds all preceding artifacts and its own artifact, including versions. Approvals from an earlier version never transfer to a changed artifact.
+
+## Server-only integration example (removed)
+
+The trusted service/ports facade (`src/workflow/index.ts`, `service.ts`, `ports.ts`) was never mounted and was removed in D27 (2026-11-08). See «Unified engine» below for the live path.
+
+Calls requiring integration after merging this independent PR (none are patched here):
+
+1. **Script/save and religious checks**: recompute script/source digest from `script.md`, `review.json`, Quran comparison/audit; no auto Quran text edits or inferred religious signoff. Explicitly connect current review checks (`src/script/review.ts`) and external qualified review where required.
+2. **Storyboard review**: `src/plan/storyboard.ts` / `storyboardVisualGate.ts` must assert all visual scene hashes and owner signoff; selecting `tone` later must not invalidate the visual digest. A storyboard export, PDF or Drive upload is not an approval.
+3. **Voice**: `src/voice/review.ts` `assertVoiceApproved` must succeed for every scene **and the continuous whole recording** at the moment of approval. Recalculate actual MP3 byte hashes after generating or changing clips. Writing a Quran verse in the script is not a recitation approval. Before final motion generation use `requireWorkflowGate(..., "final_motion_render")` and abort if it fails. Draft/preview storyboards remain allowed.
+4. **Motion and AV**: require all current scene reviews, actual word-level timings against the approved full audio, then explicit 1× continuous viewing approval. `requireWorkflowGate(..., "master_render")` must precede costly Master rendering. No automatic approval from test/render success.
+5. **Master and publication**: render a candidate, compute SHA-256 of the **exact resulting file**, present that file for full owner inspection, submit and approve stage `master`. Before **any** upload/publish/shorts publication, recompute all snapshot digests *and master bytes* and call `requireWorkflowGate(..., "publish")` on the server **immediately before dispatch**. Existing `status.json`/`src/render/quality.ts` approval remains independent until migration; it is not evidence for these six gates. Do not expose a publish path that bypasses this check.
+6. **API/UI and concurrency**: bind the authenticated owner identity on the server; reject caller-supplied role/evidence, pass expected fingerprint from last UI inspection, show stage status plus blocking prerequisite; never trust an arbitrary client-reported `approved` value. Protect the artifact-hash/dispatch interval from concurrent edits (lock or immutable versioned artifact). This module locks only its own ledger and cannot prevent external media edits between snapshot collection and action; the adapter must coordinate that boundary.
+
+### Gate map
+
+- `generate_voice`: `script` + `storyboard` approved (source, visual approvals)
+- `final_motion_render`: above + `voice` approved (complete audio, not one clip)
+- `master_render`: above + `motion` + `av_review` approved
+- `publish`: all six, including **the exact Master hash** approved explicitly
+
+### Verification
+
+New regression tests: `tests/workflow-gates.test.ts` cover six-stage progression, blocked renders and publication, required human role/evidence, post-approval edits, no resurrection of old approvals, rejection/resubmission, in-review changes, simultaneous writers, path/symlink protection, corrupted-ledger fail-closed behavior and cross-channel isolation. After integration, rerun TypeScript, all Vitest and the isolated Mac review against the final integration SHA. **No production render, auto-Master, publishing, migration or Vercel calls in this PR.**
+
+## PR #77 — hardened engine contract and mandatory integration
+
+**Security boundary:** this branch is an isolated server-side engine, NOT an activated production gate. No route, audio generator, render process or uploader is modified in this PR. The central integration must wire every entrypoint and test all four gates before declaring 100%.
+
+### Signed durable decisions
+
+- Set BAL_WORKFLOW_HMAC_KEY in the trusted server environment to a high-entropy secret of at least 32 bytes. There is no default. Never commit or expose it. Missing key means fail closed. Key rotation requires a verified migration.
+- Every persisted workflow-approvals.json ledger uses HMAC-SHA256, an exclusive episode lock, exclusive temporary file, file sync, atomic rename and directory sync. Invalid signatures, corrupt JSON and foreign-episode paths fail closed.
+- Approval records carry authenticated owner ID, UTC date, content version, artifact SHA-256, cumulative fingerprint, evidence source receipts, approvalEventSeq and prerequisiteApprovalSeq. New upstream approvals cannot silently revive prior downstream signoffs even if old bytes return.
+- The history and its stage states are signed as one document; attempts to edit approval events or Master SHA without the server key fail validation. A privileged rollback of the entire previously signed file would still need an external monotonic revision authority to detect.
+
+### Server-only artifact and evidence verification
+
+- src/workflow/artifacts.ts accepts a configuration-owned manifest and rehashes real regular files inside the owning episode, plus explicitly listed channel-images. Missing files, traversal, symlinks and other episodes are rejected.
+- The script stage must include script.md plus all material Quran/source review ledgers. Storyboard inputs include approved scene/visual manifests and image files. Voice inputs include MP3 bytes, narration/tone and full listening-review records. Motion and AV inputs include real output and review records. Missing a material dependency is a blocker.
+- Master stage SHA is exactly SHA-256 of the final Master MP4 file bytes; never a preview, filename, JSON wrapper or timestamp.
+- src/workflow/trust.ts signs short-lived evidence attestations bound to stage, current fingerprint and authenticated approver. Each required evidence key has a source file, file SHA and independent checker name.
+- A cryptographically valid evidence record does NOT prove its semantic truth: the central integration must implement qualified script/Quran checks, visual review, full audio listening, synchronized motion checks, full 1x audiovisual viewing and real publication rights validators. File existence, UI booleans, test success or Drive delivery are not approvals.
+
+### Restricted API/production port contract (removed)
+
+`src/workflow/service.ts` and `src/workflow/ports.ts` were removed in D27; production gates now ask the scene-production ledger (see «Single approval authority»).
+
+### Mandatory acceptance and status
+
+1. Run npm ci, npm run typecheck, the workflow-gates Vitest file, then npm test and npm run gate on a complete isolated repository clone.
+2. Run isolated concurrent mutation and cancellation tests using cloned episode files, check signed history integrity, invalidations, cross-channel isolation, symlinks, missing or altered review evidence, untrusted client role/evidence and old-byte restoration.
+3. Test actual API, CLI, audio, final-motion, Master and publish endpoints after central integration. Verify that every failed gate prevents work starting, and that the publication dispatch uploads precisely the frozen approved bytes.
+4. Carry out the full normal-speed 1x AV review and real-device landscape/portrait tests; mark NOT_RUN until actual signed owner review. Do not confuse test-generated synthetic evidence with a human check.
+
+**GitHub CI environment blocker:** on 2026-11-07, initial workflow runs for this branch failed within seconds with zero executed job steps and inaccessible job logs (BlobNotFound). This does not establish pass or code failure. Recheck latest commit after runner availability is restored.
+
+**Status: DRAFT / NOT PRODUCTION-READY.** No merge, Vercel, automatic Master, publishing or Mac-production edits were performed.
+
+Signed schemaVersion 3 is intentionally incompatible with any unsigned early draft ledger; migration must be explicitly authorized and must NEVER auto-approve an old episode. Cross-process contention is exercised by tests/workflow-process-concurrency.test.ts; full-suite execution remains blocked by GitHub Actions runner availability.
+
+### File-generation rollback resistance (schema v3)
+
+A material file can be modified and restored **between two workflow reads**, returning to precisely the same SHA-256 bytes. Content-only cumulative fingerprints would then silently reuse the old approval. The hardened server collector now captures both real-byte `sha256` and a separate `epoch` digest over the opened file descriptor's `dev / ino / size / ctimeNs / mtimeNs` on a trusted filesystem. The collector checks metadata before and after hashing, refuses hardlinked artifacts, and uses `O_NOFOLLOW` to block a swapped leaf symlink. Cumulative stage fingerprints include the file-generation epochs, and approvals store `artifactEpoch` alongside the byte SHA. Even after the previous contents are restored before inspection, a normal filesystem write changes `ctimeNs` or inode and automatically invalidates approval. Master publication still compares the exact SHA-256 bytes, **and also checks the approved file epoch**.
+
+This is a conservative content-generation test, not an immutable/replay-proof cryptographic filesystem. It may revoke approval on benign copy/chmod/checkout changes, which is preferable to approving unreviewed bytes. It does **not** prove detection after a privileged attacker rolls back the whole filesystem to an old signed state; use an independently durable monotonic revision authority if that threat is in scope. All writers still need the same shared content lock and an isolated integration run.
+
+### PR #74 inspection response and import boundary (removed)
+
+The `createTrustedWorkflowService` facade they described was removed in D27 (2026-11-08) together with `src/workflow/index.ts`.
+
+---
+
+## Unified engine (2026-11-08)
+
+The two Studio V2 lines are merged into one engine on `integration/studio-unified-20261108`:
+
+- **Gate engine:** the V2 `gates.ts` / `store.ts` / `trust.ts` (signed ledgers, file epochs, evidence proofs) is the only engine.
+- **Studio adapter:** the production adapter from the scene-first line lives in `src/workflow/studioSnapshot.ts`
+  (re-exported from `artifacts.ts`). It now issues an `epoch` per stage from the identities (inode, size, mtime, ctime)
+  of every file behind it, so restoring old bytes never revives an older approval.
+- **Owner decisions:** `src/workflow/server.ts` verifies evidence on the server, then signs one proof per required key
+  (`attestEvidence`) and passes the attestation to `approveWorkflowStage`. The browser never sees or supplies it.
+- **Local secrets:** `ensureLocalSecrets()` (`src/settings/env.ts`) generates `BAL_WORKFLOW_HMAC_KEY`, `BAL_STUDIO_OWNER_TOKEN`
+  and `STUDIO_V2_OWNER_SECRET` once into the owner's `.env` (mode 600) when the Studio starts, so approvals work without manual setup.
+
+### Single approval authority
+
+After unification the **scene-first ledger** (`src/studio/sceneProduction.ts`, `src/studio/sceneService.ts`) is the only
+authority. Every production gate asks it:
+
+| Gate | Requirement |
+| --- | --- |
+| Voice generation | script + storyboard approved (`requireScriptAndStoryboardApproved`) |
+| Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
+| Scene AV render | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
+| Master render | every scene approved with sound and picture **and** the assembly approved after a full 1× viewing with every seam checked (`requireScenesReadyForMaster`) |
+| Shorts/reels | the exact approved Master (`requireSceneMasterReady`) |
+| Publish | the exact approved Master **and** an explicit publish permission for those bytes (`requirePublishAllowed`) |
+
+`assertWorkflowForEpisode` delegates to these. The six-stage ledger, the episode voice approval, the old script signoff and
+`scene-review.json` are read-only: their write endpoints return **410** and nothing consults them.
+
+**Scoped invalidation:** each scene's input hash covers only its own content, its own approved board, its own narration
+clip and recitation. A script or storyboard edit re-opens those two decisions, the assembly, the Master and the publish
+permission; only scenes whose own inputs changed are re-opened.
+
+**Owner identity:** approvals need the owner passphrase, chosen once in «إنتاج المشاهد» (only its SHA-256 is stored in
+`.env`). The ledger is signed with the separate random `BAL_WORKFLOW_HMAC_KEY`. There is no bypass flag in the UI, API or CLI.
+
+The isolated V2 review API is no longer mounted (`/api/studio-v2/*` returns 410). Its server modules
+(`app/server/studioV2*.ts`, `src/workflow/*V2*.ts`, `src/render/sceneV2*.ts`) were removed in D27.
+
+### Earlier integration notes from the scene-first line
+
+## Minimal server-only integration
+
+```ts
+import { stageFingerprint } from "./src/workflow/gates";
+import { submitWorkflowStage, approveWorkflowStage, requireWorkflowGate } from "./src/workflow/store";
+
+// Server only: identity is authenticated, evidence computed from existing review records.
+// const scope = { channelsRoot: ..., channel: "balislam", episode: "001-some-episode" };
+// const snapshot = await collectActualArtifactDigests(scope); // NOT client-controlled
+// const fp = stageFingerprint(snapshot, "voice");
+// await submitWorkflowStage(scope, { stage: "voice", snapshot, expectedFingerprint: fp,
+//   actor: authenticatedReviewer, note: "Submitted the currently recorded audio." });
+// await approveWorkflowStage(scope, { stage: "voice", snapshot, expectedFingerprint: fp,
+//   actor: authenticatedOwner, note: "Listened to the full current recording and approved it.",
+//   evidence: verifiedAudioEvidence });
+// await requireWorkflowGate(scope, await collectActualArtifactDigests(scope), "final_motion_render");
+```
+
+Calls requiring integration after merging this independent PR (none are patched here):
+
+1. **Script/save and religious checks**: recompute script/source digest from `script.md`, `review.json`, Quran comparison/audit; no auto Quran text edits or inferred religious signoff. Explicitly connect current review checks (`src/script/review.ts`) and external qualified review where required.
+2. **Storyboard review**: `src/plan/storyboard.ts` / `storyboardVisualGate.ts` must assert all visual scene hashes and owner signoff; selecting `tone` later must not invalidate the visual digest. A storyboard export, PDF or Drive upload is not an approval.
+3. **Voice**: `src/voice/review.ts` `assertVoiceApproved` must succeed for every scene **and the continuous whole recording** at the moment of approval. Recalculate actual MP3 byte hashes after generating or changing clips. Writing a Quran verse in the script is not a recitation approval. Before final motion generation use `requireWorkflowGate(..., "final_motion_render")` and abort if it fails. Draft/preview storyboards remain allowed.
+4. **Motion and AV**: require all current scene reviews, actual word-level timings against the approved full audio, then explicit 1× continuous viewing approval. `requireWorkflowGate(..., "master_render")` must precede costly Master rendering. No automatic approval from test/render success.
+5. **Master and publication**: render a candidate, compute SHA-256 of the **exact resulting file**, present that file for full owner inspection, submit and approve stage `master`. Before **any** upload/publish/shorts publication, recompute all snapshot digests *and master bytes* and call `requireWorkflowGate(..., "publish")` on the server **immediately before dispatch**. Existing `status.json`/`src/render/quality.ts` approval remains independent until migration; it is not evidence for these six gates. Do not expose a publish path that bypasses this check.
+6. **API/UI and concurrency**: bind the authenticated owner identity on the server; reject caller-supplied role/evidence, pass expected fingerprint from last UI inspection, show stage status plus blocking prerequisite; never trust an arbitrary client-reported `approved` value. Protect the artifact-hash/dispatch interval from concurrent edits (lock or immutable versioned artifact). This module locks only its own ledger and cannot prevent external media edits between snapshot collection and action; the adapter must coordinate that boundary.
+
+### Gate map
+
+- `generate_voice`: `script` + `storyboard` approved (source, visual approvals)
+- `final_motion_render`: above + `voice` approved (complete audio, not one clip)
+- `master_render`: above + `motion` + `av_review` approved
+- `publish`: all six, including **the exact Master hash** approved explicitly
+
+### Verification
+
+New regression tests: `tests/workflow-gates.test.ts` cover six-stage progression, blocked renders and publication, required human role/evidence, post-approval edits, no resurrection of old approvals, rejection/resubmission, in-review changes, simultaneous writers, path/symlink protection, corrupted-ledger fail-closed behavior and cross-channel isolation. After integration, rerun TypeScript, all Vitest and the isolated Mac review against the final integration SHA. **No production render, auto-Master, publishing, migration or Vercel calls in this PR.**

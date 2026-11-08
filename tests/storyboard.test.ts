@@ -1,11 +1,16 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
-import { approveStoryboard, loadStoryboard, storyboardStatus, unapprovedScenes } from "../src/plan/storyboard";
+import { afterEach, describe, expect, it } from "vitest";
+import { approveStoryboard, loadStoryboard, storyboardStatus, unapprovedScenes, storyboardVisualHash } from "../src/plan/storyboard";
+import { sceneHash } from "../src/plan/sceneReview";
 import { shotElements, shotKind, shotText } from "../src/plan/storyboardView";
 import { chapterEyebrow } from "../src/remotion/scenes/eyebrow";
 import type { Plan } from "../src/plan/types";
+
+const ownedStoryboardDirs: string[] = [];
+const storyboardFixture = async (prefix: string) => { const d=await mkdtemp(path.join(os.tmpdir(), prefix)); ownedStoryboardDirs.push(d); return d; };
+afterEach(async () => { for (const d of ownedStoryboardDirs.splice(0)) await rm(d, { recursive:true, force:true }); });
 
 const plan = (text = "بسم الله الرحمن الرحيم."): Plan =>
   ({
@@ -28,7 +33,7 @@ const plan = (text = "بسم الله الرحمن الرحيم."): Plan =>
 
 describe("ستوري بورد الفيديو قبل تنفيذه", () => {
   it("لا اعتماد ← كل المشاهد غير معتمدة؛ والاعتماد يربط كل مشهد ببصمته", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-"));
+    const dir = await storyboardFixture("sb-");
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const p = plan();
@@ -45,7 +50,7 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
   });
 
   it("يحفظ سبب اعتماد التحذيرات ويزيله عند سحب الاعتماد", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-audit-"));
+    const dir = await storyboardFixture("sb-audit-");
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     await approveStoryboard(script, plan(), { note: "شوهدت حركة المشهد والسكوت مقصود", inputHash: "hash-1" });
@@ -54,7 +59,7 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
   });
 
   it("تغير المدة أو التراكبات يعيد الاعتماد بدل الاحتفاظ ببصمة مشهد قديمة", async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "sb-hash-"));
+    const dir = await storyboardFixture("sb-hash-");
     const script = path.join(dir, "script.md");
     await writeFile(script, "");
     const p = plan();
@@ -65,6 +70,27 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
     const changedOverlay = plan();
     changedOverlay.chapters[0]!.scenes[0]!.overlays = { captions: false };
     expect(storyboardStatus(changedOverlay, await loadStoryboard(script)).changed).toContain("c1-s1");
+  });
+
+  it("تحديد نبرة الراوي أو اختيار صوت آخر لا يُلغي اعتماد اللوحات المصورة", async () => {
+    const dir = await storyboardFixture("sb-voice-first-");
+    const script = path.join(dir, "script.md");
+    await writeFile(script, "");
+    const p = plan();
+    await approveStoryboard(script, p);
+    const changed = plan();
+    changed.chapters[0]!.scenes[0]!.tone = "documentary";
+    changed.chapters[0]!.scenes[0]!.voice = "narrator-2";
+    const status = storyboardStatus(changed, await loadStoryboard(script));
+    expect(status.ok).toBe(true);
+    expect(storyboardVisualHash(p.chapters[0]!.scenes[0]!)).toBe(storyboardVisualHash(changed.chapters[0]!.scenes[0]!));
+    expect(sceneHash(p.chapters[0]!.scenes[0]!)).not.toBe(sceneHash(changed.chapters[0]!.scenes[0]!));
+  });
+
+  it("الاعتماد القديم ببصمة sceneHash لا يفقد صلاحيته دون تعديل", () => {
+    const p = plan();
+    const legacy = { version: 1 as const, scenes: Object.fromEntries(p.chapters[0]!.scenes.map((s) => [s.id, sceneHash(s)])) };
+    expect(storyboardStatus(p, legacy).ok).toBe(true);
   });
 
   it("وصف اللقطة: نوعها وما على الشاشة وعناصرها", () => {

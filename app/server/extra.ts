@@ -7,6 +7,7 @@ import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
+import { childEnv } from "../../scripts/git-env.mjs";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -207,6 +208,7 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
     const { checkForChannel } = await load("/src/script/checkChannel.ts");
     const { planIssues } = await load("/src/plan/validate.ts");
     const { loadChannel } = await load("/src/channel/index.ts");
+    const { summarizeSceneProduction } = await load("/src/studio/sceneService.ts");
     const out = [];
     for (const d of await episodeDirs(episodesDir)) {
       const dir = path.join(episodesDir, d);
@@ -241,6 +243,8 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
         planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
         style: styleOf((fm as { style?: string }).style, scenes),
         status,
+        // حالة الحلقة في الخطوات الخمس من سجل الإنتاج نفسه (المصدر الوحيد للاعتماد)
+        production: await summarizeSceneProduction(id).catch(() => null),
       });
     }
   return out;
@@ -256,26 +260,6 @@ const styleOf = (fmStyle: string | undefined, scenes: { template?: string }[]) =
 
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
-
-  // AlQuran Cloud: قراءة نص الآية والمعاينة الصوتية فقط؛ لا تنزيل ولا تعديل للرندر.
-  if (parts[0] === "alquran-cloud") {
-    if (req.method !== "GET") return send(res, 405, { error: "طلبات القراءة فقط." }), true;
-    const { createAlQuranClient, AlQuranError } = await load("/src/quran/alquranCloud.ts");
-    const client = createAlQuranClient();
-    if (parts[1] === "editions") return send(res, 200, { editions: await client.editions() }), true;
-    if (parts[1] === "ayah") {
-      const query = new URL(req.url ?? "/", "http://localhost").searchParams;
-      const surah = Number(query.get("surah"));
-      const ayah = Number(query.get("ayah"));
-      const edition = query.get("edition") ?? "";
-      try { return send(res, 200, await client.ayah(surah, ayah, edition)), true; }
-      catch (e) {
-        if (e instanceof AlQuranError) return send(res, 422, { error: e instanceof Error ? e.message : String(e) }), true;
-        throw e;
-      }
-    }
-    return send(res, 404, { error: "مسار AlQuran Cloud غير موجود." }), true;
-  }
 
   // التحديث من GitHub
   if (parts[0] === "update") {
@@ -343,7 +327,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const dir = path.dirname(await resolveScriptPath(parts[1]));
     const rel = path.relative(ctx.root, dir);
     if (!/^channels\/[^/]+\/episodes\/\d{3}-[^/]+$/.test(rel.split(path.sep).join("/"))) return send(res, 400, { error: "مسار الحلقة غير متوقع؛ لم يُحذف شيء." }), true;
-    const git = (args: string[]) => new Promise<{ ok: boolean; out: string }>((resolve) => execFile("git", args, { cwd: ctx.root, timeout: 120_000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }, (err, so, se) => resolve({ ok: !err, out: `${so}${se}`.trim() })));
+    const git = (args: string[]) => new Promise<{ ok: boolean; out: string }>((resolve) => execFile("git", args, { cwd: ctx.root, timeout: 120_000, env: childEnv({ GIT_TERMINAL_PROMPT: "0" }) }, (err, so, se) => resolve({ ok: !err, out: `${so}${se}`.trim() })));
     // ١) من Git (إن كانت مرفوعة) ثم من القرص كله، بما فيه الصوت والفيديو غير المرفوعين
     const tracked = (await git(["ls-files", "--", rel])).out.length > 0;
     if (tracked) await git(["rm", "-r", "-q", "--cached", "--", rel]);
@@ -393,6 +377,19 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
+  // Text-only Quran repair. Never regenerates the plan, downloads voice,
+  // changes reviewer approvals or fills missing verses with placeholders.
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "quran-text-only" && parts.length === 3) {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { inspectMissingQuranTexts } = await load("/src/quran/fillMissingText.ts");
+    if (req.method === "GET") {
+      return send(res, 200, { status: await inspectMissingQuranTexts(parts[1]) }), true;
+    }
+    if (req.method === "POST")
+      return send(res, 409, { error: "لا يُجلب نص القرآن إلى quran.json. اكتب الآية في السكريبت ثم استخدم مقارنة المصحف للقراءة فقط." }), true;
+    return send(res, 405, { error: "Method not allowed" }), true;
+  }
+
   // ستوري بورد الفيديو قبل تنفيذه (storyboard.json): الحالة، والاعتماد، وحركة كل مشهد إن قيست
   if (parts[0] === "episodes" && parts[1] && parts[2] === "storyboard") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
@@ -405,22 +402,19 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { action, auditNote } = await readBody(req);
       if (action === "approve") {
-        const measured = await loadStoryboardMotion(parts[1]);
-        const note = typeof auditNote === "string" ? auditNote.trim() : "";
-        if (measured) {
-          const { currentMotionFingerprint } = await load("/src/render/motionFingerprint.ts");
-          const currentHash = await currentMotionFingerprint(parts[1], plan, measured.orientation);
-          const { staleMotionScenes } = await load("/src/render/motionValidity.ts");
-          if (staleMotionScenes(plan, measured, currentHash).length)
-            return send(res, 409, { error: "القياس قديم أو غير مكتمل؛ أعد الفحص قبل اعتماد الستوري بورد." }), true;
-          const warnings = Object.values(measured.scenes).filter((s: any) => s.logic?.status === "needs-review").length;
-          if (warnings && note.length < 10)
-            return send(res, 400, { error: `هناك ${warnings} مشهدًا بها تحذيرات. شاهدها واكتب سبب الاعتماد أو الاستثناء (10 أحرف على الأقل).` }), true;
-          await S.approveStoryboard(file, plan, note ? { note, inputHash: measured.inputHash } : undefined);
-        } else {
-          // الاعتماد اليدوي التقليدي متاح دون تقرير آلي؛ لا يُعرض باعتباره اجتيازًا للفحص.
-          await S.approveStoryboard(file, plan);
-        }
+        // Script approval lives in the scene-first ledger only (unified engine).
+        const { requireScriptApproved } = await load("/src/studio/sceneService.ts");
+        await requireScriptApproved(parts[1]);
+        const { checkVisualStoryboardSignoff } = await load("/src/plan/storyboardVisualGate.ts");
+        const checked = checkVisualStoryboardSignoff(plan, auditNote);
+        if (!checked.ok)
+          return send(res, 400, { error: checked.reason }), true;
+        // The illustrated storyboard is reviewed BEFORE voice/video production.
+        // A motion-audit of a provisional silent video is intentionally NOT its
+        // acceptance gate. Preserve the technical motion report as QA evidence.
+        await S.approveStoryboard(file, plan, {
+          note: checked.note,
+        });
       } else if (action === "revoke") await S.revokeStoryboard(file);
       else return send(res, 400, { error: "إجراء غير صالح." }), true;
     }
@@ -435,8 +429,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       motionStale = staleMotionScenes(plan, motion, hash);
     }
     const { auditNeedsJustification } = await load("/src/render/motionValidity.ts");
-    const auditNeedsReview = Boolean(motion && !motionStale.length && auditNeedsJustification(motion, status.audit));
-    send(res, 200, { status, motion, motionStale, auditNeedsReview });
+    const motionAuditNeedsReview = Boolean(motion && !motionStale.length && auditNeedsJustification(motion, status.audit));
+    // Kept separate: motion QA must not revoke a human-approved pre-voice storyboard.
+    send(res, 200, { status, motion, motionStale, motionAuditNeedsReview, auditNeedsReview: false });
     return true;
   }
 
@@ -466,16 +461,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const R = await load("/src/plan/sceneReview.ts");
     const file = await resolveScriptPath(parts[1]);
     const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
-    let items;
-    if (req.method === "PUT") {
-      const { id, status, note } = await readBody(req);
-      if (typeof id !== "string" || !["ok", "fix", "pending"].includes(status)) return send(res, 400, { error: "قرار غير صالح." }), true;
-      try {
-        items = await R.setSceneReview(file, plan, id, status, typeof note === "string" ? note : "");
-      } catch (e) {
-        return send(res, 400, { error: (e as Error).message }), true;
-      }
-    } else items = R.sceneReviewItems(plan, await R.loadSceneLedger(file));
+    // Superseded by the scene AV approval in «إنتاج المشاهد»: read-only for old episodes.
+    if (req.method === "PUT") return send(res, 410, { error: "مراجعة المشهد صارت جزءًا من اعتماده بالصوت والصورة في «إنتاج المشاهد»." }), true;
+    const items = R.sceneReviewItems(plan, await R.loadSceneLedger(file));
     send(res, 200, { items, summary: R.sceneReviewSummary(items), criteria: R.SCENE_CRITERIA });
     return true;
   }
@@ -510,6 +498,14 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { status } = await readBody(req);
       if (!status || typeof status !== "object" || Array.isArray(status)) return send(res, 400, { error: "حالة النشر غير صالحة؛ لم تُحفظ." }), true;
+      const old = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {};
+      // A legacy size/mtime marker never authorizes publishing. Check the exact
+      // current Master hash before recording any NEW publication/approval.
+      if ((status.published && JSON.stringify(status.published) !== JSON.stringify(old.published)) ||
+          (status.approved && JSON.stringify(status.approved) !== JSON.stringify(old.approved))) {
+        const { assertWorkflowForEpisode } = await load("/src/workflow/server.ts");
+        await assertWorkflowForEpisode(parts[1], "publish");
+      }
       await writeFile(file, JSON.stringify(status, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : {});
@@ -543,11 +539,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       await writeFile(file, JSON.stringify(kit, null, 2) + "\n");
       return send(res, 200, { kit, keywords: social.kitKeywords(plan) }), true;
     }
-    let kit = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : null;
-    if (!kit) {
-      kit = await build();
-      await writeFile(file, JSON.stringify(kit, null, 2) + "\n");
-    }
+    // القراءة لا تكتب شيئًا: إن لم تُحفظ الحزمة بعد تُعرض نسخة آلية، وتُحفظ فقط عند التعديل أو «أعد التوليد»
+    const kit = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : await build();
     const { collectMedia } = await load("/src/plan/collect.ts");
     const media = { ...(await collectMedia(ep, plan)), mode: "url", base: "" };
     return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
@@ -614,22 +607,22 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 200, { text }), true;
   }
 
-  // معاينات الحلقة (previews/ بجوار السكريبت): فيديوهات صامتة خفيفة للمراجعة، تُرفع مع المستودع ولا تُنشر أبدًا
+  // معاينات الحلقة: الفهرس في previews/index.json (Git)، والفيديو محليًا أو في مجلد Google Drive المتزامن. لا تُنشر أبدًا
   if (parts[0] === "episodes" && parts[1] && parts[2] === "previews") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
     const { resolveEpisodeDir } = await load("/src/script/episodes.ts");
-    const dir = path.join(await resolveEpisodeDir(parts[1]), "previews");
+    const pv = await load("/src/render/episodePreviews.ts");
+    const epDir = await resolveEpisodeDir(parts[1]);
     if (parts[3]) {
-      const file = path.join(dir, safeName(parts[3]));
-      if (!existsSync(file) || !/\.mp4$/i.test(file)) return send(res, 404, { error: "الملف غير موجود" }), true;
-      ctx.serveFile(req, res, file, "video/mp4");
-      return true;
+      const name = safeName(parts[3]);
+      if (!/\.mp4$/i.test(name)) return send(res, 404, { error: "الملف غير موجود" }), true;
+      const indexFile = path.join(epDir, "previews", "index.json");
+      const index = existsSync(indexFile) ? JSON.parse(await readFile(indexFile, "utf8")) : {};
+      const where = await pv.locatePreview(epDir, name, index[name]);
+      if (where.kind === "local" || where.kind === "drive-mirror") { ctx.serveFile(req, res, where.file, "video/mp4"); return true; }
+      return send(res, 404, { error: where.kind === "drive-link" ? "الفيديو على Google Drive ولم يتزامن مع هذا الجهاز بعد." : "الملف غير موجود", driveUrl: where.kind === "drive-link" ? where.url : null }), true;
     }
-    if (!existsSync(dir)) return send(res, 200, { files: [] }), true;
-    const names = (await readdir(dir)).filter((n) => /\.mp4$/i.test(n));
-    const notes = existsSync(path.join(dir, "index.json")) ? JSON.parse(await readFile(path.join(dir, "index.json"), "utf8")) : {};
-    const files = names.map((n) => ({ name: n, size: statSync(path.join(dir, n)).size, mtime: statSync(path.join(dir, n)).mtimeMs, title: notes[n]?.title ?? n, note: notes[n]?.note ?? "", version: notes[n]?.version ?? 1, updatedAt: notes[n]?.updatedAt ?? null })).sort((x, y) => y.mtime - x.mtime);
-    return send(res, 200, { files }), true;
+    return send(res, 200, { files: await pv.listEpisodePreviews(epDir) }), true;
   }
 
   // ملفات المراجعة (reviews/ بجوار السكريبت): تقارير الاعتماد التحريري والشرعي للحلقة، صفحات HTML مكتفية بذاتها، داخلية لا تُنشر
@@ -696,16 +689,6 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         if (!/^[a-z0-9-]+$/.test(id)) return send(res, 400, { error: `معرّف المجال «${id}» بالإنجليزية الصغيرة والشرطات فقط.` }), true;
         if (!slots.includes(channel.domains[id].theme)) return send(res, 400, { error: `ثيم المجال «${id}» غير صالح.` }), true;
       }
-      // AlQuran Cloud at channel level is a preview preference, never a licence.
-      // Restrict the shape so rights-gated episode production remains separate.
-      if (channel.alquranPreviewRecitation != null) {
-        const v = channel.alquranPreviewRecitation;
-        if (typeof v !== "object" || Array.isArray(v) ||
-            Object.keys(v).some((k) => k !== "edition" && k !== "name") ||
-            typeof v.edition !== "string" || !/^ar\.[a-z0-9._-]{1,75}$/i.test(v.edition) ||
-            typeof v.name !== "string" || !v.name.trim() || v.name.length > 160)
-          return send(res, 400, { error: "اختيار قارئ AlQuran Cloud للمعاينة غير صالح." }), true;
-      }
       // أدوات المحرك الافتراضية للحلقات الجديدة: لا يُقبل إلا أساس يعمل في مكتبة هذه القناة
       if (channel.production != null) {
         const { engineDefaultsIssues } = await load("/src/plan/engine.ts");
@@ -713,7 +696,11 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         const bad = engineDefaultsIssues(channel.production.defaults, (t: string) => !templateExclusion(channel, t), ch);
         if (bad.length) return send(res, 400, { error: bad.join(" ") }), true;
       }
-      await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(channel, null, 2) + "\n");
+      // Legacy provider selections are no longer Studio settings. Old on-disk
+      // channel files remain untouched until their owner explicitly saves.
+      const { recitation: _legacyRecitation, alquranPreviewRecitation: _legacyPreview,
+        quranTranslation: _legacyTranslation, ...localChannel } = channel;
+      await writeFile(ch_.channelPaths(ch).channelFile, JSON.stringify(localChannel, null, 2) + "\n");
       send(res, 200, { ok: true });
     } else send(res, 200, ch_.loadChannel(ch));
     return true;
@@ -789,12 +776,6 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
           const info = voiceFound ? await el.voiceInfo().catch(() => null) : null;
           const cfg = (await load("/config.json")).default;
           send(res, 200, { ok: true, account: acc, voices, voiceFound, models, training: info?.training ?? {}, voiceCategory: info?.category, model: process.env.ELEVENLABS_MODEL_ID || cfg.voice.modelId });
-        } else if (service === "quran") {
-          const { quranClientFromEnv } = await load("/src/quran/client.ts");
-          const qf = quranClientFromEnv();
-          if (!qf) return send(res, 200, { ok: false, message: "لم تُضف مفاتيح Quran Foundation بعد." }), true;
-          const v = await qf.verse("1:1");
-          send(res, 200, { ok: true, sample: v.text, env: qf.env });
         } else send(res, 400, { error: "خدمة غير معروفة" });
       } catch (e) {
         send(res, 200, { ok: false, message: (e as Error).message });
@@ -808,37 +789,6 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       return true;
     }
     send(res, 200, { keys: env.keyStatus() });
-    return true;
-  }
-
-  // القرّاء المتاحون (تلاوة آية بآية)
-  if (parts[0] === "quran" && parts[1] === "recitations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      send(res, 200, { ok: true, list: await qf.recitations() });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
-    return true;
-  }
-
-  // ترجمات معاني القرآن المتاحة (لقنوات غير عربية)
-  if (parts[0] === "quran" && parts[1] === "translations") {
-    const { quranClientFromEnv } = await load("/src/quran/client.ts");
-    const qf = quranClientFromEnv();
-    if (!qf) return send(res, 200, { ok: false, message: "أضف مفاتيح Quran Foundation في «الإعدادات» أولًا.", list: [] }), true;
-    try {
-      const names: Record<string, string> = { en: "english", tr: "turkish", ar: "arabic" };
-      const lang = new URL(req.url ?? "/", "http://x").searchParams.get("lang") ?? "";
-      const all = await qf.translations();
-      const want = names[lang] ?? lang;
-      const list = all.filter((t: { language: string }) => !want || t.language.toLowerCase() === want);
-      send(res, 200, { ok: true, list });
-    } catch (e) {
-      send(res, 200, { ok: false, message: (e as Error).message, list: [] });
-    }
     return true;
   }
 

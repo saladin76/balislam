@@ -10,7 +10,8 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import config from "../../config.json";
-import { normalizeArabic } from "./quranMeta";
+import { normalizeArabic, parseAyahRef } from "./quranMeta";
+import { quranFromScript } from "../quran/scriptText";
 import type { ParsedScript } from "./types";
 
 export type ReviewStatus = "pending" | "changed" | "verified" | "rejected";
@@ -42,6 +43,7 @@ const sha = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 1
 
 export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): ReviewItem[] => {
   // نصوص الأحاديث في التعليق: [حديث: المرجع | النص | الراوي]
+  const ayahTexts = quranFromScript(script).texts;
   const hadithText = new Map<string, string>();
   for (const ch of script.chapters)
     for (const b of ch.blocks) if (b.kind === "hadith" && b.text) hadithText.set(norm(b.ref), [b.text, b.narrator ?? ""].join(" | "));
@@ -54,7 +56,11 @@ export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): 
     seen.set(base, n);
     const key = n > 1 ? `${base}#${n}` : base;
     const text = c.kind === "hadith" ? hadithText.get(norm(ref)) : undefined;
-    const hash = sha(norm([c.raw.replace(/^\s*[-*]\s*/, ""), text ?? ""].join("\n")));
+    const ayah = c.kind === "ayah" ? parseAyahRef(ref) : null;
+    const sourceText = ayah?.ok ? (ayahTexts[ayah.ref.key] ?? "") : "";
+    // Exact tashkeel and Quranic markers must invalidate prior human review.
+    const hash = sha([norm(c.raw.replace(/^\s*[-*]\s*/, "")), text ? norm(text) : "",
+      c.kind === "ayah" ? sourceText : ""].join("\n"));
     const e = ledger?.items[key];
     const status: ReviewStatus = !e ? "pending" : e.hash !== hash ? "changed" : e.status;
     return { key, kind: c.kind, label, ref, detail: c.fields.slice(1).join(" | "), text, line: c.line, hash, status, note: e?.note, at: e?.at };

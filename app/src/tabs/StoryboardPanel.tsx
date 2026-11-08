@@ -11,7 +11,7 @@ import { shotElements, shotFrame, shotKind, shotText } from "../../../src/plan/s
 import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
-import { api, type LongJob, type StoryboardInfo } from "../api";
+import { api, type EpisodePreview, type LongJob, type StoryboardInfo } from "../api";
 import config from "../../../config.json";
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
@@ -46,16 +46,42 @@ export const StoryboardPanel: React.FC<{
   channel: ChannelInfo;
   media: EpisodeMedia;
   onOpenScene: (id: string) => void;
-}> = ({ episodeId, plan, identity, channel, media, onOpenScene }) => {
+  onReload: () => void;
+}> = ({ episodeId, plan, identity, channel, media, onOpenScene, onReload }) => {
   const [info, setInfo] = useState<StoryboardInfo | null>(null);
   const [job, setJob] = useState<LongJob | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
+  const [visualReviewNote, setVisualReviewNote] = useState("");
+  const [visualReviewed, setVisualReviewed] = useState(false);
+  const [quranStatus, setQuranStatus] = useState<{ missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } | null>(null);
+  const [quranBusy, setQuranBusy] = useState(false);
+  const [quranAudit, setQuranAudit] = useState<Awaited<ReturnType<typeof api.auditQuranScript>> | null>(null);
+  const [quranMessage, setQuranMessage] = useState("");
+
   const fps = config.video.fps;
   const W = config.video.episode.width;
   const H = config.video.episode.height;
   const lang = langPack(plan.lang);
+
+  useEffect(() => {
+    let alive = true;
+    setQuranStatus(null); setQuranMessage(""); setQuranAudit(null);
+    api.missingQuranTexts(episodeId).then(({ status }) => {
+      if (alive) setQuranStatus(status);
+    }).catch((e) => {
+      if (alive) setQuranMessage("تعذّر فحص النصوص القرآنية المحلية: " + (e instanceof Error ? e.message : String(e)));
+    });
+    return () => { alive = false; };
+  }, [episodeId]);
+
+  const reviewAgainstMushaf = async () => {
+    setQuranBusy(true); setQuranMessage(""); setQuranAudit(null);
+    try { setQuranAudit(await api.auditQuranScript(episodeId)); }
+    catch (e) { setQuranMessage("تعذّر فحص المصحف: " + (e instanceof Error ? e.message : String(e))); }
+    finally { setQuranBusy(false); }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => api.storyboard(episodeId).then(setInfo).catch((e) => setErr((e as Error).message)), info ? 1200 : 0);
@@ -104,33 +130,22 @@ export const StoryboardPanel: React.FC<{
   }, [plan, media, channel]);
   const totalSec = rows.reduce((n, r) => n + r.shots.reduce((m, x) => m + x.d, 0), 0) / fps;
 
+  useEffect(() => {
+    setVisualReviewNote("");
+    setVisualReviewed(false);
+  }, [episodeId, plan.updatedAt]);
   const st = info?.status;
   const motion = info?.motion;
   const act = async (action: "approve" | "revoke") => {
-    let auditNote: string | undefined;
-    if (action === "approve") {
-      if (info?.motionStale?.length) {
-        setErr("نتيجة الفحص قديمة؛ أعد قياس الحركة والمنطق ثم اعتمد الستوري بورد.");
-        return;
-      }
-      const warnings = Object.values(info?.motion?.scenes ?? {}).filter((s) => s.logic?.status === "needs-review").length;
-      if (warnings) {
-        const answer = window.prompt(
-          `يوجد ${warnings} مشهدًا بها تحذيرات فحص. شاهد المشاهد أولًا، ثم اكتب سبب قبولها رغم التحذيرات أو الإصلاح الذي أجريته. لن تُعتبر التحذيرات اعتمادًا تلقائيًا.`,
-          "",
-        );
-        if (answer === null) return;
-        auditNote = answer.trim();
-        if (auditNote.length < 10) {
-          setErr("اكتب ملاحظة مراجعة من 10 أحرف على الأقل قبل اعتماد المشاهد ذات التحذيرات.");
-          return;
-        }
-      }
+    const auditNote = visualReviewNote.trim();
+    if (action === "approve" && (!visualReviewed || auditNote.length < 25)) {
+      setErr("الاعتماد هنا للـStoryboard المرئي فقط: افتح اللوحات كلها، ثم أكّد مشاهدتها واكتب إصدارها وملاحظة فعلية من 25 حرفًا على الأقل.");
+      return;
     }
     setBusy(true);
     setErr("");
     try {
-      setInfo(await api.setStoryboard(episodeId, action, auditNote));
+      setInfo(await api.setStoryboard(episodeId, action, action === "approve" ? auditNote : undefined));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -181,39 +196,88 @@ export const StoryboardPanel: React.FC<{
         <div style={{ display: "grid", gap: 4 }}>
           <h2>ستوري بورد الحلقة {episodeId}</h2>
           <p className="help">
-            لقطة لكل مشهد مع نصه وما يظهر على الشاشة وعناصره. القياس يفحص الحركة المرئية ومطابقة كلمات تشغيل الأحداث للنص وترتيبها؛ لا يستطيع الحكم على صحة المعنى من الفيديو وحده. لا يُولَّد صوت ولا تُصنع النسخة النهائية لمشهد قبل اعتماده هنا، وأي تعديل بعد الاعتماد يعيده للاعتماد.
+            هذه المرحلة لاعتماد تصميم الـStoryboard المرئي بعد مشاهدة جميع اللوحات، قبل اختيار النبرات وإنتاج الصوت. فحص الحركة الصامتة القديم تشخيص اختياري لمرحلة الفيديو اللاحقة، ولا يمنع عرض اللوحات أو اعتماد تصميمها. نصوص الآيات غير المجلوبة تمنع الاعتماد النهائي حتى التحقق من المصدر.
           </p>
           <p className="sb-facts">
             <span>{rows.reduce((n, r) => n + r.shots.length, 0)} مشهدًا</span>
             <span>المدة {fmt(totalSec)}{Object.keys(media.voice).length ? "" : " (بلا صوت: أقل مدة لكل قالب)"}</span>
             {st ? <span className={st.ok ? "ok" : "warn"}>معتمد {st.approved} من {st.total}</span> : null}
-            {motion ? <span className={staleCount ? "warn" : motion.percent >= 80 ? "ok" : "warn"}>الحركة {motion.percent}٪{staleCount ? " (قياس قديم)" : ""}</span> : <span className="warn">الحركة لم تُقس</span>}
-            {staleCount ? <span className="warn">{staleCount} مشهدًا تغيّر منذ القياس — أعد الفحص قبل الاعتماد.</span> : null}
-            {stills.length ? <span className="warn">سكون فوق ثانيتين: {stills.join("، ")}</span> : null}
-            {motion && <span className={logicNeedsReview.length || logicNotAssessable.length ? "warn" : "help"}>مطابقة النص: {logicNeedsReview.length} بها تحذيرات · {logicNotAssessable.length} غير قابلة للتقييم الآلي (لا تعادل اعتمادًا فنيًا)</span>}
+            {motion ? <span className="help">فحص حركة تشخيصي لاحق: {motion.percent}٪{staleCount ? " (نسخة قديمة)" : ""}</span> : null}
+
           </p>
+          {motion && <details className="sb-technical-metrics">
+            <summary>نتائج فحص الحركة القديم — للمرحلة اللاحقة بعد الصوت فقط</summary>
+            <p className="help">هذا فحص استرشادي لتوقيت العناصر قبل اعتماد الصوت. التحذيرات لا تعادل رفض تصميم اللوحات ولا يطلب منك تجاوزها الآن.</p>
+            {staleCount > 0 && <p>مشاهد تحتاج تحديث القياس عند إنتاج الحركة: {staleCount}</p>}
+            {stills.length > 0 && <p>مشاهد لها سكون أكثر من ثانيتين: {stills.join("، ")}</p>}
+            <p>تحذيرات منطق الحركة: {logicNeedsReview.length} · غير قابلة للتقييم آليًا: {logicNotAssessable.length}</p>
+          </details>}
           {st?.changed.length ? <p className="help warn">تغيّر بعد الاعتماد: {st.changed.join("، ")}</p> : null}
           {st?.audit?.note ? <p className="help">ملاحظة اعتماد المراجع: {st.audit.note}</p> : null}
-          {info?.auditNeedsReview ? <p className="help warn" role="alert">ظهر تقرير حديث بتحذيرات لم يشملها الاعتماد السابق. راجع المشاهد ثم سجّل سبب قبولها.</p> : null}
+          {info?.motionAuditNeedsReview ? <p className="help">تنبيه فني مستقل: تقرير الحركة يحتوي ملاحظات تُراجع بعد اعتماد الصوت وأثناء إنتاج الفيديو؛ لا تُعامل باعتبارها رفضًا للـStoryboard المرئي.</p> : null}
           {err ? <p className="help warn" role="alert">{err}</p> : null}
           {job?.status === "error" ? <p className="help warn">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
         </div>
         <div className="sb-actions">
-          <button className="btn" onClick={measure} disabled={job?.status === "running"}>
-            {job?.status === "running" ? `يقيس الحركة والمنطق… ${job.pct}%` : motion ? "أعد فحص الحركة والمنطق" : "افحص الحركة والمنطق"}
+          <button className="btn" onClick={measure} disabled={job?.status === "running"} title="فحص تشخيصي اختياري لمرحلة إنتاج الفيديو، وليس شرط اعتماد الستوري بورد">
+            {job?.status === "running" ? `يقيس الحركة والمنطق… ${job.pct}%` : motion ? "إعادة الفحص الفني (اختياري)" : "فحص الحركة الفني (اختياري)"}
           </button>
           {motion ? <button className="btn" onClick={() => void downloadReport()} disabled={reportBusy}>{reportBusy ? "يُجهّز التقرير…" : "تنزيل تقرير الفحص"}</button> : null}
-          {st?.ok && !info?.auditNeedsReview ? (
+          {st?.ok ? (
             <button className="btn" onClick={() => act("revoke")} disabled={busy}>
               اسحب الاعتماد
             </button>
           ) : (
             <button className="btn primary" onClick={() => act("approve")} disabled={busy || !st}>
-              {info?.auditNeedsReview ? "راجع تحذيرات القياس واعتمد" : "اعتمد الستوري بورد"}
+              اعتماد اللوحات المرئية بعد مراجعتها
             </button>
           )}
         </div>
       </div>
+
+      <section className="sb-quran-text-source" aria-label="نصوص الآيات" style={{ display: "grid", gap: 8, padding: 18, border: "1px solid var(--line, #d5dbe2)", borderRadius: 12, marginBottom: 18 }}>
+        <h3>نصوص الآيات — قبل اعتماد اللوحات</h3>
+        <p className="help">صاحب المشروع يكتب الآية داخل السكريبت: [آية: النجم 39 | النص بالتشكيل]. مقارنة المصحف تعرض الفروق دون تعديل النص أو تسجيل اعتماد شرعي آلي.</p>
+        {quranStatus && <p role="status">مراجع نصية محلية موجودة: {quranStatus.existing.length} · ناقصة: {quranStatus.missing.length} · غير صالحة: {quranStatus.invalid.length}</p>}
+        {!!quranStatus?.missing.length && <p className="warn">الناقص: {quranStatus.missing.join("، ")}</p>}
+        {!!quranStatus?.invalid.length && <p className="warn">مراجع تحتاج تصحيحًا من المصدر: {quranStatus.invalid.map((x) => x.ref + " (" + x.reason + ")").join("، ")}</p>}
+        {quranMessage && <p role="status">{quranMessage}</p>}
+        <div>
+          <button className="btn" type="button" onClick={() => { setQuranMessage(""); api.missingQuranTexts(episodeId).then(({ status }) => setQuranStatus(status)).catch((e) => setQuranMessage(String(e))); }}>
+            إعادة فحص النصوص المحلية
+          </button>
+          <button className="btn" type="button" disabled={quranBusy}
+             onClick={() => void reviewAgainstMushaf()}>{quranBusy ? "جارٍ مقارنة النص…" : "مقارنة نص السكريبت مع المصحف — قراءة فقط"}</button>
+        </div>
+        {quranAudit && <div role="status" className="field">
+          <p>بيئة مرجع المصحف: {quranAudit.environment}. المطابقة التقنية ليست اعتمادًا شرعيًا.</p>
+          {quranAudit.audits.map((a) => <div key={a.key} className="field">
+            <strong>{a.key}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? a.status}</strong>
+            {!a.numbers.ok && <p className="warn">{a.numbers.notes.join("؛ ")}</p>}
+            {a.ops.length > 0 && <ul>{a.ops.map((op, i) => <li key={i}>
+              الموضع {op.at + 1}، {op.cls}، {op.op}: في السكريبت «{op.shown || "∅"}»، في المصحف «{op.ref || "∅"}»
+            </li>)}</ul>}
+          </div>)}
+        </div>}
+      </section>
+
+      <section className="sb-visual-approval" aria-label="مراجعة Storyboard المرئي" style={{ display: "grid", gap: 10, padding: 18, border: "1px solid var(--line, #d5dbe2)", borderRadius: 12, marginBottom: 20 }}>
+        <h3>المرحلة الأولى — مراجعة لوحات Storyboard المرئية</h3>
+        <p className="help">يُمكن عرض أو تسليم PDF وصور النسخ V1/V2 أثناء وجود ملاحظات الحركة والصوت. لا تضغط الاعتماد إلا بعد مراجعة كل مشاهد التصميم، ومطابقة آيات القرآن من مصدرها. نتيجة فحص الحركة القديمة ليست شرطًا لهذه المرحلة.</p>
+        {channel.id === "zubdat-alkutub" && episodeId === "001" ? (
+          <p><a href="https://drive.google.com/file/d/1MTtTbSufZN2N0OFueEAjsOlLiaBSglMd/view" target="_blank" rel="noreferrer">فتح PDF المرئي V021 — 31 مشهدًا (PENDING_REVIEW، ليس اعتمادًا)</a></p>
+        ) : null}
+        {channel.id === "dafatir-alzaman" && episodeId === "001" ? (
+          <p><a href="https://github.com/saladin76/balislam/blob/main/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.pdf" target="_blank" rel="noreferrer">فتح Storyboard V1.1 — 80 مشهدًا (نسخة GitHub، نقل Drive لم يُتحقق منه)</a></p>
+        ) : null}
+        <label htmlFor="sb-visual-review-note">ملاحظة المراجع: إصدار اللوحات، نطاق المشاهدة، والتعديلات المطلوبة أو سبب الموافقة</label>
+        <textarea id="sb-visual-review-note" value={visualReviewNote} rows={3} maxLength={3000}
+          onChange={(e) => setVisualReviewNote(e.target.value)}
+          placeholder="راجعت كل لوحات الإصدار ...، والتكوين والنصوص متطابقة، والمشاهد التي تحتاج إصلاحًا..." />
+        <label><input type="checkbox" checked={visualReviewed} onChange={(e) => setVisualReviewed(e.target.checked)} />
+          أؤكد أنني شاهدت جميع اللوحات المرئية لهذه الحلقة، وليس عينات متفرقة فقط.</label>
+        <p className="help">إذا كانت الآيات ناقصة، اكتبها داخل السكريبت ثم أعد مقارنة المصحف والمراجعة الشرعية؛ يبقى Storyboard في PENDING_REVIEW ولا تعتمد ملفات PDF تلقائيًا.</p>
+      </section>
 
       <Reviews episodeId={episodeId} />
       <Previews episodeId={episodeId} />
@@ -257,8 +321,9 @@ export const StoryboardPanel: React.FC<{
                       <b>العناصر:</b> {els.length ? els.map((id) => elName.get(id) ?? id).join("، ") : "بلا عناصر"}
                     </p>
                     {m ? (
-                      <>
-                        <p className={`sb-motion${m.stale ? " stale" : m.still > 2 ? " warn" : ""}`}>
+                      <details className="sb-motion-after-voice" onClick={(e) => e.stopPropagation()}>
+                        <summary>تقرير الحركة الفني (مرحلة لاحقة)</summary>
+                        <p className={`sb-motion${m.stale ? " stale" : ""}`}>
                           {m.stale ? "تغيّر بعد القياس" : `${m.pct}٪ حركة · أطول سكون ${m.still} ث`}
                         </p>
                         {!m.stale && m.logic ? (
@@ -276,7 +341,7 @@ export const StoryboardPanel: React.FC<{
                             </details>
                           </div>
                         ) : null}
-                      </>
+                      </details>
                     ) : null}
                   </div>
                 </article>
@@ -317,7 +382,7 @@ const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
 
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
 const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
-  const [files, setFiles] = useState<{ name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[]>([]);
+  const [files, setFiles] = useState<EpisodePreview[]>([]);
   useEffect(() => {
     api.previews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
   }, [episodeId]);
@@ -325,11 +390,16 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   return (
     <section className="sb-previews">
       <h3>المعاينات</h3>
-      <p className="help">كل فيديو يُصنع للحلقة يظهر هنا، وأي تعديل يستبدل القديم بالجديد. المعاينات لا تُنشر.</p>
+      <p className="help">كل فيديو يُصنع للحلقة يظهر هنا، وأي تعديل يستبدل القديم بالجديد. الفيديوهات محفوظة على Google Drive، ولا تُنشر.</p>
       <div className="sb-previews-grid">
         {files.map((f) => (
           <figure key={f.name} className="sb-preview">
-            <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
+            {f.source === "local" || f.source === "drive-mirror"
+              ? <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
+              : <div className="sb-preview-remote">
+                  <p className="help">{f.source === "drive-link" ? "الفيديو على Google Drive ولم يتزامن مع هذا الجهاز بعد." : "الفيديو غير موجود على هذا الجهاز."}</p>
+                  {f.driveUrl ? <a className="btn small" href={f.driveUrl} target="_blank" rel="noreferrer">افتحه على Google Drive</a> : null}
+                </div>}
             <figcaption>
               <b>{f.title}</b>
               <span className="help">رفع رقم {f.version}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>

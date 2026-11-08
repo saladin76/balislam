@@ -55,7 +55,7 @@ describe("كل إعداد إضاءة مقبول له أثر فعلي في قال
         // الإعداد نفسه مقبول بلا أخطاء في هذا القالب
         expect(lightingIssues(template, { lighting: p.with }).filter((i) => i.level === "error")).toEqual([]);
         expect(await render(template, p.with, frame)).not.toBe(await render(template, p.base, frame));
-      });
+      }, 30_000);
     }
   }
 

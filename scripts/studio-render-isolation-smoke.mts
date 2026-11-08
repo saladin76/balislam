@@ -1,0 +1,91 @@
+/**
+ * Synthetic Remotion smoke test: only engine sample compositions, NOT an episode.
+ * Invoked solely by studio-render-isolation-acceptance.mjs in approved Mac worktree.
+ */
+import path from "node:path";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { selectComposition, renderMedia, renderStill } from "@remotion/renderer";
+import { browserExecutable, createIsolatedRenderBundle } from "../src/render/bundle";
+import { emptyMedia } from "../src/plan/media";
+import { syntheticFramePlan } from "./studio-render-frame-range.mts";
+
+if (process.platform !== "darwin" || process.env.BAL_STUDIO_REVIEW_APPROVED !== "YES" ||
+    !process.env.BAL_STUDIO_REVIEW_ROOT)
+  throw new Error("No approved isolated Mac review context.");
+const evidenceDir = process.argv[2];
+if (!evidenceDir || !path.isAbsolute(evidenceDir))
+  throw new Error("Absolute isolated evidence directory required.");
+const actualRoot = await realpath(evidenceDir);
+const approvedRoot = await realpath(process.env.BAL_STUDIO_REVIEW_ROOT);
+if (!actualRoot.startsWith(path.join(approvedRoot, "renders", "isolated-acceptance") + path.sep))
+  throw new Error("Synthetic output must remain inside the approved isolated review root.");
+
+const result: Record<string, unknown> = {
+  syntheticOnly: true, usesEpisodeMedia: false, productionRender: false,
+  files: [] as { path: string; bytes: number; sha256: string; width?: number; height?: number }[],
+};
+const bundleScope = await createIsolatedRenderBundle(emptyMedia);
+try {
+  const serveUrl = bundleScope.serveUrl;
+  const browser = browserExecutable();
+  for (const orientation of ["landscape", "portrait"] as const) {
+    // Renderer-provided sample compositions have no donor/customer/episode data.
+    const stillId = `brand-paper-${orientation}`;
+    const stillComp = await selectComposition({ serveUrl, id: stillId, browserExecutable: browser });
+    const stillOutput = path.join(actualRoot, `synthetic-${orientation}.png`);
+    await renderStill({ serveUrl, composition: stillComp, output: stillOutput, scale: 0.4, browserExecutable: browser });
+    const png = await readFile(stillOutput);
+    if (png.subarray(1, 4).toString() !== "PNG" || png.length < 1000)
+      throw new Error(`Invalid PNG smoke output: ${orientation}`);
+    const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+    if ((orientation === "landscape" && (w <= h || Math.abs(w * 9 - h * 16) > 18)) ||
+        (orientation === "portrait" && (h <= w || Math.abs(h * 9 - w * 16) > 18)))
+      throw new Error(`Invalid screenshot orientation ${orientation}: ${w}x${h}`);
+    (result.files as any[]).push({
+      path: stillOutput, bytes: png.length,
+      sha256: createHash("sha256").update(png).digest("hex"), width: w, height: h,
+    });
+
+    const reelId = `reel-paper-${orientation}`;
+    const videoComp = await selectComposition({ serveUrl, id: reelId, browserExecutable: browser });
+    const videoOutput = path.join(actualRoot, `synthetic-${orientation}.mp4`);
+    const framePlan = syntheticFramePlan(videoComp.durationInFrames);
+    await renderMedia({
+      serveUrl, composition: videoComp, codec: "h264",
+      outputLocation: videoOutput, browserExecutable: browser,
+      frameRange: framePlan.frameRange,
+      scale: 0.25, crf: 28, x264Preset: "ultrafast", muted: true,
+    });
+    const mp4 = await readFile(videoOutput);
+    if (mp4.length < 1000 || mp4.subarray(4, 8).toString() !== "ftyp")
+      throw new Error(`Invalid MP4 smoke output: ${orientation}`);
+    // A valid ftyp atom alone is not proof of playable 16:9/9:16 video.
+    // Independently probe the on-disk H.264 stream and actual frame count.
+    const probe = JSON.parse(execFileSync("ffprobe", [
+      "-v", "error", "-select_streams", "v:0", "-count_frames",
+      "-show_entries", "stream=codec_name,width,height,nb_read_frames",
+      "-of", "json", videoOutput,
+    ], { cwd: actualRoot, encoding: "utf8", timeout: 30000, maxBuffer: 1024 * 1024 }));
+    const video = probe.streams?.[0];
+    const vw = Number(video?.width), vh = Number(video?.height);
+    const frames = Number(video?.nb_read_frames);
+    const expectedFrames = framePlan.expectedFrames;
+    if (video?.codec_name !== "h264" || !Number.isInteger(vw) || !Number.isInteger(vh) ||
+        !Number.isInteger(frames) || frames !== expectedFrames ||
+        (orientation === "landscape" && (vw <= vh || Math.abs(vw * 9 - vh * 16) > 18)) ||
+        (orientation === "portrait" && (vh <= vw || Math.abs(vh * 9 - vw * 16) > 18)))
+      throw new Error(`Invalid probed MP4 ${orientation}: ${JSON.stringify(video)}`);
+    (result.files as any[]).push({
+      path: videoOutput, frameRange: framePlan.frameRange, expectedFrames,
+      bytes: (await stat(videoOutput)).size,
+      sha256: createHash("sha256").update(mp4).digest("hex"),
+      width: vw, height: vh, frames, codec: video.codec_name,
+    });
+  }
+  result.result = "PASS_SYNTHETIC_ONLY";
+  await writeFile(path.join(actualRoot, "remotion-smoke.json"), JSON.stringify(result, null, 2) + "\n");
+} finally {
+  await bundleScope.cleanup();
+}
