@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -11,7 +11,9 @@ import { approveSceneSourcesV2, inspectSceneSourcesV2 } from "../src/workflow/sc
 import { writeTrustedSceneRenderSpecLockedV2, readTrustedSceneRenderSpecLockedV2 } from "../src/workflow/sceneRenderSpecV2.ts";
 import { runTrustedSceneProductionV2 } from "../src/workflow/sceneRenderBridgeV2.ts";
 import { mutateSceneLedgerV2, readSceneLedgerV2 } from "../src/workflow/sceneStoreV2.ts";
-import { appendSceneNote, beginFinalSceneProduction } from "../src/workflow/sceneV2.ts";
+import { appendSceneNote, beginFinalSceneProduction, reconcileSceneInputs,
+  requestSceneChanges, submitSceneAvReview, SCENE_INPUT_KEYS, type SceneInputs } from "../src/workflow/sceneV2.ts";
+import { commitCurrentSceneRenderLockedV2, requireCurrentSceneRenderLockedV2 } from "../src/workflow/sceneRenderCommitV2.ts";
 import type { WorkflowIdentity } from "../src/workflow/index.ts";
 import type { TrustedSceneRenderSpecV2 } from "../src/workflow/sceneRenderSpecV2.ts";
 
@@ -154,6 +156,36 @@ describe("Studio V2 phase 2 trusted production boundary", () => {
       child.kill("SIGKILL");
     }
   }, 30000);
+
+  it("refuses to replay a signed render receipt after a second owner begin generation", async () => {
+    const { scope, locked } = await setup();
+    const order = ["c1-s1"];
+    const firstAt = new Date().toISOString();
+    await locked(() => mutateSceneLedgerV2(scope, order, (doc) =>
+      beginFinalSceneProduction(doc, "c1-s1", firstAt, () => {})));
+    const proof = {
+      jobId: randomUUID(), fingerprint: sha("old-current-scene"),
+      videoSha256: sha("old-mp4"), videoEpoch: sha("old-epoch"),
+    };
+    await locked(() => commitCurrentSceneRenderLockedV2(scope, "c1-s1",
+      order, proof.jobId, proof.fingerprint, proof.videoSha256, proof.videoEpoch));
+    await locked(() => requireCurrentSceneRenderLockedV2(scope, "c1-s1", order, proof));
+    const inputs = Object.fromEntries(SCENE_INPUT_KEYS.map((key) =>
+      [key, { version: "test", sha256: sha(key), epoch: sha("epoch-" + key) }]))
+      as SceneInputs;
+    inputs.shared = {};
+    await locked(() => mutateSceneLedgerV2(scope, order, (doc) => {
+      reconcileSceneInputs(doc, "c1-s1", inputs, new Date().toISOString());
+      submitSceneAvReview(doc, "c1-s1", new Date().toISOString());
+      requestSceneChanges(doc, "c1-s1", {
+        at: new Date().toISOString(), text: "Old AV must be revised",
+      });
+      beginFinalSceneProduction(doc, "c1-s1", new Date().toISOString(), () => {});
+    }));
+    await expect(locked(() =>
+      requireCurrentSceneRenderLockedV2(scope, "c1-s1", order, proof)))
+      .rejects.toThrow(/older owner begin generation/);
+  });
 
   it("signs server-owned render configuration and rejects changed sources and forged inputs", async () => {
     const { scope, dir, locked } = await setup();
