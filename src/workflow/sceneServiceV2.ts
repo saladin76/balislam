@@ -15,9 +15,8 @@ import {
   requestSceneChanges, sceneFingerprint, submitSceneAvReview,
   type SceneInputs, type SceneLedgerV2,
 } from "./sceneV2.ts";
-import {
-  readSceneLedgerV2, mutateSceneLedgerV2, type SceneV2Scope,
-} from "./sceneStoreV2.ts";
+import { readSceneLedgerV2, mutateSceneLedgerV2 } from "./sceneStoreV2.ts";
+import type { WorkflowIdentity } from "./store.ts";
 import {
   collectSceneInputsFromDiskV2, type SceneFileManifestV2,
   type SceneArtifactLockV2,
@@ -37,7 +36,7 @@ export type SceneV2ClientDecision = {
   elementId?: string;
 };
 export type TrustedSceneV2Dependencies = {
-  scope: SceneV2Scope;
+  scope: WorkflowIdentity;
   authenticate: () => Promise<SceneV2Principal>;
   sceneOrder: () => Promise<readonly string[]>;
   currentSceneManifest: (sceneId: string) => Promise<SceneFileManifestV2>;
