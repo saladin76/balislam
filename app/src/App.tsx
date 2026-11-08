@@ -458,6 +458,7 @@ export const App: React.FC = () => {
             media={media}
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
             onReload={() => loadEpisode(epId, { keepScript: true })}
+            onSigned={() => setHomeKey((k) => k + 1)}
           /></div>
         ) : tab === "voice" ? (
           <VoiceWorkspaceTab

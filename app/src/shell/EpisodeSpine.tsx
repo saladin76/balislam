@@ -63,7 +63,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
     if (!done[0]) return scriptErrors.length
       ? { text: "", label: "افتح السكريبت", go: "script", fix: true }
       : { text: "راجع النص والمصادر، ثم اعتمد السكريبت المحفوظ.", label: "اعتماد السكريبت", decide: "approve-script" };
-    if (!done[1]) return { text: "راجع لوحة كل مشهد وسجّل ملاحظتك في الستوري بورد، ثم اعتمده كاملًا.", label: "اعتماد الستوري بورد", decide: "approve-storyboard" };
+    if (!done[1]) return { text: "راجع لوحة كل مشهد، وسجّل مراجعتك في «سجل مراجعة اللوحات» (أدوات وتفاصيل أسفل اللوحات)، ثم اعتمده كاملًا.", label: "اعتماد الستوري بورد", decide: "approve-storyboard" };
     if (!done[2]) return { text: `المشهد ${w.progress.currentScene ?? ""} هو التالي: أنتجه بالصوت والصورة وشاهده قبل اعتماده. (${w.progress.approvedScenes} من ${w.progress.totalScenes})`, label: "إلى المشهد الحالي", go: "episode" };
     if (!w.assembly) return { text: "كل المشاهد معتمدة. ادمجها في نسخة واحدة للمشاهدة الكاملة.", label: "إلى التجميع", go: "episode" };
     if (!w.progress.assemblyApproved) return { text: "شاهد الحلقة المجمعة كاملة 1× وافحص كل وصلة بين مشهدين.", label: "إلى مراجعة التجميع", go: "episode" };
@@ -80,10 +80,19 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
         action, expectedSha256: action === "approve-script" ? w.script.sha256 : w.storyboard.sha256, confirmedWatched: true,
         note: action === "approve-script" ? "راجعت السكريبت والمصادر" : "راجعت لوحات الستوري بورد كاملة",
       });
+      setReviewed(false);
       setTick((t) => t + 1); onDecided();
-    } catch (e) { setErr((e as Error).message); }
+    } catch (e) {
+      setErr((e as Error).message);
+      // Re-read the ledger: a stale fingerprint (e.g. the boards were just signed) must not stay stuck.
+      setTick((t) => t + 1);
+    }
     finally { setBusy(false); }
   };
+
+  // «راجعته بنفسي» belongs to one decision: never carried from the script over to the storyboard.
+  const decideTarget = next?.decide ?? "";
+  useEffect(() => setReviewed(false), [decideTarget]);
 
   const fill = current < 0 ? 100 : (current / (STEPS.length - 1)) * 100;
   return (

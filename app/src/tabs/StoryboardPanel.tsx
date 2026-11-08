@@ -50,7 +50,9 @@ export const StoryboardPanel: React.FC<{
   media: EpisodeMedia;
   onOpenScene: (id: string) => void;
   onReload: () => void;
-}> = ({ episodeId, plan, identity, channel, media, onOpenScene, onReload }) => {
+  /** The visual sign-off changed the storyboard fingerprint: the spine re-reads it. */
+  onSigned?: () => void;
+}> = ({ episodeId, plan, identity, channel, media, onOpenScene, onReload, onSigned }) => {
   const [info, setInfo] = useState<StoryboardInfo | null>(null);
   const [job, setJob] = useState<LongJob | null>(null);
   const [err, setErr] = useState("");
@@ -150,6 +152,7 @@ export const StoryboardPanel: React.FC<{
     setErr("");
     try {
       setInfo(await api.setStoryboard(episodeId, action, action === "approve" ? auditNote : undefined));
+      onSigned?.();
     } catch (e) {
       setErr((e as Error).message);
     } finally {

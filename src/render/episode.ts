@@ -195,6 +195,9 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       x264Preset: q.x264Preset,
       audioCodec: "aac",
       audioBitrate: q.audioBitrate,
+      // A scene with no narration (closing card) still needs a (silent) audio track: AV review,
+      // assembly and Master all require one, and concat needs the same track layout in every cut.
+      enforceAudioTrack: true,
       colorSpace: "bt709",
       outputLocation: tempOutput,
       browserExecutable: browserExecutable(),
