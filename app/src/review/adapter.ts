@@ -15,6 +15,7 @@ export function serverReviewAdapter(channelId: string, episodeId: string): Revie
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     if (!res.ok) throw Error("خدمة مراجعة V2 غير متاحة أو رفضت الطلب (HTTP " + res.status + ").");
+    if (res.status === 204) return undefined as T;
     const type = res.headers.get("content-type") || "";
     if (!type.includes("application/json")) throw Error("استجابة مراجعة V2 ليست JSON معتمدًا.");
     return res.json() as Promise<T>;
