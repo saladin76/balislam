@@ -240,6 +240,11 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
         {onClose && <button type="button" className="v2-outline" onClick={onClose}>عودة للمحرر</button>}
       </div>
     </header>
+    {mode === "server" && data?.sourceApprovals && <div className="v2-source-status" role="status">
+      <span>اعتماد السكريبت: <b>{data.sourceApprovals.script ? "معتمد من الخادم" : "غير معتمد"}</b></span>
+      <span>اعتماد Storyboard: <b>{data.sourceApprovals.storyboard ? "معتمد من الخادم" : "غير معتمد"}</b></span>
+      <span>الحلقة: <b dir="ltr">{data.serverEpisode || episodeId}</b></span>
+    </div>}
     {loadError && <div className="v2-alert" role="alert">{loadError} {syncFailed && "الاعتماد معطّل حتى استعادة الاتصال."}</div>}
     {loading && !data ? <div className="v2-loading" role="status">جارٍ تحميل المشاهد والإصدارات من المصدر المحدد…</div> : null}
     {mode === "server" && !authenticated && !loading && <div className="v2-unavailable">
