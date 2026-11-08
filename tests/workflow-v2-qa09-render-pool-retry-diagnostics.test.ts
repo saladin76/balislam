@@ -81,7 +81,10 @@ async function exercise(n: number, firstFailureMs: number, recoveryMs: number) {
     // Assert the first attempt REALLY FAILED, and remove only this job's partial.
     if (firstResult.status !== "error" || firstResult.attempts !== 1 ||
         firstResult.partialExists || firstResult.outputExists)
-      throw Error("FIRST_ATTEMPT_BROKEN " + JSON.stringify(firstResult));
+      throw Error("IDLE_RETURNED_BEFORE_PARTIAL_CLEANUP " + JSON.stringify({
+        firstResult, started: evidence.started, transitions: evidence.transitions.slice(-18),
+        reason: "RenderPool marks error before awaiting rm(tmp); another close can call wake while cleanup remains pending",
+      }).slice(0, 5500));
     delete plan.y;
     const selected = pool.retryFailed();
     const selectedAgain = pool.retryFailed();
