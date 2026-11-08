@@ -109,8 +109,12 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
         })}
       </ol>
       {next ? (
-        <div className={`spine-next${next.fix ? " has-fix" : ""}`}>
-          {next.fix ? <ScriptFixList errors={scriptErrors} onLine={onScriptLine} /> : <p>{next.text}</p>}
+        <div className={`spine-next${next.fix && here === 0 ? " has-fix" : ""}`}>
+          {next.fix
+            ? here === 0
+              ? <ScriptFixList errors={scriptErrors} onLine={onScriptLine} />
+              : <p>السكريبت لم يُعتمد بعد: {scriptErrors.length.toLocaleString("ar-EG")} {scriptErrors.length === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في «إعداد الحلقة».</p>
+            : <p>{next.text}</p>}
           {next.decide ? (
             <div className="spine-decide">
               {!owner.open ? <span className="spine-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span> : (
