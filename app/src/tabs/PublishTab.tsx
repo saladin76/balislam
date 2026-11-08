@@ -1,6 +1,9 @@
 import { SocialKit } from "./SocialKit";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type SceneProductionRead, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
+import { resolveDescription, type PublishKit } from "../../../src/package/social";
+import { Hint, More, Stage } from "../shell/Screen";
+import "../shell/screens-s45.css";
 
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
@@ -49,7 +52,8 @@ const Copy: React.FC<{ text: string; label?: string }> = ({ text, label = "نس�
   const [done, setDone] = useState(false);
   return (
     <button
-      className="btn small"
+      type="button"
+      className="btn ghost small"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -68,6 +72,23 @@ const Copy: React.FC<{ text: string; label?: string }> = ({ text, label = "نس�
 /** رابط بعلامة وقت الملف: المتصفح يجلب النسخة الجديدة بعد كل صناعة. */
 const fresh = (url: string, mtime: number) => `${url}${url.includes("?") ? "&" : "?"}v=${Math.round(mtime)}`;
 
+/**
+ * هل تعرض لوحة القرار («إنتاج المشاهد») فوق الصفحة زرًا رئيسيًا الآن؟ إن عرضت فهو الإجراء الوحيد المملوء،
+ * وأزرار هذه الصفحة هادئة. («إلى النشر» يُخفى هنا لأنه يفتح الصفحة نفسها.)
+ */
+export const decisionHasPrimary = (p: SceneProductionRead | null): boolean => {
+  if (!p || !p.script.approved || !p.storyboard.approved) return false;
+  if (!p.progress.canAssemble || !p.assembly || !p.assembly.approved) return true;
+  if (!p.master) return Boolean(p.candidates.masterSha256);
+  return !p.master.publishAllowed;
+};
+
+const clock = (sec: number) => {
+  const s = Math.round(sec);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  return `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${String(r).padStart(2, "0")}`;
+};
+
 export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; onChanged: () => void }> = ({ episodeId, hasVoiceKeys, onChanged }) => {
   const [pkg, setPkg] = useState<PackageInfo | null>(null);
   const [status, setStatus] = useState<EpisodeStatus>({});
@@ -75,6 +96,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const [jobs, setJobs] = useState<LongJob[]>([]);
   const [showLog, setShowLog] = useState(false);
   const [err, setErr] = useState("");
+  const [kit, setKit] = useState<{ kit: PublishKit; chapters: string } | null>(null);
+  const [duration, setDuration] = useState<number | null>(null);
   const job = jobs.find((j) => j.episode === episodeId);
   const running = job?.status === "running";
 
@@ -144,154 +167,220 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const doneCount = CHECKLIST.filter((c) => checked[c.id]).length;
   const groups = [...new Set(CHECKLIST.map((c) => c.group))];
 
+  // زر مملوء واحد في الشاشة: إن كان في لوحة القرار فأزرار هذه الصفحة هادئة
+  const ready = Boolean(production?.script.approved && production?.storyboard.approved);
+  const mine = ready && !decisionHasPrimary(production);
+  const makePrimary = mine && !isMaster;
+  const downloadPrimary = mine && Boolean(isMaster);
+
+  const makeButton = (primary: boolean) => (
+    <button type="button" className={`btn${primary ? " primary" : ""}`} disabled={running || !hasVoiceKeys} onClick={() => start("make")} title={hasVoiceKeys ? "" : "أضف مفاتيح ElevenLabs من تبويب الإعدادات"}>
+      اصنع النسخة النهائية
+    </button>
+  );
+
+  const masterState = approved ? "معتمد" : isMaster ? "بانتظار اعتمادك" : "معاينة لا تُنشر";
+  const L = kit?.kit.long;
+  const kitTitle = L?.titles[0]?.text ?? yt.titles[0] ?? "";
+  const kitDesc = L ? resolveDescription(L.description, kit!.chapters) : yt.description;
+
   return (
-    <div className="publish">
-      <section className="pub-make">
-        <div className="toolbar">
-          <h2>صناعة الحلقة</h2>
-          <span className="help">فحص ← آيات ← مشاهد ← صوت ← رندر ← ملفات النشر</span>
-          <span className="spacer" />
-          <button className="btn" disabled={running} onClick={() => start("make", true)}>معاينة بلا صوت</button>
-          <button className="btn" disabled={running || !video} onClick={() => start("package")} title="يعيد التغليف من الصوت والمشاهد الحالية">أعد التغليف</button>
-          <button className="btn primary" disabled={running || !hasVoiceKeys} onClick={() => start("make")} title={hasVoiceKeys ? "" : "أضف مفاتيح ElevenLabs من تبويب الإعدادات"}>
-            اصنع النسخة النهائية
-          </button>
-        </div>
-        {!hasVoiceKeys ? <p className="help">النسخة النهائية تحتاج مفاتيح ElevenLabs (تبويب «الإعدادات»). المعاينة بلا صوت متاحة الآن.</p> : null}
+    <div className="s45-page s45-publish">
+      <Stage
+        title={video ? (isMaster ? "ملف Master" : "ملف الحلقة") : "النسخة النهائية"}
+        meta={video ? <span className={`s45-pill${approved ? " is-on" : ""}`}>{masterState}</span> : null}
+      >
         {job ? (
-          <div className="job-box">
-            <div className="job">
-              <span style={{ minWidth: 220 }}>{job.title}</span>
-              <span className="bar"><i style={{ width: `${job.pct}%`, background: job.status === "error" ? "var(--err)" : undefined }} /></span>
-              <span style={{ minWidth: 70, fontVariantNumeric: "tabular-nums" }}>{job.status === "running" ? (job.queued ? "في الطابور" : `${Math.round(job.pct)}%`) : job.status === "done" ? "تم" : "توقف"}</span>
-              <button className="btn ghost small" onClick={() => setShowLog((v) => !v)}>{showLog ? "إخفاء التفاصيل" : "التفاصيل"}</button>
-              {job.status === "running" ? <button className="btn ghost small" onClick={() => void api.cancelJob(job.id).catch((x) => window.alert((x as Error).message))}>إلغاء</button> : null}
-            </div>
-            {job.status === "running" ? <div className="help">{job.log[job.log.length - 1] ?? "…"}</div> : null}
-            {job.status === "error" ? <div className="help" style={{ color: "var(--err)" }}>{job.error}</div> : null}
-            {showLog ? <pre className="log">{job.log.join("\n")}</pre> : null}
+          <div className="s45-job" role="status">
+            <span className="s45-job-t">{job.title}</span>
+            <span className="bar"><i style={{ width: `${job.pct}%`, background: job.status === "error" ? "var(--err)" : undefined }} /></span>
+            <span className="s45-job-n">{job.status === "running" ? (job.queued ? "في الطابور" : `${Math.round(job.pct)}%`) : job.status === "done" ? "تم" : "توقف"}</span>
+            <button type="button" className="btn ghost small" onClick={() => setShowLog((v) => !v)}>{showLog ? "إخفاء التفاصيل" : "التفاصيل"}</button>
+            {job.status === "running" ? <button type="button" className="btn ghost small" onClick={() => void api.cancelJob(job.id).catch((x) => window.alert((x as Error).message))}>إلغاء</button> : null}
+            {job.status === "running" ? <span className="s45-note s45-job-line">{job.log[job.log.length - 1] ?? "…"}</span> : null}
+            {job.status === "error" ? <span className="s45-note s45-job-line s45-err">{job.error}</span> : null}
+            {showLog ? <pre className="log s45-job-line">{job.log.join("\n")}</pre> : null}
           </div>
         ) : null}
-        {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
-      </section>
+        {err ? <p className="s45-alert" role="alert">{err}</p> : null}
 
-      <SocialKit episodeId={episodeId} />
-
-      {!video ? (
-        <div className="empty-state" style={{ margin: "20px auto" }}>
-          <h2>لم تُصنع ملفات النشر بعد</h2>
-          <p>ابدأ بـ «معاينة بلا صوت» لترى الحلقة كاملة، أو «اصنع النسخة النهائية» بعد ربط ElevenLabs.</p>
-        </div>
-      ) : (
-        <div className="pub-grid">
-          <section className="pub-col">
-            <h3>
-              الحلقة <span className={`chip ${isMaster ? "on" : ""}`}>{render ? `${render.label} · ${render.width}×${render.height}` : "جودة غير معروفة"}{render && !render.voiced ? " · بلا صوت" : ""}</span>
-            </h3>
-            <video key={`${video.name}-${video.mtime}`} src={fresh(api.packageUrl(episodeId, video.name), video.mtime)} controls preload="metadata" className="pub-video" />
-            <div className="pub-actions">
-              <a className="btn primary small" href={api.packageUrl(episodeId, video.name, true)}>تنزيل الحلقة بأعلى جودة ({sizeLabel(video.size)})</a>
-              {approved ? (
-                <span className="chip on">✓ Master معتمد{publishAllowed ? " · مأذون بنشره" : " · النشر بانتظار إذنك"}</span>
-              ) : (
-                <span className="chip">بانتظار اعتماد Master في «إنتاج المشاهد»</span>
-              )}
+        {!video ? (
+          <div className="s45-empty">
+            <strong>{pkg ? "لم تُصنع النسخة النهائية بعد" : "جارٍ التحميل…"}</strong>
+            <Hint>{hasVoiceKeys ? "تُصنع بدقة 4K من المشاهد المعتمدة." : "تحتاج مفاتيح الصوت من «الإعدادات»."}</Hint>
+            <div className="s45-actions">
+              {makeButton(makePrimary)}
+              <button type="button" className="btn ghost" disabled={running} onClick={() => start("make", true)}>معاينة بلا صوت</button>
             </div>
-            {!isMaster ? <p className="help">هذه معاينة لا تُنشر. «اصنع النسخة النهائية» يرندر الحلقة بأعلى جودة (4K) من المشاهد المعتمدة، ثم تشاهد ملف Master كاملًا وتعتمده من «إنتاج المشاهد».</p> : null}
-            {isMaster && !approved ? <p className="help">اعتماد Master يكون لهذا الملف بعينه من «إنتاج المشاهد» بكلمة مرور المالك؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
+          </div>
+        ) : (
+          <div className="s45-master">
+            <div className="s45-screen">
+              <video key={`${video.name}-${video.mtime}`} src={fresh(api.packageUrl(episodeId, video.name), video.mtime)} controls preload="metadata"
+                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || null)} aria-label="ملف الحلقة" />
+            </div>
+            <div className="s45-side">
+              <dl className="s45-facts">
+                <div><dt>الجودة</dt><dd>{render ? `${render.label} · ${render.width}×${render.height}${render.voiced ? "" : " · بلا صوت"}` : "غير معروفة"}</dd></div>
+                <div><dt>المدة</dt><dd>{duration ? clock(duration) : "—"}</dd></div>
+                <div><dt>الحجم</dt><dd>{sizeLabel(video.size)}</dd></div>
+                <div><dt>إذن النشر</dt><dd>{publishAllowed ? "ممنوح لهذا الملف" : approved ? "بانتظار إذنك" : "بعد اعتماد Master"}</dd></div>
+                {status.published ? <div><dt>النشر</dt><dd className="s45-ok">نُشرت في {status.published.date}</dd></div> : null}
+              </dl>
+              <div className="s45-actions">
+                <a className={`btn${downloadPrimary ? " primary" : ""}`} href={api.packageUrl(episodeId, video.name, true)}>تنزيل بأعلى جودة</a>
+                {!isMaster ? makeButton(makePrimary) : null}
+              </div>
+              {!isMaster ? <Hint>معاينة لا تُنشر. الـ Master يُصنع بدقة 4K.</Hint> : !approved ? <Hint>اعتمد هذا الملف بعينه بعد مشاهدته كاملًا.</Hint> : null}
+            </div>
+          </div>
+        )}
 
-            <h3>الشورتس والريلز <small>{shorts.length ? `${shorts.length} · 9:16 بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية"}</small></h3>
+        {kitTitle || kitDesc ? (
+          <section className="s45-kit" aria-label="نص النشر">
+            <div className="s45-kit-row">
+              <span className="s45-label">العنوان</span>
+              <p className="s45-kit-title" dir="auto">{kitTitle || "—"}</p>
+              {kitTitle ? <Copy text={kitTitle} /> : null}
+            </div>
+            <div className="s45-kit-row">
+              <span className="s45-label">الوصف</span>
+              <p className="s45-kit-desc" dir="auto">{kitDesc || "—"}</p>
+              {kitDesc ? <Copy text={kitDesc} /> : null}
+            </div>
+          </section>
+        ) : null}
+
+        <div className="s45-mores">
+          <More label="صناعة وتغليف">
+            <p className="s45-note">فحص ← آيات ← مشاهد ← صوت ← رندر ← ملفات النشر</p>
+            <div className="s45-actions">
+              {video && isMaster ? makeButton(false) : null}
+              <button type="button" className="btn" disabled={running} onClick={() => start("make", true)}>معاينة بلا صوت</button>
+              <button type="button" className="btn" disabled={running || !video} onClick={() => start("package")} title="يعيد التغليف من الصوت والمشاهد الحالية">أعد التغليف</button>
+            </div>
+            {!hasVoiceKeys ? <p className="s45-note">النسخة النهائية تحتاج مفاتيح ElevenLabs (تبويب «الإعدادات»). المعاينة بلا صوت متاحة الآن.</p> : null}
+            {isMaster && !approved ? <p className="s45-note">اعتماد Master يكون لهذا الملف بعينه من «إنتاج المشاهد» بكلمة مرور المالك؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
+          </More>
+
+          <More label={`الشورتس والريلز${shorts.length ? ` · ${shorts.length}` : ""}`}>
+            <p className="s45-note">{shorts.length ? `${shorts.length} · 9:16 بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية."}</p>
             {approved ? (
-              <div className="pub-actions">
-                <button className="btn primary small" disabled={running} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (فصل لكل مقطع)"}</button>
+              <div className="s45-actions">
+                <button type="button" className="btn" disabled={running} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (فصل لكل مقطع)"}</button>
               </div>
             ) : null}
-            <div className="shorts-row">
-              {shorts.map((s) => (
-                <figure key={`${s.name}-${s.mtime}`} className="short-fig">
-                  <video src={fresh(api.packageUrl(episodeId, s.name), s.mtime)} controls preload="metadata" />
-                  <a className="btn small" href={api.packageUrl(episodeId, s.name, true)}>تنزيل ({sizeLabel(s.size)})</a>
-                </figure>
-              ))}
-            </div>
-            <h3>الصور المصغّرة <small>اختر واحدة أو جرّبها كلها في اختبار العناوين</small></h3>
-            <div className="thumbs">
-              {thumbs.map((t, i) => (
-                <figure key={t.name}>
-                  <img src={fresh(api.packageUrl(episodeId, t.name), t.mtime)} alt={`الصورة المصغّرة ${i + 1}`} />
-                  <figcaption>
-                    <span>{yt.titles[i] ?? t.name}</span>
-                    <a className="btn small" href={api.packageUrl(episodeId, t.name, true)}>تنزيل</a>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-            <h3>كل الملفات</h3>
-            <ul className="files">
-              {files.map((f) => (
-                <li key={f.name}>
-                  <code>{f.name}</code>
-                  <span className="help">{sizeLabel(f.size)}</span>
-                  <a className="btn small" href={api.packageUrl(episodeId, f.name, true)}>تنزيل</a>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="pub-col">
-            <h3>العنوان</h3>
-            {yt.titles.map((t, i) => (
-              <div key={i} className="copy-row">
-                <span>{t}{i ? <small className="help"> · بديل</small> : null}</span>
-                <Copy text={t} />
+            {shorts.length ? (
+              <div className="s45-shorts">
+                {shorts.map((s) => (
+                  <figure key={`${s.name}-${s.mtime}`}>
+                    <video src={fresh(api.packageUrl(episodeId, s.name), s.mtime)} controls preload="none" />
+                    <a className="btn ghost small" href={api.packageUrl(episodeId, s.name, true)}>تنزيل ({sizeLabel(s.size)})</a>
+                  </figure>
+                ))}
               </div>
-            ))}
-            <h3>الوصف <Copy text={yt.description} /></h3>
-            <pre className="desc">{yt.description}</pre>
-            <h3>الوسوم <Copy text={yt.tags} /></h3>
-            <div className="desc">{yt.tags}</div>
-            <h3>نصوص الشورتس</h3>
-            {yt.shorts.map((s) => (
-              <details key={s.label} className="short-meta">
-                <summary>{s.label}</summary>
-                <div className="copy-row"><span>{s.title}</span><Copy text={s.title} label="نسخ العنوان" /></div>
-                <pre className="desc">{s.description}</pre>
-                <Copy text={s.description} label="نسخ الوصف" />
-              </details>
-            ))}
-          </section>
+            ) : null}
+          </More>
 
-          <section className="pub-col">
-            <h3>قائمة النشر <small>{doneCount} من {CHECKLIST.length}</small></h3>
+          <More label={`الصور المصغّرة${thumbs.length ? ` · ${thumbs.length}` : ""}`}>
+            {thumbs.length ? (
+              <div className="s45-thumbs">
+                {thumbs.map((t, i) => (
+                  <figure key={t.name}>
+                    <img src={fresh(api.packageUrl(episodeId, t.name), t.mtime)} alt={`الصورة المصغّرة ${i + 1}`} loading="lazy" />
+                    <figcaption>
+                      <span>{yt.titles[i] ?? t.name}</span>
+                      <a className="btn ghost small" href={api.packageUrl(episodeId, t.name, true)}>تنزيل</a>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            ) : <p className="s45-note">تُصنع مع ملفات النشر.</p>}
+          </More>
+
+          <More label="حزمة الانتشار لكل منصة">
+            <SocialKit episodeId={episodeId} onKit={(k, chapters) => setKit({ kit: k, chapters })} />
+          </More>
+
+          {pkg?.youtube ? (
+            <More label="نصوص ملف النشر">
+              <div className="s45-sec">
+                <h3>العنوان</h3>
+                {yt.titles.map((t, i) => (
+                  <div key={i} className="s45-copy-row">
+                    <span>{t}{i ? <small className="s45-note"> · بديل</small> : null}</span>
+                    <Copy text={t} />
+                  </div>
+                ))}
+              </div>
+              <div className="s45-sec">
+                <h3>الوصف <Copy text={yt.description} /></h3>
+                <pre className="s45-pre">{yt.description}</pre>
+              </div>
+              <div className="s45-sec">
+                <h3>الوسوم <Copy text={yt.tags} /></h3>
+                <div className="s45-pre">{yt.tags}</div>
+              </div>
+              {yt.shorts.length ? (
+                <div className="s45-sec">
+                  <h3>نصوص الشورتس</h3>
+                  {yt.shorts.map((s) => (
+                    <details key={s.label} className="s45-sub">
+                      <summary>{s.label}</summary>
+                      <div className="s45-copy-row"><span>{s.title}</span><Copy text={s.title} label="نسخ العنوان" /></div>
+                      <pre className="s45-pre">{s.description}</pre>
+                      <Copy text={s.description} label="نسخ الوصف" />
+                    </details>
+                  ))}
+                </div>
+              ) : null}
+            </More>
+          ) : null}
+
+          <More label={`قائمة النشر · ${doneCount} من ${CHECKLIST.length}`}>
             {groups.map((g) => (
-              <div key={g} className="check-group">
-                <b>{g}</b>
+              <fieldset key={g} className="s45-checks">
+                <legend>{g}</legend>
                 {CHECKLIST.filter((c) => c.group === g).map((c) => (
-                  <label key={c.id} className="check">
+                  <label key={c.id}>
                     <input type="checkbox" checked={Boolean(checked[c.id])} onChange={(e) => saveStatus({ ...status, checklist: { ...checked, [c.id]: e.target.checked } })} />
                     <span>{c.text}</span>
                   </label>
                 ))}
-              </div>
+              </fieldset>
             ))}
-            <div className="check-group">
-              <b>النشر</b>
+            <fieldset className="s45-checks">
+              <legend>تسجيل النشر</legend>
               {status.published ? (
-                <>
-                  <span className="help" style={{ color: "var(--ok)" }}>نُشرت في {status.published.date}</span>
-                  {status.published.url ? <a href={status.published.url} target="_blank" rel="noreferrer">{status.published.url}</a> : null}
-                  <button className="btn small" onClick={() => window.confirm("إلغاء تسجيل النشر لهذه الحلقة؟") && saveStatus({ ...status, published: undefined })}>تراجع</button>
-                </>
+                <div className="s45-actions">
+                  <span className="s45-ok">نُشرت في {status.published.date}</span>
+                  {status.published.url ? <a href={status.published.url} target="_blank" rel="noreferrer" dir="ltr">{status.published.url}</a> : null}
+                  <button type="button" className="btn ghost small" onClick={() => window.confirm("إلغاء تسجيل النشر لهذه الحلقة؟") && saveStatus({ ...status, published: undefined })}>تراجع</button>
+                </div>
               ) : (
                 <PublishForm disabled={!checked.watched || !publishAllowed} onSave={(p) => saveStatus({ ...status, published: p })} />
               )}
-              {!checked.watched && !status.published ? <span className="help">علّم «شاهدت الحلقة كاملة» أولًا.</span> : null}
-              {!publishAllowed && !status.published ? <span className="help">يلزم اعتماد Master ثم «إذن نشر هذا Master» من «إنتاج المشاهد» قبل تسجيل النشر.</span> : null}
-              {status.published && !approved ? <span className="help">هذا سجل نشر تاريخي؛ لا يثبت اعتماد نسخة Master الحالية.</span> : null}
-            </div>
-          </section>
+              {!checked.watched && !status.published ? <p className="s45-note">علّم «شاهدت الحلقة كاملة» أولًا.</p> : null}
+              {!publishAllowed && !status.published ? <p className="s45-note">يلزم اعتماد Master ثم «إذن نشر هذا Master» من «إنتاج المشاهد» قبل تسجيل النشر.</p> : null}
+              {status.published && !approved ? <p className="s45-note">هذا سجل نشر تاريخي؛ لا يثبت اعتماد نسخة Master الحالية.</p> : null}
+            </fieldset>
+          </More>
+
+          {files.length ? (
+            <More label={`كل الملفات · ${files.length}`}>
+              <ul className="s45-files">
+                {files.map((f) => (
+                  <li key={f.name}>
+                    <code>{f.name}</code>
+                    <span className="s45-note">{sizeLabel(f.size)}</span>
+                    <a className="btn ghost small" href={api.packageUrl(episodeId, f.name, true)}>تنزيل</a>
+                  </li>
+                ))}
+              </ul>
+            </More>
+          ) : null}
         </div>
-      )}
+      </Stage>
     </div>
   );
 };
@@ -305,11 +394,11 @@ const PublishForm: React.FC<{ disabled: boolean; onSave: (p: { date: string; url
         e.preventDefault();
         onSave({ date, url: url.trim() || undefined });
       }}
-      style={{ display: "flex", flexDirection: "column", gap: 6 }}
+      className="s45-pubform"
     >
       <input id="pub-date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} aria-label="تاريخ النشر" dir="ltr" />
       <input id="pub-url" type="url" pattern="https://.*" title="رابط يبدأ بـ https://" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="رابط الحلقة على يوتيوب (اختياري)" dir="ltr" />
-      <button className="btn primary small" disabled={disabled} type="submit">تم النشر</button>
+      <button className="btn small" disabled={disabled} type="submit">تم النشر</button>
     </form>
   );
 };

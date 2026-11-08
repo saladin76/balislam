@@ -40,7 +40,7 @@ const parseTags = (s: string) => s.split(/[\s,،]+/).map((x) => x.trim()).filter
  * «حزمة الانتشار»: لكل منصة عنوان وكابشن وهاشتاجات مطابقة لطريقة عمل خوارزميتها،
  * مع فحص فوري (الطول، كلمة البحث في البداية، عدد الهاشتاجات، سؤال للتعليقات).
  */
-export const SocialKit: React.FC<{ episodeId: string }> = ({ episodeId }) => {
+export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, chapters: string) => void }> = ({ episodeId, onKit }) => {
   const [kit, setKit] = useState<PublishKit | null>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
   const [chapters, setChapters] = useState("");
@@ -50,7 +50,7 @@ export const SocialKit: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    api.kit(episodeId).then((r) => { setKit(r.kit); setKeywords(r.keywords); setChapters(r.chapters); }).catch((e) => setErr((e as Error).message));
+    api.kit(episodeId).then((r) => { setKit(r.kit); setKeywords(r.keywords); setChapters(r.chapters); onKit?.(r.kit, r.chapters); }).catch((e) => setErr((e as Error).message));
   }, [episodeId]);
 
   if (err) return <div className="render-box"><b>حزمة الانتشار</b><span className="help">{err}</span></div>;
@@ -58,6 +58,7 @@ export const SocialKit: React.FC<{ episodeId: string }> = ({ episodeId }) => {
 
   const update = (next: PublishKit) => {
     setKit(next);
+    onKit?.(next, chapters);
     setState("dirty");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
@@ -92,6 +93,7 @@ export const SocialKit: React.FC<{ episodeId: string }> = ({ episodeId }) => {
             const r = await api.regenerateKit(episodeId);
             setKit(r.kit);
             setKeywords(r.keywords);
+            onKit?.(r.kit, chapters);
           }}
         >
           اقتراح آلي من جديد

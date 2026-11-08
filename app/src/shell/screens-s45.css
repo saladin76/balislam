@@ -1,0 +1,143 @@
+/*
+ * الخطوتان ٤ و٥ (النسخة النهائية، النشر) بلغة الشاشات: شاشة واحدة لكل خطوة.
+ * ما يُعمل عليه الآن كبير في الوسط + فعل واحد مملوء؛ الباقي في «أدوات وتفاصيل».
+ * الرموز (الألوان والمسافات والزوايا) من .shell-v3 في shell.css.
+ */
+
+/* ── عمود واحد بعرض المسرح نفسه: لوحة القرار فوق، والمسرح تحتها ── */
+.shell-v3 .studio-main > .s45-page { flex: 1 0 auto; }
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel {
+  width: calc(100% - 60px); max-width: 1140px; margin: var(--s5) auto 0;
+  padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--panel);
+  box-shadow: none;
+}
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel + .s45-page > .stage { padding-top: var(--s4); }
+/* «إلى النشر» في لوحة القرار يفتح صفحة النشر نفسها: لا داعي له هنا */
+.shell-v3 .studio-main:has(> .s45-publish) > .scene-first-panel .sp-actions > .btn.primary[type="button"] { display: none; }
+.shell-v3 .studio-main:has(> .s45-publish) > .scene-first-panel .sp-row:not(:has(.sp-actions > *:not([type="button"]))) .sp-actions { display: none; }
+/* زر مملوء واحد في الشاشة: إن كان في اللوحة أو الصفحة فعل مملوء، يصير زر الانتقال في عمود الخطوات هادئًا */
+.shell-v3 .studio-main:is(:has(> .scene-first-panel .sp-actions > .btn.primary:not([type="button"])), :has(> .s45-page .btn.primary)) > .spine .spine-next > .btn.primary {
+  background: var(--panel); border-color: var(--line-2); color: var(--ink);
+}
+
+/* لوحة القرار داخل هاتين الخطوتين: عنوان القرار واضح، والفيديو أكبر من عمود الفحص */
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-grid { grid-template-columns: minmax(0, 2.2fr) minmax(250px, 1fr); gap: var(--s5); }
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel h3 { font-size: 16px; line-height: 1.6; }
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-media .scene-first-video { border-radius: var(--r); background: #111; }
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .scene-first-seams {
+  border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: var(--s3) 0 0; margin: var(--s2) 0;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); max-height: 40vh; overflow-y: auto;
+}
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .scene-first-seams legend { padding: 0; font-size: 13px; color: var(--muted); }
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-criteria { border-top-color: var(--line); }
+
+/* ── الشاشة (الفيديو الكبير) ── */
+.s45-screen { width: min(100%, calc(60vh * 16 / 9)); justify-self: center; background: #121513; border-radius: var(--r-lg); overflow: hidden; }
+.s45-screen video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #121513; }
+.s45-master .s45-screen { width: 100%; }
+.s45-screen-empty {
+  width: 100%; aspect-ratio: 16 / 9; max-height: 52vh; display: grid; place-items: center;
+  background: var(--panel); color: var(--muted); font-size: 14px; border: 1px dashed var(--line-2); border-radius: var(--r-lg);
+}
+.s45-review .s45-screen:has(.s45-screen-empty) { background: none; }
+
+/* ── رسائل ونصوص صغيرة ── */
+.s45-alert { margin: 0; padding: var(--s2) var(--s3); border-inline-start: 3px solid var(--err); background: var(--err-soft); color: var(--err); font-size: 13px; border-radius: var(--r-sm); }
+.s45-note { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.8; }
+.s45-err { color: var(--err); }
+.s45-ok { color: var(--ok); font-weight: 600; }
+.s45-label { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.s45-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--ink-2); font-size: 12.5px; font-weight: 600; }
+.s45-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); }
+.s45-pill.is-on::before { background: var(--ok); }
+.s45-count { display: inline-grid; place-items: center; min-width: 22px; height: 20px; padding: 0 6px; margin-inline-start: 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); font-family: var(--f-num); font-size: 14px; line-height: 1; vertical-align: middle; }
+.s45-actions { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+
+/* ── حقائق في سطور: تسمية خافتة وقيمة واضحة، بلا مربعات ── */
+.s45-facts { margin: 0; display: grid; gap: 0; }
+.s45-facts > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); padding: 9px 0; border-bottom: 1px solid var(--line); }
+.s45-facts > div:first-child { padding-top: 0; }
+.s45-facts dt { color: var(--muted); font-size: 13px; }
+.s45-facts dd { margin: 0; font-weight: 600; font-size: 13.5px; text-align: end; font-variant-numeric: tabular-nums; }
+
+/* ── الخطوة ٥: ملف Master ── */
+.s45-master { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(250px, 1fr); gap: var(--s5); align-items: start; }
+.s45-side { display: grid; gap: var(--s4); align-content: start; }
+.s45-side .s45-actions .btn { flex: 1 1 auto; justify-content: center; }
+.s45-empty { display: grid; gap: var(--s3); justify-items: start; padding: var(--s6) var(--s5); background: var(--panel); border: 1px dashed var(--line-2); border-radius: var(--r-lg); }
+.s45-empty strong { font-size: 16px; }
+
+/* نص النشر الأساسي: سطران بلا صندوق */
+.s45-kit { display: grid; border-top: 1px solid var(--line); }
+.s45-kit-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: var(--s3); align-items: start; padding: var(--s3) 0; border-bottom: 1px solid var(--line); }
+.s45-kit-row .s45-label { padding-top: 3px; }
+.s45-kit-title { margin: 0; font-size: 15.5px; font-weight: 600; line-height: 1.7; }
+.s45-kit-desc { margin: 0; font-size: 13.5px; line-height: 1.9; color: var(--ink-2); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* «أدوات وتفاصيل» كقائمة صفوف مطوية متتالية */
+.s45-mores { display: grid; }
+.s45-mores > .more + .more { border-top: 0; }
+.s45-mores > .more { border-bottom: 1px solid var(--line); padding-top: 4px; padding-bottom: 4px; }
+.s45-mores > .more:first-child { border-top: 1px solid var(--line); }
+
+/* أقسام داخل «أدوات وتفاصيل» */
+.s45-sec { display: grid; gap: var(--s2); }
+.s45-sec h3 { margin: 0; font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: var(--s2); }
+.s45-links > div { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin-inline-start: calc(-1 * var(--s2)); }
+.s45-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.s45-list button { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s3); align-items: baseline; padding: var(--s2) 0; border: 0; border-bottom: 1px solid var(--line); background: none; font: inherit; font-size: 13px; color: var(--ink); text-align: start; cursor: pointer; }
+.s45-list button:hover em { text-decoration: underline; }
+.s45-list-k { color: var(--muted); font-size: 12px; }
+.s45-list em { font-style: normal; color: var(--accent); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.shell-v3[data-channel="zubdat-alkutub"] .s45-list em { color: var(--ink); }
+.s45-copy-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.s45-pre { margin: 0; padding: var(--s3); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); font: inherit; font-size: 13px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow-y: auto; }
+.s45-sub > summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 4px 0; }
+.s45-shorts { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--s3); }
+.s45-shorts figure, .s45-thumbs figure { margin: 0; display: grid; gap: var(--s1); }
+.s45-shorts video { width: 100%; aspect-ratio: 9 / 16; background: #121513; border-radius: var(--r); }
+.s45-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s4); }
+.s45-thumbs img { width: 100%; border-radius: var(--r); border: 1px solid var(--line); display: block; }
+.s45-thumbs figcaption { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); font-size: 12.5px; }
+.s45-checks { margin: 0; padding: 0; border: 0; display: grid; gap: 6px; }
+.s45-checks legend { padding: 0 0 4px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.s45-checks label { display: flex; align-items: flex-start; gap: var(--s2); font-size: 13.5px; line-height: 1.7; }
+.s45-checks input[type="checkbox"] { margin-top: 5px; accent-color: var(--accent); }
+.s45-pubform { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.s45-pubform input { height: 34px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--panel); font: inherit; min-width: 0; }
+.s45-pubform input[type="url"] { flex: 1 1 240px; }
+.s45-files { list-style: none; margin: 0; padding: 0; display: grid; }
+.s45-files li { display: flex; align-items: center; gap: var(--s3); padding: 4px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.s45-files code { flex: 1; min-width: 0; font-size: 12px; direction: ltr; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* حزمة الانتشار القديمة داخل «أدوات وتفاصيل»: بلا صندوق داخل صندوق */
+.s45-publish .more .render-box.kit { background: none; border: 0; padding: 0; }
+
+/* شريط المهمة الجارية */
+.s45-job { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); padding: var(--s3) var(--s4); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); font-size: 13px; }
+.s45-job-t { font-weight: 600; }
+.s45-job .bar { flex: 1 1 160px; height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; display: block; }
+.s45-job .bar i { display: block; height: 100%; background: var(--accent); }
+.shell-v3[data-channel="zubdat-alkutub"] .s45-job .bar i { background: var(--ink); }
+.s45-job-n { min-width: 56px; font-variant-numeric: tabular-nums; }
+.s45-job-line { flex-basis: 100%; }
+
+@media (max-width: 900px) {
+  .shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel { width: calc(100% - 32px); margin-top: var(--s4); padding: var(--s4); }
+  .shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-grid { grid-template-columns: minmax(0, 1fr); }
+  .s45-master { grid-template-columns: minmax(0, 1fr); }
+  .s45-kit-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .s45-kit-row .s45-label { grid-column: 1 / -1; padding: 0; }
+  .s45-empty { padding: var(--s5) var(--s4); }
+}
+
+/* عنوان «حزمة الانتشار» مكرر مع عنوان الصف المطوي نفسه */
+.s45-publish .more .render-box.kit > .toolbar > b:first-child { display: none; }
+/* معايير المراجعة داخل لوحة القرار تُطوى بالسهم نفسه الذي تستعمله «أدوات وتفاصيل» */
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-criteria > summary { list-style: none; display: flex; align-items: center; gap: var(--s2); }
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-criteria > summary::-webkit-details-marker { display: none; }
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-criteria > summary::before {
+  content: ""; width: 7px; height: 7px; flex: none; margin-inline: 2px 4px;
+  border-inline-start: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(-45deg);
+}
+.shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-criteria[open] > summary::before { transform: rotate(-135deg); }
