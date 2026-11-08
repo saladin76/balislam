@@ -149,7 +149,8 @@
     - `SECOND_MSG`: لون رأس الرسالة الثانية.
   - وفي `src/remotion/illus/shots/phone.tsx` يقبل `MsgCard` خاصية `tone` للون رأس البطاقة.
   - التوجيه 028 في `src/remotion/illus/shots/ch6.tsx` (إغلاق الستوري بورد):
-    - زاويتا المصطبة الحقيقيتان `BroAngleSet` (من وراء كتف البطل نحو الأخ) و`HeroAngleSet` (من وراء كتف الأخ نحو البطل)، كلٌّ في منطقة من العالم بخلفيتها (`BRO_ANGLE` و`HERO_ANGLE`)، والشخصان بزاوية ثلاثة أرباع (`view`) والظل في المقدمة (`silhouette`). كاميراتها `BRO_OTS` و`HERO_OTS` و`HERO_CLOSE`. تستعملها `brother-bench-talks` و`brother-bench-asks-self` و`brother-bench-accepts`، و`brother-bench-still` مجمَّد على `BENCH_ACCEPT`.
+    - زاويتا المصطبة الحقيقيتان `BroAngleSet` (من وراء كتف البطل نحو الأخ) و`HeroAngleSet` (من وراء كتف الأخ نحو البطل)، كلٌّ في منطقة من العالم بخلفيتها (`BRO_ANGLE` و`HERO_ANGLE`)، والشخصان بزاوية ثلاثة أرباع (`view`). كاميراتها `BRO_OTS` و`HERO_OTS` و`HERO_CLOSE`. تستعملها `brother-bench-talks` و`brother-bench-asks-self` و`brother-bench-accepts`، و`brother-bench-still` مجمَّد على `BENCH_ACCEPT`.
+    - عنصر المقدمة فيهما `Foreground` بإعدادات `FOREGROUND` (ملحق 028): الأخ المقابل بملابسه، أغمق قليلًا وأطرى، بموضع لكل اتجاه.
     - `S3_CAM`: تأطير `lane-weighs-evidence` المتوسط القريب الثابت.
     - `lane-returns-at-dawn` في الأفقي: طبقة برودة قبيل الفجر ومصباح `PREDAWN_LAMP` مضاء، تزولان مع الضوء.
   - وفي `src/remotion/illus/shots/scale.tsx` (التوجيه 028، c1-s3): `scaleSincereBeats` بلحظة `enough` («لا يكفي») تتجه عندها النظرتان (`SINCERE_LOOK` و`SECOND_LOOK`)، و`EvidenceFocus` بإعدادات `EVIDENCE_FOCUS` يخفت السوق ويتركز الضوء على محور الميزان عند «لإثبات». الاختبار: `tests/storyboard-028.test.tsx`.

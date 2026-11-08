@@ -5,6 +5,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SHOTS } from "../src/remotion/illus/shots";
 import { camAt, makeAt } from "../src/remotion/illus/shots/kit";
+import { FOREGROUND } from "../src/remotion/illus/shots/ch6";
 import { EVIDENCE_FOCUS, scaleSincereBeats, scaleSincereCast, scaleSincereEvidence } from "../src/remotion/illus/shots/scale";
 import { spokenTimings } from "../src/remotion/scenes/Episode";
 import { sceneFrames } from "../src/plan/duration";
@@ -131,5 +132,39 @@ describe("c6-s3 وc6-s14 (التوجيه 028)", () => {
     expect(Math.abs(330 - c.y)).toBeLessThan(half.h - 40);
     const d = ctx(scene("c6-s14")).dur;
     expect(markup(render("c6-s14", d - 1).world)).toContain('opacity="0"');
+  });
+});
+
+describe("عنصر المقدمة في زاويتي الأخوين (ملحق 028، concept-028b)", () => {
+  // مناطق الزاويتين في ch6.tsx: زاوية الأخ عند 9000، وزاوية البطل عند 13000
+  const ANG = { bro: 9000, hero: 13000 };
+  const inFrame = (id: string, frame: number, portrait: boolean, fgX: number) => {
+    const c = camOf(id, frame, portrait);
+    const half = (portrait ? 304 : 960) / c.z;
+    return Math.abs(fgX - c.x) < half;
+  };
+  for (const portrait of [false, true]) {
+    const o = portrait ? "العمودي" : "الأفقي";
+    const P = portrait ? FOREGROUND.portrait : FOREGROUND.landscape;
+    it(`${o}: الأخ المقابل داخل الإطار في لقطتي الكتف، بموضعه عند طرف الإطار لا وسطه`, () => {
+      const s19 = ctx(scene("c6-s19")).dur;
+      expect(inFrame("c6-s19", 170, portrait, ANG.bro + P.dx)).toBe(true);
+      expect(inFrame("c6-s19", s19 - 1, portrait, ANG.hero - P.dx)).toBe(true);
+      expect(inFrame("c6-s21", 70, portrait, ANG.bro + P.dx)).toBe(true);
+      const c = camOf("c6-s19", 170, portrait);
+      expect(ANG.bro + P.dx - c.x).toBeGreaterThan(((portrait ? 304 : 960) / c.z) * 0.6);
+    });
+  }
+
+  it("يُرسم بملابسه لا ظلًا صامتًا: لون معطفه في الرسم، وطبقة الليل فوقه جزئية", () => {
+    expect(FOREGROUND.night).toBeLessThan(0.35);
+    expect(FOREGROUND.shade).toBeGreaterThan(1);
+    const m = markup(render("c6-s19", 170).world);
+    expect(m).toContain("feGaussianBlur");
+  });
+
+  it("c6-s20 القريبة بلا عنصر مقدمة بعد الاقتراب", () => {
+    const d = ctx(scene("c6-s20")).dur;
+    expect(inFrame("c6-s20", d - 1, false, ANG.hero - FOREGROUND.landscape.dx + 260)).toBe(false);
   });
 });

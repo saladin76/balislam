@@ -1,7 +1,7 @@
 import React from "react";
-import { CLOTH, ID, darken, mix } from "../palette";
+import { ID, darken, mix } from "../palette";
 import { Figure, LOOKS, POSES, blendPose, handAt, walkPose, type FigureLook, type PoseSpec } from "../Figure";
-import { Bench, GROUND, Glow, WallLamp, archPath } from "../world";
+import { Bench, GROUND, Glow, WallLamp, archPath, useSvgId } from "../world";
 import { Courtyard } from "./outdoor";
 import { Cafe, CafeTable, Chair } from "./interior";
 import { StandardWeight } from "./scale";
@@ -85,8 +85,8 @@ const LISTEN: PoseSpec = { ...POSES.sit, head: 14, lean: 8 };
 // ———————————————————— زوايا المصطبة (التوجيه 028): لقطة ولقطة مقابلة حقيقيتان، لا قص من الأفقي ————————————————————
 /**
  * الجلسة نفسها من زاويتين أقرب، كلٌّ في منطقة من العالم بخلفيتها، على خط المحور نفسه (الأخ يسار الإطار والبطل يمينه):
- * - BRO_ANGLE: من وراء كتف البطل الأيمن نحو الأخ؛ خلفه جدار بيته وبابه المضيء ومصباحه، والبطل ظلٌّ كبير في مقدمة اليمين.
- * - HERO_ANGLE: من وراء كتف الأخ الأيسر نحو البطل؛ خلفه الجدار المقابل بنافذته ومصباحه، والأخ ظلٌّ في مقدمة اليسار.
+ * - BRO_ANGLE: من وراء كتف البطل الأيمن نحو الأخ؛ خلفه جدار بيته وبابه المضيء ومصباحه، والبطل في مقدمة اليمين بملابسه (ملحق 028).
+ * - HERO_ANGLE: من وراء كتف الأخ الأيسر نحو البطل؛ خلفه الجدار المقابل بنافذته ومصباحه، والأخ في مقدمة اليسار بملابسه.
  * الشخصان بزاوية ثلاثة أرباع (view) لا جانبيان، فتُقرأ الإيماءة القائمة (اليد تهمّ ثم تنزل، والسكوت) على الهاتف.
  */
 const BRO_ANGLE = { x: 9000, floor: 1000 };
@@ -94,7 +94,37 @@ const HERO_ANGLE = { x: 13000, floor: 1000 };
 const ANG_S = 2.4;
 const FG_S = 3.6;
 const ANG_VIEW = 0.45;
-const silOf = (look: FigureLook) => mix(darken(CLOTH[look.cloth as keyof typeof CLOTH] ?? ID.night, 0.62), ID.night, 0.3);
+/**
+ * عنصر المقدمة (ملحق 028، concept-028b): الأخ المقابل نفسه بملابسه وشعره، لا ظل صامت، فيُعرف من معطفه.
+ * أغمق قليلًا (shade، وطبقة ليل) وأطرى قليلًا (عمق المجال) ليُقرأ أقرب إلى الكاميرا، في طرف الإطار:
+ * لا يحجب المتحدث ولا يده، ويواجه من يكلّمه. وضعيته هي وضعيته في اللقطة المقابلة، بلا إيماءة جديدة.
+ */
+export const FOREGROUND = {
+  landscape: { dx: 1040, dy: 360, s: FG_S },
+  portrait: { dx: 430, dy: 720, s: 3.8 },
+  shade: 1.35,
+  night: 0.22,
+  soft: 2.2,
+};
+const Foreground: React.FC<{ x: number; floor: number; side: 1 | -1; portrait: boolean; pose: PoseSpec; look: FigureLook; flip: boolean; frame: number }> = ({ x, floor, side, portrait, pose, look, flip, frame }) => {
+  const id = useSvgId("fgsoft");
+  const P = portrait ? FOREGROUND.portrait : FOREGROUND.landscape;
+  const fx = x + side * P.dx;
+  const fy = floor + P.dy;
+  return (
+    <g filter={`url(#${id})`}>
+      <defs>
+        <filter id={id} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation={FOREGROUND.soft} />
+        </filter>
+      </defs>
+      <Figure x={fx} y={fy} scale={P.s} pose={pose} look={look} flip={flip} shade={FOREGROUND.shade} shadow={false} frame={frame} />
+      <g opacity={FOREGROUND.night}>
+        <Figure x={fx} y={fy} scale={P.s} pose={pose} look={look} flip={flip} silhouette={ID.night} shadow={false} frame={frame} />
+      </g>
+    </g>
+  );
+};
 const duskWall = mix(mix(ID.copper, ID.paper, 0.5), ID.night, 0.3);
 /** مصطبة عريضة بالمنظور القريب: سطح وواجهة، بارتفاع يناسب حجم الجالس */
 const NearBench: React.FC<{ x0: number; x1: number; floor: number; s: number }> = ({ x0, x1, floor, s }) => {
@@ -111,7 +141,6 @@ const BroAngleSet: React.FC<{ frame: number; broPose: PoseSpec; heroPose: PoseSp
   const { x, floor } = BRO_ANGLE;
   const wallBase = floor - 120;
   const door = { x: x - 520, w: 230, h: 400 };
-  const fgX = x + (portrait ? 600 : 960);
   return (
     <g>
       <rect x={x - 2400} y={-1400} width={4800} height={wallBase + 1400} fill={duskWall} stroke={INK} strokeWidth={4} />
@@ -125,7 +154,7 @@ const BroAngleSet: React.FC<{ frame: number; broPose: PoseSpec; heroPose: PoseSp
       </g>
       <NearBench x0={x - 300} x1={x + 1400} floor={floor} s={ANG_S} />
       <Figure x={x} y={floor} scale={ANG_S} pose={broPose} look={brother} view={ANG_VIEW} frame={frame + 9} />
-      <Figure x={fgX} y={floor + 300} scale={FG_S} pose={heroPose} look={hero} flip silhouette={silOf(hero)} shadow={false} frame={frame} />
+      <Foreground x={x} floor={floor} side={1} portrait={portrait} pose={heroPose} look={hero} flip frame={frame} />
     </g>
   );
 };
@@ -133,7 +162,6 @@ const BroAngleSet: React.FC<{ frame: number; broPose: PoseSpec; heroPose: PoseSp
 const HeroAngleSet: React.FC<{ frame: number; broPose: PoseSpec; heroPose: PoseSpec; portrait: boolean }> = ({ frame, broPose, heroPose, portrait }) => {
   const { x, floor } = HERO_ANGLE;
   const wallBase = floor - 120;
-  const fgX = x - (portrait ? 600 : 960);
   const wall = darken(duskWall, 0.12);
   return (
     <g>
@@ -148,13 +176,13 @@ const HeroAngleSet: React.FC<{ frame: number; broPose: PoseSpec; heroPose: PoseS
       </g>
       <NearBench x0={x - 1400} x1={x + 300} floor={floor} s={ANG_S} />
       <Figure x={x} y={floor} scale={ANG_S} pose={heroPose} look={hero} flip view={ANG_VIEW} frame={frame} />
-      <Figure x={fgX} y={floor + 300} scale={FG_S} pose={broPose} look={brother} silhouette={silOf(brother)} shadow={false} frame={frame + 9} />
+      <Foreground x={x} floor={floor} side={-1} portrait={portrait} pose={broPose} look={brother} flip={false} frame={frame + 9} />
     </g>
   );
 };
 /** كاميرات الزاويتين: OTS بظل المقدمة، والقريبة على البطل وحده (سؤال النفس) */
-const BRO_OTS = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, BRO_ANGLE.x + 160, 0.95, 640, cut) : V(t, BRO_ANGLE.x + 330, 1.2, 600, cut));
-const HERO_OTS = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, HERO_ANGLE.x - 160, 0.95, 640, cut) : V(t, HERO_ANGLE.x - 330, 1.2, 600, cut));
+const BRO_OTS = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, BRO_ANGLE.x + 180, 0.95, 640, cut) : V(t, BRO_ANGLE.x + 330, 1.2, 600, cut));
+const HERO_OTS = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, HERO_ANGLE.x - 180, 0.95, 640, cut) : V(t, HERO_ANGLE.x - 330, 1.2, 600, cut));
 const HERO_CLOSE = (t: number, portrait: boolean, cut = true) => (portrait ? V(t, HERO_ANGLE.x - 40, 1.35, 580, cut) : V(t, HERO_ANGLE.x - 10, 1.75, 520, cut));
 /** آخر وضعية في c6-s21 (اليد على الصدر)، ويبقى عليها مجمَّدًا في c6-s22: اللقطة نفسها تستمر ساكنة */
 const BENCH_ACCEPT: PoseSpec = { ...POSES.sit, head: 20, armFront: { s: 38, e: 118 } };
