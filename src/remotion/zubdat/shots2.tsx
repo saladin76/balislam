@@ -476,6 +476,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tThree = at("ثلاث", 0.65);
       const tHadhihi = at("لهذه", 0.7);
       const tAdd = at("وأضاف", 0.74);
+      const tIlayha = at("إليها", 0.76);
       const tKutub = at("كتب", 0.77);
       const tSharh = at("شرحه", 0.86);
       const tBook = at("الكتاب", 0.97);
@@ -543,15 +544,16 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("as", sheetX, 330, "أسرار الصلاة", 56, ["أسرار", 0.29], ["الصلاة", 0.31], { font: "head", opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
             {T("iq", sheetX, 400, "ابن القيم", 62, ["ابن", 0.25], ["القيم", 0.27], { opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
             {T("ts", sheetX - 100, 820, "ثلاث صيغ", 66, ["ثلاث", 0.65], ["صيغ", 0.67], { opacity: others })}
-            {/* «من كتب ابن القيم الأخرى»: كتب مرسومة بالحبر بلا عناوين، وسهم إلى الرسالة */}
+            {/* «وأضاف إليها من كتب ابن القيم الأخرى»: ما أضافه يدخل مع «وأضاف» (كتب بالحبر بلا عناوين)، ويتجه إلى الرسالة مع «إليها»، ويُسمّى مع «كتب».
+                كان السهم يُرسم مع «وأضاف» من فراغ قبل ظهور الكتب بثانية ونصف (مراجعة D34) */}
             <g opacity={others}>
               {[0, 1, 2].map((k) => (
-                <g key={k} transform={`translate(${1030 + k * 70} ${lerp(660, 540, P(tKutub - 4 + k * 3, tKutub + 10 + k * 3, outCubic))})`} opacity={P(tKutub - 4 + k * 3, tKutub + 6 + k * 3)}>
+                <g key={k} transform={`translate(${1030 + k * 70} ${lerp(660, 540, P(tAdd - 4 + k * 3, tAdd + 10 + k * 3, outCubic))})`} opacity={P(tAdd - 4 + k * 3, tAdd + 6 + k * 3)}>
                   <rect x={-30} y={-130} width={60} height={260} rx={6} fill={k === 1 ? z.hl : z.paper} stroke={z.ink} strokeWidth={6} />
                   <line x1={-12} x2={12} y1={-70} y2={-70} stroke={z.ink} strokeWidth={4} />
                 </g>
               ))}
-              <Arrow x1={1000} y1={540} x2={930} y2={540} p={P(tAdd - 2, tAdd + 10)} c={z.ink} w={6} />
+              <Arrow x1={1000} y1={540} x2={930} y2={540} p={P(tIlayha - 2, tIlayha + 10)} c={z.ink} w={6} />
               {T("kt", 1080, 790, "كتب ابن القيم الأخرى", 60, ["كتب", 0.77], ["الأخرى", 0.8])}
               {/* «ومن شرحه وإضافاته هو»: سهم من المؤلف إلى الهامش */}
               <path d="M1290 440 Q1100 320 900 330" fill="none" stroke={z.ink} strokeWidth={6} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - P(tSharh - 2, tSharh + 14, (t) => t)} />
