@@ -19,6 +19,7 @@ import {
   streamSceneReviewReceiptV2, tickSceneReviewReceiptV2,
   verifySceneReviewReceiptV2,
 } from "./studioV2Review.ts";
+import { verifyStudioV2Sources } from "./studioV2SourceVerifier.ts";
 
 type Ctx = {
   req: IncomingMessage; res: ServerResponse; parts: string[];
@@ -101,10 +102,7 @@ const sceneService = async (ctx: Ctx, scope: WorkflowIdentity, reviewId?: string
     currentSceneManifest: (sceneId: string) => readRegisteredSceneManifestV2(scope, sceneId),
     assertLockedScriptAndStoryboard: async () => {
       await requireApprovedSceneSourcesV2(scope);
-      // Content QA (religious/editorial + all illustrated boards) MUST be
-      // installed as an additional server verifier before production enablement.
-      if (process.env.STUDIO_V2_CONTENT_QA_READY !== "1")
-        throw Error("V2 independent script/Storyboard semantic QA not connected.");
+      await verifyStudioV2Sources(scope, ctx.load);
     },
     verifyCurrentSceneAvReview: async (proof: {
       sceneId: string; ownerId: string; fingerprint: string; avSha256: string;
@@ -225,11 +223,14 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
           () => inspectSceneSourcesV2(scope))), true;
       if (req.method === "POST") {
         const body = await readJson(req);
-        if (!hasKeys(body, ["stage", "expectedFingerprint", "note"]))
+        if (!hasKeys(body, ["stage", "expectedFingerprint", "note"]) ||
+            (body.stage !== "script" && body.stage !== "storyboard"))
           throw new StudioV2AuthError(400, "V2_FORBIDDEN_FIELD");
-        const result = await withSceneArtifactLockV2(scope,
-          () => approveSceneSourcesV2(scope, body.stage,
-            body.expectedFingerprint, session.userId, body.note));
+        const result = await withSceneArtifactLockV2(scope, async () => {
+          await verifyStudioV2Sources(scope, ctx.load, body.stage as "script" | "storyboard");
+          return approveSceneSourcesV2(scope, body.stage,
+            body.expectedFingerprint, session.userId, body.note);
+        });
         return send(res, 200, result), true;
       }
     }
