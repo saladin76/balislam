@@ -26,6 +26,10 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
   assert(ffmpeg && path.isAbsolute(ffmpeg), "Absolute STUDIO_FFMPEG_BIN is required.");
   assert(ffprobe && path.isAbsolute(ffprobe), "Absolute STUDIO_FFPROBE_BIN is required.");
   assert(memoryInfo().availableMB >= 1800, "Insufficient memory: real render intentionally blocked.");
+  const qaWidth = Number(process.env.STUDIO_V2_QA_WIDTH ?? 640);
+  const qaHeight = Number(process.env.STUDIO_V2_QA_HEIGHT ?? 360);
+  assert([640, 1280, 1920].includes(qaWidth) && qaHeight === qaWidth * 9 / 16,
+    "Only safe 16:9 QA test dimensions are allowed.");
   const workspace = await mkdtemp(path.join(os.tmpdir(), "studio-v2-render-real-"));
   const diskStart = await statfs(workspace);
   const workspaceDiskBeforeMB = diskStart.bavail * diskStart.bsize / (1024 * 1024);
@@ -69,7 +73,7 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
       const req: SceneRenderRequestV2 = {
         channelsRoot: workspace, channel: "balislam", episode: "001-render-qa",
         sceneId: "c1-s0", planSha256: hash(bytes), orientation: "landscape",
-        mode, width: 640, height: 360, fps: 30, durationSec: 2,
+        mode, width: qaWidth, height: qaHeight, fps: 30, durationSec: 2,
         sounds: mode === "narrated" ? [sound] : [], pictures: [],
       };
       const result = await renderSceneV2(req, {
@@ -83,8 +87,8 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
       assert((await stat(result.file)).size > 500);
       assert.equal(hash(await readFile(result.file)), result.sha256);
       const streams = await probeMedia(ffprobe, result.file, true, 60000);
-      assert.equal(streams.video.width, 640);
-      assert.equal(streams.video.height, 360);
+      assert.equal(streams.video.width, qaWidth);
+      assert.equal(streams.video.height, qaHeight);
       assert.equal(streams.video.fps, 30);
       assert.equal(streams.video.frames, 60);
       assert.equal(streams.video.codec, "h264");
@@ -109,7 +113,7 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
           "Technical signal must start near video time 0.");
       }
       const record = { mode, composition: "studio-v2-scene", status: result.status,
-        dimensions: "640x360", durationSec: result.durationSec, fps: result.fps,
+        dimensions: qaWidth + "x" + qaHeight, durationSec: result.durationSec, fps: result.fps,
         frames: result.frames, videoCodec: result.videoCodec,
         audioCodecs: result.audioCodecs, audioStreams: result.audioStreams,
         sha256: result.sha256, bytes: result.bytes, elapsedMs: result.elapsedMs,
@@ -142,7 +146,7 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
     const cancel = await renderSceneV2({
       channelsRoot: workspace, channel: "balislam", episode: "001-render-qa",
       sceneId: "c1-s0", planSha256: "a".repeat(64),
-      mode: "silent", orientation: "landscape", width: 640, height: 360, fps: 30,
+      mode: "silent", orientation: "landscape", width: qaWidth, height: qaHeight, fps: 30,
       durationSec: 2, sounds: [], pictures: [],
     }, {
       ffprobeBinary: ffprobe, signal: controller.signal,
