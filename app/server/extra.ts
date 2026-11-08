@@ -504,7 +504,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       if ((status.published && JSON.stringify(status.published) !== JSON.stringify(old.published)) ||
           (status.approved && JSON.stringify(status.approved) !== JSON.stringify(old.approved))) {
         const { assertWorkflowForEpisode } = await load("/src/workflow/server.ts");
-        await assertWorkflowForEpisode(parts[1], "publish");
+        // A gate refusal is a 409 the Publish tab can show, not a server crash (500).
+        try { await assertWorkflowForEpisode(parts[1], "publish"); }
+        catch (e) { return send(res, 409, { error: (e as Error).message }), true; }
       }
       await writeFile(file, JSON.stringify(status, null, 2) + "\n");
       send(res, 200, { ok: true });

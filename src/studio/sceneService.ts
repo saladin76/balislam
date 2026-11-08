@@ -70,13 +70,18 @@ export const ownerPassphraseSha256 = (): string | null => {
   if (hashed && hex64(hashed)) return hashed;
   return null;
 };
+/** Owner-identity failures carry this code so the API answers 403, never a generic 409/500. */
+export const OWNER_AUTH_ERROR = "OWNER_AUTH";
+const ownerAuthError = (message: string) => Object.assign(new Error(message), { code: OWNER_AUTH_ERROR });
+export const isOwnerAuthError = (error: unknown): boolean =>
+  (error as { code?: unknown } | null)?.code === OWNER_AUTH_ERROR;
 export const assertSceneOwner = (token: unknown): void => {
   const expected = ownerPassphraseSha256();
-  if (!expected) throw Error("Set the owner passphrase in the Studio first; approvals are disabled until then.");
+  if (!expected) throw ownerAuthError("Set the owner passphrase in the Studio first; approvals are disabled until then.");
   if (typeof token !== "string" || !token || token.length > 4096)
-    throw Error("Owner session authentication is required.");
+    throw ownerAuthError("Owner session authentication is required.");
   if (!timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sha(token), "hex")))
-    throw Error("Owner session authentication is required.");
+    throw ownerAuthError("Owner session authentication is required.");
 };
 const signature = (doc: Omit<SignedSceneLedger, "mac">): string =>
   createHmac("sha256", workflowSigningKey())
