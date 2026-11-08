@@ -71,6 +71,24 @@ describe("Studio V2 render boundary", () => {
     expect(result.status).toBe("failed");
     expect(result).not.toHaveProperty("file");
   });
+  it("fails closed under V2 enforcement without signed Backend publication callback", async () => {
+    const saved = process.env.STUDIO_V2_ENFORCE;
+    process.env.STUDIO_V2_ENFORCE = "1";
+    try {
+      const result = await renderSceneV2(request("silent", []), {
+        ffprobeBinary: "/usr/bin/ffprobe",
+        withProductionLease: async (_scene, work) => work(),
+        withArtifactLock: async (work) => work(),
+        assertCanRender: async () => { throw Error("SHOULD NOT REACH IO"); },
+      });
+      expect(result.status).toBe("failed");
+      if (result.status === "failed")
+        expect(result.reason).toMatch(/signed-manifest registration/);
+    } finally {
+      if (saved === undefined) delete process.env.STUDIO_V2_ENFORCE;
+      else process.env.STUDIO_V2_ENFORCE = saved;
+    }
+  });
   it("uses immutable unique output names, never an approved fixed slot", () => {
     expect(sceneV2OutputName("c1-s0", H, "id-one"))
       .toBe("c1-s0-aaaaaaaaaaaa-id-one.mp4");
