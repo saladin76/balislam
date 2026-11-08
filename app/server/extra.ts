@@ -539,11 +539,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       await writeFile(file, JSON.stringify(kit, null, 2) + "\n");
       return send(res, 200, { kit, keywords: social.kitKeywords(plan) }), true;
     }
-    let kit = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : null;
-    if (!kit) {
-      kit = await build();
-      await writeFile(file, JSON.stringify(kit, null, 2) + "\n");
-    }
+    // القراءة لا تكتب شيئًا: إن لم تُحفظ الحزمة بعد تُعرض نسخة آلية، وتُحفظ فقط عند التعديل أو «أعد التوليد»
+    const kit = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : await build();
     const { collectMedia } = await load("/src/plan/collect.ts");
     const media = { ...(await collectMedia(ep, plan)), mode: "url", base: "" };
     return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
