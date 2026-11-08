@@ -351,7 +351,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
           <div className="v2-card-head"><h4>ملاحظات المراجعة</h4><span>{record.notes.length} ملاحظة</span></div>
           {mode === "demo" && <form onSubmit={e => void saveNote(e)}>
             <label className="v2-input-label">اكتب الملاحظة
-              <textarea value={noteText} maxLength={2000} rows={3} disabled={mode === "server"}
+              <textarea value={noteText} maxLength={2000} rows={3}
                 onChange={e => setNoteText(e.target.value)} placeholder="مثال: في الثانية 00:07 تتقدم الحركة على الكلمة المنطوقة…" />
             </label>
             <div className="v2-note-controls">
@@ -359,7 +359,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               <label className="v2-element-label">العنصر (اختياري)
                 <input type="text" dir="ltr" value={noteElement} onChange={e => setNoteElement(e.target.value)} placeholder="camera / title" maxLength={100} />
               </label>
-              <button type="submit" className="v2-primary" disabled={mode === "server" || busy || noteText.trim().length < 2 || !version || versionChanged || syncFailed}>تسجيل ملاحظة QA</button>
+              <button type="submit" className="v2-primary" disabled={busy || noteText.trim().length < 2 || !version || versionChanged || syncFailed}>تسجيل ملاحظة QA</button>
             </div>
           </form>}
           {mode === "server" && <p className="v2-help">يعرض النظام ملاحظات Backend الفعلية. للحفظ الآن، استخدم «طلب تعديل» أدناه: يسجل الملاحظة ويغيّر حالة المشهد إلى «مطلوب تعديل». لا يوجد مسار مستقل للملاحظات في PR #88.</p>}
