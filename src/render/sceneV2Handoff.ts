@@ -125,8 +125,8 @@ export const verifySceneV2ForBackendManifest = async (
     if (!inRoot(episodeRoot, physical))
       throw Error("Voice source escaped the episode.");
     const rel = path.relative(episodeRoot, physical).split(path.sep).join("/");
-    if ((sound.kind === "narrator" && !/^voice\\/[^/]+\\.(mp3|wav|m4a)$/i.test(rel)) ||
-        (sound.kind === "recitation" && !/^recitations\\/[^/]+\\.(mp3|wav|m4a)$/i.test(rel)))
+    if ((sound.kind === "narrator" && !/^voice\/[^/]+\.(mp3|wav|m4a)$/i.test(rel)) ||
+        (sound.kind === "recitation" && !/^recitations\/[^/]+\.(mp3|wav|m4a)$/i.test(rel)))
       throw Error("Backend voice/recitation path policy mismatch.");
     if (await sha256(physical) !== sound.sha256)
       throw Error("Audio source bytes changed before manifest handoff.");
