@@ -202,7 +202,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const kx = lerp(cells[KEEP]![0], 520, keepMove);
       const ky = lerp(cells[KEEP]![1], 420, keepMove);
       return {
-        focus: [[tHab, 1000, 300], [tAib, 1560, 220], [tFixed, 980, 370], [tWeak, 980, 370], [tAtt, cells[KEEP]![0], cells[KEEP]![1]], [tWords, 1300, 420], [tDates, 1500, 230], [tWorry, 1680, 330], [tInvent, 1250, 700], [tNotice, 520, 420]],
+        focus: [[tHab, 1000, 300], [tAib, 1560, 220], [tFixed, 980, 370], [tWeak, 980, 370], [tAtt, cells[KEEP]![0], cells[KEEP]![1]], [tWords, 1300, 420], [tDates, 1440, 230], [tWorry, 1680, 330], [tInvent, 1250, 700], [tNotice, 520, 420]],
         cam: [C(0, 980, 400, 1.05), C(tThought - 10, 1080, 470, 1.0), C(tNotice - 8, 900, 500, 1.04)],
         world: (
           <g>
@@ -235,12 +235,13 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             <g opacity={P(tWords - 4, tWords + 8)}>
               <Lines x={1300} y={400} w={420} n={3} p={P(tWords - 2, tWords + 10, (t) => t)} z={z} />
             </g>
-            <Arrow x1={1300} y1={350} x2={1460} y2={270} p={P(tThought, tThought + 14)} c={z.ink} w={6} bend={30} />
-            <g transform={`translate(1510 ${lerp(120, 220, P(tDates - 4, tDates + 10))}) rotate(-4)`} opacity={P(tDates - 4, tDates + 6)}>
+            <Arrow x1={1250} y1={372} x2={1356} y2={250} p={P(tThought, tThought + 14)} c={z.ink} w={6} bend={30} />
+            <g transform={`translate(1440 ${lerp(120, 220, P(tDates - 4, tDates + 10))}) rotate(-4)`} opacity={P(tDates - 4, tDates + 6)}>
               <rect x={-80} y={-80} width={160} height={160} rx={12} fill={z.hl} stroke={z.ink} strokeWidth={5} />
             </g>
-            <Icon id="calendar" x={1510} y={220} s={1.1} p={P(tDates - 2, tDates + 12)} c={z.ink} />
-            {T("mw", 1510, 350, "مواعيدنا", 62, ["مواعيدنا", 0.56])}
+            <Icon id="calendar" x={1440} y={220} s={1.1} p={P(tDates - 2, tDates + 12)} c={z.ink} />
+            {/* بعيدًا عن سحابة «همومنا» فلا تتداخل العبارتان (مراجعة القاعدة السادسة، ٨ نوفمبر) */}
+            {T("mw", 1440, 358, "مواعيدنا", 62, ["مواعيدنا", 0.56])}
             <g transform="translate(1640 330)" opacity={P(tWorry - 2, tWorry + 8)}>
               <circle r={70 * P(tWorry - 2, tWorry + 12)} fill={z.faint} opacity={0.35} />
             </g>
