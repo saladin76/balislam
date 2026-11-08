@@ -65,16 +65,28 @@ describe("Studio V2 Backend integration security", () => {
   it("serializes episode-wide file operations without stealing or deleting foreign locks", async () => {
     const { scope } = await make();
     const order: string[] = [];
-    await Promise.all([
-      withSceneArtifactLockV2(scope, async () => {
-        order.push("first-enter");
+    let active = 0;
+    let maximumConcurrent = 0;
+    const run = (name: "first" | "second") => withSceneArtifactLockV2(scope, async () => {
+      active += 1;
+      maximumConcurrent = Math.max(maximumConcurrent, active);
+      order.push(`${name}-enter`);
+      try {
         await new Promise((resolve) => setTimeout(resolve, 35));
-        order.push("first-exit");
-      }),
-      withSceneArtifactLockV2(scope, async () => { order.push("second-enter"); },
-        { attempts: 30, delayMs: 5 }),
-    ]);
-    expect(order).toEqual(["first-enter", "first-exit", "second-enter"]);
+      } finally {
+        order.push(`${name}-exit`);
+        active -= 1;
+      }
+    }, { attempts: 120, delayMs: 5 });
+    await Promise.all([run("first"), run("second")]);
+    // "wx" guarantees exclusion, not FIFO acquisition between concurrent callers.
+    // Either worker may enter first, but their critical sections may never overlap.
+    expect(maximumConcurrent).toBe(1);
+    expect(active).toBe(0);
+    expect([
+      ["first-enter", "first-exit", "second-enter", "second-exit"],
+      ["second-enter", "second-exit", "first-enter", "first-exit"],
+    ]).toContainEqual(order);
     const lockFile = await sceneArtifactLockFileV2(scope);
     await writeFile(lockFile, "foreign-lock");
     await expect(withSceneArtifactLockV2(scope, async () => 1,
