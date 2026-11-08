@@ -128,14 +128,14 @@ describe("Studio V2 Backend integration security", () => {
       sessionId: sha("session"), ownerId: "studio-owner",
       scope: "balislam/001-backend", sceneId: "c1-s1",
       fingerprint: sha("fingerprint"), avSha256: sha("video"),
-      avEpoch: sha("epoch"), durationSec: 2,
+      avEpoch: sha("epoch"), durationSec: 2, mediaBytes: 1000,
     };
     const started = startSceneReviewReceiptV2(info);
     expect(() => finishSceneReviewReceiptV2(started.reviewId, info.sessionId,
       { watched: true })).toThrow();
     expect(() => tickSceneReviewReceiptV2(started.reviewId, info.sessionId,
       { positionSec: 2, challenge: started.challenge })).toThrow();
-    streamSceneReviewReceiptV2(started.reviewId, info.sessionId, 1000);
+    streamSceneReviewReceiptV2(started.reviewId, info.sessionId, 0, 1000);
     vi.advanceTimersByTime(1000);
     const p1 = tickSceneReviewReceiptV2(started.reviewId, info.sessionId,
       { positionSec: 1, challenge: started.challenge });
