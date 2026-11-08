@@ -25,9 +25,9 @@ import { collectSceneInputsFromDiskV2, type SceneFileManifestV2 } from "../src/w
 import { probeSceneAvLockedV2 } from "../src/workflow/sceneMediaV2.ts";
 import type { WorkflowIdentity } from "../src/workflow/store.ts";
 
-const assert = (condition: unknown, message: string): asserts condition => {
+function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw Error("Real AV QA: " + message);
-};
+}
 const hash = (content: Buffer) => createHash("sha256").update(content).digest("hex");
 
 const binaryPath = async (value: string | undefined, name: string) => {
@@ -133,9 +133,9 @@ const main = async () => {
     created.push("video-with-audio");
     await ffmpeg(ffmpegBin, [...audio, "-c:a", "aac", "-b:a", "96k", audioOnly]);
     created.push("audio-only-mp4");
+    await mkdir(path.join(root, "voice"), { recursive: true });
     await ffmpeg(ffmpegBin, [...audio, "-c:a", "pcm_s16le",
       path.join(root, "voice", "c1-s1.wav")]);
-    // The voice folder must exist before writing the PCM test source.
     created.push("wav-audio-source");
 
     const withLock = async <T>(job: () => Promise<T>): Promise<T> => job();
