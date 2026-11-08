@@ -10,11 +10,7 @@
 import type { ChannelConfig } from "./types";
 import type { Plan } from "../plan/types";
 
-type ChannelRulesInput = { id: string; rules?: Partial<ChannelConfig["rules"]> } & {
-  brand?: ChannelConfig["brand"];
-  script?: ChannelConfig["script"];
-  verse?: ChannelConfig["verse"];
-};
+type ChannelRulesInput = { id: string; rules?: Partial<ChannelConfig["rules"]> };
 export type ChannelPolicyIssue = {
   level: "error" | "warning";
   sceneId: string;
@@ -31,11 +27,6 @@ export type ChannelProductionProfile = {
   audioDirection: string;
   reviewFocus: readonly string[];
   sourceChecks: readonly string[];
-  style: {
-    intro?: ChannelConfig["brand"];
-    verse?: ChannelConfig["verse"];
-    script?: ChannelConfig["script"];
-  };
 };
 
 const PROFILES: Record<string, Omit<ChannelProductionProfile, "channelId" | "style">> = {
@@ -86,7 +77,6 @@ export const channelProductionProfile = (channel: ChannelRulesInput): ChannelPro
     audioDirection: known?.audioDirection ?? "صوت واضح، وملف تلاوة بشري يرفعه المالك عند الحاجة",
     reviewFocus: known?.reviewFocus ?? ["دقة المعلومات", "وضوح التصميم", "تماسك الصوت والصورة", "سلامة الحقوق"],
     sourceChecks: known?.sourceChecks ?? ["المصادر", "الحقوق", "أمانة النقل"],
-    style: { intro: channel.brand, verse: channel.verse, script: channel.script },
   };
 };
 
