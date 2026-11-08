@@ -36,3 +36,8 @@ channels/*/images/
 # المعاينات الصوتية فيها تلاوة Quran Foundation: تبقى على جهاز صاحب القناة ولا تُرفع
 channels/*/episodes/*/previews/*-audio.mp4
 channels/*/episodes/*/out/*-audio-preview.mp4
+
+# Studio V2 per-episode signed owner decisions and transient ledger locks (local-only)
+channels/*/episodes/*/scene-workflow.v2.json
+channels/*/episodes/*/scene-workflow.v2.json.lock
+channels/*/episodes/*/scene-workflow.v2.json.*.tmp
