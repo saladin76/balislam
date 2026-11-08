@@ -62,7 +62,10 @@ export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): 
     const hash = sha([norm(c.raw.replace(/^\s*[-*]\s*/, "")), text ? norm(text) : "",
       c.kind === "ayah" ? sourceText : ""].join("\n"));
     const e = ledger?.items[key];
-    const status: ReviewStatus = !e ? "pending" : e.hash !== hash ? "changed" : e.status;
+    // توافق مع اعتمادات سُجّلت قبل ربط بصمة الآية بنصها (٧ نوفمبر): لغير الآيات تبقى الصيغة القديمة
+    // مكافئة في صرامتها (النص نفسه بعد التطبيع)، فلا يُلغى اعتماد لم يتغير نصه. الآيات تبقى بالصيغة الجديدة.
+    const legacy = c.kind !== "ayah" ? sha(norm([c.raw.replace(/^\s*[-*]\s*/, ""), text ?? ""].join("\n"))) : null;
+    const status: ReviewStatus = !e ? "pending" : e.hash !== hash && e.hash !== legacy ? "changed" : e.status;
     return { key, kind: c.kind, label, ref, detail: c.fields.slice(1).join(" | "), text, line: c.line, hash, status, note: e?.note, at: e?.at };
   });
 };
