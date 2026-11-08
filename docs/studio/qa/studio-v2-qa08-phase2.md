@@ -123,6 +123,10 @@ STUDIO_V2_QA_ALLOW_WRITES=1 node scripts/qa/studio-v2-phase2-live-http.mjs --pha
 STUDIO_V2_QA_ALLOW_WRITES=1 node scripts/qa/studio-v2-phase2-live-http.mjs --phase=after-second
 # Repeat real render and owner approval for scene 3, then:
 node scripts/qa/studio-v2-phase2-live-http.mjs --phase=assembly
+# Optional destructive negative AFTER current scenes are all approved:
+STUDIO_V2_QA_MUTATE_APPROVED_AV=1 npx --no-install tsx scripts/qa/studio-v2-phase2-invalidation.mjs
+# This invalidates the original AV signoff on purpose: re-render, re-watch,
+# and reapprove the affected scene before eligibility can become green again.
 
 node scripts/qa/studio-v2-phase2-security-audit.mjs
 \`\`\`
@@ -137,7 +141,7 @@ node scripts/qa/studio-v2-phase2-security-audit.mjs
 - **P0:** Master assembly, full episode independent 1× review, exact Master approval and fake publisher are not implemented: all BLOCKED.
 - **P1:** Signed trusted scene spec generation and owner-upload recitation provenance need genuine source adapters and verification.
 - **P1:** Stale MP4 changed-and-restored, shared lock vs external writers, cancellation and browser-internal temporary leak cases still need real composite tests.
-- **P1:** Reported **10 high** npm audit warnings are *historical coordinator context*, **not independently re-audited yet**. The read-only audit script enumerates exact vulnerability packages, advisories, direct/transitive status and \`--omit=dev\` comparison when run. Severity does not automatically prove reachable exploitation; no arbitrary \`npm audit fix --force\`.
+- **P1:** **10 high** npm advisories are confirmed in the `npm ci` output of [QA GitHub CI run 42465460515](https://github.com/saladin76/balislam/actions/runs/42465460515), but the named packages and reachable entrypoints are **not independently triaged yet**. The read-only audit script enumerates exact vulnerability packages, advisories, direct/transitive status and \`--omit=dev\` comparison when run. Severity does not automatically prove reachable exploitation; no arbitrary \`npm audit fix --force\`.
 - **P2:** Keep Mac Chrome screenshots/AV, exact SHA, timestamps, memory/disk delta, retry logs and owned-temp evidence. Not captured in this phase.
 
 ## 7. Acceptance / handoff
