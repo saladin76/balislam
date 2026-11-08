@@ -5,7 +5,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { spawn, execFileSync } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, rm, readFile, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { probeMedia } from "../src/render/sceneV2Probe";
@@ -49,6 +50,14 @@ describe("Studio V2 FFprobe, real media bytes", () => {
       expect(inspected.audio[0]).toMatchObject({ codec: "aac", sampleRate: 48000 });
       expect(inspected.durationSec).toBeGreaterThanOrEqual(0.95);
       expect(inspected.durationSec).toBeLessThan(1.1);
+      const sha256 = createHash("sha256").update(await readFile(output)).digest("hex");
+      const bytes = (await stat(output)).size;
+      console.log("STUDIO_V2_REAL_FFPROBE_QA", JSON.stringify({
+        sha256, bytes, width: inspected.video.width, height: inspected.video.height,
+        fps: inspected.video.fps, frames: inspected.video.frames, durationSec: inspected.durationSec,
+        videoCodec: inspected.video.codec, audioCodecs: inspected.audio.map((s) => s.codec),
+        audioStreams: inspected.audio.length,
+      }));
     } finally {
       await rm(root, { recursive: true, force: true });
     }
