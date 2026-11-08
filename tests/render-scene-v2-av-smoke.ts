@@ -57,7 +57,7 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
     for (const mode of ["silent", "narrated"] as const) {
       const scene = {
         ...samplePlan.chapters[0]!.scenes[0]!,
-        id: "c1-s0", template: "big-question", props: { question: "اختبار سلامة الحروف العربية" },
+        id: "c1-s0", template: "big-question", props: { question: "اِخْتِبَارُ سَلَامَةِ الْحُرُوفِ الْعَرَبِيَّةِ" },
         narration: mode === "narrated" ? "اختبار" : "",
         durationSec: 2, sfx: [],
       };
