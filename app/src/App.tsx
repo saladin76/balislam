@@ -15,6 +15,7 @@ import { EpisodeTab, SceneLivePreview } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
+import { PreFinalPanel } from "./workspace/PreFinal";
 import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
@@ -482,6 +483,7 @@ export const App: React.FC = () => {
             onOpenPublish={() => setTab("publish")}
             onUpdated={() => setHomeKey(k => k + 1)}
           />
+          <PreFinalPanel key={`prefinal:${channelId}:${epId}`} episodeId={epId} channelId={channelId} onChanged={() => setHomeKey(k => k + 1)} />
           <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage, sceneId) => {
             if (!confirmLeaveScript()) return;
             if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);

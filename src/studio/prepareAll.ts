@@ -5,7 +5,9 @@
  *     generateVoice (tashkeel ≥ 98%, storyboard and tone gates, script+storyboard approval). Quran is
  *     never voiced: verse cards carry no narration and their recitation stays the owner's own recording.
  *  2. Render: AV preview DRAFTS for the current scene and every later unapproved, unsubmitted scene, in
- *     order, one at a time (same renderer and preview slot as «إنتاج المشهد»).
+ *     order, one at a time (same renderer and preview slot as «إنتاج المشهد»). A verse card whose human
+ *     recitation is not attached yet does NOT stop the queue: it is drafted with its verse visible, silence
+ *     for the plan's duration and a studio-only «التلاوة تُضاف لاحقًا» tag (recitations come last, D34).
  *
  * Nothing here submits or approves anything. A draft becomes reviewable only when its scene is current,
  * and approval stays strictly ordered, owner-authenticated and bound to the exact preview bytes.
@@ -58,6 +60,8 @@ export const renderSceneDraft: RenderSceneDraft = async (episode, sceneId, sourc
     note: "مسودة مُجهَّزة مسبقًا؛ غير معتمدة حتى يصل دورها ويشاهدها المالك ويقرر.",
     // A scene edited, submitted or approved while rendering never gets this cut published.
     verifyBeforePublish: () => assertSceneRenderAllowed(episode, sceneId, sourceSha256, token, "ahead"),
+    // Recitations come last: a verse scene without one is drafted with a silent, marked placeholder.
+    allowPendingRecitation: true,
   });
   await recordSceneRenderEvidence(episode, sceneId, sourceSha256, token, "ahead");
 };

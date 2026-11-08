@@ -1,6 +1,6 @@
 import React from "react";
 import { chapterEyebrow } from "./eyebrow";
-import { Audio, Sequence, Series, staticFile, type CalculateMetadataFunction } from "remotion";
+import { AbsoluteFill, Audio, Sequence, Series, staticFile, type CalculateMetadataFunction } from "remotion";
 import config from "../../../config.json";
 import type { Plan, PlanChapter, PlanScene } from "../../plan/types";
 import { sceneFrames } from "../../plan/duration";
@@ -18,6 +18,7 @@ import { engineEnabled } from "../../plan/engine";
 import { parseTransition, transitionIssues, type Transition } from "../../plan/transitions";
 import { FrozenScene, TransitionContext, TransitionIn, type TransitionCtx } from "./transitions";
 import { useTheme } from "../../../brand/identity/index";
+import { fontFamilies } from "../../../brand/fonts";
 
 export type EpisodeProps = {
   plan: Plan;
@@ -30,7 +31,24 @@ export type EpisodeProps = {
   /** هوية القناة (إن غابت: الهوية الافتراضية) */
   identity?: Identity;
   channel?: ChannelInfo;
+  /**
+   * Studio-only: verse scenes in a scene review DRAFT whose human recitation is attached later. They play
+   * in silence for the plan's duration with a small «التلاوة تُضاف لاحقًا» tag. renderEpisode refuses it for Master.
+   */
+  draftMarks?: { pendingRecitation: string[] };
 };
+
+/** Small studio tag on a draft verse scene (never in a Master: renderEpisode refuses draftMarks there). */
+export const PendingRecitationTag: React.FC = () => (
+  <AbsoluteFill style={{ pointerEvents: "none", justifyContent: "flex-end", alignItems: "flex-start", padding: "0 0 3% 3%" }}>
+    <div data-draft-mark="pending-recitation" dir="rtl" style={{
+      fontFamily: fontFamilies.body, fontSize: 26, lineHeight: 1.3, color: "#F4EEE2", background: "rgba(0,0,0,0.55)",
+      border: "1px dashed rgba(244,238,226,0.6)", borderRadius: 10, padding: "8px 16px",
+    }}>
+      التلاوة تُضاف لاحقًا · مسودة
+    </div>
+  </AbsoluteFill>
+);
 
 /** في الشورت (فصل واحد) لا تُعرض شاشة النهاية. */
 export const scenesOf = (p: Pick<EpisodeProps, "plan" | "chapter">): { chapter: PlanChapter; scene: PlanScene }[] =>
@@ -143,6 +161,8 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
               body
             )}
             <SceneAudio scene={scene} media={media} />
+            {scene.template === "verse-card" && !isRecitedVerse(scene, media) && props.draftMarks?.pendingRecitation.includes(scene.id)
+              ? <PendingRecitationTag /> : null}
           </Series.Sequence>
         );
       })}

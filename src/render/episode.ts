@@ -32,6 +32,11 @@ export type RenderEpisodeOptions = {
   allowUnreviewed?: boolean;
   /** True only for an owner-authorized single-scene review cut. Never a Master approval. */
   scenePreview?: boolean;
+  /**
+   * Studio-only draft marks burned into a scene review draft: verse scenes rendered with a silent
+   * placeholder because their human recitation comes last («التلاوة تُضاف لاحقًا»). Refused for Master.
+   */
+  draftMarks?: { pendingRecitation: string[] };
   onProgress?: (pct: number, msg: string) => void;
 };
 
@@ -119,6 +124,8 @@ export const assertRenderChannelOwnership = (scriptPath: string, activeChannelId
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   if (opts.scenePreview && opts.quality === "master")
     throw Error("A scene review preview cannot be used as a Master approval.");
+  if (opts.draftMarks && (opts.quality === "master" || !opts.scenePreview))
+    throw Error("Draft marks (a pending recitation) belong only to a scene review draft, never to a Master.");
   const log = opts.onProgress ?? (() => {});
   const scriptPath = await resolveScriptPath(opts.episode);
   await assertNoLinkedPath(scriptPath, true);
@@ -174,7 +181,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const channel = loadChannel();
   const timingMode = opts.scenePreview ? "scene-preview" as const
     : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel) };
+  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
+    ...(opts.draftMarks?.pendingRecitation.length ? { draftMarks: { pendingRecitation: opts.draftMarks.pendingRecitation } } : {}) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];
   const output = requestedOutput;
@@ -199,6 +207,9 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       // assembly and Master all require one, and concat needs the same track layout in every cut.
       enforceAudioTrack: true,
       colorSpace: "bt709",
+      // A silent placeholder verse draft still carries an (empty) audio track, so every scene cut can be
+      // reviewed with sound and concatenated with the others.
+      ...(opts.scenePreview ? { enforceAudioTrack: true } : {}),
       outputLocation: tempOutput,
       browserExecutable: browserExecutable(),
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),

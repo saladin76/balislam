@@ -50,3 +50,19 @@
 /* لوحة «إنتاج المشاهد» فوق محرر المشاهد: صف خاص بها بارتفاع محدود وتمرير داخلي، فلا يطويها المحرر */
 .studio-shell .episode-workspace-app:has(> .scene-first-panel) { grid-template-rows: auto auto minmax(0, auto) minmax(0, 1fr); }
 .studio-shell .episode-workspace-app > .scene-first-panel { max-height: 42vh; overflow-y: auto; margin: 12px 18px; }
+
+/* Step ٤: «معاينة قبل النهائية» and the owner's recitations (recitations come last). */
+.pf { display: grid; gap: 14px; }
+.pf-recs { display: grid; gap: 8px; }
+.pf-rec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pf-rec { border: 1px solid var(--line, rgba(127,127,127,.3)); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.pf-rec-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.pf-st { margin-inline-start: auto; font-size: .85em; padding: 2px 8px; border-radius: 999px; background: rgba(127,127,127,.15); }
+.pf-st.is-ok { background: rgba(46,160,90,.18); }
+.pf-st.is-review { background: rgba(242,179,91,.25); }
+.pf-variants { display: grid; gap: 6px; }
+.pf-variant { display: grid; grid-template-columns: auto auto 1fr; gap: 4px 10px; align-items: center; padding: 6px 8px; border-radius: 8px; }
+.pf-variant.is-on { background: rgba(127,127,127,.12); }
+.pf-variant audio { grid-column: 1 / -1; width: 100%; }
+.pf-approve { display: grid; gap: 6px; }
+.pf-upload { justify-self: start; cursor: pointer; }

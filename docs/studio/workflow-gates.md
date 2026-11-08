@@ -117,7 +117,7 @@ authority. Every production gate asks it:
 | Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
 | Scene AV render («إنتاج المشهد») | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
 | Scene AV draft («جهّز كل المشاهد», `bal produce`) | owner passphrase, script + storyboard approved and every board reviewed (`requireSceneProductionReady`); only the current scene or a later scene that is neither approved nor submitted, with current inputs (`assertSceneRenderAllowed(…, "ahead")`) |
-| Master render | every scene approved with sound and picture **and** the assembly approved after a full 1× viewing with every seam checked (`requireScenesReadyForMaster`) |
+| Master render | every scene approved with sound and picture (none «مشروط بالتلاوة») **and** the assembly approved after a full 1× viewing with every seam checked (`requireScenesReadyForMaster`) |
 | Shorts/reels | the exact approved Master (`requireSceneMasterReady`) |
 | Publish | the exact approved Master **and** an explicit publish permission for those bytes (`requirePublishAllowed`) |
 
@@ -154,6 +154,35 @@ The scene ledger read (`GET scene-production`) adds `scenes[].draft` (`ready` / 
 `prepared: { ready, total }` (approved + submitted + ready drafts). In step ٣ a ready draft of the current scene is shown
 for review directly: «اعتمد» or a problem report first submits those exact bytes (the UI checks the server recorded the
 same SHA-256 it played), then decides. After «اعتمد» the next scene's draft opens and plays.
+
+**Recitations last (D35, owner decision 8 Nov).** The owner records the Quran verses himself and adds them at the end;
+before that he watches a pre-final version with narration and no recitation. Final gates are unchanged.
+- Drafts: «جهّز كل المشاهد» and «إنتاج المشهد» no longer stop at a verse card without a reviewed recitation. It renders
+  (`renderShotsPreview(…, { allowPendingRecitation: true })`) with the verse visible and silence for the plan's estimate of
+  the scene (`sceneFrames` without a recitation: the manual `durationSec`, else the template's 7 s), an audio track always
+  present (`enforceAudioTrack` for scene previews), and a small studio tag «التلاوة تُضاف لاحقًا · مسودة» (`draftMarks` →
+  `PendingRecitationTag`). `renderEpisode` refuses `draftMarks` on a Master or any non-scene render. Only reviewed,
+  owner-attached recordings are ever used; nothing is fetched or generated.
+- Conditional approval: `readyForAv` now means "narration present". A verse scene without its recitation can be submitted and
+  approved; the server records `approval.recitationPending: true` and the history note «اعتماد مشروط بالتلاوة». It satisfies
+  the ORDER (`canWorkOn`, `nextSceneId`) so later scenes can be approved, but `approvedSceneInputsSha256` refuses while any
+  scene is conditional, so `submitAssembly`, `approveAssembly`, `approveFinalMaster`, `assertExactMasterApproved`,
+  `requireScenesReadyForMaster`, shorts and publish stay blocked; `progress.canAssemble` is false and
+  `progress.recitationPending` lists those scenes. Attaching and approving the recitation changes that scene's inputs
+  (its hash includes the recording), so `reviseSceneInput` re-opens ONLY that verse scene: it becomes the current scene,
+  is rendered with its recitation, and needs a fresh unconditional approval. Removing a recording also re-opens it.
+- «معاينة قبل النهائية» (`POST /api/episodes/<ep>/scene-prefinal`, owner passphrase; `assemblePreFinalPreview` with
+  `currentSceneCutsForPreFinal`): every scene's current cut in order — the reviewed bytes of approved/submitted scenes,
+  otherwise a ready draft bound to current inputs; any scene without one is listed and the request refused. Output goes to
+  the preview slot `prefinal-no-recitation`, never `previews/episode.mp4`, so it can never be recorded or approved as the
+  assembly, and Master is always rendered from the plan, never from previews. It writes nothing to the scene ledger.
+- Recitation polish (`POST /api/episodes/<ep>/own-recitations`, owner passphrase; `src/quran/recitationPolish.ts`): the
+  untouched upload stays in `recitations/originals/`; two candidates are made — PROCESSED (edge silence only, found with the
+  dafatir trimmer's frame levels and soft threshold, margins 0.12 s before / 0.35 s after; `afftdn=nr=6:nf=-50`; two-pass
+  EBU R128 loudnorm, linear, to the narration's median integrated loudness (−24…−12 LUFS), else −16 LUFS, true peak
+  −1.5 dBTP) and the ORIGINAL as a plain MP3. No pitch, time or inner cut. The processed one is selected; the owner may
+  switch (`select`) before or after approval (after approval the pointer is withdrawn and the recording goes back to review).
+  Approval still requires listening, reciter and rights evidence (`approveOwnRecitation`).
 
 **Owner identity:** approvals need the owner passphrase, chosen once in «إنتاج المشاهد» (only its SHA-256 is stored in
 `.env`). The ledger is signed with the separate random `BAL_WORKFLOW_HMAC_KEY`. There is no bypass flag in the UI, API or CLI.

@@ -20,7 +20,15 @@ export type SceneState = {
   sourceSha256: string;
   status: SceneStatus;
   previewSha256?: string;
-  approval?: { by: string; at: string; previewSha256: string; sourceSha256: string };
+  approval?: { by: string; at: string; previewSha256: string; sourceSha256: string;
+    /**
+     * «اعتماد مشروط بالتلاوة» (owner decision, 8 Nov): the verse scene's picture and narration were
+     * approved while its human recitation was not yet attached (a silent placeholder in the draft).
+     * It keeps the ORDER moving (later scenes can be approved) but never counts as a final approval:
+     * assembly, Master and publish stay blocked until the recitation is attached, which changes the
+     * scene's inputs, re-opens only this scene and requires a fresh, unconditional approval.
+     */
+    recitationPending?: true };
 };
 export type SceneFirstProduction = {
   schemaVersion: 1;
@@ -108,6 +116,14 @@ const validSceneApproval = (s: SceneState): boolean =>
     s.approval.sourceSha256 === s.sourceSha256 &&
     s.approval.by.trim() && Number.isFinite(Date.parse(s.approval.at)));
 
+/** A valid approval that is final (not waiting for a recitation). Only these unlock assembly/Master. */
+const finalSceneApproval = (s: SceneState): boolean =>
+  validSceneApproval(s) && s.approval?.recitationPending !== true;
+
+/** Verse scenes approved on condition of their recitation, in episode order. */
+export const recitationPendingScenes = (p: SceneFirstProduction): string[] =>
+  p.scenes.filter((s) => validSceneApproval(s) && !finalSceneApproval(s)).map((s) => s.id);
+
 const sceneIndex = (p: SceneFirstProduction, sceneId: string): number => {
   const index = p.scenes.findIndex((s) => s.id === sceneId);
   if (index < 0) return block("Unknown scene.");
@@ -146,7 +162,9 @@ export const submitSceneAvPreview = (p: SceneFirstProduction, sceneId: string, s
 };
 
 export const approveSceneAv = (p: SceneFirstProduction, sceneId: string,
-  review: { by: string; at: string; previewSha256: string; watchedWithAudio: true }): SceneFirstProduction => {
+  review: { by: string; at: string; previewSha256: string; watchedWithAudio: true;
+    /** Set by the trusted server when this verse scene has no attached, reviewed recitation yet. */
+    recitationPending?: boolean }): SceneFirstProduction => {
   requireReviewer(review.by, review.at);
   requireHash(review.previewSha256, "approved AV preview");
   if (review.watchedWithAudio !== true) return block("Review the scene with its audio and picture.");
@@ -157,7 +175,7 @@ export const approveSceneAv = (p: SceneFirstProduction, sceneId: string,
     return block("Review the latest rendered audiovisual preview before approving.");
   return replaceScene(p, i, { ...s, status: "approved",
     approval: { by: review.by, at: review.at, previewSha256: review.previewSha256,
-      sourceSha256: s.sourceSha256 } });
+      sourceSha256: s.sourceSha256, ...(review.recitationPending === true ? { recitationPending: true as const } : {}) } });
 };
 
 export const requestSceneCorrection = (p: SceneFirstProduction, sceneId: string): SceneFirstProduction => {
@@ -177,6 +195,9 @@ export const approvedSceneInputsSha256 = (p: SceneFirstProduction): string => {
       p.script.approval.sha256 !== p.script.sha256 ||
       p.storyboard.approval.sha256 !== p.storyboard.sha256)
     return block("All audiovisual scenes and upstream sources must be approved.");
+  const waiting = recitationPendingScenes(p);
+  if (waiting.length)
+    return block(`Attach the human recitation and re-approve these verse scenes first: ${waiting.join(", ")}.`);
   const payload = [p.channel, p.episode, p.script.sha256, p.storyboard.sha256,
     ...p.scenes.map((s) => [s.id, s.sourceSha256, s.previewSha256,
       s.approval?.at, s.approval?.by])];
@@ -268,9 +289,12 @@ export const assertExactMasterReadyForPublish = (p: SceneFirstProduction, actual
 
 export const sceneFirstProgress = (p: SceneFirstProduction) => ({
   currentScene: nextSceneId(p),
+  /** In approval order (includes «مشروط بالتلاوة»); see recitationPending for the conditional ones. */
   approvedScenes: p.scenes.filter(validSceneApproval).length,
   totalScenes: p.scenes.length,
-  canAssemble: p.scenes.length > 0 && nextSceneId(p) === null,
+  /** Verse scenes approved on condition of their recitation: assembly/Master wait for them. */
+  recitationPending: recitationPendingScenes(p),
+  canAssemble: p.scenes.length > 0 && nextSceneId(p) === null && recitationPendingScenes(p).length === 0,
   assemblyApproved: assemblyApproved(p),
   masterApproved: Boolean(p.master && p.assembly &&
     p.master.inputsSha256 === p.assembly.inputsSha256),

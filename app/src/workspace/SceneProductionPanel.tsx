@@ -477,13 +477,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
             )}
           </div>
           <div className="s3-side">
-            <span className={`s3-state is-${status}`}>{status === "done" ? "معتمد" : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? "بانتظار التعديل" : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
+            <span className={`s3-state is-${status}`}>{status === "done" ? (shownServer?.conditional ? "معتمد مشروطًا بالتلاوة" : "معتمد") : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? "بانتظار التعديل" : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
             <p className="s3-narr">{hit?.scene.narration || "بلا تعليق صوتي"}</p>
 
             {isCurrent && scene?.status === "needs_revision" && (sentNotes[currentId!] || scene.correction?.note) ? (
               <p className="s3-sent"><b>{draftReady ? "ملاحظتك على النسخة السابقة:" : "ملاحظتك (بانتظار التعديل ثم إعادة الإنتاج):"}</b> {sentNotes[currentId!] || scene.correction?.note}</p>
             ) : null}
-            {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوته أو تلاوته المرفوعة.</p> : null}
+            {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوت الراوي.</p> : null}
+            {shownServer?.recitationPending ? (
+              <p className="sp-hint" role="note">التلاوة تُضاف لاحقًا: مسودة هذه الآية صامتة مكان التلاوة، واعتمادها الآن «مشروط بالتلاوة» يكمل الترتيب؛ وحين ترفع التلاوة في الخطوة ٤ يُفتح هذا المشهد وحده لمراجعة سريعة. التجميع والنسخة النهائية لا يُفتحان قبلها.</p>
+            ) : null}
             {isCurrent && (scene?.status === "in_review" || draftReady) ? criteria : null}
           </div>
         </div>
@@ -532,7 +535,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             {previewUrl ? (
               <video className="scene-first-video" controls preload="metadata" src={previewUrl} aria-label={`المشهد ${currentId} بالصوت والصورة`} />
             ) : (
-              <div className="sp-empty">{scene.readyForAv ? "لم يُنتج هذا المشهد بعد." : "ينقص هذا المشهد صوته أو تلاوته المرفوعة."}</div>
+              <div className="sp-empty">{scene.readyForAv ? "لم يُنتج هذا المشهد بعد." : "ينقص هذا المشهد صوت الراوي."}</div>
             )}
           </div>
           <div className="sp-side">
@@ -571,6 +574,13 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 {!owner.open ? <span className="sp-hint">افتح جلسة المالك من أعلى الصفحة لتُنتج.</span> : null}
               </>
             )}
+          </div>
+        </div>
+      ) : (data.progress.recitationPending?.length ?? 0) > 0 ? (
+        <div className="sp-row">
+          <div>
+            <h3>كل المشاهد معتمدة، وبانتظار التلاوات</h3>
+            <p className="sp-hint">{ar(data.progress.recitationPending!.length)} مشهد آية معتمد «مشروطًا بالتلاوة». شاهد «المعاينة قبل النهائية» ثم ارفع التلاوات أدناه؛ بعد اعتماد كل تلاوة يُفتح مشهدها وحده لمراجعة سريعة. التجميع والنسخة النهائية والنشر لا تُفتح قبل ذلك.</p>
           </div>
         </div>
       ) : allApproved && !data.assembly ? (
