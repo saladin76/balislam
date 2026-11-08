@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-11-04T10:33:59.792Z",
+  "updatedAt": "2026-11-08T16:19:03.973Z",
   "chapters": [
     {
       "number": 1,
@@ -204,7 +204,7 @@
         },
         {
           "template": "alley-tale",
-          "narration": "ولذلك فإن البحث عن الحق لا يبدأ دائمًا بالسؤال عن الآخرين، بل قد يبدأ بمراجعة الطريقة التي ننظر بها نحن إلى الأمور.",
+          "narration": "ولذلك فإن البحث عن الحق لا يبدأ دائمًا بالسؤال عن الآخرين. بل قد يبدأ بمراجعة الطريقة التي ننظر بها نحن إلى الأمور.",
           "line": 34,
           "props": {
             "place": "market",
@@ -384,7 +384,7 @@
         },
         {
           "template": "alley-tale",
-          "narration": "في هذه المواقف، لا تكمن المشكلة بالضرورة في القيمة التي يتحدث عنها الإنسان، بل في الطريقة التي يستخدمها بها لتبرير فعله.",
+          "narration": "في هذه المواقف، لا تكمن المشكلة بالضرورة في القيمة التي يتحدث عنها الإنسان. بل في الطريقة التي يستخدمها بها لتبرير فعله.",
           "line": 58,
           "props": {
             "place": "home",
@@ -915,7 +915,7 @@
         {
           "template": "dua-board",
           "narration": "«اللهم أرنا الحق حقًّا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
-          "line": 128,
+          "line": 129,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -931,7 +931,7 @@
         {
           "template": "dua-board",
           "narration": "تأمل كيف يجمع هذا الدعاء بين أربعة مطالب.",
-          "line": 131,
+          "line": 132,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -947,7 +947,7 @@
         {
           "template": "dua-board",
           "narration": "أولها أن نرى الحق حقًّا.",
-          "line": 133,
+          "line": 135,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -963,7 +963,7 @@
         {
           "template": "dua-board",
           "narration": "أي أن نسأل الله البصيرة التي تعيننا على معرفة الصواب، وألا تلتبس علينا الأمور بسبب الجهل أو الهوى.",
-          "line": 135,
+          "line": 138,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -979,7 +979,7 @@
         {
           "template": "dua-board",
           "narration": "وثانيها أن يرزقنا الله اتباعه.",
-          "line": 137,
+          "line": 141,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -995,7 +995,7 @@
         {
           "template": "alley-tale",
           "narration": "لأن الإنسان قد يعرف ما ينبغي فعله، ثم تعجز نفسه عن الالتزام به.",
-          "line": 139,
+          "line": 144,
           "props": {
             "place": "",
             "mood": "",
@@ -1004,8 +1004,8 @@
             "poses": "",
             "look": "hero",
             "cast": "",
-            "shot": "home-knows-cant",
-            "cues": "think | يعرف"
+            "cues": "think | يعرف",
+            "shot": "home-knows-cant"
           },
           "id": "c4-s7",
           "sfx": [],
@@ -1014,7 +1014,7 @@
         {
           "template": "dua-board",
           "narration": "وثالثها أن نرى الباطل باطلًا.",
-          "line": 141,
+          "line": 146,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -1030,7 +1030,7 @@
         {
           "template": "alley-tale",
           "narration": "فليس كل خطأ يبدو قبيحًا في أعيننا.",
-          "line": 143,
+          "line": 149,
           "props": {
             "place": "",
             "mood": "",
@@ -1039,8 +1039,8 @@
             "poses": "",
             "look": "hero",
             "cast": "",
-            "shot": "cafe-rumor-looks-fine",
-            "cues": "wrong | خطأ"
+            "cues": "wrong | خطأ",
+            "shot": "cafe-rumor-looks-fine"
           },
           "id": "c4-s9",
           "sfx": [],
@@ -1049,7 +1049,7 @@
         {
           "template": "alley-tale",
           "narration": "قد يكون مغريًا، أو سهلًا، أو موافقًا لرغباتنا.",
-          "line": 145,
+          "line": 151,
           "props": {
             "place": "",
             "mood": "",
@@ -1058,8 +1058,8 @@
             "poses": "",
             "look": "hero",
             "cast": "",
-            "shot": "cafe-rumor-tempting",
-            "cues": ""
+            "cues": "",
+            "shot": "cafe-rumor-tempting"
           },
           "id": "c4-s10",
           "sfx": [],
@@ -1068,7 +1068,7 @@
         {
           "template": "alley-tale",
           "narration": "وقد يزداد قبولنا له لأن الناس اعتادوه.",
-          "line": 147,
+          "line": 153,
           "props": {
             "place": "",
             "mood": "",
@@ -1077,8 +1077,8 @@
             "poses": "",
             "look": "hero",
             "cast": "",
-            "shot": "cafe-rumor-spreads",
-            "cues": "people | الناس"
+            "cues": "people | الناس",
+            "shot": "cafe-rumor-spreads"
           },
           "id": "c4-s11",
           "sfx": [],
@@ -1087,7 +1087,7 @@
         {
           "template": "dua-board",
           "narration": "أما المطلب الرابع، فهو أن يرزقنا الله اجتنابه.",
-          "line": 149,
+          "line": 155,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -1103,7 +1103,7 @@
         {
           "template": "dua-board",
           "narration": "فكما أن معرفة الحق لا تكفي دون اتباعه، فإن معرفة الباطل لا تكفي دون تركه.",
-          "line": 151,
+          "line": 158,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -1119,7 +1119,7 @@
         {
           "template": "dua-board",
           "narration": "وهكذا يجمع الدعاء بين البصيرة والعزيمة.",
-          "line": 153,
+          "line": 161,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -1135,7 +1135,7 @@
         {
           "template": "dua-board",
           "narration": "بين أن نعرف، وأن نعمل بما عرفنا.",
-          "line": 155,
+          "line": 164,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية المأثورة في كلام أهل العلم",
@@ -1151,7 +1151,7 @@
         {
           "template": "alley-tale",
           "narration": "وهو يعلّمنا أيضًا معنى الافتقار إلى الله.",
-          "line": 157,
+          "line": 167,
           "props": {
             "place": "market",
             "mood": "predawn",
@@ -1163,12 +1163,13 @@
             "cues": ""
           },
           "id": "c4-s16",
-          "sfx": []
+          "sfx": [],
+          "edited": true
         },
         {
           "template": "alley-tale",
           "narration": "فنحن لا نعتمد على ذكائنا وحده، ولا على قدرتنا على تحليل الأمور، بل نسأل الله أن يهدينا ويعيننا.",
-          "line": 159,
+          "line": 169,
           "props": {
             "place": "market",
             "mood": "predawn",
@@ -1180,12 +1181,13 @@
             "cues": ""
           },
           "id": "c4-s17",
-          "sfx": []
+          "sfx": [],
+          "edited": true
         },
         {
           "template": "alley-tale",
           "narration": "فليس المطلوب أن نرى الحق فحسب، بل أن نحبه ونتبعه، ولو خالف أهواءنا. ومن البصيرة أيضًا أن نعرف قدر الأشياء، فلا نعطيها أكبر من قيمتها، ولا ننقصها حقها.",
-          "line": 161,
+          "line": 171,
           "props": {
             "place": "market",
             "mood": "predawn",
@@ -1197,7 +1199,8 @@
             "cues": ""
           },
           "id": "c4-s18",
-          "sfx": []
+          "sfx": [],
+          "edited": true
         }
       ]
     },
@@ -1208,7 +1211,7 @@
         {
           "template": "alley-tale",
           "narration": "من الكلمات التي يدعو بها بعض الناس:",
-          "line": 167,
+          "line": 177,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1225,7 +1228,7 @@
         {
           "template": "kinetic-text",
           "narration": "«اللهم أرنا الأشياء كما هي».",
-          "line": 169,
+          "line": 179,
           "props": {
             "emphasis": "الأشياء",
             "element": "",
@@ -1237,7 +1240,7 @@
         {
           "template": "alley-tale",
           "narration": "وهو دعاء حسن المعنى، نسأل الله فيه أن يرزقنا النظر الصحيح إلى أنفسنا وإلى ما حولنا.",
-          "line": 172,
+          "line": 182,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1254,7 +1257,7 @@
         {
           "template": "alley-tale",
           "narration": "تأمل المال مثلًا.",
-          "line": 174,
+          "line": 184,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1271,7 +1274,7 @@
         {
           "template": "alley-tale",
           "narration": "هو نعمة من الله، ووسيلة لقضاء الحاجات، وقد يكون بابًا واسعًا للخير.",
-          "line": 176,
+          "line": 186,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1288,7 +1291,7 @@
         {
           "template": "alley-tale",
           "narration": "لكن الإنسان قد يجعله المقياس الذي يحكم به على قيمته وقيمة الآخرين.",
-          "line": 178,
+          "line": 188,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1305,7 +1308,7 @@
         {
           "template": "alley-tale",
           "narration": "وتأمل النجاح.",
-          "line": 180,
+          "line": 190,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1322,7 +1325,7 @@
         {
           "template": "alley-tale",
           "narration": "قد يكون ثمرة جهد وتوفيق من الله، لكنه قد يتحول في نفس صاحبه إلى سبب للغرور.",
-          "line": 182,
+          "line": 192,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1339,7 +1342,7 @@
         {
           "template": "alley-tale",
           "narration": "وتأمل الدنيا كلها.",
-          "line": 184,
+          "line": 194,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1356,7 +1359,7 @@
         {
           "template": "alley-tale",
           "narration": "قد ننشغل بأعمالنا ومشروعاتنا حتى نتصرف وكأن البقاء فيها مضمون.",
-          "line": 186,
+          "line": 196,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1373,7 +1376,7 @@
         {
           "template": "alley-tale",
           "narration": "بينما يذكرنا القرآن بحقيقتها، فيقول الله تعالى:",
-          "line": 188,
+          "line": 198,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1390,7 +1393,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 190,
+          "line": 200,
           "ayahKey": "3:185",
           "props": {
             "text": "",
@@ -1403,7 +1406,7 @@
         {
           "template": "alley-tale",
           "narration": "ولا يعني هذا أن نترك العمل للدنيا، أو نهمل ما أباح الله لنا من طيباتها.",
-          "line": 192,
+          "line": 202,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1420,7 +1423,7 @@
         {
           "template": "alley-tale",
           "narration": "بل أن نضعها في موضعها الصحيح.",
-          "line": 194,
+          "line": 204,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1437,7 +1440,7 @@
         {
           "template": "alley-tale",
           "narration": "فهي دار عمل وابتلاء، وليست الغاية الأخيرة للإنسان.",
-          "line": 196,
+          "line": 206,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1454,7 +1457,7 @@
         {
           "template": "alley-tale",
           "narration": "والنظر الصحيح لا يتعلق بالأشياء وحدها، بل يتعلق أيضًا بأنفسنا.",
-          "line": 198,
+          "line": 208,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1471,7 +1474,7 @@
         {
           "template": "alley-tale",
           "narration": "أن نعرف ما لدينا من مواطن قوة، دون غرور.",
-          "line": 200,
+          "line": 210,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1488,7 +1491,7 @@
         {
           "template": "alley-tale",
           "narration": "وأن نعترف بأخطائنا، دون يأس.",
-          "line": 202,
+          "line": 212,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1505,7 +1508,7 @@
         {
           "template": "alley-tale",
           "narration": "وأن ننصف الآخرين، فلا تمنعنا محبتهم من رؤية أخطائهم، ولا تحملنا كراهيتهم على إنكار ما عندهم من حق.",
-          "line": 204,
+          "line": 214,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1522,7 +1525,7 @@
         {
           "template": "alley-tale",
           "narration": "فالبصيرة ليست أن نرى ما نحب، بل أن نجتهد في رؤية الأشياء بميزان العدل والحق. ويبقى السؤال العملي: كيف ندرّب أنفسنا على هذه البصيرة في مواقف الحياة اليومية؟",
-          "line": 206,
+          "line": 216,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1545,7 +1548,7 @@
         {
           "template": "alley-tale",
           "narration": "كيف يعرف الإنسان أنه يجتهد في طلب الحق؟",
-          "line": 212,
+          "line": 222,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1562,7 +1565,7 @@
         {
           "template": "alley-tale",
           "narration": "ليس بأن يعتقد أن جميع آرائه صحيحة.",
-          "line": 214,
+          "line": 224,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1579,7 +1582,7 @@
         {
           "template": "alley-tale",
           "narration": "بل بأن يزنها بالدليل، وأن يكون مستعدًا لتصحيح ما يظهر له خطؤه.",
-          "line": 216,
+          "line": 226,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1596,7 +1599,7 @@
         {
           "template": "alley-tale",
           "narration": "فاليقين بما ثبت من الحق لا يعني أن كل فهم شخصي لنا معصوم من الخطأ.",
-          "line": 218,
+          "line": 228,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1613,7 +1616,7 @@
         {
           "template": "alley-tale",
           "narration": "وهناك ثلاث ممارسات تعيننا على ذلك.",
-          "line": 220,
+          "line": 230,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1630,7 +1633,7 @@
         {
           "template": "alley-tale",
           "narration": "الأولى: التثبت قبل الحكم.",
-          "line": 222,
+          "line": 232,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1647,7 +1650,7 @@
         {
           "template": "alley-tale",
           "narration": "لا تصدق خبرًا لمجرد أنه يوافق رأيك، ولا تنشر معلومة قبل التحقق منها.",
-          "line": 224,
+          "line": 234,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1664,7 +1667,7 @@
         {
           "template": "alley-tale",
           "narration": "يقول الله تعالى:",
-          "line": 226,
+          "line": 236,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1681,7 +1684,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 228,
+          "line": 238,
           "ayahKey": "49:6",
           "props": {
             "text": "",
@@ -1694,7 +1697,7 @@
         {
           "template": "alley-tale",
           "narration": "الثانية: مراجعة النية.",
-          "line": 230,
+          "line": 240,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1711,7 +1714,7 @@
         {
           "template": "alley-tale",
           "narration": "حين تختلف مع أحد، اسأل نفسك:",
-          "line": 232,
+          "line": 242,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1728,7 +1731,7 @@
         {
           "template": "alley-tale",
           "narration": "هل أريد الوصول إلى الصواب، أم أريد الانتصار في النقاش؟",
-          "line": 234,
+          "line": 244,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1745,7 +1748,7 @@
         {
           "template": "alley-tale",
           "narration": "قد يبدو الفرق صغيرًا، لكنه يغيّر الطريقة التي نستمع بها، ونناقش بها، ونستقبل بها الأدلة.",
-          "line": 236,
+          "line": 246,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1762,7 +1765,7 @@
         {
           "template": "alley-tale",
           "narration": "الثالثة: الاستعداد لتصحيح الموقف.",
-          "line": 238,
+          "line": 248,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1779,7 +1782,7 @@
         {
           "template": "alley-tale",
           "narration": "إذا ظهر لك أنك أخطأت، فلا تجعل الاعتراف بالخطأ هزيمة.",
-          "line": 240,
+          "line": 250,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1796,7 +1799,7 @@
         {
           "template": "alley-tale",
           "narration": "فالرجوع إلى الحق خير من الاستمرار في الباطل.",
-          "line": 242,
+          "line": 252,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1813,7 +1816,7 @@
         {
           "template": "alley-tale",
           "narration": "ولا يعني ذلك أن نشك في كل شيء، أو أن نعتبر الحق والباطل مجرد وجهات نظر.",
-          "line": 244,
+          "line": 254,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1830,7 +1833,7 @@
         {
           "template": "alley-tale",
           "narration": "بل أن نثبت على ما قام عليه الدليل الصحيح، ونتواضع فيما لا نعلم، ونرجع إلى الوحي وأهل العلم فيما نجهل.",
-          "line": 246,
+          "line": 256,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1846,8 +1849,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، حاول أن تستمع إلى حجته كاملة، دون أن تنشغل طوال الوقت بإعداد ردك.",
-          "line": 248,
+          "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، حاول أن تستمع إلى حجته كاملة. ولا تنشغل طوال الوقت بإعداد ردك.",
+          "line": 258,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1864,7 +1867,7 @@
         {
           "template": "alley-tale",
           "narration": "ثم اسأل نفسك بصدق:",
-          "line": 250,
+          "line": 260,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1881,7 +1884,7 @@
         {
           "template": "alley-tale",
           "narration": "لو ظهر أن الحق معه، هل سأكون مستعدًا لقبوله؟",
-          "line": 252,
+          "line": 262,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1898,7 +1901,7 @@
         {
           "template": "alley-tale",
           "narration": "وتذكر هذا الدعاء:",
-          "line": 254,
+          "line": 264,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1915,7 +1918,7 @@
         {
           "template": "kinetic-text",
           "narration": "«اللهم أرنا الحق حقًّا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
-          "line": 256,
+          "line": 266,
           "props": {
             "emphasis": "وارزقنا، وارزقنا",
             "element": "",
@@ -1927,7 +1930,7 @@
         {
           "template": "alley-tale",
           "narration": "فالغاية ليست أن نثبت دائمًا أننا على حق.",
-          "line": 259,
+          "line": 269,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1944,7 +1947,7 @@
         {
           "template": "alley-tale",
           "narration": "الغاية أن نكون مع الحق، أينما كان.",
-          "line": 261,
+          "line": 271,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -1962,7 +1965,7 @@
           "id": "c6-end",
           "template": "end-screen",
           "narration": "",
-          "line": 274,
+          "line": 284,
           "props": {
             "step": "في أول خلاف تواجهه، استمع إلى حجة الطرف الآخر كاملة، ثم اسأل نفسك: «لو ظهر أن الحق معه، هل سأكون مستعدًا لقبوله؟»",
             "prompt": "شاركنا رأيك في التعليقات"

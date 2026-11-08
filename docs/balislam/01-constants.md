@@ -71,7 +71,7 @@
 | الحديث بدرجته (صحيح أو حسن فقط) وبنصه | `rules.hadithGrades` في `channels/balislam/channel.json`، وبطاقة حديث بلا نص خطأ في `planIssues` |
 | لا يُولَّد صوت قبل اكتمال توثيق الاستشهادات | سجل التوثيق `src/script/review.ts`، ويُفحص في `assertMasterReady` (`src/render/episode.ts`) |
 | تشكيل 98% على الأقل قبل الصوت | `TASHKEEL` في `src/voice/tashkeelReport.ts` |
-| لا أحداث ولا رموز ولا فقاعات في جملة فيها ذكر الله أو دعاء أو آية | `isSacredSentence` (`src/plan/sceneCues.ts`) يمنع الأحداث فيها ويُسكن البطل (`posesFor` في `src/plan/illusDirect.ts`) |
+| لا أحداث ولا رموز ولا فقاعات في جملة فيها ذكر الله أو دعاء أو آية | `isSacredSentence` (`src/plan/sceneCues.ts`) يمنع الأحداث فيها ويُسكن البطل (`posesFor` في `src/plan/illusDirect.ts`)، ولا إيماءة ثانوية في سطورها (`linePoses` في `src/remotion/scenes/AlleyTale.tsx`) |
 | قبل الآية وذكر الله وبعدهما القطع أو المزج فقط | `sacredScene` و`transitionIssues` (`src/plan/transitions.ts`) |
 | لوح الدعاء بلا رموز بجوار الدعاء، وانتقاله المتصل الخاص | `src/remotion/scenes/DuaBoard.tsx`، و`NO_TRANSITION_TEMPLATES` (`src/plan/transitions.ts`) |
 | لا أثر لأدوات الإنتاج في المنشور | `findTraces` (`src/package/traces.ts`)، و`cleanMetadata` (`src/render/episode.ts`) |
