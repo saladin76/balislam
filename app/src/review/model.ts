@@ -74,8 +74,7 @@ export const isSafeVideoUrl = (url: string, origin: string): boolean => {
   try {
     const parsed = new URL(url, origin);
     return parsed.origin === new URL(origin).origin &&
-      parsed.protocol === "http:" || parsed.origin === new URL(origin).origin &&
-      parsed.protocol === "https:";
+      (parsed.protocol === "http:" || parsed.protocol === "https:");
   } catch { return false; }
 };
 export const activeVersion = (record: SceneReviewRecord): SceneVersion | undefined =>
@@ -96,5 +95,5 @@ export function actionBlockers(record: SceneReviewRecord, previous?: SceneReview
 }
 export const sameScope = (data: ReviewEpisode, channel: string, episode: string): boolean =>
   data.channelId === channel && data.episodeId === episode &&
-  data.order.every(id => Boolean(data.scenes[id])) &&
+  data.order.length > 0 && data.order.every(id => Boolean(data.scenes[id])) &&
   new Set(data.order).size === data.order.length;
