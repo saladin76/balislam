@@ -16,13 +16,13 @@ PR #87 uses the actual Backend PR #88 API. Both remain independent Draft PRs. Co
 - GET /scenes/:id/media?channel=<id>&reviewId=<server-id> — authenticated byte-range AV from Backend.
 - POST /scenes/:id/review/:reviewId/tick — challenge + actual positionSec, rotated by Backend, sequential only.
 - POST /scenes/:id/review/:reviewId/finish — confirmation reviewed_av, not self-reported watched=true.
-- POST /scenes/:id/commands — explicit approve with expectedFingerprint and server reviewId; independent note action with {note,second?,elementId?}; or request_changes that also changes state. The UI sends expectedFingerprint as a concurrency hint, but Backend must revalidate under lock. No browser-supplied owner identity.
+- POST /scenes/:id/commands — explicit approve with expectedFingerprint and server reviewId; independent note action with {note,second?,elementId?}; or request_changes that also changes state. The UI sends expectedFingerprint and current Backend Phase2 verifies it against current AV files under the shared lock for note/request_changes. No browser-supplied owner identity.
 
 Local playback at 1× invalidates on seek, speed change, mute, network tick failure or media error. Only server-confirmed finish enables the explicit approve button; Backend independently validates current AV bytes and evidence.
 
 ## Important limitations / Issue #89
 
-1. Backend Phase2 now supports a real independent note action. The UI saves notes through /scenes/:id/commands action note, without changing scene status. However the current note/request_changes implementation does not compare expectedFingerprint under the artifact lock or return a note's historical version binding. The UI preflights a fresh fingerprint but cannot eliminate the server-side race; tracked in Issue #89.
+1. Backend Phase2 at SHA 72ec4442c85d26bd67c36b658551292040c35713 now supports independent action note AND compares expectedFingerprint to current locked AV for note/request_changes; stored notes expose fingerprint, videoVersion, videoSha256. The UI maps the returned fingerprint/version and never guesses missing historical metadata. These fields must remain covered in integrated E2E QA.
 2. GET /scenes now returns the current signed video version, media facts and authoritative blocker keys; these are displayed. It still does not return historical media diffs, per-action permission flags or script/Storyboard/narration details for the standalone page. No invented audio silence or older version is displayed.
 3. No real Render/Backend combination is installed by this UI-only PR. A properly registered MP4, approved sources, actual full 1× playback, Media Range + finish and server approve are required for production acceptance.
 
