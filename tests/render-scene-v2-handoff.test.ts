@@ -116,6 +116,27 @@ describe("trusted Studio V2 Render -> Backend manifest bridge", () => {
       f.request, f.result, f.sources, {}, "/usr/bin/ffprobe",
     )).rejects.toThrow(/immutable file|changed/i);
   });
+  it("requires real image/SFX dependencies in the signed asset set, rejects omission", async () => {
+    const f = await fixture();
+    const imageFile = path.join(f.dir, "assets", "actual-scene.png");
+    await writeFile(imageFile, "QA-ONLY-VISUAL-DEPENDENCY");
+    const imageHash = hash(await readFile(imageFile));
+    const picture = { file: imageFile, sha256: imageHash, ref: "actual-scene.png" };
+    const req = { ...f.request, pictures: [picture] };
+    await expect(verifySceneV2ForBackendManifest(
+      req, f.result, f.sources, {}, "/usr/bin/ffprobe",
+    )).rejects.toThrow(/asset manifest omitted/);
+    const sources = { ...f.sources, assets: { version: "qa",
+      files: ["assets/c1-s1.json", "assets/actual-scene.png"] } };
+    const verified = await verifySceneV2ForBackendManifest(
+      req, f.result, sources, {}, "/usr/bin/ffprobe",
+    );
+    expect(verified.manifest.inputs.assets.files).toContain("assets/actual-scene.png");
+    await writeFile(imageFile, "TAMPERED");
+    await expect(verifySceneV2ForBackendManifest(
+      req, f.result, sources, {}, "/usr/bin/ffprobe",
+    )).rejects.toThrow(/Picture bytes changed/);
+  });
   it("rejects narration path mismatch and missing server-owned rights", async () => {
     const f = await fixture();
     const wrongSources = { ...f.sources, narration: { version: "v1", files: [] } };
