@@ -21,7 +21,8 @@ const scenes = { channel: "balislam", episode: "001-example", revision: 12,
     },
     blockers: [],
     notes: [{ at: "2026-11-08T08:00:00.000Z", text: "الصوت متقدم", second: 3.1,
-      elementId: "title" }] },
+      elementId: "title", fingerprint: fp, videoVersion: "av-v2",
+      videoSha256: "1".repeat(64) }] },
     { id: "c1-s2", status: "prepared", blockers: ["previous_scene_not_approved"], notes: [] }] };
 const mediaUrl = "/api/studio-v2/episodes/001/scenes/c1-s1/media" +
   "?channel=balislam&reviewId=" + reviewId;
@@ -47,7 +48,8 @@ describe("Studio V2 real Backend contract adapter", () => {
     expect(data.scenes["c1-s1"]?.versions[0]?.video).toBeUndefined();
     expect(data.scenes["c1-s1"]?.permissions.approve).toBe(false);
     expect(data.scenes["c1-s1"]?.notes[0]?.second).toBe(3.1);
-    expect(data.scenes["c1-s1"]?.notes[0]?.versionId).toBe("");
+    expect(data.scenes["c1-s1"]?.notes[0]?.versionId).toBe("av-v2");
+    expect(data.scenes["c1-s1"]?.notes[0]?.fingerprint).toBe(fp);
     expect(data.scenes["c1-s2"]?.versions).toHaveLength(0);
     expect(episodeNumber("001-example")).toBe("001");
     expect(() => episodeNumber("../../secret")).toThrow();
@@ -62,6 +64,10 @@ describe("Studio V2 real Backend contract adapter", () => {
       scenes: [{ ...scenes.scenes[0], fingerprint: "fake" }] },
       "balislam", "001", sources)).toThrow();
     expect(() => mapBackendSceneSnapshot(scenes, "balislam", "001", {})).toThrow();
+    expect(() => mapBackendSceneSnapshot({ ...scenes, scenes: [
+      { ...scenes.scenes[0], notes: [{ text: "x", at: "2026-11-08T08:00:00Z",
+        videoVersion: "av-v1", fingerprint: "not-a-sha" }] },
+    ] }, "balislam", "001", sources)).toThrow();
   });
   it("uses owner session cookies, CSRF, exact episode routes, challenge, finish and explicit decision", async () => {
     const calls: Call[] = [];
