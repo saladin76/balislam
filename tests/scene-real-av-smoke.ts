@@ -48,6 +48,7 @@ const ffmpeg = async (binary: string, args: string[]) => {
     });
     let err = "";
     let finished = false;
+    let timedOut = false;
     const finish = (problem?: Error) => {
       if (finished) return;
       finished = true;
@@ -55,15 +56,17 @@ const ffmpeg = async (binary: string, args: string[]) => {
       problem ? reject(problem) : resolve();
     };
     const timer = setTimeout(() => {
+      timedOut = true;
       child.kill("SIGKILL");
-      finish(Error("ffmpeg exceeded 20-second smoke timeout"));
     }, 20000);
     child.stderr?.on("data", (data: Buffer) => {
       if (err.length < 4096) err += data.toString("utf8").slice(0, 4096 - err.length);
     });
     child.on("error", (error) => finish(Error("ffmpeg start failed: " + error.message)));
-    child.on("close", (code) => finish(code === 0 ? undefined :
-      Error("ffmpeg smoke encode failed: " + err.slice(0, 800))));
+    // Wait for process termination before removing any smoke outputs.
+    child.on("close", (code) => finish(timedOut
+      ? Error("ffmpeg exceeded 20-second smoke timeout")
+      : code === 0 ? undefined : Error("ffmpeg smoke encode failed: " + err.slice(0, 800))));
   });
 };
 
