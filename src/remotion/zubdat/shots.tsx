@@ -49,7 +49,8 @@ const DayStrip: React.FC<{ z: Z; line: number; sun: number; postures?: number[];
         return (
           <g key={i} opacity={on}>
             <line x1={x} x2={x} y1={-24} y2={24} stroke={col} strokeWidth={7} strokeLinecap="round" />
-            <circle cx={x} cy={-46} r={10 * on} fill={gray > 0 ? z.faint : z.hl} stroke={col} strokeWidth={4} />
+            {/* علامة الصلاة بالحبر الأسود: الفسفوري للفكرة وحدها (توجيه المالك، ٩ نوفمبر) */}
+            <circle cx={x} cy={-46} r={10 * on} fill={col} stroke={col} strokeWidth={4} />
           </g>
         );
       })}
@@ -88,6 +89,15 @@ const Pause: React.FC<{ x: number; y: number; p: number; z: Z }> = ({ x, y, p, z
   </g>
 );
 
+/**
+ * «habit-heart» (c1-s1): لحظات خروج الشبكة ودخول «؟» من كلمتيهما. الشبكة تبدأ الاختفاء عند «لكنَّ»
+ * (أو قبل «سؤالًا» بستة إطارات إن ضاق ما بينهما) وتنتهي قبل «سؤالًا» بإطار، و«؟» يبدأ مع «سؤالًا» نفسها.
+ */
+export const habitHeartCues = (tLakin: number, tQ: number) => {
+  const gridEnd = tQ - 1;
+  return { gridStart: Math.min(tLakin, gridEnd - 6), gridEnd, qStart: tQ };
+};
+
 export const INK_SHOTS: Record<string, InkShotDef> = {
   // S01 — العادة وحضور القلب
   "habit-heart": {
@@ -97,6 +107,7 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const tW = [at("نقف", 0.2), at("نقرأ", 0.26), at("نركع", 0.32), at("نسجد", 0.38)];
       const tYears = at("السنين", 0.46);
       const tFam = at("مألوفة", 0.58);
+      const tLakin = at("لكن", 0.62);
       const tQ = at("سؤالا", 0.64);
       const tHal = at("هل", 0.76);
       const tHeart = at("قلبنا", 0.82);
@@ -107,15 +118,18 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const post = tW.map((t) => prog(frame, t - 3, t + 16));
       const gridIn = (k: number) => prog(frame, tYears + k * 4, tYears + k * 4 + 12);
       const gray = prog(frame, tFam - 4, tFam + 16);
-      const gridOut = 1 - prog(frame, tQ - 10, tQ + 10);
-      const qBig = wp(frame, tQ, tQ + 14);
+      // توجيه المالك (٩ نوفمبر): الشبكة تبدأ الاختفاء عند «لكنَّ» وتفرغ الصفحة قبل «سؤالًا»،
+      // ثم يبدأ «؟» مع بداية «سؤالًا» على صفحة فارغة، بلا تداخل
+      const { gridStart, gridEnd, qStart } = habitHeartCues(tLakin, tQ);
+      const gridOut = 1 - prog(frame, gridStart, gridEnd);
+      const qBig = prog(frame, qStart, qStart + 16, (t) => t);
       const qMove = prog(frame, tHal, tHal + 18);
       const cells: [number, number][] = [];
       for (const r of [-1, 0, 1, 2]) for (const c of [-1, 0, 1]) if (!(r === 0 && c === 0)) cells.push([c, r]);
       return {
         camLen: 28,
         focus: [[at("يوم", 0.06), 960, 330], ...tW.map((t, i): [number, number, number] => [t, 960 + [420, 140, -140, -420][i]!, 620]), [at("نحفظ", 0.5), 960, 600], [tQ, 960, 600], [at("لأنفسنا", 0.72), 1180, 700], [tHal, 965, 470], [tHeart, 760, 600], [tBody2, 1180, 700], [tBody, 1400, 700]],
-        cam: [C(0, 960, 420, 1.12), C(tW[0]! - 8, 960, 560, 1.0), C(tYears - 2, 960, 640, 0.45), C(tQ - 6, 960, 540, 1.0), C(tHeart - 8, 960, 600, 1.12)],
+        cam: [C(0, 960, 420, 1.12), C(tW[0]! - 8, 960, 560, 1.0), C(tYears - 2, 960, 640, 0.45), C(gridStart, 960, 540, 1.0), C(tHeart - 8, 960, 600, 1.12)],
         world: (
           <g>
             <g opacity={gridOut}>

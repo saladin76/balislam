@@ -8,7 +8,7 @@ import { estimateTimings } from "./timing";
 import { normalizeArabic } from "../../script/quranMeta";
 import { camAt, camTransform, type CamKey } from "../illus/shots/kit";
 import { INK_SHOTS } from "../zubdat/shots";
-import { H, W, Paper, makeAt, makeEnd, type Z } from "../zubdat/inkKit";
+import { H, W, PageSheet, Paper, makeAt, makeEnd, type Z } from "../zubdat/inkKit";
 import { parseInkArgs } from "../zubdat/kitShots";
 import type { SceneBase, StringFields } from "./types";
 
@@ -126,14 +126,7 @@ export const InkShot: React.FC<InkShotProps> = (props) => {
           </g>
           {/* صفحة جديدة لكل فكرة: الورقة السابقة تُقلب من اليسار إلى اليمين (اتجاه تقليب الكتاب العربي) */}
           {frame < 16 ? (
-            <g transform={`translate(${interpolate(frame, [0, 15], [0, W * 1.08], { extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) })} 0)`}>
-              <rect x={-40} y={0} width={40} height={H} fill={z.ink} opacity={0.12} />
-              <rect x={0} y={0} width={W} height={H} fill={z.paper} />
-              {Array.from({ length: 20 }, (_, i) => (
-                <line key={i} x1={0} x2={W} y1={26 + i * 54} y2={26 + i * 54} stroke={z.ink} strokeOpacity={0.055} strokeWidth={2} />
-              ))}
-              <line x1={W - 150} x2={W - 150} y1={0} y2={H} stroke={z.alert} strokeOpacity={0.28} strokeWidth={3} />
-            </g>
+            <PageSheet z={z} x={interpolate(frame, [0, 15], [0, W * 1.08], { extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) })} />
           ) : null}
         </svg>
       </AbsoluteFill>

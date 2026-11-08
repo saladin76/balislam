@@ -76,6 +76,21 @@ export const Paper: React.FC<{ z: Z }> = ({ z }) => (
   </g>
 );
 
+/**
+ * ورقة الدفتر بإحداثيات الصفحة (1920×1080): بياض، وسطور خافتة، وهامش. هي الورقة التي تُقلب بين الأفكار،
+ * وهي نفسها ما تتلاشى إليه الافتتاحية، فالانتقال من الشعار إلى أول صفحة بلا سواد (توجيه المالك، ٩ نوفمبر).
+ */
+export const PageSheet: React.FC<{ z: Z; x?: number; shadow?: boolean }> = ({ z, x = 0, shadow = true }) => (
+  <g transform={`translate(${x} 0)`}>
+    {shadow ? <rect x={-40} y={0} width={40} height={H} fill={z.ink} opacity={0.12} /> : null}
+    <rect x={0} y={0} width={W} height={H} fill={z.paper} />
+    {Array.from({ length: 20 }, (_, i) => (
+      <line key={i} x1={0} x2={W} y1={26 + i * 54} y2={26 + i * 54} stroke={z.ink} strokeOpacity={0.055} strokeWidth={2} />
+    ))}
+    <line x1={W - 150} x2={W - 150} y1={0} y2={H} stroke={z.alert} strokeOpacity={0.28} strokeWidth={3} />
+  </g>
+);
+
 // ── خطّ بالقلم: مسار يُرسم من أوله إلى آخره ─────────────────────────────
 export const Stroke: React.FC<{ d: string; p: number; c: string; w?: number; fill?: string; fillP?: number; opacity?: number; cap?: "round" | "butt" }> = ({ d, p, c, w = 7, fill, fillP = 0, opacity = 1, cap = "round" }) =>
   p <= 0 ? null : (
@@ -220,10 +235,10 @@ export const Icon: React.FC<{ id: IconId; x: number; y: number; s?: number; p: n
     </g>
   );
 
-/** شمس صغيرة بالحبر */
+/** شمس صغيرة بالحبر الأسود وحده: الفسفوري للفكرة لا للزينة (توجيه المالك، ٩ نوفمبر) */
 export const Sun: React.FC<{ x: number; y: number; r?: number; z: Z; p?: number }> = ({ x, y, r = 30, z, p = 1 }) => (
   <g transform={`translate(${x} ${y})`} opacity={p}>
-    <circle r={r} fill={z.hl} stroke={z.ink} strokeWidth={6} />
+    <circle r={r} fill={z.paper} stroke={z.ink} strokeWidth={6} />
     {Array.from({ length: 8 }, (_, i) => {
       const a = (Math.PI / 4) * i;
       return <line key={i} x1={Math.cos(a) * (r + 12)} y1={Math.sin(a) * (r + 12)} x2={Math.cos(a) * (r + 26)} y2={Math.sin(a) * (r + 26)} stroke={z.ink} strokeWidth={6} strokeLinecap="round" />;
