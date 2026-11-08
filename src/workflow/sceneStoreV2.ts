@@ -70,7 +70,7 @@ const validLedger = (data: unknown, scope: SceneV2Scope, order: readonly string[
       !Array.isArray(doc.events) || doc.events.length > doc.revision ||
       doc.events.some((e, index) => !e || e.seq !== index + 1 ||
         !doc.order.includes(e.sceneId) ||
-        !["prepared", "producing", "submitted", "approved", "changes_requested", "invalidated"].includes(e.action))) return false;
+        !["prepared", "producing", "submitted", "approved", "changes_requested", "invalidated", "noted"].includes(e.action))) return false;
   for (const id of order) {
     const entry = doc.scenes[id];
     if (!entry || entry.id !== id || !STATUSES.includes(entry.status) ||

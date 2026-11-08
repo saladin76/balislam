@@ -5,6 +5,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName } from "./util.ts";
+import { handleStudioV2 } from "./studioV2Api.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -86,7 +87,9 @@ export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
     // استعادة طابور الرندر بعد إعادة تشغيل الاستوديو (الأمر 010)
-    void recoverStudioQueue();
+    // Never replay legacy render/packaging jobs while V2's guarded API is enforced.
+    // A saved job payload is not a trusted V2 approval token.
+    if (process.env.STUDIO_V2_ENFORCE !== "1") void recoverStudioQueue();
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
     // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
     const load = async <T = any>(file: string): Promise<T> => {
@@ -115,6 +118,15 @@ export const balApi = (): Plugin => ({
         const episodesDir: string = cp.episodes;
         const identityFile: string = cp.identity;
         const identityDefaultFile: string = cp.identityDefault;
+
+        // Studio V2 mode never falls through to legacy HTTP writes/renders.
+        // CLI, queue recovery and direct engine imports still need separate guards.
+        if (parts[0] === "studio-v2" && process.env.STUDIO_V2_ENFORCE !== "1")
+          return send(res, 503, { ok: false, code: "V2_NOT_ENFORCED" });
+        if (await handleStudioV2({ req, res, parts, ch, root, load, send })) return;
+        if (process.env.STUDIO_V2_ENFORCE === "1")
+          return send(res, 423, { ok: false, code: "V2_LEGACY_ENTRYPOINT_LOCKED",
+            error: "Legacy HTTP production endpoints are disabled while Studio V2 is enforced." });
 
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "kind": "STUDIO_V2_QA_REMOTION_REAL_NOT_PRODUCTION",
+  "sourceCommit": "4136f35a265875c2cbc21d9ac1982e1cb6e03811",
+  "runId": 42465769901,
+  "jobId": 128684812321,
+  "sourceUrl": "https://github.com/saladin76/balislam/actions/runs/42465769901",
+  "composition": "studio-v2-scene",
+  "environment": "GitHub Actions ubuntu-latest, Node 22, actual Remotion + Chrome + FFmpeg/FFprobe",
+  "audioDisclaimer": "synthetic 623Hz technical test tone; not human narration nor Quran",
+  "humanApproval": false,
+  "technicalReview": "PASS",
+  "humanMotionReview": "NOT_EXECUTED",
+  "macReview": "NOT_EXECUTED",
+  "rendered": [
+    {
+      "mode": "silent",
+      "composition": "studio-v2-scene",
+      "status": "succeeded",
+      "dimensions": "1920x1080",
+      "durationSec": 2,
+      "fps": 30,
+      "frames": 60,
+      "videoCodec": "h264",
+      "audioCodecs": [],
+      "audioStreams": 0,
+      "sha256": "0a766f5640835b05a8c805621bd72d5450343733583fed58eece9b61cb5421ff",
+      "bytes": 181787,
+      "elapsedMs": 38724,
+      "memoryAvailableBeforeMB": 6216.19921875,
+      "memoryAvailableMinMB": 5087.171875,
+      "diskFreeBeforeMB": 13308.1484375,
+      "diskFreeAfterMB": 12978.9609375,
+      "extractedFrameSha256": "92130dbcf15673d2642aa485a0c3922a8e587d9d067a2f17dc8b37566f52230a",
+      "earlyFrameSha256": "6813cca614a89d7836a7a6b43319bdcc56d631fb8b0ce9528180bce6bf95edde",
+      "motionDifferentFrames": true,
+      "fullDecode": true,
+      "stagingClean": true,
+      "reviewStatus": "not_submitted",
+      "audioStartSec": null
+    },
+    {
+      "mode": "narrated",
+      "composition": "studio-v2-scene",
+      "status": "succeeded",
+      "dimensions": "1920x1080",
+      "durationSec": 2.005,
+      "fps": 30,
+      "frames": 60,
+      "videoCodec": "h264",
+      "audioCodecs": [
+        "aac"
+      ],
+      "audioStreams": 1,
+      "sha256": "468f9fdd325c3cf88f62a54b1da426925d5977db813f6c01c7bb016c3fedce3a",
+      "bytes": 221374,
+      "elapsedMs": 10339,
+      "memoryAvailableBeforeMB": 5462.921875,
+      "memoryAvailableMinMB": 4926.30859375,
+      "diskFreeBeforeMB": 13020.1328125,
+      "diskFreeAfterMB": 12977.71484375,
+      "extractedFrameSha256": "96a46925719bf6470b153c2ad6e8b1ea622f349806c6320280cf94e983f0d6fd",
+      "earlyFrameSha256": "c171e1efdf43da675a51c1ee2bdf23f1b13b8ea164168170b64de56a26145ddb",
+      "motionDifferentFrames": true,
+      "fullDecode": true,
+      "stagingClean": true,
+      "reviewStatus": "not_submitted",
+      "audioStartSec": 0
+    }
+  ],
+  "resources": {
+    "workspaceDiskBeforeMB": 13308.33984375,
+    "workspaceDiskAfterMB": 13019.234375,
+    "qaElapsedMs": 50785
+  },
+  "media": [
+    {
+      "filename": "silent.mp4",
+      "sha256": "0a766f5640835b05a8c805621bd72d5450343733583fed58eece9b61cb5421ff",
+      "bytesEstimate": 181788
+    },
+    {
+      "filename": "silent.png",
+      "sha256": "92130dbcf15673d2642aa485a0c3922a8e587d9d067a2f17dc8b37566f52230a",
+      "bytesEstimate": 460824
+    },
+    {
+      "filename": "silent-early.png",
+      "sha256": "6813cca614a89d7836a7a6b43319bdcc56d631fb8b0ce9528180bce6bf95edde",
+      "bytesEstimate": 214611
+    },
+    {
+      "filename": "narrated.mp4",
+      "sha256": "468f9fdd325c3cf88f62a54b1da426925d5977db813f6c01c7bb016c3fedce3a",
+      "bytesEstimate": 221376
+    },
+    {
+      "filename": "narrated.png",
+      "sha256": "96a46925719bf6470b153c2ad6e8b1ea622f349806c6320280cf94e983f0d6fd",
+      "bytesEstimate": 467085
+    },
+    {
+      "filename": "narrated-early.png",
+      "sha256": "c171e1efdf43da675a51c1ee2bdf23f1b13b8ea164168170b64de56a26145ddb",
+      "bytesEstimate": 227823
+    }
+  ],
+  "limitations": [
+    "Frames sampled at 0.10 and 1.00 seconds only; not continuous human review",
+    "640x360 initial QA had serious Arabic clipping; native 1920x1080 samples readable",
+    "Peak process tree RSS and Chromium temporary scratch not audited",
+    "Independent Backend signed manifest registration not executed in these QA fixtures"
+  ]
+}
