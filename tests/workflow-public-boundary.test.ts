@@ -30,14 +30,4 @@ describe("production workflow API boundary", () => {
       }
     }
   });
-
-  it("exposes only authenticated service and protected ports as the public integration API", async () => {
-    const source = await readFile(path.join(root, "src/workflow/index.ts"), "utf8");
-    expect(source).toContain("createTrustedWorkflowService");
-    expect(source).toContain("createWorkflowProtectedPorts");
-    expect(source).not.toContain("approveWorkflowStage");
-    expect(source).not.toContain("submitWorkflowStage");
-    expect(source).not.toContain("requireWorkflowGate");
-    expect(source).not.toContain("signServerEvidence");
-  });
 });

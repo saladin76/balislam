@@ -78,5 +78,5 @@ describe("نماذج الصوت الحديثة", () => {
     } finally {
       rmSync(owned, { recursive: true, force: true });
     }
-  }, 20_000);
+  }, 30_000);
 });

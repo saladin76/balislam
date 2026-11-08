@@ -378,3 +378,17 @@
 - **النطاق:** القنوات الثلاث. الملفات المتتبَّعة قبل القرار تبقى؛ تنظيف السجل بموافقة صاحب المشروع فقط.
 - **المكان:** `src/render/episodePreviews.ts`، و`app/server/extra.ts`، و`app/src/tabs/StoryboardPanel.tsx`، و`src/cli/index.ts`، و`.gitignore`، و`.env.example`.
 - **التحقق:** `tests/episode-previews-drive.test.ts`.
+
+### D27 — تنظيف الكود القديم غير المستعمل
+
+- **التاريخ:** ٨ نوفمبر ٢٠٢٦ على `integration/studio-unified-20261108` (فرع `agent/cleanup`). **الحالة:** فرع مسودة؛ لا يُدمج في main إلا بموافقة صاحب المشروع.
+- **الاحتياج:** خطة الجاهزية (المهمة 5، الثبات والتنظيف): بعد D24 بقيت وحدات Studio V2 والمراحل الست وواجهاتها في الشجرة دون أن يصلها أي مسار حي، فتربك القارئ وتطيل الاختبارات.
+- **الحل:**
+  - رسم بياني للاستيراد من نقاط الدخول الحية (`app/server/api.ts`، `app/server/extra.ts`، صفحات `app/*.html`، `src/cli/index.ts`، `src/remotion/index.ts`، `bin/`، `scripts/*.mjs`) مع سلاسل `load("/src/…")`؛ حُذف ما لا يصله شيء فقط.
+  - المحذوف: خادم V2 (studioV2Api وstudioV2Review وstudioV2Session وstudioV2SourceVerifier في app/server ومذكرتاه)؛ وحدات V2 في src/workflow مع index وservice وports وview؛ sceneV2 وsceneV2Handoff وsceneV2Probe وmasterGateContract في src/render؛ motionTiming في src/plan؛ واجهات المراحل الست (`EpisodeJourneyBar`، `EpisodeWorkspaceBar`، `WorkflowApprovalDetails`، `WorkflowOwnerControls`، `StudioStartGuide`) وreciterSearch؛ وسكربتات studio-v2 في scripts/qa؛ واختباراتها وحدها.
+  - باقٍ لأنه حي: `src/workflow/gates.ts` و`store.ts` و`trust.ts` و`artifacts.ts` و`studioSnapshot.ts` و`server.ts`، و`src/plan/sceneReview.ts`، و`StudioSidebar` و`studio-shell.css`، وواجهة `app/src/review/` (صفحة يقدمها Vite).
+  - مهلة ٣٠ ثانية لكل اختبار بطيء بعينه (القوالب، إضاءة القوالب، عزل Git، التحديث الآمن، سرعة الصوت) دون تغيير الإعداد العام ولا التوقعات.
+- **النطاق:** الكود المشترك للقنوات الثلاث؛ لا تغيير في سلوك الاستوديو ولا في ملفات الحلقات ولا في قواعد الاعتماد.
+- **المكان:** الملفات أعلاه، و`docs/studio/workflow-gates.md` (إزالة الإشارات إلى المحذوف).
+- **التحقق:** `npx tsc --noEmit -p .`، و`npx vitest run`، و`npx vitest run -c app/vitest.review.config.ts`.
+- **الأثر:** نحو عشرة آلاف سطر أقل؛ السلطة الوحيدة تبقى سجل «إنتاج المشاهد» (D24).

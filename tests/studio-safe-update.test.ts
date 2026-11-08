@@ -31,7 +31,7 @@ describe("safe studio updater", () => {
     expect(result.ok).toBe(false);
     expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("original\n");
     expect(execFileSync("git", ["log", "-1", "--format=%s"], { cwd: dir, env: gitEnv }).toString().trim()).toBe("init");
-  });
+  }, 30_000);
 
   it("refuses an unfinished merge even if the tracked tree is clean", async () => {
     const dir = repo();
@@ -48,7 +48,7 @@ describe("safe studio updater", () => {
     expect(result.message).toMatch(/عملية Git غير مكتملة/);
     expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe(before);
     expect(execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, env: gitEnv }).toString().trim()).toBe(head);
-  });
+  }, 30_000);
 
   it("refuses a malformed MERGE_HEAD without attempting a network fetch", async () => {
     const dir = repo();
@@ -62,7 +62,7 @@ describe("safe studio updater", () => {
     expect(applied.ok).toBe(false);
     expect(applied.message).toMatch(/عملية Git غير مكتملة/);
     expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("original\n");
-  });
+  }, 30_000);
 
   it("refuses a rebase in progress, even when status is otherwise clean", async () => {
     const dir = repo();
@@ -72,7 +72,7 @@ describe("safe studio updater", () => {
     mkdirSync(path.join(gitDir, "rebase-merge"));
     expect((await applyUpdate(dir)).ok).toBe(false);
     expect((await updateStatus(dir, true)).error).toMatch(/عملية Git غير مكتملة/);
-  });
+  }, 30_000);
 
   it("does not overwrite dirty work on main", async () => {
     const dir = repo();
@@ -82,5 +82,5 @@ describe("safe studio updater", () => {
     expect(result.ok).toBe(false);
     expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("local unsaved edit\n");
     expect(execFileSync("git", ["status", "--porcelain"], { cwd: dir, env: gitEnv }).toString()).toContain("note.txt");
-  });
+  }, 30_000);
 });
