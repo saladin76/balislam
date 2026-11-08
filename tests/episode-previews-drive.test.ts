@@ -71,3 +71,20 @@ describe("المعاينات على Google Drive: الفهرس في Git والف
     expect((await listEpisodePreviews(ep))[0]).toMatchObject({ name: "y.mp4", source: "missing" });
   });
 });
+
+describe("المساحة: نسخة سابقة واحدة فقط في history", () => {
+  it("بعد ثلاث رفعات للخانة نفسها يبقى في history ملف واحد فقط", async () => {
+    const { root, ep, script } = await episode();
+    for (const v of ["V1", "V2", "V3"]) {
+      const src = path.join(root, `${v}.mp4`);
+      await writeFile(src, v);
+      await putPreview(script, "s", src, { title: v });
+      await new Promise((r) => setTimeout(r, 15));
+    }
+    const { readdir } = await import("node:fs/promises");
+    const hist = (await readdir(path.join(ep, "previews", "history", "s"))).filter((n) => n.endsWith(".mp4"));
+    expect(hist).toHaveLength(1);
+    expect(await readFile(path.join(ep, "previews", "history", "s", hist[0]!), "utf8")).toBe("V2");
+    expect(await readFile(path.join(ep, "previews", "s.mp4"), "utf8")).toBe("V3");
+  });
+});

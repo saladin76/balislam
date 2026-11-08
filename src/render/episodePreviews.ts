@@ -93,6 +93,16 @@ const slotName = (slot: string) => {
   return slot.toLowerCase();
 };
 
+/** نسخة سابقة واحدة فقط لكل خانة في history (احتياطًا للرجوع)، حتى لا تكبر المساحة على جهاز المالك. */
+export const PREVIEW_HISTORY_KEEP = 1;
+const pruneHistory = async (history: string) => {
+  if (!existsSync(history)) return;
+  const files = await Promise.all((await readdir(history)).filter((n) => /\.mp4$/i.test(n))
+    .map(async (n) => ({ n, t: (await stat(path.join(history, n))).mtimeMs })));
+  files.sort((a, b) => b.t - a.t);
+  for (const f of files.slice(PREVIEW_HISTORY_KEEP)) await rm(path.join(history, f.n), { force: true });
+};
+
 /** One serialized writer per episode preview index. A crash keeps the lock
  * rather than allowing another worker to overwrite a version accidentally. */
 const withPreviewIndexLock = async <T>(dir: string, work: () => Promise<T>): Promise<T> => {
@@ -175,6 +185,7 @@ export const putPreview = async (scriptPath: string, slot: string, file: string,
       await rename(file, path.join(history, `${randomUUID()}-${n}`));
       removed.push(n);
     }
+    await pruneHistory(history);
     let drive: string | null = null;
     let driveError: string | undefined;
     try { drive = await mirrorToDrive(path.dirname(scriptPath), target, output); }
@@ -210,6 +221,7 @@ export const removePreview = async (scriptPath: string, slot: string) => {
     await ensureUnlinkedDirectory(history);
     await link(output, path.join(history, `removed-${randomUUID()}.mp4`));
     await rm(output, { force: true });
+    await pruneHistory(history);
   }
   delete index[target];
   const pending = path.join(dir, `.index.${randomUUID()}.pending`);
@@ -241,6 +253,7 @@ export const linkDrivePreview = async (episode: string, slot: string, info: { id
       const history = path.join(dir, "history", slotName(slot));
       await ensureUnlinkedDirectory(history);
       await rename(local, path.join(history, `previous-${randomUUID()}.mp4`));
+      await pruneHistory(history);
     }
     index[target] = { title: info.title, note: info.note, version: (prev?.version ?? 0) + 1, updatedAt: new Date().toISOString(),
       sha256: info.sha256, size: info.size, drive: { id: info.id, url: `https://drive.google.com/file/d/${info.id}/view` } };
