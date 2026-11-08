@@ -79,6 +79,7 @@ async function main() {
     try {
       const response = await action();
       if (expected.includes(response.status)) pass(id, { http: response.status, code: response.payload?.code });
+      else if (response.status === 503) blocked(id, "Required runtime dependency is unavailable (" + (response.payload?.code ?? "HTTP 503") + ")");
       else fail(id, "Expected HTTP " + expected.join("/") + ", got " + response.status + " (" + (response.payload?.code ?? "no-code") + ")");
       return response;
     } catch (e) { fail(id, String(e)); return null; }
@@ -133,7 +134,7 @@ async function main() {
       sourceApproved: true, recitationEvidence: { origin: "owner-upload" },
     },
   }), [400]);
-  await check("HTTP_UNSCOPED_REVIEW_ID", () => authenticated(scoped("/scenes/c1-s1/media") + "&reviewId=" + "0".repeat(48)), [409, 403, 503]);
+  await check("HTTP_UNSCOPED_REVIEW_ID", () => authenticated(scoped("/scenes/c1-s1/media") + "&reviewId=" + "0".repeat(48)), [409, 403]);
   const state = await check("HTTP_REAL_SCENE_INSPECTION", () => authenticated(scoped("/scenes")), [200]);
   if (!state || state.status !== 200 || !Array.isArray(state.payload?.scenes)) {
     blocked("THREE_SCENE_GATE", "Real server scene read-model unavailable");
@@ -158,11 +159,12 @@ async function main() {
     if (!writes) { blocked("SCENE_PREPARATION", "Set STUDIO_V2_QA_ALLOW_WRITES=1 after verifying synthetic QA fixture"); return; }
     if (!ready) { blocked("SOURCE_SIGNOFF", "Owner must explicitly approve real script and Storyboard; QA never forges signoff"); return; }
     for (const id of ["c1-s2", "c1-s3"]) {
-      if (statuses[id] === "draft") await check("PREPARE_" + id, () => authenticated(scene(id, "/commands"), {
+      if (statuses[id] === "draft") await check("PREPARE_WORKFLOW_STATE_" + id, () => authenticated(scene(id, "/commands"), {
         method: "POST", body: { action: "prepare" },
       }), [200]);
       else add("PREPARE_" + id, statuses[id] === "prepared" ? "PASS" : "NOT TESTED", { observedStatus: statuses[id] });
     }
+    blocked("FUTURE_ASSET_PREPARATION", "prepare command only marks the workflow; actual future asset generation and rights must be verified separately");
     await check("SCENE_2_BEGIN_BLOCKED", () => authenticated(scene("c1-s2", "/commands"), {
       method: "POST", body: { action: "begin" },
     }), [409]);
