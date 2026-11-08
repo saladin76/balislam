@@ -37,7 +37,16 @@
 .shell-v3 .studio-main > * { flex: none; }
 .shell-v3 .studio-main > .work,
 .shell-v3 .studio-main > .studio-review-workspace { flex: 1 0 auto; }
-.shell-v3 .studio-main.episode-workspace-app > .work.episode-grid { height: calc(100dvh - 120px); min-height: 620px; }
+/* تمرير واحد واضح: الصفحة تتمرر بالعجلة دائمًا (كانت قاعدة قديمة تقفلها في صفحات الحلقة)،
+   ومساحات العمل ذات الأعمدة (السكريبت، المشاهد، الهوية) تملأ ما بقي من الشاشة فيتمرر كل عمود وحده
+   بدل أن تتمرر الصفحة والعمود معًا. */
+.shell-v3 .app.studio-main.episode-workspace-app { overflow-y: auto; overflow-x: hidden; }
+@media (min-width: 721px) {
+  .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) { flex: 1 1 0; min-height: 480px; height: auto; overflow: hidden; }
+  .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) > .col { min-height: 0; overflow-y: auto; }
+  .shell-v3 .work.script-grid .editor { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+  .shell-v3 .work.script-grid .editor textarea { flex: 1 1 0; min-height: 0; height: auto; }
+}
 
 /* ── Top bar ─────────────────────────────────────────── */
 .tb {
@@ -314,7 +323,7 @@
   .shell-v3 .work.script-grid, .shell-v3 .work.identity-grid { grid-template-columns: minmax(0, 1fr); height: auto; overflow: visible; }
   .shell-v3 .work.script-grid > .col, .shell-v3 .work.identity-grid > .col { overflow: visible; min-width: 0; border-inline: 0; }
   .shell-v3 .work.script-grid > .col.side { border-top: 1px solid var(--line); }
-  .shell-v3 .work.script-grid textarea { min-height: 60vh; }
+  .shell-v3 .work.script-grid textarea { min-height: 50vh; max-height: 55vh; }
   /* جدول الأسبوع يُمرَّر أفقيًا بدل أن تنضغط الأيام حتى تُقص */
   .shell-v3 .studio-ops-workspace .ops-week { grid-template-columns: 116px repeat(7, 118px) !important; }
   /* القوائم المنبثقة على الهاتف تثبت داخل الشاشة */
