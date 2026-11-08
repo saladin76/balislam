@@ -8,7 +8,7 @@ import { randomBytes } from "node:crypto";
 
 type Receipt = {
   id: string; sessionId: string; ownerId: string; scope: string; sceneId: string;
-  fingerprint: string; avSha256: string; avEpoch: string;
+  fingerprint: string; avSha256: string; avEpoch: string; videoVersion: string;
   durationSec: number; mediaBytes: number; startedAt: number; updatedAt: number;
   playedSec: number; checkpoints: number; challenge: string;
   served: Array<[number, number]>; completedAt?: number;
@@ -25,7 +25,8 @@ const get = (id: string, sessionId: string) => {
 };
 export const startSceneReviewReceiptV2 = (args: {
   sessionId: string; ownerId: string; scope: string; sceneId: string;
-  fingerprint: string; avSha256: string; avEpoch: string; durationSec: number;
+  fingerprint: string; avSha256: string; avEpoch: string; videoVersion: string;
+  durationSec: number;
   mediaBytes: number;
 }) => {
   if (!Number.isFinite(args.durationSec) || args.durationSec <= 0 ||
