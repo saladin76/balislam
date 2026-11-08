@@ -98,7 +98,7 @@ const sceneService = async (ctx: Ctx, scope: WorkflowIdentity, reviewId?: string
   return createTrustedSceneV2Service({
     scope,
     authenticate: async () => ({ id: session.userId, role: "owner", authenticated: true }),
-    sceneOrder: async () => (await readPlannedSceneOrderV2(scope, async (job) => job())).sceneOrder,
+    sceneOrder: async () => (await readPlannedSceneOrderV2(scope, async (job: () => Promise<unknown>) => job())).sceneOrder,
     currentSceneManifest: (sceneId: string) => readRegisteredSceneManifestV2(scope, sceneId),
     assertLockedScriptAndStoryboard: async () => {
       await requireApprovedSceneSourcesV2(scope);
@@ -271,7 +271,7 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
             typeof body.expectedFingerprint !== "string")
           throw new StudioV2AuthError(400, "V2_FORBIDDEN_FIELD");
         const service = await sceneService(ctx, scope);
-        const current = (await service.inspect()).scenes.find((s) => s.id === id);
+        const current = (await service.inspect()).scenes.find((s: { id: string; status: string; fingerprint?: string }) => s.id === id);
         if (!current || current.status !== "in_review" ||
             current.fingerprint !== body.expectedFingerprint)
           throw Error("Scene is not ready for current AV review.");
@@ -283,7 +283,7 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
           await ctx.load("/src/workflow/sceneMediaV2.ts");
         const receipt = await withSceneArtifactLockV2(scope, async () => {
           const manifest = await readRegisteredSceneManifestV2(scope, id);
-          const result = await collectSceneInputsFromDiskV2(scope, manifest, async (job) => job());
+          const result = await collectSceneInputsFromDiskV2(scope, manifest, async (job: () => Promise<unknown>) => job());
           if (result.fingerprint !== body.expectedFingerprint)
             throw Error("Scene AV changed while starting owner review.");
           const media = await probeSceneAvLockedV2(scope, manifest,
