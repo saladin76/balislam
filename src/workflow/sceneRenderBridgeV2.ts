@@ -17,6 +17,7 @@ import { assertCanProduceScene, isSceneApproved, reconcileSceneInputs } from "./
 import { collectSceneInputsFromDiskV2 } from "./sceneArtifactsV2.ts";
 import { readRegisteredSceneManifestV2, registerRenderedSceneManifestLockedV2 } from "./sceneManifestRegistryV2.ts";
 import { probeSceneAvLockedV2 } from "./sceneMediaV2.ts";
+import { commitCurrentSceneRenderLockedV2 } from "./sceneRenderCommitV2.ts";
 import { resolveArtifact, sha256FileAndEpoch } from "./artifacts.ts";
 import type { WorkflowIdentity } from "./store.ts";
 
@@ -174,6 +175,8 @@ export const runTrustedSceneProductionV2 = async (
           captured.inputs.video.sha256 !== actual.sha256 ||
           captured.inputs.video.epoch !== actual.epoch)
         throw Error("Independent MP4 stream verification failed after registration.");
+      await commitCurrentSceneRenderLockedV2(scope, sceneId, preflight.order,
+        outcome.jobId, captured.fingerprint, actual.sha256, actual.epoch);
       // No submission or owner AV approval is granted here.
       return { sceneId, status: "rendered" as const,
         fingerprint: captured.fingerprint,
