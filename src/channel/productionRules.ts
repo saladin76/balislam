@@ -105,7 +105,7 @@ export const channelProductionIssues = (
       issues.push({ level: "error", sceneId: scene.id, code: "hadith-forbidden",
         message: "هذه القناة لا تسمح بإدراج بطاقات أحاديث في إعداداتها الحالية." });
     }
-    if (channel.rules?.music === false && scene.sfx.some(effect => musicFileName(effect.id))) {
+    if (channel.rules?.music === false && (scene.sfx ?? []).some(effect => musicFileName(effect.id))) {
       issues.push({ level: "error", sceneId: scene.id, code: "music-forbidden",
         message: "الموسيقى ممنوعة في إعدادات هذه القناة؛ احذف المسار الموسيقي من المشهد." });
     }
