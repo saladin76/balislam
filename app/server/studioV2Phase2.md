@@ -75,13 +75,13 @@ ffprobeBinary, verifySourceReview, verifyRecitationProvenance?})` then:
    actual media → time checkpoints → `finish` → owner `approve`.
 6. Output is **never automatically reviewed, approved, assembled or published**.
 
-**Render-owned P0 issue to resolve before enforced Mac acceptance:** PR #86
-currently creates the output with a hard link to its still-existing temporary
-MP4, so `nlink=2` when `onPublishedLocked` executes, while
-`verifySceneV2ForBackendManifest` rejects anything except `nlink=1`.
-Backend will not weaken this invariant or alter Render-owned files. The Render
-owner must remove its *owned temporary alias* before invoking the callback,
-while preserving rollback/cancellation safety. See Issue #89 comment.
+**Render hard-link callback fix now present in PR #86:** its current
+`src/render/sceneV2.ts` removes only its own temporary hard-link alias
+before invoking `onPublishedLocked`, and verifies the published MP4 has
+`nlink===1`. This resolves the earlier static mismatch with Render's
+`verifySceneV2ForBackendManifest`, but **a combined real Remotion +
+Backend acceptance run has not been executed**. Backend does not weaken
+file/symlink safety or edit Render-owned files.
 Render handoff's media version is `sha256:<digest>`; Backend deliberately
 uses the actual unique Render `jobId` as its signed revision after
 independently verifying the handoff's SHA and path.
