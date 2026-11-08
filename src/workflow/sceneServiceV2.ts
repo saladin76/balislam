@@ -17,6 +17,7 @@ import {
 } from "./sceneV2.ts";
 import { readSceneLedgerV2, mutateSceneLedgerV2 } from "./sceneStoreV2.ts";
 import type { WorkflowIdentity } from "./store.ts";
+import { probeSceneAvLockedV2 } from "./sceneMediaV2.ts";
 import {
   collectSceneInputsFromDiskV2, type SceneFileManifestV2,
   type SceneArtifactLockV2,
@@ -47,6 +48,8 @@ export type TrustedSceneV2Dependencies = {
     sceneId: string; ownerId: string; fingerprint: string; avSha256: string;
   }>) => Promise<void>;
   withArtifactLock: SceneArtifactLockV2;
+  /** Trusted server-configured ffprobe binary, never from HTTP request. */
+  ffprobeBinary: string;
 };
 
 const ALLOWED = ["prepare", "begin", "submit", "approve", "request_changes"] as const;
@@ -79,7 +82,8 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
       typeof deps.sceneOrder !== "function" ||
       typeof deps.currentSceneManifest !== "function" ||
       typeof deps.assertLockedScriptAndStoryboard !== "function" ||
-      typeof deps.verifyCurrentSceneAvReview !== "function")
+      typeof deps.verifyCurrentSceneAvReview !== "function" ||
+      typeof deps.ffprobeBinary !== "string" || !deps.ffprobeBinary)
     throw Error("Studio V2 requires all trusted session, artifact and AV review adapters.");
 
   const owner = async () => {
@@ -105,7 +109,8 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
       throw Error("Trusted scene manifest belongs to a different scene.");
     // Outer withArtifactLock is already held. The projector requires a lock
     // callback; this is the *already-locked* invocation, never a public API.
-    return collectSceneInputsFromDiskV2(deps.scope, manifest, async (work) => work());
+    const captured = await collectSceneInputsFromDiskV2(deps.scope, manifest, async (work) => work());
+    return { ...captured, manifest };
   };
   const reconcileLocked = async (
     order: readonly string[], sceneId: string, latest: SceneInputs,
@@ -154,11 +159,18 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
       } else {
         // Both submission and approval must inspect the *current* composed AV
         // file. A stale client fingerprint cannot approve newer bytes.
-        const { inputs, fingerprint } = await captureLocked(input.sceneId);
+        const { inputs, fingerprint, manifest } = await captureLocked(input.sceneId);
         await reconcileLocked(order, input.sceneId, inputs);
         if (fingerprint !== input.expectedFingerprint)
           throw Error("Scene AV changed since it was shown; refresh before deciding.");
         if (input.action === "submit") {
+          // A filename and hash are not proof of a playable AV stream.
+          // Probe under the SAME server writer lock before presenting a scene.
+          const probed = await probeSceneAvLockedV2(deps.scope, manifest,
+            { ffprobeBinary: deps.ffprobeBinary });
+          if (probed.sha256 !== inputs.video.sha256 ||
+              probed.epoch !== inputs.video.epoch)
+            throw Error("Scene MP4 changed between hashing and stream validation.");
           await mutateSceneLedgerV2(deps.scope, order, (doc) =>
             submitSceneAvReview(doc, input.sceneId, new Date().toISOString()));
         } else {
@@ -175,8 +187,14 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
           // validator; the shared editor lock prevents conforming writers.
           const checked = await captureLocked(input.sceneId);
           if (checked.fingerprint !== fingerprint ||
-              checked.inputs.video.sha256 !== inputs.video.sha256)
+              checked.inputs.video.sha256 !== inputs.video.sha256 ||
+              checked.inputs.video.epoch !== inputs.video.epoch)
             throw Error("Scene video or audio changed during owner AV review.");
+          const probed = await probeSceneAvLockedV2(deps.scope, checked.manifest,
+            { ffprobeBinary: deps.ffprobeBinary });
+          if (probed.sha256 !== checked.inputs.video.sha256 ||
+              probed.epoch !== checked.inputs.video.epoch)
+            throw Error("Scene media changed during final AV validation.");
           await mutateSceneLedgerV2(deps.scope, order, (doc) =>
             approveSceneAv(doc, input.sceneId, {
               ownerId, expectedFingerprint: fingerprint,
