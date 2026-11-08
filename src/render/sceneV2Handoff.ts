@@ -119,19 +119,30 @@ export const verifySceneV2ForBackendManifest = async (
     throw Error("Backend source manifest lacks script.md or plan.json.");
 
   const expectedSoundFiles: string[] = [];
-  for (const sound of request.sounds) {
-    if (sound.kind === "sfx") continue;
-    const physical = await realpath(sound.file);
+  const expectedAssetFiles: string[] = [];
+  const pinnedRelative = async (file: string, expectedHash: string, label: string) => {
+    const physical = await realpath(file);
     if (!inRoot(episodeRoot, physical))
-      throw Error("Voice source escaped the episode.");
-    const rel = path.relative(episodeRoot, physical).split(path.sep).join("/");
+      throw Error(label + " source escaped the owning episode.");
+    if (await sha256(physical) !== expectedHash)
+      throw Error(label + " bytes changed before manifest handoff.");
+    return path.relative(episodeRoot, physical).split(path.sep).join("/");
+  };
+  for (const sound of request.sounds) {
+    const rel = await pinnedRelative(sound.file, sound.sha256, "Sound");
+    if (sound.kind === "sfx") {
+      expectedAssetFiles.push(rel);
+      continue;
+    }
     if ((sound.kind === "narrator" && !/^voice\/[^/]+\.(mp3|wav|m4a)$/i.test(rel)) ||
         (sound.kind === "recitation" && !/^recitations\/[^/]+\.(mp3|wav|m4a)$/i.test(rel)))
       throw Error("Backend voice/recitation path policy mismatch.");
-    if (await sha256(physical) !== sound.sha256)
-      throw Error("Audio source bytes changed before manifest handoff.");
     expectedSoundFiles.push(rel);
   }
+  for (const picture of request.pictures)
+    expectedAssetFiles.push(await pinnedRelative(picture.file, picture.sha256, "Picture"));
+  if (expectedAssetFiles.some((rel) => !input.assets.files.includes(rel)))
+    throw Error("Backend asset manifest omitted an exact rendered SFX or picture input.");
   if (expectedSoundFiles.length !== input.narration.files.length ||
       expectedSoundFiles.some((name) => !input.narration.files.includes(name)))
     throw Error("Manifest narration files differ from exact rendered sound assets.");
