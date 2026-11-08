@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { HZ_SCENES } from "../src/remotion/dafatir/horizon/episode001";
 import { HZ_LEAD, HZ_META, hzSentences } from "../src/remotion/dafatir/horizon/meta";
 import { buildTimeline } from "../src/remotion/dafatir/horizon/timeline";
+import { SceneCloseContext } from "../src/remotion/dafatir/horizon/book";
 import { sceneSeconds } from "../src/plan/duration";
 import { SACRED_WORD } from "../src/render/stillness";
 import type { Plan } from "../src/plan/types";
@@ -18,14 +19,21 @@ const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.template =
  * يُرسم المشهد في كل إطار من النافذة ويجب أن يطابق الإطار الأول تمامًا.
  */
 describe("دفاتر الزمن 001 — السكون عند ذكر الله", () => {
-  it("لا تغيير في الكادر حول كل لفظ جلالة في مشاهد «خط الأفق»", () => {
+  // withClose: كما في الرندر الفعلي، يضع غلاف المشهد نهاية آخر كلمة فيبدأ الخروج (قلب أو خفوت) بعد إغلاق الفكرة
+  it.each([false, true])("لا تغيير في الكادر حول كل لفظ جلالة في مشاهد «خط الأفق» (لحظة الإغلاق: %s)", (withClose) => {
     const bad: string[] = [];
     for (const s of scenes) {
       const shot = String(s.props.shot);
       const tl = buildTimeline(hzSentences(s.narration), HZ_LEAD);
       const dur = sceneSeconds(s);
       const Comp = HZ_SCENES[shot]!;
-      const draw = (t: number) => renderToStaticMarkup(<Comp t={t} tl={tl} dur={dur} exit={HZ_META[shot]!.exit} p={s.props as Record<string, string>} />);
+      const close = withClose && tl.words.length && !HZ_META[shot]!.minEnd ? tl.words[tl.words.length - 1]!.e : undefined;
+      const draw = (t: number) =>
+        renderToStaticMarkup(
+          <SceneCloseContext.Provider value={close}>
+            <Comp t={t} tl={tl} dur={dur} exit={HZ_META[shot]!.exit} p={s.props as Record<string, string>} />
+          </SceneCloseContext.Provider>,
+        );
       for (const w of tl.words) {
         if (!SACRED_WORD.test(w.w)) continue;
         const a = Math.max(0, w.s - 0.25);

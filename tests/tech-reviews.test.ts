@@ -85,7 +85,10 @@ describe("المراجعات الفنية", () => {
     const dir = path.join(EPS, "001-adam-beginning");
     const data = JSON.parse(readFileSync(path.join(dir, "tech-reviews/020/docs/storyboard-001-v1.1.json"), "utf8"));
     const plan = JSON.parse(readFileSync(path.join(dir, "plan.json"), "utf8"));
-    const ids = plan.chapters.flatMap((c: { scenes: { id: string }[] }) => c.scenes.map((s) => s.id));
+    // الستوري بورد v1.1 وثيقة تاريخية (الأمر 020): لا تشمل بطاقة الأعراف 15 (c4-v7) التي أضافها المالك في ٨ نوفمبر؛
+    // لوحتها تُضاف في إصدار ستوري بورد جديد، لا بتعديل v1.1
+    const ADDED_AFTER_020 = new Set(["c4-v7"]);
+    const ids = plan.chapters.flatMap((c: { scenes: { id: string }[] }) => c.scenes.map((s) => s.id)).filter((id: string) => !ADDED_AFTER_020.has(id));
     expect(data.scenes.map((s: { id: string }) => s.id)).toEqual(ids);
     expect(data.status).toBe("PENDING_REVIEW");
     expect(data.approved).toBe(false);

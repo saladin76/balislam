@@ -588,10 +588,27 @@
           "edited": true
         },
         {
-          "id": "c4-v5",
+          "id": "c4-v7",
           "template": "verse-card",
           "narration": "",
           "line": 133,
+          "ayahKey": "7:15",
+          "durationSec": 4,
+          "props": {
+            "text": "",
+            "reference": "الأعراف · ١٥",
+            "reciter": "",
+            "look": "horizon",
+            "head": "الفصل الرابع"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-v5",
+          "template": "verse-card",
+          "narration": "",
+          "line": 135,
           "ayahKey": "7:16",
           "durationSec": 4,
           "props": {
@@ -608,7 +625,7 @@
           "id": "c4-s7",
           "template": "horizon-shot",
           "narration": "وفي مقابل هذا الوعيد، أخبر الله في سورة الحجر أن عباده ليس لإبليس عليهم سلطان، إلا من اتبعه من الغاوين.",
-          "line": 135,
+          "line": 137,
           "props": {
             "shot": "authority",
             "head": "الفصل الرابع"
@@ -620,7 +637,7 @@
           "id": "c4-v6",
           "template": "verse-card",
           "narration": "",
-          "line": 137,
+          "line": 139,
           "ayahKey": "15:42",
           "durationSec": 4,
           "props": {
@@ -637,7 +654,7 @@
           "id": "c4-s8",
           "template": "horizon-shot",
           "narration": "ومن هنا نفهم أن عداوة الشيطان للإنسان قديمة، وأن القرآن يحذرنا منها تحذيرا صريحا.",
-          "line": 139,
+          "line": 141,
           "props": {
             "shot": "warning",
             "head": "الفصل الرابع"
@@ -662,13 +679,13 @@
           },
           "sfx": [],
           "edited": true,
-          "line": 143
+          "line": 145
         },
         {
           "id": "c5-s1",
           "template": "horizon-shot",
           "narration": "خلق الله لآدم زوجه، وأسكنهما الجنة. وأباح لهما أن يأكلا منها، ونهاهما عن الاقتراب من شجرة معينة.",
-          "line": 143,
+          "line": 145,
           "props": {
             "shot": "permit",
             "head": "الفصل الخامس"
@@ -680,7 +697,7 @@
           "id": "c5-v1",
           "template": "verse-card",
           "narration": "",
-          "line": 147,
+          "line": 149,
           "ayahKey": "2:35",
           "durationSec": 4,
           "props": {
@@ -697,7 +714,7 @@
           "id": "c5-s2",
           "template": "horizon-shot",
           "narration": "ولم يسم القرآن الكريم نوع تلك الشجرة. ولذلك لا نجزم بأنها شجرة تفاح، أو تين، أو غير ذلك. فليس في معرفة نوعها ما تتوقف عليه العبرة من القصة.",
-          "line": 149,
+          "line": 151,
           "props": {
             "shot": "species",
             "head": "الفصل الخامس"
@@ -709,7 +726,7 @@
           "id": "c5-s3",
           "template": "horizon-shot",
           "narration": "وقد حذر الله آدم عليه السلام من عداوة الشيطان.",
-          "line": 155,
+          "line": 157,
           "props": {
             "shot": "warn-recall",
             "head": "الفصل الخامس"
@@ -721,7 +738,7 @@
           "id": "c5-v2",
           "template": "verse-card",
           "narration": "",
-          "line": 157,
+          "line": 159,
           "ayahKey": "20:117",
           "durationSec": 4,
           "props": {
@@ -738,7 +755,7 @@
           "id": "c5-s4",
           "template": "horizon-shot",
           "narration": "ولكن إبليس وسوس إلى آدم وزوجه، وسعى إلى إيقاعهما فيما نهاهما الله عنه. وفي سورة الأعراف، يخبرنا الله أن الشيطان أغراهما بما زعم أنه يؤدي إلى منزلة الملائكة أو إلى الخلد.",
-          "line": 159,
+          "line": 161,
           "props": {
             "shot": "whisper",
             "head": "الفصل الخامس"
@@ -750,7 +767,7 @@
           "id": "c5-v3",
           "template": "verse-card",
           "narration": "",
-          "line": 163,
+          "line": 165,
           "ayahKey": "7:20",
           "durationSec": 4,
           "props": {
@@ -767,7 +784,7 @@
           "id": "c5-s5",
           "template": "horizon-shot",
           "narration": "ثم وقع ما حذرهما الله منه.",
-          "line": 165,
+          "line": 167,
           "props": {
             "shot": "breach",
             "head": "الفصل الخامس"
@@ -779,7 +796,7 @@
           "id": "c5-v4",
           "template": "verse-card",
           "narration": "",
-          "line": 167,
+          "line": 169,
           "ayahKey": "7:22",
           "durationSec": 4,
           "props": {
@@ -796,7 +813,7 @@
           "id": "c5-s6",
           "template": "horizon-shot",
           "narration": "ولكن آدم عليه السلام لم يصر على معصيته، بل رجع إلى ربه. وقد حكى الله عن آدم وزوجه دعاءهما:",
-          "line": 169,
+          "line": 171,
           "props": {
             "shot": "return-line",
             "head": "الفصل الخامس"
@@ -808,7 +825,7 @@
           "id": "c5-v5",
           "template": "verse-card",
           "narration": "",
-          "line": 173,
+          "line": 175,
           "ayahKey": "7:23",
           "durationSec": 4,
           "props": {
@@ -825,7 +842,7 @@
           "id": "c5-s7",
           "template": "horizon-shot",
           "narration": "وفي سورة البقرة، أخبرنا الله أن آدم تلقى من ربه كلمات، فتاب عليه.",
-          "line": 175,
+          "line": 177,
           "props": {
             "shot": "verse-tag",
             "head": "الفصل الخامس",
@@ -839,7 +856,7 @@
           "id": "c5-v6",
           "template": "verse-card",
           "narration": "",
-          "line": 177,
+          "line": 179,
           "ayahKey": "2:37",
           "durationSec": 4,
           "props": {
@@ -856,7 +873,7 @@
           "id": "c5-s8",
           "template": "horizon-shot",
           "narration": "وهنا يظهر الفرق بين الموقفين: فإبليس استكبر وأصر، وآدم عليه السلام تاب وأناب. وفي ذلك بيان لسعة رحمة الله، وأن باب التوبة ليس مغلقا أمام من أذنب ثم رجع إلى ربه صادقا.",
-          "line": 179,
+          "line": 181,
           "props": {
             "shot": "stances",
             "head": "الفصل الخامس"
@@ -881,13 +898,13 @@
           },
           "sfx": [],
           "edited": true,
-          "line": 185
+          "line": 187
         },
         {
           "id": "c6-s1",
           "template": "horizon-shot",
           "narration": "أخبرنا الله أن آدم وزوجه هبطا إلى الأرض.",
-          "line": 185,
+          "line": 187,
           "props": {
             "shot": "verse-intro",
             "head": "الفصل السادس",
@@ -900,7 +917,7 @@
           "id": "c6-v1",
           "template": "verse-card",
           "narration": "",
-          "line": 187,
+          "line": 189,
           "ayahKey": "2:38",
           "durationSec": 4,
           "props": {
@@ -917,7 +934,7 @@
           "id": "c6-s2",
           "template": "horizon-shot",
           "narration": "وفي سورة الأعراف، جاء بيان أن في الأرض مستقرا ومتاعا إلى حين، وأن فيها حياة البشر وموتهم، ومنها يكون إخراجهم.",
-          "line": 189,
+          "line": 191,
           "props": {
             "shot": "earth-words",
             "head": "الفصل السادس"
@@ -929,7 +946,7 @@
           "id": "c6-v2",
           "template": "verse-card",
           "narration": "",
-          "line": 191,
+          "line": 193,
           "ayahKey": "7:24",
           "durationSec": 4,
           "props": {
@@ -946,7 +963,7 @@
           "id": "c6-v3",
           "template": "verse-card",
           "narration": "",
-          "line": 193,
+          "line": 195,
           "ayahKey": "7:25",
           "durationSec": 4,
           "props": {
@@ -963,7 +980,7 @@
           "id": "c6-s3",
           "template": "horizon-shot",
           "narration": "ومن هنا تتصل قصة آدم عليه السلام بالتاريخ البشري على الأرض.",
-          "line": 195,
+          "line": 197,
           "props": {
             "shot": "bridge",
             "head": "الفصل السادس"
@@ -975,7 +992,7 @@
           "id": "c6-s4",
           "template": "horizon-shot",
           "narration": "وأما موضع هبوطه، فقد اشتهرت فيه روايات مختلفة، ولا نعلم نصا صحيحا صريحا يحدده. كما لا نملك تاريخا محددا لذلك الهبوط. ولذلك لا ننسب إليه مكانا ولا تاريخا على سبيل الجزم، ونقول فيما لا نعلمه: الله أعلم.",
-          "line": 197,
+          "line": 199,
           "props": {
             "shot": "no-map",
             "head": "الفصل السادس"
@@ -987,7 +1004,7 @@
           "id": "c6-s5",
           "template": "horizon-shot",
           "narration": "وما أخبرنا الله به عن آدم نؤمن به ونثبته، دون أن نزيد عليه ما لم يثبت به دليل.",
-          "line": 203,
+          "line": 205,
           "props": {
             "shot": "limit",
             "head": "الفصل السادس"
@@ -1012,13 +1029,13 @@
           },
           "sfx": [],
           "edited": true,
-          "line": 207
+          "line": 209
         },
         {
           "id": "c7-s1",
           "template": "horizon-shot",
           "narration": "بدأ نسل البشر من آدم عليه السلام وزوجه. وأخبرنا الله في سورة النساء أنه خلق الناس من نفس واحدة، وخلق منها زوجها، وبث منهما رجالا كثيرا ونساء.",
-          "line": 207,
+          "line": 209,
           "props": {
             "shot": "gen-fan",
             "head": "الفصل السابع"
@@ -1030,7 +1047,7 @@
           "id": "c7-v1",
           "template": "verse-card",
           "narration": "",
-          "line": 211,
+          "line": 213,
           "ayahKey": "4:1",
           "durationSec": 4,
           "props": {
@@ -1047,7 +1064,7 @@
           "id": "c7-s2",
           "template": "horizon-shot",
           "narration": "ومع تعاقب الأجيال، امتد التاريخ البشري، وتنوعت أحوال الناس ومعايشهم. ولكننا لا نملك سجلا متصلا يخبرنا بتفاصيل كل جيل، من آدم عليه السلام إلى أقدم المجتمعات التي وصلت إلينا آثارها. فلا نعرف أسماء جميع الأمم الأولى، ولا أماكن إقامتها، ولا كل ما جرى لها من أحداث.",
-          "line": 213,
+          "line": 215,
           "props": {
             "shot": "lineline",
             "head": "الفصل السابع"
@@ -1059,7 +1076,7 @@
           "id": "c7-s3",
           "template": "horizon-shot",
           "narration": "وهنا تبدأ مرحلة أخرى من رحلتنا.",
-          "line": 219,
+          "line": 221,
           "props": {
             "shot": "threshold",
             "head": "الفصل السابع"
@@ -1071,7 +1088,7 @@
           "id": "c7-s4",
           "template": "horizon-shot",
           "narration": "فإلى جانب ما أخبرنا الله به، هناك شواهد مادية درسها الباحثون للتعرف إلى حياة المجتمعات البشرية القديمة. منها أدوات صنعت من الحجر، وآثار مساكن، وبقايا أطعمة، ومواقع استيطان، ومدافن، ونقوش ورسوم تركتها مجتمعات في أزمنة مختلفة. وتساعدنا هذه الآثار على دراسة جوانب من حياة أصحابها. ولكنها لا تخبرنا بكل شيء، ولا تمكننا من ربط كل اكتشاف بشخصية ورد ذكرها في القرآن الكريم.",
-          "line": 221,
+          "line": 223,
           "props": {
             "shot": "evidence",
             "head": "الفصل السابع"
@@ -1083,7 +1100,7 @@
           "id": "c7-s5",
           "template": "horizon-shot",
           "narration": "ولذلك سنذكر منها ما ثبت، ونبين ما اختلف فيه، ولن نجعل الظنون حقائق.",
-          "line": 229,
+          "line": 231,
           "props": {
             "shot": "method",
             "head": "الفصل السابع"
@@ -1095,7 +1112,7 @@
           "id": "c7-s6",
           "template": "horizon-shot",
           "narration": "ومع تقدم حلقاتنا، سنتعرف إلى أحوال البشر قبل الكتابة، ثم إلى نشأة القرى والمدن، والحضارات التي تعاقبت على الأرض.",
-          "line": 231,
+          "line": 233,
           "props": {
             "shot": "roadmap",
             "head": "الفصل السابع"
@@ -1107,7 +1124,7 @@
           "id": "c7-s7",
           "template": "horizon-shot",
           "narration": "وأول ما نحتاج إلى فهمه: كيف يعرف الباحثون شيئا عن حياة قوم لم يتركوا لنا سجلا مكتوبا؟ وكيف يقدرون أعمار الأدوات والمساكن والآثار؟ وما الذي يمكن لهذه الأدلة أن تخبرنا به، وما الذي يبقى خارج حدودها؟",
-          "line": 233,
+          "line": 235,
           "props": {
             "shot": "questions",
             "head": "الفصل السابع"
@@ -1119,7 +1136,7 @@
           "id": "c7-s8",
           "template": "horizon-shot",
           "narration": "هذا ما سنبدأ به في الحلقة القادمة من «قصة الإنسان عبر الزمن». أما اليوم، فقد بدأنا من آدم عليه السلام، أبي البشر، ومن هنا نفتح أولى صفحات «دفاتر الزمن». والحمد لله رب العالمين.",
-          "line": 239,
+          "line": 241,
           "props": {
             "shot": "closing",
             "head": "الفصل السابع"

@@ -51,7 +51,9 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
     const props = scene.props as Record<string, string | undefined>;
     if (voiced) {
       const m = HZ_META[shot];
-      const base = voiced.duration + (m?.tail ?? config.voice.tailSeconds);
+      // دفاتر الزمن بأجزاء خريطة النبرة: المدة المقررة بسياسة الصمت (رأس + آخر كلام + ذيل الحد بمالك واحد)،
+      // لا مدة الملف + ذيل التصميم (لا يجتمع صمت التسجيل مع الذيل ولا الذيل مع صمت ما قبل التلاوة)
+      const base = voiced.timing ? voiced.timing.seconds : voiced.duration + (m?.tail ?? config.voice.tailSeconds);
       // أقل مدة بحسب التصميم (minEnd) مقدرة على التوقيت التقديري ثم مقيسة بنسبة طول الصوت الحقيقي
       const est = hzEstimateSeconds(scene.narration, shot, props);
       const plain = hzEstimateSeconds(scene.narration, shot);

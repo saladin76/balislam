@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { SceneShell } from "./SceneShell";
 import { C, Dusk, VerseCard, prog } from "../dafatir/horizon/kit";
-import { Book, ChapterHead, NEUTRAL, parseCam } from "../dafatir/horizon/book";
+import { Book, ChapterHead, NEUTRAL, SceneCloseContext, parseCam } from "../dafatir/horizon/book";
 import { HZ_SCENES } from "../dafatir/horizon/episode001";
 import { HZ_LEAD, HZ_META, hzSentences } from "../dafatir/horizon/meta";
 import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/horizon/timeline";
@@ -41,11 +41,16 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const tl = timelineFor(props.narration ?? "", props.narrationTimings, fps);
   const Comp = HZ_SCENES[shot]!;
   const exit = (props.exit as typeof meta.exit) || meta.exit;
+  // نهاية آخر كلمة منطوقة: منها يبدأ خروج المشهد (قلب الصفحة أو خفوت الحبر)
+  // (المشاهد ذات الإمساك المحسوب للقراءة، minEnd، تحتفظ بخروجها المتأخر)
+  const close = tl.words.length && !meta.minEnd ? tl.words[tl.words.length - 1]!.e : undefined;
   return (
     <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless>
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <Dusk />
-        <Comp t={t} tl={tl} dur={dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
+        <SceneCloseContext.Provider value={close}>
+          <Comp t={t} tl={tl} dur={dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
+        </SceneCloseContext.Provider>
       </AbsoluteFill>
     </SceneShell>
   );
