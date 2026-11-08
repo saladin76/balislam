@@ -14,6 +14,7 @@ import type { CharacterPose, CharacterVariant } from "../../../characters/Charac
 import { CharacterField, ElementField } from "../ui/Pickers";
 import { ImageField } from "../ui/ImageField";
 import { StoryboardPanel } from "./StoryboardPanel";
+import { SceneReviewWorkspace } from "../review/SceneReviewWorkspace";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
 import { api, type SceneReviewItem, type SceneReviewSummary, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
@@ -45,6 +46,20 @@ export const EpisodeTab: React.FC<{
 }> = ({ episodeId, requestedSceneId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript, onOpenVoice }) => {
   const allScenes = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))), [plan]);
   const [selectedId, setSelectedId] = useState(requestedSceneId ?? allScenes[0]?.scene.id ?? "");
+  const [avReviewOpen, setAvReviewOpen] = useState(false);
+  const reviewSeeds = useMemo(() => allScenes.map(({ scene: s, chapter }, i) => ({
+    id: s.id, ordinal: i + 1, chapter: "الفصل " + chapter.number + " — " + chapter.title,
+    title: "المشهد " + String(i + 1).padStart(2, "0") + " — " + (templateById(s.template)?.nameAr ?? s.template),
+    narration: s.narration,
+    storyboard: s.props.storyboard || s.props.visual || s.props.description || s.props.prompt || s.props.text || "",
+    artDirection: s.props.artDirection || s.props.look || s.props.style || (templateById(s.template)?.nameAr ?? s.template),
+    camera: s.props.camera || s.props.cameraMotion || "",
+    transition: s.transition || "",
+    timing: s.props.sync || s.props.beats || "",
+    durationSec: sceneSeconds(s, media),
+    elements: Object.entries(s.props).filter(([key, value]) =>
+      /^(element|image|character|icon)/i.test(key) && Boolean(value.trim())).map(([, value]) => value).slice(0, 6),
+  })), [allScenes, media]);
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [scope, setScope] = useState<Scope>("scene");
   // ستوري بورد الفيديو قبل تنفيذه (يُعتمد قبل الصوت والنسخة النهائية)
@@ -150,6 +165,12 @@ export const EpisodeTab: React.FC<{
   const scene = sel.scene;
   const def = templateById(scene.template);
 
+  if (avReviewOpen) return <SceneReviewWorkspace
+    channelId={channel.id} episodeId={episodeId} episodeTitle={plan.title}
+    seeds={reviewSeeds} initialSceneId={selectedId}
+    onSelectScene={setSelectedId} onClose={() => setAvReviewOpen(false)}
+  />;
+
   if (board)
     return (
       <div className="work">
@@ -180,6 +201,7 @@ export const EpisodeTab: React.FC<{
       <div className="col scenes">
         <div className="col-head">
           <h2>المشاهد</h2>
+          <button className="btn small primary" type="button" onClick={() => setAvReviewOpen(true)} title="واجهة مراجعة V2 للصوت والصورة؛ تتطلب Backend موثوقًا للاعتماد">مراجعة الفيديو V2</button>
           <button className="btn small" onClick={() => setBoard(true)} title="لقطة لكل مشهد مع نصه وعناصره، تُعتمد قبل الصوت والنسخة النهائية">
             ستوري بورد
           </button>
@@ -284,7 +306,7 @@ export const EpisodeTab: React.FC<{
           <code className="help" style={{ direction: "ltr" }}>{scene.id}</code>
         </div>
         <div className="inspector">
-          {sr ? <SceneReviewBox key={scene.id} episodeId={episodeId} sceneId={scene.id} item={srOf(scene.id)} summary={sr.summary} criteria={sr.criteria} onChange={setSr} /> : null}
+          {sr ? <div><p className="help">المراجعة القديمة لمخطط المشهد ليست اعتماد AV في Studio V2.</p><SceneReviewBox key={scene.id} episodeId={episodeId} sceneId={scene.id} item={srOf(scene.id)} summary={sr.summary} criteria={sr.criteria} onChange={setSr} /></div> : null}
           <label className="field">
             <span>القالب</span>
             <select
