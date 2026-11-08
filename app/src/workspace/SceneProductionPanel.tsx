@@ -48,6 +48,11 @@ type Props = {
   hasVoiceKeys?: boolean;
   /** «جهّز كل المشاهد» without a voice key links to «الاتصالات والمفاتيح». */
   onOpenSettings?: () => void;
+  /**
+   * First paint only (server-side render in tests): a read model already fetched from the ledger.
+   * Display only, never a source of approval; the panel re-reads `api.sceneProduction` on mount.
+   */
+  initialRead?: SceneProductionRead;
 };
 
 export type ProblemKind = "motion" | "tone";
@@ -71,8 +76,9 @@ const noop = () => {};
 export const SceneProductionPanel: React.FC<Props> = ({
   episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onUpdated,
   plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
+  initialRead,
 }) => {
-  const [data, setData] = useState<SceneProductionRead | null>(null);
+  const [data, setData] = useState<SceneProductionRead | null>(initialRead ?? null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const owner = useOwnerSession();
