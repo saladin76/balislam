@@ -113,6 +113,14 @@ const sceneService = async (ctx: Ctx, scope: WorkflowIdentity, reviewId?: string
       const observed = await sha256FileAndEpoch(file);
       if (observed.sha256 !== proof.avSha256) throw Error("V2 review video bytes changed.");
       verifySceneReviewReceiptV2(reviewId, session.id, proof, scopeTag, observed.epoch);
+      const { requireCompletedSceneAvReviewV2 } =
+        await ctx.load("/src/workflow/sceneReviewAuditV2.ts");
+      await requireCompletedSceneAvReviewV2(scope, {
+        id: reviewId, sessionId: session.id, ownerId: proof.ownerId,
+        sceneId: proof.sceneId, fingerprint: proof.fingerprint,
+        avSha256: proof.avSha256, avEpoch: observed.epoch,
+        videoVersion: manifest.inputs.video.version,
+      });
     },
     withArtifactLock,
     // Inspections and source decisions remain available without ffprobe;
@@ -302,7 +310,8 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
             sessionId: session.id, ownerId: session.userId,
             scope: scope.channel + "/" + scope.episode, sceneId: id,
             fingerprint: result.fingerprint, avSha256: media.sha256,
-            avEpoch: media.epoch, durationSec: media.durationSec, mediaBytes,
+            avEpoch: media.epoch, videoVersion: manifest.inputs.video.version,
+            durationSec: media.durationSec, mediaBytes,
           });
         });
         return send(res, 200, {
@@ -330,8 +339,36 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
         const body = await readJson(req);
         if (parts[7] === "tick")
           return send(res, 200, tickSceneReviewReceiptV2(reviewId, session.id, body)), true;
-        if (parts[7] === "finish")
-          return send(res, 200, finishSceneReviewReceiptV2(reviewId, session.id, body)), true;
+        if (parts[7] === "finish") {
+          const finished = await withSceneArtifactLockV2(scope, async () => {
+            const { readRegisteredSceneManifestV2 } =
+              await ctx.load("/src/workflow/sceneManifestRegistryV2.ts");
+            const { collectSceneInputsFromDiskV2 } =
+              await ctx.load("/src/workflow/sceneArtifactsV2.ts");
+            const { appendCompletedSceneAvReviewV2 } =
+              await ctx.load("/src/workflow/sceneReviewAuditV2.ts");
+            const manifest = await readRegisteredSceneManifestV2(scope, id);
+            const observed = await collectSceneInputsFromDiskV2(scope, manifest,
+              async (job: () => Promise<unknown>) => job());
+            if (receipt.fingerprint !== observed.fingerprint ||
+                receipt.avSha256 !== observed.inputs.video.sha256 ||
+                receipt.avEpoch !== observed.inputs.video.epoch ||
+                receipt.videoVersion !== manifest.inputs.video.version)
+              throw Error("Scene changed before completing independent AV review.");
+            const outcome = finishSceneReviewReceiptV2(reviewId, session.id, body);
+            await appendCompletedSceneAvReviewV2(scope, {
+              id: receipt.id, sessionId: session.id, ownerId: session.userId,
+              sceneId: id, fingerprint: receipt.fingerprint,
+              avSha256: receipt.avSha256, avEpoch: receipt.avEpoch,
+              videoVersion: receipt.videoVersion,
+              durationSec: receipt.durationSec, mediaBytes: receipt.mediaBytes,
+              playedSec: receipt.playedSec, startedAt: receipt.startedAt,
+              completedAt: receipt.completedAt!, checkpoints: receipt.checkpoints,
+            });
+            return outcome;
+          });
+          return send(res, 200, finished), true;
+        }
       }
     }
     return send(res, 404, { code: "V2_NOT_FOUND" }), true;
