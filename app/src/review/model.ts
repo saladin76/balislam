@@ -18,6 +18,8 @@ export type SceneVersion = {
     width?: number; height?: number; hasAudio?: boolean;
   };
   changes?: VersionDiff[];
+  /** Optional diffs from arbitrary older versions; keyed by baseline version id. */
+  diffsByBase?: Record<string, VersionDiff[]>;
 };
 export type SceneReviewRecord = {
   id: string; status: SceneStatus; currentVersionId?: string;
@@ -89,11 +91,23 @@ export function actionBlockers(record: SceneReviewRecord, previous?: SceneReview
   if (!version?.video?.url) reasons.push("لا يوجد فيديو MP4 صالح لهذا الإصدار.");
   if (previous && previous.status !== "approved")
     reasons.push("يجب اعتماد المشهد السابق أولًا.");
-  if (!version?.fingerprint) reasons.push("بصمة إصدار المشهد غير متاحة.");
+  if (!version?.fingerprint || !/^[a-f0-9]{64}$/.test(version.fingerprint))
+    reasons.push("بصمة إصدار المشهد غير متاحة أو غير صالحة.");
   reasons.push(...record.permissions.reasons);
   return [...new Set(reasons)];
 }
 export const sameScope = (data: ReviewEpisode, channel: string, episode: string): boolean =>
-  data.channelId === channel && data.episodeId === episode &&
-  data.order.length > 0 && data.order.every(id => Boolean(data.scenes[id])) &&
-  new Set(data.order).size === data.order.length;
+  Boolean(data && data.channelId === channel && data.episodeId === episode &&
+    Number.isSafeInteger(data.revision) && Array.isArray(data.order) &&
+    data.order.length > 0 && new Set(data.order).size === data.order.length &&
+    data.scenes && typeof data.scenes === "object" &&
+    data.order.every(id => {
+      const item = data.scenes[id];
+      return typeof id === "string" && Boolean(item) && item?.id === id &&
+        Object.hasOwn(STATUS_LABELS, item.status) &&
+        Array.isArray(item.versions) && Array.isArray(item.notes) &&
+        Boolean(item.permissions) && typeof item.permissions.approve === "boolean" &&
+        typeof item.permissions.requestChanges === "boolean" &&
+        Array.isArray(item.permissions.reasons) &&
+        item.permissions.reasons.every(reason => typeof reason === "string");
+    }));
