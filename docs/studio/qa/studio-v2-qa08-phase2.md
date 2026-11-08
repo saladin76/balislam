@@ -10,9 +10,9 @@
 
 | PR | Team | Head SHA | What actually exists | Integration limit |
 |---|---|---|---|---|
-| [#88](https://github.com/saladin76/balislam/pull/88) | Backend | 727409f592c4760353da32f577027891b35a2b17 | localhost owner session, Origin/CSRF, signed script+Storyboard snapshots, signed trusted render spec/scene manifest, production lease, HTTP scene decisions, server-bound AV review receipt | Backend-only branch lacks Render-owned module; direct CLI/worker/queue recovery not gated; signed spec creation needs trusted integration worker |
-| [#86](https://github.com/saladin76/balislam/pull/86) | Render | 85a7cb112d4a2807771ecae38bf1e0928289143b | per-scene Remotion composition, real probe, SHA, immutable output, cancel/retry handling | no combined trusted backend caller or Mac actual Remotion run evidenced |
-| [#87](https://github.com/saladin76/balislam/pull/87) | UI | 36fadf331b3ea10c1395236878859aaa523338e2 | React RTL scene reviewer, player, timecoded notes, local QA-only adapter | production adapter calls a *different* endpoint tree and cannot produce backend AV receipts |
+| [#88](https://github.com/saladin76/balislam/pull/88) | Backend | 09efabf0ab9b1b00fb10dcd0dbdb7bcd723d044e | localhost owner session, Origin/CSRF, signed script+Storyboard snapshots, signed spec/9-group manifest plus current-generation render receipt, production lease, signed notes, HTTP scene decisions and AV receipts; technical FFmpeg Backend CI | Backend-only branch lacks Render-owned module; direct CLI/worker/queue recovery not gated; signed spec creation needs trusted integration worker |
+| [#86](https://github.com/saladin76/balislam/pull/86) | Render | 42cbc310b0d31db5abfeac365bce06331d3f41cb | per-scene Remotion composition, real probe/SHA, immutable MP4, Render-to-Backend manifest handoff verifier, cancel/retry handling | no combined trusted backend caller or Mac actual Remotion run evidenced |
+| [#87](https://github.com/saladin76/balislam/pull/87) | UI | 9d3ba7466062e229a320f103e79abf3bb41f30b9 | React RTL reviewer and NEW Backend-aligned owner session/CSRF + challenge start/media/tick/finish at 1x | Runtime Chrome+Remotion owner approval remains untested; independent note-only UI still disabled |
 | [#85](https://github.com/saladin76/balislam/pull/85) | QA | phase-2 commits in this branch | real opt-in HTTP/Remotion scripts, explicit blocked states, CI harness-safety tests, dependency audit triage | separate QA ancestry contains none of the other teams' runtime files |
 
 All four are independent Draft PRs targeting PR #77's branch. **No integration branch has been supplied.** Do NOT cherry-pick/merge the teams in this QA PR. A green CI run on one PR does not prove an end-to-end Studio flow.
@@ -28,7 +28,7 @@ Backend is authoritative for:
 - POST /scenes/:sceneId/review/start; authenticated GET /media?reviewId=... (real byte ranges); POST /review/:reviewId/tick|finish; final explicit approve needs matching fingerprint and completed server-bound reviewId.
 - GET /assembly-eligibility (not Master approval).
 
-The UI server adapter still requests \`/api/studio-v2/channels/:channel/episodes/:episode/scene-review\`, \`/notes\`, \`/decisions\`, \`/playback-events\` and has **no Backend V2 login/challenge/tick/finish implementation**. This is a concrete **P0 cross-team contract mismatch**, not a failing runtime E2E test. UI must adapt to Backend rather than maintaining two approval authorities.
+**Updated finding:** UI #87 has now adapted to the actual Backend `/api/studio-v2/episodes/:NNN/...` routes, uses the owner session and CSRF, and implements challenge-based AV start/media/tick/finish and explicit approval. The ORIGINAL path mismatch was genuine at its former SHA, but **is fixed in the latest UI source**. Combined Chrome/HTTP/Remotion owner E2E remains BLOCKED/NOT TESTED. Backend now supports a signed `note` command and currentVideo/blockers projection, while UI's independent note writer remains disabled and these new read-model fields still need real browser QA. Backend #88 now includes a signed current render receipt and a technical FFmpeg-to-approval CI integration test, which is **not** a real owner attentiveness or Remotion/Chrome E2E.
 
 ## 3. QA-08 files / execution semantics
 
@@ -129,17 +129,20 @@ STUDIO_V2_QA_MUTATE_APPROVED_AV=1 npx --no-install tsx scripts/qa/studio-v2-phas
 # and reapprove the affected scene before eligibility can become green again.
 
 node scripts/qa/studio-v2-phase2-security-audit.mjs
+# Read-only checkout source inventory (NEVER E2E PASS):
+node scripts/qa/studio-v2-phase2-integration-inventory.mjs
 \`\`\`
 
 **Important:** these commands are a repeatable procedure, not evidence that the operations ran. Without the correct signed specs/source and integrated owner browser, the gates must report **BLOCKED**. Keep outputs inside \`$QA/.studio-v2-qa-evidence/\`; capture Git SHA, HTTP statuses, MP4 SHA, FFprobe JSON, full-decoded audio/video, 1600px/390px Chrome screenshots and 1x owner notes. No global \`/tmp\` cleanup or deletion of foreign test files. Only the QA-render lease created with \`wx\` by the current runner may be removed after matching its original marker/inode.
 
 ## 6. Security and dependency assessment
 
-- **P0:** UI production adapter uses a different route model, omits session/CSRF and cannot obtain or finish a Backend review receipt.
+- **P0:** The original UI/Backend route mismatch has now been **resolved in source** (#87). Real composite owner login + Chrome AV playback + MP4 receipt + explicit approval is still BLOCKED, with no live three-team proof.
+- **P1:** UI independent timecoded note persistence remains disabled even though updated Backend has a signed `note` command; current-video metadata and blockers require real UI projection QA.
 - **P0:** No approved composite branch or live three-team run. Backend alone refuses render if Render module is missing, as designed.
 - **P0:** Direct CLI, legacy Remotion imports, recovered/render queue execution lack proven authorization at actual dequeue/execution; HTTP quarantine alone is insufficient.
 - **P0:** Master assembly, full episode independent 1× review, exact Master approval and fake publisher are not implemented: all BLOCKED.
-- **P1:** Signed trusted scene spec generation and owner-upload recitation provenance need genuine source adapters and verification.
+- **P1:** Signed trusted scene spec generation and owner-upload recitation provenance need genuine source adapters and verification; Backend technical FFmpeg CI does not substitute for combined real Remotion or actual owner AV attention.
 - **P1:** Stale MP4 changed-and-restored, shared lock vs external writers, cancellation and browser-internal temporary leak cases still need real composite tests.
 - **P1:** **10 high** npm advisories are confirmed in the `npm ci` output of [QA GitHub CI run 42465460515](https://github.com/saladin76/balislam/actions/runs/42465460515), but the named packages and reachable entrypoints are **not independently triaged yet**. The read-only audit script enumerates exact vulnerability packages, advisories, direct/transitive status and \`--omit=dev\` comparison when run. Severity does not automatically prove reachable exploitation; no arbitrary \`npm audit fix --force\`.
 - **P2:** Keep Mac Chrome screenshots/AV, exact SHA, timestamps, memory/disk delta, retry logs and owned-temp evidence. Not captured in this phase.
