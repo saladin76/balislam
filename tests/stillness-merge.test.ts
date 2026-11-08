@@ -20,4 +20,9 @@ describe("السكون المقصود: الفترات المتداخلة لا ت
     expect(mergeSpans(spans)).toHaveLength(2);
     expect([...exemptSeconds(spans, 6)].sort()).toEqual([1, 4]);
   });
+  it("ذكر على حد ثانيتين لا يسقط من الإعفاء (D34)", () => {
+    // 35.52–36.42: لا يغطي نصف أي من الثانيتين، فتُعفى ثانية منتصفه
+    const spans = [{ from: 35.52, to: 36.42, why: "ذكر الله" }];
+    expect([...exemptSeconds(spans, 40)]).toEqual([35]);
+  });
 });

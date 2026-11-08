@@ -51,13 +51,21 @@ export const mergeSpans = (spans: Span[]): Span[] => {
   return out;
 };
 
-/** الثواني الصحيحة التي يغطي السكون المقصود أغلبها (بعد دمج الفترات المتداخلة) */
+/**
+ * الثواني الصحيحة التي يغطي السكون المقصود أغلبها (بعد دمج الفترات المتداخلة).
+ * وكل فترة مدتها نصف ثانية فأكثر تُعفي ثانية منتصفها على الأقل: ذكرٌ مدته 0.9 ث يقع على حد ثانيتين
+ * (35.52–36.42 مثلًا) لا يغطي نصف أيٍّ منهما، فكان يسقط من الإعفاء كله بحسب موضعه من الحد لا بحسب الكلام (D34).
+ */
 export const exemptSeconds = (spans: Span[], seconds: number): Set<number> => {
   const out = new Set<number>();
   const merged = mergeSpans(spans);
   for (let s = 0; s < seconds; s++) {
     const cover = merged.reduce((a, x) => a + Math.max(0, Math.min(s + 1, x.to) - Math.max(s, x.from)), 0);
     if (cover >= 0.5) out.add(s);
+  }
+  for (const x of merged) {
+    const mid = Math.floor((x.from + x.to) / 2);
+    if (x.to - x.from >= 0.5 && mid >= 0 && mid < seconds) out.add(mid);
   }
   return out;
 };
