@@ -1,120 +1,48 @@
-# Studio V2 — UI & Review Handoff Report (technical contract)
+# Studio V2 — Real Backend UI Integration (Task 07)
 
-**Branch:** `work/studio-v2-ui-20261108`  
-**Base commit:** `2d6523d61ccbf6dc434f887bd0b7548a1acd1250`  
-**Status:** new interface implemented, Backend adapter **not connected**. Never describe the QA fixture as an approval.
+PR #87 uses the actual Backend PR #88 API. Both remain independent Draft PRs. Coordination: https://github.com/saladin76/balislam/issues/89
 
-## Implemented surface
+## Live entry and owner sign-in
 
-- The episode editor has **مراجعة الفيديو V2**, opening the isolated `SceneReviewWorkspace`.
-- Large native HTML5 MP4 player with audio, seek, fullscreen, rate control, ±5 sec, actual time display. A Remotion animation preview **does not** become an AV review video.
-- Ordered scene list with explicit states matching `src/workflow/sceneV2.ts`, including `needs_reapproval`.
-- Right-side script/silence, storyboard, art direction, camera, transition, timing, element and version inspectors.
-- Second- or element-bound notes; current-version-only MP4; descriptive version comparison.
-- Fail-closed disabled decisions with visible reasons, refresh/version-change warning, error/offline and missing/broken media states.
-- Standalone QA React page `/scene-review-qa.html` with obviously fictional text and optional generated test MP4. QA notes are browser-local; approval and change decisions remain disabled.
-- Client playback telemetry has event type, sequence, session, version, position, duration, rate. **Play/ended/seek events are not proof**; the server verifies evidence.
+- Open http://127.0.0.1:4322/scene-review-v2.html?channel=balislam&episode=001 against a COMBINED Backend/UI isolated checkout with STUDIO_V2_ENFORCE=1.
+- The old Studio editor still calls legacy APIs that Backend V2 intentionally locks with HTTP 423. The standalone V2 entry avoids that dependency.
+- GET/POST/DELETE /api/studio-v2/session uses Backend owner auth; the browser holds a scoped HttpOnly cookie; CSRF is kept only in memory and sent in x-studio-v2-csrf on writes. Never persist or log the owner secret.
 
-## Backend API contract — not implemented in this branch
+## Backend API mapping (all episode routes append ?channel=<id>)
 
-Use the current authenticated owner session (cookies with CSRF protection, no actor ID from the browser), same-origin responses, and current locked render artifacts. The client assumes:
+- GET /api/studio-v2/episodes/:NNN/scenes — canonical order, status, current fingerprint, real timecoded correction notes.
+- GET /api/studio-v2/episodes/:NNN/sources — owner-approved script and storyboard state.
+- POST /scenes/:id/review/start — only expectedFingerprint; response gives reviewId, rotating challenge, exact media URL and duration.
+- GET /scenes/:id/media?channel=<id>&reviewId=<server-id> — authenticated byte-range AV from Backend.
+- POST /scenes/:id/review/:reviewId/tick — challenge + actual positionSec, rotated by Backend, sequential only.
+- POST /scenes/:id/review/:reviewId/finish — confirmation reviewed_av, not self-reported watched=true.
+- POST /scenes/:id/commands — explicit approve with expectedFingerprint and server reviewId; or request_changes with note, second?, elementId?. No browser-supplied owner identity.
 
-1. `GET /api/studio-v2/channels/:channelId/episodes/:episodeId/scene-review` returns the **server-verified** ordered scene snapshot below; no cached or stale approvals.
-2. `POST .../scene-review/scenes/:sceneId/playback-events` accepts telemetry fields only: `sceneId,versionId,sessionId,sequence,kind,positionSec,durationSec,playbackRate`. Idempotent sequences and receipt storage must be tied to authenticated owner, currently probed MP4 and current scene fingerprint. Do **not** accept a client-provided `watched`, `approved`, `complete`, `proofValid` or completion percentage as authority. Validate chronological, bounded and plausible playback, paused time, seeking, rate, and version-change invalidation.
-3. `POST .../scene-review/scenes/:sceneId/notes` accepts `versionId,expectedFingerprint,text,second?,elementId?`. Server validates version identity and persists author/timestamp from session and trusted clock.
-4. `POST .../scene-review/scenes/:sceneId/decisions` accepts `action: "approve"|"request_changes",sceneId,expectedFingerprint,note?,second?,elementId?`. Backend independently checks source bytes under the writer lock, secure owner authentication, preceding scene approval, valid MP4 and owned AV viewing proof. The `expectedFingerprint` is concurrency precondition **not** evidence. For `request_changes`, require meaningful note. Return success or conflict, and the UI re-GETs authoritative state.
-5. The MP4 `video.url` MUST be a **same-origin**, authenticated, read-only, byte-range-capable endpoint with `Content-Type: video/mp4`, 206 support, safe path resolution, no arbitrary local path and no untrusted redirect. e.g. `/api/studio-v2/media/scenes/c1-s1/versions/v2.mp4`. Validate SHA and epoch on the server; invalidate stale links if bytes change.
+Local playback at 1× invalidates on seek, speed change, mute, network tick failure or media error. Only server-confirmed finish enables the explicit approve button; Backend independently validates current AV bytes and evidence.
 
-**Example GET response** (illustrative only, NOT an existing endpoint):
+## Important limitations / Issue #89
 
-```json
-{
-  "channelId": "balislam",
-  "episodeId": "001-example",
-  "revision": 12,
-  "order": ["c1-s1", "c1-s2"],
-  "scenes": {
-    "c1-s1": {
-      "id": "c1-s1",
-      "status": "in_review",
-      "currentVersionId": "av-v2",
-      "versions": [
-        {
-          "id": "av-v2", "label": "V2",
-          "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "createdAt": "2026-11-08T07:00:00Z",
-          "video": {
-            "url": "/api/studio-v2/media/scenes/c1-s1/versions/av-v2.mp4",
-            "mime": "video/mp4", "durationSec": 8.4, "width": 1920, "height": 1080, "hasAudio": true
-          },
-          "changes": [{"field": "Camera", "before": "Pan", "after": "Static"}]
-        }
-      ],
-      "notes": [{"id": "note-1", "versionId": "av-v2", "text": "حركة سريعة", "second": 3.2, "elementId": "camera", "createdAt": "2026-11-08T07:05:00Z"}],
-      "permissions": {
-        "approve": false, "requestChanges": true,
-        "reasons": ["لم يكتمل دليل المشاهدة المعتمد على الخادم."]
-      }
-    },
-    "c1-s2": {
-      "id": "c1-s2", "status": "prepared", "currentVersionId": null,
-      "versions": [], "notes": [],
-      "permissions": {
-        "approve": false, "requestChanges": false,
-        "reasons": ["المشهد السابق لم يعتمد بعد.", "ملف MP4 غير متاح."]
-      }
-    }
-  }
-}
-```
+1. Backend #88 does NOT offer an independent append-note endpoint. The only persisted timed note is a clearly labelled request_changes command, which also changes scene status. Live save-note is disabled; no fake success.
+2. Backend GET /scenes does NOT return named scene versions, historical diffs, per-action server permissions, validated video dimensions or narration/script/Storyboard detail. UI renders only actual returned fingerprint and notes, no invented version, approval, silent voice or video URL.
+3. No real Render/Backend combination is installed by this UI-only PR. A properly registered MP4, approved sources, actual full 1× playback, Media Range + finish and server approve are required for production acceptance.
 
-Note: the UI currently applies conservative blockers also to Request Changes (requires a playable current MP4) and never silently enables an action the server disallows. A future backend may expose per-action `reasons` to improve copy.
+## Tests
 
-Server errors: 401 unauthenticated, 403 unauthorized, 404 missing scope/video, 409 stale version/dependency/invalid proof, 422 invalid note, 429 rate limit and 5xx service failure. On any uncertain response, disable approval and instruct refresh. Do not reuse legacy `/api/episodes/:episode/scene-review` as V2 evidence; it is a separate plan ledger.
+- npx tsc --noEmit -p .
+- npx vitest run -c app/vitest.review.config.ts
+- npm test (root CI imports the isolated UI suites through tests/studio-v2-ui-contract.test.ts)
+- app/scripts/studio-v2-http-qa.mjs is a real HTTP read-only/auth/CSRF/forbidden-field smoke. It requires the server on port 4322 plus an inherited STUDIO_V2_OWNER_SECRET (never place it in shell history). Writes redacted app/qa-artifacts/studio-v2-http-qa.json.
 
-## Mac QA worktree — no production episodes modified
+## Combined checkout (QA ONLY; never merge or push production)
 
-```bash
-cd ~/balislam
-git fetch origin work/studio-v2-ui-20261108
-git worktree add --detach ~/studio-v2-ui-qa-20261108 origin/work/studio-v2-ui-20261108
-cd ~/studio-v2-ui-qa-20261108
-npm ci
-npx tsc --noEmit -p .
-npx vitest run -c app/vitest.review.config.ts
-npx vitest run
-mkdir -p app/qa-artifacts
-# Optional, synthetic QA-only clip, deliberately untracked:
-ffmpeg -hide_banner -loglevel error -y \
-  -f lavfi -i testsrc2=size=1280x720:rate=30 \
-  -f lavfi -i sine=frequency=220:sample_rate=48000 \
-  -t 8 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest \
-  app/scene-review-qa.mp4
-npm run app -- --port 4322
-```
+1. From ~/balislam: fetch both origin/work/studio-v2-backend-20261108 and origin/work/studio-v2-ui-20261108.
+2. Add an isolated detached worktree at ~/studio-v2-integrated-qa-20261108 from the Backend branch.
+3. In THAT isolated worktree, git merge --no-commit --no-ff origin/work/studio-v2-ui-20261108. Stop rather than resolving security conflicts arbitrarily.
+4. npm ci, npx tsc --noEmit -p ., npx vitest run -c app/vitest.review.config.ts.
+5. Set server-only STUDIO_V2_ENFORCE=1, STUDIO_V2_OWNER_ID, strong STUDIO_V2_OWNER_SECRET, distinct BAL_WORKFLOW_HMAC_KEY, absolute STUDIO_V2_FFPROBE. Do not check these into the repo.
+6. npm run app -- --port 4322; open /scene-review-v2.html?channel=balislam&episode=001; enter owner secret directly into the form.
+7. Run the HTTP QA smoke separately. To prove AV signoff, also register a REAL QA MP4 manifest via trusted Render/Backend, play the entire MP4 at 1× with audible audio, pass tick/finish and explicit approve, and retain redacted HTTP and browser evidence.
 
-Visit `http://127.0.0.1:4322/scene-review-qa.html` (explicit QA mode).
-For screenshots **from the running actual React component**, with the server still running:
+Studio V2 UI layout remains unchanged from the previous measured 1600px and 390px QA. The new authenticated UI has not been visually reverified on Mac yet; do not reuse the old QA screenshots as integration evidence.
 
-```bash
-CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-"$CHROME" --headless=new --disable-gpu --no-first-run \
-  --window-size=1600,1050 --virtual-time-budget=4500 \
-  --screenshot="$PWD/app/qa-artifacts/scene-review-desktop.png" \
-  http://127.0.0.1:4322/scene-review-qa.html
-"$CHROME" --headless=new --disable-gpu --no-first-run \
-  --window-size=390,844 --virtual-time-budget=4500 \
-  --screenshot="$PWD/app/qa-artifacts/scene-review-mobile.png" \
-  http://127.0.0.1:4322/scene-review-qa.html
-```
-
-Run additional manual checks on Mac for keyboard, Arabic joins, 200% zoom, screen reader roles, slow network, MP4 decoding failure (rename QA fixture), scene changes, second-bound notes, status text without color, and no network approvals in QA.
-
-**Important:** screenshots become report evidence only **after commands actually run and generated paths are verified**. This document is not itself screenshot evidence.
-
-## Remaining integration / verification
-
-- Trusted Backend API and owner AV proof verifier, real hashes and release gates — Backend-owned.
-- Backend must provide fuller storyboard camera/timing metadata rather than the current plan's best-effort props.
-- No production MP4 was provided or accessed by this branch; real episode AV playback and approval are untested.
-- Mac full application TypeScript, test suite, Chromium screenshots and visual a11y checks still need recorded logs, unless linked CI results explicitly verify them.
+**Release status:** Draft, fail closed. No Backend/Workflow/Render or production episode files changed by this UI PR. Master/publishing remain separate blocked gates.
