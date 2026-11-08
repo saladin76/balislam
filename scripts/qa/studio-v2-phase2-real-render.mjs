@@ -6,7 +6,7 @@
  */
 import { createHash, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { constants } from "node:fs";
+import { createReadStream } from "node:fs";
 import { open, readFile, realpath, lstat, statfs, stat, rm, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -16,7 +16,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const report = { task: "Studio V2 QA-08 actual Remotion", checkoutSha: null, checks: [], overall: "BLOCKED" };
 const add = (id, status, detail) => report.checks.push({ id, status, ...(detail ? { detail } : {}) });
 const deny = (message) => { add("PRECONDITION", "BLOCKED", message); throw Object.assign(Error(message), { qaBlocked: true }); };
-const hash = (b) => createHash("sha256").update(b).digest("hex");
 const ch = process.env.STUDIO_V2_QA_CHANNEL ?? "balislam";
 const ep = process.env.STUDIO_V2_QA_EPISODE ?? "";
 const id = process.env.STUDIO_V2_QA_SCENE ?? "c1-s1";
@@ -130,7 +129,9 @@ async function run(base) {
   const st = await lstat(mp4);
   if (!st.isFile() || st.isSymbolicLink() || st.nlink !== 1 || st.size < 1000)
     throw Error("MP4 is not a normal immutable scene file");
-  const digest = hash(await readFile(mp4));
+  const digester = createHash("sha256");
+  for await (const chunk of createReadStream(mp4, { highWaterMark: 1024 * 1024 })) digester.update(chunk);
+  const digest = digester.digest("hex");
   if (digest !== rendered.payload.video?.sha256) throw Error("Rendered and stored SHA-256 mismatch");
   add("MP4_SHA_MANIFEST", "PASS", { sha256: digest, bytes: st.size, relativeFile: relative });
   const ffprobeBinary = process.env.STUDIO_V2_FFPROBE;
