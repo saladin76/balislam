@@ -132,6 +132,16 @@ export const collectSceneInputsFromDiskV2 = async (
     : safeNames(audioSet, "narration");
   if (mode !== "silent" && !audio.some((filename) => /\.(mp3|wav|m4a)$/i.test(filename)))
     throw Error("A voiced scene AV video must be bound to real narration or human-recited audio.");
+  if (manifest.audioMode !== undefined) {
+    // A file in recitations/ is not itself provenance proof: the separate AV
+    // review verifier MUST also validate human upload and recitation rights.
+    const hasVoice = audio.some((name) => /^voice\/[^/]+\.(mp3|wav|m4a)$/i.test(name));
+    const hasRecitation = audio.some((name) => /^recitations\/[^/]+\.(mp3|wav|m4a)$/i.test(name));
+    if (mode === "narrated" && (!hasVoice || hasRecitation) ||
+        mode === "recitation" && (!hasRecitation || hasVoice) ||
+        mode === "mixed" && (!hasVoice || !hasRecitation))
+      throw Error("Scene audio manifest must explicitly include required narrator and/or human-recitation files.");
+  }
 
   // No manifest may list an approval ledger as evidence of its own approval.
   return withArtifactLock(async () => {
