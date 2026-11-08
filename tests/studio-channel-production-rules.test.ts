@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import balislam from "../channels/balislam/channel.json";
 import dafatir from "../channels/dafatir-alzaman/channel.json";
 import zubdat from "../channels/zubdat-alkutub/channel.json";
@@ -18,6 +20,20 @@ const plan = (content: PlanScene, id = "balislam"): Plan => ({
 });
 
 describe("Studio: distinct rules for its three existing channels", () => {
+  it("keeps per-channel human review available but collapsible in the existing scene UI", () => {
+    const panel = readFileSync(path.join(__dirname, "../app/src/workspace/SceneProductionPanel.tsx"), "utf8");
+    expect(panel).toContain("channelProductionProfile({ id: channelId })");
+    expect(panel).toContain("معايير مراجعة هذه القناة");
+    expect(panel).toContain("<details");
+  });
+
+  it("never retains a default online Quran reciter in any current channel", () => {
+    for (const c of configs) {
+      expect("recitation" in c).toBe(false);
+      expect(c.rules.quran).toBe(true); // May cite verses, not generate recitation.
+    }
+  });
+
   it("reads profiles from the requested channel without mutating identities or settings", () => {
     for (const c of configs) {
       const before = JSON.stringify(c);
