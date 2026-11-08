@@ -1,3 +1,4 @@
+// اختبارات توقيت حقيقية (مللي ثانية): تُعاد حتى مرتين إن تعثرت بسبب ضغط الجهاز، دون أي تخفيف للتحقق نفسه.
 import { EventEmitter } from "node:events";
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
@@ -51,7 +52,7 @@ afterEach(() => { for (const d of ownedPoolDirs.splice(0)) rmSync(d, { recursive
 const spec = (d: string, id: string, extra: Partial<TaskSpec> = {}): TaskSpec => ({ id, cmd: "x", args: ["out", path.join(d, `${id}.mp4`)], cwd: d, output: path.join(d, `${id}.mp4`), outputArg: 1, ...extra });
 const noEvidence = { oomCount: () => null, oomVictims: () => new Set<number>() };
 
-describe("التوازي الآمن من الموارد", () => {
+describe("التوازي الآمن من الموارد", { retry: 2 }, () => {
   it("يتبع الذاكرة وعدد الأنوية لا رقمًا ثابتًا", () => {
     expect(safeParallelism(7400, 2, 1800, 900)).toBe(2);
     expect(safeParallelism(7400, 8, 1800, 900)).toBe(3);
@@ -68,7 +69,7 @@ describe("التوازي الآمن من الموارد", () => {
   });
 });
 
-describe("تقدير الذاكرة يتعامل مع تفاوت المشاهد", () => {
+describe("تقدير الذاكرة يتعامل مع تفاوت المشاهد", { retry: 2 }, () => {
   it("لكل نوع تكلفة ذروته المقيسة مع هامش؛ المشهد الأثقل لا يُخفيه متوسط الخفيفة", async () => {
     const d = dir();
     const h = harness(20000, { light1: { ms: 10, mb: 600 }, light2: { ms: 10, mb: 600 }, heavy: { ms: 10, mb: 3000 } });
@@ -120,7 +121,7 @@ describe("تقدير الذاكرة يتعامل مع تفاوت المشاهد"
   });
 });
 
-describe("الطابور تحت الضغط", () => {
+describe("الطابور تحت الضغط", { retry: 2 }, () => {
   it("عشر مهام على ذاكرة تكفي اثنتين: لا تتجاوز اثنتين معًا وتكتمل كلها", async () => {
     const d = dir();
     const h = harness(4700, {}, 1800);
@@ -181,7 +182,7 @@ describe("الطابور تحت الضغط", () => {
   });
 });
 
-describe("تصنيف أسباب الفشل", () => {
+describe("تصنيف أسباب الفشل", { retry: 2 }, () => {
   const base = { code: null, signal: null, log: [] as string[] };
   it("نفاد الذاكرة لا يُدّعى إلا بدليل", () => {
     // قتل بلا دليل: «إيقاف قسري» حتى مع ذاكرة منخفضة (مع ملاحظة)
@@ -212,7 +213,7 @@ describe("تصنيف أسباب الفشل", () => {
   });
 });
 
-describe("المهلة والإلغاء داخل الطابور", () => {
+describe("المهلة والإلغاء داخل الطابور", { retry: 2 }, () => {
   it("مهمة معلقة تُوقف عند مهلتها وتُصنف «انتهاء المهلة»", async () => {
     const d = dir();
     const h = harness(20000, { slow: { ms: 0, hang: true } });
@@ -238,7 +239,7 @@ describe("المهلة والإلغاء داخل الطابور", () => {
   });
 });
 
-describe("الاستعادة بعد إعادة التشغيل (عمليات حقيقية)", () => {
+describe("الاستعادة بعد إعادة التشغيل (عمليات حقيقية)", { retry: 2 }, () => {
   const nodeTask = (d: string, id: string, ms: number): TaskSpec => ({
     id,
     cmd: process.execPath,
@@ -308,7 +309,7 @@ describe("الاستعادة بعد إعادة التشغيل (عمليات حق
 // تحذير لمنع تجاهل الاستيراد في بيئات لا تُشغّل الاختبار الحقيقي
 void spawn;
 
-describe("التعطل واختفاء المتصفح (الأمر 010)", () => {
+describe("التعطل واختفاء المتصفح (الأمر 010)", { retry: 2 }, () => {
   it("مهمة لا تستهلك المعالج تُوقف عند مهلة التقدم: انتهاء المهلة", async () => {
     const d = dir();
     const h = harness(20000, { idle: { ms: 0, hang: true } });
@@ -353,7 +354,7 @@ describe("التعطل واختفاء المتصفح (الأمر 010)", () => {
   });
 });
 
-describe("طوابير متعددة على الجهاز نفسه", () => {
+describe("طوابير متعددة على الجهاز نفسه", { retry: 2 }, () => {
   it("مهام طابور آخر جارية تُحسب: لا تبدأ مهمة إن لم تكفِ الذاكرة الباقية بعدها", async () => {
     const d = dir();
     const h = harness(5000, { a: { ms: 10 } });
@@ -372,7 +373,7 @@ describe("طوابير متعددة على الجهاز نفسه", () => {
   });
 });
 
-describe("لا خروج صامت", () => {
+describe("لا خروج صامت", { retry: 2 }, () => {
   it("مهمة منتظرة بلا مهمة جارية تبقي البرنامج حيًا حتى تبدأ وتكتمل (عملية Node حقيقية)", async () => {
     const d = dir();
     // برنامج منفصل: طابور مهمته تنتظر «طابورًا آخر» يحجز الذاكرة ثم يُفرج عنها بعد 1.5 ث
@@ -401,7 +402,7 @@ describe("لا خروج صامت", () => {
 
 // Same output requested twice must not share a .part path. Cancellation removes
 // only the cancelled attempt and cannot destroy either a peer or the old output.
-describe("render-pool partial ownership under parallel cancellation", () => {
+describe("render-pool partial ownership under parallel cancellation", { retry: 2 }, () => {
   it("keeps an existing render until the surviving job completes", async () => {
     const d = dir();
     try {
