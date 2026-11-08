@@ -24,7 +24,7 @@ export type SceneVersion = {
 export type SceneReviewRecord = {
   id: string; status: SceneStatus; currentVersionId?: string;
   versions: SceneVersion[]; notes: ReviewNote[];
-  /** The server computes permissions and their reasons, never the browser. */
+  /** UI-only affordances derived from server state. Backend remains the sole decision authority. */
   permissions: {
     approve: boolean; requestChanges: boolean; reasons: string[];
   };
