@@ -58,7 +58,11 @@ export type SceneRenderSuccessV2 = {
   relativeFile: string; sha256: string; bytes: number;
   durationSec: number; frames: number; fps: number; width: number; height: number;
   videoCodec: string; audioCodecs: string[]; audioStreams: number;
-  elapsedMs: number; peakRssMB?: number; diskFreeBeforeMB: number;
+  elapsedMs: number; peakRssMB?: number;
+  memoryAvailableBeforeMB: number; memoryAvailableMinMB: number;
+  sync: { maxFrameQuantizationErrorMs: number; narratorWords: number;
+    eventStarts: { kind: string; frame: number }[]; muxAudioStartSec?: number };
+  diskFreeBeforeMB: number;
   diskFreeAfterMB: number; inputSha256: string[];
   /** Review is always pending regardless of successful render. */
   reviewStatus: "not_submitted";
@@ -158,7 +162,8 @@ const planScene = (plan: Plan, r: SceneRenderRequestV2): { scene: PlanScene; cha
   if (scene.ayahKey && !scene.props.text?.trim())
     throw Error("Recitation scene requires verified Quran text in locked plan.");
   const expectedImages = [scene.props.image, scene.props.image2, scene.props.image3].filter(Boolean);
-  if (expectedImages.some((ref) => !r.pictures.some((p) => p.ref === ref)))
+  if (expectedImages.some((ref) => !r.pictures.some((p) =>
+    p.ref === ref || p.ref.replace(/\.[^.]+$/, "") === ref)))
     throw Error("Locked visual reference is missing a pinned picture asset.");
   return { ...found[0]!, plan };
 };
@@ -246,6 +251,7 @@ export const renderSceneV2 = async (
       if (!within(trustedRoot, episodeRoot)) throw Error("Episode escapes trusted channels root.");
       const publicRoot = path.join(projectRoot, "public");
       const memory = memoryInfo();
+      let minAvailableMB = memory.availableMB;
       const diskFreeBeforeMB = await freeMB(episodeRoot);
       const inputBytes = (await Promise.all([...r.sounds, ...r.pictures].map(async (a) =>
         (await stat(await realpath(a.file))).size))).reduce((a, b) => a + b, 0);
@@ -312,12 +318,20 @@ export const renderSceneV2 = async (
         frames, media, tracks, words, channel: r.channelInfo, identity: r.identity,
       };
       const temporary = path.join(work, "scene.tmp.mp4");
+      const sampleMemory = setInterval(() => {
+        minAvailableMB = Math.min(minAvailableMB, memoryInfo().availableMB);
+      }, 500);
+      try {
       await renderInternals({
         props, width: r.width, height: r.height, fps: r.fps, tmpFile: temporary,
         bundleDir: path.join(work, "bundle"),
         browserExecutable: deps.browserExecutable, signal: deps.signal,
         onProgress: deps.onProgress,
       });
+      } finally {
+        clearInterval(sampleMemory);
+        minAvailableMB = Math.min(minAvailableMB, memoryInfo().availableMB);
+      }
       const inspected: SceneMediaInspection = await probeMedia(deps.ffprobeBinary, temporary, true, 60000);
       if (inspected.video.codec !== "h264" || inspected.video.width !== r.width ||
           inspected.video.height !== r.height || Math.abs(inspected.video.fps - r.fps) > 0.01 ||
@@ -351,6 +365,15 @@ export const renderSceneV2 = async (
           fps: inspected.video.fps, width: inspected.video.width, height: inspected.video.height,
           videoCodec: inspected.video.codec, audioCodecs: inspected.audio.map((a) => a.codec),
           audioStreams: inspected.audio.length, elapsedMs: Date.now() - t0,
+          memoryAvailableBeforeMB: memory.availableMB, memoryAvailableMinMB: minAvailableMB,
+          sync: {
+            maxFrameQuantizationErrorMs: Math.max(0,
+              ...r.sounds.map((s) => Math.abs(Math.round(s.startSec * r.fps) / r.fps - s.startSec) * 1000),
+              ...words.map((w) => Math.abs(Math.round(w.start * r.fps) / r.fps - w.start) * 1000)),
+            narratorWords: words.length,
+            eventStarts: tracks.map((t) => ({ kind: t.kind, frame: t.fromFrame })),
+            ...(inspected.audio[0] ? { muxAudioStartSec: inspected.audio[0].startSec } : {}),
+          },
           diskFreeBeforeMB, diskFreeAfterMB: await freeMB(episodeRoot),
           inputSha256: [...r.sounds, ...r.pictures].map((a) => a.sha256),
           reviewStatus: "not_submitted",
