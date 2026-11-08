@@ -259,6 +259,38 @@ describe("Studio V2 — trusted server AV scene decisions", () => {
     await expect(x.service.assemblyEligibility()).rejects.toThrow(/c1-s1/);
   });
 
+  it("binds owner timecoded notes to exact rendered bytes and rejects a stale note after a file edit", async () => {
+    const x = await fixture();
+    await x.fullyApprove("c1-s1");
+    const current = await x.current("c1-s1");
+    await x.service.command({
+      action: "note", sceneId: "c1-s1", expectedFingerprint: current,
+      second: 2.5, elementId: "camera-2", note: "Camera transition needs retiming",
+    });
+    let view = await x.service.inspect();
+    const note = view.scenes[0]?.notes[0];
+    expect(note).toMatchObject({
+      fingerprint: current, videoVersion: "v1", second: 2.5,
+      elementId: "camera-2",
+    });
+    expect(note?.videoSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(view.scenes[0]?.status).toBe("approved");
+    // A stale browser snapshot may not create a new, misattributed annotation.
+    await writeFile(path.join(x.dir, pathFor("c1-s1", "video")), "new-video-version");
+    await expect(x.service.command({
+      action: "note", sceneId: "c1-s1", expectedFingerprint: current,
+      second: 3, note: "Stale video request rejected",
+    })).rejects.toThrow(/STALE_AV_NOTE/);
+    view = await x.service.inspect();
+    expect(view.scenes[0]?.notes).toHaveLength(1);
+    expect(view.scenes[0]?.status).toBe("needs_reapproval");
+    await expect(x.service.command({
+      action: "request_changes", sceneId: "c1-s1", expectedFingerprint: current,
+      second: 3, note: "Old revision correction rejected",
+    })).rejects.toThrow(/STALE_AV_NOTE/);
+    expect((await x.service.inspect()).scenes[0]?.notes).toHaveLength(1);
+  });
+
   it("changes in one scene's narrator invalidate it without changing the other scene approval", async () => {
     const x = await fixture();
     await x.fullyApprove("c1-s1");
