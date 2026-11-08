@@ -193,7 +193,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
       </div>
       <div className="v2-header-actions">
         <span className={"v2-mode " + (mode === "demo" ? "qa" : "live")}>
-          {mode === "demo" ? "بيانات اختبارية — لا اعتماد حقيقي" : "اتصال Backend مطلوب"}
+          {mode === "demo" ? "بيانات اختبارية — لا اعتماد حقيقي" : "مراجعة عبر Backend"}
         </span>
         <button type="button" className="v2-outline" onClick={() => void load(false)} disabled={loading || busy}>تحديث الحالة</button>
         {mode === "server" && <button type="button" className="v2-outline" onClick={() => setMode("demo")}>فتح العرض التجريبي</button>}
@@ -252,6 +252,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               mediaFailed ? "تحقق من عنوان الفيديو وترميزه واستجابة الخادم." :
               "لا تعني معاينة التحريك وجود نسخة AV كاملة قابلة للاعتماد."}</p>
             {versionChanged && <button type="button" className="v2-outline" onClick={() => setVersionChanged(false)}>فتح الإصدار الجديد</button>}
+            {mediaFailed && <button type="button" className="v2-outline" onClick={() => setMediaFailed(false)}>إعادة محاولة تشغيل الفيديو</button>}
           </div>}
         </div>
         <div className="v2-player-controls">
