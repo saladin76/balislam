@@ -25,6 +25,10 @@ export type TrustedRendererV2 = (request: any, adapters: any) =>
   Promise<{ status: "succeeded" | "failed" | "cancelled"; [key: string]: any }>;
 export type TrustedProductionDependenciesV2 = {
   renderer: TrustedRendererV2;
+  /** PR #86 verifySceneV2ForBackendManifest, only trusted code supplies it. */
+  verifyPublishedHandoff?: (
+    request: any, result: any, sources: any, shared: any, ffprobeBinary: string,
+  ) => Promise<{ manifest: any; evidence: any }>;
   ffprobeBinary: string;
   browserExecutable?: string;
   /** Actual current script/citations/Storyboard visual validation, not client flags. */
@@ -135,21 +139,15 @@ export const runTrustedSceneProductionV2 = async (
       ...(preflight.spec.recitationEvidence
         ? { recitationEvidence: preflight.spec.recitationEvidence } : {}),
     };
-    // The outer lease is held through registration. No nested production lease.
-    const outcome = await deps.renderer(request, {
-      ffprobeBinary: deps.ffprobeBinary, browserExecutable: deps.browserExecutable,
-      signal: deps.signal,
-      withProductionLease: async (id: string, work: () => Promise<unknown>) => {
-        if (id !== sceneId) throw Error("Wrong production lease scene.");
-        return work();
-      },
-      withArtifactLock: locked,
-      assertCanRender: assertLocked,
-    });
-    if (outcome?.status !== "succeeded")
-      throw Error(outcome?.status === "cancelled" ? "V2_RENDER_CANCELLED" : "V2_RENDER_FAILED");
-    return locked(async () => {
-      await assertLocked(request);
+    // Render PR #86 invokes this callback under its existing artifact lock,
+    // after linking the immutable MP4, before declaring success. No nested lock.
+    let published: {
+      jobId: string; fingerprint: string;
+      video: { version: string; sha256: string; epoch: string;
+        width: number; height: number; durationSec: number; hasAudio: boolean };
+    } | undefined;
+    const onPublishedLocked = async (r: any, outcome: any) => {
+      await assertLocked(r);
       if (outcome.sceneId !== sceneId || outcome.planSha256 !== request.planSha256 ||
           !resultHash.test(outcome.sha256) || typeof outcome.jobId !== "string" ||
           !/^[a-f0-9-]{36}$/.test(outcome.jobId) ||
@@ -166,6 +164,26 @@ export const runTrustedSceneProductionV2 = async (
         throw Error("Rendered MP4 bytes changed before signed registration.");
       const manifest = structuredClone(preflight.spec.manifest);
       manifest.inputs.video = { version: outcome.jobId, files: [outcome.relativeFile] };
+      if (deps.verifyPublishedHandoff) {
+        const { video: _pending, ...sources } = preflight.spec.manifest.inputs;
+        const handoff = await deps.verifyPublishedHandoff(
+          r, outcome, sources, preflight.spec.manifest.shared, deps.ffprobeBinary);
+        if (!handoff || handoff.evidence?.sha256 !== outcome.sha256 ||
+            handoff.evidence?.jobId !== outcome.jobId ||
+            handoff.manifest?.sceneId !== sceneId ||
+            handoff.manifest?.audioMode !== preflight.spec.manifest.audioMode ||
+            !same(handoff.manifest.shared, manifest.shared))
+          throw Error("Render-owned handoff mismatched current server inputs.");
+        for (const [name, set] of Object.entries(sources))
+          if (!same(handoff.manifest.inputs?.[name], set))
+            throw Error("Render handoff substituted signed source files.");
+        if (!same(handoff.manifest.inputs?.video?.files, [outcome.relativeFile]))
+          throw Error("Render handoff substituted actual output.");
+      } else if (process.env.STUDIO_V2_ENFORCE === "1") {
+        // Technical CI fixture is allowed to use Backend's own ffprobe only
+        // outside enforced production mode. Real PR #86 MUST supply its verifier.
+        throw Error("V2_RENDER_HANDOFF_UNCONNECTED");
+      }
       await registerRenderedSceneManifestLockedV2(scope, manifest);
       const captured = await collectSceneInputsFromDiskV2(scope, manifest,
         async (work) => work());
@@ -174,15 +192,34 @@ export const runTrustedSceneProductionV2 = async (
       if (media.sha256 !== actual.sha256 || media.epoch !== actual.epoch ||
           captured.inputs.video.sha256 !== actual.sha256 ||
           captured.inputs.video.epoch !== actual.epoch)
-        throw Error("Independent MP4 stream verification failed after registration.");
+        throw Error("Independent MP4 verification failed during publication.");
       await commitCurrentSceneRenderLockedV2(scope, sceneId, preflight.order,
         outcome.jobId, captured.fingerprint, actual.sha256, actual.epoch);
-      // No submission or owner AV approval is granted here.
-      return { sceneId, status: "rendered" as const,
-        fingerprint: captured.fingerprint,
+      published = { jobId: outcome.jobId, fingerprint: captured.fingerprint,
         video: { version: outcome.jobId, sha256: actual.sha256, epoch: actual.epoch,
           width: media.width, height: media.height, durationSec: media.durationSec,
           hasAudio: media.hasAudio } };
+    };
+    // The outer lease is held through registration. No nested production lease.
+    const outcome = await deps.renderer(request, {
+      ffprobeBinary: deps.ffprobeBinary, browserExecutable: deps.browserExecutable,
+      signal: deps.signal,
+      withProductionLease: async (id: string, work: () => Promise<unknown>) => {
+        if (id !== sceneId) throw Error("Wrong production lease scene.");
+        return work();
+      },
+      withArtifactLock: locked,
+      assertCanRender: assertLocked,
+      onPublishedLocked,
     });
+    if (outcome?.status !== "succeeded")
+      throw Error(outcome?.status === "cancelled" ? "V2_RENDER_CANCELLED" : "V2_RENDER_FAILED");
+    if (!published || published.jobId !== outcome.jobId ||
+        published.video.sha256 !== outcome.sha256)
+      throw Error("V2_RENDER_HANDOFF_MISSING: Render did not complete locked manifest registration.");
+    // The exact video was signed *before* the Render worker returned success.
+    // Never mark the scene submitted, reviewed or approved automatically.
+    return { sceneId, status: "rendered" as const,
+      fingerprint: published.fingerprint, video: published.video };
   });
 };
