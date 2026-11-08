@@ -284,13 +284,19 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
         // Backend checkout alone intentionally lacks Render-owned PR #86 files.
         // Never fall back to legacy render or trust a client-supplied request.
         let renderer: any;
+        let verifyPublishedHandoff: any;
         try {
-          const module = await ctx.load("/src/render/sceneV2.ts");
-          renderer = module.renderSceneV2;
+          const [engine, handoff] = await Promise.all([
+            ctx.load("/src/render/sceneV2.ts"),
+            ctx.load("/src/render/sceneV2Handoff.ts"),
+          ]);
+          renderer = engine.renderSceneV2;
+          verifyPublishedHandoff = handoff.verifySceneV2ForBackendManifest;
         } catch {
           throw new StudioV2AuthError(503, "V2_RENDER_ENGINE_UNCONNECTED");
         }
-        if (typeof renderer !== "function")
+        if (typeof renderer !== "function" ||
+            typeof verifyPublishedHandoff !== "function")
           throw new StudioV2AuthError(503, "V2_RENDER_ENGINE_UNCONNECTED");
         if (!process.env.STUDIO_V2_FFPROBE ||
             !path.isAbsolute(process.env.STUDIO_V2_FFPROBE))
@@ -298,7 +304,7 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
         const { runTrustedSceneProductionV2 } =
           await ctx.load("/src/workflow/sceneRenderBridgeV2.ts");
         const result = await runTrustedSceneProductionV2(scope, id, {
-          renderer,
+          renderer, verifyPublishedHandoff,
           ffprobeBinary: process.env.STUDIO_V2_FFPROBE,
           browserExecutable: process.env.STUDIO_V2_BROWSER_EXECUTABLE || undefined,
           verifySourceReview: async () => verifyStudioV2Sources(scope, ctx.load),
