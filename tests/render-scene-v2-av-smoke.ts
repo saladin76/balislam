@@ -174,11 +174,16 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
     assert.equal(midCancel.status, "cancelled", JSON.stringify(midCancel));
     await assertStagingEmpty();
 
+    let failAtGate = 0;
     const failed = await renderSceneV2(lifecycleReq, {
       ...lifecycleAdapters,
-      browserExecutable: path.join(workspace, "nonexistent-qa-browser"),
+      assertCanRender: async () => {
+        failAtGate += 1;
+        if (failAtGate === 2) throw Error("QA_INTENTIONAL_REVOKED_BEFORE_PUBLICATION");
+      },
     });
     assert.equal(failed.status, "failed", JSON.stringify(failed));
+    assert.equal(failAtGate, 2, "Failure must happen after actual Remotion render.");
     await assertStagingEmpty();
 
     const recovered = await renderSceneV2(lifecycleReq, lifecycleAdapters);
@@ -187,7 +192,7 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
     await assertStagingEmpty();
     console.log("STUDIO_V2_QA_LIFECYCLE " + JSON.stringify({
       inFlightCancellation: midCancel.status, cancellationProgressObserved: progressObserved,
-      deliberateBrowserFailure: failed.status, retry: recovered.status,
+      deliberatePostRenderGateFailure: failed.status, retry: recovered.status,
       retryJobId: recovered.jobId, retrySha256: recovered.sha256,
       cleanupAfterEveryOutcome: true, noAutoApproval: true,
     }));
