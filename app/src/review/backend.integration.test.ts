@@ -131,8 +131,8 @@ describe("Studio V2 real Backend contract adapter", () => {
     await adapter.decide({ sceneId: "c1-s1", expectedFingerprint: fp,
       action: "request_changes", note: "حركة سريعة", second: 3.5, elementId: "camera" });
     const action = calls.find(c => c.url.includes("/commands?"))!;
-    expect(action.body).toEqual({ action: "request_changes", note: "حركة سريعة",
-      second: 3.5, elementId: "camera" });
+    expect(action.body).toEqual({ action: "request_changes", expectedFingerprint: fp,
+      note: "حركة سريعة", second: 3.5, elementId: "camera" });
     expect(action.headers["x-studio-v2-csrf"]).toBe(csrf);
   });
   it("fails closed on 401 and 403, never retaining an expired CSRF token", async () => {
