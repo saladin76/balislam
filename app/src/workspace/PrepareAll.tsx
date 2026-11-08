@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, type ScenePrepareRead } from "../api";
 import { useOwnerSession } from "../shell/ownerSession";
+import { ownerMessage } from "../serverMessages";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
@@ -81,7 +82,7 @@ export const PrepareAll: React.FC<{
       ) : job?.voice.status === "error" && !running ? (
         <span className="prep-note is-err" title={job.voice.error}>توقف توليد الصوت: {job.voice.error?.split("\n")[0]}</span>
       ) : failed ? (
-        <span className="prep-note is-err" title={job!.failed.map((f) => `${f.id}: ${f.error}`).join("\n")}>تعذّر {ar(failed)}: {job!.failed[0]!.error.split("\n")[0]}</span>
+        <span className="prep-note is-err" title={job!.failed.map((f) => `${f.id}: ${ownerMessage(f.error)}`).join("\n")}>تعذّر {ar(failed)} ({job!.failed[0]!.id}): {ownerMessage(job!.failed[0]!.error.split("\n")[0]!)}</span>
       ) : job?.status === "error" ? (
         <span className="prep-note is-err">{job.error}</span>
       ) : null}

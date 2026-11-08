@@ -258,6 +258,9 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
       expect((await decide({ action: "approve-scene", sceneId: id, expectedSha256: candidate, confirmedWatched: true })).status).toBe(409);
       const sub = await decide({ action: "submit-scene", sceneId: id, expectedSha256: sc.sourceSha256 });
       expect(sub.status, JSON.stringify(sub.body)).toBe(200);
+      // A decision answers with the full read model (the UI renders it directly).
+      expect(sub.body.candidates.scenes[id]).toBe(candidate);
+      expect(sub.body.prepared.total).toBe(3);
       // Watching with sound is mandatory.
       expect((await decide({ action: "approve-scene", sceneId: id, expectedSha256: candidate })).status).toBe(409);
       const ok = await decide({ action: "approve-scene", sceneId: id, expectedSha256: candidate, confirmedWatched: true });
@@ -276,6 +279,10 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
       const fix = await decide({ action: "correct-scene", sceneId: "c1-s2", expectedSha256: candidate, note: "الثانية 1: الانتقال سريع" });
       expect(fix.status).toBe(200);
       expect(fix.body.scenes[1].status).toBe("needs_revision");
+      // The note stays visible, and the cut sent back is never offered again as a ready draft.
+      expect(fix.body.scenes[1].correction.note).toBe("الثانية 1: الانتقال سريع");
+      expect(fix.body.scenes[1].draft).toBe("stale");
+      expect((await decide({ action: "approve-scene", sceneId: "c1-s2", expectedSha256: candidate, confirmedWatched: true })).status).toBe(409);
     }
     await produceAndApprove("c1-s2");
     // Not assemblable before the last scene.

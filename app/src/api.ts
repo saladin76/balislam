@@ -10,6 +10,7 @@ import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../..
 import type { TechReviewSummary } from "../../src/channel/techReviews";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
+import { ownerMessage } from "./serverMessages";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -72,7 +73,7 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? `خطأ ${res.status}`);
+  if (!res.ok) throw new Error(ownerMessage((data as { error?: string }).error ?? `خطأ ${res.status}`));
   return data as T;
 };
 
@@ -87,7 +88,9 @@ export type SceneProductionRead = {
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
     sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean;
     /** Pre-rendered draft from «جهّز كل المشاهد»: never a submission or approval. */
-    draft?: "ready" | "stale" | "none" }[];
+    draft?: "ready" | "stale" | "none";
+    /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
+    correction?: { note: string; at: string } }[];
   /** «جاهز ١٢ من ٣١»: approved, submitted, or with a current draft. */
   prepared?: { ready: number; total: number };
   assembly: { sha256: string; approved: boolean } | null;

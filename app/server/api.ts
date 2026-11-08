@@ -227,9 +227,10 @@ export const balApi = (): Plugin => ({
             if (req.method === "POST") {
               const body = await readBody(req);
               try {
-                return send(res, 200, await decideSceneProduction(
-                  ep, body, req.headers["x-studio-owner-token"],
-                ));
+                await decideSceneProduction(ep, body, req.headers["x-studio-owner-token"]);
+                // The full read model (candidates, drafts, prepared), the same shape as GET:
+                // the UI replaces its state with this response.
+                return send(res, 200, await inspectSceneProduction(ep));
               } catch (error) {
                 return refuse(error);
               }

@@ -213,6 +213,14 @@ const saveLedger = async (file: string, doc: SignedSceneLedger): Promise<void> =
   } finally { await rm(temp, { force: true }); }
 };
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+/** A lock left by a writer process that no longer exists on this machine (Studio crashed or was killed
+ * mid-write). Only "<pid> <uuid>" locks of a dead process qualify; a live writer is never touched. */
+export const lockOwnerIsDead = (content: string | null, ownPid = process.pid): boolean => {
+  const pid = Number(content?.match(/^(\d+) [0-9a-f-]{36}$/)?.[1]);
+  if (!Number.isInteger(pid) || pid <= 0 || pid === ownPid) return false;
+  try { process.kill(pid, 0); return false; }
+  catch (error) { return (error as NodeJS.ErrnoException).code === "ESRCH"; }
+};
 const serialized = async <T>(file: string, work: () => Promise<T>): Promise<T> => {
   const name = file + ".lock";
   let fd: Awaited<ReturnType<typeof open>> | undefined;
@@ -220,12 +228,18 @@ const serialized = async <T>(file: string, work: () => Promise<T>): Promise<T> =
     try { fd = await open(name, "wx", 0o600); break; }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      const held = await readFile(name, "utf8").catch(() => null);
+      // Recover only a dead process's lock, and only if it is still the same lock we inspected.
+      if (lockOwnerIsDead(held) && await readFile(name, "utf8").catch(() => null) === held) {
+        await rm(name, { force: true });
+        continue;
+      }
       if (attempt === 59) throw Error("Scene approval ledger is busy. Never delete another writer lock.");
       await sleep(25);
     }
   }
   if (!fd) throw Error("Cannot lock scene approvals.");
-  const token = randomUUID();
+  const token = `${process.pid} ${randomUUID()}`;
   try {
     await fd.writeFile(token); await fd.sync();
     return await work();
@@ -347,11 +361,18 @@ export const inspectSceneProduction = (episode: string) =>
     const v = view(doc, current.ready);
     const candidates = Object.fromEntries(await Promise.all(doc.state.scenes.map(async scene =>
       [scene.id, await optionalSha(sceneFile(current.scriptPath, scene.id))] as const)));
-    const scenes = await Promise.all(v.scenes.map(async s => ({
-      // Once submitted or approved the preview is no longer a draft.
-      ...s, draft: s.status === "approved" || s.status === "in_review" ? "none" as const
-        : await draftOf(doc, current.scriptPath, s.id, s.sourceSha256, candidates[s.id] ?? null),
-    })));
+    const scenes = await Promise.all(v.scenes.map(async s => {
+      // The owner's latest correction of this scene (shown until the scene is approved).
+      const fix = [...doc.history].reverse().find(h => h.sceneId === s.id && (h.action === "correct-scene" || h.action === "approve-scene"));
+      const correction = fix?.action === "correct-scene" && s.status === "needs_revision"
+        ? { note: fix.note ?? "", at: fix.at, sha256: fix.resultSha256 } : undefined;
+      // Once submitted or approved the preview is no longer a draft; a cut the owner sent back for a fix
+      // is never offered again as a "ready" draft: the scene must be rendered again.
+      const draft = s.status === "approved" || s.status === "in_review" ? "none" as const
+        : correction && correction.sha256 && correction.sha256 === candidates[s.id] ? "stale" as const
+        : await draftOf(doc, current.scriptPath, s.id, s.sourceSha256, candidates[s.id] ?? null);
+      return { ...s, draft, ...(correction ? { correction: { note: correction.note, at: correction.at } } : {}) };
+    }));
     return {
       ...v, scenes,
       /** «جاهز ١٢ من ٣١»: approved, submitted for review, or with a current draft ready to watch. */

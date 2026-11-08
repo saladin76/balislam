@@ -138,6 +138,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
     setError("");
     try {
       await api.assembleSceneAv(episodeId, channelId, sessionSecret);
+      // One click: the file just built from the approved cuts is recorded for the 1× review at once,
+      // so an older file at the same path (e.g. a legacy preview) is never what gets recorded.
+      const fresh = await api.sceneProduction(episodeId, channelId);
+      const built = fresh.candidates?.assemblySha256;
+      if (built) await api.decideScene(episodeId, channelId, sessionSecret, { action: "assemble", expectedSha256: built });
       await refresh();
       onUpdated?.();
     } catch (e) {
@@ -150,7 +155,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const humanReviewFocus = channelProductionProfile({ id: channelId }).reviewFocus;
   const currentId = data?.progress.currentScene ?? null;
   const scene = data?.scenes.find(item => item.id === currentId);
-  const candidate = currentId ? data?.candidates.scenes[currentId] : null;
+  const candidate = currentId ? data?.candidates?.scenes[currentId] : null;
   const previewUrl = currentId && candidate ? api.previewUrl(episodeId, `scene-${currentId}-av.mp4`) : "";
   const allApproved = Boolean(data?.progress.canAssemble);
 
@@ -168,14 +173,13 @@ export const SceneProductionPanel: React.FC<Props> = ({
     setPending(true);
     setError("");
     try {
-      const updated = await api.decideScene(episodeId, channelId, sessionSecret, {
+      await api.decideScene(episodeId, channelId, sessionSecret, {
         action, expectedSha256, ...(sceneId ? { sceneId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reviewed ? { confirmedWatched: true } : {}),
         ...(seamsChecked ? { seamsChecked } : {}),
       });
-      // Server returned a read model, but its current file candidates may have changed.
-      setData(updated);
+      // Re-read the full model (candidates, drafts) before rendering: never render a partial response.
       const fresh = await api.sceneProduction(episodeId, channelId);
       setData(fresh);
       onUpdated?.();
@@ -328,7 +332,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     const shownServer = data?.scenes.find((s) => s.id === shownId);
     const gated = Boolean(data && (!data.script.approved || !data.storyboard.approved));
     const isCurrent = Boolean(data && !gated && shownId === currentId && scene);
-    const shownVideo = data?.candidates.scenes[shownId] ? api.previewUrl(episodeId, `scene-${shownId}-av.mp4`) : "";
+    const shownVideo = data?.candidates?.scenes[shownId] ? api.previewUrl(episodeId, `scene-${shownId}-av.mp4`) : "";
     const blocking = issues.filter((i) => i.level === "error").length;
     const approvedCount = data?.progress.approvedScenes ?? 0;
     const chapterStarts = new Set(plan!.chapters.map((c) => c.scenes[0]?.id).filter(Boolean));
@@ -409,7 +413,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
               <SceneDecisionActions
                 prepare={prepare}
                 onOpenSettings={onOpenSettings}
-                stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : candidate && scene.readyForAv ? "submit" : "render"}
+                stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : candidate && scene.readyForAv && !scene.correction ? "submit" : "render"}
                 voice={voiceOf(currentId)}
                 voiceBusy={voiceBusy}
                 voiceMsg={voiceMsg}
@@ -476,8 +480,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
             <span className={`s3-state is-${status}`}>{status === "done" ? "معتمد" : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? "بانتظار التعديل" : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
             <p className="s3-narr">{hit?.scene.narration || "بلا تعليق صوتي"}</p>
 
-            {isCurrent && scene?.status === "needs_revision" && sentNotes[currentId!] ? (
-              <p className="s3-sent"><b>ملاحظتك:</b> {sentNotes[currentId!]}</p>
+            {isCurrent && scene?.status === "needs_revision" && (sentNotes[currentId!] || scene.correction?.note) ? (
+              <p className="s3-sent"><b>{draftReady ? "ملاحظتك على النسخة السابقة:" : "ملاحظتك (بانتظار التعديل ثم إعادة الإنتاج):"}</b> {sentNotes[currentId!] || scene.correction?.note}</p>
             ) : null}
             {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوته أو تلاوته المرفوعة.</p> : null}
             {isCurrent && (scene?.status === "in_review" || draftReady) ? criteria : null}
@@ -573,11 +577,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <div className="sp-row">
           <div><h3>كل المشاهد معتمدة</h3><p className="sp-hint">تُدمج ملفات المشاهد المعتمدة نفسها بالترتيب في نسخة واحدة للمشاهدة الكاملة.</p></div>
           <div className="sp-actions">
-            {data.candidates.assemblySha256 ? (
-              <button className="btn primary" disabled={pending || !owner.open} onClick={() => void act("assemble", data.candidates.assemblySha256!)}>تسجيل النسخة المجمعة للمراجعة</button>
-            ) : (
-              <button className="btn primary" disabled={pending || !owner.open} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد"}</button>
-            )}
+            <button className="btn primary" disabled={pending || !owner.open} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد للمراجعة"}</button>
             {sceneMode && order[0] ? <button type="button" className="btn" onClick={() => setEditing(order[0]!)}>تحرير المشهد</button> : null}
           </div>
         </div>
