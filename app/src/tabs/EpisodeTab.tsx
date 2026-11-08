@@ -45,6 +45,8 @@ export const EpisodeTab: React.FC<{
   const [selectedId, setSelectedId] = useState(requestedSceneId ?? allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [scope, setScope] = useState<Scope>("scene");
+  const [focusView, setFocusView] = useState(false);
+  const [inspectorTab, setInspectorTab] = useState<"design" | "review" | "sound">("design");
   // ستوري بورد الفيديو قبل تنفيذه (يُعتمد قبل الصوت والنسخة النهائية)
   const [board, setBoard] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
@@ -172,7 +174,7 @@ export const EpisodeTab: React.FC<{
     );
 
   return (
-    <div className="work episode-grid">
+    <div className={`work episode-grid studio-editor-v2${focusView ? " is-focused" : ""}`}>
       {/* قائمة المشاهد */}
       <div className="col scenes">
         <div className="col-head">
@@ -209,6 +211,7 @@ export const EpisodeTab: React.FC<{
 
       {/* المعاينة */}
       <div className="col center">
+        <div className="v2-scene-context"><span>المشهد {allScenes.findIndex((x) => x.scene.id === scene.id) + 1} من {allScenes.length}</span><code dir="ltr">{scene.id}</code><span className="spacer" /><button type="button" className="btn small" aria-pressed={focusView} onClick={() => setFocusView((v) => !v)}>{focusView ? "إظهار اللوحات" : "وضع التركيز"}</button></div>
         <div className="toolbar">
           <div className="seg" role="group" aria-label="نطاق المعاينة">
             {([["scene", "المشهد"], ["chapter", "الفصل"], ["episode", "الحلقة كاملة"]] as const).map(([k, l]) => (
@@ -280,8 +283,15 @@ export const EpisodeTab: React.FC<{
           <span className="spacer" />
           <code className="help" style={{ direction: "ltr" }}>{scene.id}</code>
         </div>
+        <div className="v2-inspector-tabs" role="group" aria-label="أدوات المشهد">
+          {([["design", "التصميم"], ["review", "المراجعة"], ["sound", "الصوت"]] as const).map(([id, label]) => <button key={id} type="button" aria-pressed={inspectorTab === id} onClick={() => setInspectorTab(id)}>{label}</button>)}
+        </div>
         <div className="inspector">
+          <section hidden={inspectorTab !== "review"} aria-label="مراجعة المشهد">
           {sr ? <SceneReviewBox key={scene.id} episodeId={episodeId} sceneId={scene.id} item={srOf(scene.id)} summary={sr.summary} criteria={sr.criteria} onChange={setSr} /> : null}
+          {!sr ? <p className="help">جارٍ تحميل مراجعة المشهد…</p> : null}
+          </section>
+          <section hidden={inspectorTab !== "design"} aria-label="تصميم المشهد">
           <label className="field">
             <span>القالب</span>
             <select
@@ -456,6 +466,8 @@ export const EpisodeTab: React.FC<{
             </div>
           </details>
 
+          </section>
+          <section hidden={inspectorTab !== "sound"} aria-label="صوت المشهد">
           <div className="section-t">التعليق الصوتي</div>
           <div className="narr">{scene.narration || <span className="help">لا تعليق صوتي في هذا المشهد</span>}</div>
           {scene.narration ? (
@@ -479,6 +491,7 @@ export const EpisodeTab: React.FC<{
           ) : null}
           {scene.narration ? <SceneVoice key={scene.id} episodeId={episodeId} sceneId={scene.id} state={voiceState(scene)} hasKeys={keys.voice} onMedia={onMediaChange} /> : null}
           <button className="btn small" onClick={() => onEditScript(scene.line)}>تعديل النص في السكريبت (سطر {scene.line})</button>
+          </section>
         </div>
       </div>
     </div>

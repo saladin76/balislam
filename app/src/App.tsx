@@ -11,6 +11,8 @@ import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import "./workspace/workspace.css";
+import "./studio-shell.css";
+import { StudioSidebar, StudioIcon, SECTION_TITLES } from "./ui/StudioSidebar";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
@@ -44,6 +46,8 @@ const store = {
 
 export const App: React.FC = () => {
   useStudioFonts();
+  const [navOpen, setNavOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
@@ -247,45 +251,47 @@ export const App: React.FC = () => {
   };
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
+  const closeNavigation = () => { setNavOpen(false); menuButton.current?.focus(); };
+  const navigateSection = (next: Tab) => {
+    if (!confirmLeaveScript()) return;
+    setTab(next);
+    if (navOpen) closeNavigation();
+  };
+
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
-      <div className={`app${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
+      <div className={`studio-shell${navOpen ? " is-nav-open" : ""}`} onKeyDown={(e) => { if (e.key === "Escape" && navOpen) closeNavigation(); }}>
+      <StudioSidebar active={tab} channelName={channel.nameDisplay ?? channel.name} channelMark={<BrandMark channel={channel} />}
+        identityDirty={identDirty} voiceConnected={keysOk.voice} episodeId={epId} episodeTitle={plan?.title}
+        onNavigate={navigateSection} onClose={closeNavigation} />
+      {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
+      <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
-        <header className="top">
-          <button className="brand" onClick={() => confirmLeaveScript() && setTab("home")} title="الرئيسية">
-            <BrandMark channel={channel} />
-            <span>استوديو <span style={{ fontFamily: ident.draft.fonts?.wordmark ? `'${ident.draft.fonts.wordmark}', inherit` : undefined, fontSize: "1.1em" }}>{channel.nameDisplay ?? channel.name}</span></span>
-          </button>
+        <header className="top studio-topbar">
+          <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
+          <div className="studio-page-heading"><span>الاستوديو <i aria-hidden="true">/</i> {channel.name}</span><strong>{SECTION_TITLES[tab]}</strong></div>
+          <div className="studio-topbar-controls">
           {channels.length > 1 ? (
-            <select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { const next = e.target.value; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }} style={{ width: 170 }} aria-label="القناة">
+            <label className="studio-context-select"><span>القناة النشطة</span><select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { const next = e.target.value; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }} aria-label="القناة">
               {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            </select></label>
           ) : null}
-          <nav className="tabs" role="tablist">
-            <button role="tab" aria-selected={tab === "home"} onClick={() => confirmLeaveScript() && setTab("home")}>غرفة العمليات</button>
-          </nav>
           {EPISODE_TABS.includes(tab) ? (
-            <select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} style={{ width: 280 }} aria-label="الحلقة">
+            <label className="studio-context-select studio-episode-select"><span>الحلقة الحالية</span><select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} aria-label="الحلقة">
               {episodes?.length ? null : <option value="">لا توجد حلقات</option>}
               {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
-            </select>
+            </select></label>
           ) : null}
-          <nav className="tabs" role="tablist" aria-label="القناة">
-            <button role="tab" aria-selected={tab === "identity"} onClick={() => confirmLeaveScript() && setTab("identity")}>الهوية{identDirty ? " •" : ""}</button>
-            <button role="tab" aria-selected={tab === "library"} onClick={() => confirmLeaveScript() && setTab("library")}>المكتبة</button>
-            <button role="tab" aria-selected={tab === "channel"} onClick={() => confirmLeaveScript() && setTab("channel")}>القناة</button>
-            <button role="tab" aria-selected={tab === "settings"} onClick={() => confirmLeaveScript() && setTab("settings")}>الإعدادات{keysOk.voice ? "" : " •"}</button>
-          </nav>
-          <span className="spacer" />
           {tab === "episode" && plan ? (
             <span className="status">
               <i className={`dot ${planState === "dirty" || planState === "saving" ? "dirty" : planState === "error" ? "err" : ""}`} />
               {planState === "saved" ? "كل التعديلات محفوظة" : planState === "saving" ? "جارٍ الحفظ…" : planState === "dirty" ? "تعديل…" : "تعذّر الحفظ"}
             </span>
           ) : null}
+          </div>
         </header>
 
         {EPISODE_TABS.includes(tab) && plan && check && epId ? (
@@ -485,6 +491,7 @@ export const App: React.FC = () => {
           />
         ) : null}
         {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
+      </div>
       </div>
       </ChannelProvider>
     </IdentityProvider>
