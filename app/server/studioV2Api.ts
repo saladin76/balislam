@@ -177,8 +177,12 @@ const streamAv = async (ctx: Ctx, scope: WorkflowIdentity, sceneId: string,
         if (err) reject(err);
         else resolve();
       };
-      stream.on("data", (data: Buffer) =>
-        streamSceneReviewReceiptV2(reviewId, sessionId, data.length));
+      let position = start;
+      stream.on("data", (data: Buffer) => {
+        const nextPosition = position + data.length;
+        streamSceneReviewReceiptV2(reviewId, sessionId, position, nextPosition);
+        position = nextPosition;
+      });
       stream.once("error", done);
       stream.once("end", () => done());
       ctx.res.once("close", () => { stream.destroy(); done(); });
@@ -288,6 +292,9 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
             throw Error("Scene AV changed while starting owner review.");
           const media = await probeSceneAvLockedV2(scope, manifest,
             { ffprobeBinary: process.env.STUDIO_V2_FFPROBE! });
+          const { resolveArtifact } = await ctx.load("/src/workflow/artifacts.ts");
+          const videoPath = await resolveArtifact(scope, manifest.inputs.video.files[0]!);
+          const mediaBytes = (await stat(videoPath)).size;
           if (media.sha256 !== result.inputs.video.sha256 ||
               media.epoch !== result.inputs.video.epoch)
             throw Error("Scene AV media changed before review.");
@@ -295,7 +302,7 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
             sessionId: session.id, ownerId: session.userId,
             scope: scope.channel + "/" + scope.episode, sceneId: id,
             fingerprint: result.fingerprint, avSha256: media.sha256,
-            avEpoch: media.epoch, durationSec: media.durationSec,
+            avEpoch: media.epoch, durationSec: media.durationSec, mediaBytes,
           });
         });
         return send(res, 200, {
