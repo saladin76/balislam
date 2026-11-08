@@ -87,7 +87,8 @@ const GAPS: [number, number][] = [
   [580, 400],
 ];
 const LIVES = [Tent, Wheat, Boat, Jar];
-const LIVES_X = [1560, 1150, 880, 470];
+// المعايش في المسافات بين الفجوات (لا تحت صفحاتها المفقودة): كانت القارب والجرة تحت الفجوتين 2 و3 فتتداخل معهما
+const LIVES_X = [1620, 1180, 1040, 300];
 const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const ticks = prog(t, at(tl, "تعاقب") - 0.1, end(tl, "البشري") + 0.2);
   const lives = [at(tl, "وتنوعت"), at(tl, "أحوال"), at(tl, "الناس"), at(tl, "ومعايشهم")].map((a) => pop(t, a, 0.5));
@@ -340,6 +341,8 @@ const Roadmap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ─── c7-s7: أسئلة الحلقة القادمة، لكل سؤال أداته: بلا سجل مكتوب / كم عمره؟ / حدود الدليل ───
 const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const q1 = at(tl, "كيف");
+  // «وأول ما نحتاج إلى فهمه»: إطار السؤال الأول يُرسم بالحبر من «وأول» ويكتمل عند «كيف» (كان يظهر عند «كيف» وحدها فتبقى الصفحة فارغة نحو 5 ث)
+  const frameIn = prog(t, at(tl, "وأول"), q1 + 0.3, easeOut);
   const scrape = prog(t, at(tl, "الباحثون") - 0.1, at(tl, "قوم") + 0.2);
   const scroll = pop(t, at(tl, "سجلا"));
   const empty = prog(t, at(tl, "مكتوبا") - 0.05, at(tl, "مكتوبا") + 0.5);
@@ -365,8 +368,8 @@ const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
       {/* السؤال الأول: قوم بلا سجل مكتوب — مِسْحَج يكشط التراب، ولفافة فارغة */}
-      <rect x={1030} y={180} width={700} height={340} rx={16} fill="none" stroke={C.inkSoft} strokeWidth={3} opacity={prog(t, q1 - 0.1, q1 + 0.4)} />
-      <rect x={1050} y={400} width={660} height={100} fill="#D9C29A" opacity={0.8 * prog(t, q1 - 0.1, q1 + 0.4)} />
+      <rect x={1030} y={180} width={700} height={340} rx={16} fill="none" stroke={C.inkSoft} strokeWidth={3} pathLength={1} strokeDasharray="1" strokeDashoffset={1 - frameIn} opacity={frameIn > 0 ? 1 : 0} />
+      <rect x={1050 + 660 * (1 - prog(t, q1 - 0.4, q1 + 0.4, easeOut))} y={400} width={660 * prog(t, q1 - 0.4, q1 + 0.4, easeOut)} height={100} fill="#D9C29A" opacity={0.8 * prog(t, q1 - 0.4, q1 + 0.1)} />
       <g transform={`translate(${1250 + Math.sin(scrape * Math.PI * 6) * 40} ${400 - 10 * scrape}) rotate(-35)`} opacity={scrape > 0 ? 1 : 0}>
         <path d="M0 0 L60 -10 L70 20 L10 30 Z" fill="#9AA0A6" stroke={C.ink} strokeWidth={3} />
         <rect x={66} y={-2} width={90} height={18} rx={8} fill="#8B5E3C" stroke={C.ink} strokeWidth={3} />
