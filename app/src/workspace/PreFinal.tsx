@@ -8,7 +8,7 @@ const lufs = (l?: Loudness | null) => (l && Number.isFinite(l.integrated) ? `${l
 const sec = (n: number) => `${n.toFixed(2)} ث`;
 
 /**
- * Step ٤ (owner decision, 8 Nov: recitations come LAST).
+ * Step ٣ «النسخة النهائية» (owner decision, 8 Nov: recitations come LAST).
  *  1. «معاينة قبل النهائية»: every current scene cut in order (approved or draft), with narration, verse
  *     scenes silent and marked «التلاوة تُضاف لاحقًا». For watching only: it is not an approval, not the
  *     assembly and never a Master.

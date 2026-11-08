@@ -47,7 +47,7 @@ export const publishCardState = (
     approved, publishAllowed,
     pill: publishAllowed ? "مأذون بالنشر" : approved ? "معتمدة" : isMaster ? "بانتظار اعتمادك" : "معاينة لا تُنشر",
     permission: publishAllowed ? "ممنوح لهذا الملف" : approved ? "بانتظار إذنك (البطاقة أعلى الصفحة)" : "بعد اعتماد النسخة النهائية",
-    hint: approved ? null : isMaster ? "اعتمد هذا الملف بعينه بعد مشاهدته كاملًا (الخطوة ٤)." : "معاينة لا تُنشر. النسخة النهائية تُصنع بدقة 4K.",
+    hint: approved ? null : isMaster ? "اعتمد هذا الملف بعينه بعد مشاهدته كاملًا (الخطوة ٣)." : "معاينة لا تُنشر. النسخة النهائية تُصنع بدقة 4K.",
     primary: publishAllowed && mine ? "download" : null,
     rerenderWarning: publishAllowed
       ? "سيلغي اعتماد النسخة النهائية وإذن النشر الممنوح لهذا الملف، ويلزم بعده مشاهدتها واعتمادها من جديد. متابعة؟"

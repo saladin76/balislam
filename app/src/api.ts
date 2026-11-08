@@ -38,10 +38,10 @@ export type Overview = {
   /** الأسلوب الغالب على الحلقة (للتنوّع) */
   style: string;
   status: EpisodeStatus;
-  /** حالة الخطوات الخمس من سجل الإنتاج؛ null إن تعذّرت قراءته */
+  /** حالة الخطوات الأربع من سجل الإنتاج؛ null إن تعذّرت قراءته */
   production?: ProductionSummary | null;
 };
-export type ProductionSummary = { script: boolean; storyboard: boolean; approvedScenes: number; totalScenes: number; canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
+export type ProductionSummary = { steps?: [boolean, boolean, boolean, boolean]; preparation?: boolean; script: boolean; storyboard: boolean; approvedScenes: number; totalScenes: number; canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
 /** معاينة حلقة: source يبيّن هل الفيديو على هذا الجهاز، أو في مجلد Drive المتزامن، أو رابط Drive فقط */
 export type EpisodePreview = { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null; source: "local" | "drive-mirror" | "drive-link" | "missing"; driveUrl: string | null };
 export type EpisodeStatus = { /** اعتماد النسخة الأساسية بعد مشاهدتها كاملة (بصمة ملف الحلقة) */ approved?: { at: string; size: number; mtime: number }; checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string; /** يوم نشر الحلقة الطويلة المخطط (YYYY-MM-DD) */ scheduled?: string };
@@ -128,6 +128,7 @@ export type ScenePrepareJob = {
   /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
   skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
 };
+export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number };
 export type SceneOwnerAction = {
   action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
@@ -181,6 +182,17 @@ export const api = {
     | { action: "approve"; key: string; reciter: string; rightsEvidence: string; note: string; listened: boolean }) =>
     call<Record<string, unknown>>(`/api/episodes/${episode}/own-recitations`, {
       method: "POST", json: body, headers: { "x-studio-owner-token": token } }, channel),
+  /** Step ١ «التجهيز»: what still blocks the one-button approval (script errors, verses without text, board record). */
+  preparation: (episode: string, channel: string) =>
+    call<PreparationRead>(`/api/episodes/${episode}/approve-preparation`, undefined, channel),
+  /**
+   * «اعتمد التجهيز»: the script approval, then (if needed) the board record, then the storyboard approval, each
+   * checked by the server; then the scenes start preparing on their own (drafts only, nothing approved).
+   */
+  approvePreparation: (episode: string, channel: string, token: string, body: { scriptSha256: string; storyboardSha256: string; reviewed: boolean; note?: string }) =>
+    call<SceneProductionRead & { prepare: { job: ScenePrepareJob | null; error?: string } }>(`/api/episodes/${episode}/approve-preparation`, {
+      method: "POST", json: body, headers: { "x-studio-owner-token": token },
+    }, channel),
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel),

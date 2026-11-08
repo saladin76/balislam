@@ -566,6 +566,7 @@ export const App: React.FC = () => {
             onOpenScript={() => setTab("script")}
             onOpenPublish={() => setTab("publish")}
             onOpenFinal={() => setTab("review")}
+            onOpenPreparation={() => setTab("storyboard")}
             onUpdated={() => setHomeKey(k => k + 1)}
             editor={(sceneId, onSelect) => (
               <EpisodeTab

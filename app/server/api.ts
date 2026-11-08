@@ -320,10 +320,44 @@ export const balApi = (): Plugin => ({
 
           // «جهّز كل المشاهد»: voice for scenes lacking it, then AV drafts in order in the background.
           // Drafts are never submissions or approvals (see prepareAll.ts / sceneService.ts).
+          // Starts the queue for an owner already authenticated and an episode already ready (callers check).
+          const startPrepare = async (token: unknown) => {
+            const key = `${ch}/${ep}`;
+            const { prepareAllScenes } = await load("/src/studio/prepareAll.ts");
+            if (prepareJob(key)?.status === "running") return prepareJob(key)!;
+            const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
+            const voiceClient = elevenLabsFromEnv();
+            // Audit item 5: the queue does not re-render a scene whose same inputs just failed.
+            const previousFailures = prepareJob(key)?.failed ?? [];
+            return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
+              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress, shouldStop, previousFailures })));
+          };
+
+          // Step ١ «التجهيز» (funnel v3): ONE owner action writes the script approval, then the board record when
+          // needed, then the storyboard approval, each with its own check (src/studio/preparation.ts). Right after
+          // it the scenes start preparing on their own (drafts only; nothing is submitted or approved).
+          if (parts[2] === "approve-preparation" && parts.length === 3) {
+            const { approvePreparation, preparationBlockers } = await load("/src/studio/preparation.ts");
+            if (req.method === "GET") {
+              try { return send(res, 200, await preparationBlockers(ep)); } catch (error) { return refuse(error); }
+            }
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const body = await readBody(req);
+            const token = req.headers["x-studio-owner-token"];
+            let read;
+            try { read = await approvePreparation(ep, body, token); } catch (error) { return refuse(error); }
+            const { requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
+            let job = null;
+            let prepareError: string | undefined;
+            try { await requireSceneProductionReady(ep); job = await startPrepare(token); }
+            catch (error) { prepareError = (error as Error).message; }
+            return send(res, 200, { ...read, prepare: { job, ...(prepareError ? { error: prepareError } : {}) } });
+          }
+
           if (parts[2] === "scene-prepare" && parts.length === 3) {
             const key = `${ch}/${ep}`;
             const voiceKey = Boolean(process.env.ELEVENLABS_API_KEY && (channelMod.loadChannel(ch).voice?.id || process.env.ELEVENLABS_VOICE_ID));
-            const { scenesNeedingVoice, prepareAllScenes } = await load("/src/studio/prepareAll.ts");
+            const { scenesNeedingVoice } = await load("/src/studio/prepareAll.ts");
             if (req.method === "GET")
               return send(res, 200, { job: prepareJob(key), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
             if (req.method === "DELETE") {
@@ -337,13 +371,7 @@ export const balApi = (): Plugin => ({
             const { assertSceneOwner, requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
             try { assertSceneOwner(token); await requireSceneProductionReady(ep); }
             catch (error) { return refuse(error); }
-            if (prepareJob(key)?.status === "running") return send(res, 200, { job: prepareJob(key), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
-            const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
-            const voiceClient = elevenLabsFromEnv();
-            // Audit item 5: the queue does not re-render a scene whose same inputs just failed.
-            const previousFailures = prepareJob(key)?.failed ?? [];
-            const job = startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress, shouldStop, previousFailures })));
+            const job = await startPrepare(token);
             return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
           }
 

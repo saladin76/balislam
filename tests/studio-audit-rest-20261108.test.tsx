@@ -133,19 +133,18 @@ describe("12 · عدد الاستشهادات غير الموثّقة في سط�
   });
 });
 
-describe("13 · «سجل مراجعة اللوحات» فوق اللوحات ما دام لم يُسجَّل", () => {
+describe("13 · «سجل مراجعة اللوحات»: ملاحظته تُكتب مع «اعتمد التجهيز» (funnel v3)", () => {
   const st = { total: 31, approved: 0, changed: [], fresh: [], ok: false, scenes: {} };
-  it("is on top until recorded, then back under «أدوات وتفاصيل»", () => {
-    expect(auditLogOnTop(st)).toBe(true);
-    expect(auditLogOnTop(undefined)).toBe(true);
+  it("the log lives under «أدوات وتفاصيل»; the board note is asked next to the one filled button of step ١", () => {
+    expect(auditLogOnTop(st)).toBe(false);
     expect(auditLogOnTop({ ...st, approved: 31, ok: true })).toBe(false);
     const html = renderToStaticMarkup(<BoardAuditLog st={st} channelId="balislam" episodeId="002" note="" onNote={noop}
       reviewed={false} onReviewed={noop} busy={false} onAct={noop} error="اكتب ملاحظة" />);
     expect(html).toContain("سجل مراجعة اللوحات");
-    expect(html).toContain("تسجيل اعتماد اللوحات المرئية");
     expect(html).toContain("اكتب ملاحظة");
-    const board = src("app/src/tabs/StoryboardPanel.tsx");
-    expect(board.indexOf("{auditLogOnTop(st) ? auditLog : null}")).toBeLessThan(board.indexOf("{rows.map("));
+    const spine = src("app/src/shell/EpisodeSpine.tsx");
+    expect(spine).toContain("ملاحظتك على اللوحات");
+    expect(spine).toContain("needNote ? { note: boardNote.trim() } : {}");
   });
 });
 

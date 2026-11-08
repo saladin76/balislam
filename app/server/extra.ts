@@ -243,7 +243,7 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
         planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
         style: styleOf((fm as { style?: string }).style, scenes),
         status,
-        // حالة الحلقة في الخطوات الخمس من سجل الإنتاج نفسه (المصدر الوحيد للاعتماد)
+        // حالة الحلقة في الخطوات الأربع من سجل الإنتاج نفسه (المصدر الوحيد للاعتماد)
         production: await summarizeSceneProduction(id).catch(() => null),
       });
     }

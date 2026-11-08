@@ -71,7 +71,7 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(app).toContain("<OwnerSessionProvider");
     expect(app).not.toContain("<EpisodeWorkspaceBar");
     const journey = src("app/src/shell/EpisodeSpine.tsx");
-    for (const name of ["إعداد الحلقة", "الستوري بورد", "المشاهد", "النسخة النهائية", "النشر"])
+    for (const name of ["التجهيز", "المشاهد", "النسخة النهائية", "النشر"])
       expect(journey).toContain(name);
     expect(journey).toContain("api.sceneProduction(episodeId, channelId)");
     expect(journey).not.toMatch(/WorkflowOwnerControls|localStorage|autoApprove/);

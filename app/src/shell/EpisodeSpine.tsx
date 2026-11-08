@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api, type SceneProductionRead } from "../api";
+import { api, type PreparationRead, type SceneProductionRead } from "../api";
 import { useOwnerSession } from "./ownerSession";
 import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
@@ -9,18 +9,29 @@ import { citationNotice } from "./citationNotice";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
-/** الخطوات الخمس، وكل خطوة تملك تبويباتها الفرعية */
+/**
+ * الخطوات الأربع (funnel v3، قرار صاحب القناة ٨ نوفمبر)، وكل خطوة تملك تبويباتها الفرعية:
+ * ١ التجهيز يُعدّه النظام (الستوري بورد والسكريبت والبحث) ويعتمده المالك بزر واحد،
+ * ثم ٢ المشاهد خطوة المالك (يعتمد كل مشهد بنصه وحركته وصوته معًا)، ثم ٣ النسخة النهائية، ثم ٤ النشر.
+ */
 export const STEPS: { n: string; title: string; tabs: StepTab[] }[] = [
-  { n: "١", title: "إعداد الحلقة", tabs: ["script", "research"] },
-  { n: "٢", title: "الستوري بورد", tabs: ["storyboard"] },
-  { n: "٣", title: "المشاهد", tabs: ["episode", "voice"] },
-  { n: "٤", title: "النسخة النهائية", tabs: ["review"] },
-  { n: "٥", title: "النشر", tabs: ["publish"] },
+  { n: "١", title: "التجهيز", tabs: ["storyboard", "script", "research"] },
+  { n: "٢", title: "المشاهد", tabs: ["episode", "voice"] },
+  { n: "٣", title: "النسخة النهائية", tabs: ["review"] },
+  { n: "٤", title: "النشر", tabs: ["publish"] },
 ];
 export const SUBTABS: Partial<Record<StepTab, string>> = {
-  script: "السكريبت", research: "البحث والمصادر", episode: "إنتاج المشاهد", voice: "الصوت",
+  storyboard: "الستوري بورد", script: "السكريبت", research: "البحث والمصادر", episode: "مراجعة المشاهد", voice: "الصوت",
 };
 export const stepOf = (tab: StepTab) => STEPS.findIndex((s) => s.tabs.includes(tab));
+
+/** حالة الخطوات الأربع من قراءة السجل: التجهيز = السكريبت والستوري بورد معًا. */
+export const stepsDone = (w: Pick<SceneProductionRead, "script" | "storyboard" | "progress"> | null): boolean[] => [
+  Boolean(w?.script.approved && w?.storyboard.approved),
+  Boolean(w?.progress.canAssemble),
+  Boolean(w?.progress.masterApproved),
+  Boolean(w?.progress.publishAllowed),
+];
 
 type Props = {
   episodeId: string; channelId: string; title: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
@@ -31,7 +42,7 @@ type Props = {
 };
 
 /**
- * عمود الحلقة: خمس محطات من اليمين إلى اليسار، يمتلئ الخط بلون القناة حتى الخطوة الحالية،
+ * عمود الحلقة: أربع محطات من اليمين إلى اليسار، يمتلئ الخط بلون القناة حتى الخطوة الحالية،
  * وتحتها جملة واحدة بما يلزم الآن وزر واحد. الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
 export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided, onOpenSettings }) => {
@@ -41,6 +52,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
   const [reviewed, setReviewed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [tick, setTick] = useState(0);
+  const [boardNote, setBoardNote] = useState("");
   useEffect(() => {
     let live = true;
     setErr("");
@@ -48,55 +60,68 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
     return () => { live = false; };
   }, [episodeId, channelId, refreshKey, tick]);
   useEffect(() => setReviewed(false), [episodeId, tab]);
-  // Item 12: before the script approval, how many citations are still unverified (informative only).
+  const prepOpen = Boolean(w && !(w.script.approved && w.storyboard.approved));
+  // Item 12: before the preparation approval, how many citations are still unverified (informative only).
   const [citations, setCitations] = useState("");
-  const scriptOpen = Boolean(w && !w.script.approved);
   useEffect(() => {
-    if (!scriptOpen) return setCitations("");
+    if (!prepOpen) return setCitations("");
     let live = true;
     api.review(episodeId).then((r) => live && setCitations(citationNotice(r.items)), () => live && setCitations(""));
     return () => { live = false; };
-  }, [episodeId, scriptOpen, refreshKey, tick]);
+  }, [episodeId, prepOpen, refreshKey, tick]);
+  // What still blocks «اعتمد التجهيز» on the server (script errors, verses without text, the board record).
+  const [prep, setPrep] = useState<PreparationRead | null>(null);
+  useEffect(() => {
+    if (!prepOpen) return setPrep(null);
+    let live = true;
+    api.preparation(episodeId, channelId).then((r) => live && setPrep(r), () => live && setPrep(null));
+    return () => { live = false; };
+  }, [episodeId, channelId, prepOpen, refreshKey, tick]);
 
-  const done = [
-    Boolean(w?.script.approved),
-    Boolean(w?.storyboard.approved),
-    Boolean(w?.progress.canAssemble),
-    Boolean(w?.progress.masterApproved),
-    Boolean(w?.progress.publishAllowed),
-  ];
+  const done = stepsDone(w);
   const current = done.findIndex((d) => !d);
   const here = stepOf(tab);
 
   /** ما يلزم الآن، وزره: إما قرار يُتخذ هنا، أو انتقال إلى مكانه */
-  const next = ((): { text: string; label: string; go?: StepTab; fix?: boolean; decide?: "approve-script" | "approve-storyboard" } | null => {
+  const next = ((): { text: string; label: string; go?: StepTab; fix?: "script" | "verses"; decide?: "approve-preparation" } | null => {
     if (!w) return null;
-    if (!done[0]) return scriptErrors.length
-      ? { text: "", label: "افتح السكريبت", go: "script", fix: true }
-      : { text: `راجع النص والمصادر، ثم اعتمد السكريبت المحفوظ.${citations ? ` ${citations}` : ""}`, label: "اعتماد السكريبت", decide: "approve-script" };
-    if (!done[1]) return { text: "راجع لوحة كل مشهد، وسجّل مراجعتك في «سجل مراجعة اللوحات» أعلى الستوري بورد، ثم اعتمده كاملًا.", label: "اعتماد الستوري بورد", decide: "approve-storyboard" };
-    if (!done[2] && !w.progress.currentScene && (w.progress.recitationPending?.length ?? 0) > 0)
+    if (!done[0]) {
+      if (scriptErrors.length || (prep?.scriptErrors ?? 0) > 0) return { text: "", label: "افتح السكريبت", go: "script", fix: "script" };
+      if (prep?.versesMissing.length) return { text: `آيات بلا نصها في السكريبت: ${arNum(prep.versesMissing.length)}. اكتب نص كل آية في سطرها ثم اعتمد التجهيز.`, label: "افتح السكريبت", go: "script", fix: "verses" };
+      // Outside step ١ the decision is not repeated: step ٢ shows its own one line and one button back.
+      if (stepOf(tab) !== 0) return { text: "التجهيز (الستوري بورد والسكريبت) لم يُعتمد بعد.", label: "إلى التجهيز", go: "storyboard" };
+      return { text: "راجع الستوري بورد والسكريبت والمصادر، ثم اعتمد التجهيز؛ بعده تبدأ المشاهد تُجهَّز وحدها.", label: "اعتمد التجهيز", decide: "approve-preparation" };
+    }
+    if (!done[1] && !w.progress.currentScene && (w.progress.recitationPending?.length ?? 0) > 0)
       return { text: "كل المشاهد معتمدة، وآيات بانتظار تلاواتها: شاهد المعاينة قبل النهائية وارفع التلاوات.", label: "إلى التلاوات", go: "review" };
-    if (!done[2]) return { text: `${sceneName(w.scenes.map((x) => x.id), w.progress.currentScene)} هو التالي: أنتجه بالصوت والصورة وشاهده قبل اعتماده. (معتمد ${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)})`, label: "إلى المشهد الحالي", go: "episode" };
-    // Step ٤ owns everything after the scenes: assembly, its review, making and approving the final file.
-    // Step ٥ owns only the publish permission and the files (funnel audit 8 Nov, D36: no bouncing).
+    if (!done[1]) return { text: `${sceneName(w.scenes.map((x) => x.id), w.progress.currentScene)} ينتظر قرارك: شاهده بنصه وحركته وصوته، ثم اعتمده. (معتمد ${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)})`, label: "إلى المشهد الحالي", go: "episode" };
+    // Step ٣ owns everything after the scenes: assembly, its review, making and approving the final file.
+    // Step ٤ owns only the publish permission and the files (funnel audit 8 Nov, D36: no bouncing).
     if (!w.assembly) return { text: "كل المشاهد معتمدة. ادمجها في نسخة واحدة للمشاهدة الكاملة.", label: "إلى التجميع", go: "review" };
     if (!w.progress.assemblyApproved) return { text: "شاهد الحلقة المجمعة كاملة 1× وافحص كل وصلة بين مشهدين.", label: "إلى مراجعة التجميع", go: "review" };
-    if (!done[3]) return { text: "اصنع النسخة النهائية بدقة 4K، شاهدها كاملة، ثم اعتمد هذا الملف بعينه.", label: "إلى النسخة النهائية", go: "review" };
-    if (!done[4]) return { text: "النسخة النهائية معتمدة. النشر قرار منفصل لهذا الملف.", label: "إلى النشر", go: "publish" };
+    if (!done[2]) return { text: "اصنع النسخة النهائية بدقة 4K، شاهدها كاملة، ثم اعتمد هذا الملف بعينه.", label: "إلى النسخة النهائية", go: "review" };
+    if (!done[3]) return { text: "النسخة النهائية معتمدة. النشر قرار منفصل لهذا الملف.", label: "إلى النشر", go: "publish" };
     return { text: "مأذون بنشر هذه النسخة النهائية. أي تعديل في مشهد يلغي الإذن.", label: "إلى النشر", go: "publish" };
   })();
 
-  const decide = async (action: "approve-script" | "approve-storyboard") => {
+  const needNote = Boolean(prep && !prep.boardsRecorded);
+  const noteOk = !needNote || boardNote.trim().length >= 25;
+  /**
+   * «اعتمد التجهيز»: one owner action. The server writes the script approval, then (if needed) the board
+   * record, then the storyboard approval, each checked on its own; then the scenes start preparing.
+   */
+  const approvePreparation = async () => {
     if (!w) return;
     setBusy(true); setErr("");
     try {
-      await api.decideScene(episodeId, channelId, owner.secret, {
-        action, expectedSha256: action === "approve-script" ? w.script.sha256 : w.storyboard.sha256, confirmedWatched: true,
-        note: action === "approve-script" ? "راجعت السكريبت والمصادر" : "راجعت لوحات الستوري بورد كاملة",
+      await api.approvePreparation(episodeId, channelId, owner.secret, {
+        scriptSha256: w.script.sha256, storyboardSha256: w.storyboard.sha256, reviewed,
+        ...(needNote ? { note: boardNote.trim() } : {}),
       });
-      setReviewed(false);
+      setReviewed(false); setBoardNote("");
       setTick((t) => t + 1); onDecided();
+      // The next step is the owner's: the scenes, each shown ready as it is prepared.
+      onTab("episode");
     } catch (e) {
       setErr((e as Error).message);
       // Re-read the ledger: a stale fingerprint (e.g. the boards were just signed) must not stay stuck.
@@ -105,11 +130,12 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
     finally { setBusy(false); }
   };
 
-  // «راجعته بنفسي» belongs to one decision: never carried from the script over to the storyboard.
+  // «راجعته بنفسي» belongs to one decision: never carried over to another.
   const decideTarget = next?.decide ?? "";
   useEffect(() => setReviewed(false), [decideTarget]);
 
   const fill = current < 0 ? 100 : (current / (STEPS.length - 1)) * 100;
+  const inStep1 = here === 0;
   return (
     <section className="spine" aria-label="خطوات الحلقة">
       <div className="spine-head">
@@ -135,26 +161,34 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
           );
         })}
       </ol>
-      {next ? (
-        <div className={`spine-next${next.fix && here === 0 ? " has-fix" : ""}`}>
-          {next.fix
-            ? here === 0
+      {/* Step ٢ before «اعتمد التجهيز» is itself one line and one button back to step ١: nothing repeated here. */}
+      {next && !(w && !done[0] && here === 1) ? (
+        <div className={`spine-next${next.fix === "script" && inStep1 ? " has-fix" : ""}${next.decide ? " is-decide" : ""}`}>
+          {next.fix === "script"
+            ? inStep1 && scriptErrors.length
               ? <ScriptFixList errors={scriptErrors} onLine={onScriptLine} />
-              : <p>السكريبت لم يُعتمد بعد: {scriptErrors.length.toLocaleString("ar-EG")} {scriptErrors.length === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في «إعداد الحلقة».</p>
-            : <p>{next.text}</p>}
+              : <p>التجهيز لم يُعتمد بعد: {arNum(scriptErrors.length || prep?.scriptErrors || 0)} {(scriptErrors.length || prep?.scriptErrors) === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في السكريبت.</p>
+            : <div className="spine-text">
+                <p>{next.text}</p>
+                {next.decide && citations ? (
+                  <p className="spine-hint">{citations}{tab !== "script" ? <> <button type="button" className="prep-link" onClick={() => onTab("script")}>سجل التوثيق</button></> : null}</p>
+                ) : null}
+              </div>}
           {next.decide ? (
             <div className="spine-decide">
-              {!owner.open ? <span className="spine-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span> : (
+              {!owner.open ? <span className="spine-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span> : (<>
+                {needNote ? (
+                  <input type="text" className="spine-note" value={boardNote} maxLength={3000} onChange={(e) => setBoardNote(e.target.value)}
+                    aria-label="ملاحظة مراجعتك للوحات" placeholder="ملاحظتك على اللوحات: ما راجعته فعلًا (٢٥ حرفًا على الأقل)" />
+                ) : null}
                 <label><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> راجعته بنفسي</label>
-              )}
-              <button type="button" className="btn primary" disabled={!owner.open || !reviewed || busy} onClick={() => void decide(next.decide!)}>{busy ? "جارٍ الاعتماد…" : next.label}</button>
-              {next.decide === "approve-storyboard" && tab !== "storyboard" ? <button type="button" className="btn" onClick={() => onTab("storyboard")}>فتح الستوري بورد</button> : null}
-              {next.decide === "approve-script" && citations && tab !== "script" ? <button type="button" className="btn" onClick={() => onTab("script")}>سجل التوثيق</button> : null}
+              </>)}
+              <button type="button" className="btn primary" disabled={!owner.open || !reviewed || !noteOk || busy} onClick={() => void approvePreparation()}>{busy ? "جارٍ الاعتماد…" : next.label}</button>
             </div>
-          ) : next.go && !STEPS[stepOf(next.go)]!.tabs.includes(tab) ? (
+          ) : next.go && (next.fix ? tab !== next.go : !STEPS[stepOf(next.go)]!.tabs.includes(tab)) ? (
             <div className="spine-decide">
-              {/* الخطوة ٣ الآن وأنت خارج شاشتها: «جهّز كل المشاهد» هنا، وفي شاشة المشاهد نفسها هناك */}
-              {current === 2 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} order={w.scenes.map((x) => x.id)} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} /> : null}
+              {/* الخطوة ٢ الآن وأنت خارج شاشتها: سطر «جاهز ١٢ من ١١٤» هنا، وفي شاشة المشاهد نفسها هناك */}
+              {current === 1 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} order={w.scenes.map((x) => x.id)} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} /> : null}
               <button type="button" className="btn primary" onClick={() => onTab(next.go!)}>{next.label}</button>
             </div>
           ) : null}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { api, type SceneProductionRead, type SceneOwnerAction } from "../api";
+import { api, type SceneProductionRead, type SceneOwnerAction, type ScenePrepareRead } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
 import type { Plan } from "../../../src/plan/types";
 import type { ChannelInfo } from "../../../src/channel/types";
@@ -22,16 +22,18 @@ type Props = {
   onOpenScript: () => void;
   onOpenPublish: () => void;
   /**
-   * Given only on step ٥ («النشر»): making and approving the final file belong to step ٤, so before the
+   * Given only on step ٤ («النشر»): making and approving the final file belong to step ٣, so before the
    * Master is approved this screen points there instead of repeating it (funnel audit 8 Nov, D36).
    */
   onOpenReview?: () => void;
-  /** Step ٣ only: once every scene is approved, its one forward action is step ٤ (assembly and final). */
+  /** Step ٢ only: once every scene is approved, its one forward action is step ٣ (assembly and final). */
   onOpenFinal?: () => void;
+  /** Step ٢ only: before «اعتمد التجهيز» the whole screen is one line and this one button back to step ١. */
+  onOpenPreparation?: () => void;
   onUpdated?: () => void;
   /**
-   * شاشة «المشاهد» (الخطوة ٣) فقط: الخطة لعرض نص كل مشهد وشريط التقدم، ومحرر المشهد الكامل
-   * يُفتح خلف «تحرير المشهد» بدل أن يظهر دائمًا. بدونها تبقى اللوحة شريط القرار في الخطوتين ٤ و٥.
+   * شاشة «المشاهد» (الخطوة ٢) فقط: الخطة لعرض نص كل مشهد وشريط التقدم، ومحرر المشهد الكامل
+   * يُفتح خلف «تحرير المشهد» بدل أن يظهر دائمًا. بدونها تبقى اللوحة شريط القرار في الخطوتين ٣ و٤.
    */
   plan?: Plan;
   channel?: ChannelInfo;
@@ -74,7 +76,7 @@ const noop = () => {};
  * All decisions are server-authenticated, bound to real bytes and serialized.
  */
 export const SceneProductionPanel: React.FC<Props> = ({
-  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onUpdated,
+  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onOpenPreparation, onUpdated,
   plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
   initialRead,
 }) => {
@@ -103,6 +105,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [voiceMsg, setVoiceMsg] = useState("");
   // بعد «اعتمد» يُعرض المشهد التالي فورًا، وتبدأ مسودته الجاهزة بالتشغيل
   const [advanced, setAdvanced] = useState(false);
+  // التجهيز في الخلفية (يبدأ وحده بعد «اعتمد التجهيز»): يقول تحت المشهد غير الجاهز «يُجهَّز الآن» أو «في الدور»
+  const [prepJob, setPrepJob] = useState<ScenePrepareRead["job"]>(null);
   const moreRef = useRef<HTMLDivElement>(null);
   // النسخة المجمعة: زر كل وصلة ينقل المشغّل إلى لحظتها
   const assemblyRef = useRef<HTMLVideoElement>(null);
@@ -343,14 +347,24 @@ export const SceneProductionPanel: React.FC<Props> = ({
     );
   }
 
-  // Item 16: after the last approval step ٣ keeps its strip and player, so any approved scene can be rewatched.
+  // Before «اعتمد التجهيز» (step ١) step ٢ is one line and one button back; never a disabled action bar.
+  if (sceneMode && data && (!data.script.approved || !data.storyboard.approved)) {
+    return (
+      <section className="stage s3 s3-gated" aria-label="المشاهد قبل اعتماد التجهيز">
+        <div className="s3-gate">
+          <p>المشاهد تبدأ بعد اعتماد التجهيز (الستوري بورد والسكريبت) في الخطوة ١.</p>
+          <button type="button" className="btn primary" onClick={onOpenPreparation ?? onOpenStoryboard}>إلى التجهيز</button>
+        </div>
+      </section>
+    );
+  }
+  // Item 16: after the last approval step ٢ keeps its strip and player, so any approved scene can be rewatched.
   const allDoneHere = Boolean(sceneMode && onOpenFinal && data && data.script.approved && data.storyboard.approved && !currentId);
-  if (sceneMode && shownId && (!data || !data.script.approved || !data.storyboard.approved || (currentId && scene) || allDoneHere)) {
+  if (sceneMode && shownId && (!data || (currentId && scene) || allDoneHere)) {
     const hit = planScenes.find((x) => x.scene.id === shownId);
     const shownIdx = order.indexOf(shownId);
     const shownServer = data?.scenes.find((s) => s.id === shownId);
-    const gated = Boolean(data && (!data.script.approved || !data.storyboard.approved));
-    const isCurrent = Boolean(data && !gated && shownId === currentId && scene);
+    const isCurrent = Boolean(data && shownId === currentId && scene);
     const shownVideo = data?.candidates?.scenes[shownId] ? api.previewUrl(episodeId, `scene-${shownId}-av.mp4`) : "";
     const blocking = issues.filter((i) => i.level === "error").length;
     const approvedCount = data?.progress.approvedScenes ?? 0;
@@ -365,29 +379,30 @@ export const SceneProductionPanel: React.FC<Props> = ({
       if (id === currentId) return "now";
       return "later";
     };
-    const status = gated ? "later" : statusOf(shownId);
-    // «جهّز كل المشاهد» في شريط الأفعال نفسه، لا في الرأس
-    const prepare = data && !gated && !data.progress.canAssemble ? (
-      <PrepareAll episodeId={episodeId} channelId={channelId} prepared={data.prepared} onOpenSettings={onOpenSettings} order={order}
+    const status = statusOf(shownId);
+    // التجهيز يبدأ وحده بعد «اعتمد التجهيز»: سطر حالته فقط («جاهز ١٢ من ١١٤» مع أوقف/استأنف)، لا زر في شريط القرار
+    const prepLine = data && !data.progress.canAssemble ? (
+      <PrepareAll className="s3-prep" episodeId={episodeId} channelId={channelId} prepared={data.prepared} onOpenSettings={onOpenSettings} order={order}
+        onJob={setPrepJob}
         onChanged={() => {
           void refresh().catch(() => {});
           // الصوت المولَّد في الخلفية يظهر في أزرار المشهد دون إعادة فتح الحلقة
           void api.episode(episodeId, channelId).then((d) => onMediaChange?.(d.media), () => {});
           onUpdated?.();
         }} />
-    ) : undefined;
-    // الأفعال ظاهرة دائمًا؛ وحين لا تتاح بعد، سبب واحد حقيقي من حالة الحلقة ورابط إلى الخطوة الناقصة
+    ) : null;
+    const prepRunning = prepJob?.status === "running";
+    const preparing: "now" | "queued" | null = !prepRunning || !currentId ? null
+      : prepJob!.sceneId === currentId ? "now"
+      : prepJob!.skipped?.some((x) => x.id === currentId) || prepJob!.failed.some((x) => x.id === currentId) ? null : "queued";
+    // مشهد غير الحالي، أو الحالة لم تُقرأ بعد: سبب واحد وزر واحد، بلا شريط معطّل
     const lock: ActionLock | undefined = !data
       ? { reason: error ? "تعذّر تحميل حالة الحلقة؛ أعد فتحها." : "جارٍ تحميل حالة الحلقة…" }
-      : !data.script.approved
-        ? { reason: "تُفتح بعد اعتماد السكريبت والستوري بورد — اعتمدهما من الخطوتين ١ و٢.", action: { label: "اعتمد السكريبت (الخطوة ١)", onClick: onOpenScript } }
-        : !data.storyboard.approved
-          ? { reason: "تُفتح بعد اعتماد الستوري بورد — اعتمده من الخطوة ٢.", action: { label: "اعتمد الستوري بورد (الخطوة ٢)", onClick: onOpenStoryboard } }
-          : !isCurrent && currentId
-            ? { reason: status === "done" ? "اعتُمد هذا المشهد؛ القرار الآن على المشهد الحالي." : "يُعتمد بعد ما قبله، بالترتيب.", action: { label: `إلى المشهد الحالي (${ar(order.indexOf(currentId) + 1)})`, onClick: () => setViewId(null) } }
-            : !isCurrent
-              ? { reason: "لا مشهد ينتظر قرارًا الآن." }
-              : undefined;
+      : !isCurrent && currentId
+        ? { reason: status === "done" ? "اعتُمد هذا المشهد؛ القرار الآن على المشهد الحالي." : "يُعتمد بعد ما قبله، بالترتيب.", action: { label: `إلى المشهد الحالي (${ar(order.indexOf(currentId) + 1)})`, onClick: () => setViewId(null) } }
+        : !isCurrent
+          ? { reason: "لا مشهد ينتظر قرارًا الآن." }
+          : undefined;
     return (
       <section className="stage s3" aria-label="المشهد الحالي في إنتاج الحلقة">
         <header className="s3-head">
@@ -396,6 +411,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             {hit ? <span className="s3-sub">الفصل {ar(hit.chapter.number)} · {hit.chapter.title}</span> : null}
           </div>
           <div className="s3-headact">
+            {prepLine}
             <button type="button" className="btn" onClick={() => setEditing(shownId)}>تحرير المشهد</button>
           </div>
         </header>
@@ -424,7 +440,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
             ) : !isCurrent && shownVideo ? (
               <video key={shownId} className="scene-first-video" controls preload="metadata" src={shownVideo} aria-label={`${sceneName(order, shownId)} بالصوت والصورة`} />
             ) : livePreview ? (
-              <div className="s3-live">{livePreview(shownId)}<span className="s3-tag">معاينة صامتة</span></div>
+              // The tag sits under the frame, never over it: burned-in captions run along the top of the picture.
+              <figure className="s3-livebox">
+                <div className="s3-live">{livePreview(shownId)}</div>
+                <figcaption className="s3-tag">معاينة صامتة{isCurrent ? " · المعاينة بالصوت تظهر هنا حين تُجهَّز" : ""}</figcaption>
+              </figure>
             ) : (
               <div className="sp-empty">لم يُنتج هذا المشهد بعد.</div>
             )}
@@ -433,16 +453,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 <div>
                   <h3>كل المشاهد معتمدة</h3>
                   <p className="sp-hint">{(data!.progress.recitationPending?.length ?? 0) > 0
-                    ? `${ar(data!.progress.recitationPending!.length)} مشهد آية معتمد «مشروطًا بالتلاوة»؛ التلاوات والمعاينة قبل النهائية في الخطوة ٤.`
-                    : "اختر أي مشهد من الشريط لتعيد مشاهدته. التجميع والنسخة النهائية في الخطوة ٤."}</p>
+                    ? `${ar(data!.progress.recitationPending!.length)} مشهد آية معتمد «مشروطًا بالتلاوة»؛ التلاوات والمعاينة قبل النهائية في الخطوة ٣.`
+                    : "اختر أي مشهد من الشريط لتعيد مشاهدته. التجميع والنسخة النهائية في الخطوة ٣."}</p>
                 </div>
                 <div className="sp-actions"><button className="btn primary" type="button" onClick={onOpenFinal}>إلى النسخة النهائية</button></div>
               </div>
             ) : isCurrent && currentId && scene ? (
               <SceneDecisionActions
-                prepare={prepare}
                 onOpenSettings={onOpenSettings}
-                stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : candidate && scene.readyForAv && !scene.correction ? "submit" : "render"}
+                preparing={(scene.status === "in_review" && scene.previewSha256) || draftReady ? null : preparing}
+                stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : "render"}
                 voice={voiceOf(currentId)}
                 voiceBusy={voiceBusy}
                 voiceMsg={voiceMsg}
@@ -482,7 +502,6 @@ export const SceneProductionPanel: React.FC<Props> = ({
                   if (!reviewed) { setProblem(null); setConfirming(true); return; }
                   void reviewCurrent("approve-scene");
                 }}
-                onSubmitScene={() => void act("submit-scene", scene.sourceSha256, currentId)}
                 onRender={() => void renderCurrentScene(currentId, scene.sourceSha256)}
               />
             ) : (
@@ -502,12 +521,12 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 reviewed={false}
                 onOpenSettings={onOpenSettings}
                 onVoice={noop} onProblem={noop} onProblemText={noop} onTone={noop} onCancelProblem={noop}
-                onSubmitProblem={noop} onConfirm={noop} onApprove={noop} onSubmitScene={noop} onRender={noop}
+                onSubmitProblem={noop} onConfirm={noop} onApprove={noop} onRender={noop}
               />
             )}
           </div>
           <div className="s3-side">
-            <span className={`s3-state is-${status}`}>{status === "done" ? (shownServer?.conditional ? "معتمد مشروطًا بالتلاوة" : "معتمد") : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? (scene.correction ? "بانتظار التعديل" : "عُدّل؛ يحتاج إنتاجًا جديدًا") : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
+            <span className={`s3-state is-${status}`}>{status === "done" ? (shownServer?.conditional ? "معتمد مشروطًا بالتلاوة" : "معتمد") : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? (scene.correction ? "بانتظار التعديل" : "عُدّل؛ يحتاج إنتاجًا جديدًا") : preparing === "now" ? "يُجهَّز الآن" : "المشهد الحالي") : "لاحقًا"}</span>
             <p className="s3-narr">{hit?.scene.narration || "بلا تعليق صوتي"}</p>
 
             {isCurrent && scene?.status === "needs_revision" && (sentNotes[currentId!] || scene.correction?.note) ? (
@@ -515,7 +534,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             ) : null}
             {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوت الراوي.</p> : null}
             {shownServer?.recitationPending ? (
-              <p className="sp-hint" role="note">التلاوة تُضاف لاحقًا: مسودة هذه الآية صامتة مكان التلاوة، واعتمادها الآن «مشروط بالتلاوة» يكمل الترتيب؛ وحين ترفع التلاوة في الخطوة ٤ يُفتح هذا المشهد وحده لمراجعة سريعة. التجميع والنسخة النهائية لا يُفتحان قبلها.</p>
+              <p className="sp-hint" role="note">التلاوة تُضاف لاحقًا: مسودة هذه الآية صامتة مكان التلاوة، واعتمادها الآن «مشروط بالتلاوة» يكمل الترتيب؛ وحين ترفع التلاوة في الخطوة ٣ يُفتح هذا المشهد وحده لمراجعة سريعة. التجميع والنسخة النهائية لا يُفتحان قبلها.</p>
             ) : null}
             {isCurrent && (scene?.status === "in_review" || draftReady) ? criteria : null}
           </div>
@@ -553,9 +572,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
     );
   }
 
-  // السكريبت والستوري بورد يُعتمدان من عمود الخطوات أعلى الصفحة؛ هذه اللوحة لما بعدهما
+  // التجهيز (السكريبت والستوري بورد) يُعتمد من عمود الخطوات أعلى الصفحة بزر واحد؛ هذه اللوحة لما بعده
   if (data && (!data.script.approved || !data.storyboard.approved)) return null;
-  // Step ٣ after its last scene is handled above (allDoneHere): strip, rewatch, one forward action.
+  // Step ٢ after its last scene is handled above (allDoneHere): strip, rewatch, one forward action.
   return (
     <section className="scene-first-panel sp" aria-label="القرار الحالي في إنتاج الحلقة">
       {!data && !error ? <p role="status">جارٍ تحميل حالة الحلقة…</p> : null}
@@ -651,8 +670,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
         </div>
       ) : data.assembly && !data.master && onOpenReview ? (
         <div className="sp-row">
-          <div><h3>النسخة النهائية لم تُعتمد بعد</h3><p className="sp-hint">تُصنع النسخة النهائية وتُشاهد وتُعتمد في الخطوة ٤؛ وبعدها يُمنح إذن النشر هنا.</p></div>
-          <div className="sp-actions"><button className="btn primary" type="button" onClick={onOpenReview}>إلى الخطوة ٤</button></div>
+          <div><h3>النسخة النهائية لم تُعتمد بعد</h3><p className="sp-hint">تُصنع النسخة النهائية وتُشاهد وتُعتمد في الخطوة ٣؛ وبعدها يُمنح إذن النشر هنا.</p></div>
+          <div className="sp-actions"><button className="btn primary" type="button" onClick={onOpenReview}>إلى الخطوة ٣</button></div>
         </div>
       ) : data.assembly && !data.master ? (
         <div className="sp-row">
@@ -669,7 +688,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         </div>
       ) : data.master && !data.master.publishAllowed && !onOpenReview ? (
         <div className="sp-row">
-          <div><h3>النسخة النهائية معتمدة</h3><p className="sp-hint">الخطوة التالية: إذن النشر لهذا الملف بعينه في «النشر» (الخطوة ٥).</p></div>
+          <div><h3>النسخة النهائية معتمدة</h3><p className="sp-hint">الخطوة التالية: إذن النشر لهذا الملف بعينه في «النشر» (الخطوة ٤).</p></div>
           <div className="sp-actions"><button className="btn primary" type="button" onClick={onOpenPublish}>إلى النشر</button></div>
         </div>
       ) : data.master && !data.master.publishAllowed ? (
@@ -698,18 +717,19 @@ export const SeamRow: React.FC<{ label: string; at?: number; checked: boolean; o
   </div>
 );
 
-/** سبب تعطّل الشريط كله، والخطوة الأولى غير المكتملة (الزر الممتلئ الوحيد حينها). */
+/** سبب يمنع القرار كله الآن (تحميل الحالة، أو مشهد غير الحالي)، وفعل واحد يحلّه (الزر الممتلئ الوحيد حينها). */
 export type ActionLock = { reason: string; action?: { label: string; onClick: () => void } };
 
 /**
- * أفعال المشهد تحت المعاينة، ظاهرة دائمًا بالترتيب نفسه:
- * «جهّز كل المشاهد»، «توليد الصوت»، «الحركة غير مناسبة»، «النبرة غير مناسبة»، «اعتمد».
- * ما لا يتاح بعد يبقى ظاهرًا معطّلًا، وسببه في سطر واحد تحت الشريط (مع رابط إلى الخطوة الناقصة).
- * زر ممتلئ واحد فقط: «اعتمد» حين يُتاح، وإلا الفعل التالي (إنتاج المشهد، إرساله، أو الخطوة الناقصة).
- * لا يغيّر الشريط أي بوابة: كل زر يمر بالمسار القائم نفسه، والخادم يرفض ما لا يحق.
+ * قرار المشهد الحالي في الخطوة ٢ (funnel v3، قرار صاحب القناة ٨ نوفمبر): المالك يعتمد أولًا النص مع الحركة
+ * مع الصوت معًا، ثم أزرار حل المشكلات بعده. الترتيب ثابت من اليمين: «اعتمد» (الممتلئ الوحيد، أكبر)، ثم
+ * «الحركة غير مناسبة» (بملاحظة)، ثم «النبرة غير مناسبة» (بملاحظة)، ثم «أعد توليد الصوت».
+ * المشهد غير الجاهز بعد: «اعتمد» ينتظر وسطر واحد بتقدمه (يُجهَّز الآن / في الدور)، و«أنتج هذا المشهد» هادئًا
+ * حين لا يعمل التجهيز. لا يغيّر الشريط أي بوابة: كل زر يمر بالمسار القائم نفسه، والخادم يرفض ما لا يحق.
  */
 export const SceneDecisionActions: React.FC<{
-  stage: "review" | "submit" | "render";
+  /** review: معاينة المشهد بصوته جاهزة للقرار؛ render: لم تُجهَّز بعد */
+  stage: "review" | "render";
   voice: VoiceState;
   voiceBusy: boolean;
   voiceMsg?: string;
@@ -722,9 +742,9 @@ export const SceneDecisionActions: React.FC<{
   tone: string;
   confirming: boolean;
   reviewed: boolean;
-  /** «جهّز كل المشاهد» الفعلي (PrepareAll) حين يُتاح؛ وإلا يظهر زره معطّلًا */
-  prepare?: React.ReactNode;
-  /** الشريط كله معطّل لسبب واحد (قبل اعتماد السكريبت والستوري بورد، أو مشهد غير الحالي) */
+  /** التجهيز يعمل: "now" هذا المشهد قيد التجهيز، "queued" في الدور */
+  preparing?: "now" | "queued" | null;
+  /** القرار كله غير متاح لسبب واحد (لا شريط معطّل): السبب وزر واحد */
   locked?: ActionLock;
   onOpenSettings?: () => void;
   onVoice: () => void;
@@ -737,57 +757,58 @@ export const SceneDecisionActions: React.FC<{
   onSubmitProblem: () => void;
   onConfirm: (reviewed: boolean) => void;
   onApprove: () => void;
-  onSubmitScene: () => void;
   onRender: () => void;
 }> = (p) => {
-  const needVoice = p.voice === "missing" || p.voice === "stale";
+  if (p.locked) {
+    return (
+      <div className="s3-act">
+        <div className="s3-why" role="note">
+          <p className="sp-hint">{p.locked.reason}</p>
+          {p.locked.action ? <button type="button" className="btn primary s3-why-go" onClick={p.locked.action.onClick}>{p.locked.action.label}</button> : null}
+        </div>
+      </div>
+    );
+  }
   const at = p.problem ? fmtTime(p.problem.at) : "";
   const problemReady = p.problem?.kind === "motion" ? Boolean(p.problemText.trim()) : Boolean(p.problem);
-  const locked = p.locked;
-  const review = !locked && p.stage === "review";
-  const voiceLabel = p.voiceBusy ? "جارٍ توليد الصوت…" : p.voice === "ok" ? "إعادة توليد الصوت" : "توليد الصوت";
-  const voiceOff = Boolean(locked) || p.voice === "none" || p.voiceBusy || p.pending || !p.canVoice;
-  // سطر السبب: سبب واحد واضح لما هو معطّل، بالأولوية
+  const review = p.stage === "review";
+  const voiceLabel = p.voiceBusy ? "جارٍ توليد الصوت…" : p.voice === "ok" ? "أعد توليد الصوت" : "ولّد الصوت";
+  const voiceOff = p.voiceBusy || p.pending || !p.canVoice || Boolean(p.preparing);
+  const needVoice = p.voice === "missing" || p.voice === "stale";
+  // سطر واحد بما ينتظره «اعتمد»، ثم ما يمنع غيره
   const reasons: React.ReactNode[] = [];
-  if (locked) reasons.push(locked.reason);
-  else if (!review) reasons.push(p.stage === "submit"
-    ? "«الحركة غير مناسبة» و«النبرة غير مناسبة» و«اعتمد» تُفتح بعد إرسال المسودة للمراجعة."
-    : "«الحركة غير مناسبة» و«النبرة غير مناسبة» و«اعتمد» تُفتح بعد إنتاج معاينة المشهد بالصوت والصورة.");
+  if (!review) reasons.push(
+    p.preparing === "now" ? "يُجهَّز هذا المشهد الآن بصوته وحركته؛ «اعتمد» يُفتح حين تكتمل معاينته."
+      : p.preparing === "queued" ? "هذا المشهد في دور التجهيز؛ «اعتمد» يُفتح حين تكتمل معاينته."
+      : !p.readyForAv ? "ينقص هذا المشهد صوت الراوي: ولّد الصوت، ثم أنتج المشهد."
+      : "لم تُجهَّز معاينة هذا المشهد بعد: أنتجه ليُعرض بصوته وحركته.");
   if (!p.ownerOpen) reasons.push("افتح جلسة المالك من أعلى الصفحة لتقرر.");
-  if (!p.canVoice && p.voice !== "none") reasons.push(
+  if (!p.canVoice && needVoice) reasons.push(
     p.onOpenSettings ? <>أضف مفتاح الصوت من <button type="button" className="prep-link" onClick={p.onOpenSettings}>الإعدادات</button>.</> : "أضف مفتاح الصوت من الإعدادات.",
   );
-  if (p.voice === "none" && !locked) reasons.push("لا تعليق صوتي في هذا المشهد، فلا صوت يُولَّد.");
   return (
     <div className="s3-act">
-      <div className="s3-actbar" role="group" aria-label="قرار المشهد" data-locked={locked ? "" : undefined}>
-        {p.prepare && !locked ? p.prepare : (
-          <button type="button" className="btn ghost" disabled>جهّز كل المشاهد</button>
-        )}
-        <button type="button" className={`btn ${needVoice && !locked ? "s3-cta" : "ghost"}`} disabled={voiceOff}
-          title={p.canVoice ? "" : "يتطلب مفتاح الصوت من «الإعدادات»"} onClick={p.onVoice}>
-          {voiceLabel}
-        </button>
-        {!locked && p.stage === "submit" ? (
-          <>
-            <button type="button" className="btn ghost" disabled={p.pending} onClick={p.onRender}>إعادة الإنتاج</button>
-            <button type="button" className="btn primary" disabled={p.pending} onClick={p.onSubmitScene}>إرسال للمراجعة</button>
-          </>
-        ) : !locked && p.stage === "render" ? (
-          <button type="button" className="btn primary" disabled={p.pending || !p.readyForAv || !p.ownerOpen || p.voiceBusy} onClick={p.onRender}>
-            {p.pending ? "جارٍ الإنتاج…" : "إنتاج المشهد"}
-          </button>
-        ) : null}
-        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "motion"} disabled={!review || p.pending || !p.ownerOpen} onClick={() => p.onProblem("motion")}>الحركة غير مناسبة</button>
-        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "tone"} disabled={!review || p.pending || !p.ownerOpen} onClick={() => p.onProblem("tone")}>النبرة غير مناسبة</button>
-        <button type="button" className={`btn ${review ? "primary" : "ghost"} s3-approve`} disabled={!review || p.pending || !p.ownerOpen || (p.confirming && !p.reviewed)} onClick={p.onApprove}>
+      <div className="s3-actbar" role="group" aria-label="قرار المشهد">
+        <button type="button" className="btn primary s3-approve" disabled={!review || p.pending || !p.ownerOpen || (p.confirming && !p.reviewed)} onClick={p.onApprove}>
           {review && p.pending ? "جارٍ…" : "اعتمد"}
         </button>
+        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "motion"} disabled={!review || p.pending || !p.ownerOpen} onClick={() => p.onProblem("motion")}>الحركة غير مناسبة</button>
+        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "tone"} disabled={!review || p.pending || !p.ownerOpen} onClick={() => p.onProblem("tone")}>النبرة غير مناسبة</button>
+        {p.voice !== "none" ? (
+          <button type="button" className={`btn ${needVoice && !p.preparing ? "s3-cta" : "ghost"}`} disabled={voiceOff}
+            title={p.canVoice ? "" : "يتطلب مفتاح الصوت من «الإعدادات»"} onClick={p.onVoice}>
+            {voiceLabel}
+          </button>
+        ) : null}
+        {!review && !p.preparing ? (
+          <button type="button" className="btn ghost" disabled={p.pending || !p.readyForAv || !p.ownerOpen || p.voiceBusy} onClick={p.onRender}>
+            {p.pending ? "جارٍ الإنتاج…" : "أنتج هذا المشهد"}
+          </button>
+        ) : null}
       </div>
       {reasons.length ? (
         <div className="s3-why" role="note">
           {reasons.map((r, i) => <p key={i} className="sp-hint">{r}</p>)}
-          {locked?.action ? <button type="button" className="btn primary s3-why-go" onClick={locked.action.onClick}>{locked.action.label}</button> : null}
         </div>
       ) : null}
       {p.voiceMsg ? <p className="sp-hint" role="status">{p.voiceMsg}</p> : null}

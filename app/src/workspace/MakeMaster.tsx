@@ -4,7 +4,7 @@ import { api, type LongJob } from "../api";
 const ar = (n: number) => Math.round(n).toLocaleString("ar-EG");
 
 /**
- * «اصنع النسخة النهائية» inside step ٤ itself (funnel audit 8 Nov, D36): the owner no longer bounces to
+ * «اصنع النسخة النهائية» inside step ٣ itself (funnel audit 8 Nov, D36): the owner no longer bounces to
  * «النشر» and back. Same long job as the publish page (`make`, 4K with sound); the server's own gates
  * decide whether it may run. When it finishes the panel re-reads the ledger and shows «اعتماد النسخة
  * النهائية» on the new file.

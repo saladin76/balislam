@@ -206,8 +206,8 @@ export const StoryboardPanel: React.FC<{
       reviewed={visualReviewed} onReviewed={setVisualReviewed} busy={busy} onAct={(a) => void act(a)}
       error={auditLogOnTop(st) ? err : undefined} />
   );
-  // شاشة واحدة: شبكة اللوحات، وفوقها «سجل مراجعة اللوحات» ما دام لم يُسجَّل (إلزامي قبل الاعتماد)؛
-  // وكل ما سواها (الآيات، الفحص الفني، المعاينات) في «أدوات وتفاصيل».
+  // شاشة واحدة: شبكة اللوحات؛ وملاحظة مراجعتها تُكتب بجوار «اعتمد التجهيز» في عمود الحلقة (D40)،
+  // وكل ما سواها (سجل مراجعة اللوحات، الآيات، الفحص الفني، المعاينات) في «أدوات وتفاصيل».
   return (
     <div className={`storyboard s12-board${details ? " is-detailed" : ""}`}>
       <header className="s12-board-head">

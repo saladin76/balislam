@@ -25,26 +25,24 @@ export const stagesOf = (e: Overview): Stage[] => {
   ];
 };
 
-/** الخطوات الخمس لكل حلقة من سجل الإنتاج: أين وصلت، وما الخطوة التالية، وأين تُفتح. */
-export type HomeStep = { n: string; title: string; done: boolean; tab: HomeTab5 };
-type HomeTab5 = "script" | "storyboard" | "episode" | "review" | "publish";
-export const fiveSteps = (e: Overview): HomeStep[] => {
+/** الخطوات الأربع لكل حلقة من سجل الإنتاج: أين وصلت، وما الخطوة التالية، وأين تُفتح. */
+export type HomeStep = { n: string; title: string; done: boolean; tab: HomeStepTab };
+type HomeStepTab = "script" | "storyboard" | "episode" | "review" | "publish";
+export const fourSteps = (e: Overview): HomeStep[] => {
   const p = e.production;
   return [
-    { n: "١", title: "إعداد الحلقة", done: Boolean(p?.script), tab: "script" },
-    { n: "٢", title: "الستوري بورد", done: Boolean(p?.storyboard), tab: "storyboard" },
-    { n: "٣", title: "المشاهد", done: Boolean(p?.canAssemble), tab: "episode" },
-    { n: "٤", title: "النسخة النهائية", done: Boolean(p?.masterApproved), tab: "review" },
-    { n: "٥", title: "النشر", done: Boolean(p?.publishAllowed && e.status.published), tab: "publish" },
+    { n: "١", title: "التجهيز", done: Boolean(p?.script && p?.storyboard), tab: "storyboard" },
+    { n: "٢", title: "المشاهد", done: Boolean(p?.canAssemble), tab: "episode" },
+    { n: "٣", title: "النسخة النهائية", done: Boolean(p?.masterApproved), tab: "review" },
+    { n: "٤", title: "النشر", done: Boolean(p?.publishAllowed && e.status.published), tab: "publish" },
   ];
 };
-const nextLine = (e: Overview): { text: string; tab: HomeTab5 } => {
+export const nextLine = (e: Overview): { text: string; tab: HomeStepTab } => {
   const p = e.production;
   if (!e.check.ok) return { text: `في السكريبت ما يحتاج إصلاحًا (${e.check.errors})`, tab: "script" };
-  if (!p) return { text: "افتح الحلقة لقراءة حالتها", tab: "script" };
-  if (!p.script) return { text: "راجع السكريبت واعتمده", tab: "script" };
-  if (!p.storyboard) return { text: "راجع الستوري بورد واعتمده", tab: "storyboard" };
-  if (!p.canAssemble) return { text: `المشهد ${p.approvedScenes + 1} من ${p.totalScenes} ينتظر`, tab: "episode" };
+  if (!p) return { text: "افتح الحلقة لقراءة حالتها", tab: "storyboard" };
+  if (!p.script || !p.storyboard) return { text: "راجع التجهيز (الستوري بورد والسكريبت) واعتمده", tab: "storyboard" };
+  if (!p.canAssemble) return { text: `المشهد ${p.approvedScenes + 1} من ${p.totalScenes} ينتظر قرارك`, tab: "episode" };
   if (!p.assemblyApproved) return { text: "شاهد الحلقة مجمّعة واعتمدها", tab: "review" };
   if (!p.masterApproved) return { text: "اعتمد النسخة النهائية", tab: "review" };
   if (!p.publishAllowed) return { text: "امنح إذن النشر", tab: "publish" };
@@ -54,7 +52,7 @@ const nextLine = (e: Overview): { text: string; tab: HomeTab5 } => {
 
 export const HomeTab: React.FC<{
   channel: ChannelInfo;
-  onOpen: (id: string, tab: HomeTab5) => void;
+  onOpen: (id: string, tab: HomeStepTab) => void;
   onNew: () => void;
   onDeleted?: (id: string) => void;
 }> = ({ channel, onOpen, onNew, onDeleted }) => {
@@ -121,7 +119,7 @@ export const HomeTab: React.FC<{
 
       {items.length === 0 ? (
         <div className="ledger-empty">
-          <p>لا توجد حلقات في هذه القناة بعد. كل حلقة تمر بخمس خطوات: إعداد الحلقة، الستوري بورد، المشاهد، النسخة النهائية، النشر.</p>
+          <p>لا توجد حلقات في هذه القناة بعد. كل حلقة تمر بأربع خطوات: التجهيز، المشاهد، النسخة النهائية، النشر.</p>
           <button className="btn primary" onClick={onNew}>ابدأ أول حلقة</button>
         </div>
       ) : (
@@ -138,7 +136,7 @@ export const HomeTab: React.FC<{
           ) : (
             <ol className="ledger-list">
               {visible.map((e) => {
-                const steps = fiveSteps(e);
+                const steps = fourSteps(e);
                 const doneCount = steps.findIndex((s) => !s.done);
                 const at = doneCount === -1 ? steps.length : doneCount;
                 const next = nextLine(e);
@@ -151,7 +149,7 @@ export const HomeTab: React.FC<{
                         <span className="ledger-next">{next.text}</span>
                       </span>
                     </button>
-                    <ol className="ledger-steps" aria-label={`الخطوة ${at < 5 ? at + 1 : 5} من 5`}>
+                    <ol className="ledger-steps" aria-label={`الخطوة ${Math.min(at + 1, steps.length)} من ${steps.length}`}>
                       {steps.map((s, i) => (
                         <li key={s.n} className={s.done ? "is-done" : i === at ? "is-now" : ""}>
                           <button type="button" title={s.title} aria-label={`${s.title}${s.done ? " (مكتملة)" : i === at ? " (الحالية)" : ""}`} onClick={() => onOpen(e.id, s.tab)}>{s.n}</button>

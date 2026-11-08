@@ -355,11 +355,16 @@ const optionalSha = async (file: string): Promise<string | null> => {
     throw error;
   }
 };
-/** ملخص خفيف لحالة الحلقة في الخطوات الخمس (للقائمة الرئيسية): بلا حساب بصمات الملفات الكبيرة. */
+/**
+ * ملخص خفيف لحالة الحلقة في الخطوات الأربع (للقائمة الرئيسية): بلا حساب بصمات الملفات الكبيرة.
+ * `steps`: التجهيز (السكريبت والستوري بورد معًا) ← المشاهد ← النسخة النهائية ← إذن النشر.
+ */
 export const summarizeSceneProduction = (episode: string) =>
   withState(episode, async (doc, current) => {
     const v = view(doc, current);
-    return { script: v.script.approved, storyboard: v.storyboard.approved,
+    const preparation = v.script.approved && v.storyboard.approved;
+    return { steps: [preparation, v.progress.canAssemble, v.progress.masterApproved, v.progress.publishAllowed] as [boolean, boolean, boolean, boolean],
+      preparation, script: v.script.approved, storyboard: v.storyboard.approved,
       approvedScenes: v.progress.approvedScenes, totalScenes: v.progress.totalScenes,
       canAssemble: v.progress.canAssemble, assemblyApproved: v.progress.assemblyApproved,
       masterApproved: v.progress.masterApproved, publishAllowed: v.progress.publishAllowed,

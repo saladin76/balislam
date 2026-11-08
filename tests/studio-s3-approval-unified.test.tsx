@@ -23,7 +23,9 @@ const EPISODES = {
 } as const;
 type Ch = keyof typeof EPISODES;
 const CHANNELS = Object.keys(EPISODES) as Ch[];
-const ACTIONS = ["جهّز كل المشاهد", "توليد الصوت", "الحركة غير مناسبة", "النبرة غير مناسبة", "اعتمد"];
+// funnel v3 (D40): «اعتمد» أولًا (يمين الشاشة) ثم أزرار الحل؛ «جهّز كل المشاهد» خرج من شريط المشهد (يبدأ وحده
+// بعد «اعتمد التجهيز» وسطر حالته فوق المعاينة). «ولّد الصوت» لمشهد منطوق، و«أنتج هذا المشهد» قبل التجهيز فقط.
+const ACTIONS = ["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت"];
 
 const planOf = (ch: Ch) => JSON.parse(src(`channels/${ch}/episodes/${EPISODES[ch]}/plan.json`)) as Plan;
 const channelOf = (ch: Ch) => channelInfo(JSON.parse(src(`channels/${ch}/channel.json`)) as ChannelConfig);
@@ -83,8 +85,20 @@ const skeleton = (html: string) =>
     // شريط المشاهد وقائمة التنبيهات تطول بعدد مشاهد الحلقة وملاحظاتها؛ يكفي وجود كل صنف بترتيبه
     .filter((c, i, all) => c !== all[i - 1]);
 
-describe("الخطوة ٣ واحدة للقنوات الثلاث", () => {
-  for (const state of ["gated", "render", "review"] as const) {
+describe("الخطوة ٢ «المشاهد» واحدة للقنوات الثلاث", () => {
+  it("قبل اعتماد التجهيز: سطر واحد وزر واحد إلى الخطوة ١، بالبنية نفسها لكل قناة، بلا شريط معطّل", () => {
+    const out = Object.fromEntries(CHANNELS.map((ch) => [ch, render(ch, "gated")])) as Record<Ch, string>;
+    for (const ch of CHANNELS) {
+      const html = out[ch];
+      expect(html, ch).toContain('class="stage s3 s3-gated"');
+      expect(html, ch).not.toContain("s3-actbar");
+      expect(html.match(/<button/g), ch).toHaveLength(1);
+      expect(html, ch).toMatch(/btn primary[^"]*"[^>]*>إلى التجهيز/);
+    }
+    expect(skeleton(out["dafatir-alzaman"])).toEqual(skeleton(out.balislam));
+    expect(skeleton(out["zubdat-alkutub"])).toEqual(skeleton(out.balislam));
+  });
+  for (const state of ["render", "review"] as const) {
     it(`حالة «${state}»: البنية نفسها والأفعال نفسها بالترتيب نفسه`, () => {
       const out = Object.fromEntries(CHANNELS.map((ch) => [ch, render(ch, state)])) as Record<Ch, string>;
       for (const ch of CHANNELS) {
@@ -93,9 +107,11 @@ describe("الخطوة ٣ واحدة للقنوات الثلاث", () => {
         expect(html, ch).toContain('class="s3-strip"');
         expect(html, ch).not.toContain("scene-first-panel");
         const buttons = actbar(html);
-        // «إنتاج المشهد» يظهر قبل الإنتاج فقط، ومكانه ثابت بعد «توليد الصوت»
-        expect(buttons.filter((b) => b !== "إنتاج المشهد"), ch).toEqual(ACTIONS);
+        // «أنتج هذا المشهد» يظهر قبل التجهيز فقط، ومكانه ثابت آخر الشريط
+        expect(buttons.filter((b) => b !== "أنتج هذا المشهد"), ch).toEqual(ACTIONS);
+        expect(buttons[0], ch).toBe("اعتمد");
         expect(buttons, ch).toEqual(actbar(out.balislam));
+        expect(barOf(html).match(/btn primary/g), ch).toHaveLength(1);
       }
       expect(skeleton(out["dafatir-alzaman"])).toEqual(skeleton(out.balislam));
       expect(skeleton(out["zubdat-alkutub"])).toEqual(skeleton(out.balislam));
@@ -122,6 +138,7 @@ describe("لا فرع بالقناة في واجهة الاعتماد", () => {
     "app/src/workspace/PreFinal.tsx",
     "app/src/workspace/sceneNames.ts",
     "app/src/shell/EpisodeSpine.tsx",
+    "src/studio/preparation.ts",
     "app/src/shell/screens-s3.css",
     "app/src/workspace/scene-production.css",
     "src/studio/sceneProduction.ts",

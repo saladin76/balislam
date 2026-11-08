@@ -113,6 +113,7 @@ authority. Every production gate asks it:
 
 | Gate | Requirement |
 | --- | --- |
+| «اعتمد التجهيز» (step ١, D40) | one owner request, passphrase + `reviewed: true`, the script and storyboard fingerprints the owner saw; everything that can refuse is checked before any write (script errors, verses without text, board note ≥ 25 chars when the boards are not recorded); then, in order, `approve-script` → board record (`storyboard.json`, same `checkVisualStoryboardSignoff`, script approved first) → `approve-storyboard`, each ledger decision through `decideSceneProduction` (`src/studio/preparation.ts`) |
 | Voice generation | script + storyboard approved (`requireScriptAndStoryboardApproved`) |
 | Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
 | Scene AV render («إنتاج المشهد») | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
@@ -128,7 +129,10 @@ authority. Every production gate asks it:
 clip and recitation. A script or storyboard edit re-opens those two decisions, the assembly, the Master and the publish
 permission; only scenes whose own inputs changed are re-opened.
 
-**Prepared drafts (D31).** «جهّز كل المشاهد» (step ٣ screen, and the spine while step ٣ is current) and its CLI twin
+**Prepared drafts (D31, D40).** Preparing the scenes starts on its own right after «اعتمد التجهيز» (`POST
+/api/episodes/<ep>/approve-preparation` starts the same queue once `requireSceneProductionReady` passes; the response
+carries `prepare.job`). It approves and submits nothing. Its status line (step ٢ header, and the spine while step ٢ is
+current) offers «أوقف» while running and «استأنف التجهيز» once stopped. The queue and its CLI twin
 `npx bal produce <episode> [--channel …]` run one pipeline (`src/studio/prepareAll.ts`): (1) narration voice for every
 narrated scene without a current clip, through `generateVoice` (tashkeel ≥ 98%, reviewed boards, tones, script+storyboard
 approval; verse cards carry no narration, recitations stay the owner's own recording); without a voice key this step is
@@ -166,7 +170,7 @@ The scene ledger read (`GET scene-production`) adds `scenes[].draft` (`ready` / 
 `needs_revision`; a scene never submitted stays `queued` with its new inputs (no «بانتظار التعديل» on a scene nobody
 asked to fix). The ledger lock waits for a live writer up to `LEDGER_LOCK_WAIT_MS` (30 s, short backoff) instead of
 60×25 ms, since every read hashes all scene inputs under it; a live writer's lock is still never deleted, only a dead
-process's (D34). In step ٣ a ready draft of the current scene is shown
+process's (D34). In step ٢ (D40; step ٣ before) a ready draft of the current scene is shown
 for review directly: «اعتمد» or a problem report first submits those exact bytes (the UI checks the server recorded the
 same SHA-256 it played), then decides. After «اعتمد» the next scene's draft opens and plays.
 

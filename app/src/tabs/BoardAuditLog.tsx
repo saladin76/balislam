@@ -4,11 +4,12 @@ import type { StoryboardStatus } from "../../../src/plan/storyboard";
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
 /**
- * Audit item 13: the board audit log is required before the storyboard approval, so while it is not
- * recorded it sits at the top of the storyboard (above the boards), not folded under «أدوات وتفاصيل».
- * Once recorded it moves back under «أدوات وتفاصيل» (for «اسحب الاعتماد» and the reviewer's note).
+ * Funnel v3 (owner decision 8 Nov): the board review note is now written next to «اعتمد التجهيز» in step ١
+ * (one button records the script approval, this board record and the storyboard approval in order), so this
+ * log always lives under «أدوات وتفاصيل» (history, the reviewer's note, «اسحب الاعتماد»). Audit item 13's
+ * "on top while unrecorded" placement is retired: one filled button per screen.
  */
-export const auditLogOnTop = (st: StoryboardStatus | undefined | null) => !st?.ok;
+export const auditLogOnTop = (_st: StoryboardStatus | undefined | null) => false;
 
 export const BoardAuditLog: React.FC<{
   st: StoryboardStatus | undefined | null;

@@ -1,9 +1,9 @@
-/* ── الخطوة ٣ «المشاهد»: شاشة واحدة ──
+/* ── الخطوة ٢ «المشاهد»: شاشة واحدة ──
    قرار المشهد الحالي (معاينة كبيرة + نصه + قرار واحد) وشريط تقدم رفيع.
    المحرر الكامل خلف «تحرير المشهد»، والصوت شاشة استماع هادئة. */
 
 /* المسرح */
-.shell-v3 .stage.s3 { gap: 16px; padding-top: 20px; }
+.shell-v3 .stage.s3 { gap: 12px; padding-top: 14px; }
 .shell-v3 .stage:is(.s3, .s3-voice) { grid-template-columns: minmax(0, 1fr); }
 .shell-v3 .s3-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; }
 .shell-v3 .s3-title { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; min-width: 0; }
@@ -34,10 +34,15 @@
 .shell-v3 .s3-media { min-width: 0; }
 .shell-v3 .s3-media .scene-first-video { width: 100%; max-height: none; aspect-ratio: 16 / 9; background: #111; border-radius: 8px; display: block; }
 .shell-v3 .s3-live { position: relative; direction: ltr; background: #1d1f1c; border-radius: 8px; overflow: hidden; }
-.shell-v3 .s3-tag {
-  position: absolute; top: 10px; left: 10px; direction: rtl; pointer-events: none;
-  font-size: 11.5px; padding: 3px 8px; border-radius: 4px; background: rgba(0, 0, 0, .55); color: #fff;
-}
+/* The silent-preview tag sits UNDER the frame: burned-in captions run along the top of the picture (funnel v3). */
+.shell-v3 .s3-livebox { margin: 0; display: grid; gap: 6px; }
+.shell-v3 .s3-tag { font-size: 12px; color: var(--muted); line-height: 1.6; }
+/* التجهيز في الخلفية: سطر حالة واحد في رأس الشاشة بجوار «تحرير المشهد» */
+.shell-v3 .s3-prep { justify-content: flex-end; }
+/* قبل اعتماد التجهيز: سطر واحد وزر واحد */
+.shell-v3 .s3-gate { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap;
+  padding: 18px 20px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+.shell-v3 .s3-gate p { margin: 0; font-size: 15px; font-weight: 600; }
 .shell-v3 .s3-side { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
 .shell-v3 .s3-state { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
 .shell-v3 .s3-state.is-now { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -55,20 +60,19 @@
 .shell-v3 .s3 .sp-criteria { margin-top: 0; border-top: 0; padding-top: 0; }
 .shell-v3 .s3 .sp-criteria ul { margin: 6px 0 0; padding-inline-start: 18px; line-height: 1.9; }
 
-/* الأفعال الأربعة تحت المعاينة: «اعتمد» الممتلئ الوحيد في الطرف، والمشكلتان هادئتان */
+/* أفعال المشهد تحت المعاينة: «اعتمد» أولًا (يمين الشاشة) الممتلئ الوحيد والأكبر، ثم أزرار الحل هادئة */
 .shell-v3 .s3-act { display: grid; gap: 10px; margin-top: 14px; }
 .shell-v3 .s3-actbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .shell-v3 .s3-actbar .btn.ghost { color: var(--ink); border: 1px solid var(--line); background: transparent; }
 .shell-v3 .s3-actbar .btn.ghost:hover:not(:disabled) { border-color: var(--ink); }
 .shell-v3 .s3-actbar .btn.ghost[aria-pressed="true"] { border-color: var(--ink); background: var(--panel); font-weight: 700; }
-.shell-v3 .s3-actbar .s3-approve { margin-inline-start: auto; min-width: 120px; justify-content: center; text-align: center; }
+.shell-v3 .s3-actbar .s3-approve { min-width: 160px; min-height: 44px; padding-inline: 28px; font-size: 16px; font-weight: 700; justify-content: center; text-align: center; margin-inline-end: 8px; }
 /* سبب التعطّل: سطر واحد تحت الشريط، ورابط ممتلئ إلى الخطوة الناقصة حين يوجد */
 .shell-v3 .s3-why { display: grid; gap: 4px; padding: 10px 12px; border-radius: 8px; background: var(--panel); border: 1px dashed var(--line); }
 .shell-v3 .s3-why .sp-hint { margin: 0; color: var(--ink); line-height: 1.8; }
 .shell-v3 .s3-why .sp-hint + .sp-hint { color: var(--muted); }
 .shell-v3 .s3-why-go { justify-self: start; margin-top: 6px; }
 .shell-v3 .s3-actbar .btn:disabled { opacity: .6; }
-.shell-v3 .s3-actbar > .prep { flex: 0 1 auto; }
 .shell-v3 .s3-cta { border: 2px solid var(--accent); color: var(--accent); background: var(--panel); font-weight: 700; }
 .shell-v3[data-channel="zubdat-alkutub"] .s3-cta { color: var(--ink); border-color: var(--ink); box-shadow: inset 0 -3px 0 var(--marker); }
 .shell-v3 .s3-confirm { justify-self: end; padding: 6px 10px; border-radius: 6px; background: var(--accent-soft); color: var(--ink); }
@@ -80,9 +84,8 @@
 .shell-v3 .s3-sent { margin: 0; font-size: 13px; line-height: 1.8; padding: 8px 12px; border-radius: 6px; background: var(--warn-soft); color: var(--ink); overflow-wrap: anywhere; }
 @media (max-width: 520px) {
   .shell-v3 .s3-actbar > .btn { flex: 1 1 calc(50% - 8px); }
-  .shell-v3 .s3-actbar .s3-approve { flex-basis: 100%; margin-inline-start: 0; }
-  .shell-v3 .s3-actbar > .prep { flex-basis: 100%; }
-  .shell-v3 .s3-actbar > .prep > .btn { flex: 1 1 auto; }
+  .shell-v3 .s3-actbar .s3-approve { flex-basis: 100%; margin-inline-end: 0; }
+  .shell-v3 .s3-gate .btn { flex: 1 1 100%; }
   .shell-v3 .s3-why-go { justify-self: stretch; }
   .shell-v3 .s3-confirm { justify-self: stretch; }
 }
