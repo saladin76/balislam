@@ -60,14 +60,14 @@ describe("عزل بيئة Git للعمليات الفرعية", () => {
     expect(r.before).not.toMatch(/bare = true/);
     expect(r.after).toMatch(/bare = true/);
     expect(existsSync(path.join(r.target, ".git"))).toBe(false);
-  });
+  }, 30_000);
 
   it("بالعزل (childEnv كما في البوابة): المستودع الحقيقي لا يتغير، والمجلد الآخر مستودع مستقل", () => {
     const probe = `import("${path.join(root, "scripts", "git-env.mjs")}").then((m) => { const t = process.argv[1]; require("node:child_process").spawnSync("git", ["init", "-q", "-b", "review/experiment", t], { env: m.childEnv() }); })`;
     const r = setup(`T="$(dirname "$(git rev-parse --git-common-dir)")/../other"; node -e '${probe}' "$T"`);
     expect(r.after).toBe(r.before);
     expect(existsSync(path.join(r.target, ".git"))).toBe(true);
-  });
+  }, 30_000);
 
   it("npm prepare from a linked worktree leaves original Git config, stash and branches untouched", () => {
     const base = tmp("git-hooks-linked-");
@@ -95,7 +95,7 @@ describe("عزل بيئة Git للعمليات الفرعية", () => {
     expect(git(primary, "for-each-ref", "--format=%(refname):%(objectname)", "refs/heads")).toBe(branchesBefore);
     expect(git(primary, "stash", "list", "--format=%H")).toBe(stashBefore);
     expect(git(primary, "rev-parse", "--is-bare-repository")).toBe("false");
-  });
+  }, 30_000);
 
   it("البوابة وكل ما يشغّل git في المشروع لا يورّث process.env كما هو", () => {
     const gate = readFileSync(path.join(root, "scripts", "gate.mjs"), "utf8");

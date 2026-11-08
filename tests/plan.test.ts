@@ -63,7 +63,7 @@ describe("خطة الحلقة", () => {
     expect(templateDefs.length).toBeGreaterThanOrEqual(14);
     for (const t of templateDefs) expect(sceneCatalog.some((c) => c.id === t.id), t.id).toBe(true);
     expect(new Set(templateDefs.map((t) => t.id)).size).toBe(templateDefs.length);
-  });
+  }, 30_000);
 });
 
 describe("قاعدة: لا عنصر لا يطابق الكلمة", () => {

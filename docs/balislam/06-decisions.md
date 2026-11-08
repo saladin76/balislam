@@ -117,3 +117,8 @@
 ## ٨ نوفمبر ٢٠٢٦ — المعاينات على Google Drive
 
 - فيديوهات المعاينة لم تعد تدخل Git؛ الفهرس وحده (البصمة ورابط Drive) يُحفظ. على الماك تُنسخ تلقائيًا إلى مجلد Drive المتزامن (`BAL_DRIVE_PREVIEWS_DIR`). التفاصيل في `docs/zubdat-alkutub/06-decisions.md` (D26).
+
+## ٨ نوفمبر ٢٠٢٦ — تنظيف الكود القديم غير المستعمل
+
+- حُذف ما لا يصله أي مسار حي بعد توحيد الاعتمادات: خادم Studio V2 ووحدات V2 في src/workflow مع index وservice وports وview، وsceneV2 وsceneV2Handoff وsceneV2Probe وmasterGateContract في src/render، وmotionTiming في src/plan، وواجهات المراحل الست، وreciterSearch، وسكربتات studio-v2 في scripts/qa، واختباراتها.
+- لا تغيير في سلوك الاستوديو ولا في المحرك ولا في ملفات الحلقات؛ ومهلة ٣٠ ثانية لاختبارات بطيئة بعينها. التفاصيل في `docs/zubdat-alkutub/06-decisions.md` (D27).
