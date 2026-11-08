@@ -171,7 +171,7 @@ describe("الصمت عند الحدود غير تراكمي (D8)", () => {
     expect(after).toHaveLength(20);
     for (const g of before) expect(g.value, g.from).toBeCloseTo(SILENCE_POLICY.beforeVerse, 9);
     for (const g of after) expect(g.value, g.from).toBeCloseTo(SILENCE_POLICY.afterVerse, 9);
-    expect(tl.gaps.filter((g) => g.owner === "verses-gap").map((g) => [g.from, g.to, +g.value.toFixed(3)])).toEqual([["c4-v4", "c4-v5", 0.25], ["c6-v2", "c6-v3", 0.25]]);
+    expect(tl.gaps.filter((g) => g.owner === "verses-gap").map((g) => [g.from, g.to, +g.value.toFixed(3)])).toEqual([["c4-v4", "c4-v7", 0.25], ["c4-v7", "c4-v5", 0.25], ["c6-v2", "c6-v3", 0.25]]);
   });
 
   it("المحرك الحالي كان يجمع ذيل المشهد إلى صمت البطاقة؛ السياسة تأخذ واحدًا", () => {
@@ -206,7 +206,8 @@ describe("الصمت عند الحدود غير تراكمي (D8)", () => {
     expect(tl.gaps).toHaveLength(tl.audio.length - 1);
     const pairs = tl.gaps.map((g) => `${g.from}>${g.to}`);
     expect(new Set(pairs).size).toBe(pairs.length);
-    expect(tl.audio.filter((a) => a.kind === "recitation")).toHaveLength(22);
+    // 23 موضعًا: الـ22 والأعراف 15 التي أضافها المالك بنفسه بين 14 و16 (٨ نوفمبر)
+    expect(tl.audio.filter((a) => a.kind === "recitation")).toHaveLength(23);
     expect(tl.audio.filter((a) => a.kind === "speech")).toHaveLength(51);
   });
 });

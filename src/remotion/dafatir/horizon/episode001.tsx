@@ -6,7 +6,7 @@
 import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, CoverLeaf, Dusk, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
-import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
+import { BlankBookOver, Book, ChapterHead, DateRibbon, EXIT_BEAT, NEUTRAL, SceneCloseContext, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
 import { Shot2, Shot4, Shot5, Shot6 } from "./shots";
 import { GATE, GLYPHS, Hatch, RUINS, Sunset } from "../lib/drawings";
 import { HZ_META } from "./meta";
@@ -362,7 +362,7 @@ const IndexList: React.FC<{ t: number; times: number[]; head: number; glow?: num
 const indexTimes = (tl: Timeline) => ENTRIES.map((e) => at(tl, e.w));
 const IndexScene: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const times = indexTimes(tl);
-  const keys = times.map((a, i) => ({ a: a - 0.3, b: a + 0.5, cx: 1370, cy: Math.min(640, Math.max(400, ENTRY_Y(i))), s: 1.14 }));
+  const keys = times.map((a, i) => ({ a: a - 0.3, b: a + 0.5, cx: 1370, cy: Math.min(740, Math.max(400, ENTRY_Y(i))), s: 1.14 }));
   const cam = camPath(t, NEUTRAL, [...keys, { a: tl.end + 0.05, b: tl.end + 0.9, ...NEUTRAL }]);
   return <Book id="ix" t={t} dur={dur} exit={exit} cam={cam} R={<g><GreaterFrame p={1} /><IndexList t={t} times={times} head={prog(t, at(tl, "أخبرنا") - 0.05, at(tl, "أخبرنا") + 0.45)} /></g>} L={marginNotes(1, 1)} />;
 };
@@ -405,9 +405,12 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "وسألت") - 0.2, b: at(tl, "وسألت") + 0.55, cx: 1365, cy: 520, s: 1.1 },
     // لقطة أقرب على ما سألوا عنه، ثم إلى الحاشية
-    { a: at(tl, "الفساد") - 0.3, b: at(tl, "وسفك") + 0.3, cx: 1360, cy: 640, s: 1.3 },
+    // يبدأ الاقتراب مع «عن جعل من يكون منه» (موضوع السؤال) لا بعده
+    { a: at(tl, "جعل") - 0.1, b: at(tl, "وسفك") + 0.3, cx: 1360, cy: 640, s: 1.3 },
     { a: at(tl, "يسبحون") - 0.6, b: at(tl, "يسبحون") - 0.26, cx: 1365, cy: 520, s: 1.1 },
     { a: at(tl, "سؤالهم") - 0.3, b: at(tl, "سؤالهم") + 0.9, cx: 600, cy: 500, s: 1.12 },
+    // «وإنما كان سؤالًا لطلب الفهم ومعرفة الحكمة»: الكادر يقترب من سطري الجواب وهما يُكتبان
+    { a: at(tl, "سؤالا") - 0.2, b: end(tl, "الحكمة"), cx: 560, cy: 500, s: 1.32 },
   ]);
   const R = (
     <g>
@@ -466,6 +469,8 @@ const Known: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   // لقطة قريبة على دائرتنا الصغيرة، ثم عند «لا ندعي الإحاطة» تبتعد الكاميرا فيظهر اتساع الصفحة حولها: الفراغ هنا هو المعنى
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "معرفتنا") - 0.25, b: at(tl, "محدودة") + 0.4, cx: 560, cy: 520, s: 1.35 },
+    // «وقد نعرف بعض الحكم»: اقتراب من النقاط الثلاث داخل الدائرة وهي تُضاء، قبل ذكر الله
+    { a: at(tl, "نعرف") - 0.2, b: at(tl, "الحكم") + 0.45, cx: 575, cy: 560, s: 1.55 },
     { a: at(tl, "ندعي") - 0.1, b: end(tl, "الإحاطة") + 0.2, cx: 900, cy: 520, s: 0.86 },
   ]);
   const L = (
@@ -516,7 +521,12 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const arrow = prog(t, at(tl, "ثم") - 0.1, at(tl, "عن", 2) + 0.4);
   const box = prog(t, at(tl, "أعظم") - 0.1, at(tl, "أعظم") + 0.8);
   const taalim = prog(t, at(tl, "التعليم") - 0.05, at(tl, "التعليم") + 0.8);
-  const cam = camPath(t, { cx: 1365, cy: 500, s: 1.12 }, [
+  const cam = camPath(t, NEUTRAL, [
+    // «وبعد هذا الإخبار»: من الصفحتين إلى الصفحة اليمنى مع الخط الذهبي الذي يغلق ما سبق
+    { a: at(tl, "وبعد") - 0.1, b: at(tl, "الإخبار") + 0.5, cx: 1365, cy: 500, s: 1.12 },
+    // «يحدثنا القرآن الكريم»: إلى ختم القرآن، ثم «عن خلق آدم»: نزولًا إلى الكلمة وهي تُكتب
+    { a: at(tl, "القرآن") - 0.25, b: at(tl, "الكريم") + 0.3, cx: 1365, cy: 330, s: 1.3 },
+    { a: at(tl, "خلق") - 0.2, b: at(tl, "عليه") + 0.2, cx: 1365, cy: 480, s: 1.26 },
     // ينتقل النظر عبر الكعب مع «ثم» من الخلق إلى التعليم
     { a: at(tl, "ثم") - 0.1, b: at(tl, "أعظم") + 0.3, cx: 600, cy: 520, s: 1.12 },
   ]);
@@ -548,11 +558,14 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
 // ─────────── لقطتان مصممتان قبل هذا البناء (اختبار «خط الأفق»)، بخروج بخفوت الحبر ───────────
 const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, endCam: Cam): React.FC<HzProps> =>
   function Legacy({ t, tl, dur, exit, p }) {
+    // الخفوت يبدأ حين يُغلق الراوي الفكرة (كالدفتر)، لا بعد ذيل ساكن
+    const close = React.useContext(SceneCloseContext);
+    const f0 = close !== undefined ? Math.min(dur - 0.75, close + EXIT_BEAT) : dur - 0.75;
     return (
       // خفوت الحبر: الدفتر الفارغ بالكادر نفسه تحت اللقطة، واللقطة تخفت فوقه
       <>
-        {exit === "fade" && t > dur - 0.8 ? <BlankBookOver id="lg" cam={endCam} o={1} /> : null}
-        <div style={{ position: "absolute", inset: 0, opacity: exit === "fade" ? 1 - prog(t, dur - 0.75, dur - 0.15) : 1 }}>
+        {exit === "fade" && t > f0 - 0.05 ? <BlankBookOver id="lg" cam={endCam} o={1} /> : null}
+        <div style={{ position: "absolute", inset: 0, opacity: exit === "fade" ? 1 - prog(t, f0, dur - 0.15) : 1 }}>
           <Comp t={t} tl={tl} refText={p.ref} />
         </div>
       </>

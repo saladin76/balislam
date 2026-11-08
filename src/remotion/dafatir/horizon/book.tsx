@@ -70,16 +70,32 @@ export const leafTransform = (p: number) => {
 };
 
 /**
+ * لحظة إغلاق الراوي لفكرة المشهد (نهاية آخر كلمة بالثواني من بداية المشهد)، يضعها غلاف «مشهد خط الأفق».
+ * بها يبدأ قلب الصفحة أو خفوت الحبر بعد آخر كلمة بنَفَس (EXIT_BEAT) بدل ذيل ساكن ثم خروج متأخر.
+ * بلا قيمة (الاختبارات والمختبرات القديمة) يبقى الخروج كما كان: قلب عند dur−0.95 وخفوت عند dur−0.75.
+ */
+export const SceneCloseContext = React.createContext<number | undefined>(undefined);
+export const EXIT_BEAT = 0.3;
+
+/**
  * الدفتر: from = كاميرا المشهد السابق (يبدأ منها ثم ينتقل في أول ثانية)، exit = خروج المشهد.
  * عند الخروج بالقلب تعود الكاميرا إلى الوضع العام قبله، فالمشهد التالي يبدأ من دفتر فارغ بالكادر نفسه.
  */
 export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: Exit; turnAt?: number; from?: Cam }> = ({ id, t, dur, exit = "none", turnAt, from, ...leaf }) => {
-  const turnStart = turnAt ?? dur - 0.95;
-  const p = exit === "turn" ? prog(t, turnStart, turnStart + 0.8, easeIO) : 0;
-  const fade = exit === "fade" ? prog(t, dur - 0.75, dur - 0.15) : 0;
+  const close = React.useContext(SceneCloseContext);
+  // الخروج يبدأ حين يُغلق الراوي الفكرة (بعد آخر كلمة بنَفَس قصير) لا بعد ذيل ساكن، ولا يقصر عن مدته الأصلية
+  const turnStart = turnAt ?? (close !== undefined ? Math.min(dur - 0.95, close + EXIT_BEAT) : dur - 0.95);
+  const turnLen = turnAt === undefined && close !== undefined ? Math.max(0.8, dur - 0.15 - turnStart) : 0.8;
+  const p = exit === "turn" ? prog(t, turnStart, turnStart + turnLen, easeIO) : 0;
+  const fadeStart = close !== undefined ? Math.min(dur - 0.75, close + EXIT_BEAT) : dur - 0.75;
+  const fade = exit === "fade" ? prog(t, fadeStart, dur - 0.15) : 0;
   let cam = leaf.cam;
   if (from) cam = blend(from, cam, prog(t, 0, 1.0));
-  if (exit === "turn") cam = blend(cam, NEUTRAL, prog(t, turnStart - 0.7, turnStart));
+  // رجوع الكادر قبل القلب: لا يبدأ قبل انتهاء آخر كلمة (فلا يتحرك على كلمة الختام، ومنها ذكر الله)
+  const backStart = close !== undefined && turnAt === undefined ? Math.max(turnStart - 0.7, Math.min(close + 0.05, turnStart - 0.2)) : turnStart - 0.7;
+  if (exit === "turn") cam = blend(cam, NEUTRAL, prog(t, backStart, turnStart));
+  // خفوت الحبر بعد إغلاق الفكرة: يتراجع الكادر معه إلى الصفحتين كاملتين، فيبدأ المشهد التالي من الدفتر كله لا من قطع
+  if (exit === "fade" && close !== undefined) cam = blend(cam, NEUTRAL, prog(t, fadeStart, dur - 0.15));
   const { sx, css } = leafTransform(p);
   const turning = p > 0 && p < 1;
   const crossed = p > 0 && sx <= 0;

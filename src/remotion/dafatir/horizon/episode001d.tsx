@@ -41,6 +41,13 @@ const GenFan: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const one = prog(t, at(tl, "واحدة") - 0.05, at(tl, "واحدة") + 0.7);
   const cam = camPath(t, { cx: 1180, cy: 420, s: 1.12 }, [
     { a: at(tl, "البشر") - 0.1, b: at(tl, "آدم") + 0.3, cx: 1120, cy: 470, s: 1.04 },
+    // «عليه السلام وزوجه»: اقتراب من الأصل والاسمين المكتوبين فوقه (ينتهي قبل نافذة ذكر الله)
+    { a: at(tl, "عليه") - 0.1, b: Math.min(at(tl, "وأخبرنا") + 0.3, at(tl, "الله") - 0.3), cx: 1300, cy: 250, s: 1.3 },
+    // «في سورة النساء»: إلى ختمها، ثم «من نفس واحدة»: رجوع إلى الأصل وحلقة «واحدة» تُرسم حوله
+    { a: Math.max(at(tl, "سورة") - 0.1, end(tl, "الله") + 0.3), b: at(tl, "النساء") + 0.4, cx: 1560, cy: 320, s: 1.28 },
+    { a: at(tl, "خلق") - 0.1, b: at(tl, "واحدة") + 0.6, cx: 1300, cy: 260, s: 1.38 },
+    // «وخلق منها زوجها»: يتسع الكادر قليلًا فيظهر ما يتفرع من الأصل
+    { a: at(tl, "وخلق") - 0.1, b: at(tl, "زوجها") + 0.3, cx: 1260, cy: 340, s: 1.2 },
     { a: at(tl, "وبث") - 0.2, b: at(tl, "كثيرا") + 0.4, ...NEUTRAL },
   ]);
   const fan = (
@@ -67,8 +74,9 @@ const GenFan: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       {p.head ? <ChapterHead label={p.head} /> : null}
       <circle cx={ROOT[0]} cy={ROOT[1]} r={60 * one} fill={C.gold} opacity={0.25 * (1 - 0.5 * one)} />
       <Ink d={`M${ROOT[0]} ${ROOT[1] - 34} a34 34 0 1 1 -0.1 0`} w={4} p={one} c={C.gold} />
-      <circle cx={ROOT[0] - 12} cy={ROOT[1]} r={13 * root} fill={C.ink} />
-      <circle cx={ROOT[0] + 12} cy={ROOT[1]} r={13 * root} fill={GOLD_D} />
+      {/* الأصل عقدة واحدة بحبر الدفتر: الاسم المكتوب فوقها هو الذي يعرّف، لا نقطتان بلونين يوحيان بشخصين */}
+      <circle cx={ROOT[0]} cy={ROOT[1]} r={16 * root} fill={C.ink} />
+      <circle cx={ROOT[0]} cy={ROOT[1]} r={6 * root} fill={C.page} />
       <Word x={ROOT[0]} y={ROOT[1] - 56} size={34} p={label} font="tajawal" weight={500} color={C.inkSoft}>
         آدم عليه السلام وزوجه
       </Word>
@@ -109,7 +117,8 @@ const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     { a: at(tl, "أقدم") - 0.2, b: at(tl, "آثارها") + 0.2, cx: 480, cy: 580, s: 1.15 },
     { a: at(tl, "أسماء") - 0.35, b: at(tl, "أسماء") + 0.25, cx: 1380, cy: 500, s: 1.18 },
     { a: at(tl, "أماكن") - 0.35, b: at(tl, "أماكن") + 0.25, cx: 820, cy: 500, s: 1.18 },
-    { a: at(tl, "أحداث") - 0.35, b: at(tl, "أحداث") + 0.25, cx: 520, cy: 500, s: 1.18 },
+    // «ولا كل ما جرى لها من أحداث»: النظر يمضي إلى الفجوة الثالثة مع «ما جرى لها»
+    { a: at(tl, "جرى") - 0.1, b: at(tl, "أحداث") + 0.25, cx: 520, cy: 500, s: 1.18 },
     { a: end(tl, "أحداث") + 0.2, b: end(tl, "أحداث") + 1.0, ...NEUTRAL },
   ]);
   const r = rng(73);
@@ -279,7 +288,9 @@ const Roadmap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const tag = pop(t, at(tl, "حلقاتنا"));
   const road = prog(t, 0.05, end(tl, "الأرض") + 0.3, (x) => x);
   const times = MILES.map((m) => at(tl, m.w));
-  const cam = camPath(t, { cx: 1450, cy: 640, s: 1.18 }, [
+  const cam = camPath(t, NEUTRAL, [
+    // «ومع تقدم حلقاتنا»: من الصفحتين إلى أول الطريق ووسم «الحلقات» لحظة ظهوره
+    { a: 0.1, b: at(tl, "حلقاتنا") + 0.5, cx: 1480, cy: 720, s: 1.22 },
     { a: times[0]! - 0.3, b: times[0]! + 0.3, cx: 1420, cy: 620, s: 1.2 },
     { a: times[1]! - 0.5, b: times[1]! + 0.3, cx: 1150, cy: 470, s: 1.2 },
     { a: times[2]! - 0.6, b: times[2]! + 0.3, cx: 520, cy: 400, s: 1.2 },
@@ -355,10 +366,18 @@ const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const light = prog(t, q3 - 0.1, at(tl, "تخبرنا") + 0.3, easeOut);
   const bound = prog(t, at(tl, "خارج") - 0.05, end(tl, "حدودها") + 0.2);
   const qmark = pop(t, end(tl, "حدودها") - 0.1);
-  const cam = camPath(t, { cx: 1380, cy: 340, s: 1.45 }, [
+  const cam = camPath(t, NEUTRAL, [
+    // «وأول ما نحتاج إلى فهمه»: اقتراب من إطار السؤال الأول وهو يُرسم
+    { a: at(tl, "وأول") - 0.1, b: q1 + 0.3, cx: 1380, cy: 340, s: 1.45 },
+    // «كيف يعرف الباحثون شيئًا عن حياة قوم»: يتبع المِسْحَج على التراب
+    { a: at(tl, "الباحثون") - 0.2, b: at(tl, "قوم") + 0.3, cx: 1260, cy: 400, s: 1.62 },
     { a: at(tl, "سجلا") - 0.3, b: at(tl, "سجلا") + 0.3, cx: 1530, cy: 320, s: 1.8 },
     { a: q2 - 0.4, b: q2 + 0.3, cx: 1380, cy: 720, s: 1.45 },
+    // بعد «والآثار؟»: إلى العدّاد بعد أن يستقر على «؟؟؟؟» (لا يُقرَّب رقم وهو يدور فيُقرأ سنةً)
+    { a: end(tl, "والآثار") + 0.3, b: end(tl, "والآثار") + 0.9, cx: 1640, cy: 680, s: 1.75 },
     { a: q3 - 0.6, b: q3 + 0.2, cx: 560, cy: 520, s: 1.12 },
+    // «وما الذي يبقى خارج حدودها»: تراجع يكشف العتمة حول دائرة الضوء
+    { a: at(tl, "يبقى") - 0.2, b: end(tl, "حدودها"), cx: 560, cy: 520, s: 0.92 },
     { a: end(tl, "حدودها") + 0.2, b: end(tl, "حدودها") + 1.0, ...NEUTRAL },
   ]);
   const r = rng(85);
@@ -472,7 +491,14 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
       dur={dur}
       exit="turn"
       turnAt={turnAt}
-      cam={camPath(t, { cx: 600, cy: 470, s: 1.12 }, [{ a: at(tl, "اليوم") - 0.2, b: at(tl, "بدأنا") + 0.4, cx: 1370, cy: 560, s: 1.1 }])}
+      cam={camPath(t, NEUTRAL, [
+        // «في الحلقة القادمة»: إلى وسمها، ثم «قصة الإنسان عبر الزمن» تُقرأ كلمة كلمة
+        { a: at(tl, "سنبدأ") - 0.1, b: at(tl, "القادمة") + 0.4, cx: 600, cy: 300, s: 1.3 },
+        { a: at(tl, "قصة") - 0.2, b: at(tl, "الزمن") + 0.3, cx: 520, cy: 470, s: 1.16 },
+        { a: at(tl, "اليوم") - 0.2, b: at(tl, "بدأنا") + 0.4, cx: 1370, cy: 560, s: 1.1 },
+        // «آدم عليه السلام، أبي البشر»: اقتراب من الاسم وما تحته
+        { a: at(tl, "آدم") - 0.1, b: at(tl, "البشر") + 0.3, cx: 1370, cy: 620, s: 1.26 },
+      ])}
       L={
         <g>
           <g opacity={tag} transform={`translate(0 ${(1 - tag) * -30})`}>

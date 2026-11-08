@@ -175,7 +175,13 @@ const Chapter: React.FC<ShotProps> = ({ t, dur, exit, p }) => {
       </SText>
     </g>
   );
-  return <Book id="ch" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={R} />;
+  // الكاميرا تقترب من العنوان وهو يُكتب، ثم تعود إلى الصفحة كاملة وهو يصغر إلى رأسها: تبدأ وتنتهي على الكادر العام
+  // فلا قفز من قلب صفحة الفصل السابق ولا إلى المشهد التالي
+  const cam = camPath(t, NEUTRAL, [
+    { a: 0.0, b: 1.7, cx: 1300, cy: 480, s: 1.14 },
+    { a: 1.9, b: Math.min(dur, 3.2) - 0.15, ...NEUTRAL },
+  ]);
+  return <Book id="ch" t={t} dur={dur} exit={exit} cam={cam} R={R} />;
 };
 
 // تمهيد آية: صفحة ساكنة عليها مرجع الآية القادمة (لا نصّها)

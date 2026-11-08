@@ -8,7 +8,8 @@ import { at, type Timeline } from "../horizon/timeline";
 export const LIB_META: Record<string, HzMeta> = {
   chapter: { nameAr: "عنوان الفصل (بلا كلام)", tail: 0, exit: "none", seconds: 3.2 },
   "verse-intro": { nameAr: "تمهيد آية (صفحة ساكنة)", tail: 1.0, exit: "none", still: "verse-intro" },
-  "verse-tag": { nameAr: "تمهيد آية بختم سورتها", tail: 1.0, exit: "none" },
+  // تمهيد آية كـ verse-intro (CLAUDE.md، القاعدة الثانية: «مشهد الآية وتمهيدها» سكون مقصود)؛ ختم السورة لحظة ذكرها يبقى كما هو
+  "verse-tag": { nameAr: "تمهيد آية بختم سورتها", tail: 1.0, exit: "none", still: "verse-intro" },
   pending: { nameAr: "قيد التصميم (مكان المشهد في الخطة)", tail: 1.0, exit: "none" },
   "lib-term": { nameAr: "مكتبة · مصطلح يُكتب بالحبر (مع مصدره)", tail: 1.2, exit: "fade", minEnd: (p, tl) => termMinEnd(p, tl) },
   "lib-gloss": { nameAr: "مكتبة · متن وحاشية وتعليق (فصل المصادر)", tail: 1.4, exit: "turn" },

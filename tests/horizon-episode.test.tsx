@@ -18,7 +18,9 @@ describe("دفاتر الزمن 001 — خطة «خط الأفق»", () => {
     const body = script.split("## الاستشهادات")[0]!.split("\n").slice(9);
     const sentences = body.map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !l.startsWith("[آية"));
     expect(scenes.map((s) => s.narration).filter(Boolean).join(" ")).toBe(sentences.join(" "));
-    const keys = [...script.matchAll(/^\[آية: (\S+) (\d+)\]/gm)].length;
+    // العلامة بنصها الذي كتبه المالك: [آية: المرجع | النص]
+    const keys = [...script.matchAll(/^\[آية: (\S+) (\d+)(?: \|[^\]]+)?\]$/gm)].length;
+    expect(keys).toBe(23);
     expect(scenes.filter((s) => s.template === "verse-card").length).toBe(keys);
     for (const s of scenes.filter((s) => s.template === "verse-card")) {
       expect(s.props.text).toBe("");

@@ -34,6 +34,8 @@ const Permit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const r = rng(51);
   const ticks = Array.from({ length: 24 }, (_, i) => ({ x: 1100 + (i % 6) * 110 + r() * 24, y: 450 + Math.floor(i / 6) * 105 + r() * 20, a: g0 + (i / 24) * (g1 - g0) }));
   const cam = camPath(t, NEUTRAL, [
+    // «لآدم زوجه وأسكنهما الجنة»: إلى الاسمين المكتوبين وكلمة «الجنة» (بعد نافذة ذكر الله)
+    { a: Math.max(at(tl, "لآدم"), at(tl, "الله") + 0.75), b: at(tl, "الجنة") + 0.4, cx: 1365, cy: 270, s: 1.3 },
     { a: at(tl, "وأباح") - 0.2, b: g1, cx: 1340, cy: 540, s: 1.08 },
     { a: at(tl, "ونهاهما") - 0.25, b: at(tl, "الاقتراب") + 0.2, cx: 600, cy: 520, s: 1.1 },
   ]);
@@ -86,9 +88,16 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const sx = Math.cos(Math.PI * flip);
   const front = sx > 0;
   const cx = 1370;
-  const cam = camPath(t, { cx: 1370, cy: 520, s: 1.12 }, [
-    { a: at(tl, "تفاح") - 0.3, b: at(tl, "تفاح") + 0.3, cx: 1370, cy: 590, s: 1.4 },
+  const cam = camPath(t, NEUTRAL, [
+    // «ولم يسمّ القرآن الكريم»: إلى ختم «لم يسمّها»، ثم «نوع تلك الشجرة»: إلى الخانة الفارغة وهي تُخطّ
+    { a: at(tl, "القرآن") - 0.2, b: at(tl, "الكريم") + 0.3, cx: 1150, cy: 300, s: 1.3 },
+    { a: at(tl, "نوع") - 0.1, b: at(tl, "الشجرة") + 0.4, cx: 1250, cy: 470, s: 1.32 },
     { a: at(tl, "نجزم") - 0.25, b: at(tl, "نجزم") + 0.3, cx: 1370, cy: 640, s: 1.3 },
+    // الاحتمالات الثلاثة: كل كلمة لحظة كتابتها وشطبها، على ترتيبها من اليمين
+    { a: at(tl, "تفاح") - 0.3, b: at(tl, "تفاح") + 0.3, cx: 1560, cy: 580, s: 1.45 },
+    { a: at(tl, "تين") - 0.3, b: at(tl, "تين") + 0.3, cx: 1400, cy: 580, s: 1.45 },
+    { a: at(tl, "غير") - 0.3, b: at(tl, "غير") + 0.3, cx: 1190, cy: 590, s: 1.45 },
+    { a: at(tl, "فليس") - 0.1, b: at(tl, "معرفة"), cx: 1370, cy: 560, s: 1.25 },
     { a: at(tl, "معرفة") - 0.2, b: at(tl, "العبرة"), cx: 1370, cy: 520, s: 1.18 },
   ]);
   const R = (
@@ -182,6 +191,10 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const strike = prog(t, end(tl, "الخلد") + 0.15, end(tl, "الخلد") + 0.7);
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "وسوس") - 0.2, b: at(tl, "وزوجه") + 0.2, cx: 900, cy: 480, s: 1.06 },
+    // «وسعى إلى إيقاعهما فيما نهاهما»: يتبع الخط المتقطع نحو حدّ النهي (قبل نافذة ذكر الله)
+    { a: at(tl, "وسعى") - 0.1, b: Math.min(at(tl, "فيما") + 0.3, at(tl, "الله") - 0.3), cx: 780, cy: 580, s: 1.14 },
+    // «وفي سورة الأعراف»: إلى ختمها لحظة ذكرها
+    { a: at(tl, "وفي") - 0.1, b: at(tl, "الأعراف") + 0.4, cx: 1520, cy: 330, s: 1.28 },
     { a: at(tl, "زعم") - 0.25, b: at(tl, "الخلد") + 0.2, cx: 1340, cy: 520, s: 1.1 },
   ]);
   const promise = (x: number, y: number, txt: string, q: number) => (
@@ -244,10 +257,14 @@ const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const walk = prog(t, at(tl, "رجع") - 0.1, at(tl, "رجع") + 0.15);
   const glow = prog(t, at(tl, "صادقا") + 0.25, at(tl, "صادقا") + 0.7);
   const cam = camPath(t, NEUTRAL, [
+    // «يظهر الفرق بين الموقفين»: إلى العنوان وهو يُكتب
+    { a: at(tl, "الفرق") - 0.2, b: at(tl, "الموقفين") + 0.3, cx: 1365, cy: 270, s: 1.3 },
     { a: at(tl, "فإبليس") - 0.3, b: at(tl, "فإبليس") + 0.3, cx: 560, cy: 520, s: 1.22 },
     { a: at(tl, "وآدم") - 0.35, b: at(tl, "وآدم") + 0.3, cx: 1370, cy: 520, s: 1.22 },
     { a: end(tl, "وأناب") + 0.1, b: end(tl, "وأناب") + 0.8, ...NEUTRAL },
     { a: at(tl, "باب") - 0.3, b: at(tl, "التوبة") + 0.3, cx: 1300, cy: 520, s: 1.12 },
+    // «لمن أذنب ثم رجع»: يتبع النقطة وهي تعود إلى الباب (قبل نافذة «ربه»)
+    { a: at(tl, "أذنب") - 0.2, b: Math.min(at(tl, "رجع") + 0.3, at(tl, "ربه") - 0.3), cx: 1240, cy: 640, s: 1.3 },
   ]);
   // الباب على الصفحة اليمنى: إطار ثابت ومصراع يدور على مفصله الأيمن
   const dx = 1420;
@@ -314,7 +331,10 @@ const EarthWords: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const life = pop(t, at(tl, "حياة"));
   const death = pop(t, at(tl, "وموتهم"));
   const out = prog(t, at(tl, "إخراجهم") - 0.1, at(tl, "إخراجهم") + 0.7);
-  const cam = camPath(t, { cx: 1300, cy: 480, s: 1.1 }, [
+  const cam = camPath(t, NEUTRAL, [
+    // «وفي سورة الأعراف»: إلى ختمها، ثم «في الأرض»: إلى الأفق وهو يُرسم
+    { a: at(tl, "سورة") - 0.1, b: at(tl, "الأعراف") + 0.5, cx: 1560, cy: 300, s: 1.3 },
+    { a: at(tl, "بيان") - 0.1, b: at(tl, "الأرض") + 0.6, cx: 1300, cy: 500, s: 1.1 },
     { a: at(tl, "ومتاعا") - 0.2, b: at(tl, "حين") + 0.3, cx: 900, cy: 520, s: 1.0 },
     { a: at(tl, "حياة") - 0.2, b: at(tl, "إخراجهم") + 0.4, cx: 960, cy: 600, s: 1.04 },
   ]);
@@ -448,11 +468,17 @@ const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   // الدبوس معلق يتردد ولا يستقر، ثم يسكن حين نترك الجزم
   const hover = hover0 * (1 - aside);
   const cam = camPath(t, { cx: 960, cy: 540, s: 1.05 }, [
+    // «وأما موضع هبوطه»: الكادر يجول في الخريطة الخالية من المعالم
+    { a: at(tl, "موضع") - 0.1, b: r0 - 0.2, cx: 800, cy: 500, s: 1.12 },
     { a: r0 - 0.2, b: r0 + 0.6, cx: 640, cy: 520, s: 1.15 },
     { a: r0 + 0.6, b: r1, cx: 1300, cy: 520, s: 1.15 },
     { a: at(tl, "نعلم") - 0.2, b: at(tl, "نصا"), cx: 1180, cy: 470, s: 1.12 },
-    { a: at(tl, "تاريخا", 1) - 0.25, b: at(tl, "محددا") + 0.3, cx: 1300, cy: 460, s: 1.1 },
+    // «يحدده»: اقتراب من الدبوس المعلق الذي لا يستقر، ثم إلى شريط التاريخ الفارغ
+    { a: at(tl, "يحدده") - 0.1, b: at(tl, "كما") + 0.3, cx: 1180, cy: 400, s: 1.3 },
+    { a: at(tl, "تاريخا", 1) - 0.25, b: at(tl, "محددا") + 0.3, cx: 1480, cy: 420, s: 1.16 },
     { a: at(tl, "ننسب") - 0.2, b: at(tl, "الجزم") + 0.4, ...NEUTRAL },
+    // «ونقول فيما لا نعلمه»: تراجع يفسح الصفحة، ثم سكون كامل عند «الله أعلم»
+    { a: at(tl, "ونقول") - 0.1, b: Math.min(end(tl, "نعلمه") + 0.1, at(tl, "الله") - 0.3), cx: 960, cy: 520, s: 0.94 },
   ]);
   const grid = (
     <g opacity={0.5 * map}>
@@ -536,7 +562,11 @@ const Limit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const bar = prog(t, at(tl, "نزيد") - 0.1, at(tl, "عليه") + 0.2);
   const outside = prog(t, at(tl, "يثبت") - 0.05, at(tl, "يثبت") + 0.4);
   const dalil = pop(t, at(tl, "دليل"));
-  const cam = camPath(t, NEUTRAL, [{ a: at(tl, "نزيد") - 0.25, b: at(tl, "دليل") + 0.3, cx: 1100, cy: 560, s: 1.06 }]);
+  const cam = camPath(t, NEUTRAL, [
+    // «نؤمن به ونثبته»: اقتراب من الكلمتين داخل الإطار (بعد نافذة ذكر الله)
+    { a: at(tl, "نؤمن") - 0.2, b: at(tl, "ونثبته") + 0.5, cx: 1365, cy: 480, s: 1.25 },
+    { a: at(tl, "نزيد") - 0.25, b: at(tl, "دليل") + 0.3, cx: 1100, cy: 560, s: 1.06 },
+  ]);
   const R = (
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}

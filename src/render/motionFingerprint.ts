@@ -15,7 +15,7 @@ export const motionFingerprint = (
 ): string => {
   const { updatedAt: _ignored, ...renderPlan } = plan;
   const voice = Object.fromEntries(Object.entries(media.voice).sort(([a], [b]) => a.localeCompare(b)).map(([id, clip]) =>
-    [id, { hash: clip.hash, text: clip.text, duration: clip.duration, words: clip.words }]));
+    [id, { hash: clip.hash, text: clip.text, duration: clip.duration, words: clip.words, ...(clip.timing ? { timing: clip.timing } : {}) }]));
   return createHash("sha256").update(JSON.stringify({
     version: AUDIT_VERSION,
     plan: renderPlan,
