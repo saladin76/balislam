@@ -62,6 +62,10 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
         newVersions[id] = current;
       }
       latestVersionRef.current = newVersions;
+      if (!fresh.scenes[selectedId]) {
+        setSelectedId(fresh.order[0] || "");
+        setVersionChanged(false);
+      }
       setAuthenticated(true);
       setData(fresh);
       setSyncFailed(false);
@@ -133,7 +137,6 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
   const safeVideo = Boolean(mediaUrl && avDuration && Number.isFinite(avDuration) &&
     avDuration > 0 && isSafeVideoUrl(mediaUrl, window.location.origin));
   const blockers = record ? actionBlockers(record, previous, mode) : ["لا توجد بيانات لهذا المشهد."];
-  if (record?.permissions.approve === false) blockers.push("الخادم لم يسمح بالاعتماد بعد.");
   if (versionChanged) blockers.push("تغير إصدار المشهد أثناء المراجعة. افتح الإصدار الجديد أولًا.");
   if (syncFailed) blockers.push("تعذر تحديث بيانات المراجعة من الخادم.");
   if (mediaFailed) blockers.push("فشل تشغيل الفيديو؛ راجع ملف MP4.");
@@ -231,7 +234,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
           {mode === "demo" ? "بيانات اختبارية — لا اعتماد حقيقي" : "مراجعة عبر Backend"}
         </span>
         <button type="button" className="v2-outline" onClick={() => void load(false)} disabled={loading || busy}>تحديث الحالة</button>
-        {mode === "server" && <button type="button" className="v2-outline" onClick={() => setMode("demo")}>فتح العرض التجريبي</button>}
+        {mode === "server" && seeds.length > 0 && <button type="button" className="v2-outline" onClick={() => setMode("demo")}>فتح العرض التجريبي</button>}
         {mode === "demo" && <button type="button" className="v2-outline" onClick={() => setMode("server")}>العودة للخادم</button>}
         {mode === "server" && authenticated && <button type="button" className="v2-outline" onClick={() => void logout()} disabled={authBusy}>تسجيل الخروج</button>}
         {onClose && <button type="button" className="v2-outline" onClick={onClose}>عودة للمحرر</button>}
@@ -253,9 +256,9 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
     </div>}
     {!loading && !data && (mode === "demo" || authenticated) ? <div className="v2-unavailable">
       <h3>لا توجد بيانات مراجعة V2 موثوقة</h3>
-      <p>محرك المراجعة لا يملك API إنتاجية متصلة بعد. لا يمكن استخراج اعتماد من معاينة Remotion أو من مراجعة المشاهد القديمة.</p>
+      <p>تعذر جلب البيانات الموثوقة من Backend V2. راجع جلسة المالك ومتطلبات الخادم وملفات الحلقة، ولا تعتمد بيانات QA.</p>
       <button type="button" className="v2-primary" onClick={() => void load(true)}>إعادة المحاولة</button>
-      {mode === "server" && <button type="button" className="v2-outline" onClick={() => setMode("demo")}>استعراض الواجهة ببيانات QA</button>}
+      {mode === "server" && seeds.length > 0 && <button type="button" className="v2-outline" onClick={() => setMode("demo")}>استعراض الواجهة ببيانات QA</button>}
     </div> : null}
     {data && <div className="v2-layout">
       <nav className="v2-scene-list" aria-label="مشاهد الحلقة">
