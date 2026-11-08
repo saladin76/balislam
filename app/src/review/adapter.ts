@@ -88,8 +88,19 @@ export const mapBackendSceneSnapshot = (
            note.second < 0)) ||
         (note.elementId !== undefined && !string(note.elementId)))
         throw Error("سجل ملاحظات المشهد غير صالح.");
+      if ((note.fingerprint !== undefined &&
+          (!string(note.fingerprint) || !SHA256.test(note.fingerprint))) ||
+          (note.videoVersion !== undefined &&
+          (!string(note.videoVersion) || !note.videoVersion.trim())) ||
+          (note.videoSha256 !== undefined &&
+          (!string(note.videoSha256) || !SHA256.test(note.videoSha256))))
+        throw Error("بصمة الملاحظة أو إصدار الفيديو في Backend غير صالح.");
       return {
-        id: id + "-server-note-" + index, versionId: "",
+        id: id + "-server-note-" + index,
+        // Backend now seals each new note under the exact current AV fingerprint.
+        // Legacy notes without those fields remain unlabelled, never guessed.
+        versionId: string(note.videoVersion) ? note.videoVersion : "",
+        ...(string(note.fingerprint) ? { fingerprint: note.fingerprint } : {}),
         text: note.text, createdAt: note.at,
         ...(typeof note.second === "number" ? { second: note.second } : {}),
         ...(string(note.elementId) ? { elementId: note.elementId } : {}),
