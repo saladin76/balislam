@@ -85,13 +85,15 @@ describe("تقدير الذاكرة يتعامل مع تفاوت المشاهد"
 
   it("عند انخفاض الذاكرة أثناء التشغيل لا تبدأ مهام جديدة", async () => {
     const d = dir();
-    const h = harness(6000, { a: { ms: 60, mb: 4500 }, b: { ms: 10 } });
+    // a طويلة بما يكفي ليبقى السؤال صحيحًا حتى على جهاز مشغول (كانت 60 مللي ثانية فتنتهي قبل الفحص تحت الضغط)
+    const h = harness(6000, { a: { ms: 1500, mb: 4500 }, b: { ms: 10 } });
     const pool = new RenderPool({ cpus: 4, perJobMB: 1000, reserveMB: 900, memory: h.memory, tree: h.tree, spawnFn: h.spawnFn, pollMs: 2, ...noEvidence });
     pool.add(spec(d, "a"));
     await new Promise((r) => setTimeout(r, 15));
     pool.add(spec(d, "b"));
     await new Promise((r) => setTimeout(r, 20));
-    // a تستهلك 4500 من 6000: b تنتظر
+    // a تستهلك 4500 من 6000: b تنتظر ما دامت a جارية
+    expect(pool.tasks.get("a")!.status).toBe("running");
     expect(pool.tasks.get("b")!.status).toBe("queued");
     await pool.idle();
     expect(pool.tasks.get("b")!.status).toBe("done");
