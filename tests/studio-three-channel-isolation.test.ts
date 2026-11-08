@@ -5,6 +5,8 @@ import { elementExclusion, templateExclusion } from "../src/channel/library";
 import { currentChannelId, loadChannel, runWithChannel, channelPaths, channelInfo } from "../src/channel";
 import { channelLibrary } from "../src/channel/library";
 import { channelSamples } from "../src/remotion/scenes/channelSamples";
+import { studioMediaNamespace } from "../src/plan/collect";
+import path from "node:path";
 
 const ids = ["balislam", "dafatir-alzaman", "zubdat-alkutub"] as const;
 
@@ -49,6 +51,14 @@ describe("shared studio isolation across all three channels", () => {
     }
     expect(libs[0]!.figures).toBe(false);
     expect(libs[1]!.figures).toBe(true);
+  });
+
+  it("never reuses one channel's render or storyboard namespace for another", () => {
+    const spaces = ids.map(id => studioMediaNamespace(path.join(channelPaths(id).episodes, "001-demo", "script.md")));
+    expect(new Set(spaces.map(s => s.render)).size).toBe(3);
+    expect(spaces.map(s => s.channelName)).toEqual([...ids]);
+    expect(spaces.every(s => s.render.startsWith("_render/") && !s.render.includes(".."))).toBe(true);
+    expect(() => studioMediaNamespace("/tmp/arbitrary/random/script.md")).toThrow(/غير قياسي/);
   });
 
   it("keeps overlapping asynchronous studio requests in distinct channels", async () => {

@@ -138,3 +138,6 @@ export const assertExactMaster = async (scope: WorkflowIdentity, manifest: Artif
   if (await sha256File(file) !== approvedSha) throw new Error("Master bytes differ from the approved file.");
   return file;
 };
+
+// Studio production adapter (snapshot of the real episode files). Kept in its own module.
+export { collectWorkflowSnapshot, snapshotFromFiles, workflowIdentity } from "./studioSnapshot";

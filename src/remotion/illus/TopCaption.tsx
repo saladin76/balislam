@@ -12,14 +12,14 @@ import { normalizeArabic } from "../../script/quranMeta";
 export const bareWord = (w: string) => normalizeArabic(w.replace(/[«»"“”'؟?!.,،:؛…ـ]/g, ""));
 
 /** يقسم توقيتات الكلمات إلى أسطر: ينتهي السطر عند علامة وقف أو عند max كلمات */
-export const captionLines = (timings: WordTiming[], max: number) => {
+export const captionLines = (timings: WordTiming[], max: number, strictMax = false) => {
   const out: WordTiming[][] = [];
   let cur: WordTiming[] = [];
   timings.forEach((w, i) => {
     cur.push(w);
     const left = timings.length - i - 1;
     const stop = /[.؟?!؛:…]$/.test(w.word) || (/[،,]$/.test(w.word) && cur.length >= Math.ceil(max * 0.6));
-    if (stop || (cur.length >= max && left > 2)) {
+    if (stop || (cur.length >= max && (strictMax || left > 2))) {
       out.push(cur);
       cur = [];
     }
@@ -28,9 +28,9 @@ export const captionLines = (timings: WordTiming[], max: number) => {
   return out;
 };
 
-export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTiming[]; keys: string[]; portrait: boolean; out?: number; keyColor?: string }> = ({ frame, fps, timings, keys, portrait, out = 1, keyColor = ID.dawn }) => {
+export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTiming[]; keys: string[]; portrait: boolean; out?: number; keyColor?: string; safeWrap?: boolean }> = ({ frame, fps, timings, keys, portrait, out = 1, keyColor = ID.dawn, safeWrap = false }) => {
   if (!timings.length) return null;
-  const lines = captionLines(timings, portrait ? 6 : 10);
+  const lines = captionLines(timings, safeWrap ? (portrait ? 5 : 8) : (portrait ? 6 : 10), safeWrap);
   const idx = Math.max(
     0,
     lines.findIndex((l, i) => frame >= (l[0]?.start ?? 0) - 4 && frame < ((lines[i + 1]?.[0]?.start ?? Infinity) - 4)),
@@ -38,7 +38,7 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
   const line = lines[idx] ?? [];
   const keySet = new Set(keys.map(bareWord).filter(Boolean));
   const lineIn = spring({ frame: frame - ((line[0]?.start ?? 0) - 4), fps, config: { damping: 20, stiffness: 160 } });
-  const size = portrait ? 62 : 54;
+  const size = safeWrap ? (portrait ? 56 : 50) : (portrait ? 62 : 54);
   return (
     <div
       style={{
@@ -71,6 +71,7 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
               color: key && said > 0.5 ? keyColor : ID.paper,
               opacity: 0.38 + 0.62 * said,
               display: "inline-block",
+              ...(safeWrap ? { maxWidth: "100%", overflowWrap: "anywhere" as const, wordBreak: "break-word" as const } : {}),
               transform: key ? `scale(${1 + 0.1 * pop * (1 - Math.min(1, (frame - w.start) / 30))})` : undefined,
             }}
           >

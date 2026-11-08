@@ -64,8 +64,10 @@ describe("نماذج الصوت الحديثة", () => {
     const { parseBuffer } = await import("music-metadata");
     const os = await import("node:os");
     const path = await import("node:path");
-    const { readFileSync } = await import("node:fs");
-    const f = path.join(os.tmpdir(), `bal-tone-${Date.now()}.mp3`);
+    const { readFileSync, mkdtempSync, rmSync } = await import("node:fs");
+    const owned = mkdtempSync(path.join(os.tmpdir(), "bal-tone-"));
+    const f = path.join(owned, "source.mp3");
+    try {
     await RenderInternals.callFf({ bin: "ffmpeg", args: ["-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=220:duration=2", "-c:a", "libmp3lame", f], indent: false, logLevel: "error", binariesDirectory: null, cancelSignal: undefined });
     const src = readFileSync(f);
     const out = await applyTempo(src, 0.8);
@@ -73,5 +75,8 @@ describe("نماذج الصوت الحديثة", () => {
     expect(d).toBeGreaterThan(2.3);
     expect(await applyTempo(src, 1)).toBe(src);
     expect(scaleTimes([{ start: 1, end: 2 }], 0.8)[0]!.end).toBeCloseTo(2.5);
+    } finally {
+      rmSync(owned, { recursive: true, force: true });
+    }
   }, 20_000);
 });

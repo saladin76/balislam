@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
-import { searchFoundationReciters } from "../workspace/reciterSearch";
-import { filterRecitersByRights, type ReciterRightsFilter, commercialEvidenceFor } from "../workspace/recitationRights";
 import type { ChannelConfig, ChannelDomain } from "../../../src/channel/types";
 import { langPacks } from "../../../src/i18n/packs";
 import { useTheme } from "../../../brand/identity/index";
@@ -34,198 +32,6 @@ const TagsInput: React.FC<{ value: string[]; onChange: (tags: string[]) => void;
 };
 
 /** إعدادات القناة (channel.json) وإنشاء قناة جديدة. */
-/** ترجمة معاني القرآن تحت بطاقة الآية (للقنوات غير العربية). */
-const MeaningPicker: React.FC<{ value?: { id: number; name: string }; language: string; onChange: (v: { id: number; name: string } | undefined) => void }> = ({ value, language, onChange }) => {
-  const [list, setList] = React.useState<{ id: number; name: string; author: string }[] | null>(null);
-  const [msg, setMsg] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-  const load = async () => {
-    if (loading) return;
-    setLoading(true);
-    setMsg("جارٍ التحميل…");
-    try {
-      const r = await api.quranTranslations(language);
-      setList(r.ok ? r.list : null);
-      setMsg(r.ok ? (r.list.length ? "" : "لا توجد ترجمات بهذه اللغة.") : (r.message ?? "تعذّر تحميل الترجمات."));
-    } catch (e) {
-      setList(null);
-      setMsg((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  return (
-    <div className="field">
-      <span>ترجمة معاني الآيات {language === "ar" ? <small>(لا حاجة لها في القناة العربية)</small> : null}</span>
-      <div className="channel-provider-controls">
-        {list && list.length ? (
-          <select id="ch-meaning" aria-label="ترجمة معاني الآيات" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }}>
-            <option value="">بلا ترجمة</option>
-            {value && !list.some((t) => t.id === value.id) ? <option value={value.id}>{value.name} (محفوظ سابقًا؛ غير موجود في القائمة الحالية)</option> : null}
-            {list.map((t) => <option key={t.id} value={t.id}>{t.name}{t.author ? ` — ${t.author}` : ""} (#{t.id})</option>)}
-          </select>
-        ) : (
-          <span style={{ flex: 1 }}>{value ? <><b>{value.name}</b> <code>#{value.id}</code></> : <span className="help">بلا ترجمة</span>}</span>
-        )}
-        <button className="btn small" type="button" disabled={loading} onClick={load}>{loading ? "جارٍ تحميل الترجمات…" : list ? "تحديث الترجمات" : "اختيار من Quran Foundation"}</button>
-        {value ? <button className="btn ghost small" onClick={() => onChange(undefined)}>إزالة</button> : null}
-      </div>
-      <span className="help" role={msg ? "status" : undefined}>{msg || "تظهر تحت نص الآية بخط أصغر مع اسم الترجمة؛ تُجلب مع الآيات عند «جلب الآيات»."}</span>
-    </div>
-  );
-};
-
-/** تلاوة الآيات من Quran Foundation: اختيار القارئ (اختياري). */
-const ReciterPicker: React.FC<{ value?: { id: number; name: string }; onChange: (v: { id: number; name: string } | undefined) => void }> = ({ value, onChange }) => {
-  const [list, setList] = React.useState<{ id: number; name: string; style: string }[] | null>(null);
-  const [msg, setMsg] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-  const [search, setSearch] = React.useState("");
-  const found = searchFoundationReciters(list ?? [], search);
-  const load = async () => {
-    if (loading) return;
-    setLoading(true);
-    setMsg("جارٍ التحميل…");
-    try {
-      const r = await api.quranRecitations();
-      setList(r.ok ? r.list : null);
-      setMsg(r.ok ? (r.list.length ? "" : "لا توجد تلاوات متاحة.") : (r.message ?? "تعذّر تحميل القرّاء."));
-    } catch (e) {
-      setList(null);
-      setMsg((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const styleAr = (s: string) => (/murattal/i.test(s) ? "مرتل" : /mujawwad/i.test(s) ? "مجوّد" : /muallim/i.test(s) ? "معلّم" : s);
-  return (
-    <div className="field">
-      <span>تلاوة الآيات</span>
-      {list && list.length > 0 && <div className="field">
-        <label htmlFor="ch-reciter-search">ابحث في جميع القرّاء والأداءات المتاحة</label>
-        <input id="ch-reciter-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم القارئ، مرتل، مجود، أو رقم التسجيل" />
-        <span className="help" role="status">{found.length} تسجيلًا مطابقًا من أصل {list.length} تسجيلًا لدى Quran Foundation</span>
-      </div>}
-      <div className="channel-provider-controls">
-        {list && list.length ? (
-          <select id="ch-reciter" aria-label="القارئ المختار" value={value?.id ?? ""} onChange={(e) => { const t = list.find((x) => x.id === Number(e.target.value)); onChange(t ? { id: t.id, name: t.name } : undefined); }}>
-            <option value="">بلا تلاوة (نص الآية فقط)</option>
-            {value && !found.some((t) => t.id === value.id) ? <option value={value.id}>{value.name} (المختار حاليًا خارج نتائج البحث)</option> : null}
-            {found.map((t) => <option key={t.id} value={t.id}>{t.name}{t.style ? ` · ${styleAr(t.style)}` : ""}</option>)}
-          </select>
-        ) : (
-          <span style={{ flex: 1 }}>{value ? <b>{value.name}</b> : <span className="help">بلا تلاوة (نص الآية فقط)</span>}</span>
-        )}
-        <button className="btn small" type="button" disabled={loading} onClick={load}>{loading ? "جارٍ تحميل القرّاء…" : list ? "تحديث القرّاء" : "اختيار قارئ"}</button>
-        {value ? <button className="btn ghost small" type="button" onClick={() => onChange(undefined)}>إيقاف التلاوة</button> : null}
-      </div>
-      <span className="help" role={msg ? "status" : undefined}>{msg || "قائمة القرّاء تُجلب كاملة من Quran Foundation بلا حصر مسبق، ويمكن البحث فيها؛ مكتبة AlQuran Cloud في مساحة الحلقة تتيح الاستماع إلى تسجيلات أخرى. توفر التسجيل لا يعني تلقائيًا إذن نشره تجاريًا."}</span>
-    </div>
-  );
-};
-
-/** A channel preference for listening only; production requires a separate rights-gated episode choice. */
-const CloudPreviewPicker: React.FC<{
-  value?: { edition: string; name: string };
-  onChange: (v: { edition: string; name: string } | undefined) => void;
-}> = ({ value, onChange }) => {
-  const [list, setList] = React.useState<{ identifier: string; name: string }[] | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [message, setMessage] = React.useState("");
-  const [search, setSearch] = React.useState("");
-  const [rightsFilter, setRightsFilter] = React.useState<ReciterRightsFilter>("all");
-  const [sample, setSample] = React.useState<{ text: string; audio: string } | null>(null);
-  const [sampleBusy, setSampleBusy] = React.useState(false);
-  const [sampleError, setSampleError] = React.useState("");
-  const [sampleEdition, setSampleEdition] = React.useState("");
-  const auditionRequest = React.useRef(0);
-  const mounted = React.useRef(true);
-  React.useEffect(() => () => { mounted.current = false; auditionRequest.current++; }, []);
-  React.useEffect(() => {
-    auditionRequest.current++;
-    setSample(null); setSampleError("");
-  }, [value?.edition]);
-  const listen = async () => {
-    if (!value || sampleBusy) return;
-    setSample(null); setSampleError(""); setSampleBusy(true);
-    const requested = value.edition;
-    const request = ++auditionRequest.current;
-    setSampleEdition(requested);
-    try {
-      const r = await api.alquranAyah(1, 1, requested);
-      if (mounted.current && request === auditionRequest.current) setSample({ text: r.text, audio: r.audio });
-    } catch (e) {
-      if (mounted.current && request === auditionRequest.current) setSampleError(e instanceof Error ? e.message : String(e));
-    } finally { if (mounted.current) setSampleBusy(false); }
-  };
-  const load = async () => {
-    if (loading) return;
-    setLoading(true);
-    setMessage("جارٍ تحميل قرّاء AlQuran Cloud…");
-    try {
-      const res = await api.alquranEditions();
-      if (!mounted.current) return;
-      setList(res.editions);
-      setMessage(res.editions.length ? "" : "لم تُرجع الخدمة أي تسجيلات متاحة.");
-    } catch (e) {
-      if (mounted.current) { setList(null); setMessage(e instanceof Error ? e.message : String(e)); }
-    } finally {
-      if (mounted.current) setLoading(false);
-    }
-  };
-  const byRights = filterRecitersByRights(list ?? [], rightsFilter);
-  const filtered = byRights.filter((r) =>
-    r.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) ||
-    r.identifier.toLowerCase().includes(search.trim().toLowerCase()));
-  return (
-    <div className="field channel-cloud-preview">
-      <strong>AlQuran Cloud — اختيار القارئ والاستماع</strong>
-      <p className="help">اختر قارئًا من التسجيلات المتاحة واستمع لعينة مباشرة. اضغط «حفظ» في إعدادات القناة لاعتماد اختيار المعاينة. لا يضاف الصوت تلقائيًا إلى الفيديو.</p>
-      <div className="channel-provider-controls">
-        <span>{value ? <><b>{value.name}</b> <code dir="ltr">{value.edition}</code></> : <span className="help">لم يُحدد قارئ للمعاينة</span>}</span>
-        <button type="button" className="btn small" disabled={loading} onClick={load}>
-          {loading ? "جارٍ التحميل…" : list ? "تحديث القرّاء" : "اختيار من AlQuran Cloud"}
-        </button>
-        {value && <button type="button" className="btn small" disabled={sampleBusy} onClick={listen}>{sampleBusy ? "جارٍ جلب العينة…" : "استمع لعينة"}</button>}
-        {value && <button type="button" className="btn ghost small" onClick={() => { setSample(null); onChange(undefined); }}>إزالة الاختيار</button>}
-      </div>
-      {list && list.length > 0 && (
-        <div className="channel-cloud-results">
-          <label htmlFor="ch-cloud-rights">تصنيف حقوق الاستخدام التجاري</label>
-          <select id="ch-cloud-rights" value={rightsFilter} onChange={(e) => setRightsFilter(e.target.value as ReciterRightsFilter)}>
-            <option value="all">جميع القرّاء</option>
-            <option value="verified">استخدام تجاري موثّق</option>
-            <option value="review">يحتاج مراجعة</option>
-          </select>
-          <span className="help">AlQuran Cloud لا يرسل حالة الترخيص التجاري لكل تسجيل. فئة «موثّق» تظهر فقط عند تسجيل دليل نشر تجاري تمت مراجعته.</span>
-          {rightsFilter !== "all" && <button type="button" className="btn ghost small" onClick={() => { setRightsFilter("all"); setSearch(""); }}>إظهار جميع القرّاء ومسح البحث</button>}
-          <label htmlFor="ch-cloud-search">البحث عن قارئ</label>
-          <input id="ch-cloud-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="اسم القارئ أو معرّفه" />
-          <label htmlFor="ch-cloud-edition">التسجيلات المتاحة</label>
-          <select id="ch-cloud-edition" value={value?.edition ?? ""} onChange={(e) => {
-            const selected = list.find((item) => item.identifier === e.target.value);
-            setSample(null); setSampleError("");
-            onChange(selected ? { edition: selected.identifier, name: selected.name } : undefined);
-          }}>
-            <option value="">اختر قارئًا للمعاينة</option>
-            {value && !filtered.some((item) => item.identifier === value.edition) && <option value={value.edition}>{value.name} (الاختيار المحفوظ خارج نتائج الفلتر)</option>}
-            {filtered.map((item) => <option key={item.identifier} value={item.identifier}>{item.name} — {item.identifier}</option>)}
-          </select>
-          <span className="help" role="status">{filtered.length} نتيجة ضمن التصنيف المحدد. {rightsFilter === "verified" && !filtered.length ? "لا توجد تسجيلات ذات دليل تجاري متحقق منه حاليًا؛ ليست هذه نتيجة تفيد منع جميع التسجيلات." : ""}</span>
-          {value && <span className="help">حالة القارئ المحدد: {commercialEvidenceFor(value.edition) ? "استخدام تجاري موثّق بدليل" : "يحتاج مراجعة حقوق الاستخدام"}</span>}
-        </div>
-      )}
-      {sampleError && <span className="help" role="alert">{sampleError}</span>}
-      {sample && value?.edition === sampleEdition && <div className="channel-cloud-results">
-        <span className="help">عينة استماع: الفاتحة، الآية 1 — {value.name}</span>
-        <p lang="ar" dir="rtl">{sample.text}</p>
-        <audio controls preload="none" src={sample.audio} aria-label={`استمع إلى عينة القارئ ${value.name}`} />
-      </div>}
-      {message && <span className="help" role="status">{message}</span>}
-    </div>
-  );
-};
-
 export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: () => void; identity?: Identity }> = ({ onCreated, onSaved, identity }) => {
   const [c, setC] = useState<ChannelConfig | null>(null);
   const [saved, setSaved] = useState("");
@@ -300,8 +106,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
             <select id="ch-lang" value={c.language} onChange={(e) => {
               const language = e.target.value;
               if (language !== c.language) {
-                set({ language, quranTranslation: undefined });
-                if (c.quranTranslation) setMsg({ text: "تغيّرت لغة القناة؛ أُزيل اختيار الترجمة السابق من المسودة فقط. راجع الترجمة المناسبة قبل الحفظ." });
+                set({ language });
               }
             }}>
               {Object.values(langPacks).map((p) => <option key={p.code} value={p.code}>{p.nameAr} · {p.nativeName}{p.ready ? "" : " (تجهيز)"}</option>)}
@@ -369,11 +174,8 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         </section>
 
         {c.rules.quran && <section id="channel-quran" className="group channel-settings-section channel-settings-quran ch-wide">
-          <h3>مصادر القرآن والتلاوات <small>Quran Foundation وAlQuran Cloud والترجمة</small></h3>
-          <p className="help">إعدادات مصادر الآيات والمعاينة؛ تحديد صوت AlQuran Cloud للاستماع لا يمنح إذن نشره في الفيديو.</p>
-          <ReciterPicker value={c.recitation} onChange={(recitation) => set({ recitation })} />
-          <CloudPreviewPicker value={c.alquranPreviewRecitation} onChange={(alquranPreviewRecitation) => set({ alquranPreviewRecitation })} />
-          <MeaningPicker key={c.language} value={c.quranTranslation} language={c.language} onChange={(quranTranslation) => set({ quranTranslation })} />
+          <h3>الآيات والتلاوات</h3>
+          <p className="help">اكتب الآيات وأرقامها في سكريبت الحلقة. أرفق تسجيل التلاوة البشرية الذي تختاره مع ملفات الحلقة عبر Claude، وسيراجعه Studio مع المشهد بالصوت والصورة. لا توجد خدمات اختيار أو جلب قرّاء.</p>
         </section>}
 
         <section id="channel-youtube" className="group channel-settings-section">

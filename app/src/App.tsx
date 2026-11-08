@@ -5,19 +5,22 @@ import { StudioStartGuide } from "./ui/StudioStartGuide";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
-import { planIssues } from "../../src/plan/validate";
 import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
-import { EpisodeWorkspaceBar, type WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import type { WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
+import { EpisodeJourneyBar } from "./workspace/EpisodeJourneyBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
+import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
 import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
 import { OpsRoom } from "./tabs/OpsRoom";
+import { ChannelsWorkspace } from "./tabs/ChannelsWorkspace";
+import { IntegratedReviewWorkspace } from "./workspace/IntegratedReviewWorkspace";
 import { PublishTab } from "./tabs/PublishTab";
 import { LibraryTab } from "./tabs/LibraryTab";
 import { ChannelTab } from "./tabs/ChannelTab";
@@ -30,7 +33,7 @@ import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
 
 type Tab = StudioSection;
-const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "publish"];
+const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
 const store = {
   get: (k: string) => {
     try {
@@ -55,7 +58,6 @@ export const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
-  const [homeView, setHomeView] = useState<"channel" | "all">("channel");
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [channelId, setChannelId] = useState<string>(() => {
     const c = store.get("bal-channel") || "";
@@ -115,8 +117,6 @@ export const App: React.FC = () => {
   const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
   /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
   const scriptDirtyRef = useRef(false);
-  /** الحلقات التي جُلبت آياتها في هذه الجلسة */
-  const quranSynced = useRef(new Set<string>());
 
   const say = (msg: string, err = false) => {
     setToast({ msg, err });
@@ -126,7 +126,7 @@ export const App: React.FC = () => {
   const reloadChannels = useCallback(() => api.channels().then(setChannels).catch((e) => say(e.message, true)), []);
   const reloadKeys = useCallback(
     () =>
-      api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: Boolean(keys.QF_CLIENT_ID?.set && keys.QF_CLIENT_SECRET?.set) })).catch(() => {}),
+      api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: false })).catch(() => {}),
     [],
   );
   useEffect(() => {
@@ -197,19 +197,7 @@ export const App: React.FC = () => {
       setMedia(d.media);
       setExtra({ issues: d.issues, keys: d.keys });
       setPlanState("saved");
-      // مرة لكل حلقة في الجلسة: جلب نصوص الآيات (والتلاوة إن اختيرت) تلقائيًا من Quran Foundation
-      if (d.keys.quran && !quranSynced.current.has(`${channelId}:${id}`)) {
-        quranSynced.current.add(`${channelId}:${id}`);
-        api.quran(id, ch).then((r) => {
-          if (r.result?.failed?.length) say(`تعذّر جلب: ${r.result.failed.map((f) => `${f.ref} (${f.reason})`).join("، ")}`, true);
-          return api.episode(id, ch);
-        }).then((n) => {
-          if (channelRef.current !== ch || episodeRef.current !== id) return;
-          setPlan(n.plan);
-          setMedia(n.media);
-          setExtra({ issues: n.issues, keys: n.keys });
-        }).catch((e) => say(`تعذّر جلب الآيات: ${(e as Error).message}`, true));
-      }
+
     }).catch((e) => say(e.message, true));
   }, [flushPlan, channelId]);
   // تُحمَّل الحلقة بعد وصول قائمة حلقات القناة الحالية فقط، فلا تُطلب حلقة القناة السابقة بعد التبديل
@@ -292,7 +280,7 @@ export const App: React.FC = () => {
         active={tab} channelName={channel.nameDisplay ?? channel.name} channelMark={<BrandMark channel={channel} />}
         hasGuide={hasGuide} guideLabel={guideLabel} hasLabs={hasLabs} hasTechReviews={hasTechReviews}
         identityDirty={identDirty} voiceConnected={keysOk.voice} episodeId={epId} episodeTitle={plan?.title}
-        onHome={() => { if (confirmLeaveScript()) { setTab("home"); setNavOpen(false); } }}
+        onHome={() => void navigateManage("home")}
         onNavigate={navigateManage} onClose={closeNavigation}
       />
       {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
@@ -323,37 +311,25 @@ export const App: React.FC = () => {
         </header>
 
         {EPISODE_TABS.includes(tab) && plan && check && epId ? (
-           <EpisodeWorkspaceBar
-             key={`${channelId}:${epId}`}
+           <EpisodeJourneyBar
+             key={`journey:${channelId}:${epId}`}
              episodeId={epId}
+             channelId={channelId}
              title={plan.title}
+             refreshKey={homeKey}
              stage={tab as WorkspaceStage}
-             onStage={(stage, target) => {
+             onStage={(stage) => {
                if (stage !== tab && !confirmLeaveScript()) return;
-               if (target?.sceneId && stage === "episode") setRequestedSceneId(target.sceneId);
                setTab(stage);
-               if (target?.line && stage === "script") {
-                 setTimeout(() => scriptRef.current?.goToLine(target.line!), 50);
-               }
              }}
-             check={check}
-             issues={planIssues(plan, channel)}
-             plan={plan}
-             media={media}
              saveState={planState}
-             scriptDirty={scriptDirty}
-             researchDirty={researchDirty}
+             unsaved={scriptDirty || researchDirty}
            />
          ) : null}
 
-         {tab === "home" ? (
-          <div className="home-wrap">
-          <StudioStartGuide />
-          <nav className="studio-home-switch" aria-label="عرض الاستوديو">
-            <button type="button" aria-pressed={homeView === "channel"} className={homeView === "channel" ? "active" : ""} onClick={() => setHomeView("channel")}>حلقات القناة الحالية</button>
-            <button type="button" aria-pressed={homeView === "all"} className={homeView === "all" ? "active" : ""} onClick={() => setHomeView("all")}>جميع القنوات · غرفة العمليات</button>
-          </nav>
-          {homeView === "all" ? <OpsRoom
+         {tab === "ops" ? (
+          <div className="home-wrap studio-ops-workspace">
+            <OpsRoom
             refreshKey={homeKey}
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
@@ -376,8 +352,19 @@ export const App: React.FC = () => {
               setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
               setShowNew(true);
             }}
-          /> : <>
-          <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
+          />
+          </div>
+        ) : tab === "channels" ? (
+          <ChannelsWorkspace channels={channels} activeId={channelId || channels[0]?.id || ""} onOpen={async (id, destination) => {
+            if (!confirmLeaveScript()) return;
+            await flushPlan();
+            if (id !== channelId) setChannelId(id);
+            setTab(destination);
+          }} />
+        ) : tab === "home" ? (
+          <div className="home-wrap studio-episodes-workspace">
+            <StudioStartGuide />
+            <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
           <HomeTab
             key={`${channelId}-${homeKey}`}
             channel={channel}
@@ -399,7 +386,7 @@ export const App: React.FC = () => {
               setTab(t);
             }}
           />
-          </>}
+          
           </div>
         ) : tab === "treviews" && channelId ? (
           <TechReviewsTab key={channelId} channel={channelId} />
@@ -477,9 +464,26 @@ export const App: React.FC = () => {
             onMedia={setMedia}
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           />
+        ) : tab === "review" ? (
+          <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage, sceneId) => {
+            if (!confirmLeaveScript()) return;
+            if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
+            setTab(stage);
+          }} />
         ) : tab === "publish" ? (
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
         ) : tab === "episode" ? (
+          <>
+          <SceneProductionPanel
+            key={`scene-workflow:${channelId}:${epId}`}
+            episodeId={epId}
+            channelId={channelId}
+            onOpenScene={(id) => setRequestedSceneId(id)}
+            onOpenStoryboard={() => setTab("storyboard")}
+            onOpenScript={() => setTab("script")}
+            onOpenPublish={() => setTab("publish")}
+            onUpdated={() => setHomeKey(k => k + 1)}
+          />
           <EpisodeTab
             key={epId}
             episodeId={epId}
@@ -499,6 +503,7 @@ export const App: React.FC = () => {
             }}
             onOpenVoice={() => setTab("voice")}
           />
+          </>
         ) : (
           <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}

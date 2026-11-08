@@ -8,9 +8,6 @@ export const MANAGED_KEYS = {
   ELEVENLABS_API_KEY: { secret: true, label: "مفتاح ElevenLabs" },
   ELEVENLABS_VOICE_ID: { secret: false, label: "معرّف الصوت" },
   ELEVENLABS_MODEL_ID: { secret: false, label: "نموذج الصوت (اختياري)" },
-  QF_CLIENT_ID: { secret: true, label: "Quran Foundation Client ID" },
-  QF_CLIENT_SECRET: { secret: true, label: "Quran Foundation Client Secret" },
-  QF_ENV: { secret: false, label: "بيئة Quran Foundation" },
 } as const;
 
 export type ManagedKey = keyof typeof MANAGED_KEYS;
@@ -45,4 +42,36 @@ export const writeKeys = async (updates: Partial<Record<ManagedKey, string>>) =>
     else delete process.env[k];
   }
   await writeFile(file, text, { encoding: "utf8", mode: 0o600 });
+};
+
+/**
+ * أسرار الاستوديو المحلية (توقيع سجل الاعتمادات وهوية المالك): تُولَّد عشوائيًا مرة واحدة على جهاز صاحب القناة
+ * وتُحفظ في .env (لا يُرفع)، حتى يعمل الاعتماد بلا إعداد يدوي. لا تُعرض ولا تُرسل للمتصفح أبدًا.
+ * تغييرها لاحقًا يُبطل كل الاعتمادات الموقَّعة بالمفتاح القديم (عن قصد).
+ */
+export const LOCAL_SECRETS = ["BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_TOKEN", "STUDIO_V2_OWNER_SECRET"] as const;
+export const ensureLocalSecrets = async (): Promise<string[]> => {
+  const { randomBytes } = await import("node:crypto");
+  const file = envFile();
+  let text = existsSync(file) ? await readFile(file, "utf8") : "";
+  const created: string[] = [];
+  for (const k of LOCAL_SECRETS) {
+    const m = text.match(new RegExp(`^${k}=(.*)$`, "m"));
+    const current = (m?.[1] ?? process.env[k] ?? "").trim();
+    if (current.length >= 32) {
+      process.env[k] ??= current;
+      continue;
+    }
+    const v = randomBytes(32).toString("hex");
+    const line = `${k}=${v}`;
+    text = m ? text.replace(new RegExp(`^${k}=.*$`, "m"), () => line) : `${text.replace(/\n*$/, text ? "\n" : "")}${line}\n`;
+    process.env[k] = v;
+    created.push(k);
+  }
+  if (created.length) {
+    await writeFile(file, text, { encoding: "utf8", mode: 0o600 });
+    const { chmod } = await import("node:fs/promises");
+    await chmod(file, 0o600); // الملف قد يكون موجودًا بصلاحيات أوسع
+  }
+  return created;
 };

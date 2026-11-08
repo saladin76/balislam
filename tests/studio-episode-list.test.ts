@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { listScriptEpisodeDirs } from "../src/script/episodes";
@@ -8,6 +8,9 @@ import { listScriptEpisodeDirs } from "../src/script/episodes";
  * قائمة حلقات الاستوديو (توجيه ما بعد الأمر 016): مجلد فيه plan.json بلا script.md — مشروع غير مكتمل مثل
  * 000-trailer أو مختبر — يبقى في مكانه ولا يُعرض حلقةً جاهزة، وإلا اختاره الاستوديو فظهرت «الحلقة 000 غير موجودة».
  */
+const ownedEpisodeDirs: string[] = [];
+afterEach(() => { for (const d of ownedEpisodeDirs.splice(0)) rmSync(d, { recursive:true, force:true }); });
+
 describe("قائمة الحلقات الجاهزة للتشغيل", () => {
   it("دفاتر الزمن: 001 فقط؛ 000-trailer والمختبر 900 محفوظان ومستبعدان", async () => {
     const dir = "channels/dafatir-alzaman/episodes";
@@ -28,6 +31,7 @@ describe("قائمة الحلقات الجاهزة للتشغيل", () => {
 
   it("مجلد مؤقت: الخطة وحدها لا تجعل المجلد حلقة، والسكريبت يجعله", async () => {
     const tmp = mkdtempSync(path.join(os.tmpdir(), "eps-"));
+    ownedEpisodeDirs.push(tmp);
     mkdirSync(path.join(tmp, "000-x"));
     writeFileSync(path.join(tmp, "000-x", "plan.json"), "{}");
     mkdirSync(path.join(tmp, "002-y"));

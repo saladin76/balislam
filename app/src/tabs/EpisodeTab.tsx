@@ -280,7 +280,7 @@ export const EpisodeTab: React.FC<{
           <p className="help" style={{ margin: "6px 0 10px" }}>ما تختاره هنا يسري على كل مشاهد الحلقة والشورتس. «القناة» يعني الإعداد الافتراضي من تبويب «الهوية»، ويمكن تغيير أي مشهد وحده من إعداداته.</p>
           <OverlayToggles idPrefix="ep-ov" value={plan.overlays} inherited={channelOv} inheritLabel="القناة" onChange={(overlays) => { const { overlays: _o, ...rest } = plan; onPlanChange(overlays ? { ...rest, overlays } : rest); }} />
         </details>
-        <IssuesBox issues={liveIssues} keys={keys} episodeId={episodeId} onSelect={setSelectedId} onReload={onReload} />
+        <IssuesBox issues={liveIssues} onSelect={setSelectedId} />
         <div className="render-box">
           <div className="toolbar">
             <b>نبرة الصوت في الحلقة</b>
@@ -774,49 +774,18 @@ const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
   );
 };
 
-/** ما يمنع النسخة النهائية، وجلب الآيات. */
-const IssuesBox: React.FC<{ issues: PlanIssue[]; keys: { quran: boolean }; episodeId: string; onSelect: (id: string) => void; onReload: () => void }> = ({ issues, keys, episodeId, onSelect, onReload }) => {
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+/** ملاحظات تتطلب معالجة داخل السكريبت أو مراجعة المصدر، دون جلب آيات تلقائيًا. */
+const IssuesBox: React.FC<{ issues: PlanIssue[]; onSelect: (id: string) => void }> = ({ issues, onSelect }) => {
   if (!issues.length) return null;
-  const needsQuran = issues.some((i) => i.message.includes("bal quran"));
   return (
     <div className="render-box" style={{ borderColor: "var(--err)", background: "var(--err-soft)" }}>
-      <div className="toolbar">
-        <b style={{ color: "var(--err)" }}>قبل النسخة النهائية</b>
-        <span className="spacer" />
-        {needsQuran ? (
-          <button
-            className="btn small"
-            disabled={busy || !keys.quran}
-            title={keys.quran ? "" : "أضف مفاتيح Quran Foundation من تبويب «الإعدادات»"}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                setMsg("");
-                const r = await api.quran(episodeId);
-                const failed = r.result?.failed ?? [];
-                if (failed.length) setMsg(`تعذّر جلب ${failed.length}: ${failed.map((f) => `${f.ref} ← ${f.reason}`).join(" | ")}`);
-                else setMsg(`تم: جُلبت ${r.result?.fetched?.length ?? 0} آية/مقطع.`);
-                onReload();
-              } catch (e) {
-                setMsg((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {busy ? "جارٍ الجلب…" : "اجلب نصوص الآيات"}
-          </button>
-        ) : null}
-      </div>
-      {issues.map((i, k) => (
-        <button key={k} className="issue" style={{ gridTemplateColumns: "auto 1fr" }} onClick={() => onSelect(i.sceneId)}>
-          <span className="lv" style={{ background: i.level === "error" ? "var(--panel)" : "var(--warn-soft)", color: i.level === "error" ? "var(--err)" : "var(--warn)" }}>{i.level === "error" ? "يمنع" : "تنبيه"}</span>
-          <span>{i.message}</span>
+      <div className="toolbar"><b style={{ color: "var(--err)" }}>قبل النسخة النهائية</b></div>
+      {issues.map((issue, index) => (
+        <button key={index} className="issue" style={{ gridTemplateColumns: "auto 1fr" }} onClick={() => onSelect(issue.sceneId)}>
+          <span className="lv" style={{ background: issue.level === "error" ? "var(--panel)" : "var(--warn-soft)", color: issue.level === "error" ? "var(--err)" : "var(--warn)" }}>{issue.level === "error" ? "يمنع" : "تنبيه"}</span>
+          <span>{issue.message}</span>
         </button>
       ))}
-      {msg ? <div className="help">{msg}</div> : null}
     </div>
   );
 };

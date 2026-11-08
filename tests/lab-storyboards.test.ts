@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -20,6 +20,7 @@ let eps: string;
 let lab: string;
 let img1: string;
 let img2: string;
+afterEach(() => { if (eps) rmSync(eps, { recursive:true, force:true }); });
 beforeEach(() => {
   eps = mkdtempSync(path.join(tmpdir(), "sb-"));
   lab = path.join(eps, "900-engine-lab");

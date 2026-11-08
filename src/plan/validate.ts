@@ -1,4 +1,5 @@
 import { engineEnabled } from "./engine";
+import { channelProductionIssues } from "../channel/productionRules";
 import { hasElement } from "../../brand/elements/registry";
 import { parseCameraPlan, parseCameraPlanLines, parsePoseTimeline } from "./director";
 import { lightingIssues } from "./lighting";
@@ -17,7 +18,7 @@ export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: 
 /** بداية رسالة «عنصر مطلوب» (يجمعها الاستوديو قائمةً لتوسيع المكتبة) */
 export const NEEDS_ELEMENT = "لحظات بلا عنصر مطابق";
 
-export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]>; library?: LibraryRules["library"] }): PlanIssue[] => {
+export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]> & { music?: boolean }; library?: LibraryRules["library"] }): PlanIssue[] => {
   const out: PlanIssue[] = [];
   // مكتبة القناة: ما ليس منها خطأ يمنع النسخة النهائية (لا خلط بين القنوات)
   const lib: LibraryRules | null = channel?.rules ? { id: channel.id, rules: { faces: Boolean(channel.rules.faces), quran: Boolean(channel.rules.quran), hadith: Boolean(channel.rules.hadith) }, library: channel.library } : null;
@@ -98,7 +99,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
       }
       if (s.template === "hadith-card" && !p.text?.trim()) out.push({ level: "error", sceneId: s.id, message: `بطاقة الحديث «${p.reference ?? ""}» بلا نص.` });
       if (s.template === "verse-card" && (!p.text?.trim() || p.text.startsWith("‹")))
-        out.push({ level: "error", sceneId: s.id, message: `بطاقة الآية «${p.reference ?? ""}» بنص مؤقت؛ اجلب نصوص الآيات (زر «اجلب نصوص الآيات» في الاستوديو أو الأمر bal quran) بعد إضافة مفاتيح Quran Foundation.` });
+        out.push({ level: "error", sceneId: s.id, message: `بطاقة الآية «${p.reference ?? ""}» بنص مؤقت؛ أضف نص الآية الصحيح إلى السكريبت وراجعه ثم أعد إعداد المشهد.` });
       for (const k of ["element", "rightElement", "leftElement", "secondElement"])
         if (p[k] && !hasElement(p[k]!)) out.push({ level: "warning", sceneId: s.id, message: `العنصر «${p[k]}» غير موجود في المكتبة.` });
       // نصوص أطول من مساحة القالب: تُصغَّر تلقائيًا، لكن الأوضح تقصيرها
@@ -124,5 +125,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد." });
       if (s.backdrop && !hasElement(s.backdrop)) out.push({ level: "warning", sceneId: s.id, message: `الخلفية «${s.backdrop}» غير موجودة.` });
     }
+  // Isolated policy review: never infer an approval from a creative heuristic.
+  out.push(...channelProductionIssues(plan, channel));
   return out;
 };

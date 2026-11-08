@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 
 /**
@@ -357,6 +358,8 @@ export type TaskState = {
   error?: string;
   failure?: Failure;
   output?: string;
+  /** المخرج الجزئي الذي تملكه هذه المحاولة وحدها، للاستعادة والإلغاء الآمنين. */
+  partialOutput?: string;
   /** أُوقفت مؤقتًا وأُعيدت إلى الطابور لحماية الذاكرة (لا تُحسب محاولة فاشلة) */
   preemptions?: number;
   /** استُعيدت بعد إعادة تشغيل */
@@ -600,10 +603,11 @@ export class RenderPool {
 
   private start(t: TaskState) {
     const spec = this.specs.get(t.id)!;
-    const tmp = spec.output ? `${spec.output}.part${path.extname(spec.output)}` : undefined;
+    const tmp = spec.output ? `${spec.output}.part-${randomUUID()}${path.extname(spec.output)}` : undefined;
     const args = [...spec.args];
     if (tmp && spec.outputArg !== undefined) args[spec.outputArg] = tmp;
     t.status = "running";
+    t.partialOutput = tmp;
     t.attempts += 1;
     t.startedAt = Date.now();
     t.error = undefined;
@@ -660,6 +664,7 @@ export class RenderPool {
       if (rec.preempted && !rec.cancelled) {
         // توقيف مقصود لحماية الذاكرة: تعود إلى الطابور، ولا تُحسب محاولة
         if (tmp) await rm(tmp, { force: true });
+        t.partialOutput = undefined;
         t.attempts -= 1;
         t.preemptions = (t.preemptions ?? 0) + 1;
         t.status = "queued";
@@ -710,6 +715,7 @@ export class RenderPool {
         // الناتج الجزئي يُحذف؛ والناتج السليم السابق (إن وجد) يبقى كما هو
         if (tmp) await rm(tmp, { force: true });
       }
+      t.partialOutput = undefined;
       this.emit(t);
       spec.onEnd?.(t);
       await this.save();
@@ -788,7 +794,13 @@ export class RenderPool {
         }
         const spec = t.def ? attach(t.def, t) : null;
         if (!spec) continue;
-        if (spec.output) await rm(`${spec.output}.part${path.extname(spec.output)}`, { force: true });
+        // A previous process may have left its own partial output. Never remove
+        // the generic .part file: a separate active render may be using it.
+        if (spec.output && t.partialOutput &&
+            t.partialOutput.startsWith(`${spec.output}.part-`) &&
+            t.partialOutput.endsWith(path.extname(spec.output)) &&
+            path.dirname(t.partialOutput) === path.dirname(spec.output))
+          await rm(t.partialOutput, { force: true });
         this.tasks.set(t.id, { ...t, status: "error", log: [] });
         toQueue.push(spec);
       } else {

@@ -1,7 +1,7 @@
 /**
  * دفاتر الزمن 001 — اختبار «خط الأفق»: المشاهد غير القرآنية من ستوري بورد اللقطات الست
  * (`channels/dafatir-alzaman/episodes/001-adam-beginning/six-shots-storyboard.md`).
- * لا آية هنا ولا إطار آية: البقرة 30 (اللقطة 3) وآية اللقطة 5 تنتظران نصهما وتلاوتهما من Quran Foundation.
+ * لا آية هنا ولا إطار آية: البقرة 30 (اللقطة 3) وآية اللقطة 5 تنتظران نصهما من السكريبت والتلاوة البشرية التي يرفعها المالك.
  * كل حركة مربوطة بكلمتها في التوقيت (at/end)؛ والسكون عند ذكر الله مقصود.
  */
 import React from "react";
@@ -12,7 +12,7 @@ import { timelineFromWords } from "./timeline";
 import { FINDS, GATE, Hatch, RUINS, Sunset, stone, type FindDef as Find } from "../lib/drawings";
 export { FINDS, GATE, Hatch, RUINS, Sunset };
 
-/** آية تظهر في لقطة: نصها من Quran Foundation، وبدء تلاوتها ومدتها داخل اللقطة (ث)، وword لكلمة مأخوذة منها */
+/** آية تظهر في لقطة: نصها من السكريبت، والتلاوة البشرية المرفوعة تُحدد توقيت اللقطة (ث)، وword لكلمة مأخوذة منها */
 export type QuranView = { key: string; text: string; reciter: string; start: number; dur: number; word?: string };
 type ShotProps = { t: number; tl: Timeline; q?: QuranView };
 export type ShotDef = {
@@ -320,7 +320,7 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
       </svg>
       <div style={{ position: "absolute", right: W - 1680, top: 104, fontFamily: Amiri, fontWeight: 700, fontSize: 40, color: C.ink, direction: "rtl" }}>الفصل الثاني</div>
       {q?.word ? (
-        // لفظ الآية من نص Quran Foundation نفسه، في إطار على الصفحة المقابلة: ساكن طوال اللقطة، ولا يلتقي بالحاشية
+        // لفظ الآية من نص السكريبت المعتمد نفسه، في إطار على الصفحة المقابلة: ساكن طوال اللقطة، ولا يلتقي بالحاشية
         <div style={{ position: "absolute", left: 1170, top: 330, width: 390, padding: "18px 20px 16px", background: "#FBF4E6", border: "3px double rgba(74,46,31,0.65)", borderRadius: 8, textAlign: "center", direction: "rtl", boxShadow: "0 10px 24px rgba(43,30,20,0.18)" }}>
           <div style={{ fontFamily: Tajawal, fontWeight: 500, fontSize: 24, color: C.inkSoft }}>لفظ الآية</div>
           <div style={{ fontFamily: Amiri, fontSize: 88, lineHeight: 1.7, color: C.inkText }}>﴿{q.word}﴾</div>
@@ -565,7 +565,7 @@ const COMPS: Record<string, React.FC<ShotProps>> = { "1": Shot1, "2": Shot2, "3"
 export const SHOT_SPECS: Record<string, Spec> = { "1": S1, "2": S2, "3": S3, "4": S4, "5": S5, "6": S6 };
 const NOTES: Record<string, Pick<ShotDef, "note" | "noteCorner">> = { "6": { note: "رسم توضيحي", noteCorner: "br" } };
 
-/** كلمة الآية التي يُشار إليها (مثل «خليفة») كما هي في نص Quran Foundation، بحروفها وتشكيلها */
+/** كلمة الآية التي يُشار إليها (مثل «خليفة») كما هي في النص القرآني المكتوب بالسكريبت، بحروفها وتشكيلها */
 export const pickQuranWord = (text: string, stem: string) =>
   text.split(/\s+/).find((w) => w.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, "").includes(stem));
 
