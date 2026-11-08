@@ -44,6 +44,12 @@ export type TrustedSceneV2Dependencies = {
   assertLockedScriptAndStoryboard: (sceneId: string) => Promise<void>;
   /** Must independently check actual playable AV scene, rights, review receipts
    * and the owner's explicit completed audiovisual viewing (not a UI boolean). */
+  /** Required in production HTTP: signed MP4 must match current begin event. */
+  requireCurrentRenderReceipt?: (proof: Readonly<{
+    sceneId: string; sceneOrder: readonly string[];
+    fingerprint: string; videoSha256: string; videoEpoch: string;
+    videoVersion: string;
+  }>) => Promise<void>;
   verifyCurrentSceneAvReview: (proof: Readonly<{
     sceneId: string; ownerId: string; fingerprint: string; avSha256: string;
   }>) => Promise<void>;
@@ -170,6 +176,12 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
         if (fingerprint !== input.expectedFingerprint)
           throw Error("Scene AV changed since it was shown; refresh before deciding.");
         if (input.action === "submit") {
+          if (deps.requireCurrentRenderReceipt)
+            await deps.requireCurrentRenderReceipt({
+              sceneId: input.sceneId, sceneOrder: order, fingerprint,
+              videoSha256: inputs.video.sha256, videoEpoch: inputs.video.epoch,
+              videoVersion: manifest.inputs.video.version,
+            });
           // A filename and hash are not proof of a playable AV stream.
           // Probe under the SAME server writer lock before presenting a scene.
           const probed = await probeSceneAvLockedV2(deps.scope, manifest,
