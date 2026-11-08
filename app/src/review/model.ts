@@ -2,7 +2,7 @@
 export type SceneStatus = "draft" | "prepared" | "producing" | "in_review" |
   "changes_requested" | "approved" | "needs_reapproval";
 export type ReviewNote = {
-  id: string; versionId: string; text: string; second?: number;
+  id: string; versionId: string; fingerprint?: string; text: string; second?: number;
   elementId?: string; createdAt: string;
 };
 export type VersionDiff = {
