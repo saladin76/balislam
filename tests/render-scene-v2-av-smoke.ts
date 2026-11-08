@@ -15,6 +15,7 @@ import path from "node:path";
 import samplePlan from "./fixtures/plan.json";
 import { renderSceneV2, type SceneRenderRequestV2 } from "../src/render/sceneV2";
 import { probeMedia } from "../src/render/sceneV2Probe";
+import { verifySceneV2ForBackendManifest, type SceneServerSourcesHandoffV2 } from "../src/render/sceneV2Handoff";
 import { memoryInfo } from "../src/render/pool";
 import type { Plan } from "../src/plan/types";
 
@@ -51,6 +52,17 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
   const hash = (b: Buffer) => createHash("sha256").update(b).digest("hex");
   try {
     await mkdir(path.join(episodeRoot, "voice"), { recursive: true });
+    // Mock ONLY ordinary episode-owned sources in isolated QA. No signatures
+    // or owner approvals are synthesized; Backend remains authority.
+    const qaSourceNames = [
+      "script.md", "vocalized/c1-s0.json", "tone/c1-s0.json",
+      "assets/c1-s0.json", "sync/c1-s0.json", "rights/c1-s0.json",
+    ];
+    for (const filename of qaSourceNames) {
+      const target = path.join(episodeRoot, filename);
+      await mkdir(path.dirname(target), { recursive: true });
+      await writeFile(target, JSON.stringify({ qaOnly: true, filename }) + "\\n");
+    }
     const wave = path.join(episodeRoot, "voice", "synthetic-qa-only.wav");
     await run(["-f", "lavfi", "-i", "sine=frequency=623:sample_rate=48000:duration=2",
       "-c:a", "pcm_s16le", wave]);
@@ -96,9 +108,35 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
           assert.equal(artifactLockDepth, 1, "Backend callback requires shared artifact mutex.");
           assert.equal(leaseDepth, 1, "Backend callback requires durable lease.");
           assert.equal(published.reviewStatus, "not_submitted");
-          assert.equal((await stat(published.file)).size, published.bytes);
+          const publishedStat = await stat(published.file);
+          assert.equal(publishedStat.size, published.bytes);
+          assert.equal(publishedStat.nlink, 1, "Backend signed registry requires one-link final AV.");
+          const sources: SceneServerSourcesHandoffV2 = {
+            original: { version: "qa", files: ["script.md"] },
+            vocalized: { version: "qa", files: ["vocalized/c1-s0.json"] },
+            tone: { version: "qa", files: ["tone/c1-s0.json"] },
+            storyboard: { version: "qa", files: ["plan.json"] },
+            assets: { version: "qa", files: ["assets/c1-s0.json"] },
+            narration: { version: "qa",
+              files: mode === "narrated" ? ["voice/synthetic-qa-only.wav"] : [] },
+            sync: { version: "qa", files: ["sync/c1-s0.json"] },
+            rights: { version: "qa", files: ["rights/c1-s0.json"] },
+          };
+          const handoff = await verifySceneV2ForBackendManifest(
+            _request, published, sources, {}, ffprobe,
+          );
+          assert.equal(handoff.evidence.sha256, published.sha256);
+          assert.equal(handoff.evidence.reviewStatus, "not_submitted");
+          assert.equal(Object.keys(handoff.manifest.inputs).length, 9);
+          assert.deepEqual(handoff.manifest.inputs.video.files, [published.relativeFile]);
+          assert.equal(handoff.manifest.audioMode, mode);
           trustedPublicationCallbacks++;
-          // Isolated QA checks the hook; no Backend key or forged registry is created.
+          console.log("STUDIO_V2_QA_REAL_MANIFEST " + JSON.stringify({
+            mode, sceneId: published.sceneId, source: "actual Remotion MP4",
+            sha256: published.sha256, bytes: published.bytes, inputGroups: 9,
+            nlink: publishedStat.nlink, registered: false, approved: false,
+          }));
+          // No Backend key or forged signed registry is created in isolated QA.
         },
         assertCanRender: async () => { /* isolated QA plan; no owner approvals are simulated */ },
       });
