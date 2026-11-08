@@ -11,6 +11,7 @@ const scripts = [
   "scripts/qa/studio-v2-phase2-live-http.mjs",
   "scripts/qa/studio-v2-phase2-real-render.mjs",
   "scripts/qa/studio-v2-phase2-security-audit.mjs",
+  "scripts/qa/studio-v2-phase2-invalidation.mjs",
 ];
 const root = process.cwd();
 const safeEnv = {
@@ -23,6 +24,7 @@ const safeEnv = {
   STUDIO_V2_QA_RENDER_SERIAL: "0",
   STUDIO_V2_QA_EVIDENCE: "0",
   STUDIO_V2_QA_ALLOW_WRITES: "0",
+  STUDIO_V2_QA_MUTATE_APPROVED_AV: "0",
 };
 
 describe("Studio V2 QA-08 runner self-checks only (not E2E)", () => {
@@ -51,6 +53,15 @@ describe("Studio V2 QA-08 runner self-checks only (not E2E)", () => {
     expect(result.status).toBe(2);
     const report = JSON.parse(result.stdout);
     expect(report.overall).toBe("BLOCKED");
+    expect(report.totals.PASS).toBe(0);
+  });
+  it("approved-video mutation runner rejects unconsented editing", () => {
+    const result = spawnSync(process.execPath, [scripts[3]!], {
+      cwd: root, env: safeEnv, encoding: "utf8", timeout: 12000,
+    });
+    expect(result.status).toBe(2);
+    const report = JSON.parse(result.stdout);
+    expect(report.status).toBe("BLOCKED");
     expect(report.totals.PASS).toBe(0);
   });
 });
