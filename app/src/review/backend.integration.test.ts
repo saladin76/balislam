@@ -13,10 +13,16 @@ const sources = {
   storyboard: { approved: true, fingerprint: "f".repeat(64) },
 };
 const scenes = { channel: "balislam", episode: "001-example", revision: 12,
+  sourcesReady: true,
   scenes: [{ id: "c1-s1", status: "in_review", fingerprint: fp,
+    currentVideo: {
+      version: "av-v2", sha256: "1".repeat(64), epoch: "2".repeat(64),
+      width: 1280, height: 720, durationSec: 8, hasAudio: true,
+    },
+    blockers: [],
     notes: [{ at: "2026-11-08T08:00:00.000Z", text: "الصوت متقدم", second: 3.1,
       elementId: "title" }] },
-    { id: "c1-s2", status: "prepared", notes: [] }] };
+    { id: "c1-s2", status: "prepared", blockers: ["previous_scene_not_approved"], notes: [] }] };
 const mediaUrl = "/api/studio-v2/episodes/001/scenes/c1-s1/media" +
   "?channel=balislam&reviewId=" + reviewId;
 
@@ -35,7 +41,9 @@ describe("Studio V2 real Backend contract adapter", () => {
     const data = mapBackendSceneSnapshot(scenes, "balislam", "001", sources);
     expect(data.order).toEqual(["c1-s1", "c1-s2"]);
     expect(data.serverEpisode).toBe("001-example");
-    expect(data.scenes["c1-s1"]?.currentVersionId).toBe(fp);
+    expect(data.scenes["c1-s1"]?.currentVersionId).toBe("av-v2");
+    expect(data.scenes["c1-s1"]?.currentVideo?.durationSec).toBe(8);
+    expect(data.scenes["c1-s2"]?.permissions.reasons.join(" ")).toContain("السابقة");
     expect(data.scenes["c1-s1"]?.versions[0]?.video).toBeUndefined();
     expect(data.scenes["c1-s1"]?.permissions.approve).toBe(false);
     expect(data.scenes["c1-s1"]?.notes[0]?.second).toBe(3.1);
@@ -106,13 +114,34 @@ describe("Studio V2 real Backend contract adapter", () => {
       { action: "approve", expectedFingerprint: fp, reviewId },
     ]);
   });
-  it("never turns a standalone note into a silent state-changing command", async () => {
+  it("persists independent timecoded notes through the real Backend note command", async () => {
+    const calls: Call[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      const body = init.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {};
+      calls.push({ url, method: init.method || "GET",
+        body, headers: init.headers as Record<string, string> });
+      if (url === "/api/studio-v2/session") return makeResponse(session);
+      if (url.includes("/commands?")) return makeResponse({
+        ok: true, sceneId: "c1-s1", action: "note",
+      });
+      if (url.includes("/sources?")) return makeResponse(sources);
+      if (url.includes("/scenes?")) return makeResponse(scenes);
+      throw Error("Unexpected request");
+    }));
     const adapter = serverReviewAdapter("balislam", "001");
-    await expect(adapter.addNote({
-      sceneId: "c1-s1", versionId: fp, expectedFingerprint: fp,
-      text: "تصحيح", second: 2,
-    })).rejects.toThrow("لا يدعم");
+    await adapter.session();
+    const after = await adapter.addNote({
+      sceneId: "c1-s1", versionId: "av-v2", expectedFingerprint: fp,
+      text: "ملاحظة مستقلة", second: 2, elementId: "title",
+    });
+    expect(after.scenes["c1-s1"]?.status).toBe("in_review");
+    const action = calls.find(c => c.url.includes("/commands?"))!;
+    expect(action.body).toEqual({ action: "note", note: "ملاحظة مستقلة",
+      expectedFingerprint: fp, second: 2, elementId: "title" });
+    expect(action.headers["x-studio-v2-csrf"]).toBe(csrf);
+    expect(calls.every(c => !c.url.includes("/notes"))).toBe(true);
   });
+
   it("records explicit timecoded correction using Backend commands, not /notes", async () => {
     const calls: Call[] = [];
     vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
