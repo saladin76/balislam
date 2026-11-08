@@ -154,6 +154,10 @@ const main = async () => {
       assert(result.width === 320 && result.height === 180, "wrong video dimensions");
       assert(result.durationSec > 0.8 && result.durationSec < 2.5, "wrong video duration");
       assert(result.hasAudio === (mode === "narrated"), "wrong actual MP4 audio flag");
+      // ffprobe reports streams; a real ffmpeg decode additionally proves
+      // their payload can be read fully without producing an export file.
+      await ffmpeg(ffmpegBin, ["-i", path.join(root, "previews", id + ".mp4"),
+        "-f", "null", "-"]);
       console.log("PASS", id, mode, "video=" + result.videoCodec,
         "audio=" + (result.audioCodec ?? "none"),
         "duration=" + result.durationSec.toFixed(2), "sha256=" + result.sha256.slice(0, 16));
