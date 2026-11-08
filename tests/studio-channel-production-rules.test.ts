@@ -95,7 +95,13 @@ describe("Studio: distinct rules for its three existing channels", () => {
 
   it("makes new channel policy errors visible to the existing render QA pipeline", () => {
     const p = plan(scene({ sfx: [{ id: "bgm-intro", at: 0 }] }), balislam.id);
-    const issues = planIssues(p, balislam);
+    const issues = planIssues(p, {
+      id: balislam.id,
+      rules: {
+        music: balislam.rules.music, faces: balislam.rules.faces,
+        quran: balislam.rules.quran, hadith: balislam.rules.hadith,
+      },
+    });
     expect(issues.some(i => i.level === "error" && i.message.includes("الموسيقى"))).toBe(true);
     expect(channelProductionIssues(p, { id: "unknown" })).toEqual([]);
   });
