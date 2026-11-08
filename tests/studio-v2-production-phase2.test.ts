@@ -171,7 +171,7 @@ describe("Studio V2 phase 2 trusted production boundary", () => {
       order, proof.jobId, proof.fingerprint, proof.videoSha256, proof.videoEpoch));
     await locked(() => requireCurrentSceneRenderLockedV2(scope, "c1-s1", order, proof));
     const inputs = Object.fromEntries(SCENE_INPUT_KEYS.map((key) =>
-      [key, { version: "test", sha256: sha(key), epoch: sha("epoch-" + key) }])) as SceneInputs;
+      [key, { version: "test", sha256: sha(key), epoch: sha("epoch-" + key) }])) as unknown as SceneInputs;
     inputs.shared = {};
     await locked(() => mutateSceneLedgerV2(scope, order, (doc) => {
       reconcileSceneInputs(doc, "c1-s1", inputs, new Date().toISOString());
