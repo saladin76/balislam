@@ -174,7 +174,7 @@ describe("Studio V2 D2 — legitimate silence, human recitation and composite AV
     withFake.inputs.narration.files = ["voice/pretend-silence.mp3"];
     await expect(x.collect("c1-s0", "silent", withFake)).rejects.toThrow(/no narration files/);
     const forged = manifest("c1-s0", "silent");
-    (forged as {audioMode: string}).audioMode = "always-valid";
+    Object.assign(forged, { audioMode: "always-valid" }); // simulate malformed runtime JSON
     await expect(x.collect("c1-s0", "silent", forged)).rejects.toThrow(/Unknown scene audio policy/);
   });
 
