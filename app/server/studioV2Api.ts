@@ -104,6 +104,18 @@ const sceneService = async (ctx: Ctx, scope: WorkflowIdentity, reviewId?: string
       await requireApprovedSceneSourcesV2(scope);
       await verifyStudioV2Sources(scope, ctx.load);
     },
+    requireCurrentRenderReceipt: async (proof: {
+      sceneId: string; sceneOrder: readonly string[];
+      fingerprint: string; videoSha256: string; videoEpoch: string;
+      videoVersion: string;
+    }) => {
+      const { requireCurrentSceneRenderLockedV2 } =
+        await ctx.load("/src/workflow/sceneRenderCommitV2.ts");
+      await requireCurrentSceneRenderLockedV2(scope, proof.sceneId, proof.sceneOrder, {
+        jobId: proof.videoVersion, fingerprint: proof.fingerprint,
+        videoSha256: proof.videoSha256, videoEpoch: proof.videoEpoch,
+      });
+    },
     verifyCurrentSceneAvReview: async (proof: {
       sceneId: string; ownerId: string; fingerprint: string; avSha256: string;
     }) => {
