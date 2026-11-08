@@ -298,7 +298,10 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               {av.session ? "بدء مراجعة جديدة من البداية" : "بدء مراجعة AV من الخادم"}
             </button>
             <span>{av.status === "completed" ? "أكد Backend اكتمال المشاهدة" :
-              av.status === "watching" ? "المشاهدة بصوت مسموع وبسرعة 1×" :
+              av.status === "watching" ?
+              (record.currentVideo?.hasAudio === false ?
+                "مشهد بلا مسار صوتي وفق فحص الخادم — المشاهدة 1×" :
+                "المشاهدة بالصوت والصورة وبسرعة 1×") :
               av.status === "ended" ? "انتهى التشغيل؛ أكمل التحقق الخادمي" :
               av.status === "starting" ? "جارٍ بدء جلسة مراجعة..." :
               av.status === "invalid" ? "الجلسة مرفوضة؛ أعد المشاهدة" :
@@ -447,7 +450,12 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
             <div className="v2-fingerprint"><span>{mode === "server" ?
             "بصمة المشهد الحالية من Backend" :
             "معرف النسخة المرتبط بالمراجعة"}</span>
-              <code dir="ltr">{version?.fingerprint || "—"}</code></div>
+              <code dir="ltr">{version?.fingerprint || "—"}</code>
+              {mode === "server" && record?.currentVideo && <>
+                <span>SHA256 الفيديو الحالي وفق Backend</span>
+                <code dir="ltr">{record.currentVideo.sha256}</code>
+              </>}
+            </div>
             {comparedDiffs?.length ? <div className="v2-diffs">
               <p className="v2-help">الفروقات مقارنة بالإصدار {compare?.label}.</p>
               {comparedDiffs.map((d, i) => <div key={i}><strong>{d.field}</strong><del>{d.before}</del><ins>{d.after}</ins></div>)}
