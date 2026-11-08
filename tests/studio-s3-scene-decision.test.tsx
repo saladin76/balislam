@@ -70,6 +70,15 @@ describe("الخطوة ٣: قرار المشهد الحالي", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} problem={{ kind: "tone", at: 3 }} />);
     expect(html).toContain("مثل الحلقة");
     expect(html).toContain("أرسل وأعد توليد الصوت");
+    expect(html).not.toContain("خريطة نبرة");
+  });
+
+  it("حلقة لها خريطة نبرة: سطر واحد يقول إن الاختيار يحدّث الخريطة لهذا المشهد، والخيار الأول يبقيها", () => {
+    const html = renderToStaticMarkup(<SceneDecisionActions {...base} problem={{ kind: "tone", at: 3 }} toneMapVersion="v1.2" />);
+    expect(html).toContain("اختيارك يحدّث خريطة نبرة الحلقة (v1.2) لهذا المشهد وحده");
+    expect(html).toContain("نبرة الخريطة كما هي");
+    expect(html).not.toContain("مثل الحلقة");
+    expect(html).toContain("أرسل وأعد توليد الصوت");
   });
 
   it("«اعتمد» تطلب تأكيد المشاهدة، والقرارات تمر بالمسار القائم نفسه", () => {
@@ -81,7 +90,7 @@ describe("الخطوة ٣: قرار المشهد الحالي", () => {
     expect(ui).toContain('reviewCurrent("approve-scene")');
     expect(ui).toContain('action: "submit-scene", expectedSha256: scene.sourceSha256, sceneId: currentId');
     expect(ui).toContain("?.previewSha256 !== candidate");
-    expect(ui).toContain("return act(action, sha, currentId, noteText)");
+    expect(ui).toContain("return act(action, sha, currentId, noteText, extra)");
     expect(ui).toContain('act("approve-scene", scene.previewSha256!, currentId)');
     expect(ui).toContain("api.voice(episodeId, { scenes: [sceneId], force })");
   });

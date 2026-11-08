@@ -34,6 +34,12 @@ export type SceneOwnerCommand = {
   confirmedWatched?: boolean;
   /** approve-assembly: every scene-to-scene seam the owner checked ("c1-s1>c1-s2"). */
   seamsChecked?: string[];
+  /**
+   * correct-scene («النبرة غير مناسبة»): the tone the owner picked. In an episode with a tone map
+   * (دفاتر الزمن) it overrides the map for this scene's parts only, as a new tone-map version
+   * (src/voice/toneMapOverride.ts). Elsewhere the tone lives in the plan and this field is ignored.
+   */
+  tone?: string;
 };
 type AuditEvent = { seq: number; action: CommandAction; sceneId?: string;
   at: string; by: "owner"; resultSha256: string; note: string };
@@ -409,6 +415,8 @@ export const inspectSceneProduction = (episode: string) =>
         assemblySha256: await optionalSha(assemblyFile(current.scriptPath)),
         masterSha256: await optionalSha(masterFile(current.scriptPath)),
       },
+      /** Episode tone map (دفاتر الزمن): «النبرة غير مناسبة» updates it for the scene. null elsewhere. */
+      toneMap: await (await import("../voice/toneMapOverride")).toneMapSummary(current.scriptPath),
     };
   });
 
@@ -429,7 +437,9 @@ export const decideSceneProduction = async (episode: string,
       !hex64(command.expectedSha256) ||
       (command.seamsChecked !== undefined && (!Array.isArray(command.seamsChecked) || command.seamsChecked.length > 2000 ||
         command.seamsChecked.some((x) => typeof x !== "string" || x.length > 160))) ||
-      (command.note !== undefined && (typeof command.note !== "string" || command.note.length > 4000)))
+      (command.note !== undefined && (typeof command.note !== "string" || command.note.length > 4000)) ||
+      (command.tone !== undefined && (typeof command.tone !== "string" || command.tone.length > 32 ||
+        command.action !== "correct-scene")))
     throw Error("Malformed scene review command.");
   return withState(episode, async (doc, current) => {
     const p = doc.state, at = new Date().toISOString();
@@ -439,6 +449,7 @@ export const decideSceneProduction = async (episode: string,
     const previewEpochs = { ...doc.previewEpochs };
     let assemblyEpoch = doc.assemblyEpoch;
     let masterEpoch = doc.masterEpoch;
+    let toneOverride: import("../voice/toneMapOverride").PreparedToneOverride | null = null;
     if (command.action === "approve-script") {
       if (p.script.sha256 !== command.expectedSha256) throw Error("Script changed before review.");
       next = approveScript(p, by, at, command.expectedSha256);
@@ -513,6 +524,11 @@ export const decideSceneProduction = async (episode: string,
       } else if (command.action === "correct-scene") {
         if (scene.previewSha256 !== command.expectedSha256 || !command.note?.trim())
           throw Error("A current scene preview and a correction reason are required.");
+        // Tone-map episode: the owner's tone becomes a new tone-map version for this scene only.
+        // Fully validated here, written only after the correction itself is recorded.
+        if (command.tone)
+          toneOverride = await (await import("../voice/toneMapOverride")).prepareSceneToneOverride(current.scriptPath,
+            { scene: id, tone: command.tone, note: command.note, at });
         delete previewEpochs[id];
         assemblyEpoch = undefined; masterEpoch = undefined;
         next = requestSceneCorrection(p, id);
@@ -548,6 +564,9 @@ export const decideSceneProduction = async (episode: string,
     const saved = sign({ version: 1, state: next, revision: doc.revision + 1,
       history, previewEpochs, previewInputs: doc.previewInputs, assemblyEpoch, masterEpoch });
     await saveLedger(stateFileFor(current.scriptPath), saved);
+    // Still under the ledger lock. The map is not a scene input (only the regenerated clip is), so this
+    // write reopens nothing by itself; regenerating this scene's voice reopens this scene alone.
+    if (toneOverride) await toneOverride.commit();
     return view(saved, current);
   });
 };

@@ -6,6 +6,7 @@ import type { ChannelInfo } from "../../../src/channel/types";
 import { planIssues } from "../../../src/plan/validate";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { inheritedToneLabel, tones, toneIds } from "../../../src/voice/tones";
+import { toneMapKeepLabel, toneMapNote } from "./toneMapCopy";
 import { MakeMaster } from "./MakeMaster";
 import "./scene-production.css";
 import "../shell/screens-s3.css";
@@ -176,7 +177,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const previewUrl = currentId && candidate ? api.previewUrl(episodeId, `scene-${currentId}-av.mp4`) : "";
   const allApproved = Boolean(data?.progress.canAssemble);
 
-  const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string, noteText?: string): Promise<boolean> => {
+  const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string, noteText?: string, extra?: { tone?: string }): Promise<boolean> => {
     const fail = (msg: string) => { setError(msg); return false; };
     const note = noteText ?? noteDraft;
     if (!data || pending || !sessionSecret.trim()) return fail("افتح جلسة المالك من أعلى الصفحة أولًا.");
@@ -195,6 +196,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reviewed ? { confirmedWatched: true } : {}),
         ...(seamsChecked ? { seamsChecked } : {}),
+        ...(extra?.tone ? { tone: extra.tone } : {}),
       });
       // Re-read the full model (candidates, drafts) before rendering: never render a partial response.
       const fresh = await api.sceneProduction(episodeId, channelId);
@@ -224,7 +226,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
    * the decision is then taken on those same bytes. Nothing is approved without the owner's click.
    */
   const draftReady = Boolean(scene && candidate && scene.status !== "in_review" && scene.draft === "ready" && scene.readyForAv);
-  const reviewCurrent = async (action: "approve-scene" | "correct-scene", noteText?: string): Promise<boolean> => {
+  const reviewCurrent = async (action: "approve-scene" | "correct-scene", noteText?: string, extra?: { tone?: string }): Promise<boolean> => {
     if (!scene || !currentId) return false;
     let sha = scene.status === "in_review" ? scene.previewSha256 : undefined;
     if (!sha) {
@@ -249,7 +251,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         setPending(false);
       }
     }
-    return act(action, sha, currentId, noteText);
+    return act(action, sha, currentId, noteText, extra);
   };
 
   // القرار الحالي في سطر واحد: يظهر فيه ما يُشاهَد، وما يُؤكَّد، والزر
@@ -312,10 +314,13 @@ export const SceneProductionPanel: React.FC<Props> = ({
    */
   const submitTone = async (sceneId: string, at: number) => {
     if (!plan) return;
-    const name = toneChoice && toneChoice in tones ? tones[toneChoice as keyof typeof tones].nameAr : inheritedToneLabel(plan.tone);
+    const map = data?.toneMap;
+    const name = toneChoice && toneChoice in tones ? tones[toneChoice as keyof typeof tones].nameAr : map ? toneMapKeepLabel : inheritedToneLabel(plan.tone);
     const text = problemText.trim() ? `${name} — ${problemText.trim()}` : name;
-    const ok = await reviewCurrent("correct-scene", problemNote("tone", at, text));
+    // Tone-map episode: the server writes the choice into a new tone-map version for this scene; the plan stays as is.
+    const ok = await reviewCurrent("correct-scene", problemNote("tone", at, text), map && toneChoice ? { tone: toneChoice } : undefined);
     if (!ok) return;
+    if (map) { await generateVoice(sceneId, true); return; }
     const next: Plan = {
       ...plan,
       chapters: plan.chapters.map((c) => ({ ...c, scenes: c.scenes.map((s) => (s.id === sceneId ? { ...s, tone: toneChoice || undefined, edited: true } : s)) })),
@@ -462,12 +467,13 @@ export const SceneProductionPanel: React.FC<Props> = ({
                   v?.pause();
                   setConfirming(false);
                   setProblemText("");
-                  setToneChoice(planScenes.find((x) => x.scene.id === currentId)?.scene.tone ?? "");
+                  setToneChoice(data?.toneMap?.tones[currentId] || (planScenes.find((x) => x.scene.id === currentId)?.scene.tone ?? ""));
                   setProblem(problem?.kind === kind ? null : { kind, at: v?.currentTime ?? 0 });
                 }}
                 onProblemText={setProblemText}
                 onTone={setToneChoice}
                 episodeTone={plan?.tone}
+                toneMapVersion={data?.toneMap?.version}
                 onCancelProblem={() => setProblem(null)}
                 onSubmitProblem={() => {
                   if (!problem || !(scene.previewSha256 || draftReady)) return;
@@ -733,6 +739,8 @@ export const SceneDecisionActions: React.FC<{
   onTone: (tone: string) => void;
   /** نبرة الحلقة الموروثة (تُسمّى في خيار «مثل الحلقة») */
   episodeTone?: string;
+  /** الحلقة لها خريطة نبرة: الاختيار يحدّثها لهذا المشهد (toneMapCopy.ts) */
+  toneMapVersion?: string;
   onCancelProblem: () => void;
   onSubmitProblem: () => void;
   onConfirm: (reviewed: boolean) => void;
@@ -799,10 +807,11 @@ export const SceneDecisionActions: React.FC<{
           <span className="s3-problem-at">{p.problem.kind === "motion" ? "الحركة" : "النبرة"} عند <b dir="ltr">{at}</b></span>
           {p.problem.kind === "tone" ? (
             <select aria-label="النبرة المناسبة" value={p.tone} onChange={(e) => p.onTone(e.target.value)}>
-              <option value="">{inheritedToneLabel(p.episodeTone)}</option>
+              <option value="">{p.toneMapVersion ? toneMapKeepLabel : inheritedToneLabel(p.episodeTone)}</option>
               {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
             </select>
           ) : null}
+          {p.problem.kind === "tone" && p.toneMapVersion ? <p className="sp-hint">{toneMapNote(p.toneMapVersion)}</p> : null}
           <textarea rows={2} value={p.problemText} onChange={(e) => p.onProblemText(e.target.value)} placeholder={p.problem.kind === "motion" ? "ما المشكلة؟" : "ما المشكلة؟ (اختياري)"} aria-label="ما المشكلة؟" autoFocus />
           <div className="sp-actions">
             <button type="submit" className="btn" disabled={p.pending || !problemReady}>{p.problem.kind === "tone" ? "أرسل وأعد توليد الصوت" : "أرسل الملاحظة"}</button>
