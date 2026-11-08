@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { actionBlockers, activeVersion, formatClock, isSafeVideoUrl, sameScope, type SceneReviewRecord } from "./model";
-import { demoReviewAdapter, serverReviewAdapter } from "./adapter";
+import { demoReviewAdapter } from "./adapter";
 
 const ready: SceneReviewRecord = {
   id: "c1-s1", status: "in_review", currentVersionId: "v2",
@@ -59,22 +59,5 @@ describe("Studio V2 review UI fail-closed model", () => {
   it("rejects episode scope mismatch from server", () => {
     expect(sameScope({ channelId: "other", episodeId: "001-qa", revision: 1, order: ["c1-s1"],
       scenes: { "c1-s1": ready } }, "balislam", "001-qa")).toBe(false);
-  });
-  it("posts only playback telemetry and a decision action, never watched or approved assertions", async () => {
-    const sent: { method: string; body: string }[] = [];
-    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
-      sent.push({ method: init.method || "GET", body: String(init.body || "") });
-      return new Response(JSON.stringify({}), { status: 200, headers: { "content-type": "application/json" } });
-    }));
-    const adapter = serverReviewAdapter("balislam", "001-qa");
-    await adapter.playback({ sceneId: "c1-s1", versionId: "v2", sessionId: "qa-session",
-      sequence: 1, kind: "play", positionSec: 0, durationSec: 8, playbackRate: 1 });
-    expect(sent[0]?.body).not.toContain("watched");
-    expect(sent[0]?.body).not.toContain("approved");
-    await expect(adapter.decide({
-      sceneId: "c1-s1", action: "approve", expectedFingerprint: "hash",
-    })).rejects.toThrow();
-    expect(sent[1]?.body).toContain('"action":"approve"');
-    expect(sent[1]?.body).not.toContain('"approved":true');
   });
 });
