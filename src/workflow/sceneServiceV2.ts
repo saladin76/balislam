@@ -67,7 +67,8 @@ const validate = (input: SceneV2ClientDecision): SceneV2ClientDecision => {
       !ALLOWED.includes(input.action) ||
       typeof input.sceneId !== "string" ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.sceneId) ||
-      (input.action === "submit" || input.action === "approve") &&
+      (input.action === "submit" || input.action === "approve" ||
+        input.action === "note" || input.action === "request_changes") &&
         !sha.test(input.expectedFingerprint ?? "") ||
       (input.expectedFingerprint !== undefined && !sha.test(input.expectedFingerprint)) ||
       (input.note !== undefined &&
@@ -156,18 +157,32 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
             // Verified by the trusted asynchronous adapter immediately above,
             // under the SAME shared artifact lock.
           }));
-      } else if (input.action === "note") {
-        // Signed durable note, without changing approval status or claiming AV review.
-        await mutateSceneLedgerV2(deps.scope, order, (doc) =>
-          appendSceneNote(doc, input.sceneId, {
-            text: input.note!, second: input.second, elementId: input.elementId,
-          }, new Date().toISOString()));
-      } else if (input.action === "request_changes") {
-        await mutateSceneLedgerV2(deps.scope, order, (doc) =>
-          requestSceneChanges(doc, input.sceneId, {
-            text: input.note!, at: new Date().toISOString(),
-            second: input.second, elementId: input.elementId,
-          }));
+      } else if (input.action === "note" || input.action === "request_changes") {
+        // The displayed video must still be the EXACT current server-verified
+        // generation. A fresh client GET is not a substitute for this locked check.
+        const current = await captureLocked(input.sceneId);
+        await reconcileLocked(order, input.sceneId, current.inputs);
+        if (current.fingerprint !== input.expectedFingerprint)
+          throw Error("STALE_AV_NOTE: video changed before timecoded decision.");
+        const now = new Date().toISOString();
+        const version = {
+          fingerprint: current.fingerprint,
+          videoVersion: current.manifest.inputs.video.version,
+          videoSha256: current.inputs.video.sha256,
+        };
+        if (input.action === "note") {
+          await mutateSceneLedgerV2(deps.scope, order, (doc) =>
+            appendSceneNote(doc, input.sceneId, {
+              text: input.note!, second: input.second, elementId: input.elementId,
+              ...version,
+            }, now));
+        } else {
+          await mutateSceneLedgerV2(deps.scope, order, (doc) =>
+            requestSceneChanges(doc, input.sceneId, {
+              text: input.note!, at: now, second: input.second,
+              elementId: input.elementId, ...version,
+            }));
+        }
       } else {
         // Source/Storyboard owner approvals must still be current on submit
         // AND approve, not merely at the earlier begin event.
@@ -302,6 +317,8 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
           approvedAt: scene.status === "approved" ? scene.approval?.at : undefined,
           notes: scene.notes.map((n) => ({
             text: n.text, at: n.at, second: n.second, elementId: n.elementId,
+            fingerprint: n.fingerprint, videoVersion: n.videoVersion,
+            videoSha256: n.videoSha256,
           })),
         };
       }),
