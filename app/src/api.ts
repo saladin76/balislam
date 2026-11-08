@@ -107,6 +107,8 @@ export type SceneProductionRead = {
   master: { sha256: string; approved: true; publishAllowed: boolean } | null;
   candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
     masterSha256: string | null };
+  /** Episode tone map (دفاتر الزمن): version and each scene's part tone ("" = mixed). null/absent elsewhere. */
+  toneMap?: { version: string; tones: Record<string, string> } | null;
 };
 export type Loudness = { integrated: number; truePeak: number; lra: number; threshold: number };
 export type RecitationVariant = { file: string; duration: number; sha256: string; loudness: Loudness };
@@ -138,6 +140,8 @@ export type SceneOwnerAction = {
   note?: string;
   confirmedWatched?: boolean;
   seamsChecked?: string[];
+  /** correct-scene in a tone-map episode: the owner's tone for this scene (new tone-map version). */
+  tone?: string;
 };
 
 export const api = {

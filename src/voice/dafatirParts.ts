@@ -21,6 +21,7 @@ import { TRIM_DEFAULTS, safeTrim, speechBounds } from "../remotion/dafatir/audio
 import { boundaryProblems, composeScene, renderBoundaries, type ComposedScene, type PartResult, type SeqItem } from "../remotion/dafatir/audio/compose";
 import { HZ_META, type HzExit } from "../remotion/dafatir/horizon/meta";
 import { normWord, stripTashkeel } from "./tashkeel";
+import { isTone } from "./tones";
 
 export const PARTS_CHANNEL = "dafatir-alzaman";
 export const PARTS_SAMPLE_RATE = 44100;
@@ -68,12 +69,23 @@ export const validatePartsContext = (map: ToneMap & { source?: { tashkeel?: { sh
   return jobs;
 };
 
+/**
+ * نبرة المالك لمشهد («النبرة غير مناسبة» في الخطوة ٣، src/voice/toneMapOverride.ts) تعلو على نبرة الخريطة
+ * لأجزاء ذلك المشهد وحده. الإصدار الذي يكتبها يضعها في أجزائه أيضًا؛ وهذا يضمن أن التوليد يقرأ قرار المالك
+ * من الإصدار الحالي حتى لو بقي جزء بنبرته القديمة. بقية المشاهد بنبرة الخريطة كما هي.
+ */
+export const applySceneOverrides = <M extends ToneMap & { sceneOverrides?: Record<string, { tone?: unknown }> }>(map: M): M => {
+  const o = map.sceneOverrides;
+  if (!o || typeof o !== "object") return map;
+  return { ...map, audioParts: map.audioParts.map((p) => (isTone(o[p.scene]?.tone) ? { ...p, tone: o[p.scene]!.tone as string } : p)) };
+};
+
 export const loadPartsContext = async (scriptPath: string, plan: Plan): Promise<PartsContext | null> => {
   if (!isPartsChannel(scriptPath)) return null;
   const file = toneMapFileFor(scriptPath);
   if (!existsSync(file)) return null;
   const raw = await readFile(file, "utf8");
-  const map = JSON.parse(raw) as ToneMap;
+  const map = applySceneOverrides(JSON.parse(raw) as ToneMap);
   const tk = path.join(path.dirname(scriptPath), "tashkeel.md");
   const jobs = validatePartsContext(map, plan, existsSync(tk) ? await readFile(tk, "utf8") : null);
   return { map, jobs, file, mapSha256: sha256(raw) };
