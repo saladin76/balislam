@@ -246,6 +246,8 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
       }
     }
     const doc = await readSceneLedgerV2(deps.scope, order);
+    const sourcesReady = await deps.assertLockedScriptAndStoryboard(order[0]!)
+      .then(() => true).catch(() => false);
     const video: Record<string, {
       version: string; sha256: string; epoch: string; width?: number;
       height?: number; durationSec?: number; hasAudio?: boolean;
@@ -281,13 +283,22 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
     }
     return {
       channel: doc.channel, episode: doc.episode, revision: doc.revision,
-      scenes: order.map((id) => {
+      sourcesReady,
+      scenes: order.map((id, index) => {
         const scene = doc.scenes[id]!;
+        const blockers: string[] = [];
+        if (!sourcesReady) blockers.push("sources_not_approved");
+        if (order.slice(0, index).some((previous) =>
+          doc.scenes[previous]?.status !== "approved"))
+          blockers.push("previous_scene_not_approved");
+        if (["approved", "in_review"].includes(scene.status) && !video[id])
+          blockers.push("current_video_unavailable");
         let fingerprint: string | undefined;
         try { if (scene.inputs) fingerprint = sceneFingerprint(id, scene.inputs); }
         catch { /* no current complete AV to expose */ }
         return {
           id, status: scene.status, fingerprint, currentVideo: video[id],
+          blockers,
           approvedAt: scene.status === "approved" ? scene.approval?.at : undefined,
           notes: scene.notes.map((n) => ({
             text: n.text, at: n.at, second: n.second, elementId: n.elementId,
