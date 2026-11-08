@@ -418,6 +418,8 @@ export class RenderPool {
   // A child may have exited but its partial output/ledger cleanup is still asynchronous.
   // Such jobs are neither idle nor eligible for retry until settling completes.
   private settling = new Set<string>();
+  // Unsafe output or persistence state requires manual inspection before retry.
+  private unsafeRetry = new Set<string>();
   private waiters: (() => void)[] = [];
   private learnedMB: number;
   /** أعلى ذروة مقيسة لكل نوع تكلفة */
@@ -448,9 +450,18 @@ export class RenderPool {
     return Math.max(spec.estimateMB ?? 0, peak !== undefined ? peak * safety : unknown);
   }
 
+  private hasStalePartial(spec: TaskDef): boolean {
+    return Boolean(spec.output && existsSync(`${spec.output}.part${path.extname(spec.output)}`));
+  }
+
   add(spec: TaskSpec) {
     const prev = this.tasks.get(spec.id);
-    if (prev && (prev.status === "running" || prev.status === "queued" || this.settling.has(spec.id))) return prev;
+    if (prev && (prev.status === "running" || prev.status === "queued" || this.settling.has(spec.id) || this.unsafeRetry.has(spec.id))) return prev;
+    if (prev && (this.hasStalePartial(this.specs.get(spec.id) ?? spec) || this.hasStalePartial(spec))) {
+      this.unsafeRetry.add(spec.id);
+      prev.log.push("رفض بدء محاولة جديدة: يوجد ملف جزئي من محاولة سابقة، ويلزم فحصه قبل الاستعادة.");
+      return prev;
+    }
     this.specs.set(spec.id, spec);
     const t: TaskState = { id: spec.id, status: "queued", attempts: prev?.attempts ?? 0, queuedAt: Date.now(), log: [], ...(prev?.preemptions ? { preemptions: prev.preemptions } : {}) };
     this.tasks.set(spec.id, t);
@@ -469,7 +480,7 @@ export class RenderPool {
       t.failure = classifyFailure({ code: null, signal: null, log: [], cancelled: true });
       t.error = t.failure.message;
       this.emit(t);
-      this.specs.get(id)?.onEnd?.(t);
+      this.notifyEnd(t, this.specs.get(id));
       void this.save();
       this.wake();
       return true;
@@ -483,9 +494,18 @@ export class RenderPool {
 
   /** إعادة الفاشل وحده (أو مهام بعينها) دون لمس الناجح */
   retryFailed(ids?: string[]) {
-    const again = [...this.tasks.values()].filter((t) => (t.status === "error" || t.status === "cancelled") && !this.settling.has(t.id) && (!ids || ids.includes(t.id)) && this.specs.has(t.id));
-    for (const t of again) this.add(this.specs.get(t.id)!);
-    return again.map((t) => t.id);
+    const candidates = [...this.tasks.values()].filter((t) => (t.status === "error" || t.status === "cancelled") && !this.settling.has(t.id) && !this.unsafeRetry.has(t.id) && (!ids || ids.includes(t.id)) && this.specs.has(t.id));
+    const retried: string[] = [];
+    for (const t of candidates) {
+      const spec = this.specs.get(t.id)!;
+      if (this.hasStalePartial(spec)) {
+        this.unsafeRetry.add(t.id);
+        t.log.push("رفض إعادة المحاولة: بقايا ملف مؤقت على القرص.");
+        continue;
+      }
+      if (this.add(spec) !== t) retried.push(t.id);
+    }
+    return retried;
   }
 
   /** ينتظر حتى تفرغ كل المهام (نجاحًا أو فشلًا) */
@@ -640,6 +660,7 @@ export class RenderPool {
       if (!this.running.has(t.id) || this.settling.has(t.id)) return;
       this.settling.add(t.id);
       this.running.delete(t.id);
+      try {
       if (rec.timer) clearTimeout(rec.timer);
       // لا تبقى عملية شاردة من المهمة بعد انتهائها (متصفح يتيم مثلًا): تُوقف مجموعتها كلها
       if (!this.o.spawnFn && child.pid !== undefined) {
@@ -666,9 +687,6 @@ export class RenderPool {
         t.log.push("أُوقفت مؤقتًا لحماية الذاكرة وأُعيدت إلى الطابور");
         this.emit(t);
         await this.save();
-        this.settling.delete(t.id);
-        this.pump();
-        this.wake();
         return;
       }
       if (code === 0 && !spawnError && !rec.cancelled && !rec.timedOut && !rec.stalled) {
@@ -711,11 +729,34 @@ export class RenderPool {
         if (tmp) await rm(tmp, { force: true });
       }
       this.emit(t);
-      spec.onEnd?.(t);
+      this.notifyEnd(t, spec);
       await this.save();
-      this.settling.delete(t.id);
-      this.pump();
-      this.wake();
+      } catch (error) {
+        // Never retry against a partially removed file, an uncommitted ledger,
+        // or a failed final output rename. Do not delete files from this catch.
+        this.unsafeRetry.add(t.id);
+        const why = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        t.status = "error";
+        t.failure = {
+          kind: "unknown",
+          message: "تعذّر إتمام معالجة المهمة بأمان؛ أُوقفت إعادة المحاولة لحين فحص الملفات والسجل.",
+          evidence: [why.slice(0, 300)],
+          diagnostics: classifyFailure({ code, signal, log: t.log }).diagnostics,
+        };
+        t.error = t.failure.message;
+        t.log.push(`RenderPool finalization failed: ${why.slice(0, 300)}`);
+        this.emit(t);
+        this.notifyEnd(t, spec);
+        try { await this.save(); }
+        catch (saveError) {
+          const reason = saveError instanceof Error ? saveError.message : String(saveError);
+          t.log.push(`RenderPool ledger persistence failed: ${reason.slice(0, 200)}`);
+        }
+      } finally {
+        this.settling.delete(t.id);
+        this.pump();
+        this.wake();
+      }
     };
     child.on("error", (e) => void finish(null, null, e));
     child.on("close", (code, signal) => void finish(code, signal));
@@ -725,8 +766,18 @@ export class RenderPool {
     });
   }
 
+  private observerFailure(t: TaskState, hook: string, error: unknown) {
+    const reason = error instanceof Error ? error.message : String(error);
+    t.log.push(`${hook} callback failed: ${reason.slice(0, 200)}`);
+    if (t.log.length > 60) t.log.shift();
+  }
   private emit(t: TaskState) {
-    this.o.onChange?.(t);
+    try { this.o.onChange?.(t); }
+    catch (error) { this.observerFailure(t, "onChange", error); }
+  }
+  private notifyEnd(t: TaskState, spec?: TaskSpec) {
+    try { spec?.onEnd?.(t); }
+    catch (error) { this.observerFailure(t, "onEnd", error); }
   }
 
   private saving: Promise<void> = Promise.resolve();
