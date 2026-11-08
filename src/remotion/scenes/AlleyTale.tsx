@@ -32,6 +32,21 @@ export type Place = "alley" | "market" | "home";
 const MOOD_IDS: Mood[] = ["night", "deep", "dusk", "predawn", "dawn", "day"];
 const asMood = (m: string | undefined, d: Mood): Mood => (MOOD_IDS.includes(m as Mood) ? (m as Mood) : d);
 const POSE_IDS = ["stand", "think", "sit", "sit-low", "head-down", "hold", "cross", "point", "look-up", "nod", "turn-away", "walk", "proud", "apologize", "listen", "talk"] as const;
+
+/** إيماءة ثانوية من الوضعية نفسها في منتصف السطر (يومئ، يرفع رأسه، يعتدل). */
+const SECOND: Record<string, PoseName> = { stand: "think", think: "stand", nod: "cross", sit: "head-down", "sit-low": "look-up", "head-down": "sit-low", "look-up": "think", hold: "nod", cross: "think", "turn-away": "cross", point: "stand" };
+
+/**
+ * وضعيات السطر من s0 إلى s1: وضعيته، ثم إيماءة ثانوية في السطر الطويل وعودة.
+ * في جملة فيها ذكر الله أو دعاء أو آية لا إيماءة: البطل ساكن على وضعيته (isSacredSentence).
+ */
+export const linePoses = (p: PoseName, s0: number, s1: number, o: { directed: boolean; walking: boolean; sacred: boolean }): { at: number; pose: PoseName }[] => {
+  const out = [{ at: s0, pose: p }];
+  if (o.sacred || o.directed || o.walking) return out;
+  if (s1 - s0 > 50) out.push({ at: s0 + Math.round((s1 - s0) * 0.3), pose: SECOND[p] ?? "nod" });
+  if (s1 - s0 > 90) out.push({ at: s0 + Math.round((s1 - s0) * 0.78), pose: p });
+  return out;
+};
 export type ActionId = (typeof POSE_IDS)[number];
 
 /** أطر اللقطات بالتناوب: واسع ← متوسط ← قريب */
@@ -188,16 +203,16 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   }
 
   // وضعية كل لقطة، وفي منتصف السطر إيماءة ثانوية من الوضعية نفسها (يومئ، يرفع رأسه، يعتدل)
-  const SECOND: Record<string, PoseName> = { stand: "think", think: "stand", nod: "cross", sit: "head-down", "sit-low": "look-up", "head-down": "sit-low", "look-up": "think", hold: "nod", cross: "think", "turn-away": "cross", point: "stand" };
   const timeline: { at: number; pose: PoseName }[] = [];
+  // جملة فيها ذكر الله أو دعاء أو آية: لا إيماءة ثانوية؛ البطل ساكن على وضعيته (القاعدة الثالثة)
+  const sacredGroups = groups.map((g) => isSacredSentence(g));
   lines.forEach((l, i) => {
-    const a = actionOf(groupOf((l[0]?.start ?? 0) + 1));
+    const g = groupOf((l[0]?.start ?? 0) + 1);
+    const a = actionOf(g);
     const p = (a === "walk" ? "stand" : a) as PoseName;
     const s0 = starts[i] ?? 0;
     const s1 = starts[i + 1] ?? dur;
-    timeline.push({ at: s0, pose: p });
-    if (!directed && s1 - s0 > 50 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.3), pose: SECOND[p] ?? "nod" });
-    if (!directed && s1 - s0 > 90 && a !== "walk") timeline.push({ at: s0 + Math.round((s1 - s0) * 0.78), pose: p });
+    timeline.push(...linePoses(p, s0, s1, { directed, walking: a === "walk", sacred: Boolean(sacredGroups[g]) }));
   });
   // إيماءة عند الكلمة المفتاحية في اللقطة: يتأمل/يومئ
   const thinkAt = at("think");
