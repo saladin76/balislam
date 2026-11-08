@@ -134,7 +134,8 @@ const validateRequest = (r: SceneRenderRequestV2) => {
       throw Error("Narrator and Quran recitation cannot overlap.");
   }
 };
-const planScene = (plan: Plan, r: SceneRenderRequestV2): { scene: PlanScene; chapter: number } => {
+export const validateSceneV2Request = validateRequest;
+const planScene = (plan: Plan, r: SceneRenderRequestV2): { scene: PlanScene; chapter: number; plan: Plan } => {
   if (plan.version !== 1 || plan.episode !== r.episode.slice(0, 3) ||
       (plan.channel && plan.channel !== r.channel))
     throw Error("Plan does not belong to requested channel and episode.");
@@ -148,7 +149,10 @@ const planScene = (plan: Plan, r: SceneRenderRequestV2): { scene: PlanScene; cha
     throw Error("Human recitation track must match locked scene ayahKey.");
   if (scene.ayahKey && !scene.props.text?.trim())
     throw Error("Recitation scene requires verified Quran text in locked plan.");
-  return found[0]!;
+  const expectedImages = [scene.props.image, scene.props.image2, scene.props.image3].filter(Boolean);
+  if (expectedImages.some((ref) => !r.pictures.some((p) => p.ref === ref)))
+    throw Error("Locked visual reference is missing a pinned picture asset.");
+  return { ...found[0]!, plan };
 };
 const readPinned = async (root: string, r: SceneRenderRequestV2) => {
   const file = path.join(root, "plan.json");
@@ -172,6 +176,7 @@ const stageAsset = async (asset: SceneAssetV2, root: string, destination: string
 export const sceneV2OutputName = (sceneId: string, planHash: string, jobId: string) =>
   `${sceneId}-${planHash.slice(0, 12)}-${jobId}.mp4`;
 
+let activeRenders = 0;
 const renderInternals = async (args: {
   props: SceneV2Props; width: number; height: number; fps: number;
   tmpFile: string; bundleDir: string;
@@ -224,8 +229,13 @@ export const renderSceneV2 = async (
         typeof deps.assertCanRender !== "function" || !path.isAbsolute(deps.ffprobeBinary))
       throw Error("Trusted Backend scene gating and ffprobe are required.");
     return await deps.withProductionLease(r.sceneId, async () => {
+      if (activeRenders > 0) throw Error("Another Studio V2 scene render is busy.");
+      activeRenders++;
+      try {
       checkAbort(deps.signal);
-      const episodeRoot = await realpath(path.join(r.channelsRoot, r.channel, "episodes", r.episode));
+      const trustedRoot = await realpath(r.channelsRoot);
+      const episodeRoot = await realpath(path.join(trustedRoot, r.channel, "episodes", r.episode));
+      if (!within(trustedRoot, episodeRoot)) throw Error("Episode escapes trusted channels root.");
       const publicRoot = path.join(projectRoot, "public");
       const memory = memoryInfo();
       const diskFreeBeforeMB = await freeMB(episodeRoot);
@@ -233,15 +243,17 @@ export const renderSceneV2 = async (
         (await stat(await realpath(a.file))).size))).reduce((a, b) => a + b, 0);
       if (memory.availableMB < 1800 || diskFreeBeforeMB < 1024 + (inputBytes / 1048576) * 2)
         throw Error("Insufficient resources for safe Remotion render.");
-      const { scene, chapter } = await deps.withArtifactLock(async () => {
+      const { scene, chapter, plan } = await deps.withArtifactLock(async () => {
         await deps.assertCanRender(r);
         return readPinned(episodeRoot, r);
       });
       if (r.mode !== "silent") {
         const voice = r.sounds.find((a) => a.kind === "narrator");
-        if (voice && (!voice.words?.length ||
-            voice.words.some((w) => !w.word || !finite(w.start, 0, voice.durationSec) ||
-              !finite(w.end, w.start, voice.durationSec))))
+        const tokens = scene.narration.trim().split(/\\s+/).filter(Boolean);
+        if (voice && (!voice.words?.length || voice.words.length !== tokens.length ||
+            voice.words.some((w, i) => w.word !== tokens[i] || !finite(w.start, 0, voice.durationSec) ||
+              !finite(w.end, w.start, voice.durationSec) ||
+              (i > 0 && w.start < (voice.words?.[i-1]?.start ?? 0)))))
           throw Error("Exact narrator word timestamps are required for synchronized motion.");
       }
       for (const a of r.sounds) {
@@ -288,8 +300,7 @@ export const renderSceneV2 = async (
       const words = narrator?.words?.map((w) =>
         ({ ...w, start: w.start + narrator.startSec, end: w.end + narrator.startSec })) ?? [];
       const props: SceneV2Props = {
-        plan: { ...JSON.parse((await readFile(path.join(episodeRoot, "plan.json"))).toString("utf8")) as Plan,
-          intro: false }, scene, chapterNumber: chapter, orientation: r.orientation,
+        plan: { ...plan, intro: false }, scene, chapterNumber: chapter, orientation: r.orientation,
         frames, media, tracks, words, channel: r.channelInfo, identity: r.identity,
       };
       const temporary = path.join(work, "scene.tmp.mp4");
@@ -320,6 +331,8 @@ export const renderSceneV2 = async (
         const relativeFile = path.posix.join("previews", sceneV2OutputName(r.sceneId, r.planSha256, jobId));
         const output = path.join(episodeRoot, relativeFile);
         await mkdir(path.dirname(output), { recursive: true });
+        const realPreviews = await realpath(path.dirname(output));
+        if (realPreviews !== path.join(episodeRoot, "previews")) throw Error("Unsafe preview output directory.");
         // hard-link is atomic and fails with EEXIST: no overwrite of approved or prior bytes.
         await link(temporary, output);
         published = output;
@@ -339,6 +352,7 @@ export const renderSceneV2 = async (
         return result;
       });
       return success;
+      } finally { activeRenders--; }
     });
   } catch (e) {
     // Only this attempt's newly linked, unapproved output can be rolled back.
