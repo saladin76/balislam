@@ -377,6 +377,7 @@
   - الاستوديو يشغّل النسخة المحلية، أو نسخة Drive المتزامنة إن طابقت البصمة، وإلا يعرض «افتحه على Google Drive».
 - **النطاق:** القنوات الثلاث. الملفات المتتبَّعة قبل القرار تبقى؛ تنظيف السجل بموافقة صاحب المشروع فقط.
 - **المكان:** `src/render/episodePreviews.ts`، و`app/server/extra.ts`، و`app/src/tabs/StoryboardPanel.tsx`، و`src/cli/index.ts`، و`.gitignore`، و`.env.example`.
+- **المساحة:** لا يُنسخ شيء من جهاز المالك إلى Drive (اختياره، ٨ نوفمبر): يُترك `BAL_DRIVE_PREVIEWS_DIR` فارغًا، ويُحفظ في `previews/history` نسخة سابقة واحدة فقط لكل خانة.
 - **التحقق:** `tests/episode-previews-drive.test.ts`.
 
 ### D27 — تنظيف الكود القديم غير المستعمل
