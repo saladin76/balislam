@@ -257,6 +257,44 @@ export const handleStudioV2 = async (ctx: Ctx): Promise<boolean> => {
     }
     const id = parts[4];
     if (parts[3] === "scenes" && id && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
+      // Owner-initiated FINAL render: body contains only the observed ledger revision.
+      // Render/manifest paths, actor, source hashes and signoffs are server-owned.
+      if (parts[5] === "render" && parts.length === 6 && req.method === "POST") {
+        const body = await readJson(req);
+        if (!hasKeys(body, ["expectedRevision"]) ||
+            !Number.isSafeInteger(body.expectedRevision) ||
+            (body.expectedRevision as number) < 0)
+          throw new StudioV2AuthError(400, "V2_RENDER_REQUEST_INVALID");
+        const service = await sceneService(ctx, scope);
+        const current = await service.inspect();
+        if (current.revision !== body.expectedRevision)
+          throw new StudioV2AuthError(409, "V2_STALE_REVISION");
+        // Backend checkout alone intentionally lacks Render-owned PR #86 files.
+        // Never fall back to legacy render or trust a client-supplied request.
+        let renderer: any;
+        try {
+          const module = await ctx.load("/src/render/sceneV2.ts");
+          renderer = module.renderSceneV2;
+        } catch {
+          throw new StudioV2AuthError(503, "V2_RENDER_ENGINE_UNCONNECTED");
+        }
+        if (typeof renderer !== "function")
+          throw new StudioV2AuthError(503, "V2_RENDER_ENGINE_UNCONNECTED");
+        if (!process.env.STUDIO_V2_FFPROBE ||
+            !path.isAbsolute(process.env.STUDIO_V2_FFPROBE))
+          throw new StudioV2AuthError(503, "V2_FFPROBE_NOT_CONFIGURED");
+        const { runTrustedSceneProductionV2 } =
+          await ctx.load("/src/workflow/sceneRenderBridgeV2.ts");
+        const result = await runTrustedSceneProductionV2(scope, id, {
+          renderer,
+          ffprobeBinary: process.env.STUDIO_V2_FFPROBE,
+          browserExecutable: process.env.STUDIO_V2_BROWSER_EXECUTABLE || undefined,
+          verifySourceReview: async () => verifyStudioV2Sources(scope, ctx.load),
+          // Human recitation is intentionally blocked until the dedicated
+          // owner-upload provenance checker is wired by the audio owner.
+        });
+        return send(res, 200, { ok: true, ...result }), true;
+      }
       if (parts[5] === "commands" && parts.length === 6 && req.method === "POST") {
         const body = await readJson(req);
         if (!hasKeys(body, ["action", "expectedFingerprint", "note", "second", "elementId", "reviewId"]) ||
