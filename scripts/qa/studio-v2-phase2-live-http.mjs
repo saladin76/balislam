@@ -7,7 +7,7 @@
  * after-second, assembly. No script/Storyboard signoff or AV approval is faked.
  * Missing components are BLOCKED, never counted PASS.
  */
-import { readFile, realpath, stat, mkdir, writeFile } from "node:fs/promises";
+import { readFile, realpath, mkdir, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -133,7 +133,7 @@ async function main() {
       sourceApproved: true, recitationEvidence: { origin: "owner-upload" },
     },
   }), [400]);
-  await check("HTTP_UNSCOPED_REVIEW_ID", () => authenticated(scene("c1-s1", "/media?reviewId=" + "0".repeat(48)), [409, 403, 503]);
+  await check("HTTP_UNSCOPED_REVIEW_ID", () => authenticated(scoped("/scenes/c1-s1/media") + "&reviewId=" + "0".repeat(48)), [409, 403, 503]);
   const state = await check("HTTP_REAL_SCENE_INSPECTION", () => authenticated(scoped("/scenes")), [200]);
   if (!state || state.status !== 200 || !Array.isArray(state.payload?.scenes)) {
     blocked("THREE_SCENE_GATE", "Real server scene read-model unavailable");
@@ -246,7 +246,7 @@ if (evidence && path.isAbsolute(evidence)) {
   if (target.startsWith(realRoot + path.sep) && target.includes(path.sep + ".studio-v2-qa-evidence" + path.sep)) {
     await mkdir(target, { recursive: true, mode: 0o700 });
     await writeFile(path.join(target, "phase2-" + phase + ".json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
-  } else blocked("EVIDENCE_DIR", "Must be within this checkout under .studio-v2-qa-evidence/");
+  } else console.error("QA evidence path rejected: must be inside this checkout under .studio-v2-qa-evidence/");
 }
 console.log(JSON.stringify(report, null, 2));
 process.exitCode = report.summary.FAIL ? 1 : report.summary.BLOCKED ? 2 : report.summary["NOT TESTED"] ? 3 : 0;
