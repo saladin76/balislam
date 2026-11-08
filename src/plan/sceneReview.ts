@@ -20,7 +20,7 @@ export type SceneReviewSummary = { total: number; ok: number; fix: number; pendi
 export const SCENE_CRITERIA = [
   "الحركات سليمة: لا قفز ولا تداخل ولا عنصر يخرج من الإطار أو يختفي فجأة",
   "متناسقة مع النص: كل عنصر وحركة تظهر وقت نطق كلمتها وتخدم معنى الجملة",
-  "ليست عشوائية ولا غير منطقية: لكل حركة سبب في الكلام، ولا مقطع ساكن فوق ثانيتين",
+  "ليست عشوائية ولا غير منطقية: لكل حركة سبب في الكلام، ولا مقطع ساكن فوق ثانيتين (إلا السكون المقصود في الآية وتمهيدها وعند ذكر الله)",
 ] as const;
 
 export const sceneReviewFileFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "scene-review.json");
