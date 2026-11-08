@@ -58,8 +58,16 @@ export const currentMotionFingerprint = async (
     const data = await stat(file).catch(() => null);
     return { file, size: data?.size ?? -1, mtime: data ? Math.round(data.mtimeMs) : -1 };
   }));
-  // Invalidate earlier reports whenever the rendering engine changes, even if a plan
-  // and its media are unchanged. Preview and audit render the same episode composition.
+  return motionFingerprint(plan, media, loadChannelIdentity(), channelInfo(loadChannel()), orientation, assets, await currentRendererHash());
+};
+
+/**
+ * Digest of the rendering engine source (Remotion scenes, timing, direction, config).
+ * Invalidate earlier reports and storyboard stills whenever the rendering engine changes,
+ * even if a plan and its media are unchanged. Preview and audit render the same episode composition.
+ */
+export const currentRendererHash = async (): Promise<string> => {
+  const path = await import("node:path");
   const fs = await import("node:fs/promises");
   const { fileURLToPath } = await import("node:url");
   const { dirname, join, relative } = path;
@@ -87,5 +95,5 @@ export const currentMotionFingerprint = async (
       rendererDigest.update("[missing]");
     }
   }
-  return motionFingerprint(plan, media, loadChannelIdentity(), channelInfo(loadChannel()), orientation, assets, rendererDigest.digest("hex"));
+  return rendererDigest.digest("hex");
 };

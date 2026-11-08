@@ -7,7 +7,7 @@ import type { EpisodeMedia } from "../../../src/plan/media";
 import { sceneFrames } from "../../../src/plan/duration";
 import { introFramesFor } from "../../../src/remotion/scenes/ChannelIntro";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
-import { shotElements, shotFrame, shotKind, shotText } from "../../../src/plan/storyboardView";
+import { boardWords, shotElements, shotFrame, shotKind, shotText } from "../../../src/plan/storyboardView";
 import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
@@ -240,7 +240,7 @@ export const StoryboardPanel: React.FC<{
                       compositionWidth={W}
                       compositionHeight={H}
                       durationInFrames={d}
-                      frameToDisplay={shotFrame(s, d)}
+                      frameToDisplay={shotFrame(s, d, boardWords(s, media), fps)}
                       fps={fps}
                       style={{ width: "100%" }}
                     />

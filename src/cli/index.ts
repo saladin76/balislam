@@ -569,7 +569,26 @@ program
   .command("storyboard <episode>")
   .description("الستوري بورد: هل اعتمد صاحب القناة لقطة كل مشهد قبل الصوت والنسخة النهائية؟ (--motion يقيس حركة كل مشهد بمعاينة صامتة خفيفة)")
   .option("--motion", "قياس حركة كل مشهد (معاينة صامتة بثلث الدقة، لا تُنشر)")
-  .action(async (episode: string, opts: { motion?: boolean }) => {
+  .option("--stills", "لوحة لكل مشهد من الخطة الحالية (رندر صامت عند لحظة لوحته، 640 بكسل) في storyboard-stills/ بجوار السكريبت؛ لا تعتمد شيئًا")
+  .option("--only <ids>", "مع --stills: مشاهد محددة مفصولة بفواصل (تُرفض إن تغيّرت الخطة أو المحرك منذ آخر لوحات)")
+  .option("--check-stills", "هل لوحات storyboard-stills/ هي ما سيُرندر الآن من الخطة والمحرك؟")
+  .action(async (episode: string, opts: { motion?: boolean; stills?: boolean; only?: string; checkStills?: boolean }) => {
+    if (opts.stills) {
+      const { renderStoryboardStills } = await import("../render/storyboardStills");
+      const only = opts.only?.split(/[,،\s]+/).filter(Boolean);
+      const r = await renderStoryboardStills(episode, { only, onProgress: (p, msg) => console.log(`PROGRESS ${p} ${msg}`) });
+      console.log(`${r.rendered} لوحة من الخطة الحالية في ${path.relative(projectRoot, r.dir)} (بلا صوت، للمراجعة فقط؛ ليست اعتمادًا).`);
+      return;
+    }
+    if (opts.checkStills) {
+      const { stillsStatus } = await import("../render/storyboardStills");
+      const s = await stillsStatus(episode);
+      console.log(!s.exists ? "لا لوحات محفوظة بعد: bal storyboard <الحلقة> --stills"
+        : s.current ? "اللوحات المحفوظة هي ما سيُرندر من الخطة والمحرك الحاليين ✓"
+        : `اللوحات قديمة${s.stale.length ? `؛ تغيّر: ${s.stale.join("، ")}` : ""}${s.missing.length ? `؛ ناقصة: ${s.missing.join("، ")}` : ""}. أعدها: bal storyboard <الحلقة> --stills`);
+      if (!s.current) process.exitCode = 1;
+      return;
+    }
     if (opts.motion) {
       const { measureStoryboardMotion } = await import("../render/storyboardMotion");
       const m = await measureStoryboardMotion(episode, { onProgress: (p, msg) => console.log(`PROGRESS ${p} ${msg}`) });

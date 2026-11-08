@@ -12,6 +12,7 @@ import { createHash } from "node:crypto";
 import type { PlanScene } from "./types";
 import type { Plan } from "./types";
 import { VERSE_PLACEHOLDER } from "./quranText";
+import { HORIZON_BOARD_VIEW } from "./storyboardView";
 
 export type StoryboardRecord = { version: 1; approvedAt?: string; scenes: Record<string, string>; audit?: { note: string; inputHash?: string; at: string } };
 export type StoryboardSceneStatus = "approved" | "changed" | "new";
@@ -40,6 +41,8 @@ export const storyboardVisualHash = (scene: PlanScene): string => {
     backdrop: scene.backdrop ?? "", durationSec: scene.durationSec ?? null,
     sfx: scene.sfx ?? [], overlays: scene.overlays ?? {}, captions: scene.captions ?? null,
     ayahKey: scene.ayahKey ?? "", transition: scene.transition ?? "",
+    // «خط الأفق»: اللوحة المعروضة تتبع طريقة اختيار لحظتها؛ تغييرها يعيد فتح الستوري بورد لتلك المشاهد وحدها
+    ...(scene.template === "horizon-shot" ? { board: HORIZON_BOARD_VIEW } : {}),
   })).digest("hex").slice(0, 12);
 };
 const matchesVisual = (saved: string, scene: PlanScene) =>

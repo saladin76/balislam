@@ -4,6 +4,8 @@
  */
 import type { PlanScene } from "./types";
 import { templateById } from "./templates";
+import { HZ_LEAD, HZ_META, hzSentences, type HzExit } from "../remotion/dafatir/horizon/meta";
+import { buildTimeline, timelineFromWords } from "../remotion/dafatir/horizon/timeline";
 
 export const shotKind = (s: PlanScene) => {
   if (s.template === "noor-text") return s.props.light === "off" ? "فراغ وكتابة" : s.props.light === "ink" ? "حبر على الصفحة" : "نور وكتابة";
@@ -50,5 +52,53 @@ export const shotElements = (s: PlanScene): string[] => {
   return [...new Set(ids)];
 };
 
-/** لحظة اللقطة داخل المشهد (بالإطارات): بعد ظهور عناصره، ومنتصف بطاقة الآية */
-export const shotFrame = (s: PlanScene, durationInFrames: number) => Math.max(0, Math.min(durationInFrames - 1, Math.round(durationInFrames * (s.template === "verse-card" ? 0.55 : 0.8))));
+/**
+ * «خط الأفق» (دفاتر الزمن): نهاية آخر كلمة منطوقة بالثواني، بالحساب نفسه الذي يبدأ منه خروج المشهد
+ * في `HorizonShot` (توقيت الصوت إن طابق النص، وإلا التقدير). بلا قيمة للمشاهد بلا كلام أو ذات الإمساك المحسوب (minEnd).
+ */
+export const horizonCloseSeconds = (s: PlanScene, words?: { word: string; start: number; end: number }[]): number | undefined => {
+  if (s.template !== "horizon-shot") return undefined;
+  const meta = HZ_META[String(s.props.shot ?? "")];
+  if (!meta || meta.minEnd) return undefined;
+  const sentences = hzSentences(s.narration ?? "");
+  let tl = buildTimeline(sentences, HZ_LEAD);
+  if (words?.length) {
+    try { tl = timelineFromWords(sentences, words, 0); } catch { /* عدد الكلمات مختلف: يبقى التقدير كما في المشهد */ }
+  }
+  return tl.words.length ? tl.words[tl.words.length - 1]!.e : undefined;
+};
+
+/**
+ * إصدار طريقة اختيار لوحة «خط الأفق» (الأمر 027): يدخل بصمة الاستوري بورد البصرية لمشاهد خط الأفق وحدها،
+ * فتغيير ما تعرضه اللوحة يعيد فتح اعتمادها ولا يمس مشاهد القنوات الأخرى.
+ */
+export const HORIZON_BOARD_VIEW = "settled-close-1";
+
+/** توقيت كلمات صوت المشهد كما يرسمه المشهد في الاستوديو (فقط إن طابق نصه السرد الحالي). */
+export const boardWords = (s: PlanScene, media?: { voice: Record<string, { text: string; words: { word: string; start: number; end: number }[] }> }) => {
+  const clip = media?.voice[s.id];
+  return clip && clip.text === s.narration.trim() ? clip.words : undefined;
+};
+
+/**
+ * لحظة لوحة الستوري بورد داخل المشهد (بالإطارات): الإطار الذي يمثّل المشهد كما يُرى في الفيديو.
+ * - بطاقة الآية: منتصفها.
+ * - «خط الأفق» بكلام: لحظة اكتمال آخر كلمة، قبل خروج المشهد (القلب أو الخفوت يبدأ بعدها بـ0.3 ث،
+ *   ويعود الكادر قبل القلب بعدها بـ0.05 ث)؛ فاللوحة تعرض المشهد مكتملًا لا صفحة تُقلب أو حبرًا يخفت.
+ * - عنوان الفصل: منتصفه (العنوان ظاهر؛ في آخره يصغر إلى رأس الصفحة).
+ * - غير ذلك: 80% من المشهد كما كان.
+ * `words` توقيت صوت المشهد إن وُجد وطابق النص (كما يرسمه المشهد نفسه).
+ */
+export const shotFrame = (s: PlanScene, durationInFrames: number, words?: { word: string; start: number; end: number }[], fps = 30) => {
+  const clamp = (f: number) => Math.max(0, Math.min(durationInFrames - 1, Math.round(f)));
+  if (s.template === "verse-card") return clamp(durationInFrames * 0.55);
+  if (s.template === "horizon-shot") {
+    if (String(s.props.shot ?? "") === "chapter") return clamp(durationInFrames * 0.5);
+    const close = horizonCloseSeconds(s, words);
+    if (close !== undefined) {
+      const exit = (s.props.exit as HzExit | undefined) || HZ_META[String(s.props.shot ?? "")]?.exit;
+      return clamp((close + (exit === "turn" ? 0.03 : 0.25)) * fps);
+    }
+  }
+  return clamp(durationInFrames * 0.8);
+};
