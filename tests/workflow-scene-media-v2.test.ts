@@ -52,7 +52,11 @@ const fixture = async (mode: SceneAudioModeV2 = "narrated") => {
     await setBinary("process.stdout.write(" + JSON.stringify(JSON.stringify(metadata)) + ");");
   };
   await ok();
-  const probe = () => probeSceneAvLockedV2(scope, manifest, { ffprobeBinary: bin, timeoutMs: 1000 });
+  // Spawning a fresh Node-based ffprobe fixture can exceed 1s under 90+
+  // concurrent Vitest files. Keep normal subprocess cases tolerant of CI
+  // scheduling; use a deliberately short budget ONLY for the hang test.
+  const probe = (timeoutMs = 4000) =>
+    probeSceneAvLockedV2(scope, manifest, { ffprobeBinary: bin, timeoutMs });
   return { root, dir, media, bin, scope, manifest, probe, setBinary, ok };
 };
 afterEach(async () => {
@@ -161,7 +165,7 @@ describe("Studio V2 — actual MP4 stream probing (mocked subprocess)", () => {
   it("enforces a short timeout and kills a hung decoder instead of hanging approval", async () => {
     const x = await fixture();
     await x.setBinary("while(true) {}");
-    await expect(x.probe()).rejects.toThrow(/timed out/);
+    await expect(x.probe(250)).rejects.toThrow(/timed out/);
   });
 
   it("refuses user-supplied program arguments, missing trusted binary or foreign files", async () => {
