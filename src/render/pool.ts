@@ -685,8 +685,8 @@ export class RenderPool {
         t.preemptions = (t.preemptions ?? 0) + 1;
         t.status = "queued";
         t.log.push("أُوقفت مؤقتًا لحماية الذاكرة وأُعيدت إلى الطابور");
-        this.emit(t);
         await this.save();
+        this.emit(t);
         return;
       }
       if (code === 0 && !spawnError && !rec.cancelled && !rec.timedOut && !rec.stalled) {
@@ -728,9 +728,10 @@ export class RenderPool {
         // الناتج الجزئي يُحذف؛ والناتج السليم السابق (إن وجد) يبقى كما هو
         if (tmp) await rm(tmp, { force: true });
       }
+      // Publish a terminal notification only after durable ledger finalization.
+      await this.save();
       this.emit(t);
       this.notifyEnd(t, spec);
-      await this.save();
       } catch (error) {
         // Never retry against a partially removed file, an uncommitted ledger,
         // or a failed final output rename. Do not delete files from this catch.
