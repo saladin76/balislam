@@ -260,6 +260,6 @@ describe("Studio V2 — trusted server AV scene decisions", () => {
       confirmWatched: true,
     } as never)).rejects.toThrow(/server-only/);
     expect(await readFile(path.join(x.dir, "workflow-approvals.json"), "utf8"))
-      .resolves;
+      .toBe(JSON.stringify({ approved: true }));
   });
 });
