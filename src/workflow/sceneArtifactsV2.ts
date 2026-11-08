@@ -12,6 +12,7 @@
 import { createHash } from "node:crypto";
 import { resolveArtifact, sha256FileAndEpoch } from "./artifacts.ts";
 import { STUDIO_CHANNELS, type WorkflowIdentity } from "./store.ts";
+import { readPlannedSceneOrderV2 } from "./scenePlanV2.ts";
 import {
   SCENE_INPUT_KEYS, sceneFingerprint,
   type SceneArtifact, type SceneInputKey, type SceneInputs,
@@ -24,8 +25,15 @@ export type SceneFileSetV2 = {
   files: readonly string[];
 };
 
+export type SceneAudioModeV2 = "narrated" | "recitation" | "mixed" | "silent";
 export type SceneFileManifestV2 = {
   sceneId: string;
+  /**
+   * Explicit production audio policy derived from this scene in plan.json.
+   * Omitting it retains legacy Phase B unit fixtures (narration mandatory).
+   * Production adapters MUST supply it from the locked plan.
+   */
+  audioMode?: SceneAudioModeV2;
   inputs: Record<SceneInputKey, SceneFileSetV2>;
   /** Shared dependencies: only ones used by THIS scene, not the entire library. */
   shared: Readonly<Record<string, SceneFileSetV2>>;
@@ -107,17 +115,58 @@ export const collectSceneInputsFromDiskV2 = async (
     throw Error("Every scene input must be explicitly versioned by the server.");
   if (!safeNames(manifest.inputs.original, "original").includes("script.md"))
     throw Error("Original scene source MUST include the locked script.md file.");
-  const audio = safeNames(manifest.inputs.narration, "narration");
-  if (!audio.some((filename) => /\.(mp3|wav|m4a)$/i.test(filename)))
-    throw Error("A scene AV video must be bound to real narration or human-recited audio.");
+  const mode = manifest.audioMode ?? "narrated";
+  if (!["narrated", "recitation", "mixed", "silent"].includes(mode))
+    throw Error("Unknown scene audio policy.");
+  // Empty narration is permitted ONLY when the locked real plan proves no
+  // narrator and no recitation. No dummy MP3 file can substitute for silence.
+  const audioSet = manifest.inputs.narration;
+  const audio = mode === "silent"
+    ? (() => {
+        if (!audioSet || !Array.isArray(audioSet.files) || audioSet.files.length !== 0 ||
+            typeof audioSet.version !== "string" || !audioSet.version.trim() ||
+            audioSet.version.length > 200)
+          throw Error("Silent scene must declare no narration files.");
+        return [] as string[];
+      })()
+    : safeNames(audioSet, "narration");
+  if (mode !== "silent" && !audio.some((filename) => /\.(mp3|wav|m4a)$/i.test(filename)))
+    throw Error("A voiced scene AV video must be bound to real narration or human-recited audio.");
 
   // No manifest may list an approval ledger as evidence of its own approval.
   return withArtifactLock(async () => {
+    let noVoice: SceneArtifact | undefined;
+    if (manifest.audioMode !== undefined) {
+      // Called inside the enclosing shared writer lock; never reacquire it.
+      const plan = await readPlannedSceneOrderV2(scope, async (work) => work());
+      const scene = plan.scenes.find((item) => item.id === manifest.sceneId);
+      if (!scene) throw Error("Scene is absent from the locked episode plan.");
+      const expected: SceneAudioModeV2 = scene.narratorRequired
+        ? (scene.recitationRequired ? "mixed" : "narrated")
+        : (scene.recitationRequired ? "recitation" : "silent");
+      if (mode !== expected)
+        throw Error("Scene audio policy conflicts with locked episode plan.");
+      if (mode === "silent") {
+        // Bind silence to *actual plan bytes and filesystem generation*, so
+        // silence never masquerades as a real MP3 nor survives plan rewriting.
+        const planFile = await resolveArtifact(scope, "plan.json");
+        const planDigest = await sha256FileAndEpoch(planFile);
+        const scopeTag = [scope.channel, scope.episode, manifest.sceneId,
+          audioSet.version, planDigest.sha256, planDigest.epoch];
+        noVoice = {
+          version: audioSet.version,
+          sha256: contentHash(["studio-scene-no-voice-v2", scopeTag]),
+          epoch: contentHash(["studio-scene-no-voice-epoch-v2", scopeTag]),
+        };
+      }
+    }
     const inputs = {} as SceneInputs;
     for (const key of SCENE_INPUT_KEYS) {
       inputs[key] = key === "video"
         ? await digestExactSceneVideo(scope, manifest.inputs.video)
-        : await digestFileSet(scope, manifest.sceneId, key, manifest.inputs[key]);
+        : key === "narration" && mode === "silent" && noVoice
+          ? noVoice
+          : await digestFileSet(scope, manifest.sceneId, key, manifest.inputs[key]);
     }
     const shared: Record<string, SceneArtifact> = {};
     const labels = Object.keys(manifest.shared).sort();
