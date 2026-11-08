@@ -307,7 +307,9 @@ export function serverReviewAdapter(channelId: string, episodeId: string): Revie
       // This is a client-side safety check, NOT a concurrency guarantee.
       if (input.action === "request_changes") {
         const current = await load();
-        if (current.scenes[input.sceneId]?.currentVersionId !== input.expectedFingerprint)
+        if (!current.scenes[input.sceneId]?.versions.some(
+          v => v.fingerprint === input.expectedFingerprint &&
+            v.id === current.scenes[input.sceneId]?.currentVersionId))
           throw Error("إصدار المشهد تغير؛ حدّث قبل تسجيل طلب التعديل.");
       }
       const body: Record<string, unknown> = {
