@@ -14,6 +14,8 @@ import { IsometricDemo } from "./styles/Isometric";
 import { Providers } from "./Providers";
 import config from "../../config.json";
 import { Episode, calculateEpisodeMetadata, type EpisodeProps } from "./scenes/Episode";
+import { SceneV2, type SceneV2Props } from "./SceneV2";
+import { emptyMedia } from "../plan/media";
 import { CameraAB, CameraComposedPortrait } from "./lab/BalislamLab";
 import { MOTION_SEGMENTS, MotionLab, SEG } from "./lab/MotionLab";
 import { MotionLab007, MotionScenes007, SEG7, SEGMENTS_007 } from "./lab/MotionLab007";
@@ -167,6 +169,25 @@ export const RemotionRoot: React.FC = () => (
         <Composition id={`lab-transitions-baseline-${o}`} component={TransitionLabBaseline} durationInFrames={transitionLabFrames()} fps={config.video.fps} {...sizes[o]} defaultProps={{ orientation: o }} />
       </React.Fragment>
     ))}
+    {/* Independently reviewable scene AV, no intro or episode-level sound logic. */}
+    <Composition
+      id="studio-v2-scene"
+      component={SceneV2}
+      durationInFrames={60}
+      fps={config.video.fps}
+      {...sizes.landscape}
+      defaultProps={{
+        plan: samplePlan as unknown as SceneV2Props["plan"],
+        scene: samplePlan.chapters[0]!.scenes[0] as SceneV2Props["scene"],
+        chapterNumber: 1,
+        orientation: "landscape" as const,
+        frames: 60,
+        media: emptyMedia,
+        tracks: [],
+        words: [],
+      }}
+      calculateMetadata={({ props }) => ({ durationInFrames: props.frames })}
+    />
     {orientations.map((o) => (
       <Composition
         key={`episode-${o}`}
