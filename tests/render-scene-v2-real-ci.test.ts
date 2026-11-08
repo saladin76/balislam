@@ -10,7 +10,10 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-const authorizedPrSmoke = process.env.GITHUB_ACTIONS === "true" &&
+// Heavy Chromium/Remotion QA must run as a dedicated, opt-in, serial job,
+// never concurrently with the 98 ordinary Vitest workers.
+const authorizedPrSmoke = process.env.STUDIO_V2_CI_REAL_RENDER === "1" &&
+  process.env.GITHUB_ACTIONS === "true" &&
   process.env.GITHUB_HEAD_REF === "work/studio-v2-render-20261108";
 
 describe("Studio V2 real Remotion QA — dedicated PR branch only", () => {
