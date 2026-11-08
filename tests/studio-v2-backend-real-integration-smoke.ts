@@ -27,7 +27,7 @@ import { collectSceneInputsFromDiskV2 } from "../src/workflow/sceneArtifactsV2.t
 import { probeSceneAvLockedV2 } from "../src/workflow/sceneMediaV2.ts";
 import { createTrustedSceneV2Service } from "../src/workflow/sceneServiceV2.ts";
 import { appendCompletedSceneAvReviewV2, requireCompletedSceneAvReviewV2 } from "../src/workflow/sceneReviewAuditV2.ts";
-import { startSceneReviewReceiptV2, streamSceneReviewReceiptV2, tickSceneReviewReceiptV2,
+import { inspectSceneReviewReceiptV2, startSceneReviewReceiptV2, streamSceneReviewReceiptV2, tickSceneReviewReceiptV2,
   finishSceneReviewReceiptV2, verifySceneReviewReceiptV2 } from "../app/server/studioV2Review.ts";
 import { resolveArtifact, sha256FileAndEpoch } from "../src/workflow/artifacts.ts";
 import type { WorkflowIdentity } from "../src/workflow/index.ts";
@@ -96,6 +96,7 @@ const main = async () => {
         await save(name + "/" + id + ".json", "{}");
       await save("assets/" + id + ".png", "Synthetic QA placeholder, no actual artwork");
     }
+    await mkdir(path.join(root, "voice"), { recursive: true });
     await runFFmpeg(["-f", "lavfi", "-i",
       "sine=frequency=440:sample_rate=48000:duration=2",
       "-c:a", "pcm_s16le", path.join(root, "voice", ids[0] + ".wav")]);
@@ -210,13 +211,14 @@ const main = async () => {
     }
     insist(finishSceneReviewReceiptV2(reviewId, session,
       { confirmation: "reviewed_av" }).completed, "Simulated AV receipt not complete.");
+    const observedReceipt = inspectSceneReviewReceiptV2(reviewId, session);
     const receipt = {
       id: reviewId, sessionId: session, ownerId: "qa-studio-owner",
       sceneId: ids[0], fingerprint: first.fingerprint,
       avSha256: av.sha256, avEpoch: av.epoch, videoVersion: first.video.version,
       durationSec: av.durationSec, mediaBytes: av.size,
-      playedSec: elapsed, startedAt: Date.now() - elapsed * 1000,
-      completedAt: Date.now(), checkpoints: Math.ceil(elapsed),
+      playedSec: observedReceipt.playedSec, startedAt: observedReceipt.startedAt,
+      completedAt: observedReceipt.completedAt!, checkpoints: observedReceipt.checkpoints,
     };
     await locked(() => appendCompletedSceneAvReviewV2(scope, receipt));
     await service.command({ action: "approve", sceneId: ids[0],
