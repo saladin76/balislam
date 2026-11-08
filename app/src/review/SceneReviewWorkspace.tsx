@@ -98,6 +98,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
   const previous = index > 0 ? data?.scenes[data!.order[index - 1]!] : undefined;
   const mediaUrl = version?.video?.url;
   const safeVideo = Boolean(mediaUrl && version?.video?.mime === "video/mp4" &&
+    Number.isFinite(version.video.durationSec) && version.video.durationSec > 0 &&
     isSafeVideoUrl(mediaUrl, window.location.origin));
   const blockers = record ? actionBlockers(record, previous, mode) : ["لا توجد بيانات لهذا المشهد."];
   if (record?.permissions.approve === false) blockers.push("الخادم لم يسمح بالاعتماد بعد.");
@@ -112,8 +113,12 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
   const canRequestChanges = mode === "server" && !busy && !versionChanged &&
     !syncFailed && !mediaFailed && safeVideo && record?.status === "in_review" &&
     Boolean(record.permissions.requestChanges) && decisionReason.trim().length >= 2;
+  const firstPrevious = record?.versions.find(v => v.id !== version?.id);
   const compare: SceneVersion | undefined = record?.versions.find(v => v.id === compareId) ||
-    record?.versions.find(v => v.id !== version?.id);
+    firstPrevious;
+  const comparedDiffs = compare && version ?
+    (version.diffsByBase?.[compare.id] ||
+      (compare.id === firstPrevious?.id ? version.changes : undefined)) : undefined;
 
   useEffect(() => {
     sessionRef.current = typeof crypto !== "undefined" && "randomUUID" in crypto ?
@@ -344,8 +349,9 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
             </label>
             <div className="v2-fingerprint"><span>معرف النسخة المرتبط بالمراجعة</span>
               <code dir="ltr">{version?.fingerprint || "—"}</code></div>
-            {version?.changes?.length ? <div className="v2-diffs">
-              {version.changes.map((d, i) => <div key={i}><strong>{d.field}</strong><del>{d.before}</del><ins>{d.after}</ins></div>)}
+            {comparedDiffs?.length ? <div className="v2-diffs">
+              <p className="v2-help">الفروقات مقارنة بالإصدار {compare?.label}.</p>
+              {comparedDiffs.map((d, i) => <div key={i}><strong>{d.field}</strong><del>{d.before}</del><ins>{d.after}</ins></div>)}
             </div> : <p className="v2-help">لم يرسل Backend قائمة فروقات لهذه النسخة.</p>}
             <p className="v2-help">المشغل يعرض النسخة الحالية فقط، والإصدارات القديمة للمقارنة الوصفية.</p>
           </section>
