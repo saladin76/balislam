@@ -11,7 +11,7 @@ import { shotElements, shotFrame, shotKind, shotText } from "../../../src/plan/s
 import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
-import { api, type LongJob, type StoryboardInfo } from "../api";
+import { api, type EpisodePreview, type LongJob, type StoryboardInfo } from "../api";
 import config from "../../../config.json";
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
@@ -382,7 +382,7 @@ const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
 
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
 const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
-  const [files, setFiles] = useState<{ name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[]>([]);
+  const [files, setFiles] = useState<EpisodePreview[]>([]);
   useEffect(() => {
     api.previews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
   }, [episodeId]);
@@ -390,11 +390,16 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   return (
     <section className="sb-previews">
       <h3>المعاينات</h3>
-      <p className="help">كل فيديو يُصنع للحلقة يظهر هنا، وأي تعديل يستبدل القديم بالجديد. المعاينات لا تُنشر.</p>
+      <p className="help">كل فيديو يُصنع للحلقة يظهر هنا، وأي تعديل يستبدل القديم بالجديد. الفيديوهات محفوظة على Google Drive، ولا تُنشر.</p>
       <div className="sb-previews-grid">
         {files.map((f) => (
           <figure key={f.name} className="sb-preview">
-            <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
+            {f.source === "local" || f.source === "drive-mirror"
+              ? <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
+              : <div className="sb-preview-remote">
+                  <p className="help">{f.source === "drive-link" ? "الفيديو على Google Drive ولم يتزامن مع هذا الجهاز بعد." : "الفيديو غير موجود على هذا الجهاز."}</p>
+                  {f.driveUrl ? <a className="btn small" href={f.driveUrl} target="_blank" rel="noreferrer">افتحه على Google Drive</a> : null}
+                </div>}
             <figcaption>
               <b>{f.title}</b>
               <span className="help">رفع رقم {f.version}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>

@@ -41,3 +41,9 @@ channels/*/episodes/*/out/*-audio-preview.mp4
 channels/*/episodes/*/scene-workflow.v2.json
 channels/*/episodes/*/scene-workflow.v2.json.lock
 channels/*/episodes/*/scene-workflow.v2.json.*.tmp
+
+# فيديوهات المعاينات على Google Drive لا في Git (قرار صاحب المشروع، ٨ نوفمبر ٢٠٢٦):
+# يُحفظ previews/index.json وحده (العنوان والبصمة ورابط Drive). الملفات المتتبَّعة قبل هذا القرار
+# تبقى حتى تنظيف السجل بموافقة صاحب المشروع.
+channels/*/episodes/*/previews/*.mp4
+channels/*/episodes/*/previews/history/

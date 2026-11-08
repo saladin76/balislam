@@ -399,6 +399,24 @@ program
     const { putEpisodePreview } = await import("../render/episodePreviews");
     const r = await putEpisodePreview(episode, slot, path.resolve(file), { title: opts.title, note: opts.note });
     console.log(`رُفع إلى الاستوديو: ${path.relative(projectRoot, r.file)} (رفع رقم ${r.version})${r.removed.length ? `؛ حُذف القديم: ${r.removed.join("، ")}` : ""}`);
+    if (r.drive) console.log(`ونُسخ إلى Google Drive: ${r.drive}`);
+    else if (r.driveError) console.log(`لم يُنسخ إلى Google Drive: ${r.driveError}`);
+    else console.log("مجلد Google Drive غير مضبوط (BAL_DRIVE_PREVIEWS_DIR)؛ الفيديو محلي فقط.");
+    console.log(`البصمة: ${r.sha256}`);
+  });
+
+program
+  .command("link-drive-preview <episode> <slot>")
+  .description("تسجيل معاينة رُفعت إلى Google Drive من خارج جهاز المالك: الفهرس وحده يُحفظ في Git، والاستوديو يتحقق من البصمة عند التزامن")
+  .requiredOption("--id <id>", "معرّف الملف على Google Drive")
+  .requiredOption("--sha256 <sha>", "بصمة الفيديو")
+  .requiredOption("--size <bytes>", "حجم الفيديو بالبايت")
+  .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو")
+  .option("--note <note>", "ملاحظة قصيرة تحته")
+  .action(async (episode: string, slot: string, opts: { id: string; sha256: string; size: string; title: string; note?: string }) => {
+    const { linkDrivePreview } = await import("../render/episodePreviews");
+    const e = await linkDrivePreview(episode, slot, { id: opts.id, sha256: opts.sha256, size: Number(opts.size), title: opts.title, note: opts.note });
+    console.log(`سُجّل في المعاينات (رفع رقم ${e.version}): ${e.drive!.url}`);
   });
 
 program

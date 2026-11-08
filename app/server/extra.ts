@@ -610,22 +610,22 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 200, { text }), true;
   }
 
-  // معاينات الحلقة (previews/ بجوار السكريبت): فيديوهات صامتة خفيفة للمراجعة، تُرفع مع المستودع ولا تُنشر أبدًا
+  // معاينات الحلقة: الفهرس في previews/index.json (Git)، والفيديو محليًا أو في مجلد Google Drive المتزامن. لا تُنشر أبدًا
   if (parts[0] === "episodes" && parts[1] && parts[2] === "previews") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
     const { resolveEpisodeDir } = await load("/src/script/episodes.ts");
-    const dir = path.join(await resolveEpisodeDir(parts[1]), "previews");
+    const pv = await load("/src/render/episodePreviews.ts");
+    const epDir = await resolveEpisodeDir(parts[1]);
     if (parts[3]) {
-      const file = path.join(dir, safeName(parts[3]));
-      if (!existsSync(file) || !/\.mp4$/i.test(file)) return send(res, 404, { error: "الملف غير موجود" }), true;
-      ctx.serveFile(req, res, file, "video/mp4");
-      return true;
+      const name = safeName(parts[3]);
+      if (!/\.mp4$/i.test(name)) return send(res, 404, { error: "الملف غير موجود" }), true;
+      const indexFile = path.join(epDir, "previews", "index.json");
+      const index = existsSync(indexFile) ? JSON.parse(await readFile(indexFile, "utf8")) : {};
+      const where = await pv.locatePreview(epDir, name, index[name]);
+      if (where.kind === "local" || where.kind === "drive-mirror") { ctx.serveFile(req, res, where.file, "video/mp4"); return true; }
+      return send(res, 404, { error: where.kind === "drive-link" ? "الفيديو على Google Drive ولم يتزامن مع هذا الجهاز بعد." : "الملف غير موجود", driveUrl: where.kind === "drive-link" ? where.url : null }), true;
     }
-    if (!existsSync(dir)) return send(res, 200, { files: [] }), true;
-    const names = (await readdir(dir)).filter((n) => /\.mp4$/i.test(n));
-    const notes = existsSync(path.join(dir, "index.json")) ? JSON.parse(await readFile(path.join(dir, "index.json"), "utf8")) : {};
-    const files = names.map((n) => ({ name: n, size: statSync(path.join(dir, n)).size, mtime: statSync(path.join(dir, n)).mtimeMs, title: notes[n]?.title ?? n, note: notes[n]?.note ?? "", version: notes[n]?.version ?? 1, updatedAt: notes[n]?.updatedAt ?? null })).sort((x, y) => y.mtime - x.mtime);
-    return send(res, 200, { files }), true;
+    return send(res, 200, { files: await pv.listEpisodePreviews(epDir) }), true;
   }
 
   // ملفات المراجعة (reviews/ بجوار السكريبت): تقارير الاعتماد التحريري والشرعي للحلقة، صفحات HTML مكتفية بذاتها، داخلية لا تُنشر

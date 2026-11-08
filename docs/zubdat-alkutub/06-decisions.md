@@ -365,3 +365,16 @@
 - **النطاق:** واجهة الاستوديو للقنوات الثلاث؛ لا تغيير في قواعد الاعتماد ولا في ملفات الحلقات.
 - **المكان:** `app/src/shell/`، و`app/src/tabs/HomeTab.tsx`، و`app/src/workspace/SceneProductionPanel.tsx`، و`src/studio/sceneService.ts` (ملخص للقراءة فقط).
 - **الأثر:** لا قرار اعتماد جديد؛ القراءة من السلطة الواحدة نفسها (D24).
+
+### D26 — المعاينات على Google Drive لا في Git
+
+- **التاريخ:** ٨ نوفمبر ٢٠٢٦ على `integration/studio-unified-20261108`. **الحالة:** فرع مسودة.
+- **الاحتياج:** فيديوهات المعاينة (نحو ٣٠٠ ميغابايت متتبَّعة، وقرابة ١ غيغابايت في السجل) تثقل المستودع والسحب على الماك. قرار صاحب المشروع: Google Drive.
+- **الحل:**
+  - `previews/*.mp4` و`previews/history/` خارج Git. يُحفظ `previews/index.json` وحده: العنوان، والبصمة sha256، والحجم، ورابط Drive إن وُجد.
+  - على جهاز المالك: `upload-preview` ينسخ الفيديو إلى مجلد Drive المتزامن `BAL_DRIVE_PREVIEWS_DIR/<القناة>/<مجلد الحلقة>/<الخانة>.mp4`.
+  - ما يُصنع خارج جهاز المالك يُرفع إلى المسار نفسه على Drive ثم يُسجَّل بـ `npx bal link-drive-preview` (المعرّف والبصمة والحجم).
+  - الاستوديو يشغّل النسخة المحلية، أو نسخة Drive المتزامنة إن طابقت البصمة، وإلا يعرض «افتحه على Google Drive».
+- **النطاق:** القنوات الثلاث. الملفات المتتبَّعة قبل القرار تبقى؛ تنظيف السجل بموافقة صاحب المشروع فقط.
+- **المكان:** `src/render/episodePreviews.ts`، و`app/server/extra.ts`، و`app/src/tabs/StoryboardPanel.tsx`، و`src/cli/index.ts`، و`.gitignore`، و`.env.example`.
+- **التحقق:** `tests/episode-previews-drive.test.ts`.

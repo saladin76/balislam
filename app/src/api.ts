@@ -41,6 +41,8 @@ export type Overview = {
   production?: ProductionSummary | null;
 };
 export type ProductionSummary = { script: boolean; storyboard: boolean; approvedScenes: number; totalScenes: number; canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
+/** معاينة حلقة: source يبيّن هل الفيديو على هذا الجهاز، أو في مجلد Drive المتزامن، أو رابط Drive فقط */
+export type EpisodePreview = { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null; source: "local" | "drive-mirror" | "drive-link" | "missing"; driveUrl: string | null };
 export type EpisodeStatus = { /** اعتماد النسخة الأساسية بعد مشاهدتها كاملة (بصمة ملف الحلقة) */ approved?: { at: string; size: number; mtime: number }; checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string; /** يوم نشر الحلقة الطويلة المخطط (YYYY-MM-DD) */ scheduled?: string };
 export type Idea = { id: string; title: string; note?: string; domain?: string; style?: string; createdAt: string };
 /** يوم في تقويم القناة: شورتس محددة (حلقة + رقم الشورت)، أو بلا نشر، وملاحظة */
@@ -228,7 +230,7 @@ export const api = {
   previewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`),
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
-  previews: (id: string) => call<{ files: { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null }[] }>(`/api/episodes/${id}/previews`),
+  previews: (id: string) => call<{ files: EpisodePreview[] }>(`/api/episodes/${id}/previews`),
   auditQuranScript: (id: string) =>
     call<{ environment: string; audits: { key: string; status: "match" | "differs" | "pending" | "missing" | "failed";
       reason?: string; categories: Record<string, string>; numbers: { ok: boolean; notes: string[] };
