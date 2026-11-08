@@ -6,6 +6,7 @@ import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName, assertSafeMediaFile } from "./util.ts";
 import { readBody } from "./body.ts";
+import { prepareJob, startPrepareJob } from "./prepare.ts";
 import { isTrustedLocalRequest } from "./security.ts";
 
 /**
@@ -267,6 +268,27 @@ export const balApi = (): Plugin => ({
             await recordSceneRenderEvidence(ep, sceneId, expectedSha256, token);
             return send(res, 200, { ok: true, version: output.version,
               preview: `scene-${sceneId}-av.mp4` });
+          }
+
+          // «جهّز كل المشاهد»: voice for scenes lacking it, then AV drafts in order in the background.
+          // Drafts are never submissions or approvals (see prepareAll.ts / sceneService.ts).
+          if (parts[2] === "scene-prepare" && parts.length === 3) {
+            const key = `${ch}/${ep}`;
+            const voiceKey = Boolean(process.env.ELEVENLABS_API_KEY && (channelMod.loadChannel(ch).voice?.id || process.env.ELEVENLABS_VOICE_ID));
+            const { scenesNeedingVoice, prepareAllScenes } = await load("/src/studio/prepareAll.ts");
+            if (req.method === "GET")
+              return send(res, 200, { job: prepareJob(key), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const token = req.headers["x-studio-owner-token"];
+            const { assertSceneOwner, requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
+            try { assertSceneOwner(token); await requireSceneProductionReady(ep); }
+            catch (error) { return refuse(error); }
+            if (prepareJob(key)?.status === "running") return send(res, 200, { job: prepareJob(key), voiceKey });
+            const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
+            const voiceClient = elevenLabsFromEnv();
+            const job = startPrepareJob(key, (onProgress) => channelMod.runWithChannel(ch, () =>
+              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress })));
+            return send(res, 200, { job, voiceKey });
           }
 
           if (parts[2] === "workflow" && parts.length === 3) {

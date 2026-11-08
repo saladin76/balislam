@@ -115,7 +115,8 @@ authority. Every production gate asks it:
 | --- | --- |
 | Voice generation | script + storyboard approved (`requireScriptAndStoryboardApproved`) |
 | Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
-| Scene AV render | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
+| Scene AV render («إنتاج المشهد») | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
+| Scene AV draft («جهّز كل المشاهد», `bal produce`) | owner passphrase, script + storyboard approved and every board reviewed (`requireSceneProductionReady`); only the current scene or a later scene that is neither approved nor submitted, with current inputs (`assertSceneRenderAllowed(…, "ahead")`) |
 | Master render | every scene approved with sound and picture **and** the assembly approved after a full 1× viewing with every seam checked (`requireScenesReadyForMaster`) |
 | Shorts/reels | the exact approved Master (`requireSceneMasterReady`) |
 | Publish | the exact approved Master **and** an explicit publish permission for those bytes (`requirePublishAllowed`) |
@@ -126,6 +127,33 @@ authority. Every production gate asks it:
 **Scoped invalidation:** each scene's input hash covers only its own content, its own approved board, its own narration
 clip and recitation. A script or storyboard edit re-opens those two decisions, the assembly, the Master and the publish
 permission; only scenes whose own inputs changed are re-opened.
+
+**Prepared drafts (D31).** «جهّز كل المشاهد» (step ٣ screen, and the spine while step ٣ is current) and its CLI twin
+`npx bal produce <episode> [--channel …]` run one pipeline (`src/studio/prepareAll.ts`): (1) narration voice for every
+narrated scene without a current clip, through `generateVoice` (tashkeel ≥ 98%, reviewed boards, tones, script+storyboard
+approval; verse cards carry no narration, recitations stay the owner's own recording); without a voice key this step is
+skipped and reported in one line; (2) AV preview drafts for the current scene and every later open scene, one at a time
+in order, through the same renderer and slot (`previews/scene-<id>-av.mp4`). In the Studio it runs as an in-process
+background queue (`app/server/prepare.ts`, `GET/POST /api/episodes/<ep>/scene-prepare`); the passphrase lives only in
+the job's memory, and a restart drops the job (finished drafts remain).
+
+Why pre-rendering is safe:
+- A render only adds a render-to-input proof (`previewInputs[id]`). `recordSceneRenderEvidence` refuses to save if the
+  decision digest (state, history, review epochs, assembly/Master epochs) would change: a render never changes approval state.
+- Approval still needs, strictly in order (`canWorkOn`), an owner-authenticated `submit-scene` of the exact bytes on disk,
+  checked against the proof and the scene's current inputs, then an owner-authenticated `approve-scene` of those same
+  bytes with `confirmedWatched`. Approved and submitted scenes are never re-rendered as drafts, so reviewed bytes are untouched.
+- A draft is bound to its inputs: when a scene's inputs change, reconciliation drops only that scene's proof (its draft
+  reads `stale` and can never be submitted); the running queue re-scans and re-renders it, otherwise one click
+  («جهّز الباقي») re-queues it. Voice regeneration is never automatic (paid service, explicit owner action each time).
+- Race (render publishing while the owner submits the same scene): `verifyBeforePublish` re-checks the scene is still
+  open just before the file is replaced; a residual overlap can only invalidate the submission (epoch mismatch →
+  `needs_revision`), never produce an approval.
+
+The scene ledger read (`GET scene-production`) adds `scenes[].draft` (`ready` / `stale` / `none`) and
+`prepared: { ready, total }` (approved + submitted + ready drafts). In step ٣ a ready draft of the current scene is shown
+for review directly: «اعتمد» or a problem report first submits those exact bytes (the UI checks the server recorded the
+same SHA-256 it played), then decides. After «اعتمد» the next scene's draft opens and plays.
 
 **Owner identity:** approvals need the owner passphrase, chosen once in «إنتاج المشاهد» (only its SHA-256 is stored in
 `.env`). The ledger is signed with the separate random `BAL_WORKFLOW_HMAC_KEY`. There is no bypass flag in the UI, API or CLI.

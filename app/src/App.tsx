@@ -323,6 +323,7 @@ export const App: React.FC = () => {
               setTimeout(() => scriptRef.current?.goToLine(line), 80);
             }}
             refreshKey={homeKey}
+            onOpenSettings={() => setTab("settings")}
             saveState={planState}
             unsaved={scriptDirty || researchDirty}
             onTab={(next) => {
@@ -513,6 +514,7 @@ export const App: React.FC = () => {
             media={media}
             onMediaChange={setMedia}
             hasVoiceKeys={extra.keys.voice}
+            onOpenSettings={() => setTab("settings")}
             onPlanSave={async (p) => { onPlanChange(p); await flushPlan(); }}
             livePreview={(id) => <SceneLivePreview sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => setRequestedSceneId(id)}

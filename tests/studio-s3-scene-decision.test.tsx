@@ -47,7 +47,12 @@ describe("الخطوة ٣: قرار المشهد الحالي", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} confirming />);
     expect(html).toContain("شاهدته بالصوت كاملًا");
     const ui = readFileSync(path.join(__dirname, "../app/src/workspace/SceneProductionPanel.tsx"), "utf8");
-    expect(ui).toContain('act("correct-scene", scene.previewSha256, currentId, problemNote("motion"');
+    // A ready draft of the current scene is submitted (exact bytes, checked) before the same act() path decides.
+    expect(ui).toContain('reviewCurrent("correct-scene", problemNote("motion"');
+    expect(ui).toContain('reviewCurrent("approve-scene")');
+    expect(ui).toContain('action: "submit-scene", expectedSha256: scene.sourceSha256, sceneId: currentId');
+    expect(ui).toContain("?.previewSha256 !== candidate");
+    expect(ui).toContain("return act(action, sha, currentId, noteText)");
     expect(ui).toContain('act("approve-scene", scene.previewSha256!, currentId)');
     expect(ui).toContain("api.voice(episodeId, { scenes: [sceneId], force })");
   });

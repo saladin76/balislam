@@ -3,6 +3,7 @@ import { api, type SceneProductionRead } from "../api";
 import { useOwnerSession } from "./ownerSession";
 import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
+import { PrepareAll } from "../workspace/PrepareAll";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
@@ -23,13 +24,15 @@ type Props = {
   episodeId: string; channelId: string; title: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
   refreshKey: number; saveState: "saved" | "dirty" | "saving" | "error"; unsaved: boolean;
   onTab: (t: StepTab) => void; onDecided: () => void;
+  /** «جهّز كل المشاهد» without a voice key links here. */
+  onOpenSettings?: () => void;
 };
 
 /**
  * عمود الحلقة: خمس محطات من اليمين إلى اليسار، يمتلئ الخط بلون القناة حتى الخطوة الحالية،
  * وتحتها جملة واحدة بما يلزم الآن وزر واحد. الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
-export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided }) => {
+export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided, onOpenSettings }) => {
   const owner = useOwnerSession();
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
@@ -124,7 +127,11 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
               {next.decide === "approve-storyboard" && tab !== "storyboard" ? <button type="button" className="btn" onClick={() => onTab("storyboard")}>فتح الستوري بورد</button> : null}
             </div>
           ) : next.go && !STEPS[stepOf(next.go)]!.tabs.includes(tab) ? (
-            <button type="button" className="btn primary" onClick={() => onTab(next.go!)}>{next.label}</button>
+            <div className="spine-decide">
+              {/* الخطوة ٣ الآن وأنت خارج شاشتها: «جهّز كل المشاهد» هنا، وفي شاشة المشاهد نفسها هناك */}
+              {current === 2 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} /> : null}
+              <button type="button" className="btn primary" onClick={() => onTab(next.go!)}>{next.label}</button>
+            </div>
           ) : null}
         </div>
       ) : err ? <div className="spine-next"><p className="spine-err" role="alert">حالة الاعتمادات غير متاحة: {err}</p></div> : null}

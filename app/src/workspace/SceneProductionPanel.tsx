@@ -10,6 +10,7 @@ import "./scene-production.css";
 import "../shell/screens-s3.css";
 import { useOwnerSession } from "../shell/ownerSession";
 import { More } from "../shell/Screen";
+import { PrepareAll } from "./PrepareAll";
 
 type Props = {
   episodeId: string;
@@ -36,6 +37,8 @@ type Props = {
   onMediaChange?: (media: EpisodeMedia) => void;
   onPlanSave?: (plan: Plan) => Promise<void>;
   hasVoiceKeys?: boolean;
+  /** «جهّز كل المشاهد» without a voice key links to «الاتصالات والمفاتيح». */
+  onOpenSettings?: () => void;
 };
 
 export type ProblemKind = "motion" | "tone";
@@ -57,7 +60,7 @@ const ar = (n: number) => n.toLocaleString("ar-EG");
  */
 export const SceneProductionPanel: React.FC<Props> = ({
   episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onUpdated,
-  plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys,
+  plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
 }) => {
   const [data, setData] = useState<SceneProductionRead | null>(null);
   const [error, setError] = useState("");
@@ -82,6 +85,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [sentNotes, setSentNotes] = useState<Record<string, string>>({});
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceMsg, setVoiceMsg] = useState("");
+  // بعد «اعتمد» يُعرض المشهد التالي فورًا، وتبدأ مسودته الجاهزة بالتشغيل
+  const [advanced, setAdvanced] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   void onOpenStoryboard; void onOpenScript;
 
@@ -182,6 +187,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
       setConfirming(false);
       if (action === "correct-scene" && sceneId) setSentNotes((m) => ({ ...m, [sceneId]: note.trim() }));
       if (action === "approve-assembly") setSeams({});
+      setAdvanced(action === "approve-scene");
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -189,6 +195,40 @@ export const SceneProductionPanel: React.FC<Props> = ({
     } finally {
       setPending(false);
     }
+  };
+
+  /**
+   * Decide on the current scene. A pre-rendered draft becomes reviewable once its scene is current:
+   * the exact draft bytes the owner watched are submitted first (server checks the render proof), and
+   * the decision is then taken on those same bytes. Nothing is approved without the owner's click.
+   */
+  const draftReady = Boolean(scene && candidate && scene.status !== "in_review" && scene.draft === "ready" && scene.readyForAv);
+  const reviewCurrent = async (action: "approve-scene" | "correct-scene", noteText?: string): Promise<boolean> => {
+    if (!scene || !currentId) return false;
+    let sha = scene.status === "in_review" ? scene.previewSha256 : undefined;
+    if (!sha) {
+      if (!draftReady || !candidate) return false;
+      if (!sessionSecret.trim()) { setError("افتح جلسة المالك من أعلى الصفحة أولًا."); return false; }
+      setPending(true);
+      setError("");
+      try {
+        const sub = await api.decideScene(episodeId, channelId, sessionSecret, {
+          action: "submit-scene", expectedSha256: scene.sourceSha256, sceneId: currentId,
+        });
+        if (sub.scenes.find((x) => x.id === currentId)?.previewSha256 !== candidate) {
+          setData(await api.sceneProduction(episodeId, channelId));
+          setError("تغيّرت المسودة منذ عرضها؛ شاهدها من جديد.");
+          return false;
+        }
+        sha = candidate;
+      } catch (e) {
+        setError((e as Error).message);
+        return false;
+      } finally {
+        setPending(false);
+      }
+    }
+    return act(action, sha, currentId, noteText);
   };
 
   // القرار الحالي في سطر واحد: يظهر فيه ما يُشاهَد، وما يُؤكَّد، والزر
@@ -249,11 +289,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
    * «النبرة غير مناسبة»: يُسجَّل التصحيح أولًا (والمشهد ما زال قيد المراجعة بملفه نفسه)،
    * ثم تُحفظ النبرة في الخطة، ثم يُعاد توليد صوت هذا المشهد وحده.
    */
-  const submitTone = async (sceneId: string, previewSha256: string, at: number) => {
+  const submitTone = async (sceneId: string, at: number) => {
     if (!plan) return;
     const name = toneChoice && toneChoice in tones ? tones[toneChoice as keyof typeof tones].nameAr : "مثل الحلقة";
     const text = problemText.trim() ? `${name} — ${problemText.trim()}` : name;
-    const ok = await act("correct-scene", previewSha256, sceneId, problemNote("tone", at, text));
+    const ok = await reviewCurrent("correct-scene", problemNote("tone", at, text));
     if (!ok) return;
     const next: Plan = {
       ...plan,
@@ -310,7 +350,18 @@ export const SceneProductionPanel: React.FC<Props> = ({
             <h2>المشهد {shownIdx >= 0 ? ar(shownIdx + 1) : ""} <span className="s3-of">من {ar(order.length)}</span></h2>
             {hit ? <span className="s3-sub">الفصل {ar(hit.chapter.number)} · {hit.chapter.title}</span> : null}
           </div>
-          <button type="button" className="btn" onClick={() => setEditing(shownId)}>تحرير المشهد</button>
+          <div className="s3-headact">
+            {data && !gated && !data.progress.canAssemble ? (
+              <PrepareAll episodeId={episodeId} channelId={channelId} prepared={data.prepared} onOpenSettings={onOpenSettings}
+                onChanged={() => {
+                  void refresh().catch(() => {});
+                  // الصوت المولَّد في الخلفية يظهر في أزرار المشهد دون إعادة فتح الحلقة
+                  void api.episode(episodeId, channelId).then((d) => onMediaChange?.(d.media), () => {});
+                  onUpdated?.();
+                }} />
+            ) : null}
+            <button type="button" className="btn" onClick={() => setEditing(shownId)}>تحرير المشهد</button>
+          </div>
         </header>
 
         <ol className="s3-strip" ref={stripRef} aria-label={`تقدم المشاهد: ${ar(approvedCount)} معتمد من ${ar(order.length)}`}>
@@ -333,7 +384,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <div className="s3-grid">
           <div className="s3-media">
             {isCurrent && previewUrl ? (
-              <video ref={videoRef} className="scene-first-video" controls preload="metadata" src={previewUrl} aria-label={`المشهد ${currentId} بالصوت والصورة`} />
+              <video key={`${currentId}:${candidate}`} ref={videoRef} className="scene-first-video" controls preload="metadata" autoPlay={advanced} src={previewUrl} aria-label={`المشهد ${currentId} بالصوت والصورة`} />
             ) : !isCurrent && shownVideo ? (
               <video className="scene-first-video" controls preload="metadata" src={shownVideo} aria-label={`المشهد ${shownId} بالصوت والصورة`} />
             ) : livePreview ? (
@@ -343,7 +394,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             )}
             {isCurrent && currentId && scene ? (
               <SceneDecisionActions
-                stage={scene.status === "in_review" && scene.previewSha256 ? "review" : candidate && scene.readyForAv ? "submit" : "render"}
+                stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : candidate && scene.readyForAv ? "submit" : "render"}
                 voice={voiceOf(currentId)}
                 voiceBusy={voiceBusy}
                 voiceMsg={voiceMsg}
@@ -370,17 +421,17 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 onTone={setToneChoice}
                 onCancelProblem={() => setProblem(null)}
                 onSubmitProblem={() => {
-                  if (!problem || !scene.previewSha256) return;
+                  if (!problem || !(scene.previewSha256 || draftReady)) return;
                   if (problem.kind === "motion") {
-                    void act("correct-scene", scene.previewSha256, currentId, problemNote("motion", problem.at, problemText));
+                    void reviewCurrent("correct-scene", problemNote("motion", problem.at, problemText));
                     return;
                   }
-                  void submitTone(currentId, scene.previewSha256, problem.at);
+                  void submitTone(currentId, problem.at);
                 }}
                 onConfirm={(v) => setReviewed(v)}
                 onApprove={() => {
                   if (!reviewed) { setProblem(null); setConfirming(true); return; }
-                  void act("approve-scene", scene.previewSha256!, currentId);
+                  void reviewCurrent("approve-scene");
                 }}
                 onSubmitScene={() => void act("submit-scene", scene.sourceSha256, currentId)}
                 onRender={() => void renderCurrentScene(currentId, scene.sourceSha256)}
@@ -388,7 +439,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             ) : null}
           </div>
           <div className="s3-side">
-            <span className={`s3-state is-${status}`}>{status === "done" ? "معتمد" : status === "now" ? (scene?.status === "in_review" ? "بانتظار قرارك" : scene?.status === "needs_revision" ? "بانتظار التعديل" : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
+            <span className={`s3-state is-${status}`}>{status === "done" ? "معتمد" : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? "بانتظار التعديل" : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
             <p className="s3-narr">{hit?.scene.narration || "بلا تعليق صوتي"}</p>
 
             {!data && !error ? <p className="sp-hint" role="status">جارٍ تحميل حالة الحلقة…</p> : null}
@@ -397,7 +448,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
               <p className="s3-sent"><b>ملاحظتك:</b> {sentNotes[currentId!]}</p>
             ) : null}
             {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوته أو تلاوته المرفوعة.</p> : null}
-            {isCurrent && scene?.status === "in_review" ? criteria : null}
+            {isCurrent && (scene?.status === "in_review" || draftReady) ? criteria : null}
             {data && !gated && currentId && shownId !== currentId ? (
               <div className="s3-decide">
                 <p className="sp-hint">{status === "done" ? "اعتُمد هذا المشهد." : "يُعتمد بعد ما قبله، بالترتيب."}</p>
@@ -431,7 +482,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 </ul>
               </div>
             ) : null}
-            {!(isCurrent && scene?.status === "in_review") ? <div className="s3-more-group">{criteria}</div> : null}
+            {!(isCurrent && (scene?.status === "in_review" || draftReady)) ? <div className="s3-more-group">{criteria}</div> : null}
             <p className="hint">التحرير الكامل (القالب، الخلفية، النبرة، التصدير) في «تحرير المشهد».</p>
           </More>
         </div>
