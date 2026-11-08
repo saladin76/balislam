@@ -11,6 +11,9 @@ import {
   readRegisteredSceneManifestV2, registerRenderedSceneManifestV2,
 } from "../src/workflow/sceneManifestRegistryV2";
 import {
+  appendCompletedSceneAvReviewV2, requireCompletedSceneAvReviewV2,
+} from "../src/workflow/sceneReviewAuditV2";
+import {
   finishSceneReviewReceiptV2, startSceneReviewReceiptV2, streamSceneReviewReceiptV2,
   tickSceneReviewReceiptV2, verifySceneReviewReceiptV2,
 } from "../app/server/studioV2Review";
@@ -128,7 +131,7 @@ describe("Studio V2 Backend integration security", () => {
       sessionId: sha("session"), ownerId: "studio-owner",
       scope: "balislam/001-backend", sceneId: "c1-s1",
       fingerprint: sha("fingerprint"), avSha256: sha("video"),
-      avEpoch: sha("epoch"), durationSec: 2, mediaBytes: 1000,
+      avEpoch: sha("epoch"), videoVersion: "v1", durationSec: 2, mediaBytes: 1000,
     };
     const started = startSceneReviewReceiptV2(info);
     expect(() => finishSceneReviewReceiptV2(started.reviewId, info.sessionId,
@@ -150,6 +153,31 @@ describe("Studio V2 Backend integration security", () => {
       proof, info.scope, sha("different-epoch"))).toThrow();
     expect(() => verifySceneReviewReceiptV2(started.reviewId, info.sessionId,
       proof, info.scope, info.avEpoch)).not.toThrow();
+  });
+
+  it("persists independent signed owner AV evidence and rejects forged receipt logs", async () => {
+    const { scope, dir } = await make();
+    const completed = {
+      id: "a".repeat(48), sessionId: sha("owner-session"), ownerId: "studio-owner",
+      sceneId: "c1-s1", fingerprint: sha("submitted"),
+      avSha256: sha("actual-video"), avEpoch: sha("actual-epoch"),
+      videoVersion: "v1", durationSec: 3, mediaBytes: 2500,
+      playedSec: 3, startedAt: 1_000_000, completedAt: 1_003_100,
+      checkpoints: 3,
+    };
+    await appendCompletedSceneAvReviewV2(scope, completed);
+    await requireCompletedSceneAvReviewV2(scope, completed);
+    await expect(appendCompletedSceneAvReviewV2(scope, completed))
+      .rejects.toThrow(/already committed/);
+    await expect(requireCompletedSceneAvReviewV2(scope, {
+      ...completed, avSha256: sha("other-video"),
+    })).rejects.toThrow(/No current signed/);
+    const file = path.join(dir, "scene-av-review.v2.json");
+    const json = JSON.parse(await readFile(file, "utf8"));
+    json.reviews[0].ownerId = "forged-owner";
+    await writeFile(file, JSON.stringify(json));
+    await expect(requireCompletedSceneAvReviewV2(scope, completed))
+      .rejects.toThrow(/Corrupt or forged/);
   });
 
   it("derives owner identity from server configuration and rejects role injection/CSRF", () => {
