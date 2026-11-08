@@ -152,3 +152,8 @@
  .v2-owner-form { flex-direction:column; align-items:stretch; }
  .v2-owner-form button { min-height:42px; }
 }
+
+.v2-source-status { display:flex; flex-wrap:wrap; gap:8px 18px; padding:9px 24px;
+  background:#f8fbfa; border-bottom:1px solid var(--v2-line); font-size:11px; color:#4a6975; }
+.v2-source-status b { color:#1d4954; }
+@media (max-width:680px) { .v2-source-status { padding:10px 15px; } }
