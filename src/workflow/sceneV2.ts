@@ -37,7 +37,7 @@ export type SceneEntry = {
 };
 export type SceneEvent = {
   seq: number; sceneId: string;
-  action: "prepared" | "producing" | "submitted" | "approved" | "changes_requested" | "invalidated";
+  action: "prepared" | "producing" | "submitted" | "approved" | "changes_requested" | "invalidated" | "noted";
   at: string; ownerId?: string; fingerprint?: string;
 };
 export type SceneLedgerV2 = {
@@ -176,6 +176,21 @@ export const assertCanProduceScene = (ledger: SceneLedgerV2, sceneId: string): v
     insist(isSceneApproved(ledger, earlier),
       "Final scene production blocked until preceding scene is approved: " + earlier);
   }
+};
+
+/** Durable owner-only, timecoded annotation; does not grant or revoke scene approval. */
+export const appendSceneNote = (ledger: SceneLedgerV2, sceneId: string,
+  note: { text: string; second?: number; elementId?: string }, at: string): void => {
+  const s = current(ledger, sceneId);
+  if (!note || typeof note.text !== "string" ||
+      note.text.trim().length < 2 || note.text.length > 2000 ||
+      (note.second !== undefined && (!Number.isFinite(note.second) || note.second < 0 || note.second > 600)) ||
+      (note.elementId !== undefined && !/^[a-zA-Z0-9_-]{1,100}$/.test(note.elementId)))
+    throw Error("Invalid owner scene annotation.");
+  const seq = event(ledger, sceneId, "noted", at);
+  s.notes.push({ seq, at, text: note.text.trim(),
+    ...(note.second === undefined ? {} : { second: note.second }),
+    ...(note.elementId === undefined ? {} : { elementId: note.elementId }) });
 };
 
 export const markScenePrepared = (ledger: SceneLedgerV2, sceneId: string, at: string): void => {
