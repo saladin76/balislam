@@ -10,20 +10,20 @@ PR #87 uses the actual Backend PR #88 API. Both remain independent Draft PRs. Co
 
 ## Backend API mapping (all episode routes append ?channel=<id>)
 
-- GET /api/studio-v2/episodes/:NNN/scenes — canonical order, status, current fingerprint, real timecoded correction notes.
+- GET /api/studio-v2/episodes/:NNN/scenes — canonical scene order/status/fingerprint plus Backend Phase2 currentVideo {version,sha256,epoch,width?,height?,durationSec?,hasAudio?}, blockers[], sourcesReady, and saved timecoded notes. No MP4 URL is returned until review/start.
 - GET /api/studio-v2/episodes/:NNN/sources — owner-approved script and storyboard state.
 - POST /scenes/:id/review/start — only expectedFingerprint; response gives reviewId, rotating challenge, exact media URL and duration.
 - GET /scenes/:id/media?channel=<id>&reviewId=<server-id> — authenticated byte-range AV from Backend.
 - POST /scenes/:id/review/:reviewId/tick — challenge + actual positionSec, rotated by Backend, sequential only.
 - POST /scenes/:id/review/:reviewId/finish — confirmation reviewed_av, not self-reported watched=true.
-- POST /scenes/:id/commands — explicit approve with expectedFingerprint and server reviewId; or request_changes with note, second?, elementId?. No browser-supplied owner identity.
+- POST /scenes/:id/commands — explicit approve with expectedFingerprint and server reviewId; independent note action with {note,second?,elementId?}; or request_changes that also changes state. The UI sends expectedFingerprint as a concurrency hint, but Backend must revalidate under lock. No browser-supplied owner identity.
 
 Local playback at 1× invalidates on seek, speed change, mute, network tick failure or media error. Only server-confirmed finish enables the explicit approve button; Backend independently validates current AV bytes and evidence.
 
 ## Important limitations / Issue #89
 
-1. Backend #88 does NOT offer an independent append-note endpoint. The only persisted timed note is a clearly labelled request_changes command, which also changes scene status. Live save-note is disabled; no fake success.
-2. Backend GET /scenes does NOT return named scene versions, historical diffs, per-action server permissions, validated video dimensions or narration/script/Storyboard detail. UI renders only actual returned fingerprint and notes, no invented version, approval, silent voice or video URL.
+1. Backend Phase2 now supports a real independent note action. The UI saves notes through /scenes/:id/commands action note, without changing scene status. However the current note/request_changes implementation does not compare expectedFingerprint under the artifact lock or return a note's historical version binding. The UI preflights a fresh fingerprint but cannot eliminate the server-side race; tracked in Issue #89.
+2. GET /scenes now returns the current signed video version, media facts and authoritative blocker keys; these are displayed. It still does not return historical media diffs, per-action permission flags or script/Storyboard/narration details for the standalone page. No invented audio silence or older version is displayed.
 3. No real Render/Backend combination is installed by this UI-only PR. A properly registered MP4, approved sources, actual full 1× playback, Media Range + finish and server approve are required for production acceptance.
 
 ## Tests
