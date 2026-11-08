@@ -8,8 +8,8 @@ import { withSceneProductionLeaseV2, productionLeaseFileV2 } from "../src/workfl
 import { approveSceneSourcesV2, inspectSceneSourcesV2 } from "../src/workflow/sceneSourcesV2.ts";
 import { writeTrustedSceneRenderSpecLockedV2, readTrustedSceneRenderSpecLockedV2 } from "../src/workflow/sceneRenderSpecV2.ts";
 import { runTrustedSceneProductionV2 } from "../src/workflow/sceneRenderBridgeV2.ts";
-import { mutateSceneLedgerV2 } from "../src/workflow/sceneStoreV2.ts";
-import { beginFinalSceneProduction } from "../src/workflow/sceneV2.ts";
+import { mutateSceneLedgerV2, readSceneLedgerV2 } from "../src/workflow/sceneStoreV2.ts";
+import { appendSceneNote, beginFinalSceneProduction } from "../src/workflow/sceneV2.ts";
 import type { WorkflowIdentity } from "../src/workflow/index.ts";
 import type { TrustedSceneRenderSpecV2 } from "../src/workflow/sceneRenderSpecV2.ts";
 
@@ -144,6 +144,19 @@ describe("Studio V2 phase 2 trusted production boundary", () => {
       renderer, ffprobeBinary: "/bin/echo", verifySourceReview: async () => {},
     })).rejects.toThrow(/V2_RENDER_FAILED/);
     expect(renderer).toHaveBeenCalledTimes(1);
+  });
+
+  it("persists timecoded owner notes in a signed ledger without granting approval", async () => {
+    const { scope, locked } = await setup();
+    await locked(async () => mutateSceneLedgerV2(scope, ["c1-s1"], (ledger) =>
+      appendSceneNote(ledger, "c1-s1", {
+        text: "Camera transition needs revision", second: 1.25, elementId: "shot-2",
+      }, new Date().toISOString())));
+    const doc = await readSceneLedgerV2(scope, ["c1-s1"]);
+    expect(doc.scenes["c1-s1"]?.status).toBe("draft");
+    expect(doc.scenes["c1-s1"]?.approval).toBeUndefined();
+    expect(doc.scenes["c1-s1"]?.notes[0]?.second).toBe(1.25);
+    expect(doc.events.at(-1)?.action).toBe("noted");
   });
 
   it("rejects final scene 2 before scene 1 approval with no Render side effects", async () => {
