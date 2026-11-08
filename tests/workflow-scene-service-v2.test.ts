@@ -247,8 +247,10 @@ describe("Studio V2 — trusted server AV scene decisions", () => {
     await x.fullyApprove("c1-s2");
     const good = await x.service.assemblyEligibility();
     expect(good.sceneAssemblyFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    const beforeNote = await x.service.inspect();
     await x.service.command({
       action: "request_changes", sceneId: "c1-s1",
+      expectedFingerprint: beforeNote.scenes[0]!.fingerprint,
       second: 7, note: "00:07 النطق أسرع من حركة الكاميرا",
     });
     const view = await x.service.inspect();
