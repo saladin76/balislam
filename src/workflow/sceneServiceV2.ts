@@ -10,7 +10,7 @@
  * validation booleans. Rendering/publishing remains disabled until integration.
  */
 import {
-  approveSceneAv, assemblySceneFingerprint, assertCanProduceScene,
+  appendSceneNote, approveSceneAv, assemblySceneFingerprint, assertCanProduceScene,
   beginFinalSceneProduction, markScenePrepared, reconcileSceneInputs,
   requestSceneChanges, sceneFingerprint, submitSceneAvReview,
   type SceneInputs, type SceneLedgerV2,
@@ -27,7 +27,7 @@ export type SceneV2Principal = {
   id: string; role: "owner" | "reviewer"; authenticated: true;
 };
 export type SceneV2ClientDecision = {
-  action: "prepare" | "begin" | "submit" | "approve" | "request_changes";
+  action: "prepare" | "begin" | "submit" | "approve" | "request_changes" | "note";
   sceneId: string;
   /** Mandatory on submit/approve; taken from read-only inspection of current video. */
   expectedFingerprint?: string;
@@ -52,7 +52,7 @@ export type TrustedSceneV2Dependencies = {
   ffprobeBinary: string;
 };
 
-const ALLOWED = ["prepare", "begin", "submit", "approve", "request_changes"] as const;
+const ALLOWED = ["prepare", "begin", "submit", "approve", "request_changes", "note"] as const;
 const sha = /^[a-f0-9]{64}$/;
 const validate = (input: SceneV2ClientDecision): SceneV2ClientDecision => {
   if (!input || typeof input !== "object" || Array.isArray(input) ||
@@ -71,7 +71,7 @@ const validate = (input: SceneV2ClientDecision): SceneV2ClientDecision => {
       (input.elementId !== undefined &&
         (typeof input.elementId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(input.elementId))))
     throw Error("Invalid scene decision; identity, artifact paths and evidence are server-only.");
-  if (input.action === "request_changes" && (!input.note || input.note.trim().length < 2))
+  if ((input.action === "request_changes" || input.action === "note") && (!input.note || input.note.trim().length < 2))
     throw Error("A timestamped or element-specific correction requires a meaningful note.");
   return input;
 };
@@ -150,6 +150,12 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
             // Verified by the trusted asynchronous adapter immediately above,
             // under the SAME shared artifact lock.
           }));
+      } else if (input.action === "note") {
+        // Signed durable note, without changing approval status or claiming AV review.
+        await mutateSceneLedgerV2(deps.scope, order, (doc) =>
+          appendSceneNote(doc, input.sceneId, {
+            text: input.note!, second: input.second, elementId: input.elementId,
+          }, new Date().toISOString()));
       } else if (input.action === "request_changes") {
         await mutateSceneLedgerV2(deps.scope, order, (doc) =>
           requestSceneChanges(doc, input.sceneId, {
