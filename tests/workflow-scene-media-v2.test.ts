@@ -27,11 +27,23 @@ const fixture = async (mode: SceneAudioModeV2 = "narrated") => {
   const media = path.join(dir, "previews", "c1-s1.mp4");
   await writeFile(media, Buffer.from("MP4 bytes stub; tool subprocess mocked only"));
   const bin = path.join(root, "ffprobe-fixture");
-  const manifest = {
+  const source = (name: string) => ({ version: "v1", files: [name] });
+  const manifest: SceneFileManifestV2 = {
     sceneId: "c1-s1",
     audioMode: mode,
-    inputs: { video: { version: "v1", files: ["previews/c1-s1.mp4"] } },
-  } as SceneFileManifestV2;
+    inputs: {
+      original: source("script.md"),
+      vocalized: source("vocalized/c1-s1.json"),
+      tone: source("tone/c1-s1.json"),
+      storyboard: source("storyboard/c1-s1.json"),
+      assets: source("assets/c1-s1.png"),
+      narration: mode === "silent" ? { version: "v1", files: [] } : source("voice/c1-s1.mp3"),
+      sync: source("sync/c1-s1.json"),
+      video: source("previews/c1-s1.mp4"),
+      rights: source("rights/c1-s1.json"),
+    },
+    shared: {},
+  };
   const setBinary = async (script: string) => {
     await writeFile(bin, "#!/usr/bin/env node\n" + script + "\n", { mode: 0o700 });
     await chmod(bin, 0o700);
