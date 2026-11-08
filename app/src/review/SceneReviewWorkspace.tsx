@@ -292,7 +292,8 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
             <button type="button" className="v2-primary"
               disabled={!authenticated || busy || !version?.fingerprint ||
                 versionChanged || syncFailed || av.status === "starting" ||
-                !data.sourceApprovals?.script || !data.sourceApprovals?.storyboard}
+                !data.sourceApprovals?.script || !data.sourceApprovals?.storyboard ||
+                !record.currentVideo || data.sourcesReady !== true}
               onClick={() => void av.start()}>
               {av.session ? "بدء مراجعة جديدة من البداية" : "بدء مراجعة AV من الخادم"}
             </button>
@@ -427,6 +428,12 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               <dt>العناصر</dt><dd>{seed?.elements?.join("، ") || "لم تحدد"}</dd>
               <dt>مدة MP4</dt><dd dir="ltr">{(avDuration || record?.currentVideo?.durationSec) ?
               formatClock((avDuration || record?.currentVideo?.durationSec)!) : "—"}</dd>
+              <dt>صوت MP4</dt><dd>{record?.currentVideo ?
+                record.currentVideo.hasAudio === true ? "المسار الصوتي موجود وفق الخادم" :
+                record.currentVideo.hasAudio === false ? "لا يوجد مسار صوتي وفق الخادم" :
+                "لم يتحقق Backend من الصوت" : "بيانات الفيديو غير متاحة"}</dd>
+              <dt>مقاس الفيديو</dt><dd dir="ltr">{record?.currentVideo?.width && record.currentVideo.height ?
+                record.currentVideo.width + " × " + record.currentVideo.height : "—"}</dd>
             </dl>
           </details>
           <section className="v2-card"><div className="v2-card-head"><h4>الإصدار والفروقات</h4></div>
