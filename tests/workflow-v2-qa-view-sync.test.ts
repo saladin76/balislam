@@ -24,7 +24,7 @@ const fileFor = (id: string, key: SceneInputKey) =>
 const manifest = (id: string): SceneFileManifestV2 => ({
   sceneId: id, audioMode: "narrated",
   inputs: Object.fromEntries(SCENE_INPUT_KEYS.map((key) =>
-    [key, { version: "qa-1", files: [fileFor(id, key)] }])) as SceneFileManifestV2["inputs"],
+    [key, { version: "qa-1", files: [fileFor(id, key)] }])) as unknown as SceneFileManifestV2["inputs"],
   shared: {},
 });
 const fixture = async () => {
