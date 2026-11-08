@@ -7,7 +7,7 @@ import path from "node:path";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { WorkflowIdentity } from "../../src/workflow/store.ts";
+import type { WorkflowIdentity } from "../../src/workflow/index.ts";
 import type { SceneV2ClientDecision } from "../../src/workflow/sceneServiceV2.ts";
 import {
   assertLocalStudioV2, assertStudioV2Origin, loginStudioV2, logoutStudioV2,
