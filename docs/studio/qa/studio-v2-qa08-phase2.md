@@ -6,6 +6,17 @@
 **Central tracker:** [Issue #89](https://github.com/saladin76/balislam/issues/89)  
 **Release decision:** **BLOCKED** — not one end-to-end three-team integration has yet been run or demonstrated.
 
+### Live update — QA-09 / integration PR #90 (supersedes earlier branch-availability statements)
+
+Coordinator **HAS NOW** created [integrated Draft PR #90](https://github.com/saladin76/balislam/pull/90) at pinned SHA `40b4d07ebc243e926694c5681f7721fe2899c1b6`, combining Backend, Render, UI and QA files. Thus the old statement "no composite branch has been supplied" below is **historical and superseded**, not the current blocker.
+
+On this exact aggregate, TypeScript PASS and Studio parity PASS, but full CI **FAIL**: [rerun 42467225786](https://github.com/saladin76/balislam/actions/runs/42467225786) reported **822 PASS / 1 FAIL / 1 skipped / 17 TODO**. The actual assertion `tests/render-pool.test.ts:163` expected retried y.status="done" and received "error". It was NOT a test timeout. The first run also had two 5s timeouts. The QA team reproduced a second, source-level cleanup race on the **same RenderPool Git blob**: concurrent close can cause `idle()` to resolve while a failed job's `.part.mp4` cleanup is still pending. The two CI checks of [QA commit adefdebb](https://github.com/saladin76/balislam/commit/adefdebbd082d68d30cd07a0e43439ae6c8338df) both **FAIL** on the new adversarial 1ms test with `{status:"error",partialExists:true}`. This is a proven safety/cleanup regression, and a plausible (not yet proved exclusive) cause of the original retry failure. See [QA-09 triage](studio-v2-qa09-render-pool-triage.md) and [Issue #89](https://github.com/saladin76/balislam/issues/89#issuecomment-6720171492). No production code modified by QA.
+
+**Render progress:** #86 previously generated **two actual Remotion 1920×1080/30FPS/H.264 MP4s** (silent and synthetic AAC tone) on Linux GitHub Actions and validated real decode/frames and owned cleanup. This is stronger than the earlier FFmpeg fixture. Still **NOT Mac**, **NOT composite Backend→UI→Remotion**, and **NOT owner 1× AV review/approval**. Full release E2E and Master remain BLOCKED.
+
+**Current QA count:** Original 17 production contract TODO remain TODO; Phase-2 three-team owner E2E 0 PASS; CI on composite #90 FAIL; new QA-09 cleanup-regression intentionally FAIL until actual production owner fix. **Do not skip, mock green, extend global timeout, or merge while red.**
+
+
 ## 1. New deliveries reviewed, with exact heads
 
 | PR | Team | Head SHA | What actually exists | Integration limit |
