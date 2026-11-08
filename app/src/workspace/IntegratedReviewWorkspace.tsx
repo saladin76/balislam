@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { api, type PackageInfo, type ReviewSummary, type SceneProductionRead } from "../api";
 
+const CITATION_STATUS: Record<"pending" | "changed" | "verified" | "rejected", string> = {
+  pending: "بانتظار التوثيق", changed: "تغيّر بعد التوثيق، يحتاج مراجعة", verified: "موثّق", rejected: "مرفوض",
+};
+
 type ReviewData = {
   citations: ReviewSummary | null;
   production: SceneProductionRead | null;
@@ -28,7 +32,7 @@ export const IntegratedReviewWorkspace: React.FC<{
         pkg: pkg.status === "fulfilled" ? pkg.value : null,
         previews: previews.status === "fulfilled" ? previews.value.files : [],
         notes: [
-          ...(citations.status === "fulfilled" ? citations.value.items.filter((x) => x.status !== "verified").map((x) => ({ id: x.key, text: x.note || `${x.label}: ${x.status}`, kind: "script" as const })) : []),
+          ...(citations.status === "fulfilled" ? citations.value.items.filter((x) => x.status !== "verified").map((x) => ({ id: x.key, text: x.note || `${x.label} ${x.ref}: ${CITATION_STATUS[x.status]}`, kind: "script" as const })) : []),
           ...(scenes.status === "fulfilled" ? scenes.value.scenes.filter((x) => x.status === "needs_revision").map((x) => ({ id: x.id, text: `المشهد ${x.id}: يحتاج إعادة إنتاج ومراجعة بالصوت والصورة`, kind: "episode" as const })) : []),
         ],
       });
@@ -65,7 +69,7 @@ export const IntegratedReviewWorkspace: React.FC<{
       {!data ? <p>جارٍ تحميل الملاحظات…</p> : data.notes.length === 0 ? <p>لا توجد ملاحظات مسجلة في مصادر المراجعة الحالية؛ هذا لا يثبت اكتمال مشاهدة AV.</p> :
         <div className="studio-review-notes-list">
           {data.notes.map((note) => <button type="button" key={`${note.kind}:${note.id}`} onClick={() => onOpen(note.kind, note.kind === "episode" ? note.id : undefined)}>
-            <span dir="ltr">{note.id}</span><strong>{note.text}</strong><em>فتح الموضع</em>
+            <span dir="auto">{note.id}</span><strong>{note.text}</strong><em>فتح الموضع</em>
           </button>)}
         </div>}
     </section>

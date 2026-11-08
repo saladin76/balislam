@@ -3,7 +3,7 @@ import React from "react";
 export type StudioSection = "home" | "ops" | "channels" | "review" | "research" | "episode" | "script" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs" | "treviews";
 
 export const SECTION_TITLES: Record<StudioSection, string> = {
-  home: "حلقات القناة", ops: "غرف العمليات والمراقبة", channels: "إدارة القنوات", review: "المراجعة المتكاملة", research: "البحث والتحضير", script: "السكريبت",
+  home: "حلقات القناة", ops: "غرفة العمليات والمراقبة", channels: "إدارة القنوات", review: "المراجعة المتكاملة", research: "البحث والتحضير", script: "السكريبت",
   storyboard: "الستوري بورد", voice: "صوت الحلقة", episode: "محرر المشاهد", publish: "النشر والتسليم",
   identity: "الهوية البصرية", library: "مكتبة الأصول والقوالب", channel: "إعدادات القناة",
   settings: "الاتصالات والمفاتيح", guide: "دليل الاستوديو", labs: "مختبرات الإنتاج", treviews: "المراجعات الفنية",
