@@ -55,6 +55,9 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
     await run(["-f", "lavfi", "-i", "sine=frequency=623:sample_rate=48000:duration=2",
       "-c:a", "pcm_s16le", wave]);
     let narratedRequest: SceneRenderRequestV2 | undefined;
+    let artifactLockDepth = 0;
+    let leaseDepth = 0;
+    let trustedPublicationCallbacks = 0;
     for (const mode of ["silent", "narrated"] as const) {
       const scene = {
         ...samplePlan.chapters[0]!.scenes[0]!,
@@ -81,8 +84,22 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
       const result = await renderSceneV2(req, {
         ffprobeBinary: ffprobe,
         browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE,
-        withArtifactLock: async (job) => job(),
-        withProductionLease: async (_, job) => job(),
+        withArtifactLock: async (job) => {
+          artifactLockDepth++;
+          try { return await job(); } finally { artifactLockDepth--; }
+        },
+        withProductionLease: async (_, job) => {
+          leaseDepth++;
+          try { return await job(); } finally { leaseDepth--; }
+        },
+        onPublishedLocked: async (_request, published) => {
+          assert.equal(artifactLockDepth, 1, "Backend callback requires shared artifact mutex.");
+          assert.equal(leaseDepth, 1, "Backend callback requires durable lease.");
+          assert.equal(published.reviewStatus, "not_submitted");
+          assert.equal((await stat(published.file)).size, published.bytes);
+          trustedPublicationCallbacks++;
+          // Isolated QA checks the hook; no Backend key or forged registry is created.
+        },
         assertCanRender: async () => { /* isolated QA plan; no owner approvals are simulated */ },
       });
       assert(result.status === "succeeded", JSON.stringify(result));
@@ -142,6 +159,13 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
         }) + " STUDIO_V2_QA_BINARY_END");
       }
     }
+    assert.equal(trustedPublicationCallbacks, 2,
+      "Every genuine MP4 must enter the Backend publication hook under lock.");
+    console.log("STUDIO_V2_QA_BACKEND_PUBLISH_HOOK " + JSON.stringify({
+      callbacks: trustedPublicationCallbacks, underArtifactLock: true,
+      underProductionLease: true, signedRegistration: false,
+      ownerApproved: false,
+    }));
     // Actual in-flight cancellation, forced failure and independent retry:
     // low-resolution instances are only lifecycle checks, not visual signoff.
     assert(narratedRequest, "Narrated source must exist for retry lifecycle QA.");
