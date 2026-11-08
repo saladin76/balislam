@@ -62,14 +62,10 @@ const verifyPolicy = async (scope: WorkflowIdentity, manifest: SceneFileManifest
     throw Error("Render handoff audio policy differs from the locked plan.");
 };
 
-/** Called by Render only, NEVER from an API request. */
-export const registerRenderedSceneManifestV2 = async (
+/** Trusted Render worker only; caller already owns the episode artifact lock. */
+export const registerRenderedSceneManifestLockedV2 = async (
   scope: WorkflowIdentity, manifest: SceneFileManifestV2,
-  withArtifactLock: SceneArtifactLockV2,
 ): Promise<void> => {
-  if (typeof withArtifactLock !== "function")
-    throw Error("Manifest registration requires the shared scene artifact lock.");
-  await withArtifactLock(async () => {
     await verifyPolicy(scope, manifest);
     const file = await registryFile(scope, manifest.sceneId);
     const base = { schemaVersion: 1 as const, channel: scope.channel,
@@ -87,7 +83,16 @@ export const registerRenderedSceneManifestV2 = async (
       const dir = await open(path.dirname(file), "r");
       try { await dir.sync(); } finally { await dir.close(); }
     } finally { await rm(tmp, { force: true }); }
-  });
+};
+
+/** For Render workers not already holding the mutex (do NOT nest locks). */
+export const registerRenderedSceneManifestV2 = async (
+  scope: WorkflowIdentity, manifest: SceneFileManifestV2,
+  withArtifactLock: SceneArtifactLockV2,
+): Promise<void> => {
+  if (typeof withArtifactLock !== "function")
+    throw Error("Manifest registration requires the shared scene artifact lock.");
+  await withArtifactLock(() => registerRenderedSceneManifestLockedV2(scope, manifest));
 };
 
 /** Caller MUST already hold withSceneArtifactLockV2. */
