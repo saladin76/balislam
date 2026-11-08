@@ -515,7 +515,7 @@ program
 
 program
   .command("scenes-review")
-  .description("مراجعة المشاهد: هل حركات كل مشهد سليمة ومتناسقة مع النص وغير عشوائية؟")
+  .description("سجل المراجعة القديم للمشاهد (للقراءة فقط؛ الاعتماد الآن في «إنتاج المشاهد»)")
   .argument("<episode>", "رقم الحلقة")
   .action(async (episode: string) => {
     const { resolveScriptPath } = await import("../script/episodes");
