@@ -160,11 +160,12 @@ export const reconcileSceneInputs = (
   s.submittedFingerprint = undefined;
   if (s.status === "approved" || s.status === "in_review" || s.status === "needs_reapproval") {
     s.status = "needs_reapproval";
-    event(ledger, sceneId, "invalidated", at, undefined, next);
-  } else {
+  } else if (s.status !== "producing") {
+    // Newly rendered media is expected to arrive DURING scene production.
+    // Replacing the snapshot must not reset producing -> draft.
     s.status = "draft";
-    event(ledger, sceneId, "invalidated", at, undefined, next);
   }
+  event(ledger, sceneId, "invalidated", at, undefined, next);
   return true;
 };
 
