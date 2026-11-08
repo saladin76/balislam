@@ -31,6 +31,9 @@ export type SceneReviewRecord = {
 };
 export type ReviewEpisode = {
   channelId: string; episodeId: string; revision: number;
+  /** Backend's canonical episode slug. Not supplied in QA fixtures. */
+  serverEpisode?: string;
+  sourceApprovals?: { script: boolean; storyboard: boolean };
   order: string[]; scenes: Record<string, SceneReviewRecord>;
 };
 export type SceneSeed = {
@@ -48,17 +51,32 @@ export type ReviewDecision = {
   sceneId: string; expectedFingerprint: string;
   action: "approve" | "request_changes";
   note?: string; second?: number; elementId?: string;
+  /** Server-issued completed AV review identifier; required only for approve. */
+  reviewId?: string;
 };
 export type NewReviewNote = {
   sceneId: string; versionId: string; expectedFingerprint: string;
   text: string; second?: number; elementId?: string;
 };
+export type OwnerSession = {
+  authenticated: true; role: "owner"; csrfToken: string; expiresAt: string;
+};
+export type AvReviewStart = {
+  reviewId: string; challenge: string; fingerprint: string;
+  durationSec: number; mediaUrl: string;
+};
+export type AvReviewTick = { challenge: string; playedSec: number };
 export interface ReviewAdapter {
   readonly mode: "server" | "demo";
+  session(): Promise<OwnerSession>;
+  login(secret: string): Promise<OwnerSession>;
+  logout(): Promise<void>;
+  startReview(sceneId: string, fingerprint: string): Promise<AvReviewStart>;
+  tickReview(sceneId: string, reviewId: string, challenge: string, positionSec: number): Promise<AvReviewTick>;
+  finishReview(sceneId: string, reviewId: string, fingerprint: string): Promise<void>;
   load(): Promise<ReviewEpisode>;
   addNote(input: NewReviewNote): Promise<ReviewEpisode>;
   decide(input: ReviewDecision): Promise<ReviewEpisode>;
-  playback(event: PlaybackEvent): Promise<void>;
 }
 export const STATUS_LABELS: Record<SceneStatus, string> = {
   draft: "مسودة", prepared: "مجهّز", producing: "قيد الإنتاج",
@@ -88,7 +106,7 @@ export function actionBlockers(record: SceneReviewRecord, previous?: SceneReview
   if (record.status !== "in_review")
     reasons.push("حالة المشهد الحالية لا تسمح بقرار مراجعة.");
   const version = activeVersion(record);
-  if (!version?.video?.url) reasons.push("لا يوجد فيديو MP4 صالح لهذا الإصدار.");
+  if (!version?.fingerprint) reasons.push("الخادم لم يعرض بصمة AV صالحة.");
   if (previous && previous.status !== "approved")
     reasons.push("يجب اعتماد المشهد السابق أولًا.");
   if (!version?.fingerprint || !/^[a-f0-9]{64}$/.test(version.fingerprint))
