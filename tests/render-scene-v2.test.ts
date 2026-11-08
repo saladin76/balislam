@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  sceneV2OutputName, validateSceneV2Request,
+  renderSceneV2, sceneV2OutputName, validateSceneV2Request,
   type SceneRenderRequestV2, type SceneSoundV2,
 } from "../src/render/sceneV2";
 
@@ -48,6 +48,28 @@ describe("Studio V2 render boundary", () => {
     expect(() => validateSceneV2Request({ ...request("silent", []),
       pictures: [{ file: "/tmp/malicious", ref: "../wrong", sha256: H }] }))
       .toThrow(/picture/);
+  });
+  it("reports cancellation without touching an episode or faking approval", async () => {
+    const abort = new AbortController();
+    abort.abort();
+    const result = await renderSceneV2(request("silent", []), {
+      ffprobeBinary: "/bin/ffprobe", signal: abort.signal,
+      withProductionLease: async (_scene, work) => work(),
+      withArtifactLock: async (work) => work(),
+      assertCanRender: async () => { throw Error("MUST NOT BE CALLED"); },
+    });
+    expect(result.status).toBe("cancelled");
+    expect(result).not.toHaveProperty("file");
+  });
+  it("returns typed failed state for invalid mode before any filesystem changes", async () => {
+    const result = await renderSceneV2(request("narrated", []), {
+      ffprobeBinary: "/bin/ffprobe",
+      withProductionLease: async (_scene, work) => work(),
+      withArtifactLock: async (work) => work(),
+      assertCanRender: async () => { throw Error("MUST NOT BE CALLED"); },
+    });
+    expect(result.status).toBe("failed");
+    expect(result).not.toHaveProperty("file");
   });
   it("uses immutable unique output names, never an approved fixed slot", () => {
     expect(sceneV2OutputName("c1-s0", H, "id-one"))
