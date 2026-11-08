@@ -61,6 +61,11 @@ export const mapBackendSceneSnapshot = (
     typeof sources.script.approved !== "boolean" ||
     typeof sources.storyboard.approved !== "boolean")
     throw Error("بيانات اعتماد مصادر الحلقة غير متاحة من Backend.");
+  const blockersArabic: Record<string, string> = {
+    sources_not_approved: "لم يعتمد Backend السكريبت وStoryboard الحاليين.",
+    previous_scene_not_approved: "يجب اعتماد المشاهد السابقة وفق ترتيب الخادم.",
+    current_video_unavailable: "ملف الفيديو الحالي غير متاح أو لا يطابق الملفات الموقعة.",
+  };
   const order: string[] = [];
   const scenes: Record<string, SceneReviewRecord> = {};
   for (const item of raw.scenes) {
@@ -91,20 +96,52 @@ export const mapBackendSceneSnapshot = (
       };
     });
     const status = item.status as SceneReviewRecord["status"];
+    const backendVideo = item.currentVideo;
+    if (backendVideo !== undefined && (!record(backendVideo) ||
+      !string(backendVideo.version) || !backendVideo.version.trim() ||
+      !string(backendVideo.sha256) || !SHA256.test(backendVideo.sha256) ||
+      !string(backendVideo.epoch) || !SHA256.test(backendVideo.epoch) ||
+      (backendVideo.durationSec !== undefined &&
+        (typeof backendVideo.durationSec !== "number" ||
+          !Number.isFinite(backendVideo.durationSec) || backendVideo.durationSec <= 0)) ||
+      (backendVideo.hasAudio !== undefined && typeof backendVideo.hasAudio !== "boolean") ||
+      (backendVideo.width !== undefined &&
+        (typeof backendVideo.width !== "number" || backendVideo.width <= 0)) ||
+      (backendVideo.height !== undefined &&
+        (typeof backendVideo.height !== "number" || backendVideo.height <= 0))))
+      throw Error("Backend أعاد بيانات فيديو غير موثوقة.");
+    if (item.blockers !== undefined && (!Array.isArray(item.blockers) ||
+      item.blockers.some(x => !string(x))))
+      throw Error("Backend أعاد أسباب منع غير صالحة.");
+    const blockers = (item.blockers as string[] | undefined) ?? [];
+    const currentVideo = record(backendVideo) ? {
+      version: backendVideo.version as string,
+      sha256: backendVideo.sha256 as string,
+      epoch: backendVideo.epoch as string,
+      ...(typeof backendVideo.width === "number" ? { width: backendVideo.width } : {}),
+      ...(typeof backendVideo.height === "number" ? { height: backendVideo.height } : {}),
+      ...(typeof backendVideo.durationSec === "number" ? { durationSec: backendVideo.durationSec } : {}),
+      ...(typeof backendVideo.hasAudio === "boolean" ? { hasAudio: backendVideo.hasAudio } : {}),
+    } : undefined;
+    const displayedVersion = currentVideo?.version || fingerprint;
     scenes[id] = {
       id, status,
-      currentVersionId: fingerprint,
-      // Backend currently exposes the CURRENT fingerprint, not historical versions.
-      // The grouping key below is exactly the server's fingerprint, not a made-up version.
-      versions: fingerprint ? [{ id: fingerprint,
-        label: "البصمة الحالية (الإصدار غير متاح)", fingerprint }] : [],
+      currentVersionId: displayedVersion,
+      ...(currentVideo ? { currentVideo } : {}),
+      // This is the CURRENT server-verified media version when present; the
+      // read API still does not expose arbitrary historical versions or a URL.
+      versions: fingerprint && displayedVersion ? [{
+        id: displayedVersion,
+        label: currentVideo ? "نسخة الخادم: " + currentVideo.version : "البصمة الحالية",
+        fingerprint,
+      }] : [],
       notes,
       permissions: {
-        // Backend does not currently provide per-action permission booleans.
-        // The UI issues approve ONLY after a server-completed AV receipt.
+        // No fabricated server grant: the final approve decision always goes
+        // through the completed server receipt + authenticated command.
         approve: false,
         requestChanges: ["in_review","approved","needs_reapproval"].includes(status),
-        reasons: [],
+        reasons: blockers.map(key => blockersArabic[key] || key),
       },
     };
     order.push(id);
@@ -116,6 +153,7 @@ export const mapBackendSceneSnapshot = (
       storyboard: sources.storyboard.approved as boolean,
     },
     serverEpisode: raw.episode,
+    ...(typeof raw.sourcesReady === "boolean" ? { sourcesReady: raw.sourcesReady } : {}),
   };
   if (!sameScope(output, channelId, episodeId)) throw Error("بيانات مراجعة V2 غير صالحة.");
   return output;
@@ -235,10 +273,27 @@ export function serverReviewAdapter(channelId: string, episodeId: string): Revie
           result.sceneId !== sceneId || result.fingerprint !== fingerprint)
         throw Error("لم يؤكد Backend اكتمال مشاهدة الإصدار المحدد.");
     },
-    async addNote(_input: NewReviewNote) {
-      // Backend #88 has no stand-alone note writer. Never silently turn
-      // a normal note into "request_changes" (which invalidates approval).
-      throw Error("Backend #88 لا يدعم حفظ ملاحظة مستقلة. استخدم «طلب تعديل» لتسجيل تصحيح خادمي صريح.");
+    async addNote(input: NewReviewNote) {
+      if (!SHA256.test(input.expectedFingerprint) ||
+          typeof input.text !== "string" || input.text.trim().length < 2 ||
+          input.text.length > 2000)
+        throw Error("ملاحظة AV تتطلب نصًا صالحًا وبصمة المشهد الحالية.");
+      const current = await load();
+      const scene = current.scenes[input.sceneId];
+      if (!scene || scene.currentVersionId !== input.versionId ||
+          !scene.versions.some(v => v.fingerprint === input.expectedFingerprint))
+        throw Error("إصدار المشهد تغير قبل تسجيل الملاحظة؛ حدّث ثم أعد المحاولة.");
+      const outcome = await request<unknown>(scenePath(input.sceneId) +
+        "/commands?" + scope, "POST", {
+          action: "note", note: input.text.trim(),
+          expectedFingerprint: input.expectedFingerprint,
+          ...(input.second !== undefined ? { second: input.second } : {}),
+          ...(input.elementId ? { elementId: input.elementId } : {}),
+        });
+      if (!record(outcome) || outcome.ok !== true ||
+          outcome.sceneId !== input.sceneId || outcome.action !== "note")
+        throw Error("لم يؤكد Backend حفظ الملاحظة المستقلة.");
+      return load();
     },
     async decide(input: ReviewDecision) {
       if (!SHA256.test(input.expectedFingerprint))
