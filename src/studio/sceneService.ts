@@ -22,6 +22,9 @@ import {
   assertExactMasterApproved, assertExactMasterReadyForPublish, approvedSceneInputsSha256, type SceneFirstProduction,
 } from "./sceneProduction";
 import { workflowSigningKey } from "../workflow/trust";
+import { appendStudioNote, correctionInboxView } from "./notesInbox";
+import { scheduleStudioNotesSync } from "./notesSync";
+import { channelsDir } from "../channel";
 
 export const SCENE_ACTIONS = ["approve-script", "approve-storyboard", "submit-scene",
   "approve-scene", "correct-scene", "assemble", "approve-assembly", "approve-master", "grant-publish"] as const;
@@ -400,13 +403,16 @@ export const inspectSceneProduction = (episode: string) =>
       // The owner's latest correction of this scene (shown until the scene is approved).
       const fix = [...doc.history].reverse().find(h => h.sceneId === s.id && (h.action === "correct-scene" || h.action === "approve-scene"));
       const correction = fix?.action === "correct-scene" && s.status === "needs_revision"
-        ? { note: fix.note ?? "", at: fix.at, sha256: fix.resultSha256 } : undefined;
+        ? { note: fix.note ?? "", at: fix.at, sha256: fix.resultSha256,
+            // Notes inbox (docs/studio/notes-inbox.md): sent to the notes branch or still queued, and Claude's answer.
+            inbox: await correctionInboxView(path.dirname(current.scriptPath), fix.seq) } : undefined;
       // Once submitted or approved the preview is no longer a draft; a cut the owner sent back for a fix
       // is never offered again as a "ready" draft: the scene must be rendered again.
       const draft = s.status === "approved" || s.status === "in_review" ? "none" as const
         : correction && correction.sha256 && correction.sha256 === candidates[s.id] ? "stale" as const
         : await draftOf(doc, current.scriptPath, s.id, s.sourceSha256, candidates[s.id] ?? null);
-      return { ...s, draft, ...(correction ? { correction: { note: correction.note, at: correction.at } } : {}) };
+      return { ...s, draft, ...(correction ? { correction: { note: correction.note, at: correction.at,
+        ...(correction.inbox ? { inbox: correction.inbox } : {}) } } : {}) };
     }));
     return {
       ...v, scenes,
@@ -446,7 +452,8 @@ export const decideSceneProduction = async (episode: string,
       (command.tone !== undefined && (typeof command.tone !== "string" || command.tone.length > 32 ||
         command.action !== "correct-scene")))
     throw Error("Malformed scene review command.");
-  return withState(episode, async (doc, current) => {
+  let noteQueued = false;
+  const view_ = await withState(episode, async (doc, current) => {
     const p = doc.state, at = new Date().toISOString();
     const by: "owner" = "owner";
     let next: SceneFirstProduction;
@@ -572,8 +579,25 @@ export const decideSceneProduction = async (episode: string,
     // Still under the ledger lock. The map is not a scene input (only the regenerated clip is), so this
     // write reopens nothing by itself; regenerating this scene's voice reopens this scene alone.
     if (toneOverride) await toneOverride.commit();
+    // Notes inbox: only now — after the owner's passphrase and the recorded correction — the note is queued
+    // for Claude (docs/studio/notes-inbox.md). A failure here never undoes or fails the correction itself.
+    if (command.action === "correct-scene" && command.sceneId) {
+      const scene = p.scenes.find(s => s.id === command.sceneId)!;
+      try {
+        await appendStudioNote(path.dirname(current.scriptPath), {
+          channel: p.channel, episode: p.episode, sceneId: command.sceneId, raw: command.note ?? "",
+          tone: command.tone ?? null, createdAt: at, sceneInputSha256: scene.sourceSha256,
+          previewSha256: command.expectedSha256, ledgerSeq: history.length });
+        noteQueued = true;
+      } catch (error) {
+        console.error("[studio] owner note not queued for the notes inbox:", (error as Error).message);
+      }
+    }
     return view(saved, current);
   });
+  // Outside the ledger lock and never awaited: offline or auth failures keep the note queued locally.
+  if (noteQueued) scheduleStudioNotesSync(channelsDir());
+  return view_;
 };
 /**
  * Which scene may be rendered into its AV preview slot.

@@ -109,6 +109,10 @@ export const balApi = (): Plugin => ({
 
     // أسرار الاعتماد المحلية تُولَّد مرة واحدة في .env، فيعمل الاعتماد بلا إعداد يدوي
     const secretsReady = load("/src/settings/env.ts").then((m) => m.ensureLocalSecrets()).catch((e) => console.error("[studio] local secrets:", (e as Error).message));
+    // صندوق ملاحظات المالك: ما بقي «بانتظار الإرسال» (بلا اتصال) يُعاد عند كل تشغيل، في الخلفية (docs/studio/notes-inbox.md)
+    void Promise.all([load("/src/studio/notesSync.ts"), load("/src/channel/index.ts")])
+      .then(([sync, ch]) => sync.scheduleStudioNotesSync(ch.channelsDir()))
+      .catch((e) => console.error("[studio] owner notes retry:", (e as Error).message));
     server.middlewares.use(async (req, res, next) => {
       const url = new URL(req.url ?? "/", "http://localhost");
       if (!url.pathname.startsWith("/api/")) return next();

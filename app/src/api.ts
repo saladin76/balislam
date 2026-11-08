@@ -96,7 +96,9 @@ export type SceneProductionRead = {
     /** Pre-rendered draft from «جهّز كل المشاهد»: never a submission or approval. */
     draft?: "ready" | "stale" | "none";
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
-    correction?: { note: string; at: string } }[];
+    correction?: { note: string; at: string;
+      /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */
+      inbox?: { id: string; sync: "pending" | "sent"; status: "open" | "in-progress" | "fixed" | "wont-fix"; answer: string | null } } }[];
   /** «جاهز ١٢ من ٣١»: approved, submitted, or with a current draft. */
   prepared?: { ready: number; total: number };
   assembly: { sha256: string; approved: boolean } | null;

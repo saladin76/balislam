@@ -68,6 +68,12 @@ export const fmtTime = (sec: number) => {
 export const problemNote = (kind: ProblemKind, at: number, text: string) =>
   `[${kind === "motion" ? "الحركة" : "النبرة"} @${fmtTime(at)}] ${text.trim()}`.trim();
 
+/** سطر هادئ واحد تحت ملاحظة التصحيح: هل وصلت الملاحظة، وهل أُصلح المشهد (docs/studio/notes-inbox.md). */
+export const noteInboxLine = (inbox: { sync: "pending" | "sent"; status: string; answer: string | null }) =>
+  inbox.status === "fixed" ? `أُصلحت — أنتج المشهد من جديد${inbox.answer ? ` (${inbox.answer})` : ""}`
+    : inbox.status === "wont-fix" ? `لن تُعدَّل${inbox.answer ? `: ${inbox.answer}` : ""}`
+    : inbox.sync === "sent" ? "أُرسلت الملاحظة" : "بانتظار الإرسال (بلا اتصال)";
+
 const ar = (n: number) => n.toLocaleString("ar-EG");
 const noop = () => {};
 
@@ -537,6 +543,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
             {isCurrent && scene?.status === "needs_revision" && (sentNotes[currentId!] || scene.correction?.note) ? (
               <p className="s3-sent"><b>{draftReady ? "ملاحظتك على النسخة السابقة:" : "ملاحظتك (بانتظار التعديل ثم إعادة الإنتاج):"}</b> {sentNotes[currentId!] || scene.correction?.note}</p>
+            ) : null}
+            {isCurrent && scene?.status === "needs_revision" && scene.correction?.inbox ? (
+              <p className="sp-hint" role="status">{noteInboxLine(scene.correction.inbox)}</p>
             ) : null}
             {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوت الراوي.</p> : null}
             {shownServer?.recitationPending ? (

@@ -237,3 +237,8 @@
 - `cafe-rumor-tempting`: لمعة الرسالة على «مغريًا».
 - خطة 001: إشارات اللوح في `c4-s4/s13/s14`، والكاميرا `still` في تمهيدات الآيات ومقدمة الدعاء (`c2-s10`، `c3-s13`، `c5-s11`، `c6-s8`، `c6-s22`)، و`cameraMode: directed` في `c6-s1/s5/s14`. الحركة: 4 من 76% إلى 88%، و6 من 98% إلى 97%، و2/3/5 = 97/97/96%.
 - جُرّبت `composed-camera` على الفصل 6 كله: 40%، فلم تُستعمل. اللقطات المصمَّمة الحالية لا تطابق كلمات الفصول 2/3/5/6.
+
+## ٩ نوفمبر ٢٠٢٦ — صندوق ملاحظات المالك والفرع `studio-notes` (المحرك المشترك)
+
+- تسري على بالإسلام: ملاحظة «الحركة/النبرة غير مناسبة» تُرسل بعد تسجيلها إلى الفرع `studio-notes` على GitHub، ويرد Claude في `channels/<القناة>/episodes/<الحلقة>/notes/resolved.json` على `main` (`bal notes`، `docs/studio/notes-inbox.md`).
+- `.githooks/pre-push`: لا تخطٍّ للبوابة إلا لدفع إلى `refs/heads/studio-notes` شجرته صناديق `channels/<القناة>/episodes/<الحلقة>/notes/inbox.json` وحدها؛ `main` وكل مرجع آخر بالبوابة الكاملة كما كانت. التفصيل D45 في `docs/zubdat-alkutub/06-decisions.md`.

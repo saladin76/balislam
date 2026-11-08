@@ -460,6 +460,39 @@ program
     console.log(`البصمة: ${r.sha256}`);
   });
 
+// صندوق ملاحظات المالك (docs/studio/notes-inbox.md): Claude يبدأ كل جلسة عمل بـ «bal notes --open»
+const notesCmd = program
+  .command("notes")
+  .description("ملاحظات المالك من الاستوديو («الحركة/النبرة غير مناسبة»): يجلب origin/studio-notes ويعرضها مع ردودها")
+  .option("--open", "المفتوحة وقيد العمل فقط")
+  .option("--json", "إخراج JSON")
+  .option("--no-fetch", "بلا جلب (آخر نسخة محلية)")
+  .action(async (opts: { open?: boolean; json?: boolean; fetch?: boolean }) => {
+    const { listStudioNotes, formatNote } = await import("../studio/notesCli");
+    const channel = program.opts<{ channel?: string }>().channel;
+    const r = await listStudioNotes({ repoDir: projectRoot, channel, open: opts.open, fetch: opts.fetch });
+    if (opts.json) { console.log(JSON.stringify(r, null, 2)); return; }
+    if (r.message) console.log(r.message);
+    if (r.fetched === "missing") console.log("لا فرع studio-notes على GitHub بعد (لم تُرسل ملاحظة).");
+    if (!r.notes.length) { console.log(opts.open ? "لا ملاحظات مفتوحة." : "لا ملاحظات."); return; }
+    console.log(r.notes.map(formatNote).join("\n\n"));
+    console.log(`\n${r.notes.length} ملاحظة. للرد: bal notes resolve <id> --answer "…"`);
+  });
+notesCmd
+  .command("resolve <id>")
+  .description("يسجّل الرد على ملاحظة في resolved.json بجوارها (على main)؛ يصل المالك مع git pull")
+  .requiredOption("--answer <text>", "ما الذي أُصلح، بجملة للمالك")
+  .option("--status <status>", "fixed | wont-fix | in-progress", "fixed")
+  .option("--by <ref>", "الـcommit أو الفرع الذي فيه الإصلاح (الافتراضي HEAD)")
+  .action(async (id: string, opts: { answer: string; status: string; by?: string }) => {
+    if (!["fixed", "wont-fix", "in-progress"].includes(opts.status)) throw Error("--status: fixed | wont-fix | in-progress");
+    const { resolveStudioNote } = await import("../studio/notesCli");
+    const r = await resolveStudioNote({ repoDir: projectRoot, id, answer: opts.answer,
+      status: opts.status as "fixed" | "wont-fix" | "in-progress", fixedBy: opts.by });
+    console.log(`سُجّل الرد (${opts.status}) على ${id} — ${r.note.sceneId} في ${r.file}`);
+    console.log("احفظه في commit مع الإصلاح نفسه وادمجه في main؛ يظهر للمالك بعد git pull.");
+  });
+
 program
   .command("link-drive-preview <episode> <slot>")
   .description("تسجيل معاينة رُفعت إلى Google Drive من خارج جهاز المالك: الفهرس وحده يُحفظ في Git، والاستوديو يتحقق من البصمة عند التزامن")

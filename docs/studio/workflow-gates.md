@@ -166,6 +166,14 @@ The scene ledger read (`GET scene-production`) adds `scenes[].draft` (`ready` / 
 `prepared: { ready, total }` (approved + submitted + ready drafts), and, while the assembly awaits review,
 `seamTimes: { "<a>><b>": seconds }` from the real cut durations (read-only: jumps the player; never checks a seam, D38).
 
+**Owner notes inbox (notes-inbox.md).** After a successful, passphrase-checked `correct-scene` is saved in the ledger,
+the note is appended to `channels/<ch>/episodes/<ep>/notes/inbox.json` (append-only, gitignored on `main`) and pushed in
+the background, by plumbing in a temporary index, to the dedicated branch `studio-notes` only. It grants and blocks
+nothing: no gate reads it, a sync failure never fails the correction, and Claude's answers come back in `notes/resolved.json`
+on `main` (`bal notes resolve`). The scene read adds `scenes[].correction.inbox: { id, sync, status, answer }`. The pre-push
+hook skips the full gate only for `refs/heads/studio-notes` with a tree made solely of `notes/inbox.json` files; `main` is
+always gated.
+
 **Input changes and the lock (D38).** A changed input re-opens a submitted, approved or corrected scene as
 `needs_revision`; a scene never submitted stays `queued` with its new inputs (no «بانتظار التعديل» on a scene nobody
 asked to fix). The ledger lock waits for a live writer up to `LEDGER_LOCK_WAIT_MS` (30 s, short backoff) instead of
