@@ -10,7 +10,7 @@ const STATUS: Record<ReviewItem["status"], { label: string; color: string }> = {
 
 /**
  * سجل التوثيق: لكل استشهاد (آية، حديث، مصدر، صفحة كتاب) قرار المراجع وملاحظته.
- * الاعتماد على نص الاستشهاد الحالي؛ تعديله بعد الاعتماد يعيده للمراجعة. ولا يُولَّد صوت قبل اكتماله.
+ * الاعتماد على نص الاستشهاد الحالي؛ تعديله بعد الاعتماد يعيده للمراجعة. السجل للتوثيق ولا يوقف توليد الصوت.
  */
 export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoTo: (line: number) => void }> = ({ episodeId, savedText, onGoTo }) => {
   const [items, setItems] = useState<ReviewItem[]>([]);
@@ -50,7 +50,7 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
           {summary.total === 0 ? "لا استشهادات" : `${summary.verified} من ${summary.total} موثّق${summary.ok ? " ✓" : ""}`}
         </span>
       </div>
-      {!summary.ok ? <p className="help">لا يُولَّد صوت الحلقة قبل توثيق كل استشهاد. الفحص البرمجي للصيغ والدرجات لا يغني عن مراجعة المضمون؛ والمسائل الشرعية المتخصصة لمراجع مؤهل.</p> : null}
+      {!summary.ok ? <p className="help">وثّق كل استشهاد قبل النشر. الفحص البرمجي للصيغ والدرجات لا يغني عن مراجعة المضمون؛ والمسائل الشرعية المتخصصة لمراجع مؤهل.</p> : null}
       {items.map((it) => {
         const st = STATUS[it.status];
         return (
