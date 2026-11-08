@@ -170,10 +170,6 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
   const saveNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!record || !version || noteText.trim().length < 2 || busy) return;
-    if (mode === "server") {
-      setFeedback("لا يدعم Backend #88 حفظ ملاحظات مستقلة؛ سجّل طلب تعديل صريح.");
-      return;
-    }
     if (noteElement && !/^[a-zA-Z0-9_-]{1,100}$/.test(noteElement)) {
       setFeedback("معرف العنصر يجب أن يحتوي حروفًا إنجليزية أو أرقامًا أو _ أو - فقط.");
       return;
@@ -355,7 +351,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
         </div>}
         <section className="v2-card v2-notes" aria-label="ملاحظات المشهد">
           <div className="v2-card-head"><h4>ملاحظات المراجعة</h4><span>{record.notes.length} ملاحظة</span></div>
-          {mode === "demo" && <form onSubmit={e => void saveNote(e)}>
+          <form onSubmit={e => void saveNote(e)}>
             <label className="v2-input-label">اكتب الملاحظة
               <textarea value={noteText} maxLength={2000} rows={3}
                 onChange={e => setNoteText(e.target.value)} placeholder="مثال: في الثانية 00:07 تتقدم الحركة على الكلمة المنطوقة…" />
@@ -365,10 +361,10 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               <label className="v2-element-label">العنصر (اختياري)
                 <input type="text" dir="ltr" value={noteElement} onChange={e => setNoteElement(e.target.value)} placeholder="camera / title" maxLength={100} />
               </label>
-              <button type="submit" className="v2-primary" disabled={busy || noteText.trim().length < 2 || !version || versionChanged || syncFailed}>تسجيل ملاحظة QA</button>
+              <button type="submit" className="v2-primary" disabled={busy || noteText.trim().length < 2 || !version || versionChanged || syncFailed}>{mode === "server" ? "حفظ ملاحظة على الخادم" : "تسجيل ملاحظة QA"}</button>
             </div>
-          </form>}
-          {mode === "server" && <p className="v2-help">يعرض النظام ملاحظات Backend الفعلية. للحفظ الآن، استخدم «طلب تعديل» أدناه: يسجل الملاحظة ويغيّر حالة المشهد إلى «مطلوب تعديل». لا يوجد مسار مستقل للملاحظات في PR #88.</p>}
+          </form>
+          {mode === "server" && <p className="v2-help">تُحفظ الملاحظة الآن عبر أمر note المستقل في Backend دون تغيير حالة المشهد. يرفض العميل الإصدارات المتغيرة قبل الحفظ، لكن Backend لا يُعيد بعد بصمة الإصدار مع كل ملاحظة محفوظة.</p>}
           <div className="v2-note-list">
             {record.notes.length === 0 ? <p className="v2-help">لا توجد ملاحظات مسجلة لهذا المشهد.</p> :
               record.notes.slice().reverse().map(note => <div className="v2-note" key={note.id}>
@@ -429,7 +425,8 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               <dt>التوقيت المخطط</dt><dd dir="ltr">{formatClock(seed?.durationSec || 0)}</dd>
               <dt>المزامنة</dt><dd>{seed?.timing || "تتطلب مطابقة مع ملف AV الحقيقي."}</dd>
               <dt>العناصر</dt><dd>{seed?.elements?.join("، ") || "لم تحدد"}</dd>
-              <dt>مدة MP4</dt><dd dir="ltr">{avDuration ? formatClock(avDuration) : "—"}</dd>
+              <dt>مدة MP4</dt><dd dir="ltr">{(avDuration || record?.currentVideo?.durationSec) ?
+              formatClock((avDuration || record?.currentVideo?.durationSec)!) : "—"}</dd>
             </dl>
           </details>
           <section className="v2-card"><div className="v2-card-head"><h4>الإصدار والفروقات</h4></div>
@@ -441,14 +438,14 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               </select>
             </label>
             <div className="v2-fingerprint"><span>{mode === "server" ?
-            "بصمة المشهد الحالية من Backend (لا يعرض الخادم رقم إصدار)" :
+            "بصمة المشهد الحالية من Backend" :
             "معرف النسخة المرتبط بالمراجعة"}</span>
               <code dir="ltr">{version?.fingerprint || "—"}</code></div>
             {comparedDiffs?.length ? <div className="v2-diffs">
               <p className="v2-help">الفروقات مقارنة بالإصدار {compare?.label}.</p>
               {comparedDiffs.map((d, i) => <div key={i}><strong>{d.field}</strong><del>{d.before}</del><ins>{d.after}</ins></div>)}
             </div> : <p className="v2-help">لم يرسل Backend قائمة فروقات لهذه النسخة.</p>}
-            <p className="v2-help">{mode === "server" ? "الواجهة تعرض بصمة المشهد الحالية فقط؛ Backend لا يرسل قائمة إصدارات قديمة." : "المشغل يعرض النسخة الحالية فقط، والإصدارات القديمة للمقارنة الوصفية."}</p>
+            <p className="v2-help">{mode === "server" ? "الإصدار المعروض من بيانات Backend الحالية؛ لا يرسل الخادم قائمة إصدارات تاريخية للمقارنة بعد." : "المشغل يعرض النسخة الحالية فقط، والإصدارات القديمة للمقارنة الوصفية."}</p>
           </section>
         </div>
       </aside>
