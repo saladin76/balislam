@@ -157,6 +157,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
     av.completed && uniqueBlockers.length === 0;
   const canRequestChanges = mode === "server" && authenticated && !busy &&
     !versionChanged && !syncFailed && record !== undefined &&
+    Boolean(version?.fingerprint && /^[a-f0-9]{64}$/.test(version.fingerprint)) &&
     Boolean(record.permissions.requestChanges) && decisionReason.trim().length >= 2;
   const firstPrevious = record?.versions.find(v => v.id !== version?.id);
   const compare: SceneVersion | undefined = record?.versions.find(v => v.id === compareId) ||
