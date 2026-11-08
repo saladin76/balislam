@@ -8,7 +8,7 @@
  */
 import path from "node:path";
 import { readFile } from "node:fs/promises";
-import type { WorkflowIdentity } from "../../src/workflow/store.ts";
+import type { WorkflowIdentity } from "../../src/workflow/index.ts";
 
 type Loader = <T = any>(file: string) => Promise<T>;
 export const verifyStudioV2Sources = async (
