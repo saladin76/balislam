@@ -4,6 +4,7 @@ import {
   submitSceneAvPreview, approveSceneAv, reviseSceneInput, changeScript,
   changeStoryboard, nextSceneId, submitAssembly, approveFinalMaster,
   assertExactMasterReadyForPublish, sceneFirstProgress, requestSceneCorrection,
+  approveAssembly, grantPublish, sceneSeams, assertExactMasterApproved,
 } from "../src/studio/sceneProduction";
 
 const h = (c: string) => c.repeat(64);
@@ -69,32 +70,52 @@ describe("Studio scene-first audiovisual review", () => {
     expect(() => submitAssembly(invalid, h("1"))).toThrow(/All audiovisual scenes/);
   });
 
-  it("a script edit invalidates storyboard and every scene; reverting bytes does not restore approvals", () => {
-    const old = allApproved();
+  it("a script edit re-opens script, storyboard, assembly and Master only; unaffected scenes keep their approvals", () => {
+    const old = submitAssembly(allApproved(), h("1"));
     const firstEdit = changeScript(old, h("2"));
     const restored = changeScript(firstEdit, h("a"));
+    // Reverting the bytes never revives the script or storyboard decisions.
     expect(restored.script.approval).toBeUndefined();
     expect(restored.storyboard.approval).toBeUndefined();
-    expect(restored.scenes.every((s) => s.status === "queued")).toBe(true);
-    expect(() => submitSceneAvPreview(restored, "c1-s1", h("c"), h("e"))).toThrow();
-    expect(changeStoryboard(old, h("3")).scenes.every((s) => s.status === "queued")).toBe(true);
+    expect(restored.assembly).toBeUndefined();
+    // Scoped invalidation: scenes whose own inputs did not change stay approved…
+    expect(restored.scenes.every((s) => s.status === "approved")).toBe(true);
+    // …but nothing new can be produced or assembled before the script/storyboard are re-approved.
+    expect(() => submitAssembly(restored, h("1"))).toThrow(/upstream sources/);
+    const reopened = reviseSceneInput(restored, "c1-s2", h("9"));
+    expect(() => submitSceneAvPreview(reopened, "c1-s2", h("9"), h("8"))).toThrow(/Script and storyboard/);
+    const board = changeStoryboard(old, h("3"));
+    expect(board.storyboard.approval).toBeUndefined();
+    expect(board.scenes.every((s) => s.status === "approved")).toBe(true);
   });
 
-  it("requires every scene before merge and exact reviewed Master bytes before publication", () => {
+  it("assembly, Master and publishing are three separate human decisions on exact bytes", () => {
     expect(() => submitAssembly(approvedFirst(), h("1"))).toThrow(/All audiovisual scenes/);
     const p = submitAssembly(allApproved(), h("1"));
-    expect(() => approveFinalMaster(p, {
-      by: "owner", at, masterSha256: h("2"), assembledVideoSha256: h("3"),
-      watchedFullEpisodeAt1x: true,
-    })).toThrow(/current assembly/);
-    const accepted = approveFinalMaster(p, {
-      by: "owner", at, masterSha256: h("2"), assembledVideoSha256: h("1"),
-      watchedFullEpisodeAt1x: true,
-    });
-    expect(() => assertExactMasterReadyForPublish(accepted, h("3"))).toThrow(/Publishing is blocked/);
-    expect(() => assertExactMasterReadyForPublish(accepted, h("2"))).not.toThrow();
+    const master = { by: "owner", at, masterSha256: h("2"), assembledVideoSha256: h("1"), watchedFullEpisodeAt1x: true as const };
+    // No Master before the assembled cut and every seam are approved.
+    expect(() => approveFinalMaster(p, master)).toThrow(/transitions/);
+    expect(sceneSeams(p)).toEqual(["c1-s1>c1-s2"]);
+    expect(() => approveAssembly(p, { by: "owner", at, videoSha256: h("1"), watchedFullEpisodeAt1x: true, seamsChecked: [] }))
+      .toThrow(/transition/);
+    expect(() => approveAssembly(p, { by: "owner", at, videoSha256: h("3"), watchedFullEpisodeAt1x: true, seamsChecked: ["c1-s1>c1-s2"] }))
+      .toThrow(/current assembly/);
+    const assembled = approveAssembly(p, { by: "owner", at, videoSha256: h("1"), watchedFullEpisodeAt1x: true, seamsChecked: ["c1-s1>c1-s2"] });
+    expect(sceneFirstProgress(assembled).assemblyApproved).toBe(true);
+    expect(() => approveFinalMaster(assembled, { ...master, assembledVideoSha256: h("3") })).toThrow(/current assembly/);
+    const accepted = approveFinalMaster(assembled, master);
     expect(sceneFirstProgress(accepted).masterApproved).toBe(true);
-    const revised = reviseSceneInput(accepted, "c1-s1", h("4"));
+    expect(() => assertExactMasterApproved(accepted, h("2"))).not.toThrow();
+    // An approved Master is not a publish permission.
+    expect(() => assertExactMasterReadyForPublish(accepted, h("2"))).toThrow(/publish permission/);
+    expect(() => grantPublish(accepted, { by: "owner", at, masterSha256: h("3") })).toThrow(/not approved/);
+    const published = grantPublish(accepted, { by: "owner", at, masterSha256: h("2") });
+    expect(() => assertExactMasterReadyForPublish(published, h("3"))).toThrow();
+    expect(() => assertExactMasterReadyForPublish(published, h("2"))).not.toThrow();
+    expect(sceneFirstProgress(published).publishAllowed).toBe(true);
+    // Any changed scene invalidates assembly, Master and the publish permission together.
+    const revised = reviseSceneInput(published, "c1-s1", h("4"));
+    expect(() => assertExactMasterApproved(revised, h("2"))).toThrow();
     expect(() => assertExactMasterReadyForPublish(revised, h("2"))).toThrow();
   });
 

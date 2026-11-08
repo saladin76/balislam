@@ -76,27 +76,34 @@ export type SceneProductionRead = {
   schemaVersion: 1;
   channel: string; episode: string; revision: number;
   progress: { currentScene: string | null; approvedScenes: number; totalScenes: number;
-    canAssemble: boolean; masterApproved: boolean };
+    canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
   script: { sha256: string; approved: boolean };
   storyboard: { sha256: string; approved: boolean };
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
     sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean }[];
-  assembly: { sha256: string } | null;
-  master: { sha256: string; approved: true } | null;
+  assembly: { sha256: string; approved: boolean } | null;
+  /** Every boundary between consecutive scenes, in order ("c1-s1>c1-s2"). */
+  seams: string[];
+  master: { sha256: string; approved: true; publishAllowed: boolean } | null;
   candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
     masterSha256: string | null };
 };
 export type SceneOwnerAction = {
   action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
-    "correct-scene" | "assemble" | "approve-master";
+    "correct-scene" | "assemble" | "approve-assembly" | "approve-master" | "grant-publish";
   expectedSha256: string;
   sceneId?: string;
   note?: string;
   confirmedWatched?: boolean;
+  seamsChecked?: string[];
 };
 
 export const api = {
   /** One scene = one combined audiovisual review; no Quran provider selection. */
+  /** كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة (أو تغييرها بالكلمة الحالية). */
+  ownerPassphrase: () => call<{ set: boolean }>("/api/owner-passphrase"),
+  setOwnerPassphrase: (passphrase: string, current?: string) =>
+    call<{ set: boolean }>("/api/owner-passphrase", { method: "POST", json: { passphrase, ...(current ? { current } : {}) } }),
   sceneProduction: (episode: string, channel?: string) =>
     call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, undefined, channel),
   decideScene: (episode: string, channel: string, token: string, decision: SceneOwnerAction) =>

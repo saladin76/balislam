@@ -26,7 +26,7 @@ import { verifyVideoEvidence } from "./videoEvidence";
 import { collectWorkflowSnapshot } from "./artifacts";
 import { toWorkflowApprovalView } from "./uiProjection";
 import { readWorkflow, submitWorkflowStage, approveWorkflowStage, rejectWorkflowStage,
-  reopenWorkflowStage, requireWorkflowGate } from "./store";
+  reopenWorkflowStage } from "./store";
 import { STAGE_EVIDENCE, stageFingerprint, type Evidence, type WorkflowAction,
   type WorkflowSnapshot, type WorkflowStage, WORKFLOW_STAGES } from "./gates";
 import { signServerEvidence, type WorkflowEvidenceAttestation } from "./trust";
@@ -195,15 +195,14 @@ export const workflowOwnerDecision = async (episode: string, request: OwnerWorkf
   return workflowReadForEpisode(episode);
 };
 
-/** Publish checks must compare current file hashes, not the legacy status.json marker. */
+/**
+ * Unified engine (2026-11-08): every production gate asks the scene-first ledger only.
+ * The six-stage ledger stays readable for migration, but it no longer authorizes anything,
+ * so an old episode-level voice approval can never conflict with (or substitute for) scene approvals.
+ */
 export const assertWorkflowForEpisode = async (episode: string, action: WorkflowAction): Promise<void> => {
-  const { scope, snapshot } = await collectWorkflowSnapshot(episode);
-  await requireWorkflowGate(scope, snapshot, action);
-  if (action === "publish") {
-    // Old stage approvals are never enough to publish a new scene-first Master.
-    // The trusted scene ledger also pins the exact raw Master bytes and inode
-    // generation after the owner's complete 1× audiovisual review.
-    const { requireSceneMasterReady } = await import("../studio/sceneService");
-    await requireSceneMasterReady(episode);
-  }
+  const scenes = await import("../studio/sceneService");
+  if (action === "publish") return scenes.requirePublishAllowed(episode);
+  if (action === "master_render") return scenes.requireScenesReadyForMaster(episode);
+  return scenes.requireScriptAndStoryboardApproved(episode);
 };

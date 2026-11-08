@@ -49,7 +49,7 @@ afterAll(() => {
 describe("ذاكرة الصوت دون اشتراط توثيق الاستشهادات", () => {
   it("إضافة فقرة لا تعيد توليد المشاهد التي انزاحت أرقامها", async () => {
     await regeneratePlan("000");
-    const first = await generateVoice("000", { client: mock, ignoreTashkeel: true, ignoreStoryboard: true });
+    const first = await generateVoice("000", { client: mock, testOnlySkipGates: true });
     expect(calls).toBe(first.toGenerate.length);
     const scriptFile = path.join(tmp, "balislam", "episodes", "000-demo", "script.md");
     const text = readFileSync(scriptFile, "utf8");
@@ -58,7 +58,7 @@ describe("ذاكرة الصوت دون اشتراط توثيق الاستشها�
     await regeneratePlan("000");
     const dry = await generateVoice("000", { client: mock, dryRun: true });
     expect(dry.toGenerate.length).toBe(1);
-    await generateVoice("000", { client: mock, ignoreTashkeel: true, ignoreStoryboard: true });
+    await generateVoice("000", { client: mock, testOnlySkipGates: true });
     expect(calls).toBe(first.toGenerate.length + 1);
     // لا ملفات يتيمة: كل mp3 يشير إليه مشهد
     const dir = path.join(tmp, "balislam", "episodes", "000-demo", "voice");
@@ -80,7 +80,7 @@ describe("ذاكرة الصوت دون اشتراط توثيق الاستشها�
     const spy = { ...mock, tts: async (t: string, ctx: { voiceId?: string; tune?: { speed: number } } = {}) => { seen.push(ctx); return mock.tts(t, ctx as never); } } as unknown as ElevenLabsClient;
     const dry = await generateVoice("000", { client: spy, dryRun: true });
     expect(dry.toGenerate.map((x) => x.id)).toEqual([scene.id]);
-    await generateVoice("000", { client: spy, ignoreTashkeel: true, ignoreStoryboard: true });
+    await generateVoice("000", { client: spy, testOnlySkipGates: true });
     expect(seen).toHaveLength(1);
     expect(seen[0]!.voiceId).toBe("voice-commander");
     // طبقة القناة ثم النبرة فوقها
@@ -94,7 +94,7 @@ describe("ذاكرة الصوت دون اشتراط توثيق الاستشها�
 
   it("لا يُولَّد صوت لمشهد لم يُعتمد في الستوري بورد", async () => {
     await regeneratePlan("000");
-    await expect(generateVoice("000", { client: mock, ignoreTashkeel: true, force: true })).rejects.toThrow(/الستوري بورد/);
+    await expect(generateVoice("000", { client: mock, force: true })).rejects.toThrow(/الستوري بورد|التشكيل|مشكولة/);
   });
 
   it("القاموس يعمل مع علامات الترقيم اللاتينية والعربية", () => {

@@ -1,21 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { validPublishedMaster } from "../app/src/tabs/PublishTab";
 
-describe("PublishTab respects six-stage exact Master approval", () => {
-  const video = { size: 100, mtime: 1730990000000 };
-  const old = { approved: { at: "2026-11-07T10:00:00Z", size: video.size, mtime: video.mtime } };
+const h = (c: string) => c.repeat(64);
+const read = (over: { masterApproved?: boolean; master?: { sha256: string; approved: true; publishAllowed: boolean } | null; candidate?: string | null }) => ({
+  progress: { currentScene: null, approvedScenes: 1, totalScenes: 1, canAssemble: true, assemblyApproved: true,
+    masterApproved: over.masterApproved ?? true, publishAllowed: false },
+  master: over.master === undefined ? { sha256: h("a"), approved: true as const, publishAllowed: false } : over.master,
+  candidates: { scenes: {}, assemblySha256: h("b"), masterSha256: over.candidate === undefined ? h("a") : over.candidate },
+});
 
-  it("does not trust legacy size/mtime approval when workflow ledger is missing", () => {
-    expect(validPublishedMaster(null, old, video, true)).toBe(false);
-    expect(validPublishedMaster({ master: { status: "reapproval_required" } }, old, video, true)).toBe(false);
-    expect(validPublishedMaster({ master: { status: "draft" } }, old, video, true)).toBe(false);
+describe("PublishTab trusts only the scene-first Master approval of the exact current file", () => {
+  it("no ledger, no Master approval, or a preview is never an approved Master", () => {
+    expect(validPublishedMaster(null, true)).toBe(false);
+    expect(validPublishedMaster(read({ masterApproved: false }), true)).toBe(false);
+    expect(validPublishedMaster(read({ master: null }), true)).toBe(false);
+    expect(validPublishedMaster(read({}), false)).toBe(false);
   });
 
-  it("requires a current engine Master approval and exact legacy file revision", () => {
-    const approved = { master: { status: "approved" as const, reviewer: "verified owner" } };
-    expect(validPublishedMaster(approved, old, video, true)).toBe(true);
-    expect(validPublishedMaster(approved, old, { ...video, mtime: video.mtime + 2 }, true)).toBe(false);
-    expect(validPublishedMaster(approved, old, video, false)).toBe(false);
-    expect(validPublishedMaster(approved, {}, video, true)).toBe(false);
+  it("requires the approved hash to equal the current Master file", () => {
+    expect(validPublishedMaster(read({}), true)).toBe(true);
+    expect(validPublishedMaster(read({ candidate: h("c") }), true)).toBe(false);
+    expect(validPublishedMaster(read({ candidate: null }), true)).toBe(false);
   });
 });

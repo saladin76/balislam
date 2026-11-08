@@ -29,9 +29,13 @@ export type SceneFirstProduction = {
   script: SourceState;
   storyboard: SourceState;
   scenes: SceneState[];
-  assembly?: { videoSha256: string; inputsSha256: string };
+  assembly?: { videoSha256: string; inputsSha256: string;
+    /** Separate human decision: full 1× viewing and every scene-to-scene seam checked. */
+    approval?: { by: string; at: string; videoSha256: string; seams: string[] } };
   master?: { fileSha256: string; assemblyVideoSha256: string; inputsSha256: string;
-    by: string; at: string };
+    by: string; at: string;
+    /** Separate, explicit permission to publish these exact Master bytes. */
+    publish?: { by: string; at: string; fileSha256: string } };
 };
 
 const hashOk = (value: string): boolean => /^[a-f0-9]{64}$/.test(value);
@@ -43,8 +47,6 @@ const requireReviewer = (by: string, at: string): void => {
     throw new Error("A real human review identity and time are required.");
 };
 const block = (why: string): never => { throw new Error(why); };
-const resetScenes = (scenes: readonly SceneState[]): SceneState[] =>
-  scenes.map((scene) => ({ id: scene.id, sourceSha256: scene.sourceSha256, status: "queued" }));
 
 export const createSceneFirstProduction = (args: {
   channel: string; episode: string; scriptSha256: string; storyboardSha256: string;
@@ -66,11 +68,16 @@ export const createSceneFirstProduction = (args: {
     storyboard: { sha256: args.storyboardSha256 }, scenes };
 };
 
+/**
+ * Scoped invalidation (plan task 2): a script edit re-opens the script and storyboard decisions,
+ * the assembly and the Master. Scene AV approvals stay valid unless that scene's own inputs changed;
+ * the caller re-opens exactly those scenes with reviseSceneInput.
+ */
 export const changeScript = (p: SceneFirstProduction, sha256: string): SceneFirstProduction => {
   requireHash(sha256, "script");
   if (p.script.sha256 === sha256) return p;
   return { ...p, script: { sha256 }, storyboard: { sha256: p.storyboard.sha256 },
-    scenes: resetScenes(p.scenes), assembly: undefined, master: undefined };
+    assembly: undefined, master: undefined };
 };
 
 export const approveScript = (p: SceneFirstProduction, by: string, at: string, sha256: string): SceneFirstProduction => {
@@ -83,8 +90,7 @@ export const approveScript = (p: SceneFirstProduction, by: string, at: string, s
 export const changeStoryboard = (p: SceneFirstProduction, sha256: string): SceneFirstProduction => {
   requireHash(sha256, "storyboard");
   if (p.storyboard.sha256 === sha256) return p;
-  return { ...p, storyboard: { sha256 }, scenes: resetScenes(p.scenes),
-    assembly: undefined, master: undefined };
+  return { ...p, storyboard: { sha256 }, assembly: undefined, master: undefined };
 };
 
 export const approveStoryboard = (p: SceneFirstProduction, by: string, at: string, sha256: string): SceneFirstProduction => {
@@ -183,6 +189,41 @@ export const submitAssembly = (p: SceneFirstProduction, videoSha256: string): Sc
   return { ...p, assembly: { videoSha256, inputsSha256 }, master: undefined };
 };
 
+/** Every boundary between consecutive scenes, in order: "c1-s1>c1-s2". */
+export const sceneSeams = (p: SceneFirstProduction): string[] =>
+  p.scenes.slice(1).map((s, i) => `${p.scenes[i]!.id}>${s.id}`);
+
+const assemblyApproved = (p: SceneFirstProduction): boolean => {
+  const a = p.assembly;
+  if (!a?.approval || a.approval.videoSha256 !== a.videoSha256) return false;
+  const want = sceneSeams(p);
+  return a.approval.seams.length === want.length && want.every((seam, i) => a.approval!.seams[i] === seam);
+};
+
+/**
+ * Decision 1 of 3 after the scenes: the assembled cut was watched in full at 1× and every
+ * scene-to-scene seam was checked. Independent of each scene's approval and of the Master.
+ */
+export const approveAssembly = (p: SceneFirstProduction, opts: {
+  by: string; at: string; videoSha256: string; watchedFullEpisodeAt1x: true; seamsChecked: readonly string[];
+}): SceneFirstProduction => {
+  requireReviewer(opts.by, opts.at);
+  requireHash(opts.videoSha256, "assembled episode");
+  if (opts.watchedFullEpisodeAt1x !== true)
+    return block("The full assembled episode must be watched at normal speed.");
+  const inputsSha256 = approvedSceneInputsSha256(p);
+  if (!p.assembly || p.assembly.inputsSha256 !== inputsSha256 || p.assembly.videoSha256 !== opts.videoSha256)
+    return block("Review the current assembly of all approved scenes.");
+  const want = sceneSeams(p);
+  const got = new Set(opts.seamsChecked);
+  const missing = want.filter((seam) => !got.has(seam));
+  if (missing.length || got.size !== want.length)
+    return block(`Check every scene-to-scene transition first: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? "…" : ""}`);
+  return { ...p, assembly: { ...p.assembly, approval: { by: opts.by, at: opts.at, videoSha256: opts.videoSha256, seams: want } },
+    master: undefined };
+};
+
+/** Decision 2 of 3: the exact final Master bytes, watched in full, after an approved assembly. */
 export const approveFinalMaster = (p: SceneFirstProduction, opts: {
   by: string; at: string; masterSha256: string;
   assembledVideoSha256: string; watchedFullEpisodeAt1x: true;
@@ -190,22 +231,39 @@ export const approveFinalMaster = (p: SceneFirstProduction, opts: {
   requireReviewer(opts.by, opts.at);
   requireHash(opts.masterSha256, "Master");
   if (opts.watchedFullEpisodeAt1x !== true)
-    return block("The full merged episode must be watched at normal speed.");
+    return block("The full Master must be watched at normal speed.");
   const inputsSha256 = approvedSceneInputsSha256(p);
   if (!p.assembly || p.assembly.inputsSha256 !== inputsSha256 ||
       p.assembly.videoSha256 !== opts.assembledVideoSha256)
     return block("A current assembly of all approved scenes must be reviewed.");
+  if (!assemblyApproved(p))
+    return block("Approve the assembled episode and its scene transitions before the Master.");
   return { ...p, master: { fileSha256: opts.masterSha256,
     assemblyVideoSha256: p.assembly.videoSha256, inputsSha256,
     by: opts.by, at: opts.at } };
 };
 
-export const assertExactMasterReadyForPublish = (p: SceneFirstProduction, actualSha256: string): void => {
+/** Decision 3 of 3: explicit permission to publish these exact Master bytes. */
+export const grantPublish = (p: SceneFirstProduction, opts: { by: string; at: string; masterSha256: string }): SceneFirstProduction => {
+  requireReviewer(opts.by, opts.at);
+  requireHash(opts.masterSha256, "Master");
+  assertExactMasterApproved(p, opts.masterSha256);
+  return { ...p, master: { ...p.master!, publish: { by: opts.by, at: opts.at, fileSha256: opts.masterSha256 } } };
+};
+
+/** The exact current Master is approved (enough to cut shorts from it; NOT enough to publish). */
+export const assertExactMasterApproved = (p: SceneFirstProduction, actualSha256: string): void => {
   requireHash(actualSha256, "actual Master bytes");
   if (!p.master || !p.assembly || p.master.fileSha256 !== actualSha256 ||
       p.master.assemblyVideoSha256 !== p.assembly.videoSha256 ||
-      p.master.inputsSha256 !== approvedSceneInputsSha256(p))
-    return block("Publishing is blocked: the exact current Master is not approved.");
+      p.master.inputsSha256 !== approvedSceneInputsSha256(p) || !assemblyApproved(p))
+    return block("The exact current Master is not approved.");
+};
+
+export const assertExactMasterReadyForPublish = (p: SceneFirstProduction, actualSha256: string): void => {
+  assertExactMasterApproved(p, actualSha256);
+  if (p.master!.publish?.fileSha256 !== actualSha256)
+    return block("Publishing is blocked: give explicit publish permission for this exact Master.");
 };
 
 export const sceneFirstProgress = (p: SceneFirstProduction) => ({
@@ -213,6 +271,8 @@ export const sceneFirstProgress = (p: SceneFirstProduction) => ({
   approvedScenes: p.scenes.filter(validSceneApproval).length,
   totalScenes: p.scenes.length,
   canAssemble: p.scenes.length > 0 && nextSceneId(p) === null,
+  assemblyApproved: assemblyApproved(p),
   masterApproved: Boolean(p.master && p.assembly &&
     p.master.inputsSha256 === p.assembly.inputsSha256),
+  publishAllowed: Boolean(p.master?.publish && p.master.publish.fileSha256 === p.master.fileSha256),
 });

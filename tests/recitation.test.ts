@@ -75,11 +75,12 @@ describe("integrated manual recitation staging", () => {
 
 describe("final-motion entrypoint integration", () => {
   it("blocks a direct CLI/API-equivalent Master before Remotion when full owner signoffs are absent", async () => {
+    process.env.BAL_WORKFLOW_HMAC_KEY ??= "LOCAL_TEST_ONLY__recitation_master_gate_key_2026";
     const plan = await regeneratePlan("000");
     const raw = await collectMedia("000", plan).catch(() => ({ voice: {}, sfx: [], recitations: {}, images: [] }));
     await expect(renderEpisode({
       episode: "000", orientation: "landscape", quality: "master", plan,
       media: { ...raw, mode: "url", base: "" },
-    })).rejects.toThrow(/owner session|السكريبت|اعتماد|المصادر/);
+    })).rejects.toThrow(/must be approved|Approve and assemble|owner session|السكريبت|اعتماد|المصادر/);
   }, 30000);
 });

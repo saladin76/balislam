@@ -7,7 +7,6 @@ import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRe
 import { HttpError, safeName, assertSafeMediaFile } from "./util.ts";
 import { readBody } from "./body.ts";
 import { isTrustedLocalRequest } from "./security.ts";
-import { handleStudioV2 } from "./studioV2Api.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -78,7 +77,7 @@ export const balApi = (): Plugin => ({
     // استعادة طابور الرندر بعد إعادة تشغيل الاستوديو (الأمر 010)
     // Never replay legacy render/packaging jobs while V2's guarded API is enforced.
     // A saved job payload is not a trusted V2 approval token.
-    if (process.env.STUDIO_V2_ENFORCE !== "1") void recoverStudioQueue();
+    void recoverStudioQueue();
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
     // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
     const load = async <T = any>(file: string): Promise<T> => {
@@ -113,16 +112,26 @@ export const balApi = (): Plugin => ({
         const identityFile: string = cp.identity;
         const identityDefaultFile: string = cp.identityDefault;
 
-        // Studio V2 mode never falls through to legacy HTTP writes/renders.
-        // CLI, queue recovery and direct engine imports still need separate guards.
-        if (parts[0] === "studio-v2" && process.env.STUDIO_V2_ENFORCE !== "1")
-          return send(res, 503, { ok: false, code: "V2_NOT_ENFORCED" });
-        if (await handleStudioV2({ req, res, parts, ch, root, load, send })) return;
-        if (process.env.STUDIO_V2_ENFORCE === "1")
-          return send(res, 423, { ok: false, code: "V2_LEGACY_ENTRYPOINT_LOCKED",
-            error: "Legacy HTTP production endpoints are disabled while Studio V2 is enforced." });
+        // Unified engine (2026-11-08): the scene-first ledger (src/studio/sceneService.ts) is the only
+        // approval authority. The isolated V2 review API is no longer mounted, so it cannot act as a
+        // second authority; its modules stay in src/workflow/*V2* until the owner accepts the release.
+        if (parts[0] === "studio-v2")
+          return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بمحرك المشاهد الموحّد في «إنتاج المشاهد»." });
 
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
+
+        // كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة أو تغييرها بالكلمة الحالية
+        if (parts[0] === "owner-passphrase" && parts.length === 1) {
+          const env = await load("/src/settings/env.ts");
+          if (req.method === "GET") return send(res, 200, { set: Boolean(process.env[env.OWNER_PASSPHRASE_KEY]) });
+          if (req.method === "POST") {
+            const b = await readBody(req);
+            try { await env.setOwnerPassphrase(b?.passphrase, b?.current); }
+            catch (e) { return send(res, 400, { error: (e as Error).message }); }
+            return send(res, 200, { set: true });
+          }
+          return send(res, 405, { error: "Method not allowed" });
+        }
 
         if (parts[0] === "channels") {
           const list = channelMod.listChannels().map((id: string) => {
@@ -247,61 +256,30 @@ export const balApi = (): Plugin => ({
           }
 
           if (parts[2] === "workflow" && parts.length === 3) {
-            const { workflowReadForEpisode, workflowOwnerDecision } = await load("/src/workflow/server.ts");
+            const { workflowReadForEpisode } = await load("/src/workflow/server.ts");
             if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
-            if (req.method === "POST") {
-              const body = await readBody(req);
-              try {
-                const token = req.headers["x-studio-owner-token"];
-                const updated = await workflowOwnerDecision(ep, body, token);
-                return send(res, 200, updated);
-              } catch (error) {
-                const message = (error as Error).message;
-                const auth = /authentication|required.*token|not configured/i.test(message);
-                return send(res, auth ? 403 : 409, { error: message });
-              }
-            }
+            // Unified engine: the six-stage ledger is read-only (migration); it takes no new decisions.
+            if (req.method === "POST") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
             return send(res, 405, { error: "Method not allowed" });
           }
 
           if (parts[2] === "script-signoff" && parts.length === 3) {
-            const { scriptSignoffStatus, approveScript } = await load("/src/script/approval.ts");
+            const { scriptSignoffStatus } = await load("/src/script/approval.ts");
             if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));
-            if (req.method === "PUT") {
-              const body = await readBody(req);
-              if (typeof body?.reviewer !== "string" || typeof body?.note !== "string" ||
-                  body.reviewer.length > 120 || body.note.length > 2000 || body.confirm !== true)
-                throw new HttpError(400, "يلزم تأكيد الاعتماد واسم المراجع وملاحظة النص.");
-              await approveScript(scriptPath, body.reviewer, body.note, true);
-              return send(res, 200, await scriptSignoffStatus(scriptPath));
-            }
+            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
             return send(res, 405, { error: "Method not allowed" });
           }
           if (parts[2] === "voice-review" && parts.length === 3) {
             const plan = await io.loadPlan(ep);
             if (!plan) throw new HttpError(404, "خطة الحلقة غير موجودة.");
             const { loadVoiceIndex } = await load("/src/voice/generate.ts");
-            const { voiceReviewItems, approveVoiceScene, approveVoiceEpisode, episodeVoiceApproved } = await load("/src/voice/review.ts");
+            const { voiceReviewItems, episodeVoiceApproved } = await load("/src/voice/review.ts");
             const voice = await loadVoiceIndex(ep);
             if (req.method === "GET") {
               return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice), episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
             }
-            if (req.method === "PUT") {
-              const body = await readBody(req);
-              if (!body || typeof body !== "object" || Array.isArray(body) ||
-                  (body.scope !== "episode" && typeof body.sceneId !== "string") || typeof body.reviewer !== "string" ||
-                  typeof body.note !== "string")
-                throw new HttpError(400, "اعتماد الصوت يتطلب المشهد واسم المراجع وملاحظة الاستماع.");
-              if ((typeof body.sceneId === "string" && body.sceneId.length > 85) || body.reviewer.length > 120 || body.note.length > 2000)
-                throw new HttpError(400, "حقول المراجعة طويلة جدًا.");
-              if (body.scope === "episode") {
-                await approveVoiceEpisode(scriptPath, plan, voice, body.reviewer, body.note);
-              } else {
-                await approveVoiceScene(scriptPath, plan, voice, body.sceneId, body.reviewer, body.note);
-              }
-              return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice),
-                episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
-            }
+            // The voice is reviewed inside each scene's AV approval; no separate voice approval.
+            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
             return send(res, 405, { error: "Method not allowed" });
           }
 
@@ -437,7 +415,7 @@ export const balApi = (): Plugin => ({
             const scriptPath = await resolveScriptPath(b.episode);
             const plan = await readPlanFile(scriptPath);
             if (!plan) throw new HttpError(409, "اعتمد السكريبت والـStoryboard والصوت قبل بدء الحركة النهائية.");
-            await assertMotionStartAuthorized(scriptPath, plan, await loadVoiceIndex(b.episode));
+            await assertMotionStartAuthorized(b.episode, scriptPath, plan, await loadVoiceIndex(b.episode));
             const job = startRenderJob(root, ch, b);
             return send(res, 200, job);
           }

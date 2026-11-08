@@ -87,7 +87,7 @@ describe("Studio workspace separation", () => {
     const html = renderToStaticMarkup(<IntegratedReviewWorkspace episodeId="001" onOpen={() => {}} />);
     expect(html).toContain('aria-label="المراجعة المتكاملة للحلقة"');
     expect(html).toContain("بسرعة طبيعية 1×");
-    expect(html).toContain("بانتظار المحرك");
+    expect(html).toContain("ثلاثة قرارات مستقلة في «إنتاج المشاهد»");
     expect(html).toContain("ملفات Master والتسليم");
     expect(html).not.toContain("اعتماد الحلقة الآن");
   });

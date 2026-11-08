@@ -45,11 +45,11 @@ export const writeKeys = async (updates: Partial<Record<ManagedKey, string>>) =>
 };
 
 /**
- * أسرار الاستوديو المحلية (توقيع سجل الاعتمادات وهوية المالك): تُولَّد عشوائيًا مرة واحدة على جهاز صاحب القناة
+ * مفتاح توقيع سجل الاعتمادات المحلي: يُولَّد عشوائيًا مرة واحدة على جهاز صاحب القناة
  * وتُحفظ في .env (لا يُرفع)، حتى يعمل الاعتماد بلا إعداد يدوي. لا تُعرض ولا تُرسل للمتصفح أبدًا.
  * تغييرها لاحقًا يُبطل كل الاعتمادات الموقَّعة بالمفتاح القديم (عن قصد).
  */
-export const LOCAL_SECRETS = ["BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_TOKEN", "STUDIO_V2_OWNER_SECRET"] as const;
+export const LOCAL_SECRETS = ["BAL_WORKFLOW_HMAC_KEY"] as const;
 export const ensureLocalSecrets = async (): Promise<string[]> => {
   const { randomBytes } = await import("node:crypto");
   const file = envFile();
@@ -74,4 +74,31 @@ export const ensureLocalSecrets = async (): Promise<string[]> => {
     await chmod(file, 0o600); // الملف قد يكون موجودًا بصلاحيات أوسع
   }
   return created;
+};
+
+/**
+ * كلمة مرور المالك: يختارها صاحب القناة بنفسه في الاستوديو، ويُحفظ في .env بصمتها فقط (SHA-256).
+ * هي ما يثبت أن الاعتماد قرار بشري منه، فلا تُولَّد آليًا ولا تُكتب في أي ملف بنصها.
+ * تغييرها يتطلب الكلمة الحالية.
+ */
+export const OWNER_PASSPHRASE_KEY = "BAL_STUDIO_OWNER_PASSPHRASE_SHA256";
+export const setOwnerPassphrase = async (passphrase: unknown, current?: unknown): Promise<void> => {
+  const { createHash, timingSafeEqual } = await import("node:crypto");
+  const digest = (v: string) => createHash("sha256").update(v).digest("hex");
+  if (typeof passphrase !== "string" || passphrase.length < 8 || passphrase.length > 200)
+    throw new Error("كلمة مرور المالك من 8 أحرف على الأقل.");
+  const existing = process.env[OWNER_PASSPHRASE_KEY]?.trim();
+  if (existing && /^[a-f0-9]{64}$/.test(existing)) {
+    if (typeof current !== "string" || !timingSafeEqual(Buffer.from(existing, "hex"), Buffer.from(digest(current), "hex")))
+      throw new Error("كلمة المرور الحالية غير صحيحة.");
+  }
+  const file = envFile();
+  let text = existsSync(file) ? await readFile(file, "utf8") : "";
+  const line = `${OWNER_PASSPHRASE_KEY}=${digest(passphrase)}`;
+  const re = new RegExp(`^${OWNER_PASSPHRASE_KEY}=.*$`, "m");
+  text = re.test(text) ? text.replace(re, () => line) : `${text.replace(/\n*$/, text ? "\n" : "")}${line}\n`;
+  await writeFile(file, text, { encoding: "utf8", mode: 0o600 });
+  const { chmod } = await import("node:fs/promises");
+  await chmod(file, 0o600);
+  process.env[OWNER_PASSPHRASE_KEY] = digest(passphrase);
 };

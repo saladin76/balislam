@@ -399,8 +399,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { action, auditNote } = await readBody(req);
       if (action === "approve") {
-        const { assertScriptApproved } = await load("/src/script/approval.ts");
-        await assertScriptApproved(file);
+        // Script approval lives in the scene-first ledger only (unified engine).
+        const { requireScriptApproved } = await load("/src/studio/sceneService.ts");
+        await requireScriptApproved(parts[1]);
         const { checkVisualStoryboardSignoff } = await load("/src/plan/storyboardVisualGate.ts");
         const checked = checkVisualStoryboardSignoff(plan, auditNote);
         if (!checked.ok)
@@ -457,16 +458,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const R = await load("/src/plan/sceneReview.ts");
     const file = await resolveScriptPath(parts[1]);
     const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
-    let items;
-    if (req.method === "PUT") {
-      const { id, status, note } = await readBody(req);
-      if (typeof id !== "string" || !["ok", "fix", "pending"].includes(status)) return send(res, 400, { error: "قرار غير صالح." }), true;
-      try {
-        items = await R.setSceneReview(file, plan, id, status, typeof note === "string" ? note : "");
-      } catch (e) {
-        return send(res, 400, { error: (e as Error).message }), true;
-      }
-    } else items = R.sceneReviewItems(plan, await R.loadSceneLedger(file));
+    // Superseded by the scene AV approval in «إنتاج المشاهد»: read-only for old episodes.
+    if (req.method === "PUT") return send(res, 410, { error: "مراجعة المشهد صارت جزءًا من اعتماده بالصوت والصورة في «إنتاج المشاهد»." }), true;
+    const items = R.sceneReviewItems(plan, await R.loadSceneLedger(file));
     send(res, 200, { items, summary: R.sceneReviewSummary(items), criteria: R.SCENE_CRITERIA });
     return true;
   }

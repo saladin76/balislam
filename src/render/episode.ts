@@ -17,7 +17,6 @@ import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { assertEpisodeOutputConfined, assertNoLinkedPath, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { QUALITY, type Quality } from "./quality";
-import { loadSceneLedger, sceneReviewItems, sceneReviewSummary, sceneReviewBlockMessage } from "../plan/sceneReview";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -86,20 +85,23 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   const sb = storyboardStatus(plan, sbRecord);
   const blocked = unapprovedScenes(sb, [...ids]);
   if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-  // Legacy maintenance flags cannot bypass final AV or scene review.
-  const items = sceneReviewItems(plan, await loadSceneLedger(scriptPath)).filter((item) => ids.has(item.id));
-  const review = sceneReviewSummary(items);
-  if (!review.done) throw new Error(sceneReviewBlockMessage(review, items));
-  const { assertVoiceApproved } = await import("../voice/review");
-  await assertVoiceApproved(scriptPath, plan, media.voice);
+  // Human approvals (each scene with sound and picture, then the assembly) are enforced by the
+  // scene-first ledger in renderEpisode (requireScenesReadyForMaster); nothing else is an authority.
   return true;
 };
 
-/** Real narration word cues are eligible only when every clip AND the complete
- * episode recording have a valid, current human listening approval. */
-export const voiceTimingMode = async (scriptPath: string, plan: Plan, media: EpisodeMedia): Promise<"estimated" | "approved"> => {
-  const { episodeVoiceApproved } = await import("../voice/review");
-  return await episodeVoiceApproved(scriptPath, plan, media.voice) ? "approved" : "estimated";
+/**
+ * Motion follows the REAL word timings whenever every narrated scene has its current clip with
+ * word timings (plan task 3: timing from the recording, not an estimate). The human listens to the
+ * voice inside each scene's AV approval; there is no separate voice approval.
+ */
+export const voiceTimingMode = async (_scriptPath: string, plan: Plan, media: EpisodeMedia): Promise<"estimated" | "approved"> => {
+  const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
+  const real = narrated.length > 0 && narrated.every((s) => {
+    const clip = media.voice[s.id];
+    return Boolean(clip && clip.text === s.narration.trim() && Array.isArray(clip.words) && clip.words.length);
+  });
+  return real ? "approved" : "estimated";
 };
 
 /** Reject snapshots from other channels or episodes, including caller supplied media. */
@@ -148,9 +150,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       scriptPath, undefined, media, defaultRenderMediaRoot(),
     );
     const { assertMotionStartAuthorized } = await import("../voice/motionGate");
-    await assertMotionStartAuthorized(scriptPath, plan, media.voice);
-    const { assertWorkflowForEpisode } = await import("../workflow/server");
-    await assertWorkflowForEpisode(opts.episode, "master_render");
+    await assertMotionStartAuthorized(opts.episode, scriptPath, plan, media.voice);
     const sbRecord = await loadStoryboard(scriptPath);
     await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
     const { loadStoryboardMotion } = await import("./storyboardMotion");

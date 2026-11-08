@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { api, type PackageInfo, type ReviewSummary, type SceneReviewSummary } from "../api";
+import { api, type PackageInfo, type ReviewSummary, type SceneProductionRead } from "../api";
 
 type ReviewData = {
   citations: ReviewSummary | null;
-  scenes: SceneReviewSummary | null;
+  production: SceneProductionRead | null;
   pkg: PackageInfo | null;
   previews: { name: string; title: string; mtime: number; note: string }[];
   notes: { id: string; text: string; kind: "script" | "episode" }[];
@@ -19,20 +19,20 @@ export const IntegratedReviewWorkspace: React.FC<{
   useEffect(() => {
     let live = true;
     setData(null);
-    const sources = [api.review(episodeId), api.sceneReview(episodeId), api.packageInfo(episodeId), api.previews(episodeId)] as const;
+    const sources = [api.review(episodeId), api.sceneProduction(episodeId), api.packageInfo(episodeId), api.previews(episodeId)] as const;
     void Promise.allSettled(sources).then(([citations, scenes, pkg, previews]) => {
       if (!live) return;
       setData({
         citations: citations.status === "fulfilled" ? citations.value.summary : null,
-        scenes: scenes.status === "fulfilled" ? scenes.value.summary : null,
+        production: scenes.status === "fulfilled" ? scenes.value : null,
         pkg: pkg.status === "fulfilled" ? pkg.value : null,
         previews: previews.status === "fulfilled" ? previews.value.files : [],
         notes: [
           ...(citations.status === "fulfilled" ? citations.value.items.filter((x) => x.status !== "verified").map((x) => ({ id: x.key, text: x.note || `${x.label}: ${x.status}`, kind: "script" as const })) : []),
-          ...(scenes.status === "fulfilled" ? scenes.value.items.filter((x) => x.status === "fix" || x.status === "changed" || Boolean(x.note)).map((x) => ({ id: x.id, text: x.note || `المشهد ${x.id}: ${x.status}`, kind: "episode" as const })) : []),
+          ...(scenes.status === "fulfilled" ? scenes.value.scenes.filter((x) => x.status === "needs_revision").map((x) => ({ id: x.id, text: `المشهد ${x.id}: يحتاج إعادة إنتاج ومراجعة بالصوت والصورة`, kind: "episode" as const })) : []),
         ],
       });
-      setErrors([citations, scenes, pkg, previews].map((r, i) => r.status === "rejected" ? ["توثيق المصادر", "مراجعات المشاهد", "ملف الفيديو", "المعاينات"][i]! : "").filter(Boolean));
+      setErrors([citations, scenes, pkg, previews].map((r, i) => r.status === "rejected" ? ["توثيق المصادر", "سجل إنتاج المشاهد", "ملف الفيديو", "المعاينات"][i]! : "").filter(Boolean));
     });
     return () => { live = false; };
   }, [episodeId]);
@@ -43,7 +43,7 @@ export const IntegratedReviewWorkspace: React.FC<{
 
   return <main className="studio-review-workspace" aria-label="المراجعة المتكاملة للحلقة">
     <header className="studio-workspace-intro">
-      <p className="studio-workspace-kicker">المرحلة 5 من 6 · مراجعة متكاملة</p>
+      <p className="studio-workspace-kicker">مراجعة الحلقة كاملة</p>
       <h1>مراجعة الصورة والصوت معًا</h1>
       <p>شاهد الحلقة كاملة بسرعة طبيعية 1×، وسجّل الملاحظات في مواضعها داخل الأدوات الأصلية. وجود معاينة أو اكتمال الفحوص لا يمثل اعتمادًا للنسخة.</p>
     </header>
@@ -57,8 +57,8 @@ export const IntegratedReviewWorkspace: React.FC<{
     </section>
     <section className="studio-review-evidence" aria-label="أدلة المراجعة الفنية">
       <article><span>المصادر الموثقة</span><strong>{data?.citations ? `${data.citations.verified}/${data.citations.total}` : "غير متاح"}</strong><small>فحص توثيق، لا اعتماد السكريبت</small></article>
-      <article><span>المشاهد المراجَعة</span><strong>{data?.scenes ? `${data.scenes.ok}/${data.scenes.total}` : "غير متاح"}</strong><small>مراجعات منفردة، لا مراجعة AV كاملة</small></article>
-      <article><span>اعتماد AV الرسمي</span><strong>بانتظار المحرك</strong><small>يُربط بمحرك الاعتمادات الموحد لاحقًا</small></article>
+      <article><span>المشاهد المعتمدة بالصوت والصورة</span><strong>{data?.production ? `${data.production.progress.approvedScenes}/${data.production.progress.totalScenes}` : "غير متاح"}</strong><small>من سجل «إنتاج المشاهد»</small></article>
+      <article><span>التجميع · Master · النشر</span><strong>{!data?.production ? "غير متاح" : `${data.production.progress.assemblyApproved ? "✓" : "—"} · ${data.production.progress.masterApproved ? "✓" : "—"} · ${data.production.progress.publishAllowed ? "✓" : "—"}`}</strong><small>ثلاثة قرارات مستقلة في «إنتاج المشاهد»</small></article>
     </section>
     <section className="studio-review-notes" aria-label="ملاحظات المراجعة">
       <h2>الملاحظات التي تحتاج متابعة</h2>

@@ -16,7 +16,7 @@ import { ImageField } from "../ui/ImageField";
 import { StoryboardPanel } from "./StoryboardPanel";
 import { SceneReviewWorkspace } from "../review/SceneReviewWorkspace";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
-import { api, type SceneReviewItem, type SceneReviewSummary, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
+import { api, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import { TRANSITION_HELP } from "../../../src/plan/transitions";
@@ -66,14 +66,6 @@ export const EpisodeTab: React.FC<{
   const [board, setBoard] = useState(false);
   const playerRef = useRef<PlayerRef>(null);
   const sel = allScenes.find((x) => x.scene.id === selectedId) ?? allScenes[0];
-  // مراجعة كل مشهد بعد تنفيذه: تُحدَّث بعد الحفظ التلقائي لأي تعديل (التعديل يعيد المشهد للمراجعة)
-  const [sr, setSr] = useState<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] } | null>(null);
-  useEffect(() => {
-    const t = setTimeout(() => api.sceneReview(episodeId).then(setSr).catch(() => {}), sr ? 1500 : 0);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodeId, plan]);
-  const srOf = (id: string) => sr?.items.find((i) => i.id === id);
 
   useEffect(() => {
     if (!allScenes.some((x) => x.scene.id === selectedId) && allScenes[0]) setSelectedId(allScenes[0].scene.id);
@@ -220,7 +212,6 @@ export const EpisodeTab: React.FC<{
                 <div key={s.id} className="scene-item" role="button" tabIndex={0} aria-selected={s.id === scene.id} onClick={() => setSelectedId(s.id)} onKeyDown={(e) => e.key === "Enter" && setSelectedId(s.id)}>
                   <span className="t">{d?.nameAr ?? s.template}</span>
                   <span style={{ display: "flex", gap: 4 }}>
-                    <ReviewBadge item={srOf(s.id)} />
                     {voiceState(s) === "ok" ? <span className="badge voice">صوت</span> : voiceState(s) === "stale" ? <span className="badge edited">صوت قديم</span> : null}
                     {s.edited ? <span className="badge edited">معدّل</span> : null}
                     {d && !d.implemented ? <span className="badge todo">قيد البناء</span> : null}
@@ -309,7 +300,6 @@ export const EpisodeTab: React.FC<{
           <code className="help" style={{ direction: "ltr" }}>{scene.id}</code>
         </div>
         <div className="inspector">
-          {sr ? <div><p className="help">المراجعة القديمة لمخطط المشهد ليست اعتماد AV في Studio V2.</p><SceneReviewBox key={scene.id} episodeId={episodeId} sceneId={scene.id} item={srOf(scene.id)} summary={sr.summary} criteria={sr.criteria} onChange={setSr} /></div> : null}
           <label className="field">
             <span>القالب</span>
             <select
@@ -580,65 +570,6 @@ const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId
         </div>
       ))}
       {lastDone?.output ? <video src={api.videoUrl(lastDone.episode, lastDone.output)} controls style={{ width: "100%", maxHeight: 300, borderRadius: 8, background: "#000" }} /> : null}
-    </div>
-  );
-};
-
-const REVIEW_LOOK: Record<SceneReviewItem["status"], { label: string; color: string }> = {
-  ok: { label: "سليم", color: "var(--ok)" },
-  fix: { label: "يحتاج إصلاحًا", color: "var(--err)" },
-  pending: { label: "لم يُراجع", color: "var(--muted, #888)" },
-  changed: { label: "تغيّر بعد المراجعة", color: "var(--warn)" },
-};
-const ReviewBadge: React.FC<{ item?: SceneReviewItem }> = ({ item }) =>
-  item && item.status !== "pending" ? <span className="badge" style={{ color: REVIEW_LOOK[item.status].color, borderColor: REVIEW_LOOK[item.status].color }}>{item.status === "ok" ? "✓ مراجَع" : REVIEW_LOOK[item.status].label}</span> : null;
-
-/**
- * مراجعة المشهد بعد تنفيذه: شاهده في المعاينة بصوته، ثم أكّد المعايير الثلاثة.
- * «سليم» لا يُضغط قبل تأكيدها كلها، و«يحتاج إصلاحًا» يتطلب وصف المشكلة. النسخة النهائية لا تُصنع قبل مراجعة كل المشاهد.
- */
-const SceneReviewBox: React.FC<{ episodeId: string; sceneId: string; item?: SceneReviewItem; summary: SceneReviewSummary; criteria: string[]; onChange: (r: { items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }) => void }> = ({ episodeId, sceneId, item, summary, criteria, onChange }) => {
-  const [checked, setChecked] = useState<boolean[]>(() => criteria.map(() => item?.status === "ok"));
-  const [note, setNote] = useState(item?.note ?? "");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  const look = REVIEW_LOOK[item?.status ?? "pending"];
-  const decide = async (status: "ok" | "fix" | "pending") => {
-    setBusy(true);
-    setMsg("");
-    try {
-      onChange(await api.setSceneReview(episodeId, { id: sceneId, status, note }));
-      if (status === "pending") setChecked(criteria.map(() => false));
-    } catch (e) {
-      setMsg((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div className="render-box" style={{ borderColor: look.color, display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-      <div className="toolbar">
-        <b>مراجعة المشهد</b>
-        <span className="spacer" />
-        <span className="help" style={{ color: look.color, fontWeight: 600 }}>{look.label}</span>
-      </div>
-      <span className="help">شاهد المشهد كاملًا بصوته في المعاينة، ثم أكّد:</span>
-      {criteria.map((c, i) => (
-        <label key={i} className="help" style={{ display: "flex", gap: 6, alignItems: "flex-start", cursor: "pointer" }}>
-          <input type="checkbox" checked={checked[i] ?? false} onChange={(e) => setChecked(checked.map((x, j) => (j === i ? e.target.checked : x)))} />
-          <span>{c}</span>
-        </label>
-      ))}
-      <input type="text" placeholder="ملاحظة (مطلوبة إن احتاج إصلاحًا: أي حركة، وفي أي لحظة)" value={note} onChange={(e) => setNote(e.target.value)} />
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        <button className="btn small primary" disabled={busy || !checked.every(Boolean) || item?.status === "ok"} title={checked.every(Boolean) ? "" : "أكّد المعايير الثلاثة أولًا"} onClick={() => decide("ok")}>سليم</button>
-        <button className="btn small danger" disabled={busy} onClick={() => decide("fix")}>يحتاج إصلاحًا</button>
-        {item && item.status !== "pending" ? <button className="btn small ghost" disabled={busy} onClick={() => decide("pending")}>إلغاء القرار</button> : null}
-      </div>
-      {item?.status === "fix" && item.note ? <span className="help" style={{ color: "var(--err)" }}>المطلوب: {item.note}</span> : null}
-      {item?.status === "changed" ? <span className="help" style={{ color: "var(--warn)" }}>عُدّل المشهد بعد مراجعته؛ شاهده من جديد.</span> : null}
-      <span className="help">مراجَع {summary.ok} من {summary.total} مشهدًا{summary.done ? " ✓ النسخة النهائية متاحة" : " · النسخة النهائية بعد مراجعة الكل"}</span>
-      {msg ? <span className="help" style={{ color: "var(--err)" }}>{msg}</span> : null}
     </div>
   );
 };

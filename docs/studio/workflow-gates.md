@@ -157,6 +157,33 @@ The two Studio V2 lines are merged into one engine on `integration/studio-unifie
 - **Local secrets:** `ensureLocalSecrets()` (`src/settings/env.ts`) generates `BAL_WORKFLOW_HMAC_KEY`, `BAL_STUDIO_OWNER_TOKEN`
   and `STUDIO_V2_OWNER_SECRET` once into the owner's `.env` (mode 600) when the Studio starts, so approvals work without manual setup.
 
+### Single approval authority
+
+After unification the **scene-first ledger** (`src/studio/sceneProduction.ts`, `src/studio/sceneService.ts`) is the only
+authority. Every production gate asks it:
+
+| Gate | Requirement |
+| --- | --- |
+| Voice generation | script + storyboard approved (`requireScriptAndStoryboardApproved`) |
+| Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
+| Scene AV render | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
+| Master render | every scene approved with sound and picture **and** the assembly approved after a full 1× viewing with every seam checked (`requireScenesReadyForMaster`) |
+| Shorts/reels | the exact approved Master (`requireSceneMasterReady`) |
+| Publish | the exact approved Master **and** an explicit publish permission for those bytes (`requirePublishAllowed`) |
+
+`assertWorkflowForEpisode` delegates to these. The six-stage ledger, the episode voice approval, the old script signoff and
+`scene-review.json` are read-only: their write endpoints return **410** and nothing consults them.
+
+**Scoped invalidation:** each scene's input hash covers only its own content, its own approved board, its own narration
+clip and recitation. A script or storyboard edit re-opens those two decisions, the assembly, the Master and the publish
+permission; only scenes whose own inputs changed are re-opened.
+
+**Owner identity:** approvals need the owner passphrase, chosen once in «إنتاج المشاهد» (only its SHA-256 is stored in
+`.env`). The ledger is signed with the separate random `BAL_WORKFLOW_HMAC_KEY`. There is no bypass flag in the UI, API or CLI.
+
+The isolated V2 review API (`app/server/studioV2Api.ts`, `src/workflow/*V2*`) is no longer mounted (`/api/studio-v2/*`
+returns 410). Its modules remain in the tree until the owner accepts the release.
+
 ### Earlier integration notes from the scene-first line
 
 ## Minimal server-only integration

@@ -85,10 +85,10 @@ describe("بوابات النسخة النهائية", () => {
     await expect(assertMasterReady({ scriptPath: ok.scriptPath, plan: ok.plan, media: ok.media as never, channel })).resolves.toBe(true);
   });
 
-  it("مشهد لم يُراجع يمنع", async () => {
+  it("مراجعة المشهد القديمة (scene-review.json) ليست سلطة: لا تمنح ولا تمنع؛ الحَكَم سجل «إنتاج المشاهد»", async () => {
     const s = await fresh();
     await setSceneReview(s.scriptPath, s.plan, s.spoken.id, "pending");
-    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow();
+    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).resolves.toBe(true);
   });
 
   it("مشهد تغيّر بعد اعتماد الستوري بورد يمنع", async () => {
@@ -115,16 +115,13 @@ describe("بوابات النسخة النهائية", () => {
     await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: media as never, channel })).rejects.toThrow(/صوتي/);
   });
 
-  it("تغيير النبرة يبطل مراجعة المشهد، وبعد إعادة مراجعتها يظل اعتماد الصوت القديم مرفوضًا", async () => {
+  it("تغيير النبرة لا يمر عبر الفحص التقني إلى اعتماد قديم: الاعتماد البشري في سجل المشاهد وحده", async () => {
     const sample = await fresh();
     sample.spoken.tone = "warm";
-    // Motion/scene review includes tone and must be repeated when narration changes.
+    // The technical gate does not hold human approvals any more (no episode voice approval);
+    // the tone change re-opens this scene in the scene-first ledger (tests/studio-scene-production).
     await expect(assertMasterReady({ scriptPath: sample.scriptPath, plan: sample.plan, media: sample.media as never, channel }))
-      .rejects.toThrow(/مراجعة المشاهد غير مكتملة/);
-    // Reapproving ONLY the scene must not magically reapprove the old voice recording.
-    await setSceneReview(sample.scriptPath, sample.plan, sample.spoken.id, "ok");
-    await expect(assertMasterReady({ scriptPath: sample.scriptPath, plan: sample.plan, media: sample.media as never, channel }))
-      .rejects.toThrow(/اعتماد الاستماع|مقطع.*changed|نبرة/);
+      .resolves.toBe(true);
   });
 
   it("آية بلا نصها تمنع", async () => {

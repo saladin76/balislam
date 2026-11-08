@@ -304,14 +304,11 @@ program
   .option("--dry-run", "حساب الحروف والرصيد فقط بلا توليد")
   .option("--force", "إعادة توليد كل المشاهد")
   .option("--scene <ids>", "مشاهد محددة مفصولة بفواصل، مثل c2-s1,c4-s3")
-  .option("--ignore-tashkeel", "التوليد رغم نقص التشكيل (غير مستحسن)")
-  .option("--ignore-review", "التوليد قبل اكتمال سجل التوثيق (غير مستحسن)")
-  .option("--ignore-storyboard", "التوليد قبل اعتماد الستوري بورد (غير مستحسن)")
-  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string; ignoreTashkeel?: boolean; ignoreReview?: boolean; ignoreStoryboard?: boolean }) => {
+  .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string }) => {
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
     const { generateVoice } = await import("../voice/generate");
     const client = elevenLabsFromEnv();
-    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, ignoreTashkeel: opts.ignoreTashkeel, ignoreReview: opts.ignoreReview, ignoreStoryboard: opts.ignoreStoryboard, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
+    const r = await generateVoice(episode, { client, dryRun: opts.dryRun || !client, force: opts.force, only: opts.scene?.split(",").map((x) => x.trim()), onProgress: (m) => console.log(m) });
     console.log(tashkeelLine(r.tashkeel));
     console.log(`التوثيق: ${r.review.verified} من ${r.review.total} موثّق ${r.review.ok ? "✓" : "✗"}`);
     console.log(`المشاهد: ${r.total} · للتوليد: ${r.toGenerate.length} · محفوظة: ${r.cached.length}`);

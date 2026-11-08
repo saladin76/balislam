@@ -80,12 +80,11 @@ export type GenerateVoiceOptions = {
   /** مشاهد محددة فقط */
   only?: string[];
   onProgress?: (msg: string) => void;
-  /** توليد رغم نقص التشكيل (من سطر الأوامر فقط، بقرار صاحب القناة) */
-  ignoreTashkeel?: boolean;
-  /** خيار قديم للتوافق مع أوامر سابقة؛ لم يعد التوثيق يمنع توليد الصوت. */
-  ignoreReview?: boolean;
-  /** توليد قبل اعتماد الستوري بورد (من سطر الأوامر فقط، بقرار صاحب القناة) */
-  ignoreStoryboard?: boolean;
+  /**
+   * للاختبارات المعزولة فقط (لا يصل إليها سطر الأوامر ولا الاستوديو ولا مهام الخلفية):
+   * تشغيل التخزين المؤقت للصوت على حلقة اختبار بلا تشكيل ولا اعتمادات.
+   */
+  testOnlySkipGates?: boolean;
 };
 
 /**
@@ -127,20 +126,20 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   };
   if (opts.dryRun) return report;
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
-  if (todo.length && !report.tashkeel.ok && !opts.ignoreTashkeel) throw new Error(tashkeelBlockMessage(report.tashkeel));
+  if (todo.length && !report.tashkeel.ok && !opts.testOnlySkipGates) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
-  if (todo.length && !opts.ignoreStoryboard) {
+  if (todo.length && !opts.testOnlySkipGates) {
     const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
     const blocked = unapprovedScenes(sb, todo.map((j) => j.id));
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
   }
-  // A full script signoff is independent of storyboard and voice approval.
-  if (todo.length && !opts.ignoreStoryboard) {
-    const { assertScriptApproved } = await import("../script/approval");
-    await assertScriptApproved(scriptPath);
+  // Script and storyboard approval: the scene-first ledger is the only authority (unified engine).
+  if (todo.length && !opts.testOnlySkipGates) {
+    const { requireScriptAndStoryboardApproved } = await import("../studio/sceneService");
+    await requireScriptAndStoryboardApproved(episode);
   }
   // Order: storyboard signoff, then explicit tone decisions, then paid voice generation.
-  if (todo.length && report.missingTones.length && !opts.ignoreStoryboard)
+  if (todo.length && report.missingTones.length && !opts.testOnlySkipGates)
     throw new Error(`حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`);
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)

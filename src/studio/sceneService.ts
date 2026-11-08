@@ -16,20 +16,24 @@ import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { verifiedOwnRecitations } from "../quran/manualAudio";
 import { verifyVideoEvidence } from "../workflow/videoEvidence";
 import {
-  approveScript, approveStoryboard, approveSceneAv, approveFinalMaster,
+  approveScript, approveStoryboard, approveSceneAv, approveFinalMaster, approveAssembly, grantPublish,
   createSceneFirstProduction, changeScript, changeStoryboard, reviseSceneInput,
-  submitSceneAvPreview, requestSceneCorrection, submitAssembly, sceneFirstProgress,
-  assertExactMasterReadyForPublish, approvedSceneInputsSha256, type SceneFirstProduction,
+  submitSceneAvPreview, requestSceneCorrection, submitAssembly, sceneFirstProgress, sceneSeams,
+  assertExactMasterApproved, assertExactMasterReadyForPublish, approvedSceneInputsSha256, type SceneFirstProduction,
 } from "./sceneProduction";
+import { workflowSigningKey } from "../workflow/trust";
 
-type CommandAction = "approve-script" | "approve-storyboard" | "submit-scene" |
-  "approve-scene" | "correct-scene" | "assemble" | "approve-master";
+export const SCENE_ACTIONS = ["approve-script", "approve-storyboard", "submit-scene",
+  "approve-scene", "correct-scene", "assemble", "approve-assembly", "approve-master", "grant-publish"] as const;
+type CommandAction = (typeof SCENE_ACTIONS)[number];
 export type SceneOwnerCommand = {
   action: CommandAction;
   expectedSha256: string;
   sceneId?: string;
   note?: string;
   confirmedWatched?: boolean;
+  /** approve-assembly: every scene-to-scene seam the owner checked ("c1-s1>c1-s2"). */
+  seamsChecked?: string[];
 };
 type AuditEvent = { seq: number; action: CommandAction; sceneId?: string;
   at: string; by: "owner"; resultSha256: string; note: string };
@@ -56,23 +60,26 @@ type CurrentInput = {
 const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
 const hex64 = (text: unknown): text is string =>
   typeof text === "string" && /^[a-f0-9]{64}$/.test(text);
-const ownerSecret = (): Buffer => {
-  // Keep a single local owner secret; Studio must not ask its sole operator
-  // for a second confirmation code to review each scene.
-  const value = process.env.BAL_STUDIO_OWNER_TOKEN;
-  if (!value || Buffer.byteLength(value, "utf8") < 32)
-    throw new Error("Local Studio owner session secret is not configured; approvals are disabled.");
-  return Buffer.from(value, "utf8");
+/**
+ * The owner proves presence with a passphrase only they know (set once in the Studio; only its
+ * SHA-256 is kept in .env). Ledger integrity uses a separate random machine key
+ * (BAL_WORKFLOW_HMAC_KEY), so neither role leaks into the other.
+ */
+export const ownerPassphraseSha256 = (): string | null => {
+  const hashed = process.env.BAL_STUDIO_OWNER_PASSPHRASE_SHA256?.trim();
+  if (hashed && hex64(hashed)) return hashed;
+  return null;
 };
 export const assertSceneOwner = (token: unknown): void => {
+  const expected = ownerPassphraseSha256();
+  if (!expected) throw Error("Set the owner passphrase in the Studio first; approvals are disabled until then.");
   if (typeof token !== "string" || !token || token.length > 4096)
     throw Error("Owner session authentication is required.");
-  const a = sha(ownerSecret()), b = sha(token);
-  if (!timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex")))
+  if (!timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sha(token), "hex")))
     throw Error("Owner session authentication is required.");
 };
 const signature = (doc: Omit<SignedSceneLedger, "mac">): string =>
-  createHmac("sha256", ownerSecret())
+  createHmac("sha256", workflowSigningKey())
     .update(JSON.stringify(["studio-scene-ledger-v1", doc.version, doc.state, doc.revision, doc.history, doc.previewEpochs, doc.assemblyEpoch, doc.masterEpoch,
       ...(doc.previewInputs === undefined ? [] : [doc.previewInputs])]))
     .digest("hex");
@@ -136,9 +143,11 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
       Boolean(rec && rec.provider === "manual" && rec.sha256 &&
         rec.approvedBy && rec.rightsEvidence);
     ready[scene.id] = voiceReady && verseReady;
+    // Scoped invalidation: a scene's inputs are its own content, its own approved board, its own
+    // narration clip and recitation. Editing another scene, or the script elsewhere, never re-opens it.
     refs.push({
       id: scene.id,
-      sourceSha256: sha(JSON.stringify([chapter.title, scene, scriptSha256, boardSha256,
+      sourceSha256: sha(JSON.stringify(["scene-inputs-v2", chapter.title, scene, boardRecord.scenes[scene.id] ?? null,
         voiceFingerprint, rec?.sha256 ?? "no-recitation",
         rec?.approvedAt ?? null, rec?.rightsEvidence ?? null])),
     });
@@ -226,13 +235,14 @@ const view = (data: SignedSceneLedger, ready: Record<string, boolean>) => {
   return {
     schemaVersion: 1 as const, channel: p.channel, episode: p.episode,
     revision: data.revision, progress,
-    script: { sha256: p.script.sha256, approved: Boolean(p.script.approval) },
-    storyboard: { sha256: p.storyboard.sha256, approved: Boolean(p.storyboard.approval) },
+    script: { sha256: p.script.sha256, approved: Boolean(p.script.approval && p.script.approval.sha256 === p.script.sha256) },
+    storyboard: { sha256: p.storyboard.sha256, approved: Boolean(p.storyboard.approval && p.storyboard.approval.sha256 === p.storyboard.sha256) },
     scenes: p.scenes.map(s => ({ id: s.id, status: s.status,
       sourceSha256: s.sourceSha256, previewSha256: s.previewSha256,
       readyForAv: Boolean(ready[s.id]), approved: s.status === "approved" && Boolean(s.approval) })),
-    assembly: p.assembly ? { sha256: p.assembly.videoSha256 } : null,
-    master: p.master ? { sha256: p.master.fileSha256, approved: true } : null,
+    assembly: p.assembly ? { sha256: p.assembly.videoSha256, approved: progress.assemblyApproved } : null,
+    seams: sceneSeams(p),
+    master: p.master ? { sha256: p.master.fileSha256, approved: true, publishAllowed: progress.publishAllowed } : null,
     recentHistory: data.history.slice(-30),
   };
 };
@@ -322,9 +332,10 @@ const masterFile = (scriptPath: string) =>
 export const decideSceneProduction = async (episode: string,
   command: SceneOwnerCommand, sessionToken: unknown) => {
   assertSceneOwner(sessionToken);
-  if (!command || !["approve-script", "approve-storyboard", "submit-scene",
-      "approve-scene", "correct-scene", "assemble", "approve-master"].includes(command.action) ||
+  if (!command || !(SCENE_ACTIONS as readonly string[]).includes(command.action) ||
       !hex64(command.expectedSha256) ||
+      (command.seamsChecked !== undefined && (!Array.isArray(command.seamsChecked) || command.seamsChecked.length > 2000 ||
+        command.seamsChecked.some((x) => typeof x !== "string" || x.length > 160))) ||
       (command.note !== undefined && (typeof command.note !== "string" || command.note.length > 4000)))
     throw Error("Malformed scene review command.");
   return withState(episode, async (doc, current) => {
@@ -351,6 +362,25 @@ export const decideSceneProduction = async (episode: string,
       assemblyEpoch = await fileGeneration(file);
       masterEpoch = undefined;
       next = submitAssembly(p, resultSha256);
+    } else if (command.action === "approve-assembly") {
+      if (command.confirmedWatched !== true) throw Error("Watch the full assembled episode at 1× first.");
+      const file = assemblyFile(current.scriptPath);
+      await verifyVideoEvidence(file);
+      resultSha256 = await byteSha256(file);
+      if (resultSha256 !== command.expectedSha256) throw Error("The assembled video changed.");
+      if (!assemblyEpoch || assemblyEpoch !== await fileGeneration(file))
+        throw Error("Assembled episode changed after it was recorded; record it again.");
+      masterEpoch = undefined;
+      next = approveAssembly(p, { by, at, videoSha256: resultSha256, watchedFullEpisodeAt1x: true,
+        seamsChecked: command.seamsChecked ?? [] });
+    } else if (command.action === "grant-publish") {
+      if (command.confirmedWatched !== true) throw Error("Confirm the publish decision explicitly.");
+      const file = masterFile(current.scriptPath);
+      resultSha256 = await byteSha256(file);
+      if (resultSha256 !== command.expectedSha256) throw Error("The Master file changed.");
+      if (!masterEpoch || masterEpoch !== await fileGeneration(file))
+        throw Error("Master changed after the owner's final approval.");
+      next = grantPublish(p, { by, at, masterSha256: resultSha256 });
     } else if (command.action === "approve-master") {
       if (command.confirmedWatched !== true) throw Error("Full-episode human 1× review is required.");
       const file = masterFile(current.scriptPath);
@@ -508,6 +538,8 @@ export const approvedSceneCutsForAssembly = async (
 export const requireScenesReadyForMaster = async (episode: string): Promise<void> => {
   await withState(episode, async (doc, current) => {
     approvedSceneInputsSha256(doc.state);
+    if (!sceneFirstProgress(doc.state).assemblyApproved)
+      throw Error("Watch the assembled episode at 1× and approve it with every scene transition before creating Master.");
     if (!doc.state.assembly || !doc.assemblyEpoch ||
         doc.assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||
         doc.state.assembly.videoSha256 !== await byteSha256(assemblyFile(current.scriptPath)))
@@ -516,7 +548,32 @@ export const requireScenesReadyForMaster = async (episode: string): Promise<void
   });
 };
 
-export const requireSceneMasterReady = async (episode: string): Promise<void> => {
+/** Exact approved Master (enough to cut shorts/reels from it). Publishing needs requirePublishAllowed. */
+export const requireSceneMasterReady = (episode: string): Promise<void> => masterCheck(episode, assertExactMasterApproved);
+/** The only gate for publishing: approved Master AND an explicit publish permission for those bytes. */
+export const requirePublishAllowed = (episode: string): Promise<void> => masterCheck(episode, assertExactMasterReadyForPublish);
+
+/** Script approved in the scene-first ledger (needed before the visual storyboard can be recorded). */
+export const requireScriptApproved = async (episode: string): Promise<void> => {
+  await withState(episode, async (doc) => {
+    const p = doc.state;
+    if (!p.script.approval || p.script.approval.sha256 !== p.script.sha256)
+      throw Error("اعتمد السكريبت الحالي أولًا من «إنتاج المشاهد».");
+  });
+};
+
+/** Script and storyboard approved in the scene-first ledger (no other approval authority exists). */
+export const requireScriptAndStoryboardApproved = async (episode: string): Promise<void> => {
+  await withState(episode, async (doc) => {
+    const p = doc.state;
+    if (!p.script.approval || p.script.approval.sha256 !== p.script.sha256)
+      throw Error("اعتمد السكريبت الحالي أولًا من «إنتاج المشاهد».");
+    if (!p.storyboard.approval || p.storyboard.approval.sha256 !== p.storyboard.sha256)
+      throw Error("اعتمد الستوري بورد الحالي أولًا من «إنتاج المشاهد».");
+  });
+};
+
+const masterCheck = async (episode: string, check: (p: SceneFirstProduction, sha: string) => void): Promise<void> => {
   await withState(episode, async (doc, current) => {
     const file = masterFile(current.scriptPath);
     await verifyVideoEvidence(file);
@@ -526,6 +583,6 @@ export const requireSceneMasterReady = async (episode: string): Promise<void> =>
         doc.assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||
         doc.state.assembly?.videoSha256 !== await byteSha256(assemblyFile(current.scriptPath)))
       throw Error("Final assembly changed after approval.");
-    assertExactMasterReadyForPublish(doc.state, await byteSha256(file));
+    check(doc.state, await byteSha256(file));
   });
 };

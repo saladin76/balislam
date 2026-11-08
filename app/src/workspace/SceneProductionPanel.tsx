@@ -27,6 +27,23 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [sessionSecret, setSessionSecret] = useState("");
   const [note, setNote] = useState("");
   const [reviewed, setReviewed] = useState(false);
+  // كلمة مرور المالك: يختارها مرة واحدة، ويكتبها في كل جلسة (لا تُحفظ في المتصفح)
+  const [passSet, setPassSet] = useState<boolean | null>(null);
+  const [newPass, setNewPass] = useState("");
+  const [newPass2, setNewPass2] = useState("");
+  // وصلات المشاهد التي فحصها المالك في النسخة المجمعة
+  const [seams, setSeams] = useState<Record<string, boolean>>({});
+  useEffect(() => { void api.ownerPassphrase().then((r) => setPassSet(r.set), () => setPassSet(null)); }, []);
+  const createPassphrase = async () => {
+    if (newPass.length < 8) return setError("كلمة مرور المالك من 8 أحرف على الأقل.");
+    if (newPass !== newPass2) return setError("الكلمتان غير متطابقتين.");
+    try {
+      await api.setOwnerPassphrase(newPass);
+      setPassSet(true);
+      setSessionSecret(newPass);
+      setNewPass(""); setNewPass2(""); setError("");
+    } catch (e) { setError((e as Error).message); }
+  };
 
   const refresh = async () => {
     const result = await api.sceneProduction(episodeId, channelId);
@@ -39,6 +56,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     setError("");
     setNote("");
     setReviewed(false);
+    setSeams({});
     void api.sceneProduction(episodeId, channelId).then(
       value => { if (alive) setData(value); },
       cause => { if (alive) setError((cause as Error).message); },
@@ -89,8 +107,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
   const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string) => {
     if (!data || pending || !sessionSecret.trim()) return setError("فعّل جلسة المالك المحلية أولًا.");
-    if (["approve-script", "approve-storyboard", "approve-scene", "approve-master"].includes(action) && !reviewed)
+    if (["approve-script", "approve-storyboard", "approve-scene", "approve-assembly", "approve-master", "grant-publish"].includes(action) && !reviewed)
       return setError("أكّد المراجعة البشرية الفعلية قبل الاعتماد.");
+    const seamsChecked = action === "approve-assembly" ? (data.seams ?? []).filter((x) => seams[x]) : undefined;
+    if (action === "approve-assembly" && seamsChecked!.length !== (data.seams ?? []).length)
+      return setError("افحص كل وصلة بين مشهدين في النسخة المجمعة وعلّمها قبل اعتماد التجميع.");
     if (action === "correct-scene" && !note.trim())
       return setError("اكتب ملاحظة التصحيح قبل إعادة المشهد.");
     setPending(true);
@@ -100,6 +121,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         action, expectedSha256, ...(sceneId ? { sceneId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reviewed ? { confirmedWatched: true } : {}),
+        ...(seamsChecked ? { seamsChecked } : {}),
       });
       // Server returned a read model, but its current file candidates may have changed.
       setData(updated);
@@ -108,6 +130,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
       onUpdated?.();
       setNote("");
       setReviewed(false);
+      if (action === "approve-assembly") setSeams({});
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -129,6 +152,17 @@ export const SceneProductionPanel: React.FC<Props> = ({
       </header>
       {!data && !error ? <p role="status">جارٍ تحميل حالة الحلقة…</p> : null}
       {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
+      {passSet === false ? (
+        <div className="scene-first-task">
+          <h3>اختر كلمة مرور المالك (مرة واحدة)</h3>
+          <p>كل اعتماد في الاستوديو يحتاجها، فلا يعتمد شيئًا إلا أنت. تُحفظ بصمتها فقط على جهازك، ولا تُرسل لأحد.</p>
+          <label className="scene-first-field"><span>كلمة المرور</span>
+            <input type="password" autoComplete="new-password" value={newPass} onChange={(e) => setNewPass(e.target.value)} /></label>
+          <label className="scene-first-field"><span>أعد كتابتها</span>
+            <input type="password" autoComplete="new-password" value={newPass2} onChange={(e) => setNewPass2(e.target.value)} /></label>
+          <button className="btn primary" type="button" onClick={() => void createPassphrase()}>حفظ كلمة المرور</button>
+        </div>
+      ) : null}
       {!data ? null : (
         <div className="scene-first-content">
           {!data.script.approved ? (
@@ -192,15 +226,36 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 </button>
               )}
             </div>
+          ) : data.assembly && !data.assembly.approved ? (
+            <div className="scene-first-task">
+              <h3>شاهد الحلقة المجمعة كاملة بسرعة 1× وافحص كل وصلة</h3>
+              <p>قرار مستقل عن اعتماد كل مشهد: هل ينتقل كل مشهد إلى التالي بلا قفز ولا قطع في الصوت؟</p>
+              <video className="scene-first-video" controls preload="metadata"
+                src={api.previewUrl(episodeId, "episode.mp4")} aria-label="الحلقة المجمعة بالصوت والصورة" />
+              <fieldset className="scene-first-seams">
+                <legend>الوصلات ({(data.seams ?? []).filter((x) => seams[x]).length} من {(data.seams ?? []).length})</legend>
+                {(data.seams ?? []).map((seam) => (
+                  <label key={seam}><input type="checkbox" checked={Boolean(seams[seam])}
+                    onChange={(e) => setSeams({ ...seams, [seam]: e.target.checked })} /> <span dir="ltr">{seam.replace(">", " → ")}</span></label>
+                ))}
+              </fieldset>
+            </div>
           ) : data.assembly && !data.master ? (
             <div className="scene-first-task">
-              <h3>راجع الحلقة كاملة واعتمد Master النهائي</h3>
-              <button className="btn small" type="button" onClick={onOpenPublish}>فتح مراجعة الحلقة</button>
+              <h3>اعتمد Master النهائي بعد مشاهدته كاملًا</h3>
+              <p>التجميع معتمد. اصنع النسخة النهائية 4K من «النشر»، ثم شاهدها كاملة واعتمد هذا الملف بعينه.</p>
+              <button className="btn small" type="button" onClick={onOpenPublish}>فتح النشر</button>
+            </div>
+          ) : data.master && !data.master.publishAllowed ? (
+            <div className="scene-first-task">
+              <h3>Master معتمد — النشر يحتاج إذنك الصريح</h3>
+              <p>الشورتس والريلز تُصنع الآن من هذا الملف. أما النشر فقرار منفصل لهذا الملف بعينه.</p>
+              <button className="btn small" type="button" onClick={onOpenPublish}>فتح النشر</button>
             </div>
           ) : (
             <div className="scene-first-task">
-              <h3>Master معتمد</h3>
-              <p>لا يتم النشر تلقائيًا. افتح صفحة النشر لمراجعة المخرجات.</p>
+              <h3>مأذون بنشر هذا Master</h3>
+              <p>أي تعديل في أي مشهد يلغي الإذن تلقائيًا.</p>
               <button className="btn small" type="button" onClick={onOpenPublish}>فتح النشر</button>
             </div>
           )}
@@ -216,9 +271,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
             <summary>المراجعة والاعتماد</summary>
             <p>أكّد المراجعة مرة واحدة عند اتخاذ القرار. لا يُعتمد أي مشهد آليًا.</p>
             <label className="scene-first-field">
-              <span>جلسة المالك المحلية (لا تُحفظ في المتصفح)</span>
+              <span>كلمة مرور المالك (لا تُحفظ في المتصفح)</span>
               <input type="password" autoComplete="off" value={sessionSecret}
-                onChange={event => setSessionSecret(event.target.value)} placeholder="رمز الجلسة" />
+                onChange={event => setSessionSecret(event.target.value)} placeholder="كلمة المرور" />
             </label>
             <label className="scene-first-field">
               <span>ملاحظة أو طلب تصحيح</span>
@@ -248,8 +303,14 @@ export const SceneProductionPanel: React.FC<Props> = ({
               {allApproved && !data.assembly && data.candidates.assemblySha256 && (
                 <button className="btn primary" disabled={pending} onClick={() => void act("assemble", data.candidates.assemblySha256!)}>تسجيل النسخة المجمعة</button>
               )}
-              {data.assembly && !data.master && data.candidates.masterSha256 && (
+              {data.assembly && !data.assembly.approved && (
+                <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-assembly", data.assembly!.sha256)}>اعتماد التجميع والوصلات بعد المشاهدة 1×</button>
+              )}
+              {data.assembly?.approved && !data.master && data.candidates.masterSha256 && (
                 <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-master", data.candidates.masterSha256!)}>اعتماد Master بعد المشاهدة 1×</button>
+              )}
+              {data.master && !data.master.publishAllowed && (
+                <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("grant-publish", data.master!.sha256)}>إذن نشر هذا Master</button>
               )}
             </div>
           </details>
