@@ -189,7 +189,7 @@ const renderInternals = async (args: {
   browserExecutable?: string; signal?: AbortSignal;
   onProgress?: (fraction: number) => void;
 }) => {
-  const [cancelSignal, cancel] = makeCancelSignal();
+  const { cancelSignal, cancel } = makeCancelSignal();
   const abort = () => cancel();
   args.signal?.addEventListener("abort", abort, { once: true });
   try {
