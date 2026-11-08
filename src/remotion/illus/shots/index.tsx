@@ -593,6 +593,8 @@ export const SHOTS: Record<string, ShotDef> = {
       const tB = at("نقتنع", 0.15);
       const tL = at("يعجبنا", 0.4);
       const tM = at("يختلط", 0.65);
+      const tE = at("الخطأ", 0.8);
+      const tS = at("صورته", 0.86);
       const tC = at("الواضحة", 0.92);
       const dawn = prog(frame, 0, Math.min(dur, tM + 40), (t) => t);
       return {
@@ -609,7 +611,7 @@ export const SHOTS: Record<string, ShotDef> = {
             <Rooftops frame={frame} mood="predawn" to="dawn" t={dawn} fog={prog(frame, tM, tM + 50)} />
             <Birds frame={frame} start={Math.round(dur * 0.06)} y={260} n={8} color={darken(ID.night, 0.2)} />
             <Birds frame={frame} start={Math.round(dur * 0.62)} y={180} n={5} dir={1} color={darken(ID.night, 0.2)} />
-            <Figure x={980 - 220 * prog(frame, tM - 10, tM + 60, (t) => t) + 260 * prog(frame, tC, dur, (t) => t)} y={GROUND + 40} scale={1.3} pose={(frame > tM - 10 && frame < tM + 60) || frame > tC ? walkPose(POSES.stand, (frame / 30) * Math.PI * 2 * 0.95) : pz(frame, [[0, "hold"], [tB + 20, "stand"], [tB + 50, "think"], [tL, "hold"], [tL + 40, "think"], [tL + 70, "hold"], [tM + 60, "look-up"]])} look={hero} flip={frame > tM - 10 && frame < tM + 60} holding={frame < tB + 20 ? "phone" : frame >= tL - 4 && frame < tM ? "paper" : "none"} frame={frame} rim={dawn} />
+            <Figure x={980 - 220 * prog(frame, tM - 10, tM + 60, (t) => t) + 260 * prog(frame, tC, dur, (t) => t)} y={GROUND + 40} scale={1.3} pose={(frame > tM - 10 && frame < tM + 60) || frame > tC ? walkPose(POSES.stand, (frame / 30) * Math.PI * 2 * 0.95) : pz(frame, [[0, "hold"], [tB + 20, "stand"], [tB + 50, "think"], [tL, "hold"], [tL + 40, "think"], [tL + 70, "hold"], [tM + 60, "look-up"], [Math.max(tM + 64, tE), "lean-rail"], [Math.max(tM + 76, tS), "think"]])} look={hero} flip={frame > tM - 10 && frame < tM + 60} holding={frame < tB + 20 ? "phone" : frame >= tL - 4 && frame < tM ? "paper" : "none"} frame={frame} rim={dawn} />
             <RoofWall frame={frame} />
           </g>
         ),
