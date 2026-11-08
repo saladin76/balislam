@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { api, type SceneProductionRead } from "../api";
 import { useOwnerSession } from "./ownerSession";
+import { ScriptFixList } from "./ScriptFixList";
+import type { Issue } from "../../../src/script/types";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
@@ -18,7 +20,7 @@ export const SUBTABS: Partial<Record<StepTab, string>> = {
 export const stepOf = (tab: StepTab) => STEPS.findIndex((s) => s.tabs.includes(tab));
 
 type Props = {
-  episodeId: string; channelId: string; title: string; tab: StepTab; scriptErrors: number;
+  episodeId: string; channelId: string; title: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
   refreshKey: number; saveState: "saved" | "dirty" | "saving" | "error"; unsaved: boolean;
   onTab: (t: StepTab) => void; onDecided: () => void;
 };
@@ -27,7 +29,7 @@ type Props = {
  * عمود الحلقة: خمس محطات من اليمين إلى اليسار، يمتلئ الخط بلون القناة حتى الخطوة الحالية،
  * وتحتها جملة واحدة بما يلزم الآن وزر واحد. الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
-export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, refreshKey, saveState, unsaved, onTab, onDecided }) => {
+export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided }) => {
   const owner = useOwnerSession();
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
@@ -53,10 +55,10 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
   const here = stepOf(tab);
 
   /** ما يلزم الآن، وزره: إما قرار يُتخذ هنا، أو انتقال إلى مكانه */
-  const next = ((): { text: string; label: string; go?: StepTab; decide?: "approve-script" | "approve-storyboard" } | null => {
+  const next = ((): { text: string; label: string; go?: StepTab; fix?: boolean; decide?: "approve-script" | "approve-storyboard" } | null => {
     if (!w) return null;
-    if (!done[0]) return scriptErrors
-      ? { text: `في السكريبت ${scriptErrors} ${scriptErrors === 1 ? "خطأ يمنع" : "أخطاء تمنع"} اعتماده.`, label: "أصلح السكريبت", go: "script" }
+    if (!done[0]) return scriptErrors.length
+      ? { text: "", label: "افتح السكريبت", go: "script", fix: true }
       : { text: "راجع النص والمصادر، ثم اعتمد السكريبت المحفوظ.", label: "اعتماد السكريبت", decide: "approve-script" };
     if (!done[1]) return { text: "راجع لوحة كل مشهد وسجّل ملاحظتك في الستوري بورد، ثم اعتمده كاملًا.", label: "اعتماد الستوري بورد", decide: "approve-storyboard" };
     if (!done[2]) return { text: `المشهد ${w.progress.currentScene ?? ""} هو التالي: أنتجه بالصوت والصورة وشاهده قبل اعتماده. (${w.progress.approvedScenes} من ${w.progress.totalScenes})`, label: "إلى المشهد الحالي", go: "episode" };
@@ -107,8 +109,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
         })}
       </ol>
       {next ? (
-        <div className="spine-next">
-          <p>{next.text}</p>
+        <div className={`spine-next${next.fix ? " has-fix" : ""}`}>
+          {next.fix ? <ScriptFixList errors={scriptErrors} onLine={onScriptLine} /> : <p>{next.text}</p>}
           {next.decide ? (
             <div className="spine-decide">
               {!owner.open ? <span className="spine-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span> : (

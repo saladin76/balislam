@@ -315,7 +315,13 @@ export const App: React.FC = () => {
             channelId={channelId}
             title={plan.title}
             tab={tab as StepTab}
-            scriptErrors={check.issues.filter((i) => i.level === "error").length}
+            scriptErrors={check.issues.filter((i) => i.level === "error")}
+            onScriptLine={(line) => {
+              if (tab === "script") { scriptRef.current?.goToLine(line); return; }
+              if (!confirmLeaveScript()) return;
+              setTab("script");
+              setTimeout(() => scriptRef.current?.goToLine(line), 80);
+            }}
             refreshKey={homeKey}
             saveState={planState}
             unsaved={scriptDirty || researchDirty}
