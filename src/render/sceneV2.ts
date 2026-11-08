@@ -117,7 +117,9 @@ const validateRequest = (r: SceneRenderRequestV2) => {
         !finite(a.startSec, 0, 600) || !finite(a.durationSec, 0.05, 600) ||
         !finite(a.volume, 0, 1) || a.startSec + a.durationSec > 600)
       throw Error("Invalid scene sound.");
-    counts[a.kind]++;
+    if (a.kind === "narrator") counts.narrator++;
+    else if (a.kind === "recitation") counts.recitation++;
+    else if (a.kind === "sfx") counts.sfx++;
   }
   for (const a of r.pictures) {
     if (!shaPattern.test(a.sha256) || !path.isAbsolute(a.file) ||
