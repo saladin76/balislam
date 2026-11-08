@@ -143,6 +143,33 @@ describe("Studio V2 real Backend contract adapter", () => {
     await expect(adapter.session()).rejects.toBeInstanceOf(StudioV2HttpError);
     await expect(adapter.startReview("c1-s1", fp)).rejects.toThrow("CSRF");
   });
+  it("drops in-memory CSRF after a real Backend 403 and refuses further writes", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      calls.push(url);
+      if (url === "/api/studio-v2/session") return makeResponse(session);
+      return makeResponse({ ok: false, code: "V2_CSRF_REJECTED" }, 403);
+    }));
+    const adapter = serverReviewAdapter("balislam", "001");
+    await adapter.session();
+    await expect(adapter.startReview("c1-s1", fp)).rejects.toMatchObject({
+      status: 403, code: "V2_CSRF_REJECTED",
+    });
+    await expect(adapter.startReview("c1-s1", fp)).rejects.toThrow("CSRF");
+    expect(calls).toHaveLength(2);
+  });
+  it("rejects a server response claiming AV finish for another scene", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url === "/api/studio-v2/session") return makeResponse(session);
+      if (url.includes("/finish?")) return makeResponse({
+        completed: true, sceneId: "c1-s2", fingerprint: fp,
+      });
+      throw Error("Unexpected request");
+    }));
+    const adapter = serverReviewAdapter("balislam", "001");
+    await adapter.session();
+    await expect(adapter.finishReview("c1-s1", reviewId, fp)).rejects.toThrow("لم يؤكد");
+  });
   it("rejects media URL outside the exact server-scoped protected path", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
       if (url === "/api/studio-v2/session") return makeResponse(session);
