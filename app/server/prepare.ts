@@ -16,7 +16,9 @@ export type PrepareJobView = {
   sceneId?: string;
   voice: { needed: number; generated: number; status: string; error?: string };
   rendered: string[];
-  failed: { id: string; error: string }[];
+  failed: { id: string; error: string; sourceSha256?: string }[];
+  /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
+  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
   error?: string;
 };
 

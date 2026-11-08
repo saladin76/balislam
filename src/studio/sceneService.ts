@@ -230,10 +230,19 @@ export const lockOwnerIsDead = (content: string | null, ownPid = process.pid): b
   try { process.kill(pid, 0); return false; }
   catch (error) { return (error as NodeJS.ErrnoException).code === "ESRCH"; }
 };
-const serialized = async <T>(file: string, work: () => Promise<T>): Promise<T> => {
+/**
+ * How long a decision or read waits for another writer (funnel audit item 9). A ledger operation hashes
+ * every scene input (and the Master file) under the lock, which can take seconds on a loaded machine;
+ * the old 60×25 ms (1.5 s) made the owner see «busy» for no reason. The wait is bounded by time, with a
+ * short backoff, and still never deletes a live writer's lock.
+ */
+export const LEDGER_LOCK_WAIT_MS = 30_000;
+export const serialized = async <T>(file: string, work: () => Promise<T>,
+  waitMs = LEDGER_LOCK_WAIT_MS): Promise<T> => {
   const name = file + ".lock";
   let fd: Awaited<ReturnType<typeof open>> | undefined;
-  for (let attempt = 0; attempt < 60; attempt++) {
+  const deadline = Date.now() + waitMs;
+  for (let attempt = 0; ; attempt++) {
     try { fd = await open(name, "wx", 0o600); break; }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
@@ -243,8 +252,8 @@ const serialized = async <T>(file: string, work: () => Promise<T>): Promise<T> =
         await rm(name, { force: true });
         continue;
       }
-      if (attempt === 59) throw Error("Scene approval ledger is busy. Never delete another writer lock.");
-      await sleep(25);
+      if (Date.now() >= deadline) throw Error("Scene approval ledger is busy. Never delete another writer lock.");
+      await sleep(Math.min(250, 25 * (1 + Math.floor(attempt / 4))));
     }
   }
   if (!fd) throw Error("Cannot lock scene approvals.");

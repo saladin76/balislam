@@ -197,6 +197,22 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
         render: async (_e, id) => { drafted.push(id); }, shouldStop: () => true }));
       expect(stopped).toMatchObject({ stopped: true, rendered: [], phase: "done" });
       expect(drafted).toEqual([]);
+      // Audit item 5: a scene whose same inputs just failed is not rendered again by the queue…
+      const failing = await runWithChannel(CH, () => prepareAllScenes(EP, { token: PASS, voiceClient: null,
+        render: async (_e, id) => { drafted.push(id); throw Error("composition crashed"); } }));
+      expect(failing.voice.status).toBe("no-key");
+      expect(failing.failed).toEqual([expect.objectContaining({ id: "c1-s1", error: "composition crashed", sourceSha256: expect.any(String) })]);
+      expect(drafted).toEqual(["c1-s1"]);
+      const again = await runWithChannel(CH, () => prepareAllScenes(EP, { token: PASS, voiceClient: null,
+        previousFailures: failing.failed, render: async (_e, id) => { drafted.push(id); } }));
+      expect(again.skipped).toEqual([{ id: "c1-s1", reason: "failed-before", error: "composition crashed" }]);
+      expect(drafted).toEqual(["c1-s1"]); // nothing rendered
+      // …but a network/browser failure is retried on the next press (rendering stub: nothing recorded).
+      const offline = [{ ...failing.failed[0]!, error: "تعذّر تجهيز متصفح الرندر لأن الجهاز غير متصل بالإنترنت" }];
+      const retry = await runWithChannel(CH, () => prepareAllScenes(EP, { token: PASS, voiceClient: null,
+        previousFailures: offline, render: async (_e, id) => { drafted.push(id); throw Error("still failing"); } }));
+      expect(retry.skipped ?? []).toEqual([]);
+      expect(drafted).toEqual(["c1-s1", "c1-s1"]);
     }
 
     // ── No voice key: said plainly, nothing crashes, voiced scenes are still prepared ───────────
@@ -252,7 +268,7 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect((await call("PUT", `episodes/${EP}/plan`, { plan: planOf("الشكر قيد النعم") })).status).toBe(200);
     const after = await state();
     expect(after.scenes.map((x: any) => [x.id, x.status, x.draft])).toEqual([
-      ["c1-s1", "approved", "none"], ["c1-s2", "needs_revision", "stale"], ["c1-s3", before.scenes[2].status, "ready"]]);
+      ["c1-s1", "approved", "none"], ["c1-s2", "queued", "stale"], ["c1-s3", before.scenes[2].status, "ready"]]);
     expect(open(after.scenes[2].status)).toBe("open");
     expect(after.scenes[0].sourceSha256).toBe(before.scenes[0].sourceSha256);
     expect(after.scenes[2].sourceSha256).toBe(before.scenes[2].sourceSha256);

@@ -147,7 +147,11 @@ export const reviseSceneInput = (p: SceneFirstProduction, sceneId: string, sha25
   if (sha256 === s.sourceSha256) return p;
   // Only this scene is re-opened. Other approved scenes stay approved.
   // Assembly and Master always become stale after any changed scene.
-  return replaceScene(p, i, { id: sceneId, sourceSha256: sha256, status: "needs_revision" });
+  // A scene never submitted (queued) has nothing to revise: it stays queued with its new inputs, so the
+  // owner never sees «بانتظار التعديل» on a scene nobody asked to fix (funnel audit item 10). Submitted,
+  // approved or already-corrected scenes are re-opened as needs_revision, exactly as before.
+  return replaceScene(p, i, { id: sceneId, sourceSha256: sha256,
+    status: s.status === "queued" ? "queued" : "needs_revision" });
 };
 
 export const submitSceneAvPreview = (p: SceneFirstProduction, sceneId: string, sourceSha256: string,

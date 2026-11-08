@@ -102,6 +102,8 @@ export type SceneProductionRead = {
   assembly: { sha256: string; approved: boolean } | null;
   /** Every boundary between consecutive scenes, in order ("c1-s1>c1-s2"). */
   seams: string[];
+  /** While the assembly awaits review: each seam's time in the assembled file (seconds), if known. */
+  seamTimes?: Record<string, number>;
   master: { sha256: string; approved: true; publishAllowed: boolean } | null;
   candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
     masterSha256: string | null };
@@ -123,6 +125,8 @@ export type ScenePrepareJob = {
   phase: "voice" | "render" | "done"; sceneId?: string;
   voice: { needed: number; generated: number; status: string; error?: string };
   rendered: string[]; failed: { id: string; error: string }[]; error?: string;
+  /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
+  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
 };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number };
 export type SceneOwnerAction = {

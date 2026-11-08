@@ -238,14 +238,24 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "scene-production" && parts.length === 3) {
             const { inspectSceneProduction, decideSceneProduction } =
               await load("/src/studio/sceneService.ts");
-            if (req.method === "GET") return send(res, 200, await inspectSceneProduction(ep));
+            // Audit item 11: while the assembly awaits review, where each seam falls (to jump the player).
+            const withSeamTimes = async <T extends { assembly: { approved: boolean } | null; seams: string[] }>(read: T) => {
+              if (!read.assembly || read.assembly.approved) return read;
+              try {
+                const plan = await io.loadPlan(ep);
+                if (!plan) return read;
+                const { assemblySeamTimes } = await load("/src/studio/seamTimes.ts");
+                return { ...read, seamTimes: await assemblySeamTimes(scriptPath, plan, read.seams) };
+              } catch { return read; }
+            };
+            if (req.method === "GET") return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
             if (req.method === "POST") {
               const body = await readBody(req);
               try {
                 await decideSceneProduction(ep, body, req.headers["x-studio-owner-token"]);
                 // The full read model (candidates, drafts, prepared), the same shape as GET:
                 // the UI replaces its state with this response.
-                return send(res, 200, await inspectSceneProduction(ep));
+                return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
               } catch (error) {
                 return refuse(error);
               }
@@ -327,12 +337,14 @@ export const balApi = (): Plugin => ({
             const { assertSceneOwner, requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
             try { assertSceneOwner(token); await requireSceneProductionReady(ep); }
             catch (error) { return refuse(error); }
-            if (prepareJob(key)?.status === "running") return send(res, 200, { job: prepareJob(key), voiceKey });
+            if (prepareJob(key)?.status === "running") return send(res, 200, { job: prepareJob(key), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
             const voiceClient = elevenLabsFromEnv();
+            // Audit item 5: the queue does not re-render a scene whose same inputs just failed.
+            const previousFailures = prepareJob(key)?.failed ?? [];
             const job = startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress, shouldStop })));
-            return send(res, 200, { job, voiceKey });
+              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress, shouldStop, previousFailures })));
+            return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
           }
 
           if (parts[2] === "workflow" && parts.length === 3) {

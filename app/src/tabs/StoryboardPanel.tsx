@@ -14,6 +14,7 @@ import { SceneComp } from "../ui/Preview";
 import { api, type EpisodePreview, type LongJob, type StoryboardInfo } from "../api";
 import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
+import { BoardAuditLog, auditLogOnTop } from "./BoardAuditLog";
 import "../shell/screens-s12.css";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
@@ -200,7 +201,13 @@ export const StoryboardPanel: React.FC<{
   const sceneCount = rows.reduce((n, r) => n + r.shots.length, 0);
   const noVoice = !Object.keys(media.voice).length;
 
-  // شاشة واحدة: شبكة اللوحات وحدها، وكل ما سواها (الاعتماد القديم، الآيات، الفحص الفني، المعاينات) في «أدوات وتفاصيل».
+  const auditLog = (
+    <BoardAuditLog st={st} channelId={channel.id} episodeId={episodeId} note={visualReviewNote} onNote={setVisualReviewNote}
+      reviewed={visualReviewed} onReviewed={setVisualReviewed} busy={busy} onAct={(a) => void act(a)}
+      error={auditLogOnTop(st) ? err : undefined} />
+  );
+  // شاشة واحدة: شبكة اللوحات، وفوقها «سجل مراجعة اللوحات» ما دام لم يُسجَّل (إلزامي قبل الاعتماد)؛
+  // وكل ما سواها (الآيات، الفحص الفني، المعاينات) في «أدوات وتفاصيل».
   return (
     <div className={`storyboard s12-board${details ? " is-detailed" : ""}`}>
       <header className="s12-board-head">
@@ -211,6 +218,8 @@ export const StoryboardPanel: React.FC<{
         </span>
         {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
       </header>
+
+      {auditLogOnTop(st) ? auditLog : null}
 
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter s12-chapter">
@@ -286,7 +295,7 @@ export const StoryboardPanel: React.FC<{
       <Previews episodeId={episodeId} />
 
       <More>
-        {err ? <p className="s12-alert" role="alert">{err}</p> : null}
+        {err && !auditLogOnTop(st) ? <p className="s12-alert" role="alert">{err}</p> : null}
         {job?.status === "error" ? <p className="s12-alert">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
 
         <section className="s12-tool" aria-label="عرض اللوحات">
@@ -297,30 +306,7 @@ export const StoryboardPanel: React.FC<{
           {noVoice ? <p className="s12-soft">المدة بلا صوت: أقل مدة لكل قالب.</p> : null}
         </section>
 
-        <section className="s12-tool sb-visual-approval" aria-label="مراجعة Storyboard المرئي">
-          <h3 className="s12-h">سجل مراجعة اللوحات</h3>
-          {st ? <p className="s12-soft">معتمد {ar(st.approved)} من {ar(st.total)}{st.changed.length ? ` · تغيّر بعد الاعتماد: ${st.changed.join("، ")}` : ""}</p> : null}
-          {st?.audit?.note ? <p className="s12-soft">ملاحظة اعتماد المراجع: {st.audit.note}</p> : null}
-          {channel.id === "zubdat-alkutub" && episodeId === "001" ? (
-            <p><a href="https://drive.google.com/file/d/1MTtTbSufZN2N0OFueEAjsOlLiaBSglMd/view" target="_blank" rel="noreferrer">فتح PDF المرئي V021 — 31 مشهدًا (PENDING_REVIEW، ليس اعتمادًا)</a></p>
-          ) : null}
-          {channel.id === "dafatir-alzaman" && episodeId === "001" ? (
-            <p><a href="https://github.com/saladin76/balislam/blob/main/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.pdf" target="_blank" rel="noreferrer">فتح Storyboard V1.1 — 80 مشهدًا (نسخة GitHub، نقل Drive لم يُتحقق منه)</a></p>
-          ) : null}
-          <label htmlFor="sb-visual-review-note" className="s12-soft">ملاحظة المراجع: إصدار اللوحات، نطاق المشاهدة، والتعديلات المطلوبة أو سبب الموافقة</label>
-          <textarea id="sb-visual-review-note" value={visualReviewNote} rows={3} maxLength={3000}
-            onChange={(e) => setVisualReviewNote(e.target.value)}
-            placeholder="راجعت كل لوحات الإصدار ...، والتكوين والنصوص متطابقة، والمشاهد التي تحتاج إصلاحًا..." />
-          <label className="s12-check"><input type="checkbox" checked={visualReviewed} onChange={(e) => setVisualReviewed(e.target.checked)} />
-            أؤكد أنني شاهدت جميع اللوحات المرئية لهذه الحلقة، وليس عينات متفرقة فقط.</label>
-          <div className="s12-row">
-            {st?.ok ? (
-              <button className="btn" onClick={() => act("revoke")} disabled={busy}>اسحب الاعتماد</button>
-            ) : (
-              <button className="btn" onClick={() => act("approve")} disabled={busy || !st}>تسجيل اعتماد اللوحات المرئية</button>
-            )}
-          </div>
-        </section>
+        {!auditLogOnTop(st) ? auditLog : null}
 
         <section className="s12-tool sb-quran-text-source" aria-label="نصوص الآيات">
           <h3 className="s12-h">نصوص الآيات</h3>

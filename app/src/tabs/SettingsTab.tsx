@@ -46,7 +46,12 @@ const KeyInput: React.FC<{ id: string; label: string; state?: { set: boolean; pr
 };
 
 /** المفاتيح: تُحفظ في ملف .env على هذا الجهاز فقط، ولا تظهر قيمها السرية في الواجهة أبدًا. */
-export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysChanged }) => {
+export const SettingsTab: React.FC<{
+  onKeysChanged: () => void;
+  /** Opened from an episode (audit item 14): one click back to the step the owner came from. */
+  onBack?: () => void;
+  backLabel?: string;
+}> = ({ onKeysChanged, onBack, backLabel = "العودة إلى الحلقة" }) => {
   const [keys, setKeys] = useState<KeyState | null>(null);
   const [el, setEl] = useState<TestResult | null>(null);
   const [busy, setBusy] = useState("");
@@ -71,13 +76,21 @@ export const SettingsTab: React.FC<{ onKeysChanged: () => void }> = ({ onKeysCha
       setBusy("");
     }
   };
-  if (!keys) return <div className="empty-state"><h2>{loadErr ? `تعذّر التحميل: ${loadErr}` : "جارٍ التحميل…"}</h2></div>;
+  const back = onBack ? <button type="button" className="btn" onClick={onBack}>→ {backLabel}</button> : null;
+  if (!keys) return <div className="empty-state"><h2>{loadErr ? `تعذّر التحميل: ${loadErr}` : "جارٍ التحميل…"}</h2>{back}</div>;
   const voiceId = keys.ELEVENLABS_VOICE_ID?.preview ?? "";
 
   return (
     <div className="settings-tab">
-      <h2>الإعدادات والمفاتيح</h2>
-      <div className="note">المفاتيح لا تُرفع إلى GitHub. كل مجلد عمل يستخدم ملف ‎.env‎ الخاص به، إلا إذا حددت ملفًا مشتركًا عبر متغير البيئة BAL_ENV_FILE قبل تشغيل الاستوديو. ظهور «غير مضاف» لا يعني حذف المفتاح من مجلد مشروع آخر. لا تشارك محتوى الملف أو لقطة تظهر أسراره.</div>
+      <div className="settings-head">
+        <h2>الإعدادات والمفاتيح</h2>
+        {back}
+      </div>
+      <div className="note">المفاتيح تُحفظ على هذا الجهاز فقط، ولا تظهر قيمها هنا بعد الحفظ.</div>
+      <details className="settings-tech">
+        <summary>تفاصيل تقنية</summary>
+        <p className="help">المفاتيح لا تُرفع إلى GitHub. كل مجلد عمل يستخدم ملف ‎.env‎ الخاص به، إلا إذا حددت ملفًا مشتركًا عبر متغير البيئة BAL_ENV_FILE قبل تشغيل الاستوديو. ظهور «غير مضاف» لا يعني حذف المفتاح من مجلد مشروع آخر. لا تشارك محتوى الملف أو لقطة تظهر أسراره.</p>
+      </details>
 
       <details className="group studio-provider">
         <summary><strong>ElevenLabs</strong> <span>الصوت المستنسخ والمؤثرات</span> <em>{keys.ELEVENLABS_API_KEY?.set ? "المفتاح موجود" : "يحتاج إعدادًا"}</em></summary>

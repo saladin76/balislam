@@ -12,6 +12,7 @@ import "../shell/screens-s3.css";
 import { useOwnerSession } from "../shell/ownerSession";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
+import { clockAr, sceneName, seamName } from "./sceneNames";
 
 type Props = {
   episodeId: string;
@@ -97,6 +98,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
   // بعد «اعتمد» يُعرض المشهد التالي فورًا، وتبدأ مسودته الجاهزة بالتشغيل
   const [advanced, setAdvanced] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  // النسخة المجمعة: زر كل وصلة ينقل المشغّل إلى لحظتها
+  const assemblyRef = useRef<HTMLVideoElement>(null);
 
   const refresh = async () => {
     const result = await api.sceneProduction(episodeId, channelId);
@@ -327,14 +330,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
       <>
         <div className="s3-editbar">
           <button type="button" className="btn ghost" onClick={close}>→ العودة إلى المراجعة</button>
-          <span>تحرير المشهد {idx >= 0 ? ar(idx + 1) : ""} <span dir="ltr" className="s3-id">{editing}</span></span>
+          <span title={editing}>تحرير المشهد {idx >= 0 ? ar(idx + 1) : ""}</span>
         </div>
         {editor!(editing, (id) => setEditing(id))}
       </>
     );
   }
 
-  if (sceneMode && shownId && (!data || !data.script.approved || !data.storyboard.approved || (currentId && scene))) {
+  // Item 16: after the last approval step ٣ keeps its strip and player, so any approved scene can be rewatched.
+  const allDoneHere = Boolean(sceneMode && onOpenFinal && data && data.script.approved && data.storyboard.approved && !currentId);
+  if (sceneMode && shownId && (!data || !data.script.approved || !data.storyboard.approved || (currentId && scene) || allDoneHere)) {
     const hit = planScenes.find((x) => x.scene.id === shownId);
     const shownIdx = order.indexOf(shownId);
     const shownServer = data?.scenes.find((s) => s.id === shownId);
@@ -357,7 +362,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     const status = gated ? "later" : statusOf(shownId);
     // «جهّز كل المشاهد» في شريط الأفعال نفسه، لا في الرأس
     const prepare = data && !gated && !data.progress.canAssemble ? (
-      <PrepareAll episodeId={episodeId} channelId={channelId} prepared={data.prepared} onOpenSettings={onOpenSettings}
+      <PrepareAll episodeId={episodeId} channelId={channelId} prepared={data.prepared} onOpenSettings={onOpenSettings} order={order}
         onChanged={() => {
           void refresh().catch(() => {});
           // الصوت المولَّد في الخلفية يظهر في أزرار المشهد دون إعادة فتح الحلقة
@@ -396,7 +401,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
               <li key={id} className={chapterStarts.has(id) && i > 0 ? "s3-ch" : undefined}>
                 <button type="button" className={`s3-dot is-${st}${id === shownId ? " is-shown" : ""}`} data-now={st === "now" ? "" : undefined}
                   aria-current={id === shownId ? "true" : undefined} onClick={() => setViewId(id)}
-                  title={`${id} · ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "لاحقًا"}`}>
+                  title={`${sceneName(order, id)} · ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "لاحقًا"}`}>
                   {ar(i + 1)}
                 </button>
               </li>
@@ -409,15 +414,25 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <div className="s3-grid">
           <div className="s3-media">
             {isCurrent && previewUrl ? (
-              <video key={`${currentId}:${candidate}`} ref={videoRef} className="scene-first-video" controls preload="metadata" autoPlay={advanced} src={previewUrl} aria-label={`المشهد ${currentId} بالصوت والصورة`} />
+              <video key={`${currentId}:${candidate}`} ref={videoRef} className="scene-first-video" controls preload="metadata" autoPlay={advanced} src={previewUrl} aria-label={`${sceneName(order, currentId)} بالصوت والصورة`} />
             ) : !isCurrent && shownVideo ? (
-              <video className="scene-first-video" controls preload="metadata" src={shownVideo} aria-label={`المشهد ${shownId} بالصوت والصورة`} />
+              <video key={shownId} className="scene-first-video" controls preload="metadata" src={shownVideo} aria-label={`${sceneName(order, shownId)} بالصوت والصورة`} />
             ) : livePreview ? (
               <div className="s3-live">{livePreview(shownId)}<span className="s3-tag">معاينة صامتة</span></div>
             ) : (
               <div className="sp-empty">لم يُنتج هذا المشهد بعد.</div>
             )}
-            {isCurrent && currentId && scene ? (
+            {allDoneHere ? (
+              <div className="sp-row s3-alldone" role="group" aria-label="المشاهد معتمدة">
+                <div>
+                  <h3>كل المشاهد معتمدة</h3>
+                  <p className="sp-hint">{(data!.progress.recitationPending?.length ?? 0) > 0
+                    ? `${ar(data!.progress.recitationPending!.length)} مشهد آية معتمد «مشروطًا بالتلاوة»؛ التلاوات والمعاينة قبل النهائية في الخطوة ٤.`
+                    : "اختر أي مشهد من الشريط لتعيد مشاهدته. التجميع والنسخة النهائية في الخطوة ٤."}</p>
+                </div>
+                <div className="sp-actions"><button className="btn primary" type="button" onClick={onOpenFinal}>إلى النسخة النهائية</button></div>
+              </div>
+            ) : isCurrent && currentId && scene ? (
               <SceneDecisionActions
                 prepare={prepare}
                 onOpenSettings={onOpenSettings}
@@ -486,7 +501,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             )}
           </div>
           <div className="s3-side">
-            <span className={`s3-state is-${status}`}>{status === "done" ? (shownServer?.conditional ? "معتمد مشروطًا بالتلاوة" : "معتمد") : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? "بانتظار التعديل" : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
+            <span className={`s3-state is-${status}`}>{status === "done" ? (shownServer?.conditional ? "معتمد مشروطًا بالتلاوة" : "معتمد") : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "بانتظار قرارك" : scene?.status === "needs_revision" ? (scene.correction ? "بانتظار التعديل" : "عُدّل؛ يحتاج إنتاجًا جديدًا") : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
             <p className="s3-narr">{hit?.scene.narration || "بلا تعليق صوتي"}</p>
 
             {isCurrent && scene?.status === "needs_revision" && (sentNotes[currentId!] || scene.correction?.note) ? (
@@ -516,7 +531,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
                     <li key={i}>
                       <button type="button" onClick={() => setEditing(issue.sceneId)}>
                         <span className={`s3-lv is-${issue.level}`}>{issue.level === "error" ? "يمنع" : "تنبيه"}</span>
-                        <span dir="ltr" className="s3-id">{issue.sceneId}</span>
+                        <span className="s3-id" title={issue.sceneId}>{sceneName(order, issue.sceneId)}</span>
                         <span>{issue.message}</span>
                       </button>
                     </li>
@@ -534,24 +549,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
   // السكريبت والستوري بورد يُعتمدان من عمود الخطوات أعلى الصفحة؛ هذه اللوحة لما بعدهما
   if (data && (!data.script.approved || !data.storyboard.approved)) return null;
-  // Step ٣ after its last scene: no assembly here (it lives in step ٤); one forward action.
-  if (sceneMode && onOpenFinal && data && !currentId) {
-    const waiting = data.progress.recitationPending?.length ?? 0;
-    return (
-      <section className="scene-first-panel sp" aria-label="المشاهد معتمدة">
-        <div className="sp-row">
-          <div>
-            <h3>كل المشاهد معتمدة</h3>
-            <p className="sp-hint">{waiting ? `${ar(waiting)} مشهد آية معتمد «مشروطًا بالتلاوة»؛ التلاوات والمعاينة قبل النهائية في الخطوة ٤.` : "التجميع ومشاهدته كاملة ثم النسخة النهائية في الخطوة ٤."}</p>
-          </div>
-          <div className="sp-actions">
-            <button className="btn primary" type="button" onClick={onOpenFinal}>إلى النسخة النهائية</button>
-            {order[0] ? <button type="button" className="btn" onClick={() => setEditing(order[0]!)}>تحرير المشهد</button> : null}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  // Step ٣ after its last scene is handled above (allDoneHere): strip, rewatch, one forward action.
   return (
     <section className="scene-first-panel sp" aria-label="القرار الحالي في إنتاج الحلقة">
       {!data && !error ? <p role="status">جارٍ تحميل حالة الحلقة…</p> : null}
@@ -560,13 +558,13 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <div className="sp-grid">
           <div className="sp-media">
             {previewUrl ? (
-              <video className="scene-first-video" controls preload="metadata" src={previewUrl} aria-label={`المشهد ${currentId} بالصوت والصورة`} />
+              <video className="scene-first-video" controls preload="metadata" src={previewUrl} aria-label={`${sceneName(data.scenes.map((x) => x.id), currentId)} بالصوت والصورة`} />
             ) : (
               <div className="sp-empty">{scene.readyForAv ? "لم يُنتج هذا المشهد بعد." : "ينقص هذا المشهد صوت الراوي."}</div>
             )}
           </div>
           <div className="sp-side">
-            <p className="sp-kicker">المشهد <span dir="ltr">{currentId}</span>، {data.progress.approvedScenes + 1} من {data.progress.totalScenes}</p>
+            <p className="sp-kicker">{sceneName(data.scenes.map((x) => x.id), currentId)}، {ar(data.progress.approvedScenes + 1)} من {ar(data.progress.totalScenes)}</p>
             <div className="scene-first-meter" role="progressbar" aria-valuenow={data.progress.approvedScenes} aria-valuemin={0} aria-valuemax={data.progress.totalScenes}>
               <span style={{ width: `${100 * data.progress.approvedScenes / Math.max(1, data.progress.totalScenes)}%` }} />
             </div>
@@ -621,14 +619,22 @@ export const SceneProductionPanel: React.FC<Props> = ({
       ) : data.assembly && !data.assembly.approved ? (
         <div className="sp-grid">
           <div className="sp-media">
-            <video className="scene-first-video" controls preload="metadata" src={api.previewUrl(episodeId, "episode.mp4")} aria-label="الحلقة المجمعة" />
+            <video ref={assemblyRef} className="scene-first-video" controls preload="metadata" src={api.previewUrl(episodeId, "episode.mp4")} aria-label="الحلقة المجمعة" />
           </div>
           <div className="sp-side">
             <h3>شاهد الحلقة كاملة بسرعة 1×، وافحص كل وصلة</h3>
             <fieldset className="scene-first-seams">
               <legend>الوصلات: {seamsDone} من {seamsAll.length}</legend>
               {seamsAll.map((seam) => (
-                <label key={seam}><input type="checkbox" checked={Boolean(seams[seam])} onChange={(e) => setSeams({ ...seams, [seam]: e.target.checked })} /> <span dir="ltr">{seam.replace(">", " → ")}</span></label>
+                <SeamRow key={seam} label={seamName(data.scenes.map((x) => x.id), seam)} at={data.seamTimes?.[seam]}
+                  checked={Boolean(seams[seam])} onCheck={(v) => setSeams({ ...seams, [seam]: v })}
+                  onJump={(t) => {
+                    // يبدأ قبل الوصلة بثانيتين ليُسمع آخر المشهد وأول التالي
+                    const v = assemblyRef.current;
+                    if (!v) return;
+                    v.currentTime = Math.max(0, t - 2);
+                    void v.play().catch(() => {});
+                  }} />
               ))}
             </fieldset>
             {confirm("شاهدت الحلقة كاملة 1×")}
@@ -677,6 +683,14 @@ export const SceneProductionPanel: React.FC<Props> = ({
 };
 
 type VoiceState = "none" | "missing" | "stale" | "ok";
+
+/** وصلة في النسخة المجمعة: اسمها بالأرقام، وزر ينقل المشغّل إليها (لا يعلّمها مفحوصة؛ العلامة للمالك). */
+export const SeamRow: React.FC<{ label: string; at?: number; checked: boolean; onCheck: (v: boolean) => void; onJump: (t: number) => void }> = ({ label, at, checked, onCheck, onJump }) => (
+  <div className="sp-seam">
+    <label><input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} /> {label}</label>
+    {at != null ? <button type="button" className="prep-link" onClick={() => onJump(at)} title="يشغّل من قبل الوصلة بثانيتين">عند {clockAr(at)}</button> : null}
+  </div>
+);
 
 /** سبب تعطّل الشريط كله، والخطوة الأولى غير المكتملة (الزر الممتلئ الوحيد حينها). */
 export type ActionLock = { reason: string; action?: { label: string; onClick: () => void } };

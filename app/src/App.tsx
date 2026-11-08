@@ -33,8 +33,11 @@ import { LabsTab } from "./tabs/LabsTab";
 import { TechReviewsTab } from "./tabs/TechReviewsTab";
 import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
 import { useTheme } from "../../brand/identity/index";
+import { parseStudioHash, studioHash } from "./shell/route";
 
 type Tab = StudioSection;
+/** The link the Studio was opened with (audit item 18) wins over the last place remembered locally. */
+const bootRoute = typeof window === "undefined" ? {} : parseStudioHash(window.location.hash);
 const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
 const store = {
   get: (k: string) => {
@@ -57,12 +60,15 @@ export const App: React.FC = () => {
   useStudioFonts();
   const [navOpen, setNavOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
-  const [tab, setTab] = useState<Tab>((store.get("bal-tab") as Tab) || "home");
+  const [tab, setTab] = useState<Tab>(bootRoute.tab ?? ((store.get("bal-tab") as Tab) || "home"));
+  /** The episode step that opened «الإعدادات» (audit item 14): the settings page offers to go back to it. */
+  const [settingsReturn, setSettingsReturn] = useState<Tab | null>(null);
+  const openSettings = () => { if (EPISODE_TABS.includes(tab)) setSettingsReturn(tab); setTab("settings"); };
   const [keysOk, setKeysOk] = useState({ voice: false, quran: false });
   const [homeKey, setHomeKey] = useState(0);
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [channelId, setChannelId] = useState<string>(() => {
-    const c = store.get("bal-channel") || "";
+    const c = bootRoute.channel ?? (store.get("bal-channel") || "");
     setApiChannel(c);
     return c;
   });
@@ -90,7 +96,7 @@ export const App: React.FC = () => {
   channelRef.current = channelId;
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
-  const [epId, setEpId] = useState<string>(store.get("bal-episode") || "");
+  const [epId, setEpId] = useState<string>(bootRoute.episode ?? (store.get("bal-episode") || ""));
   const episodeRef = useRef(epId);
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
@@ -213,6 +219,13 @@ export const App: React.FC = () => {
     loadEpisode(epId);
   }, [epId, channelId, episodes, loadEpisode]);
   useEffect(() => store.set("bal-tab", tab), [tab]);
+  // The address bar always names the current channel, episode and step (a link the owner can keep).
+  useEffect(() => {
+    const ch = channelId || channels[0]?.id || "";
+    const next = studioHash({ channel: ch, episode: epId, tab });
+    if (!next || window.location.hash === next) return;
+    try { window.history.replaceState(null, "", next); } catch { /* not critical */ }
+  }, [channelId, channels, epId, tab]);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
   const onPlanChange = useCallback((p: Plan) => {
@@ -263,9 +276,35 @@ export const App: React.FC = () => {
   };
   const identDirty = ident ? JSON.stringify(ident.draft) !== JSON.stringify(ident.saved) : false;
 
+  // A pasted or edited link opens its place in this tab (same leave-checks as any navigation).
+  const onHash = useRef<() => void>(() => {});
+  onHash.current = () => {
+    const r = parseStudioHash(window.location.hash);
+    if (!r.channel) return;
+    const want = { ep: r.episode ?? epId, tab: r.tab ?? tab };
+    if (want.ep === epId && want.tab === tab && r.channel === (channelId || channels[0]?.id)) return;
+    if (!confirmLeaveScript()) return;
+    void flushPlan().then(() => {
+      if (r.channel !== channelId) {
+        pendingOpen.current = r.episode ? { ep: r.episode, tab: want.tab } : null;
+        if (!r.episode) setTab(want.tab);
+        setChannelId(r.channel!);
+        return;
+      }
+      if (r.episode) setEpId(r.episode);
+      setTab(want.tab);
+    });
+  };
+  useEffect(() => {
+    const h = () => onHash.current();
+    window.addEventListener("hashchange", h);
+    return () => window.removeEventListener("hashchange", h);
+  }, []);
+
   const navigateManage = async (next: Tab) => {
     if (!next || !confirmLeaveScript()) return;
     await flushPlan();
+    if (next === "settings" && EPISODE_TABS.includes(tab)) setSettingsReturn(tab);
     setTab(next);
     setNavOpen(false);
     if (navOpen) menuButton.current?.focus();
@@ -324,7 +363,7 @@ export const App: React.FC = () => {
               setTimeout(() => scriptRef.current?.goToLine(line), 80);
             }}
             refreshKey={homeKey}
-            onOpenSettings={() => setTab("settings")}
+            onOpenSettings={openSettings}
             saveState={planState}
             unsaved={scriptDirty || researchDirty}
             onTab={(next) => {
@@ -423,6 +462,7 @@ export const App: React.FC = () => {
               reloadKeys();
               if (epId) loadEpisode(epId, { keepScript: true });
             }}
+            onBack={settingsReturn && epId ? () => { setTab(settingsReturn); setSettingsReturn(null); } : undefined}
           />
         ) : tab === "identity" ? (
           <IdentityTab
@@ -518,7 +558,7 @@ export const App: React.FC = () => {
             media={media}
             onMediaChange={setMedia}
             hasVoiceKeys={extra.keys.voice}
-            onOpenSettings={() => setTab("settings")}
+            onOpenSettings={openSettings}
             onPlanSave={async (p) => { onPlanChange(p); await flushPlan(); }}
             livePreview={(id) => <SceneLivePreview sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => setRequestedSceneId(id)}

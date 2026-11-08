@@ -253,3 +253,8 @@
 .studio-review-notes-list button > span { font-variant-numeric: tabular-nums; color: var(--muted); }
 .studio-review-notes-list button > strong { max-width: 100%; overflow-wrap: anywhere; line-height: 1.7; }
 .studio-review-notes-list button > em { color: var(--accent); font-style: normal; margin-inline-start: auto; }
+
+/* الإعدادات: العنوان وزر العودة إلى الحلقة في سطر واحد (تجربة الفانل، البند ١٤) */
+.settings-tab .settings-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.settings-tab .settings-tech { margin: 8px 0 14px; }
+.settings-tab .settings-tech summary { cursor: pointer; font-size: 13px; color: var(--muted, #666); }

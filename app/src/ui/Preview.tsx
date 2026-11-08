@@ -40,7 +40,12 @@ const ReelComp: React.FC<{ themeId: ThemeId; orientation: Orientation } & Ctx> =
 /** العرض فقط؛ الارتفاع يحسبه المشغل من نسبة الفيديو. العمودي يُضيَّق من الحاوية. */
 const playerStyle = (_o: Orientation): React.CSSProperties => ({ width: "100%", borderRadius: 8, overflow: "hidden" });
 
-export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> } & Ctx>((props, ref) => (
+/**
+ * Silent previews start muted (funnel audit item 17): an autoplaying player with sound is refused by the
+ * browser and Remotion then warns and mutes it itself. Muted from the start says what the label says
+ * («معاينة صامتة»); the owner can still unmute from the controls.
+ */
+export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; muted?: boolean } & Ctx>(({ muted, ...props }, ref) => (
   <Player
     ref={ref}
     key={`${props.scene.id}-${props.orientation}`}
@@ -53,6 +58,7 @@ export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: T
     style={playerStyle(props.orientation)}
     controls
     autoPlay
+    initiallyMuted={muted}
     loop
     acknowledgeRemotionLicense
   />
@@ -86,6 +92,7 @@ export const ReelPreview: React.FC<{ themeId: ThemeId; orientation: Orientation 
     style={playerStyle(props.orientation)}
     controls
     autoPlay
+    initiallyMuted
     loop
     acknowledgeRemotionLicense
   />

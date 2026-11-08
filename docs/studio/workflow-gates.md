@@ -139,6 +139,11 @@ the job's memory, and a restart drops the job (finished drafts remain). `DELETE 
 queue to stop: the voice clip or scene render in progress finishes and is kept, nothing new starts, status `stopped`;
 on the dafatir parts path no scene is composed from an incomplete set of parts. A tone is present when the scene has
 one or inherits the episode's (then the channel's) tone (`effectiveTone`, D36); the dafatir tone map is unchanged.
+Without a usable voice (no key, or the voice step failed) the queue drafts only the scenes **before** the first open
+scene still waiting for its narration (none of the rest can be reviewed before that voice exists), and lists the others
+as `skipped: [{ id, reason: "voice" }]`; a scene whose **same inputs** failed in the previous run is not rendered
+again by the queue (`reason: "failed-before"`; the scene's own «إنتاج المشهد» retries it), except network/render-browser
+failures, which are retried (`pickRenderQueue`, D38).
 
 Why pre-rendering is safe:
 - A render only adds a render-to-input proof (`previewInputs[id]`). `recordSceneRenderEvidence` refuses to save if the
@@ -154,7 +159,14 @@ Why pre-rendering is safe:
   `needs_revision`), never produce an approval.
 
 The scene ledger read (`GET scene-production`) adds `scenes[].draft` (`ready` / `stale` / `none`) and
-`prepared: { ready, total }` (approved + submitted + ready drafts). In step ٣ a ready draft of the current scene is shown
+`prepared: { ready, total }` (approved + submitted + ready drafts), and, while the assembly awaits review,
+`seamTimes: { "<a>><b>": seconds }` from the real cut durations (read-only: jumps the player; never checks a seam, D38).
+
+**Input changes and the lock (D38).** A changed input re-opens a submitted, approved or corrected scene as
+`needs_revision`; a scene never submitted stays `queued` with its new inputs (no «بانتظار التعديل» on a scene nobody
+asked to fix). The ledger lock waits for a live writer up to `LEDGER_LOCK_WAIT_MS` (30 s, short backoff) instead of
+60×25 ms, since every read hashes all scene inputs under it; a live writer's lock is still never deleted, only a dead
+process's (D34). In step ٣ a ready draft of the current scene is shown
 for review directly: «اعتمد» or a problem report first submits those exact bytes (the UI checks the server recorded the
 same SHA-256 it played), then decides. After «اعتمد» the next scene's draft opens and plays.
 

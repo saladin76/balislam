@@ -510,7 +510,7 @@ export const EpisodeTab: React.FC<{
 export const SceneLivePreview: React.FC<{ sceneId: string; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia }> = ({ sceneId, plan, identity, channel, media }) => {
   const hit = plan.chapters.flatMap((c) => c.scenes.map((s) => ({ s, c }))).find((x) => x.s.id === sceneId);
   if (!hit) return null;
-  return <ScenePreview scene={hit.s} themeId={plan.themeId} orientation="landscape" eyebrow={chapterEyebrow(channel, langPack(plan.lang).strings.chapter, hit.c)} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays} />;
+  return <ScenePreview scene={hit.s} themeId={plan.themeId} orientation="landscape" eyebrow={chapterEyebrow(channel, langPack(plan.lang).strings.chapter, hit.c)} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays} muted />;
 };
 
 /** رندر الحلقة أو الفصل وتتبع التقدم. */

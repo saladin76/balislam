@@ -304,6 +304,11 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     expect(assemblySha).toMatch(/^[a-f0-9]{64}$/);
     expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: s.seams })).status).toBe(409); // not recorded yet
     expect((await decide({ action: "assemble", expectedSha256: assemblySha })).status).toBe(200);
+    // Audit item 11: each seam's place in the assembled file, from the real 2 s cuts (to jump the player).
+    const withTimes = await state();
+    expect(Object.keys(withTimes.seamTimes ?? {})).toEqual(s.seams);
+    expect(withTimes.seamTimes["c1-s1>c1-s2"]).toBeGreaterThan(1.5);
+    expect(withTimes.seamTimes["c1-s2>c1-s3"]).toBeGreaterThan(withTimes.seamTimes["c1-s1>c1-s2"] + 1.5);
     await expect(gate("master_render")).rejects.toThrow(/1×|assembl/i);
     expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, seamsChecked: s.seams })).status).toBe(409); // not watched
     expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: [s.seams[0]] })).status).toBe(409); // a seam unchecked

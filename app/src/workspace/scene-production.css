@@ -46,6 +46,10 @@
 .scene-first-seams { border: 1px solid var(--line, #ddd); border-radius: 8px; padding: 8px 12px; display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin: 8px 0; }
 .scene-first-seams legend { padding: 0 6px; font-weight: 600; }
 .scene-first-seams label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.scene-first-seams { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.sp-seam { display: flex; gap: 8px; align-items: center; justify-content: space-between; min-width: 0; }
+.sp-seam .prep-link { font-size: 12px; white-space: nowrap; }
+.s3-alldone { margin-top: 10px; }
 
 /* لوحة «إنتاج المشاهد» فوق محرر المشاهد: صف خاص بها بارتفاع محدود وتمرير داخلي، فلا يطويها المحرر */
 .studio-shell .episode-workspace-app:has(> .scene-first-panel) { grid-template-rows: auto auto minmax(0, auto) minmax(0, 1fr); }

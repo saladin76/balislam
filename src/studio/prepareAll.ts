@@ -45,9 +45,16 @@ export type PrepareProgress = {
   sceneId?: string;
   voice: { needed: number; generated: number; status: "pending" | "done" | "no-key" | "error" | "none"; error?: string };
   rendered: string[];
-  failed: { id: string; error: string }[];
+  failed: { id: string; error: string; sourceSha256?: string }[];
   /** The owner stopped the queue; what finished before the stop is kept. */
   stopped?: boolean;
+  /**
+   * Scenes not rendered on purpose (audit item 5): `voice` — without a voice key (or after a voice
+   * error) nothing past the first scene still waiting for its narration is drafted, since none of it can
+   * be reviewed before that voice exists; `failed-before` — the same inputs already failed in the last
+   * run, so the queue does not spend another render on them (the scene's own «إنتاج المشهد» retries).
+   */
+  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
 };
 
 export type RenderSceneDraft = (episode: string, sceneId: string, sourceSha256: string, token: string) => Promise<void>;
@@ -72,12 +79,41 @@ export const renderSceneDraft: RenderSceneDraft = async (episode, sceneId, sourc
 export const scenesToRender = async (episode: string) => {
   const s = await inspectSceneProduction(episode);
   const from = s.scenes.findIndex((x) => x.id === s.progress.currentScene);
-  if (from < 0) return { list: [] as { id: string; sourceSha256: string }[], blocked: [] as string[] };
+  if (from < 0) return { list: [] as { id: string; sourceSha256: string }[], blocked: [] as string[],
+    beforeVoiceGap: [] as { id: string; sourceSha256: string }[] };
   const open = s.scenes.slice(from).filter((x) => (x.status === "queued" || x.status === "needs_revision") && x.draft !== "ready");
+  const firstBlocked = open.findIndex((x) => !x.readyForAv);
   return {
     list: open.filter((x) => x.readyForAv).map((x) => ({ id: x.id, sourceSha256: x.sourceSha256 })),
     blocked: open.filter((x) => !x.readyForAv).map((x) => x.id),
+    /** Drafts the owner can review before the first scene still waiting for its voice (in order). */
+    beforeVoiceGap: (firstBlocked < 0 ? open : open.slice(0, firstBlocked)).map((x) => ({ id: x.id, sourceSha256: x.sourceSha256 })),
   };
+};
+
+/** A render-browser setup failure is environmental (network/browser), not the scene's: retried on the next press. */
+export const environmentalFailure = (error: string) => /تعذّر تجهيز متصفح الرندر|ENOTFOUND|ECONNRESET|ETIMEDOUT/.test(error);
+
+type QueueItem = { id: string; sourceSha256: string };
+/**
+ * Which drafts one pass renders (audit item 5, pure). Without a usable voice nothing past the first scene
+ * still waiting for its narration is drafted; a scene whose same inputs failed last run (for a reason of
+ * its own, not the network/browser) is skipped by the queue.
+ */
+export const pickRenderQueue = (queue: { list: QueueItem[]; beforeVoiceGap: QueueItem[] }, opts: {
+  voiceMissing: boolean; previousFailures?: { id: string; error: string; sourceSha256?: string }[];
+}) => {
+  const allowed = opts.voiceMissing ? queue.beforeVoiceGap.filter((x) => queue.list.some((y) => y.id === x.id)) : queue.list;
+  const kept = new Set(allowed.map((x) => x.id));
+  const skipped: { id: string; reason: "voice" | "failed-before"; error?: string }[] =
+    queue.list.filter((x) => !kept.has(x.id)).map((x) => ({ id: x.id, reason: "voice" as const }));
+  const todo: QueueItem[] = [];
+  for (const x of allowed) {
+    const before = opts.previousFailures?.find((f) => f.id === x.id && f.sourceSha256 === x.sourceSha256);
+    if (before && !environmentalFailure(before.error)) skipped.push({ id: x.id, reason: "failed-before", error: before.error });
+    else todo.push(x);
+  }
+  return { todo, skipped };
 };
 
 export const prepareAllScenes = async (episode: string, opts: {
@@ -90,6 +126,8 @@ export const prepareAllScenes = async (episode: string, opts: {
   maxPasses?: number;
   /** «أوقف» (D36): checked between steps; the clip/render in progress finishes and is kept. */
   shouldStop?: () => boolean;
+  /** The previous run's failures; the same scene with the same inputs is not rendered again by the queue. */
+  previousFailures?: { id: string; error: string; sourceSha256?: string }[];
 }): Promise<PrepareProgress> => {
   assertSceneOwner(opts.token);
   await requireSceneProductionReady(episode);
@@ -99,7 +137,11 @@ export const prepareAllScenes = async (episode: string, opts: {
     phase: "voice", voice: { needed: needed.length, generated: 0, status: needed.length ? "pending" : "none" },
     rendered: [], failed: [],
   };
-  const emit = () => opts.onProgress?.({ ...p, voice: { ...p.voice }, rendered: [...p.rendered], failed: [...p.failed] });
+  const emit = () => opts.onProgress?.({ ...p, voice: { ...p.voice }, rendered: [...p.rendered], failed: [...p.failed],
+    ...(p.skipped ? { skipped: [...p.skipped] } : {}) });
+  const skip = (id: string, reason: "voice" | "failed-before", error?: string) => {
+    p.skipped = [...(p.skipped ?? []).filter((x) => x.id !== id), { id, reason, ...(error ? { error } : {}) }];
+  };
   const stop = () => {
     if (!opts.shouldStop?.()) return false;
     p.stopped = true;
@@ -126,12 +168,16 @@ export const prepareAllScenes = async (episode: string, opts: {
       p.voice.error = (e as Error).message;
     }
   }
-  emit();
 
   p.phase = "render";
+  // Said before any render starts, so the owner sees the real blocker at once.
+  const voiceMissing = p.voice.status === "no-key" || p.voice.status === "error";
+  emit();
   const tried = new Map<string, string>(); // scene → inputs already attempted (no retry loop on failure)
   for (let pass = 0; pass < (opts.maxPasses ?? 4) && !p.stopped; pass++) {
-    const todo = (await scenesToRender(episode)).list.filter((x) => tried.get(x.id) !== x.sourceSha256);
+    const picked = pickRenderQueue(await scenesToRender(episode), { voiceMissing, previousFailures: opts.previousFailures });
+    for (const x of picked.skipped) skip(x.id, x.reason, x.error);
+    const todo = picked.todo.filter((x) => tried.get(x.id) !== x.sourceSha256);
     if (!todo.length) break;
     for (const scene of todo) {
       if (stop()) break;
@@ -143,7 +189,7 @@ export const prepareAllScenes = async (episode: string, opts: {
         p.failed = p.failed.filter((f) => f.id !== scene.id);
         if (!p.rendered.includes(scene.id)) p.rendered.push(scene.id);
       } catch (e) {
-        p.failed = [...p.failed.filter((f) => f.id !== scene.id), { id: scene.id, error: (e as Error).message }];
+        p.failed = [...p.failed.filter((f) => f.id !== scene.id), { id: scene.id, error: (e as Error).message, sourceSha256: scene.sourceSha256 }];
       }
       emit();
     }
