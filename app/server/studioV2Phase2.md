@@ -16,10 +16,10 @@ as an authorization claim.
 - `DELETE /api/studio-v2/session`: requires CSRF; destroys session.
 - `GET /api/studio-v2/episodes/:NNN/sources?channel=balislam`: exact signed source fingerprints and approval state.
 - `POST .../sources`: `{"stage":"script"|"storyboard","expectedFingerprint":"sha256","note":"meaningful owner signoff"}`. Stage checks are server-derived.
-- `GET /api/studio-v2/episodes/:NNN/scenes?channel=balislam`: `{channel,episode,revision,sourcesReady,scenes:[{id,status,fingerprint,currentVideo?,blockers,approvedAt?,notes:[{text,at,second?,elementId?}]}]}`. `currentVideo` exposes only version/job ID, SHA/epoch, dimensions, duration, hasAudio; no private filesystem path. `blockers` is server-generated.
+- `GET /api/studio-v2/episodes/:NNN/scenes?channel=balislam`: `{channel,episode,revision,sourcesReady,scenes:[{id,status,fingerprint,currentVideo?,blockers,approvedAt?,notes:[{text,at,second?,elementId?,fingerprint?,videoVersion?,videoSha256?}]}]}`. `currentVideo` exposes only version/job ID, SHA/epoch, dimensions, duration, hasAudio; no private filesystem path. `blockers` is server-generated.
 - `POST .../scenes/:id/commands`: `{"action":"prepare"|"begin"|"submit"|"approve"|"note"|"request_changes",...}`.
-  - `note`: `{"action":"note","note":"...","second":1.25,"elementId":"shot-1"}`; signs durable annotations, **no approval or status change**.
-  - `request_changes`: same optional timecode/element fields; changes scene state and revokes its approval.
+  - `note`: `{"action":"note","expectedFingerprint":"current-scene-sha256","note":"...","second":1.25,"elementId":"shot-1"}`; verifies exact current AV under the writer mutex and signs a durable annotation bound to server-observed fingerprint, video revision and SHA, **without any approval or status change**.
+  - `request_changes`: same mandatory `expectedFingerprint` plus optional timecode/element fields; rejects stale AV first, persists exact video version binding, then changes scene state and revokes its approval.
   - `begin`: explicitly opens final production only with current approved script/Storyboard and all earlier scenes approved.
   - `submit`: `{"action":"submit","expectedFingerprint":"sha256"}`. Revalidates signed render receipt from *current* `begin`, current source approvals and actual MP4 via FFprobe.
   - `approve`: `{"action":"approve","expectedFingerprint":"sha256","reviewId":"48-hex"}`. Revalidates completed independent server-side playback receipt and current signed AV bytes/epoch. Client flags are forbidden.
