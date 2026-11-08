@@ -33,6 +33,8 @@ export type SceneSoundV2 = SceneAssetV2 & Readonly<{
   startSec: number;
   durationSec: number;
   volume: number;
+  /** Must match the locked Storyboard SFX cue ID and startSec. */
+  cueId?: string;
   /** Exact alignment from the REAL narrator file, not synthesized estimates. */
   words?: TimedWord[];
 }>;
@@ -119,7 +121,8 @@ const validateRequest = (r: SceneRenderRequestV2) => {
     if (!["narrator", "recitation", "sfx"].includes(a.kind) ||
         !shaPattern.test(a.sha256) || !path.isAbsolute(a.file) ||
         !finite(a.startSec, 0, 600) || !finite(a.durationSec, 0.05, 600) ||
-        !finite(a.volume, 0, 1) || a.startSec + a.durationSec > 600)
+        !finite(a.volume, 0, 1) || a.startSec + a.durationSec > 600 ||
+        (a.kind === "sfx" && (!a.cueId || !idPattern.test(a.cueId))))
       throw Error("Invalid scene sound.");
     if (a.kind === "narrator") counts.narrator++;
     else if (a.kind === "recitation") counts.recitation++;
@@ -159,6 +162,10 @@ const planScene = (plan: Plan, r: SceneRenderRequestV2): { scene: PlanScene; cha
     throw Error("Narration track must match the locked scene text.");
   if (Boolean(scene.ayahKey) !== r.sounds.some((s) => s.kind === "recitation"))
     throw Error("Human recitation track must match locked scene ayahKey.");
+  for (const sound of r.sounds.filter((s) => s.kind === "sfx")) {
+    if (!scene.sfx.some((cue) => cue.id === sound.cueId && Math.abs(cue.at - sound.startSec) < 0.001))
+      throw Error("SFX event is not pinned to the locked Storyboard scene.");
+  }
   if (scene.ayahKey && !scene.props.text?.trim())
     throw Error("Recitation scene requires verified Quran text in locked plan.");
   const expectedImages = [scene.props.image, scene.props.image2, scene.props.image3].filter(Boolean);
