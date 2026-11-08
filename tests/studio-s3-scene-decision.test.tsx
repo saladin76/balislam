@@ -15,17 +15,46 @@ const base = {
 const buttons = (html: string) => [...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
 
 describe("الخطوة ٣: قرار المشهد الحالي", () => {
-  it("أربعة أفعال فقط تحت المعاينة، و«اعتمد» الزر الممتلئ الوحيد", () => {
+  it("خمسة أفعال تحت المعاينة دائمًا، و«اعتمد» الزر الممتلئ الوحيد", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} />);
-    expect(buttons(html)).toEqual(["توليد الصوت", "الحركة غير مناسبة", "النبرة غير مناسبة", "اعتمد"]);
+    expect(buttons(html)).toEqual(["جهّز كل المشاهد", "توليد الصوت", "الحركة غير مناسبة", "النبرة غير مناسبة", "اعتمد"]);
     expect(html.match(/btn primary/g)).toHaveLength(1);
     expect(html).toMatch(/btn primary[^"]*"[^>]*>اعتمد/);
   });
 
   it("الصوت المطابق يصير «إعادة توليد الصوت» ويهدأ زره", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} voice="ok" />);
-    expect(buttons(html)[0]).toBe("إعادة توليد الصوت");
+    expect(buttons(html)[1]).toBe("إعادة توليد الصوت");
     expect(html).not.toContain("s3-cta");
+  });
+
+  it("قبل اعتماد السكريبت والستوري بورد: الشريط ظاهر كله معطّلًا، وسببه ورابط الخطوة الناقصة هو الممتلئ الوحيد", () => {
+    const html = renderToStaticMarkup(<SceneDecisionActions {...base} stage="render" readyForAv={false}
+      locked={{ reason: "تُفتح بعد اعتماد السكريبت والستوري بورد — اعتمدهما من الخطوتين ١ و٢.", action: { label: "اعتمد السكريبت (الخطوة ١)", onClick: noop } }} />);
+    const bar = html.slice(0, html.indexOf("s3-why"));
+    expect(buttons(bar)).toEqual(["جهّز كل المشاهد", "توليد الصوت", "الحركة غير مناسبة", "النبرة غير مناسبة", "اعتمد"]);
+    expect(bar.match(/<button[^>]*disabled=""/g)).toHaveLength(5);
+    expect(html).toContain("تُفتح بعد اعتماد السكريبت والستوري بورد");
+    expect(html.match(/btn primary/g)).toHaveLength(1);
+    expect(html).toMatch(/btn primary[^"]*"[^>]*>اعتمد السكريبت \(الخطوة ١\)/);
+  });
+
+  it("الأسباب الحقيقية: جلسة المالك المقفلة، ومفتاح الصوت الناقص", () => {
+    const html = renderToStaticMarkup(<SceneDecisionActions {...base} ownerOpen={false} canVoice={false} />);
+    expect(html).toContain("افتح جلسة المالك من أعلى الصفحة");
+    expect(html).toContain("أضف مفتاح الصوت من الإعدادات");
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>اعتمد</);
+  });
+
+  it("قبل المعاينة: «إنتاج المشهد» هو الممتلئ، و«اعتمد» ظاهر معطّل بسببه", () => {
+    const html = renderToStaticMarkup(<SceneDecisionActions {...base} stage="render" />);
+    expect(buttons(html)).toEqual(["جهّز كل المشاهد", "توليد الصوت", "إنتاج المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة", "اعتمد"]);
+    expect(html.match(/btn primary/g)).toHaveLength(1);
+    expect(html).toMatch(/btn primary[^"]*"[^>]*>إنتاج المشهد/);
+    expect(html).toContain("تُفتح بعد إنتاج معاينة المشهد");
+    // «الحركة/النبرة غير مناسبة» لا تُسجَّل إلا على معاينة مُرسلة (correct-scene يشترط previewSha256)؛ لا مسار جديد
+    const ui = readFileSync(path.join(__dirname, "../app/src/workspace/SceneProductionPanel.tsx"), "utf8");
+    expect(ui).toContain("locked={lock ??");
   });
 
   it("«الحركة غير مناسبة» تفتح «ما المشكلة؟» بلحظتها، والملاحظة تبدأ بـ «[الحركة @…]»", () => {
