@@ -169,6 +169,9 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
             second: input.second, elementId: input.elementId,
           }));
       } else {
+        // Source/Storyboard owner approvals must still be current on submit
+        // AND approve, not merely at the earlier begin event.
+        await deps.assertLockedScriptAndStoryboard(input.sceneId);
         // Both submission and approval must inspect the *current* composed AV
         // file. A stale client fingerprint cannot approve newer bytes.
         const { inputs, fingerprint, manifest } = await captureLocked(input.sceneId);
@@ -300,6 +303,7 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
   const assemblyEligibility = async () => deps.withArtifactLock(async () => {
     await owner();
     const order = await scopedOrder();
+    await deps.assertLockedScriptAndStoryboard(order[0]!);
     const doc = await refreshSignedLocked(order);
     return { sceneAssemblyFingerprint: assemblySceneFingerprint(doc) };
   });
