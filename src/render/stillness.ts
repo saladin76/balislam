@@ -2,7 +2,7 @@ import type { Plan } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
 import { sceneSeconds } from "../plan/duration";
 import { normalizeArabic } from "../script/quranMeta";
-import { estimateTimings } from "../remotion/scenes/timing";
+import { estimateTimings, splitWords } from "../remotion/scenes/timing";
 import { HZ_META } from "../remotion/dafatir/horizon/meta";
 
 /**
@@ -10,8 +10,28 @@ import { HZ_META } from "../remotion/dafatir/horizon/meta";
  * ولا عند ذكره. هذه المقاطع تُستثنى من نسبة الحركة الوظيفية ومن «المقاطع الساكنة»، ويُعلن زمنها في التقرير.
  * - مشهد الآية (verse-card) كله، وتمهيد الآية (ink-shot بمشهد verse-intro-*).
  * - كل ذكر لله داخل أي مشهد: من قبل الكلمة بربع ثانية إلى بعدها بربع ثانية.
+ * - تمهيد الآية في أي قالب: الجملة التي تسبق بطاقة الآية مباشرة وتنتهي بنقطتين («فقال الله تعالى:»)، كلها.
+ * - الدعاء المنطوق كله (نداء لله، فهو ذكر له): العبارة المقتبسة «…» التي تبدأ بـ«اللهم» أو «ربنا» أو «رب»،
+ *   من أول كلمة فيها إلى آخرها (بالهامش نفسه). لا يُحدَّد بمشهد ولا بقالب: أي دعاء مقتبس في أي مشهد.
  */
 export const SACRED_WORD = /الله|لله|ربنا|ربه|ربك|سبحانه|تعالي|تعالى/;
+
+/** أول كلمة في دعاء مقتبس: نداء لله */
+const DUA_OPENER = /^(اللهم|ربنا|رب|ربي)$/;
+const bare = (w: string) => normalizeArabic(w.replace(/[«»"“”'؟?!.,،:؛…]/g, ""));
+
+/** مدى الدعاء المقتبس في كلمات الجملة: [أول كلمة، آخر كلمة] لكل عبارة «…» تبدأ بنداء لله */
+export const duaRanges = (words: string[]): [number, number][] => {
+  const out: [number, number][] = [];
+  for (let i = 0; i < words.length; i++) {
+    if (!words[i]!.includes("«")) continue;
+    let j = i;
+    while (j < words.length - 1 && !words[j]!.includes("»")) j++;
+    if (DUA_OPENER.test(bare(words[i]!.slice(words[i]!.indexOf("«") + 1)))) out.push([i, j]);
+    i = j;
+  }
+  return out;
+};
 
 export type Span = { from: number; to: number; why: string };
 
@@ -20,16 +40,20 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
   let t = startSec;
   for (const c of plan.chapters) {
     if (chapter && c.number !== chapter) continue;
-    for (const s of c.scenes) {
+    for (const [i, s] of c.scenes.entries()) {
       const d = sceneSeconds(s, media);
       const shot = String(s.props?.shot ?? "");
       if (s.template === "verse-card") spans.push({ from: t, to: t + d, why: "آية" });
       else if (s.template === "ink-shot" && shot.startsWith("verse-intro")) spans.push({ from: t, to: t + d, why: "تمهيد آية" });
       else if (s.template === "horizon-shot" && HZ_META[shot]?.still) spans.push({ from: t, to: t + d, why: HZ_META[shot]!.still === "dhikr" ? "ذكر الله" : "تمهيد آية" });
+      else if (s.narration && c.scenes[i + 1]?.template === "verse-card" && /[:：]\s*$/.test(s.narration.trim())) spans.push({ from: t, to: t + d, why: "تمهيد آية" });
       else if (s.narration) {
         const clip = media?.voice[s.id];
         const words = clip && clip.text === s.narration.trim() ? clip.words.map((w) => ({ word: w.word, start: w.start * 30, end: w.end * 30 })) : estimateTimings(s.narration, 6, Math.round(d * 30) - 12);
         for (const w of words) if (SACRED_WORD.test(normalizeArabic(w.word))) spans.push({ from: t + w.start / 30 - 0.25, to: t + w.end / 30 + 0.25, why: "ذكر الله" });
+        // علامات الاقتباس من نص المشهد (توقيت الصوت قد يحذفها) إن تطابق عدد الكلمات
+        const tokens = splitWords(s.narration);
+        for (const [a, b] of duaRanges(tokens.length === words.length ? tokens : words.map((w) => w.word))) spans.push({ from: t + words[a]!.start / 30 - 0.25, to: t + words[b]!.end / 30 + 0.25, why: "دعاء" });
       }
       t += d;
     }

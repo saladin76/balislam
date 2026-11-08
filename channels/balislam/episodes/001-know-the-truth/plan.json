@@ -407,7 +407,7 @@
             "place": "home",
             "mood": "dusk",
             "moodTo": "",
-            "camera": "rise",
+            "camera": "still",
             "poses": "stand,stand",
             "look": "hero",
             "cast": "",
@@ -732,7 +732,7 @@
             "place": "alley",
             "mood": "deep",
             "moodTo": "",
-            "camera": "rise",
+            "camera": "still",
             "poses": "stand",
             "look": "hero",
             "cast": "",
@@ -954,7 +954,7 @@
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
             "shown": "source, dua, dock, grid",
-            "cues": "cam:c1 | أولها\nfocus:1 | أولها\nask1 | نرى"
+            "cues": "cam:c1 | أولها\nask1 | نرى\nfocus:1 | حقًّا"
           },
           "id": "c4-s4",
           "sfx": [],
@@ -1110,7 +1110,7 @@
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
             "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:4, cam:c4",
-            "cues": "cam:all | فكما\nfocus:1 | الحق\nlink12 | اتباعه\nfocus:12 | اتباعه\nfocus:3 | الباطل\nlink34 | تركه\nfocus:34 | تركه"
+            "cues": "cam:r1 | فكما\nfocus:1 | الحق\nlink12 | اتباعه\nfocus:12 | اتباعه\ncam:r2 | الباطل\nfocus:3 | الباطل\nlink34 | تركه\nfocus:34 | تركه"
           },
           "id": "c4-s13",
           "sfx": [],
@@ -1125,8 +1125,8 @@
             "source": "من الأدعية المأثورة في كلام أهل العلم",
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
-            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:34, link12, link34, cam:all",
-            "cues": "focus:0 | وهكذا\nhead1 | البصيرة\nhead2 | والعزيمة"
+            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:34, link12, link34, cam:r2",
+            "cues": "cam:all | وهكذا\nfocus:0 | وهكذا\nhead1 | البصيرة\nhead2 | والعزيمة"
           },
           "id": "c4-s14",
           "sfx": [],
@@ -1381,7 +1381,7 @@
             "place": "home",
             "mood": "dusk",
             "moodTo": "",
-            "camera": "track",
+            "camera": "still",
             "poses": "sit,sit",
             "look": "hero",
             "cast": "",
@@ -1557,7 +1557,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "cameraMode": "directed"
           },
           "id": "c6-s1",
           "sfx": []
@@ -1625,7 +1626,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "cameraMode": "directed"
           },
           "id": "c6-s5",
           "sfx": []
@@ -1672,7 +1674,7 @@
             "place": "alley",
             "mood": "dawn",
             "moodTo": "",
-            "camera": "push",
+            "camera": "still",
             "poses": "stand",
             "look": "hero",
             "cast": "",
@@ -1774,7 +1776,8 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "cameraMode": "directed"
           },
           "id": "c6-s14",
           "sfx": []
@@ -1906,7 +1909,7 @@
             "place": "alley",
             "mood": "dawn",
             "moodTo": "",
-            "camera": "track",
+            "camera": "still",
             "poses": "sit",
             "look": "hero",
             "cast": "",
