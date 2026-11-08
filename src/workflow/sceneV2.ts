@@ -26,6 +26,8 @@ export type SceneStatus =
   | "changes_requested" | "approved" | "needs_reapproval";
 export type SceneNote = {
   seq: number; at: string; text: string; second?: number; elementId?: string;
+  /** Server-observed exact AV generation, absent in older notes. */
+  fingerprint?: string; videoVersion?: string; videoSha256?: string;
 };
 export type SceneApproval = {
   ownerId: string; at: string; fingerprint: string;
@@ -180,7 +182,8 @@ export const assertCanProduceScene = (ledger: SceneLedgerV2, sceneId: string): v
 
 /** Durable owner-only, timecoded annotation; does not grant or revoke scene approval. */
 export const appendSceneNote = (ledger: SceneLedgerV2, sceneId: string,
-  note: { text: string; second?: number; elementId?: string }, at: string): void => {
+  note: { text: string; second?: number; elementId?: string;
+    fingerprint?: string; videoVersion?: string; videoSha256?: string }, at: string): void => {
   const s = current(ledger, sceneId);
   if (!note || typeof note.text !== "string" ||
       note.text.trim().length < 2 || note.text.length > 2000 ||
@@ -190,7 +193,10 @@ export const appendSceneNote = (ledger: SceneLedgerV2, sceneId: string,
   const seq = event(ledger, sceneId, "noted", at);
   s.notes.push({ seq, at, text: note.text.trim(),
     ...(note.second === undefined ? {} : { second: note.second }),
-    ...(note.elementId === undefined ? {} : { elementId: note.elementId }) });
+    ...(note.elementId === undefined ? {} : { elementId: note.elementId }),
+    ...(note.fingerprint ? { fingerprint: note.fingerprint } : {}),
+    ...(note.videoVersion ? { videoVersion: note.videoVersion } : {}),
+    ...(note.videoSha256 ? { videoSha256: note.videoSha256 } : {}) });
 };
 
 export const markScenePrepared = (ledger: SceneLedgerV2, sceneId: string, at: string): void => {
@@ -265,7 +271,8 @@ export const approveSceneAv = (
 
 export const requestSceneChanges = (
   ledger: SceneLedgerV2, sceneId: string,
-  note: { at: string; text: string; second?: number; elementId?: string },
+  note: { at: string; text: string; second?: number; elementId?: string;
+    fingerprint?: string; videoVersion?: string; videoSha256?: string },
 ): void => {
   const s = current(ledger, sceneId);
   insist(["in_review", "approved", "needs_reapproval"].includes(s.status),
@@ -278,7 +285,10 @@ export const requestSceneChanges = (
   event(ledger, sceneId, "changes_requested", note.at);
   s.notes.push({ seq: ledger.events.length, at: note.at, text: note.text.trim(),
     ...(note.second !== undefined ? { second: note.second } : {}),
-    ...(note.elementId ? { elementId: note.elementId } : {}) });
+    ...(note.elementId ? { elementId: note.elementId } : {}),
+    ...(note.fingerprint ? { fingerprint: note.fingerprint } : {}),
+    ...(note.videoVersion ? { videoVersion: note.videoVersion } : {}),
+    ...(note.videoSha256 ? { videoSha256: note.videoSha256 } : {}) });
   s.status = "changes_requested";
   s.submittedFingerprint = undefined;
 };
