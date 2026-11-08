@@ -29,7 +29,7 @@ describe("Studio V2 review UI fail-closed model", () => {
     draft.status = "prepared";
     draft.versions[0]!.video = undefined;
     expect(actionBlockers(draft, { ...ready, status: "draft" }).join(" ")).toContain("السابق");
-    expect(actionBlockers(draft).join(" ")).toContain("MP4");
+    expect(actionBlockers(draft).join(" ")).toContain("بصمة");
   });
   it("rejects malformed backend gate snapshots instead of displaying false approvals", () => {
     const malformed = {
