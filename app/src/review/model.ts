@@ -23,6 +23,11 @@ export type SceneVersion = {
 };
 export type SceneReviewRecord = {
   id: string; status: SceneStatus; currentVersionId?: string;
+  /** Read-only current media verification from Backend GET /scenes. No URL until review/start. */
+  currentVideo?: {
+    version: string; sha256: string; epoch: string;
+    width?: number; height?: number; durationSec?: number; hasAudio?: boolean;
+  };
   versions: SceneVersion[]; notes: ReviewNote[];
   /** UI-only affordances derived from server state. Backend remains the sole decision authority. */
   permissions: {
@@ -34,6 +39,7 @@ export type ReviewEpisode = {
   /** Backend's canonical episode slug. Not supplied in QA fixtures. */
   serverEpisode?: string;
   sourceApprovals?: { script: boolean; storyboard: boolean };
+  sourcesReady?: boolean;
   order: string[]; scenes: Record<string, SceneReviewRecord>;
 };
 export type SceneSeed = {
