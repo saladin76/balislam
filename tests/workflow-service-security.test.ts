@@ -65,7 +65,7 @@ const make = async (channel: WorkflowIdentity["channel"] = "balislam", episode =
   });
   const owner = () => { user.current = { id: "actual-owner-session", role: "owner", authenticated: true }; };
   const approve = async (stage: WorkflowStage) => {
-    const { snapshot } = await service.inspect();
+    const { snapshot } = await service.inspectInternal();
     const cmd = {
       stage, expectedFingerprint: stageFingerprint(snapshot, stage),
       note: "Human inspected the current artifacts, with source receipts.",
