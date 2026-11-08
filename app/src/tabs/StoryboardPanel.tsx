@@ -279,6 +279,9 @@ export const StoryboardPanel: React.FC<{
         </section>
       ))}
 
+      {/* فيديوهات الحلقة ظاهرة دائمًا تحت اللوحات، لا مطوية: هي ما يُراجَع */}
+      <Previews episodeId={episodeId} />
+
       <More>
         {err ? <p className="s12-alert" role="alert">{err}</p> : null}
         {job?.status === "error" ? <p className="s12-alert">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
@@ -363,7 +366,6 @@ export const StoryboardPanel: React.FC<{
         </section>
 
         <Reviews episodeId={episodeId} />
-        <Previews episodeId={episodeId} />
       </More>
     </div>
   );
