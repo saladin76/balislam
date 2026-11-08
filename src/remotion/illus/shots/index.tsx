@@ -419,6 +419,7 @@ export const SHOTS: Record<string, ShotDef> = {
     },
   },
   "cafe-rumor-tempting": {
+    // «مغريًا»: لمعة تعبر الرسالة وتتوهج (الإغراء)، «سهلًا»: الإبهام إلى زر الإرسال، «موافقًا»: البطل يومئ
     nameAr: "المقهى: مغرٍ وسهل وموافق لرغباته",
     place: "مقهى الحارة",
     render: ({ frame, at }) => {
@@ -439,7 +440,7 @@ export const SHOTS: Record<string, ShotDef> = {
             <Figure x={1120} y={GROUND} scale={1.1} pose={pz(frame, [[0, "sit-show"], [tA + 8, "sit-nod"], [tR, "sit-show"], [tR + 14, "sit-nod"]])} look={hero} flip holding="phone" frame={frame} rim={agree} />
           </g>
         ),
-        overlay: <PhonePOV frame={frame} show={1 - prog(frame, tA - 2, tA + 16)} tempt={0.5 + 0.5 * prog(frame, tM, tM + 14)} thumb={prog(frame, tS, tS + 18)} near={1 - prog(frame, tS - 6, tS + 14)} />,
+        overlay: <PhonePOV frame={frame} show={1 - prog(frame, tA - 2, tA + 16)} tempt={0.5 + 0.5 * prog(frame, tM, tM + 14)} shine={prog(frame, tM - 2, tM + 26, (t) => t)} thumb={prog(frame, tS, tS + 18)} near={1 - prog(frame, tS - 6, tS + 14)} />,
       };
     },
   },

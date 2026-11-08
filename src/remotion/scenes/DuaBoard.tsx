@@ -7,6 +7,7 @@ import { TopCaption, bareWord } from "../illus/TopCaption";
 import { estimateTimings, type WordTiming } from "./timing";
 import { exit } from "./motion";
 import type { SceneBase, StringFields } from "./types";
+import { SACRED_NEIGHBORS } from "../../plan/beats";
 
 /**
  * «لوح الدعاء» (بالإسلام): ورقة هادئة واحدة تمتد عبر مشاهد متتالية.
@@ -40,6 +41,17 @@ const findWord = (timings: WordTiming[], spec: string): WordTiming | undefined =
   return undefined;
 };
 
+/** هامش السكون حول ذكر الله (ربع ثانية، كما في src/render/stillness.ts) */
+const SACRED_PAD = 8;
+/**
+ * لا حركة في اللوح عند ذكر الله: ما يقع حدثه في نافذة الذكر يتأخر إلى نهايتها، فيبقى على كلمته التالية
+ * («نسأل الله البصيرة»: تظهر «البصيرة» بعد سكون الذكر لا معه). قراءة الدعاء نفسه (dua) لا تتأخر.
+ */
+export const afterSacred = (at: number, timings: WordTiming[]): number => {
+  for (const w of timings) if (SACRED_NEIGHBORS.test(bareWord(w.word)) && at >= w.start - SACRED_PAD && at < w.end + SACRED_PAD) return w.end + SACRED_PAD;
+  return at;
+};
+
 export const parseBoardCues = (text: string | undefined, timings: WordTiming[], dur: number): Cue[] =>
   (text ?? "")
     .split(/\n+/)
@@ -48,9 +60,36 @@ export const parseBoardCues = (text: string | undefined, timings: WordTiming[], 
     .map((l) => {
       const [item, word] = l.split("|").map((s) => s.trim());
       const hit = word ? findWord(timings, word) : undefined;
-      return { item: item ?? "", word, at: hit ? hit.start : word ? Math.round(dur * 0.5) : 0 };
+      const at = hit ? hit.start : word ? Math.round(dur * 0.5) : 0;
+      return { item: item ?? "", word, at: item === "dua" ? at : afterSacred(at, timings) };
     })
     .filter((c) => c.item);
+
+/**
+ * المطلب يُكتب كلمة كلمة لحظة نطق كلماته إن نُطق نصه في المشهد («أن نرى الحق حقًّا»)،
+ * وإلا ظهر كاملًا لحظة كلمته. يعيد لحظة ظهور كل كلمة من كلماته.
+ */
+export const askWordTimes = (ask: string, at: number, timings: WordTiming[]): number[] => {
+  const words = ask.split(/\s+/).filter(Boolean).map(bareWord);
+  let best: number[] | undefined;
+  for (let st = 0; st < timings.length; st++) {
+    if (bareWord(timings[st]!.word) !== words[0]) continue;
+    const times = [timings[st]!.start];
+    let i = st + 1;
+    for (const k of words.slice(1)) {
+      let j = i;
+      while (j < timings.length && j < i + 2 && bareWord(timings[j]!.word) !== k) j++;
+      if (j >= timings.length || j >= i + 2) break;
+      times.push(timings[j]!.start);
+      i = j + 1;
+    }
+    if (times.length !== words.length) continue;
+    // أقرب نطق للمطلب إلى لحظة إشارته
+    const d = Math.min(...times.map((t) => Math.abs(t - at)));
+    if (!best || d < Math.min(...best.map((t) => Math.abs(t - at)))) best = times;
+  }
+  return best ?? words.map(() => at);
+};
 
 const ease = Easing.inOut(Easing.cubic);
 const p01 = (frame: number, a: number, len: number) => interpolate(frame, [a, a + len], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
@@ -345,14 +384,35 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                 const c = cell(n);
                 const k = p(`ask${n}`, 20);
                 const haze = when(`haze${n}`);
-                const blur = haze === undefined || haze === -1e4 ? 0 : 7 * Math.sin(Math.PI * Math.min(1, Math.max(0, (frame - haze) / 34)));
+                // التباس عابر يمتد حتى الحدث التالي في الجملة («تلتبس علينا الأمور» ← «الجهل»)، بين 34 و75 إطارًا
+                const nextAt = haze === undefined ? undefined : cues.map((c) => c.at).filter((x) => x > haze).sort((a, b) => a - b)[0];
+                const hazeLen = nextAt === undefined ? 34 : Math.max(34, Math.min(75, nextAt - (haze ?? 0)));
+                const blur = haze === undefined || haze === -1e4 ? 0 : 7 * Math.sin(Math.PI * Math.min(1, Math.max(0, (frame - haze) / hazeLen)));
                 const mine = notes.filter((x) => x.n === n);
                 return (
                   <React.Fragment key={n}>
                     <div style={{ position: "absolute", left: c.x, width: c.w, top: c.y + 8, textAlign: "center", fontFamily: fontFamilies.scripture, fontWeight: 700, fontSize: 54, lineHeight: 1.45, color: INK, filter: blur > 0.05 ? `blur(${blur}px)` : undefined }}>
-                      <Ink p={k} style={{ background: mix(ID.copper, ID.paper, 0.55), borderRadius: 14, padding: "0 26px" }}>{asks[n - 1]}</Ink>
+                      {(() => {
+                        const askAt = when(`ask${n}`);
+                        const box = { background: mix(ID.copper, ID.paper, 0.55), borderRadius: 14, padding: "0 26px", display: "inline-block" };
+                        if (askAt === undefined || askAt === -1e4) return <Ink p={k} style={{ background: box.background, borderRadius: 14, padding: "0 26px" }}>{asks[n - 1]}</Ink>;
+                        const ws = (asks[n - 1] ?? "").split(/\s+/).filter(Boolean);
+                        const ts = askWordTimes(asks[n - 1] ?? "", askAt, timings);
+                        return (
+                          <span style={{ ...box, opacity: p01(frame, Math.min(...ts), 10) }}>
+                            {ws.map((w, wi) => (
+                              <React.Fragment key={wi}>
+                                {wi ? " " : null}
+                                <Ink p={p01(frame, ts[wi]!, 14)}>{w}</Ink>
+                              </React.Fragment>
+                            ))}
+                          </span>
+                        );
+                      })()}
                     </div>
-                    <div style={{ position: "absolute", left: c.x + 24, width: c.w - 48, top: c.y + 92, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 10px" }}>
+                    {/* التباس: ضباب يغشى الخانة كلها ثم ينقشع (لا الكلمة وحدها) */}
+                    {blur > 0.05 ? <div style={{ position: "absolute", left: c.x, top: c.y, width: c.w, height: c.h, borderRadius: 20, background: `radial-gradient(70% 70% at 50% 50%, ${ID.paper} 0%, ${mix(ID.paper, ID.copper, 0.25)} 100%)`, opacity: 0.62 * (blur / 7) }} /> : null}
+                    <div style={{ position: "absolute", left: c.x + 24, width: c.w - 48, top: c.y + 92, filter: blur > 0.05 ? `blur(${blur * 0.8}px)` : undefined, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 10px" }}>
                       {mine.map((x) => {
                         const a = p01(frame, x.at, 12) * fadeAfter(x.at);
                         if (a <= 0.001) return null;

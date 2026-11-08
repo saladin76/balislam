@@ -39,7 +39,7 @@
 | الفحص | الموضع |
 | --- | --- |
 | مراجعة كل مشهد بعد تنفيذه (المعايير الثلاثة) | `src/plan/sceneReview.ts` (`sceneHash`، `sceneReviewItems`، `setSceneReview`)، و`npx bal -c balislam scenes-review <الحلقة>`، والقرار في `scene-review.json` |
-| قياس الحركة | `measureMotion` (`src/render/motionMeter.ts`)، و`npx bal motion <ملف>`؛ والسكون المقصود مستثنى (`intendedStillness` في `src/render/stillness.ts`) |
+| قياس الحركة | `measureMotion` (`src/render/motionMeter.ts`)، و`npx bal motion <ملف>`؛ والسكون المقصود مستثنى (`intendedStillness` في `src/render/stillness.ts`): بطاقة الآية، وتمهيدها (أي جملة تسبق بطاقة الآية مباشرة وتنتهي بنقطتين، في أي قالب)، وكلمة ذكر الله ±0.25 ث، والدعاء المقتبس «…» الذي يبدأ بـ«اللهم/ربنا/رب/ربي» من أوله إلى آخره |
 | قياس الستوري بورد | `measureStoryboardMotion` (`src/render/storyboardMotion.ts`) |
 | شروط النسخة النهائية | `assertMasterReady` (`src/render/episode.ts`) |
 | فحص حزمة النشر | `packageEpisode` (`src/package/package.ts`)، و`assertNoTraces` (`src/package/traces.ts`) |
@@ -49,7 +49,7 @@
 - **بوابة التسليم:** `.githooks/pre-push` ← `scripts/gate.mjs --commit <sha> --range <مدى>`: نسخة مؤقتة منفصلة من الـcommit المدفوع، ثم `tsc --noEmit` و`vitest run` كاملين برموز خروجهما الحقيقية، ثم تزامن التوثيق (`scripts/docs-sync.mjs`). أي فشل يرفض الدفع. تُثبَّت بـ`npm install` (`scripts/install-hooks.mjs`).
 - **لا تُفحص نتيجة اختبار عبر أنبوب يخفي رمز الخروج** (`| grep`، `| tail`) قبل قرار دفع.
 - **الحماية البعيدة:** حماية الفروع وGitHub Actions غير متاحة لهذا المستودع (خاص على خطة مجانية، وActions متوقفة بسبب الفوترة)، فالبوابة المحلية هي خط الدفاع.
-- اختبارات «بالإسلام» الأساسية: `tests/engine-permanent.test.tsx`، `tests/transitions.test.tsx`، `tests/lighting.test.ts`، `tests/lighting-support.test.ts`، `tests/camera-composed.test.ts`، `tests/character-motion.test.ts`، `tests/figure-view.test.ts`، `tests/illus-direction.test.ts`، `tests/dua-board.test.ts`، `tests/no-unfit-element.test.ts`، `tests/identity-approved.test.ts`، `tests/master-gates.test.ts`، `tests/scene-review.test.ts`، `tests/stillness-merge.test.ts`، `tests/render-pool.test.ts`، `tests/balislam-reference.test.ts`.
+- اختبارات «بالإسلام» الأساسية: `tests/engine-permanent.test.tsx`، `tests/transitions.test.tsx`، `tests/lighting.test.ts`، `tests/lighting-support.test.ts`، `tests/camera-composed.test.ts`، `tests/character-motion.test.ts`، `tests/figure-view.test.ts`، `tests/illus-direction.test.ts`، `tests/dua-board.test.ts`، `tests/no-unfit-element.test.ts`، `tests/identity-approved.test.ts`، `tests/master-gates.test.ts`، `tests/scene-review.test.ts`، `tests/stillness-merge.test.ts`، `tests/stillness-dua.test.ts`، `tests/dua-board-sacred.test.ts`، `tests/render-pool.test.ts`، `tests/balislam-reference.test.ts`.
 
 ## أعطال وملاحظات معروفة
 
