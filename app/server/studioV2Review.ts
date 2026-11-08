@@ -9,9 +9,9 @@ import { randomBytes } from "node:crypto";
 type Receipt = {
   id: string; sessionId: string; ownerId: string; scope: string; sceneId: string;
   fingerprint: string; avSha256: string; avEpoch: string;
-  durationSec: number; startedAt: number; updatedAt: number;
+  durationSec: number; mediaBytes: number; startedAt: number; updatedAt: number;
   playedSec: number; checkpoints: number; challenge: string;
-  streamedBytes: number; completedAt?: number;
+  served: Array<[number, number]>; completedAt?: number;
 };
 const receipts = new Map<string, Receipt>();
 const MAX_MS = 2 * 60 * 60 * 1000;
@@ -26,9 +26,11 @@ const get = (id: string, sessionId: string) => {
 export const startSceneReviewReceiptV2 = (args: {
   sessionId: string; ownerId: string; scope: string; sceneId: string;
   fingerprint: string; avSha256: string; avEpoch: string; durationSec: number;
+  mediaBytes: number;
 }) => {
   if (!Number.isFinite(args.durationSec) || args.durationSec <= 0 ||
-      args.durationSec > 8 * 3600)
+      args.durationSec > 8 * 3600 ||
+      !Number.isSafeInteger(args.mediaBytes) || args.mediaBytes < 1)
     throw Error("V2 review needs probed, playable AV duration.");
   for (const [key, item] of receipts)
     if (Date.now() - item.startedAt > MAX_MS ||
@@ -37,16 +39,30 @@ export const startSceneReviewReceiptV2 = (args: {
   const id = token();
   const entry: Receipt = { ...args, id, startedAt: Date.now(),
     updatedAt: Date.now(), playedSec: 0, checkpoints: 0,
-    challenge: token(), streamedBytes: 0 };
+    challenge: token(), served: [] };
   receipts.set(id, entry);
   return { reviewId: id, challenge: entry.challenge,
     durationSec: entry.durationSec, fingerprint: entry.fingerprint };
 };
-export const streamSceneReviewReceiptV2 = (id: string, sessionId: string, bytes: number) => {
+/** Count only byte ranges actually streamed by the backend, not a browser flag. */
+export const streamSceneReviewReceiptV2 = (
+  id: string, sessionId: string, start: number, endExclusive: number,
+) => {
   const entry = get(id, sessionId);
-  if (!Number.isSafeInteger(bytes) || bytes < 1)
-    throw Error("Invalid served media byte count.");
-  entry.streamedBytes += bytes;
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(endExclusive) ||
+      start < 0 || start >= endExclusive || endExclusive > entry.mediaBytes)
+    throw Error("Invalid served media range.");
+  const ranges = [...entry.served, [start, endExclusive] as [number, number]]
+    .sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [];
+  for (const item of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && item[0] <= last[1]) last[1] = Math.max(last[1], item[1]);
+    else merged.push([item[0], item[1]]);
+  }
+  // Cannot grow unbounded from adversarial range requests.
+  if (merged.length > 4096) throw Error("Too many fragmented AV review ranges.");
+  entry.served = merged;
 };
 export const inspectSceneReviewReceiptV2 = (id: string, sessionId: string) =>
   get(id, sessionId);
@@ -67,7 +83,7 @@ export const tickSceneReviewReceiptV2 = (
   const now = Date.now();
   const elapsed = (now - entry.updatedAt) / 1000;
   const lifetime = (now - entry.startedAt) / 1000;
-  if (entry.streamedBytes < 1 || elapsed < 0.8 ||
+  if (!entry.served.length || elapsed < 0.8 ||
       data.positionSec - entry.playedSec > elapsed * 1.1 + 0.25 ||
       data.positionSec > lifetime * 1.1 + 0.25)
     throw Error("V2 review cannot skip, accelerate or claim unseen AV time.");
@@ -85,7 +101,8 @@ export const finishSceneReviewReceiptV2 = (
       Object.keys(action).join(",") !== "confirmation" ||
       (action as { confirmation?: unknown }).confirmation !== "reviewed_av")
     throw bad();
-  if (entry.streamedBytes < 1 || entry.checkpoints < 1 ||
+  if (entry.served.length !== 1 || entry.served[0]?.[0] !== 0 ||
+      entry.served[0]?.[1] !== entry.mediaBytes || entry.checkpoints < 1 ||
       entry.playedSec < entry.durationSec - 0.5 ||
       Date.now() - entry.startedAt < entry.durationSec * 900)
     throw Error("V2 audiovisual review is not complete at normal playback speed.");
