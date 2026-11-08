@@ -38,7 +38,7 @@
 .v2-scene-info { display:flex; flex-direction:column; gap:5px; min-width:0; align-items:flex-start; }
 .v2-scene-info strong { font-size:12px; line-height:1.7; overflow-wrap:anywhere; }
 .v2-scene-info small { color:var(--v2-muted); font-size:10px; }
-.v2-status { border-radius:6px; border:1px solid #d7e1e8; padding:3px 7px; background:#f2f5f8; color:#586b79; font:600 10px/1.5 inherit; white-space:nowrap; }
+.v2-status { border-radius:6px; border:1px solid #d7e1e8; padding:3px 7px; background:#f2f5f8; color:#586b79; font-size:10px; font-weight:600; line-height:1.5; white-space:nowrap; }
 .v2-status.v2-in_review { background:#eaf3ff; color:#195c91; border-color:#b6d2ea; }
 .v2-status.v2-approved { background:#e5f5eb; color:#14663b; border-color:#b9dfc8; }
 .v2-status.v2-changes_requested,.v2-status.v2-needs_reapproval { background:#fff1e6; color:#90501f; border-color:#eecaa4; }
