@@ -2,10 +2,14 @@ import React, { useEffect, useImperativeHandle, useRef, useState, forwardRef } f
 import { api, type CheckResult } from "../api";
 import config from "../../../config.json";
 import { ReviewPanel } from "./ReviewPanel";
+import { Hint, More } from "../shell/Screen";
+import "../shell/screens-s12.css";
 
 export type ScriptTabHandle = { goToLine: (line: number) => void; hasUnsavedResearch: () => boolean };
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
+const ar = (n: number) => n.toLocaleString("ar-EG");
+const fmtAr = (sec: number) => `${ar(Math.floor(sec / 60))}:${ar(Math.round(sec % 60)).padStart(2, "٠")}`;
 
 /** محرر السكريبت مع فحص مباشر أثناء الكتابة. الحفظ يحدّث المشاهد تلقائيًا مع إبقاء تعديلاتك. */
 export const ScriptTab = forwardRef<ScriptTabHandle, {
@@ -114,88 +118,100 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   const errors = check.issues.filter((i) => i.level === "error").length;
   const warnings = check.issues.length - errors;
   const { min, max } = config.episode.chapterSeconds;
+  const sortedIssues = [...check.issues].sort((a, b) => (a.level === b.level ? 0 : a.level === "error" ? -1 : 1));
 
+  const saveButton = (isDirty: boolean, busy: boolean, onClick: () => void) => (
+    <button className={`btn s12-save${isDirty ? " is-dirty" : ""}`} disabled={!isDirty || busy} onClick={onClick} title="Ctrl+S">
+      {busy ? "جارٍ الحفظ…" : "حفظ"}
+    </button>
+  );
+
+  // شاشة واحدة: المحرر يملأ الشاشة، وبجواره شريط فحص نحيل؛ كل التفاصيل في «أدوات وتفاصيل».
   return (
-    <div className="work script-grid">
-      <div className="editor">
-        <div className="toolbar">
+    <div className={`work script-grid s12-script${doc === "research" ? " s12-research" : ""}`}>
+      <div className="editor s12-editor">
+        <div className="toolbar s12-bar">
           {workspaceMode ? (
-            <strong className="ew-document-label">{doc === "research" ? (research?.label ?? "البحث") : "تحرير السكريبت"}</strong>
+            doc === "research" ? <Hint>{research?.label ?? "البحث"} · للتحضير فقط، لا يُقرأ ولا يُنشر.</Hint> : null
           ) : (
             <div className="seg" role="group" aria-label="الملف">
               <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
               {research ? <button aria-pressed={doc === "research"} onClick={() => setDoc("research")}>{research.label}{research.exists ? "" : " (جديد)"}</button> : null}
             </div>
           )}
+          <span className="spacer" />
           {doc === "script" ? (
             <>
-              <span className="help">العلامات: [مشهد: …] [آية: النجم 39 | نص الآية بالتشكيل] [حديث: …] [صوت: page-turn] · bridge: …</span>
-              <span className="spacer" />
-              <span className="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{dirty ? "تعديلات غير محفوظة" : "محفوظ"}</span>
-              <button className="btn primary" disabled={!dirty || saving} onClick={save}>{saving ? "جارٍ الحفظ…" : "حفظ (Ctrl+S)"}</button>
+              <span className="s12-status" role="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{dirty ? "غير محفوظ" : "محفوظ"}</span>
+              {saveButton(dirty, saving, () => void save())}
             </>
           ) : (
             <>
-              <span className="help">للتحضير والمراجعة فقط، لا يُقرأ ولا يُنشر. كل معلومة في السكريبت تُربط هنا بمصدرها.</span>
-              <span className="spacer" />
-              <span className="status"><i className={`dot ${researchDirty ? "dirty" : ""}`} />{researchDirty ? "تعديلات غير محفوظة" : research?.exists ? "محفوظ" : "لم يُحفظ بعد"}</span>
-              <button className="btn primary" disabled={!researchDirty || researchSaving} onClick={() => void saveResearch()}>{researchSaving ? "جارٍ الحفظ…" : "حفظ (Ctrl+S)"}</button>
+              <span className="s12-status" role="status"><i className={`dot ${researchDirty ? "dirty" : ""}`} />
+                {researchSaving ? "جارٍ حفظ ملف البحث…" : researchDirty ? "غير محفوظ" : research?.exists ? "محفوظ" : "لم يُحفظ بعد"}
+              </span>
+              {saveButton(researchDirty, researchSaving, () => void saveResearch())}
             </>
           )}
         </div>
-        {doc === "research" && researchError ? <div className="ew-research-error" role="alert">{researchError}</div> : null}
+        {doc === "research" && researchError ? <p className="s12-alert" role="alert">{researchError}</p> : null}
         {doc === "script" ? (
-          <textarea id="script-editor" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
+          <textarea id="script-editor" aria-label="نص السكريبت" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
         ) : (
-          <textarea id="research-editor" value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
+          <textarea id="research-editor" aria-label={research?.label ?? "ملف البحث"} value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
         )}
       </div>
-      {doc === "research" ? (
-        <aside className="col side ew-research-panel">
-          <div className="col-head"><h2>ملف البحث</h2></div>
-          <p>هذا الملف للتحضير والمراجعة فقط، ولا يدخل في التعليق الصوتي أو النشر.</p>
-          <p>اربط المعلومات والملاحظات بالمصادر التي استندت إليها قبل كتابة السكريبت.</p>
-          <div className="ew-research-state" role="status">
-            {researchSaving ? "جارٍ حفظ ملف البحث…" : researchDirty ? "هناك تعديلات لم تُحفظ" : research?.exists ? "ملف البحث محفوظ" : "ملف البحث لم يُحفظ بعد"}
-          </div>
-          {researchError ? <p role="alert">{researchError}</p> : null}
+      {doc === "script" ? (
+        <aside className="col side s12-rail" aria-label="الفحص">
+          <header className="s12-rail-head">
+            <span className={`s12-verdict ${check.ok ? "ok" : "bad"}`}>
+              <i aria-hidden />
+              {check.ok ? "صالح" : `${ar(errors)} ${errors === 1 ? "خطأ" : "أخطاء"}`}
+              {warnings ? <span className="s12-soft"> · {ar(warnings)} تنبيه</span> : null}
+            </span>
+            <span className="s12-num">{ar(check.stats.totalWords)} كلمة · {fmtAr(check.stats.totalSeconds)}</span>
+          </header>
+          {sortedIssues.length ? (
+            <ul className="s12-issues">
+              {sortedIssues.map((i, k) => (
+                <li key={k}>
+                  <button className={`s12-issue ${i.level}`} onClick={() => i.line && goToLine(i.line)} disabled={!i.line}>
+                    <span className="s12-msg"><i className="s12-lv" aria-label={i.level === "error" ? "خطأ" : "تنبيه"} />{i.message}</span>
+                    {i.line ? <span className="s12-ln">سطر {ar(i.line)}</span> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="s12-soft s12-empty">لا ملاحظات.</p>}
+          <More>
+            <section aria-label="الفصول">
+              <h3 className="s12-h">الفصول</h3>
+              <table className="stats s12-stats">
+                <thead><tr><th>الفصل</th><th>الكلمات</th><th>المدة التقديرية</th></tr></thead>
+                <tbody>
+                  {check.stats.chapters.map((c) => (
+                    <tr key={c.number}>
+                      <td>{c.number}</td>
+                      <td>{c.words}</td>
+                      <td className={c.seconds < min || c.seconds > max ? "bad" : ""}>{fmt(c.seconds)}</td>
+                    </tr>
+                  ))}
+                  <tr><th>الإجمالي</th><th>{check.stats.totalWords}</th><th>{fmt(check.stats.totalSeconds)}</th></tr>
+                </tbody>
+              </table>
+            </section>
+            <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
+            <section aria-label="العلامات">
+              <h3 className="s12-h">العلامات</h3>
+              <p className="s12-soft s12-code">[مشهد: …] [آية: النجم 39 | نص الآية بالتشكيل] [حديث: …] [صوت: page-turn] · bridge: …</p>
+            </section>
+            <section aria-label="اعتماد السكريبت">
+              <h3 className="s12-h">اعتماد السكريبت</h3>
+              <p className="s12-soft">{dirty ? "احفظ السكريبت أولًا؛ الاعتماد يكون على النسخة المحفوظة." : "يُعتمد من عمود الحلقة أعلاه بكلمة مرور المالك."}</p>
+            </section>
+          </More>
         </aside>
-      ) : (
-      <div className="col side">
-        <div className="col-head"><h2>الفحص</h2><span className="spacer" /><span className="help">يتحدث أثناء الكتابة</span></div>
-        <div className={`verdict ${check.ok ? "ok" : "bad"}`}>
-          {check.ok ? `صالح للمرحلة التالية${warnings ? ` · ${warnings} تنبيه` : ""}` : `غير صالح: ${errors} خطأ${warnings ? ` و${warnings} تنبيه` : ""}`}
-        </div>
-        <table className="stats">
-          <thead><tr><th>الفصل</th><th>الكلمات</th><th>المدة التقديرية</th></tr></thead>
-          <tbody>
-            {check.stats.chapters.map((c) => (
-              <tr key={c.number}>
-                <td>{c.number}</td>
-                <td>{c.words}</td>
-                <td className={c.seconds < min || c.seconds > max ? "bad" : ""}>{fmt(c.seconds)}</td>
-              </tr>
-            ))}
-            <tr><th>الإجمالي</th><th>{check.stats.totalWords}</th><th>{fmt(check.stats.totalSeconds)}</th></tr>
-          </tbody>
-        </table>
-        <div className="issues">
-          {check.issues.length === 0 ? <p className="help">لا ملاحظات.</p> : null}
-          {[...check.issues].sort((a, b) => (a.level === b.level ? 0 : a.level === "error" ? -1 : 1)).map((i, k) => (
-            <button key={k} className={`issue ${i.level}`} onClick={() => i.line && goToLine(i.line)}>
-              <span className="lv">{i.level === "error" ? "خطأ" : "تنبيه"}</span>
-              <span>{i.message}</span>
-              {i.line ? <span className="ln">سطر {i.line}</span> : null}
-            </button>
-          ))}
-        </div>
-        <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
-        <section className="field" aria-label="اعتماد السكريبت">
-          <h3>اعتماد السكريبت</h3>
-          <p>{dirty ? "احفظ السكريبت أولًا؛ الاعتماد يكون على النسخة المحفوظة." : "راجع النص والمصادر هنا، ثم اعتمده من «إنتاج المشاهد» بكلمة مرور المالك."}</p>
-        </section>
-      </div>
-      )}
+      ) : null}
     </div>
   );
 });
