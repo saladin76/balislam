@@ -213,6 +213,12 @@ export const balApi = (): Plugin => ({
 
           // Single-owner vNext: one authenticated approval for each complete
           // audiovisual scene. Hashes, actor and paths are server-derived.
+          // A refused owner action answers 403 (identity) or 409 (gate/order/stale hash), never 500.
+          const refuse = async (error: unknown) => {
+            if (error instanceof HttpError) throw error;
+            const { isOwnerAuthError } = await load("/src/studio/sceneService.ts");
+            return send(res, isOwnerAuthError(error) ? 403 : 409, { error: (error as Error).message });
+          };
           if (parts[2] === "scene-production" && parts.length === 3) {
             const { inspectSceneProduction, decideSceneProduction } =
               await load("/src/studio/sceneService.ts");
@@ -224,9 +230,7 @@ export const balApi = (): Plugin => ({
                   ep, body, req.headers["x-studio-owner-token"],
                 ));
               } catch (error) {
-                const message = (error as Error).message;
-                const forbidden = /authentication|owner session|not configured/i.test(message);
-                return send(res, forbidden ? 403 : 409, { error: message });
+                return refuse(error);
               }
             }
             return send(res, 405, { error: "Method not allowed" });
@@ -235,7 +239,9 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "scene-av-assemble" && parts.length === 3) {
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const { assembleApprovedSceneAv } = await load("/src/studio/assembleScenes.ts");
-            const output = await assembleApprovedSceneAv(ep, req.headers["x-studio-owner-token"]);
+            let output;
+            try { output = await assembleApprovedSceneAv(ep, req.headers["x-studio-owner-token"]); }
+            catch (error) { return refuse(error); }
             return send(res, 200, { ok: true, version: output.version, scenes: output.scenes });
           }
 
@@ -247,7 +253,8 @@ export const balApi = (): Plugin => ({
             const token = req.headers["x-studio-owner-token"];
             const { assertCurrentSceneRenderAllowed, recordSceneRenderEvidence } =
               await load("/src/studio/sceneService.ts");
-            await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token);
+            try { await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token); }
+            catch (error) { return refuse(error); }
             const { renderShotsPreview } = await load("/src/render/shotsPreview.ts");
             const output = await renderShotsPreview(ep, [sceneId], {
               slot: `scene-${sceneId}-av`,
