@@ -241,14 +241,26 @@ export function serverReviewAdapter(channelId: string, episodeId: string): Revie
       throw Error("Backend #88 لا يدعم حفظ ملاحظة مستقلة. استخدم «طلب تعديل» لتسجيل تصحيح خادمي صريح.");
     },
     async decide(input: ReviewDecision) {
+      if (!SHA256.test(input.expectedFingerprint))
+        throw Error("لا يمكن إرسال قرار بلا بصمة المشهد الحالية.");
       if (input.action === "approve" &&
           (!input.reviewId || !REVIEW_ID.test(input.reviewId)))
         throw Error("اعتماد AV يتطلب معرّف مراجعة مكتملة من الخادم.");
+      // The current Backend request_changes path does not yet enforce a
+      // fingerprint precondition under its lock (Issue #89). Refuse obviously
+      // stale UI writes after a fresh server read, and send the expectation.
+      // This is a client-side safety check, NOT a concurrency guarantee.
+      if (input.action === "request_changes") {
+        const current = await load();
+        if (current.scenes[input.sceneId]?.currentVersionId !== input.expectedFingerprint)
+          throw Error("إصدار المشهد تغير؛ حدّث قبل تسجيل طلب التعديل.");
+      }
       const body: Record<string, unknown> = {
         action: input.action,
         ...(input.action === "approve" ? {
           expectedFingerprint: input.expectedFingerprint, reviewId: input.reviewId,
         } : {
+          expectedFingerprint: input.expectedFingerprint,
           note: input.note,
           ...(input.second !== undefined ? { second: input.second } : {}),
           ...(input.elementId ? { elementId: input.elementId } : {}),
