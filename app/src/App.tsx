@@ -11,7 +11,7 @@ import type { Plan } from "../../src/plan/types";
 import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
-import { EpisodeTab } from "./tabs/EpisodeTab";
+import { EpisodeTab, SceneLivePreview } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
@@ -501,37 +501,48 @@ export const App: React.FC = () => {
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
           </>
         ) : tab === "episode" ? (
-          <>
+          // شاشة «المشاهد»: قرار المشهد الحالي أولًا، والمحرر الكامل خلف «تحرير المشهد»
           <SceneProductionPanel
             key={`scene-workflow:${channelId}:${epId}`}
             episodeId={epId}
             channelId={channelId}
+            plan={plan}
+            channel={channel}
+            requestedSceneId={requestedSceneId}
+            onCloseEditor={() => setRequestedSceneId(undefined)}
+            media={media}
+            onMediaChange={setMedia}
+            hasVoiceKeys={extra.keys.voice}
+            onPlanSave={async (p) => { onPlanChange(p); await flushPlan(); }}
+            livePreview={(id) => <SceneLivePreview sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => setRequestedSceneId(id)}
             onOpenStoryboard={() => setTab("storyboard")}
             onOpenScript={() => setTab("script")}
             onOpenPublish={() => setTab("publish")}
             onUpdated={() => setHomeKey(k => k + 1)}
+            editor={(sceneId, onSelect) => (
+              <EpisodeTab
+                key={epId}
+                episodeId={epId}
+                requestedSceneId={sceneId}
+                onSelectScene={onSelect}
+                plan={plan}
+                identity={ident.draft}
+                channel={channel}
+                media={media}
+                issues={extra.issues}
+                keys={extra.keys}
+                onMediaChange={setMedia}
+                onReload={() => loadEpisode(epId, { keepScript: true })}
+                onPlanChange={onPlanChange}
+                onEditScript={(line) => {
+                  setTab("script");
+                  setTimeout(() => scriptRef.current?.goToLine(line), 50);
+                }}
+                onOpenVoice={() => setTab("voice")}
+              />
+            )}
           />
-          <EpisodeTab
-            key={epId}
-            episodeId={epId}
-            requestedSceneId={requestedSceneId}
-            plan={plan}
-            identity={ident.draft}
-            channel={channel}
-            media={media}
-            issues={extra.issues}
-            keys={extra.keys}
-            onMediaChange={setMedia}
-            onReload={() => loadEpisode(epId, { keepScript: true })}
-            onPlanChange={onPlanChange}
-            onEditScript={(line) => {
-              setTab("script");
-              setTimeout(() => scriptRef.current?.goToLine(line), 50);
-            }}
-            onOpenVoice={() => setTab("voice")}
-          />
-          </>
         ) : (
           <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}

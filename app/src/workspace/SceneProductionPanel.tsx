@@ -1,8 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api, type SceneProductionRead, type SceneOwnerAction } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
+import type { Plan } from "../../../src/plan/types";
+import type { ChannelInfo } from "../../../src/channel/types";
+import { planIssues } from "../../../src/plan/validate";
+import type { EpisodeMedia } from "../../../src/plan/media";
+import { tones, toneIds } from "../../../src/voice/tones";
 import "./scene-production.css";
+import "../shell/screens-s3.css";
 import { useOwnerSession } from "../shell/ownerSession";
+import { More } from "../shell/Screen";
 
 type Props = {
   episodeId: string;
@@ -12,7 +19,36 @@ type Props = {
   onOpenScript: () => void;
   onOpenPublish: () => void;
   onUpdated?: () => void;
+  /**
+   * شاشة «المشاهد» (الخطوة ٣) فقط: الخطة لعرض نص كل مشهد وشريط التقدم، ومحرر المشهد الكامل
+   * يُفتح خلف «تحرير المشهد» بدل أن يظهر دائمًا. بدونها تبقى اللوحة شريط القرار في الخطوتين ٤ و٥.
+   */
+  plan?: Plan;
+  channel?: ChannelInfo;
+  editor?: (sceneId: string, onSelect: (id: string) => void) => React.ReactNode;
+  /** معاينة حية صامتة للمشهد حين لا توجد معاينة بالصوت والصورة بعد */
+  livePreview?: (sceneId: string) => React.ReactNode;
+  /** طلب فتح مشهد بعينه في المحرر (من الستوري بورد أو الصوت) */
+  requestedSceneId?: string;
+  onCloseEditor?: () => void;
+  /** صوت المشهد الحالي: الملفات الحالية، ومفاتيح التوليد، وحفظ الخطة (لتغيير النبرة) */
+  media?: EpisodeMedia;
+  onMediaChange?: (media: EpisodeMedia) => void;
+  onPlanSave?: (plan: Plan) => Promise<void>;
+  hasVoiceKeys?: boolean;
 };
+
+export type ProblemKind = "motion" | "tone";
+/** ٧٢٫٤ ثانية ← «1:12» */
+export const fmtTime = (sec: number) => {
+  const t = Math.max(0, Math.floor(sec || 0));
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+};
+/** ملاحظة التصحيح كما تُسجَّل: «[الحركة @0:12] …» أو «[النبرة @0:12] …» */
+export const problemNote = (kind: ProblemKind, at: number, text: string) =>
+  `[${kind === "motion" ? "الحركة" : "النبرة"} @${fmtTime(at)}] ${text.trim()}`.trim();
+
+const ar = (n: number) => n.toLocaleString("ar-EG");
 
 /**
  * The only visible approval surface for scene-first Studio V2.
@@ -21,16 +57,33 @@ type Props = {
  */
 export const SceneProductionPanel: React.FC<Props> = ({
   episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onUpdated,
+  plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys,
 }) => {
   const [data, setData] = useState<SceneProductionRead | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const owner = useOwnerSession();
   const sessionSecret = owner.secret;
-  const [note, setNote] = useState("");
+  const [noteDraft, setNote] = useState("");
+  const note = noteDraft;
   const [reviewed, setReviewed] = useState(false);
   // وصلات المشاهد التي فحصها المالك في النسخة المجمعة
   const [seams, setSeams] = useState<Record<string, boolean>>({});
+  // شاشة المشاهد: المشهد المعروض (يُنظر إليه فقط)، والمشهد المفتوح في المحرر
+  const [viewId, setViewId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(editor && requestedSceneId ? requestedSceneId : null);
+  const stripRef = useRef<HTMLOListElement>(null);
+  // قرار المشهد: مشكلة في لحظة بعينها (الحركة أو النبرة)، وخطوة تأكيد الاعتماد، وتوليد الصوت
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [problem, setProblem] = useState<{ kind: ProblemKind; at: number } | null>(null);
+  const [problemText, setProblemText] = useState("");
+  const [toneChoice, setToneChoice] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [sentNotes, setSentNotes] = useState<Record<string, string>>({});
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [voiceMsg, setVoiceMsg] = useState("");
+  const moreRef = useRef<HTMLDivElement>(null);
+  void onOpenStoryboard; void onOpenScript;
 
   const refresh = async () => {
     const result = await api.sceneProduction(episodeId, channelId);
@@ -44,12 +97,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
     setNote("");
     setReviewed(false);
     setSeams({});
+    setViewId(null);
     void api.sceneProduction(episodeId, channelId).then(
       value => { if (alive) setData(value); },
       cause => { if (alive) setError((cause as Error).message); },
     );
     return () => { alive = false; };
   }, [episodeId, channelId]);
+  useEffect(() => {
+    if (editor && requestedSceneId) setEditing(requestedSceneId);
+  }, [requestedSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderCurrentScene = async (sceneId: string, sourceSha256: string) => {
     if (!sessionSecret.trim()) {
@@ -92,15 +149,17 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const previewUrl = currentId && candidate ? api.previewUrl(episodeId, `scene-${currentId}-av.mp4`) : "";
   const allApproved = Boolean(data?.progress.canAssemble);
 
-  const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string) => {
-    if (!data || pending || !sessionSecret.trim()) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
+  const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string, noteText?: string): Promise<boolean> => {
+    const fail = (msg: string) => { setError(msg); return false; };
+    const note = noteText ?? noteDraft;
+    if (!data || pending || !sessionSecret.trim()) return fail("افتح جلسة المالك من أعلى الصفحة أولًا.");
     if (["approve-script", "approve-storyboard", "approve-scene", "approve-assembly", "approve-master", "grant-publish"].includes(action) && !reviewed)
-      return setError("أكّد المراجعة البشرية الفعلية قبل الاعتماد.");
+      return fail("أكّد المراجعة البشرية الفعلية قبل الاعتماد.");
     const seamsChecked = action === "approve-assembly" ? (data.seams ?? []).filter((x) => seams[x]) : undefined;
     if (action === "approve-assembly" && seamsChecked!.length !== (data.seams ?? []).length)
-      return setError("افحص كل وصلة بين مشهدين في النسخة المجمعة وعلّمها قبل اعتماد التجميع.");
+      return fail("افحص كل وصلة بين مشهدين في النسخة المجمعة وعلّمها قبل اعتماد التجميع.");
     if (action === "correct-scene" && !note.trim())
-      return setError("اكتب ملاحظة التصحيح قبل إعادة المشهد.");
+      return fail("اكتب ملاحظة التصحيح قبل إعادة المشهد.");
     setPending(true);
     setError("");
     try {
@@ -117,9 +176,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
       onUpdated?.();
       setNote("");
       setReviewed(false);
+      setViewId(null);
+      setProblem(null);
+      setProblemText("");
+      setConfirming(false);
+      if (action === "correct-scene" && sceneId) setSentNotes((m) => ({ ...m, [sceneId]: note.trim() }));
       if (action === "approve-assembly") setSeams({});
+      return true;
     } catch (e) {
       setError((e as Error).message);
+      return false;
     } finally {
       setPending(false);
     }
@@ -131,6 +197,247 @@ export const SceneProductionPanel: React.FC<Props> = ({
   ) : <span className="sp-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span>;
   const seamsAll = data?.seams ?? [];
   const seamsDone = seamsAll.filter((x) => seams[x]).length;
+  const criteria = (
+    <details className="sp-criteria">
+      <summary>معايير مراجعة هذه القناة</summary>
+      <ul>{humanReviewFocus.map((item) => <li key={item}>{item}</li>)}</ul>
+    </details>
+  );
+
+  // ── شاشة «المشاهد»: قرار المشهد الحالي، وشريط التقدم، والمحرر خلف «تحرير المشهد» ──
+  const planScenes = useMemo(() => plan ? plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))) : [], [plan]);
+  const issues = useMemo(() => plan && channel ? planIssues(plan, channel) : [], [plan, channel]);
+  const sceneMode = Boolean(editor && plan);
+  const order = sceneMode ? (data?.scenes.length ? data.scenes.map((s) => s.id) : planScenes.map((x) => x.scene.id)) : [];
+  const shownId = viewId && order.includes(viewId) ? viewId : currentId && order.includes(currentId) ? currentId : order[0] ?? null;
+  useEffect(() => {
+    // الشريط يتمرر أفقيًا وحده حتى يظهر المشهد الحالي، دون تحريك الصفحة
+    const strip = stripRef.current;
+    const now = strip?.querySelector<HTMLElement>("[data-now]");
+    if (!strip || !now) return;
+    const s = strip.getBoundingClientRect(), n = now.getBoundingClientRect();
+    strip.scrollLeft += (n.left + n.width / 2) - (s.left + s.width / 2);
+  }, [currentId, sceneMode, order.length]);
+
+  // صوت المشهد: لا تعليق، أو بلا ملف، أو ملف لنص قديم، أو مطابق
+  const voiceOf = (id: string): VoiceState => {
+    const narr = planScenes.find((x) => x.scene.id === id)?.scene.narration.trim() ?? "";
+    if (!narr) return "none";
+    const clip = media?.voice[id];
+    if (!clip) return "missing";
+    return clip.text === narr ? "ok" : "stale";
+  };
+  /** توليد صوت هذا المشهد وحده بنقرة المالك (الواجهة نفسها في «الصوت» والمحرر). */
+  const generateVoice = async (sceneId: string, force: boolean): Promise<boolean> => {
+    setVoiceBusy(true);
+    setVoiceMsg("");
+    try {
+      const r = await api.voice(episodeId, { scenes: [sceneId], force });
+      onMediaChange?.(r.media);
+      setVoiceMsg("وُلّد الصوت.");
+      await refresh().catch(() => {});
+      onUpdated?.();
+      return true;
+    } catch (e) {
+      setVoiceMsg((e as Error).message);
+      return false;
+    } finally {
+      setVoiceBusy(false);
+    }
+  };
+  /**
+   * «النبرة غير مناسبة»: يُسجَّل التصحيح أولًا (والمشهد ما زال قيد المراجعة بملفه نفسه)،
+   * ثم تُحفظ النبرة في الخطة، ثم يُعاد توليد صوت هذا المشهد وحده.
+   */
+  const submitTone = async (sceneId: string, previewSha256: string, at: number) => {
+    if (!plan) return;
+    const name = toneChoice && toneChoice in tones ? tones[toneChoice as keyof typeof tones].nameAr : "مثل الحلقة";
+    const text = problemText.trim() ? `${name} — ${problemText.trim()}` : name;
+    const ok = await act("correct-scene", previewSha256, sceneId, problemNote("tone", at, text));
+    if (!ok) return;
+    const next: Plan = {
+      ...plan,
+      chapters: plan.chapters.map((c) => ({ ...c, scenes: c.scenes.map((s) => (s.id === sceneId ? { ...s, tone: toneChoice || undefined, edited: true } : s)) })),
+    };
+    try {
+      await onPlanSave?.(next);
+    } catch (e) {
+      setError((e as Error).message);
+      return;
+    }
+    await generateVoice(sceneId, true);
+  };
+
+  if (sceneMode && editing) {
+    const close = () => { setViewId(editing); setEditing(null); onCloseEditor?.(); };
+    const idx = order.indexOf(editing);
+    return (
+      <>
+        <div className="s3-editbar">
+          <button type="button" className="btn ghost" onClick={close}>→ العودة إلى المراجعة</button>
+          <span>تحرير المشهد {idx >= 0 ? ar(idx + 1) : ""} <span dir="ltr" className="s3-id">{editing}</span></span>
+        </div>
+        {editor!(editing, (id) => setEditing(id))}
+      </>
+    );
+  }
+
+  if (sceneMode && shownId && (!data || !data.script.approved || !data.storyboard.approved || (currentId && scene))) {
+    const hit = planScenes.find((x) => x.scene.id === shownId);
+    const shownIdx = order.indexOf(shownId);
+    const shownServer = data?.scenes.find((s) => s.id === shownId);
+    const gated = Boolean(data && (!data.script.approved || !data.storyboard.approved));
+    const isCurrent = Boolean(data && !gated && shownId === currentId && scene);
+    const shownVideo = data?.candidates.scenes[shownId] ? api.previewUrl(episodeId, `scene-${shownId}-av.mp4`) : "";
+    const blocking = issues.filter((i) => i.level === "error").length;
+    const approvedCount = data?.progress.approvedScenes ?? 0;
+    const chapterStarts = new Set(plan!.chapters.map((c) => c.scenes[0]?.id).filter(Boolean));
+    const openIssues = () => {
+      const d = moreRef.current?.querySelector("details");
+      if (d) { d.open = true; d.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+    };
+    const statusOf = (id: string) => {
+      const s = data?.scenes.find((x) => x.id === id);
+      if (s?.approved) return "done";
+      if (id === currentId) return "now";
+      return "later";
+    };
+    const status = gated ? "later" : statusOf(shownId);
+    return (
+      <section className="stage s3" aria-label="المشهد الحالي في إنتاج الحلقة">
+        <header className="s3-head">
+          <div className="s3-title">
+            <h2>المشهد {shownIdx >= 0 ? ar(shownIdx + 1) : ""} <span className="s3-of">من {ar(order.length)}</span></h2>
+            {hit ? <span className="s3-sub">الفصل {ar(hit.chapter.number)} · {hit.chapter.title}</span> : null}
+          </div>
+          <button type="button" className="btn" onClick={() => setEditing(shownId)}>تحرير المشهد</button>
+        </header>
+
+        <ol className="s3-strip" ref={stripRef} aria-label={`تقدم المشاهد: ${ar(approvedCount)} معتمد من ${ar(order.length)}`}>
+          {order.map((id, i) => {
+            const st = statusOf(id);
+            return (
+              <li key={id} className={chapterStarts.has(id) && i > 0 ? "s3-ch" : undefined}>
+                <button type="button" className={`s3-dot is-${st}${id === shownId ? " is-shown" : ""}`} data-now={st === "now" ? "" : undefined}
+                  aria-current={id === shownId ? "true" : undefined} onClick={() => setViewId(id)}
+                  title={`${id} · ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "لاحقًا"}`}>
+                  {ar(i + 1)}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+
+        {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
+
+        <div className="s3-grid">
+          <div className="s3-media">
+            {isCurrent && previewUrl ? (
+              <video ref={videoRef} className="scene-first-video" controls preload="metadata" src={previewUrl} aria-label={`المشهد ${currentId} بالصوت والصورة`} />
+            ) : !isCurrent && shownVideo ? (
+              <video className="scene-first-video" controls preload="metadata" src={shownVideo} aria-label={`المشهد ${shownId} بالصوت والصورة`} />
+            ) : livePreview ? (
+              <div className="s3-live">{livePreview(shownId)}<span className="s3-tag">معاينة صامتة</span></div>
+            ) : (
+              <div className="sp-empty">لم يُنتج هذا المشهد بعد.</div>
+            )}
+            {isCurrent && currentId && scene ? (
+              <SceneDecisionActions
+                stage={scene.status === "in_review" && scene.previewSha256 ? "review" : candidate && scene.readyForAv ? "submit" : "render"}
+                voice={voiceOf(currentId)}
+                voiceBusy={voiceBusy}
+                voiceMsg={voiceMsg}
+                canVoice={Boolean(hasVoiceKeys)}
+                readyForAv={scene.readyForAv}
+                ownerOpen={owner.open}
+                pending={pending}
+                problem={problem}
+                problemText={problemText}
+                tone={toneChoice}
+                confirming={confirming}
+                reviewed={reviewed}
+                onVoice={() => void generateVoice(currentId, voiceOf(currentId) === "ok")}
+                onProblem={(kind) => {
+                  // يوقف المعاينة ويلتقط لحظة المشكلة
+                  const v = videoRef.current;
+                  v?.pause();
+                  setConfirming(false);
+                  setProblemText("");
+                  setToneChoice(planScenes.find((x) => x.scene.id === currentId)?.scene.tone ?? "");
+                  setProblem(problem?.kind === kind ? null : { kind, at: v?.currentTime ?? 0 });
+                }}
+                onProblemText={setProblemText}
+                onTone={setToneChoice}
+                onCancelProblem={() => setProblem(null)}
+                onSubmitProblem={() => {
+                  if (!problem || !scene.previewSha256) return;
+                  if (problem.kind === "motion") {
+                    void act("correct-scene", scene.previewSha256, currentId, problemNote("motion", problem.at, problemText));
+                    return;
+                  }
+                  void submitTone(currentId, scene.previewSha256, problem.at);
+                }}
+                onConfirm={(v) => setReviewed(v)}
+                onApprove={() => {
+                  if (!reviewed) { setProblem(null); setConfirming(true); return; }
+                  void act("approve-scene", scene.previewSha256!, currentId);
+                }}
+                onSubmitScene={() => void act("submit-scene", scene.sourceSha256, currentId)}
+                onRender={() => void renderCurrentScene(currentId, scene.sourceSha256)}
+              />
+            ) : null}
+          </div>
+          <div className="s3-side">
+            <span className={`s3-state is-${status}`}>{status === "done" ? "معتمد" : status === "now" ? (scene?.status === "in_review" ? "بانتظار قرارك" : scene?.status === "needs_revision" ? "بانتظار التعديل" : "المشهد الحالي") : gated ? "قبل الإنتاج" : "لاحقًا"}</span>
+            <p className="s3-narr">{hit?.scene.narration || "بلا تعليق صوتي"}</p>
+
+            {!data && !error ? <p className="sp-hint" role="status">جارٍ تحميل حالة الحلقة…</p> : null}
+            {gated ? <p className="sp-hint">يبدأ الإنتاج بعد اعتماد السكريبت والستوري بورد.</p> : null}
+            {isCurrent && scene?.status === "needs_revision" && sentNotes[currentId!] ? (
+              <p className="s3-sent"><b>ملاحظتك:</b> {sentNotes[currentId!]}</p>
+            ) : null}
+            {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوته أو تلاوته المرفوعة.</p> : null}
+            {isCurrent && scene?.status === "in_review" ? criteria : null}
+            {data && !gated && currentId && shownId !== currentId ? (
+              <div className="s3-decide">
+                <p className="sp-hint">{status === "done" ? "اعتُمد هذا المشهد." : "يُعتمد بعد ما قبله، بالترتيب."}</p>
+                <button type="button" className="btn ghost" onClick={() => setViewId(null)}>إلى المشهد الحالي ({ar(order.indexOf(currentId) + 1)})</button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {issues.length ? (
+          <button type="button" className={`s3-issues${blocking ? " is-block" : ""}`} onClick={openIssues}>
+            {blocking ? `${ar(blocking)} ملاحظات تمنع النسخة النهائية` : `${ar(issues.length)} تنبيهات قبل النسخة النهائية`} · عرضها
+          </button>
+        ) : null}
+
+        <div ref={moreRef}>
+          <More>
+            {issues.length ? (
+              <div className="s3-more-group">
+                <h3>قبل النسخة النهائية</h3>
+                <ul className="s3-issue-list">
+                  {issues.map((issue, i) => (
+                    <li key={i}>
+                      <button type="button" onClick={() => setEditing(issue.sceneId)}>
+                        <span className={`s3-lv is-${issue.level}`}>{issue.level === "error" ? "يمنع" : "تنبيه"}</span>
+                        <span dir="ltr" className="s3-id">{issue.sceneId}</span>
+                        <span>{issue.message}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {!(isCurrent && scene?.status === "in_review") ? <div className="s3-more-group">{criteria}</div> : null}
+            <p className="hint">التحرير الكامل (القالب، الخلفية، النبرة، التصدير) في «تحرير المشهد».</p>
+          </More>
+        </div>
+      </section>
+    );
+  }
 
   // السكريبت والستوري بورد يُعتمدان من عمود الخطوات أعلى الصفحة؛ هذه اللوحة لما بعدهما
   if (data && (!data.script.approved || !data.storyboard.approved)) return null;
@@ -194,6 +501,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             ) : (
               <button className="btn primary" disabled={pending || !owner.open} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد"}</button>
             )}
+            {sceneMode && order[0] ? <button type="button" className="btn" onClick={() => setEditing(order[0]!)}>تحرير المشهد</button> : null}
           </div>
         </div>
       ) : data.assembly && !data.assembly.approved ? (
@@ -239,12 +547,96 @@ export const SceneProductionPanel: React.FC<Props> = ({
       ) : (
         <div className="sp-row"><div><h3>مأذون بنشر هذه النسخة</h3><p className="sp-hint">أي تعديل في أي مشهد يلغي الإذن تلقائيًا.</p></div></div>
       )}
-      {data ? (
-        <details className="sp-criteria">
-          <summary>معايير مراجعة هذه القناة</summary>
-          <ul>{humanReviewFocus.map((item) => <li key={item}>{item}</li>)}</ul>
-        </details>
-      ) : null}
+      {data ? criteria : null}
     </section>
+  );
+};
+
+type VoiceState = "none" | "missing" | "stale" | "ok";
+
+/**
+ * أربعة أفعال تحت معاينة المشهد الحالي، لا غيرها:
+ * توليد الصوت (بارز فقط حين لا صوت مطابق)، «الحركة غير مناسبة» و«النبرة غير مناسبة» (هادئان)،
+ * و«اعتمد» الزر الممتلئ الوحيد. قبل المراجعة يحل محل «اعتمد» فعل المرحلة (إنتاج المشهد أو إرساله للمراجعة).
+ */
+export const SceneDecisionActions: React.FC<{
+  stage: "review" | "submit" | "render";
+  voice: VoiceState;
+  voiceBusy: boolean;
+  voiceMsg?: string;
+  canVoice: boolean;
+  readyForAv: boolean;
+  ownerOpen: boolean;
+  pending: boolean;
+  problem: { kind: ProblemKind; at: number } | null;
+  problemText: string;
+  tone: string;
+  confirming: boolean;
+  reviewed: boolean;
+  onVoice: () => void;
+  onProblem: (kind: ProblemKind) => void;
+  onProblemText: (text: string) => void;
+  onTone: (tone: string) => void;
+  onCancelProblem: () => void;
+  onSubmitProblem: () => void;
+  onConfirm: (reviewed: boolean) => void;
+  onApprove: () => void;
+  onSubmitScene: () => void;
+  onRender: () => void;
+}> = (p) => {
+  const needVoice = p.voice === "missing" || p.voice === "stale";
+  const at = p.problem ? fmtTime(p.problem.at) : "";
+  const problemReady = p.problem?.kind === "motion" ? Boolean(p.problemText.trim()) : Boolean(p.problem);
+  return (
+    <div className="s3-act">
+      <div className="s3-actbar" role="group" aria-label="قرار المشهد">
+        {p.voice !== "none" ? (
+          <button type="button" className={`btn ${needVoice ? "s3-cta" : "ghost"}`} disabled={p.voiceBusy || p.pending || !p.canVoice}
+            title={p.canVoice ? "" : "يتطلب مفتاح الصوت من «الإعدادات»"} onClick={p.onVoice}>
+            {p.voiceBusy ? "جارٍ توليد الصوت…" : needVoice ? "توليد الصوت" : "إعادة توليد الصوت"}
+          </button>
+        ) : null}
+        {p.stage === "review" ? (
+          <>
+            <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "motion"} disabled={p.pending || !p.ownerOpen} onClick={() => p.onProblem("motion")}>الحركة غير مناسبة</button>
+            <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "tone"} disabled={p.pending || !p.ownerOpen} onClick={() => p.onProblem("tone")}>النبرة غير مناسبة</button>
+            <button type="button" className="btn primary s3-approve" disabled={p.pending || !p.ownerOpen || (p.confirming && !p.reviewed)} onClick={p.onApprove}>
+              {p.pending ? "جارٍ…" : "اعتمد"}
+            </button>
+          </>
+        ) : p.stage === "submit" ? (
+          <>
+            <button type="button" className="btn ghost" disabled={p.pending} onClick={p.onRender}>إعادة الإنتاج</button>
+            <button type="button" className="btn primary s3-approve" disabled={p.pending} onClick={p.onSubmitScene}>إرسال للمراجعة</button>
+          </>
+        ) : (
+          <button type="button" className="btn primary s3-approve" disabled={p.pending || !p.readyForAv || !p.ownerOpen || p.voiceBusy} onClick={p.onRender}>
+            {p.pending ? "جارٍ الإنتاج…" : "إنتاج المشهد"}
+          </button>
+        )}
+      </div>
+      {p.voiceMsg ? <p className="sp-hint" role="status">{p.voiceMsg}</p> : null}
+      {needVoice && !p.canVoice ? <p className="sp-hint">أضف مفتاح الصوت من «الإعدادات» لتوليده.</p> : null}
+      {!p.ownerOpen ? <p className="sp-hint">افتح جلسة المالك من أعلى الصفحة لتقرر.</p> : null}
+      {p.confirming && p.stage === "review" ? (
+        <label className="sp-confirm s3-confirm"><input type="checkbox" checked={p.reviewed} onChange={(e) => p.onConfirm(e.target.checked)} autoFocus /> شاهدته بالصوت كاملًا</label>
+      ) : null}
+      {p.problem && p.stage === "review" ? (
+        <form className="s3-problem" onSubmit={(e) => { e.preventDefault(); if (problemReady) p.onSubmitProblem(); }}>
+          <span className="s3-problem-at">{p.problem.kind === "motion" ? "الحركة" : "النبرة"} عند <b dir="ltr">{at}</b></span>
+          {p.problem.kind === "tone" ? (
+            <select aria-label="النبرة المناسبة" value={p.tone} onChange={(e) => p.onTone(e.target.value)}>
+              <option value="">مثل الحلقة</option>
+              {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
+            </select>
+          ) : null}
+          <textarea rows={2} value={p.problemText} onChange={(e) => p.onProblemText(e.target.value)} placeholder={p.problem.kind === "motion" ? "ما المشكلة؟" : "ما المشكلة؟ (اختياري)"} aria-label="ما المشكلة؟" autoFocus />
+          <div className="sp-actions">
+            <button type="submit" className="btn" disabled={p.pending || !problemReady}>{p.problem.kind === "tone" ? "أرسل وأعد توليد الصوت" : "أرسل الملاحظة"}</button>
+            <button type="button" className="btn ghost" onClick={p.onCancelProblem}>إلغاء</button>
+          </div>
+        </form>
+      ) : null}
+    </div>
   );
 };
