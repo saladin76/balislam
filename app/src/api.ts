@@ -37,7 +37,10 @@ export type Overview = {
   /** الأسلوب الغالب على الحلقة (للتنوّع) */
   style: string;
   status: EpisodeStatus;
+  /** حالة الخطوات الخمس من سجل الإنتاج؛ null إن تعذّرت قراءته */
+  production?: ProductionSummary | null;
 };
+export type ProductionSummary = { script: boolean; storyboard: boolean; approvedScenes: number; totalScenes: number; canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
 export type EpisodeStatus = { /** اعتماد النسخة الأساسية بعد مشاهدتها كاملة (بصمة ملف الحلقة) */ approved?: { at: string; size: number; mtime: number }; checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string; /** يوم نشر الحلقة الطويلة المخطط (YYYY-MM-DD) */ scheduled?: string };
 export type Idea = { id: string; title: string; note?: string; domain?: string; style?: string; createdAt: string };
 /** يوم في تقويم القناة: شورتس محددة (حلقة + رقم الشورت)، أو بلا نشر، وملاحظة */
@@ -104,6 +107,8 @@ export const api = {
   ownerPassphrase: () => call<{ set: boolean }>("/api/owner-passphrase"),
   setOwnerPassphrase: (passphrase: string, current?: string) =>
     call<{ set: boolean }>("/api/owner-passphrase", { method: "POST", json: { passphrase, ...(current ? { current } : {}) } }),
+  checkOwnerPassphrase: (passphrase: string) =>
+    call<{ ok: boolean }>("/api/owner-passphrase/check", { method: "POST", json: { passphrase } }),
   sceneProduction: (episode: string, channel?: string) =>
     call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, undefined, channel),
   decideScene: (episode: string, channel: string, token: string, decision: SceneOwnerAction) =>

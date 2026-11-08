@@ -208,6 +208,7 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
     const { checkForChannel } = await load("/src/script/checkChannel.ts");
     const { planIssues } = await load("/src/plan/validate.ts");
     const { loadChannel } = await load("/src/channel/index.ts");
+    const { summarizeSceneProduction } = await load("/src/studio/sceneService.ts");
     const out = [];
     for (const d of await episodeDirs(episodesDir)) {
       const dir = path.join(episodesDir, d);
@@ -242,6 +243,8 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
         planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
         style: styleOf((fm as { style?: string }).style, scenes),
         status,
+        // حالة الحلقة في الخطوات الخمس من سجل الإنتاج نفسه (المصدر الوحيد للاعتماد)
+        production: await summarizeSceneProduction(id).catch(() => null),
       });
     }
   return out;

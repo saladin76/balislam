@@ -1,7 +1,10 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
-import { StudioSidebar, StudioIcon, SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
+import { SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
 import "./studio-shell.css";
-import { StudioStartGuide } from "./ui/StudioStartGuide";
+import "./shell/shell.css";
+import { TopBar, type ManageItem } from "./shell/TopBar";
+import { EpisodeSpine, type StepTab } from "./shell/EpisodeSpine";
+import { OwnerSessionProvider } from "./shell/ownerSession";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
@@ -10,8 +13,6 @@ import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab } from "./tabs/EpisodeTab";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
-import type { WorkspaceStage } from "./workspace/EpisodeWorkspaceBar";
-import { EpisodeJourneyBar } from "./workspace/EpisodeJourneyBar";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
 import "./workspace/workspace.css";
@@ -268,64 +269,63 @@ export const App: React.FC = () => {
     setNavOpen(false);
     if (navOpen) menuButton.current?.focus();
   };
-  const closeNavigation = () => { setNavOpen(false); menuButton.current?.focus(); };
+  const manageItems: ManageItem[] = [
+    { id: "ops", label: SECTION_TITLES.ops, note: "القنوات الثلاث وبنك الأفكار" },
+    { id: "channels", label: SECTION_TITLES.channels },
+    { id: "channel", label: SECTION_TITLES.channel },
+    { id: "identity", label: SECTION_TITLES.identity, note: identDirty ? "تعديلات غير محفوظة" : undefined },
+    { id: "library", label: SECTION_TITLES.library },
+    ...(hasLabs ? [{ id: "labs" as const, label: SECTION_TITLES.labs }] : []),
+    ...(hasTechReviews ? [{ id: "treviews" as const, label: SECTION_TITLES.treviews }] : []),
+    ...(hasGuide ? [{ id: "guide" as const, label: guideLabel }] : []),
+    { id: "settings", label: SECTION_TITLES.settings, note: keysOk.voice ? undefined : "الصوت غير متصل" },
+  ];
 
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
-      <div className={`studio-shell${navOpen ? " is-nav-open" : ""}`} onKeyDown={(e) => { if (e.key === "Escape" && navOpen) closeNavigation(); }}>
-      <StudioSidebar
-        active={tab} channelName={channel.nameDisplay ?? channel.name} channelMark={<BrandMark channel={channel} />}
-        hasGuide={hasGuide} guideLabel={guideLabel} hasLabs={hasLabs} hasTechReviews={hasTechReviews}
-        identityDirty={identDirty} voiceConnected={keysOk.voice} episodeId={epId} episodeTitle={plan?.title}
-        onHome={() => void navigateManage("home")}
-        onNavigate={navigateManage} onClose={closeNavigation}
-      />
-      {navOpen && <button className="studio-nav-scrim" type="button" aria-label="إغلاق قائمة التنقل" onClick={closeNavigation} />}
+      <OwnerSessionProvider>
+      <div className="studio-shell shell-v3" data-channel={channelId || channels[0]?.id || ""}>
       <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
+        <TopBar
+          channels={channels}
+          channelId={channelId || channels[0]?.id || ""}
+          onChannel={async (next) => { if (next === channelId) return; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }}
+          episodes={episodes}
+          episodeId={epId}
+          inEpisode={EPISODE_TABS.includes(tab)}
+          onEpisode={async (id) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(id); }}
+          atHome={tab === "home"}
+          onHome={() => void navigateManage("home")}
+          manage={manageItems}
+          active={tab}
+          onManage={(id) => void navigateManage(id)}
+        />
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
-        <header className="top studio-topbar">
-          <button ref={menuButton} type="button" className="studio-menu-toggle" aria-label="فتح قائمة التنقل" aria-expanded={navOpen} aria-controls="studio-navigation" onClick={() => setNavOpen((open) => !open)}><StudioIcon name="menu" /></button>
-          <div className="studio-page-heading"><span>الاستوديو <i aria-hidden="true">/</i> {channel.name}</span><strong>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</strong></div>
-          <div className="studio-topbar-controls">
-          {channels.length > 1 ? (
-            <label className="studio-context-select"><span>القناة النشطة</span><select id="channel-select" value={channelId || channels[0]?.id} onChange={async (e) => { const next = e.target.value; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }} aria-label="القناة">
-              {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select></label>
-          ) : null}
-          {EPISODE_TABS.includes(tab) ? (
-            <label className="studio-context-select studio-episode-select"><span>الحلقة الحالية</span><select id="episode-select" value={epId} onChange={async (e) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(e.target.value); }} aria-label="الحلقة">
-              {episodes?.length ? null : <option value="">لا توجد حلقات</option>}
-              {episodes?.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
-            </select></label>
-          ) : null}
-          {tab === "episode" && plan ? (
-            <span className="status">
-              <i className={`dot ${planState === "dirty" || planState === "saving" ? "dirty" : planState === "error" ? "err" : ""}`} />
-              {planState === "saved" ? "كل التعديلات محفوظة" : planState === "saving" ? "جارٍ الحفظ…" : planState === "dirty" ? "تعديل…" : "تعذّر الحفظ"}
-            </span>
-          ) : null}
-          </div>
-        </header>
+        {!EPISODE_TABS.includes(tab) && tab !== "home" ? (
+          <div className="page-head"><h1>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</h1></div>
+        ) : null}
 
         {EPISODE_TABS.includes(tab) && plan && check && epId ? (
-           <EpisodeJourneyBar
-             key={`journey:${channelId}:${epId}`}
-             episodeId={epId}
-             channelId={channelId}
-             title={plan.title}
-             refreshKey={homeKey}
-             stage={tab as WorkspaceStage}
-             onStage={(stage) => {
-               if (stage !== tab && !confirmLeaveScript()) return;
-               setTab(stage);
-             }}
-             saveState={planState}
-             unsaved={scriptDirty || researchDirty}
-           />
-         ) : null}
+          <EpisodeSpine
+            key={`spine:${channelId}:${epId}`}
+            episodeId={epId}
+            channelId={channelId}
+            title={plan.title}
+            tab={tab as StepTab}
+            scriptErrors={check.issues.filter((i) => i.level === "error").length}
+            refreshKey={homeKey}
+            saveState={planState}
+            unsaved={scriptDirty || researchDirty}
+            onTab={(next) => {
+              if (next !== tab && !confirmLeaveScript()) return;
+              setTab(next);
+            }}
+            onDecided={() => setHomeKey((k) => k + 1)}
+          />
+        ) : null}
 
          {tab === "ops" ? (
           <div className="home-wrap studio-ops-workspace">
@@ -363,8 +363,6 @@ export const App: React.FC = () => {
           }} />
         ) : tab === "home" ? (
           <div className="home-wrap studio-episodes-workspace">
-            <StudioStartGuide />
-            <h2 className="home-sub">حلقات قناة «{channel.name}»</h2>
           <HomeTab
             key={`${channelId}-${homeKey}`}
             channel={channel}
@@ -465,13 +463,37 @@ export const App: React.FC = () => {
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           />
         ) : tab === "review" ? (
+          <>
+          <SceneProductionPanel
+            key={`scene-workflow-review:${channelId}:${epId}`}
+            episodeId={epId}
+            channelId={channelId}
+            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+            onOpenStoryboard={() => setTab("storyboard")}
+            onOpenScript={() => setTab("script")}
+            onOpenPublish={() => setTab("publish")}
+            onUpdated={() => setHomeKey(k => k + 1)}
+          />
           <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage, sceneId) => {
             if (!confirmLeaveScript()) return;
             if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
             setTab(stage);
           }} />
+          </>
         ) : tab === "publish" ? (
+          <>
+          <SceneProductionPanel
+            key={`scene-workflow-publish:${channelId}:${epId}:${homeKey}`}
+            episodeId={epId}
+            channelId={channelId}
+            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+            onOpenStoryboard={() => setTab("storyboard")}
+            onOpenScript={() => setTab("script")}
+            onOpenPublish={() => setTab("publish")}
+            onUpdated={() => setHomeKey(k => k + 1)}
+          />
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
+          </>
         ) : tab === "episode" ? (
           <>
           <SceneProductionPanel
@@ -540,6 +562,7 @@ export const App: React.FC = () => {
         {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
       </div>
       </div>
+      </OwnerSessionProvider>
       </ChannelProvider>
     </IdentityProvider>
   );

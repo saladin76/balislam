@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, type SceneProductionRead, type SceneOwnerAction } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
 import "./scene-production.css";
+import { useOwnerSession } from "../shell/ownerSession";
 
 type Props = {
   episodeId: string;
@@ -24,26 +25,12 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [data, setData] = useState<SceneProductionRead | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const [sessionSecret, setSessionSecret] = useState("");
+  const owner = useOwnerSession();
+  const sessionSecret = owner.secret;
   const [note, setNote] = useState("");
   const [reviewed, setReviewed] = useState(false);
-  // كلمة مرور المالك: يختارها مرة واحدة، ويكتبها في كل جلسة (لا تُحفظ في المتصفح)
-  const [passSet, setPassSet] = useState<boolean | null>(null);
-  const [newPass, setNewPass] = useState("");
-  const [newPass2, setNewPass2] = useState("");
   // وصلات المشاهد التي فحصها المالك في النسخة المجمعة
   const [seams, setSeams] = useState<Record<string, boolean>>({});
-  useEffect(() => { void api.ownerPassphrase().then((r) => setPassSet(r.set), () => setPassSet(null)); }, []);
-  const createPassphrase = async () => {
-    if (newPass.length < 8) return setError("كلمة مرور المالك من 8 أحرف على الأقل.");
-    if (newPass !== newPass2) return setError("الكلمتان غير متطابقتين.");
-    try {
-      await api.setOwnerPassphrase(newPass);
-      setPassSet(true);
-      setSessionSecret(newPass);
-      setNewPass(""); setNewPass2(""); setError("");
-    } catch (e) { setError((e as Error).message); }
-  };
 
   const refresh = async () => {
     const result = await api.sceneProduction(episodeId, channelId);
@@ -66,7 +53,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
   const renderCurrentScene = async (sceneId: string, sourceSha256: string) => {
     if (!sessionSecret.trim()) {
-      setError("فعّل جلسة المالك المحلية أولًا لتشغيل المعاينة.");
+      setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
       return;
     }
     setPending(true);
@@ -84,7 +71,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   };
 
   const assembleScenes = async () => {
-    if (!sessionSecret.trim()) return setError("فعّل جلسة المالك المحلية قبل تجميع المشاهد.");
+    if (!sessionSecret.trim()) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
     setPending(true);
     setError("");
     try {
@@ -106,7 +93,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const allApproved = Boolean(data?.progress.canAssemble);
 
   const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string) => {
-    if (!data || pending || !sessionSecret.trim()) return setError("فعّل جلسة المالك المحلية أولًا.");
+    if (!data || pending || !sessionSecret.trim()) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
     if (["approve-script", "approve-storyboard", "approve-scene", "approve-assembly", "approve-master", "grant-publish"].includes(action) && !reviewed)
       return setError("أكّد المراجعة البشرية الفعلية قبل الاعتماد.");
     const seamsChecked = action === "approve-assembly" ? (data.seams ?? []).filter((x) => seams[x]) : undefined;
@@ -138,185 +125,126 @@ export const SceneProductionPanel: React.FC<Props> = ({
     }
   };
 
+  // القرار الحالي في سطر واحد: يظهر فيه ما يُشاهَد، وما يُؤكَّد، والزر
+  const confirm = (label: string) => owner.open ? (
+    <label className="sp-confirm"><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> {label}</label>
+  ) : <span className="sp-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span>;
+  const seamsAll = data?.seams ?? [];
+  const seamsDone = seamsAll.filter((x) => seams[x]).length;
+
+  // السكريبت والستوري بورد يُعتمدان من عمود الخطوات أعلى الصفحة؛ هذه اللوحة لما بعدهما
+  if (data && (!data.script.approved || !data.storyboard.approved)) return null;
   return (
-    <section className="scene-first-panel" aria-label="إنتاج ومراجعة المشاهد بالصوت والصورة">
-      <header className="scene-first-heading">
-        <div>
-          <p className="scene-first-eyebrow">Studio V2 · إنتاج شخصي</p>
-          <h2>أكمل من المشهد الحالي</h2>
-          <p>راجع نتيجة واحدة بالصوت والصورة. السجلات والفحوص التقنية تعمل في الخلفية.</p>
-        </div>
-        <button className="btn small" type="button" onClick={() => void refresh().catch(e => setError((e as Error).message))}>
-          تحديث الحالة
-        </button>
-      </header>
+    <section className="scene-first-panel sp" aria-label="القرار الحالي في إنتاج الحلقة">
       {!data && !error ? <p role="status">جارٍ تحميل حالة الحلقة…</p> : null}
       {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
-      {passSet === false ? (
-        <div className="scene-first-task">
-          <h3>اختر كلمة مرور المالك (مرة واحدة)</h3>
-          <p>كل اعتماد في الاستوديو يحتاجها، فلا يعتمد شيئًا إلا أنت. تُحفظ بصمتها فقط على جهازك، ولا تُرسل لأحد.</p>
-          <label className="scene-first-field"><span>كلمة المرور</span>
-            <input type="password" autoComplete="new-password" value={newPass} onChange={(e) => setNewPass(e.target.value)} /></label>
-          <label className="scene-first-field"><span>أعد كتابتها</span>
-            <input type="password" autoComplete="new-password" value={newPass2} onChange={(e) => setNewPass2(e.target.value)} /></label>
-          <button className="btn primary" type="button" onClick={() => void createPassphrase()}>حفظ كلمة المرور</button>
-        </div>
-      ) : null}
-      {!data ? null : (
-        <div className="scene-first-content">
-          {!data.script.approved ? (
-            <div className="scene-first-task">
-              <h3>راجع السكريبت واعتمد النسخة الأصلية</h3>
-              <button className="btn small" type="button" onClick={onOpenScript}>فتح السكريبت والمصادر</button>
+      {!data ? null : currentId && scene ? (
+        <div className="sp-grid">
+          <div className="sp-media">
+            {previewUrl ? (
+              <video className="scene-first-video" controls preload="metadata" src={previewUrl} aria-label={`المشهد ${currentId} بالصوت والصورة`} />
+            ) : (
+              <div className="sp-empty">{scene.readyForAv ? "لم يُنتج هذا المشهد بعد." : "ينقص هذا المشهد صوته أو تلاوته المرفوعة."}</div>
+            )}
+          </div>
+          <div className="sp-side">
+            <p className="sp-kicker">المشهد <span dir="ltr">{currentId}</span>، {data.progress.approvedScenes + 1} من {data.progress.totalScenes}</p>
+            <div className="scene-first-meter" role="progressbar" aria-valuenow={data.progress.approvedScenes} aria-valuemin={0} aria-valuemax={data.progress.totalScenes}>
+              <span style={{ width: `${100 * data.progress.approvedScenes / Math.max(1, data.progress.totalScenes)}%` }} />
             </div>
-          ) : !data.storyboard.approved ? (
-            <div className="scene-first-task">
-              <h3>اعتمد Storyboard كاملًا قبل إنتاج المشهد الأول</h3>
-              <p>راجع عدد المشاهد والصور والكاميرا والإضاءة والنص والنبرة.</p>
-              <button className="btn small" type="button" onClick={onOpenStoryboard}>فتح Storyboard PDF</button>
-            </div>
-          ) : currentId && scene ? (
-            <>
-              <div className="scene-first-current">
-                <h3>المشهد الحالي: <span dir="ltr">{currentId}</span></h3>
-                <span>{data.progress.approvedScenes} من {data.progress.totalScenes} مشاهد معتمدة</span>
-              </div>
-              <div className="scene-first-meter" role="progressbar" aria-valuenow={data.progress.approvedScenes} aria-valuemin={0} aria-valuemax={data.progress.totalScenes}>
-                <span style={{ width: `${100 * data.progress.approvedScenes / Math.max(1, data.progress.totalScenes)}%` }} />
-              </div>
-              {previewUrl ? (
-                <video className="scene-first-video" controls preload="metadata" src={previewUrl}
-                  aria-label={`معاينة المشهد ${currentId} بالصوت والصورة`} />
-              ) : (
-                <div className="scene-first-empty">لم تُنتج معاينة الفيديو والصوت لهذا المشهد بعد.</div>
-              )}
-              <p className="scene-first-hint">
-                {scene.readyForAv
-                  ? "الصوت المربوط بالنص متاح. راجع الفيديو كاملًا قبل اعتماده."
-                  : "أكمل التعليق الصوتي أو التلاوة البشرية المرفوعة والمراجَعة قبل إنتاج المشهد."}
-              </p>
-              <div className="scene-first-actions">
-                <button className="btn small" type="button" onClick={() => onOpenScene(currentId)}>فتح أدوات المشهد</button>
-                {scene.status !== "in_review" && (
-                  <button className="btn primary" type="button"
-                    disabled={pending || !scene.readyForAv}
-                    onClick={() => void renderCurrentScene(currentId, scene.sourceSha256)}>
-                    {pending ? "جارٍ إنتاج معاينة المشهد…" : "إنتاج المشهد بالصوت والصورة"}
-                  </button>
-                )}
-              </div>
-            </>
-          ) : allApproved && !data.assembly ? (
-            <div className="scene-first-task">
-              <h3>اكتملت مراجعة كل المشاهد</h3>
-              <p>تُجمَّع ملفات المشاهد المعتمدة نفسها بالترتيب في نسخة للمشاهدة الكاملة بسرعة 1×.</p>
-              {data.candidates.assemblySha256 ? (
-                <>
-                  <video className="scene-first-video" controls preload="metadata"
-                    src={api.previewUrl(episodeId, "episode.mp4")}
-                    aria-label="معاينة الحلقة المجمعة بالصوت والصورة" />
-                  <p>النسخة المجمعة جاهزة للمراجعة، وليست Master معتمدة.</p>
-                  <button className="btn small" type="button" onClick={onOpenPublish}>فتح المراجعة والنشر</button>
-                </>
-              ) : (
-                <button className="btn primary" type="button" disabled={pending}
-                  onClick={() => void assembleScenes()}>
-                  {pending ? "جارٍ تجميع المشاهد…" : "دمج المشاهد المعتمدة"}
-                </button>
-              )}
-            </div>
-          ) : data.assembly && !data.assembly.approved ? (
-            <div className="scene-first-task">
-              <h3>شاهد الحلقة المجمعة كاملة بسرعة 1× وافحص كل وصلة</h3>
-              <p>قرار مستقل عن اعتماد كل مشهد: هل ينتقل كل مشهد إلى التالي بلا قفز ولا قطع في الصوت؟</p>
-              <video className="scene-first-video" controls preload="metadata"
-                src={api.previewUrl(episodeId, "episode.mp4")} aria-label="الحلقة المجمعة بالصوت والصورة" />
-              <fieldset className="scene-first-seams">
-                <legend>الوصلات ({(data.seams ?? []).filter((x) => seams[x]).length} من {(data.seams ?? []).length})</legend>
-                {(data.seams ?? []).map((seam) => (
-                  <label key={seam}><input type="checkbox" checked={Boolean(seams[seam])}
-                    onChange={(e) => setSeams({ ...seams, [seam]: e.target.checked })} /> <span dir="ltr">{seam.replace(">", " → ")}</span></label>
-                ))}
-              </fieldset>
-            </div>
-          ) : data.assembly && !data.master ? (
-            <div className="scene-first-task">
-              <h3>اعتمد Master النهائي بعد مشاهدته كاملًا</h3>
-              <p>التجميع معتمد. اصنع النسخة النهائية 4K من «النشر»، ثم شاهدها كاملة واعتمد هذا الملف بعينه.</p>
-              <button className="btn small" type="button" onClick={onOpenPublish}>فتح النشر</button>
-            </div>
-          ) : data.master && !data.master.publishAllowed ? (
-            <div className="scene-first-task">
-              <h3>Master معتمد — النشر يحتاج إذنك الصريح</h3>
-              <p>الشورتس والريلز تُصنع الآن من هذا الملف. أما النشر فقرار منفصل لهذا الملف بعينه.</p>
-              <button className="btn small" type="button" onClick={onOpenPublish}>فتح النشر</button>
-            </div>
-          ) : (
-            <div className="scene-first-task">
-              <h3>مأذون بنشر هذا Master</h3>
-              <p>أي تعديل في أي مشهد يلغي الإذن تلقائيًا.</p>
-              <button className="btn small" type="button" onClick={onOpenPublish}>فتح النشر</button>
-            </div>
-          )}
-
-          <details className="scene-first-approval">
-            <summary>معايير مراجعة هذه القناة</summary>
-            <ul>
-              {humanReviewFocus.map(item => <li key={item}>{item}</li>)}
-            </ul>
-            <p>هذه تذكيرات للمراجعة البشرية، وليست درجات أو موافقات تلقائية.</p>
-          </details>
-          <details className="scene-first-approval">
-            <summary>المراجعة والاعتماد</summary>
-            <p>أكّد المراجعة مرة واحدة عند اتخاذ القرار. لا يُعتمد أي مشهد آليًا.</p>
-            <label className="scene-first-field">
-              <span>كلمة مرور المالك (لا تُحفظ في المتصفح)</span>
-              <input type="password" autoComplete="off" value={sessionSecret}
-                onChange={event => setSessionSecret(event.target.value)} placeholder="كلمة المرور" />
-            </label>
-            <label className="scene-first-field">
-              <span>ملاحظة أو طلب تصحيح</span>
-              <textarea rows={2} value={note} onChange={event => setNote(event.target.value)}
-                placeholder="مثال: الثانية 00:08 — حركة الكاميرا سريعة" />
-            </label>
-            <label className="scene-first-confirm">
-              <input type="checkbox" checked={reviewed} onChange={event => setReviewed(event.target.checked)} />
-              راجعت الملف أو النص المطلوب بنفسي، بالصوت والصورة عند اعتماد مشهد أو حلقة.
-            </label>
-            <div className="scene-first-actions">
-              {!data.script.approved && (
-                <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-script", data.script.sha256)}>اعتماد السكريبت</button>
-              )}
-              {data.script.approved && !data.storyboard.approved && (
-                <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-storyboard", data.storyboard.sha256)}>اعتماد Storyboard</button>
-              )}
-              {scene && currentId && scene.readyForAv && candidate && scene.status !== "in_review" && (
-                <button className="btn primary" disabled={pending} onClick={() => void act("submit-scene", scene.sourceSha256, currentId)}>إرسال المشهد للمراجعة</button>
-              )}
-              {scene && currentId && scene.status === "in_review" && scene.previewSha256 && (
-                <>
-                  <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-scene", scene.previewSha256!, currentId)}>اعتماد المشهد بالصوت والصورة</button>
+            {scene.status === "in_review" && scene.previewSha256 ? (
+              <>
+                <h3>شاهده بالصوت والصورة، ثم قرر</h3>
+                {confirm("شاهدته كاملًا بصوته")}
+                <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="ملاحظة التعديل، مثل: الثانية 00:08 — الكاميرا سريعة" aria-label="ملاحظة التعديل" />
+                <div className="sp-actions">
+                  <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-scene", scene.previewSha256!, currentId)}>اعتماد المشهد</button>
                   <button className="btn" disabled={pending || !note.trim()} onClick={() => void act("correct-scene", scene.previewSha256!, currentId)}>طلب تعديل</button>
-                </>
-              )}
-              {allApproved && !data.assembly && data.candidates.assemblySha256 && (
-                <button className="btn primary" disabled={pending} onClick={() => void act("assemble", data.candidates.assemblySha256!)}>تسجيل النسخة المجمعة</button>
-              )}
-              {data.assembly && !data.assembly.approved && (
-                <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-assembly", data.assembly!.sha256)}>اعتماد التجميع والوصلات بعد المشاهدة 1×</button>
-              )}
-              {data.assembly?.approved && !data.master && data.candidates.masterSha256 && (
-                <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-master", data.candidates.masterSha256!)}>اعتماد Master بعد المشاهدة 1×</button>
-              )}
-              {data.master && !data.master.publishAllowed && (
-                <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("grant-publish", data.master!.sha256)}>إذن نشر هذا Master</button>
-              )}
-            </div>
-          </details>
-          <p className="scene-first-disclaimer">اعتماد المشهد لا يغني عن مشاهدة الحلقة كاملة أو التأكد من الحقوق. التغييرات تُبطل الاعتمادات المتأثرة تلقائيًا.</p>
+                </div>
+              </>
+            ) : candidate && scene.readyForAv ? (
+              <>
+                <h3>المعاينة جاهزة</h3>
+                <p className="sp-hint">أرسلها للمراجعة لتعتمدها، أو أعد إنتاجها بعد تعديل المشهد.</p>
+                <div className="sp-actions">
+                  <button className="btn primary" disabled={pending} onClick={() => void act("submit-scene", scene.sourceSha256, currentId)}>إرسال للمراجعة</button>
+                  <button className="btn" disabled={pending} onClick={() => void renderCurrentScene(currentId, scene.sourceSha256)}>إعادة الإنتاج</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>{scene.status === "needs_revision" ? "عُدّل المشهد؛ أنتجه من جديد" : "أنتج المشهد بالصوت والصورة"}</h3>
+                <div className="sp-actions">
+                  <button className="btn primary" disabled={pending || !scene.readyForAv || !owner.open} onClick={() => void renderCurrentScene(currentId, scene.sourceSha256)}>
+                    {pending ? "جارٍ الإنتاج…" : "إنتاج المشهد"}
+                  </button>
+                  <button className="btn" type="button" onClick={() => onOpenScene(currentId)}>أدوات المشهد</button>
+                </div>
+                {!owner.open ? <span className="sp-hint">افتح جلسة المالك من أعلى الصفحة لتُنتج.</span> : null}
+              </>
+            )}
+          </div>
         </div>
+      ) : allApproved && !data.assembly ? (
+        <div className="sp-row">
+          <div><h3>كل المشاهد معتمدة</h3><p className="sp-hint">تُدمج ملفات المشاهد المعتمدة نفسها بالترتيب في نسخة واحدة للمشاهدة الكاملة.</p></div>
+          <div className="sp-actions">
+            {data.candidates.assemblySha256 ? (
+              <button className="btn primary" disabled={pending || !owner.open} onClick={() => void act("assemble", data.candidates.assemblySha256!)}>تسجيل النسخة المجمعة للمراجعة</button>
+            ) : (
+              <button className="btn primary" disabled={pending || !owner.open} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد"}</button>
+            )}
+          </div>
+        </div>
+      ) : data.assembly && !data.assembly.approved ? (
+        <div className="sp-grid">
+          <div className="sp-media">
+            <video className="scene-first-video" controls preload="metadata" src={api.previewUrl(episodeId, "episode.mp4")} aria-label="الحلقة المجمعة" />
+          </div>
+          <div className="sp-side">
+            <h3>شاهد الحلقة كاملة بسرعة 1×، وافحص كل وصلة</h3>
+            <fieldset className="scene-first-seams">
+              <legend>الوصلات: {seamsDone} من {seamsAll.length}</legend>
+              {seamsAll.map((seam) => (
+                <label key={seam}><input type="checkbox" checked={Boolean(seams[seam])} onChange={(e) => setSeams({ ...seams, [seam]: e.target.checked })} /> <span dir="ltr">{seam.replace(">", " → ")}</span></label>
+              ))}
+            </fieldset>
+            {confirm("شاهدت الحلقة كاملة 1×")}
+            <div className="sp-actions">
+              <button className="btn primary" disabled={pending || !reviewed || seamsDone !== seamsAll.length} onClick={() => void act("approve-assembly", data.assembly!.sha256)}>اعتماد التجميع</button>
+            </div>
+          </div>
+        </div>
+      ) : data.assembly && !data.master ? (
+        <div className="sp-row">
+          <div>
+            <h3>{data.candidates.masterSha256 ? "شاهد النسخة النهائية كاملة واعتمد هذا الملف" : "اصنع النسخة النهائية 4K"}</h3>
+            <p className="sp-hint">{data.candidates.masterSha256 ? "الاعتماد لهذا الملف بعينه؛ أي ملف جديد يحتاج اعتمادًا جديدًا." : "من «النشر»: «اصنع النسخة النهائية». ثم تعود هنا لاعتمادها."}</p>
+          </div>
+          <div className="sp-actions">
+            {data.candidates.masterSha256 ? (<>
+              {confirm("شاهدتها كاملة 1×")}
+              <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-master", data.candidates.masterSha256!)}>اعتماد النسخة النهائية</button>
+            </>) : <button className="btn primary" type="button" onClick={onOpenPublish}>إلى النشر</button>}
+          </div>
+        </div>
+      ) : data.master && !data.master.publishAllowed ? (
+        <div className="sp-row">
+          <div><h3>النسخة النهائية معتمدة</h3><p className="sp-hint">الشورتس والريلز تُصنع منها الآن. النشر قرار منفصل لهذا الملف.</p></div>
+          <div className="sp-actions">
+            {confirm("أوافق على نشر هذا الملف")}
+            <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("grant-publish", data.master!.sha256)}>إذن النشر</button>
+          </div>
+        </div>
+      ) : (
+        <div className="sp-row"><div><h3>مأذون بنشر هذه النسخة</h3><p className="sp-hint">أي تعديل في أي مشهد يلغي الإذن تلقائيًا.</p></div></div>
       )}
+      {data ? (
+        <details className="sp-criteria">
+          <summary>معايير مراجعة هذه القناة</summary>
+          <ul>{humanReviewFocus.map((item) => <li key={item}>{item}</li>)}</ul>
+        </details>
+      ) : null}
     </section>
   );
 };

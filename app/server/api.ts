@@ -121,6 +121,13 @@ export const balApi = (): Plugin => ({
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
         // كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة أو تغييرها بالكلمة الحالية
+        // فتح جلسة المالك في الواجهة: تحقق من كلمة المرور دون حفظ شيء
+        if (parts[0] === "owner-passphrase" && parts[1] === "check" && parts.length === 2 && req.method === "POST") {
+          const b = await readBody(req);
+          const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+          try { assertSceneOwner(b?.passphrase); return send(res, 200, { ok: true }); }
+          catch { await new Promise((r) => setTimeout(r, 400)); return send(res, 200, { ok: false }); }
+        }
         if (parts[0] === "owner-passphrase" && parts.length === 1) {
           const env = await load("/src/settings/env.ts");
           if (req.method === "GET") return send(res, 200, { set: Boolean(process.env[env.OWNER_PASSPHRASE_KEY]) });

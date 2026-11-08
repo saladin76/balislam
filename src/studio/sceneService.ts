@@ -308,6 +308,15 @@ const optionalSha = async (file: string): Promise<string | null> => {
     throw error;
   }
 };
+/** ملخص خفيف لحالة الحلقة في الخطوات الخمس (للقائمة الرئيسية): بلا حساب بصمات الملفات الكبيرة. */
+export const summarizeSceneProduction = (episode: string) =>
+  withState(episode, async (doc, current) => {
+    const v = view(doc, current.ready);
+    return { script: v.script.approved, storyboard: v.storyboard.approved,
+      approvedScenes: v.progress.approvedScenes, totalScenes: v.progress.totalScenes,
+      canAssemble: v.progress.canAssemble, assemblyApproved: v.progress.assemblyApproved,
+      masterApproved: v.progress.masterApproved, publishAllowed: v.progress.publishAllowed };
+  });
 export const inspectSceneProduction = (episode: string) =>
   withState(episode, async (doc, current) => ({
     ...view(doc, current.ready),

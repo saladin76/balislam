@@ -59,14 +59,19 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(ui).toContain('act("approve-scene"');
     expect(ui).toContain('act("correct-scene"');
     expect(ui).toContain("confirmedWatched: true");
-    expect(ui).toContain('type="password"');
+    expect(ui).toContain("useOwnerSession()");
     expect(ui).not.toMatch(/localStorage|sessionStorage|setTimeout|autoApprove/i);
+    // كلمة مرور المالك تُكتب في جلسة الشريط العلوي، وتبقى في الذاكرة فقط
+    const owner = src("app/src/shell/ownerSession.tsx");
+    expect(owner).toContain('type="password"');
+    expect(owner).not.toMatch(/localStorage|sessionStorage|autoApprove/i);
     const app = src("app/src/App.tsx");
     expect(app).toContain("<SceneProductionPanel");
-    expect(app).toContain("<EpisodeJourneyBar");
+    expect(app).toContain("<EpisodeSpine");
+    expect(app).toContain("<OwnerSessionProvider");
     expect(app).not.toContain("<EpisodeWorkspaceBar");
-    const journey = src("app/src/workspace/EpisodeJourneyBar.tsx");
-    for (const name of ["إعداد الحلقة", "Storyboard", "إنتاج المشاهد", "مراجعة الحلقة", "Master والنشر"])
+    const journey = src("app/src/shell/EpisodeSpine.tsx");
+    for (const name of ["إعداد الحلقة", "الستوري بورد", "المشاهد", "النسخة النهائية", "النشر"])
       expect(journey).toContain(name);
     expect(journey).toContain("api.sceneProduction(episodeId, channelId)");
     expect(journey).not.toMatch(/WorkflowOwnerControls|localStorage|autoApprove/);
