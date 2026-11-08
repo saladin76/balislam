@@ -10,7 +10,7 @@
 import type { ChannelConfig } from "./types";
 import type { Plan } from "../plan/types";
 
-type ChannelRulesInput = Pick<ChannelConfig, "id" | "rules"> & {
+type ChannelRulesInput = { id: string; rules?: Partial<ChannelConfig["rules"]> } & {
   brand?: ChannelConfig["brand"];
   script?: ChannelConfig["script"];
   verse?: ChannelConfig["verse"];
@@ -32,7 +32,7 @@ export type ChannelProductionProfile = {
   reviewFocus: readonly string[];
   sourceChecks: readonly string[];
   style: {
-    intro?: ChannelConfig["brand"] extends infer T ? T : never;
+    intro?: ChannelConfig["brand"];
     verse?: ChannelConfig["verse"];
     script?: ChannelConfig["script"];
   };
@@ -107,15 +107,15 @@ export const channelProductionIssues = (
   if (!channel) return [];
   const issues: ChannelPolicyIssue[] = [];
   for (const chapter of plan.chapters) for (const scene of chapter.scenes) {
-    if (!channel.rules.quran && scene.template === "verse-card") {
+    if (channel.rules?.quran === false && scene.template === "verse-card") {
       issues.push({ level: "error", sceneId: scene.id, code: "quran-forbidden",
         message: "هذه القناة لا تسمح بإدراج بطاقات آيات في إعداداتها الحالية." });
     }
-    if (!channel.rules.hadith && scene.template === "hadith-card") {
+    if (channel.rules?.hadith === false && scene.template === "hadith-card") {
       issues.push({ level: "error", sceneId: scene.id, code: "hadith-forbidden",
         message: "هذه القناة لا تسمح بإدراج بطاقات أحاديث في إعداداتها الحالية." });
     }
-    if (!channel.rules.music && scene.sfx.some(effect => musicFileName(effect.id))) {
+    if (channel.rules?.music === false && scene.sfx.some(effect => musicFileName(effect.id))) {
       issues.push({ level: "error", sceneId: scene.id, code: "music-forbidden",
         message: "الموسيقى ممنوعة في إعدادات هذه القناة؛ احذف المسار الموسيقي من المشهد." });
     }
