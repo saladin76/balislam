@@ -81,11 +81,17 @@ export type SceneProductionRead = {
   schemaVersion: 1;
   channel: string; episode: string; revision: number;
   progress: { currentScene: string | null; approvedScenes: number; totalScenes: number;
-    canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
+    canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean;
+    /** Verse scenes approved «مشروط بالتلاوة»: assembly and Master wait for their recitation. */
+    recitationPending?: string[] };
   script: { sha256: string; approved: boolean };
   storyboard: { sha256: string; approved: boolean };
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
     sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean;
+    /** Verse card whose human recitation is not attached yet (its draft is silent, marked). */
+    recitationPending?: boolean;
+    /** Approved on condition of its recitation (re-opens when the recitation is attached). */
+    conditional?: boolean;
     /** Pre-rendered draft from «جهّز كل المشاهد»: never a submission or approval. */
     draft?: "ready" | "stale" | "none" }[];
   /** «جاهز ١٢ من ٣١»: approved, submitted, or with a current draft. */
@@ -96,6 +102,18 @@ export type SceneProductionRead = {
   master: { sha256: string; approved: true; publishAllowed: boolean } | null;
   candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
     masterSha256: string | null };
+};
+export type Loudness = { integrated: number; truePeak: number; lra: number; threshold: number };
+export type RecitationVariant = { file: string; duration: number; sha256: string; loudness: Loudness };
+export type RecitationPolish = { before: Loudness; trim: { start: number; end: number; duration: number; trimmedHead: number; trimmedTail: number };
+  target: { integrated: number; truePeak: number; source: "narration" | "default" } };
+export type OwnRecitationCandidate = { file: string; duration: number; sha256: string; createdAt: string;
+  variant?: "processed" | "original"; variants?: Record<"processed" | "original", RecitationVariant>; polish?: RecitationPolish };
+export type OwnRecitationsRead = {
+  verses: { key: string; sceneId: string; reference: string }[];
+  pending: Record<string, OwnRecitationCandidate>;
+  approved: Record<string, { reciter: string; approvedAt: string; file: string; duration: number;
+    variant: "processed" | "original" | null; variants: Record<"processed" | "original", RecitationVariant> | null; polish: RecitationPolish | null }>;
 };
 export type ScenePrepareJob = {
   status: "running" | "done" | "error"; startedAt: number; finishedAt?: number;
@@ -140,6 +158,22 @@ export const api = {
         method: "POST", json: { sceneId, expectedSha256 },
         headers: { "x-studio-owner-token": token },
       }, channel),
+  /** «معاينة قبل النهائية»: all current scene cuts in order, recitations missing; never an approval. */
+  preFinal: (episode: string, channel: string) =>
+    call<{ preview: string | null; entry: { title: string; version: number; updatedAt: string | null } | null }>(
+      `/api/episodes/${episode}/scene-prefinal`, undefined, channel),
+  makePreFinal: (episode: string, channel: string, token: string) =>
+    call<{ ok: true; preview: string; version: number; scenes: number; recitationPending: string[] }>(
+      `/api/episodes/${episode}/scene-prefinal`, { method: "POST", headers: { "x-studio-owner-token": token } }, channel),
+  /** The owner's own recitations: upload (processed + original kept), switch variant, approve after listening. */
+  ownRecitations: (episode: string, channel: string) =>
+    call<OwnRecitationsRead>(`/api/episodes/${episode}/own-recitations`, undefined, channel),
+  ownRecitationAction: (episode: string, channel: string, token: string, body:
+    | { action: "upload"; key: string; name: string; data: string }
+    | { action: "select"; key: string; variant: "processed" | "original" }
+    | { action: "approve"; key: string; reciter: string; rightsEvidence: string; note: string; listened: boolean }) =>
+    call<Record<string, unknown>>(`/api/episodes/${episode}/own-recitations`, {
+      method: "POST", json: body, headers: { "x-studio-owner-token": token } }, channel),
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel),

@@ -54,7 +54,12 @@ type SignedSceneLedger = {
 type CurrentInput = {
   scriptPath: string;
   initial: SceneFirstProduction;
+  /** Narration and (for a verse card) its reviewed human recitation are both present. */
   ready: Record<string, boolean>;
+  /** Narration is present: an AV draft can be rendered (a verse without recitation gets a silent placeholder). */
+  voiceReady: Record<string, boolean>;
+  /** Verse card whose reviewed human recitation is not attached yet (owner decision: recitations come last). */
+  recitationPending: Record<string, boolean>;
   planReady: boolean;
 };
 const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
@@ -126,6 +131,8 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
   const voice = await loadVoiceIndex(episode);
   const manual = await verifiedOwnRecitations(scriptPath);
   const ready: Record<string, boolean> = {};
+  const voiceReadyBy: Record<string, boolean> = {};
+  const recitationPending: Record<string, boolean> = {};
   const refs = [];
   for (const chapter of plan.chapters) for (const scene of chapter.scenes) {
     const narration = scene.narration?.trim() ?? "";
@@ -148,6 +155,8 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
       Boolean(rec && rec.provider === "manual" && rec.sha256 &&
         rec.approvedBy && rec.rightsEvidence);
     ready[scene.id] = voiceReady && verseReady;
+    voiceReadyBy[scene.id] = voiceReady;
+    recitationPending[scene.id] = !verseReady;
     // Scoped invalidation: a scene's inputs are its own content, its own approved board, its own
     // narration clip and recitation. Editing another scene, or the script elsewhere, never re-opens it.
     refs.push({
@@ -158,7 +167,7 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
     });
   }
   return {
-    scriptPath, ready, planReady: boardStatus.ok && Boolean(boardStatus.audit?.note?.trim()),
+    scriptPath, ready, voiceReady: voiceReadyBy, recitationPending, planReady: boardStatus.ok && Boolean(boardStatus.audit?.note?.trim()),
     initial: createSceneFirstProduction({
       channel: path.basename(path.dirname(path.dirname(path.dirname(scriptPath)))),
       episode: path.basename(path.dirname(scriptPath)),
@@ -235,7 +244,7 @@ const serialized = async <T>(file: string, work: () => Promise<T>): Promise<T> =
       await rm(name, { force: true });
   }
 };
-const view = (data: SignedSceneLedger, ready: Record<string, boolean>) => {
+const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" | "recitationPending">) => {
   const p = data.state, progress = sceneFirstProgress(p);
   return {
     schemaVersion: 1 as const, channel: p.channel, episode: p.episode,
@@ -244,7 +253,12 @@ const view = (data: SignedSceneLedger, ready: Record<string, boolean>) => {
     storyboard: { sha256: p.storyboard.sha256, approved: Boolean(p.storyboard.approval && p.storyboard.approval.sha256 === p.storyboard.sha256) },
     scenes: p.scenes.map(s => ({ id: s.id, status: s.status,
       sourceSha256: s.sourceSha256, previewSha256: s.previewSha256,
-      readyForAv: Boolean(ready[s.id]), approved: s.status === "approved" && Boolean(s.approval) })),
+      // readyForAv: an AV draft can be produced now (narration present). A verse card without its
+      // recitation is produced with a silent placeholder and can only be approved conditionally.
+      readyForAv: Boolean(current.voiceReady[s.id]),
+      recitationPending: Boolean(current.recitationPending[s.id]),
+      approved: s.status === "approved" && Boolean(s.approval),
+      conditional: s.status === "approved" && s.approval?.recitationPending === true })),
     assembly: p.assembly ? { sha256: p.assembly.videoSha256, approved: progress.assemblyApproved } : null,
     seams: sceneSeams(p),
     master: p.master ? { sha256: p.master.fileSha256, approved: true, publishAllowed: progress.publishAllowed } : null,
@@ -321,11 +335,12 @@ const optionalSha = async (file: string): Promise<string | null> => {
 /** ملخص خفيف لحالة الحلقة في الخطوات الخمس (للقائمة الرئيسية): بلا حساب بصمات الملفات الكبيرة. */
 export const summarizeSceneProduction = (episode: string) =>
   withState(episode, async (doc, current) => {
-    const v = view(doc, current.ready);
+    const v = view(doc, current);
     return { script: v.script.approved, storyboard: v.storyboard.approved,
       approvedScenes: v.progress.approvedScenes, totalScenes: v.progress.totalScenes,
       canAssemble: v.progress.canAssemble, assemblyApproved: v.progress.assemblyApproved,
-      masterApproved: v.progress.masterApproved, publishAllowed: v.progress.publishAllowed };
+      masterApproved: v.progress.masterApproved, publishAllowed: v.progress.publishAllowed,
+      recitationPending: v.progress.recitationPending.length };
   });
 /**
  * A scene's pre-rendered draft (from «جهّز كل المشاهد»): "ready" when the preview on disk is exactly
@@ -344,7 +359,7 @@ const draftOf = async (doc: SignedSceneLedger, scriptPath: string, id: string, s
 };
 export const inspectSceneProduction = (episode: string) =>
   withState(episode, async (doc, current) => {
-    const v = view(doc, current.ready);
+    const v = view(doc, current);
     const candidates = Object.fromEntries(await Promise.all(doc.state.scenes.map(async scene =>
       [scene.id, await optionalSha(sceneFile(current.scriptPath, scene.id))] as const)));
     const scenes = await Promise.all(v.scenes.map(async s => ({
@@ -450,7 +465,9 @@ export const decideSceneProduction = async (episode: string,
       const scene = p.scenes.find(s => s.id === id);
       if (!scene || !safeSceneId(id)) throw Error("Unknown scene.");
       if (command.action === "submit-scene") {
-        if (!current.ready[id]) throw Error("Narration or the reviewed Quran recording is missing.");
+        // A verse card without its recitation may be submitted (silent placeholder draft); its approval
+        // is then recorded as conditional and never unlocks assembly or Master.
+        if (!current.voiceReady[id]) throw Error("The narration for this scene is missing.");
         if (scene.sourceSha256 !== command.expectedSha256) throw Error("Scene inputs changed.");
         const file = sceneFile(current.scriptPath, id);
         await verifyVideoEvidence(file);
@@ -482,6 +499,7 @@ export const decideSceneProduction = async (episode: string,
           throw Error("The preview changed since it was shown for review.");
         next = approveSceneAv(p, id, {
           by, at, previewSha256: resultSha256, watchedWithAudio: true,
+          recitationPending: Boolean(current.recitationPending[id]),
         });
       }
     }
@@ -493,12 +511,14 @@ export const decideSceneProduction = async (episode: string,
     const history = [...doc.history, {
       seq: doc.history.length + 1, action: command.action,
       ...(command.sceneId ? { sceneId: command.sceneId } : {}),
-      at, by, resultSha256, note: command.note?.trim() || "تأكيد مراجعة المالك",
+      at, by, resultSha256,
+      note: (command.action === "approve-scene" && command.sceneId && current.recitationPending[command.sceneId]
+        ? "اعتماد مشروط بالتلاوة — " : "") + (command.note?.trim() || "تأكيد مراجعة المالك"),
     }];
     const saved = sign({ version: 1, state: next, revision: doc.revision + 1,
       history, previewEpochs, previewInputs: doc.previewInputs, assemblyEpoch, masterEpoch });
     await saveLedger(stateFileFor(current.scriptPath), saved);
-    return view(saved, current.ready);
+    return view(saved, current);
   });
 };
 /**
@@ -536,8 +556,9 @@ const checkRenderAllowed = (state: SceneFirstProduction, current: CurrentInput, 
     if (target.status !== "queued" && target.status !== "needs_revision")
       throw Error("An approved or submitted scene is never re-rendered as a draft.");
   }
-  if (!current.ready[sceneId])
-    throw Error("The scene narration or human Quran recording is not ready for AV production.");
+  // A verse card without its recitation renders as a DRAFT with a silent placeholder (recitations come last).
+  if (!current.voiceReady[sceneId])
+    throw Error("The scene narration is not ready for AV production.");
 };
 export const assertSceneRenderAllowed = async (
   episode: string, sceneId: string, expectedSha256: string, token: unknown, mode: SceneRenderMode,
@@ -608,6 +629,39 @@ export const approvedSceneCutsForAssembly = async (
       await verifyVideoEvidence(file);
       cuts.push({ sceneId: scene.id, file, sha256: scene.previewSha256 });
     }
+    return cuts;
+  });
+};
+
+/**
+ * «معاينة قبل النهائية» (owner decision, 8 Nov): every scene's CURRENT cut, in episode order, whatever
+ * its decision state: the approved or submitted preview (exact reviewed bytes), otherwise a ready draft
+ * bound to the scene's current inputs. Verse scenes without a recitation are silent placeholder drafts.
+ * Read-only: it records nothing, and the result is never an assembly, a Master or an approval.
+ */
+export const currentSceneCutsForPreFinal = async (
+  episode: string, token: unknown,
+): Promise<{ sceneId: string; file: string; sha256: string; state: "approved" | "conditional" | "in_review" | "draft";
+  recitationPending: boolean }[]> => {
+  assertSceneOwner(token);
+  return withState(episode, async (doc, current) => {
+    const cuts = [];
+    const missing: string[] = [];
+    for (const scene of doc.state.scenes) {
+      const file = sceneFile(current.scriptPath, scene.id);
+      const bytes = await optionalSha(file);
+      const reviewed = (scene.status === "approved" || scene.status === "in_review") && scene.previewSha256 === bytes;
+      if (!bytes || !(reviewed || await draftOf(doc, current.scriptPath, scene.id, scene.sourceSha256, bytes) === "ready")) {
+        missing.push(scene.id);
+        continue;
+      }
+      cuts.push({ sceneId: scene.id, file, sha256: bytes,
+        state: scene.status === "approved" ? (scene.approval?.recitationPending ? "conditional" as const : "approved" as const)
+          : scene.status === "in_review" ? "in_review" as const : "draft" as const,
+        recitationPending: Boolean(current.recitationPending[scene.id]) });
+    }
+    if (missing.length)
+      throw Error(`مشاهد بلا مسودة حالية: ${missing.slice(0, 12).join("، ")}${missing.length > 12 ? "…" : ""}. شغّل «جهّز كل المشاهد» أولًا.`);
     return cuts;
   });
 };

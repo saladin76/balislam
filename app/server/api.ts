@@ -246,6 +246,25 @@ export const balApi = (): Plugin => ({
             return send(res, 200, { ok: true, version: output.version, scenes: output.scenes });
           }
 
+          // «معاينة قبل النهائية»: every current scene cut in order (approved or draft, verse scenes silent
+          // until their recitation is attached) in its own preview slot. Never an approval or a Master.
+          if (parts[2] === "scene-prefinal" && parts.length === 3) {
+            const { assemblePreFinalPreview, PRE_FINAL_SLOT } = await load("/src/studio/assembleScenes.ts");
+            if (req.method === "GET") {
+              const { listEpisodePreviews } = await load("/src/render/episodePreviews.ts");
+              const list = await listEpisodePreviews(path.dirname(scriptPath));
+              const entry = (list as { name: string; title: string; version: number; updatedAt: string | null }[])
+                .find((x) => x.name === `${PRE_FINAL_SLOT}.mp4`);
+              return send(res, 200, { preview: entry ? `${PRE_FINAL_SLOT}.mp4` : null, entry: entry ?? null });
+            }
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            let output;
+            try { output = await assemblePreFinalPreview(ep, req.headers["x-studio-owner-token"]); }
+            catch (error) { return refuse(error); }
+            return send(res, 200, { ok: true, preview: `${PRE_FINAL_SLOT}.mp4`, version: output.version,
+              scenes: output.scenes, recitationPending: output.recitationPending });
+          }
+
           if (parts[2] === "scene-av-render" && parts.length === 3) {
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const body = await readBody(req);
@@ -264,6 +283,9 @@ export const balApi = (): Plugin => ({
               verifyBeforePublish: () => assertCurrentSceneRenderAllowed(
                 ep, sceneId, expectedSha256, token,
               ),
+              // Recitations come last (owner decision, 8 Nov): a verse scene without one renders as a
+              // marked draft with silence; its approval can only be conditional (sceneProduction.ts).
+              allowPendingRecitation: true,
             });
             await recordSceneRenderEvidence(ep, sceneId, expectedSha256, token);
             return send(res, 200, { ok: true, version: output.version,
@@ -333,6 +355,46 @@ export const balApi = (): Plugin => ({
               })),
             });
           }
+          // The owner's OWN recitations (recitations come last, owner decision 8 Nov): upload → a processed
+          // copy (edge silence, gentle denoise, loudness matched to narration) beside the untouched original;
+          // switch between them; approve after listening. Owner session required; nothing is fetched or generated.
+          if (parts[2] === "own-recitations" && parts.length === 3) {
+            const manual = await load("/src/quran/manualAudio.ts");
+            if (req.method === "GET") {
+              const status = await manual.ownAudioStatus(ep);
+              const plan = await io.loadPlan(ep);
+              const verses = (plan?.chapters ?? []).flatMap((c: any) => c.scenes)
+                .filter((s: any) => s.template === "verse-card" && s.ayahKey)
+                .map((s: any) => ({ key: s.ayahKey as string, sceneId: s.id as string, reference: s.props?.reference ?? "" }));
+              const approved = Object.fromEntries(Object.entries(status.approved as Record<string, any>).map(([k, r]) => [k, {
+                reciter: r.reciter, approvedAt: r.approvedAt, file: r.parts?.[0]?.file, duration: r.parts?.[0]?.duration,
+                variant: r.candidate?.variant ?? null, variants: r.candidate?.variants ?? null, polish: r.candidate?.polish ?? null,
+              }]));
+              return send(res, 200, { verses, pending: status.pending, approved });
+            }
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const body = await readBody(req);
+            const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+            try {
+              assertSceneOwner(req.headers["x-studio-owner-token"]);
+              const key = String(body?.key ?? "");
+              if (body?.action === "upload") {
+                const data = Buffer.from(String(body.data ?? "").replace(/^data:[^,]+,/, ""), "base64");
+                const candidate = await manual.prepareOwnRecitation(ep, key, String(body.name ?? ""), data);
+                return send(res, 200, { candidate });
+              }
+              if (body?.action === "select")
+                return send(res, 200, { candidate: await manual.selectOwnRecitationVariant(ep, key, body.variant) });
+              if (body?.action === "approve") {
+                const entry = await manual.approveOwnRecitation(ep, key, "owner", String(body.note ?? ""), body.listened === true, {
+                  reciter: String(body.reciter ?? ""), rightsEvidence: String(body.rightsEvidence ?? ""),
+                });
+                return send(res, 200, { approved: { key, sha256: entry.sha256 } });
+              }
+              return send(res, 400, { error: "فعل غير معروف." });
+            } catch (error) { return refuse(error); }
+          }
+
           if (parts[2] === "recitation" && parts.length === 3) {
             if (req.method === "GET") return send(res, 200, { recitation: null, method: "owner-supplied" });
             return send(res, 410, { error: "أُلغِي اختيار قرّاء الخدمات الخارجية؛ أرفق التسجيل البشري بالحَلقة." });

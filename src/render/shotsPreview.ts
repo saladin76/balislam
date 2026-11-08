@@ -46,14 +46,28 @@ export const shotGaps = (plan: Plan, media: EpisodeMedia, ids: string[], scriptP
  * المعاينة الصوتية تحتوي التسجيل البشري الذي أرفقه المالك فقط، وتبقى على الجهاز دون رفعها إلى المستودع:
  * خانتها تنتهي بـ «-audio» وملفاتها مستثناة في .gitignore. وعند نجاحها تحل محل المعاينة الصامتة القديمة (replaces).
  */
-export const renderShotsPreview = async (episode: string, ids: string[], opts: { slot: string; title: string; note?: string; replaces?: string; onProgress?: (p: number, m: string) => void; verifyBeforePublish?: () => Promise<void> }) => {
+export const renderShotsPreview = async (episode: string, ids: string[], opts: { slot: string; title: string; note?: string; replaces?: string; onProgress?: (p: number, m: string) => void; verifyBeforePublish?: () => Promise<void>;
+  /**
+   * Scene AV drafts only (owner decision, 8 Nov: recitations come last): a verse card whose human
+   * recitation is not attached yet is rendered with its verse visible and SILENCE for the plan's
+   * duration, marked on screen «التلاوة تُضاف لاحقًا». Never a Master; the final gates still require it.
+   */
+  allowPendingRecitation?: boolean }) => {
   if (!(/^[a-z0-9][a-z0-9_-]{0,70}-audio$/.test(opts.slot) || /^scene-[a-z0-9][a-z0-9-]{0,70}-av$/.test(opts.slot))) throw new Error("خانة معاينة AV غير آمنة.");
   const scriptPath = await resolveScriptPath(episode);
   const full = await loadPlan(episode);
   if (!full) throw new Error("لا توجد خطة للحلقة.");
   const plan: Plan = { ...full, chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
-  const media = await prepareRenderMedia(episode, plan, { requireApprovedQuran: true });
-  const gaps = shotGaps(plan, media, ids, scriptPath, true);
+  const sceneDraft = /^scene-[a-z0-9-]+-av$/.test(opts.slot);
+  const draftMode = Boolean(opts.allowPendingRecitation && sceneDraft);
+  // Only reviewed, owner-attached recordings are ever used; a draft simply leaves a missing one silent.
+  const media = draftMode
+    ? await prepareRenderMedia(episode, plan, { requireApprovedQuran: false })
+    : await prepareRenderMedia(episode, plan, { requireApprovedQuran: true });
+  const pendingRecitation = draftMode ? plan.chapters.flatMap((c) => c.scenes)
+    .filter((s) => ids.includes(s.id) && s.template === "verse-card" && (!s.ayahKey || !media.recitations[s.ayahKey]))
+    .map((s) => s.id) : [];
+  const gaps = shotGaps(plan, media, ids, scriptPath, !draftMode);
   if (gaps.length) {
     const e = new Error(`لم تُصنع المعاينة الصوتية لأن فيها نواقص:\n${gaps.map((g) => `- ${g.id}: ${g.what}`).join("\n")}`) as Error & { gaps: ShotGap[] };
     e.gaps = gaps;
@@ -63,6 +77,7 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   const file = await renderEpisode({ episode, orientation: "landscape", quality: "preview",
     plan, media, outFile, onProgress: opts.onProgress,
     scenePreview: /^scene-[a-z0-9-]+-av$/.test(opts.slot),
+    ...(pendingRecitation.length ? { draftMarks: { pendingRecitation } } : {}),
   });
   const timing = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, seconds: Math.round((sceneFrames(s, media) / 30) * 10) / 10, voice: media.voice[s.id]?.duration ?? null, recitation: s.ayahKey ? media.recitations[s.ayahKey]?.duration ?? null : null }));
   // A scene edited while Remotion was running must never publish its stale cut.
@@ -70,5 +85,5 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   const up = await putEpisodePreview(episode, opts.slot, file, { title: opts.title, note: opts.note });
   // نجحت النسخة الجديدة: لا تبقى المعاينة الصامتة القديمة معروضة بجوارها
   if (opts.replaces && opts.replaces !== opts.slot) await removePreview(scriptPath, opts.replaces);
-  return { file: up.file, version: up.version, timing };
+  return { file: up.file, version: up.version, timing, pendingRecitation };
 };
