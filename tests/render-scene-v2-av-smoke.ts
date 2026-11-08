@@ -9,7 +9,7 @@
 import { strict as assert } from "node:assert";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, stat, statfs, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import samplePlan from "./fixtures/plan.json";
@@ -27,6 +27,9 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
   assert(ffprobe && path.isAbsolute(ffprobe), "Absolute STUDIO_FFPROBE_BIN is required.");
   assert(memoryInfo().availableMB >= 1800, "Insufficient memory: real render intentionally blocked.");
   const workspace = await mkdtemp(path.join(os.tmpdir(), "studio-v2-render-real-"));
+  const diskStart = await statfs(workspace);
+  const workspaceDiskBeforeMB = diskStart.bavail * diskStart.bsize / (1024 * 1024);
+  const qaStartTime = Date.now();
   const episodeRoot = path.join(workspace, "balislam", "episodes", "001-render-qa");
   const run = (args: string[]) => new Promise<void>((resolve, reject) => {
     const p = spawn(ffmpeg, ["-hide_banner", "-nostdin", "-loglevel", "error", "-y", ...args], {
@@ -91,11 +94,47 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
       const still = path.join(episodeRoot, mode + ".png");
       await run(["-ss", "1", "-i", result.file, "-frames:v", "1", still]);
       assert((await stat(still)).size > 1000);
-      console.log(JSON.stringify({ mode, status: result.status, dimensions: "640x360",
-        durationSec: result.durationSec, fps: result.fps, frames: result.frames,
-        videoCodec: result.videoCodec, audioCodecs: result.audioCodecs,
-        audioStreams: result.audioStreams, sha256: result.sha256,
-        bytes: result.bytes, elapsedMs: result.elapsedMs, still }));
+      const early = path.join(episodeRoot, mode + "-early.png");
+      await run(["-ss", "0.10", "-i", result.file, "-frames:v", "1", early]);
+      const earlySha256 = hash(await readFile(early));
+      const middleSha256 = hash(await readFile(still));
+      assert.notEqual(earlySha256, middleSha256,
+        "Real Remotion frame at 0.10s and 1.00s must visibly change.");
+      const stageRoot = path.resolve("public", "_studio_v2");
+      const tempRoot = path.join(episodeRoot, ".studio-v2-render");
+      assert.equal((await readdir(tempRoot)).length, 0, "Render temp should be empty.");
+      assert.equal((await readdir(stageRoot)).length, 0, "Owned public staging should be empty.");
+      if (mode === "narrated") {
+        assert(streams.audio[0]!.startSec <= 0.1,
+          "Technical signal must start near video time 0.");
+      }
+      const record = { mode, composition: "studio-v2-scene", status: result.status,
+        dimensions: "640x360", durationSec: result.durationSec, fps: result.fps,
+        frames: result.frames, videoCodec: result.videoCodec,
+        audioCodecs: result.audioCodecs, audioStreams: result.audioStreams,
+        sha256: result.sha256, bytes: result.bytes, elapsedMs: result.elapsedMs,
+        memoryAvailableBeforeMB: result.memoryAvailableBeforeMB,
+        memoryAvailableMinMB: result.memoryAvailableMinMB,
+        diskFreeBeforeMB: result.diskFreeBeforeMB,
+        diskFreeAfterMB: result.diskFreeAfterMB,
+        extractedFrameSha256: middleSha256, earlyFrameSha256: earlySha256,
+        motionDifferentFrames: true, fullDecode: true, stagingClean: true,
+        reviewStatus: result.reviewStatus,
+        audioStartSec: streams.audio[0]?.startSec ?? null,
+      };
+      console.log("STUDIO_V2_ACTUAL_REMOTION_EVIDENCE " + JSON.stringify(record));
+      if (process.env.STUDIO_V2_QA_EMBED_EVIDENCE === "1") {
+        console.log("STUDIO_V2_QA_BINARY_BEGIN " + JSON.stringify({
+          mode, media: [
+            { name: mode + ".mp4", contentType: "video/mp4",
+              sha256: result.sha256, base64: (await readFile(result.file)).toString("base64") },
+            { name: mode + ".png", contentType: "image/png",
+              sha256: middleSha256, base64: (await readFile(still)).toString("base64") },
+            { name: mode + "-early.png", contentType: "image/png",
+              sha256: earlySha256, base64: (await readFile(early)).toString("base64") },
+          ],
+        }) + " STUDIO_V2_QA_BINARY_END");
+      }
     }
     // Cancellation is an actual state transition, never a completed owner review.
     const controller = new AbortController();
@@ -112,6 +151,12 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
       assertCanRender: async () => {},
     });
     assert.equal(cancel.status, "cancelled");
+    const diskEnd = await statfs(workspace);
+    console.log("STUDIO_V2_QA_RESOURCES " + JSON.stringify({
+      workspaceDiskBeforeMB,
+      workspaceDiskAfterMB: diskEnd.bavail * diskEnd.bsize / (1024 * 1024),
+      qaElapsedMs: Date.now() - qaStartTime,
+    }));
     console.log("PASS Studio V2 real AV smoke and pre-aborted cancellation.");
   } finally {
     await rm(workspace, { recursive: true, force: true });
