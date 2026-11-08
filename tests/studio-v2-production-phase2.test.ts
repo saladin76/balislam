@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { pathToFileURL } from "node:url";
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { withSceneArtifactLockV2 } from "../src/workflow/sceneLockV2.ts";
@@ -93,6 +95,65 @@ describe("Studio V2 phase 2 trusted production boundary", () => {
       .rejects.toThrow(/PRODUCTION_BUSY/);
     expect(await readFile(lock, "utf8")).toBe("foreign-lease");
   });
+
+  it("denies a separate Node process while the first process owns the episode lease", async () => {
+    const { scope, dir } = await setup();
+    const ready = path.join(dir, "process-ready.signal");
+    const release = path.join(dir, "process-release.signal");
+    const moduleFile = path.join(import.meta.dirname, "..", "src", "workflow",
+      "sceneProductionLeaseV2.ts");
+    const source = `
+      import { writeFile, access } from "node:fs/promises";
+      import { pathToFileURL } from "node:url";
+      const { withSceneProductionLeaseV2 } = await import(
+        pathToFileURL(process.env.STUDIO_V2_TEST_MODULE).href);
+      await withSceneProductionLeaseV2(
+        JSON.parse(process.env.STUDIO_V2_TEST_SCOPE), "c1-s1", async () => {
+          await writeFile(process.env.STUDIO_V2_TEST_READY, "owned");
+          const deadline = Date.now() + 18000;
+          while (Date.now() < deadline) {
+            if (await access(process.env.STUDIO_V2_TEST_RELEASE).then(() => true)
+              .catch(() => false)) return;
+            await new Promise((resolve) => setTimeout(resolve, 25));
+          }
+          throw Error("Timed out awaiting parent release signal");
+        });
+    `;
+    const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module",
+      "-e", source], {
+      cwd: path.join(import.meta.dirname, ".."),
+      stdio: ["ignore", "ignore", "pipe"], shell: false,
+      env: { ...process.env, STUDIO_V2_TEST_MODULE: moduleFile,
+        STUDIO_V2_TEST_SCOPE: JSON.stringify(scope),
+        STUDIO_V2_TEST_READY: ready, STUDIO_V2_TEST_RELEASE: release },
+    });
+    let stderr = "";
+    child.stderr?.on("data", (chunk: Buffer) => {
+      if (stderr.length < 2000) stderr += chunk.toString("utf8").slice(0, 2000-stderr.length);
+    });
+    try {
+      const deadline = Date.now() + 15000;
+      while (!(await access(ready).then(() => true).catch(() => false))) {
+        if (child.exitCode !== null || Date.now() > deadline)
+          throw Error("Independent lease worker did not start: " + stderr);
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      await expect(withSceneProductionLeaseV2(scope, "c1-s1", async () => {
+        throw Error("UNSAFE: simultaneous production entered");
+      })).rejects.toThrow(/PRODUCTION_BUSY/);
+      await writeFile(release, "release");
+      const code = await new Promise<number | null>((resolve, reject) => {
+        if (child.exitCode !== null) return resolve(child.exitCode);
+        child.once("exit", resolve);
+        child.once("error", reject);
+      });
+      expect(code, stderr).toBe(0);
+      expect(await access(await productionLeaseFileV2(scope)).then(() => true)
+        .catch(() => false)).toBe(false);
+    } finally {
+      child.kill("SIGKILL");
+    }
+  }, 30000);
 
   it("signs server-owned render configuration and rejects changed sources and forged inputs", async () => {
     const { scope, dir, locked } = await setup();
