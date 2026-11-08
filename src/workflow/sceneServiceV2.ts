@@ -10,7 +10,7 @@
  * validation booleans. Rendering/publishing remains disabled until integration.
  */
 import {
-  approveSceneAv, assemblySceneFingerprint, assertCanProduceScene,
+  appendSceneNote, approveSceneAv, assemblySceneFingerprint, assertCanProduceScene,
   beginFinalSceneProduction, markScenePrepared, reconcileSceneInputs,
   requestSceneChanges, sceneFingerprint, submitSceneAvReview,
   type SceneInputs, type SceneLedgerV2,
@@ -27,7 +27,7 @@ export type SceneV2Principal = {
   id: string; role: "owner" | "reviewer"; authenticated: true;
 };
 export type SceneV2ClientDecision = {
-  action: "prepare" | "begin" | "submit" | "approve" | "request_changes";
+  action: "prepare" | "begin" | "submit" | "approve" | "request_changes" | "note";
   sceneId: string;
   /** Mandatory on submit/approve; taken from read-only inspection of current video. */
   expectedFingerprint?: string;
@@ -44,6 +44,12 @@ export type TrustedSceneV2Dependencies = {
   assertLockedScriptAndStoryboard: (sceneId: string) => Promise<void>;
   /** Must independently check actual playable AV scene, rights, review receipts
    * and the owner's explicit completed audiovisual viewing (not a UI boolean). */
+  /** Required in production HTTP: signed MP4 must match current begin event. */
+  requireCurrentRenderReceipt?: (proof: Readonly<{
+    sceneId: string; sceneOrder: readonly string[];
+    fingerprint: string; videoSha256: string; videoEpoch: string;
+    videoVersion: string;
+  }>) => Promise<void>;
   verifyCurrentSceneAvReview: (proof: Readonly<{
     sceneId: string; ownerId: string; fingerprint: string; avSha256: string;
   }>) => Promise<void>;
@@ -52,7 +58,7 @@ export type TrustedSceneV2Dependencies = {
   ffprobeBinary: string;
 };
 
-const ALLOWED = ["prepare", "begin", "submit", "approve", "request_changes"] as const;
+const ALLOWED = ["prepare", "begin", "submit", "approve", "request_changes", "note"] as const;
 const sha = /^[a-f0-9]{64}$/;
 const validate = (input: SceneV2ClientDecision): SceneV2ClientDecision => {
   if (!input || typeof input !== "object" || Array.isArray(input) ||
@@ -61,7 +67,8 @@ const validate = (input: SceneV2ClientDecision): SceneV2ClientDecision => {
       !ALLOWED.includes(input.action) ||
       typeof input.sceneId !== "string" ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.sceneId) ||
-      (input.action === "submit" || input.action === "approve") &&
+      (input.action === "submit" || input.action === "approve" ||
+        input.action === "note" || input.action === "request_changes") &&
         !sha.test(input.expectedFingerprint ?? "") ||
       (input.expectedFingerprint !== undefined && !sha.test(input.expectedFingerprint)) ||
       (input.note !== undefined &&
@@ -71,7 +78,7 @@ const validate = (input: SceneV2ClientDecision): SceneV2ClientDecision => {
       (input.elementId !== undefined &&
         (typeof input.elementId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(input.elementId))))
     throw Error("Invalid scene decision; identity, artifact paths and evidence are server-only.");
-  if (input.action === "request_changes" && (!input.note || input.note.trim().length < 2))
+  if ((input.action === "request_changes" || input.action === "note") && (!input.note || input.note.trim().length < 2))
     throw Error("A timestamped or element-specific correction requires a meaningful note.");
   return input;
 };
@@ -150,13 +157,36 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
             // Verified by the trusted asynchronous adapter immediately above,
             // under the SAME shared artifact lock.
           }));
-      } else if (input.action === "request_changes") {
-        await mutateSceneLedgerV2(deps.scope, order, (doc) =>
-          requestSceneChanges(doc, input.sceneId, {
-            text: input.note!, at: new Date().toISOString(),
-            second: input.second, elementId: input.elementId,
-          }));
+      } else if (input.action === "note" || input.action === "request_changes") {
+        // The displayed video must still be the EXACT current server-verified
+        // generation. A fresh client GET is not a substitute for this locked check.
+        const current = await captureLocked(input.sceneId);
+        await reconcileLocked(order, input.sceneId, current.inputs);
+        if (current.fingerprint !== input.expectedFingerprint)
+          throw Error("STALE_AV_NOTE: video changed before timecoded decision.");
+        const now = new Date().toISOString();
+        const version = {
+          fingerprint: current.fingerprint,
+          videoVersion: current.manifest.inputs.video.version,
+          videoSha256: current.inputs.video.sha256,
+        };
+        if (input.action === "note") {
+          await mutateSceneLedgerV2(deps.scope, order, (doc) =>
+            appendSceneNote(doc, input.sceneId, {
+              text: input.note!, second: input.second, elementId: input.elementId,
+              ...version,
+            }, now));
+        } else {
+          await mutateSceneLedgerV2(deps.scope, order, (doc) =>
+            requestSceneChanges(doc, input.sceneId, {
+              text: input.note!, at: now, second: input.second,
+              elementId: input.elementId, ...version,
+            }));
+        }
       } else {
+        // Source/Storyboard owner approvals must still be current on submit
+        // AND approve, not merely at the earlier begin event.
+        await deps.assertLockedScriptAndStoryboard(input.sceneId);
         // Both submission and approval must inspect the *current* composed AV
         // file. A stale client fingerprint cannot approve newer bytes.
         const { inputs, fingerprint, manifest } = await captureLocked(input.sceneId);
@@ -164,6 +194,12 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
         if (fingerprint !== input.expectedFingerprint)
           throw Error("Scene AV changed since it was shown; refresh before deciding.");
         if (input.action === "submit") {
+          if (deps.requireCurrentRenderReceipt)
+            await deps.requireCurrentRenderReceipt({
+              sceneId: input.sceneId, sceneOrder: order, fingerprint,
+              videoSha256: inputs.video.sha256, videoEpoch: inputs.video.epoch,
+              videoVersion: manifest.inputs.video.version,
+            });
           // A filename and hash are not proof of a playable AV stream.
           // Probe under the SAME server writer lock before presenting a scene.
           const probed = await probeSceneAvLockedV2(deps.scope, manifest,
@@ -225,18 +261,64 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
       }
     }
     const doc = await readSceneLedgerV2(deps.scope, order);
+    const sourcesReady = await deps.assertLockedScriptAndStoryboard(order[0]!)
+      .then(() => true).catch(() => false);
+    const video: Record<string, {
+      version: string; sha256: string; epoch: string; width?: number;
+      height?: number; durationSec?: number; hasAudio?: boolean;
+    }> = {};
+    for (const id of order) {
+      const entry = doc.scenes[id]!;
+      if (!entry.inputs || !["producing", "in_review", "approved"].includes(entry.status))
+        continue;
+      try {
+        const manifest = await deps.currentSceneManifest(id);
+        const captured = await captureLocked(id);
+        if (captured.inputs.video.sha256 !== entry.inputs.video.sha256 ||
+            captured.inputs.video.epoch !== entry.inputs.video.epoch)
+          throw Error("Current scene video no longer matches its signed state.");
+        const detail: typeof video[string] = {
+          version: manifest.inputs.video.version,
+          sha256: captured.inputs.video.sha256, epoch: captured.inputs.video.epoch,
+        };
+        if (!deps.ffprobeBinary.includes("__studio_v2_ffprobe_not_configured__")) {
+          const probed = await probeSceneAvLockedV2(deps.scope, manifest,
+            { ffprobeBinary: deps.ffprobeBinary });
+          if (probed.sha256 !== detail.sha256 || probed.epoch !== detail.epoch)
+            throw Error("Scene video changed during inspection.");
+          Object.assign(detail, { width: probed.width, height: probed.height,
+            durationSec: probed.durationSec, hasAudio: probed.hasAudio });
+        }
+        video[id] = detail;
+      } catch (error) {
+        // A producing scene may not have a video yet. An approved/submitted
+        // scene must NEVER be represented with missing/mismatched media.
+        if (entry.status !== "producing") throw error;
+      }
+    }
     return {
       channel: doc.channel, episode: doc.episode, revision: doc.revision,
-      scenes: order.map((id) => {
+      sourcesReady,
+      scenes: order.map((id, index) => {
         const scene = doc.scenes[id]!;
+        const blockers: string[] = [];
+        if (!sourcesReady) blockers.push("sources_not_approved");
+        if (order.slice(0, index).some((previous) =>
+          doc.scenes[previous]?.status !== "approved"))
+          blockers.push("previous_scene_not_approved");
+        if (["approved", "in_review"].includes(scene.status) && !video[id])
+          blockers.push("current_video_unavailable");
         let fingerprint: string | undefined;
         try { if (scene.inputs) fingerprint = sceneFingerprint(id, scene.inputs); }
         catch { /* no current complete AV to expose */ }
         return {
-          id, status: scene.status, fingerprint,
+          id, status: scene.status, fingerprint, currentVideo: video[id],
+          blockers,
           approvedAt: scene.status === "approved" ? scene.approval?.at : undefined,
           notes: scene.notes.map((n) => ({
             text: n.text, at: n.at, second: n.second, elementId: n.elementId,
+            fingerprint: n.fingerprint, videoVersion: n.videoVersion,
+            videoSha256: n.videoSha256,
           })),
         };
       }),
@@ -249,6 +331,7 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
   const assemblyEligibility = async () => deps.withArtifactLock(async () => {
     await owner();
     const order = await scopedOrder();
+    await deps.assertLockedScriptAndStoryboard(order[0]!);
     const doc = await refreshSignedLocked(order);
     return { sceneAssemblyFingerprint: assemblySceneFingerprint(doc) };
   });
