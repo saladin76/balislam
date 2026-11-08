@@ -105,7 +105,7 @@
  .v2-header { padding:13px 18px; }
  .v2-main { padding:16px; }
 }
-@media (max-width:1050px) {
+@media (max-width:1220px) {
  .v2-review { overflow-y:auto; height:auto; }
  .v2-layout { display:flex; flex-direction:column; overflow:visible; min-height:auto; }
  .v2-scene-list { border-inline-end:0; border-bottom:1px solid var(--v2-line); }
