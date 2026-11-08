@@ -122,6 +122,22 @@ describe("Studio V2 D2 — legitimate silence, human recitation and composite AV
     await expect(x.collect("c2-v1", "recitation", missing)).rejects.toThrow(/manifest|narration/);
   });
 
+  it("requires separate episode-owned voice and recitation paths for a mixed scene", async () => {
+    const x = await make();
+    const mixed = manifest("c2-v2", "mixed");
+    mixed.inputs.narration.files = ["voice/c2-v2.mp3"];
+    await expect(x.collect("c2-v2", "mixed", mixed))
+      .rejects.toThrow(/required narrator and\/or human-recitation/);
+    const onlyRecitation = manifest("c2-v1", "recitation");
+    onlyRecitation.inputs.narration.files = ["voice/c2-v1.mp3"];
+    await expect(x.collect("c2-v1", "recitation", onlyRecitation))
+      .rejects.toThrow(/required narrator and\/or human-recitation/);
+    const onlyNarration = manifest("c1-s1", "narrated");
+    onlyNarration.inputs.narration.files = ["recitations/c1-s1.wav"];
+    await expect(x.collect("c1-s1", "narrated", onlyNarration))
+      .rejects.toThrow(/required narrator and\/or human-recitation/);
+  });
+
   it("rejects mismatching the required type of a Quran scene", async () => {
     const x = await make();
     await expect(x.collect("c2-v2", "narrated", manifest("c2-v2", "narrated")))
