@@ -186,6 +186,18 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     s = await state();
     expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 })).status).toBe(200);
     expect((await call("POST", `episodes/${EP}/scene-prepare`, undefined, "wrong-passphrase")).status).toBe(403);
+    // «أوقف» (D36): owner-only; a stopped queue starts nothing new and approves nothing.
+    expect((await call("DELETE", `episodes/${EP}/scene-prepare`, undefined, "wrong-passphrase")).status).toBe(403);
+    expect((await call("DELETE", `episodes/${EP}/scene-prepare`, undefined, PASS)).body).toMatchObject({ job: null });
+    {
+      const { prepareAllScenes } = await import("../src/studio/prepareAll");
+      const { runWithChannel } = await import("../src/channel");
+      const drafted: string[] = [];
+      const stopped = await runWithChannel(CH, () => prepareAllScenes(EP, { token: PASS, voiceClient: null,
+        render: async (_e, id) => { drafted.push(id); }, shouldStop: () => true }));
+      expect(stopped).toMatchObject({ stopped: true, rendered: [], phase: "done" });
+      expect(drafted).toEqual([]);
+    }
 
     // ── No voice key: said plainly, nothing crashes, voiced scenes are still prepared ───────────
     const noKeyRead = await call("GET", `episodes/${EP}/scene-prepare`);

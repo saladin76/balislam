@@ -125,3 +125,27 @@ describe("التشكيل للنطق", () => {
     expect(d.original).toEqual(["الموقف", "نفسه"]);
   });
 });
+
+describe("نبرة الحلقة تكفي (تجربة الفانل ٨ نوفمبر، D36)", () => {
+  it("«مثل الحلقة» قرار صالح: نبرة الحلقة تُحتسب لكل مشهد بلا نبرة، وبلاها تبقى المشاهد ناقصة", async () => {
+    const { readPlanFile, writePlanFile, planPathFor } = await import("../src/plan/io");
+    const { resolveScriptPath } = await import("../src/script/episodes");
+    const { effectiveTone, inheritedToneLabel } = await import("../src/voice/tones");
+    const sp = await resolveScriptPath("000");
+    const plan = (await readPlanFile(sp))!;
+    const spoken = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
+    for (const s of spoken) delete s.tone;
+    delete plan.tone;
+    await writePlanFile(planPathFor(sp), plan);
+    expect((await generateVoice("000", { dryRun: true })).missingTones.length).toBe(spoken.length);
+    plan.tone = "calm";
+    spoken[0]!.tone = "dramatic"; // التخصيص لمشهد وحده باقٍ
+    await writePlanFile(planPathFor(sp), plan);
+    expect((await generateVoice("000", { dryRun: true })).missingTones).toEqual([]);
+    expect(effectiveTone(undefined, "calm")).toBe("calm");
+    expect(effectiveTone("dramatic", "calm")).toBe("dramatic");
+    expect(effectiveTone("", "bogus", undefined)).toBeUndefined();
+    expect(inheritedToneLabel("calm")).toBe("مثل الحلقة (هادئ تأملي)");
+    expect(inheritedToneLabel(undefined)).toContain("لم تُختر");
+  });
+});

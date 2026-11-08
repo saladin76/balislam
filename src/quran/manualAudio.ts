@@ -87,6 +87,12 @@ export const prepareOwnRecitation = async (
     const reviewFile = ownAudioReviewFile(scriptPath);
     const pending = await readJson<OwnAudioReview>(reviewFile, {});
     if (pending[key]) throw Error("يوجد تسجيل ينتظر المراجعة لهذه الآية؛ راجعه أولًا.");
+    // The same recording uploaded for another verse is a slip, never a valid recitation (funnel audit, D36).
+    const sourceSha = sha(source);
+    const approvedIndex = await readJson<Record<string, { originalSha256?: string }>>(path.join(dir, "index.json"), {});
+    const sameAs = [...Object.entries(pending), ...Object.entries(approvedIndex)]
+      .find(([k, r]) => k !== key && r?.originalSha256 === sourceSha)?.[0];
+    if (sameAs) throw Error(`هذا الملف نفسه مرفوع لآية أخرى (${sameAs})؛ لكل آية تسجيلها الخاص. اختر الملف الصحيح.`);
     const nonce = randomUUID();
     const tag = () => randomUUID().replace(/-/g, "").slice(0, 12);
     const name = `manual-${key.replace(/[:]/g, "-")}-${tag()}.mp3`;
@@ -123,7 +129,7 @@ export const prepareOwnRecitation = async (
       await rename(temp, output); moved.push(output);
       await rename(plainTemp, plainOutput); moved.push(plainOutput);
       const record: OwnAudioCandidate = {
-        file: processed.file, originalFile, duration: processed.duration, sha256: processed.sha256, originalSha256: sha(source),
+        file: processed.file, originalFile, duration: processed.duration, sha256: processed.sha256, originalSha256: sourceSha,
         createdAt: new Date().toISOString(), variant: "processed", variants: { processed, original },
         polish: { before: report.before, trim: report.trim, target: report.target },
       };

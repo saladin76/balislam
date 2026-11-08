@@ -259,6 +259,12 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     const listed = await call("GET", `episodes/${EP}/own-recitations`);
     expect(listed.body.verses).toEqual([{ key: "53:39", sceneId: "c1-s2", reference: "النجم · ٣٩" }]);
     expect(listed.body.pending["53:39"].variants.processed.loudness.integrated).toBe(cand.variants.processed.loudness.integrated);
+    // The players in «التلاوات» (PreFinal.tsx audioUrl) load both copies through the episode media route.
+    for (const v of ["processed", "original"] as const) {
+      const r = await fetch(`${base}/api/episodes/${EP}/media/recitations/${encodeURIComponent(cand.variants[v].file)}?channel=${CH}`);
+      expect(r.status, v).toBe(200);
+      expect((await r.arrayBuffer()).byteLength).toBeGreaterThan(1000);
+    }
     // Uploading alone changes nothing in the scene ledger.
     expect((await state()).scenes[1]).toMatchObject({ status: "approved", conditional: true });
 

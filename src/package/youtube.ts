@@ -1,7 +1,7 @@
 import { parseScript } from "../script/parse";
 import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import { langPack } from "../i18n/packs";
-import { chapterStarts } from "../remotion/scenes/Episode";
+import { chapterTimeline, type RealTimings } from "./chapterTimes";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import { channelInfo, defaultChannel, type ChannelConfig } from "../channel/types";
@@ -13,10 +13,10 @@ const clock = (sec: number) => {
 
 
 /** نص الوصف والعناوين لليوتيوب: الحلقة والشورتس، بالفصول والمصادر والإفصاح. */
-export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number, channel: ChannelConfig = defaultChannel): string => {
+export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number, channel: ChannelConfig = defaultChannel, real?: RealTimings): string => {
   const parsed = parseScript(script);
   const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
-  const starts = chapterStarts(plan, media, channelInfo(channel));
+  const starts = chapterTimeline(plan, media, channelInfo(channel), real).starts;
   const hook = plan.chapters[0]?.scenes.find((s) => s.narration)?.narration ?? "";
   const step = parsed.practicalStep?.text ?? "";
   const L = langPack(plan.lang ?? channel.language);

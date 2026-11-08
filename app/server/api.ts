@@ -6,7 +6,7 @@ import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName, assertSafeMediaFile } from "./util.ts";
 import { readBody } from "./body.ts";
-import { prepareJob, startPrepareJob } from "./prepare.ts";
+import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { isTrustedLocalRequest } from "./security.ts";
 
 /**
@@ -72,6 +72,20 @@ const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type
   }
 };
 
+/**
+ * A rejected promise nobody awaited (e.g. a render-browser download failing deep inside the renderer
+ * while offline) must not take the whole Studio down mid-queue (funnel audit 8 Nov, D36). It is logged;
+ * the request that started the work still reports its own error to the owner.
+ */
+let crashGuardInstalled = false;
+export const installStudioCrashGuard = (proc: Pick<NodeJS.Process, "on"> = process) => {
+  if (crashGuardInstalled && proc === process) return;
+  if (proc === process) crashGuardInstalled = true;
+  proc.on("unhandledRejection", (reason: unknown) => {
+    console.error("[studio] background error (server kept alive):", reason instanceof Error ? reason.message : reason);
+  });
+};
+
 export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
@@ -79,6 +93,7 @@ export const balApi = (): Plugin => ({
     // Never replay legacy render/packaging jobs while V2's guarded API is enforced.
     // A saved job payload is not a trusted V2 approval token.
     void recoverStudioQueue();
+    installStudioCrashGuard();
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
     // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
     const load = async <T = any>(file: string): Promise<T> => {
@@ -301,6 +316,12 @@ export const balApi = (): Plugin => ({
             const { scenesNeedingVoice, prepareAllScenes } = await load("/src/studio/prepareAll.ts");
             if (req.method === "GET")
               return send(res, 200, { job: prepareJob(key), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
+            if (req.method === "DELETE") {
+              // «أوقف»: owner-only; the step in progress finishes and is kept, nothing new starts.
+              const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+              try { assertSceneOwner(req.headers["x-studio-owner-token"]); } catch (error) { return refuse(error); }
+              return send(res, 200, { job: stopPrepareJob(key), voiceKey });
+            }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const token = req.headers["x-studio-owner-token"];
             const { assertSceneOwner, requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
@@ -309,8 +330,8 @@ export const balApi = (): Plugin => ({
             if (prepareJob(key)?.status === "running") return send(res, 200, { job: prepareJob(key), voiceKey });
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
             const voiceClient = elevenLabsFromEnv();
-            const job = startPrepareJob(key, (onProgress) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress })));
+            const job = startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
+              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress, shouldStop })));
             return send(res, 200, { job, voiceKey });
           }
 

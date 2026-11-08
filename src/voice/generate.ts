@@ -9,7 +9,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, readJson, regeneratePlan } from "../plan/io";
 import type { Plan } from "../plan/types";
 import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
-import { isTone, voiceSettingsFor } from "./tones";
+import { effectiveTone, isTone, voiceSettingsFor } from "./tones";
 import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
@@ -46,6 +46,15 @@ const loadDictionary = async () => readJson<{ entries?: { text: string; say: str
 
 type Job = { id: string; /** المشهد (في مسار الأجزاء: مشهد الجزء) */ scene?: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } };
 
+/** نبرة القناة الافتراضية (channel.json ← voice.tone)، إن وُجدت */
+const channelToneOf = (): string | undefined => {
+  try {
+    return loadChannel().voice?.tone;
+  } catch {
+    return undefined;
+  }
+};
+
 /** نسخة السكريبت المشكولة للنطق (اختيارية): tashkeel.md بجوار script.md */
 export const tashkeelFileFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "tashkeel.md");
 const loadTashkeel = async (scriptPath?: string): Promise<TashkeelIndex | null> => {
@@ -70,7 +79,7 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
     const words = s.narration.trim().split(/\s+/).filter(Boolean);
     const d = applyDictionary(s.narration.trim(), dict, tk ? vowelize(words, tk) : undefined);
     // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
-    const toneId = [s.tone, plan.tone, channelTone].find(isTone);
+    const toneId = effectiveTone(s.tone, plan.tone, channelTone);
     // طبقة القناة ثم النبرة فوقها (صوت صاحب القناة هو المرجع دائمًا)
     const tune = voiceSettingsFor(profile, toneId);
     // البصمة من كل ما يغيّر الصوت نفسه فقط (لا مدة الذيل ولا حساب التكلفة)؛ النبرة والصوت يدخلانها فقط إن حُددا
@@ -109,6 +118,8 @@ export type GenerateVoiceOptions = {
   /** مشاهد محددة فقط */
   only?: string[];
   onProgress?: (msg: string) => void;
+  /** «أوقف» في «جهّز كل المشاهد»: يُفحص بين المقاطع؛ ما وُلّد قبله محفوظ ولا يبدأ مقطع جديد. */
+  shouldStop?: () => boolean;
   /**
    * للاختبارات المعزولة فقط (لا يصل إليها سطر الأوامر ولا الاستوديو ولا مهام الخلفية):
    * تشغيل التخزين المؤقت للصوت على حلقة اختبار بلا تشكيل ولا اعتمادات.
@@ -157,7 +168,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     credits: Math.ceil(chars * config.voice.creditsPerChar),
     missingTones: parts
       ? [...new Set(parts.jobs.filter((p) => (!opts.only || opts.only.includes(p.scene)) && !isTone(p.tone)).map((p) => p.scene))]
-      : plan.chapters.flatMap((c) => c.scenes).filter((scene) => scene.narration.trim() && (!opts.only || opts.only.includes(scene.id)) && !isTone(scene.tone)).map((scene) => scene.id),
+      : plan.chapters.flatMap((c) => c.scenes).filter((scene) => scene.narration.trim() && (!opts.only || opts.only.includes(scene.id)) && !effectiveTone(scene.tone, plan.tone, channelToneOf())).map((scene) => scene.id),
     tashkeel: tashkeelReport(
       plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && (!opts.only || opts.only.includes(s.id))),
       await loadTashkeel(scriptPath),
@@ -181,7 +192,9 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   }
   // Order: storyboard signoff, then explicit tone decisions, then paid voice generation.
   if (todo.length && report.missingTones.length && !opts.testOnlySkipGates)
-    throw new Error(`حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`);
+    throw new Error(parts
+      ? `حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`
+      : `اختر نبرة الحلقة (تحرير المشهد ← «نبرة الصوت في الحلقة») فتسري على كل مشهد بلا نبرة خاصة، أو حدّد نبرة هذه المشاهد: ${report.missingTones.slice(0, 12).join("، ")}.`);
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)
   if (todo.length && opts.client?.voiceInfo) {
@@ -199,7 +212,9 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   }
   if (parts) await mkdir(partsDir, { recursive: true });
 
+  let stoppedEarly = false;
   for (const [k, j] of todo.entries()) {
+    if (opts.shouldStop?.()) { stoppedEarly = true; break; }
     log(`(${k + 1}/${todo.length}) ${j.id}: ${j.spoken.length} حرفًا`);
     const r = await opts.client!.tts(j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune });
     // السرعة بعد التوليد للنماذج التي لا تقبلها (v4): تمديد زمني يحفظ طبقة الصوت، ومعه توقيت الكلمات
@@ -231,6 +246,9 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
   }
 
+  // Stopped mid-way on the parts path (dafatir tone map): finished parts are saved in parts/index.json and
+  // reused next time; scenes are never composed from an incomplete set of parts.
+  if (parts && stoppedEarly) return report;
   if (parts) {
     await (await import("./dafatirParts")).composePartsIntoScenes({ plan, parts, partsIndex, partsDir, dir, index, allJobs, log });
     // تنظيف: أجزاء لم تعد في الخريطة، وملفات لا يشير إليها جزء ولا مشهد

@@ -46,6 +46,8 @@ export type PrepareProgress = {
   voice: { needed: number; generated: number; status: "pending" | "done" | "no-key" | "error" | "none"; error?: string };
   rendered: string[];
   failed: { id: string; error: string }[];
+  /** The owner stopped the queue; what finished before the stop is kept. */
+  stopped?: boolean;
 };
 
 export type RenderSceneDraft = (episode: string, sceneId: string, sourceSha256: string, token: string) => Promise<void>;
@@ -86,6 +88,8 @@ export const prepareAllScenes = async (episode: string, opts: {
   onProgress?: (p: PrepareProgress) => void;
   /** Re-scan passes: a scene whose inputs change during the run is discarded and re-queued. */
   maxPasses?: number;
+  /** «أوقف» (D36): checked between steps; the clip/render in progress finishes and is kept. */
+  shouldStop?: () => boolean;
 }): Promise<PrepareProgress> => {
   assertSceneOwner(opts.token);
   await requireSceneProductionReady(episode);
@@ -96,13 +100,18 @@ export const prepareAllScenes = async (episode: string, opts: {
     rendered: [], failed: [],
   };
   const emit = () => opts.onProgress?.({ ...p, voice: { ...p.voice }, rendered: [...p.rendered], failed: [...p.failed] });
+  const stop = () => {
+    if (!opts.shouldStop?.()) return false;
+    p.stopped = true;
+    return true;
+  };
   emit();
 
   if (needed.length && !opts.voiceClient) p.voice.status = "no-key";
   else if (needed.length) {
     try {
       await generateVoice(episode, {
-        client: opts.voiceClient, only: needed,
+        client: opts.voiceClient, only: needed, shouldStop: opts.shouldStop,
         onProgress: (m) => {
           const id = m.match(/\)\s*([a-z0-9-]+):/)?.[1];
           if (id) { p.sceneId = id; emit(); }
@@ -111,6 +120,7 @@ export const prepareAllScenes = async (episode: string, opts: {
       const still = new Set(await scenesNeedingVoice(episode));
       p.voice.generated = needed.filter((id) => !still.has(id)).length;
       p.voice.status = "done";
+      stop();
     } catch (e) {
       p.voice.status = "error";
       p.voice.error = (e as Error).message;
@@ -120,10 +130,11 @@ export const prepareAllScenes = async (episode: string, opts: {
 
   p.phase = "render";
   const tried = new Map<string, string>(); // scene → inputs already attempted (no retry loop on failure)
-  for (let pass = 0; pass < (opts.maxPasses ?? 4); pass++) {
+  for (let pass = 0; pass < (opts.maxPasses ?? 4) && !p.stopped; pass++) {
     const todo = (await scenesToRender(episode)).list.filter((x) => tried.get(x.id) !== x.sourceSha256);
     if (!todo.length) break;
     for (const scene of todo) {
+      if (stop()) break;
       tried.set(scene.id, scene.sourceSha256);
       p.sceneId = scene.id;
       emit();

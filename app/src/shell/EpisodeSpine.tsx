@@ -64,10 +64,14 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
       ? { text: "", label: "افتح السكريبت", go: "script", fix: true }
       : { text: "راجع النص والمصادر، ثم اعتمد السكريبت المحفوظ.", label: "اعتماد السكريبت", decide: "approve-script" };
     if (!done[1]) return { text: "راجع لوحة كل مشهد، وسجّل مراجعتك في «سجل مراجعة اللوحات» (أدوات وتفاصيل أسفل اللوحات)، ثم اعتمده كاملًا.", label: "اعتماد الستوري بورد", decide: "approve-storyboard" };
+    if (!done[2] && !w.progress.currentScene && (w.progress.recitationPending?.length ?? 0) > 0)
+      return { text: "كل المشاهد معتمدة، وآيات بانتظار تلاواتها: شاهد المعاينة قبل النهائية وارفع التلاوات.", label: "إلى التلاوات", go: "review" };
     if (!done[2]) return { text: `المشهد ${w.progress.currentScene ?? ""} هو التالي: أنتجه بالصوت والصورة وشاهده قبل اعتماده. (${w.progress.approvedScenes} من ${w.progress.totalScenes})`, label: "إلى المشهد الحالي", go: "episode" };
-    if (!w.assembly) return { text: "كل المشاهد معتمدة. ادمجها في نسخة واحدة للمشاهدة الكاملة.", label: "إلى التجميع", go: "episode" };
-    if (!w.progress.assemblyApproved) return { text: "شاهد الحلقة المجمعة كاملة 1× وافحص كل وصلة بين مشهدين.", label: "إلى مراجعة التجميع", go: "episode" };
-    if (!done[3]) return { text: "اصنع Master بدقة 4K، شاهده كاملًا، ثم اعتمد هذا الملف بعينه.", label: "إلى Master", go: "publish" };
+    // Step ٤ owns everything after the scenes: assembly, its review, making and approving the final file.
+    // Step ٥ owns only the publish permission and the files (funnel audit 8 Nov, D36: no bouncing).
+    if (!w.assembly) return { text: "كل المشاهد معتمدة. ادمجها في نسخة واحدة للمشاهدة الكاملة.", label: "إلى التجميع", go: "review" };
+    if (!w.progress.assemblyApproved) return { text: "شاهد الحلقة المجمعة كاملة 1× وافحص كل وصلة بين مشهدين.", label: "إلى مراجعة التجميع", go: "review" };
+    if (!done[3]) return { text: "اصنع النسخة النهائية بدقة 4K، شاهدها كاملة، ثم اعتمد هذا الملف بعينه.", label: "إلى النسخة النهائية", go: "review" };
     if (!done[4]) return { text: "Master معتمد. النشر قرار منفصل لهذا الملف.", label: "إلى النشر", go: "publish" };
     return { text: "مأذون بنشر هذا Master. أي تعديل في مشهد يلغي الإذن.", label: "إلى النشر", go: "publish" };
   })();

@@ -28,6 +28,28 @@ describe("حزمة الانتشار", () => {
     expect(d).not.toContain(CHAPTERS_TOKEN);
   });
 
+  it("الفصول من التوقيت الفعلي للمشاهد المجمعة، ولا تتجاوز مدة الحلقة أبدًا (D36)", async () => {
+    const { chapterTimeline } = await import("../src/package/chapterTimes");
+    const est = chapterTimeline(plan);
+    expect(est.estimated).toBe(true);
+    expect(est.starts[0]!.start).toBe(0);
+    for (const s of est.starts) expect(s.start).toBeLessThan(est.total);
+    // Real cuts: 10 s per scene; the starts follow them exactly.
+    const ids = plan.chapters.flatMap((c) => c.scenes.map((s) => s.id));
+    const real = chapterTimeline(plan, undefined, undefined, { sceneSeconds: Object.fromEntries(ids.map((id) => [id, 10])) });
+    expect(real).toMatchObject({ estimated: false, source: "assembly", total: ids.length * 10 });
+    expect(real.starts[1]!.start).toBe(plan.chapters[0]!.scenes.length * 10);
+    // A Master shorter than the plan thinks: chapters past its end are dropped, none exceeds it.
+    const short = chapterTimeline(plan, undefined, undefined, { totalSeconds: est.starts[2]!.start + 0.5 });
+    expect(short.starts.map((s) => s.number)).toEqual([plan.chapters[0]!.number, plan.chapters[1]!.number]);
+    expect(chaptersText(plan, undefined, undefined, { totalSeconds: est.starts[2]!.start + 0.5 }).split("\n")).toHaveLength(3);
+    // A missing cut falls back to the plan (never a partial real timeline).
+    const partial = chapterTimeline(plan, undefined, undefined, { sceneSeconds: { [ids[0]!]: 10 } });
+    expect(partial.source).toBe("plan");
+    // The published text never says "estimate".
+    expect(chaptersText(plan)).not.toMatch(/تقدير/);
+  });
+
   it("الفحوص تكشف العنوان الطويل والهاشتاجات الزائدة", () => {
     expect(checkTitle("ا".repeat(90), "youtube", ["التأجيل"]).some((c) => !c.ok)).toBe(true);
     expect(checkCaption("سطر؟", ["#a", "#b", "#c", "#d", "#e", "#f"], "instagram", ["سطر"]).find((c) => c.label.startsWith("هاشتاجات"))!.ok).toBe(false);

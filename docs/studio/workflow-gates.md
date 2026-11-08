@@ -135,7 +135,10 @@ approval; verse cards carry no narration, recitations stay the owner's own recor
 skipped and reported in one line; (2) AV preview drafts for the current scene and every later open scene, one at a time
 in order, through the same renderer and slot (`previews/scene-<id>-av.mp4`). In the Studio it runs as an in-process
 background queue (`app/server/prepare.ts`, `GET/POST /api/episodes/<ep>/scene-prepare`); the passphrase lives only in
-the job's memory, and a restart drops the job (finished drafts remain).
+the job's memory, and a restart drops the job (finished drafts remain). `DELETE …/scene-prepare` (owner only, D36) asks the
+queue to stop: the voice clip or scene render in progress finishes and is kept, nothing new starts, status `stopped`;
+on the dafatir parts path no scene is composed from an incomplete set of parts. A tone is present when the scene has
+one or inherits the episode's (then the channel's) tone (`effectiveTone`, D36); the dafatir tone map is unchanged.
 
 Why pre-rendering is safe:
 - A render only adds a render-to-input proof (`previewInputs[id]`). `recordSceneRenderEvidence` refuses to save if the

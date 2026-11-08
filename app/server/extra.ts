@@ -545,7 +545,12 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const kit = existsSync(file) ? JSON.parse(await readFile(file, "utf8")) : await build();
     const { collectMedia } = await load("/src/plan/collect.ts");
     const media = { ...(await collectMedia(ep, plan)), mode: "url", base: "" };
-    return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch))) }), true;
+    const info = (await load("/src/channel/types.ts")).channelInfo((await load("/src/channel/index.ts")).loadChannel(ch));
+    // Real timings (assembled cuts, Master length) when they exist; else the plan's — marked for the Studio only (D36).
+    const real = await (await load("/src/package/realTimings.ts")).realEpisodeTimings(scriptPath, plan);
+    const timeline = (await load("/src/package/chapterTimes.ts")).chapterTimeline(plan, media, info, real);
+    return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, info, real),
+      chaptersEstimated: timeline.estimated, chaptersSource: timeline.source }), true;
   }
 
   // المراجعات الفنية (الأمر 018): تقارير المنفّذ بشرائطها ومقاطعها، بجوار الحلقة أو المختبر؛ للقراءة

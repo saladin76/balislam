@@ -141,7 +141,10 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
                         <input placeholder="دليل حق الاستخدام (مثل: تسجيلي الخاص بتاريخ…)" value={f.rights} onChange={(e) => set({ rights: e.target.value })} aria-label="دليل حق الاستخدام" />
                         <textarea rows={2} placeholder="ملاحظة الاستماع" value={f.note} onChange={(e) => set({ note: e.target.value })} aria-label="ملاحظة الاستماع" />
                         <label className="sp-confirm"><input type="checkbox" checked={f.listened} onChange={(e) => set({ listened: e.target.checked })} /> استمعت إلى التلاوة كاملة</label>
-                        <button type="button" className="btn primary" disabled={Boolean(busy) || !owner.open || !f.listened} onClick={() => void approve(key)}>اعتمد التلاوة</button>
+                        {!(f.reciter.trim() && f.rights.trim().length >= 12 && f.note.trim().length >= 12) ? (
+                          <p className="sp-hint">اكتب اسم القارئ، ودليل حق الاستخدام وملاحظة الاستماع (١٢ حرفًا على الأقل لكل منهما).</p>
+                        ) : null}
+                        <button type="button" className="btn primary" disabled={Boolean(busy) || !owner.open || !f.listened || !f.reciter.trim() || f.rights.trim().length < 12 || f.note.trim().length < 12} onClick={() => void approve(key)}>اعتمد التلاوة</button>
                       </div>
                     </>
                   ) : null}

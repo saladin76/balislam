@@ -7,7 +7,7 @@ import { templateById, templateDefs } from "../../../src/plan/templates";
 import { defaultsFor } from "../../../src/plan/generate";
 import { sceneFrames, sceneSeconds } from "../../../src/plan/duration";
 import { introFramesFor } from "../../../src/remotion/scenes/ChannelIntro";
-import { tones, toneIds } from "../../../src/voice/tones";
+import { inheritedToneLabel, tones, toneIds } from "../../../src/voice/tones";
 import { sfxLibrary, sfxCategoryNamesAr } from "../../../brand/sfx";
 import type { Identity } from "../../../brand/identity/index";
 import type { CharacterPose, CharacterVariant } from "../../../characters/Character";
@@ -256,10 +256,10 @@ export const EpisodeTab: React.FC<{
         <div className="render-box">
           <div className="toolbar">
             <b>نبرة الصوت في الحلقة</b>
-            <span className="help">صوتك بطبقة القناة، والنبرة تلوّنه بإحساس الحلقة؛ وأي مشهد يمكن أن يأخذ نبرة أخرى أو صوت شخصية من إعداداته.</span>
+            <span className="help">صوتك بطبقة القناة، والنبرة تلوّنه بإحساس الحلقة. نبرة الحلقة تسري على كل مشهد اختير له «مثل الحلقة» وتكفي لتوليد صوته؛ وأي مشهد يمكن أن يأخذ نبرة أخرى أو صوت شخصية من إعداداته.</span>
             <span className="spacer" />
             <select id="ep-tone" value={plan.tone ?? ""} onChange={(e) => { const { tone: _t, ...rest } = plan; onPlanChange(e.target.value ? { ...rest, tone: e.target.value } : rest); }} style={{ width: 260 }}>
-              <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : `طبقة القناة${channel.voiceProfile ? ` «${channel.voiceProfile}»` : ""} بلا نبرة إضافية`}</option>
+              <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : `بلا نبرة للحلقة (يلزم اختيار نبرة كل مشهد)`}</option>
               {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
             </select>
           </div>
@@ -484,7 +484,7 @@ export const EpisodeTab: React.FC<{
               <label className="field">
                 <span>النبرة</span>
                 <select id="sc-tone" value={scene.tone ?? ""} onChange={(e) => updateScene({ tone: e.target.value || undefined })}>
-                  <option value="">مثل الحلقة</option>
+                  <option value="">{inheritedToneLabel(plan.tone, channel.tone)}</option>
                   {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
                 </select>
               </label>

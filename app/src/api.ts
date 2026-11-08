@@ -119,7 +119,7 @@ export type OwnRecitationsRead = {
     variant: "processed" | "original" | null; variants: Record<"processed" | "original", RecitationVariant> | null; polish: RecitationPolish | null }>;
 };
 export type ScenePrepareJob = {
-  status: "running" | "done" | "error"; startedAt: number; finishedAt?: number;
+  status: "running" | "done" | "error" | "stopped"; stopRequested?: boolean; startedAt: number; finishedAt?: number;
   phase: "voice" | "render" | "done"; sceneId?: string;
   voice: { needed: number; generated: number; status: string; error?: string };
   rendered: string[]; failed: { id: string; error: string }[]; error?: string;
@@ -183,6 +183,11 @@ export const api = {
   startScenePrepare: (episode: string, channel: string, token: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
       method: "POST", headers: { "x-studio-owner-token": token },
+    }, channel),
+  /** «أوقف»: the step in progress finishes and is kept; nothing new starts. */
+  stopScenePrepare: (episode: string, channel: string, token: string) =>
+    call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
+      method: "DELETE", headers: { "x-studio-owner-token": token },
     }, channel),
   workflow: (episode: string, channel?: string) => call<{
     approvals: WorkflowApprovalView;
@@ -265,7 +270,7 @@ export const api = {
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
-  kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string }>(`/api/episodes/${id}/kit`),
+  kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),
   saveKit: (id: string, kit: PublishKit) => call(`/api/episodes/${id}/kit`, { method: "PUT", json: { kit } }),
   regenerateKit: (id: string) => call<{ kit: PublishKit; keywords: string[] }>(`/api/episodes/${id}/kit/regenerate`, { method: "POST", json: {} }),
   keys: () => call<{ keys: KeyState }>("/api/settings"),

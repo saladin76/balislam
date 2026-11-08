@@ -500,6 +500,7 @@ export const App: React.FC = () => {
             onOpenStoryboard={() => setTab("storyboard")}
             onOpenScript={() => setTab("script")}
             onOpenPublish={() => setTab("publish")}
+            onOpenReview={() => setTab("review")}
             onUpdated={() => setHomeKey(k => k + 1)}
           />
           <PublishTab key={epId} episodeId={epId} hasVoiceKeys={keysOk.voice} onChanged={() => setHomeKey((k) => k + 1)} />
@@ -524,6 +525,7 @@ export const App: React.FC = () => {
             onOpenStoryboard={() => setTab("storyboard")}
             onOpenScript={() => setTab("script")}
             onOpenPublish={() => setTab("publish")}
+            onOpenFinal={() => setTab("review")}
             onUpdated={() => setHomeKey(k => k + 1)}
             editor={(sceneId, onSelect) => (
               <EpisodeTab

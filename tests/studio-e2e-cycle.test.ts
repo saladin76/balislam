@@ -18,6 +18,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
+import { publishCardState } from "../app/src/tabs/PublishTab";
 import { runWithChannel } from "../src/channel";
 import { assertWorkflowForEpisode } from "../src/workflow/server";
 
@@ -324,6 +325,11 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     const masterOk = await decide({ action: "approve-master", expectedSha256: masterSha, confirmedWatched: true });
     expect(masterOk.status, JSON.stringify(masterOk.body)).toBe(200);
     expect(masterOk.body.master).toMatchObject({ sha256: masterSha, publishAllowed: false });
+    // The publish card follows the ledger (D36): this stub has no 4K render.json, yet it is the approved file.
+    const cardApproved = publishCardState(await state(), false);
+    expect(cardApproved).toMatchObject({ approved: true, publishAllowed: false, pill: "معتمدة", primary: null });
+    expect(cardApproved.permission).toContain("بانتظار إذنك");
+    expect(cardApproved.rerenderWarning).toContain("سيلغي اعتماد النسخة النهائية");
 
     // ── 6. Publish: blocked until an explicit permission for these exact bytes ─────────────────
     await expect(gate("publish")).rejects.toThrow(/publish/i);
@@ -333,6 +339,9 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     const pub = await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true });
     expect(pub.status, JSON.stringify(pub.body)).toBe(200);
     expect(pub.body.progress.publishAllowed).toBe(true);
+    const cardAllowed = publishCardState(await state(), false);
+    expect(cardAllowed).toMatchObject({ approved: true, publishAllowed: true, pill: "مأذون بالنشر", permission: "ممنوح لهذا الملف", primary: "download" });
+    expect(cardAllowed.rerenderWarning).toContain("إذن النشر");
     await expect(gate("publish")).resolves.toBeUndefined();
 
     await assertReadsDoNotWrite("published-ready episode");

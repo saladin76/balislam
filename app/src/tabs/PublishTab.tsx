@@ -21,14 +21,39 @@ const CHECKLIST: { id: string; group: string; text: string }[] = [
 ];
 
 /**
- * Unified engine: the only Master approval is the scene-first ledger's, bound to the exact bytes
- * of the current Master file (the server re-hashes them). Legacy status.json / six-stage records
- * are never a release approval.
+ * What the episode-file card says, from the ledger alone (funnel audit 8 Nov, D36). The ledger's Master
+ * approval is bound to the exact bytes of out/package/NNN-episode.mp4 — the very file shown here — so a
+ * render.json label never contradicts it. `rerenderWarning` is the explicit confirm shown before any
+ * action that would overwrite that file and so cancel the approval (and the publish permission).
  */
-export const validPublishedMaster = (
-  production: Pick<SceneProductionRead, "master" | "candidates" | "progress"> | null, isMaster: boolean,
-): boolean => Boolean(isMaster && production?.progress.masterApproved && production.master &&
-  production.candidates.masterSha256 && production.master.sha256 === production.candidates.masterSha256);
+export type PublishCardState = {
+  approved: boolean;
+  publishAllowed: boolean;
+  pill: string;
+  permission: string;
+  hint: string | null;
+  primary: "download" | null;
+  rerenderWarning: string | null;
+};
+/** The only Master approval is the scene-first ledger's, bound to the exact bytes of the current Master
+ * file (the server re-hashes them). Legacy status.json / six-stage records are never a release approval. */
+export const publishCardState = (
+  production: Pick<SceneProductionRead, "master" | "candidates" | "progress"> | null, isMaster: boolean, mine = true,
+): PublishCardState => {
+  const approved = Boolean(production?.progress.masterApproved && production.master &&
+    production.candidates.masterSha256 && production.master.sha256 === production.candidates.masterSha256);
+  const publishAllowed = approved && Boolean(production?.master?.publishAllowed);
+  return {
+    approved, publishAllowed,
+    pill: publishAllowed ? "مأذون بالنشر" : approved ? "معتمدة" : isMaster ? "بانتظار اعتمادك" : "معاينة لا تُنشر",
+    permission: publishAllowed ? "ممنوح لهذا الملف" : approved ? "بانتظار إذنك (البطاقة أعلى الصفحة)" : "بعد اعتماد النسخة النهائية",
+    hint: approved ? null : isMaster ? "اعتمد هذا الملف بعينه بعد مشاهدته كاملًا (الخطوة ٤)." : "معاينة لا تُنشر. النسخة النهائية تُصنع بدقة 4K.",
+    primary: publishAllowed && mine ? "download" : null,
+    rerenderWarning: publishAllowed
+      ? "سيلغي اعتماد النسخة النهائية وإذن النشر الممنوح لهذا الملف، ويلزم بعده مشاهدتها واعتمادها من جديد. متابعة؟"
+      : approved ? "سيلغي اعتماد النسخة النهائية، ويلزم بعده مشاهدتها واعتمادها من جديد. متابعة؟" : null,
+  };
+};
 
 const sizeLabel = (n: number) => (n > 1e6 ? `${(n / 1e6).toFixed(1)} م.ب` : `${Math.ceil(n / 1e3)} ك.ب`);
 
@@ -49,7 +74,7 @@ const parseYoutube = (md: string) => {
 };
 
 const Copy: React.FC<{ text: string; label?: string }> = ({ text, label = "نسخ" }) => {
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<"" | "ok" | "fail">("");
   return (
     <button
       type="button"
@@ -57,14 +82,14 @@ const Copy: React.FC<{ text: string; label?: string }> = ({ text, label = "نس�
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
-          setDone(true);
-          setTimeout(() => setDone(false), 1400);
+          setDone("ok");
         } catch {
-          /* المتصفح منع النسخ */
+          setDone("fail"); // المتصفح منع النسخ: يُقال ذلك بدل الصمت
         }
+        setTimeout(() => setDone(""), 1600);
       }}
     >
-      {done ? "نُسخ ✓" : label}
+      <span role="status">{done === "ok" ? "نُسخ ✓" : done === "fail" ? "تعذّر النسخ" : label}</span>
     </button>
   );
 };
@@ -79,7 +104,8 @@ const fresh = (url: string, mtime: number) => `${url}${url.includes("?") ? "&" :
 export const decisionHasPrimary = (p: SceneProductionRead | null): boolean => {
   if (!p || !p.script.approved || !p.storyboard.approved) return false;
   if (!p.progress.canAssemble || !p.assembly || !p.assembly.approved) return true;
-  if (!p.master) return Boolean(p.candidates.masterSha256);
+  // Assembly approved, no approved Master: the panel makes it («اصنع النسخة النهائية») or approves it.
+  if (!p.master) return true;
   return !p.master.publishAllowed;
 };
 
@@ -160,9 +186,10 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const shorts = files.filter((f) => /-short-\d\.mp4$/.test(f.name));
   const thumbs = files.filter((f) => f.name.endsWith(".png"));
   const render = pkg?.render ?? null;
-  const isMaster = render?.quality === "master" && render.voiced;
-  const approved = validPublishedMaster(production, isMaster);
-  const publishAllowed = approved && Boolean(production?.master?.publishAllowed);
+  const isMaster = Boolean(render?.quality === "master" && render.voiced);
+  const ready0 = Boolean(production?.script.approved && production?.storyboard.approved);
+  const card = publishCardState(production, isMaster, ready0 && !decisionHasPrimary(production));
+  const { approved, publishAllowed } = card;
   const checked = status.checklist ?? {};
   const doneCount = CHECKLIST.filter((c) => checked[c.id]).length;
   const groups = [...new Set(CHECKLIST.map((c) => c.group))];
@@ -170,16 +197,21 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   // زر مملوء واحد في الشاشة: إن كان في لوحة القرار فأزرار هذه الصفحة هادئة
   const ready = Boolean(production?.script.approved && production?.storyboard.approved);
   const mine = ready && !decisionHasPrimary(production);
-  const makePrimary = mine && !isMaster;
-  const downloadPrimary = mine && Boolean(isMaster);
+  const makePrimary = mine && !isMaster && !approved;
+  const downloadPrimary = card.primary === "download" || (mine && isMaster && !approved);
+  /** Any action that overwrites the Master file asks first when it would cancel an approval. */
+  const guarded = (kind: "make" | "package", noVoice = false) => {
+    if (card.rerenderWarning && !window.confirm(card.rerenderWarning)) return;
+    void start(kind, noVoice);
+  };
 
   const makeButton = (primary: boolean) => (
-    <button type="button" className={`btn${primary ? " primary" : ""}`} disabled={running || !hasVoiceKeys} onClick={() => start("make")} title={hasVoiceKeys ? "" : "أضف مفاتيح ElevenLabs من تبويب الإعدادات"}>
-      اصنع النسخة النهائية
+    <button type="button" className={`btn${primary ? " primary" : ""}`} disabled={running || !hasVoiceKeys} onClick={() => guarded("make")} title={hasVoiceKeys ? "" : "أضف مفاتيح ElevenLabs من تبويب الإعدادات"}>
+      {approved ? "أعد صنع النسخة النهائية" : "اصنع النسخة النهائية"}
     </button>
   );
 
-  const masterState = approved ? "معتمد" : isMaster ? "بانتظار اعتمادك" : "معاينة لا تُنشر";
+  const masterState = card.pill;
   const L = kit?.kit.long;
   const kitTitle = L?.titles[0]?.text ?? yt.titles[0] ?? "";
   const kitDesc = L ? resolveDescription(L.description, kit!.chapters) : yt.description;
@@ -187,7 +219,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   return (
     <div className="s45-page s45-publish">
       <Stage
-        title={video ? (isMaster ? "ملف Master" : "ملف الحلقة") : "النسخة النهائية"}
+        title={video ? (isMaster || approved ? "النسخة النهائية (Master)" : "ملف الحلقة") : "النسخة النهائية"}
         meta={video ? <span className={`s45-pill${approved ? " is-on" : ""}`}>{masterState}</span> : null}
       >
         {job ? (
@@ -210,7 +242,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             <Hint>{hasVoiceKeys ? "تُصنع بدقة 4K من المشاهد المعتمدة." : "تحتاج مفاتيح الصوت من «الإعدادات»."}</Hint>
             <div className="s45-actions">
               {makeButton(makePrimary)}
-              <button type="button" className="btn ghost" disabled={running} onClick={() => start("make", true)}>معاينة بلا صوت</button>
+              <button type="button" className="btn ghost" disabled={running} onClick={() => guarded("make", true)}>معاينة بلا صوت</button>
             </div>
           </div>
         ) : (
@@ -224,14 +256,14 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                 <div><dt>الجودة</dt><dd>{render ? `${render.label} · ${render.width}×${render.height}${render.voiced ? "" : " · بلا صوت"}` : "غير معروفة"}</dd></div>
                 <div><dt>المدة</dt><dd>{duration ? clock(duration) : "—"}</dd></div>
                 <div><dt>الحجم</dt><dd>{sizeLabel(video.size)}</dd></div>
-                <div><dt>إذن النشر</dt><dd>{publishAllowed ? "ممنوح لهذا الملف" : approved ? "بانتظار إذنك" : "بعد اعتماد Master"}</dd></div>
+                <div><dt>إذن النشر</dt><dd>{card.permission}</dd></div>
                 {status.published ? <div><dt>النشر</dt><dd className="s45-ok">نُشرت في {status.published.date}</dd></div> : null}
               </dl>
               <div className="s45-actions">
                 <a className={`btn${downloadPrimary ? " primary" : ""}`} href={api.packageUrl(episodeId, video.name, true)}>تنزيل بأعلى جودة</a>
-                {!isMaster ? makeButton(makePrimary) : null}
+                {!isMaster && !approved ? makeButton(makePrimary) : null}
               </div>
-              {!isMaster ? <Hint>معاينة لا تُنشر. الـ Master يُصنع بدقة 4K.</Hint> : !approved ? <Hint>اعتمد هذا الملف بعينه بعد مشاهدته كاملًا.</Hint> : null}
+              {card.hint ? <Hint>{card.hint}</Hint> : null}
             </div>
           </div>
         )}
@@ -255,11 +287,12 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
           <More label="صناعة وتغليف">
             <p className="s45-note">فحص ← آيات ← مشاهد ← صوت ← رندر ← ملفات النشر</p>
             <div className="s45-actions">
-              {video && isMaster ? makeButton(false) : null}
-              <button type="button" className="btn" disabled={running} onClick={() => start("make", true)}>معاينة بلا صوت</button>
-              <button type="button" className="btn" disabled={running || !video} onClick={() => start("package")} title="يعيد التغليف من الصوت والمشاهد الحالية">أعد التغليف</button>
+              {video && (isMaster || approved) ? makeButton(false) : null}
+              <button type="button" className="btn" disabled={running} onClick={() => guarded("make", true)}>معاينة بلا صوت</button>
+              <button type="button" className="btn" disabled={running || !video} onClick={() => guarded("package")} title="يعيد التغليف من الصوت والمشاهد الحالية">أعد التغليف</button>
             </div>
             {!hasVoiceKeys ? <p className="s45-note">النسخة النهائية تحتاج مفاتيح ElevenLabs (تبويب «الإعدادات»). المعاينة بلا صوت متاحة الآن.</p> : null}
+            {card.rerenderWarning ? <p className="s45-note">أي صناعة جديدة تكتب فوق الملف المعتمد فتلغي اعتماده{publishAllowed ? " وإذن النشر" : ""}؛ ستُسأل قبلها.</p> : null}
             {isMaster && !approved ? <p className="s45-note">اعتماد Master يكون لهذا الملف بعينه من «إنتاج المشاهد» بكلمة مرور المالك؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
           </More>
 

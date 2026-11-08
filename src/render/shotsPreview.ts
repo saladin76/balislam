@@ -57,8 +57,12 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   const scriptPath = await resolveScriptPath(episode);
   const full = await loadPlan(episode);
   if (!full) throw new Error("لا توجد خطة للحلقة.");
-  const plan: Plan = { ...full, chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
   const sceneDraft = /^scene-[a-z0-9-]+-av$/.test(opts.slot);
+  // A scene cut carries the channel intro only if it opens the episode: the assembly concatenates the cuts,
+  // so it then holds one intro at the start exactly like the Master, not one per scene (funnel audit, D36).
+  const opensEpisode = full.chapters[0]?.scenes[0]?.id === ids[0];
+  const plan: Plan = { ...full, ...(sceneDraft && !opensEpisode ? { intro: false } : {}),
+    chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
   const draftMode = Boolean(opts.allowPendingRecitation && sceneDraft);
   // Only reviewed, owner-attached recordings are ever used; a draft simply leaves a missing one silent.
   const media = draftMode

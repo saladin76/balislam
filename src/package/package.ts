@@ -83,7 +83,11 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const channel = loadChannel();
   const identity = loadChannelIdentity();
   const lang = plan.lang ?? channel.language;
-  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, shorts, channel));
+  // Chapters from the approved assembled cuts (the Master is made of the same cuts); an older Master file on
+  // disk is not trusted here because this run may replace it (D36).
+  const { realEpisodeTimings } = await import("./realTimings");
+  const real = { sceneSeconds: (await realEpisodeTimings(scriptPath, plan)).sceneSeconds };
+  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, shorts, channel, real));
   await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice, channel));
   await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
   if (stage === "shorts")
@@ -101,7 +105,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
     // جودة النشر: لا عنوان عام ولا جملة مكررة ولا نص مبتور ولا وسم مكرر (قبل أي رندر مكلف)
     const kq = kitIssues(kit);
     if (kq.some((i) => i.level === "error")) throw new Error(kitBlockMessage(kq));
-    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()))));
+    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()), real)));
     files.push("social.md");
   }
 

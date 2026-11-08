@@ -5,7 +5,8 @@ import type { Plan } from "../../../src/plan/types";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { planIssues } from "../../../src/plan/validate";
 import type { EpisodeMedia } from "../../../src/plan/media";
-import { tones, toneIds } from "../../../src/voice/tones";
+import { inheritedToneLabel, tones, toneIds } from "../../../src/voice/tones";
+import { MakeMaster } from "./MakeMaster";
 import "./scene-production.css";
 import "../shell/screens-s3.css";
 import { useOwnerSession } from "../shell/ownerSession";
@@ -19,6 +20,13 @@ type Props = {
   onOpenStoryboard: () => void;
   onOpenScript: () => void;
   onOpenPublish: () => void;
+  /**
+   * Given only on step ٥ («النشر»): making and approving the final file belong to step ٤, so before the
+   * Master is approved this screen points there instead of repeating it (funnel audit 8 Nov, D36).
+   */
+  onOpenReview?: () => void;
+  /** Step ٣ only: once every scene is approved, its one forward action is step ٤ (assembly and final). */
+  onOpenFinal?: () => void;
   onUpdated?: () => void;
   /**
    * شاشة «المشاهد» (الخطوة ٣) فقط: الخطة لعرض نص كل مشهد وشريط التقدم، ومحرر المشهد الكامل
@@ -60,7 +68,7 @@ const noop = () => {};
  * All decisions are server-authenticated, bound to real bytes and serialized.
  */
 export const SceneProductionPanel: React.FC<Props> = ({
-  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onUpdated,
+  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onUpdated,
   plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
 }) => {
   const [data, setData] = useState<SceneProductionRead | null>(null);
@@ -295,7 +303,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
    */
   const submitTone = async (sceneId: string, at: number) => {
     if (!plan) return;
-    const name = toneChoice && toneChoice in tones ? tones[toneChoice as keyof typeof tones].nameAr : "مثل الحلقة";
+    const name = toneChoice && toneChoice in tones ? tones[toneChoice as keyof typeof tones].nameAr : inheritedToneLabel(plan.tone);
     const text = problemText.trim() ? `${name} — ${problemText.trim()}` : name;
     const ok = await reviewCurrent("correct-scene", problemNote("tone", at, text));
     if (!ok) return;
@@ -438,6 +446,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 }}
                 onProblemText={setProblemText}
                 onTone={setToneChoice}
+                episodeTone={plan?.tone}
                 onCancelProblem={() => setProblem(null)}
                 onSubmitProblem={() => {
                   if (!problem || !(scene.previewSha256 || draftReady)) return;
@@ -525,6 +534,24 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
   // السكريبت والستوري بورد يُعتمدان من عمود الخطوات أعلى الصفحة؛ هذه اللوحة لما بعدهما
   if (data && (!data.script.approved || !data.storyboard.approved)) return null;
+  // Step ٣ after its last scene: no assembly here (it lives in step ٤); one forward action.
+  if (sceneMode && onOpenFinal && data && !currentId) {
+    const waiting = data.progress.recitationPending?.length ?? 0;
+    return (
+      <section className="scene-first-panel sp" aria-label="المشاهد معتمدة">
+        <div className="sp-row">
+          <div>
+            <h3>كل المشاهد معتمدة</h3>
+            <p className="sp-hint">{waiting ? `${ar(waiting)} مشهد آية معتمد «مشروطًا بالتلاوة»؛ التلاوات والمعاينة قبل النهائية في الخطوة ٤.` : "التجميع ومشاهدته كاملة ثم النسخة النهائية في الخطوة ٤."}</p>
+          </div>
+          <div className="sp-actions">
+            <button className="btn primary" type="button" onClick={onOpenFinal}>إلى النسخة النهائية</button>
+            {order[0] ? <button type="button" className="btn" onClick={() => setEditing(order[0]!)}>تحرير المشهد</button> : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="scene-first-panel sp" aria-label="القرار الحالي في إنتاج الحلقة">
       {!data && !error ? <p role="status">جارٍ تحميل حالة الحلقة…</p> : null}
@@ -610,18 +637,28 @@ export const SceneProductionPanel: React.FC<Props> = ({
             </div>
           </div>
         </div>
+      ) : data.assembly && !data.master && onOpenReview ? (
+        <div className="sp-row">
+          <div><h3>النسخة النهائية لم تُعتمد بعد</h3><p className="sp-hint">تُصنع النسخة النهائية وتُشاهد وتُعتمد في الخطوة ٤؛ وبعدها يُمنح إذن النشر هنا.</p></div>
+          <div className="sp-actions"><button className="btn primary" type="button" onClick={onOpenReview}>إلى الخطوة ٤</button></div>
+        </div>
       ) : data.assembly && !data.master ? (
         <div className="sp-row">
           <div>
             <h3>{data.candidates.masterSha256 ? "شاهد النسخة النهائية كاملة واعتمد هذا الملف" : "اصنع النسخة النهائية 4K"}</h3>
-            <p className="sp-hint">{data.candidates.masterSha256 ? "الاعتماد لهذا الملف بعينه؛ أي ملف جديد يحتاج اعتمادًا جديدًا." : "من «النشر»: «اصنع النسخة النهائية». ثم تعود هنا لاعتمادها."}</p>
+            <p className="sp-hint">{data.candidates.masterSha256 ? "الاعتماد لهذا الملف بعينه؛ أي ملف جديد يحتاج اعتمادًا جديدًا." : "تُصنع بدقة 4K بالصوت من المشاهد المعتمدة نفسها، ثم تشاهدها هنا وتعتمدها."}</p>
           </div>
           <div className="sp-actions">
             {data.candidates.masterSha256 ? (<>
               {confirm("شاهدتها كاملة 1×")}
               <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-master", data.candidates.masterSha256!)}>اعتماد النسخة النهائية</button>
-            </>) : <button className="btn primary" type="button" onClick={onOpenPublish}>إلى النشر</button>}
+            </>) : <MakeMaster episodeId={episodeId} hasVoiceKeys={hasVoiceKeys} onDone={() => { void refresh(); onUpdated?.(); }} />}
           </div>
+        </div>
+      ) : data.master && !data.master.publishAllowed && !onOpenReview ? (
+        <div className="sp-row">
+          <div><h3>النسخة النهائية معتمدة</h3><p className="sp-hint">الخطوة التالية: إذن النشر لهذا الملف بعينه في «النشر» (الخطوة ٥).</p></div>
+          <div className="sp-actions"><button className="btn primary" type="button" onClick={onOpenPublish}>إلى النشر</button></div>
         </div>
       ) : data.master && !data.master.publishAllowed ? (
         <div className="sp-row">
@@ -674,6 +711,8 @@ export const SceneDecisionActions: React.FC<{
   onProblem: (kind: ProblemKind) => void;
   onProblemText: (text: string) => void;
   onTone: (tone: string) => void;
+  /** نبرة الحلقة الموروثة (تُسمّى في خيار «مثل الحلقة») */
+  episodeTone?: string;
   onCancelProblem: () => void;
   onSubmitProblem: () => void;
   onConfirm: (reviewed: boolean) => void;
@@ -740,7 +779,7 @@ export const SceneDecisionActions: React.FC<{
           <span className="s3-problem-at">{p.problem.kind === "motion" ? "الحركة" : "النبرة"} عند <b dir="ltr">{at}</b></span>
           {p.problem.kind === "tone" ? (
             <select aria-label="النبرة المناسبة" value={p.tone} onChange={(e) => p.onTone(e.target.value)}>
-              <option value="">مثل الحلقة</option>
+              <option value="">{inheritedToneLabel(p.episodeTone)}</option>
               {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
             </select>
           ) : null}

@@ -23,8 +23,9 @@ describe("steps 4–5: one filled action per screen, one video per screen", () =
     expect(decisionHasPrimary(read({ assembly: false }))).toBe(true);
     expect(decisionHasPrimary(read({ assembly: true, master: "candidate" }))).toBe(true);
     expect(decisionHasPrimary(read({ assembly: true, master: "approved" }))).toBe(true);
-    // no Master file yet («إلى النشر» is hidden on the publish page) and after permission: the page owns it
-    expect(decisionHasPrimary(read({ assembly: true, master: "none" }))).toBe(false);
+    // no Master file yet: the panel makes it in step ٤ (or points there from step ٥), D36
+    expect(decisionHasPrimary(read({ assembly: true, master: "none" }))).toBe(true);
+    // after permission: the page owns it (download)
     expect(decisionHasPrimary(read({ assembly: true, master: "allowed" }))).toBe(false);
   });
 

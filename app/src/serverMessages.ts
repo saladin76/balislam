@@ -47,12 +47,17 @@ const EXACT: Record<string, string> = {
 };
 const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^Scene (\S+) has changed after audiovisual approval\.$/, (m) => `تغيّر المشهد ${m[1]} بعد اعتماده؛ يحتاج إنتاجًا واعتمادًا جديدين.`],
+  // Render-browser download failures that escape the renderer's own wrapper (D36).
+  [/(getaddrinfo (ENOTFOUND|EAI_AGAIN)[^\n]*remotion|remotion\.media|download(ing)? (the )?(chrome|browser)|headless shell)/i, () =>
+    "تعذّر تجهيز متصفح الرندر (يُنزَّل مرة واحدة عند أول رندر). صِل الجهاز بالإنترنت ثم اضغط الزر نفسه مرة أخرى؛ الاستوديو ما زال يعمل ولم يُحذف شيء."],
 ];
 
 export const ownerMessage = (message: string): string => {
   const text = message.trim();
   const exact = EXACT[text];
   if (exact) return exact;
+  // Already the renderer's own Arabic explanation (with what to do): keep it whole.
+  if (text.includes("تعذّر تجهيز متصفح الرندر")) return message;
   for (const [re, fn] of PATTERNS) {
     const m = text.match(re);
     if (m) return fn(m);

@@ -9,6 +9,30 @@ import { assertNoLinkedPath, copyUnlinkedFile, ensureUnlinkedDirectory } from ".
 
 export const browserExecutable = () => process.env.REMOTION_BROWSER_EXECUTABLE || null;
 
+/** رسالة المالك حين يتعذّر تجهيز متصفح الرندر (تجربة الفانل ٨ نوفمبر، D36). */
+export const renderBrowserFailureMessage = (cause: unknown) => {
+  const raw = cause instanceof Error ? cause.message : String(cause ?? "");
+  const offline = /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|ETIMEDOUT|getaddrinfo|network|fetch failed/i.test(raw);
+  return "تعذّر تجهيز متصفح الرندر" + (offline ? " لأن الجهاز غير متصل بالإنترنت" : "") +
+    ": يُنزَّل مرة واحدة عند أول رندر ولم يكتمل. صِل الجهاز بالإنترنت ثم اضغط الزر نفسه مرة أخرى، " +
+    "أو ضع مسار متصفح Chrome موجود على الجهاز في REMOTION_BROWSER_EXECUTABLE داخل ملف .env ثم أعد تشغيل الاستوديو. " +
+    "الاستوديو ما زال يعمل، ولم يُحذف أي شيء." + (raw ? ` (${raw.slice(0, 160)})` : "");
+};
+
+/**
+ * يجهّز متصفح الرندر قبل أي رندر وينتظره صراحة، فيصير فشل التنزيل خطأً عاديًا يصل إلى الزر
+ * برسالة عربية، لا رفضًا غير ممسوك يُسقط خادم الاستوديو كله.
+ */
+export const ensureRenderBrowser = async (
+  ensure: (o: { browserExecutable: string | null }) => Promise<unknown> = async (o) => (await import("@remotion/renderer")).ensureBrowser(o),
+) => {
+  try {
+    await ensure({ browserExecutable: browserExecutable() });
+  } catch (e) {
+    throw new Error(renderBrowserFailureMessage(e));
+  }
+};
+
 /** Recursively validate every entry: cp() without this check can follow
  * nested links inside fonts, shared illustrations or staged episode media. */
 const copyPublicTree = async (source: string, destination: string): Promise<void> => {
@@ -70,6 +94,7 @@ export const stageRemotionPublicDir = async (
  * Remotion creates an implicit remotion-webpack-bundle-* in system /tmp.
  * Keep both directories until the renderer has stopped reading the bundle. */
 export const createIsolatedRenderBundle = async (media: EpisodeMedia) => {
+  await ensureRenderBrowser();
   const sandbox = await stageRemotionPublicDir(media);
   let bundleRoot: string | null = null;
   const cleanup = async () => {

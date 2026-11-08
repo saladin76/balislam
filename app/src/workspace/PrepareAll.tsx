@@ -60,6 +60,17 @@ export const PrepareAll: React.FC<{
     }
   };
 
+  const stop = async () => {
+    if (!owner.open) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
+    setError("");
+    try {
+      const r = await api.stopScenePrepare(episodeId, channelId, owner.secret);
+      setInfo((old) => ({ ...(old ?? { voiceKey: r.voiceKey }), ...r }));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   const job = info?.job;
   const allReady = Boolean(prepared && prepared.total > 0 && prepared.ready >= prepared.total);
   const noKey = info && !info.voiceKey && (info.needVoice ?? 0) > 0;
@@ -76,6 +87,12 @@ export const PrepareAll: React.FC<{
           {starting ? "جارٍ البدء…" : label}
         </button>
       ) : null}
+      {running ? (
+        <button type="button" className="btn ghost" disabled={!owner.open || job?.stopRequested} onClick={() => void stop()}
+          title="يُكمل المشهد الجاري ويحفظه، ولا يبدأ غيره؛ والمسودات الجاهزة باقية">
+          {job?.stopRequested ? "يتوقف بعد المشهد الجاري…" : "أوقف"}
+        </button>
+      ) : null}
       {prepared ? <span className="prep-count" role="status">جاهز {ar(prepared.ready)} من {ar(prepared.total)}</span> : null}
       {noKey ? (
         <span className="prep-note">لا يوجد مفتاح صوت{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : null}</span>
@@ -83,6 +100,8 @@ export const PrepareAll: React.FC<{
         <span className="prep-note is-err" title={job.voice.error}>توقف توليد الصوت: {job.voice.error?.split("\n")[0]}</span>
       ) : failed ? (
         <span className="prep-note is-err" title={job!.failed.map((f) => `${f.id}: ${ownerMessage(f.error)}`).join("\n")}>تعذّر {ar(failed)} ({job!.failed[0]!.id}): {ownerMessage(job!.failed[0]!.error.split("\n")[0]!)}</span>
+      ) : job?.status === "stopped" ? (
+        <span className="prep-note">أُوقف التجهيز؛ المسودات الجاهزة محفوظة، و«{prepared && prepared.ready > 0 ? "جهّز الباقي" : "جهّز كل المشاهد"}» يكمل من حيث توقف.</span>
       ) : job?.status === "error" ? (
         <span className="prep-note is-err">{job.error}</span>
       ) : null}

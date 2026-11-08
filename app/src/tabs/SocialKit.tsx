@@ -44,13 +44,15 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
   const [kit, setKit] = useState<PublishKit | null>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
   const [chapters, setChapters] = useState("");
+  // Studio-only: are the chapter times estimates (no assembled cuts yet)? Never written into published text.
+  const [estimated, setEstimated] = useState(false);
   const [view, setView] = useState<"long" | number>("long");
   const [state, setState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   const [err, setErr] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    api.kit(episodeId).then((r) => { setKit(r.kit); setKeywords(r.keywords); setChapters(r.chapters); onKit?.(r.kit, r.chapters); }).catch((e) => setErr((e as Error).message));
+    api.kit(episodeId).then((r) => { setKit(r.kit); setKeywords(r.keywords); setChapters(r.chapters); setEstimated(Boolean(r.chaptersEstimated)); onKit?.(r.kit, r.chapters); }).catch((e) => setErr((e as Error).message));
   }, [episodeId]);
 
   if (err) return <div className="render-box"><b>حزمة الانتشار</b><span className="help">{err}</span></div>;
@@ -133,7 +135,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
                 checks={checkTitle(t.text, "youtube", keywords)}
               />
             ))}
-            <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters)} checks={checkDescription(resolveDescription(L.description, chapters), keywords, L.hashtags)} hint={`أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ`} />
+            <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters)} checks={checkDescription(resolveDescription(L.description, chapters), keywords, L.hashtags)} hint={`أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ${estimated ? " — التوقيتات الآن تقديرية من الخطة، وتُحسب من المشاهد المعتمدة بعد التجميع (هذه الملاحظة لا تظهر في النص المنشور)" : ""}`} />
             <Field label="الوسوم (Tags)" rows={2} value={L.tags.join(", ")} onChange={(v) => setLong({ tags: v.split(/[,،]\s*/).map((x) => x.trim()).filter(Boolean) })} hint={`${L.tags.join(",").length}/${RULES.youtube.tagsChars} حرف`} />
           </div>
           <div className="kit-col">

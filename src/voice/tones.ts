@@ -18,6 +18,21 @@ export const tones: Record<Tone, { nameAr: string; useAr: string; stability: num
 export const toneIds = Object.keys(tones) as Tone[];
 export const isTone = (t: unknown): t is Tone => typeof t === "string" && t in tones;
 
+/**
+ * النبرة الفعلية لمقطع: نبرة المشهد إن حُددت، وإلا نبرة الحلقة، وإلا نبرة القناة.
+ * «مثل الحلقة» قرار صريح صالح (تجربة الفانل ٨ نوفمبر، D36): نبرة الحلقة يختارها المالك مرة في محرر الحلقة
+ * فتسري على كل مشهد بلا نبرة خاصة، ويبقى تخصيص أي مشهد وحده ممكنًا. بلا أي منها: لا نبرة (يوقف التوليد).
+ * دفاتر الزمن لا تمر من هنا: أجزاؤها تأخذ نبرتها من خريطة النبرة (src/voice/dafatirParts.ts).
+ */
+export const effectiveTone = (sceneTone: unknown, episodeTone?: unknown, channelTone?: unknown): Tone | undefined =>
+  [sceneTone, episodeTone, channelTone].find(isTone);
+
+/** نص خيار «مثل الحلقة» في قوائم نبرة المشهد: يسمّي النبرة الموروثة، أو يقول إنها لم تُختر بعد. */
+export const inheritedToneLabel = (episodeTone?: unknown, channelTone?: unknown): string =>
+  isTone(episodeTone) ? `مثل الحلقة (${tones[episodeTone].nameAr})`
+  : isTone(channelTone) ? `مثل القناة (${tones[channelTone].nameAr})`
+  : "مثل الحلقة — لم تُختر نبرة الحلقة بعد";
+
 /** الحياد الذي تُقاس منه فروق النبرات (إعدادات config.voice) */
 const NEUTRAL = { stability: config.voice.stability, style: config.voice.style, speed: config.voice.speed };
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
