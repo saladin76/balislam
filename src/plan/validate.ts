@@ -1,4 +1,5 @@
 import { engineEnabled } from "./engine";
+import { channelProductionIssues } from "../channel/productionRules";
 import { hasElement } from "../../brand/elements/registry";
 import { parseCameraPlan, parseCameraPlanLines, parsePoseTimeline } from "./director";
 import { lightingIssues } from "./lighting";
@@ -124,5 +125,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد." });
       if (s.backdrop && !hasElement(s.backdrop)) out.push({ level: "warning", sceneId: s.id, message: `الخلفية «${s.backdrop}» غير موجودة.` });
     }
+  // Isolated policy review: never infer an approval from a creative heuristic.
+  out.push(...channelProductionIssues(plan, channel));
   return out;
 };
