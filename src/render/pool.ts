@@ -415,6 +415,9 @@ export class RenderPool {
   readonly tasks = new Map<string, TaskState>();
   private specs = new Map<string, TaskSpec>();
   private running = new Map<string, Running>();
+  // A child may have exited but its partial output/ledger cleanup is still asynchronous.
+  // Such jobs are neither idle nor eligible for retry until settling completes.
+  private settling = new Set<string>();
   private waiters: (() => void)[] = [];
   private learnedMB: number;
   /** أعلى ذروة مقيسة لكل نوع تكلفة */
@@ -447,7 +450,7 @@ export class RenderPool {
 
   add(spec: TaskSpec) {
     const prev = this.tasks.get(spec.id);
-    if (prev && (prev.status === "running" || prev.status === "queued")) return prev;
+    if (prev && (prev.status === "running" || prev.status === "queued" || this.settling.has(spec.id))) return prev;
     this.specs.set(spec.id, spec);
     const t: TaskState = { id: spec.id, status: "queued", attempts: prev?.attempts ?? 0, queuedAt: Date.now(), log: [], ...(prev?.preemptions ? { preemptions: prev.preemptions } : {}) };
     this.tasks.set(spec.id, t);
@@ -480,7 +483,7 @@ export class RenderPool {
 
   /** إعادة الفاشل وحده (أو مهام بعينها) دون لمس الناجح */
   retryFailed(ids?: string[]) {
-    const again = [...this.tasks.values()].filter((t) => (t.status === "error" || t.status === "cancelled") && (!ids || ids.includes(t.id)) && this.specs.has(t.id));
+    const again = [...this.tasks.values()].filter((t) => (t.status === "error" || t.status === "cancelled") && !this.settling.has(t.id) && (!ids || ids.includes(t.id)) && this.specs.has(t.id));
     for (const t of again) this.add(this.specs.get(t.id)!);
     return again.map((t) => t.id);
   }
@@ -491,7 +494,7 @@ export class RenderPool {
     return new Promise((r) => this.waiters.push(r));
   }
   private busy() {
-    return [...this.tasks.values()].some((t) => t.status === "queued" || t.status === "running");
+    return this.settling.size > 0 || [...this.tasks.values()].some((t) => t.status === "queued" || t.status === "running");
   }
   private wake() {
     if (!this.busy()) {
@@ -634,7 +637,8 @@ export class RenderPool {
     child.stdout?.on("data", onData);
     child.stderr?.on("data", onData);
     const finish = async (code: number | null, signal: NodeJS.Signals | null, spawnError?: Error) => {
-      if (!this.running.has(t.id)) return;
+      if (!this.running.has(t.id) || this.settling.has(t.id)) return;
+      this.settling.add(t.id);
       this.running.delete(t.id);
       if (rec.timer) clearTimeout(rec.timer);
       // لا تبقى عملية شاردة من المهمة بعد انتهائها (متصفح يتيم مثلًا): تُوقف مجموعتها كلها
@@ -662,7 +666,9 @@ export class RenderPool {
         t.log.push("أُوقفت مؤقتًا لحماية الذاكرة وأُعيدت إلى الطابور");
         this.emit(t);
         await this.save();
+        this.settling.delete(t.id);
         this.pump();
+        this.wake();
         return;
       }
       if (code === 0 && !spawnError && !rec.cancelled && !rec.timedOut && !rec.stalled) {
@@ -707,6 +713,7 @@ export class RenderPool {
       this.emit(t);
       spec.onEnd?.(t);
       await this.save();
+      this.settling.delete(t.id);
       this.pump();
       this.wake();
     };
