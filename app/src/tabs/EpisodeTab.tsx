@@ -190,7 +190,7 @@ export const EpisodeTab: React.FC<{
                     {voiceState(s) === "ok" ? <span className="badge voice">صوت</span> : voiceState(s) === "stale" ? <span className="badge edited">صوت قديم</span> : null}
                     {s.edited ? <span className="badge edited">معدّل</span> : null}
                     {d && !d.implemented ? <span className="badge todo">قيد البناء</span> : null}
-                    <span className="badge" style={{ fontVariantNumeric: "tabular-nums" }}>{sceneSeconds(s, media).toFixed(1)}ث</span>
+                    <span className="badge" style={{ fontVariantNumeric: "tabular-nums" }}>{sceneSeconds(s, media).toFixed(1)} ث</span>
                   </span>
                   <span className="n">{s.narration || s.props.text || s.props.reference || "بلا تعليق صوتي"}</span>
                 </div>
