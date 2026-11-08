@@ -12,6 +12,7 @@ const scripts = [
   "scripts/qa/studio-v2-phase2-real-render.mjs",
   "scripts/qa/studio-v2-phase2-security-audit.mjs",
   "scripts/qa/studio-v2-phase2-invalidation.mjs",
+  "scripts/qa/studio-v2-phase2-integration-inventory.mjs",
 ];
 const root = process.cwd();
 const safeEnv = {
