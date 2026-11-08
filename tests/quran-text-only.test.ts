@@ -5,19 +5,17 @@ import os from "node:os";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fillMissingQuranTexts, inspectMissingQuranTexts } from "../src/quran/fillMissingText";
 import type { QuranClient } from "../src/quran/client";
+import { channelSandbox, withFetchedQuran } from "./helpers/channelSandbox";
 
 let tempRoot = "";
 let episodeDir = "";
 const oldChannels = process.env.BAL_CHANNELS_DIR;
 const oldChannel = process.env.BAL_CHANNEL;
 beforeAll(() => {
-  tempRoot = mkdtempSync(path.join(os.tmpdir(), "bal-text-only-"));
-  const channelDir = path.join(tempRoot, "balislam");
-  cpSync(path.join(__dirname, "..", "channels", "balislam"), channelDir, {
-    recursive: true, filter: (src) => !/[\\/](recitations|voice|out)([\\/]|$)/.test(src),
-  });
-  episodeDir = path.join(channelDir, "episodes", "999-demo");
-  cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), episodeDir, { recursive: true });
+  // ملفات القناة وحلقة العينة فقط (tests/helpers/channelSandbox.ts)، ومصدر نص الآيات «fetch» لأن الاختبار عن الجلب
+  const sandbox = channelSandbox("bal-text-only-", { episodes: { "999-demo": "000-demo" }, channelPatch: withFetchedQuran });
+  tempRoot = sandbox.root;
+  episodeDir = sandbox.episodeDir("999-demo");
   process.env.BAL_CHANNELS_DIR = tempRoot;
   process.env.BAL_CHANNEL = "balislam";
 });

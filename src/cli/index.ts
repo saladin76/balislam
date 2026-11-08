@@ -231,6 +231,11 @@ program
       if (result.invalid.length) process.exitCode = 1;
       return;
     }
+    {
+      const { assertFetchAllowed } = await import("../quran/scriptText");
+      const { resolveScriptPath } = await import("../script/episodes");
+      assertFetchAllowed(await resolveScriptPath(episode));
+    }
     if (!opts.confirmCacheWrite) throw new Error("استخدم --dry-run للفحص أو --confirm-cache-write للإذن بحفظ النصوص الناقصة.");
     const { quranClientFromEnv } = await import("../quran/client");
     const { fillMissingQuranTexts } = await import("../quran/fillMissingText");
@@ -261,6 +266,33 @@ program
     }
     if (client && client.env !== "production") console.log("تنبيه: QF_ENV ليست production؛ اجعلها production للمطابقة بالمرجع المعتمد.");
     console.log(`التقرير: ${await writeQuranAuditReport(episode, result, { environment: client ? `<b>بيئة المرجع:</b> Quran Foundation (${client.env}).` : "<b>بيئة المرجع:</b> لم يُجلب المرجع في هذا التشغيل (--evidence-only)." })}`);
+    if (result.audits.some((a) => a.status !== "match")) process.exitCode = 1;
+  });
+
+program
+  .command("quran-script")
+  .description("نص الآيات من السكريبت: يستخرج ما كتبه صاحب القناة في [آية: المرجع | النص]، ويقابله بالمصحف المعتمد (Quran Foundation) ويكتب تقرير الفروق للمراجعة الشرعية. لا يجلب نصًّا إلى البطاقة، ولا يصحح، ولا يعتمد")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolveScriptPath } = await import("../script/episodes");
+    const { parseScript } = await import("../script/parse");
+    const { scriptVerses, quranTextSourceFor } = await import("../quran/scriptText");
+    const { quranClientFromEnv } = await import("../quran/client");
+    const { auditEpisodeQuran, writeQuranAuditReport, CLASS_AR } = await import("../quran/audit");
+    const scriptPath = await resolveScriptPath(episode);
+    if (quranTextSourceFor(scriptPath) !== "script") throw new Error("مصدر نص الآيات في هذه القناة ليس السكريبت (rules.quranText). استعمل quran-compare.");
+    const verses = scriptVerses(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
+    for (const v of verses) console.log(`${v.key ?? v.ref} (السطر ${v.line}): ${v.reason ? `مرجع غير صالح — ${v.reason}` : v.text ? `النص مكتوب (${Array.from(v.text).length} رمزًا)` : "لم يُكتب النص بعد"}`);
+    const client = quranClientFromEnv();
+    const result = await auditEpisodeQuran(episode, { client });
+    for (const a of result.audits) {
+      const kinds = [...new Set(a.ops.map((o) => CLASS_AR[o.cls]))].join("، ");
+      console.log(`  ${a.key}: ${a.status === "match" ? "مطابق للمصحف المعتمد" : a.status === "differs" ? `فيه ${a.ops.length} فرق${kinds ? ` (${kinds})` : ""}` : a.status === "pending" ? "لم يُقابَل بالمرجع (لا مفاتيح Quran Foundation هنا)" : a.reason ?? a.status}`);
+    }
+    if (client && client.env !== "production") console.log("تنبيه: QF_ENV ليست production؛ اجعلها production للمطابقة بالمرجع المعتمد.");
+    const env = client ? `<b>المرجع:</b> المصحف المعتمد من Quran Foundation (${client.env}).` : "<b>المرجع:</b> لم يُجلب في هذا التشغيل: لا مفاتيح Quran Foundation (QF_CLIENT_ID وQF_CLIENT_SECRET) في هذه البيئة. شغّل الأمر نفسه حيث توجد المفاتيح.";
+    console.log(`التقرير: ${await writeQuranAuditReport(episode, result, { provenance: "<b>مصدر النص المعروض:</b> السكريبت. نص الآية يكتبه صاحب القناة بيده في علامتها، ولا يُجلب ولا يُصحَّح آليًا. القرار للمراجع الشرعي في «سجل التوثيق».", environment: env })}`);
     if (result.audits.some((a) => a.status !== "match")) process.exitCode = 1;
   });
 

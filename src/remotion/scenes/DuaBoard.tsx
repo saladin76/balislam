@@ -21,7 +21,7 @@ import type { SceneBase, StringFields } from "./types";
  *   glow1 / glow2 / glowall (إضاءة عمود)، grow3 (تكبر الكلمات المغرية)، clear (تمحى كلمات الشرح بهدوء).
  * الكلمة المكررة تُحدَّد بترتيبها: «وارزقنا#2».
  */
-export type DuaBoardProps = SceneBase & StringFields<"dua" | "asks" | "heads" | "source" | "shown" | "cues"> & { continues?: boolean; fromBoard?: boolean };
+export type DuaBoardProps = SceneBase & StringFields<"dua" | "asks" | "heads" | "source" | "shown" | "cues" | "still"> & { continues?: boolean; fromBoard?: boolean };
 
 type Cue = { item: string; at: number; word?: string };
 
@@ -47,6 +47,11 @@ export const parseBoardCues = (text: string | undefined, timings: WordTiming[], 
     .filter(Boolean)
     .map((l) => {
       const [item, word] = l.split("|").map((s) => s.trim());
+      // «@end»: في الصمت بعد آخر كلمة منطوقة (مثل ظهور الدعاء كاملًا قبل قراءته في المشهد التالي)
+      if (word === "@end") {
+        const last = timings[timings.length - 1];
+        return { item: item ?? "", word: undefined, at: Math.min(dur - 24, (last ? last.end : Math.round(dur * 0.8)) + 4) };
+      }
       const hit = word ? findWord(timings, word) : undefined;
       return { item: item ?? "", word, at: hit ? hit.start : word ? Math.round(dur * 0.5) : 0 };
     })
@@ -55,19 +60,22 @@ export const parseBoardCues = (text: string | undefined, timings: WordTiming[], 
 const ease = Easing.inOut(Easing.cubic);
 const p01 = (frame: number, a: number, len: number) => interpolate(frame, [a, a + len], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: ease });
 
-/** أبعاد اللوح (بإحداثياته الداخلية) */
-const BW = 1500;
-const BH = 880;
-const COL = { see: { x: 830, w: 560 }, act: { x: 110, w: 560 } };
-const ROW = [
-  { y: 288, h: 280 },
-  { y: 584, h: 280 },
-];
-/** المطلب N: 1 أرِنا الحق، 2 ارزقنا اتباعه، 3 أرِنا الباطل، 4 ارزقنا اجتنابه */
-const cell = (n: number) => {
-  const c = n % 2 === 1 ? COL.see : COL.act;
-  const r = ROW[n <= 2 ? 0 : 1]!;
-  return { x: c.x, y: r.y, w: c.w, h: r.h };
+/**
+ * أبعاد اللوح (بإحداثياته الداخلية). العمودي ورقة قائمة بعرض الشاشة (لا اللوح الأفقي مصغَّرًا):
+ * الخانات الأربع نفسها بترتيبها (البصيرة يمينًا والعزيمة يسارًا)، أضيق وأطول، فتُقرأ على شاشة 390 بكسل.
+ */
+export const boardGeometry = (portrait: boolean) => {
+  const BW = portrait ? 1000 : 1500;
+  const BH = portrait ? 1300 : 880;
+  const COL = portrait ? { see: { x: 520, w: 440 }, act: { x: 40, w: 440 } } : { see: { x: 830, w: 560 }, act: { x: 110, w: 560 } };
+  const ROW = portrait ? [{ y: 360, h: 420 }, { y: 810, h: 420 }] : [{ y: 288, h: 280 }, { y: 584, h: 280 }];
+  /** المطلب N: 1 أرِنا الحق، 2 ارزقنا اتباعه، 3 أرِنا الباطل، 4 ارزقنا اجتنابه */
+  const cell = (n: number) => {
+    const c = n % 2 === 1 ? COL.see : COL.act;
+    const r = ROW[n <= 2 ? 0 : 1]!;
+    return { x: c.x, y: r.y, w: c.w, h: r.h };
+  };
+  return { BW, BH, COL, ROW, cell };
 };
 const AR_DIGITS = ["١", "٢", "٣", "٤"];
 
@@ -93,6 +101,14 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames: dur, width } = useVideoConfig();
   const portrait = props.orientation === "portrait";
+  /**
+   * «still» (مشهد قراءة الدعاء نفسه): اللوح كما انتهى في المشهد السابق، ولا يتحرك فيه شيء طوال القراءة:
+   * لا حبر يكتمل عبارةً عبارة، ولا نور يتنفس، ولا شريط ترجمة (الدعاء المكتوب هو النص). قرار السكون عند الدعاء.
+   */
+  const still = props.still === "1" || props.still === "true";
+  /** مقروئية العمودي على شاشة 390 بكسل: خطوط اللوح أكبر فيه (اللوح يُصغَّر إلى عرض الشاشة) */
+  const PF = portrait ? { dua: 0.74, source: 1.3, ask: 0.92, note: 1, head: 1, badge: 1.1 } : { dua: 1, source: 1, ask: 1, note: 1, head: 1, badge: 1 };
+  const { BW, BH, COL, ROW, cell } = boardGeometry(portrait);
   const narration = props.narration ?? "";
   const timings = narration ? (props.narrationTimings ?? estimateTimings(narration, 6, dur - 12)) : [];
   const cues = parseBoardCues(props.cues, timings, dur);
@@ -144,11 +160,13 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
     }
     return undefined;
   };
-  const duaHere = when("dua");
-  const phraseTimes = lines.map((l) => l.map((ph) => (duaHere === -1e4 ? -1e4 : phraseAt(ph))));
+  // «dua-all»: يظهر الدعاء كاملًا دفعة واحدة (جملة واحدة مع صعود المصدر)، لا عبارةً عبارة
+  const duaAll = when("dua") === undefined ? when("dua-all") : undefined;
+  const duaHere = duaAll ?? when("dua");
+  const phraseTimes = lines.map((l) => l.map((ph) => (duaHere === -1e4 ? -1e4 : duaAll !== undefined ? duaAll : phraseAt(ph))));
   const dock = p("dock", 26);
   // المصدر كبير في وسط الورقة قبل الدعاء، ثم يصعد إلى أعلاها حين يُعرض الدعاء
-  const srcUp = shown.has("dua") ? 1 : cues.some((c) => c.item === "dua") ? p01(frame, 0, 18) : 0;
+  const srcUp = shown.has("dua") ? 1 : cues.some((c) => c.item === "dua") ? p01(frame, 0, 18) : duaAll !== undefined ? p01(frame, duaAll, 18) : 0;
 
   const grid = p("grid", 26);
   const gridAt = when("grid");
@@ -206,18 +224,19 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
   }
 
   // الحركة الخلفية الهادئة: نور الفجر يتنفس خلف الورقة
-  const breathe = 0.5 + 0.5 * Math.sin((frame / fps) * ((2 * Math.PI) / 6));
+  const breathe = still ? 0.5 : 0.5 + 0.5 * Math.sin((frame / fps) * ((2 * Math.PI) / 6));
 
   // نافذة اللوح تحت الكابشن؛ مركزها نقطة ارتكاز الكاميرا
-  const base = portrait ? 1000 / BW : 1;
-  const win = portrait ? { x: 20, y: 300, w: width - 40, h: 1300 } : { x: 40, y: 140, w: width - 80, h: 925 };
+  // العمودي: الورقة تبدأ تحت سطري الكابشن فلا يلامس الكابشن البطاقة العليا، وتملأ عرض الشاشة
+  const win = portrait ? { x: 20, y: 430, w: width - 40, h: 1430 } : { x: 40, y: 140, w: width - 80, h: 925 };
+  const base = portrait ? Math.min(win.w / BW, win.h / BH) : 1;
   const z = base * cam.z;
   const tx = win.w / 2 - cam.x * z;
   const ty = (portrait ? win.h / 2 : cam.ay - win.y) - cam.y * z;
   const top = win.y;
 
   // الحالة الكبيرة للدعاء ثم استقراره في أعلى الورقة
-  const bigY = 270;
+  const bigY = portrait ? 420 : 270;
   const dockY = 20;
   const duaY = bigY + (dockY - bigY) * dock;
   const duaScale = 1 - 0.6 * dock;
@@ -263,14 +282,14 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
         >
           {/* مصدر الدعاء: من كلام أهل العلم، بلا نسبة إلى النبي ﷺ */}
           {props.source ? (
-            <div style={{ position: "absolute", top: 26 - 8 * dock + (1 - srcUp) * 370, left: 0, right: 0, textAlign: "center", fontFamily: fontFamilies.body, fontSize: 30 - 6 * dock + (1 - srcUp) * 34, color: COPPER_INK, opacity: 1 - 0.4 * dock }}>
+            <div style={{ position: "absolute", top: 26 - 8 * dock + (1 - srcUp) * 370, left: 0, right: 0, textAlign: "center", fontFamily: fontFamilies.body, fontSize: (30 - 6 * dock + (1 - srcUp) * 34) * PF.source, color: COPPER_INK, opacity: 1 - 0.4 * dock }}>
               <Ink p={p("source", 22)} style={{ background: srcUp < 1 ? mix(ID.copper, ID.paper, 0.5 + 0.5 * srcUp) : undefined, borderRadius: 16, padding: `${14 * (1 - srcUp)}px ${40 * (1 - srcUp)}px` }}>{props.source}</Ink>
             </div>
           ) : null}
 
           {/* الدعاء */}
           {duaHere !== undefined ? (
-            <div style={{ position: "absolute", left: 0, right: 0, top: duaY + (props.source ? 40 : 0), transform: `scale(${duaScale})`, transformOrigin: "top center", textAlign: "center", fontFamily: fontFamilies.scripture, fontSize: 86, lineHeight: 1.8, color: INK }}>
+            <div style={{ position: "absolute", left: 0, right: 0, top: duaY + (props.source ? 40 : 0), transform: `scale(${duaScale})`, transformOrigin: "top center", textAlign: "center", fontFamily: fontFamilies.scripture, fontSize: 86 * PF.dua, lineHeight: 1.8, color: INK }}>
               {lines.map((l, li) => (
                 <div key={li}>
                   {l.map((ph, pi) => {
@@ -278,7 +297,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                     const k = t === undefined ? 1 : p01(frame, t, 16);
                     return (
                       <span key={pi} style={{ position: "relative", display: "inline-block", margin: "0 12px" }}>
-                        <span style={{ opacity: 0.16 * (1 - k) * (duaHere === -1e4 ? 0 : p01(frame, 12, 12)) }}>{ph}</span>
+                        <span style={{ opacity: 0.16 * (1 - k) * (duaHere === -1e4 || duaAll !== undefined ? 0 : p01(frame, 12, 12)) }}>{ph}</span>
                         <span style={{ position: "absolute", inset: 0, whiteSpace: "nowrap" }}>
                           <Ink p={k}>{ph}</Ink>
                         </span>
@@ -324,7 +343,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                 const c = cell(n);
                 const k = gridAt === -1e4 ? 1 : p01(frame, gridAt + 10 + n * 5, 10);
                 return (
-                  <div key={n} style={{ position: "absolute", left: c.x + c.w - 30, top: c.y - 22, width: 48, height: 48, borderRadius: 24, background: ID.paper, border: `3px solid ${ID.copper}`, color: COPPER_INK, fontFamily: fontFamilies.body, fontWeight: 700, fontSize: 28, lineHeight: "42px", textAlign: "center", opacity: k, transform: `scale(${0.6 + 0.4 * k})` }}>
+                  <div key={n} style={{ position: "absolute", left: c.x + c.w - 30, top: c.y - 22, width: 48 * PF.badge, height: 48 * PF.badge, borderRadius: 24 * PF.badge, background: ID.paper, border: `3px solid ${ID.copper}`, color: COPPER_INK, fontFamily: fontFamilies.body, fontWeight: 700, fontSize: 28 * PF.badge, lineHeight: `${42 * PF.badge}px`, textAlign: "center", opacity: k, transform: `scale(${0.6 + 0.4 * k})` }}>
                     {AR_DIGITS[n - 1]}
                   </div>
                 );
@@ -335,7 +354,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                 const k = p(h, 20);
                 if (!k) return null;
                 return (
-                  <div key={h} style={{ position: "absolute", left: c.x, width: c.w, top: ROW[0]!.y - 78, height: 66, borderRadius: 16, background: mix(ID.copper, ID.paper, 0.3), clipPath: `inset(0 0 0 ${(1 - k) * 100}%)`, textAlign: "center", fontFamily: fontFamilies.ruqaa, fontSize: 50, lineHeight: "62px", color: darken(ID.night, 0.1) }}>
+                  <div key={h} style={{ position: "absolute", left: c.x, width: c.w, top: ROW[0]!.y - 12 - 66 * PF.head, height: 66 * PF.head, borderRadius: 16, background: mix(ID.copper, ID.paper, 0.3), clipPath: `inset(0 0 0 ${(1 - k) * 100}%)`, textAlign: "center", fontFamily: fontFamilies.ruqaa, fontSize: 50 * PF.head, lineHeight: `${62 * PF.head}px`, color: darken(ID.night, 0.1) }}>
                     {heads[i]}
                   </div>
                 );
@@ -349,10 +368,10 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                 const mine = notes.filter((x) => x.n === n);
                 return (
                   <React.Fragment key={n}>
-                    <div style={{ position: "absolute", left: c.x, width: c.w, top: c.y + 8, textAlign: "center", fontFamily: fontFamilies.scripture, fontWeight: 700, fontSize: 54, lineHeight: 1.45, color: INK, filter: blur > 0.05 ? `blur(${blur}px)` : undefined }}>
-                      <Ink p={k} style={{ background: mix(ID.copper, ID.paper, 0.55), borderRadius: 14, padding: "0 26px" }}>{asks[n - 1]}</Ink>
+                    <div style={{ position: "absolute", left: c.x, width: c.w, top: c.y + 8, textAlign: "center", fontFamily: fontFamilies.scripture, fontWeight: 700, fontSize: 54 * PF.ask, lineHeight: 1.45, color: INK, filter: blur > 0.05 ? `blur(${blur}px)` : undefined }}>
+                      <Ink p={k} style={{ background: mix(ID.copper, ID.paper, 0.55), borderRadius: 14, padding: portrait ? "0 16px" : "0 26px" }}>{asks[n - 1]}</Ink>
                     </div>
-                    <div style={{ position: "absolute", left: c.x + 24, width: c.w - 48, top: c.y + 92, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 10px" }}>
+                    <div style={{ position: "absolute", left: c.x + 24, width: c.w - 48, top: c.y + 92 * PF.ask, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 10px" }}>
                       {mine.map((x) => {
                         const a = p01(frame, x.at, 12) * fadeAfter(x.at);
                         if (a <= 0.001) return null;
@@ -364,7 +383,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
                             style={{
                               fontFamily: fontFamilies.body,
                               fontWeight: 600,
-                              fontSize: 36,
+                              fontSize: 36 * PF.note,
                               lineHeight: 1.35,
                               color: pill ? darken(ID.night, 0.1) : ID.paper,
                               background: x.kind === "warn" ? ID.seal : pill ? ID.dawn : mix(ID.night, ID.copper, 0.12),
@@ -388,7 +407,7 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
         </div>
         <div style={{ position: "absolute", inset: 0, borderRadius: 18, boxShadow: `inset 0 0 0 3px ${mix(ID.copper, ID.paper, 0.35)}`, pointerEvents: "none" }} />
         </div>
-        {cues.some((c) => c.item === "dua") ? null : (
+        {still || cues.some((c) => c.item === "dua") ? null : (
           <TopCaption frame={frame} fps={fps} timings={timings} keys={cues.map((c) => c.word ?? "").filter((w) => w && !w.includes("#"))} portrait={portrait} out={out} />
         )}
       </AbsoluteFill>

@@ -74,6 +74,7 @@
     "music": false,
     "faces": false,
     "quran": true,
+    "quranText": "script",
     "hadith": true,
     "hadithGrades": [
       "صحيح",

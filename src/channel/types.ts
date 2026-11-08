@@ -62,6 +62,11 @@ export type ChannelConfig = {
     faces: boolean;
     /** القناة تستشهد بالقرآن (يفعّل جلب الآيات وبطاقاتها) */
     quran: boolean;
+    /**
+     * مصدر نص الآيات المعروض: «script» يكتبه صاحب القناة بيده في علامة الآية في السكريبت ([آية: المرجع | النص])،
+     * ولا يُجلب آليًا، ثم يُقابَل بالمصحف المعتمد للمراجعة الشرعية (src/quran/scriptText.ts). الافتراضي «fetch» (quran.json).
+     */
+    quranText?: "script" | "fetch";
     hadith: boolean;
     hadithGrades: string[];
   };

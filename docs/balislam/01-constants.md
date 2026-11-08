@@ -66,7 +66,7 @@
 
 | القيد | الموضع |
 | --- | --- |
-| نص الآية من Quran Foundation لا من الكتابة اليدوية، ويُفحص حرفًا حرفًا | `syncQuran` (`src/quran/sync.ts`)، `compareVerseText` (`src/quran/compare.ts`)، `auditEpisodeQuran` (`src/quran/audit.ts`)؛ وبطاقة الآية بنص مؤقت خطأ في `planIssues` (`src/plan/validate.ts`) |
+| **نص الآية يكتبه صاحب القناة بيده في السكريبت** (`[آية: المرجع \| النص]`، قراره في التوجيه 027): لا يُجلب ولا يُصحَّح آليًا، ويُقابَل حرفًا وحركةً بالمصحف المعتمد (Quran Foundation)، وتُعرض الفروق للمراجعة الشرعية، والقرار في `review.json` مربوطًا ببصمة النص | `rules.quranText: "script"` في `channel.json`؛ `episodeQuranTexts` و`assertFetchAllowed` (`src/quran/scriptText.ts`)؛ `npx bal quran-script <الحلقة>` و`auditEpisodeQuran` (`src/quran/audit.ts`)؛ بصمة النص في `reviewItems` (`src/script/review.ts`)؛ وبطاقة الآية بلا نص خطأ في `planIssues` (`src/plan/validate.ts`) |
 | لا آية في النسخة النهائية بلا تلاوتها المرخّصة أو من القارئ المختار، والصوت المستنسخ لا يتلو القرآن | `versesWithoutRecitation` و`assertMasterReady` (`src/render/episode.ts`)، و`requireCloudPublicationRights` (`src/quran/provider.ts`) |
 | الحديث بدرجته (صحيح أو حسن فقط) وبنصه | `rules.hadithGrades` في `channels/balislam/channel.json`، وبطاقة حديث بلا نص خطأ في `planIssues` |
 | لا يُولَّد صوت قبل اكتمال توثيق الاستشهادات | سجل التوثيق `src/script/review.ts`، ويُفحص في `assertMasterReady` (`src/render/episode.ts`) |

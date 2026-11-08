@@ -15,7 +15,10 @@ import type { SceneBase, StringFields } from "./types";
  * على إيقاع الصوت (دفعات من كلمتين أو ثلاث)، والكلمات المهمة أكبر وبلون التمييز.
  * لا شريط ترجمة في هذا القالب لأنه هو الترجمة.
  */
-export type KineticTextProps = SceneBase & StringFields<"emphasis" | "element" | "stage">;
+export type KineticTextProps = SceneBase & StringFields<"emphasis" | "element" | "stage" | "still">;
+
+/** حجم خط النص كاملًا في وضع السكون: كبير للنص القصير، ويصغر بقدر طوله ليبقى كله في الشاشة */
+export const stillFontSize = (words: number, portrait: boolean) => Math.round(Math.max(portrait ? 84 : 78, Math.min(150, 150 * Math.sqrt((portrait ? 5 : 6) / Math.max(1, words)))));
 
 const bare = (w: string) => w.replace(/[«»"“”'؟?!.,،:؛…]/g, "");
 
@@ -45,17 +48,23 @@ export const KineticText: React.FC<KineticTextProps> = (props) => {
   const c = t.colors;
 
   const timings = narration ? (narrationTimings ?? estimateTimings(narration, 6, durationInFrames - 12)) : [];
-  const chunks = chunksOf(timings);
+  /**
+   * «still» (نص الدعاء): الكلام كله ظاهر قبل القراءة وثابت حتى نهايتها، بالخط واللون نفسيهما:
+   * لا كلمات تظهر واحدة بعد أخرى، ولا نابض، ولا خط تمييز يُرسم. قرار السكون عند الدعاء.
+   */
+  const still = props.still === "1" || props.still === "true";
+  const chunks = still ? [timings] : chunksOf(timings);
   const strong = new Set(splitWords(emphasis.replace(/[،,]/g, " ")).map(bare).filter(Boolean));
   const active = chunks.findIndex((ch, i) => frame >= (ch[0]?.start ?? 0) && frame < (chunks[i + 1]?.[0]?.start ?? Infinity));
   const chunk = chunks[Math.max(0, active)] ?? [];
 
-  const base = portrait ? 150 : 150;
+  const base = still ? stillFontSize(timings.length, portrait) : portrait ? 150 : 150;
+  const stillIn = interpolate(frame, [0, 6], [0, 1], clamp);
   const icon = element && hasElement(element);
   const iconIn = spring({ frame: frame - 2, fps, config: { damping: 16, stiffness: 120 } });
 
   return (
-    <SceneShell {...props} themeId={dark ? "night" : props.themeId} captions={false} durationInFrames={durationInFrames}>
+    <SceneShell {...props} themeId={dark ? "night" : props.themeId} captions={false} durationInFrames={durationInFrames} still={still}>
       {icon ? (
         <div style={{ position: "absolute", left: "50%", top: portrait ? 470 : 150, transform: `translateX(-50%) scale(${0.7 + 0.3 * iconIn})`, opacity: iconIn * 0.95 }}>
           <Element id={element!} theme={t} size={portrait ? 260 : 210} />
@@ -80,7 +89,7 @@ export const KineticText: React.FC<KineticTextProps> = (props) => {
           const s = spring({ frame: frame - w.start + 2, fps, config: { damping: 14, stiffness: 190, mass: 0.7 } });
           const isStrong = strong.has(bare(w.word));
           const said = frame >= w.start;
-          const size = Math.round(base * (isStrong ? 1.22 : 1) * (chunk.length === 3 && portrait ? 0.86 : 1));
+          const size = Math.round(base * (isStrong ? (still ? 1.1 : 1.22) : 1) * (!still && chunk.length === 3 && portrait ? 0.86 : 1));
           return (
             <span
               key={`${active}-${i}`}
@@ -92,8 +101,8 @@ export const KineticText: React.FC<KineticTextProps> = (props) => {
                 fontSize: size,
                 lineHeight: 1.25,
                 color: isStrong ? (dark ? c.highlight : c.primary) : c.ink,
-                opacity: said ? interpolate(s, [0, 0.4], [0, 1], clamp) : 0.12,
-                transform: `translateY(${(1 - s) * 50}px) scale(${0.8 + 0.2 * s})`,
+                opacity: still ? stillIn : said ? interpolate(s, [0, 0.4], [0, 1], clamp) : 0.12,
+                transform: still ? undefined : `translateY(${(1 - s) * 50}px) scale(${0.8 + 0.2 * s})`,
                 textShadow: isStrong && dark ? `0 0 26px ${c.highlight}66` : undefined,
               }}
             >
@@ -105,7 +114,7 @@ export const KineticText: React.FC<KineticTextProps> = (props) => {
                     insetInlineStart: 0,
                     bottom: "0.02em",
                     height: "0.14em",
-                    width: `${interpolate(frame - w.start, [2, 12], [0, 100], clamp)}%`,
+                    width: still ? "100%" : `${interpolate(frame - w.start, [2, 12], [0, 100], clamp)}%`,
                     background: dark ? c.highlight : c.highlight,
                     borderRadius: 999,
                     zIndex: -1,

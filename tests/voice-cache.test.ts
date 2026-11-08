@@ -2,6 +2,7 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync, readdirSync } from "n
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { channelSandbox, type Sandbox } from "./helpers/channelSandbox";
 import { generateVoice } from "../src/voice/generate";
 import { voiceSettingsFor } from "../src/voice/tones";
 import { regeneratePlan } from "../src/plan/io";
@@ -26,11 +27,11 @@ const mock = {
   voices: async () => [],
 } as unknown as ElevenLabsClient;
 
+let sandbox: Sandbox | undefined;
 beforeAll(() => {
-  tmp = mkdtempSync(path.join(os.tmpdir(), "bal-voice-"));
-  cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(tmp, "balislam"), { recursive: true, filter: (s) => !/[\\/](voice|out)([\\/]|$)/.test(s) });
-  // الحلقة التجريبية للاختبارات (القنوات نفسها تبدأ بلا حلقات)
-  cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
+  // ملفات القناة وحلقة العينة فقط، لا حلقات القناة الحقيقية (tests/helpers/channelSandbox.ts)
+  sandbox = channelSandbox("bal-voice-");
+  tmp = sandbox.root;
   process.env.BAL_CHANNELS_DIR = tmp;
   process.env.BAL_CHANNEL = "balislam";
   // الصوت الوهمي ليس mp3 حقيقيًا: نموذج يقبل السرعة مباشرة فلا يمر على التمديد الزمني
@@ -40,6 +41,7 @@ afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
   delete process.env.ELEVENLABS_MODEL_ID;
+  sandbox?.cleanup();
 });
 
 describe("ذاكرة الصوت دون اشتراط توثيق الاستشهادات", () => {

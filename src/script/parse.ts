@@ -170,7 +170,9 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
           const [template = "", ...options] = value.split("|").map((s) => s.trim());
           block = { kind, template, options, line: lineNo };
         } else if (kind === "ayah") {
-          block = { kind, ref: value, line: lineNo };
+          const [ref = value, ...rest] = value.split("|").map((s) => s.trim());
+          const text = rest.join("|").trim();
+          block = { kind, ref, text: text || undefined, line: lineNo };
         } else if (kind === "hadith") {
           const [ref = value, text, narrator] = value.split("|").map((s) => s.trim());
           block = { kind, ref, text: text || undefined, narrator: narrator || undefined, line: lineNo };

@@ -7,6 +7,7 @@ import { generatePlan, type QuranTexts } from "./generate";
 import { loadChannel } from "../channel";
 import type { Plan } from "./types";
 import { stripQuran, withQuran } from "./quranText";
+import { episodeQuranTexts } from "../quran/scriptText";
 export { stripQuran, withQuran, VERSE_PLACEHOLDER } from "./quranText";
 
 export const planPathFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "plan.json");
@@ -17,11 +18,11 @@ export const readJson = async <T>(file: string): Promise<T | null> => (existsSyn
 /** يكتب الخطة بلا نصوص الآيات. */
 export const writePlanFile = (file: string, plan: Plan) => writeFile(file, JSON.stringify(stripQuran(plan), null, 2) + "\n", "utf8");
 
-/** يقرأ الخطة ويدمج نصوص الآيات المخزنة على الجهاز. */
+/** يقرأ الخطة ويدمج نصوص الآيات من مصدرها المعتمد للقناة: السكريبت، أو المخزنة على الجهاز (quran.json). */
 export const readPlanFile = async (scriptPath: string): Promise<Plan | null> => {
   const plan = await readJson<Plan>(planPathFor(scriptPath));
   if (!plan) return null;
-  return withQuran(plan, (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {});
+  return withQuran(plan, (await episodeQuranTexts(scriptPath)).texts);
 };
 
 export const loadPlan = async (episode: string): Promise<Plan | null> => readPlanFile(await resolveScriptPath(episode));
@@ -37,7 +38,7 @@ export const regeneratePlan = async (episode: string): Promise<Plan> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const previous = await readJson<Plan>(planPathFor(scriptPath));
-  const quran = (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {};
+  const quran: QuranTexts = (await episodeQuranTexts(scriptPath)).texts;
   const plan = generatePlan(parsed, previous, quran, loadChannel());
   await writePlanFile(planPathFor(scriptPath), plan);
   return plan;

@@ -43,6 +43,7 @@ describe("لوح الدعاء", () => {
     const lines = (s.props.cues ?? "").split("\n").filter((l) => l.includes("|"));
     for (const line of lines) {
       const word = line.split("|")[1]!.trim();
+      if (word === "@end") continue; // الصمت بعد آخر كلمة: لا كلمة منطوقة
       const [k, nth] = word.split("#");
       const hits = timings.filter((w) =>
         w.word.replace(/[«»"،,.:؛]/g, "").replace(/^[وفبل](?=.)/, "") === k!.replace(/^[وفبل](?=.)/, "") ||

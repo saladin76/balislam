@@ -8,6 +8,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { quranPathFor } from "../plan/io";
 import { composeVerses } from "./sync";
 import type { QuranClient, Verse } from "./client";
+import { assertFetchAllowed } from "./scriptText";
 
 export type TextOnlyResult = {
   fetched: string[];
@@ -48,6 +49,8 @@ export const fillMissingQuranTexts = async (
   client: Pick<QuranClient, "verse">,
 ): Promise<TextOnlyResult> => {
   const scriptPath = await resolveScriptPath(episode);
+  // قناة نص آياتها من السكريبت: لا جلب آلي يدخل نصًّا بدل صاحب القناة
+  assertFetchAllowed(scriptPath);
   const scriptSnapshot = await readFile(scriptPath, "utf8");
   const parsed = parseScript(scriptSnapshot, scriptPath);
   const file = quranPathFor(scriptPath);

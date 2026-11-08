@@ -8,9 +8,9 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { parseAyahRef } from "../script/quranMeta";
 import { resolveScriptPath } from "../script/episodes";
-import { quranPathFor, readJson } from "../plan/io";
 import { composeVerses } from "./sync";
 import type { QuranClient, Verse } from "./client";
+import { episodeQuranTexts } from "./scriptText";
 
 export type TextDiff = { at: number; shown: string; approved: string };
 export type VerseCheck = { key: string; status: "match" | "differs" | "missing" | "failed"; diffs: TextDiff[]; reason?: string };
@@ -37,7 +37,7 @@ export const compareVerseText = (shown: string, approved: string): TextDiff[] =>
 export const checkEpisodeQuran = async (episode: string, client: Pick<QuranClient, "verse">): Promise<VerseCheck[]> => {
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-  const store = (await readJson<Record<string, string>>(quranPathFor(scriptPath))) ?? {};
+  const store = (await episodeQuranTexts(scriptPath)).texts;
   const refs = parsed.chapters.flatMap((c) => c.blocks).filter((b) => b.kind === "ayah") as { ref: string }[];
   const out: VerseCheck[] = [];
   for (const { ref } of refs) {

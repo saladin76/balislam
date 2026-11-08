@@ -170,13 +170,15 @@ type ShellProps = SceneBase & {
   exitFrames?: number;
   /** المشهد يرسم الدفتر بنفسه (خط الأفق): بلا غلاف الدفتر الثابت حوله */
   frameless?: boolean;
+  /** سكون (نص الدعاء): زخرفة الخلفية مكتملة ثابتة من أول إطار، بلا رسم ولا وميض */
+  still?: boolean;
 };
 
 /**
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
  * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
  */
-export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant, exitFrames = 8, frameless = false }) => {
+export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant, exitFrames = 8, frameless = false, still = false }) => {
   useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -206,7 +208,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
           <Element id={backdrop} theme={t} width={width} height={height} />
         </div>
       ) : motif ? (
-        <Motif t={t} w={width} h={height} frame={frame} rtl={lang.dir === "rtl"} />
+        <Motif t={t} w={width} h={height} frame={still ? 600 : frame} rtl={lang.dir === "rtl"} />
       ) : null}
       <AbsoluteFill style={{ opacity: out }}>
         {eyebrow && notebook ? <DateTape text={eyebrow} size={eyebrowSize * 1.3 * u} u={u} a={eyebrowIn} portrait={portrait} dark={darkBg} /> : null}

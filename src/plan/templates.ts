@@ -316,7 +316,8 @@ export const templateDefs: TemplateDef[] = [
       { key: "asks", label: "المطالب الأربعة", type: "text", help: "مفصولة بـ |" },
       { key: "heads", label: "عنوانا العمودين", type: "text", help: "البصيرة | العزيمة" },
       { key: "shown", label: "على اللوح قبل المشهد", type: "text", help: "source, dua, dock, grid, ask1… (حالة اللوح من المشهد السابق)" },
-      { key: "cues", label: "ما يظهر في المشهد (سطر لكل كلمة)", type: "textarea", help: "العنصر | الكلمة المنطوقة. العناصر: source, dua, dock, grid, ask1-4, focus:N, head1-2, count (إضاءة الخانات الأربع تباعًا), note1:نص, warn1:نص, pill3:نص, haze1, reach12, stall12, link12, link34, glow1, glow2, glowall, grow3, clear. الكلمة المكررة: كلمة#2" },
+      { key: "still", label: "مشهد قراءة الدعاء (سكون)", type: "select", options: [{ value: "", label: "لا" }, { value: "1", label: "نعم: اللوح ثابت طوال القراءة بلا ترجمة" }], help: "قرار السكون عند الدعاء: يُعرض الدعاء كاملًا من المشهد السابق (dua-all | @end)، ولا يتحرك شيء أثناء قراءته" },
+      { key: "cues", label: "ما يظهر في المشهد (سطر لكل كلمة)", type: "textarea", help: "العنصر | الكلمة المنطوقة (أو @end للصمت بعد آخر كلمة). العناصر: source, dua (عبارةً عبارة), dua-all (الدعاء كاملًا دفعة واحدة مع صعود المصدر), dock, grid, ask1-4, focus:N, head1-2, count (إضاءة الخانات الأربع تباعًا), note1:نص, warn1:نص, pill3:نص, haze1, reach12, stall12, link12, link34, glow1, glow2, glowall, grow3, clear. الكلمة المكررة: كلمة#2" },
     ],
   },
   {
@@ -454,6 +455,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "emphasis", label: "الكلمات المهمة", type: "text", help: "كلمات من التعليق مفصولة بفاصلة، تظهر أكبر وملونة" },
       { key: "element", label: "رمز فوق الكلام (اختياري)", type: "element" },
       { key: "stage", label: "الخلفية", type: "select", options: [{ value: "theme", label: "ثيم الحلقة" }, { value: "dark", label: "ليلية" }] },
+      { key: "still", label: "نص الدعاء (سكون)", type: "select", options: [{ value: "", label: "لا" }, { value: "1", label: "نعم: النص كاملًا ثابتًا طوال القراءة" }], help: "قرار السكون عند الدعاء: يظهر الكلام كله قبل القراءة بالخط والهوية نفسيهما، ولا تظهر الكلمات واحدة بعد أخرى" },
     ],
   },
   {

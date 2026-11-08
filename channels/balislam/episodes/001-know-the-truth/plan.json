@@ -944,7 +944,7 @@
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
             "shown": "",
-            "cues": "source | المأثورة"
+            "cues": "source | المأثورة\ndua-all | @end"
           },
           "id": "c4-s1",
           "sfx": [],
@@ -959,8 +959,9 @@
             "source": "من الأدعية المأثورة في كلام أهل العلم",
             "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
             "heads": "البصيرة | العزيمة",
-            "shown": "source",
-            "cues": "dua | اللهم"
+            "shown": "source, dua",
+            "cues": "",
+            "still": "1"
           },
           "id": "c4-s2",
           "sfx": [],
@@ -1271,7 +1272,8 @@
           "props": {
             "emphasis": "الأشياء",
             "element": "",
-            "stage": "theme"
+            "stage": "theme",
+            "still": "1"
           },
           "id": "c5-s2",
           "sfx": []
@@ -1999,7 +2001,8 @@
           "props": {
             "emphasis": "وارزقنا، وارزقنا",
             "element": "",
-            "stage": "theme"
+            "stage": "theme",
+            "still": "1"
           },
           "id": "c6-s23",
           "sfx": []

@@ -43,8 +43,14 @@ const sha = (s: string) => createHash("sha1").update(s).digest("hex").slice(0, 1
 export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): ReviewItem[] => {
   // نصوص الأحاديث في التعليق: [حديث: المرجع | النص | الراوي]
   const hadithText = new Map<string, string>();
+  // ونص الآية كما كتبه صاحب القناة في علامتها: [آية: المرجع | النص]. يدخل البصمة بحروفه وتشكيله (NFC وحده)،
+  // فأي تعديل في حرف أو حركة بعد التوثيق يعيد الاستشهاد للمراجعة.
+  const ayahText = new Map<string, string>();
   for (const ch of script.chapters)
-    for (const b of ch.blocks) if (b.kind === "hadith" && b.text) hadithText.set(norm(b.ref), [b.text, b.narrator ?? ""].join(" | "));
+    for (const b of ch.blocks) {
+      if (b.kind === "hadith" && b.text) hadithText.set(norm(b.ref), [b.text, b.narrator ?? ""].join(" | "));
+      if (b.kind === "ayah" && b.text) ayahText.set(norm(b.ref), b.text.normalize("NFC").trim());
+    }
   const seen = new Map<string, number>();
   return script.citations.map((c) => {
     const label = c.raw.replace(/^\s*[-*]\s*/, "").split("|")[0]!.trim();
@@ -54,10 +60,12 @@ export const reviewItems = (script: ParsedScript, ledger: ReviewLedger | null): 
     seen.set(base, n);
     const key = n > 1 ? `${base}#${n}` : base;
     const text = c.kind === "hadith" ? hadithText.get(norm(ref)) : undefined;
-    const hash = sha(norm([c.raw.replace(/^\s*[-*]\s*/, ""), text ?? ""].join("\n")));
+    const verse = c.kind === "ayah" ? ayahText.get(norm(ref)) : undefined;
+    const base0 = norm([c.raw.replace(/^\s*[-*]\s*/, ""), text ?? ""].join("\n"));
+    const hash = sha(verse ? `${base0}\n${verse}` : base0);
     const e = ledger?.items[key];
     const status: ReviewStatus = !e ? "pending" : e.hash !== hash ? "changed" : e.status;
-    return { key, kind: c.kind, label, ref, detail: c.fields.slice(1).join(" | "), text, line: c.line, hash, status, note: e?.note, at: e?.at };
+    return { key, kind: c.kind, label, ref, detail: c.fields.slice(1).join(" | "), text: text ?? verse, line: c.line, hash, status, note: e?.note, at: e?.at };
   });
 };
 

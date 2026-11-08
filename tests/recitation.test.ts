@@ -8,16 +8,15 @@ import { syncQuran } from "../src/quran/sync";
 import { collectMedia } from "../src/plan/collect";
 import { requireCloudPublicationRights, activeRecitation, episodeRecitationFile, saveEpisodeRecitation, readEpisodeRecitation } from "../src/quran/provider";
 import { regeneratePlan } from "../src/plan/io";
+import { channelSandbox, withFetchedQuran, type Sandbox } from "./helpers/channelSandbox";
 
 let tmp = "";
+let sandbox: Sandbox | undefined;
 let mp3: Buffer;
 beforeAll(() => {
-  tmp = mkdtempSync(path.join(os.tmpdir(), "bal-rec-"));
-  cpSync(path.join(__dirname, "..", "channels", "balislam"), path.join(tmp, "balislam"), { recursive: true, filter: (s) => !/[\\/](voice|out|recitations)([\\/]|$)/.test(s) && !s.endsWith("quran.json") });
-  // الحلقة التجريبية للاختبارات (القنوات نفسها تبدأ بلا حلقات)
-  cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
-  const ch = path.join(tmp, "balislam", "channel.json");
-  writeFileSync(ch, JSON.stringify({ ...JSON.parse(readFileSync(ch, "utf8")), recitation: { id: 7, name: "قارئ تجريبي" } }));
+  // ملفات القناة وحلقة العينة فقط، لا حلقات القناة الحقيقية (tests/helpers/channelSandbox.ts)
+  sandbox = channelSandbox("bal-rec-", { channelPatch: (c) => ({ ...withFetchedQuran(c), recitation: { id: 7, name: "قارئ تجريبي" } }) });
+  tmp = sandbox.root;
   process.env.BAL_CHANNELS_DIR = tmp;
   process.env.BAL_CHANNEL = "balislam";
   const f = path.join(tmp, "tone.mp3");
@@ -27,6 +26,7 @@ beforeAll(() => {
 afterAll(() => {
   delete process.env.BAL_CHANNELS_DIR;
   delete process.env.BAL_CHANNEL;
+  sandbox?.cleanup();
 });
 
 
