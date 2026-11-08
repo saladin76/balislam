@@ -59,15 +59,32 @@ ffprobeBinary, verifySourceReview, verifyRecitationProvenance?})` then:
 3. Builds `renderSceneV2(request, backendAdapters)` entirely from signed
    server spec + current locked `plan.json`. `assertCanRender` verifies
    all source file bytes **and filesystem epochs** at both Render checkpoints.
-4. Revalidates on return, verifies exact immutable output SHA/bytes/path,
-   registers the nine-group signed Render Manifest, probes the genuine MP4
-   with trusted FFprobe and commits a **signed current production receipt**
-   tied to the specific owner `begin` event.
-5. A separate authenticated `submit` verifies that receipt again under the
-   episode mutex; a previous Render generation cannot masquerade as the
-   current one. Then `review/start` → actual media → time checkpoints →
-   `finish` → owner `approve`.
+4. Uses PR #86's `onPublishedLocked(request,result)` callback while
+   holding **that same artifact mutex and production lease**, immediately after
+   the renderer links its immutable MP4 and writes its per-job report.
+   The trusted `verifySceneV2ForBackendManifest` from
+   `src/render/sceneV2Handoff.ts` independently checks the H.264/AAC streams,
+   exact output bytes and server-signed eight source file sets. Backend then
+   registers the nine-group signed Render Manifest, probes with trusted FFprobe,
+   and commits a **signed current production receipt** tied to the owner
+   `begin` event. All of this happens **before** Render reports success.
+5. The bridge refuses `succeeded` if its callback did not sign this same
+   job ID and SHA; on any callback error, PR #86 must roll back only this
+   invocation's newly published MP4. A separate authenticated `submit`
+   rechecks the signed current-generation receipt. Then `review/start` →
+   actual media → time checkpoints → `finish` → owner `approve`.
 6. Output is **never automatically reviewed, approved, assembled or published**.
+
+**Render-owned P0 issue to resolve before enforced Mac acceptance:** PR #86
+currently creates the output with a hard link to its still-existing temporary
+MP4, so `nlink=2` when `onPublishedLocked` executes, while
+`verifySceneV2ForBackendManifest` rejects anything except `nlink=1`.
+Backend will not weaken this invariant or alter Render-owned files. The Render
+owner must remove its *owned temporary alias* before invoking the callback,
+while preserving rollback/cancellation safety. See Issue #89 comment.
+Render handoff's media version is `sha256:<digest>`; Backend deliberately
+uses the actual unique Render `jobId` as its signed revision after
+independently verifying the handoff's SHA and path.
 
 Currently `verifyRecitationProvenance` is deliberately NOT configured by
 the HTTP endpoint: mixed/recitation production fails closed until the trusted
