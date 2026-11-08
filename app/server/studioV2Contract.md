@@ -137,7 +137,10 @@ only a prerequisite, NOT permission to create a Master or publish.
 
 This **does not cryptographically prove the human's attention**, even if it
 prevents fake booleans, stale scene IDs, stale MP4 bytes and obvious skipping.
-The final release requires independent creative/rights review and real-device smoke.
+Each completed receipt is appended to `scene-av-review.v2.json` under the same
+shared mutex and sealed by HMAC. Approval rechecks both the in-memory session
+receipt and that independent durable evidence record. The final release still
+requires independent creative/rights review and real-device smoke.
 
 ## Render team: mandatory server-side handoff
 
