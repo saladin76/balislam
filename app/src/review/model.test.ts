@@ -31,6 +31,15 @@ describe("Studio V2 review UI fail-closed model", () => {
     expect(actionBlockers(draft, { ...ready, status: "draft" }).join(" ")).toContain("السابق");
     expect(actionBlockers(draft).join(" ")).toContain("MP4");
   });
+  it("rejects malformed backend gate snapshots instead of displaying false approvals", () => {
+    const malformed = {
+      channelId: "balislam", episodeId: "001-qa", revision: 1,
+      order: ["c1-s1"], scenes: { "c1-s1": { ...ready, permissions: undefined } },
+    };
+    expect(sameScope(malformed as unknown as Parameters<typeof sameScope>[0], "balislam", "001-qa")).toBe(false);
+    const invalidFingerprint = structuredClone(ready);
+    expect(actionBlockers(invalidFingerprint).join(" ")).toContain("بصمة");
+  });
   it("never turns QA decisions into approvals", async () => {
     const adapter = demoReviewAdapter("balislam", "001-qa",
       [{ id: "c1-s1", ordinal: 1, chapter: "x", title: "x", narration: "", storyboard: "", artDirection: "",
