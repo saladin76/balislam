@@ -37,5 +37,8 @@ describe("Studio workspace separation", () => {
     expect(html).toContain("ثلاثة قرارات مستقلة في «إنتاج المشاهد»");
     expect(html).toContain("ملفات Master والتسليم");
     expect(html).not.toContain("اعتماد الحلقة الآن");
+    // شاشة واحدة: لا زر مملوء هنا (القرار في لوحة «إنتاج المشاهد»)، والتفاصيل مطوية في «أدوات وتفاصيل»
+    expect(html).not.toContain("btn primary");
+    expect(html.match(/<details class="more"/g)).toHaveLength(1);
   });
 });
