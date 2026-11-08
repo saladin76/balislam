@@ -47,6 +47,8 @@ export type SceneRenderRequestV2 = Readonly<{
   durationSec: number;
   sounds: readonly SceneSoundV2[];
   pictures: readonly ScenePictureV2[];
+  /** Backend-attested provenance of the exact owner-uploaded human recitation. */
+  recitationEvidence?: { origin: "owner-upload"; sha256: string; recordId: string };
   channelInfo?: ChannelInfo;
   identity?: Identity;
 }>;
@@ -126,6 +128,10 @@ const validateRequest = (r: SceneRenderRequestV2) => {
     r.mode === "narrated" ? [1, 0] : r.mode === "recitation" ? [0, 1] : [1, 1];
   if (counts.narrator !== expected[0] || counts.recitation !== expected[1])
     throw Error("Sound tracks do not match declared scene mode.");
+  if (counts.recitation && (r.recitationEvidence?.origin !== "owner-upload" ||
+      r.recitationEvidence.sha256 !== r.sounds.find((s) => s.kind === "recitation")?.sha256 ||
+      !/^[a-zA-Z0-9_-]{3,120}$/.test(r.recitationEvidence.recordId)))
+    throw Error("Human recitation requires Backend-verified owner-upload evidence.");
   if (r.mode === "mixed") {
     const voices = r.sounds.filter((a) => a.kind !== "sfx");
     if (Math.max(voices[0]!.startSec, voices[1]!.startSec) <
@@ -249,7 +255,7 @@ export const renderSceneV2 = async (
       });
       if (r.mode !== "silent") {
         const voice = r.sounds.find((a) => a.kind === "narrator");
-        const tokens = scene.narration.trim().split(/\\s+/).filter(Boolean);
+        const tokens = scene.narration.trim().split(/\s+/).filter(Boolean);
         if (voice && (!voice.words?.length || voice.words.length !== tokens.length ||
             voice.words.some((w, i) => w.word !== tokens[i] || !finite(w.start, 0, voice.durationSec) ||
               !finite(w.end, w.start, voice.durationSec) ||
