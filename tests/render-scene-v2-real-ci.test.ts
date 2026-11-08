@@ -26,6 +26,7 @@ describe("Studio V2 real Remotion QA — dedicated PR branch only", () => {
       const env = {
         ...process.env,
         STUDIO_V2_REAL_RENDER: "1",
+        STUDIO_V2_QA_EMBED_EVIDENCE: "1",
         STUDIO_FFMPEG_BIN: ffmpeg,
         STUDIO_FFPROBE_BIN: ffprobe,
         ...(chrome ? { REMOTION_BROWSER_EXECUTABLE: chrome } : {}),
