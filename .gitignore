@@ -22,6 +22,8 @@ assets/elements/
 public/_render/
 # مخزن صور Storyboard المؤقت؛ لا يُرفع إلى Git
 public/_storyboard_media/
+# لوحات الستوري بورد المرندرة من الخطة (bal storyboard <الحلقة> --stills): تُعاد بأمر واحد، لا تُرفع (الأمر 027)
+channels/*/episodes/*/storyboard-stills/
 # محتوى Quran Foundation لا يُحتفظ به أكثر من أسبوع (شروطهم): يُجلب على جهازك ولا يُرفع
 channels/*/episodes/*/quran.json
 channels/*/episodes/*/recitations/
