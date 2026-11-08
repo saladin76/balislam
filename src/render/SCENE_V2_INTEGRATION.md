@@ -18,7 +18,7 @@ entrypoint. It returns a discriminated job outcome and never modifies
   duration instead of being cut off.
 - `sounds[]`: explicit episode-owned file path, SHA-256, kind
   (`narrator | recitation | sfx`), start in scene seconds, measured audio
-  duration, gain 0–1. Narration requires actual per-word start/end seconds
+  duration, gain 0–1. Every SFX needs `cueId` matching the locked\n  Storyboard SFX identifier and start time. Narration requires actual per-word start/end seconds
   and a sequence matching the locked scene text. The renderer does not call
   ElevenLabs, create silent audio, or retrieve Quran.
 - `recitationEvidence`: required for recitation/mixed; origin must be
@@ -78,7 +78,7 @@ Successful return:
   file, relativeFile, sha256, bytes,
   width, height, fps, frames, durationSec,
   videoCodec, audioCodecs, audioStreams,
-  elapsedMs, diskFreeBeforeMB, diskFreeAfterMB, inputSha256,
+  elapsedMs, memoryAvailableBeforeMB, memoryAvailableMinMB,\n  sync, diskFreeBeforeMB, diskFreeAfterMB, inputSha256,
   reviewStatus: "not_submitted"
 }
 ```
@@ -126,7 +126,7 @@ dimensions, frame rate, frame count, and duration. Output and input
 SHA-256 are recomputed. Technical frame/audio timing checks are **not**
 proof of semantic word alignment, Arabic font glyph quality, pleasing
 motion or genuine Quran recitation. Review extracted frames and listen
-to the MP4 before owner approval.
+to the MP4 before owner approval. The `sync` return reports scheduled\nevent frames, source word count, frame rounding error and mux audio start;\nit is **not** proof of semantic AV synchrony.
 
 ## Test instructions
 
