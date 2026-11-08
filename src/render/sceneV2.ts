@@ -376,6 +376,12 @@ export const renderSceneV2 = async (
         // hard-link is atomic and fails with EEXIST: no overwrite of approved or prior bytes.
         await link(temporary, output);
         published = output;
+        // Backend's V2 AV registry requires nlink === 1. The atomic hard-link
+        // temporarily creates a second link to the same inode; remove only
+        // OUR job-owned staging name before trusted manifest registration.
+        await rm(temporary);
+        if ((await stat(output)).nlink !== 1)
+          throw Error("Rendered scene MP4 has an unexpected filesystem hard link.");
         const result: SceneRenderSuccessV2 = {
           status: "succeeded", jobId, sceneId: r.sceneId, planSha256: r.planSha256,
           file: output, relativeFile, sha256: digest, bytes,
