@@ -135,3 +135,6 @@
   .shell-v3 .s3-narr { font-size: 16px; }
   .shell-v3 .s3-clip { padding-inline-start: 4px; }
 }
+
+/* رأس الشاشة: «جهّز كل المشاهد» وعدّاد الجاهز بجوار «تحرير المشهد» */
+.shell-v3 .s3-headact { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }

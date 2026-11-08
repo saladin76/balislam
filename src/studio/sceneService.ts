@@ -265,8 +265,13 @@ const withState = async <T>(episode: string,
       const epochs = Object.fromEntries(Object.entries(doc.previewEpochs).filter(([id]) =>
         reconciled.scenes.some(scene => scene.id === id &&
           (scene.status === "approved" || scene.status === "in_review"))));
+      // A pre-rendered draft is bound to the inputs it was rendered from: when a scene's inputs
+      // change, only that scene's draft proof is discarded (it must be rendered again).
+      const drafts = Object.fromEntries(Object.entries(doc.previewInputs ?? {}).filter(([id, proof]) =>
+        reconciled.scenes.some(scene => scene.id === id && scene.sourceSha256 === proof.sourceSha256)));
       doc = sign({ ...doc, state: reconciled, revision: doc.revision + 1,
         previewEpochs: epochs,
+        ...(doc.previewInputs === undefined ? {} : { previewInputs: drafts }),
         ...(reconciled.assembly ? {} : { assemblyEpoch: undefined, masterEpoch: undefined }) });
       await saveLedger(file, doc);
     }
@@ -322,16 +327,45 @@ export const summarizeSceneProduction = (episode: string) =>
       canAssemble: v.progress.canAssemble, assemblyApproved: v.progress.assemblyApproved,
       masterApproved: v.progress.masterApproved, publishAllowed: v.progress.publishAllowed };
   });
+/**
+ * A scene's pre-rendered draft (from «جهّز كل المشاهد»): "ready" when the preview on disk is exactly
+ * the bytes recorded by a trusted render of the scene's CURRENT inputs, "stale" when a file exists but
+ * no longer matches, "none" otherwise. A draft is never a submission or an approval.
+ */
+export type SceneDraft = "ready" | "stale" | "none";
+const draftOf = async (doc: SignedSceneLedger, scriptPath: string, id: string, sourceSha256: string,
+  candidate: string | null): Promise<SceneDraft> => {
+  if (!candidate) return "none";
+  const proof = doc.previewInputs?.[id];
+  if (proof && proof.sourceSha256 === sourceSha256 && proof.videoSha256 === candidate &&
+      proof.generation === await optionalFileGeneration(sceneFile(scriptPath, id)))
+    return "ready";
+  return "stale";
+};
 export const inspectSceneProduction = (episode: string) =>
-  withState(episode, async (doc, current) => ({
-    ...view(doc, current.ready),
-    candidates: {
-      scenes: Object.fromEntries(await Promise.all(doc.state.scenes.map(async scene =>
-        [scene.id, await optionalSha(sceneFile(current.scriptPath, scene.id))] as const))),
-      assemblySha256: await optionalSha(assemblyFile(current.scriptPath)),
-      masterSha256: await optionalSha(masterFile(current.scriptPath)),
-    },
-  }));
+  withState(episode, async (doc, current) => {
+    const v = view(doc, current.ready);
+    const candidates = Object.fromEntries(await Promise.all(doc.state.scenes.map(async scene =>
+      [scene.id, await optionalSha(sceneFile(current.scriptPath, scene.id))] as const)));
+    const scenes = await Promise.all(v.scenes.map(async s => ({
+      // Once submitted or approved the preview is no longer a draft.
+      ...s, draft: s.status === "approved" || s.status === "in_review" ? "none" as const
+        : await draftOf(doc, current.scriptPath, s.id, s.sourceSha256, candidates[s.id] ?? null),
+    })));
+    return {
+      ...v, scenes,
+      /** «جاهز ١٢ من ٣١»: approved, submitted for review, or with a current draft ready to watch. */
+      prepared: {
+        ready: scenes.filter(s => s.approved || (s.status === "in_review" && s.previewSha256) || s.draft === "ready").length,
+        total: scenes.length,
+      },
+      candidates: {
+        scenes: candidates,
+        assemblySha256: await optionalSha(assemblyFile(current.scriptPath)),
+        masterSha256: await optionalSha(masterFile(current.scriptPath)),
+      },
+    };
+  });
 
 const sceneFile = (scriptPath: string, id: string) => {
   if (!safeSceneId(id)) throw Error("Invalid scene id.");
@@ -468,46 +502,74 @@ export const decideSceneProduction = async (episode: string,
   });
 };
 /**
- * The only scene eligible for the next final audiovisual preview is the first
- * unapproved scene. Source fingerprint and human approvals are verified by the
- * trusted local server, never by client-supplied flags.
+ * Which scene may be rendered into its AV preview slot.
+ *
+ * - "current": the first unapproved scene only (the single-scene «إنتاج المشهد» button).
+ * - "ahead": «جهّز كل المشاهد» pre-renders DRAFTS for the current scene and every later scene that is
+ *   neither approved nor submitted (status queued/needs_revision). This is safe because a render never
+ *   changes approval state: it only records a render-to-input proof (previewInputs). Approval still
+ *   requires, strictly in order, an owner-authenticated submit of the exact bytes on disk (bound to the
+ *   proof and to the scene's current inputs), then an owner-authenticated approval of those same bytes
+ *   after watching with sound (canWorkOn refuses any scene whose predecessors are not approved).
+ *   Approved and in-review scenes are never re-rendered here, so their reviewed bytes stay untouched.
+ *
+ * Source fingerprint and human approvals are verified by the trusted local server, never by
+ * client-supplied flags.
  */
-export const assertCurrentSceneRenderAllowed = async (
-  episode: string, sceneId: string, expectedSha256: string, token: unknown,
+export type SceneRenderMode = "current" | "ahead";
+const checkRenderAllowed = (state: SceneFirstProduction, current: CurrentInput, sceneId: string,
+  expectedSha256: string, mode: SceneRenderMode): void => {
+  const target = state.scenes.find(scene => scene.id === sceneId);
+  if (!state.script.approval || state.script.approval.sha256 !== state.script.sha256 ||
+      !state.storyboard.approval || state.storyboard.approval.sha256 !== state.storyboard.sha256 ||
+      !current.planReady)
+    throw Error("Approve the current script and complete storyboard before producing a scene.");
+  const now = sceneFirstProgress(state).currentScene;
+  if (mode === "current") {
+    if (!target || sceneFirstProgress(state).currentScene !== sceneId || target.sourceSha256 !== expectedSha256)
+      throw Error("The scene is not current or its inputs changed.");
+  } else {
+    const at = state.scenes.findIndex(scene => scene.id === sceneId);
+    const from = now ? state.scenes.findIndex(scene => scene.id === now) : -1;
+    if (!target || from < 0 || at < from || target.sourceSha256 !== expectedSha256)
+      throw Error("Only the current or a later unapproved scene can be prepared, with its current inputs.");
+    if (target.status !== "queued" && target.status !== "needs_revision")
+      throw Error("An approved or submitted scene is never re-rendered as a draft.");
+  }
+  if (!current.ready[sceneId])
+    throw Error("The scene narration or human Quran recording is not ready for AV production.");
+};
+export const assertSceneRenderAllowed = async (
+  episode: string, sceneId: string, expectedSha256: string, token: unknown, mode: SceneRenderMode,
 ): Promise<void> => {
   assertSceneOwner(token);
   if (!safeSceneId(sceneId) || !hex64(expectedSha256))
     throw Error("Invalid scene preview request.");
-  await withState(episode, async (doc, current) => {
-    const state = doc.state;
-    const target = state.scenes.find(scene => scene.id === sceneId);
-    if (!state.script.approval || state.script.approval.sha256 !== state.script.sha256 ||
-        !state.storyboard.approval || state.storyboard.approval.sha256 !== state.storyboard.sha256 ||
-        !current.planReady)
-      throw Error("Approve the current script and complete storyboard before producing a scene.");
-    if (!target || sceneFirstProgress(state).currentScene !== sceneId ||
-        target.sourceSha256 !== expectedSha256)
-      throw Error("The scene is not current or its inputs changed.");
-    if (!current.ready[sceneId])
-      throw Error("The scene narration or human Quran recording is not ready for AV production.");
-  });
+  await withState(episode, async (doc, current) =>
+    checkRenderAllowed(doc.state, current, sceneId, expectedSha256, mode));
 };
+export const assertCurrentSceneRenderAllowed = (
+  episode: string, sceneId: string, expectedSha256: string, token: unknown,
+): Promise<void> => assertSceneRenderAllowed(episode, sceneId, expectedSha256, token, "current");
+
+/** Everything in the ledger that carries a human decision; a render must leave it byte-identical. */
+const decisionDigest = (doc: Omit<SignedSceneLedger, "mac">): string =>
+  sha(JSON.stringify([doc.state, doc.history, doc.previewEpochs, doc.assemblyEpoch ?? null, doc.masterEpoch ?? null]));
 
 /**
  * Persist the relationship between the actual produced AV bytes and the
  * input snapshot under the same signed scene ledger, without treating a
- * successful render as a human approval.
+ * successful render as a human approval. Server-side invariant: the decision
+ * state (approvals, statuses, history, review epochs) is unchanged by this write.
  */
 export const recordSceneRenderEvidence = async (
   episode: string, sceneId: string, expectedSha256: string, token: unknown,
+  mode: SceneRenderMode = "current",
 ): Promise<void> => {
-  await assertCurrentSceneRenderAllowed(episode, sceneId, expectedSha256, token);
+  await assertSceneRenderAllowed(episode, sceneId, expectedSha256, token, mode);
   await withState(episode, async (doc, current) => {
-    const state = doc.state;
-    const scene = state.scenes.find(s => s.id === sceneId);
-    if (sceneFirstProgress(state).currentScene !== sceneId ||
-        scene?.sourceSha256 !== expectedSha256 || !current.ready[sceneId])
-      throw Error("Scene changed before the AV evidence was recorded.");
+    try { checkRenderAllowed(doc.state, current, sceneId, expectedSha256, mode); }
+    catch { throw Error("Scene changed before the AV evidence was recorded."); }
     const video = sceneFile(current.scriptPath, sceneId);
     await verifyVideoEvidence(video);
     const proof = {
@@ -519,6 +581,8 @@ export const recordSceneRenderEvidence = async (
       ...doc, revision: doc.revision + 1,
       previewInputs: { ...doc.previewInputs, [sceneId]: proof },
     });
+    if (decisionDigest(next) !== decisionDigest(doc))
+      throw Error("A render may never change an approval decision.");
     await saveLedger(stateFileFor(current.scriptPath), next);
   });
 };
@@ -584,6 +648,15 @@ export const requireScriptAndStoryboardApproved = async (episode: string): Promi
       throw Error("اعتمد السكريبت الحالي أولًا من «إنتاج المشاهد».");
     if (!p.storyboard.approval || p.storyboard.approval.sha256 !== p.storyboard.sha256)
       throw Error("اعتمد الستوري بورد الحالي أولًا من «إنتاج المشاهد».");
+  });
+};
+
+/** Scene production may start: script and storyboard approved, and every current storyboard board reviewed. */
+export const requireSceneProductionReady = async (episode: string): Promise<void> => {
+  await requireScriptAndStoryboardApproved(episode);
+  await withState(episode, async (_doc, current) => {
+    if (!current.planReady)
+      throw Error("راجع لوحات الستوري بورد المعدّلة وسجّل ملاحظتك، ثم اعتمد الستوري بورد، قبل تجهيز المشاهد.");
   });
 };
 

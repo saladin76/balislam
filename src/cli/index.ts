@@ -371,6 +371,61 @@ program
   });
 
 program
+  .command("produce <episode>")
+  .description("«جهّز كل المشاهد»: يولّد صوت المشاهد التي تنقصه (بوابة التشكيل 98%، ولا يُولَّد قرآن أبدًا)، ثم يرندر مسودات AV للمشهد الحالي وما بعده بالترتيب. لا يعتمد شيئًا ولا يرسل للمراجعة؛ الاعتماد بالترتيب في الاستوديو بعد المشاهدة. يطلب كلمة مرور المالك (أو BAL_OWNER_PASSPHRASE).")
+  .option("--no-voice", "بلا توليد صوت (ترندر المشاهد التي لها صوت فقط)")
+  .action(async (episode: string, opts: { voice: boolean }) => {
+    const { prepareAllScenes } = await import("../studio/prepareAll");
+    const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
+    const token = process.env.BAL_OWNER_PASSPHRASE || await askHidden("كلمة مرور المالك: ");
+    const voiceClient = opts.voice ? elevenLabsFromEnv() : null;
+    let last = "";
+    try {
+      const r = await prepareAllScenes(episode, {
+        token, voiceClient,
+        onProgress: (p) => {
+          const line = p.phase === "voice" ? `الصوت${p.sceneId ? `: ${p.sceneId}` : ""}` : p.phase === "render" && p.sceneId ? `مسودة: ${p.sceneId} (${p.rendered.length} جاهزة)` : "";
+          if (line && line !== last) console.log((last = line));
+        },
+      });
+      const v = r.voice;
+      console.log(v.status === "no-key" ? `الصوت: ${v.needed} مشهد بلا صوت ولا يوجد مفتاح صوت (أضفه من «الاتصالات والمفاتيح»).`
+        : v.status === "error" ? `الصوت: توقف — ${v.error}` : `الصوت: ${v.generated} من ${v.needed} وُلّد.`);
+      console.log(`المسودات: ${r.rendered.length} رُندرت${r.failed.length ? `، ${r.failed.length} تعذّرت` : ""}.`);
+      for (const f of r.failed) console.log(`  ${f.id}: ${f.error.split("\n")[0]}`);
+      const { inspectSceneProduction } = await import("../studio/sceneService");
+      const s = await inspectSceneProduction(episode);
+      console.log(`جاهز ${s.prepared.ready} من ${s.prepared.total}. الاعتماد في الاستوديو بالترتيب بعد مشاهدة كل مشهد.`);
+      if (r.failed.length || v.status === "error") process.exitCode = 1;
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+/** Reads a secret from the terminal without echoing it. */
+const askHidden = async (prompt: string): Promise<string> => {
+  if (!process.stdin.isTTY) throw new Error("كلمة مرور المالك مطلوبة: شغّل الأمر في الطرفية أو ضع BAL_OWNER_PASSPHRASE.");
+  process.stdout.write(prompt);
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.setEncoding("utf8");
+  return new Promise((resolve, reject) => {
+    let value = "";
+    const done = (fn: () => void) => { process.stdin.setRawMode(false); process.stdin.pause(); process.stdin.off("data", on); process.stdout.write("\n"); fn(); };
+    const on = (chunk: string) => {
+      for (const c of chunk) {
+        if (c === "\r" || c === "\n") return done(() => resolve(value));
+        if (c === "\u0003") return done(() => reject(new Error("أُلغي.")));
+        if (c === "\u007f") value = value.slice(0, -1);
+        else value += c;
+      }
+    };
+    process.stdin.on("data", on);
+  });
+};
+
+program
   .command("horizon-audio <episode>")
   .description("دفاتر الزمن 001: اللقطات الست («خط الأفق») بصوت الراوي المعتمد وآيتي البقرة 30 والأعراف 23 بالتلاوة المرفوعة للحلقة، مضبوطة على توقيت الكلام؛ تُرفع إلى «المعاينات» (خانة -audio تبقى على الجهاز) وتحل محل المعاينة الصامتة بعد التحقق من تشغيلها. تتوقف بقائمة النواقص دون إنتاج نسخة ناقصة.")
   .option("--slot <slot>", "خانة المعاينة (تنتهي بـ -audio)", "six-shots-audio")

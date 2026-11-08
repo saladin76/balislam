@@ -1,0 +1,91 @@
+import React, { useEffect, useRef, useState } from "react";
+import { api, type ScenePrepareRead } from "../api";
+import { useOwnerSession } from "../shell/ownerSession";
+
+const ar = (n: number) => n.toLocaleString("ar-EG");
+
+/**
+ * «جهّز كل المشاهد»: one owner action (step ٣ screen and the spine) that generates the missing voices
+ * and pre-renders every remaining scene's AV draft in the background, in order. A compact line shows
+ * «جاهز ١٢ من ٣١». Drafts are not approvals: each scene is still watched and approved in order.
+ */
+export const PrepareAll: React.FC<{
+  episodeId: string;
+  channelId: string;
+  /** From the scene ledger read: approved + submitted + current drafts, of all scenes. */
+  prepared?: { ready: number; total: number };
+  onOpenSettings?: () => void;
+  /** Called whenever a draft lands or the queue finishes, to refresh the ledger read. */
+  onChanged?: () => void;
+  className?: string;
+}> = ({ episodeId, channelId, prepared, onOpenSettings, onChanged, className }) => {
+  const owner = useOwnerSession();
+  const [info, setInfo] = useState<ScenePrepareRead | null>(null);
+  const [error, setError] = useState("");
+  const [starting, setStarting] = useState(false);
+  const seen = useRef("");
+  const changed = useRef(onChanged);
+  changed.current = onChanged;
+
+  const load = async () => {
+    try {
+      const r = await api.scenePrepare(episodeId, channelId);
+      setInfo(r);
+      const mark = r.job ? `${r.job.status}:${r.job.rendered.length}:${r.job.voice.generated}` : "";
+      if (seen.current && mark !== seen.current) changed.current?.();
+      seen.current = mark;
+    } catch { /* the status line is optional; the decision screen stays usable */ }
+  };
+  useEffect(() => { seen.current = ""; void load(); }, [episodeId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const running = info?.job?.status === "running";
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => void load(), 2500);
+    return () => clearInterval(id);
+  }, [running, episodeId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const start = async () => {
+    if (!owner.open) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
+    setStarting(true);
+    setError("");
+    try {
+      const r = await api.startScenePrepare(episodeId, channelId, owner.secret);
+      setInfo((old) => ({ ...(old ?? { voiceKey: r.voiceKey }), ...r }));
+      seen.current = r.job ? `${r.job.status}:${r.job.rendered.length}:${r.job.voice.generated}` : "";
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const job = info?.job;
+  const allReady = Boolean(prepared && prepared.total > 0 && prepared.ready >= prepared.total);
+  const noKey = info && !info.voiceKey && (info.needVoice ?? 0) > 0;
+  const failed = job && !running ? job.failed.length : 0;
+  const label = running
+    ? job!.phase === "voice" ? "يولّد الصوت…" : `يجهّز${job!.sceneId ? ` ${job!.sceneId}` : ""}…`
+    : prepared && prepared.ready > 0 ? "جهّز الباقي" : "جهّز كل المشاهد";
+
+  return (
+    <div className={`prep${className ? ` ${className}` : ""}`} role="group" aria-label="تجهيز المشاهد">
+      {!allReady || running ? (
+        <button type="button" className="btn" disabled={running || starting || !owner.open} onClick={() => void start()}
+          title={owner.open ? "يولّد الصوت الناقص ويُنتج مسودة كل مشهد بالترتيب؛ الاعتماد يبقى لك مشهدًا مشهدًا" : "افتح جلسة المالك أولًا"}>
+          {starting ? "جارٍ البدء…" : label}
+        </button>
+      ) : null}
+      {prepared ? <span className="prep-count" role="status">جاهز {ar(prepared.ready)} من {ar(prepared.total)}</span> : null}
+      {noKey ? (
+        <span className="prep-note">لا يوجد مفتاح صوت{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : null}</span>
+      ) : job?.voice.status === "error" && !running ? (
+        <span className="prep-note is-err" title={job.voice.error}>توقف توليد الصوت: {job.voice.error?.split("\n")[0]}</span>
+      ) : failed ? (
+        <span className="prep-note is-err" title={job!.failed.map((f) => `${f.id}: ${f.error}`).join("\n")}>تعذّر {ar(failed)}: {job!.failed[0]!.error.split("\n")[0]}</span>
+      ) : job?.status === "error" ? (
+        <span className="prep-note is-err">{job.error}</span>
+      ) : null}
+      {error ? <span className="prep-note is-err" role="alert">{error}</span> : null}
+    </div>
+  );
+};

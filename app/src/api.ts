@@ -85,7 +85,11 @@ export type SceneProductionRead = {
   script: { sha256: string; approved: boolean };
   storyboard: { sha256: string; approved: boolean };
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
-    sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean }[];
+    sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean;
+    /** Pre-rendered draft from «جهّز كل المشاهد»: never a submission or approval. */
+    draft?: "ready" | "stale" | "none" }[];
+  /** «جاهز ١٢ من ٣١»: approved, submitted, or with a current draft. */
+  prepared?: { ready: number; total: number };
   assembly: { sha256: string; approved: boolean } | null;
   /** Every boundary between consecutive scenes, in order ("c1-s1>c1-s2"). */
   seams: string[];
@@ -93,6 +97,13 @@ export type SceneProductionRead = {
   candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
     masterSha256: string | null };
 };
+export type ScenePrepareJob = {
+  status: "running" | "done" | "error"; startedAt: number; finishedAt?: number;
+  phase: "voice" | "render" | "done"; sceneId?: string;
+  voice: { needed: number; generated: number; status: string; error?: string };
+  rendered: string[]; failed: { id: string; error: string }[]; error?: string;
+};
+export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number };
 export type SceneOwnerAction = {
   action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
     "correct-scene" | "assemble" | "approve-assembly" | "approve-master" | "grant-publish";
@@ -129,6 +140,13 @@ export const api = {
         method: "POST", json: { sceneId, expectedSha256 },
         headers: { "x-studio-owner-token": token },
       }, channel),
+  /** «جهّز كل المشاهد»: status of the background queue (read-only). */
+  scenePrepare: (episode: string, channel: string) =>
+    call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel),
+  startScenePrepare: (episode: string, channel: string, token: string) =>
+    call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
+      method: "POST", headers: { "x-studio-owner-token": token },
+    }, channel),
   workflow: (episode: string, channel?: string) => call<{
     approvals: WorkflowApprovalView;
     fingerprints: Partial<Record<WorkflowStage, string>>;
