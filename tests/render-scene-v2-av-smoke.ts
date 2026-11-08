@@ -54,6 +54,7 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
     const wave = path.join(episodeRoot, "voice", "synthetic-qa-only.wav");
     await run(["-f", "lavfi", "-i", "sine=frequency=623:sample_rate=48000:duration=2",
       "-c:a", "pcm_s16le", wave]);
+    let narratedRequest: SceneRenderRequestV2 | undefined;
     for (const mode of ["silent", "narrated"] as const) {
       const scene = {
         ...samplePlan.chapters[0]!.scenes[0]!,
@@ -76,6 +77,7 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
         mode, width: qaWidth, height: qaHeight, fps: 30, durationSec: 2,
         sounds: mode === "narrated" ? [sound] : [], pictures: [],
       };
+      if (mode === "narrated") narratedRequest = req;
       const result = await renderSceneV2(req, {
         ffprobeBinary: ffprobe,
         browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE,
@@ -140,6 +142,56 @@ if (process.env.STUDIO_V2_REAL_RENDER !== "1") {
         }) + " STUDIO_V2_QA_BINARY_END");
       }
     }
+    // Actual in-flight cancellation, forced failure and independent retry:
+    // low-resolution instances are only lifecycle checks, not visual signoff.
+    assert(narratedRequest, "Narrated source must exist for retry lifecycle QA.");
+    const lifecycleReq: SceneRenderRequestV2 = {
+      ...narratedRequest, width: 640, height: 360,
+    };
+    const lifecycleAdapters = {
+      ffprobeBinary: ffprobe,
+      browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE,
+      withArtifactLock: async <T>(job: () => Promise<T>): Promise<T> => job(),
+      withProductionLease: async <T>(_: string, job: () => Promise<T>): Promise<T> => job(),
+      assertCanRender: async () => {},
+    };
+    const assertStagingEmpty = async () => {
+      assert.equal((await readdir(path.join(episodeRoot, ".studio-v2-render"))).length, 0);
+      assert.equal((await readdir(path.resolve("public", "_studio_v2"))).length, 0);
+    };
+    const abortController = new AbortController();
+    let progressObserved = false;
+    const midCancel = await renderSceneV2(lifecycleReq, {
+      ...lifecycleAdapters, signal: abortController.signal,
+      onProgress: (fraction) => {
+        if (fraction > 0) {
+          progressObserved = true;
+          abortController.abort();
+        }
+      },
+    });
+    assert(progressObserved, "Mid-render AbortSignal must reach Remotion progress.");
+    assert.equal(midCancel.status, "cancelled", JSON.stringify(midCancel));
+    await assertStagingEmpty();
+
+    const failed = await renderSceneV2(lifecycleReq, {
+      ...lifecycleAdapters,
+      browserExecutable: path.join(workspace, "nonexistent-qa-browser"),
+    });
+    assert.equal(failed.status, "failed", JSON.stringify(failed));
+    await assertStagingEmpty();
+
+    const recovered = await renderSceneV2(lifecycleReq, lifecycleAdapters);
+    assert.equal(recovered.status, "succeeded", JSON.stringify(recovered));
+    assert.equal(recovered.reviewStatus, "not_submitted");
+    await assertStagingEmpty();
+    console.log("STUDIO_V2_QA_LIFECYCLE " + JSON.stringify({
+      inFlightCancellation: midCancel.status, cancellationProgressObserved: progressObserved,
+      deliberateBrowserFailure: failed.status, retry: recovered.status,
+      retryJobId: recovered.jobId, retrySha256: recovered.sha256,
+      cleanupAfterEveryOutcome: true, noAutoApproval: true,
+    }));
+
     // Cancellation is an actual state transition, never a completed owner review.
     const controller = new AbortController();
     controller.abort();
