@@ -2,7 +2,7 @@ import React from "react";
 import { useCurrentFrame } from "remotion";
 import type { Theme } from "../../../brand/themes";
 import { fontFamilies } from "../../../brand/fonts";
-import type { WordTiming } from "./timing";
+import { activeWordIndex, type WordTiming } from "./timing";
 import { useMotionSettings, useSize } from "../../../brand/identity/index";
 import { useChannel } from "../../channel/context";
 import { stripTashkeel } from "../../voice/tashkeel";
@@ -29,8 +29,7 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
   const first = timings[0];
   const last = timings[timings.length - 1];
   if (!first || !last || frame < first.start || frame > last.end + 6) return null;
-  let idx = timings.findIndex((w) => frame >= w.start && frame < w.end);
-  if (idx < 0) idx = frame >= last.end ? timings.length - 1 : 0;
+  const idx = Math.max(0, activeWordIndex(timings, frame));
   const chunkStart = Math.floor(idx / CHUNK) * CHUNK;
   const chunk = timings.slice(chunkStart, chunkStart + CHUNK);
   const c = theme.colors;
@@ -94,8 +93,7 @@ const QuietCaption: React.FC<{ timings: WordTiming[]; portrait: boolean; dusk: b
   const first = timings[0];
   const last = timings[timings.length - 1];
   if (!first || !last || frame < first.start || frame > last.end + 6) return null;
-  let idx = timings.findIndex((w) => frame >= w.start && frame < w.end);
-  if (idx < 0) idx = frame >= last.end ? timings.length - 1 : 0;
+  const idx = Math.max(0, activeWordIndex(timings, frame));
   const chunkStart = Math.floor(idx / CHUNK) * CHUNK;
   const chunk = timings.slice(chunkStart, chunkStart + CHUNK);
   return (

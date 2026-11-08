@@ -36,3 +36,17 @@ export const spreadOverSpeech = (n: number, timings: WordTiming[], from: number,
   if (n === 1) return [a];
   return Array.from({ length: n }, (_, i) => Math.round(a + ((b - a) * i) / (n - 1)));
 };
+
+/**
+ * الكلمة الجارية في الترجمة عند إطار ما: آخر كلمة بدأت (start ≤ frame).
+ * في الفجوة القصيرة بين كلمتين تبقى الكلمة السابقة، وبعد آخر كلمة تبقى الأخيرة،
+ * فلا يقفز شريط الترجمة إلى أول دفعة في كل سكتة. قبل أول كلمة: ‎-1.
+ */
+export const activeWordIndex = (timings: readonly WordTiming[], frame: number): number => {
+  let idx = -1;
+  for (let i = 0; i < timings.length; i++) {
+    if (timings[i]!.start <= frame) idx = i;
+    else break;
+  }
+  return idx;
+};
