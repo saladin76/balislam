@@ -187,14 +187,18 @@ const main = async () => {
             "-movflags", "+faststart", output]);
         await adapters.withArtifactLock(() => adapters.assertCanRender(request));
         const buf = await readFile(output);
-        return { status: "succeeded", jobId, sceneId: request.sceneId,
+        const result = { status: "succeeded" as const, jobId, sceneId: request.sceneId,
           planSha256: request.planSha256, file: output, relativeFile,
-          sha256: hash(buf), bytes: buf.length, reviewStatus: "not_submitted" };
+          sha256: hash(buf), bytes: buf.length, reviewStatus: "not_submitted" as const };
+        // Match PR #86's locked-publication callback, even in the FFmpeg fixture.
+        await adapters.withArtifactLock(() => adapters.onPublishedLocked(request, result));
+        return result;
       });
     // In a COMPOSITE, isolated worktree, import PR #86's actual Remotion
     // function and use the exact SAME backend signed input/lease/approval path.
     // Absence of Render-owned files is a hard error, never a silent fallback.
     let engine: typeof testRenderer = testRenderer;
+    let verifyPublishedHandoff: undefined | ((...args: any[]) => Promise<any>);
     if (realRemotion) {
       const modulePath = path.join(import.meta.dirname, "..", "src", "render", "sceneV2.ts");
       if (!existsSync(modulePath))
@@ -203,9 +207,16 @@ const main = async () => {
       if (typeof module.renderSceneV2 !== "function")
         throw Error("PR #86 renderSceneV2 entrypoint is missing.");
       engine = module.renderSceneV2;
+      const handoffPath = path.join(import.meta.dirname, "..", "src", "render", "sceneV2Handoff.ts");
+      if (!existsSync(handoffPath))
+        throw Error("Real Remotion requires PR #86 verified manifest handoff module.");
+      const handoff = await import(pathToFileURL(handoffPath).href);
+      if (typeof handoff.verifySceneV2ForBackendManifest !== "function")
+        throw Error("Render-owned handoff verifier is missing.");
+      verifyPublishedHandoff = handoff.verifySceneV2ForBackendManifest;
     }
     const first = await runTrustedSceneProductionV2(scope, firstId, {
-      renderer: engine, ffprobeBinary: ffprobe,
+      renderer: engine, verifyPublishedHandoff, ffprobeBinary: ffprobe,
       browserExecutable: realRemotion ? process.env.REMOTION_BROWSER_EXECUTABLE : undefined,
       verifySourceReview: async () => {},
     });
