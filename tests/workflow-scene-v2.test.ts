@@ -60,7 +60,11 @@ describe("Studio V2 — AV scene as the approval unit", () => {
     expect(() => submitSceneAvReview(doc, "c1-s1", now)).toThrow(/No composited AV/);
     const material = inputs("c1-s1");
     reconcileSceneInputs(doc, "c1-s1", material, now);
-    beginFinalSceneProduction(doc, "c1-s1", now, () => undefined);
+    // Receiving the first composited AV while rendering must KEEP producing.
+    // A duplicate final-production start is deliberately rejected.
+    expect(doc.scenes["c1-s1"]?.status).toBe("producing");
+    expect(() => beginFinalSceneProduction(doc, "c1-s1", now, () => undefined))
+      .toThrow(/already producing/);
     expect(isSceneApproved(doc, "c1-s1")).toBe(false);
     const fingerprint = submitSceneAvReview(doc, "c1-s1", now);
     const decision = {
