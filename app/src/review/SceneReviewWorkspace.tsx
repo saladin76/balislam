@@ -349,7 +349,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
         </div>}
         <section className="v2-card v2-notes" aria-label="ملاحظات المشهد">
           <div className="v2-card-head"><h4>ملاحظات المراجعة</h4><span>{record.notes.length} ملاحظة</span></div>
-          <form onSubmit={e => void saveNote(e)}>
+          {mode === "demo" && <form onSubmit={e => void saveNote(e)}>
             <label className="v2-input-label">اكتب الملاحظة
               <textarea value={noteText} maxLength={2000} rows={3} disabled={mode === "server"}
                 onChange={e => setNoteText(e.target.value)} placeholder="مثال: في الثانية 00:07 تتقدم الحركة على الكلمة المنطوقة…" />
@@ -361,12 +361,12 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               </label>
               <button type="submit" className="v2-primary" disabled={mode === "server" || busy || noteText.trim().length < 2 || !version || versionChanged || syncFailed}>تسجيل ملاحظة QA</button>
             </div>
-          </form>
+          </form>}
           {mode === "server" && <p className="v2-help">يعرض النظام ملاحظات Backend الفعلية. للحفظ الآن، استخدم «طلب تعديل» أدناه: يسجل الملاحظة ويغيّر حالة المشهد إلى «مطلوب تعديل». لا يوجد مسار مستقل للملاحظات في PR #88.</p>}
           <div className="v2-note-list">
-            {record.notes.length === 0 ? <p className="v2-help">لا توجد ملاحظات مسجلة على هذا الإصدار.</p> :
+            {record.notes.length === 0 ? <p className="v2-help">لا توجد ملاحظات مسجلة لهذا المشهد.</p> :
               record.notes.slice().reverse().map(note => <div className="v2-note" key={note.id}>
-                <div><button className="v2-time-tag" type="button" disabled={note.second === undefined || !safeVideo}
+                <div><button className="v2-time-tag" type="button" disabled={note.second === undefined || !safeVideo || mode === "server"}
                   onClick={() => jump(note.second || 0)} dir="ltr">{note.second === undefined ? "عام" : formatClock(note.second)}</button>
                   {note.elementId && <code dir="ltr">{note.elementId}</code>}
                   {note.versionId && note.versionId !== version?.id &&
@@ -377,7 +377,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
         </section>
         <section className="v2-card v2-decision" aria-label="قرار المراجعة">
           <div className="v2-card-head"><h4>قرار المشهد</h4><span>{mode === "demo" ? "تجربة معزولة" : "قرار خادمي فقط"}</span></div>
-          <p className="v2-help">اعتماد المشهد لا يتاح إلا بعد `review/start → tick → finish` بنجاح؛ الخادم يتحقق من البصمة والملفات عند القرار. طلب التعديل يحفظ ملاحظة ويغيّر الحالة صراحةً.</p>
+          <p className="v2-help">اعتماد المشهد لا يتاح إلا بعد review/start ← tick ← finish بنجاح؛ الخادم يتحقق من البصمة والملفات عند القرار. طلب التعديل يحفظ ملاحظة ويغيّر الحالة صراحةً.</p>
           <label className="v2-input-label">سبب طلب التعديل
             <textarea rows={2} value={decisionReason} maxLength={2000}
               onChange={e => setDecisionReason(e.target.value)} placeholder="سبب واضح للتصحيح (مطلوب عند طلب التعديل)" /></label>
@@ -405,8 +405,9 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
         <div className="v2-panel-top"><strong>تفاصيل المشهد</strong><small>الخطة والإصدارات</small></div>
         <div className="v2-inspector-body">
           <section className="v2-card">
-            <div className="v2-card-head"><h4>النص المنطوق</h4><span>{seed?.narration?.trim() ? "تعليق صوتي" : "مشهد صامت"}</span></div>
-            <p className="v2-narration">{seed?.narration?.trim() || "لا يوجد تعليق منطوق في هذا المشهد؛ تتم مراجعة الصوت المحيط والمؤثرات إن وجدت."}</p>
+            <div className="v2-card-head"><h4>النص المنطوق</h4><span>{!seed ? "بيانات غير متاحة" : seed.narration.trim() ? "تعليق صوتي" : "مشهد صامت"}</span></div>
+            <p className="v2-narration">{!seed ? "لا يعيد Backend V2 نص المشهد حتى الآن؛ لا يمكن استنتاج صمته من غياب البيانات." :
+              seed.narration.trim() || "مشهد صامت وفق الخطة الحالية؛ راجع الصوت المحيط والمؤثرات إن وجدت."}</p>
           </section>
           <section className="v2-card"><div className="v2-card-head"><h4>Storyboard</h4></div>
             <p>{seed?.storyboard || "لم يُضف وصف بصري في الخطة الحالية."}</p></section>
@@ -422,7 +423,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               <dt>التوقيت المخطط</dt><dd dir="ltr">{formatClock(seed?.durationSec || 0)}</dd>
               <dt>المزامنة</dt><dd>{seed?.timing || "تتطلب مطابقة مع ملف AV الحقيقي."}</dd>
               <dt>العناصر</dt><dd>{seed?.elements?.join("، ") || "لم تحدد"}</dd>
-              <dt>مدة MP4</dt><dd dir="ltr">{version?.video ? formatClock(version.video.durationSec) : "—"}</dd>
+              <dt>مدة MP4</dt><dd dir="ltr">{avDuration ? formatClock(avDuration) : "—"}</dd>
             </dl>
           </details>
           <section className="v2-card"><div className="v2-card-head"><h4>الإصدار والفروقات</h4></div>
@@ -441,7 +442,7 @@ export const SceneReviewWorkspace: React.FC<Props> = ({
               <p className="v2-help">الفروقات مقارنة بالإصدار {compare?.label}.</p>
               {comparedDiffs.map((d, i) => <div key={i}><strong>{d.field}</strong><del>{d.before}</del><ins>{d.after}</ins></div>)}
             </div> : <p className="v2-help">لم يرسل Backend قائمة فروقات لهذه النسخة.</p>}
-            <p className="v2-help">المشغل يعرض النسخة الحالية فقط، والإصدارات القديمة للمقارنة الوصفية.</p>
+            <p className="v2-help">{mode === "server" ? "الواجهة تعرض بصمة المشهد الحالية فقط؛ Backend لا يرسل قائمة إصدارات قديمة." : "المشغل يعرض النسخة الحالية فقط، والإصدارات القديمة للمقارنة الوصفية."}</p>
           </section>
         </div>
       </aside>
