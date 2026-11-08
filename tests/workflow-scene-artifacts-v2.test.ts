@@ -6,7 +6,7 @@ import path from "node:path";
 import type { WorkflowIdentity } from "../src/workflow/store";
 import { SCENE_INPUT_KEYS, type SceneInputKey } from "../src/workflow/sceneV2";
 import {
-  collectSceneInputsFromDiskV2, type SceneFileManifestV2,
+  collectSceneInputsFromDiskV2, type SceneFileManifestV2, type SceneFileSetV2,
 } from "../src/workflow/sceneArtifactsV2";
 
 const roots: string[] = [];
@@ -24,10 +24,22 @@ const fileByKey: Record<SceneInputKey, string> = {
   video: "previews/c1-s1.mp4",
   rights: "rights/c1-s1.json",
 };
+const sceneFile = (key: SceneInputKey): SceneFileSetV2 => ({
+  version: "v1", files: [fileByKey[key]],
+});
 const manifest = (): SceneFileManifestV2 => ({
   sceneId: "c1-s1",
-  inputs: Object.fromEntries(SCENE_INPUT_KEYS.map((key) =>
-    [key, { version: "v1", files: [fileByKey[key]] }])) as SceneFileManifestV2["inputs"],
+  inputs: {
+    original: sceneFile("original"),
+    vocalized: sceneFile("vocalized"),
+    tone: sceneFile("tone"),
+    storyboard: sceneFile("storyboard"),
+    assets: sceneFile("assets"),
+    narration: sceneFile("narration"),
+    sync: sceneFile("sync"),
+    video: sceneFile("video"),
+    rights: sceneFile("rights"),
+  },
   shared: { "channel-logo": { version: "v1", files: ["channel-images/logo.svg"] } },
 });
 
