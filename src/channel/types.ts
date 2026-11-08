@@ -53,7 +53,7 @@ export type ChannelConfig = {
   rules: {
     music: boolean;
     faces: boolean;
-    /** القناة تستشهد بالقرآن (يفعّل جلب الآيات وبطاقاتها) */
+    /** القناة تستخدم آيات مكتوبة في السكريبت وبطاقاتها، وتلاوة بشرية يرفعها المالك دون جلب خارجي */
     quran: boolean;
     hadith: boolean;
     hadithGrades: string[];
