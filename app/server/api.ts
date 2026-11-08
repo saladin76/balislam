@@ -87,7 +87,9 @@ export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
     // استعادة طابور الرندر بعد إعادة تشغيل الاستوديو (الأمر 010)
-    void recoverStudioQueue();
+    // Never replay legacy render/packaging jobs while V2's guarded API is enforced.
+    // A saved job payload is not a trusted V2 approval token.
+    if (process.env.STUDIO_V2_ENFORCE !== "1") void recoverStudioQueue();
     /** تحميل وحدات المشروع (TypeScript) من جذر المستودع. */
     // ‎/@fs/ يحتاج مسارًا بشرطات مائلة للأمام (ويندوز: /@fs/C:/...)
     const load = async <T = any>(file: string): Promise<T> => {
