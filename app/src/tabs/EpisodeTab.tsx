@@ -202,6 +202,9 @@ export const EpisodeTab: React.FC<{
         <div className="col-head">
           <h2>المشاهد</h2>
           <button className="btn small primary" type="button" onClick={() => setAvReviewOpen(true)} title="واجهة مراجعة V2 للصوت والصورة؛ تتطلب Backend موثوقًا للاعتماد">مراجعة الفيديو V2</button>
+          <a className="btn small" href={"/scene-review-v2.html?channel=" + encodeURIComponent(channel.id) +
+            "&episode=" + encodeURIComponent(episodeId.slice(0, 3))}
+            title="فتح مراجعة V2 المحمية مباشرةً عند تفعيل STUDIO_V2_ENFORCE">فتح مراجعة V2 المحمية</a>
           <button className="btn small" onClick={() => setBoard(true)} title="لقطة لكل مشهد مع نصه وعناصره، تُعتمد قبل الصوت والنسخة النهائية">
             ستوري بورد
           </button>
