@@ -7,6 +7,7 @@ import { SCENE_INPUT_KEYS, type SceneInputKey } from "../src/workflow/sceneV2";
 import { createTrustedSceneV2Service } from "../src/workflow/sceneServiceV2";
 import { readSceneLedgerV2 } from "../src/workflow/sceneStoreV2";
 import type { SceneFileManifestV2 } from "../src/workflow/sceneArtifactsV2";
+import type { WorkflowIdentity } from "../src/workflow/store";
 
 process.env.BAL_WORKFLOW_HMAC_KEY = "STUDIO_V2_SCENE_SERVICE_TEST_ONLY___LONG_RANDOM_EXAMPLE_KEY_2026";
 const roots: string[] = [];
@@ -50,7 +51,7 @@ const fixture = async () => {
       await writeFile(file, "mock-test-bytes:" + scene + ":" + key);
     }
   }
-  const scope = { channelsRoot: root, channel: "balislam", episode: "001-test" };
+  const scope: WorkflowIdentity = { channelsRoot: root, channel: "balislam", episode: "001-test" };
   const principal: { role: "owner" | "reviewer"; authenticated: boolean } = {
     role: "owner", authenticated: true,
   };
