@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { SCENE_INPUT_KEYS, type SceneInputKey } from "../src/workflow/sceneV2";
@@ -26,6 +26,7 @@ const pathFor = (scene: string, key: SceneInputKey) => ({
 })[key];
 const manifest = (scene: string): SceneFileManifestV2 => ({
   sceneId: scene,
+  audioMode: "narrated",
   inputs: {
     original: { version: "v1", files: [pathFor(scene, "original")] },
     vocalized: { version: "v1", files: [pathFor(scene, "vocalized")] },
@@ -44,6 +45,26 @@ const fixture = async () => {
   roots.push(root);
   const dir = path.join(root, "balislam", "episodes", "001-test");
   await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, "plan.json"), JSON.stringify({
+    version: 1, episode: "001", channel: "balislam",
+    chapters: [{ number: 1, scenes: sceneOrder.map((id) =>
+      ({ id, narration: "Test narrator for " + id })) }],
+  }), "utf8");
+  const ffprobeBinary = path.join(root, "fake-ffprobe.mjs");
+  const validMetadata = {
+    format: { format_name: "mov,mp4,m4a,3gp,3g2,mj2", duration: "8.5" },
+    streams: [
+      { codec_type: "video", codec_name: "h264", width: 1920, height: 1080 },
+      { codec_type: "audio", codec_name: "aac", channels: 2 },
+    ],
+  };
+  const setProbeOutput = async (metadata: unknown) => {
+    await writeFile(ffprobeBinary,
+      "#!/usr/bin/env node\nprocess.stdout.write(" +
+      JSON.stringify(JSON.stringify(metadata)) + ");\n", "utf8");
+    await chmod(ffprobeBinary, 0o700);
+  };
+  await setProbeOutput(validMetadata);
   for (const scene of sceneOrder) {
     for (const key of SCENE_INPUT_KEYS) {
       const file = path.join(dir, pathFor(scene, key));
@@ -90,6 +111,7 @@ const fixture = async () => {
       if (onEvidence) await onEvidence();
     },
     withArtifactLock,
+    ffprobeBinary,
   };
   const service = createTrustedSceneV2Service(deps);
   const begin = (scene: string) => service.command({ action: "begin", sceneId: scene });
@@ -119,6 +141,7 @@ const fixture = async () => {
     duringEvidence: (callback: () => Promise<void>) => { onEvidence = callback; },
     evidenceCalls: () => evidenceCalls,
     lockCalls: () => lockCalls,
+    setProbeOutput, validMetadata,
   };
 };
 afterEach(async () => {
@@ -173,6 +196,26 @@ describe("Studio V2 — trusted server AV scene decisions", () => {
     expect(view.scenes[0]?.status).toBe("in_review");
     expect(view.scenes[0]?.fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(x.evidenceCalls()).toBe(0);
+  });
+
+  it("rejects a spoofed MP4 file with no real video stream during submission", async () => {
+    const x = await fixture();
+    await x.begin("c1-s1");
+    await x.setProbeOutput({ ...x.validMetadata, streams: [
+      { codec_type: "audio", codec_name: "aac", channels: 2 },
+    ] });
+    await expect(x.submit("c1-s1")).rejects.toThrow(/video stream/);
+    expect((await x.service.inspect()).scenes[0]?.status).toBe("producing");
+  });
+
+  it("rejects a narrated MP4 without an audio stream even when its hash is current", async () => {
+    const x = await fixture();
+    await x.begin("c1-s1");
+    await x.setProbeOutput({ ...x.validMetadata, streams: [
+      { codec_type: "video", codec_name: "h264", width: 1920, height: 1080 },
+    ] });
+    await expect(x.submit("c1-s1")).rejects.toThrow(/missing its audio track/);
+    expect((await x.service.inspect()).scenes[0]?.status).toBe("producing");
   });
 
   it("requires independent completed video+audio viewing evidence before signoff", async () => {
