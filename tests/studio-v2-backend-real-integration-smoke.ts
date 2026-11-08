@@ -13,6 +13,8 @@
  */
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -70,6 +72,7 @@ const makeManifest = (id: string, audio: boolean) => ({
 const main = async () => {
   if (!ffmpeg || !ffprobe || !path.isAbsolute(ffmpeg) || !path.isAbsolute(ffprobe))
     throw Error("STUDIO_FFMPEG_BIN and STUDIO_FFPROBE_BIN must be absolute.");
+  const realRemotion = process.env.STUDIO_V2_REAL_RENDER === "1";
   const dir = await mkdtemp(path.join(os.tmpdir(), "studio-v2-backend-real-phase2-"));
   process.env.BAL_WORKFLOW_HMAC_KEY = "REAL_INTEGRATION_QA_ONLY_HMAC_KEY_NOT_FOR_PRODUCTION_012345";
   const scope: WorkflowIdentity = { channelsRoot: path.join(dir, "channels"),
@@ -88,11 +91,25 @@ const main = async () => {
   try {
     await mkdir(root, { recursive: true });
     await save("script.md", "Backend isolated synthetic QA; no religious material.");
-    await save("plan.json", JSON.stringify({ version: 1, episode: "001", channel: "balislam",
+    let plan: unknown = { version: 1, episode: "001", channel: "balislam",
       chapters: [{ number: 1, scenes: [
         { id: firstId, narration: "Hello" },
         { id: secondId, narration: "" },
-      ] }] }));
+      ] }] };
+    if (realRemotion) {
+      const fixture = JSON.parse(await readFile(path.join(import.meta.dirname,
+        "fixtures", "plan.json"), "utf8"));
+      const { ayahKey: _ayahKey, ...baseScene } = fixture.chapters[0].scenes[0];
+      const scene = (id: string, narration: string) => ({
+        ...baseScene, id, template: "big-question",
+        props: { question: "اختبار سلامة الحروف العربية" },
+        narration, durationSec: 2, sfx: [],
+      });
+      plan = { ...fixture, version: 1, episode: "001", channel: "balislam",
+        intro: false, chapters: [{ ...fixture.chapters[0], number: 1,
+          scenes: [scene(firstId, "اختبار"), scene(secondId, "")] }] };
+    }
+    await save("plan.json", JSON.stringify(plan));
     for (const id of ids) {
       for (const name of ["vocalized", "tone", "sync", "rights"])
         await save(name + "/" + id + ".json", "{}");
@@ -110,13 +127,13 @@ const main = async () => {
     for (const id of ids) {
       const narrated = id === firstId;
       const spec: TrustedSceneRenderSpecV2 = {
-        sceneId: id, width: 320, height: 180, orientation: "landscape",
+        sceneId: id, width: realRemotion ? 640 : 320, height: realRemotion ? 360 : 180, orientation: "landscape",
         durationSec: 2, manifest: makeManifest(id, narrated),
         pictures: [], sounds: narrated ? [{
           file: "voice/" + id + ".wav",
           sha256: hash(await readFile(path.join(root, "voice", id + ".wav"))),
           kind: "narrator", startSec: 0, durationSec: 2, volume: 1,
-          words: [{ word: "Hello", start: 0, end: 1 }],
+          words: [{ word: realRemotion ? "اختبار" : "Hello", start: 0, end: 1.7 }],
         }] : [],
       };
       await locked(() => writeTrustedSceneRenderSpecLockedV2(scope, spec));
@@ -174,8 +191,22 @@ const main = async () => {
           planSha256: request.planSha256, file: output, relativeFile,
           sha256: hash(buf), bytes: buf.length, reviewStatus: "not_submitted" };
       });
+    // In a COMPOSITE, isolated worktree, import PR #86's actual Remotion
+    // function and use the exact SAME backend signed input/lease/approval path.
+    // Absence of Render-owned files is a hard error, never a silent fallback.
+    let engine: typeof testRenderer = testRenderer;
+    if (realRemotion) {
+      const modulePath = path.join(import.meta.dirname, "..", "src", "render", "sceneV2.ts");
+      if (!existsSync(modulePath))
+        throw Error("Real Remotion requested: PR #86 render module is NOT installed.");
+      const module = await import(pathToFileURL(modulePath).href);
+      if (typeof module.renderSceneV2 !== "function")
+        throw Error("PR #86 renderSceneV2 entrypoint is missing.");
+      engine = module.renderSceneV2;
+    }
     const first = await runTrustedSceneProductionV2(scope, firstId, {
-      renderer: testRenderer, ffprobeBinary: ffprobe,
+      renderer: engine, ffprobeBinary: ffprobe,
+      browserExecutable: realRemotion ? process.env.REMOTION_BROWSER_EXECUTABLE : undefined,
       verifySourceReview: async () => {},
     });
     insist(first.status === "rendered" && first.video.hasAudio,
@@ -242,7 +273,9 @@ const main = async () => {
         "Expired predecessor approval was not rejected before Render.");
     }
     console.log("PASS changed/restored predecessor AV input rejects scene 2 before Render");
-    console.log("PASS real Backend AV integration fixture — not a human/Remotion/Chrome signoff");
+    console.log(realRemotion
+      ? "PASS REAL REMOTION + Backend signed scene integration — NO human/Chrome signoff"
+      : "PASS real Backend AV integration fixture — not a human/Remotion/Chrome signoff");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
