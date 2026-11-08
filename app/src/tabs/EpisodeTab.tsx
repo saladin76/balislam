@@ -23,6 +23,7 @@ import { engineEnabled } from "../../../src/plan/engine";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { langPack } from "../../../src/i18n/packs";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
+import { More } from "../shell/Screen";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -42,7 +43,9 @@ export const EpisodeTab: React.FC<{
   onReload: () => void;
   onEditScript: (line: number) => void;
   onOpenVoice?: () => void;
-}> = ({ episodeId, requestedSceneId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript, onOpenVoice }) => {
+  /** يُبلَّغ بالمشهد المختار في المحرر، فتعود شاشة المراجعة إليه */
+  onSelectScene?: (id: string) => void;
+}> = ({ episodeId, requestedSceneId, plan, identity, channel, media, issues, keys, onPlanChange, onMediaChange, onReload, onEditScript, onOpenVoice, onSelectScene }) => {
   const allScenes = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))), [plan]);
   const [selectedId, setSelectedId] = useState(requestedSceneId ?? allScenes[0]?.scene.id ?? "");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
@@ -61,6 +64,9 @@ export const EpisodeTab: React.FC<{
     // يُطبَّق طلب الانتقال فقط عند وصوله؛ تحديث الخطة لا يعيد اختيار مشهد قديم.
     if (requestedSceneId && allScenes.some((x) => x.scene.id === requestedSceneId)) setSelectedId(requestedSceneId);
   }, [requestedSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (selectedId && selectedId !== requestedSceneId) onSelectScene?.(selectedId);
+  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // في معاينة الفصل أو الحلقة: أي مشهد يُعرض الآن؟ (إعدادات اللوحة الجانبية تخص المشهد المختار فقط)
   const starts = useMemo(() => {
@@ -198,7 +204,6 @@ export const EpisodeTab: React.FC<{
             })}
           </div>
         ))}
-        <p className="help" style={{ padding: "12px 16px" }}>ترتيب المشاهد ونصوصها يأتي من السكريبت. هنا تختار الشكل: القالب والعناصر والشخصيات والخلفية والمدة.</p>
       </div>
 
       {/* المعاينة */}
@@ -231,7 +236,7 @@ export const EpisodeTab: React.FC<{
               المعروض الآن: <b>المشهد {playing + 1}</b> «{allScenes[playing]!.scene.narration.slice(0, 40)}…». أما الإعدادات في اللوحة الجانبية فهي للمشهد {allScenes.findIndex((x) => x.scene.id === sel?.scene.id) + 1}.
             </span>
             <button
-              className="btn primary small"
+              className="btn small"
               onClick={() => {
                 skipSeek.current = true;
                 setSelectedId(playingId!);
@@ -241,7 +246,8 @@ export const EpisodeTab: React.FC<{
             </button>
           </div>
         ) : null}
-        <details className="render-box overlays-box" open>
+        <More label="أدوات الحلقة: عناصر الشاشة، النبرة، الصوت، التصدير">
+        <details className="render-box overlays-box">
           <summary>عناصر الشاشة في الحلقة كلها {plan.overlays ? <span className="badge edited">معدّلة</span> : null}</summary>
           <p className="help" style={{ margin: "6px 0 10px" }}>ما تختاره هنا يسري على كل مشاهد الحلقة والشورتس. «القناة» يعني الإعداد الافتراضي من تبويب «الهوية»، ويمكن تغيير أي مشهد وحده من إعداداته.</p>
           <OverlayToggles idPrefix="ep-ov" value={plan.overlays} inherited={channelOv} inheritLabel="القناة" onChange={(overlays) => { const { overlays: _o, ...rest } = plan; onPlanChange(overlays ? { ...rest, overlays } : rest); }} />
@@ -265,6 +271,7 @@ export const EpisodeTab: React.FC<{
           </div>
         ) : <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />}
         <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
+        </More>
       </div>
 
       {/* إعدادات المشهد */}
@@ -499,6 +506,13 @@ export const EpisodeTab: React.FC<{
   );
 };
 
+/** معاينة حية صامتة لمشهد واحد (تُعرض في شاشة المراجعة قبل وجود معاينة بالصوت والصورة). */
+export const SceneLivePreview: React.FC<{ sceneId: string; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia }> = ({ sceneId, plan, identity, channel, media }) => {
+  const hit = plan.chapters.flatMap((c) => c.scenes.map((s) => ({ s, c }))).find((x) => x.s.id === sceneId);
+  if (!hit) return null;
+  return <ScenePreview scene={hit.s} themeId={plan.themeId} orientation="landscape" eyebrow={chapterEyebrow(channel, langPack(plan.lang).strings.chapter, hit.c)} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays} />;
+};
+
 /** رندر الحلقة أو الفصل وتتبع التقدم. */
 const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId, chapter }) => {
   const [jobs, setJobs] = useState<RenderJob[]>([]);
@@ -529,7 +543,7 @@ const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId
         <b>التصدير</b>
         <span className="help">يرندر من الخطة المحفوظة إلى مجلد الحلقة out/</span>
         <span className="spacer" />
-        <button className="btn primary" disabled={running} onClick={() => start("landscape")}>رندر الحلقة 16:9</button>
+        <button className="btn" disabled={running} onClick={() => start("landscape")}>رندر الحلقة 16:9</button>
         <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {chapter} شورت 9:16</button>
       </div>
       {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}

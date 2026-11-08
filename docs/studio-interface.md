@@ -25,7 +25,7 @@
 - `app/src/shell/TopBar.tsx` تنقل فقط؛ لا يحفظ ولا يكتب اعتمادًا.
 - `app/src/shell/ownerSession.tsx` يفتح جلسة المالك بكلمة المرور ويحفظها في الذاكرة فقط (لا `localStorage`). كل قرار يُرسل كلمة المرور ويتحقق منها الخادم.
 - `app/src/shell/EpisodeSpine.tsx` يقرأ الحالة من `api.sceneProduction`، واعتماد السكريبت والستوري بورد منه يتطلب «راجعته بنفسي».
-- `app/src/workspace/SceneProductionPanel.tsx` يعرض قرارًا واحدًا في كل لحظة: المشهد الحالي، أو التجميع، أو النسخة النهائية، أو إذن النشر.
+- `app/src/workspace/SceneProductionPanel.tsx` يعرض قرارًا واحدًا في كل لحظة: المشهد الحالي، أو التجميع، أو النسخة النهائية، أو إذن النشر. في الخطوة ٣ هو الشاشة كلها: معاينة المشهد الحالي وأفعاله الأربعة (توليد الصوت، الحركة غير مناسبة، النبرة غير مناسبة، اعتمد) وشريط المشاهد، والمحرر الكامل (`EpisodeTab`) خلف «تحرير المشهد». تنسيقها في `app/src/shell/screens-s3.css`.
 - `app/src/tabs/HomeTab.tsx` يقرأ الخطوات من `production` في `/api/overview` (`summarizeSceneProduction`، قراءة فقط).
 - `app/src/shell/shell.css` كل تنسيق الغلاف الجديد؛ لون القناة يأتي من `data-channel`.
 
