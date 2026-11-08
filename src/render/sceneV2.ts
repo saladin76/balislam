@@ -81,6 +81,14 @@ export type SceneRenderBackendV2 = {
   withProductionLease<T>(sceneId: string, work: () => Promise<T>): Promise<T>;
   /** Must validate script, storyboard, prior scene approval and current plan. */
   assertCanRender(request: SceneRenderRequestV2): Promise<void>;
+  /**
+   * Backend PR #88: invoked under the SAME artifact mutex + production lease
+   * after immutable MP4 publication. Verify nine-group manifest and call
+   * registerRenderedSceneManifestLockedV2 (never nest a second artifact lock).
+   * This does not submit, review or approve the scene.
+   */
+  onPublishedLocked?: (request: SceneRenderRequestV2,
+    result: SceneRenderSuccessV2) => Promise<void>;
   ffprobeBinary: string;
   browserExecutable?: string;
   signal?: AbortSignal;
@@ -248,6 +256,9 @@ export const renderSceneV2 = async (
         typeof deps.withProductionLease !== "function" ||
         typeof deps.assertCanRender !== "function" || !path.isAbsolute(deps.ffprobeBinary))
       throw Error("Trusted Backend scene gating and ffprobe are required.");
+    if (process.env.STUDIO_V2_ENFORCE === "1" &&
+        typeof deps.onPublishedLocked !== "function")
+      throw Error("V2 enforced render requires locked signed-manifest registration.");
     return await deps.withProductionLease(r.sceneId, async () => {
       if (activeRenders > 0) throw Error("Another Studio V2 scene render is busy.");
       activeRenders++;
@@ -387,6 +398,9 @@ export const renderSceneV2 = async (
         };
         reportPath = output + ".json";
         await writeFile(reportPath, JSON.stringify(result, null, 2) + "\n", { flag: "wx" });
+        // Production Backend registers a signed manifest while the same
+        // episode-wide writer lock and scene production lease remain held.
+        await deps.onPublishedLocked?.(r, result);
         return result;
       });
       return success;
