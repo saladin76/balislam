@@ -84,9 +84,20 @@ const fingerprints = async (scope: WorkflowIdentity) => {
   await readPlannedSceneOrderV2(scope, async (work) => work());
   const script = await sha256FileAndEpoch(await resolveArtifact(scope, "script.md"));
   const plan = await sha256FileAndEpoch(await resolveArtifact(scope, "plan.json"));
+  const optional = async (name: string) => {
+    try { return await sha256FileAndEpoch(await resolveArtifact(scope, name)); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+  };
+  // Review ledger and visual signoff are material sources, not expendable UI state.
+  const review = await optional("review.json");
+  const board = await optional("storyboard.json");
   return {
-    script: sha(["studio-v2-script-approval", scope.channel, scope.episode, script]),
-    storyboard: sha(["studio-v2-storyboard-approval", scope.channel, scope.episode, script, plan]),
+    script: sha(["studio-v2-script-approval", scope.channel, scope.episode, script, review]),
+    storyboard: sha(["studio-v2-storyboard-approval", scope.channel, scope.episode,
+      script, review, plan, board]),
   };
 };
 const current = (doc: SignedSources, stage: SceneSourceStageV2, expected: string): boolean => {
