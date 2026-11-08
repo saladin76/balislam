@@ -231,6 +231,39 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
       }
     }
     const doc = await readSceneLedgerV2(deps.scope, order);
+    const video: Record<string, {
+      version: string; sha256: string; epoch: string; width?: number;
+      height?: number; durationSec?: number; hasAudio?: boolean;
+    }> = {};
+    for (const id of order) {
+      const entry = doc.scenes[id]!;
+      if (!entry.inputs || !["producing", "in_review", "approved"].includes(entry.status))
+        continue;
+      try {
+        const manifest = await deps.currentSceneManifest(id);
+        const captured = await captureLocked(id);
+        if (captured.inputs.video.sha256 !== entry.inputs.video.sha256 ||
+            captured.inputs.video.epoch !== entry.inputs.video.epoch)
+          throw Error("Current scene video no longer matches its signed state.");
+        const detail: typeof video[string] = {
+          version: manifest.inputs.video.version,
+          sha256: captured.inputs.video.sha256, epoch: captured.inputs.video.epoch,
+        };
+        if (!deps.ffprobeBinary.includes("__studio_v2_ffprobe_not_configured__")) {
+          const probed = await probeSceneAvLockedV2(deps.scope, manifest,
+            { ffprobeBinary: deps.ffprobeBinary });
+          if (probed.sha256 !== detail.sha256 || probed.epoch !== detail.epoch)
+            throw Error("Scene video changed during inspection.");
+          Object.assign(detail, { width: probed.width, height: probed.height,
+            durationSec: probed.durationSec, hasAudio: probed.hasAudio });
+        }
+        video[id] = detail;
+      } catch (error) {
+        // A producing scene may not have a video yet. An approved/submitted
+        // scene must NEVER be represented with missing/mismatched media.
+        if (entry.status !== "producing") throw error;
+      }
+    }
     return {
       channel: doc.channel, episode: doc.episode, revision: doc.revision,
       scenes: order.map((id) => {
@@ -239,7 +272,7 @@ export const createTrustedSceneV2Service = (deps: TrustedSceneV2Dependencies) =>
         try { if (scene.inputs) fingerprint = sceneFingerprint(id, scene.inputs); }
         catch { /* no current complete AV to expose */ }
         return {
-          id, status: scene.status, fingerprint,
+          id, status: scene.status, fingerprint, currentVideo: video[id],
           approvedAt: scene.status === "approved" ? scene.approval?.at : undefined,
           notes: scene.notes.map((n) => ({
             text: n.text, at: n.at, second: n.second, elementId: n.elementId,
