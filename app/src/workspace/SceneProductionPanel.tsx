@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, type SceneProductionRead, type SceneOwnerAction } from "../api";
+import { channelProductionProfile } from "../../../src/channel/productionRules";
 import "./scene-production.css";
 
 type Props = {
@@ -79,6 +80,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     }
   };
 
+  const humanReviewFocus = channelProductionProfile({ id: channelId }).reviewFocus;
   const currentId = data?.progress.currentScene ?? null;
   const scene = data?.scenes.find(item => item.id === currentId);
   const candidate = currentId ? data?.candidates.scenes[currentId] : null;
@@ -203,6 +205,13 @@ export const SceneProductionPanel: React.FC<Props> = ({
             </div>
           )}
 
+          <details className="scene-first-approval">
+            <summary>معايير مراجعة هذه القناة</summary>
+            <ul>
+              {humanReviewFocus.map(item => <li key={item}>{item}</li>)}
+            </ul>
+            <p>هذه تذكيرات للمراجعة البشرية، وليست درجات أو موافقات تلقائية.</p>
+          </details>
           <details className="scene-first-approval">
             <summary>المراجعة والاعتماد</summary>
             <p>أكّد المراجعة مرة واحدة عند اتخاذ القرار. لا يُعتمد أي مشهد آليًا.</p>

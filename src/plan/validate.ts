@@ -1,4 +1,5 @@
 import { engineEnabled } from "./engine";
+import { channelProductionIssues } from "../channel/productionRules";
 import { hasElement } from "../../brand/elements/registry";
 import { parseCameraPlan, parseCameraPlanLines, parsePoseTimeline } from "./director";
 import { lightingIssues } from "./lighting";
@@ -17,7 +18,7 @@ export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: 
 /** بداية رسالة «عنصر مطلوب» (يجمعها الاستوديو قائمةً لتوسيع المكتبة) */
 export const NEEDS_ELEMENT = "لحظات بلا عنصر مطابق";
 
-export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]>; library?: LibraryRules["library"] }): PlanIssue[] => {
+export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; rules?: Partial<LibraryRules["rules"]> & { music?: boolean }; library?: LibraryRules["library"] }): PlanIssue[] => {
   const out: PlanIssue[] = [];
   // مكتبة القناة: ما ليس منها خطأ يمنع النسخة النهائية (لا خلط بين القنوات)
   const lib: LibraryRules | null = channel?.rules ? { id: channel.id, rules: { faces: Boolean(channel.rules.faces), quran: Boolean(channel.rules.quran), hadith: Boolean(channel.rules.hadith) }, library: channel.library } : null;
@@ -124,5 +125,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد." });
       if (s.backdrop && !hasElement(s.backdrop)) out.push({ level: "warning", sceneId: s.id, message: `الخلفية «${s.backdrop}» غير موجودة.` });
     }
+  // Isolated policy review: never infer an approval from a creative heuristic.
+  out.push(...channelProductionIssues(plan, channel));
   return out;
 };

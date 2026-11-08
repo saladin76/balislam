@@ -57,6 +57,11 @@
       "file": "09-workflow-vnext.md",
       "title": "آلية Studio الجديدة — مراحل الاعتماد الست",
       "summary": "مرجع القناة لنصوص القرآن من السكريبت، واعتمادات Storyboard والصوت وMaster والنشر، إصدار مرشح"
+    },
+    {
+      "file": "10-studio-v2-production-rules.md",
+      "title": "قواعد إنتاج زبدة الكتب — Studio V2",
+      "summary": "دراسة الكتاب والتوثيق والنقد الأمين ومشاهد الحبر"
     }
   ]
 }

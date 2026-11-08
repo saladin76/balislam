@@ -9,9 +9,9 @@ This file describes the target interface; it does **not** claim the active Studi
 | User-visible step | Internal data and operation |
 |---|---|
 | 1. إعداد الحلقة | فكرة ومرجع، السكريبت، مراجعة وتدقيق، تثبيت النص، تشكيله، اقتراح النبرة |
-| 2. Storyboard | PDF شامل عدد المشاهد والكاميرا/الإضاءة/التكوين/العرض في 16:9 و9:16؛ اعتماد صريح |
+| 2. Storyboard | PDF شامل عدد المشاهد والكاميرا/الإضاءة/التكوين 16:9، وتخطيط 9:16 إذا كانت النسخة الرأسية من المخرجات المطلوبة؛ اعتماد صريح |
 | 3. إنتاج المشاهد | مشهد واحد نشط: صوت الراوي أولًا، زمن الصوت الحقيقي، رسم/حركة، فيديو AV واحد، ملاحظات، تصحيح واعتماد، ثم التالي |
-| 4. مراجعة الحلقة | دمج المشاهد المعتمدة، مشاهدة كاملة بسرعة 1×، تقييم الانتقالات والتزامن والصوت ثم اعتماد Master حسب البصمة |
+| 4. مراجعة الحلقة | دمج المشاهد المعتمدة، مشاهدة كاملة بسرعة 1× وتقييم الانتقالات والتزامن والصوت **واعتماد التجميع**؛ ثم مشاهدة Master الفعلي و**اعتماده منفصلًا** حسب البصمة |
 | 5. النشر | ملف Master المعتمد بالبايتات نفسها فقط؛ حقوق التلاوات والتصاريح والمصادقة وإعادة الفحص عند الإرسال |
 
 **UI principles:** single user; automatic safe defaults; one primary button («متابعة»); stage status only: جاهز/قيد العمل/يحتاج تعديل/معتمد. Hide SHA, ledger, CI, worker roles and technical safety controls in an optional diagnostics drawer. No repeated codes to accept ordinary review decisions. Sensitive publish remains explicitly confirmed and authenticated by server.
