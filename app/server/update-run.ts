@@ -5,6 +5,7 @@ import { applyUpdate, updateStatus } from "./update.ts";
 const root = path.resolve(import.meta.dirname, "..", "..");
 const st = await updateStatus(root, true);
 if (st.error) console.log(st.error);
+else if (st.blocked) console.log(st.blocked);
 else if (!st.available) console.log("الاستوديو محدّث.");
 else {
   console.log(`تحديث جديد (${st.behind}): ${st.changes[0] ?? ""}`);

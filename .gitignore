@@ -58,3 +58,21 @@ channels/*/episodes/*/previews/history/
 # فلا يُتتبع على main (وإلا عطّل git pull والتحديث). ردود Claude في notes/resolved.json وهي متتبَّعة على main.
 channels/*/episodes/*/notes/inbox.json
 channels/*/episodes/*/notes/*.json.*.tmp
+
+# حالة الاستوديو المحلية لكل حلقة (لا تُرفع، ولا تمنع زر «حدّث الآن»؛ app/server/update.ts).
+# كلها موقَّعة بمفتاح الجهاز أو مربوطة بملفات محلية لا توجد في Git، فلا معنى لها على نسخة أخرى:
+# - سجل اعتماد المشاهد الموقَّع (src/studio/sceneService.ts: stateFileFor، والقفل serialized، والكتابة الذرية)
+channels/*/episodes/*/scene-production.v1.json
+channels/*/episodes/*/scene-production.v1.json.lock
+# - سجل المراحل الست القديم الموقَّع (src/workflow/store.ts: ledgerFile، withLock، persist)
+channels/*/episodes/*/workflow-approvals.json
+channels/*/episodes/*/workflow-approvals.json.lock
+# - اعتماد الصوت مربوط ببايتات voice/*.mp3 المحلية (src/voice/review.ts: voiceReviewFile)
+channels/*/episodes/*/voice-review.json
+# - قفل فهرس المعاينات (مجلد مؤقت؛ src/render/episodePreviews.ts: withPreviewIndexLock)
+channels/*/episodes/*/previews/.preview-index.lock/
+# - ملفات الكتابة الذرية المؤقتة لكل كاتب في مجلد الحلقة (*.<uuid>.tmp)
+channels/*/episodes/*/*.tmp
+channels/*/episodes/*/**/*.tmp
+# ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): storyboard.json وscript-signoff.json وreview.json
+# وscene-review.json وpublish.json وnotes/resolved.json. تمنع التحديث حتى تُحفظ، والرسالة تسمّيها.

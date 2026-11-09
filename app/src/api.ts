@@ -300,7 +300,7 @@ export const api = {
   channel: () => call<ChannelConfig>("/api/channel"),
   saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
-  updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string }>(`/api/update${force ? "?force=1" : ""}`),
+  updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string; blocked?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),
   saveKit: (id: string, kit: PublishKit) => call(`/api/episodes/${id}/kit`, { method: "PUT", json: { kit } }),

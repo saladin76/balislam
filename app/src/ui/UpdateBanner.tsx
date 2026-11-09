@@ -7,7 +7,7 @@ import { updateOutcome } from "./updateOutcome";
  * ويحدّث الاستوديو بضغطة واحدة دون إغلاق الـ Terminal.
  */
 export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsaved: boolean }> = ({ beforeUpdate, hasUnsaved }) => {
-  const [st, setSt] = useState<{ behind: number; changes: string[] } | null>(null);
+  const [st, setSt] = useState<{ behind: number; changes: string[]; blocked?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
 
@@ -71,13 +71,14 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
   return (
     <div className={`update-banner ${msg?.err ? "err" : ""}`} role="status">
       {msg ? (
-        <span>{msg.text}</span>
+        <span style={{ whiteSpace: "pre-line" }}>{msg.text}</span>
       ) : st ? (
         <>
           <b>تحديث جديد متاح</b>
           <span className="help" title={st.changes.join("\n")}>{st.changes[0] ?? ""}{st.behind > 1 ? ` (+${st.behind - 1})` : ""}</span>
-          <span className="help">{hasUnsaved ? "احفظ التعديلات أولًا ثم حدّث يدويًا" : "لن يبدأ التحديث دون موافقتك"}</span>
-          <button className="btn primary small" disabled={busy || hasUnsaved} onClick={() => apply()}>{busy ? "جارٍ التحديث…" : "حدّث الآن"}</button>
+          {st.blocked ? <span className="help" style={{ whiteSpace: "pre-line" }}>{st.blocked}</span>
+            : <span className="help">{hasUnsaved ? "احفظ التعديلات أولًا ثم حدّث يدويًا" : "لن يبدأ التحديث دون موافقتك"}</span>}
+          <button className="btn primary small" disabled={busy || hasUnsaved || Boolean(st.blocked)} onClick={() => apply()}>{busy ? "جارٍ التحديث…" : "حدّث الآن"}</button>
         </>
       ) : null}
       {msg ? <button className="btn ghost small" onClick={() => setMsg(null)}>إغلاق</button> : null}

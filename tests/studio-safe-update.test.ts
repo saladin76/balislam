@@ -3,7 +3,8 @@ import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { applyUpdate, updateStatus } from "../app/server/update";
+import { applyUpdate, dirtyTreeMessage, updateStatus } from "../app/server/update";
+import { copyFileSync, mkdirSync } from "node:fs";
 import { cleanGitEnv } from "../scripts/git-env.mjs";
 
 /** مستودعات الاختبار المؤقتة لا ترث GIT_DIR وأخواته من خطّاف (الأمر 018) */
@@ -82,5 +83,30 @@ describe("safe studio updater", () => {
     expect(result.ok).toBe(false);
     expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("local unsaved edit\n");
     expect(execFileSync("git", ["status", "--porcelain"], { cwd: dir, env: gitEnv }).toString()).toContain("note.txt");
+  }, 30_000);
+
+  it("ignored local runtime state (scene ledger, locks, voice approvals) never blocks; tracked edits are named", async () => {
+    const dir = repo();
+    execFileSync("git", ["branch", "-m", "main"], { cwd: dir, env: gitEnv });
+    copyFileSync(path.join(import.meta.dirname, "..", ".gitignore"), path.join(dir, ".gitignore"));
+    execFileSync("git", ["add", ".gitignore"], { cwd: dir, env: gitEnv });
+    execFileSync("git", ["-c", "user.email=t@example.invalid", "-c", "user.name=T", "commit", "-qm", "ignore"], { cwd: dir, env: gitEnv });
+    const ep = path.join(dir, "channels", "c", "episodes", "001-a");
+    mkdirSync(path.join(ep, "previews", ".preview-index.lock"), { recursive: true });
+    for (const f of ["scene-production.v1.json", "scene-production.v1.json.lock", "scene-production.v1.json.x.tmp",
+      "workflow-approvals.json", "workflow-approvals.json.lock", "voice-review.json", "voice-review.json.1.x.tmp"])
+      writeFileSync(path.join(ep, f), "{}\n");
+    expect(await dirtyTreeMessage(dir)).toBeNull();
+    writeFileSync(path.join(ep, "storyboard.json"), "{}\n");
+    writeFileSync(path.join(dir, "note.txt"), "edited\n");
+    const msg = await dirtyTreeMessage(dir);
+    expect(msg).toContain("note.txt");
+    expect(msg).toContain("channels/c/episodes/001-a/storyboard.json");
+    expect(msg).toMatch(/ملفات متتبَّعة معدَّلة \(1\)/);
+    expect(msg).not.toContain("scene-production");
+    const result = await applyUpdate(dir);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("note.txt");
+    expect(result.message).not.toMatch(/\/tmp\/|\/home\//);
   }, 30_000);
 });

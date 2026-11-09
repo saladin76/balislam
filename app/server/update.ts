@@ -19,7 +19,11 @@ const run = (cmd: string, args: string[], root: string, timeout = 600_000) =>
       (err, stdout, stderr) => resolve({ ok: !err, out: `${stdout}${stderr}`.trim() }));
   });
 
-export type UpdateStatus = { available: boolean; behind: number; changes: string[]; error?: string };
+export type UpdateStatus = {
+  available: boolean; behind: number; changes: string[]; error?: string;
+  /** An update exists but local files block it: the Arabic message names them. */
+  blocked?: string;
+};
 let lastFetch = 0;
 let cached: UpdateStatus | null = null;
 let updating = false;
@@ -28,9 +32,46 @@ const activeMain = async (root: string): Promise<boolean> => {
   const branch = await git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
   return branch.ok && branch.out === "main";
 };
-const cleanTree = async (root: string): Promise<boolean> => {
-  const status = await git(root, ["status", "--porcelain"]);
-  return status.ok && !status.out;
+/**
+ * Files that block an update: modified/staged tracked files and untracked files that are not
+ * ignored. Ignored files (local runtime state listed in .gitignore: approval ledgers, locks, voice,
+ * out…) never block. `null` means Git itself failed (treated as blocking).
+ */
+export const blockingFiles = async (root: string): Promise<{ tracked: string[]; untracked: string[] } | null> => {
+  const status = await new Promise<{ ok: boolean; out: string }>((resolve) => {
+    execFile("git", ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
+      { cwd: root, timeout: 60_000, env: childEnv({ GIT_TERMINAL_PROMPT: "0" }), maxBuffer: 16 * 1024 * 1024 },
+      (err, stdout) => resolve({ ok: !err, out: String(stdout) }));
+  });
+  if (!status.ok) return null;
+  const tracked: string[] = [], untracked: string[] = [];
+  const entries = status.out.split("\0");
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    if (e.length < 4) continue;
+    const code = e.slice(0, 2), file = e.slice(3);
+    if (code === "??") untracked.push(file);
+    else {
+      tracked.push(file);
+      if (code[0] === "R" || code[0] === "C") i++; // -z: the rename/copy source follows
+    }
+  }
+  return { tracked, untracked };
+};
+const LIST_MAX = 8;
+const listLines = (files: string[]) =>
+  files.slice(0, LIST_MAX).map((f) => `• ${f}`).join("\n") +
+  (files.length > LIST_MAX ? `\n• و${files.length - LIST_MAX} ملفًا آخر` : "");
+/** Arabic explanation naming the files that block the update, or null when the tree is clean. */
+export const dirtyTreeMessage = async (root: string): Promise<string | null> => {
+  const b = await blockingFiles(root);
+  if (!b) return "تعذّر فحص حالة الملفات المحلية بـ Git؛ لم يُعدل أي ملف.";
+  if (!b.tracked.length && !b.untracked.length) return null;
+  const parts = ["لا يُحدَّث الاستوديو لأن هذه الملفات تغيّرت على هذا الجهاز ولم تُحفظ في Git، والتحديث لا يكتب فوقها:"];
+  if (b.tracked.length) parts.push(`ملفات متتبَّعة معدَّلة (${b.tracked.length}):\n${listLines(b.tracked)}`);
+  if (b.untracked.length) parts.push(`ملفات جديدة غير متتبَّعة (${b.untracked.length}):\n${listLines(b.untracked)}`);
+  parts.push("احفظها (commit) أو أرسل القائمة إلى Claude ليحدد مكانها، ثم أعد المحاولة. لم يُعدل أي ملف.");
+  return parts.join("\n");
 };
 
 /** Detect unfinished operations even when 'git status --porcelain' is empty. */
@@ -56,7 +97,7 @@ export const updateStatus = async (root: string, force = false): Promise<UpdateS
   if (updating) return off;
   if (!await activeMain(root)) return { ...off, error: "التحديث داخل الاستوديو متاح لفرع main فقط؛ نسخة المراجعة لا تتحدث تلقائيًا." };
   if (await pendingGitOperation(root)) return { ...off, error: "هناك عملية Git غير مكتملة (دمج أو إعادة تأسيس أو انتقاء التزام)؛ لا تحديث قبل حلها يدويًا." };
-  if (!await cleanTree(root)) return { ...off, error: "هناك تغييرات محلية؛ لا يُحدّث الاستوديو حتى تُراجع وتُحفظ بأمان." };
+  const dirty = await dirtyTreeMessage(root);
   if (force || !cached || Date.now() - lastFetch >= 60_000) {
     const f = await git(root, ["fetch", "--quiet", "origin", "main"]);
     if (!f.ok) return { ...off, error: "تعذّر الوصول إلى GitHub للتحقق من التحديث." };
@@ -67,6 +108,8 @@ export const updateStatus = async (root: string, force = false): Promise<UpdateS
   if (!count.ok || !ahead.ok || Number(ahead.out) > 0) return { ...off, error: "الفرع المحلي متباعد عن main؛ يلزم مراجعة Git يدويًا." };
   const behind = Number(count.out) || 0;
   const log = behind ? (await git(root, ["log", "--format=%s", "HEAD..origin/main"])).out.split("\n").filter(Boolean).slice(0, 8) : [];
+  // The dirty-tree check is not cached: the owner may commit the listed files at any moment.
+  if (dirty) return { available: behind > 0, behind, changes: log, blocked: dirty };
   return (cached = { available: behind > 0, behind, changes: log });
 };
 
@@ -76,7 +119,8 @@ export const applyUpdate = async (root: string): Promise<{ ok: boolean; message:
   try {
     if (!await activeMain(root)) return { ok: false, message: "أوقف التحديث: هذه نسخة مراجعة أو فرع غير main." };
     if (await pendingGitOperation(root)) return { ok: false, message: "أوقف التحديث: توجد عملية Git غير مكتملة؛ لم يُعدل أي ملف." };
-    if (!await cleanTree(root)) return { ok: false, message: "أوقف التحديث: توجد ملفات محلية غير محفوظة؛ لم يُعدل أي ملف." };
+    const dirty = await dirtyTreeMessage(root);
+    if (dirty) return { ok: false, message: `أوقف التحديث. ${dirty}` };
     const before = await git(root, ["rev-parse", "HEAD"]);
     const fetch = await git(root, ["fetch", "--quiet", "origin", "main"]);
     if (!fetch.ok) return { ok: false, message: "فشل التحقق من GitHub؛ لم يُطبّق التحديث." };
@@ -84,7 +128,8 @@ export const applyUpdate = async (root: string): Promise<{ ok: boolean; message:
     if (!ahead.ok || Number(ahead.out) > 0) return { ok: false, message: "توجد commits محلية؛ يلزم دمجها يدويًا. لم يُعدل أي ملف." };
     // Recheck after network operation: never override edits or pending operations.
     if (await pendingGitOperation(root)) return { ok: false, message: "بدأت عملية Git أثناء جلب التحديث؛ أُوقف التحديث لحمايتها." };
-    if (!await cleanTree(root)) return { ok: false, message: "ظهرت تعديلات أثناء الفحص؛ أُوقف التحديث لحمايتها." };
+    const dirtyAfter = await dirtyTreeMessage(root);
+    if (dirtyAfter) return { ok: false, message: `ظهرت تعديلات أثناء الفحص؛ أُوقف التحديث لحمايتها. ${dirtyAfter}` };
     const m = await git(root, ["merge", "--ff-only", "origin/main"], 120_000);
     if (!m.ok) return { ok: false, message: "تعذّر تحديث main بشكل آمن (fast-forward فقط). لم نجرِ دمجًا تلقائيًا أو نحذف ملفات." };
     const changed = await git(root, ["diff", "--name-only", before.out, "HEAD"]);
