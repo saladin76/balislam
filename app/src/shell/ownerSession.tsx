@@ -15,8 +15,16 @@ const storage = {
 };
 const validToken = (v: string) => /^bos_[a-f0-9]{64}$/.test(v);
 
-type Session = { secret: string; open: boolean; passSet: boolean | null; unlock: (s: string) => Promise<void>; lock: () => Promise<void>; create: (s: string) => Promise<void> };
-const Ctx = createContext<Session>({ secret: "", open: false, passSet: null, unlock: async () => {}, lock: async () => {}, create: async () => {} });
+type Session = {
+  secret: string; open: boolean; passSet: boolean | null; unlock: (s: string) => Promise<void>; lock: () => Promise<void>; create: (s: string) => Promise<void>;
+  /**
+   * The approve path (UX review 9 Nov, D52): a primary decision button calls this when the session is closed.
+   * It opens the passphrase popover anchored to that same button and resolves with the session token once
+   * the owner has typed the passphrase ("" if he cancels), so the button then completes its own action.
+   */
+  ensure: (anchor?: HTMLElement | null) => Promise<string>;
+};
+const Ctx = createContext<Session>({ secret: "", open: false, passSet: null, unlock: async () => {}, lock: async () => {}, create: async () => {}, ensure: async () => "" });
 
 export const OwnerSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [secret, setSecret] = useState(() => { const t = storage.get(); return validToken(t) ? t : ""; });
@@ -39,30 +47,96 @@ export const OwnerSessionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     window.addEventListener("storage", onStorage);
     return () => { document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("storage", onStorage); };
   }, []);
-  const open = async (passphrase: string) => {
+  const open = async (passphrase: string): Promise<string> => {
     const r = await api.openOwnerSession(passphrase);
     if (!r.ok || !r.token || !validToken(r.token)) throw new Error("كلمة المرور غير صحيحة.");
     storage.set(r.token);
     setSecret(r.token);
+    return r.token;
+  };
+  const [ask, setAsk] = useState<{ rect: DOMRect | null; resolve: (token: string) => void } | null>(null);
+  const create = async (s: string) => {
+    await api.setOwnerPassphrase(s);
+    setPassSet(true);
+    return open(s);
   };
   const value: Session = {
     secret, open: Boolean(secret), passSet,
-    unlock: open,
+    unlock: async (p) => { await open(p); },
     lock: async () => {
       const t = secret || storage.get();
       storage.clear();
       setSecret("");
       if (validToken(t)) await api.closeOwnerSession(t).catch(() => undefined);
     },
-    create: async (s) => {
-      await api.setOwnerPassphrase(s);
-      setPassSet(true);
-      await open(s);
+    create: async (s) => { await create(s); },
+    ensure: (anchor) => {
+      if (secret) return Promise.resolve(secret);
+      return new Promise<string>((resolve) => {
+        ask?.resolve("");
+        setAsk({ rect: anchor?.getBoundingClientRect() ?? null, resolve });
+      });
     },
   };
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      {ask ? (
+        <AnchoredPassphrase rect={ask.rect} passSet={passSet}
+          onDone={(token) => { ask.resolve(token); setAsk(null); }}
+          submit={(a) => (passSet === false ? create(a) : open(a))} />
+      ) : null}
+    </Ctx.Provider>
+  );
 };
 export const useOwnerSession = () => useContext(Ctx);
+
+/** The passphrase form, shown next to the button that asked for it (fixed, kept inside the viewport). */
+const AnchoredPassphrase: React.FC<{ rect: DOMRect | null; passSet: boolean | null; onDone: (token: string) => void; submit: (a: string) => Promise<string> }> = ({ rect, passSet, onDone, submit }) => {
+  const [a, setA] = useState("");
+  const [b, setB] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const box = useRef<HTMLFormElement>(null);
+  const first = passSet === false;
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") onDone(""); };
+    const down = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) onDone(""); };
+    document.addEventListener("keydown", key);
+    document.addEventListener("mousedown", down);
+    return () => { document.removeEventListener("keydown", key); document.removeEventListener("mousedown", down); };
+  }, [onDone]);
+  const vw = typeof window === "undefined" ? 1280 : window.innerWidth;
+  const vh = typeof window === "undefined" ? 800 : window.innerHeight;
+  const width = Math.min(320, vw - 32);
+  // RTL: align the popover's right edge with the button's right edge, then keep it on screen.
+  const left = rect ? Math.min(Math.max(16, rect.right - width), vw - width - 16) : (vw - width) / 2;
+  const below = rect ? rect.bottom + 8 : vh / 3;
+  const top = rect && below + 230 > vh ? Math.max(16, rect.top - 238) : below;
+  return (
+    <form ref={box} className="ow-pop ow-anchored" role="dialog" aria-modal="false" aria-label="جلسة المالك" style={{ position: "fixed", top, left, width }}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setErr("");
+        try {
+          if (first && a.length < 8) throw new Error("ثمانية أحرف على الأقل.");
+          if (first && a !== b) throw new Error("الكلمتان غير متطابقتين.");
+          setBusy(true);
+          onDone(await submit(a));
+        } catch (x) { setErr((x as Error).message); setBusy(false); }
+      }}>
+      <strong>{first ? "اختر كلمة مرور المالك" : "كلمة مرور المالك"}</strong>
+      <p>{first ? "كل اعتماد يحتاجها، فلا يعتمد شيئًا غيرك." : "تُكتب مرة واحدة على هذا الجهاز، ثم يكمل الزر ما طلبته."}</p>
+      <input type="password" autoFocus autoComplete={first ? "new-password" : "current-password"} value={a} onChange={(e) => setA(e.target.value)} aria-label="كلمة المرور" placeholder="كلمة المرور" />
+      {first ? <input type="password" autoComplete="new-password" value={b} onChange={(e) => setB(e.target.value)} aria-label="إعادة كلمة المرور" placeholder="أعد كتابتها" /> : null}
+      {err ? <span className="ow-err" role="alert">{err}</span> : null}
+      <div className="ow-row">
+        <button className="btn primary" type="submit" disabled={busy}>{busy ? "جارٍ الفتح…" : "تابع"}</button>
+        <button className="btn ghost" type="button" onClick={() => onDone("")}>إلغاء</button>
+      </div>
+    </form>
+  );
+};
 
 /** زر الجلسة في الشريط العلوي: يفتحها بكلمة المرور، أو ينشئ كلمة المرور أول مرة. */
 export const OwnerSessionButton: React.FC = () => {

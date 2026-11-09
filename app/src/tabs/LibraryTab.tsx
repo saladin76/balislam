@@ -145,7 +145,7 @@ const Elements: React.FC<{ themeId: ThemeId; allowed: string[]; channelName: str
               {e.kind === "backdrop" ? <Element id={e.id} theme={t} width={1920} height={1080} style={{ width: "100%", height: "100%" }} /> : <Element id={e.id} theme={t} size={78} />}
             </div>
             <span>{e.nameAr}</span>
-            <code className="help" style={{ direction: "ltr", fontSize: 11 }}>{copied === e.id ? "نُسخ ✓" : e.id}</code>
+            <code className="help" style={{ direction: "ltr", fontSize: 12 }}>{copied === e.id ? "نُسخ ✓" : e.id}</code>
           </button>
         ))}
       </div>

@@ -209,6 +209,8 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
     const { planIssues } = await load("/src/plan/validate.ts");
     const { loadChannel } = await load("/src/channel/index.ts");
     const { summarizeSceneProduction } = await load("/src/studio/sceneService.ts");
+    const { episodeLength } = await load("/src/plan/episodeLength.ts");
+    const { collectMedia } = await load("/src/plan/collect.ts");
     const out = [];
     for (const d of await episodeDirs(episodesDir)) {
       const dir = path.join(episodesDir, d);
@@ -241,6 +243,8 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
         blocking: issues.filter((i: any) => i.level === "error").length,
         package: { video: Boolean(video), shorts: pkgFiles.filter((f) => /-short-\d\.mp4$/.test(f)).length, thumbnails: pkgFiles.filter((f) => f.endsWith(".png")).length, updatedAt: video ? statSync(path.join(pkgDir, video)).mtimeMs : null },
         planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
+        // One length everywhere (D52): the plan's own duration, measured once the voice exists.
+        length: plan ? episodeLength(plan, await collectMedia(id, plan).catch(() => undefined)) : null,
         style: styleOf((fm as { style?: string }).style, scenes),
         status,
         // حالة الحلقة في الخطوات الأربع من سجل الإنتاج نفسه (المصدر الوحيد للاعتماد)

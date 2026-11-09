@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { api, type OwnRecitationsRead } from "../api";
 import { RecitationItem } from "./RecitationItem";
 import { useOwnerSession } from "../shell/ownerSession";
+import { num } from "../ui/format";
 import "./scene-production.css";
 
-const ar = (n: number) => n.toLocaleString("ar-EG");
+const ar = (n: number) => num(n);
 
 /**
  * Step ٣ «النسخة النهائية» (owner decision, 8 Nov: recitations come LAST).
@@ -17,7 +18,13 @@ const ar = (n: number) => n.toLocaleString("ar-EG");
  * The final gates are unchanged: every scene approved unconditionally with its recitation, the assembly
  * watched 1× with every seam, then Master, then publish permission.
  */
-export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onChanged?: () => void }> = ({ episodeId, channelId, onChanged }) => {
+export const PreFinalPanel: React.FC<{
+  episodeId: string; channelId: string; onChanged?: () => void;
+  /** Step ٣ still locked (D52): only the recitation uploads, allowed early (D35), under «يمكنك الآن». */
+  recitationsOnly?: boolean;
+  /** Scene order, to name scenes «المشهد ٣» instead of their ids. */
+  order?: string[];
+}> = ({ episodeId, channelId, onChanged, recitationsOnly, order: orderProp }) => {
   const owner = useOwnerSession();
   const [pre, setPre] = useState<{ preview: string | null; entry: { version: number; updatedAt: string | null } | null } | null>(null);
   const [recs, setRecs] = useState<OwnRecitationsRead | null>(null);
@@ -25,20 +32,28 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
 
+  const [order, setOrder] = useState<string[]>(orderProp ?? []);
   const load = async () => {
-    const [p, r] = await Promise.all([api.preFinal(episodeId, channelId).catch(() => null), api.ownRecitations(episodeId, channelId).catch(() => null)]);
+    const [p, r, w] = await Promise.all([
+      recitationsOnly ? Promise.resolve(null) : api.preFinal(episodeId, channelId).catch(() => null),
+      api.ownRecitations(episodeId, channelId).catch(() => null),
+      orderProp ? Promise.resolve(null) : api.sceneProduction(episodeId, channelId).catch(() => null),
+    ]);
     setPre(p);
     setRecs(r);
+    if (w) setOrder(w.scenes.map((x) => x.id));
   };
   useEffect(() => { setError(""); setMsg(""); void load(); }, [episodeId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const guard = async (label: string, work: () => Promise<void>) => {
-    if (!owner.open) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
+  /** A closed session is opened by the action itself, next to the control that asked (D52). */
+  const guard = async (label: string, work: (secret: string) => Promise<void>, anchor?: HTMLElement | null) => {
+    const secret = owner.open ? owner.secret : await owner.ensure(anchor ?? null);
+    if (!secret) return;
     setBusy(label);
     setError("");
     setMsg("");
     try {
-      await work();
+      await work(secret);
       await load();
       onChanged?.();
     } catch (e) {
@@ -47,23 +62,25 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
       setBusy("");
     }
   };
-  const makePreFinal = () => guard("prefinal", async () => {
-    const r = await api.makePreFinal(episodeId, channelId, owner.secret);
+  const makePreFinal = (anchor?: HTMLElement | null) => guard("prefinal", async (secret) => {
+    const r = await api.makePreFinal(episodeId, channelId, secret);
     setMsg(`جُمعت ${ar(r.scenes)} مشاهد${r.recitationPending.length ? `؛ ${ar(r.recitationPending.length)} آية صامتة بانتظار تلاوتها` : ""}.`);
   });
   const verses = recs?.verses ?? [];
   const keys = [...new Set(verses.map((v) => v.key))];
   const missing = keys.filter((k) => !recs?.approved[k]);
 
+  if (recitationsOnly && !keys.length) return null;
   return (
-    <section className="scene-first-panel sp pf" aria-label="معاينة قبل النهائية والتلاوات">
+    <section className="scene-first-panel sp pf" aria-label={recitationsOnly ? "التلاوات" : "معاينة قبل النهائية والتلاوات"}>
+      {recitationsOnly ? null : <>
       <div className="sp-row">
         <div>
           <h3>معاينة قبل النهائية</h3>
           <p className="sp-hint">كل المشاهد الحالية بالترتيب (المعتمدة والمسودات) بصوت الراوي، والآيات صامتة بعلامة «التلاوة تُضاف لاحقًا». للمشاهدة فقط: ليست اعتمادًا ولا تجميعًا ولا نسخة نهائية.</p>
         </div>
         <div className="sp-actions">
-          <button type="button" className="btn primary" disabled={Boolean(busy) || !owner.open} onClick={() => void makePreFinal()}>
+          <button type="button" className="btn primary" aria-busy={Boolean(busy)} onClick={(e) => { if (!busy) void makePreFinal(e.currentTarget); }}>
             {busy === "prefinal" ? "جارٍ التجميع…" : pre?.preview ? "حدّث المعاينة قبل النهائية" : "اصنع المعاينة قبل النهائية"}
           </button>
         </div>
@@ -72,6 +89,7 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
         <video key={`${pre.entry?.version ?? 0}`} className="scene-first-video" controls preload="metadata"
           src={api.previewUrl(episodeId, pre.preview)} aria-label="المعاينة قبل النهائية بلا تلاوات" />
       ) : null}
+      </>}
 
       {keys.length ? (
         <div className="pf-recs">
@@ -79,7 +97,7 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
           <p className="sp-hint">سجّل الآيات بنفسك وارفع كل تلاوة هنا. تُحفظ نسختك الأصلية كما هي، وتُجهَّز نسخة معالجة (قصّ صمت الطرفين، تنقية خفيفة، وعلوّ مطابق للراوي)؛ ولك أن تختار الأصل. لا جلب ولا توليد للقرآن.</p>
           <ul className="pf-rec-list">
             {keys.map((key) => (
-              <RecitationItem key={key} episodeId={episodeId} channelId={channelId} ayahKey={key} recs={recs}
+              <RecitationItem key={key} episodeId={episodeId} channelId={channelId} ayahKey={key} recs={recs} order={order}
                 scenes={verses.filter((v) => v.key === key).map((v) => v.sceneId)} onChanged={async () => { await load(); onChanged?.(); }} />
             ))}
           </ul>

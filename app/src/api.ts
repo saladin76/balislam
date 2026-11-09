@@ -38,6 +38,8 @@ export type Overview = {
   blocking: number;
   package: { video: boolean; shorts: number; thumbnails: number; updatedAt: number | null };
   planUpdatedAt: number | null;
+  /** One episode length everywhere (D52): the plan's duration, "voice" once measured from the narration. */
+  length?: { seconds: number; source: "voice" | "plan" } | null;
   /** الأسلوب الغالب على الحلقة (للتنوّع) */
   style: string;
   status: EpisodeStatus;

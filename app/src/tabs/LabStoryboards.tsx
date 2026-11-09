@@ -4,6 +4,7 @@
  * والتكبير في نافذة تفحص التفاصيل (ملء الشاشة، 100%، 200%، والأصل في تبويب جديد للتكبير باللمس).
  * القرار (معتمد فنيًا / يحتاج تعديلًا) زر صريح بنص مكتوب؛ لا يتغير شيء بمجرد العرض.
  */
+import { arDigits, num } from "../ui/format";
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
 import { STORYBOARD_STATUS_AR, labStoryboardsEnabled, shownStatus, type StoryboardEntry, type StoryboardStatus, type StoryboardVersion } from "../../../src/channel/labStoryboardsShared";
@@ -61,7 +62,7 @@ const Decide: React.FC<{ channel: string; dir: string; slot: string; v: Storyboa
   if (!open)
     return (
       <div className="sbi-decide">
-        <span className="help">قرارك على النسخة {v.version}:</span>
+        <span className="help">قرارك على النسخة {num(v.version)}:</span>
         <button onClick={() => setOpen("approved")}>اعتمدها فنيًا…</button>
         <button onClick={() => setOpen("changes")}>تحتاج تعديلًا…</button>
         {v.status !== "review" ? <button onClick={() => setOpen("review")}>أعدها للمراجعة…</button> : null}
@@ -84,14 +85,14 @@ const Version: React.FC<{ channel: string; dir: string; e: StoryboardEntry; v: S
   <figure className="sbi-version">
     {/* بعرض البطاقة كاملًا في إطار يُمرَّر داخله، فتُقرأ التفاصيل دون تصغير الصورة الطويلة إلى ارتفاع الشاشة */}
     <div className="sbi-thumb" tabIndex={0} aria-label={`${v.title}: مرّر داخل الإطار، أو كبّر`}>
-      <img src={api.labStoryboardUrl(channel, dir, v.file)} alt={v.title} loading="lazy" onClick={() => onZoom(v)} />
+      <LabImage src={api.labStoryboardUrl(channel, dir, v.file)} alt={v.title} onClick={() => onZoom(v)} />
     </div>
     <figcaption>
       <span className="sbi-line">
         <span className="sbi-kind">صورة</span> <b>{label}</b> <Status v={v} />
         <button className="sbi-zoom-btn" onClick={() => onZoom(v)}>تكبير وفحص التفاصيل</button>
       </span>
-      <span className="help">النسخة {v.version} · {date(v.uploadedAt)} · <code dir="ltr">{v.file}</code>{v.source && v.source !== v.file ? <> (الأصل <code dir="ltr">{v.source}</code>)</> : null}</span>
+      <span className="help" title={v.source && v.source !== v.file ? `${v.file} ← ${v.source}` : v.file}>النسخة {num(v.version)} · {date(v.uploadedAt)}</span>
       <span>{v.title}</span>
       {v.note ? <span className="help">{v.note}</span> : null}
       {v.decision ? (
@@ -127,13 +128,13 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
       {entries.map((e) => {
         const cur = e.versions.find((v) => v.version === picked[e.slot]) ?? e.latest;
         const prev = e.versions.find((v) => v.version < cur.version);
-        const zoomOf = (v: StoryboardVersion) => setZoom({ src: api.labStoryboardUrl(channel, dir, v.file), title: `${e.title} · النسخة ${v.version}` });
-        const labelOf = (v: StoryboardVersion) => (v.version === e.latest.version ? `النسخة ${v.version} · الأحدث` : `النسخة ${v.version}`);
+        const zoomOf = (v: StoryboardVersion) => setZoom({ src: api.labStoryboardUrl(channel, dir, v.file), title: `${e.title} · النسخة ${num(v.version)}` });
+        const labelOf = (v: StoryboardVersion) => (v.version === e.latest.version ? `النسخة ${num(v.version)} · الأحدث` : `النسخة ${num(v.version)}`);
         return (
           <section key={e.slot} className="sbi-entry">
             <div className="sbi-head">
               <h5>{e.title}</h5>
-              {e.order ? <span className="sbi-order">الأمر {e.order}</span> : null}
+              {e.order ? <span className="sbi-order">الأمر {arDigits(String(e.order))}</span> : null}
               <span className="sbi-tabs" role="tablist">
                 {e.versions.map((v) => (
                   <button key={v.version} role="tab" aria-selected={v.version === cur.version} className={v.version === cur.version ? "on" : ""} onClick={() => setPicked({ ...picked, [e.slot]: v.version })}>
@@ -142,7 +143,7 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
                 ))}
                 {prev ? (
                   <button className={compare[e.slot] ? "on" : ""} onClick={() => setCompare({ ...compare, [e.slot]: !compare[e.slot] })}>
-                    {compare[e.slot] ? "إخفاء المقارنة" : `قارن بالنسخة ${prev.version}`}
+                    {compare[e.slot] ? "إخفاء المقارنة" : `قارن بالنسخة ${num(prev.version)}`}
                   </button>
                 ) : null}
               </span>
@@ -159,4 +160,11 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
       {zoom ? <Lightbox src={zoom.src} title={zoom.title} onClose={() => setZoom(null)} /> : null}
     </div>
   );
+};
+
+/** An image that may not be on this device: a clear line instead of a broken-image icon (D52). */
+const LabImage: React.FC<{ src: string; alt: string; onClick: () => void }> = ({ src, alt, onClick }) => {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <p className="sbi-missing">الصورة غير متاحة على هذا الجهاز بعد.</p>;
+  return <img src={src} alt={alt} loading="lazy" onClick={onClick} onError={() => setFailed(true)} />;
 };

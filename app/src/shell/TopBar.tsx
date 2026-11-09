@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { ChannelSummary, EpisodeSummary } from "../api";
 import { OwnerSessionButton } from "./ownerSession";
 import type { StudioSection } from "../ui/StudioSidebar";
+import { arDigits } from "../ui/format";
 
 export type ManageItem = { id: StudioSection; label: string; note?: string };
 
@@ -32,7 +33,7 @@ export const TopBar: React.FC<Props> = (p) => {
       <nav className="tb-channels" aria-label="القناة">
         {p.channels.map((c) => (
           <button key={c.id} type="button" data-ch={c.id} className="tb-ch" aria-pressed={c.id === p.channelId} onClick={() => p.onChannel(c.id)}>
-            <i aria-hidden="true" />{c.name}
+            <i aria-hidden="true" /><span className="tb-ch-name">{c.name}</span>
           </button>
         ))}
       </nav>
@@ -40,7 +41,7 @@ export const TopBar: React.FC<Props> = (p) => {
         <button type="button" className="tb-link" aria-current={p.atHome ? "page" : undefined} onClick={p.onHome}>حلقات القناة</button>
         {p.inEpisode && p.episodes?.length ? (
           <select id="episode-select" aria-label="الحلقة" value={p.episodeId} onChange={(e) => p.onEpisode(e.target.value)}>
-            {p.episodes.map((e) => <option key={e.id} value={e.id}>{e.id} — {e.title || e.dir}</option>)}
+            {p.episodes.map((e) => <option key={e.id} value={e.id}>{arDigits(e.id)} — {e.title || e.dir}</option>)}
           </select>
         ) : null}
       </div>

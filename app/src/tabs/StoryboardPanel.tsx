@@ -11,14 +11,17 @@ import { boardWords, shotElements, shotFrame, shotKind, shotText } from "../../.
 import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
-import { api, type EpisodePreview, type LongJob, type StoryboardInfo } from "../api";
+import { api, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
+import { episodeLength } from "../../../src/plan/episodeLength";
+import { duration, lengthSource, num, sceneName, verseRef } from "../ui/format";
+import { BoardViewer, type BoardShot } from "./BoardViewer";
 import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
 import { BoardAuditLog, auditLogOnTop } from "./BoardAuditLog";
 import "../shell/screens-s12.css";
 
-const ar = (n: number) => n.toLocaleString("ar-EG");
-const fmtAr = (sec: number) => `${ar(Math.floor(sec / 60))}:${ar(Math.floor(sec % 60)).padStart(2, "٠")}`;
+const ar = (n: number) => num(n);
+const fmtAr = (sec: number) => duration(Math.floor(sec));
 const elName = new Map(elementLibrary.map((e) => [e.id, e.nameAr]));
 
 /** الصورة تُرسم فقط حين تقترب البطاقة من الشاشة (126 مشهدًا لا تُرسم دفعة واحدة) */
@@ -49,11 +52,18 @@ export const StoryboardPanel: React.FC<{
   identity: Identity;
   channel: ChannelInfo;
   media: EpisodeMedia;
-  onOpenScene: (id: string) => void;
+  /** «تحرير المشهد» in the board viewer: the scene's line in the script, inside step ١ (D52). */
+  onEditScene: (line: number, sceneId: string) => void;
   onReload: () => void;
   /** The visual sign-off changed the storyboard fingerprint: the spine re-reads it. */
   onSigned?: () => void;
-}> = ({ episodeId, plan, identity, channel, media, onOpenScene, onReload, onSigned }) => {
+}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, onSigned }) => {
+  const [viewing, setViewing] = useState<number | null>(null);
+  const [citations, setCitations] = useState<ReviewItem[] | null>(null);
+  useEffect(() => {
+    if (viewing === null || citations) return;
+    api.review(episodeId).then((r) => setCitations(r.items), () => setCitations([]));
+  }, [viewing, citations, episodeId]);
   const [info, setInfo] = useState<StoryboardInfo | null>(null);
   const [job, setJob] = useState<LongJob | null>(null);
   const [err, setErr] = useState("");
@@ -135,7 +145,23 @@ export const StoryboardPanel: React.FC<{
       }),
     }));
   }, [plan, media, channel]);
-  const totalSec = rows.reduce((n, r) => n + r.shots.reduce((m, x) => m + x.d, 0), 0) / fps;
+  // The same length as the episode list (D52), and where it comes from.
+  const length = useMemo(() => episodeLength(plan, media, fps), [plan, media, fps]);
+  const flat: BoardShot[] = useMemo(() => rows.flatMap(({ ch, shots }) => shots.map((x) => ({ ...x, chapter: { number: ch.number, title: ch.title } }))), [rows]);
+  const order = useMemo(() => flat.map((x) => x.s.id), [flat]);
+  const indexOf = useMemo(() => new Map(order.map((id, i) => [id, i])), [order]);
+  const thumb = (x: BoardShot, ch: Plan["chapters"][number]) => (
+    <Thumbnail
+      component={SceneComp}
+      inputProps={{ scene: x.s, themeId: plan.themeId, orientation: "landscape", eyebrow: chapterEyebrow(channel, lang.strings.chapter, ch), identity, channel, lang: plan.lang, media, episodeOverlays: plan.overlays }}
+      compositionWidth={W}
+      compositionHeight={H}
+      durationInFrames={x.d}
+      frameToDisplay={shotFrame(x.s, x.d, boardWords(x.s, media), fps)}
+      fps={fps}
+      style={{ width: "100%" }}
+    />
+  );
 
   useEffect(() => {
     setVisualReviewNote("");
@@ -212,8 +238,8 @@ export const StoryboardPanel: React.FC<{
     <div className={`storyboard s12-board${details ? " is-detailed" : ""}`}>
       <header className="s12-board-head">
         <Hint>راجع كل لوحة: صورتها ونص تعليقها.</Hint>
-        <span className="s12-num">
-          {ar(sceneCount)} مشهدًا · {fmtAr(totalSec)}
+        <span className="s12-num" title={lengthSource(length)}>
+          {ar(sceneCount)} مشهدًا · {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
           {st && st.approved ? <span className="s12-soft"> · معتمد {ar(st.approved)}</span> : null}
         </span>
         {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
@@ -232,27 +258,17 @@ export const StoryboardPanel: React.FC<{
               const state = st?.scenes[s.id];
               const els = shotElements(s);
               return (
-                <article key={s.id} className="sb-shot s12-shot" role="button" tabIndex={0} aria-label={`المشهد ${s.id}`} onClick={() => onOpenScene(s.id)} onKeyDown={(e) => e.key === "Enter" && onOpenScene(s.id)}>
-                  <Lazy>
-                    <Thumbnail
-                      component={SceneComp}
-                      inputProps={{ scene: s, themeId: plan.themeId, orientation: "landscape", eyebrow: chapterEyebrow(channel, lang.strings.chapter, ch), identity, channel, lang: plan.lang, media, episodeOverlays: plan.overlays }}
-                      compositionWidth={W}
-                      compositionHeight={H}
-                      durationInFrames={d}
-                      frameToDisplay={shotFrame(s, d, boardWords(s, media), fps)}
-                      fps={fps}
-                      style={{ width: "100%" }}
-                    />
-                  </Lazy>
+                <article key={s.id} className="sb-shot s12-shot" role="button" tabIndex={0} aria-label={`افتح لوحة ${sceneName(order, s.id)}`} title={s.id}
+                  onClick={() => setViewing(indexOf.get(s.id) ?? 0)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewing(indexOf.get(s.id) ?? 0); } }}>
+                  <Lazy>{thumb({ s, d, from, chapter: ch }, ch)}</Lazy>
                   <div className="sb-txt s12-txt">
                     <p className="s12-shot-meta">
-                      <span className="s12-id">{s.id}</span>
+                      <span className="s12-id">{sceneName(order, s.id)}</span>
                       {state === "approved" ? <span className="s12-mark ok" title="معتمد">معتمد</span> : state === "changed" ? <span className="s12-mark warn" title="تغيّر بعد الاعتماد">تغيّر</span> : null}
                       <span className="spacer" />
                       <span className="s12-time">{fmtAr(from / fps)}</span>
                     </p>
-                    <p className="sb-said">{s.narration || (s.template === "verse-card" ? `[آية: ${s.props.reference ?? ""}]` : "بلا تعليق صوتي")}</p>
+                    <p className="sb-said">{s.narration || (s.template === "verse-card" ? `[آية: ${verseRef(s.ayahKey ?? s.props.reference)}]` : "بلا تعليق صوتي")}</p>
                     {details ? (
                       <div className="s12-shot-details">
                         <p className="sb-kind">{shotKind(s)}</p>
@@ -262,12 +278,12 @@ export const StoryboardPanel: React.FC<{
                           <details className="sb-motion-after-voice" onClick={(e) => e.stopPropagation()}>
                             <summary>تقرير الحركة الفني (مرحلة لاحقة)</summary>
                             <p className={`sb-motion${m.stale ? " stale" : ""}`}>
-                              {m.stale ? "تغيّر بعد القياس" : `${m.pct}٪ حركة · أطول سكون ${m.still} ث`}
+                              {m.stale ? "تغيّر بعد القياس" : `${ar(m.pct)}٪ حركة · أطول سكون ${ar(m.still)} ث`}
                             </p>
                             {!m.stale && m.logic ? (
                               <div className="sb-logic">
                                 <strong>{m.logic.status === "needs-review" ? "مراجعة منطق الحركة مطلوبة" : m.logic.status === "not-assessable" ? "تعذّر تقييم ملاءمة الحركة للنص آليًا" : "لم تُكتشف مخالفات في مراسي الأحداث"}</strong>
-                                <span>الكلمات المحفّزة المطابقة: {m.logic.matched} من {m.logic.total}</span>
+                                <span>الكلمات المحفّزة المطابقة: {ar(m.logic.matched)} من {ar(m.logic.total)}</span>
                                 {m.logic.findings.filter((f) => f.level === "warning").map((f, i) => (
                                   <p key={i} className="warn">{f.message}</p>
                                 ))}
@@ -291,6 +307,17 @@ export const StoryboardPanel: React.FC<{
         </section>
       ))}
 
+      {viewing !== null && flat[viewing] ? (
+        <BoardViewer shots={flat} index={viewing} order={order} fps={fps} citations={citations}
+          lineEnd={(i) => flat[i + 1]?.s.line ?? Number.MAX_SAFE_INTEGER}
+          onIndex={setViewing} onClose={() => setViewing(null)}
+          onEdit={(line, id) => { setViewing(null); onEditScene(line, id); }}
+          frame={(x) => thumb(x, plan.chapters.find((c) => c.number === x.chapter.number)!)}
+          onScreen={(sc) => shotText(sc)}
+          elements={(sc) => shotElements(sc).map((id) => elName.get(id) ?? id)}
+          state={st?.scenes[flat[viewing]!.s.id]} />
+      ) : null}
+
       {/* فيديوهات الحلقة ظاهرة دائمًا تحت اللوحات، لا مطوية: هي ما يُراجَع */}
       <Previews episodeId={episodeId} />
 
@@ -311,9 +338,9 @@ export const StoryboardPanel: React.FC<{
         <section className="s12-tool sb-quran-text-source" aria-label="نصوص الآيات">
           <h3 className="s12-h">نصوص الآيات</h3>
           <p className="s12-soft">تُكتب الآية داخل السكريبت: [آية: النجم 39 | النص بالتشكيل]. المقارنة تعرض الفروق ولا تعدّل النص ولا تعتمد شيئًا.</p>
-          {quranStatus && <p role="status">موجودة محليًا: {quranStatus.existing.length} · ناقصة: {quranStatus.missing.length} · غير صالحة: {quranStatus.invalid.length}</p>}
-          {!!quranStatus?.missing.length && <p className="s12-soft">الناقص: {quranStatus.missing.join("، ")}</p>}
-          {!!quranStatus?.invalid.length && <p className="s12-soft">مراجع تحتاج تصحيحًا من المصدر: {quranStatus.invalid.map((x) => x.ref + " (" + x.reason + ")").join("، ")}</p>}
+          {quranStatus && <p role="status">موجودة محليًا: {ar(quranStatus.existing.length)} · ناقصة: {ar(quranStatus.missing.length)} · غير صالحة: {ar(quranStatus.invalid.length)}</p>}
+          {!!quranStatus?.missing.length && <p className="s12-soft">الناقص: {quranStatus.missing.map(verseRef).join("، ")}</p>}
+          {!!quranStatus?.invalid.length && <p className="s12-soft">مراجع تحتاج تصحيحًا من المصدر: {quranStatus.invalid.map((x) => verseRef(x.ref) + " (" + x.reason + ")").join("، ")}</p>}
           {quranMessage && <p role="status">{quranMessage}</p>}
           <div className="s12-row">
             <button className="btn" type="button" onClick={() => { setQuranMessage(""); api.missingQuranTexts(episodeId).then(({ status }) => setQuranStatus(status)).catch((e) => setQuranMessage(String(e))); }}>
@@ -326,10 +353,10 @@ export const StoryboardPanel: React.FC<{
           {quranAudit && <div role="status" className="s12-audit">
             <p>بيئة مرجع المصحف: {quranAudit.environment}. المطابقة التقنية ليست اعتمادًا شرعيًا.</p>
             {quranAudit.audits.map((a) => <div key={a.key}>
-              <strong>{a.key}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? a.status}</strong>
+              <strong>{verseRef(a.key)}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? a.status}</strong>
               {!a.numbers.ok && <p className="warn">{a.numbers.notes.join("؛ ")}</p>}
               {a.ops.length > 0 && <ul>{a.ops.map((op, i) => <li key={i}>
-                الموضع {op.at + 1}، {op.cls}، {op.op}: في السكريبت «{op.shown || "∅"}»، في المصحف «{op.ref || "∅"}»
+                الموضع {ar(op.at + 1)}، {op.cls}، {op.op}: في السكريبت «{op.shown || "∅"}»، في المصحف «{op.ref || "∅"}»
               </li>)}</ul>}
             </div>)}
           </div>}
@@ -337,18 +364,18 @@ export const StoryboardPanel: React.FC<{
 
         <section className="s12-tool" aria-label="فحص الحركة الفني">
           <h3 className="s12-h">فحص الحركة (اختياري، لمرحلة الفيديو)</h3>
-          {motion ? <p className="s12-soft">آخر قياس: {motion.percent}٪{staleCount ? ` · ${staleCount} مشهدًا تغيّر بعده` : ""}</p> : null}
+          {motion ? <p className="s12-soft">آخر قياس: {ar(motion.percent)}٪{staleCount ? ` · ${ar(staleCount)} مشهدًا تغيّر بعده` : ""}</p> : null}
           {motion ? (
             <details className="sb-technical-metrics">
               <summary>نتائج الفحص</summary>
-              {stills.length > 0 && <p>مشاهد لها سكون أكثر من ثانيتين: {stills.join("، ")}</p>}
-              <p>تحذيرات منطق الحركة: {logicNeedsReview.length} · غير قابلة للتقييم آليًا: {logicNotAssessable.length}</p>
+              {stills.length > 0 && <p>مشاهد لها سكون أكثر من ثانيتين: {stills.map((id) => sceneName(order, id)).join("، ")}</p>}
+              <p>تحذيرات منطق الحركة: {ar(logicNeedsReview.length)} · غير قابلة للتقييم آليًا: {ar(logicNotAssessable.length)}</p>
               {info?.motionAuditNeedsReview ? <p>تقرير الحركة فيه ملاحظات تُراجع أثناء إنتاج الفيديو، وليست رفضًا للوحات.</p> : null}
             </details>
           ) : null}
           <div className="s12-row">
             <button className="btn" onClick={measure} disabled={job?.status === "running"}>
-              {job?.status === "running" ? `يقيس الحركة والمنطق… ${job.pct}%` : motion ? "إعادة الفحص" : "تشغيل الفحص"}
+              {job?.status === "running" ? `يقيس الحركة والمنطق… ${ar(job.pct)}٪` : motion ? "إعادة الفحص" : "تشغيل الفحص"}
             </button>
             {motion ? <button className="btn" onClick={() => void downloadReport()} disabled={reportBusy}>{reportBusy ? "يُجهّز التقرير…" : "تنزيل تقرير الفحص"}</button> : null}
           </div>
@@ -408,7 +435,7 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
                 </div>}
             <figcaption>
               <b>{f.title}</b>
-              <span className="help">رفع رقم {f.version}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
+              <span className="help">رفع رقم {ar(f.version)}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
               {f.note ? <span className="help">{f.note}</span> : null}
             </figcaption>
           </figure>

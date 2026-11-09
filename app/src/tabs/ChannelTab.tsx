@@ -55,15 +55,17 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
   return (
     <div className="channel-tab">
       <div className="toolbar">
-        <h2>القناة</h2>
-        <code className="help" style={{ direction: "ltr" }}>channels/{c.id}/channel.json</code>
+        <h2 title={`channels/${c.id}/channel.json`}>القناة</h2>
         <span className="spacer" />
         <span className="status" role="status"><i className={`dot ${dirty ? "dirty" : ""}`} />{saving ? "جارٍ الحفظ…" : dirty ? "تغييرات غير محفوظة" : "محفوظ"}</span>
-        <button className="btn" disabled={!dirty || saving} onClick={() => setC(JSON.parse(saved))}>تراجع</button>
+        {/* No disabled primary (D52): the save pair appears only when there is something to save. */}
+        {dirty || saving ? <>
+        <button className="btn" disabled={saving} onClick={() => setC(JSON.parse(saved))}>تراجع</button>
         <button
           className="btn primary"
-          disabled={!dirty || saving}
+          aria-busy={saving}
           onClick={async () => {
+            if (saving) return;
             setSaving(true);
             try {
               await api.saveChannel(c);
@@ -79,6 +81,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         >
           {saving ? "جارٍ الحفظ…" : "حفظ"}
         </button>
+        </> : null}
       </div>
       {msg ? <div className={`note ${msg.err ? "err" : ""}`}>{msg.text}</div> : null}
 

@@ -24,6 +24,9 @@ import type { ChannelInfo } from "../../../src/channel/types";
 import { langPack } from "../../../src/i18n/packs";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
 import { More } from "../shell/Screen";
+import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
+import { episodeLength } from "../../../src/plan/episodeLength";
+import { duration, lengthSource, num, sceneName, seconds, verseRef } from "../ui/format";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -136,7 +139,9 @@ export const EpisodeTab: React.FC<{
 
   const liveIssues = useMemo(() => planIssues(plan, channel), [plan, channel]);
   void issues;
-  const totalSec = allScenes.reduce((n, x) => n + sceneSeconds(x.scene, media), 0);
+  // One episode length everywhere (D52).
+  const length = useMemo(() => episodeLength(plan, media), [plan, media]);
+  const order = useMemo(() => allScenes.map((x) => x.scene.id), [allScenes]);
   const voiceState = (s: PlanScene): "none" | "ok" | "stale" | "missing" => {
     if (!s.narration.trim()) return "none";
     const clip = media.voice[s.id];
@@ -163,7 +168,7 @@ export const EpisodeTab: React.FC<{
           channel={channel}
           media={media}
           onReload={onReload}
-          onOpenScene={(id) => {
+          onEditScene={(_line, id) => {
             setSelectedId(id);
             setScope("scene");
             setBoard(false);
@@ -182,11 +187,11 @@ export const EpisodeTab: React.FC<{
             ستوري بورد
           </button>
           <span className="spacer" />
-          <span className="help" style={{ fontVariantNumeric: "tabular-nums" }}>{allScenes.length} مشهدًا · {fmt(totalSec)}</span>
+          <span className="help" style={{ fontVariantNumeric: "tabular-nums" }} title={lengthSource(length)}>{num(allScenes.length)} مشهدًا · {duration(length.seconds)}</span>
         </div>
         {plan.chapters.map((ch) => (
           <div key={ch.number}>
-            <div className="chapter-h">الفصل {ch.number} · {ch.title}</div>
+            <div className="chapter-h">الفصل {num(ch.number)} · {ch.title}</div>
             {ch.scenes.map((s) => {
               const d = templateById(s.template);
               return (
@@ -196,9 +201,9 @@ export const EpisodeTab: React.FC<{
                     {voiceState(s) === "ok" ? <span className="badge voice">صوت</span> : voiceState(s) === "stale" ? <span className="badge edited">صوت قديم</span> : null}
                     {s.edited ? <span className="badge edited">معدّل</span> : null}
                     {d && !d.implemented ? <span className="badge todo">قيد البناء</span> : null}
-                    <span className="badge" style={{ fontVariantNumeric: "tabular-nums" }}>{sceneSeconds(s, media).toFixed(1)} ث</span>
+                    <span className="badge" style={{ fontVariantNumeric: "tabular-nums" }}>{seconds(sceneSeconds(s, media))}</span>
                   </span>
-                  <span className="n">{s.narration || s.props.text || s.props.reference || "بلا تعليق صوتي"}</span>
+                  <span className="n">{s.narration || s.props.text || (s.props.reference ? verseRef(s.props.reference) : "") || "بلا تعليق صوتي"}</span>
                 </div>
               );
             })}
@@ -233,7 +238,7 @@ export const EpisodeTab: React.FC<{
         {scope !== "scene" && playing >= 0 && playingId !== sel?.scene.id ? (
           <div className="playing-hint">
             <span>
-              المعروض الآن: <b>المشهد {playing + 1}</b> «{allScenes[playing]!.scene.narration.slice(0, 40)}…». أما الإعدادات في اللوحة الجانبية فهي للمشهد {allScenes.findIndex((x) => x.scene.id === sel?.scene.id) + 1}.
+              المعروض الآن: <b>المشهد {num(playing + 1)}</b> «{allScenes[playing]!.scene.narration.slice(0, 40)}…». أما الإعدادات في اللوحة الجانبية فهي للمشهد {num(allScenes.findIndex((x) => x.scene.id === sel?.scene.id) + 1)}.
             </span>
             <button
               className="btn small"
@@ -277,9 +282,7 @@ export const EpisodeTab: React.FC<{
       {/* إعدادات المشهد */}
       <div className="col side">
         <div className="col-head">
-          <h2>إعدادات المشهد</h2>
-          <span className="spacer" />
-          <code className="help" style={{ direction: "ltr" }}>{scene.id}</code>
+          <h2 title={scene.id}>إعدادات {sceneName(order, scene.id)}</h2>
         </div>
         <div className="inspector">
           <label className="field">
@@ -574,7 +577,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
       <button
         className="btn small"
         disabled={busy || !hasKeys}
-        title={hasKeys ? "" : "أضف مفتاح ElevenLabs واختر صوتك من تبويب «الإعدادات»"}
+        title={hasKeys ? "" : `أضف مفتاح الصوت واختر صوتك من «${KEYS_PAGE}»`}
         onClick={async () => {
           setBusy(true);
           setMsg("");
@@ -591,7 +594,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
       >
         {busy ? "جارٍ التوليد…" : state === "ok" ? "أعد توليد صوت هذا المشهد" : "ولّد صوت هذا المشهد"}
       </button>
-      {!hasKeys ? <span className="help">يتطلب مفتاح ElevenLabs (تبويب «الإعدادات»)</span> : null}
+      {!hasKeys ? <span className="help">يتطلب مفتاح الصوت من <KeysLink /></span> : null}
       {msg ? <span className="help">{msg}</span> : null}
     </div>
   );
@@ -650,7 +653,7 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
       {est ? (
         <div className="help" style={{ fontVariantNumeric: "tabular-nums" }}>
           {est.toGenerate.length === 0 ? `كل المشاهد (${est.total}) لها صوت مطابق.` : `للتوليد ${est.toGenerate.length} من ${est.total} مشهدًا: ${est.chars} حرفًا ≈ ${est.credits} رصيد ElevenLabs. المحفوظ: ${est.cached.length}.`}
-          {!hasKeys ? " (أضف مفتاح ElevenLabs من تبويب «الإعدادات» لتفعيل التوليد)" : ""}
+          {!hasKeys ? <> (أضف مفتاح الصوت من <KeysLink /> لتفعيل التوليد)</> : ""}
         </div>
       ) : null}
       {est?.tashkeel ? <TashkeelBox t={est.tashkeel} /> : null}

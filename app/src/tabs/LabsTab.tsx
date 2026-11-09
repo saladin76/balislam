@@ -2,6 +2,7 @@
  * «مختبرات الإنتاج» (الأمر 017): التجارب الإخراجية ومعايناتها لقناة واحدة، منفصلة عن الحلقات.
  * المختبر ليس حلقة: لا يدخل قائمة الحلقات ولا النشر ولا التصدير. والقسم للقراءة؛ مصدره lab.json في مجلد المختبر.
  */
+import { num } from "../ui/format";
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import type { LabStatus, LabSummary } from "../../../src/channel/labs";
@@ -33,9 +34,8 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
       {labs.map((l) => (
         <section key={l.dir} className="lab-card">
           <div className="lab-title">
-            <h3>{l.title}</h3>
+            <h3 title={l.dir}>{l.title}</h3>
             <Badge s={l.status} />
-            <code dir="ltr">{l.dir}</code>
             <span className="help">آخر نشاط: {date(l.lastActivity)}</span>
           </div>
           <p>{l.purpose}</p>
@@ -51,7 +51,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
                   <video src={api.labPreviewUrl(channel, l.dir, f.name)} controls preload="metadata" playsInline />
                   <figcaption>
                     <b>{f.title}</b> <Badge s={f.status} />
-                    <span className="help">رفع رقم {f.version} · {date(f.updatedAt)}</span>
+                    <span className="help">رفع رقم {num(f.version)} · {date(f.updatedAt)}</span>
                     {f.note ? <span className="help">{f.note}</span> : null}
                   </figcaption>
                 </figure>

@@ -5,10 +5,11 @@ import "./shell/shell.css";
 import { TopBar, type ManageItem } from "./shell/TopBar";
 import { EpisodeSpine, type StepTab } from "./shell/EpisodeSpine";
 import { OwnerSessionProvider } from "./shell/ownerSession";
+import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedStep";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
-import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
+import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary, type SceneProductionRead } from "./api";
 import { scriptSaveMessage } from "./planGuard";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
@@ -28,6 +29,7 @@ import { PublishTab } from "./tabs/PublishTab";
 import { LibraryTab } from "./tabs/LibraryTab";
 import { ChannelTab } from "./tabs/ChannelTab";
 import { useStudioFonts } from "./ui/useStudioFonts";
+import { Dialog } from "./ui/Dialog";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
 import { LabsTab } from "./tabs/LabsTab";
@@ -102,6 +104,8 @@ export const App: React.FC = () => {
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   useEffect(() => setRequestedSceneId(undefined), [channelId, epId]);
+  /** The ledger read by the spine: a locked step renders one `LockedStep` (D52). */
+  const [ledger, setLedger] = useState<{ key: string; w: SceneProductionRead | null } | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
@@ -329,8 +333,9 @@ export const App: React.FC = () => {
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
-      <OwnerSessionProvider>
       <div className="studio-shell shell-v3" data-channel={channelId || channels[0]?.id || ""}>
+      {/* Inside the shell so the anchored passphrase popover wears the channel's tokens (D52). */}
+      <OwnerSessionProvider>
       <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
         <TopBar
           channels={channels}
@@ -374,6 +379,7 @@ export const App: React.FC = () => {
               setTab(next);
             }}
             onDecided={() => setHomeKey((k) => k + 1)}
+            onState={(w) => setLedger({ key: `${channelId}/${epId}`, w })}
           />
         ) : null}
 
@@ -492,7 +498,18 @@ export const App: React.FC = () => {
           </div>
         ) : !plan || !check ? (
           <div className="empty-state"><h2>جارٍ فتح الحلقة…</h2></div>
-        ) : tab === "storyboard" ? (
+        ) : (tab === "episode" || tab === "review" || tab === "publish") && ledger?.key !== `${channelId}/${epId}` ? (
+          <div className="empty-state"><h2>جارٍ قراءة حالة الحلقة…</h2></div>
+        ) : lockedStep(tab as StepTab, ledger?.w ?? null) ? (() => {
+          const n = lockedStep(tab as StepTab, ledger!.w)!;
+          const next = nextAction(ledger!.w);
+          const verses = plan.chapters.flatMap((c) => c.scenes).filter((x) => x.template === "verse-card" && x.ayahKey).length;
+          return (
+            <LockedStep step={n} {...LOCK_COPY[n]} action={{ label: next.label, onClick: () => { if (confirmLeaveScript()) setTab(next.tab); } }}
+              nowNote={n === 2 && verses ? "التلاوات تُضاف آخرًا، ويمكنك تسجيل الآيات ورفعها من الآن؛ لا يُعتمد شيء غيرها هنا قبل أوانه." : undefined}
+              now={n === 2 && verses ? <PreFinalPanel key={`recs:${channelId}:${epId}`} episodeId={epId} channelId={channelId} recitationsOnly onChanged={() => setHomeKey((k) => k + 1)} /> : undefined} />
+          );
+        })() : tab === "storyboard" ? (
           <div className="ew-storyboard-wrap"><StoryboardPanel
             key={`${channelId}:${epId}`}
             episodeId={epId}
@@ -500,7 +517,7 @@ export const App: React.FC = () => {
             identity={ident.draft}
             channel={channel}
             media={media}
-            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+            onEditScene={(line) => { setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 80); }}
             onReload={() => loadEpisode(epId, { keepScript: true })}
             onSigned={() => setHomeKey((k) => k + 1)}
           /></div>
@@ -631,8 +648,8 @@ export const App: React.FC = () => {
         ) : null}
         {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
       </div>
-      </div>
       </OwnerSessionProvider>
+      </div>
       </ChannelProvider>
     </IdentityProvider>
   );
@@ -645,10 +662,7 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
   const [title, setTitle] = useState(initialTitle ?? "");
   const [err, setErr] = useState("");
   return (
-    <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <form
-        className="modal"
-        style={{ width: 520 }}
+    <Dialog as="form" labelledBy="new-episode-title" onClose={onClose} width={520}
         onSubmit={async (e) => {
           e.preventDefault();
           setErr("");
@@ -660,7 +674,7 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
           }
         }}
       >
-        <div className="modal-head"><h3>حلقة جديدة</h3></div>
+        <div className="modal-head"><h3 id="new-episode-title">حلقة جديدة</h3></div>
         <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label className="field"><span>العنوان (سؤال)</span><input id="new-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="لماذا نؤجّل ما نعرف أنه مهم؟" required /></label>
           <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10 }}>
@@ -679,8 +693,7 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
             <button type="submit" className="btn primary">إنشاء</button>
           </div>
         </div>
-      </form>
-    </div>
+    </Dialog>
   );
 };
 

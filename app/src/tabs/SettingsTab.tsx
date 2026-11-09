@@ -82,10 +82,8 @@ export const SettingsTab: React.FC<{
 
   return (
     <div className="settings-tab">
-      <div className="settings-head">
-        <h2>الإعدادات والمفاتيح</h2>
-        {back}
-      </div>
+      {/* The page title is the shell's «الاتصالات والمفاتيح» (D52): no second heading here. */}
+      {back ? <div className="settings-head">{back}</div> : null}
       <div className="note">المفاتيح تُحفظ على هذا الجهاز فقط، ولا تظهر قيمها هنا بعد الحفظ.</div>
       <details className="settings-tech">
         <summary>تفاصيل تقنية</summary>
@@ -102,11 +100,12 @@ export const SettingsTab: React.FC<{
         <KeyInput id="k-el" label="المفتاح" state={keys.ELEVENLABS_API_KEY} onSave={(v) => save({ ELEVENLABS_API_KEY: v })} placeholder="sk_…" />
         <div className="key-row">
           <label>الصوت</label>
-          <span className={`key-state ${voiceId ? "on" : ""}`}>{voiceId ? voiceId : "لم يُختر"}</span>
-          <span className="spacer" />
-          <button className="btn primary small" disabled={!keys.ELEVENLABS_API_KEY?.set || busy === "elevenlabs"} onClick={test}>
-            {busy === "elevenlabs" ? "جارٍ الاختبار…" : "اختبر الاتصال"}
-          </button>
+          <span className={`key-state ${voiceId ? "on" : ""}`}>{voiceId ? "مختار" : "لم يُختر"}</span>
+          {keys.ELEVENLABS_API_KEY?.set ? (
+            <button className="btn primary small" type="button" aria-busy={busy === "elevenlabs"} onClick={() => { if (busy !== "elevenlabs") void test(); }}>
+              {busy === "elevenlabs" ? "جارٍ الاختبار…" : "اختبر الاتصال"}
+            </button>
+          ) : <span className="help">احفظ المفتاح أولًا، ثم اختبر الاتصال واختر صوتك.</span>}
         </div>
         {el ? (
           el.ok ? (
@@ -114,7 +113,7 @@ export const SettingsTab: React.FC<{
               <b>الاتصال يعمل ✓</b>
               {el.account ? (
                 <span className="help">
-                  الخطة: {el.account.tier} · المستخدَم {el.account.character_count.toLocaleString("ar")} من {el.account.character_limit.toLocaleString("ar")} حرف
+                  الخطة: {el.account.tier} · المستخدَم {el.account.character_count.toLocaleString("ar-EG")} من {el.account.character_limit.toLocaleString("ar-EG")} حرف
                 </span>
               ) : null}
               <span className="help">{el.voiceFound ? "الصوت المختار موجود في حسابك." : "اختر صوتك من القائمة:"}</span>

@@ -13,6 +13,7 @@ import { Thumbnail } from "../../../src/remotion/Thumbnail";
 import config from "../../../config.json";
 import { tones, toneIds, voiceSettingsFor } from "../../../src/voice/tones";
 import type { VoiceProfile } from "../../../src/channel/types";
+import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 /** أنماط عامة للقنوات التي لم تُعتمد هويتها بعد (الافتتاحيات المعتمدة محجوزة لقنواتها) */
@@ -86,11 +87,11 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {voices ? (
             <select id="ch-voice" value={c.voice?.id ?? ""} onChange={(e) => { const v = voices.find((x) => x.id === e.target.value); set({ voice: { ...c.voice, id: v?.id, name: v?.name } }); }} style={{ flex: 1, minWidth: 220 }}>
-              <option value="">الصوت العام من «الإعدادات»</option>
+              <option value="">{`الصوت العام من «${KEYS_PAGE}»`}</option>
               {voices.map((v) => <option key={v.id} value={v.id}>{v.name} ({v.category})</option>)}
             </select>
           ) : (
-            <span style={{ flex: 1 }}>{c.voice?.id ? <b>{c.voice.name ?? c.voice.id}</b> : <span className="help">الصوت العام من «الإعدادات»</span>}</span>
+            <span style={{ flex: 1 }}>{c.voice?.id ? <b>{c.voice.name ?? c.voice.id}</b> : <span className="help">الصوت العام من <KeysLink /></span>}</span>
           )}
           <button className="btn small" onClick={async () => { setVmsg("جارٍ التحميل…"); try { const r = await api.testService("elevenlabs"); if (r.ok && r.voices) { setVoices(r.voices); setVmsg(""); } else setVmsg(r.message ?? "تعذّر جلب الأصوات"); } catch (e) { setVmsg((e as Error).message); } }}>اختيار من أصوات حسابك</button>
           {c.voice?.id ? <button className="btn ghost small" onClick={() => set({ voice: { ...c.voice, id: undefined, name: undefined } })}>رجوع للصوت العام</button> : null}
@@ -310,7 +311,7 @@ const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: Pl
         <span className="help">النموذج:</span>
         {models ? (
           <select value={model} onChange={(e) => setModel(e.target.value)} style={{ minWidth: 260 }}>
-            <option value="">الحالي في الإعدادات</option>
+            <option value="">{`الحالي في «${KEYS_PAGE}»`}</option>
             {models.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.id}){m.arabic ? "" : " — العربية غير مذكورة"}</option>)}
           </select>
         ) : (

@@ -1,27 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { api, type Overview } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
+import { arDigits, duration, lengthSource, num } from "../ui/format";
+import { Dialog } from "../ui/Dialog";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
 
-const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 
 /** مراحل الحلقة من السكريبت إلى النشر، وحالة كل مرحلة. */
 export const stagesOf = (e: Overview): Stage[] => {
   const stale = e.package.video && e.planUpdatedAt && e.package.updatedAt && e.planUpdatedAt > e.package.updatedAt;
   return [
-    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? `صالح · ${fmt(e.check.seconds)}` : `${e.check.errors} خطأ` },
-    { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${e.blocking} يمنع النسخة النهائية` : `${e.scenes} مشهدًا` },
+    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح · ${duration(e.length.seconds)}` : "صالح") : `${num(e.check.errors)} خطأ` },
+    { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${num(e.blocking)} يمنع النسخة النهائية` : `${num(e.scenes)} مشهدًا` },
     {
       key: "voice",
       label: "الصوت",
       state: e.voice.total === 0 ? "na" : e.voice.done === e.voice.total ? "done" : e.voice.done ? "warn" : "todo",
-      note: e.voice.total === 0 ? "—" : `${e.voice.done} من ${e.voice.total}`,
+      note: e.voice.total === 0 ? "—" : `${num(e.voice.done)} من ${num(e.voice.total)}`,
     },
-    { key: "video", label: "الفيديو", state: e.package.video ? (stale ? "warn" : "done") : "todo", note: e.package.video ? (stale ? "أقدم من آخر تعديل" : `حلقة + ${e.package.shorts} شورت`) : "لم يُصنع" },
-    { key: "publish", label: "النشر", state: e.status.published ? "done" : "todo", note: e.status.published ? e.status.published.date : "لم يُنشر" },
+    { key: "video", label: "الفيديو", state: e.package.video ? (stale ? "warn" : "done") : "todo", note: e.package.video ? (stale ? "أقدم من آخر تعديل" : `حلقة + ${num(e.package.shorts)} شورت`) : "لم يُصنع" },
+    { key: "publish", label: "النشر", state: e.status.published ? "done" : "todo", note: e.status.published ? arDigits(e.status.published.date) : "لم يُنشر" },
   ];
 };
 
@@ -39,15 +40,15 @@ export const fourSteps = (e: Overview): HomeStep[] => {
 };
 export const nextLine = (e: Overview): { text: string; tab: HomeStepTab } => {
   const p = e.production;
-  if (!e.check.ok) return { text: `في السكريبت ما يحتاج إصلاحًا (${e.check.errors})`, tab: "script" };
+  if (!e.check.ok) return { text: `في السكريبت ما يحتاج إصلاحًا (${num(e.check.errors)})`, tab: "script" };
   if (!p) return { text: "افتح الحلقة لقراءة حالتها", tab: "storyboard" };
   if (!p.script || !p.storyboard) return { text: "راجع التجهيز (الستوري بورد والسكريبت) واعتمده", tab: "storyboard" };
-  if (!p.canAssemble) return { text: `المشهد ${p.approvedScenes + 1} من ${p.totalScenes} ينتظر قرارك`, tab: "episode" };
+  if (!p.canAssemble) return { text: `المشهد ${num(p.approvedScenes + 1)} من ${num(p.totalScenes)} ينتظر قرارك`, tab: "episode" };
   if (!p.assemblyApproved) return { text: "شاهد الحلقة مجمّعة واعتمدها", tab: "review" };
   if (!p.masterApproved) return { text: "اعتمد النسخة النهائية", tab: "review" };
   if (!p.publishAllowed) return { text: "امنح إذن النشر", tab: "publish" };
   if (!e.status.published) return { text: "جاهزة للنشر", tab: "publish" };
-  return { text: `نُشرت ${e.status.published.date}`, tab: "publish" };
+  return { text: `نُشرت ${arDigits(e.status.published.date)}`, tab: "publish" };
 };
 
 export const HomeTab: React.FC<{
@@ -77,9 +78,8 @@ export const HomeTab: React.FC<{
 
   const visible = selectHomeCards(items, search, filter, sort, (e) => Boolean(e.production?.masterApproved));
   const deleteDialog = del ? (
-    <div className="modal-back" role="dialog" aria-modal="true" aria-labelledby="del-title">
-      <div className="modal">
-        <div className="modal-head"><h3 id="del-title">حذف الحلقة {del.id} نهائيًا</h3></div>
+    <Dialog labelledBy="del-title" onClose={() => { if (!del.busy) setDel(null); }}>
+        <div className="modal-head"><h3 id="del-title">حذف الحلقة {arDigits(del.id)} نهائيًا</h3></div>
         <p>«{del.title}»</p>
         <p className="help">تُحذف نهائيًا ولا يمكن استرجاعها: السكريبت والتشكيل والمشاهد والصوت والفيديو والصور المصغّرة، من جهازك ومن أرشيف البداية النظيفة ومن GitHub.</p>
         <label className="field"><span>اكتب رقم الحلقة ({del.id}) للتأكيد</span><input id="del-confirm" type="text" dir="ltr" value={del.typed} onChange={(ev) => setDel({ ...del, typed: ev.target.value.trim() })} autoFocus /></label>
@@ -87,8 +87,10 @@ export const HomeTab: React.FC<{
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-start" }}>
           <button
             className="btn primary danger"
-            disabled={del.typed !== del.id || del.busy}
+            aria-busy={del.busy}
             onClick={async () => {
+              if (del.busy) return;
+              if (del.typed !== del.id) { setDel({ ...del, msg: `اكتب رقم الحلقة (${del.id}) في الخانة للتأكيد.` }); document.getElementById("del-confirm")?.focus(); return; }
               setDel({ ...del, busy: true, msg: undefined });
               try {
                 const r = await api.deleteEpisode(del.id, del.typed);
@@ -105,8 +107,7 @@ export const HomeTab: React.FC<{
           </button>
           <button className="btn" disabled={del.busy} onClick={() => setDel(null)}>إلغاء</button>
         </div>
-      </div>
-    </div>
+    </Dialog>
   ) : null;
 
   return (
@@ -143,7 +144,7 @@ export const HomeTab: React.FC<{
                 return (
                   <li key={e.id} className="ledger-row">
                     <button type="button" className="ledger-open" onClick={() => onOpen(e.id, next.tab)}>
-                      <span className="ledger-num">{e.id}</span>
+                      <span className="ledger-num"><span>{arDigits(e.id)}</span></span>
                       <span className="ledger-title">
                         <b>{e.title || e.dir}</b>
                         <span className="ledger-next">{next.text}</span>
@@ -156,8 +157,10 @@ export const HomeTab: React.FC<{
                         </li>
                       ))}
                     </ol>
-                    <span className="ledger-len">{fmt(e.check.seconds)}</span>
-                    <button type="button" className="ledger-del" aria-label={`حذف الحلقة ${e.id}`} title="حذف الحلقة" onClick={() => setDel({ id: e.id, title: e.title || e.dir, typed: "" })}>حذف</button>
+                    <span className="ledger-len" title={e.length ? lengthSource(e.length) : undefined}>
+                      {e.length ? <>{duration(e.length.seconds)}<small>{e.length.source === "voice" ? "مقيسة" : "مدة الخطة"}</small></> : null}
+                    </span>
+                    <RowMenu label={`خيارات الحلقة ${arDigits(e.id)}`} items={[{ label: "حذف الحلقة…", danger: true, onSelect: () => setDel({ id: e.id, title: e.title || e.dir, typed: "" }) }]} />
                   </li>
                 );
               })}
@@ -165,6 +168,34 @@ export const HomeTab: React.FC<{
           )}
         </>
       )}
+    </div>
+  );
+};
+
+/** «⋯» for rare, destructive row actions (D52): delete is never a bare word beside every episode. */
+const RowMenu: React.FC<{ label: string; items: { label: string; danger?: boolean; onSelect: () => void }[] }> = ({ label, items }) => {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); btn.current?.focus(); } };
+    document.addEventListener("mousedown", down);
+    document.addEventListener("keydown", key);
+    box.current?.querySelector<HTMLButtonElement>("[role=menuitem]")?.focus();
+    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
+  }, [open]);
+  return (
+    <div className="row-menu" ref={box}>
+      <button ref={btn} type="button" className="ledger-more" aria-haspopup="menu" aria-expanded={open} aria-label={label} title={label} onClick={() => setOpen((v) => !v)}>⋯</button>
+      {open ? (
+        <div className="row-menu-pop" role="menu">
+          {items.map((it) => (
+            <button key={it.label} type="button" role="menuitem" className={it.danger ? "is-danger" : undefined} onClick={() => { setOpen(false); it.onSelect(); }}>{it.label}</button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 };

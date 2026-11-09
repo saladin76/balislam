@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { api, type PreparationRead, type SceneProductionRead } from "../api";
 import { useOwnerSession } from "./ownerSession";
 import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
 import { PrepareAll } from "../workspace/PrepareAll";
 import { arNum, sceneName } from "../workspace/sceneNames";
+import { arDigits } from "../ui/format";
 import { citationNotice } from "./citationNotice";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
@@ -39,13 +40,15 @@ type Props = {
   onTab: (t: StepTab) => void; onDecided: () => void;
   /** «جهّز كل المشاهد» without a voice key links here. */
   onOpenSettings?: () => void;
+  /** The ledger read, shared with the page so a locked step renders one `LockedStep` (D52). */
+  onState?: (w: SceneProductionRead | null) => void;
 };
 
 /**
  * عمود الحلقة: أربع محطات من اليمين إلى اليسار، يمتلئ الخط بلون القناة حتى الخطوة الحالية،
  * وتحتها جملة واحدة بما يلزم الآن وزر واحد. الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
-export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided, onOpenSettings }) => {
+export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided, onOpenSettings, onState }) => {
   const owner = useOwnerSession();
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
@@ -56,10 +59,16 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
   useEffect(() => {
     let live = true;
     setErr("");
-    api.sceneProduction(episodeId, channelId).then((d) => live && setW(d), (e) => live && (setW(null), setErr((e as Error).message)));
+    api.sceneProduction(episodeId, channelId).then(
+      (d) => { if (live) { setW(d); onState?.(d); } },
+      (e) => { if (live) { setW(null); setErr((e as Error).message); onState?.(null); } });
     return () => { live = false; };
   }, [episodeId, channelId, refreshKey, tick]);
   useEffect(() => setReviewed(false), [episodeId, tab]);
+  const approveBtn = useRef<HTMLButtonElement>(null);
+  const reviewedBox = useRef<HTMLInputElement>(null);
+  const noteBox = useRef<HTMLInputElement>(null);
+  const [needs, setNeeds] = useState("");
   const prepOpen = Boolean(w && !(w.script.approved && w.storyboard.approved));
   // Item 12: before the preparation approval, how many citations are still unverified (informative only).
   const [citations, setCitations] = useState("");
@@ -98,7 +107,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
     // Step ٣ owns everything after the scenes: assembly, its review, making and approving the final file.
     // Step ٤ owns only the publish permission and the files (funnel audit 8 Nov, D36: no bouncing).
     if (!w.assembly) return { text: "كل المشاهد معتمدة. ادمجها في نسخة واحدة للمشاهدة الكاملة.", label: "إلى التجميع", go: "review" };
-    if (!w.progress.assemblyApproved) return { text: "شاهد الحلقة المجمعة كاملة 1× وافحص كل وصلة بين مشهدين.", label: "إلى مراجعة التجميع", go: "review" };
+    if (!w.progress.assemblyApproved) return { text: "شاهد الحلقة المجمعة كاملة ١× وافحص كل وصلة بين مشهدين.", label: "إلى مراجعة التجميع", go: "review" };
     if (!done[2]) return { text: "اصنع النسخة النهائية بدقة 4K، شاهدها كاملة، ثم اعتمد هذا الملف بعينه.", label: "إلى النسخة النهائية", go: "review" };
     if (!done[3]) return { text: "النسخة النهائية معتمدة. النشر قرار منفصل لهذا الملف.", label: "إلى النشر", go: "publish" };
     return { text: "مأذون بنشر هذه النسخة النهائية. أي تعديل في مشهد يلغي الإذن.", label: "إلى النشر", go: "publish" };
@@ -110,11 +119,11 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
    * «اعتمد التجهيز»: one owner action. The server writes the script approval, then (if needed) the board
    * record, then the storyboard approval, each checked on its own; then the scenes start preparing.
    */
-  const approvePreparation = async () => {
+  const approvePreparation = async (secret: string) => {
     if (!w) return;
     setBusy(true); setErr("");
     try {
-      await api.approvePreparation(episodeId, channelId, owner.secret, {
+      await api.approvePreparation(episodeId, channelId, secret, {
         scriptSha256: w.script.sha256, storyboardSha256: w.storyboard.sha256, reviewed,
         ...(needNote ? { note: boardNote.trim() } : {}),
       });
@@ -130,6 +139,19 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
     finally { setBusy(false); }
   };
 
+  /**
+   * The primary button is never shown disabled (D52): it says what it does, and on click it asks for
+   * what is still missing, next to itself: the «راجعته بنفسي» tick, the board note, then the passphrase
+   * (anchored popover), and then completes the approval.
+   */
+  const onApprove = async () => {
+    setNeeds("");
+    if (!reviewed) { setNeeds("ضع علامة «راجعته بنفسي» بعد مراجعة التجهيز، ثم اضغط الزر."); reviewedBox.current?.focus(); return; }
+    if (!noteOk) { setNeeds("اكتب ملاحظتك على اللوحات (٢٥ حرفًا على الأقل)."); noteBox.current?.focus(); return; }
+    const secret = owner.open ? owner.secret : await owner.ensure(approveBtn.current);
+    if (!secret) return;
+    await approvePreparation(secret);
+  };
   // «راجعته بنفسي» belongs to one decision: never carried over to another.
   const decideTarget = next?.decide ?? "";
   useEffect(() => setReviewed(false), [decideTarget]);
@@ -140,7 +162,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
     <section className="spine" aria-label="خطوات الحلقة">
       <div className="spine-head">
         <div className="spine-title">
-          <span className="spine-ep" dir="ltr">{episodeId}</span>
+          <span className="spine-ep">{arDigits(episodeId)}</span>
           <h1>{title}</h1>
         </div>
         <span className={`spine-save${saveState === "error" ? " is-err" : unsaved || saveState !== "saved" ? " is-dirty" : ""}`} role="status">
@@ -162,7 +184,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
         })}
       </ol>
       {/* Step ٢ before «اعتمد التجهيز» is itself one line and one button back to step ١: nothing repeated here. */}
-      {next && !(w && !done[0] && here === 1) ? (
+      {/* A locked step screen (D52) carries its own one button: the spine does not repeat it. */}
+      {next && !(w && ((!done[0] && (here === 1 || here === 2)) || (!done[2] && here === 3))) ? (
         <div className={`spine-next${next.fix === "script" && inStep1 ? " has-fix" : ""}${next.decide ? " is-decide" : ""}`}>
           {next.fix === "script"
             ? inStep1 && scriptErrors.length
@@ -176,14 +199,13 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
               </div>}
           {next.decide ? (
             <div className="spine-decide">
-              {!owner.open ? <span className="spine-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span> : (<>
-                {needNote ? (
-                  <input type="text" className="spine-note" value={boardNote} maxLength={3000} onChange={(e) => setBoardNote(e.target.value)}
-                    aria-label="ملاحظة مراجعتك للوحات" placeholder="ملاحظتك على اللوحات: ما راجعته فعلًا (٢٥ حرفًا على الأقل)" />
-                ) : null}
-                <label><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> راجعته بنفسي</label>
-              </>)}
-              <button type="button" className="btn primary" disabled={!owner.open || !reviewed || !noteOk || busy} onClick={() => void approvePreparation()}>{busy ? "جارٍ الاعتماد…" : next.label}</button>
+              {needNote ? (
+                <input ref={noteBox} type="text" className="spine-note" value={boardNote} maxLength={3000} onChange={(e) => { setBoardNote(e.target.value); setNeeds(""); }}
+                  aria-label="ملاحظة مراجعتك للوحات" placeholder="ملاحظتك على اللوحات: ما راجعته فعلًا (٢٥ حرفًا على الأقل)" />
+              ) : null}
+              <label><input ref={reviewedBox} type="checkbox" checked={reviewed} onChange={(e) => { setReviewed(e.target.checked); setNeeds(""); }} /> راجعته بنفسي</label>
+              <button ref={approveBtn} type="button" className="btn primary" aria-busy={busy} onClick={() => { if (!busy) void onApprove(); }}>{busy ? "جارٍ الاعتماد…" : next.label}</button>
+              {needs ? <span className="spine-hint spine-needs" role="alert">{needs}</span> : null}
             </div>
           ) : next.go && (next.fix ? tab !== next.go : !STEPS[stepOf(next.go)]!.tabs.includes(tab)) ? (
             <div className="spine-decide">

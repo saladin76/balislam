@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { api, type LongJob } from "../api";
+import { KeysLink } from "../ui/KeysLink";
+import { num } from "../ui/format";
 
-const ar = (n: number) => Math.round(n).toLocaleString("ar-EG");
+const ar = (n: number) => num(Math.round(n));
 
 /**
  * «اصنع النسخة النهائية» inside step ٣ itself (funnel audit 8 Nov, D36): the owner no longer bounces to
@@ -39,10 +41,14 @@ export const MakeMaster: React.FC<{ episodeId: string; hasVoiceKeys?: boolean; o
   };
   return (
     <>
-      <button className="btn primary" type="button" disabled={running || hasVoiceKeys === false} onClick={() => void start()}>
-        {running ? (job!.queued ? "في الطابور…" : `جارٍ الصنع… ${ar(job!.pct)}٪`) : "اصنع النسخة النهائية"}
-      </button>
-      {hasVoiceKeys === false ? <span className="sp-hint">تحتاج مفتاح الصوت من «الإعدادات».</span> : null}
+      {/* No disabled primary (D52): without a voice key the real next action is adding it. */}
+      {hasVoiceKeys === false ? (
+        <><KeysLink className="btn primary">أضف مفتاح الصوت</KeysLink><span className="sp-hint">النسخة النهائية تحتاج مفتاح الصوت من <KeysLink /> أولًا.</span></>
+      ) : (
+        <button className="btn primary" type="button" aria-busy={running} onClick={() => { if (!running) void start(); }}>
+          {running ? (job!.queued ? "في الطابور…" : `جارٍ الصنع… ${ar(job!.pct)}٪`) : "اصنع النسخة النهائية"}
+        </button>
+      )}
       {job?.status === "error" ? <span className="sp-hint" role="alert">توقف الصنع: {job.error}</span> : null}
       {err ? <span className="sp-hint" role="alert">{err}</span> : null}
     </>

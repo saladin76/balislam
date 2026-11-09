@@ -4,6 +4,7 @@ import { api, type SceneProductionRead, type EpisodeStatus, type LongJob, type P
 import { resolveDescription, type PublishKit } from "../../../src/package/social";
 import { Hint, More, Stage } from "../shell/Screen";
 import "../shell/screens-s45.css";
+import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
@@ -206,7 +207,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   };
 
   const makeButton = (primary: boolean) => (
-    <button type="button" className={`btn${primary ? " primary" : ""}`} disabled={running || !hasVoiceKeys} onClick={() => guarded("make")} title={hasVoiceKeys ? "" : "أضف مفاتيح ElevenLabs من تبويب الإعدادات"}>
+    <button type="button" className={`btn${primary ? " primary" : ""}`} disabled={running || !hasVoiceKeys} onClick={() => guarded("make")} title={hasVoiceKeys ? "" : `أضف مفتاح الصوت من «${KEYS_PAGE}»`}>
       {approved ? "أعد صنع النسخة النهائية" : "اصنع النسخة النهائية"}
     </button>
   );
@@ -219,7 +220,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   return (
     <div className="s45-page s45-publish">
       <Stage
-        title={video ? (isMaster || approved ? "النسخة النهائية (Master)" : "ملف الحلقة") : "النسخة النهائية"}
+        title={video ? (isMaster || approved ? "النسخة النهائية" : "ملف الحلقة") : "النسخة النهائية"}
         meta={video ? <span className={`s45-pill${approved ? " is-on" : ""}`}>{masterState}</span> : null}
       >
         {job ? (
@@ -239,7 +240,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
         {!video ? (
           <div className="s45-empty">
             <strong>{pkg ? "لم تُصنع النسخة النهائية بعد" : "جارٍ التحميل…"}</strong>
-            <Hint>{hasVoiceKeys ? "تُصنع بدقة 4K من المشاهد المعتمدة." : "تحتاج مفاتيح الصوت من «الإعدادات»."}</Hint>
+            <Hint>{hasVoiceKeys ? "تُصنع بدقة 4K من المشاهد المعتمدة." : <>تحتاج مفتاح الصوت من <KeysLink />.</>}</Hint>
             <div className="s45-actions">
               {makeButton(makePrimary)}
               <button type="button" className="btn ghost" disabled={running} onClick={() => guarded("make", true)}>معاينة بلا صوت</button>
@@ -291,9 +292,9 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
               <button type="button" className="btn" disabled={running} onClick={() => guarded("make", true)}>معاينة بلا صوت</button>
               <button type="button" className="btn" disabled={running || !video} onClick={() => guarded("package")} title="يعيد التغليف من الصوت والمشاهد الحالية">أعد التغليف</button>
             </div>
-            {!hasVoiceKeys ? <p className="s45-note">النسخة النهائية تحتاج مفاتيح ElevenLabs (تبويب «الإعدادات»). المعاينة بلا صوت متاحة الآن.</p> : null}
+            {!hasVoiceKeys ? <p className="s45-note">النسخة النهائية تحتاج مفتاح الصوت من <KeysLink />. المعاينة بلا صوت متاحة الآن.</p> : null}
             {card.rerenderWarning ? <p className="s45-note">أي صناعة جديدة تكتب فوق الملف المعتمد فتلغي اعتماده{publishAllowed ? " وإذن النشر" : ""}؛ ستُسأل قبلها.</p> : null}
-            {isMaster && !approved ? <p className="s45-note">اعتماد Master يكون لهذا الملف بعينه من «إنتاج المشاهد» بكلمة مرور المالك؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
+            {isMaster && !approved ? <p className="s45-note">اعتماد النسخة النهائية يكون لهذا الملف بعينه في الخطوة ٣ بكلمة مرور المالك؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
           </More>
 
           <More label={`الشورتس والريلز${shorts.length ? ` · ${shorts.length}` : ""}`}>
@@ -394,8 +395,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                 <PublishForm disabled={!checked.watched || !publishAllowed} onSave={(p) => saveStatus({ ...status, published: p })} />
               )}
               {!checked.watched && !status.published ? <p className="s45-note">علّم «شاهدت الحلقة كاملة» أولًا.</p> : null}
-              {!publishAllowed && !status.published ? <p className="s45-note">يلزم اعتماد Master ثم «إذن نشر هذا Master» من «إنتاج المشاهد» قبل تسجيل النشر.</p> : null}
-              {status.published && !approved ? <p className="s45-note">هذا سجل نشر تاريخي؛ لا يثبت اعتماد نسخة Master الحالية.</p> : null}
+              {!publishAllowed && !status.published ? <p className="s45-note">يلزم اعتماد النسخة النهائية ثم إذن نشرها (الخطوة ٣ ثم ٤) قبل تسجيل النشر.</p> : null}
+              {status.published && !approved ? <p className="s45-note">هذا سجل نشر تاريخي؛ لا يثبت اعتماد النسخة النهائية الحالية.</p> : null}
             </fieldset>
           </More>
 

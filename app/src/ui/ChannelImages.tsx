@@ -115,7 +115,7 @@ const SlotCard: React.FC<{ slot: LibrarySlot; channel: string; file?: string; ve
       </div>
       <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
         <b>{slot.titleAr}</b>
-        <code className="help" style={{ direction: "ltr", fontSize: 11 }}>{slot.id}</code>
+        <code className="help" style={{ direction: "ltr", fontSize: 12 }}>{slot.id}</code>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {slot.museum ? (
             <a className="btn small primary" href={`https://commons.wikimedia.org/w/index.php?search=${encodeURIComponent(slot.museum)}&title=Special:MediaSearch&type=image`} target="_blank" rel="noreferrer" title="صورة حقيقية بترخيص مفتوح: نزّلها بأعلى دقة واكتب اسم مصدرها في «مصدر الصورة» بالمشهد">ابحث في المتاحف</a>

@@ -2,6 +2,7 @@ import { styleIds, styleNameAr, styleTemplate } from "../../../src/plan/styles";
 import React, { useEffect, useMemo, useState } from "react";
 import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
+import { arDigits } from "../ui/format";
 
 /**
  * «غرفة العمليات»: القنوات كلها في شاشة واحدة.
@@ -56,7 +57,7 @@ const varietyWarnings = (eps: Overview[]) => {
   const sorted = [...eps].sort((a, b) => a.id.localeCompare(b.id));
   for (let i = 1; i < sorted.length; i++) {
     const a = sorted[i - 1]!, b = sorted[i]!;
-    if (a.style && b.style && styleKey(a.style) === styleKey(b.style)) out.set(b.id, `نفس أسلوب الحلقة ${a.id} (${styleNameAr(b.style)}). غيّر الأسلوب الأساسي لتبقى القناة متنوعة.`);
+    if (a.style && b.style && styleKey(a.style) === styleKey(b.style)) out.set(b.id, `نفس أسلوب الحلقة ${arDigits(a.id)} (${styleNameAr(b.style)}). غيّر الأسلوب الأساسي لتبقى القناة متنوعة.`);
   }
   return out;
 };
@@ -114,7 +115,7 @@ export const OpsRoom: React.FC<{
       <div className="home-head">
         <div>
           <h1>غرفة العمليات</h1>
-          <p className="help">القنوات كلها في مكان واحد: الجدول، التقدم الفني وبنك الأفكار. اكتمال الفحوص لا يعني اعتماد Master.</p>
+          <p className="help">القنوات كلها في مكان واحد: الجدول، التقدم الفني وبنك الأفكار. اكتمال الفحوص لا يعني اعتماد النسخة النهائية.</p>
         </div>
         <div className="kpis">
           <div><b>{longThisWeek}/{scheduledCount}</b><span>حلقات الأسبوع</span></div>
@@ -153,7 +154,7 @@ export const OpsRoom: React.FC<{
               <React.Fragment key={d.channel.id}>
                 <button className="ops-ch" style={{ borderInlineStartColor: color(d.channel.id) }} onClick={() => setEditCh(d.channel.id)} title="تعديل يوم الحلقة والساعة">
                   <b>{d.channel.name}</b>
-                  <span className="help">{sch ? `حلقة كل ${DAYS[sch.longDay]}${sch.time ? ` · ${sch.time}` : ""}` : "بلا جدول"} ✎</span>
+                  <span className="help">{sch ? `حلقة كل ${DAYS[sch.longDay]}${sch.time ? ` · ${arDigits(sch.time)}` : ""}` : "بلا جدول"} ✎</span>
                 </button>
                 {week.map((day, i) => {
                   const date = iso(day);
@@ -176,7 +177,7 @@ export const OpsRoom: React.FC<{
                     const st = stageOf(fixed);
                     return (
                       <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
-                        <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {fixed.id} · {fixed.title || fixed.dir}</button>
+                        <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {arDigits(fixed.id)} · {fixed.title || fixed.dir}</button>
                         <small>{st === "published" ? "منشورة" : stagesOf(fixed)[3]!.state === "done" ? "الفيديو جاهز" : "الفيديو لم يكتمل بعد!"}</small>
                         {shortsLine ? <small>+ {shortsLine}</small> : null}
                         {cal?.note ? <small className="ops-note">{cal.note}</small> : null}
@@ -188,7 +189,7 @@ export const OpsRoom: React.FC<{
                     if (next) used.add(next.id);
                     return next ? (
                       <div key={i} role="button" tabIndex={0} onClick={open} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
-                        <span>مقترح: {next.id} · {next.title || next.dir}</span>
+                        <span>مقترح: {arDigits(next.id)} · {next.title || next.dir}</span>
                         <button className="btn small primary" onClick={(e) => { e.stopPropagation(); setScheduled(d.channel.id, next, date); }}>ثبّتها لهذا اليوم</button>
                       </div>
                     ) : (
@@ -238,7 +239,7 @@ export const OpsRoom: React.FC<{
                   const w = warnings.get(`${ch.id}/${e.id}`);
                   return (
                     <button key={`${ch.id}/${e.id}`} className="ops-card" style={{ borderInlineStartColor: color(ch.id) }} onClick={() => onOpen(ch.id, e.id, tabFor(st.key))}>
-                      <span className="ops-card-ch" style={{ color: color(ch.id) }}>{ch.name} · {e.id}</span>
+                      <span className="ops-card-ch" style={{ color: color(ch.id) }}>{ch.name} · {arDigits(e.id)}</span>
                       <b>{e.title || e.dir}</b>
                       <span className="ops-card-meta">
                         {e.style ? <span className="chip">{styleNameAr(e.style)}</span> : null}
@@ -254,7 +255,7 @@ export const OpsRoom: React.FC<{
         </div>
         {warnings.size ? (
           <div className="ops-warnings">
-            {[...warnings].map(([k, w]) => <div key={k}>⚠ <b>{data.find((d) => k.startsWith(`${d.channel.id}/`))?.channel.name} {k.split("/")[1]}</b>: {w}</div>)}
+            {[...warnings].map(([k, w]) => <div key={k}>⚠ <b>{data.find((d) => k.startsWith(`${d.channel.id}/`))?.channel.name} {arDigits(k.split("/")[1] ?? "")}</b>: {w}</div>)}
           </div>
         ) : null}
       </section>

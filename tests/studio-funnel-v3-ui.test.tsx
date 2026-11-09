@@ -49,7 +49,7 @@ describe("أربع خطوات", () => {
     expect(fourSteps(overview({ script: true })).map((s) => s.done)).toEqual([false, false, false, false]);
     expect(fourSteps(overview({ script: true, storyboard: true, canAssemble: true, masterApproved: true, publishAllowed: true }, true)).every((s) => s.done)).toBe(true);
     expect(nextLine(overview({ script: true }))).toEqual({ text: "راجع التجهيز (الستوري بورد والسكريبت) واعتمده", tab: "storyboard" });
-    expect(nextLine(overview({ script: true, storyboard: true, approvedScenes: 11 }))).toEqual({ text: "المشهد 12 من 114 ينتظر قرارك", tab: "episode" });
+    expect(nextLine(overview({ script: true, storyboard: true, approvedScenes: 11 }))).toEqual({ text: "المشهد ١٢ من ١١٤ ينتظر قرارك", tab: "episode" });
   });
 
   it("links keep working: each old tab link lands in its new step", () => {
@@ -73,9 +73,11 @@ describe("أربع خطوات", () => {
 describe("الخطوة ١: زر واحد «اعتمد التجهيز»", () => {
   it("the spine sends ONE request with both fingerprints, «راجعته بنفسي» and the board note, then opens step ٢", () => {
     const spine = src("app/src/shell/EpisodeSpine.tsx");
-    expect(spine).toContain("api.approvePreparation(episodeId, channelId, owner.secret, {");
+    expect(spine).toContain("api.approvePreparation(episodeId, channelId, secret, {");
     expect(spine).toContain("scriptSha256: w.script.sha256, storyboardSha256: w.storyboard.sha256, reviewed,");
-    expect(spine).toContain('disabled={!owner.open || !reviewed || !noteOk || busy}');
+    // D52: never a disabled primary; the button asks for what is missing, then the passphrase next to itself.
+    expect(spine).toContain("const secret = owner.open ? owner.secret : await owner.ensure(approveBtn.current);");
+    expect(spine).not.toMatch(/disabled=\{!owner\.open/);
     expect(spine).toContain('onTab("episode")');
     expect(spine).not.toMatch(/approve-script"|approve-storyboard"/);
     // The server path keeps both ledger decisions, each through decideSceneProduction (no new bypass).

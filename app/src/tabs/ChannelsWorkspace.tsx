@@ -1,5 +1,6 @@
 import React from "react";
 import type { ChannelSummary } from "../api";
+import { num } from "../ui/format";
 
 /** A cross-channel directory. Selection is delegated to App, so unsaved-edit protection remains centralized. */
 export const ChannelsWorkspace: React.FC<{
@@ -15,16 +16,16 @@ export const ChannelsWorkspace: React.FC<{
     </header>
     <div className="studio-channel-grid">
       {channels.map((channel) => (
-        <article key={channel.id} className="studio-channel-tile" aria-label={channel.name}>
+        <article key={channel.id} className="studio-channel-tile" data-channel={channel.id} aria-label={channel.name}>
           <div className="studio-channel-tile-top">
             <span className="studio-channel-avatar" aria-hidden="true">{channel.name.slice(0, 1)}</span>
             <span className="studio-channel-context">{channel.id === activeId ? "القناة النشطة" : "قناة مستقلة"}</span>
           </div>
-          <h2>{channel.name}</h2>
-          <p>{channel.language} · {Object.keys(channel.domains || {}).length} مجالات محتوى</p>
+          <h2><span>{channel.name}</span></h2>
+          <p>{num(Object.keys(channel.domains || {}).length)} مجالات محتوى</p>
           <div className="studio-channel-actions">
             <button type="button" onClick={() => onOpen(channel.id, "home")}>حلقات القناة</button>
-            <button type="button" onClick={() => onOpen(channel.id, "channel")}>الإعدادات</button>
+            <button type="button" onClick={() => onOpen(channel.id, "channel")}>إعدادات القناة</button>
             <button type="button" onClick={() => onOpen(channel.id, "identity")}>الهوية البصرية</button>
           </div>
         </article>

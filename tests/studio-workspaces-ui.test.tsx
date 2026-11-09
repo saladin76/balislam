@@ -1,5 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ChannelsWorkspace } from "../app/src/tabs/ChannelsWorkspace";
 import { OpsSectionNav } from "../app/src/tabs/OpsRoom";
@@ -12,12 +14,14 @@ const channels: ChannelSummary[] = [
   { id: "zubdat-alkutub", name: "زبدة الكتب", language: "ar", domains: {} },
 ];
 
+const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+
 describe("Studio workspace separation", () => {
   it("provides independent channel cards with the original management destinations", () => {
     const html = renderToStaticMarkup(<ChannelsWorkspace channels={channels} activeId="balislam" onOpen={() => {}} />);
     for (const name of channels.map((channel) => channel.name)) expect(html).toContain(name);
     expect(html.match(/class="studio-channel-tile"/g)).toHaveLength(3);
-    for (const label of ["حلقات القناة", "الإعدادات", "الهوية البصرية"]) expect(html).toContain(label);
+    for (const label of ["حلقات القناة", "إعدادات القناة", "الهوية البصرية"]) expect(html).toContain(label);
     expect(html).toContain('aria-label="إدارة القنوات الثلاث"');
     expect(html).not.toContain("اعتماد تلقائي");
   });
@@ -33,9 +37,12 @@ describe("Studio workspace separation", () => {
   it("keeps integrated AV review read-only and clearly distinct from Master approval", () => {
     const html = renderToStaticMarkup(<IntegratedReviewWorkspace episodeId="001" onOpen={() => {}} />);
     expect(html).toContain('aria-label="المراجعة المتكاملة للحلقة"');
-    expect(html).toContain("بسرعة طبيعية 1×");
+    // D52: no player before a file exists; the owner reads «النسخة النهائية», never «Master».
+    expect(html).not.toContain("<video");
+    expect(src("app/src/workspace/IntegratedReviewWorkspace.tsx")).toContain("بسرعة طبيعية ١×");
     expect(html).toContain("ثلاثة قرارات مستقلة في «إنتاج المشاهد»");
-    expect(html).toContain("ملفات Master والتسليم");
+    expect(html).toContain("ملفات النسخة النهائية والتسليم");
+    expect(html).not.toMatch(/\bMaster\b/);
     expect(html).not.toContain("اعتماد الحلقة الآن");
     // شاشة واحدة: لا زر مملوء هنا (القرار في لوحة «إنتاج المشاهد»)، والتفاصيل مطوية في «أدوات وتفاصيل»
     expect(html).not.toContain("btn primary");
