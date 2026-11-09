@@ -262,6 +262,53 @@ one made with the passphrase. Every gate after the identity check is untouched. 
 The isolated V2 review API is no longer mounted (`/api/studio-v2/*` returns 410). Its server modules
 (`app/server/studioV2*.ts`, `src/workflow/*V2*.ts`, `src/render/sceneV2*.ts`) were removed in D27.
 
+### Local state, safe update and fresh start (D51)
+
+**Ignored local runtime state.** Only files that are definitely local (signed by the machine key, or bound to local-only
+bytes) are in `.gitignore`, each with its writer: `scene-production.v1.json` + `.lock` (`src/studio/sceneService.ts`,
+`stateFileFor` / `serialized`), `workflow-approvals.json` + `.lock` (`src/workflow/store.ts`), `voice-review.json`
+(bound to `voice/*.mp3`, `src/voice/review.ts`), `previews/.preview-index.lock/` (`src/render/episodePreviews.ts`) and
+every atomic-write `*.tmp` under an episode folder. `voice/` (including `sentences.json`, takes and `voice/superseded/`,
+D50), `out/`, `recitations/`, `status.json` and `.studio/` were already ignored. **Not ignored** (tracked or documented
+as "in Git"): `storyboard.json`, `script-signoff.json`, `review.json`, `scene-review.json`, `publish.json`,
+`notes/resolved.json`.
+
+**Update button.** `app/server/update.ts` still requires a clean tree, but ignored files never count, and the refusal
+names the blockers (`dirtyTreeMessage`: tracked modified files and untracked non-ignored files, eight at most).
+`GET /api/update` fetches even when the tree is dirty and returns `blocked` with that message, so the banner shows the
+update, the list and a disabled button; `start-studio.command` prints the same list. Test: `tests/studio-safe-update.test.ts`.
+
+**Fresh start.** `fresh-start.command` never archives or deletes `.studio/`, the approval files above, `notes/`, `voice/`,
+`recitations/`, `out/`, `assets/recitations/`, `status.json`, `publish.json` or plan backups (`is_protected`). It inspects
+untracked folders file by file, and stops before `git reset --hard` when a tracked protected file has unsaved changes or
+local commits were never pushed. Test: `tests/fresh-start-safety.test.ts` (temporary git repository).
+
+### Channel policy and API hygiene (D51)
+
+- **Policy from `channel.json`, not the id.** `rules.sacredFigures` (unset → on wherever `faces` is not `false`) and
+  `rules.documentProvenance` (explicit opt-in) drive `src/channel/productionRules.ts`. dafatir sets both; zubdat (faces
+  allowed) now gets the sacred-figure check; balislam is unchanged. Test: `tests/studio-channel-production-rules.test.ts`.
+- **No borrowed identity.** Unknown channels fall back to `templates/_neutral/` (script, research, grey identity) and to
+  neutral art, prompts and PDF fonts. `createChannel` / `bal channel new` have no default `--from`; without it a channel
+  starts from the neutral identity and `SAFE_NEW_CHANNEL_RULES` (no faces, no music, both checks on).
+- **Owner for policy changes.** `PUT /api/channel`, `PUT /api/identity` and `POST /api/channels` call `assertSceneOwner`
+  (`ownerRefusal` in `app/server/extra.ts`; the D49 token is accepted) and answer 403 otherwise.
+- **Errors.** An unknown channel answers 404, a missing episode or file 404; every error text sent to the browser goes
+  through `redactPaths` (`app/server/util.ts`), so no absolute path of the owner's machine leaves the server.
+  Test: `tests/studio-policy-endpoints.test.ts`.
+
+### Decision numbers (D51)
+
+`D<n>` is global across `docs/*/0[67]-decisions.md` because the engine is shared. Take a number with
+`npx bal decision new "<title>" [--log <channel>…]` (`scripts/decisions.mjs`): it scans every log and the commit messages
+on `main`, `origin/main` and the current branch, and returns the maximum plus one. With `--log`, the first log gets the
+definition heading and each further log a cross-reference heading that names the defining log's path
+(`(D51، التعريف: docs/zubdat-alkutub/06-decisions.md)`). A heading with a `D<n>` and no decisions-log path is a
+definition; the gate check «أرقام القرارات» (`node scripts/decisions.mjs check`, run by `scripts/gate.mjs`) and
+`tests/decision-numbers.test.ts` fail when a number is defined twice. The historic duplicates D39, D41, D42 and D46
+(one shared decision whose heading was copied into each log) are grandfathered in `GRANDFATHERED_DUPLICATES`, a list that
+never grows.
+
 ### Earlier integration notes from the scene-first line
 
 ## Minimal server-only integration
