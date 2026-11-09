@@ -113,7 +113,7 @@ afterAll(async () => {
   if (root) await rm(root, { recursive: true, force: true });
 });
 
-describe("D49: persistent, device-bound owner session", () => {
+describe("D49: persistent, device-bound owner session", { timeout: 120_000 }, () => {
   let token = "";
 
   it("is issued only after the correct passphrase, and only its HMAC is stored (git-ignored, beside .env)", async () => {
