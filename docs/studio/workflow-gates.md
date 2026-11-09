@@ -121,6 +121,7 @@ authority. Every production gate asks it:
 | Master render | every scene approved with sound and picture (none «مشروط بالتلاوة») **and** the assembly approved after a full 1× viewing with every seam checked (`requireScenesReadyForMaster`) |
 | Shorts/reels | the exact approved Master (`requireSceneMasterReady`) |
 | Publish | the exact approved Master **and** an explicit publish permission for those bytes (`requirePublishAllowed`) |
+| Drive handoff (D53) | the same gate (`publishHandoffFacts` → `requirePublishAllowed`), started only by the recorded `grant-publish` or by the owner's «أعد الإرسال إلى Drive» (owner session); the Master bytes are re-hashed while copying and must equal the ledger's approved Master |
 
 `assertWorkflowForEpisode` delegates to these. The six-stage ledger, the episode voice approval, the old script signoff and
 `scene-review.json` are read-only: their write endpoints return **410** and nothing consults them.
@@ -308,6 +309,27 @@ definition; the gate check «أرقام القرارات» (`node scripts/decisi
 `tests/decision-numbers.test.ts` fail when a number is defined twice. The historic duplicates D39, D41, D42 and D46
 (one shared decision whose heading was copied into each log) are grandfathered in `GRANDFATHERED_DUPLICATES`, a list that
 never grows.
+
+### Publishing stays manual; approved files go to Google Drive (D53)
+
+Publishing to YouTube and the other platforms is done by the owner by hand. Right after the publish permission is
+recorded (same request, never before), `startDriveHandoff` (`src/package/driveHandoff.ts`) copies, in the background,
+the exact approved files into the local Google Drive for desktop folder: `<My Drive>/balislam-publish/<channel>/<episode-dir>/`
+(`~/Library/CloudStorage/GoogleDrive-*/My Drive` or `/Volumes/GoogleDrive/My Drive`; `BAL_DRIVE_PUBLISH_DIR` in `.env`
+overrides it, `off` disables it; no auto-detection inside tests). Drive for desktop uploads the folder; no code uploads anything
+and no platform API is used.
+
+- Delivered: the Master, shorts in the same package made after this Master, thumbnails, `.srt` for the episode and each
+  delivered short, `نشر.txt` (the publish kit itself with real-timing chapters) and `manifest.json` (names, sizes, sha256,
+  Master sha256, approval and permission dates and ledger sequence numbers).
+- Everything is checked before anything is copied: text through `assertNoTraces`, videos' tags plus file head/tail (encoder
+  signatures, Remotion: proof that `cleanMetadata` ran), PNG text chunks, subtitle text.
+- Copy = temp name in the target folder, size + sha256 verified, then rename. Reruns skip identical files (manifest size/mtime/sha,
+  else re-hash), replace changed ones, and never delete other files. The last result is kept in `out/drive-handoff.json`.
+- `GET /api/episodes/<ep>/publish-drive` (status, writes nothing), `POST …/publish-drive` (retry, owner session, 202; 409 with the
+  Arabic message when there is no Drive folder), `POST …/publish-drive/open` (Finder on macOS, owner session).
+- Not implemented: deleting the local copy after upload — the Studio cannot verify that Drive for desktop finished uploading.
+- Tests: `tests/publish-drive-handoff.test.ts`, `tests/publish-drive-server.test.ts`.
 
 ### Earlier integration notes from the scene-first line
 

@@ -1,6 +1,7 @@
 import { SocialKit } from "./SocialKit";
+import { DriveHandoffCard, driveOwnsPrimary, driveView } from "./DriveHandoff";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { api, type SceneProductionRead, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
+import { api, type DriveHandoffRead, type SceneProductionRead, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
 import { resolveDescription, type PublishKit } from "../../../src/package/social";
 import { Hint, More, Stage } from "../shell/Screen";
 import "../shell/screens-s45.css";
@@ -125,6 +126,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const [err, setErr] = useState("");
   const [kit, setKit] = useState<{ kit: PublishKit; chapters: string } | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
+  const [drive, setDrive] = useState<DriveHandoffRead | null>(null);
   const job = jobs.find((j) => j.episode === episodeId);
   const running = job?.status === "running";
 
@@ -132,6 +134,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
     api.packageInfo(episodeId).then(setPkg).catch(() => setPkg({ files: [], youtube: "", checklist: "" }));
     api.status(episodeId).then(setStatus).catch(() => {});
     api.sceneProduction(episodeId).then(setProduction).catch(() => setProduction(null));
+    api.driveHandoff(episodeId).then(setDrive).catch(() => setDrive(null));
   }, [episodeId]);
   useEffect(reload, [reload]);
   useEffect(() => {
@@ -157,6 +160,14 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
     }, 1500);
     return () => clearInterval(t);
   }, [running, job?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // D53: while the copy to Drive runs in the background, its progress is polled.
+  const driveRunning = drive?.job?.status === "running";
+  useEffect(() => {
+    if (!driveRunning) return;
+    const t = setInterval(() => { api.driveHandoff(episodeId).then(setDrive).catch(() => undefined); }, 1500);
+    return () => clearInterval(t);
+  }, [driveRunning, episodeId]);
 
   const start = async (kind: "make" | "package" | "shorts", noVoice = false) => {
     setErr("");
@@ -199,7 +210,9 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const ready = Boolean(production?.script.approved && production?.storyboard.approved);
   const mine = ready && !decisionHasPrimary(production);
   const makePrimary = mine && !isMaster && !approved;
-  const downloadPrimary = card.primary === "download" || (mine && isMaster && !approved);
+  const dView = driveView(drive, approved, publishAllowed, production?.master?.sha256 ?? null);
+  const drivePrimary = card.primary === "download" && driveOwnsPrimary(dView);
+  const downloadPrimary = (card.primary === "download" && !drivePrimary) || (mine && isMaster && !approved);
   /** Any action that overwrites the Master file asks first when it would cancel an approval. */
   const guarded = (kind: "make" | "package", noVoice = false) => {
     if (card.rerenderWarning && !window.confirm(card.rerenderWarning)) return;
@@ -268,6 +281,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             </div>
           </div>
         )}
+
+        {video ? <DriveHandoffCard episodeId={episodeId} view={dView} primary={drivePrimary} onChanged={setDrive} /> : null}
 
         {kitTitle || kitDesc ? (
           <section className="s45-kit" aria-label="نص النشر">

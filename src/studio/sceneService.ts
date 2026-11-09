@@ -782,6 +782,34 @@ export const requireSceneMasterReady = (episode: string): Promise<void> => maste
 /** The only gate for publishing: approved Master AND an explicit publish permission for those bytes. */
 export const requirePublishAllowed = (episode: string): Promise<void> => masterCheck(episode, assertExactMasterReadyForPublish);
 
+/**
+ * What the Drive handoff (D53, src/package/driveHandoff.ts) may deliver: the same gate as publishing
+ * (approved Master AND an explicit publish permission for those exact bytes), plus the approval records it
+ * writes into manifest.json. Read-only; throws exactly like requirePublishAllowed when publishing is blocked.
+ */
+export type PublishHandoffFacts = {
+  channel: string; episode: string; episodeDir: string; scriptPath: string; masterFile: string;
+  masterSha256: string; ledgerRevision: number;
+  master: { by: string; at: string; seq: number | null };
+  publish: { by: string; at: string; seq: number | null };
+};
+export const publishHandoffFacts = async (episode: string): Promise<PublishHandoffFacts> => {
+  let facts: PublishHandoffFacts | null = null;
+  await masterCheck(episode, (p, actual) => assertExactMasterReadyForPublish(p, actual), (doc, current, actual) => {
+    const m = doc.state.master!;
+    const last = (action: CommandAction) => [...doc.history].reverse().find(h => h.action === action && h.resultSha256 === actual)?.seq ?? null;
+    facts = {
+      channel: doc.state.channel, episode, episodeDir: path.dirname(current.scriptPath),
+      scriptPath: current.scriptPath, masterFile: masterFile(current.scriptPath), masterSha256: actual,
+      ledgerRevision: doc.revision,
+      master: { by: m.by, at: m.at, seq: last("approve-master") },
+      publish: { by: m.publish!.by, at: m.publish!.at, seq: last("grant-publish") },
+    };
+  });
+  if (!facts) throw Error("Publishing is blocked.");
+  return facts;
+};
+
 /** Script approved in the scene-first ledger (needed before the visual storyboard can be recorded). */
 export const requireScriptApproved = async (episode: string): Promise<void> => {
   await withState(episode, async (doc) => {
@@ -811,7 +839,8 @@ export const requireSceneProductionReady = async (episode: string): Promise<void
   });
 };
 
-const masterCheck = async (episode: string, check: (p: SceneFirstProduction, sha: string) => void): Promise<void> => {
+const masterCheck = async (episode: string, check: (p: SceneFirstProduction, sha: string) => void,
+  after?: (doc: SignedSceneLedger, current: CurrentInput, sha: string) => void): Promise<void> => {
   await withState(episode, async (doc, current) => {
     const file = masterFile(current.scriptPath);
     await verifyVideoEvidence(file);
@@ -821,6 +850,8 @@ const masterCheck = async (episode: string, check: (p: SceneFirstProduction, sha
         doc.assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||
         doc.state.assembly?.videoSha256 !== await byteSha256(assemblyFile(current.scriptPath)))
       throw Error("Final assembly changed after approval.");
-    check(doc.state, await byteSha256(file));
+    const actual = await byteSha256(file);
+    check(doc.state, actual);
+    after?.(doc, current, actual);
   });
 };

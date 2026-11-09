@@ -163,6 +163,16 @@ export type SceneOwnerAction = {
   tone?: string;
 };
 
+/** D53: حالة التسليم إلى Drive (src/package/driveHandoff.ts). */
+export type DriveHandoffFile = { name: string; kind: "master" | "short" | "thumbnail" | "subtitle" | "text" | "manifest"; size: number; sha256: string; action: "copied" | "replaced" | "skipped" };
+export type DriveHandoffRead = {
+  drive: { found: boolean; source: "env" | "detected" | null; message: string | null; folder: string | null };
+  job: { status: "running" | "done" | "error"; startedAt: string; finishedAt?: string; trigger: "publish-permission" | "retry"; pct: number; current: string; error?: string } | null;
+  last: ({ status: "done"; at: string; root: string; folder: string; masterSha256: string; files: DriveHandoffFile[] }
+    | { status: "error"; at: string; error: string; masterSha256?: string; folder?: string }) | null;
+  canOpen: boolean;
+};
+
 export const api = {
   /** One scene = one combined audiovisual review; no Quran provider selection. */
   /** كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة (أو تغييرها بالكلمة الحالية). */
@@ -318,6 +328,12 @@ export const api = {
   status: (id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`),
   saveStatus: (id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }),
   packageInfo: (id: string) => call<PackageInfo>(`/api/episodes/${id}/package`),
+  /** D53: الملفات المعتمدة في مجلد Google Drive بعد إذن النشر (الحالة، وإعادة الإرسال وفتح المجلد بجلسة المالك). */
+  driveHandoff: (id: string) => call<DriveHandoffRead>(`/api/episodes/${id}/publish-drive`),
+  resendToDrive: (id: string, token: string) =>
+    call<DriveHandoffRead>(`/api/episodes/${id}/publish-drive`, { method: "POST", headers: { "x-studio-owner-token": token } }),
+  openDriveFolder: (id: string, token: string) =>
+    call<{ folder: string }>(`/api/episodes/${id}/publish-drive/open`, { method: "POST", headers: { "x-studio-owner-token": token } }),
   packageUrl: (id: string, file: string, download = false) => withChannel(`/api/episodes/${id}/package/${encodeURIComponent(file)}${download ? "?download=1" : ""}`),
   channel: () => call<ChannelConfig>("/api/channel"),
   saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel }, headers: ownerHeader() }),
