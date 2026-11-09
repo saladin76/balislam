@@ -29,7 +29,14 @@ import { AmbientGrade, BackHalo, DepthLayer, ForegroundFrame, LitFigure, SceneFi
  */
 /** مواضع «الناس حوله» (أطياف شفافة) من البطل. حين يقف رفيق بجواره تبتعد الأطياف عن موضعه فلا تتداخل معه
  * (كان الطيف الأول على بُعد 70 من الرفيق، فيظهر ملتصقًا به: c2-s3 وc2-s4، ٩ نوفمبر). */
-export const ghostSlots = (companionDx: number | null) => {
+export const ghostSlots = (companionDx: number | null, portrait = false): { dx: number; look: (typeof LOOKS)[keyof typeof LOOKS]; d: number; back?: boolean }[] => {
+  // العمودي مع رفيق: لا يتسع الإطار الضيق لأطياف على جانبي الاثنين، فطيفان خلفهما في العمق بينهما (أصغر وأبعد)،
+  // لا يلتصقان بأحد ولا يُقصّان عند الحافة (c2-s3، c2-s4، ٩ نوفمبر)
+  if (portrait && companionDx !== null)
+    return [
+      { dx: companionDx / 2 - 55, look: LOOKS.woman, d: 0, back: true },
+      { dx: companionDx / 2 + 55, look: LOOKS.elder, d: 8, back: true },
+    ];
   const base = [
     { dx: -330, look: LOOKS.woman, d: 0 },
     { dx: -560, look: LOOKS.elder, d: 8 },
@@ -289,9 +296,12 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   ct("listen", "talk", "talk");
   ct("debate", "point", "talk", 24);
   ct("companion", "nod", "stand", 8);
-  // في العمودي مع التأطير المحتوي يقترب من أمامه قليلًا (330 بدل 400) ليتسع الاثنان في الإطار الضيق (تغيير تكوين مقصود ومعلن)
-  // العمودي: الرفيق أقرب (330) ليتسع الإطار الضيق للاثنين، في الكاميرا المؤلَّفة والتلقائية (c2-s3، ٩ نوفمبر)
-  const compGap = portrait ? 330 : 400;
+  // المسافة بين البطل والرفيق: في العمودي أقرب (330) ليتسع الإطار الضيق للاثنين (c2-s3، ٩ نوفمبر)،
+  // لكن لا تلتقي يداهما أبدًا: المسافة لا تقل عن مجموع امتداد أطول وضعيتين متقابلتين وفراغ بينهما.
+  // (حين التقت اليدان في «اختلفت» بدا الجدال مصافحة: c3-s1 بالعمودي، المعاينة المباشرة ٩ نوفمبر)
+  const heroFront = -figureSpan(0, [...new Set<PoseName>([...timeline.map((x) => x.pose), "stand"])], "left", 1.75).lo;
+  const compFront = figureSpan(0, [...new Set<PoseName>(compTimeline.map((x) => (x.pose === "head-down" ? "nod" : x.pose)))], "right", 1.7).hi;
+  const compGap = Math.max(portrait ? 330 : 400, Math.round(heroFront + compFront + 70));
   const compPose = poseAt(frame, compTimeline.map((x) => ({ ...x, pose: x.pose === "head-down" ? "nod" : x.pose })));
   const compIn = rise(frame, 0, 14);
 
@@ -359,12 +369,13 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   // التأطير: لكل لقطة تكبير وجهة، وانتقال ناعم سريع بينها
   const rawFraming = (i: number) => directed ? { z: 1.08, dx: 0 } : ({ z: FRAMINGS[i % FRAMINGS.length]!, dx: [0, 260, -230, 140][i % 4]! });
   // لا شخص مقصوص عند حافة الإطار (٩ نوفمبر): كل لقطة تُصحَّح بأقل إزاحة حتى يكون كل شخص كاملًا داخلها أو خارجها كله
-  const edgeCtx = (at0: number) => {
+  // سياق فحص اللقطة عند الإطار at0 من نافذة اللقطة [w0, w1): الوضعيات والأطياف كلها التي تظهر في النافذة
+  const edgeCtx = (at0: number, win?: [number, number]) => {
     const hx = heroAt(at0);
-    const gap = portrait ? 330 : 400;
+    const gap = compGap;
     const i = Math.max(0, cuts.filter((c) => at0 >= c).length - 1);
-    const w0 = cuts[i] ?? 0;
-    const w1 = cuts[i + 1] ?? dur;
+    const w0 = win ? win[0] : cuts[i] ?? 0;
+    const w1 = win ? win[1] : cuts[i + 1] ?? dur;
     // الوضعيات التي تقع في نافذة اللقطة (ومعها ما قبلها مباشرة)، لا أوسع وضعية في المشهد كله
     const posesIn = (tl0: { at: number; pose: PoseName }[]): PoseName[] => {
       const tl = [...tl0].sort((a, b) => a.at - b.at);
@@ -382,20 +393,29 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
     if (stage === "companion") optional.push(span(hx - gap, 1.7, posesIn(compTimeline), "right"));
     if (stage === "witnesses") optional.push({ lo: span(920, 1.15).lo, hi: span(1010, 1.15).hi }, span(1300, 1.75));
     const peopleAt = at("people");
-    if (peopleAt !== undefined && at0 >= peopleAt) for (const g of ghostSlots(stage === "companion" ? -gap : null)) optional.push(span(hx + g.dx, 1.25));
+    if (peopleAt !== undefined && peopleAt < w1) for (const g of ghostSlots(stage === "companion" ? -gap : null, portrait)) optional.push(span(hx + g.dx, g.back ? 0.95 : 1.25));
     const pf = stage === "companion" ? hx - gap / 2 : hx;
     const v0 = Math.max(0, Math.min(WW - 608, pf - 304));
-    return { focusX: hx, view: (portrait ? [v0, v0 + 608] : [0, WW]) as [number, number], required: [span(hx, 1.75, sitting ? [...heroPoses, "sit"] : walking ? [...heroPoses, "walk" as PoseName] : heroPoses, heroFacing)], optional, margin: portrait ? 24 : 36, layers: [0.6, 0.9].map((depth) => ({ depth, lo: -200, hi: WW + 200 })) };
+    return { focusX: hx, view: (portrait ? [v0, v0 + 608] : [0, WW]) as [number, number], required: [span(hx, 1.75, sitting ? [...heroPoses, "sit"] : walking ? [...heroPoses, "walk" as PoseName] : heroPoses, heroFacing)], optional, margin: portrait ? 40 : 36, zMin: portrait ? 0.84 : undefined, layers: [0.6, 0.9].map((depth) => ({ depth, lo: -200, hi: WW + 200 })) };
   };
-  const edgeSafe = (f: { z: number; dx: number }, at0: number) => cleanAutoFraming(f, edgeCtx(at0));
-  const framing = (i: number) => (composed ? rawFraming(i) : edgeSafe(rawFraming(i), Math.min(dur - 1, (cuts[i] ?? 0) + 30)));
+  // اللقطة كلها: سياقات عند بدايتها ووسطها ونهايتها (البطل قد ينتقل بين مواضعه، أو يمشي)
+  const cutCtxs = (i: number) => {
+    const w0 = cuts[i] ?? 0;
+    const w1 = Math.min(dur, cuts[i + 1] ?? dur);
+    const n = Math.max(2, Math.ceil((w1 - w0) / 12));
+    return Array.from({ length: n + 1 }, (_, k) => edgeCtx(Math.min(dur - 1, Math.round(w0 + ((w1 - 1 - w0) * k) / n)), [w0, w1]));
+  };
+  const edgeSafe = (f: { z: number; dx: number }, i: number) => cleanAutoFraming(f, cutCtxs(i));
+  const framing = (i: number) => (composed ? rawFraming(i) : edgeSafe(rawFraming(i), i));
   // افتتاح كل مشهد بحركة تأسيسية من لقطة واسعة، ثم انتقال ناعم بين اللقطات
   const fa = directed ? framing(cut) : cut === 0 ? (composed ? { z: 0.96, dx: -240 } : edgeSafe({ z: 0.96, dx: -240 }, 0)) : framing(cut - 1);
   const fb = framing(cut);
   // إن مرّ الانتقال الناعم بين لقطتين بإطار يقص شخصًا، فالانتقال قطع مباشر (لا يظهر نصف شخص ولو لحظة)
-  const tweenClean = composed || directed || [0.2, 0.4, 0.6, 0.8].every((t) => {
-    const ctx = edgeCtx(Math.min(dur - 1, cuts[cut]! + Math.round(t * 16)));
-    return framingClean({ z: fa.z + (fb.z - fa.z) * t, dx: fa.dx + (fb.dx - fa.dx) * t }, ctx);
+  const tweenLen = cut === 0 ? 26 : 16;
+  const tweenClean = composed || directed || [0.1, 0.25, 0.4, 0.55, 0.7, 0.85].every((t) => {
+    const e = Easing.inOut(Easing.cubic)(t);
+    const ctx = edgeCtx(Math.min(dur - 1, cuts[cut]! + Math.round(t * tweenLen)));
+    return framingClean({ z: fa.z + (fb.z - fa.z) * e, dx: fa.dx + (fb.dx - fa.dx) * e }, ctx);
   });
   const tShot = tweenClean
     ? interpolate(frame, [cuts[cut]!, cuts[cut]! + (cut === 0 ? 26 : 16)], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.cubic) })
@@ -410,6 +430,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   // العمودي في الكاميرا المؤلَّفة: الهدف في منتصف الإطار دائمًا، فلا يُقص ما تنظر إليه الكاميرا
   // ومع رفيق بجواره (كاميرا تلقائية): الإطار العمودي على منتصف الاثنين، فلا يُقص الرفيق نصفين (c2-s3، ٩ نوفمبر)
   const portraitFocus = stage === "companion" ? heroX - compGap / 2 : focusX;
+  // مِجَسّ الاختبار (tests/edge-safety-episode.test.tsx): التأطير الفعلي لهذا الإطار وسياق فحصه، ولا أثر له في الرندر
+  const probe = (globalThis as { __BAL_EDGE_PROBE__?: unknown[] }).__BAL_EDGE_PROBE__;
+  if (probe && !composedCam) probe.push({ frame, zoom, offX, ctx: edgeCtx(frame, [cuts[cut]!, cuts[cut + 1] ?? dur]) });
   const vb = portrait ? (composedCam ? `${960 - 304} 0 608 1080` : `${Math.max(0, Math.min(WW - 608, portraitFocus - 304))} 0 608 1080`) : `0 0 ${WW} ${WH}`;
 
   // حافتا الإطار الظاهر في طبقة المقدمة (عمق 1.3) عند بداية المشهد، فيقع العمود على طرفه في الأفقي والعمودي معًا،
@@ -498,8 +521,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
           <g transform={cam(1)}>
             {/* الناس حوله: أطياف شفافة لمن يؤثرون فيه */}
             {ghosts
-              ? ghostSlots(stage === "companion" ? -compGap : null).map((g, i) => (
-                  <Figure key={i} x={heroX + g.dx} y={GROUND + 6} scale={1.25} pose={poseAt(frame, [{ at: 0, pose: "stand" }])} look={g.look} opacity={0.32 * rise(frame, (at("people") ?? 0) + g.d, 20)} silhouette={mix(ID.paper, ID.night, 0.35)} shadow={false} frame={frame + i * 9} />
+              ? ghostSlots(stage === "companion" ? -compGap : null, portrait).map((g, i) => (
+                  <Figure key={i} x={heroX + g.dx} y={g.back ? GROUND - 60 : GROUND + 6} scale={g.back ? 0.95 : 1.25} pose={poseAt(frame, [{ at: 0, pose: "stand" }])} look={g.look} opacity={0.32 * rise(frame, (at("people") ?? 0) + g.d, 20)} silhouette={mix(ID.paper, ID.night, 0.35)} shadow={false} frame={frame + i * 9} />
                 ))
               : null}
             {hasBench ? moodLayers((m) => <Workbench x={propX + 120} mood={m} done={success} />) : null}
