@@ -26,6 +26,22 @@ import { AmbientGrade, BackHalo, DepthLayer, ForegroundFrame, LitFigure, SceneFi
  * والضوء يحمل المعنى: نافذة تضيء عند «الحقيقة»، وباب يتسرب منه النور عند «الاعتراف»، ولوحة تتوهج عند «الخبر».
  * كل لقطة (جملة) بتأطير مختلف (واسع، متوسط، قريب) وانتقال ناعم، والأحداث تقع لحظة نطق كلمتها فقط.
  */
+/** مواضع «الناس حوله» (أطياف شفافة) من البطل. حين يقف رفيق بجواره تبتعد الأطياف عن موضعه فلا تتداخل معه
+ * (كان الطيف الأول على بُعد 70 من الرفيق، فيظهر ملتصقًا به: c2-s3 وc2-s4، ٩ نوفمبر). */
+export const ghostSlots = (companionDx: number | null) => {
+  const base = [
+    { dx: -330, look: LOOKS.woman, d: 0 },
+    { dx: -560, look: LOOKS.elder, d: 8 },
+    { dx: 300, look: LOOKS.friend, d: 16 },
+  ];
+  if (companionDx === null) return base;
+  return [
+    { dx: companionDx - 250, look: LOOKS.woman, d: 0 },
+    { dx: 300, look: LOOKS.elder, d: 8 },
+    { dx: 540, look: LOOKS.friend, d: 16 },
+  ];
+};
+
 export type AlleyTaleProps = SceneBase & StringFields<"place" | "mood" | "moodTo" | "camera" | "cameraMode" | "cameraPlan" | "cameraPlanPortrait" | "framing" | "gait" | "lighting" | "poseTimeline" | "poses" | "cues" | "look" | "cast" | "shot"> & { continues?: boolean };
 
 export type Place = "alley" | "market" | "home";
@@ -258,7 +274,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   ct("debate", "point", "talk", 24);
   ct("companion", "nod", "stand", 8);
   // في العمودي مع التأطير المحتوي يقترب من أمامه قليلًا (330 بدل 400) ليتسع الاثنان في الإطار الضيق (تغيير تكوين مقصود ومعلن)
-  const compGap = composed && props.framing === "fit" && portrait ? 330 : 400;
+  // العمودي: الرفيق أقرب (330) ليتسع الإطار الضيق للاثنين، في الكاميرا المؤلَّفة والتلقائية (c2-s3، ٩ نوفمبر)
+  const compGap = portrait ? 330 : 400;
   const compPose = poseAt(frame, compTimeline.map((x) => ({ ...x, pose: x.pose === "head-down" ? "nod" : x.pose })));
   const compIn = rise(frame, 0, 14);
 
@@ -274,7 +291,14 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const hasBench = has("work") || has("success");
   const memory = cues.filter((c) => c.kind === "memory" || c.kind === "wrong" || c.kind === "just");
   const skyT = moodTo ? interpolate(frame, [dur * 0.35, dur - 10], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.sin) }) : 0;
-  const curMood: Mood = moodTo && skyT > 0.5 ? moodTo : mood;
+  // انتقال المزاج داخل المشهد: يُرسم المكان بمزاج البداية، وفوقه المكان نفسه بمزاج النهاية بشفافية skyT،
+  // فتتدرّج ألوانه مع السماء. (كان يتبدّل دفعة واحدة عند skyT = 0.5، فيومض المكان في إطار واحد: c2-s16، ٩ نوفمبر)
+  const moodLayers = (draw: (m: Mood) => React.ReactNode) => (
+    <>
+      {draw(mood)}
+      {moodTo && skyT > 0 ? <g opacity={skyT}>{draw(moodTo)}</g> : null}
+    </>
+  );
 
   // النوافذ: ربع مضاء في الليل، و«الحقيقة» تضيء النوافذ القريبة من البطل واحدة بعد الأخرى
   const r = rand(11);
@@ -322,7 +346,9 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
       ? composedLayer(composedCam, depth)
       : `${cameraTransform(camera, frame, dur, depth, focusX)} translate(${-offX * (0.4 + depth * 0.6)} 0) translate(${focusX} ${GROUND - 330}) scale(${1 + (zoom - 1) * (0.55 + depth * 0.45)}) translate(${-focusX} ${-(GROUND - 330)})`;
   // العمودي في الكاميرا المؤلَّفة: الهدف في منتصف الإطار دائمًا، فلا يُقص ما تنظر إليه الكاميرا
-  const vb = portrait ? (composedCam ? `${960 - 304} 0 608 1080` : `${Math.max(0, Math.min(WW - 608, focusX - 304))} 0 608 1080`) : `0 0 ${WW} ${WH}`;
+  // ومع رفيق بجواره (كاميرا تلقائية): الإطار العمودي على منتصف الاثنين، فلا يُقص الرفيق نصفين (c2-s3، ٩ نوفمبر)
+  const portraitFocus = stage === "companion" ? heroX - compGap / 2 : focusX;
+  const vb = portrait ? (composedCam ? `${960 - 304} 0 608 1080` : `${Math.max(0, Math.min(WW - 608, portraitFocus - 304))} 0 608 1080`) : `0 0 ${WW} ${WH}`;
 
   // حافتا الإطار الظاهر في طبقة المقدمة (عمق 1.3) عند بداية المشهد، فيقع العمود على طرفه في الأفقي والعمودي معًا،
   // ثم يتحرك مع الكاميرا بسرعة طبقته (منظور حقيقي)
@@ -352,14 +378,18 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
             <>
               <g transform={cam(0.25)}>
                 <DepthLayer depth={0.25} light={light}>
-                  <Skyline mood={curMood} dome={760} minaret={1260} seed={5} />
+                  {moodLayers((m) => <Skyline mood={m} dome={760} minaret={1260} seed={5} />)}
                 </DepthLayer>
               </g>
               <g transform={cam(0.6)}>
                 <DepthLayer depth={0.6} light={light}>
-                  <HouseRow mood={curMood} seed={place === "alley" ? 4 : 9} lit={lit} />
-                  {hasDoor ? <ArchDoor x={propX + 250} w={190} h={310} light={door} mood={curMood} /> : null}
-                  {hasBoard ? <NoticeBoard x={propX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
+                  {moodLayers((m) => (
+                    <>
+                      <HouseRow mood={m} seed={place === "alley" ? 4 : 9} lit={lit} />
+                      {hasDoor ? <ArchDoor x={propX + 250} w={190} h={310} light={door} mood={m} /> : null}
+                      {hasBoard ? <NoticeBoard x={propX - 430} y={GROUND - 470} glow={news} mood={m} /> : null}
+                    </>
+                  ))}
                   {sitting ? <WallLamp x={heroX + 30} y={GROUND - 420} on={1} frame={frame} /> : null}
                 </DepthLayer>
               </g>
@@ -367,20 +397,28 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
           ) : place === "market" ? (
             <g transform={cam(0.6)}>
               <DepthLayer depth={0.6} light={light}>
-                <Market mood={curMood} frame={frame} lit={truth} />
-                {hasBoard ? <NoticeBoard x={propX - 430} y={GROUND - 470} glow={news} mood={curMood} /> : null}
+                {moodLayers((m) => (
+                  <>
+                    <Market mood={m} frame={frame} lit={truth} />
+                    {hasBoard ? <NoticeBoard x={propX - 430} y={GROUND - 470} glow={news} mood={m} /> : null}
+                  </>
+                ))}
               </DepthLayer>
             </g>
           ) : (
             <g transform={cam(0.6)}>
               <DepthLayer depth={0.6} light={light}>
-                <Home mood={curMood} frame={frame} lit={truth} />
+                {moodLayers((m) => <Home mood={m} frame={frame} lit={truth} />)}
               </DepthLayer>
             </g>
           )}
           <g transform={cam(0.9)}>
-            {place !== "home" ? <Cobbles mood={curMood} tint={wrong > just ? ID.seal : ID.dawn} tintOpacity={0.1 * Math.max(wrong, just)} /> : null}
-            {sitting ? <Bench x={heroX - 60} w={240} mood={curMood} /> : null}
+            {moodLayers((m) => (
+              <>
+                {place !== "home" ? <Cobbles mood={m} tint={wrong > just ? ID.seal : ID.dawn} tintOpacity={0.1 * Math.max(wrong, just)} /> : null}
+                {sitting ? <Bench x={heroX - 60} w={240} mood={m} /> : null}
+              </>
+            ))}
             {/* لون الحكم: الخطأ أحمر الختم، والعدل فجر */}
             <Glow cx={stage === "witnesses" ? 640 : heroX - 520} cy={GROUND - 160} r={420} color={ID.seal} opacity={wrong * 0.9} />
             <Glow cx={stage === "witnesses" ? 1300 : heroX + 520} cy={GROUND - 160} r={420} color={ID.dawn} opacity={just * 0.9} />
@@ -397,15 +435,11 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
           <g transform={cam(1)}>
             {/* الناس حوله: أطياف شفافة لمن يؤثرون فيه */}
             {ghosts
-              ? [
-                  { dx: -330, look: LOOKS.woman, d: 0 },
-                  { dx: -560, look: LOOKS.elder, d: 8 },
-                  { dx: 300, look: LOOKS.friend, d: 16 },
-                ].map((g, i) => (
+              ? ghostSlots(stage === "companion" ? -compGap : null).map((g, i) => (
                   <Figure key={i} x={heroX + g.dx} y={GROUND + 6} scale={1.25} pose={poseAt(frame, [{ at: 0, pose: "stand" }])} look={g.look} opacity={0.32 * rise(frame, (at("people") ?? 0) + g.d, 20)} silhouette={mix(ID.paper, ID.night, 0.35)} shadow={false} frame={frame + i * 9} />
                 ))
               : null}
-            {hasBench ? <Workbench x={propX + 120} mood={curMood} done={success} /> : null}
+            {hasBench ? moodLayers((m) => <Workbench x={propX + 120} mood={m} done={success} />) : null}
             {stage === "companion" ? (
               light ? (
                 <LitFigure light={light} x={heroX - compGap} y={GROUND + 6} scale={1.7} pose={compPose} look={look === LOOKS.woman ? LOOKS.elder : LOOKS.friend} opacity={compIn} frame={frame + 17} />

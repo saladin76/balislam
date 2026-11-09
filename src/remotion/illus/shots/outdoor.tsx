@@ -63,8 +63,13 @@ export const Courtyard: React.FC<{ frame: number }> = ({ frame }) => {
 };
 
 /** أسطح المدينة: خزانات ماء وحبال غسيل وسور السطح، والمدينة خلفها بقبة ومئذنة؛ الليل يتحول فجرًا، والضباب يزحف */
+/** ألوان السماء التي تُبنى منها المباني والضباب: تتدرّج مع t بين المزاجين.
+ * (كانت تتبدّل دفعة واحدة عند t = 0.5، فيومض المشهد كله في إطارين: c1-s12، ٩ نوفمبر) */
+export const roofSky = (mood: Mood, to: Mood | undefined, t: number): [string, string, string] =>
+  MOODS[mood].sky.map((c, i) => (to ? mix(c, MOODS[to].sky[i]!, Math.max(0, Math.min(1, t))) : c)) as [string, string, string];
+
 export const Rooftops: React.FC<{ frame: number; mood: Mood; to?: Mood; t?: number; fog?: number; streetPeople?: boolean }> = ({ frame, mood, to, t = 0, fog = 0, streetPeople = false }) => {
-  const sky = MOODS[t > 0.5 && to ? to : mood].sky;
+  const sky = roofSky(mood, to, t);
   const lightT = to === "dawn" ? t : 0;
   const far = mix(mix(sky[1], darken(ID.night, 0.4), 0.55), ID.copper, 0.1 + 0.2 * lightT);
   const mid = mix(mix(sky[1], darken(ID.night, 0.5), 0.7), ID.copper, 0.12 + 0.2 * lightT);

@@ -97,7 +97,13 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
   const peopleIn = rise(frame, at("people"), 26);
   const memory = cues.filter((c) => c.kind === "memory" || c.kind === "wrong" || c.kind === "just");
   const skyT = moodTo ? interpolate(frame, [dur * 0.35, dur - 10], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.sin) }) : 0;
-  const curMood: Mood = moodTo && skyT > 0.5 ? moodTo : mood;
+  // انتقال المزاج متدرّج: الطريق بمزاج البداية، وفوقه بمزاج النهاية بشفافية skyT (لا تبدّل دفعة واحدة عند المنتصف)
+  const moodLayers = (draw: (m: Mood) => React.ReactNode) => (
+    <>
+      {draw(mood)}
+      {moodTo && skyT > 0 ? <g opacity={skyT}>{draw(moodTo)}</g> : null}
+    </>
+  );
   const lines = captionLines(timings, portrait ? 6 : 8);
   void lines;
 
@@ -116,15 +122,17 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
           <g transform={cam}>
             <Sky mood={mood} to={moodTo} t={skyT} frame={frame} />
             {biome === "hill" || truth > 0 ? <MihrabGate x={240} w={150} h={220} base={GROUND - 30} light={biome === "hill" ? 0.6 + 0.4 * truth : truth} /> : null}
-            <RoadLand
-              mood={curMood}
-              biome={biome}
-              shift={shift}
-              frame={frame}
-              {...(light && (light.rig.depth.dof > 0 || light.rig.depth.fog > 0 || light.rig.depth.parallax !== 1)
-                ? { depth: { parallax: light.rig.depth.parallax, layer: (d: number, node: React.ReactNode) => <DepthLayer depth={d} light={light}>{node}</DepthLayer> } }
-                : {})}
-            />
+            {moodLayers((m) => (
+              <RoadLand
+                mood={m}
+                biome={biome}
+                shift={shift}
+                frame={frame}
+                {...(light && (light.rig.depth.dof > 0 || light.rig.depth.fog > 0 || light.rig.depth.parallax !== 1)
+                  ? { depth: { parallax: light.rig.depth.parallax, layer: (d: number, node: React.ReactNode) => <DepthLayer depth={d} light={light}>{node}</DepthLayer> } }
+                  : {})}
+              />
+            ))}
             {light ? (
               <>
                 <AmbientGrade light={light} />
@@ -136,7 +144,7 @@ export const RoadJourney: React.FC<RoadJourneyProps> = (props) => {
             {newsX !== null ? (
               <g>
                 <rect x={newsX + 124} y={GROUND - 260} width={16} height={250} fill={darken(ID.copper, 0.55)} />
-                <NoticeBoard x={newsX} y={GROUND - 470} glow={rise(frame, at("news"), 14)} mood={curMood} />
+                {moodLayers((m) => <NoticeBoard x={newsX} y={GROUND - 470} glow={rise(frame, at("news"), 14)} mood={m} />)}
               </g>
             ) : null}
             {signX !== null ? (
