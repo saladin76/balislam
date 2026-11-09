@@ -14,7 +14,7 @@ import { HZ_LEAD, hzSentences } from "../src/remotion/dafatir/horizon/meta";
 import { cueFrames, parseCues } from "../src/plan/sceneCues";
 import { kitPhraseRange } from "../src/remotion/zubdat/kitSlots";
 
-/** «إعدادات المشهد» للمالك (D54): الحقول من تصريحات القالب، والمراسي بالنقر تُكتب بالصيغة التي يقرؤها الرسم. */
+/** «إعدادات المشهد» للمالك (D56): الحقول من تصريحات القالب، والمراسي بالنقر تُكتب بالصيغة التي يقرؤها الرسم. */
 
 const PLANS = readdirSync("channels").flatMap((ch) =>
   existsSync(`channels/${ch}/episodes`) ? readdirSync(`channels/${ch}/episodes`).filter((e) => existsSync(`channels/${ch}/episodes/${e}/plan.json`)).map((e) => `channels/${ch}/episodes/${e}/plan.json`) : [],
