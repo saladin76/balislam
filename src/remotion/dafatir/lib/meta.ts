@@ -41,3 +41,19 @@ export const termMinEnd = (p: Record<string, string | undefined>, tl: Timeline):
 
 /** نسخة من SACRED_WORD في src/render/stillness.ts (يتحقق اختبار من تطابقهما) — لا يُستورد هناك حتى لا يدخل كود الرندر إلى المشاهد */
 export const LIB_SACRED = /الله|لله|ربنا|ربه|ربك|سبحانه|تعالي|تعالى/;
+
+/**
+ * حقول كل مشهد عام في محرر المشهد (D56): ما يقرؤه المشهد فعلًا (التوثيق: docs/dafatir-alzaman/03-tools.md).
+ * «رأس الصفحة» و«الخروج» و«كاميرا البداية» عامة لكل مشهد. مشاهد الحلقة 001 لا تعلن حقولًا: رسمها مكتوب لجملتها.
+ */
+export const LIB_UI: Record<string, { fields: string[]; library: true }> = {
+  chapter: { fields: ["label", "title"], library: true },
+  "verse-intro": { fields: ["ref"], library: true },
+  "verse-tag": { fields: ["ref", "tagWord"], library: true },
+  pending: { fields: ["idea", "batch"], library: true },
+  "lib-term": { fields: ["term", "termWord", "sub", "subWord", "kind", "source", "sourceWord", "note", "noteWord"], library: true },
+  "lib-gloss": { fields: ["ref", "matn", "matnWord", "matnLabel", "matnSource", "tafsir", "tafsirWord", "tafsirLabel", "tafsirSource", "note", "noteWord"], library: true },
+  "lib-compare": { fields: ["title", "titleWord", "aLabel", "aText", "aWord", "bLabel", "bText", "bWord", "verdict", "verdictText", "verdictWord"], library: true },
+  "lib-timeline": { fields: ["items", "title"], library: true },
+  "lib-evidence": { fields: ["items", "limit", "limitWord"], library: true },
+};

@@ -2,6 +2,10 @@ import { lightingHelp } from "./lighting";
 import { INK_SHOTS } from "../remotion/zubdat/shots";
 import { HZ_META } from "../remotion/dafatir/horizon/meta";
 import { SHOTS } from "../remotion/illus/shots";
+import { LIB_UI } from "../remotion/dafatir/lib/meta";
+import { INK_UI } from "../remotion/zubdat/kitSlots";
+import { cueNamesAr } from "./sceneCues";
+import type { MatchMode, ShotUi } from "./sceneSlots";
 /**
  * تعريف القوالب كبيانات: الاسم، هل بُني، والحقول التي يعرضها الاستوديو لكل قالب.
  * مشترك بين مولّد الخطة والاستوديو وتكوين الحلقة.
@@ -53,6 +57,27 @@ export type FieldDef = {
   options?: { value: string; label: string }[];
   help?: string;
   placeholder?: string;
+  /**
+   * كيف يحرره المالك في «إعدادات المشهد» (D56، src/plan/sceneSlots.ts). بلا قيمة = الحقل العادي.
+   * shot: بطاقات المشاهد المصوَّرة · anchor-lines: أسطر «المفتاح | الكلمة» بالنقر على الكلمات ·
+   * anchor: كلمة واحدة بالنقر · phrases: عبارات من الجملة · events: أحداث «المعنى | الكلمة».
+   * التخزين لا يتغير بها.
+   */
+  ui?: "shot" | "anchor-lines" | "anchor" | "phrases" | "events";
+  /** مطابقة الكلمة كما يقرؤها الرسم (للمراسي) */
+  match?: MatchMode;
+  /** اسم لحظة الظهور للمالك (ui: anchor) */
+  slot?: string;
+  /** حقل نصّ أول كلمة منه هي لحظة الظهور التلقائية */
+  fallbackFrom?: string;
+  /** يظهر مع كل مشهد من مشاهد القالب */
+  common?: boolean;
+  /** لمشهد الخاتمة وحده (آخر مشهد في الحلقة أو مشهد يعلن أنه خاتمة) */
+  closing?: boolean;
+  /** يظهر متى كانت له قيمة ولو لم يعلنه المشهد المختار */
+  keepIfSet?: boolean;
+  /** الرسم لا يقرأ «#ن» في هذا الحقل: يقع الحدث عند أول نطق للكلمة */
+  firstOnly?: boolean;
 };
 
 export type TemplateDef = {
@@ -60,6 +85,12 @@ export type TemplateDef = {
   nameAr: string;
   /** وصف قصير لمتى يُستخدم */
   useAr: string;
+  /** سطر واحد بالعربية السهلة للمالك فوق «المزيد» (وإلا يُعرض أول useAr) */
+  summaryAr?: string;
+  /** واجهة كل مشهد في حقل ui: "shot" (الاسم المختصر، وحقوله، ولحظات ظهوره، وعباراته) */
+  shots?: Record<string, ShotUi>;
+  /** حقول يقرؤها كل مشهد مصمَّم لم يعلن حقوله */
+  shotFields?: string[];
   implemented: boolean;
   fields: FieldDef[];
   /** مدة افتراضية بالثواني إن لم يكن له تعليق صوتي */
@@ -246,6 +277,10 @@ export const templateDefs: TemplateDef[] = [
     id: "alley-tale",
     nameAr: "حكايات الحارة",
     useAr: "كل جملة لقطة في مكان مرسوم (حارة، سوق، بيت)، وبطل بلا ملامح يمثّل الكلام، والضوء يحمل المعنى لحظة نطق كلمته",
+    summaryAr: "لقطة مرسومة في الحارة لكل جملة، والضوء يحمل المعنى لحظة نطق كلمته.",
+    shots: Object.fromEntries(Object.keys(SHOTS).map((k) => [k, {}])),
+    // اللقطة المصمَّمة تقرأ من حقول القالب أحداثَ الكلمات (للترجمة) ووضع الكاميرا وحدهما (AlleyTale.tsx، ShotScene)
+    shotFields: ["cues", "cameraMode"],
     implemented: true,
     baseSeconds: 6,
     minSeconds: 4,
@@ -262,9 +297,9 @@ export const templateDefs: TemplateDef[] = [
       { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away, walk, proud, apologize, listen, talk" },
       { key: "poseTimeline", label: "وضعيات بتوقيت دقيق (اختياري)", type: "textarea", help: "سطر لكل حدث: رقم_الإطار | الوضعية (من قائمة الحركات أعلاه)، تحل محل الإيماءات الآلية." },
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
-      { key: "shot", label: "لقطة مصمَّمة", type: "select", options: [{ value: "", label: "بلا (إخراج عام)" }, ...Object.entries(SHOTS).map(([value, d]) => ({ value, label: d.nameAr }))] },
+      { key: "shot", label: "لقطة مصمَّمة", type: "select", ui: "shot", options: [{ value: "", label: "بلا (إخراج عام)" }, ...Object.entries(SHOTS).map(([value, d]) => ({ value, label: d.nameAr }))] },
       { key: "cast", label: "من في المشهد", type: "select", options: [{ value: "", label: "من معنى الكلام" }, { value: "solo", label: "البطل وحده" }, { value: "companion", label: "شخص أمامه" }, { value: "witnesses", label: "شاهدان على موقف واحد" }] },
-      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
       { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: lightingHelp("alley-tale") },
     ],
   },
@@ -283,7 +318,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "motion", label: "طريقة المشي", type: "select", options: MOTION_OPTIONS, help: "الطبيعية: قدم ثابتة على الطريق المتحرك، وتباطؤ عند المحطات واندفاع بعدها." },
       { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية stroll)." },
       { key: "look", label: "المسافر", type: "select", options: LOOK_OPTIONS },
-      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
       { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: lightingHelp("road-journey") },
     ],
   },
@@ -300,7 +335,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "motion", label: "الانتقال بين العلامات", type: "select", options: MOTION_OPTIONS, help: "الطبيعية: يمشي إلى علامة كل سطر بخطوات حقيقية بدل الانزلاق السريع، ويقصّر المسافة إن قصر السطر." },
       { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية walk)." },
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
-      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence. لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
     ],
   },
   {
@@ -323,65 +358,71 @@ export const templateDefs: TemplateDef[] = [
     id: "ink-shot",
     nameAr: "مشهد حبر مصمَّم",
     useAr: "مشهد مرسوم بالحبر خاص بجملته: حدث بصري له بداية وتطور ونتيجة (خط الوقت، الكتاب ورحلته، خط الانتباه، الإقبال، التكبير، الخطوة العملية)، وكل رسم لحظة نطق كلمته",
+    summaryAr: "رسم بالحبر لهذه الجملة، يظهر كل جزء منه لحظة نطق كلمته.",
+    shots: Object.fromEntries(Object.keys(INK_SHOTS).map((k) => [k, INK_UI[k] ?? {}])),
+    shotFields: [],
     implemented: true,
     baseSeconds: 6,
     minSeconds: 4,
     fields: [
-      { key: "shot", label: "المشهد", type: "select", options: Object.entries(INK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
-      { key: "task", label: "مهمة الحلقة (للخاتمة فقط، بنص منطوق في الحلقة)", type: "text" },
-      { key: "labels", label: "العبارات (لأدوات الاستوديو kit-* فقط)", type: "text", help: "مفصولة بـ |، وكل عبارة منطوقة حرفيًا في جملة المشهد" },
-      { key: "cues", label: "التوقيت (لأدوات الاستوديو، اختياري)", type: "textarea", help: "سطر لكل مفتاح: المفتاح | الكلمة المنطوقة (الكلمة المكررة: كلمة#2). المفاتيح: idea1-5، from، to، cross، step1-4، rise، fall، peak، low، high، title، author، note، و«مفتاح.end» لنهاية الكتابة" },
+      { key: "shot", label: "المشهد", type: "select", ui: "shot", options: Object.entries(INK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
+      { key: "task", label: "مهمة الحلقة", type: "text", closing: true, help: "تُكتب في الخاتمة كما قيلت في الحلقة" },
+      { key: "labels", label: "العبارات على الشاشة", type: "text", ui: "phrases", help: "مفصولة بـ |، وكل عبارة منطوقة حرفيًا في جملة المشهد" },
+      { key: "cues", label: "متى يظهر كل عنصر", type: "textarea", ui: "anchor-lines", match: "ink", help: "سطر لكل مفتاح: المفتاح | الكلمة المنطوقة (الكلمة المكررة: كلمة#2). المفاتيح: idea1-5، from، to، cross، step1-4، rise، fall، peak، low، high، title، author، note، و«مفتاح.end» لنهاية الكتابة" },
     ],
   },
   {
     id: "horizon-shot",
     nameAr: "مشهد خط الأفق",
     useAr: "دفاتر الزمن: مشهد مصمَّم لجملته على الدفتر المفتوح (أفق، أطلال، نسل، فهرس، حاشية مفسر، عنوان فصل)، كل حدث لحظة نطق كلمته، ولا يُصوَّر غيب",
+    summaryAr: "مشهد على الدفتر المفتوح، يقع كل حدث فيه لحظة نطق كلمته.",
+    shots: Object.fromEntries(Object.keys(HZ_META).map((k) => [k, LIB_UI[k] ?? {}])),
+    shotFields: [],
     implemented: true,
     baseSeconds: 6,
     minSeconds: 2.5,
     fields: [
-      { key: "shot", label: "المشهد", type: "select", options: Object.entries(HZ_META).map(([value, d]) => ({ value, label: d.nameAr })) },
-      { key: "head", label: "رأس الصفحة (رقم الفصل)", type: "text" },
+      { key: "shot", label: "المشهد", type: "select", ui: "shot", options: Object.entries(HZ_META).map(([value, d]) => ({ value, label: d.nameAr })) },
+      { key: "head", label: "رأس الصفحة (رقم الفصل)", type: "text", common: true },
       { key: "label", label: "عنوان الفصل (لمشهد العنوان)", type: "text" },
-      { key: "title", label: "اسم الفصل تحت رقمه (اختياري)", type: "text" },
-      { key: "from", label: "كاميرا البداية من المشهد السابق (x,y,تكبير)", type: "text" },
-      { key: "exit", label: "الخروج", type: "select", options: [{ value: "", label: "حسب المشهد" }, { value: "turn", label: "قلب صفحة" }, { value: "fade", label: "خفوت الحبر" }, { value: "none", label: "يكمله المشهد التالي" }] },
+      { key: "title", label: "العنوان (اسم الفصل، أو موضوع المقارنة أو الخط الزمني)", type: "text" },
+      { key: "from", label: "كاميرا البداية من المشهد السابق (x,y,تكبير)", type: "text", common: true },
+      { key: "exit", label: "الخروج", type: "select", common: true, options: [{ value: "", label: "حسب المشهد" }, { value: "turn", label: "قلب صفحة" }, { value: "fade", label: "خفوت الحبر" }, { value: "none", label: "يكمله المشهد التالي" }] },
       { key: "idea", label: "فكرة المشهد (قيد التصميم)", type: "textarea" },
       { key: "batch", label: "الدفعة", type: "text" },
-      { key: "ref", label: "مرجع الختم القرآني (مثل: ص ٧١–٧٢)", type: "text" },
-      { key: "tagWord", label: "كلمة ظهور الختم (تمهيد الآية)", type: "text" },
+      { key: "ref", label: "مرجع الختم القرآني (مثل: ص ٧١–٧٢)", type: "text", keepIfSet: true },
+      { key: "tagWord", label: "كلمة ظهور الختم (تمهيد الآية)", type: "text", ui: "anchor", match: "prefix", slot: "ظهور الختم", firstOnly: true },
       // مشاهد المكتبة العامة (lib-*): كل حقل «كلمة …» مرسى الحدث في الكلام («كلمة#2» للورود الثاني). التوثيق: docs/dafatir-alzaman/03-tools.md
-      { key: "term", label: "مكتبة · المصطلح (كلمة أو كلمتان)", type: "text" },
-      { key: "termWord", label: "مكتبة · كلمة كتابة المصطلح", type: "text" },
-      { key: "sub", label: "مكتبة · سطر الشرح", type: "text" },
-      { key: "subWord", label: "مكتبة · كلمة سطر الشرح", type: "text" },
-      { key: "kind", label: "مكتبة · نوع المصدر", type: "select", options: [{ value: "", label: "بلا" }, { value: "quran", label: "قرآن (ختم ذهبي بالمرجع)" }, { value: "tafsir", label: "تفسير (لسان أحمر)" }, { value: "note", label: "مصدر آخر / تعليق" }] },
-      { key: "source", label: "مكتبة · المصدر أو المرجع", type: "text" },
-      { key: "sourceWord", label: "مكتبة · كلمة ظهور المصدر", type: "text" },
-      { key: "matn", label: "مكتبة · نص أصلي غير قرآني (قصير)", type: "textarea", help: "لا يوضع هنا نص آية أبدًا: للقرآن حقل «مرجع الختم القرآني» وحده" },
-      { key: "matnWord", label: "مكتبة · كلمة ظهور الأصل", type: "text" },
-      { key: "matnLabel", label: "مكتبة · وسم الأصل", type: "text" },
-      { key: "matnSource", label: "مكتبة · مصدر الأصل", type: "text" },
-      { key: "tafsir", label: "مكتبة · نص الحاشية/التفسير", type: "textarea" },
-      { key: "tafsirWord", label: "مكتبة · كلمة ظهور الحاشية", type: "text" },
-      { key: "tafsirLabel", label: "مكتبة · وسم الحاشية", type: "text" },
-      { key: "tafsirSource", label: "مكتبة · مصدر الحاشية", type: "text" },
-      { key: "note", label: "مكتبة · تعليق القناة", type: "textarea" },
-      { key: "noteWord", label: "مكتبة · كلمة ظهور التعليق", type: "text" },
-      { key: "titleWord", label: "مكتبة · كلمة موضوع المقارنة (حقل العنوان)", type: "text" },
-      { key: "aLabel", label: "مكتبة · وسم الطرف الأول", type: "text" },
-      { key: "aText", label: "مكتبة · نص الطرف الأول", type: "text" },
-      { key: "aWord", label: "مكتبة · كلمة الطرف الأول", type: "text" },
-      { key: "bLabel", label: "مكتبة · وسم الطرف الثاني", type: "text" },
-      { key: "bText", label: "مكتبة · نص الطرف الثاني", type: "text" },
-      { key: "bWord", label: "مكتبة · كلمة الطرف الثاني", type: "text" },
-      { key: "verdict", label: "مكتبة · الحكم في المقارنة", type: "select", options: [{ value: "", label: "بلا" }, { value: "a", label: "الأول" }, { value: "b", label: "الثاني" }, { value: "both", label: "يجتمعان" }, { value: "open", label: "مسألة مفتوحة" }] },
-      { key: "verdictText", label: "مكتبة · نص الحكم", type: "text" },
-      { key: "verdictWord", label: "مكتبة · كلمة الحكم", type: "text" },
-      { key: "items", label: "مكتبة · العلامات أو الشواهد", type: "textarea", help: "سطر لكل عنصر: «كلمة = نص». في الخط الزمني تسبق «؟» الكلمة للفجوة بلا سجل. في الشواهد النص مفتاح الرسم: tool، home، food، settle، burial، art (ويجوز «= مفتاح = وسم»)" },
-      { key: "limit", label: "مكتبة · حدود الشاهد", type: "text" },
-      { key: "limitWord", label: "مكتبة · كلمة حدود الشاهد", type: "text" },
+      { key: "term", label: "المصطلح (كلمة أو كلمتان)", type: "text" },
+      { key: "termWord", label: "كلمة كتابة المصطلح", type: "text", ui: "anchor", match: "prefix", slot: "كتابة المصطلح", fallbackFrom: "term" },
+      { key: "sub", label: "سطر الشرح", type: "text" },
+      { key: "subWord", label: "كلمة سطر الشرح", type: "text", ui: "anchor", match: "prefix", slot: "سطر الشرح", fallbackFrom: "sub" },
+      { key: "kind", label: "نوع المصدر", type: "select", options: [{ value: "", label: "بلا" }, { value: "quran", label: "قرآن (ختم ذهبي بالمرجع)" }, { value: "tafsir", label: "تفسير (لسان أحمر)" }, { value: "note", label: "مصدر آخر / تعليق" }] },
+      { key: "source", label: "المصدر أو المرجع", type: "text" },
+      { key: "sourceWord", label: "كلمة ظهور المصدر", type: "text", ui: "anchor", match: "prefix", slot: "ظهور المصدر" },
+      { key: "matn", label: "نص أصلي غير قرآني (قصير)", type: "textarea", help: "لا يوضع هنا نص آية أبدًا: للقرآن حقل «مرجع الختم القرآني» وحده" },
+      { key: "matnWord", label: "كلمة ظهور الأصل", type: "text", ui: "anchor", match: "prefix", slot: "ظهور الأصل" },
+      { key: "matnLabel", label: "وسم الأصل", type: "text" },
+      { key: "matnSource", label: "مصدر الأصل", type: "text" },
+      { key: "tafsir", label: "نص الحاشية/التفسير", type: "textarea" },
+      { key: "tafsirWord", label: "كلمة ظهور الحاشية", type: "text", ui: "anchor", match: "prefix", slot: "ظهور الحاشية", fallbackFrom: "tafsir" },
+      { key: "tafsirLabel", label: "وسم الحاشية", type: "text" },
+      { key: "tafsirSource", label: "مصدر الحاشية", type: "text" },
+      { key: "note", label: "تعليق القناة", type: "textarea" },
+      { key: "noteWord", label: "كلمة ظهور التعليق", type: "text", ui: "anchor", match: "prefix", slot: "ظهور التعليق", fallbackFrom: "note" },
+      { key: "titleWord", label: "كلمة موضوع المقارنة (حقل العنوان)", type: "text", ui: "anchor", match: "prefix", slot: "موضوع المقارنة", fallbackFrom: "title" },
+      { key: "aLabel", label: "وسم الطرف الأول", type: "text" },
+      { key: "aText", label: "نص الطرف الأول", type: "text" },
+      { key: "aWord", label: "كلمة الطرف الأول", type: "text", ui: "anchor", match: "prefix", slot: "الطرف الأول" },
+      { key: "bLabel", label: "وسم الطرف الثاني", type: "text" },
+      { key: "bText", label: "نص الطرف الثاني", type: "text" },
+      { key: "bWord", label: "كلمة الطرف الثاني", type: "text", ui: "anchor", match: "prefix", slot: "الطرف الثاني" },
+      { key: "verdict", label: "الحكم في المقارنة", type: "select", options: [{ value: "", label: "بلا" }, { value: "a", label: "الأول" }, { value: "b", label: "الثاني" }, { value: "both", label: "يجتمعان" }, { value: "open", label: "مسألة مفتوحة" }] },
+      { key: "verdictText", label: "نص الحكم", type: "text" },
+      { key: "verdictWord", label: "كلمة الحكم", type: "text", ui: "anchor", match: "prefix", slot: "الحكم" },
+      { key: "items", label: "العلامات أو الشواهد", type: "textarea", help: "سطر لكل عنصر: «كلمة = نص». في الخط الزمني تسبق «؟» الكلمة للفجوة بلا سجل. في الشواهد النص مفتاح الرسم: tool، home، food، settle، burial، art (ويجوز «= مفتاح = وسم»)" },
+      { key: "limit", label: "حدود الشاهد", type: "text" },
+      { key: "limitWord", label: "كلمة حدود الشاهد", type: "text", ui: "anchor", match: "prefix", slot: "حدود الشاهد", fallbackFrom: "limit" },
     ],
   },
   {

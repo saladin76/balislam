@@ -12,6 +12,7 @@ import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { estimateTimings, toFrames, type WordTiming } from "../remotion/scenes/timing";
 import { Mark, Write, type Z } from "../remotion/zubdat/inkKit";
 import { KIT_SHOTS, MIN_TEXT, parseInkArgs } from "../remotion/zubdat/kitShots";
+import { kitPhraseRange } from "../remotion/zubdat/kitSlots";
 import { INK_SHOTS } from "../remotion/zubdat/shots";
 import { SACRED_WORD } from "../render/stillness";
 import { resolveScriptPath } from "../script/episodes";
@@ -192,8 +193,7 @@ export const checkInkScene = (span: Pick<SceneSpan, "scene" | "dur" | "timings" 
   }
   if (kit) {
     const n = args.labels.length;
-    const need: Record<string, [number, number]> = { "kit-ideas": [2, 5], "kit-shift": [2, 2], "kit-chain": [2, 4], "kit-meter": [0, 3], "kit-book": [1, 3] };
-    const [lo, hi] = need[shot] ?? [0, 9];
+    const [lo, hi] = kitPhraseRange(shot);
     if (n < lo || n > hi) findings.push({ level: "error", code: "labels", msg: `عدد العبارات ${n}، والأداة تقبل ${lo === hi ? lo : `${lo}–${hi}`}` });
     for (const l of args.labels) if (SACRED_WORD.test(normalizeArabic(l))) findings.push({ level: "warn", code: "sacred-label", msg: `العبارة «${l}» فيها ذكر لله فلا تُكتب (توقير)؛ تبقى للصوت وحده` });
     if (shot === "kit-meter" && !args.cues.rise && !args.labels[1]) findings.push({ level: "error", code: "cue", msg: "مقياس المستوى يحتاج كلمة الارتفاع (rise) أو عبارة «الأعلى»" });

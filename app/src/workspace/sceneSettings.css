@@ -1,0 +1,83 @@
+/* «إعدادات المشهد» للمالك (D56). مقياس الخط الواحد (--t-12…)، ولون القناة للحالة النشطة وحدها. */
+.inspector .ss-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: var(--t-12, 12px); color: var(--muted); line-height: 1.7; margin-top: -6px; }
+.inspector .ss-summary > span { flex: 1 1 auto; min-width: 0; }
+.inspector .ss-summary details { flex-basis: 100%; }
+.inspector .ss-summary details > summary,
+.inspector .ss-more > summary { cursor: pointer; color: var(--ink-2, var(--ink)); font-weight: 600; font-size: var(--t-12, 12px); width: max-content; max-width: 100%; }
+.inspector .ss-summary details > p { margin: 4px 0 0; }
+
+.inspector .ss-sec { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-lg, 12px); background: var(--panel); }
+.inspector .ss-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.inspector .ss-head h3 { margin: 0; font-size: var(--t-14, 14px); font-weight: 700; }
+.inspector .ss-block { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.inspector .ss-block h4, .inspector .ss-picker h4 { margin: 0; font-size: var(--t-12, 12px); font-weight: 700; color: var(--ink-2, var(--ink)); }
+.inspector .ss-hint { margin: 0; font-size: var(--t-12, 12px); color: var(--muted); line-height: 1.6; }
+.inspector .ss-hint.on { color: var(--ink); font-weight: 600; }
+.inspector .ss-note { margin: 0; font-size: var(--t-12, 12px); color: var(--warn); }
+.inspector .ss-warn { font-size: var(--t-12, 12px); color: var(--warn); }
+
+/* بطاقات المشاهد */
+.inspector .ss-card { display: grid; gap: 4px; padding: 6px; text-align: start; border: 1px solid var(--line); border-radius: var(--r, 8px); background: var(--panel); cursor: pointer; color: var(--ink); font: inherit; min-width: 0; }
+.inspector .ss-card:hover { border-color: var(--line-2, var(--line)); background: var(--panel-2); }
+.inspector .ss-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.inspector .ss-card.big { cursor: default; padding: 0; border: 0; box-shadow: none; background: none; }
+.inspector .ss-card.big:hover { background: none; }
+.inspector .ss-thumb { direction: ltr; aspect-ratio: 16 / 9; width: 100%; overflow: hidden; border-radius: var(--r-sm, 6px); background: var(--panel-2); border: 1px solid var(--line); }
+.inspector .ss-thumb-blank { width: 100%; height: 100%; background: repeating-linear-gradient(135deg, var(--panel-2) 0 10px, var(--bg) 10px 20px); }
+.inspector .ss-thumb-none { display: grid; place-items: center; }
+.inspector .ss-card-t { font-size: var(--t-12, 12px); font-weight: 700; line-height: 1.5; }
+.inspector .ss-card.big .ss-card-t { font-size: var(--t-14, 14px); }
+.inspector .ss-card-l { font-size: var(--t-12, 12px); color: var(--muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.inspector .ss-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.inspector .ss-badges:empty { display: none; }
+.inspector .ss-badge { font-size: var(--t-12, 12px); line-height: 1.6; padding: 0 6px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
+.inspector .ss-badge.auto { background: var(--warn-soft); border-color: transparent; color: var(--warn); font-weight: 600; }
+.inspector .ss-auto { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: var(--t-12, 12px); color: var(--warn); background: var(--warn-soft); border-radius: var(--r, 8px); padding: 8px 10px; }
+.inspector .ss-picker { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.inspector .ss-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+
+/* الجملة: كلمات تُنقر */
+.inspector .ss-mini-wrap { direction: ltr; }
+.inspector .ss-mini { border-radius: var(--r, 8px); }
+.inspector .ss-words { display: flex; flex-wrap: wrap; gap: 14px 4px; line-height: 1; padding-top: 10px; }
+.inspector .ss-word { position: relative; font: inherit; font-size: var(--t-16, 16px); line-height: 1.6; padding: 2px 6px; border-radius: var(--r-sm, 6px); border: 1px solid transparent; background: none; color: var(--ink); cursor: pointer; }
+.inspector .ss-word:hover { background: var(--panel-2); border-color: var(--line); }
+.inspector .ss-word:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inspector .ss-word.phrase { text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 6px; }
+.inspector .ss-word.anchored { border-color: var(--line-2, var(--line)); background: var(--panel-2); }
+.inspector .ss-word.auto { border-style: dashed; background: none; }
+.inspector .ss-word.event { border-color: var(--line-2, var(--line)); }
+.inspector .ss-word.range { background: var(--accent-soft); border-color: var(--accent); }
+.inspector .ss-word.active { background: var(--accent-soft); border-color: var(--accent); }
+.inspector .ss-pins { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; pointer-events: none; }
+.inspector .ss-pins i { font-style: normal; font-size: var(--t-12, 12px); line-height: 16px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px; background: var(--ink); color: var(--panel); text-align: center; font-weight: 600; }
+.inspector .ss-pins i.auto { background: var(--panel); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line-2, var(--line)); }
+.inspector .ss-word.active .ss-pins i { background: var(--accent); color: var(--accent-ink, #fff); }
+
+/* العبارات ولحظات الظهور */
+.inspector .ss-phrases, .inspector .ss-slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.inspector .ss-phrases li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.inspector .ss-role { font-size: var(--t-12, 12px); color: var(--muted); min-width: 64px; }
+.inspector .ss-chip { font-size: var(--t-14, 14px); padding: 1px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); }
+.inspector .ss-chip.auto { font-size: var(--t-12, 12px); color: var(--muted); border-style: dashed; background: none; }
+.inspector .ss-chip.bad { border-color: var(--warn); }
+.inspector .ss-chip.pending { border-color: var(--accent); background: var(--accent-soft); }
+.inspector .ss-x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: var(--t-16, 16px); line-height: 1; padding: 4px 6px; border-radius: var(--r-sm, 6px); }
+.inspector .ss-x:hover { background: var(--panel-2); color: var(--ink); }
+.inspector .ss-adding { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.inspector .ss-slots li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; border-radius: var(--r, 8px); }
+.inspector .ss-slots li.end { padding-inline-start: 26px; }
+.inspector .ss-slot { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 6px 8px; font: inherit; font-size: var(--t-14, 14px); text-align: start; color: var(--ink); background: none; border: 1px solid transparent; border-radius: var(--r, 8px); cursor: pointer; }
+.inspector .ss-slot:hover { background: var(--panel-2); }
+.inspector .ss-slot[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.inspector .ss-slots li.end .ss-slot { font-size: var(--t-12, 12px); }
+.inspector .ss-n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 999px; background: var(--ink); color: var(--panel); font-size: var(--t-12, 12px); font-weight: 600; }
+.inspector .ss-slot[aria-pressed="true"] .ss-n { background: var(--accent); color: var(--accent-ink, #fff); }
+.inspector .ss-slot-l { font-weight: 600; margin-inline-end: auto; }
+.inspector .ss-empty { font-size: var(--t-12, 12px); color: var(--muted); }
+.inspector .ss-link { border: 0; background: none; color: var(--ink-2, var(--ink)); text-decoration: underline; cursor: pointer; font-size: var(--t-12, 12px); padding: 2px 34px 6px 8px; flex-basis: 100%; text-align: start; }
+.inspector .ss-add-event select { width: 100%; }
+
+.inspector .ss-more { border: 1px solid var(--line); border-radius: var(--r-lg, 12px); padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+.inspector .ss-more[open] > summary { margin-bottom: 6px; }
+.inspector .ss-more > .field, .inspector .ss-more > label.field { margin-top: 8px; }
