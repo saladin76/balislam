@@ -242,3 +242,7 @@
 
 - تسري على بالإسلام: ملاحظة «الحركة/النبرة غير مناسبة» تُرسل بعد تسجيلها إلى الفرع `studio-notes` على GitHub، ويرد Claude في `channels/<القناة>/episodes/<الحلقة>/notes/resolved.json` على `main` (`bal notes`، `docs/studio/notes-inbox.md`).
 - `.githooks/pre-push`: لا تخطٍّ للبوابة إلا لدفع إلى `refs/heads/studio-notes` شجرته صناديق `channels/<القناة>/episodes/<الحلقة>/notes/inbox.json` وحدها؛ `main` وكل مرجع آخر بالبوابة الكاملة كما كانت. التفصيل D45 في `docs/zubdat-alkutub/06-decisions.md`.
+
+## ٩ نوفمبر ٢٠٢٦ — الخطة المصمَّمة لا تُعاد كتابتها ضمنيًا (D46، المحرك المشترك)
+
+- تسري على بالإسلام: خطة 001-know-the-truth مصمَّمة (16 مشهدًا بحقل `shot`)، فحفظ السكريبت لا يلمس `plan.json` ويذكر المشاهد التي اختلف نصها، و`npx bal plan 001` يرفض إلا بـ `--force-overwrite-designed` مع نسخة احتياطية أولًا (`src/plan/designed.ts`، `src/plan/io.ts`). لا تغيير في محرك المشاهد ولا في السجل. التفصيل في `docs/zubdat-alkutub/06-decisions.md` (D46).

@@ -523,11 +523,25 @@ export const balApi = (): Plugin => ({
             if (typeof text !== "string" || !text.trim()) return send(res, 400, { error: "نص السكريبت فارغ؛ لم يُحفظ." });
             await writeFile(scriptPath, text, "utf8");
             const check = await checkText(text, scriptPath);
-            const plan = await io.regeneratePlan(ep);
-            return send(res, 200, { check, plan });
+            // الخطة المصمَّمة لا تُعاد كتابتها من السكريبت أبدًا (حادثة دفاتر الزمن 001)؛ تُرجع قائمة الاختلاف فقط
+            const after = await io.planAfterScriptSave(ep);
+            if (!after.designed) return send(res, 200, { check, plan: after.plan });
+            return send(res, 200, { check, plan: after.plan, planUnchanged: true, designedScenes: after.designedCount, divergence: after.divergence });
           }
           if (parts[2] === "plan" && parts[3] === "regenerate" && req.method === "POST") {
-            return send(res, 200, { plan: await io.regeneratePlan(ep) });
+            // خطة مصمَّمة: تُرفض إلا بتأكيد صريح (رقم الحلقة مكتوبًا)، وتُحفظ نسخة احتياطية قبل الكتابة
+            const b = await readBody(req);
+            const force = b?.overwriteDesigned === true && String(b?.confirmEpisode ?? "").trim() === ep;
+            let backup = "";
+            try {
+              const plan = await io.regeneratePlan(ep, { forceOverwriteDesigned: force, onBackup: (f: string) => { backup = path.basename(f); } });
+              return send(res, 200, { plan, ...(backup ? { backup } : {}) });
+            } catch (error) {
+              if ((error as { code?: string })?.code === "designed-plan") {
+                return send(res, 409, { error: (error as Error).message, designed: true, designedScenes: (error as { designedCount?: number }).designedCount ?? 0 });
+              }
+              throw error;
+            }
           }
           if (parts[2] === "plan" && req.method === "PUT") {
             const { plan } = await readBody(req);

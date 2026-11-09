@@ -129,6 +129,17 @@ authority. Every production gate asks it:
 clip and recitation. A script or storyboard edit re-opens those two decisions, the assembly, the Master and the publish
 permission; only scenes whose own inputs changed are re-opened.
 
+**Designed plans are never regenerated implicitly (D46).** `plan.json` with any designed scene — a `*-shot` template
+(`horizon-shot`, `ink-shot`), a non-empty `props.shot`, or `designed: true` (`isDesignedPlan`, `src/plan/designed.ts`;
+detection needs no migration) — is not rewritten from the script. Saving the script (`PUT /api/episodes/<ep>/script`)
+always writes `script.md`, leaves `plan.json` byte-identical (`planAfterScriptSave`), so no scene is re-opened by the save,
+and returns `planUnchanged`, the designed count and `divergence` (designed-plan scenes whose narration no longer occurs
+in the script, script sentences no scene covers). Text is applied per scene from the scene editor, which re-opens exactly
+that scene through the existing ledger. `regeneratePlan` throws `DesignedPlanError` (HTTP 409, CLI exit 1) unless
+`forceOverwriteDesigned` (`bal plan <ep> --force-overwrite-designed`; Studio body `overwriteDesigned: true` +
+`confirmEpisode` equal to the episode number), and then copies `plan.backup-<timestamp>.json` (gitignored) before writing.
+`bal make` uses a designed plan as it is. No approval is created or weakened.
+
 **Prepared drafts (D31, D40).** Preparing the scenes starts on its own right after «اعتمد التجهيز» (`POST
 /api/episodes/<ep>/approve-preparation` starts the same queue once `requireSceneProductionReady` passes; the response
 carries `prepare.job`). It approves and submits nothing. Its status line (step ٢ header, and the spine while step ٢ is

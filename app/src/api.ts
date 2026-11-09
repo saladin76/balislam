@@ -8,6 +8,7 @@ import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
 import type { TechReviewSummary } from "../../src/channel/techReviews";
+import type { ScriptSaveReply } from "./planGuard";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerMessage } from "./serverMessages";
@@ -269,9 +270,11 @@ export const api = {
   setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
   deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; archived: number; pushed: boolean; note?: string }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
-  saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan }>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
+  saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
   savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
-  regenerate: (id: string) => call<{ plan: Plan }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: {} }),
+  /** على خطة مصمَّمة يرفض الخادم (409) إلا بـ confirmRegenerate من planGuard.ts (رقم الحلقة مكتوبًا) */
+  regenerate: (id: string, confirm: { overwriteDesigned?: true; confirmEpisode?: string } = {}) =>
+    call<{ plan: Plan; backup?: string }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: confirm }),
   check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
   identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
   saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity } }),

@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
 import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary } from "./api";
+import { scriptSaveMessage } from "./planGuard";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab, SceneLivePreview } from "./tabs/EpisodeTab";
@@ -251,7 +252,9 @@ export const App: React.FC = () => {
     setPlan(r.plan);
     setPlanState("saved");
     api.episode(epId).then((d) => { setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys }); }).catch(() => {});
-    say("حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك");
+    // خطة مصمَّمة: لم تُلمس، وتُذكر المشاهد التي اختلف نصها عن السكريبت
+    const note = scriptSaveMessage(r);
+    say(note.msg, note.warn);
   };
 
   const scriptDirty = script !== savedScript;

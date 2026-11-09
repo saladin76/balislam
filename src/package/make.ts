@@ -3,7 +3,8 @@ import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { checkForChannel } from "../script/checkChannel";
 import { formatReport } from "../script/report";
-import { regeneratePlan } from "../plan/io";
+import { loadPlan, regeneratePlan } from "../plan/io";
+import { isDesignedPlan } from "../plan/designed";
 import { loadChannel } from "../channel";
 import { elevenLabsFromEnv } from "../voice/elevenlabs";
 import { generateVoice } from "../voice/generate";
@@ -36,7 +37,9 @@ export const makeEpisode = async (opts: MakeOptions) => {
   log("٢/٥ نص الآيات المرفق بالسكريبت (لا جلب من خدمات خارجية)…");
 
   log("٣/٥ خطة المشاهد…");
-  const plan = await regeneratePlan(ep);
+  // خطة مصمَّمة لا تُعاد كتابتها من السكريبت (حادثة دفاتر الزمن 001)؛ تُستعمل كما هي
+  const existing = await loadPlan(ep);
+  const plan = existing && isDesignedPlan(existing) ? existing : await regeneratePlan(ep);
   log(`   ${plan.chapters.reduce((n, c) => n + c.scenes.length, 0)} مشهدًا.`);
   const issues = planIssues(plan, loadChannel(plan.channel));
   for (const i of issues.filter((x) => x.level === "warning")) log(`   تنبيه (${i.sceneId}): ${i.message}`);

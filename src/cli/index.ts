@@ -94,13 +94,23 @@ program
 
 program
   .command("plan")
-  .description("توليد خطة المشاهد plan.json من السكريبت (تُحفظ تعديلاتك اليدوية)")
+  .description("توليد خطة المشاهد plan.json من السكريبت (تُحفظ تعديلاتك اليدوية). يرفض الكتابة فوق خطة مصمَّمة")
   .argument("<episode>", "رقم الحلقة")
-  .action(async (episode: string) => {
+  .option("--force-overwrite-designed", "امحُ المشاهد المصمَّمة وأعد التوليد من القالب العام (تُحفظ نسخة احتياطية أولًا)")
+  .action(async (episode: string, opts: { forceOverwriteDesigned?: boolean }) => {
     const { regeneratePlan } = await import("../plan/io");
-    const plan = await regeneratePlan(episode);
-    const n = plan.chapters.reduce((a, c) => a + c.scenes.length, 0);
-    console.log(`الخطة جاهزة: ${plan.chapters.length} فصول، ${n} مشهدًا.`);
+    try {
+      const plan = await regeneratePlan(episode, {
+        forceOverwriteDesigned: opts.forceOverwriteDesigned === true,
+        onBackup: (f) => console.log(`نسخة احتياطية من الخطة المصمَّمة قبل محوها: ${f}`),
+      });
+      const n = plan.chapters.reduce((a, c) => a + c.scenes.length, 0);
+      console.log(`الخطة جاهزة: ${plan.chapters.length} فصول، ${n} مشهدًا.`);
+    } catch (error) {
+      if ((error as { code?: string }).code !== "designed-plan") throw error;
+      console.error(`${(error as Error).message}\nللمحو الصريح: npx bal plan ${episode} --force-overwrite-designed`);
+      process.exitCode = 1;
+    }
   });
 
 program
