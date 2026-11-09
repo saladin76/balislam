@@ -60,6 +60,8 @@ describe("c1-s1 (habit-heart): توجيه المالك ٩ نوفمبر", () => {
     expect(tight.gridEnd - tight.gridStart).toBeGreaterThanOrEqual(6);
   });
 
+  /** يرسم المشهد إطارًا إطارًا (مئات الإطارات)؛ على جهاز بنواتين وتحت الاختبارات المتوازية يتجاوز حد 5 ث الافتراضي. */
+  const HEAVY = 30_000;
   for (const c of cases) {
     it(`${c.name}: الشبكة كاملة قبل «لكنَّ»، وتبدأ الاختفاء عندها، وتفرغ الصفحة قبل «سؤالًا»`, () => {
       const tL = start(c.timings, "لكن"), tQ = start(c.timings, "سؤالا");
@@ -68,7 +70,7 @@ describe("c1-s1 (habit-heart): توجيه المالك ٩ نوفمبر", () => {
       expect(gridOpacity(world(tL + 3, c.dur, c.timings))).toBeLessThan(1);
       expect(gridOpacity(world(tQ - 1, c.dur, c.timings))).toBe(0);
       expect(gridOpacity(world(tQ, c.dur, c.timings))).toBe(0);
-    });
+    }, HEAVY);
 
     it(`${c.name}: «؟» لا يظهر قبل «سؤالًا»، ويُرسم من بدايتها على صفحة فارغة`, () => {
       const tQ = start(c.timings, "سؤالا");
@@ -76,7 +78,7 @@ describe("c1-s1 (habit-heart): توجيه المالك ٩ نوفمبر", () => {
       const drawing = world(tQ + 4, c.dur, c.timings);
       expect(hasQuestion(drawing)).toBe(true);
       expect(gridOpacity(drawing)).toBe(0);
-    });
+    }, HEAVY);
 
     it(`${c.name}: لا فسفوري قبل «قلبنا» (الشمس وعلامات الصلوات بالحبر)، والقلب وحده فسفوري`, () => {
       const tHeart = start(c.timings, "قلبنا");
@@ -92,7 +94,7 @@ describe("c1-s1 (habit-heart): توجيه المالك ٩ نوفمبر", () => {
       const heart = world(tHeart + 30, c.dur, c.timings).toUpperCase();
       expect(heart).toContain(heartHalo);
       expect(heart).toMatch(new RegExp(`<G OPACITY="1"><ELLIPSE CX="760" CY="600"`));
-    });
+    }, HEAVY);
   }
 
   it("الشمس بالحبر الأسود وحده، بلا فسفوري", () => {
