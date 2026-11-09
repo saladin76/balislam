@@ -258,6 +258,17 @@ const styleOf = (fmStyle: string | undefined, scenes: { template?: string }[]) =
   return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? fmStyle ?? "";
 };
 
+/**
+ * Policy-changing endpoints (channel rules/settings, identity, creating a channel) need the owner:
+ * the same credential as every other owner action (passphrase or the D49 device session token in
+ * x-studio-owner-token, loopback only). Returns the Arabic refusal, or null when the owner is present.
+ */
+export const ownerRefusal = async (ctx: Pick<ExtraCtx, "req" | "load">): Promise<string | null> => {
+  const { assertSceneOwner } = await ctx.load("/src/studio/sceneService.ts");
+  try { assertSceneOwner(ctx.req.headers["x-studio-owner-token"]); return null; }
+  catch { return "تعديل قواعد القناة أو هويتها أو إنشاء قناة يحتاج جلسة المالك: افتحها من الشريط العلوي ثم أعد المحاولة."; }
+};
+
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
 
@@ -684,6 +695,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   if (parts[0] === "channel") {
     const ch_ = await load("/src/channel/index.ts");
     if (req.method === "PUT") {
+      const refused = await ownerRefusal(ctx);
+      if (refused) return send(res, 403, { error: refused }), true;
       const { channel } = await readBody(req);
       const { langPacks } = await load("/src/i18n/packs.ts");
       const slots = ["paper", "family", "night", "warm"];
@@ -713,6 +726,8 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
   if (parts[0] === "channels" && req.method === "POST") {
+    const refused = await ownerRefusal(ctx);
+    if (refused) return send(res, 403, { error: refused }), true;
     const b = await readBody(req);
     const { createChannel } = await load("/src/channel/create.ts");
     await createChannel({ id: b.id, name: b.name, language: b.language, nameLatin: b.nameLatin, quran: b.quran });

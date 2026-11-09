@@ -3,8 +3,8 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyMessage, handleExtra, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
-import { HttpError, safeName, assertSafeMediaFile } from "./util.ts";
+import { busy, busyMessage, handleExtra, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
+import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
 import { readBody } from "./body.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { isTrustedLocalRequest } from "./security.ts";
@@ -18,6 +18,9 @@ const configFile = path.join(root, "config.json");
 
 
 const send = (res: ServerResponse, status: number, body: unknown) => {
+  // No absolute path of the owner's machine in any error the browser sees (util.ts redactPaths).
+  if (body && typeof body === "object" && !Array.isArray(body) && typeof (body as { error?: unknown }).error === "string")
+    body = { ...(body as object), error: redactPaths((body as { error: string }).error, root) };
   res.statusCode = status;
   res.setHeader("content-type", "application/json; charset=utf-8");
   res.end(JSON.stringify(body));
@@ -125,6 +128,8 @@ export const balApi = (): Plugin => ({
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
         const channelMod = await load("/src/channel/index.ts");
+        // قناة غير موجودة: 404 برسالة واضحة، لا 500 من أول قراءة لملفاتها
+        if (!channelMod.listChannels().includes(ch)) return send(res, 404, { error: `القناة «${ch}» غير موجودة.` });
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
         // جلسة المالك الدائمة (D49): رمز الجلسة يُقبل فقط داخل طلب وصل من عنوان الجهاز نفسه (loopback)،
         // والعنوان من المقبس لا من أي ترويسة.
@@ -592,6 +597,8 @@ export const balApi = (): Plugin => ({
         // الهوية
         if (parts[0] === "identity") {
           if (req.method === "PUT") {
+            const refused = await ownerRefusal({ req, load });
+            if (refused) return send(res, 403, { error: refused });
             const { identity } = await readBody(req);
             if (!identity?.themes || !identity?.palettes || !identity?.typography || !identity?.motion) return send(res, 400, { error: "ملف الهوية ناقص" });
             await writeFile(identityFile, JSON.stringify(identity, null, 2) + "\n", "utf8");
@@ -630,6 +637,8 @@ export const balApi = (): Plugin => ({
         }));
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
+        if (isMissingFileError(err)) return send(res, 404, { error: /^ENOENT\b/.test((err as Error).message) ? "الملف المطلوب غير موجود." : (err as Error).message });
+        console.error("[studio] request failed:", url.pathname, err);
         return send(res, 500, { error: (err as Error).message });
       }
     });

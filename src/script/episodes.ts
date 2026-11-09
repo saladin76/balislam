@@ -29,12 +29,12 @@ export const resolveScriptPath = async (arg: string): Promise<string> => {
   const episodesDir = channelPaths().episodes;
   if (/^\d{3}$/.test(arg)) {
     const matches = await scriptEpisodeDirectories(episodesDir, arg);
-    if (matches.length === 0) throw new Error(`الحلقة ${arg} غير موجودة. أنشئها من زر «حلقة جديدة» في الاستوديو، أو بالأمر: bal new ${arg} اسم-مختصر`);
+    if (matches.length === 0) throw Object.assign(new Error(`الحلقة ${arg} غير موجودة. أنشئها من زر «حلقة جديدة» في الاستوديو، أو بالأمر: bal new ${arg} اسم-مختصر`), { code: "ENOENT" });
     if (matches.length > 1) throw new Error(`أكثر من مجلد يبدأ بـ ${arg}-: ${matches.join("، ")}`);
     return path.join(episodesDir, matches[0] as string, "script.md");
   }
   const p = path.resolve(arg);
-  if (!existsSync(p)) throw new Error(`المسار غير موجود: ${arg}`);
+  if (!existsSync(p)) throw Object.assign(new Error(`المسار غير موجود: ${arg}`), { code: "ENOENT" });
   return (await stat(p)).isDirectory() ? path.join(p, "script.md") : p;
 };
 

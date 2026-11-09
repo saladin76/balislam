@@ -64,6 +64,18 @@ export const setApiChannel = (id: string) => {
 };
 const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(currentChannel)}` : url);
 
+/**
+ * Policy-changing calls (channel rules, identity, a new channel) carry the owner session token the
+ * studio already stores (shell/ownerSession.tsx, same key); the server refuses them without it.
+ */
+export const OWNER_SESSION_KEY = "bal.ownerSession.v1";
+const ownerHeader = (): Record<string, string> => {
+  try {
+    const t = window.localStorage.getItem(OWNER_SESSION_KEY) ?? "";
+    return t ? { "x-studio-owner-token": t } : {};
+  } catch { return {}; }
+};
+
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
@@ -262,7 +274,7 @@ export const api = {
   ops: () => call<OpsChannel[]>("/api/ops"),
   saveCalendar: (channel: string, calendar: Record<string, CalendarDay>) => call("/api/calendar", { method: "PUT", json: { calendar } }, channel),
   channelFor: (channel: string) => call<ChannelConfig>("/api/channel", undefined, channel),
-  saveChannelFor: (channel: string, c: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel: c } }, channel),
+  saveChannelFor: (channel: string, c: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel: c }, headers: ownerHeader() }, channel),
   saveIdeas: (channel: string, ideas: Idea[]) => call("/api/ideas", { method: "PUT", json: { ideas } }, channel),
   statusFor: (channel: string, id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`, undefined, channel),
   saveStatusFor: (channel: string, id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }, channel),
@@ -284,7 +296,7 @@ export const api = {
     call<{ plan: Plan; backup?: string }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: confirm }),
   check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
   identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
-  saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity } }),
+  saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity }, headers: ownerHeader() }),
   render: (b: { episode: string; orientation: string; chapter?: number }) => call<RenderJob>("/api/render", { method: "POST", json: b }),
   jobs: () => call<RenderJob[]>("/api/render"),
   libraryImages: () => call<{ files: string[] }>("/api/library-images"),
@@ -298,8 +310,8 @@ export const api = {
   packageInfo: (id: string) => call<PackageInfo>(`/api/episodes/${id}/package`),
   packageUrl: (id: string, file: string, download = false) => withChannel(`/api/episodes/${id}/package/${encodeURIComponent(file)}${download ? "?download=1" : ""}`),
   channel: () => call<ChannelConfig>("/api/channel"),
-  saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
-  createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
+  saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel }, headers: ownerHeader() }),
+  createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b, headers: ownerHeader() }),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string; blocked?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),

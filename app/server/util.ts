@@ -44,3 +44,20 @@ export const assertSafeMediaFile = (file: string, root: string): void => {
     }
   }
 };
+
+/**
+ * Error text sent to the browser never carries an absolute path of the owner's machine
+ * (user name, folder layout). Paths under the Studio root become relative; any other absolute
+ * path keeps only its last segment. The full error stays in the server log.
+ */
+export const redactPaths = (message: string, root: string): string => {
+  let out = message;
+  for (const r of new Set([root, root.replace(/\\/g, "/")])) if (r.length > 1) out = out.split(r + path.sep).join("").split(r + "/").join("").split(r).join(".");
+  out = out.replace(/(?:file:\/\/)?\/(?:Users|home|private|var|tmp|Volumes|root|opt|mnt|srv|etc)(?:\/[^\s'"`«»،؛)\]]+)+/g, (m) => `…/${path.posix.basename(m)}`);
+  out = out.replace(/\b[A-Za-z]:\\(?:[^\\\s'"`«»،؛)\]]+\\)*[^\\\s'"`«»،؛)\]]*/g, (m) => `…\\${m.split("\\").pop()}`);
+  return out;
+};
+
+/** A file the request named does not exist: answer 404, not 500. */
+export const isMissingFileError = (error: unknown): boolean =>
+  (error as NodeJS.ErrnoException)?.code === "ENOENT";
