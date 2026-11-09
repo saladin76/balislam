@@ -47,7 +47,9 @@ export const isPartsChannel = (scriptPath: string) => {
  * يقرأ خريطة النبرة ويتحقق منها قبل أي توليد، ويرفض بدل أن يخمّن:
  * إصدار v1.2 فما بعد، وبصمة التشكيل الحالي، وكل مشهد منطوق في الخطة = أجزاؤه موصولة، ولا جزء لآية.
  */
-export const validatePartsContext = (map: ToneMap & { source?: { tashkeel?: { sha256?: string } } }, plan: Plan, tashkeelText: string | null): PartJob[] => {
+export const validatePartsContext = (map: ToneMap & { source?: { tashkeel?: { sha256?: string } } }, plan: Plan, tashkeelText: string | null,
+  /** مشاهد صوتها جملةً جملة (src/voice/sentenceVoice.ts): نصها قد يختلف عن الخريطة بتعديل المالك، فلا تُقارن */
+  skipScenes: ReadonlySet<string> = new Set()): PartJob[] => {
   const m = /^v(\d+)\.(\d+)/.exec(map.version ?? "");
   if (!m || Number(m[1]) < 1 || (Number(m[1]) === 1 && Number(m[2]) < 2)) throw new Error(`خريطة النبرة ${map.version || "بلا إصدار"} أقدم من v1.2؛ التوليد يتبع الخريطة المعتمدة v1.2 فما بعد.`);
   if (tashkeelText !== null && map.source?.tashkeel?.sha256 && map.source.tashkeel.sha256 !== sha256(tashkeelText))
@@ -61,7 +63,7 @@ export const validatePartsContext = (map: ToneMap & { source?: { tashkeel?: { sh
     if (s.template === "verse-card" || s.ayahKey) throw new Error(`لا يُولَّد صوت لموضع آية: ${j.scene}`);
     if (QURAN_MARK.test(j.text)) throw new Error(`نص الجزء ${j.partId} فيه علامة قرآنية؛ الصوت المستنسخ لا يتلو القرآن.`);
   }
-  for (const s of scenes.filter((x) => x.narration.trim())) {
+  for (const s of scenes.filter((x) => x.narration.trim() && !skipScenes.has(x.id))) {
     const mine = jobs.filter((j) => j.scene === s.id);
     if (!mine.length) throw new Error(`المشهد ${s.id} منطوق في الخطة وليس له جزء في خريطة النبرة.`);
     if (plain(mine.map((j) => j.text).join(" ")) !== plain(s.narration)) throw new Error(`نص المشهد ${s.id} في الخطة لا يطابق مقاطعه في خريطة النبرة.`);
@@ -80,14 +82,14 @@ export const applySceneOverrides = <M extends ToneMap & { sceneOverrides?: Recor
   return { ...map, audioParts: map.audioParts.map((p) => (isTone(o[p.scene]?.tone) ? { ...p, tone: o[p.scene]!.tone as string } : p)) };
 };
 
-export const loadPartsContext = async (scriptPath: string, plan: Plan): Promise<PartsContext | null> => {
+export const loadPartsContext = async (scriptPath: string, plan: Plan, skipScenes: ReadonlySet<string> = new Set()): Promise<PartsContext | null> => {
   if (!isPartsChannel(scriptPath)) return null;
   const file = toneMapFileFor(scriptPath);
   if (!existsSync(file)) return null;
   const raw = await readFile(file, "utf8");
   const map = applySceneOverrides(JSON.parse(raw) as ToneMap);
   const tk = path.join(path.dirname(scriptPath), "tashkeel.md");
-  const jobs = validatePartsContext(map, plan, existsSync(tk) ? await readFile(tk, "utf8") : null);
+  const jobs = validatePartsContext(map, plan, existsSync(tk) ? await readFile(tk, "utf8") : null, skipScenes);
   return { map, jobs, file, mapSha256: sha256(raw) };
 };
 

@@ -53,6 +53,10 @@ const PROTECTED = [
   "channels/c/episodes/001-a/voice-review.json",
   "channels/c/episodes/001-a/notes/inbox.json",
   "channels/c/episodes/001-a/voice/c1-s1.mp3",
+  "channels/c/episodes/001-a/voice/index.json",
+  "channels/c/episodes/001-a/voice/sentences.json",
+  "channels/c/episodes/001-a/voice/c1-s1-s2-take1.mp3",
+  "channels/c/episodes/001-a/voice/superseded/c1-s1-old.mp3",
   "channels/c/episodes/001-a/recitations/a.mp3",
   "channels/c/episodes/001-a/out/draft.mp4",
   // a whole untracked episode folder: its ledger and voice stay, only disposable media move

@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { api, type Loudness, type OwnRecitationsRead, type RecitationPolish, type RecitationVariant } from "../api";
+import { api, type OwnRecitationsRead } from "../api";
+import { RecitationItem } from "./RecitationItem";
 import { useOwnerSession } from "../shell/ownerSession";
 import "./scene-production.css";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
-const lufs = (l?: Loudness | null) => (l && Number.isFinite(l.integrated) ? `${l.integrated.toFixed(1)} LUFS · ذروة ${l.truePeak.toFixed(1)} dBTP` : "—");
-const sec = (n: number) => `${n.toFixed(2)} ث`;
 
 /**
  * Step ٣ «النسخة النهائية» (owner decision, 8 Nov: recitations come LAST).
@@ -25,7 +24,6 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
-  const [form, setForm] = useState<Record<string, { reciter: string; rights: string; note: string; listened: boolean }>>({});
 
   const load = async () => {
     const [p, r] = await Promise.all([api.preFinal(episodeId, channelId).catch(() => null), api.ownRecitations(episodeId, channelId).catch(() => null)]);
@@ -53,48 +51,9 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
     const r = await api.makePreFinal(episodeId, channelId, owner.secret);
     setMsg(`جُمعت ${ar(r.scenes)} مشاهد${r.recitationPending.length ? `؛ ${ar(r.recitationPending.length)} آية صامتة بانتظار تلاوتها` : ""}.`);
   });
-  const upload = (key: string, file: File) => guard(`up:${key}`, async () => {
-    const data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ""));
-      reader.onerror = () => reject(new Error("تعذّر قراءة الملف."));
-      reader.readAsDataURL(file);
-    });
-    await api.ownRecitationAction(episodeId, channelId, owner.secret, { action: "upload", key, name: file.name, data });
-    setMsg("رُفعت التلاوة وجُهّزت نسختها المعالجة؛ استمع إليها ثم اعتمدها.");
-  });
-  const select = (key: string, variant: "processed" | "original") => guard(`sel:${key}`, async () => {
-    await api.ownRecitationAction(episodeId, channelId, owner.secret, { action: "select", key, variant });
-  });
-  const approve = (key: string) => guard(`ok:${key}`, async () => {
-    const f = form[key] ?? { reciter: "", rights: "", note: "", listened: false };
-    await api.ownRecitationAction(episodeId, channelId, owner.secret, { action: "approve", key, reciter: f.reciter, rightsEvidence: f.rights, note: f.note, listened: f.listened });
-    setMsg("اعتُمدت التلاوة. مشهدها وحده يُفتح لمراجعة سريعة بالتلاوة في «المشاهد».");
-  });
-
-  const audioUrl = (file: string) => `/api/episodes/${encodeURIComponent(episodeId)}/media/recitations/${encodeURIComponent(file)}?channel=${encodeURIComponent(channelId)}`;
   const verses = recs?.verses ?? [];
   const keys = [...new Set(verses.map((v) => v.key))];
   const missing = keys.filter((k) => !recs?.approved[k]);
-
-  const variants = (key: string, vs: Record<"processed" | "original", RecitationVariant>, chosen: string | null, polish: RecitationPolish | null) => (
-    <div className="pf-variants">
-      {(["processed", "original"] as const).map((id) => (
-        <label key={id} className={`pf-variant${chosen === id ? " is-on" : ""}`}>
-          <input type="radio" name={`v-${key}`} checked={chosen === id} disabled={Boolean(busy) || !owner.open} onChange={() => void select(key, id)} />
-          <b>{id === "processed" ? "المعالجة" : "الأصل كما سُجّل"}</b>
-          <span className="sp-hint">{lufs(vs[id].loudness)} · {sec(vs[id].duration)}</span>
-          <audio controls preload="none" src={audioUrl(vs[id].file)} />
-        </label>
-      ))}
-      {polish ? (
-        <p className="sp-hint">
-          قبل: {lufs(polish.before)} ← بعد: {lufs(vs.processed.loudness)} (الهدف {polish.target.integrated} LUFS {polish.target.source === "narration" ? "مطابق لعلوّ صوت الراوي" : "الافتراضي"}).
-          {" "}قُصّ من الصمت: أول {sec(polish.trim.trimmedHead)} وآخر {sec(polish.trim.trimmedTail)}، بلا مساس بالتلاوة ولا تغيير في طبقتها أو سرعتها.
-        </p>
-      ) : null}
-    </div>
-  );
 
   return (
     <section className="scene-first-panel sp pf" aria-label="معاينة قبل النهائية والتلاوات">
@@ -119,45 +78,10 @@ export const PreFinalPanel: React.FC<{ episodeId: string; channelId: string; onC
           <h3>التلاوات ({ar(keys.length - missing.length)} من {ar(keys.length)} معتمدة)</h3>
           <p className="sp-hint">سجّل الآيات بنفسك وارفع كل تلاوة هنا. تُحفظ نسختك الأصلية كما هي، وتُجهَّز نسخة معالجة (قصّ صمت الطرفين، تنقية خفيفة، وعلوّ مطابق للراوي)؛ ولك أن تختار الأصل. لا جلب ولا توليد للقرآن.</p>
           <ul className="pf-rec-list">
-            {keys.map((key) => {
-              const approved = recs!.approved[key];
-              const pending = recs!.pending[key];
-              const scenes = verses.filter((v) => v.key === key).map((v) => v.sceneId);
-              const f = form[key] ?? { reciter: "", rights: "", note: "", listened: false };
-              const set = (patch: Partial<typeof f>) => setForm({ ...form, [key]: { ...f, ...patch } });
-              return (
-                <li key={key} className="pf-rec">
-                  <div className="pf-rec-head">
-                    <b dir="ltr">{key}</b> <span className="sp-hint">المشهد {scenes.join("، ")}</span>
-                    <span className={`pf-st is-${approved ? "ok" : pending ? "review" : "missing"}`}>{approved ? "معتمدة" : pending ? "بانتظار استماعك" : "لم تُرفع"}</span>
-                  </div>
-                  {approved ? (
-                    approved.variants ? variants(key, approved.variants, approved.variant, approved.polish) : <audio controls preload="none" src={audioUrl(approved.file)} />
-                  ) : pending ? (
-                    <>
-                      {pending.variants ? variants(key, pending.variants, pending.variant ?? "processed", pending.polish ?? null) : <audio controls preload="none" src={audioUrl(pending.file)} />}
-                      <div className="pf-approve">
-                        <input placeholder="اسم القارئ" value={f.reciter} onChange={(e) => set({ reciter: e.target.value })} aria-label="اسم القارئ" />
-                        <input placeholder="دليل حق الاستخدام (مثل: تسجيلي الخاص بتاريخ…)" value={f.rights} onChange={(e) => set({ rights: e.target.value })} aria-label="دليل حق الاستخدام" />
-                        <textarea rows={2} placeholder="ملاحظة الاستماع" value={f.note} onChange={(e) => set({ note: e.target.value })} aria-label="ملاحظة الاستماع" />
-                        <label className="sp-confirm"><input type="checkbox" checked={f.listened} onChange={(e) => set({ listened: e.target.checked })} /> استمعت إلى التلاوة كاملة</label>
-                        {!(f.reciter.trim() && f.rights.trim().length >= 12 && f.note.trim().length >= 12) ? (
-                          <p className="sp-hint">اكتب اسم القارئ، ودليل حق الاستخدام وملاحظة الاستماع (١٢ حرفًا على الأقل لكل منهما).</p>
-                        ) : null}
-                        <button type="button" className="btn primary" disabled={Boolean(busy) || !owner.open || !f.listened || !f.reciter.trim() || f.rights.trim().length < 12 || f.note.trim().length < 12} onClick={() => void approve(key)}>اعتمد التلاوة</button>
-                      </div>
-                    </>
-                  ) : null}
-                  {!pending ? (
-                    <label className="btn ghost pf-upload">
-                      {busy === `up:${key}` ? "جارٍ الرفع والمعالجة…" : approved ? "استبدل التسجيل" : "ارفع التلاوة"}
-                      <input type="file" accept=".wav,.mp3,.m4a,.aac,.ogg,.flac,audio/*" hidden disabled={Boolean(busy) || !owner.open}
-                        onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void upload(key, file); }} />
-                    </label>
-                  ) : null}
-                </li>
-              );
-            })}
+            {keys.map((key) => (
+              <RecitationItem key={key} episodeId={episodeId} channelId={channelId} ayahKey={key} recs={recs}
+                scenes={verses.filter((v) => v.key === key).map((v) => v.sceneId)} onChanged={async () => { await load(); onChanged?.(); }} />
+            ))}
           </ul>
         </div>
       ) : null}

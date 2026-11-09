@@ -160,6 +160,27 @@ as `skipped: [{ id, reason: "voice" }]`; a scene whose **same inputs** failed in
 again by the queue (`reason: "failed-before"`; the scene's own «إنتاج المشهد» retries it), except network/render-browser
 failures, which are retried (`pickRenderQueue`, D38).
 
+**Sentence-by-sentence voice (D50).** A narrated scene can be voiced sentence by sentence from «الجمل»
+(`src/voice/sentences.ts` pure model, `src/voice/sentenceVoice.ts` disk/generation/composition, `GET/POST
+/api/episodes/<ep>/sentences`). Reading needs nothing; every action (`init`, `edit`, `split`, `merge`, `delete`, `add`,
+`tone`, `pause`, `generate`, `restore`, `heard`) needs the owner credential (`assertSceneOwner`, D49 token on loopback)
+and runs under a per-episode lock on `voice/sentences.json`. `generate` sends ONE ElevenLabs request for that sentence,
+with the neighbouring sentences as `previous_text`/`next_text` (models that accept them), behind the same gates as
+`generateVoice`, checked for that sentence and scene: tashkeel ≥ 98% for the sentence (Arabic refusal naming the
+words), its board approved, script + storyboard approved in the ledger, a tone (sentence → scene → episode → channel, or
+the tone-map part), a key, a trained professional voice. A sentence with Quran text (﴿ ﴾) is never voiced; a verse card
+stays an owner upload (`own-recitations`, D35 unchanged). When every sentence of a scene has a current recording the
+scene clip is composed (edge silence trimmed per sentence, the owner's pause between speech, loudness pulled to the
+median within ±6 dB, peak guard) into `voice/<hash>.wav` with word timings in `voice/index.json` — the same record the
+renderer, `sceneSeconds` and the ledger read; on a tone-map episode the clip also carries the D-silence `timing`. Until
+then the previous scene clip stays as it was. Editing a sentence's text writes that scene's `narration` only in
+`plan.json` (raw read/write, never `regeneratePlan`, so designed plans stay designed, D46); the ledger re-opens exactly
+that scene through its own input hash, and recomposing re-opens it through its voice fingerprint. `generateVoice`, the
+dafatir parts path (`loadPartsContext(…, skipScenes)`) and `scenesNeedingVoice` skip sentence-managed scenes and never
+delete their clip. Paid audio is never deleted: a replaced sentence take stays in `takes`; the old scene clip is cut into
+sentences only when its word timings show a real pause (≥ 120 ms) at every boundary, otherwise sentences start
+«بلا صوت»; when a composed clip replaces it, the old file is moved to `voice/superseded/`.
+
 Why pre-rendering is safe:
 - A render only adds a render-to-input proof (`previewInputs[id]`). `recordSceneRenderEvidence` refuses to save if the
   decision digest (state, history, review epochs, assembly/Master epochs) would change: a render never changes approval state.

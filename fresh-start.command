@@ -6,7 +6,7 @@
 # 3) يثبّت الحزم، ويفحص المشروع، ثم يفتح الاستوديو.
 # لا يلمس: ملف المفاتيح .env، والمؤثرات الصوتية المولَّدة (assets/sfx)، والتلاوات المرخّصة (assets/recitations).
 # ولا يؤرشف ولا يحذف أبدًا (is_protected أدناه): اعتمادات المالك (سجل المشاهد وكل ملفات الاعتماد)، وجلسة المالك (.studio/)،
-# وصندوق الملاحظات (notes/)، والصوت (voice/)، والتلاوات (recitations/)، ومسودات الرندر (out/).
+# وصندوق الملاحظات (notes/)، والصوت (voice/ كله: index.json وsentences.json وتسجيلات الجمل السابقة والمستبدَلة في voice/superseded/، D50)، والتلاوات (recitations/)، ومسودات الرندر (out/).
 # وإن كان في ملف اعتماد متتبَّع تعديل غير محفوظ، أو commits محلية لم تُرفع، يتوقف قبل أي تغيير.
 cd "$(dirname "$0")" || exit 1
 set -u
@@ -15,6 +15,7 @@ set -u
 is_protected() {
   case "${1%/}" in
     .studio|.studio/*|.env) return 0 ;;
+    # voice/ كله: المقاطع وindex.json وsentences.json (الجمل وتسجيلاتها takes) وsuperseded/ (D50)
     channels/*/episodes/*/voice|channels/*/episodes/*/voice/*) return 0 ;;
     channels/*/episodes/*/recitations|channels/*/episodes/*/recitations/*) return 0 ;;
     channels/*/episodes/*/out|channels/*/episodes/*/out/*) return 0 ;;

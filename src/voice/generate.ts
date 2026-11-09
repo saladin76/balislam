@@ -33,6 +33,11 @@ export type VoiceClip = {
    * ومدته المقررة بسياسة الصمت (رأس بعد الآية + آخر كلام + ذيل الحد). بلا هذا الحقل يبقى الحساب العام كما هو.
    */
   timing?: { pre: number; tail: number; seconds: number; speechStart: number; speechEnd: number; toneMap: string; parts: { partId: string; at: number; trimStart: number; trimEnd: number }[] };
+  /**
+   * الصوت جملةً جملة (D50، src/voice/sentenceVoice.ts): الملف مركّب من تسجيلات جمل المشهد ووقفاتها.
+   * مشهد له جمل لا يولّده المسار العام ولا مسار الأجزاء، ولا يُحذف مقطعه في التنظيف.
+   */
+  sentences?: { hash: string; ids: string[] };
 };
 export type VoiceIndex = Record<string, VoiceClip>;
 
@@ -61,6 +66,8 @@ const loadTashkeel = async (scriptPath?: string): Promise<TashkeelIndex | null> 
   if (!scriptPath || !existsSync(tashkeelFileFor(scriptPath))) return null;
   return buildTashkeelIndex(await readFile(tashkeelFileFor(scriptPath), "utf8"));
 };
+/** قاموس النطق والتشكيل معًا (للصوت جملةً جملة، src/voice/sentenceVoice.ts): النطق نفسه الذي يرسله المسار العام */
+export const speechContextFor = async (scriptPath: string) => ({ dict: await loadDictionary(), tk: await loadTashkeel(scriptPath) });
 
 const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   const dict = await loadDictionary();
@@ -143,10 +150,15 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   const caps = capsFor(model);
   const voiceKey = `${voiceIdFor() ?? ""}|${model}`;
   // دفاتر الزمن مع خريطة نبرة: التوليد بأجزاء الخريطة (s001–s088)، لا بمشهد كامل. غير ذلك: المسار العام كما هو
-  const parts = await (await import("./dafatirParts")).loadPartsContext(scriptPath, plan);
+  // مشاهد صوتها جملةً جملة (D50): المالك يولّد جملها من «الجمل»؛ لا يُعاد توليدها كاملة ولا يُمس مقطعها هنا
+  const managed = await (await import("./sentenceVoice")).sentenceManagedScenes(scriptPath);
+  const parts = await (await import("./dafatirParts")).loadPartsContext(scriptPath, plan, managed);
   const sceneOf = (j: Job) => j.scene ?? j.id;
   const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath);
-  const jobs = allJobs.filter((j) => !opts.only || opts.only.includes(sceneOf(j)));
+  const jobs = allJobs.filter((j) => (!opts.only || opts.only.includes(sceneOf(j))) && !managed.has(sceneOf(j)));
+  // «أعد توليد الصوت» لمشهد صوته جمل: لا يُعاد كاملًا بصمت؛ يُقال للمالك أين يولّده
+  if (!opts.dryRun && opts.only?.length && opts.only.every((id) => managed.has(id)))
+    throw new Error("صوت هذا المشهد يُولَّد جملةً جملة: ولّد الجملة المقصودة من «الجمل» تحت معاينة المشهد.");
   const partsDir = path.join(dir, "parts");
   const partsIndexFile = path.join(partsDir, "index.json");
   type PartClipRecord = { file: string; hash: string; text: string; duration: number; words: TimedWord[] };
@@ -167,10 +179,10 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     chars,
     credits: Math.ceil(chars * config.voice.creditsPerChar),
     missingTones: parts
-      ? [...new Set(parts.jobs.filter((p) => (!opts.only || opts.only.includes(p.scene)) && !isTone(p.tone)).map((p) => p.scene))]
-      : plan.chapters.flatMap((c) => c.scenes).filter((scene) => scene.narration.trim() && (!opts.only || opts.only.includes(scene.id)) && !effectiveTone(scene.tone, plan.tone, channelToneOf())).map((scene) => scene.id),
+      ? [...new Set(parts.jobs.filter((p) => (!opts.only || opts.only.includes(p.scene)) && !managed.has(p.scene) && !isTone(p.tone)).map((p) => p.scene))]
+      : plan.chapters.flatMap((c) => c.scenes).filter((scene) => scene.narration.trim() && !managed.has(scene.id) && (!opts.only || opts.only.includes(scene.id)) && !effectiveTone(scene.tone, plan.tone, channelToneOf())).map((scene) => scene.id),
     tashkeel: tashkeelReport(
-      plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && (!opts.only || opts.only.includes(s.id))),
+      plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && !managed.has(s.id) && (!opts.only || opts.only.includes(s.id))),
       await loadTashkeel(scriptPath),
       await loadDictionary(),
     ),
@@ -250,7 +262,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   // reused next time; scenes are never composed from an incomplete set of parts.
   if (parts && stoppedEarly) return report;
   if (parts) {
-    await (await import("./dafatirParts")).composePartsIntoScenes({ plan, parts, partsIndex, partsDir, dir, index, allJobs, log });
+    await (await import("./dafatirParts")).composePartsIntoScenes({ plan, parts: { ...parts, jobs: parts.jobs.filter((j) => !managed.has(j.scene)) }, partsIndex, partsDir, dir, index, allJobs, log });
     // تنظيف: أجزاء لم تعد في الخريطة، وملفات لا يشير إليها جزء ولا مشهد
     const liveParts = new Set(allJobs.map((j) => j.id));
     for (const id of Object.keys(partsIndex)) if (!liveParts.has(id)) delete partsIndex[id];

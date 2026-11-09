@@ -13,6 +13,7 @@ import "../shell/screens-s3.css";
 import { useOwnerSession } from "../shell/ownerSession";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
+import { SentencesPanel } from "./SentencesPanel";
 import { clockAr, sceneName, seamName } from "./sceneNames";
 
 type Props = {
@@ -56,6 +57,9 @@ type Props = {
    * Display only, never a source of approval; the panel re-reads `api.sceneProduction` on mount.
    */
   initialRead?: SceneProductionRead;
+  /** «الجمل» (D50): يُحفظ تعديل الخطة المعلّق قبل أن يكتب الخادم نص مشهد، ثم تُستبدل الخطة بما كتبه (بلا حفظ جديد). */
+  onPlanFlush?: () => Promise<void>;
+  onPlanReplaced?: (plan: Plan) => void;
 };
 
 export type ProblemKind = "motion" | "tone";
@@ -85,7 +89,7 @@ const noop = () => {};
 export const SceneProductionPanel: React.FC<Props> = ({
   episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onOpenPreparation, onUpdated,
   plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
-  initialRead,
+  initialRead, onPlanFlush, onPlanReplaced,
 }) => {
   const [data, setData] = useState<SceneProductionRead | null>(initialRead ?? null);
   const [error, setError] = useState("");
@@ -112,6 +116,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [voiceMsg, setVoiceMsg] = useState("");
   // بعد «اعتمد» يُعرض المشهد التالي فورًا، وتبدأ مسودته الجاهزة بالتشغيل
   const [advanced, setAdvanced] = useState(false);
+  // «جمل الحلقة كلها» في «أدوات وتفاصيل»: تُفتح بطلب المالك فقط (القائمة طويلة)
+  const [allSentences, setAllSentences] = useState(false);
   // التجهيز في الخلفية (يبدأ وحده بعد «اعتمد التجهيز»): يقول تحت المشهد غير الجاهز «يُجهَّز الآن» أو «في الدور»
   const [prepJob, setPrepJob] = useState<ScenePrepareRead["job"]>(null);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -555,6 +561,12 @@ export const SceneProductionPanel: React.FC<Props> = ({
           </div>
         </div>
 
+        {hit?.scene.narration.trim() || hit?.scene.template === "verse-card" ? (
+          <SentencesPanel episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
+            onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
+            onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
+        ) : null}
+
         {issues.length ? (
           <button type="button" className={`s3-issues${blocking ? " is-block" : ""}`} onClick={openIssues}>
             {blocking ? `${ar(blocking)} ملاحظات تمنع النسخة النهائية` : `${ar(issues.length)} تنبيهات قبل النسخة النهائية`} · عرضها
@@ -579,6 +591,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 </ul>
               </div>
             ) : null}
+            <div className="s3-more-group">
+              <h3>جمل الحلقة كلها</h3>
+              <p className="sp-hint">كل مشاهد الحلقة جملةً جملة بالترتيب، والآيات في مواضعها برفع التلاوة.</p>
+              <button type="button" className="btn" aria-expanded={allSentences} onClick={() => setAllSentences((v) => !v)}>{allSentences ? "أخفِ جمل الحلقة" : "اعرض جمل الحلقة كلها"}</button>
+              {allSentences ? (
+                <SentencesPanel episodeId={episodeId} channelId={channelId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
+                  onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
+                  onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
+              ) : null}
+            </div>
             {!(isCurrent && (scene?.status === "in_review" || draftReady)) ? <div className="s3-more-group">{criteria}</div> : null}
             <p className="hint">التحرير الكامل (القالب، الخلفية، النبرة، التصدير) في «تحرير المشهد».</p>
           </More>

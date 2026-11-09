@@ -12,6 +12,8 @@ import type { ScriptSaveReply } from "./planGuard";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerMessage } from "./serverMessages";
+import type { SentenceCommand, SentencesRead } from "../../src/voice/sentenceVoice";
+export type { SentenceCommand, SentencesRead, SentenceRow, SentenceScene } from "../../src/voice/sentenceVoice";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -208,6 +210,12 @@ export const api = {
     | { action: "approve"; key: string; reciter: string; rightsEvidence: string; note: string; listened: boolean }) =>
     call<Record<string, unknown>>(`/api/episodes/${episode}/own-recitations`, {
       method: "POST", json: body, headers: { "x-studio-owner-token": token } }, channel),
+  /** الصوت جملةً جملة (D50): قراءة جمل الحلقة، وفعل المالك على جملة (بجلسته). */
+  sentences: (episode: string, channel: string) =>
+    call<SentencesRead>(`/api/episodes/${episode}/sentences`, undefined, channel),
+  sentenceAction: (episode: string, channel: string, token: string, body: SentenceCommand) =>
+    call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string }>(
+      `/api/episodes/${episode}/sentences`, { method: "POST", json: body, headers: { "x-studio-owner-token": token } }, channel),
   /** Step ١ «التجهيز»: what still blocks the one-button approval (script errors, verses without text, board record). */
   preparation: (episode: string, channel: string) =>
     call<PreparationRead>(`/api/episodes/${episode}/approve-preparation`, undefined, channel),

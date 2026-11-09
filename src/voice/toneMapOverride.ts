@@ -142,3 +142,57 @@ export const toneMapSummary = async (scriptPath: string): Promise<{ version: str
     return null;
   }
 };
+
+/**
+ * نبرة جملة واحدة في حلقة لها خريطة نبرة (الصوت جملةً جملة، D50، على دلالة D41): تُكتب في الخريطة إصدارًا
+ * جديدًا (`sentenceOverrides[معرّف الجملة]` وسطر changelog وprevious، والإصدار السابق محفوظ باسمه)، ولا تتغير
+ * نبرة أي جزء أو مقطع: الجملة أدق من الجزء، وتوليد الجمل وحده يقرؤها. tone = null يعيد الجملة إلى نبرة جزئها.
+ */
+export type SentenceToneOverride = { tone: Tone; scene: string; text: string; version: string; at: string; note: string; by: "owner" };
+export const overrideSentenceTone = (raw: string, o: { scene: string; sentence: string; text: string; tone: Tone | null; note: string; at: string }):
+  { map: ToneMapDoc & { sentenceOverrides?: Record<string, SentenceToneOverride> }; change: Record<string, unknown> } | null => {
+  const cur = JSON.parse(raw) as ToneMapDoc & { sentenceOverrides?: Record<string, SentenceToneOverride> };
+  if (!Array.isArray(cur.audioParts) || !Array.isArray(cur.segments)) throw new Error("خريطة النبرة بلا أجزاء صوتية أو مقاطع.");
+  if (!cur.audioParts.some((p) => p.scene === o.scene)) throw new Error(`المشهد ${o.scene} بلا جزء صوتي في خريطة النبرة.`);
+  const before = cur.sentenceOverrides?.[o.sentence]?.tone ?? null;
+  if (before === o.tone) return null;
+  const to = nextToneMapVersion(cur.version);
+  const date = o.at.slice(0, 10);
+  const note = o.note.trim();
+  const rest = { ...(cur.sentenceOverrides ?? {}) };
+  delete rest[o.sentence];
+  const sentenceOverrides = o.tone ? { ...rest, [o.sentence]: { tone: o.tone, scene: o.scene, text: o.text, version: to, at: o.at, note, by: "owner" as const } } : rest;
+  const change = {
+    from: cur.version, to, date, at: o.at, by: "owner", source: "sentence-tone", scene: o.scene, sentence: o.sentence, text: o.text,
+    before: before ?? "part", after: o.tone ?? "part", note,
+    summary: `نبرة جملة في ${o.scene}: ${before ?? "نبرة الجزء"} ← ${o.tone ?? "نبرة الجزء"} بقرار صاحب المشروع (الصوت جملةً جملة)؛ الأجزاء والمقاطع كما هي`,
+  };
+  const map = {
+    ...cur, version: to, date,
+    status: `${to} — ${cur.version} مع نبرة جملة في ${o.scene} بقرار صاحب المشروع (${date})`,
+    previous: [...(cur.previous ?? []), { version: cur.version, path: archiveNameFor(cur.version) }],
+    sentenceOverrides,
+    changelog: [...(cur.changelog ?? []), change],
+  };
+  return { map, change };
+};
+
+/** يكتب نبرة الجملة إصدارًا جديدًا (الإصدار السابق محفوظ باسمه). null: الحلقة بلا خريطة، أو لا تغيير. */
+export const writeSentenceToneOverride = async (
+  scriptPath: string, o: { scene: string; sentence: string; text: string; tone: unknown; note: string; at: string },
+): Promise<string | null> => {
+  const { isPartsChannel, toneMapFileFor } = await import("./dafatirParts");
+  if (!isPartsChannel(scriptPath)) return null;
+  const file = toneMapFileFor(scriptPath);
+  if (!existsSync(file)) return null;
+  if (o.tone !== null && !isTone(o.tone)) throw new Error("النبرة المختارة غير معروفة.");
+  const raw = await readFile(file, "utf8");
+  const r = overrideSentenceTone(raw, { ...o, tone: (o.tone as Tone | null) });
+  if (!r) return null;
+  const archive = path.join(path.dirname(file), archiveNameFor(String(r.change.from)));
+  if (existsSync(archive) && (await readFile(archive, "utf8")) !== raw)
+    throw new Error(`${path.basename(archive)} محفوظ بمحتوى آخر؛ لا يُكتب فوق إصدار سابق من خريطة النبرة.`);
+  if (!existsSync(archive)) await writeAtomic(archive, raw);
+  await writeAtomic(file, JSON.stringify(r.map, null, 1) + "\n");
+  return String(r.change.to);
+};

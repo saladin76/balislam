@@ -513,11 +513,11 @@ export const balApi = (): Plugin => ({
             const name = safeName(parts[4]);
             // تُعرض تسجيلات الحلقة المحلية فقط، دون مصدر خارجي أو مكتبة مشتركة
             const epRec = path.join(path.dirname(scriptPath), "recitations");
-            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? epRec : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
+            const dir = kind === "voice" ? path.join(path.dirname(scriptPath), "voice") : kind === "sentences" ? path.join(path.dirname(scriptPath), "voice", "sentences") : kind === "sfx" ? path.join(root, "assets", "sfx") : kind === "recitations" ? epRec : kind === "images" ? (name.startsWith("lib__") ? path.join(path.dirname(scriptPath), "..", "..", "images") : path.join(path.dirname(scriptPath), "images")) : null;
             const file = dir ? path.join(dir, kind === "images" ? name.replace(/^lib__/, "") : name) : "";
             if (!dir || !existsSync(file)) return send(res, 404, { error: "الملف غير موجود" });
             const imgType = /\.png$/i.test(name) ? "image/png" : /\.webp$/i.test(name) ? "image/webp" : /\.mp4$/i.test(name) ? "video/mp4" : /\.webm$/i.test(name) ? "video/webm" : /\.mov$/i.test(name) ? "video/quicktime" : "image/jpeg";
-            serveFile(req, res, file, kind === "images" ? imgType : "audio/mpeg");
+            serveFile(req, res, file, kind === "images" ? imgType : /\.wav$/i.test(name) ? "audio/wav" : "audio/mpeg");
             return;
           }
           // رفع صورة لوحة وثائقية: {name, data(base64)} ← تُحفظ في images/ باسم آمن وتُرجع اسمها
@@ -536,6 +536,20 @@ export const balApi = (): Plugin => ({
             const plan = await io.readPlanFile(scriptPath);
             const media = await mediaFor(plan);
             return send(res, 200, { file: fileName, media: { ...media, images: [...new Set([...(media.images ?? []), fileName])] } });
+          }
+          // الصوت جملةً جملة (D50): قراءة الجمل بلا جلسة، وكل فعل (تعديل/تقسيم/نبرة/وقفة/توليد) بجلسة المالك.
+          // التوليد لجملة واحدة فقط؛ الآيات لا تُولَّد أبدًا (ترفع من own-recitations).
+          if (parts[2] === "sentences" && parts.length === 3) {
+            const sv = await load("/src/voice/sentenceVoice.ts");
+            if (req.method === "GET") return send(res, 200, await sv.readSentences(ep));
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const body = await readBody(req);
+            const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
+            let result;
+            try { result = await sv.sentenceAction(ep, body, req.headers["x-studio-owner-token"], { client: elevenLabsFromEnv() }); }
+            catch (error) { return refuse(error); }
+            const plan = await io.readPlanFile(scriptPath);
+            return send(res, 200, { ...result, ...(result.planChanged ? { plan } : {}), media: await mediaFor(plan) });
           }
           if (parts[2] === "voice" && req.method === "POST") {
             const b = await readBody(req);

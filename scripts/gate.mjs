@@ -52,7 +52,7 @@ const auditVitestArgs = process.env.BAL_STUDIO_AUDIT_VITEST_WORKERS === "1"
 const CHECKS = [
   { name: "فحص TypeScript", cmd: "npx", args: ["tsc", "--noEmit", "-p", "."] },
   { name: "اختبارات المشروع", cmd: "npx", args: auditVitestArgs },
-  // رقم القرار D يُعرَّف مرة واحدة في كل السجلات (scripts/decisions.mjs، D50)
+  // رقم القرار D يُعرَّف مرة واحدة في كل السجلات (scripts/decisions.mjs، D51)
   { name: "أرقام القرارات", cmd: "node", args: ["scripts/decisions.mjs", "check"] },
   // تغيير منظومة قناة لها دليل يصاحبه تحديث سجل قراراتها (scripts/docs-sync.mjs)
   ...(range ? [{ name: "تزامن التوثيق", cmd: "node", args: [path.join(root, "scripts", "docs-sync.mjs"), range] }] : []),
