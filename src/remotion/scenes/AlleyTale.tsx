@@ -390,7 +390,8 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
                       {hasBoard ? <NoticeBoard x={propX - 430} y={GROUND - 470} glow={news} mood={m} /> : null}
                     </>
                   ))}
-                  {sitting ? <WallLamp x={heroX + 30} y={GROUND - 420} on={1} frame={frame} /> : null}
+                  {/* المصباح إلى جانب الجالس لا فوق رأسه (كان يبدو شيئًا على رأسه: c3-s4، c6-s1، c6-s5) */}
+                  {sitting ? <WallLamp x={heroX + 200} y={GROUND - 440} on={1} frame={frame} /> : null}
                 </DepthLayer>
               </g>
             </>

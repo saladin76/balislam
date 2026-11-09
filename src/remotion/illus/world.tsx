@@ -210,11 +210,12 @@ export const WallLamp: React.FC<{ x: number; y: number; on?: number; frame: numb
 
 /** مقعد حجري */
 export const Bench: React.FC<{ x: number; w?: number; mood: Mood }> = ({ x, w = 220, mood }) => {
-  const c = stoneFor(mood, 0.05);
+  // دكة خشبية بحدّ داكن تبين أمام الجدار (كانت بلون حجر الجدار فيبدو الجالس معلقًا في الهواء: c6-s1، ٩ نوفمبر)
+  const c = mix(stoneFor(mood, 0.05), darken(ID.copper, 0.45), 0.6);
   return (
     <g>
-      <rect x={x} y={GROUND - 72} width={w} height={72} fill={darken(c, 0.1)} />
-      <rect x={x - 8} y={GROUND - 82} width={w + 16} height={14} rx={3} fill={lighten(c, 0.06)} />
+      <rect x={x} y={GROUND - 72} width={w} height={72} fill={darken(c, 0.12)} stroke={darken(c, 0.5)} strokeWidth={3} />
+      <rect x={x - 8} y={GROUND - 84} width={w + 16} height={16} rx={3} fill={lighten(c, 0.08)} stroke={darken(c, 0.5)} strokeWidth={3} />
     </g>
   );
 };

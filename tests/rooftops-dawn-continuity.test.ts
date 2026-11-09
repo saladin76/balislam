@@ -30,3 +30,18 @@ describe("انتقال المزاج في قوالب المكان", () => {
     expect(alley).toMatch(/<g opacity=\{skyT\}>\{draw\(moodTo\)\}<\/g>/);
   });
 });
+
+describe("الجالس على الدكة", () => {
+  it("الدكة تبين أمام الجدار بلونها وحدّها، والمصباح إلى جانب الجالس لا فوق رأسه", async () => {
+    const React = (await import("react")).default;
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { Bench } = await import("../src/remotion/illus/world");
+    const { stoneFor } = await import("../src/remotion/illus/palette");
+    const svg = renderToStaticMarkup(React.createElement("svg", null, React.createElement(Bench, { x: 0, mood: "dusk" })));
+    expect(svg).toContain("stroke=");
+    const wall = stoneFor("dusk", 0.05).toLowerCase();
+    expect(svg.toLowerCase()).not.toContain(`fill="${wall}"`);
+    const fs = await import("node:fs");
+    expect(fs.readFileSync("src/remotion/scenes/AlleyTale.tsx", "utf8")).toMatch(/WallLamp x=\{heroX \+ 200\}/);
+  });
+});
