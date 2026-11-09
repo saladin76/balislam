@@ -45,7 +45,7 @@ const playerStyle = (_o: Orientation): React.CSSProperties => ({ width: "100%", 
  * browser and Remotion then warns and mutes it itself. Muted from the start says what the label says
  * («معاينة صامتة»); the owner can still unmute from the controls.
  */
-export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; muted?: boolean } & Ctx>(({ muted, ...props }, ref) => (
+export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; muted?: boolean; autoPlay?: boolean; className?: string } & Ctx>(({ muted, autoPlay = true, className, ...props }, ref) => (
   <Player
     ref={ref}
     key={`${props.scene.id}-${props.orientation}`}
@@ -56,8 +56,9 @@ export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: T
     compositionWidth={size(props.orientation).width}
     compositionHeight={size(props.orientation).height}
     style={playerStyle(props.orientation)}
+    className={className}
     controls
-    autoPlay
+    autoPlay={autoPlay}
     initiallyMuted={muted}
     loop
     acknowledgeRemotionLicense

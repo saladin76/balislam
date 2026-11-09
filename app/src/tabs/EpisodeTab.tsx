@@ -3,7 +3,8 @@ import { resolveOverlays } from "../../../brand/identity/index";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerRef } from "@remotion/player";
 import type { Plan, PlanScene } from "../../../src/plan/types";
-import { templateById, templateDefs } from "../../../src/plan/templates";
+import { templateById, templateDefs, type FieldDef } from "../../../src/plan/templates";
+import { SceneSettings, TemplateSummary } from "../workspace/SceneSettings";
 import { defaultsFor } from "../../../src/plan/generate";
 import { sceneFrames, sceneSeconds } from "../../../src/plan/duration";
 import { introFramesFor } from "../../../src/remotion/scenes/ChannelIntro";
@@ -152,6 +153,65 @@ export const EpisodeTab: React.FC<{
   if (!sel) return <div className="empty-state"><h2>لا توجد مشاهد بعد</h2><p>اكتب فصول السكريبت أولًا، ثم ستظهر المشاهد هنا تلقائيًا.</p></div>;
   const scene = sel.scene;
   const def = templateById(scene.template);
+
+  const renderField = (f: FieldDef): React.ReactNode => {
+    const v = scene.props[f.key] ?? "";
+    if (f.type === "pose") return null;
+    if (f.type === "variant")
+      return (
+        <div key={f.key} className="field" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>الشخصية والوضعية</span>
+          <CharacterField
+            themeId={plan.themeId}
+            variant={(scene.props.variant || "narrator-m") as CharacterVariant}
+            pose={(scene.props.pose || "stand") as CharacterPose}
+            onChange={({ variant, pose }) => updateScene({ props: { ...scene.props, variant, pose } })}
+          />
+        </div>
+      );
+    if (f.type === "element")
+      return (
+        <div key={f.key} className="field" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>{f.label}</span>
+          <ElementField themeId={plan.themeId} value={v} onChange={(id) => setProp(f.key, id)} />
+        </div>
+      );
+    if (f.type === "image")
+      return (
+        <ImageField
+          key={f.key}
+          episodeId={episodeId}
+          sceneId={f.key === "image" ? scene.id : `${scene.id}-${f.key.replace("image", "p")}`}
+          channel={channel.id}
+          value={v}
+          prompt={scene.props[f.key === "image" ? "prompt" : f.key.replace("image", "prompt")] ?? ""}
+          look={scene.props.look === "archive" ? "archive" : "scene"}
+          media={media}
+          onChange={(file) => setProp(f.key, file)}
+          onMedia={onMediaChange}
+        />
+      );
+    if (f.type === "select")
+      return (
+        <label key={f.key} className="field">
+          <span>{f.label}</span>
+          <select id={`f-${f.key}`} value={v || f.options?.[0]?.value} onChange={(e) => setProp(f.key, e.target.value)}>
+            {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </label>
+      );
+    return (
+      <label key={f.key} className="field">
+        <span>{f.label}</span>
+        {f.type === "textarea" ? (
+          <textarea id={`f-${f.key}`} rows={f.key === "text" || f.key === "prompt" ? 4 : 2} dir={f.key === "prompt" ? "ltr" : undefined} value={v} onChange={(e) => setProp(f.key, e.target.value)} readOnly={scene.template === "verse-card" && f.key === "text"} />
+        ) : (
+          <input id={`f-${f.key}`} type="text" value={v} onChange={(e) => setProp(f.key, e.target.value)} />
+        )}
+        {f.help ? <span className="help">{f.help}</span> : null}
+      </label>
+    );
+  };
 
   if (board)
     return (
@@ -302,67 +362,24 @@ export const EpisodeTab: React.FC<{
                 <option key={t.id} value={t.id}>{t.nameAr}{t.implemented ? "" : " (قيد البناء)"}</option>
               ))}
             </select>
-            {def ? <span className="help">{def.useAr}</span> : null}
+            {def ? <TemplateSummary def={def} /> : null}
           </label>
 
-          {def?.fields.map((f) => {
-            const v = scene.props[f.key] ?? "";
-            if (f.type === "pose") return null;
-            if (f.type === "variant")
-              return (
-                <div key={f.key} className="field" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13 }}>الشخصية والوضعية</span>
-                  <CharacterField
-                    themeId={plan.themeId}
-                    variant={(scene.props.variant || "narrator-m") as CharacterVariant}
-                    pose={(scene.props.pose || "stand") as CharacterPose}
-                    onChange={({ variant, pose }) => updateScene({ props: { ...scene.props, variant, pose } })}
-                  />
-                </div>
-              );
-            if (f.type === "element")
-              return (
-                <div key={f.key} className="field" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13 }}>{f.label}</span>
-                  <ElementField themeId={plan.themeId} value={v} onChange={(id) => setProp(f.key, id)} />
-                </div>
-              );
-            if (f.type === "image")
-              return (
-                <ImageField
-                  key={f.key}
-                  episodeId={episodeId}
-                  sceneId={f.key === "image" ? scene.id : `${scene.id}-${f.key.replace("image", "p")}`}
-                  channel={channel.id}
-                  value={v}
-                  prompt={scene.props[f.key === "image" ? "prompt" : f.key.replace("image", "prompt")] ?? ""}
-                  look={scene.props.look === "archive" ? "archive" : "scene"}
-                  media={media}
-                  onChange={(file) => setProp(f.key, file)}
-                  onMedia={onMediaChange}
-                />
-              );
-            if (f.type === "select")
-              return (
-                <label key={f.key} className="field">
-                  <span>{f.label}</span>
-                  <select id={`f-${f.key}`} value={v || f.options?.[0]?.value} onChange={(e) => setProp(f.key, e.target.value)}>
-                    {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </label>
-              );
-            return (
-              <label key={f.key} className="field">
-                <span>{f.label}</span>
-                {f.type === "textarea" ? (
-                  <textarea id={`f-${f.key}`} rows={f.key === "text" || f.key === "prompt" ? 4 : 2} dir={f.key === "prompt" ? "ltr" : undefined} value={v} onChange={(e) => setProp(f.key, e.target.value)} readOnly={scene.template === "verse-card" && f.key === "text"} />
-                ) : (
-                  <input id={`f-${f.key}`} type="text" value={v} onChange={(e) => setProp(f.key, e.target.value)} />
-                )}
-                {f.help ? <span className="help">{f.help}</span> : null}
-              </label>
-            );
-          })}
+          {def ? (
+            <SceneSettings
+              def={def}
+              scene={scene}
+              plan={plan}
+              identity={identity}
+              channel={channel}
+              media={media}
+              eyebrow={chapterEyebrow(channel, langPack(plan.lang).strings.chapter, sel.chapter)}
+              closing={order[order.length - 1] === scene.id}
+              onProps={(p) => updateScene({ props: p })}
+              onConfirm={() => updateScene({})}
+              renderField={renderField}
+            />
+          ) : null}
 
           <div className="section-t">الخلفية والمدة</div>
           <ElementField themeId={plan.themeId} kind="backdrop" value={scene.backdrop} onChange={(id) => updateScene({ backdrop: id || undefined })} />
