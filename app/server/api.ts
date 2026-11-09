@@ -532,6 +532,13 @@ export const balApi = (): Plugin => ({
             const plan = await io.readPlanFile(scriptPath);
             return send(res, 200, { ...result, ...(result.planChanged ? { plan } : {}), media: await mediaFor(plan) });
           }
+          // قاموس النطق للقناة (pronunciations.json): تعديل كلمة أو حذفها من «أدوات وتفاصيل» (assertSceneOwner)
+          if (parts[2] === "pronunciations" && parts.length === 3) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const sv = await load("/src/voice/sentenceVoice.ts");
+            try { return send(res, 200, { read: await sv.lexiconAction(ep, await readBody(req)) }); }
+            catch (error) { return refuse(error); }
+          }
           if (parts[2] === "voice" && req.method === "POST") {
             const b = await readBody(req);
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");

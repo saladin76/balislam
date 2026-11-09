@@ -55,7 +55,48 @@
 .sv-add textarea { font: inherit; font-size: 15px; border: 1px solid var(--line-2, #d3cfc6); border-radius: 6px; padding: 6px 8px; }
 .sv-verse { margin: 0; }
 .sv-verse .pf-rec { background: var(--panel-2, #faf9f6); }
+/* «أعد نطق الكلمة»: كلمات الجملة شرائح، والكلمة المفتوحة لوحة صغيرة تحتها (لا زر ممتلئ) */
+.sv-words-wrap { display: grid; gap: 4px; padding-inline: 4px; }
+.sv-words { display: flex; flex-wrap: wrap; gap: 4px; }
+.sv-word {
+  font: inherit; font-size: 15px; line-height: 1.6; min-height: 32px; padding: 1px 8px; border-radius: 6px; cursor: pointer;
+  background: transparent; border: 1px dashed var(--line-2, #d3cfc6); color: var(--ink, #1e2320);
+}
+.sv-word:hover:not(:disabled) { background: var(--panel-2, #faf9f6); border-style: solid; }
+.sv-word.is-open { border: 1px solid var(--accent, #2c5e55); background: var(--accent-soft, #e3ece9); color: var(--accent, #2c5e55); }
+.sv-word:disabled { cursor: default; opacity: .55; border-style: dotted; }
+.sv-word:focus-visible { outline: 2px solid var(--accent, #2c5e55); outline-offset: 1px; }
+.sv-words-why { margin: 0; font-size: 12px; }
+.sv-fix {
+  display: grid; gap: 8px; padding: 10px 12px; margin-inline: 4px; border: 1px solid var(--line, #e6e3dc); border-radius: var(--r, 8px);
+  background: var(--panel-2, #faf9f6); box-shadow: var(--shadow-pop, 0 12px 32px -14px rgba(0,0,0,.26)); max-width: 520px;
+}
+.sv-fix-head { display: flex; align-items: center; gap: 8px; }
+.sv-fix-word { font-size: 20px; line-height: 1.6; }
+.sv-fix-head .btn { min-height: 32px; padding: 2px 10px; }
+.sv-fix-x { margin-inline-start: auto; font: inherit; font-size: 20px; line-height: 1; background: none; border: 0; cursor: pointer; color: var(--muted, #6e726c); min-width: 32px; min-height: 32px; border-radius: 6px; }
+.sv-fix-x:hover { background: var(--panel, #fff); }
+.sv-fix-say { display: grid; gap: 4px; font-size: 13px; color: var(--muted, #6e726c); }
+.sv .sv-fix-say input { font: inherit; font-size: 18px; color: var(--ink, #1e2320); border: 1px solid var(--line-2, #d3cfc6); border-radius: 6px; padding: 4px 8px; background: var(--panel, #fff); width: 100%; box-sizing: border-box; }
+.sv-fix-check { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.sv-fix .sp-hint { margin: 0; font-size: 12px; }
+.sv-fix-fail { display: grid; gap: 6px; padding: 8px 10px; border-radius: 6px; background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-size: 13px; }
+.sv-fix-fail p { margin: 0; font-weight: 600; }
+.sv-fix-fail ul { margin: 0; padding-inline-start: 18px; }
+.sv-fix-fail .btn { justify-self: start; border: 1px solid currentColor; color: inherit; }
+.sv-applied span { color: var(--accent, #2c5e55); }
+.sv-lex { border: 1px solid var(--line, #e6e3dc); border-radius: var(--r, 8px); padding: 8px 12px; background: var(--panel, #fff); }
+.sv-lex > summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.sv-lex .sp-hint { font-size: 12px; margin: 6px 0; }
+.sv-lex-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sv-lex-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sv-lex-word { font-size: 16px; min-width: 80px; }
+.sv .sv-lex-list input { font: inherit; font-size: 16px; border: 1px solid var(--line-2, #d3cfc6); border-radius: 6px; padding: 2px 8px; flex: 1 1 140px; min-width: 0; background: var(--panel, #fff); color: inherit; }
+.sv-lex-list .btn { min-height: 32px; padding: 2px 10px; }
+.sv-lex-list .is-danger { color: var(--err, #a53f2e); }
 @media (max-width: 720px) {
+  .sv-fix { margin-inline: 0; max-width: none; }
+  .sv-words-wrap { padding-inline: 0; }
   .sv-row { grid-template-columns: 20px minmax(0, 1fr); padding: 8px; gap: 4px 6px; }
   .sv-ctl { grid-column: 1 / -1; padding-inline: 0; }
   .sv-ctl .sv-tone { flex: 1 1 150px; max-width: none; }

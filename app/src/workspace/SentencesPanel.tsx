@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, type SentenceScene, type SentencesRead } from "../api";
+import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, type SentenceScene, type SentencesRead, type WordFixOutcome } from "../api";
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { tones, toneIds, isTone } from "../../../src/voice/tones";
@@ -62,6 +62,9 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<{ after: string; text: string } | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
+  /** «أعد نطق الكلمة»: الكلمة المفتوحة ونطقها المكتوب ونتيجة آخر محاولة */
+  const [fixing, setFixing] = useState<{ row: string; index: number; say: string; save: boolean; result?: WordFixOutcome } | null>(null);
+  const [lexDrafts, setLexDrafts] = useState<Record<string, string>>({});
   const carets = useRef<Record<string, number>>({});
   const player = useRef<{ audio: HTMLAudioElement | null; timer: ReturnType<typeof setTimeout> | null; stop: boolean }>({ audio: null, timer: null, stop: false });
 
@@ -71,14 +74,14 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     if (r.scenes.some((s) => s.verse)) setRecs(await api.ownRecitations(episodeId, channelId).catch(() => null));
   };
   useEffect(() => {
-    setRead(null); setError(""); setMsg(""); setDrafts({}); setAdding(null);
+    setRead(null); setError(""); setMsg(""); setDrafts({}); setAdding(null); setFixing(null);
     void load().catch((e) => setError((e as Error).message));
     return () => stopPlay();
   }, [episodeId, channelId, sceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scenes = useMemo(() => (read?.scenes ?? []).filter((s) => !sceneId || s.id === sceneId), [read, sceneId]);
 
-  const run = async (label: string, cmd: SentenceCommand, opts: { edits?: boolean } = {}) => {
+  const send = async (label: string, cmd: SentenceCommand, opts: { edits?: boolean } = {}) => {
     setBusy(label);
     setError("");
     setMsg("");
@@ -88,18 +91,26 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       setRead(r.read);
       if (r.plan) onPlanReplaced?.(r.plan);
       if (r.media) onMediaChange?.(r.media);
-      const parts = [r.message, r.composed?.composed ? "رُكّب صوت المشهد من جمله؛ يُعرض المشهد لمراجعة جديدة." : ""].filter(Boolean);
+      const parts = [r.fix && !r.fix.ok ? "" : r.message, r.composed?.composed ? "رُكّب صوت المشهد من جمله؛ يُعرض المشهد لمراجعة جديدة." : ""].filter(Boolean);
       if (parts.length) setMsg(parts.join(" "));
       if (r.planChanged || r.composed?.composed) onChanged?.();
-      return true;
+      return r;
     } catch (e) {
       setError((e as Error).message);
-      return false;
+      return null;
     } finally {
       setBusy("");
     }
   };
+  const run = async (label: string, cmd: SentenceCommand, opts: { edits?: boolean } = {}) => Boolean(await send(label, cmd, opts));
   const ref = (r: SentenceRow): SentenceCommand => ({ action: "init", id: r.id });
+  const lexicon = async (label: string, body: Parameters<typeof api.lexiconAction>[2]) => {
+    setBusy(label); setError(""); setMsg("");
+    try {
+      setRead((await api.lexiconAction(episodeId, channelId, body)).read);
+      return true;
+    } catch (e) { setError((e as Error).message); return false; } finally { setBusy(""); }
+  };
 
   // ── التشغيل المتتابع ──
   const urlOf = (file: string, kind: "sentences" | "voice") =>
@@ -137,6 +148,24 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     return s.rows.filter((r) => r.audio).map((r) => ({ id: r.id, url: urlOf(r.audio!.file, "sentences"), pauseMs: r.pauseAfterMs }));
   };
   const playing_ = (id: string) => Boolean(playing && playing.split("|")[1] === id);
+  /** الكلمة وحدها بسياق ٠٫٣ ث قبلها وبعدها */
+  const playWord = (r: SentenceRow, i: number) => {
+    const w = r.words[i];
+    if (!r.audio || !w || w.start === null || w.end === null) return;
+    stopPlay();
+    const p = player.current;
+    p.stop = false;
+    const a = new Audio(urlOf(r.audio.file, "sentences"));
+    p.audio = a;
+    const from = Math.max(0, w.start - 0.3), len = w.end + 0.3 - from;
+    setPlaying(`word:${r.id}:${i}|${r.id}`);
+    const go = () => {
+      a.currentTime = from;
+      void a.play().then(() => { p.timer = setTimeout(() => stopPlay(), len * 1000); })
+        .catch(() => { setError("يتطلب المتصفح الضغط على تشغيل مرة أخرى."); setPlaying(null); });
+    };
+    if (a.readyState >= 1) go(); else a.addEventListener("loadedmetadata", go, { once: true });
+  };
 
   if (!read) return error ? <p className="scene-first-error" role="alert">{error}</p> : <p className="sp-hint sv-loading">جارٍ تحميل الجمل…</p>;
   if (!scenes.length) return null;
@@ -144,6 +173,100 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const noKey = !(hasVoiceKeys ?? read.voiceKey);
   const total = scenes.reduce((n, s) => n + s.rows.length, 0);
   const voiced = scenes.reduce((n, s) => n + s.rows.filter((r) => r.status === "generated" || r.status === "heard" || (r.virtual && s.audio.state === "scene")).length, 0);
+
+  const wordChips = (r: SentenceRow) => (
+    <div className="sv-words-wrap">
+      <div className="sv-words" role="group" aria-label="كلمات الجملة: اضغط كلمة لإعادة نطقها وحدها">
+        {r.words.map((w, i) => {
+          const open = fixing?.row === r.id && fixing.index === i;
+          return (
+            <button key={i} type="button" className={`sv-word${open ? " is-open" : ""}`} aria-pressed={open} aria-haspopup="dialog"
+              disabled={Boolean(busy) || !r.wordFix.ok || w.quran} title={w.quran ? "نص قرآني: لا يُعاد نطقه" : r.wordFix.reason ?? "أعد نطق هذه الكلمة وحدها"}
+              onClick={() => setFixing(open ? null : { row: r.id, index: i, say: w.say, save: false })}>{w.word}</button>
+          );
+        })}
+      </div>
+      {!r.wordFix.ok && r.wordFix.reason ? <p className="sp-hint sv-words-why">إعادة نطق كلمة: {r.wordFix.reason}</p> : null}
+    </div>
+  );
+  const fixPanel = (r: SentenceRow) => {
+    const f = fixing!;
+    const w = r.words[f.index];
+    if (!w) return null;
+    const failed = f.result && !f.result.ok ? f.result : null;
+    const b = (x: string) => busy === `${x}:${r.id}`;
+    const wordPlaying = playing?.startsWith(`word:${r.id}:${f.index}|`);
+    return (
+      <div className="sv-fix" role="dialog" aria-label={`إعادة نطق «${w.word}»`}>
+        <div className="sv-fix-head">
+          <strong className="sv-fix-word">{w.word}</strong>
+          <button type="button" className="btn ghost sv-play" disabled={w.start === null} onClick={() => (wordPlaying ? stopPlay() : playWord(r, f.index))}
+            aria-label={wordPlaying ? "أوقف" : "اسمع الكلمة في التسجيل"}>{wordPlaying ? "■" : "▶"} الكلمة</button>
+          <button type="button" className="sv-fix-x" aria-label="أغلق" onClick={() => setFixing(null)}>×</button>
+        </div>
+        <label className="sv-fix-say">
+          <span>اكتبها كما يجب أن تُنطق</span>
+          <input dir="rtl" value={f.say} maxLength={80} autoFocus disabled={Boolean(busy)}
+            onChange={(e) => setFixing({ ...f, say: e.target.value, result: undefined })} />
+        </label>
+        <label className="sv-fix-check">
+          <input type="checkbox" checked={f.save} disabled={Boolean(busy)} onChange={(e) => setFixing({ ...f, save: e.target.checked })} />
+          <span>احفظ هذا النطق للقناة</span>
+        </label>
+        <p className="sp-hint">غيّر التشكيل أو اكتبها كما تُسمع. يُطلب مقطع قصير (الكلمة بين جارتيها) ويوصل مكانها وحدها؛ التسجيل الحالي يبقى في «ارجع إلى التسجيل السابق».</p>
+        <div className="sv-dirty">
+          <button type="button" className="btn" disabled={Boolean(busy) || noKey || !f.say.trim()} title={noKey ? "يتطلب مفتاح الصوت من «الإعدادات»" : ""}
+            onClick={async () => {
+              const res = await send(`fix:${r.id}`, { ...ref(r), action: "fixword", word: f.index, say: f.say, save: f.save });
+              if (!res?.fix) return;
+              setFixing(res.fix.ok ? null : { ...f, result: res.fix });
+            }}>{b("fix") ? "جارٍ إعادة النطق…" : "أعد نطق الكلمة"}</button>
+        </div>
+        {failed ? (
+          <div className="sv-fix-fail" role="alert">
+            <p>لم يندمج بشكل طبيعي — جرّب نطقًا آخر أو ولّد الجملة</p>
+            {failed.reasons.length ? <ul>{failed.reasons.map((x) => <li key={x}>{x}</li>)}</ul> : null}
+            <button type="button" className="btn ghost" disabled={Boolean(busy) || noKey} onClick={async () => {
+              const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate", word: f.index, say: f.say, save: f.save });
+              if (res) setFixing(null);
+            }}>{b("gen") ? "جارٍ التوليد…" : "ولّد الجملة كاملة بهذا النطق"}</button>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  const lexiconBlock = () => {
+    const list = read.lexicon ?? [];
+    return (
+      <details className="sv-lex">
+        <summary>قاموس النطق <span className="sv-meta">{list.length ? ar(list.length) : "فارغ"}</span></summary>
+        <p className="sp-hint">كلمة كما كُتبت ← كيف تُنطق. يُطبَّق على كل توليد قادم في القناة (الجمل والمشاهد)، ولا يغيّر النص ولا الترجمة، ولا يمس نصًا قرآنيًا. التسجيلات الحالية تبقى كما هي. يُضاف من «احفظ هذا النطق للقناة» عند إعادة نطق كلمة.</p>
+        {list.length ? (
+          <ul className="sv-lex-list">
+            {list.map((e) => {
+              const d = lexDrafts[e.word];
+              const dirty = d !== undefined && d.trim() !== e.say;
+              return (
+                <li key={e.word}>
+                  <span className="sv-lex-word">{e.word}</span>
+                  <span aria-hidden>←</span>
+                  <input dir="rtl" aria-label={`نطق «${e.word}»`} value={d ?? e.say} disabled={Boolean(busy)}
+                    onChange={(x) => setLexDrafts({ ...lexDrafts, [e.word]: x.target.value })} />
+                  {dirty ? <button type="button" className="btn ghost" disabled={Boolean(busy)} onClick={async () => {
+                    if (await lexicon(`lex:${e.word}`, { op: "set", word: e.word, say: d! })) setLexDrafts(({ [e.word]: _x, ...rest }) => rest);
+                  }}>احفظ</button> : null}
+                  <button type="button" className="btn ghost is-danger" disabled={Boolean(busy)} onClick={() => {
+                    if (window.confirm(`احذف «${e.word}» من قاموس النطق؟ التسجيلات الحالية لا تتغير.`)) void lexicon(`lex:${e.word}`, { op: "remove", word: e.word });
+                  }}>احذف</button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </details>
+    );
+  };
 
   const row = (s: SentenceScene, r: SentenceRow, i: number) => {
     const draft = drafts[r.id];
@@ -174,7 +297,12 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
               <span className="sp-hint">يُكتب في نص المشهد، فيعود المشهد لمراجعة جديدة.</span>
             </div>
           ) : null}
+          {!dirty && r.kind === "narration" && r.audio && (r.status === "generated" || r.status === "heard") ? wordChips(r) : null}
+          {fixing?.row === r.id ? fixPanel(r) : null}
           {r.spoken && r.spoken !== r.text && r.kind === "narration" ? <p className="sv-spoken"><span>النطق:</span> {r.spoken}</p> : null}
+          {r.applied.length && r.kind === "narration" ? (
+            <p className="sv-spoken sv-applied"><span>{r.appliedState === "sent" ? "نُطقت:" : "ستُنطق:"}</span> {r.applied.map((a) => `${a.word} ← ${a.say}`).join("، ")}</p>
+          ) : null}
           {why ? <p className="sv-why">{why}</p> : null}
           {r.contextChanged ? <p className="sp-hint">تغيّر ما حولها منذ توليدها؛ أعد توليدها إن بدا الوصل غير طبيعي.</p> : null}
         </div>
@@ -291,6 +419,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       {noKey ? (
         <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : " من الإعدادات"}.</p>
       ) : null}
+      {!sceneId ? lexiconBlock() : null}
       {scenes.map(sceneBlock)}
       {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
       {msg ? <p className="sp-hint" role="status">{msg}</p> : null}

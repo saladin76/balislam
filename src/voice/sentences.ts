@@ -23,10 +23,18 @@ export type SentenceAudio = {
   /** كلمات نص الجملة (للترجمة) بزمن ملفها */
   words: TimedWord[];
   at: string;
-  /** tts: وُلّد للجملة؛ scene: قُصّ من صوت المشهد القديم بتوقيت كلماته؛ split: قُصّ من تسجيل جملة قُسمت */
-  origin: "tts" | "scene" | "split";
+  /** tts: وُلّد للجملة؛ scene: قُصّ من صوت المشهد القديم بتوقيت كلماته؛ split: قُصّ من تسجيل جملة قُسمت؛ fix: تسجيل سابق أُعيد نطق كلمة فيه */
+  origin: "tts" | "scene" | "split" | "fix";
   tone?: string;
+  /** aligned: توقيت الكلمات من محاذاة النموذج؛ estimated: مقدَّر من المدة (لا يصلح لإعادة نطق كلمة). غائب في التسجيلات القديمة */
+  timing?: "aligned" | "estimated";
+  /** ما أُرسل بغير كتابته (قاموس النطق للقناة أو تصحيح الجملة): «نُطقت: …» */
+  spokenFixes?: { word: string; say: string }[];
+  /** إعادات نطق الكلمات في هذا التسجيل (الأحدث آخرًا)، ومن أي تسجيل بُني */
+  fixes?: { index: number; word: string; say: string; from: string; fragment: string; at: string }[];
 };
+/** تصحيح نطق كلمة في هذه الجملة وحدها: يُرسل عند كل توليد قادم لها (خارج البصمة) */
+export type SentenceCorrection = { index: number; word: string; say: string };
 export type Sentence = {
   id: string;
   sceneId: string;
@@ -40,6 +48,10 @@ export type Sentence = {
   takes?: SentenceAudio[];
   /** «سمعتها»: الملف والبصمة اللذان سمعهما المالك */
   heard?: string;
+  /** تصحيحات نطق كلمات هذه الجملة (من «أعد نطق الكلمة»)؛ تسري ما دامت الكلمة في موضعها */
+  corrections?: SentenceCorrection[];
+  /** مقاطع «أعد نطق الكلمة» المدفوعة (تبقى على القرص، نجح الوصل أم لا) */
+  fragments?: { file: string; index: number; word: string; say: string; at: string; ok: boolean }[];
 };
 export type SceneSentences = {
   sentences: Sentence[];
@@ -135,7 +147,12 @@ export const editSentenceText = (list: Sentence[], id: string, text: string): Se
   const t = normText(text);
   if (!t) throw new Error("نص الجملة فارغ؛ احذف الجملة بدل تفريغها.");
   const i = at(list, id);
-  return list.map((s, k) => (k === i ? { ...s, text: t, kind: kindOf(t) } : s));
+  const ws = words(t);
+  return list.map((s, k) => {
+    if (k !== i) return s;
+    const corrections = s.corrections?.filter((c) => ws[c.index] === c.word);
+    return { ...s, text: t, kind: kindOf(t), corrections: corrections?.length ? corrections : undefined };
+  });
 };
 
 /** يقسم الجملة بعد الكلمة رقم wordIndex (١…ن−١): الأولى تبقى بمعرّفها، والثانية جديدة. */

@@ -1,3 +1,4 @@
+import { LEXICON_NOTE } from "../voice/lexicon";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -82,6 +83,8 @@ export const createChannel = async (opts: NewChannelOptions) => {
   await writeFile(p.identity, identity);
   await writeFile(p.identityDefault, identity);
   await writeFile(p.pronunciation, JSON.stringify({ entries: [] }, null, 2) + "\n");
+  // قاموس النطق للقناة («أعد نطق الكلمة»، src/voice/lexicon.ts): يبدأ فارغًا
+  await writeFile(path.join(p.dir, "pronunciations.json"), JSON.stringify({ _note: LEXICON_NOTE, entries: [] }, null, 2) + "\n");
 
   const rules = base ? { ...base.rules } : { ...SAFE_NEW_CHANNEL_RULES };
   // الفحص الشرعي للتصوير لا يُورَّث مطفأً: قناة جديدة تبدأ به دائمًا حتى يقرر صاحبها غير ذلك

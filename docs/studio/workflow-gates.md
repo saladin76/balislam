@@ -164,7 +164,7 @@ failures, which are retried (`pickRenderQueue`, D38).
 **Sentence-by-sentence voice (D50).** A narrated scene can be voiced sentence by sentence from «الجمل»
 (`src/voice/sentences.ts` pure model, `src/voice/sentenceVoice.ts` disk/generation/composition, `GET/POST
 /api/episodes/<ep>/sentences`). Reading needs nothing; every action (`init`, `edit`, `split`, `merge`, `delete`, `add`,
-`tone`, `pause`, `generate`, `restore`, `heard`) needs the owner (`assertSceneOwner`: a loopback, same-origin Studio request)
+`tone`, `pause`, `generate`, `restore`, `heard`, `fixword`) needs the owner (`assertSceneOwner`: a loopback, same-origin Studio request)
 and runs under a per-episode lock on `voice/sentences.json`. `generate` sends ONE ElevenLabs request for that sentence,
 with the neighbouring sentences as `previous_text`/`next_text` (models that accept them), behind the same gates as
 `generateVoice`, checked for that sentence and scene: tashkeel ≥ 98% for the sentence (Arabic refusal naming the
@@ -181,6 +181,21 @@ dafatir parts path (`loadPartsContext(…, skipScenes)`) and `scenesNeedingVoice
 delete their clip. Paid audio is never deleted: a replaced sentence take stays in `takes`; the old scene clip is cut into
 sentences only when its word timings show a real pause (≥ 120 ms) at every boundary, otherwise sentences start
 «بلا صوت»; when a composed clip replaces it, the old file is moved to `voice/superseded/`.
+
+**Re-record one word (D55).** `fixword` (word index + written pronunciation, fully voweled) re-records only that word of
+a generated sentence: one short ElevenLabs request (the corrected word between its two neighbours, the rest of the
+sentence and the neighbouring sentences as `previous_text`/`next_text`, same voice/tone/settings/seed), behind the same
+gates as `generate` plus "the current take matches the sentence's settings and has aligned word timings". The word is cut
+from the fragment by its alignment and spliced into the take (`src/voice/wordSplice.ts`: boundaries snapped to the quietest
+point within ±40 ms then the nearest zero crossing, 15 ms equal-power crossfades, RMS matched to the neighbouring words,
+surrounding pauses untouched). Quality check before applying: new/old word duration 0.6–1.6×, no added energy jump > 6 dB
+at either seam, level within 6 dB of the neighbours; on failure nothing changes (the paid fragment is kept) and the owner
+gets «ولّد الجملة كاملة بهذا النطق» (`generate` with `word`/`say`). Success = a new take (`origin: "fix"`, previous one in
+`takes`), then the scene clip is recomposed as for D50, so only that scene reopens. The channel lexicon
+`channels/<ch>/pronunciations.json` (`src/voice/lexicon.ts`; `POST /api/episodes/<ep>/pronunciations` to edit/remove) is
+applied to the outgoing text of the sentence, scene, parts (single-token only) and line paths, never to captions, never
+inside ﴿ ﴾ or to a verse row, and is deliberately outside the voice fingerprint (it applies to future generations without
+invalidating paid takes or making the scene path regenerate).
 
 Why pre-rendering is safe:
 - A render only adds a render-to-input proof (`previewInputs[id]`). `recordSceneRenderEvidence` refuses to save if the

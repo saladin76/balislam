@@ -13,6 +13,7 @@ import { effectiveTone, isTone, voiceSettingsFor } from "./tones";
 import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
+import { applyLexicon, loadLexicon } from "./lexicon";
 import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { parseScript } from "../script/parse";
@@ -49,7 +50,9 @@ export const loadVoiceIndex = async (episode: string): Promise<VoiceIndex> =>
 /** قاموس نطق القناة الحالية: channels/<القناة>/pronunciation.json */
 const loadDictionary = async () => readJson<{ entries?: { text: string; say: string }[] }>(channelPaths().pronunciation).then((d) => d ?? {});
 
-type Job = { id: string; /** المشهد (في مسار الأجزاء: مشهد الجزء) */ scene?: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } };
+type Job = { id: string; /** المشهد (في مسار الأجزاء: مشهد الجزء) */ scene?: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string;
+  /** النص المرسل فعلًا بعد قاموس النطق للقناة (pronunciations.json): خارج البصمة، فلا يُبطل مقطعًا قائمًا */
+  send?: string; sendOwner?: number[]; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } };
 
 /** نبرة القناة الافتراضية (channel.json ← voice.tone)، إن وُجدت */
 const channelToneOf = (): string | undefined => {
@@ -72,6 +75,7 @@ export const speechContextFor = async (scriptPath: string) => ({ dict: await loa
 const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   const dict = await loadDictionary();
   const tk = await loadTashkeel(scriptPath);
+  const lex = (await loadLexicon()).entries;
   const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   let channelTone: string | undefined;
   let profile: VoiceProfile | undefined;
@@ -93,13 +97,15 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
     const extra = { ...(tune ? { tune } : {}), ...(s.voice ? { voice: s.voice } : {}) };
     const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...extra })).digest("hex").slice(0, 16);
-    return { id: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, prev: scenes[i - 1]?.narration, next: scenes[i + 1]?.narration, voiceId: s.voice || undefined, tune };
+    const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { verse: s.template === "verse-card" });
+    return { id: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: scenes[i - 1]?.narration, next: scenes[i + 1]?.narration, voiceId: s.voice || undefined, tune };
   });
 };
 
 /** مهام مسار الأجزاء (دفاتر الزمن): جزء لكل مهمة، بنبرته من خريطة النبرة ونصه المشكول منها */
 const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey: string): Promise<Job[]> => {
   const dict = await loadDictionary();
+  const lex = (await loadLexicon()).entries;
   let profile: VoiceProfile | undefined;
   try {
     profile = loadChannel().voice?.profile;
@@ -111,7 +117,9 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
     const d = applyDictionary(p.text, dict);
     const tune = voiceSettingsFor(profile, isTone(p.tone) ? p.tone : undefined);
     const hash = createHash("sha1").update(JSON.stringify({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
-    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, prev: ctx.jobs[i - 1]?.text, next: ctx.jobs[i + 1]?.text, tune };
+    // الأجزاء تُعدّ كلماتها عند التركيب: نطق القاموس من كلمة واحدة فقط هنا
+    const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { singleToken: true });
+    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: ctx.jobs[i - 1]?.text, next: ctx.jobs[i + 1]?.text, tune };
   });
 };
 
@@ -228,7 +236,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   for (const [k, j] of todo.entries()) {
     if (opts.shouldStop?.()) { stoppedEarly = true; break; }
     log(`(${k + 1}/${todo.length}) ${j.id}: ${j.spoken.length} حرفًا`);
-    const r = await opts.client!.tts(j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune });
+    const r = await opts.client!.tts(j.send ?? j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune });
     // السرعة بعد التوليد للنماذج التي لا تقبلها (v4): تمديد زمني يحفظ طبقة الصوت، ومعه توقيت الكلمات
     const speed = caps.speed === "post" ? (j.tune?.speed ?? config.voice.speed) : 1;
     const audio = await applyTempo(r.audio, speed);
@@ -243,7 +251,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
       /* يُقدَّر من التوقيت */
     }
     // أوامر الأداء لا تظهر في الترجمة أبدًا؛ وبلا توقيت من النموذج تُوزَّع الكلمات على المدة بطولها
-    const spokenWords = r.alignment ? scaleTimes(dropTagWords(alignmentToWords(r.alignment)), speed) : estimateWords(j.spoken, duration);
+    const spokenWords = r.alignment ? scaleTimes(dropTagWords(alignmentToWords(r.alignment)), speed) : estimateWords(j.send ?? j.spoken, duration);
     if (!duration) duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
     if (parts) {
       // الجزء يحفظ كلماته المنطوقة بزمن ملفه؛ تُحوَّل إلى زمن المشهد عند التركيب
@@ -252,7 +260,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
       await writeFile(partsIndexFile, JSON.stringify(partsIndex, null, 2) + "\n");
       continue;
     }
-    const words = wordsForCaptions(j.original, j.owner, spokenWords);
+    const words = wordsForCaptions(j.original, j.sendOwner ?? j.owner, spokenWords);
     index[j.id] = { file, hash: j.hash, text: j.narration, duration, words };
     byHash.set(j.hash, index[j.id]!);
     await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
@@ -329,6 +337,7 @@ export const synthesizeLines = async (
   const voiceKey = `${voiceIdFor() ?? ""}|${model}`;
   const dict = await loadDictionary();
   const tk = await loadTashkeel(scriptPath);
+  const lex = (await loadLexicon()).entries;
   let channelTone: string | undefined;
   let profile: VoiceProfile | undefined;
   try {
@@ -353,14 +362,15 @@ export const synthesizeLines = async (
       continue;
     }
     log(`(${k + 1}/${lines.length}) ${line.id}: ${d.spoken.length} حرفًا`);
-    const r = await opts.client.tts(d.spoken, { previousText: lines[k - 1]?.text, nextText: lines[k + 1]?.text, tune });
+    const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex);
+    const r = await opts.client.tts(l.spoken.join(" "), { previousText: lines[k - 1]?.text, nextText: lines[k + 1]?.text, tune });
     const speed = caps.speed === "post" ? (tune?.speed ?? config.voice.speed) : 1;
     const audio = await applyTempo(r.audio, speed);
     const file = `${hash}.mp3`;
     await writeFile(path.join(opts.dir, file), audio);
     let duration = (await audioDuration(path.join(opts.dir, file))) ?? 0;
-    const spokenWords = r.alignment ? scaleTimes(dropTagWords(alignmentToWords(r.alignment)), speed) : estimateWords(d.spoken, duration);
-    const timed = wordsForCaptions(d.original, d.owner, spokenWords);
+    const spokenWords = r.alignment ? scaleTimes(dropTagWords(alignmentToWords(r.alignment)), speed) : estimateWords(l.spoken.join(" "), duration);
+    const timed = wordsForCaptions(d.original, l.owner, spokenWords);
     if (!duration) duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
     out[line.id] = index[line.id] = { file, hash, text, duration, words: timed };
     await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");

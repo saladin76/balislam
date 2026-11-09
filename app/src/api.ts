@@ -12,8 +12,8 @@ import type { ScriptSaveReply } from "./planGuard";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerMessage } from "./serverMessages";
-import type { SentenceCommand, SentencesRead } from "../../src/voice/sentenceVoice";
-export type { SentenceCommand, SentencesRead, SentenceRow, SentenceScene } from "../../src/voice/sentenceVoice";
+import type { LexiconCommand, SentenceCommand, SentencesRead, WordFixOutcome } from "../../src/voice/sentenceVoice";
+export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
@@ -200,8 +200,11 @@ export const api = {
   sentences: (episode: string, channel: string) =>
     call<SentencesRead>(`/api/episodes/${episode}/sentences`, undefined, channel),
   sentenceAction: (episode: string, channel: string, body: SentenceCommand) =>
-    call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string }>(
+    call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome }>(
       `/api/episodes/${episode}/sentences`, { method: "POST", json: body }, channel),
+  /** قاموس النطق للقناة: تعديل كلمة أو حذفها */
+  lexiconAction: (episode: string, channel: string, body: LexiconCommand) =>
+    call<{ read: SentencesRead }>(`/api/episodes/${episode}/pronunciations`, { method: "POST", json: body }, channel),
   /** Step ١ «التجهيز»: what still blocks the one-button approval (script errors, verses without text, board record). */
   preparation: (episode: string, channel: string) =>
     call<PreparationRead>(`/api/episodes/${episode}/approve-preparation`, undefined, channel),
