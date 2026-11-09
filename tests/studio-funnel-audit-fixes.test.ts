@@ -43,7 +43,8 @@ describe("قفل سجل الاعتمادات بعد توقف الاستوديو"
 describe("مسار الخطوات ٢–٤", () => {
   it("قرار المالك يعيد نموذج القراءة كاملًا (لا تنهار شاشة المشاهد بعد «الحركة غير مناسبة» أو «اعتمد»)", () => {
     const api = src("app/server/api.ts");
-    expect(api).toMatch(/await decideSceneProduction\(ep, body, req\.headers\["x-studio-owner-token"\]\);\s*\/\/[^\n]*\n[^\n]*\n\s*return send\(res, 200, await withSeamTimes\(await inspectSceneProduction\(ep\)\)\);/);
+    // Between the decision and the answer only the D53 Drive handoff start (after «إذن النشر») may run.
+    expect(api).toMatch(/await decideSceneProduction\(ep, body, req\.headers\["x-studio-owner-token"\]\);\s*(?:\/\/[^\n]*\n\s*)*(?:if \(body\?\.action === "grant-publish"\) \{\n(?:[^\n]*\n){2}\s*\}\n\s*)?\/\/[^\n]*\n[^\n]*\n\s*return send\(res, 200, await withSeamTimes\(await inspectSceneProduction\(ep\)\)\);/);
     const panel = src("app/src/workspace/SceneProductionPanel.tsx");
     expect(panel).not.toContain("setData(updated)");
     expect(panel).toContain("data?.candidates?.scenes[currentId]");

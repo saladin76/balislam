@@ -288,6 +288,12 @@ export const balApi = (): Plugin => ({
               const body = await readBody(req);
               try {
                 await decideSceneProduction(ep, body, req.headers["x-studio-owner-token"]);
+                // D53: right after the publish permission (never before), the approved files go to the owner's
+                // Google Drive folder in the background; the request does not wait for large copies.
+                if (body?.action === "grant-publish") {
+                  const { startDriveHandoff } = await load("/src/package/driveHandoff.ts");
+                  await startDriveHandoff(ep, "publish-permission").catch((e: Error) => console.error("[studio] drive handoff:", e.message));
+                }
                 // The full read model (candidates, drafts, prepared), the same shape as GET:
                 // the UI replaces its state with this response.
                 return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
@@ -296,6 +302,25 @@ export const balApi = (): Plugin => ({
               }
             }
             return send(res, 405, { error: "Method not allowed" });
+          }
+
+          // D53: the approved files on Google Drive (status; «أعد الإرسال إلى Drive»; «افتح المجلد»). Owner session for actions.
+          if (parts[2] === "publish-drive" && parts.length <= 4) {
+            const handoff = await load("/src/package/driveHandoff.ts");
+            if (req.method === "GET" && parts.length === 3) return send(res, 200, await handoff.driveHandoffStatus(ep));
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+            try { assertSceneOwner(req.headers["x-studio-owner-token"]); }
+            catch (error) { return refuse(error); }
+            if (parts[3] === "open") {
+              try { return send(res, 200, { folder: await handoff.openDriveFolder(ep) }); }
+              catch (error) { return send(res, 409, { error: (error as Error).message }); }
+            }
+            if (parts.length !== 3) return send(res, 404, { error: "Not found" });
+            const job = await handoff.startDriveHandoff(ep, "retry");
+            const status = await handoff.driveHandoffStatus(ep);
+            if (!job) return send(res, 409, { error: status.drive.message, ...status });
+            return send(res, 202, status);
           }
 
           if (parts[2] === "scene-av-assemble" && parts.length === 3) {
