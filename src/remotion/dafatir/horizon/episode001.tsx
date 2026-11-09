@@ -362,7 +362,9 @@ const IndexList: React.FC<{ t: number; times: number[]; head: number; glow?: num
 const indexTimes = (tl: Timeline) => ENTRIES.map((e) => at(tl, e.w));
 const IndexScene: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const times = indexTimes(tl);
-  const keys = times.map((a, i) => ({ a: a - 0.3, b: a + 0.5, cx: 1370, cy: Math.min(740, Math.max(400, ENTRY_Y(i))), s: 1.14 }));
+  // الكاميرا تتبع السطر الجديد، ولا تنزل تحت cy 660: عند s=1.14 يُرى y من cy−474، فيبقى العنوان «ما أخبرنا به» (من y≈208)
+  // والسطر الأخير (حتى y≈795) معًا في الكادر (كان الحد 740 فيُقص العنوان من أعلى نحو ثانيتين)
+  const keys = times.map((a, i) => ({ a: a - 0.3, b: a + 0.5, cx: 1370, cy: Math.min(660, Math.max(400, ENTRY_Y(i))), s: 1.14 }));
   const cam = camPath(t, NEUTRAL, [...keys, { a: tl.end + 0.05, b: tl.end + 0.9, ...NEUTRAL }]);
   return <Book id="ix" t={t} dur={dur} exit={exit} cam={cam} R={<g><GreaterFrame p={1} /><IndexList t={t} times={times} head={prog(t, at(tl, "أخبرنا") - 0.05, at(tl, "أخبرنا") + 0.45)} /></g>} L={marginNotes(1, 1)} />;
 };
@@ -408,9 +410,11 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
     // يبدأ الاقتراب مع «عن جعل من يكون منه» (موضوع السؤال) لا بعده
     { a: at(tl, "جعل") - 0.1, b: at(tl, "وسفك") + 0.3, cx: 1360, cy: 640, s: 1.3 },
     { a: at(tl, "يسبحون") - 0.6, b: at(tl, "يسبحون") - 0.26, cx: 1365, cy: 520, s: 1.1 },
-    { a: at(tl, "سؤالهم") - 0.3, b: at(tl, "سؤالهم") + 0.9, cx: 600, cy: 500, s: 1.12 },
-    // «وإنما كان سؤالًا لطلب الفهم ومعرفة الحكمة»: الكادر يقترب من سطري الجواب وهما يُكتبان
-    { a: at(tl, "سؤالا") - 0.2, b: end(tl, "الحكمة"), cx: 560, cy: 500, s: 1.32 },
+    // الحاشية (x 250–870) والسؤال (x 1140–1560) معًا في الكادر: الجواب بجوار ما يجيب عنه، ولا يبقى «سؤال/سفك الدماء» مقصوصًا
+    // عند الحافة (كان cx 600 ثم 560 فيُقص نحو خمس ثوانٍ؛ مراجعة المشاهد ٩ نوفمبر)
+    { a: at(tl, "سؤالهم") - 0.3, b: at(tl, "سؤالهم") + 0.9, cx: 905, cy: 500, s: 1.12 },
+    // «وإنما كان سؤالًا لطلب الفهم ومعرفة الحكمة»: الكادر يقترب وسطرا الجواب يُكتبان، والسؤال ورأس الفصل باقيان كاملين (s=1.24 يُرى x 186–1734)
+    { a: at(tl, "سؤالا") - 0.2, b: end(tl, "الحكمة"), cx: 960, cy: 480, s: 1.24 },
   ]);
   const R = (
     <g>
@@ -527,8 +531,9 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
     // «يحدثنا القرآن الكريم»: إلى ختم القرآن، ثم «عن خلق آدم»: نزولًا إلى الكلمة وهي تُكتب
     { a: at(tl, "القرآن") - 0.25, b: at(tl, "الكريم") + 0.3, cx: 1365, cy: 330, s: 1.3 },
     { a: at(tl, "خلق") - 0.2, b: at(tl, "عليه") + 0.2, cx: 1365, cy: 480, s: 1.26 },
-    // ينتقل النظر عبر الكعب مع «ثم» من الخلق إلى التعليم
-    { a: at(tl, "ثم") - 0.1, b: at(tl, "أعظم") + 0.3, cx: 600, cy: 520, s: 1.12 },
+    // «ثم»: يتسع النظر عبر الكعب ليجمع العنوانين، «الخلق» (x≈1235–1495) و«التعليم» (x 300–820) والسهم بينهما
+    // (كان cx 600 فيُقص «الخلق» عند الحافة نحو أربع ثوانٍ؛ مراجعة المشاهد ٩ نوفمبر). s=1.12 يُرى x 143–1857.
+    { a: at(tl, "ثم") - 0.1, b: at(tl, "أعظم") + 0.3, cx: 1000, cy: 520, s: 1.12 },
   ]);
   const both = <Ink d="M1240 520 C1100 640 900 660 760 560" w={5} p={arrow} />;
   const R = (
@@ -611,7 +616,7 @@ export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
   greater: Greater,
   index: IndexScene,
   begin: Begin,
-  interpreters: legacy(Shot4, { cx: 555, cy: 575, s: 1.12 }),
+  interpreters: legacy(Shot4, { cx: 900, cy: 575, s: 1.12 }),
   question: Question,
   known: Known,
   "two-titles": TwoTitles,
