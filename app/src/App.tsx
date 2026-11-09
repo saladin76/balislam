@@ -563,6 +563,8 @@ export const App: React.FC = () => {
             hasVoiceKeys={extra.keys.voice}
             onOpenSettings={openSettings}
             onPlanSave={async (p) => { onPlanChange(p); await flushPlan(); }}
+            onPlanFlush={flushPlan}
+            onPlanReplaced={(p) => { setPlan(p); setPlanState("saved"); }}
             livePreview={(id) => <SceneLivePreview sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => setRequestedSceneId(id)}
             onOpenStoryboard={() => setTab("storyboard")}

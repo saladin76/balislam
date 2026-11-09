@@ -225,10 +225,11 @@ const coverageOf = (ctx: Ctx, id: string, text: string) => {
 };
 const fresh = (ctx: Ctx, scene: PlanScene, list: Sentence[]) =>
   list.every((s) => s.kind === "narration" && s.audio && s.audio.fingerprint === voiceOf(ctx, scene, list, s).fingerprint);
-const waitingReason = (ctx: Ctx, scene: PlanScene, list: Sentence[]): string | null => {
+const waitingReason = (ctx: Ctx, scene: PlanScene, list: Sentence[], hasOld = false): string | null => {
   if (list.some((s) => s.kind === "verse")) return "في هذا المشهد نص قرآني داخل التعليق؛ الصوت المستنسخ لا يتلوه. انقله إلى مشهد آية من محرر المشهد.";
   const n = list.filter((s) => !s.audio || s.audio.fingerprint !== voiceOf(ctx, scene, list, s).fingerprint).length;
-  return n ? `${n.toLocaleString("ar-EG")} جملة بلا صوت حالي؛ يُركَّب صوت المشهد حين تُولَّد كلها، وحتى ذلك يبقى صوته السابق كما هو.` : null;
+  if (!n) return null;
+  return `جمل بلا صوت حالي: ${n.toLocaleString("ar-EG")}. يُركَّب صوت المشهد من جمله حين تُولَّد كلها${hasOld ? "، وحتى ذلك يبقى صوته السابق كما هو" : ""}.`;
 };
 
 export const readSentences = async (episode: string): Promise<SentencesRead> => {
@@ -269,7 +270,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
       };
     });
     scenes.push({ ...base, managed, audio, import: ctx.doc.scenes[scene.id]?.import ?? null,
-      waiting: managed ? waitingReason(ctx, scene, list) : null,
+      waiting: managed ? waitingReason(ctx, scene, list, audio.state !== "none") : null,
       rows, verse: null });
   });
   return { episode, voiceKey: Boolean(process.env.ELEVENLABS_API_KEY && voiceIdFor()), toneMap: ctx.map ? { version: ctx.map.version } : null, scenes };
