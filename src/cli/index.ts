@@ -744,6 +744,26 @@ channelCmd
     console.log("الخطوات التالية: عدّل المجالات في channel.json، والألوان من تبويب الهوية في الاستوديو، ثم: bal --channel " + id + " new 001 …");
   });
 
+const decisionCmd = program.command("decision").description("سجلات القرارات (ترقيم D عام لكل القنوات)");
+decisionCmd
+  .command("new")
+  .description("يخصص رقم القرار التالي (بعد كل سجلات docs/*/0[67]-decisions.md وتاريخ main)، ويضيف عنوانه إن طُلب")
+  .argument("<title>", "عنوان القرار")
+  .option("--log <channel...>", "سجل القناة الذي يُعرَّف فيه القرار، ثم سجلات تُكتب فيها إحالة إليه")
+  .action(async (title: string, opts: { log?: string[] }) => {
+    const d = await import("../../scripts/decisions.mjs");
+    const id = d.nextDecisionId(projectRoot);
+    if (!opts.log?.length) { console.log(id); return; }
+    const all = d.decisionLogs(projectRoot);
+    const files = opts.log.map((ch) => {
+      const f = all.find((x) => x.startsWith(`docs/${ch}/`));
+      if (!f) throw new Error(`لا سجل قرارات للقناة «${ch}». المتاح: ${all.join("، ")}`);
+      return f;
+    });
+    for (const w of d.appendDecision(projectRoot, id, title.trim(), files)) console.log(`${w.file}: ${w.heading}`);
+    console.log(id);
+  });
+
 program.parseAsync().catch((err: Error) => {
   console.error(`خطأ: ${err.message}`);
   process.exitCode = 1;
