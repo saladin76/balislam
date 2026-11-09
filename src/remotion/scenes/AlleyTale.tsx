@@ -9,6 +9,7 @@ import { cueFrames, isSacredSentence, parseCues, type CueKind } from "../../plan
 import { Figure, LOOKS, poseAt, walkPose, type PoseName, type Holding } from "../illus/Figure";
 import { useTransition } from "./transitions";
 import { figureSpan, fitFrame } from "../illus/framing";
+import { cleanAutoFraming, framingClean } from "../illus/edgeSafety";
 import { groupFullyVisible, pillClearOfOwner, requiresFocusCut } from "../illus/compositionSafety";
 import { fitDistance, fitDistanceWithin, GAIT_IDS, locomote, withCarry, locoPose, poseAtNatural, type GaitId, type Move, type Turn } from "../illus/gait";
 import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
@@ -144,18 +145,33 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const action = actionOf(groupOf(frame));
   const sitting = poses.some((p) => p === "sit" || p === "sit-low" || p === "head-down");
 
-  // التأطير: لكل لقطة تكبير وجهة، وانتقال ناعم سريع بينها
-  const framing = (i: number) => directed ? { z: 1.08, dx: 0 } : ({ z: FRAMINGS[i % FRAMINGS.length]!, dx: [0, 260, -230, 140][i % 4]! });
-  // افتتاح كل مشهد بحركة تأسيسية من لقطة واسعة، ثم انتقال ناعم بين اللقطات
-  const tShot = interpolate(frame, [cuts[cut]!, cuts[cut]! + (cut === 0 ? 26 : 16)], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.cubic) });
-  const fa = directed ? framing(cut) : cut === 0 ? { z: 0.96, dx: -240 } : framing(cut - 1);
-  const fb = framing(cut);
-  const zoom = fa.z + (fb.z - fa.z) * tShot;
-  const offX = fa.dx + (fb.dx - fa.dx) * tShot;
+  // موضع البطل في إطار ما (كما يُحسب أدناه لإطار المشهد الحالي)، لتصحيح تأطير كل لقطة سلفًا
+  const MARKS = [1060, 880, 1180, 960];
+  const heroAt = (f: number): number => {
+    if (stage !== "solo") return stage === "witnesses" ? 640 : 1160;
+    let x = 1060;
+    let walk = false;
+    const gf = groupOf(f);
+    for (let g = 0; g <= gf; g++) {
+      if (actionOf(g) !== "walk") continue;
+      const s0 = groupStarts[g]!;
+      const s1 = groupStarts[g + 1] ?? dur;
+      const d = Math.min(f, s1) - s0;
+      if (d > 0) x -= d * 3.4;
+      if (g === gf) walk = true;
+    }
+    if (!directed && !walk && !sitting && !poses.includes("walk") && !isSacredSentence(narration)) {
+      const sh = Math.max(0, starts.filter((st) => f >= st).length - 1);
+      const m0 = MARKS[Math.max(0, sh - 1) % MARKS.length]!;
+      const m1 = MARKS[sh % MARKS.length]!;
+      const tm = sh === 0 ? 1 : interpolate(f, [starts[sh]! + 8, starts[sh]! + 36], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.sin) });
+      x = m0 + (m1 - m0) * tm;
+    }
+    return Math.max(420, x);
+  };
 
   // البطل: يمشي في لقطات المشي من اليمين إلى اليسار (اتجاه القراءة)
   // البطل: في المشي يعبر الحارة، وفي الوقوف ينتقل بخطوات قليلة إلى علامة جديدة مع كل سطر (كممثل على خشبة)
-  const MARKS = [1060, 880, 1180, 960];
   let heroX = 1060;
   let walking = false;
   let stepping = false;
@@ -340,6 +356,52 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   // الإضاءة والظلال والعمق (الأمر 008): اختيارية بحقل lighting، وبدونه لا يتغير شيء
   const rig = parseLighting(props.lighting);
   const light = rig ? lightAt(rig, frame, (w) => cueFrames([{ kind: "truth", word: w }], timings)[0]?.at) : null;
+  // التأطير: لكل لقطة تكبير وجهة، وانتقال ناعم سريع بينها
+  const rawFraming = (i: number) => directed ? { z: 1.08, dx: 0 } : ({ z: FRAMINGS[i % FRAMINGS.length]!, dx: [0, 260, -230, 140][i % 4]! });
+  // لا شخص مقصوص عند حافة الإطار (٩ نوفمبر): كل لقطة تُصحَّح بأقل إزاحة حتى يكون كل شخص كاملًا داخلها أو خارجها كله
+  const edgeCtx = (at0: number) => {
+    const hx = heroAt(at0);
+    const gap = portrait ? 330 : 400;
+    const i = Math.max(0, cuts.filter((c) => at0 >= c).length - 1);
+    const w0 = cuts[i] ?? 0;
+    const w1 = cuts[i + 1] ?? dur;
+    // الوضعيات التي تقع في نافذة اللقطة (ومعها ما قبلها مباشرة)، لا أوسع وضعية في المشهد كله
+    const posesIn = (tl0: { at: number; pose: PoseName }[]): PoseName[] => {
+      const tl = [...tl0].sort((a, b) => a.at - b.at);
+      const before = tl.filter((x) => x.at <= w0).slice(-1);
+      return [...before, ...tl.filter((x) => x.at > w0 && x.at < w1)].map((x) => x.pose);
+    };
+    const heroPoses = timeline.length ? posesIn(timeline) : (["stand"] as PoseName[]);
+    const heroFacing = stage === "companion" ? (poses.includes("turn-away") ? "both" : "left") : "both";
+    // هامش 12% فوق امتداد الوضعية: اليد في منتصف الانتقال بين وضعيتين قد تمتد أبعد من كلتيهما
+    const span = (x: number, sc: number, ps: readonly PoseName[] = ["stand"], facing: "left" | "right" | "both" = "both") => {
+      const r = figureSpan(x, ps.length ? ps : ["stand"], facing, sc);
+      return { lo: x - (x - r.lo) * 1.12, hi: x + (r.hi - x) * 1.12 };
+    };
+    const optional = [] as { lo: number; hi: number }[];
+    if (stage === "companion") optional.push(span(hx - gap, 1.7, posesIn(compTimeline), "right"));
+    if (stage === "witnesses") optional.push({ lo: span(920, 1.15).lo, hi: span(1010, 1.15).hi }, span(1300, 1.75));
+    const peopleAt = at("people");
+    if (peopleAt !== undefined && at0 >= peopleAt) for (const g of ghostSlots(stage === "companion" ? -gap : null)) optional.push(span(hx + g.dx, 1.25));
+    const pf = stage === "companion" ? hx - gap / 2 : hx;
+    const v0 = Math.max(0, Math.min(WW - 608, pf - 304));
+    return { focusX: hx, view: (portrait ? [v0, v0 + 608] : [0, WW]) as [number, number], required: [span(hx, 1.75, sitting ? [...heroPoses, "sit"] : walking ? [...heroPoses, "walk" as PoseName] : heroPoses, heroFacing)], optional, margin: portrait ? 24 : 36, layers: [0.6, 0.9].map((depth) => ({ depth, lo: -200, hi: WW + 200 })) };
+  };
+  const edgeSafe = (f: { z: number; dx: number }, at0: number) => cleanAutoFraming(f, edgeCtx(at0));
+  const framing = (i: number) => (composed ? rawFraming(i) : edgeSafe(rawFraming(i), Math.min(dur - 1, (cuts[i] ?? 0) + 30)));
+  // افتتاح كل مشهد بحركة تأسيسية من لقطة واسعة، ثم انتقال ناعم بين اللقطات
+  const fa = directed ? framing(cut) : cut === 0 ? (composed ? { z: 0.96, dx: -240 } : edgeSafe({ z: 0.96, dx: -240 }, 0)) : framing(cut - 1);
+  const fb = framing(cut);
+  // إن مرّ الانتقال الناعم بين لقطتين بإطار يقص شخصًا، فالانتقال قطع مباشر (لا يظهر نصف شخص ولو لحظة)
+  const tweenClean = composed || directed || [0.2, 0.4, 0.6, 0.8].every((t) => {
+    const ctx = edgeCtx(Math.min(dur - 1, cuts[cut]! + Math.round(t * 16)));
+    return framingClean({ z: fa.z + (fb.z - fa.z) * t, dx: fa.dx + (fb.dx - fa.dx) * t }, ctx);
+  });
+  const tShot = tweenClean
+    ? interpolate(frame, [cuts[cut]!, cuts[cut]! + (cut === 0 ? 26 : 16)], [0, 1], { ...clampOpt, easing: Easing.inOut(Easing.cubic) })
+    : frame >= cuts[cut]! ? 1 : 0;
+  const zoom = fa.z + (fb.z - fa.z) * tShot;
+  const offX = fa.dx + (fb.dx - fa.dx) * tShot;
   const cam = (d: number) => camRaw(light ? parallaxDepth(d, light) : d);
   const camRaw = (depth: number) =>
     composedCam

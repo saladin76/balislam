@@ -60,17 +60,28 @@ export const edgeSilence = (samples: Float32Array, sampleRate: number): EdgeTrim
   const duration = samples.length / sampleRate;
   const none = { start: 0, end: duration, duration, trimmedHead: 0, trimmedTail: 0 };
   if (lv.length < 20) return none;
-  const sorted = [...lv].sort((a, b) => a - b);
-  const edge = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length);
-  // The noise floor: the quietest of the 10th percentile and the very edges (room tone before/after).
-  const floorDb = Math.min(sorted[Math.floor(sorted.length * 0.1)] ?? -120, edge(lv.slice(0, 5)), edge(lv.slice(-5)));
+  // Digital silence (exact zeros the phone recorder pads at the start or end) is not room tone: it would pull
+  // the floor to -120 dB, and the real room tone (~-55 dB) would then count as sound and never be trimmed.
+  const audible = lv.filter((x) => x > -100);
+  const sorted = [...(audible.length ? audible : lv)].sort((a, b) => a - b);
+  // The noise floor is the room tone: the 10th percentile of the audible frames. (The very first frames of a phone
+  // recording fade in from silence, far below the room tone; taking them as the floor made the room tone itself
+  // count as sound, so the edges were never trimmed: recordings of 9 Nov.)
+  const floorDb = sorted[Math.floor(sorted.length * 0.1)] ?? -120;
   const peakDb = sorted[sorted.length - 1] ?? -120;
   if (peakDb <= floorDb + TRIM_DEFAULTS.softAboveFloorDb) return none;
   const soft = Math.max(floorDb + TRIM_DEFAULTS.softAboveFloorDb, peakDb - TRIM_DEFAULTS.softBelowPeakDb);
+  // A lone 10 ms blip (a breath, a tap on the phone) is not sound: a frame counts only when at least
+  // 3 of the 5 frames around it are above the soft threshold.
+  const loud = (i: number) => {
+    let n = 0;
+    for (let k = i - 2; k <= i + 2; k++) if ((lv[k] ?? -120) >= soft) n++;
+    return lv[i]! >= soft && n >= 3;
+  };
   let first = 0;
-  while (first < lv.length && lv[first]! < soft) first++;
+  while (first < lv.length && !loud(first)) first++;
   let last = lv.length - 1;
-  while (last > first && lv[last]! < soft) last--;
+  while (last > first && !loud(last)) last--;
   if (first >= lv.length) return none;
   const start = Math.max(0, first * frame - RECITATION_TRIM.onsetPadSec);
   const end = Math.min(duration, (last + 1) * frame + RECITATION_TRIM.releasePadSec);
