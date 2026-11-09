@@ -73,18 +73,18 @@ describe("أربع خطوات", () => {
 describe("الخطوة ١: زر واحد «اعتمد التجهيز»", () => {
   it("the spine sends ONE request with both fingerprints, «راجعته بنفسي» and the board note, then opens step ٢", () => {
     const spine = src("app/src/shell/EpisodeSpine.tsx");
-    expect(spine).toContain("api.approvePreparation(episodeId, channelId, secret, {");
+    expect(spine).toContain("api.approvePreparation(episodeId, channelId, {");
     expect(spine).toContain("scriptSha256: w.script.sha256, storyboardSha256: w.storyboard.sha256, reviewed,");
-    // D52: never a disabled primary; the button asks for what is missing, then the passphrase next to itself.
-    expect(spine).toContain("const secret = owner.open ? owner.secret : await owner.ensure(approveBtn.current);");
-    expect(spine).not.toMatch(/disabled=\{!owner\.open/);
+    // D52: never a disabled primary; the button asks for what is missing, then acts directly (no passphrase, 9 Nov).
+    expect(spine).toContain("    await approvePreparation();");
+    expect(spine).not.toMatch(/owner\.(open|ensure|secret)/);
     expect(spine).toContain('onTab("episode")');
     expect(spine).not.toMatch(/approve-script"|approve-storyboard"/);
     // The server path keeps both ledger decisions, each through decideSceneProduction (no new bypass).
     const prep = src("src/studio/preparation.ts");
     expect(prep.indexOf('action: "approve-script"')).toBeLessThan(prep.indexOf("recordBoards(scriptPath"));
     expect(prep.indexOf("recordBoards(scriptPath")).toBeLessThan(prep.indexOf('action: "approve-storyboard"'));
-    expect(prep).toContain("assertSceneOwner(sessionToken)");
+    expect(prep).toContain("assertSceneOwner();");
     expect(prep).toContain('if (command.reviewed !== true)');
     expect(prep).toContain("checkVisualStoryboardSignoff(plan, command.note)");
   });
@@ -92,7 +92,7 @@ describe("الخطوة ١: زر واحد «اعتمد التجهيز»", () => {
 
 describe("الخطوة ٢: «اعتمد» أولًا", () => {
   it("approve first (right side in RTL), then the fixes; one filled button", () => {
-    const html = renderToStaticMarkup(<SceneDecisionActions stage="review" voice="ok" voiceBusy={false} canVoice readyForAv ownerOpen pending={false}
+    const html = renderToStaticMarkup(<SceneDecisionActions stage="review" voice="ok" voiceBusy={false} canVoice readyForAv pending={false}
       problem={null} problemText="" tone="" confirming={false} reviewed={false}
       onVoice={noop} onProblem={noop} onProblemText={noop} onTone={noop} onCancelProblem={noop} onSubmitProblem={noop} onConfirm={noop} onApprove={noop} onRender={noop} />);
     const labels = [...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);

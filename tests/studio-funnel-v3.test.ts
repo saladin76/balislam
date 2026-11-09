@@ -1,7 +1,7 @@
 /**
  * Funnel v3 (D40): step ١ «التجهيز» is ONE owner action «اعتمد التجهيز» over the REAL Studio server API (same
  * harness as studio-prepare-all.test.ts). It writes the script approval, then the board record, then the
- * storyboard approval — in that order, each with its own check, passphrase and «راجعته بنفسي» required — and
+ * storyboard approval — in that order, each with its own check, from the Studio page on this device and «راجعته بنفسي» required — and
  * then the scenes start preparing on their own: drafts only, nothing submitted or approved.
  *
  * Stubs: the heavy Remotion render behind shotsPreview (an ffmpeg clip with audio), and the ElevenLabs
@@ -24,7 +24,8 @@ const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
 const EP = "984";
 const EP_DIR = "984-funnel-v3";
-const PASS = "owner-funnel-v3-passphrase-2026";
+/** No passphrase (owner decision 9 Nov): a page of another site is refused (403); the Studio page is the owner. */
+const CROSS = { origin: "https://evil.example" };
 
 const ffmpeg = (args: string[]) => execFileSync("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", ...args]);
 
@@ -64,13 +65,13 @@ const realFetch = globalThis.fetch;
 const elevenCalls: string[] = [];
 let mp3 = Buffer.alloc(0);
 const saved: Record<string, string | undefined> = {};
-const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256", "BAL_DRIVE_PREVIEWS_DIR",
+const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_DRIVE_PREVIEWS_DIR",
   "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "ELEVENLABS_MODEL_ID"];
 
-const call = async (method: string, route: string, body?: unknown, token?: string) => {
+const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}) => {
   const r = await realFetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(token ? { "x-studio-owner-token": token } : {}) },
+    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -83,13 +84,13 @@ const state = async () => {
   expect(r.status, JSON.stringify(r.body)).toBe(200);
   return r.body;
 };
-const decide = (cmd: Record<string, unknown>, token = PASS) => call("POST", `episodes/${EP}/scene-production`, cmd, token);
+const decide = (cmd: Record<string, unknown>, headers: Record<string, string> = {}) => call("POST", `episodes/${EP}/scene-production`, cmd, headers);
 /** Never submitted/approved ("queued" or "needs_revision" after an input change). */
 const open = (status: string) => (status === "queued" || status === "needs_revision" ? "open" : status);
 const ledger = async () => JSON.parse(await readFile(path.join(epDir, "scene-production.v1.json"), "utf8"));
 /** Start «جهّز كل المشاهد» and wait for the background queue to finish. */
-const prepareAll = async (token = PASS) => {
-  const start = await call("POST", `episodes/${EP}/scene-prepare`, undefined, token);
+const prepareAll = async () => {
+  const start = await call("POST", `episodes/${EP}/scene-prepare`);
   if (start.status !== 200) return start;
   for (let i = 0; i < 600; i++) {
     const r = await call("GET", `episodes/${EP}/scene-prepare`);
@@ -123,7 +124,7 @@ beforeAll(async () => {
     await copyFile(path.join(repo, "channels", CH, f), path.join(chDir, f));
   process.env.BAL_CHANNELS_DIR = root;
   process.env.BAL_ENV_FILE = path.join(root, ".env");
-  for (const k of ["BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256", "BAL_DRIVE_PREVIEWS_DIR", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"]) delete process.env[k];
+  for (const k of ["BAL_WORKFLOW_HMAC_KEY", "BAL_DRIVE_PREVIEWS_DIR", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"]) delete process.env[k];
   process.env.ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
   (globalThis as any).__prepStubRenders = stubbedRenders;
 
@@ -180,15 +181,14 @@ const validScript = () => `---\ntitle: "هل نعرف الصبر حقًا؟"\ndo
   ["تجربة", "الواقع", "الجذر", "بعين الإسلام", "في حياتك", "الخلاصة"].map((t, i) =>
     `## الفصل ${i + 1} · ${t}\n${i === 0 ? scenes.map((x) => x.narration).join("\n") : "جملة قصيرة في هذا الفصل."}\n`).join("\n") +
   "\n## الاستشهادات\n\n- مصدر | كتاب الصبر، المؤلف، ص ١٢ | فكرة الصبر\n\n## الخطوة العملية\n\nاصبر اليوم على أمر واحد صغير، ثم اكتب ما تعلمته.\n";
-const approvePrep = (body: Record<string, unknown>, token: string | undefined = PASS) =>
-  call("POST", `episodes/${EP}/approve-preparation`, body, token);
+const approvePrep = (body: Record<string, unknown>, headers: Record<string, string> = {}) =>
+  call("POST", `episodes/${EP}/approve-preparation`, body, headers);
 const historyActions = async () => {
   try { return (await ledger()).history.map((h: { action: string }) => h.action); } catch { return []; }
 };
 
 describe("«اعتمد التجهيز»: one button, both ledger records in order, then preparing (no approval)", () => {
-  it("refuses without the passphrase, without «راجعته بنفسي», with script errors or without a board note — writing nothing", async () => {
-    expect((await call("POST", "owner-passphrase", { passphrase: PASS })).body).toEqual({ set: true });
+  it("refuses from another site, without «راجعته بنفسي», with script errors or without a board note — writing nothing", async () => {
     let s = await state();
     const body = { scriptSha256: s.script.sha256, storyboardSha256: s.storyboard.sha256, reviewed: true,
       note: "راجعت اللوحات الثلاث بصريًا: النص والتكوين والتوقيت مطابقة للسكريبت." };
@@ -202,8 +202,8 @@ describe("«اعتمد التجهيز»: one button, both ledger records in orde
     const ok = { ...body, scriptSha256: s.script.sha256 };
     expect((await call("GET", `episodes/${EP}/approve-preparation`)).body.scriptErrors).toBe(0);
 
-    expect((await approvePrep(ok, "")).status).toBe(403);
-    expect((await approvePrep(ok, "wrong-passphrase")).status).toBe(403);
+    expect((await approvePrep(ok, { "sec-fetch-site": "cross-site" })).status).toBe(403);
+    expect((await approvePrep(ok, CROSS)).status).toBe(403);
     expect((await approvePrep({ ...ok, reviewed: false })).status).toBe(409);
     expect((await approvePrep({ ...ok, note: "قصيرة" })).status).toBe(409);
     expect((await approvePrep({ ...ok, scriptSha256: "f".repeat(64) })).status).toBe(409);
@@ -213,7 +213,7 @@ describe("«اعتمد التجهيز»: one button, both ledger records in orde
     expect(s.script.approved).toBe(false);
     expect(s.storyboard.approved).toBe(false);
     // Nothing prepares before the preparation is approved.
-    expect((await call("POST", `episodes/${EP}/scene-prepare`, undefined, PASS)).status).toBe(409);
+    expect((await call("POST", `episodes/${EP}/scene-prepare`)).status).toBe(409);
   }, 120_000);
 
   it("writes approve-script then approve-storyboard (with the board record between), then starts preparing drafts only", async () => {

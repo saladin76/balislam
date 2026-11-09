@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, type PreparationRead, type SceneProductionRead } from "../api";
-import { useOwnerSession } from "./ownerSession";
 import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
 import { PrepareAll } from "../workspace/PrepareAll";
@@ -49,7 +48,6 @@ type Props = {
  * وتحتها جملة واحدة بما يلزم الآن وزر واحد. الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
 export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided, onOpenSettings, onState }) => {
-  const owner = useOwnerSession();
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
   const [reviewed, setReviewed] = useState(false);
@@ -119,11 +117,11 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
    * «اعتمد التجهيز»: one owner action. The server writes the script approval, then (if needed) the board
    * record, then the storyboard approval, each checked on its own; then the scenes start preparing.
    */
-  const approvePreparation = async (secret: string) => {
+  const approvePreparation = async () => {
     if (!w) return;
     setBusy(true); setErr("");
     try {
-      await api.approvePreparation(episodeId, channelId, secret, {
+      await api.approvePreparation(episodeId, channelId, {
         scriptSha256: w.script.sha256, storyboardSha256: w.storyboard.sha256, reviewed,
         ...(needNote ? { note: boardNote.trim() } : {}),
       });
@@ -141,16 +139,14 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
 
   /**
    * The primary button is never shown disabled (D52): it says what it does, and on click it asks for
-   * what is still missing, next to itself: the «راجعته بنفسي» tick, the board note, then the passphrase
-   * (anchored popover), and then completes the approval.
+   * what is still missing, next to itself: the «راجعته بنفسي» tick, then the board note; then it completes
+   * the approval directly (no passphrase, owner decision 9 Nov).
    */
   const onApprove = async () => {
     setNeeds("");
     if (!reviewed) { setNeeds("ضع علامة «راجعته بنفسي» بعد مراجعة التجهيز، ثم اضغط الزر."); reviewedBox.current?.focus(); return; }
     if (!noteOk) { setNeeds("اكتب ملاحظتك على اللوحات (٢٥ حرفًا على الأقل)."); noteBox.current?.focus(); return; }
-    const secret = owner.open ? owner.secret : await owner.ensure(approveBtn.current);
-    if (!secret) return;
-    await approvePreparation(secret);
+    await approvePreparation();
   };
   // «راجعته بنفسي» belongs to one decision: never carried over to another.
   const decideTarget = next?.decide ?? "";

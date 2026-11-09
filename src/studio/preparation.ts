@@ -9,7 +9,7 @@
  *      of 25+ characters and the same «script approved first» rule) — only when the boards are not recorded yet;
  *   3. «approve-storyboard» in the ledger (bound to the storyboard fingerprint the owner saw, or, when step 2
  *      wrote the record in this same action, to the record this action just wrote).
- * Every ledger write still goes through `decideSceneProduction` with the owner passphrase. Nothing else is
+ * Every ledger write still goes through `decideSceneProduction` and its owner check. Nothing else is
  * approved: preparing the scenes afterwards (prepareAll) only makes drafts.
  */
 import { readFile } from "node:fs/promises";
@@ -50,8 +50,8 @@ export const preparationBlockers = async (episode: string): Promise<{ scriptErro
   };
 };
 
-export const approvePreparation = async (episode: string, command: PreparationCommand, sessionToken: unknown) => {
-  assertSceneOwner(sessionToken);
+export const approvePreparation = async (episode: string, command: PreparationCommand) => {
+  assertSceneOwner();
   if (!command || !hex64(command.scriptSha256) || !hex64(command.storyboardSha256) ||
       (command.note !== undefined && (typeof command.note !== "string" || command.note.length > 3000)))
     throw Error("Malformed preparation approval.");
@@ -75,12 +75,12 @@ export const approvePreparation = async (episode: string, command: PreparationCo
     throw Error(`لا يُعتمد الستوري بورد وفيه ${blockers.versesMissing.length} آية بلا نصها (${blockers.versesMissing.join("، ")}). أضف نص الآيات داخل السكريبت.`);
   }
 
-  // 1 · the script (its own ledger record, passphrase checked again by the ledger).
+  // 1 · the script (its own ledger record, owner checked again by the ledger).
   if (!before.script.approved)
     await decideSceneProduction(episode, {
       action: "approve-script", expectedSha256: command.scriptSha256, confirmedWatched: true,
       note: "راجعت السكريبت والمصادر (اعتماد التجهيز)",
-    }, sessionToken);
+    });
 
   // 2 · the board review record, only after the script approval (same rule as «سجل مراجعة اللوحات»).
   let storyboardSha256 = command.storyboardSha256;
@@ -96,6 +96,6 @@ export const approvePreparation = async (episode: string, command: PreparationCo
     await decideSceneProduction(episode, {
       action: "approve-storyboard", expectedSha256: storyboardSha256, confirmedWatched: true,
       note: "راجعت لوحات الستوري بورد كاملة (اعتماد التجهيز)",
-    }, sessionToken);
+    });
   return inspectSceneProduction(episode);
 };

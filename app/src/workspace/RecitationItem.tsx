@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { api, type Loudness, type OwnRecitationsRead, type RecitationPolish, type RecitationVariant } from "../api";
-import { useOwnerSession } from "../shell/ownerSession";
 import { num, sceneName, seconds as secs, verseRef } from "../ui/format";
 
 const lufs = (l?: Loudness | null) => (l && Number.isFinite(l.integrated) ? `علوّ ${num(l.integrated, 1)} · ذروة ${num(l.truePeak, 1)}` : "—");
@@ -20,7 +19,6 @@ export const RecitationItem: React.FC<{
   /** Scene order, to name scenes «المشهد ٣» (D52); without it the scene ids stay in the tooltip only. */
   order?: string[];
 }> = ({ episodeId, channelId, ayahKey: key, scenes, recs, onChanged, compact, order }) => {
-  const owner = useOwnerSession();
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
@@ -30,15 +28,13 @@ export const RecitationItem: React.FC<{
   const pending = recs?.pending[key];
   const audioUrl = (file: string) => recitationUrl(episodeId, channelId, file);
 
-  /** A closed session is opened by the action itself, next to the control that asked (D52). */
-  const guard = async (label: string, work: (secret: string) => Promise<void>, anchor?: HTMLElement | null) => {
-    const secret = owner.open ? owner.secret : await owner.ensure(anchor ?? null);
-    if (!secret) return;
+  /** Each action works directly on click (no passphrase, owner decision 9 Nov). */
+  const guard = async (label: string, work: () => Promise<void>) => {
     setBusy(label);
     setError("");
     setMsg("");
     try {
-      await work(secret);
+      await work();
       await onChanged();
     } catch (e) {
       setError((e as Error).message);
@@ -46,32 +42,32 @@ export const RecitationItem: React.FC<{
       setBusy("");
     }
   };
-  const upload = (file: File, anchor?: HTMLElement | null) => guard("up", async (secret) => {
+  const upload = (file: File) => guard("up", async () => {
     const data = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result ?? ""));
       reader.onerror = () => reject(new Error("تعذّر قراءة الملف."));
       reader.readAsDataURL(file);
     });
-    await api.ownRecitationAction(episodeId, channelId, secret, { action: "upload", key, name: file.name, data });
+    await api.ownRecitationAction(episodeId, channelId, { action: "upload", key, name: file.name, data });
     setMsg("رُفعت التلاوة وجُهّزت نسختها المعالجة؛ استمع إليها ثم اعتمدها.");
-  }, anchor);
-  const select = (variant: "processed" | "original", anchor?: HTMLElement | null) => guard("sel", async (secret) => {
-    await api.ownRecitationAction(episodeId, channelId, secret, { action: "select", key, variant });
-  }, anchor);
-  const approve = (anchor?: HTMLElement | null) => guard("ok", async (secret) => {
+  });
+  const select = (variant: "processed" | "original") => guard("sel", async () => {
+    await api.ownRecitationAction(episodeId, channelId, { action: "select", key, variant });
+  });
+  const approve = () => guard("ok", async () => {
     if (!f.listened) throw new Error("استمع إلى التلاوة كاملة وضع العلامة أولًا.");
     if (!f.reciter.trim() || f.rights.trim().length < 12 || f.note.trim().length < 12)
       throw new Error("اكتب اسم القارئ، ودليل حق الاستخدام وملاحظة الاستماع (١٢ حرفًا على الأقل لكل منهما).");
-    await api.ownRecitationAction(episodeId, channelId, secret, { action: "approve", key, reciter: f.reciter, rightsEvidence: f.rights, note: f.note, listened: f.listened });
+    await api.ownRecitationAction(episodeId, channelId, { action: "approve", key, reciter: f.reciter, rightsEvidence: f.rights, note: f.note, listened: f.listened });
     setMsg("اعتُمدت التلاوة. مشهدها وحده يُفتح لمراجعة سريعة بالتلاوة في «المشاهد».");
-  }, anchor);
+  });
 
   const variants = (vs: Record<"processed" | "original", RecitationVariant>, chosen: string | null, polish: RecitationPolish | null) => (
     <div className="pf-variants">
       {(["processed", "original"] as const).map((id) => (
         <label key={id} className={`pf-variant${chosen === id ? " is-on" : ""}`}>
-          <input type="radio" name={`v-${key}`} checked={chosen === id} disabled={Boolean(busy)} onChange={(e) => void select(id, e.currentTarget)} />
+          <input type="radio" name={`v-${key}`} checked={chosen === id} disabled={Boolean(busy)} onChange={() => void select(id)} />
           <b>{id === "processed" ? "المعالجة" : "الأصل كما سُجّل"}</b>
           <span className="sp-hint">{lufs(vs[id].loudness)} · {sec(vs[id].duration)}</span>
           <audio controls preload="none" src={audioUrl(vs[id].file)} />
@@ -105,7 +101,7 @@ export const RecitationItem: React.FC<{
             {!(f.reciter.trim() && f.rights.trim().length >= 12 && f.note.trim().length >= 12) ? (
               <p className="sp-hint">اكتب اسم القارئ، ودليل حق الاستخدام وملاحظة الاستماع (١٢ حرفًا على الأقل لكل منهما).</p>
             ) : null}
-            <button type="button" className={`btn ${compact ? "" : "primary"}`} aria-busy={Boolean(busy)} onClick={(e) => { if (!busy) void approve(e.currentTarget); }}>اعتمد التلاوة</button>
+            <button type="button" className={`btn ${compact ? "" : "primary"}`} aria-busy={Boolean(busy)} onClick={() => { if (!busy) void approve(); }}>اعتمد التلاوة</button>
           </div>
         </>
       ) : null}
@@ -113,7 +109,7 @@ export const RecitationItem: React.FC<{
         <label className="btn ghost pf-upload">
           {busy === "up" ? "جارٍ الرفع والمعالجة…" : approved ? "استبدل التسجيل" : "ارفع التلاوة"}
           <input type="file" accept=".wav,.mp3,.m4a,.aac,.ogg,.flac,audio/*" hidden disabled={Boolean(busy)}
-            onChange={(e) => { const file = e.target.files?.[0]; const at = e.currentTarget.parentElement; e.target.value = ""; if (file) void upload(file, at); }} />
+            onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void upload(file); }} />
         </label>
       ) : null}
       {error ? <p className="scene-first-error" role="alert">{error}</p> : null}

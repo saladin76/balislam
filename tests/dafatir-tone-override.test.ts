@@ -4,7 +4,6 @@
  * (v1.2 ← v1.3) مع سطر changelog، ويبقى الإصدار السابق على القرص. بقية المشاهد بنبرتها، والقنوات بلا خريطة كما هي.
  * لا مفاتيح ولا شبكة: الصوت صناعي من عميل مزيّف.
  */
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -16,10 +15,15 @@ import type { Plan } from "../src/plan/types";
 import { encodeWav } from "../src/remotion/dafatir/audio/compose";
 import { partJobs, type ToneMap } from "../src/remotion/dafatir/audio/parts";
 import { decideSceneProduction, inspectSceneProduction, recordSceneRenderEvidence } from "../src/studio/sceneService";
+import { runOwnerRequest } from "../src/studio/ownerContext";
 import { applySceneOverrides, loadPartsContext, validatePartsContext } from "../src/voice/dafatirParts";
 import type { ElevenLabsClient } from "../src/voice/elevenlabs";
 import { nextToneMapVersion, overrideSceneTone, prepareSceneToneOverride, toneMapSummary, type ToneMapDoc } from "../src/voice/toneMapOverride";
 import { voiceSettingsFor } from "../src/voice/tones";
+
+/** Owner decision (9 Nov): no passphrase. A Studio request from another address or another site is refused. */
+const asRemote = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "192.168.1.20", sameOrigin: true, host: "127.0.0.1:4321" }, fn);
+const asCrossSite = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "127.0.0.1", sameOrigin: false, host: "127.0.0.1:4321" }, fn);
 
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
 const mapRaw = readFileSync(path.join(EP, "tone-map.json"), "utf8");
@@ -29,7 +33,7 @@ const tashkeel = readFileSync(path.join(EP, "tashkeel.md"), "utf8");
 const AT = "2026-11-09T10:00:00.000Z";
 const NOTE = "النبرة عند 0:04 — حكّاء دافئ أنسب للخاتمة";
 
-const ENV = ["BAL_CHANNELS_DIR", "BAL_CHANNEL", "ELEVENLABS_MODEL_ID", "BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256"] as const;
+const ENV = ["BAL_CHANNELS_DIR", "BAL_CHANNEL", "ELEVENLABS_MODEL_ID", "BAL_WORKFLOW_HMAC_KEY"] as const;
 const saved: Record<string, string | undefined> = {};
 let tmp = "";
 const epDir = () => path.join(tmp, "dafatir-alzaman", "episodes", "001-adam-beginning");
@@ -181,11 +185,9 @@ describe("القنوات بلا خريطة نبرة لا تتغير", () => {
   });
 });
 
-describe("التصحيح من سجل «إنتاج المشاهد»: كلمة المرور، والمشهد وحده", () => {
+describe("التصحيح من سجل «إنتاج المشاهد»: المالك على جهازه، والمشهد وحده", () => {
   it("correct-scene بنبرة يكتب v1.3 بعد تسجيل التصحيح، ويعيد فتح المشهد وحده", async () => {
-    const passphrase = "owner-tone-override-2026";
     process.env.BAL_WORKFLOW_HMAC_KEY = "LOCAL_TEST_ONLY__tone_override_signing_key_2026";
-    process.env.BAL_STUDIO_OWNER_PASSPHRASE_SHA256 = createHash("sha256").update(passphrase).digest("hex");
     delete process.env.BAL_CHANNEL;
     // حلقة صغيرة: مشهدان، الأول بجزأين في الخريطة
     const dir = path.join(tmp, "dafatir-alzaman", "episodes", "002-tone");
@@ -209,32 +211,32 @@ describe("التصحيح من سجل «إنتاج المشاهد»: كلمة ا�
 
     await runWithChannel("dafatir-alzaman", async () => {
       const st0 = await inspectSceneProduction("002");
-      await decideSceneProduction("002", { action: "approve-script", expectedSha256: st0.script.sha256 }, passphrase);
+      await decideSceneProduction("002", { action: "approve-script", expectedSha256: st0.script.sha256 });
       await approveStoryboard(scriptPath, tplan, { note: "راجعت لوحتي الاختبار" });
       const st1 = await inspectSceneProduction("002");
-      await decideSceneProduction("002", { action: "approve-storyboard", expectedSha256: st1.storyboard.sha256 }, passphrase);
+      await decideSceneProduction("002", { action: "approve-storyboard", expectedSha256: st1.storyboard.sha256 });
       const st2 = await inspectSceneProduction("002");
       const cur = st2.scenes[0]!;
       mkdirSync(path.join(dir, "previews"), { recursive: true });
       execFileSync("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=160x90:rate=15:duration=2",
         "-f", "lavfi", "-i", "sine=frequency=330:duration=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast", "-c:a", "aac", "-shortest",
         path.join(dir, "previews", "scene-c1-s1-av.mp4")]);
-      await recordSceneRenderEvidence("002", "c1-s1", cur.sourceSha256, passphrase, "current");
-      const sub = await decideSceneProduction("002", { action: "submit-scene", sceneId: "c1-s1", expectedSha256: cur.sourceSha256 }, passphrase);
+      await recordSceneRenderEvidence("002", "c1-s1", cur.sourceSha256, "current");
+      const sub = await decideSceneProduction("002", { action: "submit-scene", sceneId: "c1-s1", expectedSha256: cur.sourceSha256 });
       const preview = sub.scenes[0]!.previewSha256!;
       const otherBefore = sub.scenes[1];
 
       const fix = { action: "correct-scene" as const, sceneId: "c1-s1", expectedSha256: preview, note: NOTE, tone: "documentary" };
-      // كلمة المرور شرط كما هي، ولا تُمس الخريطة دونها
-      await expect(decideSceneProduction("002", fix, "wrong")).rejects.toThrow(/authentication/);
-      await expect(decideSceneProduction("002", fix, undefined)).rejects.toThrow(/authentication/);
+      // الطلب من جهاز آخر أو موقع آخر مرفوض، ولا تُمس الخريطة
+      await expect(asRemote(() => decideSceneProduction("002", fix))).rejects.toThrow(/only from the Studio/);
+      await expect(asCrossSite(() => decideSceneProduction("002", fix))).rejects.toThrow(/only from the Studio/);
       // النبرة مع غير التصحيح، أو نبرة غير معروفة: مرفوضة بلا كتابة
-      await expect(decideSceneProduction("002", { action: "approve-scene", sceneId: "c1-s1", expectedSha256: preview, confirmedWatched: true, tone: "warm" }, passphrase)).rejects.toThrow(/Malformed/);
-      await expect(decideSceneProduction("002", { ...fix, tone: "loud" }, passphrase)).rejects.toThrow(/غير معروفة/);
+      await expect(decideSceneProduction("002", { action: "approve-scene", sceneId: "c1-s1", expectedSha256: preview, confirmedWatched: true, tone: "warm" })).rejects.toThrow(/Malformed/);
+      await expect(decideSceneProduction("002", { ...fix, tone: "loud" })).rejects.toThrow(/غير معروفة/);
       expect(readFileSync(path.join(dir, "tone-map.json"), "utf8")).toBe(tmapRaw);
       expect((await inspectSceneProduction("002")).scenes[0]!.status).toBe("in_review");
 
-      const after = await decideSceneProduction("002", fix, passphrase);
+      const after = await decideSceneProduction("002", fix);
       expect(after.scenes[0]!.status).toBe("needs_revision");
       expect(after.scenes[1]).toEqual(otherBefore);
       expect(after.recentHistory.at(-1)).toMatchObject({ action: "correct-scene", sceneId: "c1-s1", note: NOTE });

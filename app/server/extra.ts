@@ -263,14 +263,14 @@ const styleOf = (fmStyle: string | undefined, scenes: { template?: string }[]) =
 };
 
 /**
- * Policy-changing endpoints (channel rules/settings, identity, creating a channel) need the owner:
- * the same credential as every other owner action (passphrase or the D49 device session token in
- * x-studio-owner-token, loopback only). Returns the Arabic refusal, or null when the owner is present.
+ * Policy-changing endpoints (channel rules/settings, identity, creating a channel) need the owner, by the
+ * same single policy as every other owner action (assertSceneOwner: a loopback, same-origin Studio
+ * request; no passphrase, owner decision 9 Nov). Returns the Arabic refusal, or null when allowed.
  */
-export const ownerRefusal = async (ctx: Pick<ExtraCtx, "req" | "load">): Promise<string | null> => {
+export const ownerRefusal = async (ctx: Pick<ExtraCtx, "load">): Promise<string | null> => {
   const { assertSceneOwner } = await ctx.load("/src/studio/sceneService.ts");
-  try { assertSceneOwner(ctx.req.headers["x-studio-owner-token"]); return null; }
-  catch { return "تعديل قواعد القناة أو هويتها أو إنشاء قناة يحتاج جلسة المالك: افتحها من الشريط العلوي ثم أعد المحاولة."; }
+  try { assertSceneOwner(); return null; }
+  catch { return "تعديل قواعد القناة أو هويتها أو إنشاء قناة مسموح من الاستوديو على جهاز المالك فقط."; }
 };
 
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {

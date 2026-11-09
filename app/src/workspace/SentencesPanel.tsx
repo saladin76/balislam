@@ -3,7 +3,6 @@ import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, t
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { tones, toneIds, isTone } from "../../../src/voice/tones";
-import { useOwnerSession } from "../shell/ownerSession";
 import { RecitationItem, recitationUrl } from "./RecitationItem";
 import "./sentences.css";
 
@@ -52,10 +51,9 @@ type Props = {
 /**
  * «الجمل» (D50): تعليق المشهد جملةً جملة. لكل جملة نصها (يُعدَّل)، ونبرتها، و«ولّد» لها وحدها، وتشغيلها،
  * وحالتها، ووقفتها، وقائمة (قسّم، ادمج مع التالية، احذف، أضف بعدها). صف الآية «ارفع التلاوة» ولا يولَّد أبدًا.
- * كل فعل بجلسة المالك والخادم يتحقق؛ صوت المشهد يُركَّب من جمله حين تكتمل، فيعيد السجل فتح ذلك المشهد وحده.
+ * كل فعل يعمل مباشرة بالضغط والخادم يتحقق (بلا كلمة مرور، قرار ٩ نوفمبر)؛ صوت المشهد يُركَّب من جمله حين تكتمل، فيعيد السجل فتح ذلك المشهد وحده.
  */
 export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId, onBeforeEdit, onPlanReplaced, onMediaChange, onChanged, hasVoiceKeys, onOpenSettings }) => {
-  const owner = useOwnerSession();
   const [read, setRead] = useState<SentencesRead | null>(null);
   const [recs, setRecs] = useState<OwnRecitationsRead | null>(null);
   const [error, setError] = useState("");
@@ -81,13 +79,12 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const scenes = useMemo(() => (read?.scenes ?? []).filter((s) => !sceneId || s.id === sceneId), [read, sceneId]);
 
   const run = async (label: string, cmd: SentenceCommand, opts: { edits?: boolean } = {}) => {
-    if (!owner.open) { setError("افتح جلسة المالك من أعلى الصفحة لتعدّل الجمل أو تولّدها."); return false; }
     setBusy(label);
     setError("");
     setMsg("");
     try {
       if (opts.edits) await onBeforeEdit?.();
-      const r = await api.sentenceAction(episodeId, channelId, owner.secret, cmd);
+      const r = await api.sentenceAction(episodeId, channelId, cmd);
       setRead(r.read);
       if (r.plan) onPlanReplaced?.(r.plan);
       if (r.media) onMediaChange?.(r.media);
@@ -144,7 +141,6 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   if (!read) return error ? <p className="scene-first-error" role="alert">{error}</p> : <p className="sp-hint sv-loading">جارٍ تحميل الجمل…</p>;
   if (!scenes.length) return null;
 
-  const locked = !owner.open;
   const noKey = !(hasVoiceKeys ?? read.voiceKey);
   const total = scenes.reduce((n, s) => n + s.rows.length, 0);
   const voiced = scenes.reduce((n, s) => n + s.rows.filter((r) => r.status === "generated" || r.status === "heard" || (r.virtual && s.audio.state === "scene")).length, 0);
@@ -155,7 +151,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     const status = r.virtual && s.audio.state === "scene" ? "scene" : r.status;
     const b = (x: string) => busy === `${x}:${r.id}`;
     const anyBusy = Boolean(busy);
-    const canGen = r.kind === "narration" && !locked && !noKey && r.tashkeel.ok && !anyBusy;
+    const canGen = r.kind === "narration" && !noKey && r.tashkeel.ok && !anyBusy;
     const genLabel = b("gen") ? "جارٍ التوليد…" : r.audio && r.status !== "missing" ? "أعد التوليد" : "ولّد";
     const why = r.kind === "verse" ? "نص قرآني: الصوت المستنسخ لا يتلوه."
       : !r.tashkeel.ok ? `التشكيل ${ar(Math.round(r.tashkeel.coverage * 100))}٪ (الحد ٩٨٪): ${r.tashkeel.missing.slice(0, 5).join("، ")}`
@@ -166,7 +162,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
         <span className="sv-n" aria-hidden>{ar(i + 1)}</span>
         <div className="sv-main">
           <textarea className="sv-text" dir="rtl" rows={Math.max(1, Math.ceil((draft ?? r.text).length / 70))} value={draft ?? r.text}
-            aria-label={`نص الجملة ${ar(i + 1)}`} disabled={locked || anyBusy}
+            aria-label={`نص الجملة ${ar(i + 1)}`} disabled={anyBusy}
             onChange={(e) => setDrafts({ ...drafts, [r.id]: e.target.value })}
             onSelect={(e) => { carets.current[r.id] = (e.target as HTMLTextAreaElement).selectionStart; }} />
           {dirty ? (
@@ -186,7 +182,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
           <span className={`sv-chip is-${status}`}>{STATUS[status]}</span>
           {r.kind === "narration" ? (
             <button type="button" className={`btn${r.status === "missing" || r.status === "stale" ? "" : " ghost"}`} disabled={!canGen}
-              title={noKey ? "يتطلب مفتاح الصوت من «الإعدادات»" : locked ? "افتح جلسة المالك" : why ?? ""}
+              title={noKey ? "يتطلب مفتاح الصوت من «الإعدادات»" : why ?? ""}
               onClick={() => void run(`gen:${r.id}`, { ...ref(r), action: "generate" })}>{genLabel}</button>
           ) : null}
           <button type="button" className="btn ghost sv-play" disabled={!r.audio && !(r.virtual && s.audio.file)}
@@ -194,14 +190,14 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             onClick={() => playing_(r.id) ? stopPlay() : r.audio ? playQueue(`row:${r.id}`, [{ id: r.id, url: urlOf(r.audio.file, "sentences"), pauseMs: 0 }]) : playQueue(`scene:${s.id}`, sceneQueue(s))}>
             {playing_(r.id) ? "■" : "▶"}
           </button>
-          <select className="sv-tone" aria-label="نبرة الجملة" value={r.tone} disabled={locked || anyBusy || r.kind !== "narration"}
+          <select className="sv-tone" aria-label="نبرة الجملة" value={r.tone} disabled={anyBusy || r.kind !== "narration"}
             title={r.toneSource === "map" ? `اختيار نبرة هنا يكتب إصدارًا جديدًا من خريطة النبرة (${read.toneMap?.version ?? ""}) لهذه الجملة وحدها` : ""}
             onChange={(e) => void run(`tone:${r.id}`, { ...ref(r), action: "tone", tone: e.target.value || null })}>
             <option value="">{inheritLabel(r)}</option>
             {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
           </select>
           {!r.last ? (
-            <select className="sv-pause" aria-label="الوقفة بعد الجملة" value={r.pauseAfterMs} disabled={locked || anyBusy}
+            <select className="sv-pause" aria-label="الوقفة بعد الجملة" value={r.pauseAfterMs} disabled={anyBusy}
               onChange={(e) => void run(`pause:${r.id}`, { ...ref(r), action: "pause", ms: Number(e.target.value) })}>
               {[...new Set([...PAUSES, r.pauseAfterMs])].sort((a, z) => a - z).map((ms) => <option key={ms} value={ms}>وقفة {secAr(ms)}</option>)}
             </select>
@@ -209,28 +205,28 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
           <details className="sv-menu">
             <summary aria-label="المزيد">⋯</summary>
             <div className="sv-menu-pop" role="menu">
-              <button type="button" role="menuitem" disabled={locked || anyBusy} onClick={(e) => {
+              <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 const at = wordIndexAt(r.text, carets.current[r.id] ?? Math.floor(r.text.length / 2));
                 void run(`split:${r.id}`, { ...ref(r), action: "split", at }, { edits: true });
               }}>قسّم عند المؤشر</button>
-              <button type="button" role="menuitem" disabled={locked || anyBusy || !next} onClick={(e) => {
+              <button type="button" role="menuitem" disabled={anyBusy || !next} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 void run(`merge:${r.id}`, { ...ref(r), action: "merge" }, { edits: true });
               }}>ادمج مع التالية</button>
-              <button type="button" role="menuitem" disabled={locked || anyBusy} onClick={(e) => {
+              <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 setAdding({ after: r.id, text: "" });
               }}>أضف جملة بعدها</button>
-              {r.takes > 0 ? <button type="button" role="menuitem" disabled={locked || anyBusy} onClick={(e) => {
+              {r.takes > 0 ? <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 void run(`restore:${r.id}`, { ...ref(r), action: "restore" });
               }}>ارجع إلى التسجيل السابق ({ar(r.takes)})</button> : null}
-              {r.audio && (r.status === "generated" || r.status === "heard") ? <button type="button" role="menuitem" disabled={locked || anyBusy} onClick={(e) => {
+              {r.audio && (r.status === "generated" || r.status === "heard") ? <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 void run(`heard:${r.id}`, { ...ref(r), action: "heard", value: r.status !== "heard" });
               }}>{r.status === "heard" ? "ألغِ «سمعتها»" : "علّمها «سمعتها»"}</button> : null}
-              <button type="button" role="menuitem" className="is-danger" disabled={locked || anyBusy || s.rows.length <= 1} onClick={(e) => {
+              <button type="button" role="menuitem" className="is-danger" disabled={anyBusy || s.rows.length <= 1} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 if (window.confirm("احذف هذه الجملة من نص المشهد؟ يبقى تسجيلها محفوظًا على الجهاز.")) void run(`del:${r.id}`, { ...ref(r), action: "delete" }, { edits: true });
               }}>احذف الجملة</button>
@@ -292,8 +288,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   return (
     <div className={`sv${sceneId ? " is-scene" : " is-episode"}`} dir="rtl">
       {!sceneId ? <p className="sv-summary">{ar(voiced)} من {ar(total)} جملة بصوت · {ar(scenes.filter((s) => s.verse).length)} آية</p> : null}
-      {locked ? <p className="sv-why">افتح جلسة المالك من أعلى الصفحة لتعدّل الجمل أو تولّدها أو ترفع التلاوة.</p> : null}
-      {noKey && !locked ? (
+      {noKey ? (
         <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : " من الإعدادات"}.</p>
       ) : null}
       {scenes.map(sceneBlock)}

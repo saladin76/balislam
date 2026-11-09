@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { ChannelSummary, EpisodeSummary } from "../api";
-import { OwnerSessionButton } from "./ownerSession";
 import type { StudioSection } from "../ui/StudioSidebar";
 import { arDigits } from "../ui/format";
 
@@ -15,7 +14,7 @@ type Props = {
 
 /**
  * الشريط العلوي: القنوات الثلاث بأسمائها (القناة النشطة تلوّن الاستوديو بلونها)، ثم الحلقة،
- * ثم جلسة المالك وقائمة الإدارة. لا قائمة جانبية: الحلقة هي مكان العمل.
+ * ثم قائمة الإدارة. لا قائمة جانبية: الحلقة هي مكان العمل.
  */
 export const TopBar: React.FC<Props> = (p) => {
   const [open, setOpen] = useState(false);
@@ -46,7 +45,6 @@ export const TopBar: React.FC<Props> = (p) => {
         ) : null}
       </div>
       <div className="tb-tools">
-        <OwnerSessionButton />
         <div className="tb-manage" ref={box}>
           <button type="button" className="tb-manage-btn" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((v) => !v)}>إدارة</button>
           {open ? (

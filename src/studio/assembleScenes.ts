@@ -47,9 +47,9 @@ export const PRE_FINAL_SLOT = "prefinal-no-recitation";
  * unconditionally (with its recitation), the assembly approved after a full 1× viewing, then Master.
  */
 export const assemblePreFinalPreview = async (
-  episode: string, ownerToken: unknown,
+  episode: string,
 ): Promise<{ file: string; version: number; scenes: number; recitationPending: string[] }> => {
-  const cuts = await currentSceneCutsForPreFinal(episode, ownerToken);
+  const cuts = await currentSceneCutsForPreFinal(episode);
   if (!cuts.length || cuts.some(item => !safeId(item.sceneId)))
     throw Error("No safe scene cuts are ready for the pre-final preview.");
   const scriptPath = await resolveScriptPath(episode);
@@ -59,7 +59,7 @@ export const assemblePreFinalPreview = async (
   const tempVideo = path.join(previews, `.scene-prefinal-${id}.mp4`);
   try {
     await concatSceneCuts(cuts, tempVideo, manifest);
-    const after = await currentSceneCutsForPreFinal(episode, ownerToken);
+    const after = await currentSceneCutsForPreFinal(episode);
     if (after.length !== cuts.length || after.some((item, i) => item.sceneId !== cuts[i]!.sceneId || item.sha256 !== cuts[i]!.sha256))
       throw Error("A scene changed while the pre-final preview was assembling; try again.");
     const pending = cuts.filter(c => c.recitationPending).map(c => c.sceneId);
@@ -74,9 +74,9 @@ export const assemblePreFinalPreview = async (
 };
 
 export const assembleApprovedSceneAv = async (
-  episode: string, ownerToken: unknown,
+  episode: string,
 ): Promise<{ file: string; version: number; scenes: number }> => {
-  const cuts = await approvedSceneCutsForAssembly(episode, ownerToken);
+  const cuts = await approvedSceneCutsForAssembly(episode);
   if (!cuts.length || cuts.some(item => !safeId(item.sceneId)))
     throw Error("No safe, signed scene cuts are ready for assembly.");
 
@@ -91,7 +91,7 @@ export const assembleApprovedSceneAv = async (
     // The ffconcat manifest never contains a client-controlled filesystem path.
     await concatSceneCuts(cuts, tempVideo, manifest);
     // Revalidate scene bytes, source signatures and approvals before publishing.
-    const after = await approvedSceneCutsForAssembly(episode, ownerToken);
+    const after = await approvedSceneCutsForAssembly(episode);
     if (after.length !== cuts.length ||
         after.some((item, i) => item.sceneId !== cuts[i]!.sceneId ||
           item.sha256 !== cuts[i]!.sha256))

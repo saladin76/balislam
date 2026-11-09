@@ -4,7 +4,6 @@ import "./studio-shell.css";
 import "./shell/shell.css";
 import { TopBar, type ManageItem } from "./shell/TopBar";
 import { EpisodeSpine, type StepTab } from "./shell/EpisodeSpine";
-import { OwnerSessionProvider } from "./shell/ownerSession";
 import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedStep";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
@@ -334,8 +333,6 @@ export const App: React.FC = () => {
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
       <div className="studio-shell shell-v3" data-channel={channelId || channels[0]?.id || ""}>
-      {/* Inside the shell so the anchored passphrase popover wears the channel's tokens (D52). */}
-      <OwnerSessionProvider>
       <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
         <TopBar
           channels={channels}
@@ -648,7 +645,6 @@ export const App: React.FC = () => {
         ) : null}
         {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
       </div>
-      </OwnerSessionProvider>
       </div>
       </ChannelProvider>
     </IdentityProvider>

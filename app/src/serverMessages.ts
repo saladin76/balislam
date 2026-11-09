@@ -4,8 +4,7 @@
  * through unchanged.
  */
 const EXACT: Record<string, string> = {
-  "Set the owner passphrase in the Studio first; approvals are disabled until then.": "اختر كلمة مرور المالك من أعلى الصفحة أولًا؛ الاعتماد معطّل حتى ذلك.",
-  "Owner session authentication is required.": "افتح جلسة المالك من أعلى الصفحة (كلمة المرور غير صحيحة أو الجلسة مغلقة).",
+  "Owner actions are allowed only from the Studio on this device (127.0.0.1, same page).": "هذا الفعل مسموح من الاستوديو على جهاز المالك فقط (127.0.0.1، من الصفحة نفسها).",
   "Prepare and save a storyboard plan first.": "جهّز خطة الستوري بورد واحفظها أولًا.",
   "Scene approval ledger is invalid; manual recovery required.": "سجل اعتمادات المشاهد تالف؛ يحتاج استعادة يدوية قبل أي اعتماد.",
   "Scene approval ledger signature changed; approvals are blocked.": "توقيع سجل اعتمادات المشاهد تغيّر؛ الاعتماد موقوف حمايةً للسجل.",

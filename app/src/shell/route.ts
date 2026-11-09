@@ -1,8 +1,8 @@
 /**
  * A link for every place in the Studio (funnel audit item 18): «#/<channel>/<episode>/<tab>» for an
  * episode step, «#/<channel>/<tab>» elsewhere. Opening the link (or refreshing) lands on the same
- * channel, episode and step. The owner session is still closed by a refresh on purpose: a link never
- * carries or restores the passphrase, and no approval is reachable without entering it again.
+ * channel, episode and step. A link carries no secret (the
+ * Studio has none: owner decision 9 Nov); owner actions are allowed only from this device.
  */
 import { SECTION_TITLES, type StudioSection } from "../ui/StudioSidebar";
 

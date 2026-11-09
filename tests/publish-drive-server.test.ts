@@ -20,7 +20,8 @@ const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
 const EP = "986";
 const EP_DIR = "986-drive-handoff";
-const PASS = "owner-e2e-passphrase-2026";
+/** No passphrase (owner decision 9 Nov): a page of another site is refused (403); the Studio page is the owner. */
+const CROSS = { origin: "https://evil.example" };
 
 const ffmpeg = (args: string[]) => execFileSync("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", ...args]);
 /** The same small, playable H.264 + AAC clip every stubbed scene render writes. */
@@ -65,13 +66,13 @@ let vite: ViteDevServer;
 let server: http.Server;
 let base = "";
 const saved: Record<string, string | undefined> = {};
-const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256", "BAL_DRIVE_PREVIEWS_DIR", "BAL_DRIVE_PUBLISH_DIR", "ELEVENLABS_API_KEY"];
+const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_DRIVE_PREVIEWS_DIR", "BAL_DRIVE_PUBLISH_DIR", "ELEVENLABS_API_KEY"];
 
 type Res = { status: number; body: any };
-const call = async (method: string, route: string, body?: unknown, token?: string, headers: Record<string, string> = {}): Promise<Res> => {
+const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}): Promise<Res> => {
   const r = await fetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(token ? { "x-studio-owner-token": token } : {}), ...headers },
+    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -84,9 +85,9 @@ const state = async () => {
   expect(r.status).toBe(200);
   return r.body;
 };
-const decide = (cmd: Record<string, unknown>, token = PASS) => call("POST", `episodes/${EP}/scene-production`, cmd, token);
-const render = (sceneId: string, expectedSha256: string, token = PASS) =>
-  call("POST", `episodes/${EP}/scene-av-render`, { sceneId, expectedSha256 }, token);
+const decide = (cmd: Record<string, unknown>, headers: Record<string, string> = {}) => call("POST", `episodes/${EP}/scene-production`, cmd, headers);
+const render = (sceneId: string, expectedSha256: string, headers: Record<string, string> = {}) =>
+  call("POST", `episodes/${EP}/scene-av-render`, { sceneId, expectedSha256 }, headers);
 
 
 const scenes = [{ id: "c1-s1", narration: "الصبر مفتاح الفرج." }];
@@ -111,7 +112,6 @@ beforeAll(async () => {
   process.env.BAL_CHANNELS_DIR = root;
   process.env.BAL_ENV_FILE = path.join(root, ".env");
   delete process.env.BAL_WORKFLOW_HMAC_KEY; // generated into the temp .env by the server, as on the Mac
-  delete process.env.BAL_STUDIO_OWNER_PASSPHRASE_SHA256;
   delete process.env.BAL_DRIVE_PREVIEWS_DIR;
   delete process.env.BAL_DRIVE_PUBLISH_DIR;
   delete process.env.ELEVENLABS_API_KEY;
@@ -174,7 +174,6 @@ describe("Drive handoff after the publish permission (real server, real ledger)"
   it("nothing before permission; exact files after; owner-only retry; idempotent; no Drive is a message", async () => {
     const drive = await mkdtemp(path.join(os.tmpdir(), "my-drive-"));
     try {
-      expect((await call("POST", "owner-passphrase", { passphrase: PASS })).body).toEqual({ set: true });
       let s = await state();
       expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 })).status).toBe(200);
       expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحة بصريًا: النص والتكوين والتوقيت مطابقة للسكريبت." })).status).toBe(200);
@@ -185,7 +184,7 @@ describe("Drive handoff after the publish permission (real server, real ledger)"
       expect((await decide({ action: "submit-scene", sceneId: "c1-s1", expectedSha256: s.scenes[0].sourceSha256 })).status).toBe(200);
       const cut = (await state()).candidates.scenes["c1-s1"];
       expect((await decide({ action: "approve-scene", sceneId: "c1-s1", expectedSha256: cut, confirmedWatched: true })).status).toBe(200);
-      expect((await call("POST", `episodes/${EP}/scene-av-assemble`, undefined, PASS)).status).toBe(200);
+      expect((await call("POST", `episodes/${EP}/scene-av-assemble`)).status).toBe(200);
       s = await state();
       expect((await decide({ action: "assemble", expectedSha256: s.candidates.assemblySha256 })).status).toBe(200);
       const asm = await decide({ action: "approve-assembly", expectedSha256: s.candidates.assemblySha256, confirmedWatched: true, seamsChecked: s.seams });
@@ -201,8 +200,8 @@ describe("Drive handoff after the publish permission (real server, real ledger)"
 
       // Drive configured, Master approved, NO publish permission yet: nothing is copied.
       process.env.BAL_DRIVE_PUBLISH_DIR = drive;
-      expect((await call("POST", `episodes/${EP}/publish-drive`)).status).toBe(403); // owner session required
-      const early = await call("POST", `episodes/${EP}/publish-drive`, undefined, PASS);
+      expect((await call("POST", `episodes/${EP}/publish-drive`, undefined, CROSS)).status).toBe(403); // owner only, from the Studio page
+      const early = await call("POST", `episodes/${EP}/publish-drive`);
       expect(early.status, JSON.stringify(early.body)).toBe(202);
       const refused = await waitDrive();
       expect(refused.job.status).toBe("error");
@@ -229,9 +228,9 @@ describe("Drive handoff after the publish permission (real server, real ledger)"
       expect(manifest.approvals.publish.ledgerSeq).toBeGreaterThan(manifest.approvals.master.ledgerSeq);
 
       // «أعد الإرسال إلى Drive»: owner session only, then every file is skipped (identical).
-      expect((await call("POST", `episodes/${EP}/publish-drive`, undefined, "wrong-passphrase")).status).toBe(403);
-      expect((await call("POST", `episodes/${EP}/publish-drive/open`)).status).toBe(403);
-      expect((await call("POST", `episodes/${EP}/publish-drive`, undefined, PASS)).status).toBe(202);
+      expect((await call("POST", `episodes/${EP}/publish-drive`, undefined, CROSS)).status).toBe(403);
+      expect((await call("POST", `episodes/${EP}/publish-drive/open`, undefined, CROSS)).status).toBe(403);
+      expect((await call("POST", `episodes/${EP}/publish-drive`)).status).toBe(202);
       const again = await waitDrive();
       expect(again.job.status).toBe("done");
       expect(again.last.files.filter((f: any) => f.kind !== "manifest").every((f: any) => f.action === "skipped")).toBe(true);
@@ -241,7 +240,7 @@ describe("Drive handoff after the publish permission (real server, real ledger)"
       const none = await call("GET", `episodes/${EP}/publish-drive`);
       expect(none.body.drive.found).toBe(false);
       expect(none.body.drive.message).toMatch(/BAL_DRIVE_PUBLISH_DIR/);
-      const noRetry = await call("POST", `episodes/${EP}/publish-drive`, undefined, PASS);
+      const noRetry = await call("POST", `episodes/${EP}/publish-drive`);
       expect(noRetry.status).toBe(409);
       expect(noRetry.body.error).toMatch(/BAL_DRIVE_PUBLISH_DIR/);
       expect((await state()).progress.publishAllowed).toBe(true);

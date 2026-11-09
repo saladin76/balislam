@@ -113,11 +113,11 @@ authority. Every production gate asks it:
 
 | Gate | Requirement |
 | --- | --- |
-| «اعتمد التجهيز» (step ١, D40) | one owner request, passphrase + `reviewed: true`, the script and storyboard fingerprints the owner saw; everything that can refuse is checked before any write (script errors, verses without text, board note ≥ 25 chars when the boards are not recorded); then, in order, `approve-script` → board record (`storyboard.json`, same `checkVisualStoryboardSignoff`, script approved first) → `approve-storyboard`, each ledger decision through `decideSceneProduction` (`src/studio/preparation.ts`) |
+| «اعتمد التجهيز» (step ١, D40) | one owner request (loopback Studio page) + `reviewed: true`, the script and storyboard fingerprints the owner saw; everything that can refuse is checked before any write (script errors, verses without text, board note ≥ 25 chars when the boards are not recorded); then, in order, `approve-script` → board record (`storyboard.json`, same `checkVisualStoryboardSignoff`, script approved first) → `approve-storyboard`, each ledger decision through `decideSceneProduction` (`src/studio/preparation.ts`) |
 | Voice generation | script + storyboard approved (`requireScriptAndStoryboardApproved`) |
 | Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
 | Scene AV render («إنتاج المشهد») | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
-| Scene AV draft («جهّز كل المشاهد», `bal produce`) | owner passphrase, script + storyboard approved and every board reviewed (`requireSceneProductionReady`); only the current scene or a later scene that is neither approved nor submitted, with current inputs (`assertSceneRenderAllowed(…, "ahead")`) |
+| Scene AV draft («جهّز كل المشاهد», `bal produce`) | the owner (loopback Studio page or the CLI on his Mac), script + storyboard approved and every board reviewed (`requireSceneProductionReady`); only the current scene or a later scene that is neither approved nor submitted, with current inputs (`assertSceneRenderAllowed(…, "ahead")`) |
 | Master render | every scene approved with sound and picture (none «مشروط بالتلاوة») **and** the assembly approved after a full 1× viewing with every seam checked (`requireScenesReadyForMaster`) |
 | Shorts/reels | the exact approved Master (`requireSceneMasterReady`) |
 | Publish | the exact approved Master **and** an explicit publish permission for those bytes (`requirePublishAllowed`) |
@@ -150,8 +150,8 @@ narrated scene without a current clip, through `generateVoice` (tashkeel ≥ 98%
 approval; verse cards carry no narration, recitations stay the owner's own recording); without a voice key this step is
 skipped and reported in one line; (2) AV preview drafts for the current scene and every later open scene, one at a time
 in order, through the same renderer and slot (`previews/scene-<id>-av.mp4`). In the Studio it runs as an in-process
-background queue (`app/server/prepare.ts`, `GET/POST /api/episodes/<ep>/scene-prepare`); the owner credential (passphrase or
-D49 device-session token, re-checked by the job) lives only in the job's memory, and a restart drops the job (finished drafts remain). `DELETE …/scene-prepare` (owner only, D36) asks the
+background queue (`app/server/prepare.ts`, `GET/POST /api/episodes/<ep>/scene-prepare`); the owner is checked when the
+job starts (the job runs inside that request's owner scope) and nothing about him is stored; a restart drops the job (finished drafts remain). `DELETE …/scene-prepare` (owner only, D36) asks the
 queue to stop: the voice clip or scene render in progress finishes and is kept, nothing new starts, status `stopped`;
 on the dafatir parts path no scene is composed from an incomplete set of parts. A tone is present when the scene has
 one or inherits the episode's (then the channel's) tone (`effectiveTone`, D36); the dafatir tone map is unchanged.
@@ -164,7 +164,7 @@ failures, which are retried (`pickRenderQueue`, D38).
 **Sentence-by-sentence voice (D50).** A narrated scene can be voiced sentence by sentence from «الجمل»
 (`src/voice/sentences.ts` pure model, `src/voice/sentenceVoice.ts` disk/generation/composition, `GET/POST
 /api/episodes/<ep>/sentences`). Reading needs nothing; every action (`init`, `edit`, `split`, `merge`, `delete`, `add`,
-`tone`, `pause`, `generate`, `restore`, `heard`) needs the owner credential (`assertSceneOwner`, D49 token on loopback)
+`tone`, `pause`, `generate`, `restore`, `heard`) needs the owner (`assertSceneOwner`: a loopback, same-origin Studio request)
 and runs under a per-episode lock on `voice/sentences.json`. `generate` sends ONE ElevenLabs request for that sentence,
 with the neighbouring sentences as `previous_text`/`next_text` (models that accept them), behind the same gates as
 `generateVoice`, checked for that sentence and scene: tashkeel ≥ 98% for the sentence (Arabic refusal naming the
@@ -199,7 +199,7 @@ The scene ledger read (`GET scene-production`) adds `scenes[].draft` (`ready` / 
 `prepared: { ready, total }` (approved + submitted + ready drafts), and, while the assembly awaits review,
 `seamTimes: { "<a>><b>": seconds }` from the real cut durations (read-only: jumps the player; never checks a seam, D38).
 
-**Owner notes inbox (notes-inbox.md).** After a successful, passphrase-checked `correct-scene` is saved in the ledger,
+**Owner notes inbox (notes-inbox.md).** After a successful, owner-checked `correct-scene` is saved in the ledger,
 the note is appended to `channels/<ch>/episodes/<ep>/notes/inbox.json` (append-only, gitignored on `main`) and pushed in
 the background, by plumbing in a temporary index, to the dedicated branch `studio-notes` only. It grants and blocks
 nothing: no gate reads it, a sync failure never fails the correction, and Claude's answers come back in `notes/resolved.json`
@@ -231,12 +231,12 @@ before that he watches a pre-final version with narration and no recitation. Fin
   `progress.recitationPending` lists those scenes. Attaching and approving the recitation changes that scene's inputs
   (its hash includes the recording), so `reviseSceneInput` re-opens ONLY that verse scene: it becomes the current scene,
   is rendered with its recitation, and needs a fresh unconditional approval. Removing a recording also re-opens it.
-- «معاينة قبل النهائية» (`POST /api/episodes/<ep>/scene-prefinal`, owner passphrase; `assemblePreFinalPreview` with
+- «معاينة قبل النهائية» (`POST /api/episodes/<ep>/scene-prefinal`, owner only; `assemblePreFinalPreview` with
   `currentSceneCutsForPreFinal`): every scene's current cut in order — the reviewed bytes of approved/submitted scenes,
   otherwise a ready draft bound to current inputs; any scene without one is listed and the request refused. Output goes to
   the preview slot `prefinal-no-recitation`, never `previews/episode.mp4`, so it can never be recorded or approved as the
   assembly, and Master is always rendered from the plan, never from previews. It writes nothing to the scene ledger.
-- Recitation polish (`POST /api/episodes/<ep>/own-recitations`, owner passphrase; `src/quran/recitationPolish.ts`): the
+- Recitation polish (`POST /api/episodes/<ep>/own-recitations`, owner only; `src/quran/recitationPolish.ts`): the
   untouched upload stays in `recitations/originals/`; two candidates are made — PROCESSED (edge silence only, found with the
   dafatir trimmer's frame levels and soft threshold, margins 0.12 s before / 0.35 s after; `afftdn=nr=6:nf=-50`; two-pass
   EBU R128 loudnorm, linear, to the narration's median integrated loudness (−24…−12 LUFS), else −16 LUFS, true peak
@@ -244,21 +244,19 @@ before that he watches a pre-final version with narration and no recitation. Fin
   switch (`select`) before or after approval (after approval the pointer is withdrawn and the recording goes back to review).
   Approval still requires listening, reciter and rights evidence (`approveOwnRecitation`).
 
-**Owner identity:** approvals need the owner passphrase, chosen once in «إنتاج المشاهد» (only its SHA-256 is stored in
-`.env`). The ledger is signed with the separate random `BAL_WORKFLOW_HMAC_KEY`. There is no bypass flag in the UI, API or CLI.
-
-**Device session (D49, owner decision 9 Nov).** The owner types the passphrase once: `POST /api/owner-session` verifies
-it (`openOwnerSession`, passphrase only — a token cannot open a session) and issues a random token `bos_<64 hex>`
-(`src/studio/ownerSessions.ts`). The server keeps only `HMAC(BAL_WORKFLOW_HMAC_KEY, token)` plus a binding
-`HMAC(key, passphrase hash)` in `.studio/owner-sessions.json` beside `.env` (git-ignored, mode 0600); the browser keeps the
-token in `localStorage`. `assertSceneOwner` accepts the passphrase as before, **or** a stored, unrevoked token of the
-current passphrase — but a token only inside a Studio HTTP request whose socket address is loopback (`runOwnerRequest`
-around every `/api/*` request; no header is trusted). The CLI and direct service calls never run in that scope, so they
-still need the passphrase (`BAL_OWNER_PASSPHRASE` or the prompt). A record written by hand is worthless without the machine
-key. «أغلق الجلسة» (`DELETE /api/owner-session`) revokes the token; changing the passphrase deletes the file, and the
-binding refuses any record of an older passphrase anyway. The ledger is unchanged: it is signed by the machine key, never
-by the passphrase or the token, and neither is written into it; a decision made with the token is recorded exactly like
-one made with the passphrase. Every gate after the identity check is untouched. Test: `tests/studio-owner-session.test.tsx`.
+**Owner identity — no passphrase (owner decision 9 Nov 2026, supersedes D49).** The Studio asks for no passphrase and
+keeps no session or token. `assertSceneOwner()` (`src/studio/sceneService.ts`, the one owner policy) allows:
+- a Studio HTTP request whose **socket** address is loopback (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`; no header is
+  trusted), that passed the same-origin check (`isTrustedLocalRequest`: no `sec-fetch-site: cross-site`; on writes a
+  loopback `Origin` equal to `Host`), and whose `Host` names this machine (DNS-rebinding guard). The API runs every
+  `/api/*` request inside `runOwnerRequest` (`src/studio/ownerContext.ts`) with those facts;
+- the owner's own CLI or script outside any Studio request (`bal produce` no longer asks for anything).
+Any other Studio request is refused with 403 (`OWNER_AUTH`). The ledger is still signed with the separate random machine
+key `BAL_WORKFLOW_HMAC_KEY` (created in `.env` on first start), and tampering is still detected; every gate after the
+identity check is unchanged (scene order, «راجعته بنفسي», board notes, fingerprints, D35 recitation gates, publish
+permission on exact bytes). There is no bypass flag in the UI, API or CLI. The old `.studio/owner-sessions.json` and the
+`BAL_STUDIO_OWNER_PASSPHRASE_SHA256` line in `.env` are no longer read (left in place). The endpoints
+`/api/owner-passphrase*` and `/api/owner-session` are gone (404). Test: `tests/studio-owner-no-passphrase.test.ts`.
 
 The isolated V2 review API is no longer mounted (`/api/studio-v2/*` returns 410). Its server modules
 (`app/server/studioV2*.ts`, `src/workflow/*V2*.ts`, `src/render/sceneV2*.ts`) were removed in D27.
@@ -293,7 +291,7 @@ local commits were never pushed. Test: `tests/fresh-start-safety.test.ts` (tempo
   neutral art, prompts and PDF fonts. `createChannel` / `bal channel new` have no default `--from`; without it a channel
   starts from the neutral identity and `SAFE_NEW_CHANNEL_RULES` (no faces, no music, both checks on).
 - **Owner for policy changes.** `PUT /api/channel`, `PUT /api/identity` and `POST /api/channels` call `assertSceneOwner`
-  (`ownerRefusal` in `app/server/extra.ts`; the D49 token is accepted) and answer 403 otherwise.
+  (`ownerRefusal` in `app/server/extra.ts`, the same loopback same-origin rule) and answer 403 otherwise.
 - **Errors.** An unknown channel answers 404, a missing episode or file 404; every error text sent to the browser goes
   through `redactPaths` (`app/server/util.ts`), so no absolute path of the owner's machine leaves the server.
   Test: `tests/studio-policy-endpoints.test.ts`.

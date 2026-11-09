@@ -8,7 +8,7 @@
  */
 import path from "node:path";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { inLoopbackOwnerRequest, issueOwnerSessionToken, looksLikeOwnerSessionToken, verifyOwnerSessionToken } from "./ownerSessions";
+import { isOwnerContext } from "./ownerContext";
 import { lstat, open, readFile, rename, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
@@ -75,46 +75,21 @@ type CurrentInput = {
 const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
 const hex64 = (text: unknown): text is string =>
   typeof text === "string" && /^[a-f0-9]{64}$/.test(text);
-/**
- * The owner proves presence with a passphrase only they know (set once in the Studio; only its
- * SHA-256 is kept in .env). Ledger integrity uses a separate random machine key
- * (BAL_WORKFLOW_HMAC_KEY), so neither role leaks into the other.
- */
-export const ownerPassphraseSha256 = (): string | null => {
-  const hashed = process.env.BAL_STUDIO_OWNER_PASSPHRASE_SHA256?.trim();
-  if (hashed && hex64(hashed)) return hashed;
-  return null;
-};
 /** Owner-identity failures carry this code so the API answers 403, never a generic 409/500. */
 export const OWNER_AUTH_ERROR = "OWNER_AUTH";
 const ownerAuthError = (message: string) => Object.assign(new Error(message), { code: OWNER_AUTH_ERROR });
 export const isOwnerAuthError = (error: unknown): boolean =>
   (error as { code?: unknown } | null)?.code === OWNER_AUTH_ERROR;
-const passphraseMatches = (expected: string, token: string): boolean =>
-  timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sha(token), "hex"));
 /**
- * The owner credential is either the passphrase itself, or (D49, 9 Nov) a revocable device session
- * token issued after that passphrase — accepted ONLY inside a loopback Studio HTTP request
- * (src/studio/ownerSessions.ts). The CLI and direct service calls never run in that scope, so for them
- * only the passphrase counts. Every gate after this check is unchanged.
+ * The one owner policy (owner decision, 9 Nov 2026 — no passphrase; supersedes D49): a Studio request
+ * that reached the server over loopback and passed the same-origin checks, or the owner's own CLI /
+ * script outside any Studio request (src/studio/ownerContext.ts). Anything else is refused. No secret
+ * is read or required. Ledger integrity is the separate machine key (BAL_WORKFLOW_HMAC_KEY), and every
+ * gate after this check is unchanged.
  */
-export const assertSceneOwner = (token: unknown): void => {
-  const expected = ownerPassphraseSha256();
-  if (!expected) throw ownerAuthError("Set the owner passphrase in the Studio first; approvals are disabled until then.");
-  if (typeof token !== "string" || !token || token.length > 4096)
-    throw ownerAuthError("Owner session authentication is required.");
-  if (passphraseMatches(expected, token)) return;
-  if (looksLikeOwnerSessionToken(token) && verifyOwnerSessionToken(token)) return;
-  throw ownerAuthError("Owner session authentication is required.");
-};
-/** «فتح الجلسة»: the passphrase (never a token) proves the owner once; a device session token is issued. */
-export const openOwnerSession = (passphrase: unknown): string => {
-  const expected = ownerPassphraseSha256();
-  if (!expected) throw ownerAuthError("Set the owner passphrase in the Studio first; approvals are disabled until then.");
-  if (typeof passphrase !== "string" || !passphrase || passphrase.length > 4096 || !passphraseMatches(expected, passphrase))
-    throw ownerAuthError("Owner session authentication is required.");
-  if (!inLoopbackOwnerRequest()) throw ownerAuthError("The owner session opens only on this device.");
-  return issueOwnerSessionToken();
+export const assertSceneOwner = (): void => {
+  if (!isOwnerContext())
+    throw ownerAuthError("Owner actions are allowed only from the Studio on this device (127.0.0.1, same page).");
 };
 const signature = (doc: Omit<SignedSceneLedger, "mac">): string =>
   createHmac("sha256", workflowSigningKey())
@@ -461,8 +436,8 @@ const masterFile = (scriptPath: string) =>
     `${path.basename(path.dirname(scriptPath)).slice(0, 3)}-episode.mp4`);
 
 export const decideSceneProduction = async (episode: string,
-  command: SceneOwnerCommand, sessionToken: unknown) => {
-  assertSceneOwner(sessionToken);
+  command: SceneOwnerCommand) => {
+  assertSceneOwner();
   if (!command || !(SCENE_ACTIONS as readonly string[]).includes(command.action) ||
       !hex64(command.expectedSha256) ||
       (command.seamsChecked !== undefined && (!Array.isArray(command.seamsChecked) || command.seamsChecked.length > 2000 ||
@@ -598,7 +573,7 @@ export const decideSceneProduction = async (episode: string,
     // Still under the ledger lock. The map is not a scene input (only the regenerated clip is), so this
     // write reopens nothing by itself; regenerating this scene's voice reopens this scene alone.
     if (toneOverride) await toneOverride.commit();
-    // Notes inbox: only now — after the owner's passphrase and the recorded correction — the note is queued
+    // Notes inbox: only now — after the owner check and the recorded correction — the note is queued
     // for Claude (docs/studio/notes-inbox.md). A failure here never undoes or fails the correction itself.
     if (command.action === "correct-scene" && command.sceneId) {
       const scene = p.scenes.find(s => s.id === command.sceneId)!;
@@ -658,17 +633,17 @@ const checkRenderAllowed = (state: SceneFirstProduction, current: CurrentInput, 
     throw Error("The scene narration is not ready for AV production.");
 };
 export const assertSceneRenderAllowed = async (
-  episode: string, sceneId: string, expectedSha256: string, token: unknown, mode: SceneRenderMode,
+  episode: string, sceneId: string, expectedSha256: string, mode: SceneRenderMode,
 ): Promise<void> => {
-  assertSceneOwner(token);
+  assertSceneOwner();
   if (!safeSceneId(sceneId) || !hex64(expectedSha256))
     throw Error("Invalid scene preview request.");
   await withState(episode, async (doc, current) =>
     checkRenderAllowed(doc.state, current, sceneId, expectedSha256, mode));
 };
 export const assertCurrentSceneRenderAllowed = (
-  episode: string, sceneId: string, expectedSha256: string, token: unknown,
-): Promise<void> => assertSceneRenderAllowed(episode, sceneId, expectedSha256, token, "current");
+  episode: string, sceneId: string, expectedSha256: string,
+): Promise<void> => assertSceneRenderAllowed(episode, sceneId, expectedSha256, "current");
 
 /** Everything in the ledger that carries a human decision; a render must leave it byte-identical. */
 const decisionDigest = (doc: Omit<SignedSceneLedger, "mac">): string =>
@@ -681,10 +656,10 @@ const decisionDigest = (doc: Omit<SignedSceneLedger, "mac">): string =>
  * state (approvals, statuses, history, review epochs) is unchanged by this write.
  */
 export const recordSceneRenderEvidence = async (
-  episode: string, sceneId: string, expectedSha256: string, token: unknown,
+  episode: string, sceneId: string, expectedSha256: string,
   mode: SceneRenderMode = "current",
 ): Promise<void> => {
-  await assertSceneRenderAllowed(episode, sceneId, expectedSha256, token, mode);
+  await assertSceneRenderAllowed(episode, sceneId, expectedSha256, mode);
   await withState(episode, async (doc, current) => {
     try { checkRenderAllowed(doc.state, current, sceneId, expectedSha256, mode); }
     catch { throw Error("Scene changed before the AV evidence was recorded."); }
@@ -707,9 +682,9 @@ export const recordSceneRenderEvidence = async (
 
 /** Verify each exact reviewed scene cut before and after a full-episode assembly. */
 export const approvedSceneCutsForAssembly = async (
-  episode: string, token: unknown,
+  episode: string,
 ): Promise<{ sceneId: string; file: string; sha256: string }[]> => {
-  assertSceneOwner(token);
+  assertSceneOwner();
   return withState(episode, async (doc, current) => {
     approvedSceneInputsSha256(doc.state);
     if (!current.planReady)
@@ -737,10 +712,10 @@ export const approvedSceneCutsForAssembly = async (
  * Read-only: it records nothing, and the result is never an assembly, a Master or an approval.
  */
 export const currentSceneCutsForPreFinal = async (
-  episode: string, token: unknown,
+  episode: string,
 ): Promise<{ sceneId: string; file: string; sha256: string; state: "approved" | "conditional" | "in_review" | "draft";
   recitationPending: boolean }[]> => {
-  assertSceneOwner(token);
+  assertSceneOwner();
   return withState(episode, async (doc, current) => {
     const cuts = [];
     const missing: string[] = [];

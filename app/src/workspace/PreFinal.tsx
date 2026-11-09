@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, type OwnRecitationsRead } from "../api";
 import { RecitationItem } from "./RecitationItem";
-import { useOwnerSession } from "../shell/ownerSession";
 import { num } from "../ui/format";
 import "./scene-production.css";
 
@@ -25,7 +24,6 @@ export const PreFinalPanel: React.FC<{
   /** Scene order, to name scenes «المشهد ٣» instead of their ids. */
   order?: string[];
 }> = ({ episodeId, channelId, onChanged, recitationsOnly, order: orderProp }) => {
-  const owner = useOwnerSession();
   const [pre, setPre] = useState<{ preview: string | null; entry: { version: number; updatedAt: string | null } | null } | null>(null);
   const [recs, setRecs] = useState<OwnRecitationsRead | null>(null);
   const [busy, setBusy] = useState("");
@@ -45,15 +43,13 @@ export const PreFinalPanel: React.FC<{
   };
   useEffect(() => { setError(""); setMsg(""); void load(); }, [episodeId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** A closed session is opened by the action itself, next to the control that asked (D52). */
-  const guard = async (label: string, work: (secret: string) => Promise<void>, anchor?: HTMLElement | null) => {
-    const secret = owner.open ? owner.secret : await owner.ensure(anchor ?? null);
-    if (!secret) return;
+  /** Each action works directly on click (no passphrase, owner decision 9 Nov). */
+  const guard = async (label: string, work: () => Promise<void>) => {
     setBusy(label);
     setError("");
     setMsg("");
     try {
-      await work(secret);
+      await work();
       await load();
       onChanged?.();
     } catch (e) {
@@ -62,8 +58,8 @@ export const PreFinalPanel: React.FC<{
       setBusy("");
     }
   };
-  const makePreFinal = (anchor?: HTMLElement | null) => guard("prefinal", async (secret) => {
-    const r = await api.makePreFinal(episodeId, channelId, secret);
+  const makePreFinal = () => guard("prefinal", async () => {
+    const r = await api.makePreFinal(episodeId, channelId);
     setMsg(`جُمعت ${ar(r.scenes)} مشاهد${r.recitationPending.length ? `؛ ${ar(r.recitationPending.length)} آية صامتة بانتظار تلاوتها` : ""}.`);
   });
   const verses = recs?.verses ?? [];
@@ -80,7 +76,7 @@ export const PreFinalPanel: React.FC<{
           <p className="sp-hint">كل المشاهد الحالية بالترتيب (المعتمدة والمسودات) بصوت الراوي، والآيات صامتة بعلامة «التلاوة تُضاف لاحقًا». للمشاهدة فقط: ليست اعتمادًا ولا تجميعًا ولا نسخة نهائية.</p>
         </div>
         <div className="sp-actions">
-          <button type="button" className="btn primary" aria-busy={Boolean(busy)} onClick={(e) => { if (!busy) void makePreFinal(e.currentTarget); }}>
+          <button type="button" className="btn primary" aria-busy={Boolean(busy)} onClick={() => { if (!busy) void makePreFinal(); }}>
             {busy === "prefinal" ? "جارٍ التجميع…" : pre?.preview ? "حدّث المعاينة قبل النهائية" : "اصنع المعاينة قبل النهائية"}
           </button>
         </div>

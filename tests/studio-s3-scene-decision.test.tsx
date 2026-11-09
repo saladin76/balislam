@@ -8,7 +8,7 @@ import { SceneDecisionActions, fmtTime, problemNote } from "../app/src/workspace
 const noop = () => {};
 const base = {
   stage: "review" as const, voice: "missing" as const, voiceBusy: false, canVoice: true, readyForAv: true,
-  ownerOpen: true, pending: false, problem: null, problemText: "", tone: "", confirming: false, reviewed: false,
+  pending: false, problem: null, problemText: "", tone: "", confirming: false, reviewed: false,
   onVoice: noop, onProblem: noop, onProblemText: noop, onTone: noop, onCancelProblem: noop, onSubmitProblem: noop,
   onConfirm: noop, onApprove: noop, onRender: noop,
 };
@@ -38,11 +38,11 @@ describe("الخطوة ٢: قرار المشهد الحالي (funnel v3: «اع
     expect(html.match(/btn primary/g)).toHaveLength(1);
   });
 
-  it("الأسباب الحقيقية: جلسة المالك المقفلة، ومفتاح الصوت الناقص", () => {
-    const html = renderToStaticMarkup(<SceneDecisionActions {...base} ownerOpen={false} canVoice={false} />);
-    expect(html).toContain("افتح جلسة المالك من أعلى الصفحة");
+  it("الأسباب الحقيقية: مفتاح الصوت الناقص؛ ولا جلسة ولا كلمة مرور (قرار ٩ نوفمبر): «اعتمد» يعمل بالضغط", () => {
+    const html = renderToStaticMarkup(<SceneDecisionActions {...base} canVoice={false} />);
+    expect(html).not.toContain("جلسة المالك");
     expect(html).toContain("أضف مفتاح الصوت من الإعدادات");
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>اعتمد</);
+    expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>اعتمد</);
   });
 
   it("مشهد لم يجهز بعد: «اعتمد» ينتظر في مكانه، وسطر تقدمه؛ و«أنتج هذا المشهد» هادئ حين لا يعمل التجهيز", () => {

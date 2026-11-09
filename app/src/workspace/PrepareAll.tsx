@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, type ScenePrepareRead } from "../api";
-import { useOwnerSession } from "../shell/ownerSession";
 import { ownerMessage } from "../serverMessages";
 import { sceneName } from "./sceneNames";
 
@@ -27,7 +26,6 @@ export const PrepareAll: React.FC<{
   /** The queue as last read (step ٢ uses it to say «يُجهَّز الآن» under a scene that is not ready yet). */
   onJob?: (job: ScenePrepareRead["job"]) => void;
 }> = ({ episodeId, channelId, prepared, onOpenSettings, onChanged, order = [], className, onJob }) => {
-  const owner = useOwnerSession();
   const [info, setInfo] = useState<ScenePrepareRead | null>(null);
   const [error, setError] = useState("");
   const [starting, setStarting] = useState(false);
@@ -56,11 +54,10 @@ export const PrepareAll: React.FC<{
   }, [running, episodeId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = async () => {
-    if (!owner.open) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
     setStarting(true);
     setError("");
     try {
-      const r = await api.startScenePrepare(episodeId, channelId, owner.secret);
+      const r = await api.startScenePrepare(episodeId, channelId);
       setInfo((old) => ({ ...(old ?? { voiceKey: r.voiceKey }), ...r }));
       seen.current = r.job ? `${r.job.status}:${r.job.rendered.length}:${r.job.voice.generated}` : "";
     } catch (e) {
@@ -71,10 +68,9 @@ export const PrepareAll: React.FC<{
   };
 
   const stop = async () => {
-    if (!owner.open) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
     setError("");
     try {
-      const r = await api.stopScenePrepare(episodeId, channelId, owner.secret);
+      const r = await api.stopScenePrepare(episodeId, channelId);
       setInfo((old) => ({ ...(old ?? { voiceKey: r.voiceKey }), ...r }));
     } catch (e) {
       setError((e as Error).message);
@@ -98,13 +94,13 @@ export const PrepareAll: React.FC<{
     <div className={`prep${className ? ` ${className}` : ""}`} role="group" aria-label="تجهيز المشاهد">
       {prepared ? <span className="prep-count" role="status">جاهز {ar(prepared.ready)} من {ar(prepared.total)}{running ? ` · ${label}` : ""}</span> : null}
       {running ? (
-        <button type="button" className="btn ghost" disabled={!owner.open || job?.stopRequested} onClick={() => void stop()}
+        <button type="button" className="btn ghost" disabled={job?.stopRequested} onClick={() => void stop()}
           title="يُكمل المشهد الجاري ويحفظه، ولا يبدأ غيره؛ والمسودات الجاهزة باقية">
           {job?.stopRequested ? "يتوقف بعد المشهد الجاري…" : "أوقف"}
         </button>
       ) : !allReady && (!job || job.status === "stopped" || job.status === "error") ? (
-        <button type="button" className="btn ghost" disabled={starting || !owner.open} onClick={() => void start()}
-          title={owner.open ? "يكمل تجهيز المشاهد الباقية بالترتيب؛ الاعتماد يبقى لك مشهدًا مشهدًا" : "افتح جلسة المالك أولًا"}>
+        <button type="button" className="btn ghost" disabled={starting} onClick={() => void start()}
+          title="يكمل تجهيز المشاهد الباقية بالترتيب؛ الاعتماد يبقى لك مشهدًا مشهدًا">
           {starting ? "جارٍ البدء…" : label}
         </button>
       ) : null}

@@ -1,29 +1,24 @@
-import { createHash } from "node:crypto";
-import { afterEach, describe, expect, it } from "vitest";
-import { assertSceneOwner } from "../src/studio/sceneService";
+import { describe, expect, it } from "vitest";
+import { assertSceneOwner, isOwnerAuthError } from "../src/studio/sceneService";
+import { runOwnerRequest } from "../src/studio/ownerContext";
 
-const KEY = "BAL_STUDIO_OWNER_PASSPHRASE_SHA256";
-const original = process.env[KEY];
-afterEach(() => {
-  if (original === undefined) delete process.env[KEY];
-  else process.env[KEY] = original;
-});
-const sha = (v: string) => createHash("sha256").update(v).digest("hex");
-
+// Owner decision (9 Nov 2026): no passphrase. The owner is the local process (CLI) or a loopback,
+// same-origin Studio request; nothing a caller sends can make another request the owner.
 describe("single-operator scene API server authentication", () => {
-  it("fails closed until the owner sets a passphrase", () => {
-    delete process.env[KEY];
-    expect(() => assertSceneOwner("anything")).toThrow(/passphrase/);
+  it("needs no secret on the owner's own machine (CLI) or from the loopback Studio page", () => {
+    expect(() => assertSceneOwner()).not.toThrow();
+    expect(() => runOwnerRequest({ remoteAddress: "127.0.0.1", sameOrigin: true, host: "localhost:4321" }, () => assertSceneOwner())).not.toThrow();
   });
 
-  it("accepts only the owner's passphrase; only its hash is configured", () => {
-    const passphrase = "owner-local-passphrase-2026";
-    process.env[KEY] = sha(passphrase);
-    expect(() => assertSceneOwner("wrong")).toThrow(/authentication/);
-    expect(() => assertSceneOwner({ role: "owner", approved: true })).toThrow(/authentication/);
-    expect(() => assertSceneOwner("x".repeat(5000))).toThrow(/authentication/);
-    // The stored hash itself is not a credential.
-    expect(() => assertSceneOwner(process.env[KEY])).toThrow(/authentication/);
-    expect(() => assertSceneOwner(passphrase)).not.toThrow();
+  it("refuses a remote or cross-origin Studio request, with the 403 owner-auth code", () => {
+    for (const facts of [
+      { remoteAddress: "192.168.1.20", sameOrigin: true, host: "127.0.0.1:4321" },
+      { remoteAddress: "127.0.0.1", sameOrigin: false, host: "127.0.0.1:4321" },
+      { remoteAddress: "127.0.0.1", sameOrigin: true, host: "evil.example" },
+    ]) {
+      let error: unknown = null;
+      try { runOwnerRequest(facts, () => assertSceneOwner()); } catch (e) { error = e; }
+      expect(isOwnerAuthError(error), JSON.stringify(facts)).toBe(true);
+    }
   });
 });

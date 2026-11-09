@@ -382,17 +382,16 @@ program
 
 program
   .command("produce <episode>")
-  .description("«جهّز كل المشاهد»: يولّد صوت المشاهد التي تنقصه (بوابة التشكيل 98%، ولا يُولَّد قرآن أبدًا)، ثم يرندر مسودات AV للمشهد الحالي وما بعده بالترتيب. لا يعتمد شيئًا ولا يرسل للمراجعة؛ الاعتماد بالترتيب في الاستوديو بعد المشاهدة. يطلب كلمة مرور المالك (أو BAL_OWNER_PASSPHRASE).")
+  .description("«جهّز كل المشاهد»: يولّد صوت المشاهد التي تنقصه (بوابة التشكيل 98%، ولا يُولَّد قرآن أبدًا)، ثم يرندر مسودات AV للمشهد الحالي وما بعده بالترتيب. لا يعتمد شيئًا ولا يرسل للمراجعة؛ الاعتماد بالترتيب في الاستوديو بعد المشاهدة. يعمل مباشرة على جهاز المالك بلا كلمة مرور.")
   .option("--no-voice", "بلا توليد صوت (ترندر المشاهد التي لها صوت فقط)")
   .action(async (episode: string, opts: { voice: boolean }) => {
     const { prepareAllScenes } = await import("../studio/prepareAll");
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
-    const token = process.env.BAL_OWNER_PASSPHRASE || await askHidden("كلمة مرور المالك: ");
     const voiceClient = opts.voice ? elevenLabsFromEnv() : null;
     let last = "";
     try {
       const r = await prepareAllScenes(episode, {
-        token, voiceClient,
+        voiceClient,
         onProgress: (p) => {
           const line = p.phase === "voice" ? `الصوت${p.sceneId ? `: ${p.sceneId}` : ""}` : p.phase === "render" && p.sceneId ? `مسودة: ${p.sceneId} (${p.rendered.length} جاهزة)` : "";
           if (line && line !== last) console.log((last = line));
@@ -412,28 +411,6 @@ program
       process.exitCode = 1;
     }
   });
-
-/** Reads a secret from the terminal without echoing it. */
-const askHidden = async (prompt: string): Promise<string> => {
-  if (!process.stdin.isTTY) throw new Error("كلمة مرور المالك مطلوبة: شغّل الأمر في الطرفية أو ضع BAL_OWNER_PASSPHRASE.");
-  process.stdout.write(prompt);
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.setEncoding("utf8");
-  return new Promise((resolve, reject) => {
-    let value = "";
-    const done = (fn: () => void) => { process.stdin.setRawMode(false); process.stdin.pause(); process.stdin.off("data", on); process.stdout.write("\n"); fn(); };
-    const on = (chunk: string) => {
-      for (const c of chunk) {
-        if (c === "\r" || c === "\n") return done(() => resolve(value));
-        if (c === "\u0003") return done(() => reject(new Error("أُلغي.")));
-        if (c === "\u007f") value = value.slice(0, -1);
-        else value += c;
-      }
-    };
-    process.stdin.on("data", on);
-  });
-};
 
 program
   .command("horizon-audio <episode>")

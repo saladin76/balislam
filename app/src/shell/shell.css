@@ -90,14 +90,14 @@
 }
 .tb-tools { display: flex; align-items: center; gap: 8px; }
 .tb-manage { position: relative; }
-.tb-manage-btn, .ow-btn {
+.tb-manage-btn {
   height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r);
   background: var(--panel); color: var(--ink-2); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 7px;
 }
-.tb-manage-btn:hover, .ow-btn:hover { border-color: var(--line-2); background: var(--panel-2); }
+.tb-manage-btn:hover { border-color: var(--line-2); background: var(--panel-2); }
 .tb-manage-btn[aria-expanded="true"] { background: var(--panel-2); border-color: var(--line-2); }
-.tb-menu, .ow-pop {
+.tb-menu {
   position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 40;
   min-width: 260px; padding: 6px; background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
@@ -108,19 +108,6 @@
 }
 .tb-menu button:hover, .tb-menu button[aria-current="page"] { background: var(--panel-2); }
 .tb-menu small { color: var(--muted); font-size: 12px; }
-
-/* Owner session */
-.ow { position: relative; }
-.ow-btn { color: var(--muted); }
-.ow-btn.is-open { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); background: var(--ok-soft); }
-.ow-pop { display: flex; flex-direction: column; gap: 8px; padding: 14px; min-width: 290px; }
-.ow-pop strong { font-size: 14px; }
-.ow-pop p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
-.ow-pop input { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r); }
-.ow-err { color: var(--err); font-size: 12px; }
-/* The passphrase asked by the button that needs it (D52): fixed next to that button, never at the page top. */
-.shell-v3 .ow-pop.ow-anchored { position: fixed; inset: auto; z-index: 60; min-width: 0; }
-.ow-row { display: flex; gap: 8px; align-items: center; }
 
 .page-head { padding: 26px 30px 6px; }
 .page-head h1 { margin: 0; font-size: 22px; font-weight: 700; }
@@ -384,7 +371,7 @@
   /* جدول الأسبوع يُمرَّر أفقيًا بدل أن تنضغط الأيام حتى تُقص */
   .shell-v3 .studio-ops-workspace .ops-week { grid-template-columns: 116px repeat(7, 118px) !important; }
   /* القوائم المنبثقة على الهاتف تثبت داخل الشاشة */
-  .shell-v3 .tb-menu, .shell-v3 .ow-pop:not(.ow-anchored) { position: fixed; inset-inline: 12px; top: 58px; min-width: 0; max-height: calc(100dvh - 80px); overflow-y: auto; }
+  .shell-v3 .tb-menu { position: fixed; inset-inline: 12px; top: 58px; min-width: 0; max-height: calc(100dvh - 80px); overflow-y: auto; }
   .shell-v3 .studio-main > .page-head { padding: 18px 16px 2px; }
   .shell-v3 .studio-main > .panel { margin: 10px 16px 24px; }
   .shell-v3 .guide-tab { padding: 10px 16px 30px; }

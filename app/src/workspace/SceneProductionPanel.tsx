@@ -10,7 +10,6 @@ import { toneMapKeepLabel, toneMapNote } from "./toneMapCopy";
 import { MakeMaster } from "./MakeMaster";
 import "./scene-production.css";
 import "../shell/screens-s3.css";
-import { useOwnerSession } from "../shell/ownerSession";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
 import { SentencesPanel } from "./SentencesPanel";
@@ -94,8 +93,6 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [data, setData] = useState<SceneProductionRead | null>(initialRead ?? null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const owner = useOwnerSession();
-  const sessionSecret = owner.secret;
   const [noteDraft, setNote] = useState("");
   const note = noteDraft;
   const [reviewed, setReviewed] = useState(false);
@@ -148,14 +145,10 @@ export const SceneProductionPanel: React.FC<Props> = ({
   }, [requestedSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderCurrentScene = async (sceneId: string, sourceSha256: string) => {
-    if (!sessionSecret.trim()) {
-      setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
-      return;
-    }
     setPending(true);
     setError("");
     try {
-      await api.renderSceneAv(episodeId, channelId, sessionSecret, sceneId, sourceSha256);
+      await api.renderSceneAv(episodeId, channelId, sceneId, sourceSha256);
       await refresh();
       onUpdated?.();
       setReviewed(false);
@@ -167,16 +160,15 @@ export const SceneProductionPanel: React.FC<Props> = ({
   };
 
   const assembleScenes = async () => {
-    if (!sessionSecret.trim()) return setError("افتح جلسة المالك من أعلى الصفحة أولًا.");
     setPending(true);
     setError("");
     try {
-      await api.assembleSceneAv(episodeId, channelId, sessionSecret);
+      await api.assembleSceneAv(episodeId, channelId);
       // One click: the file just built from the approved cuts is recorded for the 1× review at once,
       // so an older file at the same path (e.g. a legacy preview) is never what gets recorded.
       const fresh = await api.sceneProduction(episodeId, channelId);
       const built = fresh.candidates?.assemblySha256;
-      if (built) await api.decideScene(episodeId, channelId, sessionSecret, { action: "assemble", expectedSha256: built });
+      if (built) await api.decideScene(episodeId, channelId, { action: "assemble", expectedSha256: built });
       await refresh();
       onUpdated?.();
     } catch (e) {
@@ -196,7 +188,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string, noteText?: string, extra?: { tone?: string }): Promise<boolean> => {
     const fail = (msg: string) => { setError(msg); return false; };
     const note = noteText ?? noteDraft;
-    if (!data || pending || !sessionSecret.trim()) return fail("افتح جلسة المالك من أعلى الصفحة أولًا.");
+    if (!data || pending) return false;
     if (["approve-script", "approve-storyboard", "approve-scene", "approve-assembly", "approve-master", "grant-publish"].includes(action) && !reviewed)
       return fail("أكّد المراجعة البشرية الفعلية قبل الاعتماد.");
     const seamsChecked = action === "approve-assembly" ? (data.seams ?? []).filter((x) => seams[x]) : undefined;
@@ -207,7 +199,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     setPending(true);
     setError("");
     try {
-      await api.decideScene(episodeId, channelId, sessionSecret, {
+      await api.decideScene(episodeId, channelId, {
         action, expectedSha256, ...(sceneId ? { sceneId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reviewed ? { confirmedWatched: true } : {}),
@@ -247,11 +239,10 @@ export const SceneProductionPanel: React.FC<Props> = ({
     let sha = scene.status === "in_review" ? scene.previewSha256 : undefined;
     if (!sha) {
       if (!draftReady || !candidate) return false;
-      if (!sessionSecret.trim()) { setError("افتح جلسة المالك من أعلى الصفحة أولًا."); return false; }
       setPending(true);
       setError("");
       try {
-        const sub = await api.decideScene(episodeId, channelId, sessionSecret, {
+        const sub = await api.decideScene(episodeId, channelId, {
           action: "submit-scene", expectedSha256: scene.sourceSha256, sceneId: currentId,
         });
         if (sub.scenes.find((x) => x.id === currentId)?.previewSha256 !== candidate) {
@@ -271,9 +262,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
   };
 
   // القرار الحالي في سطر واحد: يظهر فيه ما يُشاهَد، وما يُؤكَّد، والزر
-  const confirm = (label: string) => owner.open ? (
+  const confirm = (label: string) => (
     <label className="sp-confirm"><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> {label}</label>
-  ) : <span className="sp-hint">افتح جلسة المالك من أعلى الصفحة لتعتمد.</span>;
+  );
   const seamsAll = data?.seams ?? [];
   const seamsDone = seamsAll.filter((x) => seams[x]).length;
   const criteria = (
@@ -485,7 +476,6 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 voiceMsg={voiceMsg}
                 canVoice={Boolean(hasVoiceKeys)}
                 readyForAv={scene.readyForAv}
-                ownerOpen={owner.open}
                 pending={pending}
                 problem={problem}
                 problemText={problemText}
@@ -530,7 +520,6 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 voiceBusy={false}
                 canVoice={Boolean(hasVoiceKeys)}
                 readyForAv={false}
-                ownerOpen={owner.open}
                 pending={pending}
                 problem={null}
                 problemText=""
@@ -653,12 +642,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
               <>
                 <h3>{scene.status === "needs_revision" ? "عُدّل المشهد؛ أنتجه من جديد" : "أنتج المشهد بالصوت والصورة"}</h3>
                 <div className="sp-actions">
-                  <button className="btn primary" disabled={pending || !scene.readyForAv || !owner.open} onClick={() => void renderCurrentScene(currentId, scene.sourceSha256)}>
+                  <button className="btn primary" disabled={pending || !scene.readyForAv} onClick={() => void renderCurrentScene(currentId, scene.sourceSha256)}>
                     {pending ? "جارٍ الإنتاج…" : "إنتاج المشهد"}
                   </button>
                   <button className="btn" type="button" onClick={() => onOpenScene(currentId)}>أدوات المشهد</button>
                 </div>
-                {!owner.open ? <span className="sp-hint">افتح جلسة المالك من أعلى الصفحة لتُنتج.</span> : null}
               </>
             )}
           </div>
@@ -674,7 +662,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <div className="sp-row">
           <div><h3>كل المشاهد معتمدة</h3><p className="sp-hint">تُدمج ملفات المشاهد المعتمدة نفسها بالترتيب في نسخة واحدة للمشاهدة الكاملة.</p></div>
           <div className="sp-actions">
-            <button className="btn primary" disabled={pending || !owner.open} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد للمراجعة"}</button>
+            <button className="btn primary" disabled={pending} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد للمراجعة"}</button>
             {sceneMode && order[0] ? <button type="button" className="btn" onClick={() => setEditing(order[0]!)}>تحرير المشهد</button> : null}
           </div>
         </div>
@@ -772,7 +760,6 @@ export const SceneDecisionActions: React.FC<{
   voiceMsg?: string;
   canVoice: boolean;
   readyForAv: boolean;
-  ownerOpen: boolean;
   pending: boolean;
   problem: { kind: ProblemKind; at: number } | null;
   problemText: string;
@@ -821,18 +808,17 @@ export const SceneDecisionActions: React.FC<{
       : p.preparing === "queued" ? "هذا المشهد في دور التجهيز؛ «اعتمد» يُفتح حين تكتمل معاينته."
       : !p.readyForAv ? "ينقص هذا المشهد صوت الراوي: ولّد الصوت، ثم أنتج المشهد."
       : "لم تُجهَّز معاينة هذا المشهد بعد: أنتجه ليُعرض بصوته وحركته.");
-  if (!p.ownerOpen) reasons.push("افتح جلسة المالك من أعلى الصفحة لتقرر.");
   if (!p.canVoice && needVoice) reasons.push(
     p.onOpenSettings ? <>أضف مفتاح الصوت من <button type="button" className="prep-link" onClick={p.onOpenSettings}>الإعدادات</button>.</> : "أضف مفتاح الصوت من الإعدادات.",
   );
   return (
     <div className="s3-act">
       <div className="s3-actbar" role="group" aria-label="قرار المشهد">
-        <button type="button" className="btn primary s3-approve" disabled={!review || p.pending || !p.ownerOpen || (p.confirming && !p.reviewed)} onClick={p.onApprove}>
+        <button type="button" className="btn primary s3-approve" disabled={!review || p.pending || (p.confirming && !p.reviewed)} onClick={p.onApprove}>
           {review && p.pending ? "جارٍ…" : "اعتمد"}
         </button>
-        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "motion"} disabled={!review || p.pending || !p.ownerOpen} onClick={() => p.onProblem("motion")}>الحركة غير مناسبة</button>
-        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "tone"} disabled={!review || p.pending || !p.ownerOpen} onClick={() => p.onProblem("tone")}>النبرة غير مناسبة</button>
+        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "motion"} disabled={!review || p.pending} onClick={() => p.onProblem("motion")}>الحركة غير مناسبة</button>
+        <button type="button" className="btn ghost" aria-pressed={p.problem?.kind === "tone"} disabled={!review || p.pending} onClick={() => p.onProblem("tone")}>النبرة غير مناسبة</button>
         {p.voice !== "none" ? (
           <button type="button" className={`btn ${needVoice && !p.preparing ? "s3-cta" : "ghost"}`} disabled={voiceOff}
             title={p.canVoice ? "" : "يتطلب مفتاح الصوت من «الإعدادات»"} onClick={p.onVoice}>
@@ -840,7 +826,7 @@ export const SceneDecisionActions: React.FC<{
           </button>
         ) : null}
         {!review && !p.preparing ? (
-          <button type="button" className="btn ghost" disabled={p.pending || !p.readyForAv || !p.ownerOpen || p.voiceBusy} onClick={p.onRender}>
+          <button type="button" className="btn ghost" disabled={p.pending || !p.readyForAv || p.voiceBusy} onClick={p.onRender}>
             {p.pending ? "جارٍ الإنتاج…" : "أنتج هذا المشهد"}
           </button>
         ) : null}

@@ -2,7 +2,6 @@
  * الصوت جملةً جملة (D50): التقسيم الآلي، وأفعال المالك على الجمل، والتوليد لجملة واحدة، والتركيب الذي يقرؤه الرندر.
  * لا مفاتيح ولا شبكة: عميل ElevenLabs مزيّف يصنع WAV صناعيًا مع توقيت الحروف.
  */
-import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,8 +13,7 @@ import {
   addSentenceAfter, cutPoints, deleteSentence, mergeWithNext, reconcileScene, sceneNarration, sentencesFor, splitNarration, splitSentence,
 } from "../src/voice/sentences";
 
-const PASS = "sentence-voice-owner-2026";
-const ENV = ["BAL_CHANNELS_DIR", "BAL_CHANNEL", "ELEVENLABS_MODEL_ID", "BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"] as const;
+const ENV = ["BAL_CHANNELS_DIR", "BAL_CHANNEL", "ELEVENLABS_MODEL_ID", "BAL_WORKFLOW_HMAC_KEY", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"] as const;
 const saved: Record<string, string | undefined> = {};
 let tmp = "";
 const SR = 44100;
@@ -94,7 +92,6 @@ beforeAll(() => {
   process.env.BAL_CHANNEL = "balislam";
   process.env.ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
   process.env.BAL_WORKFLOW_HMAC_KEY = "LOCAL_TEST_ONLY__sentence_voice_signing_key_2026";
-  process.env.BAL_STUDIO_OWNER_PASSPHRASE_SHA256 = createHash("sha256").update(PASS).digest("hex");
   delete process.env.ELEVENLABS_API_KEY;
 });
 afterAll(() => {
@@ -173,17 +170,21 @@ describe("أفعال الجمل تحفظ المعرّفات والترتيب (د
   });
 });
 
-describe("على القرص: جلسة المالك، القص، التوليد، التركيب", () => {
+describe("على القرص: المالك على جهازه، القص، التوليد، التركيب", () => {
   beforeEach(() => { process.env.BAL_CHANNEL = "balislam"; freshEpisode(); });
 
-  it("كل فعل يحتاج جلسة المالك، والقراءة لا", async () => {
+  it("كل فعل للمالك على جهازه وحده، والقراءة لا", async () => {
     const sv = await import("../src/voice/sentenceVoice");
     const read = await sv.readSentences("987");
     expect(read.scenes.map((s) => s.id)).toEqual(["c1-s1", "c1-s2", "c1-s3"]);
     expect(read.scenes[0]!.rows.map((r) => r.text)).toEqual([S1A, S1B]);
     expect(read.scenes[0]!.rows.every((r) => r.virtual)).toBe(true);
-    await expect(sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, "wrong")).rejects.toMatchObject({ code: "OWNER_AUTH" });
-    await expect(sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, undefined)).rejects.toMatchObject({ code: "OWNER_AUTH" });
+    // بلا كلمة مرور (قرار ٩ نوفمبر): الطلب من جهاز آخر أو من موقع آخر يُرفض، والقراءة لا تحتاج شيئًا.
+    const { runOwnerRequest } = await import("../src/studio/ownerContext");
+    await expect(runOwnerRequest({ remoteAddress: "192.168.1.20", sameOrigin: true, host: "127.0.0.1:4321" },
+      () => sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }))).rejects.toMatchObject({ code: "OWNER_AUTH" });
+    await expect(runOwnerRequest({ remoteAddress: "127.0.0.1", sameOrigin: false, host: "127.0.0.1:4321" },
+      () => sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }))).rejects.toMatchObject({ code: "OWNER_AUTH" });
     expect(existsSync(path.join(EP_DIR(), "voice", "sentences.json"))).toBe(false);
   });
 
@@ -191,7 +192,7 @@ describe("على القرص: جلسة المالك، القص، التوليد،
     writeOldSceneAudio(0.5);
     const before = readFileSync(path.join(EP_DIR(), "voice", "oldscenehash00001.wav"));
     const sv = await import("../src/voice/sentenceVoice");
-    const r = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, PASS);
+    const r = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });
     const scene = r.read.scenes[0]!;
     expect(scene.import?.state).toBe("imported");
     expect(scene.rows.map((x) => x.status)).toEqual(["generated", "generated"]);
@@ -204,7 +205,7 @@ describe("على القرص: جلسة المالك، القص، التوليد،
   it("بلا وقفة واضحة لا يُقص شيء: الجمل تبدأ بلا صوت، وصوت المشهد يبقى", async () => {
     writeOldSceneAudio(0.04);
     const sv = await import("../src/voice/sentenceVoice");
-    const r = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, PASS);
+    const r = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });
     expect(r.read.scenes[0]!.import?.state).toBe("unreliable");
     expect(r.read.scenes[0]!.rows.map((x) => x.status)).toEqual(["missing", "missing"]);
     expect(index()["c1-s1"].file).toBe("oldscenehash00001.wav");
@@ -215,10 +216,10 @@ describe("على القرص: جلسة المالك، القص، التوليد،
     const sv = await import("../src/voice/sentenceVoice");
     const sent: Sent[] = [];
     const client = fakeClient(sent);
-    const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, PASS);
+    const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });
     const [a, b] = init.read.scenes[0]!.rows;
     const docBefore = sentencesDoc();
-    const r = await sv.sentenceAction("987", { action: "generate", id: b!.id }, PASS, { client, testOnlySkipApprovalGates: true });
+    const r = await sv.sentenceAction("987", { action: "generate", id: b!.id }, { client, testOnlySkipApprovalGates: true });
     expect(sent).toHaveLength(1);
     expect(sent[0]!.previousText).toBe(S1A);
     expect(sent[0]!.nextText).toBe(S2);
@@ -253,7 +254,7 @@ describe("على القرص: جلسة المالك، القص، التوليد،
     const sec = sceneSeconds(p.chapters[0]!.scenes[0]!, { voice, recitations: {} } as never);
     expect(sec).toBeGreaterThanOrEqual(clip.duration);
     // إعادة توليد الجملة نفسها لا تمس الأخرى
-    const again = await sv.sentenceAction("987", { action: "generate", id: b!.id }, PASS, { client, testOnlySkipApprovalGates: true });
+    const again = await sv.sentenceAction("987", { action: "generate", id: b!.id }, { client, testOnlySkipApprovalGates: true });
     expect(sent).toHaveLength(2);
     expect(sentencesDoc().scenes["c1-s1"].sentences[0].audio).toEqual(da.audio);
     expect(again.read.scenes[0]!.rows[1]!.takes).toBe(2);
@@ -262,11 +263,11 @@ describe("على القرص: جلسة المالك، القص، التوليد،
   it("التشكيل تحت الحد يوقف توليد الجملة برسالة واضحة، ولا طلب", async () => {
     const sv = await import("../src/voice/sentenceVoice");
     const sent: Sent[] = [];
-    await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, PASS);
-    const r = await sv.sentenceAction("987", { action: "add", sceneId: "c1-s1", index: 1, text: "ذهب محمد الى السوق مسرعا." }, PASS);
+    await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });
+    const r = await sv.sentenceAction("987", { action: "add", sceneId: "c1-s1", index: 1, text: "ذهب محمد الى السوق مسرعا." });
     const added = r.read.scenes[0]!.rows[2]!;
     expect(added.tashkeel.ok).toBe(false);
-    await expect(sv.sentenceAction("987", { action: "generate", id: added.id }, PASS, { client: fakeClient(sent), testOnlySkipApprovalGates: true }))
+    await expect(sv.sentenceAction("987", { action: "generate", id: added.id }, { client: fakeClient(sent), testOnlySkipApprovalGates: true }))
       .rejects.toThrow(/تشكيل هذه الجملة .*٩٨/);
     expect(sent).toHaveLength(0);
   });
@@ -274,15 +275,15 @@ describe("على القرص: جلسة المالك، القص، التوليد،
   it("النص القرآني لا يُولَّد أبدًا، ومشهد الآية لا تُكتب له جمل", async () => {
     const sv = await import("../src/voice/sentenceVoice");
     const sent: Sent[] = [];
-    await sv.sentenceAction("987", { action: "init", sceneId: "c1-s2" }, PASS);
-    const r = await sv.sentenceAction("987", { action: "add", sceneId: "c1-s2", index: 0, text: "﴿الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ﴾" }, PASS);
+    await sv.sentenceAction("987", { action: "init", sceneId: "c1-s2" });
+    const r = await sv.sentenceAction("987", { action: "add", sceneId: "c1-s2", index: 0, text: "﴿الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ﴾" });
     const v = r.read.scenes[1]!.rows[1]!;
     expect(v.kind).toBe("verse");
-    await expect(sv.sentenceAction("987", { action: "generate", id: v.id }, PASS, { client: fakeClient(sent), testOnlySkipApprovalGates: true }))
+    await expect(sv.sentenceAction("987", { action: "generate", id: v.id }, { client: fakeClient(sent), testOnlySkipApprovalGates: true }))
       .rejects.toThrow(/لا يتلو القرآن/);
     expect(sent).toHaveLength(0);
     expect(r.read.scenes[1]!.waiting).toMatch(/نص قرآني/);
-    await expect(sv.sentenceAction("987", { action: "init", sceneId: "c1-s3" }, PASS)).rejects.toThrow(/بلا تعليق/);
+    await expect(sv.sentenceAction("987", { action: "init", sceneId: "c1-s3" })).rejects.toThrow(/بلا تعليق/);
     expect(r.read.scenes[2]!.verse).toMatchObject({ kind: "verse-card", ayahKey: "1:1", status: "missing" });
   });
 
@@ -292,7 +293,7 @@ describe("على القرص: جلسة المالك، القص، التوليد،
     const before = await inspectSceneProduction("987");
     const planBefore = readJson(path.join(EP_DIR(), "plan.json"));
     const sv = await import("../src/voice/sentenceVoice");
-    const r = await sv.sentenceAction("987", { action: "edit", sceneId: "c1-s2", index: 0, text: "وَهَذَا مَشْهَدٌ ثَانٍ جَدِيدٌ." }, PASS);
+    const r = await sv.sentenceAction("987", { action: "edit", sceneId: "c1-s2", index: 0, text: "وَهَذَا مَشْهَدٌ ثَانٍ جَدِيدٌ." });
     expect(r.planChanged).toBe(true);
     const planAfter = readJson(path.join(EP_DIR(), "plan.json"));
     expect(isDesignedPlan(planAfter)).toBe(true);
@@ -310,8 +311,8 @@ describe("على القرص: جلسة المالك، القص، التوليد،
     const sv = await import("../src/voice/sentenceVoice");
     const sent: Sent[] = [];
     const client = fakeClient(sent);
-    const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, PASS);
-    await sv.sentenceAction("987", { action: "generate", id: init.read.scenes[0]!.rows[0]!.id }, PASS, { client, testOnlySkipApprovalGates: true });
+    const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });
+    await sv.sentenceAction("987", { action: "generate", id: init.read.scenes[0]!.rows[0]!.id }, { client, testOnlySkipApprovalGates: true });
     const composed = index()["c1-s1"];
     sent.length = 0;
     const { generateVoice } = await import("../src/voice/generate");
@@ -330,14 +331,14 @@ describe("على القرص: جلسة المالك، القص، التوليد،
   it("النبرة والوقفة لجملة في قناة بلا خريطة نبرة تُحفظ مع الجملة وتجعلها تحتاج توليدًا", async () => {
     writeOldSceneAudio(0.5);
     const sv = await import("../src/voice/sentenceVoice");
-    const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" }, PASS);
+    const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });
     const id = init.read.scenes[0]!.rows[0]!.id;
-    const r = await sv.sentenceAction("987", { action: "tone", id, tone: "warm" }, PASS);
+    const r = await sv.sentenceAction("987", { action: "tone", id, tone: "warm" });
     expect(r.read.scenes[0]!.rows[0]).toMatchObject({ tone: "warm", inheritedTone: "calm", status: "stale" });
     expect(r.read.scenes[0]!.rows[1]!.status).toBe("generated");
-    const p = await sv.sentenceAction("987", { action: "pause", id, ms: 900 }, PASS);
+    const p = await sv.sentenceAction("987", { action: "pause", id, ms: 900 });
     expect(p.read.scenes[0]!.rows[0]!.pauseAfterMs).toBe(900);
-    await expect(sv.sentenceAction("987", { action: "tone", id, tone: "loud" }, PASS)).rejects.toThrow(/غير معروفة/);
+    await expect(sv.sentenceAction("987", { action: "tone", id, tone: "loud" })).rejects.toThrow(/غير معروفة/);
   });
 });
 
@@ -357,7 +358,7 @@ describe("دفاتر الزمن: نبرة الجملة تكتب إصدارًا �
     const inherited = scene.rows[0]!.inheritedTone;
     expect(inherited).toBeTruthy();
     const other = inherited === "dramatic" ? "warm" : "dramatic";
-    const r = await sv.sentenceAction("001", { action: "tone", id: scene.rows[0]!.id, tone: other, note: "أقوى هنا" }, PASS);
+    const r = await sv.sentenceAction("001", { action: "tone", id: scene.rows[0]!.id, tone: other, note: "أقوى هنا" });
     expect(r.message).toMatch(/v1\.3/);
     const map = readJson(path.join(dir, "tone-map.json"));
     expect(map.version).toBe("v1.3");

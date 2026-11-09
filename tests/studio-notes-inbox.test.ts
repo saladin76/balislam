@@ -18,12 +18,17 @@ import { runWithChannel } from "../src/channel";
 import { approveStoryboard } from "../src/plan/storyboard";
 import type { Plan } from "../src/plan/types";
 import { decideSceneProduction, inspectSceneProduction, recordSceneRenderEvidence } from "../src/studio/sceneService";
+import { runOwnerRequest } from "../src/studio/ownerContext";
 import {
   appendStudioNote, correctionInboxView, inboxFileFor, parseCorrectionNote, readInbox, writeResolution,
 } from "../src/studio/notesInbox";
 import { notesSyncEnabled, syncStudioNotes } from "../src/studio/notesSync";
 import { listStudioNotes, resolveStudioNote } from "../src/studio/notesCli";
 import { noteInboxLine } from "../app/src/workspace/SceneProductionPanel";
+
+/** Owner decision (9 Nov): no passphrase. A Studio request from another address or another site is refused. */
+const asRemote = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "192.168.1.20", sameOrigin: true, host: "127.0.0.1:4321" }, fn);
+const asCrossSite = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "127.0.0.1", sameOrigin: false, host: "127.0.0.1:4321" }, fn);
 
 const repo = path.resolve(import.meta.dirname, "..");
 const SHA = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -57,7 +62,7 @@ describe("قراءة ملاحظة التصحيح", () => {
 });
 
 // ———————————————————————————— التصحيح من سجل «إنتاج المشاهد» ————————————————————————————
-const ENV = ["BAL_CHANNELS_DIR", "BAL_CHANNEL", "BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256"] as const;
+const ENV = ["BAL_CHANNELS_DIR", "BAL_CHANNEL", "BAL_WORKFLOW_HMAC_KEY"] as const;
 const saved: Record<string, string | undefined> = {};
 let tmp = "";
 beforeAll(() => {
@@ -76,9 +81,7 @@ describe("التصحيح يُضاف إلى الصندوق بعد كلمة الم
       { recursive: true, filter: (s) => !/[\\/]episodes([\\/]|$)/.test(s) });
     process.env.BAL_CHANNELS_DIR = channels;
     delete process.env.BAL_CHANNEL;
-    const passphrase = "owner-notes-inbox-2026";
     process.env.BAL_WORKFLOW_HMAC_KEY = "LOCAL_TEST_ONLY__notes_inbox_signing_key_2026";
-    process.env.BAL_STUDIO_OWNER_PASSPHRASE_SHA256 = SHA(passphrase);
     const dir = path.join(channels, "dafatir-alzaman", "episodes", "002-notes");
     mkdirSync(path.join(dir, "voice"), { recursive: true });
     const scriptPath = path.join(dir, "script.md");
@@ -93,27 +96,27 @@ describe("التصحيح يُضاف إلى الصندوق بعد كلمة الم
 
     await runWithChannel("dafatir-alzaman", async () => {
       const st0 = await inspectSceneProduction("002");
-      await decideSceneProduction("002", { action: "approve-script", expectedSha256: st0.script.sha256 }, passphrase);
+      await decideSceneProduction("002", { action: "approve-script", expectedSha256: st0.script.sha256 });
       await approveStoryboard(scriptPath, plan, { note: "راجعت لوحتي الاختبار" });
       const st1 = await inspectSceneProduction("002");
-      await decideSceneProduction("002", { action: "approve-storyboard", expectedSha256: st1.storyboard.sha256 }, passphrase);
+      await decideSceneProduction("002", { action: "approve-storyboard", expectedSha256: st1.storyboard.sha256 });
       const cur = (await inspectSceneProduction("002")).scenes[0]!;
       mkdirSync(path.join(dir, "previews"), { recursive: true });
       execFileSync("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=160x90:rate=15:duration=2",
         "-f", "lavfi", "-i", "sine=frequency=330:duration=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast", "-c:a", "aac", "-shortest",
         path.join(dir, "previews", "scene-c1-s1-av.mp4")]);
-      await recordSceneRenderEvidence("002", "c1-s1", cur.sourceSha256, passphrase, "current");
-      const sub = await decideSceneProduction("002", { action: "submit-scene", sceneId: "c1-s1", expectedSha256: cur.sourceSha256 }, passphrase);
+      await recordSceneRenderEvidence("002", "c1-s1", cur.sourceSha256, "current");
+      const sub = await decideSceneProduction("002", { action: "submit-scene", sceneId: "c1-s1", expectedSha256: cur.sourceSha256 });
       const preview = sub.scenes[0]!.previewSha256!;
       const fix = { action: "correct-scene" as const, sceneId: "c1-s1", expectedSha256: preview, note: "[الحركة @0:01] العنوان يقفز" };
 
-      await expect(decideSceneProduction("002", fix, "wrong")).rejects.toThrow(/authentication/);
-      await expect(decideSceneProduction("002", fix, undefined)).rejects.toThrow(/authentication/);
-      // قرار مرفوض لغير كلمة المرور (بلا ملاحظة): لا صندوق أيضًا
-      await expect(decideSceneProduction("002", { ...fix, note: " " }, passphrase)).rejects.toThrow();
+      await expect(asRemote(() => decideSceneProduction("002", fix))).rejects.toThrow(/only from the Studio/);
+      await expect(asCrossSite(() => decideSceneProduction("002", fix))).rejects.toThrow(/only from the Studio/);
+      // قرار مرفوض (بلا ملاحظة): لا صندوق أيضًا
+      await expect(decideSceneProduction("002", { ...fix, note: " " })).rejects.toThrow();
       expect(existsSync(inboxFileFor(dir))).toBe(false);
 
-      await decideSceneProduction("002", fix, passphrase);
+      await decideSceneProduction("002", fix);
       const inbox = await readInbox(dir);
       expect(inbox.notes).toHaveLength(1);
       const n = inbox.notes[0]!;
@@ -123,7 +126,7 @@ describe("التصحيح يُضاف إلى الصندوق بعد كلمة الم
       expect(n.id).toMatch(/^n[a-f0-9]{10}$/);
       // لا أسرار في الصندوق
       const text = readFileSync(inboxFileFor(dir), "utf8");
-      for (const secret of [passphrase, SHA(passphrase), process.env.BAL_WORKFLOW_HMAC_KEY!]) expect(text).not.toContain(secret);
+      for (const secret of [process.env.BAL_WORKFLOW_HMAC_KEY!, SHA(process.env.BAL_WORKFLOW_HMAC_KEY!)]) expect(text).not.toContain(secret);
 
       const read = await inspectSceneProduction("002");
       expect(read.scenes[0]!.correction).toMatchObject({ note: fix.note, inbox: { id: n.id, sync: "pending", status: "open", answer: null } });

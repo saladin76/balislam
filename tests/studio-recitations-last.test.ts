@@ -22,9 +22,10 @@ import { sceneFrames } from "../src/plan/duration";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
+/** No passphrase (owner decision 9 Nov): a page of another site is refused (403); the Studio page is the owner. */
+const CROSS = { origin: "https://evil.example" };
 const EP = "985";
 const EP_DIR = "985-recitations-last";
-const PASS = "owner-recitations-last-2026";
 const VERSE = "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ";
 
 const ffmpeg = (args: string[]) => execFileSync("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", ...args]);
@@ -70,13 +71,13 @@ let vite: ViteDevServer;
 let server: http.Server;
 let base = "";
 const saved: Record<string, string | undefined> = {};
-const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256", "BAL_DRIVE_PREVIEWS_DIR",
+const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_DRIVE_PREVIEWS_DIR",
   "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "BAL_CHANNEL"];
 
-const call = async (method: string, route: string, body?: unknown, token?: string) => {
+const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}) => {
   const r = await fetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(token ? { "x-studio-owner-token": token } : {}) },
+    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -89,10 +90,10 @@ const state = async () => {
   expect(r.status, JSON.stringify(r.body)).toBe(200);
   return r.body;
 };
-const decide = (cmd: Record<string, unknown>, token = PASS) => call("POST", `episodes/${EP}/scene-production`, cmd, token);
+const decide = (cmd: Record<string, unknown>, headers: Record<string, string> = {}) => call("POST", `episodes/${EP}/scene-production`, cmd, headers);
 const ledger = async () => JSON.parse(await readFile(path.join(epDir, "scene-production.v1.json"), "utf8"));
 const prepareAll = async () => {
-  const start = await call("POST", `episodes/${EP}/scene-prepare`, undefined, PASS);
+  const start = await call("POST", `episodes/${EP}/scene-prepare`);
   if (start.status !== 200) return start;
   for (let i = 0; i < 600; i++) {
     const r = await call("GET", `episodes/${EP}/scene-prepare`);
@@ -135,7 +136,7 @@ beforeAll(async () => {
   process.env.BAL_CHANNELS_DIR = root;
   process.env.BAL_ENV_FILE = path.join(root, ".env");
   process.env.BAL_CHANNEL = CH;
-  for (const k of ["BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256", "BAL_DRIVE_PREVIEWS_DIR", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"]) delete process.env[k];
+  for (const k of ["BAL_WORKFLOW_HMAC_KEY", "BAL_DRIVE_PREVIEWS_DIR", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"]) delete process.env[k];
   (globalThis as any).__recitLastRenders = renders;
 
   await writeFile(path.join(epDir, "script.md"),
@@ -173,7 +174,6 @@ afterAll(async () => {
 
 describe("recitations come last: pre-final without recitation, final gates unchanged", () => {
   it("drafts, previews and conditionally approves a verse scene; the owner's polished recording re-opens only it", async () => {
-    expect((await call("POST", "owner-passphrase", { passphrase: PASS })).body).toEqual({ set: true });
     let s = await state();
     expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 })).status).toBe(200);
     const board = await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحات الثلاث بصريًا ومنها بطاقة الآية بنصها من السكريبت." });
@@ -200,8 +200,8 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     expect(probe(path.join(epDir, "previews", "scene-c1-s2-av.mp4")).streams.map((x) => x.codec_type).sort()).toEqual(["audio", "video"]);
 
     // ── «معاينة قبل النهائية»: owner only; every current cut in order; not the assembly ──
-    expect((await call("POST", `episodes/${EP}/scene-prefinal`)).status).toBe(403);
-    const pre = await call("POST", `episodes/${EP}/scene-prefinal`, undefined, PASS);
+    expect((await call("POST", `episodes/${EP}/scene-prefinal`, undefined, CROSS)).status).toBe(403);
+    const pre = await call("POST", `episodes/${EP}/scene-prefinal`);
     expect(pre.status, JSON.stringify(pre.body)).toBe(200);
     expect(pre.body).toMatchObject({ scenes: 3, recitationPending: ["c1-s2"], preview: "prefinal-no-recitation.mp4" });
     const preFile = path.join(epDir, "previews", "prefinal-no-recitation.mp4");
@@ -223,7 +223,7 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     expect(s.progress).toMatchObject({ currentScene: null, approvedScenes: 3, canAssemble: false, recitationPending: ["c1-s2"] });
 
     // ── Final gates unchanged: no assembly, no Master while a recitation is pending ──
-    const assemble = await call("POST", `episodes/${EP}/scene-av-assemble`, undefined, PASS);
+    const assemble = await call("POST", `episodes/${EP}/scene-av-assemble`);
     expect(assemble.status).toBe(409);
     expect(assemble.body.error).toMatch(/recitation/);
     const { requireScenesReadyForMaster } = await import("../src/studio/sceneService");
@@ -233,8 +233,8 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     const wav = path.join(root, "my-recitation.wav");
     ffmpeg(["-f", "lavfi", "-i", "aevalsrc='0.001*(2*random(0)-1)+0.02*sin(2*PI*220*t)*between(t,0.7,3.2)':s=44100:d=4", wav]);
     const upBytes = await readFile(wav);
-    expect((await call("POST", `episodes/${EP}/own-recitations`, { action: "upload", key: "53:39", name: "my-recitation.wav", data: upBytes.toString("base64") })).status).toBe(403);
-    const up = await call("POST", `episodes/${EP}/own-recitations`, { action: "upload", key: "53:39", name: "my-recitation.wav", data: upBytes.toString("base64") }, PASS);
+    expect((await call("POST", `episodes/${EP}/own-recitations`, { action: "upload", key: "53:39", name: "my-recitation.wav", data: upBytes.toString("base64") }, CROSS)).status).toBe(403);
+    const up = await call("POST", `episodes/${EP}/own-recitations`, { action: "upload", key: "53:39", name: "my-recitation.wav", data: upBytes.toString("base64") });
     expect(up.status, JSON.stringify(up.body)).toBe(200);
     const cand = up.body.candidate;
     expect(cand.variant).toBe("processed");
@@ -252,9 +252,9 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     expect(originals).toHaveLength(1);
     expect((await readFile(path.join(recDir, "originals", originals[0]!))).equals(upBytes)).toBe(true);
     // The owner can switch back to the original, and again to the processed copy.
-    const toOriginal = await call("POST", `episodes/${EP}/own-recitations`, { action: "select", key: "53:39", variant: "original" }, PASS);
+    const toOriginal = await call("POST", `episodes/${EP}/own-recitations`, { action: "select", key: "53:39", variant: "original" });
     expect(toOriginal.body.candidate).toMatchObject({ variant: "original", file: cand.variants.original.file });
-    const back = await call("POST", `episodes/${EP}/own-recitations`, { action: "select", key: "53:39", variant: "processed" }, PASS);
+    const back = await call("POST", `episodes/${EP}/own-recitations`, { action: "select", key: "53:39", variant: "processed" });
     expect(back.body.candidate).toMatchObject({ variant: "processed", file: cand.variants.processed.file });
     const listed = await call("GET", `episodes/${EP}/own-recitations`);
     expect(listed.body.verses).toEqual([{ key: "53:39", sceneId: "c1-s2", reference: "النجم · ٣٩" }]);
@@ -269,7 +269,7 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     expect((await state()).scenes[1]).toMatchObject({ status: "approved", conditional: true });
 
     const ok = await call("POST", `episodes/${EP}/own-recitations`, { action: "approve", key: "53:39", reciter: "صاحب القناة",
-      rightsEvidence: "تسجيلي الخاص لهذه الحلقة بتاريخ ٨ نوفمبر", note: "استمعت إلى التلاوة كاملة بعد المعالجة", listened: true }, PASS);
+      rightsEvidence: "تسجيلي الخاص لهذه الحلقة بتاريخ ٨ نوفمبر", note: "استمعت إلى التلاوة كاملة بعد المعالجة", listened: true });
     expect(ok.status, JSON.stringify(ok.body)).toBe(200);
 
     // ── Only the verse scene re-opens for a quick recitation check ──
@@ -277,7 +277,7 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     expect(s.scenes.map((x: any) => [x.id, x.status, x.recitationPending])).toEqual([
       ["c1-s1", "approved", false], ["c1-s2", "needs_revision", false], ["c1-s3", "approved", false]]);
     expect(s.progress).toMatchObject({ currentScene: "c1-s2", canAssemble: false, recitationPending: [] });
-    const render = await call("POST", `episodes/${EP}/scene-av-render`, { sceneId: "c1-s2", expectedSha256: s.scenes[1].sourceSha256 }, PASS);
+    const render = await call("POST", `episodes/${EP}/scene-av-render`, { sceneId: "c1-s2", expectedSha256: s.scenes[1].sourceSha256 });
     expect(render.status, JSON.stringify(render.body)).toBe(200);
     const withRec = renders.at(-1)!;
     expect(withRec.ids).toBe("c1-s2");
@@ -287,7 +287,7 @@ describe("recitations come last: pre-final without recitation, final gates uncha
     expect(final.scenes[1]).toMatchObject({ status: "approved", conditional: false });
     s = await state();
     expect(s.progress).toMatchObject({ canAssemble: true, recitationPending: [] });
-    const assembled = await call("POST", `episodes/${EP}/scene-av-assemble`, undefined, PASS);
+    const assembled = await call("POST", `episodes/${EP}/scene-av-assemble`);
     expect(assembled.status, JSON.stringify(assembled.body)).toBe(200);
     // Still no Master without the assembly's own 1× approval.
     await expect(requireScenesReadyForMaster(EP)).rejects.toThrow();

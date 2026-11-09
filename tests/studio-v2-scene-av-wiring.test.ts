@@ -10,7 +10,7 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
   it("exposes one current scene at a time with no browser-side approval authority", () => {
     const service = src("src/studio/sceneService.ts");
     expect(service).toContain("assertCurrentSceneRenderAllowed");
-    expect(service).toContain("assertSceneOwner(token)");
+    expect(service).toContain("assertSceneOwner();");
     expect(service).toContain("sceneFirstProgress(state).currentScene !== sceneId");
     expect(service).toContain("target.sourceSha256 !== expectedSha256");
     expect(service).toContain("!current.planReady");
@@ -19,9 +19,9 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
   it("rechecks source input after Remotion completes but before preview publication", () => {
     const server = src("app/server/api.ts");
     expect(server).toContain('parts[2] === "scene-av-render"');
-    expect(server).toContain("await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token)");
+    expect(server).toContain("await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256)");
     expect(server).toContain("verifyBeforePublish: () => assertCurrentSceneRenderAllowed(");
-    expect(server).toContain("await recordSceneRenderEvidence(ep, sceneId, expectedSha256, token)");
+    expect(server).toContain("await recordSceneRenderEvidence(ep, sceneId, expectedSha256)");
     const ledger = src("src/studio/sceneService.ts");
     expect(ledger).toContain("previewInputs?: Record<string");
     expect(ledger).toContain("proof.sourceSha256 !== scene.sourceSha256");
@@ -41,8 +41,7 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
 
   it("builds the episode review cut from approved scene files without substituting a new render", () => {
     const assembly = src("src/studio/assembleScenes.ts");
-    expect(assembly).toContain("approvedSceneCutsForAssembly(episode, ownerToken)");
-    expect(assembly).toContain("await approvedSceneCutsForAssembly(episode, ownerToken)");
+    expect(assembly).toContain("await approvedSceneCutsForAssembly(episode)");
     expect(assembly).toContain('putEpisodePreview(episode, "episode", tempVideo');
     expect(assembly).toContain('"ffmpeg"');
     expect(assembly).not.toMatch(/quranClient|syncQuran|elevenLabs|renderEpisode/);
@@ -59,21 +58,13 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(ui).toContain('act("approve-scene"');
     expect(ui).toContain('act("correct-scene"');
     expect(ui).toContain("confirmedWatched: true");
-    expect(ui).toContain("useOwnerSession()");
     expect(ui).not.toMatch(/localStorage|sessionStorage|setTimeout|autoApprove/i);
-    // كلمة مرور المالك تُكتب في جلسة الشريط العلوي ولا تُحفظ في المتصفح أبدًا؛ منذ D49 (٩ نوفمبر) يُحفظ
-    // رمز الجلسة الذي يصدره الخادم وحده، بمفتاح واحد (tests/studio-owner-session.test.tsx).
-    const owner = src("app/src/shell/ownerSession.tsx");
-    expect(owner).toContain('type="password"');
-    expect(owner).not.toMatch(/sessionStorage|autoApprove/i);
-    expect(owner.match(/localStorage\.setItem\(/g)).toHaveLength(1);
-    expect(owner).toContain("window.localStorage.setItem(OWNER_SESSION_STORAGE_KEY, v)");
-    expect(owner.match(/storage\.set\(/g)).toEqual(["storage.set("]);
-    expect(owner).toContain("storage.set(r.token)");
+    // بلا كلمة مرور (قرار ٩ نوفمبر): لا جلسة ولا رمز ولا شيء من المالك في المتصفح (tests/studio-owner-no-passphrase.test.ts).
+    expect(ui).not.toMatch(/useOwnerSession|x-studio-owner-token|passphrase/);
     const app = src("app/src/App.tsx");
     expect(app).toContain("<SceneProductionPanel");
     expect(app).toContain("<EpisodeSpine");
-    expect(app).toContain("<OwnerSessionProvider");
+    expect(app).not.toContain("OwnerSession");
     expect(app).not.toContain("<EpisodeWorkspaceBar");
     const journey = src("app/src/shell/EpisodeSpine.tsx");
     for (const name of ["التجهيز", "المشاهد", "النسخة النهائية", "النشر"])

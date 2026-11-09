@@ -131,10 +131,12 @@ export const balApi = (): Plugin => ({
         // قناة غير موجودة: 404 برسالة واضحة، لا 500 من أول قراءة لملفاتها
         if (!channelMod.listChannels().includes(ch)) return send(res, 404, { error: `القناة «${ch}» غير موجودة.` });
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
-        // جلسة المالك الدائمة (D49): رمز الجلسة يُقبل فقط داخل طلب وصل من عنوان الجهاز نفسه (loopback)،
-        // والعنوان من المقبس لا من أي ترويسة.
-        const ownerSessions = await load("/src/studio/ownerSessions.ts");
-        return await ownerSessions.runOwnerRequest(req.socket?.remoteAddress, () => channelMod.runWithChannel(ch, async () => {
+        // المالك بلا كلمة مرور (قرار ٩ نوفمبر): طلب وصل من عنوان الجهاز نفسه (loopback، من المقبس لا من أي
+        // ترويسة) واجتاز فحص الصفحة نفسها هو المالك؛ وغيره يُرفض 403 في assertSceneOwner.
+        const ownerContext = await load("/src/studio/ownerContext.ts");
+        return await ownerContext.runOwnerRequest({
+          remoteAddress: req.socket?.remoteAddress, sameOrigin: isTrustedLocalRequest(req), host: req.headers.host,
+        }, () => channelMod.runWithChannel(ch, async () => {
         const cp = channelMod.channelPaths(ch);
         const episodesDir: string = cp.episodes;
         const identityFile: string = cp.identity;
@@ -147,49 +149,6 @@ export const balApi = (): Plugin => ({
           return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بمحرك المشاهد الموحّد في «إنتاج المشاهد»." });
 
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
-
-        // كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة أو تغييرها بالكلمة الحالية
-        // فتح جلسة المالك في الواجهة: تحقق من كلمة المرور دون حفظ شيء
-        if (parts[0] === "owner-passphrase" && parts[1] === "check" && parts.length === 2 && req.method === "POST") {
-          const b = await readBody(req);
-          const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
-          try { assertSceneOwner(b?.passphrase); return send(res, 200, { ok: true }); }
-          catch { await new Promise((r) => setTimeout(r, 400)); return send(res, 200, { ok: false }); }
-        }
-        // جلسة المالك على جهازه (D49): تُفتح بكلمة المرور مرة فيُصدر رمز عشوائي يُحفظ في المتصفح،
-        // ولا يُحفظ على الخادم إلا بصمته؛ GET يتحقق من الرمز بعد التحديث، وDELETE يلغيه («أغلق الجلسة»).
-        if (parts[0] === "owner-session" && parts.length === 1) {
-          const sessions = await load("/src/studio/ownerSessions.ts");
-          if (!sessions.inLoopbackOwnerRequest())
-            return send(res, 403, { error: "جلسة المالك تُفتح على جهازه فقط." });
-          const header = req.headers["x-studio-owner-token"];
-          if (req.method === "GET") {
-            const svc = await load("/src/studio/sceneService.ts");
-            return send(res, 200, { open: sessions.looksLikeOwnerSessionToken(header) && sessions.verifyOwnerSessionToken(header) && Boolean(svc.ownerPassphraseSha256()) });
-          }
-          if (req.method === "POST") {
-            const b = await readBody(req);
-            const { openOwnerSession } = await load("/src/studio/sceneService.ts");
-            try { return send(res, 200, { ok: true, token: openOwnerSession(b?.passphrase) }); }
-            catch { await new Promise((r) => setTimeout(r, 400)); return send(res, 200, { ok: false }); }
-          }
-          if (req.method === "DELETE") {
-            sessions.revokeOwnerSessionToken(header);
-            return send(res, 200, { open: false });
-          }
-          return send(res, 405, { error: "Method not allowed" });
-        }
-        if (parts[0] === "owner-passphrase" && parts.length === 1) {
-          const env = await load("/src/settings/env.ts");
-          if (req.method === "GET") return send(res, 200, { set: Boolean(process.env[env.OWNER_PASSPHRASE_KEY]) });
-          if (req.method === "POST") {
-            const b = await readBody(req);
-            try { await env.setOwnerPassphrase(b?.passphrase, b?.current); }
-            catch (e) { return send(res, 400, { error: (e as Error).message }); }
-            return send(res, 200, { set: true });
-          }
-          return send(res, 405, { error: "Method not allowed" });
-        }
 
         if (parts[0] === "channels") {
           const list = channelMod.listChannels().map((id: string) => {
@@ -287,7 +246,7 @@ export const balApi = (): Plugin => ({
             if (req.method === "POST") {
               const body = await readBody(req);
               try {
-                await decideSceneProduction(ep, body, req.headers["x-studio-owner-token"]);
+                await decideSceneProduction(ep, body);
                 // D53: right after the publish permission (never before), the approved files go to the owner's
                 // Google Drive folder in the background; the request does not wait for large copies.
                 if (body?.action === "grant-publish") {
@@ -304,13 +263,13 @@ export const balApi = (): Plugin => ({
             return send(res, 405, { error: "Method not allowed" });
           }
 
-          // D53: the approved files on Google Drive (status; «أعد الإرسال إلى Drive»; «افتح المجلد»). Owner session for actions.
+          // D53: the approved files on Google Drive (status; «أعد الإرسال إلى Drive»; «افتح المجلد»). Owner-only actions.
           if (parts[2] === "publish-drive" && parts.length <= 4) {
             const handoff = await load("/src/package/driveHandoff.ts");
             if (req.method === "GET" && parts.length === 3) return send(res, 200, await handoff.driveHandoffStatus(ep));
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
-            try { assertSceneOwner(req.headers["x-studio-owner-token"]); }
+            try { assertSceneOwner(); }
             catch (error) { return refuse(error); }
             if (parts[3] === "open") {
               try { return send(res, 200, { folder: await handoff.openDriveFolder(ep) }); }
@@ -327,7 +286,7 @@ export const balApi = (): Plugin => ({
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const { assembleApprovedSceneAv } = await load("/src/studio/assembleScenes.ts");
             let output;
-            try { output = await assembleApprovedSceneAv(ep, req.headers["x-studio-owner-token"]); }
+            try { output = await assembleApprovedSceneAv(ep); }
             catch (error) { return refuse(error); }
             return send(res, 200, { ok: true, version: output.version, scenes: output.scenes });
           }
@@ -345,7 +304,7 @@ export const balApi = (): Plugin => ({
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             let output;
-            try { output = await assemblePreFinalPreview(ep, req.headers["x-studio-owner-token"]); }
+            try { output = await assemblePreFinalPreview(ep); }
             catch (error) { return refuse(error); }
             return send(res, 200, { ok: true, preview: `${PRE_FINAL_SLOT}.mp4`, version: output.version,
               scenes: output.scenes, recitationPending: output.recitationPending });
@@ -356,10 +315,9 @@ export const balApi = (): Plugin => ({
             const body = await readBody(req);
             const sceneId = body?.sceneId;
             const expectedSha256 = body?.expectedSha256;
-            const token = req.headers["x-studio-owner-token"];
             const { assertCurrentSceneRenderAllowed, recordSceneRenderEvidence } =
               await load("/src/studio/sceneService.ts");
-            try { await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256, token); }
+            try { await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256); }
             catch (error) { return refuse(error); }
             const { renderShotsPreview } = await load("/src/render/shotsPreview.ts");
             const output = await renderShotsPreview(ep, [sceneId], {
@@ -367,21 +325,21 @@ export const balApi = (): Plugin => ({
               title: `المشهد ${sceneId} — صوت وصورة للمراجعة`,
               note: "نسخة مرشحة غير معتمدة حتى مشاهدة المشهد واتخاذ قرار المالك.",
               verifyBeforePublish: () => assertCurrentSceneRenderAllowed(
-                ep, sceneId, expectedSha256, token,
+                ep, sceneId, expectedSha256,
               ),
               // Recitations come last (owner decision, 8 Nov): a verse scene without one renders as a
               // marked draft with silence; its approval can only be conditional (sceneProduction.ts).
               allowPendingRecitation: true,
             });
-            await recordSceneRenderEvidence(ep, sceneId, expectedSha256, token);
+            await recordSceneRenderEvidence(ep, sceneId, expectedSha256);
             return send(res, 200, { ok: true, version: output.version,
               preview: `scene-${sceneId}-av.mp4` });
           }
 
           // «جهّز كل المشاهد»: voice for scenes lacking it, then AV drafts in order in the background.
           // Drafts are never submissions or approvals (see prepareAll.ts / sceneService.ts).
-          // Starts the queue for an owner already authenticated and an episode already ready (callers check).
-          const startPrepare = async (token: unknown) => {
+          // Starts the queue for an owner already checked and an episode already ready (callers check).
+          const startPrepare = async () => {
             const key = `${ch}/${ep}`;
             const { prepareAllScenes } = await load("/src/studio/prepareAll.ts");
             if (prepareJob(key)?.status === "running") return prepareJob(key)!;
@@ -390,7 +348,7 @@ export const balApi = (): Plugin => ({
             // Audit item 5: the queue does not re-render a scene whose same inputs just failed.
             const previousFailures = prepareJob(key)?.failed ?? [];
             return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { token: String(token), voiceClient, onProgress, shouldStop, previousFailures })));
+              prepareAllScenes(ep, { voiceClient, onProgress, shouldStop, previousFailures })));
           };
 
           // Step ١ «التجهيز» (funnel v3): ONE owner action writes the script approval, then the board record when
@@ -403,13 +361,12 @@ export const balApi = (): Plugin => ({
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const body = await readBody(req);
-            const token = req.headers["x-studio-owner-token"];
             let read;
-            try { read = await approvePreparation(ep, body, token); } catch (error) { return refuse(error); }
+            try { read = await approvePreparation(ep, body); } catch (error) { return refuse(error); }
             const { requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
             let job = null;
             let prepareError: string | undefined;
-            try { await requireSceneProductionReady(ep); job = await startPrepare(token); }
+            try { await requireSceneProductionReady(ep); job = await startPrepare(); }
             catch (error) { prepareError = (error as Error).message; }
             return send(res, 200, { ...read, prepare: { job, ...(prepareError ? { error: prepareError } : {}) } });
           }
@@ -423,15 +380,14 @@ export const balApi = (): Plugin => ({
             if (req.method === "DELETE") {
               // «أوقف»: owner-only; the step in progress finishes and is kept, nothing new starts.
               const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
-              try { assertSceneOwner(req.headers["x-studio-owner-token"]); } catch (error) { return refuse(error); }
+              try { assertSceneOwner(); } catch (error) { return refuse(error); }
               return send(res, 200, { job: stopPrepareJob(key), voiceKey });
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
-            const token = req.headers["x-studio-owner-token"];
             const { assertSceneOwner, requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
-            try { assertSceneOwner(token); await requireSceneProductionReady(ep); }
+            try { assertSceneOwner(); await requireSceneProductionReady(ep); }
             catch (error) { return refuse(error); }
-            const job = await startPrepare(token);
+            const job = await startPrepare();
             return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
           }
 
@@ -479,7 +435,7 @@ export const balApi = (): Plugin => ({
           }
           // The owner's OWN recitations (recitations come last, owner decision 8 Nov): upload → a processed
           // copy (edge silence, gentle denoise, loudness matched to narration) beside the untouched original;
-          // switch between them; approve after listening. Owner session required; nothing is fetched or generated.
+          // switch between them; approve after listening. Owner-only; nothing is fetched or generated.
           if (parts[2] === "own-recitations" && parts.length === 3) {
             const manual = await load("/src/quran/manualAudio.ts");
             if (req.method === "GET") {
@@ -498,7 +454,7 @@ export const balApi = (): Plugin => ({
             const body = await readBody(req);
             const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
             try {
-              assertSceneOwner(req.headers["x-studio-owner-token"]);
+              assertSceneOwner();
               const key = String(body?.key ?? "");
               if (body?.action === "upload") {
                 const data = Buffer.from(String(body.data ?? "").replace(/^data:[^,]+,/, ""), "base64");
@@ -562,7 +518,7 @@ export const balApi = (): Plugin => ({
             const media = await mediaFor(plan);
             return send(res, 200, { file: fileName, media: { ...media, images: [...new Set([...(media.images ?? []), fileName])] } });
           }
-          // الصوت جملةً جملة (D50): قراءة الجمل بلا جلسة، وكل فعل (تعديل/تقسيم/نبرة/وقفة/توليد) بجلسة المالك.
+          // الصوت جملةً جملة (D50): القراءة والأفعال (تعديل/تقسيم/نبرة/وقفة/توليد) من الاستوديو على جهاز المالك (assertSceneOwner).
           // التوليد لجملة واحدة فقط؛ الآيات لا تُولَّد أبدًا (ترفع من own-recitations).
           if (parts[2] === "sentences" && parts.length === 3) {
             const sv = await load("/src/voice/sentenceVoice.ts");
@@ -571,7 +527,7 @@ export const balApi = (): Plugin => ({
             const body = await readBody(req);
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
             let result;
-            try { result = await sv.sentenceAction(ep, body, req.headers["x-studio-owner-token"], { client: elevenLabsFromEnv() }); }
+            try { result = await sv.sentenceAction(ep, body, { client: elevenLabsFromEnv() }); }
             catch (error) { return refuse(error); }
             const plan = await io.readPlanFile(scriptPath);
             return send(res, 200, { ...result, ...(result.planChanged ? { plan } : {}), media: await mediaFor(plan) });
@@ -636,7 +592,7 @@ export const balApi = (): Plugin => ({
         // الهوية
         if (parts[0] === "identity") {
           if (req.method === "PUT") {
-            const refused = await ownerRefusal({ req, load });
+            const refused = await ownerRefusal({ load });
             if (refused) return send(res, 403, { error: refused });
             const { identity } = await readBody(req);
             if (!identity?.themes || !identity?.palettes || !identity?.typography || !identity?.motion) return send(res, 400, { error: "ملف الهوية ناقص" });

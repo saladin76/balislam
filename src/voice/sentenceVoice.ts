@@ -494,11 +494,11 @@ const generateOne = async (ctx: Ctx, episode: string, scene: PlanScene, list: Se
 };
 
 /**
- * فعل المالك على جملة. كلمة المالك (أو رمز جلسته على جهازه) لكل فعل؛ والأفعال على حلقة واحدة متتالية بقفل.
+ * فعل المالك على جملة (من الاستوديو على جهازه أو من الطرفية، بلا كلمة مرور: assertSceneOwner)؛ والأفعال على حلقة واحدة متتالية بقفل.
  */
-export const sentenceAction = async (episode: string, cmd: SentenceCommand, token: unknown, opts: SentenceActionOptions = {}): Promise<SentenceActionResult> => {
+export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts: SentenceActionOptions = {}): Promise<SentenceActionResult> => {
   const { assertSceneOwner, serialized } = await import("../studio/sceneService");
-  assertSceneOwner(token);
+  assertSceneOwner();
   const actions = ["init", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard"];
   if (!cmd || !actions.includes(cmd.action) || (cmd.text !== undefined && (typeof cmd.text !== "string" || cmd.text.length > 4000)) ||
       (cmd.note !== undefined && (typeof cmd.note !== "string" || cmd.note.length > 2000)))

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { api, type DriveHandoffRead } from "../api";
-import { useOwnerSession } from "../shell/ownerSession";
 import { Hint } from "../shell/Screen";
 import { arDigits } from "../ui/format";
 
@@ -39,24 +38,21 @@ const sizeLabel = (n: number) => arDigits(n > 1e9 ? `${(n / 1e9).toFixed(2)} ج.
 const shortFolder = (folder: string) => folder.split("/").slice(-3).join("/");
 
 export const DriveHandoffCard: React.FC<{ episodeId: string; view: DriveView; primary: boolean; onChanged: (s: DriveHandoffRead) => void }> = ({ episodeId, view, primary, onChanged }) => {
-  const owner = useOwnerSession();
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   if (view.kind === "hidden") return null;
   if (view.kind === "waiting-permission")
     return <p className="s45-note s45-drive">بعد «إذن النشر» تُنسخ الملفات بأعلى جودة إلى Google Drive، والنشر نفسه بيدك.</p>;
-  /** A closed session is opened by the action itself, next to the button that asked (D52). */
-  const act = async (anchor: HTMLElement, fn: (token: string) => Promise<unknown>) => {
+  /** Each action works directly on click (no passphrase, owner decision 9 Nov). */
+  const act = async (fn: () => Promise<unknown>) => {
     setErr("");
-    const token = owner.open ? owner.secret : await owner.ensure(anchor);
-    if (!token) return;
     setBusy(true);
-    try { await fn(token); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+    try { await fn(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
     api.driveHandoff(episodeId).then(onChanged).catch(() => undefined);
   };
   const resend = (filled: boolean) => (
     <button type="button" className={`btn${filled ? " primary" : ""}`} disabled={busy}
-      onClick={(e) => act(e.currentTarget, (t) => api.resendToDrive(episodeId, t))}>أعد الإرسال إلى Drive</button>
+      onClick={() => act(() => api.resendToDrive(episodeId))}>أعد الإرسال إلى Drive</button>
   );
   return (
     <section className="s45-kit s45-drive" aria-label="Google Drive">
@@ -75,7 +71,7 @@ export const DriveHandoffCard: React.FC<{ episodeId: string; view: DriveView; pr
           </ul>
           <div className="s45-actions">
             <button type="button" className={`btn${primary ? " primary" : ""}`} disabled={busy}
-              onClick={(e) => act(e.currentTarget, (t) => api.openDriveFolder(episodeId, t))}>افتح المجلد</button>
+              onClick={() => act(() => api.openDriveFolder(episodeId))}>افتح المجلد</button>
             {resend(false)}
           </div>
           <Hint>النسخة في مجلد Drive تشغل مساحة على القرص حتى يرفعها Drive. بعد اكتمال الرفع يمكنك جعلها «متاحة عبر الإنترنت فقط» من Finder؛ الاستوديو لا يحذف شيئًا لأنه لا يستطيع التأكد من اكتمال الرفع.</Hint>

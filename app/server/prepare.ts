@@ -1,7 +1,7 @@
 /**
  * Background queue for «جهّز كل المشاهد»: one job per channel/episode inside the Studio server process.
- * Renders run one at a time, in scene order, through the same renderer as «إنتاج المشهد». The owner
- * passphrase lives only in this job's closure for its lifetime and is never written anywhere; a Studio
+ * Renders run one at a time, in scene order, through the same renderer as «إنتاج المشهد». The owner was
+ * checked (loopback Studio request) when the job started; nothing about him is stored. A Studio
  * restart drops the job (fail-closed: the owner presses the button again; finished drafts are kept).
  * «أوقف» (D36): a stop request is honoured between steps — the voice clip or scene render in progress
  * finishes and is kept, nothing after it starts. Status becomes "stopped"; pressing the button resumes.

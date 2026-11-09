@@ -59,22 +59,22 @@ export type PrepareProgress = {
   skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
 };
 
-export type RenderSceneDraft = (episode: string, sceneId: string, sourceSha256: string, token: string) => Promise<void>;
+export type RenderSceneDraft = (episode: string, sceneId: string, sourceSha256: string) => Promise<void>;
 
 /** The same render path as the single-scene route, in "ahead" mode (drafts only). */
-export const renderSceneDraft: RenderSceneDraft = async (episode, sceneId, sourceSha256, token) => {
-  await assertSceneRenderAllowed(episode, sceneId, sourceSha256, token, "ahead");
+export const renderSceneDraft: RenderSceneDraft = async (episode, sceneId, sourceSha256) => {
+  await assertSceneRenderAllowed(episode, sceneId, sourceSha256, "ahead");
   const { renderShotsPreview } = await import("../render/shotsPreview");
   await renderShotsPreview(episode, [sceneId], {
     slot: `scene-${sceneId}-av`,
     title: `المشهد ${sceneId} — صوت وصورة (مسودة للمراجعة)`,
     note: "مسودة مُجهَّزة مسبقًا؛ غير معتمدة حتى يصل دورها ويشاهدها المالك ويقرر.",
     // A scene edited, submitted or approved while rendering never gets this cut published.
-    verifyBeforePublish: () => assertSceneRenderAllowed(episode, sceneId, sourceSha256, token, "ahead"),
+    verifyBeforePublish: () => assertSceneRenderAllowed(episode, sceneId, sourceSha256, "ahead"),
     // Recitations come last: a verse scene without one is drafted with a silent, marked placeholder.
     allowPendingRecitation: true,
   });
-  await recordSceneRenderEvidence(episode, sceneId, sourceSha256, token, "ahead");
+  await recordSceneRenderEvidence(episode, sceneId, sourceSha256, "ahead");
 };
 
 /** Scenes that still need a draft, in episode order, from the current scene on. */
@@ -119,7 +119,6 @@ export const pickRenderQueue = (queue: { list: QueueItem[]; beforeVoiceGap: Queu
 };
 
 export const prepareAllScenes = async (episode: string, opts: {
-  token: string;
   /** null: no voice key configured; scenes that already have their voice are still rendered. */
   voiceClient: ElevenLabsClient | null;
   render?: RenderSceneDraft;
@@ -131,7 +130,7 @@ export const prepareAllScenes = async (episode: string, opts: {
   /** The previous run's failures; the same scene with the same inputs is not rendered again by the queue. */
   previousFailures?: { id: string; error: string; sourceSha256?: string }[];
 }): Promise<PrepareProgress> => {
-  assertSceneOwner(opts.token);
+  assertSceneOwner();
   await requireSceneProductionReady(episode);
   const render = opts.render ?? renderSceneDraft;
   const needed = await scenesNeedingVoice(episode);
@@ -187,7 +186,7 @@ export const prepareAllScenes = async (episode: string, opts: {
       p.sceneId = scene.id;
       emit();
       try {
-        await render(episode, scene.id, scene.sourceSha256, opts.token);
+        await render(episode, scene.id, scene.sourceSha256);
         p.failed = p.failed.filter((f) => f.id !== scene.id);
         if (!p.rendered.includes(scene.id)) p.rendered.push(scene.id);
       } catch (e) {

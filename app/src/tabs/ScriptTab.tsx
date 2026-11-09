@@ -207,7 +207,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             </section>
             <section aria-label="اعتماد السكريبت">
               <h3 className="s12-h">اعتماد السكريبت</h3>
-              <p className="s12-soft">{dirty ? "احفظ السكريبت أولًا؛ الاعتماد يكون على النسخة المحفوظة." : "يُعتمد من عمود الحلقة أعلاه بكلمة مرور المالك."}</p>
+              <p className="s12-soft">{dirty ? "احفظ السكريبت أولًا؛ الاعتماد يكون على النسخة المحفوظة." : "يُعتمد من عمود الحلقة أعلاه."}</p>
             </section>
           </More>
         </aside>

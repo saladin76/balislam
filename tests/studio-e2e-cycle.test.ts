@@ -26,7 +26,8 @@ const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
 const EP = "987";
 const EP_DIR = "987-e2e-cycle";
-const PASS = "owner-e2e-passphrase-2026";
+/** No passphrase (owner decision 9 Nov): a page of another site is refused (403); the Studio page is the owner. */
+const CROSS = { origin: "https://evil.example" };
 
 const ffmpeg = (args: string[]) => execFileSync("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", ...args]);
 /** The same small, playable H.264 + AAC clip every stubbed scene render writes. */
@@ -71,13 +72,13 @@ let vite: ViteDevServer;
 let server: http.Server;
 let base = "";
 const saved: Record<string, string | undefined> = {};
-const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_STUDIO_OWNER_PASSPHRASE_SHA256", "BAL_DRIVE_PREVIEWS_DIR", "ELEVENLABS_API_KEY"];
+const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "BAL_DRIVE_PREVIEWS_DIR", "ELEVENLABS_API_KEY"];
 
 type Res = { status: number; body: any };
-const call = async (method: string, route: string, body?: unknown, token?: string, headers: Record<string, string> = {}): Promise<Res> => {
+const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}): Promise<Res> => {
   const r = await fetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(token ? { "x-studio-owner-token": token } : {}), ...headers },
+    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -90,9 +91,9 @@ const state = async () => {
   expect(r.status).toBe(200);
   return r.body;
 };
-const decide = (cmd: Record<string, unknown>, token = PASS) => call("POST", `episodes/${EP}/scene-production`, cmd, token);
-const render = (sceneId: string, expectedSha256: string, token = PASS) =>
-  call("POST", `episodes/${EP}/scene-av-render`, { sceneId, expectedSha256 }, token);
+const decide = (cmd: Record<string, unknown>, headers: Record<string, string> = {}) => call("POST", `episodes/${EP}/scene-production`, cmd, headers);
+const render = (sceneId: string, expectedSha256: string, headers: Record<string, string> = {}) =>
+  call("POST", `episodes/${EP}/scene-av-render`, { sceneId, expectedSha256 }, headers);
 
 /** Every file in the episode folder with its identity: any write by a GET shows up here. */
 const snapshot = async (dir: string, acc: Record<string, string> = {}): Promise<Record<string, string>> => {
@@ -105,7 +106,7 @@ const snapshot = async (dir: string, acc: Record<string, string> = {}): Promise<
 };
 const UI_READS = () => ["overview", `episodes`, `episodes/${EP}`, `episodes/${EP}/scene-production`, `episodes/${EP}/previews`,
   `episodes/${EP}/kit`, `episodes/${EP}/storyboard`, `episodes/${EP}/package`, `episodes/${EP}/status`,
-  `episodes/${EP}/workflow`, `episodes/${EP}/script-signoff`, `episodes/${EP}/voice-review`, `episodes/${EP}/scene-review`, `owner-passphrase`];
+  `episodes/${EP}/workflow`, `episodes/${EP}/script-signoff`, `episodes/${EP}/voice-review`, `episodes/${EP}/scene-review`];
 const assertReadsDoNotWrite = async (label: string) => {
   const before = await snapshot(epDir);
   for (const route of UI_READS()) {
@@ -141,7 +142,6 @@ beforeAll(async () => {
   process.env.BAL_CHANNELS_DIR = root;
   process.env.BAL_ENV_FILE = path.join(root, ".env");
   delete process.env.BAL_WORKFLOW_HMAC_KEY; // generated into the temp .env by the server, as on the Mac
-  delete process.env.BAL_STUDIO_OWNER_PASSPHRASE_SHA256;
   delete process.env.BAL_DRIVE_PREVIEWS_DIR;
   delete process.env.ELEVENLABS_API_KEY;
   (globalThis as any).__e2eStubRenders = stubbedRenders;
@@ -183,33 +183,26 @@ afterAll(async () => {
 });
 
 describe("Studio E2E: one full production cycle over the real server API", () => {
-  it("passphrase → script → storyboard → scenes in order → assembly → Master → publish, with every negative", async () => {
+  it("script → storyboard → scenes in order → assembly → Master → publish, with every negative", async () => {
     const gate = (action: "master_render" | "publish") => runWithChannel(CH, () => assertWorkflowForEpisode(EP, action));
 
     // ── 0. Security envelope ───────────────────────────────────────────────────────────────────
-    expect((await call("POST", "owner-passphrase/check", { passphrase: PASS }, undefined, { origin: "https://evil.example" })).status).toBe(403);
-    expect((await call("GET", "owner-passphrase")).body).toEqual({ set: false });
+    // No passphrase (owner decision 9 Nov): a page of another site is refused; nothing is written.
     const fresh = await state();
-    // No passphrase yet: approvals are disabled.
-    const noPass = await decide({ action: "approve-script", expectedSha256: fresh.script.sha256 });
-    expect(noPass.status).toBe(403);
-    expect((await call("POST", "owner-passphrase", { passphrase: "short" })).status).toBe(400);
-    expect((await call("POST", "owner-passphrase", { passphrase: PASS })).body).toEqual({ set: true });
+    expect((await decide({ action: "approve-script", expectedSha256: fresh.script.sha256 }, CROSS)).status).toBe(403);
+    expect((await decide({ action: "approve-script", expectedSha256: fresh.script.sha256 }, { "sec-fetch-site": "cross-site" })).status).toBe(403);
+    expect((await state()).script.approved).toBe(false);
+    for (const route of ["owner-passphrase", "owner-session"]) expect((await call("GET", route)).status).toBe(404);
     const envText = await readFile(path.join(root, ".env"), "utf8");
-    expect(envText).not.toContain(PASS); // only its digest
-    expect(envText).toMatch(/^BAL_STUDIO_OWNER_PASSPHRASE_SHA256=[a-f0-9]{64}$/m);
+    expect(envText).not.toMatch(/PASSPHRASE/);
     expect(envText).toMatch(/^BAL_WORKFLOW_HMAC_KEY=[a-f0-9]{64}$/m);
-    // Changing it needs the current one.
-    expect((await call("POST", "owner-passphrase", { passphrase: "another-passphrase" })).status).toBe(400);
-    expect((await call("POST", "owner-passphrase/check", { passphrase: "wrong-passphrase" })).body).toEqual({ ok: false });
-    expect((await call("POST", "owner-passphrase/check", { passphrase: PASS })).body).toEqual({ ok: true });
 
     await assertReadsDoNotWrite("fresh episode");
 
     // ── 1. Script ──────────────────────────────────────────────────────────────────────────────
     let s = await state();
     expect(s.script.approved).toBe(false);
-    expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 }, "wrong-passphrase")).status).toBe(403);
+    expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 }, CROSS)).status).toBe(403);
     expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 })).status).toBe(409); // out of order
     expect((await render("c1-s1", s.scenes[0].sourceSha256)).status).toBe(409); // nothing renders before approvals
     expect((await decide({ action: "approve-script", expectedSha256: "0".repeat(64) })).status).toBe(409); // stale hash
@@ -238,7 +231,7 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     expect(s.scenes.every((x: any) => x.readyForAv)).toBe(true);
     // Out of order: the second scene cannot be produced or approved first.
     expect((await render("c1-s2", s.scenes[1].sourceSha256)).status).toBe(409);
-    expect((await render("c1-s1", s.scenes[0].sourceSha256, "wrong-passphrase")).status).toBe(403);
+    expect((await render("c1-s1", s.scenes[0].sourceSha256, CROSS)).status).toBe(403);
     expect((await decide({ action: "approve-scene", sceneId: "c1-s2", expectedSha256: "a".repeat(64), confirmedWatched: true })).status).toBe(409);
 
     const produceAndApprove = async (id: string) => {
@@ -287,7 +280,7 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     }
     await produceAndApprove("c1-s2");
     // Not assemblable before the last scene.
-    expect((await call("POST", `episodes/${EP}/scene-av-assemble`, undefined, PASS)).status).toBe(409);
+    expect((await call("POST", `episodes/${EP}/scene-av-assemble`)).status).toBe(409);
     await produceAndApprove("c1-s3");
     expect(stubbedRenders).toEqual(["c1-s1", "c1-s2", "c1-s2", "c1-s3"]);
 
@@ -295,8 +288,8 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     s = await state();
     expect(s.progress.canAssemble).toBe(true);
     expect(s.seams).toEqual(["c1-s1>c1-s2", "c1-s2>c1-s3"]);
-    expect((await call("POST", `episodes/${EP}/scene-av-assemble`, undefined, "wrong-passphrase")).status).toBe(403);
-    const asm = await call("POST", `episodes/${EP}/scene-av-assemble`, undefined, PASS);
+    expect((await call("POST", `episodes/${EP}/scene-av-assemble`, undefined, CROSS)).status).toBe(403);
+    const asm = await call("POST", `episodes/${EP}/scene-av-assemble`);
     expect(asm.status, JSON.stringify(asm.body)).toBe(200);
     expect(asm.body.scenes).toBe(3);
     s = await state();
@@ -340,7 +333,7 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     await expect(gate("publish")).rejects.toThrow(/publish/i);
     const early = await call("PUT", `episodes/${EP}/status`, { status: { published: { youtube: "https://youtu.be/x" } } });
     expect(early.status, JSON.stringify(early.body)).toBe(409);
-    expect((await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true }, "wrong-passphrase")).status).toBe(403);
+    expect((await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true }, CROSS)).status).toBe(403);
     const pub = await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true });
     expect(pub.status, JSON.stringify(pub.body)).toBe(200);
     expect(pub.body.progress.publishAllowed).toBe(true);
@@ -356,11 +349,11 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     expect(published.status, JSON.stringify(published.body)).toBe(200);
 
     // ── 7. Legacy approval endpoints are gone (410) ────────────────────────────────────────────
-    expect((await call("POST", `episodes/${EP}/workflow`, { stage: "script", action: "approve" }, PASS)).status).toBe(410);
+    expect((await call("POST", `episodes/${EP}/workflow`, { stage: "script", action: "approve" })).status).toBe(410);
     expect((await call("PUT", `episodes/${EP}/script-signoff`, { reviewer: "x", note: "x", confirm: true })).status).toBe(410);
     expect((await call("PUT", `episodes/${EP}/voice-review`, { approve: true })).status).toBe(410);
     expect((await call("PUT", `episodes/${EP}/scene-review`, { id: "c1-s1", status: "ok" })).status).toBe(410);
-    expect((await call("POST", "studio-v2/decide", {}, PASS)).status).toBe(410);
+    expect((await call("POST", "studio-v2/decide", {})).status).toBe(410);
     expect((await call("POST", `episodes/${EP}/recitation`, { id: 1 })).status).toBe(410);
     expect((await call("POST", `episodes/${EP}/quran`, {})).status).toBe(410);
 

@@ -1,6 +1,6 @@
 /**
  * UX review, 9 Nov (D52): the board viewer stays in step ١, one LockedStep, one numeral system and no
- * technical text on the main screens, one episode length, the approve path opens the passphrase itself.
+ * technical text on the main screens, one episode length, the approve path acts directly (no passphrase since 9 Nov).
  */
 import React from "react";
 import { readFileSync } from "node:fs";
@@ -155,14 +155,14 @@ describe("one episode length", () => {
 });
 
 describe("approve path and dialogs", () => {
-  it("a closed session is opened by the primary button itself, anchored to it", () => {
-    const session = src("app/src/shell/ownerSession.tsx");
-    expect(session).toContain("ensure: (anchor?: HTMLElement | null) => Promise<string>;");
-    expect(session).toContain("ow-anchored");
-    for (const f of ["app/src/shell/EpisodeSpine.tsx", "app/src/workspace/PreFinal.tsx", "app/src/workspace/RecitationItem.tsx"]) {
+  it("owner buttons act directly: no passphrase popover, no session, no «افتح جلسة المالك» (owner decision 9 Nov)", () => {
+    expect(() => src("app/src/shell/ownerSession.tsx")).toThrow();
+    for (const f of ["app/src/shell/EpisodeSpine.tsx", "app/src/shell/TopBar.tsx", "app/src/App.tsx", "app/src/tabs/DriveHandoff.tsx",
+      "app/src/workspace/PreFinal.tsx", "app/src/workspace/RecitationItem.tsx", "app/src/workspace/PrepareAll.tsx",
+      "app/src/workspace/SentencesPanel.tsx", "app/src/workspace/SceneProductionPanel.tsx"]) {
       const code = src(f);
-      expect(code, f).toContain("owner.ensure(");
-      expect(code, f).not.toContain("افتح جلسة المالك من أعلى الصفحة");
+      expect(code, f).not.toMatch(/useOwnerSession|OwnerSession|owner\.ensure\(|type="password"/);
+      expect(code, f).not.toMatch(/افتح جلسة المالك|افتح الجلسة|جلسة المالك|كلمة مرور المالك/);
     }
   });
 

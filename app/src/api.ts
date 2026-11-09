@@ -68,18 +68,6 @@ export const setApiChannel = (id: string) => {
 };
 const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(currentChannel)}` : url);
 
-/**
- * Policy-changing calls (channel rules, identity, a new channel) carry the owner session token the
- * studio already stores (shell/ownerSession.tsx, same key); the server refuses them without it.
- */
-export const OWNER_SESSION_KEY = "bal.ownerSession.v1";
-const ownerHeader = (): Record<string, string> => {
-  try {
-    const t = window.localStorage.getItem(OWNER_SESSION_KEY) ?? "";
-    return t ? { "x-studio-owner-token": t } : {};
-  } catch { return {}; }
-};
-
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
@@ -175,59 +163,45 @@ export type DriveHandoffRead = {
 
 export const api = {
   /** One scene = one combined audiovisual review; no Quran provider selection. */
-  /** كلمة مرور المالك: هل ضُبطت؟ وضبطها أول مرة (أو تغييرها بالكلمة الحالية). */
-  ownerPassphrase: () => call<{ set: boolean }>("/api/owner-passphrase"),
-  setOwnerPassphrase: (passphrase: string, current?: string) =>
-    call<{ set: boolean }>("/api/owner-passphrase", { method: "POST", json: { passphrase, ...(current ? { current } : {}) } }),
-  /** D49: open a device session once with the passphrase; the server returns a revocable token. */
-  openOwnerSession: (passphrase: string) =>
-    call<{ ok: boolean; token?: string }>("/api/owner-session", { method: "POST", json: { passphrase } }),
-  ownerSessionStatus: (token: string) =>
-    call<{ open: boolean }>("/api/owner-session", { headers: { "x-studio-owner-token": token } }),
-  closeOwnerSession: (token: string) =>
-    call<{ open: boolean }>("/api/owner-session", { method: "DELETE", headers: { "x-studio-owner-token": token } }),
-  checkOwnerPassphrase: (passphrase: string) =>
-    call<{ ok: boolean }>("/api/owner-passphrase/check", { method: "POST", json: { passphrase } }),
   sceneProduction: (episode: string, channel?: string) =>
     call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, undefined, channel),
-  decideScene: (episode: string, channel: string, token: string, decision: SceneOwnerAction) =>
+  decideScene: (episode: string, channel: string, decision: SceneOwnerAction) =>
     call<SceneProductionRead>(`/api/episodes/${episode}/scene-production`, {
-      method: "POST", json: decision, headers: { "x-studio-owner-token": token },
+      method: "POST", json: decision,
     }, channel),
-  assembleSceneAv: (episode: string, channel: string, token: string) =>
+  assembleSceneAv: (episode: string, channel: string) =>
     call<{ ok: true; version: number; scenes: number }>(
       `/api/episodes/${episode}/scene-av-assemble`, {
-        method: "POST", headers: { "x-studio-owner-token": token },
+        method: "POST",
       }, channel),
-  renderSceneAv: (episode: string, channel: string, token: string, sceneId: string,
+  renderSceneAv: (episode: string, channel: string, sceneId: string,
     expectedSha256: string) =>
     call<{ ok: true; version: number; preview: string }>(
       `/api/episodes/${episode}/scene-av-render`, {
         method: "POST", json: { sceneId, expectedSha256 },
-        headers: { "x-studio-owner-token": token },
       }, channel),
   /** «معاينة قبل النهائية»: all current scene cuts in order, recitations missing; never an approval. */
   preFinal: (episode: string, channel: string) =>
     call<{ preview: string | null; entry: { title: string; version: number; updatedAt: string | null } | null }>(
       `/api/episodes/${episode}/scene-prefinal`, undefined, channel),
-  makePreFinal: (episode: string, channel: string, token: string) =>
+  makePreFinal: (episode: string, channel: string) =>
     call<{ ok: true; preview: string; version: number; scenes: number; recitationPending: string[] }>(
-      `/api/episodes/${episode}/scene-prefinal`, { method: "POST", headers: { "x-studio-owner-token": token } }, channel),
+      `/api/episodes/${episode}/scene-prefinal`, { method: "POST" }, channel),
   /** The owner's own recitations: upload (processed + original kept), switch variant, approve after listening. */
   ownRecitations: (episode: string, channel: string) =>
     call<OwnRecitationsRead>(`/api/episodes/${episode}/own-recitations`, undefined, channel),
-  ownRecitationAction: (episode: string, channel: string, token: string, body:
+  ownRecitationAction: (episode: string, channel: string, body:
     | { action: "upload"; key: string; name: string; data: string }
     | { action: "select"; key: string; variant: "processed" | "original" }
     | { action: "approve"; key: string; reciter: string; rightsEvidence: string; note: string; listened: boolean }) =>
     call<Record<string, unknown>>(`/api/episodes/${episode}/own-recitations`, {
-      method: "POST", json: body, headers: { "x-studio-owner-token": token } }, channel),
-  /** الصوت جملةً جملة (D50): قراءة جمل الحلقة، وفعل المالك على جملة (بجلسته). */
+      method: "POST", json: body }, channel),
+  /** الصوت جملةً جملة (D50): قراءة جمل الحلقة، وفعل المالك على جملة. */
   sentences: (episode: string, channel: string) =>
     call<SentencesRead>(`/api/episodes/${episode}/sentences`, undefined, channel),
-  sentenceAction: (episode: string, channel: string, token: string, body: SentenceCommand) =>
+  sentenceAction: (episode: string, channel: string, body: SentenceCommand) =>
     call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string }>(
-      `/api/episodes/${episode}/sentences`, { method: "POST", json: body, headers: { "x-studio-owner-token": token } }, channel),
+      `/api/episodes/${episode}/sentences`, { method: "POST", json: body }, channel),
   /** Step ١ «التجهيز»: what still blocks the one-button approval (script errors, verses without text, board record). */
   preparation: (episode: string, channel: string) =>
     call<PreparationRead>(`/api/episodes/${episode}/approve-preparation`, undefined, channel),
@@ -235,32 +209,32 @@ export const api = {
    * «اعتمد التجهيز»: the script approval, then (if needed) the board record, then the storyboard approval, each
    * checked by the server; then the scenes start preparing on their own (drafts only, nothing approved).
    */
-  approvePreparation: (episode: string, channel: string, token: string, body: { scriptSha256: string; storyboardSha256: string; reviewed: boolean; note?: string }) =>
+  approvePreparation: (episode: string, channel: string, body: { scriptSha256: string; storyboardSha256: string; reviewed: boolean; note?: string }) =>
     call<SceneProductionRead & { prepare: { job: ScenePrepareJob | null; error?: string } }>(`/api/episodes/${episode}/approve-preparation`, {
-      method: "POST", json: body, headers: { "x-studio-owner-token": token },
+      method: "POST", json: body,
     }, channel),
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel),
-  startScenePrepare: (episode: string, channel: string, token: string) =>
+  startScenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
-      method: "POST", headers: { "x-studio-owner-token": token },
+      method: "POST",
     }, channel),
   /** «أوقف»: the step in progress finishes and is kept; nothing new starts. */
-  stopScenePrepare: (episode: string, channel: string, token: string) =>
+  stopScenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
-      method: "DELETE", headers: { "x-studio-owner-token": token },
+      method: "DELETE",
     }, channel),
   workflow: (episode: string, channel?: string) => call<{
     approvals: WorkflowApprovalView;
     fingerprints: Partial<Record<WorkflowStage, string>>;
     revision: number;
   }>(`/api/episodes/${episode}/workflow`, undefined, channel),
-  workflowDecision: (episode: string, channel: string, token: string,
+  workflowDecision: (episode: string, channel: string,
     decision: { action: "submit" | "approve" | "reject" | "reopen"; stage: WorkflowStage;
       expectedFingerprint: string; note: string; confirmWatched?: boolean }) =>
     call<{ approvals: WorkflowApprovalView }>(`/api/episodes/${episode}/workflow`, {
-      method: "POST", json: decision, headers: { "x-studio-owner-token": token },
+      method: "POST", json: decision,
     }, channel),
   scriptSignoff: (episode: string) =>
     call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
@@ -294,7 +268,7 @@ export const api = {
   ops: () => call<OpsChannel[]>("/api/ops"),
   saveCalendar: (channel: string, calendar: Record<string, CalendarDay>) => call("/api/calendar", { method: "PUT", json: { calendar } }, channel),
   channelFor: (channel: string) => call<ChannelConfig>("/api/channel", undefined, channel),
-  saveChannelFor: (channel: string, c: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel: c }, headers: ownerHeader() }, channel),
+  saveChannelFor: (channel: string, c: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel: c } }, channel),
   saveIdeas: (channel: string, ideas: Idea[]) => call("/api/ideas", { method: "PUT", json: { ideas } }, channel),
   statusFor: (channel: string, id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`, undefined, channel),
   saveStatusFor: (channel: string, id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }, channel),
@@ -316,7 +290,7 @@ export const api = {
     call<{ plan: Plan; backup?: string }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: confirm }),
   check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
   identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
-  saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity }, headers: ownerHeader() }),
+  saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity } }),
   render: (b: { episode: string; orientation: string; chapter?: number }) => call<RenderJob>("/api/render", { method: "POST", json: b }),
   jobs: () => call<RenderJob[]>("/api/render"),
   libraryImages: () => call<{ files: string[] }>("/api/library-images"),
@@ -328,16 +302,16 @@ export const api = {
   status: (id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`),
   saveStatus: (id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }),
   packageInfo: (id: string) => call<PackageInfo>(`/api/episodes/${id}/package`),
-  /** D53: الملفات المعتمدة في مجلد Google Drive بعد إذن النشر (الحالة، وإعادة الإرسال وفتح المجلد بجلسة المالك). */
+  /** D53: الملفات المعتمدة في مجلد Google Drive بعد إذن النشر (الحالة، وإعادة الإرسال وفتح المجلد). */
   driveHandoff: (id: string) => call<DriveHandoffRead>(`/api/episodes/${id}/publish-drive`),
-  resendToDrive: (id: string, token: string) =>
-    call<DriveHandoffRead>(`/api/episodes/${id}/publish-drive`, { method: "POST", headers: { "x-studio-owner-token": token } }),
-  openDriveFolder: (id: string, token: string) =>
-    call<{ folder: string }>(`/api/episodes/${id}/publish-drive/open`, { method: "POST", headers: { "x-studio-owner-token": token } }),
+  resendToDrive: (id: string) =>
+    call<DriveHandoffRead>(`/api/episodes/${id}/publish-drive`, { method: "POST" }),
+  openDriveFolder: (id: string) =>
+    call<{ folder: string }>(`/api/episodes/${id}/publish-drive/open`, { method: "POST" }),
   packageUrl: (id: string, file: string, download = false) => withChannel(`/api/episodes/${id}/package/${encodeURIComponent(file)}${download ? "?download=1" : ""}`),
   channel: () => call<ChannelConfig>("/api/channel"),
-  saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel }, headers: ownerHeader() }),
-  createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b, headers: ownerHeader() }),
+  saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
+  createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string; blocked?: string }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),

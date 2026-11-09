@@ -309,7 +309,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             </div>
             {!hasVoiceKeys ? <p className="s45-note">النسخة النهائية تحتاج مفتاح الصوت من <KeysLink />. المعاينة بلا صوت متاحة الآن.</p> : null}
             {card.rerenderWarning ? <p className="s45-note">أي صناعة جديدة تكتب فوق الملف المعتمد فتلغي اعتماده{publishAllowed ? " وإذن النشر" : ""}؛ ستُسأل قبلها.</p> : null}
-            {isMaster && !approved ? <p className="s45-note">اعتماد النسخة النهائية يكون لهذا الملف بعينه في الخطوة ٣ بكلمة مرور المالك؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
+            {isMaster && !approved ? <p className="s45-note">اعتماد النسخة النهائية يكون لهذا الملف بعينه في الخطوة ٣؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
           </More>
 
           <More label={`الشورتس والريلز${shorts.length ? ` · ${shorts.length}` : ""}`}>
