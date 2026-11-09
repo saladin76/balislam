@@ -144,7 +144,8 @@ const Compass: React.FC<{ cx: number; cy: number; r: number; color: string }> = 
   );
 };
 
-type Brand = "mihrab" | "horizon" | "highlighter";
+/** «neutral»: قناة بلا هوية معتمدة بعد — ألوانها من ثيمها هي وخطها العام، بلا محراب ولا أفق ولا فسفوري. */
+type Brand = "mihrab" | "horizon" | "highlighter" | "neutral";
 const BRAND: Record<string, Brand> = { balislam: "mihrab", "dafatir-alzaman": "horizon", "zubdat-alkutub": "highlighter" };
 
 const ArtInner: React.FC<Omit<ChannelArtProps, "identity" | "channel">> = ({ kind, tagline }) => {
@@ -153,7 +154,7 @@ const ArtInner: React.FC<Omit<ChannelArtProps, "identity" | "channel">> = ({ kin
   const t = useTheme(ch.id === "zubdat-alkutub" ? "paper" : ch.id === "dafatir-alzaman" ? "warm" : "night");
   const { width: W, height: H } = artSizes[kind];
   const line = tagline ?? TAGLINES[ch.id] ?? "";
-  const brand: Brand = BRAND[ch.id] ?? "mihrab";
+  const brand: Brand = BRAND[ch.id] ?? "neutral";
   const profile = kind === "profile";
   const uid = `${ch.id}-${kind}`;
   const u = profile ? W / 1024 : kind === "youtube" ? 1 : kind === "facebook" ? 1.02 : 0.92;
@@ -212,6 +213,12 @@ const ArtInner: React.FC<Omit<ChannelArtProps, "identity" | "channel">> = ({ kin
         </svg>
       </>
     );
+  } else if (brand === "neutral") {
+    fg = t.colors.ink;
+    accent = t.colors.primary;
+    soft = t.colors.inkSoft;
+    font = fontFamilies.heading;
+    background = <AbsoluteFill style={{ background: t.colors.bg }} />;
   } else {
     fg = "#111111";
     accent = "#E8F542";
@@ -284,8 +291,8 @@ const ArtInner: React.FC<Omit<ChannelArtProps, "identity" | "channel">> = ({ kin
             {nameNode(nameSize)}
             {brand === "mihrab" ? <div style={{ width: 34 * u, height: 34 * u, borderRadius: 5 * u, background: "#C2412D", marginTop: 30 * u }} /> : null}
           </div>
-          {brand === "highlighter" ? null : <Ornament width={nameSize * 2.6} color={accent} />}
-          {line ? <div style={{ fontFamily: brand === "highlighter" ? fontFamilies.clean : font, fontWeight: 700, fontSize: 46 * u, lineHeight: 1.35, color: brand === "horizon" ? fg : soft, whiteSpace: "nowrap", textShadow: brand === "horizon" ? "0 3px 18px rgba(18,12,30,0.7)" : undefined }}>{line}</div> : null}
+          {brand === "highlighter" || brand === "neutral" ? null : <Ornament width={nameSize * 2.6} color={accent} />}
+          {line ? <div style={{ fontFamily: brand === "highlighter" ? fontFamilies.clean : brand === "neutral" ? fontFamilies.body : font, fontWeight: 700, fontSize: 46 * u, lineHeight: 1.35, color: brand === "horizon" ? fg : soft, whiteSpace: "nowrap", textShadow: brand === "horizon" ? "0 3px 18px rgba(18,12,30,0.7)" : undefined }}>{line}</div> : null}
           <div style={{ fontFamily: brand === "horizon" ? fontFamilies.mono : "'Readex Pro', sans-serif", fontWeight: 500, fontSize: 22 * u, letterSpacing: "0.42em", color: brand === "highlighter" ? "#111111" : accent, opacity: 0.85, direction: "ltr", textTransform: "uppercase", whiteSpace: "nowrap" }}>{ch.nameLatin}</div>
         </div>
       </div>

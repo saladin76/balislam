@@ -18,14 +18,19 @@ const ltr = value => '<bdi dir="ltr">' + esc(value) + "</bdi>";
 const pending = "PENDING_REVIEW";
 // Fonts are bundled with Studio: make PDF glyph shaping independent of the Mac's installed font list.
 const fontRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public", "fonts");
+// Each channel's PDF uses its approved identity (brand/identity/approved.ts: fonts.heading / fonts.body and a
+// palette colour readable on white paper); tests/studio-storyboard-pdf.test.ts locks the match. An unknown or
+// new channel gets a neutral face and grey, never another channel's identity.
 const channelFonts = {
- "balislam": {accent:"#245b4c", heading:["ElMessiri.ttf","400 700"], body:["IBMPlexSansArabic-Medium.ttf","400"], bold:["IBMPlexSansArabic-Bold.ttf","700"]},
- "dafatir-alzaman": {accent:"#18475b", heading:["Amiri-Bold.ttf","700"], body:["Amiri-Regular.ttf","400"], bold:["Amiri-Bold.ttf","700"]},
- "zubdat-alkutub": {accent:"#85653a", heading:["Tajawal-arabic-700.woff2","700"], body:["Tajawal-arabic-400.woff2","400"], bold:["Tajawal-arabic-700.woff2","700"]},
+ "balislam": {accent:"#0B1F1C", headingFamily:"Aref Ruqaa", bodyFamily:"Tajawal", heading:["ArefRuqaa-Bold.ttf","400 700"], body:["Tajawal-arabic-400.woff2","400"], bold:["Tajawal-arabic-700.woff2","700"], latin:"tajawal"},
+ "dafatir-alzaman": {accent:"#D7372B", headingFamily:"Amiri", bodyFamily:"Tajawal", heading:["Amiri-Bold.ttf","400 700"], body:["Tajawal-arabic-400.woff2","400"], bold:["Tajawal-arabic-700.woff2","700"], latin:"tajawal"},
+ "zubdat-alkutub": {accent:"#111111", headingFamily:"Lalezar", bodyFamily:"Tajawal", heading:["Lalezar-arabic.woff2","400 700"], body:["Tajawal-arabic-400.woff2","400"], bold:["Tajawal-arabic-700.woff2","700"], latin:"tajawal"},
 };
+const neutralFonts = {accent:"#444444", headingFamily:"IBM Plex Sans Arabic", bodyFamily:"IBM Plex Sans Arabic", heading:["IBMPlexSansArabic-Bold.ttf","400 700"], body:["IBMPlexSansArabic-Medium.ttf","400"], bold:["IBMPlexSansArabic-Bold.ttf","700"], latin:"plex"};
+export const pdfTypography = channel => Object.hasOwn(channelFonts, channel) ? channelFonts[channel] : neutralFonts;
 export function pdfFontCss(channel) {
- const typography = channelFonts[channel] || channelFonts.balislam;
- const latin = channel === "zubdat-alkutub"
+ const typography = pdfTypography(channel);
+ const latin = typography.latin === "tajawal"
    ? [["Tajawal-latin-400.woff2","400"],["Tajawal-latin-700.woff2","700"]]
    : [["IBMPlexSans.ttf","400"],["IBMPlexSans.ttf","700"]];
  const faces = [["StudioHeading",typography.heading],["StudioBody",typography.body],["StudioBody",typography.bold],

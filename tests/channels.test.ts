@@ -49,6 +49,25 @@ describe("القنوات", () => {
     await expect(createChannel({ id: "x2", name: "x", language: "fr" })).rejects.toThrow("اللغة");
   });
 
+  it("قناة جديدة بلا --from: قالب محايد وقواعد آمنة، لا هوية «بالإسلام» ولا قواعدها", async () => {
+    const { APPROVED_IDENTITIES } = await import("../brand/identity/approved");
+    await createChannel({ id: "neutral-test", name: "محايدة", language: "ar" });
+    const c = loadChannel("neutral-test");
+    expect(c.rules).toMatchObject({ faces: false, music: false, sacredFigures: true, documentProvenance: true });
+    const identity = readFileSync(channelPaths("neutral-test").identity, "utf8");
+    const signature = Object.values(APPROVED_IDENTITIES).flatMap((a) => a.signature.map((h) => h.toUpperCase()));
+    for (const hex of identity.match(/#[0-9A-Fa-f]{6}/g) ?? []) expect(signature).not.toContain(hex.toUpperCase());
+    const motifs = new Set(Object.values(APPROVED_IDENTITIES).flatMap((a) => a.motifs));
+    for (const t of Object.values<{ motif: string; nameAr: string }>(JSON.parse(identity).themes)) {
+      expect(motifs.has(t.motif)).toBe(false);
+      expect(t.nameAr).not.toMatch(/محراب|زمرد|نحاس|ختم|فجر/);
+    }
+    expect(JSON.parse(identity).fonts).toBeUndefined();
+    // explicit --from still copies that channel's rules, but always starts with the sacred-figure check on
+    await createChannel({ id: "from-test", name: "منسوخة", language: "ar", from: "balislam" });
+    expect(loadChannel("from-test").rules).toMatchObject({ faces: false, sacredFigures: true });
+  });
+
   it("المجال يُفحص حسب القناة، والثيم يُختار من خريطة القناة", () => {
     const src = readFileSync(path.join(__dirname, "fixtures", "valid.md"), "utf8").replace("domain: psychology", "domain: ai");
     const tech = { ...loadChannel("balislam"), id: "t", domains: { ai: { name: "ذكاء", theme: "night" as const, tags: [] } } };

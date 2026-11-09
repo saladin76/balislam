@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 // The exporter is a standalone Node script, independent of the React/TS render engine.
 // @ts-ignore intentionally importing the standalone .mjs tool
-import { normalizeStoryboard, safeImageData, buildStoryboardHtml, exportStoryboard, pdfFontCss, splitAppendixText } from "../scripts/studio-storyboard-pdf.mjs";
+import { normalizeStoryboard, safeImageData, buildStoryboardHtml, exportStoryboard, pdfFontCss, pdfTypography, splitAppendixText } from "../scripts/studio-storyboard-pdf.mjs";
+import { APPROVED_IDENTITIES } from "../brand/identity/approved";
 
 const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAOwO+wAAAABJRU5ErkJggg==","base64");
 const ownedPdfDirs: string[] = [];
@@ -105,17 +106,22 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
       expect(r.html).not.toContain("Tahoma,Arial");
     }
   });
-  it("uses the exact local Arabic font files and distinct accents for all three channels",()=>{
+  it("uses each channel's approved identity fonts and palette accent, and a neutral face for unknown channels",()=>{
     const root=path.join(import.meta.dirname,"..","public","fonts");
     const mappings=[
-      {channel:"balislam",font:"ElMessiri.ttf",body:"IBMPlexSansArabic-Medium.ttf",accent:"#245b4c"},
-      {channel:"dafatir-alzaman",font:"Amiri-Bold.ttf",body:"Amiri-Regular.ttf",accent:"#18475b"},
-      {channel:"zubdat-alkutub",font:"Tajawal-arabic-700.woff2",body:"Tajawal-arabic-400.woff2",accent:"#85653a"},
+      {channel:"balislam",font:"ArefRuqaa-Bold.ttf",body:"Tajawal-arabic-400.woff2",accent:"#0B1F1C"},
+      {channel:"dafatir-alzaman",font:"Amiri-Bold.ttf",body:"Tajawal-arabic-400.woff2",accent:"#D7372B"},
+      {channel:"zubdat-alkutub",font:"Lalezar-arabic.woff2",body:"Tajawal-arabic-400.woff2",accent:"#111111"},
     ];
     const faces=new Set<string>();
     for(const {channel,font,body,accent} of mappings){
       const css=pdfFontCss(channel);
       expect(css).toContain("--studio-accent:"+accent);
+      const approved=APPROVED_IDENTITIES[channel]!;
+      const t=pdfTypography(channel);
+      expect(t.headingFamily).toBe(approved.fonts.heading);
+      expect(t.bodyFamily).toBe(approved.fonts.body);
+      expect(approved.palette.map(p=>p.hex.toUpperCase())).toContain(accent);
       const headingBase64=readFileSync(path.join(root,font)).toString("base64");
       const bodyBase64=readFileSync(path.join(root,body)).toString("base64");
       expect(css).toContain(headingBase64);
@@ -123,6 +129,12 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
       faces.add(headingBase64);
     }
     expect(faces.size).toBe(3);
+    const unknown=pdfFontCss("new-channel");
+    for(const {font,accent} of mappings){
+      expect(unknown).not.toContain(readFileSync(path.join(root,font)).toString("base64"));
+      expect(unknown).not.toContain("--studio-accent:"+accent);
+    }
+    expect(pdfFontCss("__proto__")).toBe(unknown);
   });
   it("keeps Arabic graphemes, emoji and hard line breaks intact across annex pages",()=>{
     const source="بِّ".repeat(210)+"🙂"+"\n".repeat(27)+"وَصْفٌ".repeat(36);
@@ -258,7 +270,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
       const css=pdfFontCss(channel);
       expect(css).toContain('font-family:"StudioLatin"');
       expect(css).toContain('--studio-body:"StudioBody","StudioLatin"');
-      const latin=channel==="zubdat-alkutub"?"Tajawal-latin-400.woff2":"IBMPlexSans.ttf";
+      const latin="Tajawal-latin-400.woff2";
       expect(css).toContain(readFileSync(path.join(root,latin)).toString("base64"));
       expect(css).toContain("font-display:block");
     }
@@ -325,7 +337,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
     expect((preview.html.match(/<article class="page">/g)??[]).length).toBe(2);
     expect(preview.html).not.toContain('class="page cover"');
     expect(preview.html).toContain('<bdi dir="ltr">c1-s1</bdi>');
-    expect(preview.html).toContain("--studio-accent:#85653a");
+    expect(preview.html).toContain("--studio-accent:#111111");
     expect(preview.html).toContain("غير معتمد");
   });
 });

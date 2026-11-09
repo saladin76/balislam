@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "themes": {
+    "paper": {
+      "nameAr": "فاتح",
+      "domain": "psychology",
+      "domainAr": "عام",
+      "colors": {
+        "bg": "#242424",
+        "surface": "#2D2D2D",
+        "ink": "#EEEEEE",
+        "inkSoft": "#BDBDBD",
+        "primary": "#BABABA",
+        "secondary": "#5B5B5B",
+        "highlight": "#A4A4A4",
+        "onHighlight": "#1B1B1B",
+        "captionBg": "#EEEEEE",
+        "captionInk": "#1B1B1B"
+      },
+      "logo": {
+        "tile": "#1B1B1B",
+        "baa": "#A4A4A4",
+        "play": "#BABABA",
+        "ink": "#EEEEEE"
+      },
+      "character": {
+        "style": "flat",
+        "outline": "#121212",
+        "skin": [
+          "#C8C8C8",
+          "#ADADAD"
+        ],
+        "garments": [
+          "#A4A4A4",
+          "#BABABA",
+          "#EEEEEE",
+          "#5B5B5B",
+          "#BDBDBD"
+        ],
+        "cap": "#EEEEEE"
+      },
+      "motif": "house-circles"
+    },
+    "family": {
+      "nameAr": "دافئ",
+      "domain": "family",
+      "domainAr": "عام",
+      "colors": {
+        "bg": "#1B1B1B",
+        "surface": "#242424",
+        "ink": "#EEEEEE",
+        "inkSoft": "#BDBDBD",
+        "primary": "#A4A4A4",
+        "secondary": "#5B5B5B",
+        "highlight": "#BABABA",
+        "onHighlight": "#1B1B1B",
+        "captionBg": "#EEEEEE",
+        "captionInk": "#1B1B1B"
+      },
+      "logo": {
+        "tile": "#1B1B1B",
+        "baa": "#A4A4A4",
+        "play": "#BABABA",
+        "ink": "#EEEEEE"
+      },
+      "character": {
+        "style": "flat",
+        "outline": "#121212",
+        "skin": [
+          "#C8C8C8",
+          "#ADADAD"
+        ],
+        "garments": [
+          "#A4A4A4",
+          "#BABABA",
+          "#EEEEEE",
+          "#5B5B5B",
+          "#BDBDBD"
+        ],
+        "cap": "#EEEEEE"
+      },
+      "motif": "house-circles"
+    },
+    "night": {
+      "nameAr": "داكن",
+      "domain": "money",
+      "domainAr": "عام",
+      "colors": {
+        "bg": "#1B1B1B",
+        "surface": "#242424",
+        "ink": "#EEEEEE",
+        "inkSoft": "#BDBDBD",
+        "primary": "#A4A4A4",
+        "secondary": "#BABABA",
+        "highlight": "#BABABA",
+        "onHighlight": "#1B1B1B",
+        "captionBg": "#EEEEEE",
+        "captionInk": "#1B1B1B"
+      },
+      "logo": {
+        "tile": "#1B1B1B",
+        "baa": "#A4A4A4",
+        "play": "#BABABA",
+        "ink": "#EEEEEE"
+      },
+      "character": {
+        "style": "flat",
+        "outline": "#121212",
+        "skin": [
+          "#C8C8C8",
+          "#ADADAD"
+        ],
+        "garments": [
+          "#A4A4A4",
+          "#BABABA",
+          "#EEEEEE",
+          "#5B5B5B",
+          "#BDBDBD"
+        ],
+        "cap": "#EEEEEE"
+      },
+      "motif": "house-circles"
+    },
+    "warm": {
+      "nameAr": "متوسط",
+      "domain": "knowledge",
+      "domainAr": "عام",
+      "colors": {
+        "bg": "#2D2D2D",
+        "surface": "#373737",
+        "ink": "#EEEEEE",
+        "inkSoft": "#BDBDBD",
+        "primary": "#BABABA",
+        "secondary": "#A4A4A4",
+        "highlight": "#BABABA",
+        "onHighlight": "#1B1B1B",
+        "captionBg": "#EEEEEE",
+        "captionInk": "#1B1B1B"
+      },
+      "logo": {
+        "tile": "#1B1B1B",
+        "baa": "#A4A4A4",
+        "play": "#BABABA",
+        "ink": "#EEEEEE"
+      },
+      "character": {
+        "style": "flat",
+        "outline": "#121212",
+        "skin": [
+          "#C8C8C8",
+          "#ADADAD"
+        ],
+        "garments": [
+          "#A4A4A4",
+          "#BABABA",
+          "#EEEEEE",
+          "#5B5B5B",
+          "#BDBDBD"
+        ],
+        "cap": "#EEEEEE"
+      },
+      "motif": "house-circles"
+    }
+  },
+  "palettes": {
+    "paper": {
+      "style": "flat",
+      "edge": "#BDBDBD",
+      "stroke": "none",
+      "sw": 0,
+      "line": "#BDBDBD",
+      "lw": 3,
+      "main": "#A4A4A4",
+      "second": "#BABABA",
+      "accent": "#5B5B5B",
+      "light": "#2D2D2D",
+      "dark": "#878787",
+      "skin": "#C8C8C8",
+      "metal": "#A4A4A4",
+      "wood": "#A4A4A4",
+      "green": "#BDBDBD",
+      "water": "#878787",
+      "shadow": "rgba(0,0,0,0.18)"
+    },
+    "family": {
+      "style": "flat",
+      "edge": "#BDBDBD",
+      "stroke": "none",
+      "sw": 0,
+      "line": "#BDBDBD",
+      "lw": 3,
+      "main": "#A4A4A4",
+      "second": "#BABABA",
+      "accent": "#5B5B5B",
+      "light": "#242424",
+      "dark": "#878787",
+      "skin": "#C8C8C8",
+      "metal": "#A4A4A4",
+      "wood": "#A4A4A4",
+      "green": "#BDBDBD",
+      "water": "#878787",
+      "shadow": "rgba(0,0,0,0.18)"
+    },
+    "night": {
+      "style": "flat",
+      "edge": "#BDBDBD",
+      "stroke": "none",
+      "sw": 0,
+      "line": "#BDBDBD",
+      "lw": 3,
+      "main": "#A4A4A4",
+      "second": "#BABABA",
+      "accent": "#5B5B5B",
+      "light": "#242424",
+      "dark": "#878787",
+      "skin": "#C8C8C8",
+      "metal": "#A4A4A4",
+      "wood": "#A4A4A4",
+      "green": "#BDBDBD",
+      "water": "#878787",
+      "shadow": "rgba(0,0,0,0.18)"
+    },
+    "warm": {
+      "style": "flat",
+      "edge": "#BDBDBD",
+      "stroke": "none",
+      "sw": 0,
+      "line": "#BDBDBD",
+      "lw": 3,
+      "main": "#A4A4A4",
+      "second": "#BABABA",
+      "accent": "#5B5B5B",
+      "light": "#373737",
+      "dark": "#878787",
+      "skin": "#C8C8C8",
+      "metal": "#A4A4A4",
+      "wood": "#A4A4A4",
+      "green": "#BDBDBD",
+      "water": "#878787",
+      "shadow": "rgba(0,0,0,0.18)"
+    }
+  },
+  "typography": {
+    "question": {
+      "landscape": 132,
+      "portrait": 108
+    },
+    "bubble": {
+      "landscape": 64,
+      "portrait": 68
+    },
+    "verse": {
+      "landscape": 92,
+      "portrait": 84
+    },
+    "reference": {
+      "landscape": 36,
+      "portrait": 40
+    },
+    "caption": {
+      "landscape": 44,
+      "portrait": 50
+    },
+    "eyebrow": {
+      "landscape": 28,
+      "portrait": 34
+    }
+  },
+  "motion": {
+    "speed": 1,
+    "wordInterval": 5,
+    "captionWords": 6,
+    "boil": true,
+    "boilAmount": 0.7,
+    "float": 1
+  },
+  "overlays": {
+    "captions": true,
+    "chapterLabel": true,
+    "motif": false,
+    "watermark": false
+  }
+}

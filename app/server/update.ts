@@ -47,13 +47,13 @@ export const blockingFiles = async (root: string): Promise<{ tracked: string[]; 
   const tracked: string[] = [], untracked: string[] = [];
   const entries = status.out.split("\0");
   for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
+    const e = entries[i] ?? "";
     if (e.length < 4) continue;
     const code = e.slice(0, 2), file = e.slice(3);
     if (code === "??") untracked.push(file);
     else {
       tracked.push(file);
-      if (code[0] === "R" || code[0] === "C") i++; // -z: the rename/copy source follows
+      if (code.startsWith("R") || code.startsWith("C")) i++; // -z: the rename/copy source follows
     }
   }
   return { tracked, untracked };

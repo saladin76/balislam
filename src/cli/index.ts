@@ -730,14 +730,14 @@ channelCmd
 
 channelCmd
   .command("new")
-  .description("إنشاء قناة جديدة بهوية تبدأ من قناة موجودة")
+  .description("إنشاء قناة جديدة بقالب محايد وقواعد آمنة (أو ببنية قناة موجودة مع --from)")
   .argument("<id>", "معرّف بالإنجليزية، مثل bilislam-tr")
   .requiredOption("-n, --name <name>", "اسم القناة كما يظهر في الفيديو")
   .requiredOption("-l, --lang <lang>", "اللغة: ar | tr | en")
   .option("--latin <name>", "الاسم بالحروف اللاتينية")
-  .option("--from <id>", "القناة التي تُنسخ هويتها", "balislam")
+  .option("--from <id>", "قناة تُنسخ بنية هويتها (بألوان محايدة) وقواعدها؛ بدونها القالب المحايد")
   .option("--no-quran", "قناة لا تستشهد بالقرآن والحديث")
-  .action(async (id: string, opts: { name: string; lang: string; latin?: string; from: string; quran: boolean }) => {
+  .action(async (id: string, opts: { name: string; lang: string; latin?: string; from?: string; quran: boolean }) => {
     const { createChannel } = await import("../channel/create");
     const dir = await createChannel({ id, name: opts.name, language: opts.lang, nameLatin: opts.latin, from: opts.from, quran: opts.quran });
     console.log(`أُنشئت القناة في ${path.relative(projectRoot, dir)}.`);

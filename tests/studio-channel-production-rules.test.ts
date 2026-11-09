@@ -4,7 +4,7 @@ import path from "node:path";
 import balislam from "../channels/balislam/channel.json";
 import dafatir from "../channels/dafatir-alzaman/channel.json";
 import zubdat from "../channels/zubdat-alkutub/channel.json";
-import { channelProductionIssues, channelProductionProfile } from "../src/channel/productionRules";
+import { channelProductionIssues, channelProductionProfile, documentProvenanceCheck, sacredFigureCheck } from "../src/channel/productionRules";
 import { planIssues } from "../src/plan/validate";
 import type { Plan, PlanScene } from "../src/plan/types";
 
@@ -104,5 +104,23 @@ describe("Studio: distinct rules for its three existing channels", () => {
     });
     expect(issues.some(i => i.level === "error" && i.message.includes("الموسيقى"))).toBe(true);
     expect(channelProductionIssues(p, { id: "unknown" })).toEqual([]);
+  });
+
+  it("derives provenance and sacred-figure checks from channel.json policy, not the channel id", () => {
+    // the three channels: provenance only where opted in; sacred figures wherever faces are allowed
+    expect(configs.map(c => documentProvenanceCheck(c))).toEqual([false, true, false]);
+    expect(configs.map(c => sacredFigureCheck(c))).toEqual([false, true, true]);
+    const picture = (id: string) => plan(scene({ template: "doc-plate", props: { figure: "النبي", image: "a.jpg" } }), id);
+    // a renamed or new channel that allows faces gets the sacred-figure error without being called dafatir
+    const faces = { id: "history-tr", rules: { faces: true } };
+    expect(channelProductionIssues(picture(faces.id), faces).map(x => x.code)).toEqual(["sacred-figure-visual"]);
+    expect(channelProductionIssues(picture("x"), { id: "x" }).map(x => x.code)).toEqual(["sacred-figure-visual"]);
+    expect(channelProductionIssues(picture("x"), { id: "x", rules: { faces: false } })).toEqual([]);
+    expect(channelProductionIssues(picture("x"), { id: "x", rules: { faces: true, sacredFigures: false } })).toEqual([]);
+    const opted = { id: "docs", rules: { faces: false, documentProvenance: true } };
+    expect(channelProductionIssues(picture(opted.id), opted).map(x => x.code)).toEqual(["document-provenance"]);
+    // the id alone grants nothing: dafatir without its policy fields behaves like any faces channel
+    const bare = { id: "dafatir-alzaman", rules: { faces: true } };
+    expect(channelProductionIssues(picture(bare.id), bare).map(x => x.code)).toEqual(["sacred-figure-visual"]);
   });
 });

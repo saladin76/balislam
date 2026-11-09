@@ -110,7 +110,7 @@ for (const spec of inputs) {
   const fonts=tool("pdffonts",[target]).split("\n").slice(2).filter(Boolean);
   const unembedded=fonts.filter(row => !/\s+yes\s+(?:yes|no)\s+(?:yes|no)\s+\d+\s+\d+\s*$/.test(row));
   const expectedFont=spec.name.startsWith("dafatir-") ? /Amiri/i :
-    spec.name.startsWith("zubdat-") ? /Tajawal/i : /(?:PlexSansArabic|ElMessiri)/i;
+    spec.name.startsWith("zubdat-") ? /(?:Lalezar|Tajawal)/i : /(?:ArefRuqaa|Tajawal)/i;
   const expectedFontFound=fonts.some(row => expectedFont.test(row));
   const extracted=tool("pdftotext",["-layout",target,"-"]);
   const board=normalizeStoryboard(JSON.parse(readFileSync(spec.source,"utf8")),spec.source);

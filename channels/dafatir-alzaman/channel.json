@@ -65,7 +65,9 @@
     "hadithGrades": [
       "صحيح",
       "حسن"
-    ]
+    ],
+    "sacredFigures": true,
+    "documentProvenance": true
   },
   "script": {
     "fixedChapters": false,

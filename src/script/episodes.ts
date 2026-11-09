@@ -60,14 +60,17 @@ export const resolveEpisodeDir = async (arg: string): Promise<string> => {
 /** ملف البحث بجوار السكريبت (دراسة الكتاب في زبدة الكتب) */
 export const RESEARCH_FILE = "research.md";
 
-/** قالب القناة (templates/<القناة>/<الملف>)، وإلا قالب «بالإسلام» العام. */
-export function templateFor(channelId: string, name: string): string;
+/** قالب القناة بلا هوية: لا يحمل بنية قناة أخرى ولا مصطلحاتها («بعين الإسلام»، «الدفتر»…). */
+export const NEUTRAL_TEMPLATE = "_neutral";
+/** قالب القناة (templates/<القناة>/<الملف>)، وإلا القالب المحايد (templates/_neutral)، لا قالب قناة أخرى. */
+export function templateFor(channelId: string, name: string): string | null;
 export function templateFor(channelId: string, name: string, fallback: false): string | null;
 export function templateFor(channelId: string, name: string, fallback = true): string | null {
   const own = path.join(templatesDir, channelId, name);
   if (existsSync(own)) return own;
   if (!fallback) return null;
-  return path.join(templatesDir, "balislam", name);
+  const neutral = path.join(templatesDir, NEUTRAL_TEMPLATE, name);
+  return existsSync(neutral) ? neutral : null;
 }
 
 export type NewEpisodeOptions = { episode: string; slug: string; domain: string; title?: string; lang?: string };
@@ -96,9 +99,11 @@ export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> =>
       .replace("{{DOMAIN}}", opts.domain)
       .replace("{{EPISODE}}", opts.episode);
   const file = path.join(dir, "script.md");
-  await writeFile(file, fill(await readFile(templateFor(channel.id, "script.md"), "utf8")), "utf8");
-  // ملف البحث (أو دراسة الكتاب) بقالب القناة: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
-  const research = templateFor(channel.id, "research.md", false);
+  const scriptTemplate = templateFor(channel.id, "script.md");
+  if (!scriptTemplate) throw new Error("لا يوجد قالب سكريبت لهذه القناة ولا القالب المحايد templates/_neutral/script.md.");
+  await writeFile(file, fill(await readFile(scriptTemplate, "utf8")), "utf8");
+  // ملف البحث (أو دراسة الكتاب) بقالب القناة، وإلا المحايد: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
+  const research = templateFor(channel.id, "research.md");
   if (research) await writeFile(path.join(dir, RESEARCH_FILE), fill(await readFile(research, "utf8")), "utf8");
   await writeFile(path.join(dir, "voice", ".gitkeep"), "");
   return file;

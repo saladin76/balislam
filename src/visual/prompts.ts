@@ -15,6 +15,10 @@ export const channelImageStyle: Record<string, string> = {
   balislam: "cinematic still, photorealistic, soft natural light, warm calm palette, peaceful atmosphere, subtle film grain",
 };
 
+/** قناة بلا أسلوب معتمد بعد: أسلوب عام لا يحمل بصمة أي قناة (لا تُستعار هوية قناة أخرى). */
+export const neutralImageStyle = "cinematic still, photorealistic, natural light, balanced neutral palette, subtle film grain, clean composition";
+const styleFor = (channel: string) => channelImageStyle[channel] ?? neutralImageStyle;
+
 /** أسلوب الأرشيف: مخطوطات وخرائط ولوحات قديمة */
 export const archiveStyle =
   "high resolution museum scan of an authentic-looking medieval Islamic-era manuscript page or map, aged parchment, faded ink, gold leaf details, visible paper texture and edges, flat even lighting, no modern elements";
@@ -32,7 +36,7 @@ export type ImagePromptInput = { channel: string; prompt: string; look?: PromptL
 export const fullImagePrompt = ({ channel, prompt, look = "scene" }: ImagePromptInput) => {
   const subject = prompt.trim().replace(/\s+/g, " ").replace(/[.,;\s]+$/, "");
   if (!subject) return "";
-  const style = look === "archive" ? archiveStyle : (channelImageStyle[channel] ?? channelImageStyle["dafatir-alzaman"]!);
+  const style = look === "archive" ? archiveStyle : styleFor(channel);
   const parts = look === "archive" ? [subject, style] : [subject, style, ruleFor(channel)];
   return `${parts.join(", ")}. ${negativeRule}.`;
 };
@@ -57,7 +61,7 @@ export const fireflyPrompt = (input: ImagePromptInput & { video?: boolean }) => 
       prompt: `${subject}, cinematic historical documentary footage, photorealistic, natural light, shallow depth of field, slow subtle camera movement, film grain, no people's faces`,
       exclude: "text, letters, logo, watermark, modern objects, faces",
     };
-  const style = input.look === "archive" ? archiveStyle : (channelImageStyle[input.channel] ?? channelImageStyle["dafatir-alzaman"]!);
+  const style = input.look === "archive" ? archiveStyle : styleFor(input.channel);
   const parts = input.look === "archive" ? [subject, style] : [subject, style, ruleFor(input.channel)];
   return { prompt: parts.join(", "), exclude: input.channel === "balislam" ? "people, faces, text, letters, watermark, logo" : input.channel === "dafatir-alzaman" ? "text, letters, captions, watermark, logo, modern objects, close-up faces, portraits" : "text, letters, captions, watermark, logo, close-up faces, portraits" };
 };
@@ -89,5 +93,11 @@ export const chatgptProjectInstructions = (channel: string) => {
       "Absolutely no people, faces, hands or human figures in any image: places, nature and objects only.",
     ],
   };
-  return [...common, ...(byChannel[channel] ?? byChannel["dafatir-alzaman"]!)].join("\n");
+  // قناة بلا تعليمات معتمدة: أسلوب عام وأحوط القواعد (بلا وجوه، ولا نبي ولا صحابي ولا ملك)، لا أسلوب قناة أخرى
+  const neutral = [
+    `Style: ${neutralImageStyle}.`,
+    "People: only seen from behind, as silhouettes or small distant figures. No visible faces.",
+    "Never depict any prophet, companion of the Prophet, or angel, and never depict the Kaaba or recognizable sacred landmarks unless I explicitly name them.",
+  ];
+  return [...common, ...(byChannel[channel] ?? neutral)].join("\n");
 };

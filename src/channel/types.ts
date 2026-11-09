@@ -57,6 +57,13 @@ export type ChannelConfig = {
     quran: boolean;
     hadith: boolean;
     hadithGrades: string[];
+    /**
+     * فحص «لا يُصوَّر نبي ولا صحابي» في أوصاف الشخصيات والصور (src/channel/productionRules.ts).
+     * غير محدد: يعمل في كل قناة لا تمنع الوجوه (faces ليست false)؛ والقيمة الصريحة تحكم.
+     */
+    sacredFigures?: boolean;
+    /** تنبيه توثيق مصدر الصورة الوثائقية (doc-plate) وحقوقها. غير محدد: لا يعمل. */
+    documentProvenance?: boolean;
   };
   /**
    * مكتبة القناة: ما يستبعده صاحب القناة منها لأنه لا يناسب هويتها (أداة حديثة في قناة تاريخ، مكان برسومات قديمة…).
@@ -87,12 +94,12 @@ export type ChannelConfig = {
 };
 
 /** ما تحتاجه المشاهد من القناة (يمر للرندر وللاستوديو). */
-export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith">>; library?: ChannelConfig["library"]; script?: ChannelConfig["script"]; verse?: ChannelConfig["verse"]; pacing?: ChannelConfig["pacing"]; frame?: ChannelConfig["frame"]; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
+export type ChannelInfo = Pick<ChannelConfig, "id" | "name" | "nameDisplay" | "nameLatin" | "language" | "logo" | "brand"> & { rules?: Pick<ChannelConfig["rules"], "faces" | "music"> & Partial<Pick<ChannelConfig["rules"], "quran" | "hadith" | "sacredFigures" | "documentProvenance">>; library?: ChannelConfig["library"]; script?: ChannelConfig["script"]; verse?: ChannelConfig["verse"]; pacing?: ChannelConfig["pacing"]; frame?: ChannelConfig["frame"]; cast?: ChannelConfig["cast"]; tone?: string; voiceProfile?: string };
 
 /** القناة الافتراضية مضمّنة للمتصفح ولـ Remotion عند غياب قناة صريحة. */
 export const defaultChannel = defaultChannelJson as ChannelConfig;
 
-export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame });
+export const channelInfo = (c: ChannelConfig): ChannelInfo => ({ id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith, sacredFigures: c.rules.sacredFigures, documentProvenance: c.rules.documentProvenance }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame });
 
 export const domainIds = (c: ChannelConfig) => Object.keys(c.domains);
 

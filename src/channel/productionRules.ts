@@ -80,6 +80,17 @@ export const channelProductionProfile = (channel: ChannelRulesInput): ChannelPro
   };
 };
 
+/**
+ * Policy switches come from channel.json, never from the channel id:
+ * - sacredFigures: explicit value wins; unset → on for every channel that does not forbid faces
+ *   (a channel without faces cannot depict anyone, and a channel without rules gets the safe default).
+ * - documentProvenance: explicit opt-in (dafatir-alzaman, and every new channel from createChannel).
+ */
+export const sacredFigureCheck = (channel: ChannelRulesInput): boolean =>
+  typeof channel.rules?.sacredFigures === "boolean" ? channel.rules.sacredFigures : channel.rules?.faces !== false;
+export const documentProvenanceCheck = (channel: ChannelRulesInput): boolean =>
+  channel.rules?.documentProvenance === true;
+
 const musicFileName = (sfxId: string): boolean =>
   /^(?:music|bgm|background-music|soundtrack|song|melody)(?:[-_]|$)/i.test(sfxId);
 
@@ -96,6 +107,7 @@ export const channelProductionIssues = (
 ): ChannelPolicyIssue[] => {
   if (!channel) return [];
   const issues: ChannelPolicyIssue[] = [];
+  const provenance = documentProvenanceCheck(channel), sacred = sacredFigureCheck(channel);
   for (const chapter of plan.chapters) for (const scene of chapter.scenes) {
     if (channel.rules?.quran === false && scene.template === "verse-card") {
       issues.push({ level: "error", sceneId: scene.id, code: "quran-forbidden",
@@ -111,12 +123,12 @@ export const channelProductionIssues = (
     }
     // An archival image may be original, licensed or generated. The machine
     // cannot know which; ask the owner for provenance rather than claiming it.
-    if (channel.id === "dafatir-alzaman" && scene.template === "doc-plate" &&
+    if (provenance && scene.template === "doc-plate" &&
         scene.props.image?.trim() && !scene.props.credit?.trim()) {
       issues.push({ level: "warning", sceneId: scene.id, code: "document-provenance",
         message: "حدد في مراجعة المشهد إن كانت الصورة وثيقة تاريخية أم إعادة بناء؛ وثّق المصدر وحقوقه إن كانت وثيقة أصلية." });
     }
-    if (channel.id === "dafatir-alzaman" && Object.entries(scene.props).some(
+    if (sacred && Object.entries(scene.props).some(
       ([key, value]) => /^(?:figure|figure2|imagePrompt|characterPrompt)$/.test(key) &&
         sacredFigureReference(value ?? ""),
     )) {
