@@ -320,6 +320,9 @@ describe("على القرص: جلسة المالك، القص، التوليد،
     expect(sent.map((x) => x.text)).toEqual([S2]);
     expect(index()["c1-s1"]).toEqual(composed);
     expect(existsSync(path.join(EP_DIR(), "voice", composed.file))).toBe(true);
+    // «أعد توليد الصوت» للمشهد كله لا يعيده بصمت: يقول أين يولَّد
+    await expect(generateVoice("987", { client, testOnlySkipGates: true, only: ["c1-s1"], force: true })).rejects.toThrow(/جملةً جملة/);
+    expect(sent.map((x) => x.text)).toEqual([S2]);
     const { scenesNeedingVoice } = await import("../src/studio/prepareAll");
     expect(await scenesNeedingVoice("987")).not.toContain("c1-s1");
   }, 60_000);

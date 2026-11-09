@@ -156,6 +156,9 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   const sceneOf = (j: Job) => j.scene ?? j.id;
   const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath);
   const jobs = allJobs.filter((j) => (!opts.only || opts.only.includes(sceneOf(j))) && !managed.has(sceneOf(j)));
+  // «أعد توليد الصوت» لمشهد صوته جمل: لا يُعاد كاملًا بصمت؛ يُقال للمالك أين يولّده
+  if (!opts.dryRun && opts.only?.length && opts.only.every((id) => managed.has(id)))
+    throw new Error("صوت هذا المشهد يُولَّد جملةً جملة: ولّد الجملة المقصودة من «الجمل» تحت معاينة المشهد.");
   const partsDir = path.join(dir, "parts");
   const partsIndexFile = path.join(partsDir, "index.json");
   type PartClipRecord = { file: string; hash: string; text: string; duration: number; words: TimedWord[] };
