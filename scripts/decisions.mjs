@@ -102,11 +102,12 @@ export const appendDecision = (root, id, title, logs) => {
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename);
 if (isMain) {
   const cmd = process.argv[2];
-  // البوابة تشغّله داخل نسختها المؤقتة (cwd)؛ وإلا فالمستودع الذي فيه السكربت
+  // check: سجلات المجلد الحالي (البوابة تشغّله داخل نسختها المؤقتة؛ نسخة بلا docs/ لا سجل فيها يُفحص).
+  // next: المجلد الحالي إن كان فيه docs/، وإلا المستودع الذي فيه السكربت
   const here = existsSync(path.join(process.cwd(), "docs")) ? process.cwd() : repoRoot;
   if (cmd === "next") { console.log(nextDecisionId(here)); process.exit(0); }
   if (cmd === "check") {
-    const dups = duplicateDefinitions(readLogs(here));
+    const dups = duplicateDefinitions(readLogs(process.cwd()));
     for (const d of dups) {
       console.error(`✗ رقم القرار ${d.id} معرَّف أكثر من مرة:`);
       for (const a of d.at) console.error(`   - ${a.file}:${a.line}  ${a.heading}`);
