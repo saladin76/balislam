@@ -179,7 +179,7 @@ describe("D49: persistent, device-bound owner session", () => {
     expect(everything).not.toContain(PASS);
     expect(safeTrackedContains(token)).toEqual([]);
     expect(safeTrackedContains(PASS)).toEqual([]);
-  });
+  }, 120_000); // restarts the Studio server: slow under the full parallel suite
 
   it("a wrong or forged token is refused; a record written by hand is worthless without the machine key", async () => {
     const forged = `bos_${randomBytes(32).toString("hex")}`;
