@@ -31,9 +31,11 @@ export const scenesNeedingVoice = async (episode: string): Promise<string[]> => 
   if (!plan) return [];
   const voice = await loadVoiceIndex(episode);
   const dir = voiceDirFor(scriptPath);
+  // Scenes voiced sentence by sentence (D50) are the owner's own work in «الجمل»; never regenerated whole here.
+  const managed = await (await import("../voice/sentenceVoice")).sentenceManagedScenes(scriptPath);
   return plan.chapters.flatMap((c) => c.scenes).filter((s) => {
     const text = s.narration?.trim() ?? "";
-    if (!text || s.template === "verse-card") return false;
+    if (!text || s.template === "verse-card" || managed.has(s.id)) return false;
     const clip = voice[s.id];
     return !clip || clip.text !== text || path.basename(clip.file) !== clip.file || !existsSync(path.join(dir, clip.file));
   }).map((s) => s.id);
