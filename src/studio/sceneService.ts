@@ -8,6 +8,7 @@
  */
 import path from "node:path";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { inLoopbackOwnerRequest, issueOwnerSessionToken, looksLikeOwnerSessionToken, verifyOwnerSessionToken } from "./ownerSessions";
 import { lstat, open, readFile, rename, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
@@ -89,13 +90,31 @@ export const OWNER_AUTH_ERROR = "OWNER_AUTH";
 const ownerAuthError = (message: string) => Object.assign(new Error(message), { code: OWNER_AUTH_ERROR });
 export const isOwnerAuthError = (error: unknown): boolean =>
   (error as { code?: unknown } | null)?.code === OWNER_AUTH_ERROR;
+const passphraseMatches = (expected: string, token: string): boolean =>
+  timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sha(token), "hex"));
+/**
+ * The owner credential is either the passphrase itself, or (D49, 9 Nov) a revocable device session
+ * token issued after that passphrase — accepted ONLY inside a loopback Studio HTTP request
+ * (src/studio/ownerSessions.ts). The CLI and direct service calls never run in that scope, so for them
+ * only the passphrase counts. Every gate after this check is unchanged.
+ */
 export const assertSceneOwner = (token: unknown): void => {
   const expected = ownerPassphraseSha256();
   if (!expected) throw ownerAuthError("Set the owner passphrase in the Studio first; approvals are disabled until then.");
   if (typeof token !== "string" || !token || token.length > 4096)
     throw ownerAuthError("Owner session authentication is required.");
-  if (!timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(sha(token), "hex")))
+  if (passphraseMatches(expected, token)) return;
+  if (looksLikeOwnerSessionToken(token) && verifyOwnerSessionToken(token)) return;
+  throw ownerAuthError("Owner session authentication is required.");
+};
+/** «فتح الجلسة»: the passphrase (never a token) proves the owner once; a device session token is issued. */
+export const openOwnerSession = (passphrase: unknown): string => {
+  const expected = ownerPassphraseSha256();
+  if (!expected) throw ownerAuthError("Set the owner passphrase in the Studio first; approvals are disabled until then.");
+  if (typeof passphrase !== "string" || !passphrase || passphrase.length > 4096 || !passphraseMatches(expected, passphrase))
     throw ownerAuthError("Owner session authentication is required.");
+  if (!inLoopbackOwnerRequest()) throw ownerAuthError("The owner session opens only on this device.");
+  return issueOwnerSessionToken();
 };
 const signature = (doc: Omit<SignedSceneLedger, "mac">): string =>
   createHmac("sha256", workflowSigningKey())

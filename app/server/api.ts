@@ -126,7 +126,10 @@ export const balApi = (): Plugin => ({
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
         const channelMod = await load("/src/channel/index.ts");
         // كل ما يلي يعمل على قناة هذا الطلب فقط (حتى العمليات الطويلة بعد await)
-        return await channelMod.runWithChannel(ch, async () => {
+        // جلسة المالك الدائمة (D49): رمز الجلسة يُقبل فقط داخل طلب وصل من عنوان الجهاز نفسه (loopback)،
+        // والعنوان من المقبس لا من أي ترويسة.
+        const ownerSessions = await load("/src/studio/ownerSessions.ts");
+        return await ownerSessions.runOwnerRequest(req.socket?.remoteAddress, () => channelMod.runWithChannel(ch, async () => {
         const cp = channelMod.channelPaths(ch);
         const episodesDir: string = cp.episodes;
         const identityFile: string = cp.identity;
@@ -147,6 +150,29 @@ export const balApi = (): Plugin => ({
           const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
           try { assertSceneOwner(b?.passphrase); return send(res, 200, { ok: true }); }
           catch { await new Promise((r) => setTimeout(r, 400)); return send(res, 200, { ok: false }); }
+        }
+        // جلسة المالك على جهازه (D49): تُفتح بكلمة المرور مرة فيُصدر رمز عشوائي يُحفظ في المتصفح،
+        // ولا يُحفظ على الخادم إلا بصمته؛ GET يتحقق من الرمز بعد التحديث، وDELETE يلغيه («أغلق الجلسة»).
+        if (parts[0] === "owner-session" && parts.length === 1) {
+          const sessions = await load("/src/studio/ownerSessions.ts");
+          if (!sessions.inLoopbackOwnerRequest())
+            return send(res, 403, { error: "جلسة المالك تُفتح على جهازه فقط." });
+          const header = req.headers["x-studio-owner-token"];
+          if (req.method === "GET") {
+            const svc = await load("/src/studio/sceneService.ts");
+            return send(res, 200, { open: sessions.looksLikeOwnerSessionToken(header) && sessions.verifyOwnerSessionToken(header) && Boolean(svc.ownerPassphraseSha256()) });
+          }
+          if (req.method === "POST") {
+            const b = await readBody(req);
+            const { openOwnerSession } = await load("/src/studio/sceneService.ts");
+            try { return send(res, 200, { ok: true, token: openOwnerSession(b?.passphrase) }); }
+            catch { await new Promise((r) => setTimeout(r, 400)); return send(res, 200, { ok: false }); }
+          }
+          if (req.method === "DELETE") {
+            sessions.revokeOwnerSessionToken(header);
+            return send(res, 200, { open: false });
+          }
+          return send(res, 405, { error: "Method not allowed" });
         }
         if (parts[0] === "owner-passphrase" && parts.length === 1) {
           const env = await load("/src/settings/env.ts");
@@ -601,7 +627,7 @@ export const balApi = (): Plugin => ({
         }
 
         return send(res, 404, { error: "مسار غير معروف" });
-        });
+        }));
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
         return send(res, 500, { error: (err as Error).message });

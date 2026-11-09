@@ -79,7 +79,7 @@ export const ensureLocalSecrets = async (): Promise<string[]> => {
 /**
  * كلمة مرور المالك: يختارها صاحب القناة بنفسه في الاستوديو، ويُحفظ في .env بصمتها فقط (SHA-256).
  * هي ما يثبت أن الاعتماد قرار بشري منه، فلا تُولَّد آليًا ولا تُكتب في أي ملف بنصها.
- * تغييرها يتطلب الكلمة الحالية.
+ * تغييرها يتطلب الكلمة الحالية، ويلغي كل جلسات المالك المفتوحة (D49).
  */
 export const OWNER_PASSPHRASE_KEY = "BAL_STUDIO_OWNER_PASSPHRASE_SHA256";
 export const setOwnerPassphrase = async (passphrase: unknown, current?: unknown): Promise<void> => {
@@ -101,4 +101,7 @@ export const setOwnerPassphrase = async (passphrase: unknown, current?: unknown)
   const { chmod } = await import("node:fs/promises");
   await chmod(file, 0o600);
   process.env[OWNER_PASSPHRASE_KEY] = digest(passphrase);
+  // كل جلسات المالك المفتوحة على أجهزته تُلغى بتغيير كلمة المرور (D49)؛ وربط كل جلسة ببصمة الكلمة يرفضها أصلًا.
+  const { revokeAllOwnerSessions } = await import("../studio/ownerSessions");
+  revokeAllOwnerSessions();
 };

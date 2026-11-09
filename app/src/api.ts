@@ -153,6 +153,13 @@ export const api = {
   ownerPassphrase: () => call<{ set: boolean }>("/api/owner-passphrase"),
   setOwnerPassphrase: (passphrase: string, current?: string) =>
     call<{ set: boolean }>("/api/owner-passphrase", { method: "POST", json: { passphrase, ...(current ? { current } : {}) } }),
+  /** D49: open a device session once with the passphrase; the server returns a revocable token. */
+  openOwnerSession: (passphrase: string) =>
+    call<{ ok: boolean; token?: string }>("/api/owner-session", { method: "POST", json: { passphrase } }),
+  ownerSessionStatus: (token: string) =>
+    call<{ open: boolean }>("/api/owner-session", { headers: { "x-studio-owner-token": token } }),
+  closeOwnerSession: (token: string) =>
+    call<{ open: boolean }>("/api/owner-session", { method: "DELETE", headers: { "x-studio-owner-token": token } }),
   checkOwnerPassphrase: (passphrase: string) =>
     call<{ ok: boolean }>("/api/owner-passphrase/check", { method: "POST", json: { passphrase } }),
   sceneProduction: (episode: string, channel?: string) =>

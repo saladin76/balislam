@@ -149,8 +149,8 @@ narrated scene without a current clip, through `generateVoice` (tashkeel ≥ 98%
 approval; verse cards carry no narration, recitations stay the owner's own recording); without a voice key this step is
 skipped and reported in one line; (2) AV preview drafts for the current scene and every later open scene, one at a time
 in order, through the same renderer and slot (`previews/scene-<id>-av.mp4`). In the Studio it runs as an in-process
-background queue (`app/server/prepare.ts`, `GET/POST /api/episodes/<ep>/scene-prepare`); the passphrase lives only in
-the job's memory, and a restart drops the job (finished drafts remain). `DELETE …/scene-prepare` (owner only, D36) asks the
+background queue (`app/server/prepare.ts`, `GET/POST /api/episodes/<ep>/scene-prepare`); the owner credential (passphrase or
+D49 device-session token, re-checked by the job) lives only in the job's memory, and a restart drops the job (finished drafts remain). `DELETE …/scene-prepare` (owner only, D36) asks the
 queue to stop: the voice clip or scene render in progress finishes and is kept, nothing new starts, status `stopped`;
 on the dafatir parts path no scene is composed from an incomplete set of parts. A tone is present when the scene has
 one or inherits the episode's (then the channel's) tone (`effectiveTone`, D36); the dafatir tone map is unchanged.
@@ -224,6 +224,19 @@ before that he watches a pre-final version with narration and no recitation. Fin
 
 **Owner identity:** approvals need the owner passphrase, chosen once in «إنتاج المشاهد» (only its SHA-256 is stored in
 `.env`). The ledger is signed with the separate random `BAL_WORKFLOW_HMAC_KEY`. There is no bypass flag in the UI, API or CLI.
+
+**Device session (D49, owner decision 9 Nov).** The owner types the passphrase once: `POST /api/owner-session` verifies
+it (`openOwnerSession`, passphrase only — a token cannot open a session) and issues a random token `bos_<64 hex>`
+(`src/studio/ownerSessions.ts`). The server keeps only `HMAC(BAL_WORKFLOW_HMAC_KEY, token)` plus a binding
+`HMAC(key, passphrase hash)` in `.studio/owner-sessions.json` beside `.env` (git-ignored, mode 0600); the browser keeps the
+token in `localStorage`. `assertSceneOwner` accepts the passphrase as before, **or** a stored, unrevoked token of the
+current passphrase — but a token only inside a Studio HTTP request whose socket address is loopback (`runOwnerRequest`
+around every `/api/*` request; no header is trusted). The CLI and direct service calls never run in that scope, so they
+still need the passphrase (`BAL_OWNER_PASSPHRASE` or the prompt). A record written by hand is worthless without the machine
+key. «أغلق الجلسة» (`DELETE /api/owner-session`) revokes the token; changing the passphrase deletes the file, and the
+binding refuses any record of an older passphrase anyway. The ledger is unchanged: it is signed by the machine key, never
+by the passphrase or the token, and neither is written into it; a decision made with the token is recorded exactly like
+one made with the passphrase. Every gate after the identity check is untouched. Test: `tests/studio-owner-session.test.tsx`.
 
 The isolated V2 review API is no longer mounted (`/api/studio-v2/*` returns 410). Its server modules
 (`app/server/studioV2*.ts`, `src/workflow/*V2*.ts`, `src/render/sceneV2*.ts`) were removed in D27.

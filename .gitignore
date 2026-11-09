@@ -2,6 +2,8 @@ node_modules/
 # رابط node_modules (ليس مجلدًا) لا يُحفظ أيضًا
 node_modules
 .env
+# جلسات المالك على جهازه (D49): بصمات رموز الجلسة فقط، محلية ولا تُرفع أبدًا
+.studio/
 out/
 renders/
 *.log

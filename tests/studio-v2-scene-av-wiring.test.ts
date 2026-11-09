@@ -61,10 +61,15 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(ui).toContain("confirmedWatched: true");
     expect(ui).toContain("useOwnerSession()");
     expect(ui).not.toMatch(/localStorage|sessionStorage|setTimeout|autoApprove/i);
-    // كلمة مرور المالك تُكتب في جلسة الشريط العلوي، وتبقى في الذاكرة فقط
+    // كلمة مرور المالك تُكتب في جلسة الشريط العلوي ولا تُحفظ في المتصفح أبدًا؛ منذ D49 (٩ نوفمبر) يُحفظ
+    // رمز الجلسة الذي يصدره الخادم وحده، بمفتاح واحد (tests/studio-owner-session.test.tsx).
     const owner = src("app/src/shell/ownerSession.tsx");
     expect(owner).toContain('type="password"');
-    expect(owner).not.toMatch(/localStorage|sessionStorage|autoApprove/i);
+    expect(owner).not.toMatch(/sessionStorage|autoApprove/i);
+    expect(owner.match(/localStorage\.setItem\(/g)).toHaveLength(1);
+    expect(owner).toContain("window.localStorage.setItem(OWNER_SESSION_STORAGE_KEY, v)");
+    expect(owner.match(/storage\.set\(/g)).toEqual(["storage.set("]);
+    expect(owner).toContain("storage.set(r.token)");
     const app = src("app/src/App.tsx");
     expect(app).toContain("<SceneProductionPanel");
     expect(app).toContain("<EpisodeSpine");
