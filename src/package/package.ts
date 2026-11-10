@@ -10,7 +10,7 @@ import { prepareRenderMedia } from "../plan/collect";
 import { scenesOf } from "../remotion/scenes/Episode";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
 import { buildSrt } from "./captions";
-import { assertNoTraces } from "./traces";
+import { assertNoTraces, onScreenTexts } from "./traces";
 import { kitBlockMessage, kitIssues } from "./quality";
 import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../render/motionMeter";
 import { exemptForRender } from "../render/stillness";
@@ -113,6 +113,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const published = (await readdir(dir)).filter((f) => f === "youtube.md" || f === "social.md" || f.endsWith(".srt"));
   assertNoTraces(await Promise.all(published.map(async (name) => ({ name, text: await readFile(path.join(dir, name), "utf8") }))));
   assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
+  // and on screen: scene props (text, lines, chapter cards, end screen), chapter titles, frontmatter.book (C2)
+  assertNoTraces(onScreenTexts(plan, (parseScript(script).frontmatter ?? {}) as Record<string, unknown>));
 
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };

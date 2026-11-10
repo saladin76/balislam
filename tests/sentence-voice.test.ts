@@ -375,5 +375,7 @@ describe("دفاتر الزمن: نبرة الجملة تكتب إصدارًا �
     const plan = (await readPlanFile(path.join(dir, "script.md")))!;
     expect((await loadPartsContext(path.join(dir, "script.md"), plan))!.jobs.length).toBe(52);
     expect(readdirSync(dir).filter((f) => f.startsWith("tone-map"))).toEqual(expect.arrayContaining(["tone-map.json", "tone-map.v1.2.json"]));
-  });
+    // A real 52-part episode read three times plus a tone-map write: it took 4–9 s on a loaded machine and
+    // flaked on the 5 s default (QA, 10 Nov 2026). The per-test timeout is raised; nothing is weakened.
+  }, 60_000);
 });

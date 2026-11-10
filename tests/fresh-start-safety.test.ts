@@ -32,14 +32,16 @@ const setup = () => {
   copyFileSync(path.join(import.meta.dirname, "..", ".gitignore"), path.join(work, ".gitignore"));
   put(work, "channels/c/episodes/001-a/script.md", "# a\n");
   put(work, "channels/c/episodes/001-a/review.json", "{}\n");
+  put(work, "channels/c/episodes/001-a/plan.json", "{\"v\":1}\n");
+  put(work, "channels/c/pronunciations.json", "{\"entries\":[]}\n");
   g(work, "add", "-A"); g(work, "commit", "-qm", "init"); g(work, "push", "-q", "origin", "HEAD:main");
   mkdirSync(home); mkdirSync(bin);
   // npm/open/sleep are stubs: the script's install, typecheck and studio launch are out of scope here.
   for (const name of ["npm", "open", "sleep"]) {
     writeFileSync(path.join(bin, name), "#!/bin/sh\nexit 0\n"); chmodSync(path.join(bin, name), 0o755);
   }
-  const run = () => spawnSync("bash", [path.join(work, "fresh-start.command")], {
-    cwd: work, input: "نعم\n", env: { ...gitEnv, HOME: home, PATH: `${bin}:${process.env.PATH}` }, timeout: 60_000,
+  const run = (input = "نعم\n") => spawnSync("bash", [path.join(work, "fresh-start.command")], {
+    cwd: work, input, env: { ...gitEnv, HOME: home, PATH: `${bin}:${process.env.PATH}` }, timeout: 60_000,
   });
   return { work, home, run };
 };
@@ -59,6 +61,10 @@ const PROTECTED = [
   "channels/c/episodes/001-a/voice/superseded/c1-s1-old.mp3",
   "channels/c/episodes/001-a/recitations/a.mp3",
   "channels/c/episodes/001-a/out/draft.mp4",
+  // approved scene cuts, the assembly and their history (QA H5)
+  "channels/c/episodes/001-a/previews/scene-c1-s1-av.mp4",
+  "channels/c/episodes/001-a/previews/assembly.mp4",
+  "channels/c/episodes/001-a/previews/history/previous-1.mp4",
   // a whole untracked episode folder: its ledger and voice stay, only disposable media move
   "channels/c/episodes/002-new/scene-production.v1.json",
   "channels/c/episodes/002-new/voice/c1-s1.mp3",
@@ -104,5 +110,29 @@ describe("fresh-start.command safety", () => {
     expect(r.status).toBe(1);
     expect(r.stdout.toString()).toContain("local approval");
     expect(g(work, "rev-parse", "HEAD")).toBe(head);
+  }, 60_000);
+
+  it("names locally modified tracked files and stops unless the owner types «نعم» again (QA H5)", () => {
+    const { work, run } = setup();
+    put(work, "channels/c/episodes/001-a/plan.json", "{\"v\":2}\n");
+    put(work, "channels/c/pronunciations.json", "{\"entries\":[1]}\n");
+    const r = run("نعم\nلا\n");
+    expect(r.status).toBe(1);
+    const out = r.stdout.toString();
+    expect(out).toContain("channels/c/episodes/001-a/plan.json");
+    expect(out).toContain("channels/c/pronunciations.json");
+    expect(out).toContain("توقفت البداية النظيفة ولم يتغير أي ملف");
+    expect(readFileSync(path.join(work, "channels/c/episodes/001-a/plan.json"), "utf8")).toBe("{\"v\":2}\n");
+    expect(readFileSync(path.join(work, "channels/c/pronunciations.json"), "utf8")).toBe("{\"entries\":[1]}\n");
+  }, 60_000);
+
+  it("after a second «نعم» it resets the modified files but keeps a copy in the archive", () => {
+    const { work, home, run } = setup();
+    put(work, "channels/c/episodes/001-a/plan.json", "{\"v\":2}\n");
+    const r = run("نعم\nنعم\n");
+    expect(r.status, r.stdout.toString() + r.stderr.toString()).toBe(0);
+    expect(readFileSync(path.join(work, "channels/c/episodes/001-a/plan.json"), "utf8")).toBe("{\"v\":1}\n");
+    const copies = execFileSync("find", [path.join(home, "balislam-archive"), "-path", "*modified-before-reset*", "-name", "plan.json"]).toString().trim();
+    expect(readFileSync(copies, "utf8")).toBe("{\"v\":2}\n");
   }, 60_000);
 });

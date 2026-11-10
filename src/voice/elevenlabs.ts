@@ -1,6 +1,7 @@
 import config from "../../config.json";
 import { loadChannel } from "../channel/index";
 import { capsFor, stabilityFor, withDirection } from "./models";
+import { assertNoQuranForTts, ttsContext, type TtsScene } from "./quranGuard";
 
 /** صوت القناة الحالية: ما اختير في إعدادات القناة، وإلا ELEVENLABS_VOICE_ID العام. */
 export const voiceIdFor = (): string | undefined => {
@@ -48,6 +49,13 @@ const explain = (status: number, body: string) => {
   return `ElevenLabs أعاد خطأ ${status}: ${body.slice(0, 200)}`;
 };
 
+/** What the Quran guard needs to know about a TTS request (all optional; the text itself is always checked). */
+export type TtsGuardContext = {
+  previousText?: string; nextText?: string;
+  scene?: TtsScene | null; previousScene?: TtsScene | null; nextScene?: TtsScene | null;
+  verses?: readonly string[]; source?: string;
+};
+
 export type ElevenLabsOptions = { apiKey: string; voiceId: string; modelId?: string; settings?: VoiceSettings; fetchImpl?: typeof fetch };
 
 export const createElevenLabs = (opts: ElevenLabsOptions) => {
@@ -77,7 +85,12 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
    * جسم الطلب بحسب قدرات النموذج: السرعة والتعبير والنص المجاور لمن يقبلها، والثبات بصيغته،
    * وأمر الأداء أول النص للنماذج الحديثة. السرعة في النماذج التي لا تقبلها تُطبَّق بعد التوليد (tempo.ts).
    */
-  const bodyFor = (text: string, model: string, t: Tune | undefined, ctx: { previousText?: string; nextText?: string } = {}) => {
+  const bodyFor = (text: string, model: string, t: Tune | undefined, ctx: TtsGuardContext = {}) => {
+    // The single Quran guard (src/voice/quranGuard.ts): no request body is ever built for a verse scene, a
+    // ﴿…﴾ span or a known verse; and the neighbour context is sent without any Quran span.
+    assertNoQuranForTts(text, ctx.scene, { verses: ctx.verses, source: ctx.source });
+    const previousText = ttsContext(ctx.previousText, ctx.previousScene, ctx.verses);
+    const nextText = ttsContext(ctx.nextText, ctx.nextScene, ctx.verses);
     const caps = capsFor(model);
     const tune = t ?? { stability: s.stability, style: s.style, speed: s.speed };
     return {
@@ -91,12 +104,12 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
         ...(caps.speed === "native" ? { speed: tune.speed } : {}),
       },
       seed: s.seed,
-      ...(caps.context ? { previous_text: ctx.previousText || undefined, next_text: ctx.nextText || undefined } : {}),
+      ...(caps.context ? { previous_text: previousText || undefined, next_text: nextText || undefined } : {}),
     };
   };
 
   /** صوت مشهد مع توقيت الحروف. إن لم يدعم النموذج التوقيت يُرجع الصوت وحده. */
-  const tts = async (text: string, ctx: { previousText?: string; nextText?: string; voiceId?: string; tune?: Tune; modelId?: string } = {}): Promise<TtsResult> => {
+  const tts = async (text: string, ctx: TtsGuardContext & { voiceId?: string; tune?: Tune; modelId?: string } = {}): Promise<TtsResult> => {
     const model = ctx.modelId || modelId;
     const body = bodyFor(text, model, ctx.tune, ctx);
     const voice = ctx.voiceId || opts.voiceId;
@@ -115,6 +128,7 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
 
   /** مؤثر صوتي من وصف نصي (0.5 إلى 30 ثانية). */
   const soundEffect = async (text: string, seconds?: number, promptInfluence = 0.5): Promise<Buffer> => {
+    assertNoQuranForTts(text, null, { source: "sound-effect" });
     const res = await post(`/v1/sound-generation?output_format=${s.outputFormat}`, {
       text,
       duration_seconds: seconds ? Math.min(30, Math.max(0.5, seconds)) : undefined,
@@ -145,7 +159,7 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
 
   /** عيّنة سماع بلا توقيت (لضبط طبقة القناة والنبرة قبل توليد حلقة). */
   const sample = async (text: string, ctx: { tune?: Tune; modelId?: string } = {}): Promise<Buffer> => {
-    const res = await post(`/v1/text-to-speech/${opts.voiceId}?output_format=${s.outputFormat}`, bodyFor(text, ctx.modelId || modelId, ctx.tune));
+    const res = await post(`/v1/text-to-speech/${opts.voiceId}?output_format=${s.outputFormat}`, bodyFor(text, ctx.modelId || modelId, ctx.tune, { source: "voice-sample" }));
     return Buffer.from(await res.arrayBuffer());
   };
 

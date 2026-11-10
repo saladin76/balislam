@@ -295,7 +295,70 @@ update, the list and a disabled button; `start-studio.command` prints the same l
 **Fresh start.** `fresh-start.command` never archives or deletes `.studio/`, the approval files above, `notes/`, `voice/`,
 `recitations/`, `out/`, `assets/recitations/`, `status.json`, `publish.json` or plan backups (`is_protected`). It inspects
 untracked folders file by file, and stops before `git reset --hard` when a tracked protected file has unsaved changes or
-local commits were never pushed. Test: `tests/fresh-start-safety.test.ts` (temporary git repository).
+local commits were never pushed. `previews/` (approved scene cuts, the assembly and `history/`) is protected too (D58).
+Any other tracked file modified on the machine (`plan.json`, `pronunciations.json`, `tashkeel.md`…) is listed by name
+before the reset, and the reset happens only if the owner types «نعم» a second time; a copy of each goes to
+`<archive>/modified-before-reset/` first. Test: `tests/fresh-start-safety.test.ts` (temporary git repository).
+
+### Robustness: reconcile by scene id, locks and atomic state (D59)
+
+**Ledger reconcile by scene id** (`reconcileSceneLedger`, `src/studio/sceneService.ts`). Every ledger operation reconciles
+the signed state with the episode as it is now:
+- a scene id still present keeps its status and approval; if its own input fingerprint (`sourceSha256`: its content, its
+  board record, its narration clip, its recitation) changed it is re-opened by `reviseSceneInput` (queued stays queued,
+  anything else becomes `needs_revision`);
+- a new scene id enters `queued` at its plan position; a removed id is dropped with its approval;
+- script and storyboard approvals stay unless their own hashes changed (`changeScript` / `changeStoryboard`);
+- any change to the list — added, removed or reordered ids — clears the assembly, the Master and the publish permission
+  (the cut and its seams no longer match), and with them `assemblyEpoch` / `masterEpoch`; preview epochs and draft proofs
+  are kept per scene id as before;
+- ordering is unchanged: a later approved scene after a newly inserted unapproved one stays approved, but `canWorkOn` /
+  `nextSceneId` point at the new scene, which must be approved before assembly (`canAssemble` is false until then);
+- a ledger of another channel/episode is never migrated (starts over).
+Test: `tests/scene-ledger-reconcile.test.ts`.
+
+**Locks** (`src/io/processLock.ts`). A lock file is created with O_EXCL and holds `{ pid, start, host, token, purpose, at }`,
+`start` being the OS start time of the holder (`ps -o lstart=`). It is removed by another process only when provably stale:
+same host and the PID is gone, or the PID is alive but started at another time (PID reuse). An empty lock older than 60 s
+(crash between create and write) is also recovered; another host's lock never is. Release removes the lock only if it
+still holds our token.
+- `voice/.voice.lock` — one `generateVoice` per episode at a time, across processes (Studio, prepare-all, CLI, `bal make`).
+  A second run waits 2 s, then fails with `VOICE_BUSY_MESSAGE` (409) before anything is paid. Dry runs take no lock.
+- `scene-production.v1.json.lock` — `serialized` now uses the same lock (30 s wait); older `"<pid> <uuid>"` locks are still
+  recognised by `lockOwnerIsDead`.
+- `previews/.preview-index.lock/` — still a directory (older builds respect it), now with `owner.json`. Recovered when its
+  writer is gone or its PID was reused, or when it has no owner file and is older than 10 minutes; a live one is waited
+  for (15 s), then `PREVIEW_LOCK_BUSY`.
+- The episode `busy` key (`app/server/extra.ts`) is also taken by «جهّز كل المشاهد» for its whole run (`startPrepareJob`
+  in `app/server/prepare.ts`). The queue refuses to start while a render/make/package holds it; the episode render,
+  make, package and DELETE refuse while it runs, naming it (`PREPARE_RUNNING_MESSAGE`).
+- Host render slots (`hostSlots`, `src/render/pool.ts`): written atomically; `foreign()` removes only a dead process's
+  slot (EPERM counts as alive) and an unreadable slot only after 60 s.
+
+**Paid audio is never deleted by voice generation.** `voice/index.json` is re-read and merged before every atomic write
+(only this run's scene ids are set or removed, so clips the sentence path wrote meanwhile survive). Audio no scene points
+to is moved to `voice/superseded/` (`voice/superseded/parts/` for dafatir parts), and a file this run did not create and
+that was written after the run started is left alone. Each clip is written atomically. Orphaned «أصلح الكلمة» files
+(`<sentence>-frag-*.mp3`, `<sentence>-fix-*.wav` that `sentences.json` does not mention, older than 10 minutes) are moved
+at Studio start to `voice/superseded/sentences/` (`src/voice/fragmentSweep.ts`).
+
+**Atomic JSON state** (`src/io/atomicJson.ts`). `writeJsonAtomic` = temp file in the same folder, fsync, rename; used for
+`plan.json` (`writePlanFile`), `voice/index.json`, `voice/parts/index.json`, `storyboard.json` and `review.json`. Readers
+(`readJson` in `src/plan/io.ts`, the ledger reader) retry once on a parse error, then throw `JsonFileError` with an Arabic
+message, which the API answers with 409 (also `LOCK_BUSY` / `EPISODE_BUSY`), not a raw 500. A damaged `review.json` is no
+longer read as an empty ledger (a decision would have overwritten every review); `storyboard.json` stays fail-closed
+(unapproved) when damaged.
+
+**Drive `.part` files** (`src/io/partFiles.ts`). Temporary copies are named `.<name>.<host-tag>-<pid>-<uuid>.part`. Before
+copying, a run removes only its own machine's parts whose process is gone, and untagged legacy parts older than a day.
+
+**API hygiene.** JSON bodies are limited to 2 MB (`MAX_JSON_BODY_BYTES`); the three Base64 upload routes (slot media, scene
+images, recitations) keep 180 MB. `/api/check` answers 400 for a non-string `text`. While owner notes wait to be sent,
+`scheduleStudioNotesSync` retries every 10 minutes (one unref'd timer, cleared on success). Update refusals count files in
+correct Arabic (`arabicCount`, `src/i18n/count.ts`).
+
+Tests: `tests/voice-lock-robust.test.ts`, `tests/stale-locks-parts.test.ts`, `tests/robust-io-small.test.ts`,
+`tests/sentence-voice-route.test.ts` (check/body limit, prepare-all vs DELETE/render, damaged plan → 409).
 
 ### Channel policy and API hygiene (D51)
 
@@ -322,6 +385,32 @@ definition; the gate check «أرقام القرارات» (`node scripts/decisi
 `tests/decision-numbers.test.ts` fail when a number is defined twice. The historic duplicates D39, D41, D42 and D46
 (one shared decision whose heading was copied into each log) are grandfathered in `GRANDFATHERED_DUPLICATES`, a list that
 never grows.
+
+### Server and publishing hardening after the security QA (D58, 10 Nov)
+
+- **One write rule for every route** (`app/server/security.ts` `studioRequestRefusal`, run in `app/server/api.ts`
+  before any route handler, including everything in `extra.ts`): every `/api` request needs a loopback Host
+  (`localhost` / `127.0.0.1` / `[::1]`, any port) and no `Sec-Fetch-Site: cross-site|same-site`; every write
+  (any method but GET/HEAD/OPTIONS) also needs the socket's real loopback address and an `Origin` equal to
+  `http://<Host>` or, without Origin, `Sec-Fetch-Site: same-origin`. A write with neither is refused (the `bal`
+  CLI does not use HTTP). This is D54 applied to all routes; `assertSceneOwner` still checks inside the ledger.
+- **No framing**: every Studio response (HTML, assets, API, Vite's own error pages) carries
+  `X-Frame-Options: DENY` and a CSP ending in `frame-ancestors 'none'` (`studioSecurityHeaders()` in `app/vite.config.ts`).
+- **Direct approvals = «اعتمد التجهيز» checks**: `approve-script` / `approve-storyboard` posted to
+  `…/scene-production` need `reviewed: true` («راجعته بنفسي»), no script error, and (storyboard) no verse
+  without its text (`directPreparationRefusal` in `src/studio/preparation.ts`), else 409 `PREPARATION_CHECKS`.
+- **PUT /plan** applies D46: a designed plan is not replaced by one that drops a designed scene or the
+  `designed` flag unless `overwriteDesigned: true, confirmEpisode: "<n>"` (409 otherwise, nothing written);
+  a timestamped `plan.backup-*.json` precedes a confirmed replacement and `plan.backup-last.json` precedes every save.
+- **Quran never reaches TTS**: the single guard `assertNoQuranForTts` / `ttsContext` (`src/voice/quranGuard.ts`)
+  runs inside the ElevenLabs client before any request body; verse scenes never produce jobs; ﴿…﴾, `[آية]` and
+  five words of an episode verse are refused in the text and cut from previous/next context; both lexicons are
+  masked inside ﴿ ﴾. `/api/voice-sample` is owner-only and refuses Quran (400 `QURAN_TTS`).
+- **Rule-1 trace check** normalises before matching (NFKC, format/bidi characters, confusables, case,
+  tashkeel, split names rejoined) and reads every PNG text chunk (zTXt/iTXt inflated, XMP, eXIf; an
+  unreadable chunk is refused) and the on-screen text (scene props, chapter titles, end screen,
+  frontmatter.book) in the package and again in the Drive handoff, which refuses on any failed check.
+- Tests: `tests/studio-security-routes.test.ts`, `tests/quran-tts-guard.test.ts`, `tests/traces-normalisation.test.ts`.
 
 ### Publishing stays manual; approved files go to Google Drive (D53)
 

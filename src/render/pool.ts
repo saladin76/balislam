@@ -1,6 +1,6 @@
 import os from "node:os";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -171,19 +171,26 @@ const killTree = (pid: number, signal: NodeJS.Signals) => {
  * فكل طابور يحسب مهام غيره عند تقدير الذاكرة. ملف صغير لكل مهمة جارية، ويُهمل ملف عملية ميتة.
  */
 const SLOTS = path.join(os.tmpdir(), "bal-render-slots");
+/** EPERM = the process exists but belongs to another user: alive (QA, 10 Nov 2026). */
 const alive = (pid: number) => {
   try {
     process.kill(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
   }
 };
+/** An unreadable slot file younger than this may be mid-write by another process: left alone. */
+const SLOT_UNREADABLE_GRACE_MS = 60_000;
 export const hostSlots = {
   register(id: string, pid: number, estimateMB: number) {
     try {
       mkdirSync(SLOTS, { recursive: true });
-      writeFileSync(path.join(SLOTS, `${process.pid}-${pid}.json`), JSON.stringify({ id, pid, owner: process.pid, estimateMB }));
+      // Atomic (tmp + rename): another queue never reads a half-written slot.
+      const file = path.join(SLOTS, `${process.pid}-${pid}.json`);
+      const tmp = `${file}.${process.pid}.tmp`;
+      writeFileSync(tmp, JSON.stringify({ id, pid, owner: process.pid, estimateMB }));
+      renameSync(tmp, file);
     } catch {
       /* السجل المشترك اختياري */
     }
@@ -191,18 +198,27 @@ export const hostSlots = {
   release(pid: number) {
     rmSync(path.join(SLOTS, `${process.pid}-${pid}.json`), { force: true });
   },
-  /** مهام الطوابير الأخرى الجارية الآن */
+  /**
+   * مهام الطوابير الأخرى الجارية الآن. يُحذف ملف عملية ميتة فقط؛ ملف عملية حية لا يُمس أبدًا،
+   * وملف لا يُقرأ لا يُحذف إلا إن قدم (ربما يُكتب الآن)، وملفات .tmp لا تُعد.
+   */
   foreign(): { pid: number; estimateMB: number }[] {
     try {
       const out: { pid: number; estimateMB: number }[] = [];
       for (const f of readdirSync(SLOTS)) {
+        if (!f.endsWith(".json")) continue;
         const file = path.join(SLOTS, f);
         try {
           const s = JSON.parse(readFileSync(file, "utf8")) as { pid: number; owner: number; estimateMB: number };
+          if (!Number.isInteger(s.pid) || !Number.isInteger(s.owner)) throw new Error("bad slot");
           if (!alive(s.pid) || !alive(s.owner)) rmSync(file, { force: true });
           else if (s.owner !== process.pid) out.push({ pid: s.pid, estimateMB: s.estimateMB });
         } catch {
-          rmSync(file, { force: true });
+          try {
+            if (Date.now() - statSync(file).mtimeMs > SLOT_UNREADABLE_GRACE_MS) rmSync(file, { force: true });
+          } catch {
+            /* اختفى */
+          }
         }
       }
       return out;
@@ -678,8 +694,12 @@ export class RenderPool {
       }
       if (code === 0 && !spawnError && !rec.cancelled && !rec.timedOut && !rec.stalled) {
         if (tmp && spec.output) {
-          if (existsSync(tmp)) {
-            await rename(tmp, spec.output);
+          // Rename directly (no exists-then-rename race, QA): ENOENT means the task wrote no output.
+          const moved = await rename(tmp, spec.output).then(() => true, (error: NodeJS.ErrnoException) => {
+            if (error.code === "ENOENT") return false;
+            throw error;
+          });
+          if (moved) {
             t.output = spec.output;
             t.status = "done";
           } else {
@@ -756,8 +776,14 @@ export class RenderPool {
       costPeaks: Object.fromEntries([...this.costPeaks].map(([k, v]) => [k, Math.round(v)])),
       tasks: [...this.tasks.values()].map(({ log, ...t }) => ({ ...t, log: t.status === "error" ? log.slice(-8) : [], def: def(t.id) })),
     };
-    await writeFile(`${this.o.ledger}.tmp`, JSON.stringify(body, null, 2) + "\n");
-    await rename(`${this.o.ledger}.tmp`, this.o.ledger);
+    // A unique temp per save: two overlapping saves never rename each other's file away (ENOENT).
+    const tmp = `${this.o.ledger}.${process.pid}-${randomUUID()}.tmp`;
+    try {
+      await writeFile(tmp, JSON.stringify(body, null, 2) + "\n");
+      await rename(tmp, this.o.ledger);
+    } finally {
+      await rm(tmp, { force: true });
+    }
   }
 
   /** يقرأ سجلًا سابقًا: المهام الناجحة تبقى ناجحة، والفاشلة يمكن إعادتها وحدها */

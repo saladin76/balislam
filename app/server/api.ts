@@ -3,11 +3,11 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyMessage, handleExtra, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
+import { busy, busyRefusal, handleExtra, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
-import { readBody } from "./body.ts";
+import { MAX_BODY_BYTES, readBody } from "./body.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
-import { isTrustedLocalRequest } from "./security.ts";
+import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -89,6 +89,21 @@ export const installStudioCrashGuard = (proc: Pick<NodeJS.Process, "on"> = proce
   });
 };
 
+/**
+ * X-Frame-Options: DENY and CSP frame-ancestors 'none' on EVERY Studio response (HTML, scripts, media,
+ * API): no other page can frame the Studio and click its buttons (H1, clickjacking). Runs first.
+ */
+export const studioSecurityHeaders = (): Plugin => ({
+  name: "studio-security-headers",
+  enforce: "pre",
+  configureServer(server: ViteDevServer) {
+    server.middlewares.use((_req, res, next) => { applyStudioSecurityHeaders(res); next(); });
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((_req, res, next) => { applyStudioSecurityHeaders(res); next(); });
+  },
+});
+
 export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
@@ -116,14 +131,23 @@ export const balApi = (): Plugin => ({
     void Promise.all([load("/src/studio/notesSync.ts"), load("/src/channel/index.ts")])
       .then(([sync, ch]) => sync.scheduleStudioNotesSync(ch.channelsDir()))
       .catch((e) => console.error("[studio] owner notes retry:", (e as Error).message));
+    // «أصلح الكلمة» انقطع بعد شراء المقطع وقبل تسجيله: يُنقل إلى voice/superseded/sentences (لا يُحذف)
+    void Promise.all([load("/src/voice/fragmentSweep.ts"), load("/src/channel/index.ts")])
+      .then(([sweep, ch]) => sweep.sweepAllOrphanWordFixFragments(ch.channelsDir()))
+      .then((n) => { if (n) console.log(`[studio] ${n} orphaned word-fix fragment(s) moved to voice/superseded/sentences.`); })
+      .catch((e) => console.error("[studio] word-fix fragments:", (e as Error).message));
     server.middlewares.use(async (req, res, next) => {
+      // Anti-framing on API responses too (H1); the HTML/assets get it from studioSecurityHeaders().
+      applyStudioSecurityHeaders(res);
       const url = new URL(req.url ?? "/", "http://localhost");
       if (!url.pathname.startsWith("/api/")) return next();
       await secretsReady;
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
-        if (!isTrustedLocalRequest(req))
-          return send(res, 403, { error: "طلب من موقع خارجي غير مسموح به في Studio المحلي." });
+        // One rule for every route (H2): loopback Host always; every write also needs the loopback socket and
+        // a same-origin Origin or Sec-Fetch-Site (security.ts). No route handler runs before this.
+        const refusal = studioRequestRefusal(req);
+        if (refusal) return send(res, 403, { error: refusal, code: "NOT_OWNER_REQUEST" });
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
@@ -197,7 +221,7 @@ export const balApi = (): Plugin => ({
             return;
           }
           if (req.method === "POST") {
-            const b = await readBody(req);
+            const b = await readBody(req, MAX_BODY_BYTES);
             const slot = String(b.slot ?? "").replace(/[^\w-]/g, "");
             const ext = (String(b.name ?? "").match(MEDIA_EXT)?.[0] ?? "").toLowerCase();
             if (!slot || !ext) return send(res, 400, { error: "الملف يجب أن يكون صورة (JPG/PNG/WEBP) أو فيديو (MP4/WEBM/MOV)." });
@@ -245,6 +269,10 @@ export const balApi = (): Plugin => ({
             if (req.method === "GET") return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
             if (req.method === "POST") {
               const body = await readBody(req);
+              // H6: the direct script/storyboard approvals carry the same checks as «اعتمد التجهيز».
+              const { directPreparationRefusal } = await load("/src/studio/preparation.ts");
+              const prepRefusal = await directPreparationRefusal(ep, body);
+              if (prepRefusal) return send(res, 409, { ok: false, code: "PREPARATION_CHECKS", error: prepRefusal });
               try {
                 await decideSceneProduction(ep, body);
                 // D53: right after the publish permission (never before), the approved files go to the owner's
@@ -348,7 +376,7 @@ export const balApi = (): Plugin => ({
             // Audit item 5: the queue does not re-render a scene whose same inputs just failed.
             const previousFailures = prepareJob(key)?.failed ?? [];
             return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { voiceClient, onProgress, shouldStop, previousFailures })));
+              prepareAllScenes(ep, { voiceClient, onProgress, shouldStop, previousFailures })), busy);
           };
 
           // Step ١ «التجهيز» (funnel v3): ONE owner action writes the script approval, then the board record when
@@ -451,7 +479,7 @@ export const balApi = (): Plugin => ({
               return send(res, 200, { verses, pending: status.pending, approved });
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
-            const body = await readBody(req);
+            const body = await readBody(req, MAX_BODY_BYTES);
             const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
             try {
               assertSceneOwner();
@@ -503,7 +531,7 @@ export const balApi = (): Plugin => ({
           }
           // رفع صورة لوحة وثائقية: {name, data(base64)} ← تُحفظ في images/ باسم آمن وتُرجع اسمها
           if (parts[2] === "images" && req.method === "POST") {
-            const b = await readBody(req);
+            const b = await readBody(req, MAX_BODY_BYTES);
             const { MEDIA_EXT, imagesDirFor } = await load("/src/plan/collect.ts");
             const ext = (String(b.name ?? "").match(MEDIA_EXT)?.[0] ?? "").toLowerCase();
             if (!ext) return send(res, 400, { error: "الملف يجب أن يكون صورة (JPG/PNG/WEBP) أو فيديو (MP4/WEBM/MOV)." });
@@ -577,10 +605,17 @@ export const balApi = (): Plugin => ({
             }
           }
           if (parts[2] === "plan" && req.method === "PUT") {
-            const { plan } = await readBody(req);
+            const { plan, overwriteDesigned, confirmEpisode } = await readBody(req);
             if (!plan || !Array.isArray(plan.chapters) || plan.chapters.some((c: any) => !Array.isArray(c?.scenes))) return send(res, 400, { error: "الخطة غير مكتملة؛ لم تُحفظ." });
-            await io.writePlanFile(io.planPathFor(scriptPath), { ...plan, updatedAt: new Date().toISOString() });
-            return send(res, 200, { ok: true });
+            // M4: designed-plan guard (D46) and a backup before the overwrite (src/plan/io.ts savePlanFromStudio)
+            try {
+              const r = await io.savePlanFromStudio(ep, plan, { overwriteDesigned, confirmEpisode });
+              return send(res, 200, { ok: true, ...r });
+            } catch (error) {
+              if ((error as { code?: string })?.code === "designed-plan-replace")
+                return send(res, 409, { error: (error as Error).message, designed: true, lost: (error as { lost?: string[] }).lost ?? [] });
+              throw error;
+            }
           }
           if (parts[2] === "video" && parts[3]) {
             const file = path.join(path.dirname(scriptPath), "out", safeName(parts[3]));
@@ -593,6 +628,7 @@ export const balApi = (): Plugin => ({
         // فحص نص دون حفظ (أثناء الكتابة)
         if (parts[0] === "check" && req.method === "POST") {
           const { text } = await readBody(req);
+          if (typeof text !== "string") return send(res, 400, { error: "النص المطلوب فحصه يجب أن يكون نصًا." });
           return send(res, 200, await checkText(text));
         }
 
@@ -617,7 +653,7 @@ export const balApi = (): Plugin => ({
           if (req.method === "POST") {
             const b = await readBody(req);
             if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
-            if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage });
+            if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyRefusal(`${ch}/${b.episode}`) });
             // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره، ويُستعاد بعد إعادة التشغيل
             // Final animation may not start before separate storyboard and full-audio approval.
             // Silent storyboard-motion audit has its own route and is intentionally not blocked.
@@ -639,6 +675,9 @@ export const balApi = (): Plugin => ({
         }));
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
+        // Known, owner-facing refusals (QA H4/M3): a busy lock or episode, or a state file being written / damaged.
+        if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY"].includes(String((err as { code?: unknown })?.code)))
+          return send(res, 409, { error: (err as Error).message });
         if (isMissingFileError(err)) return send(res, 404, { error: /^ENOENT\b/.test((err as Error).message) ? "الملف المطلوب غير موجود." : (err as Error).message });
         console.error("[studio] request failed:", url.pathname, err);
         return send(res, 500, { error: (err as Error).message });
