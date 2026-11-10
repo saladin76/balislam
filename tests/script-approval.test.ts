@@ -10,19 +10,15 @@ import { approveScript, assertScriptApproved, scriptSignoffStatus } from "../src
 const fixture = readFileSync(path.join(__dirname, "fixtures", "valid.md"), "utf8");
 
 describe("explicit script approval lifecycle", () => {
-  it("requires reviewed citations and cannot survive script changes", async () => {
+  // Owner decision (10 Nov), CLAUDE.md rule 5: citations are documentation only; the (legacy) signoff never waits for them.
+  it("does not wait for citations and cannot survive script changes", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "studio-script-signoff-"));
     const file = path.join(dir, "script.md");
     try {
       await writeFile(file, fixture);
-      await expect(approveScript(file, "المراجع", "راجعت السكريبت والآيات مع مصادرها ووافقـت على النسخة الحالية", true))
-        .rejects.toThrow(/الاستشهادات/);
       const script = parseScript(fixture, file);
-      const items = reviewItems(script, null);
-      expect(items.length).toBeGreaterThan(0);
-      for (const item of items) {
-        await setReview(file, script, item.key, "verified", "مقارنة بشرية مع المصدر المعتمد");
-      }
+      expect(reviewItems(script, null).length).toBeGreaterThan(0);
+      void setReview;
       await approveScript(file, "المراجع", "راجعت السكريبت والآيات مع مصادرها ووافقت على النسخة الحالية", true);
       expect((await scriptSignoffStatus(file)).approved).toBe(true);
       await expect(assertScriptApproved(file)).resolves.toBe(true);

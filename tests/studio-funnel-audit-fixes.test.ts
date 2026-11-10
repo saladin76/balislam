@@ -55,7 +55,7 @@ describe("مسار الخطوات ٢–٤", () => {
   it("«راجعته بنفسي» لا تنتقل من السكريبت إلى الستوري بورد، والحالة تُقرأ من جديد بعد الرفض", () => {
     const spine = src("app/src/shell/EpisodeSpine.tsx");
     expect(spine).toContain("useEffect(() => setReviewed(false), [decideTarget]);");
-    expect(spine).toMatch(/setErr\(\(e as Error\)\.message\);\s*\/\/[^\n]*\n\s*setTick/);
+    expect(spine).toMatch(/setErr\(\(e as Error\)\.message\);\s*keepErr\.current = true;\s*\/\/[^\n]*\n\s*setTick/);
     expect(src("app/src/App.tsx")).toContain("onSigned={() => setHomeKey((k) => k + 1)}");
   });
   it("التجميع بضغطة واحدة من المشاهد المعتمدة: لا يُسجَّل ملف قديم في المسار نفسه", () => {

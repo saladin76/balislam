@@ -25,6 +25,7 @@ import { capsFor, dropTagWords } from "./models";
 import { assertNoQuranForTts, isQuranFreeForTts, isVerseScene, planVerseTexts, QuranTtsError } from "./quranGuard";
 import { applyTempo, scaleTimes } from "./tempo";
 import { planOrder, sceneNames } from "../i18n/sceneNames";
+import { hasBasmala } from "./basmala";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
 export type VoiceClip = {
@@ -137,14 +138,17 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
     /* بلا قناة */
   }
   const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
-  return ctx.jobs.map((p, i): Job => {
+  // The basmala is the owner's own recording (owner decision 10 Nov): its part is never a TTS job; its scene is
+  // voiced sentence by sentence and composed with the recording (src/voice/basmala.ts).
+  const parts = ctx.jobs.filter((p) => !hasBasmala(p.text));
+  return parts.map((p, i): Job => {
     assertNoQuranForTts(p.text, { id: p.partId });
     const d = applyDictionary(p.text, dict);
     const tune = voiceSettingsFor(profile, isTone(p.tone) ? p.tone : undefined);
     const hash = createHash("sha1").update(JSON.stringify({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
     // الأجزاء تُعدّ كلماتها عند التركيب: نطق القاموس من كلمة واحدة فقط هنا
     const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { singleToken: true });
-    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: ctx.jobs[i - 1]?.text, next: ctx.jobs[i + 1]?.text, tune };
+    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: parts[i - 1]?.text, next: parts[i + 1]?.text, tune };
   });
 };
 

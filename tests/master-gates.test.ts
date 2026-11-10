@@ -97,11 +97,12 @@ describe("بوابات النسخة النهائية", () => {
     await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow(/بعد اعتماد التجهيز.*«١ التجهيز»/);
   });
 
-  it("مصدر مرفوض يمنع", async () => {
+  // Owner decision (10 Nov), CLAUDE.md rule 5: the citation ledger is documentation only and never blocks.
+  it("التوثيق لا يمنع النسخة النهائية (حتى مصدر مرفوض)", async () => {
     const s = await fresh();
     const key = reviewItems(s.parsed, null)[0]!.key;
     await setReview(s.scriptPath, s.parsed, key, "rejected", "لا تطابق التلاوة نص الآية");
-    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow(/التوثيق/);
+    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).resolves.toBe(true);
   });
 
   it("تلاوة مفقودة تمنع", async () => {
