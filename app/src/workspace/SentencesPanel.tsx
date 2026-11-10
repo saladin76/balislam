@@ -109,7 +109,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const load = async () => {
     const r = await api.sentences(episodeId, channelId);
     setRead(r);
-    if (r.scenes.some((s) => s.verse)) setRecs(await api.ownRecitations(episodeId, channelId).catch(() => null));
+    if (r.scenes.some((s) => s.verse || s.rows.some((x) => x.kind === "basmala"))) setRecs(await api.ownRecitations(episodeId, channelId).catch(() => null));
   };
   useEffect(() => {
     setRead(null); setError(""); setMsg(""); setDrafts({}); setAdding(null); setFixing(null); setFixed(null); setCur(null); setEditing(null);
@@ -356,7 +356,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     const anyBusy = Boolean(busy);
     const canGen = r.kind === "narration" && !noKey && r.tashkeel.ok && !anyBusy;
     const genLabel = b("gen") ? "جارٍ التوليد…" : r.audio && r.status !== "missing" ? "أعد التوليد" : "ولّد";
-    const why = r.kind === "verse" ? "نص قرآني: الصوت المستنسخ لا يتلوه."
+    const why = r.kind === "basmala" ? "البسملة بصوتك: ارفع التسجيل تحت الفقرة؛ لا ينطقها الصوت المستنسخ."
+      : r.kind === "verse" ? "نص قرآني: الصوت المستنسخ لا يتلوه."
       : !r.tashkeel.ok ? `التشكيل ${ar(Math.round(r.tashkeel.coverage * 100))}٪ (الحد ٩٨٪): ${r.tashkeel.missing.slice(0, 5).join("، ")}`
       : null;
     const next = s.rows[i + 1];
@@ -458,6 +459,21 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     );
   };
 
+  /**
+   * The basmala (owner decision 10 Nov): its sentence is the owner's own recording, never the cloned voice —
+   * «ارفع التسجيل» through the same recitation flow (processed copy beside the original, listen, approve). One
+   * recording serves every scene that holds it; approving it composes those scenes again and re-opens them.
+   */
+  const basmalaBlock = (s: SentenceScene) => s.rows.some((x) => x.kind === "basmala") ? (
+    <div className="sv-basmala" role="group" aria-label="البسملة بصوتك">
+      <p className="sp-hint">البسملة تُعامَل كالآية: تسجّلها بصوتك ولا ينطقها الصوت المستنسخ. ارفع التسجيل واعتمده؛ وحتى ذلك تبقى مكانها صامتة بعلامة «التلاوة تُضاف لاحقًا»، وبقية الجمل تُولَّد كالمعتاد.</p>
+      <ul className="pf-rec-list sv-verse">
+        <RecitationItem compact episodeId={episodeId} channelId={channelId} ayahKey="basmala" scenes={[s.id]} recs={recs}
+          onChanged={async () => { await load(); onChanged?.(); }} />
+      </ul>
+    </div>
+  ) : null;
+
   const sceneBlock = (s: SentenceScene) => {
     if (s.verse) {
       const v = s.verse;
@@ -489,6 +505,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
         ) : s.import?.state === "unreliable" && s.audio.state !== "sentences" ? <p className="sp-hint">{s.import.note}</p> : null}
         {s.managed && s.waiting ? <p className="sv-wait" role="status">{s.waiting}</p> : null}
         <ol className="sv-list">{s.rows.map((r, i) => row(s, r, i))}</ol>
+        {basmalaBlock(s)}
       </section>
     );
   };
@@ -542,6 +559,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             );
           })}
         </p>
+        {basmalaBlock(s)}
         {editing === r.id ? (
           <div className="sv-edit">
             <textarea className="sv-text" dir="rtl" rows={2} value={draft ?? r.text} aria-label={`نص الجملة ${ar(i + 1)}`} disabled={anyBusy} autoFocus

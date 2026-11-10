@@ -9,9 +9,11 @@
  */
 import { createHash, randomUUID } from "node:crypto";
 import type { Tone } from "./tones";
+import { isBasmalaOnly, splitBasmala } from "./basmala";
 
 export type TimedWord = { word: string; start: number; end: number };
-export type SentenceKind = "narration" | "verse";
+/** basmala: the owner's own recording (owner decision 10 Nov, src/voice/basmala.ts), never the cloned voice. */
+export type SentenceKind = "narration" | "verse" | "basmala";
 export type SentenceAudio = {
   /** في voice/sentences/ */
   file: string;
@@ -121,14 +123,26 @@ export const splitNarration = (text: string): string[] => {
     }
   }
   if (cur.length) out.push(cur);
-  return out.flatMap((s) => (hasQuranText(s.join(" ")) ? [s] : splitLong(s))).map((s) => s.join(" "));
+  return out.flatMap((s) => (hasQuranText(s.join(" ")) ? [s] : splitLong(s))).map((s) => s.join(" "))
+    // The basmala is its own recitation item; the rest of a mixed sentence stays narration (owner, 10 Nov).
+    .flatMap((t) => splitBasmala(t));
 };
+/** A list where every sentence that mixes the basmala with narration is split into its parts (new ids for the extra parts). */
+export const splitBasmalaInList = (list: Sentence[], idOf: () => string = newSentenceId): Sentence[] =>
+  list.flatMap((s) => {
+    const parts = splitBasmala(s.text);
+    if (parts.length <= 1) return [s.kind === kindOf(s.text) ? s : { ...s, kind: kindOf(s.text), audio: undefined, heard: undefined, takes: withTakes(s) }];
+    return parts.map((text, k): Sentence => k === 0
+      ? { ...s, text, kind: kindOf(text), audio: undefined, heard: undefined, takes: withTakes(s), corrections: undefined }
+      : { id: idOf(), sceneId: s.sceneId, kind: kindOf(text), text, pauseAfterMs: k === parts.length - 1 ? s.pauseAfterMs : defaultPauseMs(text), ...(s.tone ? { tone: s.tone } : {}) });
+  });
+const withTakes = (s: Sentence) => (s.audio ? [...(s.takes ?? []), s.audio] : s.takes);
 
 export const newSentenceId = () => `t${randomUUID().replace(/-/g, "").slice(0, 10)}`;
 
 export const sentencesFor = (sceneId: string, narration: string, idOf: () => string = newSentenceId): Sentence[] =>
   splitNarration(narration).map((text) => ({
-    id: idOf(), sceneId, kind: hasQuranText(text) ? "verse" : "narration", text, pauseAfterMs: defaultPauseMs(text),
+    id: idOf(), sceneId, kind: kindOf(text), text, pauseAfterMs: defaultPauseMs(text),
   }));
 
 /** نص المشهد من جمله */
@@ -139,7 +153,7 @@ const at = (list: Sentence[], id: string) => {
   if (i < 0) throw new Error("الجملة غير موجودة؛ حدّث الصفحة.");
   return i;
 };
-const kindOf = (text: string): SentenceKind => (hasQuranText(text) ? "verse" : "narration");
+export const kindOf = (text: string): SentenceKind => (isBasmalaOnly(text) ? "basmala" : hasQuranText(text) ? "verse" : "narration");
 const withTake = (s: Sentence, a?: SentenceAudio): SentenceAudio[] | undefined =>
   a ? [...(s.takes ?? []), a] : s.takes;
 

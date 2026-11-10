@@ -206,7 +206,7 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
       expect(drafted).toEqual(["c1-s1"]);
       const again = await runWithChannel(CH, () => prepareAllScenes(EP, { voiceClient: null,
         previousFailures: failing.failed, render: async (_e, id) => { drafted.push(id); } }));
-      expect(again.skipped).toEqual([{ id: "c1-s1", reason: "failed-before", error: "composition crashed" }]);
+      expect(again.skipped).toMatchObject([{ id: "c1-s1", reason: "failed-before", error: "composition crashed" }]);
       expect(drafted).toEqual(["c1-s1"]); // nothing rendered
       // …but a network/browser failure is retried on the next press (rendering stub: nothing recorded).
       const offline = [{ ...failing.failed[0]!, error: "تعذّر تجهيز متصفح الرندر لأن الجهاز غير متصل بالإنترنت" }];

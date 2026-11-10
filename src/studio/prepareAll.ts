@@ -171,6 +171,19 @@ export const prepareAllScenes = async (episode: string, opts: {
     }
   }
 
+  // The basmala scenes (owner decision 10 Nov): sentence by sentence, never the basmala itself.
+  try {
+    const { prepareBasmalaScenes } = await import("../voice/sentenceVoice");
+    const b = await prepareBasmalaScenes(episode, { client: opts.voiceClient, shouldStop: opts.shouldStop });
+    p.voice.generated += b.generated;
+    if (b.errors.length && p.voice.status !== "error") {
+      p.voice.status = "error";
+      p.voice.error = b.errors[0]!.error;
+    }
+  } catch (e) {
+    if (p.voice.status !== "error") { p.voice.status = "error"; p.voice.error = (e as Error).message; }
+  }
+
   p.phase = "render";
   // Said before any render starts, so the owner sees the real blocker at once.
   const voiceMissing = p.voice.status === "no-key" || p.voice.status === "error";

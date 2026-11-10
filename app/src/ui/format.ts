@@ -40,6 +40,7 @@ export const seconds = (sec: number, fractionDigits = 1): string => `${num(sec, 
  */
 export const verseRef = (ref: string | null | undefined): string => {
   const raw = String(ref ?? "").trim();
+  if (raw === "basmala") return "البسملة";
   const m = /^(\d{1,3})\s*[:：]\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?$/.exec(raw);
   const name = m ? SURAH_NAMES[Number(m[1]) - 1] : undefined;
   if (!m || !name) return arDigits(raw);

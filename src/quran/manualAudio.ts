@@ -15,6 +15,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { quranFromScript } from "./scriptText";
 import { recitationsDirFor, type RecitationIndex } from "./sync";
+import { BASMALA_KEY, BASMALA_TEXT } from "../voice/basmala";
 
 import { audioDuration, loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { narrationLoudness, plainRecitationCopy, polishRecitation, type EdgeTrim, type Loudness } from "./recitationPolish";
@@ -32,7 +33,7 @@ export type OwnAudioCandidate = {
 };
 export type OwnAudioReview = Record<string, OwnAudioCandidate>;
 export const ownAudioReviewFile = (scriptPath: string) => path.join(recitationsDirFor(scriptPath), "review.json");
-const validName = (f: string) => /^manual-\d+-\d+(?:-\d+)?-[a-f0-9]{12}\.mp3$/.test(f);
+const validName = (f: string) => /^manual-(?:\d+-\d+(?:-\d+)?|basmala)-[a-f0-9]{12}\.mp3$/.test(f);
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
 const readJson = async <T>(file: string, fallback: T): Promise<T> => {
   try {
@@ -64,6 +65,8 @@ const withLock = async <T>(scriptPath: string, fn: (dir: string) => Promise<T>):
   finally { await lock.close(); await rm(lockFile, { force: true }); }
 };
 const requested = async (episode: string, key: string): Promise<string> => {
+  // The basmala (owner decision 10 Nov): the owner's own recording, with its fixed reviewed text.
+  if (key === BASMALA_KEY) return BASMALA_TEXT;
   const scriptPath = await resolveScriptPath(episode);
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const source = quranFromScript(parsed);
@@ -76,7 +79,7 @@ export const prepareOwnRecitation = async (
   episode: string, key: string, filename: string, source: Uint8Array,
 ): Promise<OwnAudioCandidate> => {
   await requested(episode, key);
-  if (!/^\d{1,3}:\d{1,3}(?:-\d{1,3})?$/.test(key)) throw Error("مرجع التلاوة غير صالح.");
+  if (key !== BASMALA_KEY && !/^\d{1,3}:\d{1,3}(?:-\d{1,3})?$/.test(key)) throw Error("مرجع التلاوة غير صالح.");
   const ext = path.extname(filename).toLowerCase();
   if (![".wav",".mp3",".m4a",".aac",".ogg",".flac"].includes(ext))
     throw Error("التسجيل يجب أن يكون WAV أو MP3 أو M4A أو AAC أو OGG أو FLAC.");
@@ -234,7 +237,7 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
   const index = await readJson<RecitationIndex>(path.join(dir, "index.json"), {});
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const authored = quranFromScript(parsed);
-  const texts = authored.texts;
+  const texts: Record<string, string> = { ...authored.texts, [BASMALA_KEY]: BASMALA_TEXT };
   const ready: RecitationIndex = {};
   for (const [key, rec] of Object.entries(index)) {
     if (!rec || rec.provider !== "manual" || !rec.approvedAt || !rec.approvedBy ||

@@ -7,6 +7,7 @@
  * and publisher adapters must call requireSceneMasterReady before release.
  */
 import path from "node:path";
+import { BASMALA_KEY, hasBasmala } from "../voice/basmala";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { isOwnerContext } from "./ownerContext";
 import { readJsonFile } from "../io/atomicJson";
@@ -156,11 +157,14 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
         ? sha(JSON.stringify([clip.text, clip.hash, clip.duration, audioFile]))
         : "missing-narration";
     }
+    // The basmala is treated like a verse (owner decision 10 Nov): a scene holding it waits for the owner's
+    // approved recording exactly as a verse card waits for its recitation (D35: conditional approval only).
+    const basmala = scene.template !== "verse-card" && hasBasmala(narration);
     const rec = scene.template === "verse-card" && scene.ayahKey
-      ? manual[scene.ayahKey] : undefined;
-    const verseReady = scene.template !== "verse-card" ||
-      Boolean(rec && rec.provider === "manual" && rec.sha256 &&
-        rec.approvedBy && rec.rightsEvidence);
+      ? manual[scene.ayahKey] : basmala ? manual[BASMALA_KEY] : undefined;
+    const recOk = Boolean(rec && rec.provider === "manual" && rec.sha256 && rec.approvedBy && rec.rightsEvidence);
+    const verseReady = (scene.template !== "verse-card" && !basmala) ||
+      (recOk && (!basmala || (clip?.basmala?.pending === false && clip.basmala.sha256 === rec!.sha256)));
     ready[scene.id] = voiceReady && verseReady;
     voiceReadyBy[scene.id] = voiceReady;
     recitationPending[scene.id] = !verseReady;

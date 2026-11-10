@@ -1,3 +1,4 @@
+import { planOrder, sceneNames } from "../i18n/sceneNames";
 import type { ChannelConfig } from "../channel/types";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -75,7 +76,10 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
     const clip = media.voice[s.id];
     return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
   }).map((s) => s.id);
-  if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${missing.slice(0, 10).join("، ")}${missing.length > 10 ? "…" : ""}`);
+  if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${sceneNames(planOrder(plan), missing, 10)}`);
+  // The basmala is the owner's own recording (owner decision 10 Nov): never a Master with its placeholder.
+  const basmalaPending = required.filter((s) => media.voice[s.id]?.basmala?.pending).map((s) => s.id);
+  if (basmalaPending.length) throw new Error(`لا يمكن رندر نسخة نهائية والبسملة بلا تسجيلك المعتمد في: ${sceneNames(planOrder(plan), basmalaPending, 10)}. ارفع تسجيل البسملة واعتمده (الخطوة ٣ ← التلاوات).`);
   // القناة التي اختارت قارئًا: لا آية في النسخة النهائية بلا تلاوتها (مرخّصة أو من القارئ المختار)
   const verseGaps = versesWithoutRecitation(plan, media, ids, true);
   const unsafeVerseScenes = plan.chapters.flatMap((chapter) => chapter.scenes)
@@ -83,8 +87,8 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
       (!scene.ayahKey || media.recitations[scene.ayahKey]?.source !== "manual"))
     .map((scene) => scene.id);
   if (unsafeVerseScenes.length)
-    throw new Error("لا يجوز استخدام تلاوة من مصدر خارجي أو مشهد قرآني بلا تسجيل بشري معتمد: " + unsafeVerseScenes.join("، "));
-  if (verseGaps.length) throw new Error(`لا يمكن رندر نسخة نهائية وفيها آية بلا تلاوة: ${verseGaps.slice(0, 10).join("، ")}${verseGaps.length > 10 ? "…" : ""}. أرفق التلاوة البشرية الخاصة بالحلقة وراجعها أولًا.`);
+    throw new Error("لا يجوز استخدام تلاوة من مصدر خارجي أو مشهد قرآني بلا تسجيل بشري معتمد: " + sceneNames(planOrder(plan), unsafeVerseScenes, 10));
+  if (verseGaps.length) throw new Error(`لا يمكن رندر نسخة نهائية وفيها آية بلا تلاوة: ${sceneNames(planOrder(plan), verseGaps, 10)}. أرفق التلاوة البشرية الخاصة بالحلقة وراجعها أولًا.`);
   const sbRecord = await loadStoryboard(scriptPath);
   const sb = storyboardStatus(plan, sbRecord);
   const blocked = unapprovedScenes(sb, [...ids]);

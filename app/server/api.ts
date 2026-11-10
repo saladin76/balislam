@@ -498,6 +498,10 @@ export const balApi = (): Plugin => ({
               const verses = (plan?.chapters ?? []).flatMap((c: any) => c.scenes)
                 .filter((s: any) => s.template === "verse-card" && s.ayahKey)
                 .map((s: any) => ({ key: s.ayahKey as string, sceneId: s.id as string, reference: s.props?.reference ?? "" }));
+              // The basmala (owner decision 10 Nov): one recording by the owner for every scene that holds it.
+              const { basmalaScenes } = await load("/src/voice/sentenceVoice.ts");
+              const bScenes: string[] = await basmalaScenes(scriptPath);
+              if (bScenes.length) verses.push({ key: "basmala", sceneId: bScenes[0]!, reference: "البسملة", scenes: bScenes } as any);
               const approved = Object.fromEntries(Object.entries(status.approved as Record<string, any>).map(([k, r]) => [k, {
                 reciter: r.reciter, approvedAt: r.approvedAt, file: r.parts?.[0]?.file, duration: r.parts?.[0]?.duration,
                 variant: r.candidate?.variant ?? null, variants: r.candidate?.variants ?? null, polish: r.candidate?.polish ?? null,
@@ -516,12 +520,19 @@ export const balApi = (): Plugin => ({
                 return send(res, 200, { candidate });
               }
               if (body?.action === "select")
-                return send(res, 200, { candidate: await manual.selectOwnRecitationVariant(ep, key, body.variant) });
+              {
+                const candidate = await manual.selectOwnRecitationVariant(ep, key, body.variant);
+                // Switching an approved basmala withdraws it: its scenes go back to the marked placeholder.
+                if (key === "basmala") await (await load("/src/voice/sentenceVoice.ts")).recomposeBasmalaScenes(ep);
+                return send(res, 200, { candidate });
+              }
               if (body?.action === "approve") {
                 const entry = await manual.approveOwnRecitation(ep, key, "owner", String(body.note ?? ""), body.listened === true, {
                   reciter: String(body.reciter ?? ""), rightsEvidence: String(body.rightsEvidence ?? ""),
                 });
-                return send(res, 200, { approved: { key, sha256: entry.sha256 } });
+                // Every scene holding the basmala is composed again with the approved recording (re-opens them).
+                const recomposed = key === "basmala" ? await (await load("/src/voice/sentenceVoice.ts")).recomposeBasmalaScenes(ep) : [];
+                return send(res, 200, { approved: { key, sha256: entry.sha256 }, ...(recomposed.length ? { recomposed } : {}) });
               }
               return send(res, 400, { error: "فعل غير معروف." });
             } catch (error) { return refuse(error); }

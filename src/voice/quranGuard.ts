@@ -10,9 +10,11 @@
  *
  * Refused: a verse scene (template verse-card or an ayahKey), any ﴿ ﴾ bracket or [آية …] marker, and any
  * run of five consecutive words of a known verse of the episode (tashkeel, tatweel, punctuation and alef
- * forms ignored). Context (previous_text / next_text) is never refused: the Quran spans are cut out of it
+ * forms ignored), and the basmala anywhere in the text (owner decision 10 Nov, src/voice/basmala.ts). Context (previous_text / next_text) is never refused: the Quran spans are cut out of it
  * and a context made only of Quran becomes undefined, so a verse is not even sent as context.
  */
+
+import { hasBasmala, withoutBasmala } from "./basmala";
 
 export type TtsScene = { id?: string; template?: string; ayahKey?: string };
 
@@ -75,6 +77,9 @@ export const assertNoQuranForTts = (text: unknown, scene?: TtsScene | null, o: O
   const t = typeof text === "string" ? text : String(text ?? "");
   if (BRACKETS.test(t) || MARKER.test(t))
     throw new QuranTtsError(`نص فيه آية (﴿ ﴾ أو [آية]) لا يُرسل إلى الصوت المستنسخ${where}؛ ضع الآية في مشهد آية مستقل.`);
+  // The basmala is treated like a verse (owner decision, 10 Nov): the owner records it himself.
+  if (hasBasmala(t))
+    throw new QuranTtsError(`البسملة لا تُرسل إلى الصوت المستنسخ${where}؛ يسجلها صاحب القناة بصوته: «ارفع التسجيل» في صفها من «الجمل».`);
   if (containsVerse(t, o.verses ?? []))
     throw new QuranTtsError(`النص يحوي آية من آيات الحلقة${where}، والصوت المستنسخ لا يتلو القرآن؛ ضعها في مشهد آية مستقل.`);
 };
@@ -90,7 +95,7 @@ export const isQuranFreeForTts = (text: unknown, scene?: TtsScene | null, o: Omi
  */
 export const ttsContext = (text: string | undefined | null, scene?: TtsScene | null, verses: readonly string[] = []): string | undefined => {
   if (!text || isVerseScene(scene)) return undefined;
-  const cut = text.replace(SPANS, " ").replace(/[﴿﴾]/g, " ").replace(/\s+/g, " ").trim();
+  const cut = withoutBasmala(text.replace(SPANS, " ").replace(/[﴿﴾]/g, " ").replace(/\s+/g, " ").trim());
   if (!cut || containsVerse(cut, verses)) return undefined;
   return cut;
 };

@@ -37,6 +37,7 @@ export const shotGaps = (plan: Plan, media: EpisodeMedia, ids: string[], scriptP
       if (!clip) gaps.push({ id, what: "لا صوت للراوي (voice/)" });
       else if (clip.text !== s.narration.trim()) gaps.push({ id, what: "صوت الراوي لا يطابق النص الحالي؛ أعد توليده" });
       else if (!existsSync(path.join(path.dirname(scriptPath), "voice", clip.file))) gaps.push({ id, what: `ملف الصوت ${clip.file} مفقود` });
+      else if (needsRecitation && clip.basmala?.pending) gaps.push({ id, what: "البسملة بلا تسجيلك المعتمد؛ ارفع التسجيل واعتمده" });
     }
   }
   return gaps;
@@ -69,7 +70,9 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
     ? await prepareRenderMedia(episode, plan, { requireApprovedQuran: false })
     : await prepareRenderMedia(episode, plan, { requireApprovedQuran: true });
   const pendingRecitation = draftMode ? plan.chapters.flatMap((c) => c.scenes)
-    .filter((s) => ids.includes(s.id) && s.template === "verse-card" && (!s.ayahKey || !media.recitations[s.ayahKey]))
+    .filter((s) => ids.includes(s.id) && ((s.template === "verse-card" && (!s.ayahKey || !media.recitations[s.ayahKey])) ||
+      // The basmala composed as a silent placeholder until the owner's recording is approved (owner, 10 Nov).
+      media.voice[s.id]?.basmala?.pending === true))
     .map((s) => s.id) : [];
   const gaps = shotGaps(plan, media, ids, scriptPath, !draftMode);
   if (gaps.length) {

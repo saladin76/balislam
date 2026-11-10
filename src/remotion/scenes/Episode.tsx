@@ -161,7 +161,8 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
               body
             )}
             <SceneAudio scene={scene} media={media} />
-            {scene.template === "verse-card" && !isRecitedVerse(scene, media) && props.draftMarks?.pendingRecitation.includes(scene.id)
+            {props.draftMarks?.pendingRecitation.includes(scene.id) &&
+              ((scene.template === "verse-card" && !isRecitedVerse(scene, media)) || media.voice[scene.id]?.basmala?.pending)
               ? <PendingRecitationTag /> : null}
           </Series.Sequence>
         );

@@ -33,12 +33,13 @@ import { normWord, stripTashkeel, vowelize } from "./tashkeel";
 import { tashkeelReport } from "./tashkeelReport";
 import { alignmentToWords, applyDictionary, wordsForCaptions } from "./words";
 import { planVerseTexts } from "./quranGuard";
+import { BASMALA_KEY, BASMALA_PLACEHOLDER_SEC, hasBasmala } from "./basmala";
 import { applyLexicon, checkSay, coreOf, loadLexicon, quranMask, removeLexiconEntry, setLexiconEntry, type LexiconEntry } from "./lexicon";
 import { remapWords, SPLICE, spliceWord, type SpliceCheck } from "./wordSplice";
 import {
   addSentenceAfter, clampPause, contextFingerprint, cutPoints, deleteSentence, editSentenceText, emptyDoc, heardKey,
   mergeWithNext, reconcileScene, sceneNarration, sentenceFingerprint, sentencesFor, sentenceStatus, splitSentence,
-  normText, words, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
+  normText, splitBasmalaInList, words, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
 } from "./sentences";
 
 export const SENTENCE_SAMPLE_RATE = 44100;
@@ -69,11 +70,20 @@ const saveDoc = (scriptPath: string, doc: SentencesDoc) => writeAtomic(sentences
 
 /** المشاهد التي صوتها جملةً جملة (يستثنيها generateVoice ومسار الأجزاء والتجهيز) */
 export const sentenceManagedScenes = async (scriptPath: string): Promise<Set<string>> => {
+  let out = new Set<string>();
   try {
-    return new Set(Object.keys((await loadSentencesDoc(scriptPath)).scenes));
-  } catch {
-    return new Set();
-  }
+    out = new Set(Object.keys((await loadSentencesDoc(scriptPath)).scenes));
+  } catch { /* no sentences yet */ }
+  // A scene holding the basmala is always voiced sentence by sentence (its basmala is the owner's own
+  // recording); the whole-scene and parts paths never voice it (owner decision 10 Nov).
+  for (const id of await basmalaScenes(scriptPath)) out.add(id);
+  return out;
+};
+/** Narrated scenes whose text contains the basmala (src/voice/basmala.ts). */
+export const basmalaScenes = async (scriptPath: string): Promise<string[]> => {
+  const plan = await readPlanFile(scriptPath).catch(() => null);
+  return (plan?.chapters ?? []).flatMap((c) => c.scenes)
+    .filter((sc) => sc.template !== "verse-card" && hasBasmala(sc.narration)).map((sc) => sc.id);
 };
 
 // ── سياق الصوت: النبرة والإعدادات والنطق والبصمة ──────────────────────────────
@@ -209,7 +219,7 @@ const neighbours = (flat: Flat[], id: string) => {
 // ── نموذج القراءة ────────────────────────────────────────────────────────────
 
 export type SentenceRow = {
-  id: string; sceneId: string; kind: "narration" | "verse"; text: string; spoken: string;
+  id: string; sceneId: string; kind: "narration" | "verse" | "basmala"; text: string; spoken: string;
   tone: string; inheritedTone: string; toneSource: "map" | "scene" | "episode" | "channel";
   pauseAfterMs: number; status: SentenceStatus; virtual: boolean; last: boolean;
   audio: { file: string; duration: number; origin: SentenceAudio["origin"] } | null;
@@ -267,11 +277,12 @@ const wordFixRefusal = (s: Sentence, fingerprint: string): string | null => {
     if (!(ws[i]!.end > ws[i]!.start) || (i > 0 && ws[i]!.start < ws[i - 1]!.start - 1e-6)) return "توقيت كلمات تسجيلها غير صالح؛ ولّدها كاملة.";
   return null;
 };
+// A basmala sentence never needs a TTS take: its audio is the owner's recording (or a marked placeholder).
 const fresh = (ctx: Ctx, scene: PlanScene, list: Sentence[]) =>
-  list.every((s) => s.kind === "narration" && s.audio && s.audio.fingerprint === voiceOf(ctx, scene, list, s).fingerprint);
+  list.every((s) => s.kind === "basmala" || (s.kind === "narration" && s.audio && s.audio.fingerprint === voiceOf(ctx, scene, list, s).fingerprint));
 const waitingReason = (ctx: Ctx, scene: PlanScene, list: Sentence[], hasOld = false): string | null => {
   if (list.some((s) => s.kind === "verse")) return "في هذا المشهد نص قرآني داخل التعليق؛ الصوت المستنسخ لا يتلوه. انقله إلى مشهد آية من محرر المشهد.";
-  const n = list.filter((s) => !s.audio || s.audio.fingerprint !== voiceOf(ctx, scene, list, s).fingerprint).length;
+  const n = list.filter((s) => s.kind !== "basmala" && (!s.audio || s.audio.fingerprint !== voiceOf(ctx, scene, list, s).fingerprint)).length;
   if (!n) return null;
   return `جمل بلا صوت حالي: ${n.toLocaleString("ar-EG")}. يُركَّب صوت المشهد من جمله حين تُولَّد كلها${hasOld ? "، وحتى ذلك يبقى صوته السابق كما هو" : ""}.`;
 };
@@ -367,6 +378,41 @@ const sliceByWords = async (o: { scriptPath: string; source: string; sourceWords
   return { ok: true, files: out };
 };
 
+/** The owner's approved basmala recording for the episode (bytes verified), or undefined. */
+const approvedBasmala = async (scriptPath: string): Promise<{ file: string; path: string; sha256: string } | undefined> => {
+  const { verifiedOwnRecitations } = await import("../quran/manualAudio");
+  const { recitationsDirFor } = await import("../quran/sync");
+  const rec = (await verifiedOwnRecitations(scriptPath))[BASMALA_KEY];
+  const part = rec?.parts?.[0];
+  if (!rec?.sha256 || !part) return undefined;
+  return { file: part.file, path: path.join(recitationsDirFor(scriptPath), part.file), sha256: rec.sha256 };
+};
+
+/**
+ * After the owner approves (or withdraws) the basmala recording: every scene holding the basmala is composed
+ * again with it (or with the placeholder), so its draft re-opens with the real audio. Scenes not started
+ * sentence by sentence yet are started (their split saved); their narration sentences keep their takes.
+ */
+export const recomposeBasmalaScenes = async (episode: string): Promise<string[]> => {
+  const { serialized } = await import("../studio/sceneService");
+  const scriptPath = await resolveScriptPath(episode);
+  const done: string[] = [];
+  await serialized(sentencesFileFor(scriptPath), async () => {
+    const ctx = await loadCtx(episode);
+    for (const { scene } of allScenes(ctx.plan)) {
+      if (!isNarrated(scene) || !hasBasmala(scene.narration)) continue;
+      if (ctx.doc.scenes[scene.id]) ctx.doc.scenes[scene.id]!.sentences = reconcileScene(ctx.doc.scenes[scene.id]!.sentences, scene.id, scene.narration);
+      await initScene(ctx, scene);
+      const rec = ctx.doc.scenes[scene.id]!;
+      rec.sentences = splitBasmalaInList(rec.sentences);
+      const r = await composeSentenceScene(ctx, scene, rec.sentences);
+      if (r.composed) done.push(scene.id);
+    }
+    await saveDoc(scriptPath, ctx.doc);
+  });
+  return done;
+};
+
 /** يركّب صوت المشهد من جمله ويكتبه في index.json (المسار الذي يقرؤه الرندر والسجل). */
 export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sentence[]): Promise<{ composed: boolean; reason?: string; file?: string }> => {
   const reason = fresh(ctx, scene, list) ? null : waitingReason(ctx, scene, list);
@@ -375,8 +421,24 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
   const dir = sentencesDirFor(ctx.scriptPath);
   const SR = SENTENCE_SAMPLE_RATE;
   const items: { s: Sentence; pcm: Float32Array; clip: { start: number; end: number; speechStart: number; speechEnd: number }; rms: number }[] = [];
+  // The basmala: the owner's approved recording, or a marked silent placeholder until it is approved.
+  const basmalaRec = list.some((s) => s.kind === "basmala") ? await approvedBasmala(ctx.scriptPath) : undefined;
+  const basmalaAudio = new Map<string, SentenceAudio>();
   for (const s of list) {
-    const pcm = await decode(path.join(dir, s.audio!.file));
+    let pcm: Float32Array;
+    if (s.kind === "basmala") {
+      pcm = basmalaRec ? await decode(basmalaRec.path) : new Float32Array(Math.round(BASMALA_PLACEHOLDER_SEC * SR));
+      const dur = pcm.length / SR;
+      const ws = words(s.text);
+      const a: SentenceAudio = { file: basmalaRec?.file ?? "", fingerprint: basmalaRec?.sha256 ?? "pending", context: "", duration: dur,
+        words: ws.map((w, i) => ({ word: w, start: (dur * i) / ws.length, end: (dur * (i + 1)) / ws.length })), at: new Date().toISOString(), origin: "scene", timing: "estimated" };
+      basmalaAudio.set(s.id, a);
+      // A silent placeholder has no speech to measure: the whole length counts as its "speech".
+      const clip = basmalaRec ? measurePart(s.id, pcm, SR, a.words).clip : { start: 0, end: dur, speechStart: 0, speechEnd: dur };
+      items.push({ s, pcm, clip, rms: 0 });
+      continue;
+    }
+    pcm = await decode(path.join(dir, s.audio!.file));
     const clip = measurePart(s.id, pcm, SR, s.audio!.words).clip;
     let sum = 0, n = 0;
     for (let i = Math.floor(clip.speechStart * SR); i < Math.min(pcm.length, Math.ceil(clip.speechEnd * SR)); i++) { sum += pcm[i]! * pcm[i]!; n++; }
@@ -394,6 +456,7 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
       t = Math.max(placedAt[k - 1]!, prevEnd + prev.s.pauseAfterMs / 1000 - lead);
     }
     placedAt.push(t);
+    // The owner's recording keeps its own polished loudness (rms 0 → gain 1), like a verse recitation.
     const gain = target && x.rms > 1e-5 ? Math.min(MAX_GAIN, Math.max(1 / MAX_GAIN, target / x.rms)) : 1;
     return { ...x, at: t, gain };
   });
@@ -421,13 +484,15 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
   let peak = 0;
   for (let i = 0; i < out.length; i++) peak = Math.max(peak, Math.abs(out[i]!));
   if (peak > 0.98) for (let i = 0; i < out.length; i++) out[i] = out[i]! * (0.98 / peak);
-  const sceneWords = placed.flatMap((p) => shiftWords(p.s.audio!.words, p.at + pre - p.clip.start));
-  const hash = createHash("sha1").update(JSON.stringify({ sentences: placed.map((p) => [p.s.id, p.s.audio!.file, p.s.audio!.fingerprint, p.s.pauseAfterMs]), pre })).digest("hex").slice(0, 16);
+  const audioOf = (x: Sentence) => basmalaAudio.get(x.id) ?? x.audio!;
+  const sceneWords = placed.flatMap((p) => shiftWords(audioOf(p.s).words, p.at + pre - p.clip.start));
+  const hash = createHash("sha1").update(JSON.stringify({ sentences: placed.map((p) => [p.s.id, audioOf(p.s).file, audioOf(p.s).fingerprint, p.s.pauseAfterMs]), pre })).digest("hex").slice(0, 16);
   const file = `${hash}.wav`;
   const vdir = voiceDirFor(ctx.scriptPath);
   if (!existsSync(path.join(vdir, file))) await writeAtomic(path.join(vdir, file), encodeWav(out, SR));
   const narration = scene.narration.trim();
-  const clip: VoiceClip = { file, hash, text: narration, duration: total, words: sceneWords, ...(timing ? { timing } : {}), sentences: { hash, ids: list.map((s) => s.id) } };
+  const clip: VoiceClip = { file, hash, text: narration, duration: total, words: sceneWords, ...(timing ? { timing } : {}), sentences: { hash, ids: list.map((s) => s.id) },
+    ...(basmalaAudio.size ? { basmala: { pending: !basmalaRec, sha256: basmalaRec?.sha256 ?? null } } : {}) };
   // index.json يُقرأ من جديد قبل الكتابة: لا يُمس مشهد آخر
   const indexFile = path.join(vdir, "index.json");
   const index = (await readJson<VoiceIndex>(indexFile)) ?? {};
@@ -522,6 +587,7 @@ const writeSceneNarration = async (scriptPath: string, sceneId: string, narratio
 
 /** بوابات أي طلب صوت مدفوع لجملة (التوليد وإعادة نطق كلمة): الآية، التشكيل، الاعتمادات، النبرة، المفتاح، تدريب الصوت */
 const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions, corrections: SentenceCorrection[] = s.corrections ?? []) => {
+  if (s.kind === "basmala") throw new Error("البسملة يسجلها صاحب القناة بصوته ولا ينطقها الصوت المستنسخ: «ارفع التسجيل» في صفها.");
   if (s.kind !== "narration") throw new Error("هذه الجملة نص قرآني؛ الصوت المستنسخ لا يتلو القرآن أبدًا. انقلها إلى مشهد آية وارفع تلاوتها.");
   const cov = coverageOf(ctx, s.id, s.text, corrections);
   if (!cov.ok) {
@@ -777,6 +843,8 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         break;
       }
     }
+    // A sentence edited (or added) to hold the basmala with narration is split at once (owner, 10 Nov).
+    if (["edit", "add", "merge"].includes(cmd.action)) list = splitBasmalaInList(list);
     rec.sentences = list;
     const narration = sceneNarration(list);
     if (["edit", "add", "delete", "merge", "split"].includes(cmd.action))
@@ -811,3 +879,34 @@ export const lexiconAction = async (episode: string, cmd: LexiconCommand): Promi
 
 /** أسماء النبرات للعرض */
 export const toneNames = Object.fromEntries(Object.entries(tones).map(([k, v]) => [k, v.nameAr]));
+
+/**
+ * «جهّز كل المشاهد» for the scenes holding the basmala (owner decision 10 Nov): their split is saved, each
+ * narration sentence without a current take is voiced through the same sentence gates (tashkeel, approvals,
+ * tone, the Quran guard), and the scene is composed with the owner's recording or its marked placeholder.
+ * The basmala itself is never sent to the voice. Returns what was voiced and what could not be, per scene.
+ */
+export const prepareBasmalaScenes = async (episode: string, opts: { client: ElevenLabsClient | null; shouldStop?: () => boolean }) => {
+  const scriptPath = await resolveScriptPath(episode);
+  const ids = await basmalaScenes(scriptPath);
+  const out = { generated: 0, errors: [] as { id: string; error: string }[] };
+  if (!ids.length) return out;
+  await recomposeBasmalaScenes(episode);
+  if (!opts.client) return out;
+  for (const sceneId of ids) {
+    const read = await readSentences(episode);
+    const scene = read.scenes.find((x) => x.id === sceneId);
+    for (const row of scene?.rows ?? []) {
+      if (opts.shouldStop?.()) return out;
+      if (row.kind !== "narration" || row.status === "generated" || row.status === "heard") continue;
+      try {
+        await sentenceAction(episode, { action: "generate", id: row.id }, { client: opts.client });
+        out.generated++;
+      } catch (e) {
+        out.errors.push({ id: sceneId, error: (e as Error).message });
+        break;
+      }
+    }
+  }
+  return out;
+};

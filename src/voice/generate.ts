@@ -43,6 +43,12 @@ export type VoiceClip = {
    * مشهد له جمل لا يولّده المسار العام ولا مسار الأجزاء، ولا يُحذف مقطعه في التنظيف.
    */
   sentences?: { hash: string; ids: string[] };
+  /**
+   * The basmala in this scene (owner decision 10 Nov, src/voice/basmala.ts): the owner's own approved
+   * recording (its sha256) is composed in, or, while it is not approved yet, a marked silent placeholder
+   * (`pending`) — a draft only, approved «مشروطًا بالتلاوة», never assembled into a Master.
+   */
+  basmala?: { pending: boolean; sha256: string | null };
 };
 export type VoiceIndex = Record<string, VoiceClip>;
 
