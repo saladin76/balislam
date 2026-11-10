@@ -19,7 +19,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
 import { loadVoiceIndex, voiceDirFor, generateVoice } from "../voice/generate";
 import type { ElevenLabsClient } from "../voice/elevenlabs";
-import { nameSceneIds } from "../i18n/sceneNames";
+import { ownerText as nameSceneIds } from "../i18n/sceneNames";
 import {
   assertSceneOwner, assertSceneNotAwaitingChange, assertSceneRenderAllowed, inspectSceneProduction, recordSceneRenderEvidence,
   requireSceneProductionReady,

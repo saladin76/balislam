@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
 import { api, type Overview } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
@@ -15,7 +16,7 @@ export const stagesOf = (e: Overview): Stage[] => {
   const stale = e.package.video && e.planUpdatedAt && e.package.updatedAt && e.planUpdatedAt > e.package.updatedAt;
   return [
     { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح · ${duration(e.length.seconds)}` : "صالح") : `${num(e.check.errors)} خطأ` },
-    { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${num(e.blocking)} يمنع النسخة النهائية` : `${num(e.scenes)} مشهدًا` },
+    { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${num(e.blocking)} يمنع النسخة النهائية` : arabicCountAr(e.scenes, SCENES) },
     {
       key: "voice",
       label: "الصوت",
@@ -82,7 +83,7 @@ export const HomeTab: React.FC<{
     api.channel().then((c) => {
       if (!live) return;
       const day = c.schedule ? DAYS[c.schedule.longDay] : undefined;
-      setTagline(day ? `حلقة كل ${day}${c.schedule?.shortsPerDay ? "، وشورتس يومية منها" : ""}` : c.description ?? "");
+      setTagline(day ? `حلقة ${everyWeekday(day)}${c.schedule?.shortsPerDay ? "، وشورتس يومية منها" : ""}` : c.description ?? "");
     }, () => live && setTagline(""));
     return () => { live = false; };
   }, [channel.id]);

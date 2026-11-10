@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
 import { api, type SceneProductionRead, type SceneOwnerAction, type ScenePrepareRead } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
 import type { Plan } from "../../../src/plan/types";
@@ -629,7 +630,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <section className={`s3-reel${reelOpen ? "" : " is-folded"}`} aria-label={`الحلقة كاملة: ${ar(approvedCount)} معتمد من ${ar(order.length)}`}>
           <div className="s3-reel-head">
             <b>الحلقة كاملة</b>
-            <span><Num>{ar(order.length)}</Num> مشهدًا، <Num>{clock(order.reduce((n, id) => n + secs(id), 0))}</Num></span>
+            <span><Num>{arabicCountAr(order.length, SCENES)}</Num>، <Num>{clock(order.reduce((n, id) => n + secs(id), 0))}</Num></span>
             <button type="button" className="s3-fold" aria-expanded={reelOpen} onClick={() => setReelOpen((v) => !v)}><Icon name={reelOpen ? "down" : "up"} />{reelOpen ? "اطوِ" : "افتح"}</button>
             <span className="s3-legend" aria-hidden="true"><span><i className="is-now" />الحالي</span><span><i className="is-ready" />جاهز للمراجعة</span><span><i className="is-later" />يُجهَّز</span><span><i className="is-verse" />آية، سكون</span></span>
           </div>
@@ -1198,7 +1199,7 @@ const SeamReview: React.FC<{
       <section className="ms-tl" aria-label="الحلقة كاملة">
         <div className="ms-tl-head">
           <b>الحلقة كاملة</b>
-          <span><Num>{order.length}</Num> مشهدًا{total ? <>، <Num>{clockAr(total)}</Num></> : null}</span>
+          <span><Num>{arabicCountAr(order.length, SCENES)}</Num>{total ? <>، <Num>{clockAr(total)}</Num></> : null}</span>
           <span className="s3-legend" aria-hidden="true"><span><i className="d is-on" />الوصلة الحالية</span><span><i className="d is-ok" />مسموعة</span><span><i className="d" />لم تُسمع</span><span><i className="is-verse" />آية، سكون مقصود</span><span><i className="r is-ok" />تلاوة مرفقة</span><span><i className="r" />تنتظر التلاوة</span></span>
         </div>
         <ol className="ms-tl-strip">

@@ -151,3 +151,65 @@ describe("M8: after a decision the screen takes the response's read model and th
     expect(src("app/src/tabs/PublishTab.tsx")).toContain('window.addEventListener("studio-workflow-updated", refresh)');
   });
 });
+
+describe("minors: owner messages from the server read in the Studio's words", () => {
+  it("scene ids named, stand-alone numbers in Arabic digits, identifiers untouched", async () => {
+    const { ownerText } = await import("../src/i18n/sceneNames");
+    expect(ownerText("خطأ في السطر 14 من c1-s2", order)).toBe("خطأ في السطر ١٤ من المشهد ٢");
+    expect(ownerText("ذروتها 14.1 م.ب", order)).toBe("ذروتها ١٤٫١ م.ب");
+    expect(ownerText("شاهد 1× ثم 0:00", order)).toBe("شاهد ١× ثم ٠:٠٠");
+    expect(ownerText("رندر 4K بترميز H.264 للملف manual-1-1-abc.mp3", order)).toBe("رندر 4K بترميز H.264 للملف manual-1-1-abc.mp3");
+    expect(ownerText("Script changed before review.", order)).toBe("Script changed before review.");
+    expect(src("app/server/api.ts")).toContain("message = ownerText(message, planOrder(");
+  });
+  it("Arabic counting with Arabic digits", async () => {
+    const { AYAT, SCENES, arabicCountAr, everyWeekday } = await import("../src/i18n/count");
+    expect(arabicCountAr(114, SCENES)).toBe("١١٤ مشهدًا");
+    expect(arabicCountAr(4, AYAT)).toBe("٤ آيات");
+    expect(arabicCountAr(1, SCENES)).toBe("مشهد واحد");
+    expect(everyWeekday("السبت")).toBe("كل سبت");
+  });
+});
+
+describe("minors: attribution, Drive files bound to the Master, نشر.txt sources, channel library in the editor", () => {
+  it("the owner's own recording is not «بإذن مكتوب»", async () => {
+    const { isOwnRecordingEvidence } = await import("../src/plan/media");
+    expect(isOwnRecordingEvidence("تسجيلي بصوتي في البيت، أملك حقوقه كاملة")).toBe(true);
+    expect(isOwnRecordingEvidence("إذن مكتوب من القارئ بتاريخ ٣ نوفمبر")).toBe(false);
+    const { ar } = await import("../src/i18n/packs");
+    expect(ar.strings.descRecitationOwn).toBe("التلاوة: بصوت {name}");
+    expect(src("src/package/youtube.ts")).toContain("rec.own ? L.strings.descRecitationOwn : L.strings.descRecitation");
+  });
+  it("Drive sends only the subtitles/thumbnails made with the approved Master; نشر.txt carries «المصادر»", () => {
+    expect(src("src/package/package.ts")).toContain("await writeHandoffSet(dir, id, files)");
+    const drive = src("src/package/driveHandoff.ts");
+    expect(drive).toContain("set.masterSha256 === facts.masterSha256");
+    expect(drive).toContain("sourcesBlock(plan, await readFile(facts.scriptPath");
+  });
+  it("the scene editor offers only the channel's own templates", () => {
+    expect(src("app/src/tabs/EpisodeTab.tsx")).toContain("!templateExclusion(libraryRulesOf(channel), t.id)");
+  });
+});
+
+describe("collectHandoffSources with a handoff set", () => {
+  it("drops a thumbnail/subtitle not made with this Master (or changed since)", async () => {
+    const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+    const os = await import("node:os");
+    const { createHash } = await import("node:crypto");
+    const dir = mkdtempSync(path.join(os.tmpdir(), "handoff-set-"));
+    try {
+      const h = (s: string) => createHash("sha256").update(s).digest("hex");
+      writeFileSync(path.join(dir, "001-episode.mp4"), "MASTER");
+      writeFileSync(path.join(dir, "001-thumbnail-1.png"), "T1");
+      writeFileSync(path.join(dir, "001-thumbnail-2.png"), "T2-new-from-failed-make");
+      writeFileSync(path.join(dir, "001-episode.ar.srt"), "SRT");
+      writeFileSync(path.join(dir, "001-handoff-set.json"), JSON.stringify({ version: 1, masterSha256: h("MASTER"),
+        files: { "001-thumbnail-1.png": h("T1"), "001-thumbnail-2.png": h("T2-old"), "001-episode.ar.srt": h("SRT") } }));
+      const { collectHandoffSources } = await import("../src/package/driveHandoff");
+      const got = await collectHandoffSources({ masterFile: path.join(dir, "001-episode.mp4"), masterSha256: h("MASTER") });
+      expect(got.map((x) => x.name).sort()).toEqual(["001-episode.ar.srt", "001-episode.mp4", "001-thumbnail-1.png"]);
+      const other = await collectHandoffSources({ masterFile: path.join(dir, "001-episode.mp4"), masterSha256: h("ANOTHER") });
+      expect(other.map((x) => x.name)).toEqual(["001-episode.mp4"]);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+});

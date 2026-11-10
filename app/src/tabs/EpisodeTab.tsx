@@ -1,9 +1,12 @@
 import { OverlayToggles } from "../ui/Overlays";
+import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
 import { resolveOverlays } from "../../../brand/identity/index";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerRef } from "@remotion/player";
 import type { Plan, PlanScene } from "../../../src/plan/types";
 import { templateById, templateDefs, type FieldDef } from "../../../src/plan/templates";
+import { templateExclusion } from "../../../src/channel/library";
+import { libraryRulesOf } from "./LibraryTab";
 import { SceneSettings, TemplateSummary } from "../workspace/SceneSettings";
 import { defaultsFor } from "../../../src/plan/generate";
 import { sceneFrames, sceneSeconds } from "../../../src/plan/duration";
@@ -247,7 +250,7 @@ export const EpisodeTab: React.FC<{
             ستوري بورد
           </button>
           <span className="spacer" />
-          <span className="help" style={{ fontVariantNumeric: "tabular-nums" }} title={lengthSource(length)}>{num(allScenes.length)} مشهدًا · {duration(length.seconds)}</span>
+          <span className="help" style={{ fontVariantNumeric: "tabular-nums" }} title={lengthSource(length)}>{arabicCountAr(allScenes.length, SCENES)} · {duration(length.seconds)}</span>
         </div>
         {plan.chapters.map((ch) => (
           <div key={ch.number}>
@@ -358,7 +361,9 @@ export const EpisodeTab: React.FC<{
                 updateScene({ template: t, props: { ...defs, ...keep } });
               }}
             >
-              {templateDefs.map((t) => (
+              {/* Only the channel's own library (src/channel/library.ts): another channel's designed-shot
+                  templates are not offered (QA minor, 10 Nov); the scene's current template always stays listed. */}
+              {templateDefs.filter((t) => t.id === scene.template || !templateExclusion(libraryRulesOf(channel), t.id)).map((t) => (
                 <option key={t.id} value={t.id}>{t.nameAr}{t.implemented ? "" : " (قيد البناء)"}</option>
               ))}
             </select>

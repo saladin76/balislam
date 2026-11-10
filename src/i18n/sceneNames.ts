@@ -43,3 +43,14 @@ export const nameSceneIds = (message: string, order: string[]): string =>
   message
     .replace(/\b(c\d+-s\d+[a-z0-9-]*)>(c\d+-s\d+[a-z0-9-]*)\b/g, (m, a: string, b: string) => (order.includes(a) && order.includes(b) ? seamName(order, `${a}>${b}`) : m))
     .replace(/(?<![\w-])(c\d+-s\d+(?:-[a-z0-9]+)*)(?![\w-])/g, (m, id: string) => (order.includes(id) ? sceneName(order, id) : m));
+/**
+ * A server message as the owner reads it (funnel QA minors, 10 Nov): scene ids named «المشهد ٣» by the Studio's
+ * numbering, and stand-alone Latin numbers in Arabic digits («السطر 14» → «السطر ١٤», «14.1 م.ب» → «١٤٫١ م.ب»,
+ * «1×» → «١×», «0:00» → «٠:٠٠»). Numbers inside identifiers, file names, hashes or Latin words («4K», «H.264»,
+ * «c1-s3» when unknown) are left as they are. English-only messages are left untouched (the page translates them).
+ */
+export const ownerText = (message: string, order: string[] = []): string => {
+  const named = order.length ? nameSceneIds(message, order) : message;
+  if (!/[؀-ۿ]/.test(named)) return named;
+  return named.replace(/(?<![\w.\-/\\])\d+(?:[.:]\d+)*(?![\w\-/\\]|\.\w)/g, (m) => arDigits(m).replace(/\./g, "٫"));
+};

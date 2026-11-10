@@ -12,16 +12,13 @@ const clock = (sec: number) => {
 };
 
 
-/** نص الوصف والعناوين لليوتيوب: الحلقة والشورتس، بالفصول والمصادر والإفصاح. */
-export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number, channel: ChannelConfig = defaultChannel, real?: RealTimings): string => {
-  const parsed = parseScript(script);
-  const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
-  const starts = chapterTimeline(plan, media, channelInfo(channel), real).starts;
-  const hook = plan.chapters[0]?.scenes.find((s) => s.narration)?.narration ?? "";
-  const step = parsed.practicalStep?.text ?? "";
+/**
+ * «المصادر» with the recitation attribution, exactly as the YouTube description shows them. Shared with the
+ * Drive handoff's نشر.txt (QA minor, 10 Nov), so the two never differ.
+ */
+export const sourceLines = (plan: Plan, parsed: ReturnType<typeof parseScript>, media: EpisodeMedia, channel: ChannelConfig = defaultChannel): string[] => {
   const L = langPack(plan.lang ?? channel.language);
   const fill = (tpl: string, v: Record<string, string>) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
-
   const sources: string[] = [];
   for (const c of parsed.citations) {
     if (c.kind === "ayah") {
@@ -32,7 +29,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
       // Never invent a Quran text provider attribution. Text originates in the
       // reviewed script, and audio comes only from the owner's recording.
       const recitationLine = rec?.source === "manual" && rec.reciter
-        ? fill(L.strings.descRecitation, { name: rec.reciter })
+        ? fill(rec.own ? L.strings.descRecitationOwn : L.strings.descRecitation, { name: rec.reciter })
         : reciter && reciter !== "…" && rec
           ? fill(L.strings.descRecitation, { name: reciter })
           : "";
@@ -48,6 +45,25 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
       sources.push(`- ${c.fields[0] ?? ""}${c.fields[1] ? ` — ${c.fields[1]}` : ""}${c.fields[2] ? ` (${c.fields[2]})` : ""}`);
     } else sources.push(`- ${c.fields.join(" — ")}`);
   }
+  return sources;
+};
+/** The «المصادر:» block (heading + lines), or "" when the script has no citations. */
+export const sourcesBlock = (plan: Plan, script: string, media: EpisodeMedia, channel: ChannelConfig = defaultChannel): string => {
+  const lines = sourceLines(plan, parseScript(script), media, channel);
+  return lines.length ? [langPack(plan.lang ?? channel.language).strings.descSources, ...lines].join("\n") : "";
+};
+
+/** نص الوصف والعناوين لليوتيوب: الحلقة والشورتس، بالفصول والمصادر والإفصاح. */
+export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number, channel: ChannelConfig = defaultChannel, real?: RealTimings): string => {
+  const parsed = parseScript(script);
+  const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
+  const starts = chapterTimeline(plan, media, channelInfo(channel), real).starts;
+  const hook = plan.chapters[0]?.scenes.find((s) => s.narration)?.narration ?? "";
+  const step = parsed.practicalStep?.text ?? "";
+  const L = langPack(plan.lang ?? channel.language);
+  const fill = (tpl: string, v: Record<string, string>) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
+
+  const sources = sourceLines(plan, parsed, media, channel);
 
   const tags = [...channel.youtube.tags, ...(channel.domains[plan.domain]?.tags ?? [])];
   const description = [

@@ -93,12 +93,28 @@ export type HandoffResult = {
 export type HandoffProgress = { pct: number; current: string; done: number; total: number };
 
 /** ما يُسلَّم من out/package: Master، والشورتس المصنوعة من هذا Master نفسه، والصور المصغّرة، والترجمات. */
-export const collectHandoffSources = async (facts: Pick<PublishHandoffFacts, "masterFile">) => {
+export const collectHandoffSources = async (facts: Pick<PublishHandoffFacts, "masterFile"> & { masterSha256?: string }) => {
   const dir = path.dirname(facts.masterFile);
   const masterName = path.basename(facts.masterFile);
   const id = masterName.replace(/-episode\.mp4$/, "");
   const masterTime = (await stat(facts.masterFile)).mtimeMs;
   const names = (await readdir(dir)).sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+  // The subtitles/thumbnails made WITH this Master (package.ts → <id>-handoff-set.json, fingerprint-matched).
+  // A set for another Master means these files are stale (e.g. a failed later make): none of them is sent.
+  const setFile = path.join(dir, `${id}-handoff-set.json`);
+  let made: Record<string, string> | null = null;
+  if (existsSync(setFile)) {
+    try {
+      const set = JSON.parse(await readFile(setFile, "utf8")) as { masterSha256?: string; files?: Record<string, string> };
+      made = facts.masterSha256 && set.masterSha256 === facts.masterSha256 ? set.files ?? {} : {};
+    } catch { made = {}; }
+  }
+  const madeWithMaster = async (n: string) => {
+    if (!made) return true; // an older package without a set: as before
+    const want = made[n];
+    if (!want) return false;
+    return createHash("sha256").update(await readFile(path.join(dir, n))).digest("hex") === want;
+  };
   const out: { name: string; kind: Exclude<HandoffKind, "text" | "manifest">; file: string }[] = [
     { name: masterName, kind: "master", file: facts.masterFile }];
   // شورت/ريل يُسلَّم فقط إن صُنع بعد هذا Master (الشورتس تُقص من Master المعتمد، وأي نسخة أساسية جديدة تحذفها)
@@ -107,11 +123,11 @@ export const collectHandoffSources = async (facts: Pick<PublishHandoffFacts, "ma
     .filter((n) => { const st = statSync(path.join(dir, n)); return st.isFile() && st.mtimeMs >= masterTime; });
   for (const n of shorts) out.push({ name: n, kind: "short", file: path.join(dir, n) });
   for (const n of names.filter((n) => new RegExp(`^${id}-thumbnail-\\d+\\.png$`).test(n)))
-    out.push({ name: n, kind: "thumbnail", file: path.join(dir, n) });
+    if (await madeWithMaster(n)) out.push({ name: n, kind: "thumbnail", file: path.join(dir, n) });
   const shortIds = new Set(shorts.map((n) => n.replace(/\.mp4$/, "")));
   for (const n of names.filter((n) => n.endsWith(".srt"))) {
     const base = n.replace(/\.[a-z]{2,3}\.srt$/, "");
-    if (base === `${id}-episode` || shortIds.has(base)) out.push({ name: n, kind: "subtitle", file: path.join(dir, n) });
+    if (base === `${id}-episode` ? await madeWithMaster(n) : shortIds.has(base)) out.push({ name: n, kind: "subtitle", file: path.join(dir, n) });
   }
   return out;
 };
@@ -363,7 +379,11 @@ export const buildPublishText = async (facts: Pick<PublishHandoffFacts, "episode
   const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8"))
     : social.generatePublishKit(plan, await readFile(facts.scriptPath, "utf8"), media, loadChannel());
   const chapters = social.chaptersText(plan, media, channelInfo(loadChannel()), await realEpisodeTimings(facts.scriptPath, plan));
-  return `${social.kitToMarkdown(kit, plan.title, chapters).trimEnd()}\n\n## الفصول\n\n\`\`\`\n${chapters}\n\`\`\`\n`;
+  // «المصادر» with the recitation attribution, the same lines as the description the Studio shows.
+  const { sourcesBlock } = await import("./youtube");
+  const sources = sourcesBlock(plan, await readFile(facts.scriptPath, "utf8"), media, loadChannel());
+  const body = social.kitToMarkdown(kit, plan.title, chapters).trimEnd();
+  return `${body}\n\n## الفصول\n\n\`\`\`\n${chapters}\n\`\`\`\n${sources && !body.includes(sources) ? `\n## المصادر\n\n${sources}\n` : ""}`;
 };
 
 // ── الحالة والتشغيل في الخلفية ──────────────────────────────────────────────────────────────────────

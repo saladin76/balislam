@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
 import { Thumbnail } from "@remotion/player";
 import type { Plan, PlanScene } from "../../../src/plan/types";
 import type { Identity } from "../../../brand/identity/index";
@@ -275,7 +276,7 @@ export const StoryboardPanel: React.FC<{
       <header className="s12-board-head">
         <Hint>راجع كل لوحة: صورتها ونص تعليقها.</Hint>
         <span className="s12-num" title={lengthSource(length)}>
-          {ar(sceneCount)} مشهدًا · {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
+          {arabicCountAr(sceneCount, SCENES)} · {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
           {st && st.approved ? <span className="s12-soft"> · معتمد {ar(st.approved)}</span> : null}
         </span>
         {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
@@ -401,7 +402,7 @@ export const StoryboardPanel: React.FC<{
 
         <section className="s12-tool" aria-label="فحص الحركة الفني">
           <h3 className="s12-h">فحص الحركة (اختياري، لمرحلة الفيديو)</h3>
-          {motion ? <p className="s12-soft">آخر قياس: {ar(motion.percent)}٪{staleCount ? ` · ${ar(staleCount)} مشهدًا تغيّر بعده` : ""}</p> : null}
+          {motion ? <p className="s12-soft">آخر قياس: {ar(motion.percent)}٪{staleCount ? ` · ${arabicCountAr(staleCount, SCENES)} تغيّر بعده` : ""}</p> : null}
           {motion ? (
             <details className="sb-technical-metrics">
               <summary>نتائج الفحص</summary>

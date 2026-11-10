@@ -43,6 +43,8 @@ export type LangPack = {
     descVerse: string;
     /** «التلاوة: {name} بإذن مكتوب» */
     descRecitation: string;
+    /** The owner's own recording: no «written permission» line (QA minor, 10 Nov). */
+    descRecitationOwn: string;
     fullEpisode: string;
     /** أسماء درجات الحديث للعرض */
     grades: Record<string, string>;

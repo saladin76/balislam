@@ -1,4 +1,5 @@
 import { styleIds, styleNameAr, styleTemplate } from "../../../src/plan/styles";
+import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
 import React, { useEffect, useMemo, useState } from "react";
 import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
@@ -154,7 +155,7 @@ export const OpsRoom: React.FC<{
               <React.Fragment key={d.channel.id}>
                 <button className="ops-ch" style={{ borderInlineStartColor: color(d.channel.id) }} onClick={() => setEditCh(d.channel.id)} title="تعديل يوم الحلقة والساعة">
                   <b>{d.channel.name}</b>
-                  <span className="help">{sch ? `حلقة كل ${DAYS[sch.longDay]}${sch.time ? ` · ${arDigits(sch.time)}` : ""}` : "بلا جدول"} ✎</span>
+                  <span className="help">{sch ? `حلقة ${everyWeekday(DAYS[sch.longDay]!)}${sch.time ? ` · ${arDigits(sch.time)}` : ""}` : "بلا جدول"} ✎</span>
                 </button>
                 {week.map((day, i) => {
                   const date = iso(day);

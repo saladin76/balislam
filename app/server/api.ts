@@ -251,7 +251,13 @@ export const balApi = (): Plugin => ({
           const refuse = async (error: unknown) => {
             if (error instanceof HttpError) throw error;
             const { isOwnerAuthError } = await load("/src/studio/sceneService.ts");
-            return send(res, isOwnerAuthError(error) ? 403 : 409, { error: (error as Error).message });
+            // Minors (funnel QA, 10 Nov): scenes named as the Studio numbers them, numbers in Arabic digits.
+            let message = (error as Error).message;
+            try {
+              const { ownerText, planOrder } = await load("/src/i18n/sceneNames.ts");
+              message = ownerText(message, planOrder(await io.loadPlan(ep).catch(() => null)));
+            } catch { /* the message as it is */ }
+            return send(res, isOwnerAuthError(error) ? 403 : 409, { error: message });
           };
           if (parts[2] === "scene-production" && parts.length === 3) {
             const { inspectSceneProduction, decideSceneProduction } =

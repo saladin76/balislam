@@ -9,6 +9,7 @@ import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
 import { childEnv } from "../../scripts/git-env.mjs";
 import { prepareRunning, PREPARE_RUNNING_MESSAGE } from "./prepare.ts";
+import { ownerText } from "../../src/i18n/sceneNames.ts";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -148,7 +149,7 @@ const attach = (def: TaskDef, view: View, key: string, onLine: (line: string) =>
       view.failure = t.failure ? FAILURE_LABEL[t.failure.kind] : undefined;
       // A refusal already carries its own sentence; the log line would only repeat it.
       const detail = t.failure?.kind === "refused" ? "" : view.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-2).join(" ");
-      view.error = [t.failure ? `${FAILURE_LABEL[t.failure.kind]}: ${t.failure.message}` : t.error, detail].filter(Boolean).join(" · ") || "توقفت العملية";
+      view.error = ownerText([t.failure ? `${FAILURE_LABEL[t.failure.kind]}: ${t.failure.message}` : t.error, detail].filter(Boolean).join(" · ") || "توقفت العملية");
     }
   },
 });

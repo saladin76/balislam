@@ -5,7 +5,12 @@ import type { VoiceClip } from "../voice/generate";
  * mode=static: الملفات منسوخة داخل public/_render (للرندر)، وmode=url: تُخدم من الاستوديو.
  */
 /** تلاوة بطاقة آية: ملف واحد، أو عدة ملفات متتالية لمقطع من عدة آيات. */
-export type Recitation = { file: string; duration: number; parts?: { file: string; duration: number; sha256?: string }[]; reciter?: string; source?: "licensed" | "manual" | "quran-foundation" | "alquran-cloud" };
+export type Recitation = { file: string; duration: number; parts?: { file: string; duration: number; sha256?: string }[]; reciter?: string; source?: "licensed" | "manual" | "quran-foundation" | "alquran-cloud";
+  /** The owner recorded it himself (his rights evidence says so): attributed without «بإذن مكتوب». */
+  own?: boolean };
+/** The rights evidence says the recording is the uploader's own voice (owner/channel), not a licensed reciter. */
+export const isOwnRecordingEvidence = (evidence?: string | null): boolean =>
+  /(بصوتي|تسجيلي|صوتي|سجّلته|سجلته|بنفسي|صاحب القناة|تسجيل المالك|own (?:voice|recording)|my (?:own )?(?:voice|recording))/i.test(evidence ?? "");
 export type EpisodeMedia = {
   mode: "static" | "url";
   base: string;

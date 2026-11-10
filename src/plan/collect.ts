@@ -5,7 +5,7 @@ import { stageRenderFiles, stageStoryboardFiles, defaultRenderMediaRoot, type Re
 import { resolveScriptPath } from "../script/episodes";
 import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { availableSfx, sfxFile } from "../voice/sfx";
-import { type EpisodeMedia, type Recitation } from "./media";
+import { isOwnRecordingEvidence, type EpisodeMedia, type Recitation } from "./media";
 import type { Plan } from "./types";
 import { recitationsDirFor } from "../quran/sync";
 import { verifiedOwnRecitations } from "../quran/manualAudio";
@@ -81,7 +81,7 @@ export const collectMedia = async (
       file: part.file, duration: part.duration, parts: [{
         file: part.file, duration: part.duration, sha256: recording.sha256,
       }],
-      reciter: recording.reciter, source: "manual",
+      reciter: recording.reciter, source: "manual", ...(isOwnRecordingEvidence(recording.rightsEvidence) ? { own: true } : {}),
     };
   }
   const sp = await resolveScriptPath(episode);

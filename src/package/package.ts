@@ -181,6 +181,22 @@ export const packageEpisode = async (opts: PackageOptions) => {
       if (stage === "episode") await unlink(renderInfoFile(dir)).catch(() => {});
       throw new Error(`قاعدة القناة: الحركة أقل من ${MOTION_MIN}% في: ${weak.map((m) => `${m.label} (${m.report.percent}%)`).join("، ")}. نُقلت الفيديوهات إلى qc-failed/ للتشخيص ولن تظهر ضمن ملفات النشر؛ راجع motion-report.md.`);
     }
+    // QA minor (10 Nov): the subtitles and thumbnails written by THIS run, bound to the Master it produced.
+    // The Drive handoff sends only these (a failed make leaves newer srt/png beside an older Master).
+    if (stage === "episode") await writeHandoffSet(dir, id, files);
   }
   return { dir, files, hasVoice };
+};
+
+/** `<id>-handoff-set.json`: the Master's sha256 and the subtitle/thumbnail files made with it (sha256 each). */
+export const handoffSetFileFor = (dir: string, id: string) => path.join(dir, `${id}-handoff-set.json`);
+const writeHandoffSet = async (dir: string, id: string, files: string[]) => {
+  const { createHash } = await import("node:crypto");
+  const sha = async (name: string) => createHash("sha256").update(await readFile(path.join(dir, name))).digest("hex");
+  const master = `${id}-episode.mp4`;
+  if (!existsSync(path.join(dir, master))) return;
+  const names = files.filter((f) => /\.srt$/.test(f) || /-thumbnail-\d+\.png$/.test(f));
+  const set = { version: 1, master, masterSha256: await sha(master),
+    files: Object.fromEntries(await Promise.all(names.map(async (n) => [n, await sha(n)] as const))) };
+  await writeFile(handoffSetFileFor(dir, id), JSON.stringify(set, null, 2) + "\n");
 };
