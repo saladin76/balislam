@@ -910,3 +910,25 @@ export const prepareBasmalaScenes = async (episode: string, opts: { client: Elev
   }
   return out;
 };
+
+/**
+ * M5 (funnel QA, 10 Nov): «أعد توليد الصوت» in the dock for a scene voiced sentence by sentence regenerates
+ * EVERY narration sentence of that scene through the sentence path (same gates; the basmala and verses are
+ * never voiced), then the scene is composed from them. Old takes are kept (never deleted).
+ */
+export const regenerateSceneSentences = async (episode: string, sceneId: string, opts: { client: ElevenLabsClient | null }) => {
+  await sentenceAction(episode, { action: "init", sceneId });
+  let read = await readSentences(episode);
+  const rows = read.scenes.find((x) => x.id === sceneId)?.rows ?? [];
+  let generated = 0;
+  let composed: SentenceActionResult["composed"];
+  for (const row of rows) {
+    if (row.kind !== "narration") continue;
+    const r = await sentenceAction(episode, { action: "generate", id: row.id }, { client: opts.client });
+    generated++;
+    read = r.read;
+    composed = r.composed ?? composed;
+  }
+  if (!generated) throw new Error("لا جمل للراوي في هذا المشهد؛ البسملة والآيات تُرفع بتسجيلك ولا تُولَّد.");
+  return { generated, composed, read };
+};

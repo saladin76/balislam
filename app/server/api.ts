@@ -604,14 +604,35 @@ export const balApi = (): Plugin => ({
             try { return send(res, 200, { read: await sv.lexiconAction(ep, await readBody(req)) }); }
             catch (error) { return refuse(error); }
           }
+          // M5 (funnel QA, 10 Nov): a refusal (tone, tashkeel, approvals, Quran, a busy voice lock…) is a 4xx with
+          // its Arabic sentence, never a 500; a scene voiced sentence by sentence is regenerated sentence by sentence.
           if (parts[2] === "voice" && req.method === "POST") {
             const b = await readBody(req);
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
             const { generateVoice } = await load("/src/voice/generate.ts");
             const client = elevenLabsFromEnv();
-            const report = await generateVoice(ep, { client, dryRun: b.dryRun || !client, only: b.scenes, force: b.force });
-            const plan = await io.readPlanFile(scriptPath);
-            return send(res, 200, { report, generated: Boolean(client && !b.dryRun), media: await mediaFor(plan) });
+            const dryRun = Boolean(b?.dryRun) || !client;
+            if (b?.scenes !== undefined && (!Array.isArray(b.scenes) || b.scenes.some((x: unknown) => typeof x !== "string" || !/^[a-z0-9][a-z0-9-]{0,70}$/.test(x))))
+              return send(res, 400, { error: "طلب الصوت غير صالح؛ حدّث الصفحة." });
+            try {
+              if (!dryRun) {
+                const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+                assertSceneOwner();
+                const sv = await load("/src/voice/sentenceVoice.ts");
+                const managed: Set<string> = await sv.sentenceManagedScenes(scriptPath);
+                if (b.scenes?.length === 1 && managed.has(b.scenes[0])) {
+                  const r = await sv.regenerateSceneSentences(ep, b.scenes[0], { client });
+                  const plan = await io.readPlanFile(scriptPath);
+                  return send(res, 200, { report: null, generated: true, sentences: { generated: r.generated, composed: r.composed ?? null }, media: await mediaFor(plan) });
+                }
+              }
+              const report = await generateVoice(ep, { client, dryRun, only: b.scenes, force: b.force });
+              const plan = await io.readPlanFile(scriptPath);
+              return send(res, 200, { report, generated: !dryRun, media: await mediaFor(plan) });
+            } catch (error) {
+              if ((error as { code?: string })?.code === "QURAN_TTS") return send(res, 422, { error: (error as Error).message });
+              return refuse(error);
+            }
           }
           if (parts[2] === "quran" && req.method === "POST") {
             return send(res, 410, { error: "أُلغِي الجلب الخارجي. نص الآيات من السكريبت والتلاوة من الملف الذي يرفعه المالك." });

@@ -601,7 +601,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
           try {
             const r = await api.voice(episodeId, { scenes: [sceneId], force: state === "ok" });
             onMedia(r.media);
-            setMsg(`تم (${r.report.chars} حرفًا ≈ ${r.report.credits} رصيد)`);
+            setMsg(r.report ? `تم (${r.report.chars} حرفًا ≈ ${r.report.credits} رصيد)` : `أُعيد توليد جمل المشهد (${r.sentences?.generated ?? 0}).`);
           } catch (e) {
             setMsg((e as Error).message);
           } finally {
@@ -653,8 +653,8 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
               try {
                 const r = await api.voice(episodeId, {});
                 onMedia(r.media);
-                setEst(r.report);
-                setMsg(`وُلّد ${r.report.toGenerate.length} مقطعًا.`);
+                if (r.report) setEst(r.report);
+                setMsg(`وُلّد ${r.report?.toGenerate.length ?? 0} مقطعًا.`);
                 setEst((await api.voice(episodeId, { dryRun: true })).report);
               } catch (e) {
                 setMsg((e as Error).message);

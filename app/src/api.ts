@@ -314,7 +314,9 @@ export const api = {
   libraryImageUrl: (file: string) => withChannel(`/api/library-images/file/${encodeURIComponent(file)}`),
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
   uploadImage: (id: string, b: { name: string; data: string; scene: string }) => call<{ file: string; media: EpisodeMedia }>(`/api/episodes/${id}/images`, { method: "POST", json: b }),
-  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport; generated: boolean; media: EpisodeMedia }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
+  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport | null; generated: boolean; media: EpisodeMedia;
+      /** M5: a scene voiced sentence by sentence was regenerated sentence by sentence. */
+      sentences?: { generated: number; composed: { sceneId: string; composed: boolean; reason?: string } | null } }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
   overview: () => call<Overview[]>("/api/overview"),
   status: (id: string) => call<EpisodeStatus>(`/api/episodes/${id}/status`),
   saveStatus: (id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }),

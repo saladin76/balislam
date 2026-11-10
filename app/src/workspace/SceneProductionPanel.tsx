@@ -309,6 +309,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
     if (!clip) return "missing";
     return clip.text === narr ? "ok" : "stale";
   };
+  // M5: a voice message (or refusal) belongs to its scene; it never follows the owner to another one.
+  useEffect(() => { setVoiceMsg(""); }, [currentId, shownId]);
   /** توليد صوت هذا المشهد وحده بنقرة المالك (الواجهة نفسها في «الصوت» والمحرر). */
   const generateVoice = async (sceneId: string, force: boolean): Promise<boolean> => {
     setVoiceBusy(true);
@@ -316,7 +318,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
     try {
       const r = await api.voice(episodeId, { scenes: [sceneId], force });
       onMediaChange?.(r.media);
-      setVoiceMsg("وُلّد الصوت.");
+      setVoiceMsg(r.sentences ? (r.sentences.composed?.composed
+        ? `أُعيد توليد جمل المشهد (${ar(r.sentences.generated)}) ورُكّب صوته منها؛ يُعرض لمراجعة جديدة.`
+        : `أُعيد توليد جمل المشهد (${ar(r.sentences.generated)}).${r.sentences.composed?.reason ? ` ${r.sentences.composed.reason}` : ""}`) : "وُلّد الصوت.");
       await refresh().catch(() => {});
       onUpdated?.();
       return true;

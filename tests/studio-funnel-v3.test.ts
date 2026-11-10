@@ -298,6 +298,23 @@ describe("B2: «اعتمد لوحة هذا المشهد» from step ٢ after a s
     expect(boardAfter.audit.scenes).toEqual(["c1-s2"]);
   }, 60_000);
 
+  it("M5: a refused «ولّد الصوت» is a 4xx with its Arabic reason, never a 500", async () => {
+    process.env.ELEVENLABS_API_KEY = "test-key-not-real";
+    process.env.ELEVENLABS_VOICE_ID = "stub-voice";
+    try {
+      // The edited sentence has no tashkeel yet: the gate refuses before any paid request.
+      const r = await call("POST", `episodes/${EP}/voice`, { scenes: ["c1-s2"], force: true });
+      expect(r.status, JSON.stringify(r.body)).toBeGreaterThanOrEqual(400);
+      expect(r.status).toBeLessThan(500);
+      expect(String(r.body.error)).toMatch(/[\u0600-\u06FF]/);
+      expect((await call("POST", `episodes/${EP}/voice`, { scenes: ["../x"] })).status).toBe(400);
+      expect((await call("POST", `episodes/${EP}/voice`, { scenes: ["c1-s2"] }, CROSS)).status).toBe(403);
+    } finally {
+      delete process.env.ELEVENLABS_API_KEY;
+      delete process.env.ELEVENLABS_VOICE_ID;
+    }
+  }, 60_000);
+
   it("refuses (and writes nothing) when other boards changed too: those are approved together in step ١", async () => {
     await editNarration("c1-s1", "الصبر مفتاح الفرج دائمًا.");
     await editNarration("c1-s3", "والرضا راحة القلب حقًا.");
