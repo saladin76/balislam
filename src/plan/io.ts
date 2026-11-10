@@ -1,6 +1,7 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { copyFile, readFile, writeFile } from "node:fs/promises";
+import { copyFile, readFile } from "node:fs/promises";
+import { readJsonFile, writeJsonAtomic } from "../io/atomicJson";
 import { parseScript } from "../script/parse";
 import { resolveScriptPath } from "../script/episodes";
 import { generatePlan, type QuranTexts } from "./generate";
@@ -14,10 +15,11 @@ export { stripQuran, withQuran, VERSE_PLACEHOLDER } from "./quranText";
 export const planPathFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "plan.json");
 export const quranPathFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "quran.json");
 
-export const readJson = async <T>(file: string): Promise<T | null> => (existsSync(file) ? (JSON.parse(await readFile(file, "utf8")) as T) : null);
+/** يقرأ JSON (null إن لم يوجد)؛ خطأ القراءة يُعاد مرة ثم رسالة عربية واضحة (src/io/atomicJson.ts). */
+export const readJson = <T>(file: string): Promise<T | null> => readJsonFile<T>(file);
 
-/** يكتب الخطة بلا نصوص الآيات. */
-export const writePlanFile = (file: string, plan: Plan) => writeFile(file, JSON.stringify(stripQuran(plan), null, 2) + "\n", "utf8");
+/** يكتب الخطة بلا نصوص الآيات، كتابة ذرية (ملف مؤقت ثم fsync ثم إعادة تسمية). */
+export const writePlanFile = (file: string, plan: Plan) => writeJsonAtomic(file, stripQuran(plan));
 
 /** يقرأ الخطة ويدمج نصوص الآيات المخزنة على الجهاز. */
 export const readPlanFile = async (scriptPath: string): Promise<Plan | null> => {

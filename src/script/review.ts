@@ -6,8 +6,7 @@
  * الفحص البرمجي للصيغ والدرجات لا يغني عن هذه المراجعة. السجل للتوثيق ولا يوقف توليد الصوت (قرار صاحب القناة، ٤ نوفمبر).
  */
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readJsonFile, writeJsonAtomic } from "../io/atomicJson";
 import path from "node:path";
 import config from "../../config.json";
 import { normalizeArabic, parseAyahRef } from "./quranMeta";
@@ -78,13 +77,9 @@ export const reviewSummary = (items: ReviewItem[]): ReviewSummary => {
 
 export const loadLedger = async (scriptPath: string): Promise<ReviewLedger> => {
   const f = reviewFileFor(scriptPath);
-  if (!existsSync(f)) return { version: 1, items: {} };
-  try {
-    const j = JSON.parse(await readFile(f, "utf8")) as ReviewLedger;
-    return { version: 1, items: j.items ?? {} };
-  } catch {
-    return { version: 1, items: {} };
-  }
+  // ملف تالف لا يُعامل سجلًا فارغًا (كان setReview يكتب فوقه فتضيع القرارات): يُعاد مرة ثم رسالة عربية
+  const j = await readJsonFile<ReviewLedger>(f);
+  return { version: 1, items: j?.items ?? {} };
 };
 
 /** يسجل قرار المراجع على الاستشهاد بحالته الحالية (البصمة الحالية). */
@@ -100,7 +95,7 @@ export const setReview = async (scriptPath: string, script: ParsedScript, key: s
   // لا تبقى في السجل استشهادات حُذفت من السكريبت
   const live = new Set(reviewItems(script, null).map((i) => i.key));
   for (const k of Object.keys(ledger.items)) if (!live.has(k)) delete ledger.items[k];
-  await writeFile(reviewFileFor(scriptPath), JSON.stringify(ledger, null, 2) + "\n", "utf8");
+  await writeJsonAtomic(reviewFileFor(scriptPath), ledger);
   return reviewItems(script, ledger);
 };
 

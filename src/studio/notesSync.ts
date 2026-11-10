@@ -186,10 +186,30 @@ export const syncStudioNotes = (opts: { channelsDir: string; remote?: string; in
   return run;
 };
 
-/** في الخلفية بعد كل ملاحظة وعند تشغيل الاستوديو: لا ينتظره أحد ولا يُفشل شيئًا. */
-export const scheduleStudioNotesSync = (channelsDir: string, log: (m: string) => void = (m) => console.warn(m)): void => {
-  if (!notesSyncEnabled()) return;
-  void syncStudioNotes({ channelsDir }).then((r) => {
-    if (!r.ok && r.notes.length) log(`[studio] owner notes kept for later (${r.reason}): ${r.message.split("\n")[0]}`);
+/** While a note waits to be sent, another attempt is made every 10 minutes (QA, 10 Nov 2026). */
+export const NOTES_RETRY_MS = 10 * 60_000;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+export const notesRetryPending = () => retryTimer !== null;
+
+/**
+ * في الخلفية بعد كل ملاحظة وعند تشغيل الاستوديو: لا ينتظره أحد ولا يُفشل شيئًا.
+ * ما دام في الصناديق ما ينتظر الإرسال تُعاد المحاولة كل ١٠ دقائق (مؤقت واحد، لا يُبقي العملية حية)،
+ * ويتوقف المؤقت عند أول إرسال ناجح.
+ */
+export const scheduleStudioNotesSync = (channelsDir: string, log: (m: string) => void = (m) => console.warn(m),
+  opts: { retryMs?: number; enabled?: boolean; sync?: typeof syncStudioNotes } = {}): Promise<SyncResult | null> => {
+  if (!(opts.enabled ?? notesSyncEnabled())) return Promise.resolve(null);
+  return (opts.sync ?? syncStudioNotes)({ channelsDir }).then((r) => {
+    if (!r.ok && r.notes.length) {
+      log(`[studio] owner notes kept for later (${r.reason}): ${r.message.split("\n")[0]}`);
+      if (!retryTimer) {
+        retryTimer = setTimeout(() => { retryTimer = null; void scheduleStudioNotesSync(channelsDir, log, opts); }, opts.retryMs ?? NOTES_RETRY_MS);
+        (retryTimer as { unref?: () => void }).unref?.();
+      }
+    } else if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+    return r;
   });
 };

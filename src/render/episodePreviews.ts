@@ -4,12 +4,15 @@
  * لكل موضوع «خانة» ظاهرة واحدة، مع حفظ كل فيديو سابق في history بدلاً من إتلافه.
  */
 import { existsSync } from "node:fs";
-import { copyFile, link, mkdir, readFile, readdir, rename, rm, rmdir, stat, writeFile } from "node:fs/promises";
+import os from "node:os";
+import { copyFile, link, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { assertNoLinkedPath, copyUnlinkedFile, ensureUnlinkedDirectory } from "./fsIsolation";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import path from "node:path";
 import { resolveEpisodeDir } from "../script/episodes";
+import { cleanStaleParts, partFileFor } from "../io/partFiles";
+import { lockIsStale, parseLock, processStartTime } from "../io/processLock";
 
 /**
  * `version` عدّاد مرات الرفع في الخانة («رفع رقم»)، وليس رقم إصدار المحتوى؛ إصدار المحتوى يُكتب في العنوان («نسخة المحتوى V7»).
@@ -78,7 +81,8 @@ const mirrorToDrive = async (episodeDir: string, name: string, file: string): Pr
   const target = driveMirrorFile(episodeDir, name);
   if (!target) return null;
   await mkdir(path.dirname(target), { recursive: true });
-  const tmp = `${target}.${randomUUID()}.part`;
+  await cleanStaleParts(path.dirname(target)); // this machine's crashed copies only (M2)
+  const tmp = partFileFor(target);
   try {
     await copyFile(file, tmp);
     await rename(tmp, target);
@@ -103,16 +107,43 @@ const pruneHistory = async (history: string) => {
   for (const f of files.slice(PREVIEW_HISTORY_KEEP)) await rm(path.join(history, f.n), { force: true });
 };
 
-/** One serialized writer per episode preview index. A crash keeps the lock
- * rather than allowing another worker to overwrite a version accidentally. */
-const withPreviewIndexLock = async <T>(dir: string, work: () => Promise<T>): Promise<T> => {
+/**
+ * One serialized writer per episode preview index. The lock is a directory (as before, so an older build's
+ * lock is still respected) holding `owner.json` with the writer's PID and OS start time (QA M1). After a crash
+ * the lock is recovered only when provably stale: its writer process is gone or its PID was reused, or the
+ * directory has no owner file and is older than PREVIEW_LOCK_ORPHAN_MS (a crash right after creating it, or a
+ * lock left by an older build). A live writer's lock is never removed; a busy index waits, then says so.
+ */
+export const PREVIEW_LOCK_ORPHAN_MS = 10 * 60_000;
+export const PREVIEW_LOCK_BUSY = "فهرس المعاينات يُكتب الآن في عملية أخرى؛ أعد المحاولة بعد لحظات.";
+const previewLockStale = async (lock: string): Promise<boolean> => {
+  const owner = await readFile(path.join(lock, "owner.json"), "utf8").catch(() => null);
+  if (owner !== null && parseLock(owner)) return lockIsStale(owner);
+  const st = await stat(lock).catch(() => null);
+  return Boolean(st && Date.now() - st.mtimeMs > PREVIEW_LOCK_ORPHAN_MS);
+};
+export const withPreviewIndexLock = async <T>(dir: string, work: () => Promise<T>, waitMs = 15_000): Promise<T> => {
   await ensureUnlinkedDirectory(dir);
   const lock = path.join(dir, ".preview-index.lock");
-  await mkdir(lock, { mode: 0o700 });
+  const deadline = Date.now() + waitMs;
+  const token = JSON.stringify({ pid: process.pid, start: processStartTime(process.pid), host: os.hostname(),
+    token: randomUUID(), purpose: "preview index", at: new Date().toISOString() });
+  for (;;) {
+    try { await mkdir(lock, { mode: 0o700 }); break; }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      if (await previewLockStale(lock)) { await rm(lock, { recursive: true, force: true }); continue; }
+      if (Date.now() >= deadline) throw new Error(PREVIEW_LOCK_BUSY);
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+  await writeFile(path.join(lock, "owner.json"), token, { mode: 0o600 });
   try {
     return await work();
   } finally {
-    await rmdir(lock);
+    // Only our own lock: remove it with its owner file.
+    if (await readFile(path.join(lock, "owner.json"), "utf8").catch(() => null) === token)
+      await rm(lock, { recursive: true, force: true });
   }
 };
 
