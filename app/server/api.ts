@@ -399,6 +399,14 @@ export const balApi = (): Plugin => ({
             return send(res, 200, { ...read, prepare: { job, ...(prepareError ? { error: prepareError } : {}) } });
           }
 
+          // B2: from the sentence row in step ٢, the changed board of ONE scene (src/studio/preparation.ts).
+          if (parts[2] === "approve-scene-board" && parts.length === 3) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const { approveSceneBoard } = await load("/src/studio/preparation.ts");
+            const body = await readBody(req);
+            try { return send(res, 200, await approveSceneBoard(ep, body)); } catch (error) { return refuse(error); }
+          }
+
           if (parts[2] === "scene-prepare" && parts.length === 3) {
             const key = `${ch}/${ep}`;
             const voiceKey = Boolean(process.env.ELEVENLABS_API_KEY && (channelMod.loadChannel(ch).voice?.id || process.env.ELEVENLABS_VOICE_ID));

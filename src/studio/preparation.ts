@@ -139,3 +139,57 @@ export const directPreparationRefusal = async (episode: string, command: unknown
   }
   return null;
 };
+
+export type SceneBoardCommand = {
+  sceneId: string;
+  /** The storyboard fingerprint the owner saw (from the ledger read). */
+  storyboardSha256: string;
+  /** «راجعته بنفسي». */
+  reviewed: boolean;
+  /** What the owner checked on this board (25+ characters, the same rule as every board review). */
+  note: string;
+};
+
+/**
+ * B2 (funnel QA, 10 Nov): a sentence text edit in step ٢ changes that scene's board, and producing it was
+ * refused until the owner went back to step ١. «اعتمد لوحة هذا المشهد» records the review of THIS changed board
+ * only, from the sentence row, and then takes the ledger's storyboard decision again — the same two writes
+ * «اعتمد اللوحات المتغيّرة» makes, each through its own check. The other boards keep their record byte for byte.
+ * When other boards changed too, nothing is written: the storyboard decision needs every board recorded, so
+ * the owner is sent to step ١ where they are listed together.
+ */
+export const approveSceneBoard = async (episode: string, command: SceneBoardCommand) => {
+  assertSceneOwner();
+  if (!command || typeof command.sceneId !== "string" || !/^[a-z0-9][a-z0-9-]{0,70}$/.test(command.sceneId) ||
+      !hex64(command.storyboardSha256) || typeof command.note !== "string" || command.note.length > 3000)
+    throw Error("Malformed board approval.");
+  if (command.reviewed !== true) throw Error("Confirm that you reviewed this board yourself («راجعته بنفسي»).");
+  const before = await inspectSceneProduction(episode);
+  if (before.storyboard.sha256 !== command.storyboardSha256) throw Error("Storyboard changed before review.");
+  if (!before.script.approved)
+    throw Error("تغيّر السكريبت بعد اعتماده؛ يُعتمد مع اللوحات من «١ التجهيز» ← «اعتمد التجهيز».");
+  const blockers = await preparationBlockers(episode);
+  if (blockers.scriptErrors > 0) throw Error("Fix the script errors before approving the preparation.");
+  if (!blockers.boardsReviewedBefore)
+    throw Error("لم يُعتمد التجهيز بعد: راجع اللوحات كلها في «١ التجهيز» واعتمدها.");
+  if (!blockers.changedBoards.includes(command.sceneId))
+    throw Error("لوحة هذا المشهد لم تتغيّر بعد اعتمادها؛ لا شيء لاعتماده.");
+  const others = blockers.changedBoards.filter((id) => id !== command.sceneId);
+  if (others.length)
+    throw Error(`تغيّرت لوحات أخرى أيضًا (${others.length})؛ اعتمادها معًا من «١ التجهيز» ← «اعتمد اللوحات المتغيّرة».`);
+  const plan = await loadPlan(episode);
+  if (!plan) throw Error("Prepare and save a storyboard plan first.");
+  const checked = checkVisualStoryboardSignoff(plan, command.note);
+  if (!checked.ok) throw Error(checked.reason);
+
+  await requireScriptApproved(episode);
+  const scriptPath = await resolveScriptPath(episode);
+  await recordChangedBoards(scriptPath, plan, { note: checked.note }, [command.sceneId]);
+  const mid = await inspectSceneProduction(episode);
+  if (!mid.storyboard.approved)
+    await decideSceneProduction(episode, {
+      action: "approve-storyboard", expectedSha256: mid.storyboard.sha256, confirmedWatched: true,
+      note: `راجعت لوحة المشهد المتغيّرة (${command.sceneId})`,
+    });
+  return inspectSceneProduction(episode);
+};

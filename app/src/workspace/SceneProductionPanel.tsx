@@ -13,6 +13,7 @@ import "../shell/screens-s3.css";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
 import { SentencesPanel } from "./SentencesPanel";
+import { SceneBoardApproval } from "./SceneBoardApproval";
 import { clockAr, sceneName, seamName } from "./sceneNames";
 import { sceneSeconds } from "../../../src/plan/duration";
 import { Icon } from "../ui/icons";
@@ -536,6 +537,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
             ) : null}
             {!hit?.scene.narration.trim() && hit?.scene.template !== "verse-card" ? <p className="s3-narr">بلا تعليق صوتي</p> : null}
           </div>
+
+          {data && shownId ? (
+            <SceneBoardApproval episodeId={episodeId} channelId={channelId} sceneId={shownId} sceneLabel={sceneName(order, shownId)}
+              data={data} onApproved={(r) => { setData(r); onUpdated?.(); }} onOpenPreparation={onOpenPreparation} />
+          ) : null}
 
           {hit?.scene.narration.trim() || hit?.scene.template === "verse-card" ? (
             <SentencesPanel variant="paragraph" episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}

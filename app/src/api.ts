@@ -221,6 +221,9 @@ export const api = {
     call<SceneProductionRead & { prepare: { job: ScenePrepareJob | null; error?: string } }>(`/api/episodes/${episode}/approve-preparation`, {
       method: "POST", json: body,
     }, channel),
+  /** B2: «اعتمد لوحة هذا المشهد» from step ٢ — the changed board of one scene, then the storyboard decision again. */
+  approveSceneBoard: (episode: string, channel: string, body: { sceneId: string; storyboardSha256: string; reviewed: boolean; note: string }) =>
+    call<SceneProductionRead>(`/api/episodes/${episode}/approve-scene-board`, { method: "POST", json: body }, channel),
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel).then(prepareRead),

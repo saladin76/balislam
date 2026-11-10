@@ -110,21 +110,26 @@ export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: 
  * `sourceSha256`) do not change and no approved scene is re-opened; boards of removed scenes are dropped.
  * The earlier note is kept in `history`. Refuses when nothing was recorded before (that is the full review).
  */
-export const recordChangedBoards = async (scriptPath: string, plan: Plan, audit: { note: string; inputHash?: string }): Promise<{ record: StoryboardRecord; scenes: string[] }> => {
+export const recordChangedBoards = async (scriptPath: string, plan: Plan, audit: { note: string; inputHash?: string },
+  /** Record only these changed boards (B2: «اعتمد لوحة هذا المشهد» from step ٢); the others keep their record. */
+  only?: string[]): Promise<{ record: StoryboardRecord; scenes: string[] }> => {
   const missing = versesMissingText(plan);
   if (missing.length) throw new Error(`لا تُعتمد اللوحات وفيها ${missing.length} آية بلا نصها (${missing.slice(0, 6).join("، ")}${missing.length > 6 ? "…" : ""}). أضف نص الآيات كاملًا داخل السكريبت وراجعه قبل الاعتماد.`);
   const prev = await loadStoryboard(scriptPath);
   if (!prev.audit?.note?.trim()) throw new Error("لم تُسجَّل مراجعة اللوحات من قبل: راجع اللوحات كلها واعتمد التجهيز.");
   const st = storyboardStatus(plan, prev);
-  const changed = [...st.changed, ...st.fresh];
+  const changed = [...st.changed, ...st.fresh].filter((id) => !only || only.includes(id));
   const all = plan.chapters.flatMap((c) => c.scenes);
   const at = new Date().toISOString();
+  const keep = (id: string) => st.scenes[id] === "approved" || (only !== undefined && !only.includes(id));
   const record: StoryboardRecord = {
     version: 1,
     approvedAt: at,
     audit: { ...audit, at, scenes: changed },
     history: [...(prev.history ?? []), prev.audit],
-    scenes: Object.fromEntries(all.map((s) => [s.id, st.scenes[s.id] === "approved" ? prev.scenes[s.id]! : storyboardVisualHash(s)])),
+    scenes: Object.fromEntries(all.flatMap((s) => keep(s.id)
+      ? (prev.scenes[s.id] ? [[s.id, prev.scenes[s.id]!]] : [])
+      : [[s.id, storyboardVisualHash(s)]])),
   };
   await writeJsonAtomic(storyboardFileFor(scriptPath), record);
   return { record, scenes: changed };
