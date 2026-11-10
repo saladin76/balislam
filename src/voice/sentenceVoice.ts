@@ -460,6 +460,11 @@ export type SentenceCommand = {
    * ونطقها المكتوب، و«احفظ هذا النطق للقناة».
    */
   word?: number; say?: string; save?: boolean;
+  /**
+   * fixword: how many words on each side are re-said with the corrected word (1 by default: its two neighbours;
+   * 2 under «المزيد»: two on each side, for a smoother join). Only the corrected word is spliced in.
+   */
+  neighbours?: 1 | 2;
 };
 export type SentenceActionOptions = {
   client?: ElevenLabsClient | null;
@@ -583,7 +588,7 @@ export type WordFixOutcome = { ok: boolean; index: number; word: string; say: st
  * والجارتين نصًا مجاورًا؛ تُقص الكلمة منه بتوقيتها وتوصل في تسجيل الجملة مكان القديمة (wordSplice.ts). نجح الفحص:
  * تسجيل جديد (والسابق في takes). لم ينجح: لا يتغير التسجيل، والمقطع المدفوع يبقى على القرص.
  */
-const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, c: SentenceCorrection, opts: SentenceActionOptions):
+const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, c: SentenceCorrection, opts: SentenceActionOptions & { neighbours?: 1 | 2 }):
   Promise<{ list: Sentence[]; outcome: WordFixOutcome }> => {
   const base0 = voiceOf(ctx, scene, list, s);
   const refusal = wordFixRefusal(s, base0.fingerprint);
@@ -593,11 +598,13 @@ const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list: Senten
   const ws = words(s.text);
   const k = c.index;
   const tokens = (i: number) => (i >= 0 && i < ws.length ? fixed.perWord[i]!.split(" ").filter(Boolean) : []);
-  const prevT = tokens(k - 1), target = tokens(k), nextT = tokens(k + 1);
+  const n = opts.neighbours ?? 1;
+  const around = (from: number, to: number) => { const out: string[] = []; for (let i = from; i <= to; i++) out.push(...tokens(i)); return out; };
+  const prevT = around(k - n, k - 1), target = tokens(k), nextT = around(k + 1, k + n);
   const fragment = [...prevT, ...target, ...nextT].join(" ");
   const nb = neighbours(flatten(ctx), s.id);
-  const before = [nb.previousText, ws.slice(0, Math.max(0, k - 1)).join(" ")].filter(Boolean).join(" ");
-  const after = [ws.slice(k + 2).join(" "), nb.nextText].filter(Boolean).join(" ");
+  const before = [nb.previousText, ws.slice(0, Math.max(0, k - n)).join(" ")].filter(Boolean).join(" ");
+  const after = [ws.slice(k + n + 1).join(" "), nb.nextText].filter(Boolean).join(" ");
   const r = await client.tts(fragment, { previousText: before || undefined, nextText: after || undefined, voiceId: scene.voice || undefined, tune: v.tune });
   const speed = speedFor(ctx, v.tune);
   const audio = await applyTempo(r.audio, speed);
@@ -654,7 +661,8 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
   if (!cmd || !actions.includes(cmd.action) || (cmd.text !== undefined && (typeof cmd.text !== "string" || cmd.text.length > 4000)) ||
       (cmd.note !== undefined && (typeof cmd.note !== "string" || cmd.note.length > 2000)) ||
       (cmd.say !== undefined && (typeof cmd.say !== "string" || cmd.say.length > 200)) || (cmd.word !== undefined && !Number.isInteger(cmd.word)) ||
-      (cmd.action === "fixword" && (cmd.word === undefined || cmd.say === undefined)))
+      (cmd.action === "fixword" && (cmd.word === undefined || cmd.say === undefined)) ||
+      (cmd.neighbours !== undefined && cmd.neighbours !== 1 && cmd.neighbours !== 2))
     throw new Error("أمر الجملة غير صالح.");
   const scriptPath = await resolveScriptPath(episode);
   await mkdir(voiceDirFor(scriptPath), { recursive: true });
@@ -753,7 +761,7 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
       case "fixword": {
         const s = one();
         const c = correctionFor(s, cmd.word, cmd.say);
-        const r = await fixWord(ctx, episode, scene, list, s, c, opts);
+        const r = await fixWord(ctx, episode, scene, list, s, c, { ...opts, neighbours: cmd.neighbours });
         list = r.list;
         fix = r.outcome;
         if (r.outcome.ok && cmd.save) {

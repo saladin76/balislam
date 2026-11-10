@@ -277,6 +277,29 @@ describe("على القرص: «أعد نطق الكلمة» والقاموس", (
     expect(index()["c1-s1"].file).toBe(indexBefore["c1-s1"].file);
   }, 90_000);
 
+  it("«المزيد»: كلمتان من كل جانب (neighbours: 2) تُقالان مع الكلمة، ولا يوصل إلا هي؛ وقيمة غير ١ أو ٢ تُرفض", async () => {
+    const sent: Sent[] = [];
+    const { sv, b } = await generated(sent);
+    const takeBefore = doc().scenes["c1-s1"].sentences[1].audio;
+    sent.length = 0;
+    const r = await sv.sentenceAction("986", { action: "fixword", id: b.id, word: 2, say: "الْوَلَدُ", neighbours: 2 }, { client: fakeClient(sent), ...OPTS });
+    expect(r.fix).toMatchObject({ ok: true, index: 2, word: "الوَلَدُ", say: "الْوَلَدُ" });
+    expect(sent).toHaveLength(1);
+    // الجملة «ثُمَّ ذَهَبَ الوَلَدُ إِلَى البَيْتِ؟»: الكلمة وكلمتان قبلها وكلمتان بعدها، وما قبل الجملة سياقٌ نصي
+    expect(sent[0]!.text).toBe("ثُمَّ ذَهَبَ الْوَلَدُ إِلَى البَيْتِ؟");
+    expect(sent[0]!.previousText).toBe(S1A);
+    const s = doc().scenes["c1-s1"].sentences[1];
+    expect(s.audio.origin).toBe("fix");
+    expect(s.takes.at(-1)).toEqual(takeBefore);
+    // ما قبل الكلمة وبعدها من التسجيل نفسه: توقيت الكلمة الأولى لم يتغير، والثانية لم تُستبدل
+    expect(s.audio.words[0]).toEqual(takeBefore.words[0]);
+    expect(s.audio.words[1]).toEqual(takeBefore.words[1]);
+    expect(s.audio.fixes).toHaveLength(1);
+    // الافتراضي جارة واحدة من كل جانب (النص المرسل في الاختبار السابق)، وما سوى ١ و٢ أمر غير صالح
+    await expect(sv.sentenceAction("986", { action: "fixword", id: b.id, word: 2, say: "الْوَلَدُ", neighbours: 3 as never }, { client: fakeClient([]), ...OPTS }))
+      .rejects.toThrow(/غير صالح/);
+  }, 90_000);
+
   it("فحص الجودة الفاشل لا يغيّر التسجيل ولا صوت المشهد، ويبقى المقطع المدفوع، ثم «ولّد الجملة كاملة بهذا النطق»", async () => {
     const sent: Sent[] = [];
     const { sv, a } = await generated(sent);
