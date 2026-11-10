@@ -17,7 +17,7 @@ import { duration, lengthSource, num, sceneName, verseRef } from "../ui/format";
 import { BoardViewer, type BoardShot } from "./BoardViewer";
 import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
-import { BoardAuditLog, auditLogOnTop } from "./BoardAuditLog";
+import { BoardAuditLog, ChangedBoards, auditLogOnTop } from "./BoardAuditLog";
 import "../shell/screens-s12.css";
 
 const ar = (n: number) => num(n);
@@ -91,7 +91,9 @@ export const StoryboardPanel: React.FC<{
   onReload: () => void;
   /** The visual sign-off changed the storyboard fingerprint: the spine re-reads it. */
   onSigned?: () => void;
-}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, onSigned }) => {
+  /** Bumped after an owner decision elsewhere (the dock's «اعتمد التجهيز»): the board states are read again. */
+  refreshKey?: number;
+}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, onSigned, refreshKey }) => {
   const [viewing, setViewing] = useState<number | null>(null);
   const [citations, setCitations] = useState<ReviewItem[] | null>(null);
   useEffect(() => {
@@ -138,7 +140,7 @@ export const StoryboardPanel: React.FC<{
     const t = setTimeout(() => api.storyboard(episodeId).then(setInfo).catch((e) => setErr((e as Error).message)), info ? 1200 : 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodeId, plan]);
+  }, [episodeId, plan, refreshKey]);
 
   useEffect(() => {
     let active = true;
@@ -264,7 +266,7 @@ export const StoryboardPanel: React.FC<{
   const auditLog = (
     <BoardAuditLog st={st} channelId={channel.id} episodeId={episodeId} note={visualReviewNote} onNote={setVisualReviewNote}
       reviewed={visualReviewed} onReviewed={setVisualReviewed} busy={busy} onAct={(a) => void act(a)}
-      error={auditLogOnTop(st) ? err : undefined} />
+      error={undefined} />
   );
   // شاشة واحدة: شبكة اللوحات؛ وملاحظة مراجعتها تُكتب بجوار «اعتمد التجهيز» في عمود الحلقة (D40)،
   // وكل ما سواها (سجل مراجعة اللوحات، الآيات، الفحص الفني، المعاينات) في «أدوات وتفاصيل».
@@ -279,7 +281,8 @@ export const StoryboardPanel: React.FC<{
         {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
       </header>
 
-      {auditLogOnTop(st) ? auditLog : null}
+      {/* P-05: boards changed after the approval are listed first; the full log stays in «أدوات وتفاصيل» */}
+      {st && auditLogOnTop(st) ? <ChangedBoards st={st} name={(id) => sceneName(order, id)} onOpen={(id) => setViewing(indexOf.get(id) ?? 0)} /> : null}
 
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter s12-chapter">
@@ -298,7 +301,7 @@ export const StoryboardPanel: React.FC<{
                   <div className="sb-txt s12-txt">
                     <p className="s12-shot-meta">
                       <span className="s12-id">{sceneName(order, s.id)}</span>
-                      {state === "approved" ? <span className="s12-mark ok" title="معتمد">معتمد</span> : state === "changed" ? <span className="s12-mark warn" title="تغيّر بعد الاعتماد">تغيّر</span> : null}
+                      {state === "approved" ? <span className="s12-mark ok" title="معتمد">معتمد</span> : state === "changed" ? <span className="s12-mark warn" title="تغيّر بعد الاعتماد">تغيّر</span> : state === "new" && st?.approved ? <span className="s12-mark warn" title="أُضيفت بعد الاعتماد">جديدة</span> : null}
                       <span className="spacer" />
                       <span className="s12-time">{fmtAr(from / fps)}</span>
                     </p>
@@ -356,7 +359,7 @@ export const StoryboardPanel: React.FC<{
       <Previews episodeId={episodeId} />
 
       <More>
-        {err && !auditLogOnTop(st) ? <p className="s12-alert" role="alert">{err}</p> : null}
+        {err ? <p className="s12-alert" role="alert">{err}</p> : null}
         {job?.status === "error" ? <p className="s12-alert">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
 
         <section className="s12-tool" aria-label="عرض اللوحات">
@@ -367,7 +370,7 @@ export const StoryboardPanel: React.FC<{
           {noVoice ? <p className="s12-soft">المدة بلا صوت: أقل مدة لكل قالب.</p> : null}
         </section>
 
-        {!auditLogOnTop(st) ? auditLog : null}
+        {auditLog}
 
         <section className="s12-tool sb-quran-text-source" aria-label="نصوص الآيات">
           <h3 className="s12-h">نصوص الآيات</h3>

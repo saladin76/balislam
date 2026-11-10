@@ -105,4 +105,4 @@ export const setReview = async (scriptPath: string, script: ParsedScript, key: s
 };
 
 export const reviewBlockMessage = (s: ReviewSummary) =>
-  `سجل التوثيق غير مكتمل: ${s.verified} من ${s.total} استشهادًا موثّقًا${s.pending ? `، ${s.pending} بانتظار المراجعة` : ""}${s.changed ? `، ${s.changed} تغيّر بعد الاعتماد` : ""}${s.rejected ? `، ${s.rejected} مرفوض` : ""}. راجعها من «السكريبت ← سجل التوثيق» قبل توليد الصوت.`;
+  `سجل التوثيق غير مكتمل: ${s.verified} من ${s.total} استشهادًا موثّقًا${s.pending ? `، ${s.pending} بانتظار المراجعة` : ""}${s.changed ? `، ${s.changed} تغيّر بعد الاعتماد` : ""}${s.rejected ? `، ${s.rejected} مرفوض` : ""}. راجعها من «١ التجهيز ← السكريبت ← سجل التوثيق» (في «أدوات وتفاصيل») قبل توليد الصوت.`;

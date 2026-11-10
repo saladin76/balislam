@@ -14,7 +14,10 @@ import type { Plan } from "./types";
 import { VERSE_PLACEHOLDER } from "./quranText";
 import { HORIZON_BOARD_VIEW } from "./storyboardView";
 
-export type StoryboardRecord = { version: 1; approvedAt?: string; scenes: Record<string, string>; audit?: { note: string; inputHash?: string; at: string } };
+export type StoryboardAudit = { note: string; inputHash?: string; at: string; /** Only these boards were recorded by this note (a re-review of changed boards). */ scenes?: string[] };
+export type StoryboardRecord = { version: 1; approvedAt?: string; scenes: Record<string, string>; audit?: StoryboardAudit;
+  /** Earlier review notes, oldest first (kept when only the changed boards are re-recorded). */
+  history?: StoryboardAudit[] };
 export type StoryboardSceneStatus = "approved" | "changed" | "new";
 export type StoryboardStatus = {
   total: number;
@@ -55,7 +58,7 @@ export const loadStoryboard = async (scriptPath: string): Promise<StoryboardReco
   if (!existsSync(f)) return { version: 1, scenes: {} };
   try {
     const r = JSON.parse(await readFile(f, "utf8")) as StoryboardRecord;
-    return { version: 1, approvedAt: r.approvedAt, scenes: r.scenes ?? {}, audit: r.audit };
+    return { version: 1, approvedAt: r.approvedAt, scenes: r.scenes ?? {}, audit: r.audit, ...(Array.isArray(r.history) ? { history: r.history } : {}) };
   } catch {
     return { version: 1, scenes: {} };
   }
@@ -99,6 +102,32 @@ export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: 
   return rec;
 };
 
+/**
+ * P-05: re-record ONLY the boards that changed (or are new) since the last board review, after the owner reviewed
+ * them. The other boards keep their recorded fingerprint byte for byte, so their scenes' inputs (sceneService
+ * `sourceSha256`) do not change and no approved scene is re-opened; boards of removed scenes are dropped.
+ * The earlier note is kept in `history`. Refuses when nothing was recorded before (that is the full review).
+ */
+export const recordChangedBoards = async (scriptPath: string, plan: Plan, audit: { note: string; inputHash?: string }): Promise<{ record: StoryboardRecord; scenes: string[] }> => {
+  const missing = versesMissingText(plan);
+  if (missing.length) throw new Error(`لا تُعتمد اللوحات وفيها ${missing.length} آية بلا نصها (${missing.slice(0, 6).join("، ")}${missing.length > 6 ? "…" : ""}). أضف نص الآيات كاملًا داخل السكريبت وراجعه قبل الاعتماد.`);
+  const prev = await loadStoryboard(scriptPath);
+  if (!prev.audit?.note?.trim()) throw new Error("لم تُسجَّل مراجعة اللوحات من قبل: راجع اللوحات كلها واعتمد التجهيز.");
+  const st = storyboardStatus(plan, prev);
+  const changed = [...st.changed, ...st.fresh];
+  const all = plan.chapters.flatMap((c) => c.scenes);
+  const at = new Date().toISOString();
+  const record: StoryboardRecord = {
+    version: 1,
+    approvedAt: at,
+    audit: { ...audit, at, scenes: changed },
+    history: [...(prev.history ?? []), prev.audit],
+    scenes: Object.fromEntries(all.map((s) => [s.id, st.scenes[s.id] === "approved" ? prev.scenes[s.id]! : storyboardVisualHash(s)])),
+  };
+  await writeFile(storyboardFileFor(scriptPath), JSON.stringify(record, null, 2) + "\n");
+  return { record, scenes: changed };
+};
+
 /** سحب الاعتماد (يعيد الحلقة إلى «لم يُعتمد»). */
 export const revokeStoryboard = async (scriptPath: string): Promise<StoryboardRecord> => {
   const rec: StoryboardRecord = { version: 1, scenes: {} };
@@ -109,8 +138,13 @@ export const revokeStoryboard = async (scriptPath: string): Promise<StoryboardRe
 /** المشاهد المطلوبة غير المعتمدة في الستوري بورد (للصوت: المشاهد التي سيُولَّد صوتها فقط). */
 export const unapprovedScenes = (status: StoryboardStatus, ids?: string[]) => (ids ?? Object.keys(status.scenes)).filter((i) => status.scenes[i] !== "approved");
 
+/**
+ * Why voice / the final file is refused for boards that are not recorded, and exactly where to fix it:
+ * step ١ «التجهيز» (the storyboard opens first there). A board changed after the approval is listed at the
+ * top of that screen with one button that re-approves only the changed boards.
+ */
 export const storyboardBlockMessage = (ids: string[], status: StoryboardStatus) => {
-  const head = status.approved === 0 && !status.changed.length ? "لم يُعتمد الستوري بورد بعد" : `${ids.length} مشهدًا غير معتمد في الستوري بورد`;
   const list = ids.slice(0, 8).join("، ") + (ids.length > 8 ? "…" : "");
-  return `${head} (${list}). لا يُولَّد صوت ولا تُصنع النسخة النهائية قبل اعتماده: «المشاهد ← ستوري بورد» في الاستوديو.`;
+  if (status.approved === 0) return `لم يُعتمد التجهيز بعد (${list}). لا يُولَّد صوت ولا تُصنع النسخة النهائية قبله: افتح «١ التجهيز» في الاستوديو، راجع اللوحات والسكريبت، ثم اضغط «اعتمد التجهيز».`;
+  return `${ids.length === 1 ? "لوحة تغيّرت" : `${ids.length} لوحات تغيّرت`} بعد اعتماد التجهيز (${list}). لا يُولَّد صوتها ولا تُصنع النسخة النهائية حتى تُعتمد: افتح «١ التجهيز»، فاللوحات المتغيّرة في أعلاه، واضغط «اعتمد اللوحات المتغيّرة».`;
 };

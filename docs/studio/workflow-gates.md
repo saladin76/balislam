@@ -113,7 +113,7 @@ authority. Every production gate asks it:
 
 | Gate | Requirement |
 | --- | --- |
-| «اعتمد التجهيز» (step ١, D40) | one owner request (loopback Studio page) + `reviewed: true`, the script and storyboard fingerprints the owner saw; everything that can refuse is checked before any write (script errors, verses without text, board note ≥ 25 chars when the boards are not recorded); then, in order, `approve-script` → board record (`storyboard.json`, same `checkVisualStoryboardSignoff`, script approved first) → `approve-storyboard`, each ledger decision through `decideSceneProduction` (`src/studio/preparation.ts`) |
+| «اعتمد التجهيز» (step ١, D40) | one owner request (loopback Studio page) + `reviewed: true`, the script and storyboard fingerprints the owner saw; everything that can refuse is checked before any write (script errors, verses without text, board note ≥ 25 chars when the boards are not recorded); then, in order, `approve-script` → board record (`storyboard.json`, same `checkVisualStoryboardSignoff`, script approved first) → `approve-storyboard`, each ledger decision through `decideSceneProduction` (`src/studio/preparation.ts`). **Boards changed after the approval (D58):** when the boards were reviewed before, the same request («اعتمد اللوحات المتغيّرة») records only the changed/new boards (`recordChangedBoards`; the others keep their recorded fingerprint byte for byte, so no approved scene re-opens; the earlier note goes to `history`), then takes the ledger's storyboard decision again (the record is a new file), and the script decision too if the script changed. Step ١ counts as done only while `boards.current` (every current scene matches its recorded board) |
 | Voice generation | script + storyboard approved (`requireScriptAndStoryboardApproved`) |
 | Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
 | Scene AV render («إنتاج المشهد») | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
@@ -282,9 +282,12 @@ The isolated V2 review API is no longer mounted (`/api/studio-v2/*` returns 410)
 bytes) are in `.gitignore`, each with its writer: `scene-production.v1.json` + `.lock` (`src/studio/sceneService.ts`,
 `stateFileFor` / `serialized`), `workflow-approvals.json` + `.lock` (`src/workflow/store.ts`), `voice-review.json`
 (bound to `voice/*.mp3`, `src/voice/review.ts`), `previews/.preview-index.lock/` (`src/render/episodePreviews.ts`) and
-every atomic-write `*.tmp` under an episode folder. `voice/` (including `sentences.json`, takes and `voice/superseded/`,
+every atomic-write `*.tmp` under an episode folder, and (D58) the board record `storyboard.json` (its authority is the
+local signed ledger, whose storyboard fingerprint is this file's generation: inode and ctime; a copy from Git never
+authorizes anything, and pulling one over the owner's file would re-open scenes; it was never tracked; still protected by
+`fresh-start.command`). `voice/` (including `sentences.json`, takes and `voice/superseded/`,
 D50), `out/`, `recitations/`, `status.json` and `.studio/` were already ignored. **Not ignored** (tracked or documented
-as "in Git"): `storyboard.json`, `script-signoff.json`, `review.json`, `scene-review.json`, `publish.json`,
+as "in Git"): `script-signoff.json`, `review.json`, `scene-review.json`, `publish.json`,
 `notes/resolved.json`.
 
 **Update button.** `app/server/update.ts` still requires a clean tree, but ignored files never count, and the refusal

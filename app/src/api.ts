@@ -11,7 +11,7 @@ import type { TechReviewSummary } from "../../src/channel/techReviews";
 import type { ScriptSaveReply } from "./planGuard";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
-import { ownerMessage } from "./serverMessages";
+import { ownerJob, ownerMessage } from "./serverMessages";
 import type { LexiconCommand, SentenceCommand, SentencesRead, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
@@ -68,6 +68,9 @@ export const setApiChannel = (id: string) => {
 };
 const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?") ? "&" : "?"}channel=${encodeURIComponent(currentChannel)}` : url);
 
+/** The scene-preparation queue's errors in Arabic (P-07). */
+const prepareRead = (r: ScenePrepareRead): ScenePrepareRead => ({ ...r, job: r.job ? ownerJob(r.job as ScenePrepareJob & { log?: string[] }) : r.job });
+
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
@@ -92,6 +95,8 @@ export type SceneProductionRead = {
     recitationPending?: string[] };
   script: { sha256: string; approved: boolean };
   storyboard: { sha256: string; approved: boolean };
+  /** P-05: every current scene matches its recorded board; `changed` lists the boards edited since (or new). */
+  boards?: { current: boolean; changed: string[] };
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
     sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean;
     /** Verse card whose human recitation is not attached yet (its draft is silent, marked). */
@@ -137,7 +142,7 @@ export type ScenePrepareJob = {
   /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
   skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
 };
-export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean };
+export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean; changedBoards?: string[]; boardsReviewedBefore?: boolean };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number };
 export type SceneOwnerAction = {
   action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
@@ -218,16 +223,16 @@ export const api = {
     }, channel),
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
-    call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel),
+    call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel).then(prepareRead),
   startScenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
       method: "POST",
-    }, channel),
+    }, channel).then(prepareRead),
   /** «أوقف»: the step in progress finishes and is kept; nothing new starts. */
   stopScenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
       method: "DELETE",
-    }, channel),
+    }, channel).then(prepareRead),
   workflow: (episode: string, channel?: string) => call<{
     approvals: WorkflowApprovalView;
     fingerprints: Partial<Record<WorkflowStage, string>>;
@@ -294,8 +299,8 @@ export const api = {
   check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
   identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
   saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity } }),
-  render: (b: { episode: string; orientation: string; chapter?: number }) => call<RenderJob>("/api/render", { method: "POST", json: b }),
-  jobs: () => call<RenderJob[]>("/api/render"),
+  render: (b: { episode: string; orientation: string; chapter?: number }) => call<RenderJob>("/api/render", { method: "POST", json: b }).then(ownerJob),
+  jobs: () => call<RenderJob[]>("/api/render").then((js) => js.map(ownerJob)),
   libraryImages: () => call<{ files: string[] }>("/api/library-images"),
   libraryImageUrl: (file: string) => withChannel(`/api/library-images/file/${encodeURIComponent(file)}`),
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
@@ -330,7 +335,7 @@ export const api = {
   testService: (service: "elevenlabs" | "quran") => call<{ ok: boolean; message?: string; account?: { tier: string; character_count: number; character_limit: number }; voices?: { id: string; name: string; category: string }[]; voiceFound?: boolean; models?: { id: string; name: string; arabic: boolean }[]; training?: Record<string, string>; voiceCategory?: string; model?: string; sample?: string; env?: string }>("/api/settings/test", { method: "POST", json: { service } }),
   sfx: () => call<SfxItem[]>("/api/sfx"),
   sfxUrl: (id: string) => withChannel(`/api/sfx/${id}.mp3`),
-  startJob: (b: { kind: "make" | "package" | "shorts" | "sfx" | "storyboard-motion"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }),
+  startJob: (b: { kind: "make" | "package" | "shorts" | "sfx" | "storyboard-motion"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }).then(ownerJob),
   /** إلغاء مهمة منتظرة أو جارية (رندر أو صناعة) */
   cancelJob: (id: string) => call<{ ok: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   storyboard: (id: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`),
@@ -352,6 +357,6 @@ export const api = {
       `/api/episodes/${id}/quran-text-only`, { method: "POST", json: { confirm: true } }),
   storyboardReport: (id: string) => call<{ markdown: string }>(`/api/episodes/${id}/storyboard-report`),
   setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
-  longJobs: () => call<LongJob[]>("/api/jobs"),
+  longJobs: () => call<LongJob[]>("/api/jobs").then((js) => js.map(ownerJob)),
   videoUrl: (episode: string, file: string) => withChannel(`/api/episodes/${episode}/video/${encodeURIComponent(file)}`),
 };

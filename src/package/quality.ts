@@ -115,7 +115,7 @@ export const kitIssues = (kit: PublishKit): KitIssue[] => {
 
 export const kitBlockMessage = (issues: KitIssue[]) => {
   const e = issues.filter((i) => i.level === "error");
-  return `حزمة النشر فيها ${e.length} مشكلة تمنع التصدير (عدّلها من «النشر ← حزمة الانتشار»): ${e
+  return `حزمة النشر فيها ${e.length} مشكلة تمنع التصدير (عدّلها من «٤ النشر ← حزمة الانتشار»): ${e
     .slice(0, 5)
     .map((i) => `${i.where}: ${i.message}`)
     .join(" | ")}`;

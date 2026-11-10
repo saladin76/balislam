@@ -75,5 +75,5 @@ export const setSceneReview = async (scriptPath: string, plan: Plan, id: string,
 
 export const sceneReviewBlockMessage = (s: SceneReviewSummary, items: SceneReviewItem[]) => {
   const left = items.filter((i) => i.status !== "ok").map((i) => i.id);
-  return `مراجعة المشاهد غير مكتملة: ${s.ok} من ${s.total} مشهدًا سليمًا${s.fix ? `، ${s.fix} يحتاج إصلاحًا` : ""}${s.changed ? `، ${s.changed} تغيّر بعد المراجعة` : ""}${s.pending ? `، ${s.pending} لم يُراجع` : ""} (${left.slice(0, 8).join("، ")}${left.length > 8 ? "…" : ""}). راجع كل مشهد من «المشاهد ← مراجعة المشهد» ثم اصنع النسخة النهائية.`;
+  return `مراجعة المشاهد غير مكتملة: ${s.ok} من ${s.total} مشهدًا سليمًا${s.fix ? `، ${s.fix} يحتاج إصلاحًا` : ""}${s.changed ? `، ${s.changed} تغيّر بعد المراجعة` : ""}${s.pending ? `، ${s.pending} لم يُراجع` : ""} (${left.slice(0, 8).join("، ")}${left.length > 8 ? "…" : ""}). اعتمد كل مشهد بصوته وصورته في «٢ المشاهد»، ثم اصنع النسخة النهائية من «٣ النسخة النهائية».`;
 };
