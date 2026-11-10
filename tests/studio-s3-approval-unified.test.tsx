@@ -25,7 +25,7 @@ type Ch = keyof typeof EPISODES;
 const CHANNELS = Object.keys(EPISODES) as Ch[];
 // funnel v3 (D40): «اعتمد» أولًا (يمين الشاشة) ثم أزرار الحل؛ «جهّز كل المشاهد» خرج من شريط المشهد (يبدأ وحده
 // بعد «اعتمد التجهيز» وسطر حالته فوق المعاينة). «ولّد الصوت» لمشهد منطوق، و«أنتج هذا المشهد» قبل التجهيز فقط.
-const ACTIONS = ["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت"];
+const ACTIONS = ["اعتمد المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت"];
 
 const planOf = (ch: Ch) => JSON.parse(src(`channels/${ch}/episodes/${EPISODES[ch]}/plan.json`)) as Plan;
 const channelOf = (ch: Ch) => channelInfo(JSON.parse(src(`channels/${ch}/channel.json`)) as ChannelConfig);
@@ -68,18 +68,30 @@ const render = (ch: Ch, state: State) => {
   );
 };
 
-/** شريط الأفعال وحده: من بدايته إلى سطر السبب أو العمود الجانبي. */
-const barOf = (html: string) => {
-  const start = html.indexOf('class="s3-actbar"');
-  const ends = ['class="s3-why"', 'class="s3-side"'].map((m) => html.indexOf(m, start)).filter((i) => i > start);
-  return html.slice(start, Math.min(...ends));
+/** One element by its class, through its matching closing tag (the decision bar now holds icons). */
+const elementOf = (html: string, cls: string) => {
+  const start = html.indexOf(`class="${cls}"`);
+  if (start < 0) return "";
+  const open = html.lastIndexOf("<", start);
+  const tag = /^<(\w+)/.exec(html.slice(open))![1]!;
+  const re = new RegExp(`<${tag}[\\s>]|</${tag}>`, "g");
+  re.lastIndex = open;
+  let depth = 0;
+  for (let m = re.exec(html); m; m = re.exec(html)) {
+    depth += m[0].startsWith("</") ? -1 : 1;
+    if (!depth) return html.slice(open, m.index + m[0].length);
+  }
+  return html.slice(open);
 };
-const actbar = (html: string) => [...barOf(html).matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
+/** شريط الأفعال وحده: مجموعة القرار في الشريط العائم (بلا السابق والتالي والعدّ، وهي خارجها). */
+const barOf = (html: string) => elementOf(html, "s3-actbar");
+const label = (inner: string) => inner.replace(/<svg[\s\S]*?<\/svg>|<kbd[\s\S]*?<\/kbd>/g, "").replace(/<[^>]+>/g, "").trim();
+const actbar = (html: string) => [...barOf(html).matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) => label(m[1]!));
 /**
- * هيكل الشاشة بلا نصوص المحتوى ولا الأعداد: أسماء الأصناف بترتيبها. يُستثنى ما تمليه بيانات الحلقة وحدها:
+ * هيكل الشاشة بلا نصوص المحتوى ولا الأعداد: أسماء الأصناف بترتيبها. يُستثنى ما تمليه بيانات الحلقة وحدها (ومنها رقم كل مشهد في الشريط وصفر الأعداد الأكبر قليلًا):
  * أسطر الأسباب (مثل «أضف مفتاح الصوت» لمشهد منطوق فقط) وعناصر قائمة التنبيهات.
  */
-const DATA_ROWS = new Set(["sp-hint", "prep-link", "s3-lv", "s3-id"]);
+const DATA_ROWS = new Set(["sp-hint", "prep-link", "s3-lv", "s3-id", "s3-dot-n", "z"]);
 const skeleton = (html: string) =>
   [...html.matchAll(/class="([^"]+)"/g)].map((m) => m[1]!.split(" ").filter((c) => !/^is-|^s3-ch$/.test(c)).join(".")).filter((c) => c && !DATA_ROWS.has(c))
     // شريط المشاهد وقائمة التنبيهات تطول بعدد مشاهد الحلقة وملاحظاتها؛ يكفي وجود كل صنف بترتيبه
@@ -109,7 +121,7 @@ describe("الخطوة ٢ «المشاهد» واحدة للقنوات الثل�
         const buttons = actbar(html);
         // «أنتج هذا المشهد» يظهر قبل التجهيز فقط، ومكانه ثابت آخر الشريط
         expect(buttons.filter((b) => b !== "أنتج هذا المشهد"), ch).toEqual(ACTIONS);
-        expect(buttons[0], ch).toBe("اعتمد");
+        expect(buttons[0], ch).toBe("اعتمد المشهد");
         expect(buttons, ch).toEqual(actbar(out.balislam));
         expect(barOf(html).match(/btn primary/g), ch).toHaveLength(1);
       }
@@ -123,7 +135,8 @@ describe("الخطوة ٢ «المشاهد» واحدة للقنوات الثل�
       const html = render(ch, "review");
       const bar = barOf(html);
       expect(bar.match(/btn primary/g), ch).toHaveLength(1);
-      expect(bar, ch).toMatch(/btn primary[^"]*"[^>]*>اعتمد/);
+      expect(actbar(bar)[0], ch).toBe("اعتمد المشهد");
+      expect(bar, ch).toMatch(/<button[^>]*btn primary[^"]*"[^>]*>/);
     }
   });
 });
@@ -173,7 +186,9 @@ describe("لا فرع بالقناة في واجهة الاعتماد", () => {
     expect(step3).not.toMatch(channelCompare);
     // ما يخص القناة في الخطوة ٣ محتوى معايير المراجعة من قواعد إنتاجها، لا شكل الشاشة
     expect(src("app/src/workspace/SceneProductionPanel.tsx")).toContain("channelProductionProfile({ id: channelId }).reviewFocus");
-    expect(src("app/src/shell/shell.css")).toMatch(/\.shell-v3\[data-channel="dafatir-alzaman"\] \{ --accent:/);
+    // The channel lends its tokens (band, paper, accent, title face) through data-channel, never a layout
+    const shell = src("app/src/shell/shell.css");
+    for (const ch of CHANNELS) expect(shell, ch).toMatch(new RegExp(`\\[data-channel="${ch}"\\] \\{\\s*--band:`));
   });
 
   it("إعدادات القنوات لا تحمل مفتاحًا يبدّل شاشة الاعتماد أو وضع الإنتاج", () => {

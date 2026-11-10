@@ -2,8 +2,13 @@ import { UpdateBanner } from "./ui/UpdateBanner";
 import { SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
 import "./studio-shell.css";
 import "./shell/shell.css";
-import { TopBar, type ManageItem } from "./shell/TopBar";
-import { EpisodeSpine, type StepTab } from "./shell/EpisodeSpine";
+import { TopBar, type HeaderView } from "./shell/TopBar";
+import { Band, type ManageItem } from "./shell/Band";
+import { EpisodeSpine, STEPS, stepOf, stepsDone, type StepTab } from "./shell/EpisodeSpine";
+import { useColorScheme } from "./ui/colorScheme";
+import { episodeLength } from "../../src/plan/episodeLength";
+import { duration, num } from "./ui/format";
+import config from "../../config.json";
 import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedStep";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
@@ -13,6 +18,7 @@ import { scriptSaveMessage } from "./planGuard";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
 import { EpisodeTab, SceneLivePreview } from "./tabs/EpisodeTab";
+import { SceneThumb } from "./tabs/StoryboardPanel";
 import { StoryboardPanel } from "./tabs/StoryboardPanel";
 import { VoiceWorkspaceTab } from "./workspace/VoiceWorkspaceTab";
 import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
@@ -33,11 +39,11 @@ import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
 import { LabsTab } from "./tabs/LabsTab";
 import { TechReviewsTab } from "./tabs/TechReviewsTab";
-import { ChannelLogo, ChannelProvider } from "../../src/channel/context";
-import { useTheme } from "../../brand/identity/index";
+import { ChannelProvider } from "../../src/channel/context";
 import { parseStudioHash, studioHash } from "./shell/route";
 
 type Tab = StudioSection;
+type FinalView = "recitations" | "seams" | "master";
 /** The link the Studio was opened with (audit item 18) wins over the last place remembered locally. */
 const bootRoute = typeof window === "undefined" ? {} : parseStudioHash(window.location.hash);
 const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
@@ -60,8 +66,10 @@ const store = {
 
 export const App: React.FC = () => {
   useStudioFonts();
-  const [navOpen, setNavOpen] = useState(false);
-  const menuButton = useRef<HTMLButtonElement>(null);
+  const { scheme, toggle: toggleScheme } = useColorScheme();
+  /** Views inside a step (direction D, the floating pill): the scenes one by one or those needing a fix; step ٣'s three. */
+  const [sceneView, setSceneView] = useState<"one" | "fix">("one");
+  const [finalView, setFinalView] = useState<FinalView | null>(null);
   const [tab, setTab] = useState<Tab>(bootRoute.tab ?? ((store.get("bal-tab") as Tab) || "home"));
   /** The episode step that opened «الإعدادات» (audit item 14): the settings page offers to go back to it. */
   const [settingsReturn, setSettingsReturn] = useState<Tab | null>(null);
@@ -102,7 +110,7 @@ export const App: React.FC = () => {
   const episodeRef = useRef(epId);
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
-  useEffect(() => setRequestedSceneId(undefined), [channelId, epId]);
+  useEffect(() => { setRequestedSceneId(undefined); setSceneView("one"); setFinalView(null); }, [channelId, epId]);
   /** The ledger read by the spine: a locked step renders one `LockedStep` (D52). */
   const [ledger, setLedger] = useState<{ key: string; w: SceneProductionRead | null } | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -312,8 +320,6 @@ export const App: React.FC = () => {
     await flushPlan();
     if (next === "settings" && EPISODE_TABS.includes(tab)) setSettingsReturn(tab);
     setTab(next);
-    setNavOpen(false);
-    if (navOpen) menuButton.current?.focus();
   };
   const manageItems: ManageItem[] = [
     { id: "ops", label: SECTION_TITLES.ops, note: "القنوات الثلاث وبنك الأفكار" },
@@ -329,24 +335,66 @@ export const App: React.FC = () => {
 
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
+  const cid = channelId || channels[0]?.id || "";
+  const inEpisode = EPISODE_TABS.includes(tab) && Boolean(plan && check && epId);
+  const w = ledger?.key === `${channelId}/${epId}` ? ledger.w : null;
+  const done = stepsDone(w);
+  const here = inEpisode ? stepOf(tab as StepTab) : -1;
+  const go = (next: Tab) => { if (next !== tab && !confirmLeaveScript()) return; setTab(next); };
+  const fixCount = w?.scenes.filter((x) => x.status === "needs_revision").length ?? 0;
+  const autoFinal: FinalView = !w ? "recitations" : (w.progress.recitationPending?.length ?? 0) > 0 || !w.progress.canAssemble ? "recitations" : !w.progress.assemblyApproved ? "seams" : "master";
+  const final: FinalView = finalView ?? autoFinal;
+  const views: HeaderView[] = tab === "home" || tab === "library" || (tab === "guide" && hasGuide) ? [
+    { id: "home", label: "الحلقات", sub: episodes ? String(episodes.length) : undefined, current: tab === "home", onSelect: () => void navigateManage("home") },
+    { id: "library", label: "مكتبة القناة", current: tab === "library", onSelect: () => void navigateManage("library") },
+    ...(hasGuide ? [{ id: "guide", label: "مرجع القناة", current: tab === "guide", onSelect: () => void navigateManage("guide") }] : []),
+  ] : !inEpisode ? [] : here === 0 ? [
+    { id: "storyboard", label: "اللوحات والنص", sub: plan ? String(plan.chapters.reduce((n, c) => n + c.scenes.length, 0)) : undefined, current: tab === "storyboard", onSelect: () => go("storyboard") },
+    { id: "script", label: "السكريبت", sub: check ? `${num(check.stats.totalWords)} كلمة` : undefined, current: tab === "script", onSelect: () => go("script") },
+    { id: "research", label: "البحث والمصادر", current: tab === "research", onSelect: () => go("research") },
+  ] : here === 1 && done[0] ? [
+    { id: "one", label: "مشهدًا مشهدًا", current: tab === "episode" && sceneView === "one", onSelect: () => { setSceneView("one"); go("episode"); } },
+    { id: "voice", label: "متتابعة", sub: plan ? duration(episodeLength(plan, media, config.video.fps).seconds) : undefined, current: tab === "voice", onSelect: () => go("voice") },
+    { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
+  ] : here === 2 && done[0] ? [
+    { id: "recitations", label: "التلاوات", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },
+    { id: "seams", label: "الوصلات", sub: w?.seams.length ? String(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
+    { id: "master", label: "النسخة الأساسية", sub: "4K", current: final === "master", onSelect: () => setFinalView("master") },
+  ] : [];
+  const stepSub = here === 0 ? (done[0] ? "معتمد" : "ينتظرك") : here === 1 && w ? `${w.progress.approvedScenes} من ${w.progress.totalScenes}`
+    : here === 2 && done[0] ? views.find((v) => v.current)?.label : here === 3 && done[3] ? "مأذون" : undefined;
+  const epTitle = episodes?.find((e) => e.id === epId)?.title || plan?.title || "";
+  const channelName = channels.find((c) => c.id === cid)?.name ?? channel.name;
+
   return (
     <IdentityProvider identity={ident.draft}>
       <ChannelProvider channel={channel}>
-      <div className="studio-shell shell-v3" data-channel={channelId || channels[0]?.id || ""}>
-      <div className={`app studio-main${EPISODE_TABS.includes(tab) && plan && check && epId ? " episode-workspace-app" : ""}`}>
+      <div className="studio-shell shell-v3" data-channel={cid}>
+      <Band
+        channels={channels}
+        channelId={cid}
+        channelName={channelName}
+        onChannel={async (next) => { if (next === channelId) return; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }}
+        onHome={() => void navigateManage("home")}
+        episode={inEpisode ? { id: epId, title: epTitle } : null}
+        steps={inEpisode ? { done, here, sub: stepSub } : null}
+        stepTitles={STEPS.map((s) => s.title)}
+        onStep={(i) => { const t = STEPS[i]!.tabs[0]!; if (i === 1) setSceneView("one"); go(t); }}
+        counter={tab === "home" && episodes ? { n: episodes.length, label: episodes.length === 1 ? "حلقة" : episodes.length === 2 ? "حلقتان" : "حلقات" } : null}
+        manage={manageItems}
+        active={tab}
+        onManage={(id) => void navigateManage(id)}
+      />
+      <div className={`app studio-main${inEpisode ? " episode-workspace-app" : ""}`}>
         <TopBar
-          channels={channels}
-          channelId={channelId || channels[0]?.id || ""}
-          onChannel={async (next) => { if (next === channelId) return; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }}
-          episodes={episodes}
+          episodes={inEpisode ? episodes : null}
           episodeId={epId}
-          inEpisode={EPISODE_TABS.includes(tab)}
           onEpisode={async (id) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(id); }}
-          atHome={tab === "home"}
-          onHome={() => void navigateManage("home")}
-          manage={manageItems}
-          active={tab}
-          onManage={(id) => void navigateManage(id)}
+          title="الاستوديو"
+          views={views}
+          save={inEpisode ? { state: planState, unsaved: scriptDirty || researchDirty } : null}
+          scheme={scheme}
+          onToggleScheme={toggleScheme}
         />
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
         {!EPISODE_TABS.includes(tab) && tab !== "home" ? (
@@ -358,7 +406,6 @@ export const App: React.FC = () => {
             key={`spine:${channelId}:${epId}`}
             episodeId={epId}
             channelId={channelId}
-            title={plan.title}
             tab={tab as StepTab}
             scriptErrors={check.issues.filter((i) => i.level === "error")}
             onScriptLine={(line) => {
@@ -369,15 +416,19 @@ export const App: React.FC = () => {
             }}
             refreshKey={homeKey}
             onOpenSettings={openSettings}
-            saveState={planState}
-            unsaved={scriptDirty || researchDirty}
             onTab={(next) => {
               if (next !== tab && !confirmLeaveScript()) return;
               setTab(next);
             }}
             onDecided={() => setHomeKey((k) => k + 1)}
-            onState={(w) => setLedger({ key: `${channelId}/${epId}`, w })}
+            onState={(st) => setLedger({ key: `${channelId}/${epId}`, w: st })}
           />
+        ) : null}
+        {inEpisode && tab === "storyboard" ? (
+          <header className="ms-step-head">
+            <h1 className="ms-title">التجهيز</h1>
+            <p className="ms-sub">اقرأ الحلقة كما ستُرى. بعد اعتمادك تُجهَّز المشاهد وحدها.</p>
+          </header>
         ) : null}
 
          {tab === "ops" ? (
@@ -529,24 +580,34 @@ export const App: React.FC = () => {
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
           />
         ) : tab === "review" ? (
+          // Step ٣ in three views (the pill): the recitations, the seams of the assembled episode, the final file.
+          final === "recitations" ? (
+            <PreFinalPanel key={`prefinal:${channelId}:${epId}`} episodeId={epId} channelId={channelId} onChanged={() => setHomeKey(k => k + 1)} />
+          ) : (
           <>
           <SceneProductionPanel
             key={`scene-workflow-review:${channelId}:${epId}`}
             episodeId={epId}
             channelId={channelId}
+            finalView={final}
+            onFinalView={setFinalView}
+            plan={plan}
+            thumb={(id) => <SceneThumb sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
             onOpenStoryboard={() => setTab("storyboard")}
             onOpenScript={() => setTab("script")}
             onOpenPublish={() => setTab("publish")}
             onUpdated={() => setHomeKey(k => k + 1)}
           />
-          <PreFinalPanel key={`prefinal:${channelId}:${epId}`} episodeId={epId} channelId={channelId} onChanged={() => setHomeKey(k => k + 1)} />
-          <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage, sceneId) => {
-            if (!confirmLeaveScript()) return;
-            if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
-            setTab(stage);
-          }} />
+          {final === "master" ? (
+            <IntegratedReviewWorkspace key={`${channelId}:${epId}`} episodeId={epId} onOpen={(stage, sceneId) => {
+              if (!confirmLeaveScript()) return;
+              if (stage === "episode" && sceneId) setRequestedSceneId(sceneId);
+              setTab(stage);
+            }} />
+          ) : null}
           </>
+          )
         ) : tab === "publish" ? (
           <>
           <SceneProductionPanel
@@ -586,6 +647,9 @@ export const App: React.FC = () => {
             onOpenPublish={() => setTab("publish")}
             onOpenFinal={() => setTab("review")}
             onOpenPreparation={() => setTab("storyboard")}
+            view={sceneView}
+            onView={setSceneView}
+            thumb={(id) => <SceneThumb sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onUpdated={() => setHomeKey(k => k + 1)}
             editor={(sceneId, onSelect) => (
               <EpisodeTab
@@ -692,10 +756,3 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
     </Dialog>
   );
 };
-
-/** رمز القناة في رأس الاستوديو بألوان ثيمها الأساسي. */
-const BrandMark: React.FC<{ channel: ChannelInfo }> = () => {
-  const t = useTheme("warm");
-  return <ChannelLogo theme={t} size={34} />;
-};
-

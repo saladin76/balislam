@@ -43,6 +43,40 @@ const Lazy: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 /**
+ * One scene's board picture, drawn only when it comes near the screen (the filmstrip of step ٢, direction D).
+ * The same renderer and frame as the storyboard boards; nothing is fetched or stored.
+ */
+export const SceneThumb: React.FC<{ sceneId: string; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia }> = ({ sceneId, plan, identity, channel, media }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || on || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setOn(true), { rootMargin: "200px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [on]);
+  const hit = useMemo(() => {
+    for (const ch of plan.chapters) { const s = ch.scenes.find((x) => x.id === sceneId); if (s) return { s, ch }; }
+    return null;
+  }, [plan, sceneId]);
+  const fps = config.video.fps;
+  return (
+    <div ref={ref} className="ms-thumb" aria-hidden="true">
+      {on && hit ? (() => {
+        const d = sceneFrames(hit.s, media);
+        return (
+          <Thumbnail component={SceneComp}
+            inputProps={{ scene: hit.s, themeId: plan.themeId, orientation: "landscape", eyebrow: chapterEyebrow(channel, langPack(plan.lang).strings.chapter, hit.ch), identity, channel, lang: plan.lang, media, episodeOverlays: plan.overlays }}
+            compositionWidth={config.video.episode.width} compositionHeight={config.video.episode.height}
+            durationInFrames={d} frameToDisplay={shotFrame(hit.s, d, boardWords(hit.s, media), fps)} fps={fps} style={{ width: "100%" }} />
+        );
+      })() : null}
+    </div>
+  );
+};
+
+/**
  * ستوري بورد الفيديو قبل تنفيذه: لقطة لكل مشهد مع نصه وما يظهر على الشاشة وعناصره وحركته المقيسة.
  * لا يُولَّد صوت ولا تُصنع النسخة النهائية لمشهد لم يُعتمد هنا ببصمته الحالية.
  */

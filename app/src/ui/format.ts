@@ -2,8 +2,9 @@
  * What the owner reads, in one numeral system (UX review 9 Nov, D52): Arabic-Indic digits everywhere on the
  * main screens, scene names by their place («المشهد ٣», never «c1-s3»), verse references by the surah's
  * name («البقرة ٤٢», never «2:42»), durations as a clock («١١:٤٨»). Technical ids stay in titles/tooltips
- * and in the server only. Pure functions: no React, no fetch.
+ * and in the server only. Pure functions, plus one tiny span (`Num`) for the zero: no fetch.
  */
+import React from "react";
 import { SURAH_NAMES } from "../../../src/script/quranMeta";
 import { arNum, sceneName, sceneNo, seamName } from "../workspace/sceneNames";
 
@@ -52,3 +53,16 @@ export const lengthSource = (l: Pick<EpisodeLength, "source">): string =>
 
 /** Technical text that must never reach the owner's main screens. */
 export const TECHNICAL_TEXT: RegExp[] = [/c\d+-s\d+/, /\bMaster\b/, /(?:^|[\s«(])\/(?:home|Users|tmp|var|private)\/\S+/];
+
+/**
+ * The Arabic-Indic zero «٠» is a dot in most faces and vanishes beside «:» or «من» (direction D, 10 Nov).
+ * `zeroParts` splits a string so every run of «٠» can be drawn a touch larger; `Num` does that as spans
+ * (class «z», shell.css). Applied where numbers are drawn, never by rewriting the page's text afterwards.
+ */
+export const zeroParts = (s: string): { text: string; zero: boolean }[] =>
+  String(s).split(/(٠+)/).filter((p) => p !== "").map((p) => ({ text: p, zero: /^٠+$/.test(p) }));
+
+/** A number or a short numeric phrase («٠ من ٣١»، «٠:١٥») with the zero made legible. Digits are made Arabic-Indic. */
+export const Num: React.FC<{ children: string | number; className?: string; title?: string }> = ({ children, className, title }) =>
+  React.createElement("span", { className: className ? `num ${className}` : "num", title, dir: undefined },
+    ...zeroParts(arDigits(children)).map((p, i) => (p.zero ? React.createElement("span", { key: i, className: "z" }, p.text) : p.text)));

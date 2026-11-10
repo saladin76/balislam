@@ -12,22 +12,24 @@ const base = {
   onVoice: noop, onProblem: noop, onProblemText: noop, onTone: noop, onCancelProblem: noop, onSubmitProblem: noop,
   onConfirm: noop, onApprove: noop, onRender: noop,
 };
-const buttons = (html: string) => [...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
+/** A button's words: its text without icons (svg) or the ⏎ hint (kbd). */
+const label = (inner: string) => inner.replace(/<svg[\s\S]*?<\/svg>|<kbd[\s\S]*?<\/kbd>/g, "").replace(/<[^>]+>/g, "").trim();
+const buttons = (html: string) => [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) => label(m[1]!));
 
 describe("الخطوة ٢: قرار المشهد الحالي (funnel v3: «اعتمد» أولًا)", () => {
   it("«اعتمد» أول الشريط (يمين الشاشة) والممتلئ الوحيد، ثم أزرار الحل؛ ولا «جهّز كل المشاهد» في شريط المشهد", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} />);
-    expect(buttons(html)).toEqual(["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت"]);
+    expect(buttons(html)).toEqual(["اعتمد المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت"]);
     expect(html.match(/btn primary/g)).toHaveLength(1);
-    expect(html).toMatch(/btn primary[^"]*"[^>]*>اعتمد/);
+    expect(buttons(html.slice(html.lastIndexOf("<button", html.indexOf("btn primary"))))[0]).toBe("اعتمد المشهد");
     expect(html).not.toContain("جهّز كل المشاهد");
   });
 
   it("الصوت المطابق يصير «أعد توليد الصوت» آخر الشريط ويهدأ زره؛ ومشهد بلا تعليق بلا زر صوت", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} voice="ok" />);
-    expect(buttons(html)).toEqual(["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة", "أعد توليد الصوت"]);
+    expect(buttons(html)).toEqual(["اعتمد المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة", "أعد توليد الصوت"]);
     expect(html).not.toContain("s3-cta");
-    expect(buttons(renderToStaticMarkup(<SceneDecisionActions {...base} voice="none" />))).toEqual(["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة"]);
+    expect(buttons(renderToStaticMarkup(<SceneDecisionActions {...base} voice="none" />))).toEqual(["اعتمد المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة"]);
   });
 
   it("القرار غير المتاح كله (مشهد غير الحالي): سطر واحد وزر واحد، بلا شريط معطّل", () => {
@@ -42,17 +44,17 @@ describe("الخطوة ٢: قرار المشهد الحالي (funnel v3: «اع
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} canVoice={false} />);
     expect(html).not.toContain("جلسة المالك");
     expect(html).toContain("أضف مفتاح الصوت من الإعدادات");
-    expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>اعتمد</);
+    expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>(?:<svg[\s\S]*?<\/svg>)?اعتمد/);
   });
 
   it("مشهد لم يجهز بعد: «اعتمد» ينتظر في مكانه، وسطر تقدمه؛ و«أنتج هذا المشهد» هادئ حين لا يعمل التجهيز", () => {
     const idle = renderToStaticMarkup(<SceneDecisionActions {...base} stage="render" />);
-    expect(buttons(idle)).toEqual(["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت", "أنتج هذا المشهد"]);
+    expect(buttons(idle)).toEqual(["اعتمد المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت", "أنتج هذا المشهد"]);
     expect(idle.match(/btn primary/g)).toHaveLength(1);
-    expect(idle).toMatch(/<button[^>]*btn primary[^>]*disabled=""[^>]*>اعتمد</);
+    expect(idle).toMatch(/<button[^>]*btn primary[^>]*disabled=""[^>]*>(?:<svg[\s\S]*?<\/svg>)?اعتمد المشهد/);
     expect(idle).toContain("لم تُجهَّز معاينة هذا المشهد بعد");
     const now = renderToStaticMarkup(<SceneDecisionActions {...base} stage="render" preparing="now" />);
-    expect(buttons(now)).toEqual(["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت"]);
+    expect(buttons(now)).toEqual(["اعتمد المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة", "ولّد الصوت"]);
     expect(now).toContain("يُجهَّز هذا المشهد الآن");
     expect(renderToStaticMarkup(<SceneDecisionActions {...base} stage="render" preparing="queued" />)).toContain("في دور التجهيز");
     // «الحركة/النبرة غير مناسبة» لا تُسجَّل إلا على معاينة مُرسلة (correct-scene يشترط previewSha256)؛ لا مسار جديد

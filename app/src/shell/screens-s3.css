@@ -1,153 +1,184 @@
-/* ── الخطوة ٢ «المشاهد»: شاشة واحدة ──
-   قرار المشهد الحالي (معاينة كبيرة + نصه + قرار واحد) وشريط تقدم رفيع.
-   المحرر الكامل خلف «تحرير المشهد»، والصوت شاشة استماع هادئة. */
+/*
+ * Step ٢ «المشاهد» (direction D «المِرسَم»): one centred column on the channel's paper — the scene's title row,
+ * its frame, the sentences as a readable paragraph — the channel's criteria on a sticky note in the gutter,
+ * the whole episode as a filmstrip above the floating dark dock. Colours are tokens (shell/shell.css); this file
+ * has no channel rule at all (the approval screen is one for the three channels, D39).
+ */
+.shell-v3 .stage.s3 { display: block; max-width: none; padding: 4px 0 260px; }
+.shell-v3 .s3-col { width: min(736px, calc(100% - 64px)); margin: 0 auto; position: relative; display: grid; gap: 14px; min-width: 0; }
+.shell-v3 .s3-note { inset-inline-end: -262px; top: 54px; }
+@media (max-width: 1320px) { .shell-v3 .s3-note { position: static; transform: none; width: auto; order: 9; margin-top: 8px; } }
 
-/* المسرح */
-.shell-v3 .stage.s3 { gap: 12px; padding-top: 14px; }
-.shell-v3 .stage:is(.s3, .s3-voice) { grid-template-columns: minmax(0, 1fr); }
-.shell-v3 .s3-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; }
-.shell-v3 .s3-title { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; min-width: 0; }
-.shell-v3 .s3-title h2 { margin: 0; font-size: 20px; font-weight: 700; }
-.shell-v3 .s3-of { font-size: 14px; font-weight: 500; color: var(--muted); }
-.shell-v3 .s3-sub { color: var(--muted); font-size: 13px; }
-.shell-v3 .s3-id { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; color: var(--muted); }
+/* the scene's title row */
+.shell-v3 .s3-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 10px 0 0; }
+.shell-v3 .s3-title { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.shell-v3 .s3-title h2 { margin: 0; font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-32); line-height: 1; padding-top: var(--t-shift); white-space: nowrap; }
+.shell-v3 .s3-of { font-family: var(--f); font-weight: 400; font-size: var(--t-14); color: var(--mute); margin-inline-start: 4px; }
+.shell-v3 .s3-sub { color: var(--ink-2); font-size: var(--t-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-v3 .s3-sub::before { content: "·"; margin-inline-end: 10px; color: var(--mute); }
+.shell-v3 .s3-meta { margin-inline-start: auto; display: flex; align-items: center; gap: 14px; color: var(--mute); font-size: var(--t-12); }
+.shell-v3 .s3-state { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: var(--t-12); }
+.shell-v3 .s3-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+.shell-v3 .s3-state.is-now::before { background: var(--acc); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
+.shell-v3 .s3-state.is-done::before { background: var(--ok); }
+.shell-v3 .s3-edit { min-height: 30px; padding: 0 8px; font-size: var(--t-12); color: var(--ink-2); }
+.shell-v3 .s3-edit svg { width: 14px; height: 14px; }
+.shell-v3 .s3-headact { display: flex; justify-content: flex-start; margin-top: -8px; }
 
-/* شريط التقدم: رقم لكل مشهد، يتمرر أفقيًا وحده */
-.shell-v3 .s3-strip {
-  list-style: none; margin: 0; padding: 2px 2px 8px; display: flex; gap: 4px;
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; overscroll-behavior-x: contain;
-}
-.shell-v3 .s3-strip > li { flex: none; display: flex; }
-.shell-v3 .s3-strip > li.s3-ch { padding-inline-start: 10px; margin-inline-start: 6px; border-inline-start: 1px solid var(--line); }
-.shell-v3 .s3-dot {
-  min-width: 30px; height: 30px; padding: 0 4px; border-radius: 6px; border: 1px solid var(--line);
-  background: var(--panel); color: var(--muted); font: inherit; font-family: var(--f-num); font-size: 14px; line-height: 1; cursor: pointer;
-}
-.shell-v3 .s3-dot:hover { border-color: var(--ink); color: var(--ink); }
-.shell-v3 .s3-dot.is-done { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
-.shell-v3 .s3-dot.is-now { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
-.shell-v3[data-channel="zubdat-alkutub"] .s3-dot.is-now { background: var(--marker); border-color: var(--ink); color: var(--ink); }
-.shell-v3 .s3-dot.is-shown { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
-
-/* المعاينة والقرار */
-.shell-v3 .s3-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr); gap: 24px; align-items: start; }
+/* the frame on the channel's paper */
 .shell-v3 .s3-media { min-width: 0; }
-.shell-v3 .s3-media .scene-first-video { width: 100%; max-height: none; aspect-ratio: 16 / 9; background: #111; border-radius: 8px; display: block; }
-.shell-v3 .s3-live { position: relative; direction: ltr; background: #1d1f1c; border-radius: 8px; overflow: hidden; }
-/* The silent-preview tag sits UNDER the frame: burned-in captions run along the top of the picture (funnel v3). */
-.shell-v3 .s3-livebox { margin: 0; display: grid; gap: 6px; }
-.shell-v3 .s3-tag { font-size: 12px; color: var(--muted); line-height: 1.6; }
-/* التجهيز في الخلفية: سطر حالة واحد في رأس الشاشة بجوار «تحرير المشهد» */
-.shell-v3 .s3-prep { justify-content: flex-end; }
-/* قبل اعتماد التجهيز: سطر واحد وزر واحد */
-.shell-v3 .s3-gate { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap;
-  padding: 18px 20px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
-.shell-v3 .s3-gate p { margin: 0; font-size: 15px; font-weight: 600; }
-.shell-v3 .s3-side { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
-.shell-v3 .s3-state { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
-.shell-v3 .s3-state.is-now { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.shell-v3[data-channel="zubdat-alkutub"] .s3-state.is-now { background: var(--marker); color: var(--ink); border-color: var(--ink); }
-.shell-v3 .s3-state.is-done { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
-.shell-v3 .s3-narr {
-  margin: 0; font-size: 17px; line-height: 2; color: var(--ink);
-  padding-inline-start: 14px; border-inline-start: 3px solid var(--accent-soft);
-  max-height: 14em; overflow-y: auto; overflow-wrap: anywhere;
-}
-.shell-v3 .s3-decide { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; padding-top: 12px; border-top: 1px solid var(--line); }
-.shell-v3 .s3-decide textarea { width: 100%; border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; resize: vertical; font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
-.shell-v3 .s3-decide .sp-actions { justify-content: flex-start; }
-.shell-v3 .s3-decide > .btn { align-self: flex-start; }
-.shell-v3 .s3 .sp-criteria { margin-top: 0; border-top: 0; padding-top: 0; }
-.shell-v3 .s3 .sp-criteria ul { margin: 6px 0 0; padding-inline-start: 18px; line-height: 1.9; }
+.shell-v3 .s3-frame { position: relative; border-radius: var(--r-xl); overflow: hidden; background: #000; aspect-ratio: 16 / 9; box-shadow: 0 0 0 1px #16181d0d, 0 26px 50px -30px #16181d66; }
+.shell-v3 .s3-frame video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; cursor: pointer; }
+.shell-v3 .s3-play { position: absolute; inset: auto auto 14px 14px; display: flex; align-items: center; gap: 10px; background: #16181dd9; color: #fff; border-radius: 999px; padding: 4px 14px 4px 4px; font-size: var(--t-12); }
+.shell-v3 .s3-play button { all: unset; cursor: pointer; width: 30px; height: 30px; border-radius: 50%; background: #fff; color: #16181D; display: grid; place-items: center; }
+.shell-v3 .s3-play button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.shell-v3 .s3-play svg { width: 13px; height: 13px; }
+.shell-v3 .s3-prog { position: absolute; inset: auto 0 0 0; width: 100%; height: 4px; margin: 0; -webkit-appearance: none; appearance: none; cursor: pointer;
+  background: linear-gradient(to right, #16181D var(--p, 0%), #ffffff40 var(--p, 0%)); }
+.shell-v3 .s3-prog::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #16181D; opacity: 0; }
+.shell-v3 .s3-prog:hover::-webkit-slider-thumb, .shell-v3 .s3-prog:focus-visible::-webkit-slider-thumb { opacity: 1; }
+.shell-v3 .s3-prog::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 0; }
+.shell-v3 .s3-livebox { margin: 0; display: grid; gap: 8px; }
+.shell-v3 .s3-live { position: relative; direction: ltr; border-radius: var(--r-xl); overflow: hidden; background: #1d1f1c; box-shadow: 0 0 0 1px #16181d0d, 0 26px 50px -30px #16181d66; }
+.shell-v3 .s3-tag { font-size: var(--t-12); color: var(--mute); }
+.shell-v3 .s3-media .sp-empty { border-radius: var(--r-xl); }
 
-/* أفعال المشهد تحت المعاينة: «اعتمد» أولًا (يمين الشاشة) الممتلئ الوحيد والأكبر، ثم أزرار الحل هادئة */
-.shell-v3 .s3-act { display: grid; gap: 10px; margin-top: 14px; }
-.shell-v3 .s3-actbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.shell-v3 .s3-actbar .btn.ghost { color: var(--ink); border: 1px solid var(--line); background: transparent; }
-.shell-v3 .s3-actbar .btn.ghost:hover:not(:disabled) { border-color: var(--ink); }
-.shell-v3 .s3-actbar .btn.ghost[aria-pressed="true"] { border-color: var(--ink); background: var(--panel); font-weight: 700; }
-.shell-v3 .s3-actbar .s3-approve { min-width: 160px; min-height: 44px; padding-inline: 28px; font-size: 16px; font-weight: 700; justify-content: center; text-align: center; margin-inline-end: 8px; }
-/* سبب التعطّل: سطر واحد تحت الشريط، ورابط ممتلئ إلى الخطوة الناقصة حين يوجد */
-.shell-v3 .s3-why { display: grid; gap: 4px; padding: 10px 12px; border-radius: 8px; background: var(--panel); border: 1px dashed var(--line); }
-.shell-v3 .s3-why .sp-hint { margin: 0; color: var(--ink); line-height: 1.8; }
-.shell-v3 .s3-why .sp-hint + .sp-hint { color: var(--muted); }
-.shell-v3 .s3-why-go { justify-self: start; margin-top: 6px; }
-.shell-v3 .s3-actbar .btn:disabled { opacity: .6; }
-.shell-v3 .s3-cta { border: 2px solid var(--accent); color: var(--accent); background: var(--panel); font-weight: 700; }
-.shell-v3[data-channel="zubdat-alkutub"] .s3-cta { color: var(--ink); border-color: var(--ink); box-shadow: inset 0 -3px 0 var(--marker); }
-.shell-v3 .s3-confirm { justify-self: end; padding: 6px 10px; border-radius: 6px; background: var(--accent-soft); color: var(--ink); }
-.shell-v3 .s3-problem { display: grid; gap: 8px; padding: 12px 14px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); }
-.shell-v3 .s3-problem-at { font-size: 13px; color: var(--muted); }
-.shell-v3 .s3-problem-at b { color: var(--ink); font-family: ui-monospace, SFMono-Regular, monospace; }
-.shell-v3 .s3-problem textarea, .shell-v3 .s3-problem select { width: 100%; border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
-.shell-v3 .s3-problem select { max-width: 280px; }
-.shell-v3 .s3-sent { margin: 0; font-size: 13px; line-height: 1.8; padding: 8px 12px; border-radius: 6px; background: var(--warn-soft); color: var(--ink); overflow-wrap: anywhere; }
-@media (max-width: 520px) {
-  .shell-v3 .s3-actbar > .btn { flex: 1 1 calc(50% - 8px); }
-  .shell-v3 .s3-actbar .s3-approve { flex-basis: 100%; margin-inline-end: 0; }
-  .shell-v3 .s3-gate .btn { flex: 1 1 100%; }
-  .shell-v3 .s3-why-go { justify-self: stretch; }
-  .shell-v3 .s3-confirm { justify-self: stretch; }
-}
+/* notes under the frame */
+.shell-v3 .s3-side { display: grid; gap: 6px; }
+.shell-v3 .s3-side:empty { display: none; }
+.shell-v3 .s3-sent { margin: 0; font-size: var(--t-14); line-height: 1.8; padding: 10px 14px; border-radius: var(--r); background: var(--warn-soft); color: var(--ink); }
+.shell-v3 .s3-narr { margin: 0; color: var(--mute); font-family: var(--f-read); font-size: var(--t-20); }
 
-/* سطر الملاحظات قبل النسخة النهائية: سطر واحد، والتفاصيل في «أدوات وتفاصيل» */
+/* scenes that need a fix */
+.shell-v3 .s3-fixlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.shell-v3 .s3-fixlist button { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; gap: 4px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--sf); box-shadow: var(--shadow-card); }
+.shell-v3 .s3-fixlist button:hover { box-shadow: 0 0 0 1.5px var(--ink), var(--shadow-card); }
+.shell-v3 .s3-fixlist b { font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-20); padding-top: var(--t-shift); }
+.shell-v3 .s3-fixlist span { color: var(--ink-2); font-size: var(--t-14); line-height: 1.7; }
+.shell-v3 .s3-fixlist small { color: var(--mute); font-size: var(--t-12); }
+.shell-v3 .s3-empty { color: var(--mute); font-size: var(--t-16); line-height: 1.8; margin: 24px 0; }
+
+.shell-v3 .stage.s3 .sp-row.s3-alldone { padding: 16px 18px; background: var(--sf); border-radius: var(--r-lg); box-shadow: var(--shadow-card); }
+.shell-v3 .s3-gate { width: min(640px, calc(100% - 32px)); margin: 40px auto; display: grid; gap: 14px; justify-items: start; padding: 26px 28px; background: var(--sf); border-radius: var(--r-xl); box-shadow: var(--shadow-card); }
+.shell-v3 .s3-gate p { margin: 0; font-size: var(--t-16); line-height: 1.8; }
+
+/* ── the filmstrip of the whole episode, fixed above the dock ── */
+.shell-v3 .s3-reel { position: fixed; inset-inline: calc(var(--band-w) + 28px) 28px; bottom: 92px; z-index: 9; padding: 22px 0 6px; background: linear-gradient(transparent, var(--paper) 20px); }
+.shell-v3 .s3-reel-head { display: flex; align-items: center; gap: 10px; font-size: var(--t-12); color: var(--mute); margin-bottom: 5px; }
+.shell-v3 .s3-reel-head b { color: var(--ink); font-weight: 500; }
+.shell-v3 .s3-fold { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); padding: 2px 6px; border-radius: 6px; }
+.shell-v3 .s3-fold:hover { background: var(--quiet); }
+.shell-v3 .s3-fold svg { width: 13px; height: 13px; }
+.shell-v3 .s3-legend { margin-inline-start: auto; display: flex; gap: 14px; flex-wrap: wrap; }
+.shell-v3 .s3-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.shell-v3 .s3-legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--line); }
+.shell-v3 .s3-legend i.is-now { background: var(--ink); }
+.shell-v3 .s3-legend i.is-ready { background: var(--sf); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent); }
+.shell-v3 .s3-legend i.is-verse { background: repeating-linear-gradient(-45deg, var(--line) 0 2px, var(--paper) 2px 4px); box-shadow: 0 0 0 1px var(--line); }
+.shell-v3 .s3-chaps { display: flex; gap: 3px; font-size: var(--t-12); color: var(--mute); margin-bottom: 3px; }
+.shell-v3 .s3-chaps span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-inline-start: 3px; border-inline-start: 1.5px solid var(--line); line-height: 1.3; min-width: 0; }
+.shell-v3 .s3-strip { list-style: none; margin: 0; padding: 0; display: flex; gap: 3px; height: 40px; }
+.shell-v3 .s3-strip > li { min-width: 8px; position: relative; }
+.shell-v3 .s3-dot {
+  all: unset; box-sizing: border-box; cursor: pointer; position: relative; display: block; width: 100%; height: 100%; border-radius: 6px; overflow: hidden;
+  background: var(--quiet); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.shell-v3 .s3-dot .ms-thumb { position: absolute; inset: 0; direction: ltr; opacity: .45; filter: grayscale(.4); pointer-events: none; }
+.shell-v3 .s3-dot .ms-thumb > div { width: 100%; }
+.shell-v3 .s3-dot.is-ready .ms-thumb, .shell-v3 .s3-dot.is-done .ms-thumb, .shell-v3 .s3-dot.is-shown .ms-thumb { opacity: 1; filter: none; }
+.shell-v3 .s3-dot.is-ready { background: var(--sf); }
+.shell-v3 .s3-dot.is-done::after { content: ""; position: absolute; top: 4px; inset-inline-start: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 1.5px var(--sf); }
+.shell-v3 .s3-dot.is-verse { background: repeating-linear-gradient(-45deg, var(--quiet) 0 5px, var(--paper) 5px 9px); box-shadow: 0 0 0 1px var(--line); }
+.shell-v3 .s3-dot.is-shown { box-shadow: 0 0 0 2px var(--ink); }
+.shell-v3 .s3-dot.is-now::before { content: ""; position: absolute; inset: auto 0 0 0; height: 4px; background: var(--acc); z-index: 2; }
+.shell-v3 .s3-dot:hover { box-shadow: 0 0 0 1.5px var(--ink-2); }
+.shell-v3 .s3-dot:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.shell-v3 .s3-dot-n { position: absolute; bottom: 2px; inset-inline-end: 3px; font-size: var(--t-12); line-height: 1.4; color: var(--ink-2); background: color-mix(in srgb, var(--sf) 85%, transparent); padding: 0 4px; border-radius: 4px; z-index: 1; }
+.shell-v3 .s3-dot.is-verse .s3-dot-n { inset: 0; display: grid; place-items: center; background: none; color: var(--mute); }
+.shell-v3 .s3-reel.is-folded .s3-chaps, .shell-v3 .s3-reel.is-folded .s3-strip, .shell-v3 .s3-reel.is-folded .s3-legend { display: none; }
+.shell-v3 .s3-reelm { display: none; }
+
+/* the dock's contents in step ٢ */
+.shell-v3 .s3-actbar { display: flex; align-items: center; gap: 2px; }
+.shell-v3 .s3-why { display: grid; gap: 4px; }
+.shell-v3 .ms-dock-in .s3-why { display: flex; align-items: center; gap: 8px; }
+.shell-v3 .ms-dock-in .s3-why .sp-hint { color: var(--dock-ink); font-size: var(--t-14); }
+.shell-v3 .ms-float .sp-hint { color: var(--ink-2); }
+.shell-v3 .ms-dock .s3-cta { background: #ffffff1f; opacity: 1; }
+.shell-v3 .s3-confirm { display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-14); justify-self: center; }
+.shell-v3 .s3-problem { width: min(520px, 100%); }
+.shell-v3 .s3-problem-at { font-size: var(--t-14); color: var(--ink-2); }
+.shell-v3 .s3-problem-at b { font-family: var(--f-num); }
+.shell-v3 .s3-problem textarea, .shell-v3 .s3-problem select { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; }
+.shell-v3 .s3-problem textarea { resize: vertical; }
+
+/* «أدوات وتفاصيل» and the line of notes before the final file */
 .shell-v3 .s3-issues {
-  justify-self: start; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; font-weight: 600;
+  justify-self: start; border: 0; background: none; padding: 0; font: inherit; font-size: var(--t-14); font-weight: 500;
   color: var(--warn); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px;
 }
 .shell-v3 .s3-issues.is-block { color: var(--err); }
-.shell-v3 .s3-more-group h3 { margin: 0 0 8px; font-size: 14px; }
+.shell-v3 .s3-more-group { display: grid; gap: 8px; }
+.shell-v3 .s3-more-group h3 { margin: 0; font-size: var(--t-14); font-weight: 600; }
 .shell-v3 .s3-issue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .shell-v3 .s3-issue-list button {
   width: 100%; display: flex; align-items: baseline; gap: 10px; padding: 7px 10px; text-align: start; cursor: pointer;
-  border: 1px solid var(--line); border-radius: 6px; background: var(--panel); font: inherit; font-size: 13px; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 6px; background: var(--sf); font: inherit; font-size: var(--t-12); color: var(--ink);
 }
-.shell-v3 .s3-issue-list button:hover { border-color: var(--accent); }
-.shell-v3 .s3-lv { flex: none; font-size: 12px; font-weight: 700; }
+.shell-v3 .s3-issue-list button:hover { border-color: var(--ink-2); }
+.shell-v3 .s3-lv { flex: none; font-size: var(--t-12); font-weight: 600; }
 .shell-v3 .s3-lv.is-error { color: var(--err); }
 .shell-v3 .s3-lv.is-warning { color: var(--warn); }
 
-/* شريط العودة فوق المحرر الكامل */
-.shell-v3 .s3-editbar {
-  display: flex; align-items: center; gap: 14px; padding: 10px 30px; background: var(--panel-2);
-  border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 600;
-}
-/* داخل المحرر: «أدوات الحلقة» مطوية تحت المعاينة */
+/* the bar back from the full scene editor */
+.shell-v3 .s3-editbar { display: flex; align-items: center; gap: 14px; padding: 6px 28px 10px; font-size: var(--t-14); font-weight: 500; }
 .shell-v3 .episode-grid .col.center > .more { margin: 4px 0 0; }
 .shell-v3 .episode-grid .col.center > .more > .more-body { gap: 12px; }
 
-/* ── الصوت: شاشة استماع هادئة ── */
-.shell-v3 .stage.s3-voice { max-width: 980px; }
+/* ── «متتابعة»: the episode's narration in order ── */
+.shell-v3 .stage.s3-voice { max-width: 860px; }
 .shell-v3 .s3-voice-play { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; }
-.shell-v3 .s3-voice-now { display: grid; gap: 8px; padding: 14px 16px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); }
-.shell-v3 .s3-voice-now strong { font-size: 13px; color: var(--muted); }
-.shell-v3 .s3-voice-now p { margin: 0; font-size: 16px; line-height: 1.9; }
+.shell-v3 .s3-voice-now { display: grid; gap: 8px; padding: 16px 18px; border-radius: var(--r-lg); background: var(--sf); box-shadow: var(--shadow-card); }
+.shell-v3 .s3-voice-now strong { font-size: var(--t-12); color: var(--mute); }
+.shell-v3 .s3-voice-now p { margin: 0; font-family: var(--f-read); font-size: var(--t-20); line-height: 1.9; }
 .shell-v3 .s3-voice-now audio, .shell-v3 .s3-clip audio { width: 100%; }
 .shell-v3 .s3-clips { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .shell-v3 .s3-clips > li { border-bottom: 1px solid var(--line); }
-.shell-v3 .s3-clip-row {
-  width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 4px; border: 0; background: none;
-  font: inherit; color: var(--ink); text-align: start; cursor: pointer;
-}
-.shell-v3 .s3-clip-row:hover { background: var(--panel-2); }
-.shell-v3 .s3-clip-row[aria-expanded="true"] .s3-clip-text { white-space: normal; font-size: 15px; line-height: 1.9; }
-.shell-v3 .s3-clip-n { flex: none; min-width: 26px; font-family: var(--f-num); font-size: 15px; color: var(--muted); text-align: center; }
-.shell-v3 .s3-clip-text { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.shell-v3 .s3-clip-st { flex: none; font-size: 12px; color: var(--muted); }
+.shell-v3 .s3-clip-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 4px; border: 0; background: none; font: inherit; color: var(--ink); text-align: start; cursor: pointer; }
+.shell-v3 .s3-clip-row:hover { background: var(--quiet); }
+.shell-v3 .s3-clip-row[aria-expanded="true"] .s3-clip-text { white-space: normal; font-size: var(--t-16); line-height: 1.9; }
+.shell-v3 .s3-clip-n { flex: none; min-width: 26px; font-family: var(--f-num); font-size: var(--t-14); color: var(--mute); text-align: center; }
+.shell-v3 .s3-clip-text { flex: 1; min-width: 0; font-family: var(--f-read); font-size: var(--t-16); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.shell-v3 .s3-clip-st { flex: none; font-size: var(--t-12); color: var(--mute); }
 .shell-v3 .s3-clip-st.ready { color: var(--ok); }
 .shell-v3 .s3-clip-st.stale { color: var(--warn); }
 .shell-v3 .s3-clip { display: grid; gap: 10px; padding: 4px 4px 14px 4px; padding-inline-start: 42px; }
-.shell-v3 .s3-clip p { margin: 0; font-size: 15px; line-height: 1.9; }
+.shell-v3 .s3-clip p { margin: 0; font-size: var(--t-16); line-height: 1.9; }
 .shell-v3 .s3-clip .btn { justify-self: start; }
-.shell-v3 .s3-voice .more-body .render-box { background: var(--panel); }
-.shell-v3 .s3-voice .more-body h3 { margin: 0 0 4px; font-size: 14px; }
+.shell-v3 .s3-voice .more-body h3 { margin: 0 0 4px; font-size: var(--t-14); }
 
-@media (max-width: 900px) {
-  .shell-v3 .s3-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+/* ── Phone: the column fills the width, the strip becomes one thin bar, the dock stays in reach ── */
+@media (max-width: 720px) {
+  .shell-v3 .stage.s3 { padding: 0 0 120px; }
+  .shell-v3 .s3-col { width: auto; margin: 0 16px; }
+  .shell-v3 .s3-head { margin-top: 4px; row-gap: 2px; }
+  .shell-v3 .s3-title h2 { font-size: var(--t-24); }
+  .shell-v3 .s3-meta { width: 100%; margin: 0; }
+  .shell-v3 .s3-frame, .shell-v3 .s3-live { border-radius: var(--r-lg); }
+  .shell-v3 .s3-play { inset: 10px auto auto 10px; padding: 3px 11px 3px 3px; }
+  .shell-v3 .s3-play button { width: 26px; height: 26px; }
+  .shell-v3 .s3-reel { display: none; }
+  .shell-v3 .s3-reelm { display: flex; align-items: center; gap: 8px; margin: 18px 16px 0; color: var(--ink-2); font-size: var(--t-12); padding: 12px 0; border-top: 1px solid var(--quiet); }
+  .shell-v3 .s3-reelm-bar { flex: 1; height: 8px; display: flex; gap: 2px; }
+  .shell-v3 .s3-reelm-bar i { min-width: 1px; border-radius: 2px; background: var(--line); }
+  .shell-v3 .s3-reelm-bar i.is-done { background: var(--ok); }
+  .shell-v3 .s3-reelm-bar i.is-shown { background: var(--ink); }
   .shell-v3 .s3-editbar { padding: 10px 16px; }
-  .shell-v3 .s3-narr { font-size: 16px; }
   .shell-v3 .s3-clip { padding-inline-start: 4px; }
+  .shell-v3 .ms-dock-in .s3-why { flex-wrap: wrap; justify-content: center; padding: 4px 6px; }
+  .shell-v3 .ms-dock .s3-actbar { flex: 1; }
+  .shell-v3 .ms-dock .s3-actbar .ms-dv { display: none; }
 }
-
-/* رأس الشاشة: «جهّز كل المشاهد» وعدّاد الجاهز بجوار «تحرير المشهد» */
-.shell-v3 .s3-headact { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+/* many scenes: the numbers step aside when a scene's cell is too narrow to hold one */
+.shell-v3 .s3-strip > li { container-type: inline-size; }
+@container (max-width: 24px) { .shell-v3 .s3-dot-n { display: none; } }

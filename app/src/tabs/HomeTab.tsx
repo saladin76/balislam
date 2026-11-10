@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { api, type Overview } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
-import { arDigits, duration, lengthSource, num } from "../ui/format";
+import { Num, arDigits, duration, lengthSource, num } from "../ui/format";
+import { Icon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
 
 type StageState = "done" | "warn" | "todo" | "na";
@@ -73,6 +74,19 @@ export const HomeTab: React.FC<{
     return () => { active = false; };
   }, [channel.id]);
 
+  // The channel's rhythm under its name (direction D): «حلقة كل أربعاء، وشورتس يومية منها».
+  const [tagline, setTagline] = useState("");
+  useEffect(() => {
+    let live = true;
+    const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    api.channel().then((c) => {
+      if (!live) return;
+      const day = c.schedule ? DAYS[c.schedule.longDay] : undefined;
+      setTagline(day ? `حلقة كل ${day}${c.schedule?.shortsPerDay ? "، وشورتس يومية منها" : ""}` : c.description ?? "");
+    }, () => live && setTagline(""));
+    return () => { live = false; };
+  }, [channel.id]);
+
   if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
   if (!items) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
@@ -110,18 +124,19 @@ export const HomeTab: React.FC<{
     </Dialog>
   ) : null;
 
+  // The episode that waits for the owner first is lifted on a card (direction D).
+  const hot = visible.find((e) => fourSteps(e).some((s) => !s.done))?.id;
   return (
     <div className="ledger">
       {deleteDialog}
-      <header className="ledger-head">
+      <header className="ms-hero ledger-head">
         <h1>{channel.name}</h1>
-        <button className="btn primary" onClick={onNew}>حلقة جديدة</button>
+        {tagline ? <p>{tagline}</p> : null}
       </header>
 
       {items.length === 0 ? (
         <div className="ledger-empty">
           <p>لا توجد حلقات في هذه القناة بعد. كل حلقة تمر بأربع خطوات: التجهيز، المشاهد، النسخة النهائية، النشر.</p>
-          <button className="btn primary" onClick={onNew}>ابدأ أول حلقة</button>
         </div>
       ) : (
         <>
@@ -142,23 +157,26 @@ export const HomeTab: React.FC<{
                 const at = doneCount === -1 ? steps.length : doneCount;
                 const next = nextLine(e);
                 return (
-                  <li key={e.id} className="ledger-row">
-                    <button type="button" className="ledger-open" onClick={() => onOpen(e.id, next.tab)}>
-                      <span className="ledger-num"><span>{arDigits(e.id)}</span></span>
-                      <span className="ledger-title">
-                        <b>{e.title || e.dir}</b>
+                  <li key={e.id} className={`ledger-row${e.id === hot ? " is-hot" : ""}`}>
+                    <span className="ledger-num" aria-hidden="true"><Num>{e.id.replace(/^0+(?=\d)/, "")}</Num></span>
+                    <div className="ledger-main">
+                      <button type="button" className="ledger-open" onClick={() => onOpen(e.id, next.tab)}>
+                        <span className="ledger-k">الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}</span>
+                        <span className="ledger-title"><b>{e.title || e.dir}</b></span>
+                      </button>
+                      <div className="ledger-pg">
+                        <ol className="ledger-steps" aria-label={`الخطوة ${Math.min(at + 1, steps.length)} من ${steps.length}`}>
+                          {steps.map((s, i) => (
+                            <li key={s.n} className={s.done ? "is-done" : i === at ? "is-now" : ""}>
+                              <button type="button" title={s.title} aria-label={`${s.title}${s.done ? " (مكتملة)" : i === at ? " (الحالية)" : ""}`} onClick={() => onOpen(e.id, s.tab)}>{s.n}</button>
+                            </li>
+                          ))}
+                        </ol>
                         <span className="ledger-next">{next.text}</span>
-                      </span>
-                    </button>
-                    <ol className="ledger-steps" aria-label={`الخطوة ${Math.min(at + 1, steps.length)} من ${steps.length}`}>
-                      {steps.map((s, i) => (
-                        <li key={s.n} className={s.done ? "is-done" : i === at ? "is-now" : ""}>
-                          <button type="button" title={s.title} aria-label={`${s.title}${s.done ? " (مكتملة)" : i === at ? " (الحالية)" : ""}`} onClick={() => onOpen(e.id, s.tab)}>{s.n}</button>
-                        </li>
-                      ))}
-                    </ol>
+                      </div>
+                    </div>
                     <span className="ledger-len" title={e.length ? lengthSource(e.length) : undefined}>
-                      {e.length ? <>{duration(e.length.seconds)}<small>{e.length.source === "voice" ? "مقيسة" : "مدة الخطة"}</small></> : null}
+                      {e.length ? <><b><Num>{duration(e.length.seconds)}</Num></b>{e.length.source === "voice" ? "مقيسة" : "مدة الخطة"}</> : null}
                     </span>
                     <RowMenu label={`خيارات الحلقة ${arDigits(e.id)}`} items={[{ label: "حذف الحلقة…", danger: true, onSelect: () => setDel({ id: e.id, title: e.title || e.dir, typed: "" }) }]} />
                   </li>
@@ -168,6 +186,12 @@ export const HomeTab: React.FC<{
           )}
         </>
       )}
+      {/* The one next action on the channel's episodes: a new episode, in the dock */}
+      <div className="ms-dock" role="group" aria-label="حلقات القناة">
+        <div className="ms-dock-in">
+          <button className="btn primary" type="button" onClick={onNew}><Icon name="plus" />{items.length ? "حلقة جديدة" : "ابدأ أول حلقة"}</button>
+        </div>
+      </div>
     </div>
   );
 };

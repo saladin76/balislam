@@ -74,42 +74,48 @@
   .shell-v3 .s12-rail-head { position: static; }
 }
 
-/* ── الخطوة ٢: شبكة اللوحات ── */
+/* ── الخطوة ١ «اللوحات والنص» (direction D): the episode read as it will be seen — one column of boards,
+   each board beside its full narration, chapter by chapter, on the channel's paper ── */
 .shell-v3 .ew-storyboard-wrap:has(> .s12-board) { padding: 0; }
-.shell-v3 .storyboard.s12-board { max-width: 1440px; width: 100%; margin: 0 auto; padding: 22px 30px 48px; gap: 26px; }
-.shell-v3 .s12-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; }
+.shell-v3 .ms-step-head { width: min(780px, calc(100% - 64px)); margin: 14px auto 0; }
+.shell-v3 .storyboard.s12-board { width: min(780px, calc(100% - 64px)); margin: 0 auto; padding: 8px 0 48px; gap: 18px; display: grid; }
+.shell-v3 .s12-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; color: var(--mute); }
 .shell-v3 .s12-board-head .s12-alert { flex-basis: 100%; }
-.shell-v3 .s12-chapter { gap: 12px; }
-.shell-v3 .s12-chapter-h { margin: 0; display: flex; align-items: baseline; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 700; color: var(--ink); }
-.shell-v3 .s12-chapter-h .s12-num { font-size: 18px; color: var(--accent); }
-.shell-v3 .sb-grid.s12-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 26px 20px; }
-.shell-v3 .sb-shot.s12-shot { background: none; border: 0; border-radius: 0; overflow: visible; gap: 0; }
-.shell-v3 .s12-shot .sb-frame { border-radius: 6px; background: var(--ink); outline: 1px solid var(--line); outline-offset: -1px; }
-.shell-v3 .s12-shot:hover .sb-frame, .shell-v3 .s12-shot:focus-visible .sb-frame { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shell-v3 .s12-chapter { display: grid; gap: 0; }
+.shell-v3 .s12-chapter-h { margin: 10px 0 4px; display: flex; align-items: baseline; gap: 12px; font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-24); color: var(--ink); padding-top: var(--t-shift); }
+.shell-v3 .s12-chapter-h .s12-num { font-family: var(--f-t); font-size: var(--t-24); color: var(--ink); }
+.shell-v3 .sb-grid.s12-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.shell-v3 .sb-shot.s12-shot { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 26px; align-items: start; padding: 14px 0; background: none; border: 0; border-radius: 0; overflow: visible; cursor: pointer; }
+.shell-v3 .sb-shot.s12-shot + .sb-shot.s12-shot { border-top: 1px solid var(--quiet); }
+.shell-v3 .s12-shot .sb-frame { border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #16181d12, 0 12px 26px -20px #16181d55; outline: 0; }
+.shell-v3 .s12-shot:hover .sb-frame, .shell-v3 .s12-shot:focus-visible .sb-frame { box-shadow: 0 0 0 2px var(--ink), 0 12px 26px -20px #16181d55; }
 .shell-v3 .s12-shot:focus-visible { outline: 0; }
-.shell-v3 .s12-txt { padding: 8px 2px 0; gap: 3px; }
-.shell-v3 .s12-shot-meta { display: flex; align-items: center; gap: 8px; margin: 0; }
-.shell-v3 .s12-id { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .02em; }
-.shell-v3[data-channel="zubdat-alkutub"] .s12-id { color: var(--ink); background: var(--accent-soft); padding: 0 5px; border-radius: 3px; }
-.shell-v3 .s12-time { font-family: var(--f-num); font-size: 13px; color: var(--muted); direction: ltr; }
-.shell-v3 .s12-mark { font-size: 12px; color: var(--muted); }
+.shell-v3 .s12-txt { padding: 0; gap: 2px; display: grid; min-width: 0; }
+.shell-v3 .s12-shot-meta { display: flex; align-items: baseline; gap: 10px; margin: 0; }
+.shell-v3 .s12-id { font-size: var(--t-14); font-weight: 600; color: var(--ink); }
+.shell-v3 .s12-time { font-family: var(--f-num); font-size: var(--t-12); color: var(--mute); direction: ltr; }
+.shell-v3 .s12-mark { font-size: var(--t-12); color: var(--mute); }
 .shell-v3 .s12-mark.ok { color: var(--ok); }
 .shell-v3 .s12-mark.warn { color: var(--warn); }
-.shell-v3 .s12-shot .sb-said { margin: 0; font-size: 14.5px; line-height: 1.75; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.shell-v3 .is-detailed .s12-shot .sb-said { -webkit-line-clamp: unset; display: block; }
-.shell-v3 .s12-shot-details { display: grid; gap: 3px; padding-top: 6px; margin-top: 4px; border-top: 1px solid var(--line); }
+.shell-v3 .s12-shot .sb-said { margin: 0; font-family: var(--f-read); font-size: 18.5px; line-height: 1.95; color: var(--ink-2); }
+.shell-v3 .s12-shot-details { display: grid; gap: 3px; padding-top: 6px; margin-top: 4px; border-top: 1px solid var(--line); font-size: var(--t-12); }
 .shell-v3 .s12-shot-details p { margin: 0; }
 .shell-v3 .s12-board > .more { margin-top: 8px; }
 .shell-v3 .s12-board .more-body { max-width: 860px; }
-.shell-v3 .s12-board textarea#sb-visual-review-note { width: 100%; min-width: 0; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); resize: vertical; }
-.shell-v3 .s12-audit { display: grid; gap: 8px; font-size: 13px; }
+.shell-v3 .s12-board textarea#sb-visual-review-note { width: 100%; min-width: 0; font: inherit; font-size: var(--t-14); padding: 8px 10px; border-radius: 6px; resize: vertical; }
+.shell-v3 .s12-audit { display: grid; gap: 8px; font-size: var(--t-14); }
 .shell-v3 .s12-board .sb-previews { padding: 14px 0 0; border-bottom: 0; }
 .shell-v3 .s12-board .sb-preview { border: 0; background: none; border-radius: 0; }
+/* «قبل أن تعتمد» in the gutter beside the column */
+.shell-v3 .ms-spine-note { position: fixed; top: 112px; inset-inline-end: 28px; width: 224px; }
+@media (max-width: 1380px) { .shell-v3 .ms-spine-note { position: relative; top: auto; inset-inline-end: auto; width: min(780px, calc(100% - 64px)); margin: 14px auto 0; transform: none; box-sizing: border-box; } }
 
 @media (max-width: 720px) {
-  .shell-v3 .storyboard.s12-board { padding: 16px 16px 36px; gap: 22px; }
-  .shell-v3 .sb-grid.s12-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .shell-v3 .ms-step-head, .shell-v3 .storyboard.s12-board { width: auto; margin-inline: 16px; }
+  .shell-v3 .sb-shot.s12-shot { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .shell-v3 .s12-shot .sb-said { font-size: var(--t-16); }
   .shell-v3 .s12-board .sb-previews-grid { grid-template-columns: minmax(0, 1fr); }
+  .shell-v3 .ms-spine-note { width: auto; margin: 12px 16px 0; }
 }
 
 /* زر واحد مملوء في الشاشة: أزرار سجل التوثيق داخل الأدوات محددة لا مملوءة */

@@ -4,8 +4,8 @@ import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
 import { PrepareAll } from "../workspace/PrepareAll";
 import { arNum, sceneName } from "../workspace/sceneNames";
-import { arDigits } from "../ui/format";
 import { citationNotice } from "./citationNotice";
+import { Icon } from "../ui/icons";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
@@ -34,8 +34,8 @@ export const stepsDone = (w: Pick<SceneProductionRead, "script" | "storyboard" |
 ];
 
 type Props = {
-  episodeId: string; channelId: string; title: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
-  refreshKey: number; saveState: "saved" | "dirty" | "saving" | "error"; unsaved: boolean;
+  episodeId: string; channelId: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
+  refreshKey: number;
   onTab: (t: StepTab) => void; onDecided: () => void;
   /** «جهّز كل المشاهد» without a voice key links here. */
   onOpenSettings?: () => void;
@@ -44,10 +44,12 @@ type Props = {
 };
 
 /**
- * عمود الحلقة: أربع محطات من اليمين إلى اليسار، يمتلئ الخط بلون القناة حتى الخطوة الحالية،
- * وتحتها جملة واحدة بما يلزم الآن وزر واحد. الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
+ * ما يلزم الآن في الحلقة (direction D): الخطوات الأربع نفسها في شريط القناة (`Band`)، وهذا المكوّن يقرأ السجل
+ * ويضع الفعل التالي الواحد في الشريط العائم أسفل الشاشة: «اعتمد التجهيز» في الخطوة ١ (مع «راجعته بنفسي»
+ * وملاحظة اللوحات)، أو سطرًا وزرًا إلى مكان القرار حين يكون المالك خارج خطوته؛ وفي الخطوة ١ ورقة لاصقة
+ * «قبل أن تعتمد». الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
-export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab, scriptErrors, onScriptLine, refreshKey, saveState, unsaved, onTab, onDecided, onOpenSettings, onState }) => {
+export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scriptErrors, onScriptLine, refreshKey, onTab, onDecided, onOpenSettings, onState }) => {
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
   const [reviewed, setReviewed] = useState(false);
@@ -152,74 +154,66 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, title, tab
   const decideTarget = next?.decide ?? "";
   useEffect(() => setReviewed(false), [decideTarget]);
 
-  const fill = current < 0 ? 100 : (current / (STEPS.length - 1)) * 100;
   const inStep1 = here === 0;
+  // A locked step screen (D52) carries its own one button, and step ٢ before «اعتمد التجهيز» is itself
+  // one line and one button back to step ١: the spine repeats neither.
+  const quiet = Boolean(w && ((!done[0] && (here === 1 || here === 2)) || (!done[2] && here === 3)));
+  const showNote = Boolean(w && !done[0] && inStep1);
+  const scriptFixes = scriptErrors.length || prep?.scriptErrors || 0;
   return (
-    <section className="spine" aria-label="خطوات الحلقة">
-      <div className="spine-head">
-        <div className="spine-title">
-          <span className="spine-ep">{arDigits(episodeId)}</span>
-          <h1>{title}</h1>
-        </div>
-        <span className={`spine-save${saveState === "error" ? " is-err" : unsaved || saveState !== "saved" ? " is-dirty" : ""}`} role="status">
-          {saveState === "error" ? "تعذّر الحفظ" : saveState === "saving" ? "جارٍ الحفظ…" : unsaved || saveState === "dirty" ? "تعديلات غير محفوظة" : "محفوظ"}
-        </span>
-      </div>
-      <ol className="spine-track" style={{ "--fill": `${fill}%` } as React.CSSProperties}>
-        {STEPS.map((s, i) => {
-          const state = done[i] ? "done" : i === current ? "now" : "later";
-          return (
-            <li key={s.n} className={`spine-step is-${state}${i === here ? " is-here" : ""}`}>
-              <button type="button" onClick={() => onTab(s.tabs[0]!)} aria-current={i === here ? "step" : undefined}>
-                <span className="spine-n" aria-hidden="true">{s.n}</span>
-                <span className="spine-label">{s.title}</span>
-                <span className="spine-state">{done[i] ? "تم" : i === current ? "الآن" : ""}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-      {/* Step ٢ before «اعتمد التجهيز» is itself one line and one button back to step ١: nothing repeated here. */}
-      {/* A locked step screen (D52) carries its own one button: the spine does not repeat it. */}
-      {next && !(w && ((!done[0] && (here === 1 || here === 2)) || (!done[2] && here === 3))) ? (
-        <div className={`spine-next${next.fix === "script" && inStep1 ? " has-fix" : ""}${next.decide ? " is-decide" : ""}`}>
-          {next.fix === "script"
-            ? inStep1 && scriptErrors.length
-              ? <ScriptFixList errors={scriptErrors} onLine={onScriptLine} />
-              : <p>التجهيز لم يُعتمد بعد: {arNum(scriptErrors.length || prep?.scriptErrors || 0)} {(scriptErrors.length || prep?.scriptErrors) === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في السكريبت.</p>
-            : <div className="spine-text">
-                <p>{next.text}</p>
-                {next.decide && citations ? (
-                  <p className="spine-hint">{citations}{tab !== "script" ? <> <button type="button" className="prep-link" onClick={() => onTab("script")}>سجل التوثيق</button></> : null}</p>
-                ) : null}
-              </div>}
-          {next.decide ? (
-            <div className="spine-decide">
+    <>
+      {/* «قبل أن تعتمد»: what the preparation approval rests on, on a sticky note in the gutter (direction D) */}
+      {showNote ? (
+        <aside className="ms-note ms-spine-note" aria-label="قبل أن تعتمد">
+          <h2>قبل أن تعتمد</h2>
+          <ul>
+            <li className={scriptFixes ? "is-warn" : undefined}><i aria-hidden="true">{scriptFixes ? "!" : <Icon name="check" />}</i>
+              <span>السكريبت<small>{scriptFixes ? <>{arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"}</> : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
+            <li className={prep && !prep.boardsRecorded ? "is-warn" : undefined}><i aria-hidden="true">{prep && !prep.boardsRecorded ? "!" : <Icon name="check" />}</i>
+              <span>اللوحات<small>{prep && !prep.boardsRecorded ? "اكتب ملاحظتك على اللوحات بجوار الزر" : "سُجّلت مراجعتها"}</small></span></li>
+            {prep?.versesMissing.length ? (
+              <li className="is-warn"><i aria-hidden="true">!</i><span>آيات بلا نصها<small>{arNum(prep.versesMissing.length)} في السكريبت</small></span></li>
+            ) : null}
+            {citations ? (
+              <li className="is-warn"><i aria-hidden="true">!</i><span>الاستشهادات<small>{citations}{tab !== "script" ? <> <button type="button" className="ms-link" onClick={() => onTab("script")}>سجل التوثيق</button></> : null}</small></span></li>
+            ) : null}
+          </ul>
+        </aside>
+      ) : null}
+      {next && !quiet && next.fix === "script" && inStep1 && scriptErrors.length ? (
+        <section className="ms-spine-fix" aria-label="ما يمنع اعتماد التجهيز"><ScriptFixList errors={scriptErrors} onLine={onScriptLine} /></section>
+      ) : null}
+      {next && !quiet ? (
+        next.decide ? (
+          <div className="ms-dock" role="group" aria-label="اعتماد التجهيز">
+            {needs || err ? <p className="ms-float spine-needs" role="alert">{needs || err}</p> : null}
+            <div className="ms-dock-in is-wrap">
+              {citations ? <span className="ms-wn" title={citations}><Icon name="warn" /><span className="lbl">{citations.split("؛")[0]}</span></span> : null}
+              {citations ? <span className="ms-dv" aria-hidden="true" /> : null}
               {needNote ? (
-                <input ref={noteBox} type="text" className="spine-note" value={boardNote} maxLength={3000} onChange={(e) => { setBoardNote(e.target.value); setNeeds(""); }}
+                <input ref={noteBox} type="text" className="ms-dock-note spine-note" value={boardNote} maxLength={3000} onChange={(e) => { setBoardNote(e.target.value); setNeeds(""); }}
                   aria-label="ملاحظة مراجعتك للوحات" placeholder="ملاحظتك على اللوحات: ما راجعته فعلًا (٢٥ حرفًا على الأقل)" />
               ) : null}
-              <label><input ref={reviewedBox} type="checkbox" checked={reviewed} onChange={(e) => { setReviewed(e.target.checked); setNeeds(""); }} /> راجعته بنفسي</label>
-              <button ref={approveBtn} type="button" className="btn primary" aria-busy={busy} onClick={() => { if (!busy) void onApprove(); }}>{busy ? "جارٍ الاعتماد…" : next.label}</button>
-              {needs ? <span className="spine-hint spine-needs" role="alert">{needs}</span> : null}
+              <label className="ms-cb"><input ref={reviewedBox} type="checkbox" checked={reviewed} onChange={(e) => { setReviewed(e.target.checked); setNeeds(""); }} /> راجعته بنفسي</label>
+              <button ref={approveBtn} type="button" className="btn primary" aria-busy={busy} onClick={() => { if (!busy) void onApprove(); }}>
+                <Icon name="check" />{busy ? "جارٍ الاعتماد…" : next.label}
+              </button>
             </div>
-          ) : next.go && (next.fix ? tab !== next.go : !STEPS[stepOf(next.go)]!.tabs.includes(tab)) ? (
-            <div className="spine-decide">
+          </div>
+        ) : next.fix === "script" && inStep1 && scriptErrors.length ? null : next.go && (next.fix ? tab !== next.go : !STEPS[stepOf(next.go)]!.tabs.includes(tab)) ? (
+          <div className="ms-dock" role="group" aria-label="الخطوة التالية">
+            {err ? <p className="ms-float spine-err" role="alert">{err}</p> : null}
+            <div className="ms-dock-in is-wrap">
+              <p className="ms-dock-text">{next.fix === "script"
+                ? <>التجهيز لم يُعتمد بعد: {arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في السكريبت.</>
+                : next.text}</p>
               {/* الخطوة ٢ الآن وأنت خارج شاشتها: سطر «جاهز ١٢ من ١١٤» هنا، وفي شاشة المشاهد نفسها هناك */}
               {current === 1 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} order={w.scenes.map((x) => x.id)} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} /> : null}
-              <button type="button" className="btn primary" onClick={() => onTab(next.go!)}>{next.label}</button>
+              <button type="button" className="btn primary" onClick={() => onTab(next.go!)}>{next.label}<Icon name="chev" /></button>
             </div>
-          ) : null}
-        </div>
-      ) : err ? <div className="spine-next"><p className="spine-err" role="alert">حالة الاعتمادات غير متاحة: {err}</p></div> : null}
-      {next && err ? <p className="spine-err" role="alert">{err}</p> : null}
-      {STEPS[here] && STEPS[here]!.tabs.length > 1 ? (
-        <nav className="spine-sub" aria-label="أقسام الخطوة">
-          {STEPS[here]!.tabs.map((t) => (
-            <button key={t} type="button" aria-pressed={tab === t} onClick={() => onTab(t)}>{SUBTABS[t]}</button>
-          ))}
-        </nav>
-      ) : null}
-    </section>
+          </div>
+        ) : err ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">{err}</p></div> : null
+      ) : err && !next ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">حالة الاعتمادات غير متاحة: {err}</p></div> : null}
+    </>
   );
 };

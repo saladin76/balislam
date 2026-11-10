@@ -95,8 +95,8 @@ describe("الخطوة ٢: «اعتمد» أولًا", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions stage="review" voice="ok" voiceBusy={false} canVoice readyForAv pending={false}
       problem={null} problemText="" tone="" confirming={false} reviewed={false}
       onVoice={noop} onProblem={noop} onProblemText={noop} onTone={noop} onCancelProblem={noop} onSubmitProblem={noop} onConfirm={noop} onApprove={noop} onRender={noop} />);
-    const labels = [...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
-    expect(labels).toEqual(["اعتمد", "الحركة غير مناسبة", "النبرة غير مناسبة", "أعد توليد الصوت"]);
+    const labels = [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) => m[1]!.replace(/<svg[\s\S]*?<\/svg>|<kbd[\s\S]*?<\/kbd>/g, "").replace(/<[^>]+>/g, "").trim());
+    expect(labels).toEqual(["اعتمد المشهد", "الحركة غير مناسبة", "النبرة غير مناسبة", "أعد توليد الصوت"]);
     expect(html.match(/btn primary/g)).toHaveLength(1);
   });
 

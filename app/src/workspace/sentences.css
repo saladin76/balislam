@@ -1,6 +1,6 @@
 /* «الجمل» (D50): صوت المشهد جملةً جملة. هادئ: أزرار محددة لا ممتلئة، وشريحة حالة صغيرة لكل جملة. */
-.sv { display: grid; gap: 14px; direction: rtl; }
-.sv.is-scene { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line, #e6e3dc); }
+.sv { display: grid; gap: 14px; direction: rtl; position: relative; }
+.sv.is-scene:not(.is-para) { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line, #e6e3dc); }
 .sv-loading { margin: 12px 0; }
 .sv-summary { margin: 0; font-size: 13px; color: var(--muted, #6e726c); }
 .sv-scene { display: grid; gap: 8px; min-width: 0; }
@@ -55,35 +55,6 @@
 .sv-add textarea { font: inherit; font-size: 15px; border: 1px solid var(--line-2, #d3cfc6); border-radius: 6px; padding: 6px 8px; }
 .sv-verse { margin: 0; }
 .sv-verse .pf-rec { background: var(--panel-2, #faf9f6); }
-/* «أعد نطق الكلمة»: كلمات الجملة شرائح، والكلمة المفتوحة لوحة صغيرة تحتها (لا زر ممتلئ) */
-.sv-words-wrap { display: grid; gap: 4px; padding-inline: 4px; }
-.sv-words { display: flex; flex-wrap: wrap; gap: 4px; }
-.sv-word {
-  font: inherit; font-size: 15px; line-height: 1.6; min-height: 32px; padding: 1px 8px; border-radius: 6px; cursor: pointer;
-  background: transparent; border: 1px dashed var(--line-2, #d3cfc6); color: var(--ink, #1e2320);
-}
-.sv-word:hover:not(:disabled) { background: var(--panel-2, #faf9f6); border-style: solid; }
-.sv-word.is-open { border: 1px solid var(--accent, #2c5e55); background: var(--accent-soft, #e3ece9); color: var(--accent, #2c5e55); }
-.sv-word:disabled { cursor: default; opacity: .55; border-style: dotted; }
-.sv-word:focus-visible { outline: 2px solid var(--accent, #2c5e55); outline-offset: 1px; }
-.sv-words-why { margin: 0; font-size: 12px; }
-.sv-fix {
-  display: grid; gap: 8px; padding: 10px 12px; margin-inline: 4px; border: 1px solid var(--line, #e6e3dc); border-radius: var(--r, 8px);
-  background: var(--panel-2, #faf9f6); box-shadow: var(--shadow-pop, 0 12px 32px -14px rgba(0,0,0,.26)); max-width: 520px;
-}
-.sv-fix-head { display: flex; align-items: center; gap: 8px; }
-.sv-fix-word { font-size: 20px; line-height: 1.6; }
-.sv-fix-head .btn { min-height: 32px; padding: 2px 10px; }
-.sv-fix-x { margin-inline-start: auto; font: inherit; font-size: 20px; line-height: 1; background: none; border: 0; cursor: pointer; color: var(--muted, #6e726c); min-width: 32px; min-height: 32px; border-radius: 6px; }
-.sv-fix-x:hover { background: var(--panel, #fff); }
-.sv-fix-say { display: grid; gap: 4px; font-size: 13px; color: var(--muted, #6e726c); }
-.sv .sv-fix-say input { font: inherit; font-size: 18px; color: var(--ink, #1e2320); border: 1px solid var(--line-2, #d3cfc6); border-radius: 6px; padding: 4px 8px; background: var(--panel, #fff); width: 100%; box-sizing: border-box; }
-.sv-fix-check { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
-.sv-fix .sp-hint { margin: 0; font-size: 12px; }
-.sv-fix-fail { display: grid; gap: 6px; padding: 8px 10px; border-radius: 6px; background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-size: 13px; }
-.sv-fix-fail p { margin: 0; font-weight: 600; }
-.sv-fix-fail ul { margin: 0; padding-inline-start: 18px; }
-.sv-fix-fail .btn { justify-self: start; border: 1px solid currentColor; color: inherit; }
 .sv-applied span { color: var(--accent, #2c5e55); }
 .sv-lex { border: 1px solid var(--line, #e6e3dc); border-radius: var(--r, 8px); padding: 8px 12px; background: var(--panel, #fff); }
 .sv-lex > summary { cursor: pointer; font-weight: 600; font-size: 14px; }
@@ -102,4 +73,149 @@
   .sv-ctl .sv-tone { flex: 1 1 150px; max-width: none; }
   .sv-add { grid-column: 1 / -1; }
   .sv-menu-pop { inset-inline-end: auto; inset-inline-start: 0; }
+}
+
+/* ── «أعد نطق الكلمة»: words of the sentence as chips (direction D) ── */
+.sv-words-wrap { display: grid; gap: 4px; padding-inline: 4px; }
+.sv-words { display: flex; flex-wrap: wrap; gap: 4px; font-family: var(--f-read); }
+.sv-words.is-inline { display: inline; }
+.sv-word {
+  font: inherit; color: inherit; cursor: pointer; border: 0; position: relative;
+  border-radius: 7px; padding: 1px 4px; margin: 0 -2px; background: color-mix(in srgb, var(--ink) 5%, transparent); line-height: inherit;
+  transition: background .15s ease;
+}
+.sv-words:not(.is-inline) .sv-word { margin: 0; padding: 2px 8px; font-size: var(--t-16); }
+.sv-word:hover:not(:disabled) { background: var(--quiet); }
+.sv-word.is-open, .sv-word.is-open:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.sv-word.is-near { background: var(--quiet); }
+.sv-word.is-fixed::after { content: ""; position: absolute; top: 3px; inset-inline-end: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 2px var(--paper); }
+.sv-word.is-fail { box-shadow: inset 0 -2px 0 var(--warn); background: var(--warn-soft); }
+.sv-word:disabled { cursor: default; background: transparent; }
+.sv-word:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.sv-words-why { margin: 0; font-size: var(--t-12); }
+
+/* ── the paragraph of the scene's sentences ── */
+.sv.is-para { gap: 8px; margin-top: 4px; }
+.sv-para { display: grid; gap: 6px; position: relative; }
+.sv-note { font-size: var(--t-12); }
+.sv-paragraph { margin: 0; font-family: var(--f-read); font-size: 21px; line-height: 2.05; color: var(--mute); text-align: justify; padding-inline: 2px; }
+.sv-sn { position: relative; }
+.sv-sn .sv-sn-t { cursor: pointer; }
+.sv-sn.is-cur .sv-sn-t { cursor: text; }
+.sv-sn.is-heard { color: var(--ink-2); }
+.sv-sn.is-cur { color: var(--ink); }
+.sv-sn.is-playing .sv-sn-t, .sv-sn.is-playing .sv-words { background: linear-gradient(transparent 58%, var(--mark) 58%, var(--mark) 92%, transparent 92%); }
+.sv-sup {
+  all: unset; box-sizing: border-box; cursor: pointer; font-family: var(--f); font-size: var(--t-12); color: var(--mute); vertical-align: 7px; margin-inline-end: 3px;
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 3px; border-radius: 9px; border: 1px solid var(--line); line-height: 1;
+}
+.sv-sup svg { width: 10px; height: 10px; }
+.sv-sn.is-heard .sv-sup { background: var(--ink-2); border-color: var(--ink-2); color: var(--paper); }
+.sv-sn.is-cur .sv-sup { border-color: var(--ink); color: var(--ink); font-weight: 600; }
+.sv-sup:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sv-para.is-fixing .sv-sn:not(.is-cur), .sv-para.is-fixing .sv-tools, .sv-para.is-fixing > p:not(.sv-paragraph) { opacity: .35; }
+.sv-para.is-fixing .sv-paragraph { position: relative; z-index: 41; }
+.sv-edit { display: grid; gap: 6px; }
+.sv-para .sv-text { width: 100%; box-sizing: border-box; font-family: var(--f-read); font-size: var(--t-20); line-height: 1.9; padding: 8px 12px; border: 1.5px solid var(--ink); border-radius: var(--r); background: var(--sf); color: var(--ink); resize: vertical; field-sizing: content; }
+
+/* the current sentence's controls in one quiet row */
+.sv-tools { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; color: var(--ink-2); font-size: var(--t-14); }
+.sv-lb { color: var(--ink); font-weight: 600; margin-inline-end: 4px; display: inline-flex; align-items: baseline; gap: 6px; }
+.sv-lb small { color: var(--mute); font-weight: 400; font-size: var(--t-12); }
+.sv-rb { all: unset; box-sizing: border-box; cursor: pointer; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px var(--ink); color: var(--ink); }
+.sv-rb svg { width: 12px; height: 12px; }
+.sv-rb:disabled { opacity: .4; cursor: default; }
+.sv-sel { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 6px; border-radius: 9px; }
+.sv-sel:hover { background: var(--quiet); }
+.sv-sel svg { width: 14px; height: 14px; color: var(--mute); }
+.sv .sv-sel select { all: unset; cursor: pointer; font: inherit; font-size: var(--t-14); color: var(--ink-2); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline-end: 14px;
+  background: linear-gradient(45deg, transparent 50%, var(--mute) 50%) left 2px center / 5px 5px no-repeat, linear-gradient(-45deg, transparent 50%, var(--mute) 50%) left 7px center / 5px 5px no-repeat; }
+.sv .sv-sel select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.sv .sv-sel select option { color: #16181D; background: #fff; }
+.sv-t { all: unset; box-sizing: border-box; cursor: pointer; height: 30px; padding: 0 9px; border-radius: 9px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--ink-2); font-size: var(--t-14); }
+.sv-t:hover:not(:disabled) { background: var(--quiet); color: var(--ink); }
+.sv-t:disabled { opacity: .45; cursor: default; }
+.sv-t[aria-pressed="true"] { background: var(--quiet); color: var(--ink); }
+.sv-t svg { width: 14px; height: 14px; color: var(--mute); }
+.sv-t:focus-visible, .sv-rb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sv-tools .sv-menu > summary { border: 0; min-width: 30px; min-height: 30px; border-radius: 9px; color: var(--ink-2); }
+.sv-tools .sv-menu > summary svg { width: 16px; height: 16px; }
+.sv-tools .sv-menu-pop { inset-inline-end: auto; inset-inline-start: 0; }
+.sv-hint { margin-inline-start: auto; color: var(--mute); font-size: var(--t-12); display: inline-flex; align-items: center; gap: 6px; }
+.sv-hint i { font-style: normal; display: inline-block; padding: 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--ink) 6%, transparent); font-family: var(--f-read); color: var(--ink-2); }
+
+/* the line under the sentence after a word fix */
+.sv-fixln { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--t-14); color: var(--ink-2); min-height: 30px; }
+.sv-okl { color: var(--ok); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.sv-okl::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.sv-wd { font-family: var(--f-read); font-size: var(--t-16); color: var(--ink); }
+.sv-wd s { color: var(--mute); }
+.sv-sv { color: var(--mute); font-size: var(--t-12); }
+.sv-fixln.is-bad { color: var(--warn); align-items: flex-start; }
+.sv-fixln.is-bad > div { flex: 1 1 260px; display: grid; gap: 2px; }
+.sv-fixln.is-bad b { font-weight: 600; }
+.sv-fixln.is-bad ul { margin: 0; padding-inline-start: 18px; font-size: var(--t-12); color: var(--ink-2); }
+.sv-fixln.is-bad .sv-t { color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.sv-ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--warn); color: #fff; flex: none; }
+.sv-ic svg { width: 12px; height: 12px; }
+
+/* ── the word popover (anchored, arrow, dim backdrop); a bottom sheet on a phone ── */
+.ms-scrim { position: fixed; inset: 0; inset-inline-start: var(--band-w); background: var(--paper); opacity: .6; z-index: 40; }
+.ms-pop {
+  position: absolute; width: 408px; max-width: calc(100vw - 32px); box-sizing: border-box; background: var(--sf); color: var(--ink); border-radius: 18px; z-index: 42; padding: 18px 20px 16px;
+  box-shadow: var(--shadow-pop); display: block; text-align: start;
+}
+.ms-pop::after { content: ""; position: absolute; top: 100%; left: var(--ax, 50%); width: 18px; height: 10px; background: var(--sf); clip-path: polygon(0 0, 100% 0, 50% 100%); transform: translateX(-50%); }
+.ms-pop-top { display: flex; align-items: center; gap: 12px; }
+.ms-pop-big { font-family: var(--f-read); font-size: var(--t-32); line-height: 1.25; font-weight: 600; }
+.ms-pop-lbl { font-size: var(--t-12); color: var(--mute); }
+.ms-pop-lbl b { display: block; color: var(--ink-2); font-weight: 500; font-size: var(--t-12); }
+.ms-pop-pw { all: unset; box-sizing: border-box; cursor: pointer; margin-inline-start: auto; height: 34px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px; box-shadow: inset 0 0 0 1.5px var(--ink); font-weight: 500; font-size: var(--t-14); }
+.ms-pop-pw svg { width: 12px; height: 12px; }
+.ms-pop-pw:disabled { opacity: .4; cursor: default; }
+.ms-pop-x { all: unset; box-sizing: border-box; cursor: pointer; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: var(--mute); }
+.ms-pop-x:hover { background: var(--quiet); color: var(--ink); }
+.ms-pop-x svg { width: 16px; height: 16px; }
+.ms-pop-ctx { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--quiet); font-family: var(--f-read); font-size: 17px; line-height: 1.9; color: var(--mute); }
+.ms-pop-ctx .nb { color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--line-strong); text-decoration-thickness: 3px; text-underline-offset: 4px; }
+.ms-pop-ctx .me { color: var(--ink); font-weight: 600; background: var(--mark); border-radius: 5px; padding: 0 4px; }
+:root[data-theme="dark"] .ms-pop-ctx .me { color: #16181D; }
+.ms-pop-fl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 14px; font-size: var(--t-12); color: var(--ink-2); font-weight: 500; }
+.ms-pop-inp { display: flex; align-items: center; gap: 8px; height: 46px; min-width: 0; border-radius: 12px; box-shadow: inset 0 0 0 1.5px var(--ink); padding: 0 14px; }
+.ms-pop .ms-pop-inp input { all: unset; flex: 1 1 0; width: 0; min-width: 0; font-family: var(--f-read); font-size: var(--t-20); color: var(--ink); }
+.ms-pop-inp small { font-size: var(--t-12); color: var(--mute); font-weight: 400; white-space: nowrap; }
+.ms-pop-inp:focus-within { box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 3px color-mix(in srgb, var(--acc) 50%, transparent); }
+.ms-pop-hint { display: flex; gap: 8px; margin: 10px 0 0; font-size: var(--t-12); color: var(--mute); line-height: 1.6; }
+.ms-pop-hint svg { width: 15px; height: 15px; margin-top: 2px; flex: none; }
+.ms-pop-hint.is-warn { color: var(--warn); }
+.ms-pop-chk { display: flex; align-items: center; gap: 9px; margin-top: 12px; font-size: var(--t-14); color: var(--ink-2); cursor: pointer; }
+.ms-pop-chk input { width: 18px; height: 18px; accent-color: var(--ink); margin: 0; flex: none; }
+.ms-pop-chk small { color: var(--mute); font-size: var(--t-12); margin-inline-start: 8px; }
+.ms-pop-more { margin-top: 8px; }
+.ms-pop-more > summary { cursor: pointer; font-size: var(--t-12); color: var(--mute); width: max-content; list-style: none; }
+.ms-pop-more > summary::-webkit-details-marker { display: none; }
+.ms-pop-more > summary::after { content: " ▾"; }
+.ms-pop-more .ms-pop-chk { align-items: flex-start; margin-top: 6px; }
+.ms-pop-more .ms-pop-chk span { display: grid; }
+.ms-pop-more .ms-pop-chk small { margin: 0; }
+.ms-pop-acts { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.ms-pop-go { all: unset; box-sizing: border-box; cursor: pointer; height: 42px; padding: 0 18px; border-radius: 12px; background: var(--ink); color: var(--paper); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.ms-pop-go svg { width: 15px; height: 15px; }
+.ms-pop-go:disabled { opacity: .45; cursor: default; }
+.ms-pop-alt { all: unset; box-sizing: border-box; cursor: pointer; height: 42px; padding: 0 10px; border-radius: 12px; color: var(--ink-2); font-size: var(--t-14); }
+.ms-pop-alt:hover:not(:disabled) { background: var(--quiet); }
+.ms-pop-alt:disabled { opacity: .45; cursor: default; }
+.ms-pop :is(button, input, summary):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ms-pop.is-sheet { position: fixed; inset: auto 0 0 0; width: auto; max-width: none; border-radius: 22px 22px 0 0; padding: 10px 18px 22px; max-height: 70dvh; overflow-y: auto; }
+.ms-pop.is-sheet::after { display: none; }
+.ms-pop.is-sheet::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
+.ms-pop.is-sheet .ms-pop-x { display: none; }
+.ms-pop.is-sheet .ms-pop-acts { flex-direction: column; align-items: stretch; }
+.ms-pop.is-sheet .ms-pop-go { justify-content: center; height: 50px; font-size: var(--t-16); }
+.ms-pop.is-sheet .ms-pop-alt { text-align: center; }
+@media (max-width: 720px) {
+  .ms-scrim { inset: 0; background: #16181D; opacity: .38; }
+  .sv-paragraph { font-size: 19.5px; text-align: start; }
+  .sv-hint { width: 100%; margin: 4px 0 0; }
+  .sv-tools .sv-sel.is-pause, .sv-tools .sv-t[aria-pressed] { display: none; }
 }
