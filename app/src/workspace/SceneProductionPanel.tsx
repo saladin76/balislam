@@ -360,7 +360,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
   }, [sceneMode]);
-  const [reelOpen, setReelOpen] = useState(true);
+  // The filmstrip starts folded on a short screen, so the sentence and its tools stay clear above the dock.
+  const [reelOpen, setReelOpen] = useState(() => typeof window === "undefined" || window.innerHeight >= 1000);
   // Step ٣: the seam on screen in the assembled episode.
   const [seamAt, setSeamAt] = useState(0);
 
@@ -481,10 +482,10 @@ export const SceneProductionPanel: React.FC<Props> = ({
             <div className="s3-meta">
               <span className={`s3-state is-${status}`}>{stateText}</span>
               {hit ? <span className="s3-len"><Num>{clock(secs(shownId))}</Num></span> : null}
+              {prepLine}
               <button type="button" className="btn ghost s3-edit" onClick={() => setEditing(shownId)}><Icon name="doc" />تحرير المشهد</button>
             </div>
           </header>
-          {prepLine ? <div className="s3-headact">{prepLine}</div> : null}
 
           {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
 
