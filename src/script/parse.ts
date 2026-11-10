@@ -9,6 +9,8 @@ const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** «الفصل 1 · …» أو ما يقابلها في أي لغة مفعّلة: «Bölüm 1 · …»، «Chapter 1 · …» */
 const CHAPTER_HEADING = new RegExp(`^(?:${packs.map((p) => escape(p.syntax.chapter)).join("|")})\\s+([0-9٠-٩]+)\\s*(?:[·\\-–:|]\\s*(.*))?$`, "i");
 const lower = (s: string) => normalizeArabic(s).toLocaleLowerCase("tr");
+/** العنوان كما كتبه المالك قد يكون مشكولًا («الْفَصْلُ 1 · …»)؛ الكلمة المفتاحية تُطابَق بلا تشكيل، والعنوان يبقى بنصه. */
+const bareTashkeel = (s: string) => s.normalize("NFC").replace(/[\u064B-\u0652\u0670\u0640]/g, "");
 const CITATION_HEADINGS = new Set(packs.map((p) => lower(p.syntax.citations)));
 const STEP_HEADINGS = new Set(packs.map((p) => lower(p.syntax.step)));
 const DIRECTIVE = /^\[\s*([^\]:]+?)\s*:\s*(.+?)\s*\]$/;
@@ -110,10 +112,15 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
         issues.push({ level: "warning", code: "heading-level", message: `العنوان «${title}» ليس عنوان فصل (##)؛ تم تجاهل سطر العنوان فقط، والنص بعده يبقى في القسم نفسه.`, line: lineNo });
         continue;
       }
-      const ch = title.match(CHAPTER_HEADING);
+      const direct = title.match(CHAPTER_HEADING);
+      const bare = direct ? null : bareTashkeel(title).match(CHAPTER_HEADING);
+      const ch = direct ?? bare;
       const norm = normalizeArabic(title);
       if (ch) {
-        const chapter: Chapter = { number: Number(toLatinDigits(ch[1] ?? "0")), title: (ch[2] ?? "").trim(), line: lineNo, blocks: [] };
+        // من العنوان المشكول يُؤخذ ما بعد الفاصل بنصه وتشكيله
+        const sep = bare ? title.search(/[·\-–:|]/) : -1;
+        const chTitle = bare ? (sep === -1 ? "" : title.slice(sep + 1)) : (ch[2] ?? "");
+        const chapter: Chapter = { number: Number(toLatinDigits(ch[1] ?? "0")), title: chTitle.trim(), line: lineNo, blocks: [] };
         chapters.push(chapter);
         section = { type: "chapter", chapter };
       } else if (CITATION_HEADINGS.has(lower(title))) {
