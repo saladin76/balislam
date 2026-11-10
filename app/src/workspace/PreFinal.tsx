@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api, type OwnRecitationsRead } from "../api";
 import { RecitationItem } from "./RecitationItem";
+import { FramePlayer } from "./SceneProductionPanel";
 import { num } from "../ui/format";
 import "./scene-production.css";
 
@@ -82,8 +83,7 @@ export const PreFinalPanel: React.FC<{
         </div>
       </div>
       {pre?.preview ? (
-        <video key={`${pre.entry?.version ?? 0}`} className="scene-first-video" controls preload="metadata"
-          src={api.previewUrl(episodeId, pre.preview)} aria-label="المعاينة قبل النهائية بلا تلاوات" />
+        <FramePlayer key={`${pre.entry?.version ?? 0}`} src={api.previewUrl(episodeId, pre.preview)} label="المعاينة قبل النهائية بلا تلاوات" />
       ) : null}
       </>}
 

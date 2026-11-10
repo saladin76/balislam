@@ -91,7 +91,7 @@ export const ImageField: React.FC<{
           <option value="">من مكتبة صور القناة ({lib.length})…</option>
           {lib.map((f) => {
             const slot = librarySlot(channel, f.replace(/\.[^.]+$/, ""));
-            return <option key={f} value={f}>{slot ? `${slot.group} · ${slot.titleAr}` : f}</option>;
+            return <option key={f} value={f}>{slot ? `${slot.group} — ${slot.titleAr}` : f}</option>;
           })}
         </select>
       ) : null}

@@ -65,7 +65,8 @@ describe("الخطوة ٢: قرار المشهد الحالي (funnel v3: «اع
   it("«الحركة غير مناسبة» تفتح «ما المشكلة؟» بلحظتها، والملاحظة تبدأ بـ «[الحركة @…]»", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} problem={{ kind: "motion", at: 12.6 }} />);
     expect(html).toContain("ما المشكلة؟");
-    expect(html).toContain("0:12");
+    // The moment is shown in the owner's digits; the stored note keeps «@0:12» for the notes inbox
+    expect(html.replace(/<[^>]+>/g, "")).toContain("٠:١٢");
     expect(problemNote("motion", 12.6, " العنصر يقفز ")).toBe("[الحركة @0:12] العنصر يقفز");
     expect(problemNote("tone", 75, "هادئة")).toBe("[النبرة @1:15] هادئة");
     expect(fmtTime(0)).toBe("0:00");

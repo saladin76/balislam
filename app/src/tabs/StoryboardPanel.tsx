@@ -273,8 +273,8 @@ export const StoryboardPanel: React.FC<{
       <header className="s12-board-head">
         <Hint>راجع كل لوحة: صورتها ونص تعليقها.</Hint>
         <span className="s12-num" title={lengthSource(length)}>
-          {ar(sceneCount)} مشهدًا · {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
-          {st && st.approved ? <span className="s12-soft"> · معتمد {ar(st.approved)}</span> : null}
+          {ar(sceneCount)} مشهدًا — {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
+          {st && st.approved ? <span className="s12-soft"> — معتمد {ar(st.approved)}</span> : null}
         </span>
         {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
       </header>
@@ -312,7 +312,7 @@ export const StoryboardPanel: React.FC<{
                           <details className="sb-motion-after-voice" onClick={(e) => e.stopPropagation()}>
                             <summary>تقرير الحركة الفني (مرحلة لاحقة)</summary>
                             <p className={`sb-motion${m.stale ? " stale" : ""}`}>
-                              {m.stale ? "تغيّر بعد القياس" : `${ar(m.pct)}٪ حركة · أطول سكون ${ar(m.still)} ث`}
+                              {m.stale ? "تغيّر بعد القياس" : `${ar(m.pct)}٪ حركة — أطول سكون ${ar(m.still)} ث`}
                             </p>
                             {!m.stale && m.logic ? (
                               <div className="sb-logic">
@@ -372,7 +372,7 @@ export const StoryboardPanel: React.FC<{
         <section className="s12-tool sb-quran-text-source" aria-label="نصوص الآيات">
           <h3 className="s12-h">نصوص الآيات</h3>
           <p className="s12-soft">تُكتب الآية داخل السكريبت: [آية: النجم 39 | النص بالتشكيل]. المقارنة تعرض الفروق ولا تعدّل النص ولا تعتمد شيئًا.</p>
-          {quranStatus && <p role="status">موجودة محليًا: {ar(quranStatus.existing.length)} · ناقصة: {ar(quranStatus.missing.length)} · غير صالحة: {ar(quranStatus.invalid.length)}</p>}
+          {quranStatus && <p role="status">موجودة محليًا: {ar(quranStatus.existing.length)} — ناقصة: {ar(quranStatus.missing.length)} — غير صالحة: {ar(quranStatus.invalid.length)}</p>}
           {!!quranStatus?.missing.length && <p className="s12-soft">الناقص: {quranStatus.missing.map(verseRef).join("، ")}</p>}
           {!!quranStatus?.invalid.length && <p className="s12-soft">مراجع تحتاج تصحيحًا من المصدر: {quranStatus.invalid.map((x) => verseRef(x.ref) + " (" + x.reason + ")").join("، ")}</p>}
           {quranMessage && <p role="status">{quranMessage}</p>}
@@ -398,12 +398,12 @@ export const StoryboardPanel: React.FC<{
 
         <section className="s12-tool" aria-label="فحص الحركة الفني">
           <h3 className="s12-h">فحص الحركة (اختياري، لمرحلة الفيديو)</h3>
-          {motion ? <p className="s12-soft">آخر قياس: {ar(motion.percent)}٪{staleCount ? ` · ${ar(staleCount)} مشهدًا تغيّر بعده` : ""}</p> : null}
+          {motion ? <p className="s12-soft">آخر قياس: {ar(motion.percent)}٪{staleCount ? ` — ${ar(staleCount)} مشهدًا تغيّر بعده` : ""}</p> : null}
           {motion ? (
             <details className="sb-technical-metrics">
               <summary>نتائج الفحص</summary>
               {stills.length > 0 && <p>مشاهد لها سكون أكثر من ثانيتين: {stills.map((id) => sceneName(order, id)).join("، ")}</p>}
-              <p>تحذيرات منطق الحركة: {ar(logicNeedsReview.length)} · غير قابلة للتقييم آليًا: {ar(logicNotAssessable.length)}</p>
+              <p>تحذيرات منطق الحركة: {ar(logicNeedsReview.length)} — غير قابلة للتقييم آليًا: {ar(logicNotAssessable.length)}</p>
               {info?.motionAuditNeedsReview ? <p>تقرير الحركة فيه ملاحظات تُراجع أثناء إنتاج الفيديو، وليست رفضًا للوحات.</p> : null}
             </details>
           ) : null}
@@ -438,7 +438,7 @@ const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
             <a href={api.reviewUrl(episodeId, f.name)} target="_blank" rel="noreferrer">
               <b>{f.title}</b>
             </a>
-            <span className="help"> · {new Date(f.mtime).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}</span>
+            <span className="help"> — {new Date(f.mtime).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}</span>
             {f.note ? <div className="help">{f.note}</div> : null}
           </li>
         ))}
@@ -469,7 +469,7 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
                 </div>}
             <figcaption>
               <b>{f.title}</b>
-              <span className="help">رفع رقم {ar(f.version)}{f.updatedAt ? ` · ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
+              <span className="help">رفع رقم {ar(f.version)}{f.updatedAt ? ` — ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
               {f.note ? <span className="help">{f.note}</span> : null}
             </figcaption>
           </figure>

@@ -92,7 +92,7 @@ export const PrepareAll: React.FC<{
 
   return (
     <div className={`prep${className ? ` ${className}` : ""}`} role="group" aria-label="تجهيز المشاهد">
-      {prepared ? <span className="prep-count" role="status">جاهز {ar(prepared.ready)} من {ar(prepared.total)}{running ? ` · ${label}` : ""}</span> : null}
+      {prepared ? <span className="prep-count" role="status">جاهز {ar(prepared.ready)} من {ar(prepared.total)}{running ? ` — ${label}` : ""}</span> : null}
       {running ? (
         <button type="button" className="btn ghost" disabled={job?.stopRequested} onClick={() => void stop()}
           title="يُكمل المشهد الجاري ويحفظه، ولا يبدأ غيره؛ والمسودات الجاهزة باقية">

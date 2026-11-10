@@ -32,7 +32,7 @@ export const ElementPicker: React.FC<{
       <div className="modal" role="dialog" aria-label="اختيار عنصر">
         <div className="modal-head">
           <h3>{kind === "backdrop" ? "اختر خلفية" : "اختر عنصرًا"}</h3>
-          <span className="help">{items.length} من المكتبة · بألوان «{t.nameAr}»</span>
+          <span className="help">{items.length} من المكتبة — بألوان «{t.nameAr}»</span>
           <div className="spacer" />
           <input id="picker-search" type="text" placeholder="ابحث: قلب، هاتف، coin…" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 260 }} autoFocus />
           <button className="btn" onClick={onClose}>إغلاق</button>

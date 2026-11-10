@@ -6,6 +6,8 @@ import { resolveDescription, type PublishKit } from "../../../src/package/social
 import { Hint, More, Stage } from "../shell/Screen";
 import "../shell/screens-s45.css";
 import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
+import { arDigits, duration, num } from "../ui/format";
+import { FramePlayer } from "../workspace/SceneProductionPanel";
 
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
@@ -57,7 +59,7 @@ export const publishCardState = (
   };
 };
 
-const sizeLabel = (n: number) => (n > 1e6 ? `${(n / 1e6).toFixed(1)} م.ب` : `${Math.ceil(n / 1e3)} ك.ب`);
+const sizeLabel = (n: number) => (n > 1e6 ? `${num(n / 1e6, 1)} م.ب` : `${num(Math.ceil(n / 1e3))} ك.ب`);
 
 /** يقرأ youtube.md إلى أجزاء يسهل نسخها. */
 const parseYoutube = (md: string) => {
@@ -111,11 +113,8 @@ export const decisionHasPrimary = (p: SceneProductionRead | null): boolean => {
   return !p.master.publishAllowed;
 };
 
-const clock = (sec: number) => {
-  const s = Math.round(sec);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
-  return `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${String(r).padStart(2, "0")}`;
-};
+/** One clock for every time on the owner's screens (ui/format.ts): Arabic-Indic digits. */
+const clock = (sec: number) => duration(sec);
 
 export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; onChanged: () => void }> = ({ episodeId, hasVoiceKeys, onChanged }) => {
   const [pkg, setPkg] = useState<PackageInfo | null>(null);
@@ -262,12 +261,12 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
         ) : (
           <div className="s45-master">
             <div className="s45-screen">
-              <video key={`${video.name}-${video.mtime}`} src={fresh(api.packageUrl(episodeId, video.name), video.mtime)} controls preload="metadata"
-                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || null)} aria-label="ملف الحلقة" />
+              <FramePlayer key={`${video.name}-${video.mtime}`} src={fresh(api.packageUrl(episodeId, video.name), video.mtime)} label="ملف الحلقة"
+                onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || null)} />
             </div>
             <div className="s45-side">
               <dl className="s45-facts">
-                <div><dt>الجودة</dt><dd>{render ? `${render.label} · ${render.width}×${render.height}${render.voiced ? "" : " · بلا صوت"}` : "غير معروفة"}</dd></div>
+                <div><dt>الجودة</dt><dd>{render ? `${render.label} — ${arDigits(`${render.width}×${render.height}`)}${render.voiced ? "" : " — بلا صوت"}` : "غير معروفة"}</dd></div>
                 <div><dt>المدة</dt><dd>{duration ? clock(duration) : "—"}</dd></div>
                 <div><dt>الحجم</dt><dd>{sizeLabel(video.size)}</dd></div>
                 <div><dt>إذن النشر</dt><dd>{card.permission}</dd></div>
@@ -312,8 +311,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             {isMaster && !approved ? <p className="s45-note">اعتماد النسخة النهائية يكون لهذا الملف بعينه في الخطوة ٣؛ أي ملف جديد يحتاج اعتمادًا جديدًا.</p> : null}
           </More>
 
-          <More label={`الشورتس والريلز${shorts.length ? ` · ${shorts.length}` : ""}`}>
-            <p className="s45-note">{shorts.length ? `${shorts.length} · 9:16 بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية."}</p>
+          <More label={`الشورتس والريلز${shorts.length ? ` — ${num(shorts.length)}` : ""}`}>
+            <p className="s45-note">{shorts.length ? `${num(shorts.length)} — ${arDigits("9:16")} بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية."}</p>
             {approved ? (
               <div className="s45-actions">
                 <button type="button" className="btn" disabled={running} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (فصل لكل مقطع)"}</button>
@@ -331,12 +330,12 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             ) : null}
           </More>
 
-          <More label={`الصور المصغّرة${thumbs.length ? ` · ${thumbs.length}` : ""}`}>
+          <More label={`الصور المصغّرة${thumbs.length ? ` — ${num(thumbs.length)}` : ""}`}>
             {thumbs.length ? (
               <div className="s45-thumbs">
                 {thumbs.map((t, i) => (
                   <figure key={t.name}>
-                    <img src={fresh(api.packageUrl(episodeId, t.name), t.mtime)} alt={`الصورة المصغّرة ${i + 1}`} loading="lazy" />
+                    <img src={fresh(api.packageUrl(episodeId, t.name), t.mtime)} alt={`الصورة المصغّرة ${num(i + 1)}`} loading="lazy" />
                     <figcaption>
                       <span>{yt.titles[i] ?? t.name}</span>
                       <a className="btn ghost small" href={api.packageUrl(episodeId, t.name, true)}>تنزيل</a>
@@ -357,7 +356,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                 <h3>العنوان</h3>
                 {yt.titles.map((t, i) => (
                   <div key={i} className="s45-copy-row">
-                    <span>{t}{i ? <small className="s45-note"> · بديل</small> : null}</span>
+                    <span>{t}{i ? <small className="s45-note"> — بديل</small> : null}</span>
                     <Copy text={t} />
                   </div>
                 ))}
@@ -386,7 +385,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             </More>
           ) : null}
 
-          <More label={`قائمة النشر · ${doneCount} من ${CHECKLIST.length}`}>
+          <More label={`قائمة النشر — ${num(doneCount)} من ${num(CHECKLIST.length)}`}>
             {groups.map((g) => (
               <fieldset key={g} className="s45-checks">
                 <legend>{g}</legend>
@@ -416,7 +415,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
           </More>
 
           {files.length ? (
-            <More label={`كل الملفات · ${files.length}`}>
+            <More label={`كل الملفات — ${num(files.length)}`}>
               <ul className="s45-files">
                 {files.map((f) => (
                   <li key={f.name}>

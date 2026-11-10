@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { api, type Overview } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
-import { Num, arDigits, duration, lengthSource, num } from "../ui/format";
+import { Num, arDigits, duration, episodeTitle, latinDigits, lengthSource, num } from "../ui/format";
 import { Icon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
 
@@ -14,7 +14,7 @@ type Stage = { key: string; label: string; state: StageState; note: string };
 export const stagesOf = (e: Overview): Stage[] => {
   const stale = e.package.video && e.planUpdatedAt && e.package.updatedAt && e.planUpdatedAt > e.package.updatedAt;
   return [
-    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح · ${duration(e.length.seconds)}` : "صالح") : `${num(e.check.errors)} خطأ` },
+    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح — ${duration(e.length.seconds)}` : "صالح") : `${num(e.check.errors)} خطأ` },
     { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${num(e.blocking)} يمنع النسخة النهائية` : `${num(e.scenes)} مشهدًا` },
     {
       key: "voice",
@@ -28,6 +28,9 @@ export const stagesOf = (e: Overview): Stage[] => {
 };
 
 /** الخطوات الأربع لكل حلقة من سجل الإنتاج: أين وصلت، وما الخطوة التالية، وأين تُفتح. */
+/** The delete confirmation: the episode's number typed in either digit system («001» or «٠٠١»). */
+export const confirmsEpisode = (typed: string, id: string): boolean => latinDigits(typed.trim()) === id;
+
 export type HomeStep = { n: string; title: string; done: boolean; tab: HomeStepTab };
 type HomeStepTab = "script" | "storyboard" | "episode" | "review" | "publish";
 export const fourSteps = (e: Overview): HomeStep[] => {
@@ -94,9 +97,9 @@ export const HomeTab: React.FC<{
   const deleteDialog = del ? (
     <Dialog labelledBy="del-title" onClose={() => { if (!del.busy) setDel(null); }}>
         <div className="modal-head"><h3 id="del-title">حذف الحلقة {arDigits(del.id)} نهائيًا</h3></div>
-        <p>«{del.title}»</p>
+        <p>«{episodeTitle(del.title)}»</p>
         <p className="help">تُحذف نهائيًا ولا يمكن استرجاعها: السكريبت والتشكيل والمشاهد والصوت والفيديو والصور المصغّرة، من جهازك ومن أرشيف البداية النظيفة ومن GitHub.</p>
-        <label className="field"><span>اكتب رقم الحلقة ({del.id}) للتأكيد</span><input id="del-confirm" type="text" dir="ltr" value={del.typed} onChange={(ev) => setDel({ ...del, typed: ev.target.value.trim() })} autoFocus /></label>
+        <label className="field"><span>اكتب رقم الحلقة (<Num>{del.id}</Num>) للتأكيد</span><input id="del-confirm" type="text" dir="ltr" inputMode="numeric" placeholder={arDigits(del.id)} value={del.typed} onChange={(ev) => setDel({ ...del, typed: ev.target.value.trim() })} autoFocus /></label>
         {del.msg ? <p className="help" style={{ color: "var(--err)" }}>{del.msg}</p> : null}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-start" }}>
           <button
@@ -104,10 +107,10 @@ export const HomeTab: React.FC<{
             aria-busy={del.busy}
             onClick={async () => {
               if (del.busy) return;
-              if (del.typed !== del.id) { setDel({ ...del, msg: `اكتب رقم الحلقة (${del.id}) في الخانة للتأكيد.` }); document.getElementById("del-confirm")?.focus(); return; }
+              if (!confirmsEpisode(del.typed, del.id)) { setDel({ ...del, msg: `اكتب رقم الحلقة (${arDigits(del.id)}) في الخانة للتأكيد.` }); document.getElementById("del-confirm")?.focus(); return; }
               setDel({ ...del, busy: true, msg: undefined });
               try {
-                const r = await api.deleteEpisode(del.id, del.typed);
+                const r = await api.deleteEpisode(del.id, latinDigits(del.typed.trim()));
                 setItems((xs) => (xs ?? []).filter((x) => x.id !== del.id));
                 setDel(null);
                 onDeleted?.(del.id);
@@ -162,7 +165,7 @@ export const HomeTab: React.FC<{
                     <div className="ledger-main">
                       <button type="button" className="ledger-open" onClick={() => onOpen(e.id, next.tab)}>
                         <span className="ledger-k">الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}</span>
-                        <span className="ledger-title"><b>{e.title || e.dir}</b></span>
+                        <span className="ledger-title"><b>{episodeTitle(e.title) || e.dir}</b></span>
                       </button>
                       <div className="ledger-pg">
                         <ol className="ledger-steps" aria-label={`الخطوة ${Math.min(at + 1, steps.length)} من ${steps.length}`}>
@@ -176,7 +179,7 @@ export const HomeTab: React.FC<{
                       </div>
                     </div>
                     <span className="ledger-len" title={e.length ? lengthSource(e.length) : undefined}>
-                      {e.length ? <><b><Num>{duration(e.length.seconds)}</Num></b>{e.length.source === "voice" ? "مقيسة" : "مدة الخطة"}</> : null}
+                      {e.length ? <><b><Num className="clk">{duration(e.length.seconds)}</Num></b>{e.length.source === "voice" ? "مقيسة" : "مدة الخطة"}</> : null}
                     </span>
                     <RowMenu label={`خيارات الحلقة ${arDigits(e.id)}`} items={[{ label: "حذف الحلقة…", danger: true, onSelect: () => setDel({ id: e.id, title: e.title || e.dir, typed: "" }) }]} />
                   </li>

@@ -247,11 +247,11 @@ export const EpisodeTab: React.FC<{
             ستوري بورد
           </button>
           <span className="spacer" />
-          <span className="help" style={{ fontVariantNumeric: "tabular-nums" }} title={lengthSource(length)}>{num(allScenes.length)} مشهدًا · {duration(length.seconds)}</span>
+          <span className="help" style={{ fontVariantNumeric: "tabular-nums" }} title={lengthSource(length)}>{num(allScenes.length)} مشهدًا — {duration(length.seconds)}</span>
         </div>
         {plan.chapters.map((ch) => (
           <div key={ch.number}>
-            <div className="chapter-h">الفصل {num(ch.number)} · {ch.title}</div>
+            <div className="chapter-h">الفصل {num(ch.number)} — {ch.title}</div>
             {ch.scenes.map((s) => {
               const d = templateById(s.template);
               return (
@@ -420,7 +420,7 @@ export const EpisodeTab: React.FC<{
           })()}
 
           <details className="ew-advanced-settings">
-            <summary>إعدادات متقدمة · عناصر الشاشة والمؤثرات الصوتية</summary>
+            <summary>إعدادات متقدمة — عناصر الشاشة والمؤثرات الصوتية</summary>
             <div className="ew-advanced-body">
           <div className="section-t">عناصر الشاشة في هذا المشهد</div>
           <OverlayToggles
@@ -489,7 +489,7 @@ export const EpisodeTab: React.FC<{
             <option value="">+ أضف مؤثرًا…</option>
             {Object.entries(sfxCategoryNamesAr).map(([cat, name]) => (
               <optgroup key={cat} label={name}>
-                {sfxLibrary.filter((s) => s.category === cat).map((s) => <option key={s.id} value={s.id}>{s.nameAr} · {s.useAr}</option>)}
+                {sfxLibrary.filter((s) => s.category === cat).map((s) => <option key={s.id} value={s.id}>{s.nameAr} — {s.useAr}</option>)}
               </optgroup>
             ))}
           </select>
@@ -569,7 +569,7 @@ const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId
       {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
       {mine.map((j) => (
         <div key={j.id} className="job">
-          <span style={{ minWidth: 150 }}>{j.chapter ? `الفصل ${j.chapter} · عمودي` : `الحلقة · ${j.orientation === "portrait" ? "عمودي" : "أفقي"}`}</span>
+          <span style={{ minWidth: 150 }}>{j.chapter ? `الفصل ${j.chapter} — عمودي` : `الحلقة — ${j.orientation === "portrait" ? "عمودي" : "أفقي"}`}</span>
           <span className="bar"><i style={{ width: `${j.status === "done" ? 100 : j.pct}%`, background: j.status === "error" ? "var(--err)" : undefined }} /></span>
           <span style={{ minWidth: 90, fontVariantNumeric: "tabular-nums" }}>
             {j.status === "running" ? (j.queued ? "في الطابور" : `${j.pct}%`) : j.status === "done" ? "جاهز" : j.error ?? "فشل"}
@@ -688,7 +688,7 @@ const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
       <span style={{ color, fontWeight: 600 }}>
         {!t.file
           ? "التشكيل: لا توجد نسخة مشكولة (tashkeel.md) لهذه الحلقة؛ التوليد متوقف حتى تُضاف."
-          : `التشكيل: ${pct}% (${t.covered} من ${t.words} كلمة) · الحد ${Math.round(t.min * 100)}% ${t.ok ? "✓" : "· التوليد متوقف حتى يكتمل"}`}
+          : `التشكيل: ${pct}% (${t.covered} من ${t.words} كلمة) — الحد ${Math.round(t.min * 100)}% ${t.ok ? "✓" : "— التوليد متوقف حتى يكتمل"}`}
       </span>
       {t.gaps.length ? (
         <details open={!t.ok}>

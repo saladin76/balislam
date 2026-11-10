@@ -47,7 +47,7 @@ export const Band: React.FC<Props> = (p) => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); gear.current?.focus(); } };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", esc);
-    box.current?.querySelector<HTMLButtonElement>("[role=menuitem]")?.focus();
+    [...(box.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem], [role=menuitemradio]") ?? [])].find((x) => x.offsetParent !== null)?.focus();
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
   }, [open]);
   const waiting = p.steps ? p.steps.done.findIndex((d) => !d) : -1;
@@ -99,6 +99,18 @@ export const Band: React.FC<Props> = (p) => {
         </button>
         {open ? (
           <div className="ms-menu" role="menu" aria-label="إدارة الاستوديو">
+            {/* On a phone the band has no room for the switcher: the channels head this menu instead (shell.css) */}
+            {p.channels.length > 1 ? (
+              <div className="ms-menu-chs" role="group" aria-label="القناة">
+                <h2>القناة</h2>
+                {p.channels.map((c) => (
+                  <button key={c.id} role="menuitemradio" type="button" data-channel={c.id} aria-checked={c.id === p.channelId}
+                    onClick={() => { setOpen(false); if (c.id !== p.channelId) p.onChannel(c.id); }}>
+                    <span><i className="ms-menu-ch" aria-hidden="true">{c.name.trim().charAt(0)}</i>{c.name}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <h2>إدارة الاستوديو</h2>
             {p.manage.map((m) => (
               <button key={m.id} role="menuitem" type="button" aria-current={p.active === m.id ? "page" : undefined}

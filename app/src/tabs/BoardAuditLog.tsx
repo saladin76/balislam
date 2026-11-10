@@ -25,7 +25,7 @@ export const BoardAuditLog: React.FC<{
 }> = ({ st, channelId, episodeId, note, onNote, reviewed, onReviewed, busy, onAct, error }) => (
   <section className="s12-tool sb-visual-approval" aria-label="مراجعة Storyboard المرئي">
     <h3 className="s12-h">سجل مراجعة اللوحات</h3>
-    {st ? <p className="s12-soft">معتمد {ar(st.approved)} من {ar(st.total)}{st.changed.length ? ` · تغيّر بعد الاعتماد: ${st.changed.join("، ")}` : ""}</p> : null}
+    {st ? <p className="s12-soft">معتمد {ar(st.approved)} من {ar(st.total)}{st.changed.length ? ` — تغيّر بعد الاعتماد: ${st.changed.join("، ")}` : ""}</p> : null}
     {st?.audit?.note ? <p className="s12-soft">ملاحظة اعتماد المراجع: {st.audit.note}</p> : null}
     {channelId === "zubdat-alkutub" && episodeId === "001" ? (
       <p><a href="https://drive.google.com/file/d/1MTtTbSufZN2N0OFueEAjsOlLiaBSglMd/view" target="_blank" rel="noreferrer">فتح PDF المرئي V021 — 31 مشهدًا (PENDING_REVIEW، ليس اعتمادًا)</a></p>

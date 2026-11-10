@@ -43,7 +43,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
           {/* ستوري بورد المختبرات (صور) لبالإسلام وحدها؛ القنوات الأخرى كما هي */}
           <LabStoryboards channel={channel} dir={l.dir} />
 
-          <h4>{labStoryboardsEnabled(channel) ? "المعاينات · فيديو" : "المعاينات"}</h4>
+          <h4>{labStoryboardsEnabled(channel) ? "المعاينات — فيديو" : "المعاينات"}</h4>
           {l.previews.length ? (
             <div className="sb-previews-grid">
               {l.previews.map((f) => (
@@ -51,7 +51,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
                   <video src={api.labPreviewUrl(channel, l.dir, f.name)} controls preload="metadata" playsInline />
                   <figcaption>
                     <b>{f.title}</b> <Badge s={f.status} />
-                    <span className="help">رفع رقم {num(f.version)} · {date(f.updatedAt)}</span>
+                    <span className="help">رفع رقم {num(f.version)} — {date(f.updatedAt)}</span>
                     {f.note ? <span className="help">{f.note}</span> : null}
                   </figcaption>
                 </figure>
@@ -69,7 +69,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
                 <tr key={t.name}>
                   <td>{t.name}{t.note ? <div className="help">{t.note}</div> : null}</td>
                   <td><Badge s={t.status} /></td>
-                  <td>{t.promotedTo ? <span>انتقلت · <code dir="ltr">{t.promotedTo}</code></span> : <span className="muted">لا</span>}</td>
+                  <td>{t.promotedTo ? <span>انتقلت — <code dir="ltr">{t.promotedTo}</code></span> : <span className="muted">لا</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -88,7 +88,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
           <h4>القرارات</h4>
           <ul>
             {l.decisions.map((d, i) => (
-              <li key={i}><Badge s={d.status} /> <b>{d.by}</b> · {date(d.at)} — {d.decision}</li>
+              <li key={i}><Badge s={d.status} /> <b>{d.by}</b> — {date(d.at)} — {d.decision}</li>
             ))}
           </ul>
 

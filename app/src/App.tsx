@@ -7,7 +7,7 @@ import { Band, type ManageItem } from "./shell/Band";
 import { EpisodeSpine, STEPS, stepOf, stepsDone, type StepTab } from "./shell/EpisodeSpine";
 import { useColorScheme } from "./ui/colorScheme";
 import { episodeLength } from "../../src/plan/episodeLength";
-import { duration, num } from "./ui/format";
+import { duration, episodeTitle, num } from "./ui/format";
 import config from "../../config.json";
 import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedStep";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -363,7 +363,7 @@ export const App: React.FC = () => {
   ] : [];
   const stepSub = here === 0 ? (done[0] ? "معتمد" : "ينتظرك") : here === 1 && w ? `${w.progress.approvedScenes} من ${w.progress.totalScenes}`
     : here === 2 && done[0] ? views.find((v) => v.current)?.label : here === 3 && done[3] ? "مأذون" : undefined;
-  const epTitle = episodes?.find((e) => e.id === epId)?.title || plan?.title || "";
+  const epTitle = episodeTitle(episodes?.find((e) => e.id === epId)?.title || plan?.title || "");
   const channelName = channels.find((c) => c.id === cid)?.name ?? channel.name;
 
   return (

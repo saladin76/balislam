@@ -112,7 +112,7 @@ export const SetsGallery: React.FC<{ allowed: string[] }> = ({ allowed }) => (
               <b>{s.nameAr}</b>
               <span className="chip">{s.mood === "night" ? "ليلي" : "نهاري"}</span>
             </div>
-            <span className="help">{s.tags.join(" · ")}</span>
+            <span className="help">{s.tags.join("، ")}</span>
             <code className="help" style={{ direction: "ltr" }}>[مشهد: set-scene | set={s.id}]</code>
           </div>
         </article>

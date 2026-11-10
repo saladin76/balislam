@@ -193,8 +193,10 @@
 .shell-v3 .ms-tl-sm.is-on::before { content: ""; position: absolute; left: 50%; top: -12px; bottom: -12px; width: 2px; background: var(--ink); transform: translateX(-50%); }
 .shell-v3 .ms-tl-sm button:focus-visible i { outline: 2px solid var(--ink); outline-offset: 2px; }
 .shell-v3 .ms-ruler { position: relative; height: 18px; margin-top: 8px; font-size: var(--t-12); color: var(--mute); }
-.shell-v3 .ms-ruler span { position: absolute; transform: translateX(50%); }
+.shell-v3 .ms-ruler > span { position: absolute; transform: translateX(50%); white-space: nowrap; direction: ltr; unicode-bidi: isolate; }
 .shell-v3 .ms-full video { width: 100%; max-width: 860px; aspect-ratio: 16 / 9; background: #111; border-radius: var(--r-lg); }
+.shell-v3 .ms-full .s3-frame { max-width: 860px; }
+.shell-v3 .ms-full .s3-frame video { max-width: none; border-radius: 0; }
 .shell-v3 .ms-full .scene-first-seams { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
 .shell-v3 .ms-full .scene-first-seams legend { font-weight: 500; margin-bottom: 6px; }
 .shell-v3 .sp-seam { display: flex; align-items: center; gap: 10px; font-size: var(--t-14); }

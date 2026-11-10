@@ -4,7 +4,14 @@
  * the whole episode as a filmstrip above the floating dark dock. Colours are tokens (shell/shell.css); this file
  * has no channel rule at all (the approval screen is one for the three channels, D39).
  */
-.shell-v3 .stage.s3 { display: block; max-width: none; padding: 4px 0 260px; }
+/* The fixed layers over the bottom of the paper: the dock (room from .studio-main::after) and the filmstrip above it.
+   --reel-room is how far the filmstrip reaches above the dock's room; the cards that float above the dock start above
+   the filmstrip, and the column ends above both, so the last sentence is never under a fixed layer. */
+.shell-v3 .stage.s3 { --reel-room: 0px; --float-room: 0px; display: block; max-width: none; padding: 4px 0 calc(var(--reel-room) + var(--float-room) + 28px); }
+.shell-v3 .stage.s3:has(> .s3-reel) { --reel-room: 96px; }
+.shell-v3 .stage.s3:has(> .s3-reel.is-folded) { --reel-room: 22px; }
+.shell-v3 .stage.s3:has(> .ms-dock > .ms-float, > .ms-dock > .s3-why) { --float-room: 150px; }
+.shell-v3 .stage.s3 > .s3-act.ms-dock > .ms-dock-in { margin-top: calc(var(--reel-room) + 12px); }
 .shell-v3 .s3-col { width: min(736px, calc(100% - 64px)); margin: 0 auto; position: relative; display: grid; gap: 14px; min-width: 0; }
 .shell-v3 .s3-note { inset-inline-end: -262px; top: 54px; }
 @media (max-width: 1320px) { .shell-v3 .s3-note { position: relative; inset: auto; transform: none; width: auto; order: 9; margin-top: 8px; } }
@@ -15,9 +22,10 @@
 .shell-v3 .s3-title h2 { margin: 0; font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-32); line-height: 1; padding-top: var(--t-shift); white-space: nowrap; }
 .shell-v3 .s3-of { font-family: var(--f); font-weight: 400; font-size: var(--t-14); color: var(--mute); margin-inline-start: 4px; }
 .shell-v3 .s3-sub { color: var(--ink-2); font-size: var(--t-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.shell-v3 .s3-sub::before { content: "·"; margin-inline-end: 10px; color: var(--mute); }
+.shell-v3 .s3-sub::before { content: ""; display: inline-block; width: 1px; height: .9em; vertical-align: -0.1em; background: var(--line-strong); margin-inline-end: 10px; }
 .shell-v3 .s3-meta { margin-inline-start: auto; display: flex; align-items: center; gap: 14px; color: var(--mute); font-size: var(--t-12); }
-.shell-v3 .s3-state { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: var(--t-12); }
+.shell-v3 .s3-state { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: var(--t-12); white-space: nowrap; }
+.shell-v3 .s3-len { white-space: nowrap; }
 .shell-v3 .s3-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
 .shell-v3 .s3-state.is-now::before { background: var(--acc); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
 .shell-v3 .s3-state.is-done::before { background: var(--ok); }
@@ -28,13 +36,20 @@
 
 
 /* the frame on the channel's paper */
-.shell-v3 .s3-media { min-width: 0; }
+/* The frame never takes the whole height of a short screen (1024×768): the sentences stay in view under it */
+.shell-v3 .s3-media { min-width: 0; width: min(100%, max(380px, calc((100dvh - 430px) * 16 / 9))); justify-self: center; }
 .shell-v3 .s3-frame { position: relative; border-radius: var(--r-xl); overflow: hidden; background: #000; aspect-ratio: 16 / 9; box-shadow: 0 0 0 1px #16181d0d, 0 26px 50px -30px #16181d66; }
 .shell-v3 .s3-frame video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; cursor: pointer; }
 .shell-v3 .s3-play { position: absolute; inset: auto auto 14px 14px; display: flex; align-items: center; gap: 10px; background: #16181dd9; color: #fff; border-radius: 999px; padding: 4px 14px 4px 4px; font-size: var(--t-12); }
 .shell-v3 .s3-play button { all: unset; cursor: pointer; width: 30px; height: 30px; border-radius: 50%; background: #fff; color: #16181D; display: grid; place-items: center; }
 .shell-v3 .s3-play button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .shell-v3 .s3-play svg { width: 13px; height: 13px; }
+.shell-v3 .s3-tools { position: absolute; inset: auto 14px 14px auto; display: flex; gap: 6px; opacity: 0; transition: opacity .15s ease; }
+.shell-v3 .s3-frame:hover .s3-tools, .shell-v3 .s3-frame:focus-within .s3-tools, .shell-v3 .s3-frame:fullscreen .s3-tools { opacity: 1; }
+.shell-v3 .s3-tools button { all: unset; cursor: pointer; height: 30px; padding: 0 12px; border-radius: 999px; background: #16181dd9; color: #fff; font-size: var(--t-12); display: inline-flex; align-items: center; }
+.shell-v3 .s3-tools button[aria-pressed="true"] { background: #fff; color: #16181D; }
+.shell-v3 .s3-tools button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.shell-v3 .s3-frame:fullscreen { border-radius: 0; aspect-ratio: auto; }
 .shell-v3 .s3-prog { position: absolute; inset: auto 0 0 0; width: 100%; height: 4px; margin: 0; -webkit-appearance: none; appearance: none; cursor: pointer;
   background: linear-gradient(to right, #16181D var(--p, 0%), #ffffff40 var(--p, 0%)); }
 .shell-v3 .s3-prog::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #16181D; opacity: 0; }
@@ -58,6 +73,11 @@
 .shell-v3 .s3-fixlist b { font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-20); padding-top: var(--t-shift); }
 .shell-v3 .s3-fixlist span { color: var(--ink-2); font-size: var(--t-14); line-height: 1.7; }
 .shell-v3 .s3-fixlist small { color: var(--mute); font-size: var(--t-12); }
+/* «[الحركة @0:04]» drawn as a chip before the note's text */
+.shell-v3 .s3-chip { display: inline-flex; align-items: center; gap: 4px; margin-inline-end: 8px; padding: 1px 8px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-size: var(--t-12); font-weight: 600; white-space: nowrap; vertical-align: 1px; }
+.shell-v3 .s3-fixlist span .s3-chip { color: var(--warn); }
+.shell-v3 .s3-title h2:focus { outline: none; }
+.shell-v3 .s3-title h2:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 6px; }
 .shell-v3 .s3-empty { color: var(--mute); font-size: var(--t-16); line-height: 1.8; margin: 24px 0; }
 
 .shell-v3 .stage.s3 .sp-row.s3-alldone { padding: 16px 18px; background: var(--sf); border-radius: var(--r-lg); box-shadow: var(--shadow-card); }
@@ -65,7 +85,7 @@
 .shell-v3 .s3-gate p { margin: 0; font-size: var(--t-16); line-height: 1.8; }
 
 /* ── the filmstrip of the whole episode, fixed above the dock ── */
-.shell-v3 .s3-reel { position: fixed; inset-inline: calc(var(--band-w) + 28px) 28px; bottom: 92px; z-index: 9; padding: 22px 0 6px; background: linear-gradient(transparent, var(--paper) 20px); }
+.shell-v3 .s3-reel { position: fixed; inset-inline: calc(var(--band-w) + 28px) 28px; bottom: 92px; z-index: 9; padding: 22px 0 6px; background: var(--reel-bg, linear-gradient(transparent, var(--paper) 20px)); }
 .shell-v3 .s3-reel-head { display: flex; align-items: center; gap: 10px; font-size: var(--t-12); color: var(--mute); margin-bottom: 5px; }
 .shell-v3 .s3-reel-head b { color: var(--ink); font-weight: 500; }
 .shell-v3 .s3-fold { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); padding: 2px 6px; border-radius: 6px; }
@@ -87,6 +107,9 @@
 }
 .shell-v3 .s3-dot .ms-thumb { position: absolute; inset: 0; direction: ltr; opacity: .45; filter: grayscale(.4); pointer-events: none; }
 .shell-v3 .s3-dot .ms-thumb > div { width: 100%; }
+/* A scene whose board is not drawn yet (far from the one on screen): a quiet sketch of a board, never a blank cell */
+.shell-v3 .s3-dot-ph { position: absolute; inset: 22% 18% 30%; border-radius: 2px; pointer-events: none;
+  background: linear-gradient(var(--line-strong), var(--line-strong)) 0 0 / 70% 2px no-repeat, linear-gradient(var(--line), var(--line)) 0 7px / 100% 2px no-repeat, linear-gradient(var(--line), var(--line)) 0 14px / 55% 2px no-repeat; opacity: .9; }
 .shell-v3 .s3-dot.is-ready .ms-thumb, .shell-v3 .s3-dot.is-done .ms-thumb, .shell-v3 .s3-dot.is-shown .ms-thumb { opacity: 1; filter: none; }
 .shell-v3 .s3-dot.is-ready { background: var(--sf); }
 .shell-v3 .s3-dot.is-done::after { content: ""; position: absolute; top: 4px; inset-inline-start: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 1.5px var(--sf); }
@@ -147,11 +170,12 @@
 .shell-v3 .s3-voice-now audio, .shell-v3 .s3-clip audio { width: 100%; }
 .shell-v3 .s3-clips { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .shell-v3 .s3-clips > li { border-bottom: 1px solid var(--line); }
-.shell-v3 .s3-clip-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 4px; border: 0; background: none; font: inherit; color: var(--ink); text-align: start; cursor: pointer; }
+.shell-v3 .s3-clip-row { width: 100%; display: flex; align-items: baseline; gap: 12px; padding: 11px 4px; border: 0; background: none; font: inherit; color: var(--ink); text-align: start; cursor: pointer; }
 .shell-v3 .s3-clip-row:hover { background: var(--quiet); }
 .shell-v3 .s3-clip-row[aria-expanded="true"] .s3-clip-text { white-space: normal; font-size: var(--t-16); line-height: 1.9; }
 .shell-v3 .s3-clip-n { flex: none; min-width: 26px; font-family: var(--f-num); font-size: var(--t-14); color: var(--mute); text-align: center; }
-.shell-v3 .s3-clip-text { flex: 1; min-width: 0; font-family: var(--f-read); font-size: var(--t-16); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* «متتابعة»: every sentence whole, never cut to one line */
+.shell-v3 .s3-clip-text { flex: 1; min-width: 0; font-family: var(--f-read); font-size: var(--t-16); line-height: 1.9; white-space: normal; overflow-wrap: anywhere; }
 .shell-v3 .s3-clip-st { flex: none; font-size: var(--t-12); color: var(--mute); }
 .shell-v3 .s3-clip-st.ready { color: var(--ok); }
 .shell-v3 .s3-clip-st.stale { color: var(--warn); }
@@ -162,11 +186,16 @@
 
 /* ── Phone: the column fills the width, the strip becomes one thin bar, the dock stays in reach ── */
 @media (max-width: 720px) {
-  .shell-v3 .stage.s3 { padding: 0 0 120px; }
+  .shell-v3 .stage.s3 { padding: 0 0 calc(var(--float-room) + 16px); }
+  .shell-v3 .stage.s3:has(> .s3-reel), .shell-v3 .stage.s3:has(> .s3-reel.is-folded) { --reel-room: 0px; }
   .shell-v3 .s3-col { width: auto; margin: 0 16px; }
   .shell-v3 .s3-head { margin-top: 4px; row-gap: 2px; }
   .shell-v3 .s3-title h2 { font-size: var(--t-24); }
-  .shell-v3 .s3-meta { width: 100%; margin: 0; }
+  /* one tidy status line: state, length, the preparing count, then «تحرير المشهد» at the end; each item on one line */
+  .shell-v3 .s3-meta { width: 100%; margin: 0; flex-wrap: wrap; gap: 6px 14px; }
+  .shell-v3 .s3-meta .prep { flex-wrap: nowrap; white-space: nowrap; }
+  .shell-v3 .s3-meta .s3-edit { margin-inline-start: auto; }
+  .shell-v3 .s3-sub { flex: 1 1 auto; }
   .shell-v3 .s3-frame, .shell-v3 .s3-live { border-radius: var(--r-lg); }
   .shell-v3 .s3-play { inset: 10px auto auto 10px; padding: 3px 11px 3px 3px; }
   .shell-v3 .s3-play button { width: 26px; height: 26px; }

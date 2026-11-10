@@ -1,4 +1,5 @@
 import React from "react";
+import { num } from "../ui/format";
 import type { ChannelConfig } from "../../../src/channel/types";
 import { useTheme } from "../../../brand/identity/index";
 import type { Identity } from "../../../brand/identity/index";
@@ -21,7 +22,7 @@ const ThemeChip: React.FC<{ id: ThemeId; domains: string[] }> = ({ id, domains }
         {[c.primary, c.secondary, c.highlight].map((x, i) => <i key={i} style={{ background: x }} />)}
       </div>
       <b>{t.nameAr}</b>
-      <small style={{ color: c.inkSoft }}>{MOTIF_AR[t.motif] ?? t.motif}{domains.length ? ` · ${domains.join("، ")}` : ""}</small>
+      <small style={{ color: c.inkSoft }}>{MOTIF_AR[t.motif] ?? t.motif}{domains.length ? ` — ${domains.join("، ")}` : ""}</small>
     </div>
   );
 };
@@ -57,7 +58,7 @@ export const ChannelIdentity: React.FC<{ c: ChannelConfig; identity?: Identity }
           {a ? (
             <>
               <b>✓ هوية معتمدة: «{a.nameAr}»</b>
-              <small>{dateAr(a.approvedOn)} · مقفلة: الشعار والافتتاحية والمصغّرة والخطوط والألوان</small>
+              <small>{dateAr(a.approvedOn)} — مقفلة: الشعار والافتتاحية والمصغّرة والخطوط والألوان</small>
             </>
           ) : (
             <>
@@ -84,9 +85,9 @@ export const ChannelIdentity: React.FC<{ c: ChannelConfig; identity?: Identity }
         <div>
           <h4>الخطوط</h4>
           <div className="idc-fonts">
-            <div><span style={{ fontFamily: `'${heading}'`, fontSize: 26 }}>{c.nameDisplay ?? c.name}</span><small>العناوين · {heading}</small></div>
-            <div><span style={{ fontFamily: `'${fonts.body ?? "IBM Plex Sans Arabic"}'`, fontSize: 17 }}>نص الشرح والترجمة على الشاشة</span><small>النص · {fonts.body ?? "IBM Plex Sans Arabic"}</small></div>
-            {c.id === "dafatir-alzaman" ? <div><span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 18 }} dir="ltr">1258 · 1453</span><small>السنوات · IBM Plex Mono</small></div> : null}
+            <div><span style={{ fontFamily: `'${heading}'`, fontSize: 26 }}>{c.nameDisplay ?? c.name}</span><small>العناوين — {heading}</small></div>
+            <div><span style={{ fontFamily: `'${fonts.body ?? "IBM Plex Sans Arabic"}'`, fontSize: 17 }}>نص الشرح والترجمة على الشاشة</span><small>النص — {fonts.body ?? "IBM Plex Sans Arabic"}</small></div>
+            {c.id === "dafatir-alzaman" ? <div><span style={{ fontFamily: "'IBM Plex Mono'", fontSize: 18 }} dir="ltr">1258–1453</span><small>السنوات — IBM Plex Mono</small></div> : null}
           </div>
         </div>
       </div>
@@ -96,11 +97,11 @@ export const ChannelIdentity: React.FC<{ c: ChannelConfig; identity?: Identity }
 
       <h4>مكتبة القناة <small className="help">ما يظهر لها في «المكتبة» ويُسمح به في حلقاتها</small></h4>
       <div className="idc-lib">
-        <span><b>{lib.templates.length}</b> قالبًا</span>
-        <span><b>{lib.sets.length}</b> مكانًا</span>
-        <span><b>{lib.elements.length}</b> عنصرًا</span>
+        <span><b>{num(lib.templates.length)}</b> قالبًا</span>
+        <span><b>{num(lib.sets.length)}</b> مكانًا</span>
+        <span><b>{num(lib.elements.length)}</b> عنصرًا</span>
         <span>{lib.figures ? "شخصيات تاريخية بملامح" : "شخصيات بلا ملامح فقط"}</span>
-        <span>{c.rules.quran ? "آيات" : "بلا آيات"} · {c.rules.hadith ? "أحاديث" : "بلا أحاديث"} · {c.rules.music ? "موسيقى" : "بلا موسيقى"}</span>
+        <span>{c.rules.quran ? "آيات" : "بلا آيات"} — {c.rules.hadith ? "أحاديث" : "بلا أحاديث"} — {c.rules.music ? "موسيقى" : "بلا موسيقى"}</span>
       </div>
     </section>
   );

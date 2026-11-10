@@ -113,7 +113,7 @@ export const SettingsTab: React.FC<{
               <b>الاتصال يعمل ✓</b>
               {el.account ? (
                 <span className="help">
-                  الخطة: {el.account.tier} · المستخدَم {el.account.character_count.toLocaleString("ar-EG")} من {el.account.character_limit.toLocaleString("ar-EG")} حرف
+                  الخطة: {el.account.tier} — المستخدَم {el.account.character_count.toLocaleString("ar-EG")} من {el.account.character_limit.toLocaleString("ar-EG")} حرف
                 </span>
               ) : null}
               <span className="help">{el.voiceFound ? "الصوت المختار موجود في حسابك." : "اختر صوتك من القائمة:"}</span>
@@ -164,7 +164,7 @@ const ModelPicker: React.FC<{ el: NonNullable<Awaited<ReturnType<typeof api.test
           <button key={m.id} className={`voice ${m.id === current ? "on" : ""}`} onClick={() => onPick(m.id)}>
             <b>{m.name}</b>
             <span className="help" dir="ltr">{m.id}</span>
-            <span className="help">{m.arabic ? "يدعم العربية" : "العربية غير مذكورة"}{pro ? ` · ${TRAINING_AR[state(m.id) ?? "not_started"] ?? state(m.id)}` : ""}</span>
+            <span className="help">{m.arabic ? "يدعم العربية" : "العربية غير مذكورة"}{pro ? ` — ${TRAINING_AR[state(m.id) ?? "not_started"] ?? state(m.id)}` : ""}</span>
           </button>
         ))}
       </div>

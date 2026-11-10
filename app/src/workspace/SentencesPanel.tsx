@@ -412,7 +412,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
           ) : <span className="sv-end">نهاية المشهد</span>}
           <details className="sv-menu">
             <summary aria-label="المزيد">⋯</summary>
-            <div className="sv-menu-pop" role="menu">
+            <div className="sv-menu-pop is-up" role="menu">
               <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 const at = wordIndexAt(r.text, carets.current[r.id] ?? Math.floor(r.text.length / 2));
@@ -463,7 +463,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       const v = s.verse;
       return (
         <section key={s.id} className="sv-scene is-verse" aria-label={`المشهد ${ar(s.index)}: آية`}>
-          {!sceneId ? <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>آية · {v.reference}</span></h4> : null}
+          {!sceneId ? <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>آية — {v.reference}</span></h4> : null}
           <ul className="pf-rec-list sv-verse">
             <RecitationItem compact episodeId={episodeId} channelId={channelId} ayahKey={v.ayahKey} scenes={[s.id]} recs={recs}
               onChanged={async () => { await load(); onChanged?.(); }} />
@@ -478,7 +478,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       <section key={s.id} className="sv-scene" aria-label={`جمل المشهد ${ar(s.index)}`}>
         <header className="sv-scene-head">
           {sceneId ? <h3>الجمل <span className="sv-meta">{countAr(s.rows.length)}</span></h3>
-            : <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>الفصل {ar(s.chapter)} · {s.chapterTitle}</span></h4>}
+            : <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>الفصل {ar(s.chapter)} — {s.chapterTitle}</span></h4>}
           <button type="button" className="btn ghost" disabled={!q.length} onClick={() => isPlaying ? stopPlay() : playQueue(`scene:${s.id}`, q)}>
             {isPlaying ? "■ أوقف" : "▶ شغّل المشهد متتابعًا"}
           </button>
@@ -593,7 +593,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
           <button type="button" className="sv-t" aria-pressed={editing === r.id} disabled={anyBusy} onClick={() => { setFixing(null); setEditing(editing === r.id ? null : r.id); }}><Icon name="doc" />عدّل النص</button>
           <details className="sv-menu">
             <summary aria-label="المزيد"><Icon name="more" /></summary>
-            <div className="sv-menu-pop" role="menu">
+            <div className="sv-menu-pop is-up" role="menu">
               <button type="button" role="menuitem" disabled={!q.length} onClick={(e) => { closeMenu(e); if (isPlaying) stopPlay(); else playQueue(`scene:${s.id}`, q); }}>{isPlaying ? "أوقف المشهد" : "شغّل المشهد متتابعًا"}</button>
               <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 closeMenu(e);
@@ -632,7 +632,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const paragraph = variant === "paragraph" && Boolean(sceneId);
   return (
     <div ref={wrap} className={`sv${sceneId ? " is-scene" : " is-episode"}${paragraph ? " is-para" : ""}`} dir="rtl">
-      {!sceneId ? <p className="sv-summary">{ar(voiced)} من {ar(total)} جملة بصوت · {ar(scenes.filter((s) => s.verse).length)} آية</p> : null}
+      {!sceneId ? <p className="sv-summary">{ar(voiced)} من {ar(total)} جملة بصوت — {ar(scenes.filter((s) => s.verse).length)} آية</p> : null}
       {noKey && !paragraph ? (
         <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : " من الإعدادات"}.</p>
       ) : null}
@@ -663,10 +663,29 @@ export const WordFixPopover: React.FC<{
   const w = words[f.index]!;
   const nb = fixNeighbours(words.length, f.index, f.wide);
   const id = `fx-${rowNo}-${f.index}`;
+  const box = useRef<HTMLDivElement | null>(null);
+  const field = useRef<HTMLInputElement | null>(null);
+  const placed = Boolean(pos);
+  // Keyboard (D52): the popover is measured hidden first, so `autoFocus` alone lands nowhere; once it is placed
+  // the focus goes to the field, and the chip that opened it gets it back on close (the panel's onClose/Escape).
+  useEffect(() => { if (placed) field.current?.focus({ preventScroll: true }); }, [placed, f.row, f.index]);
+  const setBox = (el: HTMLDivElement | null) => {
+    box.current = el;
+    if (typeof popRef === "function") popRef(el); else if (popRef) (popRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+  };
+  // aria-modal: Tab and Shift+Tab stay inside the popover
+  const trap = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !box.current) return;
+    const all = [...box.current.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), summary, [tabindex]:not([tabindex='-1'])")].filter((x) => x.offsetParent !== null);
+    if (!all.length) return;
+    const first = all[0]!, last = all[all.length - 1]!;
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
   return (
     <>
       <div className="ms-scrim" aria-hidden="true" onClick={onClose} />
-      <div ref={popRef} className={`ms-pop sv-fix${pos?.sheet ? " is-sheet" : ""}`} role="dialog" aria-modal="true" aria-labelledby={id}
+      <div ref={setBox} className={`ms-pop sv-fix${pos?.sheet ? " is-sheet" : ""}`} role="dialog" aria-modal="true" aria-labelledby={id} onKeyDown={trap}
         style={pos && !pos.sheet ? { top: pos.top, left: pos.left, ["--ax" as string]: `${pos.arrow}px` } : pos ? undefined : { visibility: "hidden" }}>
         <div className="ms-pop-top">
           <strong className="ms-pop-big sv-fix-word" id={id}>{w.word}</strong>
@@ -683,7 +702,7 @@ export const WordFixPopover: React.FC<{
         <label className="ms-pop-fl sv-fix-say">
           <span>اكتبها كما يجب أن تُنطق</span>
           <span className="ms-pop-inp">
-            <input dir="rtl" value={f.say} maxLength={80} autoFocus disabled={Boolean(busy)} onChange={(e) => onDraft({ ...f, say: e.target.value })} />
+            <input ref={field} dir="rtl" value={f.say} maxLength={80} autoFocus disabled={Boolean(busy)} onChange={(e) => onDraft({ ...f, say: e.target.value })} />
             <small>سُمعت «{w.say}»</small>
           </span>
         </label>

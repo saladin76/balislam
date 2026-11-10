@@ -112,7 +112,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
                 set({ language });
               }
             }}>
-              {Object.values(langPacks).map((p) => <option key={p.code} value={p.code}>{p.nameAr} · {p.nativeName}{p.ready ? "" : " (تجهيز)"}</option>)}
+              {Object.values(langPacks).map((p) => <option key={p.code} value={p.code}>{p.nameAr} — {p.nativeName}{p.ready ? "" : " (تجهيز)"}</option>)}
             </select>
           </label>
           <div className="field">

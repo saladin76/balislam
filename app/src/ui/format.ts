@@ -14,6 +14,21 @@ const AR = "٠١٢٣٤٥٦٧٨٩";
 /** «12:05» → «١٢:٠٥»; leaves Arabic-Indic digits and everything else as is. */
 export const arDigits = (s: string | number): string => String(s).replace(/\d/g, (d) => AR[Number(d)]!);
 
+/** «٠٠١» or «۰۰۱» (Persian) → «001»: what the owner types, in either digit system, compared with an id. */
+export const latinDigits = (s: string): string =>
+  String(s).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+
+/**
+ * An episode's title as the owner reads it (zubdat's files carry «01 | كتاب «…» || فصل»): a leading «NN |» is the
+ * number already shown beside it, and «||» / «|» between parts reads « — ». Display only: the files are not edited.
+ */
+export const episodeTitle = (raw: string | null | undefined): string => {
+  let t = String(raw ?? "").trim();
+  t = t.replace(/^[0-9٠-٩]{1,4}\s*[|｜]\s*(?![|｜])/, "");
+  t = t.replace(/\s*[|｜]{1,2}\s*/g, " — ");
+  return arDigits(t.replace(/\s{2,}/g, " ").replace(/^—\s*|\s*—$/g, "").trim());
+};
+
 /** A count or a measure: «١٢»، «١٬٢٠٠»، «٤٫٢» (fraction digits only when asked). */
 export const num = (n: number, fractionDigits = 0): string =>
   Number.isFinite(n)
