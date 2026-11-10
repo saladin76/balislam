@@ -3,9 +3,9 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyMessage, handleExtra, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
+import { busy, busyRefusal, handleExtra, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
-import { readBody } from "./body.ts";
+import { MAX_BODY_BYTES, readBody } from "./body.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
 
@@ -131,6 +131,11 @@ export const balApi = (): Plugin => ({
     void Promise.all([load("/src/studio/notesSync.ts"), load("/src/channel/index.ts")])
       .then(([sync, ch]) => sync.scheduleStudioNotesSync(ch.channelsDir()))
       .catch((e) => console.error("[studio] owner notes retry:", (e as Error).message));
+    // «أصلح الكلمة» انقطع بعد شراء المقطع وقبل تسجيله: يُنقل إلى voice/superseded/sentences (لا يُحذف)
+    void Promise.all([load("/src/voice/fragmentSweep.ts"), load("/src/channel/index.ts")])
+      .then(([sweep, ch]) => sweep.sweepAllOrphanWordFixFragments(ch.channelsDir()))
+      .then((n) => { if (n) console.log(`[studio] ${n} orphaned word-fix fragment(s) moved to voice/superseded/sentences.`); })
+      .catch((e) => console.error("[studio] word-fix fragments:", (e as Error).message));
     server.middlewares.use(async (req, res, next) => {
       // Anti-framing on API responses too (H1); the HTML/assets get it from studioSecurityHeaders().
       applyStudioSecurityHeaders(res);
@@ -216,7 +221,7 @@ export const balApi = (): Plugin => ({
             return;
           }
           if (req.method === "POST") {
-            const b = await readBody(req);
+            const b = await readBody(req, MAX_BODY_BYTES);
             const slot = String(b.slot ?? "").replace(/[^\w-]/g, "");
             const ext = (String(b.name ?? "").match(MEDIA_EXT)?.[0] ?? "").toLowerCase();
             if (!slot || !ext) return send(res, 400, { error: "الملف يجب أن يكون صورة (JPG/PNG/WEBP) أو فيديو (MP4/WEBM/MOV)." });
@@ -371,7 +376,7 @@ export const balApi = (): Plugin => ({
             // Audit item 5: the queue does not re-render a scene whose same inputs just failed.
             const previousFailures = prepareJob(key)?.failed ?? [];
             return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { voiceClient, onProgress, shouldStop, previousFailures })));
+              prepareAllScenes(ep, { voiceClient, onProgress, shouldStop, previousFailures })), busy);
           };
 
           // Step ١ «التجهيز» (funnel v3): ONE owner action writes the script approval, then the board record when
@@ -474,7 +479,7 @@ export const balApi = (): Plugin => ({
               return send(res, 200, { verses, pending: status.pending, approved });
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
-            const body = await readBody(req);
+            const body = await readBody(req, MAX_BODY_BYTES);
             const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
             try {
               assertSceneOwner();
@@ -526,7 +531,7 @@ export const balApi = (): Plugin => ({
           }
           // رفع صورة لوحة وثائقية: {name, data(base64)} ← تُحفظ في images/ باسم آمن وتُرجع اسمها
           if (parts[2] === "images" && req.method === "POST") {
-            const b = await readBody(req);
+            const b = await readBody(req, MAX_BODY_BYTES);
             const { MEDIA_EXT, imagesDirFor } = await load("/src/plan/collect.ts");
             const ext = (String(b.name ?? "").match(MEDIA_EXT)?.[0] ?? "").toLowerCase();
             if (!ext) return send(res, 400, { error: "الملف يجب أن يكون صورة (JPG/PNG/WEBP) أو فيديو (MP4/WEBM/MOV)." });
@@ -623,6 +628,7 @@ export const balApi = (): Plugin => ({
         // فحص نص دون حفظ (أثناء الكتابة)
         if (parts[0] === "check" && req.method === "POST") {
           const { text } = await readBody(req);
+          if (typeof text !== "string") return send(res, 400, { error: "النص المطلوب فحصه يجب أن يكون نصًا." });
           return send(res, 200, await checkText(text));
         }
 
@@ -647,7 +653,7 @@ export const balApi = (): Plugin => ({
           if (req.method === "POST") {
             const b = await readBody(req);
             if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" });
-            if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage });
+            if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyRefusal(`${ch}/${b.episode}`) });
             // عبر طابور الرندر المشترك: يبدأ إن سمحت الذاكرة، وإلا ينتظر دوره، ويُستعاد بعد إعادة التشغيل
             // Final animation may not start before separate storyboard and full-audio approval.
             // Silent storyboard-motion audit has its own route and is intentionally not blocked.
@@ -669,6 +675,9 @@ export const balApi = (): Plugin => ({
         }));
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
+        // Known, owner-facing refusals (QA H4/M3): a busy lock or episode, or a state file being written / damaged.
+        if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY"].includes(String((err as { code?: unknown })?.code)))
+          return send(res, 409, { error: (err as Error).message });
         if (isMissingFileError(err)) return send(res, 404, { error: /^ENOENT\b/.test((err as Error).message) ? "الملف المطلوب غير موجود." : (err as Error).message });
         console.error("[studio] request failed:", url.pathname, err);
         return send(res, 500, { error: (err as Error).message });

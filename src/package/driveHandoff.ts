@@ -14,7 +14,8 @@
  * - لا أثر للأدوات: نص النشر يمر على `assertNoTraces`، وكل فيديو تُفحص بياناته الوصفية (cleanMetadata)،
  *   وكل صورة نصوصها المضمّنة، وكل ترجمة نصها.
  */
-import { createHash, randomUUID } from "node:crypto";
+import { cleanStaleParts, partFileFor } from "../io/partFiles";
+import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, open, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
@@ -219,7 +220,7 @@ const hashFile = (file: string, onBytes?: (n: number) => void) => new Promise<st
  * ثم يتحقق من حجم النسخة وبصمتها قبل إعادة التسمية. لا يبقى ملف مؤقت في أي حال.
  */
 export const copyVerified = async (src: string, dst: string, expectedSha256?: string, onBytes?: (n: number) => void): Promise<string> => {
-  const tmp = path.join(path.dirname(dst), `.${path.basename(dst)}.${randomUUID()}.part`);
+  const tmp = partFileFor(dst);
   try {
     const h = createHash("sha256");
     const tap = new Transform({ transform(chunk, _e, cb) { h.update(chunk); onBytes?.(chunk.length); cb(null, chunk); } });
@@ -240,7 +241,7 @@ export const copyVerified = async (src: string, dst: string, expectedSha256?: st
 };
 
 const writeAtomic = async (dst: string, text: string) => {
-  const tmp = path.join(path.dirname(dst), `.${path.basename(dst)}.${randomUUID()}.part`);
+  const tmp = partFileFor(dst);
   try {
     await writeFile(tmp, text, { flag: "wx", mode: 0o644 });
     await rename(tmp, dst);
@@ -274,6 +275,8 @@ export const deliverToDrive = async (opts: {
 
   const folder = driveTargetDir(root, facts.channel, path.basename(facts.episodeDir));
   await mkdir(folder, { recursive: true });
+  // A crashed earlier copy of THIS machine may have left `.<name>.….part` files: removed before copying (M2).
+  await cleanStaleParts(folder);
   let prev: PrevManifest = {};
   try { prev = JSON.parse(await readFile(path.join(folder, MANIFEST_NAME), "utf8")) as PrevManifest; } catch { /* first delivery */ }
   const known = new Map((prev.files ?? []).map((f) => [f.name, f]));

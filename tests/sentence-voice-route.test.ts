@@ -93,3 +93,45 @@ describe("GET/POST /api/episodes/<ep>/sentences", () => {
     expect(edit.body.plan.chapters[0].scenes[0].narration).toBe("الصَّبْرُ مِفْتَاحُ الفَرَجِ. وَالشُّكْرُ زِينَةُ النِّعَمِ كُلِّهَا.");
   }, 60_000);
 });
+
+describe("Studio API robustness (QA, 10 Nov 2026)", () => {
+  it("/api/check refuses a non-string text with 400, and a JSON route refuses a body above 2 MB with 413", async () => {
+    expect((await call("POST", "check", { text: 42 })).status).toBe(400);
+    expect((await call("POST", "check", { text: ["x"] })).status).toBe(400);
+    expect((await call("POST", "check", { text: "نص" })).status).toBe(200);
+    const big = await call("POST", "check", { text: "ا".repeat(1_100_000) }); // ~2.2 MB of UTF-8
+    expect(big.status).toBe(413);
+  }, 60_000);
+
+  it("while «جهّز كل المشاهد» runs, deleting the episode and rendering it are refused with an Arabic message (M5, H4)", async () => {
+    const { startPrepareJob, PREPARE_RUNNING_MESSAGE } = await import("../app/server/prepare");
+    const { busy } = await import("../app/server/extra");
+    let finish!: () => void;
+    startPrepareJob(`${CH}/985`, () => new Promise<void>((r) => { finish = r; }), busy);
+    try {
+      const del = await call("DELETE", "episodes/985", { confirm: "985" });
+      expect(del.status).toBe(409);
+      expect(del.body.error).toBe(PREPARE_RUNNING_MESSAGE);
+      const render = await call("POST", "render", { episode: "985", orientation: "landscape" });
+      expect(render.status).toBe(409);
+      expect(render.body.error).toBe(PREPARE_RUNNING_MESSAGE);
+    } finally {
+      await new Promise((r) => setTimeout(r, 5));
+      finish();
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    expect(busy.has(`${CH}/985`)).toBe(false);
+  }, 60_000);
+
+  it("a damaged plan.json answers 409 with an Arabic message, not a raw 500 (M3)", async () => {
+    const plan = path.join(root, CH, "episodes", "985-sentence-route", "plan.json");
+    const { readFile: rf } = await import("node:fs/promises");
+    const good = await rf(plan, "utf8");
+    await writeFile(plan, good.slice(0, 40));
+    try {
+      const r = await call("GET", "episodes/985/sentences");
+      expect(r.status).toBe(409);
+      expect(r.body.error).toMatch(/plan\.json.*غير مكتمل أو تالف/);
+    } finally { await writeFile(plan, good); }
+  }, 60_000);
+});

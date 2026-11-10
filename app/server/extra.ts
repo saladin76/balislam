@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, updateStatus } from "./update.ts";
 import { childEnv } from "../../scripts/git-env.mjs";
+import { prepareRunning, PREPARE_RUNNING_MESSAGE } from "./prepare.ts";
 
 /**
  * مسارات الاستوديو الإضافية: نظرة عامة على الحلقات، حالة النشر، ملفات التغليف،
@@ -62,6 +63,8 @@ export const trimJobs = <T extends { status: string }>(m: Map<string, T>) => {
   }
 };
 export const busyMessage = "توجد مهمة جارية على هذه الحلقة (رندر أو صناعة). انتظر انتهاءها ثم أعد المحاولة.";
+/** The refusal for a busy episode, naming «جهّز كل المشاهد» when that is what holds it (QA H4/M5). */
+export const busyRefusal = (key: string) => (prepareRunning(key) ? PREPARE_RUNNING_MESSAGE : busyMessage);
 
 const EP = /^\d{3}$/;
 const types: Record<string, string> = { ".png": "image/png", ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".mp3": "audio/mpeg" };
@@ -335,7 +338,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   // حذف حلقة نهائيًا: من الجهاز (السكريبت والخطة والصوت والفيديو والصور)، ومن أرشيف البداية النظيفة، ومن GitHub
   if (parts[0] === "episodes" && parts[1] && !parts[2] && req.method === "DELETE") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-    if (busy.has(`${ch}/${parts[1]}`)) return send(res, 409, { error: busyMessage }), true;
+    if (busy.has(`${ch}/${parts[1]}`) || prepareRunning(`${ch}/${parts[1]}`)) return send(res, 409, { error: busyRefusal(`${ch}/${parts[1]}`) }), true;
     const { confirm } = await readBody(req);
     if (confirm !== parts[1]) return send(res, 400, { error: "اكتب رقم الحلقة للتأكيد." }), true;
     const { resolveScriptPath } = await load("/src/script/episodes.ts");
@@ -852,7 +855,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const b = await readBody(req);
       if (b.kind === "make" || b.kind === "package" || b.kind === "shorts") {
         if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-        if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage }), true;
+        if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyRefusal(`${ch}/${b.episode}`) }), true;
         const args = b.kind === "make" ? ["make", b.episode, ...(b.noVoice ? ["--no-voice"] : [])] : b.kind === "shorts" ? ["package", b.episode, "--shorts"] : ["package", b.episode];
         const title = b.kind === "make" ? `صناعة الحلقة ${b.episode}${b.noVoice ? " (معاينة بلا صوت)" : " (أعلى جودة)"}` : b.kind === "shorts" ? `الشورتس والريلز للحلقة ${b.episode} (أعلى جودة)` : `تغليف الحلقة ${b.episode}`;
         const job = startJob(ctx, { kind: b.kind, channel: ch, episode: b.episode, title }, args);
@@ -860,7 +863,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       }
       if (b.kind === "storyboard-motion") {
         if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-        if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyMessage }), true;
+        if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyRefusal(`${ch}/${b.episode}`) }), true;
         const job = startJob(ctx, { kind: "storyboard-motion", channel: ch, episode: b.episode, title: `قياس حركة مشاهد الحلقة ${b.episode} (معاينة صامتة خفيفة)` }, ["storyboard", b.episode, "--motion"]);
         return send(res, 200, job), true;
       }

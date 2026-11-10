@@ -6,8 +6,10 @@
 # 3) يثبّت الحزم، ويفحص المشروع، ثم يفتح الاستوديو.
 # لا يلمس: ملف المفاتيح .env، والمؤثرات الصوتية المولَّدة (assets/sfx)، والتلاوات المرخّصة (assets/recitations).
 # ولا يؤرشف ولا يحذف أبدًا (is_protected أدناه): اعتمادات المالك (سجل المشاهد وكل ملفات الاعتماد)، وجلسة المالك (.studio/)،
-# وصندوق الملاحظات (notes/)، والصوت (voice/ كله: index.json وsentences.json وتسجيلات الجمل السابقة والمستبدَلة في voice/superseded/، D50)، والتلاوات (recitations/)، ومسودات الرندر (out/).
+# وصندوق الملاحظات (notes/)، والمعاينات (previews/: مقاطع المشاهد المعتمدة والتجميع وhistory)، والصوت (voice/ كله: index.json وsentences.json وتسجيلات الجمل السابقة والمستبدَلة في voice/superseded/، D50)، والتلاوات (recitations/)، ومسودات الرندر (out/).
 # وإن كان في ملف اعتماد متتبَّع تعديل غير محفوظ، أو commits محلية لم تُرفع، يتوقف قبل أي تغيير.
+# وأي ملف متتبَّع آخر معدَّل محليًا (plan.json، pronunciations.json، tashkeel.md…) يُعرض بالاسم قبل الإلغاء،
+# ولا يُلغى تعديله إلا إن كتب المالك «نعم» مرة ثانية؛ وتُحفظ نسخة منه في الأرشيف قبل الإلغاء.
 cd "$(dirname "$0")" || exit 1
 set -u
 
@@ -20,6 +22,8 @@ is_protected() {
     channels/*/episodes/*/recitations|channels/*/episodes/*/recitations/*) return 0 ;;
     channels/*/episodes/*/out|channels/*/episodes/*/out/*) return 0 ;;
     channels/*/episodes/*/notes|channels/*/episodes/*/notes/*) return 0 ;;
+    # previews/: مقاطع المشاهد المعتمدة والتجميع ونسخها السابقة (history/) — لا تُعاد صناعتها بلا كلفة
+    channels/*/episodes/*/previews|channels/*/episodes/*/previews/*) return 0 ;;
     channels/*/episodes/*/scene-production.v1.json*|channels/*/episodes/*/workflow-approvals.json*) return 0 ;;
     channels/*/episodes/*/scene-workflow.v2.json*) return 0 ;;
     channels/*/episodes/*/storyboard.json|channels/*/episodes/*/script-signoff.json) return 0 ;;
@@ -53,6 +57,30 @@ if [ "$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)" != "0" ];
   git log --format='   • %h %s' origin/main..HEAD | head -n 8
   echo "   أرسل هذه الرسالة إلى Claude قبل أي بداية نظيفة."
   exit 1
+fi
+# ملفات متتبَّعة أخرى معدَّلة على هذا الجهاز: التعديل سيُلغى، فتُعرض بالاسم ولا يُكمل إلا بـ«نعم» ثانية.
+modified=()
+while IFS= read -r -d '' p; do modified+=("$p"); done < <(git -c core.quotePath=false diff -z --name-only HEAD -- 2>/dev/null)
+if [ "${#modified[@]}" -gt 0 ]; then
+  echo "⚠️ هذه الملفات معدَّلة على هذا الجهاز ولم تُحفظ في Git، والبداية النظيفة ستُلغي تعديلها:"
+  shown=0
+  for p in "${modified[@]}"; do
+    [ "$shown" -lt 20 ] && echo "   • $p"
+    shown=$((shown + 1))
+  done
+  [ "${#modified[@]}" -gt 20 ] && echo "   • والبقية: $(( ${#modified[@]} - 20 )) (القائمة كاملة في الأرشيف)"
+  echo "   ستُحفظ نسخة منها في: $ARCHIVE/modified-before-reset"
+  read -r -p "اكتب نعم لإلغاء تعديلها والمتابعة، أو أي شيء آخر للإيقاف: " ok2
+  if [ "$ok2" != "نعم" ]; then
+    echo "⛔ توقفت البداية النظيفة ولم يتغير أي ملف. احفظ هذه التعديلات أولًا (أرسل هذه الرسالة إلى Claude)."
+    exit 1
+  fi
+  mkdir -p "$ARCHIVE/modified-before-reset"
+  printf '%s\n' "${modified[@]}" > "$ARCHIVE/modified-before-reset/LIST.txt"
+  for p in "${modified[@]}"; do
+    [ -f "$p" ] || continue
+    mkdir -p "$ARCHIVE/modified-before-reset/$(dirname "$p")" && cp -p "$p" "$ARCHIVE/modified-before-reset/$p"
+  done
 fi
 git merge --abort 2>/dev/null
 git reset --hard origin/main || exit 1
