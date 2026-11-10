@@ -7,7 +7,7 @@
 .shell-v3 .stage.s3 { display: block; max-width: none; padding: 4px 0 260px; }
 .shell-v3 .s3-col { width: min(736px, calc(100% - 64px)); margin: 0 auto; position: relative; display: grid; gap: 14px; min-width: 0; }
 .shell-v3 .s3-note { inset-inline-end: -262px; top: 54px; }
-@media (max-width: 1320px) { .shell-v3 .s3-note { position: static; transform: none; width: auto; order: 9; margin-top: 8px; } }
+@media (max-width: 1320px) { .shell-v3 .s3-note { position: relative; inset: auto; transform: none; width: auto; order: 9; margin-top: 8px; } }
 
 /* the scene's title row */
 .shell-v3 .s3-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 10px 0 0; }
@@ -169,8 +169,8 @@
   .shell-v3 .s3-play button { width: 26px; height: 26px; }
   .shell-v3 .s3-reel { display: none; }
   .shell-v3 .s3-reelm { display: flex; align-items: center; gap: 8px; margin: 18px 16px 0; color: var(--ink-2); font-size: var(--t-12); padding: 12px 0; border-top: 1px solid var(--quiet); }
-  .shell-v3 .s3-reelm-bar { flex: 1; height: 8px; display: flex; gap: 2px; }
-  .shell-v3 .s3-reelm-bar i { min-width: 1px; border-radius: 2px; background: var(--line); }
+  .shell-v3 .s3-reelm-bar { flex: 1; min-width: 0; height: 8px; display: flex; gap: 1px; overflow: hidden; }
+  .shell-v3 .s3-reelm-bar i { min-width: 0; border-radius: 2px; background: var(--line); }
   .shell-v3 .s3-reelm-bar i.is-done { background: var(--ok); }
   .shell-v3 .s3-reelm-bar i.is-shown { background: var(--ink); }
   .shell-v3 .s3-editbar { padding: 10px 16px; }

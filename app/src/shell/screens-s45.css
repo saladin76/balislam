@@ -143,7 +143,7 @@
 .shell-v3 .studio-main:has(> .s45-page) > .scene-first-panel .sp-criteria[open] > summary::before { transform: rotate(-135deg); }
 
 /* ── Step ٣ «الوصلات» (direction D): one seam between two scenes, then the whole episode with a diamond per seam ── */
-.shell-v3 .ms-final { width: min(1140px, calc(100% - 88px)); margin: 0 auto; padding: 8px 0 40px; display: grid; gap: 14px; }
+.shell-v3 .ms-final { width: min(1140px, calc(100% - 88px)); margin: 0 auto; padding: 8px 0 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .shell-v3 .ms-final-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 8px 0 6px; }
 .shell-v3 .ms-stats { display: flex; gap: 30px; margin: 0; }
 .shell-v3 .ms-stats > div { display: flex; flex-direction: column-reverse; }
@@ -174,8 +174,8 @@
 .shell-v3 .ms-tl .s3-legend i.d.is-on { background: var(--acc); box-shadow: 0 0 0 1.5px var(--ink); }
 .shell-v3 .ms-tl .s3-legend i.r { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .shell-v3 .ms-tl .s3-legend i.r.is-ok { background: var(--ok); }
-.shell-v3 .ms-tl-strip { list-style: none; margin: 0; padding: 0; display: flex; height: 64px; align-items: stretch; }
-.shell-v3 .ms-tl-clip { position: relative; min-width: 6px; border-radius: 7px; overflow: hidden; background: var(--sf); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent); container-type: inline-size; }
+.shell-v3 .ms-tl-strip { list-style: none; margin: 0; padding: 14px 0; display: flex; height: 92px; box-sizing: border-box; align-items: stretch; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.shell-v3 .ms-tl-clip { position: relative; min-width: 4px; border-radius: 7px; overflow: hidden; background: var(--sf); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent); container-type: inline-size; }
 .shell-v3 .ms-tl-clip .ms-thumb { position: absolute; inset: 0; direction: ltr; pointer-events: none; }
 .shell-v3 .ms-tl-clip .s3-dot-n { position: absolute; bottom: 2px; inset-inline-end: 3px; font-size: var(--t-12); line-height: 1.4; color: var(--ink-2); background: color-mix(in srgb, var(--sf) 85%, transparent); padding: 0 4px; border-radius: 4px; }
 .shell-v3 .ms-tl-clip.is-verse { background: repeating-linear-gradient(-45deg, var(--quiet) 0 5px, var(--paper) 5px 9px); display: grid; place-items: center; }
@@ -184,11 +184,13 @@
 .shell-v3 .ms-tl-clip .r.is-ok { background: var(--ok); }
 @container (max-width: 22px) { .shell-v3 .ms-tl-clip .s3-dot-n, .shell-v3 .ms-tl-clip.is-verse b { display: none; } }
 .shell-v3 .ms-tl-sm { width: 11px; flex: none; position: relative; }
+.shell-v3 .ms-tl-strip:has(> li:nth-child(120)) .ms-tl-sm { width: 7px; }
+.shell-v3 .ms-tl-strip:has(> li:nth-child(120)) .ms-tl-sm i { width: 6px; height: 6px; }
 .shell-v3 .ms-tl-sm button { all: unset; cursor: pointer; position: absolute; inset: 0; }
 .shell-v3 .ms-tl-sm i { position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; transform: translate(-50%, -50%) rotate(45deg); border-radius: 2px; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--mute); z-index: 2; }
 .shell-v3 .ms-tl-sm.is-ok i { background: var(--ink-2); box-shadow: none; }
 .shell-v3 .ms-tl-sm.is-on i { width: 15px; height: 15px; background: var(--acc); box-shadow: 0 0 0 2px var(--ink); }
-.shell-v3 .ms-tl-sm.is-on::before { content: ""; position: absolute; left: 50%; top: -14px; bottom: -14px; width: 2px; background: var(--ink); transform: translateX(-50%); }
+.shell-v3 .ms-tl-sm.is-on::before { content: ""; position: absolute; left: 50%; top: -12px; bottom: -12px; width: 2px; background: var(--ink); transform: translateX(-50%); }
 .shell-v3 .ms-tl-sm button:focus-visible i { outline: 2px solid var(--ink); outline-offset: 2px; }
 .shell-v3 .ms-ruler { position: relative; height: 18px; margin-top: 8px; font-size: var(--t-12); color: var(--mute); }
 .shell-v3 .ms-ruler span { position: absolute; transform: translateX(50%); }

@@ -75,7 +75,7 @@
 }
 /* Dark: same layout and channel band; paper, surfaces and ink turn over */
 :root[data-theme="dark"] :is(.shell-v3, [data-channel]) {
-  --paper: #111214; --paper-rule: #ffffff07; --sf: #1A1C20; --paper-margin: #E3A99A55;
+  --paper: #111214; --paper-rule: #ffffff07; --sf: #1A1C20;
   --ink: #ECEDEF; --ink-2: #B9BDC4; --mute: #959AA3; --line: #2A2D33; --quiet: #222429; --line-strong: #3A3E46;
   --note: #2A2C17; --note-ink: #DADDA6;
   --dock: #24272D; --dock-ink: #ECEDEF; --dock-mute: #A3A7AF;
@@ -86,7 +86,7 @@
 }
 :root[data-theme="dark"] [data-channel="zubdat-alkutub"] { --band: #000000; --band-line: #ffffff14; --acc-text: #E8F542; }
 :root[data-theme="dark"] [data-channel="balislam"] { --acc-text: #E2C27A; --acc-soft: #3A2F16; --note: #2E2715; --note-ink: #EAD9AE; }
-:root[data-theme="dark"] [data-channel="dafatir-alzaman"] { --acc-text: #F59A8F; --acc-soft: #3A1C18; --note: #33231A; --note-ink: #EFD7C2; }
+:root[data-theme="dark"] [data-channel="dafatir-alzaman"] { --paper-margin: #E3A99A55; --acc-text: #F59A8F; --acc-soft: #3A1C18; --note: #33231A; --note-ink: #EFD7C2; }
 :root[data-theme="dark"] .shell-v3:not([data-channel]), :root[data-theme="dark"] [data-channel=""] { --acc-text: #8FC9BC; }
 :root[data-theme="dark"], :root[data-theme="dark"] body { background: #111214; color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
@@ -263,6 +263,10 @@
 .ms-dock .btn:disabled { opacity: .4; }
 .ms-dock .ms-tb svg, .ms-dock .btn svg { width: 16px; height: 16px; }
 .ms-dock .btn.primary svg { width: 17px; height: 17px; }
+.shell-v3 .ms-dock .btn.ms-go-nav { opacity: 1; box-shadow: inset 0 0 0 1.5px var(--acc); color: var(--dock-ink); font-weight: 600; }
+.shell-v3 .ms-dock .btn.ms-go-nav:hover:not(:disabled) { background: #ffffff14; }
+.ms-dock .prep-note { display: none; }
+.ms-dock .prep-count { color: var(--dock-mute); }
 .ms-dv { width: 1px; height: 26px; background: #ffffff1c; margin: 0 5px; flex: none; }
 .ms-nv { all: unset; box-sizing: border-box; cursor: pointer; width: 40px; height: 46px; border-radius: 12px; display: grid; place-items: center; color: var(--dock-ink); opacity: .75; flex: none; }
 .ms-nv:hover:not(:disabled) { opacity: 1; background: #ffffff12; }
@@ -331,7 +335,7 @@
 .fix-ln { flex: none; font-size: var(--t-12); color: var(--mute); }
 
 /* ── Shared screen language: one stage, one hint, tools folded ── */
-.stage { max-width: 1200px; width: 100%; margin: 0 auto; padding: var(--s4) 44px var(--s7); display: grid; gap: var(--s4); min-width: 0; box-sizing: border-box; }
+.stage { max-width: 1200px; width: 100%; margin: 0 auto; padding: var(--s4) 44px var(--s7); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); min-width: 0; box-sizing: border-box; }
 .stage-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
 .stage-head h2 { margin: 0; font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-32); line-height: 1.15; padding-top: var(--t-shift); }
 .stage-meta { color: var(--mute); font-size: var(--t-14); }
@@ -508,7 +512,7 @@
   .ms-dock .ms-tb, .ms-dock .btn:not(.primary) { padding: 0 12px; height: 48px; }
   .ms-dock-note { width: 100%; max-width: none; }
   .ms-dock-in.is-wrap { flex-wrap: wrap; }
-  .ms-note { position: static; transform: none; width: auto; margin: 16px 0; }
+  .ms-note { position: relative; inset: auto; transform: none; width: auto; margin: 16px 0; }
   .page-head { padding: 14px 16px 2px; }
   .stage { padding: var(--s3) 16px var(--s6); }
   .ms-title { font-size: var(--t-32); }

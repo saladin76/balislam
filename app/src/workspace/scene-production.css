@@ -53,7 +53,6 @@
 
 /* لوحة «إنتاج المشاهد» فوق محرر المشاهد: صف خاص بها بارتفاع محدود وتمرير داخلي، فلا يطويها المحرر */
 .studio-shell .episode-workspace-app:has(> .scene-first-panel) { grid-template-rows: auto auto minmax(0, auto) minmax(0, 1fr); }
-.studio-shell .episode-workspace-app > .scene-first-panel { max-height: 42vh; overflow-y: auto; margin: 12px 18px; }
 
 /* Step ٤: «معاينة قبل النهائية» and the owner's recitations (recitations come last). */
 .pf { display: grid; gap: 14px; }

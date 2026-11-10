@@ -209,7 +209,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
                 : next.text}</p>
               {/* الخطوة ٢ الآن وأنت خارج شاشتها: سطر «جاهز ١٢ من ١١٤» هنا، وفي شاشة المشاهد نفسها هناك */}
               {current === 1 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} order={w.scenes.map((x) => x.id)} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} /> : null}
-              <button type="button" className="btn primary" onClick={() => onTab(next.go!)}>{next.label}<Icon name="chev" /></button>
+              {/* Navigation to where the decision is: outlined, so the screen's own action stays the one filled button */}
+              <button type="button" className="btn ms-go-nav" onClick={() => onTab(next.go!)}>{next.label}<Icon name="chev" /></button>
             </div>
           </div>
         ) : err ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">{err}</p></div> : null
