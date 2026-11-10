@@ -62,7 +62,11 @@
 
 /* notes under the frame */
 .shell-v3 .s3-side { display: grid; gap: 6px; }
-.shell-v3 .s3-side:empty { display: none; }
+.shell-v3 .s3-side:empty, .shell-v3 .s3-reasons:empty { display: none; }
+/* why «اعتمد» waits (and «أضف مفتاح الصوت»): a quiet note in the column under the frame, not a card over the page */
+.shell-v3 .s3-why-inline { padding: 8px 12px; border-radius: var(--r); background: var(--quiet); }
+.shell-v3 .s3-why-inline .sp-hint { margin: 0; color: var(--ink-2); font-size: var(--t-14); line-height: 1.7; }
+.shell-v3 .s3-why-inline .prep-link { color: var(--acc-text); }
 .shell-v3 .s3-sent { margin: 0; font-size: var(--t-14); line-height: 1.8; padding: 10px 14px; border-radius: var(--r); background: var(--warn-soft); color: var(--ink); }
 .shell-v3 .s3-narr { margin: 0; color: var(--mute); font-family: var(--f-read); font-size: var(--t-20); }
 

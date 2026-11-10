@@ -491,6 +491,28 @@
 .shell-v3 :is(.panel, .card, .col, .editor, .sb-shot, .pf-rec, .studio-provider, .render-box, .toolbar) { background-color: var(--sf); color: var(--ink); border-color: var(--line); }
 .shell-v3 :is(.help, .muted) { color: var(--mute); }
 
+/* A page still loading sits at the top where its content will come, not centred: no jump when it arrives (CLS) */
+.shell-v3 .studio-main > .empty-state { margin: 0; max-width: none; min-height: 120px; padding: 16px 44px; justify-content: flex-start; align-items: flex-start; text-align: start; }
+.shell-v3 .studio-main > .empty-state h2 { font-size: var(--t-16); font-weight: 500; color: var(--mute); }
+
+/* ── The players' Arabic controls (ui/Preview.tsx): one quiet bar under the picture ── */
+.ms-pw { position: relative; display: grid; min-width: 0; }
+.ms-pw:fullscreen { background: #000; align-content: center; }
+.ms-pc { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--sf); font-size: var(--t-12); color: var(--ink-2); }
+.ms-pc button { all: unset; box-sizing: border-box; cursor: pointer; height: 28px; padding: 0 10px; border-radius: 999px; display: inline-flex; align-items: center; color: var(--ink-2); white-space: nowrap; }
+.ms-pc button:hover { background: var(--quiet); color: var(--ink); }
+.ms-pc button[aria-pressed="true"] { background: var(--quiet); color: var(--ink); }
+.ms-pc .ms-pc-play { width: 28px; padding: 0; justify-content: center; background: var(--ink); color: var(--paper); }
+.ms-pc .ms-pc-play:hover { background: var(--ink); color: var(--paper); opacity: .9; }
+.ms-pc .ms-pc-play svg { width: 12px; height: 12px; }
+.ms-pc :is(button, input):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ms-pc-t { color: var(--mute); min-width: 74px; }
+.ms-pc-seek { flex: 1 1 auto; min-width: 40px; height: 4px; margin: 0; -webkit-appearance: none; appearance: none; border-radius: 2px; cursor: pointer;
+  background: linear-gradient(to right, var(--ink) var(--p, 0%), var(--line-strong) var(--p, 0%)); }
+.ms-pc-seek::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); }
+.ms-pc-seek::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 0; }
+.ms-pw:fullscreen .ms-pc { color: #fff; padding: 10px 16px; }
+
 /* ── Dialogs ── */
 .shell-v3 .modal-back, .modal-back { background: color-mix(in srgb, var(--ink, #16181D) 38%, transparent); }
 .shell-v3 .modal, .modal { max-width: min(100%, calc(100vw - 32px)); border-radius: var(--r-xl, 18px); background: var(--sf, #fff); color: var(--ink, #16181D); border: 0; box-shadow: var(--shadow-pop); }
@@ -525,6 +547,7 @@
   .ms-pill button small { display: none; }
   /* a screen without views (admin pages): the title and the theme toggle share one row, no empty middle cell */
   .ms-hdr > span:empty { display: none; }
+  .shell-v3 .studio-main > .empty-state { padding: 12px 16px; }
   .ms-dock { inset-inline: 0; bottom: 10px; padding: 0 10px; }
   .ms-dock-in { width: 100%; justify-content: space-between; border-radius: 18px; padding: 6px; }
   .ms-dock .btn.primary { flex: 1; justify-content: center; height: 48px; padding: 0 14px; }

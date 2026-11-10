@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api, type SceneProductionRead, type SceneOwnerAction, type ScenePrepareRead } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
 import type { Plan } from "../../../src/plan/types";
@@ -378,6 +379,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [reelOpen, setReelOpen] = useState(() => typeof window === "undefined" || window.innerHeight >= 1000);
   // Chosen from «تحتاج إصلاحًا» (or the strip there): that scene takes the screen — its header and its dock — and the focus.
   const headRef = useRef<HTMLHeadingElement>(null);
+  const [reasonsHost, setReasonsHost] = useState<HTMLDivElement | null>(null);
   const focusHead = useRef(false);
   useEffect(() => {
     if (!focusHead.current || view === "fix") return;
@@ -555,6 +557,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
           </div>
 
           <div className="s3-side">
+            <div ref={setReasonsHost} className="s3-reasons" />
             {isCurrent && scene?.status === "needs_revision" && (sentNotes[currentId!] || scene.correction?.note) ? (
               <p className="s3-sent"><b>{draftReady ? "ملاحظتك على النسخة السابقة:" : "ملاحظتك (بانتظار التعديل ثم إعادة الإنتاج):"}</b> <NoteText raw={sentNotes[currentId!] || scene.correction?.note || ""} /></p>
             ) : null}
@@ -667,6 +670,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         {view === "fix" ? null : isCurrent && currentId && scene ? (
           <SceneDecisionActions
             nav={nav}
+            reasonsHost={reasonsHost}
             onOpenSettings={onOpenSettings}
             preparing={(scene.status === "in_review" && scene.previewSha256) || draftReady ? null : preparing}
             stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : "render"}
@@ -949,6 +953,11 @@ export const SceneDecisionActions: React.FC<{
   locked?: ActionLock;
   /** السابق والتالي وعدد المعتمد، على طرفي الشريط (خارج مجموعة القرار) */
   nav?: { prev: React.ReactNode; next: React.ReactNode; count: React.ReactNode };
+  /**
+   * Where the reason «اعتمد» waits for is read (a place in the page's column, under the frame). Without one it floats
+   * above the dock; with one it sits in the page's flow, so it never covers the filmstrip, the sentences or «أدوات وتفاصيل».
+   */
+  reasonsHost?: HTMLElement | null;
   onOpenSettings?: () => void;
   onVoice: () => void;
   onProblem: (kind: ProblemKind) => void;
@@ -1021,7 +1030,11 @@ export const SceneDecisionActions: React.FC<{
           {!review && !p.preparing ? tool(p.pending ? "جارٍ الإنتاج…" : "أنتج هذا المشهد", "film", { disabled: p.pending || !p.readyForAv || p.voiceBusy, onClick: p.onRender }) : null}
         </div>,
       )}
-      {reasons.length ? (
+      {reasons.length && p.reasonsHost ? createPortal(
+        <div className="s3-why s3-why-inline" role="note">
+          {reasons.map((r, i) => <p key={i} className="sp-hint">{r}</p>)}
+        </div>, p.reasonsHost,
+      ) : reasons.length ? (
         <div className="s3-why ms-float is-quiet" role="note">
           {reasons.map((r, i) => <p key={i} className="sp-hint">{r}</p>)}
         </div>

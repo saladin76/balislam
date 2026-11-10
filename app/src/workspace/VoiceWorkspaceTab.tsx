@@ -91,7 +91,7 @@ export const VoiceWorkspaceTab: React.FC<{
             const clip = media.voice[scene.id];
             return (
               <li key={scene.id}>
-                <button type="button" className="s3-clip-row" aria-expanded={open} onClick={() => setSelected(open ? "" : scene.id)} title={`الفصل ${ar(Number(chapter))}`}>
+                <button type="button" className="s3-clip-row" aria-expanded={open} onClick={() => setSelected(open ? "" : scene.id)} title={`الفصل ${ar(Number(chapter))} — ${scene.id}`}>
                   <span className="s3-clip-n">{ar(i + 1)}</span>
                   <span className="s3-clip-text">{scene.narration}</span>
                   <span className={`s3-clip-st ${state}`}>{state === "ready" ? "صوت مطابق" : state === "stale" ? "صوت قديم" : "بلا صوت"}</span>
