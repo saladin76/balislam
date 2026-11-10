@@ -56,7 +56,7 @@ export const TechReviewsTab: React.FC<{ channel: string }> = ({ channel }) => {
           <h3>{r.title}</h3>
           <span className={`lab-badge ${r.recommendation === "ready" ? "lab-approved" : "lab-experimental"}`}>توصية المنفّذ: {REC[r.recommendation]}</span>
           <span className={`lab-badge ${r.supervisorDecision ? "lab-review" : ""}`}>قرار المشرف: {r.supervisorDecision ? r.supervisorDecision.decision : "لم يُتخذ بعد"}</span>
-          <span className="help">{r.order ? `الأمر ${r.order} · ` : ""}{r.date} · {r.author} · <code dir="ltr">{r.dir}/tech-reviews/{r.id}</code></span>
+          <span className="help">{r.order ? `الأمر ${r.order} — ` : ""}{r.date} — {r.author} — <code dir="ltr">{r.dir}/tech-reviews/{r.id}</code></span>
         </div>
         <p>{r.summary}</p>
 
@@ -70,7 +70,7 @@ export const TechReviewsTab: React.FC<{ channel: string }> = ({ channel }) => {
                 {t.duration ? <span className="help">{t.duration}</span> : null}
                 {t.note ? <span className="err">{t.note}</span> : null}
                 <span>
-                  <a href={videoUrl(t)} target="_blank" rel="noreferrer">فتح</a> · <a href={`${videoUrl(t)}${sep(videoUrl(t))}download=1`} download={`${t.dir}-${t.preview}`}>تنزيل</a>
+                  <a href={videoUrl(t)} target="_blank" rel="noreferrer">فتح</a> — <a href={`${videoUrl(t)}${sep(videoUrl(t))}download=1`} download={`${t.dir}-${t.preview}`}>تنزيل</a>
                 </span>
               </figcaption>
             </figure>

@@ -3,7 +3,8 @@ import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
 import React, { useEffect, useMemo, useState } from "react";
 import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
-import { arDigits } from "../ui/format";
+import { arDigits, episodeTitle, num } from "../ui/format";
+import { useScrollLock } from "../ui/scrollLock";
 
 /**
  * «غرفة العمليات»: القنوات كلها في شاشة واحدة.
@@ -119,10 +120,10 @@ export const OpsRoom: React.FC<{
           <p className="help">القنوات كلها في مكان واحد: الجدول، التقدم الفني وبنك الأفكار. اكتمال الفحوص لا يعني اعتماد النسخة النهائية.</p>
         </div>
         <div className="kpis">
-          <div><b>{longThisWeek}/{scheduledCount}</b><span>حلقات الأسبوع</span></div>
-          <div><b>{readyCount}</b><span>فحوص فنية مكتملة</span></div>
-          <div><b>{all.length}</b><span>حلقة في الإنتاج</span></div>
-          <div><b>{ideasCount}</b><span>فكرة في البنك</span></div>
+          <div><b>{num(longThisWeek)} من {num(scheduledCount)}</b><span>حلقات الأسبوع</span></div>
+          <div><b>{num(readyCount)}</b><span>فحوص فنية مكتملة</span></div>
+          <div><b>{num(all.length)}</b><span>حلقة في الإنتاج</span></div>
+          <div><b>{num(ideasCount)}</b><span>فكرة في البنك</span></div>
         </div>
       </div>
 
@@ -131,7 +132,7 @@ export const OpsRoom: React.FC<{
       {/* الأسبوع */}
       <section id="ops-week" className="ops-sec" hidden={section !== "week"}>
         <div className="toolbar" style={{ marginBottom: 10 }}>
-          <h2 style={{ margin: 0 }}>{weekOffset === 0 ? "هذا الأسبوع" : weekOffset === 1 ? "الأسبوع القادم" : weekOffset === -1 ? "الأسبوع الماضي" : `أسبوع ${week[0]!.getDate()}/${week[0]!.getMonth() + 1}`}</h2>
+          <h2 style={{ margin: 0 }}>{weekOffset === 0 ? "هذا الأسبوع" : weekOffset === 1 ? "الأسبوع القادم" : weekOffset === -1 ? "الأسبوع الماضي" : `أسبوع ${arDigits(`${week[0]!.getDate()}/${week[0]!.getMonth() + 1}`)}`}</h2>
           <span className="help">اضغط على أي يوم لتعدّله، أو على اسم القناة لتغيّر يومها وساعتها.</span>
           <span className="spacer" />
           <button className="btn small" onClick={() => setWeekOffset((w) => w - 1)}>→ السابق</button>
@@ -143,7 +144,7 @@ export const OpsRoom: React.FC<{
           {week.map((d, i) => (
             <div key={i} className={`ops-day ${iso(d) === todayIso ? "today" : ""}`}>
               <b>{iso(d) === todayIso ? "اليوم" : DAYS[d.getDay()]}</b>
-              <span>{d.getDate()}/{d.getMonth() + 1}</span>
+              <span>{arDigits(`${d.getDate()}/${d.getMonth() + 1}`)}</span>
             </div>
           ))}
           {data.map((d) => {
@@ -155,7 +156,7 @@ export const OpsRoom: React.FC<{
               <React.Fragment key={d.channel.id}>
                 <button className="ops-ch" style={{ borderInlineStartColor: color(d.channel.id) }} onClick={() => setEditCh(d.channel.id)} title="تعديل يوم الحلقة والساعة">
                   <b>{d.channel.name}</b>
-                  <span className="help">{sch ? `حلقة ${everyWeekday(DAYS[sch.longDay]!)}${sch.time ? ` · ${arDigits(sch.time)}` : ""}` : "بلا جدول"} ✎</span>
+                  <span className="help">{sch ? `حلقة ${everyWeekday(DAYS[sch.longDay]!)}${sch.time ? ` — ${arDigits(sch.time)}` : ""}` : "بلا جدول"} ✎</span>
                 </button>
                 {week.map((day, i) => {
                   const date = iso(day);
@@ -178,7 +179,7 @@ export const OpsRoom: React.FC<{
                     const st = stageOf(fixed);
                     return (
                       <div key={i} role="button" tabIndex={0} onClick={open} className={`ops-cell long ${st === "published" ? "done" : stagesOf(fixed)[3]!.state !== "done" ? "risk" : "ok"}`} style={{ borderColor: color(d.channel.id) }}>
-                        <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {arDigits(fixed.id)} · {fixed.title || fixed.dir}</button>
+                        <button className="linkish" onClick={(e) => { e.stopPropagation(); onOpen(d.channel.id, fixed.id, tabFor(st)); }}>🎬 {arDigits(fixed.id)} — {episodeTitle(fixed.title) || fixed.dir}</button>
                         <small>{st === "published" ? "منشورة" : stagesOf(fixed)[3]!.state === "done" ? "الفيديو جاهز" : "الفيديو لم يكتمل بعد!"}</small>
                         {shortsLine ? <small>+ {shortsLine}</small> : null}
                         {cal?.note ? <small className="ops-note">{cal.note}</small> : null}
@@ -190,7 +191,7 @@ export const OpsRoom: React.FC<{
                     if (next) used.add(next.id);
                     return next ? (
                       <div key={i} role="button" tabIndex={0} onClick={open} className="ops-cell long suggest" style={{ borderColor: color(d.channel.id) }}>
-                        <span>مقترح: {arDigits(next.id)} · {next.title || next.dir}</span>
+                        <span>مقترح: {arDigits(next.id)} — {episodeTitle(next.title) || next.dir}</span>
                         <button className="btn small primary" onClick={(e) => { e.stopPropagation(); setScheduled(d.channel.id, next, date); }}>ثبّتها لهذا اليوم</button>
                       </div>
                     ) : (
@@ -240,8 +241,8 @@ export const OpsRoom: React.FC<{
                   const w = warnings.get(`${ch.id}/${e.id}`);
                   return (
                     <button key={`${ch.id}/${e.id}`} className="ops-card" style={{ borderInlineStartColor: color(ch.id) }} onClick={() => onOpen(ch.id, e.id, tabFor(st.key))}>
-                      <span className="ops-card-ch" style={{ color: color(ch.id) }}>{ch.name} · {arDigits(e.id)}</span>
-                      <b>{e.title || e.dir}</b>
+                      <span className="ops-card-ch" style={{ color: color(ch.id) }}>{ch.name} — {arDigits(e.id)}</span>
+                      <b>{episodeTitle(e.title) || e.dir}</b>
                       <span className="ops-card-meta">
                         {e.style ? <span className="chip">{styleNameAr(e.style)}</span> : null}
                         {e.status.scheduled ? <span className="help">{e.status.scheduled}</span> : null}
@@ -304,11 +305,12 @@ const shortsFor = (d: OpsChannel, date: string): { ep: string; n: number }[] => 
 
 const fmtDay = (date: string) => {
   const d = new Date(`${date}T00:00:00`);
-  return `${DAYS[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+  return `${DAYS[d.getDay()]} ${arDigits(`${d.getDate()}/${d.getMonth() + 1}`)}`;
 };
 
 /** تعديل يوم في تقويم قناة: الحلقة الطويلة، والشورتس، ويوم بلا نشر، وملاحظة. */
 const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n: number }[]; onClose: () => void; onSaved: () => void }> = ({ ops, date, auto, onClose, onSaved }) => {
+  useScrollLock();
   const ch = ops.channel.id;
   const cal: CalendarDay = ops.calendar?.[date] ?? {};
   const current = ops.episodes.find((e) => e.status.scheduled === date);
@@ -355,7 +357,7 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" style={{ width: 560 }}>
-        <div className="modal-head"><h3>{ops.channel.name} · {fmtDay(date)}</h3></div>
+        <div className="modal-head"><h3>{ops.channel.name} — {fmtDay(date)}</h3></div>
         <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <label className="check"><input type="checkbox" checked={off} onChange={(e) => setOff(e.target.checked)} /><span>يوم بلا نشر في هذه القناة</span></label>
 
@@ -365,7 +367,7 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
                 <span>الحلقة الطويلة في هذا اليوم {publishedHere ? <small>(نُشرت فيه: {publishedHere.id})</small> : null}</span>
                 <select value={long} onChange={(e) => setLong(e.target.value)}>
                   <option value="">بدون حلقة طويلة</option>
-                  {longOptions.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
+                  {longOptions.map((e) => <option key={e.id} value={e.id}>{arDigits(e.id)} — {episodeTitle(e.title) || e.dir}</option>)}
                 </select>
                 <span className="help">تقدر تنزّل حلقة طويلة في أي يوم، مش بس يوم القناة. اختيار حلقة مجدولة في يوم تاني بينقلها لهنا.</span>
               </label>
@@ -378,7 +380,7 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
                     {shorts.map((x, i) => (
                       <div key={i} style={{ display: "flex", gap: 6 }}>
                         <select value={x.ep} onChange={(e) => setShorts(shorts.map((y, k) => (k === i ? { ...y, ep: e.target.value } : y)))} style={{ flex: 1 }}>
-                          {eps.map((e) => <option key={e.id} value={e.id}>{e.id} · {e.title || e.dir}</option>)}
+                          {eps.map((e) => <option key={e.id} value={e.id}>{arDigits(e.id)} — {episodeTitle(e.title) || e.dir}</option>)}
                         </select>
                         <select value={x.n} onChange={(e) => setShorts(shorts.map((y, k) => (k === i ? { ...y, n: Number(e.target.value) } : y)))} style={{ width: 110 }}>
                           {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>شورت {n}</option>)}
@@ -408,6 +410,7 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
 
 /** يوم الحلقة الطويلة وساعتها وعدد الشورتس اليومي لقناة. */
 const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: () => void; onSaved: () => void }> = ({ channel, name, onClose, onSaved }) => {
+  useScrollLock();
   const [c, setC] = useState<Awaited<ReturnType<typeof api.channelFor>> | null>(null);
   const [err, setErr] = useState("");
   useEffect(() => {

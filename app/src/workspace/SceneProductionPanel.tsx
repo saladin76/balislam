@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
+import { createPortal } from "react-dom";
 import { api, type SceneProductionRead, type SceneOwnerAction, type ScenePrepareRead } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
 import type { Plan } from "../../../src/plan/types";
@@ -83,6 +84,20 @@ export const fmtTime = (sec: number) => {
 /** ملاحظة التصحيح كما تُسجَّل: «[الحركة @0:12] …» أو «[النبرة @0:12] …» */
 export const problemNote = (kind: ProblemKind, at: number, text: string) =>
   `[${kind === "motion" ? "الحركة" : "النبرة"} @${fmtTime(at)}] ${text.trim()}`.trim();
+
+/**
+ * The owner's correction note as read on screen: the stored «[الحركة @0:04] نص» (problemNote, parsed by the server's
+ * notes inbox) becomes a small chip «الحركة عند ٠:٠٤» before the text; the stored note itself is never rewritten.
+ */
+export const noteParts = (raw: string): { kind: "الحركة" | "النبرة" | null; at: string | null; text: string } => {
+  const t = String(raw ?? "").trim();
+  const m = /^\[(الحركة|النبرة) @(\d{1,3}:\d{2})\]\s*/.exec(t);
+  return m ? { kind: m[1] as "الحركة" | "النبرة", at: m[2]!, text: t.slice(m[0].length).trim() } : { kind: null, at: null, text: t };
+};
+export const NoteText: React.FC<{ raw: string }> = ({ raw }) => {
+  const n = noteParts(raw);
+  return <>{n.kind ? <span className="s3-chip">{n.kind} عند <Num className="clk">{n.at!}</Num></span> : null}{n.text}</>;
+};
 
 /** سطر هادئ واحد تحت ملاحظة التصحيح: هل وصلت الملاحظة، وهل أُصلح المشهد (docs/studio/notes-inbox.md). */
 export const noteInboxLine = (inbox: { sync: "pending" | "sent"; status: string; answer: string | null }) =>
@@ -388,6 +403,16 @@ export const SceneProductionPanel: React.FC<Props> = ({
   }, [sceneMode]);
   // The filmstrip starts folded on a short screen, so the sentence and its tools stay clear above the dock.
   const [reelOpen, setReelOpen] = useState(() => typeof window === "undefined" || window.innerHeight >= 1000);
+  // Chosen from «تحتاج إصلاحًا» (or the strip there): that scene takes the screen — its header and its dock — and the focus.
+  const headRef = useRef<HTMLHeadingElement>(null);
+  const [reasonsHost, setReasonsHost] = useState<HTMLDivElement | null>(null);
+  const focusHead = useRef(false);
+  useEffect(() => {
+    if (!focusHead.current || view === "fix") return;
+    focusHead.current = false;
+    headRef.current?.focus({ preventScroll: false });
+  });
+  const openScene = (id: string) => { setViewId(id); setProblem(null); setConfirming(false); if (view === "fix") { focusHead.current = true; onView?.("one"); } };
   // Step ٣: the seam on screen in the assembled episode.
   const [seamAt, setSeamAt] = useState(0);
 
@@ -496,22 +521,30 @@ export const SceneProductionPanel: React.FC<Props> = ({
       <section className="stage s3" aria-label="المشهد الحالي في إنتاج الحلقة">
         <div className="s3-col">
           {/* «قبل أن تعتمد»: this channel's review criteria (from its production rules), on a sticky note in the gutter */}
+          {view !== "fix" ? (
           <aside className="ms-note s3-note" aria-label="معايير مراجعة هذه القناة">
             <h2>قبل أن تعتمد</h2>
             <ol>{humanReviewFocus.map((item) => <li key={item}>{item}</li>)}</ol>
           </aside>
+          ) : null}
+          {view === "fix" ? (
+            <header className="s3-head">
+              <div className="s3-title"><h2>تحتاج إصلاحًا <span className="s3-of"><Num>{fixes.length}</Num> {fixes.length === 1 ? "مشهد" : "مشاهد"}</span></h2></div>
+            </header>
+          ) : (
           <header className="s3-head">
             <div className="s3-title">
-              <h2>المشهد {shownIdx >= 0 ? ar(shownIdx + 1) : ""} <span className="s3-of">من {ar(order.length)}</span></h2>
+              <h2 ref={headRef} tabIndex={-1}>المشهد {shownIdx >= 0 ? ar(shownIdx + 1) : ""} <span className="s3-of">من {ar(order.length)}</span></h2>
               {hit ? <span className="s3-sub" title={`الفصل ${ar(hit.chapter.number)}`}>{hit.chapter.title}</span> : null}
             </div>
             <div className="s3-meta">
               <span className={`s3-state is-${status}`}>{stateText}</span>
-              {hit ? <span className="s3-len"><Num>{clock(secs(shownId))}</Num></span> : null}
+              {hit ? <span className="s3-len"><Num className="clk">{clock(secs(shownId))}</Num></span> : null}
               {prepLine}
               <button type="button" className="btn ghost s3-edit" onClick={() => setEditing(shownId)}><Icon name="doc" />تحرير المشهد</button>
             </div>
           </header>
+          )}
 
           {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
 
@@ -521,9 +554,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 <ul className="s3-fixlist">
                   {fixes.map((x) => (
                     <li key={x.id}>
-                      <button type="button" onClick={() => { setViewId(x.id); onView?.("one"); }}>
+                      <button type="button" onClick={() => openScene(x.id)}>
                         <b>{sceneName(order, x.id)}</b>
-                        <span>{x.correction?.note || (sentNotes[x.id] ?? "عُدّل؛ يحتاج إنتاجًا جديدًا")}</span>
+                        <span><NoteText raw={x.correction?.note || (sentNotes[x.id] ?? "عُدّل؛ يحتاج إنتاجًا جديدًا")} /></span>
                         {x.correction?.inbox ? <small>{noteInboxLine(x.correction.inbox)}</small> : null}
                       </button>
                     </li>
@@ -542,7 +575,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
               // The tag sits under the frame, never over it: burned-in captions run along the top of the picture.
               <figure className="s3-livebox">
                 <div className="s3-live">{livePreview(shownId)}</div>
-                <figcaption className="s3-tag">معاينة صامتة{isCurrent ? " · المعاينة بالصوت تظهر هنا حين تُجهَّز" : ""}</figcaption>
+                <figcaption className="s3-tag">معاينة صامتة{isCurrent ? " — المعاينة بالصوت تظهر هنا حين تُجهَّز" : ""}</figcaption>
               </figure>
             ) : (
               <div className="sp-empty">لم يُنتج هذا المشهد بعد.</div>
@@ -550,8 +583,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
           </div>
 
           <div className="s3-side">
+            <div ref={setReasonsHost} className="s3-reasons" />
             {isCurrent && scene?.status === "needs_revision" && (sentNotes[currentId!] || scene.correction?.note) ? (
-              <p className="s3-sent"><b>{draftReady ? "ملاحظتك على النسخة السابقة:" : "ملاحظتك (بانتظار التعديل ثم إعادة الإنتاج):"}</b> {sentNotes[currentId!] || scene.correction?.note}</p>
+              <p className="s3-sent"><b>{draftReady ? "ملاحظتك على النسخة السابقة:" : "ملاحظتك (بانتظار التعديل ثم إعادة الإنتاج):"}</b> <NoteText raw={sentNotes[currentId!] || scene.correction?.note || ""} /></p>
             ) : null}
             {isCurrent && scene?.status === "needs_revision" && scene.correction?.inbox ? (
               <p className="sp-hint" role="status">{noteInboxLine(scene.correction.inbox)}</p>
@@ -587,7 +621,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
           {issues.length ? (
             <button type="button" className={`s3-issues${blocking ? " is-block" : ""}`} onClick={openIssues}>
-              {blocking ? `${ar(blocking)} ملاحظات تمنع النسخة النهائية` : `${ar(issues.length)} تنبيهات قبل النسخة النهائية`} · عرضها
+              {blocking ? `${ar(blocking)} ملاحظات تمنع النسخة النهائية` : `${ar(issues.length)} تنبيهات قبل النسخة النهائية`} — عرضها
             </button>
           ) : null}
 
@@ -630,7 +664,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <section className={`s3-reel${reelOpen ? "" : " is-folded"}`} aria-label={`الحلقة كاملة: ${ar(approvedCount)} معتمد من ${ar(order.length)}`}>
           <div className="s3-reel-head">
             <b>الحلقة كاملة</b>
-            <span><Num>{arabicCountAr(order.length, SCENES)}</Num>، <Num>{clock(order.reduce((n, id) => n + secs(id), 0))}</Num></span>
+            <span><Num>{arabicCountAr(order.length, SCENES)}</Num>، <Num className="clk">{clock(order.reduce((n, id) => n + secs(id), 0))}</Num></span>
             <button type="button" className="s3-fold" aria-expanded={reelOpen} onClick={() => setReelOpen((v) => !v)}><Icon name={reelOpen ? "down" : "up"} />{reelOpen ? "اطوِ" : "افتح"}</button>
             <span className="s3-legend" aria-hidden="true"><span><i className="is-now" />الحالي</span><span><i className="is-ready" />جاهز للمراجعة</span><span><i className="is-later" />يُجهَّز</span><span><i className="is-verse" />آية، سكون</span></span>
           </div>
@@ -648,9 +682,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
               return (
                 <li key={id} style={{ flex: secs(id) }}>
                   <button type="button" className={`s3-dot is-${st}${ready ? " is-ready" : ""}${verse ? " is-verse" : ""}${id === shownId ? " is-shown" : ""}`} data-now={st === "now" ? "" : undefined}
-                    aria-current={id === shownId ? "true" : undefined} onClick={() => setViewId(id)}
-                    title={`${sceneName(order, id)} · ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "لاحقًا"}`}>
-                    {thumb && !verse && Math.abs(i - shownIdx) <= 8 ? thumb(id) : null}
+                    aria-current={id === shownId ? "true" : undefined} onClick={() => openScene(id)}
+                    title={`${sceneName(order, id)} — ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "لاحقًا"}`}>
+                    {thumb && !verse && Math.abs(i - shownIdx) <= 8 ? thumb(id) : !verse ? <span className="s3-dot-ph" aria-hidden="true" /> : null}
                     <span className="s3-dot-n">{verse ? "آية" : ar(i + 1)}</span>
                   </button>
                 </li>
@@ -664,9 +698,10 @@ export const SceneProductionPanel: React.FC<Props> = ({
           <span><Num>{approvedCount}</Num> من <Num>{order.length}</Num></span>
         </div>
 
-        {isCurrent && currentId && scene ? (
+        {view === "fix" ? null : isCurrent && currentId && scene ? (
           <SceneDecisionActions
             nav={nav}
+            reasonsHost={reasonsHost}
             onOpenSettings={onOpenSettings}
             preparing={(scene.status === "in_review" && scene.previewSha256) || draftReady ? null : preparing}
             awaitingChange={scene.awaitingChange ? (sentNotes[currentId!] || scene.correction?.note || "") : null}
@@ -786,7 +821,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <div className="sp-grid">
           <div className="sp-media">
             {previewUrl ? (
-              <video className="scene-first-video" controls preload="metadata" src={previewUrl} aria-label={`${sceneName(data.scenes.map((x) => x.id), currentId)} بالصوت والصورة`} />
+              <FramePlayer src={previewUrl} label={`${sceneName(data.scenes.map((x) => x.id), currentId)} بالصوت والصورة`} />
             ) : (
               <div className="sp-empty">{scene.readyForAv ? "لم يُنتج هذا المشهد بعد." : "ينقص هذا المشهد صوت الراوي."}</div>
             )}
@@ -846,7 +881,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
       ) : data.assembly && !data.assembly.approved ? (
         <div className="sp-grid">
           <div className="sp-media">
-            <video ref={assemblyRef} className="scene-first-video" controls preload="metadata" src={api.previewUrl(episodeId, "episode.mp4")} aria-label="الحلقة المجمعة" />
+            <FramePlayer ref={assemblyRef} src={api.previewUrl(episodeId, "episode.mp4")} label="الحلقة المجمعة" />
           </div>
           <div className="sp-side">
             <h3>شاهد الحلقة كاملة بسرعة 1×، وافحص كل وصلة</h3>
@@ -952,6 +987,11 @@ export const SceneDecisionActions: React.FC<{
   locked?: ActionLock;
   /** السابق والتالي وعدد المعتمد، على طرفي الشريط (خارج مجموعة القرار) */
   nav?: { prev: React.ReactNode; next: React.ReactNode; count: React.ReactNode };
+  /**
+   * Where the reason «اعتمد» waits for is read (a place in the page's column, under the frame). Without one it floats
+   * above the dock; with one it sits in the page's flow, so it never covers the filmstrip, the sentences or «أدوات وتفاصيل».
+   */
+  reasonsHost?: HTMLElement | null;
   onOpenSettings?: () => void;
   onVoice: () => void;
   onProblem: (kind: ProblemKind) => void;
@@ -1026,7 +1066,11 @@ export const SceneDecisionActions: React.FC<{
             ...(p.awaitingChange != null ? { title: "بانتظار التعديل: يُنتج من جديد حين تتغيّر مدخلاته" } : {}), onClick: p.onRender }) : null}
         </div>,
       )}
-      {reasons.length ? (
+      {reasons.length && p.reasonsHost ? createPortal(
+        <div className="s3-why s3-why-inline" role="note">
+          {reasons.map((r, i) => <p key={i} className="sp-hint">{r}</p>)}
+        </div>, p.reasonsHost,
+      ) : reasons.length ? (
         <div className="s3-why ms-float is-quiet" role="note">
           {reasons.map((r, i) => <p key={i} className="sp-hint">{r}</p>)}
         </div>
@@ -1038,7 +1082,7 @@ export const SceneDecisionActions: React.FC<{
       {p.problem && review ? (
         <form className="s3-problem ms-float" onSubmit={(e) => { e.preventDefault(); if (problemReady) p.onSubmitProblem(); }}
           onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); p.onCancelProblem(); } }}>
-          <span className="s3-problem-at">{p.problem.kind === "motion" ? "الحركة" : "النبرة"} عند <b dir="ltr">{at}</b></span>
+          <span className="s3-problem-at">{p.problem.kind === "motion" ? "الحركة" : "النبرة"} عند <b><Num className="clk">{at}</Num></b></span>
           {p.problem.kind === "tone" ? (
             <select aria-label="النبرة المناسبة" value={p.tone} onChange={(e) => p.onTone(e.target.value)}>
               <option value="">{p.toneMapVersion ? toneMapKeepLabel : inheritedToneLabel(p.episodeTone)}</option>
@@ -1061,26 +1105,45 @@ export const SceneDecisionActions: React.FC<{
  * The scene's frame (direction D): the picture on the channel's paper, a small play pill and a thin progress
  * line. The same <video>: «الحركة/النبرة غير مناسبة» read its current time through the forwarded ref.
  */
-export const FramePlayer = React.forwardRef<HTMLVideoElement, { src: string; label: string; autoPlay?: boolean }>(({ src, label, autoPlay }, ref) => {
+export const FramePlayer = React.forwardRef<HTMLVideoElement, {
+  src: string; label: string; autoPlay?: boolean; className?: string;
+  onTimeUpdate?: React.ReactEventHandler<HTMLVideoElement>; onLoadedMetadata?: React.ReactEventHandler<HTMLVideoElement>;
+}>(({ src, label, autoPlay, className, onTimeUpdate, onLoadedMetadata }, ref) => {
   const own = useRef<HTMLVideoElement | null>(null);
+  const box = useRef<HTMLDivElement | null>(null);
   const [t, setT] = useState(0);
   const [d, setD] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
   const setRef = (el: HTMLVideoElement | null) => {
     own.current = el;
     if (typeof ref === "function") ref(el); else if (ref) ref.current = el;
   };
   const toggle = () => { const v = own.current; if (!v) return; if (v.paused) void v.play().catch(noop); else v.pause(); };
+  const mute = () => { const v = own.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); };
+  const full = () => {
+    const el = box.current;
+    if (typeof document === "undefined" || !el) return;
+    if (document.fullscreenElement) void document.exitFullscreen().catch(noop); else void el.requestFullscreen?.().catch(noop);
+  };
+  // Our own controls, in Arabic (the browser's native ones speak the browser's language): play, time, sound, full screen.
   return (
-    <div className="s3-frame">
+    <div ref={box} className={`s3-frame${className ? ` ${className}` : ""}`}>
       <video ref={setRef} className="scene-first-video" preload="metadata" playsInline autoPlay={autoPlay} src={src} aria-label={label}
         onClick={toggle} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
-        onTimeUpdate={(e) => setT(e.currentTarget.currentTime)} onLoadedMetadata={(e) => setD(e.currentTarget.duration || 0)} />
+        onVolumeChange={(e) => setMuted(e.currentTarget.muted)}
+        onTimeUpdate={(e) => { setT(e.currentTarget.currentTime); onTimeUpdate?.(e); }}
+        onLoadedMetadata={(e) => { setD(e.currentTarget.duration || 0); onLoadedMetadata?.(e); }} />
       <div className="s3-play" dir="ltr">
-        <button type="button" onClick={toggle} aria-label={playing ? "أوقف" : "شغّل"}><Icon name={playing ? "pause" : "play"} /></button>
-        <Num>{`${clockAr(t)} / ${clockAr(d)}`}</Num>
+        <button type="button" onClick={toggle} aria-label={playing ? "أوقف" : "شغّل"} title={playing ? "أوقف" : "شغّل"}><Icon name={playing ? "pause" : "play"} /></button>
+        <Num className="clk">{`${clockAr(t)} / ${clockAr(d)}`}</Num>
+      </div>
+      <div className="s3-tools" dir="ltr">
+        <button type="button" onClick={mute} aria-pressed={muted} aria-label={muted ? "أعد الصوت" : "اكتم الصوت"} title={muted ? "أعد الصوت" : "اكتم الصوت"}>{muted ? "بلا صوت" : "الصوت"}</button>
+        <button type="button" onClick={full} aria-label="ملء الشاشة" title="ملء الشاشة">ملء الشاشة</button>
       </div>
       <input className="s3-prog" type="range" min={0} max={d || 0} step={0.05} value={Math.min(t, d || 0)} aria-label="موضع التشغيل"
+        aria-valuetext={`${clockAr(t)} من ${clockAr(d)}`}
         style={{ "--p": `${d ? (100 * t) / d : 0}%` } as React.CSSProperties}
         onChange={(e) => { const v = own.current; if (v) v.currentTime = Number(e.target.value); }} />
     </div>
@@ -1174,7 +1237,7 @@ const SeamReview: React.FC<{
             </figure>
             <div className="ms-seam-mid">
               <span>الوصلة <Num>{`${sceneNoOr(order, a)} ← ${sceneNoOr(order, b)}`}</Num></span>
-              <b>{tAt !== undefined ? <Num>{clockAr(tAt)}</Num> : "—"}</b>
+              <b>{tAt !== undefined ? <Num className="clk">{clockAr(tAt)}</Num> : "—"}</b>
               <span>موضعها في الحلقة</span>
             </div>
             <figure className="ms-seam-f">
@@ -1199,7 +1262,7 @@ const SeamReview: React.FC<{
       <section className="ms-tl" aria-label="الحلقة كاملة">
         <div className="ms-tl-head">
           <b>الحلقة كاملة</b>
-          <span><Num>{arabicCountAr(order.length, SCENES)}</Num>{total ? <>، <Num>{clockAr(total)}</Num></> : null}</span>
+          <span><Num>{arabicCountAr(order.length, SCENES)}</Num>{total ? <>، <Num className="clk">{clockAr(total)}</Num></> : null}</span>
           <span className="s3-legend" aria-hidden="true"><span><i className="d is-on" />الوصلة الحالية</span><span><i className="d is-ok" />مسموعة</span><span><i className="d" />لم تُسمع</span><span><i className="is-verse" />آية، سكون مقصود</span><span><i className="r is-ok" />تلاوة مرفقة</span><span><i className="r" />تنتظر التلاوة</span></span>
         </div>
         <ol className="ms-tl-strip">
@@ -1207,7 +1270,7 @@ const SeamReview: React.FC<{
             <React.Fragment key={id}>
               <li className={`ms-tl-clip${verse(id) ? " is-verse" : ""}`} style={{ flex: len(i) }} title={sceneName(order, id)}>
                 {verse(id) ? <><span className={`r${pendingRec.has(id) ? "" : " is-ok"}`} aria-label={pendingRec.has(id) ? "تنتظر التلاوة" : "تلاوة مرفقة"} /><b>آية</b></>
-                  : <>{thumb && Math.abs(i - at) <= 6 ? thumb(id) : null}<span className="s3-dot-n">{arNumOf(i + 1)}</span></>}
+                  : <>{thumb && Math.abs(i - at) <= 6 ? thumb(id) : <span className="s3-dot-ph" aria-hidden="true" />}<span className="s3-dot-n">{arNumOf(i + 1)}</span></>}
               </li>
               {i < order.length - 1 ? (
                 <li className={`ms-tl-sm${i === at ? " is-on" : heard[seams[i]!] ? " is-ok" : ""}`}>
@@ -1220,21 +1283,20 @@ const SeamReview: React.FC<{
         </ol>
         {known && total ? (
           <div className="ms-ruler" aria-hidden="true">
-            {Array.from({ length: Math.floor(total / 60) + 1 }, (_, m) => <span key={m} style={{ insetInlineStart: `${(100 * m * 60) / total}%` }}><Num>{`${m}:00`}</Num></span>)}
+            {Array.from({ length: Math.floor(total / 60) + 1 }, (_, m) => <span key={m} style={{ insetInlineStart: `${(100 * m * 60) / total}%` }}><Num className="clk">{clock(m * 60)}</Num></span>)}
           </div>
         ) : null}
       </section>
       <details className="more ms-full" open={allHeard}>
         <summary>شاهد الحلقة كاملة ١×</summary>
         <div className="more-body">
-          <video ref={player} className="scene-first-video" controls preload="metadata" src={src} aria-label="الحلقة المجمعة"
+          <FramePlayer ref={player} src={src} label="الحلقة المجمعة"
             onTimeUpdate={(e) => {
               const t = e.currentTarget.currentTime;
               const l = listenFrom.current;
               if (l) setPlayed((m) => ({ ...m, [l.seam]: Math.max(m[l.seam] ?? 0, t - l.from) }));
               if (stopAt.current !== null && t >= stopAt.current) { e.currentTarget.pause(); stopAt.current = null; listenFrom.current = null; }
-            }}
-            onSeeking={() => { if (stopAt.current === null) listenFrom.current = null; }} />
+            }} />
           <fieldset className="scene-first-seams">
             <legend>كل الوصلات: <Num>{`${heardCount} من ${seams.length}`}</Num></legend>
             {seams.map((x) => (

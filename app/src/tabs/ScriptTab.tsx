@@ -132,7 +132,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
       <div className="editor s12-editor">
         <div className="toolbar s12-bar">
           {workspaceMode ? (
-            doc === "research" ? <Hint>{research?.label ?? "البحث"} · للتحضير فقط، لا يُقرأ ولا يُنشر.</Hint> : null
+            doc === "research" ? <Hint>{research?.label ?? "البحث"} — للتحضير فقط، لا يُقرأ ولا يُنشر.</Hint> : null
           ) : (
             <div className="seg" role="group" aria-label="الملف">
               <button aria-pressed={doc === "script"} onClick={() => setDoc("script")}>السكريبت</button>
@@ -167,9 +167,9 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             <span className={`s12-verdict ${check.ok ? "ok" : "bad"}`}>
               <i aria-hidden />
               {check.ok ? "صالح" : `${ar(errors)} ${errors === 1 ? "خطأ" : "أخطاء"}`}
-              {warnings ? <span className="s12-soft"> · {ar(warnings)} تنبيه</span> : null}
+              {warnings ? <span className="s12-soft"> — {ar(warnings)} تنبيه</span> : null}
             </span>
-            <span className="s12-num">{ar(check.stats.totalWords)} كلمة · {fmtAr(check.stats.totalSeconds)}</span>
+            <span className="s12-num">{ar(check.stats.totalWords)} كلمة — {fmtAr(check.stats.totalSeconds)}</span>
           </header>
           {sortedIssues.length ? (
             <ul className="s12-issues">
@@ -203,7 +203,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
             <section aria-label="العلامات">
               <h3 className="s12-h">العلامات</h3>
-              <p className="s12-soft s12-code">[مشهد: …] [آية: النجم 39 | نص الآية بالتشكيل] [حديث: …] [صوت: page-turn] · bridge: …</p>
+              <p className="s12-soft s12-code">[مشهد: …] [آية: النجم 39 | نص الآية بالتشكيل] [حديث: …] [صوت: page-turn] — bridge: …</p>
             </section>
             <section aria-label="اعتماد السكريبت">
               <h3 className="s12-h">اعتماد السكريبت</h3>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import { arDigits } from "../ui/format";
 import { kitIssues } from "../../../src/package/quality";
 import { CHAPTERS_TOKEN, checkCaption, checkDescription, checkTitle, resolveDescription, RULES, type Check, type PublishKit, type ShortKit } from "../../../src/package/social";
 
@@ -119,7 +120,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
       </div>
       <div className="seg kit-tabs" role="group" aria-label="المنصة">
         <button aria-pressed={view === "long"} onClick={() => setView("long")}>الحلقة (يوتيوب وفيسبوك)</button>
-        {kit.shorts.map((s, i) => <button key={i} aria-pressed={view === i} onClick={() => setView(i)}>شورت {s.chapter}</button>)}
+        {kit.shorts.map((s, i) => <button key={i} aria-pressed={view === i} onClick={() => setView(i)}>شورت {arDigits(s.chapter)}</button>)}
       </div>
 
       {view === "long" ? (
@@ -129,7 +130,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
             {L.titles.map((t, i) => (
               <Field
                 key={i}
-                label={`${i + 1}. ${t.angle}`}
+                label={`${arDigits(i + 1)}. ${t.angle}`}
                 value={t.text}
                 onChange={(v) => setLong({ titles: L.titles.map((x, k) => (k === i ? { ...x, text: v } : x)) })}
                 checks={checkTitle(t.text, "youtube", keywords)}

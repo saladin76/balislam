@@ -65,7 +65,7 @@ export const VoiceWorkspaceTab: React.FC<{
         {!playlist.length && scenes.length ? <span className="sp-hint">لا مقاطع بعد؛ التوليد في «أدوات وتفاصيل».</span> : null}
       </div>
       {playingClip && <div className="s3-voice-now" aria-label="مشغل التعليق المتصل">
-        <strong>المقطع {playerIndex! + 1} من {playlist.length} · <span dir="ltr">{playingClip.id}</span></strong>
+        <strong>المقطع {ar(playerIndex! + 1)} من {ar(playlist.length)}</strong>
         <p>{playingClip.text}</p>
         <audio key={playingClip.id + ":" + playingClip.file} ref={playlistPlayer} controls preload="auto"
           onEnded={finishClip} onError={() => { setPlayerError("تعذّر تشغيل المقطع."); setPlayerIndex(null); }}
@@ -91,7 +91,7 @@ export const VoiceWorkspaceTab: React.FC<{
             const clip = media.voice[scene.id];
             return (
               <li key={scene.id}>
-                <button type="button" className="s3-clip-row" aria-expanded={open} onClick={() => setSelected(open ? "" : scene.id)} title={`الفصل ${chapter} · ${scene.id}`}>
+                <button type="button" className="s3-clip-row" aria-expanded={open} onClick={() => setSelected(open ? "" : scene.id)} title={`الفصل ${ar(Number(chapter))} — ${scene.id}`}>
                   <span className="s3-clip-n">{ar(i + 1)}</span>
                   <span className="s3-clip-text">{scene.narration}</span>
                   <span className={`s3-clip-st ${state}`}>{state === "ready" ? "صوت مطابق" : state === "stale" ? "صوت قديم" : "بلا صوت"}</span>

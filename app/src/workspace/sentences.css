@@ -43,10 +43,13 @@
 .sv-menu > summary { list-style: none; cursor: pointer; min-width: 32px; min-height: 32px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line-2, #d3cfc6); font-size: 18px; line-height: 1; }
 .sv-menu > summary::-webkit-details-marker { display: none; }
 .sv-menu[open] > summary { background: var(--panel-2, #faf9f6); }
+/* The «⋯» menu opens upward (is-up) and above the fixed filmstrip and dock (z 9 / 30), so its last item is never under them */
 .sv-menu-pop {
-  position: absolute; inset-inline-end: 0; top: calc(100% + 4px); z-index: 20; min-width: 200px; display: grid; padding: 4px;
+  position: absolute; inset-inline-end: 0; top: calc(100% + 4px); z-index: 35; min-width: 200px; display: grid; padding: 4px;
+  max-height: min(60vh, 420px); overflow-y: auto;
   background: var(--panel, #fff); border: 1px solid var(--line, #e6e3dc); border-radius: var(--r, 8px); box-shadow: var(--shadow-pop, 0 12px 32px -14px rgba(0,0,0,.26));
 }
+.sv-menu-pop.is-up { top: auto; bottom: calc(100% + 4px); }
 .sv-menu-pop button { font: inherit; font-size: 14px; text-align: start; background: none; border: 0; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: inherit; }
 .sv-menu-pop button:hover:not(:disabled) { background: var(--panel-2, #faf9f6); }
 .sv-menu-pop button:disabled { opacity: .45; cursor: default; }
@@ -93,6 +96,13 @@
 .sv-word:disabled { cursor: default; background: transparent; }
 .sv-word:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .sv-words-why { margin: 0; font-size: var(--t-12); }
+/* D63: every word is pressable, so it reads as such — pointer, a subtle dotted underline on hover/focus; the other
+   sentences of the paragraph stay plain text until hovered */
+.sv-word:hover:not(:disabled), .sv-word:focus-visible { text-decoration: underline dotted color-mix(in srgb, var(--ink) 55%, transparent); text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.sv-sn:not(.is-cur) .sv-word:not(.is-open):not(.is-fixed):not(.is-fail) { background: transparent; }
+.sv-word[aria-busy="true"] { cursor: progress; background: var(--quiet); }
+.sv-origin { font-size: var(--t-12); color: var(--ink-2); border: 1px solid var(--line, color-mix(in srgb, var(--ink) 18%, transparent)); border-radius: 999px; padding: 0 7px; margin-inline-start: 6px; white-space: nowrap; }
+.sv-why-pop .sv-why-line { margin: 4px 0 2px; }
 
 /* ── the paragraph of the scene's sentences ── */
 .sv.is-para { gap: 8px; margin-top: 4px; }
@@ -219,3 +229,24 @@
   .sv-hint { width: 100%; margin: 4px 0 0; }
   .sv-tools .sv-sel.is-pause, .sv-tools .sv-t[aria-pressed] { display: none; }
 }
+
+/* ── playing a sentence (D62): ▶/⏸ on one button, ■ beside it, a thin progress bar; one audio per page ── */
+.sv-pc { display: inline-flex; align-items: center; gap: 6px; }
+.sv-rb[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.sv-stop { all: unset; box-sizing: border-box; cursor: pointer; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); font-size: 11px; }
+.sv-stop svg { width: 10px; height: 10px; }
+.sv-stop:hover { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink-2); }
+.sv-stop:focus-visible, .sv-sn[tabindex="0"]:focus-visible, .sv-row:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sv-prog { display: inline-block; width: 72px; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; position: relative; }
+.sv-prog > i { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--ink); border-radius: 2px; }
+.sv-approx { color: var(--mute); font-size: var(--t-12); }
+.sv-row .sv-pc { flex-wrap: wrap; }
+.sv-scene-on { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-12); color: var(--ink-2); }
+.sv-scene-on .btn { padding-block: 2px; }
+/* the sentence on air: highlighted, with its progress drawn under the text (right to left) */
+.sv-sn.is-playing .sv-sn-t, .sv-sn.is-playing .sv-words {
+  background:
+    linear-gradient(to left, var(--ink) calc(var(--sv-p, 0) * 100%), transparent calc(var(--sv-p, 0) * 100%)) bottom / 100% 2px no-repeat,
+    linear-gradient(transparent 58%, var(--mark) 58%, var(--mark) 92%, transparent 92%);
+}
+@media (prefers-reduced-motion: no-preference) { .sv-prog > i { transition: width .1s linear; } }

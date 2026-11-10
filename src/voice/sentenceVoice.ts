@@ -35,11 +35,11 @@ import { alignmentToWords, applyDictionary, wordsForCaptions } from "./words";
 import { planVerseTexts } from "./quranGuard";
 import { BASMALA_KEY, BASMALA_PLACEHOLDER_SEC, hasBasmala } from "./basmala";
 import { applyLexicon, checkSay, coreOf, loadLexicon, quranMask, removeLexiconEntry, setLexiconEntry, type LexiconEntry } from "./lexicon";
-import { remapWords, SPLICE, spliceWord, type SpliceCheck } from "./wordSplice";
+import { remapWords, snapBoundary, SPLICE, spliceWord, type SpliceCheck } from "./wordSplice";
 import {
   addSentenceAfter, clampPause, contextFingerprint, cutPoints, deleteSentence, editSentenceText, emptyDoc, heardKey,
   mergeWithNext, reconcileScene, sceneNarration, sentenceFingerprint, sentencesFor, sentenceStatus, splitSentence,
-  normText, splitBasmalaInList, words, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
+  normText, sceneAdoption, splitBasmalaInList, sceneSpans, words, type SceneSpan, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
 } from "./sentences";
 
 export const SENTENCE_SAMPLE_RATE = 44100;
@@ -228,11 +228,17 @@ export type SentenceRow = {
   chars: number;
   /** كلمات النص كما تُعرض (شرائح «أعد نطق الكلمة»): توقيتها في التسجيل الحالي إن صلح، وما يُنطق لها الآن */
   words: { word: string; say: string; start: number | null; end: number | null; quran: boolean }[];
-  /** هل تصلح إعادة نطق كلمة في التسجيل الحالي، ولماذا لا */
-  wordFix: { ok: boolean; reason?: string };
+  /**
+   * هل تصلح إعادة نطق كلمة في التسجيل الحالي، ولماذا لا. adopt: لا تسجيل للجملة لكن صوت المشهد ملفًا واحدًا
+   * بتوقيت كلمات حقيقي، فالضغط على كلمة يقصه إلى جمله أولًا («من صوت المشهد»، بلا طلب مدفوع) ثم يفتح التصحيح؛
+   * وتوقيت words حينها بزمن ملف المشهد (source: "scene").
+   */
+  wordFix: { ok: boolean; reason?: string; adopt?: boolean; source?: "scene" };
   /** «نُطقت: …» (sent: في التسجيل الحالي) أو «ستُنطق: …» (next: عند التوليد القادم) */
   applied: { word: string; say: string }[]; appliedState: "sent" | "next";
   fixes: number;
+  /** حدود الجملة في صوت المشهد ملفًا واحدًا (لتشغيلها وحدها حين لا تسجيل لها)؛ null بلا صوت مشهد مطابق لنصه */
+  sceneSpan: SceneSpan | null;
 };
 export type VerseRow = {
   id: string; sceneId: string; kind: "verse-card"; ayahKey: string; reference: string;
@@ -311,7 +317,14 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
     const narr = scene.narration.trim();
     const audio: SentenceScene["audio"] = !clip ? { state: "none", file: null, duration: null }
       : { state: clip.text !== narr ? "stale" : clip.sentences ? "sentences" : "scene", file: clip.file, duration: clip.duration };
+    const spans = clip && audio.state === "scene" ? sceneSpans(clip, list.map((s) => s.text)) : null;
+    // صوت المشهد ملفًا واحدًا: هل يُقص إلى جمله بتوقيت كلماته (الضغط على كلمة جملة بلا تسجيل)
+    const adoption = clip && audio.state === "scene" ? sceneAdoption(clip, list.map((s) => s.text)) : null;
+    let w0 = 0;
     const rows = list.map((s, k): SentenceRow => {
+      const count = words(s.text).length;
+      const sceneWords = adoption?.ok ? clip!.words.slice(w0, w0 + count) : undefined;
+      w0 += count;
       const v = voiceOf(ctx, scene, list, s);
       const nb = neighbours(flat, s.id);
       return {
@@ -322,7 +335,8 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         takes: s.takes?.length ?? 0,
         contextChanged: Boolean(s.audio && s.audio.origin === "tts" && s.audio.context !== contextFingerprint(nb.previousText, nb.nextText)),
         tashkeel: coverageOf(ctx, s.id, s.text, s.corrections), chars: v.send.text.length,
-        ...wordRows(s, v),
+        ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined),
+        sceneSpan: spans?.[k] ?? null,
       };
     });
     scenes.push({ ...base, managed, audio, import: ctx.doc.scenes[scene.id]?.import ?? null,
@@ -332,14 +346,21 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
   return { episode, voiceKey: Boolean(process.env.ELEVENLABS_API_KEY && voiceIdFor()), toneMap: ctx.map ? { version: ctx.map.version } : null, scenes, lexicon: ctx.lexicon };
 };
 
-const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>): Pick<SentenceRow, "words" | "wordFix" | "applied" | "appliedState" | "fixes"> => {
+/** صوت المشهد ملفًا واحدًا لجملة بلا تسجيل: يصلح قصه (adopt) بكلماتها بزمنه، أو لماذا لا */
+type SceneAlt = { adopt: boolean; reason?: string; words?: TimedWord[] };
+const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>, scene?: SceneAlt): Pick<SentenceRow, "words" | "wordFix" | "applied" | "appliedState" | "fixes"> => {
   const refusal = wordFixRefusal(s, v.fingerprint);
   const ws = words(s.text);
   const mask = quranMask(ws);
   const current = Boolean(s.audio && s.audio.fingerprint === v.fingerprint);
+  const fromScene = Boolean(refusal && !s.audio && s.kind === "narration" && scene);
+  const adopt = fromScene && scene!.adopt && scene!.words?.length === ws.length;
+  const at = (i: number, k: "start" | "end") => (!refusal ? s.audio!.words[i]![k] : adopt ? scene!.words![i]![k] : null);
   return {
-    words: ws.map((w, i) => ({ word: w, say: coreOf(v.send.perWord[i] || w) || w, start: refusal ? null : s.audio!.words[i]!.start, end: refusal ? null : s.audio!.words[i]!.end, quran: mask[i]! || s.kind === "verse" })),
-    wordFix: refusal ? { ok: false, reason: refusal } : { ok: true },
+    words: ws.map((w, i) => ({ word: w, say: coreOf(v.send.perWord[i] || w) || w, start: at(i, "start"), end: at(i, "end"), quran: mask[i]! || s.kind === "verse" })),
+    wordFix: !refusal ? { ok: true }
+      : adopt ? { ok: false, adopt: true, source: "scene", reason: "تُقص الجملة من صوت المشهد عند الضغط على كلمة، بلا توليد." }
+      : fromScene && scene!.reason ? { ok: false, reason: scene!.reason } : { ok: false, reason: refusal },
     applied: current ? (s.audio!.spokenFixes ?? []) : v.send.applied.map((a) => ({ word: a.word, say: a.say })),
     appliedState: current ? "sent" : "next",
     fixes: s.audio?.fixes?.length ?? 0,
@@ -363,7 +384,15 @@ const sliceByWords = async (o: { scriptPath: string; source: string; sourceWords
   if (!cp.ok) return cp;
   const pcm = await decode(o.source);
   const total = pcm.length / SENTENCE_SAMPLE_RATE || o.duration;
-  const bounds = [0, ...cp.cuts, total];
+  // كل حد إلى أهدأ نقطة داخل الوقفة نفسها (لا يدخل كلمة): الوقفة تبقى كما هي موزّعة بين الجملتين
+  let k0 = 0;
+  const cuts = cp.cuts.map((c, j) => {
+    k0 += o.parts[j]!.count;
+    const lo = o.sourceWords[k0 - 1]!.end, hi = o.sourceWords[k0]!.start;
+    const x = snapBoundary(pcm, SENTENCE_SAMPLE_RATE, c, Math.min(SPLICE.snapSec, (hi - lo) / 2));
+    return Math.min(hi, Math.max(lo, x));
+  });
+  const bounds = [0, ...cuts, total];
   const dir = sentencesDirFor(o.scriptPath);
   await mkdir(dir, { recursive: true });
   const out = [];
@@ -517,7 +546,7 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
 // ── الأفعال ──────────────────────────────────────────────────────────────────
 
 export type SentenceCommand = {
-  action: "init" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword";
+  action: "init" | "adopt" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword";
   /** معرّف الجملة؛ أو مشهد ورقم الجملة فيه لصف لم يبدأ العمل على مشهده بعد */
   id?: string; sceneId?: string; index?: number;
   text?: string; at?: number; tone?: string | null; ms?: number; note?: string; value?: boolean;
@@ -554,21 +583,47 @@ const initScene = async (ctx: Ctx, scene: PlanScene) => {
   if (clip && (clip.text !== scene.narration.trim() || path.basename(clip.file) !== clip.file || !existsSync(source)))
     imp = { state: "unreliable", note: "صوت المشهد السابق لنص قديم أو ملفه غير موجود؛ بقي كما هو، والجمل تبدأ بلا صوت." };
   else if (clip) {
-    const r = await sliceByWords({ scriptPath: ctx.scriptPath, source, sourceWords: clip.words, duration: clip.duration,
-      parts: list.map((s) => ({ id: s.id, count: words(s.text).length })), tag: `scene-${clip.hash}` });
-    if (r.ok) {
-      const flatCtx = { ...ctx, doc: { ...ctx.doc, scenes: { ...ctx.doc.scenes, [scene.id]: { sentences: list, createdAt: "", import: imp } } } };
-      const flat = flatten(flatCtx);
-      for (const f of r.files) {
-        const s = list.find((x) => x.id === f.id)!;
-        const nb = neighbours(flat, s.id);
-        s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
-          duration: f.duration, words: f.words, at: new Date().toISOString(), origin: "scene" };
-      }
-      imp = { state: "imported", note: "قُصّ صوت المشهد السابق إلى جمله بتوقيت كلماته؛ الملف الأصلي كما هو." };
-    } else imp = { state: "unreliable", note: `لم يُقص صوت المشهد السابق إلى جمل (${r.reason})؛ بقي صوت المشهد كما هو حتى تُولَّد الجمل.` };
+    const r = await adoptSceneAudio(ctx, scene, list, clip);
+    imp = r.ok ? { state: "imported", note: "قُصّ صوت المشهد السابق إلى جمله بتوقيت كلماته؛ الملف الأصلي كما هو." }
+      : { state: "unreliable", note: `لم يُقص صوت المشهد السابق إلى جمل (${r.reason})؛ بقي صوت المشهد كما هو حتى تُولَّد الجمل.` };
   }
   ctx.doc.scenes[scene.id] = { sentences: list, createdAt: new Date().toISOString(), import: imp };
+};
+
+/**
+ * يقص صوت المشهد ملفًا واحدًا إلى جمله بتوقيت كلماته (D63): نسخ جديدة في voice/sentences/ بأصل «scene» («من صوت المشهد»)
+ * لكل جملة بلا تسجيل، والحدود في أهدأ نقطة داخل كل وقفة، ووقفة كل جملة = وقفتها في التسجيل (فيبقى الإيقاع إن رُكّب
+ * المشهد من جمله لاحقًا). بلا أي طلب مدفوع، ولا يمس index.json ولا ملف المشهد ولا الخطة، فلا تتغير بصمة صوت
+ * المشهد في السجل ولا اعتماده. يغيّر list في مكانه.
+ */
+const adoptSceneAudio = async (ctx: Ctx, scene: PlanScene, list: Sentence[], clip: VoiceClip): Promise<{ ok: true } | { ok: false; reason: string }> => {
+  const source = path.join(voiceDirFor(ctx.scriptPath), clip.file);
+  if (clip.text !== scene.narration.trim() || path.basename(clip.file) !== clip.file || !existsSync(source))
+    return { ok: false, reason: "صوت المشهد لنص قديم أو ملفه غير موجود" };
+  const can = sceneAdoption(clip, list.map((s) => s.text));
+  if (!can.ok) return can;
+  const r = await sliceByWords({ scriptPath: ctx.scriptPath, source, sourceWords: clip.words, duration: clip.duration,
+    parts: list.map((s) => ({ id: s.id, count: words(s.text).length })), tag: `scene-${clip.hash}` });
+  if (!r.ok) return r;
+  const flatCtx = { ...ctx, doc: { ...ctx.doc, scenes: { ...ctx.doc.scenes, [scene.id]: { sentences: list, createdAt: "", import: { state: "none" as const } } } } };
+  const flat = flatten(flatCtx);
+  let w = 0;
+  for (const [k, s] of list.entries()) {
+    const count = words(s.text).length;
+    const f = r.files.find((x) => x.id === s.id)!;
+    const next = clip.words[w + count];
+    if (!s.audio) {
+      const nb = neighbours(flat, s.id);
+      s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
+        duration: f.duration, words: f.words, at: new Date().toISOString(), origin: "scene", timing: "aligned" };
+      if (next && k < list.length - 1) s.pauseAfterMs = clampPause((next.start - clip.words[w + count - 1]!.end) * 1000);
+    } else {
+      // تسجيل الجملة قائم: النسخة المقصوصة لا تُستعمل (تُحذف، فهي نسخة مجانية من ملف المشهد)
+      await unlink(path.join(sentencesDirFor(ctx.scriptPath), f.file)).catch(() => {});
+    }
+    w += count;
+  }
+  return { ok: true };
 };
 
 /** يكتب نص مشهد واحد في plan.json كما هو على القرص (بلا آيات، بلا إعادة توليد للخطة أبدًا) */
@@ -726,7 +781,7 @@ const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list: Senten
 export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts: SentenceActionOptions = {}): Promise<SentenceActionResult> => {
   const { assertSceneOwner, serialized } = await import("../studio/sceneService");
   assertSceneOwner();
-  const actions = ["init", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword"];
+  const actions = ["init", "adopt", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword"];
   if (!cmd || !actions.includes(cmd.action) || (cmd.text !== undefined && (typeof cmd.text !== "string" || cmd.text.length > 4000)) ||
       (cmd.note !== undefined && (typeof cmd.note !== "string" || cmd.note.length > 2000)) ||
       (cmd.say !== undefined && (typeof cmd.say !== "string" || cmd.say.length > 200)) || (cmd.word !== undefined && !Number.isInteger(cmd.word)) ||
@@ -770,6 +825,17 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
     };
     switch (cmd.action) {
       case "init": break;
+      case "adopt": {
+        // «اضغط كلمة» في مشهد صوته ملف واحد: يُقص إلى جمله «من صوت المشهد» (بلا طلب مدفوع، ولا يُركّب المشهد)
+        const clip = ((await readJson<VoiceIndex>(path.join(voiceDirFor(scriptPath), "index.json"))) ?? {})[scene.id];
+        if (list.every((s) => s.audio)) break;
+        if (!clip || clip.sentences) throw new Error("لا صوت مشهد ملفًا واحدًا يُقص إلى جمله؛ ولّد الجملة.");
+        const r = await adoptSceneAudio(ctx, scene, list, clip);
+        if (!r.ok) throw new Error(r.reason);
+        rec.import = { state: "imported", note: "قُصّ صوت المشهد السابق إلى جمله بتوقيت كلماته؛ الملف الأصلي كما هو." };
+        message = "قُصّ صوت المشهد إلى جمله «من صوت المشهد» بلا توليد؛ صوت المشهد نفسه لم يتغير.";
+        break;
+      }
       case "edit": list = editSentenceText(list, id!, String(cmd.text ?? "")); break;
       case "add": list = addSentenceAfter(list, id!, String(cmd.text ?? "")).list; break;
       case "delete": list = deleteSentence(list, id!); break;
@@ -855,7 +921,7 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
     }
     const current = allScenes(ctx.plan).map((x) => x.scene).find((s) => s.id === scene.id)!;
     // صوت المشهد يُركّب من جمله حين تكون كلها حالية (وإلا يبقى صوته السابق كما هو)؛ وصل لم يُطبَّق لا يغيّر شيئًا
-    if (cmd.action !== "init" && cmd.action !== "heard" && !(cmd.action === "fixword" && !fix?.ok)) {
+    if (cmd.action !== "init" && cmd.action !== "adopt" && cmd.action !== "heard" && !(cmd.action === "fixword" && !fix?.ok)) {
       const c = await composeSentenceScene(ctx, current, list);
       composed = { sceneId: scene.id, ...c };
     }

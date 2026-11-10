@@ -1,5 +1,6 @@
 import { channelEngineFeatures, ENGINE_STATUS_AR, engineStatus } from "../../../src/plan/engine";
 import React, { useState } from "react";
+import { arDigits, num } from "../ui/format";
 import { Player } from "@remotion/player";
 import { api } from "../api";
 import { channelInfo, type ChannelConfig } from "../../../src/channel/types";
@@ -172,7 +173,7 @@ const EnginePanel: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>)
           {rows.map(({ f, st }) => (
             <tr key={f.id} data-engine={f.id} data-status={st} style={{ borderTop: "1px solid var(--line, #0002)" }}>
               <td style={{ padding: "8px 4px", verticalAlign: "top" }}>
-                <b>{f.nameAr}</b> <small style={{ opacity: 0.6 }}>({f.order})</small>
+                <b>{f.nameAr}</b> <small style={{ opacity: 0.6 }}>({arDigits(f.order)})</small>
                 <div className="help">{f.summary}</div>
                 <div className="help">التحكم: {f.control}</div>
                 {f.limits ? <div className="help">حدود: {f.limits}</div> : null}
@@ -206,7 +207,7 @@ const REGISTERS: VoiceProfile[] = [
   { nameAr: "سريع واضح", speed: 1.02, stability: 0.45, style: 0.28 },
   { nameAr: "حكّاء قريب", speed: 0.94, stability: 0.45, style: 0.3 },
 ];
-const pct = (x: number) => `${Math.round(x * 100)}٪`;
+const pct = (x: number) => `${num(Math.round(x * 100))}٪`;
 
 /**
  * طبقة صوت القناة: صوت صاحب القناة نفسه بسرعة وثبات وتعبير خاصة بها، والنبرات (لكل حلقة أو مشهد) تتحرك حولها.
@@ -218,7 +219,7 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
   const [play, setPlay] = useState<PlayState>({ busy: false });
   const slider = (key: "speed" | "stability" | "style", label: string, help: string, min: number, max: number) => (
     <label className="field">
-      <span>{label}: <b>{key === "speed" ? `${p![key].toFixed(2)}×` : pct(p![key])}</b> <small>{help}</small></span>
+      <span>{label}: <b>{key === "speed" ? `${num(p![key], 2)}×` : pct(p![key])}</b> <small>{help}</small></span>
       <input type="range" min={min} max={max} step={0.01} value={p![key]} onChange={(e) => put({ ...p!, nameAr: p!.nameAr, [key]: Number(e.target.value) })} />
     </label>
   );
@@ -248,7 +249,7 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
             return (
               <tr key={t ?? "base"}>
                 <td>{t ? <>{tones[t].nameAr} <small className="help">{tones[t].useAr}</small></> : <b>طبقة القناة وحدها</b>}</td>
-                <td dir="ltr">{v.speed.toFixed(2)}×</td>
+                <td>{num(v.speed, 2)}×</td>
                 <td>{pct(v.stability)}</td>
                 <td>{pct(v.style)}</td>
                 <td><button className="btn ghost small" disabled={play.busy} aria-label="استمع" onClick={() => setPlay({ ...play, request: { tone: t, n: Date.now() } })}>{play.playing === (t ?? "base") ? "■" : "▶"}</button></td>
@@ -317,7 +318,7 @@ const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: Pl
         ) : (
           <button className="btn small" onClick={() => api.voiceModels(c.id).then((r) => setModels(r.models)).catch((e) => setPlay({ ...play, msg: (e as Error).message }))}>مقارنة بنموذج آخر</button>
         )}
-        <span className="help">{play.msg ?? ""}{spent ? ` · مجموع هذه الجلسة: ${spent} حرف` : ""}</span>
+        <span className="help">{play.msg ?? ""}{spent ? ` — مجموع هذه الجلسة: ${spent} حرف` : ""}</span>
       </div>
     </div>
   );

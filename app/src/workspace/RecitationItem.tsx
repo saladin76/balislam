@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { api, type Loudness, type OwnRecitationsRead, type RecitationPolish, type RecitationVariant } from "../api";
 import { num, sceneName, seconds as secs, verseRef } from "../ui/format";
 
-const lufs = (l?: Loudness | null) => (l && Number.isFinite(l.integrated) ? `علوّ ${num(l.integrated, 1)} · ذروة ${num(l.truePeak, 1)}` : "—");
+const lufs = (l?: Loudness | null) => (l && Number.isFinite(l.integrated) ? `علوّ ${num(l.integrated, 1)} — ذروة ${num(l.truePeak, 1)}` : "—");
 const sec = (n: number) => secs(n, 2);
 
 export const recitationUrl = (episodeId: string, channelId: string, file: string) =>
@@ -20,6 +20,7 @@ export const RecitationItem: React.FC<{
   order?: string[];
 }> = ({ episodeId, channelId, ayahKey: key, scenes, recs, onChanged, compact, order }) => {
   const [busy, setBusy] = useState("");
+  const picker = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [f, setF] = useState({ reciter: "", rights: "", note: "", listened: false });
@@ -69,7 +70,7 @@ export const RecitationItem: React.FC<{
         <label key={id} className={`pf-variant${chosen === id ? " is-on" : ""}`}>
           <input type="radio" name={`v-${key}`} checked={chosen === id} disabled={Boolean(busy)} onChange={() => void select(id)} />
           <b>{id === "processed" ? "المعالجة" : "الأصل كما سُجّل"}</b>
-          <span className="sp-hint">{lufs(vs[id].loudness)} · {sec(vs[id].duration)}</span>
+          <span className="sp-hint">{lufs(vs[id].loudness)} — {sec(vs[id].duration)}</span>
           <audio controls preload="none" src={audioUrl(vs[id].file)} />
         </label>
       ))}
@@ -106,11 +107,14 @@ export const RecitationItem: React.FC<{
         </>
       ) : null}
       {!pending ? (
-        <label className="btn ghost pf-upload">
-          {busy === "up" ? "جارٍ الرفع والمعالجة…" : approved ? "استبدل التسجيل" : "ارفع التلاوة"}
-          <input type="file" accept=".wav,.mp3,.m4a,.aac,.ogg,.flac,audio/*" hidden disabled={Boolean(busy)}
+        <>
+          {/* A real button (keyboard: Tab, then Enter or Space) that opens the hidden file picker */}
+          <button type="button" className="btn ghost pf-upload" disabled={Boolean(busy)} aria-busy={busy === "up"} onClick={() => picker.current?.click()}>
+            {busy === "up" ? "جارٍ الرفع والمعالجة…" : approved ? "استبدل التسجيل" : "ارفع التلاوة"}
+          </button>
+          <input ref={picker} type="file" accept=".wav,.mp3,.m4a,.aac,.ogg,.flac,audio/*" hidden tabIndex={-1} aria-hidden="true" disabled={Boolean(busy)}
             onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void upload(file); }} />
-        </label>
+        </>
       ) : null}
       {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
       {msg ? <p className="sp-hint" role="status">{msg}</p> : null}

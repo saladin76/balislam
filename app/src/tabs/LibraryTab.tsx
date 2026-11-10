@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { num } from "../ui/format";
 import { Element } from "../../../brand/elements/Element";
 import { elementLibrary } from "../../../brand/elements/registry";
 import { categoryNamesAr, categoryOrder, type ElementCategory } from "../../../brand/elements/types";
@@ -37,7 +38,7 @@ export const LibraryTab: React.FC<{ hasVoiceKeys: boolean; identity?: Identity; 
     <div className="library">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="القسم">
-          {([["templates", `القوالب (${sceneCatalog.filter((e) => lib.templates.includes(e.id)).length})`], ["images", `صور القناة (${channelLibraries[channel?.id ?? ""]?.length ?? 0})`], ["sets", `أماكن التصوير (${illus ? RICH_SETS.length + PLACE_IDS.length : lib.sets.length})`], ["characters", "الشخصيات"], ["elements", `العناصر (${lib.elements.length})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
+          {([["templates", `القوالب (${num(sceneCatalog.filter((e) => lib.templates.includes(e.id)).length)})`], ["images", `صور القناة (${num(channelLibraries[channel?.id ?? ""]?.length ?? 0)})`], ["sets", `أماكن التصوير (${num(illus ? RICH_SETS.length + PLACE_IDS.length : lib.sets.length)})`], ["characters", "الشخصيات"], ["elements", `العناصر (${num(lib.elements.length)})`], ["sfx", "المؤثرات الصوتية"]] as const).map(([k, l]) => (
             <button key={k} aria-pressed={section === k} onClick={() => setSection(k)}>{l}</button>
           ))}
         </div>

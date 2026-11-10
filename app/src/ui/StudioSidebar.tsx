@@ -48,6 +48,6 @@ export const StudioSidebar: React.FC<{
       <div className="studio-nav-group studio-guide-link"><p>الأدوات والإعدادات</p>{item("settings", "plug", undefined, p.voiceConnected ? undefined : "تحتاج إعداد الاتصال")}{p.hasGuide && item("guide", "book", p.guideLabel)}</div>
     </nav>
     {p.episodeId && p.episodeTitle && <div className="studio-sidebar-episode"><span>الحلقة المفتوحة <b dir="ltr">{p.episodeId}</b></span><strong>{p.episodeTitle}</strong><small>مراحل الإنتاج تظهر داخل مساحة الحلقة</small></div>}
-    <div className="studio-sidebar-footer"><span className="studio-system-dot" /><span>استوديو القنوات</span><span>3 قنوات · مسارات واضحة</span></div>
+    <div className="studio-sidebar-footer"><span className="studio-system-dot" /><span>استوديو القنوات</span><span>3 قنوات — مسارات واضحة</span></div>
   </aside>;
 };

@@ -7,6 +7,7 @@
 import { arDigits, num } from "../ui/format";
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
+import { useScrollLock } from "../ui/scrollLock";
 import { STORYBOARD_STATUS_AR, labStoryboardsEnabled, shownStatus, type StoryboardEntry, type StoryboardStatus, type StoryboardVersion } from "../../../src/channel/labStoryboardsShared";
 
 const date = (v?: string | null) => (v ? new Date(v).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }) : "—");
@@ -18,6 +19,7 @@ const Status: React.FC<{ v: StoryboardVersion }> = ({ v }) => {
 type Zoom = "fit" | "100" | "200";
 const Lightbox: React.FC<{ src: string; title: string; onClose: () => void }> = ({ src, title, onClose }) => {
   const [zoom, setZoom] = useState<Zoom>("fit");
+  useScrollLock();
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", k);
@@ -92,12 +94,12 @@ const Version: React.FC<{ channel: string; dir: string; e: StoryboardEntry; v: S
         <span className="sbi-kind">صورة</span> <b>{label}</b> <Status v={v} />
         <button className="sbi-zoom-btn" onClick={() => onZoom(v)}>تكبير وفحص التفاصيل</button>
       </span>
-      <span className="help" title={v.source && v.source !== v.file ? `${v.file} ← ${v.source}` : v.file}>النسخة {num(v.version)} · {date(v.uploadedAt)}</span>
+      <span className="help" title={v.source && v.source !== v.file ? `${v.file} ← ${v.source}` : v.file}>النسخة {num(v.version)} — {date(v.uploadedAt)}</span>
       <span>{v.title}</span>
       {v.note ? <span className="help">{v.note}</span> : null}
       {v.decision ? (
         <span className="sbi-decision">
-          قرار {v.decision.by} · {date(v.decision.at)}: {v.decision.note}
+          قرار {v.decision.by} — {date(v.decision.at)}: {v.decision.note}
         </span>
       ) : null}
     </figcaption>
@@ -122,14 +124,14 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
   if (!entries) return <p className="muted">جارٍ تحميل الستوري بورد…</p>;
   return (
     <div className="sbi">
-      <h4>ستوري بورد · صور</h4>
+      <h4>ستوري بورد — صور</h4>
       <p className="help">صور التخطيط قبل الرندر، بكل نسخها (لا تُحذف نسخة سابقة). الحفظ أو العرض ليس اعتمادًا؛ الحالة تتغير بقرارك المكتوب وحده.</p>
       {!entries.length ? <p className="muted">لا ستوري بورد بعد.</p> : null}
       {entries.map((e) => {
         const cur = e.versions.find((v) => v.version === picked[e.slot]) ?? e.latest;
         const prev = e.versions.find((v) => v.version < cur.version);
-        const zoomOf = (v: StoryboardVersion) => setZoom({ src: api.labStoryboardUrl(channel, dir, v.file), title: `${e.title} · النسخة ${num(v.version)}` });
-        const labelOf = (v: StoryboardVersion) => (v.version === e.latest.version ? `النسخة ${num(v.version)} · الأحدث` : `النسخة ${num(v.version)}`);
+        const zoomOf = (v: StoryboardVersion) => setZoom({ src: api.labStoryboardUrl(channel, dir, v.file), title: `${e.title} — النسخة ${num(v.version)}` });
+        const labelOf = (v: StoryboardVersion) => (v.version === e.latest.version ? `النسخة ${num(v.version)} — الأحدث` : `النسخة ${num(v.version)}`);
         return (
           <section key={e.slot} className="sbi-entry">
             <div className="sbi-head">
@@ -148,7 +150,7 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
                 ) : null}
               </span>
             </div>
-            {e.problems.length ? <p className="err">{e.problems.join(" · ")}</p> : null}
+            {e.problems.length ? <p className="err">{e.problems.join("، ")}</p> : null}
             <div className={compare[e.slot] && prev ? "sbi-compare" : ""}>
               <Version channel={channel} dir={dir} e={e} v={cur} label={labelOf(cur)} onZoom={zoomOf} />
               {compare[e.slot] && prev ? <Version channel={channel} dir={dir} e={e} v={prev} label={labelOf(prev)} onZoom={zoomOf} /> : null}

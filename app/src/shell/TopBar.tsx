@@ -1,7 +1,7 @@
 import React from "react";
 import type { EpisodeSummary } from "../api";
 import { Icon } from "../ui/icons";
-import { Num, arDigits } from "../ui/format";
+import { Num, arDigits, episodeTitle } from "../ui/format";
 
 export type { ManageItem } from "./Band";
 /** One view inside the current step («مشهدًا مشهدًا»، «الوصلات»…), shown in the floating pill. */
@@ -35,7 +35,7 @@ export const TopBar: React.FC<Props> = (p) => {
           <label className="ms-ep-pick">
             <span className="ms-vh">الحلقة</span>
             <select id="episode-select" value={p.episodeId} onChange={(e) => p.onEpisode!(e.target.value)}>
-              {p.episodes.map((e) => <option key={e.id} value={e.id}>الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))} · {e.title || e.dir}</option>)}
+              {p.episodes.map((e) => <option key={e.id} value={e.id}>الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))} — {episodeTitle(e.title) || e.dir}</option>)}
             </select>
             <Icon name="down" />
           </label>

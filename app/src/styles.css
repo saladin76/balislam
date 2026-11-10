@@ -742,7 +742,7 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .sbi-tabs button.on, .sbi-zoom button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #fff); }
 .sbi-missing { margin: 0; padding: 24px 16px; color: #f4eee2; font-size: 14px; text-align: center; }
 .sbi-version { margin: 10px 0 0; display: grid; gap: 6px; min-width: 0; }
-.sbi-thumb { border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 8px; background: #0b1f1c; max-height: 78vh; overflow: auto; overscroll-behavior: contain; }
+.sbi-thumb { border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 8px; background: #0b1f1c; max-height: 78vh; overflow: auto; }
 .sbi-thumb img { display: block; width: 100%; height: auto; cursor: zoom-in; }
 .sbi-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .sbi-zoom-btn { padding: 3px 10px; border-radius: 8px; border: 1px solid rgba(127, 127, 127, 0.4); background: transparent; cursor: pointer; font: inherit; font-size: 0.86em; }

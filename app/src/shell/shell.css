@@ -22,11 +22,11 @@
   --band: #1E2320; --band-ink: #F4F4F2; --band-mute: #A0A6A2; --band-line: #ffffff1f;
   --paper: #F7F6F3; --paper-rule: transparent; --paper-margin: transparent; --paper-art: none;
   --sf: #FFFFFF;
-  --ink: #16181D; --ink-2: #474C56; --mute: #6B707A; --line: #E3E5E9; --quiet: #EEF0F2; --line-strong: #CDD1D7;
+  --ink: #16181D; --ink-2: #474C56; --mute: #62676F; --line: #E3E5E9; --quiet: #EEF0F2; --line-strong: #CDD1D7;
   --acc: #2C5E55; --acc-ink: #FFFFFF; --acc-soft: #E3ECE9; --acc-text: #2C5E55;
   --mark: #D7E6E2; --note: #F3F1E6; --note-ink: #3B3A2C;
   --dock: #16181D; --dock-ink: #E9EAEC; --dock-mute: #A3A7AF;
-  --ok: #2E7D52; --ok-soft: #E3F1E8; --warn: #A2561A; --warn-soft: #FCEBDD; --err: #A53F2E; --err-soft: #F7E5E0;
+  --ok: #2E7D52; --ok-soft: #E3F1E8; --warn: #A2561A; --warn-soft: #FCEBDD; --err: #A53F2E; --err-soft: #F7E5E0; --err-ink: #FFFFFF;
   --f: "IBM Plex Sans Arabic", system-ui, sans-serif;
   --f-read: "Noto Naskh Arabic", "IBM Plex Sans Arabic", serif;
   --f-t: "IBM Plex Sans Arabic", system-ui, sans-serif; --t-weight: 700; --t-shift: 0px;
@@ -48,7 +48,7 @@
 [data-channel="zubdat-alkutub"] {
   --band: #0B0B0C; --band-ink: #FFFFFF; --band-mute: #9A9AA0; --band-line: #ffffff1a;
   --paper: #FCFCFA; --paper-rule: #16181d0b; --sf: #FFFFFF;
-  --ink: #16181D; --ink-2: #474C56; --mute: #6B707A; --line: #E3E5E9; --quiet: #EEF0F2; --line-strong: #CDD1D7;
+  --ink: #16181D; --ink-2: #474C56; --mute: #62676F; --line: #E3E5E9; --quiet: #EEF0F2; --line-strong: #CDD1D7;
   --acc: #E8F542; --acc-ink: #16181D; --acc-soft: #F4FAB0; --acc-text: #5F6A00;
   --mark: #E8F542; --note: #FBFDD0; --note-ink: #3C3F12;
   --dock: #16181D; --dock-ink: #E9EAEC; --dock-mute: #A3A7AF;
@@ -58,7 +58,7 @@
   --band: #0B1F1C; --band-ink: #F4EEE2; --band-mute: #9DB3AC; --band-line: #F4EEE21f;
   --paper: #F4EEE2; --paper-rule: transparent; --sf: #FBF8F1;
   --paper-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23C9A24A' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='26' y='26' width='20' height='20'/%3E%3Crect x='26' y='26' width='20' height='20' transform='rotate(45 36 36)'/%3E%3C/g%3E%3C/svg%3E");
-  --ink: #0B1F1C; --ink-2: #33463F; --mute: #66726C; --line: #E2D8C5; --quiet: #EAE2D3; --line-strong: #CFC3AC;
+  --ink: #0B1F1C; --ink-2: #33463F; --mute: #5B6761; --line: #E2D8C5; --quiet: #EAE2D3; --line-strong: #CFC3AC;
   --acc: #C9A24A; --acc-ink: #0B1F1C; --acc-soft: #F2DFB0; --acc-text: #7E6019;
   --mark: #F2B35B; --note: #F7E7C6; --note-ink: #4A3A16;
   --dock: #0B1F1C; --dock-ink: #F4EEE2; --dock-mute: #9DB3AC;
@@ -67,11 +67,13 @@
 [data-channel="dafatir-alzaman"] {
   --band: #2B1A14; --band-ink: #F6EAD7; --band-mute: #B9A391; --band-line: #F6EAD71f;
   --paper: #FBF5EA; --paper-rule: #C9A98118; --paper-margin: #E3A99A; --sf: #FFFCF6;
-  --ink: #2B1A14; --ink-2: #54402F; --mute: #7E6A5A; --line: #E8DCC8; --quiet: #F0E7D8; --line-strong: #D8C7AE;
+  --ink: #2B1A14; --ink-2: #54402F; --mute: #725E4F; --line: #E8DCC8; --quiet: #F0E7D8; --line-strong: #D8C7AE;
   --acc: #D7372B; --acc-ink: #FFFFFF; --acc-soft: #F6D3CC; --acc-text: #B42A1F;
   --mark: #F3C2B6; --note: #F8E3C8; --note-ink: #4D3420;
   --dock: #2B1A14; --dock-ink: #F6EAD7; --dock-mute: #B9A391;
   --f-t: "Amiri", serif; --t-weight: 700; --t-shift: 2px;
+  /* The red margin is the paper's: the header and the filmstrip lie over it on solid paper, so it never crosses them */
+  --hdr-bg: var(--paper); --reel-bg: var(--paper);
 }
 /* Dark: same layout and channel band; paper, surfaces and ink turn over */
 :root[data-theme="dark"] :is(.shell-v3, [data-channel]) {
@@ -79,7 +81,7 @@
   --ink: #ECEDEF; --ink-2: #B9BDC4; --mute: #959AA3; --line: #2A2D33; --quiet: #222429; --line-strong: #3A3E46;
   --note: #2A2C17; --note-ink: #DADDA6;
   --dock: #24272D; --dock-ink: #ECEDEF; --dock-mute: #A3A7AF;
-  --ok: #5CC28A; --ok-soft: #1B2E22; --warn: #F0A660; --warn-soft: #3A2615; --err: #F08A7E; --err-soft: #3A1E1A;
+  --ok: #5CC28A; --ok-soft: #1B2E22; --warn: #F0A660; --warn-soft: #3A2615; --err: #F08A7E; --err-soft: #3A1E1A; --err-ink: #111214;
   --acc-soft: #2E3112; --accent-ink: #111214;
   --shadow-pop: 0 0 0 1px #ffffff14, 0 30px 70px -24px #000000aa;
   --shadow-card: 0 0 0 1px #ffffff10, 0 18px 40px -26px #000000aa;
@@ -92,8 +94,12 @@
 :root[data-theme="light"] { color-scheme: light; }
 
 /* ── Base ── */
+/* ── Scroll model (D64): the document is the one scroller of every screen. Nothing on html/body/.shell-v3/.studio-main
+   hides overflow; the band is sticky, the header sticky, the dock and filmstrip fixed with room under the content.
+   Only an open modal locks the page (html.is-modal-open, ui/scrollLock.ts), and the lock is released on close. ── */
+html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .shell-v3 {
-  display: flex; height: 100dvh; overflow: hidden;
+  display: flex; min-height: 100dvh; overflow-x: clip;
   background: var(--paper); color: var(--ink);
   font: 400 var(--t-14)/1.55 var(--f); -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
@@ -102,6 +108,9 @@
 .shell-v3 :is(button, select, input, textarea, a, summary, [tabindex]):focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
 .shell-v3 .ms-band :is(button, select, a):focus-visible, .shell-v3 .ms-dock :is(button, input, label):focus-visible { outline-color: var(--acc); }
 .z { font-family: var(--f-num); font-size: 1.36em; line-height: 0; font-weight: 400; }
+/* Numbers never break across lines; a clock («١٩:٠٠», «١:١٢ / ٤:٠٥») reads left to right as one isolated run */
+.num { white-space: nowrap; }
+.clk { direction: ltr; unicode-bidi: isolate; white-space: nowrap; display: inline-block; }
 .ms-vh { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .ms-ic { width: 18px; height: 18px; flex: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -110,27 +119,30 @@
 
 /* ── The work area on the channel's paper ── */
 .shell-v3 .studio-main {
-  position: relative; flex: 1 1 0; min-width: 0; height: 100dvh; overflow-y: auto; overflow-x: hidden;
+  position: relative; flex: 1 1 0; min-width: 0; height: auto; min-height: 100dvh; overflow: visible;
   display: flex; flex-direction: column;
   background-color: var(--paper);
   background-image: linear-gradient(to left, transparent 34px, var(--paper-margin) 34px, var(--paper-margin) 35.5px, transparent 35.5px), var(--paper-art), repeating-linear-gradient(var(--paper) 0 35px, var(--paper-rule) 35px 36px);
-  background-attachment: local;
 }
 .shell-v3 .studio-main > * { flex: none; }
 .shell-v3 .studio-main > .work,
 .shell-v3 .studio-main > .studio-review-workspace { flex: 1 0 auto; }
 @media (min-width: 721px) {
-  .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) { flex: 1 1 0; min-height: 480px; height: auto; overflow: hidden; }
+  /* Two-pane screens keep their panes one viewport tall (under the header, above the dock's room); the page scrolls
+     on past them when the window is shorter, and a pane at its end hands the wheel back to the page. */
+  .shell-v3 .studio-main { --pane-room: 68px; }
+  .shell-v3 .studio-main:has(.ms-dock) { --pane-room: 188px; }
+  .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) { flex: none; height: max(480px, calc(100dvh - var(--pane-room))); overflow: hidden; }
   .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) > .col { min-height: 0; overflow-y: auto; }
   .shell-v3 .work.script-grid .editor { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .shell-v3 .work.script-grid .editor textarea { flex: 1 1 0; min-height: 0; height: auto; }
 }
-/* Room under the content for the dock (and the filmstrip in step ٢) */
-.shell-v3 .studio-main::after { content: ""; display: block; flex: none; height: 120px; }
+/* Room under the content for the dock, only on a screen that has one (step ٢ adds its filmstrip's own room, screens-s3.css) */
+.shell-v3 .studio-main:has(.ms-dock)::after { content: ""; display: block; flex: none; height: 120px; }
 
 /* ── The channel band (start edge): channel, the four steps, switcher, admin ── */
 .ms-band {
-  flex: none; width: var(--band-w); height: 100dvh; position: relative; z-index: 20;
+  flex: none; width: var(--band-w); height: 100dvh; position: sticky; top: 0; align-self: flex-start; z-index: 20;
   background: var(--band); color: var(--band-ink);
   display: flex; flex-direction: column; align-items: center; padding: 22px 0 18px; overflow-y: auto; overflow-x: hidden;
 }
@@ -180,11 +192,16 @@
 .ms-menu button { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding: 9px 12px; border-radius: var(--r-sm); font-size: var(--t-14); }
 .ms-menu button:hover, .ms-menu button[aria-current="page"], .ms-menu button:focus-visible { background: var(--quiet); }
 .ms-menu small { color: var(--mute); font-size: var(--t-12); }
+.ms-menu-chs { display: none; }
+.ms-menu-chs button > span { display: inline-flex; align-items: center; gap: 10px; }
+.ms-menu-ch { font-style: normal; width: 26px; height: 26px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--band); color: var(--band-ink); font-weight: 600; font-size: var(--t-12); box-shadow: inset 0 -2.5px 0 var(--acc); }
+.ms-menu-chs button[aria-checked="true"] { background: var(--quiet); font-weight: 600; }
+.ms-menu-chs { border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 4px; }
 
 /* ── The header: who (episode), the pill of views, me (save state, theme) ── */
 .ms-hdr {
   position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px;
-  padding: 14px 28px 10px; background: linear-gradient(var(--paper) 70%, transparent);
+  padding: 14px 28px 10px; background: var(--hdr-bg, linear-gradient(var(--paper) 70%, transparent));
 }
 .ms-who { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink-2); }
 .ms-who-home { all: unset; cursor: pointer; font-weight: 600; color: var(--ink); padding: 6px 4px; }
@@ -304,7 +321,7 @@
 .shell-v3 .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--acc) 88%, var(--ink)); border-color: color-mix(in srgb, var(--acc) 88%, var(--ink)); }
 .shell-v3 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .shell-v3 .btn.danger { color: var(--err); border-color: color-mix(in srgb, var(--err) 35%, var(--line-strong)); }
-.shell-v3 .btn.primary.danger { background: var(--err); border-color: var(--err); color: #fff; }
+.shell-v3 .btn.primary.danger { background: var(--err); border-color: var(--err); color: var(--err-ink); }
 .shell-v3 .btn.ghost.small { white-space: normal; text-align: start; overflow-wrap: anywhere; }
 .shell-v3 :is(input[type="text"], input[type="search"], input[type="url"], input[type="date"], input[type="number"], select, textarea) { border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--sf); color: var(--ink); }
 .ms-link { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: var(--acc-text); }
@@ -314,8 +331,13 @@
 .spine-err { color: var(--err); font-size: var(--t-12); margin: 0; }
 .spine-hint { font-size: var(--t-12); color: var(--mute); }
 .prep-link { border: 0; background: none; padding: 0; font: inherit; color: var(--acc-text); text-decoration: underline; cursor: pointer; }
-.ms-dock .prep-link { color: var(--acc); }
-:root[data-theme="dark"] .ms-dock .prep-link, [data-channel="zubdat-alkutub"] .ms-dock .prep-link { color: var(--dock-ink); }
+/* A link on the dark dock itself takes the accent; a link in a card floating above it is on the paper's surface (--acc-text) */
+.ms-dock-in .prep-link { color: var(--acc); }
+:root[data-theme="dark"] .ms-dock-in .prep-link, [data-channel="zubdat-alkutub"] .ms-dock-in .prep-link { color: var(--dock-ink); }
+.ms-float .prep-link, .ms-float .ms-link, .ms-float a { color: var(--acc-text); }
+.keys-link, .keys-link:visited { color: var(--acc-text); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.keys-link:hover { text-decoration-thickness: 2px; }
+.ms-dock-in .keys-link, .ms-dock-in .keys-link:visited { color: var(--dock-ink); }
 
 /* ── Fix list: what blocks the script approval ── */
 .fix { flex: 1; min-width: 0; display: grid; gap: 12px; }
@@ -476,13 +498,35 @@
 .shell-v3 :is(.panel, .card, .col, .editor, .sb-shot, .pf-rec, .studio-provider, .render-box, .toolbar) { background-color: var(--sf); color: var(--ink); border-color: var(--line); }
 .shell-v3 :is(.help, .muted) { color: var(--mute); }
 
+/* A page still loading sits at the top where its content will come, not centred: no jump when it arrives (CLS) */
+.shell-v3 .studio-main > .empty-state { margin: 0; max-width: none; min-height: 120px; padding: 16px 44px; justify-content: flex-start; align-items: flex-start; text-align: start; }
+.shell-v3 .studio-main > .empty-state h2 { font-size: var(--t-16); font-weight: 500; color: var(--mute); }
+
+/* ── The players' Arabic controls (ui/Preview.tsx): one quiet bar under the picture ── */
+.ms-pw { position: relative; display: grid; min-width: 0; }
+.ms-pw:fullscreen { background: #000; align-content: center; }
+.ms-pc { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--sf); font-size: var(--t-12); color: var(--ink-2); }
+.ms-pc button { all: unset; box-sizing: border-box; cursor: pointer; height: 28px; padding: 0 10px; border-radius: 999px; display: inline-flex; align-items: center; color: var(--ink-2); white-space: nowrap; }
+.ms-pc button:hover { background: var(--quiet); color: var(--ink); }
+.ms-pc button[aria-pressed="true"] { background: var(--quiet); color: var(--ink); }
+.ms-pc .ms-pc-play { width: 28px; padding: 0; justify-content: center; background: var(--ink); color: var(--paper); }
+.ms-pc .ms-pc-play:hover { background: var(--ink); color: var(--paper); opacity: .9; }
+.ms-pc .ms-pc-play svg { width: 12px; height: 12px; }
+.ms-pc :is(button, input):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ms-pc-t { color: var(--mute); min-width: 74px; }
+.ms-pc-seek { flex: 1 1 auto; min-width: 40px; height: 4px; margin: 0; -webkit-appearance: none; appearance: none; border-radius: 2px; cursor: pointer;
+  background: linear-gradient(to right, var(--ink) var(--p, 0%), var(--line-strong) var(--p, 0%)); }
+.ms-pc-seek::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); }
+.ms-pc-seek::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 0; }
+.ms-pw:fullscreen .ms-pc { color: #fff; padding: 10px 16px; }
+
 /* ── Dialogs ── */
 .shell-v3 .modal-back, .modal-back { background: color-mix(in srgb, var(--ink, #16181D) 38%, transparent); }
 .shell-v3 .modal, .modal { max-width: min(100%, calc(100vw - 32px)); border-radius: var(--r-xl, 18px); background: var(--sf, #fff); color: var(--ink, #16181D); border: 0; box-shadow: var(--shadow-pop); }
 .shell-v3 .modal-back { grid-template-columns: minmax(0, auto); padding: 16px; }
 .modal-head h3 { font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-24); padding-top: var(--t-shift); }
 .toast { background: var(--dock, #16181D) !important; color: var(--dock-ink, #fff) !important; border-radius: 14px !important; }
-.toast.err { background: var(--err) !important; color: #fff !important; }
+.toast.err { background: var(--err) !important; color: var(--err-ink, #fff) !important; }
 
 /* ── Phone: the band becomes a top bar with the four numerals; the dock stays in reach ── */
 @media (max-width: 720px) {
@@ -501,10 +545,16 @@
   .ms-stp .wait { top: -2px; inset-inline-start: 0; }
   .ms-gear-wrap { margin: 0; }
   .ms-menu { inset: 64px 12px auto 12px; bottom: auto; min-width: 0; max-height: calc(100dvh - 80px); }
-  .shell-v3 .studio-main { height: auto; flex: 1 1 0; min-height: 0; background-image: var(--paper-art), repeating-linear-gradient(var(--paper) 0 35px, var(--paper-rule) 35px 36px); }
+  .ms-menu-chs { display: block; }
+  .shell-v3 .studio-main { height: auto; flex: 1 0 auto; min-height: 0; background-image: var(--paper-art), repeating-linear-gradient(var(--paper) 0 35px, var(--paper-rule) 35px 36px); }
   .ms-hdr { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 16px 6px; position: static; background: transparent; }
   .ms-pill { grid-column: 1 / -1; grid-row: 2; justify-self: start; max-width: 100%; }
-  .ms-pill button { height: 32px; padding: 0 12px; }
+  .ms-pill button { height: 32px; padding: 0 11px; gap: 5px; }
+  /* the pill fits the phone's width: the counts beside the views step aside (their numbers stay in the views) */
+  .ms-pill button small { display: none; }
+  /* a screen without views (admin pages): the title and the theme toggle share one row, no empty middle cell */
+  .ms-hdr > span:empty { display: none; }
+  .shell-v3 .studio-main > .empty-state { padding: 12px 16px; }
   .ms-dock { inset-inline: 0; bottom: 10px; padding: 0 10px; }
   .ms-dock-in { width: 100%; justify-content: space-between; border-radius: 18px; padding: 6px; }
   .ms-dock .btn.primary { flex: 1; justify-content: center; height: 48px; padding: 0 14px; }

@@ -189,7 +189,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
   // A locked step screen (D52) carries its own one button, and step ٢ before «اعتمد التجهيز» is itself
   // one line and one button back to step ١: the spine repeats neither.
   const quiet = Boolean(w && ((!done[0] && (here === 1 || here === 2)) || (!done[2] && here === 3)));
-  const showNote = Boolean(w && !done[0] && inStep1);
+  // The note sits in the gutter of the boards view only: over the script or the research it would cover the text.
+  const showNote = Boolean(w && !done[0] && inStep1 && tab === "storyboard");
   const scriptFixes = scriptErrors.length || prep?.scriptErrors || 0;
   return (
     <>

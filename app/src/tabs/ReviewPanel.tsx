@@ -65,7 +65,7 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
             {it.text ? <span className="help">النص في التعليق: {it.text}</span> : null}
             {it.status === "verified" || it.status === "rejected" ? (
               <span className="help">
-                {it.note ? `ملاحظة: ${it.note} · ` : ""}
+                {it.note ? `ملاحظة: ${it.note} — ` : ""}
                 {it.at ? new Date(it.at).toLocaleDateString("ar") : ""}
               </span>
             ) : null}

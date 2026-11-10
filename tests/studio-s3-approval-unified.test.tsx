@@ -91,7 +91,7 @@ const actbar = (html: string) => [...barOf(html).matchAll(/<button[^>]*>([\s\S]*
  * هيكل الشاشة بلا نصوص المحتوى ولا الأعداد: أسماء الأصناف بترتيبها. يُستثنى ما تمليه بيانات الحلقة وحدها (ومنها رقم كل مشهد في الشريط وصفر الأعداد الأكبر قليلًا):
  * أسطر الأسباب (مثل «أضف مفتاح الصوت» لمشهد منطوق فقط) وعناصر قائمة التنبيهات.
  */
-const DATA_ROWS = new Set(["sp-hint", "prep-link", "s3-lv", "s3-id", "s3-dot-n", "z"]);
+const DATA_ROWS = new Set(["sp-hint", "prep-link", "s3-lv", "s3-id", "s3-dot-n", "s3-dot-ph", "z"]);
 const skeleton = (html: string) =>
   [...html.matchAll(/class="([^"]+)"/g)].map((m) => m[1]!.split(" ").filter((c) => !/^is-|^s3-ch$/.test(c)).join(".")).filter((c) => c && !DATA_ROWS.has(c))
     // شريط المشاهد وقائمة التنبيهات تطول بعدد مشاهد الحلقة وملاحظاتها؛ يكفي وجود كل صنف بترتيبه

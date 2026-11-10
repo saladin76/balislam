@@ -3,7 +3,7 @@ import { overlayKeys, overlayNamesAr, type OverlayKey, type Overlays } from "../
 
 const help: Record<OverlayKey, string> = {
   captions: "سطر الكلام أسفل الشاشة أثناء التعليق الصوتي. ملف الترجمة (srt) ليوتيوب يُصنع دائمًا.",
-  chapterLabel: "الشارة الصغيرة أعلى المشهد: «الفصل ٢ · …».",
+  chapterLabel: "الشارة الصغيرة أعلى المشهد: رقم الفصل وعنوانه.",
   motif: "الخطوط أو الدوائر أو النجوم أو الأقواس الخفيفة خلف المحتوى.",
   watermark: "رمز القناة صغيرًا في الزاوية المقابلة لعنوان الفصل (لا يظهر في شاشة النهاية).",
 };

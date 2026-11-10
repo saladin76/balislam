@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useScrollLock } from "./scrollLock";
 import { Element } from "../../../brand/elements/Element";
 import { elementLibrary, hasElement, elementById } from "../../../brand/elements/registry";
 import { categoryNamesAr, categoryOrder, type ElementCategory } from "../../../brand/elements/types";
@@ -15,6 +16,7 @@ export const ElementPicker: React.FC<{
   onClose: () => void;
 }> = ({ themeId, value, kind, onPick, onClose }) => {
   const t = useTheme(themeId);
+  useScrollLock();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<ElementCategory | "all">("all");
   const items = useMemo(() => {
@@ -32,7 +34,7 @@ export const ElementPicker: React.FC<{
       <div className="modal" role="dialog" aria-label="اختيار عنصر">
         <div className="modal-head">
           <h3>{kind === "backdrop" ? "اختر خلفية" : "اختر عنصرًا"}</h3>
-          <span className="help">{items.length} من المكتبة · بألوان «{t.nameAr}»</span>
+          <span className="help">{items.length} من المكتبة — بألوان «{t.nameAr}»</span>
           <div className="spacer" />
           <input id="picker-search" type="text" placeholder="ابحث: قلب، هاتف، coin…" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 260 }} autoFocus />
           <button className="btn" onClick={onClose}>إغلاق</button>

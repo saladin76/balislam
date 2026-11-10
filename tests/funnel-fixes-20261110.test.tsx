@@ -128,7 +128,9 @@ describe("M7 / owner decision 10 Nov: citations never block; the Master job read
 
 describe("owner decision 10 Nov: «احفظ هذا النطق للقناة» is OFF by default", () => {
   it("a word chip opens the fix with save: false", () => {
-    expect(src("app/src/workspace/SentencesPanel.tsx")).toMatch(/setFixing\(open \? null : \{ row: r\.id, index: i, say: w\.say, save: false, wide: false \}\)/);
+    const panel = src("app/src/workspace/SentencesPanel.tsx");
+    expect(panel).not.toMatch(/save: true, wide: false/);
+    expect(panel).toContain("say: w.say, save: false, wide: false");
   });
 });
 

@@ -71,7 +71,7 @@ export const SceneSettings: React.FC<Props> = ({ def, scene, plan, identity, cha
       {shown.filter((f) => !special(f) && f.common).map((f) => <React.Fragment key={f.key}>{renderField(f)}</React.Fragment>)}
       {other.length ? (
         <details className="ss-more">
-          <summary>المزيد · حقول لا يستعملها هذا المشهد ({AR(other.length)})</summary>
+          <summary>المزيد — حقول لا يستعملها هذا المشهد ({AR(other.length)})</summary>
           <p className="ss-hint">تبقى قيمها محفوظة كما هي، ولا يقرؤها المشهد المختار.</p>
           {other.map((f) => <React.Fragment key={f.key}>{renderField(f)}</React.Fragment>)}
         </details>
@@ -165,7 +165,7 @@ const ShotPicker: React.FC<{ def: TemplateDef; field: FieldDef; scene: PlanScene
         type="button"
         className={`ss-card${big ? " big" : ""}`}
         aria-pressed={on}
-        title={v ? `${o?.label ?? v} · ${v}` : undefined}
+        title={v ? `${o?.label ?? v} — ${v}` : undefined}
         onClick={() => { if (!on) onPick(v); setOpen(false); }}
       >
         {v ? <ShotThumb scene={sample(v)} plan={plan} identity={identity} channel={channel} media={media} eyebrow={eyebrow} /> : <div className="ss-thumb ss-thumb-none" aria-hidden />}

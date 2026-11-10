@@ -69,7 +69,7 @@ export const IntegratedReviewWorkspace: React.FC<{
     : p.progress.assemblyApproved ? "النسخة النهائية"
     : "الحلقة كاملة";
   const meta = !data ? "جارٍ التحميل…"
-    : video ? (isMasterFile ? `النسخة النهائية · ${arDigits(`${render!.width}×${render!.height}`)}` : "ملف مُنتج، ليس النسخة النهائية")
+    : video ? (isMasterFile ? `النسخة النهائية — ${arDigits(`${render!.width}×${render!.height}`)}` : "ملف مُنتج، ليس النسخة النهائية")
     : latestPreview ? "معاينة عمل" : "";
   const hint = !p ? "شاهد الحلقة كاملة بسرعة طبيعية ١×."
     : !p.progress.canAssemble ? "تُفتح هذه الخطوة بعد اعتماد كل المشاهد."
@@ -95,7 +95,7 @@ export const IntegratedReviewWorkspace: React.FC<{
           <dl className="s45-facts">
             <div><dt>المصادر الموثقة</dt><dd>{data?.citations ? `${num(data.citations.verified)} من ${num(data.citations.total)}` : "غير متاح"}</dd></div>
             <div><dt>المشاهد المعتمدة بالصوت والصورة</dt><dd>{p ? `${num(p.progress.approvedScenes)} من ${num(p.progress.totalScenes)}` : "غير متاح"}</dd></div>
-            <div><dt>التجميع · النسخة النهائية · النشر</dt><dd>{p ? `${mark(p.progress.assemblyApproved)} · ${mark(p.progress.masterApproved)} · ${mark(p.progress.publishAllowed)}` : "غير متاح"}</dd></div>
+            <div><dt>التجميع — النسخة النهائية — النشر</dt><dd>{p ? `${mark(p.progress.assemblyApproved)} — ${mark(p.progress.masterApproved)} — ${mark(p.progress.publishAllowed)}` : "غير متاح"}</dd></div>
           </dl>
           <p className="s45-note">ثلاثة قرارات مستقلة في «إنتاج المشاهد». وجود معاينة أو اكتمال الفحوص لا يمثل اعتمادًا للنسخة.</p>
           {source ? <p className="s45-note">الملف المعروض: {video ? "ملف الحلقة" : latestPreview?.title || "معاينة"} — {video ? (isMasterFile ? "النسخة النهائية، تُعتمد بعينها" : "ملف مُنتج؛ ليس اعتماد النسخة النهائية") : "معاينة عمل غير معتمدة للنشر"}</p> : null}

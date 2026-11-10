@@ -21,7 +21,7 @@ export type LockedStepProps = {
 export const LockedStep: React.FC<LockedStepProps> = ({ step, reason, unlocks, action, now, nowNote }) => (
   <section className="locked-step" aria-labelledby={`locked-${step}`}>
     <div className="locked-card">
-      <p className="locked-eyebrow">الخطوة {STEPS[step]!.n} · لم تُفتح بعد</p>
+      <p className="locked-eyebrow">الخطوة {STEPS[step]!.n} — لم تُفتح بعد</p>
       <h2 id={`locked-${step}`}>{STEPS[step]!.title}</h2>
       <p className="locked-reason">{reason}</p>
       <p className="locked-unlocks"><b>يُفتح حين:</b> {unlocks}</p>
