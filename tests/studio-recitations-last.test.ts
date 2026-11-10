@@ -19,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { sceneFrames } from "../src/plan/duration";
+import { prepValidTail } from "./fixtures/prepValidScript";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -77,7 +78,7 @@ const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "
 const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}) => {
   const r = await fetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
+    headers: { "sec-fetch-site": "same-origin", ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -140,7 +141,7 @@ beforeAll(async () => {
   (globalThis as any).__recitLastRenders = renders;
 
   await writeFile(path.join(epDir, "script.md"),
-    `---\ntitle: "التلاوة آخرًا"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\nالصبر مفتاح الفرج.\n\n[آية: النجم 39 | ${VERSE}]\n\nوالرضا راحة القلب.\n`);
+    `---\ntitle: "التلاوة آخرًا"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\nالصبر مفتاح الفرج.\n\n[آية: النجم 39 | ${VERSE}]\n\nوالرضا راحة القلب.\n` + prepValidTail(["- آية | النجم 39 | القارئ: …"]));
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   const voice = path.join(epDir, "voice");
   await mkdir(voice);
@@ -175,11 +176,11 @@ afterAll(async () => {
 describe("recitations come last: pre-final without recitation, final gates unchanged", () => {
   it("drafts, previews and conditionally approves a verse scene; the owner's polished recording re-opens only it", async () => {
     let s = await state();
-    expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 })).status).toBe(200);
+    expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: s.script.sha256 })).status).toBe(200);
     const board = await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحات الثلاث بصريًا ومنها بطاقة الآية بنصها من السكريبت." });
     expect(board.status, JSON.stringify(board.body)).toBe(200);
     s = await state();
-    expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 })).status).toBe(200);
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256 })).status).toBe(200);
     s = await state();
     expect(s.scenes.map((x: any) => [x.id, x.readyForAv, x.recitationPending])).toEqual([
       ["c1-s1", true, false], ["c1-s2", true, true], ["c1-s3", true, false]]);

@@ -95,7 +95,7 @@ describe("safe studio updater", () => {
     mkdirSync(path.join(ep, "previews", ".preview-index.lock"), { recursive: true });
     for (const f of ["scene-production.v1.json", "scene-production.v1.json.lock", "scene-production.v1.json.x.tmp",
       "workflow-approvals.json", "workflow-approvals.json.lock", "voice-review.json", "voice-review.json.1.x.tmp",
-      // D58: the board record written by «اعتمد التجهيز» is local state bound to the ledger; it never blocks «حدّث الآن»
+      // D60: the board record written by «اعتمد التجهيز» is local state bound to the ledger; it never blocks «حدّث الآن»
       "storyboard.json"])
       writeFileSync(path.join(ep, f), "{}\n");
     expect(await dirtyTreeMessage(dir)).toBeNull();

@@ -14,16 +14,18 @@
  * - لا أثر للأدوات: نص النشر يمر على `assertNoTraces`، وكل فيديو تُفحص بياناته الوصفية (cleanMetadata)،
  *   وكل صورة نصوصها المضمّنة، وكل ترجمة نصها.
  */
-import { createHash, randomUUID } from "node:crypto";
+import { cleanStaleParts, partFileFor } from "../io/partFiles";
+import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync, readdirSync, statSync } from "node:fs";
 import { mkdir, open, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
+import { inflateSync } from "node:zlib";
 import os from "node:os";
 import path from "node:path";
-import { findTraces, assertNoTraces } from "./traces";
+import { findTraces, assertNoTraces, onScreenTexts } from "./traces";
 import type { PublishHandoffFacts } from "../studio/sceneService";
 
 const run = promisify(execFile);
@@ -143,22 +145,69 @@ export const videoTraces = async (file: string): Promise<string[]> => {
   } finally { await fd.close(); }
   return [...hits];
 };
-/** نصوص PNG المضمّنة (tEXt/iTXt/zTXt) مثل «Software». */
-export const pngTraces = async (file: string): Promise<string[]> => {
-  const buf = await readFile(file);
-  const hits = new Set<string>();
+/**
+ * Every text a PNG carries (security QA C2): tEXt, zTXt (inflated), iTXt (inflated when compressed; XMP lives
+ * here under «XML:com.adobe.xmp»), eXIf (the EXIF strings) — each run through `findTraces` and the tool
+ * signatures. A chunk that cannot be decoded is itself refused (a hidden text must not pass unread), and a
+ * file that is not a PNG is refused.
+ */
+export const pngTextChunks = (buf: Buffer): { type: string; keyword: string; text: string; error?: string }[] => {
+  const out: { type: string; keyword: string; text: string; error?: string }[] = [];
+  if (buf.length < 8 || buf.toString("latin1", 1, 4) !== "PNG") return [{ type: "file", keyword: "", text: "", error: "not a PNG" }];
   for (let i = 8; i + 8 <= buf.length;) {
     const len = buf.readUInt32BE(i);
     const type = buf.toString("latin1", i + 4, i + 8);
-    if (type === "tEXt" || type === "iTXt" || type === "zTXt") {
-      const text = buf.toString("utf8", i + 8, i + 8 + len);
-      for (const h of findTraces(text)) hits.add(h);
-      if (TOOL_TAGS.test(text) || TOOL_BYTES.test(text)) hits.add(`${type}: ${text.replace(/\0/g, " ").slice(0, 40)}`);
+    const data = buf.subarray(i + 8, Math.min(buf.length, i + 8 + len));
+    try {
+      if (type === "tEXt") {
+        const z = data.indexOf(0);
+        out.push({ type, keyword: data.toString("latin1", 0, z < 0 ? data.length : z), text: z < 0 ? "" : data.toString("latin1", z + 1) });
+      } else if (type === "zTXt") {
+        const z = data.indexOf(0);
+        if (z < 0) throw new Error("malformed");
+        out.push({ type, keyword: data.toString("latin1", 0, z), text: inflateSync(data.subarray(z + 2)).toString("latin1") });
+      } else if (type === "iTXt") {
+        const z = data.indexOf(0);
+        if (z < 0 || z + 3 > data.length) throw new Error("malformed");
+        const compressed = data[z + 1] === 1;
+        const lang = data.indexOf(0, z + 3);
+        const trans = lang < 0 ? -1 : data.indexOf(0, lang + 1);
+        if (trans < 0) throw new Error("malformed");
+        const body = data.subarray(trans + 1);
+        const translated = data.toString("utf8", lang + 1, trans);
+        out.push({ type, keyword: data.toString("latin1", 0, z), text: `${translated}\n${(compressed ? inflateSync(body) : body).toString("utf8")}` });
+      } else if (type === "eXIf") {
+        // EXIF: the readable strings (Software, Artist, ImageDescription, UserComment…)
+        out.push({ type, keyword: "EXIF", text: (data.toString("latin1").match(/[\x20-\x7e]{3,}/g) ?? []).join("\n") });
+      }
+    } catch (e) {
+      out.push({ type, keyword: "", text: "", error: (e as Error).message || "unreadable" });
     }
     if (type === "IEND") break;
     i += 12 + len;
   }
+  return out;
+};
+export const pngTraces = async (file: string): Promise<string[]> => {
+  const hits = new Set<string>();
+  for (const c of pngTextChunks(await readFile(file))) {
+    if (c.error) { hits.add(`${c.type}: نص لا يُقرأ (${c.error})`); continue; }
+    const text = `${c.keyword}\n${c.text}`;
+    for (const h of findTraces(text)) hits.add(h);
+    if (TOOL_TAGS.test(text) || TOOL_BYTES.test(text)) hits.add(`${c.type}: ${text.replace(/\0/g, " ").slice(0, 40)}`);
+  }
   return [...hits];
+};
+
+/** The on-screen text of the episode (scene props, chapter titles, frontmatter.book) passes the trace check too. */
+export const assertOnScreenClean = async (scriptPath: string | undefined): Promise<void> => {
+  if (!scriptPath || !existsSync(scriptPath)) return;
+  const { readPlanFile } = await import("../plan/io");
+  const { parseScript } = await import("../script/parse");
+  const plan = await readPlanFile(scriptPath).catch(() => null);
+  if (!plan) return;
+  const fm = (parseScript(await readFile(scriptPath, "utf8"), scriptPath).frontmatter ?? {}) as Record<string, unknown>;
+  assertNoTraces(onScreenTexts(plan, fm));
 };
 
 const hashFile = (file: string, onBytes?: (n: number) => void) => new Promise<string>((resolve, reject) => {
@@ -171,7 +220,7 @@ const hashFile = (file: string, onBytes?: (n: number) => void) => new Promise<st
  * ثم يتحقق من حجم النسخة وبصمتها قبل إعادة التسمية. لا يبقى ملف مؤقت في أي حال.
  */
 export const copyVerified = async (src: string, dst: string, expectedSha256?: string, onBytes?: (n: number) => void): Promise<string> => {
-  const tmp = path.join(path.dirname(dst), `.${path.basename(dst)}.${randomUUID()}.part`);
+  const tmp = partFileFor(dst);
   try {
     const h = createHash("sha256");
     const tap = new Transform({ transform(chunk, _e, cb) { h.update(chunk); onBytes?.(chunk.length); cb(null, chunk); } });
@@ -192,7 +241,7 @@ export const copyVerified = async (src: string, dst: string, expectedSha256?: st
 };
 
 const writeAtomic = async (dst: string, text: string) => {
-  const tmp = path.join(path.dirname(dst), `.${path.basename(dst)}.${randomUUID()}.part`);
+  const tmp = partFileFor(dst);
   try {
     await writeFile(tmp, text, { flag: "wx", mode: 0o644 });
     await rename(tmp, dst);
@@ -212,6 +261,7 @@ export const deliverToDrive = async (opts: {
   const { facts, root } = opts;
   const now = opts.now ?? (() => new Date());
   assertNoTraces([{ name: PUBLISH_TEXT_NAME, text: opts.publishText }]);
+  await assertOnScreenClean(facts.scriptPath);
   const sources = await collectHandoffSources(facts);
   // قاعدة القناة: لا أثر للأدوات في أي ملف يُسلَّم.
   const bad: string[] = [];
@@ -225,6 +275,8 @@ export const deliverToDrive = async (opts: {
 
   const folder = driveTargetDir(root, facts.channel, path.basename(facts.episodeDir));
   await mkdir(folder, { recursive: true });
+  // A crashed earlier copy of THIS machine may have left `.<name>.….part` files: removed before copying (M2).
+  await cleanStaleParts(folder);
   let prev: PrevManifest = {};
   try { prev = JSON.parse(await readFile(path.join(folder, MANIFEST_NAME), "utf8")) as PrevManifest; } catch { /* first delivery */ }
   const known = new Map((prev.files ?? []).map((f) => [f.name, f]));

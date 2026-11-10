@@ -85,17 +85,9 @@ export const removeLexiconEntry = async (word: string, channel?: string): Promis
   return next;
 };
 
-/** هل الكلمة رقم i داخل ﴿ ﴾ (عدًّا على الكلمات الأصلية) */
-export const quranMask = (original: string[]): boolean[] => {
-  let depth = 0;
-  return original.map((w) => {
-    const opens = w.includes("﴿");
-    if (opens) depth++;
-    const inside = depth > 0;
-    if (w.includes("﴾")) depth = Math.max(0, depth - 1);
-    return inside;
-  });
-};
+/** هل الكلمة رقم i داخل ﴿ ﴾ (عدًّا على الكلمات الأصلية) — الوحدة المشتركة في quranGuard.ts */
+export { quranMask } from "./quranGuard";
+import { quranMask } from "./quranGuard";
 
 /**
  * يطبّق القاموس وتصحيحات الجملة على الكلمات المنطوقة (بعد قاموس pronunciation.json والتشكيل)، ويعيد بناء خريطة owner

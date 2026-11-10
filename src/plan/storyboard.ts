@@ -5,7 +5,7 @@
  * مشهد تغيّر بعد الاعتماد يعود «تغيّر بعد الاعتماد» ولا يُولَّد صوته حتى يُعتمد من جديد.
  */
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readJsonFile, writeJsonAtomic } from "../io/atomicJson";
 import path from "node:path";
 import { sceneHash } from "./sceneReview";
 import { createHash } from "node:crypto";
@@ -57,7 +57,9 @@ export const loadStoryboard = async (scriptPath: string): Promise<StoryboardReco
   const f = storyboardFileFor(scriptPath);
   if (!existsSync(f)) return { version: 1, scenes: {} };
   try {
-    const r = JSON.parse(await readFile(f, "utf8")) as StoryboardRecord;
+    // يُعاد مرة عند خطأ القراءة؛ وملف تالف بعدها = «لم يُعتمد» (إغلاق آمن)
+    const r = await readJsonFile<StoryboardRecord>(f);
+    if (!r) return { version: 1, scenes: {} };
     return { version: 1, approvedAt: r.approvedAt, scenes: r.scenes ?? {}, audit: r.audit, ...(Array.isArray(r.history) ? { history: r.history } : {}) };
   } catch {
     return { version: 1, scenes: {} };
@@ -98,7 +100,7 @@ export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: 
     audit: audit ? { ...audit, at: new Date().toISOString() } : undefined,
     scenes: Object.fromEntries(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, storyboardVisualHash(s)])),
   };
-  await writeFile(storyboardFileFor(scriptPath), JSON.stringify(rec, null, 2) + "\n");
+  await writeJsonAtomic(storyboardFileFor(scriptPath), rec);
   return rec;
 };
 
@@ -124,14 +126,14 @@ export const recordChangedBoards = async (scriptPath: string, plan: Plan, audit:
     history: [...(prev.history ?? []), prev.audit],
     scenes: Object.fromEntries(all.map((s) => [s.id, st.scenes[s.id] === "approved" ? prev.scenes[s.id]! : storyboardVisualHash(s)])),
   };
-  await writeFile(storyboardFileFor(scriptPath), JSON.stringify(record, null, 2) + "\n");
+  await writeJsonAtomic(storyboardFileFor(scriptPath), record);
   return { record, scenes: changed };
 };
 
 /** سحب الاعتماد (يعيد الحلقة إلى «لم يُعتمد»). */
 export const revokeStoryboard = async (scriptPath: string): Promise<StoryboardRecord> => {
   const rec: StoryboardRecord = { version: 1, scenes: {} };
-  await writeFile(storyboardFileFor(scriptPath), JSON.stringify(rec, null, 2) + "\n");
+  await writeJsonAtomic(storyboardFileFor(scriptPath), rec);
   return rec;
 };
 

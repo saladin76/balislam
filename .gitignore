@@ -73,7 +73,7 @@ channels/*/episodes/*/voice-review.json
 channels/*/episodes/*/previews/.preview-index.lock/
 # - سجل مراجعة اللوحات (src/plan/storyboard.ts: storyboardFileFor). يكتبه «اعتمد التجهيز» على هذا الجهاز،
 #   وسلطته كلها في السجل الموقَّع أعلاه: بصمة الستوري بورد فيه هي «جيل» هذا الملف (inode وctime)، فنسخة
-#   من Git أو من جهاز آخر لا تعتمد شيئًا، وسحبها فوقه كان سيعيد فتح المشاهد. لم يُتتبع ملف منه قط (D58).
+#   من Git أو من جهاز آخر لا تعتمد شيئًا، وسحبها فوقه كان سيعيد فتح المشاهد. لم يُتتبع ملف منه قط (D60).
 #   محمي في البداية النظيفة (fresh-start.command: is_protected) ولا يُحذف.
 channels/*/episodes/*/storyboard.json
 # - ملفات الكتابة الذرية المؤقتة لكل كاتب في مجلد الحلقة (*.<uuid>.tmp)

@@ -15,6 +15,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { findTraces } from "../src/package/traces";
+import { PREP_VALID_TAIL } from "./fixtures/prepValidScript";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -72,7 +73,7 @@ type Res = { status: number; body: any };
 const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}): Promise<Res> => {
   const r = await fetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
+    headers: { "sec-fetch-site": "same-origin", ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -118,7 +119,7 @@ beforeAll(async () => {
   (globalThis as any).__e2eStubRenders = stubbedRenders;
 
   await writeFile(path.join(epDir, "script.md"),
-    `---\ntitle: "مفتاح الفرج"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n`);
+    `---\ntitle: "مفتاح الفرج"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n` + PREP_VALID_TAIL);
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   const voice = path.join(epDir, "voice");
   await mkdir(voice);
@@ -175,10 +176,10 @@ describe("Drive handoff after the publish permission (real server, real ledger)"
     const drive = await mkdtemp(path.join(os.tmpdir(), "my-drive-"));
     try {
       let s = await state();
-      expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 })).status).toBe(200);
+      expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: s.script.sha256 })).status).toBe(200);
       expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحة بصريًا: النص والتكوين والتوقيت مطابقة للسكريبت." })).status).toBe(200);
       s = await state();
-      expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 })).status).toBe(200);
+      expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256 })).status).toBe(200);
       s = await state();
       expect((await render("c1-s1", s.scenes[0].sourceSha256)).status).toBe(200);
       expect((await decide({ action: "submit-scene", sceneId: "c1-s1", expectedSha256: s.scenes[0].sourceSha256 })).status).toBe(200);

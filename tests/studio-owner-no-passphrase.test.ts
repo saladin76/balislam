@@ -14,6 +14,7 @@ import { createServer, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { assertSceneOwner, isOwnerAuthError } from "../src/studio/sceneService";
 import { inStudioRequest, isLoopbackHost, runOwnerRequest } from "../src/studio/ownerContext";
+import { PREP_VALID_TAIL } from "./fixtures/prepValidScript";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -50,7 +51,7 @@ beforeAll(async () => {
   await writeFile(path.join(root, ".studio", "owner-sessions.json"), "{ not json");
   const narration = "الصبر مفتاح الفرج.";
   await writeFile(path.join(epDir, "script.md"),
-    `---\ntitle: "المالك على جهازه"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${narration}\n`);
+    `---\ntitle: "المالك على جهازه"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${narration}\n` + PREP_VALID_TAIL);
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify({
     channel: CH, episode: EP, title: "المالك على جهازه",
     chapters: [{ number: 1, title: "تجربة", scenes: [{ id: "c1-s1", template: "big-question", line: 7, narration, sfx: [], props: { text: "الصبر" } }] }],
@@ -101,7 +102,7 @@ const decide = (cmd: Record<string, unknown>, headers: Record<string, string> = 
 describe("no passphrase: the loopback, same-origin Studio request is the owner", { timeout: 120_000 }, () => {
   it("refuses a request from another address or another site with 403, and writes nothing", async () => {
     const s = await state();
-    const cmd = { action: "approve-script", expectedSha256: s.script.sha256, confirmedWatched: true };
+    const cmd = { action: "approve-script", reviewed: true, expectedSha256: s.script.sha256, confirmedWatched: true };
     for (const addr of ["192.168.1.20", "10.0.0.5", "::ffff:192.168.1.20", "fe80::1"]) {
       const r = await decide(cmd, { ...same(), [REMOTE]: addr });
       expect(r.status, addr).toBe(403);
@@ -118,17 +119,17 @@ describe("no passphrase: the loopback, same-origin Studio request is the owner",
 
   it("approves directly by click (no header, no token), and the ledger is signed and verified", async () => {
     let s = await state();
-    const ok = await decide({ action: "approve-script", expectedSha256: s.script.sha256, confirmedWatched: true });
+    const ok = await decide({ action: "approve-script", reviewed: true, expectedSha256: s.script.sha256, confirmedWatched: true });
     expect(ok.status, JSON.stringify(ok.body)).toBe(200);
     expect(ok.body.script.approved).toBe(true);
     // Every other gate is unchanged: order and the board record still refuse (409, not 403).
     s = await state();
-    expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256, confirmedWatched: true })).status).toBe(409);
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256, confirmedWatched: true })).status).toBe(409);
     const board = await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحة بصريًا: النص والتكوين والتوقيت مطابقة للسكريبت." }, same());
     expect(board.status, JSON.stringify(board.body)).toBe(200);
     s = await state();
-    expect((await decide({ action: "approve-storyboard", expectedSha256: "0".repeat(64), confirmedWatched: true })).status).toBe(409);
-    const sb = await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256, confirmedWatched: true });
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: "0".repeat(64), confirmedWatched: true })).status).toBe(409);
+    const sb = await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256, confirmedWatched: true });
     expect(sb.status, JSON.stringify(sb.body)).toBe(200);
 
     const ledgerFile = path.join(epDir, "scene-production.v1.json");

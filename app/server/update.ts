@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { arabicCount, OTHER_FILES } from "../../src/i18n/count.ts";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { childEnv } from "../../scripts/git-env.mjs";
@@ -61,7 +62,7 @@ export const blockingFiles = async (root: string): Promise<{ tracked: string[]; 
 const LIST_MAX = 8;
 const listLines = (files: string[]) =>
   files.slice(0, LIST_MAX).map((f) => `• ${f}`).join("\n") +
-  (files.length > LIST_MAX ? `\n• و${files.length - LIST_MAX} ملفًا آخر` : "");
+  (files.length > LIST_MAX ? `\n• و${arabicCount(files.length - LIST_MAX, OTHER_FILES)}` : "");
 /** Arabic explanation naming the files that block the update, or null when the tree is clean. */
 export const dirtyTreeMessage = async (root: string): Promise<string | null> => {
   const b = await blockingFiles(root);

@@ -1,7 +1,9 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, writeFile, unlink } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, stat } from "node:fs/promises";
+import { readJsonFile, writeFileAtomic, writeJsonAtomic } from "../io/atomicJson";
+import { withLock } from "../io/processLock";
 import { parseFile } from "music-metadata";
 import config from "../../config.json";
 import { channelPaths } from "../channel";
@@ -20,6 +22,7 @@ import { parseScript } from "../script/parse";
 import { loadLedger, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { capsFor, dropTagWords } from "./models";
+import { assertNoQuranForTts, isQuranFreeForTts, isVerseScene, planVerseTexts, QuranTtsError } from "./quranGuard";
 import { applyTempo, scaleTimes } from "./tempo";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
@@ -52,7 +55,9 @@ const loadDictionary = async () => readJson<{ entries?: { text: string; say: str
 
 type Job = { id: string; /** المشهد (في مسار الأجزاء: مشهد الجزء) */ scene?: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string;
   /** النص المرسل فعلًا بعد قاموس النطق للقناة (pronunciations.json): خارج البصمة، فلا يُبطل مقطعًا قائمًا */
-  send?: string; sendOwner?: number[]; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } };
+  send?: string; sendOwner?: number[]; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number };
+  /** the episode's verse texts, for the Quran guard (never sent) */
+  verses?: string[] };
 
 /** نبرة القناة الافتراضية (channel.json ← voice.tone)، إن وُجدت */
 const channelToneOf = (): string | undefined => {
@@ -72,11 +77,19 @@ const loadTashkeel = async (scriptPath?: string): Promise<TashkeelIndex | null> 
 /** قاموس النطق والتشكيل معًا (للصوت جملةً جملة، src/voice/sentenceVoice.ts): النطق نفسه الذي يرسله المسار العام */
 export const speechContextFor = async (scriptPath: string) => ({ dict: await loadDictionary(), tk: await loadTashkeel(scriptPath) });
 
-const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
+const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string, quranRefused?: string[]) => {
   const dict = await loadDictionary();
   const tk = await loadTashkeel(scriptPath);
   const lex = (await loadLexicon()).entries;
-  const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
+  // Verse scenes never produce a TTS job (the recitation is the owner's human recording), and a verse
+  // between two narrated scenes is not sent as their context either (src/voice/quranGuard.ts).
+  const all = plan.chapters.flatMap((c) => c.scenes);
+  const verses = planVerseTexts(plan);
+  const neighbour = (k: number, step: -1 | 1): string | undefined => {
+    const n = all[k + step];
+    return !n || isVerseScene(n) ? undefined : n.narration?.trim() || undefined;
+  };
+  const scenes = all.map((s, k) => ({ s, k })).filter(({ s }) => s.narration.trim() && !isVerseScene(s));
   let channelTone: string | undefined;
   let profile: VoiceProfile | undefined;
   try {
@@ -86,7 +99,11 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   } catch {
     /* بلا قناة */
   }
-  return scenes.map((s, i): Job => {
+  return scenes.filter(({ s }) => {
+    if (isQuranFreeForTts(s.narration, s, { verses })) return true;
+    quranRefused?.push(s.id);
+    return false;
+  }).map(({ s, k }): Job => {
     const words = s.narration.trim().split(/\s+/).filter(Boolean);
     const d = applyDictionary(s.narration.trim(), dict, tk ? vowelize(words, tk) : undefined);
     // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
@@ -97,8 +114,8 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
     const extra = { ...(tune ? { tune } : {}), ...(s.voice ? { voice: s.voice } : {}) };
     const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...extra })).digest("hex").slice(0, 16);
-    const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { verse: s.template === "verse-card" });
-    return { id: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: scenes[i - 1]?.narration, next: scenes[i + 1]?.narration, voiceId: s.voice || undefined, tune };
+    const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex);
+    return { id: s.id, scene: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: neighbour(k, -1), next: neighbour(k, 1), voiceId: s.voice || undefined, tune, verses };
   });
 };
 
@@ -114,6 +131,7 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
   }
   const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
   return ctx.jobs.map((p, i): Job => {
+    assertNoQuranForTts(p.text, { id: p.partId });
     const d = applyDictionary(p.text, dict);
     const tune = voiceSettingsFor(profile, isTone(p.tone) ? p.tone : undefined);
     const hash = createHash("sha1").update(JSON.stringify({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
@@ -123,7 +141,8 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
   });
 };
 
-export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary };
+export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary;
+  /** مشاهد نصها فيه قرآن فلا تُرسل إلى الصوت المستنسخ (quranGuard.ts) */ quranRefused?: string[] };
 
 export type GenerateVoiceOptions = {
   client?: ElevenLabsClient | null;
@@ -146,14 +165,54 @@ export type GenerateVoiceOptions = {
  * يولّد صوت كل مشهد له تعليق. لا يعيد توليد مشهد لم يتغير نصه ولا إعداداته (بصمة hash)،
  * فتعديل جملة واحدة لا يكلّف إلا تلك الجملة.
  */
+/** قفل صوت الحلقة (QA H4): تشغيلان لتوليد صوت الحلقة نفسها لا يجتمعان أبدًا، ولو من عمليتين مختلفتين. */
+export const voiceLockFileFor = (scriptPath: string) => path.join(voiceDirFor(scriptPath), ".voice.lock");
+export const VOICE_BUSY_MESSAGE = "يُولَّد صوت هذه الحلقة الآن في مهمة أخرى (مثل «جهّز كل المشاهد» أو «ولّد الصوت» أو سطر الأوامر). انتظر انتهاءها ثم أعد المحاولة؛ لم يُصرف شيء.";
+
+/**
+ * ملفات الصوت التي لم يعد يشير إليها أي مشهد لا تُحذف أبدًا (تسجيل مدفوع): تُنقل إلى voice/superseded/.
+ * ولا يُمس ملف لم يصنعه هذا التشغيل وكُتب بعد بدئه (تركيب جملة جارٍ في الوقت نفسه مثلًا).
+ */
+const supersedeUnused = async (dir: string, used: Set<string>, pattern: RegExp, run: { startedAt: number; created: Set<string> }, superseded: string) => {
+  for (const f of await readdir(dir).catch(() => [] as string[])) {
+    if (!pattern.test(f) || used.has(f)) continue;
+    const full = path.join(dir, f);
+    const st = await stat(full).catch(() => null);
+    if (!st?.isFile()) continue;
+    if (!run.created.has(full) && st.mtimeMs >= run.startedAt) continue;
+    await mkdir(superseded, { recursive: true });
+    const target = existsSync(path.join(superseded, f)) ? `${Date.now().toString(36)}-${f}` : f;
+    await rename(full, path.join(superseded, target)).catch(() => {});
+  }
+};
+
 export const generateVoice = async (episode: string, opts: GenerateVoiceOptions = {}): Promise<VoicePlanReport> => {
-  const log = opts.onProgress ?? (() => {});
   const scriptPath = await resolveScriptPath(episode);
+  if (opts.dryRun) return generateVoiceLocked(episode, scriptPath, opts);
+  await mkdir(voiceDirFor(scriptPath), { recursive: true });
+  return withLock(voiceLockFileFor(scriptPath), { purpose: `voice ${episode}`, waitMs: 2000, busyMessage: VOICE_BUSY_MESSAGE },
+    () => generateVoiceLocked(episode, scriptPath, opts));
+};
+
+const generateVoiceLocked = async (episode: string, scriptPath: string, opts: GenerateVoiceOptions): Promise<VoicePlanReport> => {
+  const log = opts.onProgress ?? (() => {});
+  const run = { startedAt: Date.now() - 1000, created: new Set<string>() };
   const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
   const dir = voiceDirFor(scriptPath);
   await mkdir(dir, { recursive: true });
   const indexFile = path.join(dir, "index.json");
-  const index: VoiceIndex = (await readJson<VoiceIndex>(indexFile)) ?? {};
+  const index: VoiceIndex = (await readJsonFile<VoiceIndex>(indexFile)) ?? {};
+  // الكتابة دمجٌ مع الفهرس على القرص (يُقرأ من جديد قبل كل كتابة ذرية): لا يُمحى ما كتبه مسار الجمل في أثناء التشغيل.
+  const touched = new Set<string>();
+  const removed = new Set<string>();
+  const saveIndex = async () => {
+    const disk = (await readJsonFile<VoiceIndex>(indexFile)) ?? {};
+    for (const id of removed) delete disk[id];
+    for (const id of touched) if (index[id]) disk[id] = index[id]!;
+    for (const [id, clip] of Object.entries(disk)) if (!touched.has(id)) index[id] = clip;
+    for (const id of removed) delete index[id];
+    await writeJsonAtomic(indexFile, disk);
+  };
   const model = process.env.ELEVENLABS_MODEL_ID || config.voice.modelId;
   const caps = capsFor(model);
   const voiceKey = `${voiceIdFor() ?? ""}|${model}`;
@@ -162,7 +221,10 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   const managed = await (await import("./sentenceVoice")).sentenceManagedScenes(scriptPath);
   const parts = await (await import("./dafatirParts")).loadPartsContext(scriptPath, plan, managed);
   const sceneOf = (j: Job) => j.scene ?? j.id;
-  const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath);
+  // A narration carrying Quran (﴿…﴾, [آية], or five words of a verse of the episode) is never voiced; the
+  // dry run lists it and a real run refuses (src/voice/quranGuard.ts).
+  const quranRefused: string[] = [];
+  const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath, quranRefused);
   const jobs = allJobs.filter((j) => (!opts.only || opts.only.includes(sceneOf(j))) && !managed.has(sceneOf(j)));
   // «أعد توليد الصوت» لمشهد صوته جمل: لا يُعاد كاملًا بصمت؛ يُقال للمالك أين يولّده
   if (!opts.dryRun && opts.only?.length && opts.only.every((id) => managed.has(id)))
@@ -196,7 +258,11 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     ),
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
+  const refusedHere = quranRefused.filter((id) => !managed.has(id) && (!opts.only || opts.only.includes(id)));
+  if (refusedHere.length) report.quranRefused = refusedHere;
   if (opts.dryRun) return report;
+  if (refusedHere.length)
+    throw new QuranTtsError(`الصوت المستنسخ لا يتلو القرآن: نص هذه المشاهد فيه آية (${refusedHere.slice(0, 12).join("، ")}). انقل الآية إلى مشهد آية مستقل ([آية: السورة رقم]) ثم ولّد الصوت.`);
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.testOnlySkipGates) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
@@ -228,7 +294,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   for (const j of jobs) {
     const c = isCached(j) ? byHash.get(j.hash) : undefined;
     if (c && parts) partsIndex[j.id] = { file: c.file, hash: c.hash, text: j.narration, duration: c.duration, words: c.words };
-    else if (c) index[j.id] = { ...c, text: j.narration };
+    else if (c) { index[j.id] = { ...c, text: j.narration }; touched.add(j.id); }
   }
   if (parts) await mkdir(partsDir, { recursive: true });
 
@@ -236,14 +302,15 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   for (const [k, j] of todo.entries()) {
     if (opts.shouldStop?.()) { stoppedEarly = true; break; }
     log(`(${k + 1}/${todo.length}) ${j.id}: ${j.spoken.length} حرفًا`);
-    const r = await opts.client!.tts(j.send ?? j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune });
+    const r = await opts.client!.tts(j.send ?? j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune, scene: { id: j.id }, verses: j.verses });
     // السرعة بعد التوليد للنماذج التي لا تقبلها (v4): تمديد زمني يحفظ طبقة الصوت، ومعه توقيت الكلمات
     const speed = caps.speed === "post" ? (j.tune?.speed ?? config.voice.speed) : 1;
     const audio = await applyTempo(r.audio, speed);
     // اسم الملف من البصمة: مشهدان بنفس النص يتشاركان الملف، والانزياح لا يكتب فوق مقطع آخر
     const file = `${j.hash}.mp3`;
     const fileDir = parts ? partsDir : dir;
-    await writeFile(path.join(fileDir, file), audio);
+    await writeFileAtomic(path.join(fileDir, file), audio);
+    run.created.add(path.join(fileDir, file));
     let duration = 0;
     try {
       duration = (await parseFile(path.join(fileDir, file), { duration: true })).format.duration ?? 0;
@@ -257,40 +324,44 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
       // الجزء يحفظ كلماته المنطوقة بزمن ملفه؛ تُحوَّل إلى زمن المشهد عند التركيب
       partsIndex[j.id] = { file, hash: j.hash, text: j.narration, duration, words: spokenWords };
       byHash.set(j.hash, partsIndex[j.id]!);
-      await writeFile(partsIndexFile, JSON.stringify(partsIndex, null, 2) + "\n");
+      await writeJsonAtomic(partsIndexFile, partsIndex);
       continue;
     }
     const words = wordsForCaptions(j.original, j.sendOwner ?? j.owner, spokenWords);
     index[j.id] = { file, hash: j.hash, text: j.narration, duration, words };
+    touched.add(j.id);
     byHash.set(j.hash, index[j.id]!);
-    await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
+    await saveIndex();
   }
 
   // Stopped mid-way on the parts path (dafatir tone map): finished parts are saved in parts/index.json and
   // reused next time; scenes are never composed from an incomplete set of parts.
   if (parts && stoppedEarly) return report;
   if (parts) {
+    const before = JSON.stringify(index);
     await (await import("./dafatirParts")).composePartsIntoScenes({ plan, parts: { ...parts, jobs: parts.jobs.filter((j) => !managed.has(j.scene)) }, partsIndex, partsDir, dir, index, allJobs, log });
-    // تنظيف: أجزاء لم تعد في الخريطة، وملفات لا يشير إليها جزء ولا مشهد
+    // مشاهد ركّبها التركيب الآن: تُكتب بالدمج كغيرها
+    if (JSON.stringify(index) !== before) for (const j of allJobs) if (!managed.has(sceneOf(j)) && index[sceneOf(j)]) touched.add(sceneOf(j));
+    // تنظيف: أجزاء لم تعد في الخريطة، وملفات لا يشير إليها جزء ولا مشهد (تُنقل إلى superseded ولا تُحذف)
     const liveParts = new Set(allJobs.map((j) => j.id));
     for (const id of Object.keys(partsIndex)) if (!liveParts.has(id)) delete partsIndex[id];
-    await writeFile(partsIndexFile, JSON.stringify(partsIndex, null, 2) + "\n");
+    await writeJsonAtomic(partsIndexFile, partsIndex);
     const usedParts = new Set(Object.values(partsIndex).map((c) => c.file));
-    for (const f of await readdir(partsDir)) if (f.endsWith(".mp3") && !usedParts.has(f)) await unlink(path.join(partsDir, f)).catch(() => {});
+    await supersedeUnused(partsDir, usedParts, /\.mp3$/, run, path.join(dir, "superseded", "parts"));
     const liveScenes = new Set(allJobs.map(sceneOf));
-    for (const id of Object.keys(index)) if (!liveScenes.has(id)) delete index[id];
+    for (const id of Object.keys(index)) if (!liveScenes.has(id) && !managed.has(id)) removed.add(id);
+    await saveIndex();
     const used = new Set(Object.values(index).map((c) => c.file));
-    for (const f of await readdir(dir)) if (/\.(mp3|wav)$/.test(f) && !used.has(f)) await unlink(path.join(dir, f)).catch(() => {});
-    await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
+    await supersedeUnused(dir, used, /\.(mp3|wav)$/, run, path.join(dir, "superseded"));
     return report;
   }
 
-  // تنظيف: مشاهد لم تعد موجودة، وملفات لم يعد يشير إليها أي مشهد
+  // تنظيف: مشاهد لم تعد موجودة تخرج من الفهرس، وملفات لم يعد يشير إليها أي مشهد تُنقل إلى superseded (لا تُحذف)
   const live = new Set((await jobsFor(plan, voiceKey, scriptPath)).map((j) => j.id));
-  for (const id of Object.keys(index)) if (!live.has(id)) delete index[id];
+  for (const id of Object.keys(index)) if (!live.has(id)) removed.add(id);
+  await saveIndex();
   const used = new Set(Object.values(index).map((c) => c.file));
-  for (const f of await readdir(dir)) if (f.endsWith(".mp3") && !used.has(f)) await unlink(path.join(dir, f)).catch(() => {});
-  await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
+  await supersedeUnused(dir, used, /\.mp3$/, run, path.join(dir, "superseded"));
   return report;
 };
 
@@ -331,7 +402,7 @@ export const synthesizeLines = async (
   const log = opts.onProgress ?? (() => {});
   await mkdir(opts.dir, { recursive: true });
   const indexFile = path.join(opts.dir, "index.json");
-  const index: Record<string, LineClip> = (await readJson<Record<string, LineClip>>(indexFile)) ?? {};
+  const index: Record<string, LineClip> = (await readJsonFile<Record<string, LineClip>>(indexFile)) ?? {};
   const model = process.env.ELEVENLABS_MODEL_ID || config.voice.modelId;
   const caps = capsFor(model);
   const voiceKey = `${voiceIdFor() ?? ""}|${model}`;
@@ -353,6 +424,7 @@ export const synthesizeLines = async (
   const out: Record<string, LineClip> = {};
   for (const [k, line] of lines.entries()) {
     const text = line.text.trim();
+    assertNoQuranForTts(text, { id: line.id });
     const words = text.split(/\s+/).filter(Boolean);
     const d = applyDictionary(text, dict, tk ? vowelize(words, tk) : undefined);
     const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
@@ -367,13 +439,13 @@ export const synthesizeLines = async (
     const speed = caps.speed === "post" ? (tune?.speed ?? config.voice.speed) : 1;
     const audio = await applyTempo(r.audio, speed);
     const file = `${hash}.mp3`;
-    await writeFile(path.join(opts.dir, file), audio);
+    await writeFileAtomic(path.join(opts.dir, file), audio);
     let duration = (await audioDuration(path.join(opts.dir, file))) ?? 0;
     const spokenWords = r.alignment ? scaleTimes(dropTagWords(alignmentToWords(r.alignment)), speed) : estimateWords(l.spoken.join(" "), duration);
     const timed = wordsForCaptions(d.original, l.owner, spokenWords);
     if (!duration) duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
     out[line.id] = index[line.id] = { file, hash, text, duration, words: timed };
-    await writeFile(indexFile, JSON.stringify(index, null, 2) + "\n");
+    await writeJsonAtomic(indexFile, index);
   }
   return out;
 };

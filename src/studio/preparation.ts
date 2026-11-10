@@ -117,3 +117,25 @@ export const approvePreparation = async (episode: string, command: PreparationCo
     });
   return inspectSceneProduction(episode);
 };
+
+/**
+ * H6 (security QA, 10 Nov): the direct ledger actions «approve-script» / «approve-storyboard» on the HTTP
+ * surface (POST /api/episodes/<n>/scene-production) get exactly the checks «اعتمد التجهيز» enforces —
+ * «راجعته بنفسي» (`reviewed: true`), no script error, and for the storyboard no verse without its text —
+ * so they are never a way around the preparation step. Returns the refusal, or null (other actions: null).
+ */
+export const directPreparationRefusal = async (episode: string, command: unknown): Promise<string | null> => {
+  const c = command as { action?: unknown; reviewed?: unknown } | null;
+  if (!c || (c.action !== "approve-script" && c.action !== "approve-storyboard")) return null;
+  if (c.reviewed !== true) return "Confirm that you reviewed the script and every board yourself («راجعته بنفسي»).";
+  const scriptPath = await resolveScriptPath(episode);
+  const check = checkForChannel(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
+  if (check.issues.some((i) => i.level === "error")) return "Fix the script errors before approving the preparation.";
+  if (c.action === "approve-storyboard") {
+    const plan = await loadPlan(episode);
+    if (!plan) return "Prepare and save a storyboard plan first.";
+    const missing = versesMissingText(plan);
+    if (missing.length) return `لا يُعتمد الستوري بورد وفيه ${missing.length} آية بلا نصها (${missing.join("، ")}). أضف نص الآيات داخل السكريبت.`;
+  }
+  return null;
+};

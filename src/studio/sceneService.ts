@@ -9,6 +9,8 @@
 import path from "node:path";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { isOwnerContext } from "./ownerContext";
+import { readJsonFile } from "../io/atomicJson";
+import { withLock } from "../io/processLock";
 import { lstat, open, readFile, rename, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
@@ -181,12 +183,31 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
     }),
   };
 };
-const reconcile = (stored: SceneFirstProduction, current: SceneFirstProduction): SceneFirstProduction => {
-  if (stored.channel !== current.channel || stored.episode !== current.episode ||
-      stored.scenes.length !== current.scenes.length ||
-      stored.scenes.some((s, i) => s.id !== current.scenes[i]?.id))
-    return current; // no implicit migration of incompatible/renumbered scenes
-  let state = stored;
+/**
+ * Reconcile the signed ledger with the episode as it is now, scene by scene (QA H3, 10 Nov 2026).
+ * Adding, removing or reordering a scene used to wipe every approval; now:
+ * - a scene whose id is still present keeps its status and approval; if its own input fingerprint
+ *   changed it is re-opened by reviseSceneInput exactly as before (queued stays queued);
+ * - a new scene id enters as "queued" at its plan position;
+ * - a removed scene id is dropped with its approval;
+ * - script / storyboard approvals are kept unless their own hashes changed (changeScript / changeStoryboard);
+ * - any change to the list (added, removed or reordered ids) invalidates the assembly, the Master and
+ *   the publish permission, because the cut and its seams no longer match.
+ * Ordering rule unchanged: a later scene that stays approved after a newly inserted queued one keeps its
+ * approval, but the queue (canWorkOn / nextSceneId) requires approving the new scene first and assembly
+ * stays blocked until every scene is approved. A different channel/episode still starts over.
+ */
+export const reconcileSceneLedger = (stored: SceneFirstProduction, current: SceneFirstProduction): SceneFirstProduction => {
+  if (stored.channel !== current.channel || stored.episode !== current.episode)
+    return current; // a ledger of another episode is never migrated
+  const byId = new Map(stored.scenes.map(scene => [scene.id, scene]));
+  const sameList = stored.scenes.length === current.scenes.length &&
+    stored.scenes.every((s, i) => s.id === current.scenes[i]?.id);
+  let state: SceneFirstProduction = sameList ? stored : {
+    ...stored,
+    scenes: current.scenes.map(s => byId.get(s.id) ?? { id: s.id, sourceSha256: s.sourceSha256, status: "queued" as const }),
+    assembly: undefined, master: undefined,
+  };
   if (state.script.sha256 !== current.script.sha256)
     state = changeScript(state, current.script.sha256);
   if (state.storyboard.sha256 !== current.storyboard.sha256)
@@ -201,7 +222,9 @@ const readLedger = async (file: string, fresh: CurrentInput): Promise<SignedScen
   try {
     const st = await lstat(file);
     if (!st.isFile() || st.isSymbolicLink()) throw Error("Scene ledger is not a regular file.");
-    data = JSON.parse(await readFile(file, "utf8")) as SignedSceneLedger;
+    const parsed = await readJsonFile<SignedSceneLedger>(file); // a parse error is retried once, then an Arabic error
+    if (!parsed) throw Object.assign(new Error("missing"), { code: "ENOENT" });
+    data = parsed;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     return sign({ version: 1, state: fresh.initial, revision: 0, history: [], previewEpochs: {}, previewInputs: {} });
@@ -227,7 +250,6 @@ const saveLedger = async (file: string, doc: SignedSceneLedger): Promise<void> =
     await rename(temp, file);
   } finally { await rm(temp, { force: true }); }
 };
-const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 /** A lock left by a writer process that no longer exists on this machine (Studio crashed or was killed
  * mid-write). Only "<pid> <uuid>" locks of a dead process qualify; a live writer is never touched. */
 export const lockOwnerIsDead = (content: string | null, ownPid = process.pid): boolean => {
@@ -244,35 +266,13 @@ export const lockOwnerIsDead = (content: string | null, ownPid = process.pid): b
  */
 export const LEDGER_LOCK_WAIT_MS = 30_000;
 export const serialized = async <T>(file: string, work: () => Promise<T>,
-  waitMs = LEDGER_LOCK_WAIT_MS): Promise<T> => {
-  const name = file + ".lock";
-  let fd: Awaited<ReturnType<typeof open>> | undefined;
-  const deadline = Date.now() + waitMs;
-  for (let attempt = 0; ; attempt++) {
-    try { fd = await open(name, "wx", 0o600); break; }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      const held = await readFile(name, "utf8").catch(() => null);
-      // Recover only a dead process's lock, and only if it is still the same lock we inspected.
-      if (lockOwnerIsDead(held) && await readFile(name, "utf8").catch(() => null) === held) {
-        await rm(name, { force: true });
-        continue;
-      }
-      if (Date.now() >= deadline) throw Error("Scene approval ledger is busy. Never delete another writer lock.");
-      await sleep(Math.min(250, 25 * (1 + Math.floor(attempt / 4))));
-    }
-  }
-  if (!fd) throw Error("Cannot lock scene approvals.");
-  const token = `${process.pid} ${randomUUID()}`;
-  try {
-    await fd.writeFile(token); await fd.sync();
-    return await work();
-  } finally {
-    await fd.close();
-    if (await readFile(name, "utf8").catch(() => null) === token)
-      await rm(name, { force: true });
-  }
-};
+  waitMs = LEDGER_LOCK_WAIT_MS): Promise<T> =>
+  // Shared cross-process lock (src/io/processLock.ts): the holder's PID and its OS start time are recorded,
+  // so a crashed writer's lock is recovered even if its PID was reused; a live writer's lock is never deleted.
+  // Older "<pid> <uuid>" locks are still recognised (lockOwnerIsDead).
+  withLock(file + ".lock", { purpose: "scene ledger", waitMs,
+    busyMessage: "Scene approval ledger is busy. Never delete another writer lock.",
+    legacyStale: (held) => lockOwnerIsDead(held) }, work);
 const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" | "recitationPending" | "planReady" | "boardsChanged">) => {
   const p = data.state, progress = sceneFirstProgress(p);
   return {
@@ -306,7 +306,7 @@ const withState = async <T>(episode: string,
     const current = await sourceNow(episode);
     if (current.scriptPath !== initial.scriptPath) throw Error("Episode changed while locking.");
     let doc = await readLedger(file, current);
-    const reconciled = reconcile(doc.state, current.initial);
+    const reconciled = reconcileSceneLedger(doc.state, current.initial);
     if (JSON.stringify(doc.state) !== JSON.stringify(reconciled)) {
       const epochs = Object.fromEntries(Object.entries(doc.previewEpochs).filter(([id]) =>
         reconciled.scenes.some(scene => scene.id === id &&

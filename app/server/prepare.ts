@@ -25,16 +25,32 @@ export type PrepareJobView = {
 const jobs = new Map<string, PrepareJobView>();
 export const prepareJob = (key: string): PrepareJobView | null => jobs.get(key) ?? null;
 
+/** Arabic refusal when another heavy job (episode render, make, package, delete) holds the episode. */
+export const PREPARE_REFUSED_BUSY = "توجد مهمة جارية على هذه الحلقة (رندر الحلقة أو صناعتها أو تغليفها). انتظر انتهاءها ثم اضغط «جهّز كل المشاهد».";
+/** Arabic refusal for other heavy jobs while «جهّز كل المشاهد» runs on the episode. */
+export const PREPARE_RUNNING_MESSAGE = "«جهّز كل المشاهد» يعمل الآن على هذه الحلقة. انتظر انتهاءه أو اضغط «أوقف» ثم أعد المحاولة.";
+export const prepareRunning = (key: string): boolean => jobs.get(key)?.status === "running";
+
+/**
+ * QA H4: the queue takes the episode's `busy` key for its whole run (the same set the episode render, make,
+ * package and delete check), and refuses to start while another job holds it. Released when the run ends.
+ */
 export const startPrepareJob = (key: string, run: (
   onProgress: (p: Omit<PrepareJobView, "status" | "startedAt">) => void, shouldStop: () => boolean,
-) => Promise<unknown>): PrepareJobView => {
+) => Promise<unknown>, busy?: Set<string>): PrepareJobView => {
   const live = jobs.get(key);
   if (live?.status === "running") return live;
+  if (busy?.has(key)) throw Object.assign(new Error(PREPARE_REFUSED_BUSY), { status: 409, code: "EPISODE_BUSY" });
+  busy?.add(key);
   const job: PrepareJobView = { status: "running", startedAt: Date.now(), phase: "voice",
     voice: { needed: 0, generated: 0, status: "pending" }, rendered: [], failed: [] };
   jobs.set(key, job);
-  const end = (status: PrepareJobView["status"]) => { job.status = status; job.sceneId = undefined; job.finishedAt = Date.now(); };
-  void run((p) => Object.assign(job, p), () => job.stopRequested === true).then(
+  const end = (status: PrepareJobView["status"]) => { job.status = status; job.sceneId = undefined; job.finishedAt = Date.now(); busy?.delete(key); };
+  // The run starts synchronously (as before); a synchronous throw still ends the job and frees the busy key.
+  let started: Promise<unknown>;
+  try { started = run((p) => Object.assign(job, p), () => job.stopRequested === true); }
+  catch (error) { started = Promise.reject(error); }
+  void Promise.resolve(started).then(
     () => { job.phase = "done"; end(job.stopRequested ? "stopped" : "done"); },
     (e) => { job.error = (e as Error).message; end(job.stopRequested ? "stopped" : "error"); },
   );

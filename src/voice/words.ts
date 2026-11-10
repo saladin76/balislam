@@ -1,4 +1,5 @@
 import type { Alignment } from "./elevenlabs";
+import { quranMask } from "./quranGuard";
 
 /** توقيت كلمة بالثواني. */
 export type TimedWord = { word: string; start: number; end: number };
@@ -14,12 +15,14 @@ export const applyDictionary = (text: string, dict: Dict, voweled?: (string | un
   const original = text.split(/\s+/).filter(Boolean);
   const spoken: string[] = [];
   const owner: number[] = [];
+  // النص القرآني (داخل ﴿ ﴾) لا يغيّره قاموس النطق القديم أبدًا (القاموسان كلاهما مقنَّعان داخل الآيات)
+  const mask = quranMask(original);
   original.forEach((w, i) => {
     // علامات الترقيم في الطرفين (عربية ولاتينية) لا تمنع مطابقة القاموس
     const core = w.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, "");
-    const say = map.get(core);
+    const say = mask[i] ? undefined : map.get(core);
     // القاموس أولًا؛ وإلا الكلمة المشكولة من ملف التشكيل إن وُجدت
-    const replaced = say ? w.replace(core, say) : (voweled?.[i] ?? w);
+    const replaced = mask[i] ? w : say ? w.replace(core, say) : (voweled?.[i] ?? w);
     for (const part of replaced.split(/\s+/).filter(Boolean)) {
       spoken.push(part);
       owner.push(i);

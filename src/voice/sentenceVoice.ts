@@ -32,6 +32,7 @@ import { isTone, tones, voiceSettingsFor, type Tone } from "./tones";
 import { normWord, stripTashkeel, vowelize } from "./tashkeel";
 import { tashkeelReport } from "./tashkeelReport";
 import { alignmentToWords, applyDictionary, wordsForCaptions } from "./words";
+import { planVerseTexts } from "./quranGuard";
 import { applyLexicon, checkSay, coreOf, loadLexicon, quranMask, removeLexiconEntry, setLexiconEntry, type LexiconEntry } from "./lexicon";
 import { remapWords, SPLICE, spliceWord, type SpliceCheck } from "./wordSplice";
 import {
@@ -550,7 +551,8 @@ const speedFor = (ctx: Ctx, tune: { speed?: number } | undefined) => (capsFor(ct
 const generateOne = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions) => {
   const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts);
   const nb = neighbours(flatten(ctx), s.id);
-  const r = await client.tts(v.send.text, { previousText: nb.previousText, nextText: nb.nextText, voiceId: scene.voice || undefined, tune: v.tune });
+  const r = await client.tts(v.send.text, { previousText: nb.previousText, nextText: nb.nextText, voiceId: scene.voice || undefined, tune: v.tune,
+    scene: { id: scene.id, template: scene.template, ayahKey: scene.ayahKey }, verses: planVerseTexts(ctx.plan) });
   const speed = speedFor(ctx, v.tune);
   const audio = await applyTempo(r.audio, speed);
   const dir = sentencesDirFor(ctx.scriptPath);
@@ -605,7 +607,8 @@ const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list: Senten
   const nb = neighbours(flatten(ctx), s.id);
   const before = [nb.previousText, ws.slice(0, Math.max(0, k - n)).join(" ")].filter(Boolean).join(" ");
   const after = [ws.slice(k + n + 1).join(" "), nb.nextText].filter(Boolean).join(" ");
-  const r = await client.tts(fragment, { previousText: before || undefined, nextText: after || undefined, voiceId: scene.voice || undefined, tune: v.tune });
+  const r = await client.tts(fragment, { previousText: before || undefined, nextText: after || undefined, voiceId: scene.voice || undefined, tune: v.tune,
+    scene: { id: scene.id, template: scene.template, ayahKey: scene.ayahKey }, verses: planVerseTexts(ctx.plan) });
   const speed = speedFor(ctx, v.tune);
   const audio = await applyTempo(r.audio, speed);
   const dir = sentencesDirFor(ctx.scriptPath);
