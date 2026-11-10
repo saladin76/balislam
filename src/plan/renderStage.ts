@@ -36,6 +36,25 @@ const sha256File = async (file: string) => {
     await handle.close();
   }
 };
+/**
+ * The same file referenced by several scenes (a repeated line such as «يقول الله تعالى:» or a
+ * repeated dua shares one voice clip) is ONE staged file. Only two DIFFERENT sources claiming the
+ * same staged name are a conflict, and that still fails closed.
+ */
+export const dedupeStageFiles = (files: RenderStageFile[]): RenderStageFile[] => {
+  const byKey = new Map<string, RenderStageFile>();
+  for (const f of files) {
+    const key = `${f.kind}/${f.name}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, f);
+      continue;
+    }
+    if (path.resolve(prev.source) !== path.resolve(f.source))
+      throw new Error(`وسيط مكرر في لقطة الرندر: ${key}`);
+  }
+  return [...byKey.values()];
+};
 const safeName = (name: string) =>
   name !== "." && name !== ".." && name.length > 0 && name.length <= 240 &&
   path.basename(name) === name && !name.includes("\\") && !name.includes("\0") &&
@@ -106,7 +125,7 @@ const stageSnapshot = async (
     for (const kind of kinds) await ensureUnlinkedDirectory(path.join(staging, kind));
     const seen = new Set<string>();
     const digests: FileDigest[] = [];
-    for (const f of [...files].sort((a, b) => `${a.kind}/${a.name}`.localeCompare(`${b.kind}/${b.name}`, "en"))) {
+    for (const f of dedupeStageFiles(files).sort((a, b) => `${a.kind}/${a.name}`.localeCompare(`${b.kind}/${b.name}`, "en"))) {
       assertLive(options.signal);
       if (!kinds.includes(f.kind) || !safeName(f.name)) throw new Error("اسم وسيط غير آمن للرندر.");
       const key = `${f.kind}/${f.name}`;

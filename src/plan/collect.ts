@@ -89,13 +89,22 @@ export const collectMedia = async (
   return { voice, sfx, recitations, images };
 };
 
+/** The voice clips of the plan's own scenes only (several scenes may share one clip file). */
+export const voiceForPlan = <T>(voice: Record<string, T>, plan: Plan): Record<string, T> => {
+  const ids = new Set(plan.chapters.flatMap((c) => c.scenes.map((s) => s.id)));
+  return Object.fromEntries(Object.entries(voice).filter(([id]) => ids.has(id)));
+};
+
 /** ينسخ وسائط الحلقة إلى لقطة ثابتة ببصمة محتوى ونطاق خاص بالقناة والحلقة؛ لا تُحذف النتائج السابقة. */
 export const prepareRenderMedia = async (
   episode: string,
   plan: Plan,
   opts: { publicRoot?: string; signal?: AbortSignal; requireApprovedQuran?: boolean } = {},
 ): Promise<EpisodeMedia> => {
-  const m = await collectMedia(episode, plan, { requireApprovedQuran: opts.requireApprovedQuran });
+  const all = await collectMedia(episode, plan, { requireApprovedQuran: opts.requireApprovedQuran });
+  // Stage only the voice of the scenes this render actually holds: a single-scene preview carries
+  // that scene's clip, not the whole episode's (scenes read media.voice[scene.id] and nothing else).
+  const m = { ...all, voice: voiceForPlan(all.voice, plan) };
   const scriptPath = await resolveScriptPath(episode);
   const files: RenderStageFile[] = [];
   const vdir = voiceDirFor(scriptPath);
