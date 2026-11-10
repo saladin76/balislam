@@ -23,7 +23,7 @@ let base = "";
 const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}) => {
   const r = await fetch(`${base}/api/${route}?channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
+    headers: { "sec-fetch-site": "same-origin", ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   return { status: r.status, body: await r.json().catch(() => null) as any };

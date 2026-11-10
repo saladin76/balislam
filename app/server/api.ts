@@ -7,7 +7,7 @@ import { busy, busyMessage, handleExtra, ownerRefusal, recoverStudioQueue, rende
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
 import { readBody } from "./body.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
-import { isTrustedLocalRequest } from "./security.ts";
+import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -89,6 +89,21 @@ export const installStudioCrashGuard = (proc: Pick<NodeJS.Process, "on"> = proce
   });
 };
 
+/**
+ * X-Frame-Options: DENY and CSP frame-ancestors 'none' on EVERY Studio response (HTML, scripts, media,
+ * API): no other page can frame the Studio and click its buttons (H1, clickjacking). Runs first.
+ */
+export const studioSecurityHeaders = (): Plugin => ({
+  name: "studio-security-headers",
+  enforce: "pre",
+  configureServer(server: ViteDevServer) {
+    server.middlewares.use((_req, res, next) => { applyStudioSecurityHeaders(res); next(); });
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((_req, res, next) => { applyStudioSecurityHeaders(res); next(); });
+  },
+});
+
 export const balApi = (): Plugin => ({
   name: "bal-api",
   configureServer(server: ViteDevServer) {
@@ -117,13 +132,17 @@ export const balApi = (): Plugin => ({
       .then(([sync, ch]) => sync.scheduleStudioNotesSync(ch.channelsDir()))
       .catch((e) => console.error("[studio] owner notes retry:", (e as Error).message));
     server.middlewares.use(async (req, res, next) => {
+      // Anti-framing on API responses too (H1); the HTML/assets get it from studioSecurityHeaders().
+      applyStudioSecurityHeaders(res);
       const url = new URL(req.url ?? "/", "http://localhost");
       if (!url.pathname.startsWith("/api/")) return next();
       await secretsReady;
       const parts = url.pathname.split("/").filter(Boolean).slice(1);
       try {
-        if (!isTrustedLocalRequest(req))
-          return send(res, 403, { error: "طلب من موقع خارجي غير مسموح به في Studio المحلي." });
+        // One rule for every route (H2): loopback Host always; every write also needs the loopback socket and
+        // a same-origin Origin or Sec-Fetch-Site (security.ts). No route handler runs before this.
+        const refusal = studioRequestRefusal(req);
+        if (refusal) return send(res, 403, { error: refusal, code: "NOT_OWNER_REQUEST" });
         // القناة المختارة في الاستوديو تُرسل مع كل طلب؛ وحدات المشروع تقرأها من BAL_CHANNEL
         const ch = url.searchParams.get("channel") || (await readConfig()).defaultChannel;
         if (!/^[a-z0-9-]+$/.test(ch)) return send(res, 400, { error: "اسم القناة غير صالح" });
@@ -245,6 +264,10 @@ export const balApi = (): Plugin => ({
             if (req.method === "GET") return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
             if (req.method === "POST") {
               const body = await readBody(req);
+              // H6: the direct script/storyboard approvals carry the same checks as «اعتمد التجهيز».
+              const { directPreparationRefusal } = await load("/src/studio/preparation.ts");
+              const prepRefusal = await directPreparationRefusal(ep, body);
+              if (prepRefusal) return send(res, 409, { ok: false, code: "PREPARATION_CHECKS", error: prepRefusal });
               try {
                 await decideSceneProduction(ep, body);
                 // D53: right after the publish permission (never before), the approved files go to the owner's
@@ -577,10 +600,17 @@ export const balApi = (): Plugin => ({
             }
           }
           if (parts[2] === "plan" && req.method === "PUT") {
-            const { plan } = await readBody(req);
+            const { plan, overwriteDesigned, confirmEpisode } = await readBody(req);
             if (!plan || !Array.isArray(plan.chapters) || plan.chapters.some((c: any) => !Array.isArray(c?.scenes))) return send(res, 400, { error: "الخطة غير مكتملة؛ لم تُحفظ." });
-            await io.writePlanFile(io.planPathFor(scriptPath), { ...plan, updatedAt: new Date().toISOString() });
-            return send(res, 200, { ok: true });
+            // M4: designed-plan guard (D46) and a backup before the overwrite (src/plan/io.ts savePlanFromStudio)
+            try {
+              const r = await io.savePlanFromStudio(ep, plan, { overwriteDesigned, confirmEpisode });
+              return send(res, 200, { ok: true, ...r });
+            } catch (error) {
+              if ((error as { code?: string })?.code === "designed-plan-replace")
+                return send(res, 409, { error: (error as Error).message, designed: true, lost: (error as { lost?: string[] }).lost ?? [] });
+              throw error;
+            }
           }
           if (parts[2] === "video" && parts[3]) {
             const file = path.join(path.dirname(scriptPath), "out", safeName(parts[3]));

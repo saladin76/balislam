@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vite";
 import { existsSync } from "node:fs";
-import { balApi } from "./server/api.ts";
+import { balApi, studioSecurityHeaders } from "./server/api.ts";
 import { isPrivateRenderAssetRequest } from "../src/render/mediaAccess.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -29,7 +29,7 @@ const privateMediaGuard = () => ({
 export default defineConfig({
   root: import.meta.dirname,
   publicDir: path.join(root, "public"),
-  plugins: [privateMediaGuard(), balApi()],
+  plugins: [studioSecurityHeaders(), privateMediaGuard(), balApi()],
   oxc: { jsx: { runtime: "automatic" } },
   server: {
     host: "127.0.0.1",

@@ -8,7 +8,7 @@ import { loadChannel } from "../channel";
 import type { Plan } from "./types";
 import { stripQuran, withQuran } from "./quranText";
 import { quranFromScript, historicalMeanings } from "../quran/scriptText";
-import { backupNameFor, designedScenes, DesignedPlanError, isDesignedPlan, scriptPlanDivergence, type ScriptPlanDivergence } from "./designed";
+import { backupNameFor, designedPlanLoss, DesignedPlanReplaceError, designedScenes, DesignedPlanError, isDesignedPlan, scriptPlanDivergence, type ScriptPlanDivergence } from "./designed";
 export { stripQuran, withQuran, VERSE_PLACEHOLDER } from "./quranText";
 
 export const planPathFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "plan.json");
@@ -37,6 +37,31 @@ export const savePlan = async (episode: string, plan: Plan) => {
   const file = planPathFor(await resolveScriptPath(episode));
   await writePlanFile(file, { ...plan, updatedAt: new Date().toISOString() });
   return file;
+};
+
+/** The rolling backup written before every owner save of plan.json (local, ignored by git). */
+export const lastPlanBackupFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "plan.backup-last.json");
+
+/**
+ * PUT /plan (M4): the designed-plan guard (D46) applies to a plan sent whole, too. A designed plan is never
+ * replaced by one that drops designed scenes (or the `designed` flag) unless the owner confirms explicitly
+ * with the episode number (`overwriteDesigned: true, confirmEpisode: "<n>"`); then a timestamped backup is
+ * written first. Every save also writes the rolling backup `plan.backup-last.json` before overwriting.
+ */
+export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overwriteDesigned?: unknown; confirmEpisode?: unknown } = {}): Promise<{ backup?: string }> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const file = planPathFor(scriptPath);
+  const current = await readJson<Plan>(file);
+  const loss = designedPlanLoss(current, plan);
+  let backup: string | undefined;
+  if (loss.scenes.length || loss.flag) {
+    const confirmed = o.overwriteDesigned === true && String(o.confirmEpisode ?? "").trim() === episode;
+    if (!confirmed) throw new DesignedPlanReplaceError(episode, loss.scenes);
+    backup = path.basename(await backupPlanFile(scriptPath));
+  }
+  if (current) await copyFile(file, lastPlanBackupFor(scriptPath));
+  await writePlanFile(file, { ...plan, updatedAt: new Date().toISOString() });
+  return backup ? { backup } : {};
 };
 
 export type RegenerateOptions = {

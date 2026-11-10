@@ -16,6 +16,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
+import { PREP_VALID_TAIL } from "./fixtures/prepValidScript";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -68,7 +69,7 @@ const ENV_KEYS = ["BAL_CHANNELS_DIR", "BAL_ENV_FILE", "BAL_WORKFLOW_HMAC_KEY", "
 const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}) => {
   const r = await realFetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
+    headers: { "sec-fetch-site": "same-origin", ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -126,7 +127,7 @@ beforeAll(async () => {
   (globalThis as any).__prepStubRenders = stubbedRenders;
 
   await writeFile(path.join(epDir, "script.md"),
-    `---\ntitle: "تجهيز كل المشاهد"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n`);
+    `---\ntitle: "تجهيز كل المشاهد"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n` + PREP_VALID_TAIL);
   await writeFile(path.join(epDir, "tashkeel.md"), "الصَّبْرُ مِفْتَاحُ الفَرَجِ. وَالشُّكْرُ يَحْفَظُ النِّعْمَةَ. وَالرِّضَا رَاحَةُ القَلْبِ.\n");
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   // Only the first scene has its narration already; the other two need voice.
@@ -180,11 +181,11 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     // Nothing is prepared before script + storyboard approval, nor from another site.
     expect((await call("POST", `episodes/${EP}/scene-prepare`)).status).toBe(409);
     let s = await state();
-    expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 })).status).toBe(200);
+    expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: s.script.sha256 })).status).toBe(200);
     const board = await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحات الثلاث بصريًا: النص والتكوين والتوقيت مطابقة للسكريبت." });
     expect(board.status, JSON.stringify(board.body)).toBe(200);
     s = await state();
-    expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 })).status).toBe(200);
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256 })).status).toBe(200);
     expect((await call("POST", `episodes/${EP}/scene-prepare`, undefined, CROSS)).status).toBe(403);
     // «أوقف» (D36): owner-only; a stopped queue starts nothing new and approves nothing.
     expect((await call("DELETE", `episodes/${EP}/scene-prepare`, undefined, CROSS)).status).toBe(403);
@@ -281,7 +282,7 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect(blocked.status).toBe(409);
     expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت لوحة المشهد الثاني بعد تعديل نصه وبقية اللوحات كما هي." })).status).toBe(200);
     const reboard = await state();
-    expect((await decide({ action: "approve-storyboard", expectedSha256: reboard.storyboard.sha256 })).status).toBe(200);
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: reboard.storyboard.sha256 })).status).toBe(200);
     // Re-queue: only the edited scene is rendered again.
     const again = await prepareAll();
     expect(again.body.job).toMatchObject({ status: "done", rendered: ["c1-s2"], failed: [] });

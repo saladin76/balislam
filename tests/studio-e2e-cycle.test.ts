@@ -21,6 +21,7 @@ import { balApi } from "../app/server/api";
 import { publishCardState } from "../app/src/tabs/PublishTab";
 import { runWithChannel } from "../src/channel";
 import { assertWorkflowForEpisode } from "../src/workflow/server";
+import { PREP_VALID_TAIL } from "./fixtures/prepValidScript";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -78,7 +79,7 @@ type Res = { status: number; body: any };
 const call = async (method: string, route: string, body?: unknown, headers: Record<string, string> = {}): Promise<Res> => {
   const r = await fetch(`${base}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, {
     method,
-    headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
+    headers: { "sec-fetch-site": "same-origin", ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
@@ -147,7 +148,7 @@ beforeAll(async () => {
   (globalThis as any).__e2eStubRenders = stubbedRenders;
 
   await writeFile(path.join(epDir, "script.md"),
-    `---\ntitle: "دورة إنتاج كاملة"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n`);
+    `---\ntitle: "دورة إنتاج كاملة"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n` + PREP_VALID_TAIL);
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   const voice = path.join(epDir, "voice");
   await mkdir(voice);
@@ -189,8 +190,8 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     // ── 0. Security envelope ───────────────────────────────────────────────────────────────────
     // No passphrase (owner decision 9 Nov): a page of another site is refused; nothing is written.
     const fresh = await state();
-    expect((await decide({ action: "approve-script", expectedSha256: fresh.script.sha256 }, CROSS)).status).toBe(403);
-    expect((await decide({ action: "approve-script", expectedSha256: fresh.script.sha256 }, { "sec-fetch-site": "cross-site" })).status).toBe(403);
+    expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: fresh.script.sha256 }, CROSS)).status).toBe(403);
+    expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: fresh.script.sha256 }, { "sec-fetch-site": "cross-site" })).status).toBe(403);
     expect((await state()).script.approved).toBe(false);
     for (const route of ["owner-passphrase", "owner-session"]) expect((await call("GET", route)).status).toBe(404);
     const envText = await readFile(path.join(root, ".env"), "utf8");
@@ -202,24 +203,24 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     // ── 1. Script ──────────────────────────────────────────────────────────────────────────────
     let s = await state();
     expect(s.script.approved).toBe(false);
-    expect((await decide({ action: "approve-script", expectedSha256: s.script.sha256 }, CROSS)).status).toBe(403);
-    expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 })).status).toBe(409); // out of order
+    expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: s.script.sha256 }, CROSS)).status).toBe(403);
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256 })).status).toBe(409); // out of order
     expect((await render("c1-s1", s.scenes[0].sourceSha256)).status).toBe(409); // nothing renders before approvals
-    expect((await decide({ action: "approve-script", expectedSha256: "0".repeat(64) })).status).toBe(409); // stale hash
-    const scriptOk = await decide({ action: "approve-script", expectedSha256: s.script.sha256 });
+    expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: "0".repeat(64) })).status).toBe(409); // stale hash
+    const scriptOk = await decide({ action: "approve-script", reviewed: true, expectedSha256: s.script.sha256 });
     expect(scriptOk.status, JSON.stringify(scriptOk.body)).toBe(200);
     expect(scriptOk.body.script.approved).toBe(true);
 
     // ── 2. Storyboard (visual sign-off record, then the owner's ledger decision) ───────────────
     s = await state();
-    expect((await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 })).status).toBe(409); // boards not reviewed
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256 })).status).toBe(409); // boards not reviewed
     expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "قصير" })).status).toBe(400);
     const board = await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحات الثلاث بصريًا: النص والتكوين والتوقيت مطابقة للسكريبت." });
     expect(board.status, JSON.stringify(board.body)).toBe(200);
     expect(board.body.status.ok).toBe(true);
     s = await state();
     expect(s.storyboard.approved).toBe(false); // the visual record alone is not an approval
-    const boardOk = await decide({ action: "approve-storyboard", expectedSha256: s.storyboard.sha256 });
+    const boardOk = await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256 });
     expect(boardOk.status, JSON.stringify(boardOk.body)).toBe(200);
     expect(boardOk.body.storyboard.approved).toBe(true);
 
@@ -380,7 +381,7 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     const reboard = await state();
     expect(reboard.storyboard.approved).toBe(false);
     expect(reboard.scenes.map((x: any) => x.status)).toEqual(["approved", "needs_revision", "approved"]);
-    expect((await decide({ action: "approve-storyboard", expectedSha256: reboard.storyboard.sha256 })).status).toBe(200);
+    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: reboard.storyboard.sha256 })).status).toBe(200);
     await produceAndApprove("c1-s2");
     const healed = await state();
     expect(healed.progress).toMatchObject({ approvedScenes: 3, canAssemble: true, assemblyApproved: false, publishAllowed: false });

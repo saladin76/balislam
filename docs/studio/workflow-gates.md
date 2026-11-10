@@ -323,6 +323,32 @@ definition; the gate check «أرقام القرارات» (`node scripts/decisi
 (one shared decision whose heading was copied into each log) are grandfathered in `GRANDFATHERED_DUPLICATES`, a list that
 never grows.
 
+### Server and publishing hardening after the security QA (D58, 10 Nov)
+
+- **One write rule for every route** (`app/server/security.ts` `studioRequestRefusal`, run in `app/server/api.ts`
+  before any route handler, including everything in `extra.ts`): every `/api` request needs a loopback Host
+  (`localhost` / `127.0.0.1` / `[::1]`, any port) and no `Sec-Fetch-Site: cross-site|same-site`; every write
+  (any method but GET/HEAD/OPTIONS) also needs the socket's real loopback address and an `Origin` equal to
+  `http://<Host>` or, without Origin, `Sec-Fetch-Site: same-origin`. A write with neither is refused (the `bal`
+  CLI does not use HTTP). This is D54 applied to all routes; `assertSceneOwner` still checks inside the ledger.
+- **No framing**: every Studio response (HTML, assets, API, Vite's own error pages) carries
+  `X-Frame-Options: DENY` and a CSP ending in `frame-ancestors 'none'` (`studioSecurityHeaders()` in `app/vite.config.ts`).
+- **Direct approvals = «اعتمد التجهيز» checks**: `approve-script` / `approve-storyboard` posted to
+  `…/scene-production` need `reviewed: true` («راجعته بنفسي»), no script error, and (storyboard) no verse
+  without its text (`directPreparationRefusal` in `src/studio/preparation.ts`), else 409 `PREPARATION_CHECKS`.
+- **PUT /plan** applies D46: a designed plan is not replaced by one that drops a designed scene or the
+  `designed` flag unless `overwriteDesigned: true, confirmEpisode: "<n>"` (409 otherwise, nothing written);
+  a timestamped `plan.backup-*.json` precedes a confirmed replacement and `plan.backup-last.json` precedes every save.
+- **Quran never reaches TTS**: the single guard `assertNoQuranForTts` / `ttsContext` (`src/voice/quranGuard.ts`)
+  runs inside the ElevenLabs client before any request body; verse scenes never produce jobs; ﴿…﴾, `[آية]` and
+  five words of an episode verse are refused in the text and cut from previous/next context; both lexicons are
+  masked inside ﴿ ﴾. `/api/voice-sample` is owner-only and refuses Quran (400 `QURAN_TTS`).
+- **Rule-1 trace check** normalises before matching (NFKC, format/bidi characters, confusables, case,
+  tashkeel, split names rejoined) and reads every PNG text chunk (zTXt/iTXt inflated, XMP, eXIf; an
+  unreadable chunk is refused) and the on-screen text (scene props, chapter titles, end screen,
+  frontmatter.book) in the package and again in the Drive handoff, which refuses on any failed check.
+- Tests: `tests/studio-security-routes.test.ts`, `tests/quran-tts-guard.test.ts`, `tests/traces-normalisation.test.ts`.
+
 ### Publishing stays manual; approved files go to Google Drive (D53)
 
 Publishing to YouTube and the other platforms is done by the owner by hand. Right after the publish permission is

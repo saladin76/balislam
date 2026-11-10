@@ -20,6 +20,7 @@ import { parseScript } from "../script/parse";
 import { loadLedger, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { capsFor, dropTagWords } from "./models";
+import { assertNoQuranForTts, isQuranFreeForTts, isVerseScene, planVerseTexts, QuranTtsError } from "./quranGuard";
 import { applyTempo, scaleTimes } from "./tempo";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
@@ -52,7 +53,9 @@ const loadDictionary = async () => readJson<{ entries?: { text: string; say: str
 
 type Job = { id: string; /** المشهد (في مسار الأجزاء: مشهد الجزء) */ scene?: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string;
   /** النص المرسل فعلًا بعد قاموس النطق للقناة (pronunciations.json): خارج البصمة، فلا يُبطل مقطعًا قائمًا */
-  send?: string; sendOwner?: number[]; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number } };
+  send?: string; sendOwner?: number[]; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number };
+  /** the episode's verse texts, for the Quran guard (never sent) */
+  verses?: string[] };
 
 /** نبرة القناة الافتراضية (channel.json ← voice.tone)، إن وُجدت */
 const channelToneOf = (): string | undefined => {
@@ -72,11 +75,19 @@ const loadTashkeel = async (scriptPath?: string): Promise<TashkeelIndex | null> 
 /** قاموس النطق والتشكيل معًا (للصوت جملةً جملة، src/voice/sentenceVoice.ts): النطق نفسه الذي يرسله المسار العام */
 export const speechContextFor = async (scriptPath: string) => ({ dict: await loadDictionary(), tk: await loadTashkeel(scriptPath) });
 
-const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
+const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string, quranRefused?: string[]) => {
   const dict = await loadDictionary();
   const tk = await loadTashkeel(scriptPath);
   const lex = (await loadLexicon()).entries;
-  const scenes = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
+  // Verse scenes never produce a TTS job (the recitation is the owner's human recording), and a verse
+  // between two narrated scenes is not sent as their context either (src/voice/quranGuard.ts).
+  const all = plan.chapters.flatMap((c) => c.scenes);
+  const verses = planVerseTexts(plan);
+  const neighbour = (k: number, step: -1 | 1): string | undefined => {
+    const n = all[k + step];
+    return !n || isVerseScene(n) ? undefined : n.narration?.trim() || undefined;
+  };
+  const scenes = all.map((s, k) => ({ s, k })).filter(({ s }) => s.narration.trim() && !isVerseScene(s));
   let channelTone: string | undefined;
   let profile: VoiceProfile | undefined;
   try {
@@ -86,7 +97,11 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
   } catch {
     /* بلا قناة */
   }
-  return scenes.map((s, i): Job => {
+  return scenes.filter(({ s }) => {
+    if (isQuranFreeForTts(s.narration, s, { verses })) return true;
+    quranRefused?.push(s.id);
+    return false;
+  }).map(({ s, k }): Job => {
     const words = s.narration.trim().split(/\s+/).filter(Boolean);
     const d = applyDictionary(s.narration.trim(), dict, tk ? vowelize(words, tk) : undefined);
     // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
@@ -97,8 +112,8 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string) => {
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
     const extra = { ...(tune ? { tune } : {}), ...(s.voice ? { voice: s.voice } : {}) };
     const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...extra })).digest("hex").slice(0, 16);
-    const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { verse: s.template === "verse-card" });
-    return { id: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: scenes[i - 1]?.narration, next: scenes[i + 1]?.narration, voiceId: s.voice || undefined, tune };
+    const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex);
+    return { id: s.id, scene: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: neighbour(k, -1), next: neighbour(k, 1), voiceId: s.voice || undefined, tune, verses };
   });
 };
 
@@ -114,6 +129,7 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
   }
   const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
   return ctx.jobs.map((p, i): Job => {
+    assertNoQuranForTts(p.text, { id: p.partId });
     const d = applyDictionary(p.text, dict);
     const tune = voiceSettingsFor(profile, isTone(p.tone) ? p.tone : undefined);
     const hash = createHash("sha1").update(JSON.stringify({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
@@ -123,7 +139,8 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
   });
 };
 
-export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary };
+export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary;
+  /** مشاهد نصها فيه قرآن فلا تُرسل إلى الصوت المستنسخ (quranGuard.ts) */ quranRefused?: string[] };
 
 export type GenerateVoiceOptions = {
   client?: ElevenLabsClient | null;
@@ -162,7 +179,10 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   const managed = await (await import("./sentenceVoice")).sentenceManagedScenes(scriptPath);
   const parts = await (await import("./dafatirParts")).loadPartsContext(scriptPath, plan, managed);
   const sceneOf = (j: Job) => j.scene ?? j.id;
-  const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath);
+  // A narration carrying Quran (﴿…﴾, [آية], or five words of a verse of the episode) is never voiced; the
+  // dry run lists it and a real run refuses (src/voice/quranGuard.ts).
+  const quranRefused: string[] = [];
+  const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath, quranRefused);
   const jobs = allJobs.filter((j) => (!opts.only || opts.only.includes(sceneOf(j))) && !managed.has(sceneOf(j)));
   // «أعد توليد الصوت» لمشهد صوته جمل: لا يُعاد كاملًا بصمت؛ يُقال للمالك أين يولّده
   if (!opts.dryRun && opts.only?.length && opts.only.every((id) => managed.has(id)))
@@ -196,7 +216,11 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
     ),
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
+  const refusedHere = quranRefused.filter((id) => !managed.has(id) && (!opts.only || opts.only.includes(id)));
+  if (refusedHere.length) report.quranRefused = refusedHere;
   if (opts.dryRun) return report;
+  if (refusedHere.length)
+    throw new QuranTtsError(`الصوت المستنسخ لا يتلو القرآن: نص هذه المشاهد فيه آية (${refusedHere.slice(0, 12).join("، ")}). انقل الآية إلى مشهد آية مستقل ([آية: السورة رقم]) ثم ولّد الصوت.`);
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.testOnlySkipGates) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
@@ -236,7 +260,7 @@ export const generateVoice = async (episode: string, opts: GenerateVoiceOptions 
   for (const [k, j] of todo.entries()) {
     if (opts.shouldStop?.()) { stoppedEarly = true; break; }
     log(`(${k + 1}/${todo.length}) ${j.id}: ${j.spoken.length} حرفًا`);
-    const r = await opts.client!.tts(j.send ?? j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune });
+    const r = await opts.client!.tts(j.send ?? j.spoken, { previousText: j.prev, nextText: j.next, voiceId: j.voiceId, tune: j.tune, scene: { id: j.id }, verses: j.verses });
     // السرعة بعد التوليد للنماذج التي لا تقبلها (v4): تمديد زمني يحفظ طبقة الصوت، ومعه توقيت الكلمات
     const speed = caps.speed === "post" ? (j.tune?.speed ?? config.voice.speed) : 1;
     const audio = await applyTempo(r.audio, speed);
@@ -353,6 +377,7 @@ export const synthesizeLines = async (
   const out: Record<string, LineClip> = {};
   for (const [k, line] of lines.entries()) {
     const text = line.text.trim();
+    assertNoQuranForTts(text, { id: line.id });
     const words = text.split(/\s+/).filter(Boolean);
     const d = applyDictionary(text, dict, tk ? vowelize(words, tk) : undefined);
     const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);

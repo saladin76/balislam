@@ -757,10 +757,17 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       return true;
     }
     if (!parts[1] && req.method === "POST") {
+      // Spends voice credit: the owner only (also enforced for every write by the API middleware).
+      const refused = await ownerRefusal(ctx);
+      if (refused) return send(res, 403, { error: "عيّنة الصوت تُولَّد من الاستوديو على جهاز المالك فقط." }), true;
       const b = await readBody(req);
       const text = String(b.text ?? "").trim();
       if (!text) return send(res, 400, { error: "اكتب نص العيّنة." }), true;
       if (text.length > 400) return send(res, 400, { error: "العيّنة أطول من 400 حرف؛ يكفي سطران لضبط الصوت." }), true;
+      // The cloned voice never recites Quran: the one shared guard (src/voice/quranGuard.ts), also inside the client.
+      const { assertNoQuranForTts } = await load("/src/voice/quranGuard.ts");
+      try { assertNoQuranForTts(text, null, { source: "عيّنة الصوت" }); }
+      catch (e) { return send(res, 400, { error: (e as Error).message, code: "QURAN_TTS" }), true; }
       const { voiceSettingsFor, isTone } = await load("/src/voice/tones.ts");
       const tune = voiceSettingsFor(b.profile ?? undefined, isTone(b.tone) ? b.tone : undefined);
       const model = String(b.model || el.modelId);

@@ -62,3 +62,28 @@ export const scriptPlanDivergence = (plan: Plan, fromScript: Plan): ScriptPlanDi
 
 /** اسم النسخة الاحتياطية قبل أي كتابة صريحة فوق خطة مصمَّمة. */
 export const backupNameFor = (date = new Date()) => `plan.backup-${date.toISOString().replace(/[:.]/g, "-")}.json`;
+
+/**
+ * M4 (PUT /plan): what a replacement plan would lose of a designed plan — the designed scenes (by id) that
+ * are missing from it or no longer designed, and the explicit `designed: true` flag. Editing props,
+ * adding or reordering ordinary scenes loses nothing; a plan regenerated from the script loses its shots.
+ */
+export const designedPlanLoss = (
+  current: (Pick<Plan, "chapters"> & { designed?: boolean }) | null | undefined,
+  next: (Pick<Plan, "chapters"> & { designed?: boolean }) | null | undefined,
+): { scenes: string[]; flag: boolean } => {
+  if (!isDesignedPlan(current)) return { scenes: [], flag: false };
+  const after = new Map((next?.chapters ?? []).flatMap((c) => c.scenes ?? []).map((s) => [s.id, s]));
+  const scenes = designedScenes(current).filter((s) => { const n = after.get(s.id); return !n || !isDesignedScene(n); }).map((s) => s.id);
+  return { scenes, flag: current!.designed === true && next?.designed !== true };
+};
+
+/** Refusal of PUT /plan replacing a designed plan with one that drops its design (409 in the Studio). */
+export class DesignedPlanReplaceError extends Error {
+  readonly code = "designed-plan-replace";
+  constructor(readonly episode: string, readonly lost: string[]) {
+    super(`الخطة ${episode} مصمَّمة، والخطة المرسلة تُسقط ${lost.length || "علم"} ${lost.length ? `مشهدًا مصمَّمًا (${lost.slice(0, 12).join("، ")})` : "التصميم"}؛ لم تُحفظ. `
+      + "للاستبدال الصريح أرسلها مع تأكيد المحو ورقم الحلقة مكتوبًا (تُحفظ نسخة احتياطية أولًا).");
+    this.name = "DesignedPlanReplaceError";
+  }
+}
