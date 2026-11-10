@@ -278,6 +278,15 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
       expect(fix.body.scenes[1].correction.note).toBe("الثانية 1: الانتقال سريع");
       expect(fix.body.scenes[1].draft).toBe("stale");
       expect((await decide({ action: "approve-scene", sceneId: "c1-s2", expectedSha256: candidate, confirmedWatched: true })).status).toBe(409);
+      // M4: the same inputs give the same cut, so it is not produced again until something changes.
+      expect(fix.body.scenes[1].awaitingChange).toBe(true);
+      const same = await render("c1-s2", (await state()).scenes[1].sourceSha256);
+      expect(same.status).toBe(409);
+      expect(same.body.error).toMatch(/awaits a change/);
+      const changed: any = planOf();
+      changed.chapters[0].scenes[1].tone = "warm";
+      await writeFile(path.join(epDir, "plan.json"), JSON.stringify(changed, null, 2));
+      expect((await state()).scenes[1].awaitingChange).toBeUndefined();
     }
     await produceAndApprove("c1-s2");
     // Not assemblable before the last scene.

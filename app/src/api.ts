@@ -105,6 +105,8 @@ export type SceneProductionRead = {
     conditional?: boolean;
     /** Pre-rendered draft from «جهّز كل المشاهد»: never a submission or approval. */
     draft?: "ready" | "stale" | "none";
+    /** M4: sent back for a fix and its inputs have not changed since: not re-rendered until they do. */
+    awaitingChange?: boolean;
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
       /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */

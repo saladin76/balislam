@@ -343,9 +343,9 @@ export const balApi = (): Plugin => ({
             const body = await readBody(req);
             const sceneId = body?.sceneId;
             const expectedSha256 = body?.expectedSha256;
-            const { assertCurrentSceneRenderAllowed, recordSceneRenderEvidence } =
+            const { assertCurrentSceneRenderAllowed, assertSceneNotAwaitingChange, recordSceneRenderEvidence } =
               await load("/src/studio/sceneService.ts");
-            try { await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256); }
+            try { await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256); await assertSceneNotAwaitingChange(ep, sceneId); }
             catch (error) { return refuse(error); }
             const { renderShotsPreview } = await load("/src/render/shotsPreview.ts");
             const output = await renderShotsPreview(ep, [sceneId], {

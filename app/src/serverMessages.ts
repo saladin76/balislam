@@ -37,6 +37,7 @@ const EXACT: Record<string, string> = {
   "Scene changed before the AV evidence was recorded.": "تغيّر المشهد أثناء الرندر؛ أنتجه من جديد.",
   "Current storyboard review is missing or stale.": "مراجعة اللوحات ناقصة أو قديمة: افتح «١ التجهيز» واعتمد اللوحات المتغيّرة.",
   // Step ١ «اعتمد التجهيز» (src/studio/preparation.ts)
+  "This scene awaits a change after your correction; producing it again from the same inputs gives the same cut.": "بانتظار التعديل: إنتاجه بالمدخلات نفسها يعطي النسخة نفسها. يُنتج من جديد حين يتغيّر (نبرة، نص، لوحة) أو حين تُجاب ملاحظتك «أُصلحت».",
   "Malformed board approval.": "طلب اعتماد اللوحة غير مكتمل؛ حدّث الصفحة ثم اعتمد من جديد.",
   "Confirm that you reviewed this board yourself («راجعته بنفسي»).": "ضع علامة «راجعته بنفسي» بعد مراجعة لوحة هذا المشهد، ثم اعتمد.",
   "Malformed preparation approval.": "طلب اعتماد التجهيز غير مكتمل؛ حدّث الصفحة ثم اعتمد من جديد.",

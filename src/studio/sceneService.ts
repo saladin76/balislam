@@ -398,6 +398,32 @@ const draftOf = async (doc: SignedSceneLedger, scriptPath: string, id: string, s
     return "ready";
   return "stale";
 };
+/**
+ * M4 (funnel QA, 10 Nov): a scene the owner sent back («الحركة غير مناسبة» / «النبرة غير مناسبة») waits for a
+ * change. Re-rendering the same inputs gives the same cut, so it is not re-rendered — neither by the queue nor
+ * by «أنتج هذا المشهد» — until its inputs change (a new tone, an edited text, a new board…) or the owner's note
+ * is answered «أُصلحت» (a fix in the engine itself, which the scene's inputs cannot show).
+ * Waiting = needs_revision, the latest decision on it is that correction, the trusted render proof is still
+ * the corrected cut, and that proof was made from the scene's current inputs.
+ */
+const awaitingChange = async (doc: SignedSceneLedger, scriptPath: string, scene: { id: string; status: string; sourceSha256: string }) => {
+  if (scene.status !== "needs_revision") return null;
+  const fix = [...doc.history].reverse().find(h => h.sceneId === scene.id && (h.action === "correct-scene" || h.action === "approve-scene"));
+  if (fix?.action !== "correct-scene") return null;
+  const proof = doc.previewInputs?.[scene.id];
+  if (!proof || proof.videoSha256 !== fix.resultSha256 || proof.sourceSha256 !== scene.sourceSha256) return null;
+  const inbox = await correctionInboxView(path.dirname(scriptPath), fix.seq);
+  if (inbox?.status === "fixed") return null;
+  return { note: fix.note ?? "" };
+};
+/** Refuses a render of a scene that still waits for a change after the owner's correction (M4). */
+export const assertSceneNotAwaitingChange = async (episode: string, sceneId: string): Promise<void> => {
+  await withState(episode, async (doc, current) => {
+    const scene = doc.state.scenes.find(x => x.id === sceneId);
+    if (scene && await awaitingChange(doc, current.scriptPath, scene))
+      throw Error("This scene awaits a change after your correction; producing it again from the same inputs gives the same cut.");
+  });
+};
 export const inspectSceneProduction = (episode: string) =>
   withState(episode, async (doc, current) => {
     const v = view(doc, current);
@@ -415,7 +441,8 @@ export const inspectSceneProduction = (episode: string) =>
       const draft = s.status === "approved" || s.status === "in_review" ? "none" as const
         : correction && correction.sha256 && correction.sha256 === candidates[s.id] ? "stale" as const
         : await draftOf(doc, current.scriptPath, s.id, s.sourceSha256, candidates[s.id] ?? null);
-      return { ...s, draft, ...(correction ? { correction: { note: correction.note, at: correction.at,
+      const waiting = await awaitingChange(doc, current.scriptPath, s);
+      return { ...s, draft, ...(waiting ? { awaitingChange: true } : {}), ...(correction ? { correction: { note: correction.note, at: correction.at,
         ...(correction.inbox ? { inbox: correction.inbox } : {}) } } : {}) };
     }));
     return {

@@ -644,6 +644,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             nav={nav}
             onOpenSettings={onOpenSettings}
             preparing={(scene.status === "in_review" && scene.previewSha256) || draftReady ? null : preparing}
+            awaitingChange={scene.awaitingChange ? (sentNotes[currentId!] || scene.correction?.note || "") : null}
             stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : "render"}
             voice={voiceOf(currentId)}
             voiceBusy={voiceBusy}
@@ -920,6 +921,8 @@ export const SceneDecisionActions: React.FC<{
   reviewed: boolean;
   /** التجهيز يعمل: "now" هذا المشهد قيد التجهيز، "queued" في الدور */
   preparing?: "now" | "queued" | null;
+  /** M4: «بانتظار التعديل» — sent back with this note, inputs unchanged: no re-render until they change. */
+  awaitingChange?: string | null;
   /** القرار كله غير متاح لسبب واحد (لا شريط معطّل): السبب وزر واحد */
   locked?: ActionLock;
   /** السابق والتالي وعدد المعتمد، على طرفي الشريط (خارج مجموعة القرار) */
@@ -967,7 +970,8 @@ export const SceneDecisionActions: React.FC<{
   // سطر واحد بما ينتظره «اعتمد»، ثم ما يمنع غيره
   const reasons: React.ReactNode[] = [];
   if (!review) reasons.push(
-    p.preparing === "now" ? "يُجهَّز هذا المشهد الآن بصوته وحركته؛ «اعتمد» يُفتح حين تكتمل معاينته."
+    p.awaitingChange != null ? `بانتظار التعديل${p.awaitingChange ? ` («${p.awaitingChange}»)` : ""}: إنتاجه بالمدخلات نفسها يعطي النسخة نفسها؛ يُنتج من جديد حين يتغيّر (نبرة، نص، لوحة) أو حين تُجاب ملاحظتك «أُصلحت».`
+    : p.preparing === "now" ? "يُجهَّز هذا المشهد الآن بصوته وحركته؛ «اعتمد» يُفتح حين تكتمل معاينته."
       : p.preparing === "queued" ? "هذا المشهد في دور التجهيز؛ «اعتمد» يُفتح حين تكتمل معاينته."
       : !p.readyForAv ? "ينقص هذا المشهد صوت الراوي: ولّد الصوت، ثم أنتج المشهد."
       : "لم تُجهَّز معاينة هذا المشهد بعد: أنتجه ليُعرض بصوته وحركته.");
@@ -993,7 +997,8 @@ export const SceneDecisionActions: React.FC<{
           {tool("الحركة غير مناسبة", "motion", { "aria-pressed": p.problem?.kind === "motion", disabled: !review || p.pending, onClick: () => p.onProblem("motion") })}
           {tool("النبرة غير مناسبة", "tone", { "aria-pressed": p.problem?.kind === "tone", disabled: !review || p.pending, onClick: () => p.onProblem("tone") })}
           {p.voice !== "none" ? tool(voiceLabel, "regen", { cta: needVoice && !p.preparing, disabled: voiceOff, title: p.canVoice ? voiceLabel : "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»", onClick: p.onVoice }) : null}
-          {!review && !p.preparing ? tool(p.pending ? "جارٍ الإنتاج…" : "أنتج هذا المشهد", "film", { disabled: p.pending || !p.readyForAv || p.voiceBusy, onClick: p.onRender }) : null}
+          {!review && !p.preparing ? tool(p.pending ? "جارٍ الإنتاج…" : "أنتج هذا المشهد", "film", { disabled: p.pending || !p.readyForAv || p.voiceBusy || p.awaitingChange != null,
+            ...(p.awaitingChange != null ? { title: "بانتظار التعديل: يُنتج من جديد حين تتغيّر مدخلاته" } : {}), onClick: p.onRender }) : null}
         </div>,
       )}
       {reasons.length ? (

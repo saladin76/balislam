@@ -21,7 +21,7 @@ import { loadVoiceIndex, voiceDirFor, generateVoice } from "../voice/generate";
 import type { ElevenLabsClient } from "../voice/elevenlabs";
 import { nameSceneIds } from "../i18n/sceneNames";
 import {
-  assertSceneOwner, assertSceneRenderAllowed, inspectSceneProduction, recordSceneRenderEvidence,
+  assertSceneOwner, assertSceneNotAwaitingChange, assertSceneRenderAllowed, inspectSceneProduction, recordSceneRenderEvidence,
   requireSceneProductionReady,
 } from "./sceneService";
 
@@ -65,6 +65,7 @@ export type RenderSceneDraft = (episode: string, sceneId: string, sourceSha256: 
 /** The same render path as the single-scene route, in "ahead" mode (drafts only). */
 export const renderSceneDraft: RenderSceneDraft = async (episode, sceneId, sourceSha256) => {
   await assertSceneRenderAllowed(episode, sceneId, sourceSha256, "ahead");
+  await assertSceneNotAwaitingChange(episode, sceneId);
   const { renderShotsPreview } = await import("../render/shotsPreview");
   await renderShotsPreview(episode, [sceneId], {
     slot: `scene-${sceneId}-av`,
@@ -84,7 +85,9 @@ export const scenesToRender = async (episode: string) => {
   const from = s.scenes.findIndex((x) => x.id === s.progress.currentScene);
   if (from < 0) return { list: [] as { id: string; sourceSha256: string }[], blocked: [] as string[],
     beforeVoiceGap: [] as { id: string; sourceSha256: string }[] };
-  const open = s.scenes.slice(from).filter((x) => (x.status === "queued" || x.status === "needs_revision") && x.draft !== "ready");
+  // M4: a scene sent back for a fix is not re-rendered from the same inputs (it waits for a change).
+  const open = s.scenes.slice(from).filter((x) => (x.status === "queued" || x.status === "needs_revision") && x.draft !== "ready" &&
+    !(x as { awaitingChange?: boolean }).awaitingChange);
   const firstBlocked = open.findIndex((x) => !x.readyForAv);
   return {
     list: open.filter((x) => x.readyForAv).map((x) => ({ id: x.id, sourceSha256: x.sourceSha256 })),
