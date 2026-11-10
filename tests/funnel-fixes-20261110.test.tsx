@@ -142,3 +142,12 @@ describe("M6: heard seams persist on the server; «الوصلة سليمة» nee
     expect(src(".gitignore")).toContain("seam-checks.local.json");
   });
 });
+
+describe("M8: after a decision the screen takes the response's read model and the publish page refreshes", () => {
+  it("no second read after a decision; the publish page is told to reload (Drive status at once)", () => {
+    const panel = src("app/src/workspace/SceneProductionPanel.tsx");
+    expect(panel).toMatch(/const fresh = await api\.decideScene\(/);
+    expect(panel).toContain('new CustomEvent("studio-workflow-updated", { detail: { episodeId } })');
+    expect(src("app/src/tabs/PublishTab.tsx")).toContain('window.addEventListener("studio-workflow-updated", refresh)');
+  });
+});

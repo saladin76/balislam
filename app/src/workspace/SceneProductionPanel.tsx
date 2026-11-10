@@ -229,17 +229,19 @@ export const SceneProductionPanel: React.FC<Props> = ({
     setPending(true);
     setError("");
     try {
-      await api.decideScene(episodeId, channelId, {
+      // M8: the decision's response IS the full read model (the same shape as GET: candidates, drafts,
+      // seams) — the screen takes it at once instead of a second read that could race the Drive start.
+      const fresh = await api.decideScene(episodeId, channelId, {
         action, expectedSha256, ...(sceneId ? { sceneId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reviewed ? { confirmedWatched: true } : {}),
         ...(seamsChecked ? { seamsChecked } : {}),
         ...(extra?.tone ? { tone: extra.tone } : {}),
       });
-      // Re-read the full model (candidates, drafts) before rendering: never render a partial response.
-      const fresh = await api.sceneProduction(episodeId, channelId);
       setData(fresh);
       onUpdated?.();
+      // The publish page (files, Drive status) refreshes now: after «إذن النشر» the copy to Drive has started.
+      try { window.dispatchEvent(new CustomEvent("studio-workflow-updated", { detail: { episodeId } })); } catch { /* no window (SSR) */ }
       setNote("");
       setReviewed(false);
       setViewId(null);
