@@ -16,6 +16,7 @@ import { parseScript } from "../script/parse";
 import { quranFromScript } from "./scriptText";
 import { recitationsDirFor, type RecitationIndex } from "./sync";
 import { BASMALA_KEY, BASMALA_TEXT } from "../voice/basmala";
+import { cachedByFile, cachedFileSha256 } from "../io/hashCache";
 
 import { audioDuration, loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { narrationLoudness, plainRecitationCopy, polishRecitation, type EdgeTrim, type Loudness } from "./recitationPolish";
@@ -252,8 +253,9 @@ export const verifiedOwnRecitations = async (scriptPath: string): Promise<Recita
     if (!validName(part.file) || !Number.isFinite(part.duration) || part.duration <= 0 ||
         !texts[key] || sha(Buffer.from(texts[key], "utf8")) !== rec.textSha256) continue;
     try {
-      const data = await readFile(path.join(dir, part.file));
-      if (sha(data) === rec.sha256 && (await audioDuration(path.join(dir, part.file))))
+      // M9: bytes and decodability are verified once per file identity (src/io/hashCache.ts).
+      const file = path.join(dir, part.file);
+      if (await cachedFileSha256(file) === rec.sha256 && (await cachedByFile(file, "duration", () => audioDuration(file))))
         ready[key] = rec;
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;

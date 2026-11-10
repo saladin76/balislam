@@ -8,6 +8,7 @@
  */
 import path from "node:path";
 import { BASMALA_KEY, hasBasmala } from "../voice/basmala";
+import { cachedFileSha256 } from "../io/hashCache";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { isOwnerContext } from "./ownerContext";
 import { readJsonFile } from "../io/atomicJson";
@@ -103,12 +104,16 @@ const signature = (doc: Omit<SignedSceneLedger, "mac">): string =>
     .digest("hex");
 const sign = (doc: Omit<SignedSceneLedger, "mac">): SignedSceneLedger =>
   ({ ...doc, mac: signature(doc) });
-const byteSha256 = async (file: string): Promise<string> => sha(await readFile(file));
+// M9: digests come from the identity-keyed cache (src/io/hashCache.ts): unchanged bytes are not read again.
+const byteSha256 = async (file: string): Promise<string> => {
+  const st = await lstat(file);
+  if (!st.isFile() || st.isSymbolicLink()) return sha(await readFile(file)); // readFile gives the usual error
+  return cachedFileSha256(file);
+};
 const fileGeneration = async (file: string): Promise<string> => {
   const st = await lstat(file, { bigint: true });
   if (!st.isFile() || st.isSymbolicLink()) throw Error("A Studio source is not a regular file.");
-  const bytes = await readFile(file);
-  return sha(JSON.stringify([sha(bytes), st.ino.toString(), st.ctimeNs.toString(), st.size.toString()]));
+  return sha(JSON.stringify([await cachedFileSha256(file), st.ino.toString(), st.ctimeNs.toString(), st.size.toString()]));
 };
 const optionalFileGeneration = async (file: string): Promise<string> => {
   try { return await fileGeneration(file); }
@@ -304,11 +309,12 @@ const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" 
 const withState = async <T>(episode: string,
   operation: (data: SignedSceneLedger, current: CurrentInput) => Promise<T>,
 ): Promise<T> => {
-  const initial = await sourceNow(episode);
-  const file = stateFileFor(initial.scriptPath);
+  // M9: only the path is needed before the lock; the inputs are computed once, under it.
+  const initialPath = await resolveScriptPath(episode);
+  const file = stateFileFor(initialPath);
   return serialized(file, async () => {
     const current = await sourceNow(episode);
-    if (current.scriptPath !== initial.scriptPath) throw Error("Episode changed while locking.");
+    if (current.scriptPath !== initialPath) throw Error("Episode changed while locking.");
     let doc = await readLedger(file, current);
     const reconciled = reconcileSceneLedger(doc.state, current.initial);
     if (JSON.stringify(doc.state) !== JSON.stringify(reconciled)) {
