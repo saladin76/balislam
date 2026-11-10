@@ -262,6 +262,37 @@ export const cutPoints = (clipWords: TimedWord[], counts: number[], minGap = MIN
   return { ok: true, cuts };
 };
 
+/** السطر الذي يراه المالك حين لا يصلح توقيت كلمات صوت المشهد لقصه */
+export const NO_EXACT_TIMINGS = "لا توجد أوقات دقيقة لكلمات هذا المشهد";
+
+/**
+ * توقيت مقدَّر بطول الحروف (estimateWords في generate.ts حين لا يُرجع النموذج محاذاة): يبدأ من ٠ تمامًا،
+ * وكل كلمة ٠٫٩٢ من خطوتها حتى التالية. هذا النمط لا يقع في محاذاة حقيقية.
+ */
+export const looksEstimated = (ws: TimedWord[]): boolean => {
+  if (ws.length < 2 || Math.abs(ws[0]!.start) > 1e-6) return false;
+  for (let i = 0; i < ws.length - 1; i++) {
+    const step = ws[i + 1]!.start - ws[i]!.start;
+    if (!(step > 0) || Math.abs((ws[i]!.end - ws[i]!.start) / step - 0.92) > 0.002) return false;
+  }
+  return true;
+};
+
+/**
+ * هل يُقص صوت المشهد ملفًا واحدًا إلى جمله بتوقيت كلماته (بلا أي طلب مدفوع)؟ يصلح إن كان التوقيت حقيقيًا
+ * (لا تقديريًا)، بعدد كلمات النص، متصاعدًا، ولكل كلمة مدة، وفي كل حد بين جملتين وقفة واضحة (cutPoints).
+ */
+export const sceneAdoption = (clip: { words?: TimedWord[]; duration?: number } | null | undefined, texts: string[]): { ok: true } | { ok: false; reason: string; timings: boolean } => {
+  const ws = clip?.words ?? [];
+  const counts = texts.map((t) => words(t).length);
+  const n = counts.reduce((a, b) => a + b, 0);
+  const exact = n > 0 && ws.length === n && !looksEstimated(ws) &&
+    ws.every((w, i) => Number.isFinite(w.start) && Number.isFinite(w.end) && w.end > w.start && (i === 0 || w.start >= ws[i - 1]!.start - 1e-6));
+  if (!exact) return { ok: false, reason: NO_EXACT_TIMINGS, timings: false };
+  const cp = cutPoints(ws, counts);
+  return cp.ok ? { ok: true } : { ok: false, reason: `لا يُقص صوت المشهد إلى جمله: ${cp.reason}`, timings: true };
+};
+
 /**
  * نص المشهد تغيّر من خارج الجمل (محرر المشهد): تُعاد الجمل من النص الجديد، وكل جملة بقي نصها كما هو
  * تحتفظ بمعرّفها ونبرتها ووقفتها وتسجيلها. لا يُرمى تسجيل: ما لم يعد له نص يبقى في takes أول جملة جديدة.
