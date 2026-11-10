@@ -400,6 +400,15 @@ export const balApi = (): Plugin => ({
             return send(res, 200, { ...read, prepare: { job, ...(prepareError ? { error: prepareError } : {}) } });
           }
 
+          // M6: the seams the owner heard, per assembly fingerprint, kept on the server (src/studio/seamChecks.ts).
+          if (parts[2] === "seam-checks" && parts.length === 3) {
+            const sc = await load("/src/studio/seamChecks.ts");
+            if (req.method === "GET") return send(res, 200, await sc.readSeamChecks(ep));
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const body = await readBody(req);
+            try { return send(res, 200, await sc.recordSeamCheck(ep, body ?? {})); } catch (error) { return refuse(error); }
+          }
+
           // B2: from the sentence row in step ٢, the changed board of ONE scene (src/studio/preparation.ts).
           if (parts[2] === "approve-scene-board" && parts.length === 3) {
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });

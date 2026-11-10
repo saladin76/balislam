@@ -133,6 +133,24 @@ export const SceneProductionPanel: React.FC<Props> = ({
   // النسخة المجمعة: زر كل وصلة ينقل المشغّل إلى لحظتها
   const assemblyRef = useRef<HTMLVideoElement>(null);
 
+  // M6: the heard seams live on the server, per assembly fingerprint (a reload or another tab keeps them).
+  const assemblySha = data?.assembly && !data.assembly.approved ? data.assembly.sha256 : null;
+  useEffect(() => {
+    if (!assemblySha) return;
+    let alive = true;
+    api.seamChecks(episodeId, channelId).then((r) => {
+      if (alive && r.assembly === assemblySha) setSeams(Object.fromEntries(Object.keys(r.heard).map((k) => [k, true])));
+    }, () => {});
+    return () => { alive = false; };
+  }, [episodeId, channelId, assemblySha]);
+  const markSeam = async (seam: string, heard: boolean, how?: "played" | "confirmed", playedSec?: number) => {
+    if (!assemblySha) return;
+    try {
+      const r = await api.recordSeam(episodeId, channelId, { seam, assemblySha256: assemblySha, heard, ...(how ? { how } : {}), ...(playedSec !== undefined ? { playedSec } : {}) });
+      setSeams(Object.fromEntries(Object.keys(r.heard).map((k) => [k, true])));
+      setError("");
+    } catch (e) { setError((e as Error).message); }
+  };
   const refresh = async () => {
     const result = await api.sceneProduction(episodeId, channelId);
     setData(result);
@@ -732,7 +750,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     const ids = data.scenes.map((x) => x.id);
     return (
       <SeamReview episodeId={episodeId} data={data} order={ids} plan={plan} thumb={thumb} at={Math.min(seamAt, Math.max(0, seamsAll.length - 1))} onAt={setSeamAt}
-        heard={seams} onHeard={(seam, v) => setSeams({ ...seams, [seam]: v })} reviewed={reviewed} onReviewed={setReviewed} pending={pending} error={error}
+        heard={seams} onHeard={(seam, v, how, playedSec) => void markSeam(seam, v, how ?? "confirmed", playedSec)} reviewed={reviewed} onReviewed={setReviewed} pending={pending} error={error}
         onApprove={() => void act("approve-assembly", data.assembly!.sha256)} />
     );
   }
@@ -833,7 +851,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
               <legend>الوصلات: {seamsDone} من {seamsAll.length}</legend>
               {seamsAll.map((seam) => (
                 <SeamRow key={seam} label={seamName(data.scenes.map((x) => x.id), seam)} at={data.seamTimes?.[seam]}
-                  checked={Boolean(seams[seam])} onCheck={(v) => setSeams({ ...seams, [seam]: v })}
+                  checked={Boolean(seams[seam])} onCheck={(v) => void markSeam(seam, v, "confirmed")}
                   onJump={(t) => {
                     // يبدأ قبل الوصلة بثانيتين ليُسمع آخر المشهد وأول التالي
                     const v = assemblyRef.current;
@@ -1078,12 +1096,16 @@ FramePlayer.displayName = "FramePlayer";
  */
 const SeamReview: React.FC<{
   episodeId: string; data: SceneProductionRead; order: string[]; plan?: Plan; thumb?: (id: string) => React.ReactNode;
-  at: number; onAt: (i: number) => void; heard: Record<string, boolean>; onHeard: (seam: string, v: boolean) => void;
+  at: number; onAt: (i: number) => void; heard: Record<string, boolean>;
+  onHeard: (seam: string, v: boolean, how?: "played" | "confirmed", playedSec?: number) => void;
   reviewed: boolean; onReviewed: (v: boolean) => void; pending: boolean; error: string; onApprove: () => void;
 }> = ({ episodeId, data, order, plan, thumb, at, onAt, heard, onHeard, reviewed, onReviewed, pending, error, onApprove }) => {
   const player = useRef<HTMLVideoElement>(null);
   const stopAt = useRef<number | null>(null);
   const [needs, setNeeds] = useState("");
+  // M6: «الوصلة سليمة» only after this seam's audio was played across its whole window (or «سمعتها»).
+  const [played, setPlayed] = useState<Record<string, number>>({});
+  const listenFrom = useRef<{ seam: string; from: number } | null>(null);
   const seams = data.seams;
   const seam = seams[at] ?? "";
   const [a, b] = seam.split(">");
@@ -1109,11 +1131,16 @@ const SeamReview: React.FC<{
     if (!v || tAt === undefined) return;
     v.currentTime = Math.max(0, tAt - 3);
     stopAt.current = tAt + 3;
+    listenFrom.current = { seam, from: Math.max(0, tAt - 3) };
     void v.play().catch(noop);
   };
+  const playedHere = played[seam] ?? 0;
+  const canMark = Boolean(heard[seam]) || playedHere >= SEAM_WINDOW - 0.5;
   const ok = () => {
     if (!allHeard) {
-      onHeard(seam, true);
+      if (!canMark) { setNeeds("استمع للوصلة كاملة أولًا («استمع للوصلة»: ٣ ث قبلها و٣ بعدها)، أو ضع علامة «سمعتها»."); return; }
+      setNeeds("");
+      if (!heard[seam]) onHeard(seam, true, "played", playedHere);
       const nextIdx = seams.findIndex((x, i) => i > at && !heard[x]);
       if (nextIdx >= 0) onAt(nextIdx);
       return;
@@ -1161,7 +1188,7 @@ const SeamReview: React.FC<{
           ) : null}
           <div className="ms-seamtools">
             <button type="button" className="ms-listen" onClick={listen} disabled={tAt === undefined}><Icon name="play" />استمع للوصلة<small>٣ ث قبلها و٣ بعدها</small></button>
-            <label className="sp-confirm"><input type="checkbox" checked={Boolean(heard[seam])} onChange={(e) => onHeard(seam, e.target.checked)} /> سمعتها</label>
+            <label className="sp-confirm"><input type="checkbox" checked={Boolean(heard[seam])} onChange={(e) => onHeard(seam, e.target.checked, "confirmed")} /> سمعتها</label>
             {chapterOf(a!) ? <span className="ms-seam-where">داخل الفصل <Num>{String(chapterOf(a!)!.number)}</Num> «{chapterOf(a!)!.title}»</span> : null}
           </div>
         </>
@@ -1198,7 +1225,13 @@ const SeamReview: React.FC<{
         <summary>شاهد الحلقة كاملة ١×</summary>
         <div className="more-body">
           <video ref={player} className="scene-first-video" controls preload="metadata" src={src} aria-label="الحلقة المجمعة"
-            onTimeUpdate={(e) => { if (stopAt.current !== null && e.currentTarget.currentTime >= stopAt.current) { e.currentTarget.pause(); stopAt.current = null; } }} />
+            onTimeUpdate={(e) => {
+              const t = e.currentTarget.currentTime;
+              const l = listenFrom.current;
+              if (l) setPlayed((m) => ({ ...m, [l.seam]: Math.max(m[l.seam] ?? 0, t - l.from) }));
+              if (stopAt.current !== null && t >= stopAt.current) { e.currentTarget.pause(); stopAt.current = null; listenFrom.current = null; }
+            }}
+            onSeeking={() => { if (stopAt.current === null) listenFrom.current = null; }} />
           <fieldset className="scene-first-seams">
             <legend>كل الوصلات: <Num>{`${heardCount} من ${seams.length}`}</Num></legend>
             {seams.map((x) => (
@@ -1213,7 +1246,8 @@ const SeamReview: React.FC<{
         <div className="ms-dock-in">
           <button type="button" className="ms-nv" disabled={at <= 0} onClick={() => onAt(at - 1)} aria-label="الوصلة السابقة"><Icon name="chevR" /></button>
           {allHeard ? <label className="ms-cb"><input type="checkbox" checked={reviewed} onChange={(e) => { onReviewed(e.target.checked); setNeeds(""); }} /> شاهدت الحلقة كاملة ١×</label> : null}
-          <button type="button" className="btn primary" disabled={pending} onClick={ok}>
+          <button type="button" className="btn primary" disabled={pending} aria-disabled={!allHeard && !canMark ? true : undefined} onClick={ok}
+            title={!allHeard && !canMark ? "استمع للوصلة كاملة أولًا، أو ضع علامة «سمعتها»" : undefined}>
             <Icon name="check" />{allHeard ? (pending ? "جارٍ الاعتماد…" : "اعتمد الوصلات") : "الوصلة سليمة"}
           </button>
           <span className="ms-dv" aria-hidden="true" />
@@ -1225,4 +1259,6 @@ const SeamReview: React.FC<{
   );
 };
 const arNumOf = (n: number) => n.toLocaleString("ar-EG");
+/** Mirrors SEAM_WINDOW_SEC (src/studio/seamChecks.ts): 3 s before and after the seam. */
+const SEAM_WINDOW = 6;
 const sceneNoOr = (order: string[], id?: string) => { const i = id ? order.indexOf(id) : -1; return i >= 0 ? String(i + 1) : "؟"; };

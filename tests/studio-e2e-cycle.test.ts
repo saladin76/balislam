@@ -313,6 +313,18 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     expect(withTimes.seamTimes["c1-s1>c1-s2"]).toBeGreaterThan(1.5);
     expect(withTimes.seamTimes["c1-s2>c1-s3"]).toBeGreaterThan(withTimes.seamTimes["c1-s1>c1-s2"] + 1.5);
     await expect(gate("master_render")).rejects.toThrow(/1×|assembl/i);
+    // M6: heard seams are kept on the server per assembly fingerprint; «played» needs the whole seam window.
+    const seamApi = (body?: unknown, headers?: Record<string, string>) => call(body === undefined ? "GET" : "POST", `episodes/${EP}/seam-checks`, body, headers);
+    expect((await seamApi()).body).toEqual({ assembly: assemblySha, heard: {} });
+    expect((await seamApi({ seam: s.seams[0], assemblySha256: assemblySha, how: "played", playedSec: 2 })).status).toBe(409);
+    expect((await seamApi({ seam: s.seams[0], assemblySha256: "f".repeat(64), how: "confirmed" })).status).toBe(409);
+    expect((await seamApi({ seam: "c9-s9>c9-s10", assemblySha256: assemblySha, how: "confirmed" })).status).toBe(409);
+    expect((await seamApi({ seam: s.seams[0], assemblySha256: assemblySha, how: "confirmed" }, CROSS)).status).toBe(403);
+    expect((await seamApi({ seam: s.seams[0], assemblySha256: assemblySha, how: "played", playedSec: 6 })).status).toBe(200);
+    expect((await seamApi({ seam: s.seams[1], assemblySha256: assemblySha, how: "confirmed" })).status).toBe(200);
+    expect(Object.keys((await seamApi()).body.heard)).toEqual(s.seams);
+    expect((await seamApi({ seam: s.seams[1], assemblySha256: assemblySha, heard: false })).status).toBe(200);
+    expect(Object.keys((await seamApi()).body.heard)).toEqual([s.seams[0]]);
     expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, seamsChecked: s.seams })).status).toBe(409); // not watched
     expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: [s.seams[0]] })).status).toBe(409); // a seam unchecked
     const asmOk = await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: s.seams });

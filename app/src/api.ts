@@ -227,6 +227,11 @@ export const api = {
     call<SceneProductionRead & { prepare: { job: ScenePrepareJob | null; error?: string } }>(`/api/episodes/${episode}/approve-preparation`, {
       method: "POST", json: body,
     }, channel),
+  /** M6: the seams heard in the current assembly (server-side, per assembly fingerprint). */
+  seamChecks: (episode: string, channel: string) =>
+    call<{ assembly: string | null; heard: Record<string, { how: "played" | "confirmed"; at: string }> }>(`/api/episodes/${episode}/seam-checks`, undefined, channel),
+  recordSeam: (episode: string, channel: string, body: { seam: string; assemblySha256: string; how?: "played" | "confirmed"; heard?: boolean; playedSec?: number }) =>
+    call<{ assembly: string; heard: Record<string, { how: "played" | "confirmed"; at: string }> }>(`/api/episodes/${episode}/seam-checks`, { method: "POST", json: body }, channel),
   /** B2: «اعتمد لوحة هذا المشهد» from step ٢ — the changed board of one scene, then the storyboard decision again. */
   approveSceneBoard: (episode: string, channel: string, body: { sceneId: string; storyboardSha256: string; reviewed: boolean; note: string }) =>
     call<SceneProductionRead>(`/api/episodes/${episode}/approve-scene-board`, { method: "POST", json: body }, channel),

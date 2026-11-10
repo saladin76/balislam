@@ -38,6 +38,11 @@ const EXACT: Record<string, string> = {
   "Current storyboard review is missing or stale.": "مراجعة اللوحات ناقصة أو قديمة: افتح «١ التجهيز» واعتمد اللوحات المتغيّرة.",
   // Step ١ «اعتمد التجهيز» (src/studio/preparation.ts)
   "This scene awaits a change after your correction; producing it again from the same inputs gives the same cut.": "بانتظار التعديل: إنتاجه بالمدخلات نفسها يعطي النسخة نفسها. يُنتج من جديد حين يتغيّر (نبرة، نص، لوحة) أو حين تُجاب ملاحظتك «أُصلحت».",
+  "No assembled episode awaits review.": "لا نسخة مجمعة تنتظر المراجعة الآن؛ حُدّثت الحالة.",
+  "Unknown seam.": "وصلة غير معروفة في هذه النسخة المجمعة؛ حُدّثت الحالة.",
+  "Say how the seam was heard: played, or «سمعتها».": "استمع للوصلة أولًا، أو ضع علامة «سمعتها».",
+  "Play the whole seam window first (3 s before and after), or tick «سمعتها».": "استمع للوصلة كاملة أولًا (٣ ث قبلها و٣ بعدها)، أو ضع علامة «سمعتها».",
+  "Seam checks are busy.": "حفظ الوصلات مشغول لحظة؛ أعد المحاولة.",
   "Malformed board approval.": "طلب اعتماد اللوحة غير مكتمل؛ حدّث الصفحة ثم اعتمد من جديد.",
   "Confirm that you reviewed this board yourself («راجعته بنفسي»).": "ضع علامة «راجعته بنفسي» بعد مراجعة لوحة هذا المشهد، ثم اعتمد.",
   "Malformed preparation approval.": "طلب اعتماد التجهيز غير مكتمل؛ حدّث الصفحة ثم اعتمد من جديد.",

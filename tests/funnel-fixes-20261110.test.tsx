@@ -131,3 +131,14 @@ describe("owner decision 10 Nov: «احفظ هذا النطق للقناة» is 
     expect(src("app/src/workspace/SentencesPanel.tsx")).toMatch(/setFixing\(open \? null : \{ row: r\.id, index: i, say: w\.say, save: false, wide: false \}\)/);
   });
 });
+
+describe("M6: heard seams persist on the server; «الوصلة سليمة» needs the seam played or «سمعتها»", () => {
+  it("the page reads and writes the server state, and gates the button on the played window", () => {
+    const panel = src("app/src/workspace/SceneProductionPanel.tsx");
+    expect(panel).toContain("api.seamChecks(episodeId, channelId)");
+    expect(panel).toContain("api.recordSeam(episodeId, channelId");
+    expect(panel).toContain("const canMark = Boolean(heard[seam]) || playedHere >= SEAM_WINDOW - 0.5;");
+    expect(panel).not.toContain("onHeard={(seam, v) => setSeams(");
+    expect(src(".gitignore")).toContain("seam-checks.local.json");
+  });
+});
