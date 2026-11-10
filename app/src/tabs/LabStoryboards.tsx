@@ -7,6 +7,7 @@
 import { arDigits, num } from "../ui/format";
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../api";
+import { useScrollLock } from "../ui/scrollLock";
 import { STORYBOARD_STATUS_AR, labStoryboardsEnabled, shownStatus, type StoryboardEntry, type StoryboardStatus, type StoryboardVersion } from "../../../src/channel/labStoryboardsShared";
 
 const date = (v?: string | null) => (v ? new Date(v).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }) : "—");
@@ -18,6 +19,7 @@ const Status: React.FC<{ v: StoryboardVersion }> = ({ v }) => {
 type Zoom = "fit" | "100" | "200";
 const Lightbox: React.FC<{ src: string; title: string; onClose: () => void }> = ({ src, title, onClose }) => {
   const [zoom, setZoom] = useState<Zoom>("fit");
+  useScrollLock();
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", k);

@@ -1,15 +1,17 @@
 import { useEffect, useRef } from "react";
+import { useScrollLock } from "./scrollLock";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * A modal dialog that behaves like one (D52): Esc closes it, Tab stays inside it, the first field gets
- * focus, and focus returns to what opened it when it closes.
+ * focus, and focus returns to what opened it when it closes. The page behind it does not scroll while it is open (D64).
  */
 export const useDialog = <T extends HTMLElement>(onClose: () => void, active = true) => {
   const ref = useRef<T>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  useScrollLock(active);
   useEffect(() => {
     if (!active) return;
     const opener = document.activeElement as HTMLElement | null;

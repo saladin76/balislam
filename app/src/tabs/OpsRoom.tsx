@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from "../api";
 import { stagesOf } from "./HomeTab";
 import { arDigits, episodeTitle, num } from "../ui/format";
+import { useScrollLock } from "../ui/scrollLock";
 
 /**
  * «غرفة العمليات»: القنوات كلها في شاشة واحدة.
@@ -308,6 +309,7 @@ const fmtDay = (date: string) => {
 
 /** تعديل يوم في تقويم قناة: الحلقة الطويلة، والشورتس، ويوم بلا نشر، وملاحظة. */
 const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n: number }[]; onClose: () => void; onSaved: () => void }> = ({ ops, date, auto, onClose, onSaved }) => {
+  useScrollLock();
   const ch = ops.channel.id;
   const cal: CalendarDay = ops.calendar?.[date] ?? {};
   const current = ops.episodes.find((e) => e.status.scheduled === date);
@@ -407,6 +409,7 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
 
 /** يوم الحلقة الطويلة وساعتها وعدد الشورتس اليومي لقناة. */
 const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: () => void; onSaved: () => void }> = ({ channel, name, onClose, onSaved }) => {
+  useScrollLock();
   const [c, setC] = useState<Awaited<ReturnType<typeof api.channelFor>> | null>(null);
   const [err, setErr] = useState("");
   useEffect(() => {

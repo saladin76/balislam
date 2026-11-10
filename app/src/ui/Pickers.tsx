@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useScrollLock } from "./scrollLock";
 import { Element } from "../../../brand/elements/Element";
 import { elementLibrary, hasElement, elementById } from "../../../brand/elements/registry";
 import { categoryNamesAr, categoryOrder, type ElementCategory } from "../../../brand/elements/types";
@@ -15,6 +16,7 @@ export const ElementPicker: React.FC<{
   onClose: () => void;
 }> = ({ themeId, value, kind, onPick, onClose }) => {
   const t = useTheme(themeId);
+  useScrollLock();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<ElementCategory | "all">("all");
   const items = useMemo(() => {

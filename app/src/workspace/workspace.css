@@ -103,18 +103,12 @@
 .ew-research-state { border-radius: 10px; padding: 11px 13px; background: var(--panel, #f2f1eb); font-size: 13px; }
 .ew-voice-link { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 
-/* ثلاث مناطق مستقلة: الشريط العام، ملخص الحلقة، ثم محرر يملأ المساحة المتبقية. */
-.app.episode-workspace-app {
-  grid-template-rows: auto auto minmax(0, 1fr);
-  min-height: 0;
-  overflow: hidden;
-}
+/* Episode screens scroll with the page like every other screen (D64): no overflow:hidden here, no inner scroller.
+   (This rule used to clip .studio-main with overflow:hidden — it loads after shell.css — so steps ١–٤ could not scroll.) */
 .app.episode-workspace-app > .work,
 .app.episode-workspace-app > .ew-storyboard-wrap,
 .app.episode-workspace-app > .ew-voice-stage,
-.app.episode-workspace-app > .publish { min-height: 0; min-width: 0; }
-.app.episode-workspace-app > .ew-storyboard-wrap,
-.app.episode-workspace-app > .ew-voice-stage { overflow-y: auto; }
+.app.episode-workspace-app > .publish { min-width: 0; }
 
 /* المرحلة الثانية من تحسين UX: بطاقتا صوت واضحتان، مع اعتماد الحقوق ضمن مسار منفصل. */
 .ew-audio-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }

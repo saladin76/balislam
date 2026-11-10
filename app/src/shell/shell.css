@@ -94,8 +94,12 @@
 :root[data-theme="light"] { color-scheme: light; }
 
 /* ── Base ── */
+/* ── Scroll model (D64): the document is the one scroller of every screen. Nothing on html/body/.shell-v3/.studio-main
+   hides overflow; the band is sticky, the header sticky, the dock and filmstrip fixed with room under the content.
+   Only an open modal locks the page (html.is-modal-open, ui/scrollLock.ts), and the lock is released on close. ── */
+html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .shell-v3 {
-  display: flex; height: 100dvh; overflow: hidden;
+  display: flex; min-height: 100dvh; overflow-x: clip;
   background: var(--paper); color: var(--ink);
   font: 400 var(--t-14)/1.55 var(--f); -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
@@ -115,17 +119,20 @@
 
 /* ── The work area on the channel's paper ── */
 .shell-v3 .studio-main {
-  position: relative; flex: 1 1 0; min-width: 0; height: 100dvh; overflow-y: auto; overflow-x: hidden;
+  position: relative; flex: 1 1 0; min-width: 0; height: auto; min-height: 100dvh; overflow: visible;
   display: flex; flex-direction: column;
   background-color: var(--paper);
   background-image: linear-gradient(to left, transparent 34px, var(--paper-margin) 34px, var(--paper-margin) 35.5px, transparent 35.5px), var(--paper-art), repeating-linear-gradient(var(--paper) 0 35px, var(--paper-rule) 35px 36px);
-  background-attachment: local;
 }
 .shell-v3 .studio-main > * { flex: none; }
 .shell-v3 .studio-main > .work,
 .shell-v3 .studio-main > .studio-review-workspace { flex: 1 0 auto; }
 @media (min-width: 721px) {
-  .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) { flex: 1 1 0; min-height: 480px; height: auto; overflow: hidden; }
+  /* Two-pane screens keep their panes one viewport tall (under the header, above the dock's room); the page scrolls
+     on past them when the window is shorter, and a pane at its end hands the wheel back to the page. */
+  .shell-v3 .studio-main { --pane-room: 68px; }
+  .shell-v3 .studio-main:has(.ms-dock) { --pane-room: 188px; }
+  .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) { flex: none; height: max(480px, calc(100dvh - var(--pane-room))); overflow: hidden; }
   .shell-v3 .studio-main > .work:is(.episode-grid, .script-grid, .identity-grid) > .col { min-height: 0; overflow-y: auto; }
   .shell-v3 .work.script-grid .editor { height: 100%; display: flex; flex-direction: column; min-height: 0; }
   .shell-v3 .work.script-grid .editor textarea { flex: 1 1 0; min-height: 0; height: auto; }
@@ -135,7 +142,7 @@
 
 /* ── The channel band (start edge): channel, the four steps, switcher, admin ── */
 .ms-band {
-  flex: none; width: var(--band-w); height: 100dvh; position: relative; z-index: 20;
+  flex: none; width: var(--band-w); height: 100dvh; position: sticky; top: 0; align-self: flex-start; z-index: 20;
   background: var(--band); color: var(--band-ink);
   display: flex; flex-direction: column; align-items: center; padding: 22px 0 18px; overflow-y: auto; overflow-x: hidden;
 }
@@ -539,7 +546,7 @@
   .ms-gear-wrap { margin: 0; }
   .ms-menu { inset: 64px 12px auto 12px; bottom: auto; min-width: 0; max-height: calc(100dvh - 80px); }
   .ms-menu-chs { display: block; }
-  .shell-v3 .studio-main { height: auto; flex: 1 1 0; min-height: 0; background-image: var(--paper-art), repeating-linear-gradient(var(--paper) 0 35px, var(--paper-rule) 35px 36px); }
+  .shell-v3 .studio-main { height: auto; flex: 1 0 auto; min-height: 0; background-image: var(--paper-art), repeating-linear-gradient(var(--paper) 0 35px, var(--paper-rule) 35px 36px); }
   .ms-hdr { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 16px 6px; position: static; background: transparent; }
   .ms-pill { grid-column: 1 / -1; grid-row: 2; justify-self: start; max-width: 100%; }
   .ms-pill button { height: 32px; padding: 0 11px; gap: 5px; }

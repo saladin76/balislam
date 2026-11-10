@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useScrollLock } from "../ui/scrollLock";
 import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, type SentenceScene, type SentencesRead, type WordFixOutcome } from "../api";
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
@@ -158,9 +159,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     const sheet = typeof window !== "undefined" && window.innerWidth <= 720;
     if (sheet) {
       // Keep the sentence in view above the sheet: scroll the page (only vertically) so the word sits near the top.
-      const sc = chip.closest<HTMLElement>(".studio-main");
-      const dy = chip.getBoundingClientRect().top - (sc ? sc.getBoundingClientRect().top : 0) - 90;
-      if (sc) sc.scrollTop += dy; else window.scrollBy(0, dy);
+      // The page is the scroller (D64); the sheet's own lock starts after this, on its mount.
+      window.scrollBy(0, chip.getBoundingClientRect().top - 90);
       setPopPos({ top: 0, left: 0, arrow: 0, sheet: true });
       return;
     }
@@ -789,6 +789,7 @@ export const WordFixPopover: React.FC<{
   const box = useRef<HTMLDivElement | null>(null);
   const field = useRef<HTMLInputElement | null>(null);
   const placed = Boolean(pos);
+  useScrollLock();
   // Keyboard (D52): the popover is measured hidden first, so `autoFocus` alone lands nowhere; once it is placed
   // the focus goes to the field, and the chip that opened it gets it back on close (the panel's onClose/Escape).
   useEffect(() => { if (placed) field.current?.focus({ preventScroll: true }); }, [placed, f.row, f.index]);
@@ -866,6 +867,7 @@ export const WordWhyPopover: React.FC<{
   const go = useRef<HTMLButtonElement | null>(null);
   const cancel = useRef<HTMLButtonElement | null>(null);
   const placed = Boolean(pos);
+  useScrollLock();
   useEffect(() => { if (placed) (go.current && !go.current.disabled ? go.current : cancel.current)?.focus({ preventScroll: true }); }, [placed, rowNo, index]);
   return (
     <>
