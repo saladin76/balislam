@@ -966,7 +966,7 @@ export const SceneDecisionActions: React.FC<{
       : !p.readyForAv ? "ينقص هذا المشهد صوت الراوي: ولّد الصوت، ثم أنتج المشهد."
       : "لم تُجهَّز معاينة هذا المشهد بعد: أنتجه ليُعرض بصوته وحركته.");
   if (!p.canVoice && needVoice) reasons.push(
-    p.onOpenSettings ? <>أضف مفتاح الصوت من <button type="button" className="prep-link" onClick={p.onOpenSettings}>الإعدادات</button>.</> : "أضف مفتاح الصوت من الإعدادات.",
+    p.onOpenSettings ? <>أضف مفتاح الصوت من <button type="button" className="prep-link" onClick={p.onOpenSettings}>الاتصالات والمفاتيح</button>.</> : "أضف مفتاح الصوت من الإعدادات.",
   );
   const tool = (label: string, icon: "motion" | "tone" | "regen" | "film", rest: React.ButtonHTMLAttributes<HTMLButtonElement> & { cta?: boolean }) => {
     const { cta, ...attrs } = rest;
@@ -986,7 +986,7 @@ export const SceneDecisionActions: React.FC<{
           <span className="ms-dv" aria-hidden="true" />
           {tool("الحركة غير مناسبة", "motion", { "aria-pressed": p.problem?.kind === "motion", disabled: !review || p.pending, onClick: () => p.onProblem("motion") })}
           {tool("النبرة غير مناسبة", "tone", { "aria-pressed": p.problem?.kind === "tone", disabled: !review || p.pending, onClick: () => p.onProblem("tone") })}
-          {p.voice !== "none" ? tool(voiceLabel, "regen", { cta: needVoice && !p.preparing, disabled: voiceOff, title: p.canVoice ? voiceLabel : "يتطلب مفتاح الصوت من «الإعدادات»", onClick: p.onVoice }) : null}
+          {p.voice !== "none" ? tool(voiceLabel, "regen", { cta: needVoice && !p.preparing, disabled: voiceOff, title: p.canVoice ? voiceLabel : "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»", onClick: p.onVoice }) : null}
           {!review && !p.preparing ? tool(p.pending ? "جارٍ الإنتاج…" : "أنتج هذا المشهد", "film", { disabled: p.pending || !p.readyForAv || p.voiceBusy, onClick: p.onRender }) : null}
         </div>,
       )}

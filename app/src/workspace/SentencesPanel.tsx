@@ -390,7 +390,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
           <span className={`sv-chip is-${status}`}>{STATUS[status]}</span>
           {r.kind === "narration" ? (
             <button type="button" className={`btn${r.status === "missing" || r.status === "stale" ? "" : " ghost"}`} disabled={!canGen}
-              title={noKey ? "يتطلب مفتاح الصوت من «الإعدادات»" : why ?? ""}
+              title={noKey ? "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»" : why ?? ""}
               onClick={() => void run(`gen:${r.id}`, { ...ref(r), action: "generate" })}>{genLabel}</button>
           ) : null}
           <button type="button" className="btn ghost sv-play" disabled={!r.audio && !(r.virtual && s.audio.file)}
@@ -587,7 +587,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             </label>
           ) : <span className="sv-end">نهاية المشهد</span>}
           {r.kind === "narration" ? (
-            <button type="button" className="sv-t" disabled={!canGen} title={noKey ? "يتطلب مفتاح الصوت من «الإعدادات»" : why ?? ""}
+            <button type="button" className="sv-t" disabled={!canGen} title={noKey ? "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»" : why ?? ""}
               onClick={() => void run(`gen:${r.id}`, { ...ref(r), action: "generate" })}><Icon name="regen" />{b("gen") ? "جارٍ التوليد…" : "ولّد الجملة"}</button>
           ) : null}
           <button type="button" className="sv-t" aria-pressed={editing === r.id} disabled={anyBusy} onClick={() => { setFixing(null); setEditing(editing === r.id ? null : r.id); }}><Icon name="doc" />عدّل النص</button>
@@ -610,7 +610,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
               }}>احذف الجملة</button>
             </div>
           </details>
-          <span className="sv-hint">{chips ? (r.wordFix.ok ? <>اضغط <i>كلمة</i> لتصحيح نطقها وحدها</> : <>إعادة نطق كلمة: {r.wordFix.reason}</>) : r.kind === "narration" && !r.audio ? (noKey ? <>«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : null}</> : "ولّد الجملة لتصحّح كلماتها") : null}</span>
+          <span className="sv-hint">{chips ? (r.wordFix.ok ? <>اضغط <i>كلمة</i> لتصحيح نطقها وحدها</> : <>إعادة نطق كلمة: {r.wordFix.reason}</>) : r.kind === "narration" && !r.audio ? (noKey ? <>«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</> : "ولّد الجملة لتصحّح كلماتها") : null}</span>
         </div>
         {adding?.after === r.id ? (
           <form className="sv-add" onSubmit={async (e) => {
@@ -634,7 +634,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     <div ref={wrap} className={`sv${sceneId ? " is-scene" : " is-episode"}${paragraph ? " is-para" : ""}`} dir="rtl">
       {!sceneId ? <p className="sv-summary">{ar(voiced)} من {ar(total)} جملة بصوت · {ar(scenes.filter((s) => s.verse).length)} آية</p> : null}
       {noKey && !paragraph ? (
-        <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : " من الإعدادات"}.</p>
+        <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : " من الإعدادات"}.</p>
       ) : null}
       {!sceneId ? lexiconBlock() : null}
       {scenes.map((s) => (paragraph && !s.verse ? paraBlock(s) : sceneBlock(s)))}
@@ -699,9 +699,9 @@ export const WordFixPopover: React.FC<{
             <span>أعدها مع كلمتين من كل جانب<small>لوصل أنعم حين لا تكفي الجارتان؛ والتسجيل الحالي يبقى في «ارجع إلى التسجيل السابق».</small></span>
           </label>
         </details>
-        {noKey ? <p className="ms-pop-hint is-warn"><Icon name="warn" /><span>إعادة النطق تحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : " من الإعدادات"}.</span></p> : null}
+        {noKey ? <p className="ms-pop-hint is-warn"><Icon name="warn" /><span>إعادة النطق تحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : " من الإعدادات"}.</span></p> : null}
         <div className="ms-pop-acts">
-          <button type="button" className="ms-pop-go" disabled={Boolean(busy) || noKey || !f.say.trim()} title={noKey ? "يتطلب مفتاح الصوت من «الإعدادات»" : ""} onClick={onFix}>
+          <button type="button" className="ms-pop-go" disabled={Boolean(busy) || noKey || !f.say.trim()} title={noKey ? "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»" : ""} onClick={onFix}>
             <Icon name="regen" />{busy === "fix" ? "جارٍ إعادة النطق…" : "أعد نطق الكلمة"}
           </button>
           <button type="button" className="ms-pop-alt" disabled={Boolean(busy) || noKey || !f.say.trim()} onClick={onWhole}>{busy === "gen" ? "جارٍ التوليد…" : "ولّد الجملة كاملة بهذا النطق"}</button>

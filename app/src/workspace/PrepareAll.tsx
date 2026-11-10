@@ -105,7 +105,7 @@ export const PrepareAll: React.FC<{
         </button>
       ) : null}
       {noKey ? (
-        <span className="prep-note">لا يوجد مفتاح صوت: يُجهَّز ما قبل أول مشهد ينقصه صوته فقط{waitingVoice ? ` (${ar(waitingVoice)} ينتظر الصوت)` : ""}{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الإعدادات</button></> : null}</span>
+        <span className="prep-note">لا يوجد مفتاح صوت: يُجهَّز ما قبل أول مشهد ينقصه صوته فقط{waitingVoice ? ` (${ar(waitingVoice)} ينتظر الصوت)` : ""}{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span>
       ) : job?.voice.status === "error" && !running ? (
         <span className="prep-note is-err" title={job.voice.error}>توقف توليد الصوت: {job.voice.error?.split("\n")[0]}</span>
       ) : failed ? (
