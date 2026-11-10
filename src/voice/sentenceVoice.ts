@@ -38,7 +38,7 @@ import { remapWords, SPLICE, spliceWord, type SpliceCheck } from "./wordSplice";
 import {
   addSentenceAfter, clampPause, contextFingerprint, cutPoints, deleteSentence, editSentenceText, emptyDoc, heardKey,
   mergeWithNext, reconcileScene, sceneNarration, sentenceFingerprint, sentencesFor, sentenceStatus, splitSentence,
-  normText, words, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
+  normText, sceneSpans, words, type SceneSpan, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
 } from "./sentences";
 
 export const SENTENCE_SAMPLE_RATE = 44100;
@@ -223,6 +223,8 @@ export type SentenceRow = {
   /** «نُطقت: …» (sent: في التسجيل الحالي) أو «ستُنطق: …» (next: عند التوليد القادم) */
   applied: { word: string; say: string }[]; appliedState: "sent" | "next";
   fixes: number;
+  /** حدود الجملة في صوت المشهد ملفًا واحدًا (لتشغيلها وحدها حين لا تسجيل لها)؛ null بلا صوت مشهد مطابق لنصه */
+  sceneSpan: SceneSpan | null;
 };
 export type VerseRow = {
   id: string; sceneId: string; kind: "verse-card"; ayahKey: string; reference: string;
@@ -300,6 +302,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
     const narr = scene.narration.trim();
     const audio: SentenceScene["audio"] = !clip ? { state: "none", file: null, duration: null }
       : { state: clip.text !== narr ? "stale" : clip.sentences ? "sentences" : "scene", file: clip.file, duration: clip.duration };
+    const spans = clip && audio.state === "scene" ? sceneSpans(clip, list.map((s) => s.text)) : null;
     const rows = list.map((s, k): SentenceRow => {
       const v = voiceOf(ctx, scene, list, s);
       const nb = neighbours(flat, s.id);
@@ -312,6 +315,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         contextChanged: Boolean(s.audio && s.audio.origin === "tts" && s.audio.context !== contextFingerprint(nb.previousText, nb.nextText)),
         tashkeel: coverageOf(ctx, s.id, s.text, s.corrections), chars: v.send.text.length,
         ...wordRows(s, v),
+        sceneSpan: spans?.[k] ?? null,
       };
     });
     scenes.push({ ...base, managed, audio, import: ctx.doc.scenes[scene.id]?.import ?? null,

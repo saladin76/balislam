@@ -7,6 +7,7 @@ import { RecitationItem, recitationUrl } from "./RecitationItem";
 import "./sentences.css";
 import { Icon } from "../ui/icons";
 import { Num } from "../ui/format";
+import { pagePlayer, sentenceClip, type Clip, type PlayerState } from "./sentencePlayer";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 const secAr = (ms: number) => `${(ms / 1000).toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ث`;
@@ -90,7 +91,9 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const [busy, setBusy] = useState("");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<{ after: string; text: string } | null>(null);
-  const [playing, setPlaying] = useState<string | null>(null);
+  /** The page-wide player (one audio at a time): what plays now, paused or not, and how far. */
+  const [ps, setPs] = useState<PlayerState | null>(() => pagePlayer().state());
+  const owner = useRef(`sv-${Math.random().toString(36).slice(2)}`).current;
   /** «أعد نطق الكلمة»: الكلمة المفتوحة ونطقها المكتوب ونتيجة آخر محاولة */
   const [fixing, setFixing] = useState<WordFixDraft | null>(null);
   /** The last word fix and how it ended: the line under its sentence (success with «تراجع», or failure with what to try). */
@@ -104,7 +107,13 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const [popPos, setPopPos] = useState<{ top: number; left: number; arrow: number; sheet: boolean } | null>(null);
   const [lexDrafts, setLexDrafts] = useState<Record<string, string>>({});
   const carets = useRef<Record<string, number>>({});
-  const player = useRef<{ audio: HTMLAudioElement | null; timer: ReturnType<typeof setTimeout> | null; stop: boolean }>({ audio: null, timer: null, stop: false });
+  useEffect(() => {
+    const p = pagePlayer();
+    setPs(p.state());
+    const off = p.subscribe(setPs);
+    p.setErrorHandler(owner, setError);
+    return () => { off(); p.setErrorHandler(owner, null); p.stopOwner(owner); };
+  }, [owner]);
 
   const load = async () => {
     const r = await api.sentences(episodeId, channelId);
@@ -114,7 +123,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   useEffect(() => {
     setRead(null); setError(""); setMsg(""); setDrafts({}); setAdding(null); setFixing(null); setFixed(null); setCur(null); setEditing(null);
     void load().catch((e) => setError((e as Error).message));
-    return () => stopPlay();
+    return () => pagePlayer().stopOwner(owner);
   }, [episodeId, channelId, sceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The word popover is anchored to its chip (direction D): above it with an arrow on a wide screen, a bottom
@@ -192,59 +201,102 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     } catch (e) { setError((e as Error).message); return false; } finally { setBusy(""); }
   };
 
-  // ── التشغيل المتتابع ──
+  // ── التشغيل (D62): مشغّل واحد للصفحة؛ الجملة وحدها بحدّيها، والمشهد متتابعًا، والكلمة بسياقها ──
   const urlOf = (file: string, kind: "sentences" | "voice") =>
     `/api/episodes/${encodeURIComponent(episodeId)}/media/${kind}/${encodeURIComponent(file)}?channel=${encodeURIComponent(channelId)}`;
-  function stopPlay() {
-    const p = player.current;
-    p.stop = true;
-    p.audio?.pause();
-    if (p.timer) clearTimeout(p.timer);
-    p.audio = null; p.timer = null;
-    setPlaying(null);
-  }
-  const playQueue = (key: string, items: { id: string; url: string; pauseMs: number }[]) => {
-    stopPlay();
-    if (!items.length) { setMsg("لا صوت لتشغيله بعد في هذا المشهد."); return; }
-    const p = player.current;
-    p.stop = false;
-    setPlaying(key);
-    const step = (k: number) => {
-      if (p.stop) return;
-      const it = items[k];
-      if (!it) { setPlaying(null); return; }
-      const a = new Audio(it.url);
-      p.audio = a;
-      setPlaying(`${key}|${it.id}`);
-      a.onended = () => { p.timer = setTimeout(() => step(k + 1), it.pauseMs); };
-      a.onerror = () => step(k + 1);
-      void a.play().catch(() => { setError("يتطلب المتصفح الضغط على تشغيل مرة أخرى."); setPlaying(null); });
-    };
-    step(0);
+  const stopPlay = () => pagePlayer().stop();
+  const playClips = (key: string, clips: Clip[]) => {
+    setError("");
+    if (!pagePlayer().play(key, clips, owner)) setMsg("لا صوت لتشغيله بعد في هذا المشهد.");
   };
-  const sceneQueue = (s: SentenceScene) => {
-    if (s.verse) return s.verse.file ? [{ id: s.verse.id, url: recitationUrl(episodeId, channelId, s.verse.file), pauseMs: 0 }] : [];
-    if (!s.managed) return s.audio.file && s.audio.state !== "stale" ? [{ id: s.id, url: urlOf(s.audio.file, "voice"), pauseMs: 0 }] : [];
-    return s.rows.filter((r) => r.audio).map((r) => ({ id: r.id, url: urlOf(r.audio!.file, "sentences"), pauseMs: r.pauseAfterMs }));
+  const sceneQueue = (s: SentenceScene): Clip[] => {
+    if (s.verse) return s.verse.file ? [{ id: s.verse.id, url: recitationUrl(episodeId, channelId, s.verse.file) }] : [];
+    if (!s.managed) return s.audio.file && s.audio.state !== "stale" ? [{ id: s.id, url: urlOf(s.audio.file, "voice") }] : [];
+    return s.rows.filter((r) => r.audio).map((r) => ({ id: r.id, url: urlOf(r.audio!.file, "sentences"), pauseAfterMs: r.pauseAfterMs }));
   };
-  const playing_ = (id: string) => Boolean(playing && playing.split("|")[1] === id);
-  /** الكلمة وحدها بسياق ٠٫٣ ث قبلها وبعدها */
+  /** The sentence alone: its own take, or its span of the scene's single file (estimated spans say «تقريبي»). */
+  const clipOf = (s: SentenceScene, r: SentenceRow) => sentenceClip(r, s, urlOf);
+  const rowKey = (r: SentenceRow) => `row:${r.id}`;
+  /** Sound is on this sentence now (alone, in the scene queue, or a word of it). */
+  const playing_ = (id: string) => ps?.id === id;
+  const rowActive = (r: SentenceRow) => ps?.key === rowKey(r);
+  /** ▶ / ⏸ on a sentence: the first press plays it alone; then the same button pauses and resumes. */
+  const pressRow = (s: SentenceScene, r: SentenceRow) => {
+    if (rowActive(r)) { pagePlayer().toggle(); return; }
+    const c = clipOf(s, r);
+    if (c) playClips(rowKey(r), [c]);
+  };
+  const pressScene = (s: SentenceScene) => {
+    if (ps?.key === `scene:${s.id}`) pagePlayer().toggle(); else playClips(`scene:${s.id}`, sceneQueue(s));
+  };
+  const rowPlayTitle = (s: SentenceScene, r: SentenceRow, n: number) => {
+    if (rowActive(r)) return ps?.paused ? `استأنف الجملة ${ar(n)}` : `إيقاف مؤقت للجملة ${ar(n)}`;
+    const c = clipOf(s, r);
+    if (!c) return "لا صوت لهذه الجملة بعد";
+    if (c.start === undefined) return `شغّل الجملة ${ar(n)}`;
+    return c.estimated ? `شغّل الجملة ${ar(n)} من صوت المشهد (حدودها تقريبي)` : `شغّل الجملة ${ar(n)} من صوت المشهد`;
+  };
+  /** Space on a focused sentence row plays or pauses it (not inside its fields or buttons). */
+  const rowKeys = (s: SentenceScene, r: SentenceRow) => (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== " " || e.target !== e.currentTarget) return;
+    e.preventDefault();
+    pressRow(s, r);
+  };
+  // Esc stops whatever this panel started (the word popover keeps Esc for itself while open).
+  useEffect(() => {
+    if (!ps || ps.owner !== owner || fixing) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); pagePlayer().stop(); } };
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [Boolean(ps), ps?.owner, owner, fixing]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** الكلمة وحدها بسياق ٠٫٣ ث قبلها وبعدها، وتتوقف وحدها */
   const playWord = (r: SentenceRow, i: number) => {
     const w = r.words[i];
     if (!r.audio || !w || w.start === null || w.end === null) return;
-    stopPlay();
-    const p = player.current;
-    p.stop = false;
-    const a = new Audio(urlOf(r.audio.file, "sentences"));
-    p.audio = a;
-    const from = Math.max(0, w.start - 0.3), len = w.end + 0.3 - from;
-    setPlaying(`word:${r.id}:${i}|${r.id}`);
-    const go = () => {
-      a.currentTime = from;
-      void a.play().then(() => { p.timer = setTimeout(() => stopPlay(), len * 1000); })
-        .catch(() => { setError("يتطلب المتصفح الضغط على تشغيل مرة أخرى."); setPlaying(null); });
-    };
-    if (a.readyState >= 1) go(); else a.addEventListener("loadedmetadata", go, { once: true });
+    playClips(`word:${r.id}:${i}`, [{ id: r.id, url: urlOf(r.audio.file, "sentences"), start: Math.max(0, w.start - 0.3), end: w.end + 0.3 }]);
+  };
+
+  /**
+   * ▶ (play) → ⏸ (pause) / ▶ (resume) on the same button, a small ■ beside it while this sentence is on, and a
+   * thin progress bar of the sentence; one audio for the whole page.
+   */
+  const playCtl = (s: SentenceScene, r: SentenceRow, n: number, cls: string, icons: boolean) => {
+    const on = rowActive(r);
+    const paused = on && Boolean(ps?.paused);
+    const c = on ? null : clipOf(s, r);
+    const title = rowPlayTitle(s, r, n);
+    return (
+      <span className={`sv-pc${on ? " is-on" : ""}`}>
+        <button type="button" className={cls} disabled={!on && !c} aria-label={title} title={title} aria-pressed={on && !paused}
+          data-estimated={(on ? ps?.estimated : c?.estimated) ? "1" : undefined} onClick={() => pressRow(s, r)}>
+          {icons ? <Icon name={on && !paused ? "pause" : "play"} /> : on && !paused ? "⏸" : "▶"}
+        </button>
+        {on ? (
+          <>
+            <button type="button" className="sv-stop" aria-label={`أوقف الجملة ${ar(n)}`} title="أوقف (Esc)" onClick={stopPlay}>
+              {icons ? <Icon name="stop" /> : "■"}
+            </button>
+            <span className="sv-prog" role="progressbar" aria-label={`تقدم الجملة ${ar(n)}`} aria-valuemin={0} aria-valuemax={100}
+              aria-valuenow={Math.round((ps?.progress ?? 0) * 100)}>
+              <i style={{ width: `${Math.round((ps?.progress ?? 0) * 1000) / 10}%` }} />
+            </span>
+            {ps?.estimated ? <small className="sv-approx">تقريبي</small> : null}
+          </>
+        ) : null}
+      </span>
+    );
+  };
+  /** «شغّل المشهد متتابعًا»: the same button pauses/resumes; ■ stops. */
+  const sceneCtl = (s: SentenceScene, q: Clip[]) => {
+    const on = ps?.key === `scene:${s.id}`;
+    return (
+      <span className="sv-pc">
+        <button type="button" className="btn ghost" disabled={!on && !q.length} aria-pressed={on && !ps?.paused} onClick={() => pressScene(s)}>
+          {!on ? "▶ شغّل المشهد متتابعًا" : ps?.paused ? "▶ استأنف المشهد" : "⏸ إيقاف مؤقت"}
+        </button>
+        {on ? <button type="button" className="btn ghost sv-stop-scene" aria-label="أوقف المشهد" title="أوقف (Esc)" onClick={stopPlay}>■ أوقف</button> : null}
+      </span>
+    );
   };
 
   if (!read) return error ? <p className="scene-first-error" role="alert">{error}</p> : <p className="sp-hint sv-loading">جارٍ تحميل الجمل…</p>;
@@ -295,9 +347,9 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     return (
       <WordFixPopover popRef={popRef} pos={popPos} words={r.words} rowNo={s.rows.findIndex((y) => y.id === r.id) + 1} draft={f}
         busy={busy ? (busy === `fix:${r.id}` ? "fix" : busy === `gen:${r.id}` ? "gen" : "other") : null} noKey={noKey}
-        playing={Boolean(playing?.startsWith(`word:${r.id}:${f.index}|`))} onOpenSettings={onOpenSettings}
+        playing={ps?.key === `word:${r.id}:${f.index}`} onOpenSettings={onOpenSettings}
         onDraft={setFixing} onClose={close}
-        onPlay={() => (playing?.startsWith(`word:${r.id}:${f.index}|`) ? stopPlay() : playWord(r, f.index))}
+        onPlay={() => (ps?.key === `word:${r.id}:${f.index}` ? stopPlay() : playWord(r, f.index))}
         onFix={async () => done(await send(`fix:${r.id}`, { ...ref(r), action: "fixword", word: f.index, say: f.say, save: f.save, ...(f.wide ? { neighbours: 2 as const } : {}) }))}
         onWhole={async () => { const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate", word: f.index, say: f.say, save: f.save }); if (res) setFixing(null); }} />
     );
@@ -309,7 +361,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     return (
       <WordFixLine fixed={fixed} busy={busy === `restore:${r.id}` ? "restore" : busy === `gen:${r.id}` ? "gen" : busy ? "other" : null} noKey={noKey}
         canListen={Boolean(r.audio)} canUndo={r.takes > 0}
-        onListen={() => r.audio && playQueue(`row:${r.id}`, [{ id: r.id, url: urlOf(r.audio.file, "sentences"), pauseMs: 0 }])}
+        onListen={() => r.audio && playClips(rowKey(r), [{ id: r.id, url: urlOf(r.audio.file, "sentences") }])}
         onUndo={async () => { if (await run(`restore:${r.id}`, { ...ref(r), action: "restore" })) setFixed(null); }}
         onRetry={() => setFixing({ row: r.id, index: fixed.index, say: fixed.say, save: fixed.save, wide: false })}
         onWhole={async () => { if (await run(`gen:${r.id}`, { ...ref(r), action: "generate", word: fixed.index, say: fixed.say, save: fixed.save })) setFixed(null); }} />
@@ -361,7 +413,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       : null;
     const next = s.rows[i + 1];
     return (
-      <li key={r.id} className={`sv-row is-${status}${playing_(r.id) ? " is-playing" : ""}`}>
+      <li key={r.id} className={`sv-row is-${status}${playing_(r.id) ? " is-playing" : ""}`} tabIndex={0} onKeyDown={rowKeys(s, r)}>
         <span className="sv-n" aria-hidden>{ar(i + 1)}</span>
         <div className="sv-main">
           <textarea className="sv-text" dir="rtl" rows={Math.max(1, Math.ceil((draft ?? r.text).length / 70))} value={draft ?? r.text}
@@ -393,11 +445,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
               title={noKey ? "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»" : why ?? ""}
               onClick={() => void run(`gen:${r.id}`, { ...ref(r), action: "generate" })}>{genLabel}</button>
           ) : null}
-          <button type="button" className="btn ghost sv-play" disabled={!r.audio && !(r.virtual && s.audio.file)}
-            aria-label={playing_(r.id) ? "أوقف" : `شغّل الجملة ${ar(i + 1)}`}
-            onClick={() => playing_(r.id) ? stopPlay() : r.audio ? playQueue(`row:${r.id}`, [{ id: r.id, url: urlOf(r.audio.file, "sentences"), pauseMs: 0 }]) : playQueue(`scene:${s.id}`, sceneQueue(s))}>
-            {playing_(r.id) ? "■" : "▶"}
-          </button>
+          {playCtl(s, r, i + 1, "btn ghost sv-play", false)}
           <select className="sv-tone" aria-label="نبرة الجملة" value={r.tone} disabled={anyBusy || r.kind !== "narration"}
             title={r.toneSource === "map" ? `اختيار نبرة هنا يكتب إصدارًا جديدًا من خريطة النبرة (${read.toneMap?.version ?? ""}) لهذه الجملة وحدها` : ""}
             onChange={(e) => void run(`tone:${r.id}`, { ...ref(r), action: "tone", tone: e.target.value || null })}>
@@ -473,15 +521,12 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       );
     }
     const q = sceneQueue(s);
-    const isPlaying = Boolean(playing?.startsWith(`scene:${s.id}`));
     return (
       <section key={s.id} className="sv-scene" aria-label={`جمل المشهد ${ar(s.index)}`}>
         <header className="sv-scene-head">
           {sceneId ? <h3>الجمل <span className="sv-meta">{countAr(s.rows.length)}</span></h3>
             : <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>الفصل {ar(s.chapter)} — {s.chapterTitle}</span></h4>}
-          <button type="button" className="btn ghost" disabled={!q.length} onClick={() => isPlaying ? stopPlay() : playQueue(`scene:${s.id}`, q)}>
-            {isPlaying ? "■ أوقف" : "▶ شغّل المشهد متتابعًا"}
-          </button>
+          {sceneCtl(s, q)}
         </header>
         {!s.managed ? (
           <p className="sp-hint">{s.audio.state === "scene" ? "صوت المشهد الحالي ملف واحد. أي فعل على جملة يبدأ العمل جملةً جملة، ويُقص صوت المشهد إلى جمله إن كانت الوقفات بينها واضحة؛ والملف الأصلي يبقى محفوظًا."
@@ -512,7 +557,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       : !r.tashkeel.ok ? `التشكيل ${ar(Math.round(r.tashkeel.coverage * 100))}٪ (الحد ٩٨٪): ${r.tashkeel.missing.slice(0, 5).join("، ")}`
       : null;
     const chips = chipsFor(r) && editing !== r.id;
-    const isPlaying = Boolean(playing?.startsWith(`scene:${s.id}`));
+    const scenePlaying = ps?.key === `scene:${s.id}`;
     const q = sceneQueue(s);
     const next = rows[i + 1];
     const closeMenu = (e: React.MouseEvent) => { (e.currentTarget.closest("details") as HTMLDetailsElement).open = false; };
@@ -530,7 +575,10 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             return (
               <React.Fragment key={x.id}>
                 {k ? " " : null}
-                <span className={`sv-sn${isCur ? " is-cur" : heard ? " is-heard" : ""}${playing_(x.id) ? " is-playing" : ""}`}>
+                <span className={`sv-sn${isCur ? " is-cur" : heard ? " is-heard" : ""}${playing_(x.id) ? " is-playing" : ""}`}
+                  tabIndex={isCur ? 0 : undefined} onKeyDown={isCur ? rowKeys(s, x) : undefined}
+                  style={playing_(x.id) ? { ["--sv-p" as string]: String(ps?.progress ?? 0) } : undefined}
+                  aria-label={isCur ? `الجملة ${ar(k + 1)} — المسافة تشغّلها أو توقفها مؤقتًا` : undefined}>
                   <button type="button" className="sv-sup" aria-pressed={isCur} onClick={() => { setCur(x.id); setFixing(null); setFixed(null); setEditing(null); }}
                     aria-label={`الجملة ${ar(k + 1)}: ${STATUS[x.virtual && s.audio.state === "scene" ? "scene" : x.status]}`} title={STATUS[x.virtual && s.audio.state === "scene" ? "scene" : x.status]}>
                     {heard ? <Icon name="check" /> : ar(k + 1)}
@@ -565,11 +613,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
         {r.contextChanged ? <p className="sp-hint">تغيّر ما حولها منذ توليدها؛ أعد توليدها إن بدا الوصل غير طبيعي.</p> : null}
         <div className="sv-tools" role="group" aria-label={`أدوات الجملة ${ar(i + 1)}`}>
           <span className="sv-lb">الجملة {ar(i + 1)}{r.audio ? <small><Num>{`${(Math.round(r.audio.duration * 10) / 10).toLocaleString("ar-EG")} ث`}</Num></small> : null}</span>
-          <button type="button" className="sv-rb" disabled={!r.audio && !(r.virtual && s.audio.file)}
-            aria-label={playing_(r.id) ? "أوقف" : `شغّل الجملة ${ar(i + 1)}`}
-            onClick={() => playing_(r.id) ? stopPlay() : r.audio ? playQueue(`row:${r.id}`, [{ id: r.id, url: urlOf(r.audio.file, "sentences"), pauseMs: 0 }]) : playQueue(`scene:${s.id}`, sceneQueue(s))}>
-            <Icon name={playing_(r.id) ? "pause" : "play"} />
-          </button>
+          {playCtl(s, r, i + 1, "sv-rb", true)}
           <label className="sv-sel"><Icon name="tone" /><span className="ms-vh">نبرة الجملة</span>
             <select className="sv-tone" value={r.tone} disabled={anyBusy || r.kind !== "narration"}
               title={r.toneSource === "map" ? `اختيار نبرة هنا يكتب إصدارًا جديدًا من خريطة النبرة (${read.toneMap?.version ?? ""}) لهذه الجملة وحدها` : "نبرة الجملة"}
@@ -594,7 +638,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
           <details className="sv-menu">
             <summary aria-label="المزيد"><Icon name="more" /></summary>
             <div className="sv-menu-pop is-up" role="menu">
-              <button type="button" role="menuitem" disabled={!q.length} onClick={(e) => { closeMenu(e); if (isPlaying) stopPlay(); else playQueue(`scene:${s.id}`, q); }}>{isPlaying ? "أوقف المشهد" : "شغّل المشهد متتابعًا"}</button>
+              <button type="button" role="menuitem" disabled={!scenePlaying && !q.length} onClick={(e) => { closeMenu(e); pressScene(s); }}>{!scenePlaying ? "شغّل المشهد متتابعًا" : ps?.paused ? "استأنف المشهد" : "إيقاف مؤقت للمشهد"}</button>
+              {scenePlaying ? <button type="button" role="menuitem" onClick={(e) => { closeMenu(e); stopPlay(); }}>أوقف المشهد</button> : null}
               <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 closeMenu(e);
                 const at = wordIndexAt(r.text, carets.current[r.id] ?? Math.floor(r.text.length / 2));
@@ -610,6 +655,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
               }}>احذف الجملة</button>
             </div>
           </details>
+          {scenePlaying ? <span className="sv-scene-on" role="status">المشهد متتابعًا {sceneCtl(s, q)}</span> : null}
           <span className="sv-hint">{chips ? (r.wordFix.ok ? <>اضغط <i>كلمة</i> لتصحيح نطقها وحدها</> : <>إعادة نطق كلمة: {r.wordFix.reason}</>) : r.kind === "narration" && !r.audio ? (noKey ? <>«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</> : "ولّد الجملة لتصحّح كلماتها") : null}</span>
         </div>
         {adding?.after === r.id ? (

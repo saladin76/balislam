@@ -206,6 +206,40 @@ export const heardKey = (a: SentenceAudio) => `${a.file}#${a.fingerprint}`;
 export const sentenceStatus = (s: Sentence, fingerprint: string): SentenceStatus =>
   !s.audio ? "missing" : s.audio.fingerprint !== fingerprint ? "stale" : s.heard === heardKey(s.audio) ? "heard" : "generated";
 
+/** حدود جملة داخل صوت مشهد واحد (لتشغيلها وحدها في الاستوديو؛ لا يُقص شيء ولا يُكتب). */
+export type SceneSpan = { start: number; end: number; timing: "words" | "estimated" };
+/**
+ * حدود كل جملة في صوت المشهد ملفًا واحدًا: بتوقيت كلماته إن طابق عددها النص وكان متصاعدًا (الحد في منتصف
+ * الوقفة بين آخر كلمة وأول التالية، والأولى من ٠ والأخيرة حتى نهاية الملف)، وإلا تقديرًا بعدد الأحرف («تقريبي»).
+ */
+export const sceneSpans = (clip: { words: TimedWord[]; duration: number }, texts: string[]): SceneSpan[] => {
+  const total = Math.max(0, clip.duration || 0);
+  const counts = texts.map((t) => words(t).length);
+  const ws = clip.words ?? [];
+  const n = counts.reduce((a, b) => a + b, 0);
+  const sorted = ws.every((w, i) => Number.isFinite(w.start) && Number.isFinite(w.end) && (i === 0 || w.start >= ws[i - 1]!.start - 1e-6));
+  if (n > 0 && ws.length === n && sorted && total > 0) {
+    const out: SceneSpan[] = [];
+    let k = 0, from = 0;
+    counts.forEach((c, j) => {
+      k += c;
+      const last = j === counts.length - 1;
+      const to = last ? total : c === 0 ? from : (ws[k - 1]!.end + ws[k]!.start) / 2;
+      out.push({ start: from, end: Math.min(total, Math.max(from, to)), timing: "words" });
+      from = Math.min(total, Math.max(from, to));
+    });
+    return out;
+  }
+  const chars = texts.map((t) => normText(t).length);
+  const sum = chars.reduce((a, b) => a + b, 0) || 1;
+  let acc = 0;
+  return chars.map((c) => {
+    const start = (acc / sum) * total;
+    acc += c;
+    return { start, end: (acc / sum) * total, timing: "estimated" as const };
+  });
+};
+
 /**
  * مواضع القص في تسجيل بتوقيت كلماته: بين آخر كلمة في كل جملة وأول كلمة في التالية.
  * موثوق فقط إن طابق عدد الكلمات النص، وكان التوقيت متصاعدًا، وفي كل حد وقفة حقيقية (≥ minGap):
