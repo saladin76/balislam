@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { RenderInternals } from "@remotion/renderer";
 
 /**
@@ -41,7 +43,18 @@ export type MotionReport = { percent: number; seconds: number; activeSeconds: nu
  * exempt: ثوانٍ سكونها مقصود (الآيات وتمهيدها وذكر الله، انظر stillness.ts): لا تدخل في النسبة
  * ولا تُعد «مقطعًا ساكنًا»، وتُذكر في التقرير منفصلة.
  */
-export const measureMotion = async (file: string, orientation: "landscape" | "portrait" = "landscape", exempt?: Set<number>): Promise<MotionReport> => {
+/**
+ * مسار الفيديو مطلقًا: ffmpeg عند Remotion يعمل من مجلد ثنائياته لا من مجلد المستدعي،
+ * فالمسار النسبي («npx bal motion previews/x.mp4») كان يفشل. ويُرفض الملف المفقود برسالة واضحة.
+ */
+export const resolveMotionInput = (file: string, cwd: string = process.cwd()): string => {
+  const abs = path.resolve(cwd, file);
+  if (!existsSync(abs)) throw new Error(`ملف الفيديو غير موجود: ${abs}`);
+  return abs;
+};
+
+export const measureMotion = async (fileArg: string, orientation: "landscape" | "portrait" = "landscape", exempt?: Set<number>): Promise<MotionReport> => {
+  const file = resolveMotionInput(fileArg);
   const proc = RenderInternals.callFf({
     bin: "ffmpeg",
     args: ["-v", "error", "-i", file, "-r", String(FPS), "-vf", `scale=${orientation === "portrait" ? `${H}:${W}` : `${W}:${H}`},format=gray`, "-c:v", "rawvideo", "-f", "image2pipe", "-"],

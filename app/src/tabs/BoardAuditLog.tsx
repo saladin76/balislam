@@ -4,12 +4,41 @@ import type { StoryboardStatus } from "../../../src/plan/storyboard";
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
 /**
- * Funnel v3 (owner decision 8 Nov): the board review note is now written next to «اعتمد التجهيز» in step ١
- * (one button records the script approval, this board record and the storyboard approval in order), so this
- * log always lives under «أدوات وتفاصيل» (history, the reviewer's note, «اسحب الاعتماد»). Audit item 13's
- * "on top while unrecorded" placement is retired: one filled button per screen.
+ * Funnel v3 (owner decision 8 Nov): the board review note is written next to «اعتمد التجهيز» in step ١
+ * (one button records the script approval, this board record and the storyboard approval in order), so the
+ * full log (history, the reviewer's note, «اسحب الاعتماد») lives under «أدوات وتفاصيل».
+ *
+ * P-05 (10 Nov): when boards changed AFTER a recorded review, the log comes to the top of step ١ as the list
+ * of those boards (`ChangedBoards`), so the owner sees exactly what to review again; the one action stays the
+ * dock's «اعتمد اللوحات المتغيّرة» (one filled button per screen).
  */
-export const auditLogOnTop = (_st: StoryboardStatus | undefined | null) => false;
+export const auditLogOnTop = (st: StoryboardStatus | undefined | null) =>
+  Boolean(st && st.audit?.note?.trim() && st.approved > 0 && (st.changed.length > 0 || st.fresh.length > 0));
+
+/** The boards to review again, in episode order (changed after the record, or new). */
+export const changedBoardIds = (st: StoryboardStatus) => Object.keys(st.scenes).filter((id) => st.scenes[id] !== "approved");
+
+export const ChangedBoards: React.FC<{
+  st: StoryboardStatus;
+  name: (id: string) => string;
+  onOpen: (id: string) => void;
+}> = ({ st, name, onOpen }) => {
+  const ids = changedBoardIds(st);
+  return (
+    <section className="s12-tool sb-changed-boards" aria-label="لوحات تغيّرت بعد اعتماد التجهيز">
+      <h3 className="s12-h">{ids.length === 1 ? "لوحة تغيّرت" : `${ar(ids.length)} ${ids.length <= 10 ? "لوحات تغيّرت" : "لوحة تغيّرت"}`} بعد اعتماد التجهيز</h3>
+      <p className="s12-soft">راجع هذه وحدها، ثم اكتب ملاحظتك واضغط «اعتمد اللوحات المتغيّرة» أسفل الشاشة. بقية اللوحات ومشاهدها المعتمدة لا تُفتح من جديد.</p>
+      <div className="s12-row">
+        {ids.map((id) => (
+          <button key={id} type="button" className="ms-link" onClick={() => onOpen(id)}>
+            {name(id)}{st.scenes[id] === "new" ? " (جديدة)" : ""}
+          </button>
+        ))}
+      </div>
+      {st.audit?.note ? <p className="s12-soft">ملاحظة المراجعة السابقة: {st.audit.note}</p> : null}
+    </section>
+  );
+};
 
 export const BoardAuditLog: React.FC<{
   st: StoryboardStatus | undefined | null;

@@ -170,7 +170,7 @@ export const balApi = (): Plugin => ({
         // approval authority. The isolated V2 review API is no longer mounted, so it cannot act as a
         // second authority; its modules stay in src/workflow/*V2* until the owner accepts the release.
         if (parts[0] === "studio-v2")
-          return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بمحرك المشاهد الموحّد في «إنتاج المشاهد»." });
+          return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بالخطوات الأربع في الاستوديو: «١ التجهيز» ثم «٢ المشاهد» ثم «٣ النسخة النهائية» ثم «٤ النشر»." });
 
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
@@ -423,14 +423,14 @@ export const balApi = (): Plugin => ({
             const { workflowReadForEpisode } = await load("/src/workflow/server.ts");
             if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
             // Unified engine: the six-stage ledger is read-only (migration); it takes no new decisions.
-            if (req.method === "POST") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
+            if (req.method === "POST") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
             return send(res, 405, { error: "Method not allowed" });
           }
 
           if (parts[2] === "script-signoff" && parts.length === 3) {
             const { scriptSignoffStatus } = await load("/src/script/approval.ts");
             if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));
-            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
+            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
             return send(res, 405, { error: "Method not allowed" });
           }
           if (parts[2] === "voice-review" && parts.length === 3) {
@@ -443,7 +443,7 @@ export const balApi = (): Plugin => ({
               return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice), episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
             }
             // The voice is reviewed inside each scene's AV approval; no separate voice approval.
-            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بمحرك المشاهد الموحّد: اعتمد من «إنتاج المشاهد» (السكريبت، الستوري بورد، كل مشهد بالصوت والصورة، التجميع، Master، إذن النشر)." });
+            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
             return send(res, 405, { error: "Method not allowed" });
           }
 

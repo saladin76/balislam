@@ -11,13 +11,19 @@
  *      wrote the record in this same action, to the record this action just wrote).
  * Every ledger write still goes through `decideSceneProduction` and its owner check. Nothing else is
  * approved: preparing the scenes afterwards (prepareAll) only makes drafts.
+ *
+ * Boards changed after the approval (P-05, 10 Nov): when the boards were reviewed before, step 2 records ONLY the
+ * changed/new boards (`recordChangedBoards`); the other boards keep their record byte for byte, so no approved
+ * scene is re-opened. The ledger semantics are unchanged and explicit: the board record is a new file, so the
+ * ledger's storyboard decision is taken again (step 3) in the same click, and a script edit re-opens the script
+ * decision too (step 1). The owner sees the changed boards listed with the reason and presses one button.
  */
 import { readFile } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { checkForChannel } from "../script/checkChannel";
 import { loadPlan } from "../plan/io";
-import { approveStoryboard as recordBoards, loadStoryboard, storyboardStatus, versesMissingText } from "../plan/storyboard";
+import { approveStoryboard as recordBoards, loadStoryboard, recordChangedBoards, storyboardStatus, versesMissingText } from "../plan/storyboard";
 import { checkVisualStoryboardSignoff } from "../plan/storyboardVisualGate";
 import {
   assertSceneOwner, decideSceneProduction, inspectSceneProduction, requireScriptApproved,
@@ -37,16 +43,27 @@ export type PreparationCommand = {
 const hex64 = (v: unknown): v is string => typeof v === "string" && /^[a-f0-9]{64}$/.test(v);
 
 /** What still blocks the preparation approval, without writing anything (also shown as the fix list). */
-export const preparationBlockers = async (episode: string): Promise<{ scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean }> => {
+export type PreparationBlockers = {
+  scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean;
+  /** Boards whose scene differs from its recorded board (changed after the record, or new), in episode order. */
+  changedBoards: string[];
+  /** The boards were reviewed before: only `changedBoards` need the owner's review now. */
+  boardsReviewedBefore: boolean;
+};
+
+export const preparationBlockers = async (episode: string): Promise<PreparationBlockers> => {
   const scriptPath = await resolveScriptPath(episode);
   const check = checkForChannel(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
   const plan = await loadPlan(episode);
   if (!plan) throw Error("Prepare and save a storyboard plan first.");
   const status = storyboardStatus(plan, await loadStoryboard(scriptPath));
+  const changed = new Set([...status.changed, ...status.fresh]);
   return {
     scriptErrors: check.issues.filter((i) => i.level === "error").length,
     versesMissing: versesMissingText(plan),
     boardsRecorded: status.ok && Boolean(status.audit?.note?.trim()),
+    changedBoards: Object.keys(status.scenes).filter((id) => changed.has(id)),
+    boardsReviewedBefore: Boolean(status.audit?.note?.trim()) && status.approved > 0,
   };
 };
 
@@ -86,7 +103,8 @@ export const approvePreparation = async (episode: string, command: PreparationCo
   let storyboardSha256 = command.storyboardSha256;
   if (!blockers.boardsRecorded) {
     await requireScriptApproved(episode);
-    await recordBoards(scriptPath, plan, { note: boardNote });
+    if (blockers.boardsReviewedBefore) await recordChangedBoards(scriptPath, plan, { note: boardNote });
+    else await recordBoards(scriptPath, plan, { note: boardNote });
     storyboardSha256 = (await inspectSceneProduction(episode)).storyboard.sha256;
   }
 

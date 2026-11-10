@@ -71,8 +71,13 @@ channels/*/episodes/*/workflow-approvals.json.lock
 channels/*/episodes/*/voice-review.json
 # - قفل فهرس المعاينات (مجلد مؤقت؛ src/render/episodePreviews.ts: withPreviewIndexLock)
 channels/*/episodes/*/previews/.preview-index.lock/
+# - سجل مراجعة اللوحات (src/plan/storyboard.ts: storyboardFileFor). يكتبه «اعتمد التجهيز» على هذا الجهاز،
+#   وسلطته كلها في السجل الموقَّع أعلاه: بصمة الستوري بورد فيه هي «جيل» هذا الملف (inode وctime)، فنسخة
+#   من Git أو من جهاز آخر لا تعتمد شيئًا، وسحبها فوقه كان سيعيد فتح المشاهد. لم يُتتبع ملف منه قط (D60).
+#   محمي في البداية النظيفة (fresh-start.command: is_protected) ولا يُحذف.
+channels/*/episodes/*/storyboard.json
 # - ملفات الكتابة الذرية المؤقتة لكل كاتب في مجلد الحلقة (*.<uuid>.tmp)
 channels/*/episodes/*/*.tmp
 channels/*/episodes/*/**/*.tmp
-# ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): storyboard.json وscript-signoff.json وreview.json
+# ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): script-signoff.json وreview.json
 # وscene-review.json وpublish.json وnotes/resolved.json. تمنع التحديث حتى تُحفظ، والرسالة تسمّيها.

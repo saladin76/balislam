@@ -187,7 +187,7 @@ program
     const { measureMotion, motionSummary, MOTION_MIN } = await import("../render/motionMeter");
     let bad = false;
     for (const f of files) {
-      const r = await measureMotion(f, opts.portrait ? "portrait" : "landscape");
+      const r = await measureMotion(path.resolve(f), opts.portrait ? "portrait" : "landscape");
       console.log(motionSummary(r, path.basename(f)));
       bad ||= r.percent < MOTION_MIN;
     }
@@ -357,7 +357,7 @@ program
     const mark = { verified: "✓ موثّق", rejected: "✗ مرفوض", pending: "… بانتظار المراجعة", changed: "! تغيّر بعد الاعتماد" } as const;
     for (const i of items) console.log(`${mark[i.status]} · ${i.label} | ${i.ref}${i.detail ? ` | ${i.detail}` : ""}${i.note ? ` — ${i.note}` : ""}`);
     const s = reviewSummary(items);
-    console.log(`موثّق ${s.verified} من ${s.total}${s.ok ? " ✓" : ""}. القرار من الاستوديو: «السكريبت ← سجل التوثيق».`);
+    console.log(`موثّق ${s.verified} من ${s.total}${s.ok ? " ✓" : ""}. القرار من الاستوديو: «١ التجهيز ← السكريبت ← سجل التوثيق».`);
     if (!s.ok) process.exitCode = 1;
   });
 
@@ -621,13 +621,13 @@ program
     const { loadStoryboard, storyboardStatus } = await import("../plan/storyboard");
     const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
     const s = storyboardStatus(plan, await loadStoryboard(await resolveScriptPath(episode)));
-    console.log(`معتمد ${s.approved} من ${s.total}${s.ok ? " ✓" : ""}${s.changed.length ? `؛ تغيّر بعد الاعتماد: ${s.changed.join("، ")}` : ""}. الاعتماد من الاستوديو: «المشاهد ← ستوري بورد».`);
+    console.log(`معتمد ${s.approved} من ${s.total}${s.ok ? " ✓" : ""}${s.changed.length ? `؛ تغيّر بعد الاعتماد: ${s.changed.join("، ")}` : ""}. الاعتماد من الاستوديو: «١ التجهيز» ← «اعتمد التجهيز»، أو «اعتمد اللوحات المتغيّرة» للوحات التي تغيّرت بعده.`);
     if (!s.ok) process.exitCode = 1;
   });
 
 program
   .command("scenes-review")
-  .description("سجل المراجعة القديم للمشاهد (للقراءة فقط؛ الاعتماد الآن في «إنتاج المشاهد»)")
+  .description("سجل المراجعة القديم للمشاهد (للقراءة فقط؛ الاعتماد الآن في «٢ المشاهد»)")
   .argument("<episode>", "رقم الحلقة")
   .action(async (episode: string) => {
     const { resolveScriptPath } = await import("../script/episodes");
@@ -639,7 +639,7 @@ program
     const mark = { ok: "✓ سليم", fix: "✗ يحتاج إصلاحًا", pending: "… لم يُراجع", changed: "! تغيّر بعد المراجعة" } as const;
     for (const i of items) console.log(`${mark[i.status]} · ${i.id}${i.note ? ` — ${i.note}` : ""}`);
     const s = sceneReviewSummary(items);
-    console.log(`سليم ${s.ok} من ${s.total}${s.done ? " ✓" : ""}. القرار من الاستوديو: «المشاهد ← مراجعة المشهد».`);
+    console.log(`سليم ${s.ok} من ${s.total}${s.done ? " ✓" : ""}. القرار الآن من الاستوديو: «٢ المشاهد» (يُعتمد كل مشهد بصوته وصورته).`);
     if (!s.done) process.exitCode = 1;
   });
 

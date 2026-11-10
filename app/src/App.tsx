@@ -568,6 +568,7 @@ export const App: React.FC = () => {
             onEditScene={(line) => { setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 80); }}
             onReload={() => loadEpisode(epId, { keepScript: true })}
             onSigned={() => setHomeKey((k) => k + 1)}
+            refreshKey={homeKey}
           /></div>
         ) : tab === "voice" ? (
           <VoiceWorkspaceTab

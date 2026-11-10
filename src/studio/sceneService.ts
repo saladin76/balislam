@@ -73,6 +73,8 @@ type CurrentInput = {
   /** Verse card whose reviewed human recitation is not attached yet (owner decision: recitations come last). */
   recitationPending: Record<string, boolean>;
   planReady: boolean;
+  /** Boards whose current scene differs from the recorded board (changed after the record, or new). */
+  boardsChanged: string[];
 };
 const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
 const hex64 = (text: unknown): text is string =>
@@ -173,6 +175,7 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
   }
   return {
     scriptPath, ready, voiceReady: voiceReadyBy, recitationPending, planReady: boardStatus.ok && Boolean(boardStatus.audit?.note?.trim()),
+    boardsChanged: [...boardStatus.changed, ...boardStatus.fresh],
     initial: createSceneFirstProduction({
       channel: path.basename(path.dirname(path.dirname(path.dirname(scriptPath)))),
       episode: path.basename(path.dirname(scriptPath)),
@@ -270,13 +273,16 @@ export const serialized = async <T>(file: string, work: () => Promise<T>,
   withLock(file + ".lock", { purpose: "scene ledger", waitMs,
     busyMessage: "Scene approval ledger is busy. Never delete another writer lock.",
     legacyStale: (held) => lockOwnerIsDead(held) }, work);
-const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" | "recitationPending">) => {
+const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" | "recitationPending" | "planReady" | "boardsChanged">) => {
   const p = data.state, progress = sceneFirstProgress(p);
   return {
     schemaVersion: 1 as const, channel: p.channel, episode: p.episode,
     revision: data.revision, progress,
     script: { sha256: p.script.sha256, approved: Boolean(p.script.approval && p.script.approval.sha256 === p.script.sha256) },
     storyboard: { sha256: p.storyboard.sha256, approved: Boolean(p.storyboard.approval && p.storyboard.approval.sha256 === p.storyboard.sha256) },
+    // P-05: the board record covers every current scene. A board edited after «اعتمد التجهيز» re-opens step ١
+    // for that board only (`changed`), even while the ledger's storyboard decision still stands.
+    boards: { current: current.planReady, changed: current.boardsChanged },
     scenes: p.scenes.map(s => ({ id: s.id, status: s.status,
       sourceSha256: s.sourceSha256, previewSha256: s.previewSha256,
       // readyForAv: an AV draft can be produced now (narration present). A verse card without its
@@ -365,7 +371,7 @@ const optionalSha = async (file: string): Promise<string | null> => {
 export const summarizeSceneProduction = (episode: string) =>
   withState(episode, async (doc, current) => {
     const v = view(doc, current);
-    const preparation = v.script.approved && v.storyboard.approved;
+    const preparation = v.script.approved && v.storyboard.approved && v.boards.current;
     return { steps: [preparation, v.progress.canAssemble, v.progress.masterApproved, v.progress.publishAllowed] as [boolean, boolean, boolean, boolean],
       preparation, script: v.script.approved, storyboard: v.storyboard.approved,
       approvedScenes: v.progress.approvedScenes, totalScenes: v.progress.totalScenes,
@@ -790,7 +796,7 @@ export const requireScriptApproved = async (episode: string): Promise<void> => {
   await withState(episode, async (doc) => {
     const p = doc.state;
     if (!p.script.approval || p.script.approval.sha256 !== p.script.sha256)
-      throw Error("اعتمد السكريبت الحالي أولًا من «إنتاج المشاهد».");
+      throw Error("اعتمد السكريبت الحالي أولًا: «١ التجهيز» ← «اعتمد التجهيز».");
   });
 };
 
@@ -799,9 +805,9 @@ export const requireScriptAndStoryboardApproved = async (episode: string): Promi
   await withState(episode, async (doc) => {
     const p = doc.state;
     if (!p.script.approval || p.script.approval.sha256 !== p.script.sha256)
-      throw Error("اعتمد السكريبت الحالي أولًا من «إنتاج المشاهد».");
+      throw Error("اعتمد السكريبت الحالي أولًا: «١ التجهيز» ← «اعتمد التجهيز».");
     if (!p.storyboard.approval || p.storyboard.approval.sha256 !== p.storyboard.sha256)
-      throw Error("اعتمد الستوري بورد الحالي أولًا من «إنتاج المشاهد».");
+      throw Error("اعتمد الستوري بورد الحالي أولًا: «١ التجهيز» ← «اعتمد التجهيز» (أو «اعتمد اللوحات المتغيّرة» إن تغيّرت لوحات بعده).");
   });
 };
 
@@ -814,12 +820,22 @@ export const requireSceneProductionReady = async (episode: string): Promise<void
   });
 };
 
+/** No Master file yet (shorts and publishing are cut from it). */
+export const NO_MASTER_MESSAGE = "لا توجد نسخة نهائية بعد: الشورتس والنشر يُصنعان من النسخة النهائية المعتمدة. اصنعها واعتمدها في «٣ النسخة النهائية» أولًا.";
+/** A Master file exists but the owner has not approved it (never, or it was re-made after an approval was voided). */
+export const MASTER_NOT_APPROVED_MESSAGE = "النسخة النهائية لم تُعتمد بعد: شاهدها كاملة واعتمدها في «٣ النسخة النهائية»، ثم تُصنع الشورتس ويُمنح إذن النشر.";
+
 const masterCheck = async (episode: string, check: (p: SceneFirstProduction, sha: string) => void,
   after?: (doc: SignedSceneLedger, current: CurrentInput, sha: string) => void): Promise<void> => {
   await withState(episode, async (doc, current) => {
     const file = masterFile(current.scriptPath);
+    // P-07: say which case it is, in Arabic (the CLI `bal package --shorts` prints it as is, the Studio too).
+    if (!await lstat(file).then(() => true, () => false))
+      throw Error(NO_MASTER_MESSAGE);
     await verifyVideoEvidence(file);
-    if (!doc.masterEpoch || doc.masterEpoch !== await fileGeneration(file))
+    if (!doc.masterEpoch || !doc.state.master)
+      throw Error(MASTER_NOT_APPROVED_MESSAGE);
+    if (doc.masterEpoch !== await fileGeneration(file))
       throw Error("Master changed after the owner's final approval.");
     if (!doc.assemblyEpoch ||
         doc.assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||

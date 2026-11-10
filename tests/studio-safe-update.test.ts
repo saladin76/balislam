@@ -85,7 +85,7 @@ describe("safe studio updater", () => {
     expect(execFileSync("git", ["status", "--porcelain"], { cwd: dir, env: gitEnv }).toString()).toContain("note.txt");
   }, 30_000);
 
-  it("ignored local runtime state (scene ledger, locks, voice approvals) never blocks; tracked edits are named", async () => {
+  it("ignored local runtime state (scene ledger, board record, locks, voice approvals) never blocks; tracked edits are named", async () => {
     const dir = repo();
     execFileSync("git", ["branch", "-m", "main"], { cwd: dir, env: gitEnv });
     copyFileSync(path.join(import.meta.dirname, "..", ".gitignore"), path.join(dir, ".gitignore"));
@@ -94,14 +94,19 @@ describe("safe studio updater", () => {
     const ep = path.join(dir, "channels", "c", "episodes", "001-a");
     mkdirSync(path.join(ep, "previews", ".preview-index.lock"), { recursive: true });
     for (const f of ["scene-production.v1.json", "scene-production.v1.json.lock", "scene-production.v1.json.x.tmp",
-      "workflow-approvals.json", "workflow-approvals.json.lock", "voice-review.json", "voice-review.json.1.x.tmp"])
+      "workflow-approvals.json", "workflow-approvals.json.lock", "voice-review.json", "voice-review.json.1.x.tmp",
+      // D60: the board record written by «اعتمد التجهيز» is local state bound to the ledger; it never blocks «حدّث الآن»
+      "storyboard.json"])
       writeFileSync(path.join(ep, f), "{}\n");
     expect(await dirtyTreeMessage(dir)).toBeNull();
-    writeFileSync(path.join(ep, "storyboard.json"), "{}\n");
+    // Ignored by .gitignore itself (not by a special case); an owner file documented "in Git" still blocks.
+    expect(execFileSync("git", ["check-ignore", "-q", "channels/c/episodes/001-a/storyboard.json"], { cwd: dir, env: gitEnv }).length).toBe(0);
+    writeFileSync(path.join(ep, "review.json"), "{}\n");
     writeFileSync(path.join(dir, "note.txt"), "edited\n");
     const msg = await dirtyTreeMessage(dir);
     expect(msg).toContain("note.txt");
-    expect(msg).toContain("channels/c/episodes/001-a/storyboard.json");
+    expect(msg).toContain("channels/c/episodes/001-a/review.json");
+    expect(msg).not.toContain("storyboard.json");
     expect(msg).toMatch(/ملفات متتبَّعة معدَّلة \(1\)/);
     expect(msg).not.toContain("scene-production");
     const result = await applyUpdate(dir);

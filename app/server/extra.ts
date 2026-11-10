@@ -480,7 +480,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const file = await resolveScriptPath(parts[1]);
     const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
     // Superseded by the scene AV approval in «إنتاج المشاهد»: read-only for old episodes.
-    if (req.method === "PUT") return send(res, 410, { error: "مراجعة المشهد صارت جزءًا من اعتماده بالصوت والصورة في «إنتاج المشاهد»." }), true;
+    if (req.method === "PUT") return send(res, 410, { error: "مراجعة المشهد صارت جزءًا من اعتماده بالصوت والصورة في «٢ المشاهد»." }), true;
     const items = R.sceneReviewItems(plan, await R.loadSceneLedger(file));
     send(res, 200, { items, summary: R.sceneReviewSummary(items), criteria: R.SCENE_CRITERIA });
     return true;
