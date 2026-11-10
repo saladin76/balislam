@@ -53,7 +53,7 @@ export const versesWithoutRecitation = (plan: { chapters: { scenes: { id: string
 
 /**
  * بوابات النسخة النهائية (Master): تمنع خروج ملف يبدو مكتملًا مع نقص. كل حالة تستوجب المنع ترمي خطأ بسببها:
- * سكريبت غير صالح، أخطاء خطة (منها آية بلا نص)، توثيق ناقص أو مرفوض، صوت ناقص أو لا يطابق نصه، آية بلا تلاوة،
+ * سكريبت غير صالح، أخطاء خطة (منها آية بلا نص)، صوت ناقص أو لا يطابق نصه، آية بلا تلاوة،
  * ستوري بورد غير معتمد أو تغيّر بعد اعتماده، ومشاهد لم تُراجع.
  */
 export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; media: EpisodeMedia; channel: ChannelConfig; chapter?: number; allowUnreviewed?: boolean }) => {
@@ -62,14 +62,13 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   const { parseScript } = await import("../script/parse");
   const { checkForChannel } = await import("../script/checkChannel");
   const { planIssues } = await import("../plan/validate");
-  const { loadLedger, reviewItems, reviewSummary } = await import("../script/review");
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const checked = checkForChannel(parsed);
   if (!checked.ok) throw new Error("السكريبت غير صالح للرندر النهائي؛ راجع تبويب السكريبت وفحوصه.");
   const errors = planIssues(plan, o.channel).filter((issue) => issue.level === "error");
   if (errors.length) throw new Error(`خطة الحلقة بها أخطاء تمنع النشر: ${errors.slice(0, 5).map((issue) => issue.message).join("؛ ")}`);
-  const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
-  if (!citations.ok) throw new Error(`توثيق الاستشهادات غير مكتمل: ${citations.verified} من ${citations.total}. راجع سجل التوثيق قبل الرندر النهائي.`);
+  // Citations are documentation and never block (CLAUDE.md rule 5; owner decision 10 Nov): the count is
+  // shown in step ١ and step ٣ as information only, never a Master, publish or Drive gate.
   const ids = new Set(plan.chapters.filter((c) => !o.chapter || c.number === o.chapter).flatMap((c) => c.scenes.map((s) => s.id)));
   const required = plan.chapters.flatMap((c) => c.scenes).filter((s) => ids.has(s.id) && s.narration.trim());
   const missing = required.filter((s) => {

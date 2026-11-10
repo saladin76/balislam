@@ -229,7 +229,7 @@ export const hostSlots = {
 };
 
 /** أنواع الفشل: كل نوع له دليله، وما لا دليل عليه «غير محدد» مع تفاصيله */
-export type FailureKind = "oom" | "killed" | "timeout" | "browser-crash" | "render-error" | "cancelled" | "spawn-error" | "no-output" | "unknown";
+export type FailureKind = "oom" | "killed" | "timeout" | "browser-crash" | "render-error" | "refused" | "cancelled" | "spawn-error" | "no-output" | "unknown";
 export type Failure = {
   kind: FailureKind;
   message: string;
@@ -253,6 +253,7 @@ export const FAILURE_LABEL: Record<FailureKind, string> = {
   timeout: "انتهاء المهلة",
   "browser-crash": "انهيار المتصفح",
   "render-error": "فشل التصيير",
+  refused: "رفضه فحص قبل الاكتمال",
   cancelled: "ألغاها المستخدم",
   "spawn-error": "تعذّر تشغيل المهمة",
   "no-output": "انتهت بلا ملف ناتج",
@@ -262,6 +263,12 @@ export const FAILURE_LABEL: Record<FailureKind, string> = {
 const OOM_SELF = /JavaScript heap out of memory|ENOMEM|Cannot allocate memory|std::bad_alloc|Out of memory/i;
 const BROWSER = /Target closed|Page crashed|Browser (?:has )?(?:closed|crashed|disconnected)|Protocol error.*(?:closed|crash)|Failed to launch the browser|chrome.*crash|Navigation failed because browser has disconnected|Session closed/i;
 const RENDER = /Error:|error:|خطأ|TypeError|ReferenceError|failed to render|Could not render|renderMedia|Composition/;
+/**
+ * M7 (funnel QA, 10 Nov): the command's own Arabic refusal («خطأ: …», printed by the CLI's top-level catch for a
+ * gate or a check). The browser closing after it is the normal shutdown, not a crash; the owner reads the reason.
+ */
+const REFUSAL = /^خطأ: [\u0600-\u06FF«]/;
+const isRefusal = (l: string) => REFUSAL.test(l) && !/\b(?:Error|TypeError|ReferenceError)\b|^\s+at /.test(l);
 
 /**
  * تصنيف الفشل من أدلته. الترتيب: ما فعلناه نحن (إلغاء، مهلة)، ثم الدليل المثبت لنفاد الذاكرة،
@@ -316,6 +323,8 @@ export const classifyFailure = (input: {
   if (input.stalled) return ev.push(`لا استهلاك للمعالج ${Math.round(input.stalled.ms / 1000)} ث`), mk("timeout", `تعطلت المهمة: لا تقدم منذ ${Math.round(input.stalled.ms / 1000)} ث فأوقفها الطابور (انتهاء مهلة التقدم).`);
   const crash = input.log.find((l) => BROWSER.test(l));
   if (crash) return ev.push(crash.slice(0, 160)), mk("browser-crash", `انهار المتصفح أثناء الرندر: ${crash.slice(0, 160)}`);
+  const refusal = input.code !== 0 && !input.signal ? [...input.log].reverse().find(isRefusal) : undefined;
+  if (refusal) return ev.push(refusal.slice(0, 300)), mk("refused", refusal.replace(/^خطأ: /, "").slice(0, 400));
   if (input.browserLost && input.code !== 0 && !input.signal) return ev.push("عمليات المتصفح اختفت أثناء الرندر"), mk("browser-crash", "انهار المتصفح أثناء الرندر (اختفت عملياته) ثم فشلت المهمة.");
   const lowMem = (input.minAvailableMB ?? Infinity) < (input.reserveMB ?? 900);
   if (input.signal || input.code === 137 || input.code === 143) {

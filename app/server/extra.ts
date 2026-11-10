@@ -70,20 +70,42 @@ const EP = /^\d{3}$/;
 const types: Record<string, string> = { ".png": "image/png", ".mp4": "video/mp4", ".srt": "text/plain; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".mp3": "audio/mpeg" };
 
 /** تقدير التقدم من سطور bal make: «٣/٥ …» ثم «الحلقة: 40%» … */
-const progressFrom = (job: LongJob, line: string) => {
+export const progressFrom = (job: LongJob, line: string) => {
   const step = line.match(/^([٠-٩1-9])\/([٠-٩1-9])/);
   if (step) {
     const n = Number(step[1]!.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)));
     job.pct = Math.max(job.pct, (n - 1) * 15);
   }
   const pct = line.match(/(\d+)%/);
-  if (pct && job.kind !== "sfx") {
+  if (pct && job.kind !== "sfx" && !/^\s*FRAMES /.test(line)) {
     const p = Number(pct[1]);
     if (/الحلقة/.test(line)) job.pct = Math.max(job.pct, 60 + p * 0.2);
     const short = line.match(/الشورت (\d)/);
     if (short) job.pct = Math.max(job.pct, 80 + (Number(short[1]) - 1) * 3.3 + p * 0.033);
   }
   if (/^PROGRESS (\d+)/.test(line)) job.pct = Number(line.match(/^PROGRESS (\d+)/)![1]);
+  // M7: frame progress of a render inside make/package («FRAMES الحلقة 37»), so a long 4K render moves
+  // smoothly from 60% instead of sitting there between the 20% log lines.
+  const frames = line.trim().match(/^FRAMES (\S+(?: \d)?) (\d+)$/);
+  if (frames) {
+    const p = Number(frames[2]);
+    if (frames[1] === "الحلقة") job.pct = Math.max(job.pct, Math.min(98, 60 + p * (job.kind === "make" ? 0.38 : 0.2)));
+    const short = frames[1]!.match(/^الشورت (\d)$/);
+    if (short) job.pct = Math.max(job.pct, Math.min(98, 80 + (Number(short[1]) - 1) * 3.3 + p * 0.033));
+  }
+};
+
+/**
+ * M7: what the owner's log shows. Machine progress lines are never listed; the renderer's English memory /
+ * concurrency warnings become one Arabic note (said once), not raw English.
+ */
+export const MEMORY_NOTE = "تنبيه: ذاكرة الجهاز محدودة لهذا الرندر، فيعمل بتوازٍ أقل وقد يطول قليلًا.";
+export const ownerLogLine = (line: string, log: string[]): string | null => {
+  if (/^(?:PROGRESS|FRAMES) /.test(line.trim())) return null;
+  if (/docker|Detected differing/i.test(line)) return null;
+  if (/memory|concurrency|RAM\b/i.test(line) && /[A-Za-z]{4}/.test(line) && !/[\u0600-\u06FF]/.test(line))
+    return log.includes(MEMORY_NOTE) ? null : MEMORY_NOTE;
+  return line;
 };
 
 /**
@@ -112,7 +134,9 @@ const attach = (def: TaskDef, view: View, key: string, onLine: (line: string) =>
   },
   onLine: (line) => {
     onLine(line);
-    view.log.push(line);
+    const shown = ownerLogLine(line, view.log);
+    if (shown === null) return;
+    view.log.push(shown);
     if (view.log.length > keepLog) view.log.shift();
   },
   onEnd: (t) => {
@@ -122,14 +146,14 @@ const attach = (def: TaskDef, view: View, key: string, onLine: (line: string) =>
     if (t.status === "done") view.pct = 100;
     else {
       view.failure = t.failure ? FAILURE_LABEL[t.failure.kind] : undefined;
-      const detail = view.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-2).join(" ");
+      // A refusal already carries its own sentence; the log line would only repeat it.
+      const detail = t.failure?.kind === "refused" ? "" : view.log.filter((l) => /خطأ|Error|لا يمكن/.test(l)).slice(-2).join(" ");
       view.error = [t.failure ? `${FAILURE_LABEL[t.failure.kind]}: ${t.failure.message}` : t.error, detail].filter(Boolean).join(" · ") || "توقفت العملية";
     }
   },
 });
 
 const longLine = (j: LongJob) => (line: string) => {
-  if (/emory|docker|Detected differing/.test(line)) return;
   progressFrom(j, line);
   const done = line.match(/^DONE (.+)$/);
   if (done) j.output = path.basename(done[1]!.trim());

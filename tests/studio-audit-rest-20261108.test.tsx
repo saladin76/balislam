@@ -42,7 +42,7 @@ describe("5 · «جهّز كل المشاهد» بلا صوت لا يبدأ رن
     const queue = { list: q(["s1", "s2"]), beforeVoiceGap: q(["s1", "s2"]) };
     const previousFailures = [{ id: "s1", error: "boom", sourceSha256: h("1") }, { id: "s2", error: "boom", sourceSha256: h("x") }];
     expect(pickRenderQueue(queue, { voiceMissing: false, previousFailures })).toEqual({
-      todo: q(["s2"]), skipped: [{ id: "s1", reason: "failed-before", error: "boom" }] });
+      todo: q(["s2"]), skipped: [{ id: "s1", reason: "failed-before", error: "boom", sourceSha256: h("1") }] });
     expect(environmentalFailure("getaddrinfo ENOTFOUND remotion.media")).toBe(true);
     expect(pickRenderQueue(queue, { voiceMissing: false,
       previousFailures: [{ id: "s1", error: "getaddrinfo ENOTFOUND remotion.media", sourceSha256: h("1") }] }).todo).toEqual(q(["s1", "s2"]));
@@ -127,7 +127,7 @@ describe("12 · عدد الاستشهادات غير الموثّقة في سط�
       { kind: "ayah", status: "pending" }, { kind: "ayah", status: "pending" }, { kind: "ayah", status: "changed" },
       { kind: "hadith", status: "pending" }, { kind: "other", status: "rejected" },
     ];
-    expect(citationNotice(items)).toBe("استشهادات غير موثّقة: ٥ من ١٦ (منها ٣ آيات). لا تمنع الاعتماد؛ وثّقها في «سجل التوثيق» (أدوات وتفاصيل بجوار السكريبت).");
+    expect(citationNotice(items)).toBe("استشهادات غير موثّقة: ٥ من ١٦ (منها ٣ آيات). للتوثيق فقط ولا تمنع شيئًا (لا الاعتماد ولا النسخة النهائية ولا النشر)؛ وثّقها في «سجل التوثيق» (أدوات وتفاصيل بجوار السكريبت).");
     expect(citationNotice(items.slice(0, 11))).toBe("");
     expect(citationNotice([])).toBe("");
   });

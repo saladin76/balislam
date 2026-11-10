@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, type LongJob } from "../api";
 import { KeysLink } from "../ui/KeysLink";
 import { num } from "../ui/format";
+import { citationLine } from "../shell/citationNotice";
 
 const ar = (n: number) => num(Math.round(n));
 
@@ -34,6 +35,22 @@ export const MakeMaster: React.FC<{ episodeId: string; hasVoiceKeys?: boolean; o
     return () => clearInterval(t);
   }, [running, job?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Step ٣ shows the citation count as information only: it never blocks the final file (owner decision 10 Nov).
+  const [citations, setCitations] = useState("");
+  useEffect(() => {
+    let alive = true;
+    api.review(episodeId).then((r) => alive && setCitations(citationLine(r.items)), () => alive && setCitations(""));
+    return () => { alive = false; };
+  }, [episodeId]);
+  // M7: the 4K make can be stopped; the queue classifies it «ألغاها المستخدم» and no earlier file is touched.
+  const [stopping, setStopping] = useState(false);
+  const stop = async () => {
+    if (!job) return;
+    setStopping(true); setErr("");
+    try { await api.cancelJob(job.id); }
+    catch (e) { setErr((e as Error).message); }
+    finally { setStopping(false); }
+  };
   const start = async () => {
     setErr("");
     try { setJob(await api.startJob({ kind: "make", episode: episodeId })); }
@@ -49,7 +66,12 @@ export const MakeMaster: React.FC<{ episodeId: string; hasVoiceKeys?: boolean; o
           {running ? (job!.queued ? "في الطابور…" : `جارٍ الصنع… ${ar(job!.pct)}٪`) : "اصنع النسخة النهائية"}
         </button>
       )}
+      {running ? (
+        <button className="btn ghost" type="button" disabled={stopping} onClick={() => void stop()}
+          title="يوقف صنع النسخة النهائية الآن؛ لا يُمس أي ملف سابق">{stopping ? "يتوقف…" : "أوقف الصنع"}</button>
+      ) : null}
       {job?.status === "error" ? <span className="sp-hint" role="alert">توقف الصنع: {job.error}</span> : null}
+      {citations ? <span className="sp-hint" role="note">{citations}</span> : null}
       {err ? <span className="sp-hint" role="alert">{err}</span> : null}
     </>
   );

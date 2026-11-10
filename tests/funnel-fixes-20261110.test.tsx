@@ -87,3 +87,47 @@ describe("M3: failures expire when the scene succeeds or its inputs change", () 
     expect(api).toContain("await startPrepare({ retryFailed: true })");
   });
 });
+
+describe("M7 / owner decision 10 Nov: citations never block; the Master job reads true", () => {
+  it("no citation gate in Master, the legacy publish stage or the script signoff", () => {
+    for (const f of ["src/render/episode.ts", "src/workflow/server.ts", "src/script/approval.ts"]) {
+      const code = src(f);
+      expect(code, f).not.toMatch(/reviewSummary\(/);
+      expect(code, f).not.toContain("توثيق الاستشهادات غير مكتمل");
+    }
+  });
+  it("step ١ and step ٣ show the count as information only", async () => {
+    const { citationLine, citationNotice } = await import("../app/src/shell/citationNotice");
+    const items = [{ kind: "ayah", status: "pending" }, { kind: "hadith", status: "verified" }];
+    expect(citationNotice(items)).toContain("لا تمنع شيئًا");
+    expect(citationLine(items)).toBe("التوثيق: ١ من ٢ موثّق — للعلم فقط، لا يمنع النسخة النهائية ولا النشر.");
+    expect(src("app/src/workspace/MakeMaster.tsx")).toContain("citationLine(r.items)");
+  });
+  it("the CLI's own refusal is «رفضه فحص قبل الاكتمال», not a browser crash", async () => {
+    const { classifyFailure, FAILURE_LABEL } = await import("../src/render/pool");
+    const f = classifyFailure({ code: 1, signal: null, browserLost: true, peakMB: 900,
+      log: ["   الحلقة: 0%", "خطأ: لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: المشهد ٣"] });
+    expect(f.kind).toBe("refused");
+    expect(FAILURE_LABEL[f.kind]).toBe("رفضه فحص قبل الاكتمال");
+    expect(f.message).toContain("بلا تعليق صوتي");
+    expect(classifyFailure({ code: 1, signal: null, browserLost: true, peakMB: 900, log: ["Error: boom"] }).kind).toBe("browser-crash");
+  });
+  it("frame progress moves the 4K make past 60%; machine lines and English memory warnings stay out of the log", async () => {
+    const { progressFrom, ownerLogLine, MEMORY_NOTE } = await import("../app/server/extra");
+    const job = { kind: "make", pct: 60 } as Parameters<typeof progressFrom>[0];
+    progressFrom(job, "   FRAMES الحلقة 50");
+    expect(job.pct).toBe(79);
+    const log: string[] = [];
+    expect(ownerLogLine("   FRAMES الحلقة 51", log)).toBeNull();
+    expect(ownerLogLine("Your machine has 4 GB of memory; lowering concurrency", log)).toBe(MEMORY_NOTE);
+    expect(ownerLogLine("Your machine has 4 GB of memory; lowering concurrency", [MEMORY_NOTE])).toBeNull();
+    expect(ownerLogLine("٥/٥ الرندر والتغليف…", log)).toBe("٥/٥ الرندر والتغليف…");
+    expect(src("app/src/workspace/MakeMaster.tsx")).toContain("api.cancelJob(job.id)");
+  });
+});
+
+describe("owner decision 10 Nov: «احفظ هذا النطق للقناة» is OFF by default", () => {
+  it("a word chip opens the fix with save: false", () => {
+    expect(src("app/src/workspace/SentencesPanel.tsx")).toMatch(/setFixing\(open \? null : \{ row: r\.id, index: i, say: w\.say, save: false, wide: false \}\)/);
+  });
+});

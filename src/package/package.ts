@@ -127,7 +127,10 @@ export const packageEpisode = async (opts: PackageOptions) => {
 
   if (!opts.skipVideo) {
     let last = -1;
+    let lastFrame = -1;
     const progress = (label: string) => (pct: number) => {
+      // M7: every whole percent as a machine line (hidden from the owner's log), for a real progress bar.
+      if (pct !== lastFrame) { lastFrame = pct; log(`FRAMES ${label} ${pct}`); }
       const step = Math.floor(pct / 20) * 20;
       if (step !== last) {
         last = step;

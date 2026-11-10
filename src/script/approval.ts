@@ -4,7 +4,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import { parseScript } from "./parse";
 import { checkForChannel } from "./checkChannel";
-import { loadLedger, reviewItems, reviewSummary } from "./review";
 import { quranFromScript } from "../quran/scriptText";
 
 export type ScriptSignoff = { version: 1; sha256: string; reviewer: string; note: string; at: string };
@@ -24,11 +23,11 @@ export const scriptSignoffStatus = async (scriptPath: string): Promise<{
   const fingerprintMatches = old?.version === 1 && Boolean(old.reviewer?.trim() && old.note?.trim()) &&
     old.sha256 === current;
   const parsed = parseScript(script, scriptPath);
-  const citationsOk = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath))).ok;
+  // Citations are documentation only and never block (CLAUDE.md rule 5; owner decision 10 Nov).
   const quranOk = !quranFromScript(parsed).problems.length;
-  const valid = fingerprintMatches && citationsOk && quranOk;
+  const valid = fingerprintMatches && quranOk;
   return { approved: Boolean(valid), changed: Boolean(old && old.sha256 !== current),
-    needsReview: Boolean(old && old.sha256 === current && (!citationsOk || !quranOk)),
+    needsReview: Boolean(old && old.sha256 === current && !quranOk),
     signedAt: old?.at, reviewer: old?.reviewer };
 };
 
@@ -44,8 +43,6 @@ export const approveScript = async (
   if (!checked.ok) throw new Error("السكريبت يحتوي أخطاء؛ صححها قبل اعتماد النص.");
   if (quranFromScript(parsed).problems.length)
     throw new Error("نصوص الآيات ناقصة أو متعارضة؛ راجعها داخل السكريبت.");
-  const citations = reviewSummary(reviewItems(parsed, await loadLedger(scriptPath)));
-  if (!citations.ok) throw new Error("الاستشهادات تحتاج مراجعة واعتمادًا مستقلًا قبل اعتماد السكريبت.");
   const record: ScriptSignoff = { version: 1, sha256: hash(text), reviewer: reviewer.trim(),
     note: note.trim(), at: new Date().toISOString() };
   const target = scriptSignoffFile(scriptPath);
@@ -65,7 +62,7 @@ export const assertScriptApproved = async (scriptPath: string) => {
     throw new Error("السكريبت لم يعتمد صراحة أو تغيّر بعد اعتماده؛ راجع النص أولًا.");
   // Even unchanged script cannot bypass a revoked Quran citation approval.
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-  if (quranFromScript(parsed).problems.length || !reviewSummary(reviewItems(parsed, await loadLedger(scriptPath))).ok)
+  if (quranFromScript(parsed).problems.length)
     throw new Error("موافقة السكريبت أو توثيق الآيات لم تعد صالحة.");
   return true;
 };

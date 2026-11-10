@@ -8,7 +8,6 @@ import { readFile } from "node:fs/promises";
 import { parseScript } from "../script/parse";
 import { checkForChannel } from "../script/checkChannel";
 import { assertScriptApproved } from "../script/approval";
-import { loadLedger, reviewItems, reviewSummary } from "../script/review";
 import { quranFromScript } from "../quran/scriptText";
 import { loadStoryboard, storyboardStatus } from "../plan/storyboard";
 import { readPlanFile } from "../plan/io";
@@ -95,8 +94,7 @@ const verifyEvidence = async (episode: string, stage: WorkflowStage, confirmWatc
     const src = await readFile(scriptPath, "utf8");
     const parsed = parseScript(src, scriptPath);
     required(checkForChannel(parsed).ok, "The script does not pass validation.");
-    required(reviewSummary(reviewItems(parsed, await loadLedger(scriptPath))).ok,
-      "All citations and religious sources must be reviewed.");
+    // Citations are documentation only and never block (CLAUDE.md rule 5; owner decision 10 Nov).
     const ayahs = quranFromScript(parsed);
     required(ayahs.problems.length === 0, "Quran text and references in script require review.");
     // Script approval and human citation review are the trust source. No external

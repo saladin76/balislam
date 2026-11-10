@@ -20,3 +20,14 @@ export const arabicCount = (n: number, f: ArabicNounForms): string => {
 export const FILES: ArabicNounForms = { one: "ملف واحد", two: "ملفان", few: "ملفات", many: "ملفًا", hundred: "ملف" };
 /** «… و<N> <ملفات> أخرى» */
 export const OTHER_FILES: ArabicNounForms = { one: "ملف آخر", two: "ملفان آخران", few: "ملفات أخرى", many: "ملفًا آخر", hundred: "ملف آخر" };
+
+const AR = "٠١٢٣٤٥٦٧٨٩";
+/** The same agreement with Arabic-Indic digits, for the Studio's owner-facing lines («١١٤ مشهدًا؛ ٤ آيات»). */
+export const arabicCountAr = (n: number, f: ArabicNounForms): string =>
+  arabicCount(n, f).replace(/\d/g, (d) => AR[Number(d)]!);
+
+export const SCENES: ArabicNounForms = { one: "مشهد واحد", two: "مشهدان", few: "مشاهد", many: "مشهدًا", hundred: "مشهد" };
+export const AYAT: ArabicNounForms = { one: "آية واحدة", two: "آيتان", few: "آيات", many: "آية", hundred: "آية" };
+export const CITATIONS: ArabicNounForms = { one: "استشهاد واحد", two: "استشهادان", few: "استشهادات", many: "استشهادًا", hundred: "استشهاد" };
+/** «كل سبت»: the weekly publishing day as the owner reads it. */
+export const everyWeekday = (day: string) => `كل ${day.replace(/^(يوم\s+)?(ال)?/, "")}`;

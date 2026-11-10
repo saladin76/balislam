@@ -271,7 +271,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
               className={`sv-word${open ? " is-open" : ""}${near ? " is-near" : ""}${fail ? " is-fail" : fixedWord(r, i) ? " is-fixed" : ""}`}
               aria-pressed={open} aria-haspopup="dialog"
               disabled={Boolean(busy) || !r.wordFix.ok || w.quran} title={w.quran ? "نص قرآني: لا يُعاد نطقه" : r.wordFix.reason ?? "أعد نطق هذه الكلمة وحدها"}
-              onClick={() => { setFixed(null); setFixing(open ? null : { row: r.id, index: i, say: w.say, save: true, wide: false }); }}>{w.word}</button>
+              onClick={() => { setFixed(null); setFixing(open ? null : { row: r.id, index: i, say: w.say, save: false, wide: false }); }}>{w.word}</button>
           </React.Fragment>
         );
       })}
