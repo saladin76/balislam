@@ -50,10 +50,11 @@ export const nextAction = (w: Pick<SceneProductionRead, "script" | "storyboard" 
  * Which step screen is locked, from the ledger alone: ٢ and ٣ before «اعتمد التجهيز»; ٤ before the
  * final file is approved. Returns null when the screen is open (or the ledger is not read yet).
  */
-export const lockedStep = (tab: StepTab, w: Pick<SceneProductionRead, "script" | "storyboard" | "progress"> | null): 1 | 2 | 3 | null => {
+export const lockedStep = (tab: StepTab, w: Pick<SceneProductionRead, "script" | "storyboard" | "progress" | "sceneEdit"> | null): 1 | 2 | 3 | null => {
   if (!w) return null;
   const done = stepsDone(w);
-  if (tab === "episode" && !done[0]) return 1;
+  // D66: one scene edited after «اعتمد التجهيز» keeps step ٢ open; that scene is re-approved there.
+  if (tab === "episode" && !done[0] && !w.sceneEdit?.open) return 1;
   if (tab === "review" && !done[0]) return 2;
   if (tab === "publish" && !done[2]) return 3;
   return null;

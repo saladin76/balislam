@@ -4,6 +4,7 @@ import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, t
 import type { Plan } from "../../../src/plan/types";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { tones, toneIds, isTone } from "../../../src/voice/tones";
+import { dropsShadda, isNoopSay, phoneticVariants } from "../../../src/voice/pronunciationRules";
 import { RecitationItem, recitationUrl } from "./RecitationItem";
 import "./sentences.css";
 import { Icon } from "../ui/icons";
@@ -397,9 +398,10 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     const s = scenes.find((x) => x.rows.some((y) => y.id === r.id))!;
     const w = r.words[f.index]!;
     const close = () => { const chip = chipRefs.current[`${r.id}:${f.index}`]; setFixing(null); chip?.focus(); };
+    const save = () => f.save && !isNoopSay(w.say, f.say);
     const done = (res: Awaited<ReturnType<typeof send>>) => {
       if (!res?.fix) return;
-      setFixed({ row: r.id, index: f.index, word: w.word, before: w.say, say: f.say, save: f.save, result: res.fix });
+      setFixed({ row: r.id, index: f.index, word: w.word, before: w.sent, say: f.say, save: f.save, result: res.fix });
       setFixing(null);
     };
     return (
@@ -408,8 +410,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
         playing={ps?.key === `word:${r.id}:${f.index}`} onOpenSettings={onOpenSettings}
         onDraft={setFixing} onClose={close}
         onPlay={() => (ps?.key === `word:${r.id}:${f.index}` ? stopPlay() : playWord(r, f.index))}
-        onFix={async () => done(await send(`fix:${r.id}`, { ...ref(r), action: "fixword", word: f.index, say: f.say, save: f.save, ...(f.wide ? { neighbours: 2 as const } : {}) }))}
-        onWhole={async () => { const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate", word: f.index, say: f.say, save: f.save }); if (res) setFixing(null); }} />
+        onFix={async () => done(await send(`fix:${r.id}`, { ...ref(r), action: "fixword", word: f.index, say: f.say, save: save(), ...(f.wide ? { neighbours: 2 as const } : {}) }))}
+        onWhole={async () => { const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate", word: f.index, say: f.say, save: save() }); if (res) setFixing(null); }} />
     );
   };
 
@@ -454,6 +456,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             {list.map((e) => {
               const d = lexDrafts[e.word];
               const dirty = d !== undefined && d.trim() !== e.say;
+              const fx = (read.lexiconEffects ?? []).find((x) => x.word === e.word);
               return (
                 <li key={e.word}>
                   <span className="sv-lex-word">{e.word}</span>
@@ -466,6 +469,13 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
                   <button type="button" className="btn ghost is-danger" disabled={Boolean(busy)} onClick={() => {
                     if (window.confirm(`احذف «${e.word}» من قاموس النطق؟ التسجيلات الحالية لا تتغير.`)) void lexicon(`lex:${e.word}`, { op: "remove", word: e.word });
                   }}>احذف</button>
+                  {fx ? (
+                    <span className="sv-lex-fx">
+                      <small>{fx.match === "letters" ? "بالحروف (أي تشكيل لا يخالفه)" : "بالتشكيل نفسه فقط"} — {fx.applies.length
+                        ? `يغيّر في هذه الحلقة: ${fx.applies.map((w) => `«${w}»`).join("، ")}` : "لا يغيّر شيئًا في هذه الحلقة"}</small>
+                      {fx.warnings.map((m) => <small key={m} className="is-warn">{m}</small>)}
+                    </span>
+                  ) : null}
                 </li>
               );
             })}
@@ -794,6 +804,13 @@ type WordFixResult = { index: number; word: string; before: string; say: string;
  * neighbours that are re-said with it underlined, the field, «احفظ هذا النطق للقناة», and under «المزيد» two
  * neighbours on each side; «أعد نطق الكلمة» first, «ولّد الجملة كاملة بهذا النطق» as the fallback.
  */
+/** Exactly what is sent for the word (D66): the field, with the written word's punctuation around it. */
+export const sendPreview = (written: string, say: string) => {
+  const lead = written.match(/^[\p{P}\p{S}]+/u)?.[0] ?? "";
+  const trail = written.match(/[\p{P}\p{S}]+$/u)?.[0] ?? "";
+  return `${lead}${say.trim().replace(/\s+/g, " ")}${trail}`;
+};
+
 export const WordFixPopover: React.FC<{
   words: SentenceRow["words"]; rowNo: number; draft: WordFixDraft;
   busy: "fix" | "gen" | "other" | null; noKey: boolean; playing: boolean;
@@ -803,6 +820,8 @@ export const WordFixPopover: React.FC<{
 }> = ({ words, rowNo, draft: f, busy, noKey, playing, pos, popRef, onDraft, onClose, onPlay, onFix, onWhole, onOpenSettings }) => {
   const w = words[f.index]!;
   const nb = fixNeighbours(words.length, f.index, f.wide);
+  const noop = isNoopSay(w.say, f.say);
+  const variants = useMemo(() => phoneticVariants(w.say), [w.say]);
   const id = `fx-${rowNo}-${f.index}`;
   const box = useRef<HTMLDivElement | null>(null);
   const field = useRef<HTMLInputElement | null>(null);
@@ -842,17 +861,28 @@ export const WordFixPopover: React.FC<{
           ))}
         </p>
         <label className="ms-pop-fl sv-fix-say">
-          <span>اكتبها كما يجب أن تُنطق</span>
+          <span>اكتبها كما يجب أن تُنطق<small>يغيّر ما يُرسل إلى الصوت وحده؛ نص السكريبت والترجمة كما هما</small></span>
           <span className="ms-pop-inp">
             <input ref={field} dir="rtl" value={f.say} maxLength={80} autoFocus disabled={Boolean(busy)} onChange={(e) => onDraft({ ...f, say: e.target.value })} />
-            <small>سُمعت «{w.say}»</small>
+            {w.sent !== w.say ? <small>يُرسل الآن «{w.sent}»{w.source === "lexicon" ? " (من قاموس النطق)" : w.source === "sentence" ? " (تصحيح سابق لهذه الجملة)" : w.source === "tashkeel" ? " (من النسخة المشكولة)" : ""}</small> : null}
           </span>
         </label>
+        <p className="ms-pop-hint sv-fix-send" aria-live="polite"><Icon name="info" /><span>سيُرسل: «{sendPreview(w.word, f.say)}»{noop ? " — الكلمة كما كُتبت" : ""}</span></p>
+        {variants.length ? (
+          <div className="sv-fix-variants" role="group" aria-label="جرّب صيغة أخرى">
+            <span>جرّب صيغة أخرى:</span>
+            {variants.map((v) => (
+              <button key={v} type="button" className="sv-t" disabled={Boolean(busy)} aria-pressed={f.say.trim() === v}
+                onClick={() => onDraft({ ...f, say: v })}>{v}</button>
+            ))}
+          </div>
+        ) : null}
         <p className="ms-pop-hint"><Icon name="info" /><span>{neighbourHint(words.map((x) => x.word), f.index, f.wide)}</span></p>
         <label className="ms-pop-chk sv-fix-check">
-          <input type="checkbox" checked={f.save} disabled={Boolean(busy)} onChange={(e) => onDraft({ ...f, save: e.target.checked })} />
-          <span>احفظ هذا النطق للقناة<small>يُستعمل في كل حلقة</small></span>
+          <input type="checkbox" checked={f.save && !noop} disabled={Boolean(busy) || noop} onChange={(e) => onDraft({ ...f, save: e.target.checked })} />
+          <span>احفظ هذا النطق للقناة<small>{noop ? "لا يُحفظ نطق مثل الكلمة تمامًا" : "يُستعمل في كل حلقة، للكلمة بتشكيلها هذا"}</small></span>
         </label>
+        {f.save && !noop && dropsShadda(w.say, f.say) ? <p className="ms-pop-hint is-warn"><Icon name="warn" /><span>النطق يحذف الشدّة التي في «{w.say}»؛ تأكد أن هذا مقصود قبل حفظه للقناة.</span></p> : null}
         <details className="ms-pop-more" open={f.wide || undefined}>
           <summary>المزيد</summary>
           <label className="ms-pop-chk">

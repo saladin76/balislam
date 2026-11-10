@@ -250,3 +250,11 @@
     linear-gradient(transparent 58%, var(--mark) 58%, var(--mark) 92%, transparent 92%);
 }
 @media (prefers-reduced-motion: no-preference) { .sv-prog > i { transition: width .1s linear; } }
+
+/* D66: what each lexicon entry does, and «جرّب صيغة أخرى» in the word popover */
+.sv-lex-fx { flex: 1 1 100%; display: grid; gap: 2px; font-size: var(--t-12); color: var(--mute); }
+.sv-lex-fx .is-warn { color: var(--warn); }
+.sv-fix-variants { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 0; font-size: var(--t-12); color: var(--mute); }
+.sv-fix-variants .sv-t { font-size: 16px; }
+.sv-fix-variants .sv-t[aria-pressed="true"] { border-color: currentColor; }
+.ms-pop-fl small { display: block; font-size: var(--t-12); color: var(--mute); font-weight: 400; }

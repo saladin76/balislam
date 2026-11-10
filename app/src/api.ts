@@ -97,6 +97,11 @@ export type SceneProductionRead = {
   storyboard: { sha256: string; approved: boolean };
   /** P-05: every current scene matches its recorded board; `changed` lists the boards edited since (or new). */
   boards?: { current: boolean; changed: string[] };
+  /**
+   * D66: one scene edited after «اعتمد التجهيز» (its sentence text and/or its narration in the script). open: step ٢
+   * stays usable and «اعتمد تعديل هذا المشهد» re-records the script/storyboard decisions for it; otherwise `reason`.
+   */
+  sceneEdit?: { sceneId: string | null; open: boolean; script: boolean; board: boolean; reason?: string } | null;
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
     sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean;
     /** Verse card whose human recitation is not attached yet (its draft is silent, marked). */
@@ -233,7 +238,7 @@ export const api = {
   recordSeam: (episode: string, channel: string, body: { seam: string; assemblySha256: string; how?: "played" | "confirmed"; heard?: boolean; playedSec?: number }) =>
     call<{ assembly: string; heard: Record<string, { how: "played" | "confirmed"; at: string }> }>(`/api/episodes/${episode}/seam-checks`, { method: "POST", json: body }, channel),
   /** B2: «اعتمد لوحة هذا المشهد» from step ٢ — the changed board of one scene, then the storyboard decision again. */
-  approveSceneBoard: (episode: string, channel: string, body: { sceneId: string; storyboardSha256: string; reviewed: boolean; note: string }) =>
+  approveSceneBoard: (episode: string, channel: string, body: { sceneId: string; storyboardSha256: string; scriptSha256?: string; reviewed: boolean; note: string }) =>
     call<SceneProductionRead>(`/api/episodes/${episode}/approve-scene-board`, { method: "POST", json: body }, channel),
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>

@@ -34,7 +34,8 @@ import { tashkeelReport } from "./tashkeelReport";
 import { alignmentToWords, applyDictionary, wordsForCaptions } from "./words";
 import { planVerseTexts } from "./quranGuard";
 import { BASMALA_KEY, BASMALA_PLACEHOLDER_SEC, hasBasmala } from "./basmala";
-import { applyLexicon, checkSay, coreOf, loadLexicon, quranMask, removeLexiconEntry, setLexiconEntry, type LexiconEntry } from "./lexicon";
+import { applyLexicon, checkSay, coreOf, loadLexicon, NOOP_SAY, quranMask, removeLexiconEntry, sayWarnings, setLexiconEntry, type LexiconEntry } from "./lexicon";
+import { isNoopSay, lexiconEffects, type LexiconEffect, type LexiconMatch } from "./pronunciationRules";
 import { remapWords, snapBoundary, SPLICE, spliceWord, type SpliceCheck } from "./wordSplice";
 import {
   addSentenceAfter, clampPause, contextFingerprint, cutPoints, deleteSentence, editSentenceText, emptyDoc, heardKey,
@@ -226,8 +227,14 @@ export type SentenceRow = {
   takes: number; contextChanged: boolean;
   tashkeel: { ok: boolean; coverage: number; missing: string[] };
   chars: number;
-  /** كلمات النص كما تُعرض (شرائح «أعد نطق الكلمة»): توقيتها في التسجيل الحالي إن صلح، وما يُنطق لها الآن */
-  words: { word: string; say: string; start: number | null; end: number | null; quran: boolean }[];
+  /**
+   * كلمات النص كما تُعرض (شرائح «أعد نطق الكلمة»): توقيتها في التسجيل الحالي إن صلح.
+   * say: الكلمة كما كتبها المالك (بلا ترقيم) — ما يُملأ به حقل النطق (D66: لا النطق القديم ولا المسموع)؛
+   * sent: ما يُرسل لها الآن فعلًا؛ source: من أين جاء sent إن اختلف (تصحيح الجملة، القاموس، ملف التشكيل)؛
+   * correction: نطق كتبه المالك لهذه الكلمة في هذه الجملة.
+   */
+  words: { word: string; say: string; sent: string; source: "written" | "sentence" | "lexicon" | "tashkeel"; correction: string | null;
+    start: number | null; end: number | null; quran: boolean }[];
   /**
    * هل تصلح إعادة نطق كلمة في التسجيل الحالي، ولماذا لا. adopt: لا تسجيل للجملة لكن صوت المشهد ملفًا واحدًا
    * بتوقيت كلمات حقيقي، فالضغط على كلمة يقصه إلى جمله أولًا («من صوت المشهد»، بلا طلب مدفوع) ثم يفتح التصحيح؛
@@ -260,6 +267,8 @@ export type SentencesRead = {
   scenes: SentenceScene[];
   /** قاموس النطق للقناة (pronunciations.json) */
   lexicon: LexiconEntry[];
+  /** أثر كل مدخل على كلمات هذه الحلقة الآن (ما يغيّره، وما لا يطابقه بتشكيله، وتنبيهاته) */
+  lexiconEffects: LexiconEffect[];
 };
 
 /** التشكيل ≥ ٩٨٪ بعد التصحيحات: الكلمة المصحَّحة تُعدّ بنطقها المكتوب، وكلمات القاموس مغطاة (نطقها فُحص عند حفظه) */
@@ -343,7 +352,9 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
       waiting: managed ? waitingReason(ctx, scene, list, audio.state !== "none") : null,
       rows, verse: null });
   });
-  return { episode, voiceKey: Boolean(process.env.ELEVENLABS_API_KEY && voiceIdFor()), toneMap: ctx.map ? { version: ctx.map.version } : null, scenes, lexicon: ctx.lexicon };
+  const allWords = scenes.flatMap((x) => x.rows.filter((r) => r.kind === "narration").flatMap((r) => r.words.filter((w) => !w.quran).map((w) => w.word)));
+  return { episode, voiceKey: Boolean(process.env.ELEVENLABS_API_KEY && voiceIdFor()), toneMap: ctx.map ? { version: ctx.map.version } : null, scenes,
+    lexicon: ctx.lexicon, lexiconEffects: lexiconEffects(ctx.lexicon, allWords) };
 };
 
 /** صوت المشهد ملفًا واحدًا لجملة بلا تسجيل: يصلح قصه (adopt) بكلماتها بزمنه، أو لماذا لا */
@@ -357,7 +368,13 @@ const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>, scene?: SceneAlt):
   const adopt = fromScene && scene!.adopt && scene!.words?.length === ws.length;
   const at = (i: number, k: "start" | "end") => (!refusal ? s.audio!.words[i]![k] : adopt ? scene!.words![i]![k] : null);
   return {
-    words: ws.map((w, i) => ({ word: w, say: coreOf(v.send.perWord[i] || w) || w, start: at(i, "start"), end: at(i, "end"), quran: mask[i]! || s.kind === "verse" })),
+    words: ws.map((w, i) => {
+      const sent = coreOf(v.send.perWord[i] || w) || w;
+      const correction = s.corrections?.find((c) => c.index === i && c.word === w)?.say ?? null;
+      const fromLex = v.send.applied.find((a) => a.index === i);
+      const source = fromLex ? fromLex.source : sent === coreOf(w) ? "written" as const : "tashkeel" as const;
+      return { word: w, say: coreOf(w) || w, sent, source, correction, start: at(i, "start"), end: at(i, "end"), quran: mask[i]! || s.kind === "verse" };
+    }),
     wordFix: !refusal ? { ok: true }
       : adopt ? { ok: false, adopt: true, source: "scene", reason: "تُقص الجملة من صوت المشهد عند الضغط على كلمة، بلا توليد." }
       : fromScene && scene!.reason ? { ok: false, reason: scene!.reason } : { ok: false, reason: refusal },
@@ -701,8 +718,15 @@ const correctionFor = (s: Sentence, index: unknown, say: unknown): SentenceCorre
   if (bad) throw new Error(bad);
   return { index: i, word: ws[i]!, say: String(say).trim().replace(/\s+/g, " ") };
 };
-const withCorrection = (s: Sentence, c: SentenceCorrection): Sentence =>
-  ({ ...s, corrections: [...(s.corrections ?? []).filter((x) => x.index !== c.index), c].sort((a, z) => a.index - z.index) });
+/**
+ * The correction is saved with the sentence; one that says the word exactly as written (D66) is not a correction:
+ * it removes any earlier correction of that word, so the word is sent as written again.
+ */
+const withCorrection = (s: Sentence, c: SentenceCorrection): Sentence => {
+  const rest = (s.corrections ?? []).filter((x) => x.index !== c.index);
+  const corrections = isNoopSay(c.word, c.say) ? rest : [...rest, c].sort((a, z) => a.index - z.index);
+  return { ...s, corrections: corrections.length ? corrections : undefined };
+};
 
 export type WordFixOutcome = { ok: boolean; index: number; word: string; say: string; reasons: string[]; check?: SpliceCheck; savedToLexicon?: boolean };
 
@@ -888,14 +912,19 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         let s = one();
         // «ولّد الجملة كاملة بهذا النطق»: التصحيح يُحفظ مع الجملة (ولقاموس القناة إن طُلب) ثم تُولَّد كاملة
         const c = cmd.say !== undefined ? correctionFor(s, cmd.word, cmd.say) : null;
+        if (c && cmd.save && isNoopSay(c.word, c.say)) throw new Error(NOOP_SAY);
         if (c) { s = withCorrection(s, c); list = list.map((x) => (x.id === s.id ? s : x)); }
         list = await generateOne(ctx, episode, scene, list, s, opts);
-        if (c && cmd.save) { await setLexiconEntry(c.word, c.say); message = `حُفظ نطق «${coreOf(c.word)}» في قاموس النطق للقناة؛ يسري على كل توليد قادم.`; }
+        if (c && cmd.save) {
+          await setLexiconEntry(c.word, c.say);
+          message = [`حُفظ نطق «${coreOf(c.word)}» في قاموس النطق للقناة؛ يسري على كل توليد قادم.`, ...sayWarnings(c.word, c.say)].join(" ");
+        }
         break;
       }
       case "fixword": {
         const s = one();
         const c = correctionFor(s, cmd.word, cmd.say);
+        if (cmd.save && isNoopSay(c.word, c.say)) throw new Error(NOOP_SAY);
         const r = await fixWord(ctx, episode, scene, list, s, c, { ...opts, neighbours: cmd.neighbours });
         list = r.list;
         fix = r.outcome;
@@ -904,7 +933,8 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
           fix.savedToLexicon = true;
         }
         message = r.outcome.ok
-          ? `أُعيد نطق «${coreOf(c.word)}» وحده؛ التسجيل السابق محفوظ في «ارجع إلى التسجيل السابق».${fix.savedToLexicon ? " وحُفظ نطقها في قاموس النطق للقناة." : ""}`
+          ? [`أُعيد نطق «${coreOf(c.word)}» وحده؛ التسجيل السابق محفوظ في «ارجع إلى التسجيل السابق».${fix.savedToLexicon ? " وحُفظ نطقها في قاموس النطق للقناة." : ""}`,
+            ...(fix.savedToLexicon ? sayWarnings(c.word, c.say) : [])].join(" ")
           : "لم يندمج بشكل طبيعي — جرّب نطقًا آخر أو ولّد الجملة";
         break;
       }
@@ -930,15 +960,16 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
   return { read: await readSentences(episode), planChanged, ...(composed ? { composed } : {}), ...(message ? { message } : {}), ...(fix ? { fix } : {}) };
 };
 
-export type LexiconCommand = { op: "set" | "remove"; word: string; say?: string; note?: string };
+export type LexiconCommand = { op: "set" | "remove"; word: string; say?: string; note?: string; match?: LexiconMatch };
 /** «قاموس النطق» في «أدوات وتفاصيل»: تعديل كلمة أو حذفها (المالك على جهازه). لا يُبطل تسجيلًا قائمًا. */
 export const lexiconAction = async (episode: string, cmd: LexiconCommand): Promise<SentencesRead> => {
   const { assertSceneOwner } = await import("../studio/sceneService");
   assertSceneOwner();
   if (!cmd || (cmd.op !== "set" && cmd.op !== "remove") || typeof cmd.word !== "string" || cmd.word.length > 80 ||
-      (cmd.say !== undefined && (typeof cmd.say !== "string" || cmd.say.length > 200)) || (cmd.note !== undefined && typeof cmd.note !== "string"))
+      (cmd.say !== undefined && (typeof cmd.say !== "string" || cmd.say.length > 200)) || (cmd.note !== undefined && typeof cmd.note !== "string") ||
+      (cmd.match !== undefined && cmd.match !== "exact" && cmd.match !== "letters"))
     throw new Error("أمر قاموس النطق غير صالح.");
-  if (cmd.op === "set") await setLexiconEntry(cmd.word, String(cmd.say ?? ""), cmd.note);
+  if (cmd.op === "set") await setLexiconEntry(cmd.word, String(cmd.say ?? ""), cmd.note, undefined, cmd.match);
   else await removeLexiconEntry(cmd.word);
   return readSentences(episode);
 };

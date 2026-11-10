@@ -64,6 +64,9 @@ channels/*/episodes/*/notes/*.json.*.tmp
 # - سجل اعتماد المشاهد الموقَّع (src/studio/sceneService.ts: stateFileFor، والقفل serialized، والكتابة الذرية)
 channels/*/episodes/*/scene-production.v1.json
 channels/*/episodes/*/scene-production.v1.json.lock
+# - نسخة السكريبت كما اعتُمد، موقَّعة ومربوطة بجيله في السجل (src/studio/scriptScope.ts، D66)
+channels/*/episodes/*/script-approved.v1.json
+channels/*/episodes/*/script-approved.v1.json.*.tmp
 # - سجل المراحل الست القديم الموقَّع (src/workflow/store.ts: ledgerFile، withLock، persist)
 channels/*/episodes/*/workflow-approvals.json
 channels/*/episodes/*/workflow-approvals.json.lock

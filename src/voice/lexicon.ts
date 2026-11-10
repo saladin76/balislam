@@ -15,8 +15,13 @@ import { mkdir, open, rename, rm } from "node:fs/promises";
 import { channelPaths } from "../channel";
 import { readJson } from "../plan/io";
 import { tashkeelReport } from "./tashkeelReport";
+import { dropsShadda, isNoopSay, lexiconSay, type LexiconMatch } from "./pronunciationRules";
 
-export type LexiconEntry = { word: string; say: string; at: string; note?: string };
+/**
+ * match: "exact" (default) — only the word written with exactly this tashkeel; "letters" — any writing of the same
+ * letters, but never over tashkeel the owner wrote that contradicts it (pronunciationRules.ts · lexiconSay, D66).
+ */
+export type LexiconEntry = { word: string; say: string; at: string; note?: string; match?: LexiconMatch };
 export type LexiconDoc = { _note?: string; entries: LexiconEntry[] };
 /** تصحيح لكلمة واحدة في جملة واحدة (رقمها فيها وكلمتها كما كُتبت) */
 export type WordCorrection = { index: number; word: string; say: string };
@@ -33,7 +38,8 @@ const QURAN_MARK = /[﴿﴾]/;
 export const loadLexicon = async (channel?: string): Promise<LexiconDoc> => {
   const d = await readJson<LexiconDoc>(lexiconFileFor(channel));
   if (!d || !Array.isArray(d.entries)) return { entries: [] };
-  return { ...d, entries: d.entries.filter((e) => e && typeof e.word === "string" && typeof e.say === "string" && e.word && e.say) };
+  return { ...d, entries: d.entries.filter((e) => e && typeof e.word === "string" && typeof e.say === "string" && e.word && e.say)
+    .map((e) => (e.match !== undefined && e.match !== "exact" && e.match !== "letters" ? { ...e, match: undefined } : e)) };
 };
 
 const writeAtomic = async (file: string, text: string) => {
@@ -65,12 +71,23 @@ export const checkWord = (word: string): string | null => {
   return null;
 };
 
-export const setLexiconEntry = async (word: string, say: string, note?: string, channel?: string): Promise<LexiconDoc> => {
+/** Saving a pronunciation that says the word exactly as written changes nothing (D66): refused, never saved. */
+export const NOOP_SAY = "النطق المكتوب مثل الكلمة تمامًا؛ لا يُحفظ لأنه لا يغيّر شيئًا. غيّر التشكيل أو جرّب صيغة أخرى.";
+/** A warning (not a refusal) for a pronunciation that is probably a slip, e.g. one that drops the word's shadda. */
+export const sayWarnings = (word: string, say: string): string[] =>
+  dropsShadda(word, say) ? [`النطق «${say.trim()}» يحذف الشدّة التي في «${coreOf(word.trim())}»؛ تأكد أن هذا مقصود.`] : [];
+
+export const setLexiconEntry = async (word: string, say: string, note?: string, channel?: string, match?: LexiconMatch): Promise<LexiconDoc> => {
   const bad = checkWord(word) ?? checkSay(say);
   if (bad) throw new Error(bad);
+  if (isNoopSay(word, say)) throw new Error(NOOP_SAY);
+  if (match !== undefined && match !== "exact" && match !== "letters") throw new Error("نوع المطابقة غير معروف.");
   const doc = await loadLexicon(channel);
   const w = coreOf(word.trim());
-  const entry: LexiconEntry = { word: w, say: say.trim().replace(/\s+/g, " "), at: new Date().toISOString(), ...(note ? { note: note.slice(0, 300) } : {}) };
+  const keep = doc.entries.find((e) => e.word === w)?.match;
+  const m = match ?? keep;
+  const entry: LexiconEntry = { word: w, say: say.trim().replace(/\s+/g, " "), at: new Date().toISOString(), ...(note ? { note: note.slice(0, 300) } : {}),
+    ...(m === "letters" ? { match: "letters" as const } : {}) };
   const entries = doc.entries.some((e) => e.word === w) ? doc.entries.map((e) => (e.word === w ? entry : e)) : [...doc.entries, entry];
   const next = { ...doc, entries };
   await saveLexicon(next, channel);
@@ -90,7 +107,8 @@ export { quranMask } from "./quranGuard";
 import { quranMask } from "./quranGuard";
 
 /**
- * يطبّق القاموس وتصحيحات الجملة على الكلمات المنطوقة (بعد قاموس pronunciation.json والتشكيل)، ويعيد بناء خريطة owner
+ * يطبّق القاموس وتصحيحات الجملة على الكلمات المنطوقة (بعد قاموس pronunciation.json والتشكيل)، ويعيد بناء خريطة owner.
+ * الترتيب (D66): تصحيح الجملة يغلب، ثم القاموس بالكلمة كما كُتبت بتشكيلها تمامًا، ثم مدخل «بالحروف» إن لم يخالف تشكيل المالك
  * فتبقى الترجمة بالكلمة الأصلية. singleToken: لمسار الأجزاء الذي يعدّ الكلمات (نطق من كلمة واحدة فقط).
  */
 export const applyLexicon = (
@@ -98,7 +116,6 @@ export const applyLexicon = (
   o: { corrections?: WordCorrection[]; singleToken?: boolean; verse?: boolean } = {},
 ): { spoken: string[]; owner: number[]; applied: Applied[] } => {
   if (o.verse || (!entries.length && !o.corrections?.length)) return { spoken, owner, applied: [] };
-  const map = new Map(entries.map((e) => [e.word, e.say]));
   const fix = new Map((o.corrections ?? []).filter((c) => original[c.index] === c.word).map((c) => [c.index, c.say]));
   const mask = quranMask(original);
   const out: string[] = [];
@@ -109,7 +126,8 @@ export const applyLexicon = (
     const i = owner[k]!;
     const w = original[i] ?? "";
     const core = coreOf(w);
-    const say = mask[i] ? undefined : fix.get(i) ?? map.get(core);
+    // (b) the correction typed for this sentence, then (c) the lexicon: exact written form first (D66)
+    const say = mask[i] ? undefined : fix.get(i) ?? lexiconSay(w, entries)?.say;
     if (!say || (o.singleToken && /\s/.test(say.trim()))) { out.push(part); own.push(i); return; }
     if (done.has(i)) return; // كل أجزاء الكلمة الأصلية تُستبدل مرة واحدة
     done.add(i);

@@ -431,7 +431,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
   }
 
   // Before «اعتمد التجهيز» (step ١) step ٢ is one line and one button back; never a disabled action bar.
-  if (sceneMode && data && (!data.script.approved || !data.storyboard.approved)) {
+  // D66: one scene edited after the approval keeps step ٢ open (that scene is re-approved here, beside its sentences).
+  const editOpen = Boolean(data?.sceneEdit?.open);
+  if (sceneMode && data && (!data.script.approved || !data.storyboard.approved) && !editOpen) {
     return (
       <section className="stage s3 s3-gated" aria-label="المشاهد قبل اعتماد التجهيز">
         <div className="s3-gate">
