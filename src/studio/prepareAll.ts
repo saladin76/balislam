@@ -19,6 +19,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
 import { loadVoiceIndex, voiceDirFor, generateVoice } from "../voice/generate";
 import type { ElevenLabsClient } from "../voice/elevenlabs";
+import { nameSceneIds } from "../i18n/sceneNames";
 import {
   assertSceneOwner, assertSceneRenderAllowed, inspectSceneProduction, recordSceneRenderEvidence,
   requireSceneProductionReady,
@@ -56,7 +57,7 @@ export type PrepareProgress = {
    * be reviewed before that voice exists; `failed-before` — the same inputs already failed in the last
    * run, so the queue does not spend another render on them (the scene's own «إنتاج المشهد» retries).
    */
-  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
+  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string; sourceSha256?: string }[];
 };
 
 export type RenderSceneDraft = (episode: string, sceneId: string, sourceSha256: string) => Promise<void>;
@@ -107,12 +108,12 @@ export const pickRenderQueue = (queue: { list: QueueItem[]; beforeVoiceGap: Queu
 }) => {
   const allowed = opts.voiceMissing ? queue.beforeVoiceGap.filter((x) => queue.list.some((y) => y.id === x.id)) : queue.list;
   const kept = new Set(allowed.map((x) => x.id));
-  const skipped: { id: string; reason: "voice" | "failed-before"; error?: string }[] =
+  const skipped: { id: string; reason: "voice" | "failed-before"; error?: string; sourceSha256?: string }[] =
     queue.list.filter((x) => !kept.has(x.id)).map((x) => ({ id: x.id, reason: "voice" as const }));
   const todo: QueueItem[] = [];
   for (const x of allowed) {
     const before = opts.previousFailures?.find((f) => f.id === x.id && f.sourceSha256 === x.sourceSha256);
-    if (before && !environmentalFailure(before.error)) skipped.push({ id: x.id, reason: "failed-before", error: before.error });
+    if (before && !environmentalFailure(before.error)) skipped.push({ id: x.id, reason: "failed-before", error: before.error, sourceSha256: x.sourceSha256 });
     else todo.push(x);
   }
   return { todo, skipped };
@@ -140,8 +141,8 @@ export const prepareAllScenes = async (episode: string, opts: {
   };
   const emit = () => opts.onProgress?.({ ...p, voice: { ...p.voice }, rendered: [...p.rendered], failed: [...p.failed],
     ...(p.skipped ? { skipped: [...p.skipped] } : {}) });
-  const skip = (id: string, reason: "voice" | "failed-before", error?: string) => {
-    p.skipped = [...(p.skipped ?? []).filter((x) => x.id !== id), { id, reason, ...(error ? { error } : {}) }];
+  const skip = (id: string, reason: "voice" | "failed-before", error?: string, sourceSha256?: string) => {
+    p.skipped = [...(p.skipped ?? []).filter((x) => x.id !== id), { id, reason, ...(error ? { error } : {}), ...(sourceSha256 ? { sourceSha256 } : {}) }];
   };
   const stop = () => {
     if (!opts.shouldStop?.()) return false;
@@ -177,7 +178,7 @@ export const prepareAllScenes = async (episode: string, opts: {
   const tried = new Map<string, string>(); // scene → inputs already attempted (no retry loop on failure)
   for (let pass = 0; pass < (opts.maxPasses ?? 4) && !p.stopped; pass++) {
     const picked = pickRenderQueue(await scenesToRender(episode), { voiceMissing, previousFailures: opts.previousFailures });
-    for (const x of picked.skipped) skip(x.id, x.reason, x.error);
+    for (const x of picked.skipped) skip(x.id, x.reason, x.error, x.sourceSha256);
     const todo = picked.todo.filter((x) => tried.get(x.id) !== x.sourceSha256);
     if (!todo.length) break;
     for (const scene of todo) {
@@ -199,4 +200,33 @@ export const prepareAllScenes = async (episode: string, opts: {
   p.sceneId = undefined;
   emit();
   return p;
+};
+
+type LedgerSceneLite = { id: string; status: string; sourceSha256: string; draft?: string };
+type PrepareViewLike = {
+  failed: { id: string; error: string; sourceSha256?: string }[];
+  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string; sourceSha256?: string }[];
+  voice: { error?: string };
+  error?: string;
+};
+/**
+ * M3 (funnel QA, 10 Nov): the status line the owner reads, against the ledger as it is NOW. A failure expires
+ * when its scene has since succeeded (a ready draft, submitted or approved) or its inputs changed — so no stale
+ * «تعذّر N» stays on screen — and scene ids in the messages are named «المشهد ٣» (the Studio's numbering).
+ */
+export const currentPrepareView = <T extends PrepareViewLike>(job: T, scenes: LedgerSceneLite[]): T => {
+  const order = scenes.map((s) => s.id);
+  const live = (id: string, sourceSha256?: string) => {
+    const s = scenes.find((x) => x.id === id);
+    if (!s || s.draft === "ready" || (s.status !== "queued" && s.status !== "needs_revision")) return false;
+    return !sourceSha256 || s.sourceSha256 === sourceSha256;
+  };
+  return {
+    ...job,
+    failed: job.failed.filter((f) => live(f.id, f.sourceSha256)).map((f) => ({ ...f, error: nameSceneIds(f.error, order) })),
+    ...(job.skipped ? { skipped: job.skipped.filter((x) => x.reason !== "failed-before" || live(x.id, x.sourceSha256))
+      .map((x) => (x.error ? { ...x, error: nameSceneIds(x.error, order) } : x)) } : {}),
+    voice: { ...job.voice, ...(job.voice.error ? { error: nameSceneIds(job.voice.error, order) } : {}) },
+    ...(job.error ? { error: nameSceneIds(job.error, order) } : {}),
+  };
 };

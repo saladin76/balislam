@@ -262,6 +262,9 @@ export const App: React.FC = () => {
     setCheck(r.check);
     setPlan(r.plan);
     setPlanState("saved");
+    // M2: step ١'s approval state (script fingerprint, blockers) is re-read at once, so «اعتمد التجهيز»
+    // never sends the fingerprint of the script before this save.
+    setHomeKey((k) => k + 1);
     api.episode(epId).then((d) => { setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys }); }).catch(() => {});
     // خطة مصمَّمة: لم تُلمس، وتُذكر المشاهد التي اختلف نصها عن السكريبت
     const note = scriptSaveMessage(r);
@@ -422,6 +425,7 @@ export const App: React.FC = () => {
             }}
             onDecided={() => setHomeKey((k) => k + 1)}
             onState={(st) => setLedger({ key: `${channelId}/${epId}`, w: st })}
+            onEpisodeTone={async (tone) => { onPlanChange({ ...plan, tone }); await flushPlan(); }}
           />
         ) : null}
         {inEpisode && tab === "storyboard" ? (

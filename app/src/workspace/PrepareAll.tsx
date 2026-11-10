@@ -1,7 +1,26 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, type ScenePrepareRead } from "../api";
 import { ownerMessage } from "../serverMessages";
-import { sceneName } from "./sceneNames";
+import { nameSceneIds, sceneName, sceneNames } from "./sceneNames";
+import { tones, toneIds } from "../../../src/voice/tones";
+
+/**
+ * M1: when the episode has no tone the voice cannot be made and preparing stops at once. The choice is
+ * offered where the owner reads it: «لا نبرة للحلقة — اخترها هنا». Sets the episode tone only (plan.tone).
+ */
+export const EpisodeTonePick: React.FC<{ onPick: (tone: string) => Promise<void>; scenes: string[]; order: string[] }> = ({ onPick, scenes, order }) => {
+  const [busy, setBusy] = useState(false);
+  return (
+    <label className="prep-tone">
+      <span>لا نبرة للحلقة{scenes.length ? ` (${sceneNames(order, scenes, 4)})` : ""} — اخترها هنا:</span>{" "}
+      <select value="" disabled={busy} aria-label="نبرة الصوت في الحلقة"
+        onChange={(e) => { const t = e.target.value; if (!t) return; setBusy(true); void onPick(t).finally(() => setBusy(false)); }}>
+        <option value="">اختر نبرة الحلقة…</option>
+        {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
+      </select>
+    </label>
+  );
+};
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
@@ -25,7 +44,9 @@ export const PrepareAll: React.FC<{
   className?: string;
   /** The queue as last read (step ٢ uses it to say «يُجهَّز الآن» under a scene that is not ready yet). */
   onJob?: (job: ScenePrepareRead["job"]) => void;
-}> = ({ episodeId, channelId, prepared, onOpenSettings, onChanged, order = [], className, onJob }) => {
+  /** M1: set the episode's tone from the stopped line (the page saves its plan); then «استأنف التجهيز». */
+  onEpisodeTone?: (tone: string) => Promise<void>;
+}> = ({ episodeId, channelId, prepared, onOpenSettings, onChanged, order = [], className, onJob, onEpisodeTone }) => {
   const [info, setInfo] = useState<ScenePrepareRead | null>(null);
   const [error, setError] = useState("");
   const [starting, setStarting] = useState(false);
@@ -89,6 +110,10 @@ export const PrepareAll: React.FC<{
     : prepared && prepared.ready > 0 ? "استأنف التجهيز" : "ابدأ التجهيز";
   const waitingVoice = job?.skipped?.filter((x) => x.reason === "voice").length ?? 0;
   const failedBefore = job && !running ? job.skipped?.filter((x) => x.reason === "failed-before") ?? [] : [];
+  // M1/M3: a run that finished with a voice error or failed scenes offers «استأنف التجهيز» (it retries them).
+  const finishedWithErrors = Boolean(job && job.status === "done" && (job.voice.status === "error" || job.failed.length > 0 || failedBefore.length > 0));
+  const toneMissing = info?.toneMissing ?? [];
+  const named = (m?: string) => nameSceneIds(ownerMessage(m ?? ""), order);
 
   return (
     <div className={`prep${className ? ` ${className}` : ""}`} role="group" aria-label="تجهيز المشاهد">
@@ -98,7 +123,7 @@ export const PrepareAll: React.FC<{
           title="يُكمل المشهد الجاري ويحفظه، ولا يبدأ غيره؛ والمسودات الجاهزة باقية">
           {job?.stopRequested ? "يتوقف بعد المشهد الجاري…" : "أوقف"}
         </button>
-      ) : !allReady && (!job || job.status === "stopped" || job.status === "error") ? (
+      ) : !allReady && (!job || job.status === "stopped" || job.status === "error" || finishedWithErrors) ? (
         <button type="button" className="btn ghost" disabled={starting} onClick={() => void start()}
           title="يكمل تجهيز المشاهد الباقية بالترتيب؛ الاعتماد يبقى لك مشهدًا مشهدًا">
           {starting ? "جارٍ البدء…" : label}
@@ -107,15 +132,17 @@ export const PrepareAll: React.FC<{
       {noKey ? (
         <span className="prep-note">لا يوجد مفتاح صوت: يُجهَّز ما قبل أول مشهد ينقصه صوته فقط{waitingVoice ? ` (${ar(waitingVoice)} ينتظر الصوت)` : ""}{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span>
       ) : job?.voice.status === "error" && !running ? (
-        <span className="prep-note is-err" title={job.voice.error}>توقف توليد الصوت: {job.voice.error?.split("\n")[0]}</span>
+        <span className="prep-note is-err" title={named(job.voice.error)}>توقف توليد الصوت: {toneMissing.length && onEpisodeTone
+          ? <EpisodeTonePick scenes={toneMissing} order={order} onPick={async (t) => { await onEpisodeTone(t); await load(); }} />
+          : named(job.voice.error?.split("\n")[0])}</span>
       ) : failed ? (
-        <span className="prep-note is-err" title={job!.failed.map((f) => `${sceneName(order, f.id)}: ${ownerMessage(f.error)}`).join("\n")}>تعذّر {ar(failed)} ({sceneName(order, job!.failed[0]!.id)}): {ownerMessage(job!.failed[0]!.error.split("\n")[0]!)}</span>
+        <span className="prep-note is-err" title={job!.failed.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n")}>تعذّر {ar(failed)} ({sceneName(order, job!.failed[0]!.id)}): {named(job!.failed[0]!.error.split("\n")[0]!)}</span>
       ) : failedBefore.length ? (
-        <span className="prep-note" title={failedBefore.map((f) => `${sceneName(order, f.id)}: ${ownerMessage(f.error ?? "")}`).join("\n")}>لم يُعَد {sceneName(order, failedBefore[0]!.id)}{failedBefore.length > 1 ? ` و${ar(failedBefore.length - 1)} غيره` : ""}: تعذّر بالمدخلات نفسها في المرة السابقة. أعد إنتاجه بنفسه حين يصل دوره.</span>
+        <span className="prep-note" title={failedBefore.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n")}>لم يُعَد {sceneName(order, failedBefore[0]!.id)}{failedBefore.length > 1 ? ` و${ar(failedBefore.length - 1)} غيره` : ""}: تعذّر بالمدخلات نفسها في المرة السابقة. «استأنف التجهيز» يعيد محاولته.</span>
       ) : job?.status === "stopped" ? (
         <span className="prep-note">أُوقف التجهيز؛ المسودات الجاهزة محفوظة، و«استأنف التجهيز» يكمل من حيث توقف.</span>
       ) : job?.status === "error" ? (
-        <span className="prep-note is-err">{job.error}</span>
+        <span className="prep-note is-err">{named(job.error)}</span>
       ) : null}
       {error ? <span className="prep-note is-err" role="alert">{error}</span> : null}
     </div>

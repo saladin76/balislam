@@ -421,7 +421,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
           // الصوت المولَّد في الخلفية يظهر في أزرار المشهد دون إعادة فتح الحلقة
           void api.episode(episodeId, channelId).then((d) => onMediaChange?.(d.media), () => {});
           onUpdated?.();
-        }} />
+        }}  onEpisodeTone={plan && onPlanSave ? (tone) => onPlanSave({ ...plan, tone }) : undefined}/>
     ) : null;
     const prepRunning = prepJob?.status === "running";
     const preparing: "now" | "queued" | null = !prepRunning || !currentId ? null

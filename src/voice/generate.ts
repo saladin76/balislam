@@ -24,6 +24,7 @@ import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedSce
 import { capsFor, dropTagWords } from "./models";
 import { assertNoQuranForTts, isQuranFreeForTts, isVerseScene, planVerseTexts, QuranTtsError } from "./quranGuard";
 import { applyTempo, scaleTimes } from "./tempo";
+import { planOrder, sceneNames } from "../i18n/sceneNames";
 
 /** مقطع صوتي لمشهد: الملف ومدته وتوقيت كلماته الأصلية. */
 export type VoiceClip = {
@@ -280,7 +281,7 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
   if (todo.length && report.missingTones.length && !opts.testOnlySkipGates)
     throw new Error(parts
       ? `حدّد نبرة كل مقطع منطوق واعتمدها قبل توليد الصوت: ${report.missingTones.slice(0, 12).join("، ")}.`
-      : `اختر نبرة الحلقة (تحرير المشهد ← «نبرة الصوت في الحلقة») فتسري على كل مشهد بلا نبرة خاصة، أو حدّد نبرة هذه المشاهد: ${report.missingTones.slice(0, 12).join("، ")}.`);
+      : `لا نبرة للحلقة: اخترها في «١ التجهيز» («لا نبرة للحلقة — اخترها هنا») أو في تحرير المشهد ← «نبرة الصوت في الحلقة»، فتسري على كل مشهد بلا نبرة خاصة؛ أو حدّد نبرة هذه المشاهد: ${sceneNames(planOrder(plan), report.missingTones, 12)}.`);
   if (todo.length && !opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   // الصوت الاحترافي يجب أن يكون مدرَّبًا على النموذج قبل صرف أي رصيد (لا رجوع صامت لنموذج آخر: صوت الحلقة واحد)
   if (todo.length && opts.client?.voiceInfo) {

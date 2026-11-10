@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { api, type PreparationRead, type SceneProductionRead } from "../api";
 import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
-import { PrepareAll } from "../workspace/PrepareAll";
-import { arNum, sceneName } from "../workspace/sceneNames";
+import { EpisodeTonePick, PrepareAll } from "../workspace/PrepareAll";
+import { arNum, sceneName, sceneNames } from "../workspace/sceneNames";
 import { citationNotice } from "./citationNotice";
 import { Icon } from "../ui/icons";
 
@@ -58,6 +58,8 @@ type Props = {
   onOpenSettings?: () => void;
   /** The ledger read, shared with the page so a locked step renders one `LockedStep` (D52). */
   onState?: (w: SceneProductionRead | null) => void;
+  /** M1: set the episode tone (the page saves its own plan, so no later save drops it). */
+  onEpisodeTone?: (tone: string) => Promise<void>;
 };
 
 /**
@@ -66,16 +68,19 @@ type Props = {
  * وملاحظة اللوحات)، أو سطرًا وزرًا إلى مكان القرار حين يكون المالك خارج خطوته؛ وفي الخطوة ١ ورقة لاصقة
  * «قبل أن تعتمد». الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
-export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scriptErrors, onScriptLine, refreshKey, onTab, onDecided, onOpenSettings, onState }) => {
+export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scriptErrors, onScriptLine, refreshKey, onTab, onDecided, onOpenSettings, onState, onEpisodeTone }) => {
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [tick, setTick] = useState(0);
   const [boardNote, setBoardNote] = useState("");
+  // M2: a refused «اعتمد التجهيز» re-reads the ledger (a stale fingerprint must not stay stuck), and that
+  // re-read must not wipe the refusal the owner has to read. It clears on their next change or success.
+  const keepErr = useRef(false);
   useEffect(() => {
     let live = true;
-    setErr("");
+    if (!keepErr.current) setErr("");
     api.sceneProduction(episodeId, channelId).then(
       (d) => { if (live) { setW(d); onState?.(d); } },
       (e) => { if (live) { setW(null); setErr((e as Error).message); onState?.(null); } });
@@ -150,12 +155,14 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
         scriptSha256: w.script.sha256, storyboardSha256: w.storyboard.sha256, reviewed,
         ...(needNote ? { note: boardNote.trim() } : {}),
       });
+      keepErr.current = false;
       setReviewed(false); setBoardNote("");
       setTick((t) => t + 1); onDecided();
       // The next step is the owner's: the scenes, each shown ready as it is prepared.
       onTab("episode");
     } catch (e) {
       setErr((e as Error).message);
+      keepErr.current = true;
       // Re-read the ledger: a stale fingerprint (e.g. the boards were just signed) must not stay stuck.
       setTick((t) => t + 1);
     }
@@ -169,6 +176,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
    */
   const onApprove = async () => {
     setNeeds("");
+    keepErr.current = false;
     if (!reviewed) { setNeeds("ضع علامة «راجعته بنفسي» بعد مراجعة التجهيز، ثم اضغط الزر."); reviewedBox.current?.focus(); return; }
     if (!noteOk) { setNeeds("اكتب ملاحظتك على اللوحات (٢٥ حرفًا على الأقل)."); noteBox.current?.focus(); return; }
     await approvePreparation();
@@ -196,6 +204,12 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
               <span>اللوحات<small>{prep && !prep.boardsRecorded ? (reapprove ? `${changedBoardsLine(changedBoards.length)}: راجعها في أعلى الستوري بورد، واكتب ملاحظتك بجوار الزر` : "اكتب ملاحظتك على اللوحات بجوار الزر") : "سُجّلت مراجعتها"}</small></span></li>
             {prep?.versesMissing.length ? (
               <li className="is-warn"><i aria-hidden="true">!</i><span>آيات بلا نصها<small>{arNum(prep.versesMissing.length)} في السكريبت</small></span></li>
+            ) : null}
+            {prep?.toneMissing?.length ? (
+              <li className="is-warn spine-tone"><i aria-hidden="true">!</i><span>النبرة<small>{onEpisodeTone
+                ? <EpisodeTonePick scenes={prep.toneMissing} order={w!.scenes.map((x) => x.id)} onPick={async (t) => { await onEpisodeTone(t); setTick((k) => k + 1); }} />
+                : `لا نبرة للحلقة (${sceneNames(w!.scenes.map((x) => x.id), prep.toneMissing, 4)}): اخترها في تحرير المشهد ← «نبرة الصوت في الحلقة».`}
+                {" "}بدونها يتوقف تجهيز الصوت فور بدئه.</small></span></li>
             ) : null}
             {citations ? (
               <li className="is-warn"><i aria-hidden="true">!</i><span>الاستشهادات<small>{citations}{tab !== "script" ? <> <button type="button" className="ms-link" onClick={() => onTab("script")}>سجل التوثيق</button></> : null}</small></span></li>
@@ -232,7 +246,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
                 ? <>التجهيز لم يُعتمد بعد: {arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في السكريبت.</>
                 : next.text}</p>
               {/* الخطوة ٢ الآن وأنت خارج شاشتها: سطر «جاهز ١٢ من ١١٤» هنا، وفي شاشة المشاهد نفسها هناك */}
-              {current === 1 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} order={w.scenes.map((x) => x.id)} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} /> : null}
+              {current === 1 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} order={w.scenes.map((x) => x.id)} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} onEpisodeTone={onEpisodeTone} /> : null}
               {/* Navigation to where the decision is: outlined, so the screen's own action stays the one filled button */}
               <button type="button" className="btn ms-go-nav" onClick={() => onTab(next.go!)}>{next.label}<Icon name="chev" /></button>
             </div>

@@ -367,14 +367,15 @@ export const balApi = (): Plugin => ({
           // «جهّز كل المشاهد»: voice for scenes lacking it, then AV drafts in order in the background.
           // Drafts are never submissions or approvals (see prepareAll.ts / sceneService.ts).
           // Starts the queue for an owner already checked and an episode already ready (callers check).
-          const startPrepare = async () => {
+          const startPrepare = async (opts: { retryFailed?: boolean } = {}) => {
             const key = `${ch}/${ep}`;
             const { prepareAllScenes } = await load("/src/studio/prepareAll.ts");
             if (prepareJob(key)?.status === "running") return prepareJob(key)!;
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
             const voiceClient = elevenLabsFromEnv();
-            // Audit item 5: the queue does not re-render a scene whose same inputs just failed.
-            const previousFailures = prepareJob(key)?.failed ?? [];
+            // Audit item 5: an automatic start does not re-render a scene whose same inputs just failed.
+            // M3: the owner's own «استأنف التجهيز» retries them (the failure expires on that press).
+            const previousFailures = opts.retryFailed ? [] : prepareJob(key)?.failed ?? [];
             return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
               prepareAllScenes(ep, { voiceClient, onProgress, shouldStop, previousFailures })), busy);
           };
@@ -411,8 +412,25 @@ export const balApi = (): Plugin => ({
             const key = `${ch}/${ep}`;
             const voiceKey = Boolean(process.env.ELEVENLABS_API_KEY && (channelMod.loadChannel(ch).voice?.id || process.env.ELEVENLABS_VOICE_ID));
             const { scenesNeedingVoice } = await load("/src/studio/prepareAll.ts");
+            // M3: the job as the owner reads it against the ledger now (stale failures dropped, scenes named);
+            // M1: which scenes have no tone, so the stopped line can offer the episode tone right there.
+            const viewOf = async (job: ReturnType<typeof prepareJob>) => {
+              if (!job) return job;
+              try {
+                const { inspectSceneProduction } = await load("/src/studio/sceneService.ts");
+                const { currentPrepareView } = await load("/src/studio/prepareAll.ts");
+                return currentPrepareView(job, (await inspectSceneProduction(ep)).scenes);
+              } catch { return job; }
+            };
+            const toneMissing = async () => {
+              try {
+                const { scenesWithoutTone } = await load("/src/studio/preparation.ts");
+                const plan = await io.loadPlan(ep);
+                return plan ? scenesWithoutTone(plan, channelMod.loadChannel(ch).voice?.tone) : [];
+              } catch { return []; }
+            };
             if (req.method === "GET")
-              return send(res, 200, { job: prepareJob(key), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
+              return send(res, 200, { job: await viewOf(prepareJob(key)), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
             if (req.method === "DELETE") {
               // «أوقف»: owner-only; the step in progress finishes and is kept, nothing new starts.
               const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
@@ -423,8 +441,8 @@ export const balApi = (): Plugin => ({
             const { assertSceneOwner, requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
             try { assertSceneOwner(); await requireSceneProductionReady(ep); }
             catch (error) { return refuse(error); }
-            const job = await startPrepare();
-            return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length });
+            const job = await startPrepare({ retryFailed: true });
+            return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
           }
 
           if (parts[2] === "workflow" && parts.length === 3) {

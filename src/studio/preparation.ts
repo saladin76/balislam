@@ -23,6 +23,9 @@ import { resolveScriptPath } from "../script/episodes";
 import { parseScript } from "../script/parse";
 import { checkForChannel } from "../script/checkChannel";
 import { loadPlan } from "../plan/io";
+import type { Plan } from "../plan/types";
+import { effectiveTone, isTone } from "../voice/tones";
+import { loadChannel } from "../channel/index";
 import { approveStoryboard as recordBoards, loadStoryboard, recordChangedBoards, storyboardStatus, versesMissingText } from "../plan/storyboard";
 import { checkVisualStoryboardSignoff } from "../plan/storyboardVisualGate";
 import {
@@ -49,6 +52,24 @@ export type PreparationBlockers = {
   changedBoards: string[];
   /** The boards were reviewed before: only `changedBoards` need the owner's review now. */
   boardsReviewedBefore: boolean;
+  /**
+   * M1 (funnel QA, 10 Nov): narrated scenes with no tone at all (none of their own, none for the episode, none
+   * for the channel). Their voice cannot be made, so preparing stops at once; step ١ says it BEFORE the
+   * approval («لا نبرة للحلقة — اخترها هنا»). Informative: it does not block «اعتمد التجهيز».
+   */
+  toneMissing: string[];
+  /** The episode's own tone (plan.tone) and the channel's, to preselect the choice in step ١. */
+  episodeTone: string | null;
+  channelTone: string | null;
+};
+
+/** Narrated scenes (not verse cards) whose voice has no tone to be made with. */
+export const scenesWithoutTone = (plan: Plan, channelTone?: unknown): string[] =>
+  plan.chapters.flatMap((c) => c.scenes)
+    .filter((s) => s.template !== "verse-card" && s.narration?.trim() && !effectiveTone(s.tone, plan.tone, channelTone))
+    .map((s) => s.id);
+const channelToneNow = (): string | null => {
+  try { return loadChannel().voice?.tone ?? null; } catch { return null; }
 };
 
 export const preparationBlockers = async (episode: string): Promise<PreparationBlockers> => {
@@ -64,8 +85,12 @@ export const preparationBlockers = async (episode: string): Promise<PreparationB
     boardsRecorded: status.ok && Boolean(status.audit?.note?.trim()),
     changedBoards: Object.keys(status.scenes).filter((id) => changed.has(id)),
     boardsReviewedBefore: Boolean(status.audit?.note?.trim()) && status.approved > 0,
+    toneMissing: scenesWithoutTone(plan, channelToneNow()),
+    episodeTone: isTone(plan.tone) ? plan.tone : null,
+    channelTone: channelToneNow(),
   };
 };
+
 
 export const approvePreparation = async (episode: string, command: PreparationCommand) => {
   assertSceneOwner();

@@ -142,8 +142,12 @@ export type ScenePrepareJob = {
   /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
   skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
 };
-export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean; changedBoards?: string[]; boardsReviewedBefore?: boolean };
-export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number };
+export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean; changedBoards?: string[]; boardsReviewedBefore?: boolean;
+  /** M1: narrated scenes with no tone at all (none of their own, the episode's or the channel's). */
+  toneMissing?: string[]; episodeTone?: string | null; channelTone?: string | null };
+export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number;
+  /** M1: narrated scenes with no tone at all; the stopped line offers the episode tone right there. */
+  toneMissing?: string[] };
 export type SceneOwnerAction = {
   action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
     "correct-scene" | "assemble" | "approve-assembly" | "approve-master" | "grant-publish";
