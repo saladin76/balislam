@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-07-return-landscape",
+  "title": "032 · الرد والاعتذار c1-s135…s139 أفقي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "62ddac84efb6cb57c52e0a07b5b736c9ee5847040d998ddd53886d8cbcd70ed9",
+  "size": 1607610,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 1607610,
+      "sha256": "62ddac84efb6cb57c52e0a07b5b736c9ee5847040d998ddd53886d8cbcd70ed9"
+    }
+  ],
+  "createdAt": "2026-11-11T21:28:33.843Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
