@@ -124,7 +124,7 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
         const kind = introKindFor(props.channel, plan, props.chapter);
         return kind ? (
           <Series.Sequence key="intro" durationInFrames={introFramesFor(props.channel, plan, props.chapter)} name="افتتاحية القناة">
-            <ChannelIntro kind={kind} orientation={orientation} />
+            <ChannelIntro kind={kind} orientation={orientation} series={plan.series} />
           </Series.Sequence>
         ) : null;
       })()}

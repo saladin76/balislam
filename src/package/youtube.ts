@@ -1,3 +1,4 @@
+import { seriesPublish } from "../channel/series";
 import { parseScript } from "../script/parse";
 import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import { langPack } from "../i18n/packs";
@@ -65,7 +66,8 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
 
   const sources = sourceLines(plan, parsed, media, channel);
 
-  const tags = [...channel.youtube.tags, ...(channel.domains[plan.domain]?.tags ?? [])];
+  const sp = seriesPublish(plan);
+  const tags = [...new Set([...sp.tags, ...channel.youtube.tags, ...(channel.domains[plan.domain]?.tags ?? [])])];
   const description = [
     hook,
     "",
@@ -107,7 +109,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
     "",
     "## عنوان الحلقة",
     "",
-    `- ${plan.title}`,
+    `- ${sp.title}`,
     ...(fm.alt_titles ?? []).map((t) => `- ${t} (بديل لاختبار A/B)`),
     "",
     "## وصف الحلقة",
@@ -120,6 +122,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
     "",
     tags.join("، "),
     "",
+    ...(sp.playlist ? ["## قائمة التشغيل", "", sp.playlist, ""] : []),
     "## الشورتس",
     "",
     ...shorts,

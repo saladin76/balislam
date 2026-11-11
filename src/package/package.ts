@@ -115,6 +115,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
   assertNoTraces([{ name: "العناوين البديلة", text: [plan.title, ...(((parseScript(script).frontmatter ?? {}) as { alt_titles?: string[] }).alt_titles ?? [])].join("\n") }]);
   // and on screen: scene props (text, lines, chapter cards, end screen), chapter titles, frontmatter.book (C2)
   assertNoTraces(onScreenTexts(plan, (parseScript(script).frontmatter ?? {}) as Record<string, unknown>));
+  // اسم السلسلة على الشاشة (بطاقتها وشارة المصغّرة) ونصوص نشرها
+  if (plan.series) assertNoTraces([{ name: "السلسلة", text: [plan.series.name, plan.series.template.publish?.titlePattern ?? "", plan.series.template.publish?.playlist ?? "", ...(plan.series.template.publish?.tags ?? [])].join("\n") }]);
 
   // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
   const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
@@ -122,7 +124,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const titles = [plan.title, ...(fm.alt_titles ?? [])].slice(0, 3);
   for (const [i, title] of stage === "episode" ? titles.entries() : []) {
     log(`الصورة المصغّرة ${i + 1}…`);
-    files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element, book: fm.book, lang }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
+    files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element, book: fm.book, lang, series: plan.series }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
   }
 
   if (!opts.skipVideo) {

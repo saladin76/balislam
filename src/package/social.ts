@@ -1,3 +1,4 @@
+import { seriesPublish } from "../channel/series";
 import type { ChannelInfo } from "../channel/types";
 import { parseScript } from "../script/parse";
 import { normalizeArabic } from "../script/quranMeta";
@@ -26,6 +27,8 @@ export type LongKit = {
   thumbnailTexts: string[];
   /** كابشن منشور الحلقة على فيسبوك (فيديو طويل) */
   facebook: string;
+  /** قائمة التشغيل من سلسلة الحلقة (plan.series) */
+  playlist?: string;
 };
 export type ShortKit = {
   chapter: number;
@@ -143,13 +146,14 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
   const all = plan.chapters.map((c) => `${c.title} ${narr(c.number)}`).join(" ");
   const domainTags = channel.domains[plan.domain]?.tags ?? [];
   const keywords = keywordsOf(`${plan.title} ${plan.title} ${all}`, [], 8);
-  const tagsBase = [...new Set([...keywords, ...domainTags, ...channel.youtube.tags])];
+  const sp = seriesPublish(plan);
+  const tagsBase = [...new Set([...sp.tags, ...keywords, ...domainTags, ...channel.youtube.tags])];
   const hashtags = [...new Set([channel.youtube.tags[0] ?? channel.name, ...keywords.slice(0, 2), ...domainTags.slice(0, 1)])].filter(Boolean).slice(0, 4).map(hashtag);
   const step = parsed.practicalStep?.text ?? "";
   const hook = sentences(narr(1))[0] ?? plan.title;
 
   const titles: TitleIdea[] = [
-    { text: plan.title, angle: "العنوان الأساسي (سؤال)" },
+    { text: sp.title, angle: plan.series && sp.title !== plan.title ? `العنوان الأساسي بنمط «${plan.series.name}»` : "العنوان الأساسي (سؤال)" },
     ...(fm.alt_titles ?? []).filter(Boolean).map((t, i) => ({ text: t, angle: ["زاوية التحدي", "زاوية الفضول", "زاوية الحل"][i] ?? "بديل" })),
   ];
 
@@ -202,6 +206,7 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
       hashtags,
       pinnedComment: step ? `${step}\n\nاكتب لنا تجربتك 👇` : `ما الفكرة التي توقفت عندها أكثر في الحلقة؟`,
       thumbnailTexts: [plan.title, ...(fm.alt_titles ?? [])].map((t) => clip(t, 28)).slice(0, 3),
+      ...(sp.playlist ? { playlist: sp.playlist } : {}),
       facebook: `${clip(hook, 120)}\n\n${plan.title}\n\nشاهد الحلقة كاملة، وشاركنا رأيك: ${step ? clip(step, 240) : ""}\n\n${hashtags.slice(0, 3).join(" ")}`,
     },
     shorts,
@@ -223,6 +228,7 @@ export const kitToMarkdown = (kit: PublishKit, title: string, chapters = ""): st
     "",
     "### العناوين المقترحة",
     ...L.titles.map((t, i) => `${i + 1}. ${t.text} — ${t.angle}`),
+    ...(L.playlist ? ["", `### قائمة التشغيل`, L.playlist] : []),
     "",
     "### الوصف",
     b(resolveDescription(L.description, chapters)),

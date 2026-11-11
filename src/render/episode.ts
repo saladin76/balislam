@@ -258,7 +258,7 @@ const THUMB_MAX_BYTES = 1.9 * 1024 * 1024;
  * الصورة المصغّرة بعنوان محدد، بدقة مضاعفة (2560×1440) حتى تبقى الحروف والخطوط حادة عند التنزيل والتكبير.
  * إن تجاوز الملف حد يوتيوب تنزل الدقة (1.5× ثم 1×) فلا تُرفض عند الرفع.
  */
-export const renderThumbnail = async (input: { themeId: string; title: string; highlight?: string; element?: string; book?: string; lang?: string }, output: string) => {
+export const renderThumbnail = async (input: { themeId: string; title: string; highlight?: string; element?: string; book?: string; lang?: string; /** سلسلة الحلقة (plan.series): شارتها بأسلوب القناة */ series?: import("../channel/series").SeriesStamp }, output: string) => {
   // A thumbnail uses shared fonts and art, never unpublished episode audio.
   const sandbox = await createIsolatedRenderBundle(emptyMedia);
   try {

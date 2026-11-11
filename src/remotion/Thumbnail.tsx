@@ -11,8 +11,12 @@ import { ChannelLogo, ChannelName, useChannel } from "../channel/context";
 import { useLang } from "../i18n/context";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
+import type { SeriesStamp } from "../channel/series";
+import { SeriesBadge } from "./series/SeriesArt";
 
-export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; /** اسم الكتاب (book في رأس السكريبت): شارة التنبيه في مصغّرة زبدة الكتب */ book?: string; identity?: Identity; channel?: ChannelInfo; lang?: string };
+export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; /** اسم الكتاب (book في رأس السكريبت): شارة التنبيه في مصغّرة زبدة الكتب */ book?: string; identity?: Identity; channel?: ChannelInfo; lang?: string;
+  /** سلسلة الحلقة (plan.series): شارتها بأسلوب القناة فوق المصغّرة نفسها؛ غيابها = مصغّرة القناة كما هي */
+  series?: Pick<SeriesStamp, "identity" | "name" | "number" | "kind" | "template"> };
 
 /**
  * الصورة المصغّرة 1280×720: العنوان بخط كبير يمينًا، والعنصر الرمزي يسارًا داخل دائرة بلون التمييز،
@@ -24,13 +28,12 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({ identity, channel, lang, .
   </Providers>
 );
 
-const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = (props) => {
+const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = ({ series, ...props }) => {
   useBrandFonts();
   const style = useChannel().brand?.thumbnail ?? "circle";
-  if (style === "mihrab") return <MihrabThumb {...props} />;
-  if (style === "horizon") return <HorizonThumb {...props} />;
-  if (style === "highlighter") return <HighlighterThumb {...props} />;
-  return <CircleThumb {...props} />;
+  const body = style === "mihrab" ? <MihrabThumb {...props} /> : style === "horizon" ? <HorizonThumb {...props} /> : style === "highlighter" ? <HighlighterThumb {...props} /> : <CircleThumb {...props} />;
+  if (!series || series.template?.thumbnail?.layout === "channel" || series.identity.thumbnail.badge === "none") return body;
+  return <AbsoluteFill>{body}<SeriesBadge d={series.identity} name={series.name} number={series.kind === "series" ? series.number : undefined} /></AbsoluteFill>;
 };
 
 /** يقسم العنوان إلى كلمات عادية وكلمات مميزة */
