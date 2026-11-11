@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-08-listen-landscape",
+  "title": "032 · الاستماع c1-s145…s146 أفقي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "69d2fcc4ebe8825233c7931b0f47b57a64cf81d350301be01c32a5a75d3254b8",
+  "size": 964352,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 964352,
+      "sha256": "69d2fcc4ebe8825233c7931b0f47b57a64cf81d350301be01c32a5a75d3254b8"
+    }
+  ],
+  "createdAt": "2026-11-11T21:28:40.594Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
