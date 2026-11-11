@@ -2,6 +2,11 @@ import React from "react";
 import type { EpisodeSummary } from "../api";
 import { Icon } from "../ui/icons";
 import { Num, arDigits, episodeTitle } from "../ui/format";
+import { groupEpisodes } from "../tabs/seriesView";
+
+/** The picker's groups: «عام» last; series names from the channel's series. */
+export const groupBySeries = (eps: EpisodeSummary[], names: Record<string, string>) =>
+  groupEpisodes(eps, Object.entries(names).map(([id, name]) => ({ version: 1 as const, id, name, kind: "series" as const })));
 
 export type { ManageItem } from "./Band";
 /** One view inside the current step («مشهدًا مشهدًا»، «الوصلات»…), shown in the floating pill. */
@@ -12,6 +17,8 @@ type Props = {
   episodes?: EpisodeSummary[] | null;
   episodeId?: string;
   onEpisode?: (id: string) => void;
+  /** Group the picker by series (name per series id); without it, one flat list. */
+  seriesNames?: Record<string, string> | null;
   title?: string;
   views: HeaderView[];
   /** The episode's save state (plan autosave and unsaved script). */
@@ -35,7 +42,12 @@ export const TopBar: React.FC<Props> = (p) => {
           <label className="ms-ep-pick">
             <span className="ms-vh">الحلقة</span>
             <select id="episode-select" value={p.episodeId} onChange={(e) => p.onEpisode!(e.target.value)}>
-              {p.episodes.map((e) => <option key={e.id} value={e.id}>الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))} — {episodeTitle(e.title) || e.dir}</option>)}
+              {(() => {
+                const opt = (e: EpisodeSummary) => <option key={e.id} value={e.id}>الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))} — {episodeTitle(e.title) || e.dir}</option>;
+                const names = p.seriesNames;
+                const groups = names ? groupBySeries(p.episodes!, names) : null;
+                return groups && groups.length > 1 ? groups.map((g) => <optgroup key={g.id} label={g.name}>{g.episodes.map(opt)}</optgroup>) : p.episodes!.map(opt);
+              })()}
             </select>
             <Icon name="down" />
           </label>

@@ -187,11 +187,12 @@ export const balApi = (): Plugin => ({
           if (req.method === "POST") {
             const b = await readBody(req);
             const { createEpisode } = await load("/src/script/episodes.ts");
-            await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title });
+            await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title, ...(typeof b.series === "string" && b.series ? { series: b.series } : {}) });
             return send(res, 200, { ok: true });
           }
           // الجاهزة للتشغيل فقط (لها script.md)؛ مجلدات الخطة وحدها (000-trailer، المختبرات) لا تُفتح حلقاتٍ
           const dirs: string[] = await (await load("/src/script/episodes.ts")).listScriptEpisodeDirs(episodesDir);
+          const { episodeSeriesOf: seriesOf } = await load("/src/channel/seriesStore.ts");
           const list = await Promise.all(
             dirs.map(async (d) => {
               const script = path.join(episodesDir, d, "script.md");
@@ -202,7 +203,7 @@ export const balApi = (): Plugin => ({
                 title = head.match(/^title:\s*"?(.*?)"?\s*$/m)?.[1] ?? "";
                 domain = head.match(/^domain:\s*(\w+)/m)?.[1] ?? "";
               }
-              return { id: d.slice(0, 3), dir: d, title, domain, hasPlan: existsSync(path.join(episodesDir, d, "plan.json")) };
+              return { id: d.slice(0, 3), dir: d, title, domain, hasPlan: existsSync(path.join(episodesDir, d, "plan.json")), series: seriesOf(path.join(episodesDir, d)).series };
             }),
           );
           return send(res, 200, list);

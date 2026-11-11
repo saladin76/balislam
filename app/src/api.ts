@@ -5,6 +5,7 @@ import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
+import type { DerivedSeriesIdentity, SeriesConfig } from "../../src/channel/series";
 import type { GuideIndex } from "../../src/channel/guide";
 import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
@@ -18,7 +19,15 @@ export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, Sente
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
-export type EpisodeSummary = { id: string; dir: string; title: string; domain: string; hasPlan: boolean };
+export type EpisodeSummary = { id: string; dir: string; title: string; domain: string; hasPlan: boolean; /** سلسلة الحلقة (وإلا «general») */ series?: string };
+/** سلسلة أو تصنيف كما يقرؤه الاستوديو: الملف، وهويته المشتقة من هوية القناة، وعدد حلقاته */
+export type SeriesView = SeriesConfig & { derived: DerivedSeriesIdentity | null; episodes: number };
+export type SeriesRules = {
+  accents: { hex: string; nameAr: string }[]; motifs: { id: string; nameAr: string }[]; emblemParts: { id: string; nameAr: string }[];
+  fonts: { heading: string; body: string; wordmark: string }; limits: { lightness: number; chromaMin: number; chromaMax: number; emblemParts: number }; maxDepth: number;
+  styles: string[]; templates: string[]; tones: string[]; defaultTone: string;
+};
+export type SeriesRead = { series: SeriesView[]; episodes: { id: string; dir: string; series: string; number?: number }[]; rules: SeriesRules | null };
 export type ChannelSummary = { id: string; name: string; language: string; domains: Record<string, ChannelDomain> };
 export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; check: CheckResult; media: EpisodeMedia; issues: PlanIssue[]; keys: { voice: boolean; quran: boolean } };
 export type TashkeelReport = { file: boolean; words: number; covered: number; coverage: number; min: number; ok: boolean; gaps: { sceneId: string; words: string[]; narration: string }[]; ambiguous: { word: string; forms: string[]; scenes: string[] }[] };
@@ -44,6 +53,9 @@ export type Overview = {
   /** الأسلوب الغالب على الحلقة (للتنوّع) */
   style: string;
   status: EpisodeStatus;
+  /** سلسلة الحلقة («general» = «عام») ورقمها فيها */
+  series?: string;
+  seriesNumber?: number | null;
   /** حالة الخطوات الأربع من سجل الإنتاج؛ null إن تعذّرت قراءته */
   production?: ProductionSummary | null;
 };
@@ -305,7 +317,11 @@ export const api = {
   saveStatusFor: (channel: string, id: string, status: EpisodeStatus) => call(`/api/episodes/${id}/status`, { method: "PUT", json: { status } }, channel),
   channels: () => call<ChannelSummary[]>("/api/channels"),
   episodes: () => call<EpisodeSummary[]>("/api/episodes"),
-  createEpisode: (b: { episode: string; slug: string; domain: string; title: string }) => call("/api/episodes", { method: "POST", json: b }),
+  createEpisode: (b: { episode: string; slug: string; domain: string; title: string; series?: string }) => call("/api/episodes", { method: "POST", json: b }),
+  series: () => call<SeriesRead>("/api/series"),
+  saveSeries: (series: SeriesConfig) => call<{ ok: boolean; series: SeriesConfig; derived: DerivedSeriesIdentity }>(`/api/series/${series.id}`, { method: "PUT", json: { series } }),
+  deleteSeries: (id: string) => call<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
+  moveEpisodeToSeries: (id: string, episode: string) => call<{ ok: boolean }>(`/api/series/${id}/episodes`, { method: "POST", json: { episode } }),
   research: (id: string) => call<{ text: string; exists: boolean; label: string }>(`/api/episodes/${id}/research`),
   saveResearch: (id: string, text: string) => call<{ ok: boolean }>(`/api/episodes/${id}/research`, { method: "PUT", json: { text } }),
   sceneReview: (id: string) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`),

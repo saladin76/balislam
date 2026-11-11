@@ -239,6 +239,7 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
     const { summarizeSceneProduction } = await load("/src/studio/sceneService.ts");
     const { episodeLength } = await load("/src/plan/episodeLength.ts");
     const { collectMedia } = await load("/src/plan/collect.ts");
+    const { episodeSeriesOf: seriesOf } = await load("/src/channel/seriesStore.ts");
     const out = [];
     for (const d of await episodeDirs(episodesDir)) {
       const dir = path.join(episodesDir, d);
@@ -274,6 +275,9 @@ const buildOverview = async (episodesDir: string, load: ExtraCtx["load"]) => {
         // One length everywhere (D52): the plan's own duration, measured once the voice exists.
         length: plan ? episodeLength(plan, await collectMedia(id, plan).catch(() => undefined)) : null,
         style: styleOf((fm as { style?: string }).style, scenes),
+        // سلسلة الحلقة (ملف الانتماء بجوار السكريبت، وإلا «عام»)
+        series: seriesOf(dir).series,
+        seriesNumber: seriesOf(dir).stamp?.number ?? null,
         status,
         // حالة الحلقة في الخطوات الأربع من سجل الإنتاج نفسه (المصدر الوحيد للاعتماد)
         production: await summarizeSceneProduction(id).catch(() => null),
@@ -720,6 +724,60 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       checklist: existsSync(path.join(dir, "publish-checklist.md")) ? await readFile(path.join(dir, "publish-checklist.md"), "utf8") : "",
       render: existsSync(path.join(dir, "render.json")) ? JSON.parse(await readFile(path.join(dir, "render.json"), "utf8")) : null,
     });
+    return true;
+  }
+
+  // السلاسل والتصنيفات داخل القناة (src/channel/series.ts و seriesStore.ts)
+  if (parts[0] === "series") {
+    const store = await load("/src/channel/seriesStore.ts");
+    const model = await load("/src/channel/series.ts");
+    const { approvedIdentity } = await load("/brand/identity/approved.ts");
+    const fail = (e: unknown) => { send(res, (e as { issues?: string[] }).issues ? 400 : 500, { error: (e as Error).message, issues: (e as { issues?: string[] }).issues }); return true; };
+    if (!parts[1] && req.method === "GET") {
+      const approved = approvedIdentity(ch);
+      const list = store.listSeries(ch);
+      const eps = await store.episodesBySeries(ch);
+      const ctx = store.seriesContext(ch);
+      send(res, 200, {
+        series: list.map((x: any) => ({ ...x, derived: approved ? model.deriveSeriesIdentity(ch, x.identity ?? {}) : null, episodes: eps.filter((e: any) => e.series === x.id).length })),
+        episodes: eps,
+        rules: approved ? {
+          accents: model.accentChoices(approved).map((hex: string) => ({ hex, nameAr: approved.palette.find((p: any) => p.hex.toUpperCase() === hex)?.nameAr ?? hex })),
+          motifs: approved.motifs.map((id: string) => ({ id, nameAr: model.MOTIF_AR[id] ?? id })),
+          emblemParts: model.EMBLEM_PARTS[approved.emblem]?.parts ?? [],
+          fonts: approved.fonts, limits: model.LIMITS, maxDepth: model.MAX_DEPTH,
+          styles: ctx.styles, templates: ctx.templates, tones: ctx.tones, defaultTone: model.DEFAULT_SERIES_TONE,
+        } : null,
+      });
+      return true;
+    }
+    const id = parts[1] ?? "";
+    if (!model.SLUG_RE.test(id)) return send(res, 400, { error: "معرّف السلسلة غير صالح." }), true;
+    const refused = await ownerRefusal(ctx);
+    if (refused) return send(res, 403, { error: refused }), true;
+    try {
+      if (!parts[2] && req.method === "PUT") {
+        const { series } = await readBody(req);
+        if (!series || series.id !== id) return send(res, 400, { error: "معرّف السلسلة لا يُغيَّر؛ أنشئ سلسلة جديدة وانقل حلقاتها." }), true;
+        const saved = await store.saveSeries(ch, series);
+        send(res, 200, { ok: true, series: saved, derived: model.deriveSeriesIdentity(ch, saved.identity ?? {}) });
+        return true;
+      }
+      if (!parts[2] && req.method === "DELETE") {
+        await store.deleteSeries(ch, id);
+        send(res, 200, { ok: true });
+        return true;
+      }
+      if (parts[2] === "episodes" && req.method === "POST") {
+        const { episode } = await readBody(req);
+        if (!/^\d{3}$/.test(String(episode ?? ""))) return send(res, 400, { error: "رقم الحلقة غير صالح." }), true;
+        const { resolveEpisodeDir } = await load("/src/script/episodes.ts");
+        const link = await store.moveEpisode(ch, await resolveEpisodeDir(episode), id);
+        send(res, 200, { ok: true, link });
+        return true;
+      }
+    } catch (e) { return fail(e); }
+    send(res, 405, { error: "طلب غير معروف." });
     return true;
   }
 

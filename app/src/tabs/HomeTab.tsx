@@ -6,6 +6,11 @@ import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeL
 import { Num, arDigits, duration, episodeTitle, latinDigits, lengthSource, num } from "../ui/format";
 import { Icon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
+import type { SeriesRead } from "../api";
+import type { SeriesKind } from "../../../src/channel/series";
+import { GENERAL_SLUG } from "../../../src/channel/series";
+import { NewSeriesDialog, SeriesGrid } from "./Series";
+import { episodesIn, seriesOfEpisode } from "./seriesView";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
@@ -61,7 +66,12 @@ export const HomeTab: React.FC<{
   onOpen: (id: string, tab: HomeStepTab) => void;
   onNew: () => void;
   onDeleted?: (id: string) => void;
-}> = ({ channel, onOpen, onNew, onDeleted }) => {
+  /** The series page («#/<channel>/series/<id>») */
+  onOpenSeries?: (id: string) => void;
+}> = ({ channel, onOpen, onNew, onDeleted, onOpenSeries }) => {
+  const [series, setSeries] = useState<SeriesRead | null>(null);
+  const [seriesFilter, setSeriesFilter] = useState("all");
+  const [newSeries, setNewSeries] = useState<SeriesKind | null>(null);
   const [del, setDel] = useState<{ id: string; title: string; typed: string; busy?: boolean; msg?: string } | null>(null);
   const [items, setItems] = useState<Overview[] | null>(null);
   const [err, setErr] = useState("");
@@ -75,6 +85,8 @@ export const HomeTab: React.FC<{
     setSearch("");
     setFilter("all");
     api.overview().then((results) => { if (active) setItems(results); }).catch((e) => { if (active) setErr((e as Error).message); });
+    setSeriesFilter("all");
+    api.series().then((r) => { if (active) setSeries(r); }).catch(() => { if (active) setSeries(null); });
     return () => { active = false; };
   }, [channel.id]);
 
@@ -94,7 +106,9 @@ export const HomeTab: React.FC<{
   if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
   if (!items) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
-  const visible = selectHomeCards(items, search, filter, sort, (e) => Boolean(e.production?.masterApproved));
+  const inSeries = series && seriesFilter !== "all" ? new Set(episodesIn(seriesFilter, series.series, items).map((e) => e.id)) : null;
+  const visible = selectHomeCards(items, search, filter, sort, (e) => Boolean(e.production?.masterApproved)).filter((e) => !inSeries || inSeries.has(e.id));
+  const seriesName = (id: string) => series?.series.find((x) => x.id === id);
   const deleteDialog = del ? (
     <Dialog labelledBy="del-title" onClose={() => { if (!del.busy) setDel(null); }}>
         <div className="modal-head"><h3 id="del-title">حذف الحلقة {arDigits(del.id)} نهائيًا</h3></div>
@@ -137,6 +151,9 @@ export const HomeTab: React.FC<{
         <h1>{channel.name}</h1>
         {tagline ? <p>{tagline}</p> : null}
       </header>
+      {series ? <SeriesGrid data={series} items={items} onOpen={(id) => onOpenSeries?.(id)} onNew={setNewSeries} /> : null}
+      {newSeries && series ? <NewSeriesDialog kind={newSeries} data={series} onClose={() => setNewSeries(null)} onCreated={(id) => { setNewSeries(null); onOpenSeries?.(id); }} /> : null}
+      {items.length ? <div className="all-eps-head"><h2>كل الحلقات</h2></div> : null}
 
       {items.length === 0 ? (
         <div className="ledger-empty">
@@ -144,15 +161,21 @@ export const HomeTab: React.FC<{
         </div>
       ) : (
         <>
-          {items.length > 6 ? (
+          {items.length > 6 || (series && series.series.length > 1) ? (
             <div className="ledger-tools" role="search" aria-label="البحث في حلقات القناة">
+              {series && series.series.length > 1 ? (
+                <select aria-label="السلسلة" value={seriesFilter} onChange={(e) => setSeriesFilter(e.target.value)}>
+                  <option value="all">كل السلاسل</option>
+                  {series.series.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </select>
+              ) : null}
               <input type="search" aria-label="البحث عن حلقة" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث بالعنوان أو الرقم" />
               <select aria-label="حالة الحلقة" value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}><option value="all">كل الحلقات</option><option value="attention">قيد العمل</option><option value="ready">النسخة النهائية معتمدة</option><option value="published">منشورة</option></select>
               <select aria-label="الترتيب" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}><option value="recent">الأحدث</option><option value="oldest">الأقدم</option><option value="title">بالعنوان</option></select>
             </div>
           ) : null}
           {visible.length === 0 ? (
-            <div className="ledger-empty"><p>لا حلقة تطابق البحث.</p><button className="btn" type="button" onClick={() => { setSearch(""); setFilter("all"); }}>اعرض كل الحلقات</button></div>
+            <div className="ledger-empty"><p>لا حلقة تطابق البحث.</p><button className="btn" type="button" onClick={() => { setSearch(""); setFilter("all"); setSeriesFilter("all"); }}>اعرض كل الحلقات</button></div>
           ) : (
             <ol className="ledger-list">
               {visible.map((e) => {
@@ -165,7 +188,7 @@ export const HomeTab: React.FC<{
                     <span className="ledger-num" aria-hidden="true"><Num>{e.id.replace(/^0+(?=\d)/, "")}</Num></span>
                     <div className="ledger-main">
                       <button type="button" className="ledger-open" onClick={() => onOpen(e.id, next.tab)}>
-                        <span className="ledger-k">الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}</span>
+                        <span className="ledger-k">الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}{series && seriesOfEpisode(e) !== GENERAL_SLUG ? <span className="ledger-series"> · <i style={{ background: seriesName(seriesOfEpisode(e))?.derived?.accent }} aria-hidden="true" />{seriesName(seriesOfEpisode(e))?.name ?? ""}</span> : null}</span>
                         <span className="ledger-title"><b>{episodeTitle(e.title) || e.dir}</b></span>
                       </button>
                       <div className="ledger-pg">

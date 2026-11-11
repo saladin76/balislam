@@ -24,6 +24,9 @@ type Props = {
   steps?: BandSteps | null;
   stepTitles: string[];
   onStep: (i: number) => void;
+  /** The current series under the channel name (the episode's, or the series page's); opens its page. */
+  series?: { id: string; name: string; kind: string } | null;
+  onSeries?: (id: string) => void;
   /** On the channel's episodes: how many, and one line under the number. */
   counter?: { n: number; label: string } | null;
   manage: ManageItem[];
@@ -57,6 +60,11 @@ export const Band: React.FC<Props> = (p) => {
       <button type="button" className="ms-mark" onClick={p.onHome} title="حلقات القناة" aria-label={`${p.channelName}: حلقات القناة`}>
         {p.channelName.split(/\s+/).filter(Boolean).map((w, i) => <span key={i}>{w}</span>)}
       </button>
+      {p.series ? (
+        <button type="button" className="ms-band-series" onClick={() => p.onSeries?.(p.series!.id)} title={`${p.series.kind}: ${p.series.name}`} aria-label={`${p.series.kind} ${p.series.name}`}>
+          {p.series.kind}<b>{p.series.name}</b>
+        </button>
+      ) : null}
       {p.episode && p.steps ? (
         <>
           <div className="ms-band-ep">الحلقة <Num>{p.episode.id.replace(/^0+(?=\d)/, "")}</Num><b>{p.episode.title}</b></div>

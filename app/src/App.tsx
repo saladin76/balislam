@@ -27,6 +27,9 @@ import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
+import { SeriesPage } from "./tabs/Series";
+import { GENERAL_SLUG, SERIES_KIND_AR } from "../../src/channel/series";
+import type { SeriesRead } from "./api";
 import { OpsRoom } from "./tabs/OpsRoom";
 import { ChannelsWorkspace } from "./tabs/ChannelsWorkspace";
 import { IntegratedReviewWorkspace } from "./workspace/IntegratedReviewWorkspace";
@@ -107,6 +110,10 @@ export const App: React.FC = () => {
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
   const [epId, setEpId] = useState<string>(bootRoute.episode ?? (store.get("bal-episode") || ""));
+  /** The series page on screen («#/<channel>/series/<id>»), and the channel's series (band, picker, new episode). */
+  const [seriesId, setSeriesId] = useState<string>(bootRoute.series ?? "");
+  const [seriesData, setSeriesData] = useState<SeriesRead | null>(null);
+  const [newSeriesFor, setNewSeriesFor] = useState<string>("");
   const episodeRef = useRef(epId);
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
@@ -231,13 +238,19 @@ export const App: React.FC = () => {
     loadEpisode(epId);
   }, [epId, channelId, episodes, loadEpisode]);
   useEffect(() => store.set("bal-tab", tab), [tab]);
+  useEffect(() => {
+    let live = true;
+    setSeriesData(null);
+    if (channelId) api.series().then((r) => live && setSeriesData(r), () => live && setSeriesData(null));
+    return () => { live = false; };
+  }, [channelId, homeKey]);
   // The address bar always names the current channel, episode and step (a link the owner can keep).
   useEffect(() => {
     const ch = channelId || channels[0]?.id || "";
-    const next = studioHash({ channel: ch, episode: epId, tab });
+    const next = studioHash({ channel: ch, episode: epId, tab, series: seriesId });
     if (!next || window.location.hash === next) return;
     try { window.history.replaceState(null, "", next); } catch { /* not critical */ }
-  }, [channelId, channels, epId, tab]);
+  }, [channelId, channels, epId, tab, seriesId]);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
   const onPlanChange = useCallback((p: Plan) => {
@@ -299,6 +312,7 @@ export const App: React.FC = () => {
     const r = parseStudioHash(window.location.hash);
     if (!r.channel) return;
     const want = { ep: r.episode ?? epId, tab: r.tab ?? tab };
+    if (r.series) setSeriesId(r.series);
     if (want.ep === epId && want.tab === tab && r.channel === (channelId || channels[0]?.id)) return;
     if (!confirmLeaveScript()) return;
     void flushPlan().then(() => {
@@ -368,6 +382,12 @@ export const App: React.FC = () => {
     : here === 2 && done[0] ? views.find((v) => v.current)?.label : here === 3 && done[3] ? "مأذون" : undefined;
   const epTitle = episodeTitle(episodes?.find((e) => e.id === epId)?.title || plan?.title || "");
   const channelName = channels.find((c) => c.id === cid)?.name ?? channel.name;
+  // The series under the channel name: the open episode's (never «عام»), or the series page's
+  const epSeries = inEpisode ? episodes?.find((e) => e.id === epId)?.series : undefined;
+  const bandSeriesId = tab === "series" ? seriesId : epSeries && epSeries !== GENERAL_SLUG ? epSeries : "";
+  const bandSeries = bandSeriesId ? seriesData?.series.find((x) => x.id === bandSeriesId) : undefined;
+  const seriesNames = seriesData && seriesData.series.length > 1 ? Object.fromEntries(seriesData.series.map((x) => [x.id, x.name])) : null;
+  const openSeries = (id: string) => { if (!confirmLeaveScript()) return; void flushPlan().then(() => { setSeriesId(id); setTab("series"); }); };
 
   return (
     <IdentityProvider identity={ident.draft}>
@@ -383,6 +403,8 @@ export const App: React.FC = () => {
         steps={inEpisode ? { done, here, sub: stepSub } : null}
         stepTitles={STEPS.map((s) => s.title)}
         onStep={(i) => { const t = STEPS[i]!.tabs[0]!; if (i === 1) setSceneView("one"); go(t); }}
+        series={bandSeries ? { id: bandSeries.id, name: bandSeries.name, kind: SERIES_KIND_AR[bandSeries.kind] } : null}
+        onSeries={openSeries}
         counter={tab === "home" && episodes ? { n: episodes.length, label: episodes.length === 1 ? "حلقة" : episodes.length === 2 ? "حلقتان" : "حلقات" } : null}
         manage={manageItems}
         active={tab}
@@ -393,6 +415,7 @@ export const App: React.FC = () => {
           episodes={inEpisode ? episodes : null}
           episodeId={epId}
           onEpisode={async (id) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(id); }}
+          seriesNames={seriesNames}
           title="الاستوديو"
           views={views}
           save={inEpisode ? { state: planState, unsaved: scriptDirty || researchDirty } : null}
@@ -400,7 +423,7 @@ export const App: React.FC = () => {
           onToggleScheme={toggleScheme}
         />
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
-        {!EPISODE_TABS.includes(tab) && tab !== "home" ? (
+        {!EPISODE_TABS.includes(tab) && tab !== "home" && tab !== "series" ? (
           <div className="page-head"><h1>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</h1></div>
         ) : null}
 
@@ -491,8 +514,23 @@ export const App: React.FC = () => {
               setEpId(id);
               setTab(t);
             }}
+            onOpenSeries={openSeries}
           />
           
+          </div>
+        ) : tab === "series" && seriesId ? (
+          <div className="home-wrap studio-episodes-workspace">
+            <SeriesPage
+              key={`${channelId}-${seriesId}-${homeKey}`}
+              channel={channel}
+              identity={ident.draft}
+              seriesId={seriesId}
+              onBack={() => void navigateManage("home")}
+              onOpenSeries={openSeries}
+              onOpenEpisode={(id, t) => { if (id !== epId && !confirmLeaveScript()) return; setEpId(id); setTab(t); }}
+              onNewEpisode={(sid) => { setNewSeriesFor(sid); setShowNew(true); }}
+              onChanged={() => api.series().then(setSeriesData).catch(() => {})}
+            />
           </div>
         ) : tab === "treviews" && channelId ? (
           <TechReviewsTab key={channelId} channel={channelId} />
@@ -689,9 +727,12 @@ export const App: React.FC = () => {
             suggested={newPrefill?.suggested ?? String((episodes?.reduce((m, e) => Math.max(m, Number(e.id)), 0) ?? 0) + 1).padStart(3, "0")}
             initialTitle={newPrefill?.title}
             initialDomain={newPrefill?.domain}
+            series={(seriesData?.series ?? []).filter((x) => x.status !== "archived").map((x) => [x.id, x.name] as [string, string])}
+            initialSeries={newSeriesFor || (tab === "series" ? seriesId : "")}
             onClose={() => {
               setShowNew(false);
               setNewPrefill(null);
+              setNewSeriesFor("");
             }}
             onCreated={async (id) => {
               // الفكرة صارت حلقة: تُرفع من بنك الأفكار
@@ -706,6 +747,7 @@ export const App: React.FC = () => {
               setEpisodes(list);
               setEpId(id);
               setShowNew(false);
+              setNewSeriesFor("");
               setTab("script");
               setHomeKey((k) => k + 1);
               say(`أُنشئت الحلقة ${id}`);
@@ -720,7 +762,8 @@ export const App: React.FC = () => {
   );
 };
 
-const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, initialTitle, initialDomain, onClose, onCreated }) => {
+const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; series?: [string, string][]; initialSeries?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, initialTitle, initialDomain, series = [], initialSeries, onClose, onCreated }) => {
+  const [inSeries, setInSeries] = useState(initialSeries && series.some(([id]) => id === initialSeries) ? initialSeries : GENERAL_SLUG);
   const [episode, setEpisode] = useState(suggested);
   const [slug, setSlug] = useState("");
   const [domain, setDomain] = useState(initialDomain && domains.some(([d]) => d === initialDomain) ? initialDomain : (domains[0]?.[0] ?? ""));
@@ -732,7 +775,7 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
           e.preventDefault();
           setErr("");
           try {
-            await api.createEpisode({ episode, slug, domain, title });
+            await api.createEpisode({ episode, slug, domain, title, ...(inSeries && inSeries !== GENERAL_SLUG ? { series: inSeries } : {}) });
             onCreated(episode);
           } catch (x) {
             setErr((x as Error).message);
@@ -746,6 +789,14 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
             <label className="field"><span>الرقم</span><input id="new-number" type="text" value={episode} onChange={(e) => setEpisode(e.target.value)} pattern="\d{3}" required /></label>
             <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="new-slug" type="text" dir="ltr" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="procrastination" pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
           </div>
+          {series.length > 1 ? (
+            <label className="field">
+              <span>السلسلة أو التصنيف (تأخذ الحلقة قالبه وهويته الآن)</span>
+              <select id="new-series" value={inSeries} onChange={(e) => setInSeries(e.target.value)}>
+                {series.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </label>
+          ) : null}
           <label className="field">
             <span>المجال (يحدد الثيم)</span>
             <select id="new-domain" value={domain} onChange={(e) => setDomain(e.target.value)}>
