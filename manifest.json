@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-03-envelope-landscape",
+  "title": "032 · الظرف c1-s54…s57 أفقي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "c102453a68915b70491d7373fcad06c034df9b4d28c5e50829870ddd82c73159",
+  "size": 2391456,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 2391456,
+      "sha256": "c102453a68915b70491d7373fcad06c034df9b4d28c5e50829870ddd82c73159"
+    }
+  ],
+  "createdAt": "2026-11-11T21:28:12.657Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
