@@ -2,7 +2,7 @@ import React from "react";
 import type { CamKey } from "../illus/shots/kit";
 import { INK_SHOTS_2 } from "./shots2";
 import { KIT_SHOTS, type InkArgs } from "./kitShots";
-import { Arrow, Card, Cross, Icon, InkPerson, Mark, Stroke, Sun, Write, heartPath, lerp, measure, fam, outCubic, prog, type Z } from "./inkKit";
+import { Arrow, Card, Cross, Icon, InkPerson, Kaaba, Mark, Stroke, Sun, Write, heartPath, lerp, measure, fam, outCubic, prog, type Z } from "./inkKit";
 
 /**
  * مشاهد الحبر المصمَّمة لزبدة الكتب: كل مشهد حدث بصري له بداية وتطور ونتيجة،
@@ -386,12 +386,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
                 <Write id="iq" x={iqX + w2 - 960} y={24} text="الإقبال" size={74} p={wp(frame, tIq, end("الإقبال", 0.3))} c={z.ink} font="head" anchor="start" z={z} />
               </Card>
             </g>
-            {/* القبلة: بوصلة إبرتها نحو الجهة */}
-            <g opacity={prog(frame, tQibla - 4, tQibla + 10)} transform="translate(420 610)">
-              <circle r={70} fill={z.paper} stroke={z.ink} strokeWidth={7} />
-              <path d="M-50 0 L18 -16 L18 16 Z" fill={z.ink} />
-              <circle r={8} fill={z.hl} stroke={z.ink} strokeWidth={4} />
-            </g>
+            {/* القبلة: الكعبة نفسها (لا بوصلة) — «نستقبل القبلة بأبداننا» */}
+            <Kaaba x={420} y={690} s={0.72} p={prog(frame, tQibla - 4, tQibla + 16)} z={z} />
             <Write id="qb" x={420} y={760} text="القبلة" size={68} p={wp(frame, tQibla, end("القبلة", 0.38))} c={z.ink} z={z} />
             <InkPerson x={1320} y={860} s={1.15} pose="stand" p={prog(frame, tFace - 2, tFace + 20)} z={z} dir={-1} />
             <Arrow x1={1210} y1={720} x2={530} y2={650} p={prog(frame, tBody - 2, tBody + 18)} c={z.ink} w={9} bend={-10} />

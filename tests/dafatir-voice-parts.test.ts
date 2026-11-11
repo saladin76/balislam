@@ -17,10 +17,12 @@ import type { ElevenLabsClient } from "../src/voice/elevenlabs";
  * كل الصوت هنا صناعي: لا مفاتيح ولا شبكة ولا تسجيل حقيقي، ولا قرآن.
  */
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
-const mapRaw = readFileSync(path.join(EP, "tone-map.json"), "utf8");
+/** نسخة المحتوى V7 محفوظة (V8 في ١١ نوفمبر حذف بطاقات الآيات والفصول): آليات الآيات والفصول تُختبر عليها. */
+const V7: Record<string, string> = { "script.md": "versions/v7/script.md", "plan.json": "plan.v7.json", "tone-map.json": "tone-map.v1.2.json", "tashkeel.md": "versions/v7/tashkeel.md" };
+const mapRaw = readFileSync(path.join(EP, V7["tone-map.json"]!), "utf8");
 const map = JSON.parse(mapRaw) as ToneMap;
-const plan = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
-const tashkeel = readFileSync(path.join(EP, "tashkeel.md"), "utf8");
+const plan = JSON.parse(readFileSync(path.join(EP, V7["plan.json"]!), "utf8")) as Plan;
+const tashkeel = readFileSync(path.join(EP, V7["tashkeel.md"]!), "utf8");
 const scenes = plan.chapters.flatMap((c) => c.scenes);
 
 const SR = 16000;
@@ -199,7 +201,7 @@ describe("generateVoice لدفاتر الزمن يتبع أجزاء الخريط
     cpSync(path.join("channels", "dafatir-alzaman"), ch, { recursive: true, filter: (s) => !/[\\/]episodes([\\/]|$)/.test(s) });
     const ep = path.join(ch, "episodes", "001-adam-beginning");
     mkdirSync(ep, { recursive: true });
-    for (const f of ["script.md", "plan.json", "tone-map.json", "tashkeel.md"]) writeFileSync(path.join(ep, f), readFileSync(path.join(EP, f)));
+    for (const f of ["script.md", "plan.json", "tone-map.json", "tashkeel.md"]) writeFileSync(path.join(ep, f), readFileSync(path.join(EP, V7[f]!)));
     process.env.BAL_CHANNELS_DIR = tmp;
     process.env.BAL_CHANNEL = "dafatir-alzaman";
     process.env.ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
@@ -240,4 +242,25 @@ describe("generateVoice لدفاتر الزمن يتبع أجزاء الخريط
     await generateVoice("001", { client: fake, testOnlySkipGates: true, only });
     expect(sent.length).toBe(before);
   }, 120_000);
+});
+
+describe("دفاتر الزمن: نسخة المحتوى V8 الحالية (v1.3) صالحة للتوليد", () => {
+  it("44 جزءًا لـ 74 مقطعًا في 43 مشهدًا منطوقًا، ولا آية ولا بطاقة فصل، والحدود بلا صمت آية", () => {
+    const map8 = JSON.parse(readFileSync(path.join(EP, "tone-map.json"), "utf8")) as ToneMap;
+    const plan8 = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
+    const v = validatePartsContext(map8, plan8, readFileSync(path.join(EP, "tashkeel.md"), "utf8"));
+    expect(v).toHaveLength(44);
+    expect(v.flatMap((j) => j.segmentIds)).toHaveLength(74);
+    for (const j of v) expect(j.text).not.toMatch(/﴿|﴾|\[آية/);
+    const jobs8 = partJobs(map8);
+    const res: Record<string, PartResult> = {};
+    for (const j of jobs8) {
+      const x = synth(j.text);
+      res[j.partId] = measurePart(j.partId, x.samples, SR, wordsOf(x.alignment));
+    }
+    const { composed, gaps, problems } = composeEpisode(plan8, jobs8, res);
+    expect(problems).toEqual([]);
+    expect(Object.keys(composed)).toHaveLength(43);
+    expect(gaps.filter((g) => /verse|chapter/.test(g.owner))).toEqual([]);
+  });
 });

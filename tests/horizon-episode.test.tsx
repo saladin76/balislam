@@ -14,15 +14,19 @@ const script = readFileSync(`${EP}/script.md`, "utf8");
 const scenes = plan.chapters.flatMap((c) => c.scenes);
 
 describe("دفاتر الزمن 001 — خطة «خط الأفق»", () => {
-  it("كل جمل السكريبت المعتمد في الخطة بترتيبها وحرفها، وكل مواضع الآيات", () => {
+  it("كل جمل السكريبت المعتمد في الخطة بترتيبها وحرفها، والآيات استشهاد فقط (V8)", () => {
     const body = script.split("## الاستشهادات")[0]!.split("\n").slice(9);
     const sentences = body.map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !l.startsWith("[آية"));
     expect(scenes.map((s) => s.narration).filter(Boolean).join(" ")).toBe(sentences.join(" "));
-    // العلامة بنصها الذي كتبه المالك: [آية: المرجع | النص]
-    const keys = [...script.matchAll(/^\[آية: (\S+) (\d+)(?: \|[^\]]+)?\]$/gm)].length;
-    expect(keys).toBe(23);
-    expect(scenes.filter((s) => s.template === "verse-card").length).toBe(keys);
-    for (const s of scenes.filter((s) => s.template === "verse-card")) {
+    // V8 (قرار صاحب المشروع، ١١ نوفمبر): لا علامة آية في مجرى السكريبت ولا بطاقة آية في الخطة؛ المراجع الـ23 في «الاستشهادات»
+    expect([...script.matchAll(/^\[آية: /gm)]).toHaveLength(0);
+    expect(scenes.filter((s) => s.template === "verse-card")).toEqual([]);
+    expect([...script.split("## الاستشهادات")[1]!.matchAll(/^- آية \| /gm)]).toHaveLength(23);
+    // V7 محفوظة كما كانت: 23 موضع آية بقالب البطاقة بلا نص
+    const v7 = JSON.parse(readFileSync(`${EP}/plan.v7.json`, "utf8")) as Plan;
+    const v7Verses = v7.chapters.flatMap((c) => c.scenes).filter((s) => s.template === "verse-card");
+    expect(v7Verses).toHaveLength(23);
+    for (const s of v7Verses) {
       expect(s.props.text).toBe("");
       expect(s.props.look).toBe("horizon");
     }

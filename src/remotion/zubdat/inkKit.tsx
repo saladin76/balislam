@@ -254,3 +254,55 @@ export const Foot: React.FC<{ x: number; y: number; s?: number; rot?: number; p:
       <path d="M-8 -6 L8 -6" stroke={c} strokeWidth={4} strokeLinecap="round" />
     </g>
   );
+
+/**
+ * المسجد بالحبر (زبدة الكتب، ١١ نوفمبر — «إلى المسجد: هل يظهر مسجد؟»): قبة على بيت الصلاة، ومئذنة بشرفة، وباب مقوّس.
+ * يُرسم بخط القلم من الأساس إلى القبة ثم المئذنة؛ والفسفوري للباب وحده حين يكون المسجد هو الفكرة (`door`).
+ * المرجع (0,0) منتصف قاعدته؛ ارتفاعه ~330 وعرضه ~360 عند s=1. لا هلال ولا كتابة عليه.
+ */
+export const Mosque: React.FC<{ x: number; y: number; s?: number; p: number; z: Z; door?: number; opacity?: number }> = ({ x, y, s = 1, p, z, door = 0, opacity = 1 }) => {
+  if (p <= 0) return null;
+  const parts = [
+    "M-150 0 L-150 -150 L110 -150 L110 0 Z",                  // بيت الصلاة
+    "M-120 -150 Q-120 -260 -20 -268 Q80 -260 80 -150",          // القبة
+    "M-20 -268 L-20 -300",                                      // رأس القبة
+    "M130 0 L130 -250 L178 -250 L178 0",                        // جسم المئذنة
+    "M120 -250 L188 -250 M124 -232 L184 -232",                  // الشرفة
+    "M130 -250 L154 -312 L178 -250",                            // رأس المئذنة
+    "M-56 0 L-56 -66 Q-20 -112 16 -66 L16 0",                   // الباب المقوّس
+  ];
+  const doorPath = "M-56 0 L-56 -66 Q-20 -112 16 -66 L16 0 Z";
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={opacity}>
+      {door > 0 ? <path d={doorPath} fill={z.hl} opacity={0.85 * door} /> : null}
+      {parts.map((d, i, a) => (
+        <Stroke key={i} d={d} p={prog(p, i / (a.length + 1), (i + 2) / (a.length + 1), outCubic)} c={z.ink} w={8 / s} />
+      ))}
+    </g>
+  );
+};
+
+/**
+ * الكعبة بالحبر (زبدة الكتب، ١١ نوفمبر): مكعب مرسوم بالمنظور، جسمه بالحبر، وحزامه بالفسفوري حين تكون القبلة هي الفكرة.
+ * تُستعمل للكعبة والقبلة فقط. المرجع (0,0) منتصف القاعدة؛ ارتفاعها ~190 عند s=1. لا كتابة عليها.
+ */
+export const Kaaba: React.FC<{ x: number; y: number; s?: number; p: number; z: Z; band?: number; opacity?: number }> = ({ x, y, s = 1, p, z, band = 1, opacity = 1 }) => {
+  if (p <= 0) return null;
+  const front = "M-110 0 L-110 -170 L60 -170 L60 0 Z";
+  const side = "M60 0 L60 -170 L120 -196 L120 -26 Z";
+  const top = "M-110 -170 L-50 -196 L120 -196 L60 -170 Z";
+  const fill = prog(p, 0.45, 1);
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={opacity}>
+      <path d={front} fill={z.ink} opacity={fill} />
+      <path d={side} fill={z.ink} opacity={0.82 * fill} />
+      <path d={top} fill={z.paper} opacity={fill} />
+      {/* الحزام: شريط في ثلث الجسم الأعلى، والباب في الواجهة */}
+      <path d="M-110 -128 L60 -128 L60 -112 L-110 -112 Z M60 -128 L120 -154 L120 -138 L60 -112 Z" fill={band > 0 ? z.hl : z.paper} opacity={fill * (band > 0 ? band : 0.8)} />
+      <path d="M8 0 L8 -58 L34 -58 L34 0" fill="none" stroke={z.paper} strokeWidth={5} opacity={fill} />
+      {[front, side, top].map((d, i) => (
+        <Stroke key={i} d={d} p={prog(p, i * 0.15, 0.55 + i * 0.15, outCubic)} c={z.ink} w={7 / s} />
+      ))}
+    </g>
+  );
+};

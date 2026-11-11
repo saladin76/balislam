@@ -348,9 +348,9 @@ describe("دفاتر الزمن: نبرة الجملة تكتب إصدارًا �
     const src = "channels/dafatir-alzaman/episodes/001-adam-beginning";
     const dir = path.join(tmp, "dafatir-alzaman", "episodes", "001-adam-beginning");
     mkdirSync(dir, { recursive: true });
-    for (const f of ["script.md", "plan.json", "tashkeel.md"]) writeFileSync(path.join(dir, f), readFileSync(path.join(src, f)));
-    // fixture: the archived v1.2 map (the live one is v1.3 since the strong-voice relabel, 11 Nov)
-    writeFileSync(path.join(dir, "tone-map.json"), readFileSync(path.join(src, "tone-map.v1.2.json")));
+    // نسخة المحتوى V7 (v1.2، 52 جزءًا) محفوظة بعد V8: الآلية نفسها تُختبر عليها
+    const V7: Record<string, string> = { "script.md": "versions/v7/script.md", "plan.json": "plan.v7.json", "tone-map.json": "tone-map.v1.2.json", "tashkeel.md": "versions/v7/tashkeel.md" };
+    for (const f of ["script.md", "plan.json", "tone-map.json", "tashkeel.md"]) writeFileSync(path.join(dir, f), readFileSync(path.join(src, V7[f]!)));
     const raw = readFileSync(path.join(dir, "tone-map.json"), "utf8");
     const sv = await import("../src/voice/sentenceVoice");
     const read = await sv.readSentences("001");

@@ -84,7 +84,8 @@ describe("المراجعات الفنية", () => {
   it("ستوري بورد الأمر 020 (v1.1، وv1 محفوظ): لوحة لكل مشهد من مشاهد الخطة، وPDF وبيانات ببصمة المرجع، ومصدر كل حقل، وغير معتمد", () => {
     const dir = path.join(EPS, "001-adam-beginning");
     const data = JSON.parse(readFileSync(path.join(dir, "tech-reviews/020/docs/storyboard-001-v1.1.json"), "utf8"));
-    const plan = JSON.parse(readFileSync(path.join(dir, "plan.json"), "utf8"));
+    // الستوري بورد v1.1 مأخوذ من خطة V7 (محفوظة بعد V8 في plan.v7.json)
+    const plan = JSON.parse(readFileSync(path.join(dir, "plan.v7.json"), "utf8"));
     // الستوري بورد v1.1 وثيقة تاريخية (الأمر 020): لا تشمل بطاقة الأعراف 15 (c4-v7) التي أضافها المالك في ٨ نوفمبر؛
     // لوحتها تُضاف في إصدار ستوري بورد جديد، لا بتعديل v1.1
     const ADDED_AFTER_020 = new Set(["c4-v7"]);
