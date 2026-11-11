@@ -179,7 +179,8 @@ describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى
     expect(cur.version).toBe("v1.3");
     expect(cur.approved).toBe(false);
     const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
-    expect(cur.source).toMatchObject({ tashkeel: { sha256: sha("tashkeel.md") }, script: { sha256: sha("script.md") }, plan: { sha256: sha("plan.json") } });
+    // الخطة تغيّرت بعد v1.3 في وسم c5-s6 وحده (props.ref، لا نص)؛ v1.4 تحمل بصمتها الحالية
+    expect(cur.source).toMatchObject({ tashkeel: { sha256: sha("tashkeel.md") }, script: { sha256: sha("script.md") } });
     expect((cur as unknown as { previous: { version: string }[] }).previous.map((x) => x.version)).toEqual(["v1", "v1.1", "v1.2"]);
   });
 
@@ -244,8 +245,15 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
     expect(live.version).toBe("v1.4");
     expect(live.approved).toBe(false);
     expect(v13.version).toBe("v1.3");
-    for (const k of ["segments", "audioParts", "sceneTones", "boundaries", "citations", "recitations", "source", "decisions"] as const)
+    for (const k of ["segments", "audioParts", "sceneTones", "boundaries", "citations", "recitations", "decisions"] as const)
       expect((live as Record<string, unknown>)[k], k).toEqual((v13 as Record<string, unknown>)[k]);
+    // البصمات: التشكيل والسكريبت كما في v1.3، والخطة بعد وسم c5-s6 (props.ref وحده، والنص كما هو)
+    const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
+    const src = live.source as Record<string, { sha256: string }>;
+    const src13 = v13.source as Record<string, { sha256: string }>;
+    expect(src.tashkeel).toEqual(src13.tashkeel);
+    expect(src.script).toEqual(src13.script);
+    expect(src.plan!.sha256).toBe(sha("plan.json"));
     expect(live.legend.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
     expect(Object.values(live.legend.tones).join(" ")).not.toMatch(/هادئ|ناعم|هامس|دافئ/);
     for (const t of Object.keys(live.legend.tones)) expect(isTone(t)).toBe(true);
