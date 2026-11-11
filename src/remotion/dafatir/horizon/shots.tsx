@@ -383,12 +383,20 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
 // ─────────────────────────── اللقطة 5 (قبل الآية): التوبة ───────────────────────────
 const S5 = mk(["ولكن آدم عليه السلام لم يصر على معصيته، بل رجع إلى ربه.", "وقد حكى الله عن آدم وزوجه دعاءهما:"], 0.9, 1.9);
 
-export const Shot5: React.FC<ShotProps> = ({ t, tl, q }) => {
+export const Shot5: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, refText }) => {
   const dot = prog(t, 0.2, 0.7, easeOut);
   const away = prog(t, at(tl, "ولكن"), end(tl, "معصيته"), easeOut);
   const back = prog(t, at(tl, "بل"), end(tl, "رجع") - 0.02);
   // بعد «دعاءهما:» صمت قصير ثم تخلو الصفحة للآية (في الحلقة يدخل إطار الآية هنا)
   const fade = prog(t, tl.end + 0.6, tl.end + 1.3);
+  // V8 (الآيات استشهاد فقط): «دعاءهما في سورة الأعراف…» جملة كاملة بلا بطاقة آية بعدها. الكادر يرجع إلى الدفتر بعد «حكى الله»،
+  // ولوحة المرجع تظهر على الصفحة اليسرى لحظة «الأعراف» (بلا نص آية)، وخط الرجوع يُعاد حبره دافئًا عند «اعترفا» (الاعتراف رجوع)
+  const cite = Boolean(refText);
+  // الكادر لا يتحرك حول لفظ الجلالة (±0.25 ث): يبدأ الرجوع إلى الدفتر بعد «الله» بقليل وينتهي قبل «الأعراف»
+  const wide = cite ? end(tl, "الله") + 0.3 : 0;
+  const wideEnd = cite ? at(tl, "الأعراف") - 0.1 : 0;
+  const tag = cite ? prog(t, at(tl, "الأعراف") - 0.05, at(tl, "الأعراف") + 0.45, easeOut) : 0;
+  const own = cite ? prog(t, at(tl, "اعترفا") - 0.05, end(tl, "لأنفسهما"), easeOut) : 0;
   return (
     <>
     <Camera
@@ -396,6 +404,7 @@ export const Shot5: React.FC<ShotProps> = ({ t, tl, q }) => {
         // الكاميرا تتبع الخط وهو يبتعد ثم وهو يعود، وتسكن قبل «إلى ربه»
         { a: at(tl, "ولكن"), b: end(tl, "معصيته"), cx: 1300, cy: 505, s: 1.22 },
         { a: at(tl, "بل"), b: end(tl, "رجع"), cx: 1405, cy: 500, s: 1.24 },
+        ...(cite ? [{ a: wide, b: wideEnd, cx: 960, cy: 530, s: 1 }] : []),
       ])}
     >
       <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
@@ -413,8 +422,10 @@ export const Shot5: React.FC<ShotProps> = ({ t, tl, q }) => {
             <circle cx={1580} cy={430} r={10 * dot} fill={C.ink} />
             <Ink d="M1580 430 C1470 428 1340 434 1190 440" w={8} p={away} />
             <Ink d="M1190 440 C1110 444 1090 520 1178 530 C1300 542 1430 522 1546 500" w={8} p={back} />
+            {own > 0 ? <Ink d="M1190 440 C1110 444 1090 520 1178 530 C1300 542 1430 522 1546 500" w={12} p={own} c={C.ember} opacity={0.55} /> : null}
           </g>
         </Page>
+        {cite ? <g opacity={1 - fade} transform="translate(-820 0)"><VerseRefPanel refText={refText!} o={tag} /></g> : null}
         <Spine />
         <rect x={150} y={60} width={1620} height={900} fill="url(#s5-glow)" />
       </svg>

@@ -242,7 +242,22 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ─── c5-s5: «ثم وقع ما حذرهما الله منه»: الحد المتقطع ينفتح فيه ثغرة (بلا تصوير للأكل ولا للشجرة) ───
 const Breach: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const br = prog(t, at(tl, "وقع") - 0.05, at(tl, "وقع") + 0.5);
-  return <Book id="c55" t={t} dur={dur} exit={exit} cam={{ cx: 700, cy: 520, s: 1.08 }} L={<Forbidden x={560} y={520} mark={1} bound={1} breach={br} />} />;
+  // V8: «…فأكلا من الشجرة» صارت في الجملة نفسها (معنى الأعراف 22 بعد حذف بطاقتها): الكادر ينفتح على الصفحتين
+  // ويُكتب الفعل على اليمنى لحظة نطقه، مقابل الحد المخروق
+  const ate = tl.words.some((w) => w.w.startsWith("فأكلا"));
+  const a = ate ? at(tl, "فأكلا") : 0;
+  const cam = ate ? camPath(t, { cx: 700, cy: 520, s: 1.08 }, [{ a: a - 0.25, b: a + 0.55, cx: 960, cy: 530, s: 1 }]) : { cx: 700, cy: 520, s: 1.08 };
+  const w1 = ate ? prog(t, a - 0.05, a + 0.5, easeOut) : 0;
+  const w2 = ate ? prog(t, at(tl, "الشجرة") - 0.05, at(tl, "الشجرة") + 0.45, easeOut) : 0;
+  return (
+    <Book id="c55" t={t} dur={dur} exit={exit} cam={cam} L={<Forbidden x={560} y={520} mark={1} bound={1} breach={br} />}
+      R={ate ? (
+        <g>
+          <Word x={1365} y={500} size={72} p={w1} color={C.ink}>فأكلا</Word>
+          <Word x={1365} y={590} size={44} p={w2} font="tajawal" weight={700} color={C.inkSoft}>من الشجرة</Word>
+        </g>
+      ) : undefined} />
+  );
 };
 
 // ─── c5-s8: موقفان: خطٌ يعلو ويمضي (استكبر وأصر)، وخطٌ يعود (تاب وأناب)، ثم باب التوبة مفتوح ───

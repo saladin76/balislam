@@ -228,7 +228,7 @@ describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى
     expect(scenes8.filter((s) => s.template === "verse-card")).toEqual([]);
     expect(scenes8.filter((s) => s.props?.shot === "chapter")).toEqual([]);
     expect(scenes8.filter((s) => "head" in (s.props ?? {}))).toEqual([]);
-    expect(scenes8.filter((s) => s.props?.ref).map((s) => s.id)).toEqual(["c2-s1", "c2-s2", "c3-s4", "c3-s5", "c3-s7", "c3-s8", "c4-s4", "c5-s7", "c6-s1"]);
+    expect(scenes8.filter((s) => s.props?.ref).map((s) => s.id)).toEqual(["c2-s1", "c2-s2", "c3-s4", "c3-s5", "c3-s7", "c3-s8", "c4-s4", "c5-s6", "c5-s7", "c6-s1"]);
     // تنظيم المشاهد الداخلي ومعرّفاتها باقية
     expect(plan8.chapters.map((c) => c.number)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(scenes8).toHaveLength(44);
