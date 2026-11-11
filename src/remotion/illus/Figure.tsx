@@ -1,6 +1,7 @@
 import React from "react";
 import { Easing, interpolate } from "remotion";
 import { CLOTH, ID, SKIN, darken, lighten, mix, type ClothId } from "./palette";
+import { Envelope, ThreeCoins, TornLeaf } from "./storyProps";
 
 /**
  * شخصية «بالإسلام» المصوَّرة: بلا ملامح وجه أبدًا (قاعدة القناة)، بهيكل مفاصل
@@ -155,7 +156,11 @@ export const LOOKS = {
 } satisfies Record<string, FigureLook>;
 export type LookId = keyof typeof LOOKS;
 
-export type Holding = "paper" | "phone" | "bundle" | "coins" | "book" | "cup" | "none";
+/**
+ * ما في اليد. coins صُرّة عامة (للمعنى العام في المكتبة)؛ وقصة الأخوين في الحلقة 001 لها أشياؤها الثابتة:
+ * three-coins القطع الثلاث في الكف، envelope الظرف المختوم، envelope-open الظرف مفتوحًا، leaf الورقة الممزقة.
+ */
+export type Holding = "paper" | "phone" | "bundle" | "coins" | "book" | "cup" | "three-coins" | "envelope" | "envelope-open" | "leaf" | "none";
 
 export type FigureProps = {
   x: number;
@@ -223,6 +228,20 @@ const Limb2: React.FC<{ pts: Pt[]; w: number[]; fill: string; ink: string; o?: n
       ))}
     </g>
   );
+};
+
+/**
+ * موضع اليد الأمامية بإحداثيات المشهد (الرسم الجانبي، بلا تنفس): لتضع اللقطات شيئًا في الكف أو تنقله
+ * من يد إلى يد دون تقدير. الحساب نفسه الذي يرسم به Figure ذراعه.
+ */
+export const frontHand = (pose: PoseSpec, x: number, y: number, scale = 1, flip = false): [number, number] => {
+  const drop = (l: Limb) => THIGH * Math.cos(rad(l.s)) + SHIN * Math.cos(rad(l.s - l.e));
+  const hipY = -Math.max(drop(pose.legBack), drop(pose.legFront)) - 6;
+  const shY = hipY - TORSO;
+  const sh = rot(0, shY + 8, 0, hipY, pose.lean);
+  const e = step(sh[0], sh[1], UPPER, pose.armFront.s + pose.lean * 0.6);
+  const h = step(e[0], e[1], FORE, pose.armFront.s + pose.armFront.e + pose.lean * 0.6);
+  return [x + (flip ? -1 : 1) * scale * h[0], y + scale * h[1]];
 };
 
 export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LOOKS.hero, flip = false, opacity = 1, shadow = true, rim = 0, rimColor = ID.dawn, holding = "none", frame = 0, silhouette, shade = 1, facing, sway = 0, view = 0 }) => {
@@ -453,6 +472,14 @@ export const Figure: React.FC<FigureProps> = ({ x, y, scale = 1, pose, look = LO
             ))}
           </g>
         );
+      case "three-coins":
+        return sil ? null : <ThreeCoins x={hx + 10} y={hy2 - 4} r={6.5} tilt={0.6} />;
+      case "envelope":
+        return sil ? null : <Envelope x={hx + 12} y={hy2 - 10} w={40} rot={-10} />;
+      case "envelope-open":
+        return sil ? null : <Envelope x={hx + 12} y={hy2 - 10} w={40} rot={-10} open={1} />;
+      case "leaf":
+        return sil ? null : <TornLeaf x={hx + 26} y={hy2 + 2} s={0.34} rot={-12} claws="faint" />;
       case "book":
         return (
           <g transform={`rotate(-10 ${hx} ${hy2})`}>

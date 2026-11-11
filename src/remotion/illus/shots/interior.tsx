@@ -242,7 +242,8 @@ export const Chair: React.FC<{ x: number; flip?: boolean }> = ({ x, flip = false
 );
 
 /** ورشة نجارة: لوح أدوات، ألواح خشب، منضدة، وكرسي قيد الصنع */
-export const Workshop: React.FC<{ frame: number; chairTilt?: number }> = ({ frame, chairTilt = 0 }) => {
+/** benchChair: الكرسي الصغير قيد الصنع على المنضدة (لا يُرسم حين يكون في المشهد كرسي كامل على الأرض) */
+export const Workshop: React.FC<{ frame: number; chairTilt?: number; benchChair?: boolean }> = ({ frame, chairTilt = 0, benchChair = true }) => {
   const wall = mix(mix(ID.copper, ID.paper, 0.3), ID.night, 0.18);
   const floor = mix(darken(ID.copper, 0.38), ID.paper, 0.05);
   const wood = darken(ID.copper, 0.35);
@@ -276,12 +277,14 @@ export const Workshop: React.FC<{ frame: number; chairTilt?: number }> = ({ fram
       <rect x={1438} y={GROUND - 186} width={22} height={186} fill={wood} />
       {/* كرسي قيد الصنع: ساق قصيرة فيميل. يرتكز على المنضدة بساقه الطويلة (محور الميل عند قدمها)
           وتبقى القصيرة معلّقة قليلًا فوق السطح، فلا يطفو الكرسي فوق المنضدة */}
+      {benchChair ? (
       <g transform={`rotate(${chairTilt} 1195 ${GROUND - 210})`}>
         <rect x={1180} y={GROUND - 330} width={140} height={14} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2.4} />
         <rect x={1190} y={GROUND - 316} width={10} height={106} fill={lighten(wood, 0.15)} />
         <rect x={1300} y={GROUND - 316} width={10} height={92} fill={lighten(wood, 0.15)} />
         <rect x={1180} y={GROUND - 470} width={12} height={140} fill={lighten(wood, 0.2)} stroke={INK} strokeWidth={2} />
       </g>
+      ) : null}
       <LightPool cx={1300} cy={GROUND + 40} rx={600} ry={80} color={ID.dawn} opacity={0.4} />
       {/* نشارة خشب تتطاير ببطء في شعاع الشمس */}
       {Array.from({ length: 16 }, (_, i) => {

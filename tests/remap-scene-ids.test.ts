@@ -71,7 +71,8 @@ describe("remapLocalVoice", () => {
 
 describe("خرائط المعرّفات المحفوظة للحلقات 001", () => {
   const eps = [
-    ["channels/balislam/episodes/001-know-the-truth", "versions/2026-11-11-574ec242-headings"],
+    // بالإسلام 001: الخطة تطورت بعد النقل بالتصميم (الأمر 032، لقطات القصة)؛ نسخة الخطة لحظة النقل محفوظة قبله وهي ما يُقارن
+    ["channels/balislam/episodes/001-know-the-truth", "versions/2026-11-11-574ec242-headings", "versions/2026-11-11-a9f06f6d-pre-032/plan.json"],
     ["channels/zubdat-alkutub/episodes/001-awwal-marra-osalli", "versions/2026-11-11-cfed78ed-headings"],
     // دفاتر الزمن: الخطة بعد إعادة الربط محفوظة plan.v9.1.json؛ الأمر 031 غيّر بعدها نص مشهدين وأضاف c1-s48
     ["channels/dafatir-alzaman/episodes/001-adam-beginning", "versions/2026-11-11-4a9cc3b0-sections", "plan.v9.1.json"],

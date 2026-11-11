@@ -8,6 +8,7 @@ import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow 
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, PhonePOV } from "./phone";
+import { EP001_SHOTS, type ShotSpan } from "./ep001";
 
 /**
  * اللقطات المصمَّمة: كل لقطة تحكي جملتها بمكانها وشخوصها وكاميرتها، وأحداثها تقع لحظة نطق كلماتها.
@@ -16,8 +17,12 @@ import { BuzzArcs, PhonePOV } from "./phone";
  * ثم البطل نفسه في يومه: ما يؤثر فيه، وخبر يصدقه، ونصيحة يرفضها، وقرار يدافع عنه، حتى فجر يراجع فيه نفسه.
  */
 /** overlay: طبقة بإحداثيات الشاشة فوق المشهد (لقطة «بعين البطل») */
-export type Shot = { cam: CamKey[]; world: React.ReactNode; tint?: string; tintOpacity?: number; overlay?: React.ReactNode };
-export type ShotDef = { nameAr: string; place: string; render: (c: ShotCtx) => Shot };
+export type Shot = { cam: CamKey[]; world: React.ReactNode; tint?: string; tintOpacity?: number; overlay?: React.ReactNode; spans?: ShotSpan[] };
+/**
+ * seq: لقطة ممتدة عبر مشاهد متتالية (القصة نفسها في المكان نفسه): تُقطع بلا إظلام، ويبدأ كل مشهد من حالة نهاية سابقه.
+ * المعرّفات والنصوص كما هي، والامتداد بصري فقط (الأمر 032).
+ */
+export type ShotDef = { nameAr: string; place: string; seq?: string; render: (c: ShotCtx) => Shot };
 
 const hero = LOOKS.hero;
 /** تأطير مشهد جلوس: مركز الإطار عند الصدر والطاولة، فلا يضيع الجالس أسفل إطار نصفه جدار */
@@ -620,6 +625,9 @@ export const SHOTS: Record<string, ShotDef> = {
     },
   },
 };
+
+// لقطات قصة الحلقة 001 المعتمدة تصميمًا (القرار 031، الأمر 032)
+Object.assign(SHOTS, EP001_SHOTS);
 
 export const SHOT_IDS = Object.keys(SHOTS);
 

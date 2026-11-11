@@ -37,7 +37,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": "witnesses | شخصان"
+            "cues": "witnesses | شخصان",
+            "shot": "ep001-scale-weigh"
           },
           "id": "c1-s2",
           "sfx": [],
@@ -55,7 +56,8 @@
             "poses": "stand,stand",
             "look": "hero",
             "cast": "witnesses",
-            "cues": "wrong | ظلم"
+            "cues": "wrong | ظلم",
+            "shot": "ep001-scale-witness1"
           },
           "id": "c1-s3",
           "sfx": [],
@@ -73,7 +75,8 @@
             "poses": "stand,nod",
             "look": "hero",
             "cast": "witnesses",
-            "cues": "just | عدل"
+            "cues": "just | عدل",
+            "shot": "ep001-scale-witness2"
           },
           "id": "c1-s4",
           "sfx": [],
@@ -91,7 +94,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "witnesses",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-scale-verdicts"
           },
           "id": "c1-s5",
           "sfx": [],
@@ -703,7 +707,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-found"
           },
           "id": "c1-s39",
           "sfx": [],
@@ -721,7 +726,8 @@
             "poses": "sit-low,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-leaf"
           },
           "id": "c1-s40",
           "sfx": [],
@@ -739,7 +745,8 @@
             "poses": "point,talk",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-accuse"
           },
           "id": "c1-s41",
           "sfx": [],
@@ -757,7 +764,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-denies"
           },
           "id": "c1-s42",
           "sfx": [],
@@ -775,7 +783,8 @@
             "poses": "cross",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-not-ready"
           },
           "id": "c1-s43",
           "sfx": [],
@@ -793,7 +802,8 @@
             "poses": "cross,stand",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-waits"
           },
           "id": "c1-s44",
           "sfx": [],
@@ -811,7 +821,8 @@
             "poses": "talk,point",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-demand"
           },
           "id": "c1-s45",
           "sfx": [],
@@ -829,7 +840,8 @@
             "poses": "hold",
             "look": "hero",
             "cast": "companion",
-            "cues": "money | المال"
+            "cues": "",
+            "shot": "ep001-home-gives"
           },
           "id": "c1-s46",
           "sfx": [],
@@ -847,7 +859,8 @@
             "poses": "stand,look-up",
             "look": "hero",
             "cast": "",
-            "cues": "truth | الحقيقة"
+            "cues": "truth | الحقيقة",
+            "shot": "ep001-home-brother-leaves"
           },
           "id": "c1-s47",
           "sfx": [],
@@ -865,7 +878,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-cat-hook"
           },
           "id": "c1-s48",
           "sfx": [],
@@ -883,7 +897,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-cat-rip"
           },
           "id": "c1-s49",
           "sfx": [],
@@ -901,7 +916,8 @@
             "poses": "stand,head-down",
             "look": "hero",
             "cast": "",
-            "cues": "money | المال"
+            "cues": "",
+            "shot": "ep001-home-stops"
           },
           "id": "c1-s50",
           "sfx": [],
@@ -919,7 +935,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-test"
           },
           "id": "c1-s51",
           "sfx": [],
@@ -937,7 +954,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-question-who"
           },
           "id": "c1-s52",
           "sfx": [],
@@ -955,7 +973,8 @@
             "poses": "think,head-down",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-question-now"
           },
           "id": "c1-s53",
           "sfx": [],
@@ -973,7 +992,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-could"
           },
           "id": "c1-s54",
           "sfx": [],
@@ -991,7 +1011,8 @@
             "poses": "hold,turn-away",
             "look": "hero",
             "cast": "",
-            "cues": "money | القطع"
+            "cues": "",
+            "shot": "ep001-home-envelope"
           },
           "id": "c1-s55",
           "sfx": [],
@@ -1009,7 +1030,8 @@
             "poses": "turn-away",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-later"
           },
           "id": "c1-s56",
           "sfx": [],
@@ -1027,7 +1049,8 @@
             "poses": "think,head-down",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-why"
           },
           "id": "c1-s57",
           "sfx": [],
@@ -1399,7 +1422,8 @@
             "poses": "hold,think",
             "look": "hero",
             "cast": "",
-            "cues": "money | القطع"
+            "cues": "",
+            "shot": "ep001-home-envelope-explains"
           },
           "id": "c1-s78",
           "sfx": [],
@@ -1417,7 +1441,8 @@
             "poses": "hold,head-down",
             "look": "hero",
             "cast": "",
-            "cues": "money | المال"
+            "cues": "",
+            "shot": "ep001-home-knows-must-return"
           },
           "id": "c1-s79",
           "sfx": [],
@@ -1520,10 +1545,10 @@
             "mood": "predawn",
             "moodTo": "",
             "camera": "drift",
-            "poses": "hold",
+            "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": "money | المال"
+            "cues": ""
           },
           "id": "c1-s85",
           "sfx": [],
@@ -1592,10 +1617,10 @@
             "mood": "predawn",
             "moodTo": "",
             "camera": "drift",
-            "poses": "hold,think",
+            "poses": "think,nod",
             "look": "hero",
             "cast": "",
-            "cues": "money | المال"
+            "cues": ""
           },
           "id": "c1-s89",
           "sfx": [],
@@ -1631,7 +1656,8 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-chair-finished"
           },
           "id": "c1-s91",
           "sfx": [],
@@ -1649,7 +1675,8 @@
             "poses": "stand,nod",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-chair-beautiful"
           },
           "id": "c1-s92",
           "sfx": [],
@@ -1667,7 +1694,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-chair-rocks"
           },
           "id": "c1-s93",
           "sfx": [],
@@ -1685,7 +1713,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-chair-could-hide"
           },
           "id": "c1-s94",
           "sfx": [],
@@ -1703,7 +1732,8 @@
             "poses": "nod",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-chair-admits"
           },
           "id": "c1-s95",
           "sfx": [],
@@ -1721,7 +1751,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-chair-value"
           },
           "id": "c1-s96",
           "sfx": [],
@@ -1739,7 +1770,8 @@
             "poses": "look-up,nod",
             "look": "hero",
             "cast": "",
-            "cues": "truth | حقيقته"
+            "cues": "truth | حقيقته",
+            "shot": "ep001-chair-first-fix"
           },
           "id": "c1-s97",
           "sfx": [],
@@ -1883,7 +1915,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-no-new-evidence"
           },
           "id": "c1-s105",
           "sfx": [],
@@ -1901,7 +1934,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": "just | بالعدل\npeople | الآخرين"
+            "cues": "just | بالعدل\npeople | الآخرين",
+            "shot": "ep001-home-same-justice"
           },
           "id": "c1-s106",
           "sfx": [],
@@ -1919,7 +1953,8 @@
             "poses": "hold,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-home-envelope-still"
           },
           "id": "c1-s107",
           "sfx": [],
@@ -1955,7 +1990,8 @@
             "poses": "walk",
             "look": "hero",
             "cast": "",
-            "cues": "door | باب"
+            "cues": "door | باب",
+            "shot": "ep001-door-pass"
           },
           "id": "c1-s109",
           "sfx": [],
@@ -1973,7 +2009,8 @@
             "poses": "stand,walk",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-door-pause"
           },
           "id": "c1-s110",
           "sfx": [],
@@ -1991,7 +2028,8 @@
             "poses": "head-down,walk",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-door-postpones"
           },
           "id": "c1-s111",
           "sfx": [],
@@ -2046,7 +2084,8 @@
             "poses": "stand,look-up",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-cafe-message"
           },
           "id": "c1-s114",
           "sfx": [],
@@ -2064,7 +2103,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-cafe-cropped"
           },
           "id": "c1-s115",
           "sfx": [],
@@ -2083,7 +2123,7 @@
             "look": "hero",
             "cast": "",
             "cues": "news | الخبر",
-            "shot": "cafe-news-agrees"
+            "shot": "ep001-cafe-agrees"
           },
           "id": "c1-s116",
           "sfx": [],
@@ -2101,7 +2141,8 @@
             "poses": "hold,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-cafe-almost-sends"
           },
           "id": "c1-s117",
           "sfx": [],
@@ -2119,7 +2160,8 @@
             "poses": "hold,think,nod",
             "look": "hero",
             "cast": "",
-            "cues": "news | الخبر\nverify | وراجع"
+            "cues": "news | الخبر\nverify | وراجع",
+            "shot": "ep001-cafe-original"
           },
           "id": "c1-s118",
           "sfx": [],
@@ -2137,7 +2179,8 @@
             "poses": "think,head-down",
             "look": "hero",
             "cast": "",
-            "cues": "wrong | الخطأ"
+            "cues": "wrong | الخطأ",
+            "shot": "ep001-cafe-context"
           },
           "id": "c1-s119",
           "sfx": [],
@@ -2241,7 +2284,8 @@
             "poses": "sit,sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-night-alone"
           },
           "id": "c1-s125",
           "sfx": [],
@@ -2259,7 +2303,8 @@
             "poses": "sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-night-question"
           },
           "id": "c1-s126",
           "sfx": [],
@@ -2277,7 +2322,8 @@
             "poses": "sit,look-up",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-night-q1"
           },
           "id": "c1-s127",
           "sfx": [],
@@ -2295,7 +2341,8 @@
             "poses": "sit,head-down",
             "look": "hero",
             "cast": "",
-            "cues": "wrong | مخطئًا"
+            "cues": "wrong | مخطئًا",
+            "shot": "ep001-night-q2"
           },
           "id": "c1-s128",
           "sfx": [],
@@ -2313,7 +2360,8 @@
             "poses": "sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-night-q3"
           },
           "id": "c1-s129",
           "sfx": [],
@@ -2331,7 +2379,8 @@
             "poses": "sit,head-down",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-night-q4"
           },
           "id": "c1-s130",
           "sfx": [],
@@ -2349,7 +2398,8 @@
             "poses": "sit,think",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-night-battle"
           },
           "id": "c1-s131",
           "sfx": [],
@@ -2367,7 +2417,8 @@
             "poses": "think,look-up",
             "look": "hero",
             "cast": "",
-            "cues": "people | الآخرين"
+            "cues": "people | الآخرين",
+            "shot": "ep001-night-image"
           },
           "id": "c1-s132",
           "sfx": [],
@@ -2404,7 +2455,8 @@
             "poses": "walk,stand",
             "look": "hero",
             "cast": "",
-            "cues": "door | باب"
+            "cues": "door | باب",
+            "shot": "ep001-return-arrives"
           },
           "id": "c1-s134",
           "sfx": [],
@@ -2422,7 +2474,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "",
-            "cues": "door | الباب"
+            "cues": "door | الباب",
+            "shot": "ep001-return-knocks"
           },
           "id": "c1-s135",
           "sfx": [],
@@ -2440,7 +2493,8 @@
             "poses": "hold",
             "look": "hero",
             "cast": "companion",
-            "cues": "money | النقدية"
+            "cues": "",
+            "shot": "ep001-return-coins"
           },
           "id": "c1-s136",
           "sfx": [],
@@ -2458,7 +2512,8 @@
             "poses": "apologize,head-down",
             "look": "hero",
             "cast": "companion",
-            "cues": "wrong | أخطأت\napologize | وأعتذر"
+            "cues": "wrong | أخطأت\napologize | وأعتذر",
+            "shot": "ep001-return-apology"
           },
           "id": "c1-s137",
           "sfx": [],
@@ -2476,7 +2531,8 @@
             "poses": "apologize,stand",
             "look": "hero",
             "cast": "companion",
-            "cues": "apologize | الاعتذار"
+            "cues": "apologize | الاعتذار",
+            "shot": "ep001-return-not-easy"
           },
           "id": "c1-s138",
           "sfx": [],
@@ -2494,7 +2550,8 @@
             "poses": "stand,nod",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-return-changed"
           },
           "id": "c1-s139",
           "sfx": [],
@@ -2548,7 +2605,8 @@
             "poses": "listen",
             "look": "hero",
             "cast": "companion",
-            "cues": "listen | يستمع"
+            "cues": "listen | يستمع",
+            "shot": "ep001-listen-sits"
           },
           "id": "c1-s142",
           "sfx": [],
@@ -2566,7 +2624,8 @@
             "poses": "listen,nod",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-listen-no-interrupt"
           },
           "id": "c1-s143",
           "sfx": [],
@@ -2584,7 +2643,8 @@
             "poses": "listen",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-listen-no-reply"
           },
           "id": "c1-s144",
           "sfx": [],
@@ -2602,7 +2662,8 @@
             "poses": "listen,head-down",
             "look": "hero",
             "cast": "companion",
-            "cues": "wrong | ظلمًا"
+            "cues": "wrong | ظلمًا",
+            "shot": "ep001-listen-feeling"
           },
           "id": "c1-s145",
           "sfx": [],
@@ -2620,7 +2681,8 @@
             "poses": "listen,nod",
             "look": "hero",
             "cast": "companion",
-            "cues": "listen | واستمع"
+            "cues": "listen | واستمع",
+            "shot": "ep001-listen-whole"
           },
           "id": "c1-s146",
           "sfx": [],
@@ -2638,7 +2700,8 @@
             "poses": "nod,look-up",
             "look": "hero",
             "cast": "companion",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-listen-not-weakness"
           },
           "id": "c1-s147",
           "sfx": [],
@@ -2656,7 +2719,8 @@
             "poses": "stand,think",
             "look": "hero",
             "cast": "witnesses",
-            "cues": "witnesses | الشاهدين\njust | عادلًا"
+            "cues": "witnesses | الشاهدين\njust | عادلًا",
+            "shot": "ep001-scale-recall-1"
           },
           "id": "c1-s148",
           "sfx": [],
@@ -2674,7 +2738,8 @@
             "poses": "think",
             "look": "hero",
             "cast": "witnesses",
-            "cues": ""
+            "cues": "",
+            "shot": "ep001-scale-recall-2"
           },
           "id": "c1-s149",
           "sfx": [],
@@ -2692,7 +2757,8 @@
             "poses": "hold,think",
             "look": "hero",
             "cast": "",
-            "cues": "truth | الحقيقة\nevidence | والدليل"
+            "cues": "truth | الحقيقة\nevidence | والدليل",
+            "shot": "ep001-scale-recall-3"
           },
           "id": "c1-s150",
           "sfx": [],
