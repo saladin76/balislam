@@ -236,30 +236,37 @@ describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى
   });
 });
 
-describe("خريطة الأداء الصوتي — الإصدار الحالي v1.4 (النبرات قوية ورزينة، ١١ نوفمبر، D70)", () => {
+describe("خريطة الأداء الصوتي — الإصدار الحالي v1.5 (أُلغيت النبرات القوية D70، ١١ نوفمبر)", () => {
   type Labeled = Map & { legend: { tones: Record<string, string> }; previous: { version: string; path: string }[]; changelog: { from: string; to: string; source?: string }[];
     citations?: unknown[]; source: Record<string, unknown> };
   const live = JSON.parse(read("tone-map.json")) as Labeled;
+  const v14 = JSON.parse(read("tone-map.v1.4.json")) as Labeled;
   const v13 = cur as unknown as Labeled;
-  it("v1.4 = v1.3 مع أسماء النبرات وحدها؛ المقاطع والأجزاء والحدود والمراجع والبصمات كما هي، وv1.3 محفوظة", () => {
-    expect(live.version).toBe("v1.4");
+  it("v1.4 محفوظة كما كانت (أسماء D70)، وv1.5 = v1.4 بأسماء v1.3؛ المقاطع والأجزاء والحدود والمراجع والبصمات كما هي", () => {
+    expect(v14.version).toBe("v1.4");
+    expect(v14.legend.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
+    expect(live.version).toBe("v1.5");
     expect(live.approved).toBe(false);
     expect(v13.version).toBe("v1.3");
-    for (const k of ["segments", "audioParts", "sceneTones", "boundaries", "citations", "recitations", "decisions"] as const)
-      expect((live as Record<string, unknown>)[k], k).toEqual((v13 as Record<string, unknown>)[k]);
-    // البصمات: التشكيل والسكريبت كما في v1.3، والخطة بعد وسم c5-s6 (props.ref وحده، والنص كما هو)
+    for (const k of ["segments", "audioParts", "sceneTones", "boundaries", "citations", "recitations", "decisions", "source"] as const) {
+      expect((live as Record<string, unknown>)[k], k).toEqual((v14 as Record<string, unknown>)[k]);
+      if (k !== "source") expect((live as Record<string, unknown>)[k], k).toEqual((v13 as Record<string, unknown>)[k]);
+    }
+    // البصمات: التشكيل والسكريبت كما في v1.3، والخطة الحالية (بعد وسم c5-s6، props.ref وحده)
     const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
     const src = live.source as Record<string, { sha256: string }>;
     const src13 = v13.source as Record<string, { sha256: string }>;
     expect(src.tashkeel).toEqual(src13.tashkeel);
     expect(src.script).toEqual(src13.script);
     expect(src.plan!.sha256).toBe(sha("plan.json"));
-    expect(live.legend.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
-    expect(Object.values(live.legend.tones).join(" ")).not.toMatch(/هادئ|ناعم|هامس|دافئ/);
+    // أسماء v1.3 حرفًا، وهي أسماء النبرات الحالية في src/voice/tones.ts (إلا «قريب هادئ» اسم الخريطة لنبرة intimate)
+    expect(live.legend.tones).toEqual(v13.legend.tones);
+    expect(live.legend.tones).toEqual({ calm: "هادئ تأملي", documentary: "وثائقي رصين", warm: "حكّاء دافئ", intimate: "قريب هادئ" });
     for (const t of Object.keys(live.legend.tones)) expect(isTone(t)).toBe(true);
-    expect(live.previous.map((x) => x.version)).toEqual(["v1", "v1.1", "v1.2", "v1.3"]);
-    expect(live.previous.at(-1)).toEqual({ version: "v1.3", path: "tone-map.v1.3.json" });
-    expect(live.changelog.slice(0, -1)).toEqual(v13.changelog);
-    expect(live.changelog.at(-1)).toMatchObject({ from: "v1.3", to: "v1.4", source: "strong-voice" });
+    expect(live.previous.map((x) => x.version)).toEqual(["v1", "v1.1", "v1.2", "v1.3", "v1.4"]);
+    expect(live.previous.at(-1)).toEqual({ version: "v1.4", path: "tone-map.v1.4.json" });
+    expect(live.changelog.slice(0, -1)).toEqual(v14.changelog);
+    expect(v14.changelog.slice(0, -1)).toEqual(v13.changelog);
+    expect(live.changelog.at(-1)).toMatchObject({ from: "v1.4", to: "v1.5", source: "revert-strong-voice" });
   });
 });

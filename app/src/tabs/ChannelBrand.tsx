@@ -200,15 +200,12 @@ const EnginePanel: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>)
   );
 };
 
-/**
- * طبقات جاهزة: نقطة بداية لكل قناة، وتُضبط بالمنزلقات. كلها قوية ورزينة (قرار صاحب القناة ١١ نوفمبر)،
- * والنبرات فوقها تبقى في المدى القوي (src/voice/tones.ts ← STRONG_RANGE) مهما ضُبطت.
- */
+/** طبقات جاهزة: نقطة بداية لكل قناة، وتُضبط بالمنزلقات (كما كانت قبل D70 الملغى) */
 const REGISTERS: VoiceProfile[] = [
-  { nameAr: "وقور رزين", speed: 1, stability: 0.5, style: 0.04, direction: "grave, dignified and authoritative narration; firm, clear projection" },
-  { nameAr: "راوٍ وثائقي حازم", speed: 1, stability: 0.5, style: 0.06, direction: "commanding documentary storyteller narrating history; firm and grave" },
-  { nameAr: "واضح حازم", speed: 1, stability: 0.48, style: 0.08, direction: "clear, confident and authoritative explainer; firm, not rushed" },
-  { nameAr: "حكّاء رزين", speed: 0.98, stability: 0.48, style: 0.1, direction: "engaging storyteller, firm and grave, clear projection" },
+  { nameAr: "وقور هادئ", speed: 0.9, stability: 0.6, style: 0.08 },
+  { nameAr: "راوٍ وثائقي", speed: 0.95, stability: 0.5, style: 0.22 },
+  { nameAr: "سريع واضح", speed: 1.02, stability: 0.45, style: 0.28 },
+  { nameAr: "حكّاء قريب", speed: 0.94, stability: 0.45, style: 0.3 },
 ];
 const pct = (x: number) => `${num(Math.round(x * 100))}٪`;
 
@@ -239,7 +236,7 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
         <>
           <label className="field"><span>اسم الطبقة</span><input type="text" value={p.nameAr ?? ""} onChange={(e) => put({ ...p, nameAr: e.target.value })} /></label>
           {slider("speed", "السرعة", "أبطأ للتأمل، أسرع للخلاصات", 0.8, 1.1)}
-          {slider("stability", "الثبات", "أعلى = أثبت وأكثر اتساقًا، أقل = تلوين أكثر (النبرات تبقى بين ٤٠٪ و٥٥٪)", 0.3, 0.8)}
+          {slider("stability", "الثبات", "أعلى = أهدأ وأثبت، أقل = تلوين أكثر", 0.3, 0.8)}
           {slider("style", "التعبير", "أعلى = أداء أكثر حيوية (ومعه احتمال تذبذب أكبر)", 0, 0.5)}
         </>
       ) : null}
@@ -255,13 +252,13 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
                 <td>{num(v.speed, 2)}×</td>
                 <td>{pct(v.stability)}</td>
                 <td>{pct(v.style)}</td>
-                <td><button className="btn ghost small" disabled={play.busy} aria-label="استمع (يصرف رصيدًا من ElevenLabs، والعيّنة المحفوظة بلا رصيد)" title="عيّنة بالإعدادات الجديدة — يصرف رصيدًا (العيّنة المحفوظة بلا رصيد)" onClick={() => setPlay({ ...play, request: { tone: t, n: Date.now() } })}>{play.playing === (t ?? "base") ? "■" : "▶"}</button></td>
+                <td><button className="btn ghost small" disabled={play.busy} aria-label="استمع (يصرف رصيدًا من ElevenLabs، والعيّنة المحفوظة بلا رصيد)" title="عيّنة بإعدادات هذه النبرة — يصرف رصيدًا (العيّنة المحفوظة بلا رصيد)" onClick={() => setPlay({ ...play, request: { tone: t, n: Date.now() } })}>{play.playing === (t ?? "base") ? "■" : "▶"}</button></td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <span className="help">كل النبرات قوية ورزينة (قرار ١١ نوفمبر): السرعة والثبات والتعبير تبقى في المدى القوي، وجملة فيها ذكر الله أو دعاء تُؤدّى خاشعة حازمة بلا صياح. تغيير الطبقة يسري على التوليد القادم؛ والتسجيلات القائمة لا يُعاد شيء منها آليًا (ما وُلّد بالنبرة السابقة يُعاد بـ«أعد توليد الكل بالنبرة الجديدة» في «الجمل»).</span>
+      <span className="help">تغيير الطبقة يعيد توليد صوت المشاهد غير المنشورة عند التوليد التالي (المشاهد التي لم يتغير صوتها لا يُعاد توليدها). عادت النبرات كما كانت (أُلغي قرار النبرات القوية D70، ١١ نوفمبر)؛ وما وُلّد بالنبرة القوية صالح ولا يُعاد آليًا، ويُعاد بـ«أعد توليد ما وُلّد بالنبرة القوية» في «الجمل».</span>
     </div>
   );
 };

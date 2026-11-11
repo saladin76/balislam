@@ -21,7 +21,7 @@ import { TRIM_DEFAULTS, safeTrim, speechBounds } from "../remotion/dafatir/audio
 import { boundaryProblems, composeScene, renderBoundaries, type ComposedScene, type PartResult, type SeqItem } from "../remotion/dafatir/audio/compose";
 import { HZ_META, type HzExit } from "../remotion/dafatir/horizon/meta";
 import { normWord, stripTashkeel } from "./tashkeel";
-import { isTone } from "./tones";
+import { isSupersededVersion, isTone, TONE_PRESET_VERSION } from "./tones";
 
 export const PARTS_CHANNEL = "dafatir-alzaman";
 export const PARTS_SAMPLE_RATE = 44100;
@@ -205,12 +205,13 @@ export const composePartsIntoScenes = async (o: {
     const hash = createHash("sha1").update(JSON.stringify({ parts: c.parts.map((p) => [o.partsIndex[p.partId]!.hash, p.at, p.trimStart, p.trimEnd]), pre: b.pre })).digest("hex").slice(0, 16);
     const file = `${hash}.wav`;
     if (!existsSync(path.join(o.dir, file))) await writeFile(path.join(o.dir, file), encodeWav(mixScene(c, samples, PARTS_SAMPLE_RATE), PARTS_SAMPLE_RATE));
-    // إصدار النبرات للمشهد المركّب = أقدم إصدار بين أجزائه (غيابه = ١)
-    const presetVersion = Math.min(...c.parts.map((p) => o.partsIndex[p.partId]!.presetVersion ?? 1));
+    // إصدار النبرات للمشهد المركّب: إن كان بين أجزائه جزء بإصدار غير الحالي (النبرة القوية المُلغاة) فهو إصداره
+    // (غيابه = ١ = الحالي)
+    const presetVersion = c.parts.map((p) => o.partsIndex[p.partId]!.presetVersion ?? 1).find(isSupersededVersion) ?? TONE_PRESET_VERSION;
     o.index[id] = {
       file,
       hash,
-      ...(presetVersion > 1 ? { presetVersion } : {}),
+      ...(isSupersededVersion(presetVersion) ? { presetVersion } : {}),
       text: narration,
       duration: c.audioEnd,
       words,

@@ -6,23 +6,29 @@ import type { VoiceProfile } from "../channel/types";
  * الصوت النهائي = طبقة القناة (profile في channel.json) + فرق النبرة عن الحياد.
  * (مدى ElevenLabs: stability وstyle من 0 إلى 1، والسرعة 0.7–1.2)
  *
- * قرار صاحب القناة (١١ نوفمبر ٢٠٢٦): «الأصوات والنبرات كلها قوية ورزينة، لا ناعمة ولا هادئة، وفيها قوة تشد المتابع».
- * فالإصدار ٢ من النبرات (TONE_PRESET_VERSION) يجعل كل نبرة حازمة واضحة الإسقاط متأنية الإيقاع بلا همس، ويبقي
- * فروقها (التأملي أبطأ وأعمق لكنه حازم، والدرامي أقواها). المعرّفات القديمة كما هي (calm، intimate…) فكل خطة
- * وخريطة نبرة قائمة تُحل إلى الإعدادات الجديدة؛ وأُضيفت «grave» (قوي رزين) افتراضيًا للقنوات.
- *
- * إصدار النبرات خارج إعادة التوليد الآلية: التسجيل المولَّد بإعدادات إصدار سابق يبقى صالحًا (بصمته تُطابق ذلك
- * الإصدار، legacyVoiceSettings) ويظهر عليه «وُلّدت بالنبرة السابقة»، ولا يُعاد إلا بأمر المالك الصريح
- * «أعد توليد الكل بالنبرة الجديدة» (src/voice/toneUpgrade.ts). لا يُصرف رصيد بصمت لأن النبرات تغيّرت.
+ * أُلغي قرار النبرات القوية (D70) بطلب صاحب القناة (١١ نوفمبر، مساءً): «رجّع النبرات زي ما كانت قبل».
+ * فالإعدادات الحالية هي الإصدار ١ حرفًا (TONE_PRESETS_V1، والطبقات كما كانت)، وبصمة التسجيل بها هي البصمة
+ * قبل D70 نفسها؛ فكل ما وُلّد قبل D70 حالي بلا إعادة توليد. والإصدار ٢ (القوي) محفوظ حرفًا (TONE_PRESETS_V2،
+ * المدى القوي، التوقير) للبصمة وحدها: ما وُلّد به صالح، ويظهر عليه «وُلّدت بالنبرة القوية (المُلغاة)»، ولا يُعاد
+ * إلا بأمر المالك الصريح «أعد توليد ما وُلّد بالنبرة القوية» (src/voice/toneUpgrade.ts). لا يُرسل بالإصدار ٢ طلب أبدًا.
  */
-export type Tone = "grave" | "calm" | "warm" | "documentary" | "dramatic" | "energetic" | "intimate";
+export type Tone = "calm" | "warm" | "documentary" | "dramatic" | "energetic" | "intimate" | "grave";
+/** النبرات التي تُختار في الواجهة (كما كانت قبل D70) */
+export type SelectableTone = Exclude<Tone, "grave">;
 export type TonePreset = { nameAr: string; useAr: string; stability: number; style: number; speed: number; /** أمر الأداء للنماذج الحديثة (v3/v4) */ direction: string };
 
-/** إصدار إعدادات النبرات الحالي. يُرفع عند تغيير أرقامها، ويُحفظ ما قبله في TONE_PRESETS_V1… */
-export const TONE_PRESET_VERSION = 2;
+/**
+ * إصدار إعدادات النبرات الحالي: ١ (عاد بعد إلغاء D70). الإصدار ٢ (القوي) سابق مُلغى.
+ * المقطع بلا presetVersion = الإصدار ١.
+ */
+export const TONE_PRESET_VERSION = 1;
+/** إصدار النبرات القوية المُلغاة (D70) */
+export const STRONG_PRESET_VERSION = 2;
+/** تسجيل بإصدار غير الحالي (أي بالنبرة القوية المُلغاة) */
+export const isSupersededVersion = (v?: number): boolean => (v ?? 1) !== TONE_PRESET_VERSION;
 
-/** الإصدار ١ (قبل ١١ نوفمبر) كما كان حرفًا: مرجع بصمة التسجيلات القديمة وحدها، ولا يُرسل به طلب جديد. */
-export const TONE_PRESETS_V1: Record<Exclude<Tone, "grave">, TonePreset> = {
+/** الإصدار ١ (قبل D70، والحالي بعد إلغائه) كما كان حرفًا. */
+export const TONE_PRESETS_V1: Record<SelectableTone, TonePreset> = {
   calm: { nameAr: "هادئ تأملي", useAr: "الحلقات الإيمانية والتأمل", stability: 0.65, style: 0.05, speed: 0.95, direction: "calm, reflective" },
   warm: { nameAr: "حكّاء دافئ", useAr: "القصص والحياة اليومية", stability: 0.45, style: 0.25, speed: 1.0, direction: "warm storytelling" },
   documentary: { nameAr: "وثائقي رصين", useAr: "التاريخ والمعلومات", stability: 0.6, style: 0.15, speed: 0.98, direction: "measured documentary narration" },
@@ -31,45 +37,20 @@ export const TONE_PRESETS_V1: Record<Exclude<Tone, "grave">, TonePreset> = {
   intimate: { nameAr: "قريب وهامس", useAr: "الأسئلة الشخصية والمواقف المؤثرة", stability: 0.55, style: 0.3, speed: 0.92, direction: "soft, intimate, close to the listener" },
 };
 
-/** الإصدار ٢ (١١ نوفمبر): كل النبرات قوية ورزينة. */
-export const tones: Record<Tone, TonePreset> = {
-  grave: { nameAr: "قوي رزين", useAr: "الافتراضي لكل القنوات: حضور قوي يشد المتابع", stability: 0.46, style: 0.3, speed: 0.98,
-    direction: "strong, grave and authoritative narration; firm projection, deliberate pace, commands attention" },
-  calm: { nameAr: "تأمّلي رزين", useAr: "الحلقات الإيمانية والتأمل: أبطأ وأعمق، وحازم", stability: 0.54, style: 0.18, speed: 0.95,
-    direction: "grave and reflective, deep steady voice, firm and deliberate; no whisper, no breathiness" },
-  warm: { nameAr: "حكّاء رزين", useAr: "القصص والحياة اليومية", stability: 0.48, style: 0.26, speed: 0.99,
-    direction: "engaging storyteller, firm and grave, clear projection, confident" },
-  documentary: { nameAr: "وثائقي حازم", useAr: "التاريخ والمعلومات", stability: 0.5, style: 0.24, speed: 0.99,
-    direction: "authoritative documentary narration, firm, measured and clear" },
-  dramatic: { nameAr: "درامي قوي", useAr: "لحظات الذروة والمعارك والقرارات (أقوى النبرات)", stability: 0.42, style: 0.4, speed: 0.97,
-    direction: "powerful and intense, commanding, strong projection, deliberate weight on every phrase" },
-  energetic: { nameAr: "حماسي حازم", useAr: "الخطافات والشورتس والدعوة للاشتراك", stability: 0.44, style: 0.34, speed: 1.02,
-    direction: "energetic yet grave, confident and attention-grabbing, firm, not rushed" },
-  intimate: { nameAr: "قريب رزين", useAr: "الأسئلة الشخصية والمواقف المؤثرة: مباشر للمتابع، بلا همس", stability: 0.5, style: 0.24, speed: 0.96,
-    direction: "direct and close to the listener, firm and grave, clear full voice, no whisper" },
-};
-export const toneIds = Object.keys(tones) as Tone[];
+/**
+ * «grave» (قوي رزين) وُلد مع D70 ولا مقابل له قبله؛ فيبقى معرّفًا صالحًا للخطط والسلاسل التي حفظته، ويُحل إلى
+ * أقرب ما كان قبل D70: نبرة القناة الافتراضية = طبقة القناة وحدها بلا فرق نبرة. لا يظهر في قوائم الاختيار.
+ */
+const GRAVE_ALIAS: TonePreset = { nameAr: "طبقة القناة وحدها", useAr: "المعرّف القديم «قوي رزين» (D70 المُلغى): صوت القناة بطبقتها بلا فرق نبرة",
+  stability: 0.5, style: 0, speed: 1, direction: "" };
+
+/** النبرات الحالية: الإصدار ١ حرفًا، ومعها المعرّف القديم grave */
+export const tones: Record<Tone, TonePreset> = { ...TONE_PRESETS_V1, grave: GRAVE_ALIAS };
+/** ما يُختار في الواجهة: النبرات الست كما كانت قبل D70 */
+export const toneIds = Object.keys(TONE_PRESETS_V1) as SelectableTone[];
+/** كل المعرّفات المقبولة في الخطط والسلاسل (ومنها grave القديم) */
+export const allToneIds = Object.keys(tones) as Tone[];
 export const isTone = (t: unknown): t is Tone => typeof t === "string" && t in tones;
-/** النبرة الافتراضية للقنوات والحلقات الجديدة (channel.json ← voice.tone) */
-export const DEFAULT_TONE: Tone = "grave";
-
-/**
- * «المدى القوي» الذي تبقى فيه كل نبرة في الإصدار ٢ مهما كانت طبقة القناة: ثبات معتدل (متسق بلا رتابة)،
- * وتعبير واضح في حد آمن، وإيقاع متأنٍّ غير متعجل. (التشابه 0.8 وتعزيز المتحدث من config.voice، ثابتان.)
- */
-export const STRONG_RANGE = { stability: [0.4, 0.55], style: [0.15, 0.5], speed: [0.94, 1.0] } as const;
-
-/**
- * التوقير: جملة فيها ذكر الله أو دعاء تُؤدّى رزينة خاشعة حازمة، بلا صياح ولا تفخيم (لا تعبير عالٍ ولا سرعة).
- * الكشف بالكلمات نفسها التي يستثنيها السكون المقصود (src/render/stillness.ts ← SACRED_WORD) بعد حذف التشكيل.
- */
-const SACRED = new Set(["الله", "لله", "اللهم", "ربنا", "ربه", "ربك", "ربي", "ربهم", "سبحانه", "سبحان", "تعالى"]);
-/** بالكلمة كاملة (لا «اللهجة» ولا «العربي»)، مع سابقة واحدة من و ف ب ك ل («والله»، «بالله»، «فلله») */
-export const isReverent = (text?: string): boolean =>
-  Boolean(text && text.replace(/[ً-ٰٟـ]/g, "").replace(/[إأآٱ]/g, "ا").split(/[\s«»"“”'()؟?!.,،:؛…\-]+/)
-    .some((w) => SACRED.has(w) || (/^[وفبكل]/.test(w) && SACRED.has(w.slice(1)))));
-export const REVERENT = { stabilityMin: 0.52, styleMax: 0.22, speedMax: 0.96,
-  direction: "grave, reverent and firm; dignified and measured, steady full voice, never shouting" } as const;
 
 /**
  * النبرة الفعلية لمقطع: نبرة المشهد إن حُددت، وإلا نبرة الحلقة، وإلا نبرة القناة.
@@ -94,55 +75,88 @@ const r2 = (x: number) => Math.round(x * 100) / 100;
 export type ToneTune = { stability: number; style: number; speed: number; direction?: string };
 
 /**
- * إعدادات الصوت النهائية لمشهد (الإصدار الحالي): طبقة القناة ثم النبرة فوقها، ثم المدى القوي، ثم التوقير
- * إن كان في النص ذكر لله أو دعاء. النبرة تحرّك الثبات والتعبير بفرقها عن الحياد، وتضرب السرعة في نسبتها.
- * بلا نبرة ولا طبقة: لا إعدادات (الطلب بإعدادات config.voice كما كان).
+ * إعدادات الصوت النهائية لمشهد (الإصدار ١، كما كانت قبل D70 حرفًا: الترتيب نفسه والتقريب نفسه، فالبصمة نفسها):
+ * طبقة القناة ثم النبرة فوقها. النبرة تحرّك الثبات والتعبير بفرقها عن الحياد، وتضرب السرعة في نسبتها؛
+ * فتبقى كل قناة على طبقتها والنبرة تلوّنها (الحماسي في زبدة الكتب أسرع من الحماسي في بالإسلام).
+ * grave = بلا فرق نبرة (طبقة القناة وحدها). لا مدى قوي ولا تعديل توقير (لم يكونا قبل D70).
  */
-export const voiceSettingsFor = (profile?: VoiceProfile, tone?: Tone, opts: { text?: string } = {}): ToneTune | undefined => {
-  if (!profile && !tone) return undefined;
+export const voiceSettingsFor = (profile?: VoiceProfile, tone?: Tone): ToneTune | undefined => {
+  const tn = tone === "grave" ? undefined : tone;
+  if (!profile && !tn) return undefined;
   const base = profile ?? NEUTRAL;
-  const t = tone ? tones[tone] : null;
-  let stability = clamp(base.stability + (t ? t.stability - 0.5 : 0), STRONG_RANGE.stability[0], STRONG_RANGE.stability[1]);
-  let style = clamp(base.style + (t ? t.style : 0), STRONG_RANGE.style[0], STRONG_RANGE.style[1]);
-  let speed = clamp((profile ? profile.speed : NEUTRAL.speed) * (t ? t.speed : 1), STRONG_RANGE.speed[0], STRONG_RANGE.speed[1]);
-  let direction = t?.direction ?? profile?.direction;
-  if (isReverent(opts.text)) {
-    stability = Math.max(stability, REVERENT.stabilityMin);
-    style = Math.min(style, REVERENT.styleMax);
-    speed = Math.min(speed, REVERENT.speedMax);
-    direction = REVERENT.direction;
+  const t = tn ? TONE_PRESETS_V1[tn] : null;
+  return {
+    stability: r2(clamp(base.stability + (t ? t.stability - 0.5 : 0), 0, 1)),
+    style: r2(clamp(base.style + (t ? t.style : 0), 0, 1)),
+    speed: r2(clamp((profile ? profile.speed : NEUTRAL.speed) * (t ? t.speed : 1), 0.7, 1.2)),
+    // أمر الأداء: نبرة الحلقة، وإلا طبقة القناة
+    ...((t?.direction ?? profile?.direction) ? { direction: t?.direction ?? profile?.direction } : {}),
+  };
+};
+
+// ───────────── الإصدار ٢ (النبرات القوية، D70، المُلغى): للبصمة وحدها، لا يُرسل به طلب أبدًا ─────────────
+
+/** الإصدار ٢ كما كان حرفًا */
+export const TONE_PRESETS_V2: Record<Tone, TonePreset> = {
+  grave: { nameAr: "قوي رزين", useAr: "الافتراضي لكل القنوات: حضور قوي يشد المتابع", stability: 0.46, style: 0.3, speed: 0.98,
+    direction: "strong, grave and authoritative narration; firm projection, deliberate pace, commands attention" },
+  calm: { nameAr: "تأمّلي رزين", useAr: "الحلقات الإيمانية والتأمل: أبطأ وأعمق، وحازم", stability: 0.54, style: 0.18, speed: 0.95,
+    direction: "grave and reflective, deep steady voice, firm and deliberate; no whisper, no breathiness" },
+  warm: { nameAr: "حكّاء رزين", useAr: "القصص والحياة اليومية", stability: 0.48, style: 0.26, speed: 0.99,
+    direction: "engaging storyteller, firm and grave, clear projection, confident" },
+  documentary: { nameAr: "وثائقي حازم", useAr: "التاريخ والمعلومات", stability: 0.5, style: 0.24, speed: 0.99,
+    direction: "authoritative documentary narration, firm, measured and clear" },
+  dramatic: { nameAr: "درامي قوي", useAr: "لحظات الذروة والمعارك والقرارات (أقوى النبرات)", stability: 0.42, style: 0.4, speed: 0.97,
+    direction: "powerful and intense, commanding, strong projection, deliberate weight on every phrase" },
+  energetic: { nameAr: "حماسي حازم", useAr: "الخطافات والشورتس والدعوة للاشتراك", stability: 0.44, style: 0.34, speed: 1.02,
+    direction: "energetic yet grave, confident and attention-grabbing, firm, not rushed" },
+  intimate: { nameAr: "قريب رزين", useAr: "الأسئلة الشخصية والمواقف المؤثرة: مباشر للمتابع، بلا همس", stability: 0.5, style: 0.24, speed: 0.96,
+    direction: "direct and close to the listener, firm and grave, clear full voice, no whisper" },
+};
+/** «المدى القوي» للإصدار ٢ (للبصمة وحدها) */
+export const STRONG_RANGE_V2 = { stability: [0.4, 0.55], style: [0.15, 0.5], speed: [0.94, 1.0] } as const;
+const SACRED = new Set(["الله", "لله", "اللهم", "ربنا", "ربه", "ربك", "ربي", "ربهم", "سبحانه", "سبحان", "تعالى"]);
+/** كشف ذكر الله أو الدعاء كما كان في الإصدار ٢ (للبصمة وحدها) */
+export const isReverentV2 = (text?: string): boolean =>
+  Boolean(text && text.replace(/[ً-ٰٟـ]/g, "").replace(/[إأآٱ]/g, "ا").split(/[\s«»"“”'()؟?!.,،:؛…\-]+/)
+    .some((w) => SACRED.has(w) || (/^[وفبكل]/.test(w) && SACRED.has(w.slice(1)))));
+const REVERENT_V2 = { stabilityMin: 0.52, styleMax: 0.22, speedMax: 0.96,
+  direction: "grave, reverent and firm; dignified and measured, steady full voice, never shouting" } as const;
+
+/** إعدادات الإصدار ٢ كما كانت تُحسب حرفًا: profileV2 طبقة القناة حينها (channel.json ← voice.profileHistory["2"]) */
+export const strongVoiceSettingsV2 = (profileV2?: VoiceProfile, tone?: Tone, opts: { text?: string } = {}): ToneTune | undefined => {
+  if (!profileV2 && !tone) return undefined;
+  const base = profileV2 ?? NEUTRAL;
+  const t = tone ? TONE_PRESETS_V2[tone] : null;
+  const R = STRONG_RANGE_V2;
+  let stability = clamp(base.stability + (t ? t.stability - 0.5 : 0), R.stability[0], R.stability[1]);
+  let style = clamp(base.style + (t ? t.style : 0), R.style[0], R.style[1]);
+  let speed = clamp((profileV2 ? profileV2.speed : NEUTRAL.speed) * (t ? t.speed : 1), R.speed[0], R.speed[1]);
+  let direction: string | undefined = t?.direction ?? profileV2?.direction;
+  if (isReverentV2(opts.text)) {
+    stability = Math.max(stability, REVERENT_V2.stabilityMin);
+    style = Math.min(style, REVERENT_V2.styleMax);
+    speed = Math.min(speed, REVERENT_V2.speedMax);
+    direction = REVERENT_V2.direction;
   }
   return { stability: r2(stability), style: r2(style), speed: r2(speed), ...(direction ? { direction } : {}) };
 };
 
 /**
- * إعدادات الإصدار ١ كما كانت تُحسب حرفًا (الترتيب نفسه والتقريب نفسه): لا يُرسل بها طلب أبدًا، وإنما تُحسب
- * بها بصمة التسجيل القديم ليبقى صالحًا. profileV1: طبقة القناة كما كانت حينها (channel.json ← voice.profileHistory["1"]).
+ * طبقات القناة عبر إصدارات النبرات: الحالية، وما كانت عليه في الإصدار ٢ (profileHistory["2"])، ونبرة القناة
+ * الافتراضية حينها (toneHistory["2"] = grave) لأن D70 جعلها نبرة كل قناة.
  */
-export const legacyVoiceSettings = (profileV1?: VoiceProfile, tone?: Tone): ToneTune | undefined => {
-  if (!profileV1 && !tone) return undefined;
-  const base = profileV1 ?? NEUTRAL;
-  // «grave» جديدة في الإصدار ٢: لا تسجيل قديم بها
-  if (tone === "grave") return undefined;
-  const t = tone ? TONE_PRESETS_V1[tone] : null;
-  return {
-    stability: r2(clamp(base.stability + (t ? t.stability - 0.5 : 0), 0, 1)),
-    style: r2(clamp(base.style + (t ? t.style : 0), 0, 1)),
-    speed: r2(clamp((profileV1 ? profileV1.speed : NEUTRAL.speed) * (t ? t.speed : 1), 0.7, 1.2)),
-    ...((t?.direction ?? profileV1?.direction) ? { direction: t?.direction ?? profileV1?.direction } : {}),
-  };
-};
-
-/** طبقات القناة عبر إصدارات النبرات: الحالية، وما كانت عليه في الإصدار ١ (إن تغيرت) */
-export type VoiceLayers = { profile?: VoiceProfile; profileHistory?: Record<string, VoiceProfile> };
-export const layersOf = (voice?: { profile?: VoiceProfile; profileHistory?: Record<string, VoiceProfile> } | null): VoiceLayers =>
-  ({ profile: voice?.profile, profileHistory: voice?.profileHistory });
+export type VoiceLayers = { profile?: VoiceProfile; profileHistory?: Record<string, VoiceProfile>; toneHistory?: Record<string, string> };
+export const layersOf = (voice?: VoiceLayers | null): VoiceLayers =>
+  ({ profile: voice?.profile, profileHistory: voice?.profileHistory, toneHistory: voice?.toneHistory });
 
 /**
- * إعدادات الإصدارات السابقة لنبرة: لكل إصدار قديم إعداداته (لحساب بصمة التسجيلات القديمة).
- * مقطع بصمته تطابق إحداها تسجيل صالح «بالنبرة السابقة» لا يُعاد توليده آليًا.
+ * إعدادات الإصدارات الأخرى لنبرة مقطع (لحساب بصمة التسجيلات بها): الإصدار ٢ وحده.
+ * tone: النبرة الفعلية الآن؛ وإن غابت (لأن نبرة القناة رجعت كما كانت: بلا نبرة) فنبرة القناة حينها.
+ * مقطع بصمته تطابقها تسجيل صالح «بالنبرة القوية (المُلغاة)» لا يُعاد توليده آليًا.
  */
-export const legacyTunes = (layers: VoiceLayers, tone?: Tone): { version: number; tune: ToneTune | undefined }[] => {
-  const v1 = legacyVoiceSettings(layers.profileHistory?.["1"] ?? layers.profile, tone);
-  return v1 ? [{ version: 1, tune: v1 }] : [];
+export const legacyTunes = (layers: VoiceLayers, tone?: Tone, opts: { text?: string } = {}): { version: number; tune: ToneTune | undefined }[] => {
+  const v2Tone = tone ?? [layers.toneHistory?.["2"]].find(isTone);
+  const v2 = strongVoiceSettingsV2(layers.profileHistory?.["2"] ?? layers.profile, v2Tone, opts);
+  return v2 ? [{ version: STRONG_PRESET_VERSION, tune: v2 }] : [];
 };

@@ -88,22 +88,24 @@
     "footer": "كل المحتوى مراجَع شرعيًا قبل النشر."
   },
   "voice": {
-    "tone": "grave",
     "profile": {
-      "nameAr": "وقور رزين",
-      "speed": 1,
-      "stability": 0.5,
-      "style": 0.04,
-      "direction": "grave, dignified and authoritative narration; firm, clear projection"
+      "nameAr": "وقور هادئ",
+      "speed": 0.9,
+      "stability": 0.6,
+      "style": 0.08,
+      "direction": "calm, dignified, reflective narration"
     },
     "profileHistory": {
-      "1": {
-        "nameAr": "وقور هادئ",
-        "speed": 0.9,
-        "stability": 0.6,
-        "style": 0.08,
-        "direction": "calm, dignified, reflective narration"
+      "2": {
+        "nameAr": "وقور رزين",
+        "speed": 1,
+        "stability": 0.5,
+        "style": 0.04,
+        "direction": "grave, dignified and authoritative narration; firm, clear projection"
       }
+    },
+    "toneHistory": {
+      "2": "grave"
     }
   },
   "library": {

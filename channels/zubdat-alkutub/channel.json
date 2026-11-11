@@ -77,22 +77,24 @@
     "footer": "هذا تلخيص وشرح بأسلوبنا للأفكار الرئيسية، وليس بديلًا عن قراءة الكتاب."
   },
   "voice": {
-    "tone": "grave",
     "profile": {
-      "nameAr": "واضح حازم",
-      "speed": 1,
-      "stability": 0.48,
-      "style": 0.08,
-      "direction": "clear, confident and authoritative explainer; firm, not rushed"
+      "nameAr": "سريع واضح",
+      "speed": 1.02,
+      "stability": 0.45,
+      "style": 0.28,
+      "direction": "clear, lively explainer"
     },
     "profileHistory": {
-      "1": {
-        "nameAr": "سريع واضح",
-        "speed": 1.02,
-        "stability": 0.45,
-        "style": 0.28,
-        "direction": "clear, lively explainer"
+      "2": {
+        "nameAr": "واضح حازم",
+        "speed": 1,
+        "stability": 0.48,
+        "style": 0.08,
+        "direction": "clear, confident and authoritative explainer; firm, not rushed"
       }
+    },
+    "toneHistory": {
+      "2": "grave"
     }
   },
   "library": {

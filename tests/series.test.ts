@@ -10,13 +10,13 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { APPROVED_IDENTITIES } from "../brand/identity/approved";
 import {
-  GENERAL_SLUG, MAX_DEPTH, accentChoices, applyChapterTitles, colourAllowed, deriveSeriesIdentity, effectiveTemplate, foreignColours,
+  DEFAULT_SERIES_TONE, GENERAL_SLUG, MAX_DEPTH, accentChoices, applyChapterTitles, colourAllowed, deriveSeriesIdentity, effectiveTemplate, foreignColours,
   nextStyle, publishTitle, seriesPublish, seriesTree, shade, stampSeries, validateSeries, withGeneral, withSeriesStamp,
   type SeriesConfig, type SeriesContext,
 } from "../src/channel/series";
 import { channelLibrary } from "../src/channel/library";
 import { loadChannel } from "../src/channel";
-import { toneIds } from "../src/voice/tones";
+import { allToneIds, toneIds } from "../src/voice/tones";
 import { findTraces } from "../src/package/traces";
 import { introFramesFor, introFrames } from "../src/remotion/scenes/ChannelIntro";
 import { SERIES_STING_FRAMES, SeriesBadge, SeriesTitleCard, stingOn } from "../src/remotion/series/SeriesArt";
@@ -24,7 +24,7 @@ import { SERIES_STING_FRAMES, SeriesBadge, SeriesTitleCard, stingOn } from "../s
 const CHANNELS = Object.keys(APPROVED_IDENTITIES);
 const ctxFor = (ch: string): SeriesContext => {
   const c = loadChannel(ch);
-  return { channelId: ch, styles: c.styles ?? [], templates: channelLibrary(c).templates, tones: [...toneIds], traces: findTraces };
+  return { channelId: ch, styles: c.styles ?? [], templates: channelLibrary(c).templates, tones: [...allToneIds], traces: findTraces };
 };
 const S = (over: Partial<SeriesConfig>): SeriesConfig => ({ version: 1, id: "x", name: "س", kind: "series", ...over });
 
@@ -73,8 +73,12 @@ describe("عزل المكتبة: قالب السلسلة من مكتبة قنا�
     const b = ctxFor("balislam");
     expect(validateSeries(S({ template: { styles: ["doc-plate"] } }), [], b).join()).toContain("أساليب القناة");
   });
-  it("القالب الافتراضي «قوي رزين» (D70)", () => {
-    expect(effectiveTemplate({}).tone).toBe("grave");
+  it("القالب بلا نبرة افتراضيًا كما قبل D70 (أُلغي «قوي رزين»)، وgrave المحفوظ يبقى صالحًا ولا يُعرض للاختيار", () => {
+    expect(DEFAULT_SERIES_TONE).toBe("");
+    expect(effectiveTemplate({}).tone).toBeUndefined();
+    expect("tone" in effectiveTemplate({ tone: "" })).toBe(false);
+    expect(effectiveTemplate({ tone: "grave" }).tone).toBe("grave");
+    expect(toneIds as string[]).not.toContain("grave");
     expect(effectiveTemplate({ tone: "documentary" }).tone).toBe("documentary");
   });
 });
@@ -137,7 +141,7 @@ describe("الختم وحزمة النشر", () => {
     const st = stampSeries(s, "balislam", 2, "2026-11-11T00:00:00Z");
     expect(st.number).toBe(2);
     expect(st.identity.fonts.heading).toBe("Aref Ruqaa");
-    expect(st.template.tone).toBe("grave");
+    expect(st.template.tone).toBeUndefined();
     const pub = seriesPublish({ title: "لماذا نصوم؟", series: st }, String);
     expect(pub).toEqual({ title: "ليالي رمضان | الحلقة 2: لماذا نصوم؟", tags: ["رمضان"], playlist: "ليالي رمضان" });
     expect(seriesPublish({ title: "ع" })).toEqual({ title: "ع", tags: [] });
@@ -148,7 +152,8 @@ describe("الختم وحزمة النشر", () => {
     const p0: P = { title: "ع" };
     const first = withSeriesStamp<P>(p0, null, st);
     expect(first.series).toBe(st);
-    expect(first.tone).toBe("grave");
+    expect(first.tone).toBeUndefined();
+    expect(withSeriesStamp<P>(p0, null, stampSeries({ ...s, template: { ...s.template, tone: "grave" } }, "balislam", 1)).tone).toBe("grave");
     const later = stampSeries({ ...s, name: "اسم جديد" }, "balislam", 1);
     expect(withSeriesStamp<P>(p0, first, later).series?.name).toBe("ليالي رمضان");
     const old = withSeriesStamp<P>(p0, p0, later);
@@ -226,7 +231,7 @@ describe("الحفظ على القرص: «عام» للقائم، وختم ال�
     const link = JSON.parse(readFileSync(path.join(path.dirname(file), "series.json"), "utf8"));
     expect(link.series).toBe("ramadan");
     expect(link.stamp.number).toBe(1);
-    expect(link.stamp.template.tone).toBe("grave");
+    expect(link.stamp.template.tone).toBeUndefined();
     const second = await createEpisode({ episode: "003", slug: "moon-two", domain: "psychology", title: "ثانية", series: "ramadan" });
     expect(JSON.parse(readFileSync(path.join(path.dirname(second), "series.json"), "utf8")).stamp.number).toBe(2);
     // تعديل القالب لاحقًا لا يمس ختم الحلقة القائمة

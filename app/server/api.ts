@@ -627,7 +627,7 @@ export const balApi = (): Plugin => ({
           }
           // M5 (funnel QA, 10 Nov): a refusal (tone, tashkeel, approvals, Quran, a busy voice lock…) is a 4xx with
           // its Arabic sentence, never a 500; a scene voiced sentence by sentence is regenerated sentence by sentence.
-          // «أعد توليد الكل بالنبرة الجديدة» (قرار ١١ نوفمبر): dryRun يعرض العدد والحروف؛ التوليد بضغطة المالك وحده.
+          // «أعد توليد ما وُلّد بالنبرة القوية» (بعد إلغاء D70، ١١ نوفمبر): dryRun يعرض العدد والحروف؛ التوليد بضغطة المالك وحده.
           // تغيير إعدادات النبرات لا يعيد أي تسجيل آليًا (src/voice/toneUpgrade.ts).
           if (parts[2] === "voice" && parts[3] === "upgrade-tone" && req.method === "POST") {
             const b = await readBody(req);

@@ -357,11 +357,17 @@ export const publishTitle = (pattern: string | undefined, v: { series: string; n
 /** نمط العنوان الافتراضي لكل نوع */
 export const defaultTitlePattern = (kind: SeriesKind) => (kind === "series" ? "{series} | الحلقة {n}: {title}" : "");
 
-/** النبرة الافتراضية لقالب السلسلة: «قوي رزين» (D70، قرار صاحب القناة ١١ نوفمبر) */
-export const DEFAULT_SERIES_TONE = "grave";
-/** القالب كما يُختم: نسخة مستقلة، والنبرة «قوي رزين» ما لم تُختر غيرها */
+/**
+ * النبرة الافتراضية لقالب السلسلة: لا نبرة (كما كانت النبرة قبل D70: نبرة الحلقة يختارها المالك في التجهيز، أو نبرة
+ * القناة إن حُددت). أُلغي افتراضي «قوي رزين» مع إلغاء D70 (١١ نوفمبر)؛ والسلسلة أو الخطة التي حفظت grave تبقى صالحة
+ * ويُحل grave إلى طبقة القناة وحدها (src/voice/tones.ts).
+ */
+export const DEFAULT_SERIES_TONE = "";
+/** القالب كما يُختم: نسخة مستقلة، والنبرة كما اختيرت في السلسلة (بلا نبرة = ترث الحلقة نبرتها كالمعتاد) */
 export const effectiveTemplate = (t: SeriesTemplate | undefined): SeriesTemplate => {
   const copy = JSON.parse(JSON.stringify(t ?? {})) as SeriesTemplate;
+  if (!copy.tone) delete copy.tone;
+  if (!DEFAULT_SERIES_TONE) return copy;
   return { ...copy, tone: copy.tone || DEFAULT_SERIES_TONE };
 };
 

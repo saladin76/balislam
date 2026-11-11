@@ -527,7 +527,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
         <div className="sv-ctl">
           <span className={`sv-chip is-${status}`}>{STATUS[status]}</span>
           {r.audio?.origin === "scene" ? <small className="sv-origin">من صوت المشهد</small> : null}
-          {r.olderTone ? <small className="sv-origin sv-older" title="تسجيلها صالح ولم يُعد توليده آليًا؛ النبرات صارت قوية ورزينة (١١ نوفمبر). «أعد توليد الكل بالنبرة الجديدة» في أعلى القائمة.">{OLDER_TONE}</small> : null}
+          {r.olderTone ? <small className="sv-origin sv-older" title="تسجيلها صالح ولم يُعد توليده آليًا؛ عادت النبرات كما كانت (أُلغي قرار النبرات القوية، ١١ نوفمبر). «أعد توليد ما وُلّد بالنبرة القوية» في أعلى القائمة.">{OLDER_TONE}</small> : null}
           {r.kind === "narration" ? (
             <button type="button" className={`btn${r.status === "missing" || r.status === "stale" ? "" : " ghost"}`} disabled={!canGen}
               title={noKey ? "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»" : why ?? ""}
@@ -609,7 +609,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     </div>
   ) : null;
 
-  /** صوت المشهد ملفًا واحدًا بالنبرة السابقة: إشارة هادئة، لا تغيير في حالته */
+  /** صوت المشهد ملفًا واحدًا بالنبرة القوية المُلغاة: إشارة هادئة، لا تغيير في حالته */
   const olderNote = (s: SentenceScene) => (s.olderTone ? <p className="sp-hint sv-older">صوت المشهد {OLDER_TONE.replace("وُلّدت", "وُلّد")}؛ صالح ولم يُعد توليده آليًا.</p> : null);
   const sceneBlock = (s: SentenceScene) => {
     if (s.verse) {
@@ -785,20 +785,28 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   };
 
   const paragraph = variant === "paragraph" && Boolean(sceneId);
-  /** «أعد توليد الكل بالنبرة الجديدة»: أمر المالك الصريح وحده، بعد عرض العدد والحروف (رصيد مدفوع). */
+  /** «أعد توليد ما وُلّد بالنبرة القوية»: أمر المالك الصريح وحده، بعد عرض العدد والحروف (رصيد مدفوع). */
   const olderCount = (read.scenes ?? []).reduce((n, x) => n + x.rows.filter((r) => r.olderTone).length + (x.olderTone ? 1 : 0), 0);
+  // تقدير الرصيد للإشارة: dryRun وحده (لا طلب صوت مدفوع)، ويُحسب من جديد كلما تغيّر العدد
+  const [olderPlan, setOlderPlan] = useState<{ chars: number; credits: number } | null>(null);
+  useEffect(() => {
+    if (sceneId || !olderCount) { setOlderPlan(null); return; }
+    let live = true;
+    api.toneUpgrade(episodeId, channelId, true).then((r) => { if (live && r.plan) setOlderPlan({ chars: r.plan.chars, credits: r.plan.credits }); }).catch(() => { /* التقدير اختياري */ });
+    return () => { live = false; };
+  }, [episodeId, channelId, sceneId, olderCount]);
   const upgradeAll = async () => {
     setBusy("upgrade-tone"); setError(""); setMsg("");
     try {
       const p = (await api.toneUpgrade(episodeId, channelId, true)).plan!;
-      if (!p.sentences.length && !p.sceneJobs.ids.length) { setMsg("لا تسجيل بالنبرة السابقة في هذه الحلقة."); return; }
+      if (!p.sentences.length && !p.sceneJobs.ids.length) { setMsg("لا تسجيل بالنبرة القوية في هذه الحلقة."); return; }
       const ok = window.confirm(toneUpgradeConfirm(p));
       if (!ok) return;
       const r = await api.toneUpgrade(episodeId, channelId, false);
       if (r.media) onMediaChange?.(r.media);
       setRead(await api.sentences(episodeId, channelId));
       const res = r.result!;
-      setMsg(`أُعيد توليد ${ar(res.sentences)} جملة و${ar(res.sceneJobs)} مقطع مشهد بالنبرة الجديدة؛ التسجيلات السابقة محفوظة.${res.errors.length ? ` تعذّر ${ar(res.errors.length)}: ${res.errors[0]!.error}` : ""}`);
+      setMsg(`أُعيد توليد ${ar(res.sentences)} جملة و${ar(res.sceneJobs)} مقطع مشهد بالنبرة كما كانت؛ التسجيلات السابقة محفوظة.${res.errors.length ? ` تعذّر ${ar(res.errors.length)}: ${res.errors[0]!.error}` : ""}`);
       onChanged?.();
     } catch (e) {
       setError((e as Error).message);
@@ -813,9 +821,9 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
         <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : " من الإعدادات"}.</p>
       ) : null}
       {!sceneId && olderCount ? (
-        <p className="sv-why sv-older-all" role="status">{ar(olderCount)} تسجيل وُلّد بالنبرة السابقة؛ كلها صالحة ولا يُعاد شيء منها آليًا. النبرات الآن قوية ورزينة.{" "}
+        <p className="sv-why sv-older-all" role="status">{ar(olderCount)} تسجيل وُلّد بالنبرة القوية (المُلغاة)؛ كلها صالحة ولا يُعاد شيء منها آليًا. عادت النبرات كما كانت.{olderPlan ? ` إعادتها تصرف نحو ${ar(olderPlan.credits)} من رصيد الصوت (${ar(olderPlan.chars)} حرفًا).` : ""}{" "}
           <button type="button" className="btn ghost" disabled={Boolean(busy) || noKey} title={noKey ? "يتطلب مفتاح الصوت" : "يعرض العدد والحروف أولًا ثم يطلب تأكيدك"}
-            onClick={() => void upgradeAll()}>{busy === "upgrade-tone" ? "جارٍ التوليد…" : UPGRADE_ALL}</button>
+            onClick={() => void upgradeAll()}>{busy === "upgrade-tone" ? "جارٍ التوليد…" : `${UPGRADE_ALL} (${ar(olderCount)})`}</button>
         </p>
       ) : null}
       {!sceneId ? lexiconBlock() : null}
@@ -828,8 +836,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   );
 };
 
-export const OLDER_TONE = "وُلّدت بالنبرة السابقة";
-export const UPGRADE_ALL = "أعد توليد الكل بالنبرة الجديدة";
+export const OLDER_TONE = "وُلّدت بالنبرة القوية (المُلغاة)";
+export const UPGRADE_ALL = "أعد توليد ما وُلّد بالنبرة القوية";
 /** نص التأكيد: كم جملة وكم مشهد، وأنه يصرف رصيدًا */
 export const toneUpgradeConfirm = (p: { sentences: unknown[]; sceneJobs: { ids: unknown[] }; scenes: unknown[]; chars: number; credits: number }) =>
   `${UPGRADE_ALL}؟\n${ar(p.sentences.length)} جملة و${ar(p.sceneJobs.ids.length)} مقطع مشهد، في ${ar(p.scenes.length)} مشهدًا.\n` +

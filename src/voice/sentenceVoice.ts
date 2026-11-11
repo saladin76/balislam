@@ -28,7 +28,7 @@ import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
 import { audioDuration, estimateWords, speechContextFor, voiceDirFor, type VoiceClip, type VoiceIndex } from "./generate";
 import { capsFor, dropTagWords } from "./models";
 import { applyTempo, scaleTimes } from "./tempo";
-import { isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, tones, voiceSettingsFor, type Tone, type VoiceLayers } from "./tones";
+import { isSupersededVersion, isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, tones, voiceSettingsFor, type Tone, type VoiceLayers } from "./tones";
 import { normWord, stripTashkeel, vowelize } from "./tashkeel";
 import { tashkeelReport } from "./tashkeelReport";
 import { alignmentToWords, applyDictionary, wordsForCaptions } from "./words";
@@ -200,7 +200,7 @@ const sendOf = (ctx: Ctx, s: Pick<Sentence, "text" | "kind" | "corrections">, ex
 };
 /**
  * صوت الجملة: النبرة والإعدادات والبصمة. الإصدار الحالي للنبرات افتراضيًا؛ لكن تسجيلًا قائمًا بصمته تطابق إعدادات
- * إصدار سابق يبقى صالحًا (قرار ١١ نوفمبر): تُرجع إعدادات ذلك الإصدار وبصمته ومعها olderTone، فلا تصير الجملة
+ * النبرة القوية المُلغاة (الإصدار ٢، D70) يبقى صالحًا: تُرجع إعدادات ذلك الإصدار وبصمته ومعها olderTone، فلا تصير الجملة
  * «تحتاج توليدًا» ولا تُعاد في «جهّز كل المشاهد»، وتصحيح كلمة فيه يُولَّد بإعداداته نفسها فيتصل الصوت.
  * current: للتوليد الجديد دائمًا (الإعدادات الحالية). version: لنسخة مقصوصة من تسجيل معروف الإصدار.
  */
@@ -210,11 +210,11 @@ const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, o: {
   const d = spokenOf(ctx, s.text);
   const fp = (tune: ReturnType<typeof voiceSettingsFor>) =>
     sentenceFingerprint({ spoken: d.spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined });
-  const tune = voiceSettingsFor(ctx.profile, tone, { text: s.text });
+  const tune = voiceSettingsFor(ctx.profile, tone);
   const fingerprint = fp(tune);
   const base = { tone, toneInfo: t, spoken: d, send: sendOf(ctx, s), currentFingerprint: fingerprint };
   if (!o.current) {
-    const legacy = legacyTunes(ctx.layers, tone).map((l) => ({ ...l, fingerprint: fp(l.tune) })).filter((l) => l.fingerprint !== fingerprint);
+    const legacy = legacyTunes(ctx.layers, tone, { text: s.text }).map((l) => ({ ...l, fingerprint: fp(l.tune) })).filter((l) => l.fingerprint !== fingerprint);
     const pick = o.version !== undefined ? legacy.find((l) => l.version === o.version)
       : s.audio && s.audio.fingerprint !== fingerprint ? legacy.find((l) => l.fingerprint === s.audio!.fingerprint) : undefined;
     if (pick) return { ...base, tune: pick.tune, fingerprint: pick.fingerprint, presetVersion: pick.version, olderTone: true };
@@ -244,7 +244,7 @@ export type SentenceRow = {
   pauseAfterMs: number; status: SentenceStatus; virtual: boolean; last: boolean;
   audio: { file: string; duration: number; origin: SentenceAudio["origin"] } | null;
   takes: number; contextChanged: boolean;
-  /** «وُلّدت بالنبرة السابقة»: تسجيلها الحالي صالح بإعدادات إصدار نبرات سابق (يُعاد بأمر المالك وحده) */
+  /** «وُلّدت بالنبرة القوية (المُلغاة)»: تسجيلها الحالي صالح بإعدادات الإصدار ٢ (يُعاد بأمر المالك وحده) */
   olderTone: boolean;
   tashkeel: { ok: boolean; coverage: number; missing: string[] };
   chars: number;
@@ -275,7 +275,7 @@ export type VerseRow = {
 export type SentenceScene = {
   id: string; index: number; chapter: number; chapterTitle: string; managed: boolean;
   audio: { state: "sentences" | "scene" | "stale" | "none"; file: string | null; duration: number | null };
-  /** صوت المشهد ملفًا واحدًا (أو من أجزاء الخريطة) مولَّد بإصدار نبرات سابق: «وُلّد بالنبرة السابقة» */
+  /** صوت المشهد ملفًا واحدًا (أو من أجزاء الخريطة) مولَّد بالنبرة القوية المُلغاة: «وُلّد بالنبرة القوية (المُلغاة)» */
   olderTone: boolean;
   import: SentencesDoc["scenes"][string]["import"] | null;
   /** لماذا لا يُركَّب صوت المشهد من جمله الآن (null: مركّب أو قابل للتركيب) */
@@ -372,7 +372,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         sceneSpan: spans?.[k] ?? null,
       };
     });
-    const sceneOlder = Boolean(clip && audio.state === "scene" && !clip.basmala && (clip.presetVersion ?? 1) < TONE_PRESET_VERSION);
+    const sceneOlder = Boolean(clip && audio.state === "scene" && !clip.basmala && isSupersededVersion(clip.presetVersion));
     scenes.push({ ...base, managed, audio, olderTone: sceneOlder, import: ctx.doc.scenes[scene.id]?.import ?? null,
       waiting: managed ? waitingReason(ctx, scene, list, audio.state !== "none") : null,
       rows, verse: null });
@@ -658,7 +658,7 @@ const adoptSceneAudio = async (ctx: Ctx, scene: PlanScene, list: Sentence[], cli
       const nb = neighbours(flat, s.id);
       // النسخة المقصوصة بإصدار نبرات مقطع المشهد نفسه (غيابه = ١): لا تصير «حالية» وهي بالإعدادات القديمة
       const cv = clip.presetVersion ?? 1;
-      s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s, cv < TONE_PRESET_VERSION ? { version: cv } : {}).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
+      s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s, isSupersededVersion(cv) ? { version: cv } : {}).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
         duration: f.duration, words: f.words, at: new Date().toISOString(), origin: "scene", timing: "aligned" };
       if (next && k < list.length - 1) s.pauseAfterMs = clampPause((next.start - clip.words[w + count - 1]!.end) * 1000);
     } else {

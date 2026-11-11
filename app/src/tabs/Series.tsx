@@ -13,7 +13,7 @@ import { Thumbnail } from "../../../src/remotion/Thumbnail";
 import { Providers } from "../../../src/remotion/Providers";
 import { styleNameAr } from "../../../src/plan/styles";
 import { templateDefs } from "../../../src/plan/templates";
-import { tones } from "../../../src/voice/tones";
+import { tones, toneIds } from "../../../src/voice/tones";
 import { Num, arDigits, episodeTitle } from "../ui/format";
 import { Icon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
@@ -133,7 +133,7 @@ export const NewSeriesDialog: React.FC<{ kind: SeriesKind; data: SeriesRead; par
       if (busy) return;
       setBusy(true); setErr("");
       const s: SeriesConfig = { version: 1, id, name, kind, ...(parent ? { parent } : {}), ...(description.trim() ? { description: description.trim() } : {}), status: "active", order: data.series.length * 10,
-        identity: {}, template: { tone: data.rules?.defaultTone ?? DEFAULT_SERIES_TONE, intro: "sting", publish: { titlePattern: defaultTitlePattern(kind) } } };
+        identity: {}, template: { ...((data.rules?.defaultTone ?? DEFAULT_SERIES_TONE) ? { tone: data.rules?.defaultTone ?? DEFAULT_SERIES_TONE } : {}), intro: "sting", publish: { titlePattern: defaultTitlePattern(kind) } } };
       try { await api.saveSeries(s); onCreated(id); } catch (x) { setErr((x as Error).message); setBusy(false); }
     }}>
       <div className="modal-head"><h3 id="new-series-title">{kind === "series" ? "سلسلة جديدة" : "تصنيف جديد"}</h3></div>
@@ -427,7 +427,10 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
       </fieldset>
       <div className="sr-grid2">
         <label className="field"><span>النبرة</span>
-          <select value={t.tone ?? rules.defaultTone} onChange={(e) => set({ tone: e.target.value })}>{rules.tones.map((x) => <option key={x} value={x}>{toneName(x)}{x === rules.defaultTone ? " (الافتراضية)" : ""}</option>)}</select>
+          <select value={t.tone ?? rules.defaultTone} onChange={(e) => set({ tone: e.target.value || undefined })}>
+            <option value="">بلا نبرة للسلسلة (نبرة الحلقة تُختار في التجهيز){!rules.defaultTone ? " (الافتراضية)" : ""}</option>
+            {[...toneIds, ...(t.tone && !(toneIds as string[]).includes(t.tone) ? [t.tone] : [])].map((x) => <option key={x} value={x}>{toneName(x)}{x === rules.defaultTone ? " (الافتراضية)" : ""}</option>)}
+          </select>
         </label>
         <label className="field"><span>الافتتاحية</span>
           <select value={t.intro ?? "sting"} onChange={(e) => set({ intro: e.target.value as SeriesTemplate["intro"] })}><option value="sting">افتتاحية القناة + بطاقة السلسلة</option><option value="channel">افتتاحية القناة وحدها</option><option value="none">بلا افتتاحية</option></select>

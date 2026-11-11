@@ -161,11 +161,8 @@ describe("الكتابة على القرص والتوليد بالإصدار ا�
     // ما يفعله الاستوديو بعد التصحيح: إعادة توليد صوت هذا المشهد وحده
     await generateVoice("001", { client: fake, testOnlySkipGates: true, only: ["c7-s8"], force: true });
     expect(sent).toHaveLength(2);
-    // the new tone, with reverence for a part that mentions God (strong-voice, 11 Nov)
-    for (const x of sent) {
-      const want = voiceSettingsFor(profile, "documentary", { text: x.text })!;
-      expect([x.stability, x.style]).toEqual([want.stability, want.style]);
-    }
+    const want = voiceSettingsFor(profile, "documentary")!;
+    for (const x of sent) expect([x.stability, x.style]).toEqual([want.stability, want.style]);
     // المشهد الآخر: لا طلب، والملف نفسه
     sent.length = 0;
     await generateVoice("001", { client: fake, testOnlySkipGates: true, only: ["c1-s2"] });

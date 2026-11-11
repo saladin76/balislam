@@ -4,7 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { channelPaths, currentChannelId, loadChannel } from "./index";
 import { channelLibrary } from "./library";
 import { listScriptEpisodeDirs } from "../script/episodes";
-import { toneIds } from "../voice/tones";
+import { allToneIds } from "../voice/tones";
 import { findTraces } from "../package/traces";
 import { writeJsonAtomic } from "../io/atomicJson";
 import {
@@ -23,7 +23,7 @@ export const EPISODE_SERIES_FILE = "series.json";
 
 export const seriesContext = (ch = currentChannelId()): SeriesContext => {
   const c = loadChannel(ch);
-  return { channelId: ch, styles: c.styles ?? [], templates: channelLibrary(c).templates, tones: [...toneIds], traces: findTraces };
+  return { channelId: ch, styles: c.styles ?? [], templates: channelLibrary(c).templates, tones: [...allToneIds], traces: findTraces };
 };
 
 /** السلاسل المحفوظة (بلا «عام» الافتراضي) */
