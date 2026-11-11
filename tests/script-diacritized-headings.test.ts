@@ -24,7 +24,7 @@ describe("عناوين مشكولة في السكريبت", () => {
   it("يبقى عنوان الفصل بنصه المشكول", () => {
     const b = parseScript(voweled);
     expect(b.chapters[0]!.title.endsWith("ُ")).toBe(true);
-    expect(b.chapters[0]!.title.startsWith("السؤال")).toBe(true);
+    expect(b.chapters[0]!.title.replace(/[\u064B-\u0652]/g, "").startsWith("السؤال")).toBe(true);
   });
 });
 

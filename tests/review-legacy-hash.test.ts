@@ -8,7 +8,9 @@ import { reviewItems } from "../src/script/review";
 describe("سجل التوثيق: توافق البصمة القديمة", () => {
   it("حلقة زبدة الكتب 001: الاعتمادات القديمة لغير الآيات لا تظهر «تغيّر بعد الاعتماد»", () => {
     const dir = path.join("channels", "zubdat-alkutub", "episodes", "001-awwal-marra-osalli");
-    const sp = path.join(dir, "script.md");
+    // السكريبت الذي وُثّقت عليه الاعتمادات (قبل السكريبت المعتمد الجديد، ١١ نوفمبر): التوافق يُقاس عليه؛
+    // ونصوص الاستشهاد التي غيّرها السكريبت الجديد تعود للمراجعة كما يجب (الاختبار التالي).
+    const sp = path.join("tests", "fixtures", "zubdat-001-script-legacy-hash.md");
     const items = reviewItems(parseScript(readFileSync(sp, "utf8"), sp), JSON.parse(readFileSync(path.join(dir, "review.json"), "utf8")));
     const changedNonAyah = items.filter((i) => i.kind !== "ayah" && i.status === "changed");
     expect(changedNonAyah).toEqual([]);
