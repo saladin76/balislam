@@ -3,8 +3,8 @@ import type { EpisodeMedia } from "../plan/media";
 import { sceneSeconds } from "../plan/duration";
 import { normalizeArabic } from "../script/quranMeta";
 import { estimateTimings, splitWords } from "../remotion/scenes/timing";
-import { HZ_LEAD, HZ_META, hzSentences } from "../remotion/dafatir/horizon/meta";
-import { buildTimeline } from "../remotion/dafatir/horizon/timeline";
+import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
+import { buildTimeline, timelineFromWords } from "../remotion/dafatir/horizon/timeline";
 
 /**
  * السكون المقصود (قرار صاحب القناة، مراجعة G5 للحلقة 001 بزبدة الكتب): لا تُفرض حركة عند كلام الله
@@ -55,11 +55,27 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
         // علامات الاقتباس من نص المشهد (توقيت الصوت قد يحذفها) إن تطابق عدد الكلمات
         const tokens = splitWords(s.narration);
         for (const [a, b] of duaRanges(tokens.length === words.length ? tokens : words.map((w) => w.word))) spans.push({ from: t + words[a]!.start / 30 - 0.25, to: t + words[b]!.end / 30 + 0.25, why: "دعاء" });
-        // استشهاد بصري صامت (دفاتر الزمن V9): بعد آخر كلمة يبقى نص الآية على الصفحة زمن قراءته؛ سكون الآية مقصود (القاعدة الثانية)
-        if (s.template === "horizon-shot" && typeof s.props?.verseText === "string" && s.props.verseText.trim() && words.length) {
-          // نهاية الكلام: من الصوت إن وُجد، وإلا من توقيت «خط الأفق» نفسه (لا من التوزيع على المشهد كله)
-          const last = t + (clip && clip.text === s.narration.trim() ? words[words.length - 1]!.end / 30 : buildTimeline(hzSentences(s.narration), HZ_LEAD).end);
-          if (t + d - last > 0.5) spans.push({ from: last, to: t + d, why: "آية" });
+        // استشهاد بصري صامت (دفاتر الزمن V9، المراجعة 031): نافذة موثقة واحدة لا غير — من نهاية آخر كلمة منطوقة
+        // إلى نهاية زمن قراءة الآية المعروضة (verseWindow)، لا إلى نهاية المشهد؛ فذيل الخروج وما قبل آخر كلمة يُقاسان كالمعتاد.
+        // محصورة في لقطات «خط الأفق» المسجلة (HZ_META) التي تحمل verseKey وverseText معًا؛ لا تمس قوالب القنوات الأخرى.
+        if (s.template === "horizon-shot" && HZ_META[shot] && typeof s.props?.verseText === "string" && s.props.verseText.trim() && s.props?.verseKey && words.length) {
+          const voiced = Boolean(clip && clip.text === s.narration.trim());
+          // التوقيت كما يرسمه HorizonShot: كلمات الصوت إن طابقت النص، وإلا التقدير
+          let tl = buildTimeline(hzSentences(s.narration), HZ_LEAD);
+          if (voiced) {
+            try {
+              tl = timelineFromWords(hzSentences(s.narration), clip!.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0);
+            } catch {
+              // عدد الكلمات مختلف: يبقى التقدير
+            }
+          }
+          const vw = verseWindow(s.props as Record<string, string | undefined>, tl);
+          const lastWord = voiced ? words[words.length - 1]!.end / 30 : tl.end;
+          if (vw) {
+            const from = t + lastWord;
+            const to = t + Math.min(d, vw[1]);
+            if (to - from > 0.5) spans.push({ from, to, why: "آية" });
+          }
         }
       }
       t += d;

@@ -374,9 +374,9 @@ describe("خريطة الأداء الصوتي — v1.7 (صياغة المالك
     const withHeadings = read("versions/2026-11-11-d5569881-headings/script.md").split("\n");
     const removed = withHeadings.filter((l) => heading.test(l));
     expect(removed).toEqual(read("versions/v8/script.md").split("\n").filter((l) => heading.test(l)));
-    expect(read("script.md").split("\n").some((l) => heading.test(l))).toBe(false);
+    expect(read("versions/v9.1/script.md").split("\n").some((l) => heading.test(l))).toBe(false);
     const nonBlank = (ls: string[]) => ls.filter((l) => l.trim() && !heading.test(l));
-    expect(nonBlank(read("script.md").split("\n"))).toEqual(nonBlank(withHeadings));
+    expect(nonBlank(read("versions/v9.1/script.md").split("\n"))).toEqual(nonBlank(withHeadings));
     expect(v17.source.plan!.sha256).toBe(sha(`${SECTIONS}/plan.json`));
     expect(v17.legend.tones).toEqual(v16.legend.tones);
     expect(v17.previous.at(-1)).toEqual({ version: "v1.6", path: "tone-map.v1.6.json" });
@@ -407,17 +407,17 @@ describe("خريطة الأداء الصوتي — v1.7 (صياغة المالك
   });
 });
 
-describe("خريطة الأداء الصوتي — الإصدار الحالي v1.8 (سرد واحد بلا فصول: الخطة قسم واحد، D87)", () => {
+describe("خريطة الأداء الصوتي — v1.8 (سرد واحد بلا فصول: الخطة قسم واحد، D87) محفوظة", () => {
   type Seg8 = Seg & { audioPart: string; chapter: number };
   type V18 = Omit<Map, "segments" | "audioParts"> & { segments: Seg8[]; audioParts: { id: string; scene: string; segments: number[]; tone: string }[];
     previous: { version: string; path: string }[]; changelog: { from: string; to: string; source?: string }[];
     citations: { ref: string; scene: string | null }[]; quranFlags: { scene: string; status?: string; note?: string }[];
     source: Record<string, { sha256: string }>; [k: string]: unknown };
   type P = { chapters: { number: number; title: string; scenes: ({ id: string; narration?: string } & Record<string, unknown>)[] }[] };
-  const v18 = JSON.parse(read("tone-map.json")) as V18;
+  const v18 = JSON.parse(read("tone-map.v1.8.json")) as V18;
   const v17 = JSON.parse(read("tone-map.v1.7.json")) as V18;
   const ids = (JSON.parse(read(`${SECTIONS}/id-map.json`)) as { map: Record<string, string> }).map;
-  const plan = JSON.parse(read("plan.json")) as P;
+  const plan = JSON.parse(read("plan.v9.1.json")) as P;
   const old = JSON.parse(read(`${SECTIONS}/plan.json`)) as P;
   const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
 
@@ -460,10 +460,10 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
   });
 
   it("مبنية على السكريبت والتشكيل والخطة الحالية؛ التشكيل بلا عناوين فصول، وكل مقطع مطابق لسطره وكل مشهد = مقاطعه", () => {
-    expect(v18.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
-    expect(v18.source.script!.sha256).toBe(sha("script.md"));
-    expect(v18.source.plan!.sha256).toBe(sha("plan.json"));
-    const tk = read("tashkeel.md");
+    expect(v18.source.tashkeel!.sha256).toBe(sha("versions/v9.1/tashkeel.md"));
+    expect(v18.source.script!.sha256).toBe(sha("versions/v9.1/script.md"));
+    expect(v18.source.plan!.sha256).toBe(sha("plan.v9.1.json"));
+    const tk = read("versions/v9.1/tashkeel.md");
     expect(tk.split("\n").some((l) => /^## الْفَصْلُ/.test(l))).toBe(false);
     const heading = /^## الْفَصْلُ /;
     const nonBlank = (ls: string[]) => ls.filter((l) => l.trim() && !heading.test(l));
@@ -479,9 +479,65 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
   it("مسار الأجزاء يقبلها على الخطة والتشكيل الحاليين، ومهام التوليد نفسها (الجزء والنص والنبرة والملف) بالمشهد الجديد", async () => {
     const { validatePartsContext } = await import("../src/voice/dafatirParts");
     const { partJobs } = await import("../src/remotion/dafatir/audio/parts");
-    const jobs = validatePartsContext(v18 as never, plan as never, read("tashkeel.md"));
+    const jobs = validatePartsContext(v18 as never, plan as never, read("versions/v9.1/tashkeel.md"));
     const before = partJobs(v17 as never);
     expect(jobs).toEqual(before.map((j) => ({ ...j, scene: ids[j.scene] })));
-    expect(() => validatePartsContext(v17 as never, plan as never, read("tashkeel.md"))).toThrow();
+    expect(() => validatePartsContext(v17 as never, plan as never, read("versions/v9.1/tashkeel.md"))).toThrow();
   });
 });
+
+describe("خريطة الأداء الصوتي — الإصدار الحالي v1.9 (الأمر 031، فوق v1.8 قسم واحد)", () => {
+  type V18 = Map & { order: string; legend: { tones: Record<string, string> }; previous: { version: string; path: string }[];
+    changelog: { from: string; to: string; kept: number[]; added: number[]; proposedMarks: number[] }[]; source: Record<string, { sha256: string }> };
+  const v18 = JSON.parse(read("tone-map.json")) as Omit<V18, "segments"> & { segments: (Seg & { proposed?: boolean })[]; changelog: V18["changelog"] };
+  const v17 = JSON.parse(read("tone-map.v1.8.json")) as V18;
+  const plan = JSON.parse(read("plan.json")) as { chapters: { scenes: { id: string; narration?: string; props?: Record<string, unknown> }[] }[] };
+  const spoken = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration?.trim());
+  const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
+
+  it("مبنية على السكريبت والتشكيل والخطة الحالية، وv1.8 محفوظة، وأسماء النبرات كما هي", () => {
+    expect(v18.version).toBe("v1.9");
+    expect(v18.approved).toBe(false);
+    expect(v18.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
+    expect(v18.source.script!.sha256).toBe(sha("script.md"));
+    expect(v18.source.plan!.sha256).toBe(sha("plan.json"));
+    expect(v18.legend.tones).toEqual(v17.legend.tones);
+    expect(v18.previous.at(-1)).toEqual({ version: "v1.8", path: "tone-map.v1.8.json" });
+    expect(v18.changelog.slice(0, -1)).toEqual(v17.changelog);
+    // معرّفات الأجزاء الصوتية القائمة كما في v1.8 (D87)؛ الجديد c1-s48 وحده
+    const old = new Set((v17 as unknown as { audioParts: { id: string }[] }).audioParts.map((p) => p.id));
+    expect((v18 as unknown as { audioParts: { id: string }[] }).audioParts.map((p) => p.id).filter((id) => !old.has(id))).toEqual(["c1-s48"]);
+  });
+
+  it("كل مقطع مطابق لسطره وكل مشهد = مقاطعه؛ والجديد أربعة: c1-s6 وc1-s37 وجملتا c1-s48", () => {
+    const lines = read("tashkeel.md").split("\n");
+    for (const s of v18.segments) {
+      expect(lines[s.tashkeelLine - 1]!.trim(), `مقطع ${s.n}`).toBe(s.text);
+      expect(s.marked.replace(/ ?[|‖]/g, "").replace(/\*\*/g, ""), `علامات ${s.n}`).toBe(s.text);
+    }
+    for (const sc of spoken) expect(plain(v18.segments.filter((s) => s.scene === sc.id).map((s) => s.text).join(" ")), sc.id).toBe(plain(sc.narration!));
+    expect(v18.segments.filter((s) => v18.changelog.at(-1)!.added.includes(s.n)).map((s) => s.scene)).toEqual(["c1-s6", "c1-s37", "c1-s48", "c1-s48"]);
+  });
+
+  it("الوقفات والتشديد المقترحة: لا وقفة قبل «عليه السلام» ولا قبل «سبحانه وتعالى»، ولا تشديد على لفظ الجلالة؛ والوقفة عند فواصل النص وحدها", () => {
+    const props = v18.segments.filter((s) => s.proposed);
+    expect(props.length).toBeGreaterThan(60);
+    for (const s of props) {
+      expect(s.marked, `مقطع ${s.n}`).not.toMatch(/[|‖] عَلَيْهِ السَّلَامُ/);
+      expect(s.marked, `مقطع ${s.n}`).not.toMatch(/[|‖] سُبْحَانَهُ/);
+      for (const b of s.marked.matchAll(/\*\*([^*]+)\*\*/g)) expect(b[1], `مقطع ${s.n}`).not.toMatch(/اللَّه|لِلَّه|رَبِّه|رَبَّه/);
+      for (const m of s.marked.matchAll(/(\S+) ([|‖])/g)) expect(/[،:؟؛]$/.test(m[1]!.replace(/\*\*/g, "")), `مقطع ${s.n}: ${m[1]}`).toBe(true);
+      expect(isTone(s.tone)).toBe(true);
+    }
+  });
+
+  it("الحارس يقبل كل مقطع عدا البسملة، ويعرف نصوص الآيات المعروضة السبع", () => {
+    const verses = planVerseTexts(plan as never);
+    expect(verses).toHaveLength(7);
+    for (const s of v18.segments) {
+      if (s.scene === "c1-s1") continue;
+      expect(isQuranFreeForTts(stripTashkeel(s.text), { id: s.scene }, { verses }), `مقطع ${s.n}`).toBe(true);
+    }
+  });
+});
+

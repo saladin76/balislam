@@ -66,12 +66,13 @@ describe("خرائط المعرّفات المحفوظة للحلقات 001", ()
   const eps = [
     ["channels/balislam/episodes/001-know-the-truth", "versions/2026-11-11-574ec242-headings"],
     ["channels/zubdat-alkutub/episodes/001-awwal-marra-osalli", "versions/2026-11-11-cfed78ed-headings"],
-    ["channels/dafatir-alzaman/episodes/001-adam-beginning", "versions/2026-11-11-4a9cc3b0-sections"],
+    // دفاتر الزمن: الخطة بعد إعادة الربط محفوظة plan.v9.1.json؛ الأمر 031 غيّر بعدها نص مشهدين وأضاف c1-s48
+    ["channels/dafatir-alzaman/episodes/001-adam-beginning", "versions/2026-11-11-4a9cc3b0-sections", "plan.v9.1.json"],
   ];
-  it.each(eps)("%s: الخطة الحالية قسم واحد، وكل مشهد قديم = مقابله في الخطة الحالية إلا معرّفه وسطره", async (ep, v) => {
+  it.each(eps)("%s: الخطة الحالية قسم واحد، وكل مشهد قديم = مقابله في الخطة الحالية إلا معرّفه وسطره", async (ep, v, curPlan = "plan.json") => {
     const m = await readIdMap(path.join(ep, v, "id-map.json"));
     type P = { chapters: { number: number; title: string; scenes: Record<string, unknown>[] }[] };
-    const cur = JSON.parse(readFileSync(path.join(ep, "plan.json"), "utf8")) as P;
+    const cur = JSON.parse(readFileSync(path.join(ep, curPlan!), "utf8")) as P;
     const old = JSON.parse(readFileSync(path.join(ep, v, "plan.json"), "utf8")) as P;
     expect(cur.chapters.map((c) => [c.number, c.title])).toEqual([[1, ""]]);
     const before = old.chapters.flatMap((c) => c.scenes);

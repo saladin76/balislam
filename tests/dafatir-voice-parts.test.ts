@@ -266,12 +266,12 @@ describe("دفاتر الزمن: نسخة المحتوى V8 (v1.4) محفوظة 
 });
 
 describe("دفاتر الزمن: نسخة المحتوى V9 الحالية (v1.5) صالحة للتوليد", () => {
-  it("48 جزءًا لـ 82 مقطعًا في 47 مشهدًا منطوقًا، ولا آية ولا بطاقة فصل", () => {
+  it("49 جزءًا لـ 84 مقطعًا في 48 مشهدًا منطوقًا (V9.2، الأمر 031)، ولا آية ولا بطاقة فصل", () => {
     const map9 = JSON.parse(readFileSync(path.join(EP, "tone-map.json"), "utf8")) as ToneMap;
     const plan9 = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
     const v = validatePartsContext(map9, plan9, readFileSync(path.join(EP, "tashkeel.md"), "utf8"));
-    expect(v).toHaveLength(48);
-    expect(v.flatMap((j) => j.segmentIds)).toHaveLength(82);
+    expect(v).toHaveLength(49);
+    expect(v.flatMap((j) => j.segmentIds)).toHaveLength(84);
     for (const j of v) expect(j.text).not.toMatch(/﴿|﴾|\[آية|\[استشهاد/);
     const jobs9 = partJobs(map9);
     const res: Record<string, PartResult> = {};
@@ -281,7 +281,7 @@ describe("دفاتر الزمن: نسخة المحتوى V9 الحالية (v1.5
     }
     const { composed, gaps, problems } = composeEpisode(plan9, jobs9, res);
     expect(problems).toEqual([]);
-    expect(Object.keys(composed)).toHaveLength(47);
+    expect(Object.keys(composed)).toHaveLength(48);
     expect(gaps.filter((g) => /verse|chapter/.test(g.owner))).toEqual([]);
   });
 });

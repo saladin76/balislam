@@ -64,6 +64,7 @@ export const EP001_META: Record<string, HzMeta> = {
   "evidence": { nameAr: "الأثر وحدوده: أدوات ومساكن وأطعمة ومستوطنات ومدافن ونقوش", tail: 1.4, exit: "fade" },
   method: { nameAr: "من الشاهد إلى الحكم: ثبت / اختُلف فيه / ظن", tail: 1.3, exit: "fade" },
   roadmap: { nameAr: "طريق الحلقات: قبل الكتابة، القرى والمدن، الحضارات", tail: 1.2, exit: "fade" },
+  sources: { nameAr: "مبدأ السلسلة: لا يُنسب اكتشاف إلى شخصية بلا دليل، والتمييز بين الخبر والشاهد وموضع البحث", tail: 1.4, exit: "turn" },
   questions: { nameAr: "أسئلة الحلقة القادمة، لكل سؤال أداته", tail: 1.6, exit: "turn" },
   closing: { nameAr: "الختام: صفحة «دفاتر الزمن» الأولى", tail: 3.2, exit: "none" },
 };
@@ -86,9 +87,15 @@ export const verseWindow = (props: Record<string, string | undefined>, tl: Timel
   const p = w.replace(/[\u064B-\u0652\u0670\u0640]/g, "");
   const hit = p ? tl.words.find((x) => x.w.replace(/[\u064B-\u0652\u0670\u0640]/g, "").startsWith(p)) : tl.words[0];
   const a = hit ? hit.s : 0.4;
-  const words = props.verseText.trim().split(/\s+/).length;
-  return [a, a + Math.max(4, 1.5 + words / 2.2)];
+  return [a, a + verseReadSeconds(props.verseText)];
 };
+
+/**
+ * زمن قراءة نص آية معروض والراوي مستمر (المراجعة 031): ثانيتان لإيجاد البطاقة وقراءة مرجعها، ثم نصف ثانية لكل كلمة
+ * (قراءة متأنية لنص مشكول، نحو 120 كلمة في الدقيقة، أبطأ من القراءة الحرة لأن المشاهد يسمع الراوي في الوقت نفسه)،
+ * وخمس ثوانٍ على الأقل. البطاقة تبقى بعده حتى نهاية المشهد.
+ */
+export const verseReadSeconds = (text: string) => Math.max(5, 2 + 0.5 * text.trim().split(/\s+/).filter(Boolean).length);
 
 export const hzEstimateSeconds = (narration: string, shot: string, props: Record<string, string | undefined> = {}) => {
   const m = HZ_META[shot];

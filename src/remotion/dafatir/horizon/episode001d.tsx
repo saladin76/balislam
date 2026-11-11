@@ -494,7 +494,78 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
   );
 };
 
+// ─── c1-s48 (المراجعة 031): مبدأ السلسلة. «فلا يمكننا أن ننسب كل اكتشاف أثري إلى شخصية ورد ذكرها في القرآن، أو أن نجعل ما لم يثبت حقيقة مؤكدة.»
+// ثم «ولهذا سنميز في رحلتنا بين ما أخبرنا الله به، وما تدل عليه الشواهد المادية، وما يبقى موضع بحث واختلاف.»
+// اليمنى: شاهد أثري ← خط منقّط نحو بطاقة شخصية بلا اسم (ولا وجه) عليها ختم «القرآن»، والخط يُشطب؛ ثم ختم «حقيقة مؤكدة» يُشطب.
+// اليسرى: ثلاثة أعمدة تُرسم عند «سنميز»، ويُكتب عنوان كل عمود عند كلمته (الأول بعد نافذة ذكر الله).
+const Sources: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
+  const find = prog(t, at(tl, "اكتشاف") - 0.05, at(tl, "اكتشاف") + 0.6, easeOut);
+  const card = prog(t, at(tl, "شخصية") - 0.05, at(tl, "شخصية") + 0.5, easeOut);
+  const link = prog(t, at(tl, "إلى") - 0.05, at(tl, "شخصية") + 0.2);
+  const seal = pop(t, at(tl, "القرآن"));
+  const cut = prog(t, end(tl, "القرآن") + 0.1, end(tl, "القرآن") + 0.5);
+  const fact = pop(t, at(tl, "حقيقة"));
+  const factCut = prog(t, at(tl, "مؤكدة") + 0.1, end(tl, "مؤكدة") + 0.3);
+  const cols = prog(t, at(tl, "سنميز") - 0.05, at(tl, "سنميز") + 0.8, easeOut);
+  const c1 = prog(t, Math.max(at(tl, "به"), end(tl, "الله") + 0.3), Math.max(at(tl, "به"), end(tl, "الله") + 0.3) + 0.6, easeOut);
+  const c2 = prog(t, at(tl, "الشواهد") - 0.05, at(tl, "الشواهد") + 0.6, easeOut);
+  const c3 = prog(t, at(tl, "بحث") - 0.05, at(tl, "بحث") + 0.6, easeOut);
+  const cam = camPath(t, { cx: 1365, cy: 520, s: 1.12 }, [
+    { a: at(tl, "حقيقة") - 0.3, b: at(tl, "مؤكدة") + 0.4, cx: 1365, cy: 600, s: 1.12 },
+    // «ولهذا سنميز…»: الصفحتان كاملتان قبل نافذة ذكر الله، والكاميرا ساكنة عندها
+    { a: at(tl, "ولهذا") - 0.1, b: Math.min(at(tl, "سنميز") + 0.6, at(tl, "الله") - 0.3), ...NEUTRAL },
+    // الأعمدة الثلاثة كاملة، و«حقيقة مؤكدة» (حتى x≈1595) لا تُقص عند الحافة
+    { a: at(tl, "الشواهد") - 0.2, b: at(tl, "بحث") + 0.5, cx: 860, cy: 520, s: 1.05 },
+  ]);
+  const COLS = [
+    { x: 810, label: ["ما أخبرنا", "الله به"], q: c1, color: GOLD_D },
+    { x: 555, label: ["ما تدل عليه", "الشواهد"], q: c2, color: C.ink },
+    { x: 300, label: ["موضع بحث", "واختلاف"], q: c3, color: C.inkSoft },
+  ];
+  const R = (
+    <g>
+      {p.head ? <ChapterHead label={p.head} /> : null}
+      <FindAt k="tool" x={1560} y={430} s={0.8} p={find} />
+      <path d="M1460 430 C1400 400 1330 400 1290 430" fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="8 10" opacity={link} />
+      <g opacity={card} transform={`translate(0 ${(1 - card) * 16})`}>
+        <rect x={1060} y={360} width={220} height={140} rx={8} fill="#FFFAF0" stroke={C.ink} strokeWidth={3} />
+        {[400, 430, 460].map((y) => (
+          <line key={y} x1={1085} x2={1255 - (y % 3) * 20} y1={y} y2={y} stroke={C.inkSoft} strokeWidth={3} strokeDasharray="4 9" opacity={0.6} />
+        ))}
+      </g>
+      <QuranSeal x={1255} y={350} o={seal} s={0.6} />
+      <Ink d="M1340 380 L1410 450 M1410 380 L1340 450" w={7} p={cut} c={C.ribbon} />
+      <Stamp x={1365} y={700} q={fact} label="حقيقة مؤكدة" color={C.ink} w={460} />
+      <Ink d="M1135 655 L1595 745" w={7} p={factCut} c={C.ribbon} />
+    </g>
+  );
+  const L = (
+    <g>
+      {COLS.map((c, i) => (
+        <g key={i}>
+          {i > 0 ? <Ink d={`M${c.x + 127} 280 V800`} w={2.5} p={cols} c={C.inkSoft} opacity={0.6} /> : null}
+          <g opacity={c.q} transform={`translate(0 ${(1 - c.q) * 14})`}>
+            <SText x={c.x} y={340} size={34} font="tajawal" weight={700} color={c.color}>
+              {c.label[0]}
+            </SText>
+            <SText x={c.x} y={385} size={34} font="tajawal" weight={700} color={c.color}>
+              {c.label[1]}
+            </SText>
+          </g>
+        </g>
+      ))}
+      <FindAt k="food" x={555} y={540} s={0.6} p={c2} />
+      <SText x={300} y={570} size={110} color={C.inkSoft} o={c3}>
+        ؟
+      </SText>
+      <Ink d="M870 540 H750" w={6} p={c1} c={GOLD_D} />
+    </g>
+  );
+  return <Book id="c79" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} />;
+};
+
 export const HZ_SCENES_D: Record<string, React.FC<HzProps>> = {
+  sources: Sources,
   "gen-fan": GenFan,
   lineline: Lineline,
   threshold: Threshold,
