@@ -237,7 +237,7 @@ const Shot3: React.FC<ShotProps> = ({ t, q }) => (
         </Page>
         <Spine />
       </svg>
-      <div style={{ position: "absolute", right: W - 1680, top: 104, fontFamily: Amiri, fontWeight: 700, fontSize: 40, color: C.ink, direction: "rtl" }}>الفصل الثاني</div>
+      {/* V8: لا رأس فصل — الحلقة سرد متصل */}
     </Camera>
     {q ? <VerseCard show={prog(t, q.start - 0.7, q.start - 0.1)} text={q.text} refKey={q.key} reciter={q.reciter} /> : null}
   </>
@@ -329,7 +329,7 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
         </Page>
         <Spine />
       </svg>
-      <div style={{ position: "absolute", right: W - 1680, top: 104, fontFamily: Amiri, fontWeight: 700, fontSize: 40, color: C.ink, direction: "rtl" }}>الفصل الثاني</div>
+      {/* V8: لا رأس فصل — الحلقة سرد متصل */}
       {q?.word ? (
         // لفظ الآية من نص السكريبت المعتمد نفسه، في إطار على الصفحة المقابلة: ساكن طوال اللقطة، ولا يلتقي بالحاشية
         <div style={{ position: "absolute", left: 1170, top: 330, width: 390, padding: "18px 20px 16px", background: "#FBF4E6", border: "3px double rgba(74,46,31,0.65)", borderRadius: 8, textAlign: "center", direction: "rtl", boxShadow: "0 10px 24px rgba(43,30,20,0.18)" }}>

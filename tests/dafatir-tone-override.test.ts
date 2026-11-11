@@ -26,10 +26,12 @@ const asRemote = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "192.168.
 const asCrossSite = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "127.0.0.1", sameOrigin: false, host: "127.0.0.1:4321" }, fn);
 
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
-const mapRaw = readFileSync(path.join(EP, "tone-map.json"), "utf8");
+/** نسخة المحتوى V7 محفوظة (V8 في ١١ نوفمبر حذف بطاقات الآيات والفصول): آليات الآيات والفصول تُختبر عليها. */
+const V7: Record<string, string> = { "script.md": "versions/v7/script.md", "plan.json": "plan.v7.json", "tone-map.json": "tone-map.v1.2.json", "tashkeel.md": "versions/v7/tashkeel.md" };
+const mapRaw = readFileSync(path.join(EP, V7["tone-map.json"]!), "utf8");
 const map = JSON.parse(mapRaw) as ToneMapDoc;
-const plan = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
-const tashkeel = readFileSync(path.join(EP, "tashkeel.md"), "utf8");
+const plan = JSON.parse(readFileSync(path.join(EP, V7["plan.json"]!), "utf8")) as Plan;
+const tashkeel = readFileSync(path.join(EP, V7["tashkeel.md"]!), "utf8");
 const AT = "2026-11-09T10:00:00.000Z";
 const NOTE = "النبرة عند 0:04 — حكّاء دافئ أنسب للخاتمة";
 
@@ -40,7 +42,7 @@ const epDir = () => path.join(tmp, "dafatir-alzaman", "episodes", "001-adam-begi
 const freshEpisode = () => {
   rmSync(epDir(), { recursive: true, force: true });
   mkdirSync(epDir(), { recursive: true });
-  for (const f of ["script.md", "plan.json", "tone-map.json", "tashkeel.md"]) writeFileSync(path.join(epDir(), f), readFileSync(path.join(EP, f)));
+  for (const f of ["script.md", "plan.json", "tone-map.json", "tashkeel.md"]) writeFileSync(path.join(epDir(), f), readFileSync(path.join(EP, V7[f]!)));
 };
 
 beforeAll(() => {

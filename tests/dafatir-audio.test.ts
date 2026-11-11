@@ -12,8 +12,9 @@ import { stripTashkeel } from "../src/voice/tashkeel";
  * ولا تغيير في توقيت الحلقة الإنتاجي (plan.json والمحرك المشترك لا يستدعيان هذه الوحدات).
  */
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
-const map = JSON.parse(readFileSync(path.join(EP, "tone-map.json"), "utf8")) as ToneMap & { segments: (ToneMap["segments"][number] & { wpm: number[] })[] };
-const plan = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as { chapters: { scenes: { id: string; template: string; narration?: string; props?: { shot?: string } }[] }[] };
+// نسخة المحتوى V7 (خريطة v1.2) محفوظة بعد V8؛ حدود الآيات والفصول تُختبر عليها
+const map = JSON.parse(readFileSync(path.join(EP, "tone-map.v1.2.json"), "utf8")) as ToneMap & { segments: (ToneMap["segments"][number] & { wpm: number[] })[] };
+const plan = JSON.parse(readFileSync(path.join(EP, "plan.v7.json"), "utf8")) as { chapters: { scenes: { id: string; template: string; narration?: string; props?: { shot?: string } }[] }[] };
 const scenes = plan.chapters.flatMap((c) => c.scenes);
 
 // ——— إشارات صناعية ———

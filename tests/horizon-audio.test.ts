@@ -4,7 +4,8 @@ import { timelineFromWords } from "../src/remotion/dafatir/horizon/timeline";
 import { SHOT_SPECS, buildShots, pickQuranWord, type HorizonAudio } from "../src/remotion/dafatir/horizon/shots";
 import { horizonPreflight, renderHorizonAudio } from "../src/render/horizonAudio";
 
-const EP = path.resolve("channels/dafatir-alzaman/episodes/001-adam-beginning/script.md");
+// اللقطات الست مأخوذة من سكريبت V7 (فيه آيتا البقرة 30 والأعراف 23)؛ V8 بلا آيات فيُختبر عليه النص المحفوظ
+const EP = path.resolve("channels/dafatir-alzaman/episodes/001-adam-beginning/versions/v7/script.md");
 
 const fakeAudio = (): HorizonAudio => {
   const voice: HorizonAudio["voice"] = {};

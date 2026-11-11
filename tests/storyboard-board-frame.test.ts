@@ -24,7 +24,9 @@ import type { Plan, PlanScene } from "../src/plan/types";
  * ولوحة عنوان الفصل صفحةً فارغة.
  */
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
-const plan = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
+// خطة V7 محفوظة (فيها بطاقات الآيات والفصول التي تُختبر لوحاتها)؛ V8 الحالية بلا بطاقات تُختبر في آخر الملف
+const plan = JSON.parse(readFileSync(path.join(EP, "plan.v7.json"), "utf8")) as Plan;
+const plan8 = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
 const scenes = plan.chapters.flatMap((c) => c.scenes);
 const fps = 30;
 
@@ -99,6 +101,15 @@ describe("لوحات الستوري بورد من الخطة (bal storyboard --s
     expect(t.total).toBe(episodeFrames({ plan, channel, media: emptyMedia }));
     expect(t.scenes.map((x) => x.scene.id)).toContain("c4-v7");
     expect(t.scenes).toHaveLength(scenes.length);
+    for (const r of t.scenes) expect(r.frame).toBe(shotFrame(r.scene, r.durationInFrames));
+  });
+
+  it("V8 الحالية: توقيت اللوحات = تكوين الحلقة، 44 لوحة بلا بطاقة آية ولا فصل", () => {
+    const channel = channelInfo(loadChannel("dafatir-alzaman"));
+    const t = boardTimings(plan8, channel);
+    expect(t.total).toBe(episodeFrames({ plan: plan8, channel, media: emptyMedia }));
+    expect(t.scenes).toHaveLength(44);
+    expect(t.scenes.filter((x) => x.scene.template === "verse-card" || x.scene.props?.shot === "chapter")).toEqual([]);
     for (const r of t.scenes) expect(r.frame).toBe(shotFrame(r.scene, r.durationInFrames));
   });
 

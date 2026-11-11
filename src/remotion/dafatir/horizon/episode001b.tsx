@@ -87,7 +87,7 @@ const STEPS = [
   { x: 620, w: "ونفخ", label: "نفخ الروح", n: "٣" },
 ];
 const Steps: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const seal = pop(t, at(tl, "الآيات"));
+  const seal = pop(t, at(tl, "سورة"));
   const times = STEPS.map((s) => at(tl, s.w));
   const station = (i: number) => {
     const s = STEPS[i]!;
@@ -118,8 +118,8 @@ const Steps: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     </g>
   );
   const cam = camPath(t, NEUTRAL, [
-    // «وفي هذه الآيات خبر…»: من الصفحتين إلى ختم الآيات، ثم إلى المحطة الأولى عند «خلق»
-    { a: at(tl, "هذه") - 0.1, b: at(tl, "خبر") + 0.2, cx: 1500, cy: 360, s: 1.24 },
+    // «وفي سورة ص خبر…» (V8): من الصفحتين إلى ختم السورة عند «سورة»، ثم إلى المحطة الأولى عند «خلق»
+    { a: at(tl, "سورة") - 0.1, b: at(tl, "خبر") + 0.2, cx: 1500, cy: 360, s: 1.24 },
     { a: times[0]! - 0.35, b: times[0]! + 0.4, cx: 1420, cy: 520, s: 1.15 },
     { a: times[1]! - 0.5, b: times[1]! + 0.3, cx: 1250, cy: 520, s: 1.12 },
     { a: times[2]! - 0.5, b: times[2]! + 0.3, cx: 800, cy: 520, s: 1.12 },

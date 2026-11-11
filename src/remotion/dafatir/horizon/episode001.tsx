@@ -418,7 +418,7 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   ]);
   const R = (
     <g>
-      <ChapterHead label={p.head ?? ""} />
+      {p.head ? <ChapterHead label={p.head} /> : null}
       <g transform={`translate(1365 430) scale(${0.85 + 0.15 * q}) translate(-1365 -430)`}>
         <SText x={1365} y={500} size={300} o={q} color={C.ink}>
           ؟
@@ -501,7 +501,7 @@ const Known: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   );
   const R = (
     <g>
-      <ChapterHead label={p.head ?? ""} />
+      {p.head ? <ChapterHead label={p.head} /> : null}
       <g opacity={1 - qFade}>
         <SText x={1365} y={560} size={300} color={C.ink} o={0.9}>
           ؟
@@ -538,7 +538,7 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const both = <Ink d="M1240 520 C1100 640 900 660 760 560" w={5} p={arrow} />;
   const R = (
     <g>
-      <ChapterHead label={p.head ?? ""} />
+      {p.head ? <ChapterHead label={p.head} /> : null}
       <Ink d="M1640 200 H1090" w={3} p={rule} c={C.gold} />
       <QuranSeal x={1365} y={270} o={seal} s={0.9} />
       <WriteIn id="tt-k" x={1365} y={470} size={120} p={khalq} label="الخلق" color="#8A5A3C" />
