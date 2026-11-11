@@ -97,8 +97,13 @@ describe("ستوري بورد المختبرات", () => {
   it("يجد المختبر برقمه، والمختبر الحقيقي في المستودع يحفظ صورتي الأمر 015 بقرار النسخة الأولى", async () => {
     expect(await resolveLabDir(eps, "900")).toBe(lab);
     const real = path.join(__dirname, "..", "channels", "balislam", "episodes", "900-engine-lab");
-    const [e] = await listLabStoryboards(real);
+    const all = await listLabStoryboards(real);
+    const e = all.find((x) => x.slot === "witnesses-015");
     expect(e!.slot).toBe("witnesses-015");
+    // لوحات التوجيه 029 للحلقة 001: جاهزة للمراجعة، ولا اعتماد فني
+    const ep001 = all.filter((x) => x.slot.startsWith("ep001-029-"));
+    expect(ep001.length).toBe(7);
+    expect(ep001.every((x) => x.latest.status === "review" && x.problems.length === 0)).toBe(true);
     expect(e!.problems).toEqual([]);
     expect(e!.latest.version).toBe(2);
     expect(e!.latest.status).toBe("review");

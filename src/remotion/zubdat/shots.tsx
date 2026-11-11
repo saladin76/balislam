@@ -90,8 +90,8 @@ const Pause: React.FC<{ x: number; y: number; p: number; z: Z }> = ({ x, y, p, z
 );
 
 /**
- * «habit-heart» (c1-s1): لحظات خروج الشبكة ودخول «؟» من كلمتيهما. الشبكة تبدأ الاختفاء عند «لكنَّ»
- * (أو قبل «سؤالًا» بستة إطارات إن ضاق ما بينهما) وتنتهي قبل «سؤالًا» بإطار، و«؟» يبدأ مع «سؤالًا» نفسها.
+ * «habit-heart» (c1-s1): لحظات خروج الشبكة ودخول «؟» من كلمتيهما. الشبكة تبدأ الاختفاء عند «لكنْ»
+ * (أو قبل «سؤالٌ» بستة إطارات إن ضاق ما بينهما) وتنتهي قبل «سؤالٌ» بإطار، و«؟» يبدأ مع «سؤالٌ» نفسها.
  */
 export const habitHeartCues = (tLakin: number, tQ: number) => {
   const gridEnd = tQ - 1;
@@ -103,16 +103,18 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
   "habit-heart": {
     nameAr: "الصلاة اليومية: تكرار الفعل وحضور القلب",
     render: ({ frame, z, at, end }) => {
-      const t0 = at("نصلي", 0.02);
-      const tW = [at("نقف", 0.2), at("نقرأ", 0.26), at("نركع", 0.32), at("نسجد", 0.38)];
-      const tYears = at("السنين", 0.46);
-      const tFam = at("مألوفة", 0.58);
-      const tLakin = at("لكن", 0.62);
-      const tQ = at("سؤالا", 0.64);
-      const tHal = at("هل", 0.76);
-      const tHeart = at("قلبنا", 0.82);
-      const tBody2 = at("يحضر", 0.88, 2);
-      const tBody = at("جسدنا", 0.95);
+      // السكريبت المعتمد (١١ نوفمبر): «تخيّل أنك أنهيت صلاتك… نعرف هذه الأفعال جيدًا؛ ولكنْ… يبقى سؤالٌ أعمق: هل يحضر قلبنا…»
+      const t0 = at("صلاتك", 0.08);
+      const tW = [at("نقف", 0.36), at("نقرأ", 0.39), at("نركع", 0.42), at("نسجد", 0.45)];
+      const tYears = at("نعرف", 0.47); // معرفة الأفعال بالتكرار: الأيام تتكرر شبكةً
+      const tFam = at("جيدا", 0.56); // الإلف: الأيام تبهت
+      const tLakin = at("لكن", 0.58);
+      const tQ = at("سؤال", 0.72);
+      const tHal = at("هل", 0.78);
+      const tBody1 = at("يحضر", 0.8);
+      const tHeart = at("قلبنا", 0.83);
+      const tBody2 = at("يحضر", 0.94, 2);
+      const tBody = at("جسدنا", 0.97);
       const line = prog(frame, t0 - 4, t0 + 20);
       const sun = prog(frame, t0 + 4, tW[0]! + 6, (t) => t);
       const post = tW.map((t) => prog(frame, t - 3, t + 16));
@@ -128,7 +130,7 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       for (const r of [-1, 0, 1, 2]) for (const c of [-1, 0, 1]) if (!(r === 0 && c === 0)) cells.push([c, r]);
       return {
         camLen: 28,
-        focus: [[at("يوم", 0.06), 960, 330], ...tW.map((t, i): [number, number, number] => [t, 960 + [420, 140, -140, -420][i]!, 620]), [at("نحفظ", 0.5), 960, 600], [tQ, 960, 600], [at("لأنفسنا", 0.72), 1180, 700], [tHal, 965, 470], [tHeart, 760, 600], [tBody2, 1180, 700], [tBody, 1400, 700]],
+        focus: [[at("تخيل", 0.0), 960, 330], ...tW.map((t, i): [number, number, number] => [t, 960 + [420, 140, -140, -420][i]!, 620]), [at("الأفعال", 0.53), 960, 600], [tQ, 960, 600], [tHal, 965, 470], [tHeart, 760, 600], [tBody2, 1180, 700], [tBody, 1400, 700]],
         cam: [C(0, 960, 420, 1.12), C(tW[0]! - 8, 960, 560, 1.0), C(tYears - 2, 960, 640, 0.45), C(gridStart, 960, 540, 1.0), C(tHeart - 8, 960, 600, 1.12)],
         world: (
           <g>
@@ -149,8 +151,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
               <path d={heartPath(760, 600, 112)} fill="none" stroke={z.ink} strokeWidth={10} strokeDasharray="22 18" strokeLinecap="round" />
             </g>
             <Write id="hq" x={760} y={830} text="قلبنا" size={72} p={wp(frame, tHeart, end("قلبنا", 0.85))} c={z.ink} z={z} />
-            {/* «لأنفسنا»: نحن نسأل؛ الجسد يحضر متقطعًا ثم يكتمل عند «جسدنا»، والقلب يبقى سؤالًا */}
-            <InkPerson x={1180} y={860} s={1.3} pose="stand" p={prog(frame, at("لأنفسنا", 0.72) - 2, at("لأنفسنا", 0.72) + 16)} z={z} dir={-1} dashed opacity={1 - prog(frame, tBody, tBody + 10)} />
+            {/* «يحضر»: الجسد يحضر متقطعًا ثم يكتمل عند «جسدنا»، والقلب يبقى سؤالًا */}
+            <InkPerson x={1180} y={860} s={1.3} pose="stand" p={prog(frame, tBody1 - 2, tBody1 + 16)} z={z} dir={-1} dashed opacity={1 - prog(frame, tBody, tBody + 10)} />
             <InkPerson x={1180} y={860} s={1.3} pose="stand" p={prog(frame, tBody2 - 2, tBody + 6)} z={z} dir={-1} />
             <Write id="bq" x={1400} y={720} text="جسدنا" size={72} p={wp(frame, tBody, end("جسدنا", 0.98))} c={z.ink} z={z} />
           </g>

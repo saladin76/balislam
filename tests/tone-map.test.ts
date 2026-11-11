@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { isTone } from "../src/voice/tones";
 import { normWord, stripTashkeel } from "../src/voice/tashkeel";
+import { isQuranFreeForTts, planVerseTexts } from "../src/voice/quranGuard";
 
 /**
  * خريطة الأداء الصوتي للحلقة 001.
@@ -272,18 +273,18 @@ describe("خريطة الأداء الصوتي — v1.5 (نسخة المحتوى
     source: Record<string, { sha256: string }> };
   const v15 = JSON.parse(read("tone-map.v1.5.json")) as V15;
   const v14 = JSON.parse(read("tone-map.v1.4.json")) as V15;
-  const plan9 = JSON.parse(read("plan.json")) as { chapters: { scenes: { id: string; narration?: string; props?: Record<string, unknown> }[] }[] };
+  const plan9 = JSON.parse(read("plan.v9.json")) as { chapters: { scenes: { id: string; narration?: string; props?: Record<string, unknown> }[] }[] };
   const spoken9 = plan9.chapters.flatMap((c) => c.scenes).filter((s) => s.narration?.trim());
-  const tashkeel9 = read("tashkeel.md");
+  const tashkeel9 = read("versions/v9/tashkeel.md");
   const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
 
   it("غير معتمدة، ومبنية على تشكيل V9 وسكريبته وخطته ببصماتها، وv1.4 محفوظة", () => {
     expect(v15.version).toBe("v1.5");
     expect(v15.order).toBe("V9");
     expect(v15.approved).toBe(false);
-    expect(v15.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
-    expect(v15.source.script!.sha256).toBe(sha("script.md"));
-    expect(v15.source.plan!.sha256).toBe(sha("plan.json"));
+    expect(v15.source.tashkeel!.sha256).toBe(sha("versions/v9/tashkeel.md"));
+    expect(v15.source.script!.sha256).toBe(sha("versions/v9/script.md"));
+    expect(v15.source.plan!.sha256).toBe(sha("plan.v9.json"));
     expect(v15.previous.at(-1)).toEqual({ version: "v1.4", path: "tone-map.v1.4.json" });
     expect(v15.changelog.at(-1)).toMatchObject({ from: "v1.4", to: "v1.5" });
   });
@@ -327,10 +328,10 @@ describe("خريطة الأداء الصوتي — v1.5 (نسخة المحتوى
   });
 });
 
-describe("خريطة الأداء الصوتي — الإصدار الحالي v1.6 (أُلغيت النبرات القوية D70، ١١ نوفمبر، D79)", () => {
+describe("خريطة الأداء الصوتي — v1.6 (أُلغيت النبرات القوية D70، ١١ نوفمبر، D79) محفوظة", () => {
   type Labeled = Map & { legend: { tones: Record<string, string>; pauses?: unknown }; previous: { version: string; path: string }[]; changelog: { from: string; to: string; source?: string }[];
     source: Record<string, unknown> };
-  const live = JSON.parse(read("tone-map.json")) as Labeled;
+  const live = JSON.parse(read("tone-map.v1.6.json")) as Labeled;
   const v15 = JSON.parse(read("tone-map.v1.5.json")) as Labeled;
   const v13 = cur as unknown as Labeled;
   it("v1.6 = v1.5 (V9) بأسماء v1.3 وحدها؛ كل ما عدا الاسم والإصدار والسجل كما في v1.5، وv1.5 محفوظة", () => {
@@ -348,5 +349,49 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
     expect(p6).toEqual([...p5, { version: "v1.5", path: "tone-map.v1.5.json" }]);
     expect(c6.slice(0, -1)).toEqual(c5);
     expect(c6.at(-1)).toMatchObject({ from: "v1.5", to: "v1.6", source: "revert-strong-voice" });
+  });
+});
+
+describe("خريطة الأداء الصوتي — الإصدار الحالي v1.7 (صياغة المالك بالمعنى لجملتي c6-s1 وc7-s1، ١١ نوفمبر)", () => {
+  type V17 = Map & { order: string; legend: { tones: Record<string, string> }; previous: { version: string; path: string }[];
+    changelog: { from: string; to: string; edited?: number[] }[]; quranFlags: { scene: string; status?: string }[]; source: Record<string, { sha256: string }> };
+  const v17 = JSON.parse(read("tone-map.json")) as V17;
+  const v16 = JSON.parse(read("tone-map.v1.6.json")) as V17;
+  const plan = JSON.parse(read("plan.json")) as { chapters: { scenes: { id: string; narration?: string; props?: Record<string, unknown> }[] }[] };
+  const spoken = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration?.trim());
+  const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
+
+  it("مبنية على السكريبت والتشكيل والخطة الحالية، وv1.6 محفوظة، وأسماء النبرات كما في v1.6", () => {
+    expect(v17.version).toBe("v1.7");
+    expect(v17.approved).toBe(false);
+    expect(v17.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
+    expect(v17.source.script!.sha256).toBe(sha("script.md"));
+    expect(v17.source.plan!.sha256).toBe(sha("plan.json"));
+    expect(v17.legend.tones).toEqual(v16.legend.tones);
+    expect(v17.previous.at(-1)).toEqual({ version: "v1.6", path: "tone-map.v1.6.json" });
+    expect(v17.changelog.slice(0, -1)).toEqual(v16.changelog);
+    expect(v17.changelog.at(-1)).toMatchObject({ from: "v1.6", to: "v1.7", edited: [64, 72] });
+  });
+
+  it("المقطعان المعدلان وحدهما تغيّرا؛ كل مقطع مطابق لسطره وكل مشهد = مقاطعه", () => {
+    const lines = read("tashkeel.md").split("\n");
+    for (const s of v17.segments) {
+      expect(lines[s.tashkeelLine - 1]!.trim(), `مقطع ${s.n}`).toBe(s.text);
+      expect(s.marked.replace(/ ?[|‖]/g, "").replace(/\*\*/g, "")).toBe(s.text);
+      const o = v16.segments.find((x) => x.n === s.n)!;
+      if ([64, 72].includes(s.n)) expect(s.id).not.toBe(o.id);
+      else { expect(s.id).toBe(o.id); expect(s.text).toBe(o.text); expect(s.tone).toBe(o.tone); }
+    }
+    for (const sc of spoken) expect(plain(v17.segments.filter((s) => s.scene === sc.id).map((s) => s.text).join(" ")), sc.id).toBe(plain(sc.narration!));
+  });
+
+  it("الحارس يقبل كل مقطع عدا البسملة (يسجلها المالك)، ويعرف نصوص الآيات المعروضة السبع", () => {
+    expect(v17.quranFlags.map((f) => [f.scene, f.status])).toEqual([["c6-s1", "resolved"], ["c7-s1", "resolved"]]);
+    const verses = planVerseTexts(plan as never);
+    expect(verses).toHaveLength(7);
+    for (const s of v17.segments) {
+      if (s.scene === "c1-s1") continue;
+      expect(isQuranFreeForTts(stripTashkeel(s.text), { id: s.scene }, { verses }), `مقطع ${s.n}`).toBe(true);
+    }
   });
 });
