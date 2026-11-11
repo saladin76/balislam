@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-07-return-portrait",
+  "title": "032 · الرد والاعتذار c1-s135…s139 عمودي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "cc0a661d6399085954d10cbcbff02228842536b13df2fb650d69066c75583e55",
+  "size": 1672127,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 1672127,
+      "sha256": "cc0a661d6399085954d10cbcbff02228842536b13df2fb650d69066c75583e55"
+    }
+  ],
+  "createdAt": "2026-11-11T21:28:37.274Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
