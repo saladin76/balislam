@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-04-chair-portrait",
+  "title": "032 · الكرسي c1-s93…s97 عمودي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "9975150a5370c4c10802b52168d899907aa5bfcbcffd10578ec372688ef6fe99",
+  "size": 2417992,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 2417992,
+      "sha256": "9975150a5370c4c10802b52168d899907aa5bfcbcffd10578ec372688ef6fe99"
+    }
+  ],
+  "createdAt": "2026-11-11T21:28:20.052Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
