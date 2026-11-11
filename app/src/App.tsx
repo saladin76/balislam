@@ -117,7 +117,8 @@ export const App: React.FC = () => {
   const episodeRef = useRef(epId);
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
-  useEffect(() => { setRequestedSceneId(undefined); setSceneView("one"); setFinalView(null); }, [channelId, epId]);
+  const [viewSceneId, setViewSceneId] = useState<string | undefined>();
+  useEffect(() => { setRequestedSceneId(undefined); setViewSceneId(undefined); setSceneView("one"); setFinalView(null); }, [channelId, epId]);
   /** The ledger read by the spine: a locked step renders one `LockedStep` (D52). */
   const [ledger, setLedger] = useState<{ key: string; w: SceneProductionRead | null } | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -611,6 +612,8 @@ export const App: React.FC = () => {
             onReload={() => loadEpisode(epId, { keepScript: true })}
             onSigned={() => setHomeKey((k) => k + 1)}
             refreshKey={homeKey}
+            afterPreparation={w?.afterPreparation?.scenes.filter((x) => w.scenes.find((y) => y.id === x.id)?.afterPreparation)}
+            onOpenScene={(id) => { setViewSceneId(id); setTab("episode"); }}
           /></div>
         ) : tab === "voice" ? (
           <VoiceWorkspaceTab
@@ -675,6 +678,7 @@ export const App: React.FC = () => {
             plan={plan}
             channel={channel}
             requestedSceneId={requestedSceneId}
+            viewSceneId={viewSceneId}
             onCloseEditor={() => setRequestedSceneId(undefined)}
             media={media}
             onMediaChange={setMedia}

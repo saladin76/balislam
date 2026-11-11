@@ -113,7 +113,7 @@ authority. Every production gate asks it:
 
 | Gate | Requirement |
 | --- | --- |
-| «اعتمد التجهيز» (step ١, D40) | one owner request (loopback Studio page) + `reviewed: true`, the script and storyboard fingerprints the owner saw; everything that can refuse is checked before any write (script errors, verses without text, board note ≥ 25 chars when the boards are not recorded); then, in order, `approve-script` → board record (`storyboard.json`, same `checkVisualStoryboardSignoff`, script approved first) → `approve-storyboard`, each ledger decision through `decideSceneProduction` (`src/studio/preparation.ts`). **Boards changed after the approval (D60):** when the boards were reviewed before, the same request («اعتمد اللوحات المتغيّرة») records only the changed/new boards (`recordChangedBoards`; the others keep their recorded fingerprint byte for byte, so no approved scene re-opens; the earlier note goes to `history`), then takes the ledger's storyboard decision again (the record is a new file), and the script decision too if the script changed. Step ١ counts as done only while `boards.current` (every current scene matches its recorded board) |
+| «اعتمد التجهيز» (step ١, D40; once per episode, D75) | one owner request (loopback Studio page) + `reviewed: true`, the script and storyboard fingerprints the owner saw; everything that can refuse is checked before any write (script errors, verses without text; the board note is optional, one line, ≤ 300 characters, no minimum); then, in order, `approve-script` → board record (`storyboard.json`, same `checkVisualStoryboardSignoff`, script approved first) → `approve-storyboard`, each ledger decision through `decideSceneProduction` (`src/studio/preparation.ts`). Given once: a second call when both decisions are current is a no-op. **After it (D75, supersedes the re-approval of D60/D65/D66):** a change is carried forward by the ledger itself — see «Changes after the preparation approval» below. Step ١ counts as done while `boards.current` |
 | Voice generation | script + storyboard approved (`requireScriptAndStoryboardApproved`) |
 | Final motion | same, plus the technical Quran checks (`assertMotionStartAuthorized(episode, …)`) |
 | Scene AV render («إنتاج المشهد») | the next unapproved scene only, with current inputs (`assertCurrentSceneRenderAllowed`) |
@@ -420,7 +420,7 @@ never grows.
 - **Basmala = verse.** `assertNoQuranForTts` refuses «بسم الله الرحمن الرحيم» in any spelling, alone or inside a sentence, and `ttsContext` cuts it out (`src/voice/basmala.ts`). A scene holding it is always sentence-managed: the whole-scene and dafatir parts paths never voice it (`sentenceManagedScenes`, `partsJobsFor`). A mixed sentence is split; the basmala row (`kind: "basmala"`) takes the owner's recording under the recitation key `basmala` (same upload → polish → listen → approve flow, `manualAudio.ts`). Until approved, the composed clip carries `basmala.pending` (silent, tagged «التلاوة تُضاف لاحقًا»), the ledger marks the scene `recitationPending` (conditional approval only), `shotGaps` and `assertMasterReady` refuse a Master. Approving or switching the recording recomposes its scenes (`recomposeBasmalaScenes`), which changes their inputs and re-opens them alone.
 - **Citations never block** (CLAUDE.md rule 5): no citation check in `assertMasterReady`, the legacy publish stage (`workflow/server.ts`) or the legacy script signoff (`script/approval.ts`). The count is information in step ١ and step ٣.
 - **Render staging (B1):** `dedupeStageFiles` stages a clip shared by several scenes once; two different sources under one name still fail closed. A scene preview stages only its scenes' voice (`voiceForPlan`).
-- **One changed board from step ٢ (B2):** `POST /api/episodes/<n>/approve-scene-board` (`approveSceneBoard`) — owner, «راجعته بنفسي», a 25+ character note, the storyboard fingerprint the owner saw; records only that board (`recordChangedBoards(…, only)`) then `approve-storyboard` in the ledger. Refused (nothing written) when the board did not change or other boards changed too. Since D66 it also re-records the script decision when only this scene's narration changed (below).
+- **One changed board from step ٢ (B2):** superseded by D75 (11 Nov): `POST /api/episodes/<n>/approve-scene-board` answers 410; a changed board is recorded by the ledger itself.
 - **Preparation queue (M1/M3):** `GET /scene-prepare` returns the job against the ledger now (`currentPrepareView`: failures of scenes since drafted/approved or whose inputs changed are dropped; ids named) and `toneMissing`. The owner's `POST /scene-prepare` («استأنف») retries previous failures; the automatic start after «اعتمد التجهيز» does not.
 - **Corrections wait for a change (M4):** a `needs_revision` scene whose trusted render proof is still the corrected cut, from unchanged inputs, is not rendered again (`assertSceneNotAwaitingChange`, used by `scene-av-render` and the queue) until its inputs change or its notes-inbox entry is answered `fixed`. Read model: `awaitingChange: true`.
 - **Voice route (M5):** `POST /api/episodes/<n>/voice` validates scene ids (400), checks the owner for paid runs, answers refusals 409 (422 for Quran), and regenerates a sentence-managed scene through its sentences (`regenerateSceneSentences`).
@@ -490,10 +490,43 @@ Calls requiring integration after merging this independent PR (none are patched 
 
 New regression tests: `tests/workflow-gates.test.ts` cover six-stage progression, blocked renders and publication, required human role/evidence, post-approval edits, no resurrection of old approvals, rejection/resubmission, in-review changes, simultaneous writers, path/symlink protection, corrupted-ledger fail-closed behavior and cross-channel isolation. After integration, rerun TypeScript, all Vitest and the isolated Mac review against the final integration SHA. **No production render, auto-Master, publishing, migration or Vercel calls in this PR.**
 
-### One scene edited after the preparation approval; pronunciation precedence (D66)
+### Pronunciation precedence (D66)
 
-- **Signed copy of the approved script:** every `approve-script` writes `script-approved.v1.json` next to the ledger (gitignored, atomic, HMAC with the ledger's machine key, bound to the exact script generation the ledger approved; written only if the file is still that generation after reading). A missing copy, a broken signature or another generation is never trusted (`loadApprovedScript` → null).
-- **`sceneEdit` in the read model** (`inspectSceneProduction`, every decision reply): null when nothing waits or the preparation was never approved. Otherwise `{ sceneId, open, script, board, reason? }`: the scenes whose board changed, plus — when the script decision was re-opened — the scene whose narration is the only difference between the approved copy and script.md (`scriptEditScope`: the changed lines must be narration inside one run after a scene marker or heading, and that run/paragraph/the changed lines equal one plan scene's narration before or after; front matter, headings, markers, citations, lists → other parts). `open` only when exactly one scene (or none) is concerned.
-- **`approveSceneBoard` = «اعتمد تعديل هذا المشهد»:** requires `sceneEdit.open` for this scene, «راجعته بنفسي», the 25+ note, the storyboard fingerprint and (when the script is re-opened) the script fingerprint the owner saw. Checks everything first, then writes in order: `approve-script` (ledger, owner check) → this board only → `approve-storyboard`. Other scenes' inputs are untouched, so their approvals stand. Not open → refused with the reason, nothing written; the full step ١ path is unchanged.
-- **Step ٢ lock:** `lockedStep("episode")` stays open while `sceneEdit.open`; the scene itself still cannot be voiced or produced before the re-approval (`requireScriptAndStoryboardApproved`, `checkRenderAllowed` unchanged).
+The D66 re-approval of one edited scene («اعتمد تعديل هذا المشهد», `sceneEdit`, the signed copy `script-approved.v1.json`)
+is superseded by D75 below; existing copies on disk are ignored (still gitignored).
+
 - **Pronunciation precedence** (`src/voice/pronunciationRules.ts`): sentence correction > lexicon exact written form > lexicon `match: "letters"` entry (only over no contradicting owner marks) > legacy dictionary > tashkeel.md, which only fills marks the owner did not write (`fillFromVoweled`). No-op lexicon entries are refused (`NOOP_SAY`); a no-op sentence correction removes the earlier one. Tests: `tests/word-fix-precedence.test.ts`, `tests/scene-edit-reapprove.test.ts`.
+
+### Changes after the preparation approval are carried forward (D75, 11 Nov, all channels)
+
+Owner: «احذف هذه الخطوة من كل القنوات» (the dock «تغيّرت ٣ لوحات بعد اعتماد التجهيز … اعتمد اللوحات المتغيّرة»).
+«اعتمد التجهيز» happens once per episode. Afterwards a change to the script or the storyboard never asks for the boards,
+the storyboard or the script again and never locks step ٢.
+
+- **Where:** `withState` in `src/studio/sceneService.ts`, under the ledger lock, after reconciling:
+  `carryForwardAfterPreparation`. It applies when the signed history holds the owner's `approve-script` and
+  `approve-storyboard` (`preparedByOwner`), `storyboard.json` still has a review note, and the script or storyboard
+  decision is no longer current or a board changed.
+- **What it writes, in order:** (1) the changed/new boards only, in `storyboard.json` (`recordBoardsAfterPreparation`,
+  `src/plan/storyboard.ts`; other boards byte for byte, earlier note to `history`; never refused for a verse without text);
+  (2) inputs re-read and reconciled again, so exactly the scenes whose own inputs changed re-open (`reviseSceneInput`; the
+  assembly, Master and publish permission are invalidated as before); (3) `approveScript` / `approveStoryboard` with
+  `by: "system"` on the new fingerprints; (4) ONE history event `update-after-preparation`, `by: "system"`, with
+  `change = { source: ["script" | "boards"], script?: {from,to}, storyboard?: {from,to}, scenes: [{ id, what, from, to }] }`
+  (`what`: `board` | `text` | `new` | `inputs`). The event is covered by the ledger HMAC like every other; the ledger stays
+  the single authority (D24). No note, no checkbox.
+- **Read model:** each re-opened, not yet re-approved scene carries `afterPreparation: { at, what, script }` (step ٢ shows
+  «تغيّر بعد التجهيز — راجعه (…)»); top level `afterPreparation` (the latest event's scenes, listed on top of the storyboard
+  as an informative «تغيّر بعد التجهيز» linking to each scene in step ٢); `scenes[].blocked` and `episodeBlocked`.
+- **Scoped blocks** (`src/studio/afterPreparation.ts` · `productionBlocks`), only while an approval rests on the system
+  carry-forward: a verse card without its text, or a script error on a scene's narration line, blocks producing that scene
+  (`checkRenderAllowed`, `requireScenesProducible` for voice); a script error belonging to no scene blocks producing every
+  scene not yet approved. Never a step lock.
+- **Migration:** an episode left waiting on the old re-approval (e.g. `storyboard.approved=false`, `boards.changed=[…]`) is
+  migrated by its first read when the owner's preparation approval is in its history. Without one, the first
+  «اعتمد التجهيز» is required as before. A board record without a note («اسحب الاعتماد») is not carried forward.
+- **Removed:** the changed-boards dock, «اعتمد اللوحات المتغيّرة», «اعتمد لوحة هذا المشهد» (D65), «اعتمد تعديل هذا المشهد»
+  (D66, `SceneBoardApproval.tsx`, `sceneEdit`, `src/studio/scriptScope.ts`), their `LockedStep` reasons; the 25-character note.
+- **Unchanged:** scene order, AV approval, recitations/basmala (D35/D65), assembly 1× + seams, Master bytes, publish
+  permission, Drive handoff.
+- Tests: `tests/after-preparation.test.ts`.

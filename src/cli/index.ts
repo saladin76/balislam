@@ -621,7 +621,7 @@ program
     const { loadStoryboard, storyboardStatus } = await import("../plan/storyboard");
     const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
     const s = storyboardStatus(plan, await loadStoryboard(await resolveScriptPath(episode)));
-    console.log(`معتمد ${s.approved} من ${s.total}${s.ok ? " ✓" : ""}${s.changed.length ? `؛ تغيّر بعد الاعتماد: ${s.changed.join("، ")}` : ""}. الاعتماد من الاستوديو: «١ التجهيز» ← «اعتمد التجهيز»، أو «اعتمد اللوحات المتغيّرة» للوحات التي تغيّرت بعده.`);
+    console.log(`معتمد ${s.approved} من ${s.total}${s.ok ? " ✓" : ""}${s.changed.length ? `؛ تغيّر بعد الاعتماد: ${s.changed.join("، ")}` : ""}. الاعتماد من الاستوديو: «١ التجهيز» ← «اعتمد التجهيز» مرة واحدة؛ ما تغيّر بعده يسجّله النظام وتُراجَع مشاهده في «٢ المشاهد».`);
     if (!s.ok) process.exitCode = 1;
   });
 

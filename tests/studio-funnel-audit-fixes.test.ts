@@ -12,7 +12,7 @@ describe("رسائل الخادم للمالك بالعربية", () => {
   it("الرسائل الإنجليزية المعروفة تُعرض بالعربية مع ما يفعله المالك", () => {
     expect(ownerMessage("Storyboard changed before review.")).toMatch(/تغيّر الستوري بورد/);
     expect(ownerMessage("Review and approve every current storyboard scene with a review note before starting AV production."))
-      .toMatch(/«١ التجهيز».*اللوحات المتغيّرة/);
+      .toMatch(/«١ التجهيز».*«اعتمد التجهيز»/);
     expect(ownerMessage("Scene approval ledger is busy. Never delete another writer lock.")).toMatch(/مشغول/);
     expect(ownerMessage("Scene c1-s2 has changed after audiovisual approval.")).toBe("تغيّر المشهد c1-s2 بعد اعتماده؛ يحتاج إنتاجًا واعتمادًا جديدين.");
     expect(ownerMessage("c6-end: AV/Master review requires a playable video with an audio track, valid duration and required resolution."))

@@ -99,6 +99,12 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
 };
 
 
+/** What changed in a scene re-opened after «اعتمد التجهيز». */
+export type AfterPreparationWhat = "board" | "text" | "new" | "inputs";
+export const AFTER_PREPARATION_WHAT: Record<AfterPreparationWhat, string> = { board: "اللوحة", text: "النص", new: "مشهد جديد", inputs: "مدخلاته" };
+/** «تغيّر بعد التجهيز — راجعه (النص، اللوحة)» */
+export const afterPreparationLine = (what: AfterPreparationWhat[]) =>
+  `تغيّر بعد التجهيز — راجعه (${[...new Set(what.map((w) => AFTER_PREPARATION_WHAT[w]))].join("، ")})`;
 export type SceneProductionRead = {
   schemaVersion: 1;
   channel: string; episode: string; revision: number;
@@ -111,10 +117,12 @@ export type SceneProductionRead = {
   /** P-05: every current scene matches its recorded board; `changed` lists the boards edited since (or new). */
   boards?: { current: boolean; changed: string[] };
   /**
-   * D66: one scene edited after «اعتمد التجهيز» (its sentence text and/or its narration in the script). open: step ٢
-   * stays usable and «اعتمد تعديل هذا المشهد» re-records the script/storyboard decisions for it; otherwise `reason`.
+   * 11 Nov: the latest «تحديث بعد التجهيز» — a change after «اعتمد التجهيز» carried forward by the ledger (signed system
+   * event). Its scenes re-open for review in step ٢; nothing is approved again. null when there was none.
    */
-  sceneEdit?: { sceneId: string | null; open: boolean; script: boolean; board: boolean; reason?: string } | null;
+  afterPreparation?: { at: string; script: boolean; scenes: { id: string; what: AfterPreparationWhat[] }[] } | null;
+  /** Script errors that belong to no single scene: no scene not yet approved is produced until they are fixed. */
+  episodeBlocked?: string[];
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
     sourceSha256: string; previewSha256?: string; readyForAv: boolean; approved: boolean;
     /** Verse card whose human recitation is not attached yet (its draft is silent, marked). */
@@ -125,6 +133,10 @@ export type SceneProductionRead = {
     draft?: "ready" | "stale" | "none";
     /** M4: sent back for a fix and its inputs have not changed since: not re-rendered until they do. */
     awaitingChange?: boolean;
+    /** 11 Nov: re-opened by a change after «اعتمد التجهيز»: step ٢ shows «تغيّر بعد التجهيز — راجعه» with what changed. */
+    afterPreparation?: { at: string; what: AfterPreparationWhat[]; script: boolean };
+    /** What blocks producing this scene (a verse without its text, a script error on its narration). */
+    blocked?: string[];
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
       /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */
@@ -162,7 +174,7 @@ export type ScenePrepareJob = {
   /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
   skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
 };
-export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean; changedBoards?: string[]; boardsReviewedBefore?: boolean;
+export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean;
   /** M1: narrated scenes with no tone at all (none of their own, the episode's or the channel's). */
   toneMissing?: string[]; episodeTone?: string | null; channelTone?: string | null };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number;
@@ -253,9 +265,6 @@ export const api = {
     call<{ assembly: string | null; heard: Record<string, { how: "played" | "confirmed"; at: string }> }>(`/api/episodes/${episode}/seam-checks`, undefined, channel),
   recordSeam: (episode: string, channel: string, body: { seam: string; assemblySha256: string; how?: "played" | "confirmed"; heard?: boolean; playedSec?: number }) =>
     call<{ assembly: string; heard: Record<string, { how: "played" | "confirmed"; at: string }> }>(`/api/episodes/${episode}/seam-checks`, { method: "POST", json: body }, channel),
-  /** B2: «اعتمد لوحة هذا المشهد» from step ٢ — the changed board of one scene, then the storyboard decision again. */
-  approveSceneBoard: (episode: string, channel: string, body: { sceneId: string; storyboardSha256: string; scriptSha256?: string; reviewed: boolean; note: string }) =>
-    call<SceneProductionRead>(`/api/episodes/${episode}/approve-scene-board`, { method: "POST", json: body }, channel),
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel).then(prepareRead),

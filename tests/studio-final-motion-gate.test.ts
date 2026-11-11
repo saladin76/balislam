@@ -45,9 +45,13 @@ describe("final motion asks the scene-first ledger only", () => {
         await expect(assertMotionStartAuthorized("001", scriptPath)).resolves.toBe(true);
         // Master still needs every scene approved with sound and picture, then the assembly.
         await expect(assertWorkflowForEpisode("001", "master_render")).rejects.toThrow(/approved/);
-        // Editing the script re-opens the decision; old approvals never come back.
+        // 11 Nov: after «اعتمد التجهيز» a script edit is carried forward by a signed system event (no second approval);
+        // only scenes whose own inputs changed re-open, and Master still waits for every scene.
         await writeFile(scriptPath, `---\ntitle: "اختبار"\ndomain: psychology\nepisode: "001"\n---\n## الفصل 1 · تجربة\nنص معدّل.\n`);
-        await expect(assertMotionStartAuthorized("001", scriptPath)).rejects.toThrow(/اعتمد السكريبت/);
+        await expect(assertMotionStartAuthorized("001", scriptPath)).resolves.toBe(true);
+        const after = await inspectSceneProduction("001");
+        expect(after.recentHistory.at(-1)).toMatchObject({ action: "update-after-preparation", by: "system" });
+        await expect(assertWorkflowForEpisode("001", "master_render")).rejects.toThrow(/approved/);
       });
     } finally {
       for (const [k, v] of [["BAL_CHANNELS_DIR", env.channels], ["BAL_WORKFLOW_HMAC_KEY", env.key]] as const)

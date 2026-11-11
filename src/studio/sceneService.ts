@@ -16,7 +16,7 @@ import { withLock } from "../io/processLock";
 import { lstat, open, readFile, rename, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
-import { loadStoryboard, storyboardStatus } from "../plan/storyboard";
+import { loadStoryboard, recordBoardsAfterPreparation, storyboardStatus } from "../plan/storyboard";
 import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { verifiedOwnRecitations } from "../quran/manualAudio";
 import { verifyVideoEvidence } from "../workflow/videoEvidence";
@@ -31,7 +31,10 @@ import { appendStudioNote, correctionInboxView } from "./notesInbox";
 import { scheduleStudioNotesSync } from "./notesSync";
 import { channelsDir, loadChannel } from "../channel";
 import { versesAreCitations } from "../quran/citation";
-import { loadApprovedScript, recordApprovedScript, scriptEditScope } from "./scriptScope";
+import {
+  AFTER_PREPARATION_ACTION, NO_BLOCKS, productionBlocks,
+  type AfterPreparationChange, type AfterPreparationWhat, type ProductionBlocks,
+} from "./afterPreparation";
 
 export const SCENE_ACTIONS = ["approve-script", "approve-storyboard", "submit-scene",
   "approve-scene", "correct-scene", "assemble", "approve-assembly", "approve-master", "grant-publish"] as const;
@@ -51,8 +54,13 @@ export type SceneOwnerCommand = {
    */
   tone?: string;
 };
-type AuditEvent = { seq: number; action: CommandAction; sceneId?: string;
-  at: string; by: "owner"; resultSha256: string; note: string };
+/**
+ * One ledger event. `by: "owner"` for every owner decision; `by: "system"` only for «تحديث بعد التجهيز»
+ * (AFTER_PREPARATION_ACTION, owner decision 11 Nov): a change after «اعتمد التجهيز» carried forward, with what changed.
+ * Both are covered by the ledger's HMAC like the rest of the history.
+ */
+type AuditEvent = { seq: number; action: CommandAction | typeof AFTER_PREPARATION_ACTION; sceneId?: string;
+  at: string; by: "owner" | "system"; resultSha256: string; note: string; change?: AfterPreparationChange };
 type SignedSceneLedger = {
   version: 1;
   state: SceneFirstProduction;
@@ -79,6 +87,13 @@ type CurrentInput = {
   planReady: boolean;
   /** Boards whose current scene differs from the recorded board (changed after the record, or new). */
   boardsChanged: string[];
+  /** Board state per scene, and whether each narration still matches its voice clip (to say what changed). */
+  boardState: Record<string, "approved" | "changed" | "new">;
+  textChanged: Record<string, boolean>;
+  /** A board review was recorded at least once (storyboard.json has a note). */
+  boardsReviewed: boolean;
+  /** Scene-scoped refusals (11 Nov): filled under the lock only while an approval rests on the system carry-forward. */
+  blocks: ProductionBlocks;
 };
 const sha = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
 const hex64 = (text: unknown): text is string =>
@@ -151,9 +166,11 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
   const voiceReadyBy: Record<string, boolean> = {};
   const recitationPending: Record<string, boolean> = {};
   const refs = [];
+  const textChanged: Record<string, boolean> = {};
   for (const chapter of plan.chapters) for (const scene of chapter.scenes) {
     const narration = scene.narration?.trim() ?? "";
     const clip = voice[scene.id];
+    textChanged[scene.id] = Boolean(narration && clip && clip.text !== narration);
     let voiceFingerprint = "no-narration";
     let voiceReady = narration.length === 0;
     if (narration) {
@@ -189,6 +206,8 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
   return {
     scriptPath, ready, voiceReady: voiceReadyBy, recitationPending, planReady: boardStatus.ok && Boolean(boardStatus.audit?.note?.trim()),
     boardsChanged: [...boardStatus.changed, ...boardStatus.fresh],
+    boardState: boardStatus.scenes, textChanged, boardsReviewed: Boolean(boardStatus.audit?.note?.trim()),
+    blocks: NO_BLOCKS,
     initial: createSceneFirstProduction({
       channel: path.basename(path.dirname(path.dirname(path.dirname(scriptPath)))),
       episode: path.basename(path.dirname(scriptPath)),
@@ -286,7 +305,19 @@ export const serialized = async <T>(file: string, work: () => Promise<T>,
   withLock(file + ".lock", { purpose: "scene ledger", waitMs,
     busyMessage: "Scene approval ledger is busy. Never delete another writer lock.",
     legacyStale: (held) => lockOwnerIsDead(held) }, work);
-const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" | "recitationPending" | "planReady" | "boardsChanged">) => {
+/**
+ * Step ٢'s quiet line «تغيّر بعد التجهيز — راجعه»: for a scene that is not approved, the latest system event that
+ * re-opened it, unless the owner approved it after that event.
+ */
+const afterPreparationOf = (history: AuditEvent[], id: string) => {
+  for (const h of [...history].reverse()) {
+    if (h.sceneId === id && h.action === "approve-scene") return null;
+    const hit = h.action === AFTER_PREPARATION_ACTION ? h.change?.scenes.find(x => x.id === id) : undefined;
+    if (hit) return { at: h.at, what: hit.what, script: Boolean(h.change?.script) };
+  }
+  return null;
+};
+const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" | "recitationPending" | "planReady" | "boardsChanged" | "blocks">) => {
   const p = data.state, progress = sceneFirstProgress(p);
   return {
     schemaVersion: 1 as const, channel: p.channel, episode: p.episode,
@@ -303,12 +334,110 @@ const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" 
       readyForAv: Boolean(current.voiceReady[s.id]),
       recitationPending: Boolean(current.recitationPending[s.id]),
       approved: s.status === "approved" && Boolean(s.approval),
-      conditional: s.status === "approved" && s.approval?.recitationPending === true })),
+      conditional: s.status === "approved" && s.approval?.recitationPending === true,
+      // 11 Nov: re-opened by a change after «اعتمد التجهيز» (reviewed here like any scene), and what blocks producing it.
+      ...(s.status !== "approved" ? (() => { const a = afterPreparationOf(data.history, s.id); return a ? { afterPreparation: a } : {}; })() : {}),
+      ...(current.blocks.scenes[s.id]?.length ? { blocked: current.blocks.scenes[s.id] } : {}) })),
+    /** Script errors that belong to no single scene: every scene not yet approved waits for them (shown once in step ٢). */
+    episodeBlocked: current.blocks.episode,
+    /** The latest «تحديث بعد التجهيز» (step ١ lists its scenes, informative only, with a link to each in step ٢). */
+    afterPreparation: (() => {
+      const last = [...data.history].reverse().find(h => h.action === AFTER_PREPARATION_ACTION);
+      return last?.change ? { at: last.at, script: Boolean(last.change.script),
+        scenes: last.change.scenes.map(x => ({ id: x.id, what: x.what })) } : null;
+    })(),
     assembly: p.assembly ? { sha256: p.assembly.videoSha256, approved: progress.assemblyApproved } : null,
     seams: sceneSeams(p),
     master: p.master ? { sha256: p.master.fileSha256, approved: true, publishAllowed: progress.publishAllowed } : null,
     recentHistory: data.history.slice(-30),
   };
+};
+/** The ledger with a reconciled state: approvals of scenes whose inputs changed lose their review epoch and draft proof. */
+const applyReconciled = (doc: SignedSceneLedger, reconciled: SceneFirstProduction,
+  extra: Partial<Pick<SignedSceneLedger, "history">> = {}): SignedSceneLedger => {
+  const epochs = Object.fromEntries(Object.entries(doc.previewEpochs).filter(([id]) =>
+    reconciled.scenes.some(scene => scene.id === id &&
+      (scene.status === "approved" || scene.status === "in_review"))));
+  // A pre-rendered draft is bound to the inputs it was rendered from: when a scene's inputs
+  // change, only that scene's draft proof is discarded (it must be rendered again).
+  const drafts = Object.fromEntries(Object.entries(doc.previewInputs ?? {}).filter(([id, proof]) =>
+    reconciled.scenes.some(scene => scene.id === id && scene.sourceSha256 === proof.sourceSha256)));
+  return sign({ ...doc, ...extra, state: reconciled, revision: doc.revision + 1,
+    previewEpochs: epochs,
+    ...(doc.previewInputs === undefined ? {} : { previewInputs: drafts }),
+    ...(reconciled.assembly ? {} : { assemblyEpoch: undefined, masterEpoch: undefined }) });
+};
+const approvedNow = (s: { sha256: string; approval?: { sha256: string } }) => Boolean(s.approval && s.approval.sha256 === s.sha256);
+/** «اعتمد التجهيز» was given once by the owner (both ledger decisions exist in the signed history). */
+const preparedByOwner = (doc: SignedSceneLedger) =>
+  doc.history.some(h => h.by === "owner" && h.action === "approve-script") &&
+  doc.history.some(h => h.by === "owner" && h.action === "approve-storyboard");
+/** An approval in the current state rests on the system's carry-forward, not on the owner's own «اعتمد التجهيز». */
+const carriedBySystem = (p: SceneFirstProduction) => p.script.approval?.by === "system" || p.storyboard.approval?.by === "system";
+const lastApprovedSha = (doc: SignedSceneLedger, kind: "script" | "storyboard"): string | null => {
+  for (const h of [...doc.history].reverse()) {
+    if (h.action === (kind === "script" ? "approve-script" : "approve-storyboard")) return h.resultSha256;
+    if (h.action === AFTER_PREPARATION_ACTION && h.change?.[kind]) return h.change[kind]!.to;
+  }
+  return null;
+};
+/**
+ * «تحديث بعد التجهيز» (owner decision 11 Nov, all channels; supersedes D60/D65/D66 re-approval). Under the ledger lock,
+ * after reconciling: when «اعتمد التجهيز» was given before and the script or storyboard decision is no longer current
+ * (or a board changed), the system
+ *   1. records the changed/new boards in storyboard.json (recordBoardsAfterPreparation; unchanged boards byte for byte),
+ *   2. re-reads the inputs and reconciles again, so exactly the scenes whose own inputs changed re-open,
+ *   3. carries the script and storyboard approvals forward to the new fingerprints (`by: "system"`), and
+ *   4. appends ONE signed history event with the sources, old/new hashes and each re-opened scene with what changed.
+ * Nothing is asked of the owner here: the re-opened scenes are reviewed in step ٢ like any other. The assembly, the
+ * Master and the publish permission are invalidated exactly as before (changeScript / changeStoryboard / reviseSceneInput).
+ * Withdrawn boards (storyboard.json without a note, e.g. «اسحب الاعتماد») are not carried forward: step ١ again.
+ * Also the automatic migration of an episode that waited on the old changed-boards re-approval (D60).
+ */
+const carryForwardAfterPreparation = async (episode: string, file: string, doc: SignedSceneLedger,
+  current: CurrentInput, before: SceneFirstProduction): Promise<{ doc: SignedSceneLedger; current: CurrentInput }> => {
+  const p = doc.state;
+  if (approvedNow(p.script) && approvedNow(p.storyboard) && !current.boardsChanged.length) return { doc, current };
+  if (!preparedByOwner(doc) || !current.boardsReviewed) return { doc, current };
+  const plan = await readPlanFile(current.scriptPath);
+  if (!plan) return { doc, current };
+  const at = new Date().toISOString();
+  const boards = current.boardsChanged;
+  const boardState = current.boardState;
+  let cur = current;
+  if (boards.length) {
+    await recordBoardsAfterPreparation(current.scriptPath, plan, at);
+    cur = await sourceNow(episode);
+    if (cur.scriptPath !== current.scriptPath) throw Error("Episode changed while locking.");
+  }
+  let state = reconcileSceneLedger(p, cur.initial);
+  const script = approvedNow(state.script) ? undefined : { from: lastApprovedSha(doc, "script"), to: state.script.sha256 };
+  const storyboard = approvedNow(state.storyboard) ? undefined : { from: lastApprovedSha(doc, "storyboard"), to: state.storyboard.sha256 };
+  if (script) state = approveScript({ ...state, script: { sha256: state.script.sha256 } }, "system", at, state.script.sha256);
+  if (storyboard) state = approveStoryboard({ ...state, storyboard: { sha256: state.storyboard.sha256 } }, "system", at, state.storyboard.sha256);
+  const was = new Map(before.scenes.map(x => [x.id, x.sourceSha256]));
+  const scenes = state.scenes.filter(x => boards.includes(x.id) || was.get(x.id) !== x.sourceSha256).map(x => {
+    const what: AfterPreparationWhat[] = [];
+    if (!was.has(x.id) || boardState[x.id] === "new") what.push("new");
+    else if (boardState[x.id] === "changed") what.push("board");
+    if (cur.textChanged[x.id]) what.push("text");
+    if (!what.length) what.push("inputs");
+    return { id: x.id, what, from: was.get(x.id) ?? null, to: x.sourceSha256 };
+  });
+  const change: AfterPreparationChange = {
+    source: [...(script ? ["script" as const] : []),
+      ...(boards.length || (storyboard && storyboard.from !== storyboard.to) ? ["boards" as const] : [])],
+    ...(script ? { script } : {}), ...(storyboard ? { storyboard } : {}), scenes,
+  };
+  const event: AuditEvent = {
+    seq: doc.history.length + 1, action: AFTER_PREPARATION_ACTION, at, by: "system",
+    resultSha256: state.storyboard.sha256,
+    note: `تحديث بعد التجهيز: ${scenes.length ? `يُراجَع ${scenes.length === 1 ? "مشهد واحد" : `${scenes.length} مشاهد`} في «٢ المشاهد» (${scenes.slice(0, 8).map(x => x.id).join("، ")}${scenes.length > 8 ? "…" : ""})` : "لم يتغيّر مشهد"}${script ? "؛ تغيّر السكريبت" : ""}. لا اعتماد جديد للتجهيز.`,
+    change,
+  };
+  const next = applyReconciled(doc, state, { history: [...doc.history, event] });
+  await saveLedger(file, next);
+  return { doc: next, current: cur };
 };
 const withState = async <T>(episode: string,
   operation: (data: SignedSceneLedger, current: CurrentInput) => Promise<T>,
@@ -317,23 +446,19 @@ const withState = async <T>(episode: string,
   const initialPath = await resolveScriptPath(episode);
   const file = stateFileFor(initialPath);
   return serialized(file, async () => {
-    const current = await sourceNow(episode);
+    let current = await sourceNow(episode);
     if (current.scriptPath !== initialPath) throw Error("Episode changed while locking.");
     let doc = await readLedger(file, current);
+    const before = doc.state;
     const reconciled = reconcileSceneLedger(doc.state, current.initial);
     if (JSON.stringify(doc.state) !== JSON.stringify(reconciled)) {
-      const epochs = Object.fromEntries(Object.entries(doc.previewEpochs).filter(([id]) =>
-        reconciled.scenes.some(scene => scene.id === id &&
-          (scene.status === "approved" || scene.status === "in_review"))));
-      // A pre-rendered draft is bound to the inputs it was rendered from: when a scene's inputs
-      // change, only that scene's draft proof is discarded (it must be rendered again).
-      const drafts = Object.fromEntries(Object.entries(doc.previewInputs ?? {}).filter(([id, proof]) =>
-        reconciled.scenes.some(scene => scene.id === id && scene.sourceSha256 === proof.sourceSha256)));
-      doc = sign({ ...doc, state: reconciled, revision: doc.revision + 1,
-        previewEpochs: epochs,
-        ...(doc.previewInputs === undefined ? {} : { previewInputs: drafts }),
-        ...(reconciled.assembly ? {} : { assemblyEpoch: undefined, masterEpoch: undefined }) });
+      doc = applyReconciled(doc, reconciled);
       await saveLedger(file, doc);
+    }
+    ({ doc, current } = await carryForwardAfterPreparation(episode, file, doc, current, before));
+    if (carriedBySystem(doc.state)) {
+      const plan = await readPlanFile(current.scriptPath);
+      if (plan) current = { ...current, blocks: await productionBlocks(current.scriptPath, plan) };
     }
     // Detect a changed or edit-and-restored preview/assembly/Master by inode
     // generation as well as bytes. Never silently revive a former approval.
@@ -434,44 +559,6 @@ export const assertSceneNotAwaitingChange = async (episode: string, sceneId: str
       throw Error("This scene awaits a change after your correction; producing it again from the same inputs gives the same cut.");
   });
 };
-/**
- * D66 — one scene edited after «اعتمد التجهيز». null when nothing waits (or the preparation was never approved:
- * step ١ as usual). Otherwise which scene, whether step ٢ stays open for it («اعتمد تعديل هذا المشهد» re-records
- * the script and storyboard decisions for that scene only), and if not, the precise reason (step ١ then).
- *   - its board changed (sentence edit) and/or the script differs from the signed copy of the approved script
- *     in that scene's narration only (scriptScope.ts);
- *   - any other change (another board, another part of the script, no signed copy) → open: false.
- */
-export type SceneEdit = { sceneId: string | null; open: boolean; script: boolean; board: boolean; reason?: string };
-const sceneEditOf = async (doc: SignedSceneLedger, current: CurrentInput): Promise<SceneEdit | null> => {
-  const p = doc.state;
-  const scriptOk = Boolean(p.script.approval && p.script.approval.sha256 === p.script.sha256);
-  const boardOk = Boolean(p.storyboard.approval && p.storyboard.approval.sha256 === p.storyboard.sha256);
-  const changed = current.boardsChanged;
-  if (scriptOk && boardOk && !changed.length) return null;
-  if (!doc.history.some(h => h.action === "approve-storyboard")) return null;
-  const scenes = new Set(changed);
-  if (!scriptOk) {
-    const lastApproved = [...doc.history].reverse().find(h => h.action === "approve-script")?.resultSha256;
-    const text = await loadApprovedScript(current.scriptPath, lastApproved);
-    const only = changed.length === 1 ? changed[0]! : null;
-    if (text === null)
-      return { sceneId: only, open: false, script: true, board: changed.length > 0,
-        reason: "تغيّر السكريبت بعد اعتماده، ولا نسخة محفوظة منه كما اعتُمد للمقارنة؛ يُعتمد هذه المرة من «١ التجهيز» ← «اعتمد التجهيز»، وبعدها يُعتمد تعديل مشهد واحد من هنا." };
-    const plan = await readPlanFile(current.scriptPath);
-    const scope = scriptEditScope(text, await readFile(current.scriptPath, "utf8"),
-      (plan?.chapters ?? []).flatMap(c => c.scenes).filter(x => x.narration?.trim()).map(x => ({ id: x.id, narration: x.narration })));
-    if (!scope.ok)
-      return { sceneId: only, open: false, script: true, board: changed.length > 0,
-        reason: `${scope.reason} يُعتمد التعديل من «١ التجهيز» ← «اعتمد التجهيز».` };
-    if (scope.sceneId) scenes.add(scope.sceneId);
-  }
-  const ids = [...scenes];
-  if (ids.length > 1)
-    return { sceneId: null, open: false, script: !scriptOk, board: changed.length > 0,
-      reason: `تغيّر أكثر من مشهد (${ids.length}) بعد اعتماد التجهيز؛ تُعتمد معًا من «١ التجهيز» ← «اعتمد اللوحات المتغيّرة».` };
-  return { sceneId: ids[0] ?? null, open: true, script: !scriptOk, board: changed.length > 0 };
-};
 export const inspectSceneProduction = (episode: string) =>
   withState(episode, async (doc, current) => {
     const v = view(doc, current);
@@ -505,7 +592,6 @@ export const inspectSceneProduction = (episode: string) =>
         assemblySha256: await optionalSha(assemblyFile(current.scriptPath)),
         masterSha256: await optionalSha(masterFile(current.scriptPath)),
       },
-      sceneEdit: await sceneEditOf(doc, current),
       /** Episode tone map (دفاتر الزمن): «النبرة غير مناسبة» updates it for the scene. null elsewhere. */
       toneMap: await (await import("../voice/toneMapOverride")).toneMapSummary(current.scriptPath),
     };
@@ -656,11 +742,6 @@ export const decideSceneProduction = async (episode: string,
     const saved = sign({ version: 1, state: next, revision: doc.revision + 1,
       history, previewEpochs, previewInputs: doc.previewInputs, assemblyEpoch, masterEpoch });
     await saveLedger(stateFileFor(current.scriptPath), saved);
-    // D66: the script exactly as approved (signed, bound to this generation), so a later edit confined to one
-    // scene can be re-approved from step ٢. A failure here never undoes the approval: it only means fail-closed later.
-    if (command.action === "approve-script")
-      await recordApprovedScript(current.scriptPath, command.expectedSha256, () => fileGeneration(current.scriptPath))
-        .catch((error) => console.error("[studio] approved script copy not recorded:", (error as Error).message));
     // Still under the ledger lock. The map is not a scene input (only the regenerated clip is), so this
     // write reopens nothing by itself; regenerating this scene's voice reopens this scene alone.
     if (toneOverride) await toneOverride.commit();
@@ -678,7 +759,7 @@ export const decideSceneProduction = async (episode: string,
         console.error("[studio] owner note not queued for the notes inbox:", (error as Error).message);
       }
     }
-    return { ...view(saved, current), sceneEdit: await sceneEditOf(saved, current) };
+    return view(saved, current);
   });
   // Outside the ledger lock and never awaited: offline or auth failures keep the note queued locally.
   if (noteQueued) scheduleStudioNotesSync(channelsDir());
@@ -719,6 +800,10 @@ const checkRenderAllowed = (state: SceneFirstProduction, current: CurrentInput, 
     if (target.status !== "queued" && target.status !== "needs_revision")
       throw Error("An approved or submitted scene is never re-rendered as a draft.");
   }
+  // 11 Nov: after a carried-forward change, what refuses is scoped to the scene (a verse without its text, a script
+  // error on its narration); a script error belonging to no scene waits for every scene not yet approved.
+  const blocked = [...(current.blocks.scenes[sceneId] ?? []), ...current.blocks.episode];
+  if (blocked.length) throw Error(`لا يُنتج هذا المشهد قبل إصلاح: ${blocked.join(" — ")}`);
   // A verse card without its recitation renders as a DRAFT with a silent placeholder (recitations come last).
   if (!current.voiceReady[sceneId])
     throw Error("The scene narration is not ready for AV production.");
@@ -892,7 +977,19 @@ export const requireScriptAndStoryboardApproved = async (episode: string): Promi
     if (!p.script.approval || p.script.approval.sha256 !== p.script.sha256)
       throw Error("اعتمد السكريبت الحالي أولًا: «١ التجهيز» ← «اعتمد التجهيز».");
     if (!p.storyboard.approval || p.storyboard.approval.sha256 !== p.storyboard.sha256)
-      throw Error("اعتمد الستوري بورد الحالي أولًا: «١ التجهيز» ← «اعتمد التجهيز» (أو «اعتمد اللوحات المتغيّرة» إن تغيّرت لوحات بعده).");
+      throw Error("اعتمد الستوري بورد الحالي أولًا: «١ التجهيز» ← «اعتمد التجهيز».");
+  });
+};
+
+/**
+ * Voice for these scenes may be made (11 Nov): script and storyboard approved (a change after «اعتمد التجهيز» is carried
+ * forward by this same read), and none of the scenes is blocked by a verse without its text or a script error.
+ */
+export const requireScenesProducible = async (episode: string, sceneIds: string[]): Promise<void> => {
+  await requireScriptAndStoryboardApproved(episode);
+  await withState(episode, async (_doc, current) => {
+    const why = [...new Set([...sceneIds.flatMap(id => current.blocks.scenes[id] ?? []), ...current.blocks.episode])];
+    if (why.length) throw Error(`لا يُنتج هذا قبل إصلاح: ${why.join(" — ")}`);
   });
 };
 
@@ -901,7 +998,7 @@ export const requireSceneProductionReady = async (episode: string): Promise<void
   await requireScriptAndStoryboardApproved(episode);
   await withState(episode, async (_doc, current) => {
     if (!current.planReady)
-      throw Error("راجع لوحات الستوري بورد المعدّلة وسجّل ملاحظتك، ثم اعتمد الستوري بورد، قبل تجهيز المشاهد.");
+      throw Error("لم يُعتمد التجهيز بعد: «١ التجهيز» ← «اعتمد التجهيز»، قبل تجهيز المشاهد.");
   });
 };
 

@@ -13,8 +13,7 @@ import { resolveMotionInput } from "../src/render/motionMeter";
 import { approvePreparation, preparationBlockers } from "../src/studio/preparation";
 import { inspectSceneProduction, MASTER_NOT_APPROVED_MESSAGE, NO_MASTER_MESSAGE, requireSceneMasterReady } from "../src/studio/sceneService";
 import { ownerJob, ownerMessage } from "../app/src/serverMessages";
-import { changedBoardsLine, reapproveText, stepsDone } from "../app/src/shell/EpisodeSpine";
-import { auditLogOnTop, changedBoardIds } from "../app/src/tabs/BoardAuditLog";
+import { stepsDone } from "../app/src/shell/EpisodeSpine";
 
 const root = path.join(import.meta.dirname, "..");
 const src = (f: string) => readFileSync(path.join(root, f), "utf8");
@@ -40,7 +39,10 @@ const planOf = (scenes: ReturnType<typeof scene>[]) =>
   ({ episode: "001", title: "اختبار", chapters: [{ number: 1, title: "تجربة", scenes }] }) as unknown as Plan;
 const NOTE = "راجعت كل اللوحات المعروضة ونصوصها وتكوينها واحدة واحدة";
 
-describe("P-05 · a board changed after «اعتمد التجهيز»", () => {
+// 11 Nov (owner): the P-05 re-approval is superseded — a board changed after «اعتمد التجهيز» is recorded by the ledger
+// itself and only its scene re-opens in step ٢ (tests/after-preparation.test.ts). recordChangedBoards stays for a
+// first preparation over boards recorded earlier.
+describe("P-05 · a board changed after «اعتمد التجهيز» (11 Nov: carried forward)", () => {
   it("recordChangedBoards re-records only the changed/new boards, keeps the others byte for byte and the old note", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "boards-partial-"));
     try {
@@ -55,11 +57,9 @@ describe("P-05 · a board changed after «اعتمد التجهيز»", () => {
       const before = storyboardStatus(edited, await loadStoryboard(scriptPath));
       expect(before.changed).toEqual(["c1-s2"]);
       expect(before.fresh).toEqual(["c1-s3"]);
-      expect(auditLogOnTop(before)).toBe(true);
-      expect(changedBoardIds(before)).toEqual(["c1-s2", "c1-s3"]);
       const msg = storyboardBlockMessage(["c1-s2"], before);
-      expect(msg).toContain("«١ التجهيز»");
-      expect(msg).toContain("«اعتمد اللوحات المتغيّرة»");
+      expect(msg).toContain("«٢ المشاهد»");
+      expect(msg).not.toContain("اعتمد اللوحات المتغيّرة");
       expect(msg).not.toMatch(/المشاهد ← ستوري بورد/);
 
       const { record, scenes } = await recordChangedBoards(scriptPath, edited, { note: "راجعت اللوحتين المتغيّرتين وحدهما بنصهما الجديد كاملًا" });
@@ -70,7 +70,6 @@ describe("P-05 · a board changed after «اعتمد التجهيز»", () => {
       expect(record.history?.[0]?.note).toBe(NOTE);
       const after = storyboardStatus(edited, await loadStoryboard(scriptPath));
       expect(after.ok).toBe(true);
-      expect(auditLogOnTop(after)).toBe(false);
       // A removed scene's board is dropped.
       const dropped = await recordChangedBoards(scriptPath, planOf([a, { ...b, narration: "تعديل ثالث للجملة الثانية" }]), { note: NOTE });
       expect(Object.keys(dropped.record.scenes)).toEqual(["c1-s1", "c1-s2"]);
@@ -82,10 +81,9 @@ describe("P-05 · a board changed after «اعتمد التجهيز»", () => {
     const msg = storyboardBlockMessage(["a", "b"], { ...st, changed: [], fresh: ["a", "b"] });
     expect(msg).toContain("لم يُعتمد التجهيز بعد");
     expect(msg).toContain("«اعتمد التجهيز»");
-    expect(auditLogOnTop({ ...st, changed: [], fresh: ["a", "b"] })).toBe(false);
   });
 
-  it("one «اعتمد التجهيز» click after a plan edit re-approves only the changed board; the other scene keeps its inputs", async () => {
+  it("a plan edit after «اعتمد التجهيز» is carried forward on read: only the changed board re-recorded, the other scene keeps its inputs", async () => {
     const tmp = await mkdtemp(path.join(os.tmpdir(), "prep-reapprove-"));
     const env = { channels: process.env.BAL_CHANNELS_DIR, key: process.env.BAL_WORKFLOW_HMAC_KEY };
     process.env.BAL_CHANNELS_DIR = tmp;
@@ -110,25 +108,18 @@ describe("P-05 · a board changed after «اعتمد التجهيز»", () => {
         expect(s1.boards).toEqual({ current: true, changed: [] });
         expect(stepsDone(s1)[0]).toBe(true);
 
-        // The owner edits board 2 only (the plan, not the script): the ledger decisions still stand, the board does not.
+        // The owner edits board 2 only (the plan, not the script): recorded by the system on the next read.
         await writeFile(path.join(dir, "plan.json"), JSON.stringify(planOf([a, { ...b, props: { text: "نص جديد على الشاشة" } }])));
-        const s2 = await inspectSceneProduction("001");
-        expect(s2.script.approved && s2.storyboard.approved).toBe(true);
-        expect(s2.boards).toEqual({ current: false, changed: ["c1-s2"] });
-        expect(stepsDone(s2)[0]).toBe(false);
-        const blockers = await preparationBlockers("001");
-        expect(blockers).toMatchObject({ boardsRecorded: false, boardsReviewedBefore: true, changedBoards: ["c1-s2"] });
-        await expect(approvePreparation("001", { scriptSha256: s2.script.sha256, storyboardSha256: s2.storyboard.sha256, reviewed: true, note: "قصيرة" }))
-          .rejects.toThrow(/25/);
-
-        await approvePreparation("001", { scriptSha256: s2.script.sha256, storyboardSha256: s2.storyboard.sha256, reviewed: true,
-          note: "راجعت اللوحة الثانية وحدها بنصها الجديد على الشاشة" });
         const s3 = await inspectSceneProduction("001");
         expect(s3.script.approved && s3.storyboard.approved).toBe(true);
         expect(s3.boards).toEqual({ current: true, changed: [] });
+        expect(stepsDone(s3)[0]).toBe(true);
+        expect((await preparationBlockers("001")).boardsRecorded).toBe(true);
+        const s2 = s1;
         // Scene 1's inputs (its own board) are untouched: nothing re-opens it.
         expect(s3.scenes[0]!.sourceSha256).toBe(s2.scenes[0]!.sourceSha256);
         expect(s3.scenes[1]!.sourceSha256).not.toBe(s2.scenes[1]!.sourceSha256);
+        expect(s3.scenes[1]!.afterPreparation?.what).toEqual(["board"]);
         const rec = JSON.parse(await readFile(path.join(dir, "storyboard.json"), "utf8"));
         expect(rec.history).toHaveLength(1);
         expect(rec.audit.scenes).toEqual(["c1-s2"]);
@@ -143,17 +134,10 @@ describe("P-05 · a board changed after «اعتمد التجهيز»", () => {
     }
   }, 30_000);
 
-  it("the dock line names the changed boards and why the storyboard decision is taken again", () => {
-    expect(changedBoardsLine(1)).toBe("تغيّرت لوحة واحدة");
-    expect(changedBoardsLine(2)).toBe("تغيّرت لوحتان");
-    expect(changedBoardsLine(3)).toBe("تغيّرت ٣ لوحات");
-    const t = reapproveText(["c1-s2"], ["c1-s1", "c1-s2"], false);
-    expect(t).toContain("بعد اعتماد التجهيز");
-    expect(t).toContain("ولا يُفتح غيرها من المشاهد");
-    expect(reapproveText(["c1-s2"], ["c1-s1", "c1-s2"], true)).toContain("مع السكريبت المعدَّل");
+  it("no dock line or button re-approves changed boards any more", () => {
     const spine = src("app/src/shell/EpisodeSpine.tsx");
-    expect(spine).toContain('label: "اعتمد اللوحات المتغيّرة", decide: "approve-preparation"');
-    expect(src("app/src/tabs/StoryboardPanel.tsx")).toContain("<ChangedBoards st={st}");
+    expect(spine).not.toContain("اعتمد اللوحات المتغيّرة");
+    expect(src("app/src/tabs/StoryboardPanel.tsx")).toContain("<AfterPreparationList");
   });
 });
 

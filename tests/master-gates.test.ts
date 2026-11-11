@@ -94,7 +94,7 @@ describe("بوابات النسخة النهائية", () => {
   it("مشهد تغيّر بعد اعتماد الستوري بورد يمنع", async () => {
     const s = await fresh();
     s.spoken.props.subtitle = "تعديل بعد الاعتماد";
-    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow(/بعد اعتماد التجهيز.*«١ التجهيز»/);
+    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow(/بعد اعتماد التجهيز.*«٢ المشاهد»/);
   });
 
   // Owner decision (10 Nov), CLAUDE.md rule 5: the citation ledger is documentation only and never blocks.

@@ -10,7 +10,7 @@ const EXACT: Record<string, string> = {
   "Scene approval ledger signature changed; approvals are blocked.": "توقيع سجل اعتمادات المشاهد تغيّر؛ الاعتماد موقوف حمايةً للسجل.",
   "Scene approval ledger is busy. Never delete another writer lock.": "سجل الاعتمادات مشغول بعملية أخرى الآن؛ انتظر لحظة ثم أعد المحاولة.",
   "Script changed before review.": "تغيّر السكريبت منذ فتحته؛ حُدّثت الحالة، راجعه ثم اعتمد مجددًا.",
-  "Review and approve every current storyboard scene with a review note before starting AV production.": "لوحات لم تُسجَّل مراجعتها بعد: افتح «١ التجهيز»، راجع اللوحات المتغيّرة في أعلاه، واكتب ملاحظتك ثم اعتمد.",
+  "Review and approve every current storyboard scene with a review note before starting AV production.": "لم يُعتمد التجهيز بعد: افتح «١ التجهيز»، راجع اللوحات، ثم اضغط «اعتمد التجهيز».",
   "Storyboard changed before review.": "تغيّر الستوري بورد منذ فتحته (أو سُجّلت مراجعة اللوحات للتو)؛ حُدّثت الحالة، اعتمد مجددًا.",
   "The assembled video changed.": "تغيّرت النسخة المجمعة منذ عرضها؛ شاهدها من جديد.",
   "Watch the full assembled episode at 1× first.": "شاهد النسخة المجمعة كاملة بسرعة 1× أولًا.",
@@ -35,7 +35,7 @@ const EXACT: Record<string, string> = {
   "An approved or submitted scene is never re-rendered as a draft.": "المشهد المعتمد أو المرسل للمراجعة لا يُعاد رندره مسودةً.",
   "The scene narration or human Quran recording is not ready for AV production.": "صوت المشهد أو تسجيل التلاوة غير جاهز بعد؛ ولّد الصوت أو أرفق التلاوة أولًا.",
   "Scene changed before the AV evidence was recorded.": "تغيّر المشهد أثناء الرندر؛ أنتجه من جديد.",
-  "Current storyboard review is missing or stale.": "مراجعة اللوحات ناقصة أو قديمة: افتح «١ التجهيز» واعتمد اللوحات المتغيّرة.",
+  "Current storyboard review is missing or stale.": "مراجعة اللوحات ناقصة: افتح «١ التجهيز» واعتمد التجهيز.",
   // Step ١ «اعتمد التجهيز» (src/studio/preparation.ts)
   "This scene awaits a change after your correction; producing it again from the same inputs gives the same cut.": "بانتظار التعديل: إنتاجه بالمدخلات نفسها يعطي النسخة نفسها. يُنتج من جديد حين يتغيّر (نبرة، نص، لوحة) أو حين تُجاب ملاحظتك «أُصلحت».",
   "No assembled episode awaits review.": "لا نسخة مجمعة تنتظر المراجعة الآن؛ حُدّثت الحالة.",

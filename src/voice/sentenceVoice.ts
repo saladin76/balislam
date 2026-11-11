@@ -694,11 +694,12 @@ const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sen
     throw new Error(`تشكيل هذه الجملة ${Math.round(cov.coverage * 1000) / 10}% وأقل من الحد ٩٨٪؛ كلمات بلا تشكيل: ${cov.missing.slice(0, 8).join("، ")}. اكتب التشكيل في نص الجملة نفسها أو حدّث tashkeel.md، ثم ولّدها.`);
   }
   if (!opts.testOnlySkipApprovalGates) {
+    // Ledger first (11 Nov): it records a board changed after «اعتمد التجهيز» and refuses a blocked scene.
+    const { requireScenesProducible } = await import("../studio/sceneService");
+    await requireScenesProducible(episode, [scene.id]);
     const sb = storyboardStatus(ctx.plan, await loadStoryboard(ctx.scriptPath));
     const blocked = unapprovedScenes(sb, [scene.id]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-    const { requireScriptAndStoryboardApproved } = await import("../studio/sceneService");
-    await requireScriptAndStoryboardApproved(episode);
   }
   const v = voiceOf(ctx, scene, list, s, mode);
   if (!v.tone) throw new Error("اختر نبرة لهذه الجملة، أو نبرة الحلقة (تحرير المشهد ← «نبرة الصوت في الحلقة») فتسري على كل جملة بلا نبرة خاصة.");

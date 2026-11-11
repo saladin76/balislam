@@ -1,5 +1,6 @@
 import React from "react";
 import type { StoryboardStatus } from "../../../src/plan/storyboard";
+import { AFTER_PREPARATION_WHAT, type AfterPreparationWhat } from "../api";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
@@ -8,37 +9,26 @@ const ar = (n: number) => n.toLocaleString("ar-EG");
  * (one button records the script approval, this board record and the storyboard approval in order), so the
  * full log (history, the reviewer's note, «اسحب الاعتماد») lives under «أدوات وتفاصيل».
  *
- * P-05 (10 Nov): when boards changed AFTER a recorded review, the log comes to the top of step ١ as the list
- * of those boards (`ChangedBoards`), so the owner sees exactly what to review again; the one action stays the
- * dock's «اعتمد اللوحات المتغيّرة» (one filled button per screen).
+ * 11 Nov (owner): «اعتمد التجهيز» once per episode. A change after it is recorded by the ledger as «تحديث بعد التجهيز»;
+ * the top of the storyboard only lists the scenes it re-opened (informative), each a link to that scene in step ٢,
+ * where it is reviewed like any other scene. There is no second approval of boards.
  */
-export const auditLogOnTop = (st: StoryboardStatus | undefined | null) =>
-  Boolean(st && st.audit?.note?.trim() && st.approved > 0 && (st.changed.length > 0 || st.fresh.length > 0));
-
-/** The boards to review again, in episode order (changed after the record, or new). */
-export const changedBoardIds = (st: StoryboardStatus) => Object.keys(st.scenes).filter((id) => st.scenes[id] !== "approved");
-
-export const ChangedBoards: React.FC<{
-  st: StoryboardStatus;
+export const AfterPreparationList: React.FC<{
+  scenes: { id: string; what: AfterPreparationWhat[] }[];
   name: (id: string) => string;
-  onOpen: (id: string) => void;
-}> = ({ st, name, onOpen }) => {
-  const ids = changedBoardIds(st);
-  return (
-    <section className="s12-tool sb-changed-boards" aria-label="لوحات تغيّرت بعد اعتماد التجهيز">
-      <h3 className="s12-h">{ids.length === 1 ? "لوحة تغيّرت" : `${ar(ids.length)} ${ids.length <= 10 ? "لوحات تغيّرت" : "لوحة تغيّرت"}`} بعد اعتماد التجهيز</h3>
-      <p className="s12-soft">راجع هذه وحدها، ثم اكتب ملاحظتك واضغط «اعتمد اللوحات المتغيّرة» أسفل الشاشة. بقية اللوحات ومشاهدها المعتمدة لا تُفتح من جديد.</p>
-      <div className="s12-row">
-        {ids.map((id) => (
-          <button key={id} type="button" className="ms-link" onClick={() => onOpen(id)}>
-            {name(id)}{st.scenes[id] === "new" ? " (جديدة)" : ""}
-          </button>
-        ))}
-      </div>
-      {st.audit?.note ? <p className="s12-soft">ملاحظة المراجعة السابقة: {st.audit.note}</p> : null}
-    </section>
-  );
-};
+  onOpenScene: (id: string) => void;
+}> = ({ scenes, name, onOpenScene }) => scenes.length ? (
+  <section className="s12-tool sb-after-prep" aria-label="تغيّر بعد التجهيز">
+    <h3 className="s12-h">تغيّر بعد التجهيز</h3>
+    <p className="s12-soft">سُجّل التغيير وحده. هذه المشاهد تُراجَع في «٢ المشاهد» كأي مشهد؛ لا اعتماد ثانٍ للتجهيز.</p>
+    <div className="s12-row">
+      {scenes.map((x) => (
+        <button key={x.id} type="button" className="ms-link" onClick={() => onOpenScene(x.id)}
+          title={x.what.map((w) => AFTER_PREPARATION_WHAT[w]).join("، ")}>{name(x.id)}</button>
+      ))}
+    </div>
+  </section>
+) : null;
 
 export const BoardAuditLog: React.FC<{
   st: StoryboardStatus | undefined | null;
@@ -62,10 +52,10 @@ export const BoardAuditLog: React.FC<{
     {channelId === "dafatir-alzaman" && episodeId === "001" ? (
       <p><a href="https://github.com/saladin76/balislam/blob/main/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.pdf" target="_blank" rel="noreferrer">فتح Storyboard V1.1 — 80 مشهدًا (نسخة GitHub، نقل Drive لم يُتحقق منه)</a></p>
     ) : null}
-    <label htmlFor="sb-visual-review-note" className="s12-soft">ملاحظة المراجع: إصدار اللوحات، نطاق المشاهدة، والتعديلات المطلوبة أو سبب الموافقة</label>
-    <textarea id="sb-visual-review-note" value={note} rows={3} maxLength={3000}
-      onChange={(e) => onNote(e.target.value)}
-      placeholder="راجعت كل لوحات الإصدار ...، والتكوين والنصوص متطابقة، والمشاهد التي تحتاج إصلاحًا..." />
+    <label htmlFor="sb-visual-review-note" className="s12-soft">ملاحظة المراجع (اختيارية، سطر واحد)</label>
+    <input id="sb-visual-review-note" type="text" value={note} maxLength={300}
+      onChange={(e) => onNote(e.target.value.replace(/[\r\n]+/g, " "))}
+      placeholder="ملاحظة (اختيارية، سطر واحد)" />
     <label className="s12-check"><input type="checkbox" checked={reviewed} onChange={(e) => onReviewed(e.target.checked)} />
       أؤكد أنني شاهدت جميع اللوحات المرئية لهذه الحلقة، وليس عينات متفرقة فقط.</label>
     <div className="s12-row">

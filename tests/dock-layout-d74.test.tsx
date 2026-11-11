@@ -12,7 +12,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DockChip, DockText } from "../app/src/shell/DockText";
 import { citationChip, citationNotice } from "../app/src/shell/citationNotice";
-import { reapproveLine, reapproveText } from "../app/src/shell/EpisodeSpine";
 
 const root = path.join(__dirname, "..");
 const src = (f: string) => readFileSync(path.join(root, f), "utf8");
@@ -51,14 +50,10 @@ describe("the dock is a bar, never a wall", () => {
     expect(html).toContain('aria-expanded="false"');
     expect(html).not.toContain("الشرح كله"); // closed until asked
   });
-  it("the changed boards: one line in the dock, the whole reason behind «التفاصيل»", () => {
-    const order = Array.from({ length: 30 }, (_, i) => `s${i + 1}`);
-    const line = reapproveLine(["s13", "s15", "s26"], order);
-    expect(line).toBe("تغيّرت ٣ لوحات بعد اعتماد التجهيز (المشهد ١٣، المشهد ١٥، المشهد ٢٦).");
-    expect(reapproveText(["s13", "s15", "s26"], order, false).startsWith(line)).toBe(true);
+  it("11 Nov: no changed-boards line or re-approval in the dock (a change after «اعتمد التجهيز» is carried forward)", () => {
     const spine = src("app/src/shell/EpisodeSpine.tsx");
-    expect(spine).toContain("<DockText className=\"spine-changed\" line={next.line ?? next.text} details={next.text} />");
-    expect(spine).not.toContain('<p className="ms-dock-text spine-changed">');
+    expect(spine).not.toContain("spine-changed");
+    expect(spine).not.toContain("اعتمد اللوحات المتغيّرة");
   });
 });
 

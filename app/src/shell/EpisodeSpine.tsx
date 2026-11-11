@@ -27,8 +27,8 @@ export const SUBTABS: Partial<Record<StepTab, string>> = {
 export const stepOf = (tab: StepTab) => STEPS.findIndex((s) => s.tabs.includes(tab));
 
 /**
- * حالة الخطوات الأربع من قراءة السجل: التجهيز = السكريبت والستوري بورد معًا، وكل لوحة حالية مسجَّلة
- * (P-05: لوحة تغيّرت بعد الاعتماد تعيد فتح الخطوة ١ لها، فالخادم لا يُنتج مشهدًا قبلها).
+ * حالة الخطوات الأربع من قراءة السجل: التجهيز = السكريبت والستوري بورد معًا، وكل لوحة حالية مسجَّلة.
+ * (١١ نوفمبر: «اعتمد التجهيز» مرة واحدة للحلقة؛ أي تغيير بعده يسجّله السجل وحده فلا تعود الخطوة ١ مفتوحة.)
  */
 export const stepsDone = (w: Pick<SceneProductionRead, "script" | "storyboard" | "progress" | "boards"> | null): boolean[] => [
   Boolean(w?.script.approved && w?.storyboard.approved && (w?.boards?.current ?? true)),
@@ -36,24 +36,6 @@ export const stepsDone = (w: Pick<SceneProductionRead, "script" | "storyboard" |
   Boolean(w?.progress.masterApproved),
   Boolean(w?.progress.publishAllowed),
 ];
-
-/** «تغيّرت ٣ لوحات» / «تغيّرت لوحة واحدة» */
-export const changedBoardsLine = (n: number) => n === 1 ? "تغيّرت لوحة واحدة" : n === 2 ? "تغيّرت لوحتان" : `تغيّرت ${arNum(n)} ${n <= 10 ? "لوحات" : "لوحة"}`;
-
-/**
- * P-05: the one line above «اعتمد اللوحات المتغيّرة», with the reason the ledger asks again: the board record is
- * rewritten for these boards only (no other scene re-opens), so the storyboard decision is taken again in the same
- * click; a script edit re-opens the script decision too.
- */
-/** D74: the dock's one line for the changed boards; `reapproveText` is the whole explanation behind «التفاصيل». */
-export const reapproveLine = (changed: string[], order: string[]) => {
-  const names = changed.slice(0, 4).map((id) => sceneName(order, id)).join("، ") + (changed.length > 4 ? "…" : "");
-  return `${changedBoardsLine(changed.length)} بعد اعتماد التجهيز (${names}).`;
-};
-export const reapproveText = (changed: string[], order: string[], scriptToo: boolean) => {
-  return `${reapproveLine(changed, order)} راجعها في أعلى الستوري بورد ثم اعتمدها بزر واحد: ` +
-    `يُسجَّل اعتماد هذه اللوحات وحدها${scriptToo ? " مع السكريبت المعدَّل" : ""}، ويُجدَّد اعتماد الستوري بورد في السجل، ولا يُفتح غيرها من المشاهد.`;
-};
 
 type Props = {
   episodeId: string; channelId: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
@@ -120,19 +102,13 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
   const here = stepOf(tab);
 
   /** ما يلزم الآن، وزره: إما قرار يُتخذ هنا، أو انتقال إلى مكانه */
-  // P-05: boards edited after «اعتمد التجهيز». Only these need the owner's review; the same one button records them.
-  const changedBoards = prep?.boardsReviewedBefore ? prep.changedBoards ?? [] : [];
-  const reapprove = changedBoards.length > 0;
-  const next = ((): { text: string; line?: string; label: string; go?: StepTab; fix?: "script" | "verses"; decide?: "approve-preparation" } | null => {
+  const next = ((): { text: string; label: string; go?: StepTab; fix?: "script" | "verses"; decide?: "approve-preparation" } | null => {
     if (!w) return null;
     if (!done[0]) {
       if (scriptErrors.length || (prep?.scriptErrors ?? 0) > 0) return { text: "", label: "افتح السكريبت", go: "script", fix: "script" };
       if (prep?.versesMissing.length) return { text: `آيات بلا نصها في السكريبت: ${arNum(prep.versesMissing.length)}. اكتب نص كل آية في سطرها ثم اعتمد التجهيز.`, label: "افتح السكريبت", go: "script", fix: "verses" };
       // Outside step ١ the decision is not repeated: step ٢ shows its own one line and one button back.
-      if (stepOf(tab) !== 0) return reapprove
-        ? { text: `${changedBoardsLine(changedBoards.length)} بعد اعتماد التجهيز؛ لا يُنتج مشهد قبل اعتمادها.`, label: "إلى التجهيز", go: "storyboard" }
-        : { text: "التجهيز (الستوري بورد والسكريبت) لم يُعتمد بعد.", label: "إلى التجهيز", go: "storyboard" };
-      if (reapprove) return { text: reapproveText(changedBoards, w.scenes.map((x) => x.id), !w.script.approved), line: reapproveLine(changedBoards, w.scenes.map((x) => x.id)), label: "اعتمد اللوحات المتغيّرة", decide: "approve-preparation" };
+      if (stepOf(tab) !== 0) return { text: "التجهيز (الستوري بورد والسكريبت) لم يُعتمد بعد.", label: "إلى التجهيز", go: "storyboard" };
       return { text: "راجع الستوري بورد والسكريبت والمصادر، ثم اعتمد التجهيز؛ بعده تبدأ المشاهد تُجهَّز وحدها.", label: "اعتمد التجهيز", decide: "approve-preparation" };
     }
     if (!done[1] && !w.progress.currentScene && (w.progress.recitationPending?.length ?? 0) > 0)
@@ -147,8 +123,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
     return { text: "مأذون بنشر هذه النسخة النهائية. أي تعديل في مشهد يلغي الإذن.", label: "إلى النشر", go: "publish" };
   })();
 
+  // 11 Nov: the board note is optional and one line (no minimum); «راجعته بنفسي» is the confirmation.
   const needNote = Boolean(prep && !prep.boardsRecorded);
-  const noteOk = !needNote || boardNote.trim().length >= 25;
   /**
    * «اعتمد التجهيز»: one owner action. The server writes the script approval, then (if needed) the board
    * record, then the storyboard approval, each checked on its own; then the scenes start preparing.
@@ -159,7 +135,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
     try {
       await api.approvePreparation(episodeId, channelId, {
         scriptSha256: w.script.sha256, storyboardSha256: w.storyboard.sha256, reviewed,
-        ...(needNote ? { note: boardNote.trim() } : {}),
+        ...(needNote && boardNote.trim() ? { note: boardNote.trim() } : {}),
       });
       keepErr.current = false;
       setReviewed(false); setBoardNote("");
@@ -177,14 +153,13 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
 
   /**
    * The primary button is never shown disabled (D52): it says what it does, and on click it asks for
-   * what is still missing, next to itself: the «راجعته بنفسي» tick, then the board note; then it completes
+   * what is still missing, next to itself: the «راجعته بنفسي» tick; then it completes
    * the approval directly (no passphrase, owner decision 9 Nov).
    */
   const onApprove = async () => {
     setNeeds("");
     keepErr.current = false;
     if (!reviewed) { setNeeds("ضع علامة «راجعته بنفسي» بعد مراجعة التجهيز، ثم اضغط الزر."); reviewedBox.current?.focus(); return; }
-    if (!noteOk) { setNeeds("اكتب ملاحظتك على اللوحات (٢٥ حرفًا على الأقل)."); noteBox.current?.focus(); return; }
     await approvePreparation();
   };
   // «راجعته بنفسي» belongs to one decision: never carried over to another.
@@ -208,7 +183,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
             <li className={scriptFixes ? "is-warn" : undefined}><i aria-hidden="true">{scriptFixes ? "!" : <Icon name="check" />}</i>
               <span>السكريبت<small>{scriptFixes ? <>{arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"}</> : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
             <li className={prep && !prep.boardsRecorded ? "is-warn" : undefined}><i aria-hidden="true">{prep && !prep.boardsRecorded ? "!" : <Icon name="check" />}</i>
-              <span>اللوحات<small>{prep && !prep.boardsRecorded ? (reapprove ? `${changedBoardsLine(changedBoards.length)}: راجعها في أعلى الستوري بورد، واكتب ملاحظتك بجوار الزر` : "اكتب ملاحظتك على اللوحات بجوار الزر") : "سُجّلت مراجعتها"}</small></span></li>
+              <span>اللوحات<small>{prep && !prep.boardsRecorded ? "راجعها كلها؛ ملاحظتك بجوار الزر اختيارية" : "سُجّلت مراجعتها"}</small></span></li>
             {prep?.versesMissing.length ? (
               <li className="is-warn"><i aria-hidden="true">!</i><span>آيات بلا نصها<small>{arNum(prep.versesMissing.length)} في السكريبت</small></span></li>
             ) : null}
@@ -232,12 +207,11 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
           <div className="ms-dock" role="group" aria-label="اعتماد التجهيز">
             {needs || err ? <p className="ms-float spine-needs" role="alert">{needs || err}</p> : null}
             <div className="ms-dock-in is-wrap">
-              {reapprove ? <DockText className="spine-changed" line={next.line ?? next.text} details={next.text} /> : null}
               <div className="ms-dock-ctl">
               {citations && citeChip ? <DockChip label={citeChip} text={citations}>{tab !== "script" ? <button type="button" className="ms-link" onClick={() => onTab("script")}>افتح سجل التوثيق</button> : null}</DockChip> : null}
               {needNote ? (
-                <input ref={noteBox} type="text" className="ms-dock-note spine-note" value={boardNote} maxLength={3000} onChange={(e) => { setBoardNote(e.target.value); setNeeds(""); }}
-                  aria-label="ملاحظة مراجعتك للوحات" placeholder={reapprove ? "ملاحظتك على اللوحات المتغيّرة: ما راجعته فيها فعلًا (٢٥ حرفًا على الأقل)" : "ملاحظتك على اللوحات: ما راجعته فعلًا (٢٥ حرفًا على الأقل)"} />
+                <input ref={noteBox} type="text" className="ms-dock-note spine-note" value={boardNote} maxLength={300} onChange={(e) => { setBoardNote(e.target.value.replace(/[\r\n]+/g, " ")); setNeeds(""); }}
+                  aria-label="ملاحظة مراجعتك للوحات (اختيارية)" placeholder="ملاحظة (اختيارية، سطر واحد)" />
               ) : null}
               <label className="ms-cb"><input ref={reviewedBox} type="checkbox" checked={reviewed} onChange={(e) => { setReviewed(e.target.checked); setNeeds(""); }} /> راجعته بنفسي</label>
               <button ref={approveBtn} type="button" className="btn primary" aria-busy={busy} onClick={() => { if (!busy) void onApprove(); }}>
