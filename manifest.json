@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-02-cat-landscape",
+  "title": "032 · القطة والمقارنة c1-s47…s50 أفقي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "16746ddabcfa289e409d19d73f67282869b165b9d8f430eb65128f1764eadc46",
+  "size": 2212716,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 2212716,
+      "sha256": "16746ddabcfa289e409d19d73f67282869b165b9d8f430eb65128f1764eadc46"
+    }
+  ],
+  "createdAt": "2026-11-11T21:28:05.816Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
