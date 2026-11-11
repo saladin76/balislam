@@ -403,11 +403,11 @@ details.box > summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
 .ops-ch { border-inline-start: 4px solid; padding: 6px 10px; display: flex; flex-direction: column; justify-content: center; background: var(--panel-2); border-radius: 8px; }
 .ops-cell { border-radius: 10px; padding: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; min-height: 64px; }
 .ops-cell.short { background: var(--panel-2); color: var(--muted); align-items: center; justify-content: center; text-align: center; }
-.ops-cell.long { border: 2px solid; background: #fff; }
-.ops-cell.long.done { background: #EAF5EC; }
-.ops-cell.long.risk { background: #FFF4E0; }
+.ops-cell.long { border: 2px solid; background: var(--sf, #fff); color: var(--ink); }
+.ops-cell.long.done { background: var(--ok-soft, #EAF5EC); }
+.ops-cell.long.risk { background: var(--warn-soft, #FFF4E0); }
 .ops-cell.long.suggest { border-style: dashed; }
-.ops-cell.long.empty { border: 2px dashed var(--err, #C0392B); color: var(--err, #C0392B); background: #FDF0EE; align-items: center; justify-content: center; text-align: center; }
+.ops-cell.long.empty { border: 2px dashed var(--err, #C0392B); color: var(--err, #C0392B); background: var(--err-soft, #FDF0EE); align-items: center; justify-content: center; text-align: center; }
 .ops-cell .btn { align-self: flex-start; }
 .linkish { background: none; border: 0; padding: 0; text-align: start; font-weight: 700; cursor: pointer; color: var(--ink); font-size: 12px; }
 .ops-board { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; }

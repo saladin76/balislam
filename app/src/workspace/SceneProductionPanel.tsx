@@ -19,6 +19,7 @@ import { SceneBoardApproval } from "./SceneBoardApproval";
 import { clockAr, sceneName, seamName } from "./sceneNames";
 import { sceneSeconds } from "../../../src/plan/duration";
 import { Icon } from "../ui/icons";
+import { DockText } from "../shell/DockText";
 import { Num, duration as clock } from "../ui/format";
 
 type Props = {
@@ -1021,7 +1022,7 @@ export const SceneDecisionActions: React.FC<{
       <div className="s3-act ms-dock">
         {edges(
           <div className="s3-why" role="note">
-            <p className="sp-hint ms-dock-text">{p.locked.reason}</p>
+            <DockText className="sp-hint" line={p.locked.reason} />
             {p.locked.action ? <button type="button" className="btn primary s3-why-go" onClick={p.locked.action.onClick}>{p.locked.action.label}</button> : null}
           </div>,
         )}

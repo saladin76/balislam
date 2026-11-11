@@ -21,3 +21,8 @@ export const citationLine = (items: { kind: string; status: string }[]): string 
   if (!open) return `الاستشهادات موثّقة كلها (${arabicCountAr(items.length, CITATIONS)}).`;
   return `التوثيق: ${arNum(items.length - open)} من ${arNum(items.length)} موثّق — للعلم فقط، لا يمنع النسخة النهائية ولا النشر.`;
 };
+/** D73: the dock's chip — the count only («غير موثّق: ٥ من ١٦»); the full notice is its tooltip and its card. */
+export const citationChip = (items: { kind: string; status: string }[]): string => {
+  const open = items.filter((i) => i.status !== "verified").length;
+  return items.length && open ? `غير موثّق: ${arNum(open)} من ${arNum(items.length)}` : "";
+};

@@ -83,7 +83,7 @@
 .shell-v3 .sr-card-prev > div { width: 100% !important; height: 100% !important; }
 .shell-v3 .sr-off { padding: var(--s5); background: var(--quiet); border-radius: var(--r-lg); margin: 0; }
 .shell-v3 .sr-sample { font-size: var(--t-12); color: var(--ink-2); margin: 4px 0 0; }
-.shell-v3 .ms-dock-line { color: var(--dock-ink); font-size: var(--t-14); padding: 0 8px; }
+.shell-v3 .ms-dock-line { color: var(--dock-ink); font-size: var(--t-14); padding: 0 8px; flex: 1 1 240px; min-width: min(240px, 100%); max-width: 520px; line-height: 1.5; }
 
 /* «كل الحلقات»: the series name on a row */
 .shell-v3 .ledger-tools select { flex: 0 1 auto; width: auto; }

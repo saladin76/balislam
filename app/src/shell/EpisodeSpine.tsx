@@ -4,7 +4,8 @@ import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
 import { EpisodeTonePick, PrepareAll } from "../workspace/PrepareAll";
 import { arNum, sceneName, sceneNames } from "../workspace/sceneNames";
-import { citationNotice } from "./citationNotice";
+import { citationChip, citationNotice } from "./citationNotice";
+import { DockChip, DockText } from "./DockText";
 import { Icon } from "../ui/icons";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
@@ -44,9 +45,13 @@ export const changedBoardsLine = (n: number) => n === 1 ? "تغيّرت لوحة
  * rewritten for these boards only (no other scene re-opens), so the storyboard decision is taken again in the same
  * click; a script edit re-opens the script decision too.
  */
-export const reapproveText = (changed: string[], order: string[], scriptToo: boolean) => {
+/** D73: the dock's one line for the changed boards; `reapproveText` is the whole explanation behind «التفاصيل». */
+export const reapproveLine = (changed: string[], order: string[]) => {
   const names = changed.slice(0, 4).map((id) => sceneName(order, id)).join("، ") + (changed.length > 4 ? "…" : "");
-  return `${changedBoardsLine(changed.length)} بعد اعتماد التجهيز (${names}). راجعها في أعلى الستوري بورد ثم اعتمدها بزر واحد: ` +
+  return `${changedBoardsLine(changed.length)} بعد اعتماد التجهيز (${names}).`;
+};
+export const reapproveText = (changed: string[], order: string[], scriptToo: boolean) => {
+  return `${reapproveLine(changed, order)} راجعها في أعلى الستوري بورد ثم اعتمدها بزر واحد: ` +
     `يُسجَّل اعتماد هذه اللوحات وحدها${scriptToo ? " مع السكريبت المعدَّل" : ""}، ويُجدَّد اعتماد الستوري بورد في السجل، ولا يُفتح غيرها من المشاهد.`;
 };
 
@@ -94,10 +99,11 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
   const prepOpen = Boolean(w && !stepsDone(w)[0]);
   // Item 12: before the preparation approval, how many citations are still unverified (informative only).
   const [citations, setCitations] = useState("");
+  const [citeChip, setCiteChip] = useState("");
   useEffect(() => {
-    if (!prepOpen) return setCitations("");
+    if (!prepOpen) { setCiteChip(""); return setCitations(""); }
     let live = true;
-    api.review(episodeId).then((r) => live && setCitations(citationNotice(r.items)), () => live && setCitations(""));
+    api.review(episodeId).then((r) => { if (live) { setCitations(citationNotice(r.items)); setCiteChip(citationChip(r.items)); } }, () => { if (live) { setCitations(""); setCiteChip(""); } });
     return () => { live = false; };
   }, [episodeId, prepOpen, refreshKey, tick]);
   // What still blocks «اعتمد التجهيز» on the server (script errors, verses without text, the board record).
@@ -117,7 +123,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
   // P-05: boards edited after «اعتمد التجهيز». Only these need the owner's review; the same one button records them.
   const changedBoards = prep?.boardsReviewedBefore ? prep.changedBoards ?? [] : [];
   const reapprove = changedBoards.length > 0;
-  const next = ((): { text: string; label: string; go?: StepTab; fix?: "script" | "verses"; decide?: "approve-preparation" } | null => {
+  const next = ((): { text: string; line?: string; label: string; go?: StepTab; fix?: "script" | "verses"; decide?: "approve-preparation" } | null => {
     if (!w) return null;
     if (!done[0]) {
       if (scriptErrors.length || (prep?.scriptErrors ?? 0) > 0) return { text: "", label: "افتح السكريبت", go: "script", fix: "script" };
@@ -126,7 +132,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
       if (stepOf(tab) !== 0) return reapprove
         ? { text: `${changedBoardsLine(changedBoards.length)} بعد اعتماد التجهيز؛ لا يُنتج مشهد قبل اعتمادها.`, label: "إلى التجهيز", go: "storyboard" }
         : { text: "التجهيز (الستوري بورد والسكريبت) لم يُعتمد بعد.", label: "إلى التجهيز", go: "storyboard" };
-      if (reapprove) return { text: reapproveText(changedBoards, w.scenes.map((x) => x.id), !w.script.approved), label: "اعتمد اللوحات المتغيّرة", decide: "approve-preparation" };
+      if (reapprove) return { text: reapproveText(changedBoards, w.scenes.map((x) => x.id), !w.script.approved), line: reapproveLine(changedBoards, w.scenes.map((x) => x.id)), label: "اعتمد اللوحات المتغيّرة", decide: "approve-preparation" };
       return { text: "راجع الستوري بورد والسكريبت والمصادر، ثم اعتمد التجهيز؛ بعده تبدأ المشاهد تُجهَّز وحدها.", label: "اعتمد التجهيز", decide: "approve-preparation" };
     }
     if (!done[1] && !w.progress.currentScene && (w.progress.recitationPending?.length ?? 0) > 0)
@@ -226,9 +232,9 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
           <div className="ms-dock" role="group" aria-label="اعتماد التجهيز">
             {needs || err ? <p className="ms-float spine-needs" role="alert">{needs || err}</p> : null}
             <div className="ms-dock-in is-wrap">
-              {reapprove ? <p className="ms-dock-text spine-changed">{next.text}</p> : null}
-              {citations ? <span className="ms-wn" title={citations}><Icon name="warn" /><span className="lbl">{citations.split("؛")[0]}</span></span> : null}
-              {citations ? <span className="ms-dv" aria-hidden="true" /> : null}
+              {reapprove ? <DockText className="spine-changed" line={next.line ?? next.text} details={next.text} /> : null}
+              <div className="ms-dock-ctl">
+              {citations && citeChip ? <DockChip label={citeChip} text={citations}>{tab !== "script" ? <button type="button" className="ms-link" onClick={() => onTab("script")}>افتح سجل التوثيق</button> : null}</DockChip> : null}
               {needNote ? (
                 <input ref={noteBox} type="text" className="ms-dock-note spine-note" value={boardNote} maxLength={3000} onChange={(e) => { setBoardNote(e.target.value); setNeeds(""); }}
                   aria-label="ملاحظة مراجعتك للوحات" placeholder={reapprove ? "ملاحظتك على اللوحات المتغيّرة: ما راجعته فيها فعلًا (٢٥ حرفًا على الأقل)" : "ملاحظتك على اللوحات: ما راجعته فعلًا (٢٥ حرفًا على الأقل)"} />
@@ -237,19 +243,22 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
               <button ref={approveBtn} type="button" className="btn primary" aria-busy={busy} onClick={() => { if (!busy) void onApprove(); }}>
                 <Icon name="check" />{busy ? "جارٍ الاعتماد…" : next.label}
               </button>
+              </div>
             </div>
           </div>
         ) : next.fix === "script" && inStep1 && scriptErrors.length ? null : next.go && (next.fix ? tab !== next.go : !STEPS[stepOf(next.go)]!.tabs.includes(tab)) ? (
           <div className="ms-dock" role="group" aria-label="الخطوة التالية">
             {err ? <p className="ms-float spine-err" role="alert">{err}</p> : null}
             <div className="ms-dock-in is-wrap">
-              <p className="ms-dock-text">{next.fix === "script"
+              <DockText line={next.fix === "script"
                 ? <>التجهيز لم يُعتمد بعد: {arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في السكريبت.</>
-                : next.text}</p>
+                : next.text} />
               {/* الخطوة ٢ الآن وأنت خارج شاشتها: سطر «جاهز ١٢ من ١١٤» هنا، وفي شاشة المشاهد نفسها هناك */}
+              <div className="ms-dock-ctl">
               {current === 1 && w ? <PrepareAll episodeId={episodeId} channelId={channelId} prepared={w.prepared} order={w.scenes.map((x) => x.id)} onOpenSettings={onOpenSettings} onChanged={() => setTick((t) => t + 1)} onEpisodeTone={onEpisodeTone} /> : null}
               {/* Navigation to where the decision is: outlined, so the screen's own action stays the one filled button */}
               <button type="button" className="btn ms-go-nav" onClick={() => onTab(next.go!)}>{next.label}<Icon name="chev" /></button>
+              </div>
             </div>
           </div>
         ) : err ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">{err}</p></div> : null
