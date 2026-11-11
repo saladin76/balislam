@@ -1,5 +1,6 @@
 import { planOrder, sceneNames } from "../i18n/sceneNames";
 import type { ChannelConfig } from "../channel/types";
+import { versesAreCitations } from "../quran/citation";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -81,9 +82,11 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   const basmalaPending = required.filter((s) => media.voice[s.id]?.basmala?.pending).map((s) => s.id);
   if (basmalaPending.length) throw new Error(`لا يمكن رندر نسخة نهائية والبسملة بلا تسجيلك المعتمد في: ${sceneNames(planOrder(plan), basmalaPending, 10)}. ارفع تسجيل البسملة واعتمده (الخطوة ٣ ← التلاوات).`);
   // القناة التي اختارت قارئًا: لا آية في النسخة النهائية بلا تلاوتها (مرخّصة أو من القارئ المختار)
-  const verseGaps = versesWithoutRecitation(plan, media, ids, true);
+  // D68: a channel whose verses are written citations has no recitation to wait for (the card is silent text).
+  const cited = versesAreCitations(o.channel);
+  const verseGaps = versesWithoutRecitation(plan, media, ids, !cited);
   const unsafeVerseScenes = plan.chapters.flatMap((chapter) => chapter.scenes)
-    .filter((scene) => ids.has(scene.id) && scene.template === "verse-card" &&
+    .filter((scene) => !cited && ids.has(scene.id) && scene.template === "verse-card" &&
       (!scene.ayahKey || media.recitations[scene.ayahKey]?.source !== "manual"))
     .map((scene) => scene.id);
   if (unsafeVerseScenes.length)

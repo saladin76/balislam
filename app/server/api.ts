@@ -510,8 +510,12 @@ export const balApi = (): Plugin => ({
             if (req.method === "GET") {
               const status = await manual.ownAudioStatus(ep);
               const plan = await io.loadPlan(ep);
+              // D68: a channel whose verses are written citations asks for no recitation (only the basmala, if any).
+              const { versesAreCitations } = await load("/src/quran/citation.ts");
+              const { loadChannel } = await load("/src/channel/index.ts");
+              const cited = versesAreCitations(loadChannel());
               const verses = (plan?.chapters ?? []).flatMap((c: any) => c.scenes)
-                .filter((s: any) => s.template === "verse-card" && s.ayahKey)
+                .filter((s: any) => !cited && s.template === "verse-card" && s.ayahKey)
                 .map((s: any) => ({ key: s.ayahKey as string, sceneId: s.id as string, reference: s.props?.reference ?? "" }));
               // The basmala (owner decision 10 Nov): one recording by the owner for every scene that holds it.
               const { basmalaScenes } = await load("/src/voice/sentenceVoice.ts");

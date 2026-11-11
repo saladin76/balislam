@@ -9,6 +9,8 @@ import { isOwnRecordingEvidence, type EpisodeMedia, type Recitation } from "./me
 import type { Plan } from "./types";
 import { recitationsDirFor } from "../quran/sync";
 import { verifiedOwnRecitations } from "../quran/manualAudio";
+import { loadChannel } from "../channel";
+import { versesAreCitations } from "../quran/citation";
 
 /** One predictable namespace per channel + actual episode folder, not a shared
  * temporary _render/001 folder that collides across the three channels.
@@ -68,8 +70,10 @@ export const collectMedia = async (
   // Reviewing/editing a pending episode is allowed even when no recording
   // exists; no fallback audio from a provider or a shared library is allowed.
   const approvedManual = await verifiedOwnRecitations(scriptPath);
+  // D68: written citations are silent text; no recitation is staged even if one was uploaded earlier.
+  const cited = versesAreCitations((() => { try { return loadChannel(); } catch { return null; } })());
   for (const scene of plan.chapters.flatMap((chapter) => chapter.scenes)) {
-    if (scene.template !== "verse-card") continue;
+    if (scene.template !== "verse-card" || cited) continue;
     const recording = scene.ayahKey ? approvedManual[scene.ayahKey] : undefined;
     if (!recording) {
       if (opts.requireApprovedQuran)

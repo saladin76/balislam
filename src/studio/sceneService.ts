@@ -29,7 +29,8 @@ import {
 import { workflowSigningKey } from "../workflow/trust";
 import { appendStudioNote, correctionInboxView } from "./notesInbox";
 import { scheduleStudioNotesSync } from "./notesSync";
-import { channelsDir } from "../channel";
+import { channelsDir, loadChannel } from "../channel";
+import { versesAreCitations } from "../quran/citation";
 import { loadApprovedScript, recordApprovedScript, scriptEditScope } from "./scriptScope";
 
 export const SCENE_ACTIONS = ["approve-script", "approve-storyboard", "submit-scene",
@@ -144,6 +145,8 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
   ]));
   const voice = await loadVoiceIndex(episode);
   const manual = await verifiedOwnRecitations(scriptPath);
+  // D68: in a channel whose verses are written citations, a verse card never waits for a recitation.
+  const citations = versesAreCitations((() => { try { return loadChannel(path.basename(path.dirname(path.dirname(path.dirname(scriptPath))))); } catch { return null; } })());
   const ready: Record<string, boolean> = {};
   const voiceReadyBy: Record<string, boolean> = {};
   const recitationPending: Record<string, boolean> = {};
@@ -166,10 +169,10 @@ const sourceNow = async (episode: string): Promise<CurrentInput> => {
     // The basmala is treated like a verse (owner decision 10 Nov): a scene holding it waits for the owner's
     // approved recording exactly as a verse card waits for its recitation (D35: conditional approval only).
     const basmala = scene.template !== "verse-card" && hasBasmala(narration);
-    const rec = scene.template === "verse-card" && scene.ayahKey
+    const rec = scene.template === "verse-card" && scene.ayahKey && !citations
       ? manual[scene.ayahKey] : basmala ? manual[BASMALA_KEY] : undefined;
     const recOk = Boolean(rec && rec.provider === "manual" && rec.sha256 && rec.approvedBy && rec.rightsEvidence);
-    const verseReady = (scene.template !== "verse-card" && !basmala) ||
+    const verseReady = (scene.template !== "verse-card" && !basmala) || (scene.template === "verse-card" && citations) ||
       (recOk && (!basmala || (clip?.basmala?.pending === false && clip.basmala.sha256 === rec!.sha256)));
     ready[scene.id] = voiceReady && verseReady;
     voiceReadyBy[scene.id] = voiceReady;

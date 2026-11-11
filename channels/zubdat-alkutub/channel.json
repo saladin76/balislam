@@ -119,7 +119,8 @@
   },
   "verse": {
     "style": "ink",
-    "reveal": "whole"
+    "reveal": "whole",
+    "recitation": "none"
   },
   "outro": {
     "template": "ink-shot",

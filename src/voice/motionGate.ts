@@ -7,6 +7,7 @@
  * the owner's uploaded human recording.
  */
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { parseScript } from "../script/parse";
 import { quranFromScript } from "../quran/scriptText";
 import { approvedRecitationsForRender } from "../quran/renderContract";
@@ -22,7 +23,10 @@ export const assertMotionStartAuthorized = async (
   const authored = quranFromScript(parsed);
   if (authored.problems.length)
     throw new Error("نصوص آيات السكريبت ناقصة أو متعارضة؛ لا تبدأ الحركة قبل مراجعتها.");
-  if (Object.keys(authored.texts).length) {
+  const { loadChannel } = await import("../channel");
+  const { versesAreCitations } = await import("../quran/citation");
+  const cited = (() => { try { return versesAreCitations(loadChannel(path.basename(path.dirname(path.dirname(path.dirname(scriptPath)))))); } catch { return false; } })();
+  if (Object.keys(authored.texts).length && !cited) {
     const approved = await approvedRecitationsForRender(scriptPath, undefined);
     for (const key of Object.keys(authored.texts))
       if (approved[key]?.source !== "manual")

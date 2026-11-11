@@ -58,7 +58,7 @@
 المصادر التفصيلية الملزمة لكل قناة:
 - [قواعد «بالإسلام»](../balislam/10-studio-v2-production-rules.md)
 - [قواعد «دفاتر الزمن»](../dafatir-alzaman/10-studio-v2-production-rules.md)
-- [دستور «زبدة الكتب»](../zubdat-alkutub/10-studio-v2-production-rules.md)
+- [دستور «زبدة الكتب»](../zubdat-alkutub/10-studio-v2-production-rules.md) — الآية فيها استشهاد مكتوب صامت بلا تلاوة (D68)؛ «بالإسلام» و«دفاتر الزمن» على التلاوة البشرية كما هي.
 
 ## 6. جودة المشهد ليست عدد حركات
 

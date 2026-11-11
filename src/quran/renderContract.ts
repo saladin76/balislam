@@ -34,6 +34,14 @@ export const assertReciterPublicationRights = (_choice: unknown): true =>
   reject("أُلغيت خدمات القراء الخارجية؛ ارفع التلاوة البشرية إلى ملفات الحلقة وراجعها.");
 
 /** Select only current, human-approved, episode-owned recordings bound to script.md. */
+
+/** D68: the channel (from the script path) shows its verses as written citations, with no recitation. */
+const citationChannel = async (scriptPath: string): Promise<boolean> => {
+  const { loadChannel } = await import("../channel");
+  const { versesAreCitations } = await import("./citation");
+  try { return versesAreCitations(loadChannel(path.basename(path.dirname(path.dirname(path.dirname(scriptPath)))))); } catch { return false; }
+};
+
 export const approvedRecitationsForRender = async (
   scriptPath: string, choice?: unknown,
 ): Promise<AuthorizedRecitations> => {
@@ -44,6 +52,7 @@ export const approvedRecitationsForRender = async (
   if (authored.problems.length) reject("مرجع الآية أو نصها في السكريبت غير صالح.");
   const keys = Object.keys(authored.texts);
   if (!keys.length) return {};
+  if (await citationChannel(scriptPath)) return {};
 
   const manual = await verifiedOwnRecitations(scriptPath);
   const result: AuthorizedRecitations = {};
