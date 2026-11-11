@@ -1,3 +1,4 @@
+import type { SeriesStamp } from "../channel/series";
 import type { Domain, ThemeId } from "../../brand/themes";
 import type { Overlays } from "../../brand/identity/index";
 
@@ -59,5 +60,10 @@ export type Plan = {
    * تُختم مرة واحدة، فلا يغيّر اعتماد لاحق حلقة قائمة؛ وغيابها = السلوك القديم.
    */
   engineDefaults?: string[];
+  /**
+   * سلسلة الحلقة كما خُتمت لحظة إنشائها (src/channel/series.ts): هويتها المشتقة وقالبها.
+   * تقرؤها الافتتاحية والصورة المصغّرة وحزمة النشر، ولا يغيّرها تعديل السلسلة لاحقًا. غيابها = «عام» بهوية القناة.
+   */
+  series?: SeriesStamp;
   chapters: PlanChapter[];
 };

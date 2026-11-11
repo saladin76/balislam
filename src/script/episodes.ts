@@ -73,7 +73,9 @@ export function templateFor(channelId: string, name: string, fallback = true): s
   return existsSync(neutral) ? neutral : null;
 }
 
-export type NewEpisodeOptions = { episode: string; slug: string; domain: string; title?: string; lang?: string };
+export type NewEpisodeOptions = { episode: string; slug: string; domain: string; title?: string; lang?: string;
+  /** سلسلة الحلقة أو تصنيفها (src/channel/series.ts)؛ غيابها أو «general» = «عام» */
+  series?: string };
 
 /** ينشئ مجلد حلقة جديدة بقالب السكريبت. */
 export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> => {
@@ -99,12 +101,29 @@ export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> =>
       .replace("{{DOMAIN}}", opts.domain)
       .replace("{{EPISODE}}", opts.episode);
   const file = path.join(dir, "script.md");
-  const scriptTemplate = templateFor(channel.id, "script.md");
+  // السلسلة: قالب سكريبتها إن اختارته، وعناوين فصولها، وأسلوب من أساليبها يختلف عن أسلوب الحلقة السابقة (التنوع)
+  const series = await import("../channel/seriesStore");
+  const model = await import("../channel/series");
+  const chosen = opts.series && opts.series !== model.GENERAL_SLUG ? series.getSeries(channel.id, opts.series) : undefined;
+  if (opts.series && opts.series !== model.GENERAL_SLUG && !chosen) throw new Error(`السلسلة «${opts.series}» غير موجودة في هذه القناة.`);
+  if (chosen?.status === "archived") throw new Error(`«${chosen.name}» مؤرشفة؛ أعدها نشطة قبل إضافة حلقة.`);
+  const ownTemplate = chosen?.template?.script?.source === "series" ? path.join(templatesDir, channel.id, "series", chosen.id, "script.md") : null;
+  const scriptTemplate = ownTemplate && existsSync(ownTemplate) ? ownTemplate : templateFor(channel.id, "script.md");
   if (!scriptTemplate) throw new Error("لا يوجد قالب سكريبت لهذه القناة ولا القالب المحايد templates/_neutral/script.md.");
-  await writeFile(file, fill(await readFile(scriptTemplate, "utf8")), "utf8");
+  let text = fill(await readFile(scriptTemplate, "utf8"));
+  if (chosen) {
+    text = model.applyChapterTitles(text, chosen.template?.chapters?.titles);
+    const prev = (await listScriptEpisodeDirs(episodesDir)).filter((d) => d !== path.basename(dir)).pop();
+    const prevStyle = prev ? (await readFile(path.join(episodesDir, prev, "script.md"), "utf8")).match(/^style:\s*"?([a-z-]+)"?\s*$/m)?.[1] : undefined;
+    const style = model.nextStyle(chosen.template?.styles, prevStyle);
+    if (style && !/^style:/m.test(text)) text = text.replace(/^(episode:.*)$/m, `$1\nstyle: ${style}`);
+  }
+  await writeFile(file, text, "utf8");
   // ملف البحث (أو دراسة الكتاب) بقالب القناة، وإلا المحايد: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
   const research = templateFor(channel.id, "research.md");
   if (research) await writeFile(path.join(dir, RESEARCH_FILE), fill(await readFile(research, "utf8")), "utf8");
   await writeFile(path.join(dir, "voice", ".gitkeep"), "");
+  // الانتماء والختم بجوار السكريبت (لا يُكتب لـ«عام» الافتراضي ما لم يُحفظ ملفه)
+  if (chosen && !chosen.virtual) await series.linkNewEpisode(channel.id, dir, chosen.id);
   return file;
 };

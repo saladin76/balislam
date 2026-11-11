@@ -7,6 +7,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { generatePlan, type QuranTexts } from "./generate";
 import { loadChannel } from "../channel";
 import type { Plan } from "./types";
+import { withSeriesStamp, type SeriesStamp } from "../channel/series";
 import { stripQuran, withQuran } from "./quranText";
 import { quranFromScript, historicalMeanings } from "../quran/scriptText";
 import { backupNameFor, designedPlanLoss, DesignedPlanReplaceError, designedScenes, DesignedPlanError, isDesignedPlan, scriptPlanDivergence, type ScriptPlanDivergence } from "./designed";
@@ -82,7 +83,8 @@ const generateFromScript = async (scriptPath: string, previous: Plan | null) => 
   const sources = Object.fromEntries((previous?.chapters ?? []).flatMap((c) => c.scenes)
     .filter((s) => s.ayahKey && s.props?.meaningSource).map((s) => [s.ayahKey!, s.props.meaningSource!]));
   const quran = { ...historicalMeanings(legacy, sources), ...quranFromScript(parsed).texts };
-  return generatePlan(parsed, previous, quran, loadChannel());
+  const plan = generatePlan(parsed, previous, quran, loadChannel());
+  return withSeriesStamp(plan, previous, await readJson<{ stamp?: SeriesStamp }>(path.join(path.dirname(scriptPath), "series.json")).then((x) => x?.stamp, () => undefined));
 };
 
 /** نسخة احتياطية بجوار الخطة (`plan.backup-<الوقت>.json`، محلية لا تُرفع) قبل أي كتابة صريحة فوق خطة مصمَّمة. */

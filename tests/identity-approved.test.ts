@@ -62,3 +62,30 @@ describe("القناة الجديدة", () => {
     }
   });
 });
+
+describe("السلاسل والتصنيفات: هوية مشتقة من هوية قناتها وحدها", () => {
+  it("كل سلسلة محفوظة (channels/<القناة>/series) لا تُدخل لونًا ولا خطًا ولا زخرفة من خارج قناتها", async () => {
+    const { existsSync, readdirSync } = await import("node:fs");
+    const { colourAllowed, deriveSeriesIdentity, foreignColours } = await import("../src/channel/series");
+    for (const [ch, a] of Object.entries(APPROVED)) {
+      const dir = `channels/${ch}/series`;
+      const files = existsSync(dir) ? readdirSync(dir).filter((d) => existsSync(`${dir}/${d}/series.json`)) : [];
+      for (const id of files) {
+        const s = JSON.parse(readFileSync(`${dir}/${id}/series.json`, "utf8"));
+        const raw = JSON.stringify(s).toUpperCase();
+        for (const hex of raw.match(/#[0-9A-F]{6}/g) ?? []) expect(colourAllowed(ch, hex), `${ch}/${id}: ${hex}`).toBe(true);
+        for (const [other, b] of Object.entries(APPROVED)) if (other !== ch) expect(raw, `${ch}/${id}`).not.toContain(b.fonts.heading.toUpperCase());
+        const d = deriveSeriesIdentity(ch, s.identity ?? {});
+        expect(d.fonts).toEqual(a.fonts);
+        expect(a.motifs).toContain(d.motif);
+        expect(foreignColours(ch).has(d.accent)).toBe(false);
+      }
+    }
+  });
+  it("الاشتقاق لا يغيّر الهوية المعتمدة نفسها (الهويات ما زالت مقفلة)", async () => {
+    const before = JSON.stringify(APPROVED);
+    const { deriveSeriesIdentity } = await import("../src/channel/series");
+    for (const ch of Object.keys(APPROVED)) deriveSeriesIdentity(ch, { accent: { base: "#FFFFFF", lightness: 0.15 }, motif: "girih" });
+    expect(JSON.stringify(APPROVED)).toBe(before);
+  });
+});
