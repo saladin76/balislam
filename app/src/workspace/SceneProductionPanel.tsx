@@ -16,6 +16,7 @@ import "../shell/screens-s3.css";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
 import { SentencesPanel } from "./SentencesPanel";
+import { StudioErrorBoundary } from "../shell/ErrorBoundary";
 import { clockAr, sceneName, seamName } from "./sceneNames";
 import { sceneSeconds } from "../../../src/plan/duration";
 import { Icon } from "../ui/icons";
@@ -579,7 +580,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             ) : livePreview ? (
               // The tag sits under the frame, never over it: burned-in captions run along the top of the picture.
               <figure className="s3-livebox">
-                <div className="s3-live">{livePreview(shownId)}</div>
+                <div className="s3-live"><StudioErrorBoundary scope="screen" compact label="معاينة المشهد" resetKey={shownId}>{livePreview(shownId)}</StudioErrorBoundary></div>
                 <figcaption className="s3-tag">معاينة صامتة{isCurrent ? " — المعاينة بالصوت تظهر هنا حين تُجهَّز" : ""}</figcaption>
               </figure>
             ) : (
@@ -609,9 +610,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
 
           {hit?.scene.narration.trim() || hit?.scene.template === "verse-card" ? (
+            <StudioErrorBoundary scope="screen" compact label="الجمل" resetKey={shownId}>
             <SentencesPanel variant="paragraph" episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
               onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
               onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
+            </StudioErrorBoundary>
           ) : null}
 
           {allDoneHere ? (
@@ -654,9 +657,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 <p className="sp-hint">كل مشاهد الحلقة جملةً جملة بالترتيب، والآيات في مواضعها برفع التلاوة؛ وفيها قاموس النطق.</p>
                 <button type="button" className="btn" aria-expanded={allSentences} onClick={() => setAllSentences((v) => !v)}>{allSentences ? "أخفِ جمل الحلقة" : "اعرض جمل الحلقة كلها"}</button>
                 {allSentences ? (
+                  <StudioErrorBoundary scope="screen" compact label="جمل الحلقة">
                   <SentencesPanel episodeId={episodeId} channelId={channelId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
                     onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
                     onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
+                  </StudioErrorBoundary>
                 ) : null}
               </div>
               <p className="hint">التحرير الكامل (القالب، الخلفية، النبرة، التصدير) في «تحرير المشهد».</p>

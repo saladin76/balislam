@@ -28,6 +28,13 @@ describe("remapKeys", () => {
     expect(done.moved).toEqual([]);
     expect(done.next).toEqual({ "c1-s2": { text: "ب ب" }, "c1-s3": { text: "ج" } });
   });
+  it("--with-changed-text (D89): ينقل ما تغيّر نص مشهده بعد تسجيله ويذكره، ولا يغيّر محتواه", () => {
+    const r = remapKeys({ "c2-s1": { text: "نص أقدم" }, "c2-s2": { text: "ج" } }, map, p, (v) => v.text, { withChangedText: true });
+    expect(r.moved).toEqual([["c2-s1", "c1-s2"], ["c2-s2", "c1-s3"]]);
+    expect(r.changed).toEqual(["c2-s1"]);
+    expect(r.next["c1-s2"]).toEqual({ text: "نص أقدم" });
+    expect(remapKeys({ "c2-s1": { text: "نص أقدم" } }, map, p, (v) => v.text).skipped[0]!.reason).toContain("--with-changed-text");
+  });
   it("لا يكتب فوق مدخل باقٍ، ويُبلغ عن المدخل الذي يضيع", () => {
     const m = { "c1-s2": "c1-s3", "c1-s3": "c1-s3" };
     const r = remapKeys({ "c1-s2": { text: "ج" }, "c1-s3": { text: "ج" } }, m, p, (v) => v.text);

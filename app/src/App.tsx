@@ -45,6 +45,7 @@ import { LabsTab } from "./tabs/LabsTab";
 import { TechReviewsTab } from "./tabs/TechReviewsTab";
 import { ChannelProvider } from "../../src/channel/context";
 import { bootPlace, navigationKind, parseStudioHash, studioHash } from "./shell/route";
+import { StudioErrorBoundary } from "./shell/ErrorBoundary";
 
 type Tab = StudioSection;
 type FinalView = "recitations" | "seams" | "master";
@@ -408,6 +409,7 @@ export const App: React.FC = () => {
   const bandSeriesId = tab === "series" ? seriesId : epSeries && epSeries !== GENERAL_SLUG ? epSeries : canChangeSeries ? GENERAL_SLUG : "";
   const bandSeries = bandSeriesId ? seriesData?.series.find((x) => x.id === bandSeriesId) : undefined;
   const seriesNames = seriesData && seriesData.series.length > 1 ? Object.fromEntries(seriesData.series.map((x) => [x.id, x.name])) : null;
+  const screenLabel = inEpisode && here >= 0 ? `الخطوة ${STEPS[here]!.n} «${STEPS[here]!.title}»` : tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "هذه الشاشة";
   const openSeries = (id: string) => { if (!confirmLeaveScript()) return; void flushPlan().then(() => { setSeriesId(id); setTab("series"); }); };
 
   return (
@@ -450,6 +452,7 @@ export const App: React.FC = () => {
         ) : null}
 
         {EPISODE_TABS.includes(tab) && plan && check && epId ? (
+          <StudioErrorBoundary scope="screen" compact label="حالة الحلقة" resetKey={`${channelId}:${epId}`} onHome={() => void navigateManage("home")}>
           <EpisodeSpine
             key={`spine:${channelId}:${epId}`}
             episodeId={epId}
@@ -472,6 +475,7 @@ export const App: React.FC = () => {
             onState={(st) => setLedger({ key: `${channelId}/${epId}`, w: st })}
             onEpisodeTone={async (tone) => { onPlanChange({ ...plan, tone }); await flushPlan(); }}
           />
+          </StudioErrorBoundary>
         ) : null}
         {inEpisode && tab === "storyboard" ? (
           <header className="ms-step-head">
@@ -480,7 +484,9 @@ export const App: React.FC = () => {
           </header>
         ) : null}
 
-         {tab === "ops" ? (
+        {/* D89: a screen that throws shows its error card here; the band, top bar and other steps stay usable */}
+        <StudioErrorBoundary scope="screen" label={screenLabel} resetKey={`${channelId}:${epId}:${tab}:${final}:${sceneView}`} onHome={() => void navigateManage("home")}>
+        {tab === "ops" ? (
           <div className="home-wrap studio-ops-workspace">
             <OpsRoom
             refreshKey={homeKey}
@@ -745,6 +751,7 @@ export const App: React.FC = () => {
         ) : (
           <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}
+        </StudioErrorBoundary>
 
         {showNew ? (
           <NewEpisode

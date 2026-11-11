@@ -102,7 +102,7 @@ describe("الخطوة ٢: «اعتمد» أولًا", () => {
 
   it("the silent-preview tag sits under the frame, never over the burned-in captions", () => {
     const panel = src("app/src/workspace/SceneProductionPanel.tsx");
-    expect(panel).toMatch(/<div className="s3-live">\{livePreview\(shownId\)\}<\/div>\s*<figcaption className="s3-tag">/);
+    expect(panel).toMatch(/<div className="s3-live">(?:<StudioErrorBoundary[^>]*>)?\{livePreview\(shownId\)\}(?:<\/StudioErrorBoundary>)?<\/div>\s*<figcaption className="s3-tag">/);
     const css = src("app/src/shell/screens-s3.css");
     const tag = css.slice(css.indexOf(".shell-v3 .s3-tag"), css.indexOf("}", css.indexOf(".shell-v3 .s3-tag")));
     expect(tag).not.toMatch(/position:\s*absolute/);

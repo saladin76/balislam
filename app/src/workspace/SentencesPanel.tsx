@@ -323,6 +323,18 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     );
   };
 
+  // Hooks stay above every early return below (rules of hooks): the panel first renders «جارٍ تحميل الجمل…»
+  // and then the scene, so a hook after those returns crashed step ٢ on its first loaded render (white page, D89).
+  /** «أعد توليد ما وُلّد بالنبرة القوية»: أمر المالك الصريح وحده، بعد عرض العدد والحروف (رصيد مدفوع). */
+  const olderCount = (read?.scenes ?? []).reduce((n, x) => n + x.rows.filter((r) => r.olderTone).length + (x.olderTone ? 1 : 0), 0);
+  // تقدير الرصيد للإشارة: dryRun وحده (لا طلب صوت مدفوع)، ويُحسب من جديد كلما تغيّر العدد
+  const [olderPlan, setOlderPlan] = useState<{ chars: number; credits: number } | null>(null);
+  useEffect(() => {
+    if (sceneId || !olderCount) { setOlderPlan(null); return; }
+    let live = true;
+    api.toneUpgrade(episodeId, channelId, true).then((r) => { if (live && r.plan) setOlderPlan({ chars: r.plan.chars, credits: r.plan.credits }); }).catch(() => { /* التقدير اختياري */ });
+    return () => { live = false; };
+  }, [episodeId, channelId, sceneId, olderCount]);
   if (!read) return error ? <p className="scene-first-error" role="alert">{error}</p> : <p className="sp-hint sv-loading">جارٍ تحميل الجمل…</p>;
   if (!scenes.length) return null;
 
@@ -785,16 +797,6 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   };
 
   const paragraph = variant === "paragraph" && Boolean(sceneId);
-  /** «أعد توليد ما وُلّد بالنبرة القوية»: أمر المالك الصريح وحده، بعد عرض العدد والحروف (رصيد مدفوع). */
-  const olderCount = (read.scenes ?? []).reduce((n, x) => n + x.rows.filter((r) => r.olderTone).length + (x.olderTone ? 1 : 0), 0);
-  // تقدير الرصيد للإشارة: dryRun وحده (لا طلب صوت مدفوع)، ويُحسب من جديد كلما تغيّر العدد
-  const [olderPlan, setOlderPlan] = useState<{ chars: number; credits: number } | null>(null);
-  useEffect(() => {
-    if (sceneId || !olderCount) { setOlderPlan(null); return; }
-    let live = true;
-    api.toneUpgrade(episodeId, channelId, true).then((r) => { if (live && r.plan) setOlderPlan({ chars: r.plan.chars, credits: r.plan.credits }); }).catch(() => { /* التقدير اختياري */ });
-    return () => { live = false; };
-  }, [episodeId, channelId, sceneId, olderCount]);
   const upgradeAll = async () => {
     setBusy("upgrade-tone"); setError(""); setMsg("");
     try {

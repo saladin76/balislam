@@ -37,13 +37,14 @@ export const introFramesFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro">
 
 export const ChannelIntro: React.FC<{ kind: IntroKind; orientation: Orientation; series?: SeriesStamp }> = ({ kind, orientation, series }) => {
   const frame = useCurrentFrame();
+  // Before the early return below (rules of hooks, D89): the sting starts mid-playback in the Studio player.
+  const { fps } = useVideoConfig();
   const total0 = introFrames(kind);
   // بطاقة السلسلة بعد افتتاحية القناة كما هي (لا تغيّر الافتتاحية نفسها)
   if (stingOn(series) && frame >= total0) {
     const portraitS = orientation === "portrait";
     return <AbsoluteFill><SeriesSting stamp={series!} frame={frame - total0} width={portraitS ? 1080 : 1920} height={portraitS ? 1920 : 1080} /></AbsoluteFill>;
   }
-  const { fps } = useVideoConfig();
   const total = introFrames(kind);
   const out = interpolate(frame, [total - 10, total], [1, 0], clamp);
   const portrait = orientation === "portrait";

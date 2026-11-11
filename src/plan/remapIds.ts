@@ -8,6 +8,8 @@
  * - `voice/sentences.json`: مفتاح كل مشهد و`sceneId` في جمله (النص والنبرة والتسجيل كما هي).
  * لا يمس سجل الاعتمادات الموقَّع ولا الستوري بورد ولا أي اعتماد (تُعاد فتحها كما يجب)، ولا يحذف ملف صوت.
  * لا يُنقل مدخل إلا إن كان مفتاحه القديم غير موجود في الخطة الحالية والجديد غير مشغول، ونصه يطابق نص المشهد الجديد.
+ * `withChangedText` (D89): ينقل أيضًا مدخلًا تغيّر نص مشهده بعد تسجيله (سكريبت أحدث)، فيتبع التسجيلُ المدفوع مشهده ويظهر
+ * فيه «قديم» حتى يُولَّد من جديد (صوت المشهد لا يُعدّ جاهزًا ما دام نصه غير نص المشهد؛ والجمل التي لم يتغير نصها تبقى بصوتها).
  * التجربة افتراضية؛ الكتابة بـ`apply` وقبلها نسخة `<الملف>.before-remap.json` بجواره، ولا يُكتب ملف يضيع منه مدخل.
  */
 import path from "node:path";
@@ -17,7 +19,10 @@ import { writeJsonAtomic } from "../io/atomicJson";
 import type { Plan } from "./types";
 
 export type IdMap = Record<string, string>;
-export type RemapReport = { file: string; moved: [string, string][]; skipped: { id: string; reason: string }[]; written: boolean };
+export type RemapReport = { file: string; moved: [string, string][]; skipped: { id: string; reason: string }[]; written: boolean;
+  /** moved with `withChangedText` although its text is not the new scene's (shown «قديم» there until generated again) */
+  changed: string[] };
+export type RemapOptions = { apply?: boolean; withChangedText?: boolean };
 
 const norm = (s: string) => s.replace(/[ً-ْٰ]/g, "").replace(/\s+/g, " ").trim();
 
@@ -38,13 +43,14 @@ export const readIdMap = async (file: string): Promise<IdMap> => {
  * يُنقل إلى مقابله فقط إن وُجد المشهد في الخطة، ولم يكن له مدخل باقٍ، ونص المدخل = نص المشهد الجديد (فيصير
  * تكرار الأمر بعد تطبيقه بلا أثر). غير ذلك يبقى بمفتاحه ويُذكر سببه.
  */
-export const remapKeys = <T>(entries: Record<string, T>, map: IdMap, plan: Plan, textOf: (v: T) => string | null): { next: Record<string, T>; moved: [string, string][]; skipped: { id: string; reason: string }[]; lost: string[] } => {
+export const remapKeys = <T>(entries: Record<string, T>, map: IdMap, plan: Plan, textOf: (v: T) => string | null, o: { withChangedText?: boolean } = {}): { next: Record<string, T>; moved: [string, string][]; skipped: { id: string; reason: string }[]; lost: string[]; changed: string[] } => {
   const scenes = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s]));
   const moves = (k: string) => Boolean(map[k] && map[k] !== k);
   const next: Record<string, T> = {};
   const moved: [string, string][] = [];
   const skipped: { id: string; reason: string }[] = [];
   const later: [string, T][] = [];
+  const changed: string[] = [];
   for (const [k, v] of Object.entries(entries)) {
     if (!moves(k)) { next[k] = v; continue; }
     const to = map[k]!;
@@ -54,7 +60,10 @@ export const remapKeys = <T>(entries: Record<string, T>, map: IdMap, plan: Plan,
     if (!scene) reason = `المشهد ${to} غير موجود في الخطة الحالية`;
     else if (to in entries && !moves(to)) reason = `${to} له مدخل قائم`;
     else if (text === null) reason = "بلا نص يُطابَق";
-    else if (norm(text) !== norm(scene.narration)) reason = `نصه لا يطابق نص ${to}`;
+    else if (norm(text) !== norm(scene.narration)) {
+      if (o.withChangedText) changed.push(k);
+      else reason = `نصه لا يطابق نص ${to} (للنقل معه: --with-changed-text)`;
+    }
     if (reason) { skipped.push({ id: k, reason }); later.push([k, v]); continue; }
     next[to] = v;
     moved.push([k, to]);
@@ -65,10 +74,10 @@ export const remapKeys = <T>(entries: Record<string, T>, map: IdMap, plan: Plan,
     if (k in next) lost.push(k);
     else next[k] = v;
   }
-  return { next, moved, skipped, lost };
+  return { next, moved, skipped, lost, changed };
 };
 
-export const remapLocalVoice = async (episodeDir: string, plan: Plan, map: IdMap, o: { apply?: boolean } = {}): Promise<RemapReport[]> => {
+export const remapLocalVoice = async (episodeDir: string, plan: Plan, map: IdMap, o: RemapOptions = {}): Promise<RemapReport[]> => {
   const out: RemapReport[] = [];
   const save = async (file: string, value: unknown) => {
     const backup = `${file.replace(/\.json$/, "")}.before-remap.json`;
@@ -78,20 +87,20 @@ export const remapLocalVoice = async (episodeDir: string, plan: Plan, map: IdMap
   const index = path.join(episodeDir, "voice", "index.json");
   if (existsSync(index)) {
     const doc = JSON.parse(await readFile(index, "utf8")) as Record<string, { text?: string }>;
-    const r = remapKeys(doc, map, plan, (v) => (typeof v?.text === "string" ? v.text : null));
+    const r = remapKeys(doc, map, plan, (v) => (typeof v?.text === "string" ? v.text : null), o);
     const written = Boolean(o.apply && r.moved.length && !r.lost.length);
     if (written) await save(index, r.next);
-    out.push({ file: "voice/index.json", moved: r.moved, skipped: r.skipped, written });
+    out.push({ file: "voice/index.json", moved: r.moved, skipped: r.skipped, written, changed: r.changed });
   }
   const sentences = path.join(episodeDir, "voice", "sentences.json");
   if (existsSync(sentences)) {
     type Doc = { version: number; scenes: Record<string, { sentences: { sceneId?: string; text: string }[] }> };
     const doc = JSON.parse(await readFile(sentences, "utf8")) as Doc;
-    const r = remapKeys(doc.scenes ?? {}, map, plan, (v) => (Array.isArray(v?.sentences) ? v.sentences.map((s) => s.text).join(" ") : null));
+    const r = remapKeys(doc.scenes ?? {}, map, plan, (v) => (Array.isArray(v?.sentences) ? v.sentences.map((s) => s.text).join(" ") : null), o);
     for (const [, to] of r.moved) for (const s of r.next[to]!.sentences) if (s.sceneId !== undefined) s.sceneId = to;
     const written = Boolean(o.apply && r.moved.length && !r.lost.length);
     if (written) await save(sentences, { ...doc, scenes: r.next });
-    out.push({ file: "voice/sentences.json", moved: r.moved, skipped: r.skipped, written });
+    out.push({ file: "voice/sentences.json", moved: r.moved, skipped: r.skipped, written, changed: r.changed });
   }
   return out;
 };

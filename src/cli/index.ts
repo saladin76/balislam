@@ -119,7 +119,8 @@ program
   .argument("<episode>", "رقم الحلقة")
   .option("--map <file>", "ملف المقابل (الافتراضي: أحدث versions/*/id-map.json في مجلد الحلقة)")
   .option("--apply", "اكتب التغيير (تُحفظ نسخة <الملف>.before-remap.json أولًا)")
-  .action(async (episode: string, opts: { map?: string; apply?: boolean }) => {
+  .option("--with-changed-text", "انقل أيضًا ما تغيّر نص مشهده بعد تسجيله: يتبع التسجيل مشهده ويظهر «قديم» حتى يُولَّد (لا يُحذف شيء)")
+  .action(async (episode: string, opts: { map?: string; apply?: boolean; withChangedText?: boolean }) => {
     const { existsSync, readdirSync } = await import("node:fs");
     const { loadPlan } = await import("../plan/io");
     const { readIdMap, remapLocalVoice } = await import("../plan/remapIds");
@@ -130,12 +131,12 @@ program
     if (!found) throw new Error("لا ملف id-map.json لهذه الحلقة.");
     const plan = await loadPlan(episode);
     if (!plan) throw new Error("الخطة غير موجودة.");
-    const reports = await remapLocalVoice(dir, plan, await readIdMap(found), { apply: opts.apply === true });
+    const reports = await remapLocalVoice(dir, plan, await readIdMap(found), { apply: opts.apply === true, withChangedText: opts.withChangedText === true });
     console.log(`المقابل: ${path.relative(dir, found)}`);
     if (!reports.length) console.log("لا ملفات صوت محلية لهذه الحلقة؛ لا شيء يُنقل.");
     for (const r of reports) {
       console.log(`${r.file}: ${r.moved.length} يُنقل${r.skipped.length ? `، ${r.skipped.length} لا يُنقل` : ""}${opts.apply ? (r.written ? " — كُتب" : " — لم يُكتب") : ""}`);
-      for (const [a, b] of r.moved) console.log(`  ${a} → ${b}`);
+      for (const [a, b] of r.moved) console.log(`  ${a} → ${b}${r.changed.includes(a) ? " (نصه تغيّر بعد التسجيل: يظهر «قديم» حتى يُولَّد)" : ""}`);
       for (const s of r.skipped) console.log(`  ✗ ${s.id}: ${s.reason}`);
     }
     if (!opts.apply) console.log("تجربة فقط؛ للكتابة: --apply");

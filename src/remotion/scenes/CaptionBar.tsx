@@ -21,7 +21,12 @@ const useCaptionWord = () => {
 export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; variant?: "pill" | "cinema" | "paper" | "dusk" }> = ({ theme, timings, portrait, variant = "pill" }) => {
   // paper/dusk (دفاتر الزمن): ترجمة هادئة لحلقة وثائقية؛ حبر على شريط رَقّ شفيف، والكلمة المنطوقة بلون أعمق وخط رملي تحتها
   if (variant === "paper" || variant === "dusk") return <QuietCaption timings={timings} portrait={portrait} dusk={variant === "dusk"} />;
-  const cinema = variant === "cinema";
+  // Its hooks live in their own component (rules of hooks: never after the early return above), so switching the
+  // caption style in a live preview cannot crash the page (D89). Same output as before.
+  return <ChunkCaption theme={theme} timings={timings} portrait={portrait} cinema={variant === "cinema"} />;
+};
+
+const ChunkCaption: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; cinema: boolean }> = ({ theme, timings, portrait, cinema }) => {
   const frame = useCurrentFrame();
   const shown = useCaptionWord();
   const CHUNK = Math.max(1, Math.round(useMotionSettings().captionWords));
