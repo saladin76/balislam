@@ -58,6 +58,6 @@ export const LIB_UI: Record<string, { fields: string[]; library: true }> = {
   "lib-compare": { fields: ["title", "titleWord", "aLabel", "aText", "aWord", "bLabel", "bText", "bWord", "verdict", "verdictText", "verdictWord"], library: true },
   "lib-timeline": { fields: ["items", "title"], library: true },
   "lib-evidence": { fields: ["items", "limit", "limitWord"], library: true },
-  "lib-names": { fields: ["mode", "wordWord", "allWord", "emptyWord", "ref"], library: true },
+  "lib-names": { fields: ["mode", "wordWord", "allWord", "emptyWord", "toWord", "ref"], library: true },
   "lib-descent": { fields: ["fallWord", "landWord", "pathWord", "term", "termWord", "ref"], library: true },
 };

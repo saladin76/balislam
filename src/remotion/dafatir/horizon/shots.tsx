@@ -406,6 +406,8 @@ export const Shot5: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
   const wideEnd = cite ? at(tl, "الأعراف") - 0.1 : 0;
   const tag = cite ? prog(t, at(tl, "الأعراف") - 0.05, at(tl, "الأعراف") + 0.45, easeOut) : 0;
   const own = cite ? prog(t, at(tl, "اعترفا") - 0.05, end(tl, "لأنفسهما"), easeOut) : 0;
+  // «المغفرة والرحمة»: يشتد ضوء الفجر على الصفحتين عند «والرحمة» (بعد نافذة «ربهما»، بلا رمز بجوار الدعاء)
+  const mercy = cite ? prog(t, at(tl, "والرحمة") - 0.05, at(tl, "والرحمة") + 0.9, easeOut) : 0;
   return (
     <>
     <Camera
@@ -437,6 +439,7 @@ export const Shot5: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
         {cite ? <g opacity={1 - fade} transform="translate(-820 0)"><VerseRefPanel refText={refText!} o={tag} /></g> : null}
         <Spine />
         <rect x={150} y={60} width={1620} height={900} fill="url(#s5-glow)" />
+        {mercy > 0 ? <rect x={150} y={60} width={1620} height={900} fill="url(#s5-glow)" opacity={mercy * (1 - fade)} /> : null}
       </svg>
     </Camera>
     {q ? <VerseCard show={prog(t, q.start - 0.7, q.start - 0.1)} text={q.text} refKey={q.key} reciter={q.reciter} /> : null}

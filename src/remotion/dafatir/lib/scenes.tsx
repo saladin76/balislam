@@ -120,7 +120,7 @@ export const libAnchors = (shot: string, p: Record<string, string | undefined>):
     case "verse-tag":
       return [...f("tagWord"), ...(p.lead ? [p.leadWord || firstWord(p.lead)] : [])];
     case "lib-names":
-      return [...f("wordWord"), ...f("allWord"), ...f("emptyWord")];
+      return [...f("wordWord"), ...f("allWord"), ...f("emptyWord"), ...f("toWord")];
     case "lib-descent":
       return [...f("fallWord"), ...f("landWord"), ...f("pathWord"), ...(p.term ? [p.termWord || firstWord(p.term)] : [])];
     case "lib-timeline":
@@ -258,6 +258,9 @@ const Names: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   const wA = q.safe(q.at(p.wordWord, 0.5) - 0.05, 0.8);
   const allA = p.allWord ? q.safe(q.at(p.allWord, wA + 0.8) - 0.05, 0.8) : Infinity;
   const emA = p.emptyWord ? q.safe(q.at(p.emptyWord, wA + 1) - 0.05, 0.6) : Infinity;
+  // toWord: «عرضها على…» — البطاقات تُقدَّم نحو الصفحة اليمنى لحظة كلمتها
+  const toA = p.toWord ? q.safe(q.at(p.toWord, wA + 0.8) - 0.05, 0.7) : Infinity;
+  const shift = prog(t, toA, toA + 0.7, easeOut) * 70;
   const n = mode === "learn" ? (t < allA ? 2 : 6) : 6;
   const cards = CARDS.map((c, i) => {
     // learn: بطاقتان عند الكلمة، والبقية تنفرج عند «كلها» · present/name: كلها تدخل عند الكلمة متتابعة
@@ -273,7 +276,7 @@ const Names: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   const cam = q.cam(t, { cx: 960, cy: 540, s: 1 }, [{ a: wA, b: wA + 1.0, cx: 760, cy: 540, s: 1.12 }]);
   return (
     <Book id="lnm" t={t} dur={dur} exit={exit} from={from} cam={cam}
-      L={<g>{cards.map((c, i) => <NameCard key={i} {...c} />)}</g>}
+      L={<g transform={`translate(${shift} 0)`}>{cards.map((c, i) => <NameCard key={i} {...c} />)}</g>}
       R={<g>{p.head ? <ChapterHead label={p.head} /> : null}{p.ref ? <VerseRefPanel refText={p.ref} o={prog(t, 0, 0.3)} /> : null}</g>} />
   );
 };
