@@ -249,7 +249,8 @@ export const DuaBoard: React.FC<DuaBoardProps> = (props) => {
 
   // نافذة اللوح تحت الكابشن؛ مركزها نقطة ارتكاز الكاميرا
   const base = portrait ? 1000 / BW : 1;
-  const win = portrait ? { x: 20, y: 300, w: width - 40, h: 1300 } : { x: 40, y: 140, w: width - 80, h: 925 };
+  // العمودي: الورقة تبدأ تحت الكابشن (الكابشن من 250 إلى نحو 420 بسطرين)، فلا يقع نص الكابشن على الورقة (c4-s3، ١١ نوفمبر)
+  const win = portrait ? { x: 20, y: 440, w: width - 40, h: 1300 } : { x: 40, y: 140, w: width - 80, h: 925 };
   const z = base * cam.z;
   const tx = win.w / 2 - cam.x * z;
   const ty = (portrait ? win.h / 2 : cam.ay - win.y) - cam.y * z;
