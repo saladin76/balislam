@@ -188,7 +188,7 @@ export const HomeTab: React.FC<{
                     <span className="ledger-num" aria-hidden="true"><Num>{e.id.replace(/^0+(?=\d)/, "")}</Num></span>
                     <div className="ledger-main">
                       <button type="button" className="ledger-open" onClick={() => onOpen(e.id, next.tab)}>
-                        <span className="ledger-k">الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}{series && seriesOfEpisode(e) !== GENERAL_SLUG ? <span className="ledger-series"> · <i style={{ background: seriesName(seriesOfEpisode(e))?.derived?.accent }} aria-hidden="true" />{seriesName(seriesOfEpisode(e))?.name ?? ""}</span> : null}</span>
+                        <span className="ledger-k">الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}{series && seriesOfEpisode(e) !== GENERAL_SLUG ? <span className="ledger-series">، <i style={{ background: seriesName(seriesOfEpisode(e))?.derived?.accent }} aria-hidden="true" />{seriesName(seriesOfEpisode(e))?.name ?? ""}</span> : null}</span>
                         <span className="ledger-title"><b>{episodeTitle(e.title) || e.dir}</b></span>
                       </button>
                       <div className="ledger-pg">

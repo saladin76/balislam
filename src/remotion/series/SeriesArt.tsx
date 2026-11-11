@@ -99,7 +99,7 @@ export const SeriesSting: React.FC<{ stamp: Pick<SeriesStamp, "identity" | "name
 /** شارة السلسلة على الصورة المصغّرة 1280×720: «band» شريط أعلى الصورة، «corner» لسان في الزاوية */
 export const SeriesBadge: React.FC<{ d: DerivedSeriesIdentity; name: string; number?: number }> = ({ d, name, number }) => {
   if (d.thumbnail.badge === "none") return null;
-  const label = number ? `${name} · ${number.toLocaleString("ar-EG")}` : name;
+  const label = number ? `${name}، ${number.toLocaleString("ar-EG")}` : name;
   const shape = d.emblem.base === "horizon-book"
     ? { clipPath: "polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%)" } // شريط التاريخ
     : d.emblem.base === "highlighter-z" ? { borderRadius: 4 } : { borderRadius: 999, border: `3px solid ${d.paper}` };

@@ -51,7 +51,7 @@ export const SeriesGrid: React.FC<{
         aria-label={`${kindAr(s)} ${s.name}: ${countAr(eps.length)}`} data-series={s.id}>
         <SeriesMark d={s.derived} name={s.name} size={nested ? 44 : 56} />
         <span className="sr-card-txt">
-          <span className="sr-kind">{kindAr(s)}{s.status === "archived" ? " · مؤرشفة" : ""}</span>
+          <span className="sr-kind">{kindAr(s)}{s.status === "archived" ? "، مؤرشفة" : ""}</span>
           <b>{s.name}</b>
           <span className="sr-count"><Num>{countAr(eps.length)}</Num></span>
           {waiting ? <span className="sr-next">الحلقة {arDigits(waiting.id.replace(/^0+(?=\d)/, ""))}: {nextLine(waiting).text}</span> : eps.length ? <span className="sr-next">كل حلقاتها في مسارها</span> : <span className="sr-next">ابدأ أول حلقة فيها</span>}
@@ -220,10 +220,10 @@ export const SeriesPage: React.FC<{
       <header className="sr-hero">
         <SeriesMark d={d} name={saved.name} size={84} />
         <div>
-          <span className="sr-kind">{kindAr(saved)}{saved.status === "archived" ? " · مؤرشفة" : ""}{saved.virtual ? " · افتراضي للقناة" : ""}</span>
+          <span className="sr-kind">{kindAr(saved)}{saved.status === "archived" ? "، مؤرشفة" : ""}{saved.virtual ? "، افتراضي للقناة" : ""}</span>
           <h1 style={d ? { fontWeight: d.title.weight === "bold" ? 700 : 400 } : undefined}>{saved.name}</h1>
           {saved.description ? <p>{saved.description}</p> : null}
-          <p className="sr-count"><Num>{countAr(eps.length)}</Num>{kids.length ? ` · ${arDigits(kids.length)} داخلها` : ""}</p>
+          <p className="sr-count"><Num>{countAr(eps.length)}</Num>{kids.length ? `، ${arDigits(kids.length)} داخلها` : ""}</p>
         </div>
         <SeriesMenu general={general} archived={saved.status === "archived"} canDelete={!general && eps.length === 0 && kids.length === 0}
           onRename={() => setDlg("rename")} onMove={() => setDlg("move")} onDelete={() => setDlg("delete")}
@@ -259,7 +259,7 @@ export const SeriesPage: React.FC<{
                     <span className="ledger-num" aria-hidden="true"><Num>{saved.kind === "series" && e.seriesNumber ? String(e.seriesNumber) : e.id.replace(/^0+(?=\d)/, "")}</Num></span>
                     <div className="ledger-main">
                       <button type="button" className="ledger-open" onClick={() => onOpenEpisode(e.id, next.tab)}>
-                        <span className="ledger-k">{saved.kind === "series" && e.seriesNumber ? `الحلقة ${arDigits(e.seriesNumber)} في السلسلة · ` : ""}الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}{here ? ` · ${here}` : ""}</span>
+                        <span className="ledger-k">{saved.kind === "series" && e.seriesNumber ? `الحلقة ${arDigits(e.seriesNumber)} في السلسلة، ` : ""}الحلقة {arDigits(e.id.replace(/^0+(?=\d)/, ""))}{here ? `، ${here}` : ""}</span>
                         <span className="ledger-title"><b>{episodeTitle(e.title) || e.dir}</b></span>
                       </button>
                       <div className="ledger-pg">
