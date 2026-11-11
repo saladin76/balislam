@@ -1,0 +1,1982 @@
+{
+  "version": 1,
+  "episode": "001",
+  "title": "كيف تعرف أنك على حق؟",
+  "domain": "psychology",
+  "themeId": "paper",
+  "channel": "balislam",
+  "lang": "ar",
+  "updatedAt": "2026-11-08T16:19:03.973Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "هل ترى الحقيقة فعلًا؟",
+      "scenes": [
+        {
+          "template": "alley-tale",
+          "narration": "قد يشاهد شخصان الموقف نفسه، ثم يخرجان منه بحكمين مختلفين تمامًا.",
+          "line": 14,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "witnesses | شخصان",
+            "shot": "souq-two-witnesses"
+          },
+          "id": "c1-s1",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الأول يراه ظلمًا، والثاني يراه عدلًا.",
+          "line": 16,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "stand,stand",
+            "look": "hero",
+            "cast": "witnesses",
+            "cues": "wrong | ظلمًا\njust | عدلًا",
+            "shot": "souq-two-verdicts"
+          },
+          "id": "c1-s2",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد يكون كلٌّ منهما صادقًا في وصف ما يعتقده، لكن صدق الاعتقاد لا يكفي وحده لإثبات صحته.",
+          "line": 18,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | صادقًا",
+            "shot": "souq-both-sincere"
+          },
+          "id": "c1-s3",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالإنسان لا ينظر دائمًا إلى الأحداث بعين محايدة.",
+          "line": 20,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | محايدة",
+            "shot": "lattice-tinted-eye"
+          },
+          "id": "c1-s4",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "نحن نتأثر بتجاربنا السابقة، ومخاوفنا، والأشخاص الذين نحبهم، والأفكار التي اعتدنا عليها.",
+          "line": 22,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "memory | بتجاربنا\nmemory | ومخاوفنا\npeople | والأشخاص\nmemory | والأفكار",
+            "shot": "home-what-shapes-us"
+          },
+          "id": "c1-s5",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد نصدق خبرًا لأنه يؤكد رأينا.",
+          "line": 24,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": "news | خبرًا",
+            "shot": "cafe-news-agrees"
+          },
+          "id": "c1-s6",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد نرفض نصيحة صحيحة لأنها جاءت من شخص لا نحبه.",
+          "line": 26,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | نصيحة",
+            "shot": "workshop-rejected-advice"
+          },
+          "id": "c1-s7",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد ندافع عن قرار اتخذناه، لا لقوة الأدلة عليه، بل لأن الاعتراف بالخطأ أصبح مؤلمًا.",
+          "line": 28,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "sit,sit-low,head-down",
+            "look": "hero",
+            "cast": "",
+            "cues": "decide | قرار\ndoor | الاعتراف",
+            "shot": "home-defending-decision"
+          },
+          "id": "c1-s8",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهنا تظهر مشكلة دقيقة:",
+          "line": 30,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | مشكلة",
+            "shot": "courtyard-pause"
+          },
+          "id": "c1-s9",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أن الإنسان قد يخلط بين ما يراه صحيحًا، وما يتمنى أن يكون صحيحًا.",
+          "line": 32,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": "truth | يتمنى",
+            "shot": "window-wished-reflection"
+          },
+          "id": "c1-s10",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولذلك فإن البحث عن الحق لا يبدأ دائمًا بالسؤال عن الآخرين. بل قد يبدأ بمراجعة الطريقة التي ننظر بها نحن إلى الأمور.",
+          "line": 34,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الآخرين\nheart | نحن",
+            "shot": "rooftop-look-inward"
+          },
+          "id": "c1-s11",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فليس كل ما نقتنع به حقًّا، وليس كل ما لا يعجبنا باطلًا. وقد تزداد المسألة صعوبة حين يختلط الحق بالباطل، فلا يظهر الخطأ في صورته الواضحة.",
+          "line": 36,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "dusk",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "wrong | يختلط",
+            "shot": "rooftop-dawn-fog"
+          },
+          "id": "c1-s12",
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "عندما يرتدي الباطل ثوب الحق",
+      "scenes": [
+        {
+          "template": "alley-tale",
+          "narration": "ليس كل باطل يأتي في صورة يسهل رفضها.",
+          "line": 42,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "head-down",
+            "look": "hero",
+            "cast": "",
+            "cues": "wrong | باطل"
+          },
+          "id": "c2-s1",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أحيانًا يكون وراء التصرف الخاطئ معنى صحيح، لكن الإنسان يستخدمه في غير موضعه.",
+          "line": 44,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c2-s2",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "تأمل شخصًا يجرح الآخرين بكلماته، ثم يقول: أنا إنسان صريح.",
+          "line": 46,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "talk,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | تأمل\nharsh | يجرح\npeople | الآخرين"
+          },
+          "id": "c2-s3",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الصراحة قيمة محمودة، لكنها لا تبرر القسوة وإهانة الناس.",
+          "line": 48,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,talk",
+            "look": "hero",
+            "cast": "",
+            "cues": "harsh | القسوة\npeople | الناس"
+          },
+          "id": "c2-s4",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وشخصًا يتكبر على غيره، ثم يقول: أنا أعرف قيمة نفسي.",
+          "line": 50,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "proud,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "proud | يتكبر\ncompanion | غيره"
+          },
+          "id": "c2-s5",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "معرفة الإنسان قدر نفسه لا تعني احتقار الآخرين.",
+          "line": 52,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "proud",
+            "look": "hero",
+            "cast": "",
+            "cues": "proud | احتقار\npeople | الآخرين"
+          },
+          "id": "c2-s6",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وشخصًا ينشر خبرًا لم يتحقق منه، لأنه يعتقد أن الخبر يخدم قضية عادلة.",
+          "line": 54,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "hold,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "spread | ينشر\nnews | خبرًا"
+          },
+          "id": "c2-s7",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لكن عدالة القضية لا تجعل الخبر غير الصحيح صحيحًا.",
+          "line": 56,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "hold",
+            "look": "hero",
+            "cast": "",
+            "cues": "news | الخبر"
+          },
+          "id": "c2-s8",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "في هذه المواقف، لا تكمن المشكلة بالضرورة في القيمة التي يتحدث عنها الإنسان. بل في الطريقة التي يستخدمها بها لتبرير فعله.",
+          "line": 58,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c2-s9",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد حذّر القرآن من خلط الحق بالباطل، فقال الله تعالى:",
+          "line": 60,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "still",
+            "poses": "stand,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c2-s10",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 62,
+          "ayahKey": "2:42",
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٤٢",
+            "reciter": ""
+          },
+          "id": "c2-s11",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالحق لا يصبح باطلًا لأننا نكرهه، والباطل لا يصبح حقًّا لأننا نجد له تبريرًا مقنعًا.",
+          "line": 64,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "wrong | باطلًا"
+          },
+          "id": "c2-s12",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ومن صور الأمانة مع النفس أن نفرّق بين صحة المبدأ وصحة تطبيقنا له.",
+          "line": 66,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c2-s13",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فقد تكون الصراحة حقًّا، لكن ما قلناه ليس من الصراحة المحمودة.",
+          "line": 68,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c2-s14",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد تكون الثقة بالنفس أمرًا حسنًا، لكن ما فعلناه كان تكبرًا.",
+          "line": 70,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,proud",
+            "look": "hero",
+            "cast": "",
+            "cues": "proud | تكبرًا"
+          },
+          "id": "c2-s15",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والميزان ليس الاسم الذي نعطيه لأفعالنا، بل حقيقتها. غير أن معرفة الحقيقة ليست دائمًا أصعب ما نواجهه؛ فقد نعرف الصواب، ثم نجد مشقة في قبوله.",
+          "line": 72,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "deep",
+            "camera": "drift",
+            "poses": "look-up,look-up,head-down",
+            "look": "hero",
+            "cast": "",
+            "cues": "truth | حقيقتها"
+          },
+          "id": "c2-s16",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "هل نريد معرفة الحق فعلًا؟",
+      "scenes": [
+        {
+          "template": "alley-tale",
+          "narration": "تخيل أنك اختلفت مع شخص قريب منك.",
+          "line": 78,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "talk",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | تخيل\ndebate | اختلفت\ncompanion | قريب"
+          },
+          "id": "c3-s1",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "كنت مقتنعًا أنه أخطأ في حقك، ثم ظهرت لك معلومة تثبت أنك أسأت فهم الموقف.",
+          "line": 80,
+          "props": {
+            "place": "market",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,hold",
+            "look": "hero",
+            "cast": "",
+            "cues": "news | معلومة"
+          },
+          "id": "c3-s2",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الآن لم تعد المشكلة في معرفة ما حدث.",
+          "line": 82,
+          "props": {
+            "place": "market",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s3",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أصبحت في موقفك مما عرفت.",
+          "line": 84,
+          "props": {
+            "place": "home",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s4",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "هل تعتذر؟",
+          "line": 86,
+          "props": {
+            "place": "home",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "apologize",
+            "look": "hero",
+            "cast": "",
+            "cues": "apologize | تعتذر"
+          },
+          "id": "c3-s5",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "هل تعترف بأن حكمك كان متعجلًا؟",
+          "line": 88,
+          "props": {
+            "place": "alley",
+            "mood": "deep",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "turn-away",
+            "look": "hero",
+            "cast": "",
+            "cues": "door | تعترف"
+          },
+          "id": "c3-s6",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أم تبحث عن تفسير جديد يحفظ لك موقفك السابق؟",
+          "line": 90,
+          "props": {
+            "place": "alley",
+            "mood": "deep",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s7",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد نرفض بعض الحقائق لا لأن أدلتها غائبة، بل لأن قبولها يفرض علينا شيئًا لا نريده.",
+          "line": 92,
+          "props": {
+            "place": "alley",
+            "mood": "deep",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "look-up,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": "truth | الحقائق"
+          },
+          "id": "c3-s8",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالاعتراف بالحق قد يتطلب اعتذارًا.",
+          "line": 94,
+          "props": {
+            "place": "alley",
+            "mood": "deep",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "apologize",
+            "look": "hero",
+            "cast": "",
+            "cues": "door | فالاعتراف\napologize | اعتذارًا"
+          },
+          "id": "c3-s9",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد يتطلب تغيير قرار.",
+          "line": 96,
+          "props": {
+            "place": "market",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "cross",
+            "look": "hero",
+            "cast": "",
+            "cues": "decide | قرار"
+          },
+          "id": "c3-s10",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد يتطلب التخلي عن مصلحة.",
+          "line": 98,
+          "props": {
+            "place": "market",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s11",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد يتطلب أن يقول الإنسان لنفسه: لقد أخطأت.",
+          "line": 100,
+          "props": {
+            "place": "home",
+            "mood": "deep",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s12",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "يقول الله تعالى:",
+          "line": 102,
+          "props": {
+            "place": "home",
+            "mood": "deep",
+            "moodTo": "",
+            "camera": "still",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s13",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 104,
+          "ayahKey": "75:14-15",
+          "props": {
+            "text": "",
+            "reference": "القيامة · ١٤–١٥",
+            "reciter": ""
+          },
+          "id": "c3-s14",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وفي سياق الآيتين تذكير بأن الإنسان شاهد على نفسه، ولو قدّم أعذاره.",
+          "line": 106,
+          "props": {
+            "place": "home",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s15",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهذا يدعونا إلى التفريق بين أمرين:",
+          "line": 108,
+          "props": {
+            "place": "alley",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s16",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أن نعرف الحق.",
+          "line": 110,
+          "props": {
+            "place": "home",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s17",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وأن نكون مستعدين للعمل به.",
+          "line": 112,
+          "props": {
+            "place": "market",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s18",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالمعرفة وحدها لا تضمن الاستجابة.",
+          "line": 114,
+          "props": {
+            "place": "alley",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s19",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد يعرف الإنسان أن الاعتذار واجب عليه، ثم يمنعه الكبر.",
+          "line": 116,
+          "props": {
+            "place": "home",
+            "mood": "night",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "apologize,proud",
+            "look": "hero",
+            "cast": "",
+            "cues": "apologize | الاعتذار\nproud | الكبر"
+          },
+          "id": "c3-s20",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد يعرف أن عليه ترك عادة سيئة، ثم تغلبه شهوته.",
+          "line": 118,
+          "props": {
+            "place": "home",
+            "mood": "deep",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c3-s21",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولهذا فإن طلب الهداية لا يقتصر على معرفة الطريق، بل يشمل الاستعداد للسير فيه. وهذا المعنى يجتمع في دعاء قصير، تتكامل فيه المعرفة والعمل.",
+          "line": 120,
+          "props": {
+            "place": "alley",
+            "mood": "deep",
+            "moodTo": "predawn",
+            "camera": "rise",
+            "poses": "walk,walk,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "truth | الهداية\nwalk | الطريق"
+          },
+          "id": "c3-s22",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "اللهم أرنا الحق حقًّا",
+      "scenes": [
+        {
+          "template": "dua-board",
+          "narration": "من الأدعية المأثورة في كلام أهل العلم:",
+          "line": 126,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "",
+            "cues": "source | المأثورة"
+          },
+          "id": "c4-s1",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "«اللهم أرنا الحق حقًّا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
+          "line": 129,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source",
+            "cues": "dua | اللهم"
+          },
+          "id": "c4-s2",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "تأمل كيف يجمع هذا الدعاء بين أربعة مطالب.",
+          "line": 132,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua",
+            "cues": "dock | تأمل\ngrid | يجمع\ncount | أربعة"
+          },
+          "id": "c4-s3",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "أولها أن نرى الحق حقًّا.",
+          "line": 135,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid",
+            "cues": "cam:c1 | أولها\nask1 | نرى\nfocus:1 | حقًّا"
+          },
+          "id": "c4-s4",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "أي أن نسأل الله البصيرة التي تعيننا على معرفة الصواب، وألا تلتبس علينا الأمور بسبب الجهل أو الهوى.",
+          "line": 138,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid, ask1, focus:1, cam:c1",
+            "cues": "note1:البصيرة | البصيرة\nnote1:الصواب | الصواب\nhaze1 | تلتبس\nwarn1:الجهل | الجهل\nwarn1:الهوى | الهوى"
+          },
+          "id": "c4-s5",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "وثانيها أن يرزقنا الله اتباعه.",
+          "line": 141,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid, ask1, focus:1, note1:البصيرة, note1:الصواب, warn1:الجهل, warn1:الهوى, cam:c1",
+            "cues": "cam:c2 | وثانيها\nclear | وثانيها\nfocus:2 | وثانيها\nask2 | اتباعه"
+          },
+          "id": "c4-s6",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لأن الإنسان قد يعرف ما ينبغي فعله، ثم تعجز نفسه عن الالتزام به.",
+          "line": 144,
+          "props": {
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | يعرف",
+            "shot": "home-knows-cant"
+          },
+          "id": "c4-s7",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "وثالثها أن نرى الباطل باطلًا.",
+          "line": 146,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid, ask1, ask2, focus:2, cam:c2",
+            "cues": "cam:c3 | وثالثها\nfocus:3 | وثالثها\nask3 | نرى"
+          },
+          "id": "c4-s8",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فليس كل خطأ يبدو قبيحًا في أعيننا.",
+          "line": 149,
+          "props": {
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "cues": "wrong | خطأ",
+            "shot": "cafe-rumor-looks-fine"
+          },
+          "id": "c4-s9",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد يكون مغريًا، أو سهلًا، أو موافقًا لرغباتنا.",
+          "line": 151,
+          "props": {
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "cues": "",
+            "shot": "cafe-rumor-tempting"
+          },
+          "id": "c4-s10",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد يزداد قبولنا له لأن الناس اعتادوه.",
+          "line": 153,
+          "props": {
+            "place": "",
+            "mood": "",
+            "moodTo": "",
+            "camera": "",
+            "poses": "",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الناس",
+            "shot": "cafe-rumor-spreads"
+          },
+          "id": "c4-s11",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "أما المطلب الرابع، فهو أن يرزقنا الله اجتنابه.",
+          "line": 155,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid, ask1, ask2, ask3, focus:3, cam:c3, pill3:مغرٍ, pill3:سهل, pill3:موافق لرغباتنا, pill3:اعتاده الناس",
+            "cues": "clear | الرابع\ncam:c4 | الرابع\nfocus:4 | الرابع\nask4 | اجتنابه"
+          },
+          "id": "c4-s12",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "فكما أن معرفة الحق لا تكفي دون اتباعه، فإن معرفة الباطل لا تكفي دون تركه.",
+          "line": 158,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:4, cam:c4",
+            "cues": "cam:r1 | فكما\nfocus:1 | الحق\nlink12 | اتباعه\nfocus:12 | اتباعه\ncam:r2 | الباطل\nfocus:3 | الباطل\nlink34 | تركه\nfocus:34 | تركه"
+          },
+          "id": "c4-s13",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "وهكذا يجمع الدعاء بين البصيرة والعزيمة.",
+          "line": 161,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:34, link12, link34, cam:r2",
+            "cues": "cam:all | وهكذا\nfocus:0 | وهكذا\nhead1 | البصيرة\nhead2 | والعزيمة"
+          },
+          "id": "c4-s14",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "dua-board",
+          "narration": "بين أن نعرف، وأن نعمل بما عرفنا.",
+          "line": 164,
+          "props": {
+            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
+            "source": "من الأدعية المأثورة في كلام أهل العلم",
+            "asks": "أن نرى الحق حقًّا | أن نتّبعه | أن نرى الباطل باطلًا | أن نجتنبه",
+            "heads": "البصيرة | العزيمة",
+            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4, focus:0, link12, link34, head1, head2, cam:all",
+            "cues": "focus:13 | نعرف\nfocus:24 | نعمل\nfocus:1234 | عرفنا"
+          },
+          "id": "c4-s15",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهو يعلّمنا أيضًا معنى الافتقار إلى الله.",
+          "line": 167,
+          "props": {
+            "place": "market",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c4-s16",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فنحن لا نعتمد على ذكائنا وحده، ولا على قدرتنا على تحليل الأمور، بل نسأل الله أن يهدينا ويعيننا.",
+          "line": 169,
+          "props": {
+            "place": "market",
+            "mood": "predawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c4-s17",
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فليس المطلوب أن نرى الحق فحسب، بل أن نحبه ونتبعه، ولو خالف أهواءنا. ومن البصيرة أيضًا أن نعرف قدر الأشياء، فلا نعطيها أكبر من قيمتها، ولا ننقصها حقها.",
+          "line": 171,
+          "props": {
+            "place": "market",
+            "mood": "predawn",
+            "moodTo": "dusk",
+            "camera": "drift",
+            "poses": "stand,look-up,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c4-s18",
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "اللهم أرنا الأشياء كما هي",
+      "scenes": [
+        {
+          "template": "alley-tale",
+          "narration": "من الكلمات التي يدعو بها بعض الناس:",
+          "line": 177,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الناس"
+          },
+          "id": "c5-s1",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "«اللهم أرنا الأشياء كما هي».",
+          "line": 179,
+          "props": {
+            "emphasis": "الأشياء",
+            "element": "",
+            "stage": "theme"
+          },
+          "id": "c5-s2",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهو دعاء حسن المعنى، نسأل الله فيه أن يرزقنا النظر الصحيح إلى أنفسنا وإلى ما حولنا.",
+          "line": 182,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s3",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "تأمل المال مثلًا.",
+          "line": 184,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "hold",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | تأمل\nmoney | المال"
+          },
+          "id": "c5-s4",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "هو نعمة من الله، ووسيلة لقضاء الحاجات، وقد يكون بابًا واسعًا للخير.",
+          "line": 186,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s5",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لكن الإنسان قد يجعله المقياس الذي يحكم به على قيمته وقيمة الآخرين.",
+          "line": 188,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الآخرين"
+          },
+          "id": "c5-s6",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وتأمل النجاح.",
+          "line": 190,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "think",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | وتأمل\nsuccess | النجاح"
+          },
+          "id": "c5-s7",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد يكون ثمرة جهد وتوفيق من الله، لكنه قد يتحول في نفس صاحبه إلى سبب للغرور.",
+          "line": 192,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,proud",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s8",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وتأمل الدنيا كلها.",
+          "line": 194,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "think",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | وتأمل"
+          },
+          "id": "c5-s9",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد ننشغل بأعمالنا ومشروعاتنا حتى نتصرف وكأن البقاء فيها مضمون.",
+          "line": 196,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "work | بأعمالنا"
+          },
+          "id": "c5-s10",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "بينما يذكرنا القرآن بحقيقتها، فيقول الله تعالى:",
+          "line": 198,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "still",
+            "poses": "sit,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s11",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 200,
+          "ayahKey": "3:185",
+          "props": {
+            "text": "",
+            "reference": "آل عمران · ١٨٥",
+            "reciter": ""
+          },
+          "id": "c5-s12",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولا يعني هذا أن نترك العمل للدنيا، أو نهمل ما أباح الله لنا من طيباتها.",
+          "line": 202,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s13",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "بل أن نضعها في موضعها الصحيح.",
+          "line": 204,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s14",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فهي دار عمل وابتلاء، وليست الغاية الأخيرة للإنسان.",
+          "line": 206,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s15",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والنظر الصحيح لا يتعلق بالأشياء وحدها، بل يتعلق أيضًا بأنفسنا.",
+          "line": 208,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s16",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أن نعرف ما لدينا من مواطن قوة، دون غرور.",
+          "line": 210,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,proud",
+            "look": "hero",
+            "cast": "",
+            "cues": "proud | غرور"
+          },
+          "id": "c5-s17",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وأن نعترف بأخطائنا، دون يأس.",
+          "line": 212,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c5-s18",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وأن ننصف الآخرين، فلا تمنعنا محبتهم من رؤية أخطائهم، ولا تحملنا كراهيتهم على إنكار ما عندهم من حق.",
+          "line": 214,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الآخرين"
+          },
+          "id": "c5-s19",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالبصيرة ليست أن نرى ما نحب، بل أن نجتهد في رؤية الأشياء بميزان العدل والحق. ويبقى السؤال العملي: كيف ندرّب أنفسنا على هذه البصيرة في مواقف الحياة اليومية؟",
+          "line": 216,
+          "props": {
+            "place": "home",
+            "mood": "dusk",
+            "moodTo": "dawn",
+            "camera": "track",
+            "poses": "look-up,sit-low,look-up",
+            "look": "hero",
+            "cast": "",
+            "cues": "truth | فالبصيرة\njust | العدل"
+          },
+          "id": "c5-s20",
+          "sfx": []
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "هل أنت مستعد لأن تكون مخطئًا؟",
+      "scenes": [
+        {
+          "template": "alley-tale",
+          "narration": "كيف يعرف الإنسان أنه يجتهد في طلب الحق؟",
+          "line": 222,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": "",
+            "cameraMode": "directed"
+          },
+          "id": "c6-s1",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ليس بأن يعتقد أن جميع آرائه صحيحة.",
+          "line": 224,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c6-s2",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "بل بأن يزنها بالدليل، وأن يكون مستعدًا لتصحيح ما يظهر له خطؤه.",
+          "line": 226,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "hold,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "evidence | بالدليل\nwrong | خطؤه"
+          },
+          "id": "c6-s3",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فاليقين بما ثبت من الحق لا يعني أن كل فهم شخصي لنا معصوم من الخطأ.",
+          "line": 228,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "wrong | الخطأ"
+          },
+          "id": "c6-s4",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهناك ثلاث ممارسات تعيننا على ذلك.",
+          "line": 230,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": "",
+            "cameraMode": "directed"
+          },
+          "id": "c6-s5",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الأولى: التثبت قبل الحكم.",
+          "line": 232,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c6-s6",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لا تصدق خبرًا لمجرد أنه يوافق رأيك، ولا تنشر معلومة قبل التحقق منها.",
+          "line": 234,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "hold,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "news | خبرًا\nspread | تنشر"
+          },
+          "id": "c6-s7",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "يقول الله تعالى:",
+          "line": 236,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "still",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c6-s8",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 238,
+          "ayahKey": "49:6",
+          "props": {
+            "text": "",
+            "reference": "الحجرات · ٦",
+            "reciter": ""
+          },
+          "id": "c6-s9",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الثانية: مراجعة النية.",
+          "line": 240,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "look-up",
+            "look": "hero",
+            "cast": "",
+            "cues": "heart | النية"
+          },
+          "id": "c6-s10",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "حين تختلف مع أحد، اسأل نفسك:",
+          "line": 242,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "talk,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "debate | تختلف\ncompanion | أحد\nthink | اسأل"
+          },
+          "id": "c6-s11",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "هل أريد الوصول إلى الصواب، أم أريد الانتصار في النقاش؟",
+          "line": 244,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "look-up,talk",
+            "look": "hero",
+            "cast": "",
+            "cues": "truth | الصواب\ndebate | النقاش"
+          },
+          "id": "c6-s12",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد يبدو الفرق صغيرًا، لكنه يغيّر الطريقة التي نستمع بها، ونناقش بها، ونستقبل بها الأدلة.",
+          "line": 246,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,listen,talk",
+            "look": "hero",
+            "cast": "",
+            "cues": "listen | نستمع\ndebate | ونناقش"
+          },
+          "id": "c6-s13",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الثالثة: الاستعداد لتصحيح الموقف.",
+          "line": 248,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": "",
+            "cameraMode": "directed"
+          },
+          "id": "c6-s14",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "إذا ظهر لك أنك أخطأت، فلا تجعل الاعتراف بالخطأ هزيمة.",
+          "line": 250,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,turn-away",
+            "look": "hero",
+            "cast": "",
+            "cues": "door | الاعتراف\nwrong | بالخطأ"
+          },
+          "id": "c6-s15",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالرجوع إلى الحق خير من الاستمرار في الباطل.",
+          "line": 252,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "wrong | الباطل"
+          },
+          "id": "c6-s16",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولا يعني ذلك أن نشك في كل شيء، أو أن نعتبر الحق والباطل مجرد وجهات نظر.",
+          "line": 254,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "wrong | والباطل"
+          },
+          "id": "c6-s17",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "بل أن نثبت على ما قام عليه الدليل الصحيح، ونتواضع فيما لا نعلم، ونرجع إلى الوحي وأهل العلم فيما نجهل.",
+          "line": 256,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "hold,think,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c6-s18",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وفي المرة القادمة التي تختلف فيها مع شخص، حاول أن تستمع إلى حجته كاملة. ولا تنشغل طوال الوقت بإعداد ردك.",
+          "line": 258,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "talk,listen,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "debate | تختلف\nlisten | تستمع"
+          },
+          "id": "c6-s19",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ثم اسأل نفسك بصدق:",
+          "line": 260,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "think",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | اسأل"
+          },
+          "id": "c6-s20",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لو ظهر أن الحق معه، هل سأكون مستعدًا لقبوله؟",
+          "line": 262,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | معه"
+          },
+          "id": "c6-s21",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وتذكر هذا الدعاء:",
+          "line": 264,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "still",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c6-s22",
+          "sfx": []
+        },
+        {
+          "template": "kinetic-text",
+          "narration": "«اللهم أرنا الحق حقًّا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
+          "line": 266,
+          "props": {
+            "emphasis": "وارزقنا، وارزقنا",
+            "element": "",
+            "stage": "theme"
+          },
+          "id": "c6-s23",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالغاية ليست أن نثبت دائمًا أننا على حق.",
+          "line": 269,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c6-s24",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الغاية أن نكون مع الحق، أينما كان.",
+          "line": 271,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c6-s25",
+          "sfx": []
+        },
+        {
+          "id": "c6-end",
+          "template": "end-screen",
+          "narration": "",
+          "line": 284,
+          "props": {
+            "step": "في أول خلاف تواجهه، استمع إلى حجة الطرف الآخر كاملة، ثم اسأل نفسك: «لو ظهر أن الحق معه، هل سأكون مستعدًا لقبوله؟»",
+            "prompt": "شاركنا رأيك في التعليقات"
+          },
+          "captions": false,
+          "sfx": []
+        }
+      ]
+    }
+  ]
+}
