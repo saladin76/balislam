@@ -2,6 +2,7 @@ import React from "react";
 import { ID, MOODS, darken, lighten, mix, stoneFor, type Mood } from "./palette";
 import { ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, MihrabGate, NoticeBoard, Signpost, Skyline, Sky, WallLamp, Workbench, WW, WH, archPath, rand } from "./world";
 import { Figure, LOOKS, POSES, type Holding } from "./Figure";
+import { MeasureScale, PracticeCount, VerifyLens } from "./emblems";
 
 /**
  * أماكن «بالإسلام» المصوَّرة: الحارة والسوق والبيت (حكايات الحارة)، والطريق بأربع بيئات (الطريق)، والمسرح (ظل ونور).
@@ -211,7 +212,7 @@ export const PlacePreview: React.FC<{ id: PlaceId; mood?: Mood; width?: number }
 void Bench;
 
 /** عناصر المشاهد المصوَّرة: كل عنصر صُمِّم لمعنى في الكلام (القائمة المراجَعة في src/plan/sceneCues.ts) */
-export const PROP_IDS = ["door", "board", "bench", "lamp", "workbench", "gate", "signpost", "paper", "phone", "coins", "book", "bundle"] as const;
+export const PROP_IDS = ["door", "board", "bench", "lamp", "workbench", "gate", "signpost", "paper", "phone", "coins", "book", "bundle", "verify", "steps", "measure"] as const;
 export type PropId = (typeof PROP_IDS)[number];
 export const propNamesAr: Record<PropId, string> = {
   door: "باب يتسرب منه النور (الاعتراف)",
@@ -226,6 +227,9 @@ export const propNamesAr: Record<PropId, string> = {
   coins: "صُرّة مال (المال)",
   book: "كتاب مفتوح (الدليل)",
   bundle: "صُرّة على الظهر (تجاربنا)",
+  verify: "عدسة على ورقة الخبر (التثبت، التحقق)",
+  steps: "عدّاد الممارسات بالنجمة الثمانية (الأولى، الثانية، الثالثة)",
+  measure: "ميزان ترجح فيه صُرّة المال (المال مقياسًا للقيمة)",
 };
 export const PropPreview: React.FC<{ id: PropId; width?: number }> = ({ id, width = 240 }) => {
   const hold = (h: Holding) => (
@@ -242,6 +246,9 @@ export const PropPreview: React.FC<{ id: PropId; width?: number }> = ({ id, widt
       {id === "gate" ? <MihrabGate x={400} w={160} h={260} light={1} /> : null}
       {id === "signpost" ? <Signpost x={420} dir={1} /> : null}
       {["paper", "phone", "coins", "book", "bundle"].includes(id) ? hold(id as Holding) : null}
+      {id === "verify" ? <g transform={`translate(480 ${GROUND - 280}) scale(1.4)`}><VerifyLens t={1} scan={0.55} /></g> : null}
+      {id === "steps" ? <g transform={`translate(480 ${GROUND - 280}) scale(1.1)`}><PracticeCount n={2} t={1} /></g> : null}
+      {id === "measure" ? <g transform={`translate(480 ${GROUND - 300}) scale(1.3)`}><MeasureScale t={1} tip={1} /></g> : null}
     </svg>
   );
 };

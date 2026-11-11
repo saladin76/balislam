@@ -7,7 +7,7 @@ import { normalizeArabic } from "../script/quranMeta";
  * - «في حقك/حقه…» ليست «الحق»، فلا تُضيء شيئًا.
  * - البطاقة المكتوبة تحمل الكلمة المنطوقة نفسها، لا غيرها.
  */
-export type CueKind = "truth" | "wrong" | "just" | "news" | "people" | "memory" | "door" | "think" | "walk" | "pain" | "decide" | "heart" | "witnesses" | "companion" | "harsh" | "proud" | "spread" | "apologize" | "listen" | "debate" | "money" | "work" | "success" | "evidence";
+export type CueKind = "truth" | "wrong" | "just" | "news" | "people" | "memory" | "door" | "think" | "walk" | "pain" | "decide" | "heart" | "witnesses" | "companion" | "harsh" | "proud" | "spread" | "apologize" | "listen" | "debate" | "money" | "work" | "success" | "evidence" | "verify" | "step" | "measure";
 
 export const cueNamesAr: Record<CueKind, string> = {
   truth: "نور الحقيقة",
@@ -34,6 +34,9 @@ export const cueNamesAr: Record<CueKind, string> = {
   work: "طاولة عمل",
   success: "عمل مكتمل يضيء على الطاولة",
   evidence: "كتاب مفتوح يزن به",
+  verify: "عدسة تتثبت من ورقة الخبر",
+  step: "عدّاد الممارسات (نجمة برقمها)",
+  measure: "ميزان: المال مقياسًا للقيمة",
 };
 
 const LIST: [CueKind, string[]][] = [
@@ -61,6 +64,19 @@ const LIST: [CueKind, string[]][] = [
   ["work", ["باعمالنا", "اعمالنا", "مشروعاتنا", "جهد"]],
   ["success", ["النجاح"]],
   ["evidence", ["بالدليل", "الدليل"]],
+  // التثبت من خبر: «تحقق» وحدها مستبعدة (تحقق الحلم = وقع)، و«التحقيق» غير مقصود
+  ["verify", ["التثبت", "بالتثبت", "تتثبت", "نتثبت", "التحقق", "بالتحقق", "تتحقق", "نتحقق", "التبين"]],
+];
+
+/**
+ * معانٍ لا تُقترح آليًا لأن كلماتها تحتمل أكثر من معنى؛ لا تُوضع إلا يدويًا في خطة مراجَعة،
+ * وبكلمة من القائمة فقط (القاعدة الثالثة: عند الشك لا تُرسم).
+ * - step: «الأولى/الثانية/الثالثة» في عدّ ممارسات أو خطوات، لا «للمرة الأولى» ولا «الوهلة الأولى».
+ * - measure: «المقياس» حين يكون المال هو المقياس (الكفة: صرّة مال تَرجح على صورة إنسان).
+ */
+export const MANUAL_CUES: readonly [CueKind, readonly string[]][] = [
+  ["step", ["الأولى", "الثانية", "الثالثة"]],
+  ["measure", ["المقياس"]],
 ];
 
 /** القائمة كما هي (للاستوديو والمراجعة) */
@@ -108,13 +124,18 @@ export const cuesFor = (narration: string, max = 5): Cue[] => {
   return out;
 };
 
+const MANUAL = new Map(MANUAL_CUES.map(([k, ws]) => [k, new Set(ws.map((w) => strip(w)))]));
+/** المعنى اليدوي لا يُقبل إلا بكلمة من قائمته */
+const manualAllowed = (c: Cue) => !MANUAL.has(c.kind) || MANUAL.get(c.kind)!.has(strip(c.word));
+
 export const cuesToText = (cues: Cue[]) => cues.map((c) => `${c.kind} | ${c.word}`).join("\n");
 export const parseCues = (text: string | undefined): Cue[] =>
   (text ?? "")
     .split("\n")
     .map((l) => l.split("|").map((x) => x.trim()))
     .filter(([k, w]) => k && w && (cueNamesAr as Record<string, string>)[k])
-    .map(([k, w]) => ({ kind: k as CueKind, word: w! }));
+    .map(([k, w]) => ({ kind: k as CueKind, word: w! }))
+    .filter((c) => manualAllowed(c));
 
 /** لحظة كل إشارة: أول نطق لكلمتها في المشهد (وإن لم تُنطق لا تقع) */
 export const cueFrames = (cues: Cue[], timings: { word: string; start: number }[]) =>

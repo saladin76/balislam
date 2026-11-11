@@ -31,7 +31,7 @@ export const posesFor = (narration: string, sceneIndex: number): string => {
   const all = kinds.flat();
   if (all.includes("walk")) return groups.map((_, i) => (kinds[i]!.includes("walk") || i === 0 ? "walk" : "stand")).join(",");
   // الجلوس للثقل والتأمل فقط؛ ومن يكلّم غيره أو يعمل أو يتعالى يقف
-  const standing = ["companion", "harsh", "proud", "apologize", "listen", "debate", "spread", "money", "evidence", "work", "success", "witnesses"] as const;
+  const standing = ["companion", "harsh", "proud", "apologize", "listen", "debate", "spread", "money", "evidence", "work", "success", "witnesses", "verify", "measure"] as const;
   const sit = !standing.some((k) => all.includes(k)) && (all.includes("pain") || sceneIndex % 4 === 1);
   const rest = sit ? ["sit", "sit-low", "sit"] : ["stand", "think", "nod"];
   return groups
@@ -47,7 +47,7 @@ export const posesFor = (narration: string, sceneIndex: number): string => {
       if (k.includes("apologize")) return "apologize";
       if (k.includes("listen")) return "listen";
       if (k.includes("debate") || k.includes("harsh")) return "talk";
-      if (k.includes("news") || k.includes("spread") || k.includes("money") || k.includes("evidence")) return "hold";
+      if (k.includes("news") || k.includes("spread") || k.includes("money") || k.includes("evidence") || k.includes("verify")) return "hold";
       if (k.includes("think")) return "think";
       if (k.includes("decide") || k.includes("pain")) return "cross";
       if (k.includes("door")) return "turn-away";

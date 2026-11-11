@@ -18,7 +18,7 @@ import type { ChannelInfo } from "../../../src/channel/types";
 import { channelLibrary, type LibraryRules } from "../../../src/channel/library";
 import { Figure, LOOKS, POSES, type PoseName } from "../../../src/remotion/illus/Figure";
 import { PLACE_IDS, PlacePreview, placeNamesAr, PROP_IDS, PropPreview, propNamesAr } from "../../../src/remotion/illus/places";
-import { CUE_WORDS, cueNamesAr } from "../../../src/plan/sceneCues";
+import { CUE_WORDS, MANUAL_CUES, cueNamesAr } from "../../../src/plan/sceneCues";
 import { RICH_SETS, SHOTS } from "../../../src/remotion/illus/shots";
 import { camAt, camTransform } from "../../../src/remotion/illus/shots/kit";
 
@@ -296,6 +296,9 @@ const IllusPlaces: React.FC = () => (
     <table className="lib-cues"><tbody>
       {CUE_WORDS.map(([k, words]) => (
         <tr key={k}><td><b>{cueNamesAr[k]}</b></td><td style={{ direction: "rtl" }}>{words.join("، ")}</td></tr>
+      ))}
+      {MANUAL_CUES.map(([k, words]) => (
+        <tr key={k}><td><b>{cueNamesAr[k]}</b></td><td style={{ direction: "rtl" }}>{words.join("، ")} <span className="help">(يدويًا في خطة مراجَعة فقط؛ لا يُقترح آليًا)</span></td></tr>
       ))}
     </tbody></table>
   </div>

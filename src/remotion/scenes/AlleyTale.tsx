@@ -16,6 +16,7 @@ import { ID, MOODS, darken, mix, stoneFor, type Mood } from "../illus/palette";
 import { Ripples, Workbench, ArchDoor, Bench, Cobbles, GROUND, Glow, HouseRow, NoticeBoard, Skyline, Sky, WallLamp, WordPill, WW, WH, archPath, cameraTransform, clampOpt, rand, rise, type Camera } from "../illus/world";
 import { TopCaption, captionLines } from "../illus/TopCaption";
 import { Home, Market } from "../illus/places";
+import { MeasureScale, PracticeCount, VerifyLens, ordinalOf } from "../illus/emblems";
 import type { SceneBase, StringFields } from "./types";
 import { SHOTS } from "../illus/shots";
 import { camAt, camTransform, makeAt } from "../illus/shots/kit";
@@ -273,6 +274,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   ev("spread", "hold");
   ev("money", "hold");
   ev("evidence", "hold");
+  ev("verify", "hold");
   // Apply authored poses after automatic/semantic events: at the same frame the director wins.
   for (const event of parsePoseTimeline(props.poseTimeline)) {
     if ((POSE_IDS as readonly string[]).includes(event.pose)) timeline.push({ at: event.at, pose: event.pose as PoseName });
@@ -281,7 +283,7 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   if (loco) pose = locoPose(pose, loco);
   else if (walking) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95);
   else if (stepping) pose = walkPose(pose, (frame / fps) * Math.PI * 2 * 0.95, 0.85);
-  const holding: Holding = has("spread") ? "phone" : has("money") && frame >= (at("money") ?? 0) - 6 ? "coins" : has("evidence") && frame >= (at("evidence") ?? 0) - 6 ? "book" : action === "hold" || newsAt !== undefined ? "paper" : "none";
+  const holding: Holding = has("spread") ? "phone" : has("money") && frame >= (at("money") ?? 0) - 6 ? "coins" : has("evidence") && frame >= (at("evidence") ?? 0) - 6 ? "book" : action === "hold" || newsAt !== undefined || (has("verify") && frame >= (at("verify") ?? 0) - 6) ? "paper" : "none";
 
   // الشخص الذي أمامه: يتألم من الكلمة الجارحة، ويُصغي للاعتذار، ويتكلم حين يُصغي البطل
   const compTimeline: { at: number; pose: PoseName }[] = [{ at: 0, pose: "stand" }];
@@ -370,6 +372,11 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   const rawFraming = (i: number) => directed ? { z: 1.08, dx: 0 } : ({ z: FRAMINGS[i % FRAMINGS.length]!, dx: [0, 260, -230, 140][i % 4]! });
   // لا شخص مقصوص عند حافة الإطار (٩ نوفمبر): كل لقطة تُصحَّح بأقل إزاحة حتى يكون كل شخص كاملًا داخلها أو خارجها كله
   // سياق فحص اللقطة عند الإطار at0 من نافذة اللقطة [w0, w1): الوضعيات والأطياف كلها التي تظهر في النافذة
+  // شارات المعنى: عمود محجوز في جانب من الإطار من أول لقطة تظهر فيها إلى آخر المشهد؛ الكاميرا التلقائية تؤطّر البطل
+  // ومن معه خارجه (يُفحص في tests/edge-safety-episode*)، فلا تغطي الشارة أحدًا. الجانب عكس اللوحة، أو عكس الباب.
+  const emblemItems = cues.filter((c) => c.kind === "step" || c.kind === "verify" || c.kind === "measure");
+  const emblemSide: "left" | "right" = at("door") !== undefined && !(newsAt !== undefined && place !== "home") ? "left" : "right";
+  const emblemReserve = (w1: number) => Math.max(0, ...emblemItems.filter((c) => c.at - 4 < w1).map((c) => emblemSpec(c.kind, portrait).reserve));
   const edgeCtx = (at0: number, win?: [number, number]) => {
     const hx = heroAt(at0);
     const gap = compGap;
@@ -396,7 +403,10 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
     if (peopleAt !== undefined && peopleAt < w1) for (const g of ghostSlots(stage === "companion" ? -gap : null, portrait)) optional.push(span(hx + g.dx, g.back ? 0.95 : 1.25));
     const pf = stage === "companion" ? hx - gap / 2 : hx;
     const v0 = Math.max(0, Math.min(WW - 608, pf - 304));
-    return { focusX: hx, view: (portrait ? [v0, v0 + 608] : [0, WW]) as [number, number], required: [span(hx, 1.75, sitting ? [...heroPoses, "sit"] : walking ? [...heroPoses, "walk" as PoseName] : heroPoses, heroFacing)], optional, margin: portrait ? 40 : 36, zMin: portrait ? 0.84 : undefined, layers: [0.6, 0.9].map((depth) => ({ depth, lo: -200, hi: WW + 200 })) };
+    const vw: [number, number] = portrait ? [v0, v0 + 608] : [0, WW];
+    const rsv = emblemReserve(w1);
+    const view: [number, number] = emblemSide === "right" ? [vw[0], vw[1] - rsv] : [vw[0] + rsv, vw[1]];
+    return { focusX: hx, view, required: [span(hx, 1.75, sitting ? [...heroPoses, "sit"] : walking ? [...heroPoses, "walk" as PoseName] : heroPoses, heroFacing)], optional, margin: portrait ? 40 : 36, zMin: portrait ? (rsv > 0 ? 0.74 : 0.84) : undefined, layers: [0.6, 0.9].map((depth) => ({ depth, lo: -200, hi: WW + 200 })) };
   };
   // اللقطة كلها: سياقات عند بدايتها ووسطها ونهايتها (البطل قد ينتقل بين مواضعه، أو يمشي)
   const cutCtxs = (i: number) => {
@@ -435,6 +445,11 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
   if (probe && !composedCam) probe.push({ frame, zoom, offX, ctx: edgeCtx(frame, [cuts[cut]!, cuts[cut + 1] ?? dur]) });
   const vb = portrait ? (composedCam ? `${960 - 304} 0 608 1080` : `${Math.max(0, Math.min(WW - 608, portraitFocus - 304))} 0 608 1080`) : `0 0 ${WW} ${WH}`;
 
+  const emblemPlaces = new Map(emblemItems.map((c) => {
+    const VW = portrait ? 608 : WW;
+    const e = emblemSpec(c.kind, portrait);
+    return [`${c.kind}-${c.word}`, { x: emblemSide === "right" ? VW - e.edge - e.hw * e.s : e.edge + e.hw * e.s, y: e.y, s: e.s, vertical: e.vertical }] as const;
+  }));
   // حافتا الإطار الظاهر في طبقة المقدمة (عمق 1.3) عند بداية المشهد، فيقع العمود على طرفه في الأفقي والعمودي معًا،
   // ثم يتحرك مع الكاميرا بسرعة طبقته (منظور حقيقي)
   const fgEdges = (() => {
@@ -579,9 +594,57 @@ const AlleyTaleBase: React.FC<AlleyTaleProps> = (props) => {
           ) : null}
         </svg>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(0,0,0,.4) 100%)" }} />
+        <MeaningEmblems cues={cues} frame={frame} portrait={portrait} places={emblemPlaces} />
       </AbsoluteFill>
       <TopCaption frame={frame} fps={fps} timings={timings} keys={keys} portrait={portrait} out={out} safeWrap={fitMode} />
     </SceneShell>
+  );
+};
+
+/**
+ * شارات المعنى (١١ نوفمبر): عناصر صُممت لكلمات لم يكن لها عنصر في المكتبة («التثبت/التحقق»، «الأولى/الثانية/الثالثة»، «المقياس»).
+ * في فضاء الشاشة لا العالم: لا تقصها الكاميرا ولا يغطيها شخص، تحت الكابشن، وتظهر لحظة نطق كلمتها وتبقى حتى آخر المشهد.
+ */
+/** حجم الشارة وموضعها والعمود المحجوز لها (بإحداثيات الإطار الظاهر: العمودي 608 والأفقي 1920) */
+export const emblemSpec = (kind: CueKind, portrait: boolean) => {
+  const vertical = portrait && kind === "step";
+  const [hw, hh] = vertical ? [70, 180] : EMBLEM_HALF[kind as keyof typeof EMBLEM_HALF];
+  const s = portrait ? (kind === "step" ? 0.72 : kind === "verify" ? 0.64 : 0.58) : kind === "measure" ? 1.2 : 1.3;
+  const edge = portrait ? 16 : 44;
+  return { vertical, hw, hh, s, edge, y: portrait ? 330 + (vertical ? 40 : 0) : 360, reserve: hw * 2 * s + edge + 12 };
+};
+/** نصف عرض الشارة ونصف ارتفاعها مع خلفيتها (قبل التكبير): للتحقق من أنها داخل الإطار */
+export const EMBLEM_HALF = { step: [180, 70], verify: [100, 100], measure: [165, 120] } as const;
+const MeaningEmblems: React.FC<{ cues: { kind: CueKind; word: string; at: number }[]; frame: number; portrait: boolean; places: Map<string, { x: number; y: number; s: number; vertical: boolean }> }> = ({ cues, frame, portrait, places }) => {
+  const items = cues.filter((c) => c.kind === "step" || c.kind === "verify" || c.kind === "measure");
+  if (!items.length) return null;
+  // شارة واحدة في كل لحظة: الأحدث نطقًا تحل محل السابقة (العدّاد ثم العدسة في «الأولى: التثبت»)
+  const live = items.filter((c) => frame >= c.at - 2).sort((a, b) => a.at - b.at);
+  const cur = live[live.length - 1];
+  return (
+    <svg viewBox={portrait ? "0 0 608 1080" : "0 0 1920 1080"} preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+      {live.map((c) => {
+        const t = rise(frame, c.at, 12);
+        const next = live.find((n) => n.at > c.at);
+        const fade = next ? 1 - rise(frame, next.at - 4, 10) : 1;
+        if (fade <= 0.001 && c !== cur) return null;
+        const k = (frame - c.at) / 30;
+        const pl = places.get(`${c.kind}-${c.word}`) ?? { x: 304, y: 300, s: 1, vertical: false };
+        const el =
+          c.kind === "step" ? <PracticeCount n={ordinalOf(c.word) ?? 1} t={t} vertical={pl.vertical} /> :
+          c.kind === "verify" ? <VerifyLens t={t} scan={Math.min(1, Math.max(0, (frame - c.at - 8) / 75))} /> :
+          <MeasureScale t={t} tip={Math.min(1, Math.max(0, k - 0.3)) ** 0.7} />;
+        return (
+          <g key={`${c.kind}-${c.word}`} transform={`translate(${pl.x} ${pl.y}) scale(${pl.s})`} opacity={fade}>
+            {(() => {
+              const [hw, hh] = pl.vertical ? [70, 180] : EMBLEM_HALF[c.kind as keyof typeof EMBLEM_HALF];
+              return <rect x={-hw} y={-hh + (c.kind === "measure" ? 25 : 0)} width={hw * 2} height={hh * 2} rx={Math.min(hh, 46)} fill={darken(ID.night, 0.35)} opacity={0.5 * t} />;
+            })()}
+            {el}
+          </g>
+        );
+      })}
+    </svg>
   );
 };
 

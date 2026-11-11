@@ -653,7 +653,7 @@
             "poses": "stand",
             "look": "hero",
             "cast": "",
-            "cues": "people | الآخرين"
+            "cues": "people | الآخرين\nmeasure | المقياس"
           },
           "id": "c5-s6",
           "sfx": []
@@ -729,7 +729,7 @@
             "poses": "sit, stand",
             "look": "hero",
             "cast": "",
-            "cues": "",
+            "cues": "step | الأولى\nverify | التثبت",
             "cameraMode": "directed"
           },
           "id": "c6-s5",
@@ -747,7 +747,7 @@
             "poses": "hold,stand",
             "look": "hero",
             "cast": "",
-            "cues": "news | خبرًا\nspread | تنشر"
+            "cues": "news | خبرًا\nspread | تنشر\nverify | التحقق"
           },
           "id": "c6-s7",
           "sfx": []
@@ -794,7 +794,7 @@
             "poses": "look-up",
             "look": "hero",
             "cast": "",
-            "cues": "heart | النية"
+            "cues": "step | الثانية\nheart | النية"
           },
           "id": "c6-s10",
           "sfx": []
@@ -828,7 +828,7 @@
             "poses": "sit",
             "look": "hero",
             "cast": "",
-            "cues": "",
+            "cues": "step | الثالثة",
             "cameraMode": "directed"
           },
           "id": "c6-s14",
