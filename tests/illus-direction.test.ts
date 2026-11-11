@@ -48,8 +48,9 @@ describe("اللقطات المصمَّمة", () => {
     const { readFileSync } = await import("node:fs");
     const plan = JSON.parse(readFileSync("channels/balislam/episodes/001-know-the-truth/plan.json", "utf8"));
     const used = plan.chapters.flatMap((c: { scenes: { props: { shot?: string } }[] }) => c.scenes.map((s) => s.props.shot).filter(Boolean)) as string[];
-    // 10 لقطات مصمَّمة بعد اختصار ١١ نوفمبر (حُذفت جملتا c1-s4 وc1-s8 بقرار صاحب المشروع، واللقطتان باقيتان في المكتبة)
-    expect(used.length).toBeGreaterThanOrEqual(10);
+    // 8 لقطات من المكتبة تطابق جمل السكريبت المعتمد (١١ نوفمبر)؛ لقطات قصته الجديدة (الميزان، الدفتر والقطة، الظرف، المقهى، الكرسي)
+    // تُصمَّم بعد اعتماد الستوري بورد وتُضاف إلى المكتبة، فيرتفع هذا الحد معها
+    expect(used.length).toBeGreaterThanOrEqual(8);
     for (const id of used) {
       const d = SHOTS[id];
       expect(d, id).toBeDefined();
