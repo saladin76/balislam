@@ -242,6 +242,7 @@ describe("الحفظ على القرص: «عام» للقائم، وختم ال�
     await expect(store.deleteSeries("balislam", GENERAL_SLUG)).rejects.toThrow(/لا يُحذف/);
     const eps = path.join(tmp, "balislam", "episodes");
     const before = readFileSync(path.join(eps, "002-moon", "script.md"), "utf8");
+    expect((await store.moveEpisode("balislam", path.join(eps, "002-moon"), "ramadan")).stamp?.number).toBe(1);
     for (const d of ["002-moon", "003-moon-two"]) await store.moveEpisode("balislam", path.join(eps, d), GENERAL_SLUG);
     expect(readFileSync(path.join(eps, "002-moon", "script.md"), "utf8")).toBe(before);
     await store.deleteSeries("balislam", "ramadan");

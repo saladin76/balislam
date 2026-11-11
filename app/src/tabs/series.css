@@ -77,6 +77,8 @@
 .shell-v3 .sr-previews figure { margin: 0; display: grid; gap: 6px; align-content: start; }
 .shell-v3 .sr-previews figcaption { font-size: var(--t-12); color: var(--mute); }
 .shell-v3 .sr-previews figure > div, .shell-v3 .sr-card-prev { border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-card); }
+/* The Player scales its 1920/1280-wide composition from the left: it needs an LTR box (as .brand-prev) */
+.shell-v3 .sr-previews .sr-player { direction: ltr; background: #000; }
 .shell-v3 .sr-card-prev { aspect-ratio: 16 / 9; }
 .shell-v3 .sr-card-prev > div { width: 100% !important; height: 100% !important; }
 .shell-v3 .sr-off { padding: var(--s5); background: var(--quiet); border-radius: var(--r-lg); margin: 0; }
@@ -84,13 +86,17 @@
 .shell-v3 .ms-dock-line { color: var(--dock-ink); font-size: var(--t-14); padding: 0 8px; }
 
 /* «كل الحلقات»: the series name on a row */
+.shell-v3 .ledger-tools select { flex: 0 1 auto; width: auto; }
+.shell-v3 .ledger-tools input[type="search"] { flex: 1 1 180px; }
+.shell-v3 .sr-editor input[type="range"] { accent-color: var(--acc-text); width: 100%; }
+.shell-v3 .sr-editor fieldset > .sr-seg { justify-self: start; }
 .shell-v3 .ledger-series { display: inline-flex; align-items: center; gap: 6px; color: var(--mute); font-size: var(--t-12); }
 .shell-v3 .ledger-series i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .shell-v3 .all-eps-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); margin: 0 0 var(--s3); }
 .shell-v3 .all-eps-head h2 { font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-24); margin: 0; padding-top: var(--t-shift); }
 
 /* The current series under the channel name in the band */
-.ms-band-series { border: 0; background: none; font: inherit; cursor: pointer; width: 100%; display: block; font-size: var(--t-12); color: var(--band-mute); text-align: center; padding: 0 6px; line-height: 1.35; margin-top: -4px; }
+.ms-band-series { border: 0; background: none; font: inherit; cursor: pointer; width: 100%; display: block; font-size: var(--t-12); color: var(--band-mute); text-align: center; padding: 0 6px; line-height: 1.35; margin-top: 10px; }
 .ms-band-series b { display: block; color: var(--band-ink); font-weight: 500; }
 
 @media (max-width: 900px) {

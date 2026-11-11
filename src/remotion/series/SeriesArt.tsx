@@ -74,16 +74,16 @@ const Ornament: React.FC<{ d: DerivedSeriesIdentity; width: number; progress?: n
 export const SeriesTitleCard: React.FC<{ d: DerivedSeriesIdentity; name: string; number?: number; kindAr?: string; width?: number; height?: number; progress?: number }> = ({ d, name, number, kindAr, width = 1920, height = 1080, progress = 1 }) => {
   const scale = Math.min(width / 1920, height / 1080);
   const portrait = height > width;
-  const fs = titleSize(d, (portrait ? 150 : 132) * scale * (portrait ? 1.6 : 1));
+  const fs = titleSize(d, (portrait ? 150 : 176) * scale * (portrait ? 1.6 : 1));
   const pIn = Math.min(1, progress * 1.6);
   return (
     <div style={{ width, height, background: d.card.bg, color: d.card.ink, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 26 * scale, direction: "rtl", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 60%, ${d.accent}33 0%, transparent 60%)` }} />
-      <div style={{ opacity: pIn, transform: `scale(${0.85 + 0.15 * pIn})` }}><SeriesEmblem d={d} size={170 * scale * (portrait ? 1.5 : 1)} /></div>
-      {kindAr ? <div style={{ fontFamily: font(d), fontSize: 40 * scale * (portrait ? 1.5 : 1), color: d.accent, opacity: pIn }}>{kindAr}</div> : null}
+      <div style={{ opacity: pIn, transform: `scale(${0.85 + 0.15 * pIn})` }}><SeriesEmblem d={d} size={220 * scale * (portrait ? 1.5 : 1)} /></div>
+      {kindAr ? <div style={{ fontFamily: font(d), fontSize: 52 * scale * (portrait ? 1.5 : 1), color: d.accent, opacity: pIn }}>{kindAr}</div> : null}
       <div style={{ fontFamily: font(d), fontWeight: d.title.weight === "bold" ? 700 : 400, fontSize: fs, lineHeight: 1.25, textAlign: "center", padding: `0 ${80 * scale}px`, opacity: Math.min(1, Math.max(0, progress * 2 - 0.3)), transform: `translateY(${(1 - pIn) * 30 * scale}px)` }}>{name}</div>
       <Ornament d={d} width={420 * scale * (portrait ? 1.5 : 1)} progress={Math.min(1, Math.max(0, progress * 1.4 - 0.2))} />
-      {number ? <div style={{ fontFamily: font(d), fontSize: 54 * scale * (portrait ? 1.5 : 1), background: d.accent, color: d.onAccent, padding: `${4 * scale}px ${28 * scale}px`, borderRadius: 8 * scale, opacity: Math.min(1, Math.max(0, progress * 2 - 0.8)) }}>الحلقة {number.toLocaleString("ar-EG")}</div> : null}
+      {number ? <div style={{ fontFamily: font(d), fontSize: 64 * scale * (portrait ? 1.5 : 1), background: d.accent, color: d.onAccent, padding: `${4 * scale}px ${28 * scale}px`, borderRadius: 8 * scale, opacity: Math.min(1, Math.max(0, progress * 2 - 0.8)) }}>الحلقة {number.toLocaleString("ar-EG")}</div> : null}
     </div>
   );
 };

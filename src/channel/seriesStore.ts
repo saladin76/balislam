@@ -127,6 +127,8 @@ export const moveEpisode = async (ch: string, episodeDir: string, seriesId: stri
   const s = getSeries(ch, seriesId);
   if (!s) throw new SeriesError([`السلسلة «${seriesId}» غير موجودة.`]);
   const file = path.join(episodeDir, EPISODE_SERIES_FILE);
+  const current = episodeSeriesOf(episodeDir);
+  if (current.series === s.id) return current; // نقلها إلى سلسلتها نفسها لا يغيّر رقمها ولا ختمها
   if (s.id === GENERAL_SLUG && s.virtual) {
     await rm(file, { force: true });
     await restampPlan(episodeDir, undefined);

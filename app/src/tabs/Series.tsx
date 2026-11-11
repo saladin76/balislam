@@ -152,14 +152,14 @@ export const SeriesPreviews: React.FC<{ d: DerivedSeriesIdentity; s: SeriesConfi
       <figure>
         <figcaption>بطاقة السلسلة بعد افتتاحية القناة</figcaption>
         {d.intro === "sting" || s.template?.intro === "sting" ? (
-          <Player key={JSON.stringify(d)} component={StingComp} inputProps={{ identity, channel, d, name: s.name || "السلسلة", number, kind: s.kind }} durationInFrames={SERIES_STING_FRAMES + 20} fps={30}
-            compositionWidth={1920} compositionHeight={1080} style={{ width: "100%" }} autoPlay loop acknowledgeRemotionLicense />
+          <div className="sr-player"><Player key={JSON.stringify(d)} component={StingComp} inputProps={{ identity, channel, d, name: s.name || "السلسلة", number, kind: s.kind }} durationInFrames={SERIES_STING_FRAMES + 20} fps={30}
+            compositionWidth={1920} compositionHeight={1080} style={{ width: "100%" }} autoPlay loop acknowledgeRemotionLicense /></div>
         ) : <p className="help sr-off">بلا بطاقة: افتتاحية القناة وحدها.</p>}
       </figure>
       <figure>
         <figcaption>الصورة المصغّرة</figcaption>
-        <Player key={`t-${JSON.stringify(d)}`} component={Thumbnail} inputProps={{ themeId: "night", title: "عنوان الحلقة يظهر هنا بخط كبير", highlight: "بخط كبير", element: "", identity, channel,
-          series: { identity: d, name: s.name || "السلسلة", number, kind: s.kind, template: s.template ?? {} } }} durationInFrames={1} fps={30} compositionWidth={1280} compositionHeight={720} style={{ width: "100%" }} acknowledgeRemotionLicense />
+        <div className="sr-player"><Player key={`t-${JSON.stringify(d)}`} component={Thumbnail} inputProps={{ themeId: "night", title: "عنوان الحلقة يظهر هنا بخط كبير", highlight: "بخط كبير", element: "", identity, channel,
+          series: { identity: d, name: s.name || "السلسلة", number, kind: s.kind, template: s.template ?? {} } }} durationInFrames={1} fps={30} compositionWidth={1280} compositionHeight={720} style={{ width: "100%" }} acknowledgeRemotionLicense /></div>
       </figure>
       <figure>
         <figcaption>بطاقة العنوان</figcaption>
@@ -322,7 +322,7 @@ const IdentityEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
   const parts = d.emblem.parts;
   return (
     <section className="sr-editor" aria-label="هوية السلسلة">
-      <p className="help">كل اختيار هنا من هوية القناة وحدها: لا لون ولا خط ولا زخرفة من خارجها. خط العناوين «{rules.fonts.heading}» ثابت.</p>
+      <p className="help">كل اختيار هنا من هوية القناة وحدها: لا لون ولا خط ولا زخرفة من خارجها. خط العناوين <bdi>«{rules.fonts.heading}»</bdi> ثابت.</p>
       <fieldset><legend>لون السلسلة (من لوحة القناة)</legend>
         <div className="sr-swatches" role="radiogroup" aria-label="لون السلسلة">
           {rules.accents.map((a) => (

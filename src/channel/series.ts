@@ -204,7 +204,14 @@ export const deriveSeriesIdentity = (channel: ApprovedIdentity & { id?: string }
   const clamped: string[] = [];
   const choices = accentChoices(a);
   const wantBase = overrides.accent?.base ? norm(overrides.accent.base) : undefined;
-  const base = wantBase && choices.includes(wantBase) ? wantBase : choices.find((c) => a.signature.map(norm).includes(c)) ?? choices[0]!;
+  // الافتراضي: من بصمة القناة، أوضح لون على بطاقة القناة (تباين ≥ ٣) وأشبعه
+  const paletteHex0 = a.palette.map((p) => norm(p.hex));
+  const lum0 = [...paletteHex0].sort((x, y) => luminance(y) - luminance(x));
+  const cardBg = EMBLEM_PARTS[a.emblem]?.card === "light" ? lum0[0]! : lum0[lum0.length - 1]!;
+  const sig = choices.filter((c) => a.signature.map(norm).includes(c));
+  const pool = (sig.length ? sig : choices).filter((c) => contrast(c, cardBg) >= 3);
+  const preferred = [...(pool.length ? pool : choices)].sort((x, y) => hexToHsl(y)[1] - hexToHsl(x)[1] || contrast(y, cardBg) - contrast(x, cardBg))[0]!;
+  const base = wantBase && choices.includes(wantBase) ? wantBase : preferred;
   if (wantBase && wantBase !== base) clamped.push(`اللون ${wantBase} ليس من لوحة القناة المسموحة؛ استُعمل ${base}.`);
   const lw = overrides.accent?.lightness, cw = overrides.accent?.chroma;
   if (typeof lw === "number" && Math.abs(lw) > LIMITS.lightness) clamped.push("إزاحة الإضاءة قُصّت إلى حدود هوية القناة.");
@@ -214,6 +221,7 @@ export const deriveSeriesIdentity = (channel: ApprovedIdentity & { id?: string }
   const paletteHex = a.palette.map((p) => norm(p.hex));
   const byLum = [...paletteHex].sort((x, y) => luminance(y) - luminance(x));
   const light = byLum[0]!, dark = byLum[byLum.length - 1]!;
+  if (contrast(accent, cardBg) < 1.6) clamped.push("لون السلسلة قريب من خلفية بطاقة القناة فلا يكاد يُرى؛ اختر لونًا أوضح.");
   const onAccent = contrast(accent, dark) >= contrast(accent, light) ? dark : light;
   const motif = pick(overrides.motif, a.motifs, a.motifs[0]!);
   if (overrides.motif && overrides.motif !== motif) clamped.push(`الزخرفة «${overrides.motif}» ليست من زخارف القناة.`);
