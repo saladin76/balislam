@@ -1,6 +1,6 @@
 import React from "react";
 import type { CamKey } from "../illus/shots/kit";
-import { Arrow, Card, Cross, Icon, InkPerson, Mark, Stroke, Write, heartPath, lerp, fam, measure, outCubic, prog, type Font, type IconId, type Z } from "./inkKit";
+import { Arrow, Card, Cross, Icon, InkPerson, Kaaba, Mark, Mosque, Stroke, Write, heartPath, lerp, fam, measure, outCubic, prog, type Font, type IconId, type Z } from "./inkKit";
 import type { InkCtx, InkShotDef } from "./shots";
 
 /**
@@ -470,6 +470,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tTaammul = at("وتأمل", 0.34);
       const tMaani = at("معانيها", 0.37);
       const tStand = at("واقف", 0.46);
+      const tKaaba = at("الكعبة", 0.5);
       const tKa = at("كأنه", 0.53);
       const tPray = at("يصلي", 0.55);
       const tFirst = at("لأول", 0.57);
@@ -508,6 +509,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <InkPerson x={1320} y={800} s={0.9} pose="fold" p={1} z={z} dir={-1} opacity={pray} />
               <ellipse cx={1320} cy={620} rx={lerp(60, 230, moment)} ry={lerp(40, 260, moment)} fill={z.hl} opacity={0.45 * moment} style={{ mixBlendMode: "multiply" }} />
               <Stroke d="M1450 814 L1190 814 L1170 840 L1470 840 Z" p={P(tStand - 4, tStand + 10)} c={z.ink} w={6} fill={z.hl} fillP={0.5 * P(tStand + 2, tStand + 14)} />
+              {/* «وهو واقف أمام الكعبة»: الكعبة أمامه لحظة نطقها */}
+              <Kaaba x={1040} y={830} s={0.78} p={P(tKaaba - 4, tKaaba + 16)} z={z} band={0} />
             </g>
             {T("au", 1320, 900 - 40, "المؤلف", 64, ["المؤلف", 0.14], undefined, { opacity: 1 - P(tStand - 8, tStand) })}
             {/* «كأنه يصلي لأول مرة»: الجملة نفسها، فوق المصلي */}
@@ -908,10 +911,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             <g opacity={top}>
               <Icon id="house" x={1580} y={500} s={1.6} p={P(tGo - 6, tGo + 8)} c={z.ink} opacity={1 - 0.5 * P(tGhafla, tGhafla + 14)} />
               <path d={`M1500 560 Q1010 380 520 560`} fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" opacity={P(tGo, tGo + 10)} />
-              <g opacity={P(tMasjid - 4, tMasjid + 8)} transform="translate(440 520)">
-                <rect x={-110} y={-90} width={220} height={180} rx={20} fill={z.paper} stroke={z.ink} strokeWidth={7} />
-                <path d="M-70 40 L70 40 L54 68 L-54 68 Z" fill={z.hl} stroke={z.ink} strokeWidth={5} />
-              </g>
+              {/* المسجد: قبة ومئذنة وباب (لا صندوق) — يُرسم لحظة «المسجد»، وبابه بالفسفوري مع «تمام العبودية» */}
+              <Mosque x={440} y={610} s={0.62} p={P(tMasjid - 4, tMasjid + 18)} z={z} door={P(tTamam - 4, tTamam + 12)} />
               {T("ms", 440, 690, "المسجد", 60, ["المسجد", 0.08], undefined, { font: "head" })}
               {/* خيط الصلة إلى سجادة المسجد (أفقي، لا إلى أعلى) */}
               <line x1={hx} y1={hy} x2={470} y2={575} stroke={strong > 0 ? z.hl : z.ink} strokeWidth={lerp(lerp(6, 3, thin), 14, strong)} strokeDasharray={strong > 0.5 ? undefined : `${lerp(18, 6, thin)} ${lerp(12, 30, thin)}`} strokeLinecap="round" opacity={P(tGhafla + 6, tGhafla + 18) * lerp(lerp(0.8, 0.35, thin), 0.9, strong)} />
@@ -970,7 +971,6 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       // الخيوط تبدأ مع «نستحضره» فتكتمل عند «معها»، ويبقى لها وقت تُرى فيه قبل نهاية المشهد
       const tWith = at("نستحضره", 0.92);
       const turn = P(tBodies - 2, tBodies + 16);
-      const needle = lerp(-1.6, 0, P(tFace - 2, tFace + 20));
       const gather = P(tHearts - 2, tHearts + 20);
       const xs = [1350, 1100, 850];
       const glance = P(tIlt - 2, tIlt + 12) * (1 - P(tAbsar - 2, tAbsar + 12));
@@ -981,13 +981,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
         cam: [C(0, 520, 500, 1.3), C(tBodies - 6, 1050, 640, 1.12), C(tHearts - 6, 1100, 360, 1.2), C(tIlt - 6, 900, 420, 1.0), C(tDiff - 6, 1080, 520, 1.0)],
         world: (
           <g>
-            <g transform="translate(400 480)" opacity={P(tFace - 6, tFace + 6)}>
-              <circle r={90} fill={z.paper} stroke={z.ink} strokeWidth={8} />
-              <g transform={`rotate(${(needle * 180) / Math.PI})`}>
-                <path d="M-66 0 L22 -20 L22 20 Z" fill={z.ink} />
-              </g>
-              <circle r={10} fill={z.hl} stroke={z.ink} strokeWidth={4} />
-            </g>
+            {/* القبلة: الكعبة نفسها، تتجه إليها الوجوه (لا بوصلة) */}
+            <Kaaba x={400} y={570} s={0.8} p={P(tFace - 6, tFace + 14)} z={z} />
             {T("qb", 400, 630, "القبلة", 60, ["القبلة", 0.06])}
             {xs.map((x, k) => {
               const d = k === 1 ? -1 : 1;
