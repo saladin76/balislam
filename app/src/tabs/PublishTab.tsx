@@ -1,4 +1,5 @@
 import { SocialKit } from "./SocialKit";
+import { ShortsPicker } from "./ShortsPicker";
 import { DriveHandoffCard, driveOwnsPrimary, driveView } from "./DriveHandoff";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type DriveHandoffRead, type SceneProductionRead, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
@@ -312,10 +313,11 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
           </More>
 
           <More label={`الشورتس والريلز${shorts.length ? ` — ${num(shorts.length)}` : ""}`}>
+            <ShortsPicker episodeId={episodeId} approved={approved} />
             <p className="s45-note">{shorts.length ? `${num(shorts.length)} — ${arDigits("9:16")} بأعلى جودة` : "تُصنع بعد اعتماد النسخة الأساسية."}</p>
             {approved ? (
               <div className="s45-actions">
-                <button type="button" className="btn" disabled={running} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (فصل لكل مقطع)"}</button>
+                <button type="button" className="btn" disabled={running} onClick={() => start("shorts")}>{shorts.length ? "أعد صنع الشورتس والريلز" : "اصنع الشورتس والريلز (من المقاطع المحفوظة)"}</button>
               </div>
             ) : null}
             {shorts.length ? (

@@ -8,6 +8,7 @@ import { parseScript } from "../script/parse";
 import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
 import { scenesOf } from "../remotion/scenes/Episode";
+import { segmentPlan, shortSegments } from "../plan/shorts";
 import { renderEpisode, renderThumbnail, outDirFor } from "../render/episode";
 import { buildSrt } from "./captions";
 import { assertNoTraces, onScreenTexts } from "./traces";
@@ -49,7 +50,9 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const dir = path.join(await outDirFor(ep), "package");
   await mkdir(dir, { recursive: true });
   const id = plan.episode || ep;
-  const shorts = Math.min(opts.shorts ?? 6, plan.chapters.length);
+  // مقاطع الشورتس من الخطة (plan.shorts) لا من عدد الأقسام؛ الخطة القديمة بلا مقاطع: شورت لكل قسم كما كان
+  const shortPick = shortSegments(plan, opts.shorts ?? 6);
+  const shorts = shortPick.segments;
   const stage = opts.stage ?? "episode";
   const quality: Quality = opts.quality ?? "master";
   const episodePath = path.join(dir, `${id}-episode.mp4`);
@@ -61,6 +64,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
     await requireSceneMasterReady(ep);
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
+    if (!shorts.length || shortPick.issues.length) throw new Error(shortPick.issues.join(" ") || "لا مقاطع شورتس في الخطة.");
   }
 
   log("تجهيز الوسائط…");
@@ -87,13 +91,13 @@ export const packageEpisode = async (opts: PackageOptions) => {
   // disk is not trusted here because this run may replace it (D36).
   const { realEpisodeTimings } = await import("./realTimings");
   const real = { sceneSeconds: (await realEpisodeTimings(scriptPath, plan)).sceneSeconds };
-  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, shorts, channel, real));
+  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, opts.shorts ?? 6, channel, real));
   await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice, channel));
   await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
   if (stage === "shorts")
-    for (let n = 1; n <= shorts; n++) {
-      const ch = plan.chapters[n - 1]!;
-      await writeFile(path.join(dir, `${id}-short-${n}.${lang}.srt`), buildSrt(plan, scenesOf({ plan, chapter: ch.number }).map((x) => x.scene), media, identity));
+    for (const seg of shorts) {
+      const sp = segmentPlan(plan, seg);
+      await writeFile(path.join(dir, `${id}-short-${seg.n}.${lang}.srt`), buildSrt(plan, scenesOf(sp).map((x) => x.scene), media, identity));
     }
   files.push("youtube.md", "publish-checklist.md", `${id}-episode.${lang}.srt`);
 
@@ -160,13 +164,15 @@ export const packageEpisode = async (opts: PackageOptions) => {
       await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
       await writeFile(reportFile, `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     } else {
-      for (let n = 1; n <= shorts; n++) {
+      for (const seg of shorts) {
         last = -1;
-        const ch = plan.chapters[n - 1]!;
+        const n = seg.n;
+        const sp = segmentPlan(plan, seg);
         log(`الشورت ${n} بجودة: ${q.label}`);
-        const f = await renderEpisode({ episode: ep, orientation: "portrait", chapter: ch.number, quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
+        // الشورت القديم: قسمه من الخطة كما كان؛ والمقطع المختار: مشاهده وحدها، والبوابات على الخطة كاملة
+        const f = await renderEpisode({ episode: ep, orientation: "portrait", ...(seg.chapter !== undefined ? { chapter: seg.chapter } : { segment: { sceneIds: seg.sceneIds } }), quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n}`) });
         files.push(path.basename(f));
-        motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait", await exemptForRender(plan, media, ch.number)) });
+        motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait", await exemptForRender(sp.plan, media, sp.chapter)) });
       }
       const prev = existsSync(reportFile) ? (await readFile(reportFile, "utf8")).trimEnd() : `# مقياس الحركة · ${plan.title}\n`;
       await writeFile(reportFile, `${prev}\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);

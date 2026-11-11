@@ -28,7 +28,8 @@ export const formatReport = (file: string, result: CheckResult): string => {
 
   if (result.stats.chapters.length) {
     out.push("المدة التقديرية (حسب سرعة الكلام في config.json):");
-    for (const c of result.stats.chapters) out.push(`  الفصل ${c.number}: ${c.words} كلمة ≈ ${mmss(c.seconds)}`);
+    if (result.stats.divisions === 0) out.push("  نص متصل بلا أقسام إنتاجية (الأقسام اختيارية).");
+    else for (const c of result.stats.chapters) out.push(`  الفصل ${c.number}: ${c.words} كلمة ≈ ${mmss(c.seconds)}`);
     out.push(`  الإجمالي: ${result.stats.totalWords} كلمة ≈ ${mmss(result.stats.totalSeconds)}`);
     out.push("");
   }

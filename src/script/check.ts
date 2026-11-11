@@ -16,7 +16,10 @@ export type CheckConfig = {
   maxTitleChars: number;
   /** مجالات القناة المسموحة (افتراضيًا: مجالات القناة الأساسية) */
   domains?: string[];
-  /** false: عدد الفصول وطولها حر (الحلقة تُنفَّذ أيًّا كان حجمها) — من channel.json → script.fixedChapters */
+  /**
+   * true فقط: عدد الأقسام (الفصول) وطولها مفروضان (config.json → episode). غير ذلك (الافتراضي لكل القنوات):
+   * الأقسام اختيارية 0..N، والنص المتصل بلا أي عنوان قسم مقبول (src/script/divisions.ts) — من channel.json → script.fixedChapters
+   */
   fixedChapters?: boolean;
   /** false: لا يُشترط قسم «الخطوة العملية» — من channel.json → script.practicalStep */
   practicalStep?: boolean;
@@ -58,7 +61,9 @@ export type ChapterStats = { number: number; words: number; seconds: number };
 export type CheckResult = {
   issues: Issue[];
   frontmatter: Frontmatter | null;
-  stats: { chapters: ChapterStats[]; totalWords: number; totalSeconds: number };
+  stats: { chapters: ChapterStats[]; totalWords: number; totalSeconds: number;
+    /** عدد الأقسام الإنتاجية المكتوبة (0 للنص المتصل بلا عناوين أقسام) */
+    divisions?: number };
   ok: boolean;
 };
 
@@ -111,14 +116,17 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
   const isArabic = (fm?.lang ?? "ar") === "ar";
   const trailer = (script.frontmatter as { format?: string } | undefined)?.format === "trailer";
 
-  // الفصول
-  const fixed = config.fixedChapters !== false;
-  if (!trailer && fixed && script.chapters.length !== config.chapters) {
-    err("chapter-count", `السكريبت فيه ${script.chapters.length} فصول؛ المطلوب ${config.chapters} بالضبط.`, script.chapters[0]?.line);
+  // الأقسام الإنتاجية (الفصول): اختيارية 0..N ما لم تفرض القناة عددها صراحة (fixedChapters = true)
+  const fixed = config.fixedChapters === true;
+  const written = script.chapters.filter((c) => !c.implicit).length;
+  if (!trailer && fixed && written !== config.chapters) {
+    err("chapter-count", `السكريبت فيه ${written} فصول؛ المطلوب ${config.chapters} بالضبط.`, script.chapters[0]?.line);
   }
+  if (!script.chapters.length) err("script-empty", "السكريبت لا يحتوي نص تعليق.", script.frontmatterLine);
   script.chapters.forEach((ch, idx) => {
+    // الرقم يصنع معرّفات المشاهد (cN-sM): ترتيبه شرط حتى لا تتكرر المعرّفات
     if (ch.number !== idx + 1) err("chapter-number", `رقم الفصل ${ch.number} في غير ترتيبه؛ المتوقع ${idx + 1}.`, ch.line);
-    if (!ch.title) warn("chapter-title", `الفصل ${ch.number} بلا عنوان بعد «·».`, ch.line);
+    if (fixed && !ch.title) warn("chapter-title", `الفصل ${ch.number} بلا عنوان بعد «·».`, ch.line);
   });
 
   const stats: ChapterStats[] = [];
@@ -158,9 +166,12 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
       const text = b.text;
       const norm = normalizeArabic(text);
       // قواعد خاصة بالكتابة العربية
+      // الفصل الذي يُنشر وحده كشورت (عدد مفروض) لا يحيل لما قبله؛ وفي الأقسام الاختيارية الشورت مقطع يختاره المالك
+      // (plan.shorts)، فتبقى الإحالة تنبيهًا لمراجعة المقطع
       if (isArabic) for (const phrase of BACK_REFERENCES) {
         if (norm.includes(normalizeArabic(phrase))) {
-          err("back-reference", `«${phrase}» تحيل لما قبل الفصل، والفصل يُنشر وحده كشورت. أعد تقديم الفكرة في جملة.`, b.line);
+          if (fixed) err("back-reference", `«${phrase}» تحيل لما قبل الفصل، والفصل يُنشر وحده كشورت. أعد تقديم الفكرة في جملة.`, b.line);
+          else warn("back-reference", `«${phrase}» تحيل لما قبلها؛ إن صارت بداية شورت فأعد تقديم الفكرة في جملة.`, b.line);
         }
       }
       if (text.includes("ﷺ")) err("salawat-symbol", "اكتب «صلى الله عليه وسلم» كاملة بدل الرمز ﷺ، لأن الصوت لا يقرؤه.", b.line);
@@ -179,7 +190,7 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
 
     // الجملة الأولى
     const first = narrationBlocks[0];
-    if (first && isArabic) {
+    if (first && isArabic && fixed) {
       const firstWord = normalizeArabic(first.text.split(/\s+/)[0] ?? "").replace(/[^\p{L}]/gu, "");
       if (DANGLING_STARTERS.map(normalizeArabic).includes(firstWord)) {
         warn("dangling-start", `الفصل ${ch.number} يبدأ بـ «${first.text.split(/\s+/)[0]}»؛ قد لا يُفهم وحده كشورت.`, first.line);
@@ -239,7 +250,7 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
   return {
     issues,
     frontmatter: fm,
-    stats: { chapters: stats, totalWords, totalSeconds },
+    stats: { chapters: stats, totalWords, totalSeconds, divisions: written },
     ok: !issues.some((x) => x.level === "error"),
   };
 };

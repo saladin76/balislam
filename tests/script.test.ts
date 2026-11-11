@@ -8,7 +8,9 @@ import { AYAH_COUNTS, SURAH_NAMES, parseAyahRef, surahNumber } from "../src/scri
 const valid = readFileSync(path.join(__dirname, "fixtures", "valid.md"), "utf8");
 
 /** إعداد اختبار: الفصول التجريبية قصيرة، فنوسع نطاق المدة حتى لا تظهر تنبيهات الطول. */
+// هذه الاختبارات للقناة التي تفرض عدد الفصول صراحة (fixedChapters = true)؛ الأقسام الاختيارية في script-divisions.test.ts
 const testConfig: CheckConfig = {
+  fixedChapters: true,
   wordsPerMinute: 130,
   chapters: 6,
   chapterSeconds: { min: 1, max: 999 },

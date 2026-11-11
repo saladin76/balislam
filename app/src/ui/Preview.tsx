@@ -19,7 +19,7 @@ const size = (o: Orientation) => (o === "portrait" ? config.video.short : config
 
 type Ctx = { identity: Identity; channel?: ChannelInfo; lang?: string };
 
-export const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> } & Ctx> = ({ identity, channel, lang, media = emptyMedia, ...p }) => {
+export const SceneComp: React.FC<{ scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow?: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays> } & Ctx> = ({ identity, channel, lang, media = emptyMedia, ...p }) => {
   const clip = media.voice[p.scene.id];
   const timings = clip && clip.text === p.scene.narration.trim() ? toFrames(clip.words, config.video.fps) : undefined;
   return (
@@ -118,7 +118,7 @@ ArPlayer.displayName = "ArPlayer";
  * browser and Remotion then warns and mutes it itself. Muted from the start says what the label says
  * («معاينة صامتة»); the owner can still unmute from the controls.
  */
-export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; muted?: boolean; autoPlay?: boolean; className?: string } & Ctx>(({ muted, autoPlay = true, className, ...props }, ref) => (
+export const ScenePreview = forwardRef<PlayerRef, { scene: PlanScene; themeId: ThemeId; orientation: Orientation; eyebrow?: string; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; muted?: boolean; autoPlay?: boolean; className?: string } & Ctx>(({ muted, autoPlay = true, className, ...props }, ref) => (
   <ArPlayer
     ref={ref}
     key={`${props.scene.id}-${props.orientation}`}

@@ -6,7 +6,7 @@ import { parseScript } from "../script/parse";
 import { resolveScriptPath } from "../script/episodes";
 import { generatePlan, type QuranTexts } from "./generate";
 import { loadChannel } from "../channel";
-import type { Plan } from "./types";
+import type { Plan, PlanShort } from "./types";
 import { withSeriesStamp, type SeriesStamp } from "../channel/series";
 import { stripQuran, withQuran } from "./quranText";
 import { quranFromScript, historicalMeanings } from "../quran/scriptText";
@@ -69,6 +69,25 @@ export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overw
   else if (current) delete next.series;
   await writePlanFile(file, next);
   return backup ? { backup } : {};
+};
+
+/**
+ * يكتب اختيار المالك لمقاطع الشورتس (D83) في `plan.shorts` وحده: لا يمس مشهدًا ولا ختمًا ولا `updatedAt`
+ * (فلا تتغير بصمة مشهد ولا ستوري بورد ولا يُعاد فتح اعتماد). `null` يحذف الحقل فيعود السلوك القديم
+ * (شورت لكل قسم إن كان فيها قسمان فأكثر). الفحص في `checkShortsInput` قبله، والنسخة المتدحرجة قبل الكتابة.
+ */
+export const saveShortsSelection = async (episode: string, shorts: PlanShort[] | null): Promise<Plan> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const file = planPathFor(scriptPath);
+  const current = await readJson<Plan>(file);
+  if (!current) throw new Error("لا خطة لهذه الحلقة بعد؛ لم تُحفظ المقاطع.");
+  await copyFile(file, lastPlanBackupFor(scriptPath));
+  // الحقل قبل المشاهد كما يكتبه المولِّد (src/plan/generate.ts)
+  const { chapters, shorts: _old, ...rest } = current;
+  const next: Plan = shorts === null ? { ...rest, chapters }
+    : { ...rest, shorts: shorts.map((x) => ({ from: x.from, to: x.to, ...(x.title ? { title: x.title } : {}) })), chapters };
+  await writePlanFile(file, next);
+  return next;
 };
 
 export type RegenerateOptions = {

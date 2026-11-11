@@ -290,11 +290,22 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
     missingTones: parts
       ? [...new Set(parts.jobs.filter((p) => (!opts.only || opts.only.includes(p.scene)) && !managed.has(p.scene) && !isTone(p.tone)).map((p) => p.scene))]
       : plan.chapters.flatMap((c) => c.scenes).filter((scene) => scene.narration.trim() && !managed.has(scene.id) && (!opts.only || opts.only.includes(scene.id)) && !effectiveTone(scene.tone, plan.tone, channelToneOf())).map((scene) => scene.id),
-    tashkeel: tashkeelReport(
-      plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && !managed.has(s.id) && (!opts.only || opts.only.includes(s.id))),
-      await loadTashkeel(scriptPath),
-      await loadDictionary(),
-    ),
+    tashkeel: {
+      ...tashkeelReport(
+        plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim() && !managed.has(s.id) && (!opts.only || opts.only.includes(s.id))),
+        await loadTashkeel(scriptPath),
+        await loadDictionary(),
+      ),
+      // ما لا يدخل الفحص أصلًا، ليُذكر سببه بجوار المقام (لا يغيّر الحكم)
+      skipped: (() => {
+        const inScope = plan.chapters.flatMap((c) => c.scenes).filter((s) => !opts.only || opts.only.includes(s.id));
+        return {
+          verseScenes: inScope.filter((s) => s.template === "verse-card").length,
+          silentScenes: inScope.filter((s) => s.template !== "verse-card" && !s.narration.trim()).length,
+          managedScenes: inScope.filter((s) => s.narration.trim() && managed.has(s.id)).length,
+        };
+      })(),
+    },
     review: reviewSummary(reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath))),
   };
   const refusedHere = quranRefused.filter((id) => !managed.has(id) && (!opts.only || opts.only.includes(id)));

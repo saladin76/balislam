@@ -151,7 +151,8 @@ describe("«اعتمد التجهيز» once; later changes carried forward, onl
       expect(e3.change?.scenes).toEqual([]);
 
       // A script error that belongs to no scene: the step stays open, producing a scene refuses with the error.
-      await writeFile(path.join(dir, "script.md"), scriptOf([N1, N2b, N3]).replace(/## الفصل 6 · الخلاصة\n.*\n/, ""));
+      // (الأقسام صارت اختيارية فحذف قسم لم يعد خطأً؛ الخطأ هنا «الخطوة العملية» المفقودة، ولا سطر مشهد له)
+      await writeFile(path.join(dir, "script.md"), scriptOf([N1, N2b, N3]).replace(/## الخطوة العملية\n\n.*\n/, ""));
       const s4 = await inspectSceneProduction("001");
       expect(s4.script.approved).toBe(true);
       expect(lockedStep("episode", s4)).toBeNull();

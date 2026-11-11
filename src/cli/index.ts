@@ -327,7 +327,7 @@ program
   });
 
 const tashkeelLine = (t: import("../voice/tashkeelReport").TashkeelReport) =>
-  !t.file ? "التشكيل: لا يوجد tashkeel.md ✗" : `التشكيل: ${(t.coverage * 100).toFixed(1)}% (${t.covered} من ${t.words} كلمة، الحد ${Math.round(t.min * 100)}%) ${t.ok ? "✓" : "✗"}`;
+  !t.file ? "التشكيل: لا يوجد tashkeel.md ✗" : `التشكيل: ${(t.coverage * 100).toFixed(1)}% (${t.covered} من ${t.words} كلمة مفحوصة، الحد ${Math.round(t.min * 100)}%) ${t.ok ? "✓" : "✗"}`;
 
 program
   .command("tashkeel")
@@ -336,7 +336,9 @@ program
   .action(async (episode: string) => {
     const { generateVoice } = await import("../voice/generate");
     const { tashkeel: t } = await generateVoice(episode, { dryRun: true });
+    const { tashkeelDenominatorLine } = await import("../voice/tashkeelReport");
     console.log(tashkeelLine(t));
+    console.log(`  ${tashkeelDenominatorLine(t)}`);
     for (const g of t.gaps) console.log(`  ${g.sceneId}: ${g.words.join("، ")}`);
     if (t.ambiguous.length) console.log("كلمات لها أكثر من نطق في الملف (راجع السياق):");
     for (const a of t.ambiguous) console.log(`  ${a.forms.join(" / ")} ← ${a.scenes.join("، ")}`);
