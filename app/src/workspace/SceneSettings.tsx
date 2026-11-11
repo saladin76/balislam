@@ -29,7 +29,7 @@ type Props = {
   identity: Identity;
   channel: ChannelInfo;
   media: EpisodeMedia;
-  eyebrow: string;
+  eyebrow?: string;
   /** آخر مشهد في الحلقة */
   closing: boolean;
   onProps: (props: Record<string, string>) => void;
@@ -108,7 +108,7 @@ class Boundary extends React.Component<{ fallback: React.ReactNode; children: Re
 }
 
 /** صورة المشهد بالرسام نفسه الذي يرسم لوحات الستوري بورد؛ تُرسم حين تظهر البطاقة فقط */
-const ShotThumb: React.FC<{ scene: PlanScene; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia; eyebrow: string }> = ({ scene, plan, identity, channel, media, eyebrow }) => {
+const ShotThumb: React.FC<{ scene: PlanScene; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia; eyebrow?: string }> = ({ scene, plan, identity, channel, media, eyebrow }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(false);
   useEffect(() => {
@@ -142,7 +142,7 @@ const ShotThumb: React.FC<{ scene: PlanScene; plan: Plan; identity: Identity; ch
   );
 };
 
-const ShotPicker: React.FC<{ def: TemplateDef; field: FieldDef; scene: PlanScene; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia; eyebrow: string; onPick: (v: string) => void; onConfirm: () => void }> = ({ def, field, scene, plan, identity, channel, media, eyebrow, onPick, onConfirm }) => {
+const ShotPicker: React.FC<{ def: TemplateDef; field: FieldDef; scene: PlanScene; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia; eyebrow?: string; onPick: (v: string) => void; onConfirm: () => void }> = ({ def, field, scene, plan, identity, channel, media, eyebrow, onPick, onConfirm }) => {
   const [open, setOpen] = useState(false);
   const [others, setOthers] = useState(false);
   const current = String(scene.props[field.key] ?? "");
@@ -214,7 +214,7 @@ const ShotPicker: React.FC<{ def: TemplateDef; field: FieldDef; scene: PlanScene
 // ── الجملة: العبارات ولحظات الظهور والأحداث ───────────────────────────────
 
 const SentenceCard: React.FC<{
-  scene: PlanScene; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia; eyebrow: string;
+  scene: PlanScene; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia; eyebrow?: string;
   tokens: Token[]; rows: SlotRow[]; props: Record<string, string>; onProps: (p: Record<string, string>) => void;
   phraseField?: FieldDef; phraseSpec?: NonNullable<ReturnType<typeof shotUiOf>["phrases"]>; eventField?: FieldDef;
 }> = ({ scene, plan, identity, channel, media, eyebrow, tokens, rows, props, onProps, phraseField, phraseSpec, eventField }) => {

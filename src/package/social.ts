@@ -3,6 +3,7 @@ import type { ChannelInfo } from "../channel/types";
 import { parseScript } from "../script/parse";
 import { normalizeArabic } from "../script/quranMeta";
 import { chapterTimeline, type RealTimings } from "./chapterTimes";
+import { shortSegments } from "../plan/shorts";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import { defaultChannel, type ChannelConfig } from "../channel/types";
@@ -40,8 +41,12 @@ export type ShortKit = {
 /** يُكتب في الوصف ويُستبدل بتوقيت الفصول الحقيقي (يتغير بعد تسجيل الصوت). */
 export const CHAPTERS_TOKEN = "{{الفصول}}";
 /** Chapter lines from the real assembled timings when available, else the plan; never past the end (D36). */
-export const chaptersText = (plan: Plan, media?: EpisodeMedia, channel?: ChannelInfo, real?: RealTimings) =>
-  ["فصول الحلقة:", ...chapterTimeline(plan, media, channel, real).starts.map((s) => `${clock(s.start)} ${s.title}`)].join("\n");
+export const chaptersText = (plan: Plan, media?: EpisodeMedia, channel?: ChannelInfo, real?: RealTimings) => {
+  const starts = chapterTimeline(plan, media, channel, real).starts;
+  // نص متصل أو قسم بلا عنوان: لا «فصول الحلقة» (لا سطر وقت بلا عنوان)
+  if (!starts.length || starts.some((s) => !s.title.trim())) return "";
+  return ["فصول الحلقة:", ...starts.map((s) => `${clock(s.start)} ${s.title}`)].join("\n");
+};
 export const resolveDescription = (desc: string, chapters: string) => desc.replace(CHAPTERS_TOKEN, chapters);
 
 export type PublishKit = { version: 1; generatedBy: "auto" | "claude" | "edited"; updatedAt: string; long: LongKit; shorts: ShortKit[] };
@@ -157,9 +162,10 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
     ...(fm.alt_titles ?? []).filter(Boolean).map((t, i) => ({ text: t, angle: ["زاوية التحدي", "زاوية الفضول", "زاوية الحل"][i] ?? "بديل" })),
   ];
 
+  const inThis = plan.chapters.slice(1, 4).map((c) => c.title.replace(/[؟?]$/, "").trim()).filter(Boolean);
   const description = [
     clip(hook, 140),
-    `في هذه الحلقة: ${plan.chapters.slice(1, 4).map((c) => c.title.replace(/[؟?]$/, "")).join("، ")}.`,
+    ...(inThis.length ? [`في هذه الحلقة: ${inThis.join("، ")}.`] : []),
     "",
     CHAPTERS_TOKEN,
     "",
@@ -173,8 +179,11 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  const shorts: ShortKit[] = plan.chapters.slice(0, 6).map((c) => {
-    const text = narr(c.number);
+  // مقاطع الشورتس من الخطة (plan.shorts) لا من عدد الأقسام (src/plan/shorts.ts)
+  const sceneById = new Map(plan.chapters.flatMap((ch) => ch.scenes).map((s) => [s.id, s]));
+  const shorts: ShortKit[] = shortSegments(plan, 6).segments.map((seg) => {
+    const c = { number: seg.n, title: seg.title };
+    const text = seg.sceneIds.map((id) => sceneById.get(id)?.narration ?? "").filter(Boolean).join(" ");
     const ss = sentences(text);
     const q = ss.find((s) => /[؟?]$/.test(s));
     const first = ss[0] ?? c.title;

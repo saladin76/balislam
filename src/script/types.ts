@@ -11,12 +11,20 @@ export type Block =
   | { kind: "cite"; ref: string; note?: string; line: number }
   | { kind: "bridge"; text: string; line: number };
 
+/**
+ * قسم إنتاجي داخلي («الفصل N · …» في السكريبت). الأقسام اختيارية: سكريبت بلا أي عنوان قسم نصٌّ متصل
+ * يُقرأ قسمًا ضمنيًا واحدًا (رقمه 1 وبلا عنوان، implicit) فتبقى معرّفات المشاهد c1-sN.
+ * عنوان القسم بيانات إنتاج: لا يُنطق ولا يُترجم ولا يظهر على الشاشة (src/script/divisions.ts).
+ */
 export type Chapter = {
-  /** الرقم المكتوب في العنوان */
+  /** الرقم المكتوب في العنوان (1 للقسم الضمني) */
   number: number;
+  /** العنوان بعد «·» إن كُتب؛ فارغ للقسم بلا عنوان وللقسم الضمني */
   title: string;
   line: number;
   blocks: Block[];
+  /** true: لم يكتب المؤلف أي عنوان قسم، والنص كله قسم واحد ضمني */
+  implicit?: boolean;
 };
 
 export type Citation = {

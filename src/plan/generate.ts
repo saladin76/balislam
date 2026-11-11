@@ -38,7 +38,8 @@ const parseOptions = (options: string[]): Record<string, string> => {
 export const defaultsFor = (template: string, narration: string, ctx: { title: string; chapterTitle: string; allow?: (id: string) => boolean }): Record<string, string> => {
   switch (template) {
     case "big-question":
-      return { question: questionIn(narration) ?? (ctx.chapterTitle.endsWith("؟") ? ctx.chapterTitle : ctx.title), highlight: "", element: "question-mark" };
+      // عنوان القسم بيانات إنتاج لا تُكتب على الشاشة (src/script/divisions.ts): السؤال من الجملة نفسها، وإلا عنوان الحلقة
+      return { question: questionIn(narration) ?? ctx.title, highlight: "", element: "question-mark" };
     case "character-talk":
       return { line: firstSentence(narration), variant: "narrator-m", pose: "stand", element: "", side: "" };
     case "summary":
@@ -57,7 +58,7 @@ export const defaultsFor = (template: string, narration: string, ctx: { title: s
       // الرسمة من قائمة المعاني المراجَعة لكلمة منطوقة (وعند الشك لا تُرسم)، والنقاط كلمات الجمل المحورية تُكتب لحظة نطقها
       const beats = narration.trim() ? beatsFor(narration, 3, ctx.allow) : [];
       const drawn = beats.find((b) => isCuratedBeat(b) && !b.draw.startsWith("person") && b.draw !== "people");
-      return { title: ctx.chapterTitle, keyword: "", element: drawn?.draw ?? "", items: beats.filter((b) => isCuratedBeat(b) || b.draw !== "question-mark").map((b) => b.label).filter((l, i, a) => l && a.indexOf(l) === i).join("\n"), board: "white" };
+      return { title: "", keyword: "", element: drawn?.draw ?? "", items: beats.filter((b) => isCuratedBeat(b) || b.draw !== "question-mark").map((b) => b.label).filter((l, i, a) => l && a.indexOf(l) === i).join("\n"), board: "white" };
     }
     case "alley-tale":
     case "road-journey":
@@ -300,6 +301,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     ...(previous?.tone ? { tone: previous.tone } : isTone((fm as { tone?: string }).tone) ? { tone: (fm as { tone?: string }).tone } : {}),
     ...(previous?.intro === false ? { intro: false } : {}),
     ...(engineDefaults?.length ? { engineDefaults: [...engineDefaults] } : {}),
+    // مقاطع الشورتس اختيار المالك في الخطة (src/plan/shorts.ts)؛ لا يُعاد اشتقاقها من الأقسام
+    ...(previous?.shorts ? { shorts: previous.shorts.map((x) => ({ ...x })) } : {}),
     chapters,
   };
 };

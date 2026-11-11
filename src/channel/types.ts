@@ -76,8 +76,8 @@ export type ChannelConfig = {
    * مكتبة القناة: ما يستبعده صاحب القناة منها لأنه لا يناسب هويتها (أداة حديثة في قناة تاريخ، مكان برسومات قديمة…).
    * خاص بهذه القناة وحدها؛ والملفات تبقى في المحرك المشترك لبقية القنوات.
    */
-  /** قواعد السكريبت الخاصة بالقناة: fixedChapters=false عدد الفصول وطولها حر، practicalStep=false بلا «الخطوة العملية» */
-  script?: { fixedChapters?: boolean; practicalStep?: boolean; /** false: عنوان الفصل أعلى المشهد بلا رقمه (لا أرقام على الشاشة لا تُنطق) */ chapterNumbers?: boolean; /** false: الترجمة على الشاشة بلا تشكيل، ونص النطق المشكول محفوظ في السكريبت وtashkeel.md (زبدة الكتب) */ captionTashkeel?: boolean };
+  /** قواعد السكريبت الخاصة بالقناة: الأقسام اختيارية ما لم تُطلب fixedChapters=true، practicalStep=false بلا «الخطوة العملية» */
+  script?: { /** true فقط: عدد الأقسام (الفصول) وطولها مفروضان من config.json؛ غير ذلك الأقسام اختيارية 0..N (src/script/divisions.ts) */ fixedChapters?: boolean; /** true فقط: عنوان القسم يظهر شارةً أعلى المشهد؛ افتراضيًا لا يظهر (بيانات إنتاج) */ divisionTitlesOnScreen?: boolean; practicalStep?: boolean; /** false: عنوان الفصل أعلى المشهد بلا رقمه (لا أرقام على الشاشة لا تُنطق) */ chapterNumbers?: boolean; /** false: الترجمة على الشاشة بلا تشكيل، ونص النطق المشكول محفوظ في السكريبت وtashkeel.md (زبدة الكتب) */ captionTashkeel?: boolean };
   /**
    * عرض الآيات في القناة. style «page»: صفحة رَقّ هادئة بلا زخارف ولا رموز بجوار كلام الله؛
    * reveal «lines»: تُكشف الآية مقطعًا مقطعًا بترتيبها على مدى التلاوة (قرار صاحب القناة: حرمة النص قبل نسبة الحركة).

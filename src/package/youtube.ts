@@ -3,6 +3,7 @@ import { parseScript } from "../script/parse";
 import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import { langPack } from "../i18n/packs";
 import { chapterTimeline, type RealTimings } from "./chapterTimes";
+import { shortSegments } from "../plan/shorts";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
 import { channelInfo, defaultChannel, type ChannelConfig } from "../channel/types";
@@ -59,6 +60,8 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   const parsed = parseScript(script);
   const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
   const starts = chapterTimeline(plan, media, channelInfo(channel), real).starts;
+  // فصول الوصف من الأقسام المعنونة وحدها، ولا فصول لنص متصل أو قسم بلا عنوان (لا سطر «0:00» فارغ)
+  const titled = starts.every((s) => s.title.trim()) ? starts : [];
   const hook = plan.chapters[0]?.scenes.find((s) => s.narration)?.narration ?? "";
   const step = parsed.practicalStep?.text ?? "";
   const L = langPack(plan.lang ?? channel.language);
@@ -71,8 +74,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
   const description = [
     hook,
     "",
-    L.strings.descChapters,
-    ...starts.map((s) => `${clock(s.start)} ${s.title}`),
+    ...(titled.length ? [L.strings.descChapters, ...titled.map((s) => `${clock(s.start)} ${s.title}`)] : []),
     "",
     step ? `${L.strings.practicalStep}: ${step}` : "",
     "",
@@ -86,12 +88,15 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
     .join("\n")
     .replace(/\n{3,}/g, "\n\n");
 
-  const shorts = plan.chapters.slice(0, shortsCount).map((c, i) => {
-    const line = c.scenes.find((s) => s.narration)?.narration ?? "";
+  // مقاطع الشورتس من الخطة (plan.shorts) لا من عدد الأقسام (src/plan/shorts.ts)
+  const byId = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s]));
+  const shorts = shortSegments(plan, shortsCount).segments.map((seg) => {
+    const line = seg.sceneIds.map((id) => byId.get(id)?.narration ?? "").find(Boolean) ?? "";
+    const title = seg.title || line;
     return [
-      `### الشورت ${i + 1} · الفصل ${c.number}`,
+      `### الشورت ${seg.n}${seg.chapter !== undefined ? ` · الفصل ${seg.chapter}` : ` · ${seg.sceneIds[0]} – ${seg.sceneIds.at(-1)}`}`,
       "",
-      `**العنوان:** ${c.title} | ${channel.name}`,
+      `**العنوان:** ${title} | ${channel.name}`,
       "",
       "**الوصف:**",
       "",

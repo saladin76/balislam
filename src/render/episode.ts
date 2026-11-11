@@ -10,6 +10,7 @@ import { rename, stat, unlink } from "node:fs/promises";
 import { RenderInternals, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, regeneratePlan } from "../plan/io";
+import { segmentPlan } from "../plan/shorts";
 import { prepareRenderMedia, studioMediaNamespace } from "../plan/collect";
 import { defaultRenderMediaRoot } from "../plan/renderStage";
 import { emptyMedia, type EpisodeMedia } from "../plan/media";
@@ -25,6 +26,11 @@ export type RenderEpisodeOptions = {
   orientation: Orientation;
   /** فصل واحد فقط (للشورت) */
   chapter?: number;
+  /**
+   * شورت بمقطع يختاره المالك (plan.shorts، src/plan/shorts.ts): المشاهد وحدها تُرندر قسمًا واحدًا بلا عنوان،
+   * وكل البوابات تُفحص على الخطة كاملة كما هي.
+   */
+  segment?: { sceneIds: string[] };
   outFile?: string;
   /** master لكل ما يُنشر (4K)، وpreview للمعاينات (الافتراضي) */
   quality?: Quality;
@@ -187,7 +193,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const channel = loadChannel();
   const timingMode = opts.scenePreview ? "scene-preview" as const
     : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
-  const inputProps = { plan, orientation: opts.orientation, chapter: opts.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
+  const shown = opts.segment ? segmentPlan(plan, { n: 1, title: "", sceneIds: opts.segment.sceneIds }) : { plan, chapter: opts.chapter };
+  const inputProps = { plan: shown.plan, orientation: opts.orientation, chapter: shown.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
     ...(opts.draftMarks?.pendingRecitation.length ? { draftMarks: { pendingRecitation: opts.draftMarks.pendingRecitation } } : {}) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = QUALITY[opts.quality ?? "preview"];

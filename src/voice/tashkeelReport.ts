@@ -21,6 +21,15 @@ export type TashkeelReport = {
   ok: boolean;
   gaps: TashkeelGap[];
   ambiguous: TashkeelAmbiguity[];
+  /** كل كلمات التعليق المنطوقة في المشاهد المفحوصة (قبل الاستبعاد)؛ words = spoken − المستبعد */
+  spoken?: number;
+  /**
+   * ما لا يدخل المقام ولماذا: حروف لا يلتبس نطقها وجاءت بلا تشكيل (PLAIN_OK، بعددها لكل حرف)،
+   * ورموز بلا حرف عربي (أرقام، علامات، لاتينية).
+   */
+  excluded?: { plain: number; plainWords: Record<string, number>; nonArabic: number; nonArabicSamples: string[] };
+  /** مشاهد لا تدخل الفحص أصلًا (تُملأ في generate.ts): الآيات (تلاوة بشرية)، والصامتة، والمُدارة جملةً جملة */
+  skipped?: { verseScenes: number; silentScenes: number; managedScenes: number };
 };
 
 export const TASHKEEL = { required: true, minCoverage: 0.98, ...((config as { tashkeel?: { required?: boolean; minCoverage?: number } }).tashkeel ?? {}) };
@@ -60,6 +69,10 @@ export const tashkeelReport = (scenes: { id: string; narration: string }[], idx:
 
   let words = 0;
   let covered = 0;
+  let spoken = 0;
+  let nonArabic = 0;
+  const nonArabicSamples: string[] = [];
+  const plainWords: Record<string, number> = {};
   const gaps: TashkeelGap[] = [];
   const amb = new Map<string, TashkeelAmbiguity>();
   for (const sc of scenes) {
@@ -67,11 +80,16 @@ export const tashkeelReport = (scenes: { id: string; narration: string }[], idx:
     const v = vowelize(ws, idx);
     const missing: string[] = [];
     ws.forEach((w, i) => {
+      spoken++;
       const c = core(w);
-      if (!ARABIC.test(c)) return;
+      if (!ARABIC.test(c)) {
+        nonArabic++;
+        if (nonArabicSamples.length < 8 && !nonArabicSamples.includes(w)) nonArabicSamples.push(w);
+        return;
+      }
       const n = normWord(c);
       if (say.has(c)) return void (words++, covered++);
-      if (PLAIN_OK.has(n) && !MARK.test(c)) return;
+      if (PLAIN_OK.has(n) && !MARK.test(c)) return void (plainWords[n] = (plainWords[n] ?? 0) + 1);
       words++;
       const got = v[i];
       // الكلمة مشكولة في السكريبت نفسه، أو لها نظير مشكول في الملف
@@ -89,7 +107,27 @@ export const tashkeelReport = (scenes: { id: string; narration: string }[], idx:
   const coverage = words ? covered / words : 1;
   const file = Boolean(idx);
   const ok = (file || !TASHKEEL.required) && coverage >= TASHKEEL.minCoverage - 1e-9;
-  return { file, words, covered, coverage, min: TASHKEEL.minCoverage, ok, gaps, ambiguous: [...amb.values()] };
+  const plain = Object.values(plainWords).reduce((a, b) => a + b, 0);
+  return { file, words, covered, coverage, min: TASHKEEL.minCoverage, ok, gaps, ambiguous: [...amb.values()],
+    spoken, excluded: { plain, plainWords, nonArabic, nonArabicSamples } };
+};
+
+/**
+ * سطر المقام كاملًا: «مفحوصة X من Y كلمة منطوقة، مستبعدة Z: …»، حتى لا يُقرأ «X من X» على أنه عدد كلمات النص كله.
+ */
+export const tashkeelDenominatorLine = (r: TashkeelReport): string => {
+  const ex = r.excluded;
+  if (r.spoken === undefined || !ex) return `مفحوصة ${r.words} كلمة`;
+  const z = r.spoken - r.words;
+  const parts: string[] = [];
+  if (ex.plain) {
+    const top = Object.entries(ex.plainWords).sort((a, b) => b[1] - a[1]).map(([w, n]) => `${w} ${n}`).join("، ");
+    parts.push(`${ex.plain} حرفًا لا يلتبس نطقه بلا تشكيل (${top})`);
+  }
+  if (ex.nonArabic) parts.push(`${ex.nonArabic} رمزًا بلا حرف عربي (${ex.nonArabicSamples.join(" ")})`);
+  const sk = r.skipped;
+  const outside = sk ? [sk.verseScenes ? `${sk.verseScenes} مشهد آية (تلاوة بشرية لا صوت مولَّد)` : "", sk.silentScenes ? `${sk.silentScenes} مشهدًا صامتًا` : "", sk.managedScenes ? `${sk.managedScenes} مشهدًا صوته جملةً جملة (يُفحص في «الجمل»)` : ""].filter(Boolean) : [];
+  return `مفحوصة ${r.words} من ${r.spoken} كلمة منطوقة، مستبعدة ${z}${parts.length ? `: ${parts.join("؛ ")}` : ""}${outside.length ? `. وخارج الفحص: ${outside.join("، ")}` : ""}.`;
 };
 
 /** سطر واحد يشرح سبب المنع. */

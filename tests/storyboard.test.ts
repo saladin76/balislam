@@ -100,10 +100,15 @@ describe("ستوري بورد الفيديو قبل تنفيذه", () => {
     expect(shotElements(b!)).toEqual(["stone-tools", "ruins-columns"]);
   });
 
-  it("عنوان الفصل أعلى المشهد بلا رقم في القناة التي لا تُظهر رقمًا لا يُنطق", () => {
+  it("عنوان القسم لا يظهر على الشاشة افتراضيًا، وبطلب القناة الصريح بلا رقم أو برقمه", () => {
     const ch = { number: 3, title: "خلق آدم وتعليمه" };
-    expect(chapterEyebrow({ script: { chapterNumbers: false } }, "الفصل", ch)).toBe("خلق آدم وتعليمه");
-    expect(chapterEyebrow(undefined, "الفصل", ch)).toBe("الفصل 3 · خلق آدم وتعليمه");
+    expect(chapterEyebrow(undefined, "الفصل", ch)).toBeUndefined();
+    expect(chapterEyebrow({ script: { chapterNumbers: false } }, "الفصل", ch)).toBeUndefined();
+    expect(chapterEyebrow({ script: { divisionTitlesOnScreen: true, chapterNumbers: false } }, "الفصل", ch)).toBe("خلق آدم وتعليمه");
+    expect(chapterEyebrow({ script: { divisionTitlesOnScreen: true } }, "الفصل", ch)).toBe("الفصل 3 · خلق آدم وتعليمه");
+    // قسم بلا عنوان أو ضمني: لا «الفصل 1 · » فارغ أبدًا
+    expect(chapterEyebrow({ script: { divisionTitlesOnScreen: true } }, "الفصل", { number: 1, title: "" })).toBeUndefined();
+    expect(chapterEyebrow({ script: { divisionTitlesOnScreen: true } }, "الفصل", { number: 1, title: "س", implicit: true })).toBeUndefined();
   });
 });
 

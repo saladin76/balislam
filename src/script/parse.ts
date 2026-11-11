@@ -78,7 +78,21 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
     issues.push({ level: "error", code: "frontmatter-missing", message: "السكريبت يجب أن يبدأ بترويسة الحلقة بين سطرين ---.", line: 1 });
   }
 
+  // نص متصل بلا أقسام: إن لم يكتب المؤلف أي عنوان «الفصل N» فالنص بعد الترويسة قسم ضمني واحد (رقمه 1 وبلا عنوان)،
+  // ولا يُفرض عليه عنوان. إن وُجد عنوان قسم واحد على الأقل بقي السلوك كما كان حرفيًا (النص قبل أول عنوان تنبيه).
+  const isChapterHeading = (l: string) => {
+    const h = l.trim().match(/^##\s+(.*)$/);
+    if (!h) return false;
+    const t = (h[1] ?? "").trim();
+    return CHAPTER_HEADING.test(t) || CHAPTER_HEADING.test(bareTashkeel(t));
+  };
+  const implicit = !lines.slice(i).some(isChapterHeading);
   let section: Section = { type: "preamble" };
+  if (implicit) {
+    const chapter: Chapter = { number: 1, title: "", line: i + 1, blocks: [], implicit: true };
+    chapters.push(chapter);
+    section = { type: "chapter", chapter };
+  }
   let paragraph: { text: string[]; line: number } | null = null;
 
   const flushParagraph = () => {
@@ -136,7 +150,7 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
         issues.push({
           level: "error",
           code: "heading-unknown",
-          message: `عنوان غير معروف «${title}». العناوين المسموحة: «الفصل N · العنوان»، «الاستشهادات»، «الخطوة العملية».`,
+          message: `عنوان غير معروف «${title}». العناوين المسموحة: «الفصل N» أو «الفصل N · العنوان» (قسم إنتاجي اختياري)، «الاستشهادات»، «الخطوة العملية».`,
           line: lineNo,
         });
         section = { type: "unknown" };
@@ -202,6 +216,12 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
     paragraph.text.push(line);
   }
   flushParagraph();
+  // القسم الضمني بلا أي محتوى (سكريبت فارغ) لا يُعد قسمًا
+  if (implicit && chapters[0] && chapters[0].blocks.length === 0) chapters.length = 0;
+  else if (implicit && chapters[0]) {
+    const first = chapters[0].blocks[0];
+    if (first) chapters[0].line = first.line;
+  }
 
   return { file, frontmatter, frontmatterLine, chapters, citations, hasCitationsSection, practicalStep: step, parseIssues: issues };
 };
