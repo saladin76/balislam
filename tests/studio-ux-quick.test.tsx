@@ -66,12 +66,15 @@ describe("step ١: the board viewer", () => {
 
   it("no navigation to step ٢ from the storyboard before the preparation is approved", () => {
     const board = src("app/src/tabs/StoryboardPanel.tsx");
-    expect(board).not.toContain("onOpenScene");
+    // 11 Nov: the only way to step ٢ is the «تغيّر بعد التجهيز» list, which exists only after «اعتمد التجهيز».
+    expect(board.match(/onOpenScene/g)?.length).toBe(5);
+    expect(board).toContain("afterPreparation?.length && onOpenScene ? <AfterPreparationList");
     expect(board).toContain("setViewing(indexOf.get(s.id) ?? 0)");
     const app = src("app/src/App.tsx");
     const branch = app.slice(app.indexOf('tab === "storyboard" ? ('), app.indexOf('tab === "voice" ? ('));
     expect(branch).toContain("onEditScene=");
-    expect(branch).not.toContain('setTab("episode")');
+    expect(branch.match(/setTab\("episode"\)/g)?.length).toBe(1);
+    expect(branch).toContain('onOpenScene={(id) => { setViewSceneId(id); setTab("episode"); }}');
     expect(branch).toContain('setTab("script")');
     // And step ٢ itself is a LockedStep until «اعتمد التجهيز».
     expect(lockedStep("episode", ledger(false))).toBe(1);

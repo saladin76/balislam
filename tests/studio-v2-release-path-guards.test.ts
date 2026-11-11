@@ -9,7 +9,7 @@ const text = (file: string) => readFileSync(path.join(root, file), "utf8");
 describe("Studio V2 release-path safety regressions", () => {
   it("rejects an unreviewed or stale storyboard when the new scene-first workflow is approved", () => {
     const service = text("src/studio/sceneService.ts");
-    expect(service).toContain('import { loadStoryboard, storyboardStatus } from "../plan/storyboard"');
+    expect(service).toContain('import { loadStoryboard, recordBoardsAfterPreparation, storyboardStatus } from "../plan/storyboard"');
     expect(service).toContain("storyboardStatus(plan, boardRecord)");
     expect(service).toContain("boardStatus.ok && Boolean(boardStatus.audit?.note?.trim())");
     expect(service).toContain('if (!current.planReady)');

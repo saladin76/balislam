@@ -420,13 +420,10 @@ export const balApi = (): Plugin => ({
             try { return send(res, 200, await sc.recordSeamCheck(ep, body ?? {})); } catch (error) { return refuse(error); }
           }
 
-          // B2: from the sentence row in step ٢, the changed board of ONE scene (src/studio/preparation.ts).
-          if (parts[2] === "approve-scene-board" && parts.length === 3) {
-            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
-            const { approveSceneBoard } = await load("/src/studio/preparation.ts");
-            const body = await readBody(req);
-            try { return send(res, 200, await approveSceneBoard(ep, body)); } catch (error) { return refuse(error); }
-          }
+          // 11 Nov: re-approving a changed board / an edited scene is gone (D60/D65/D66 superseded): a change after
+          // «اعتمد التجهيز» is carried forward by the ledger itself and only its scenes re-open in step ٢.
+          if (parts[2] === "approve-scene-board" && parts.length === 3)
+            return send(res, 410, { error: "لا اعتماد ثانٍ للوحات بعد التجهيز: التعديل يُسجَّل وحده ويُراجَع مشهده في «٢ المشاهد»." });
 
           if (parts[2] === "scene-prepare" && parts.length === 3) {
             const key = `${ch}/${ep}`;

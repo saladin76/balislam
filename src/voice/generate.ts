@@ -305,15 +305,17 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
   // لا يُصرف رصيد على كلمات سيخمّن النموذج نطقها
   if (todo.length && !report.tashkeel.ok && !opts.testOnlySkipGates) throw new Error(tashkeelBlockMessage(report.tashkeel));
   // ولا على مشهد لم يُعتمد في الستوري بورد (المبدأ الثالث: لا صوت قبل اعتماد ستوري بورد الفيديو)
+  // Script and storyboard approval: the scene-first ledger is the only authority (unified engine). Read first: a board
+  // changed after «اعتمد التجهيز» is recorded by this read (11 Nov), and a scene blocked by its verse text or a script
+  // error refuses here.
+  if (todo.length && !opts.testOnlySkipGates) {
+    const { requireScenesProducible } = await import("../studio/sceneService");
+    await requireScenesProducible(episode, [...new Set(todo.map(sceneOf))]);
+  }
   if (todo.length && !opts.testOnlySkipGates) {
     const sb = storyboardStatus(plan, await loadStoryboard(scriptPath));
     const blocked = unapprovedScenes(sb, [...new Set(todo.map(sceneOf))]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-  }
-  // Script and storyboard approval: the scene-first ledger is the only authority (unified engine).
-  if (todo.length && !opts.testOnlySkipGates) {
-    const { requireScriptAndStoryboardApproved } = await import("../studio/sceneService");
-    await requireScriptAndStoryboardApproved(episode);
   }
   // Order: storyboard signoff, then explicit tone decisions, then paid voice generation.
   if (todo.length && report.missingTones.length && !opts.testOnlySkipGates)

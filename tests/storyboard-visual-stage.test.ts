@@ -19,9 +19,12 @@ describe("Storyboard-first visual approval, independent of old silent motion che
     expect(result.ok).toBe(true);
     expect(result).not.toHaveProperty("motionApproved");
   });
-  it("refuses signing off without a real human review note", () => {
-    expect(checkVisualStoryboardSignoff(basePlan(), "I clicked OK").ok).toBe(false);
-    expect(checkVisualStoryboardSignoff(basePlan(), null).ok).toBe(false);
+  // 11 Nov (owner): the note is optional and one line, no minimum; «راجعته بنفسي» is the confirmation.
+  it("accepts no note or a short one; refuses several lines", () => {
+    expect(checkVisualStoryboardSignoff(basePlan(), "I clicked OK").ok).toBe(true);
+    expect(checkVisualStoryboardSignoff(basePlan(), null).ok).toBe(true);
+    expect(checkVisualStoryboardSignoff(basePlan(), "a\nb").ok).toBe(false);
+    expect(checkVisualStoryboardSignoff(basePlan(), 12).ok).toBe(false);
   });
   it("keeps a missing Quran verse as a content approval blocker without blocking PDF draft review", () => {
     const result = checkVisualStoryboardSignoff(basePlan(""), note);

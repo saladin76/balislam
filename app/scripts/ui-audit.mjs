@@ -51,9 +51,12 @@ const ledger = (state) => (j) => {
   if (!j || !j.script || state === "prep") return j;
   const ids = j.scenes.map((s) => s.id);
   if (state === "changed") {
-    // P-05/D60: boards edited after «اعتمد التجهيز» — the board record is stale for three of them
-    j.script.approved = true; j.storyboard.approved = true;
-    j.boards = { current: false, changed: [ids[12] ?? ids[0], ids[14] ?? ids[1], ids[25] ?? ids[2]].filter(Boolean) };
+    // 11 Nov: boards edited after «اعتمد التجهيز» — carried forward by the ledger; three scenes re-open in step ٢ (no re-approval)
+    j.script.approved = true; j.storyboard.approved = true; j.boards = { current: true, changed: [] };
+    const re = [ids[12] ?? ids[0], ids[14] ?? ids[1], ids[25] ?? ids[2]].filter(Boolean);
+    const at = new Date().toISOString();
+    j.afterPreparation = { at, script: false, scenes: re.map((id) => ({ id, what: ["board", "text"] })) };
+    j.scenes.forEach((s) => { if (re.includes(s.id)) { s.approved = false; s.status = "needs_revision"; s.afterPreparation = { at, what: ["board", "text"], script: false }; } });
     return j;
   }
   j.script.approved = true; j.storyboard.approved = true; j.boards = { current: true, changed: [] };
@@ -81,7 +84,7 @@ const ledger = (state) => (j) => {
 };
 const preparation = (state) => (j) => {
   if (!j || state !== "changed") return j;
-  return { ...j, scriptErrors: 0, versesMissing: [], boardsRecorded: false, boardsReviewedBefore: true, changedBoards: j.__ids ?? j.changedBoards ?? [] };
+  return { ...j, scriptErrors: 0, versesMissing: [], boardsRecorded: true };
 };
 const sentences = (state) => (j) => {
   if (!j || !j.scenes || state !== "scenes") return j;

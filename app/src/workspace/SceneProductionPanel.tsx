@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
 import { createPortal } from "react-dom";
-import { api, type SceneProductionRead, type SceneOwnerAction, type ScenePrepareRead } from "../api";
+import { afterPreparationLine, api, type SceneProductionRead, type SceneOwnerAction, type ScenePrepareRead } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
 import type { Plan } from "../../../src/plan/types";
 import type { ChannelInfo } from "../../../src/channel/types";
@@ -15,7 +15,6 @@ import "../shell/screens-s3.css";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
 import { SentencesPanel } from "./SentencesPanel";
-import { SceneBoardApproval } from "./SceneBoardApproval";
 import { clockAr, sceneName, seamName } from "./sceneNames";
 import { sceneSeconds } from "../../../src/plan/duration";
 import { Icon } from "../ui/icons";
@@ -51,6 +50,8 @@ type Props = {
   /** طلب فتح مشهد بعينه في المحرر (من الستوري بورد أو الصوت) */
   requestedSceneId?: string;
   onCloseEditor?: () => void;
+  /** 11 Nov: show this scene for review (from «تغيّر بعد التجهيز» on top of the storyboard), not its editor. */
+  viewSceneId?: string;
   /** صوت المشهد الحالي: الملفات الحالية، ومفاتيح التوليد، وحفظ الخطة (لتغيير النبرة) */
   media?: EpisodeMedia;
   onMediaChange?: (media: EpisodeMedia) => void;
@@ -116,7 +117,7 @@ const noop = () => {};
  */
 export const SceneProductionPanel: React.FC<Props> = ({
   episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onOpenPreparation, onUpdated,
-  plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
+  plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, viewSceneId, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
   initialRead, onPlanFlush, onPlanReplaced, view = "one", onView, thumb, finalView, onFinalView,
 }) => {
   const [data, setData] = useState<SceneProductionRead | null>(initialRead ?? null);
@@ -190,6 +191,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   useEffect(() => {
     if (editor && requestedSceneId) setEditing(requestedSceneId);
   }, [requestedSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (viewSceneId) setViewId(viewSceneId); }, [viewSceneId]);
 
   const renderCurrentScene = async (sceneId: string, sourceSha256: string) => {
     setPending(true);
@@ -432,9 +434,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
   }
 
   // Before «اعتمد التجهيز» (step ١) step ٢ is one line and one button back; never a disabled action bar.
-  // D66: one scene edited after the approval keeps step ٢ open (that scene is re-approved here, beside its sentences).
-  const editOpen = Boolean(data?.sceneEdit?.open);
-  if (sceneMode && data && (!data.script.approved || !data.storyboard.approved) && !editOpen) {
+  // After it (11 Nov) a change is carried forward by the ledger, so this never shows again for the same episode.
+  if (sceneMode && data && (!data.script.approved || !data.storyboard.approved)) {
     return (
       <section className="stage s3 s3-gated" aria-label="المشاهد قبل اعتماد التجهيز">
         <div className="s3-gate">
@@ -594,16 +595,17 @@ export const SceneProductionPanel: React.FC<Props> = ({
               <p className="sp-hint" role="status">{noteInboxLine(scene.correction.inbox)}</p>
             ) : null}
             {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوت الراوي.</p> : null}
+            {/* 11 Nov: a quiet line, never a second approval: the scene is reviewed with «اعتمد المشهد» like any other */}
+            {shownServer?.afterPreparation ? <p className="sp-hint s3-afterprep" role="note">{afterPreparationLine(shownServer.afterPreparation.what)}</p> : null}
+            {shownServer?.blocked?.length || (shownServer && !shownServer.approved && data?.episodeBlocked?.length) ? (
+              <p className="sp-hint s3-blocked" role="alert">لا يُنتج قبل إصلاح: {[...(shownServer.blocked ?? []), ...(data?.episodeBlocked ?? [])].join(" — ")}</p>
+            ) : null}
             {shownServer?.recitationPending ? (
               <p className="sp-hint" role="note">التلاوة تُضاف لاحقًا: مسودة هذه الآية صامتة مكان التلاوة، واعتمادها الآن «مشروط بالتلاوة» يكمل الترتيب؛ وحين ترفع التلاوة في الخطوة ٣ يُفتح هذا المشهد وحده لمراجعة سريعة. التجميع والنسخة النهائية لا يُفتحان قبلها.</p>
             ) : null}
             {!hit?.scene.narration.trim() && hit?.scene.template !== "verse-card" ? <p className="s3-narr">بلا تعليق صوتي</p> : null}
           </div>
 
-          {data && shownId ? (
-            <SceneBoardApproval episodeId={episodeId} channelId={channelId} sceneId={shownId} sceneLabel={sceneName(order, shownId)}
-              data={data} onApproved={(r) => { setData(r); onUpdated?.(); }} onOpenPreparation={onOpenPreparation} />
-          ) : null}
 
           {hit?.scene.narration.trim() || hit?.scene.template === "verse-card" ? (
             <SentencesPanel variant="paragraph" episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}

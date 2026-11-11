@@ -214,7 +214,8 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     // ── 2. Storyboard (visual sign-off record, then the owner's ledger decision) ───────────────
     s = await state();
     expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: s.storyboard.sha256 })).status).toBe(409); // boards not reviewed
-    expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "قصير" })).status).toBe(400);
+    // 11 Nov: the note is optional (no minimum) but one line.
+    expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "سطر\nآخر" })).status).toBe(400);
     const board = await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت اللوحات الثلاث بصريًا: النص والتكوين والتوقيت مطابقة للسكريبت." });
     expect(board.status, JSON.stringify(board.body)).toBe(200);
     expect(board.body.status.ok).toBe(true);
@@ -396,13 +397,11 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     expect((await call("PUT", `episodes/${EP}/status`, { status: { published: { youtube: "https://youtu.be/y" } } })).status).toBe(409);
     // The old Master bytes can never be re-approved against the new inputs.
     expect((await decide({ action: "approve-master", expectedSha256: masterSha, confirmedWatched: true })).status).toBe(409);
-    // The changed board must be re-reviewed, then only the edited scene is produced again.
-    expect((await render("c1-s2", after.scenes[1].sourceSha256)).status).toBe(409);
-    expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت لوحة المشهد الثاني بعد تعديل نصه وبقية اللوحات كما هي." })).status).toBe(200);
-    const reboard = await state();
-    expect(reboard.storyboard.approved).toBe(false);
-    expect(reboard.scenes.map((x: any) => x.status)).toEqual(["approved", "needs_revision", "approved"]);
-    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: reboard.storyboard.sha256 })).status).toBe(200);
+    // 11 Nov: no second approval of the preparation: the ledger recorded the changed board itself (signed system
+    // event); only the edited scene is produced and reviewed again.
+    expect(after.storyboard.approved && after.boards.current).toBe(true);
+    expect(after.scenes[1].afterPreparation.what).toContain("board");
+    expect(after.recentHistory.filter((h: any) => h.action === "update-after-preparation" && h.by === "system")).toHaveLength(1);
     await produceAndApprove("c1-s2");
     const healed = await state();
     expect(healed.progress).toMatchObject({ approvedScenes: 3, canAssemble: true, assemblyApproved: false, publishAllowed: false });

@@ -277,12 +277,9 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect(after.prepared).toEqual({ ready: 2, total: 3 });
     // The stale file can never be submitted.
     expect((await decide({ action: "submit-scene", sceneId: "c1-s2", expectedSha256: after.scenes[1].sourceSha256 })).status).toBe(409);
-    // The changed board is re-reviewed first; until then nothing is prepared for it.
-    const blocked = await prepareAll();
-    expect(blocked.status).toBe(409);
-    expect((await call("PUT", `episodes/${EP}/storyboard`, { action: "approve", auditNote: "راجعت لوحة المشهد الثاني بعد تعديل نصه وبقية اللوحات كما هي." })).status).toBe(200);
-    const reboard = await state();
-    expect((await decide({ action: "approve-storyboard", reviewed: true, expectedSha256: reboard.storyboard.sha256 })).status).toBe(200);
+    // 11 Nov: the changed board was recorded by the ledger itself (no second approval of the preparation).
+    expect(after.storyboard.approved && after.boards.current).toBe(true);
+    expect(after.scenes[1].afterPreparation.what).toContain("board");
     // Re-queue: only the edited scene is rendered again.
     const again = await prepareAll();
     expect(again.body.job).toMatchObject({ status: "done", rendered: ["c1-s2"], failed: [] });
@@ -292,6 +289,6 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     const done = await state();
     expect(done.progress).toMatchObject({ approvedScenes: 3, canAssemble: true, assemblyApproved: false, publishAllowed: false });
     expect((await ledger()).history.map((h: any) => h.action)).toEqual(["approve-script", "approve-storyboard",
-      "submit-scene", "approve-scene", "approve-storyboard", "submit-scene", "approve-scene", "submit-scene", "approve-scene"]);
+      "submit-scene", "approve-scene", "update-after-preparation", "submit-scene", "approve-scene", "submit-scene", "approve-scene"]);
   }, 300_000);
 });

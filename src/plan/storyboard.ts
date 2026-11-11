@@ -111,7 +111,7 @@ export const approveStoryboard = async (scriptPath: string, plan: Plan, audit?: 
  * The earlier note is kept in `history`. Refuses when nothing was recorded before (that is the full review).
  */
 export const recordChangedBoards = async (scriptPath: string, plan: Plan, audit: { note: string; inputHash?: string },
-  /** Record only these changed boards (B2: «اعتمد لوحة هذا المشهد» from step ٢); the others keep their record. */
+  /** Record only these changed boards; the others keep their record. */
   only?: string[]): Promise<{ record: StoryboardRecord; scenes: string[] }> => {
   const missing = versesMissingText(plan);
   if (missing.length) throw new Error(`لا تُعتمد اللوحات وفيها ${missing.length} آية بلا نصها (${missing.slice(0, 6).join("، ")}${missing.length > 6 ? "…" : ""}). أضف نص الآيات كاملًا داخل السكريبت وراجعه قبل الاعتماد.`);
@@ -135,6 +135,35 @@ export const recordChangedBoards = async (scriptPath: string, plan: Plan, audit:
   return { record, scenes: changed };
 };
 
+/**
+ * «تحديث بعد التجهيز» (owner decision 11 Nov, supersedes the re-approval of D60/D65/D66): once «اعتمد التجهيز» was
+ * given, a board that changed afterwards (a sentence edit, a verse/citation format change made in a chat…) is recorded
+ * by the system itself, never by a second owner approval. Only the changed/new boards are re-recorded (the others keep
+ * their fingerprint byte for byte, so their scenes' inputs do not change); the earlier note goes to `history`.
+ * The owner reviews exactly the scenes this re-opens, in step ٢, like any other scene. The ledger's signed system event
+ * (sceneService · carryForwardAfterPreparation) is what carries the approval; this file is the board record only.
+ * Unlike `recordChangedBoards` it never refuses a verse without its text: that scene's production is blocked instead.
+ */
+export const recordBoardsAfterPreparation = async (scriptPath: string, plan: Plan, at = new Date().toISOString()):
+  Promise<{ record: StoryboardRecord; scenes: string[] }> => {
+  const prev = await loadStoryboard(scriptPath);
+  if (!prev.audit?.note?.trim()) throw new Error("لم تُسجَّل مراجعة اللوحات من قبل: اعتمد التجهيز أولًا.");
+  const st = storyboardStatus(plan, prev);
+  const changed = [...st.changed, ...st.fresh];
+  const all = plan.chapters.flatMap((c) => c.scenes);
+  const record: StoryboardRecord = {
+    version: 1,
+    approvedAt: at,
+    audit: { note: "تحديث بعد التجهيز (سجّله النظام؛ تُراجَع مشاهده في «٢ المشاهد»)", at, scenes: changed },
+    history: [...(prev.history ?? []), prev.audit],
+    scenes: Object.fromEntries(all.flatMap((s) => st.scenes[s.id] === "approved"
+      ? (prev.scenes[s.id] ? [[s.id, prev.scenes[s.id]!]] : [])
+      : [[s.id, storyboardVisualHash(s)]])),
+  };
+  await writeJsonAtomic(storyboardFileFor(scriptPath), record);
+  return { record, scenes: changed };
+};
+
 /** سحب الاعتماد (يعيد الحلقة إلى «لم يُعتمد»). */
 export const revokeStoryboard = async (scriptPath: string): Promise<StoryboardRecord> => {
   const rec: StoryboardRecord = { version: 1, scenes: {} };
@@ -146,12 +175,12 @@ export const revokeStoryboard = async (scriptPath: string): Promise<StoryboardRe
 export const unapprovedScenes = (status: StoryboardStatus, ids?: string[]) => (ids ?? Object.keys(status.scenes)).filter((i) => status.scenes[i] !== "approved");
 
 /**
- * Why voice / the final file is refused for boards that are not recorded, and exactly where to fix it:
- * step ١ «التجهيز» (the storyboard opens first there). A board changed after the approval is listed at the
- * top of that screen with one button that re-approves only the changed boards.
+ * Why voice / the final file is refused for boards that are not recorded, and exactly where to fix it.
+ * Before «اعتمد التجهيز»: step ١. After it (11 Nov) a changed board is recorded by the system on the next ledger
+ * read and only its scene re-opens for review in step ٢; there is no second approval of boards.
  */
 export const storyboardBlockMessage = (ids: string[], status: StoryboardStatus) => {
   const list = ids.slice(0, 8).join("، ") + (ids.length > 8 ? "…" : "");
   if (status.approved === 0) return `لم يُعتمد التجهيز بعد (${list}). لا يُولَّد صوت ولا تُصنع النسخة النهائية قبله: افتح «١ التجهيز» في الاستوديو، راجع اللوحات والسكريبت، ثم اضغط «اعتمد التجهيز».`;
-  return `${ids.length === 1 ? "لوحة تغيّرت" : `${ids.length} لوحات تغيّرت`} بعد اعتماد التجهيز (${list}). لا يُولَّد صوتها ولا تُصنع النسخة النهائية حتى تُعتمد: افتح «١ التجهيز»، فاللوحات المتغيّرة في أعلاه، واضغط «اعتمد اللوحات المتغيّرة».`;
+  return `${ids.length === 1 ? "لوحة تغيّرت" : `${ids.length} لوحات تغيّرت`} بعد اعتماد التجهيز (${list}) ولم تُسجَّل بعد. افتح «٢ المشاهد» فيُسجّلها النظام ويُفتح مشهدها وحده للمراجعة، ثم أعد المحاولة.`;
 };

@@ -12,13 +12,13 @@ import { boardWords, shotElements, shotFrame, shotKind, shotText } from "../../.
 import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
-import { api, type CloudPreviewJob, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
+import { api, type AfterPreparationWhat, type CloudPreviewJob, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
 import { episodeLength } from "../../../src/plan/episodeLength";
 import { duration, lengthSource, num, sceneName, verseRef } from "../ui/format";
 import { BoardViewer, type BoardShot } from "./BoardViewer";
 import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
-import { BoardAuditLog, ChangedBoards, auditLogOnTop } from "./BoardAuditLog";
+import { AfterPreparationList, BoardAuditLog } from "./BoardAuditLog";
 import "../shell/screens-s12.css";
 
 const ar = (n: number) => num(n);
@@ -94,7 +94,10 @@ export const StoryboardPanel: React.FC<{
   onSigned?: () => void;
   /** Bumped after an owner decision elsewhere (the dock's «اعتمد التجهيز»): the board states are read again. */
   refreshKey?: number;
-}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, onSigned, refreshKey }) => {
+  /** 11 Nov: scenes re-opened by the latest «تحديث بعد التجهيز» (from the ledger), and the way to each in step ٢. */
+  afterPreparation?: { id: string; what: AfterPreparationWhat[] }[];
+  onOpenScene?: (id: string) => void;
+}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, onSigned, refreshKey, afterPreparation, onOpenScene }) => {
   const [viewing, setViewing] = useState<number | null>(null);
   const [citations, setCitations] = useState<ReviewItem[] | null>(null);
   useEffect(() => {
@@ -208,8 +211,8 @@ export const StoryboardPanel: React.FC<{
   const motion = info?.motion;
   const act = async (action: "approve" | "revoke") => {
     const auditNote = visualReviewNote.trim();
-    if (action === "approve" && (!visualReviewed || auditNote.length < 25)) {
-      setErr("الاعتماد هنا للـStoryboard المرئي فقط: افتح اللوحات كلها، ثم أكّد مشاهدتها واكتب إصدارها وملاحظة فعلية من 25 حرفًا على الأقل.");
+    if (action === "approve" && !visualReviewed) {
+      setErr("الاعتماد هنا للـStoryboard المرئي فقط: افتح اللوحات كلها، ثم أكّد مشاهدتها (الملاحظة اختيارية، سطر واحد).");
       return;
     }
     setBusy(true);
@@ -282,8 +285,8 @@ export const StoryboardPanel: React.FC<{
         {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
       </header>
 
-      {/* P-05: boards changed after the approval are listed first; the full log stays in «أدوات وتفاصيل» */}
-      {st && auditLogOnTop(st) ? <ChangedBoards st={st} name={(id) => sceneName(order, id)} onOpen={(id) => setViewing(indexOf.get(id) ?? 0)} /> : null}
+      {/* 11 Nov: what changed after «اعتمد التجهيز», informative; each scene opens in step ٢ (no re-approval here) */}
+      {afterPreparation?.length && onOpenScene ? <AfterPreparationList scenes={afterPreparation} name={(id) => sceneName(order, id)} onOpenScene={onOpenScene} /> : null}
 
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter s12-chapter">

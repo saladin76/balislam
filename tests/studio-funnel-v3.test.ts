@@ -205,7 +205,8 @@ describe("«اعتمد التجهيز»: one button, both ledger records in orde
     expect((await approvePrep(ok, { "sec-fetch-site": "cross-site" })).status).toBe(403);
     expect((await approvePrep(ok, CROSS)).status).toBe(403);
     expect((await approvePrep({ ...ok, reviewed: false })).status).toBe(409);
-    expect((await approvePrep({ ...ok, note: "قصيرة" })).status).toBe(409);
+    // 11 Nov: the note is optional (no minimum) but one line.
+    expect((await approvePrep({ ...ok, note: "سطر\nآخر" })).status).toBe(409);
     expect((await approvePrep({ ...ok, scriptSha256: "f".repeat(64) })).status).toBe(409);
     // Nothing was written by any refusal.
     expect(await historyActions()).toEqual([]);
@@ -265,37 +266,29 @@ describe("«اعتمد التجهيز»: one button, both ledger records in orde
   }, 60_000);
 });
 
-describe("B2: «اعتمد لوحة هذا المشهد» from step ٢ after a sentence text edit", () => {
+// 11 Nov (owner): «اعتمد التجهيز» once per episode; B2/D65/D66 re-approval removed (route answers 410).
+describe("after «اعتمد التجهيز»: a sentence text edit is carried forward, its scene alone re-opens", () => {
   const boardCall = (body: Record<string, unknown>) => call("POST", `episodes/${EP}/approve-scene-board`, body);
   const editNarration = async (id: string, narration: string) => {
     const plan = JSON.parse(await readFile(path.join(epDir, "plan.json"), "utf8"));
     for (const c of plan.chapters) for (const sc of c.scenes) if (sc.id === id) { sc.narration = narration; sc.edited = true; }
     await writeFile(path.join(epDir, "plan.json"), JSON.stringify(plan, null, 2));
   };
-  it("records only that scene's changed board and takes the storyboard decision again, in one click", async () => {
+  it("records only that scene's changed board with one signed system event; no re-approval route", async () => {
     const boardBefore = JSON.parse(await readFile(path.join(epDir, "storyboard.json"), "utf8"));
-    await editNarration("c1-s2", "والشكر يحفظ النعمة ويزيدها.");
-    let s = await state();
-    expect(s.boards.changed).toEqual(["c1-s2"]);
-    const ok = { sceneId: "c1-s2", storyboardSha256: s.storyboard.sha256, reviewed: true,
-      note: "راجعت لوحة المشهد الثالث بعد تعديل جملته: النص والتوقيت سليمان." };
-    // Refusals write nothing.
     const historyBefore = (await historyActions()).length;
-    expect((await boardCall({ ...ok, reviewed: false })).status).toBe(409);
-    expect((await boardCall({ ...ok, note: "قصيرة" })).status).toBe(409);
-    expect((await boardCall({ ...ok, sceneId: "c1-s1" })).status).toBe(409);
-    expect((await boardCall({ ...ok, storyboardSha256: "f".repeat(64) })).status).toBe(409);
-    expect((await boardCall(ok)).status).toBe(200);
-    s = await state();
+    await editNarration("c1-s2", "والشكر يحفظ النعمة ويزيدها.");
+    const s = await state();
     expect(s.boards.changed).toEqual([]);
-    expect(s.storyboard.approved).toBe(true);
-    const actions = await historyActions();
-    expect(actions.slice(historyBefore)).toEqual(["approve-storyboard"]);
+    expect(s.script.approved && s.storyboard.approved).toBe(true);
+    expect((await historyActions()).slice(historyBefore)).toEqual(["update-after-preparation"]);
+    expect(s.scenes.find((x: { id: string }) => x.id === "c1-s2").afterPreparation.what).toContain("board");
     const boardAfter = JSON.parse(await readFile(path.join(epDir, "storyboard.json"), "utf8"));
     expect(boardAfter.scenes["c1-s1"]).toBe(boardBefore.scenes["c1-s1"]);
     expect(boardAfter.scenes["c1-s3"]).toBe(boardBefore.scenes["c1-s3"]);
     expect(boardAfter.scenes["c1-s2"]).not.toBe(boardBefore.scenes["c1-s2"]);
     expect(boardAfter.audit.scenes).toEqual(["c1-s2"]);
+    expect((await boardCall({ sceneId: "c1-s2", storyboardSha256: s.storyboard.sha256, reviewed: true, note: "x" })).status).toBe(410);
   }, 60_000);
 
   it("M5: a refused «ولّد الصوت» is a 4xx with its Arabic reason, never a 500", async () => {
@@ -315,16 +308,13 @@ describe("B2: «اعتمد لوحة هذا المشهد» from step ٢ after a s
     }
   }, 60_000);
 
-  it("refuses (and writes nothing) when other boards changed too: those are approved together in step ١", async () => {
+  it("two more boards changed: both carried forward in one event, the third scene untouched", async () => {
+    const before = await state();
     await editNarration("c1-s1", "الصبر مفتاح الفرج دائمًا.");
     await editNarration("c1-s3", "والرضا راحة القلب حقًا.");
     const s = await state();
-    expect(s.boards.changed).toEqual(["c1-s1", "c1-s3"]);
-    const before = await readFile(path.join(epDir, "storyboard.json"), "utf8");
-    const r = await boardCall({ sceneId: "c1-s1", storyboardSha256: s.storyboard.sha256, reviewed: true,
-      note: "راجعت لوحة المشهد الأول بعد تعديل جملته: النص والتوقيت سليمان." });
-    expect(r.status).toBe(409);
-    expect(r.body.error).toContain("١ التجهيز");
-    expect(await readFile(path.join(epDir, "storyboard.json"), "utf8")).toBe(before);
+    expect(s.boards.changed).toEqual([]);
+    expect(s.afterPreparation.scenes.map((x: { id: string }) => x.id)).toEqual(["c1-s1", "c1-s3"]);
+    expect(s.scenes[1].sourceSha256).toBe(before.scenes[1].sourceSha256);
   }, 60_000);
 });
