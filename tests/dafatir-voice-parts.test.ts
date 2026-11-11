@@ -244,11 +244,11 @@ describe("generateVoice لدفاتر الزمن يتبع أجزاء الخريط
   }, 120_000);
 });
 
-describe("دفاتر الزمن: نسخة المحتوى V8 الحالية (v1.3) صالحة للتوليد", () => {
+describe("دفاتر الزمن: نسخة المحتوى V8 (v1.4) محفوظة وصالحة للتوليد", () => {
   it("44 جزءًا لـ 74 مقطعًا في 43 مشهدًا منطوقًا، ولا آية ولا بطاقة فصل، والحدود بلا صمت آية", () => {
-    const map8 = JSON.parse(readFileSync(path.join(EP, "tone-map.json"), "utf8")) as ToneMap;
-    const plan8 = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
-    const v = validatePartsContext(map8, plan8, readFileSync(path.join(EP, "tashkeel.md"), "utf8"));
+    const map8 = JSON.parse(readFileSync(path.join(EP, "tone-map.v1.4.json"), "utf8")) as ToneMap;
+    const plan8 = JSON.parse(readFileSync(path.join(EP, "plan.v8.json"), "utf8")) as Plan;
+    const v = validatePartsContext(map8, plan8, readFileSync(path.join(EP, "versions/v8/tashkeel.md"), "utf8"));
     expect(v).toHaveLength(44);
     expect(v.flatMap((j) => j.segmentIds)).toHaveLength(74);
     for (const j of v) expect(j.text).not.toMatch(/﴿|﴾|\[آية/);
@@ -261,6 +261,27 @@ describe("دفاتر الزمن: نسخة المحتوى V8 الحالية (v1.3
     const { composed, gaps, problems } = composeEpisode(plan8, jobs8, res);
     expect(problems).toEqual([]);
     expect(Object.keys(composed)).toHaveLength(43);
+    expect(gaps.filter((g) => /verse|chapter/.test(g.owner))).toEqual([]);
+  });
+});
+
+describe("دفاتر الزمن: نسخة المحتوى V9 الحالية (v1.5) صالحة للتوليد", () => {
+  it("48 جزءًا لـ 82 مقطعًا في 47 مشهدًا منطوقًا، ولا آية ولا بطاقة فصل", () => {
+    const map9 = JSON.parse(readFileSync(path.join(EP, "tone-map.json"), "utf8")) as ToneMap;
+    const plan9 = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
+    const v = validatePartsContext(map9, plan9, readFileSync(path.join(EP, "tashkeel.md"), "utf8"));
+    expect(v).toHaveLength(48);
+    expect(v.flatMap((j) => j.segmentIds)).toHaveLength(82);
+    for (const j of v) expect(j.text).not.toMatch(/﴿|﴾|\[آية|\[استشهاد/);
+    const jobs9 = partJobs(map9);
+    const res: Record<string, PartResult> = {};
+    for (const j of jobs9) {
+      const x = synth(j.text);
+      res[j.partId] = measurePart(j.partId, x.samples, SR, wordsOf(x.alignment));
+    }
+    const { composed, gaps, problems } = composeEpisode(plan9, jobs9, res);
+    expect(problems).toEqual([]);
+    expect(Object.keys(composed)).toHaveLength(47);
     expect(gaps.filter((g) => /verse|chapter/.test(g.owner))).toEqual([]);
   });
 });

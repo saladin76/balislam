@@ -9,7 +9,9 @@ import { normWord, stripTashkeel } from "../src/voice/tashkeel";
  * خريطة الأداء الصوتي للحلقة 001.
  * v1 (الأمر 023) وv1.1 (الأمر 024) وv1.2 (الأمر 025، نسخة المحتوى V7) محفوظة كما سُلّمت.
  * v1.3 (V8، ١١ نوفمبر): سرد متصل بلا بطاقات آيات ولا فصول، والآيات وسم مرجع فقط؛ المقاطع الباقية بمعرّفاتها.
- * الحالية v1.4 (١١ نوفمبر، D70): v1.3 نفسها بأسماء النبرات القوية الرزينة وحدها.
+ * v1.4 (١١ نوفمبر، D70): v1.3 نفسها بأسماء النبرات القوية الرزينة وحدها — محفوظة باسمها مع تشكيل V8 وسكريبته وخطته.
+ * v1.5 (١١ نوفمبر): نسخة المحتوى V9 (السكريبت المعتمد من المالك، وسبعة استشهادات بصرية صامتة) — محفوظة باسمها.
+ * الحالية v1.6 (١١ نوفمبر، D79): v1.5 نفسها بأسماء نبرات v1.3 (أُلغي قرار النبرات القوية D70).
  */
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
 const read = (f: string) => readFileSync(path.join(EP, f), "utf8");
@@ -33,7 +35,7 @@ const cur = JSON.parse(read("tone-map.v1.3.json")) as Map & { citations: { ref: 
 const v11 = JSON.parse(read("tone-map.v1.1.json")) as Map;
 const CORRECTED = [16, 29, 32];
 const tashkeel = read("versions/v7/tashkeel.md");
-const tashkeel8 = read("tashkeel.md");
+const tashkeel8 = read("versions/v8/tashkeel.md");
 const plain = (s: string) => stripTashkeel(s).split(/\s+/).map(normWord).filter(Boolean).join(" ");
 
 describe("خريطة الأداء الصوتي v1 — محفوظة (الأمر 023)", () => {
@@ -171,7 +173,7 @@ describe("خريطة الأداء الصوتي v1.2 — محفوظة (الأمر
 });
 
 describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى V8، ١١ نوفمبر)", () => {
-  const plan8 = JSON.parse(read("plan.json")) as { chapters: { number: number; scenes: { id: string; template: string; narration?: string; props?: Record<string, unknown> }[] }[] };
+  const plan8 = JSON.parse(read("plan.v8.json")) as { chapters: { number: number; scenes: { id: string; template: string; narration?: string; props?: Record<string, unknown> }[] }[] };
   const scenes8 = plan8.chapters.flatMap((c) => c.scenes);
   const spoken8 = scenes8.filter((s) => s.narration?.trim());
 
@@ -180,7 +182,7 @@ describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى
     expect(cur.approved).toBe(false);
     const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
     // الخطة تغيّرت بعد v1.3 في وسم c5-s6 وحده (props.ref، لا نص)؛ v1.4 تحمل بصمتها الحالية
-    expect(cur.source).toMatchObject({ tashkeel: { sha256: sha("tashkeel.md") }, script: { sha256: sha("script.md") } });
+    expect(cur.source).toMatchObject({ tashkeel: { sha256: sha("versions/v8/tashkeel.md") }, script: { sha256: sha("versions/v8/script.md") } });
     expect((cur as unknown as { previous: { version: string }[] }).previous.map((x) => x.version)).toEqual(["v1", "v1.1", "v1.2"]);
   });
 
@@ -236,37 +238,115 @@ describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى
   });
 });
 
-describe("خريطة الأداء الصوتي — الإصدار الحالي v1.5 (أُلغيت النبرات القوية D70، ١١ نوفمبر)", () => {
+describe("خريطة الأداء الصوتي — v1.4 (النبرات قوية ورزينة، ١١ نوفمبر، D70) محفوظة", () => {
   type Labeled = Map & { legend: { tones: Record<string, string> }; previous: { version: string; path: string }[]; changelog: { from: string; to: string; source?: string }[];
     citations?: unknown[]; source: Record<string, unknown> };
-  const live = JSON.parse(read("tone-map.json")) as Labeled;
-  const v14 = JSON.parse(read("tone-map.v1.4.json")) as Labeled;
+  const live = JSON.parse(read("tone-map.v1.4.json")) as Labeled;
   const v13 = cur as unknown as Labeled;
-  it("v1.4 محفوظة كما كانت (أسماء D70)، وv1.5 = v1.4 بأسماء v1.3؛ المقاطع والأجزاء والحدود والمراجع والبصمات كما هي", () => {
-    expect(v14.version).toBe("v1.4");
-    expect(v14.legend.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
-    expect(live.version).toBe("v1.5");
+  it("v1.4 = v1.3 مع أسماء النبرات وحدها؛ المقاطع والأجزاء والحدود والمراجع والبصمات كما هي، وv1.3 محفوظة", () => {
+    expect(live.version).toBe("v1.4");
     expect(live.approved).toBe(false);
     expect(v13.version).toBe("v1.3");
-    for (const k of ["segments", "audioParts", "sceneTones", "boundaries", "citations", "recitations", "decisions", "source"] as const) {
-      expect((live as Record<string, unknown>)[k], k).toEqual((v14 as Record<string, unknown>)[k]);
-      if (k !== "source") expect((live as Record<string, unknown>)[k], k).toEqual((v13 as Record<string, unknown>)[k]);
-    }
-    // البصمات: التشكيل والسكريبت كما في v1.3، والخطة الحالية (بعد وسم c5-s6، props.ref وحده)
+    for (const k of ["segments", "audioParts", "sceneTones", "boundaries", "citations", "recitations", "decisions"] as const)
+      expect((live as Record<string, unknown>)[k], k).toEqual((v13 as Record<string, unknown>)[k]);
+    // البصمات: التشكيل والسكريبت كما في v1.3، والخطة بعد وسم c5-s6 (props.ref وحده، والنص كما هو)
     const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
     const src = live.source as Record<string, { sha256: string }>;
     const src13 = v13.source as Record<string, { sha256: string }>;
     expect(src.tashkeel).toEqual(src13.tashkeel);
     expect(src.script).toEqual(src13.script);
-    expect(src.plan!.sha256).toBe(sha("plan.json"));
-    // أسماء v1.3 حرفًا، وهي أسماء النبرات الحالية في src/voice/tones.ts (إلا «قريب هادئ» اسم الخريطة لنبرة intimate)
-    expect(live.legend.tones).toEqual(v13.legend.tones);
-    expect(live.legend.tones).toEqual({ calm: "هادئ تأملي", documentary: "وثائقي رصين", warm: "حكّاء دافئ", intimate: "قريب هادئ" });
+    expect(src.plan!.sha256).toBe(sha("plan.v8.json"));
+    expect(live.legend.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
+    expect(Object.values(live.legend.tones).join(" ")).not.toMatch(/هادئ|ناعم|هامس|دافئ/);
     for (const t of Object.keys(live.legend.tones)) expect(isTone(t)).toBe(true);
-    expect(live.previous.map((x) => x.version)).toEqual(["v1", "v1.1", "v1.2", "v1.3", "v1.4"]);
-    expect(live.previous.at(-1)).toEqual({ version: "v1.4", path: "tone-map.v1.4.json" });
-    expect(live.changelog.slice(0, -1)).toEqual(v14.changelog);
-    expect(v14.changelog.slice(0, -1)).toEqual(v13.changelog);
-    expect(live.changelog.at(-1)).toMatchObject({ from: "v1.4", to: "v1.5", source: "revert-strong-voice" });
+    expect(live.previous.map((x) => x.version)).toEqual(["v1", "v1.1", "v1.2", "v1.3"]);
+    expect(live.previous.at(-1)).toEqual({ version: "v1.3", path: "tone-map.v1.3.json" });
+    expect(live.changelog.slice(0, -1)).toEqual(v13.changelog);
+    expect(live.changelog.at(-1)).toMatchObject({ from: "v1.3", to: "v1.4", source: "strong-voice" });
+  });
+});
+
+describe("خريطة الأداء الصوتي — v1.5 (نسخة المحتوى V9، ١١ نوفمبر) محفوظة", () => {
+  type V15 = Map & { order: string; previous: { version: string; path: string }[]; citations: { ref: string; scene: string | null; status: string }[];
+    changelog: { from: string; to: string; kept: number[]; added: number[]; removed: number[] }[]; quranFlags: { scene: string }[];
+    source: Record<string, { sha256: string }> };
+  const v15 = JSON.parse(read("tone-map.v1.5.json")) as V15;
+  const v14 = JSON.parse(read("tone-map.v1.4.json")) as V15;
+  const plan9 = JSON.parse(read("plan.json")) as { chapters: { scenes: { id: string; narration?: string; props?: Record<string, unknown> }[] }[] };
+  const spoken9 = plan9.chapters.flatMap((c) => c.scenes).filter((s) => s.narration?.trim());
+  const tashkeel9 = read("tashkeel.md");
+  const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
+
+  it("غير معتمدة، ومبنية على تشكيل V9 وسكريبته وخطته ببصماتها، وv1.4 محفوظة", () => {
+    expect(v15.version).toBe("v1.5");
+    expect(v15.order).toBe("V9");
+    expect(v15.approved).toBe(false);
+    expect(v15.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
+    expect(v15.source.script!.sha256).toBe(sha("script.md"));
+    expect(v15.source.plan!.sha256).toBe(sha("plan.json"));
+    expect(v15.previous.at(-1)).toEqual({ version: "v1.4", path: "tone-map.v1.4.json" });
+    expect(v15.changelog.at(-1)).toMatchObject({ from: "v1.4", to: "v1.5" });
+  });
+
+  it("كل مقطع مطابق لسطره في التشكيل وكل مشهد منطوق = مقاطعه؛ الباقي بنصه احتفظ بمعرّفه ونبرته", () => {
+    const lines = tashkeel9.split("\n");
+    for (const s of v15.segments) {
+      expect(lines[s.tashkeelLine - 1]!.trim(), `مقطع ${s.n}`).toBe(s.text);
+      expect(s.marked.replace(/ ?[|‖]/g, "").replace(/\*\*/g, ""), `علامات ${s.n}`).toBe(s.text);
+      expect(s.key).toBe(createHash("sha1").update(stripTashkeel(s.text).replace(/[^\p{L}\p{N}\s_]/gu, "").replace(/\s+/g, " ").trim()).digest("hex").slice(0, 12));
+      expect(isTone(s.tone), `نبرة ${s.n}`).toBe(true);
+    }
+    expect(new Set(v15.segments.map((s) => s.id)).size).toBe(v15.segments.length);
+    expect(Object.keys(v15.sceneTones).sort()).toEqual(spoken9.map((s) => s.id).sort());
+    for (const sc of spoken9) expect(plain(v15.segments.filter((s) => s.scene === sc.id).map((s) => s.text).join(" ")), sc.id).toBe(plain(sc.narration!));
+    const last = v15.changelog.at(-1)!;
+    for (const s of v15.segments) {
+      const o = v14.segments.find((x) => x.text === s.text);
+      if (o) {
+        expect(last.kept).toContain(o.n);
+        expect(s.id).toBe(o.id);
+        expect(s.tone).toBe(o.tone);
+      } else expect(last.added).toContain(s.n);
+    }
+    expect(last.kept.length + last.added.length).toBe(v15.segments.length);
+  });
+
+  it("لا تلاوة؛ سبعة استشهادات بصرية صامتة في مشاهدها والباقي مرجع فقط؛ والجملتان المطابقتان لنص آية معلَّمتان", () => {
+    expect(v15.recitations).toEqual([]);
+    const shown = v15.citations.filter((c) => c.scene);
+    expect(shown.map((c) => c.ref)).toEqual(["البقرة 30", "البقرة 31", "البقرة 34", "البقرة 35", "الأعراف 23", "البقرة 38", "النساء 1"]);
+    for (const c of shown) expect(plan9.chapters.flatMap((x) => x.scenes).find((s) => s.id === c.scene)!.props!.verseText, c.ref).toBeTruthy();
+    expect(v15.citations).toHaveLength(23);
+    expect(v15.quranFlags.map((f) => f.scene)).toEqual(["c6-s1", "c7-s1"]);
+    const b = v15.boundaries!;
+    expect(b.map((x) => x.segment)).toEqual(v15.segments.map((s) => s.n));
+    expect(b.filter((x) => x.type === "verse" || x.type === "chapter")).toEqual([]);
+    expect(b.at(-1)!.type).toBe("end");
+    expect(v15.audioParts!.flatMap((p) => p.segments).sort((a, c) => a - c)).toEqual(v15.segments.map((s) => s.n));
+    expect(v15.audioParts!.filter((p) => p.scene === "c7-s8").map((p) => p.id)).toEqual(["c7-s8.a", "c7-s8.b"]);
+  });
+});
+
+describe("خريطة الأداء الصوتي — الإصدار الحالي v1.6 (أُلغيت النبرات القوية D70، ١١ نوفمبر، D79)", () => {
+  type Labeled = Map & { legend: { tones: Record<string, string>; pauses?: unknown }; previous: { version: string; path: string }[]; changelog: { from: string; to: string; source?: string }[];
+    source: Record<string, unknown> };
+  const live = JSON.parse(read("tone-map.json")) as Labeled;
+  const v15 = JSON.parse(read("tone-map.v1.5.json")) as Labeled;
+  const v13 = cur as unknown as Labeled;
+  it("v1.6 = v1.5 (V9) بأسماء v1.3 وحدها؛ كل ما عدا الاسم والإصدار والسجل كما في v1.5، وv1.5 محفوظة", () => {
+    expect(live.version).toBe("v1.6");
+    expect(live.approved).toBe(false);
+    expect(v15.version).toBe("v1.5");
+    const { version: _a, status: _b, legend: l6, previous: p6, changelog: c6, ...rest6 } = live as unknown as Record<string, unknown> & Labeled;
+    const { version: _c, status: _d, legend: l5, previous: p5, changelog: c5, ...rest5 } = v15 as unknown as Record<string, unknown> & Labeled;
+    expect(rest6).toEqual(rest5);
+    expect(l6.pauses).toEqual(l5.pauses);
+    expect(l6.tones).toEqual(v13.legend.tones);
+    expect(l6.tones).toEqual({ calm: "هادئ تأملي", documentary: "وثائقي رصين", warm: "حكّاء دافئ", intimate: "قريب هادئ" });
+    expect(l5.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
+    for (const t of Object.keys(l6.tones)) expect(isTone(t)).toBe(true);
+    expect(p6).toEqual([...p5, { version: "v1.5", path: "tone-map.v1.5.json" }]);
+    expect(c6.slice(0, -1)).toEqual(c5);
+    expect(c6.at(-1)).toMatchObject({ from: "v1.5", to: "v1.6", source: "revert-strong-voice" });
   });
 });

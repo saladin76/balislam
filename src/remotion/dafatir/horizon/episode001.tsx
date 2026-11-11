@@ -134,7 +134,7 @@ const ReturnScene: React.FC<HzProps> = ({ t, tl, dur, exit, from }) => {
   const flip1 = prog(t, f1, f1 + 1.1);
   const flip2 = prog(t, f2, f2 + 1.15);
   const forget = prog(t, at(tl, "نسي"), end(tl, "اسمها"));
-  const horizon = prog(t, at(tl, "إننا"), at(tl, "آدم") - 0.25, easeOut);
+  const horizon = prog(t, at(tl, "بل"), at(tl, "آدم") - 0.25, easeOut);
   const wash = prog(t, at(tl, "رحلتنا"), d0 + 0.6);
   const ruins = (
     <g>
@@ -170,7 +170,7 @@ const ReturnScene: React.FC<HzProps> = ({ t, tl, dur, exit, from }) => {
   const under = t < f1 ? ruins : t < f2 ? gate(1 - 0.72 * forget) : finalPage;
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "رحلتنا"), b: d1, cx: 1330, cy: 540, s: 1.12 },
-    { a: at(tl, "إننا") - 0.2, b: tl.end + 0.6, cx: 1250, cy: 520, s: 1.1 },
+    { a: at(tl, "بل") - 0.2, b: tl.end + 0.6, cx: 1250, cy: 520, s: 1.1 },
   ]);
   return (
     <Book
@@ -308,6 +308,22 @@ const GreaterFrame: React.FC<{ p: number }> = ({ p }) => (
 );
 const Greater: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const frame = prog(t, at(tl, "أعظم") - 0.1, at(tl, "أعظم") + 1.1);
+  const has = (w: string) => tl.words.some((x) => x.w.startsWith(w));
+  // V9: «لكنه أخبرنا بما هو أعظم أثرًا في فهم بداية قصة الإنسان»: الإطار عند «أعظم»، و«قصة الإنسان» تُكتب فيه لحظة نطقها.
+  // (V7/V8 «أعظم من تحديد سنة أو مكان»: شريط السنة ودبوس المكان في الهامش)
+  if (has("قصة")) {
+    const story = prog(t, at(tl, "قصة") - 0.05, at(tl, "الإنسان") + 0.6);
+    const start = prog(t, at(tl, "بداية") - 0.05, at(tl, "بداية") + 0.5, easeOut);
+    const cam = camPath(t, NEUTRAL, [
+      { a: at(tl, "أعظم") - 0.25, b: at(tl, "أعظم") + 0.9, cx: 1320, cy: 520, s: 1.08 },
+      { a: at(tl, "قصة") - 0.25, b: at(tl, "الإنسان") + 0.4, cx: 1365, cy: 520, s: 1.18 },
+      { a: end(tl, "الإنسان") + 0.3, b: end(tl, "الإنسان") + 1.1, ...NEUTRAL },
+    ]);
+    return (
+      <Book id="gr" t={t} dur={dur} exit={exit} cam={cam}
+        R={<g><GreaterFrame p={frame} /><SText x={1365} y={430} size={38} font="tajawal" weight={700} color={C.inkSoft} o={start}>بداية</SText><WriteIn id="grs" x={1365} y={560} size={84} p={story} label="قصة الإنسان" color={C.ink} /></g>} />
+    );
+  }
   const ribbon = prog(t, at(tl, "سنة") - 0.05, at(tl, "سنة") + 0.45, easeOut);
   const pin = prog(t, at(tl, "مكان") - 0.05, at(tl, "مكان") + 0.45, easeOut);
   const cam = camPath(t, NEUTRAL, [
@@ -402,8 +418,13 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   const card = prog(t, at(tl, "سؤالهم") - 0.15, at(tl, "سؤالهم") + 0.6, easeOut);
   const i3 = prog(t, at(tl, "اعتراضا") - 0.05, at(tl, "اعتراضا") + 0.4, easeOut);
   const strike = prog(t, at(tl, "اعتراضا") + 0.4, at(tl, "حكم") - 0.05);
-  const ring = prog(t, end(tl, "الفهم"), end(tl, "الفهم") + 0.6);
-  const under = prog(t, at(tl, "الحكمة"), end(tl, "الحكمة") + 0.3);
+  const has = (w: string) => tl.words.some((x) => x.w.startsWith(w));
+  // V9: «…عن الحكمة من جعل…» ثم «وإنما كان طلبًا للفهم ومعرفة الحكمة»: «الحكمة» الثانية هي سطر البطاقة
+  const V9 = has("طلبا");
+  const H = V9 ? 2 : 1;
+  const FAHM = V9 ? "للفهم" : "الفهم";
+  const ring = prog(t, end(tl, FAHM), end(tl, FAHM) + 0.6);
+  const under = prog(t, at(tl, "الحكمة", H), end(tl, "الحكمة", H) + 0.3);
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "وسألت") - 0.2, b: at(tl, "وسألت") + 0.55, cx: 1365, cy: 520, s: 1.1 },
     // لقطة أقرب على ما سألوا عنه، ثم إلى الحاشية
@@ -414,7 +435,7 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
     // عند الحافة (كان cx 600 ثم 560 فيُقص نحو خمس ثوانٍ؛ مراجعة المشاهد ٩ نوفمبر)
     { a: at(tl, "سؤالهم") - 0.3, b: at(tl, "سؤالهم") + 0.9, cx: 905, cy: 500, s: 1.12 },
     // «وإنما كان سؤالًا لطلب الفهم ومعرفة الحكمة»: الكادر يقترب وسطرا الجواب يُكتبان، والسؤال ورأس الفصل باقيان كاملين (s=1.24 يُرى x 186–1734)
-    { a: at(tl, "سؤالا") - 0.2, b: end(tl, "الحكمة"), cx: 960, cy: 480, s: 1.24 },
+    { a: at(tl, V9 ? "طلبا" : "سؤالا") - 0.2, b: end(tl, "الحكمة", H), cx: 960, cy: 480, s: 1.24 },
   ]);
   const R = (
     <g>
@@ -446,13 +467,13 @@ const Question: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
           <span style={{ position: "absolute", right: 0, top: "54%", height: 5, width: `${strike * 100}%`, background: C.ribbon, borderRadius: 3 }} />
         </span>
       </div>
-      <Words now={t} items={[{ w: "سؤالا", t: at(tl, "سؤالا") }, { w: "لطلب", t: at(tl, "لطلب") }, { w: "الفهم", t: at(tl, "الفهم") }]} style={row(150)} />
+      <Words now={t} items={V9 ? [{ w: "طلبًا", t: at(tl, "طلبا") }, { w: "للفهم", t: at(tl, "للفهم") }] : [{ w: "سؤالا", t: at(tl, "سؤالا") }, { w: "لطلب", t: at(tl, "لطلب") }, { w: "الفهم", t: at(tl, "الفهم") }]} style={row(150)} />
       <svg width={620} height={470} style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
         <Ink d="M614 196 C616 158 500 144 390 146 C270 148 164 168 164 200 C164 236 280 252 390 252 C500 252 612 236 614 196" w={4} p={ring} c={C.ribbon} />
       </svg>
-      <Words now={t} items={[{ w: "ومعرفة", t: at(tl, "ومعرفة") }, { w: "الحكمة", t: at(tl, "الحكمة") }]} style={row(262)} />
+      <Words now={t} items={[{ w: "ومعرفة", t: at(tl, "ومعرفة") }, { w: "الحكمة", t: at(tl, "الحكمة", H) }]} style={row(262)} />
       <div style={{ position: "absolute", right: 34, top: 340, height: 5, width: 300 * under, background: C.gold, borderRadius: 3 }} />
-      <div style={{ position: "absolute", right: 34, bottom: 24, fontFamily: Tajawal, fontWeight: 500, fontSize: 26, color: C.inkSoft, opacity: prog(t, end(tl, "الحكمة") + 0.1, end(tl, "الحكمة") + 0.6) }}>ابن كثير · تفسير البقرة: ٣٠</div>
+      <div style={{ position: "absolute", right: 34, bottom: 24, fontFamily: Tajawal, fontWeight: 500, fontSize: 26, color: C.inkSoft, opacity: prog(t, end(tl, "الحكمة", H) + 0.1, end(tl, "الحكمة", H) + 0.6) }}>ابن كثير · تفسير البقرة: ٣٠</div>
     </div>
   );
   return <Book id="qs" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} htmlL={htmlL} />;
@@ -463,15 +484,25 @@ const KNOWN_BIG = "M560 300 C680 298 770 390 768 520 C766 640 680 740 560 740 C4
 const KNOWN = "M560 368 C640 366 694 430 692 500 C690 574 634 632 560 632 C484 632 428 572 428 500 C428 428 486 370 556 368";
 const Known: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
   // يبقى سؤال الملائكة («؟» من المشهد السابق) ساكنًا ما دام الجواب لله؛ ثم يبهت حين يبدأ الكلام عن معرفتنا
-  const qFade = prog(t, at(tl, "إن") - 0.05, at(tl, "معرفتنا") + 0.6);
-  const circ = prog(t, at(tl, "معرفتنا") - 0.05, at(tl, "معرفتنا") + 0.9);
-  const firm = prog(t, at(tl, "محدودة") - 0.05, at(tl, "محدودة") + 0.6);
-  const label = prog(t, at(tl, "معرفتنا") + 0.25, at(tl, "معرفتنا") + 0.7);
-  const dots = [at(tl, "نعرف"), at(tl, "بعض"), at(tl, "الحكم")].map((a) => prog(t, a - 0.05, a + 0.4, easeOut));
-  const reach = prog(t, at(tl, "ندعي") - 0.05, at(tl, "الإحاطة") + 0.1);
-  const recede = prog(t, at(tl, "الإحاطة") + 0.1, end(tl, "الإحاطة") + 0.2);
+  const V9 = tl.words.some((x) => x.w.startsWith("المخلوق"));
+  // V9: «وهنا يظهر معنى عظيم: أن علم المخلوق محدود، وأن علم الله سبحانه وتعالى محيط بكل شيء.» — الدائرة الصغيرة «علم المخلوق»
+  // عند «المخلوق»، وتشتد عند «محدود»، ثم تبتعد الكاميرا بعد نافذة ذكر الله عند «محيط» فيظهر اتساع الصفحة حولها (الفراغ هو المعنى)
+  const W0 = V9 ? "المخلوق" : "معرفتنا";
+  const qFade = prog(t, at(tl, V9 ? "وهنا" : "إن") - 0.05, at(tl, W0) + 0.6);
+  const circ = prog(t, at(tl, W0) - 0.05, at(tl, W0) + 0.9);
+  const firm = prog(t, at(tl, V9 ? "محدود" : "محدودة") - 0.05, at(tl, V9 ? "محدود" : "محدودة") + 0.6);
+  const label = prog(t, at(tl, W0) + 0.25, at(tl, W0) + 0.7);
+  const dots = V9 ? [0, 0, 0] : [at(tl, "نعرف"), at(tl, "بعض"), at(tl, "الحكم")].map((a) => prog(t, a - 0.05, a + 0.4, easeOut));
+  const wide = V9 ? Math.max(at(tl, "محيط"), end(tl, "وتعالى") + 0.3) : 0;
+  const reach = V9 ? prog(t, wide - 0.05, wide + 0.8) : prog(t, at(tl, "ندعي") - 0.05, at(tl, "الإحاطة") + 0.1);
+  const recede = V9 ? prog(t, end(tl, "شيء") + 0.1, end(tl, "شيء") + 0.6) : prog(t, at(tl, "الإحاطة") + 0.1, end(tl, "الإحاطة") + 0.2);
   // لقطة قريبة على دائرتنا الصغيرة، ثم عند «لا ندعي الإحاطة» تبتعد الكاميرا فيظهر اتساع الصفحة حولها: الفراغ هنا هو المعنى
-  const cam = camPath(t, NEUTRAL, [
+  const cam = V9
+    ? camPath(t, NEUTRAL, [
+        { a: at(tl, W0) - 0.25, b: at(tl, "محدود") + 0.4, cx: 560, cy: 520, s: 1.35 },
+        { a: wide - 0.05, b: wide + 1.0, cx: 900, cy: 520, s: 0.86 },
+      ])
+    : camPath(t, NEUTRAL, [
     { a: at(tl, "معرفتنا") - 0.25, b: at(tl, "محدودة") + 0.4, cx: 560, cy: 520, s: 1.35 },
     // «وقد نعرف بعض الحكم»: اقتراب من النقاط الثلاث داخل الدائرة وهي تُضاء، قبل ذكر الله
     { a: at(tl, "نعرف") - 0.2, b: at(tl, "الحكم") + 0.45, cx: 575, cy: 560, s: 1.55 },
@@ -482,7 +513,7 @@ const Known: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
       <Ink d={KNOWN_BIG} w={5} p={circ} />
       <Ink d={KNOWN_BIG} w={10} p={firm} opacity={0.85} />
       <SText x={560} y={790} size={46} font="tajawal" weight={700} o={label} color={C.inkText}>
-        معرفتنا
+        {V9 ? "علم المخلوق" : "معرفتنا"}
       </SText>
       {[
         [500, 470],

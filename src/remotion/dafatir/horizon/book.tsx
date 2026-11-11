@@ -4,7 +4,7 @@
  * كل مشهد يبدأ من دفتر فارغ أو من الحال التي انتهى عليها المشهد قبله، فلا قفز بين المشاهد.
  */
 import React from "react";
-import { BookShadow, C, Camera, Defs, GUTTER, LEFT_PAGE, LightPool, PAGE_TOP, Page, PageStack, RIGHT_PAGE, Spine, W, mix, prog, easeIO } from "./kit";
+import { BookShadow, C, Camera, Defs, GUTTER, LEFT_PAGE, LightPool, PAGE_TOP, Page, PageStack, RIGHT_PAGE, Spine, VersePageContext, W, mix, prog, easeIO } from "./kit";
 
 export type Cam = { cx: number; cy: number; s: number };
 export const NEUTRAL: Cam = { cx: 960, cy: 520, s: 1 };
@@ -83,6 +83,7 @@ export const EXIT_BEAT = 0.3;
  */
 export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: Exit; turnAt?: number; from?: Cam }> = ({ id, t, dur, exit = "none", turnAt, from, ...leaf }) => {
   const close = React.useContext(SceneCloseContext);
+  const verse = React.useContext(VersePageContext);
   // الخروج يبدأ حين يُغلق الراوي الفكرة (بعد آخر كلمة بنَفَس قصير) لا بعد ذيل ساكن، ولا يقصر عن مدته الأصلية
   const turnStart = turnAt ?? (close !== undefined ? Math.min(dur - 0.95, close + EXIT_BEAT) : dur - 0.95);
   const turnLen = turnAt === undefined && close !== undefined ? Math.max(0.8, dur - 0.15 - turnStart) : 0.8;
@@ -117,6 +118,7 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
       </svg>
       {leaf.htmlR && !crossed && p < 1 ? <div style={{ position: "absolute", inset: 0, opacity: ink }}>{leaf.htmlR}</div> : null}
       {leaf.htmlL && !crossed && p < 1 ? <div style={{ position: "absolute", left: 0, top: 0, width: W, height: 1080, opacity: ink, transformOrigin: "0 0", transform: turning ? css : undefined }}>{leaf.htmlL}</div> : null}
+      {verse && !crossed && p < 1 ? verse : null}
     </Camera>
   );
 };

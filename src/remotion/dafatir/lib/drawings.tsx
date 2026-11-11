@@ -273,6 +273,18 @@ export const Ruler = () => (
   </g>
 );
 
+/** ورقة شجر بخط الدفتر (عرق أوسط وعروق جانبية): لـ«ورق الجنة» و«الشجر» حين يُذكر الورق نفسه. رسم توضيحي لا يصوّر أشخاصًا. */
+export const TreeLeaf: React.FC<{ q: number; x: number; y: number; rot?: number; s?: number }> = ({ q, x, y, rot = 0, s = 1 }) =>
+  q <= 0 ? null : (
+    <g opacity={q} transform={`translate(${x} ${y}) rotate(${rot}) scale(${s * (0.8 + 0.2 * q)})`}>
+      <path d="M0 -70 C40 -46 46 10 0 70 C-46 10 -40 -46 0 -70 Z" fill="#7C8F4E" stroke={C.ink} strokeWidth={4} strokeLinejoin="round" />
+      <path d="M0 -60 V78" stroke={C.ink} strokeWidth={3} strokeLinecap="round" />
+      {[-34, -12, 10, 32].map((dy) => (
+        <path key={dy} d={`M0 ${dy} L${dy < 0 ? 22 : 18} ${dy - 16} M0 ${dy} L${dy < 0 ? -22 : -18} ${dy - 16}`} stroke={C.ink} strokeWidth={2} opacity={0.6} />
+      ))}
+    </g>
+  );
+
 export const Hourglass: React.FC<{ q: number; flow: number }> = ({ q, flow }) => (
   <g opacity={q} transform="translate(480 690) scale(0.9)">
     <path d="M-40 -60 H40 L6 0 L40 60 H-40 L-6 0 Z" fill={C.page} stroke={C.gold} strokeWidth={4} />
