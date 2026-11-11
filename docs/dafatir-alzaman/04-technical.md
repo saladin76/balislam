@@ -22,7 +22,7 @@
 ## تعريف المشاهد والفصول
 
 - **ما يُعد حلقة في الاستوديو:** مجلد `NNN-اسم` فيه `script.md` (`listScriptEpisodeDirs` في `src/script/episodes.ts`، ويستعمله `/api/episodes`). مجلد فيه `plan.json` وحده — مشروع غير مكتمل مثل `000-trailer` أو مختبر مثل `900-library-lab` — يبقى محفوظًا ولا يُعرض في قائمة الحلقات (اختبار `tests/studio-episode-list.test.ts`).
-- `plan.json`: `chapters[]` لكل منها `number` و`title` و`scenes[]`. المشهد: `id` (مثل `c3-s5`)، `template`، `narration` (نص الراوي حرفيًا من السكريبت)، `props`، `line` (سطره في السكريبت).
+- `plan.json`: `chapters[]` لكل منها `number` و`title` و`scenes[]` (الحلقة سرد واحد: قسم واحد `number: 1` بلا عنوان، D87). المشهد: `id` (مثل `c1-s5`)، `template`، `narration` (نص الراوي حرفيًا من السكريبت)، `props`، `line` (سطره في السكريبت).
 - **مشهد القناة:** `template: "horizon-shot"` و`props.shot` اسم مشهد من `HZ_SCENES` (المكتبة `LIB_SCENES` + مشاهد 001). بيانات كل مشهد في `HZ_META` = `LIB_META` + `EP001_META`: الاسم، الذيل بعد آخر كلمة، الخروج، السكون، والمدة للمشاهد الصامتة.
 - **الآية:** `template: "verse-card"`، `ayahKey`، و`props.look: "horizon"`.
 - **المدة:** `src/plan/duration.ts` — بلا صوت: `hzEstimateSeconds` (توقيت تقديري + الذيل)؛ بصوت: مدة الصوت + الذيل. ويمكن لمشهد أن يطلب أقل مدة بحسب حقوله (`HzMeta.minEnd`، أولها إمساك `lib-term`)؛ مع الصوت يُضاف الفرق المقدّر نفسه.

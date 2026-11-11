@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { showsDivision } from "../../../src/script/divisions";
 import type { PlanScene } from "../../../src/plan/types";
 import type { ReviewItem } from "../api";
 import { Dialog } from "../ui/Dialog";
@@ -53,7 +54,8 @@ export const BoardViewer: React.FC<{
       <div className="bv">
         <header className="bv-head">
           <div>
-            <p className="bv-eyebrow">الفصل {num(shot.chapter.number)} — {shot.chapter.title}</p>
+            {showsDivision([...new Map(shots.map((x) => [x.chapter.number, x.chapter])).values()], shot.chapter)
+              ? <p className="bv-eyebrow">الفصل {num(shot.chapter.number)}{shot.chapter.title ? ` — ${shot.chapter.title}` : ""}</p> : null}
             <h3 id="board-title" title={s.id}>{sceneName(order, s.id)} <span className="bv-of">من {num(shots.length)}</span></h3>
           </div>
           <span className="bv-time">{duration(shot.from / fps)} — {num(shot.d / fps, 1)} ث</span>

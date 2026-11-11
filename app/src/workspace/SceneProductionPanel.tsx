@@ -6,6 +6,7 @@ import { channelProductionProfile } from "../../../src/channel/productionRules";
 import type { Plan } from "../../../src/plan/types";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { planIssues } from "../../../src/plan/validate";
+import { showsDivision } from "../../../src/script/divisions";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { inheritedToneLabel, tones, toneIds } from "../../../src/voice/tones";
 import { toneMapKeepLabel, toneMapNote } from "./toneMapCopy";
@@ -539,7 +540,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
           <header className="s3-head">
             <div className="s3-title">
               <h2 ref={headRef} tabIndex={-1}>المشهد {shownIdx >= 0 ? ar(shownIdx + 1) : ""} <span className="s3-of">من {ar(order.length)}</span></h2>
-              {hit ? <span className="s3-sub" title={`الفصل ${ar(hit.chapter.number)}`}>{hit.chapter.title}</span> : null}
+              {hit && showsDivision(plan?.chapters ?? [], hit.chapter) ? <span className="s3-sub" title={`الفصل ${ar(hit.chapter.number)}`}>{hit.chapter.title}</span> : null}
             </div>
             <div className="s3-meta">
               <span className={`s3-state is-${status}`}>{stateText}</span>
@@ -1260,7 +1261,7 @@ const SeamReview: React.FC<{
           <div className="ms-seamtools">
             <button type="button" className="ms-listen" onClick={listen} disabled={tAt === undefined}><Icon name="play" />استمع للوصلة<small>٣ ث قبلها و٣ بعدها</small></button>
             <label className="sp-confirm"><input type="checkbox" checked={Boolean(heard[seam])} onChange={(e) => onHeard(seam, e.target.checked, "confirmed")} /> سمعتها</label>
-            {chapterOf(a!) ? <span className="ms-seam-where">داخل الفصل <Num>{String(chapterOf(a!)!.number)}</Num> «{chapterOf(a!)!.title}»</span> : null}
+            {chapterOf(a!) && showsDivision(plan?.chapters ?? [], chapterOf(a!)!) ? <span className="ms-seam-where">داخل الفصل <Num>{String(chapterOf(a!)!.number)}</Num> «{chapterOf(a!)!.title}»</span> : null}
           </div>
         </>
       ) : null}

@@ -136,7 +136,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
                 checks={checkTitle(t.text, "youtube", keywords)}
               />
             ))}
-            <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters)} checks={checkDescription(resolveDescription(L.description, chapters), keywords, L.hashtags)} hint={`أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ${estimated ? " — التوقيتات الآن تقديرية من الخطة، وتُحسب من المشاهد المعتمدة بعد التجميع (هذه الملاحظة لا تظهر في النص المنشور)" : ""}`} />
+            <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters)} checks={checkDescription(resolveDescription(L.description, chapters), keywords, L.hashtags)} hint={L.description.includes(CHAPTERS_TOKEN) ? `أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ${estimated ? " — التوقيتات الآن تقديرية من الخطة، وتُحسب من المشاهد المعتمدة بعد التجميع (هذه الملاحظة لا تظهر في النص المنشور)" : ""}` : "أول سطرين يظهران قبل «المزيد»."} />
             <Field label="الوسوم (Tags)" rows={2} value={L.tags.join(", ")} onChange={(v) => setLong({ tags: v.split(/[,،]\s*/).map((x) => x.trim()).filter(Boolean) })} hint={`${L.tags.join(",").length}/${RULES.youtube.tagsChars} حرف`} />
           </div>
           <div className="kit-col">

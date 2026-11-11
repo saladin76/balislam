@@ -255,7 +255,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
   const lastChapter = (fm as { format?: string }).format === "trailer" ? undefined : chapters[chapters.length - 1];
   if (lastChapter) {
     const id = `c${lastChapter.number}-end`;
-    const old = prevScenes.get(id);
+    // شاشة النهاية واحدة في الحلقة: إن تغيّر عدد الأقسام (c6-end ← c1-end، D87) تبقى تعديلاتها معها
+    const old = prevScenes.get(id) ?? prevList.find((s) => /^c\d+-end$/.test(s.id));
     const step = parsed.practicalStep?.text ?? "";
     const questionLine = step.split(/(?<=[.؟?!])\s+/).find((x) => /[؟?]\s*$/.test(x)) ?? "";
     const scene: PlanScene = {

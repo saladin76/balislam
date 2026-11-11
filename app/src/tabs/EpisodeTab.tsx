@@ -27,6 +27,7 @@ import { engineEnabled } from "../../../src/plan/engine";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { langPack } from "../../../src/i18n/packs";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
+import { isSingleNarration, showsDivision } from "../../../src/script/divisions";
 import { More } from "../shell/Screen";
 import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 import { episodeLength } from "../../../src/plan/episodeLength";
@@ -254,7 +255,7 @@ export const EpisodeTab: React.FC<{
         </div>
         {plan.chapters.map((ch) => (
           <div key={ch.number}>
-            <div className="chapter-h">الفصل {num(ch.number)} — {ch.title}</div>
+            {showsDivision(plan.chapters, ch) ? <div className="chapter-h">الفصل {num(ch.number)}{ch.title ? ` — ${ch.title}` : ""}</div> : null}
             {ch.scenes.map((s) => {
               const d = templateById(s.template);
               return (
@@ -278,7 +279,8 @@ export const EpisodeTab: React.FC<{
       <div className="col center">
         <div className="toolbar">
           <div className="seg" role="group" aria-label="نطاق المعاينة">
-            {([["scene", "المشهد"], ["chapter", "الفصل"], ["episode", "الحلقة كاملة"]] as const).map(([k, l]) => (
+            {/* سرد واحد بلا أقسام (D87): «الفصل» = الحلقة كاملة، فلا يُعرض */}
+            {([["scene", "المشهد"], ["chapter", "الفصل"], ["episode", "الحلقة كاملة"]] as const).filter(([k]) => k !== "chapter" || !isSingleNarration(plan.chapters)).map(([k, l]) => (
               <button key={k} aria-pressed={scope === k} onClick={() => setScope(k)}>{l}</button>
             ))}
           </div>
@@ -338,7 +340,7 @@ export const EpisodeTab: React.FC<{
             <button className="btn" type="button" onClick={onOpenVoice}>افتح مرحلة الصوت</button>
           </div>
         ) : <VoiceBox episodeId={episodeId} hasKeys={keys.voice} onMedia={onMediaChange} />}
-        <RenderBox episodeId={episodeId} chapter={sel.chapter.number} />
+        <RenderBox episodeId={episodeId} chapter={isSingleNarration(plan.chapters) ? undefined : sel.chapter.number} />
         </More>
       </div>
 
@@ -539,7 +541,7 @@ export const SceneLivePreview: React.FC<{ sceneId: string; plan: Plan; identity:
 };
 
 /** رندر الحلقة أو الفصل وتتبع التقدم. */
-const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId, chapter }) => {
+const RenderBox: React.FC<{ episodeId: string; chapter?: number }> = ({ episodeId, chapter }) => {
   const [jobs, setJobs] = useState<RenderJob[]>([]);
   const [err, setErr] = useState("");
   const running = jobs.some((j) => j.status === "running");
@@ -569,7 +571,7 @@ const RenderBox: React.FC<{ episodeId: string; chapter: number }> = ({ episodeId
         <span className="help">يرندر من الخطة المحفوظة إلى مجلد الحلقة out/</span>
         <span className="spacer" />
         <button className="btn" disabled={running} onClick={() => start("landscape")}>رندر الحلقة 16:9</button>
-        <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {chapter} شورت 9:16</button>
+        {chapter !== undefined ? <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {chapter} شورت 9:16</button> : null}
       </div>
       {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
       {mine.map((j) => (

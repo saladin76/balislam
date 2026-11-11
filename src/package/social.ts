@@ -1,4 +1,5 @@
 import { seriesPublish } from "../channel/series";
+import { isSingleNarration } from "../script/divisions";
 import type { ChannelInfo } from "../channel/types";
 import { parseScript } from "../script/parse";
 import { normalizeArabic } from "../script/quranMeta";
@@ -166,8 +167,8 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
   const description = [
     clip(hook, 140),
     ...(inThis.length ? [`في هذه الحلقة: ${inThis.join("، ")}.`] : []),
-    "",
-    CHAPTERS_TOKEN,
+    // سرد واحد بلا أقسام (D87): لا قائمة فصول ولا توقيتاتها في الوصف
+    ...(isSingleNarration(plan.chapters) ? [] : ["", CHAPTERS_TOKEN]),
     "",
     step ? `الخطوة العملية: ${step}` : "",
     "",

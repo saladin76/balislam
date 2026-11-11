@@ -8,6 +8,7 @@ import type { EpisodeMedia } from "../../../src/plan/media";
 import { sceneFrames } from "../../../src/plan/duration";
 import { introFramesFor } from "../../../src/remotion/scenes/ChannelIntro";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
+import { showsDivision } from "../../../src/script/divisions";
 import { boardWords, shotElements, shotFrame, shotKind, shotText } from "../../../src/plan/storyboardView";
 import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
@@ -290,9 +291,10 @@ export const StoryboardPanel: React.FC<{
 
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter s12-chapter">
-          <h3 className="s12-chapter-h">
+          {/* سرد واحد بلا أقسام (D87): لا رأس «فصل» فوق اللوحات */}
+          {showsDivision(plan.chapters, ch) ? <h3 className="s12-chapter-h">
             <span className="s12-num">{ar(ch.number)}</span> {ch.title}
-          </h3>
+          </h3> : null}
           <div className="sb-grid s12-grid">
             {shots.map(({ s, d, from }) => {
               const m = motionOf(s);

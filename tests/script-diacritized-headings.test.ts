@@ -4,7 +4,8 @@ import { parseScript } from "../src/script/parse";
 
 // صاحب القناة شكّل عناوين سكريبت زبدة الكتب 001 كلها (١٠ نوفمبر): «## الْفَصْلُ 1 · …» و«## الِاسْتِشْهَادَاتِ».
 // التشكيل لا يغيّر بنية السكريبت؛ والعنوان يبقى بنصه المشكول.
-const base = readFileSync("channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/script.md", "utf8");
+// السكريبت الحي صار نصًا متصلًا بلا عناوين فصول (D87)؛ الاختبار على نسخته المحفوظة بعناوينها.
+const base = readFileSync("channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/versions/2026-11-11-cfed78ed-headings/script.md", "utf8");
 const voweled = base
   .replace(/^## الفصل (\d+) · (.*)$/gm, (_m, n, t) => `## الْفَصْلُ ${n} · ${t}ُ`)
   .replace("## الاستشهادات", "## الِاسْتِشْهَادَاتِ")

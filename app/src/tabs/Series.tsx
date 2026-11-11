@@ -445,7 +445,8 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
         <label className="field"><span>طول الفصل (ثانية)</span><input type="number" min={20} max={600} value={t.pacing?.chapterSeconds ?? ""} placeholder="مثل القناة" onChange={(e) => set({ pacing: { ...t.pacing, chapterSeconds: e.target.value ? Number(e.target.value) : undefined } })} /></label>
       </div>
       <fieldset><legend>بنية الفصول</legend>
-        <label className="field sr-inline"><span>عدد الفصول</span><input type="number" min={1} max={12} value={count || ""} placeholder="مثل القناة" onChange={(e) => { const n = Number(e.target.value) || 0; set({ chapters: n ? { count: n, titles: Array.from({ length: n }, (_, i) => titles[i] ?? "") } : {} }); }} /></label>
+        <p className="sp-hint">فارغ: سرد واحد متصل بلا فصول، كقالب القناة (D87). العناوين هنا تُطبَّق فقط على سكريبت فيه «## الفصل N».</p>
+        <label className="field sr-inline"><span>عدد الفصول</span><input type="number" min={1} max={12} value={count || ""} placeholder="سرد واحد" onChange={(e) => { const n = Number(e.target.value) || 0; set({ chapters: n ? { count: n, titles: Array.from({ length: n }, (_, i) => titles[i] ?? "") } : {} }); }} /></label>
         {count ? <ol className="sr-chapters">{Array.from({ length: count }, (_, i) => <li key={i}><input aria-label={`عنوان الفصل ${arDigits(i + 1)}`} value={titles[i] ?? ""} placeholder={`الفصل ${arDigits(i + 1)}`} onChange={(e) => { const next = Array.from({ length: count }, (_, j) => (j === i ? e.target.value : titles[j] ?? "")); set({ chapters: { count, titles: next } }); }} /></li>)}</ol> : null}
       </fieldset>
       <fieldset><legend>حزمة النشر</legend>

@@ -114,6 +114,34 @@ program
   });
 
 program
+  .command("remap-scene-ids")
+  .description("نقل ملفات الصوت المحلية (voice/index.json وvoice/sentences.json) إلى معرّفات المشاهد الجديدة بعد جعل الخطة قسمًا واحدًا (D87). تجربة افتراضيًا")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--map <file>", "ملف المقابل (الافتراضي: أحدث versions/*/id-map.json في مجلد الحلقة)")
+  .option("--apply", "اكتب التغيير (تُحفظ نسخة <الملف>.before-remap.json أولًا)")
+  .action(async (episode: string, opts: { map?: string; apply?: boolean }) => {
+    const { existsSync, readdirSync } = await import("node:fs");
+    const { loadPlan } = await import("../plan/io");
+    const { readIdMap, remapLocalVoice } = await import("../plan/remapIds");
+    const dir = path.dirname(await resolveScriptPath(episode));
+    const versions = path.join(dir, "versions");
+    const found = opts.map ? path.resolve(opts.map) : existsSync(versions)
+      ? readdirSync(versions).sort().reverse().map((d) => path.join(versions, d, "id-map.json")).find((f) => existsSync(f)) : undefined;
+    if (!found) throw new Error("لا ملف id-map.json لهذه الحلقة.");
+    const plan = await loadPlan(episode);
+    if (!plan) throw new Error("الخطة غير موجودة.");
+    const reports = await remapLocalVoice(dir, plan, await readIdMap(found), { apply: opts.apply === true });
+    console.log(`المقابل: ${path.relative(dir, found)}`);
+    if (!reports.length) console.log("لا ملفات صوت محلية لهذه الحلقة؛ لا شيء يُنقل.");
+    for (const r of reports) {
+      console.log(`${r.file}: ${r.moved.length} يُنقل${r.skipped.length ? `، ${r.skipped.length} لا يُنقل` : ""}${opts.apply ? (r.written ? " — كُتب" : " — لم يُكتب") : ""}`);
+      for (const [a, b] of r.moved) console.log(`  ${a} → ${b}`);
+      for (const s of r.skipped) console.log(`  ✗ ${s.id}: ${s.reason}`);
+    }
+    if (!opts.apply) console.log("تجربة فقط؛ للكتابة: --apply");
+  });
+
+program
   .command("voice-review")
   .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
   .argument("<episode>", "رقم الحلقة")

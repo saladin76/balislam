@@ -184,6 +184,13 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             </ul>
           ) : <p className="s12-soft s12-empty">لا ملاحظات.</p>}
           <More>
+            {/* نص متصل بلا أقسام (D87): سرد واحد، فلا جدول «الفصول» ولا حد طول للفصل */}
+            {!check.stats.divisions ? (
+            <section aria-label="الطول">
+              <h3 className="s12-h">الطول</h3>
+              <p className="s12-soft">سرد واحد متصل: {check.stats.totalWords} كلمة، نحو {fmt(check.stats.totalSeconds)}.</p>
+            </section>
+            ) : (
             <section aria-label="الفصول">
               <h3 className="s12-h">الفصول</h3>
               <table className="stats s12-stats">
@@ -200,6 +207,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
                 </tbody>
               </table>
             </section>
+            )}
             <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
             <section aria-label="العلامات">
               <h3 className="s12-h">العلامات</h3>

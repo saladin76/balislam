@@ -36,3 +36,14 @@ export const divisionEyebrow = (
   if (!title || chapter.implicit || !divisionRules(channel?.script).titlesOnScreen) return undefined;
   return channel?.script?.chapterNumbers === false ? title : `${chapterWord} ${chapter.number} · ${title}`;
 };
+
+/**
+ * هل يُذكر القسم في الاستوديو؟ (D87، طلب صاحب القناة «لا فصول، السرد واحد»): الخطة بقسم واحد بلا عنوان
+ * سرد واحد متصل، فلا يظهر «الفصل ١» في أي مكان (رأس المشهد، الجمل، الوصلات، اللوحات، المعاينة). غير ذلك كما كان.
+ */
+export const showsDivision = (all: readonly { title: string }[], chapter: { title: string }): boolean =>
+  all.length > 1 || Boolean(chapter.title.trim());
+
+/** الخطة أو السكريبت سرد واحد متصل: قسم واحد (أو لا قسم) بلا عنوان */
+export const isSingleNarration = (all: readonly { title: string }[]): boolean =>
+  all.length <= 1 && !all.some((c) => c.title.trim());

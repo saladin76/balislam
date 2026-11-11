@@ -226,7 +226,8 @@ describe("الحفظ على القرص: «عام» للقائم، وختم ال�
     expect(existsSync(path.join(tmp, "balislam", "series", "ramadan", "series.json"))).toBe(true);
     const file = await createEpisode({ episode: "002", slug: "moon", domain: "psychology", title: "الهلال", series: "ramadan" });
     const script = readFileSync(file, "utf8");
-    expect(script).toContain("## الفصل 1 · الهلال");
+    // قالب القناة سرد واحد بلا فصول (D87): عناوين فصول السلسلة لا تضيف فصولًا لا يكتبها السكريبت
+    expect(script).not.toMatch(/^## الفصل/m);
     expect(script).toMatch(/^style: alley$/m);
     const link = JSON.parse(readFileSync(path.join(path.dirname(file), "series.json"), "utf8"));
     expect(link.series).toBe("ramadan");

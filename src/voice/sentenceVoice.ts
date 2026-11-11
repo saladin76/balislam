@@ -20,6 +20,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { planPathFor, readJson, readPlanFile, writePlanFile } from "../plan/io";
 import type { Plan, PlanScene } from "../plan/types";
 import { loadChannel } from "../channel/index";
+import { showsDivision } from "../script/divisions";
 import type { VoiceProfile } from "../channel/types";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { encodeWav, renderBoundaries } from "../remotion/dafatir/audio/compose";
@@ -273,7 +274,9 @@ export type VerseRow = {
   status: "approved" | "pending" | "missing"; file: string | null;
 };
 export type SentenceScene = {
-  id: string; index: number; chapter: number; chapterTitle: string; managed: boolean;
+  id: string; index: number; chapter: number; chapterTitle: string;
+  /** يُذكر القسم في الاستوديو؟ لا لخطة بقسم واحد بلا عنوان (سرد واحد، D87) */
+  divided: boolean; managed: boolean;
   audio: { state: "sentences" | "scene" | "stale" | "none"; file: string | null; duration: number | null };
   /** صوت المشهد ملفًا واحدًا (أو من أجزاء الخريطة) مولَّد بالنبرة القوية المُلغاة: «وُلّد بالنبرة القوية (المُلغاة)» */
   olderTone: boolean;
@@ -333,7 +336,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
   const recs = await ownAudioStatus(episode).catch(() => ({ pending: {}, approved: {} } as Awaited<ReturnType<typeof ownAudioStatus>>));
   const scenes: SentenceScene[] = [];
   allScenes(ctx.plan).forEach(({ scene, chapter }, i) => {
-    const base = { id: scene.id, index: i + 1, chapter: chapter.number, chapterTitle: chapter.title };
+    const base = { id: scene.id, index: i + 1, chapter: chapter.number, chapterTitle: chapter.title, divided: showsDivision(ctx.plan.chapters, chapter) };
     if (scene.template === "verse-card") {
       const key = scene.ayahKey ?? "";
       const ok = (recs.approved as Record<string, { parts: { file: string }[] }>)[key];

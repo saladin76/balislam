@@ -10,7 +10,10 @@ describe("قالب سكريبت لكل قناة", () => {
       expect(file).toContain(`/templates/${ch}/`);
       const s = parseScript(readFileSync(file, "utf8").replace("{{TITLE}}", "عنوان").replace("{{DOMAIN}}", "x").replace("{{EPISODE}}", "001"));
       expect(s.parseIssues.filter((i) => i.level === "error")).toEqual([]);
-      expect(s.chapters).toHaveLength(6);
+      // سرد واحد متصل بلا عناوين فصول (D87): قسم ضمني واحد بلا عنوان
+      expect(readFileSync(file, "utf8")).not.toMatch(/^## الفصل/m);
+      expect(s.chapters.map((c) => [c.number, c.title, c.implicit])).toEqual([[1, "", true]]);
+      expect(s.chapters[0]!.blocks.filter((b) => b.kind === "narration").length).toBeGreaterThanOrEqual(6);
       expect(s.hasCitationsSection).toBe(true);
       expect(templateFor(ch, "research.md", false)).toBeTruthy();
     });
@@ -28,7 +31,8 @@ describe("قالب سكريبت لكل قناة", () => {
     for (const own of ["بعين الإسلام", "[آية", "[حديث", "الدرس"]) expect(text).not.toContain(own);
     const s = parseScript(text.replace("{{TITLE}}", "عنوان").replace("{{DOMAIN}}", "x").replace("{{EPISODE}}", "001"));
     expect(s.parseIssues.filter((i) => i.level === "error")).toEqual([]);
-    expect(s.chapters).toHaveLength(6);
+    expect(text).not.toMatch(/^## الفصل/m);
+    expect(s.chapters.map((c) => [c.number, c.title])).toEqual([[1, ""]]);
     expect(s.hasCitationsSection).toBe(true);
     expect(templateFor("new-channel", "research.md")).toContain("/templates/_neutral/");
     expect(templateFor("new-channel", "research.md", false)).toBeNull();

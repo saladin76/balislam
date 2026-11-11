@@ -19,7 +19,7 @@ import type { LexiconCommand, SentenceCommand, SentencesRead, WordFixOutcome } f
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
-export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number } };
+export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number; /** 0 للنص المتصل بلا أقسام */ divisions?: number } };
 export type EpisodeSummary = { id: string; dir: string; title: string; domain: string; hasPlan: boolean; /** سلسلة الحلقة (وإلا «general») */ series?: string };
 /** سلسلة أو تصنيف كما يقرؤه الاستوديو: الملف، وهويته المشتقة من هوية القناة، وعدد حلقاته */
 export type SeriesView = SeriesConfig & { derived: DerivedSeriesIdentity | null; episodes: number };

@@ -630,7 +630,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       <section key={s.id} className="sv-scene" aria-label={`جمل المشهد ${ar(s.index)}`}>
         <header className="sv-scene-head">
           {sceneId ? <h3>الجمل <span className="sv-meta">{countAr(s.rows.length)}</span></h3>
-            : <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>الفصل {ar(s.chapter)} — {s.chapterTitle}</span></h4>}
+            : <h4 className="sv-scene-h">المشهد {ar(s.index)}{s.divided ? <span>الفصل {ar(s.chapter)}{s.chapterTitle ? ` — ${s.chapterTitle}` : ""}</span> : null}</h4>}
           {sceneCtl(s, q)}
         </header>
         {!s.managed ? (
