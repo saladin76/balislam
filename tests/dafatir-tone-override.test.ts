@@ -26,7 +26,9 @@ const asRemote = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "192.168.
 const asCrossSite = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "127.0.0.1", sameOrigin: false, host: "127.0.0.1:4321" }, fn);
 
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
-const mapRaw = readFileSync(path.join(EP, "tone-map.json"), "utf8");
+// Fixture: the v1.2 map as archived (the live map is v1.3 since the strong-voice relabel, 11 Nov); the D41 mechanics
+// are tested from v1.2 → v1.3 → v1.4 exactly as before.
+const mapRaw = readFileSync(path.join(EP, "tone-map.v1.2.json"), "utf8");
 const map = JSON.parse(mapRaw) as ToneMapDoc;
 const plan = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
 const tashkeel = readFileSync(path.join(EP, "tashkeel.md"), "utf8");
@@ -40,7 +42,8 @@ const epDir = () => path.join(tmp, "dafatir-alzaman", "episodes", "001-adam-begi
 const freshEpisode = () => {
   rmSync(epDir(), { recursive: true, force: true });
   mkdirSync(epDir(), { recursive: true });
-  for (const f of ["script.md", "plan.json", "tone-map.json", "tashkeel.md"]) writeFileSync(path.join(epDir(), f), readFileSync(path.join(EP, f)));
+  for (const f of ["script.md", "plan.json", "tashkeel.md"]) writeFileSync(path.join(epDir(), f), readFileSync(path.join(EP, f)));
+  writeFileSync(path.join(epDir(), "tone-map.json"), mapRaw);
 };
 
 beforeAll(() => {
@@ -158,9 +161,12 @@ describe("الكتابة على القرص والتوليد بالإصدار ا�
     await (await prepareSceneToneOverride(path.join(epDir(), "script.md"), { scene: "c7-s8", tone: "documentary", note: NOTE, at: AT }))!.commit();
     // ما يفعله الاستوديو بعد التصحيح: إعادة توليد صوت هذا المشهد وحده
     await generateVoice("001", { client: fake, testOnlySkipGates: true, only: ["c7-s8"], force: true });
-    const want = voiceSettingsFor(profile, "documentary")!;
     expect(sent).toHaveLength(2);
-    for (const x of sent) expect([x.stability, x.style]).toEqual([want.stability, want.style]);
+    // the new tone, with reverence for a part that mentions God (strong-voice, 11 Nov)
+    for (const x of sent) {
+      const want = voiceSettingsFor(profile, "documentary", { text: x.text })!;
+      expect([x.stability, x.style]).toEqual([want.stability, want.style]);
+    }
     // المشهد الآخر: لا طلب، والملف نفسه
     sent.length = 0;
     await generateVoice("001", { client: fake, testOnlySkipGates: true, only: ["c1-s2"] });

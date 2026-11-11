@@ -1,25 +1,27 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { tones, voiceSettingsFor } from "../src/voice/tones";
+import { STRONG_RANGE, tones, voiceSettingsFor } from "../src/voice/tones";
 import config from "../config.json";
 
 const profile = (id: string) => JSON.parse(readFileSync(`channels/${id}/channel.json`, "utf8")).voice.profile;
 
 describe("طبقة صوت القناة والنبرة", () => {
-  it("بلا طبقة: النبرة كما كانت (توافق مع الحلقات القديمة)", () => {
+  it("بلا طبقة: النبرة على الحياد، داخل المدى القوي (قرار ١١ نوفمبر: إيقاع متأنٍّ غير بطيء)", () => {
     const v = voiceSettingsFor(undefined, "dramatic")!;
     expect(v.stability).toBe(tones.dramatic.stability);
     expect(v.style).toBe(tones.dramatic.style);
-    expect(v.speed).toBe(Math.round(tones.dramatic.speed * config.voice.speed * 100) / 100);
+    expect(v.speed).toBe(Math.max(STRONG_RANGE.speed[0], Math.round(tones.dramatic.speed * config.voice.speed * 100) / 100));
     expect(voiceSettingsFor()).toBeUndefined();
   });
 
-  it("لكل قناة طبقتها، والنبرة نفسها تختلف بين القنوات", () => {
+  it("لكل قناة طبقتها، والنبرة نفسها تختلف بين القنوات (كلها قوية ورزينة)", () => {
     const [b, d, z] = ["balislam", "dafatir-alzaman", "zubdat-alkutub"].map(profile);
-    expect(new Set([b.speed, d.speed, z.speed]).size).toBe(3);
+    expect(new Set([JSON.stringify(b), JSON.stringify(d), JSON.stringify(z)]).size).toBe(3);
     const eb = voiceSettingsFor(b, "energetic")!;
     const ez = voiceSettingsFor(z, "energetic")!;
-    expect(ez.speed).toBeGreaterThan(eb.speed);
+    // زبدة الكتب أكثر تعبيرًا وتلوينًا من بالإسلام، والإيقاع في الاثنين متأنٍّ حازم
+    expect(ez.style).toBeGreaterThan(eb.style);
+    expect(ez.stability).toBeLessThan(eb.stability);
     expect(voiceSettingsFor(b)!.speed).toBe(b.speed);
   });
 

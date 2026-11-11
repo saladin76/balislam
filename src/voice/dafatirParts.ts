@@ -161,7 +161,7 @@ export const composeEpisode = (plan: Plan, jobs: PartJob[], results: Record<stri
   return { composed, boundaries, gaps, problems };
 };
 
-type PartRecord = { file: string; hash: string; text: string; duration: number; words: TimedWord[] };
+type PartRecord = { file: string; hash: string; text: string; duration: number; words: TimedWord[]; presetVersion?: number };
 type SceneClip = import("./generate").VoiceClip;
 
 /**
@@ -205,9 +205,12 @@ export const composePartsIntoScenes = async (o: {
     const hash = createHash("sha1").update(JSON.stringify({ parts: c.parts.map((p) => [o.partsIndex[p.partId]!.hash, p.at, p.trimStart, p.trimEnd]), pre: b.pre })).digest("hex").slice(0, 16);
     const file = `${hash}.wav`;
     if (!existsSync(path.join(o.dir, file))) await writeFile(path.join(o.dir, file), encodeWav(mixScene(c, samples, PARTS_SAMPLE_RATE), PARTS_SAMPLE_RATE));
+    // إصدار النبرات للمشهد المركّب = أقدم إصدار بين أجزائه (غيابه = ١)
+    const presetVersion = Math.min(...c.parts.map((p) => o.partsIndex[p.partId]!.presetVersion ?? 1));
     o.index[id] = {
       file,
       hash,
+      ...(presetVersion > 1 ? { presetVersion } : {}),
       text: narration,
       duration: c.audioEnd,
       words,

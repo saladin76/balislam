@@ -28,7 +28,7 @@ import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
 import { audioDuration, estimateWords, speechContextFor, voiceDirFor, type VoiceClip, type VoiceIndex } from "./generate";
 import { capsFor, dropTagWords } from "./models";
 import { applyTempo, scaleTimes } from "./tempo";
-import { isTone, tones, voiceSettingsFor, type Tone } from "./tones";
+import { isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, tones, voiceSettingsFor, type Tone, type VoiceLayers } from "./tones";
 import { normWord, stripTashkeel, vowelize } from "./tashkeel";
 import { tashkeelReport } from "./tashkeelReport";
 import { alignmentToWords, applyDictionary, wordsForCaptions } from "./words";
@@ -123,6 +123,8 @@ type Ctx = {
   voiceKey: string;
   model: string;
   profile?: VoiceProfile;
+  /** طبقة القناة عبر إصدارات النبرات (لبصمة التسجيلات القديمة) */
+  layers: VoiceLayers;
   channelTone?: string;
   /** قاموس النطق للقناة (pronunciations.json): يُطبَّق عند الإرسال فقط */
   lexicon: LexiconEntry[];
@@ -134,14 +136,16 @@ const loadCtx = async (episode: string): Promise<Ctx> => {
   const model = process.env.ELEVENLABS_MODEL_ID || config.voice.modelId;
   let profile: VoiceProfile | undefined;
   let channelTone: string | undefined;
+  let layers: VoiceLayers = {};
   try {
     const v = loadChannel().voice;
     profile = v?.profile;
     channelTone = v?.tone;
+    layers = layersOf(v);
   } catch { /* بلا قناة */ }
   return {
     scriptPath, plan, doc: await loadSentencesDoc(scriptPath), map: await loadToneMapLite(scriptPath),
-    speech: await speechContextFor(scriptPath), voiceKey: `${voiceIdFor() ?? ""}|${model}`, model, profile, channelTone,
+    speech: await speechContextFor(scriptPath), voiceKey: `${voiceIdFor() ?? ""}|${model}`, model, profile, layers, channelTone,
     lexicon: (await loadLexicon()).entries,
   };
 };
@@ -194,13 +198,28 @@ const sendOf = (ctx: Ctx, s: Pick<Sentence, "text" | "kind" | "corrections">, ex
   const perWord = d.original.map((_, i) => l.spoken.filter((_, k) => l.owner[k] === i).join(" "));
   return { text: l.spoken.join(" "), original: d.original, owner: l.owner, applied: l.applied, perWord };
 };
-const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence) => {
+/**
+ * صوت الجملة: النبرة والإعدادات والبصمة. الإصدار الحالي للنبرات افتراضيًا؛ لكن تسجيلًا قائمًا بصمته تطابق إعدادات
+ * إصدار سابق يبقى صالحًا (قرار ١١ نوفمبر): تُرجع إعدادات ذلك الإصدار وبصمته ومعها olderTone، فلا تصير الجملة
+ * «تحتاج توليدًا» ولا تُعاد في «جهّز كل المشاهد»، وتصحيح كلمة فيه يُولَّد بإعداداته نفسها فيتصل الصوت.
+ * current: للتوليد الجديد دائمًا (الإعدادات الحالية). version: لنسخة مقصوصة من تسجيل معروف الإصدار.
+ */
+const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, o: { current?: boolean; version?: number } = {}) => {
   const t = toneOf(ctx, scene, list, s);
   const tone = t.explicit ?? t.inherited;
-  const tune = voiceSettingsFor(ctx.profile, tone);
   const d = spokenOf(ctx, s.text);
-  const fingerprint = sentenceFingerprint({ spoken: d.spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined });
-  return { tone, toneInfo: t, tune, spoken: d, fingerprint, send: sendOf(ctx, s) };
+  const fp = (tune: ReturnType<typeof voiceSettingsFor>) =>
+    sentenceFingerprint({ spoken: d.spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined });
+  const tune = voiceSettingsFor(ctx.profile, tone, { text: s.text });
+  const fingerprint = fp(tune);
+  const base = { tone, toneInfo: t, spoken: d, send: sendOf(ctx, s), currentFingerprint: fingerprint };
+  if (!o.current) {
+    const legacy = legacyTunes(ctx.layers, tone).map((l) => ({ ...l, fingerprint: fp(l.tune) })).filter((l) => l.fingerprint !== fingerprint);
+    const pick = o.version !== undefined ? legacy.find((l) => l.version === o.version)
+      : s.audio && s.audio.fingerprint !== fingerprint ? legacy.find((l) => l.fingerprint === s.audio!.fingerprint) : undefined;
+    if (pick) return { ...base, tune: pick.tune, fingerprint: pick.fingerprint, presetVersion: pick.version, olderTone: true };
+  }
+  return { ...base, tune, fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false };
 };
 
 /** نص الجارتين في تسلسل الحلقة (جمل الراوي فقط؛ الآية لا تدخل النص المجاور) */
@@ -225,6 +244,8 @@ export type SentenceRow = {
   pauseAfterMs: number; status: SentenceStatus; virtual: boolean; last: boolean;
   audio: { file: string; duration: number; origin: SentenceAudio["origin"] } | null;
   takes: number; contextChanged: boolean;
+  /** «وُلّدت بالنبرة السابقة»: تسجيلها الحالي صالح بإعدادات إصدار نبرات سابق (يُعاد بأمر المالك وحده) */
+  olderTone: boolean;
   tashkeel: { ok: boolean; coverage: number; missing: string[] };
   chars: number;
   /**
@@ -254,6 +275,8 @@ export type VerseRow = {
 export type SentenceScene = {
   id: string; index: number; chapter: number; chapterTitle: string; managed: boolean;
   audio: { state: "sentences" | "scene" | "stale" | "none"; file: string | null; duration: number | null };
+  /** صوت المشهد ملفًا واحدًا (أو من أجزاء الخريطة) مولَّد بإصدار نبرات سابق: «وُلّد بالنبرة السابقة» */
+  olderTone: boolean;
   import: SentencesDoc["scenes"][string]["import"] | null;
   /** لماذا لا يُركَّب صوت المشهد من جمله الآن (null: مركّب أو قابل للتركيب) */
   waiting: string | null;
@@ -315,7 +338,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
       const key = scene.ayahKey ?? "";
       const ok = (recs.approved as Record<string, { parts: { file: string }[] }>)[key];
       const pend = (recs.pending as Record<string, { file: string }>)[key];
-      scenes.push({ ...base, managed: false, audio: { state: "none", file: null, duration: null }, import: null, waiting: null, rows: [],
+      scenes.push({ ...base, managed: false, audio: { state: "none", file: null, duration: null }, olderTone: false, import: null, waiting: null, rows: [],
         verse: { id: `verse:${scene.id}`, sceneId: scene.id, kind: "verse-card", ayahKey: key, reference: String(scene.props?.reference ?? key),
           status: ok ? "approved" : pend ? "pending" : "missing", file: ok?.parts?.[0]?.file ?? pend?.file ?? null } });
       return;
@@ -342,13 +365,15 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         pauseAfterMs: s.pauseAfterMs, status: sentenceStatus(s, v.fingerprint), virtual: !managed, last: k === list.length - 1,
         audio: s.audio ? { file: s.audio.file, duration: s.audio.duration, origin: s.audio.origin } : null,
         takes: s.takes?.length ?? 0,
+        olderTone: Boolean(s.audio && v.olderTone && s.audio.fingerprint === v.fingerprint),
         contextChanged: Boolean(s.audio && s.audio.origin === "tts" && s.audio.context !== contextFingerprint(nb.previousText, nb.nextText)),
         tashkeel: coverageOf(ctx, s.id, s.text, s.corrections), chars: v.send.text.length,
         ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined),
         sceneSpan: spans?.[k] ?? null,
       };
     });
-    scenes.push({ ...base, managed, audio, import: ctx.doc.scenes[scene.id]?.import ?? null,
+    const sceneOlder = Boolean(clip && audio.state === "scene" && !clip.basmala && (clip.presetVersion ?? 1) < TONE_PRESET_VERSION);
+    scenes.push({ ...base, managed, audio, olderTone: sceneOlder, import: ctx.doc.scenes[scene.id]?.import ?? null,
       waiting: managed ? waitingReason(ctx, scene, list, audio.state !== "none") : null,
       rows, verse: null });
   });
@@ -631,7 +656,9 @@ const adoptSceneAudio = async (ctx: Ctx, scene: PlanScene, list: Sentence[], cli
     const next = clip.words[w + count];
     if (!s.audio) {
       const nb = neighbours(flat, s.id);
-      s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
+      // النسخة المقصوصة بإصدار نبرات مقطع المشهد نفسه (غيابه = ١): لا تصير «حالية» وهي بالإعدادات القديمة
+      const cv = clip.presetVersion ?? 1;
+      s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s, cv < TONE_PRESET_VERSION ? { version: cv } : {}).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
         duration: f.duration, words: f.words, at: new Date().toISOString(), origin: "scene", timing: "aligned" };
       if (next && k < list.length - 1) s.pauseAfterMs = clampPause((next.start - clip.words[w + count - 1]!.end) * 1000);
     } else {
@@ -658,7 +685,7 @@ const writeSceneNarration = async (scriptPath: string, sceneId: string, narratio
 };
 
 /** بوابات أي طلب صوت مدفوع لجملة (التوليد وإعادة نطق كلمة): الآية، التشكيل، الاعتمادات، النبرة، المفتاح، تدريب الصوت */
-const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions, corrections: SentenceCorrection[] = s.corrections ?? []) => {
+const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions, corrections: SentenceCorrection[] = s.corrections ?? [], mode: { current?: boolean } = {}) => {
   if (s.kind === "basmala") throw new Error("البسملة يسجلها صاحب القناة بصوته ولا ينطقها الصوت المستنسخ: «ارفع التسجيل» في صفها.");
   if (s.kind !== "narration") throw new Error("هذه الجملة نص قرآني؛ الصوت المستنسخ لا يتلو القرآن أبدًا. انقلها إلى مشهد آية وارفع تلاوتها.");
   const cov = coverageOf(ctx, s.id, s.text, corrections);
@@ -673,7 +700,7 @@ const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sen
     const { requireScriptAndStoryboardApproved } = await import("../studio/sceneService");
     await requireScriptAndStoryboardApproved(episode);
   }
-  const v = voiceOf(ctx, scene, list, s);
+  const v = voiceOf(ctx, scene, list, s, mode);
   if (!v.tone) throw new Error("اختر نبرة لهذه الجملة، أو نبرة الحلقة (تحرير المشهد ← «نبرة الصوت في الحلقة») فتسري على كل جملة بلا نبرة خاصة.");
   if (!opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   if (opts.client.voiceInfo) {
@@ -687,7 +714,8 @@ const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sen
 const speedFor = (ctx: Ctx, tune: { speed?: number } | undefined) => (capsFor(ctx.model).speed === "post" ? (tune?.speed ?? config.voice.speed) : 1);
 
 const generateOne = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions) => {
-  const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts);
+  // توليد جديد: بإعدادات النبرات الحالية دائمًا (ولو كان تسجيلها الحالي بالإصدار السابق)
+  const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts, s.corrections ?? [], { current: true });
   const nb = neighbours(flatten(ctx), s.id);
   const r = await client.tts(v.send.text, { previousText: nb.previousText, nextText: nb.nextText, voiceId: scene.voice || undefined, tune: v.tune,
     scene: { id: scene.id, template: scene.template, ayahKey: scene.ayahKey }, verses: planVerseTexts(ctx.plan) });
@@ -703,7 +731,7 @@ const generateOne = async (ctx: Ctx, episode: string, scene: PlanScene, list: Se
   if (!duration) duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
   const capWords = wordsForCaptions(v.send.original, v.send.owner, spokenWords);
   const take: SentenceAudio = { file, fingerprint: v.fingerprint, context: contextFingerprint(nb.previousText, nb.nextText), duration, words: capWords,
-    at: new Date().toISOString(), origin: "tts", ...(v.tone ? { tone: v.tone } : {}), timing: r.alignment ? "aligned" : "estimated",
+    at: new Date().toISOString(), origin: "tts", ...(v.tone ? { tone: v.tone } : {}), presetVersion: v.presetVersion, timing: r.alignment ? "aligned" : "estimated",
     ...(v.send.applied.length ? { spokenFixes: v.send.applied.map((a) => ({ word: a.word, say: a.say })) } : {}) };
   return list.map((x) => (x.id === s.id ? { ...x, audio: take, takes: x.audio ? [...(x.takes ?? []), x.audio] : x.takes, heard: undefined } : x));
 };
@@ -869,7 +897,8 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         const r = splitSentence(list, id!, Number(cmd.at));
         list = r.list;
         // التسجيل الحالي يُقص عند الموضع نفسه إن كان القص موثوقًا (والأصل يبقى في takes)
-        if (before.audio && before.audio.fingerprint === voiceOf(ctx, scene, rec.sentences, before).fingerprint) {
+        const bv = voiceOf(ctx, scene, rec.sentences, before);
+        if (before.audio && before.audio.fingerprint === bv.fingerprint) {
           const cut = await sliceByWords({ scriptPath, source: path.join(sentencesDirFor(scriptPath), before.audio.file), sourceWords: before.audio.words,
             duration: before.audio.duration, parts: [{ id: r.first.id, count: words(r.first.text).length }, { id: r.second.id, count: words(r.second.text).length }], tag: "split" });
           if (cut.ok) {
@@ -879,7 +908,7 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
               const f = cut.files.find((x) => x.id === s.id);
               if (!f) return s;
               const nb = neighbours(flat, s.id);
-              return { ...s, audio: { file: f.file, fingerprint: voiceOf(ctx, scene, list, s).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
+              return { ...s, audio: { file: f.file, fingerprint: voiceOf(ctx, scene, list, s, bv.olderTone ? { version: bv.presetVersion } : {}).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
                 duration: f.duration, words: f.words, at: new Date().toISOString(), origin: "split" as const, ...(before.audio!.tone ? { tone: before.audio!.tone } : {}) } };
             });
           } else message = `قُسمت الجملة؛ ولم يُقص تسجيلها (${cut.reason})، فتحتاج الجملتان توليدًا.`;

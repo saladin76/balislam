@@ -1,4 +1,5 @@
 import { LEXICON_NOTE } from "../voice/lexicon";
+import { DEFAULT_TONE } from "../voice/tones";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -103,6 +104,8 @@ export const createChannel = async (opts: NewChannelOptions) => {
     rules: { ...rules, quran, hadith: quran ? rules.hadith : false },
     // بلا افتتاحية وبصورة مصغّرة عامة حتى تُعتمد هوية القناة؛ وتوقيع الوصف يكتبه صاحب القناة
     brand: { intro: "none", thumbnail: "circle" },
+    // النبرة الافتراضية «قوي رزين» (قرار صاحب القناة ١١ نوفمبر: كل الأصوات قوية ورزينة)
+    voice: { tone: DEFAULT_TONE },
     youtube: { tags: [opts.name.replace(/\s+/g, "_")], postingTime: base?.youtube.postingTime ?? "19:00", footer: "" },
   };
   await writeFile(p.channelFile, JSON.stringify(channel, null, 2) + "\n");

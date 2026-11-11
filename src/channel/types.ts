@@ -47,6 +47,11 @@ export type ChannelConfig = {
     tone?: string;
     /** «طبقة» القناة: صوت صاحب القناة نفسه بإعدادات أساس خاصة بها، والنبرات تتحرك حولها */
     profile?: VoiceProfile;
+    /**
+     * الطبقة كما كانت في إصدارات النبرات السابقة (src/voice/tones.ts ← TONE_PRESET_VERSION): {"1": …}.
+     * لا يُرسل بها طلب؛ تُحسب بها بصمة التسجيلات القديمة وحدها فتبقى صالحة «بالنبرة السابقة» (قرار ١١ نوفمبر).
+     */
+    profileHistory?: Record<string, VoiceProfile>;
   };
   /** أصوات إضافية للشخصيات (الحوار في الحلقات التاريخية مثلًا): من أصوات حساب ElevenLabs */
   cast?: { id: string; name: string; role?: string }[];

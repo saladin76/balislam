@@ -1,4 +1,5 @@
 import type { Plan } from "../../src/plan/types";
+import type { ToneUpgradePlan, ToneUpgradeResult } from "../../src/voice/toneUpgrade";
 import type { Identity } from "../../brand/identity/index";
 import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
@@ -218,6 +219,9 @@ export const api = {
   sentenceAction: (episode: string, channel: string, body: SentenceCommand) =>
     call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome }>(
       `/api/episodes/${episode}/sentences`, { method: "POST", json: body }, channel),
+  /** «أعد توليد الكل بالنبرة الجديدة» (قرار ١١ نوفمبر): dryRun يعرض العدد والحروف، ثم التوليد بضغطة المالك */
+  toneUpgrade: (episode: string, channel: string, dryRun: boolean) =>
+    call<{ plan?: ToneUpgradePlan; result?: ToneUpgradeResult; media?: EpisodeMedia }>(`/api/episodes/${episode}/voice/upgrade-tone`, { method: "POST", json: { dryRun } }, channel),
   /** قاموس النطق للقناة: تعديل كلمة أو حذفها */
   lexiconAction: (episode: string, channel: string, body: LexiconCommand) =>
     call<{ read: SentencesRead }>(`/api/episodes/${episode}/pronunciations`, { method: "POST", json: body }, channel),

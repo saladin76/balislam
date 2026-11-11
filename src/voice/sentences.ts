@@ -25,6 +25,8 @@ export type SentenceAudio = {
   /** كلمات نص الجملة (للترجمة) بزمن ملفها */
   words: TimedWord[];
   at: string;
+  /** إصدار النبرات الذي وُلّد به (src/voice/tones.ts)؛ غيابه = ١. للعرض فقط: الصلاحية بالبصمة */
+  presetVersion?: number;
   /** tts: وُلّد للجملة؛ scene: قُصّ من صوت المشهد القديم بتوقيت كلماته؛ split: قُصّ من تسجيل جملة قُسمت؛ fix: تسجيل سابق أُعيد نطق كلمة فيه */
   origin: "tts" | "scene" | "split" | "fix";
   tone?: string;

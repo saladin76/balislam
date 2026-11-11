@@ -625,6 +625,24 @@ export const balApi = (): Plugin => ({
           }
           // M5 (funnel QA, 10 Nov): a refusal (tone, tashkeel, approvals, Quran, a busy voice lock…) is a 4xx with
           // its Arabic sentence, never a 500; a scene voiced sentence by sentence is regenerated sentence by sentence.
+          // «أعد توليد الكل بالنبرة الجديدة» (قرار ١١ نوفمبر): dryRun يعرض العدد والحروف؛ التوليد بضغطة المالك وحده.
+          // تغيير إعدادات النبرات لا يعيد أي تسجيل آليًا (src/voice/toneUpgrade.ts).
+          if (parts[2] === "voice" && parts[3] === "upgrade-tone" && req.method === "POST") {
+            const b = await readBody(req);
+            const tu = await load("/src/voice/toneUpgrade.ts");
+            try {
+              if (b?.dryRun !== false) return send(res, 200, { plan: await tu.toneUpgradePlan(ep) });
+              const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+              assertSceneOwner();
+              const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
+              const result = await tu.upgradeTones(ep, { client: elevenLabsFromEnv() });
+              const plan = await io.readPlanFile(scriptPath);
+              return send(res, 200, { result, media: await mediaFor(plan) });
+            } catch (error) {
+              if ((error as { code?: string })?.code === "QURAN_TTS") return send(res, 422, { error: (error as Error).message });
+              return refuse(error);
+            }
+          }
           if (parts[2] === "voice" && req.method === "POST") {
             const b = await readBody(req);
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");

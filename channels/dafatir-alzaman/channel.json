@@ -453,12 +453,22 @@
     "footer": "المعلومات التاريخية مأخوذة من مصادرها ومراجَعة قبل النشر. لا تُصوَّر الأنبياء ولا الصحابة."
   },
   "voice": {
+    "tone": "grave",
     "profile": {
-      "nameAr": "راوٍ وثائقي",
-      "speed": 0.95,
+      "nameAr": "راوٍ وثائقي حازم",
+      "speed": 1,
       "stability": 0.5,
-      "style": 0.22,
-      "direction": "documentary storyteller narrating history"
+      "style": 0.06,
+      "direction": "commanding documentary storyteller narrating history; firm and grave"
+    },
+    "profileHistory": {
+      "1": {
+        "nameAr": "راوٍ وثائقي",
+        "speed": 0.95,
+        "stability": 0.5,
+        "style": 0.22,
+        "direction": "documentary storyteller narrating history"
+      }
     }
   },
   "verse": {

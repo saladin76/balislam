@@ -40,13 +40,28 @@ describe("خريطة الأداء الصوتي v1 — محفوظة (الأمر 0
   });
 });
 
-describe("خريطة الأداء الصوتي — الإصدار الحالي v1.2 (الأمر 025)", () => {
+describe("خريطة الأداء الصوتي — v1.2 (الأمر 025) والحالية v1.3 (١١ نوفمبر)", () => {
   it("v1.1 محفوظة كما سُلّمت في المراجعة 024، والحالية v1.2 غير معتمدة نهائيًا ومطابقة لنسخة المراجعة 025", () => {
     expect(v11.version).toBe("v1.1");
     expect(read("tone-map.v1.1.json")).toBe(readFileSync(path.join(EP, "tech-reviews/024/docs/tone-map-001-v1.1.json"), "utf8"));
-    expect(map.version).toBe("v1.2");
+    expect(map.version).toBe("v1.3");
     expect(map.approved).toBe(false);
-    expect(read("tone-map.json")).toBe(readFileSync(path.join(EP, "tech-reviews/025/docs/tone-map-001-v1.2.json"), "utf8"));
+    // v1.2 محفوظة باسمها مطابقة لنسخة المراجعة 025
+    expect(read("tone-map.v1.2.json")).toBe(readFileSync(path.join(EP, "tech-reviews/025/docs/tone-map-001-v1.2.json"), "utf8"));
+  });
+
+  it("v1.3 (قرار ١١ نوفمبر: النبرات قوية ورزينة) = v1.2 مع أسماء النبرات وحدها؛ المعرّفات والمقاطع والأجزاء كما هي", () => {
+    const v12 = JSON.parse(read("tone-map.v1.2.json")) as Map & { legend: { tones: Record<string, string> }; previous: { version: string }[]; changelog: { from: string; to: string }[] };
+    const v13 = map as Map & { legend: { tones: Record<string, string> }; previous: { version: string }[]; changelog: { from: string; to: string }[] };
+    expect(v13.segments).toEqual(v12.segments);
+    expect(v13.audioParts).toEqual(v12.audioParts);
+    expect(v13.sceneTones).toEqual(v12.sceneTones);
+    expect(v13.boundaries).toEqual(v12.boundaries);
+    expect(v13.legend.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
+    expect(Object.values(v13.legend.tones).join(" ")).not.toMatch(/هادئ|ناعم|هامس|دافئ/);
+    expect(v13.previous.at(-1)).toEqual({ version: "v1.2", path: "tone-map.v1.2.json" });
+    expect(v13.changelog.at(-1)).toMatchObject({ from: "v1.2", to: "v1.3", source: "strong-voice" });
+    for (const t of Object.keys(v13.legend.tones)) expect(isTone(t)).toBe(true);
   });
 
   it("مبنية على التشكيل الحالي: البصمة مطابقة، وكل مقطع مطابق لسطره حرفًا، والعلامات لا تغيّر النص", () => {

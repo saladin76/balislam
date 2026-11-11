@@ -11,7 +11,7 @@ import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, readJson, regeneratePlan } from "../plan/io";
 import type { Plan } from "../plan/types";
 import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
-import { effectiveTone, isTone, voiceSettingsFor } from "./tones";
+import { effectiveTone, isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, voiceSettingsFor, type VoiceLayers } from "./tones";
 import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
@@ -45,6 +45,11 @@ export type VoiceClip = {
    */
   sentences?: { hash: string; ids: string[] };
   /**
+   * إصدار النبرات الذي وُلّد به المقطع (src/voice/tones.ts). غيابه = الإصدار ١ (قبل ١١ نوفمبر).
+   * مقطع بإصدار أقدم صالح ولا يُعاد آليًا، ويظهر عليه «وُلّد بالنبرة السابقة».
+   */
+  presetVersion?: number;
+  /**
    * The basmala in this scene (owner decision 10 Nov, src/voice/basmala.ts): the owner's own approved
    * recording (its sha256) is composed in, or, while it is not approved yet, a marked silent placeholder
    * (`pending`) — a draft only, approved «مشروطًا بالتلاوة», never assembled into a Master.
@@ -64,6 +69,8 @@ const loadDictionary = async () => readJson<{ entries?: { text: string; say: str
 type Job = { id: string; /** المشهد (في مسار الأجزاء: مشهد الجزء) */ scene?: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string;
   /** النص المرسل فعلًا بعد قاموس النطق للقناة (pronunciations.json): خارج البصمة، فلا يُبطل مقطعًا قائمًا */
   send?: string; sendOwner?: number[]; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number };
+  /** بصمات المقطع نفسه بإعدادات إصدارات النبرات السابقة: تسجيل قديم بإحداها صالح ولا يُعاد آليًا */
+  legacyHashes?: string[];
   /** the episode's verse texts, for the Quran guard (never sent) */
   verses?: string[] };
 
@@ -85,6 +92,8 @@ const loadTashkeel = async (scriptPath?: string): Promise<TashkeelIndex | null> 
 /** قاموس النطق والتشكيل معًا (للصوت جملةً جملة، src/voice/sentenceVoice.ts): النطق نفسه الذي يرسله المسار العام */
 export const speechContextFor = async (scriptPath: string) => ({ dict: await loadDictionary(), tk: await loadTashkeel(scriptPath) });
 
+const sha16 = (o: unknown) => createHash("sha1").update(JSON.stringify(o)).digest("hex").slice(0, 16);
+
 const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string, quranRefused?: string[]) => {
   const dict = await loadDictionary();
   const tk = await loadTashkeel(scriptPath);
@@ -100,10 +109,12 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string, quranR
   const scenes = all.map((s, k) => ({ s, k })).filter(({ s }) => s.narration.trim() && !isVerseScene(s));
   let channelTone: string | undefined;
   let profile: VoiceProfile | undefined;
+  let layers: VoiceLayers = {};
   try {
     const v = loadChannel().voice;
     channelTone = v?.tone;
     profile = v?.profile;
+    layers = layersOf(v);
   } catch {
     /* بلا قناة */
   }
@@ -117,13 +128,15 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string, quranR
     // النبرة: المشهد ← الحلقة ← القناة. والصوت: صوت شخصية للمشهد أو صوت القناة
     const toneId = effectiveTone(s.tone, plan.tone, channelTone);
     // طبقة القناة ثم النبرة فوقها (صوت صاحب القناة هو المرجع دائمًا)
-    const tune = voiceSettingsFor(profile, toneId);
+    const tune = voiceSettingsFor(profile, toneId, { text: s.narration });
     // البصمة من كل ما يغيّر الصوت نفسه فقط (لا مدة الذيل ولا حساب التكلفة)؛ النبرة والصوت يدخلانها فقط إن حُددا
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
-    const extra = { ...(tune ? { tune } : {}), ...(s.voice ? { voice: s.voice } : {}) };
-    const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...extra })).digest("hex").slice(0, 16);
+    const extraFor = (t: typeof tune) => ({ ...(t ? { tune: t } : {}), ...(s.voice ? { voice: s.voice } : {}) });
+    const hash = sha16({ spoken: d.spoken, voiceKey, v: tts, ...extraFor(tune) });
+    // إصدار النبرات ليس سببًا لإعادة التوليد: بصمة المقطع بإعدادات الإصدار السابق تبقى صالحة (قرار ١١ نوفمبر)
+    const legacyHashes = legacyTunes(layers, toneId).map((l) => sha16({ spoken: d.spoken, voiceKey, v: tts, ...extraFor(l.tune) })).filter((h) => h !== hash);
     const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex);
-    return { id: s.id, scene: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: neighbour(k, -1), next: neighbour(k, 1), voiceId: s.voice || undefined, tune, verses };
+    return { id: s.id, scene: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: neighbour(k, -1), next: neighbour(k, 1), voiceId: s.voice || undefined, tune, legacyHashes, verses };
   });
 };
 
@@ -132,8 +145,10 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
   const dict = await loadDictionary();
   const lex = (await loadLexicon()).entries;
   let profile: VoiceProfile | undefined;
+  let layers: VoiceLayers = {};
   try {
     profile = loadChannel().voice?.profile;
+    layers = layersOf(loadChannel().voice);
   } catch {
     /* بلا قناة */
   }
@@ -144,16 +159,20 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
   return parts.map((p, i): Job => {
     assertNoQuranForTts(p.text, { id: p.partId });
     const d = applyDictionary(p.text, dict);
-    const tune = voiceSettingsFor(profile, isTone(p.tone) ? p.tone : undefined);
-    const hash = createHash("sha1").update(JSON.stringify({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
+    const tone = isTone(p.tone) ? p.tone : undefined;
+    const tune = voiceSettingsFor(profile, tone, { text: p.text });
+    const hash = sha16({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) });
+    const legacyHashes = legacyTunes(layers, tone).map((l) => sha16({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(l.tune ? { tune: l.tune } : {}) })).filter((h) => h !== hash);
     // الأجزاء تُعدّ كلماتها عند التركيب: نطق القاموس من كلمة واحدة فقط هنا
     const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { singleToken: true });
-    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: parts[i - 1]?.text, next: parts[i + 1]?.text, tune };
+    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: parts[i - 1]?.text, next: parts[i + 1]?.text, tune, legacyHashes };
   });
 };
 
 export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary;
-  /** مشاهد نصها فيه قرآن فلا تُرسل إلى الصوت المستنسخ (quranGuard.ts) */ quranRefused?: string[] };
+  /** مشاهد نصها فيه قرآن فلا تُرسل إلى الصوت المستنسخ (quranGuard.ts) */ quranRefused?: string[];
+  /** مقاطع صالحة مولَّدة بإعدادات إصدار نبرات سابق (لا تُعاد إلا بـ upgradeTone)، ومشاهدها */
+  olderTone: { ids: string[]; scenes: string[]; chars: number } };
 
 export type GenerateVoiceOptions = {
   client?: ElevenLabsClient | null;
@@ -170,6 +189,11 @@ export type GenerateVoiceOptions = {
    * تشغيل التخزين المؤقت للصوت على حلقة اختبار بلا تشكيل ولا اعتمادات.
    */
   testOnlySkipGates?: boolean;
+  /**
+   * «أعد توليد الكل بالنبرة الجديدة» (أمر المالك الصريح وحده): المقاطع المولَّدة بإعدادات إصدار نبرات سابق تُعاد
+   * بالإعدادات الحالية. بدونه لا يُعاد مقطع لأن النبرات تغيّرت أبدًا (لا «جهّز كل المشاهد» ولا «ولّد الصوت»).
+   */
+  upgradeTone?: boolean;
 };
 
 /**
@@ -242,7 +266,7 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
     throw new Error("صوت هذا المشهد يُولَّد جملةً جملة: ولّد الجملة المقصودة من «الجمل» تحت معاينة المشهد.");
   const partsDir = path.join(dir, "parts");
   const partsIndexFile = path.join(partsDir, "index.json");
-  type PartClipRecord = { file: string; hash: string; text: string; duration: number; words: TimedWord[] };
+  type PartClipRecord = { file: string; hash: string; text: string; duration: number; words: TimedWord[]; presetVersion?: number };
   const partsIndex: Record<string, PartClipRecord> = parts ? ((await readJson<Record<string, PartClipRecord>>(partsIndexFile)) ?? {}) : {};
 
   // مقطع بنفس البصمة موجود لمشهد آخر (انزاح رقمه بعد إضافة فقرة): يُعاد استخدامه بلا تكلفة
@@ -250,13 +274,17 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
   if (parts) {
     for (const c of Object.values(partsIndex)) if (existsSync(path.join(partsDir, c.file))) byHash.set(c.hash, c);
   } else for (const c of Object.values(index)) if (existsSync(path.join(dir, c.file))) byHash.set(c.hash, c);
-  const isCached = (j: Job) => !opts.force && byHash.has(j.hash);
+  const legacyHit = (j: Job) => (byHash.has(j.hash) ? undefined : j.legacyHashes?.find((h) => byHash.has(h)));
+  const isCached = (j: Job) => !opts.force && (byHash.has(j.hash) || (!opts.upgradeTone && Boolean(legacyHit(j))));
+  const cachedClip = (j: Job) => byHash.get(j.hash) ?? byHash.get(legacyHit(j) ?? "");
+  const older = jobs.filter((j) => !opts.force && legacyHit(j));
   const todo = jobs.filter((j) => !isCached(j));
   const chars = todo.reduce((n, j) => n + j.spoken.length, 0);
   const report: VoicePlanReport = {
     total: jobs.length,
     toGenerate: todo.map((j) => ({ id: j.id, chars: j.spoken.length })),
     cached: jobs.filter(isCached).map((j) => j.id),
+    olderTone: { ids: older.map((j) => j.id), scenes: [...new Set(older.map(sceneOf))], chars: older.reduce((n, j) => n + j.spoken.length, 0) },
     chars,
     credits: Math.ceil(chars * config.voice.creditsPerChar),
     missingTones: parts
@@ -303,8 +331,8 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
 
   // ربط المشاهد بمقاطعها المحفوظة (حتى لو تغيّر رقم المشهد)
   for (const j of jobs) {
-    const c = isCached(j) ? byHash.get(j.hash) : undefined;
-    if (c && parts) partsIndex[j.id] = { file: c.file, hash: c.hash, text: j.narration, duration: c.duration, words: c.words };
+    const c = isCached(j) ? cachedClip(j) : undefined;
+    if (c && parts) partsIndex[j.id] = { file: c.file, hash: c.hash, text: j.narration, duration: c.duration, words: c.words, ...(c.presetVersion ? { presetVersion: c.presetVersion } : {}) };
     else if (c) { index[j.id] = { ...c, text: j.narration }; touched.add(j.id); }
   }
   if (parts) await mkdir(partsDir, { recursive: true });
@@ -333,13 +361,13 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
     if (!duration) duration = spokenWords.length ? spokenWords[spokenWords.length - 1]!.end : 0;
     if (parts) {
       // الجزء يحفظ كلماته المنطوقة بزمن ملفه؛ تُحوَّل إلى زمن المشهد عند التركيب
-      partsIndex[j.id] = { file, hash: j.hash, text: j.narration, duration, words: spokenWords };
+      partsIndex[j.id] = { file, hash: j.hash, text: j.narration, duration, words: spokenWords, presetVersion: TONE_PRESET_VERSION };
       byHash.set(j.hash, partsIndex[j.id]!);
       await writeJsonAtomic(partsIndexFile, partsIndex);
       continue;
     }
     const words = wordsForCaptions(j.original, j.sendOwner ?? j.owner, spokenWords);
-    index[j.id] = { file, hash: j.hash, text: j.narration, duration, words };
+    index[j.id] = { file, hash: j.hash, text: j.narration, duration, words, presetVersion: TONE_PRESET_VERSION };
     touched.add(j.id);
     byHash.set(j.hash, index[j.id]!);
     await saveIndex();
@@ -422,15 +450,16 @@ export const synthesizeLines = async (
   const lex = (await loadLexicon()).entries;
   let channelTone: string | undefined;
   let profile: VoiceProfile | undefined;
+  let layers: VoiceLayers = {};
   try {
     const v = loadChannel().voice;
     channelTone = v?.tone;
     profile = v?.profile;
+    layers = layersOf(v);
   } catch {
     /* بلا قناة */
   }
   const toneId = [channelTone].find(isTone);
-  const tune = voiceSettingsFor(profile, toneId);
   const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
   const out: Record<string, LineClip> = {};
   for (const [k, line] of lines.entries()) {
@@ -438,9 +467,11 @@ export const synthesizeLines = async (
     assertNoQuranForTts(text, { id: line.id });
     const words = text.split(/\s+/).filter(Boolean);
     const d = applyDictionary(text, dict, tk ? vowelize(words, tk) : undefined);
-    const hash = createHash("sha1").update(JSON.stringify({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) })).digest("hex").slice(0, 16);
+    const tune = voiceSettingsFor(profile, toneId, { text });
+    const hash = sha16({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) });
+    const legacy = legacyTunes(layers, toneId).map((l) => sha16({ spoken: d.spoken, voiceKey, v: tts, ...(l.tune ? { tune: l.tune } : {}) }));
     const have = index[line.id];
-    if (!opts.force && have && have.hash === hash && existsSync(path.join(opts.dir, have.file))) {
+    if (!opts.force && have && (have.hash === hash || legacy.includes(have.hash)) && existsSync(path.join(opts.dir, have.file))) {
       out[line.id] = have;
       continue;
     }
