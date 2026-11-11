@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-01-scale-landscape",
+  "title": "032 · الميزان c1-s2…s5 أفقي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "8d21a7906f18f16cdb577544f7793b8f5b5a5792353ec2f52528224a854e8f5e",
+  "size": 2920864,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 2920864,
+      "sha256": "8d21a7906f18f16cdb577544f7793b8f5b5a5792353ec2f52528224a854e8f5e"
+    }
+  ],
+  "createdAt": "2026-11-11T21:27:44.110Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
