@@ -260,6 +260,9 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
   const ground = prog(t, at(tl, "عمارة") - 0.15, at(tl, "عمارة") + 0.7, easeOut);
   const homes = prog(t, at(tl, "الأرض", 2) - 0.1, at(tl, "الأرض", 2) + 0.8);
   const life = prog(t, at(tl, "والحياة") - 0.1, at(tl, "والحياة") + 0.8);
+  // V8 (قاعدة المالك ١١ نوفمبر: كل كلمة لها صورة تظهر لحظتها): «خليفة» تُكتب على اليسرى لحظة نطقها، وتخلي مكانها للحواشي عند «المفسرون»
+  const kh = tl.words.some((w) => w.w.startsWith("خليفة")) ? at(tl, "خليفة") : Infinity;
+  const khalifa = prog(t, kh - 0.05, kh + 0.6, easeOut) * (1 - prog(t, at(tl, "المفسرون") - 0.25, at(tl, "المفسرون") + 0.2));
   const line1 = ["البشر", "يخلف", "بعضهم", "بعضا"].map((k, i) => ({ w: ["البشر", "يخلف", "بعضهم", "بعضا"][i]!, t: at(tl, k) }));
   const line2 = [
     { w: "في", t: at(tl, "في", 3) },
@@ -299,6 +302,12 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
           {refText && !q?.word ? <VerseRefPanel refText={refText} o={1} /> : null}
         </Page>
         <Page id="s4" side="l">
+          {khalifa > 0 ? (
+            <g opacity={khalifa}>
+              <text x={555} y={500 + (1 - khalifa) * 12} textAnchor="middle" direction="rtl" fontFamily="Amiri" fontWeight={700} fontSize={110} fill={C.ink}>خليفة</text>
+              <line x1={420} x2={690} y1={540} y2={540} stroke={C.gold} strokeWidth={4} strokeLinecap="round" />
+            </g>
+          ) : null}
           {/* تعاقب: حلقة تتصل بالتي قبلها، والسابقة تخفت */}
           {LINEAGE.map((x, i) => {
             const s0 = m0 + i * 0.36;

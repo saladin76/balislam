@@ -16,6 +16,8 @@ export const LIB_META: Record<string, HzMeta> = {
   "lib-compare": { nameAr: "مكتبة · مقارنة قولين أو موقفين أو دليلين", tail: 1.3, exit: "fade" },
   "lib-timeline": { nameAr: "مكتبة · خط زمني بعلامات وفجوات", tail: 1.4, exit: "fade" },
   "lib-evidence": { nameAr: "مكتبة · شواهد أثرية وحدودها", tail: 1.4, exit: "fade" },
+  "lib-names": { nameAr: "مكتبة · بطاقات الأسماء (تُعلَّم، تُعرض، يُنبأ بها)", tail: 1.2, exit: "fade" },
+  "lib-descent": { nameAr: "مكتبة · الهبوط إلى الأرض ثم الطريق", tail: 1.3, exit: "fade" },
 };
 
 /** إمساك القراءة بعد اكتمال كتابة المصطلح قبل بدء الخروج (الأمر 019، L1) */
@@ -49,11 +51,13 @@ export const LIB_SACRED = /الله|لله|ربنا|ربه|ربك|سبحانه|�
 export const LIB_UI: Record<string, { fields: string[]; library: true }> = {
   chapter: { fields: ["label", "title"], library: true },
   "verse-intro": { fields: ["ref"], library: true },
-  "verse-tag": { fields: ["ref", "tagWord"], library: true },
+  "verse-tag": { fields: ["ref", "tagWord", "lead", "leadWord"], library: true },
   pending: { fields: ["idea", "batch"], library: true },
   "lib-term": { fields: ["term", "termWord", "sub", "subWord", "kind", "source", "sourceWord", "note", "noteWord"], library: true },
   "lib-gloss": { fields: ["ref", "matn", "matnWord", "matnLabel", "matnSource", "tafsir", "tafsirWord", "tafsirLabel", "tafsirSource", "note", "noteWord"], library: true },
   "lib-compare": { fields: ["title", "titleWord", "aLabel", "aText", "aWord", "bLabel", "bText", "bWord", "verdict", "verdictText", "verdictWord"], library: true },
   "lib-timeline": { fields: ["items", "title"], library: true },
   "lib-evidence": { fields: ["items", "limit", "limitWord"], library: true },
+  "lib-names": { fields: ["mode", "wordWord", "allWord", "emptyWord", "ref"], library: true },
+  "lib-descent": { fields: ["fallWord", "landWord", "pathWord", "term", "termWord", "ref"], library: true },
 };

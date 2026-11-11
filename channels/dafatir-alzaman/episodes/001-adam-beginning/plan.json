@@ -101,8 +101,11 @@
           "narration": "قبل أن نتحدث عن حياة آدم عليه السلام، نقف عند ما أخبرنا الله به في سورة البقرة.",
           "line": 31,
           "props": {
-            "shot": "verse-intro",
-            "ref": "البقرة · ٣٠"
+            "shot": "verse-tag",
+            "ref": "البقرة · ٣٠",
+            "tagWord": "البقرة",
+            "lead": "حياة آدم عليه السلام",
+            "leadWord": "حياة"
           },
           "sfx": [],
           "edited": true
@@ -177,7 +180,10 @@
           "narration": "ثم أخبرنا الله بأنه علم آدم الأسماء كلها.",
           "line": 55,
           "props": {
-            "shot": "verse-intro",
+            "shot": "lib-names",
+            "mode": "learn",
+            "wordWord": "الأسماء",
+            "allWord": "كلها",
             "ref": "البقرة · ٣١"
           },
           "sfx": [],
@@ -200,7 +206,10 @@
           "narration": "وعندما عرض الله المسميات على الملائكة، لم يدعوا علم ما لم يعلمهم الله.",
           "line": 61,
           "props": {
-            "shot": "verse-intro",
+            "shot": "lib-names",
+            "mode": "present",
+            "wordWord": "المسميات",
+            "emptyWord": "يدعوا",
             "ref": "البقرة · ٣٢"
           },
           "sfx": [],
@@ -212,7 +221,9 @@
           "narration": "ثم أمر الله آدم أن ينبئهم بأسمائها.",
           "line": 63,
           "props": {
-            "shot": "verse-intro",
+            "shot": "lib-names",
+            "mode": "name",
+            "wordWord": "بأسمائها",
             "ref": "البقرة · ٣٣"
           },
           "sfx": [],
@@ -434,7 +445,12 @@
           "narration": "ثم أخبرنا الله أن آدم وزوجه هبطا إلى الأرض، ووعد من اتبع هداه بالأمن من الخوف والحزن.",
           "line": 137,
           "props": {
-            "shot": "verse-intro",
+            "shot": "lib-descent",
+            "fallWord": "هبطا",
+            "landWord": "الأرض",
+            "pathWord": "اتبع",
+            "term": "الأمن",
+            "termWord": "بالأمن",
             "ref": "البقرة · ٣٨"
           },
           "sfx": [],

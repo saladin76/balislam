@@ -117,6 +117,12 @@ export const libAnchors = (shot: string, p: Record<string, string | undefined>):
       return [...f("matnWord"), ...f("tafsirWord"), ...f("noteWord")];
     case "lib-compare":
       return [...(p.title ? [p.titleWord || firstWord(p.title)] : []), ...f("aWord"), ...f("bWord"), ...f("verdictWord")];
+    case "verse-tag":
+      return [...f("tagWord"), ...(p.lead ? [p.leadWord || firstWord(p.lead)] : [])];
+    case "lib-names":
+      return [...f("wordWord"), ...f("allWord"), ...f("emptyWord")];
+    case "lib-descent":
+      return [...f("fallWord"), ...f("landWord"), ...f("pathWord"), ...(p.term ? [p.termWord || firstWord(p.term)] : [])];
     case "lib-timeline":
     case "lib-evidence":
       return [...parseItems(p.items).map((x) => x.anchor), ...f("limitWord")];
@@ -192,6 +198,11 @@ const VerseIntro: React.FC<ShotProps> = ({ t, dur, exit, p }) => (
 // تمهيد آية بمرجعها: صفحة ساكنة، يظهر عليها ختم السورة لحظة ذكرها فقط
 const VerseTag: React.FC<ShotProps> = ({ t, tl, dur, exit, p }) => {
   const seal = p.tagWord ? pop(t, atStrict(tl, p.tagWord)) : 0;
+  // سطر تمهيد اختياري (V8، ١١ نوفمبر): يُكتب على الصفحة اليسرى لحظة نطق كلمته، بعيدًا عن نافذة ذكر الله
+  const q = cues(tl);
+  const leadA = p.lead ? q.safe(q.at(p.leadWord || firstWord(p.lead), 0.4) - 0.05, 0.9) : Infinity;
+  const lead = prog(t, leadA, leadA + 0.9);
+  const leadRule = prog(t, leadA + 0.7, leadA + 1.3);
   return (
     <Book
       id="vt"
@@ -199,6 +210,12 @@ const VerseTag: React.FC<ShotProps> = ({ t, tl, dur, exit, p }) => {
       dur={dur}
       exit={exit}
       cam={NEUTRAL}
+      L={p.lead ? (
+        <g>
+          <WriteIn id="vtl" x={555} y={520} size={72} p={lead} label={p.lead} color={C.ink} />
+          <Ink d="M740 565 H370" w={4} p={leadRule} c={C.gold} />
+        </g>
+      ) : undefined}
       R={
         <g>
           {p.head ? <ChapterHead label={p.head} /> : null}
@@ -206,6 +223,104 @@ const VerseTag: React.FC<ShotProps> = ({ t, tl, dur, exit, p }) => {
         </g>
       }
     />
+  );
+};
+
+// ───────────────────────── بطاقات الأسماء (V8، ١١ نوفمبر) ─────────────────────────
+/**
+ * «علّم آدم الأسماء» ثم «عرض المسميات» ثم «أنبئهم بأسمائها»: بطاقات ورق صغيرة على الصفحة اليسرى، سطورها حبر مجرد
+ * (لا أسماء مخترعة ولا حروف). mode: learn = تُكتب السطور لحظة «wordWord» وتتكاثر عند «allWord» ·
+ * present = تدخل فارغة لحظة كلمتها، وسطورها منقّطة فارغة عند «emptyWord» · name = فارغة منقّطة ثم تمتلئ بالحبر واحدة واحدة لحظة كلمتها.
+ * ومرجع الآية (ref) لوحة على اليمنى. لا ملائكة مرسومة ولا شخص: البطاقات وحدها.
+ */
+const CARDS = [
+  { x: 330, y: 330, r: -4 },
+  { x: 560, y: 300, r: 3 },
+  { x: 300, y: 560, r: 2 },
+  { x: 540, y: 540, r: -3 },
+  { x: 420, y: 760, r: 4 },
+  { x: 660, y: 740, r: -2 },
+];
+const NameCard: React.FC<{ x: number; y: number; r: number; o: number; ink: number; dashed: number }> = ({ x, y, r, o, ink, dashed }) =>
+  o <= 0 ? null : (
+    <g opacity={o} transform={`translate(${x} ${y}) rotate(${r}) scale(${0.92 + 0.08 * o})`}>
+      <rect x={-105} y={-62} width={210} height={124} rx={10} fill="#FFFAF0" stroke={C.ink} strokeWidth={3} />
+      <rect x={-95} y={-52} width={190} height={104} rx={6} fill="none" stroke={C.gold} strokeWidth={1.5} />
+      <circle cx={78} cy={-34} r={6} fill={C.gold} />
+      {dashed > 0 ? <g opacity={dashed * (1 - ink)}>{[-10, 24].map((dy) => <line key={dy} x1={-70} x2={60} y1={dy} y2={dy} stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 9" />)}</g> : null}
+      <Ink d="M62 -6 C30 -12 0 -2 -28 -8 C-44 -11 -58 -6 -70 -8" w={5} p={Math.min(1, ink * 1.6)} />
+      <Ink d="M62 26 C36 22 6 30 -36 24" w={4} p={Math.max(0, ink * 1.6 - 0.6)} c={C.inkSoft} />
+    </g>
+  );
+const Names: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
+  const q = cues(tl);
+  const mode = p.mode ?? "learn";
+  const wA = q.safe(q.at(p.wordWord, 0.5) - 0.05, 0.8);
+  const allA = p.allWord ? q.safe(q.at(p.allWord, wA + 0.8) - 0.05, 0.8) : Infinity;
+  const emA = p.emptyWord ? q.safe(q.at(p.emptyWord, wA + 1) - 0.05, 0.6) : Infinity;
+  const n = mode === "learn" ? (t < allA ? 2 : 6) : 6;
+  const cards = CARDS.map((c, i) => {
+    // learn: بطاقتان عند الكلمة، والبقية تنفرج عند «كلها» · present/name: كلها تدخل عند الكلمة متتابعة
+    const t0 = mode === "learn" ? (i < 2 ? wA + i * 0.25 : allA + (i - 2) * 0.12) : wA + i * 0.1;
+    // pop يبدأ قبل مرساه بـ0.05؛ المرسى هنا وقت آمن محسوب، فيبدأ عنده تمامًا (لا يدخل نافذة ذكر الله)
+    const o = mode === "learn" && i >= 2 && !Number.isFinite(allA) ? 0 : pop(t, t0 + 0.05, 0.45);
+    const ink = mode === "learn" ? prog(t, t0 + 0.2, t0 + 1.1) : mode === "name" ? prog(t, wA + 0.25 + i * 0.18, wA + 1.0 + i * 0.18) : 0;
+    const dashed = mode === "present" ? prog(t, emA, emA + 0.5) : mode === "name" ? 1 : 0;
+    return { ...c, o: i < n || mode !== "learn" ? o : 0, ink, dashed };
+  });
+  // name: البطاقات فارغة من أول المشهد (كما انتهى العرض) ثم تمتلئ
+  if (mode === "name") for (const c of cards) c.o = Math.max(c.o, prog(t, 0, 0.4));
+  const cam = q.cam(t, { cx: 960, cy: 540, s: 1 }, [{ a: wA, b: wA + 1.0, cx: 760, cy: 540, s: 1.12 }]);
+  return (
+    <Book id="lnm" t={t} dur={dur} exit={exit} from={from} cam={cam}
+      L={<g>{cards.map((c, i) => <NameCard key={i} {...c} />)}</g>}
+      R={<g>{p.head ? <ChapterHead label={p.head} /> : null}{p.ref ? <VerseRefPanel refText={p.ref} o={prog(t, 0, 0.3)} /> : null}</g>} />
+  );
+};
+
+// ───────────────────────── الهبوط إلى الأرض (V8، ١١ نوفمبر) ─────────────────────────
+/**
+ * «هبطا إلى الأرض… ووعد من اتبع هداه…»: نقطتا حبر (الشخص نقطة، كما في نسل آدم) تنزلان على قوس منقّط من أعلى الصفحة
+ * إلى خط الأرض لحظة fallWord، والأرض تُخط عند landWord، ثم طريق يمتد على الخط عند pathWord، وكلمة term تُكتب ذهبًا عند termWord.
+ * لا وجه ولا شخص مرسوم، ولا مكان مسمى.
+ */
+const Descent: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
+  const q = cues(tl);
+  const fA = q.safe(q.at(p.fallWord, 0.8) - 0.1, 1.2);
+  const lA = q.safe(q.at(p.landWord, fA + 0.9) - 0.1, 0.6);
+  const pA = p.pathWord ? q.safe(q.at(p.pathWord, lA + 1) - 0.05, 1.0) : Infinity;
+  const tA = p.term ? q.safe(q.at(p.termWord || firstWord(p.term), pA + 0.8) - 0.05, 0.9) : Infinity;
+  const ground = prog(t, Math.min(fA, lA - 0.4), lA + 0.5, easeOut);
+  const fall = prog(t, fA, lA + 0.2, (x) => x * x * (3 - 2 * x));
+  const arc = prog(t, fA - 0.1, fA + 0.6);
+  const road = prog(t, pA, pA + 1.1, easeOut);
+  const term = prog(t, tA, tA + 0.9);
+  // نقطتان على قوس واحد، الثانية خلف الأولى بقليل
+  const pt = (k: number) => {
+    const u = Math.max(0, Math.min(1, k));
+    const x = 760 - 330 * u;
+    const y = 250 + 370 * (u * u);
+    return { x, y };
+  };
+  const a = pt(fall);
+  const b = pt(fall - 0.08);
+  const cam = q.cam(t, { cx: 960, cy: 540, s: 1 }, [
+    { a: fA - 0.2, b: lA + 0.4, cx: 640, cy: 520, s: 1.12 },
+    ...(Number.isFinite(pA) ? [{ a: pA - 0.2, b: pA + 0.9, cx: 820, cy: 600, s: 1.06 }] : []),
+  ]);
+  return (
+    <Book id="lds" t={t} dur={dur} exit={exit} from={from} cam={cam}
+      L={
+        <g>
+          <path d="M760 250 Q 600 330 430 620" fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="6 12" opacity={0.7 * arc} />
+          <Ink d="M220 640 H860" w={5} p={ground} />
+          <circle cx={a.x} cy={a.y - 10} r={11} fill={C.ink} opacity={arc} />
+          <circle cx={b.x + 22} cy={b.y - 10} r={9} fill={C.ink} opacity={arc} />
+          <Ink d="M430 640 C520 618 640 622 760 640 S 840 660 860 640" w={7} p={road} c={C.gold} />
+          {p.term ? <WriteIn id="ldt" x={560} y={760} size={64} p={term} label={p.term} color={C.gold} /> : null}
+        </g>
+      }
+      R={<g>{p.head ? <ChapterHead label={p.head} /> : null}{p.ref ? <VerseRefPanel refText={p.ref} o={prog(t, 0, 0.3)} /> : null}</g>} />
   );
 };
 
@@ -592,4 +707,6 @@ export const LIB_SCENES: Record<string, React.FC<ShotProps>> = {
   "lib-compare": Compare,
   "lib-timeline": Timeline_,
   "lib-evidence": Evidence,
+  "lib-names": Names,
+  "lib-descent": Descent,
 };
