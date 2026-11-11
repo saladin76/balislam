@@ -265,14 +265,14 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
     page.on("response", (r) => { if (r.status() >= 400) http.push(`${r.status()} ${r.url().replace(origin, "").slice(0, 90)}`); });
     let n = 0, seriesId = "";
     // warm-up: the first load of a context compiles and fills caches; it is not measured
-    await page.goto(`${origin}/#/${ch}/${EP}/storyboard`).catch(() => {}); await page.waitForTimeout(3500);
+    await page.goto(`${origin}/?link#/${ch}/${EP}/storyboard`).catch(() => {}); await page.waitForTimeout(3500);
     for (const [id, hash, state, act, exempt] of CASES) {
       const tag = `${ch}-${id}-${w}x${h}-${theme}`;
       cur.state = state; errs = []; http = [];
       try {
         let hh = hash(ch);
-        if (hh.includes("@first")) { if (!seriesId) { await page.goto(`${origin}/#/${ch}`); await page.waitForTimeout(800); seriesId = await firstSeries(page, ch); } hh = hh.replace("@first", seriesId); }
-        await page.goto(`${origin}/?n=${n++}${hh}`);
+        if (hh.includes("@first")) { if (!seriesId) { await page.goto(`${origin}/?link#/${ch}`); await page.waitForTimeout(800); seriesId = await firstSeries(page, ch); } hh = hh.replace("@first", seriesId); }
+        await page.goto(`${origin}/?link&n=${n++}${hh}`);
         await page.waitForTimeout(id.startsWith("adm") || id.startsWith("home") || id.startsWith("series") ? 1600 : 2600);
         if (act) await act(page);
         const a = await page.evaluate(audit, Boolean(exempt));

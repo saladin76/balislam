@@ -114,7 +114,7 @@ for (const theme of themes) for (const [w, h] of sizes) for (const ch of channel
     await route.fulfill({ response: res, json: body });
   });
   for (const s of SCREENS) {
-    await p.goto(`${origin}/${s.hash(ch)}`); await p.waitForLoadState("networkidle").catch(() => {});
+    await p.goto(`${origin}/?link${s.hash(ch)}`); await p.waitForLoadState("networkidle").catch(() => {});
     await p.waitForTimeout(900);
     if (s.open) { await s.open(p); await p.waitForTimeout(300); }
     await p.evaluate(() => { window.scrollTo(0, 0); (document.activeElement)?.blur?.(); });
@@ -154,7 +154,7 @@ for (const theme of themes) for (const [w, h] of sizes) for (const ch of channel
     if (bad.length) failures.push({ ...row, bad });
   }
   // A modal locks the page while it is open and gives it back when it closes (Esc), every time.
-  await p.goto(`${origin}/#/${ch}`); await p.waitForTimeout(900);
+  await p.goto(`${origin}/?link#/${ch}`); await p.waitForTimeout(900);
   const opener = p.getByRole("button", { name: /حلقة جديدة|ابدأ أول حلقة/ }).first();
   if (await opener.count()) {
     await opener.click(); await p.waitForTimeout(300);

@@ -1,7 +1,7 @@
 /**
  * A link for every place in the Studio (funnel audit item 18): «#/<channel>/<episode>/<tab>» for an
- * episode step, «#/<channel>/<tab>» elsewhere. Opening the link (or refreshing) lands on the same
- * channel, episode and step. A link carries no secret (the
+ * episode step, «#/<channel>/<tab>» elsewhere. Following the link during a session, or refreshing the page,
+ * lands on the same channel, episode and step; a fresh open lands on «الرئيسية» (D85, `bootPlace`). A link carries no secret (the
  * Studio has none: owner decision 9 Nov); owner actions are allowed only from this device.
  */
 import { SECTION_TITLES, type StudioSection } from "../ui/StudioSidebar";
@@ -33,4 +33,43 @@ export const studioHash = (r: StudioRoute): string => {
   if (r.tab && EPISODE_STEPS.includes(r.tab)) return r.episode && EPISODE.test(r.episode) ? `#/${r.channel}/${r.episode}/${r.tab}` : `#/${r.channel}`;
   if (r.tab === "series") return r.series && SERIES.test(r.series) ? `#/${r.channel}/series/${r.series}` : `#/${r.channel}`;
   return r.tab ? `#/${r.channel}/${r.tab}` : `#/${r.channel}`;
+};
+
+/**
+ * Where the Studio lands when the page loads (owner decision 11 Nov, D85; replaces the boot half of audit item 18):
+ * - a fresh open (new tab or window, `npm run app` again, a tab the browser restored, the address typed and
+ *   autocompleted to an old link) lands on «الرئيسية» of the last channel chosen. The old hash and the step
+ *   remembered locally are ignored, so the Studio never reopens deep inside an episode;
+ * - a reload of the page while working (F5, Cmd+R, Cmd+Shift+R) keeps the place in the address bar, so no
+ *   work is lost;
+ * - a link opened with `?link` (`/?link#/balislam/001/episode`: scripts, a deliberate deep link) keeps its
+ *   place too. A link pasted or clicked during a session is handled by the hashchange listener, not here.
+ */
+export type NavigationKind = "reload" | "open";
+export type BootInput = {
+  hash: string;
+  search?: string;
+  navigation: NavigationKind;
+  stored: { channel?: string | null; episode?: string | null; tab?: string | null };
+};
+export const bootPlace = (b: BootInput): StudioRoute & { tab: StudioSection } => {
+  const r = parseStudioHash(b.hash);
+  const storedChannel = b.stored.channel && CHANNEL.test(b.stored.channel) ? b.stored.channel : undefined;
+  const storedEpisode = b.stored.episode || undefined;
+  const keep = b.navigation === "reload" || /(?:^\?|&)link(?:[=&]|$)/.test(b.search ?? "");
+  if (!keep) return { channel: storedChannel ?? r.channel, episode: storedEpisode, tab: "home" };
+  const storedTab = b.stored.tab && isTab(b.stored.tab) ? b.stored.tab : undefined;
+  return { channel: r.channel ?? storedChannel, episode: r.episode ?? storedEpisode, tab: r.tab ?? storedTab ?? "home", ...(r.series ? { series: r.series } : {}) };
+};
+
+/** «reload» only when the browser says this load is a reload of the same page; anything else is a fresh open. */
+export const navigationKind = (perf: Pick<Performance, "getEntriesByType"> & { navigation?: { type?: number } } | undefined =
+  typeof performance === "undefined" ? undefined : performance): NavigationKind => {
+  try {
+    const e = perf?.getEntriesByType?.("navigation")?.[0] as PerformanceNavigationTiming | undefined;
+    if (e?.type) return e.type === "reload" ? "reload" : "open";
+    return perf?.navigation?.type === 1 ? "reload" : "open";
+  } catch {
+    return "open";
+  }
 };

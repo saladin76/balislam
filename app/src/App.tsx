@@ -44,12 +44,10 @@ import { GuideTab } from "./tabs/GuideTab";
 import { LabsTab } from "./tabs/LabsTab";
 import { TechReviewsTab } from "./tabs/TechReviewsTab";
 import { ChannelProvider } from "../../src/channel/context";
-import { parseStudioHash, studioHash } from "./shell/route";
+import { bootPlace, navigationKind, parseStudioHash, studioHash } from "./shell/route";
 
 type Tab = StudioSection;
 type FinalView = "recitations" | "seams" | "master";
-/** The link the Studio was opened with (audit item 18) wins over the last place remembered locally. */
-const bootRoute = typeof window === "undefined" ? {} : parseStudioHash(window.location.hash);
 const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
 const store = {
   get: (k: string) => {
@@ -67,6 +65,18 @@ const store = {
     }
   },
 };
+/**
+ * Where the Studio opens (D85, `bootPlace` in shell/route.ts): a fresh open lands on «الرئيسية» of the last
+ * channel chosen; a reload while working keeps the place in the address bar (or a `?link` deep link).
+ */
+const bootRoute = typeof window === "undefined"
+  ? { tab: "home" as Tab }
+  : bootPlace({
+    hash: window.location.hash,
+    search: window.location.search,
+    navigation: navigationKind(),
+    stored: { channel: store.get("bal-channel"), episode: store.get("bal-episode"), tab: store.get("bal-tab") },
+  });
 
 export const App: React.FC = () => {
   useStudioFonts();
@@ -74,7 +84,7 @@ export const App: React.FC = () => {
   /** Views inside a step (direction D, the floating pill): the scenes one by one or those needing a fix; step ٣'s three. */
   const [sceneView, setSceneView] = useState<"one" | "fix">("one");
   const [finalView, setFinalView] = useState<FinalView | null>(null);
-  const [tab, setTab] = useState<Tab>(bootRoute.tab ?? ((store.get("bal-tab") as Tab) || "home"));
+  const [tab, setTab] = useState<Tab>(bootRoute.tab);
   /** The episode step that opened «الإعدادات» (audit item 14): the settings page offers to go back to it. */
   const [settingsReturn, setSettingsReturn] = useState<Tab | null>(null);
   const openSettings = () => { if (EPISODE_TABS.includes(tab)) setSettingsReturn(tab); setTab("settings"); };
@@ -82,7 +92,7 @@ export const App: React.FC = () => {
   const [homeKey, setHomeKey] = useState(0);
   const [channels, setChannels] = useState<ChannelSummary[]>([]);
   const [channelId, setChannelId] = useState<string>(() => {
-    const c = bootRoute.channel ?? (store.get("bal-channel") || "");
+    const c = bootRoute.channel ?? "";
     setApiChannel(c);
     return c;
   });
@@ -110,7 +120,7 @@ export const App: React.FC = () => {
   channelRef.current = channelId;
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
-  const [epId, setEpId] = useState<string>(bootRoute.episode ?? (store.get("bal-episode") || ""));
+  const [epId, setEpId] = useState<string>(bootRoute.episode ?? "");
   /** The series page on screen («#/<channel>/series/<id>»), and the channel's series (band, picker, new episode). */
   const [seriesId, setSeriesId] = useState<string>(bootRoute.series ?? "");
   const [seriesData, setSeriesData] = useState<SeriesRead | null>(null);
@@ -256,8 +266,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     const ch = channelId || channels[0]?.id || "";
     const next = studioHash({ channel: ch, episode: epId, tab, series: seriesId });
-    if (!next || window.location.hash === next) return;
-    try { window.history.replaceState(null, "", next); } catch { /* not critical */ }
+    if (!next || (window.location.hash === next && !window.location.search)) return;
+    // `?link` (and any query) is dropped once applied: a later restore of this tab is a fresh open again (D85).
+    try { window.history.replaceState(null, "", `${window.location.pathname}${next}`); } catch { /* not critical */ }
   }, [channelId, channels, epId, tab, seriesId]);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
