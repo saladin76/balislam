@@ -1,6 +1,6 @@
 import React from "react";
 import type { CamKey } from "../illus/shots/kit";
-import { Arrow, Card, Cross, Icon, InkPerson, Kaaba, Mark, Mosque, Stroke, Write, heartPath, lerp, fam, measure, outCubic, prog, type Font, type IconId, type Z } from "./inkKit";
+import { Arrow, Card, Cross, Foot, Icon, InkPerson, Kaaba, Mark, Mosque, Stroke, Write, heartPath, lerp, fam, measure, outCubic, prog, type Font, type IconId, type Z } from "./inkKit";
 import type { InkCtx, InkShotDef } from "./shots";
 
 /**
@@ -293,8 +293,12 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             </g>
             {/* لا نستبدل بالأحكام المشاعر، والاثنان معًا */}
             {Box("hk", 1280, 720, "أحكام الصلاة", 84, tRules, { font: "head" })}
+            {/* D73: الأحكام كتاب مدوَّن، يُرسم مع «بأحكام» */}
+            <Icon id="book" x={1720} y={716} s={0.95} p={P(tRules - 2, tRules + 14)} c={z.ink} />
             <g opacity={1 - P(tSihha - 12, tSihha + 4)}>
               {T("ms", 690, 720, "مجرد المشاعر", 62, ["مجرد", 0.52], ["المشاعر", 0.56])}
+              {/* D73: المشاعر قلب بخط القلم، مع «المشاعر» */}
+              <g opacity={P(at("المشاعر", 0.56) - 2, at("المشاعر", 0.56) + 10)}><path d={heartPath(690, 610, 46)} fill="none" stroke={z.ink} strokeWidth={7} /></g>
               <Arrow x1={880} y1={660} x2={1060} y2={660} p={P(tFeel + 6, tFeel + 18)} c={z.ink} w={6} bend={40} />
               <Cross x1={1080} x2={860} y={620} p={P(tFeel + 18, tFeel + 30)} z={z} />
             </g>
@@ -614,6 +618,11 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {T("fh", 760, 190, "اتسع فهمنا", 64, ["اتسع", 0.56], ["فهمنا", 0.6], { font: "head" })}
             {/* نجدد علاقتنا: العلم والتدبر والعمل */}
             {Box("i1", 1350, 830, "بالعلم", 76, tIlm, { font: "head", fill: z.hl })}
+            {/* D73: العلم كتاب مفتوح، والتدبر عين تتأمل، والعمل خطوة — كلٌّ مع كلمته */}
+            <Icon id="openbook" x={1350} y={715} s={0.9} p={P(tIlm - 2, tIlm + 14)} c={z.ink} />
+            <Icon id="eye" x={960} y={715} s={0.9} p={P(tTad - 2, tTad + 14)} c={z.ink} />
+            <Foot x={548} y={724} s={0.85} rot={-10} p={P(tAmal - 2, tAmal + 10)} c={z.ink} fill={z.hl} />
+            <Foot x={594} y={700} s={0.85} rot={8} p={P(tAmal + 2, tAmal + 14)} c={z.ink} fill={z.hl} />
             <Arrow x1={1230} y1={820} x2={1100} y2={820} p={P(tTad - 6, tTad + 6)} c={z.ink} w={6} />
             {Box("i2", 960, 830, "والتدبر", 76, tTad, { font: "head", fill: z.hl })}
             <Arrow x1={830} y1={820} x2={700} y2={820} p={P(tAmal - 6, tAmal + 6)} c={z.ink} w={6} />
@@ -1282,6 +1291,10 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 return (
                   <g key={w}>
                     <circle cx={x} cy={600} r={30} fill={z.hl} stroke={z.ink} strokeWidth={6} opacity={P(t - 4, t + 6)} />
+                    {/* D73: ما له صورة في المكتبة يُرسم فوق محطته؛ الاستفتاح والاستعاذة ذِكر، فيبقيان كلمتين */}
+                    {k === 0 ? <Icon id="ewer" x={x} y={500} s={0.8} p={P(t - 2, t + 12)} c={z.ink} /> : null}
+                    {k === 1 ? <Kaaba x={x} y={548} s={0.42} p={P(t - 2, t + 12)} z={z} band={0} /> : null}
+                    {k === 2 ? <InkPerson x={x} y={556} s={0.3} pose="raise" p={P(t - 2, t + 12)} z={z} dir={-1} /> : null}
                     <line x1={x} x2={x} y1={630} y2={k % 2 ? 712 : 650} stroke={z.ink} strokeWidth={4} opacity={P(t - 2, t + 6)} />
                     {T(`s${k}`, x, k % 2 ? 772 : 712, w, 62, [w, 0.5], undefined, { font: "body", weight: 700 })}
                   </g>
