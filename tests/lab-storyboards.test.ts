@@ -102,7 +102,7 @@ describe("ستوري بورد المختبرات", () => {
     expect(e!.slot).toBe("witnesses-015");
     // لوحات التوجيه 029 للحلقة 001: جاهزة للمراجعة، ولا اعتماد فني
     const ep001 = all.filter((x) => x.slot.startsWith("ep001-029-"));
-    expect(ep001.length).toBe(10); // سبع خانات التوجيه 029 وثلاث لوحات الملحق التفصيلية (الميزان والهاتف والكرسي)
+    expect(ep001.length).toBe(10); // الخانات نفسها؛ تصحيحات التوجيه 030 نسخ جديدة فيها // سبع خانات التوجيه 029 وثلاث لوحات الملحق التفصيلية (الميزان والهاتف والكرسي)
     expect(ep001.every((x) => x.latest.status === "review" && x.problems.length === 0)).toBe(true);
     expect(e!.problems).toEqual([]);
     expect(e!.latest.version).toBe(2);
