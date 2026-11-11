@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-01-scale-portrait",
+  "title": "032 · الميزان c1-s2…s5 عمودي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "3fb4587163661ae0d73df4cd08d253e518decf1a543680ac2983874577fda803",
+  "size": 2407079,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 2407079,
+      "sha256": "3fb4587163661ae0d73df4cd08d253e518decf1a543680ac2983874577fda803"
+    }
+  ],
+  "createdAt": "2026-11-11T21:28:02.058Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
