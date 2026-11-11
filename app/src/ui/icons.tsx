@@ -23,6 +23,7 @@ const P: Record<string, React.ReactNode> = {
   lock: <><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
   more: <><circle cx="5.5" cy="12" r="1.7" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" /><circle cx="18.5" cy="12" r="1.7" fill="currentColor" stroke="none" /></>,
   drive: <><path d="M8.5 4h7l5.5 9.5-3.5 6h-11L3 13.5z" /><path d="M8.5 4L15 15.5M15.5 4L9 15.5M3 13.5h13" /></>,
+  move: <><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M14 11l2.5 2.5L14 16M7.5 13.5h9" /></>,
   search: <><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></>,
 };
 const FILLED: Record<string, React.ReactNode> = {

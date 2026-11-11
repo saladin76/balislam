@@ -63,7 +63,11 @@ export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overw
     backup = path.basename(await backupPlanFile(scriptPath));
   }
   if (current) await copyFile(file, lastPlanBackupFor(scriptPath));
-  await writePlanFile(file, { ...plan, updatedAt: new Date().toISOString() });
+  // ختم السلسلة يملكه انتماء الحلقة (seriesStore.moveEpisode)، لا الصفحة: خطة قديمة في المتصفح لا تعيد ختمًا قبل النقل (D77)
+  const next: Plan = { ...plan, updatedAt: new Date().toISOString() };
+  if (current?.series) next.series = current.series;
+  else if (current) delete next.series;
+  await writePlanFile(file, next);
   return backup ? { backup } : {};
 };
 

@@ -28,6 +28,7 @@ import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
 import { SeriesPage } from "./tabs/Series";
+import { MoveEpisodesDialog, useEpisodeMover } from "./tabs/MoveEpisodes";
 import { GENERAL_SLUG, SERIES_KIND_AR } from "../../src/channel/series";
 import type { SeriesRead } from "./api";
 import { OpsRoom } from "./tabs/OpsRoom";
@@ -114,6 +115,12 @@ export const App: React.FC = () => {
   const [seriesId, setSeriesId] = useState<string>(bootRoute.series ?? "");
   const [seriesData, setSeriesData] = useState<SeriesRead | null>(null);
   const [newSeriesFor, setNewSeriesFor] = useState<string>("");
+  /** «غيّر السلسلة» from inside an episode (D77): the move dialog, then the band and picker reload. */
+  const [moveOpen, setMoveOpen] = useState(false);
+  const epMover = useEpisodeMover(async () => {
+    const [list, r] = await Promise.all([api.episodes(), api.series()]);
+    setEpisodes(list); setSeriesData(r);
+  });
   const episodeRef = useRef(epId);
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
@@ -385,7 +392,9 @@ export const App: React.FC = () => {
   const channelName = channels.find((c) => c.id === cid)?.name ?? channel.name;
   // The series under the channel name: the open episode's (never «عام»), or the series page's
   const epSeries = inEpisode ? episodes?.find((e) => e.id === epId)?.series : undefined;
-  const bandSeriesId = tab === "series" ? seriesId : epSeries && epSeries !== GENERAL_SLUG ? epSeries : "";
+  // Inside an episode «عام» shows too when there is another series to move it to (with «غيّر السلسلة»)
+  const canChangeSeries = Boolean(inEpisode && seriesData?.series.some((x) => x.id !== GENERAL_SLUG && x.status !== "archived"));
+  const bandSeriesId = tab === "series" ? seriesId : epSeries && epSeries !== GENERAL_SLUG ? epSeries : canChangeSeries ? GENERAL_SLUG : "";
   const bandSeries = bandSeriesId ? seriesData?.series.find((x) => x.id === bandSeriesId) : undefined;
   const seriesNames = seriesData && seriesData.series.length > 1 ? Object.fromEntries(seriesData.series.map((x) => [x.id, x.name])) : null;
   const openSeries = (id: string) => { if (!confirmLeaveScript()) return; void flushPlan().then(() => { setSeriesId(id); setTab("series"); }); };
@@ -406,6 +415,7 @@ export const App: React.FC = () => {
         onStep={(i) => { const t = STEPS[i]!.tabs[0]!; if (i === 1) setSceneView("one"); go(t); }}
         series={bandSeries ? { id: bandSeries.id, name: bandSeries.name, kind: SERIES_KIND_AR[bandSeries.kind] } : null}
         onSeries={openSeries}
+        onChangeSeries={canChangeSeries ? () => setMoveOpen(true) : undefined}
         counter={tab === "home" && episodes ? { n: episodes.length, label: episodes.length === 1 ? "حلقة" : episodes.length === 2 ? "حلقتان" : "حلقات" } : null}
         manage={manageItems}
         active={tab}
@@ -759,6 +769,11 @@ export const App: React.FC = () => {
           />
         ) : null}
         {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
+        {moveOpen && seriesData && epId ? (
+          <MoveEpisodesDialog episodes={[epId]} current={epSeries || GENERAL_SLUG} data={seriesData} onClose={() => setMoveOpen(false)}
+            onPick={async (to) => { await flushPlan(); await epMover.move(to, [epId]); setMoveOpen(false); }} />
+        ) : null}
+        {epMover.node}
       </div>
       </div>
       </ChannelProvider>

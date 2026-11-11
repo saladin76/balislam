@@ -27,6 +27,8 @@ export type SeriesRules = {
   fonts: { heading: string; body: string; wordmark: string }; limits: { lightness: number; chromaMin: number; chromaMax: number; emblemParts: number }; maxDepth: number;
   styles: string[]; templates: string[]; tones: string[]; defaultTone: string;
 };
+export type EpisodeMoveResult = { episode: string; ok: boolean; from?: string; to?: string; number?: number; unchanged?: boolean; note?: string; error?: string };
+export type MoveEpisodesResult = { ok: boolean; results: EpisodeMoveResult[]; undo: string | null; to: { id: string; name: string; kind?: string } };
 export type SeriesRead = { series: SeriesView[]; episodes: { id: string; dir: string; series: string; number?: number }[]; rules: SeriesRules | null };
 export type ChannelSummary = { id: string; name: string; language: string; domains: Record<string, ChannelDomain> };
 export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; check: CheckResult; media: EpisodeMedia; issues: PlanIssue[]; keys: { voice: boolean; quran: boolean } };
@@ -335,6 +337,9 @@ export const api = {
   saveSeries: (series: SeriesConfig) => call<{ ok: boolean; series: SeriesConfig; derived: DerivedSeriesIdentity }>(`/api/series/${series.id}`, { method: "PUT", json: { series } }),
   deleteSeries: (id: string) => call<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
   moveEpisodeToSeries: (id: string, episode: string) => call<{ ok: boolean }>(`/api/series/${id}/episodes`, { method: "POST", json: { episode } }),
+  /** Move many episodes at once (D77): a result per episode, and a token for «تراجع» (null when nothing moved). */
+  moveEpisodes: (to: string, episodes: string[]) => call<MoveEpisodesResult>("/api/series/move-episodes", { method: "POST", json: { to, episodes } }),
+  undoMoveEpisodes: (token: string) => call<{ ok: boolean; results: EpisodeMoveResult[] }>("/api/series/move-episodes/undo", { method: "POST", json: { token } }),
   research: (id: string) => call<{ text: string; exists: boolean; label: string }>(`/api/episodes/${id}/research`),
   saveResearch: (id: string, text: string) => call<{ ok: boolean }>(`/api/episodes/${id}/research`, { method: "PUT", json: { text } }),
   sceneReview: (id: string) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`),

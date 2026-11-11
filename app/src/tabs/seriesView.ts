@@ -62,3 +62,69 @@ export const suggestSlug = (latin: string, all: SeriesConfig[]): string => {
   while (all.some((s) => s.id === id)) id = `${base}-${n++}`;
   return id;
 };
+
+// ———————— Moving episodes between series (D77): the dialog's tree, the selection, drag and drop ————————
+
+export type MoveTargetRow = { id: string; name: string; kind: SeriesConfig["kind"]; depth: number; path: string; accent?: string; current: boolean; match: boolean };
+
+/** Arabic search key: no tashkeel or tatweel, one alef, ه for ة, ي for ى, case-free latin. */
+export const searchKey = (s: string) => s.normalize("NFKC").replace(/[ً-ٰٟـ]/g, "").replace(/[إأآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").toLowerCase().trim();
+
+/**
+ * The move dialog's tree: every active series and category in grid order with its depth and swatch; the
+ * current one marked. A search keeps the matches and their parents (for context, still choosable).
+ */
+export const moveTargetRows = (all: (SeriesConfig & { derived?: { accent: string } | null })[], query = "", current?: string): MoveTargetRow[] => {
+  const rows: MoveTargetRow[] = [];
+  const walk = (nodes: SeriesNode[], depth: number) => {
+    for (const n of nodes) {
+      if (n.status === "archived") continue;
+      const s = all.find((x) => x.id === n.id);
+      rows.push({ id: n.id, name: n.name, kind: n.kind, depth, path: breadcrumb(n.id, all).map((x) => x.name).join(" ← "), accent: s?.derived?.accent, current: n.id === current, match: true });
+      walk(n.children, depth + 1);
+    }
+  };
+  walk(seriesTree(all), 0);
+  const q = searchKey(query);
+  if (!q) return rows;
+  const hits = new Set(rows.filter((r) => searchKey(r.name).includes(q)).map((r) => r.id));
+  const keep = new Set<string>();
+  for (const id of hits) for (const a of ancestry(id, all)) keep.add(a);
+  return rows.filter((r) => keep.has(r.id)).map((r) => ({ ...r, match: hits.has(r.id) }));
+};
+
+/** «انقل المحدّد (٣)» */
+export const selectionLabel = (n: number) => `انقل المحدّد (${n.toLocaleString("ar-EG")})`;
+
+/** The series every given episode is in, when they share one (the dialog marks it «الحالية»). */
+export const sharedSeries = (ids: readonly string[], eps: readonly SeriesEpisode[]): string | undefined => {
+  const set = new Set(ids.map((id) => seriesOfEpisode(eps.find((e) => e.id === id) ?? { id })));
+  return set.size === 1 ? [...set][0] : undefined;
+};
+
+/** The drag payload's type: only rows of this Studio carry it (a dragged file or text never moves anything). */
+export const EPISODE_DRAG_TYPE = "application/x-bal-episodes";
+
+/** Dragging a selected row drags the whole selection; an unselected row drags itself alone. */
+export const dragEpisodes = (id: string, selected: ReadonlySet<string>): string[] =>
+  selected.has(id) ? [...selected].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })) : [id];
+
+export const encodeDrag = (ids: readonly string[]) => JSON.stringify({ episodes: ids });
+/** The episodes in a drop, or null when it is not a valid Studio row drag. */
+export const decodeDrag = (raw: string | undefined | null): string[] | null => {
+  if (!raw) return null;
+  try {
+    const x = JSON.parse(raw) as { episodes?: unknown };
+    const ids = Array.isArray(x.episodes) ? x.episodes.map(String) : [];
+    return ids.length && ids.every((id) => /^\d{3}$/.test(id)) ? [...new Set(ids)] : null;
+  } catch { return null; }
+};
+
+/** Whether the dragged episodes may drop on a card: never on an archived one, nor where they all already are. */
+export const dropVerdict = (target: SeriesConfig | undefined, ids: readonly string[], eps: readonly SeriesEpisode[]): { ok: boolean; reason?: string } => {
+  if (!target) return { ok: false, reason: "غير موجودة" };
+  if (!ids.length) return { ok: false };
+  if (target.status === "archived") return { ok: false, reason: "مؤرشفة" };
+  if (ids.every((id) => seriesOfEpisode(eps.find((e) => e.id === id) ?? { id }) === target.id)) return { ok: false, reason: "هي فيها" };
+  return { ok: true };
+};

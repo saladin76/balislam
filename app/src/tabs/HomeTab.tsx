@@ -10,7 +10,8 @@ import type { SeriesRead } from "../api";
 import type { SeriesKind } from "../../../src/channel/series";
 import { GENERAL_SLUG } from "../../../src/channel/series";
 import { NewSeriesDialog, SeriesGrid } from "./Series";
-import { episodesIn, seriesOfEpisode } from "./seriesView";
+import { EPISODE_DRAG_TYPE, dragEpisodes, encodeDrag, episodesIn, seriesOfEpisode, sharedSeries } from "./seriesView";
+import { MoveEpisodesDialog, RowMoveButton, SelectionDock, useEpisodeMover } from "./MoveEpisodes";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
@@ -78,6 +79,14 @@ export const HomeTab: React.FC<{
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<HomeCardFilter>("all");
   const [sort, setSort] = useState<HomeCardSort>("recent");
+  // Moving episodes between series (D77): the selection, the dialog, and the rows being dragged
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [moving, setMoving] = useState<string[] | null>(null);
+  const [dragging, setDragging] = useState<string[] | null>(null);
+  const mover = useEpisodeMover(async () => {
+    const [o, r] = await Promise.all([api.overview(), api.series()]);
+    setItems(o); setSeries(r); setSelected(new Set());
+  });
   useEffect(() => {
     let active = true;
     setItems(null);
@@ -109,6 +118,14 @@ export const HomeTab: React.FC<{
   const inSeries = series && seriesFilter !== "all" ? new Set(episodesIn(seriesFilter, series.series, items).map((e) => e.id)) : null;
   const visible = selectHomeCards(items, search, filter, sort, (e) => Boolean(e.production?.masterApproved)).filter((e) => !inSeries || inSeries.has(e.id));
   const seriesName = (id: string) => series?.series.find((x) => x.id === id);
+  // Moving needs somewhere to go: another active series or category than «عام»
+  const canMove = Boolean(series && series.series.some((x) => x.id !== GENERAL_SLUG && x.status !== "archived"));
+  const generalIds = items.filter((e) => seriesOfEpisode(e) === GENERAL_SLUG).map((e) => e.id);
+  const toggle = (id: string) => setSelected((cur) => { const n = new Set(cur); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const moveDialog = moving && series ? (
+    <MoveEpisodesDialog episodes={moving} current={sharedSeries(moving, items)} data={series} onClose={() => setMoving(null)}
+      onPick={async (to) => { await mover.move(to, moving); setMoving(null); }} />
+  ) : null;
   const deleteDialog = del ? (
     <Dialog labelledBy="del-title" onClose={() => { if (!del.busy) setDel(null); }}>
         <div className="modal-head"><h3 id="del-title">حذف الحلقة {arDigits(del.id)} نهائيًا</h3></div>
@@ -151,9 +168,23 @@ export const HomeTab: React.FC<{
         <h1>{channel.name}</h1>
         {tagline ? <p>{tagline}</p> : null}
       </header>
-      {series ? <SeriesGrid data={series} items={items} onOpen={(id) => onOpenSeries?.(id)} onNew={setNewSeries} /> : null}
+      {moveDialog}
+      {mover.node}
+      {series ? <SeriesGrid data={series} items={items} onOpen={(id) => onOpenSeries?.(id)} onNew={setNewSeries}
+        dragging={canMove ? dragging : null}
+        onDropEpisodes={canMove ? (to, ids) => { setDragging(null); void mover.move(to, ids).catch((x) => mover.setToast({ line: (x as Error).message, err: true })); } : undefined}
+        onMoveGeneral={canMove && generalIds.length ? () => { setSelected(new Set(generalIds)); setMoving(generalIds); } : undefined} /> : null}
       {newSeries && series ? <NewSeriesDialog kind={newSeries} data={series} onClose={() => setNewSeries(null)} onCreated={(id) => { setNewSeries(null); onOpenSeries?.(id); }} /> : null}
-      {items.length ? <div className="all-eps-head"><h2>كل الحلقات</h2></div> : null}
+      {items.length ? (
+        <div className="all-eps-head">
+          <h2>كل الحلقات</h2>
+          {canMove ? (
+            <div className="all-eps-acts">
+              {generalIds.length ? <button type="button" className="btn ghost" onClick={() => setSelected(new Set(generalIds))}>تحديد الكل في «عام»</button> : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {items.length === 0 ? (
         <div className="ledger-empty">
@@ -177,14 +208,22 @@ export const HomeTab: React.FC<{
           {visible.length === 0 ? (
             <div className="ledger-empty"><p>لا حلقة تطابق البحث.</p><button className="btn" type="button" onClick={() => { setSearch(""); setFilter("all"); setSeriesFilter("all"); }}>اعرض كل الحلقات</button></div>
           ) : (
-            <ol className="ledger-list">
+            <ol className={`ledger-list${canMove ? " is-pickable" : ""}`}>
               {visible.map((e) => {
                 const steps = fourSteps(e);
                 const doneCount = steps.findIndex((s) => !s.done);
                 const at = doneCount === -1 ? steps.length : doneCount;
                 const next = nextLine(e);
                 return (
-                  <li key={e.id} className={`ledger-row${e.id === hot ? " is-hot" : ""}`}>
+                  <li key={e.id} className={`ledger-row${e.id === hot ? " is-hot" : ""}${selected.has(e.id) ? " is-picked" : ""}${dragging?.includes(e.id) ? " is-dragged" : ""}`}
+                    draggable={canMove || undefined}
+                    onDragStart={canMove ? (ev) => { const ids = dragEpisodes(e.id, selected); ev.dataTransfer.setData(EPISODE_DRAG_TYPE, encodeDrag(ids)); ev.dataTransfer.effectAllowed = "move"; setDragging(ids); } : undefined}
+                    onDragEnd={canMove ? () => setDragging(null) : undefined}>
+                    {canMove ? (
+                      <label className="ledger-pick" title="حدّد لنقلها مع غيرها">
+                        <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggle(e.id)} aria-label={`حدّد الحلقة ${arDigits(e.id.replace(/^0+(?=\d)/, ""))}`} />
+                      </label>
+                    ) : null}
                     <span className="ledger-num" aria-hidden="true"><Num>{e.id.replace(/^0+(?=\d)/, "")}</Num></span>
                     <div className="ledger-main">
                       <button type="button" className="ledger-open" onClick={() => onOpen(e.id, next.tab)}>
@@ -200,12 +239,13 @@ export const HomeTab: React.FC<{
                           ))}
                         </ol>
                         <span className="ledger-next">{next.text}</span>
+                        {canMove ? <RowMoveButton episode={e.id} onMove={() => setMoving([e.id])} /> : null}
                       </div>
                     </div>
                     <span className="ledger-len" title={e.length ? lengthSource(e.length) : undefined}>
                       {e.length ? <><b><Num className="clk">{duration(e.length.seconds)}</Num></b>{e.length.source === "voice" ? "مقيسة" : "مدة الخطة"}</> : null}
                     </span>
-                    <RowMenu label={`خيارات الحلقة ${arDigits(e.id)}`} items={[{ label: "حذف الحلقة…", danger: true, onSelect: () => setDel({ id: e.id, title: e.title || e.dir, typed: "" }) }]} />
+                    <RowMenu label={`خيارات الحلقة ${arDigits(e.id)}`} items={[...(canMove ? [{ label: "انقل إلى سلسلة…", onSelect: () => setMoving([e.id]) }] : []), { label: "حذف الحلقة…", danger: true, onSelect: () => setDel({ id: e.id, title: e.title || e.dir, typed: "" }) }]} />
                   </li>
                 );
               })}
@@ -216,7 +256,9 @@ export const HomeTab: React.FC<{
       {/* The one next action on the channel's episodes: a new episode, in the dock */}
       <div className="ms-dock" role="group" aria-label="حلقات القناة">
         <div className="ms-dock-in">
-          <button className="btn primary" type="button" onClick={onNew}><Icon name="plus" />{items.length ? "حلقة جديدة" : "ابدأ أول حلقة"}</button>
+          {selected.size ? (
+            <SelectionDock count={selected.size} onMove={() => setMoving([...selected].sort())} onClear={() => setSelected(new Set())} />
+          ) : <button className="btn primary" type="button" onClick={onNew}><Icon name="plus" />{items.length ? "حلقة جديدة" : "ابدأ أول حلقة"}</button>}
         </div>
       </div>
     </div>

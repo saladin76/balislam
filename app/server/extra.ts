@@ -3,6 +3,7 @@ import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { readdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
+import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
@@ -55,6 +56,9 @@ export const longJobs = new Map<string, LongJob>();
 export const busy = new Set<string>();
 let seq = 0;
 export const newJobId = () => `${Date.now()}-${++seq}`;
+/** «تراجع» بعد نقل حلقات (D77): لقطات ما قبل النقل على الخادم وحده، برمز يُستعمل مرة واحدة خلال المهلة */
+export const MOVE_UNDO_MS = 15 * 60_000;
+export const moveUndo = new Map<string, { ch: string; snaps: any[]; at: number }>();
 /** يُبقي آخر 30 مهمة فقط. */
 export const trimJobs = <T extends { status: string }>(m: Map<string, T>) => {
   while (m.size > 30) {
@@ -782,6 +786,41 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         } : null,
       });
       return true;
+    }
+    // نقل عدة حلقات معًا (D77): كل حلقة بنقل الحلقة الواحدة نفسه، ذرّية وحدها، ونتيجة لكل حلقة؛ و«تراجع» برمز النقل
+    if (parts[1] === "move-episodes" && req.method === "POST" && (!parts[2] || parts[2] === "undo")) {
+      const refused = await ownerRefusal(ctx);
+      if (refused) return send(res, 403, { error: refused }), true;
+      try {
+        const body = await readBody(req);
+        for (const [k, v] of moveUndo) if (Date.now() - v.at > MOVE_UNDO_MS) moveUndo.delete(k);
+        if (parts[2] === "undo") {
+          const entry = moveUndo.get(String(body?.token ?? ""));
+          if (!entry || entry.ch !== ch) return send(res, 410, { error: "انتهت مهلة التراجع عن هذا النقل." }), true;
+          moveUndo.delete(String(body.token));
+          const results = await store.undoEpisodeMoves(ch, entry.snaps);
+          send(res, 200, { ok: results.every((r: { ok: boolean }) => r.ok), results });
+          return true;
+        }
+        const to = String(body?.to ?? "");
+        const list: unknown = body?.episodes;
+        if (!model.SLUG_RE.test(to)) return send(res, 400, { error: "معرّف السلسلة غير صالح." }), true;
+        if (!Array.isArray(list) || !list.length || list.length > 300 || !list.every((x) => /^\d{3}$/.test(String(x)))) return send(res, 400, { error: "أرقام الحلقات غير صالحة." }), true;
+        const { resolveEpisodeDir } = await load("/src/script/episodes.ts");
+        const found: { episode: string; dir: string }[] = [];
+        const missing: { episode: string; ok: false; error: string }[] = [];
+        for (const episode of [...new Set(list.map(String))]) {
+          try { found.push({ episode, dir: await resolveEpisodeDir(episode) }); }
+          catch (e) { missing.push({ episode, ok: false, error: (e as Error).message }); }
+        }
+        const { results, undo } = await store.moveEpisodesTo(ch, found, to);
+        const all = [...results, ...missing];
+        const token = undo.length ? randomUUID() : null;
+        if (token) moveUndo.set(token, { ch, snaps: undo, at: Date.now() });
+        const target = store.getSeries(ch, to);
+        send(res, 200, { ok: all.every((r: { ok: boolean }) => r.ok), results: all, undo: token, to: { id: to, name: target?.name ?? to, kind: target?.kind } });
+        return true;
+      } catch (e) { return fail(e); }
     }
     const id = parts[1] ?? "";
     if (!model.SLUG_RE.test(id)) return send(res, 400, { error: "معرّف السلسلة غير صالح." }), true;

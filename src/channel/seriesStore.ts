@@ -147,3 +147,90 @@ const restampPlan = async (episodeDir: string, stamp: SeriesStamp | undefined) =
   else delete plan.series;
   await writeJsonAtomic(f, plan);
 };
+
+// ———————— نقل عدة حلقات معًا، والتراجع عنه (D77) ————————
+
+/** ما كانت عليه الحلقة قبل النقل: ملف انتمائها كما هو بايتًا (أو لا ملف) وختم خطتها، للتراجع الدقيق */
+export type EpisodeMoveSnapshot = { episode: string; dir: string; from: string; to: string; link: string | null; plan: { had: boolean; series?: SeriesStamp } | null };
+export type EpisodeMoveResult = { episode: string; ok: boolean; from?: string; to?: string; number?: number; unchanged?: boolean; note?: string; error?: string };
+
+const snapshotOf = async (episode: string, episodeDir: string, to: string): Promise<EpisodeMoveSnapshot> => {
+  const f = path.join(episodeDir, EPISODE_SERIES_FILE);
+  const p = path.join(episodeDir, "plan.json");
+  const plan = existsSync(p) ? (JSON.parse(await readFile(p, "utf8")) as { series?: SeriesStamp }) : null;
+  return {
+    episode, dir: episodeDir, from: episodeSeriesOf(episodeDir).series, to,
+    link: existsSync(f) ? await readFile(f, "utf8") : null,
+    plan: plan ? ("series" in plan ? { had: true, series: plan.series } : { had: false }) : null,
+  };
+};
+
+/** يعيد ملف الانتماء وختم الخطة كما كانا (لا يلمس script.md ولا أي حقل آخر في الخطة) */
+const restoreSnapshot = async (s: EpisodeMoveSnapshot) => {
+  const f = path.join(s.dir, EPISODE_SERIES_FILE);
+  if (s.link === null) await rm(f, { force: true });
+  else await writeFile(f, s.link, "utf8");
+  const p = path.join(s.dir, "plan.json");
+  if (!s.plan || !existsSync(p)) return;
+  const plan = JSON.parse(await readFile(p, "utf8")) as { series?: SeriesStamp };
+  if (s.plan.had) plan.series = s.plan.series;
+  else delete plan.series;
+  await writeJsonAtomic(p, plan);
+};
+
+/**
+ * ينقل عدة حلقات إلى سلسلة واحدة: كل حلقة بـ moveEpisode نفسه (الرقم التالي في السلسلة بترتيب أرقام الحلقات)،
+ * وكل حلقة ذرّية وحدها: إن فشلت أُعيدت كما كانت ومضت البقية. يعيد نتيجة كل حلقة ولقطات التراجع لما نُقل فعلًا.
+ */
+export const moveEpisodesTo = async (ch: string, episodes: { episode: string; dir: string }[], seriesId: string): Promise<{ results: EpisodeMoveResult[]; undo: EpisodeMoveSnapshot[] }> => {
+  const target = getSeries(ch, seriesId);
+  if (!target) throw new SeriesError([`السلسلة «${seriesId}» غير موجودة.`]);
+  if (target.status === "archived") throw new SeriesError([`«${target.name}» مؤرشفة؛ أعدها نشطة قبل النقل إليها.`]);
+  const results: EpisodeMoveResult[] = [];
+  const undo: EpisodeMoveSnapshot[] = [];
+  for (const { episode, dir } of [...episodes].sort((a, b) => a.episode.localeCompare(b.episode, undefined, { numeric: true }))) {
+    let snap: EpisodeMoveSnapshot | null = null;
+    try {
+      snap = await snapshotOf(episode, dir, target.id);
+      if (snap.from === target.id) { results.push({ episode, ok: true, from: snap.from, to: target.id, unchanged: true }); continue; }
+      const link = await moveEpisode(ch, dir, target.id);
+      undo.push(snap);
+      results.push({ episode, ok: true, from: snap.from, to: target.id, ...(link.stamp?.number ? { number: link.stamp.number } : {}) });
+    } catch (e) {
+      if (snap) await restoreSnapshot(snap).catch(() => {});
+      results.push({ episode, ok: false, error: (e as Error).message });
+    }
+  }
+  return { results, undo };
+};
+
+/**
+ * التراجع عن نقل: كل حلقة تعود إلى ملف انتمائها وختمها السابقين بالضبط (ورقمها نفسه في سلسلتها)، ما لم تتغير
+ * سلسلتها بعد النقل. إن أخذت حلقة أخرى رقمها في السلسلة القديمة، أو حُذفت السلسلة، لا يُكتب انتماء مكرر.
+ */
+export const undoEpisodeMoves = async (ch: string, snaps: EpisodeMoveSnapshot[]): Promise<EpisodeMoveResult[]> => {
+  const out: EpisodeMoveResult[] = [];
+  for (const s of [...snaps].reverse()) {
+    try {
+      const now = episodeSeriesOf(s.dir).series;
+      if (now !== s.to) { out.push({ episode: s.episode, ok: false, error: "تغيّرت سلسلتها بعد النقل؛ تُركت كما هي." }); continue; }
+      if (s.link !== null) {
+        const prev = JSON.parse(s.link) as EpisodeSeriesLink;
+        const series = getSeries(ch, prev.series);
+        if (!series) { out.push({ episode: s.episode, ok: false, error: `السلسلة «${prev.series}» لم تعد موجودة.` }); continue; }
+        const n = prev.stamp?.number;
+        const taken = n ? (await episodesBySeries(ch)).some((e) => e.series === prev.series && e.number === n && e.dir !== path.basename(s.dir)) : false;
+        if (taken) {
+          const link = await moveEpisode(ch, s.dir, prev.series);
+          out.push({ episode: s.episode, ok: true, from: s.to, to: prev.series, number: link.stamp?.number, note: "رقمها السابق أخذته حلقة أخرى، فأخذت الرقم التالي." });
+          continue;
+        }
+      }
+      await restoreSnapshot(s);
+      out.push({ episode: s.episode, ok: true, from: s.to, to: s.from });
+    } catch (e) {
+      out.push({ episode: s.episode, ok: false, error: (e as Error).message });
+    }
+  }
+  return out.reverse();
+};

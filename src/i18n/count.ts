@@ -28,6 +28,7 @@ export const arabicCountAr = (n: number, f: ArabicNounForms): string =>
 
 export const SCENES: ArabicNounForms = { one: "مشهد واحد", two: "مشهدان", few: "مشاهد", many: "مشهدًا", hundred: "مشهد" };
 export const AYAT: ArabicNounForms = { one: "آية واحدة", two: "آيتان", few: "آيات", many: "آية", hundred: "آية" };
+export const EPISODES: ArabicNounForms = { one: "حلقة واحدة", two: "حلقتان", few: "حلقات", many: "حلقة", hundred: "حلقة" };
 export const CITATIONS: ArabicNounForms = { one: "استشهاد واحد", two: "استشهادان", few: "استشهادات", many: "استشهادًا", hundred: "استشهاد" };
 /** «كل سبت»: the weekly publishing day as the owner reads it. */
 export const everyWeekday = (day: string) => `كل ${day.replace(/^(يوم\s+)?(ال)?/, "")}`;

@@ -17,7 +17,8 @@ import { tones } from "../../../src/voice/tones";
 import { Num, arDigits, episodeTitle } from "../ui/format";
 import { Icon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
-import { breadcrumb, episodesIn, kindAr, parentChoices, seriesGrid, suggestSlug } from "./seriesView";
+import { EPISODE_DRAG_TYPE, breadcrumb, decodeDrag, dropVerdict, episodesIn, kindAr, parentChoices, seriesGrid, seriesOfEpisode, suggestSlug } from "./seriesView";
+import { MoveEpisodesDialog, RowMoveButton, useEpisodeMover } from "./MoveEpisodes";
 import { fourSteps, nextLine } from "./HomeTab";
 import "./series.css";
 
@@ -41,26 +42,47 @@ export const SeriesGrid: React.FC<{
   items: Overview[];
   onOpen: (id: string) => void;
   onNew: (kind: SeriesKind) => void;
-}> = ({ data, items, onOpen, onNew }) => {
+  /** The episodes being dragged from «كل الحلقات» (D77): cards that can take them light up. */
+  dragging?: string[] | null;
+  onDropEpisodes?: (series: string, episodes: string[]) => void;
+  /** «انقل حلقاتها إلى سلسلة» on the «عام» card when it has episodes. */
+  onMoveGeneral?: () => void;
+}> = ({ data, items, onOpen, onNew, dragging, onDropEpisodes, onMoveGeneral }) => {
   const nodes = seriesGrid(data.series);
+  const [over, setOver] = useState("");
   const card = (s: SeriesView, nested = false) => {
     const eps = episodesIn(s.id, data.series, items);
     const waiting = eps.find((e) => fourSteps(e).some((x) => !x.done));
+    const verdict = dragging?.length ? dropVerdict(s, dragging, items) : null;
+    const dropCls = verdict ? (verdict.ok ? (over === s.id ? " is-drop-over" : " is-drop-ok") : " is-drop-no") : "";
     return (
-      <button key={s.id} type="button" className={`sr-card${nested ? " is-nested" : ""}${s.status === "archived" ? " is-archived" : ""}`} onClick={() => onOpen(s.id)}
-        aria-label={`${kindAr(s)} ${s.name}: ${countAr(eps.length)}`} data-series={s.id}>
+      <button key={s.id} type="button" className={`sr-card${nested ? " is-nested" : ""}${s.status === "archived" ? " is-archived" : ""}${dropCls}`} onClick={() => onOpen(s.id)}
+        aria-label={`${kindAr(s)} ${s.name}: ${countAr(eps.length)}`} data-series={s.id}
+        onDragOver={onDropEpisodes ? (e) => {
+          if (!e.dataTransfer.types.includes(EPISODE_DRAG_TYPE) || !verdict?.ok) return;
+          e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move";
+          if (over !== s.id) setOver(s.id);
+        } : undefined}
+        onDragLeave={onDropEpisodes ? () => setOver((o) => (o === s.id ? "" : o)) : undefined}
+        onDrop={onDropEpisodes ? (e) => {
+          e.preventDefault(); e.stopPropagation(); setOver("");
+          const ids = decodeDrag(e.dataTransfer.getData(EPISODE_DRAG_TYPE));
+          if (ids && dropVerdict(s, ids, items).ok) onDropEpisodes(s.id, ids);
+        } : undefined}>
         <SeriesMark d={s.derived} name={s.name} size={nested ? 44 : 56} />
         <span className="sr-card-txt">
           <span className="sr-kind">{kindAr(s)}{s.status === "archived" ? "، مؤرشفة" : ""}</span>
           <b>{s.name}</b>
           <span className="sr-count"><Num>{countAr(eps.length)}</Num></span>
-          {waiting ? <span className="sr-next">الحلقة {arDigits(waiting.id.replace(/^0+(?=\d)/, ""))}: {nextLine(waiting).text}</span> : eps.length ? <span className="sr-next">كل حلقاتها في مسارها</span> : <span className="sr-next">ابدأ أول حلقة فيها</span>}
+          {verdict?.ok ? <span className="sr-next sr-drop-hint">{over === s.id ? "أفلِت هنا للنقل" : "أفلِتها هنا"}</span>
+            : waiting ? <span className="sr-next">الحلقة {arDigits(waiting.id.replace(/^0+(?=\d)/, ""))}: {nextLine(waiting).text}</span> : eps.length ? <span className="sr-next">كل حلقاتها في مسارها</span> : <span className="sr-next">ابدأ أول حلقة فيها</span>}
         </span>
       </button>
     );
   };
+  const generalHas = items.some((e) => seriesOfEpisode(e) === GENERAL_SLUG) && data.series.some((x) => x.id !== GENERAL_SLUG && x.status !== "archived");
   return (
-    <section className="sr-grid-wrap" aria-labelledby="sr-grid-h">
+    <section className={`sr-grid-wrap${dragging?.length ? " is-dragging" : ""}`} aria-labelledby="sr-grid-h">
       <div className="sr-sec-head">
         <h2 id="sr-grid-h">السلاسل والتصنيفات</h2>
         <div className="sr-sec-acts">
@@ -68,10 +90,14 @@ export const SeriesGrid: React.FC<{
           <button type="button" className="btn" onClick={() => onNew("category")}><Icon name="plus" />تصنيف جديد</button>
         </div>
       </div>
+      {dragging?.length ? <p className="sr-drag-line" role="status">أفلِت {dragging.length === 1 ? `الحلقة ${arDigits(dragging[0]!.replace(/^0+(?=\d)/, ""))}` : dragging.length === 2 ? "حلقتين" : `${arDigits(dragging.length)} ${dragging.length <= 10 ? "حلقات" : "حلقة"}`} على سلسلة أو تصنيف لنقلها إليه.</p> : null}
       <ul className="sr-grid">
         {nodes.map((n) => (
           <li key={n.id} className={n.children.length ? "has-kids" : undefined}>
             {card(n as unknown as SeriesView)}
+            {n.id === GENERAL_SLUG && generalHas && onMoveGeneral ? (
+              <button type="button" className="sr-card-act" onClick={onMoveGeneral}>انقل حلقاتها إلى سلسلة…</button>
+            ) : null}
             {n.children.length ? (
               <ul className="sr-kids" aria-label={`داخل ${n.name}`}>
                 {n.children.map((k) => (
@@ -193,6 +219,7 @@ export const SeriesPage: React.FC<{
   const [busy, setBusy] = useState(false);
   const [dlg, setDlg] = useState<null | "rename" | "move" | "delete" | { moveEpisode: string } | { newChild: SeriesKind }>(null);
   const load = () => Promise.all([api.series(), api.overview()]).then(([d, o]) => { setData(d); setItems(o); const s = d.series.find((x) => x.id === seriesId); setDraft(s ? strip(s) : null); }).catch((e) => setErr((e as Error).message));
+  const mover = useEpisodeMover(async () => { await load(); onChanged?.(); });
   useEffect(() => { setPane("episodes"); setData(null); void load(); }, [channel.id, seriesId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
@@ -270,7 +297,7 @@ export const SeriesPage: React.FC<{
                       </div>
                     </div>
                     <span />
-                    <button type="button" className="ledger-more" aria-label={`انقل الحلقة ${arDigits(e.id)} إلى سلسلة أخرى`} title="انقل إلى سلسلة أخرى" onClick={() => setDlg({ moveEpisode: e.id })}>⋯</button>
+                    <RowMoveButton episode={e.id} onMove={() => setDlg({ moveEpisode: e.id })} />
                   </li>
                 );
               })}
@@ -301,7 +328,8 @@ export const SeriesPage: React.FC<{
       {dlg === "rename" ? <RenameDialog name={saved.name} description={saved.description ?? ""} onClose={() => setDlg(null)} onSave={async (name, description) => { await save({ ...strip(saved), name, description: description || undefined }, "أُعيدت التسمية"); setDlg(null); }} /> : null}
       {dlg === "move" ? <MoveDialog s={saved} data={data} onClose={() => setDlg(null)} onSave={async (parent) => { const n = { ...strip(saved) }; if (parent) n.parent = parent; else delete n.parent; await save(n, "نُقلت"); setDlg(null); }} /> : null}
       {dlg === "delete" ? <DeleteDialog name={saved.name} onClose={() => setDlg(null)} onConfirm={async () => { try { await api.deleteSeries(seriesId); onChanged?.(); onBack(); } catch (x) { setMsg({ text: (x as Error).message, err: true }); setDlg(null); } }} /> : null}
-      {dlg && typeof dlg === "object" && "moveEpisode" in dlg ? <MoveEpisodeDialog episode={dlg.moveEpisode} current={seriesId} data={data} onClose={() => setDlg(null)} onMoved={async () => { setDlg(null); await load(); onChanged?.(); setMsg({ text: "نُقلت الحلقة. السكريبت واعتماداته كما هي." }); }} /> : null}
+      {dlg && typeof dlg === "object" && "moveEpisode" in dlg ? <MoveEpisodesDialog episodes={[dlg.moveEpisode]} current={eps.find((x) => x.id === dlg.moveEpisode)?.series || GENERAL_SLUG} data={data} onClose={() => setDlg(null)} onPick={async (to) => { await mover.move(to, [dlg.moveEpisode]); setDlg(null); }} /> : null}
+      {mover.node}
       {dlg && typeof dlg === "object" && "newChild" in dlg ? <NewSeriesDialog kind={dlg.newChild} data={data} parent={seriesId} onClose={() => setDlg(null)} onCreated={(id) => { setDlg(null); onChanged?.(); onOpenSeries(id); }} /> : null}
     </div>
   );
@@ -492,24 +520,3 @@ const DeleteDialog: React.FC<{ name: string; onClose: () => void; onConfirm: () 
     </div>
   </Dialog>
 );
-
-const MoveEpisodeDialog: React.FC<{ episode: string; current: string; data: SeriesRead; onClose: () => void; onMoved: () => Promise<void> }> = ({ episode, current, data, onClose, onMoved }) => {
-  const [to, setTo] = useState(current);
-  const [err, setErr] = useState("");
-  const choices = data.series.filter((s) => s.status !== "archived");
-  return (
-    <Dialog as="form" labelledBy="sr-mvep-h" width={460} onClose={onClose} onSubmit={async (e) => {
-      e.preventDefault();
-      if (to === current) return onClose();
-      try { await api.moveEpisodeToSeries(to, episode); await onMoved(); } catch (x) { setErr((x as Error).message); }
-    }}>
-      <div className="modal-head"><h3 id="sr-mvep-h">انقل الحلقة {arDigits(episode)}</h3></div>
-      <div className="modal-body sr-form">
-        <label className="field"><span>إلى</span><select value={to} onChange={(e) => setTo(e.target.value)} autoFocus>{choices.map((s) => <option key={s.id} value={s.id}>{breadcrumb(s.id, data.series).map((x) => x.name).join(" ← ")}</option>)}</select></label>
-        <p className="help">تُختم الحلقة بهوية السلسلة الجديدة وقالبها الآن. السكريبت ومشاهده واعتماداته لا تُلمس.</p>
-        {err ? <p className="help" style={{ color: "var(--err)" }} role="alert">{err}</p> : null}
-        <div className="sr-dialog-acts"><button type="submit" className="btn primary">انقل</button><button type="button" className="btn" onClick={onClose}>إلغاء</button></div>
-      </div>
-    </Dialog>
-  );
-};

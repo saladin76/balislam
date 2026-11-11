@@ -27,6 +27,8 @@ type Props = {
   /** The current series under the channel name (the episode's, or the series page's); opens its page. */
   series?: { id: string; name: string; kind: string } | null;
   onSeries?: (id: string) => void;
+  /** Inside an episode: «غيّر السلسلة» opens the move dialog (D77). */
+  onChangeSeries?: () => void;
   /** On the channel's episodes: how many, and one line under the number. */
   counter?: { n: number; label: string } | null;
   manage: ManageItem[];
@@ -64,6 +66,9 @@ export const Band: React.FC<Props> = (p) => {
         <button type="button" className="ms-band-series" onClick={() => p.onSeries?.(p.series!.id)} title={`${p.series.kind}: ${p.series.name}`} aria-label={`${p.series.kind} ${p.series.name}`}>
           {p.series.kind}<b>{p.series.name}</b>
         </button>
+      ) : null}
+      {p.series && p.episode && p.onChangeSeries ? (
+        <button type="button" className="ms-band-reseries" onClick={p.onChangeSeries} aria-label={`غيّر سلسلة الحلقة ${arDigits(p.episode.id.replace(/^0+(?=\d)/, ""))}`}>غيّر السلسلة</button>
       ) : null}
       {p.episode && p.steps ? (
         <>
