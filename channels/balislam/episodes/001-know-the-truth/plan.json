@@ -310,7 +310,7 @@
             "poses": "look-up,look-up,head-down",
             "look": "hero",
             "cast": "",
-            "cues": "truth | حقيقتها"
+            "cues": "truth | حقيقتها\npain | مشقة"
           },
           "id": "c2-s16",
           "sfx": []
@@ -435,7 +435,7 @@
             "poses": "sit,sit-low",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "wrong | أخطأت"
           },
           "id": "c3-s12",
           "sfx": []
@@ -469,7 +469,7 @@
             "poses": "walk,walk,stand",
             "look": "hero",
             "cast": "",
-            "cues": "truth | المعرفة"
+            "cues": ""
           },
           "id": "c3-s22",
           "sfx": [],
@@ -595,7 +595,7 @@
             "poses": "stand,look-up,nod",
             "look": "hero",
             "cast": "",
-            "cues": ""
+            "cues": "truth | البصيرة"
           },
           "id": "c4-s18",
           "sfx": [],
@@ -895,10 +895,10 @@
             "mood": "dawn",
             "moodTo": "",
             "camera": "rise",
-            "poses": "talk,listen,nod",
+            "poses": "listen,listen,nod",
             "look": "hero",
             "cast": "",
-            "cues": "debate | خلافك\nlisten | استمع"
+            "cues": "listen | استمع"
           },
           "id": "c6-s19",
           "sfx": [],
