@@ -42,6 +42,12 @@ read -r -p "اكتب نعم للمتابعة: " ok
 [ "$ok" = "نعم" ] || { echo "أُلغي."; exit 0; }
 
 echo "١/٤ مطابقة المشروع مع GitHub…"
+# فروع المعاينات السحابية previews/* لا تُجلب (D75؛ refspec سالب يحتاج git ≥ 2.29، ويُضاف مرة واحدة)
+gv=$(git --version | sed -E 's/[^0-9]*([0-9]+)\.([0-9]+).*/\1 \2/')
+if [ "${gv% *}" -gt 2 ] || { [ "${gv% *}" -eq 2 ] && [ "${gv#* }" -ge 29 ]; }; then
+  git config --get-all remote.origin.fetch | grep -qxF '^refs/heads/previews/*' \
+    || git config --add remote.origin.fetch '^refs/heads/previews/*'
+fi
 git fetch origin || { echo "تعذّر الاتصال بـ GitHub."; exit 1; }
 # قبل أي تغيير: لا تُلغى اعتمادات أو ملاحظات محفوظة في ملفات متتبَّعة لم تُرفع بعد.
 held=""

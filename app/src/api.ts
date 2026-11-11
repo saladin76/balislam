@@ -61,7 +61,11 @@ export type Overview = {
 };
 export type ProductionSummary = { steps?: [boolean, boolean, boolean, boolean]; preparation?: boolean; script: boolean; storyboard: boolean; approvedScenes: number; totalScenes: number; canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
 /** معاينة حلقة: source يبيّن هل الفيديو على هذا الجهاز، أو في مجلد Drive المتزامن، أو رابط Drive فقط */
-export type EpisodePreview = { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null; source: "local" | "drive-mirror" | "drive-link" | "missing"; driveUrl: string | null };
+export type EpisodePreview = { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null; source: "local" | "drive-mirror" | "drive-link" | "git-branch" | "missing"; driveUrl: string | null;
+  /** معاينة سحابية على فرع previews/* (D75): الحجم بالعربية لزر «حمّل المعاينة» */
+  cloud?: { ref: string; size: number; sizeLabel: string } | null };
+/** تحميل معاينة سحابية إلى هذا الجهاز */
+export type CloudPreviewJob = { state: "running" | "done" | "error"; phase: "fetch" | "assemble" | "install"; pct: number; received: number; total: number; sizeLabel: string; error?: string };
 export type EpisodeStatus = { /** اعتماد النسخة الأساسية بعد مشاهدتها كاملة (بصمة ملف الحلقة) */ approved?: { at: string; size: number; mtime: number }; checklist?: Record<string, boolean>; published?: { date: string; url?: string }; notes?: string; /** يوم نشر الحلقة الطويلة المخطط (YYYY-MM-DD) */ scheduled?: string };
 export type Idea = { id: string; title: string; note?: string; domain?: string; style?: string; createdAt: string };
 /** يوم في تقويم القناة: شورتس محددة (حلقة + رقم الشورت)، أو بلا نشر، وملاحظة */
@@ -383,7 +387,11 @@ export const api = {
   previewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`),
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
-  previews: (id: string) => call<{ files: EpisodePreview[] }>(`/api/episodes/${id}/previews`),
+  previews: (id: string) => call<{ files: EpisodePreview[]; autoDownload?: boolean }>(`/api/episodes/${id}/previews`),
+  downloadPreview: (id: string, name: string) => call<{ job: CloudPreviewJob | null }>(`/api/episodes/${id}/previews/${encodeURIComponent(name)}/download`, { method: "POST" }),
+  previewDownload: (id: string, name: string) => call<{ job: CloudPreviewJob | null }>(`/api/episodes/${id}/previews/${encodeURIComponent(name)}/download`),
+  cloudPreviewSettings: (autoDownload?: boolean) => call<{ autoDownload: boolean }>("/api/cloud-previews/settings",
+    autoDownload === undefined ? undefined : { method: "POST", json: { autoDownload } }),
   auditQuranScript: (id: string) =>
     call<{ environment: string; audits: { key: string; status: "match" | "differs" | "pending" | "missing" | "failed";
       reason?: string; categories: Record<string, string>; numbers: { ok: boolean; notes: string[] };

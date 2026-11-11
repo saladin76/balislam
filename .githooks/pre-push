@@ -11,6 +11,17 @@ notes_only() {
   printf '%s\n' "$files" | grep -qvE '^channels/[a-z0-9-]+/episodes/[^/]+/notes/inbox\.json$' && return 1
   return 0
 }
+# فرع معاينة سحابية (D75، src/render/cloudPreviews.ts): commit يتيم (بلا أب، فلا كود مخفي في تاريخه)،
+# وشجرته ملفات عادية في الجذر: manifest.json وأجزاء part-NNN فقط، ولا شيء غيرها
+preview_only() {
+  git cat-file -e "$1^{commit}" 2>/dev/null || return 1
+  git cat-file commit "$1" | sed '/^$/q' | grep -q '^parent ' && return 1
+  entries=$(git ls-tree -r "$1" 2>/dev/null) || return 1
+  [ -n "$entries" ] || return 1
+  printf '%s\n' "$entries" | grep -qvE '^100644 blob [0-9a-f]+	(manifest\.json|part-[0-9]{3})$' && return 1
+  printf '%s\n' "$entries" | grep -qE '	manifest\.json$' || return 1
+  return 0
+}
 tested=""
 while read local_ref local_sha remote_ref remote_sha; do
   # حذف فرع: لا شيء يُفحص
@@ -22,6 +33,14 @@ while read local_ref local_sha remote_ref remote_sha; do
     echo "بوابة التسليم: $remote_ref صناديق ملاحظات فقط (channels/*/episodes/*/notes/inbox.json)؛ لا كود يُختبر."
     continue
   fi
+  # معاينات الجلسات السحابية: refs/heads/previews/* وحدها، وبشرط preview_only. غير ذلك يمر على البوابة كاملة.
+  case "$remote_ref" in
+    refs/heads/previews/*)
+      if preview_only "$local_sha"; then
+        echo "بوابة التسليم: $remote_ref معاينة فقط (manifest.json وأجزاء الفيديو في commit يتيم)؛ لا كود يُختبر."
+        continue
+      fi ;;
+  esac
   echo "بوابة التسليم: فحص $local_ref ($local_sha) قبل الدفع إلى $remote_ref…"
   # مدى الدفع لفحص تزامن التوثيق: من آخر ما في الفرع البعيد (إن كان معروفًا محليًا) إلى المدفوع
   range=""

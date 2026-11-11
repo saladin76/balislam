@@ -43,7 +43,7 @@
 2. **رندر الحلقة:** `renderEpisode({ episode, plan, orientation: "landscape", quality: "preview", outFile })` في `src/render/episode.ts`. يُمرَّر مسار مجلد بدل الرقم لمختبر بلا سكريبت.
 3. **رندر جزئي:** فصول بعينها (`plan.chapters` مصفّاة، `plan.intro = false`) أو مشهد واحد، ثم تركيب عند حدود المشاهد بالإطار (الأمران 013–014).
 4. **القياس:** `npx bal motion <الملف>`.
-5. **الرفع:** `BAL_CHANNEL=dafatir-alzaman npx bal upload-preview <الحلقة> <الخانة> <الملف> --title … --note …`.
+5. **الرفع:** `BAL_CHANNEL=dafatir-alzaman npx bal upload-preview <الحلقة> <الخانة> <الملف> --title … --note …`. ومن جلسة سحابية: `npx bal --channel dafatir-alzaman cloud-preview push <الحلقة> <الخانة> <الملف> --title … --note … --commit-index` (فرع `previews/*`، لا فيديو في main؛ D75).
 6. **التحقق:** SHA-256 للنسخة المرفوعة = الملف، وتشغيل كامل (`ffmpeg -v error -i … -f null -`)، ثم الدفع إلى main.
 
 ## آلية الاستبدال الآمن (`src/render/episodePreviews.ts`، `putPreview`)

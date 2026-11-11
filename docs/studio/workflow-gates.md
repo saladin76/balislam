@@ -222,6 +222,19 @@ on `main` (`bal notes resolve`). The scene read adds `scenes[].correction.inbox:
 hook skips the full gate only for `refs/heads/studio-notes` with a tree made solely of `notes/inbox.json` files; `main` is
 always gated.
 
+**Cloud session previews (D75, `src/render/cloudPreviews.ts`).** A preview rendered in a cloud session travels on its own
+branch `previews/<channel>/<episodeDir>/<slot>`: one orphan commit holding `manifest.json` and `part-000…` (≤ 45 MB each),
+force-replaced on every upload and never merged into `main` (D26: no preview video in `main`'s history). `bal cloud-preview push`
+builds it by plumbing in a temporary index (never the working tree, branch or real index), pushes `<sha>:refs/heads/previews/…`
+without `--no-verify`, and records `{ type: "git-branch", ref, commit, sha256, size, parts }` in `previews/index.json`, which
+reaches `main` by the normal gated flow. The pre-push hook skips the full gate only for `refs/heads/previews/*` when the commit
+has no parent and its tree is regular root files `manifest.json` + `part-NNN` only; anything else, and the same tree pushed to
+`main`, is gated. On the owner's Mac the studio adds the negative fetch refspec `^refs/heads/previews/*` once (git ≥ 2.29;
+older git: explicit `main` + `studio-notes` refspecs), so `git pull` never downloads them. «حمّل المعاينة» fetches that single ref
+into `refs/previews-cache/…` (no `--depth`, which would make the repo shallow), verifies every part and the whole SHA-256, installs
+`previews/<slot>.mp4` atomically keeping one previous version, and deletes the cache ref. It grants and blocks nothing.
+`bal cloud-preview prune` (dry run unless `--apply`) deletes branches no slot references any more.
+
 **Input changes and the lock (D38).** A changed input re-opens a submitted, approved or corrected scene as
 `needs_revision`; a scene never submitted stays `queued` with its new inputs (no «بانتظار التعديل» on a scene nobody
 asked to fix). The ledger lock waits for a live writer up to `LEDGER_LOCK_WAIT_MS` (30 s, short backoff) instead of

@@ -667,6 +667,16 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const { resolveEpisodeDir } = await load("/src/script/episodes.ts");
     const pv = await load("/src/render/episodePreviews.ts");
     const epDir = await resolveEpisodeDir(parts[1]);
+    // «حمّل المعاينة»: معاينة سحابية من فرعها previews/* (D75)؛ POST يبدأ التحميل، GET حالته
+    if (parts[3] && parts[4] === "download" && parts.length === 5) {
+      const cp = await load("/src/render/cloudPreviews.ts");
+      const name = safeName(parts[3]);
+      if (req.method === "POST") {
+        try { cp.startCloudPreviewDownload(epDir, name, { log: (m: string) => console.warn(m) }); }
+        catch (e) { return send(res, 400, { error: (e as Error).message }), true; }
+      } else if (req.method !== "GET") return send(res, 405, { error: "Method not allowed" }), true;
+      return send(res, 200, { job: cp.cloudPreviewJob(epDir, name) }), true;
+    }
     if (parts[3]) {
       const name = safeName(parts[3]);
       if (!/\.mp4$/i.test(name)) return send(res, 404, { error: "الملف غير موجود" }), true;
@@ -674,9 +684,31 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       const index = existsSync(indexFile) ? JSON.parse(await readFile(indexFile, "utf8")) : {};
       const where = await pv.locatePreview(epDir, name, index[name]);
       if (where.kind === "local" || where.kind === "drive-mirror") { ctx.serveFile(req, res, where.file, "video/mp4"); return true; }
-      return send(res, 404, { error: where.kind === "drive-link" ? "الفيديو على Google Drive ولم يتزامن مع هذا الجهاز بعد." : "الملف غير موجود", driveUrl: where.kind === "drive-link" ? where.url : null }), true;
+      return send(res, 404, { error: where.kind === "drive-link" ? "الفيديو على Google Drive ولم يتزامن مع هذا الجهاز بعد."
+        : where.kind === "git-branch" ? "المعاينة على GitHub ولم تُحمَّل إلى هذا الجهاز بعد؛ اضغط «حمّل المعاينة»." : "الملف غير موجود",
+        driveUrl: where.kind === "drive-link" ? where.url : null }), true;
     }
-    return send(res, 200, { files: await pv.listEpisodePreviews(epDir) }), true;
+    const files = await pv.listEpisodePreviews(epDir);
+    const cloud = files.filter((f: { cloud: unknown }) => f.cloud);
+    let autoDownload = false;
+    if (cloud.length) {
+      const cp = await load("/src/render/cloudPreviews.ts");
+      autoDownload = (await cp.readCloudPreviewSettings(ctx.root)).autoDownload;
+      // «حمّل المعاينات الجديدة تلقائيًا» (مطفأ افتراضيًا): يبدأ التحميل في الخلفية عند عرض القائمة
+      if (autoDownload) for (const f of cloud) if (f.source === "git-branch" && cp.cloudPreviewJob(epDir, f.name)?.state !== "error")
+        cp.startCloudPreviewDownload(epDir, f.name, { log: (m: string) => console.warn(m) });
+    }
+    return send(res, 200, { files, autoDownload }), true;
+  }
+
+  // إعداد «حمّل المعاينات الجديدة تلقائيًا» (محلي في .studio/، مطفأ افتراضيًا)
+  if (parts[0] === "cloud-previews" && parts[1] === "settings" && parts.length === 2) {
+    const cp = await load("/src/render/cloudPreviews.ts");
+    if (req.method === "POST") {
+      const { autoDownload } = await readBody(req);
+      return send(res, 200, await cp.writeCloudPreviewSettings(ctx.root, { autoDownload: autoDownload === true })), true;
+    }
+    return send(res, 200, await cp.readCloudPreviewSettings(ctx.root)), true;
   }
 
   // ملفات المراجعة (reviews/ بجوار السكريبت): تقارير الاعتماد التحريري والشرعي للحلقة، صفحات HTML مكتفية بذاتها، داخلية لا تُنشر

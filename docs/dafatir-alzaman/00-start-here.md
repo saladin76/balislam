@@ -51,6 +51,14 @@ BAL_CHANNEL=dafatir-alzaman npx bal upload-preview <الحلقة> <الخانة>
 
 ثم: تحقق أن SHA-256 للنسخة المرفوعة يطابق الملف، وأنها تُشغَّل كاملة (`ffmpeg -v error -i … -f null -`)، ثم ادفع إلى main. لكل موضوع خانة واحدة: الرفع يستبدل القديمة (الحلقة كاملة في خانة `episode`). لا يُكتفى بإرسال الفيديو في المحادثة.
 
+**من جلسة سحابية** (Drive فيها محدود بنحو ١٠ م.ب، وGitHub Releases مرفوضة): الفيديو يسافر على فرع خاص بخانته لا في main (D75):
+
+```
+npx bal --channel dafatir-alzaman cloud-preview push 001 episode out/episode-v8.mp4 --title "V8 صامتة 1080p (جاهز للمراجعة)" --note "…" --commit-index
+```
+
+يدفع `previews/dafatir-alzaman/<مجلد الحلقة>/<الخانة>` (أجزاء ≤ 45 م.ب) ويحفظ `previews/index.json` وحده في commit؛ ادمج ذلك الـcommit في main بالمسار المعتاد. يرى المالك بعد السحب «حمّل المعاينة (الحجم)» في المعاينات.
+
 ## ٨. كيف توثق قبل إنهاء المهمة
 
 - حدّث القسم المرتبط في هذا الدليل، وأضف إدخالًا في [07-decisions.md](07-decisions.md) بالحقول المطلوبة.

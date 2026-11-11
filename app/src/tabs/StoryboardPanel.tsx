@@ -12,7 +12,7 @@ import { boardWords, shotElements, shotFrame, shotKind, shotText } from "../../.
 import { elementLibrary } from "../../../brand/elements/registry";
 import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
-import { api, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
+import { api, type CloudPreviewJob, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
 import { episodeLength } from "../../../src/plan/episodeLength";
 import { duration, lengthSource, num, sceneName, verseRef } from "../ui/format";
 import { BoardViewer, type BoardShot } from "./BoardViewer";
@@ -451,12 +451,39 @@ const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   );
 };
 
+const PHASE_AR: Record<CloudPreviewJob["phase"], string> = { fetch: "يُحمَّل من GitHub", assemble: "تُجمع الأجزاء ويُتحقق منها", install: "يوضع في مكانه" };
+/** معاينة سحابية على فرع previews/* (D75): «حمّل المعاينة» وتقدّم التحميل، وأخطاؤه بالعربية */
+const CloudDownload: React.FC<{ episodeId: string; file: EpisodePreview; onDone: () => void }> = ({ episodeId, file, onDone }) => {
+  const [job, setJob] = useState<CloudPreviewJob | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => { api.previewDownload(episodeId, file.name).then((r) => setJob(r.job)).catch(() => undefined); }, [episodeId, file.name]);
+  useEffect(() => {
+    if (job?.state !== "running") { if (job?.state === "done") onDone(); return; }
+    const t = setTimeout(() => api.previewDownload(episodeId, file.name).then((r) => setJob(r.job)).catch((e) => setError((e as Error).message)), 1000);
+    return () => clearTimeout(t);
+  }, [job, episodeId, file.name, onDone]);
+  const start = () => { setError(""); api.downloadPreview(episodeId, file.name).then((r) => setJob(r.job)).catch((e) => setError((e as Error).message)); };
+  const running = job?.state === "running";
+  return (
+    <div className="sb-preview-remote">
+      <p className="help">المعاينة صُنعت في جلسة خارج هذا الجهاز وهي على GitHub، ولم تُحمَّل بعد.</p>
+      {running
+        ? <><progress max={100} value={job!.pct} /><span className="help">{PHASE_AR[job!.phase]} — {ar(job!.pct)}٪</span></>
+        : <button className="btn small" onClick={start}>حمّل المعاينة ({file.cloud?.sizeLabel})</button>}
+      {job?.state === "error" || error ? <p className="help" role="alert">تعذّر التحميل: {error || job?.error}</p> : null}
+    </div>
+  );
+};
+
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
 const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   const [files, setFiles] = useState<EpisodePreview[]>([]);
+  const [auto, setAuto] = useState(false);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    api.previews(episodeId).then((r) => setFiles(r.files)).catch(() => setFiles([]));
-  }, [episodeId]);
+    api.previews(episodeId).then((r) => { setFiles(r.files); setAuto(r.autoDownload === true); }).catch(() => setFiles([]));
+  }, [episodeId, tick]);
+  const refresh = React.useCallback(() => setTick((n) => n + 1), []);
   if (!files.length) return null;
   return (
     <section className="sb-previews s12-tool">
@@ -467,6 +494,7 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
           <figure key={f.name} className="sb-preview">
             {f.source === "local" || f.source === "drive-mirror"
               ? <video src={api.previewUrl(episodeId, f.name)} controls preload="metadata" playsInline />
+              : f.source === "git-branch" ? <CloudDownload episodeId={episodeId} file={f} onDone={refresh} />
               : <div className="sb-preview-remote">
                   <p className="help">{f.source === "drive-link" ? "الفيديو على Google Drive ولم يتزامن مع هذا الجهاز بعد." : "الفيديو غير موجود على هذا الجهاز."}</p>
                   {f.driveUrl ? <a className="btn small" href={f.driveUrl} target="_blank" rel="noreferrer">افتحه على Google Drive</a> : null}
@@ -479,6 +507,10 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
           </figure>
         ))}
       </div>
+      {files.some((f) => f.cloud)
+        ? <label className="help"><input type="checkbox" checked={auto}
+            onChange={(e) => { const v = e.target.checked; api.cloudPreviewSettings(v).then((r) => { setAuto(r.autoDownload); if (r.autoDownload) refresh(); }).catch(() => undefined); }} /> حمّل المعاينات الجديدة تلقائيًا</label>
+        : null}
     </section>
   );
 };

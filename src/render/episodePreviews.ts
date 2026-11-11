@@ -20,8 +20,21 @@ import { lockIsStale, parseLock, processStartTime } from "../io/processLock";
  * `drive` رابط الملف على Drive حين يُرفع من خارج جهاز المالك.
  */
 export type PreviewDrive = { id: string; url: string };
-export type PreviewEntry = { title: string; note?: string; version: number; updatedAt: string; sha256?: string; size?: number; drive?: PreviewDrive };
+/**
+ * معاينة صُنعت في جلسة سحابية وسافرت على فرع خاص بها `previews/<القناة>/<مجلد الحلقة>/<الخانة>`
+ * (commit يتيم واحد: manifest.json وأجزاء ≤ 45 م.ب)، لا على main أبدًا (src/render/cloudPreviews.ts).
+ */
+export type PreviewGitPart = { name: string; size: number; sha256: string };
+export type PreviewGitSource = { type: "git-branch"; ref: string; commit: string; sha256: string; size: number; parts: PreviewGitPart[] };
+export type PreviewEntry = { title: string; note?: string; version: number; updatedAt: string; sha256?: string; size?: number; drive?: PreviewDrive; source?: PreviewGitSource };
 export type PreviewIndex = Record<string, PreviewEntry>;
+
+/** الحجم بالميغابايت بأرقام عربية: «٦٨ م.ب» (أقل من ١٠ بخانة عشرية) */
+export const arabicMegabytes = (bytes: number) => {
+  const mb = bytes / (1024 * 1024);
+  const n = mb < 10 ? Math.max(0.1, Math.round(mb * 10) / 10) : Math.round(mb);
+  return `${n.toLocaleString("ar-EG")} م.ب`;
+};
 
 export const previewsDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "previews");
 
@@ -61,6 +74,7 @@ export type PreviewLocation =
   | { kind: "local"; file: string }
   | { kind: "drive-mirror"; file: string }
   | { kind: "drive-link"; url: string }
+  | { kind: "git-branch"; ref: string; size: number }
   | { kind: "missing" };
 /**
  * أين يُشغَّل الفيديو: نسخة محلية في previews/، أو نسخة Drive المتزامنة إن طابقت بصمتها الفهرس،
@@ -68,6 +82,14 @@ export type PreviewLocation =
  */
 export const locatePreview = async (episodeDir: string, name: string, entry?: PreviewEntry): Promise<PreviewLocation> => {
   const local = path.join(episodeDir, "previews", name);
+  // معاينة سحابية: النسخة المحلية تُعرض فقط إن طابقت بصمتها الفهرس، وإلا «حمّل المعاينة» من فرعها
+  if (entry?.source?.type === "git-branch") {
+    const want = entry.source.sha256;
+    if (existsSync(local) && await cachedSha(local) === want) return { kind: "local", file: local };
+    const mirror = driveMirrorFile(episodeDir, name);
+    if (mirror && existsSync(mirror) && await cachedSha(mirror) === want) return { kind: "drive-mirror", file: mirror };
+    return { kind: "git-branch", ref: entry.source.ref, size: entry.source.size };
+  }
   if (existsSync(local)) return { kind: "local", file: local };
   const mirror = driveMirrorFile(episodeDir, name);
   if (mirror && existsSync(mirror) && (!entry?.sha256 || await cachedSha(mirror) === entry.sha256))
@@ -299,6 +321,68 @@ export const linkDrivePreview = async (episode: string, slot: string, info: { id
   });
 };
 
+const writeIndexAtomic = async (dir: string, index: PreviewIndex) => {
+  const pending = path.join(dir, `.index.${randomUUID()}.pending`);
+  try {
+    await writeFile(pending, JSON.stringify(index, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+    await rename(pending, path.join(dir, "index.json"));
+  } finally {
+    await rm(pending, { force: true });
+  }
+};
+
+/**
+ * يسجّل في الفهرس معاينة دُفعت إلى فرعها `previews/…` من جلسة سحابية (src/render/cloudPreviews.ts).
+ * البصمة والحجم والأجزاء تكفي الاستوديو ليحمّلها ويتحقق منها؛ لا فيديو في main.
+ */
+export const linkGitPreview = async (episodeDir: string, slot: string, info: { title: string; note?: string; source: PreviewGitSource }) => {
+  const src = info.source;
+  if (src.type !== "git-branch" || !/^refs\/heads\/previews\//.test(src.ref)) throw new Error("مرجع فرع المعاينة غير صالح.");
+  if (!/^[a-f0-9]{64}$/.test(src.sha256) || !/^[a-f0-9]{40,64}$/.test(src.commit)) throw new Error("بصمة المعاينة غير صالحة.");
+  if (!Number.isInteger(src.size) || src.size <= 0 || !src.parts.length) throw new Error("حجم المعاينة غير صالح.");
+  const dir = path.join(episodeDir, "previews");
+  const name = slotName(slot);
+  const target = `${name}.mp4`;
+  await ensureUnlinkedDirectory(dir);
+  return withPreviewIndexLock(dir, async () => {
+    const index = await readIndex(dir);
+    const prev = index[target];
+    const local = path.join(dir, target);
+    if (existsSync(local) && await fileSha256(local) !== src.sha256) {
+      const history = path.join(dir, "history", name);
+      await ensureUnlinkedDirectory(history);
+      await rename(local, path.join(history, `previous-${randomUUID()}.mp4`));
+      await pruneHistory(history);
+    }
+    index[target] = { title: info.title, ...(info.note ? { note: info.note } : {}), version: (prev?.version ?? 0) + 1,
+      updatedAt: new Date().toISOString(), sha256: src.sha256, size: src.size, source: src };
+    await writeIndexAtomic(dir, index);
+    return index[target]!;
+  });
+};
+
+/**
+ * يضع فيديو حُمّل وتُحقق منه (`ready`، في مجلد previews نفسه) مكان الخانة دفعة واحدة:
+ * النسخة السابقة تُحفظ في history (نسخة واحدة، D26)، والفهرس لا يُمس (يأتي من Git).
+ */
+export const installPreviewFile = async (episodeDir: string, name: string, ready: string, sha256: string) => {
+  const dir = path.join(episodeDir, "previews");
+  const slot = slotName(name.replace(/\.mp4$/i, ""));
+  const output = path.join(dir, `${slot}.mp4`);
+  return withPreviewIndexLock(dir, async () => {
+    if (await fileSha256(ready) !== sha256) throw new Error("بصمة الفيديو المحمَّل لا تطابق الفهرس؛ لم يُستبدل شيء.");
+    if (existsSync(output)) {
+      await assertNoLinkedPath(output, true);
+      const history = path.join(dir, "history", slot);
+      await ensureUnlinkedDirectory(history);
+      await link(output, path.join(history, `previous-${randomUUID()}.mp4`));
+    }
+    await rename(ready, output);
+    await pruneHistory(path.join(dir, "history", slot));
+    return output;
+  });
+};
+
 /** قائمة المعاينات للاستوديو: من الفهرس والملفات المحلية معًا، مع مكان تشغيل كل منها */
 export const listEpisodePreviews = async (episodeDir: string) => {
   const dir = path.join(episodeDir, "previews");
@@ -313,7 +397,8 @@ export const listEpisodePreviews = async (episodeDir: string) => {
     out.push({ name, title: entry?.title ?? name, note: entry?.note ?? "", version: entry?.version ?? 1,
       updatedAt: entry?.updatedAt ?? null, size: st?.size ?? entry?.size ?? 0,
       mtime: st?.mtimeMs ?? (entry?.updatedAt ? Date.parse(entry.updatedAt) : 0),
-      source: where.kind, driveUrl: entry?.drive?.url ?? null });
+      source: where.kind, driveUrl: entry?.drive?.url ?? null,
+      cloud: entry?.source?.type === "git-branch" ? { ref: entry.source.ref, size: entry.source.size, sizeLabel: arabicMegabytes(entry.source.size) } : null });
   }
   return out.sort((a, b) => b.mtime - a.mtime);
 };

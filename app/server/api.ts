@@ -131,6 +131,10 @@ export const balApi = (): Plugin => ({
     void Promise.all([load("/src/studio/notesSync.ts"), load("/src/channel/index.ts")])
       .then(([sync, ch]) => sync.scheduleStudioNotesSync(ch.channelsDir()))
       .catch((e) => console.error("[studio] owner notes retry:", (e as Error).message));
+    // معاينات الجلسات السحابية (D75): git pull لا يجلب فروع previews/* الثقيلة (refspec سالب، محلي، مرة واحدة)
+    void load("/src/render/cloudPreviews.ts")
+      .then((cp) => cp.ensurePreviewFetchExclusion(root, (m: string) => console.log(m)))
+      .catch((e) => console.error("[studio] cloud previews fetch config:", (e as Error).message));
     // «أصلح الكلمة» انقطع بعد شراء المقطع وقبل تسجيله: يُنقل إلى voice/superseded/sentences (لا يُحذف)
     void Promise.all([load("/src/voice/fragmentSweep.ts"), load("/src/channel/index.ts")])
       .then(([sweep, ch]) => sweep.sweepAllOrphanWordFixFragments(ch.channelsDir()))

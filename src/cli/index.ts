@@ -494,6 +494,56 @@ program
     console.log(`سُجّل في المعاينات (رفع رقم ${e.version}): ${e.drive!.url}`);
   });
 
+// معاينات الجلسات السحابية (D75): الفيديو على فرع previews/<القناة>/<الحلقة>/<الخانة> لا في main
+const cloudPreviewCmd = program
+  .command("cloud-preview")
+  .description("معاينات الجلسات السحابية إلى الاستوديو عبر فرع Git خاص بكل خانة (previews/*)، لا في main أبدًا");
+cloudPreviewCmd
+  .command("push <episode> <slot> <file>")
+  .description("يدفع الفيديو (أجزاء ≤ 45 م.ب في commit يتيم) إلى فرع الخانة ويستبدله، ويسجّل الخانة في previews/index.json")
+  .requiredOption("--title <title>", "عنوان الفيديو كما يظهر في الاستوديو (اذكر حالته: جاهز للمراجعة)")
+  .option("--note <note>", "ملاحظة قصيرة تحته")
+  .option("--commit-index", "يحفظ previews/index.json في commit على الفرع الحالي (وحده)")
+  .option("--remote <name>", "الـremote", "origin")
+  .action(async (episode: string, slot: string, file: string, opts: { title: string; note?: string; commitIndex?: boolean; remote: string }) => {
+    const { resolveEpisodeDir } = await import("../script/episodes");
+    const { pushCloudPreview } = await import("../render/cloudPreviews");
+    const { arabicMegabytes } = await import("../render/episodePreviews");
+    const r = await pushCloudPreview({ episodeDir: await resolveEpisodeDir(episode), slot, file: path.resolve(file),
+      title: opts.title, note: opts.note, remote: opts.remote, commitIndex: opts.commitIndex });
+    const rel = path.relative(projectRoot, r.indexFile);
+    console.log(`دُفع إلى ${r.ref.replace("refs/heads/", "")} (commit ${r.commit.slice(0, 10)}، ${r.parts.length} جزء، ${arabicMegabytes(r.size)})`);
+    console.log(`البصمة: ${r.sha256}`);
+    console.log(`سُجّلت الخانة في ${rel} (رفع رقم ${r.entry.version}).`);
+    if (r.indexCommitted) console.log(`وحُفظ الفهرس في commit ${r.indexCommitted.slice(0, 10)} على الفرع الحالي؛ يصل الاستوديو بعد دمجه في main.`);
+    else console.log(`الخطوة التالية: احفظ ${rel} وحده في commit وادمجه في main بالمسار المعتاد (بوابة الدفع كاملة)، مثل:\n  git add ${rel} && git commit -m "معاينة: ${slot}" -- ${rel}`);
+  });
+cloudPreviewCmd
+  .command("pull <episode> <slot>")
+  .description("على جهاز المالك: يحمّل معاينة الخانة من فرعها ويتحقق من بصمتها (مثل زر «حمّل المعاينة» في الاستوديو)")
+  .option("--remote <name>", "الـremote", "origin")
+  .action(async (episode: string, slot: string, opts: { remote: string }) => {
+    const { resolveEpisodeDir } = await import("../script/episodes");
+    const { downloadCloudPreview } = await import("../render/cloudPreviews");
+    let last = -1;
+    const r = await downloadCloudPreview({ episodeDir: await resolveEpisodeDir(episode), name: slot, remote: opts.remote,
+      onProgress: (p) => { if (p.pct >= last + 10 || p.pct === 100) { last = p.pct; console.log(`PROGRESS ${p.pct} ${p.phase}`); } } });
+    console.log(`حُمّلت المعاينة وتُحقق منها: ${path.relative(projectRoot, r.file)} (${r.sha256.slice(0, 12)})`);
+  });
+cloudPreviewCmd
+  .command("prune")
+  .description("يحذف من GitHub فروع المعاينات التي لم تعد خاناتها في previews/index.json تشير إليها (تجربة افتراضيًا)")
+  .option("--apply", "احذف فعلًا (بدونه: عرض فقط)")
+  .option("--against <ref>", "اقرأ الفهارس من مرجع (مثل origin/main) بدل ملفات العمل")
+  .option("--remote <name>", "الـremote", "origin")
+  .action(async (opts: { apply?: boolean; against?: string; remote: string }) => {
+    const { pruneCloudPreviews } = await import("../render/cloudPreviews");
+    const r = await pruneCloudPreviews({ repoDir: projectRoot, remote: opts.remote, apply: opts.apply, against: opts.against });
+    for (const ref of r.keep) console.log(`  باقٍ   ${ref}`);
+    for (const ref of r.remove) console.log(`  ${r.dryRun ? "سيُحذف" : "حُذف  "} ${ref}`);
+    console.log(r.dryRun ? `تجربة: ${r.remove.length} فرع سيُحذف. للحذف: --apply` : `حُذف ${r.deleted.length} فرع.`);
+  });
+
 program
   .command("upload-storyboard <lab> <slot> <file>")
   .description("حفظ صورة ستوري بورد في مختبر (بالإسلام): نسخة جديدة برقمها وتاريخها «جاهز للمراجعة»، ولا تُحذف النسخ السابقة")
