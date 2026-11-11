@@ -39,6 +39,10 @@ describe("assertNoQuranForTts / ttsContext", () => {
     expect(ttsContext(VERSE, null, [VERSE])).toBeUndefined();
     expect(ttsContext("كلام عادي", null, [VERSE])).toBe("كلام عادي");
     expect(planVerseTexts({ chapters: [{ scenes: [{ template: "verse-card", ayahKey: "53:39", props: { text: VERSE } }, { template: "big-question", props: { text: "x" } }] }] })).toEqual([VERSE]);
+    // استشهاد بصري صامت (V9): نص الآية على الشاشة والراوي مستمر؛ الحارس يعرفه فلا يقرؤه الصوت المستنسخ
+    const shown = planVerseTexts({ chapters: [{ scenes: [{ template: "horizon-shot", props: { shot: "x", verseKey: "53:39", verseText: VERSE } }] }] });
+    expect(shown).toEqual([VERSE]);
+    expect(() => assertNoQuranForTts(`ونتذكر أن ${VERSE} دائمًا`, { id: "c1-s1", template: "horizon-shot" }, { verses: shown })).toThrow(QuranTtsError);
   });
 
   it("both lexicons are masked inside ﴿ ﴾ (legacy pronunciation.json and pronunciations.json)", () => {

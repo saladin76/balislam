@@ -9,7 +9,8 @@ import { normWord, stripTashkeel } from "../src/voice/tashkeel";
  * خريطة الأداء الصوتي للحلقة 001.
  * v1 (الأمر 023) وv1.1 (الأمر 024) وv1.2 (الأمر 025، نسخة المحتوى V7) محفوظة كما سُلّمت.
  * v1.3 (V8، ١١ نوفمبر): سرد متصل بلا بطاقات آيات ولا فصول، والآيات وسم مرجع فقط؛ المقاطع الباقية بمعرّفاتها.
- * الحالية v1.4 (١١ نوفمبر، D70): v1.3 نفسها بأسماء النبرات القوية الرزينة وحدها.
+ * v1.4 (١١ نوفمبر، D70): v1.3 نفسها بأسماء النبرات القوية الرزينة وحدها — محفوظة باسمها مع تشكيل V8 وسكريبته وخطته.
+ * الحالية v1.5 (١١ نوفمبر): نسخة المحتوى V9 (السكريبت المعتمد من المالك، وسبعة استشهادات بصرية صامتة).
  */
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
 const read = (f: string) => readFileSync(path.join(EP, f), "utf8");
@@ -33,7 +34,7 @@ const cur = JSON.parse(read("tone-map.v1.3.json")) as Map & { citations: { ref: 
 const v11 = JSON.parse(read("tone-map.v1.1.json")) as Map;
 const CORRECTED = [16, 29, 32];
 const tashkeel = read("versions/v7/tashkeel.md");
-const tashkeel8 = read("tashkeel.md");
+const tashkeel8 = read("versions/v8/tashkeel.md");
 const plain = (s: string) => stripTashkeel(s).split(/\s+/).map(normWord).filter(Boolean).join(" ");
 
 describe("خريطة الأداء الصوتي v1 — محفوظة (الأمر 023)", () => {
@@ -171,7 +172,7 @@ describe("خريطة الأداء الصوتي v1.2 — محفوظة (الأمر
 });
 
 describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى V8، ١١ نوفمبر)", () => {
-  const plan8 = JSON.parse(read("plan.json")) as { chapters: { number: number; scenes: { id: string; template: string; narration?: string; props?: Record<string, unknown> }[] }[] };
+  const plan8 = JSON.parse(read("plan.v8.json")) as { chapters: { number: number; scenes: { id: string; template: string; narration?: string; props?: Record<string, unknown> }[] }[] };
   const scenes8 = plan8.chapters.flatMap((c) => c.scenes);
   const spoken8 = scenes8.filter((s) => s.narration?.trim());
 
@@ -180,7 +181,7 @@ describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى
     expect(cur.approved).toBe(false);
     const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
     // الخطة تغيّرت بعد v1.3 في وسم c5-s6 وحده (props.ref، لا نص)؛ v1.4 تحمل بصمتها الحالية
-    expect(cur.source).toMatchObject({ tashkeel: { sha256: sha("tashkeel.md") }, script: { sha256: sha("script.md") } });
+    expect(cur.source).toMatchObject({ tashkeel: { sha256: sha("versions/v8/tashkeel.md") }, script: { sha256: sha("versions/v8/script.md") } });
     expect((cur as unknown as { previous: { version: string }[] }).previous.map((x) => x.version)).toEqual(["v1", "v1.1", "v1.2"]);
   });
 
@@ -236,10 +237,10 @@ describe("خريطة الأداء الصوتي — v1.3 (نسخة المحتوى
   });
 });
 
-describe("خريطة الأداء الصوتي — الإصدار الحالي v1.4 (النبرات قوية ورزينة، ١١ نوفمبر، D70)", () => {
+describe("خريطة الأداء الصوتي — v1.4 (النبرات قوية ورزينة، ١١ نوفمبر، D70) محفوظة", () => {
   type Labeled = Map & { legend: { tones: Record<string, string> }; previous: { version: string; path: string }[]; changelog: { from: string; to: string; source?: string }[];
     citations?: unknown[]; source: Record<string, unknown> };
-  const live = JSON.parse(read("tone-map.json")) as Labeled;
+  const live = JSON.parse(read("tone-map.v1.4.json")) as Labeled;
   const v13 = cur as unknown as Labeled;
   it("v1.4 = v1.3 مع أسماء النبرات وحدها؛ المقاطع والأجزاء والحدود والمراجع والبصمات كما هي، وv1.3 محفوظة", () => {
     expect(live.version).toBe("v1.4");
@@ -253,7 +254,7 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
     const src13 = v13.source as Record<string, { sha256: string }>;
     expect(src.tashkeel).toEqual(src13.tashkeel);
     expect(src.script).toEqual(src13.script);
-    expect(src.plan!.sha256).toBe(sha("plan.json"));
+    expect(src.plan!.sha256).toBe(sha("plan.v8.json"));
     expect(live.legend.tones).toEqual({ calm: "تأمّلي رزين", documentary: "وثائقي حازم", warm: "حكّاء رزين", intimate: "قريب رزين" });
     expect(Object.values(live.legend.tones).join(" ")).not.toMatch(/هادئ|ناعم|هامس|دافئ/);
     for (const t of Object.keys(live.legend.tones)) expect(isTone(t)).toBe(true);
@@ -261,5 +262,66 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
     expect(live.previous.at(-1)).toEqual({ version: "v1.3", path: "tone-map.v1.3.json" });
     expect(live.changelog.slice(0, -1)).toEqual(v13.changelog);
     expect(live.changelog.at(-1)).toMatchObject({ from: "v1.3", to: "v1.4", source: "strong-voice" });
+  });
+});
+
+describe("خريطة الأداء الصوتي — الإصدار الحالي v1.5 (نسخة المحتوى V9، ١١ نوفمبر)", () => {
+  type V15 = Map & { order: string; previous: { version: string; path: string }[]; citations: { ref: string; scene: string | null; status: string }[];
+    changelog: { from: string; to: string; kept: number[]; added: number[]; removed: number[] }[]; quranFlags: { scene: string }[];
+    source: Record<string, { sha256: string }> };
+  const v15 = JSON.parse(read("tone-map.json")) as V15;
+  const v14 = JSON.parse(read("tone-map.v1.4.json")) as V15;
+  const plan9 = JSON.parse(read("plan.json")) as { chapters: { scenes: { id: string; narration?: string; props?: Record<string, unknown> }[] }[] };
+  const spoken9 = plan9.chapters.flatMap((c) => c.scenes).filter((s) => s.narration?.trim());
+  const tashkeel9 = read("tashkeel.md");
+  const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
+
+  it("غير معتمدة، ومبنية على تشكيل V9 وسكريبته وخطته ببصماتها، وv1.4 محفوظة", () => {
+    expect(v15.version).toBe("v1.5");
+    expect(v15.order).toBe("V9");
+    expect(v15.approved).toBe(false);
+    expect(v15.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
+    expect(v15.source.script!.sha256).toBe(sha("script.md"));
+    expect(v15.source.plan!.sha256).toBe(sha("plan.json"));
+    expect(v15.previous.at(-1)).toEqual({ version: "v1.4", path: "tone-map.v1.4.json" });
+    expect(v15.changelog.at(-1)).toMatchObject({ from: "v1.4", to: "v1.5" });
+  });
+
+  it("كل مقطع مطابق لسطره في التشكيل وكل مشهد منطوق = مقاطعه؛ الباقي بنصه احتفظ بمعرّفه ونبرته", () => {
+    const lines = tashkeel9.split("\n");
+    for (const s of v15.segments) {
+      expect(lines[s.tashkeelLine - 1]!.trim(), `مقطع ${s.n}`).toBe(s.text);
+      expect(s.marked.replace(/ ?[|‖]/g, "").replace(/\*\*/g, ""), `علامات ${s.n}`).toBe(s.text);
+      expect(s.key).toBe(createHash("sha1").update(stripTashkeel(s.text).replace(/[^\p{L}\p{N}\s_]/gu, "").replace(/\s+/g, " ").trim()).digest("hex").slice(0, 12));
+      expect(isTone(s.tone), `نبرة ${s.n}`).toBe(true);
+    }
+    expect(new Set(v15.segments.map((s) => s.id)).size).toBe(v15.segments.length);
+    expect(Object.keys(v15.sceneTones).sort()).toEqual(spoken9.map((s) => s.id).sort());
+    for (const sc of spoken9) expect(plain(v15.segments.filter((s) => s.scene === sc.id).map((s) => s.text).join(" ")), sc.id).toBe(plain(sc.narration!));
+    const last = v15.changelog.at(-1)!;
+    for (const s of v15.segments) {
+      const o = v14.segments.find((x) => x.text === s.text);
+      if (o) {
+        expect(last.kept).toContain(o.n);
+        expect(s.id).toBe(o.id);
+        expect(s.tone).toBe(o.tone);
+      } else expect(last.added).toContain(s.n);
+    }
+    expect(last.kept.length + last.added.length).toBe(v15.segments.length);
+  });
+
+  it("لا تلاوة؛ سبعة استشهادات بصرية صامتة في مشاهدها والباقي مرجع فقط؛ والجملتان المطابقتان لنص آية معلَّمتان", () => {
+    expect(v15.recitations).toEqual([]);
+    const shown = v15.citations.filter((c) => c.scene);
+    expect(shown.map((c) => c.ref)).toEqual(["البقرة 30", "البقرة 31", "البقرة 34", "البقرة 35", "الأعراف 23", "البقرة 38", "النساء 1"]);
+    for (const c of shown) expect(plan9.chapters.flatMap((x) => x.scenes).find((s) => s.id === c.scene)!.props!.verseText, c.ref).toBeTruthy();
+    expect(v15.citations).toHaveLength(23);
+    expect(v15.quranFlags.map((f) => f.scene)).toEqual(["c6-s1", "c7-s1"]);
+    const b = v15.boundaries!;
+    expect(b.map((x) => x.segment)).toEqual(v15.segments.map((s) => s.n));
+    expect(b.filter((x) => x.type === "verse" || x.type === "chapter")).toEqual([]);
+    expect(b.at(-1)!.type).toBe("end");
+    expect(v15.audioParts!.flatMap((p) => p.segments).sort((a, c) => a - c)).toEqual(v15.segments.map((s) => s.n));
+    expect(v15.audioParts!.filter((p) => p.scene === "c7-s8").map((p) => p.id)).toEqual(["c7-s8.a", "c7-s8.b"]);
   });
 });

@@ -104,11 +104,11 @@ describe("لوحات الستوري بورد من الخطة (bal storyboard --s
     for (const r of t.scenes) expect(r.frame).toBe(shotFrame(r.scene, r.durationInFrames));
   });
 
-  it("V8 الحالية: توقيت اللوحات = تكوين الحلقة، 44 لوحة بلا بطاقة آية ولا فصل", () => {
+  it("V9 الحالية: توقيت اللوحات = تكوين الحلقة، 48 لوحة بلا بطاقة آية ولا فصل", () => {
     const channel = channelInfo(loadChannel("dafatir-alzaman"));
     const t = boardTimings(plan8, channel);
     expect(t.total).toBe(episodeFrames({ plan: plan8, channel, media: emptyMedia }));
-    expect(t.scenes).toHaveLength(44);
+    expect(t.scenes).toHaveLength(48);
     expect(t.scenes.filter((x) => x.scene.template === "verse-card" || x.scene.props?.shot === "chapter")).toEqual([]);
     for (const r of t.scenes) expect(r.frame).toBe(shotFrame(r.scene, r.durationInFrames));
   });

@@ -7,6 +7,8 @@ export type Block =
   /** [حديث: المصدر | النص | الراوي] — النص والراوي اختياريان */
   | { kind: "hadith"; ref: string; text?: string; narrator?: string; line: number }
   | { kind: "sfx"; id: string; line: number }
+  /** [استشهاد بصري صامت: المرجع — وصف]: الآية تُعرض نصًا ومرجعًا داخل المشهد والراوي مستمر؛ لا تلاوة ولا مشهد مستقل (قرار المالك ١١ نوفمبر) */
+  | { kind: "cite"; ref: string; note?: string; line: number }
   | { kind: "bridge"; text: string; line: number };
 
 export type Chapter = {

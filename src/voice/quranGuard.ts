@@ -111,9 +111,12 @@ export const quranMask = (original: string[]): boolean[] => {
   });
 };
 
-/** Verse texts of a plan (verse-card scenes), for the five-word check. */
+/**
+ * Verse texts of a plan, for the five-word check: verse-card scenes (props.text), and any scene that shows a
+ * verse on screen as a silent visual citation (props.verseText, دفاتر الزمن V9) — the narrator keeps speaking
+ * there, so the shown verse must still never be read by the cloned voice.
+ */
 export const planVerseTexts = (plan: { chapters: { scenes: { template?: string; ayahKey?: string; props?: Record<string, unknown> }[] }[] } | null | undefined): string[] =>
   (plan?.chapters ?? []).flatMap((c) => c.scenes)
-    .filter((s) => isVerseScene(s))
-    .map((s) => (typeof s.props?.text === "string" ? s.props.text : ""))
+    .flatMap((s) => [isVerseScene(s) && typeof s.props?.text === "string" ? s.props.text : "", typeof s.props?.verseText === "string" ? s.props.verseText : ""])
     .filter((t) => t.trim() && !t.startsWith("‹"));

@@ -16,12 +16,16 @@ const STEP_HEADINGS = new Set(packs.map((p) => lower(p.syntax.step)));
 const DIRECTIVE = /^\[\s*([^\]:]+?)\s*:\s*(.+?)\s*\]$/;
 const BRIDGE = /^bridge\s*:\s*(.*)$/i;
 
-const DIRECTIVE_KINDS: Record<string, "scene" | "ayah" | "hadith" | "sfx"> = {
+const DIRECTIVE_KINDS: Record<string, "scene" | "ayah" | "hadith" | "sfx" | "cite"> = {
   مشهد: "scene",
   آية: "ayah",
   اية: "ayah",
   حديث: "hadith",
   صوت: "sfx",
+  // استشهاد بصري: نص الآية ومرجعها يظهران داخل المشهد والراوي مستمر، بلا تلاوة (قرار المالك ١١ نوفمبر)
+  استشهاد: "cite",
+  "استشهاد بصري": "cite",
+  "استشهاد بصري صامت": "cite",
 };
 for (const p of packs) {
   DIRECTIVE_KINDS[lower(p.syntax.scene)] = "scene";
@@ -166,7 +170,7 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
           issues.push({
             level: "error",
             code: "directive-unknown",
-            message: `علامة غير معروفة «${line}». العلامات المسموحة: [مشهد: …]، [آية: …]، [حديث: …]، [صوت: …].`,
+            message: `علامة غير معروفة «${line}». العلامات المسموحة: [مشهد: …]، [آية: …]، [حديث: …]، [صوت: …]، [استشهاد بصري صامت: …].`,
             line: lineNo,
           });
           continue;
@@ -180,6 +184,9 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
           const sep = value.indexOf("|");
           block = { kind, ref: (sep === -1 ? value : value.slice(0, sep)).trim(),
             text: sep === -1 ? undefined : value.slice(sep + 1).trim(), line: lineNo };
+        } else if (kind === "cite") {
+          const [ref = value, ...rest] = value.split(/\s+[—–-]\s+/);
+          block = { kind, ref: ref.trim(), note: rest.join(" — ").trim() || undefined, line: lineNo };
         } else if (kind === "hadith") {
           const [ref = value, text, narrator] = value.split("|").map((s) => s.trim());
           block = { kind, ref, text: text || undefined, narrator: narrator || undefined, line: lineNo };

@@ -1,0 +1,568 @@
+{
+  "version": 1,
+  "episode": "001",
+  "title": "خلق آدم عليه السلام وبداية البشرية",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "بداية القصة",
+      "scenes": [
+        {
+          "id": "c1-s0",
+          "template": "horizon-shot",
+          "narration": "",
+          "props": {
+            "shot": "cover"
+          },
+          "sfx": [],
+          "edited": true,
+          "line": 13
+        },
+        {
+          "id": "c1-s1",
+          "template": "horizon-shot",
+          "narration": "بسم الله الرحمن الرحيم.",
+          "line": 13,
+          "props": {
+            "shot": "basmala"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s2",
+          "template": "horizon-shot",
+          "narration": "عرفت الأرض أمما كثيرة، وتعاقبت فيها أجيال لا يعلم عددها إلا الله.",
+          "line": 15,
+          "props": {
+            "shot": "nations"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s3",
+          "template": "horizon-shot",
+          "narration": "ولكن رحلتنا هذه لا تبدأ من مدينة قديمة، ولا من مملكة نسي الناس اسمها. إننا نبدأ من أبي البشر، آدم عليه السلام.",
+          "line": 17,
+          "props": {
+            "shot": "return"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s4",
+          "template": "horizon-shot",
+          "narration": "من أول إنسان خلقه الله سبحانه وتعالى، ومنه بدأ نسل البشر الذي انتشر في الأرض.",
+          "line": 21,
+          "props": {
+            "shot": "lineage",
+            "from": "1250,520,1.1"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s5",
+          "template": "horizon-shot",
+          "narration": "ولا نملك تاريخا ثابتا لخلق آدم عليه السلام. فلم يخبرنا القرآن الكريم بالسنة التي خلق فيها، ولا بالزمن الذي يفصله عن أقدم الحضارات التي وصلت إلينا آثارها.",
+          "line": 23,
+          "props": {
+            "shot": "no-date"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c1-s6",
+          "template": "horizon-shot",
+          "narration": "ولكن الله أخبرنا بما هو أعظم من تحديد سنة أو مكان.",
+          "line": 27,
+          "props": {
+            "shot": "greater"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "إني جاعل في الأرض خليفة",
+      "scenes": [
+        {
+          "id": "c2-s1",
+          "template": "horizon-shot",
+          "narration": "قبل أن نتحدث عن حياة آدم عليه السلام، نقف عند ما أخبرنا الله به في سورة البقرة.",
+          "line": 31,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "البقرة · ٣٠",
+            "tagWord": "البقرة",
+            "lead": "حياة آدم عليه السلام",
+            "leadWord": "حياة"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c2-s2",
+          "template": "horizon-shot",
+          "narration": "أخبر الله ملائكته أنه جاعل في الأرض خليفة. وقد ذكر المفسرون في معنى الخلافة أقوالا، منها أن البشر يخلف بعضهم بعضا في عمارة الأرض والحياة عليها.",
+          "line": 33,
+          "props": {
+            "shot": "interpreters",
+            "ref": "البقرة · ٣٠"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c2-s3",
+          "template": "horizon-shot",
+          "narration": "وسألت الملائكة ربها عن جعل من يكون منه الفساد وسفك الدماء، مع أنهم يسبحون بحمده ويقدسون له. ولم يكن سؤالهم اعتراضا على حكم الله، وإنما كان سؤالا لطلب الفهم ومعرفة الحكمة.",
+          "line": 37,
+          "props": {
+            "shot": "question",
+            "from": "555,575,1.12"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c2-s4",
+          "template": "horizon-shot",
+          "narration": "فأجابهم الله بأنه يعلم ما لا يعلمون. إن معرفتنا محدودة، وعلم الله محيط بكل شيء. وقد نعرف بعض الحكم من أمر من أمور الله، ولكننا لا ندعي الإحاطة بجميع حكمه.",
+          "line": 41,
+          "props": {
+            "shot": "known"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "خلق آدم وتعليمه",
+      "scenes": [
+        {
+          "id": "c3-s1",
+          "template": "horizon-shot",
+          "narration": "خلق الله آدم عليه السلام من طين. وقد جاء ذكر خلقه في مواضع متعددة من القرآن الكريم.",
+          "line": 49,
+          "props": {
+            "shot": "clay"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c3-s4",
+          "template": "horizon-shot",
+          "narration": "وفي سورة ص خبر خلق آدم عليه السلام، وتسويته، ونفخ الروح فيه.",
+          "line": 53,
+          "props": {
+            "shot": "steps",
+            "ref": "ص ٧١–٧٢"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c3-s5",
+          "template": "horizon-shot",
+          "narration": "ثم أخبرنا الله بأنه علم آدم الأسماء كلها.",
+          "line": 55,
+          "props": {
+            "shot": "lib-names",
+            "mode": "learn",
+            "wordWord": "الأسماء",
+            "allWord": "كلها",
+            "ref": "البقرة · ٣١"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c3-s6",
+          "template": "horizon-shot",
+          "narration": "وقد اختلف المفسرون في تفصيل المقصود بالأسماء، وذكروا في ذلك أقوالا متعددة. ولكن المعنى الواضح في الآيات أن الله خص آدم بعلم علمه إياه.",
+          "line": 57,
+          "props": {
+            "shot": "catalog"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c3-s7",
+          "template": "horizon-shot",
+          "narration": "وعندما عرض الله المسميات على الملائكة، لم يدعوا علم ما لم يعلمهم الله.",
+          "line": 61,
+          "props": {
+            "shot": "lib-names",
+            "mode": "present",
+            "wordWord": "المسميات",
+            "emptyWord": "يدعوا",
+            "ref": "البقرة · ٣٢",
+            "toWord": "الملائكة"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c3-s8",
+          "template": "horizon-shot",
+          "narration": "ثم أمر الله آدم أن ينبئهم بأسمائها.",
+          "line": 63,
+          "props": {
+            "shot": "lib-names",
+            "mode": "name",
+            "wordWord": "بأسمائها",
+            "ref": "البقرة · ٣٣"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c3-s9",
+          "template": "horizon-shot",
+          "narration": "وهكذا أظهر الله لملائكته ما علمه لآدم عليه السلام. ونتعلم من هذا الموقف أن العلم نعمة من الله، وأن ما نعرفه إنما نعرفه بما يسره لنا من أسباب المعرفة. فلا مكان للغرور بالعلم، ولا لادعاء معرفة ما لم يقم عليه دليل.",
+          "line": 65,
+          "props": {
+            "shot": "knowledge"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "سجود الملائكة ومعصية إبليس",
+      "scenes": [
+        {
+          "id": "c4-s1",
+          "template": "horizon-shot",
+          "narration": "بعد أن خلق الله آدم عليه السلام، أمر الملائكة أن يسجدوا له. وكان هذا السجود بأمر الله، تكريما لآدم عليه السلام، وليس عبادة له. فالعبادة حق لله وحده.",
+          "line": 73,
+          "props": {
+            "shot": "honor"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s2",
+          "template": "horizon-shot",
+          "narration": "استجابت الملائكة لأمر ربها. ولكن إبليس أبى واستكبر.",
+          "line": 79,
+          "props": {
+            "shot": "comply"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s3",
+          "template": "horizon-shot",
+          "narration": "ومن المهم هنا أن نعرف أن إبليس لم يكن من الملائكة. بل كان من الجن، كما أخبرنا الله في سورة الكهف.",
+          "line": 83,
+          "props": {
+            "shot": "sort"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s4",
+          "template": "horizon-shot",
+          "narration": "وقد جاء في سورة الأعراف خبر سؤال الله لإبليس عن سبب امتناعه عن السجود.",
+          "line": 87,
+          "props": {
+            "shot": "verse-tag",
+            "tagWord": "الأعراف",
+            "ref": "الأعراف ١٢"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s5",
+          "template": "horizon-shot",
+          "narration": "فقدم إبليس ما ظنه حجة، حين رأى أن خلقه من نار يجعله أفضل من آدم الذي خلق من طين. ولكنه أخطأ حين جعل هذا الظن مقدما على أمر الله. لم يكن الأمر مجرد مقارنة بين مادتين. بل كان أمرا إلهيا وجبت طاعته، فاستكبر إبليس عنه.",
+          "line": 89,
+          "props": {
+            "shot": "scale"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s6",
+          "template": "horizon-shot",
+          "narration": "وهكذا أصبح إبليس عدوا لآدم وذريته. وقد ذكر القرآن الكريم أن إبليس سأل الله أن يمهله فأمهله، وأنه أعلن عزمه على إغواء البشر.",
+          "line": 97,
+          "props": {
+            "shot": "enmity"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s7",
+          "template": "horizon-shot",
+          "narration": "وفي مقابل هذا الوعيد، أخبر الله في سورة الحجر أن عباده ليس لإبليس عليهم سلطان، إلا من اتبعه من الغاوين.",
+          "line": 101,
+          "props": {
+            "shot": "authority"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c4-s8",
+          "template": "horizon-shot",
+          "narration": "ومن هنا نفهم أن عداوة الشيطان للإنسان قديمة، وأن القرآن يحذرنا منها تحذيرا صريحا.",
+          "line": 103,
+          "props": {
+            "shot": "warning"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "آدم وزوجه في الجنة",
+      "scenes": [
+        {
+          "id": "c5-s1",
+          "template": "horizon-shot",
+          "narration": "وخلق الله لآدم زوجه، وأسكنهما الجنة. وأباح لهما أن يأكلا منها، ونهاهما عن الاقتراب من شجرة معينة.",
+          "line": 107,
+          "props": {
+            "shot": "permit"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c5-s2",
+          "template": "horizon-shot",
+          "narration": "ولم يسم القرآن الكريم نوع تلك الشجرة. ولذلك لا نجزم بأنها شجرة تفاح، أو تين، أو غير ذلك. فليس في معرفة نوعها ما تتوقف عليه العبرة من القصة.",
+          "line": 111,
+          "props": {
+            "shot": "species"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c5-s3",
+          "template": "horizon-shot",
+          "narration": "وقد حذر الله آدم عليه السلام من عداوة الشيطان.",
+          "line": 117,
+          "props": {
+            "shot": "warn-recall"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c5-s4",
+          "template": "horizon-shot",
+          "narration": "ولكن إبليس وسوس إلى آدم وزوجه، وسعى إلى إيقاعهما فيما نهاهما الله عنه. وفي سورة الأعراف، يخبرنا الله أن الشيطان أغراهما بما زعم أنه يؤدي إلى منزلة الملائكة أو إلى الخلد.",
+          "line": 119,
+          "props": {
+            "shot": "whisper"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c5-s5",
+          "template": "horizon-shot",
+          "narration": "ثم وقع ما حذرهما الله منه، فأكلا من الشجرة.",
+          "line": 123,
+          "props": {
+            "shot": "breach"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c5-s6",
+          "template": "horizon-shot",
+          "narration": "ولكن آدم عليه السلام لم يصر على معصيته، بل رجع إلى ربه. وقد حكى الله عن آدم وزوجه دعاءهما في سورة الأعراف، إذ اعترفا بظلمهما لأنفسهما، وسألا ربهما المغفرة والرحمة.",
+          "line": 125,
+          "props": {
+            "shot": "return-line",
+            "ref": "الأعراف · ٢٣"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c5-s7",
+          "template": "horizon-shot",
+          "narration": "وفي سورة البقرة، أخبرنا الله أن آدم تلقى من ربه كلمات، فتاب عليه.",
+          "line": 129,
+          "props": {
+            "shot": "verse-tag",
+            "tagWord": "البقرة",
+            "ref": "البقرة ٣٧"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c5-s8",
+          "template": "horizon-shot",
+          "narration": "وهنا يظهر الفرق بين الموقفين: فإبليس استكبر وأصر، وآدم عليه السلام تاب وأناب. وفي ذلك بيان لسعة رحمة الله، وأن باب التوبة ليس مغلقا أمام من أذنب ثم رجع إلى ربه صادقا.",
+          "line": 131,
+          "props": {
+            "shot": "stances"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "الهبوط إلى الأرض",
+      "scenes": [
+        {
+          "id": "c6-s1",
+          "template": "horizon-shot",
+          "narration": "ثم أخبرنا الله أن آدم وزوجه هبطا إلى الأرض، ووعد من اتبع هداه بالأمن من الخوف والحزن.",
+          "line": 137,
+          "props": {
+            "shot": "lib-descent",
+            "fallWord": "هبطا",
+            "landWord": "الأرض",
+            "pathWord": "اتبع",
+            "term": "الأمن",
+            "termWord": "بالأمن",
+            "ref": "البقرة · ٣٨"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c6-s2",
+          "template": "horizon-shot",
+          "narration": "وفي سورة الأعراف، جاء بيان أن في الأرض مستقرا ومتاعا إلى حين، وأن فيها حياة البشر وموتهم، ومنها يكون إخراجهم.",
+          "line": 139,
+          "props": {
+            "shot": "earth-words"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c6-s3",
+          "template": "horizon-shot",
+          "narration": "ومن هنا تتصل قصة آدم عليه السلام بالتاريخ البشري على الأرض.",
+          "line": 141,
+          "props": {
+            "shot": "bridge"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c6-s4",
+          "template": "horizon-shot",
+          "narration": "وأما موضع هبوطه، فقد اشتهرت فيه روايات مختلفة، ولا نعلم نصا صحيحا صريحا يحدده. كما لا نملك تاريخا محددا لذلك الهبوط. ولذلك لا ننسب إليه مكانا ولا تاريخا على سبيل الجزم، ونقول فيما لا نعلمه: الله أعلم.",
+          "line": 143,
+          "props": {
+            "shot": "no-map"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c6-s5",
+          "template": "horizon-shot",
+          "narration": "وما أخبرنا الله به عن آدم نؤمن به ونثبته، دون أن نزيد عليه ما لم يثبت به دليل.",
+          "line": 149,
+          "props": {
+            "shot": "limit"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "title": "من آدم إلى تاريخ البشرية",
+      "scenes": [
+        {
+          "id": "c7-s1",
+          "template": "horizon-shot",
+          "narration": "بدأ نسل البشر من آدم عليه السلام وزوجه. وأخبرنا الله في سورة النساء أنه خلق الناس من نفس واحدة، وخلق منها زوجها، وبث منهما رجالا كثيرا ونساء.",
+          "line": 153,
+          "props": {
+            "shot": "gen-fan"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c7-s2",
+          "template": "horizon-shot",
+          "narration": "ومع تعاقب الأجيال، امتد التاريخ البشري، وتنوعت أحوال الناس ومعايشهم. ولكننا لا نملك سجلا متصلا يخبرنا بتفاصيل كل جيل، من آدم عليه السلام إلى أقدم المجتمعات التي وصلت إلينا آثارها. فلا نعرف أسماء جميع الأمم الأولى، ولا أماكن إقامتها، ولا كل ما جرى لها من أحداث.",
+          "line": 157,
+          "props": {
+            "shot": "lineline"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c7-s3",
+          "template": "horizon-shot",
+          "narration": "وهنا تبدأ مرحلة أخرى من رحلتنا.",
+          "line": 163,
+          "props": {
+            "shot": "threshold"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c7-s6",
+          "template": "horizon-shot",
+          "narration": "ومع تقدم حلقاتنا، سنتعرف إلى أحوال البشر قبل الكتابة، ثم إلى نشأة القرى والمدن، والحضارات التي تعاقبت على الأرض.",
+          "line": 165,
+          "props": {
+            "shot": "roadmap"
+          },
+          "sfx": [],
+          "edited": true
+        },
+        {
+          "id": "c7-s8",
+          "template": "horizon-shot",
+          "narration": "هذا ما سنبدأ به في الحلقة القادمة من «قصة الإنسان عبر الزمن». أما اليوم، فقد بدأنا من آدم عليه السلام، أبي البشر، ومن هنا نفتح أولى صفحات «دفاتر الزمن». والحمد لله رب العالمين.",
+          "line": 167,
+          "props": {
+            "shot": "closing"
+          },
+          "sfx": [],
+          "edited": true
+        }
+      ]
+    }
+  ]
+}

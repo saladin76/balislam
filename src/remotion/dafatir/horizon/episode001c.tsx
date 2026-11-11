@@ -8,6 +8,7 @@ import { at, end, type Timeline } from "./timeline";
 import { C, Ink, easeOut, mix, prog, rng } from "./kit";
 import { Book, ChapterHead, DateRibbon, NEUTRAL, Pin, QuranSeal, SText, WriteIn, camPath, type Cam, type Exit } from "./book";
 import { BoundaryMark, ring } from "../lib/compare";
+import { TreeLeaf } from "../lib/drawings";
 import { Strike, Word } from "../lib/text";
 /** حدّ النهي في هذه الحلقة: تسميته «شجرة معينة» (لا يُرسم نوعها) */
 const Forbidden: React.FC<Omit<React.ComponentProps<typeof BoundaryMark>, "labelText">> = (props) => <BoundaryMark {...props} labelText="شجرة معينة" />;
@@ -83,9 +84,12 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     { w: "غير\u2002ذلك", x: 1165, a: at(tl, "غير") },
   ];
   const noJazm = pop(t, at(tl, "نجزم"));
-  const flip = prog(t, at(tl, "معرفة") - 0.1, at(tl, "العبرة") - 0.1, (x) => x * x * (3 - 2 * x));
-  const ibra = pop(t, at(tl, "العبرة"));
-  const story = pop(t, at(tl, "القصة"));
+  // V9: «فالعبرة ليست في معرفة نوع الشجرة»: البطاقة تنقلب على «العبرة»؛ «وإنما… أمره ونهيه، وما ترتب على مخالفته»: سطران يُكتبان
+  const flip = prog(t, at(tl, "فالعبرة") - 0.15, at(tl, "فالعبرة") + 0.45, (x) => x * x * (3 - 2 * x));
+  const ibra = pop(t, at(tl, "فالعبرة") + 0.3);
+  const story = pop(t, at(tl, "وإنما"));
+  const amr = pop(t, at(tl, "أمره"));
+  const result = pop(t, at(tl, "ترتب"));
   const sx = Math.cos(Math.PI * flip);
   const front = sx > 0;
   const cx = 1370;
@@ -98,8 +102,8 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     { a: at(tl, "تفاح") - 0.3, b: at(tl, "تفاح") + 0.3, cx: 1560, cy: 580, s: 1.45 },
     { a: at(tl, "تين") - 0.3, b: at(tl, "تين") + 0.3, cx: 1400, cy: 580, s: 1.45 },
     { a: at(tl, "غير") - 0.3, b: at(tl, "غير") + 0.3, cx: 1190, cy: 590, s: 1.45 },
-    { a: at(tl, "فليس") - 0.1, b: at(tl, "معرفة"), cx: 1370, cy: 560, s: 1.25 },
-    { a: at(tl, "معرفة") - 0.2, b: at(tl, "العبرة"), cx: 1370, cy: 520, s: 1.18 },
+    { a: at(tl, "فالعبرة") - 0.2, b: at(tl, "الشجرة", 2) + 0.3, cx: 1370, cy: 480, s: 1.22 },
+    { a: Math.max(at(tl, "أمره") - 0.2, end(tl, "الله") + 0.3), b: end(tl, "مخالفته") + 0.3, cx: 1370, cy: 600, s: 1.2 },
   ]);
   const R = (
     <g>
@@ -138,12 +142,18 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         ) : (
           <g>
             <SText x={cx} y={348} size={34} font="tajawal" weight={700} color={C.page}>
-              ما تتوقف عليه القصة
+              ليست في نوع الشجرة
             </SText>
-            <SText x={cx} y={560} size={130} o={ibra} color={C.ink}>
+            <SText x={cx} y={490} size={110} o={ibra} color={C.ink}>
               العبرة
             </SText>
-            <Ink d={`M${cx + 180} 610 H${cx - 180}`} w={5} p={story} c={C.gold} />
+            <Ink d={`M${cx + 160} 530 H${cx - 160}`} w={5} p={story} c={C.gold} />
+            <Word x={cx} y={620} size={60} p={amr} font="tajawal" weight={700} color={C.inkText}>
+              الأمر والنهي
+            </Word>
+            <Word x={cx} y={700} size={46} p={result} font="tajawal" weight={500} color={C.ribbon}>
+              عاقبة المخالفة
+            </Word>
           </g>
         )}
       </g>
@@ -184,20 +194,18 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const pair = pop(t, at(tl, "آدم"));
   const forb = prog(t, 0.05, 0.6);
   const w0 = prog(t, at(tl, "وسوس") - 0.05, at(tl, "وزوجه") + 0.2);
-  const pull = prog(t, at(tl, "وسعى") - 0.05, at(tl, "فيما") + 0.1);
-  const seal = pop(t, at(tl, "الأعراف"));
-  const zaam = pop(t, at(tl, "زعم"));
-  const p1 = pop(t, at(tl, "منزلة"));
-  const p2 = pop(t, at(tl, "الخلد"));
-  const strike = prog(t, end(tl, "الخلد") + 0.15, end(tl, "الخلد") + 0.7);
+  // V9: «وزعم… لا يكونا ملكين أو من الخالدين» ثم «وبذلك سعى إلى إيقاعهما»
+  const pull = prog(t, at(tl, "سعى") - 0.05, at(tl, "فيما") + 0.1);
+  const zaam = pop(t, at(tl, "وزعم"));
+  const p1 = pop(t, at(tl, "ملكين"));
+  const p2 = pop(t, at(tl, "الخالدين"));
+  const strike = prog(t, end(tl, "الخالدين") + 0.15, end(tl, "الخالدين") + 0.7);
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "وسوس") - 0.2, b: at(tl, "وزوجه") + 0.2, cx: 900, cy: 480, s: 1.06 },
-    // «وسعى إلى إيقاعهما فيما نهاهما»: يتبع الخط المتقطع نحو حدّ النهي (قبل نافذة ذكر الله)
-    { a: at(tl, "وسعى") - 0.1, b: Math.min(at(tl, "فيما") + 0.3, at(tl, "الله") - 0.3), cx: 780, cy: 580, s: 1.14 },
-    // «وفي سورة الأعراف»: إلى ختمها لحظة ذكرها
-    { a: at(tl, "وفي") - 0.1, b: at(tl, "الأعراف") + 0.4, cx: 1520, cy: 330, s: 1.28 },
-    // «زعم… الخلد»: دائرة النهي (x≈410–710) كاملة مع الختم؛ كان cx 1340 فتُقص عند الحافة (ر٢٩)
-    { a: at(tl, "زعم") - 0.25, b: at(tl, "الخلد") + 0.2, cx: 1180, cy: 520, s: 1.1 },
+    // «وزعم… الخالدين»: دائرة النهي (x≈410–710) كاملة مع الوعدين (ر٢٩)
+    { a: at(tl, "وزعم") - 0.25, b: end(tl, "الخالدين") + 0.4, cx: 1180, cy: 560, s: 1.1 },
+    // «وبذلك سعى إلى إيقاعهما فيما نهاهما»: يتبع الخط المتقطع نحو حدّ النهي (قبل نافذة ذكر الله)
+    { a: at(tl, "سعى") - 0.1, b: Math.min(at(tl, "فيما") + 0.3, at(tl, "الله") - 0.3), cx: 780, cy: 580, s: 1.14 },
   ]);
   const promise = (x: number, y: number, txt: string, q: number) => (
     <g opacity={q}>
@@ -219,12 +227,11 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       <Word x={1365} y={460} size={72} p={pair} color={C.ink}>
         آدم وزوجه
       </Word>
-      <QuranSeal x={1600} y={260} o={seal} s={0.85} refText="الأعراف ٢٠" />
       <SText x={1365} y={600} size={40} font="tajawal" weight={700} color={EMBER} o={zaam}>
         زعم:
       </SText>
-      {promise(1365, 700, "منزلة الملائكة", p1)}
-      {promise(1365, 820, "الخلد", p2)}
+      {promise(1365, 700, "ملكين", p1)}
+      {promise(1365, 820, "من الخالدين", p2)}
       <Strike x1={1560} x2={1170} y={704} p={strike} w={7} />
       <Strike x1={1560} x2={1170} y={824} p={prog(strike, 0.3, 1)} w={7} />
       {both}
@@ -243,49 +250,90 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 const Breach: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const br = prog(t, at(tl, "وقع") - 0.05, at(tl, "وقع") + 0.5);
   // V8: «…فأكلا من الشجرة» صارت في الجملة نفسها (معنى الأعراف 22 بعد حذف بطاقتها): الكادر ينفتح على الصفحتين
-  // ويُكتب الفعل على اليمنى لحظة نطقه، مقابل الحد المخروق
-  const ate = tl.words.some((w) => w.w.startsWith("فأكلا"));
-  const a = ate ? at(tl, "فأكلا") : 0;
-  const cam = ate ? camPath(t, { cx: 700, cy: 520, s: 1.08 }, [{ a: a - 0.25, b: a + 0.55, cx: 960, cy: 530, s: 1 }]) : { cx: 700, cy: 520, s: 1.08 };
+  // ويُكتب الفعل على اليمنى لحظة نطقه، مقابل الحد المخروق.
+  // V9: «ثم أكلا من الشجرة. وأخبرنا القرآن أن سوءاتهما بدت لهما، فشرعا يستران أنفسهما من ورق الجنة. لقد وقعت المخالفة…
+  // لكن القصة لم تتوقف عند هذا الحد»: ختم القرآن عند ذكره، وأوراق تنزل عند «ورق الجنة» (لا تُصوَّر أجساد)،
+  // و«المخالفة» تحت الحد المخروق، وسهم يمضي عند «لم تتوقف».
+  const verb = ["فأكلا", "أكلا"].find((v) => tl.words.some((w) => w.w.startsWith(v)));
+  const ate = Boolean(verb);
+  const a = verb ? at(tl, verb) : 0;
+  const v9 = tl.words.some((w) => w.w.startsWith("ورق"));
+  const seal = v9 ? pop(t, at(tl, "القرآن")) : 0;
+  const leaves = v9 ? [at(tl, "يستران"), at(tl, "أنفسهما"), at(tl, "ورق"), at(tl, "الجنة")].map((x) => prog(t, x - 0.05, x + 0.6, easeOut)) : [];
+  const sin = v9 ? pop(t, at(tl, "المخالفة")) : 0;
+  const goOn = v9 ? prog(t, at(tl, "تتوقف") - 0.1, end(tl, "الحد") + 0.3, easeOut) : 0;
+  const cam = !ate
+    ? { cx: 700, cy: 520, s: 1.08 }
+    : camPath(t, { cx: 700, cy: 520, s: 1.08 }, [
+        { a: a - 0.25, b: a + 0.55, cx: 960, cy: 530, s: 1 },
+        ...(v9
+          ? [
+              // «ورق الجنة»: إلى الأوراق على الصفحة اليمنى
+              { a: at(tl, "يستران") - 0.2, b: at(tl, "الجنة") + 0.4, cx: 1180, cy: 560, s: 1.05 },
+              // «لقد وقعت المخالفة»: إلى الحد المخروق (قبل نافذة ذكر الله)
+              { a: at(tl, "لقد") - 0.1, b: Math.min(at(tl, "المخالفة") + 0.5, at(tl, "الله") - 0.3), cx: 700, cy: 540, s: 1.12 },
+              // «لكن القصة لم تتوقف»: الصفحتان والسهم يمضي
+              { a: at(tl, "لكن") - 0.1, b: end(tl, "الحد") + 0.4, ...NEUTRAL },
+            ]
+          : []),
+      ]);
   const w1 = ate ? prog(t, a - 0.05, a + 0.5, easeOut) : 0;
   const w2 = ate ? prog(t, at(tl, "الشجرة") - 0.05, at(tl, "الشجرة") + 0.45, easeOut) : 0;
+  const LEAVES: [number, number, number][] = [[1500, 660, -24], [1250, 680, 18], [1400, 770, 64], [1180, 780, -50]];
   return (
-    <Book id="c55" t={t} dur={dur} exit={exit} cam={cam} L={<Forbidden x={560} y={520} mark={1} bound={1} breach={br} />}
+    <Book id="c55" t={t} dur={dur} exit={exit} cam={cam}
+      L={
+        <g>
+          <Forbidden x={560} y={520} mark={1} bound={1} breach={br} />
+          {v9 ? (
+            <Word x={560} y={860} size={52} p={sin} font="tajawal" weight={700} color={EMBER}>
+              المخالفة
+            </Word>
+          ) : null}
+        </g>
+      }
       R={ate ? (
         <g>
-          <Word x={1365} y={500} size={72} p={w1} color={C.ink}>فأكلا</Word>
+          <Word x={1365} y={500} size={72} p={w1} color={C.ink}>{verb}</Word>
           <Word x={1365} y={590} size={44} p={w2} font="tajawal" weight={700} color={C.inkSoft}>من الشجرة</Word>
+          {v9 ? <QuranSeal x={1610} y={250} o={seal} s={0.8} /> : null}
+          {LEAVES.map(([x, y, r], i) => {
+            const q = leaves[i] ?? 0;
+            return <TreeLeaf key={i} q={q} x={x} y={y - 120 * (1 - q)} rot={r + 30 * (1 - q)} s={0.8} />;
+          })}
+          {v9 ? <Ink d="M1700 875 H1100 M1132 850 L1100 875 L1132 900" w={7} p={goOn} c={C.gold} /> : null}
         </g>
       ) : undefined} />
   );
+
 };
 
 // ─── c5-s8: موقفان: خطٌ يعلو ويمضي (استكبر وأصر)، وخطٌ يعود (تاب وأناب)، ثم باب التوبة مفتوح ───
 const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const diff = pop(t, at(tl, "الفرق"));
-  const iblis = pop(t, at(tl, "فإبليس"));
+  const iblis = pop(t, at(tl, "إبليس"));
   const rise = prog(t, at(tl, "استكبر") - 0.05, at(tl, "استكبر") + 0.6);
   const persist = prog(t, at(tl, "وأصر") - 0.05, at(tl, "وأصر") + 0.7);
-  const adam = pop(t, at(tl, "وآدم"));
+  const adam = pop(t, at(tl, "آدم"));
   const away = prog(t, at(tl, "تاب") - 0.05, at(tl, "تاب") + 0.4);
   const back = prog(t, at(tl, "وأناب") - 0.05, at(tl, "وأناب") + 0.6);
-  const door = prog(t, at(tl, "باب") - 0.05, at(tl, "التوبة") + 0.3);
-  const open = prog(t, at(tl, "مغلقا") - 0.1, at(tl, "مغلقا") + 0.6, easeOut);
-  const walk = prog(t, at(tl, "رجع") - 0.1, at(tl, "رجع") + 0.15);
+  // V9: «فوقوع الإنسان في الذنب»: الباب ونقطة الإنسان؛ «ليس نهاية الطريق»: الباب ينفتح؛ «ما دام يرجع»: تعود النقطة إليه
+  const door = prog(t, at(tl, "فوقوع") - 0.05, at(tl, "الذنب") + 0.3);
+  const open = prog(t, at(tl, "نهاية") - 0.1, at(tl, "نهاية") + 0.6, easeOut);
+  const walk = prog(t, at(tl, "يرجع") - 0.1, at(tl, "يرجع") + 0.15);
   const glow = prog(t, at(tl, "صادقا") + 0.25, at(tl, "صادقا") + 0.7);
   const cam = camPath(t, NEUTRAL, [
-    // «يظهر الفرق بين الموقفين»: إلى العنوان وهو يُكتب
-    { a: at(tl, "الفرق") - 0.2, b: at(tl, "الموقفين") + 0.3, cx: 1365, cy: 270, s: 1.3 },
+    // «يظهر الفرق بين موقفين»: إلى العنوان وهو يُكتب
+    { a: at(tl, "الفرق") - 0.2, b: at(tl, "موقفين") + 0.3, cx: 1365, cy: 270, s: 1.3 },
     // «فإبليس»: عنوان «الفرق بين الموقفين» ورأس الفصل كاملان مع «وأصر» (x 150–1730) لا مقصوص (ر٢٩)
-    { a: at(tl, "فإبليس") - 0.3, b: at(tl, "فإبليس") + 0.3, cx: 940, cy: 520, s: 1.22 },
+    { a: at(tl, "إبليس") - 0.3, b: at(tl, "إبليس") + 0.3, cx: 940, cy: 520, s: 1.22 },
     // «وآدم»: الموقفان كاملان (x 310–1890)؛ كان cx 1370 فيُقص «إبليس/استكبر» (ر٢٩)
-    { a: at(tl, "وآدم") - 0.35, b: at(tl, "وآدم") + 0.3, cx: 1100, cy: 520, s: 1.22 },
+    { a: at(tl, "آدم") - 0.35, b: at(tl, "آدم") + 0.3, cx: 1100, cy: 520, s: 1.22 },
     { a: end(tl, "وأناب") + 0.1, b: end(tl, "وأناب") + 0.8, ...NEUTRAL },
-    // «باب التوبة»: لا يُقص «إبليس» و«استكبر» عند الحافة اليسرى (ر٢٩)
-    { a: at(tl, "باب") - 0.3, b: at(tl, "التوبة") + 0.3, cx: 1100, cy: 520, s: 1.12 },
-    // «لمن أذنب ثم رجع»: يتبع النقطة وهي تعود إلى الباب (قبل نافذة «ربه»)
-    // «أذنب… رجع»: «إبليس/استكبر» والباب وعنوان الموقفين (y≈225) كاملة؛ يُرى x 240–1720 (ر٢٩)
-    { a: at(tl, "أذنب") - 0.2, b: Math.min(at(tl, "رجع") + 0.3, at(tl, "ربه") - 0.3), cx: 980, cy: 590, s: 1.3 },
+    // «فوقوع الإنسان في الذنب»: لا يُقص «إبليس» و«استكبر» عند الحافة اليسرى (ر٢٩)
+    { a: at(tl, "فوقوع") - 0.3, b: at(tl, "الذنب") + 0.3, cx: 1100, cy: 520, s: 1.12 },
+    // «ليس نهاية الطريق… يرجع»: يتبع النقطة وهي تعود إلى الباب (قبل نافذة «ربه»)؛ يُرى x 240–1720 (ر٢٩)
+    { a: at(tl, "ليس") - 0.2, b: Math.min(at(tl, "يرجع") + 0.3, at(tl, "ربه") - 0.3), cx: 980, cy: 590, s: 1.3 },
   ]);
   // الباب على الصفحة اليمنى: إطار ثابت ومصراع يدور على مفصله الأيمن
   const dx = 1420;
@@ -315,9 +363,9 @@ const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         <rect x={dx - 170} y={370} width={340} height={480} fill={C.sand} opacity={0.75 * open + 0.25 * glow} />
         <path d={`M${dx + 170} 370 L${dx + 170 - leafW} ${370 - 30 * open} L${dx + 170 - leafW} ${850 + 30 * open} L${dx + 170} 850 Z`} fill="#8B5E3C" stroke={C.ink} strokeWidth={4} />
         <Ink d={`M${dx - 190} 860 V350 H${dx + 190} V860`} w={7} p={door} />
-        <circle cx={mix(1000, dx, walk)} cy={mix(720, 700, walk)} r={13 * prog(t, at(tl, "أذنب") - 0.05, at(tl, "أذنب") + 0.3)} fill={C.ink} />
-        <Word x={dx} y={318} size={44} p={door} font="tajawal" weight={700} color={C.ink}>
-          باب التوبة
+        <circle cx={mix(1000, dx, walk)} cy={mix(720, 700, walk)} r={13 * prog(t, at(tl, "الذنب") - 0.05, at(tl, "الذنب") + 0.3)} fill={C.ink} />
+        <Word x={dx} y={318} size={44} p={open} font="tajawal" weight={700} color={C.ink}>
+          ليس نهاية الطريق
         </Word>
       </g>
     </g>
@@ -349,15 +397,15 @@ const EarthWords: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const hz = prog(t, at(tl, "الأرض") - 0.1, at(tl, "الأرض") + 0.8);
   const w = [at(tl, "مستقرا"), at(tl, "ومتاعا"), at(tl, "إلى", 1)].map((a) => pop(t, a));
   const limit = prog(t, at(tl, "حين") - 0.05, at(tl, "حين") + 0.5);
-  const life = pop(t, at(tl, "حياة"));
-  const death = pop(t, at(tl, "وموتهم"));
+  const life = pop(t, at(tl, "يحيا"));
+  const death = pop(t, at(tl, "ويموتون"));
   const out = prog(t, at(tl, "إخراجهم") - 0.1, at(tl, "إخراجهم") + 0.7);
   const cam = camPath(t, NEUTRAL, [
     // «وفي سورة الأعراف»: إلى ختمها، ثم «في الأرض»: إلى الأفق وهو يُرسم
-    { a: at(tl, "سورة") - 0.1, b: at(tl, "الأعراف") + 0.5, cx: 1560, cy: 300, s: 1.3 },
-    { a: at(tl, "بيان") - 0.1, b: at(tl, "الأرض") + 0.6, cx: 1300, cy: 500, s: 1.1 },
+    { a: at(tl, "سورة") - 0.1, b: Math.min(at(tl, "الأعراف") + 0.5, at(tl, "الله") - 0.3), cx: 1560, cy: 300, s: 1.3 },
+    { a: end(tl, "الله") + 0.3, b: at(tl, "الأرض") + 0.6, cx: 1300, cy: 500, s: 1.1 },
     { a: at(tl, "ومتاعا") - 0.2, b: at(tl, "حين") + 0.3, cx: 900, cy: 520, s: 1.0 },
-    { a: at(tl, "حياة") - 0.2, b: at(tl, "إخراجهم") + 0.4, cx: 960, cy: 600, s: 1.04 },
+    { a: at(tl, "يحيا") - 0.2, b: at(tl, "إخراجهم") + 0.4, cx: 960, cy: 600, s: 1.04 },
   ]);
   const both = (
     <g>
@@ -409,8 +457,8 @@ const EarthWords: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ─── c6-s3: نقطة التحول: أفق الدفتر يمتد خارج الصفحات إلى أفق الأرض، فتتصل قصة آدم بالتاريخ البشري ───
 const Bridge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const inner = 1;
-  const extend = prog(t, at(tl, "قصة") + 0.2, at(tl, "بالتاريخ") + 0.3, easeOut);
-  const ground = prog(t, at(tl, "بالتاريخ") - 0.05, at(tl, "البشري") + 0.6);
+  const extend = prog(t, at(tl, "قصة") + 0.2, at(tl, "بتاريخ") + 0.3, easeOut);
+  const ground = prog(t, at(tl, "بتاريخ") - 0.05, at(tl, "البشري") + 0.6);
   const lbl = pop(t, at(tl, "البشري"));
   const khabar = pop(t, at(tl, "قصة"));
   const earth = pop(t, at(tl, "الأرض"));
@@ -446,10 +494,10 @@ const Bridge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
           {p.head ? <ChapterHead label={p.head} /> : null}
           {both}
           <Word x={1365} y={520} size={70} p={khabar} color="#A8803A">
-            الخبر
+            قصة آدم
           </Word>
           <Word x={1365} y={590} size={36} p={khabar} font="tajawal" weight={500} color={C.inkSoft}>
-            قصة آدم عليه السلام
+            عليه السلام
           </Word>
         </g>
       }
@@ -457,7 +505,7 @@ const Bridge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       over={
         <g>
           <SText x={2330} y={900} size={120} font="tajawal" weight={800} color={C.sand} o={lbl}>
-            التاريخ البشري
+            تاريخ البشرية
           </SText>
           <SText x={-400} y={900} size={100} font="tajawal" weight={700} color={C.sand} o={earth * 0.85}>
             على الأرض
@@ -480,12 +528,13 @@ const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const map = prog(t, 0.05, 0.8);
   const r0 = at(tl, "روايات") - 0.1;
   const r1 = end(tl, "مختلفة") + 0.3;
-  const fadeR = prog(t, at(tl, "نعلم") - 0.05, at(tl, "يحدده") + 0.3);
+  const fadeR = prog(t, at(tl, "نعلم") - 0.05, at(tl, "يحدد") + 0.3);
   const pin = prog(t, at(tl, "نصا") - 0.1, at(tl, "صريحا") + 0.2, easeOut);
   const hover0 = Math.sin(t * 2.4) * 10;
-  const ribbon = prog(t, at(tl, "تاريخا", 1) - 0.1, at(tl, "محددا") + 0.2, easeOut);
-  const dash = prog(t, at(tl, "محددا"), at(tl, "محددا") + 0.4);
-  const aside = prog(t, at(tl, "ننسب") - 0.05, at(tl, "الجزم") + 0.2);
+  // V9: «لا ننسب إليه بلدًا أو مكانًا أو زمنًا»: الدبوس (المكان) ثم شريط التاريخ (الزمن) بلا قيمة، و«دون دليل ثابت»: يسكنان جانبًا
+  const ribbon = prog(t, at(tl, "زمنا") - 0.1, at(tl, "زمنا") + 0.4, easeOut);
+  const dash = prog(t, at(tl, "دون"), at(tl, "دون") + 0.4);
+  const aside = prog(t, at(tl, "دليل") - 0.05, end(tl, "ثابت") + 0.3);
   // الدبوس معلق يتردد ولا يستقر، ثم يسكن حين نترك الجزم
   const hover = hover0 * (1 - aside);
   const cam = camPath(t, { cx: 960, cy: 540, s: 1.05 }, [
@@ -494,12 +543,11 @@ const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     { a: r0 - 0.2, b: r0 + 0.6, cx: 640, cy: 520, s: 1.15 },
     { a: r0 + 0.6, b: r1, cx: 1300, cy: 520, s: 1.15 },
     { a: at(tl, "نعلم") - 0.2, b: at(tl, "نصا"), cx: 1180, cy: 470, s: 1.12 },
-    // «يحدده»: اقتراب من الدبوس المعلق الذي لا يستقر، ثم إلى شريط التاريخ الفارغ
-    { a: at(tl, "يحدده") - 0.1, b: at(tl, "كما") + 0.3, cx: 1180, cy: 400, s: 1.3 },
-    { a: at(tl, "تاريخا", 1) - 0.25, b: at(tl, "محددا") + 0.3, cx: 1480, cy: 420, s: 1.16 },
-    { a: at(tl, "ننسب") - 0.2, b: at(tl, "الجزم") + 0.4, ...NEUTRAL },
-    // «ونقول فيما لا نعلمه»: تراجع يفسح الصفحة، ثم سكون كامل عند «الله أعلم»
-    { a: at(tl, "ونقول") - 0.1, b: Math.min(end(tl, "نعلمه") + 0.1, at(tl, "الله") - 0.3), cx: 960, cy: 520, s: 0.94 },
+    // «يحدد لنا موضع هبوطه»: اقتراب من الدبوس المعلق الذي لا يستقر
+    { a: at(tl, "يحدد") - 0.1, b: at(tl, "الجزم") + 0.3, cx: 1180, cy: 400, s: 1.3 },
+    // «بلدًا أو مكانًا أو زمنًا»: من الدبوس إلى شريط التاريخ الفارغ
+    { a: at(tl, "ننسب") - 0.2, b: at(tl, "زمنا") + 0.4, cx: 1400, cy: 420, s: 1.12 },
+    { a: at(tl, "دون") - 0.2, b: end(tl, "ثابت") + 0.4, ...NEUTRAL },
   ]);
   const grid = (
     <g opacity={0.5 * map}>
@@ -578,15 +626,17 @@ const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ─── c6-s5: ما أخبرنا الله به داخل إطار نؤمن به ونثبته، وحدٌّ لا نزيد بعده إلا بدليل ───
 const Limit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const frame = prog(t, 0.05, 0.8);
-  const w1 = pop(t, at(tl, "نؤمن"));
+  const w1 = pop(t, Math.max(at(tl, "نؤمن"), end(tl, "الله") + 0.3));
   const w2 = pop(t, at(tl, "ونثبته"));
-  const bar = prog(t, at(tl, "نزيد") - 0.1, at(tl, "عليه") + 0.2);
-  const outside = prog(t, at(tl, "يثبت") - 0.05, at(tl, "يثبت") + 0.4);
-  const dalil = pop(t, at(tl, "دليل"));
+  // V9: «أما ما لم يخبرنا به»: حدّ الإطار وما خارجه؛ «فلا نتكلف ادعاء معرفته»: «ادعاء معرفته» يُكتب ويُشطب
+  const bar = prog(t, at(tl, "أما") - 0.1, at(tl, "يخبرنا") + 0.2);
+  const outside = prog(t, at(tl, "يخبرنا") - 0.05, at(tl, "يخبرنا") + 0.4);
+  const claim = pop(t, at(tl, "ادعاء"));
+  const strike = prog(t, at(tl, "ادعاء") + 0.25, end(tl, "معرفته") + 0.2);
   const cam = camPath(t, NEUTRAL, [
     // «نؤمن به ونثبته»: اقتراب من الكلمتين داخل الإطار (بعد نافذة ذكر الله)
-    { a: at(tl, "نؤمن") - 0.2, b: at(tl, "ونثبته") + 0.5, cx: 1365, cy: 480, s: 1.25 },
-    { a: at(tl, "نزيد") - 0.25, b: at(tl, "دليل") + 0.3, cx: 1100, cy: 560, s: 1.06 },
+    { a: Math.max(at(tl, "نؤمن") - 0.2, end(tl, "الله") + 0.3), b: at(tl, "ونثبته") + 0.5, cx: 1365, cy: 480, s: 1.25 },
+    { a: at(tl, "أما") - 0.25, b: end(tl, "معرفته") + 0.3, cx: 1100, cy: 560, s: 1.06 },
   ]);
   const R = (
     <g>
@@ -603,9 +653,6 @@ const Limit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         ونثبته
       </Word>
       <Ink d="M1720 700 H1010" w={14} p={bar} c={C.gold} />
-      <Word x={1365} y={780} size={40} p={bar} font="tajawal" weight={700} color={C.inkText}>
-        لا نزيد عليه
-      </Word>
     </g>
   );
   const L = (
@@ -615,16 +662,13 @@ const Limit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
           <line key={i} x1={300} x2={760 - i * 70} y1={330 + i * 60} y2={330 + i * 60} stroke={C.inkSoft} strokeWidth={3} strokeDasharray="6 10" opacity={0.6} />
         ))}
         <SText x={530} y={620} size={40} font="tajawal" weight={500} color={C.inkSoft}>
-          ما لم يثبت
+          ما لم يخبرنا به
         </SText>
       </g>
-      <g opacity={dalil}>
-        <circle cx={540} cy={760} r={78} fill="rgba(255,250,235,0.3)" stroke={C.gold} strokeWidth={12} />
-        <path d="M596 816 L680 900" stroke="#6B4A2E" strokeWidth={22} strokeLinecap="round" />
-        <SText x={540} y={778} size={50} color={C.ink}>
-          دليل
-        </SText>
-      </g>
+      <Word x={530} y={770} size={58} p={claim} font="tajawal" weight={700} color={EMBER}>
+        ادعاء معرفته
+      </Word>
+      <Strike x1={720} x2={340} y={748} p={strike} w={7} />
     </g>
   );
   return <Book id="c65" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} />;

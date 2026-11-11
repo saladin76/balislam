@@ -7,7 +7,7 @@
 import React from "react";
 import { VerseRefPanel } from "./verseRef";
 import { at, buildTimeline, end, type Timeline } from "./timeline";
-import { BookShadow, C, Camera, CoverLeaf, Defs, Ink, LightPool, Page, PageStack, Spine, FlipLeaf, VerseCard, Words, easeOut, mix, prog, rng, verseRef as verseRefLabel, W } from "./kit";
+import { BookShadow, C, Camera, CoverLeaf, Defs, Ink, LightPool, Page, PageStack, Spine, FlipLeaf, VerseCard, VersePageContext, Words, easeOut, mix, prog, rng, verseRef as verseRefLabel, W } from "./kit";
 import { timelineFromWords } from "./timeline";
 import { FINDS, GATE, Hatch, RUINS, Sunset, stone, type FindDef as Find } from "../lib/drawings";
 export { FINDS, GATE, Hatch, RUINS, Sunset };
@@ -149,20 +149,27 @@ const circlePath = (cx: number, cy: number, rx: number, ry: number) => {
 const SLOT_CIRCLE = circlePath(1300, 445, 74, 86);
 
 export const Shot2: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
-  const drop = prog(t, at(tl, "تاريخا") - 0.2, at(tl, "تاريخا") + 0.7, easeOut);
+  // V9 (النص المعتمد ١١ نوفمبر): «فمتى كانت تلك البداية؟ … لا نملك تاريخًا ثابتًا … مقدار الزمن الذي يفصل بينه وبين أقدم…»
+  // الكلمات القديمة تبقى بديلًا للقطة الست (SHOT_SPECS)
+  const has = (w: string) => tl.words.some((x) => x.w.startsWith(w));
+  const SLOT = has("بالسنة") ? "بالسنة" : "ثابتا";
+  const TIME = has("بالزمن") ? "بالزمن" : "الزمن";
+  const SPAN = has("يفصله") ? "يفصله" : "يفصل";
+  const GAP = has("مقدار") ? "وبين" : "عن";
+  const drop = prog(t, (tl.words.some((w) => w.w.startsWith("فمتى")) ? at(tl, "فمتى") : at(tl, "تاريخا")) - 0.2, (tl.words.some((w) => w.w.startsWith("فمتى")) ? at(tl, "فمتى") : at(tl, "تاريخا")) + 0.7, easeOut);
   // غطاء الخانة يرتفع عند «بالسنة» فتظهر فارغة، ثم تُحاط بدائرة لا تُغلق
-  const flap = prog(t, at(tl, "بالسنة") - 0.05, at(tl, "بالسنة") + 0.55, easeOut);
-  const circle = prog(t, at(tl, "بالسنة") + 0.45, at(tl, "بالسنة") + 1.5) * 0.86;
-  const lineR = prog(t, at(tl, "بالزمن"), at(tl, "بالزمن") + 1.0, easeOut);
-  const nameR = prog(t, at(tl, "يفصله"), at(tl, "يفصله") + 0.6, easeOut);
-  const lineL = prog(t, at(tl, "عن"), at(tl, "عن") + 1.0, easeOut);
+  const flap = prog(t, at(tl, SLOT) - 0.05, at(tl, SLOT) + 0.55, easeOut);
+  const circle = prog(t, at(tl, SLOT) + 0.45, at(tl, SLOT) + 1.5) * 0.86;
+  const lineR = prog(t, at(tl, TIME), at(tl, TIME) + 1.0, easeOut);
+  const nameR = prog(t, at(tl, SPAN), at(tl, SPAN) + 0.6, easeOut);
+  const lineL = prog(t, at(tl, GAP), at(tl, GAP) + 1.0, easeOut);
   const sherd = prog(t, at(tl, "أقدم"), at(tl, "أقدم") + 0.9);
   const label = prog(t, at(tl, "آثارها") - 0.1, at(tl, "آثارها") + 0.5);
   return (
     <Camera
       {...camAt(t, { cx: 1300, cy: 400, s: 1.5 }, [
-        { a: at(tl, "لخلق") - 0.1, b: at(tl, "بالسنة") + 0.3, cx: 1300, cy: 445, s: 1.95 },
-        { a: at(tl, "بالزمن") - 0.3, b: at(tl, "بالزمن") + 1.3, cx: 1250, cy: 560, s: 1.15 },
+        { a: at(tl, "لخلق") - 0.1, b: at(tl, SLOT) + 0.3, cx: 1300, cy: 445, s: 1.95 },
+        { a: at(tl, TIME) - 0.3, b: at(tl, TIME) + 1.3, cx: 1250, cy: 560, s: 1.15 },
         // «أقدم الحضارات»: الخط كله بطرفيه، «آدم عليه السلام» (حتى x≈1726) و«آثار» (من x≈180)، لا الطرف الأيسر وحده
         // (كان cx 670 فيُقص «آدم عليه السلام» عند الحافة نحو 2.5 ث). عند s=1.15 يُرى x 125–1795.
         { a: at(tl, "أقدم") - 0.4, b: at(tl, "أقدم") + 1.4, cx: 960, cy: 560, s: 1.15 },
@@ -213,7 +220,7 @@ export const Shot2: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
         <Ink d={SLOT_CIRCLE} w={6} p={circle} />
       </svg>
       <div style={{ position: "absolute", right: W - 1726, top: 596, fontFamily: Amiri, fontWeight: 700, fontSize: 60, lineHeight: 1.3, color: C.ink, direction: "rtl", opacity: nameR, transform: `translateY(${(1 - nameR) * 10}px)` }}>آدم عليه السلام</div>
-      <div style={{ position: "absolute", left: 760, width: 400, top: 722, display: "flex", justifyContent: "center", opacity: prog(t, at(tl, "عن") - 0.1, at(tl, "عن") + 0.5) }}>
+      <div style={{ position: "absolute", left: 760, width: 400, top: 722, display: "flex", justifyContent: "center", opacity: prog(t, at(tl, has("مقدار") ? "مقدار" : GAP) - 0.1, at(tl, has("مقدار") ? "مقدار" : GAP) + 0.5) }}>
         <div style={{ padding: "2px 16px 6px", borderRadius: 8, background: "rgba(248,238,219,0.97)", border: "2px solid rgba(74,46,31,0.25)", fontFamily: Tajawal, fontWeight: 500, fontSize: 36, color: C.inkSoft, direction: "rtl", whiteSpace: "nowrap" }}>زمن لا نعلم قدره</div>
       </div>
       <div style={{ position: "absolute", left: 215, width: 170, top: 712, textAlign: "center", fontFamily: Tajawal, fontWeight: 500, fontSize: 44, color: C.inkText, opacity: label, direction: "rtl" }}>آثار</div>
@@ -257,14 +264,29 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
   const pick = prog(t, at(tl, "منها") - 0.1, at(tl, "منها") + 0.6, easeOut);
   const attr = prog(t, end(tl, "بعضا"), end(tl, "بعضا") + 0.6);
   const m0 = at(tl, "يخلف");
-  const ground = prog(t, at(tl, "عمارة") - 0.15, at(tl, "عمارة") + 0.7, easeOut);
-  const homes = prog(t, at(tl, "الأرض", 2) - 0.1, at(tl, "الأرض", 2) + 0.8);
-  const life = prog(t, at(tl, "والحياة") - 0.1, at(tl, "والحياة") + 0.8);
+  // V9: «…يخلف بعضهم بعضًا في الأرض، جيلًا بعد جيل.» — الأرض عند «الأرض»، والمسكنان عند «جيلًا»، والنبتة عند «جيل» الأخيرة
+  const V9 = tl.words.some((x) => x.w.startsWith("جيلا"));
+  const G = V9 ? at(tl, "الأرض") : at(tl, "عمارة");
+  const H = V9 ? at(tl, "جيلا") : at(tl, "الأرض", 2);
+  const Lf = V9 ? at(tl, "جيل", 2) : at(tl, "والحياة");
+  const lastW = V9 ? "جيل" : "عليها";
+  const lastEnd = V9 ? end(tl, "جيل", 2) : end(tl, "عليها");
+  const ground = prog(t, G - 0.15, G + 0.7, easeOut);
+  const homes = prog(t, H - 0.1, H + 0.8);
+  const life = prog(t, Lf - 0.1, Lf + 0.8);
   // V8 (قاعدة المالك ١١ نوفمبر: كل كلمة لها صورة تظهر لحظتها): «خليفة» تُكتب على اليسرى لحظة نطقها، وتخلي مكانها للحواشي عند «المفسرون»
   const kh = tl.words.some((w) => w.w.startsWith("خليفة")) ? at(tl, "خليفة") : Infinity;
   const khalifa = prog(t, kh - 0.05, kh + 0.6, easeOut) * (1 - prog(t, at(tl, "المفسرون") - 0.25, at(tl, "المفسرون") + 0.2));
   const line1 = ["البشر", "يخلف", "بعضهم", "بعضا"].map((k, i) => ({ w: ["البشر", "يخلف", "بعضهم", "بعضا"][i]!, t: at(tl, k) }));
-  const line2 = [
+  const line2 = V9
+    ? [
+        { w: "في", t: at(tl, "في", 2) },
+        { w: "الأرض،", t: at(tl, "الأرض") },
+        { w: "جيلًا", t: at(tl, "جيلا") },
+        { w: "بعد", t: at(tl, "بعد") },
+        { w: "جيل", t: at(tl, "جيل", 2) },
+      ]
+    : [
     { w: "في", t: at(tl, "في", 3) },
     { w: "عمارة", t: at(tl, "عمارة") },
     { w: "الأرض", t: at(tl, "الأرض", 2) },
@@ -288,8 +310,8 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
           ? [
               // الحاشية ولوحة المرجع (x 1100–1630) والأرض (حتى y≈912) كاملة: كان cx 600/cy 720 فيُقص أعلى الحاشية
               // واللوحة نحو ثانيتين (مراجعة المشاهد ٩ نوفمبر). والعودة بكادر الخفوت نفسه (endCam في episode001.tsx).
-              { a: at(tl, "عمارة") - 0.25, b: at(tl, "عليها") + 0.2, cx: 930, cy: 530, s: 1.24 },
-              { a: end(tl, "عليها") + 0.3, b: end(tl, "عليها") + 1.5, cx: 900, cy: 575, s: 1.12 },
+              { a: G - 0.25, b: (V9 ? at(tl, lastW, 2) : at(tl, lastW)) + 0.2, cx: 930, cy: 530, s: 1.24 },
+              { a: lastEnd + 0.3, b: lastEnd + 1.5, cx: 900, cy: 575, s: 1.12 },
             ]
           : []),
       ])}
@@ -324,13 +346,13 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
           <rect x={250} y={852} width={640} height={60} fill="#D9C29A" opacity={0.5 * ground} />
           <Ink d="M890 852 C720 848 470 856 250 850" w={4} p={ground} />
           {[0, 1, 2, 3, 4, 5, 6].map((k) => (
-            <Ink key={k} d={`M${870 - k * 30} 866 l-20 30`} w={3} p={prog(t, at(tl, "عمارة") + 0.2 + k * 0.06, at(tl, "عمارة") + 0.5 + k * 0.06)} />
+            <Ink key={k} d={`M${870 - k * 30} 866 l-20 30`} w={3} p={prog(t, G + 0.2 + k * 0.06, G + 0.5 + k * 0.06)} />
           ))}
           <g transform="translate(620 852) scale(1.6) translate(-620 -852)">
             <Ink d="M600 852 V826 L620 810 L640 826 V852 M613 852 V836 H627 V852" w={3} p={homes} fill="#E8D6B3" fillP={homes} />
           </g>
           <g transform="translate(500 852) scale(1.6) translate(-500 -852)">
-            <Ink d="M484 852 V832 L500 820 L516 832 V852" w={3} p={prog(t, at(tl, "الأرض", 2) + 0.25, at(tl, "الأرض", 2) + 1.05)} fill="#E8D6B3" fillP={homes} />
+            <Ink d="M484 852 V832 L500 820 L516 832 V852" w={3} p={prog(t, H + 0.25, H + 1.05)} fill="#E8D6B3" fillP={homes} />
           </g>
           <g transform="translate(350 852) scale(1.7) translate(-350 -852)">
             <Ink d="M350 852 C350 830 348 812 354 796 M352 828 C336 818 328 808 330 798 M353 814 C368 806 376 796 376 786" w={3} p={life} c="#5B6B3A" />
@@ -394,7 +416,10 @@ const S5 = mk(["ولكن آدم عليه السلام لم يصر على معص�
 
 export const Shot5: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, refText }) => {
   const dot = prog(t, 0.2, 0.7, easeOut);
-  const away = prog(t, at(tl, "ولكن"), end(tl, "معصيته"), easeOut);
+  // V9: «فآدم عليه السلام لم يصر…» بدل «ولكن آدم…»
+  const v9 = tl.words.some((w) => w.w.startsWith("فآدم"));
+  const first = v9 ? "فآدم" : "ولكن";
+  const away = prog(t, at(tl, first), end(tl, "معصيته"), easeOut);
   const back = prog(t, at(tl, "بل"), end(tl, "رجع") - 0.02);
   // بعد «دعاءهما:» صمت قصير ثم تخلو الصفحة للآية (في الحلقة يدخل إطار الآية هنا)
   const fade = prog(t, tl.end + 0.6, tl.end + 1.3);
@@ -407,13 +432,13 @@ export const Shot5: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
   const tag = cite ? prog(t, at(tl, "الأعراف") - 0.05, at(tl, "الأعراف") + 0.45, easeOut) : 0;
   const own = cite ? prog(t, at(tl, "اعترفا") - 0.05, end(tl, "لأنفسهما"), easeOut) : 0;
   // «المغفرة والرحمة»: يشتد ضوء الفجر على الصفحتين عند «والرحمة» (بعد نافذة «ربهما»، بلا رمز بجوار الدعاء)
-  const mercy = cite ? prog(t, at(tl, "والرحمة") - 0.05, at(tl, "والرحمة") + 0.9, easeOut) : 0;
+  const mercy = cite || v9 ? prog(t, at(tl, "والرحمة") - 0.05, at(tl, "والرحمة") + 0.9, easeOut) : 0;
   return (
     <>
     <Camera
       {...camAt(t, { cx: 1400, cy: 505, s: 1.22 }, [
         // الكاميرا تتبع الخط وهو يبتعد ثم وهو يعود، وتسكن قبل «إلى ربه»
-        { a: at(tl, "ولكن"), b: end(tl, "معصيته"), cx: 1300, cy: 505, s: 1.22 },
+        { a: at(tl, first), b: end(tl, "معصيته"), cx: 1300, cy: 505, s: 1.22 },
         { a: at(tl, "بل"), b: end(tl, "رجع"), cx: 1405, cy: 500, s: 1.24 },
         ...(cite ? [{ a: wide, b: wideEnd, cx: 960, cy: 530, s: 1 }] : []),
       ])}
@@ -441,6 +466,7 @@ export const Shot5: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
         <rect x={150} y={60} width={1620} height={900} fill="url(#s5-glow)" />
         {mercy > 0 ? <rect x={150} y={60} width={1620} height={900} fill="url(#s5-glow)" opacity={mercy * (1 - fade)} /> : null}
       </svg>
+      <VersePageContext.Consumer>{(v) => (fade < 1 ? v : null)}</VersePageContext.Consumer>
     </Camera>
     {q ? <VerseCard show={prog(t, q.start - 0.7, q.start - 0.1)} text={q.text} refKey={q.key} reciter={q.reciter} /> : null}
     </>

@@ -269,15 +269,25 @@ export const verseRef = (key: string) => {
  * بطاقة الآية: نص Quran Foundation كاملًا كما هو بالأميري داخل إطار رَقّ، والمرجع واسم القارئ تحته.
  * تُرسم في مساحة الشاشة (لا تتأثر بالكاميرا)، ولا حركة فيها بعد ظهورها. show من 0 إلى 1 للظهور فقط.
  */
-export const VerseCard: React.FC<{ show: number; text: string; refKey: string; reciter: string }> = ({ show, text, refKey, reciter }) =>
+/**
+ * الاستشهاد البصري الصامت (V9) يُرسم داخل كاميرا الدفتر (Book أو لقطة قديمة بكاميرتها) فيتحرك مع الصفحة لا فوق الشاشة.
+ * يوفّره HorizonShot لمشهد فيه verseKey/verseText/verseFrom.
+ */
+export const VersePageContext = React.createContext<React.ReactNode>(null);
+
+/**
+ * بطاقة نص الآية. «center» بطاقة الآية القديمة وسط الشاشة. «page» استشهاد بصري صامت (V9) على صفحة من الكتاب
+ * المفتوح، بإحداثيات الدفتر داخل كاميرته: اليمنى (side "r"، الافتراضي) أو اليسرى ("l")، ومركزها الرأسي y.
+ */
+export const VerseCard: React.FC<{ show: number; text: string; refKey: string; reciter?: string; place?: "center" | "page"; side?: "r" | "l"; y?: number }> = ({ show, text, refKey, reciter, place = "center", side = "r", y = 510 }) =>
   show <= 0 ? null : (
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", paddingBottom: 60 }}>
-      <AbsoluteFill style={{ background: "rgba(13,10,20,0.28)", opacity: show }} />
+    <AbsoluteFill style={place === "page" ? { direction: "ltr", width: W, height: H } : { alignItems: "center", justifyContent: "center", paddingBottom: 60 }}>
+      {place === "page" ? null : <AbsoluteFill style={{ background: "rgba(13,10,20,0.28)", opacity: show }} />}
       <div
         style={{
-          position: "relative",
-          width: 1320,
-          padding: "44px 64px 34px",
+          ...(place === "page" ? { position: "absolute" as const, left: side === "r" ? 975 : 165, top: y, transform: `translateY(calc(-50% + ${(1 - show) * 18}px))` } : { position: "relative" as const }),
+          width: place === "page" ? 780 : 1320,
+          padding: place === "page" ? "36px 44px 28px" : "44px 64px 34px",
           background: "#FBF4E6",
           border: `3px double rgba(74,46,31,0.65)`,
           outline: "1.5px solid rgba(74,46,31,0.35)",
@@ -289,9 +299,10 @@ export const VerseCard: React.FC<{ show: number; text: string; refKey: string; r
           textAlign: "center",
         }}
       >
-        <div style={{ fontFamily: "'Amiri', serif", fontSize: text.length > 200 ? 54 : 62, lineHeight: 2.05, color: C.inkText }}>{text}</div>
+        <div style={{ fontFamily: "'Amiri', serif", fontSize: place === "page" ? (text.length > 200 ? 38 : text.length > 120 ? 44 : 50) : text.length > 200 ? 54 : 62, lineHeight: place === "page" ? 1.9 : 2.05, color: C.inkText }}>{text}</div>
         <div style={{ marginTop: 18, fontFamily: "'Tajawal', sans-serif", fontWeight: 500, fontSize: 28, color: C.inkSoft }}>
-          {verseRef(refKey)} · بصوت {reciter}
+          {/* بلا تلاوة (V9): المرجع وحده */}
+          {reciter ? `${verseRef(refKey)} · بصوت ${reciter}` : verseRef(refKey)}
         </div>
       </div>
     </AbsoluteFill>

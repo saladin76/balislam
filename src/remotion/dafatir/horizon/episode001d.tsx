@@ -34,15 +34,17 @@ const ANG = (k: number, j: number) => {
 const genPt = (k: number, j: number): [number, number] => [ROOT[0] + GENS[k]!.rx * Math.cos(ANG(k, j)), ROOT[1] + GENS[k]!.ry * Math.sin(ANG(k, j))];
 const parentOf = (k: number, j: number) => (k === 0 ? -1 : Math.min(GENS[k - 1]!.n - 1, Math.floor(((j + 0.5) / GENS[k]!.n) * GENS[k - 1]!.n)));
 const GenFan: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const root = pop(t, at(tl, "بدأ"));
+  // V9: «ومن آدم عليه السلام وزوجه بدأ نسل البشر»: الأصل واسمه أولًا، ثم «نسل البشر» يتفرع
+  const root = pop(t, at(tl, "آدم"));
   const ga = [at(tl, "نسل"), at(tl, "البشر"), at(tl, "وبث"), at(tl, "كثيرا")];
   const label = pop(t, at(tl, "آدم"));
   const seal = pop(t, at(tl, "النساء"));
   const one = prog(t, at(tl, "واحدة") - 0.05, at(tl, "واحدة") + 0.7);
   const cam = camPath(t, { cx: 1180, cy: 420, s: 1.12 }, [
-    { a: at(tl, "البشر") - 0.1, b: at(tl, "آدم") + 0.3, cx: 1120, cy: 470, s: 1.04 },
-    // «عليه السلام وزوجه»: اقتراب من الأصل والاسمين المكتوبين فوقه (ينتهي قبل نافذة ذكر الله)
-    { a: at(tl, "عليه") - 0.1, b: Math.min(at(tl, "وأخبرنا") + 0.3, at(tl, "الله") - 0.3), cx: 1300, cy: 250, s: 1.3 },
+    // «ومن آدم عليه السلام وزوجه»: اقتراب من الأصل والاسمين المكتوبين فوقه
+    { a: at(tl, "آدم") - 0.1, b: at(tl, "وزوجه") + 0.3, cx: 1300, cy: 250, s: 1.3 },
+    // «بدأ نسل البشر»: يتسع الكادر مع الفروع الأولى (ينتهي قبل نافذة ذكر الله)
+    { a: at(tl, "بدأ") - 0.1, b: Math.min(at(tl, "البشر") + 0.5, at(tl, "الله") - 0.3), cx: 1120, cy: 470, s: 1.04 },
     // «في سورة النساء»: إلى ختمها، ثم «من نفس واحدة»: رجوع إلى الأصل وحلقة «واحدة» تُرسم حوله
     { a: Math.max(at(tl, "سورة") - 0.1, end(tl, "الله") + 0.3), b: at(tl, "النساء") + 0.4, cx: 1560, cy: 320, s: 1.28 },
     { a: at(tl, "خلق") - 0.1, b: at(tl, "واحدة") + 0.6, cx: 1300, cy: 260, s: 1.38 },
@@ -100,28 +102,24 @@ const LIVES_X = [1620, 1180, 1040, 300];
 const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const ticks = prog(t, at(tl, "تعاقب") - 0.1, end(tl, "البشري") + 0.2);
   const lives = [at(tl, "وتنوعت"), at(tl, "أحوال"), at(tl, "الناس"), at(tl, "ومعايشهم")].map((a) => pop(t, a, 0.5));
-  const gaps = [at(tl, "سجلا"), at(tl, "متصلا"), at(tl, "بتفاصيل")].map((a) => prog(t, a - 0.05, a + 0.5, easeOut));
+  const gaps = [at(tl, "سجلا"), at(tl, "متصلا"), at(tl, "يروي")].map((a) => prog(t, a - 0.05, a + 0.5, easeOut));
   const adam = pop(t, at(tl, "آدم"));
   const oldest = pop(t, at(tl, "آثارها"));
   const qs = [
-    { w: "أسماء", a: at(tl, "أسماء") },
-    { w: "أماكن", a: at(tl, "أماكن") },
-    { w: "أحداث", a: at(tl, "أحداث") },
+    // V9: «يروي لنا تفاصيل كل جيل»
+    { w: "تفاصيل", a: at(tl, "تفاصيل") },
+    { w: "كل جيل", a: at(tl, "جيل") },
   ];
   const cam = camPath(t, { cx: 1400, cy: 520, s: 1.12 }, [
     { a: at(tl, "تعاقب") - 0.1, b: end(tl, "البشري") + 0.2, cx: 760, cy: 520, s: 1.08 },
     { a: at(tl, "وتنوعت") - 0.2, b: end(tl, "ومعايشهم"), cx: 1100, cy: 500, s: 1.02 },
-    { a: at(tl, "ولكننا") - 0.2, b: at(tl, "متصلا") + 0.3, ...NEUTRAL },
-    // طرفا الخط: «من آدم» ثم «إلى أقدم المجتمعات»، ثم كل سؤال عند فجوته
+    { a: at(tl, "لكننا") - 0.2, b: at(tl, "متصلا") + 0.3, ...NEUTRAL },
+    // «تفاصيل كل جيل»: الخط بطرفيه مع الفقاعتين (ر٢٩)
+    { a: at(tl, "تفاصيل") - 0.35, b: at(tl, "جيل") + 0.3, cx: 1160, cy: 500, s: 1.15 },
+    // طرفا الخط: «من آدم» ثم «إلى أقدم المجتمعات»
     { a: at(tl, "آدم") - 0.3, b: at(tl, "آدم") + 0.4, cx: 1420, cy: 560, s: 1.15 },
     { a: at(tl, "أقدم") - 0.2, b: at(tl, "آثارها") + 0.2, cx: 480, cy: 580, s: 1.15 },
-    { a: at(tl, "أسماء") - 0.35, b: at(tl, "أسماء") + 0.25, cx: 1380, cy: 500, s: 1.18 },
-    // «أماكن»: الخط بطرفيه، فلا يُقص «آدم عليه السلام» (x≈1770) ولا رأس الفصل (ر٢٩)
-    { a: at(tl, "أماكن") - 0.35, b: at(tl, "أماكن") + 0.25, cx: 960, cy: 500, s: 1.15 },
-    // «ولا كل ما جرى لها من أحداث»: النظر يمضي إلى الفجوة الثالثة مع «ما جرى لها»
-    // والخط بطرفيه («أقدم الآثار» حتى «آدم عليه السلام» x≈1770) مع فقاعاته الثلاث كاملة؛ كان cx 520 فتُقص «أسماء؟» والاسم (ر٢٩)
-    { a: at(tl, "جرى") - 0.1, b: at(tl, "أحداث") + 0.25, cx: 970, cy: 500, s: 1.16 },
-    { a: end(tl, "أحداث") + 0.2, b: end(tl, "أحداث") + 1.0, ...NEUTRAL },
+    { a: end(tl, "آثارها") + 0.2, b: end(tl, "آثارها") + 1.0, ...NEUTRAL },
   ]);
   const r = rng(73);
   const tickX = Array.from({ length: 70 }, (_, i) => 1700 - i * 21.4 - r() * 4);
@@ -283,17 +281,17 @@ const Method: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ─── c7-s6: طريق الحلقات: قبل الكتابة ← القرى والمدن ← الحضارات ───
 const ROAD = "M1740 820 C1600 820 1560 700 1460 690 C1300 670 1260 520 1120 470 C960 420 860 560 720 560 C560 560 560 380 420 340 C320 310 260 300 180 300";
 const MILES = [
-  { x: 1460, y: 690, w: "قبل", label: "قبل الكتابة", D: Fire },
+  { x: 1460, y: 690, w: "المجتمعات", label: "المجتمعات القديمة", D: Fire },
   { x: 1120, y: 470, w: "القرى", label: "القرى والمدن", D: Village },
   { x: 420, y: 340, w: "والحضارات", label: "الحضارات", D: Temple },
 ];
 const Roadmap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const tag = pop(t, at(tl, "حلقاتنا"));
+  const tag = pop(t, at(tl, "نمضي"));
   const road = prog(t, 0.05, end(tl, "الأرض") + 0.3, (x) => x);
   const times = MILES.map((m) => at(tl, m.w));
   const cam = camPath(t, NEUTRAL, [
-    // «ومع تقدم حلقاتنا»: من الصفحتين إلى أول الطريق ووسم «الحلقات» لحظة ظهوره
-    { a: 0.1, b: at(tl, "حلقاتنا") + 0.5, cx: 1480, cy: 720, s: 1.22 },
+    // «ثم نمضي معًا»: من الصفحتين إلى أول الطريق ووسم «الحلقات القادمة» لحظة ظهوره
+    { a: 0.1, b: at(tl, "نمضي") + 0.5, cx: 1480, cy: 720, s: 1.22 },
     { a: times[0]! - 0.3, b: times[0]! + 0.3, cx: 1420, cy: 620, s: 1.2 },
     { a: times[1]! - 0.5, b: times[1]! + 0.3, cx: 1150, cy: 470, s: 1.2 },
     { a: times[2]! - 0.6, b: times[2]! + 0.3, cx: 520, cy: 400, s: 1.2 },
@@ -355,37 +353,25 @@ const Roadmap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ─── c7-s7: أسئلة الحلقة القادمة، لكل سؤال أداته: بلا سجل مكتوب / كم عمره؟ / حدود الدليل ───
 const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const q1 = at(tl, "كيف");
-  // «وأول ما نحتاج إلى فهمه»: إطار السؤال الأول يُرسم بالحبر من «وأول» ويكتمل عند «كيف» (كان يظهر عند «كيف» وحدها فتبقى الصفحة فارغة نحو 5 ث)
-  const frameIn = prog(t, at(tl, "وأول"), q1 + 0.3, easeOut);
-  const scrape = prog(t, at(tl, "الباحثون") - 0.1, at(tl, "قوم") + 0.2);
-  const scroll = pop(t, at(tl, "سجلا"));
-  const empty = prog(t, at(tl, "مكتوبا") - 0.05, at(tl, "مكتوبا") + 0.5);
-  const q2 = at(tl, "يقدرون");
-  const rod = prog(t, q2 - 0.05, q2 + 0.6);
-  const items = [at(tl, "الأدوات"), at(tl, "والمساكن"), at(tl, "والآثار")].map((a) => pop(t, a));
-  const spin = prog(t, q2, end(tl, "والآثار"));
-  const settle = prog(t, end(tl, "والآثار"), end(tl, "والآثار") + 0.3);
-  const q3 = at(tl, "الأدلة");
-  const light = prog(t, q3 - 0.1, at(tl, "تخبرنا") + 0.3, easeOut);
-  const bound = prog(t, at(tl, "خارج") - 0.05, end(tl, "حدودها") + 0.2);
-  const qmark = pop(t, end(tl, "حدودها") - 0.1);
+  // V9: «ومن هنا يبرز سؤال جديد. كيف استطاع الباحثون أن يعرفوا شيئًا عن حياة أناس عاشوا قبل ظهور السجلات المكتوبة؟»
+  // ثم «هذا ما سنبدأ به في الحلقة القادمة من «قصة الإنسان عبر الزمن»»: وسم الحلقة القادمة وعنوانها كلمة كلمة على الصفحة اليسرى
+  const frameIn = prog(t, at(tl, "سؤال"), q1 + 0.3, easeOut);
+  const scrape = prog(t, at(tl, "الباحثون") - 0.1, at(tl, "عاشوا") + 0.2);
+  const scroll = pop(t, at(tl, "السجلات"));
+  const empty = prog(t, at(tl, "المكتوبة") - 0.05, at(tl, "المكتوبة") + 0.5);
+  const tag = pop(t, at(tl, "الحلقة"));
+  const series = ["قصة", "الإنسان", "عبر", "الزمن"].map((w) => pop(t, at(tl, w)));
   const cam = camPath(t, NEUTRAL, [
-    // «وأول ما نحتاج إلى فهمه»: اقتراب من إطار السؤال الأول وهو يُرسم
-    { a: at(tl, "وأول") - 0.1, b: q1 + 0.3, cx: 1380, cy: 340, s: 1.45 },
-    // «كيف يعرف الباحثون شيئًا عن حياة قوم»: يتبع المِسْحَج على التراب
-    { a: at(tl, "الباحثون") - 0.2, b: at(tl, "قوم") + 0.3, cx: 1260, cy: 400, s: 1.62 },
-    { a: at(tl, "سجلا") - 0.3, b: at(tl, "سجلا") + 0.3, cx: 1530, cy: 320, s: 1.8 },
-    { a: q2 - 0.4, b: q2 + 0.3, cx: 1380, cy: 720, s: 1.45 },
-    // بعد «والآثار؟»: إلى العدّاد بعد أن يستقر على «؟؟؟؟» (لا يُقرَّب رقم وهو يدور فيُقرأ سنةً)
-    { a: end(tl, "والآثار") + 0.3, b: end(tl, "والآثار") + 0.9, cx: 1640, cy: 680, s: 1.75 },
-    { a: q3 - 0.6, b: q3 + 0.2, cx: 560, cy: 520, s: 1.12 },
-    // «وما الذي يبقى خارج حدودها»: تراجع يكشف العتمة حول دائرة الضوء
-    { a: at(tl, "يبقى") - 0.2, b: end(tl, "حدودها"), cx: 560, cy: 520, s: 0.92 },
-    { a: end(tl, "حدودها") + 0.2, b: end(tl, "حدودها") + 1.0, ...NEUTRAL },
+    // «يبرز سؤال جديد»: اقتراب من إطار السؤال وهو يُرسم
+    { a: at(tl, "سؤال") - 0.1, b: q1 + 0.3, cx: 1380, cy: 340, s: 1.45 },
+    // «كيف استطاع الباحثون… عن حياة أناس عاشوا»: يتبع المِسْحَج على التراب
+    { a: at(tl, "الباحثون") - 0.2, b: at(tl, "عاشوا") + 0.3, cx: 1260, cy: 400, s: 1.62 },
+    { a: at(tl, "السجلات") - 0.3, b: at(tl, "المكتوبة") + 0.4, cx: 1530, cy: 320, s: 1.8 },
+    // «في الحلقة القادمة»: إلى وسمها، ثم «قصة الإنسان عبر الزمن» تُقرأ كلمة كلمة
+    { a: at(tl, "هذا") - 0.1, b: at(tl, "القادمة") + 0.4, cx: 600, cy: 300, s: 1.3 },
+    { a: at(tl, "قصة") - 0.2, b: end(tl, "الزمن") + 0.4, cx: 520, cy: 470, s: 1.16 },
+    { a: end(tl, "الزمن") + 0.4, b: end(tl, "الزمن") + 1.2, ...NEUTRAL },
   ]);
-  const r = rng(85);
-  const digits = Array.from({ length: 4 }, (_, i) => (spin > 0 && settle < 1 ? String(Math.floor((t * 23 + i * 7 + r() * 10) % 10)) : "؟"));
-  const eastern = (d: string) => (d === "؟" ? d : "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
   const R = (
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
@@ -407,66 +393,23 @@ const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
           ؟
         </SText>
       </g>
-      {/* السؤال الثاني: كم عمره؟ — طبقات ومسطرة عمق، وعدّاد يدور ولا يستقر على رقم */}
-      <g opacity={prog(t, q2 - 0.2, q2 + 0.3)}>
-        {["#DCC6A0", "#CDB088", "#B9966E", "#A07B58"].map((c, i) => (
-          <rect key={i} x={1040} y={570 + i * 80} width={480} height={80} fill={c} />
-        ))}
-        <rect x={1040} y={570} width={480} height={320} fill="none" stroke={C.ink} strokeWidth={3} />
-      </g>
-      <g opacity={rod}>
-        <rect x={1540} y={570} width={34} height={320 * rod} fill="#F2E3C2" stroke={C.ink} strokeWidth={3} />
-        {Array.from({ length: 8 }, (_, i) => (
-          <line key={i} x1={1540} x2={1556} y1={590 + i * 40} y2={590 + i * 40} stroke={C.ink} strokeWidth={3} opacity={i * 40 < 320 * rod ? 1 : 0} />
-        ))}
-      </g>
-      <g opacity={items[0]}>
-        <FindAt k="tool" x={1420} y={810} s={0.45} p={items[0]!} />
-      </g>
-      <g opacity={items[1]}>
-        <FindAt k="home" x={1260} y={720} s={0.4} p={items[1]!} />
-      </g>
-      <g opacity={items[2]}>
-        <FindAt k="food" x={1110} y={620} s={0.45} p={items[2]!} />
-      </g>
-      <g opacity={rod}>
-        <rect x={1590} y={620} width={150} height={74} rx={8} fill="#2B1E14" />
-        <SText x={1665} y={672} size={44} font="tajawal" weight={700} color={C.sand} o={settle >= 1 || spin <= 0 ? 1 : 0.55}>
-          {digits.map(eastern).join("")}
-        </SText>
-        <SText x={1665} y={730} size={30} font="tajawal" weight={700} color={C.inkSoft}>
-          سنة
-        </SText>
-      </g>
     </g>
   );
-  // السؤال الثالث: دائرة ضوء العدسة على الشواهد، وما خارجها يبقى في العتمة
   const L = (
     <g>
-      <rect x={150} y={80} width={810} height={860} fill="#1E140E" opacity={0.75 * light} />
-      <defs>
-        <radialGradient id="c77-light" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0.75" stopColor="#FFF3DC" stopOpacity={1} />
-          <stop offset="1" stopColor="#FFF3DC" stopOpacity={0} />
-        </radialGradient>
-      </defs>
-      <circle cx={560} cy={520} r={250 * light} fill="url(#c77-light)" opacity={light} />
-      <g opacity={light}>
-        <FindAt k="tool" x={480} y={470} s={0.6} p={1} />
-        <FindAt k="food" x={640} y={560} s={0.6} p={1} />
-        <FindAt k="art" x={540} y={600} s={0.35} p={1} />
-      </g>
-      <Ink d="M560 270 a250 250 0 1 1 -0.1 0" w={8} p={bound} c={C.gold} />
-      {[
-        [250, 200],
-        [850, 260],
-        [260, 820],
-        [860, 820],
-      ].map(([x, y], i) => (
-        <SText key={i} x={x!} y={y!} size={64} o={qmark * 0.8} color={C.sand}>
-          ؟
+      <g opacity={tag} transform={`translate(0 ${(1 - tag) * -30})`}>
+        <path d="M760 160 H360 V214 H760 L744 187 Z" fill={C.ribbon} />
+        <SText x={732} y={198} size={30} font="tajawal" weight={700} color={C.page} anchor="start">
+          الحلقة القادمة
         </SText>
+      </g>
+      {["قصة", "الإنسان", "عبر", "الزمن"].map((w, i) => (
+        <Word key={i} x={[700, 540, 400, 280][i]!} y={420} size={64} p={series[i]!} color={C.ink}>
+          {w}
+        </Word>
       ))}
+      <Ink d="M780 460 H220" w={3} p={series[3]!} c={C.gold} />
+      <FindAt k="art" x={500} y={640} s={0.6} p={series[3]!} />
     </g>
   );
   return <Book id="c77" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} />;
@@ -474,8 +417,6 @@ const Questions: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 
 // ─── c7-s8: الختام: «قصة الإنسان عبر الزمن» قادمة، و«آدم عليه السلام» على أفق الصفحة الأولى، ثم تنقلب فتظهر صفحة «دفاتر الزمن» ───
 const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
-  const tag = prog(t, 0.05, 0.6, easeOut);
-  const series = ["قصة", "الإنسان", "عبر", "الزمن"].map((w) => pop(t, at(tl, w, 1)));
   const hz = prog(t, at(tl, "اليوم") - 0.1, at(tl, "بدأنا") + 0.3);
   const adam = pop(t, at(tl, "آدم"));
   const abi = pop(t, at(tl, "أبي"));
@@ -484,8 +425,8 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
   const turned = t >= turnAt + 0.8;
   const title = prog(t, at(tl, "دفاتر") - 0.05, at(tl, "دفاتر") + 0.7, easeOut);
   const glass = prog(t, turnAt + 0.6, at(tl, "دفاتر"));
-  const ribbon = prog(t, end(tl, "الزمن", 2) + 0.05, end(tl, "الزمن", 2) + 0.6, easeOut);
-  const pull = prog(t, end(tl, "الزمن", 2) + 0.1, at(tl, "والحمد") - 0.1);
+  const ribbon = prog(t, end(tl, "الزمن") + 0.05, end(tl, "الزمن") + 0.6, easeOut);
+  const pull = prog(t, end(tl, "الزمن") + 0.1, at(tl, "والحمد") - 0.1);
   const night = prog(t, dur - 1.2, dur);
   const before = (
     <Book
@@ -495,32 +436,11 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
       exit="turn"
       turnAt={turnAt}
       cam={camPath(t, NEUTRAL, [
-        // «في الحلقة القادمة»: إلى وسمها، ثم «قصة الإنسان عبر الزمن» تُقرأ كلمة كلمة
-        { a: at(tl, "سنبدأ") - 0.1, b: at(tl, "القادمة") + 0.4, cx: 600, cy: 300, s: 1.3 },
-        { a: at(tl, "قصة") - 0.2, b: at(tl, "الزمن") + 0.3, cx: 520, cy: 470, s: 1.16 },
-        // «اليوم… بدأنا»: لا يُقص عنوان الحلقة القادمة عند الحافة اليسرى (ر٢٩)
+        // V9: «أما اليوم، فقد بدأنا»: الأفق يُرسم (وسم الحلقة القادمة انتقل إلى مشهد السؤال قبله)
         { a: at(tl, "اليوم") - 0.2, b: at(tl, "بدأنا") + 0.4, cx: 1080, cy: 560, s: 1.1 },
         // «آدم عليه السلام، أبي البشر»: اقتراب من الاسم وما تحته
-        // «آدم… البشر»: «قصة الإنسان عبر الزمن» كاملة مع «آدم عليه السلام» (x 190–1710) وشريط «الحلقة القادمة» (y≈198) (ر٢٩)
         { a: at(tl, "آدم") - 0.1, b: at(tl, "البشر") + 0.3, cx: 950, cy: 575, s: 1.26 },
       ])}
-      L={
-        <g>
-          <g opacity={tag} transform={`translate(0 ${(1 - tag) * -30})`}>
-            <path d="M760 160 H360 V214 H760 L744 187 Z" fill={C.ribbon} />
-            <SText x={732} y={198} size={30} font="tajawal" weight={700} color={C.page} anchor="start">
-              الحلقة القادمة
-            </SText>
-          </g>
-          {["قصة", "الإنسان", "عبر", "الزمن"].map((w, i) => (
-            <Word key={i} x={[700, 540, 400, 280][i]!} y={420} size={64} p={series[i]!} color={C.ink}>
-              {w}
-            </Word>
-          ))}
-          <Ink d="M780 460 H220" w={3} p={series[3]!} c={C.gold} />
-          <FindAt k="art" x={500} y={640} s={0.6} p={series[3]!} />
-        </g>
-      }
       R={
         <g>
           <path d="M1720 640 C1500 636 1220 642 1010 638" fill="none" stroke={C.ink} strokeWidth={4} pathLength={1} strokeDasharray="1" strokeDashoffset={1 - hz} />

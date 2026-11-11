@@ -2,7 +2,7 @@
  * بيانات مشاهد «خط الأفق» (بلا React، فتقرؤها حسابات المدة والسكون أيضًا):
  * الاسم في الاستوديو، وذيل المشهد بعد آخر كلمة، وطريقة الخروج، والسكون المقصود، ومدة المشاهد الصامتة.
  */
-import { buildTimeline } from "./timeline";
+import { buildTimeline, type Timeline } from "./timeline";
 import { LIB_META } from "../lib/meta";
 
 export type HzExit = "turn" | "fade" | "none";
@@ -75,10 +75,26 @@ export const HZ_META: Record<string, HzMeta> = { ...LIB_META, ...EP001_META };
 export const hzSentences = (narration: string) => (narration.match(/[^.؟!]+[.؟!]?/g) ?? []).map((s) => s.trim()).filter(Boolean);
 
 /** مدة المشهد قبل وجود صوت الراوي: توقيت الكلمات التقديري + الذيل */
+/**
+ * الاستشهاد البصري (V9، قرار المالك ١١ نوفمبر): نص الآية ومرجعها يظهران على صفحة الدفتر من كلمة verseFrom والراوي مستمر.
+ * تبقى البطاقة زمن القراءة على الأقل (1.5 ث + الكلمات ÷ 2.2، ولا يقل عن 4 ث)؛ إن كان الكلام أقصر أمسك المشهد للقراءة.
+ * يعيد [ظهور البطاقة، نهاية زمن قراءتها] أو null.
+ */
+export const verseWindow = (props: Record<string, string | undefined>, tl: Timeline): [number, number] | null => {
+  if (!props.verseText || !props.verseKey) return null;
+  const w = (props.verseFrom ?? "").trim();
+  const p = w.replace(/[\u064B-\u0652\u0670\u0640]/g, "");
+  const hit = p ? tl.words.find((x) => x.w.replace(/[\u064B-\u0652\u0670\u0640]/g, "").startsWith(p)) : tl.words[0];
+  const a = hit ? hit.s : 0.4;
+  const words = props.verseText.trim().split(/\s+/).length;
+  return [a, a + Math.max(4, 1.5 + words / 2.2)];
+};
+
 export const hzEstimateSeconds = (narration: string, shot: string, props: Record<string, string | undefined> = {}) => {
   const m = HZ_META[shot];
   if (!narration.trim()) return m?.seconds ?? 3;
   const tl = buildTimeline(hzSentences(narration), HZ_LEAD);
   const base = tl.end + (m?.tail ?? 1.2);
-  return Math.round(Math.max(base, m?.minEnd?.(props, tl) ?? 0) * 10) / 10;
+  const vw = verseWindow(props, tl);
+  return Math.round(Math.max(base, m?.minEnd?.(props, tl) ?? 0, vw ? vw[1] + 0.9 : 0) * 10) / 10;
 };
