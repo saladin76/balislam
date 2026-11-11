@@ -1,0 +1,30 @@
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { writeFileSync, mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
+const { chromium } = createRequire(import.meta.url)("playwright");
+import { PANELS } from "./concepts";
+const OUT = process.argv[2]!;
+mkdirSync(OUT, { recursive: true });
+const only = process.argv[3]?.split(",");
+(async () => {
+  const b = await chromium.launch();
+  const page = await b.newPage();
+  const meta: unknown[] = [];
+  for (const p of PANELS) {
+    if (only && !only.includes(p.id)) continue;
+    const inner = renderToStaticMarkup(<g transform={`translate(960 540) scale(${p.cam.z}) translate(${-p.cam.x} ${-p.cam.y})`}>{p.render()}</g>);
+    for (const o of ["landscape", "portrait"] as const) {
+      const pf = p.pfocus ? 960 + (p.pfocus - p.cam.x) * p.cam.z : 960; const x0 = Math.max(0, Math.min(1920 - 608, pf - 304));
+      const vb = o === "landscape" ? "0 0 1920 1080" : `${x0} 0 608 1080`;
+      const [w, h] = o === "landscape" ? [1280, 720] : [405, 720];
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice">${inner}</svg>`;
+      await page.setViewportSize({ width: w, height: h });
+      await page.setContent(`<html><body style="margin:0;background:#0B1F1C">${svg}</body></html>`);
+      await page.screenshot({ path: `${OUT}/${p.id}-${o}.png` });
+    }
+    meta.push({ id: p.id, scenes: p.scenes, title: p.title, note: p.note });
+  }
+  writeFileSync(`${OUT}/panels.json`, JSON.stringify(meta, null, 2));
+  await b.close();
+})();

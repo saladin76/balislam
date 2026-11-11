@@ -1,0 +1,385 @@
+// تصورات ثابتة للمراجعة (التوجيه 029) — ملف مسودة خارج المستودع، لا يدخل المحرك.
+import React from "react";
+import { ID, darken, lighten, mix } from "/home/claude/balislam-main/src/remotion/illus/palette";
+import { Figure, LOOKS, POSES } from "/home/claude/balislam-main/src/remotion/illus/Figure";
+import { GROUND, ArchDoor, Glow, WallLamp, Sky, WordPill } from "/home/claude/balislam-main/src/remotion/illus/world";
+import { AlleyView } from "/home/claude/balislam-main/src/remotion/illus/places";
+import { SouqStreet, FruitCart } from "/home/claude/balislam-main/src/remotion/illus/shots/street";
+import { HomeRoom, Cafe, CafeTable, Chair, Workshop } from "/home/claude/balislam-main/src/remotion/illus/shots/interior";
+import { octagramPath } from "/home/claude/balislam-main/src/remotion/illus/emblems";
+
+const INK = darken(ID.night, 0.55);
+const RED = ID.seal;
+const GOLD = ID.dawn;
+const hero = LOOKS.hero;
+const brother = LOOKS.friend;
+const F = 30;
+
+/* ───────── العناصر الجديدة ───────── */
+
+/** قطعة نقدية بنقش النجمة الثمانية: هوية واحدة للقطع الثلاث في كل ظهور */
+export const Coin: React.FC<{ x: number; y: number; r?: number; tilt?: number }> = ({ x, y, r = 16, tilt = 1 }) => (
+  <g transform={`translate(${x} ${y}) scale(1 ${tilt})`}>
+    <circle r={r} fill={ID.copper} stroke={darken(ID.copper, 0.45)} strokeWidth={r / 6} />
+    <path d={octagramPath(0, 0, r * 0.62)} fill={lighten(ID.copper, 0.25)} stroke={darken(ID.copper, 0.35)} strokeWidth={1.4} />
+  </g>
+);
+export const ThreeCoins: React.FC<{ x: number; y: number; r?: number; spread?: number; tilt?: number }> = ({ x, y, r = 16, spread = 1, tilt = 1 }) => (
+  <g>{[-1, 0, 1].map((k) => <Coin key={k} x={x + k * r * 2.3 * spread} y={y} r={r} tilt={tilt} />)}</g>
+);
+
+/** الظرف الصغير بختم القناة الأحمر */
+export const Envelope: React.FC<{ x: number; y: number; w?: number; open?: number; coins?: number; rot?: number }> = ({ x, y, w = 120, open = 0, coins = 0, rot = 0 }) => {
+  const h = w * 0.62;
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot})`}>
+      {coins > 0 ? <g transform={`translate(0 ${-h * 0.5 - 22 * (1 - coins)})`}><ThreeCoins x={0} y={0} r={w * 0.12} tilt={0.55} /></g> : null}
+      <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={4} fill={mix(ID.paper, ID.copper, 0.18)} stroke={INK} strokeWidth={3} />
+      <path d={`M${-w / 2} ${-h / 2} L0 ${h * 0.08} L${w / 2} ${-h / 2}`} fill="none" stroke={darken(ID.copper, 0.3)} strokeWidth={2.4} />
+      {open > 0 ? (
+        <path d={`M${-w / 2} ${-h / 2} L0 ${-h / 2 - h * 0.55 * open} L${w / 2} ${-h / 2} Z`} fill={mix(ID.paper, ID.copper, 0.28)} stroke={INK} strokeWidth={3} />
+      ) : (
+        <circle cx={0} cy={h * 0.05} r={w * 0.1} fill={RED} stroke={darken(RED, 0.4)} strokeWidth={2} />
+      )}
+    </g>
+  );
+};
+
+/** ميزان بائع الفاكهة: عمود وعارضة وكفتان ومؤشر؛ tilt بالدرجات (موجب = كفة الفاكهة أثقل) */
+export const VendorScale: React.FC<{ x: number; base: number; tilt?: number; thumb?: number; weight?: number; s?: number }> = ({ x, base, tilt = 0, thumb = 0, weight = 0, s = 1 }) => {
+  const arm = 120;
+  const rad = (tilt * Math.PI) / 180;
+  const top = -250;
+  const pan = (side: -1 | 1, children: React.ReactNode) => {
+    const px = side * arm * Math.cos(rad);
+    const py = top + 12 + side * arm * Math.sin(rad);
+    return (
+      <g transform={`translate(${px} ${py})`}>
+        <path d="M0 0 L-40 92 M0 0 L40 92" stroke={darken(ID.copper, 0.2)} strokeWidth={2.4} />
+        <path d="M-52 92 Q0 124 52 92 Z" fill={ID.copper} stroke={darken(ID.copper, 0.45)} strokeWidth={3} />
+        <g transform="translate(0 92)">{children}</g>
+      </g>
+    );
+  };
+  return (
+    <g transform={`translate(${x} ${base}) scale(${s})`}>
+      <rect x={-8} y={top} width={16} height={-top} fill={darken(ID.copper, 0.15)} stroke={INK} strokeWidth={2} />
+      <rect x={-40} y={-14} width={80} height={14} rx={4} fill={darken(ID.copper, 0.3)} stroke={INK} strokeWidth={2} />
+      <g transform={`rotate(${tilt} 0 ${top + 12})`}>
+        <rect x={-arm - 8} y={top + 6} width={(arm + 8) * 2} height={12} rx={6} fill={ID.copper} stroke={INK} strokeWidth={2} />
+      </g>
+      <path d={octagramPath(0, top + 12, 13)} fill={ID.copper} stroke={INK} strokeWidth={2} />
+      {pan(1, (
+        <g>
+          {[[-22, -10], [0, -14], [22, -10], [-11, -30], [11, -30]].map(([fx, fy], i) => (
+            <circle key={i} cx={fx} cy={fy} r={12} fill={i % 2 ? mix(GOLD, RED, 0.3) : mix(RED, ID.copper, 0.25)} stroke={INK} strokeWidth={2} />
+          ))}
+          {thumb > 0 ? (
+            // إبهام البائع على حافة الكفة: ما رآه الأول
+            <g opacity={thumb} transform="scale(1.8) translate(-14 -2)"><path d="M44 -6 q22 -10 40 -4 q6 10 -6 14 q-16 2 -34 -2 Z" fill={mix(ID.copper, ID.paper, 0.45)} stroke={INK} strokeWidth={2.4} /></g>
+          ) : null}
+        </g>
+      ))}
+      {pan(-1, weight > 0 ? (
+        // العيار المختوم: الدليل
+        <g opacity={weight}>
+          <path d="M-22 -2 L-16 -38 L16 -38 L22 -2 Z" fill={darken(ID.copper, 0.25)} stroke={INK} strokeWidth={2.4} />
+          <circle cx={0} cy={-44} r={9} fill={darken(ID.copper, 0.25)} stroke={INK} strokeWidth={2} />
+          <circle cx={0} cy={-20} r={8} fill={RED} />
+        </g>
+      ) : <path d="M-14 -2 L-10 -26 L10 -26 L14 -2 Z" fill={darken(ID.copper, 0.25)} stroke={INK} strokeWidth={2.4} />)}
+    </g>
+  );
+};
+
+/** فقاعة ما رآه كل شاهد: دائرة مقرّبة بإطار ملوّن */
+const Bubble: React.FC<{ cx: number; cy: number; head: [number, number]; ring: string; children: React.ReactNode; r?: number; dim?: number }> = ({ cx, cy, head, ring, children, r = 118, dim = 0 }) => {
+  const id = `b${Math.round(cx)}${Math.round(cy)}`;
+  const ex = cx + (head[0] < cx ? -r * 0.7 : r * 0.7);
+  const ey = cy + r * 0.62;
+  return (
+    <g opacity={1 - 0.6 * dim}>
+      {[0.3, 0.6].map((k, i) => <circle key={i} cx={head[0] + (ex - head[0]) * k} cy={head[1] + (ey - head[1]) * k} r={6 + 6 * k} fill={ID.paper} stroke={ring} strokeWidth={3} />)}
+      <defs><clipPath id={id}><circle cx={cx} cy={cy} r={r} /></clipPath></defs>
+      <circle cx={cx} cy={cy} r={r + 7} fill={darken(ID.night, 0.2)} opacity={0.35} />
+      <g clipPath={`url(#${id})`}><rect x={cx - r} y={cy - r} width={2 * r} height={2 * r} fill={mix(ID.paper, ID.copper, 0.22)} />{children}</g>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={ring} strokeWidth={7} />
+    </g>
+  );
+};
+
+/** دفتر مفتوح، ممزق بقدر torn (0..1) */
+export const Notebook: React.FC<{ x: number; y: number; torn?: number; claw?: boolean; s?: number }> = ({ x, y, torn = 0, claw = false, s = 1 }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`}>
+    <path d="M-110 0 L0 12 L110 0 L110 -70 L0 -58 L-110 -70 Z" fill={darken(ID.copper, 0.35)} stroke={INK} strokeWidth={3} />
+    <path d="M-104 -4 L0 6 L0 -62 L-104 -74 Z" fill={ID.paper} stroke={INK} strokeWidth={2.4} />
+    <path d={torn > 0 ? "M0 6 L104 -4 L104 -40 L84 -30 L70 -46 L52 -26 L36 -44 L18 -24 L0 -40 Z" : "M0 6 L104 -4 L104 -74 L0 -62 Z"} fill={ID.paper} stroke={INK} strokeWidth={2.4} />
+    {[-50, -36, -22].map((ly) => <line key={ly} x1={-92} y1={ly} x2={-14} y2={ly + 7} stroke={mix(ID.paper, ID.night, 0.3)} strokeWidth={3} />)}
+    {claw ? [0, 1, 2].map((k) => <path key={k} d={`M${30 + k * 14} -30 l26 22`} stroke={RED} strokeWidth={3.4} strokeLinecap="round" />) : null}
+  </g>
+);
+/** ورقة ممزقة متناثرة */
+const Scrap: React.FC<{ x: number; y: number; rot: number; s?: number; claw?: boolean; faint?: boolean }> = ({ x, y, rot, s = 1, claw = false, faint = false }) => (
+  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+    <path d="M-34 -22 L30 -26 L36 -6 L28 4 L34 20 L-30 24 L-26 6 L-36 -4 Z" fill={ID.paper} stroke={INK} strokeWidth={2.4} />
+    <line x1={-22} y1={-10} x2={20} y2={-12} stroke={mix(ID.paper, ID.night, 0.3)} strokeWidth={2.4} />
+    <line x1={-22} y1={4} x2={14} y2={2} stroke={mix(ID.paper, ID.night, 0.3)} strokeWidth={2.4} />
+    {claw ? [0, 1, 2].map((k) => <path key={k} d={`M${-10 + k * 9} -18 l14 26`} stroke={faint ? mix(ID.paper, RED, 0.35) : RED} strokeWidth={faint ? 1.6 : 2.6} strokeLinecap="round" />) : null}
+  </g>
+);
+
+/** مكتب بجوار النافذة (يوضع تحت نافذة HomeRoom عند x≈1590) */
+const Desk: React.FC<{ x: number }> = ({ x }) => (
+  <g>
+    <rect x={x - 170} y={GROUND - 250} width={340} height={22} fill={darken(ID.copper, 0.3)} stroke={INK} strokeWidth={3} />
+    <rect x={x - 160} y={GROUND - 228} width={18} height={228} fill={darken(ID.copper, 0.4)} />
+    <rect x={x + 142} y={GROUND - 228} width={18} height={228} fill={darken(ID.copper, 0.4)} />
+  </g>
+);
+
+/** قطة بلا تفاصيل وجه (صورة ظلية بعيون مضيئة صغيرة) */
+export const Cat: React.FC<{ x: number; y: number; pull?: number; s?: number; flip?: boolean; lick?: boolean }> = ({ x, y, pull = 0, s = 1, flip = false, lick = false }) => {
+  const c = mix(ID.night, ID.copper, 0.25);
+  return (
+    <g transform={`translate(${x} ${y}) scale(${flip ? -s : s} ${s})`}>
+      <path d={`M-70 0 Q-80 -60 -30 -62 L30 -60 Q60 -58 62 -30 L64 0 Z`} fill={c} stroke={INK} strokeWidth={3} />
+      <path d="M-70 -20 Q-120 -40 -110 -100" fill="none" stroke={c} strokeWidth={12} strokeLinecap="round" />
+      <path d="M-70 -20 Q-120 -40 -110 -100" fill="none" stroke={INK} strokeWidth={3} strokeDasharray="0" opacity={0.0} />
+      <g transform={`translate(52 -72) rotate(${lick ? 20 : 0})`}>
+        <circle r={28} fill={c} stroke={INK} strokeWidth={3} />
+        <path d="M-20 -18 L-14 -44 L-2 -24 Z M8 -24 L18 -44 L22 -16 Z" fill={c} stroke={INK} strokeWidth={2.4} />
+        <circle cx={12} cy={-4} r={3.4} fill={GOLD} />
+      </g>
+      {/* القائمة الأمامية تشد الورقة */}
+      <path d={`M48 -20 Q${80 + 20 * pull} -10 ${96 + 26 * pull} 0`} fill="none" stroke={c} strokeWidth={13} strokeLinecap="round" />
+    </g>
+  );
+};
+
+/** شاشة هاتف كبيرة بعين البطل: الصورة المقصوصة (رجل يمد ذراعه وطفل يجفل) أو أصلها (صندوق يسقط والذراع تلتقطه) */
+export const PhoneCard: React.FC<{ x: number; y: number; full?: number; s?: number }> = ({ x, y, full = 0, s = 1 }) => {
+  const W = 300, H = 560;
+  const top = -110 - 105 * full; // القص يحذف أعلى الصورة: الصندوق والرف
+  const id = `ph${Math.round(full * 10)}`;
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <rect x={-W / 2 - 14} y={-H / 2 - 14} width={W + 28} height={H + 28} rx={40} fill={darken(ID.night, 0.4)} stroke={INK} strokeWidth={4} />
+      <rect x={-W / 2} y={-H / 2} width={W} height={H} rx={28} fill={mix(ID.paper, ID.night, 0.08)} />
+      <defs><clipPath id={id}><rect x={-130} y={top} width={260} height={45 - top} rx={10} /></clipPath></defs>
+      <g clipPath={`url(#${id})`}>
+        <rect x={-150} y={-230} width={300} height={290} fill={mix(ID.copper, ID.paper, 0.35)} />
+        <g transform="translate(0 40) scale(0.4)">
+          <rect x={-320} y={-520} width={640} height={16} fill={darken(ID.copper, 0.4)} />
+          <g transform="rotate(-14 150 -440)"><rect x={90} y={-480} width={130} height={90} fill={darken(ID.copper, 0.3)} stroke={INK} strokeWidth={5} /></g>
+          <Figure x={-90} y={0} scale={1} pose={POSES["point"]} look={LOOKS.stranger} />
+          <Figure x={160} y={0} scale={0.68} pose={POSES["flinch"]} look={LOOKS.boy} flip />
+        </g>
+      </g>
+      <rect x={-130} y={top} width={260} height={45 - top} rx={10} fill="none" stroke={full > 0.5 ? GOLD : RED} strokeWidth={5} />
+      {[80, 110, 140].map((ly, i) => <rect key={ly} x={-120} y={ly} width={i === 2 ? 150 : 240} height={14} rx={7} fill={mix(RED, ID.paper, 0.3 + 0.45 * full)} />)}
+      {full < 0.5 ? <rect x={-62} y={178} width={124} height={38} rx={19} fill={RED} /> : null}
+      <circle cx={0} cy={H / 2 - 30} r={14} fill="none" stroke={mix(ID.paper, ID.night, 0.4)} strokeWidth={3} />
+    </g>
+  );
+};
+
+/* ───────── اللوحات ───────── */
+type Cam = { x: number; y: number; z: number };
+export type Panel = { id: string; scenes: string; title: string; note: string; cam: Cam; pfocus?: number; render: () => React.ReactNode };
+
+const Room: React.FC<{ mood?: "dusk" | "night" }> = ({ mood = "dusk" }) => <HomeRoom frame={F} mood={mood} />;
+const SCALE_X = 980;
+
+
+const room = (children: React.ReactNode, mood: "dusk" | "night" = "dusk") => <g><HomeRoom frame={F} mood={mood} />{children}</g>;
+
+/* ───────── التوجيه 030 ───────── */
+
+/** آثار مخالب طبيعية: ثلاثة خطوط منحنية غير متساوية، مستدقّة الطرفين، بلون بني محمر */
+export const Claws: React.FC<{ x: number; y: number; s?: number; rot?: number; clear?: boolean }> = ({ x, y, s = 1, rot = 0, clear = false }) => {
+  const col = clear ? mix(RED, INK, 0.25) : mix(ID.paper, mix(RED, INK, 0.3), 0.32);
+  const strokes = [
+    { d: "M0 0 q5 9 4 17 q-1 8 -3 14", w: 3.4 },
+    { d: "M10 -4 q9 14 6 26 q-2 6 -1 10", w: 2.9 },
+    { d: "M21 5 q3 7 2 13", w: 2.2 },
+  ];
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+      {strokes.map((k, i) => (
+        <g key={i}>
+          <path d={k.d} fill="none" stroke={col} strokeWidth={(clear ? k.w : k.w * 0.55) + 1.4} strokeLinecap="round" opacity={clear ? 0.35 : 0.2} />
+          <path d={k.d} fill="none" stroke={col} strokeWidth={clear ? k.w : k.w * 0.55} strokeLinecap="round" />
+        </g>
+      ))}
+    </g>
+  );
+};
+
+/** حافة التمزيق المشتركة: الحافة نفسها على بقية الصفحة في الدفتر وعلى الورقة المنزوعة */
+const TEAR = [[0, -62], [-6, -52], [3, -44], [-5, -34], [4, -24], [-4, -14], [3, -4], [0, 6]];
+const tearPath = (dx = 0) => TEAR.map(([x, y], i) => `${i ? "L" : "M"}${x + dx} ${y}`).join(" ");
+
+/** صفحة منزوعة: حافتها اليمنى (جهة الكعب) هي حافة التمزيق المشتركة */
+export const TornLeaf: React.FC<{ x: number; y: number; rot?: number; s?: number; claws?: "faint" | "clear" | "none" }> = ({ x, y, rot = 0, s = 1, claws = "faint" }) => (
+  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+    <path d={`M-100 -72 ${tearPath().replace("M0 -62", "L0 -62")} L-100 6 Z`} fill={ID.paper} stroke={INK} strokeWidth={2.6} />
+    {[-50, -36, -22].map((ly) => <line key={ly} x1={-88} y1={ly} x2={-16} y2={ly + 6} stroke={mix(ID.paper, ID.night, 0.3)} strokeWidth={3} />)}
+    {claws !== "none" ? <Claws x={-74} y={-52} s={1.1} rot={-8} clear={claws === "clear"} /> : null}
+  </g>
+);
+
+/** الدفتر على المكتب: صفحة يسرى سليمة، وبقية الصفحة الممزقة سابقًا (حافة التمزيق)، وصفحة يمنى تُشد بقدر tear (0 سليمة، 0.5 تنشق، 1 نُزعت) */
+export const Notebook2: React.FC<{ x: number; y: number; s?: number; tear?: number }> = ({ x, y, s = 1, tear = 0 }) => (
+  <g transform={`translate(${x} ${y}) scale(${s})`}>
+    <path d="M-110 0 L0 12 L110 0 L110 -70 L0 -58 L-110 -70 Z" fill={darken(ID.copper, 0.35)} stroke={INK} strokeWidth={3} />
+    <path d="M-104 -4 L0 6 L0 -62 L-104 -74 Z" fill={ID.paper} stroke={INK} strokeWidth={2.4} />
+    {[-50, -36, -22].map((ly) => <line key={ly} x1={-92} y1={ly} x2={-14} y2={ly + 7} stroke={mix(ID.paper, ID.night, 0.3)} strokeWidth={3} />)}
+    {/* بقية الصفحة التي مُزّقت قبل القصة: شريط ضيق عند الكعب بحافة التمزيق */}
+    <path d={`M2 6 ${tearPath(10).replace("M10 -62", "L10 -62")} L2 -62 Z`} fill={ID.paper} stroke={INK} strokeWidth={2} />
+    {tear < 1 ? (
+      tear < 0.5 ? (
+        <g>
+          <path d="M14 6 L104 -4 L104 -74 L14 -62 Z" fill={ID.paper} stroke={INK} strokeWidth={2.4} />
+          {[-48, -34, -20].map((ly) => <line key={ly} x1={26} y1={ly + 4} x2={92} y2={ly - 3} stroke={mix(ID.paper, ID.night, 0.3)} strokeWidth={3} />)}
+        </g>
+      ) : (
+        // الصفحة مرفوعة نحو القطة، والتمزق يبدأ من أعلى الكعب
+        <g transform="rotate(-24 14 6)">
+          <path d={`M14 6 L104 -4 L104 -74 L14 -62 Z`} fill={ID.paper} stroke={INK} strokeWidth={2.4} />
+          {[-48, -34, -20].map((ly) => <line key={ly} x1={26} y1={ly + 4} x2={92} y2={ly - 3} stroke={mix(ID.paper, ID.night, 0.3)} strokeWidth={3} />)}
+          <path d={tearPath(16).split(" ").slice(0, 5).join(" ")} fill="none" stroke={INK} strokeWidth={2.4} />
+          <Claws x={70} y={-60} s={1} rot={-6} clear />
+        </g>
+      )
+    ) : (
+      <path d={`M14 6 ${tearPath(22).replace("M22 -62", "L22 -62")} L14 -62 Z`} fill={ID.paper} stroke={INK} strokeWidth={2} />
+    )}
+  </g>
+);
+
+/** قطة بقائمة أمامية تمتد إلى نقطة (px, py) بإحداثيات المشهد */
+const Cat2: React.FC<{ x: number; y: number; s?: number; paw: [number, number]; crouch?: number }> = ({ x, y, s = 1, paw, crouch = 0 }) => {
+  const c = mix(ID.night, ID.copper, 0.25);
+  return (
+    <g>
+      <g transform={`translate(${x} ${y}) scale(${-s} ${s})`}>
+        <path d={`M-70 0 Q-80 ${-60 + 10 * crouch} -30 ${-62 + 10 * crouch} L30 ${-60 + 14 * crouch} Q60 ${-58 + 14 * crouch} 62 -30 L64 0 Z`} fill={c} stroke={INK} strokeWidth={3} />
+        <path d="M-70 -20 Q-120 -40 -110 -100" fill="none" stroke={c} strokeWidth={12} strokeLinecap="round" />
+        <g transform={`translate(56 ${-64 + 16 * crouch})`}>
+          <circle r={28} fill={c} stroke={INK} strokeWidth={3} />
+          <path d="M-20 -18 L-14 -44 L-2 -24 Z M8 -24 L18 -44 L22 -16 Z" fill={c} stroke={INK} strokeWidth={2.4} />
+          <circle cx={12} cy={-4} r={3.4} fill={GOLD} />
+        </g>
+      </g>
+      <path d={`M${x - 50 * s} ${y - 24 * s} Q${(x - 50 * s + paw[0]) / 2} ${Math.min(y - 24 * s, paw[1]) - 26} ${paw[0]} ${paw[1]}`} fill="none" stroke={c} strokeWidth={13 * s} strokeLinecap="round" />
+      <circle cx={paw[0]} cy={paw[1]} r={8 * s} fill={c} stroke={INK} strokeWidth={2} />
+    </g>
+  );
+};
+
+/** كرسي كامل الهيئة بمنظور ثلاثة أرباع: أربع أرجل على الأرض، والأمامية اليمنى أقصر (فجوة تحتها) */
+export const FullChair: React.FC<{ x: number; floor: number; s?: number; rock?: number; shim?: boolean; gapGlow?: boolean }> = ({ x, floor, s = 1, rock = 0, shim = false, gapGlow = true }) => {
+  const wood = darken(ID.copper, 0.15);
+  const dark = darken(ID.copper, 0.4);
+  // أركان المقعد (منظور: الخلفية أعلى وأيسر)
+  const bl = [-60, -150], br = [70, -160], fl = [-90, -120], fr = [50, -128];
+  const legEnd = (p: number[], off: number) => [p[0], (p === fl || p === fr ? 0 : -34) - off];
+  const SHORT = 16;
+  const legs: [number[], number, string][] = [[bl, 0, dark], [br, 0, dark], [fl, 0, wood], [fr, shim ? 0 : SHORT, wood]];
+  return (
+    <g transform={`translate(${x} ${floor}) scale(${s}) rotate(${rock} ${fl[0]} 0)`}>
+      <ellipse cx={-10} cy={6} rx={140} ry={14} fill={INK} opacity={0.16} />
+      {legs.map(([p, off, col], i) => {
+        const e = legEnd(p, off);
+        return <rect key={i} x={p[0] - 6} y={p[1]} width={12} height={e[1] - p[1]} fill={col} stroke={INK} strokeWidth={2.4} />;
+      })}
+      {/* الظهر */}
+      <rect x={bl[0] - 6} y={bl[1] - 170} width={12} height={170} fill={dark} stroke={INK} strokeWidth={2.4} />
+      <rect x={br[0] - 6} y={br[1] - 170} width={12} height={170} fill={dark} stroke={INK} strokeWidth={2.4} />
+      <path d={`M${bl[0]} ${bl[1] - 160} L${br[0]} ${br[1] - 160} L${br[0]} ${br[1] - 120} L${bl[0]} ${bl[1] - 120} Z`} fill={wood} stroke={INK} strokeWidth={2.4} />
+      <path d={octagramPath((bl[0] + br[0]) / 2, (bl[1] + br[1]) / 2 - 140, 10)} fill={GOLD} stroke={INK} strokeWidth={1.6} />
+      {/* المقعد */}
+      <path d={`M${bl[0]} ${bl[1]} L${br[0]} ${br[1]} L${fr[0]} ${fr[1]} L${fl[0]} ${fl[1]} Z`} fill={lighten(wood, 0.15)} stroke={INK} strokeWidth={3} />
+      <path d={`M${fl[0]} ${fl[1]} L${fr[0]} ${fr[1]} L${fr[0]} ${fr[1] + 14} L${fl[0]} ${fl[1] + 14} Z`} fill={wood} stroke={INK} strokeWidth={2.4} />
+      {!shim && gapGlow ? <g><rect x={fr[0] - 12} y={-SHORT} width={24} height={SHORT} fill={GOLD} opacity={0.85} /><Glow cx={fr[0]} cy={-SHORT / 2} r={40} color={GOLD} opacity={0.6} /></g> : null}
+      {shim ? <path d={`M${fr[0] - 16} 0 L${fr[0] + 16} 0 L${fr[0] + 12} ${-SHORT} L${fr[0] - 10} ${-SHORT + 4} Z`} fill={lighten(ID.copper, 0.2)} stroke={INK} strokeWidth={2} /> : null}
+    </g>
+  );
+};
+
+const Ruler: React.FC<{ x: number; floor: number; h?: number }> = ({ x, floor, h = 160 }) => (
+  <g>
+    <rect x={x} y={floor - h} width={14} height={h} fill={GOLD} stroke={INK} strokeWidth={2} />
+    {Array.from({ length: Math.floor(h / 12) }, (_, k) => <line key={k} x1={x} y1={floor - k * 12} x2={x + (k % 5 ? 6 : 11)} y2={floor - k * 12} stroke={INK} strokeWidth={1.6} />)}
+  </g>
+);
+
+/* أرضية الورشة بلا كرسي المنضدة: الكاميرا يسار المنضدة */
+const shopFloor = () => <Workshop frame={F} chairTilt={0} />;
+const CH = 640; // موضع الكرسي على الأرض
+
+/* الميزان في حالة واحدة ثابتة طوال اللوحة: الكفتان مستويتان، الثقل المختوم يسارًا، ويد البائع ترفع الحبة الزائدة من كفة الفاكهة إلى صندوقه */
+const ORANGE: [number, number] = [SCALE_X + 250, GROUND - 268];
+const souqMoment = (opts: { pills?: number; occluder?: boolean; w2view?: boolean } = {}) => (
+  <g>
+    <SouqStreet frame={F} />
+    <FruitCart x={SCALE_X + 60} />
+    <VendorScale x={SCALE_X} base={GROUND - 150} tilt={0} weight={1} s={1.25} />
+    <Figure x={SCALE_X + 220} y={GROUND + 4} scale={1.15} pose={POSES["hold"]} look={LOOKS.vendor} flip />
+    <circle cx={ORANGE[0]} cy={ORANGE[1]} r={14} fill={mix(GOLD, RED, 0.3)} stroke={INK} strokeWidth={2.4} />
+    <Figure x={SCALE_X - 230} y={GROUND + 6} scale={1.22} pose={POSES["stand"]} look={LOOKS.stranger} holding="bundle" />
+    <Figure x={SCALE_X - 470} y={GROUND + 6} scale={1.2} pose={POSES["think"]} look={hero} />
+    <Figure x={SCALE_X + 480} y={GROUND + 6} scale={1.18} pose={POSES["nod"]} look={LOOKS.woman} flip />
+    {opts.pills ? <><WordPill x={SCALE_X - 470} y={GROUND - 470} text="ظلم" color={RED} size={44} t={opts.pills} /><WordPill x={SCALE_X + 480} y={GROUND - 470} text="عدل" color={GOLD} size={44} t={opts.pills} /></> : null}
+  </g>
+);
+
+export const PANELS: Panel[] = [
+  // ── الميزان: لحظة واحدة، حالة واحدة
+  { id: "M1-one-moment", scenes: "c1-s2", title: "١ · لحظة واحدة يراها الجميع", note: "حالة الميزان ثابتة في اللوحة كلها: الكفتان مستويتان، والثقل المختوم في اليسرى، والبائع يرفع حبة زائدة من كفة الفاكهة إلى صندوقه. الزبون بكيسه يقف بين الشاهد الأول والميزان.", cam: { x: 980, y: 560, z: 1.25 }, pfocus: 790,
+    render: () => souqMoment() },
+  { id: "M2-witness1-view", scenes: "c1-s3", title: "٢ · ما يراه الأول", note: "من خلف كتف الأول: كيس الزبون يحجب الكفتين والثقل كله، ولا يظهر فوقه إلا يد البائع تحمل الحبة نحو الصندوق. يرى الأخذ ولا يرى الوزن: «هذا ظلم».", cam: { x: 900, y: 520, z: 2.0 }, pfocus: 1080,
+    render: () => (
+      <g>
+        {souqMoment()}
+        {/* كيس الزبون في المقدمة يحجب الكفتين والثقل؛ لا يظهر فوقه إلا يد البائع والحبة */}
+        <ellipse cx={SCALE_X - 70} cy={GROUND - 210} rx={235} ry={205} fill={darken(ID.copper, 0.45)} stroke={INK} strokeWidth={4} />
+        <path d={`M${SCALE_X - 220} ${GROUND - 330} q60 -40 150 -20`} fill="none" stroke={darken(ID.copper, 0.6)} strokeWidth={6} />
+        <circle cx={SCALE_X - 250} cy={GROUND - 420} r={44} fill={mix(ID.copper, ID.paper, 0.45)} stroke={INK} strokeWidth={3} />
+        <g transform={`translate(${SCALE_X - 520} ${GROUND + 300}) scale(2.2)`}><Figure x={0} y={0} scale={1} pose={POSES["think"]} look={hero} silhouette={darken(ID.night, 0.4)} /></g>
+        <Glow cx={ORANGE[0]} cy={ORANGE[1]} r={70} color={RED} opacity={0.45} />
+        <WordPill x={SCALE_X - 380} y={300} text="ظلم" color={RED} size={44} t={1} />
+      </g>
+    ) },
+  { id: "M3-witness2-view", scenes: "c1-s4", title: "٣ · ما تراه الثانية", note: "من طرف الدكان: لا شيء يحجب الميزان. الكفتان مستويتان، والثقل المختوم في مكانه، والحبة التي رفعها البائع كانت زائدة. ترى الوزن: «بل هذا عدل». الحالة نفسها، والمعلومة مختلفة.", cam: { x: 1080, y: 520, z: 2.0 }, pfocus: 1080,
+    render: () => (
+      <g>
+        {souqMoment()}
+        <g transform={`translate(${SCALE_X + 640} ${GROUND + 320}) scale(2.5)`}><Figure x={0} y={0} scale={1} pose={POSES["nod"]} look={LOOKS.woman} flip silhouette={darken(ID.night, 0.35)} /></g>
+        <Glow cx={SCALE_X} cy={GROUND - 345} r={180} color={GOLD} opacity={0.4} />
+        <WordPill x={SCALE_X + 330} y={330} text="عدل" color={GOLD} size={44} t={1} />
+      </g>
+    ) },
+  { id: "M4-two-verdicts", scenes: "c1-s5", title: "٤ · ميزان واحد وحكمان", note: "العودة إلى اللقطة الأولى بالحالة نفسها: البطاقتان فوق الرأسين، والميزان المستوي بينهما. المشاهد رأى ما رآه كلٌّ منهما. (التذكّر في c1-s148…c1-s150 يعود إلى هذه اللقطة بعينها.) في العمودي لا يتسع الإطار للشاهدين: تُعاد اللقطتان ٢ و٣ متتاليتين قصيرتين بدل لقطة الاثنين.", cam: { x: 980, y: 560, z: 1.25 }, pfocus: 980,
+    render: () => souqMoment({ pills: 1 }) },
+  // ── الكرسي
+  { id: "K1-chair-whole", scenes: "c1-s91، c1-s92", title: "١ · كرسي كامل على الأرض", note: "كرسي مكتمل بمنظور ثلاثة أرباع: أربع أرجل على أرض الورشة، ومقعد وظهر مصقولان. تحت الرجل الأمامية اليمنى شق ضوء رفيع بالكاد يُلحظ.", cam: { x: 640, y: 640, z: 1.8 }, pfocus: 640,
+    render: () => <g>{shopFloor()}<FullChair x={CH} floor={GROUND} s={1.25} /><Figure x={CH + 300} y={GROUND + 6} scale={1.2} pose={POSES["look-up"]} look={LOOKS.elder} flip /></g> },
+  { id: "K2-chair-rocks", scenes: "c1-s93", title: "٢ · يضع يده فيهتز", note: "يد الصانع على الظهر: يميل الكرسي نحو الرجل القصيرة حتى تلمس الأرض، ثم يعود فتنفتح الفجوة. السبب ظاهر: رجل واحدة أقصر من الثلاث.", cam: { x: 640, y: 640, z: 1.8 }, pfocus: 640,
+    render: () => <g>{shopFloor()}<FullChair x={CH} floor={GROUND} s={1.25} rock={-2.2} />{[0, 1].map((k) => <path key={k} d={`M${CH + 110 + k * 16} ${GROUND - 190} q10 14 0 28`} fill="none" stroke={INK} strokeWidth={3} />)}<Figure x={CH + 230} y={GROUND + 6} scale={1.2} pose={POSES["point"]} look={LOOKS.elder} flip /></g> },
+  { id: "K3-chair-measure", scenes: "c1-s94…c1-s96", title: "٣ · يقيس العيب", note: "يجلس على مقعد صغير ومعه مسطرتان: واحدة بجانب الرجل الأمامية اليسرى وأخرى بجانب اليمنى، والفرق بينهما معلَّم بخط ذهبي. يعترف بالعيب بالقياس.", cam: { x: 660, y: 650, z: 1.9 }, pfocus: 660,
+    render: () => <g>{shopFloor()}<FullChair x={CH} floor={GROUND} s={1.25} /><Ruler x={CH - 128} floor={GROUND} /><Ruler x={CH + 40} floor={GROUND} /><line x1={CH + 30} y1={GROUND - 18} x2={CH + 70} y2={GROUND - 18} stroke={GOLD} strokeWidth={5} /><rect x={CH + 150} y={GROUND - 70} width={110} height={70} fill={darken(ID.copper, 0.35)} stroke={INK} strokeWidth={3} /><Figure x={CH + 210} y={GROUND - 30} scale={1.2} pose={POSES["sit-low"]} look={LOOKS.elder} flip /></g> },
+  { id: "K4-chair-start-fix", scenes: "c1-s97", title: "٤ · بداية الإصلاح", note: "يضع إسفينًا خشبيًا صغيرًا تحت الرجل القصيرة فيستقر الكرسي على أرجله الأربع، ويومئ. أول خطوة، لا ورشة نجارة كاملة.", cam: { x: 640, y: 640, z: 1.8 }, pfocus: 640,
+    render: () => <g>{shopFloor()}<FullChair x={CH} floor={GROUND} s={1.25} shim /><Figure x={CH + 300} y={GROUND + 6} scale={1.2} pose={POSES["nod"]} look={LOOKS.elder} flip /></g> },
+  // ── القطة
+  { id: "T1-faint-clue", scenes: "c1-s39، c1-s40", title: "١ · الظهور الأول: خدوش خفيفة", note: "الورقة التي يرفعها الشاب من الأرض: خدوش طبيعية باهتة لا ينتبه إليها، وحافتها الممزقة. (إدراج قريب للمشاهد وحده، والشاب لا ينظر إليها.)", cam: { x: 1180, y: 500, z: 3.0 }, pfocus: 1180,
+    render: () => room(<><rect x={980} y={380} width={420} height={260} fill={mix(ID.paper, ID.copper, 0.3)} /><TornLeaf x={1200} y={540} s={2} claws="faint" /></>) },
+  { id: "T2-hook", scenes: "c1-s48", title: "٢ · القطة تعلق مخلبها بالصفحة", note: "على المكتب عند النافذة: الدفتر نفسه (بقية الصفحة الأولى الممزقة عند الكعب)، والقطة تمد قائمتها وتعلق مخالبها بطرف الصفحة التالية.", cam: { x: 1560, y: 560, z: 2.4 }, pfocus: 1560,
+    render: () => room(<><Desk x={1590} /><Notebook2 x={1520} y={GROUND - 252} s={1.2} tear={0} /><Cat2 x={1800} y={GROUND - 252} s={1} paw={[1646, GROUND - 322]} /></>) },
+  { id: "T3-pull", scenes: "c1-s49", title: "٣ · تشد فتنشق", note: "تشد القطة فترتفع الصفحة، ويبدأ الشق من أعلى الكعب، وتظهر خدوش واضحة حيث علقت المخالب.", cam: { x: 1560, y: 560, z: 2.4 }, pfocus: 1560,
+    render: () => room(<><Desk x={1590} /><Notebook2 x={1520} y={GROUND - 252} s={1.2} tear={0.5} /><Cat2 x={1800} y={GROUND - 252} s={1} crouch={0.6} paw={[1640, GROUND - 372]} /></>) },
+  { id: "T4-ripped", scenes: "c1-s49", title: "٤ · تُنزع الصفحة", note: "الصفحة في قائمة القطة بحافة ممزقة، وعلى الكعب بقيتان متشابهتان: الأولى والثانية. الشاب في الباب ينظر.", cam: { x: 1420, y: 580, z: 1.6 }, pfocus: 1520,
+    render: () => room(<><Desk x={1590} /><Notebook2 x={1520} y={GROUND - 252} s={1.2} tear={1} /><Cat2 x={1760} y={GROUND - 252} s={1} paw={[1700, GROUND - 330]} /><TornLeaf x={1700} y={GROUND - 300} rot={-20} s={0.9} claws="clear" /><Figure x={1170} y={GROUND + 6} scale={1.25} pose={POSES["hold"]} look={hero} flip /><TornLeaf x={1080} y={GROUND - 296} rot={-8} s={0.6} claws="faint" /></>) },
+  { id: "T5-compare", scenes: "c1-s49 ← c1-s50", title: "٥ · المقارنة: الخدوش نفسها", note: "إدراج قريب: الورقة التي اتهم بها أخاه بجانب الصفحة التي نزعتها القطة الآن. الحافتان متطابقتان، والخدوش صارت واضحة على الاثنتين. «توقف».", cam: { x: 1180, y: 500, z: 3.0 }, pfocus: 1180,
+    render: () => room(<><rect x={900} y={380} width={560} height={260} fill={mix(ID.paper, ID.copper, 0.3)} /><TornLeaf x={1110} y={540} s={1.8} claws="clear" /><TornLeaf x={1330} y={548} rot={4} s={1.8} claws="clear" /></>) },
+];
