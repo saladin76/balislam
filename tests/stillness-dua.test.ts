@@ -43,3 +43,16 @@ describe("السكون المقصود: تمهيد الآية في أي قالب"
     expect(intendedStillness(plan("وهذا معنى واضح في حياتنا."), 0).filter((x) => x.why !== "آية")).toEqual([]);
   });
 });
+
+describe("السكون المقصود: زمن قراءة الاستشهاد البصري الصامت (دفاتر الزمن V9)", () => {
+  const scene = (props: Record<string, unknown>) =>
+    ({ chapters: [{ number: 1, title: "", scenes: [{ id: "a", template: "horizon-shot", narration: "وخلق لهما مكانًا يسكنانه.", durationSec: 9, props: { shot: "permit", ...props } }] }] }) as unknown as Plan;
+  it("بعد آخر كلمة حتى نهاية المشهد يُستثنى حين يعرض المشهد نص آية", () => {
+    const spans = mergeSpans(intendedStillness(scene({ verseKey: "2:35", verseText: "نص", verseFrom: "وخلق" }), 0));
+    expect(spans.at(-1)!.why).toContain("آية");
+    expect(spans.at(-1)!.to).toBeGreaterThan(spans.at(-1)!.from + 0.5);
+  });
+  it("ولا يُستثنى شيء في المشهد نفسه بلا آية معروضة", () => {
+    expect(intendedStillness(scene({}), 0)).toEqual([]);
+  });
+});

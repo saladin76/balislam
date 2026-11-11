@@ -3,7 +3,8 @@ import type { EpisodeMedia } from "../plan/media";
 import { sceneSeconds } from "../plan/duration";
 import { normalizeArabic } from "../script/quranMeta";
 import { estimateTimings, splitWords } from "../remotion/scenes/timing";
-import { HZ_META } from "../remotion/dafatir/horizon/meta";
+import { HZ_LEAD, HZ_META, hzSentences } from "../remotion/dafatir/horizon/meta";
+import { buildTimeline } from "../remotion/dafatir/horizon/timeline";
 
 /**
  * السكون المقصود (قرار صاحب القناة، مراجعة G5 للحلقة 001 بزبدة الكتب): لا تُفرض حركة عند كلام الله
@@ -54,6 +55,12 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
         // علامات الاقتباس من نص المشهد (توقيت الصوت قد يحذفها) إن تطابق عدد الكلمات
         const tokens = splitWords(s.narration);
         for (const [a, b] of duaRanges(tokens.length === words.length ? tokens : words.map((w) => w.word))) spans.push({ from: t + words[a]!.start / 30 - 0.25, to: t + words[b]!.end / 30 + 0.25, why: "دعاء" });
+        // استشهاد بصري صامت (دفاتر الزمن V9): بعد آخر كلمة يبقى نص الآية على الصفحة زمن قراءته؛ سكون الآية مقصود (القاعدة الثانية)
+        if (s.template === "horizon-shot" && typeof s.props?.verseText === "string" && s.props.verseText.trim() && words.length) {
+          // نهاية الكلام: من الصوت إن وُجد، وإلا من توقيت «خط الأفق» نفسه (لا من التوزيع على المشهد كله)
+          const last = t + (clip && clip.text === s.narration.trim() ? words[words.length - 1]!.end / 30 : buildTimeline(hzSentences(s.narration), HZ_LEAD).end);
+          if (t + d - last > 0.5) spans.push({ from: last, to: t + d, why: "آية" });
+        }
       }
       t += d;
     }

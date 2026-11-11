@@ -165,6 +165,8 @@ export const Shot2: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
   const lineL = prog(t, at(tl, GAP), at(tl, GAP) + 1.0, easeOut);
   const sherd = prog(t, at(tl, "أقدم"), at(tl, "أقدم") + 0.9);
   const label = prog(t, at(tl, "آثارها") - 0.1, at(tl, "آثارها") + 0.5);
+  // V9 (المراجعة 030): «وأين كانت؟» تُكتب كلمة السؤال قرب الخانة عند نطقها، وتبهت عند «لا نملك»
+  const where = has("وأين") ? prog(t, at(tl, "وأين") - 0.05, at(tl, "وأين") + 0.45, easeOut) * (1 - prog(t, at(tl, "نملك") - 0.1, at(tl, "نملك") + 0.4)) : 0;
   return (
     <Camera
       {...camAt(t, { cx: 1300, cy: 400, s: 1.5 }, [
@@ -218,6 +220,11 @@ export const Shot2: React.FC<{ t: number; tl: Timeline }> = ({ t, tl }) => {
           ) : null}
         </g>
         <Ink d={SLOT_CIRCLE} w={6} p={circle} />
+        {where > 0 ? (
+          <text x={1470} y={250 + (1 - where) * 14} textAnchor="middle" fontFamily="'Amiri', serif" fontSize={64} fill={C.ink} opacity={where} style={{ direction: "rtl" }}>
+            أين؟
+          </text>
+        ) : null}
       </svg>
       <div style={{ position: "absolute", right: W - 1726, top: 596, fontFamily: Amiri, fontWeight: 700, fontSize: 60, lineHeight: 1.3, color: C.ink, direction: "rtl", opacity: nameR, transform: `translateY(${(1 - nameR) * 10}px)` }}>آدم عليه السلام</div>
       <div style={{ position: "absolute", left: 760, width: 400, top: 722, display: "flex", justifyContent: "center", opacity: prog(t, at(tl, has("مقدار") ? "مقدار" : GAP) - 0.1, at(tl, has("مقدار") ? "مقدار" : GAP) + 0.5) }}>

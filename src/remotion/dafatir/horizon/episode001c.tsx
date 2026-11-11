@@ -342,7 +342,7 @@ const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
       <Word x={1365} y={225} size={42} p={diff} font="tajawal" weight={700} color={C.inkSoft}>
-        الفرق بين الموقفين
+        الفرق بين موقفين
       </Word>
       <g opacity={1 - door}>
         <Word x={1365} y={330} size={58} p={adam} color={C.ink}>
