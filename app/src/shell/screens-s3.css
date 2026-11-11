@@ -129,9 +129,10 @@
 .shell-v3 .s3-reelm { display: none; }
 
 /* the dock's contents in step ٢ */
-.shell-v3 .s3-actbar { display: flex; align-items: center; gap: 2px; }
+.shell-v3 .s3-actbar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; min-width: 0; max-width: 100%; }
 .shell-v3 .s3-why { display: grid; gap: 4px; }
-.shell-v3 .ms-dock-in .s3-why { display: flex; align-items: center; gap: 8px; }
+.shell-v3 .ms-dock-in .s3-why { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; min-width: min(320px, 100%); max-width: 100%; }
+.shell-v3 .ms-dock-in .s3-why .ms-dock-text { flex: 1 1 220px; }
 .shell-v3 .ms-dock-in .s3-why .sp-hint { color: var(--dock-ink); font-size: var(--t-14); }
 .shell-v3 .ms-float .sp-hint { color: var(--ink-2); }
 .shell-v3 .ms-dock .s3-cta { background: #ffffff1f; opacity: 1; }

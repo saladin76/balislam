@@ -77,7 +77,7 @@ export const ElementField: React.FC<{ themeId: ThemeId; value?: string; kind?: "
     <>
       <button type="button" className="pick" onClick={() => setOpen(true)}>
         <span className="thumb" style={{ background: t.colors.bg, width: kind === "backdrop" ? 78 : 44 }}>
-          {def ? (kind === "backdrop" ? <Element id={def.id} theme={t} width={1920} height={1080} style={{ width: "100%", height: "100%" }} /> : <Element id={def.id} theme={t} size={36} />) : <span className="help">—</span>}
+          {def ? (kind === "backdrop" ? <Element id={def.id} theme={t} width={1920} height={1080} style={{ width: "100%", height: "100%" }} /> : <Element id={def.id} theme={t} size={36} />) : <span className="help" style={{ color: t.colors.ink }}>—</span>}
         </span>
         <span className="meta">
           <b>{def ? def.nameAr : kind === "backdrop" ? "زخرفة الثيم (بدون خلفية)" : "بدون عنصر"}</b>

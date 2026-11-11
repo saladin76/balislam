@@ -26,7 +26,7 @@
   --acc: #2C5E55; --acc-ink: #FFFFFF; --acc-soft: #E3ECE9; --acc-text: #2C5E55;
   --mark: #D7E6E2; --note: #F3F1E6; --note-ink: #3B3A2C;
   --dock: #16181D; --dock-ink: #E9EAEC; --dock-mute: #A3A7AF;
-  --ok: #2E7D52; --ok-soft: #E3F1E8; --warn: #A2561A; --warn-soft: #FCEBDD; --err: #A53F2E; --err-soft: #F7E5E0; --err-ink: #FFFFFF;
+  --ok: #2B754D; --ok-soft: #E3F1E8; --warn: #A2561A; --warn-soft: #FCEBDD; --err: #A53F2E; --err-soft: #F7E5E0; --err-ink: #FFFFFF;
   --f: "IBM Plex Sans Arabic", system-ui, sans-serif;
   --f-read: "Noto Naskh Arabic", "IBM Plex Sans Arabic", serif;
   --f-t: "IBM Plex Sans Arabic", system-ui, sans-serif; --t-weight: 700; --t-shift: 0px;
@@ -58,7 +58,7 @@
   --band: #0B1F1C; --band-ink: #F4EEE2; --band-mute: #9DB3AC; --band-line: #F4EEE21f;
   --paper: #F4EEE2; --paper-rule: transparent; --sf: #FBF8F1;
   --paper-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23C9A24A' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='26' y='26' width='20' height='20'/%3E%3Crect x='26' y='26' width='20' height='20' transform='rotate(45 36 36)'/%3E%3C/g%3E%3C/svg%3E");
-  --ink: #0B1F1C; --ink-2: #33463F; --mute: #5B6761; --line: #E2D8C5; --quiet: #EAE2D3; --line-strong: #CFC3AC;
+  --ink: #0B1F1C; --ink-2: #33463F; --mute: #56625C; --line: #E2D8C5; --quiet: #EAE2D3; --line-strong: #CFC3AC;
   --acc: #C9A24A; --acc-ink: #0B1F1C; --acc-soft: #F2DFB0; --acc-text: #7E6019;
   --mark: #F2B35B; --note: #F7E7C6; --note-ink: #4A3A16;
   --dock: #0B1F1C; --dock-ink: #F4EEE2; --dock-mute: #9DB3AC;
@@ -67,7 +67,7 @@
 [data-channel="dafatir-alzaman"] {
   --band: #2B1A14; --band-ink: #F6EAD7; --band-mute: #B9A391; --band-line: #F6EAD71f;
   --paper: #FBF5EA; --paper-rule: #C9A98118; --paper-margin: #E3A99A; --sf: #FFFCF6;
-  --ink: #2B1A14; --ink-2: #54402F; --mute: #725E4F; --line: #E8DCC8; --quiet: #F0E7D8; --line-strong: #D8C7AE;
+  --ink: #2B1A14; --ink-2: #54402F; --mute: #6A5647; --line: #E8DCC8; --quiet: #F0E7D8; --line-strong: #D8C7AE;
   --acc: #D7372B; --acc-ink: #FFFFFF; --acc-soft: #F6D3CC; --acc-text: #B42A1F;
   --mark: #F3C2B6; --note: #F8E3C8; --note-ink: #4D3420;
   --dock: #2B1A14; --dock-ink: #F6EAD7; --dock-mute: #B9A391;
@@ -264,6 +264,36 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
   display: flex; align-items: center; gap: 2px; max-width: 100%; background: var(--dock); color: var(--dock-ink); border-radius: 20px; padding: 7px;
   box-shadow: 0 22px 50px -18px #16181d8c, 0 0 0 1px #ffffff12 inset;
 }
+/*
+ * D74 (the owner's MacBook, 1288×705): the dock is a bar, never a wall. It stays under a quarter of the screen; its
+ * explanation is one line with a minimum width (never a one-word column), «التفاصيل» opens the rest in a card above
+ * it, and the controls wrap to a second row instead of squeezing the text.
+ */
+/* the bar itself (not the column: the cards that float above it, a fix note or a reason, sit outside the quarter) */
+.ms-dock-in { flex-wrap: wrap; justify-content: center; row-gap: 4px; min-width: 0; max-height: 25dvh; overflow-y: auto; }
+.ms-dock-in > * { flex-shrink: 0; max-width: 100%; }
+.ms-dock-ctl { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.ms-dock-ctl > * { flex-shrink: 0; }
+.ms-dock .ms-dock-text {
+  flex: 1 1 260px; min-width: min(260px, 100%); max-width: 640px; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; word-break: normal;
+}
+.ms-dock .ms-more { flex: none; color: var(--dock-ink); }
+.ms-dock .ms-more svg { width: 14px; height: 14px; }
+.ms-dock-pop {
+  position: absolute; bottom: 100%; margin: 0 auto 10px; inset-inline: 16px; width: min(640px, calc(100% - 32px)); max-width: none;
+  max-height: min(50dvh, 420px); overflow-y: auto; pointer-events: auto; grid-template-columns: minmax(0, 1fr) auto; align-items: start; line-height: 1.7;
+}
+.ms-dock-pop-body { display: grid; gap: 6px; min-width: 0; }
+.ms-dock-pop-body p { margin: 0; }
+.ms-dock .ms-dock-pop .ms-dock-pop-x { color: var(--ink-2); width: 32px; height: 32px; }
+.ms-chip {
+  all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; flex: none;
+  height: 32px; padding: 0 12px; margin-inline: 4px; border-radius: 999px; background: #F2C46D1f; color: #F2C46D; font-size: var(--t-12); font-weight: 500; white-space: nowrap;
+}
+.ms-chip:hover { background: #F2C46D33; }
+.ms-chip:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.ms-chip svg { width: 14px; height: 14px; }
 .ms-dock .btn.primary, .ms-dock .ms-go {
   height: 46px; min-height: 46px; padding: 0 22px; border-radius: 14px; border: 0; background: var(--acc); color: var(--acc-ink);
   font-weight: 600; font-size: var(--t-16); display: inline-flex; align-items: center; gap: 10px; white-space: nowrap;
@@ -271,11 +301,12 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .ms-dock .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--acc) 90%, #fff); }
 .ms-dock .btn.primary:disabled { opacity: .5; }
 .ms-dock kbd { font: 500 var(--t-12) var(--f); background: #16181d1a; padding: 2px 6px; border-radius: 5px; }
-.ms-dock .ms-tb, .ms-dock .btn.ghost, .ms-dock .btn:not(.primary) {
+/* `.shell-v3` too: the page's `.shell-v3 .btn.ghost` (ink on paper) must not reach the dark dock (D74: «الحركة غير مناسبة» was 1.6:1) */
+.ms-dock .ms-tb, .ms-dock .btn.ghost, .ms-dock .btn:not(.primary), .shell-v3 .ms-dock-in .btn.ghost {
   height: 46px; min-height: 46px; padding: 0 13px; border-radius: 14px; border: 0; background: transparent; display: inline-flex; align-items: center; gap: 8px;
   color: var(--dock-ink); opacity: .86; white-space: nowrap; font-weight: 500; font-size: var(--t-14); text-decoration: none;
 }
-.ms-dock .ms-tb:hover:not(:disabled), .ms-dock .btn.ghost:hover:not(:disabled), .ms-dock .btn:not(.primary):hover:not(:disabled) { background: #ffffff14; opacity: 1; color: var(--dock-ink); text-decoration: none; }
+.ms-dock .ms-tb:hover:not(:disabled), .ms-dock .btn.ghost:hover:not(:disabled), .ms-dock .btn:not(.primary):hover:not(:disabled), .shell-v3 .ms-dock-in .btn.ghost:hover:not(:disabled) { background: #ffffff14; opacity: 1; color: var(--dock-ink); text-decoration: none; }
 .ms-dock .btn[aria-pressed="true"] { background: #ffffff1f; opacity: 1; }
 .ms-dock .btn:disabled { opacity: .4; }
 .ms-dock .ms-tb svg, .ms-dock .btn svg { width: 16px; height: 16px; }
@@ -293,8 +324,8 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .ms-ct b { color: var(--dock-ink); font-weight: 500; }
 .ms-wn { display: inline-flex; align-items: center; gap: 6px; color: #F2C46D; padding: 0 10px; font-size: var(--t-14); white-space: nowrap; }
 .ms-wn svg { width: 15px; height: 15px; }
-.ms-dock-text { color: var(--dock-ink); font-size: var(--t-14); padding: 0 12px; max-width: 520px; line-height: 1.5; }
-.shell-v3 .ms-dock .ms-dock-note { height: 46px; width: 300px; max-width: 40vw; border-radius: 14px; border: 0; background: #ffffff14; color: var(--dock-ink); font: inherit; font-size: var(--t-14); padding: 0 14px; }
+.ms-dock-text { color: var(--dock-ink); font-size: var(--t-14); padding: 0 12px; max-width: 640px; line-height: 1.5; min-width: min(260px, 100%); }
+.shell-v3 .ms-dock .ms-dock-note { height: 46px; width: 300px; flex: 1 1 220px; min-width: 200px; max-width: 340px; border-radius: 14px; border: 0; background: #ffffff14; color: var(--dock-ink); font: inherit; font-size: var(--t-14); padding: 0 14px; }
 .shell-v3 .ms-dock .ms-dock-note::placeholder { color: var(--dock-mute); }
 .ms-cb { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; white-space: nowrap; color: var(--dock-ink); cursor: pointer; font-size: var(--t-14); }
 .ms-cb input { width: 19px; height: 19px; accent-color: var(--acc); margin: 0; }
@@ -560,8 +591,12 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
   .ms-dock .btn.primary { flex: 1; justify-content: center; height: 48px; padding: 0 14px; }
   .ms-dock kbd, .ms-dock .lbl, .ms-ct, .ms-dv, .ms-nv, .ms-wn .lbl { display: none; }
   .ms-dock .ms-tb, .ms-dock .btn:not(.primary) { padding: 0 12px; height: 48px; }
-  .ms-dock-note { width: 100%; max-width: none; }
-  .ms-dock-in.is-wrap { flex-wrap: wrap; }
+  .shell-v3 .ms-dock .ms-dock-note { width: 100%; max-width: none; flex-basis: 100%; }
+  .ms-dock-ctl { flex: 1 1 100%; justify-content: space-between; }
+  .ms-dock .ms-dock-text { flex-basis: 0; min-width: 0; padding: 0 8px; }
+  .ms-dock .ms-dock-text + .ms-more { padding: 0 8px; }
+  .ms-chip { margin-inline: 0; }
+  .ms-dock-pop { inset-inline: 10px; width: calc(100% - 20px); }
   .ms-note { position: relative; inset: auto; transform: none; width: auto; margin: 16px 0; }
   .page-head { padding: 14px 16px 2px; }
   .stage { padding: var(--s3) 16px var(--s6); }
