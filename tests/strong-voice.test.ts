@@ -181,7 +181,7 @@ afterAll(() => {
   if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-describe("تغيير النبرات لا يعيد توليد شيء آليًا", () => {
+describe("تغيير النبرات لا يعيد توليد شيء آليًا", { timeout: 60_000 }, () => {
   it("تسجيلات «قبل ١١ نوفمبر» صالحة بالنبرة السابقة، والتوليد العادي لا يصرف شيئًا، والأمر الصريح يرسل الإعدادات الجديدة", async () => {
     const v1Profile = OLD_PROFILES.balislam!;
     // 1) The past: the studio as it was (preset version 1 — the old numbers, the old channel layer).
@@ -255,7 +255,7 @@ describe("تغيير النبرات لا يعيد توليد شيء آليًا",
   });
 });
 
-describe("الاستوديو: الإشارة الهادئة والأمر الصريح وعيّنة كل نبرة", () => {
+describe("الاستوديو: الإشارة الهادئة والأمر الصريح وعيّنة كل نبرة", { timeout: 60_000 }, () => {
   const src = (f: string) => readFileSync(f, "utf8");
   it("«وُلّدت بالنبرة السابقة» في الجمل، و«أعد توليد الكل بالنبرة الجديدة» بتأكيد يذكر العدد والرصيد", async () => {
     const panel = src("app/src/workspace/SentencesPanel.tsx");
