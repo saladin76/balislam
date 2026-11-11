@@ -673,6 +673,49 @@ export const balApi = (): Plugin => ({
               return refuse(error);
             }
           }
+          // مقاطع الشورتس (D83): المالك يختار من مشهد إلى مشهد، وتُكتب في plan.shorts وحدها. الاختيار مسموح في أي وقت،
+          // والصناعة نفسها لا تبدأ إلا بعد اعتماد النسخة الأساسية (stage "shorts" في src/package/package.ts).
+          if (parts[2] === "shorts" && parts.length === 3) {
+            const sh = await load("/src/plan/shorts.ts");
+            const { sceneSeconds } = await load("/src/plan/duration.ts");
+            const { ownerText, planOrder } = await load("/src/i18n/sceneNames.ts");
+            const overview = async () => {
+              const plan = await io.readPlanFile(scriptPath);
+              if (!plan) return null;
+              const media = await mediaFor(plan);
+              return {
+                saved: Array.isArray(plan.shorts) ? plan.shorts : null,
+                suggested: sh.suggestedShorts(plan),
+                scenes: sh.shortsScenes(plan, (s: unknown) => sceneSeconds(s, media)),
+                divisions: plan.chapters.length,
+                max: sh.SHORTS_MAX,
+                titleMax: sh.SHORT_TITLE_MAX,
+              };
+            };
+            if (req.method === "GET") {
+              const r = await overview();
+              return r ? send(res, 200, r) : send(res, 404, { error: "لا خطة لهذه الحلقة بعد." });
+            }
+            if (req.method === "PUT") {
+              const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+              try { assertSceneOwner(); } catch { return send(res, 403, { error: "اختيار مقاطع الشورتس مسموح من الاستوديو على جهاز المالك فقط." }); }
+              if (busy.has(`${ch}/${ep}`)) return send(res, 409, { error: busyRefusal(`${ch}/${ep}`) });
+              const b = await readBody(req);
+              const plan = await io.readPlanFile(scriptPath);
+              if (!plan) return send(res, 404, { error: "لا خطة لهذه الحلقة بعد." });
+              if (b?.reset === true) {
+                await io.saveShortsSelection(ep, null);
+                return send(res, 200, { ...(await overview()), warnings: [] });
+              }
+              const { findTraces } = await load("/src/package/traces.ts");
+              const c = sh.checkShortsInput(plan, b?.shorts, findTraces);
+              const order = planOrder(plan);
+              if (c.errors.length) return send(res, 400, { error: c.errors.map((e: string) => ownerText(e, order)).join(" "), errors: c.errors.map((e: string) => ownerText(e, order)) });
+              await io.saveShortsSelection(ep, c.shorts);
+              return send(res, 200, { ...(await overview()), warnings: c.warnings.map((w: string) => ownerText(w, order)) });
+            }
+            return send(res, 405, { error: "طلب غير مدعوم." });
+          }
           if (parts[2] === "quran" && req.method === "POST") {
             return send(res, 410, { error: "أُلغِي الجلب الخارجي. نص الآيات من السكريبت والتلاوة من الملف الذي يرفعه المالك." });
           }

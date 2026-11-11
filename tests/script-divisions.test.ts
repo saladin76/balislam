@@ -15,7 +15,7 @@ import type { Plan } from "../src/plan/types";
 
 /**
  * الأقسام الإنتاجية اختيارية (0..N) لكل القنوات بقاعدة واحدة، وبيانات الإنتاج لا تصير نصًا منطوقًا ولا ترجمة
- * ولا نصًا على الشاشة (src/script/divisions.ts، src/plan/shorts.ts). بانتظار موافقة صاحب المشروع.
+ * ولا نصًا على الشاشة (src/script/divisions.ts، src/plan/shorts.ts). D82، اعتمده صاحب المشروع ١١ نوفمبر (D83).
  */
 const CHANNELS = ["balislam", "dafatir-alzaman", "zubdat-alkutub"] as const;
 const EPISODES: Record<(typeof CHANNELS)[number], string> = {

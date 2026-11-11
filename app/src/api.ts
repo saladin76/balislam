@@ -1,4 +1,5 @@
-import type { Plan } from "../../src/plan/types";
+import type { Plan, PlanShort } from "../../src/plan/types";
+import type { ShortsScene } from "../../src/plan/shorts";
 import type { ToneUpgradePlan, ToneUpgradeResult } from "../../src/voice/toneUpgrade";
 import type { Identity } from "../../brand/identity/index";
 import type { EpisodeMedia } from "../../src/plan/media";
@@ -208,6 +209,9 @@ export type DriveHandoffRead = {
   canOpen: boolean;
 };
 
+/** GET /api/episodes/:id/shorts */
+export type ShortsRead = { saved: PlanShort[] | null; suggested: PlanShort[]; scenes: ShortsScene[]; divisions: number; max: number; titleMax: number };
+
 export const api = {
   /** One scene = one combined audiovisual review; no Quran provider selection. */
   sceneProduction: (episode: string, channel?: string) =>
@@ -350,6 +354,11 @@ export const api = {
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
   saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
   savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
+  /** مقاطع الشورتس (D83): الاختيار المحفوظ والمقترح ومشاهد الحلقة بمددها؛ الحفظ يكتب plan.shorts وحدها */
+  shorts: (id: string) => call<ShortsRead>(`/api/episodes/${id}/shorts`),
+  saveShorts: (id: string, shorts: PlanShort[]) => call<ShortsRead & { warnings: string[] }>(`/api/episodes/${id}/shorts`, { method: "PUT", json: { shorts } }),
+  /** يحذف الاختيار فيعود السلوك السابق (شورت لكل قسم إن وُجد قسمان فأكثر) */
+  resetShorts: (id: string) => call<ShortsRead & { warnings: string[] }>(`/api/episodes/${id}/shorts`, { method: "PUT", json: { reset: true } }),
   /** على خطة مصمَّمة يرفض الخادم (409) إلا بـ confirmRegenerate من planGuard.ts (رقم الحلقة مكتوبًا) */
   regenerate: (id: string, confirm: { overwriteDesigned?: true; confirmEpisode?: string } = {}) =>
     call<{ plan: Plan; backup?: string }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: confirm }),

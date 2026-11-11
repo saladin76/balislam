@@ -365,7 +365,15 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
     expect(v17.version).toBe("v1.7");
     expect(v17.approved).toBe(false);
     expect(v17.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
-    expect(v17.source.script!.sha256).toBe(sha("script.md"));
+    // بُنيت على السكريبت بعناوين V8؛ حُذفت العناوين بعدها (D83) ونسخته محفوظة، والكلام المنطوق والخريطة كما هما
+    expect(v17.source.script!.sha256).toBe(sha("versions/2026-11-11-d5569881-headings/script.md"));
+    const heading = /^## الفصل \d+ · /;
+    const withHeadings = read("versions/2026-11-11-d5569881-headings/script.md").split("\n");
+    const removed = withHeadings.filter((l) => heading.test(l));
+    expect(removed).toEqual(read("versions/v8/script.md").split("\n").filter((l) => heading.test(l)));
+    expect(read("script.md").split("\n").some((l) => heading.test(l))).toBe(false);
+    const nonBlank = (ls: string[]) => ls.filter((l) => l.trim() && !heading.test(l));
+    expect(nonBlank(read("script.md").split("\n"))).toEqual(nonBlank(withHeadings));
     expect(v17.source.plan!.sha256).toBe(sha("plan.json"));
     expect(v17.legend.tones).toEqual(v16.legend.tones);
     expect(v17.previous.at(-1)).toEqual({ version: "v1.6", path: "tone-map.v1.6.json" });
