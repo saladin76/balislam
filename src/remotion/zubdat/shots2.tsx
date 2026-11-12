@@ -181,18 +181,21 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     nameAr: "العادة نعمة، لكنها قد تضعف الانتباه",
     render: (c) => {
       const { frame, z, at, T, Box, P } = kit(c);
+      // السكريبت المعتمد (١١ نوفمبر): «الاعتياد على الصلاة نعمة؛ فبه تثبت العبادة… لكنّ ما نألفه قد نفعله… وذهننا في مكان آخر.
+      // نقرأ، فتسبقنا الأفكار إلى مواعيدنا وهمومنا. لذلك لا نبحث عن صلاة جديدة، بل عن قلب أكثر انتباهًا…» — ولا حدث عند «شرعها الله لنا».
       const tHab = at("الاعتياد", 0.02);
-      const tAib = at("عيبا", 0.08);
-      const tFixed = at("ثابتة", 0.2);
-      const tWeak = at("تضعف", 0.3);
-      const tAtt = at("الانتباه", 0.34);
-      const tWords = at("الكلمات", 0.44);
-      const tThought = at("أفكارنا", 0.52);
-      const tDates = at("مواعيدنا", 0.56);
-      const tWorry = at("وهمومنا", 0.6);
-      const tInvent = at("اختراع", 0.72);
-      const tNew = at("جديدة", 0.76);
-      const tNotice = at("ننتبه", 0.84);
+      const tAib = at("نعمة", 0.08);
+      const tFixed = at("تثبت", 0.12);
+      const tAtt = at("نألفه", 0.24);
+      const tWeak = at("وذهننا", 0.32);
+      const tWords = at("نقرأ", 0.42);
+      const tThought = at("الأفكار", 0.46);
+      const tDates = at("مواعيدنا", 0.5);
+      const tWorry = at("وهمومنا", 0.54);
+      const tInvent = at("نبحث", 0.62);
+      const tNew = at("جديدة", 0.68);
+      const tQalb = at("قلب", 0.74);
+      const tNotice = at("انتباها", 0.8);
       const cells: [number, number][] = [];
       for (let r = 0; r < 3; r++) for (let k = 0; k < 5; k++) cells.push([1300 - k * 160, 220 + r * 150]);
       const KEEP = 7;
@@ -202,7 +205,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const kx = lerp(cells[KEEP]![0], 520, keepMove);
       const ky = lerp(cells[KEEP]![1], 420, keepMove);
       return {
-        focus: [[tHab, 1000, 300], [tAib, 1560, 220], [tFixed, 980, 370], [tWeak, 980, 370], [tAtt, cells[KEEP]![0], cells[KEEP]![1]], [tWords, 1300, 420], [tDates, 1440, 230], [tWorry, 1680, 330], [tInvent, 1250, 700], [tNotice, 520, 420]],
+        focus: [[tHab, 1000, 300], [tAib, 1560, 240], [tFixed, 980, 370], [tWeak, 980, 370], [tAtt, cells[KEEP]![0], cells[KEEP]![1]], [tWords, 1300, 420], [tDates, 1440, 230], [tWorry, 1680, 330], [tInvent, 1250, 700], [tQalb, 520, 420], [tNotice, 520, 440]],
         cam: [C(0, 980, 400, 1.05), C(tThought - 10, 1080, 470, 1.0), C(tNotice - 8, 900, 500, 1.04)],
         world: (
           <g>
@@ -221,16 +224,21 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                   </g>
                 );
               })}
-              {T("ab", 1560, 140, "عيبا", 70, ["عيبا", 0.08])}
-              <Cross x1={1630} x2={1490} y={124} p={P(tAib + 8, tAib + 20)} z={z} />
+              {/* «نعمة»: العادة نعمة تُثبت العبادة — تُبرز ولا تُشطب */}
+              <Mark x={1560 - 110} y={148} w={220} h={70} p={P(tAib + 2, tAib + 16)} z={z} />
+              {T("ab", 1560, 200, "نعمة", 70, ["نعمة", 0.08])}
             </g>
             {/* مربع الانتباه يبقى ويتقدم */}
             <g opacity={P(tAtt - 4, tAtt + 6)}>
               <rect x={kx - 76} y={ky - 76} width={152} height={152} rx={20} fill={P(tNotice, tNotice + 16) > 0 ? z.hl : "none"} fillOpacity={P(tNotice, tNotice + 16)} stroke={z.ink} strokeWidth={10} />
               <rect x={kx - 60} y={ky - 60} width={120} height={120} rx={14} fill="none" stroke={z.ink} strokeWidth={5} opacity={keepMove} />
             </g>
-            <Mark x={520 - 170} y={548} w={340} h={70} p={P(tAtt + 10, tAtt + 26) * keepMove} z={z} />
-            {T("at", 520, 600, "الانتباه", 80, ["الانتباه", 0.34], undefined, { font: "head", opacity: keepMove * keepMove })}
+            {/* «قلب أكثر انتباهًا»: القلب يدخل المربع الباقي، ثم يُبرز عند «انتباهًا» */}
+            <g opacity={P(tQalb - 4, tQalb + 8) * keepMove}>
+              <path d={heartPath(kx, ky + 6, 52)} fill="none" stroke={z.ink} strokeWidth={6} />
+            </g>
+            <Mark x={520 - 170} y={548} w={340} h={70} p={P(tNotice + 2, tNotice + 18) * keepMove} z={z} />
+            {T("at", 520, 600, "انتباها", 80, ["انتباها", 0.8], undefined, { font: "head", opacity: keepMove * keepMove })}
             {/* نقرأ الكلمات… وتنتقل أفكارنا */}
             <g opacity={P(tWords - 4, tWords + 8)}>
               <Lines x={1300} y={400} w={420} n={3} p={P(tWords - 2, tWords + 10, (t) => t)} z={z} />
