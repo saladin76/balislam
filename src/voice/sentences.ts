@@ -217,10 +217,11 @@ export const sentenceFingerprint = (o: { spoken: string; voiceKey: string; tts: 
   sha1({ sentence: 1, spoken: o.spoken, voiceKey: o.voiceKey, v: o.tts, ...(o.tune ? { tune: o.tune } : {}), ...(o.voiceId ? { voice: o.voiceId } : {}) });
 export const contextFingerprint = (previousText?: string, nextText?: string) => sha1({ p: previousText ?? "", n: nextText ?? "" });
 
-export type SentenceStatus = "missing" | "generated" | "stale" | "heard";
+/** old: تسجيلها الحالي على نص سابق (يُسمع، ولا يُركّب حتى تُولَّد)؛ stale: على نصها لكن بإعداد غير الحالي */
+export type SentenceStatus = "missing" | "generated" | "stale" | "old" | "heard";
 export const heardKey = (a: SentenceAudio) => `${a.file}#${a.fingerprint}`;
 export const sentenceStatus = (s: Sentence, fingerprint: string): SentenceStatus =>
-  !s.audio ? "missing" : s.audio.fingerprint !== fingerprint ? "stale" : s.heard === heardKey(s.audio) ? "heard" : "generated";
+  !s.audio ? "missing" : s.audio.fingerprint !== fingerprint ? (recordedOnOtherText(s) ? "old" : "stale") : s.heard === heardKey(s.audio) ? "heard" : "generated";
 
 /** حدود جملة داخل صوت مشهد واحد (لتشغيلها وحدها في الاستوديو؛ لا يُقص شيء ولا يُكتب). */
 export type SceneSpan = { start: number; end: number; timing: "words" | "estimated" };
@@ -310,18 +311,75 @@ export const sceneAdoption = (clip: { words?: TimedWord[]; duration?: number } |
 };
 
 /**
- * نص المشهد تغيّر من خارج الجمل (محرر المشهد): تُعاد الجمل من النص الجديد، وكل جملة بقي نصها كما هو
- * تحتفظ بمعرّفها ونبرتها ووقفتها وتسجيلها. لا يُرمى تسجيل: ما لم يعد له نص يبقى في takes أول جملة جديدة.
+ * نص المشهد تغيّر من خارج الجمل (محرر المشهد، أو نقل المعرّفات مع نص تغيّر بعد التسجيل): تُعاد الجمل من النص الجديد.
+ * - كل جملة بقي نصها كما هو تحتفظ بمعرّفها ونبرتها ووقفتها وتسجيلها.
+ * - الجملة التي تغيّر نصها تأخذ مكان القديمة في موضعها (D97): معرّفها ونبرتها الصريحة وتسجيلاتها السابقة، وتسجيلها القديم
+ *   يبقى تسجيلها الحالي فيظهر «قديم — سُجّل على نص سابق» ويُسمع، ولا يُركّب في صوت المشهد (بصمته لا تطابق) حتى تُولَّد.
+ * - الجملة الجديدة فعلًا معرّفها ثابت من المشهد وموضعها ونصها (stableSentenceId)، فلا يتغير بين قراءة وأخرى.
+ * لا يُرمى تسجيل: ما لم يعد له مكان يبقى في takes أقرب جملة.
  */
-export const reconcileScene = (list: Sentence[], sceneId: string, narration: string, idOf: () => string = newSentenceId): Sentence[] => {
+export const reconcileScene = (list: Sentence[], sceneId: string, narration: string, idOf?: () => string): Sentence[] => {
   if (sceneNarration(list) === normText(narration)) return list;
-  const pool = [...list];
-  const next = splitNarration(narration).map((text): Sentence => {
-    const k = pool.findIndex((s) => normText(s.text) === text);
-    if (k >= 0) return pool.splice(k, 1)[0]!;
-    return { id: idOf(), sceneId, kind: kindOf(text), text, pauseAfterMs: defaultPauseMs(text) };
+  const texts = splitNarration(narration);
+  const pool = list.map((s, k) => ({ s, k }));
+  const kept = texts.map((text) => {
+    const k = pool.findIndex((x) => normText(x.s.text) === text);
+    return k >= 0 ? pool.splice(k, 1)[0]! : null;
   });
-  const orphaned = pool.flatMap((s) => [...(s.takes ?? []), ...(s.audio ? [s.audio] : [])]);
-  if (orphaned.length && next[0]) next[0] = { ...next[0], takes: [...(next[0].takes ?? []), ...orphaned] };
+  const taken = new Set(list.map((s) => s.id));
+  const fresh = (k: number, text: string) => {
+    const id = idOf ? idOf() : stableSentenceId(sceneId, k, text, taken);
+    taken.add(id);
+    return id;
+  };
+  const next = texts.map((text, k): Sentence => {
+    const hit = kept[k];
+    if (hit) return hit.s;
+    // the first unused old sentence that stood before the next unchanged one (the order of the scene is kept)
+    const bound = kept.slice(k + 1).find(Boolean)?.k ?? Infinity;
+    const j = pool.findIndex((x) => x.k < bound);
+    if (j < 0) return { id: fresh(k, text), sceneId, kind: kindOf(text), text, pauseAfterMs: defaultPauseMs(text) };
+    const old = pool.splice(j, 1)[0]!.s;
+    const kind = kindOf(text);
+    const ws = words(text);
+    const corrections = old.corrections?.filter((c) => ws[c.index] === c.word);
+    // a recording never stands as the current audio of a Quran or basmala row: it stays history there
+    const current = kind === "narration" ? old.audio : undefined;
+    const takes = [...(old.takes ?? []), ...(old.audio && !current ? [old.audio] : [])];
+    return {
+      id: old.id, sceneId, kind, text, pauseAfterMs: defaultPauseMs(text),
+      ...(old.tone ? { tone: old.tone } : {}),
+      ...(current ? { audio: current } : {}),
+      ...(takes.length ? { takes } : {}),
+      ...(corrections?.length ? { corrections } : {}),
+      ...(old.fragments?.length ? { fragments: old.fragments } : {}),
+    };
+  });
+  for (const { s, k } of pool) {
+    const orphaned = [...(s.takes ?? []), ...(s.audio ? [s.audio] : [])];
+    if (!orphaned.length || !next.length) continue;
+    const at = Math.min(next.length - 1, k);
+    next[at] = { ...next[at]!, takes: [...(next[at]!.takes ?? []), ...orphaned] };
+  }
   return next;
+};
+
+/**
+ * معرّف جملة لا يعتمد على المصادفة (D97): المشهد والموضع والنص نفسها تعطي المعرّف نفسه في كل قراءة، فالجملة التي
+ * تعرضها الصفحة قبل أي حفظ يجدها الخادم. لا يتكرر معرّف قائم في المشهد.
+ */
+export const stableSentenceId = (sceneId: string, position: number, text: string, taken: Set<string> = new Set()): string => {
+  for (let salt = 0; ; salt++) {
+    const id = `t${createHash("sha1").update(JSON.stringify({ sceneId, position, text: normText(text), salt })).digest("hex").slice(0, 10)}`;
+    if (!taken.has(id)) return id;
+  }
+};
+
+/** النص الذي سُجّل عليه التسجيل (كلماته)، أو null إن لم يذكره */
+export const recordedText = (a: SentenceAudio): string | null =>
+  a.words?.length ? a.words.map((w) => w.word).join(" ") : null;
+/** تسجيل الجملة الحالي سُجّل على نص غير نصها الآن: «قديم — سُجّل على نص سابق» */
+export const recordedOnOtherText = (s: Pick<Sentence, "text" | "audio">): boolean => {
+  const t = s.audio ? recordedText(s.audio) : null;
+  return t !== null && normText(t) !== normText(s.text);
 };

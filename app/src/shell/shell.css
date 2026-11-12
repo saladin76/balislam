@@ -631,3 +631,8 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .shell-v3 .crash-text { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: var(--s2); font-size: var(--t-12); color: var(--mute); }
 .shell-v3 .crash-text textarea { width: 100%; box-sizing: border-box; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); background: var(--quiet); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; resize: vertical; text-align: left; unicode-bidi: plaintext; }
 .shell-v3 .crash-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--s2); }
+
+/* D97: before an episode tone that would need existing recordings generated again — the count, and the choice */
+.prep-tone-warn { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-weight: 600; line-height: 1.7; }
+.prep-tone-warn b { font-weight: 800; }
+.prep-tone-warn .prep-link { font-weight: 700; }

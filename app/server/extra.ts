@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
-import { applyUpdate, updateStatus } from "./update.ts";
+import { applyUpdate, resolveConflict, updateStatus } from "./update.ts";
 import { childEnv } from "../../scripts/git-env.mjs";
 import { prepareRunning, PREPARE_RUNNING_MESSAGE } from "./prepare.ts";
 import { ownerText } from "../../src/i18n/sceneNames.ts";
@@ -314,6 +314,15 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
 
   // التحديث من GitHub
   if (parts[0] === "update") {
+    // «أبقِ نسختي» / «خذ الجديد» لملف واحد تعارض فيه تعديل المالك مع التحديث (D95)
+    if (parts[1] === "resolve" && req.method === "POST") {
+      const refusal = await ownerRefusal(ctx);
+      if (refusal) return send(res, 403, { error: refusal }), true;
+      const { file, choice } = await readBody(req);
+      if (typeof file !== "string" || (choice !== "mine" && choice !== "new")) return send(res, 400, { error: "طلب غير صالح." }), true;
+      const r = await resolveConflict(ctx.root, file, choice);
+      return send(res, r.ok ? 200 : 409, r.ok ? r : { error: r.message }), true;
+    }
     if (req.method === "POST") {
       const r = await applyUpdate(ctx.root);
       send(res, r.ok ? 200 : 409, r.ok ? r : { error: r.message });

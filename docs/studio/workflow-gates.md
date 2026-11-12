@@ -182,6 +182,14 @@ delete their clip. Paid audio is never deleted: a replaced sentence take stays i
 sentences only when its word timings show a real pause (≥ 120 ms) at every boundary, otherwise sentences start
 «بلا صوت»; when a composed clip replaces it, the old file is moved to `voice/superseded/`.
 
+**Sentences of a scene whose text changed after recording (D97).** `reconcileScene` keeps an unchanged sentence as it
+is; a changed sentence takes the old one's place with its id, explicit tone, history and its old take as current audio
+(status `old`, «قديم — سُجّل على نص سابق»: heard alone, never composed, «ولّد» available); a truly new sentence gets a
+deterministic id (`stableSentenceId`), so reads agree without a write and `sentenceAction` finds the id in the
+reconciled lists (no 409). No take is ever dropped. A take recorded with a known tone stays current when only the
+inherited (episode/scene) tone changes; `GET …/sentences/tone-impact?tone=` counts what a new episode tone would really
+invalidate (read only), shown before the tone is applied. `bal repair-sentences <ep> [--apply]` is the one-time repair.
+
 **Re-record one word (D55).** `fixword` (word index + written pronunciation, fully voweled) re-records only that word of
 a generated sentence: one short ElevenLabs request (the corrected word between its two neighbours, the rest of the
 sentence and the neighbouring sentences as `previous_text`/`next_text`, same voice/tone/settings/seed), behind the same

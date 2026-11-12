@@ -328,7 +328,16 @@ export const EpisodeTab: React.FC<{
             <b>نبرة الصوت في الحلقة</b>
             <span className="help">صوتك بطبقة القناة، والنبرة تلوّنه بإحساس الحلقة. نبرة الحلقة تسري على كل مشهد اختير له «مثل الحلقة» وتكفي لتوليد صوته؛ وأي مشهد يمكن أن يأخذ نبرة أخرى أو صوت شخصية من إعداداته.</span>
             <span className="spacer" />
-            <select id="ep-tone" value={plan.tone ?? ""} onChange={(e) => { const { tone: _t, ...rest } = plan; onPlanChange(e.target.value ? { ...rest, tone: e.target.value } : rest); }} style={{ width: 260 }}>
+            <select id="ep-tone" value={plan.tone ?? ""} onChange={(e) => {
+              const next = e.target.value;
+              const set = () => { const { tone: _t, ...rest } = plan; onPlanChange(next ? { ...rest, tone: next } : rest); };
+              // D97: say before applying how many existing recordings the new tone would need generated again (nothing is generated).
+              void api.toneImpact(episodeId, undefined, next || null).then((r) => {
+                const n = r.sentences.length, m = r.scenes.length;
+                if (!n && !m) return set();
+                if (window.confirm(`هذه النبرة تغيّر صوت تسجيلات قائمة: سيحتاج ${n ? `${n.toLocaleString("ar-EG")} جملة` : ""}${n && m ? " و" : ""}${m ? `${m.toLocaleString("ar-EG")} مشهد` : ""} توليدًا جديدًا مدفوعًا. لا يُولَّد شيء الآن، والتسجيلات القائمة تبقى محفوظة. أتختارها؟`)) set();
+              }, () => { if (window.confirm("تعذّر حساب أثر النبرة على التسجيلات القائمة. أتختارها؟")) set(); });
+            }} style={{ width: 260 }}>
               <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : `بلا نبرة للحلقة (يلزم اختيار نبرة كل مشهد)`}</option>
               {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
             </select>
