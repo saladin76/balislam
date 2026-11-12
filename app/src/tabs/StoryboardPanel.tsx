@@ -97,8 +97,10 @@ export const StoryboardPanel: React.FC<{
   refreshKey?: number;
   /** 11 Nov: scenes re-opened by the latest «تحديث بعد التجهيز» (from the ledger), and the way to each in step ٢. */
   afterPreparation?: { id: string; what: AfterPreparationWhat[] }[];
+  /** QA dafatir M5: the latest change after «اعتمد التجهيز» changed the script only (no scene re-opened). */
+  afterPreparationScriptOnly?: boolean;
   onOpenScene?: (id: string) => void;
-}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, onSigned, refreshKey, afterPreparation, onOpenScene }) => {
+}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, refreshKey, afterPreparation, afterPreparationScriptOnly, onOpenScene }) => {
   const [viewing, setViewing] = useState<number | null>(null);
   const [citations, setCitations] = useState<ReviewItem[] | null>(null);
   useEffect(() => {
@@ -108,10 +110,7 @@ export const StoryboardPanel: React.FC<{
   const [info, setInfo] = useState<StoryboardInfo | null>(null);
   const [job, setJob] = useState<LongJob | null>(null);
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
-  const [visualReviewNote, setVisualReviewNote] = useState("");
-  const [visualReviewed, setVisualReviewed] = useState(false);
   const [details, setDetails] = useState(false);
   const [quranStatus, setQuranStatus] = useState<{ missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } | null>(null);
   const [quranBusy, setQuranBusy] = useState(false);
@@ -204,29 +203,8 @@ export const StoryboardPanel: React.FC<{
     />
   );
 
-  useEffect(() => {
-    setVisualReviewNote("");
-    setVisualReviewed(false);
-  }, [episodeId, plan.updatedAt]);
   const st = info?.status;
   const motion = info?.motion;
-  const act = async (action: "approve" | "revoke") => {
-    const auditNote = visualReviewNote.trim();
-    if (action === "approve" && !visualReviewed) {
-      setErr("الاعتماد هنا للـStoryboard المرئي فقط: افتح اللوحات كلها، ثم أكّد مشاهدتها (الملاحظة اختيارية، سطر واحد).");
-      return;
-    }
-    setBusy(true);
-    setErr("");
-    try {
-      setInfo(await api.setStoryboard(episodeId, action, action === "approve" ? auditNote : undefined));
-      onSigned?.();
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
   const measure = async () => {
     setErr("");
     try {
@@ -269,9 +247,7 @@ export const StoryboardPanel: React.FC<{
   const noVoice = !Object.keys(media.voice).length;
 
   const auditLog = (
-    <BoardAuditLog st={st} channelId={channel.id} episodeId={episodeId} note={visualReviewNote} onNote={setVisualReviewNote}
-      reviewed={visualReviewed} onReviewed={setVisualReviewed} busy={busy} onAct={(a) => void act(a)}
-      error={undefined} />
+    <BoardAuditLog st={st} channelId={channel.id} episodeId={episodeId} />
   );
   // شاشة واحدة: شبكة اللوحات؛ وملاحظة مراجعتها تُكتب بجوار «اعتمد التجهيز» في عمود الحلقة (D40)،
   // وكل ما سواها (سجل مراجعة اللوحات، الآيات، الفحص الفني، المعاينات) في «أدوات وتفاصيل».
@@ -287,7 +263,7 @@ export const StoryboardPanel: React.FC<{
       </header>
 
       {/* 11 Nov: what changed after «اعتمد التجهيز», informative; each scene opens in step ٢ (no re-approval here) */}
-      {afterPreparation?.length && onOpenScene ? <AfterPreparationList scenes={afterPreparation} name={(id) => sceneName(order, id)} onOpenScene={onOpenScene} /> : null}
+      {(afterPreparation?.length || afterPreparationScriptOnly) && onOpenScene ? <AfterPreparationList scenes={afterPreparation ?? []} scriptOnly={afterPreparationScriptOnly} name={(id) => sceneName(order, id)} onOpenScene={onOpenScene} /> : null}
 
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter s12-chapter">

@@ -24,6 +24,9 @@ import { checkForChannel } from "../script/checkChannel";
 import { loadPlan } from "../plan/io";
 import type { Plan } from "../plan/types";
 import { effectiveTone, isTone } from "../voice/tones";
+import { isBasmalaOnly } from "../voice/basmala";
+import { isPartsChannel, toneMapFileFor } from "../voice/dafatirParts";
+import { scriptTextDivergence, textDivergenceRefusal, type TextDivergence } from "../plan/scriptSync";
 import { loadChannel } from "../channel/index";
 import { approveStoryboard as recordBoards, loadStoryboard, recordChangedBoards, storyboardStatus, versesMissingText } from "../plan/storyboard";
 import { checkVisualStoryboardSignoff } from "../plan/storyboardVisualGate";
@@ -55,16 +58,42 @@ export type PreparationBlockers = {
    * approval («لا نبرة للحلقة — اخترها هنا»). Informative: it does not block «اعتمد التجهيز».
    */
   toneMissing: string[];
+  /**
+   * QA balislam 2 (12 Nov): scenes whose narration in plan.json (what the boards show and the voice says) is not the
+   * text in script.md, and script lines that no scene says. The approval is refused while any exists: the approved
+   * script would hold text that is never voiced.
+   */
+  textDiverged: TextDivergence;
   /** The episode's own tone (plan.tone) and the channel's, to preselect the choice in step ١. */
   episodeTone: string | null;
   channelTone: string | null;
 };
 
-/** Narrated scenes (not verse cards) whose voice has no tone to be made with. */
-export const scenesWithoutTone = (plan: Plan, channelTone?: unknown): string[] =>
+/**
+ * Narrated scenes (not verse cards) whose voice has no tone to be made with.
+ * QA dafatir M1 (12 Nov): a scene whose tone comes from the episode's tone map (tone-map.json, the path
+ * generate.ts really uses in that channel) has a tone; and the basmala is never narrated by the voice (the owner
+ * records it), so a scene that is only the basmala needs none.
+ */
+export const scenesWithoutTone = (plan: Plan, channelTone?: unknown, toneMapScenes: ReadonlySet<string> = new Set()): string[] =>
   plan.chapters.flatMap((c) => c.scenes)
-    .filter((s) => s.template !== "verse-card" && s.narration?.trim() && !effectiveTone(s.tone, plan.tone, channelTone))
+    .filter((s) => s.template !== "verse-card" && s.narration?.trim() && !isBasmalaOnly(s.narration.trim()) &&
+      !toneMapScenes.has(s.id) && !effectiveTone(s.tone, plan.tone, channelTone))
     .map((s) => s.id);
+
+/** Scenes that take their tone from the episode's tone map (only where generation follows it: isPartsChannel). */
+export const toneMapScenesFor = async (scriptPath: string): Promise<Set<string>> => {
+  if (!isPartsChannel(scriptPath)) return new Set();
+  const map = await readFile(toneMapFileFor(scriptPath), "utf8").then((t) => JSON.parse(t) as {
+    sceneTones?: Record<string, unknown>; segments?: { scene?: unknown; tone?: unknown }[];
+  }, () => null);
+  if (!map) return new Set();
+  const ids = new Set<string>();
+  for (const [id, tone] of Object.entries(map.sceneTones ?? {})) if (isTone(tone)) ids.add(id);
+  for (const seg of Array.isArray(map.segments) ? map.segments : [])
+    if (typeof seg?.scene === "string" && isTone(seg.tone)) ids.add(seg.scene);
+  return ids;
+};
 const channelToneNow = (): string | null => {
   try { return loadChannel().voice?.tone ?? null; } catch { return null; }
 };
@@ -79,7 +108,8 @@ export const preparationBlockers = async (episode: string): Promise<PreparationB
     scriptErrors: check.issues.filter((i) => i.level === "error").length,
     versesMissing: versesMissingText(plan),
     boardsRecorded: status.ok && Boolean(status.audit?.note?.trim()),
-    toneMissing: scenesWithoutTone(plan, channelToneNow()),
+    toneMissing: scenesWithoutTone(plan, channelToneNow(), await toneMapScenesFor(scriptPath)),
+    textDiverged: await scriptTextDivergence(scriptPath, plan),
     episodeTone: isTone(plan.tone) ? plan.tone : null,
     channelTone: channelToneNow(),
   };
@@ -101,6 +131,7 @@ export const approvePreparation = async (episode: string, command: PreparationCo
   if (before.storyboard.sha256 !== command.storyboardSha256) throw Error("Storyboard changed before review.");
   const blockers = await preparationBlockers(episode);
   if (blockers.scriptErrors > 0) throw Error("Fix the script errors before approving the preparation.");
+  if (blockers.textDiverged.scenes.length || blockers.textDiverged.unplaced.length) throw Error(textDivergenceRefusal(blockers.textDiverged, await loadPlan(episode)));
   const scriptPath = await resolveScriptPath(episode);
   const plan = await loadPlan(episode);
   if (!plan) throw Error("Prepare and save a storyboard plan first.");
@@ -154,6 +185,11 @@ export const directPreparationRefusal = async (episode: string, command: unknown
   const scriptPath = await resolveScriptPath(episode);
   const check = checkForChannel(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
   if (check.issues.some((i) => i.level === "error")) return "Fix the script errors before approving the preparation.";
+  {
+    const plan = await loadPlan(episode);
+    const d = plan ? await scriptTextDivergence(scriptPath, plan) : null;
+    if (d && (d.scenes.length || d.unplaced.length)) return textDivergenceRefusal(d, plan);
+  }
   if (c.action === "approve-storyboard") {
     const plan = await loadPlan(episode);
     if (!plan) return "Prepare and save a storyboard plan first.";

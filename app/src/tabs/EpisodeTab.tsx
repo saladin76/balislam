@@ -20,6 +20,7 @@ import { ImageField } from "../ui/ImageField";
 import { StoryboardPanel } from "./StoryboardPanel";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
 import { api, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
+import { NO_VOICE_KEY } from "../workspace/voiceResult";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import { TRANSITION_HELP } from "../../../src/plan/transitions";
@@ -617,7 +618,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
           try {
             const r = await api.voice(episodeId, { scenes: [sceneId], force: state === "ok" });
             onMedia(r.media);
-            setMsg(r.report ? `تم (${r.report.chars} حرفًا ≈ ${r.report.credits} رصيد)` : `أُعيد توليد جمل المشهد (${r.sentences?.generated ?? 0}).`);
+            setMsg(r.noKey || (!r.generated && !r.sentences) ? NO_VOICE_KEY : r.report ? `تم (${r.report.chars} حرفًا ≈ ${r.report.credits} رصيد)` : `أُعيد توليد جمل المشهد (${r.sentences?.generated ?? 0}).`);
           } catch (e) {
             setMsg((e as Error).message);
           } finally {
@@ -670,7 +671,7 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
                 const r = await api.voice(episodeId, {});
                 onMedia(r.media);
                 if (r.report) setEst(r.report);
-                setMsg(`وُلّد ${r.report?.toGenerate.length ?? 0} مقطعًا.`);
+                setMsg(r.noKey || !r.generated ? NO_VOICE_KEY : `وُلّد ${r.report?.toGenerate.length ?? 0} مقطعًا.`);
                 setEst((await api.voice(episodeId, { dryRun: true })).report);
               } catch (e) {
                 setMsg((e as Error).message);

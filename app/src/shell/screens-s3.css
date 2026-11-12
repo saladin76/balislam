@@ -32,7 +32,8 @@
 .shell-v3 .s3-edit { min-height: 30px; padding: 0 8px; font-size: var(--t-12); color: var(--ink-2); }
 .shell-v3 .s3-edit svg { width: 14px; height: 14px; }
 .shell-v3 .s3-meta .prep { gap: 4px 8px; }
-.shell-v3 .s3-meta .prep-note:not(.is-err) { display: none; }
+/* QA balislam 9: the end-of-run summary (what was prepared, what was not and why) stays visible here too. */
+.shell-v3 .s3-meta .prep-note:not(.is-err):not(.is-summary) { display: none; }
 
 
 /* the frame on the channel's paper */

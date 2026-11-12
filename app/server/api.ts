@@ -441,9 +441,10 @@ export const balApi = (): Plugin => ({
             };
             const toneMissing = async () => {
               try {
-                const { scenesWithoutTone } = await load("/src/studio/preparation.ts");
+                const { scenesWithoutTone, toneMapScenesFor } = await load("/src/studio/preparation.ts");
                 const plan = await io.loadPlan(ep);
-                return plan ? scenesWithoutTone(plan, channelMod.loadChannel(ch).voice?.tone) : [];
+                // QA dafatir M1: a tone-map episode has its tones (and the basmala needs none).
+                return plan ? scenesWithoutTone(plan, channelMod.loadChannel(ch).voice?.tone, await toneMapScenesFor(scriptPath)) : [];
               } catch { return []; }
             };
             if (req.method === "GET")
@@ -673,7 +674,8 @@ export const balApi = (): Plugin => ({
               }
               const report = await generateVoice(ep, { client, dryRun, only: b.scenes, force: b.force });
               const plan = await io.readPlanFile(scriptPath);
-              return send(res, 200, { report, generated: !dryRun, media: await mediaFor(plan) });
+              // QA balislam 3: a dry run because there is no key is said as such (the studio never shows success for it).
+              return send(res, 200, { report, generated: !dryRun, ...(client ? {} : { noKey: true }), media: await mediaFor(plan) });
             } catch (error) {
               if ((error as { code?: string })?.code === "QURAN_TTS") return send(res, 422, { error: (error as Error).message });
               return refuse(error);

@@ -21,6 +21,7 @@ import { clockAr, sceneName, seamName } from "./sceneNames";
 import { sceneSeconds } from "../../../src/plan/duration";
 import { Icon } from "../ui/icons";
 import { DockText } from "../shell/DockText";
+import { NO_VOICE_KEY_AFTER_NOTE, voiceResultMessage } from "./voiceResult";
 import { Num, duration as clock } from "../ui/format";
 
 type Props = {
@@ -359,9 +360,10 @@ export const SceneProductionPanel: React.FC<Props> = ({
     try {
       const r = await api.voice(episodeId, { scenes: [sceneId], force });
       onMediaChange?.(r.media);
-      setVoiceMsg(r.sentences ? (r.sentences.composed?.composed
-        ? `أُعيد توليد جمل المشهد (${ar(r.sentences.generated)}) ورُكّب صوته منها؛ يُعرض لمراجعة جديدة.`
-        : `أُعيد توليد جمل المشهد (${ar(r.sentences.generated)}).${r.sentences.composed?.reason ? ` ${r.sentences.composed.reason}` : ""}`) : "وُلّد الصوت.");
+      // Never a success line without a real result (QA balislam 3): no key = a dry run, nothing was made.
+      const said = voiceResultMessage(r);
+      setVoiceMsg(said.text);
+      if (!said.ok) return false;
       await refresh().catch(() => {});
       onUpdated?.();
       return true;
@@ -384,17 +386,20 @@ export const SceneProductionPanel: React.FC<Props> = ({
     // Tone-map episode: the server writes the choice into a new tone-map version for this scene; the plan stays as is.
     const ok = await reviewCurrent("correct-scene", problemNote("tone", at, text), map && toneChoice ? { tone: toneChoice } : undefined);
     if (!ok) return;
-    if (map) { await generateVoice(sceneId, true); return; }
-    const next: Plan = {
-      ...plan,
-      chapters: plan.chapters.map((c) => ({ ...c, scenes: c.scenes.map((s) => (s.id === sceneId ? { ...s, tone: toneChoice || undefined, edited: true } : s)) })),
-    };
-    try {
-      await onPlanSave?.(next);
-    } catch (e) {
-      setError((e as Error).message);
-      return;
+    if (!map) {
+      const next: Plan = {
+        ...plan,
+        chapters: plan.chapters.map((c) => ({ ...c, scenes: c.scenes.map((s) => (s.id === sceneId ? { ...s, tone: toneChoice || undefined, edited: true } : s)) })),
+      };
+      try {
+        await onPlanSave?.(next);
+      } catch (e) {
+        setError((e as Error).message);
+        return;
+      }
     }
+    // No voice key: the note and the tone are saved, and nothing is generated (never a success line for nothing).
+    if (!hasVoiceKeys) { setVoiceMsg(NO_VOICE_KEY_AFTER_NOTE); return; }
     await generateVoice(sceneId, true);
   };
 
@@ -803,6 +808,18 @@ export const SceneProductionPanel: React.FC<Props> = ({
         onApprove={() => void act("approve-assembly", data.assembly!.sha256)} />
     );
   }
+  // QA 12 Nov (balislam 6, dafatir M7, zubdat D-23): before any assembly the seams view is a locked explanation, never
+  // the legacy single-scene card (with its «إرسال للمراجعة», removed in D40). The dock above points to the scene.
+  // (Once every scene is approved, the panel below offers «دمج المشاهد للمراجعة» or waits for the recitations.)
+  if (data && finalView === "seams" && !data.assembly && data.progress.currentScene) {
+    return (
+      <section className="scene-first-panel sp" aria-label="الوصلات">
+        <div className="sp-row">
+          <div><h3>الوصلات تُسمع بعد التجميع</h3><p className="sp-hint">{`تُدمج المشاهد في نسخة واحدة بعد اعتمادها كلها (معتمد ${ar(data.progress.approvedScenes)} من ${ar(data.progress.totalScenes)})، ثم تُسمع كل وصلة بين مشهدين هنا.`}</p></div>
+        </div>
+      </section>
+    );
+  }
   if (data && finalView === "master" && !data.progress.assemblyApproved) {
     return (
       <section className="scene-first-panel sp" aria-label="النسخة الأساسية">
@@ -1103,7 +1120,7 @@ export const SceneDecisionActions: React.FC<{
           {p.problem.kind === "tone" && p.toneMapVersion ? <p className="sp-hint">{toneMapNote(p.toneMapVersion)}</p> : null}
           <textarea rows={2} value={p.problemText} onChange={(e) => p.onProblemText(e.target.value)} placeholder={p.problem.kind === "motion" ? "ما المشكلة؟" : "ما المشكلة؟ (اختياري)"} aria-label="ما المشكلة؟" autoFocus />
           <div className="sp-actions">
-            <button type="submit" className="btn" disabled={p.pending || !problemReady}>{p.problem.kind === "tone" ? "أرسل وأعد توليد الصوت" : "أرسل الملاحظة"}</button>
+            <button type="submit" className="btn" disabled={p.pending || !problemReady}>{p.problem.kind === "tone" && p.canVoice ? "أرسل وأعد توليد الصوت" : "أرسل الملاحظة"}</button>
             <button type="button" className="btn ghost" onClick={p.onCancelProblem}>إلغاء</button>
           </div>
         </form>

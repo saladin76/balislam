@@ -32,7 +32,7 @@ import { scheduleStudioNotesSync } from "./notesSync";
 import { channelsDir, loadChannel } from "../channel";
 import { versesAreCitations } from "../quran/citation";
 import {
-  AFTER_PREPARATION_ACTION, NO_BLOCKS, productionBlocks,
+  AFTER_PREPARATION_ACTION, NO_BLOCKS, productionBlocks, textBlocks,
   type AfterPreparationChange, type AfterPreparationWhat, type ProductionBlocks,
 } from "./afterPreparation";
 
@@ -340,11 +340,20 @@ const view = (data: SignedSceneLedger, current: Pick<CurrentInput, "voiceReady" 
       ...(current.blocks.scenes[s.id]?.length ? { blocked: current.blocks.scenes[s.id] } : {}) })),
     /** Script errors that belong to no single scene: every scene not yet approved waits for them (shown once in step ٢). */
     episodeBlocked: current.blocks.episode,
-    /** The latest «تحديث بعد التجهيز» (step ١ lists its scenes, informative only, with a link to each in step ٢). */
+    /**
+     * «تحديث بعد التجهيز» (step ١ lists its scenes, informative only, with a link to each in step ٢). QA dafatir M5
+     * (12 Nov): EVERY scene re-opened by such an event and not approved since, in episode order — not only the
+     * latest event's (a later script-only save used to empty the list). `script`: the latest event changed the
+     * script; `scriptOnly`: it re-opened no scene (said as one line, so a script-only change is not silent).
+     */
     afterPreparation: (() => {
       const last = [...data.history].reverse().find(h => h.action === AFTER_PREPARATION_ACTION);
-      return last?.change ? { at: last.at, script: Boolean(last.change.script),
-        scenes: last.change.scenes.map(x => ({ id: x.id, what: x.what })) } : null;
+      if (!last?.change) return null;
+      const scenes = p.scenes.filter(s => s.status !== "approved").flatMap(s => {
+        const a = afterPreparationOf(data.history, s.id);
+        return a ? [{ id: s.id, what: a.what }] : [];
+      });
+      return { at: last.at, script: Boolean(last.change.script), scriptOnly: Boolean(last.change.script) && !last.change.scenes.length, scenes };
     })(),
     assembly: p.assembly ? { sha256: p.assembly.videoSha256, approved: progress.assemblyApproved } : null,
     seams: sceneSeams(p),
@@ -391,7 +400,7 @@ const lastApprovedSha = (doc: SignedSceneLedger, kind: "script" | "storyboard"):
  *   4. appends ONE signed history event with the sources, old/new hashes and each re-opened scene with what changed.
  * Nothing is asked of the owner here: the re-opened scenes are reviewed in step ٢ like any other. The assembly, the
  * Master and the publish permission are invalidated exactly as before (changeScript / changeStoryboard / reviseSceneInput).
- * Withdrawn boards (storyboard.json without a note, e.g. «اسحب الاعتماد») are not carried forward: step ١ again.
+ * Boards without a review note (never recorded) are not carried forward: step ١ again. There is no withdrawal (D76, QA 12 Nov).
  * Also the automatic migration of an episode that waited on the old changed-boards re-approval (D60).
  */
 const carryForwardAfterPreparation = async (episode: string, file: string, doc: SignedSceneLedger,
@@ -456,9 +465,11 @@ const withState = async <T>(episode: string,
       await saveLedger(file, doc);
     }
     ({ doc, current } = await carryForwardAfterPreparation(episode, file, doc, current, before));
-    if (carriedBySystem(doc.state)) {
+    {
+      // QA balislam 2: a scene whose text differs from the script is blocked even under the owner's own approval.
       const plan = await readPlanFile(current.scriptPath);
-      if (plan) current = { ...current, blocks: await productionBlocks(current.scriptPath, plan) };
+      if (plan) current = { ...current, blocks: carriedBySystem(doc.state)
+        ? await productionBlocks(current.scriptPath, plan) : await textBlocks(current.scriptPath, plan) };
     }
     // Detect a changed or edit-and-restored preview/assembly/Master by inode
     // generation as well as bytes. Never silently revive a former approval.
@@ -628,6 +639,9 @@ export const decideSceneProduction = async (episode: string,
     let assemblyEpoch = doc.assemblyEpoch;
     let masterEpoch = doc.masterEpoch;
     let toneOverride: import("../voice/toneMapOverride").PreparedToneOverride | null = null;
+    // QA 12 Nov (balislam 24, dafatir 8): the order of the gates is checked BEFORE any file is read, so a step taken
+    // too early is refused with its own reason (in the owner's words), never with a raw ffprobe «No such file».
+    await gateOrderRefusal(p, command, current.scriptPath);
     if (command.action === "approve-script") {
       if (p.script.sha256 !== command.expectedSha256) throw Error("Script changed before review.");
       next = approveScript(p, by, at, command.expectedSha256);
@@ -959,6 +973,35 @@ export const publishHandoffFacts = async (episode: string): Promise<PublishHando
   });
   if (!facts) throw Error("Publishing is blocked.");
   return facts;
+};
+
+const exists = (file: string) => lstat(file).then(() => true, () => false);
+/** No assembled file yet (step ٣ makes it after every scene is approved). */
+export const NO_ASSEMBLY_MESSAGE = "لا توجد نسخة مجمعة بعد: تُدمج المشاهد في «٣ النسخة النهائية» بعد اعتمادها كلها.";
+/**
+ * The gate a decision waits for, by order only (no file hashed): assembly after every scene and recitation, its approval
+ * after an assembly exists, the Master after the approved assembly, the publish permission after the approved Master;
+ * a scene after the one before it. Throws the refusal; the full checks (bytes, epochs, proofs) follow as before.
+ */
+const gateOrderRefusal = async (p: SceneFirstProduction, command: SceneOwnerCommand, scriptPath: string): Promise<void> => {
+  const progress = sceneFirstProgress(p);
+  if (command.action === "assemble") {
+    approvedSceneInputsSha256(p);
+    if (!await exists(assemblyFile(scriptPath))) throw Error(NO_ASSEMBLY_MESSAGE);
+  } else if (command.action === "approve-assembly") {
+    if (!p.assembly) throw Error("No assembled episode awaits review.");
+    if (!await exists(assemblyFile(scriptPath))) throw Error(NO_ASSEMBLY_MESSAGE);
+  } else if (command.action === "approve-master") {
+    if (!progress.assemblyApproved) throw Error("Approve the assembled episode and its scene transitions before the Master.");
+    if (!await exists(masterFile(scriptPath))) throw Error(NO_MASTER_MESSAGE);
+  } else if (command.action === "grant-publish") {
+    if (!await exists(masterFile(scriptPath))) throw Error(NO_MASTER_MESSAGE);
+    if (!progress.masterApproved) throw Error(MASTER_NOT_APPROVED_MESSAGE);
+  } else if (command.action === "approve-scene" && command.sceneId) {
+    const at = p.scenes.findIndex(s => s.id === command.sceneId);
+    const now = progress.currentScene ? p.scenes.findIndex(s => s.id === progress.currentScene) : -1;
+    if (at >= 0 && now >= 0 && at > now) throw Error("Approve the previous scene, with its sound and video, first.");
+  }
 };
 
 /** Script approved in the scene-first ledger (needed before the visual storyboard can be recorded). */

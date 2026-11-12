@@ -129,7 +129,7 @@ export type SceneProductionRead = {
    * 11 Nov: the latest «تحديث بعد التجهيز» — a change after «اعتمد التجهيز» carried forward by the ledger (signed system
    * event). Its scenes re-open for review in step ٢; nothing is approved again. null when there was none.
    */
-  afterPreparation?: { at: string; script: boolean; scenes: { id: string; what: AfterPreparationWhat[] }[] } | null;
+  afterPreparation?: { at: string; script: boolean; scriptOnly?: boolean; scenes: { id: string; what: AfterPreparationWhat[] }[] } | null;
   /** Script errors that belong to no single scene: no scene not yet approved is produced until they are fixed. */
   episodeBlocked?: string[];
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
@@ -181,9 +181,13 @@ export type ScenePrepareJob = {
   voice: { needed: number; generated: number; status: string; error?: string };
   rendered: string[]; failed: { id: string; error: string }[]; error?: string;
   /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
-  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
+  skipped?: { id: string; reason: "voice" | "sentences" | "after-gap" | "blocked" | "failed-before"; error?: string; gap?: string }[];
 };
+export type EpisodeContents = { files: number; bytes: number; voiceFiles: number; videoFiles: number; tracked: number };
+export type TrashEntry = { id: string; channel: string; from: string; at: string; title?: string; contents: EpisodeContents };
 export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean;
+  /** QA balislam 2: scenes whose board text differs from the script, and script lines no scene says (block the approval). */
+  textDiverged?: { scenes: string[]; unplaced: number[] };
   /** M1: narrated scenes with no tone at all (none of their own, the episode's or the channel's). */
   toneMissing?: string[]; episodeTone?: string | null; channelTone?: string | null };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number;
@@ -355,7 +359,11 @@ export const api = {
   setSceneReview: (id: string, b: { id: string; status: "ok" | "fix" | "pending"; note?: string }) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`, { method: "PUT", json: b }),
   review: (id: string) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`),
   setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
-  deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; archived: number; pushed: boolean; note?: string }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
+  /** QA balislam 7: «حذف الحلقة» moves the folder into the local trash (nothing deleted, nothing pushed); «تراجع» restores. */
+  trashPreview: (id: string) => call<{ dir: string; trash: string; contents: EpisodeContents }>(`/api/episodes/${id}/trash-preview`),
+  deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; dir: string; trash: string; entry: TrashEntry; tracked: number }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
+  trashList: () => call<{ trash: string; items: TrashEntry[] }>("/api/trash"),
+  restoreTrash: (id: string) => call<{ ok: boolean; entry: TrashEntry }>("/api/trash/restore", { method: "POST", json: { id } }),
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
   saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
   savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
@@ -376,7 +384,7 @@ export const api = {
   libraryImageUrl: (file: string) => withChannel(`/api/library-images/file/${encodeURIComponent(file)}`),
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
   uploadImage: (id: string, b: { name: string; data: string; scene: string }) => call<{ file: string; media: EpisodeMedia }>(`/api/episodes/${id}/images`, { method: "POST", json: b }),
-  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport | null; generated: boolean; media: EpisodeMedia;
+  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport | null; generated: boolean; noKey?: boolean; media: EpisodeMedia;
       /** M5: a scene voiced sentence by sentence was regenerated sentence by sentence. */
       sentences?: { generated: number; composed: { sceneId: string; composed: boolean; reason?: string } | null } }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
   overview: () => call<Overview[]>("/api/overview"),
@@ -435,7 +443,7 @@ export const api = {
       status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
       `/api/episodes/${id}/quran-text-only`, { method: "POST", json: { confirm: true } }),
   storyboardReport: (id: string) => call<{ markdown: string }>(`/api/episodes/${id}/storyboard-report`),
-  setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
+  setStoryboard: (id: string, action: "approve", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs").then((js) => js.map(ownerJob)),
   videoUrl: (episode: string, file: string) => withChannel(`/api/episodes/${episode}/video/${encodeURIComponent(file)}`),
 };

@@ -9,6 +9,7 @@ import { loadChannel } from "../channel";
 import type { Plan, PlanShort } from "./types";
 import { withSeriesStamp, type SeriesStamp } from "../channel/series";
 import { stripQuran, withQuran } from "./quranText";
+import { syncScriptNarration } from "../script/narrationSync";
 import { quranFromScript, historicalMeanings } from "../quran/scriptText";
 import { backupNameFor, designedPlanLoss, DesignedPlanReplaceError, designedScenes, DesignedPlanError, isDesignedPlan, scriptPlanDivergence, type ScriptPlanDivergence } from "./designed";
 export { stripQuran, withQuran, VERSE_PLACEHOLDER } from "./quranText";
@@ -68,6 +69,16 @@ export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overw
   if (current?.series) next.series = current.series;
   else if (current) delete next.series;
   await writePlanFile(file, next);
+  // QA balislam 2: a scene's narration changed in the scene editor is written into script.md too, when the change
+  // can be placed unambiguously (src/script/narrationSync.ts); otherwise the divergence check names the scene.
+  if (current) {
+    const was = new Map(current.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s.narration ?? ""]));
+    for (const s of next.chapters.flatMap((c) => c.scenes)) {
+      const before = was.get(s.id);
+      if (before !== undefined && s.template !== "verse-card" && (s.narration ?? "") !== before)
+        await syncScriptNarration(scriptPath, before, s.narration ?? "");
+    }
+  }
   return backup ? { backup } : {};
 };
 
@@ -109,6 +120,12 @@ const generateFromScript = async (scriptPath: string, previous: Plan | null) => 
   const plan = generatePlan(parsed, previous, quran, loadChannel());
   return withSeriesStamp(plan, previous, await readJson<{ stamp?: SeriesStamp }>(path.join(path.dirname(scriptPath), "series.json")).then((x) => x?.stamp, () => undefined));
 };
+
+/**
+ * The plan the script alone would give (nothing written): what «اعتمد التجهيز» compares the plan's narration with
+ * (src/plan/scriptSync.ts, QA balislam 2).
+ */
+export const planFromScriptOnly = (scriptPath: string): Promise<Plan> => generateFromScript(scriptPath, null);
 
 /** نسخة احتياطية بجوار الخطة (`plan.backup-<الوقت>.json`، محلية لا تُرفع) قبل أي كتابة صريحة فوق خطة مصمَّمة. */
 export const backupPlanFile = async (scriptPath: string): Promise<string> => {

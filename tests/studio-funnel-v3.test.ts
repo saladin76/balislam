@@ -178,7 +178,8 @@ afterAll(async () => {
 });
 
 const validScript = () => `---\ntitle: "هل نعرف الصبر حقًا؟"\ndomain: psychology\nepisode: "${EP}"\n---\n` +
-  ["تجربة", "الواقع", "الجذر", "بعين الإسلام", "في حياتك", "الخلاصة"].map((t, i) =>
+  ["تجربة"].map((t, i) => // 12 Nov: no filler line that no scene says (QA balislam 2); sections are optional (D87)
+   
     `## الفصل ${i + 1} · ${t}\n${i === 0 ? scenes.map((x) => x.narration).join("\n") : "جملة قصيرة في هذا الفصل."}\n`).join("\n") +
   "\n## الاستشهادات\n\n- مصدر | كتاب الصبر، المؤلف، ص ١٢ | فكرة الصبر\n\n## الخطوة العملية\n\nاصبر اليوم على أمر واحد صغير، ثم اكتب ما تعلمته.\n";
 const approvePrep = (body: Record<string, unknown>, headers: Record<string, string> = {}) =>
@@ -314,7 +315,8 @@ describe("after «اعتمد التجهيز»: a sentence text edit is carried f
     await editNarration("c1-s3", "والرضا راحة القلب حقًا.");
     const s = await state();
     expect(s.boards.changed).toEqual([]);
-    expect(s.afterPreparation.scenes.map((x: { id: string }) => x.id)).toEqual(["c1-s1", "c1-s3"]);
+    // QA dafatir M5 (12 Nov): the list keeps every scene re-opened and not approved since (c1-s2 from the test above).
+    expect(s.afterPreparation.scenes.map((x: { id: string }) => x.id)).toEqual(["c1-s1", "c1-s2", "c1-s3"]);
     expect(s.scenes[1].sourceSha256).toBe(before.scenes[1].sourceSha256);
   }, 60_000);
 });

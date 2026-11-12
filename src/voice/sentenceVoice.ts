@@ -18,6 +18,7 @@ import { mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/pr
 import config from "../../config.json";
 import { resolveScriptPath } from "../script/episodes";
 import { planPathFor, readJson, readPlanFile, writePlanFile } from "../plan/io";
+import { syncScriptNarration } from "../script/narrationSync";
 import type { Plan, PlanScene } from "../plan/types";
 import { loadChannel } from "../channel/index";
 import { showsDivision } from "../script/divisions";
@@ -701,9 +702,12 @@ const writeSceneNarration = async (scriptPath: string, sceneId: string, narratio
   if (!raw || !scene) throw new Error("المشهد غير موجود في الخطة.");
   if (scene.template === "verse-card") throw new Error("مشهد الآية بلا تعليق؛ تلاوته تُرفع ولا تُكتب هنا.");
   if (normText(scene.narration) === narration) return false;
+  const before = scene.narration;
   scene.narration = narration;
   scene.edited = true;
   await writePlanFile(file, { ...raw, updatedAt: new Date().toISOString() });
+  // QA balislam 2: the same change in script.md when it can be placed unambiguously (else the scene is flagged).
+  await syncScriptNarration(scriptPath, before, narration);
   return true;
 };
 

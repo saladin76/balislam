@@ -636,3 +636,8 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .prep-tone-warn { display: block; margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-weight: 600; line-height: 1.7; }
 .prep-tone-warn b { font-weight: 800; }
 .prep-tone-warn .prep-link { font-weight: 700; }
+
+/* «حذف الحلقة» (QA balislam 7): what moved to the local trash, with «تراجع», under the home heading. */
+.trash-undo { max-width: 760px; margin: 0 auto 24px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--sf); display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.trash-undo p { margin: 0; flex: 1 1 320px; overflow-wrap: anywhere; }
+.trash-undo-ctl { display: flex; gap: 8px; }

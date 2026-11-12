@@ -395,7 +395,7 @@ export const App: React.FC = () => {
     { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
   ] : here === 2 && done[0] ? [
     { id: "recitations", label: "التلاوات", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },
-    { id: "seams", label: "الوصلات", sub: w?.seams.length ? String(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
+    { id: "seams", label: "الوصلات", sub: w?.assembly && w.seams.length ? String(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
     { id: "master", label: "النسخة الأساسية", sub: "4K", current: final === "master", onSelect: () => setFinalView("master") },
   ] : [];
   const stepSub = here === 0 ? (done[0] ? "معتمد" : "ينتظرك") : here === 1 && w ? `${w.progress.approvedScenes} من ${w.progress.totalScenes}`
@@ -537,6 +537,7 @@ export const App: React.FC = () => {
                 }
               }).catch(() => {});
             }}
+            onRestored={() => { api.episodes().then(setEpisodes).catch(() => {}); }}
             onOpen={(id, t) => {
               if (id !== epId && !confirmLeaveScript()) return;
               setEpId(id);
@@ -640,6 +641,7 @@ export const App: React.FC = () => {
             onSigned={() => setHomeKey((k) => k + 1)}
             refreshKey={homeKey}
             afterPreparation={w?.afterPreparation?.scenes.filter((x) => w.scenes.find((y) => y.id === x.id)?.afterPreparation)}
+            afterPreparationScriptOnly={Boolean(w?.afterPreparation?.scriptOnly)}
             onOpenScene={(id) => { setViewSceneId(id); setTab("episode"); }}
           /></div>
         ) : tab === "voice" ? (

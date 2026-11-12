@@ -1,8 +1,7 @@
 import { FAILURE_LABEL, queuePosition, RenderPool, type TaskDef, type TaskSpec } from "../../src/render/pool.ts";
 import path from "node:path";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { readdir, readFile, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -377,46 +376,58 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
-  // حذف حلقة نهائيًا: من الجهاز (السكريبت والخطة والصوت والفيديو والصور)، ومن أرشيف البداية النظيفة، ومن GitHub
+  // «حذف الحلقة» (QA balislam 7, 12 Nov): local and reversible. The episode folder is MOVED into the local trash
+  // (~/balislam-backup/trash/<channel>/, src/studio/episodeTrash.ts) with everything in it, paid takes included.
+  // Nothing is committed, pulled or pushed from here, and ~/balislam-archive is never touched. «تراجع» moves it back.
+  // The episode's path under the folder that holds channels/ (the repository, or BAL_CHANNELS_DIR's parent).
+  const episodeDirOf = async (id: string) => {
+    const { resolveScriptPath } = await load("/src/script/episodes.ts");
+    const { channelsDir } = await load("/src/channel/index.ts");
+    const dir = path.dirname(await resolveScriptPath(id));
+    const base = path.dirname(channelsDir());
+    const rel = path.relative(base, dir).split(path.sep).join("/");
+    if (!/^channels\/[^/]+\/episodes\/\d{3}-[^/]+$/.test(rel)) throw Object.assign(new Error("مسار الحلقة غير متوقع؛ لم يُنقل شيء."), { status: 400 });
+    return { dir, rel, base };
+  };
+  const trackedIn = (dir: string) => new Promise<string[]>((resolve) => execFile("git", ["ls-files", "-z", "--", path.relative(ctx.root, dir)],
+    { cwd: ctx.root, timeout: 30_000, env: childEnv({ GIT_TERMINAL_PROMPT: "0" }) },
+    (err, so) => resolve(err ? [] : String(so).split("\0").filter(Boolean))));
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "trash-preview" && !parts[3] && req.method === "GET") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const T = await load("/src/studio/episodeTrash.ts");
+    const { dir, rel } = await episodeDirOf(parts[1]);
+    return send(res, 200, { dir: rel, trash: T.trashRoot(), contents: await T.episodeContents(dir, await trackedIn(dir)) }), true;
+  }
   if (parts[0] === "episodes" && parts[1] && !parts[2] && req.method === "DELETE") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+    try { assertSceneOwner(); } catch { return send(res, 403, { error: "حذف حلقة مسموح من الاستوديو على جهاز المالك فقط." }), true; }
     if (busy.has(`${ch}/${parts[1]}`) || prepareRunning(`${ch}/${parts[1]}`)) return send(res, 409, { error: busyRefusal(`${ch}/${parts[1]}`) }), true;
     const { confirm } = await readBody(req);
     if (confirm !== parts[1]) return send(res, 400, { error: "اكتب رقم الحلقة للتأكيد." }), true;
-    const { resolveScriptPath } = await load("/src/script/episodes.ts");
-    const dir = path.dirname(await resolveScriptPath(parts[1]));
-    const rel = path.relative(ctx.root, dir);
-    if (!/^channels\/[^/]+\/episodes\/\d{3}-[^/]+$/.test(rel.split(path.sep).join("/"))) return send(res, 400, { error: "مسار الحلقة غير متوقع؛ لم يُحذف شيء." }), true;
-    const git = (args: string[]) => new Promise<{ ok: boolean; out: string }>((resolve) => execFile("git", args, { cwd: ctx.root, timeout: 120_000, env: childEnv({ GIT_TERMINAL_PROMPT: "0" }) }, (err, so, se) => resolve({ ok: !err, out: `${so}${se}`.trim() })));
-    // ١) من Git (إن كانت مرفوعة) ثم من القرص كله، بما فيه الصوت والفيديو غير المرفوعين
-    const tracked = (await git(["ls-files", "--", rel])).out.length > 0;
-    if (tracked) await git(["rm", "-r", "-q", "--cached", "--", rel]);
-    await rm(dir, { recursive: true, force: true });
-    // ٢) من أرشيف «البداية النظيفة» (~/balislam-archive/*/<المسار نفسه>)
-    const archive = path.join(os.homedir(), "balislam-archive");
-    let archived = 0;
-    if (existsSync(archive))
-      for (const d of await readdir(archive)) {
-        const a = path.join(archive, d, rel);
-        if (existsSync(a)) {
-          await rm(a, { recursive: true, force: true });
-          archived++;
-        }
-      }
-    // ٣) من GitHub: حفظ الحذف ورفعه (حتى لا تعيده محادثات القنوات)
-    let pushed = false;
-    let note = "";
-    if (tracked) {
-      const c = await git(["-c", "user.name=Balislam Studio", "-c", "user.email=studio@localhost", "commit", "-q", "-m", `حذف الحلقة ${path.basename(dir)} من قناة ${ch}`, "--", rel]);
-      if (c.ok) {
-        const pl = await git(["pull", "--rebase", "-q"]);
-        const p = pl.ok ? await git(["push", "-q"]) : pl;
-        pushed = p.ok;
-        if (!p.ok) note = "حُذفت من جهازك، وتعذّر رفع الحذف إلى GitHub الآن؛ يُرفع مع أول تحديث ناجح أو شغّل: git push";
-      } else note = `تعذّر حفظ الحذف في Git: ${c.out.slice(0, 160)}`;
-    }
-    send(res, 200, { ok: true, dir: rel, archived, pushed, note });
-    return true;
+    const T = await load("/src/studio/episodeTrash.ts");
+    const { dir, rel, base } = await episodeDirOf(parts[1]);
+    const { loadPlan } = await load("/src/plan/io.ts");
+    const title = await loadPlan(parts[1]).then((p: { title?: string } | null) => p?.title, () => undefined);
+    const tracked = await trackedIn(dir);
+    busy.add(`${ch}/${parts[1]}`);
+    try {
+      const entry = await T.trashEpisode(base, rel, { channel: ch, title, trackedFiles: tracked });
+      return send(res, 200, { ok: true, dir: rel, trash: T.trashRoot(), entry, tracked: tracked.length }), true;
+    } finally { busy.delete(`${ch}/${parts[1]}`); }
+  }
+  if (parts[0] === "trash" && !parts[1] && req.method === "GET") {
+    const T = await load("/src/studio/episodeTrash.ts");
+    return send(res, 200, { trash: T.trashRoot(), items: await T.listTrash(ch) }), true;
+  }
+  if (parts[0] === "trash" && parts[1] === "restore" && !parts[2] && req.method === "POST") {
+    const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
+    try { assertSceneOwner(); } catch { return send(res, 403, { error: "الاسترجاع مسموح من الاستوديو على جهاز المالك فقط." }), true; }
+    const { id } = await readBody(req);
+    const T = await load("/src/studio/episodeTrash.ts");
+    const { channelsDir } = await load("/src/channel/index.ts");
+    try { return send(res, 200, { ok: true, entry: await T.restoreEpisode(path.dirname(channelsDir()), ch, String(id ?? "")) }), true; }
+    catch (error) { return send(res, 409, { error: (error as Error).message }), true; }
   }
 
   // ملف البحث (دراسة الكتاب في زبدة الكتب): research.md بجوار السكريبت، بقالب القناة إن لم يوجد
@@ -450,7 +461,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return send(res, 405, { error: "Method not allowed" }), true;
   }
 
-  // ستوري بورد الفيديو قبل تنفيذه (storyboard.json): الحالة، والاعتماد، وحركة كل مشهد إن قيست
+  // ستوري بورد الفيديو قبل تنفيذه (storyboard.json): الحالة، والاعتماد، وحركة كل مشهد إن قيست. لا سحب للاعتماد (D76).
   if (parts[0] === "episodes" && parts[1] && parts[2] === "storyboard") {
     if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
     const { resolveScriptPath } = await load("/src/script/episodes.ts");
@@ -475,7 +486,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
         await S.approveStoryboard(file, plan, {
           note: checked.note,
         });
-      } else if (action === "revoke") await S.revokeStoryboard(file);
+      } else if (action === "revoke")
+        // QA balislam 1 / D76: «اعتمد التجهيز» is given once per episode and is never withdrawn from the studio.
+        return send(res, 409, { error: S.STORYBOARD_REVOKE_REFUSED }), true;
       else return send(res, 400, { error: "إجراء غير صالح." }), true;
     }
     const status = S.storyboardStatus(plan, await S.loadStoryboard(file));

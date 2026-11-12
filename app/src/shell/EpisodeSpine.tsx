@@ -99,6 +99,12 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
 
   const done = stepsDone(w);
   const current = done.findIndex((d) => !d);
+  const div = prep?.textDiverged;
+  const diverged = Boolean(div && (div.scenes.length || div.unplaced.length));
+  const divergedLine = div ? [
+    div.scenes.length ? `نص ${sceneNames(w?.scenes.map((x) => x.id) ?? [], div.scenes, 4)} يختلف عن السكريبت` : "",
+    div.unplaced.length ? `ونص في السكريبت لا يقوله أي مشهد (السطر ${div.unplaced.slice(0, 4).map((n) => arNum(n)).join("، ")})` : "",
+  ].filter(Boolean).join(" ") : "";
   const here = stepOf(tab);
 
   /** ما يلزم الآن، وزره: إما قرار يُتخذ هنا، أو انتقال إلى مكانه */
@@ -106,6 +112,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
     if (!w) return null;
     if (!done[0]) {
       if (scriptErrors.length || (prep?.scriptErrors ?? 0) > 0) return { text: "", label: "افتح السكريبت", go: "script", fix: "script" };
+      // QA balislam 2: the boards and the script must say the same text before the approval (the server refuses too).
+      if (diverged) return { text: `اللوحات والسكريبت مختلفان: ${divergedLine}. عدّل نص المشهد أو السكريبت حتى يتطابقا، ثم اعتمد التجهيز.`, label: "افتح السكريبت", go: "script", fix: "verses" };
       if (prep?.versesMissing.length) return { text: `آيات بلا نصها في السكريبت: ${arNum(prep.versesMissing.length)}. اكتب نص كل آية في سطرها ثم اعتمد التجهيز.`, label: "افتح السكريبت", go: "script", fix: "verses" };
       // Outside step ١ the decision is not repeated: step ٢ shows its own one line and one button back.
       if (stepOf(tab) !== 0) return { text: "التجهيز (الستوري بورد والسكريبت) لم يُعتمد بعد.", label: "إلى التجهيز", go: "storyboard" };
@@ -180,8 +188,11 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
         <aside className="ms-note ms-spine-note" aria-label="قبل أن تعتمد">
           <h2>قبل أن تعتمد</h2>
           <ul>
-            <li className={scriptFixes ? "is-warn" : undefined}><i aria-hidden="true">{scriptFixes ? "!" : <Icon name="check" />}</i>
-              <span>السكريبت<small>{scriptFixes ? <>{arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"}</> : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
+            <li className={scriptFixes || diverged ? "is-warn" : undefined}><i aria-hidden="true">{scriptFixes || diverged ? "!" : <Icon name="check" />}</i>
+              <span>السكريبت<small>{scriptFixes ? <>{arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"}</> : diverged ? "لا يطابق اللوحات (انظر أدناه)" : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
+            {diverged ? (
+              <li className="is-warn"><i aria-hidden="true">!</i><span>اللوحات والسكريبت<small>{divergedLine}. ما يُعتمد يجب أن يكون ما يُنطق.</small></span></li>
+            ) : null}
             <li className={prep && !prep.boardsRecorded ? "is-warn" : undefined}><i aria-hidden="true">{prep && !prep.boardsRecorded ? "!" : <Icon name="check" />}</i>
               <span>اللوحات<small>{prep && !prep.boardsRecorded ? "راجعها كلها؛ ملاحظتك بجوار الزر اختيارية" : "سُجّلت مراجعتها"}</small></span></li>
             {prep?.versesMissing.length ? (

@@ -95,7 +95,8 @@ describe("P-05 · a board changed after «اعتمد التجهيز» (11 Nov: c
         await copyFile(path.join(root, "channels", "balislam", f), path.join(tmp, "balislam", f));
       // A script with no errors (six chapters, citations, the practical step), as in tests/studio-funnel-v3.test.ts.
       await writeFile(path.join(dir, "script.md"), `---\ntitle: "هل نعرف الصبر حقًا؟"\ndomain: psychology\nepisode: "001"\n---\n` +
-        ["تجربة", "الواقع", "الجذر", "بعين الإسلام", "في حياتك", "الخلاصة"].map((t, i) =>
+        ["تجربة"].map((t, i) => // 12 Nov: no filler line that no scene says (QA balislam 2); sections are optional (D87)
+   
           `## الفصل ${i + 1} · ${t}\n${i === 0 ? "الصبر مفتاح الفرج.\nوالشكر يحفظ النعمة." : "جملة قصيرة في هذا الفصل."}\n`).join("\n") +
         "\n## الاستشهادات\n\n- مصدر | كتاب الصبر، المؤلف، ص ١٢ | فكرة الصبر\n\n## الخطوة العملية\n\nاصبر اليوم على أمر واحد صغير، ثم اكتب ما تعلمته.\n");
       await writeFile(path.join(dir, "tashkeel.md"), "الصَّبْرُ مِفْتَاحُ الفَرَجِ. وَالشُّكْرُ يَحْفَظُ النِّعْمَةَ.\n");

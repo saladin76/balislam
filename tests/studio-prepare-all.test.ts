@@ -206,13 +206,15 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
       expect(drafted).toEqual(["c1-s1"]);
       const again = await runWithChannel(CH, () => prepareAllScenes(EP, { voiceClient: null,
         previousFailures: failing.failed, render: async (_e, id) => { drafted.push(id); } }));
-      expect(again.skipped).toMatchObject([{ id: "c1-s1", reason: "failed-before", error: "composition crashed" }]);
+      // 12 Nov (QA balislam 9): every undrafted scene with its real reason — the two waiting for their voice too.
+      expect(again.skipped).toMatchObject([{ id: "c1-s2", reason: "voice" }, { id: "c1-s3", reason: "voice" },
+        { id: "c1-s1", reason: "failed-before", error: "composition crashed" }]);
       expect(drafted).toEqual(["c1-s1"]); // nothing rendered
       // …but a network/browser failure is retried on the next press (rendering stub: nothing recorded).
       const offline = [{ ...failing.failed[0]!, error: "تعذّر تجهيز متصفح الرندر لأن الجهاز غير متصل بالإنترنت" }];
       const retry = await runWithChannel(CH, () => prepareAllScenes(EP, { voiceClient: null,
         previousFailures: offline, render: async (_e, id) => { drafted.push(id); throw Error("still failing"); } }));
-      expect(retry.skipped ?? []).toEqual([]);
+      expect((retry.skipped ?? []).filter((x) => x.reason === "failed-before")).toEqual([]);
       expect(drafted).toEqual(["c1-s1", "c1-s1"]);
     }
 

@@ -68,7 +68,7 @@ describe("step ١: the board viewer", () => {
     const board = src("app/src/tabs/StoryboardPanel.tsx");
     // 11 Nov: the only way to step ٢ is the «تغيّر بعد التجهيز» list, which exists only after «اعتمد التجهيز».
     expect(board.match(/onOpenScene/g)?.length).toBe(5);
-    expect(board).toContain("afterPreparation?.length && onOpenScene ? <AfterPreparationList");
+    expect(board).toContain("(afterPreparation?.length || afterPreparationScriptOnly) && onOpenScene ? <AfterPreparationList");
     expect(board).toContain("setViewing(indexOf.get(s.id) ?? 0)");
     const app = src("app/src/App.tsx");
     const branch = app.slice(app.indexOf('tab === "storyboard" ? ('), app.indexOf('tab === "voice" ? ('));
