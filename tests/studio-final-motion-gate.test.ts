@@ -8,7 +8,7 @@ import type { Plan } from "../src/plan/types";
 import { decideSceneProduction, inspectSceneProduction } from "../src/studio/sceneService";
 import { runOwnerRequest } from "../src/studio/ownerContext";
 import { assertMotionStartAuthorized } from "../src/voice/motionGate";
-import { assertWorkflowForEpisode } from "../src/workflow/server";
+import { requireScenesReadyForMaster } from "../src/studio/sceneService";
 
 /** Owner decision (9 Nov): no passphrase. A Studio request from another address or another site is refused. */
 const asRemote = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "192.168.1.20", sameOrigin: true, host: "127.0.0.1:4321" }, fn);
@@ -33,7 +33,7 @@ describe("final motion asks the scene-first ledger only", () => {
       await writeFile(path.join(dir, "plan.json"), JSON.stringify(plan));
       await runWithChannel("balislam", async () => {
         await expect(assertMotionStartAuthorized("001", scriptPath)).rejects.toThrow(/اعتمد السكريبت/);
-        await expect(assertWorkflowForEpisode("001", "master_render")).rejects.toThrow();
+        await expect(requireScenesReadyForMaster("001")).rejects.toThrow();
         const state = await inspectSceneProduction("001");
         await expect(asRemote(() => decideSceneProduction("001", { action: "approve-script", expectedSha256: state.script.sha256 })))
           .rejects.toThrow(/only from the Studio/);
@@ -44,14 +44,14 @@ describe("final motion asks the scene-first ledger only", () => {
         await decideSceneProduction("001", { action: "approve-storyboard", expectedSha256: board.storyboard.sha256 });
         await expect(assertMotionStartAuthorized("001", scriptPath)).resolves.toBe(true);
         // Master still needs every scene approved with sound and picture, then the assembly.
-        await expect(assertWorkflowForEpisode("001", "master_render")).rejects.toThrow(/approved/);
+        await expect(requireScenesReadyForMaster("001")).rejects.toThrow(/approved/);
         // 11 Nov: after «اعتمد التجهيز» a script edit is carried forward by a signed system event (no second approval);
         // only scenes whose own inputs changed re-open, and Master still waits for every scene.
         await writeFile(scriptPath, `---\ntitle: "اختبار"\ndomain: psychology\nepisode: "001"\n---\n## الفصل 1 · تجربة\nنص معدّل.\n`);
         await expect(assertMotionStartAuthorized("001", scriptPath)).resolves.toBe(true);
         const after = await inspectSceneProduction("001");
         expect(after.recentHistory.at(-1)).toMatchObject({ action: "update-after-preparation", by: "system" });
-        await expect(assertWorkflowForEpisode("001", "master_render")).rejects.toThrow(/approved/);
+        await expect(requireScenesReadyForMaster("001")).rejects.toThrow(/approved/);
       });
     } finally {
       for (const [k, v] of [["BAL_CHANNELS_DIR", env.channels], ["BAL_WORKFLOW_HMAC_KEY", env.key]] as const)

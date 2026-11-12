@@ -54,7 +54,7 @@ channels/zubdat-alkutub/
 | الجزء | الدور |
 |---|---|
 | `src/script/` | تحليل السكريبت وفحصه، وسجل التوثيق (`review.ts`) |
-| `src/plan/` | القوالب وحقولها (`templates.ts`)، والمدد (`duration.ts`)، والستوري بورد (`storyboard.ts`)، ومراجعة المشاهد (`sceneReview.ts`) |
+| `src/plan/` | القوالب وحقولها (`templates.ts`)، والمدد (`duration.ts`)، والستوري بورد (`storyboard.ts`)، وبصمة المشهد (`sceneHash.ts`) |
 | `src/voice/` | توليد الصوت وتوقيت الكلمات، ومدقق التشكيل (`tashkeelReport.ts`) |
 | `src/quran/` | جلب الآيات (`client.ts`) |
 | `src/render/` | الرندر (`episode.ts`)، ومقياس الحركة (`motionMeter.ts`)، والسكون المقصود (`stillness.ts`)، والمعاينات (`episodePreviews.ts`)، والجودة (`quality.ts`) |

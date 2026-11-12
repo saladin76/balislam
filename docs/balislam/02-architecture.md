@@ -16,7 +16,7 @@
 | المسار | ما فيه |
 | --- | --- |
 | `channels/balislam/` | `channel.json` (المجالات، الأساليب، القواعد، المكتبة، الصوت، `production`)، والهوية، وقاموس النطق، والمرجعيات الرسمية `references/`، والحلقات `episodes/` |
-| `channels/balislam/episodes/<الحلقة>/` | `script.md`، `research.md`، `plan.json`، `scene-review.json`، `previews/` (والصوت والمخرجات حين تُولَّد) |
+| `channels/balislam/episodes/<الحلقة>/` | `script.md`، `research.md`، `plan.json`، `previews/` (والصوت والمخرجات حين تُولَّد) |
 | `channels/balislam/episodes/900-engine-lab/` | مختبر المحرك: معاينات اختبارات المحرك (لا تُنشر ولا تُعد حلقة) |
 | `templates/balislam/` | قالب السكريبت للقناة |
 | `brand/` | الهويات المعتمدة (`brand/identity/approved.ts`)، والثيمات، والعناصر ودليل تصميمها `brand/elements/GUIDE.md` |
@@ -49,7 +49,7 @@
    - `Episode` (`src/remotion/scenes/Episode.tsx`): الافتتاحية ثم المشاهد متتالية (`Series`)، ومدة كل مشهد من `sceneFrames` (`src/plan/duration.ts`: من الصوت إن وُجد وإلا من طول النص أو المدة اليدوية)، والانتقال الصالح عند كل حد.
    - `SceneFromPlan` (`src/remotion/scenes/components.tsx`) يختار مكوّن القالب ويمرر له حقول المشهد كما هي.
    - توقيت الكلمات من الصوت (`toFrames`) أو تقديرًا (`estimateTimings` في `src/remotion/scenes/timing.ts`)، وعليه تقع أحداث المشهد.
-7. **المراجعة:** مراجعة كل مشهد بعد تنفيذه (`src/plan/sceneReview.ts`)، وقياس الحركة (`src/render/motionMeter.ts`).
+7. **المراجعة:** مراجعة كل مشهد بعد تنفيذه باعتماده بالصوت والصورة في سجل «إنتاج المشاهد» (`src/studio/sceneService.ts`؛ بصمة المشهد `src/plan/sceneHash.ts`)، وقياس الحركة (`src/render/motionMeter.ts`).
 8. **النسخة النهائية:** `assertMasterReady` (`src/render/episode.ts`) لا يسمح بها قبل اكتمال الشروط (الفحص، التوثيق، الصوت، التلاوة، الستوري بورد، مراجعة المشاهد). جودة master من `src/render/quality.ts`.
 9. **النشر:** `packageEpisode` (`src/package/package.ts`)، وفحص الآثار `findTraces` (`src/package/traces.ts`)، وتنظيف البيانات الوصفية `cleanMetadata` (`src/render/episode.ts`).
 

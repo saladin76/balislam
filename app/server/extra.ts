@@ -552,20 +552,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     return true;
   }
 
-  // مراجعة كل مشهد بعد تنفيذه (scene-review.json)
-  if (parts[0] === "episodes" && parts[1] && parts[2] === "scene-review") {
-    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
-    const { resolveScriptPath } = await load("/src/script/episodes.ts");
-    const { loadPlan, regeneratePlan } = await load("/src/plan/io.ts");
-    const R = await load("/src/plan/sceneReview.ts");
-    const file = await resolveScriptPath(parts[1]);
-    const plan = (await loadPlan(parts[1])) ?? (await regeneratePlan(parts[1]));
-    // Superseded by the scene AV approval in «إنتاج المشاهد»: read-only for old episodes.
-    if (req.method === "PUT") return send(res, 410, { error: "مراجعة المشهد صارت جزءًا من اعتماده بالصوت والصورة في «٢ المشاهد»." }), true;
-    const items = R.sceneReviewItems(plan, await R.loadSceneLedger(file));
-    send(res, 200, { items, summary: R.sceneReviewSummary(items), criteria: R.SCENE_CRITERIA });
-    return true;
-  }
+  // مراجعة المشاهد القديمة: صارت جزءًا من اعتماد المشهد بالصوت والصورة، وأُرشف سجلها (D120). لا يُقرأ شيء.
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "scene-review")
+    return send(res, 410, { error: "مراجعة المشهد صارت جزءًا من اعتماده بالصوت والصورة في «٢ المشاهد»." }), true;
 
   // سجل التوثيق والاعتماد لكل استشهاد (review.json)
   if (parts[0] === "episodes" && parts[1] && parts[2] === "review") {
@@ -602,9 +591,9 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       // current Master hash before recording any NEW publication/approval.
       if ((status.published && JSON.stringify(status.published) !== JSON.stringify(old.published)) ||
           (status.approved && JSON.stringify(status.approved) !== JSON.stringify(old.approved))) {
-        const { assertWorkflowForEpisode } = await load("/src/workflow/server.ts");
+        const { requirePublishAllowed } = await load("/src/studio/sceneService.ts");
         // A gate refusal is a 409 the Publish tab can show, not a server crash (500).
-        try { await assertWorkflowForEpisode(parts[1], "publish"); }
+        try { await requirePublishAllowed(parts[1]); }
         catch (e) { return send(res, 409, { error: (e as Error).message }), true; }
       }
       await writeFile(file, JSON.stringify(status, null, 2) + "\n");

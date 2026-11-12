@@ -9,7 +9,6 @@
 ```bash
 npx bal -c balislam list               # الحلقات
 npx bal -c balislam check 001          # فحص السكريبت
-npx bal -c balislam scenes-review 001  # حالة مراجعة المشاهد
 npm run app                            # الاستوديو، ثم «إدارة الاستوديو ← مرجع الاستوديو»
 ```
 
@@ -37,7 +36,7 @@ npm run app                            # الاستوديو، ثم «إدارة 
 | --- | --- |
 | `src/plan/types.ts` | حقل اختياري في `PlanScene` (إن كان على المشهد لا في `props`) |
 | `src/plan/generate.ts` | يُحفظ عند إعادة التوليد إن كان من تعديل صاحب القناة |
-| `src/plan/sceneReview.ts` | يدخل `sceneHash` **فقط حين يوجد**، فلا تتغير بصمات المراجعات القائمة |
+| `src/plan/sceneHash.ts` | يدخل `sceneHash` **فقط حين يوجد**، فلا تتغير بصمات المراجعات القائمة |
 | `src/plan/validate.ts` | فحص القيم |
 | `src/plan/templates.ts` أو `app/src/tabs/EpisodeTab.tsx` | الحقل في المحرر |
 | القالب | قراءة الحقل وتطبيقه |

@@ -35,7 +35,7 @@ describe("Studio V2 release-path safety regressions", () => {
     expect(packager).toContain('requireApprovedQuran: quality === "master" || stage === "shorts"');
     // Unified engine: the six-stage ledger is no longer consulted; publishing asks the scene ledger.
     expect(packager).not.toContain('assertWorkflowForEpisode(ep, "publish")');
-    expect(text("src/workflow/server.ts")).toContain("requirePublishAllowed(episode)");
+    expect(text("app/server/extra.ts")).toContain("await requirePublishAllowed(parts[1])");
     const production = text("src/render/episode.ts");
     expect(production).toContain("requireScenesReadyForMaster");
     expect(production).toContain("assertRenderedRecitationsMatchApprovals");

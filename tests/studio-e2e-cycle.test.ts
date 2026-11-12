@@ -21,7 +21,7 @@ import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { publishCardState } from "../app/src/tabs/PublishTab";
 import { runWithChannel } from "../src/channel";
-import { assertWorkflowForEpisode } from "../src/workflow/server";
+import { requirePublishAllowed, requireScenesReadyForMaster } from "../src/studio/sceneService";
 import { PREP_VALID_TAIL } from "./fixtures/prepValidScript";
 
 const repo = path.resolve(import.meta.dirname, "..");
@@ -107,8 +107,7 @@ const snapshot = async (dir: string, acc: Record<string, string> = {}): Promise<
   return acc;
 };
 const UI_READS = () => ["overview", `episodes`, `episodes/${EP}`, `episodes/${EP}/scene-production`, `episodes/${EP}/previews`,
-  `episodes/${EP}/kit`, `episodes/${EP}/storyboard`, `episodes/${EP}/package`, `episodes/${EP}/status`,
-  `episodes/${EP}/workflow`, `episodes/${EP}/script-signoff`, `episodes/${EP}/voice-review`, `episodes/${EP}/scene-review`];
+  `episodes/${EP}/kit`, `episodes/${EP}/storyboard`, `episodes/${EP}/package`, `episodes/${EP}/status`];
 const assertReadsDoNotWrite = async (label: string) => {
   const before = await snapshot(epDir);
   for (const route of UI_READS()) {
@@ -186,7 +185,7 @@ afterAll(async () => {
 
 describe("Studio E2E: one full production cycle over the real server API", () => {
   it("script → storyboard → scenes in order → assembly → Master → publish, with every negative", async () => {
-    const gate = (action: "master_render" | "publish") => runWithChannel(CH, () => assertWorkflowForEpisode(EP, action));
+    const gate = (action: "master_render" | "publish") => runWithChannel(CH, () => action === "publish" ? requirePublishAllowed(EP) : requireScenesReadyForMaster(EP));
 
     // ── 0. Security envelope ───────────────────────────────────────────────────────────────────
     // No passphrase (owner decision 9 Nov): a page of another site is refused; nothing is written.
@@ -373,6 +372,9 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     expect(published.status, JSON.stringify(published.body)).toBe(200);
 
     // ── 7. Legacy approval endpoints are gone (410) ────────────────────────────────────────────
+    // D120: the old records were archived; every method of their routes is 410 and reads nothing.
+    for (const route of ["workflow", "script-signoff", "voice-review", "scene-review"])
+      expect((await call("GET", `episodes/${EP}/${route}`)).status, route).toBe(410);
     expect((await call("POST", `episodes/${EP}/workflow`, { stage: "script", action: "approve" })).status).toBe(410);
     expect((await call("PUT", `episodes/${EP}/script-signoff`, { reviewer: "x", note: "x", confirm: true })).status).toBe(410);
     expect((await call("PUT", `episodes/${EP}/voice-review`, { approve: true })).status).toBe(410);

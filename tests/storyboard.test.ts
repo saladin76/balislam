@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { approveStoryboard, loadStoryboard, storyboardStatus, unapprovedScenes, storyboardVisualHash } from "../src/plan/storyboard";
-import { sceneHash } from "../src/plan/sceneReview";
+import { sceneHash } from "../src/plan/sceneHash";
 import { shotElements, shotKind, shotText } from "../src/plan/storyboardView";
 import { chapterEyebrow } from "../src/remotion/scenes/eyebrow";
 import type { Plan } from "../src/plan/types";

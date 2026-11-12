@@ -1,7 +1,7 @@
 # خريطة الاستوديو وسجل التحديثات
 
 > **لمن هذه الوثيقة:** لكل محادثة ووكيل ومطوّر يعمل على أي قناة. تُقرأ **قبل أي عمل** بعد سحب `main`، ومعها رسالة تكليف القناة (`docs/<القناة>/briefing.md`).
-> **حالتها:** **المرجع الوحيد للسلوك الحالي** (العمل ٥، D113)، مطابقة لـ `main` حتى ١٣ نوفمبر ٢٠٢٦ (D119). تُحدَّث في commit كل قرار يغيّر شاشة أو بوابة أو سلوكًا ظاهرًا للمالك، فلا تبقى نسختان مختلفتان. حالة كل قرار (سارٍ / أُلغي / حل محله) في `docs/studio/decisions.md`، والتفاصيل الهندسية السارية في القسم ح، ونص التفاصيل التنفيذية المنقولة من `CLAUDE.md` في القسم ي، ووثائق المراحل المنتهية في `docs/studio/archive/` (القسم ط) للتاريخ وحده.
+> **حالتها:** **المرجع الوحيد للسلوك الحالي** (العمل ٥، D113)، مطابقة لـ `main` حتى ١٣ نوفمبر ٢٠٢٦ (D120). تُحدَّث في commit كل قرار يغيّر شاشة أو بوابة أو سلوكًا ظاهرًا للمالك، فلا تبقى نسختان مختلفتان. حالة كل قرار (سارٍ / أُلغي / حل محله) في `docs/studio/decisions.md`، والتفاصيل الهندسية السارية في القسم ح، ونص التفاصيل التنفيذية المنقولة من `CLAUDE.md` في القسم ي، ووثائق المراحل المنتهية في `docs/studio/archive/` (القسم ط) للتاريخ وحده.
 > **الأسبقية:** `CLAUDE.md` فوقها، ثم سياسات القنوات `docs/studio/channel-production-policies.md`، ثم مرجع كل قناة. هذه الخريطة تصف ما هو مبني فعلًا، ولا تنشئ قاعدة جديدة.
 
 > **مرحلة الاستقرار وتجميد الميزات (D106، ١٢ نوفمبر):** أمر عمل من صاحب المشروع (`docs/studio/stabilization-brief.md`). لا ميزات جديدة ولا تغيير في سلوك ظاهر للمالك إلا إصلاح خطأ أو ما يطلبه التكليف؛ أي طلب ميزة يُسجَّل في `docs/studio/backlog.md` ولا يُنفَّذ إلا بقول المالك «نفّذه الآن رغم التجميد». الأخطاء المعروفة في `docs/studio/known-issues.md` مرتبة بالشدة، ومنها يبدأ كل إصلاح (اختبار يعيد إنتاج الخطأ أولًا). المرحلة تنتهي بقرار المالك وحده.
@@ -229,8 +229,9 @@
 | D115 | ١٢ نوفمبر | **العمل ٦ والعمل ١٠ (المطور والحفظ):** نسخ خريطة النبرة السابقة تُحفظ في `main` مع الجديدة (KI-050)؛ واختبارات لا تحتاج تاريخ Git (KI-030) ولا تنتهي مهلتها تحت الحمل (KI-032) ولا ضجيج دفع فيها (KI-029)؛ وجرد الفروع `docs/studio/branches-inventory.md` ينتظر موافقة المالك، ولم يُحذف فرع | مشترك | PR #106 (`69cbbfab`) |
 | D116 | ١٢ نوفمبر | **العمل ٦ (شاشات المالك):** «انقلها إلى سلة المحذوفات» و«اعتمد التلاوة» معطّلان حتى يكتمل شرطهما وتحتهما ما ينقص؛ صف البسملة «ارفع التسجيل»؛ مشغّل التلاوات بأرقام عربية؛ نافذة تصحيح الكلمة بلا تناقض؛ اسم المجلد بحركات العنوان؛ «اعتُمدت في التجهيز: ٤٩ لوحة» و«مشاهد معتمدة: ٠ من ٤٩»؛ «مسودتان»؛ البسملة في «متتابعة» «تسجيلك بصوتك»؛ «احذف…» لسلسلة فيها حلقات معطّل؛ «مرجع الاستوديو» و«الأميري»؛ خطأ الرندر بطاقة كاملة؛ وتمهيد الآية لا يُرسل ومعه ما بعد الآية (KI-011) | مشترك | PR #107 (`6f3bb171`) |
 | D117 | ١٣ نوفمبر | **حذف الفروع المعتمد:** الفئتان ١ و٢ من `docs/studio/branches-inventory.md` (٦٦ فرعًا) بموافقة المالك، يحذفها `.github/workflows/delete-approved-branches.yml` من القائمة `docs/studio/branches-approved-delete.txt` وحدها بفحص SHA و`ahead_by`، ولا يمس `main` و`studio-notes` و`backup/*` و`previews/*` | مشترك | workflow `delete-approved-branches` |
-| D118 | ١٣ نوفمبر | **اختبار الرحلة الكاملة (العمل ٤):** `npm run e2e` يمشي رحلة المالك عبر خادم الاستوديو الحقيقي من إنشاء الحلقة حتى نسخ Drive، بحلقة ثابتة لكل قناة ومزوّد صوت وهمي للاختبارات وحدها ورندر صغير حقيقي، ومهمة CI `e2e` بعد `check` (بالإسلام في كل دفعة، والثلاث ليلًا)، واختبار واجهة بـ Playwright (`npm run e2e:ui`). وإصلاحان وجدتهما: تعديل نص مشهد لا يعيد فتح مشهد آخر غُيّرت نبرته (KI-051)، وتعديل السكريبت في زبدة الكتب يصل إلى مشهده (KI-053)، و«الوصلات» قبل التجميع زرها «دمج المشاهد للمراجعة» حين تكتمل المشاهد (KI-056). لا تغيير آخر في الشاشات | مشترك | (هذا PR) |
+| D118 | ١٣ نوفمبر | **اختبار الرحلة الكاملة (العمل ٤):** `npm run e2e` يمشي رحلة المالك عبر خادم الاستوديو الحقيقي من إنشاء الحلقة حتى نسخ Drive، بحلقة ثابتة لكل قناة ومزوّد صوت وهمي للاختبارات وحدها ورندر صغير حقيقي، ومهمة CI `e2e` بعد `check` (بالإسلام في كل دفعة، والثلاث ليلًا)، واختبار واجهة بـ Playwright (`npm run e2e:ui`). وإصلاحان وجدتهما: تعديل نص مشهد لا يعيد فتح مشهد آخر غُيّرت نبرته (KI-051)، وتعديل السكريبت في زبدة الكتب يصل إلى مشهده (KI-053)، و«الوصلات» قبل التجميع زرها «دمج المشاهد للمراجعة» حين تكتمل المشاهد (KI-056). لا تغيير آخر في الشاشات | مشترك | PR #112 (`701914ce`) |
 | D119 | ١٣ نوفمبر | **فحص النطق المحلي (العمل ٩، بإذن المالك):** في «الاتصالات والمفاتيح» قسم «فحص النطق» («فحص النطق غير مثبّت» حتى «ثبّت فحص النطق» بضغطة بعد رؤية الحجم، ثم «قِس الإنذار الكاذب»، ثم «فعّل فحص النطق»)؛ وبعد التفعيل سطر «كلمة قد تكون نُطقت خطأ: …» تحت الجملة. تفريغ محلي بـ faster-whisper والصوت لا يغادر الجهاز، ولا يُفحص صف آية ولا بسملة، والتنبيه لا يمنع الاعتماد. مطفأ حتى يُقاس ويُقبل | مشترك | (هذا PR) |
+| D120 | ١٣ نوفمبر | **حذف المسارات القديمة (العمل ٧):** حُذف كود سجل المراحل الست واعتماد الصوت المنفصل وتوقيع السكريبت القديم ومراجعة المشاهد القديمة وأمرا `voice-review` و`scenes-review`؛ مساراتها في الخادم 410 لكل طلب ولا تقرأ شيئًا. وما بقي منها على جهاز المالك ينقله `npx bal migrate legacy` آليًا مع كل تشغيل للاستوديو إلى `.studio/legacy-archive/` بعد نسخة في `~/balislam-backup/legacy-migration-<الوقت>/`، ولا يصير قرار قديم اعتمادًا. لا تغيير في الشاشات | مشترك | (هذا PR) |
 
 ---
 
@@ -311,8 +312,29 @@ authority. Every production gate asks it:
 | Publish | the exact approved Master **and** an explicit publish permission for those bytes (`requirePublishAllowed`) |
 | Drive handoff (D53) | the same gate (`publishHandoffFacts` → `requirePublishAllowed`), started only by the recorded `grant-publish` or by the owner's «أعد الإرسال إلى Drive» (owner session); the Master bytes are re-hashed while copying and must equal the ledger's approved Master |
 
-`assertWorkflowForEpisode` delegates to these. The six-stage ledger, the episode voice approval, the old script signoff and
-`scene-review.json` are read-only: their write endpoints return **410** and nothing consults them.
+_(D120, work ٧: the legacy code is gone.)_ The six-stage ledger, the episode voice approval, the old script signoff and the old
+scene review have no code left: `src/workflow/`, `src/script/approval.ts`, `src/voice/review.ts` and `src/plan/sceneReview.ts`
+were deleted with their tests, and the CLI commands `voice-review` and `scenes-review` with them. Their routes
+(`/api/episodes/<ep>/workflow`, `script-signoff`, `voice-review`, `scene-review`, and `studio-v2`) answer **410** to every
+method and read nothing; the status route's publish check asks `requirePublishAllowed` directly. What fingerprints still need
+moved verbatim: `sceneHash` → `src/plan/sceneHash.ts` (board and motion fingerprints, unchanged), the ledger's machine key →
+`src/studio/signingKey.ts`, `verifyVideoEvidence` → `src/studio/videoEvidence.ts`. `voice.profileHistory` stays where the
+tones read it (`src/voice/tones.ts`, D104), for fingerprints alone.
+
+**Legacy migration (D120).** `src/studio/legacyMigration.ts` is the only module that knows the old record file names
+(`workflow-approvals.json`, `voice-review.json`, `script-signoff.json`, `scene-review.json`, and the V2/D66 leftovers
+`scene-workflow.v2.json`, `script-approved.v1.json`, each with its `.lock`/`.tmp`). `npx bal migrate legacy [--dry-run]`,
+and the Studio once at every start (`app/server/api.ts`, not inside tests), finds them in every episode of every channel; with
+none it writes nothing. Otherwise it first copies each file byte for byte to
+`~/balislam-backup/legacy-migration-<time>/<channel>/episodes/<episode>/` with `manifest.json` (`BAL_LEGACY_BACKUP_DIR`
+overrides the root) and checks every hash; any failure stops before a file moves. Then it moves (never deletes) each file to
+`<project>/.studio/legacy-archive/<channel>/<episode>/` (ignored, never pushed, protected by fresh start); different bytes
+under an existing name are kept beside it with their hash in the name, identical bytes are not stored twice; and a line goes
+to `migration-log.json`. A Git-tracked record or a symlink is left in place and reported. It imports nothing from the scene
+engine and never writes the unified ledger: an old decision never becomes an approval. The one tracked record on `main`
+(`balislam/001-know-the-truth/scene-review.json`) moved verbatim to `docs/studio/archive/legacy-records/`. Test:
+`tests/legacy-migration.test.ts` (old-format fixtures in `tests/fixtures/legacy-records/`, and the acceptance check that no
+code outside the migration names an old record).
 
 **Scoped invalidation:** each scene's input hash covers only its own content, its own approved board, its own narration
 clip and recitation. A script or storyboard edit re-opens those two decisions, the assembly, the Master and the publish
@@ -489,8 +511,8 @@ The isolated V2 review API is no longer mounted (`/api/studio-v2/*` returns 410)
 
 **Ignored local runtime state.** Only files that are definitely local (signed by the machine key, or bound to local-only
 bytes) are in `.gitignore`, each with its writer: `scene-production.v1.json` + `.lock` (`src/studio/sceneService.ts`,
-`stateFileFor` / `serialized`), `workflow-approvals.json` + `.lock` (`src/workflow/store.ts`), `voice-review.json`
-(bound to `voice/*.mp3`, `src/voice/review.ts`), `previews/.preview-index.lock/` (`src/render/episodePreviews.ts`) and
+`stateFileFor` / `serialized`), `workflow-approvals.json` + `.lock` (legacy, archived by `bal migrate legacy`, D120), `voice-review.json`
+(legacy, archived by `bal migrate legacy`, D120), `previews/.preview-index.lock/` (`src/render/episodePreviews.ts`) and
 every atomic-write `*.tmp` under an episode folder, and (D60) the board record `storyboard.json` (its authority is the
 local signed ledger, whose storyboard fingerprint is this file's generation: inode and ctime; a copy from Git never
 authorizes anything, and pulling one over the owner's file would re-open scenes; it was never tracked; still protected by
@@ -720,6 +742,7 @@ the storyboard or the script again and never locks step ٢.
 | `phase-1-intentional-stillness.md` | تصميم «السكون المقصود» قبل التنفيذ | القاعدة الثانية في `CLAUDE.md` و`src/render/stillness.ts` |
 | `ux-rebuild-v2.md`، `STUDIO_UX_COMPREHENSIVE_AUDIT_2026-11-04.md`، `studio-ui-workspaces-20261107.md` | إعادة هيكلة الواجهة الأولى وتدقيقها | القسم ب، و`docs/studio-interface.md` |
 | `studio-production-stage-contract.md`، `studio-release-candidate-acceptance.md`، `studio-render-isolation-review.md`، `studio-quran-audio-integration-20261107.md`، `studio-storyboard-drive-git-acceptance-20261106.md` | عقود ومرشحات إصدار ٦–٧ نوفمبر (كانت في `docs/`) | القسمان ج وح |
+| `legacy-records/` (D120) | سجلات الاعتماد القديمة التي كانت متتبَّعة في Git، كما هي (مراجعة المشاهد القديمة لحلقة بالإسلام 001) | القسم ح («Legacy migration»)؛ ما كان محليًا على جهاز المالك في `.studio/legacy-archive/` |
 
 وثائق `docs/studio/` الحية غير هذه الخريطة: `channel-production-policies.md` (قواعد القنوات)، و`decisions.md` (حالة القرارات)، و`known-issues.md` و`backlog.md` و`stabilization-brief.md` (مرحلة الاستقرار)، و`notes-inbox.md` (صندوق الملاحظات)، و`storyboard-pdf-review-export.md` (أداة PDF للمراجعة)، و`quran-display-source-evaluation.md` (تقييم مرجعي لا تكامل فيه).
 
@@ -741,7 +764,7 @@ the storyboard or the script again and never locks step ٢.
 - **القواعد تختلف لكل قناة:** `docs/studio/channel-production-policies.md` ثم `docs/<channel>/10-studio-v2-production-rules.md`. لا تُعمّم مشية «بالإسلام» أو صفحات «دفاتر الزمن» أو حبر «زبدة الكتب» على القنوات الأخرى.
 - المراجعة البشرية لا ينوب عنها اختبار أو بصمة؛ السجلات التقنية والتحقق الأمني تعمل في الخلفية. لا يُنشر إلا Master نفسه بعد موافقة المالك.
 - تظل العقود التاريخية للمراحل الست محفوظة لأغراض الترحيل، ولا تُعامل قراراتها آليًا بوصفها اعتمادًا جديدًا.
-- **محرك اعتمادات واحد** (توحيد ٨ نوفمبر): سجل «إنتاج المشاهد» (`src/studio/sceneProduction.ts` و`sceneService.ts`) هو السلطة الوحيدة: اعتماد السكريبت ← اعتماد الستوري بورد (معًا بزر «اعتمد التجهيز»، سجلان منفصلان) ← كل مشهد بالصوت والصورة بالترتيب ← اعتماد التجميع بعد مشاهدته 1× وفحص كل وصلة بين مشهدين ← اعتماد Master (الملف نفسه) ← إذن النشر. ثلاثة قرارات مستقلة بعد المشاهد. سجل المراحل الست واعتماد الصوت المنفصل وتوقيع السكريبت القديم و`scene-review.json` للقراءة فقط، ولا تمنح ولا تمنع.
+- **محرك اعتمادات واحد** (توحيد ٨ نوفمبر): سجل «إنتاج المشاهد» (`src/studio/sceneProduction.ts` و`sceneService.ts`) هو السلطة الوحيدة: اعتماد السكريبت ← اعتماد الستوري بورد (معًا بزر «اعتمد التجهيز»، سجلان منفصلان) ← كل مشهد بالصوت والصورة بالترتيب ← اعتماد التجميع بعد مشاهدته 1× وفحص كل وصلة بين مشهدين ← اعتماد Master (الملف نفسه) ← إذن النشر. ثلاثة قرارات مستقلة بعد المشاهد. سجل المراحل الست واعتماد الصوت المنفصل وتوقيع السكريبت القديم و`scene-review.json` للقراءة فقط، ولا تمنح ولا تمنع. _(D120: حُذف كودها، وأرشف `bal migrate legacy` بياناتها؛ القسم ح.)_
 - بقرار صاحب المشروع (٩ نوفمبر) لا كلمة مرور في الاستوديو: كل طلب من الاستوديو على جهازه (127.0.0.1 ومن الصفحة نفسها) هو المالك؛ السجل يبقى موقّعًا بمفتاح الجهاز، وكل البوابات الأخرى كما هي. (`assertSceneOwner` في `src/studio/sceneService.ts` و`src/studio/ownerContext.ts`؛ الطلب من عنوان آخر أو موقع آخر 403، وسطر الأوامر على جهازه بلا كلمة مرور.) تعديل مشهد يعيد فتحه وحده، ويلغي التجميع وMaster والإذن.
 - **الدمج في main** (قرار صاحب المشروع، ٨ نوفمبر): وافق على دمج الاستوديو الموحد (#93) في `main` والنشر مباشرة؛ التطوير بعده يُراجَع ويُدمج في `main` مع بقاء بوابة الرفع إلزامية. وما زال ممنوعًا استعمال مفاتيح الخدمة (توليد الصوت) أو نشر أي فيديو إلا بإذن صريح منه في كل مرة.
 - **الصوت جملةً جملة** (قرار صاحب المشروع، ٩ نوفمبر، D50): «الجمل» تحت معاينة المشهد في الخطوة ٢ (وكل الحلقة في «أدوات وتفاصيل»): التعليق مقسوم آليًا، ولكل جملة نص يُعدَّل ونبرة ووقفة و«ولّد» لها وحدها ببوابات التشكيل والاعتماد نفسها؛ صوت المشهد يُركَّب من جمله في `voice/index.json` نفسه، وتعديل النص يكتب نص مشهده وحده فيُعاد فتحه وحده. الآية «ارفع التلاوة» ولا تُولَّد أبدًا. لا يُحذف تسجيل مدفوع (`takes` و`voice/superseded/`).

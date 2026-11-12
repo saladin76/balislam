@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { verifyVideoEvidence } from "../src/workflow/videoEvidence";
+import { verifyVideoEvidence } from "../src/studio/videoEvidence";
 
 const roots: string[] = [];
 const scratch = async () => {

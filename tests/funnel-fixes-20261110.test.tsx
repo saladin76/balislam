@@ -90,7 +90,7 @@ describe("M3: failures expire when the scene succeeds or its inputs change", () 
 
 describe("M7 / owner decision 10 Nov: citations never block; the Master job reads true", () => {
   it("no citation gate in Master, the legacy publish stage or the script signoff", () => {
-    for (const f of ["src/render/episode.ts", "src/workflow/server.ts", "src/script/approval.ts"]) {
+    for (const f of ["src/render/episode.ts"]) {
       const code = src(f);
       expect(code, f).not.toMatch(/reviewSummary\(/);
       expect(code, f).not.toContain("توثيق الاستشهادات غير مكتمل");

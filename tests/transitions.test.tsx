@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { easeOf, EASES, parseTransition, transitionIssues, TRANSITION_KINDS, carryReady } from "../src/plan/transitions";
 import type { Plan, PlanScene } from "../src/plan/types";
 import { planIssues } from "../src/plan/validate";
-import { sceneHash as sceneFingerprint } from "../src/plan/sceneReview";
+import { sceneHash as sceneFingerprint } from "../src/plan/sceneHash";
 import { fitFrames, locomote, withCarry } from "../src/remotion/illus/gait";
 
 let F = 0;

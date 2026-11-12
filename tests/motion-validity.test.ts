@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { staleMotionScenes, auditNeedsJustification } from "../src/render/motionValidity";
-import { sceneHash } from "../src/plan/sceneReview";
+import { sceneHash } from "../src/plan/sceneHash";
 import type { Plan, PlanScene } from "../src/plan/types";
 import type { StoryboardMotion } from "../src/render/storyboardMotion";
 

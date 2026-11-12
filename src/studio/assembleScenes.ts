@@ -11,7 +11,7 @@ import { promisify } from "node:util";
 import { writeFile, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { putEpisodePreview } from "../render/episodePreviews";
-import { verifyVideoEvidence } from "../workflow/videoEvidence";
+import { verifyVideoEvidence } from "./videoEvidence";
 import { approvedSceneCutsForAssembly, currentSceneCutsForPreFinal } from "./sceneService";
 
 const exec = promisify(execFile);
