@@ -52,4 +52,13 @@ describe("KI-051: regenerating the plan keeps an unchanged scene byte for byte",
     expect(after[2], "scene 3 changed").not.toBe(before[2]);
     expect(next.chapters[0]!.scenes[0]).toMatchObject({ tone: "intimate", edited: true });
   });
+
+  it("the closing card the owner edited (its length) stays as approved in a channel with an outro (زبدة الكتب)", () => {
+    const channel = loadChannel("zubdat-alkutub");
+    const first = generatePlan(parseScript(script("فَالسَّعْيُ يَصْنَعُ الفَرْقَ.")), null, {}, channel);
+    const owner = { ...first, chapters: first.chapters.map((c) => ({ ...c, scenes: c.scenes.map((s) => s.id === "c1-end" ? { ...s, durationSec: 4, edited: true } : s) })) } as typeof first;
+    const before = JSON.stringify(owner.chapters[0]!.scenes.at(-1));
+    const next = generatePlan(parseScript(script("فَالسَّعْيُ الصَّادِقُ يَصْنَعُ الفَرْقَ.")), owner, {}, channel);
+    expect(JSON.stringify(next.chapters[0]!.scenes.at(-1)), "the closing card is byte for byte the approved one").toBe(before);
+  });
 });
