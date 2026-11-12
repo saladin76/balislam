@@ -85,5 +85,7 @@ describe("rules of hooks: no hook after an early return (D89, the white page)", 
     const all = [...files(path.join(ROOT, "app", "src")), ...files(path.join(ROOT, "src"))];
     expect(all.length).toBeGreaterThan(50);
     expect(all.flatMap((f) => hooksAfterEarlyReturn(f))).toEqual([]);
-  });
+    // فحص ساكن يحلّل كل ملفات الاستوديو والمحرك (لا شبكة ولا عمليات): نحو 2.4 ث وحده محليًا، ونحو 7.4 ث للملف
+    // على خادم CI مع بقية الاختبارات، وكلفته تكبر بالكود. المهلة 30 ث تتسع لأربعة أضعاف المرصود (033).
+  }, 30_000);
 });
