@@ -43,7 +43,11 @@ import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
 import { LabsTab } from "./tabs/LabsTab";
 import { TechReviewsTab } from "./tabs/TechReviewsTab";
-import { ChannelProvider } from "../../src/channel/context";
+import { ChannelProvider, useChannel } from "../../src/channel/context";
+import { channelPlaceholders } from "../../src/channel/placeholders";
+import { recitationStageNeeded } from "../../src/quran/citation";
+import { shotWordIssues } from "../../src/plan/shotWords";
+import { hasBasmala } from "../../src/voice/basmala";
 import { bootPlace, navigationKind, parseStudioHash, studioHash } from "./shell/route";
 import { StudioErrorBoundary } from "./shell/ErrorBoundary";
 
@@ -379,6 +383,12 @@ export const App: React.FC = () => {
   const here = inEpisode ? stepOf(tab as StepTab) : -1;
   const go = (next: Tab) => { if (next !== tab && !confirmLeaveScript()) return; setTab(next); };
   const fixCount = w?.scenes.filter((x) => x.status === "needs_revision").length ?? 0;
+  // D68: a written-citation channel has no recitations to upload, unless the episode holds the basmala (the owner's own recording).
+  const planScenesAll = plan ? plan.chapters.flatMap((c) => c.scenes) : [];
+  // D-5/M4: designed drawings made for an earlier text, for «قبل أن تعتمد» (the scene shows words only until updated)
+  // (no hook here: after the loading return; shotWordIssues memoizes each scene itself)
+  const shotMismatch = plan ? shotWordIssues(plan, channel.name).map((i) => i.sceneId) : [];
+  const recStage = recitationStageNeeded(channel, planScenesAll, planScenesAll.some((x) => hasBasmala(x.narration)));
   const autoFinal: FinalView = !w ? "recitations" : (w.progress.recitationPending?.length ?? 0) > 0 || !w.progress.canAssemble ? "recitations" : !w.progress.assemblyApproved ? "seams" : "master";
   const final: FinalView = finalView ?? autoFinal;
   const views: HeaderView[] = tab === "home" || tab === "library" || (tab === "guide" && hasGuide) ? [
@@ -394,7 +404,8 @@ export const App: React.FC = () => {
     { id: "voice", label: "متتابعة", sub: plan ? duration(episodeLength(plan, media, config.video.fps).seconds) : undefined, current: tab === "voice", onSelect: () => go("voice") },
     { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
   ] : here === 2 && done[0] ? [
-    { id: "recitations", label: "التلاوات", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },
+    // D68: without recitations the same view holds only the watch-only pre-final preview, so it is named for it.
+    { id: "recitations", label: recStage ? "التلاوات" : "قبل النهائية", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },
     { id: "seams", label: "الوصلات", sub: w?.assembly && w.seams.length ? String(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
     { id: "master", label: "النسخة الأساسية", sub: "4K", current: final === "master", onSelect: () => setFinalView("master") },
   ] : [];
@@ -459,6 +470,7 @@ export const App: React.FC = () => {
             channelId={channelId}
             tab={tab as StepTab}
             scriptErrors={check.issues.filter((i) => i.level === "error")}
+            shotMismatch={shotMismatch}
             onScriptLine={(line) => {
               if (tab === "script") { scriptRef.current?.goToLine(line); return; }
               if (!confirmLeaveScript()) return;
@@ -622,7 +634,7 @@ export const App: React.FC = () => {
         ) : lockedStep(tab as StepTab, ledger?.w ?? null) ? (() => {
           const n = lockedStep(tab as StepTab, ledger!.w)!;
           const next = nextAction(ledger!.w);
-          const verses = plan.chapters.flatMap((c) => c.scenes).filter((x) => x.template === "verse-card" && x.ayahKey).length;
+          const verses = recStage;
           return (
             <LockedStep step={n} {...LOCK_COPY[n]} action={{ label: next.label, onClick: () => { if (confirmLeaveScript()) setTab(next.tab); } }}
               nowNote={n === 2 && verses ? "التلاوات تُضاف آخرًا، ويمكنك تسجيل الآيات ورفعها من الآن؛ لا يُعتمد شيء غيرها هنا قبل أوانه." : undefined}
@@ -802,6 +814,7 @@ export const App: React.FC = () => {
 };
 
 const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; series?: [string, string][]; initialSeries?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, initialTitle, initialDomain, series = [], initialSeries, onClose, onCreated }) => {
+  const ph = channelPlaceholders(useChannel().id);
   const [inSeries, setInSeries] = useState(initialSeries && series.some(([id]) => id === initialSeries) ? initialSeries : GENERAL_SLUG);
   const [episode, setEpisode] = useState(suggested);
   const [slug, setSlug] = useState("");
@@ -823,10 +836,10 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
       >
         <div className="modal-head"><h3 id="new-episode-title">حلقة جديدة</h3></div>
         <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label className="field"><span>العنوان (سؤال)</span><input id="new-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="لماذا نؤجّل ما نعرف أنه مهم؟" required /></label>
+          <label className="field"><span>العنوان (سؤال)</span><input id="new-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={ph.episodeTitle} required /></label>
           <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10 }}>
             <label className="field"><span>الرقم</span><input id="new-number" type="text" value={episode} onChange={(e) => setEpisode(e.target.value)} pattern="\d{3}" required /></label>
-            <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="new-slug" type="text" dir="ltr" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="procrastination" pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
+            <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="new-slug" type="text" dir="ltr" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder={ph.episodeSlug} pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
           </div>
           {series.length > 1 ? (
             <label className="field">

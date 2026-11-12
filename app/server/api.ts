@@ -536,6 +536,12 @@ export const balApi = (): Plugin => ({
             try {
               assertSceneOwner();
               const key = String(body?.key ?? "");
+              // D68: a written-citation channel takes no verse recitation (the card is silent text); the basmala stays.
+              if (key !== "basmala") {
+                const { versesAreCitations } = await load("/src/quran/citation.ts");
+                const { loadChannel } = await load("/src/channel/index.ts");
+                if (versesAreCitations(loadChannel())) return send(res, 409, { error: "الآية في هذه القناة استشهاد مكتوب صامت بلا تلاوة؛ لا يُرفع لها تسجيل." });
+              }
               if (body?.action === "upload") {
                 const data = Buffer.from(String(body.data ?? "").replace(/^data:[^,]+,/, ""), "base64");
                 const candidate = await manual.prepareOwnRecitation(ep, key, String(body.name ?? ""), data);

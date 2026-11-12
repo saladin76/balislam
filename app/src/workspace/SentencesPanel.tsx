@@ -6,6 +6,8 @@ import type { EpisodeMedia } from "../../../src/plan/media";
 import { tones, toneIds, isTone } from "../../../src/voice/tones";
 import { dropsShadda, isNoopSay, phoneticVariants } from "../../../src/voice/pronunciationRules";
 import { RecitationItem, recitationUrl } from "./RecitationItem";
+import { useChannel } from "../../../src/channel/context";
+import { versesAreCitations } from "../../../src/quran/citation";
 import "./sentences.css";
 import { Icon } from "../ui/icons";
 import { Num } from "../ui/format";
@@ -102,6 +104,8 @@ export const reopenTarget = (next: SentencesRead, sceneId: string, k: number, i:
  * كل فعل يعمل مباشرة بالضغط والخادم يتحقق (بلا كلمة مرور، قرار ٩ نوفمبر)؛ صوت المشهد يُركَّب من جمله حين تكتمل، فيعيد السجل فتح ذلك المشهد وحده.
  */
 export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId, onBeforeEdit, onPlanReplaced, onMediaChange, onChanged, hasVoiceKeys, onOpenSettings, variant = "list" }) => {
+  /** D68: a channel whose verses are written citations shows the verse as a silent card, never «ارفع التلاوة». */
+  const cited = versesAreCitations(useChannel());
   const [read, setRead] = useState<SentencesRead | null>(null);
   const [recs, setRecs] = useState<OwnRecitationsRead | null>(null);
   const [error, setError] = useState("");
@@ -142,7 +146,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const load = async () => {
     const r = await api.sentences(episodeId, channelId);
     setRead(r);
-    if (r.scenes.some((s) => s.verse || s.rows.some((x) => x.kind === "basmala"))) setRecs(await api.ownRecitations(episodeId, channelId).catch(() => null));
+    if (r.scenes.some((s) => (s.verse && !cited) || s.rows.some((x) => x.kind === "basmala"))) setRecs(await api.ownRecitations(episodeId, channelId).catch(() => null));
   };
   useEffect(() => {
     setRead(null); setError(""); setMsg(""); setDrafts({}); setAdding(null); setFixing(null); setWhy(null); setFixed(null); setCur(null); setEditing(null);
@@ -632,11 +636,15 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       return (
         <section key={s.id} className="sv-scene is-verse" aria-label={`المشهد ${ar(s.index)}: آية`}>
           {!sceneId ? <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>آية — {v.reference}</span></h4> : null}
+          {cited ? (
+            <p className="sp-hint sv-citation" role="note">استشهاد مكتوب: تظهر الآية بنصها ومرجعها صامتة، بلا تلاوة ولا تسجيل (قرار القناة). لا يولَّد القرآن بالصوت المستنسخ أبدًا.</p>
+          ) : (<>
           <ul className="pf-rec-list sv-verse">
             <RecitationItem compact episodeId={episodeId} channelId={channelId} ayahKey={v.ayahKey} scenes={[s.id]} recs={recs}
               onChanged={async () => { await load(); onChanged?.(); }} />
           </ul>
           <p className="sp-hint">تلاوة بشرية ترفعها بنفسك؛ لا يولَّد القرآن بالصوت المستنسخ أبدًا. اعتمادها يعيد فتح مشهدها وحده.</p>
+          </>)}
         </section>
       );
     }

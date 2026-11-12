@@ -3,6 +3,8 @@ import { showsDivision } from "../../../src/script/divisions";
 import type { PlanScene } from "../../../src/plan/types";
 import type { ReviewItem } from "../api";
 import { Dialog } from "../ui/Dialog";
+import { useChannel } from "../../../src/channel/context";
+import { verseRoleAr } from "../../../src/quran/citation";
 import { duration, num, sceneName, verseRef } from "../ui/format";
 
 export type BoardShot = { s: PlanScene; chapter: { number: number; title: string }; from: number; d: number };
@@ -31,6 +33,7 @@ export const BoardViewer: React.FC<{
   elements: (s: PlanScene) => string[];
   state?: "approved" | "changed" | string;
 }> = ({ shots, index, order, fps, citations, lineEnd, onIndex, onClose, onEdit, frame, onScreen, elements, state }) => {
+  const channel = useChannel();
   const shot = shots[index]!;
   const { s } = shot;
   const prev = index > 0 ? index - 1 : null;
@@ -67,7 +70,7 @@ export const BoardViewer: React.FC<{
           <div className="bv-side">
             <section>
               <h4>التعليق</h4>
-              <p className="bv-said">{s.narration || (s.template === "verse-card" ? "آية بلا تعليق: تُتلى بصوت القارئ." : "بلا تعليق صوتي")}</p>
+              <p className="bv-said">{s.narration || (s.template === "verse-card" ? verseRoleAr(channel) : "بلا تعليق صوتي")}</p>
             </section>
             {s.template === "verse-card" && (s.ayahKey || s.props.reference) ? (
               <section><h4>الآية</h4><p>{verseRef(s.ayahKey ?? s.props.reference)}</p></section>

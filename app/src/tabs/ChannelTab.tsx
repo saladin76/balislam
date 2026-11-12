@@ -8,6 +8,7 @@ import { ChannelBrand } from "./ChannelBrand";
 import { ChannelIdentity } from "./ChannelIdentity";
 import { approvedIdentity, reservedEmblems } from "../../../brand/identity/approved";
 import type { Identity } from "../../../brand/identity/index";
+import { versesAreCitations } from "../../../src/quran/citation";
 
 const SLOTS: ChannelDomain["theme"][] = ["paper", "family", "night", "warm"];
 
@@ -90,7 +91,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         <a href="#channel-basics">الأساسيات</a>
         <a href="#channel-domains">المجالات</a>
         <a href="#channel-rules">قواعد المحتوى</a>
-        {c.rules.quran && <a href="#channel-quran">القرآن والتلاوات</a>}
+        {c.rules.quran && <a href="#channel-quran">{versesAreCitations(c) ? "القرآن" : "القرآن والتلاوات"}</a>}
         <a href="#channel-youtube">النشر</a>
         <a href="#channel-brand">بصمة القناة</a>
         <a href="#channel-new">قناة جديدة</a>
@@ -177,8 +178,12 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         </section>
 
         {c.rules.quran && <section id="channel-quran" className="group channel-settings-section channel-settings-quran ch-wide">
-          <h3>الآيات والتلاوات</h3>
-          <p className="help">اكتب الآيات وأرقامها في سكريبت الحلقة. أرفق تسجيل التلاوة البشرية الذي تختاره مع ملفات الحلقة عبر Claude، وسيراجعه Studio مع المشهد بالصوت والصورة. لا توجد خدمات اختيار أو جلب قرّاء.</p>
+          <h3>{versesAreCitations(c) ? "الآيات" : "الآيات والتلاوات"}</h3>
+          {versesAreCitations(c) ? (
+            <p className="help">الآية في هذه القناة استشهاد مكتوب صامت: يقول الراوي «كما جاء في سورة كذا»، وتظهر بطاقة الآية بنصها ومرجعها بلا تلاوة. اكتب نص كل آية ومرجعها في سكريبت الحلقة. لا يُرفع تسجيل للآيات، ولا يُجلب القرآن ولا يُولَّد بالصوت.</p>
+          ) : (
+            <p className="help">اكتب الآيات وأرقامها في سكريبت الحلقة. سجّل التلاوة بنفسك وارفعها من الاستوديو: في «الجمل» تحت مشهد الآية، أو في الخطوة ٣ «التلاوات». يُحفظ الأصل كما سُجّل بجوار نسخة معالجة، وتعتمدها بعد الاستماع. لا جلب ولا توليد للقرآن.</p>
+          )}
         </section>}
 
         <section id="channel-youtube" className="group channel-settings-section">

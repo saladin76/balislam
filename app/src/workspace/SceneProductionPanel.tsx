@@ -6,6 +6,7 @@ import { channelProductionProfile } from "../../../src/channel/productionRules";
 import type { Plan } from "../../../src/plan/types";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { planIssues } from "../../../src/plan/validate";
+import { versesAreCitations } from "../../../src/quran/citation";
 import { showsDivision } from "../../../src/script/divisions";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { inheritedToneLabel, tones, toneIds } from "../../../src/voice/tones";
@@ -825,7 +826,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
       <section className="scene-first-panel sp" aria-label="النسخة الأساسية">
         <div className="sp-row">
           <div><h3>النسخة الأساسية تُصنع بعد الوصلات</h3><p className="sp-hint">{data.assembly ? "استمع لكل وصلة بين مشهدين في الحلقة المجمعة واعتمدها؛ بعدها تُصنع النسخة الأساسية 4K هنا." : "تُجمع المشاهد المعتمدة أولًا في نسخة واحدة وتُسمع وصلاتها."}</p></div>
-          <div className="sp-actions"><button className="btn primary" type="button" onClick={() => onFinalView?.(data.progress.canAssemble ? "seams" : "recitations")}>{data.progress.canAssemble ? "إلى الوصلات" : "إلى التلاوات"}</button></div>
+          <div className="sp-actions"><button className="btn primary" type="button" onClick={() => onFinalView?.(data.progress.canAssemble ? "seams" : "recitations")}>{data.progress.canAssemble ? "إلى الوصلات" : versesAreCitations(channel) ? "إلى المعاينة قبل النهائية" : "إلى التلاوات"}</button></div>
         </div>
       </section>
     );
