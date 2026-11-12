@@ -417,6 +417,8 @@ export const api = {
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean; restart?: boolean; conflicts?: UpdateConflict[] }>("/api/update", { method: "POST", json: {} }),
   /** D101: حالة «كل الأماكن نسخة واحدة» (الحفظ الآلي في main واستقبال التحديثات) */
   syncStatus: () => call<SyncStatus>("/api/sync"),
+  /** D107: «ملاحظات لم تُرسل: N» (src/studio/notesSync.ts studioNotesStatus) */
+  notesStatus: () => call<NotesStatus>("/api/notes/status"),
   syncNow: () => call<SyncStatus>("/api/sync", { method: "POST", json: {} }),
   restartStudio: () => call<{ ok: boolean; message: string }>("/api/sync/restart", { method: "POST", json: {} }),
   /** D95: «أبقِ نسختي» أو «خذ الجديد» لملف واحد تعارض فيه تعديل المالك مع التحديث */
@@ -462,6 +464,14 @@ export const api = {
   setStoryboard: (id: string, action: "approve", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs").then((js) => js.map(ownerJob)),
   videoUrl: (episode: string, file: string) => withChannel(`/api/episodes/${episode}/video/${encodeURIComponent(file)}`),
+};
+
+/** D107: src/studio/notesSync.ts NotesStatus */
+export type NotesStatus = {
+  pending: number;
+  reason: "offline" | "rejected" | "auth" | "not-owner" | "no-repo" | "no-remote" | "error" | null;
+  detail: string | null; lastAttemptAt: string | null; sending: boolean;
+  where: { channel: string; episode: string; count: number }[];
 };
 
 /** D101: app/server/contentSync.ts SyncState */
