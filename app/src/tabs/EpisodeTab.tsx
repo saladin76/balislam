@@ -1,5 +1,5 @@
 import { OverlayToggles } from "../ui/Overlays";
-import { SCENES, WORDS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
+import { CLIPS, LETTERS, SCENES, WORDS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
 const arNumE = (n: number) => n.toLocaleString("ar-EG");
 import { resolveOverlays } from "../../../brand/identity/index";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -636,7 +636,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
 };
 
 /** صوت الحلقة كلها: تقدير التكلفة أولًا، ثم التوليد بتأكيد. */
-export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, hasKeys, onMedia }) => {
+export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void; /** scene order, to name scenes «المشهد ٣» */ order?: string[] }> = ({ episodeId, hasKeys, onMedia, order = [] }) => {
   const [est, setEst] = useState<VoiceReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -681,24 +681,28 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
               }
             }}
           >
-            {busy ? "جارٍ التوليد…" : `ولّد ${est.toGenerate.length} مقطعًا`}
+            {busy ? "جارٍ التوليد…" : `ولّد ${countAr(est.toGenerate.length, CLIPS)}`}
           </button>
         ) : null}
       </div>
       {est ? (
         <div className="help" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {est.toGenerate.length === 0 ? `كل المشاهد (${est.total}) لها صوت مطابق.` : `للتوليد ${est.toGenerate.length} من ${est.total} مشهدًا: ${est.chars} حرفًا ≈ ${est.credits} رصيد ElevenLabs. المحفوظ: ${est.cached.length}.`}
+          {/* QA 12 Nov (dafatir M10): this tool counts the whole-scene clips only; scenes voiced sentence by sentence are counted in «الجمل» */}
+          {est.toGenerate.length === 0 ? `لا مقطع يحتاج توليدًا بهذه الأداة (${countAr(est.total, CLIPS, "لا مقاطع")} محفوظة).` : `للتوليد ${arNumE(est.toGenerate.length)} من ${countAr(est.total, CLIPS)}: ${countAr(est.chars, LETTERS)} ≈ ${arNumE(est.credits)} من رصيد الصوت. المحفوظ: ${arNumE(est.cached.length)}.`}
+          {managedOf(est) ? ` المشاهد المسجّلة جملةً جملة (${countAr(managedOf(est), SCENES)}) تُفحص وتُولَّد في «الجمل» تحت كل مشهد، ولا تدخل هذا العدّ ولا نسبة التشكيل أدناه.` : ""}
           {!hasKeys ? <> (أضف مفتاح الصوت من <KeysLink /> لتفعيل التوليد)</> : ""}
         </div>
       ) : null}
-      {est?.tashkeel ? <TashkeelBox t={est.tashkeel} /> : null}
+      {est?.tashkeel ? <TashkeelBox t={est.tashkeel} order={order} /> : null}
       {msg ? <div className="help">{msg}</div> : null}
     </div>
   );
 };
 
+/** Scenes voiced sentence by sentence, which the whole-scene voice tool does not count (generate.ts `skipped`). */
+const managedOf = (est: VoiceReport | null): number => (est?.tashkeel as unknown as { skipped?: { managedScenes?: number } } | undefined)?.skipped?.managedScenes ?? 0;
 /** مدقق التشكيل: نسبة التغطية، والكلمات التي ستُنطق بلا تشكيل، والكلمات التي لها أكثر من نطق. */
-const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
+const TashkeelBox: React.FC<{ t: TashkeelReport; order: string[] }> = ({ t, order }) => {
   const pct = Math.round(t.coverage * 1000) / 10;
   const color = t.ok ? "var(--ok)" : "var(--err)";
   return (
@@ -710,20 +714,20 @@ const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
       </span>
       {t.gaps.length ? (
         <details open={!t.ok}>
-          <summary>كلمات ستُنطق بلا تشكيل ({t.words - t.covered})</summary>
+          <summary>كلمات ستُنطق بلا تشكيل ({arNumE(t.words - t.covered)})</summary>
           {t.gaps.map((g, i) => (
             <div key={`${g.sceneId}-${i}`}>
-              <b dir="ltr">{g.sceneId}</b>: {g.words.join("، ")}
+              <b title={g.sceneId}>{sceneName(order, g.sceneId)}</b>: {g.words.join("، ")}
             </div>
           ))}
         </details>
       ) : null}
       {t.ambiguous.length ? (
         <details>
-          <summary>كلمات لها أكثر من نطق في الملف ({t.ambiguous.length}) — راجع أن كل موضع بنطقه الصحيح</summary>
+          <summary>كلمات لها أكثر من نطق في الملف ({arNumE(t.ambiguous.length)}) — راجع أن كل موضع بنطقه الصحيح</summary>
           {t.ambiguous.map((a) => (
             <div key={a.word}>
-              {a.forms.join(" / ")} ← <span dir="ltr">{a.scenes.join(", ")}</span>
+              {a.forms.join(" / ")} ← <span title={a.scenes.join(", ")}>{a.scenes.map((id) => sceneName(order, id)).join("، ")}</span>
             </div>
           ))}
         </details>

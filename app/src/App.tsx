@@ -656,7 +656,8 @@ export const App: React.FC = () => {
           <div className="empty-state"><h2>جارٍ قراءة حالة الحلقة…</h2></div>
         ) : lockedStep(tab as StepTab, ledger?.w ?? null) ? (() => {
           const n = lockedStep(tab as StepTab, ledger!.w)!;
-          const next = nextAction(ledger!.w);
+          // QA 12 Nov (balislam 15): the locked «٤ النشر» points to step ٣ only (docs/studio-interface.md)
+          const next = n === 3 ? { label: "إلى النسخة النهائية", tab: "review" as const } : nextAction(ledger!.w);
           const verses = recStage;
           return (
             <LockedStep step={n} {...LOCK_COPY[n]} action={{ label: next.label, onClick: () => { if (confirmLeaveScript()) setTab(next.tab); } }}
@@ -827,7 +828,7 @@ export const App: React.FC = () => {
             }}
           />
         ) : null}
-        {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
+        {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role={toast.err ? "alert" : "status"} title="انقر للإغلاق" onClick={() => setToast(null)}>{toast.msg}</div> : null}
         {moveOpen && seriesData && epId ? (
           <MoveEpisodesDialog episodes={[epId]} current={epSeries || GENERAL_SLUG} data={seriesData} onClose={() => setMoveOpen(false)}
             onPick={async (to) => { await flushPlan(); await epMover.move(to, [epId]); setMoveOpen(false); }} />

@@ -61,7 +61,7 @@ export const BoardViewer: React.FC<{
               ? <p className="bv-eyebrow">الفصل {num(shot.chapter.number)}{shot.chapter.title ? ` — ${shot.chapter.title}` : ""}</p> : null}
             <h3 id="board-title" title={s.id}>{sceneName(order, s.id)} <span className="bv-of">من {num(shots.length)}</span></h3>
           </div>
-          <span className="bv-time">{duration(shot.from / fps)} — {num(shot.d / fps, 1)} ث</span>
+          <span className="bv-time">{duration(Math.floor(shot.from / fps))} — {num(shot.d / fps, 1)} ث</span>
           {state === "approved" ? <span className="s12-mark ok">معتمد</span> : state === "changed" ? <span className="s12-mark warn">تغيّر بعد الاعتماد</span> : null}
           <button type="button" className="bv-close" aria-label="إغلاق" onClick={onClose}>×</button>
         </header>

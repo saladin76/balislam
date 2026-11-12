@@ -6,6 +6,7 @@ import { VoiceBox } from "../tabs/EpisodeTab";
 import { narrationReviewPlaylist } from "./reviewPlaylist";
 import { Hint, More, Stage } from "../shell/Screen";
 import "../shell/screens-s3.css";
+import { CLIPS, countAr } from "../../../src/i18n/count";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
@@ -26,8 +27,11 @@ export const VoiceWorkspaceTab: React.FC<{
       state: !media.voice[scene.id] ? "missing" : media.voice[scene.id]?.text === scene.narration.trim() ? "ready" : "stale",
     })),
   ), [plan, media]);
-  const ready = scenes.filter((s) => s.state === "ready").length;
   const playlist = useMemo(() => narrationReviewPlaylist(scenes.map(({ scene }) => scene), media.voice), [scenes, media.voice]);
+  // QA 12 Nov (dafatir M10): one count — a clip is «مطابق» only when it is also playable here (the same list as «استمع»)
+  const playable = useMemo(() => new Set(playlist.map((x) => x.id)), [playlist]);
+  const ready = playable.size;
+  const order = useMemo(() => plan.chapters.flatMap((c) => c.scenes.map((s) => s.id)), [plan]);
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [playlistComplete, setPlaylistComplete] = useState(false);
   const [playerError, setPlayerError] = useState("");
@@ -55,14 +59,14 @@ export const VoiceWorkspaceTab: React.FC<{
   };
   const clipUrl = (file: string) => `/api/episodes/${encodeURIComponent(episodeId)}/media/voice/${encodeURIComponent(file)}?channel=${encodeURIComponent(channelId)}`;
   return (
-    <Stage className="s3-voice" title="صوت الحلقة" meta={`${ar(ready)} من ${ar(scenes.length)} مقطعًا بصوت مطابق`}>
+    <Stage className="s3-voice" title="صوت الحلقة" meta={`${ar(ready)} من ${countAr(scenes.length, CLIPS)} بصوت مطابق`}>
       <Hint>لا اعتماد منفصل للصوت: يُعتمد عند مراجعة المشهد بصوته وصورته.</Hint>
       <div className="s3-voice-play">
         <button type="button" className={`btn${playlist.length ? " primary" : ""}`} disabled={!playlist.length}
           onClick={() => { setPlayerIndex(0); setPlaylistComplete(false); setPlayerError(""); }}>
-          استمع من أول مقطع ({ar(playlist.length)} من {ar(scenes.length)})
+          {playlist.length ? `استمع من أول مقطع (${countAr(playlist.length, CLIPS)})` : "استمع من أول مقطع"}
         </button>
-        {!playlist.length && scenes.length ? <span className="sp-hint">لا مقاطع بعد؛ التوليد في «أدوات وتفاصيل».</span> : null}
+        {!playlist.length && scenes.length ? <span className="sp-hint">لا مقاطع مطابقة تُسمع متتابعة بعد؛ صوت كل مشهد يُولَّد من «الجمل» تحت المشهد في «مشهدًا مشهدًا».</span> : null}
       </div>
       {playingClip && <div className="s3-voice-now" aria-label="مشغل التعليق المتصل">
         <strong>المقطع {ar(playerIndex! + 1)} من {ar(playlist.length)}</strong>
@@ -77,7 +81,7 @@ export const VoiceWorkspaceTab: React.FC<{
       <More>
         <section aria-label="التعليق الصوتي">
           <h3>التعليق الصوتي</h3>
-          <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} />
+          <VoiceBox episodeId={episodeId} hasKeys={hasKeys} onMedia={onMedia} order={order} />
         </section>
         <section aria-label="التلاوة المرفوعة">
           <h3>التلاوة البشرية المرفوعة</h3>
@@ -91,17 +95,17 @@ export const VoiceWorkspaceTab: React.FC<{
             const clip = media.voice[scene.id];
             return (
               <li key={scene.id}>
-                <button type="button" className="s3-clip-row" aria-expanded={open} onClick={() => setSelected(open ? "" : scene.id)} title={plan.chapters.length > 1 ? `الفصل ${ar(Number(chapter))} — ${scene.id}` : scene.id}>
-                  <span className="s3-clip-n">{ar(i + 1)}</span>
+                <button type="button" className="s3-clip-row" aria-expanded={open} onClick={() => setSelected(open ? "" : scene.id)} title={scene.id}>
+                  <span className="s3-clip-n" title={`المشهد ${ar(order.indexOf(scene.id) + 1)}`}>{ar(i + 1)}</span>
                   <span className="s3-clip-text">{scene.narration}</span>
-                  <span className={`s3-clip-st ${state}`}>{state === "ready" ? "صوت مطابق" : state === "stale" ? "صوت قديم" : "بلا صوت"}</span>
+                  <span className={`s3-clip-st ${playable.has(scene.id) ? "ready" : state === "ready" ? "missing" : state}`}>{playable.has(scene.id) ? "صوت مطابق" : state === "stale" ? "صوت قديم" : "بلا صوت"}</span>
                 </button>
                 {open ? (
                   <div className="s3-clip">
-                    {clip?.text === scene.narration.trim() ? (
+                    {playable.has(scene.id) && clip ? (
                       <audio key={selected + ":" + clip.file} controls preload="none" src={clipUrl(clip.file)} />
                     ) : <span className="sp-hint" role="status">لا يوجد ملف صوت مطابق للنص الحالي.</span>}
-                    <button type="button" className="btn ghost small" onClick={() => onOpenScene(scene.id)}>فتح المشهد <span dir="ltr">{scene.id}</span></button>
+                    <button type="button" className="btn ghost small" onClick={() => onOpenScene(scene.id)}>افتح المشهد {ar(order.indexOf(scene.id) + 1)}</button>
                   </div>
                 ) : null}
               </li>

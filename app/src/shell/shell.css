@@ -667,3 +667,6 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
   .ms-pc button { padding: 0 6px; }
   .ms-pc-t { min-width: 0; }
 }
+/* QA 12 Nov (balislam Major 2): the toast sits under the top bar, never over the dock and «اعتمد التجهيز»;
+   a long warning wraps and stays until read (a click closes it). */
+.shell-v3 ~ .toast, .toast { top: 70px; bottom: auto !important; max-width: min(640px, calc(100vw - 32px)); white-space: normal; line-height: 1.7; text-align: start; cursor: pointer; }

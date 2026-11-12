@@ -158,6 +158,8 @@ export const SceneProductionPanel: React.FC<Props> = ({
   // بعد «اعتمد» يُعرض المشهد التالي فورًا، وتبدأ مسودته الجاهزة بالتشغيل
   const [advanced, setAdvanced] = useState(false);
   const [shortsOpen, setShortsOpen] = useState(false);
+  /** dafatir M9: after a tone note or a scene regeneration the sentence rows are read again (their tone and status). */
+  const [sentencesKey, setSentencesKey] = useState(0);
   // «جمل الحلقة كلها» في «أدوات وتفاصيل»: تُفتح بطلب المالك فقط (القائمة طويلة)
   const [allSentences, setAllSentences] = useState(false);
   // التجهيز في الخلفية (يبدأ وحده بعد «اعتمد التجهيز»): يقول تحت المشهد غير الجاهز «يُجهَّز الآن» أو «في الدور»
@@ -390,6 +392,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
       // Never a success line without a real result (QA balislam 3): no key = a dry run, nothing was made.
       const said = voiceResultMessage(r);
       setVoiceMsg(said.text);
+      setSentencesKey((n) => n + 1);
       if (!said.ok) return false;
       await refresh().catch(() => {});
       onUpdated?.();
@@ -413,6 +416,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     // Tone-map episode: the server writes the choice into a new tone-map version for this scene; the plan stays as is.
     const ok = await reviewCurrent("correct-scene", problemNote("tone", at, text), map && toneChoice ? { tone: toneChoice } : undefined);
     if (!ok) return;
+    setSentencesKey((k) => k + 1);
     if (!map) {
       const next: Plan = {
         ...plan,
@@ -531,7 +535,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     const reviewReady = Boolean(isCurrent && scene && ((scene.status === "in_review" && scene.previewSha256) || draftReady));
     const stateText = status === "done" ? (shownServer?.conditional ? "معتمد مشروطًا بالتلاوة" : "معتمد")
       : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "جاهز للمراجعة" : scene?.status === "needs_revision" ? (scene.correction ? "بانتظار التعديل" : "عُدّل؛ يحتاج إنتاجًا جديدًا") : preparing === "now" ? "يُجهَّز الآن" : "المشهد الحالي")
-      : "لاحقًا";
+      : "ينتظر دوره";
     const go = (delta: number) => {
       const i = shownIdx + delta;
       if (i < 0 || i >= order.length) return;
@@ -553,7 +557,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
       else if (e.key === "ArrowRight") { e.preventDefault(); go(-1); }
       else if (e.key === "Enter" && !t?.closest?.("button, a, summary") && isCurrent && reviewReady && !problem) { e.preventDefault(); approveNow(); }
     };
-    const secs = (id: string) => { const x = planScenes.find((y) => y.scene.id === id)?.scene; return x ? Math.max(1, sceneSeconds(x, media?.recitations ? media : undefined)) : 4; };
+    const secs = (id: string) => { const x = planScenes.find((y) => y.scene.id === id)?.scene; return x ? Math.max(1, sceneSeconds(x, media?.voice ? { voice: media.voice, recitations: media.recitations ?? {} } : undefined)) : 4; };
     const fixes = (data?.scenes ?? []).filter((x) => x.status === "needs_revision");
     const nav = {
       prev: <button type="button" className="ms-nv" onClick={() => go(-1)} disabled={shownIdx <= 0} aria-label="المشهد السابق" title="المشهد السابق (→)"><Icon name="chevR" /></button>,
@@ -572,7 +576,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
           ) : null}
           {view === "fix" ? (
             <header className="s3-head">
-              <div className="s3-title"><h2>تحتاج إصلاحًا <span className="s3-of"><Num>{fixes.length}</Num> {fixes.length === 1 ? "مشهد" : "مشاهد"}</span></h2></div>
+              <div className="s3-title"><h2>تحتاج إصلاحًا <span className="s3-of"><Num>{countAr(fixes.length, SCENES, "لا مشاهد")}</Num></span></h2></div>
             </header>
           ) : (
           <header className="s3-head">
@@ -648,7 +652,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
           {hit?.scene.narration.trim() || hit?.scene.template === "verse-card" ? (
             <StudioErrorBoundary scope="screen" compact label="الجمل" resetKey={shownId}>
-            <SentencesPanel variant="paragraph" episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
+            <SentencesPanel key={`sv:${sentencesKey}`} variant="paragraph" episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
               onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
               onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
             </StudioErrorBoundary>
@@ -695,7 +699,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 <button type="button" className="btn" aria-expanded={allSentences} onClick={() => setAllSentences((v) => !v)}>{allSentences ? "أخفِ جمل الحلقة" : "اعرض جمل الحلقة كلها"}</button>
                 {allSentences ? (
                   <StudioErrorBoundary scope="screen" compact label="جمل الحلقة">
-                  <SentencesPanel episodeId={episodeId} channelId={channelId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
+                  <SentencesPanel key={`sv-all:${sentencesKey}`} episodeId={episodeId} channelId={channelId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
                     onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
                     onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
                   </StudioErrorBoundary>
@@ -742,7 +746,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
                 <li key={id} style={{ flex: secs(id) }}>
                   <button type="button" className={`s3-dot is-${st}${ready ? " is-ready" : ""}${verse ? " is-verse" : ""}${id === shownId ? " is-shown" : ""}`} data-now={st === "now" ? "" : undefined}
                     aria-current={id === shownId ? "true" : undefined} onClick={() => openScene(id)}
-                    title={`${sceneName(order, id)} — ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "لاحقًا"}`}>
+                    title={`${sceneName(order, id)} — ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "ينتظر دوره"}`}>
                     {thumb && !verse && Math.abs(i - shownIdx) <= 8 ? thumb(id) : !verse ? <span className="s3-dot-ph" aria-hidden="true" /> : null}
                     <span className="s3-dot-n">{verse ? "آية" : ar(i + 1)}</span>
                   </button>

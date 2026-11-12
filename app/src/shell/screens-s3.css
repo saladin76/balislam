@@ -220,3 +220,10 @@
 /* many scenes: the numbers step aside when a scene's cell is too narrow to hold one */
 .shell-v3 .s3-strip > li { container-type: inline-size; }
 @container (max-width: 24px) { .shell-v3 .s3-dot-n { display: none; } }
+
+/* QA 12 Nov (dafatir minor 3, zubdat D-18): on a non-current scene «إلى المشهد الحالي (١)» covered «٠ من ٤٩ معتمدة».
+   The reason and its button take their own width; the line shrinks (ellipsis) before anything overlaps. */
+.shell-v3 .ms-dock-in .s3-why { flex: 0 1 auto; min-width: 0; }
+.shell-v3 .ms-dock-in .s3-why .ms-dock-text { flex: 1 1 auto; min-width: 0; }
+.shell-v3 .ms-dock-in .s3-why .s3-why-go { flex: none; }
+.shell-v3 .ms-dock-in > .ms-ct { flex: none; }
