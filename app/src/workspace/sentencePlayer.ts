@@ -6,7 +6,10 @@
  * - «شغّل المشهد متتابعًا» قائمة مقاطع بوقفاتها؛ الإيقاف المؤقت يوقف الوقفة بين جملتين أيضًا.
  * - تشغيل أي مقطع يوقف كل صوت أو فيديو آخر في الصفحة (معاينة المشهد مثلًا)، وتشغيل أي وسيط آخر يوقفه.
  * - لكل تشغيل مالك (لوحة الجمل التي بدأته): تغيير المشهد أو إغلاق اللوحة يوقف ما بدأته وحده.
+ * - D105: يُطلب من مشغّل المعاينة نفسه أن يتوقف (لا عنصر صوته فقط)، فلا يعيد تشغيل صوته فيقطع الجملة؛ ووسيط
+ *   صامت (معاينة مكتومة) يبدأ لا يقطع الجملة، فهو لا يُسمع.
  */
+import { requestSoloAudio } from "../ui/soloAudio";
 
 export type Clip = {
   /** معرّف الجملة (أو المشهد) الذي يُبرز أثناء تشغيله */
@@ -128,6 +131,8 @@ export const createSentencePlayer = (deps: PlayerDeps = {}) => {
 
   const pauseOthers = () => {
     if (!doc) return;
+    // المشغّل نفسه أولًا: Remotion Player الذي يبقى «يعمل» يعيد تشغيل عنصر صوته فور إيقافه (D105)
+    requestSoloAudio(doc);
     doc.querySelectorAll<HTMLMediaElement>("audio, video").forEach((el) => {
       if (el !== (audio as unknown) && !el.paused) { try { el.pause(); } catch { /* ignore */ } }
     });
@@ -188,7 +193,13 @@ export const createSentencePlayer = (deps: PlayerDeps = {}) => {
   const toggle = () => { if (state?.paused) resume(); else pause(); };
 
   // أي وسيط آخر في الصفحة يبدأ (معاينة المشهد، تلاوة…) يوقف الجملة
-  const onAnyPlay = (e: Event) => { if (state && e.target !== (audio as unknown)) stop(); };
+  // (D105) إلا وسيطًا صامتًا: معاينة مكتومة تعمل لا تُسمع، فلا تقطع الجملة
+  const onAnyPlay = (e: Event) => {
+    if (!state || e.target === (audio as unknown)) return;
+    const m = e.target as Partial<HTMLMediaElement> | null;
+    if (m && (m.muted === true || m.volume === 0)) return;
+    stop();
+  };
   doc?.addEventListener("play", onAnyPlay, true);
 
   return {

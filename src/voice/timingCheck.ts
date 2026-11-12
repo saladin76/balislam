@@ -1,5 +1,5 @@
 /**
- * `bal voice-timing` (D105): measurement only. For the recordings already on this computer, how far do their
+ * `bal voice-timing` (D107): measurement only. For the recordings already on this computer, how far do their
  * word timings run past the decoded file? It reads voice/sentences.json (each sentence's current recording and,
  * with `takes`, its older takes) and voice/parts/index.json (Dafatir parts), decodes each file with ffmpeg at the
  * rate the stitcher uses, and classifies it with the stitcher's own rule (`alignmentVerdict`): ok, clamped (a bounded

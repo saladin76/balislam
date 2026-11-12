@@ -163,7 +163,7 @@ export const App: React.FC = () => {
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
-  /** The last refused save was a revision conflict (409): the recovery offers the three-way merge (D105). */
+  /** The last refused save was a revision conflict (409): the recovery offers the three-way merge (D107). */
   const [planConflict, setPlanConflict] = useState(false);
   /** Counts successful plan saves: step ٢ reads the ledger again after each (dafatir M6). */
   const [planSaved, setPlanSaved] = useState(0);
@@ -316,7 +316,7 @@ export const App: React.FC = () => {
     try { window.history.replaceState(null, "", `${window.location.pathname}${next}`); } catch { /* not critical */ }
   }, [channelId, channels, epId, tab, seriesId, shownScene]);
 
-  // D105: moving the episode (series stamp) or saving its shorts writes plan.json on the server. Both fields are
+  // D107: moving the episode (series stamp) or saving its shorts writes plan.json on the server. Both fields are
   // outside the plan revision, so a pending edit stays valid; the page takes the new fields and, when nothing
   // is pending, the server's current revision, so the next edit is never refused as stale.
   useEffect(() => {

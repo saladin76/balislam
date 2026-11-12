@@ -1,5 +1,5 @@
 /**
- * D105: a server action wrote plan.json fields the page does not own (the series stamp on a move or its undo,
+ * D107: a server action wrote plan.json fields the page does not own (the series stamp on a move or its undo,
  * the shorts selection). The page then re-reads those fields and, when no edit is pending, the plan revision.
  */
 export const PLAN_SERVER_FIELDS_EVENT = "bal:plan-server-fields";

@@ -4,7 +4,7 @@ import type { PlanSaveQueue } from "./planSaveQueue";
 import { mergePlans } from "./planMerge";
 
 /**
- * A plan edit that the server refused (D105). The owner is never trapped: the edit stays on the page and in a
+ * A plan edit that the server refused (D107). The owner is never trapped: the edit stays on the page and in a
  * browser backup, and there are three ways out, all by the owner's button:
  *  - «أعد محاولة الحفظ» (offline / busy);
  *  - «حمّل النسخة الأحدث وأعد تطبيق تعديلي» (409): a three-way merge of the edit onto the newest plan, then a save;

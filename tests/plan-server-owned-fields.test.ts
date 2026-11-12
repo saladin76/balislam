@@ -1,5 +1,5 @@
 /**
- * D105 (review of PR #97, finding 1): moving an episode to another series or saving its shorts writes plan.json
+ * D107 (review of PR #97, finding 1): moving an episode to another series or saving its shorts writes plan.json
  * on the server. The page's next edit must still save (no 409), and a real 409 must never trap the owner.
  * Driven through the page's own path: the studio client (`app/src/api.ts`), the page's save queue and merge,
  * against the real studio server (Vite + balApi) on a temporary channels folder. No voice, no approval.
