@@ -4,6 +4,7 @@ import { ownerMessage } from "../serverMessages";
 import { nameSceneIds, sceneName, sceneNames } from "./sceneNames";
 import { tones, toneIds } from "../../../src/voice/tones";
 import { OwnerText } from "../ui/OwnerText";
+import { DRAFTS, SCENES, countAr } from "../../../src/i18n/count";
 
 /**
  * M1: when the episode has no tone the voice cannot be made and preparing stops at once. The choice is
@@ -163,7 +164,7 @@ export const PrepareAll: React.FC<{
    * (`summaryShort`), and the whole account in its tooltip (`summary`).
    */
   const finished = Boolean(job && job.status === "done" && !allReady && !failed && job.voice.status !== "error");
-  const made = job?.rendered.length ? `جُهّزت ${ar(job.rendered.length)} ${job.rendered.length === 1 ? "مسودة" : "مسودات"}` : "لم تُجهَّز مسودة جديدة";
+  const made = job?.rendered.length ? `جُهّزت ${countAr(job.rendered.length, DRAFTS)}` : "لم تُجهَّز مسودة جديدة";
   const summary = finished ? [
     dot(`انتهى التجهيز: ${made}`),
     waitingVoice.length ? dot(`${noKey ? "لا يوجد مفتاح صوت فلم يُولَّد صوت؛ " : ""}ينتظر الصوت ${list(waitingVoice)}${of("sentences").length ? " (صوته جملةً جملة في «الجمل»)" : ""}`) : "",
@@ -193,7 +194,11 @@ export const PrepareAll: React.FC<{
           {toneMissing.length && onEpisodeTone && /نبرة/.test(job.voice.error ?? "")
             ? <> <EpisodeTonePick scenes={toneMissing} order={order} episodeId={episodeId} channelId={channelId} onPick={async (t) => { await onEpisodeTone(t); await load(); }} /></> : null}</div>
       ) : failed ? (
-        <span className="prep-note is-err" title={job!.failed.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n")}>تعذّر {ar(failed)} ({sceneName(order, job!.failed[0]!.id)}): {named(job!.failed[0]!.error.split("\n")[0]!)}</span>
+        // KI-012: بطاقة تلتف ولا تُقطع بـ«…»؛ السطر الأول بنص المالك، والتشخيص كاملًا لكل مشهد تحت «عرض التشخيص»
+        <div className="prep-note is-err prep-error-card" role="alert">
+          تعذّر {countAr(failed, SCENES)} ({sceneName(order, job!.failed[0]!.id)}): <OwnerText text={named(job!.failed[0]!.error.split("\n")[0]!)} />
+          <details><summary>عرض التشخيص</summary><pre>{job!.failed.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n\n")}</pre></details>
+        </div>
       ) : summary ? (
         <span className="prep-note is-summary" role="status" title={summary}>{summaryShort}{noKey && onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span>
       ) : noKey ? (

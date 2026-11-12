@@ -240,17 +240,38 @@ const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, o: {
   return { ...base, tune, fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: undefined as Tone | undefined };
 };
 
-/** نص الجارتين في تسلسل الحلقة (جمل الراوي فقط؛ الآية لا تدخل النص المجاور) */
-type Flat = { scene: PlanScene; list: Sentence[]; s: Sentence };
-const flatten = (ctx: Ctx): Flat[] =>
-  allScenes(ctx.plan).filter((x) => isNarrated(x.scene)).flatMap(({ scene }) => {
+/**
+ * نص الجارتين في تسلسل الحلقة (جمل الراوي فقط؛ الآية لا تدخل النص المجاور). KI-011 (D113): الآية حدّ لا يعبره
+ * النص المجاور — مشهد آية (`verseBefore`: بين هذه الجملة والتي قبلها في التسلسل مشهد آية) أو جملة آية داخل المشهد؛
+ * فتمهيد الآية «كما جاء في سورة طه:» لا يُرسل ومعه تمهيد الآية التالية بعدها.
+ */
+type Flat = { scene: PlanScene; list: Sentence[]; s: Sentence; verseBefore?: boolean };
+const flatten = (ctx: Ctx): Flat[] => {
+  const out: Flat[] = [];
+  let verse = false;
+  for (const { scene } of allScenes(ctx.plan)) {
+    if (scene.template === "verse-card") { verse = true; continue; }
+    if (!isNarrated(scene)) continue;
     const { list } = sceneSentences(ctx, scene);
-    return list.map((s) => ({ scene, list, s }));
-  });
+    for (const s of list) { out.push({ scene, list, s, ...(verse ? { verseBefore: true } : {}) }); verse = false; }
+  }
+  return out;
+};
 const neighbours = (flat: Flat[], id: string) => {
   const i = flat.findIndex((f) => f.s.id === id);
-  const prev = flat.slice(0, Math.max(0, i)).reverse().find((f) => f.s.kind === "narration");
-  const next = flat.slice(i + 1).find((f) => f.s.kind === "narration");
+  let prev: Flat | undefined, next: Flat | undefined;
+  if (i >= 0) {
+    for (let j = i; j > 0 && !flat[j]!.verseBefore; j--) {
+      const f = flat[j - 1]!;
+      if (f.s.kind === "verse") break;
+      if (f.s.kind === "narration") { prev = f; break; }
+    }
+    for (let j = i + 1; j < flat.length && !flat[j]!.verseBefore; j++) {
+      const f = flat[j]!;
+      if (f.s.kind === "verse") break;
+      if (f.s.kind === "narration") { next = f; break; }
+    }
+  }
   return { previousText: prev?.s.text, nextText: next?.s.text };
 };
 

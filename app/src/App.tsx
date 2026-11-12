@@ -114,7 +114,7 @@ export const App: React.FC = () => {
   if (channelId) setApiChannel(channelId);
   // دليل الاستوديو: يظهر في القائمة فقط للقناة التي لها دليل (docs/<القناة>/guide.json)
   const [hasGuide, setHasGuide] = useState(false);
-  const [guideLabel, setGuideLabel] = useState("دليل الاستوديو");
+  const [guideLabel, setGuideLabel] = useState("مرجع الاستوديو");
   // مختبرات الإنتاج: تظهر في القائمة فقط للقناة التي لها مختبر (مجلد فيه lab.json)
   const [hasLabs, setHasLabs] = useState(false);
   // المراجعات الفنية: تظهر فقط للقناة التي فيها مراجعة (tech-reviews/)
@@ -122,7 +122,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (!channelId) return setHasGuide(false), setHasLabs(false), setHasTechReviews(false);
     let live = true;
-    api.guideIndex(channelId).then((r) => { if (!live) return; setHasGuide(Boolean(r.index)); setGuideLabel(r.index?.navLabel || "دليل الاستوديو"); }, () => live && setHasGuide(false));
+    api.guideIndex(channelId).then((r) => { if (!live) return; setHasGuide(Boolean(r.index)); setGuideLabel(r.index?.navLabel || "مرجع الاستوديو"); }, () => live && setHasGuide(false));
     api.labs(channelId).then((r) => live && setHasLabs(r.labs.length > 0), () => live && setHasLabs(false));
     api.techReviews(channelId).then((r) => live && setHasTechReviews(r.reviews.length > 0), () => live && setHasTechReviews(false));
     return () => {
@@ -936,13 +936,51 @@ export const App: React.FC = () => {
   );
 };
 
-/** A folder name from the Arabic title (rough, readable Latin), or «episode-٠٠٢» when nothing is left. */
+/**
+ * A folder name from the Arabic title (readable Latin), or «episode-٠٠٢» when nothing is left. KI-024: the vowels the
+ * title carries are kept («أَوَّلُ مَرَّةٍ أُصَلِّي» → «awwal-marra-usalli»: fatha/kasra/damma, the shadda doubles, the
+ * last vowel and tanween of each word dropped as in a pause, «ال» dropped); a title without them stays consonantal.
+ */
 const AR_LATIN: Record<string, string> = { ا: "a", أ: "a", إ: "i", آ: "a", ء: "", ؤ: "u", ئ: "i", ب: "b", ت: "t", ث: "th", ج: "j", ح: "h", خ: "kh", د: "d", ذ: "dh", ر: "r", ز: "z", س: "s", ش: "sh", ص: "s", ض: "d", ط: "t", ظ: "z", ع: "a", غ: "gh", ف: "f", ق: "q", ك: "k", ل: "l", م: "m", ن: "n", ه: "h", ة: "a", و: "w", ي: "y", ى: "a" };
+/** Letters that carry a vowel rather than sound one: with a written vowel on them they add only that vowel. */
+const CARRIERS = new Set(["ا", "أ", "إ", "ء", "ؤ", "ئ", "ع"]);
+const SHORT: Record<string, string> = { "\u064E": "a", "\u0650": "i", "\u064F": "u", "\u0670": "a" };
+const slugWord = (raw: string): string => {
+  let w = raw.normalize("NFC").replace(/\u0640/g, "");
+  // the article: «الشَّمْس» → «شَمْس» (its assimilating shadda goes with it)
+  if (/^[اٱ]ل/.test(w) && [...w.replace(/[\u064B-\u065F\u0670]/g, "")].length > 3) w = w.slice(2).replace(/^\u0652/, "").replace(/^(.)([\u064B-\u0650]?)\u0651/u, "$1$2");
+  // vowel: a short vowel from a mark (said inside the word, dropped at its end); long: «ا» «و» «ي» «ة» said in full
+  const out: { s: string; vowel: boolean; long?: boolean }[] = [];
+  let skipped = "";
+  const chars = [...w];
+  const vowelled = chars.some((c) => c in SHORT);
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i]!, next = chars[i + 1] ?? "";
+    const prev = out[out.length - 1];
+    if (c in SHORT) { out.push({ s: SHORT[c]!, vowel: true }); skipped = ""; continue; }
+    if (c === "\u0651" && skipped) { const y = AR_LATIN[skipped]!; out.push({ s: y, vowel: false }, { s: y, vowel: false }); skipped = ""; continue; }
+    if (c === "\u0651") { const cons = [...out].reverse().find((x) => !x.vowel); if (cons) out.splice(out.lastIndexOf(cons) + 1, 0, { s: cons.s, vowel: false }); continue; }
+    if (/[\u064B-\u065F]/.test(c)) continue; // sukun, tanween, the rest
+    if (/[a-z0-9]/i.test(c)) { out.push({ s: c.toLowerCase(), vowel: false }); continue; }
+    if (!(c in AR_LATIN)) continue;
+    const hasVowel = next in SHORT || (next === "\u0651" && (chars[i + 2] ?? "") in SHORT);
+    if (vowelled) {
+      // a long vowel after its own short vowel adds nothing: «ـَا» «ـُو» «ـِي» «ـَة»
+      if (prev?.vowel && ((c === "ا" || c === "ى" || c === "ة") && prev.s === "a" || c === "و" && prev.s === "u" && !hasVowel || c === "ي" && prev.s === "i" && !hasVowel)) { prev.long = true; skipped = c; continue; }
+      if (CARRIERS.has(c) && hasVowel) { skipped = ""; continue; }
+      // «ة» is said «a» and closes the word: the case vowel on it is never said
+      if (c === "ة") { out.push({ s: "a", vowel: true, long: true }); skipped = ""; while (i + 1 < chars.length && /[\u064B-\u065F]/.test(chars[i + 1]!)) i++; continue; }
+    }
+    skipped = "";
+    out.push({ s: AR_LATIN[c]!, vowel: c === "ا" || c === "ى" || c === "ة", long: c === "ا" || c === "ى" || c === "ة" });
+  }
+  // the pause: the last written short vowel of the word is not said
+  while (vowelled && out.length > 1 && out[out.length - 1]!.vowel && !out[out.length - 1]!.long) out.pop();
+  return out.map((x) => x.s).join("");
+};
 export const autoSlug = (title: string, episode: string): string => {
-  const words = title.normalize("NFKD").replace(/[\u064B-\u065F\u0670\u0640]/g, "").split(/\s+/)
-    .map((w) => [...w].map((c) => AR_LATIN[c] ?? (/[a-z0-9]/i.test(c) ? c.toLowerCase() : "")).join("").replace(/^al(?=.{3,})/, ""))
-    .filter((w) => w.length > 1).slice(0, 4);
-  const slug = words.join("-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 40).replace(/-$/, "");
+  const words = latinDigits(title).trim().split(/\s+/).map(slugWord).filter((w) => w.length > 1).slice(0, 4);
+  const slug = words.join("-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 40).replace(/-$/, "");
   return slug || `episode-${latinDigits(episode) || "new"}`;
 };
 const NewEpisode: React.FC<{ channelId?: string; taken?: string[]; domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; series?: [string, string][]; initialSeries?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ channelId = "", taken = [], domains, suggested, initialTitle, initialDomain, series = [], initialSeries, onClose, onCreated }) => {

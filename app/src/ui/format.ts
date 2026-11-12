@@ -18,6 +18,13 @@ const AR = "٠١٢٣٤٥٦٧٨٩";
 /** «12:05» → «١٢:٠٥»; leaves Arabic-Indic digits and everything else as is. */
 export const arDigits = (s: string | number): string => String(s).replace(/\d/g, (d) => AR[Number(d)]!);
 
+/**
+ * The Arabic name of a channel's title font (KI-026): «خط العناوين «Amiri»» is read as a Latin word on an Arabic
+ * screen. The identity keeps the font's family name; the owner reads «الأميري» («الرقعة» in بالإسلام per CLAUDE.md).
+ */
+const FONT_NAMES_AR: Record<string, string> = { "Amiri": "الأميري", "Aref Ruqaa": "الرقعة", "Lalezar": "لاله زار", "IBM Plex Mono": "آي بي إم بلكس مونو" };
+export const fontNameAr = (family: string): string => FONT_NAMES_AR[family.trim()] ?? family;
+
 /** «٠٠١» or «۰۰۱» (Persian) → «001»: what the owner types, in either digit system, compared with an id. */
 export const latinDigits = (s: string): string =>
   String(s).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));

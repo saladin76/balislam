@@ -6,6 +6,14 @@ import { Dialog } from "../ui/Dialog";
 import { useChannel } from "../../../src/channel/context";
 import { verseRoleAr } from "../../../src/quran/citation";
 import { duration, num, sceneName, verseRef } from "../ui/format";
+import { BOARDS, countAr } from "../../../src/i18n/count";
+
+/**
+ * KI-015: اعتماد اللوحة في التجهيز غير اعتماد المشهد في الخطوة ٢. «معتمد ٤٩» بجوار «مشاهد معتمدة: ٠ من ٤٩»
+ * كان يُقرأ تناقضًا؛ فالعداد واللوحة يسمّيان «اللوحة» صراحة.
+ */
+export const BOARD_APPROVED_TITLE = "اعتُمدت اللوحة في التجهيز؛ المشهد نفسه يُعتمد بصوته وصورته في الخطوة ٢.";
+export const boardsApprovedText = (n: number): string => `اعتُمدت في التجهيز: ${countAr(n, BOARDS)}`;
 
 export type BoardShot = { s: PlanScene; chapter: { number: number; title: string }; from: number; d: number };
 
@@ -62,7 +70,7 @@ export const BoardViewer: React.FC<{
             <h3 id="board-title" title={s.id}>{sceneName(order, s.id)} <span className="bv-of">من {num(shots.length)}</span></h3>
           </div>
           <span className="bv-time">{duration(Math.floor(shot.from / fps))} — {num(shot.d / fps, 1)} ث</span>
-          {state === "approved" ? <span className="s12-mark ok">معتمد</span> : state === "changed" ? <span className="s12-mark warn">تغيّر بعد الاعتماد</span> : null}
+          {state === "approved" ? <span className="s12-mark ok" title={BOARD_APPROVED_TITLE}>لوحة معتمدة</span> : state === "changed" ? <span className="s12-mark warn">تغيّر بعد الاعتماد</span> : null}
           <button type="button" className="bv-close" aria-label="إغلاق" onClick={onClose}>×</button>
         </header>
         <div className="bv-body">

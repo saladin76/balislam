@@ -7,6 +7,17 @@ import { narrationReviewPlaylist } from "./reviewPlaylist";
 import { Hint, More, Stage } from "../shell/Screen";
 import "../shell/screens-s3.css";
 import { CLIPS, countAr } from "../../../src/i18n/count";
+import { isBasmalaOnly } from "../../../src/voice/basmala";
+
+/**
+ * حالة مقطع التعليق في «متتابعة». KI-017: البسملة وحدها تسجيل المالك بصوته (قرار ١٠ نوفمبر) ولا تنتظر توليدًا،
+ * فلا تُكتب «بلا صوت» كأنها جملة راوٍ ناقصة.
+ */
+export const clipStatus = (narration: string, playable: boolean, state: string): { cls: string; text: string } =>
+  playable ? { cls: "ready", text: "صوت مطابق" }
+    : isBasmalaOnly(narration) ? { cls: "basmala", text: "تسجيلك بصوتك — التلاوة تُضاف لاحقًا" }
+    : state === "stale" ? { cls: "stale", text: "صوت قديم" }
+    : { cls: state === "ready" ? "missing" : state, text: "بلا صوت" };
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
@@ -98,7 +109,7 @@ export const VoiceWorkspaceTab: React.FC<{
                 <button type="button" className="s3-clip-row" aria-expanded={open} onClick={() => setSelected(open ? "" : scene.id)} title={scene.id}>
                   <span className="s3-clip-n" title={`المشهد ${ar(order.indexOf(scene.id) + 1)}`}>{ar(i + 1)}</span>
                   <span className="s3-clip-text">{scene.narration}</span>
-                  <span className={`s3-clip-st ${playable.has(scene.id) ? "ready" : state === "ready" ? "missing" : state}`}>{playable.has(scene.id) ? "صوت مطابق" : state === "stale" ? "صوت قديم" : "بلا صوت"}</span>
+                  {(() => { const st = clipStatus(scene.narration, playable.has(scene.id), state); return <span className={`s3-clip-st ${st.cls}`}>{st.text}</span>; })()}
                 </button>
                 {open ? (
                   <div className="s3-clip">
