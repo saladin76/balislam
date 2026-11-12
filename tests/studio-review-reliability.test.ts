@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { PlanSaveQueue } from "../app/src/planSaveQueue";
 import { safeTrim } from "../src/remotion/dafatir/audio/trim";
+import { measurePart } from "../src/voice/dafatirParts";
 import { browserPlanRevision } from "../src/plan/revision";
 import { planRevision, savePlanFromStudio, readPlanFile } from "../src/plan/io";
 import { runWithChannel } from "../src/channel";
@@ -116,6 +117,13 @@ describe("alignment bounds", () => {
   });
   it("preserves already valid measured boundaries", () => {
     expect(safeTrim(bounds, { start: [0.2], end: [0.8] })).toEqual(bounds);
+  });
+  it("keeps the no-silence measurement fallback inside decoded PCM and clamps its caption timing too", () => {
+    const samples = new Float32Array(44100).fill(0.3);
+    const result = measurePart("existing-recording", samples, 44100, [{ word: "تجربة", start: 0.1, end: 1.01 }]);
+    expect(result.clip.speechEnd).toBe(1);
+    expect(result.clip.speechEnd).toBeLessThanOrEqual(result.clip.end);
+    expect(result.words[0]!.end).toBe(1);
   });
 });
 

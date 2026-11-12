@@ -112,8 +112,9 @@ export const safeTrim = (b: SpeechBounds, alignment?: { start: number[]; end: nu
   );
   const firstChar = Math.max(0, Math.min(b.duration, Math.min(...alignment.start)));
   const lastChar = Math.max(0, Math.min(b.duration, Math.max(...alignment.end)));
-  const speechStart = Math.min(b.speechStart, firstChar);
-  const speechEnd = Math.max(b.speechEnd, lastChar);
+  // The no-silence fallback also derives b.speech* from the same alignment.
+  const speechStart = Math.max(0, Math.min(b.duration, Math.min(b.speechStart, firstChar)));
+  const speechEnd = Math.min(b.duration, Math.max(b.speechEnd, lastChar));
   return { ...b, speechStart, speechEnd, start: Math.max(0, Math.min(b.start, speechStart - o.onsetPadSec)), end: Math.min(b.duration, Math.max(b.end, speechEnd + o.releasePadSec)) };
 };
 

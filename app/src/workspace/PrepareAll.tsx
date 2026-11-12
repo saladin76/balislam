@@ -187,10 +187,10 @@ export const PrepareAll: React.FC<{
       {starting && !running ? <span className="prep-note" role="status">يبدأ التجهيز…</span> : null}
       {job?.voice.status === "error" && !running ? (
         // M2 (QA dafatir): the real cause first; the tone choice only when the cause is the missing tone.
-        <span className="prep-note is-err prep-error-card" role="alert" title={named(job.voice.error)}>توقف توليد الصوت: {named(job.voice.error?.split("\n")[0])}
+        <div className="prep-note is-err prep-error-card" role="alert" title={named(job.voice.error)}>توقف توليد الصوت: {named(job.voice.error?.split("\n")[0])}
           <details><summary>عرض التشخيص</summary><pre>{named(job.voice.error)}</pre></details>
           {toneMissing.length && onEpisodeTone && /نبرة/.test(job.voice.error ?? "")
-            ? <> <EpisodeTonePick scenes={toneMissing} order={order} episodeId={episodeId} channelId={channelId} onPick={async (t) => { await onEpisodeTone(t); await load(); }} /></> : null}</span>
+            ? <> <EpisodeTonePick scenes={toneMissing} order={order} episodeId={episodeId} channelId={channelId} onPick={async (t) => { await onEpisodeTone(t); await load(); }} /></> : null}</div>
       ) : failed ? (
         <span className="prep-note is-err" title={job!.failed.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n")}>تعذّر {ar(failed)} ({sceneName(order, job!.failed[0]!.id)}): {named(job!.failed[0]!.error.split("\n")[0]!)}</span>
       ) : summary ? (
