@@ -107,11 +107,15 @@ export type SeriesStamp = {
 };
 
 /** أجزاء شعار كل قناة (باسم الشعار المعتمد لا باسم القناة)، والألوان المحجوزة التي لا تصير لون سلسلة. */
-export const EMBLEM_PARTS: Record<string, { parts: { id: string; nameAr: string }[]; reservedAccents?: string[]; card?: "dark" | "light" }> = {
+/**
+ * reservedAccents: ألوان لا تصير لون سلسلة أبدًا (الفسفوري للفكرة وحدها). signalAccents: ألوان وظيفية في الهوية
+ * (البرتقالي للشطب والتنبيه في زبدة الكتب): تُختار صراحةً فقط، ولا تكون اللون الافتراضي المشتق.
+ */
+export const EMBLEM_PARTS: Record<string, { parts: { id: string; nameAr: string }[]; reservedAccents?: string[]; signalAccents?: string[]; card?: "dark" | "light" }> = {
   mihrab: { parts: [{ id: "arch", nameAr: "قوس المحراب" }, { id: "sun", nameAr: "نقطة الشمس" }, { id: "seal", nameAr: "الختم" }, { id: "star8", nameAr: "النجمة الثمانية" }] },
   "horizon-book": { parts: [{ id: "book", nameAr: "الدفتر المفتوح" }, { id: "hourglass", nameAr: "الساعة الرملية" }, { id: "sun", nameAr: "شمس الغروب" }, { id: "ribbon", nameAr: "شريط التاريخ" }] },
   // الفسفوري للفكرة وحدها («idea-only»): لا يصير لون سلسلة ولا شارة
-  "highlighter-z": { parts: [{ id: "card", nameAr: "بطاقة الكتاب" }, { id: "bar", nameAr: "ضربة القلم" }, { id: "sticky", nameAr: "الورقة اللاصقة" }, { id: "counter", nameAr: "عدّاد الأفكار" }], reservedAccents: ["#E8F542"], card: "light" },
+  "highlighter-z": { parts: [{ id: "card", nameAr: "بطاقة الكتاب" }, { id: "bar", nameAr: "ضربة القلم" }, { id: "sticky", nameAr: "الورقة اللاصقة" }, { id: "counter", nameAr: "عدّاد الأفكار" }], reservedAccents: ["#E8F542"], signalAccents: ["#FF6B4A"], card: "light" },
 };
 
 export const MOTIF_AR: Record<string, string> = { arches: "الأقواس", girih: "النجمة الثمانية (گره)", stars: "النجوم", horizon: "خط الأفق", "ink-lines": "خطوط الحبر", ruled: "سطور الدفتر" };
@@ -208,9 +212,12 @@ export const deriveSeriesIdentity = (channel: ApprovedIdentity & { id?: string }
   const paletteHex0 = a.palette.map((p) => norm(p.hex));
   const lum0 = [...paletteHex0].sort((x, y) => luminance(y) - luminance(x));
   const cardBg = EMBLEM_PARTS[a.emblem]?.card === "light" ? lum0[0]! : lum0[lum0.length - 1]!;
-  const sig = choices.filter((c) => a.signature.map(norm).includes(c));
-  const pool = (sig.length ? sig : choices).filter((c) => contrast(c, cardBg) >= 3);
-  const preferred = [...(pool.length ? pool : choices)].sort((x, y) => hexToHsl(y)[1] - hexToHsl(x)[1] || contrast(y, cardBg) - contrast(x, cardBg))[0]!;
+  // لون الشطب والتنبيه لا يكون الافتراضي (يبقى اختيارًا صريحًا للمالك)
+  const signal = new Set((EMBLEM_PARTS[a.emblem]?.signalAccents ?? []).map(norm));
+  const quiet = choices.filter((c) => !signal.has(c));
+  const sig = quiet.filter((c) => a.signature.map(norm).includes(c));
+  const pool = (sig.length ? sig : quiet.length ? quiet : choices).filter((c) => contrast(c, cardBg) >= 3);
+  const preferred = [...(pool.length ? pool : quiet.length ? quiet : choices)].sort((x, y) => hexToHsl(y)[1] - hexToHsl(x)[1] || contrast(y, cardBg) - contrast(x, cardBg))[0]!;
   const base = wantBase && choices.includes(wantBase) ? wantBase : preferred;
   if (wantBase && wantBase !== base) clamped.push(`اللون ${wantBase} ليس من لوحة القناة المسموحة؛ استُعمل ${base}.`);
   const lw = overrides.accent?.lightness, cw = overrides.accent?.chroma;

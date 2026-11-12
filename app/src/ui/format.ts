@@ -58,7 +58,8 @@ export const verseRef = (ref: string | null | undefined): string => {
   if (raw === "basmala") return "البسملة";
   const m = /^(\d{1,3})\s*[:：]\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?$/.exec(raw);
   const name = m ? SURAH_NAMES[Number(m[1]) - 1] : undefined;
-  if (!m || !name) return arDigits(raw);
+  // النقطة الوسطى بجوار الأرقام العربية تُقرأ صفرًا (D61): المرجع المكتوب «طه، ١٤» بفاصلها يُعرض «طه ١٤»
+  if (!m || !name) return arDigits(raw.replace(/\s*\u00B7\s*/g, " "));
   return `${name} ${arDigits(m[2]!)}${m[3] ? `–${arDigits(m[3])}` : ""}`;
 };
 
