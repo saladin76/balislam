@@ -103,7 +103,7 @@ describe("owner text: no Western digits, no raw scene ids", () => {
       onOpenScene: noop, onOpenStoryboard: noop, onOpenScript: noop, onOpenPublish: noop, onOpenFinal: noop, onOpenSettings: noop };
     const seams = renderToStaticMarkup(<SceneProductionPanel {...props} finalView="seams" />);
     // QA (all three reports): no leftover single-scene card, no «إرسال للمراجعة», no seam count before an assembly
-    expect(seams).toContain("الوصلات تظهر بعد تجميع الحلقة");
+    expect(seams).toContain("الوصلات تُسمع بعد التجميع");
     expect(seams).not.toMatch(/إرسال للمراجعة|إنتاج المشهد|sp-media/);
     expect(markupProblems(seams)).toEqual([]);
     const step2 = renderToStaticMarkup(<SceneProductionPanel {...props} editor={() => <div>editor</div>} livePreview={() => <div>live</div>} />);

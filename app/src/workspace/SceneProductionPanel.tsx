@@ -862,7 +862,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
     return (
       <section className="scene-first-panel sp" aria-label="الوصلات">
         <div className="sp-row">
-          <div><h3>الوصلات تظهر بعد تجميع الحلقة</h3><p className="sp-hint">{data.progress.canAssemble
+          <div><h3>الوصلات تُسمع بعد التجميع</h3><p className="sp-hint">{data.progress.canAssemble
             ? "كل المشاهد معتمدة: اجمعها في نسخة واحدة، ثم استمع لكل وصلة بين مشهدين واعتمدها هنا."
             : pendingRecs ? "تُجمع الحلقة بعد اعتماد كل المشاهد وتلاواتها؛ بعدها تُسمع كل وصلة بين مشهدين هنا."
             : `تُجمع الحلقة بعد اعتماد كل المشاهد (${arNumOf(data.progress.approvedScenes)} من ${arNumOf(data.progress.totalScenes)} الآن)؛ بعدها تُسمع كل وصلة بين مشهدين هنا.`}</p></div>

@@ -251,6 +251,6 @@ describe("gates · the order is checked before any file, in the owner's words", 
   it("the seams view before an assembly is a locked explanation, with no seam count", () => {
     const ui = src("app/src/workspace/SceneProductionPanel.tsx");
     expect(ui).toContain("الوصلات تُسمع بعد التجميع");
-    expect(src("app/src/App.tsx")).toContain("sub: w?.assembly && w.seams.length ? String(w.seams.length) : undefined");
+    expect(src("app/src/App.tsx")).toContain("sub: w?.assembly && w.seams.length ? arNum(w.seams.length) : undefined"); // D102: Arabic digits
   });
 });
