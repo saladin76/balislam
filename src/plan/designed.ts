@@ -14,8 +14,15 @@ import type { Plan, PlanScene } from "./types";
 export const isDesignedScene = (s: Pick<PlanScene, "template" | "props">): boolean =>
   /-shot$/.test(s.template ?? "") || Boolean(String(s.props?.shot ?? "").trim());
 
+/**
+ * KI-053: the closing card (`c<N>-end`) is the generator's own, rebuilt from the channel's outro on every
+ * regeneration with its edits kept (src/plan/generate.ts); an outro that is a shot (`ink-shot`, «زبدة الكتب»)
+ * does not make the plan «designed».
+ */
+const isClosingCard = (s: Pick<PlanScene, "id">) => /^c\d+-end$/.test(String(s.id ?? ""));
+
 export const designedScenes = (plan: Pick<Plan, "chapters"> | null | undefined): PlanScene[] =>
-  (plan?.chapters ?? []).flatMap((c) => c.scenes ?? []).filter(isDesignedScene);
+  (plan?.chapters ?? []).flatMap((c) => c.scenes ?? []).filter((s) => isDesignedScene(s) && !isClosingCard(s));
 
 export const isDesignedPlan = (plan: (Pick<Plan, "chapters"> & { designed?: boolean }) | null | undefined): boolean =>
   Boolean(plan) && (plan!.designed === true || designedScenes(plan).length > 0);
