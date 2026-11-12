@@ -262,7 +262,8 @@ export const EpisodeTab: React.FC<{
               const d = templateById(s.template);
               return (
                 <div key={s.id} className="scene-item" role="button" tabIndex={0} aria-selected={s.id === scene.id} onClick={() => setSelectedId(s.id)} onKeyDown={(e) => e.key === "Enter" && setSelectedId(s.id)}>
-                  <span className="t">{d?.nameAr ?? s.template}</span>
+                  {/* dafatir QA: every row said only «مشهد خط الأفق»; the scene number comes first */}
+                  <span className="t"><b className="scene-no">{sceneName(allScenes.map((x) => x.scene.id), s.id)}</b> — {d?.nameAr ?? s.template}</span>
                   <span style={{ display: "flex", gap: 4 }}>
                     {voiceState(s) === "ok" ? <span className="badge voice">صوت</span> : voiceState(s) === "stale" ? <span className="badge edited">صوت قديم</span> : null}
                     {s.edited ? <span className="badge edited">معدّل</span> : null}

@@ -187,7 +187,7 @@ const EnginePanel: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>)
                     ) : (
                       <button className="btn small" onClick={() => toggle(f.id, true)} title="يُختم في خطط الحلقات الجديدة فقط؛ الحلقات القائمة لا تتغير">اعتمده افتراضيًا للحلقات الجديدة</button>
                     )}
-                    {c.production?.approvedAt?.[f.id] ? <div className="help">اعتُمد {new Date(c.production.approvedAt[f.id]!).toLocaleDateString("ar")}</div> : null}
+                    {c.production?.approvedAt?.[f.id] ? <div className="help">اعتُمد {new Date(c.production.approvedAt[f.id]!).toLocaleDateString("ar-EG")}</div> : null}
                   </div>
                 ) : null}
               </td>

@@ -97,7 +97,7 @@ const Version: React.FC<{ channel: string; dir: string; e: StoryboardEntry; v: S
       </span>
       <span className="help" title={v.source && v.source !== v.file ? `${v.file} ← ${v.source}` : v.file}>النسخة {num(v.version)} — {date(v.uploadedAt)}</span>
       <span>{v.title}</span>
-      {v.note ? <span className="help">{v.note}</span> : null}
+      {v.note ? <span className="help">{ownerText(v.note)}</span> : null}
       {v.decision ? (
         <span className="sbi-decision">
           قرار {v.decision.by} — {date(v.decision.at)}: {v.decision.note}

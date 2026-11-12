@@ -84,7 +84,9 @@ export const MoveEpisodesDialog: React.FC<{
             </button>
           ))}
         </div>
-        <p className="help">تُختم الحلقة بهوية السلسلة الجديدة وقالبها الآن، وتأخذ الرقم التالي فيها. السكريبت ومشاهده واعتماداته لا تُلمس.</p>
+        <p className="help">{(data.series.find((s) => s.id === to)?.kind ?? "series") === "category"
+          ? "تُختم الحلقة بهوية التصنيف وقالبه الآن؛ التصنيف بلا ترتيب فلا تأخذ رقمًا فيه. السكريبت ومشاهده واعتماداته لا تُلمس."
+          : "تُختم الحلقة بهوية السلسلة الجديدة وقالبها الآن، وتأخذ الرقم التالي فيها. السكريبت ومشاهده واعتماداته لا تُلمس."}</p>
         {err ? <p className="help" style={{ color: "var(--err)" }} role="alert">{err}</p> : null}
         <div className="sr-dialog-acts">
           <button type="submit" className="btn primary" disabled={!to || to === current} aria-busy={busy}>{busy ? "جارٍ النقل…" : to && to !== current ? `انقل إلى «${rows.find((r) => r.id === to)?.name ?? data.series.find((s) => s.id === to)?.name ?? ""}»` : "اختر سلسلة"}</button>

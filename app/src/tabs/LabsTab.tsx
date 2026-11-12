@@ -53,7 +53,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
                   <figcaption>
                     <b>{f.title}</b> <Badge s={f.status} />
                     <span className="help">رفع رقم {num(f.version)} — {date(f.updatedAt)}</span>
-                    {f.note ? <span className="help">{f.note}</span> : null}
+                    {f.note ? <span className="help">{ownerText(f.note)}</span> : null}
                   </figcaption>
                 </figure>
               ))}
@@ -68,7 +68,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
             <tbody>
               {l.tools.map((t) => (
                 <tr key={t.name}>
-                  <td>{t.name}{t.note ? <div className="help">{t.note}</div> : null}</td>
+                  <td>{t.name}{t.note ? <div className="help">{ownerText(t.note)}</div> : null}</td>
                   <td><Badge s={t.status} /></td>
                   <td>{t.promotedTo ? <span>انتقلت — <code dir="ltr">{t.promotedTo}</code></span> : <span className="muted">لا</span>}</td>
                 </tr>

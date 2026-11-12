@@ -1167,7 +1167,7 @@ export const SceneDecisionActions: React.FC<{
       ) : null}
       {p.voiceMsg ? <p className="sp-hint ms-float is-quiet" role="status">{p.voiceMsg}</p> : null}
       {p.confirming && review ? (
-        <label className="sp-confirm s3-confirm ms-float"><input type="checkbox" checked={p.reviewed} onChange={(e) => p.onConfirm(e.target.checked)} autoFocus /> شاهدته بالصوت كاملًا</label>
+        <label className="sp-confirm s3-confirm ms-float"><input type="checkbox" checked={p.reviewed} onChange={(e) => p.onConfirm(e.target.checked)} autoFocus /> {p.voice === "none" ? "شاهدته كاملًا" : "شاهدته بالصوت كاملًا"}</label>
       ) : null}
       {p.problem && review ? (
         <form className="s3-problem ms-float" onSubmit={(e) => { e.preventDefault(); if (problemReady) p.onSubmitProblem(); }}

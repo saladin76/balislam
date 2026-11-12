@@ -830,3 +830,6 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .md-media video { width: 100%; max-width: 760px; border-radius: 8px; background: #000; }
 .md-media figcaption { font-size: 0.88em; opacity: 0.8; }
 .treviews-strips summary { cursor: pointer; font-weight: 700; margin: 1em 0 0.5em; }
+/* zubdat D-18: the selected row's badges stay small chips, and the title keeps one or two lines */
+.scene-item .badge { white-space: nowrap; align-self: start; line-height: 1.6; }
+.scene-item .t { min-width: 0; overflow-wrap: anywhere; }
