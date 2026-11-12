@@ -91,8 +91,21 @@ export const resolveStudioNote = async (opts: {
   return { note, file: path.join(path.dirname(note.path), "resolved.json") };
 };
 
-const KIND_AR: Record<string, string> = { motion: "الحركة", tone: "النبرة", general: "تعديل" };
-export const formatNote = (n: ListedNote): string => [
+const KIND_AR: Record<string, string> = { motion: "الحركة", tone: "النبرة", general: "تعديل", error: "خطأ" };
+/** «أرسل المشكلة» (D112): الخطأ وسياقه، وأول الـstack، وآخر سطور السجل. */
+const formatErrorNote = (n: ListedNote): string => {
+  const e = n.error!;
+  return [
+    `${n.id}  [${n.status}]  ${n.channel}/${n.episode || "عام"}${n.sceneId ? `  ${n.sceneId}` : ""}  خطأ (${e.source}/${e.kind})${e.label ? `  ${e.label}` : ""}`,
+    `   ${n.createdAt}  الخطأ ${e.id} في ${e.at}  commit ${e.commit}`,
+    `   ${e.method ? `${e.method} ` : ""}${e.route}`,
+    `   «${e.message.split("\n")[0]}»`,
+    ...e.stack.split("\n").filter(Boolean).slice(0, 6).map((l) => `     ${l.trim()}`),
+    ...(e.log.length ? [`   آخر ${e.log.length} سطرًا من سجل الأخطاء:`, ...e.log.map((l) => `     ${l}`)] : []),
+    ...(n.answer ? [`   الرد (${n.fixedBy ?? "?"}): ${n.answer}`] : []),
+  ].join("\n");
+};
+export const formatNote = (n: ListedNote): string => n.kind === "error" && n.error ? formatErrorNote(n) : [
   `${n.id}  [${n.status}]  ${n.channel}/${n.episode}  ${n.sceneId}  ${KIND_AR[n.kind] ?? n.kind}${n.timecode ? ` @${n.timecode}` : ""}${n.tone ? `  نبرة: ${n.tone}` : ""}`,
   `   ${n.createdAt}  مدخلات المشهد ${n.sceneInputSha256.slice(0, 12)}  المعاينة ${n.previewSha256.slice(0, 12)}`,
   `   «${n.note}»`,

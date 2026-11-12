@@ -47,11 +47,13 @@ export const runGit = (cwd: string, args: string[], opts: { env?: Record<string,
 export const notesSyncEnabled = (env = process.env) =>
   env.BAL_NOTES_SYNC === "on" || (env.BAL_NOTES_SYNC !== "off" && !env.VITEST);
 
-/** كل صناديق الملاحظات تحت مجلد القنوات. */
+/** كل صناديق الملاحظات تحت مجلد القنوات: الصندوق العام لكل قناة (D112) وصندوق كل حلقة. */
 export const listInboxFiles = (channelsDir: string): string[] => {
   if (!existsSync(channelsDir)) return [];
   const out: string[] = [];
   for (const ch of readdirSync(channelsDir)) {
+    const general = path.join(channelsDir, ch, "notes", "inbox.json");
+    if (existsSync(general)) out.push(general);
     const eps = path.join(channelsDir, ch, "episodes");
     if (!existsSync(eps)) continue;
     for (const ep of readdirSync(eps)) {

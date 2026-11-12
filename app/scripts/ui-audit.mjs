@@ -53,6 +53,8 @@ const { chromium } = load();
 const approveAll = (j) => { j.scenes.forEach((s) => { s.approved = true; s.status = "approved"; }); j.progress.currentScene = null; j.progress.approvedScenes = j.scenes.length; };
 const ledger = (state) => (j) => {
   if (!j || !j.script || state === "prep") return j;
+  // D112 err-card: a ledger answer the scenes panel cannot render, so its screen boundary shows the crash card
+  if (state === "crash") { j.script.approved = true; j.storyboard.approved = true; j.progress = null; j.scenes = null; return j; }
   const ids = j.scenes.map((s) => s.id);
   if (state === "changed") {
     // 11 Nov: boards edited after «اعتمد التجهيز» — carried forward by the ledger; three scenes re-open in step ٢ (no re-approval)
@@ -146,6 +148,10 @@ const CASES = [
   ["s3-master", (c) => `#/${c}/${EP}/review`, "master", pill("النسخة الأساسية")],
   ["s4-publish", (c) => `#/${c}/${EP}/publish`, "publish"],
   ["gear", (c) => `#/${c}`, "scenes", click(".ms-gear", 500), true],
+  // D112: the crash card with «أرسل المشكلة» (a scene ledger answer the panel cannot render), and the corner card for an
+  // error that did not break the screen (thrown in the page). Both errors are on purpose: not counted as console errors.
+  ["err-card", (c) => `#/${c}/${EP}/episode`, "crash"],
+  ["err-notice", (c) => `#/${c}/${EP}/episode`, "scenes", async (p) => { await p.evaluate(() => { setTimeout(() => { throw new Error("ui-audit: deliberate error"); }, 0); }); await p.waitForTimeout(700); }],
   ...["ops", "channels", "channel", "settings", "identity", "library", "labs", "guide", "treviews"].map((t) => [`adm-${t}`, (c) => `#/${c}/${t}`, "scenes"]),
 ].filter(([id]) => !only || only.split(",").some((f) => id.startsWith(f)));
 
@@ -234,7 +240,7 @@ const audit = (exempt) => {
     // the bar must stay on screen: a card floating above it must never push it below the fold
     if (q.bottom > vh + 1 || q.top < 0) out.dockHeight.push(`${name(d)} off screen (${Math.round(q.top)}..${Math.round(q.bottom)} of ${vh}px)`); }
   // overlaps of controls and headings within the same layer
-  const layer = (e) => e.closest(".ms-dock,.s3-reel,.ms-float,.ms-hdr,.modal,[role=dialog],.ms-band,.ms-pop,.ms-menu,.ms-note");
+  const layer = (e) => e.closest(".ms-dock,.s3-reel,.ms-float,.ms-hdr,.modal,[role=dialog],.ms-band,.ms-pop,.ms-menu,.ms-note,.error-notice");
   const ints = [...document.querySelectorAll("button,a,input,select,textarea,summary,h1,h2,h3,label,.btn")].filter(vis).filter((e) => !skip(e) && inView(e.getBoundingClientRect()));
   for (let i = 0; i < ints.length; i++) for (let j = i + 1; j < ints.length; j++) {
     const a = ints[i], b = ints[j]; if (a.contains(b) || b.contains(a) || layer(a) !== layer(b)) continue;
@@ -272,6 +278,9 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
     await rewrite(/\/api\/episodes\/[^/]+\/sentences(\?.*)?$/, (j) => sentences(cur.state)(j));
     await rewrite(/\/api\/episodes\/[^/]+\/review(\?.*)?$/, review);
     await ctx.route(/\/api\/.*/, (route) => (route.request().method() === "GET" ? route.fallback() : route.abort()).catch(() => {}));
+    // D112: reporting an error answers a fake record number; nothing reaches the server (registered last = matched first).
+    await ctx.route(/\/api\/errors(\/send)?(\?.*)?$/, (route) => route.fulfill({ json: route.request().url().includes("/send")
+      ? { noteId: "n0000000000", box: "episode", channel: ch, episode: EP } : { id: "e0000000000", message: "Error: ui-audit: deliberate error" } }).catch(() => {}));
     let errs = [], http = [];
     const openPage = async () => {
       const pg = await ctx.newPage();
@@ -296,6 +305,8 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
         if (act) await act(page);
         const a = await page.evaluate(audit, Boolean(exempt));
         if (probe) console.log("probe", tag, JSON.stringify(await page.evaluate(probe).catch((e) => e.message)));
+        // the err-* cases throw on purpose (React logs the caught render error too)
+        if (id.startsWith("err-")) errs = errs.filter((e) => e.startsWith("pageerror ") && !/ui-audit: deliberate error/.test(e));
         a.console = [...new Set(errs)].slice(0, 8); a.http = [...new Set(http)].slice(0, 8);
         const bad = FAIL_KEYS.filter((k) => a[k]?.length) .concat(a.hscroll > 1 ? ["hscroll"] : []);
         report[tag] = { ...a, bad };

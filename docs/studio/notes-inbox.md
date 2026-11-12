@@ -23,7 +23,9 @@
 
 ## شكل الملاحظة
 
-`id` (مثل `n3fa9c01b2d`)، `channel`، `episode` (مجلد الحلقة)، `sceneId`، `kind` (`motion` | `tone` | `general` لـ«طلب تعديل» الحر)، `note` (النص بلا البادئة)، `raw` (كما سُجّل: «[الحركة @0:12] …»)، `tone` (النبرة المختارة أو null)، `timecode` («0:12» أو null)، `createdAt`، `sceneInputSha256` (بصمة مدخلات المشهد لحظتها)، `previewSha256` (المعاينة التي شاهدها)، `ledgerSeq` (رقم الحدث في السجل المحلي)، و`status: "open"` و`fixedBy: null` و`answer: null` ثابتة في الصندوق (الحالة الفعلية من `resolved.json`). محليًا فقط: `sync` (`pending` | `sent`، وآخر خطأ) ولا يُرفع.
+`id` (مثل `n3fa9c01b2d`)، `channel`، `episode` (مجلد الحلقة، أو "" في الصندوق العام)، `sceneId`، `kind` (`motion` | `tone` | `general` لـ«طلب تعديل» الحر | `error` لـ«أرسل المشكلة»، D112)، `note` (النص بلا البادئة)، `raw` (كما سُجّل: «[الحركة @0:12] …»)، `tone` (النبرة المختارة أو null)، `timecode` («0:12» أو null)، `createdAt`، `sceneInputSha256` (بصمة مدخلات المشهد لحظتها)، `previewSha256` (المعاينة التي شاهدها)، `ledgerSeq` (رقم الحدث في السجل المحلي)، و`status: "open"` و`fixedBy: null` و`answer: null` ثابتة في الصندوق (الحالة الفعلية من `resolved.json`). محليًا فقط: `sync` (`pending` | `sent`، وآخر خطأ) ولا يُرفع.
+
+**ملاحظة «خطأ» (D112):** من «أرسل المشكلة» في بطاقة الخطأ. `note` أول سطر من الخطأ، و`raw` «[خطأ] …»، و`sceneInputSha256` و`previewSha256` فارغان و`ledgerSeq` صفر، ومعها `error`: `{ id, at, source: server|ui, kind: route|render|window|rejection, route, method?, message, stack, label, episode, commit, log }` حيث `log` آخر ٢٠ سطرًا من `.studio/errors.jsonl` لحظة الإرسال. كل ذلك منقَّح مرتين (عند الكتابة في السجل وعند الإرسال): لا قيمة من `.env` ولا مفتاح الجهاز ولا صلاحية في رابط git ولا اسم المستخدم في المسارات. تُضاف إلى صندوق الحلقة إن ذكر الخطأ حلقة موجودة، وإلا إلى **الصندوق العام للقناة** `channels/<القناة>/notes/inbox.json` (متجاهَل على `main` كصندوق الحلقة، ومسموح على `studio-notes` في `INBOX_PATH_RE` والخطاف). الضغطة الثانية على الخطأ نفسه لا تضيف ملاحظة ثانية.
 
 الرد: `{ status: fixed | wont-fix | in-progress, answer, fixedBy, at }`؛ `fixedBy` الـcommit (الافتراضي `HEAD` المختصر) أو ما يُمرَّر بـ `--by`.
 
@@ -47,7 +49,7 @@
 
 ## بوابة الدفع
 
-`.githooks/pre-push` يفحص كل مرجع بالبوابة الكاملة (`scripts/gate.mjs`) كما كان، إلا حالة واحدة: المرجع البعيد `refs/heads/studio-notes` **و**كل ملف في شجرة الـcommit المدفوع يطابق `channels/<القناة>/episodes/<الحلقة>/notes/inbox.json`. فلا كود يُختبر. أي ملف آخر على `studio-notes`، وأي دفع إلى `main` أو غيره (حتى لو كانت شجرته ملاحظات فقط)، يمر على البوابة كاملة. لا تجاوز لـ `main`.
+`.githooks/pre-push` يفحص كل مرجع بالبوابة الكاملة (`scripts/gate.mjs`) كما كان، إلا حالة واحدة: المرجع البعيد `refs/heads/studio-notes` **و**كل ملف في شجرة الـcommit المدفوع يطابق `channels/<القناة>/episodes/<الحلقة>/notes/inbox.json` أو الصندوق العام `channels/<القناة>/notes/inbox.json` (D112). فلا كود يُختبر. أي ملف آخر على `studio-notes`، وأي دفع إلى `main` أو غيره (حتى لو كانت شجرته ملاحظات فقط)، يمر على البوابة كاملة. لا تجاوز لـ `main`.
 
 ## الواجهة
 
@@ -63,13 +65,18 @@ npx bal -c zubdat-alkutub notes      # قناة واحدة، كل الحالات
 npx bal notes --json                 # للأدوات
 npx bal notes --no-fetch             # بلا شبكة (آخر جلب + الصناديق المحلية)
 npx bal notes resolve n3fa9c01b2d --answer "أبطأتُ دخول السهم وثبّتُّ العنوان" [--status fixed|wont-fix|in-progress] [--by <commit>]
+npx bal errors [--json] [--limit 20]  # D112: أخطاء هذا الجهاز (.studio/errors.jsonl) مجمّعة بالرسالة مع عددها
 ```
+
+ملاحظة «خطأ» يعرضها `bal notes --open` مع غيرها: القناة/الحلقة (أو «عام»)، ورقم الخطأ ومساره وبصمة الـcommit، وأول ستة أسطر من الـstack، وآخر سطور السجل. ردّها `bal notes resolve` كأي ملاحظة (في الصندوق العام يُكتب `channels/<القناة>/notes/resolved.json`).
 
 ## على جهاز المالك مرة واحدة
 
 لا شيء جديد: الإرسال يستعمل صلاحية `git push` نفسها التي يدفع بها الحفظ الآلي (D101) (بلا سؤال تفاعلي: `GIT_TERMINAL_PROMPT=0`). إن لم تكن محفوظة في سلسلة المفاتيح تبقى الملاحظات «بانتظار الإرسال» ويقول المؤشر «GitHub لم يقبل صلاحية الدفع من هذا الجهاز» إلى أن تُضبط. حتى ١٢ نوفمبر لم يصل إلى GitHub أي دفع من استوديو المالك (لا `studio-notes` ولا commit «حفظ الاستوديو»)، فلم تُثبت هذه الصلاحية بعد (KI-047): أول ملاحظة يرسلها المالك تنشئ الفرع، أو يظهر سبب فشلها في المؤشر.
 
 ## الاختبار
+
+`tests/studio-error-capture.test.tsx` (D112): خطأ مفتعل في مسار خادم وآخر في مكوّن واجهة (و`window.onerror` و`unhandledrejection`) في `errors.jsonl`، ثم «أرسل المشكلة» ← `studio-notes` (bare مؤقت، الخطاف الحقيقي، صندوق الحلقة والصندوق العام) ← `bal notes --open` من نسخة أخرى، و`bal errors`، وبأسرار وهمية في `.env` ومفتاح جهاز وهمي ورمز GitHub في رابط الأصل لا يظهر أيٌّ منها في أي ملف أو ملاحظة أو إخراج.
 
 `tests/studio-notes-owner-box.test.ts` (D107): من يرسل (worktree وفرع غير main واختبار وسحابة لا ترسل، والاختبار لا يدفع إلا إلى مستودع على القرص)، وأول إرسال ينشئ الفرع، والسبب الحقيقي في `studioNotesStatus`، ومعيار القبول كاملًا: ملاحظة من «المشاهد» ← `studio-notes` ← `bal notes --open` ← `resolve` ← سحب ← «أُصلحت».
 

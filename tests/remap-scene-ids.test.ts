@@ -87,6 +87,8 @@ describe("خرائط المعرّفات المحفوظة للحلقات 001", ()
     const after = cur.chapters[0]!.scenes;
     expect(after.map((s) => s.id)).toEqual(before.map((s) => m[s.id as string]));
     const strip = (s: Record<string, unknown>) => { const { id: _i, line: _l, ...rest } = s; return rest; };
-    after.forEach((s, i) => expect(strip(s)).toEqual(strip(before[i]!)));
+    // KI-049: what the owner adds later from the Studio (a scene's tone, saved to main by D101) is not the remap's doing;
+    // every field the scene had before the remap is still the same.
+    after.forEach((s, i) => expect(strip(s)).toMatchObject(strip(before[i]!)));
   });
 });

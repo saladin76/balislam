@@ -495,15 +495,25 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
   const spoken = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration?.trim());
   const sha = (f: string) => createHash("sha256").update(readFileSync(path.join(EP, f))).digest("hex");
 
+  // KI-049: after v1.9 the owner may change a sentence's tone in the Studio («الجمل»): each one bumps the version with a
+  // «sentence-tone» entry and touches nothing else (segments, parts). v1.9 is the entry of order 031, wherever it is.
+  const at19 = v18.changelog.findIndex((c) => c.to === "v1.9");
+  const after19 = v18.changelog.slice(at19 + 1) as (V18["changelog"][number] & { source?: string })[];
+  const order031 = v18.changelog[at19]!;
+  it("بعد v1.9: تغييرات نبرة جملة من المالك وحدها", () => {
+    expect(at19).toBeGreaterThanOrEqual(0);
+    expect(v18.version).toBe(after19.at(-1)?.to ?? "v1.9");
+    for (const c of after19) expect(c.source, c.to).toBe("sentence-tone");
+  });
+
   it("مبنية على السكريبت والتشكيل والخطة الحالية، وv1.8 محفوظة، وأسماء النبرات كما هي", () => {
-    expect(v18.version).toBe("v1.9");
     expect(v18.approved).toBe(false);
     expect(v18.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
     expect(v18.source.script!.sha256).toBe(sha("script.md"));
     expect(v18.source.plan!.sha256).toBe(sha("plan.json"));
     expect(v18.legend.tones).toEqual(v17.legend.tones);
-    expect(v18.previous.at(-1)).toEqual({ version: "v1.8", path: "tone-map.v1.8.json" });
-    expect(v18.changelog.slice(0, -1)).toEqual(v17.changelog);
+    expect(v18.previous[v18.previous.length - 1 - after19.length]).toEqual({ version: "v1.8", path: "tone-map.v1.8.json" });
+    expect(v18.changelog.slice(0, at19)).toEqual(v17.changelog);
     // معرّفات الأجزاء الصوتية القائمة كما في v1.8 (D87)؛ الجديد c1-s48 وحده
     const old = new Set((v17 as unknown as { audioParts: { id: string }[] }).audioParts.map((p) => p.id));
     expect((v18 as unknown as { audioParts: { id: string }[] }).audioParts.map((p) => p.id).filter((id) => !old.has(id))).toEqual(["c1-s48"]);
@@ -516,7 +526,7 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
       expect(s.marked.replace(/ ?[|‖]/g, "").replace(/\*\*/g, ""), `علامات ${s.n}`).toBe(s.text);
     }
     for (const sc of spoken) expect(plain(v18.segments.filter((s) => s.scene === sc.id).map((s) => s.text).join(" ")), sc.id).toBe(plain(sc.narration!));
-    expect(v18.segments.filter((s) => v18.changelog.at(-1)!.added.includes(s.n)).map((s) => s.scene)).toEqual(["c1-s6", "c1-s37", "c1-s48", "c1-s48"]);
+    expect(v18.segments.filter((s) => order031.added.includes(s.n)).map((s) => s.scene)).toEqual(["c1-s6", "c1-s37", "c1-s48", "c1-s48"]);
   });
 
   it("الوقفات والتشديد المقترحة: لا وقفة قبل «عليه السلام» ولا قبل «سبحانه وتعالى»، ولا تشديد على لفظ الجلالة؛ والوقفة عند فواصل النص وحدها", () => {

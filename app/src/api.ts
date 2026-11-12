@@ -15,6 +15,7 @@ import type { ScriptSaveReply } from "./planGuard";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerJob, ownerMessage } from "./serverMessages";
+import { emitStudioError } from "./errorEvents";
 import { ownerText, planOrder } from "../../src/i18n/sceneNames";
 import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
@@ -122,6 +123,10 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const code = (data as { code?: unknown }).code;
+    // D112: an unexpected server error was logged with this number; the page offers «أرسل المشكلة».
+    const errorId = (data as { errorId?: unknown }).errorId;
+    if (typeof errorId === "string" && /^e[0-9a-f]{10}$/.test(errorId))
+      emitStudioError({ id: errorId, source: "server", kind: "route", message: String((data as { error?: unknown }).error ?? "") });
     // status and the server's code ride on the owner-facing error (D110: a 409 offers the merge)
     const tag = (e: Error): ApiError => Object.assign(e, { status: res.status, ...(typeof code === "string" ? { code } : {}) });
     try { throw new Error(ownerMessage((data as { error?: string }).error ?? `تعذّر الطلب (رمز ${res.status.toLocaleString("ar-EG", { useGrouping: false })}).`)); }
@@ -431,6 +436,11 @@ export const api = {
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean; restart?: boolean; conflicts?: UpdateConflict[] }>("/api/update", { method: "POST", json: {} }),
   /** D101: حالة «كل الأماكن نسخة واحدة» (الحفظ الآلي في main واستقبال التحديثات) */
   syncStatus: () => call<SyncStatus>("/api/sync"),
+  /** D112: a page error, written to .studio/errors.jsonl on this device (app/server/errors.ts) */
+  reportError: (b: { kind: "render" | "window" | "rejection"; message: string; stack?: string; componentStack?: string; label?: string;
+    route?: string; channel?: string; episode?: string; sceneId?: string }) => call<{ id: string; message: string }>("/api/errors", { method: "POST", json: b }),
+  /** D112: «أرسل المشكلة» — an `error` note in the episode's box (or the channel's general box), sent like the other notes */
+  sendError: (id: string) => call<{ noteId: string; box: "episode" | "general"; channel: string; episode: string }>("/api/errors/send", { method: "POST", json: { id } }),
   /** D107: «ملاحظات لم تُرسل: N» (src/studio/notesSync.ts studioNotesStatus) */
   notesStatus: () => call<NotesStatus>("/api/notes/status"),
   syncNow: () => call<SyncStatus>("/api/sync", { method: "POST", json: {} }),

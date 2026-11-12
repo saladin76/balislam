@@ -52,7 +52,7 @@ export const NotesBadge: React.FC = () => {
         <div className="ms-sync-pop" role="dialog" aria-label="ملاحظات لم تُرسل">
           <div role="status">{notesReasonText(st)}</div>
           {st.where.length ? (
-            <ul>{st.where.map((w) => <li key={`${w.channel}/${w.episode}`}>{w.channel} / {w.episode}: {arDigits(w.count)}</li>)}</ul>
+            <ul>{st.where.map((w) => <li key={`${w.channel}/${w.episode}`}>{w.channel} / {w.episode || "عام"}: {arDigits(w.count)}</li>)}</ul>
           ) : null}
           {st.detail ? (
             <details><summary>تفاصيل</summary><pre dir="ltr">{st.detail}</pre></details>

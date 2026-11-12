@@ -11,6 +11,8 @@ import { MAX_BODY_BYTES, readBody } from "./body.ts";
 import { writeFileAtomic, writeJsonAtomic } from "../../src/io/atomicJson.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
+import { captureRouteError, handleErrorRoutes, isProgrammingError, testFault } from "./errors.ts";
+import { redactSecrets, secretValues } from "../../src/studio/errorLog.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -23,7 +25,8 @@ const configFile = path.join(root, "config.json");
 const send = (res: ServerResponse, status: number, body: unknown) => {
   // No absolute path of the owner's machine in any error the browser sees (util.ts redactPaths).
   if (body && typeof body === "object" && !Array.isArray(body) && typeof (body as { error?: unknown }).error === "string")
-    body = { ...(body as object), error: redactPaths((body as { error: string }).error, root) };
+    // …and no secret either (D112): no value from .env, no device key, no credential inside a git remote URL.
+    body = { ...(body as object), error: redactSecrets(redactPaths((body as { error: string }).error, root), { values: secretValues(root) }) };
   res.statusCode = status;
   res.setHeader("content-type", "application/json; charset=utf-8");
   res.end(JSON.stringify(body));
@@ -191,6 +194,9 @@ export const balApi = (): Plugin => ({
         if (parts[0] === "studio-v2")
           return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بالخطوات الأربع في الاستوديو: «١ التجهيز» ثم «٢ المشاهد» ثم «٣ النسخة النهائية» ثم «٤ النشر»." });
 
+        // D112: «أرسل المشكلة» وأخطاء الواجهة (app/server/errors.ts)
+        if (await handleErrorRoutes({ req, res, parts, ch, root, load, send, readBody })) return;
+        testFault(url.pathname);
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
         if (parts[0] === "channels") {
@@ -283,6 +289,12 @@ export const balApi = (): Plugin => ({
               const { ownerText, planOrder } = await load("/src/i18n/sceneNames.ts");
               message = ownerText(message, planOrder(await io.loadPlan(ep).catch(() => null)));
             } catch { /* the message as it is */ }
+            // A programming error that met a refusal path is still unexpected (D112): logged, and its number returned.
+            if (isProgrammingError(error)) {
+              const captured = captureRouteError(root, req, error, ch);
+              await captured.written;
+              return send(res, isOwnerAuthError(error) ? 403 : 409, { error: message, errorId: captured.id });
+            }
             return send(res, isOwnerAuthError(error) ? 403 : 409, { error: message });
           };
           if (parts[2] === "scene-production" && parts.length === 3) {
@@ -856,13 +868,16 @@ export const balApi = (): Plugin => ({
         return send(res, 404, { error: "مسار غير معروف" });
         }));
       } catch (err) {
-        if (err instanceof HttpError) return send(res, err.status, { error: err.message });
+        if (err instanceof HttpError && err.status < 500) return send(res, err.status, { error: err.message });
         // Known, owner-facing refusals (QA H4/M3): a busy lock or episode, or a state file being written / damaged.
         if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY", "PLAN_CONFLICT"].includes(String((err as { code?: unknown })?.code)))
           return send(res, 409, { error: (err as Error).message, code: String((err as { code?: unknown }).code) });
         if (isMissingFileError(err)) return send(res, 404, { error: /^ENOENT\b/.test((err as Error).message) ? "الملف المطلوب غير موجود." : (err as Error).message });
-        console.error("[studio] request failed:", url.pathname, err);
-        return send(res, 500, { error: (err as Error).message });
+        // D112: every unexpected exception is written to .studio/errors.jsonl (redacted), and its number answered
+        // with the 500 so the page can offer «أرسل المشكلة».
+        const captured = captureRouteError(root, req, err);
+        await captured.written;
+        return send(res, err instanceof HttpError ? err.status : 500, { error: (err as Error).message, errorId: captured.id });
       }
     });
   },
