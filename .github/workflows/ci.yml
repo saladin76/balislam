@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Nightly: the full journey for the three channels (work ٤ of the stabilization brief).
+  schedule:
+    - cron: "37 1 * * *"
+  workflow_dispatch:
+    inputs:
+      channels:
+        description: "e2e channels (balislam | dafatir-alzaman | zubdat-alkutub | all)"
+        default: all
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -29,3 +37,38 @@ jobs:
           else
             npm run gate
           fi
+
+  # The owner's whole journey over the real Studio server (stabilization brief, work ٤): fake voice provider,
+  # tiny real Remotion renders, Drive copy to a temp folder, content sync on a temp git repo. No key, no network service.
+  # Every push / PR: «بالإسلام» (the longest rules: verse, recitation, D35). Nightly and on demand: all three channels.
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      BAL_E2E_CHANNELS: ${{ github.event_name == 'schedule' && 'all' || github.event.inputs.channels || 'balislam' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: npm ci
+      - name: Render browser (Remotion)
+        run: npx remotion browser ensure
+      - name: Full journey (API)
+        run: npm run e2e
+      - name: Full journey (the Studio page, Playwright)
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+          npm run e2e:ui -- --shots "$RUNNER_TEMP/e2e-ui-shots"
+      - name: Studio page screenshots (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-ui-shots
+          path: ${{ runner.temp }}/e2e-ui-shots
+          if-no-files-found: ignore
+

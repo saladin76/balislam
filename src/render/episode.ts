@@ -19,7 +19,7 @@ import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { assertEpisodeOutputConfined, assertNoLinkedPath, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
-import { QUALITY, type Quality } from "./quality";
+import { qualitySpec, type Quality } from "./quality";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -197,7 +197,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const inputProps = { plan: shown.plan, orientation: opts.orientation, chapter: shown.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
     ...(opts.draftMarks?.pendingRecitation.length ? { draftMarks: { pendingRecitation: opts.draftMarks.pendingRecitation } } : {}) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
-  const q = QUALITY[opts.quality ?? "preview"];
+  const q = qualitySpec(opts.quality ?? "preview");
   const output = requestedOutput;
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
   if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
