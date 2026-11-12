@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-09-recall-portrait",
+  "title": "033 · تذكّر الميزان c1-s148…s150 عمودي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244",
+  "size": 2277512,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 2277512,
+      "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244"
+    }
+  ],
+  "createdAt": "2026-11-12T05:10:37.780Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
