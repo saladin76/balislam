@@ -1,6 +1,8 @@
 import { AYAT, SENTENCES, countAr as countOf } from "../../../src/i18n/count";
 import { SplitChooser, caretWordIndex } from "./SplitChooser";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePronunciationCheck } from "../pronunciationApi";
+import { PronunciationNote } from "./PronunciationNote";
 import { useScrollLock } from "../ui/scrollLock";
 import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, type SentenceScene, type SentencesRead, type WordFixOutcome } from "../api";
 import type { Plan } from "../../../src/plan/types";
@@ -109,6 +111,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   /** D68: a channel whose verses are written citations shows the verse as a silent card, never «ارفع التلاوة». */
   const cited = versesAreCitations(useChannel());
   const [read, setRead] = useState<SentencesRead | null>(null);
+  /** العمل ٩: تنبيهات فحص النطق المحلي (مطفأ أو غير مثبّت: لا شيء) */
+  const pron = usePronunciationCheck(episodeId, channelId, read);
   const [recs, setRecs] = useState<OwnRecitationsRead | null>(null);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
@@ -687,7 +691,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const clampNote = (r: SentenceRow) => r.timingClamped ? (
     <p className="sp-hint sv-clamp" role="status">التوقيت ضُبط قليلًا — استمع لآخر الجملة</p>
   ) : null;
-  const takeNote = (r: SentenceRow) => <>{takeOnlyNote(r)}{clampNote(r)}</>;
+  const takeNote = (r: SentenceRow) => <>{takeOnlyNote(r)}{clampNote(r)}<PronunciationNote view={pron} rowId={r.id} kind={r.kind} /></>;
   const takeOnlyNote = (r: SentenceRow) => r.status === "old" ? (
     <p className="sv-old" role="status"><b>قديم — سُجّل على نص سابق.</b> {r.recordedOn ? <>سُجّل على: «{r.recordedOn}». </> : null}
       اسمعه بزر التشغيل؛ لا يدخل صوت المشهد حتى تولّد الجملة بنصها الحالي، ويبقى محفوظًا في التسجيلات السابقة.</p>

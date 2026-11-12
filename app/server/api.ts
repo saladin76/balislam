@@ -12,6 +12,7 @@ import { writeFileAtomic, writeJsonAtomic } from "../../src/io/atomicJson.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
 import { captureRouteError, handleErrorRoutes, isProgrammingError, testFault } from "./errors.ts";
+import { handlePronunciationRoutes } from "./pronunciationCheck.ts";
 import { redactSecrets, secretValues } from "../../src/studio/errorLog.ts";
 
 /**
@@ -197,6 +198,8 @@ export const balApi = (): Plugin => ({
         // D112: «أرسل المشكلة» وأخطاء الواجهة (app/server/errors.ts)
         if (await handleErrorRoutes({ req, res, parts, ch, root, load, send, readBody })) return;
         testFault(url.pathname);
+        // العمل ٩: فحص النطق المحلي الاختياري (app/server/pronunciationCheck.ts)
+        if (await handlePronunciationRoutes({ req, res, parts, ch, load, send, readBody })) return;
         if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
         if (parts[0] === "channels") {

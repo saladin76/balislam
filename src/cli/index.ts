@@ -175,6 +175,40 @@ program
     console.log(opts.json ? JSON.stringify(r, null, 2) : formatTimingReport(r, opts.all === true));
   });
 
+// العمل ٩: فحص النطق المحلي (src/voice/pronunciation/). القياس قبل التفعيل؛ التثبيت والتفعيل بزر المالك في الاستوديو.
+const pronCmd = program
+  .command("pron-check")
+  .description("فحص النطق المحلي (faster-whisper على هذا الجهاز، بلا رفع للصوت): الحالة، وقياس الإنذار الكاذب، وفحص حلقة");
+pronCmd
+  .command("status")
+  .description("هل الأداة مثبّتة ومفعّلة، وآخر قياس")
+  .option("--json", "إخراج JSON")
+  .action(async (opts: { json?: boolean }) => {
+    const { toolStatus } = await import("../voice/pronunciation/service");
+    const s = await toolStatus();
+    if (opts.json) { console.log(JSON.stringify(s, null, 2)); return; }
+    console.log(s.installed ? `مثبّت (faster-whisper ${s.version}، النموذج ${s.model})، ${s.enabled ? "مفعّل" : "غير مفعّل"}.` : "فحص النطق غير مثبّت (يُثبَّت بزر «ثبّت فحص النطق» في «الاتصالات والمفاتيح»).");
+    if (s.measurement) console.log(`آخر قياس ${s.measurement.at}: الإنذار الكاذب ${(s.measurement.rate * 100).toFixed(1)}% (${s.measurement.basis === "heard" ? "على جمل «سمعتها»" : "على كل الجمل، حدّ أعلى"}).`);
+  });
+pronCmd
+  .command("measure")
+  .description("قياس الإنذار الكاذب على جمل القنوات الثلاث المولَّدة على هذا الجهاز (يحفظ النتيجة، ولا يفعّل الفحص)")
+  .option("--per-channel <n>", "أقصى عدد جمل لكل قناة", "60")
+  .option("--channel <id...>", "قنوات بعينها (الافتراضي: الثلاث)")
+  .option("--json", "إخراج JSON")
+  .action(async (opts: { perChannel: string; channel?: string[]; json?: boolean }) => {
+    const { measureFalseAlarms } = await import("../voice/pronunciation/service");
+    const { readState, writeState } = await import("../voice/pronunciation/whisperTool");
+    const m = await measureFalseAlarms({ channels: opts.channel, perChannel: Math.max(1, Number(opts.perChannel) || 60), onProgress: (_d, _n, l) => process.stderr.write(`\r${l}        `) });
+    process.stderr.write("\n");
+    await writeState({ ...(await readState()), measurement: m });
+    if (opts.json) { console.log(JSON.stringify(m, null, 2)); return; }
+    console.log(`جمل مفرَّغة: ${m.sentences} (تعذّر ${m.failed})، نُبّه على ${m.flagged}؛ «سمعتها»: ${m.heard}، نُبّه على ${m.heardFlagged}.`);
+    for (const [c, x] of Object.entries(m.channels)) console.log(`  ${c}: ${x.sentences} جملة، تنبيه على ${x.flagged}`);
+    console.log(`الإنذار الكاذب: ${(m.rate * 100).toFixed(1)}% (${m.basis === "heard" ? "على جمل «سمعتها»" : "على كل الجمل، حدّ أعلى"}).`);
+    for (const e of m.examples) console.log(`  - ${e.channel} ${e.episode} ${e.sentenceId}: «${e.word}»${e.heard ? ` ← «${e.heard}»` : ""}`);
+  });
+
 program
   .command("voice-review")
   .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
