@@ -769,27 +769,30 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
 
   // S15 — صحة الفعل وحضور القلب معًا
   "act-and-heart": {
-    nameAr: "صحة الفعل وحضور القلب: لا يغني أحدهما عن الآخر",
+    nameAr: "الخشوع معنى نطلبه، ونقصه لا يدفعنا إلى ترك الصلاة",
     render: (c) => {
-      const { frame, z, at, T, P } = kit(c);
-      const tAct = at("الفعل", 0.06);
-      const tHeart = at("القلب", 0.24);
-      const tNone = at("يغني", 0.42);
-      const tLack = at("نقص", 0.56);
-      const tLeave = at("لترك", 0.66);
-      const tMotive = at("دافعا", 0.78);
-      const tLearn = at("للتعلم", 0.86);
-      const tJihad = at("والمجاهدة", 0.94);
-      const level = 1 - 0.55 * P(tLack, tLack + 18);
-      const climb = P(tMotive, tJihad + 10);
+      const { frame, z, at, end, T, P } = kit(c);
+      // السكريبت المعتمد (١١ نوفمبر): «يتضح لنا أن الخشوع ليس مجرد زينة للصلاة؛ إنه معنى نطلبه ونجاهد أنفسنا عليه. ومع ذلك، فلا
+      // يدفعننا نقصه إلى ترك الصلاة. نحافظ على صحة أفعالها، ونسعى إلى حضور قلوبنا فيها.»
+      const tHeart = at("الخشوع", 0.2);
+      const tZina = at("زينة", 0.3);
+      const tInnahu = at("إنه", 0.36);
+      const tMotive = at("نطلبه", 0.42);
+      const tJihad = at("ونجاهد", 0.46);
+      const tLack = at("نقصه", 0.6);
+      const tLeave = at("ترك", 0.66);
+      const tAct = at("نحافظ", 0.76);
+      const tSahha = at("صحة", 0.8);
+      const tNone = at("ونسعى", 0.86);
+      const tHudur = at("حضور", 0.9);
+      const level = 1 - 0.55 * P(tLack, tLack + 18) + 0.55 * P(tHudur, tHudur + 18);
+      const climb = P(tMotive - 2, end("ونجاهد", 0.48) + 10);
       return {
-        focus: [[tAct, 1300, 520], [tHeart, 620, 520], [tNone, 960, 380], [tLack, 620, 520], [tLeave, 960, 760], [tMotive, 620, 400], [tLearn, 620, 300], [tJihad, 620, 220]],
-        cam: [C(0, 1300, 560, 1.3), C(tHeart - 6, 960, 540, 1.0), C(tLack - 6, 720, 560, 1.2), C(tLeave - 4, 960, 580, 1.05), C(tMotive - 6, 620, 420, 1.2)],
+        focus: [[tHeart, 630, 520], [tZina, 900, 300], [tMotive, 560, 400], [tJihad, 620, 260], [tLack, 620, 560], [tLeave, 960, 760], [tAct, 1300, 620], [tSahha, 1300, 770], [tNone, 960, 440], [tHudur, 630, 770]],
+        cam: [C(0, 760, 480, 1.15), C(tMotive - 6, 640, 420, 1.15), C(at("ذلك", 0.54) - 4, 720, 560, 1.15), C(tLeave - 4, 960, 600, 1.05), C(tAct - 6, 960, 540, 1.0)],
         world: (
           <g>
-            <InkPerson x={1300} y={700} s={1.0} pose="stand" p={P(tAct - 4, tAct + 16)} z={z} dir={-1} />
-            {T("sf", 1300, 770, "صحة الفعل", 64, ["صحة", 0.02], ["الفعل", 0.06], { font: "head" })}
-            {/* القلب: ممتلئ ثم ينقص */}
+            {/* «الخشوع»: قلب ممتلئ، ينقص مع «نقصه» ويعود مع «حضور قلوبنا» */}
             <defs>
               <clipPath id="hfill">
                 <rect x={480} y={560 - 130 + 260 * (1 - level)} width={300} height={260} />
@@ -799,18 +802,25 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <path d={heartPath(630, 560, 110)} fill={z.hl} clipPath="url(#hfill)" />
               <path d={heartPath(630, 560, 110)} fill="none" stroke={z.ink} strokeWidth={9} />
             </g>
-            {T("hq", 630, 770, "حضور القلب", 64, ["وحضور", 0.2], ["القلب", 0.24], { font: "head" })}
+            {T("kh", 630, 400, "الخشوع", 66, ["الخشوع", 0.2], undefined, { font: "head", opacity: 1 - P(tMotive - 6, tMotive) })}
+            {/* «ليس مجرد زينة»: تُشطب مع «إنه» */}
+            {T("zn", 960, 300, "زينة", 66, ["زينة", 0.3])}
+            <Cross x1={1050} x2={870} y={284} p={P(tInnahu - 2, tInnahu + 10)} z={z} />
+            {/* «نطلبه ونجاهد»: درجات إلى أعلى */}
+            <Stroke d="M420 470 L420 400 L520 400 L520 330 L620 330 L620 260 L720 260" p={climb} c={z.ink} w={8} />
+            {T("tl", 440, 380, "نطلبه", 60, ["نطلبه", 0.42], undefined, { font: "head" })}
+            {T("mj", 700, 228, "ونجاهد", 60, ["ونجاهد", 0.46], undefined, { font: "head" })}
+            {/* «ترك الصلاة»: سهم خارج يُشطب مع «نحافظ» */}
+            <Arrow x1={960} y1={560} x2={960} y2={760} p={P(tLeave - 2, tLeave + 12)} c={z.ink} w={7} />
+            {T("tr", 960, 846, "ترك الصلاة", 62, ["ترك", 0.66], ["الصلاة", 0.7], { font: "head" })}
+            <Cross x1={1100} x2={820} y={826} p={P(tAct - 2, tAct + 10)} z={z} />
+            {/* «نحافظ على صحة أفعالها» */}
+            <InkPerson x={1300} y={700} s={1.0} pose="stand" p={P(tAct - 4, tAct + 16)} z={z} dir={-1} />
+            {T("sf", 1300, 770, "صحة أفعالها", 64, ["صحة", 0.8], ["أفعالها", 0.83], { font: "head" })}
+            {/* «ونسعى إلى حضور قلوبنا»: الاثنان معًا */}
             <Arrow x1={1180} y1={420} x2={790} y2={420} p={P(tNone - 2, tNone + 14)} c={z.ink} w={6} bend={60} />
             <Arrow x1={790} y1={460} x2={1180} y2={460} p={P(tNone + 8, tNone + 22)} c={z.ink} w={6} bend={-40} />
-            {/* ترك الصلاة: سهم خارج يُشطب */}
-            <Arrow x1={960} y1={560} x2={960} y2={760} p={P(tLeave - 2, tLeave + 12)} c={z.ink} w={7} />
-            {/* الأمر 018: بخط العناوين لا اليد (كان غير مقروء على الهاتف تحت الشطب)، والتوقيت على «الصلاة» الوحيدة في الجملة */}
-            {T("tr", 960, 846, "لترك الصلاة", 62, ["لترك", 0.66], ["الصلاة", 0.7], { font: "head" })}
-            <Cross x1={1135} x2={785} y={826} p={P(at("بل", 0.74) - 2, at("بل", 0.74) + 10)} z={z} />
-            {/* دافع: درجات إلى أعلى */}
-            <Stroke d="M420 470 L420 400 L520 400 L520 330 L620 330 L620 260 L720 260" p={climb} c={z.ink} w={8} />
-            {T("tl", 440, 380, "للتعلم", 60, ["للتعلم", 0.86], undefined, { font: "head" })}
-            {T("mj", 700, 228, "والمجاهدة", 60, ["والمجاهدة", 0.94], undefined, { font: "head" })}
+            {T("hq", 630, 770, "حضور قلوبنا", 64, ["حضور", 0.9], ["قلوبنا", 0.93], { font: "head" })}
           </g>
         ),
       };
