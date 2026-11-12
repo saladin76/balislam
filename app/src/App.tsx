@@ -55,6 +55,8 @@ import { shotWordIssues } from "../../src/plan/shotWords";
 import { hasBasmala } from "../../src/voice/basmala";
 import { bootPlace, navigationKind, parseStudioHash, studioHash } from "./shell/route";
 import { StudioErrorBoundary } from "./shell/ErrorBoundary";
+import { OwnerText } from "./ui/OwnerText";
+import { splitOwnerDetails } from "./serverMessages";
 
 type Tab = StudioSection;
 type FinalView = "recitations" | "seams" | "master";
@@ -196,7 +198,9 @@ export const App: React.FC = () => {
   const say = (msg: string, err = false, ms = 2600) => {
     setToast({ msg, err });
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), ms);
+    // KI-009: a refusal with folded technical details stays long enough to open «تفاصيل».
+    const wait = splitOwnerDetails(msg).details === null ? ms : Math.max(ms, 12_000);
+    toastTimer.current = setTimeout(() => setToast(null), wait);
   };
 
   // QA 12 Nov: a fresh browser (no channel stored, no hash) takes the first channel at once, so «مرجع القناة»,
@@ -917,7 +921,7 @@ export const App: React.FC = () => {
             }}
           />
         ) : null}
-        {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role={toast.err ? "alert" : "status"} title="انقر للإغلاق" onClick={() => setToast(null)}>{toast.msg}</div> : null}
+        {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role={toast.err ? "alert" : "status"} title="انقر للإغلاق" onClick={() => setToast(null)}><OwnerText text={toast.msg} /></div> : null}
         {moveOpen && seriesData && epId ? (
           <MoveEpisodesDialog episodes={[epId]} current={epSeries || GENERAL_SLUG} data={seriesData} onClose={() => setMoveOpen(false)}
             onPick={async (to) => { if (!await flushBeforeNavigation()) return; await epMover.move(to, [epId]); setMoveOpen(false); }} />

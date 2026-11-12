@@ -5,6 +5,7 @@ import { api, type CalendarDay, type Idea, type OpsChannel, type Overview } from
 import { stagesOf } from "./HomeTab";
 import { arDigits, episodeTitle, num } from "../ui/format";
 import { useScrollLock } from "../ui/scrollLock";
+import { OwnerText } from "../ui/OwnerText";
 
 /**
  * «غرفة العمليات»: القنوات كلها في شاشة واحدة.
@@ -87,7 +88,7 @@ export const OpsRoom: React.FC<{
   }, [weekOffset]);
   const todayIso = iso(new Date());
 
-  if (err) return <div className="render-box"><b>غرفة العمليات</b><span className="help">{err}</span></div>;
+  if (err) return <div className="render-box"><b>غرفة العمليات</b><span className="help"><OwnerText text={err} /></span></div>;
   if (!data) return <div className="render-box"><span className="help">جارٍ تجهيز غرفة العمليات…</span></div>;
 
   const color = (id: string) => COLORS[data.findIndex((d) => d.channel.id === id) % COLORS.length]!;
@@ -397,7 +398,7 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
           ) : null}
 
           <label className="field"><span>ملاحظة</span><input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلًا: يوم عرفة، نشر مبكر، تعاون مع قناة…" /></label>
-          {err ? <span className="help" style={{ color: "var(--err)" }}>{err}</span> : null}
+          {err ? <span className="help" style={{ color: "var(--err)" }}><OwnerText text={err} /></span> : null}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button className="btn" onClick={onClose}>إلغاء</button>
             <button className="btn primary" disabled={busy} onClick={save}>{busy ? "جارٍ الحفظ…" : "حفظ"}</button>
@@ -433,7 +434,7 @@ const ChannelScheduleEditor: React.FC<{ channel: string; name: string; onClose: 
               </label>
               <label className="field"><span>ساعة النشر</span><input type="text" dir="ltr" value={sch.time ?? ""} onChange={(e) => set({ time: e.target.value })} placeholder="19:00" /></label>
               <label className="field"><span>شورتس في اليوم (تلقائيًا من آخر حلقة)</span><input type="number" min={0} max={3} value={sch.shortsPerDay ?? 1} onChange={(e) => set({ shortsPerDay: Number(e.target.value) })} /></label>
-              {err ? <span className="help" style={{ color: "var(--err)" }}>{err}</span> : null}
+              {err ? <span className="help" style={{ color: "var(--err)" }}><OwnerText text={err} /></span> : null}
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button className="btn" onClick={onClose}>إلغاء</button>
                 <button className="btn primary" onClick={async () => { try { await api.saveChannelFor(channel, c); onSaved(); } catch (e) { setErr((e as Error).message); } }}>حفظ</button>

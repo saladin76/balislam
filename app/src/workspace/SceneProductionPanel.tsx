@@ -28,6 +28,7 @@ import { Icon } from "../ui/icons";
 import { DockText } from "../shell/DockText";
 import { NO_VOICE_KEY_AFTER_NOTE, voiceResultMessage } from "./voiceResult";
 import { Num, duration as clock, ownerText } from "../ui/format";
+import { OwnerText } from "../ui/OwnerText";
 
 type Props = {
   episodeId: string;
@@ -606,7 +607,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
           </header>
           )}
 
-          {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
+          {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
 
           {view === "fix" ? (
             <section className="s3-fixes" aria-label="مشاهد تحتاج إصلاحًا">
@@ -917,7 +918,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   return (
     <section className="scene-first-panel sp" aria-label="القرار الحالي في إنتاج الحلقة">
       {!data && !error ? <p role="status">جارٍ تحميل حالة الحلقة…</p> : null}
-      {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
+      {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
       {!data ? null : currentId && scene ? (
         <div className="sp-grid">
           <div className="sp-media">
@@ -1177,7 +1178,7 @@ export const SceneDecisionActions: React.FC<{
           {reasons.map((r, i) => <p key={i} className="sp-hint">{r}</p>)}
         </div>
       ) : null}
-      {p.voiceMsg ? <p className="sp-hint ms-float is-quiet" role="status">{p.voiceMsg}</p> : null}
+      {p.voiceMsg ? <p className="sp-hint ms-float is-quiet" role="status"><OwnerText text={p.voiceMsg} /></p> : null}
       {p.confirming && review ? (
         <label className="sp-confirm s3-confirm ms-float"><input type="checkbox" checked={p.reviewed} onChange={(e) => p.onConfirm(e.target.checked)} autoFocus /> {p.voice === "none" ? "شاهدته كاملًا" : "شاهدته بالصوت كاملًا"}</label>
       ) : null}
@@ -1285,7 +1286,7 @@ const SeamReview: React.FC<{
           <div><dt>وصلة مسموعة</dt><dd><Num>{`${heardCount} من ${seams.length}`}</Num></dd></div>
         </dl>
       </header>
-      {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
+      {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
       {seam ? (
         <>
           <div className="ms-seam">

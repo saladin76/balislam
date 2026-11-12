@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { api, type UpdateConflict } from "../api";
 import { updateOutcome } from "./updateOutcome";
+import { OwnerText } from "./OwnerText";
 
 /**
  * شريط «تحديث جديد»: يتحقق من GitHub كل دقيقة (وعند العودة للنافذة)،
@@ -109,7 +110,7 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     <>
     <div className={`update-banner ${msg?.err ? "err" : ""}`} role="status">
       {msg ? (
-        <span style={{ whiteSpace: "pre-line" }}>{msg.text}</span>
+        <span style={{ whiteSpace: "pre-line" }}><OwnerText text={msg.text} /></span>
       ) : st ? (
         <>
           <b>تحديث جديد متاح</b>

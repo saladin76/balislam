@@ -9,6 +9,7 @@ import { citationChip, citationNotice } from "./citationNotice";
 import { DockChip, DockText } from "./DockText";
 import { Icon } from "../ui/icons";
 import { CORRECTIONS, countAr } from "../../../src/i18n/count";
+import { OwnerText } from "../ui/OwnerText";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
@@ -240,7 +241,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
           </div>
         ) : next.fix === "script" && inStep1 && scriptErrors.length ? null : next.go && (next.fix ? tab !== next.go : !STEPS[stepOf(next.go)]!.tabs.includes(tab)) ? (
           <div className="ms-dock" role="group" aria-label="الخطوة التالية">
-            {err ? <p className="ms-float spine-err" role="alert">{err}</p> : null}
+            {err ? <p className="ms-float spine-err" role="alert"><OwnerText text={err} /></p> : null}
             <div className="ms-dock-in is-wrap">
               <DockText line={next.fix === "script"
                 ? <>التجهيز لم يُعتمد بعد: في السكريبت {countAr(scriptFixes, CORRECTIONS)} قبل الاعتماد.</>
@@ -253,8 +254,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
               </div>
             </div>
           </div>
-        ) : err ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">{err}</p></div> : null
-      ) : err && !next ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">حالة الاعتمادات غير متاحة: {err}</p></div> : null}
+        ) : err ? <div className="ms-dock"><p className="ms-float spine-err" role="alert"><OwnerText text={err} /></p></div> : null
+      ) : err && !next ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">حالة الاعتمادات غير متاحة: <OwnerText text={err} /></p></div> : null}
     </>
   );
 };

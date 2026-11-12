@@ -9,6 +9,7 @@ import { api } from "../api";
 import type { LabStatus, LabSummary } from "../../../src/channel/labs";
 import { labStoryboardsEnabled } from "../../../src/channel/labStoryboardsShared";
 import { LabStoryboards } from "./LabStoryboards";
+import { OwnerText } from "../ui/OwnerText";
 
 const STATUS_AR: Record<LabStatus, string> = { experimental: "تجريبي", review: "جاهز للمراجعة", approved: "معتمد", rejected: "مرفوض" };
 const Badge: React.FC<{ s: LabStatus }> = ({ s }) => <span className={`lab-badge lab-${s}`}>{STATUS_AR[s]}</span>;
@@ -22,7 +23,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
     api.labs(channel).then((r) => setLabs(r.labs), (e: Error) => setErr(e.message));
   }, [channel]);
 
-  if (err) return <div className="panel"><p className="err">{err}</p></div>;
+  if (err) return <div className="panel"><p className="err"><OwnerText text={err} /></p></div>;
   if (!labs) return <div className="panel"><p className="muted">جارٍ تحميل المختبرات…</p></div>;
   if (!labs.length) return <div className="panel"><p className="muted">لا مختبرات لهذه القناة.</p></div>;
 

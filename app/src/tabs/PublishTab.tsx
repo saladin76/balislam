@@ -9,6 +9,7 @@ import "../shell/screens-s45.css";
 import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 import { arDigits, duration, num } from "../ui/format";
 import { FramePlayer } from "../workspace/SceneProductionPanel";
+import { OwnerText } from "../ui/OwnerText";
 
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
@@ -244,11 +245,11 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             <button type="button" className="btn ghost small" onClick={() => setShowLog((v) => !v)}>{showLog ? "إخفاء التفاصيل" : "التفاصيل"}</button>
             {job.status === "running" ? <button type="button" className="btn ghost small" onClick={() => void api.cancelJob(job.id).catch((x) => window.alert((x as Error).message))}>إلغاء</button> : null}
             {job.status === "running" ? <span className="s45-note s45-job-line">{job.log[job.log.length - 1] ?? "…"}</span> : null}
-            {job.status === "error" ? <span className="s45-note s45-job-line s45-err">{job.error}</span> : null}
+            {job.status === "error" ? <span className="s45-note s45-job-line s45-err"><OwnerText text={job.error} /></span> : null}
             {showLog ? <pre className="log s45-job-line">{job.log.join("\n")}</pre> : null}
           </div>
         ) : null}
-        {err ? <p className="s45-alert" role="alert">{err}</p> : null}
+        {err ? <p className="s45-alert" role="alert"><OwnerText text={err} /></p> : null}
 
         {!video ? (
           <div className="s45-empty">

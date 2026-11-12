@@ -3,6 +3,7 @@ import { api } from "../api";
 import { PROBLEMS, WARNINGS, arDigits, countAr } from "../ui/format";
 import { kitIssues } from "../../../src/package/quality";
 import { CHAPTERS_TOKEN, checkCaption, checkDescription, checkTitle, resolveDescription, RULES, type Check, type PublishKit, type ShortKit } from "../../../src/package/social";
+import { OwnerText } from "../ui/OwnerText";
 
 const copy = (text: string, done: (m: string) => void) => {
   navigator.clipboard.writeText(text).then(() => done("نُسخ")).catch(() => done("تعذّر النسخ"));
@@ -56,7 +57,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
     api.kit(episodeId).then((r) => { setKit(r.kit); setKeywords(r.keywords); setChapters(r.chapters); setEstimated(Boolean(r.chaptersEstimated)); onKit?.(r.kit, r.chapters); }).catch((e) => setErr((e as Error).message));
   }, [episodeId]);
 
-  if (err) return <div className="render-box"><b>حزمة الانتشار</b><span className="help">{err}</span></div>;
+  if (err) return <div className="render-box"><b>حزمة الانتشار</b><span className="help"><OwnerText text={err} /></span></div>;
   if (!kit) return <div className="render-box"><span className="help">جارٍ تجهيز حزمة الانتشار…</span></div>;
 
   const update = (next: PublishKit) => {

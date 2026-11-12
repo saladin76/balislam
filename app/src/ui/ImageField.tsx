@@ -3,6 +3,7 @@ import { api } from "../api";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { fireflyPrompt, fullImagePrompt, midjourneyPrompt, type PromptLook } from "../../../src/visual/prompts";
 import { librarySlot } from "../../../src/visual/library";
+import { OwnerText } from "./OwnerText";
 
 const readAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -101,7 +102,7 @@ export const ImageField: React.FC<{
         {mj ? <button className="btn small" onClick={() => copy(mj)} title={mj}>انسخ أمر Midjourney</button> : null}
         {ff.prompt ? <button className="btn small" onClick={() => copy(ff.prompt)} title={`${ff.prompt}\n\nExclude: ${ff.exclude}`}>انسخ وصف Firefly</button> : null}
         {generic ? <button className="btn small" onClick={() => copy(generic)} title={generic}>انسخ الوصف لأي أداة</button> : null}
-        {msg ? <span className="help">{msg}</span> : null}
+        {msg ? <span className="help"><OwnerText text={msg} /></span> : null}
       </div>
       {url && dims ? (
         dims.w < MIN_SHARP_WIDTH ? (
