@@ -1111,50 +1111,62 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
 
   // S20 — التكبير لا يمحو المسؤوليات
   "duties-aside": {
-    nameAr: "تعظيم الله لا يمحو مسؤولياتنا، بل نعرف قدر العبادة",
+    nameAr: "الهموم لا تختفي بعد التكبير، لكنها لا تستولي على الصلاة",
     render: (c) => {
-      const { frame, z, at, T, P } = kit(c);
-      const tProblems = at("مشكلاتنا", 0.14);
-      const tGone = at("اختفت", 0.2);
-      const tDuties = at("مسؤولياتنا", 0.3);
-      const tMatter = at("مهمة", 0.4);
-      const tKnow = at("نعرف", 0.56);
-      const tWorship = at("العبادة", 0.62);
-      const tGive = at("نعطيها", 0.78);
-      const tHeart = at("قلبنا", 0.86);
+      const { frame, z, at, end, T, P } = kit(c);
+      // السكريبت المعتمد (١١ نوفمبر): «هل يعني ذلك أن الهموم ستختفي بعد التكبير؟ لا. لكننا نتعلم أن نعطي للصلاة وقتها ومكانها من
+      // قلوبنا، دون أن ندعي أن مسؤوليات الدنيا لم تعد موجودة. المقصود ليس إنكار الهموم، بل ألا تستولي على هذه اللحظات.»
+      const tProblems = at("الهموم", 0.08);
+      const tGone = at("ستختفي", 0.12);
+      const tLa = at("لا", 0.2);
+      const tKnow = at("نتعلم", 0.26);
+      const tWorship = at("للصلاة", 0.32);
+      const tHeart = at("قلوبنا", 0.42);
+      const tDuties = at("مسؤوليات", 0.52);
+      const tMatter = at("موجودة", 0.6);
+      const tInkar = at("إنكار", 0.72);
+      const tBal = at("بل", 0.8);
+      const tIstawli = at("تستولي", 0.88);
+      const tLahazat = at("اللحظات", 0.96);
       const aside = P(tKnow - 2, tKnow + 22);
       const items: [IconId, number, number][] = [["calendar", 760, 420], ["bag", 960, 380], ["house", 1160, 420], ["phone", 860, 600], ["clock", 1060, 600]];
+      const duty = Math.sin(Math.PI * P(tDuties - 2, tDuties + 18, (t) => t));
       return {
-        focus: [[tProblems, 960, 480], [tGone, 960, 480], [tDuties, 960, 480], [tMatter, 960, 780], [tKnow, 960, 520], [tWorship, 960, 520], [tGive, 960, 520], [tHeart, 960, 520]],
-        cam: [C(0, 960, 480, 1.2), C(tMatter - 6, 1150, 420, 1.1), C(tKnow - 6, 1100, 520, 1.0), C(tGive - 6, 1040, 520, 1.12)],
+        focus: [[tProblems, 960, 480], [tGone, 960, 260], [tKnow, 1300, 520], [tWorship, 960, 520], [tHeart, 960, 420], [tDuties, 1470, 540], [tMatter, 1420, 250], [tInkar, 560, 300], [tIstawli, 1400, 540], [tLahazat, 960, 520]],
+        cam: [C(0, 960, 480, 1.2), C(tKnow - 6, 1100, 520, 1.0), C(tInkar - 6, 1000, 500, 1.04)],
         world: (
           <g>
-            {/* الشواغل لا تختفي: تتنحى إلى عمود جانبي داخل الإطار، أصغر وأخفت، وتبقى مرئية */}
+            {/* «الهموم» لا «تختفي»: تتنحى مع «نتعلم» إلى عمود جانبي داخل الإطار، أصغر وأخفت، وتبقى مرئية */}
             {items.map(([id, x, y], k) => {
               const tx = lerp(x, 1470, aside);
               const ty = lerp(y, 330 + k * 105, aside);
               if (aside > 0) c.reg([tx - 50, ty - 50, tx + 50, ty + 50], tKnow);
-              return <Icon key={id} id={id} x={tx} y={ty} s={lerp(1.4, 0.75, aside)} p={P(tProblems - 2 + k * 3, tProblems + 10 + k * 3)} c={z.ink} opacity={1 - 0.4 * aside} />;
+              return <Icon key={id} id={id} x={tx} y={ty} s={lerp(1.4, 0.75, aside) * (1 + 0.12 * duty)} p={P(tProblems - 2 + k * 3, tProblems + 10 + k * 3)} c={z.ink} opacity={1 - 0.4 * aside + 0.4 * duty} />;
             })}
-            <Stroke d="M1400 280 L1400 790" p={P(tKnow + 12, tKnow + 28)} c={z.faint} w={5} />
-            {/* «اختفت»: لا تختفي (ظلال متقطعة تُشطب) */}
+            {/* «ألا تستولي»: حدّ بين الهموم ومساحة الصلاة */}
+            <Stroke d="M1400 280 L1400 790" p={P(tIstawli - 2, tIstawli + 14)} c={z.ink} w={6} />
             <g opacity={P(tGone - 2, tGone + 8) * (1 - aside)}>
               <rect x={640} y={300} width={640} height={400} rx={30} fill="none" stroke={z.faint} strokeWidth={6} strokeDasharray="16 14" />
             </g>
-            {T("ik", 960, 250, "اختفت", 64, ["اختفت", 0.2], undefined, { opacity: 1 - aside })}
-            <g opacity={1 - aside}><Cross x1={1050} x2={870} y={234} p={P(tGone + 10, tGone + 22)} z={z} /></g>
-            {T("mh", 1420, 250, "لم تعد مهمة", 62, ["لم", 0.36], ["مهمة", 0.4], { opacity: 1 - aside })}
-            <g opacity={1 - aside}><Cross x1={1590} x2={1250} y={234} p={P(tMatter + 10, tMatter + 22)} z={z} /></g>
-            {/* مساحة العبادة تنفتح في الوسط */}
+            {T("ik", 960, 250, "ستختفي", 64, ["ستختفي", 0.12], undefined, { opacity: 1 - aside })}
+            <g opacity={1 - aside}><Cross x1={1060} x2={860} y={234} p={P(tLa - 2, tLa + 10)} z={z} /></g>
+            {/* «لم تعد موجودة»: ادعاء يُشطب، والهموم ما زالت في عمودها */}
+            {T("mh", 1420, 250, "لم تعد موجودة", 58, ["لم", 0.56], ["موجودة", 0.6])}
+            <Cross x1={1590} x2={1250} y={234} p={P(end("موجودة", 0.62), end("موجودة", 0.62) + 12)} z={z} />
+            {/* «نعطي للصلاة وقتها ومكانها»: مساحة الصلاة تنفتح في الوسط */}
             <g opacity={P(tWorship - 4, tWorship + 10)}>
               <rect x={760} y={360} width={400} height={300} rx={30} fill={z.paper} stroke={z.ink} strokeWidth={7} />
+              <rect x={760} y={360} width={400} height={300} rx={30} fill="none" stroke={z.hl} strokeWidth={18} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - P(tLahazat - 2, tLahazat + 16, (t) => t)} />
               <path d="M860 600 L1060 600 L1036 640 L884 640 Z" fill={z.hl} stroke={z.ink} strokeWidth={5} />
             </g>
-            {T("qd", 960, 740, "قدر العبادة", 66, ["قدر", 0.6], ["العبادة", 0.62], { font: "head" })}
+            {T("qd", 960, 740, "وقتها ومكانها", 64, ["وقتها", 0.36], ["ومكانها", 0.38], { font: "head" })}
             <g opacity={P(tHeart - 4, tHeart + 10)}>
               <path d={heartPath(960, lerp(380, 500, P(tHeart, tHeart + 16)), 46)} fill={z.hl} stroke={z.ink} strokeWidth={6} />
             </g>
-            {T("ng", 960, 300, "نعطيها من قلبنا", 64, ["نعطيها", 0.78], ["قلبنا", 0.86])}
+            {T("ng", 960, 300, "من قلوبنا", 62, ["من", 0.4], ["قلوبنا", 0.42])}
+            {/* «ليس إنكار الهموم» يُشطب مع «بل» */}
+            {T("ik2", 560, 300, "إنكار الهموم", 60, ["إنكار", 0.72], ["الهموم", 0.76, 2])}
+            <Cross x1={720} x2={400} y={284} p={P(tBal - 2, tBal + 10)} z={z} />
           </g>
         ),
       };
