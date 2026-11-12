@@ -90,7 +90,7 @@ export const Num: React.FC<{ children: string | number; className?: string; titl
 
 /**
  * A preview title or note as the owner reads it (QA 12 Nov: «المشهد c1-s2 — صوت وصورة»، «032 · الميزان c1-s2…s5»):
- * scene ids by their number (a range «c1-s2…s5» → «المشاهد ٢–٥»), «·» (it reads as a zero) as «—», Arabic digits.
+ * scene ids by their number (a range «c1-s2…s5» → «المشاهد ٢–٥»), the middle dot (it reads as a zero) as «—», Arabic digits.
  * The index file keeps its own text; this is display only.
  */
 export const ownerPreviewText = (raw: string, order: string[]): string => {
@@ -100,7 +100,7 @@ export const ownerPreviewText = (raw: string, order: string[]): string => {
     return x && y ? `المشاهد ${x.toLocaleString("ar-EG")}–${y.toLocaleString("ar-EG")}` : m;
   });
   const named = ownerTextOf(ranged, order);
-  return named.replace(/\s+·\s+/g, " — ").replace(/^(\d{3})\s+—\s+/, (m, ep: string) => `${arDigits(ep)} — `);
+  return named.replace(/\s+\u00B7\s+/g, " — ").replace(/^(\d{3})\s+—\s+/, (m, ep: string) => `${arDigits(ep)} — `);
 };
 /** Technical text (commands, file names, keys) the owner does not need on the main screen: shown under «تفاصيل». */
 export const isTechnicalNote = (s: string): boolean =>

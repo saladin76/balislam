@@ -66,7 +66,7 @@ export const PreFinalPanel: React.FC<{
   };
   const makePreFinal = () => guard("prefinal", async () => {
     const r = await api.makePreFinal(episodeId, channelId);
-    setMsg(`جُمعت ${countAr(r.scenes, SCENES)}${r.recitationPending.length ? `؛ آيات صامتة بانتظار تلاوتها: ${ar(r.recitationPending.length)}` : ""}.`);
+    setMsg(`جُمعت المشاهد (${countAr(r.scenes, SCENES)})${r.recitationPending.length ? `؛ آيات صامتة بانتظار تلاوتها: ${ar(r.recitationPending.length)}` : ""}.`);
   });
   const verses = recs?.verses ?? [];
   const keys = [...new Set(verses.map((v) => v.key))];

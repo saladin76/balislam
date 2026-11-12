@@ -136,7 +136,7 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
         return (
           <section key={e.slot} className="sbi-entry">
             <div className="sbi-head">
-              <h5>{ownerText(e.title).replace(/\s+·\s+/g, " — ")}</h5>
+              <h5>{ownerText(e.title).replace(/\s+\u00B7\s+/g, " — ")}</h5>
               {e.order ? <span className="sbi-order">الأمر {arDigits(String(e.order))}</span> : null}
               <span className="sbi-tabs" role="tablist">
                 {e.versions.map((v) => (

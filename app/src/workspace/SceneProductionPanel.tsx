@@ -45,6 +45,8 @@ type Props = {
   onUpdated?: () => void;
   /** Every read model this panel takes (GET or a decision's answer) goes to the band at once (QA: stale «٠ من ١٦٣»). */
   onState?: (w: SceneProductionRead) => void;
+  /** Increases after each successful plan save (the App's autosave), so the ledger state is read again. */
+  planSaved?: number;
   /** The scene on screen in step ٢ (the App keeps it in the address bar). */
   onShownScene?: (id: string | null) => void;
   /**
@@ -130,7 +132,7 @@ const noop = () => {};
  * All decisions are server-authenticated, bound to real bytes and serialized.
  */
 export const SceneProductionPanel: React.FC<Props> = ({
-  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onOpenPreparation, onUpdated, onState, onShownScene,
+  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onOpenPreparation, onUpdated, onState, onShownScene, planSaved,
   plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, viewSceneId, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
   initialRead, onPlanFlush, onPlanReplaced, view = "one", onView, thumb, finalView, onFinalView,
 }) => {
@@ -360,15 +362,14 @@ export const SceneProductionPanel: React.FC<Props> = ({
     strip.scrollLeft += (n.left + n.width / 2) - (s.left + s.width / 2);
   }, [currentId, sceneMode, order.length]);
 
-  // dafatir M6: any plan change saved from this screen (editor fields, tone, text) re-reads the scene state once
-  // the autosave has run, so a scene waiting for a change unlocks as soon as its inputs changed.
-  const planSeen = useRef(plan);
+  // dafatir M6: every plan save from this screen (editor fields, tone, text) re-reads the scene state, so a scene
+  // waiting for a change unlocks as soon as its inputs changed (no reload).
+  const savedSeen = useRef(planSaved);
   useEffect(() => {
-    if (!sceneMode || planSeen.current === plan) return;
-    planSeen.current = plan;
-    const t = setTimeout(() => { void refresh().catch(() => {}); }, 1400);
-    return () => clearTimeout(t);
-  }, [plan, sceneMode]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!sceneMode || savedSeen.current === planSaved) return;
+    savedSeen.current = planSaved;
+    void refresh().catch(() => {});
+  }, [planSaved, sceneMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const onShownRef = useRef(onShownScene);
   onShownRef.current = onShownScene;
   useEffect(() => { if (sceneMode && data) onShownRef.current?.(shownId); }, [sceneMode, data, shownId]);

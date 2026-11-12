@@ -1,5 +1,5 @@
 import { OverlayToggles } from "../ui/Overlays";
-import { CLIPS, LETTERS, SCENES, WORDS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
+import { CLIPS, SCENES, WORDS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
 const arNumE = (n: number) => n.toLocaleString("ar-EG");
 import { resolveOverlays } from "../../../brand/identity/index";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -672,7 +672,7 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
                 const r = await api.voice(episodeId, {});
                 onMedia(r.media);
                 if (r.report) setEst(r.report);
-                setMsg(r.noKey || !r.generated ? NO_VOICE_KEY : `وُلّد ${r.report?.toGenerate.length ?? 0} مقطعًا.`);
+                setMsg(r.noKey || !r.generated ? NO_VOICE_KEY : `وُلّدت المقاطع (${countAr(r.report?.toGenerate.length ?? 0, CLIPS)}).`);
                 setEst((await api.voice(episodeId, { dryRun: true })).report);
               } catch (e) {
                 setMsg((e as Error).message);
@@ -681,14 +681,14 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
               }
             }}
           >
-            {busy ? "جارٍ التوليد…" : `ولّد ${countAr(est.toGenerate.length, CLIPS)}`}
+            {busy ? "جارٍ التوليد…" : `ولّد المقاطع (${arNumE(est.toGenerate.length)})`}
           </button>
         ) : null}
       </div>
       {est ? (
         <div className="help" style={{ fontVariantNumeric: "tabular-nums" }}>
           {/* QA 12 Nov (dafatir M10): this tool counts the whole-scene clips only; scenes voiced sentence by sentence are counted in «الجمل» */}
-          {est.toGenerate.length === 0 ? `لا مقطع يحتاج توليدًا بهذه الأداة (${countAr(est.total, CLIPS, "لا مقاطع")} محفوظة).` : `للتوليد ${arNumE(est.toGenerate.length)} من ${countAr(est.total, CLIPS)}: ${countAr(est.chars, LETTERS)} ≈ ${arNumE(est.credits)} من رصيد الصوت. المحفوظ: ${arNumE(est.cached.length)}.`}
+          {est.toGenerate.length === 0 ? `لا مقطع يحتاج توليدًا بهذه الأداة (المحفوظة: ${arNumE(est.total)}).` : `المقاطع للتوليد: ${arNumE(est.toGenerate.length)} من ${arNumE(est.total)} — الحروف: ${arNumE(est.chars)} ≈ ${arNumE(est.credits)} من رصيد الصوت. المحفوظة: ${arNumE(est.cached.length)}.`}
           {managedOf(est) ? ` المشاهد المسجّلة جملةً جملة (${countAr(managedOf(est), SCENES)}) تُفحص وتُولَّد في «الجمل» تحت كل مشهد، ولا تدخل هذا العدّ ولا نسبة التشكيل أدناه.` : ""}
           {!hasKeys ? <> (أضف مفتاح الصوت من <KeysLink /> لتفعيل التوليد)</> : ""}
         </div>

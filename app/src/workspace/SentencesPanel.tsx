@@ -1,4 +1,4 @@
-import { AYAT, CLIPS, SCENES, SENTENCES, countAr as countOf } from "../../../src/i18n/count";
+import { AYAT, SENTENCES, countAr as countOf } from "../../../src/i18n/count";
 import { SplitChooser, caretWordIndex } from "./SplitChooser";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useScrollLock } from "../ui/scrollLock";
@@ -832,7 +832,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       if (r.media) onMediaChange?.(r.media);
       setRead(await api.sentences(episodeId, channelId));
       const res = r.result!;
-      setMsg(`أُعيد توليد ${countOf(res.sentences, SENTENCES)} و${countOf(res.sceneJobs, CLIPS)} بالنبرة كما كانت؛ التسجيلات السابقة محفوظة.${res.errors.length ? ` تعذّر ${ar(res.errors.length)}: ${res.errors[0]!.error}` : ""}`);
+      setMsg(`أُعيد التوليد بالنبرة كما كانت (الجمل: ${ar(res.sentences)}، مقاطع المشاهد: ${ar(res.sceneJobs)})؛ التسجيلات السابقة محفوظة.${res.errors.length ? ` تعذّر ${ar(res.errors.length)}: ${res.errors[0]!.error}` : ""}`);
       onChanged?.();
     } catch (e) {
       setError((e as Error).message);
@@ -866,7 +866,7 @@ export const OLDER_TONE = "وُلّدت بالنبرة القوية (المُل�
 export const UPGRADE_ALL = "أعد توليد ما وُلّد بالنبرة القوية";
 /** نص التأكيد: كم جملة وكم مشهد، وأنه يصرف رصيدًا */
 export const toneUpgradeConfirm = (p: { sentences: unknown[]; sceneJobs: { ids: unknown[] }; scenes: unknown[]; chars: number; credits: number }) =>
-  `${UPGRADE_ALL}؟\n${countOf(p.sentences.length, SENTENCES)} و${countOf(p.sceneJobs.ids.length, CLIPS)}، في ${countOf(p.scenes.length, SCENES)}.\n` +
+  `${UPGRADE_ALL}؟\nالجمل: ${ar(p.sentences.length)}، ومقاطع المشاهد: ${ar(p.sceneJobs.ids.length)}، في المشاهد: ${ar(p.scenes.length)}.\n` +
   `يصرف نحو ${ar(p.credits)} من رصيد الصوت (${ar(p.chars)} حرفًا). التسجيلات السابقة تبقى محفوظة، والمشاهد المتأثرة تعود لمراجعتك.`;
 
 type WordFixResult = { index: number; word: string; before: string; say: string; save: boolean; result: WordFixOutcome };

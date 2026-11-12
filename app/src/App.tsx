@@ -158,6 +158,8 @@ export const App: React.FC = () => {
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
+  /** Counts successful plan saves: step ٢ reads the ledger again after each (dafatir M6). */
+  const [planSaved, setPlanSaved] = useState(0);
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -245,6 +247,7 @@ export const App: React.FC = () => {
     try {
       await api.savePlan(p.ep, p.plan);
       setPlanState("saved");
+      setPlanSaved((n) => n + 1);
     } catch (e) {
       setPlanState("error");
       say((e as Error).message, true);
@@ -765,6 +768,7 @@ export const App: React.FC = () => {
             onUpdated={() => setHomeKey(k => k + 1)}
             onState={(st) => setLedger({ key: `${channelId}/${epId}`, w: st })}
             onShownScene={(id) => setShownScene(id ?? undefined)}
+            planSaved={planSaved}
             editor={(sceneId, onSelect) => (
               <EpisodeTab
                 key={epId}

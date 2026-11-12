@@ -288,8 +288,9 @@ describe("الاستوديو: الإشارة الهادئة والأمر الص�
     expect(UPGRADE_ALL).toBe("أعد توليد ما وُلّد بالنبرة القوية");
     expect(OLDER_TONE).toBe("وُلّدت بالنبرة القوية (المُلغاة)");
     const text = toneUpgradeConfirm({ sentences: [1, 2, 3], sceneJobs: { ids: [1] }, scenes: [1, 2], chars: 120, credits: 120 });
-    expect(text).toContain("٣ جملة");
-    expect(text).toContain("١ مقطع مشهد");
+    // QA 12 Nov: counts after a label, so the number never disagrees with its noun
+    expect(text).toContain("الجمل: ٣");
+    expect(text).toContain("مقاطع المشاهد: ١");
     expect(text).toContain("رصيد");
     // the server: dry run by default, the paid run only with dryRun: false from the owner
     const server = src("app/server/api.ts");
