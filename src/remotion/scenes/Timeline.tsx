@@ -398,7 +398,7 @@ export const Timeline: React.FC<TimelineProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const timelineSample: Omit<TimelineProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 4 · بعين الإسلام",
+  eyebrow: "بعين الإسلام",
   title: "كيف يكبر التأجيل",
   events: "اليوم الأول | أؤجل خمس دقائق فقط\nالأسبوع الأول | تتراكم المهام الصغيرة\nالشهر الأول | يصبح التأجيل عادة\nبعد سنة | تضيع فرص كبيرة",
   element: "hourglass-patience",
@@ -408,7 +408,7 @@ export const timelineSeconds = 9;
 
 /** English preview sample (LTR). */
 export const timelineSampleEn: Omit<TimelineProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 4 · Through the lens of Islam",
+  eyebrow: "Through the lens of Islam",
   title: "How procrastination grows",
   events: "Day one | Just five more minutes\nWeek one | Small tasks pile up\nMonth one | Delay becomes a habit\nOne year later | Big chances slip away",
   element: "hourglass-patience",

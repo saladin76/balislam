@@ -105,7 +105,7 @@ export const templateDefs: TemplateDef[] = [
   {
     id: "big-question",
     nameAr: "السؤال الكبير",
-    useAr: "افتتاح الفصل بسؤال واحد بخط كبير",
+    useAr: "افتتاح الحلقة أو الفكرة بسؤال واحد بخط كبير",
     implemented: true,
     baseSeconds: 5,
     minSeconds: 3.5,
@@ -383,9 +383,9 @@ export const templateDefs: TemplateDef[] = [
     minSeconds: 2.5,
     fields: [
       { key: "shot", label: "المشهد", type: "select", ui: "shot", options: Object.entries(HZ_META).map(([value, d]) => ({ value, label: d.nameAr })) },
-      { key: "head", label: "رأس الصفحة (رقم الفصل)", type: "text", common: true },
-      { key: "label", label: "عنوان الفصل (لمشهد العنوان)", type: "text" },
-      { key: "title", label: "العنوان (اسم الفصل، أو موضوع المقارنة أو الخط الزمني)", type: "text" },
+      { key: "head", label: "رأس الصفحة (عنوان القسم، اختياري)", type: "text", common: true },
+      { key: "label", label: "العنوان (لمشهد العنوان)", type: "text" },
+      { key: "title", label: "العنوان (اسم القسم، أو موضوع المقارنة أو الخط الزمني)", type: "text" },
       { key: "from", label: "كاميرا البداية من المشهد السابق (x,y,تكبير)", type: "text", common: true },
       { key: "exit", label: "الخروج", type: "select", common: true, options: [{ value: "", label: "حسب المشهد" }, { value: "turn", label: "قلب صفحة" }, { value: "fade", label: "خفوت الحبر" }, { value: "none", label: "يكمله المشهد التالي" }] },
       { key: "idea", label: "فكرة المشهد (قيد التصميم)", type: "textarea" },
@@ -610,7 +610,7 @@ export const templateDefs: TemplateDef[] = [
   {
     id: "summary",
     nameAr: "الخلاصة",
-    useAr: "خلاصة الفصل في جملة",
+    useAr: "خلاصة الفكرة في جملة",
     implemented: true,
     baseSeconds: 6,
     minSeconds: 5,

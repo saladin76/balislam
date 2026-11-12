@@ -304,7 +304,7 @@ export const ChartScene: React.FC<ChartSceneProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const chartSample: Omit<ChartSceneProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 3 · السبب الأعمق",
+  eyebrow: "السبب الأعمق",
   title: "أين يذهب يومنا؟",
   data: "الهاتف: 4\nالعمل المؤجَّل: 1\nالقراءة: ٠٫٥\nالرياضة: 0.3",
   unit: "ساعات",
@@ -316,7 +316,7 @@ export const chartSeconds = 8;
 
 /** English preview sample (LTR). */
 export const chartSampleEn: Omit<ChartSceneProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 3 · The deeper cause",
+  eyebrow: "The deeper cause",
   title: "Where does our day go?",
   data: "Phone: 4\nPutting off work: 1.5\nReading: 0.5\nExercise: 0.3",
   unit: "hours",

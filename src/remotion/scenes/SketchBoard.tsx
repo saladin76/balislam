@@ -328,7 +328,7 @@ export const SketchBoard: React.FC<SketchBoardProps> = (props) => {
 };
 
 export const sketchBoardSample: Omit<SketchBoardProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 5 · كيف نبدأ",
+  eyebrow: "كيف نبدأ",
   title: "قاعدة الدقائق الخمس",
   keyword: "الخمس",
   element: "timer",
@@ -337,7 +337,7 @@ export const sketchBoardSample: Omit<SketchBoardProps, "themeId" | "orientation"
   narration: "ابدأ بخمس دقائق فقط، فالبداية هي أصعب جزء.",
 };
 export const sketchBoardSampleEn: Omit<SketchBoardProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 5 · How to start",
+  eyebrow: "How to start",
   title: "The five-minute rule",
   keyword: "five-minute",
   element: "timer",

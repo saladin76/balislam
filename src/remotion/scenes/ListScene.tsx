@@ -192,7 +192,7 @@ export const ListScene: React.FC<ListSceneProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const listSample: Omit<ListSceneProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 5 · كيف نبدأ",
+  eyebrow: "كيف نبدأ",
   title: "ثلاث خطوات صغيرة",
   items: "حدّد مهمة واحدة فقط\nاعمل عليها خمس دقائق\nكافئ نفسك بعد الإنجاز",
   style: "numbered",
@@ -201,7 +201,7 @@ export const listSample: Omit<ListSceneProps, "themeId" | "orientation"> = {
 };
 /** English preview content. */
 export const listSampleEn: Omit<ListSceneProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 5 · How to start",
+  eyebrow: "How to start",
   title: "Three small steps",
   items: "Pick just one task\nWork on it for five minutes\nReward yourself when it's done",
   style: "numbered",

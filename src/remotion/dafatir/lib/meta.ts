@@ -6,7 +6,7 @@ import type { HzMeta } from "../horizon/meta";
 import { at, type Timeline } from "../horizon/timeline";
 
 export const LIB_META: Record<string, HzMeta> = {
-  chapter: { nameAr: "عنوان الفصل (بلا كلام)", tail: 0, exit: "none", seconds: 3.2 },
+  chapter: { nameAr: "عنوان القسم (بلا كلام)", tail: 0, exit: "none", seconds: 3.2 },
   "verse-intro": { nameAr: "تمهيد آية (صفحة ساكنة)", tail: 1.0, exit: "none", still: "verse-intro" },
   // تمهيد آية كـ verse-intro (CLAUDE.md، القاعدة الثانية: «مشهد الآية وتمهيدها» سكون مقصود)؛ ختم السورة لحظة ذكرها يبقى كما هو
   "verse-tag": { nameAr: "تمهيد آية بختم سورتها", tail: 1.0, exit: "none", still: "verse-intro" },

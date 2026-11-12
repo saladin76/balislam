@@ -290,13 +290,13 @@ export const BoardStory: React.FC<BoardStoryProps> = (props) => {
 };
 
 export const boardStorySample: Omit<BoardStoryProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 1 · هل ترى الحقيقة فعلًا؟",
+  eyebrow: "هل ترى الحقيقة فعلًا؟",
   narration: "تخيل شخصين يشاهدان الموقف نفسه. الأول يراه ظلمًا، والثاني يراه عدلًا. كل واحد منهما مقتنع أنه يرى الحقيقة.",
   beats: "people | الموقف نفسه\nscale-brass-tilted | ظلم؟ عدل؟\nmagnifier-brass | الحقيقة",
   board: "white",
 };
 export const boardStorySampleEn: Omit<BoardStoryProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 1 · Do you really see the truth?",
+  eyebrow: "Do you really see the truth?",
   narration: "Imagine two people watching the same situation. One sees injustice, the other sees justice. Each is sure he sees the truth.",
   beats: "people | same situation\nscale-brass-tilted | unjust? just?\nmagnifier-brass | the truth",
   board: "green",

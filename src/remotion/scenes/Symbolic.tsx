@@ -424,7 +424,7 @@ export const Symbolic: React.FC<SymbolicProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const symbolicSample: Omit<SymbolicProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 5 · كيف نبدأ",
+  eyebrow: "كيف نبدأ",
   element: "seed",
   secondElement: "tree",
   relation: "becomes",
@@ -436,7 +436,7 @@ export const symbolicSeconds = 6;
 
 /** English preview sample (LTR). */
 export const symbolicSampleEn: Omit<SymbolicProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 5 · How to begin",
+  eyebrow: "How to begin",
   element: "seed",
   secondElement: "tree",
   relation: "becomes",

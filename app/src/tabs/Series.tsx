@@ -21,6 +21,8 @@ import { EPISODE_DRAG_TYPE, breadcrumb, decodeDrag, dropVerdict, episodesIn, kin
 import { MoveEpisodesDialog, RowMoveButton, useEpisodeMover } from "./MoveEpisodes";
 import { fourSteps, nextLine } from "./HomeTab";
 import "./series.css";
+import { useChannel } from "../../../src/channel/context";
+import { channelPlaceholders } from "../../../src/channel/placeholders";
 
 type StepTab = "script" | "storyboard" | "episode" | "review" | "publish";
 const toneName = (t: string) => (tones as Record<string, { nameAr: string }>)[t]?.nameAr ?? t;
@@ -118,6 +120,7 @@ export const SeriesGrid: React.FC<{
 // ———————————————————— New series / category ————————————————————
 
 export const NewSeriesDialog: React.FC<{ kind: SeriesKind; data: SeriesRead; parent?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ kind: k0, data, parent: p0, onClose, onCreated }) => {
+  const ph = channelPlaceholders(useChannel().id);
   const [kind, setKind] = useState<SeriesKind>(k0);
   const [name, setName] = useState("");
   const [latin, setLatin] = useState("");
@@ -143,8 +146,8 @@ export const NewSeriesDialog: React.FC<{ kind: SeriesKind; data: SeriesRead; par
             <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)}>{SERIES_KIND_AR[k]}<small>{k === "series" ? "حلقات مرتّبة بأرقام" : "بلا ترتيب، وقد يحوي سلاسل"}</small></button>
           ))}
         </div>
-        <label className="field"><span>الاسم</span><input id="sr-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} placeholder={kind === "series" ? "ليالي رمضان" : "الأسرة"} autoFocus /></label>
-        <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="sr-latin" dir="ltr" value={latin} onChange={(e) => setLatin(e.target.value)} placeholder="ramadan-nights" /><small className="help">يُحفظ باسم <bdi dir="ltr">{id}</bdi>، ولا يتغير بعد الإنشاء.</small></label>
+        <label className="field"><span>الاسم</span><input id="sr-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} placeholder={kind === "series" ? ph.seriesName : ph.categoryName} autoFocus /></label>
+        <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="sr-latin" dir="ltr" value={latin} onChange={(e) => setLatin(e.target.value)} placeholder={ph.seriesSlug} /><small className="help">يُحفظ باسم <bdi dir="ltr">{id}</bdi>، ولا يتغير بعد الإنشاء.</small></label>
         <label className="field"><span>داخل</span>
           <select id="sr-parent" value={parent} onChange={(e) => setParent(e.target.value)}>
             <option value="">أعلى القناة</option>
@@ -414,7 +417,7 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
       <p className="help">افتراضيات الحلقات الجديدة فيها: تُختم في الحلقة لحظة إنشائها، فلا تتغير حلقة قائمة إن تغيّر القالب. ومبدأ التنوّع يبقى: الحلقة تأخذ أسلوبًا يختلف عن أسلوب الحلقة قبلها.</p>
       <fieldset><legend>قالب السكريبت</legend>
         <div className="sr-seg" role="radiogroup">
-          <button type="button" role="radio" aria-checked={(t.script?.source ?? "channel") === "channel"} onClick={() => set({ script: { source: "channel" } })}>قالب القناة بعناوين فصول السلسلة</button>
+          <button type="button" role="radio" aria-checked={(t.script?.source ?? "channel") === "channel"} onClick={() => set({ script: { source: "channel" } })}>قالب القناة</button>
           <button type="button" role="radio" aria-checked={t.script?.source === "series"} onClick={() => set({ script: { source: "series" } })}>قالب خاص بالسلسلة</button>
         </div>
         {t.script?.source === "series" ? <p className="help">يُقرأ من <bdi dir="ltr">templates/{channelId}/series/{draft.id}/script.md</bdi>، وإن لم يوجد فقالب القناة.</p> : null}
@@ -442,12 +445,12 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
           <select value={t.thumbnail?.layout ?? "badge"} onChange={(e) => set({ thumbnail: { layout: e.target.value as "channel" | "badge" } })}><option value="badge">مصغّرة القناة مع شارة السلسلة</option><option value="channel">مصغّرة القناة كما هي</option></select>
         </label>
         <label className="field"><span>سرعة الإلقاء (كلمة في الدقيقة)</span><input type="number" min={90} max={170} value={t.pacing?.wordsPerMinute ?? ""} placeholder="مثل القناة" onChange={(e) => set({ pacing: { ...t.pacing, wordsPerMinute: e.target.value ? Number(e.target.value) : undefined } })} /></label>
-        <label className="field"><span>طول الفصل (ثانية)</span><input type="number" min={20} max={600} value={t.pacing?.chapterSeconds ?? ""} placeholder="مثل القناة" onChange={(e) => set({ pacing: { ...t.pacing, chapterSeconds: e.target.value ? Number(e.target.value) : undefined } })} /></label>
+        <label className="field"><span>طول القسم الاختياري (ثانية)</span><input type="number" min={20} max={600} value={t.pacing?.chapterSeconds ?? ""} placeholder="مثل القناة" onChange={(e) => set({ pacing: { ...t.pacing, chapterSeconds: e.target.value ? Number(e.target.value) : undefined } })} /></label>
       </div>
-      <fieldset><legend>بنية الفصول</legend>
-        <p className="sp-hint">فارغ: سرد واحد متصل بلا فصول، كقالب القناة (D87). العناوين هنا تُطبَّق فقط على سكريبت فيه «## الفصل N».</p>
-        <label className="field sr-inline"><span>عدد الفصول</span><input type="number" min={1} max={12} value={count || ""} placeholder="سرد واحد" onChange={(e) => { const n = Number(e.target.value) || 0; set({ chapters: n ? { count: n, titles: Array.from({ length: n }, (_, i) => titles[i] ?? "") } : {} }); }} /></label>
-        {count ? <ol className="sr-chapters">{Array.from({ length: count }, (_, i) => <li key={i}><input aria-label={`عنوان الفصل ${arDigits(i + 1)}`} value={titles[i] ?? ""} placeholder={`الفصل ${arDigits(i + 1)}`} onChange={(e) => { const next = Array.from({ length: count }, (_, j) => (j === i ? e.target.value : titles[j] ?? "")); set({ chapters: { count, titles: next } }); }} /></li>)}</ol> : null}
+      <fieldset><legend>أقسام اختيارية</legend>
+        <p className="sp-hint">فارغ: سرد واحد متصل، كقالب القناة. الأقسام اختيارية، وعناوينها هنا لا تُطبَّق إلا على سكريبت قُسّم بعناوين أقسام.</p>
+        <label className="field sr-inline"><span>عدد الأقسام</span><input type="number" min={1} max={12} value={count || ""} placeholder="سرد واحد" onChange={(e) => { const n = Number(e.target.value) || 0; set({ chapters: n ? { count: n, titles: Array.from({ length: n }, (_, i) => titles[i] ?? "") } : {} }); }} /></label>
+        {count ? <ol className="sr-chapters">{Array.from({ length: count }, (_, i) => <li key={i}><input aria-label={`عنوان القسم ${arDigits(i + 1)}`} value={titles[i] ?? ""} placeholder={`القسم ${arDigits(i + 1)}`} onChange={(e) => { const next = Array.from({ length: count }, (_, j) => (j === i ? e.target.value : titles[j] ?? "")); set({ chapters: { count, titles: next } }); }} /></li>)}</ol> : null}
       </fieldset>
       <fieldset><legend>حزمة النشر</legend>
         <div className="sr-grid2">

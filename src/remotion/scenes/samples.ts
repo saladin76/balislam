@@ -2,7 +2,7 @@ import type { BigQuestionProps, CharacterTalkProps, VerseCardProps } from "./typ
 
 /** محتوى تجريبي من سكريبت الحلقة 001 لمعاينة القوالب. */
 export const sampleBigQuestion: Omit<BigQuestionProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 1 · السؤال",
+  eyebrow: "السؤال",
   question: "لماذا نؤجّل ما نعرف أنه مهم؟",
   highlight: "نعرف أنه مهم",
   element: "question-mark",
@@ -10,7 +10,7 @@ export const sampleBigQuestion: Omit<BigQuestionProps, "themeId" | "orientation"
 };
 
 export const sampleCharacterTalk: Omit<CharacterTalkProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 2 · من أين يأتي التأجيل؟",
+  eyebrow: "من أين يأتي التأجيل؟",
   variant: "narrator-m",
   pose: "think",
   line: "سأبدأ… بعد قليل فقط.",
@@ -19,14 +19,14 @@ export const sampleCharacterTalk: Omit<CharacterTalkProps, "themeId" | "orientat
 };
 
 export const sampleVerseCard: Omit<VerseCardProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 4 · بعين الإسلام",
+  eyebrow: "بعين الإسلام",
   text: "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ",
   reference: "النجم · ٣٩",
 };
 
 /** نسخ إنجليزية من نفس المحتوى للحلقات الإنجليزية (en-scene-…). */
 export const sampleBigQuestionEn: Omit<BigQuestionProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 1 · The question",
+  eyebrow: "The question",
   question: "Why do we put off what matters?",
   highlight: "what matters?",
   element: "question-mark",
@@ -34,7 +34,7 @@ export const sampleBigQuestionEn: Omit<BigQuestionProps, "themeId" | "orientatio
 };
 
 export const sampleCharacterTalkEn: Omit<CharacterTalkProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 2 · Where does procrastination come from?",
+  eyebrow: "Where does procrastination come from?",
   variant: "narrator-m",
   pose: "think",
   line: "I'll start… in just a minute.",
@@ -44,7 +44,7 @@ export const sampleCharacterTalkEn: Omit<CharacterTalkProps, "themeId" | "orient
 
 /** الآية تبقى بالعربية كما هي؛ المرجع والملاحظة بلغة الحلقة. */
 export const sampleVerseCardEn: Omit<VerseCardProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 4 · Through the lens of Islam",
+  eyebrow: "Through the lens of Islam",
   text: "وَأَنْ لَيْسَ لِلْإِنْسَانِ إِلَّا مَا سَعَىٰ",
   reference: "An-Najm · 53:39",
   meaning: "And that there is not for man except that for which he strives.",

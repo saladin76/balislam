@@ -183,7 +183,7 @@ export const transitionIssues = (scene: PlanScene, prev: PlanScene | undefined):
   if (!r.ok) return [{ level: "error", message: `الانتقال: ${r.error}` }];
   const t = r.t;
   const out: TransitionIssue[] = [];
-  if (!prev) return [{ level: "error", message: "الانتقال: أول مشهد في الفصل لا مشهد قبله يُنتقل منه (والشورت يبدأ بلا انتقال)؛ احذف الحقل." }];
+  if (!prev) return [{ level: "error", message: "الانتقال: أول مشهد في الحلقة لا مشهد قبله يُنتقل منه (والشورت يبدأ بلا انتقال)؛ احذف الحقل." }];
   for (const s of [scene, prev]) {
     const why = NO_TRANSITION_TEMPLATES[s.template];
     if (why) out.push({ level: "error", message: `الانتقال غير مدعوم مع قالب «${s.template}»: ${why}.` });

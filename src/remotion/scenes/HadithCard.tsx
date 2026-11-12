@@ -259,7 +259,7 @@ export const HadithCard: React.FC<HadithCardProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const hadithCardSample: Omit<HadithCardProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 4 · بعين الإسلام",
+  eyebrow: "بعين الإسلام",
   narrator: "عن أبي هريرة رضي الله عنه",
   text: "ليس الغنى عن كثرة العرض، ولكن الغنى غنى النفس",
   reference: "صحيح البخاري · ٦٤٤٦",
@@ -270,7 +270,7 @@ export const hadithCardSeconds = 8;
 
 /** محتوى تجريبي إنجليزي (للحلقات الإنجليزية). الدرجة تبقى بمفتاحها العربي وتُترجم من حزمة اللغة. */
 export const hadithCardSampleEn: Omit<HadithCardProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 4 · Through the lens of Islam",
+  eyebrow: "Through the lens of Islam",
   narrator: "Narrated by Abu Hurayrah",
   text: "Richness is not having many possessions; true richness is the richness of the soul.",
   reference: "Sahih al-Bukhari · 6446",

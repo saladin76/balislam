@@ -250,14 +250,14 @@ export const Summary: React.FC<SummaryProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const summarySample: Omit<SummaryProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 6 · الخلاصة",
+  eyebrow: "الخلاصة",
   text: "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن.",
   element: "lightbulb",
   narration: "التأجيل هروب من شعور، والعلاج خطوة صغيرة تبدأ الآن.",
 };
 /** English preview content. */
 export const summarySampleEn: Omit<SummaryProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 6 · Summary",
+  eyebrow: "Summary",
   text: "Procrastination is an escape from a feeling, and the cure is a small step you take now.",
   element: "lightbulb",
   narration: "Procrastination is an escape from a feeling, and the cure is a small step you take now.",
