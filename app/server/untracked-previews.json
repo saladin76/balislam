@@ -1,0 +1,82 @@
+{
+  "decision": "D109",
+  "note": "فيديوهات معاينة قديمة أُزيلت من تتبّع Git (قرار المالك ١٢ نوفمبر). تبقى على جهاز المالك؛ app/server/untrackedPreviews.ts يعيدها من كائنات Git مرة واحدة إن حذفها تحديث طبّقه كود أقدم.",
+  "files": [
+    {
+      "path": "channels/balislam/episodes/001-know-the-truth/previews/sample-a-witnesses.mp4",
+      "blob": "8025cc74f854d025620e0e1c3c9720e7889d8678"
+    },
+    {
+      "path": "channels/balislam/episodes/001-know-the-truth/previews/sample-b-dua.mp4",
+      "blob": "65fc8a16fafeaaa491894cb3a2cf494ce4f798ff"
+    },
+    {
+      "path": "channels/dafatir-alzaman/episodes/001-adam-beginning/previews/episode.mp4",
+      "blob": "8e7697910d80d97a38284b2d46a9d2bc1cad4ffc"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/episode.mp4",
+      "blob": "59b87f1c2ba3a71f0e654324fbed03a914e96d6b"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/fix018-act-and-heart.mp4",
+      "blob": "9c82cc5a23e2a5b037471ab2c1ed105526a99f41"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/fix018-labels-390.mp4",
+      "blob": "ac4f7b4e498a647eb79b71058b976699f5454128"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/fix018-recap.mp4",
+      "blob": "4d9794fa17a431b11712e024b80f42ec99f42746"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/fix018-verse-cards.mp4",
+      "blob": "8274d7c1296c7dc46a1ab950415337b641a93d5c"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/studio-kit-demo.mp4",
+      "blob": "49c9a6208f71a57b9ebad1d2d9f5c166731de40e"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s05.mp4",
+      "blob": "24eeec058f58ede5c08cc2e4e759910ad4dfea74"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s07.mp4",
+      "blob": "93271f1163f6de96d3af62cbe6cd82e9c492952b"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s08.mp4",
+      "blob": "f191cce0ce234a279ab64919096eaedf08c81a9d"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s12.mp4",
+      "blob": "5e3ca371687cf645c1c70a3e61739b7efdfce0b0"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s16.mp4",
+      "blob": "b335df2e3dd8f63f619471848dc822f5bb1e9404"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s17.mp4",
+      "blob": "7b8ea56a541c1d67b5bb9a5d88d609c8991c61d0"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s18.mp4",
+      "blob": "1f690fa3ac85c0fe1a79d2cce52f0e62ca07af42"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s23.mp4",
+      "blob": "550c33f8512ada48a2ed625ffc9dea56f51a091b"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s25.mp4",
+      "blob": "4f2d4042d90fab6354c8def0d6967bd1ca03008e"
+    },
+    {
+      "path": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/scene-s27.mp4",
+      "blob": "71c0dcd671b56e6b91039c14947848ac9c5f8dba"
+    }
+  ]
+}

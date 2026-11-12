@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { childEnv } from "../../scripts/git-env.mjs";
+import { countAr, FILES } from "../../src/i18n/count.ts";
 
 /**
  * «حدّث الآن» دون أن يوقفه عمل المالك المحلي (D95).
@@ -21,6 +22,9 @@ import { childEnv } from "../../scripts/git-env.mjs";
  *      اختلف عن الجديد يُسأل المالك كالسابق.
  *   ٥. package-lock.json: إن تغيّرت الحزم في التحديث يؤخذ ملف التحديث (ونسخة الجهاز محفوظة) ثم npm ci.
  *   ٦. يُخبر المالك هل يكفي إعادة تحميل الصفحة أم يلزم إعادة تشغيل `npm run app`.
+ *   ٧. (D109) ملف متتبَّع لم يمسه المالك ويحذفه التحديث من main: يُنسخ قبل الدمج إلى
+ *      `removed-upstream/` في النسخة الاحتياطية، وإن صار مساره متجاهَلًا (.gitignore؛ مثل فيديوهات المعاينة
+ *      القديمة) يُعاد مكانه بايتًا ببايت بعد الدمج، فيبقى على جهاز المالك ويختفي من المستودع وحده.
  * لا commit تلقائي، ولا دمج غير fast-forward، ولا stash، ولا رفع شيء من جهاز المالك.
  */
 
@@ -56,6 +60,13 @@ export const localChanges = async (root: string): Promise<LocalChange[] | null> 
     else out.push({ file, kind: "modified" });
   }
   return out;
+};
+
+/** الملفات المتتبَّعة التي يحذفها التحديث (D109). */
+const upstreamDeletions = async (root: string, from: string, to: string): Promise<string[] | null> => {
+  const d = await git(root, ["diff", "--name-only", "--no-renames", "--diff-filter=D", "-z", from, to]);
+  if (!d.ok) return null;
+  return d.out.split("\0").filter(Boolean);
 };
 
 /** المسارات التي يغيّرها التحديث (إضافة أو تعديل أو حذف) بين HEAD وorigin/main. */
@@ -106,10 +117,19 @@ export const backupRoot = () => process.env.BAL_UPDATE_BACKUP_DIR || path.join(o
 const stamp = () => new Date().toISOString().replace(/[:.]/g, "-");
 
 /** ينسخ كل تغيير محلي خارج المستودع قبل أي لمس. يرمي إن فشل نسخ أي ملف (فلا يبدأ التحديث). */
-const snapshot = async (root: string, changes: LocalChange[], head: string, upstream: string) => {
+const snapshot = async (root: string, changes: LocalChange[], head: string, upstream: string, removedUpstream: string[] = []) => {
   const dir = path.join(backupRoot(), `update-${stamp()}`);
   await mkdir(path.join(dir, "files"), { recursive: true });
   await mkdir(path.join(dir, "patches"), { recursive: true });
+  // D109: ما يحذفه التحديث من ملفات لم يمسها المالك، قبل أن يحذفه Git
+  for (const file of removedUpstream) {
+    const src = path.join(root, file);
+    const dst = path.join(dir, "removed-upstream", file);
+    await mkdir(path.dirname(dst), { recursive: true });
+    await copyFile(src, dst);
+    const a = await readFile(src), b = await readFile(dst);
+    if (!a.equals(b)) throw new Error(`تعذّر نسخ ${file} احتياطيًا؛ لم يُطبّق التحديث.`);
+  }
   for (const c of changes) {
     const src = path.join(root, c.file);
     if (c.kind !== "deleted" && existsSync(src) && statSync(src).isFile()) {
@@ -132,7 +152,7 @@ const snapshot = async (root: string, changes: LocalChange[], head: string, upst
   await writeFile(path.join(dir, "manifest.json"), JSON.stringify({
     createdAt: new Date().toISOString(), repo: root, head, upstream,
     note: "نسخة احتياطية قبل «حدّث الآن». لا يحذفها الاستوديو أبدًا؛ احذفها بنفسك حين تطمئن.",
-    changes,
+    changes, removedUpstream,
   }, null, 2) + "\n");
   return dir;
 };
@@ -168,10 +188,14 @@ export const safeFastForward = async (
   const upPaths = await upstreamPaths(root, head, upstream);
   if (!upPaths) return { ok: false, message: "تعذّر قراءة ما يغيّره التحديث؛ لم يُعدل أي ملف." };
   const pkgChanged = upPaths.has("package.json") || upPaths.has("package-lock.json");
+  const deletions = await upstreamDeletions(root, head, upstream);
+  if (!deletions) return { ok: false, message: "تعذّر قراءة ما يحذفه التحديث؛ لم يُعدل أي ملف." };
+  const mine = new Set(changes.map((c) => c.file));
+  const removedUpstream = deletions.filter((f) => !mine.has(f) && existsSync(path.join(root, f)) && statSync(path.join(root, f)).isFile());
 
   let backup: string | undefined;
-  if (changes.length) {
-    try { backup = await snapshot(root, changes, head, upstream); }
+  if (changes.length || removedUpstream.length) {
+    try { backup = await snapshot(root, changes, head, upstream, removedUpstream); }
     catch (e) { return { ok: false, message: (e as Error).message }; }
   }
 
@@ -201,6 +225,16 @@ export const safeFastForward = async (
     // أعد كل شيء كما كان من النسخة الاحتياطية
     if (backup) await restoreAll(root, backup, [...reapply, ...collisions, ...lockTaken.map((file) => ({ file, kind: "modified" as const }))]);
     return rollbackMessage(backup, "تعذّر تطبيق التحديث (fast-forward فقط)");
+  }
+
+  // D109: ما حذفه التحديث وصار مساره متجاهَلًا يعود مكانه كما كان (والنسخة الاحتياطية تبقى)
+  const keptLocal: string[] = [];
+  for (const file of removedUpstream) {
+    if (existsSync(path.join(root, file))) continue;
+    if (!(await git(root, ["check-ignore", "-q", "--", file])).ok) continue;
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await copyFile(path.join(backup!, "removed-upstream", file), path.join(root, file));
+    keptLocal.push(file);
   }
 
   const at = new Date().toISOString();
@@ -256,6 +290,8 @@ export const safeFastForward = async (
   if (changes.length) parts.push(`تعديلاتك المحلية باقية كما هي (${kept} من ${changes.length})، ونسخة احتياطية منها في ${displayPath(backup!)}.`);
   if (merged.length) parts.push(`أُعيد تعديلك فوق الجديد في: ${merged.slice(0, 4).join("، ")}${merged.length > 4 ? "…" : ""}.`);
   if (lockTaken.length) parts.push("ملف الحزم package-lock.json أُخذ من التحديث (نسخة جهازك محفوظة).");
+  if (keptLocal.length) parts.push(`أزال التحديث من المستودع ${countAr(keptLocal.length, FILES)}، وبقيت على جهازك كما هي.`);
+  if (removedUpstream.length > keptLocal.length) parts.push(`ما حذفه التحديث محفوظ في ${displayPath(backup!)}.`);
   if (conflicts.length) parts.push(`${conflicts.length === 1 ? "ملف واحد يحتاج" : `${conflicts.length} ملفات تحتاج`} قرارك: اختر «أبقِ نسختي» أو «خذ الجديد».`);
   parts.push(restart ? "تغيّرت ملفات الخادم: أغلق الاستوديو (Ctrl + C) وشغّل npm run app من جديد." : "يكفي إعادة تحميل الصفحة.");
   return { ok: true, message: parts.join(" "), reinstalled, restart, backup, kept, merged, conflicts };
