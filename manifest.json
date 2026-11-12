@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "channel": "balislam",
+  "episode": "001-know-the-truth",
+  "slot": "sb032-05-phone-portrait",
+  "title": "033 · الهاتف c1-s117…s119 (بلا تعليم فوق الصورة، 033) عمودي صامت (جاهز للمراجعة)",
+  "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+  "status": "جاهز للمراجعة",
+  "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69",
+  "size": 1271904,
+  "partBytes": 47185920,
+  "parts": [
+    {
+      "name": "part-000",
+      "size": 1271904,
+      "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69"
+    }
+  ],
+  "createdAt": "2026-11-12T05:10:30.917Z",
+  "source": {
+    "session": "e4b552ff-7fe0-50f7-9048-495d7900fd83"
+  }
+}
