@@ -1,4 +1,5 @@
 import { AYAT, CLIPS, SCENES, SENTENCES, countAr as countOf } from "../../../src/i18n/count";
+import { SplitChooser, caretWordIndex } from "./SplitChooser";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useScrollLock } from "../ui/scrollLock";
 import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, type SentenceScene, type SentencesRead, type WordFixOutcome } from "../api";
@@ -39,7 +40,6 @@ const inheritLabel = (r: SentenceRow) => {
   return r.toneSource === "scene" ? `مثل المشهد (${n})` : r.toneSource === "episode" ? `مثل الحلقة (${n})` : `مثل القناة (${n})`;
 };
 /** موضع المؤشر في النص ← رقم الكلمة التي يبدأ عندها النصف الثاني */
-const wordIndexAt = (text: string, caret: number) => text.slice(0, caret).trim().split(/\s+/).filter(Boolean).length;
 
 type Props = {
   episodeId: string;
@@ -136,6 +136,13 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const [popPos, setPopPos] = useState<{ top: number; left: number; arrow: number; sheet: boolean } | null>(null);
   const [lexDrafts, setLexDrafts] = useState<Record<string, string>>({});
   const carets = useRef<Record<string, number>>({});
+  /** «قسّم…»: the sentence whose split point the owner is choosing (nothing is sent before «قسّم هنا»). */
+  const [splitting, setSplitting] = useState<string | null>(null);
+  const splitBox = (r: { id: string; text: string; audio?: unknown }, n: number, refOf: Record<string, unknown>) => splitting === r.id ? (
+    <SplitChooser text={r.text} n={n} busy={busy === `split:${r.id}`} hasAudio={Boolean(r.audio)} initial={caretWordIndex(r.text, carets.current[r.id])}
+      onCancel={() => setSplitting(null)}
+      onConfirm={async (at) => { if (await run(`split:${r.id}`, { ...refOf, action: "split", at } as never, { edits: true })) setSplitting(null); }} />
+  ) : null;
   useEffect(() => {
     const p = pagePlayer();
     setPs(p.state());
@@ -534,6 +541,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
               <span className="sp-hint">يُكتب في نص المشهد، فيعود المشهد لمراجعة جديدة.</span>
             </div>
           ) : null}
+          {splitBox(r, i + 1, ref(r))}
           {!dirty && chipsFor(r) ? <div className="sv-words-wrap">{wordChips(r)}{!r.wordFix.ok && !r.wordFix.adopt && r.wordFix.reason ? <p className="sp-hint sv-words-why">إعادة نطق كلمة: {r.wordFix.reason}</p> : null}</div> : null}
           {fixLine(r)}
           {r.spoken && r.spoken !== r.text && r.kind === "narration" ? <p className="sv-spoken"><span>النطق:</span> {r.spoken}</p> : null}
@@ -571,9 +579,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             <div className="sv-menu-pop is-up" role="menu">
               <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
-                const at = wordIndexAt(r.text, carets.current[r.id] ?? Math.floor(r.text.length / 2));
-                void run(`split:${r.id}`, { ...ref(r), action: "split", at }, { edits: true });
-              }}>قسّم عند المؤشر</button>
+                setSplitting(r.id);
+              }}>قسّم…</button>
               <button type="button" role="menuitem" disabled={anyBusy || !next} onClick={(e) => {
                 (e.currentTarget.closest("details") as HTMLDetailsElement).open = false;
                 void run(`merge:${r.id}`, { ...ref(r), action: "merge" }, { edits: true });
@@ -744,6 +751,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             </div>
           </div>
         ) : null}
+        {splitBox(r, i + 1, ref(r))}
         {fixLine(r)}
         {!fixed && r.applied.length && r.kind === "narration" ? (
           <p className="sv-spoken sv-applied"><span>{r.appliedState === "sent" ? "نُطقت:" : "ستُنطق:"}</span> {r.applied.map((a) => `${a.word} ← ${a.say}`).join("، ")}</p>
@@ -781,11 +789,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             <div className="sv-menu-pop is-up" role="menu">
               <button type="button" role="menuitem" disabled={!scenePlaying && !q.length} onClick={(e) => { closeMenu(e); pressScene(s); }}>{!scenePlaying ? "شغّل المشهد متتابعًا" : ps?.paused ? "استأنف المشهد" : "إيقاف مؤقت للمشهد"}</button>
               {scenePlaying ? <button type="button" role="menuitem" onClick={(e) => { closeMenu(e); stopPlay(); }}>أوقف المشهد</button> : null}
-              <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => {
-                closeMenu(e);
-                const at = wordIndexAt(r.text, carets.current[r.id] ?? Math.floor(r.text.length / 2));
-                void run(`split:${r.id}`, { ...ref(r), action: "split", at }, { edits: true });
-              }}>قسّم عند المؤشر</button>
+              <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => { closeMenu(e); setSplitting(r.id); }}>قسّم…</button>
               <button type="button" role="menuitem" disabled={anyBusy || !next} onClick={(e) => { closeMenu(e); void run(`merge:${r.id}`, { ...ref(r), action: "merge" }, { edits: true }); }}>ادمج مع التالية</button>
               <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => { closeMenu(e); setAdding({ after: r.id, text: "" }); }}>أضف جملة بعدها</button>
               {r.takes > 0 ? <button type="button" role="menuitem" disabled={anyBusy} onClick={(e) => { closeMenu(e); void run(`restore:${r.id}`, { ...ref(r), action: "restore" }); }}>ارجع إلى التسجيل السابق ({ar(r.takes)})</button> : null}

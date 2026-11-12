@@ -263,3 +263,13 @@
 .sv-old { margin: 6px 0; padding: 6px 10px; border-radius: 8px; background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-size: 0.92em; line-height: 1.7; }
 .sv-old b { font-weight: 700; }
 .sv-rectone { margin: 4px 0; }
+
+/* «قسّم…» (QA 12 Nov): choose the point between two words, see both halves, then confirm */
+.sv-split { display: grid; gap: 6px; padding: 8px 10px; margin-top: 6px; border: 1px dashed var(--line, #e6e3dc); border-radius: var(--r, 8px); background: var(--panel-2, #faf9f6); }
+.sv-split-words { margin: 0; line-height: 2.2; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.sv-split-w { padding: 0 2px; border-radius: 4px; }
+.sv-split-w.is-a { background: color-mix(in srgb, var(--accent, #2c5e55) 14%, transparent); }
+.sv-split-gap { min-width: 24px; min-height: 28px; padding: 0 4px; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--muted, #6e726c); cursor: pointer; font: inherit; }
+.sv-split-gap:hover:not(:disabled), .sv-split-gap:focus-visible { border-color: var(--accent, #2c5e55); color: var(--accent, #2c5e55); }
+.sv-split-gap.is-on { background: var(--accent, #2c5e55); color: var(--on-accent, #fff); }
+.sv-split-preview { margin: 0; font-size: 13px; color: var(--ink, inherit); }
