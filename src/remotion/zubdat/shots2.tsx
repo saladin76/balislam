@@ -337,36 +337,38 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     nameAr: "مفاتيح الصلاة: من العجلة إلى التهيؤ",
     render: (c) => {
       const { frame, z, at, end, T, Box, P } = kit(c);
-      const tKeys = at("مفاتيح", 0.04);
-      const tTanbih = at("بتنبيه", 0.18);
-      const tRush = at("العجلة", 0.26);
-      const tCalm = at("سكينة", 0.36);
-      const tTime = at("وقت", 0.48);
-      const tGive = at("نعطيها", 0.52);
-      const tTask = at("مهمة", 0.7);
-      const tSkip = at("تجاوزها", 0.78);
-      const tFast = at("بأسرع", 0.86);
-      const tEnd = end("يمكن", 0.97);
+      // السكريبت المعتمد (١١ نوفمبر): «أول ما يستوقفنا في مفاتيح الصلاة هو العجلة… نسابق الوقت… ويلفت المؤلف انتباهنا إلى أن
+      // السكينة لا تجتمع بسهولة مع هذا الاستعجال. فالعبادة ليست مهمة نعبرها على عجل، بل وقت نقبل فيه على الله.» — لا حدث عند «الله».
+      const tKeys = at("مفاتيح", 0.06);
+      const tTanbih = at("انتباهنا", 0.42);
+      const tRush = at("العجلة", 0.14);
+      const tCalm = at("السكينة", 0.5);
+      const tTask = at("مهمة", 0.72);
+      const tSkip = at("نعبرها", 0.76);
+      const tFast = at("عجل", 0.8);
+      const tEnd = end("عجل", 0.82);
+      const tTime = at("وقت", 0.86);
+      const tGive = at("نقبل", 0.9);
       // الساعة: تدور مسرعة مع «العجلة» وتسكن عند «سكينة»؛ وتعود تسرع مع «تجاوزها بأسرع»، ثم يُشطب ذلك فتسكن
       const spin1 = prog(frame, tRush - 6, tCalm, (t) => t);
       const spin2 = prog(frame, tSkip - 2, tEnd - 6, (t) => t * t);
       const a2 = (spin1 * 16 + spin2 * 10) * Math.PI;
       const a1 = (spin1 * 2.5 + spin2 * 1.5) * Math.PI;
       const calm = P(tCalm - 2, tCalm + 16) * (1 - 0.8 * P(tSkip, tSkip + 8)) + 0.8 * P(tEnd, tEnd + 14);
-      const wedge = 0.25 * P(tTime, end("إياه", 0.56), (t) => t);
-      // المصلي: يدخل مسرعًا مع «العجلة»، يقف عند «سكينة»، وعلى سجادته عند «وقت»، ويقف للصلاة عند «نعطيها»
-      const walk = P(tRush - 6, tCalm, (t) => t);
+      const wedge = 0.25 * P(tTime, end("فيه", 0.94), (t) => t);
+      // المصلي: يدخل مسرعًا مع «العجلة» و«نسابق الوقت»، يقف عند «السكينة»، وعلى سجادته عند «وقت»، ويقف للصلاة عند «نقبل»
+      const walk = P(tRush - 6, at("لننتهي", 0.34), (t) => t);
       const px = lerp(250, 450, walk);
       const bob = walk > 0 && walk < 1 ? -10 * Math.abs(Math.sin(frame * 0.55)) : 0;
-      const stop = P(tCalm - 2, tCalm + 8);
+      const stop = P(at("لننتهي", 0.34) - 2, at("لننتهي", 0.34) + 8);
       const ready = P(tGive - 2, tGive + 10);
-      const speed = P(tRush - 4, tRush + 4) * (1 - P(tCalm - 4, tCalm + 8));
+      const speed = P(tRush - 4, tRush + 4) * (1 - stop);
       const pIn = P(tRush - 8, tRush + 4);
-      const list = P(at("نتعامل", 0.6) - 2, tTask + 6);
+      const list = P(at("ليست", 0.7) - 2, tTask + 6);
       c.reg([210, 560, 620, 860], tRush);
       return {
-        focus: [[tKeys, 1200, 230], [tTanbih, 700, 240], [tRush, 700, 600], [tCalm, 900, 600], [tTime, 1300, 500], [tGive, 600, 700], [tTask, 1400, 640], [tSkip, 1100, 600], [tFast, 1300, 700], [tEnd, 1100, 620]],
-        cam: [C(0, 1250, 280, 1.25), C(tTanbih - 4, 950, 300, 1.15), C(tRush - 8, 760, 560, 1.12), C(tTime - 4, 1000, 560, 1.05), C(tTask - 8, 1100, 600, 1.05), C(tEnd + 10, 960, 560, 1.0)],
+        focus: [[tKeys, 1200, 230], [tRush, 700, 600], [tTanbih, 960, 540], [tCalm, 900, 600], [tTask, 1400, 640], [tSkip, 600, 640], [tFast, 1300, 700], [tTime, 1400, 480], [tGive, 500, 700]],
+        cam: [C(0, 1250, 280, 1.25), C(tRush - 8, 760, 560, 1.12), C(tCalm - 4, 1000, 560, 1.05), C(tTask - 8, 1100, 600, 1.05), C(tEnd + 10, 960, 560, 1.0)],
         world: (
           <g>
             {/* مفتاح وباب الكتاب */}
@@ -374,13 +376,11 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <Stroke d="M40 0 A34 34 0 1 1 -28 0 A34 34 0 1 1 40 0 M-28 0 L-150 0 M-120 0 L-120 30 M-90 0 L-90 22" p={P(tKeys - 2, tKeys + 18)} c={z.ink} w={9} />
             </g>
             {Box("mk", 1170, 230, "مفاتيح الصلاة", 66, tKeys, { font: "head", tEnd: end("الصلاة", 0.08) })}
-            <g opacity={P(tTanbih - 4, tTanbih + 8)}>
-              <rect x={490} y={180} width={400} height={100} rx={50} fill="none" stroke={z.alert} strokeWidth={7} />
-            </g>
-            {T("tn", 690, 245, "تنبيه عملي", 60, ["بتنبيه", 0.18], ["عملي", 0.22], { color: z.alert })}
             <Clock x={960} y={540} r={160} a1={a1} a2={a2} p={P(tRush - 8, tRush + 4)} z={z} wedge={wedge} />
             <circle cx={960} cy={540} r={160 + 36 * Math.min(1, calm)} fill="none" stroke={z.hl} strokeWidth={22} opacity={Math.min(1, calm)} />
-            {T("sk", 960, 790, "سكينة الصلاة", 62, ["سكينة", 0.36], ["الصلاة", 0.4, 2])}
+            {/* «يلفت المؤلف انتباهنا»: تنبيه برتقالي حول الساعة المسرعة */}
+            <circle cx={960} cy={540} r={196} fill="none" stroke={z.alert} strokeWidth={7} strokeDasharray="22 16" opacity={P(tTanbih - 4, tTanbih + 8) * (1 - P(tCalm - 2, tCalm + 10))} />
+            {T("sk", 960, 790, "السكينة", 66, ["السكينة", 0.5], undefined, { font: "head" })}
             {/* السجادة تُبسط عند «وقت»: وقت نعطيه للعبادة */}
             <Stroke d="M330 820 L590 820 L560 852 L360 852 Z" p={P(tTime - 2, tTime + 12)} c={z.ink} w={6} fill={z.hl} fillP={0.6 * P(tTime + 4, tTime + 16)} />
             {/* خطوط السرعة خلف المسرع */}
@@ -394,12 +394,12 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <InkPerson x={px} y={820} s={0.8} pose="stand" z={z} opacity={stop * (1 - ready)} dir={-1} />
               <InkPerson x={px} y={820} s={0.8} pose="fold" z={z} opacity={ready} dir={-1} />
             </g>
-            {/* «فللعبادة وقت نعطيها إياه»: بطاقة فسفورية تدخل عند «وقت» */}
+            {/* «بل وقتٌ نقبل فيه»: بطاقة فسفورية تدخل عند «وقت» */}
             <g transform={`translate(${lerp(1700, 1470, P(tTime - 6, tTime + 10))} 450) rotate(3)`} opacity={P(tTime - 6, tTime + 4)}>
               <rect x={-190} y={-80} width={380} height={160} rx={10} fill={z.ink} opacity={0.12} transform="translate(10 12)" />
               <rect x={-190} y={-80} width={380} height={160} rx={10} fill={z.hl} stroke={z.ink} strokeWidth={5} />
             </g>
-            {T("wq", 1470, 470, "وقت نعطيها إياه", 62, ["وقت", 0.48], ["إياه", 0.56])}
+            {T("wq", 1470, 470, "وقت نقبل فيه", 62, ["وقت", 0.86], ["فيه", 0.94])}
             {/* «مهمة نريد تجاوزها بأسرع ما يمكن»: قائمة مهام تصعد، تُعلَّم بسرعة، ثم تُشطب كلها */}
             <g transform={`translate(1470 ${lerp(980, 700, list)}) rotate(-2)`} opacity={list}>
               <rect x={-180} y={-125} width={360} height={250} rx={12} fill={z.ink} opacity={0.12} transform="translate(10 12)" />
@@ -413,9 +413,9 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               ))}
             </g>
             {T("mh", 1470, 632, "مهمة", 56, ["مهمة", 0.7], undefined, { font: "head" })}
-            {/* «تجاوزها»: قفزة متقطعة فوق السجادة، كأن الصلاة شيء يُتخطى */}
+            {/* «نعبرها»: قفزة متقطعة فوق موضع الصلاة، كأنها شيء يُعبر */}
             <path d="M230 800 Q460 470 700 800" fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="16 14" pathLength={1} strokeDashoffset={0} opacity={P(tSkip - 2, tSkip + 4) * (1 - 0.6 * P(tEnd, tEnd + 12))} style={{ clipPath: `inset(0 ${100 - 100 * P(tSkip - 2, tSkip + 14, (t) => t)}% 0 0)` }} />
-            {/* «لا نتعامل معها»: شطب القائمة والقفزة معًا */}
+            {/* «ليست مهمة نعبرها على عجل»: شطب القائمة والقفزة معًا */}
             <Stroke d="M1300 590 L1640 820" p={P(tEnd - 12, tEnd)} c={z.alert} w={10} />
             <Stroke d="M1640 590 L1300 820" p={P(tEnd - 6, tEnd + 6)} c={z.alert} w={10} />
           </g>
