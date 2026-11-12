@@ -208,7 +208,7 @@ export const composePartsIntoScenes = async (o: {
     const hash = createHash("sha1").update(JSON.stringify({ parts: c.parts.map((p) => [o.partsIndex[p.partId]!.hash, p.at, p.trimStart, p.trimEnd]), pre: b.pre })).digest("hex").slice(0, 16);
     const file = `${hash}.wav`;
     if (!existsSync(path.join(o.dir, file))) await writeFile(path.join(o.dir, file), encodeWav(mixScene(c, samples, PARTS_SAMPLE_RATE), PARTS_SAMPLE_RATE));
-    // إصدار النبرات للمشهد المركّب: إن كان بين أجزائه جزء بإصدار غير الحالي (النبرة القوية المُلغاة) فهو إصداره
+    // إصدار النبرات للمشهد المركّب: إن كان بين أجزائه جزء بإصدار غير الحالي (نبرة سابقة) فهو إصداره
     // (غيابه = ١ = الحالي)
     const presetVersion = c.parts.map((p) => o.partsIndex[p.partId]!.presetVersion ?? 1).find(isSupersededVersion) ?? TONE_PRESET_VERSION;
     o.index[id] = {

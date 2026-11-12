@@ -30,7 +30,7 @@ import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
 import { audioDuration, estimateWords, speechContextFor, voiceDirFor, type VoiceClip, type VoiceIndex } from "./generate";
 import { capsFor, dropTagWords } from "./models";
 import { applyTempo, scaleTimes } from "./tempo";
-import { isSupersededVersion, isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, tones, voiceSettingsFor, type Tone, type VoiceLayers } from "./tones";
+import { effectiveLegacyTone, isSupersededVersion, isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, tones, voiceSettingsFor, type Tone, type VoiceLayers } from "./tones";
 import { normWord, stripTashkeel, vowelize } from "./tashkeel";
 import { tashkeelReport } from "./tashkeelReport";
 import { alignmentToWords, applyDictionary, wordsForCaptions } from "./words";
@@ -177,7 +177,7 @@ const toneOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence) => {
     return { explicit: isTone(explicit) ? explicit : undefined, inherited: inh, source: "map" as const };
   }
   const inherited = [scene.tone, ctx.plan.tone, ctx.channelTone].find(isTone);
-  return { explicit: s.tone, inherited, source: (isTone(scene.tone) ? "scene" : isTone(ctx.plan.tone) ? "episode" : "channel") as "scene" | "episode" | "channel" };
+  return { explicit: isTone(s.tone) ? s.tone : undefined, inherited, source: (isTone(scene.tone) ? "scene" : isTone(ctx.plan.tone) ? "episode" : "channel") as "scene" | "episode" | "channel" };
 };
 
 const ttsSettings = () => {
@@ -202,7 +202,7 @@ const sendOf = (ctx: Ctx, s: Pick<Sentence, "text" | "kind" | "corrections">, ex
 };
 /**
  * صوت الجملة: النبرة والإعدادات والبصمة. الإصدار الحالي للنبرات افتراضيًا؛ لكن تسجيلًا قائمًا بصمته تطابق إعدادات
- * النبرة القوية المُلغاة (الإصدار ٢، D70) يبقى صالحًا: تُرجع إعدادات ذلك الإصدار وبصمته ومعها olderTone، فلا تصير الجملة
+ * نبرة سابقة (الإصدار ١ طبقة القناة، أو ٢ القوي D70) يبقى صالحًا: تُرجع إعدادات ذلك الإصدار وبصمته ومعها olderTone، فلا تصير الجملة
  * «تحتاج توليدًا» ولا تُعاد في «جهّز كل المشاهد»، وتصحيح كلمة فيه يُولَّد بإعداداته نفسها فيتصل الصوت.
  * current: للتوليد الجديد دائمًا (الإعدادات الحالية). version: لنسخة مقصوصة من تسجيل معروف الإصدار.
  */
@@ -216,7 +216,12 @@ const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, o: {
   const fingerprint = fp(tune);
   const base = { tone, toneInfo: t, spoken: d, send: sendOf(ctx, s), currentFingerprint: fingerprint };
   if (!o.current) {
-    const legacy = legacyTunes(ctx.layers, tone, { text: s.text }).map((l) => ({ ...l, fingerprint: fp(l.tune) })).filter((l) => l.fingerprint !== fingerprint);
+    // the tone as the earlier versions resolved it: a saved id that is no tone any more (grave) still names an old take
+    const legacyTone = ctx.map?.scenes[scene.id] ? tone : effectiveLegacyTone(s.tone, scene.tone, ctx.plan.tone, ctx.channelTone);
+    // D97 for old takes too: a take recorded with a known tone keeps it while only the inherited tone changed
+    const legacyTones = [legacyTone, ...(!t.explicit && s.audio?.tone && s.audio.tone !== legacyTone ? [effectiveLegacyTone(s.audio.tone)] : [])];
+    const legacy = [...new Set(legacyTones)].flatMap((lt) => legacyTunes(ctx.layers, lt, { text: s.text }))
+      .map((l) => ({ ...l, fingerprint: fp(l.tune) })).filter((l) => l.fingerprint !== fingerprint);
     const pick = o.version !== undefined ? legacy.find((l) => l.version === o.version)
       : s.audio && s.audio.fingerprint !== fingerprint ? legacy.find((l) => l.fingerprint === s.audio!.fingerprint) : undefined;
     if (pick) return { ...base, tune: pick.tune, fingerprint: pick.fingerprint, presetVersion: pick.version, olderTone: true, pinnedTone: undefined as Tone | undefined };
@@ -255,7 +260,7 @@ export type SentenceRow = {
   pauseAfterMs: number; status: SentenceStatus; virtual: boolean; last: boolean;
   audio: { file: string; duration: number; origin: SentenceAudio["origin"] } | null;
   takes: number; contextChanged: boolean;
-  /** «وُلّدت بالنبرة القوية (المُلغاة)»: تسجيلها الحالي صالح بإعدادات الإصدار ٢ (يُعاد بأمر المالك وحده) */
+  /** «وُلّدت بنبرة سابقة»: تسجيلها الحالي صالح بإعدادات إصدار سابق (يُعاد بأمر المالك وحده) */
   olderTone: boolean;
   tashkeel: { ok: boolean; coverage: number; missing: string[] };
   chars: number;
@@ -292,7 +297,7 @@ export type SentenceScene = {
   /** يُذكر القسم في الاستوديو؟ لا لخطة بقسم واحد بلا عنوان (سرد واحد، D87) */
   divided: boolean; managed: boolean;
   audio: { state: "sentences" | "scene" | "stale" | "none"; file: string | null; duration: number | null };
-  /** صوت المشهد ملفًا واحدًا (أو من أجزاء الخريطة) مولَّد بالنبرة القوية المُلغاة: «وُلّد بالنبرة القوية (المُلغاة)» */
+  /** صوت المشهد ملفًا واحدًا (أو من أجزاء الخريطة) مولَّد بنبرة سابقة: «وُلّد بنبرة سابقة» */
   olderTone: boolean;
   import: SentencesDoc["scenes"][string]["import"] | null;
   /** لماذا لا يُركَّب صوت المشهد من جمله الآن (null: مركّب أو قابل للتركيب) */

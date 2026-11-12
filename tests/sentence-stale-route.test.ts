@@ -136,8 +136,7 @@ describe("a «قديم» scene through /api/episodes/<ep>/sentences (D97)", () =
     const calm = await call("GET", "episodes/984/sentences/tone-impact?tone=calm");
     expect(calm.status).toBe(200);
     expect(calm.body.sentences.length).toBeGreaterThan(0);
-    const grave = await call("GET", "episodes/984/sentences/tone-impact?tone=grave");
-    expect(grave.body.sentences).toEqual([]);
+    expect((await call("GET", "episodes/984/sentences/tone-impact?tone=grave")).status).toBeGreaterThanOrEqual(400);
     expect((await call("GET", "episodes/984/sentences/tone-impact?tone=loud")).status).toBeGreaterThanOrEqual(400);
     expect(await readFile(path.join(epDir, "plan.json"), "utf8")).toBe(plan);
     expect(await readFile(path.join(epDir, "voice", "sentences.json"), "utf8")).toBe(doc);

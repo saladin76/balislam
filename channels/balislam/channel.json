@@ -88,14 +88,14 @@
     "footer": "كل المحتوى مراجَع شرعيًا قبل النشر."
   },
   "voice": {
-    "profile": {
-      "nameAr": "وقور هادئ",
-      "speed": 0.9,
-      "stability": 0.6,
-      "style": 0.08,
-      "direction": "calm, dignified, reflective narration"
-    },
     "profileHistory": {
+      "1": {
+        "nameAr": "وقور هادئ",
+        "speed": 0.9,
+        "stability": 0.6,
+        "style": 0.08,
+        "direction": "calm, dignified, reflective narration"
+      },
       "2": {
         "nameAr": "وقور رزين",
         "speed": 1,

@@ -3,38 +3,37 @@ import { describe, expect, it } from "vitest";
 import { tones, voiceSettingsFor } from "../src/voice/tones";
 import config from "../config.json";
 
-const profile = (id: string) => JSON.parse(readFileSync(`channels/${id}/channel.json`, "utf8")).voice.profile;
-
-describe("طبقة صوت القناة والنبرة", () => {
-  it("بلا طبقة: النبرة كما كانت (توافق مع الحلقات القديمة)", () => {
+describe("النبرة (أول نسخة، 2d8bee52)", () => {
+  it("إعداد النبرة هو قيمتها نفسها، وبلا نبرة لا شيء (إعدادات config.voice)", () => {
     const v = voiceSettingsFor(undefined, "dramatic")!;
-    expect(v.stability).toBe(tones.dramatic.stability);
-    expect(v.style).toBe(tones.dramatic.style);
-    expect(v.speed).toBe(Math.round(tones.dramatic.speed * config.voice.speed * 100) / 100);
+    expect(v).toEqual({ stability: tones.dramatic.stability, style: tones.dramatic.style, speed: tones.dramatic.speed });
     expect(voiceSettingsFor()).toBeUndefined();
   });
 
-  it("لكل قناة طبقتها، والنبرة نفسها تختلف بين القنوات", () => {
-    const [b, d, z] = ["balislam", "dafatir-alzaman", "zubdat-alkutub"].map(profile);
-    expect(new Set([b.speed, d.speed, z.speed]).size).toBe(3);
-    const eb = voiceSettingsFor(b, "energetic")!;
-    const ez = voiceSettingsFor(z, "energetic")!;
-    expect(ez.speed).toBeGreaterThan(eb.speed);
-    expect(voiceSettingsFor(b)!.speed).toBe(b.speed);
+  it("لا طبقة قناة: النبرة نفسها في كل القنوات، والطبقة القديمة لا تؤثر", () => {
+    const layer = { speed: 1.2, stability: 0.95, style: 0.9 };
+    for (const t of Object.keys(tones) as (keyof typeof tones)[]) expect(voiceSettingsFor(layer, t)).toEqual(voiceSettingsFor(undefined, t));
+    for (const id of ["balislam", "dafatir-alzaman", "zubdat-alkutub"]) {
+      const v = JSON.parse(readFileSync(`channels/${id}/channel.json`, "utf8")).voice;
+      expect(v.profile).toBeUndefined();
+      expect(v.profileHistory["1"]).toBeTruthy();
+    }
   });
 
-  it("القيم تبقى في مدى ElevenLabs", () => {
+  it("القيم في مدى ElevenLabs", () => {
     for (const t of Object.keys(tones) as (keyof typeof tones)[]) {
-      const v = voiceSettingsFor({ speed: 1.2, stability: 0.95, style: 0.9 }, t)!;
+      const v = voiceSettingsFor(undefined, t)!;
       expect(v.speed).toBeLessThanOrEqual(1.2);
+      expect(v.speed).toBeGreaterThanOrEqual(0.7);
       expect(v.stability).toBeLessThanOrEqual(1);
       expect(v.style).toBeLessThanOrEqual(1);
     }
+    expect(config.voice.similarityBoost).toBe(0.8);
   });
 });
 
 describe("عيّنة السماع", () => {
-  it("ترسل الطبقة والنبرة والنموذج، وتقرّب الثبات في v3", async () => {
+  it("ترسل النبرة والنموذج بلا أمر أداء، وتقرّب الثبات في v3", async () => {
     const { createElevenLabs } = await import("../src/voice/elevenlabs");
     const bodies: any[] = [];
     const fetchImpl = (async (_url: string, init: RequestInit) => {
@@ -42,12 +41,15 @@ describe("عيّنة السماع", () => {
       return new Response(new Uint8Array([1, 2, 3]));
     }) as unknown as typeof fetch;
     const el = createElevenLabs({ apiKey: "k", voiceId: "v", modelId: "eleven_multilingual_v2", fetchImpl });
-    const tune = voiceSettingsFor({ speed: 1, stability: 0.45, style: 0.3 }, "warm")!;
+    const tune = voiceSettingsFor(undefined, "warm")!;
     expect((await el.sample("نص", { tune })).length).toBe(3);
     expect(bodies[0].voice_settings).toMatchObject({ stability: tune.stability, style: tune.style, speed: tune.speed });
+    expect(bodies[0].text).toBe("نص");
     await el.sample("نص", { tune, modelId: "eleven_v3" });
     expect(bodies[1].model_id).toBe("eleven_v3");
     expect([0, 0.5, 1]).toContain(bodies[1].voice_settings.stability);
+    // the first version has no performance direction: no [tag] before the text, even on tag-capable models
+    expect(bodies[1].text).toBe("نص");
   });
 });
 

@@ -322,7 +322,8 @@ export const validateTemplate = (t: SeriesTemplate, ctx: SeriesContext): string[
   const e: string[] = [];
   for (const st of t.styles ?? []) if (!ctx.styles.includes(st)) e.push(`الأسلوب «${st}» ليس من أساليب القناة.`);
   for (const sh of t.shots ?? []) if (!ctx.templates.includes(sh)) e.push(`القالب «${sh}» ليس من مكتبة القناة.`);
-  if (t.tone && !ctx.tones.includes(t.tone)) e.push(`النبرة «${t.tone}» غير معروفة.`);
+  // grave (D70) is no tone since the first tones were restored: a saved one is read as «no tone», not refused
+  if (t.tone && t.tone !== "grave" && !ctx.tones.includes(t.tone)) e.push(`النبرة «${t.tone}» غير معروفة.`);
   const wpm = t.pacing?.wordsPerMinute;
   if (wpm !== undefined && (wpm < 90 || wpm > 170)) e.push("سرعة الإلقاء بين ٩٠ و١٧٠ كلمة في الدقيقة.");
   const cs = t.pacing?.chapterSeconds;
@@ -365,15 +366,14 @@ export const publishTitle = (pattern: string | undefined, v: { series: string; n
 export const defaultTitlePattern = (kind: SeriesKind) => (kind === "series" ? "{series} | الحلقة {n}: {title}" : "");
 
 /**
- * النبرة الافتراضية لقالب السلسلة: لا نبرة (كما كانت النبرة قبل D70: نبرة الحلقة يختارها المالك في التجهيز، أو نبرة
- * القناة إن حُددت). أُلغي افتراضي «قوي رزين» مع إلغاء D70 (١١ نوفمبر)؛ والسلسلة أو الخطة التي حفظت grave تبقى صالحة
- * ويُحل grave إلى طبقة القناة وحدها (src/voice/tones.ts).
+ * النبرة الافتراضية لقالب السلسلة: لا نبرة (نبرة الحلقة يختارها المالك في التجهيز، أو نبرة القناة إن حُددت).
+ * النبرات هي أول نسخة المُستعادة (١٢ نوفمبر، src/voice/tones.ts)؛ معرّف لا يوجد فيها (grave القديم) = بلا نبرة.
  */
 export const DEFAULT_SERIES_TONE = "";
 /** القالب كما يُختم: نسخة مستقلة، والنبرة كما اختيرت في السلسلة (بلا نبرة = ترث الحلقة نبرتها كالمعتاد) */
 export const effectiveTemplate = (t: SeriesTemplate | undefined): SeriesTemplate => {
   const copy = JSON.parse(JSON.stringify(t ?? {})) as SeriesTemplate;
-  if (!copy.tone) delete copy.tone;
+  if (!copy.tone || copy.tone === "grave") delete copy.tone;
   if (!DEFAULT_SERIES_TONE) return copy;
   return { ...copy, tone: copy.tone || DEFAULT_SERIES_TONE };
 };

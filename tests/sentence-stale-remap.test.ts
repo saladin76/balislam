@@ -263,8 +263,9 @@ describe("نبرة الحلقة لا تُبطل التسجيلات بصمت (D-4
     const before = readFileSync(path.join(EP(), "voice", "sentences.json"), "utf8");
     const planBefore = readFileSync(path.join(EP(), "plan.json"), "utf8");
     expect((await sv.readSentences("986")).scenes[0]!.rows.map((r) => r.status)).toEqual(["generated", "generated", "generated"]);
-    // «grave» is the channel layer alone: the same sound, nothing to regenerate
-    expect((await sv.toneChangeImpact("986", "grave")).sentences).toEqual([]);
+    // no tone: the same sound, nothing to regenerate; grave is no tone any more (first tones restored)
+    expect((await sv.toneChangeImpact("986", null)).sentences).toEqual([]);
+    await expect(sv.toneChangeImpact("986", "grave")).rejects.toThrow(/غير معروفة/);
     const calm = await sv.toneChangeImpact("986", "calm");
     expect(calm.sentences).toHaveLength(3);
     expect(calm.scenes).toEqual([]);

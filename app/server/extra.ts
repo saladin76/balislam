@@ -968,7 +968,7 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
       try { assertNoQuranForTts(text, null, { source: "عيّنة الصوت" }); }
       catch (e) { return send(res, 400, { error: (e as Error).message, code: "QURAN_TTS" }), true; }
       const { voiceSettingsFor, isTone } = await load("/src/voice/tones.ts");
-      const tune = voiceSettingsFor(b.profile ?? undefined, isTone(b.tone) ? b.tone : undefined);
+      const tune = voiceSettingsFor(undefined, isTone(b.tone) ? b.tone : undefined);
       const model = String(b.model || el.modelId);
       const { createHash } = await import("node:crypto");
       const name = `${createHash("sha1").update(JSON.stringify({ text, tune, model, v: process.env.ELEVENLABS_VOICE_ID })).digest("hex").slice(0, 16)}.mp3`;
