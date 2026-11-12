@@ -108,21 +108,37 @@ export const createElevenLabs = (opts: ElevenLabsOptions) => {
     };
   };
 
-  /** صوت مشهد مع توقيت الحروف. إن لم يدعم النموذج التوقيت يُرجع الصوت وحده. */
-  const tts = async (text: string, ctx: TtsGuardContext & { voiceId?: string; tune?: Tune; modelId?: string } = {}): Promise<TtsResult> => {
-    const model = ctx.modelId || modelId;
-    const body = bodyFor(text, model, ctx.tune, ctx);
-    const voice = ctx.voiceId || opts.voiceId;
+  /** طلب واحد بالتوقيت؛ وإن لم يدعم النموذج التوقيت: الصوت وحده، والتوقيت يُقدَّر من المدة */
+  const ttsOnce = async (voice: string, body: ReturnType<typeof bodyFor>, model: string): Promise<TtsResult> => {
     try {
       const res = await post(`/v1/text-to-speech/${voice}/with-timestamps?output_format=${s.outputFormat}`, body);
       const data = (await res.json()) as { audio_base64: string; alignment?: Alignment | null; normalized_alignment?: Alignment | null };
       if (!data.audio_base64) throw new ElevenLabsError("رد ElevenLabs بلا صوت.");
       return { audio: Buffer.from(data.audio_base64, "base64"), alignment: data.alignment ?? data.normalized_alignment ?? null, model };
     } catch (e) {
-      // نموذج لا يدعم التوقيت: الصوت وحده، والتوقيت يُقدَّر من المدة
       if (!(e instanceof ElevenLabsError) || (e.status !== 400 && e.status !== 422) || !/timestamp|alignment/i.test(e.message)) throw e;
       const res = await post(`/v1/text-to-speech/${voice}?output_format=${s.outputFormat}`, body);
       return { audio: Buffer.from(await res.arrayBuffer()), alignment: null, model };
+    }
+  };
+  /** رفض 400/422 سببه النص المجاور نفسه (حقل غير مقبول لهذا النموذج) */
+  const isContextRefusal = (e: unknown, body: ReturnType<typeof bodyFor>): boolean =>
+    e instanceof ElevenLabsError && (e.status === 400 || e.status === 422) && /previous_text|next_text/i.test(e.message)
+    && Boolean((body as { previous_text?: string }).previous_text || (body as { next_text?: string }).next_text);
+
+  /**
+   * صوت مشهد أو جملة مع توقيت الحروف، وبالنص المجاور للنماذج التي تقبله (لاتصال الإيقاع بين الجمل، D94).
+   * إن رفض النموذج النص المجاور يُعاد الطلب نفسه مرة واحدة بلا نص مجاور.
+   */
+  const tts = async (text: string, ctx: TtsGuardContext & { voiceId?: string; tune?: Tune; modelId?: string } = {}): Promise<TtsResult> => {
+    const model = ctx.modelId || modelId;
+    const body = bodyFor(text, model, ctx.tune, ctx);
+    const voice = ctx.voiceId || opts.voiceId;
+    try {
+      return await ttsOnce(voice, body, model);
+    } catch (e) {
+      if (!isContextRefusal(e, body)) throw e;
+      return await ttsOnce(voice, bodyFor(text, model, ctx.tune, { ...ctx, previousText: undefined, nextText: undefined, previousScene: null, nextScene: null }), model);
     }
   };
 
