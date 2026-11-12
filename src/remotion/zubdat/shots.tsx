@@ -354,18 +354,22 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
   iqbal: {
     nameAr: "الإقبال: البدن إلى القبلة والقلب معه",
     render: ({ frame, z, at, end, reg }) => {
-      const tPhrase = at("عبارة", 0.04);
-      const tBook = at("الكتاب", 0.16);
+      // السكريبت المعتمد (١١ نوفمبر): «وهنا نصل إلى كلمتين تلخصان المعنى: سر الصلاة الإقبال. نتجه بأبداننا نحو القبلة، ولكن السؤال
+      // هو: إلى أين يتجه قلبنا؟ الإقبال لا يعني أن هموم الدنيا تختفي، بل أن نعطي صلاتنا من الانتباه ما نستطيع.»
+      const tPhrase = at("كلمتين", 0.08);
+      const tBook = at("تلخصان", 0.12);
+      const tMana = at("المعنى", 0.16);
       const tSir = at("سر", 0.2);
       const tIq = at("الإقبال", 0.26);
-      const tFace = at("نستقبل", 0.32);
-      const tQibla = at("القبلة", 0.36);
-      const tBody = at("بأبداننا", 0.4);
-      const tTry = at("ونجتهد", 0.46);
-      const tHearts = at("قلوبنا", 0.52);
-      const tDunya = at("الدنيا", 0.68);
-      const tBal = at("بل", 0.8);
-      const tHaq = at("حقها", 0.9);
+      const tFace = at("نتجه", 0.3);
+      const tBody = at("بأبداننا", 0.33);
+      const tQibla = at("القبلة", 0.38);
+      const tTry = at("يتجه", 0.48);
+      const tHearts = at("قلبنا", 0.52);
+      const tHum = at("هموم", 0.62);
+      const tDunya = at("الدنيا", 0.66);
+      const tBal = at("بل", 0.74);
+      const tHaq = at("الانتباه", 0.88);
       const book = prog(frame, tPhrase - 2, tPhrase + 16) * (1 - prog(frame, tFace - 10, tFace + 8));
       const flip = prog(frame, tBook - 2, tBook + 16, (t) => t);
       const cardUp = prog(frame, tSir - 8, tSir + 10, outCubic);
@@ -375,21 +379,20 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const right = 960 + tot / 2;
       const iqX = right - w1 - 24 - w2;
       const aside = prog(frame, tBal - 2, tBal + 22);
-      const iconAt = [at("ننسى", 0.64) + 6, at("كل", 0.66), tDunya];
+      const iconAt = [tHum, tHum + 6, tDunya];
       const icon = (k: number) => prog(frame, iconAt[k]! - 4, iconAt[k]! + 12);
-      // سهم القلب يكتمل قبل ذكر اسم الله، فلا حركة جديدة عنده
-      const heartArrow = prog(frame, tTry, end("قلوبنا", 0.56), (t) => t);
-      // دائرة «حقها»: حول المصلي كله، وتبقى فوق خط الترجمة (أسفلها 860 < 880)
+      const heartArrow = prog(frame, tTry, end("قلبنا", 0.56), (t) => t);
+      // دائرة «الانتباه»: حول المصلي كله، وتبقى فوق خط الترجمة (أسفلها 860 < 880)
       reg([1130, 430, 1510, 860], tHaq);
       return {
-        focus: [[tPhrase, 960, 560], [at("القسم", 0.12), 960, 520], [tBook, 960, 560], [at("ننسى", 0.64), 1200, 450], [tSir, 1100, 232], [tIq, 850, 232], [tFace, 1320, 700], [tQibla, 420, 640], [tBody, 880, 700], [tTry, 1320, 650], [tHearts, 900, 560], [tDunya, 1300, 560], [at("الأبد", 0.76), 1200, 560], [tBal, 1250, 560], [tHaq, 1150, 560]],
+        focus: [[tPhrase, 960, 560], [tBook, 960, 560], [tMana, 960, 520], [tSir, 1100, 232], [tIq, 850, 232], [tFace, 1320, 700], [tBody, 880, 700], [tQibla, 420, 640], [at("السؤال", 0.42), 1420, 560], [tTry, 1320, 650], [tHearts, 900, 560], [tHum, 1600, 400], [tDunya, 1300, 560], [tBal, 1250, 560], [tHaq, 1150, 560]],
         cam: [C(0, 960, 470, 1.15), C(tSir - 6, 960, 400, 1.05), C(tFace - 6, 980, 560, 1.0), C(tTry - 4, 1000, 590, 1.06), C(tDunya - 6, 1060, 560, 1.0), C(tHaq - 6, 1060, 580, 1.0)],
         world: (
           <g>
             <g opacity={book}>
               <OpenBook x={960} y={560} s={1.7} p={book} z={z} flip={flip} />
-              {/* «هذا القسم»: شريط علامة فسفوري ينزل بين الصفحات */}
-              <path d={`M948 474 L974 474 L974 ${474 + 170 * prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 12)} L961 ${462 + 170 * prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 12)} L948 ${474 + 170 * prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 12)} Z`} fill={z.hl} stroke={z.ink} strokeWidth={4} opacity={prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 4)} />
+              {/* «تلخصان المعنى»: شريط علامة فسفوري ينزل بين الصفحات */}
+              <path d={`M948 474 L974 474 L974 ${474 + 170 * prog(frame, tMana - 2, tMana + 12)} L961 ${462 + 170 * prog(frame, tMana - 2, tMana + 12)} L948 ${474 + 170 * prog(frame, tMana - 2, tMana + 12)} Z`} fill={z.hl} stroke={z.ink} strokeWidth={4} opacity={prog(frame, tMana - 2, tMana + 4)} />
             </g>
             <g transform={`translate(0 ${lerp(300, 0, cardUp)})`} opacity={cardUp}>
               <Card x={960} y={232} w={tot + 120} h={160} z={z} rot={-1.5}>
@@ -402,18 +405,22 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             <Kaaba x={420} y={690} s={0.72} p={prog(frame, tQibla - 4, tQibla + 16)} z={z} />
             <Write id="qb" x={420} y={760} text="القبلة" size={68} p={wp(frame, tQibla, end("القبلة", 0.38))} c={z.ink} z={z} />
             <InkPerson x={1320} y={860} s={1.15} pose="stand" p={prog(frame, tFace - 2, tFace + 20)} z={z} dir={-1} />
-            <Arrow x1={1210} y1={720} x2={530} y2={650} p={prog(frame, tBody - 2, tBody + 18)} c={z.ink} w={9} bend={-10} />
+            <Arrow x1={1210} y1={720} x2={530} y2={650} p={prog(frame, tQibla - 2, tQibla + 16)} c={z.ink} w={9} bend={-10} />
             <Write id="bd" x={880} y={760} text="بأبداننا" size={66} p={wp(frame, tBody, end("بأبداننا", 0.42))} c={z.ink} z={z} />
+            {/* «ولكن السؤال هو: إلى أين»: علامة سؤال فوق المصلي حتى يُجاب بالقلب */}
+            <g opacity={prog(frame, at("السؤال", 0.42) - 2, at("السؤال", 0.42) + 8) * (1 - prog(frame, tHearts, tHearts + 10))}>
+              <Write id="qq" x={1450} y={600} text="؟" size={130} p={wp(frame, at("السؤال", 0.42), at("السؤال", 0.42) + 12)} c={z.ink} font="head" z={z} />
+            </g>
             {/* القلب: يُضاء ويتجه السهم الفسفوري في الجهة نفسها */}
             <path d={heartPath(1320, 650, 26)} fill={z.hl} stroke={z.ink} strokeWidth={5} opacity={prog(frame, tTry - 2, tTry + 10)} />
             <Stroke d="M1280 640 Q920 560 540 600" p={heartArrow} c={z.hl} w={28} opacity={0.95} />
-            <Write id="hb" x={900} y={540} text="قلوبنا" size={66} p={wp(frame, tHearts, end("قلوبنا", 0.56))} c={z.ink} z={z} />
-            {/* الدنيا لا تُمحى: تبقى، وتتنحى قليلًا لتأخذ الصلاة حقها */}
+            <Write id="hb" x={900} y={540} text="قلبنا" size={66} p={wp(frame, tHearts, end("قلبنا", 0.56))} c={z.ink} z={z} />
+            {/* «هموم الدنيا» لا «تختفي»: تبقى، وتتنحى قليلًا مع «بل» */}
             {([["house", 1600, 330], ["bag", 1610, 560], ["cart", 1580, 760]] as const).map(([id, x, y], k) => (
               <Icon key={id} id={id} x={x + 40 * aside} y={y} s={1.1 - 0.2 * aside} p={icon(k)} c={z.ink} opacity={1 - 0.35 * aside} />
             ))}
             <ellipse cx={1320} cy={645} rx={190} ry={215} fill="none" stroke={z.hl} strokeWidth={22} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(frame, tHaq - 2, tHaq + 20)} opacity={0.95} />
-            <Write id="hq" x={1320} y={395} text="حقها من الانتباه" size={68} p={wp(frame, tHaq, end("الانتباه", 0.96))} c={z.ink} z={z} />
+            <Write id="hq" x={1320} y={395} text="من الانتباه ما نستطيع" size={60} p={wp(frame, at("من", 0.86), end("نستطيع", 0.98))} c={z.ink} z={z} />
           </g>
         ),
       };
