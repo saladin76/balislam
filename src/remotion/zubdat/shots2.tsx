@@ -611,20 +611,22 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     nameAr: "نحفظ السورة صغارًا ثم يتسع فهمنا",
     render: (c) => {
       const { frame, z, at, T, Box, P } = kit(c);
-      const tSurah = at("سورة", 0.04);
-      const tSmall = at("صغرنا", 0.1);
-      const tYears = at("سنوات", 0.22);
-      const tMeaning = at("معنى", 0.3);
-      const tWide = at("اتسع", 0.56);
-      const tRenew = at("نجدد", 0.7);
-      const tIlm = at("بالعلم", 0.8);
-      const tTad = at("والتدبر", 0.88);
-      const tAmal = at("والعمل", 0.96);
+      // السكريبت المعتمد (١١ نوفمبر): «قد نقرأ سورة حفظناها منذ الصغر، ثم نفهم منها بعد سنوات معنى لم نلتفت إليه قبل. كلام الله
+      // لم يتغير؛ الذي تغير هو فهمنا. وكذلك يمكن للمعرفة والتدبر أن يجددا طريقة إقبالنا على الصلاة.» — سكون عند «كلام الله لم يتغير».
+      const tSurah = at("سورة", 0.14);
+      const tSmall = at("الصغر", 0.22);
+      const tYears = at("سنوات", 0.32);
+      const tMeaning = at("معنى", 0.36);
+      const tWide = at("فهمنا", 0.62);
+      const tRenew = at("يجددا", 0.86);
+      const tIlm = at("للمعرفة", 0.76);
+      const tTad = at("والتدبر", 0.8);
+      const tAmal = at("إقبالنا", 0.92);
       const grow = P(tYears - 4, tYears + 20);
       const ring = P(tWide - 2, tWide + 22);
       return {
-        focus: [[tSurah, 1200, 380], [tSmall, 760, 520], [tYears, 760, 480], [tMeaning, 760, 300], [tWide, 760, 420], [tRenew, 960, 700], [tIlm, 1350, 760], [tTad, 960, 760], [tAmal, 570, 760]],
-        cam: [C(0, 1000, 440, 1.06), C(tRenew - 8, 960, 560, 1.0)],
+        focus: [[tSurah, 1200, 380], [tSmall, 760, 520], [tYears, 760, 480], [tMeaning, 760, 300], [tWide, 760, 420], [tIlm, 1350, 760], [tTad, 960, 760], [tRenew, 960, 700], [tAmal, 570, 760]],
+        cam: [C(0, 1000, 440, 1.06), C(tIlm - 8, 960, 560, 1.0)],
         world: (
           <g>
             {/* إطار مجرد للمحفوظ: سطور رمادية لا نص */}
@@ -633,28 +635,28 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <rect x={1020} y={250} width={380} height={260} rx={18} fill={z.paper} stroke={z.ink} strokeWidth={6} />
               <Lines x={1210} y={320} w={290} n={4} p={P(tSurah, tSurah + 20, (t) => t)} z={z} gap={42} />
             </g>
-            {T("ns", 1210, 580, "نحفظ سورة", 66, ["نحفظ", 0.02], ["سورة", 0.04])}
+            {T("ns", 1210, 580, "سورة حفظناها", 66, ["سورة", 0.14], ["حفظناها", 0.16])}
             {/* نحن: صغارًا ثم كبارًا */}
             <InkPerson x={760} y={620} s={lerp(0.6, 1.0, grow)} pose="stand" p={P(tSmall - 4, tSmall + 14)} z={z} dir={-1} />
-            {T("sg", 760, 680, "صغرنا", 64, ["صغرنا", 0.1], undefined, { opacity: 1 - grow })}
+            {T("sg", 760, 680, "الصغر", 64, ["الصغر", 0.22], undefined, { opacity: 1 - grow })}
             {T("sn", 760, 680, "بعد سنوات", 64, ["بعد", 0.2], ["سنوات", 0.22], { opacity: grow })}
             {/* معنى جديد: صلة بين المحفوظ ومن يقرؤه */}
             <Arrow x1={1010} y1={380} x2={830} y2={380} p={P(tMeaning, tMeaning + 14)} c={z.ink} w={6} />
             <circle cx={760} cy={620 - 272} r={lerp(40, 170, ring)} fill={z.hl} opacity={0.6 * ring} />
-            {/* «معنى لم نتأمله»: شعاع فسفوري من المحفوظ إلى القارئ */}
+            {/* «معنى لم نلتفت إليه»: شعاع فسفوري من المحفوظ إلى القارئ */}
             <path d="M1020 330 L840 310 L840 420 L1020 440 Z" fill={z.hl} opacity={0.55 * P(tMeaning + 6, tMeaning + 20)} />
-            {T("fh", 760, 190, "اتسع فهمنا", 64, ["اتسع", 0.56], ["فهمنا", 0.6], { font: "head" })}
-            {/* نجدد علاقتنا: العلم والتدبر والعمل */}
-            {Box("i1", 1350, 830, "بالعلم", 76, tIlm, { font: "head", fill: z.hl })}
-            {/* D73: العلم كتاب مفتوح، والتدبر عين تتأمل، والعمل خطوة — كلٌّ مع كلمته */}
+            {T("fh", 760, 190, "فهمنا", 72, ["فهمنا", 0.62], undefined, { font: "head" })}
+            {/* «للمعرفة والتدبر أن يجددا طريقة إقبالنا»: المعرفة والتدبر يقودان إلى الإقبال */}
+            {Box("i1", 1350, 830, "للمعرفة", 76, tIlm, { font: "head", fill: z.hl })}
+            {/* D73: المعرفة كتاب مفتوح، والتدبر عين تتأمل، والإقبال خطوة إلى الأمام — كلٌّ مع كلمته */}
             <Icon id="openbook" x={1350} y={715} s={0.9} p={P(tIlm - 2, tIlm + 14)} c={z.ink} />
             <Icon id="eye" x={960} y={715} s={0.9} p={P(tTad - 2, tTad + 14)} c={z.ink} />
             <Foot x={548} y={724} s={0.85} rot={-10} p={P(tAmal - 2, tAmal + 10)} c={z.ink} fill={z.hl} />
             <Foot x={594} y={700} s={0.85} rot={8} p={P(tAmal + 2, tAmal + 14)} c={z.ink} fill={z.hl} />
             <Arrow x1={1230} y1={820} x2={1100} y2={820} p={P(tTad - 6, tTad + 6)} c={z.ink} w={6} />
             {Box("i2", 960, 830, "والتدبر", 76, tTad, { font: "head", fill: z.hl })}
-            <Arrow x1={830} y1={820} x2={700} y2={820} p={P(tAmal - 6, tAmal + 6)} c={z.ink} w={6} />
-            {Box("i3", 570, 830, "والعمل", 76, tAmal, { font: "head", fill: z.hl })}
+            <Arrow x1={830} y1={820} x2={700} y2={820} p={P(tRenew - 2, tRenew + 10)} c={z.ink} w={6} />
+            {Box("i3", 570, 830, "إقبالنا", 76, tAmal, { font: "head", fill: z.hl })}
           </g>
         ),
       };
