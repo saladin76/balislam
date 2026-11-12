@@ -262,7 +262,7 @@ describe("على القرص: المالك على جهازه، القص، الت�
     expect(again.read.scenes[0]!.rows[1]!.takes).toBe(2);
   }, 60_000);
 
-  it("D109: توقيت جملة يتجاوز ملفها قليلًا يُحصر عند التركيب، ويظهر في صفها «التوقيت ضُبط قليلًا»", async () => {
+  it("D110: توقيت جملة يتجاوز ملفها قليلًا يُحصر عند التركيب، ويظهر في صفها «التوقيت ضُبط قليلًا»", async () => {
     writeOldSceneAudio(0.5);
     const sv = await import("../src/voice/sentenceVoice");
     const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });

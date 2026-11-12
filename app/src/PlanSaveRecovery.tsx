@@ -5,7 +5,7 @@ import type { PlanSaveQueue } from "./planSaveQueue";
 import { mergePlans } from "./planMerge";
 
 /**
- * A plan edit that the server refused (D109). The owner is never trapped: the edit stays on the page and in a
+ * A plan edit that the server refused (D110). The owner is never trapped: the edit stays on the page and in a
  * browser backup, and there are three ways out, all by the owner's button:
  *  - «أعد محاولة الحفظ» (offline / busy);
  *  - «حمّل النسخة الأحدث وأعد تطبيق تعديلي» (409): a three-way merge of the edit onto the newest plan, then a save;
@@ -101,7 +101,7 @@ export const PlanSaveRecovery: React.FC<{
 };
 
 /**
- * «استعد تعديلي المحفوظ» (D109): a browser copy of an edit left by the way out (or by a reload while a save was
+ * «استعد تعديلي المحفوظ» (D110): a browser copy of an edit left by the way out (or by a reload while a save was
  * refused) is shown when the episode is open with nothing pending. Restoring re-applies it with the same
  * three-way merge onto the plan on screen; a real conflict applies nothing and keeps the copy. The copy is cleared
  * after the restored edit is saved (App.tsx), or by «احذف النسخة».

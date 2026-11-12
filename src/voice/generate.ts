@@ -43,7 +43,7 @@ export type VoiceClip = {
    * الصوت جملةً جملة (D50، src/voice/sentenceVoice.ts): الملف مركّب من تسجيلات جمل المشهد ووقفاتها.
    * مشهد له جمل لا يولّده المسار العام ولا مسار الأجزاء، ولا يُحذف مقطعه في التنظيف.
    */
-  sentences?: { hash: string; ids: string[]; /** D109: sentences whose word timings ran past their file and were clamped to it (ms) */ clamped?: Record<string, number> };
+  sentences?: { hash: string; ids: string[]; /** D110: sentences whose word timings ran past their file and were clamped to it (ms) */ clamped?: Record<string, number> };
   /**
    * إصدار النبرات الذي وُلّد به المقطع (src/voice/tones.ts). غيابه = الإصدار ١ (الحالي، كما قبل D70 وبعد إلغائه).
    * مقطع بإصدار سابق (١ طبقة القناة أو ٢ القوي) صالح ولا يُعاد آليًا، ويظهر عليه «وُلّد بنبرة سابقة».

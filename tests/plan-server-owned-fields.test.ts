@@ -1,5 +1,5 @@
 /**
- * D109 (review of PR #97, finding 1): moving an episode to another series or saving its shorts writes plan.json
+ * D110 (review of PR #97, finding 1): moving an episode to another series or saving its shorts writes plan.json
  * on the server. The page's next edit must still save (no 409), and a real 409 must never trap the owner.
  * Driven through the page's own path: the studio client (`app/src/api.ts`), the page's save queue and merge,
  * against the real studio server (Vite + balApi) on a temporary channels folder. No voice, no approval.
@@ -206,7 +206,7 @@ describe("the recovery bar", () => {
   });
 });
 
-describe("«استعد تعديلي المحفوظ» (D109)", () => {
+describe("«استعد تعديلي المحفوظ» (D110)", () => {
   const store = new Map<string, string>();
   const g = globalThis as unknown as { localStorage?: unknown };
   const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };

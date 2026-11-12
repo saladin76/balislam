@@ -1,7 +1,7 @@
 import { withLock } from "../io/processLock";
 
 /**
- * قفل كتابة plan.json الواحد (D109): حفظ الصفحة، واختيار الشورتس، وختم السلسلة عند النقل والتراجع كلها تكتب
+ * قفل كتابة plan.json الواحد (D110): حفظ الصفحة، واختيار الشورتس، وختم السلسلة عند النقل والتراجع كلها تكتب
  * الخطة تحته، فلا يكتب أحدها فوق قراءة الآخر. ملف القفل `plan.json.write.lock` محلي لا يُرفع (`.gitignore`).
  */
 export const planWriteLockFor = (planFile: string) => planFile + ".write.lock";

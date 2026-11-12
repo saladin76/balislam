@@ -1,5 +1,5 @@
 /**
- * D109 (review of PR #97, finding 2): the shared trim used by the sentence stitcher (D50) clamps a bounded
+ * D110 (review of PR #97, finding 2): the shared trim used by the sentence stitcher (D50) clamps a bounded
  * overshoot of the word timings past the decoded file, with a warning, and refuses only clearly corrupt timings.
  * `bal voice-timing` measures the local recordings with the same rule. The takes here are made with ffmpeg in a
  * temporary folder; nothing is generated, sent or written next to real recordings.

@@ -72,11 +72,11 @@ describe("D101: تصنيف ملفات الاستوديو", () => {
     for (const f of [LEDGER, ".env", "channels/x/episodes/001-x/storyboard.json", "channels/x/episodes/001-x/notes/inbox.json",
       "channels/x/episodes/001-x/notes/resolved.json", "channels/x/episodes/001-x/voice/index.json", "channels/x/episodes/001-x/previews/episode.mp4",
       "channels/x/episodes/001-x/script-approved.v1.json", "src/plan/validate.ts", "package-lock.json", "app/server/api.ts", "../etc/passwd",
-      // D109: the plan write lock and the rolling backup are local to the computer
+      // D110: the plan write lock and the rolling backup are local to the computer
       "channels/x/episodes/001-x/plan.json.write.lock", "channels/x/episodes/001-x/plan.backup-last.json"])
       expect(isOwnerContentPath(f), f).toBe(false);
   });
-  it("D109: قفل كتابة الخطة في .gitignore فلا يظهر ملفًا جديدًا ولا يُرفع", () => {
+  it("D110: قفل كتابة الخطة في .gitignore فلا يظهر ملفًا جديدًا ولا يُرفع", () => {
     const ignored = spawnSync("git", ["check-ignore", "-q", "--no-index", "channels/balislam/episodes/001-x/plan.json.write.lock"], { cwd: path.resolve(import.meta.dirname, "..") });
     expect(ignored.status).toBe(0);
   });

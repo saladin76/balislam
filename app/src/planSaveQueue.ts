@@ -3,7 +3,7 @@ export class PlanSaveQueue<T> {
   private pending: { channel: string; episode: string; value: T } | null = null;
   private flight: Promise<void> | null = null;
   private revisions = new Map<string, string | Promise<string>>();
-  /** The value each revision stands for: the base of a three-way merge after a conflict (D109). */
+  /** The value each revision stands for: the base of a three-way merge after a conflict (D110). */
   private bases = new Map<string, T>();
   constructor(private save: (item: { channel: string; episode: string; value: T }, revision: string) => Promise<string>) {}
   private key(channel: string, episode: string) { return `${channel}/${episode}`; }

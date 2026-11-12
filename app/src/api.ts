@@ -122,7 +122,7 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const code = (data as { code?: unknown }).code;
-    // status and the server's code ride on the owner-facing error (D109: a 409 offers the merge)
+    // status and the server's code ride on the owner-facing error (D110: a 409 offers the merge)
     const tag = (e: Error): ApiError => Object.assign(e, { status: res.status, ...(typeof code === "string" ? { code } : {}) });
     try { throw new Error(ownerMessage((data as { error?: string }).error ?? `تعذّر الطلب (رمز ${res.status.toLocaleString("ar-EG", { useGrouping: false })}).`)); }
     catch (e) { throw tag(e as Error); }

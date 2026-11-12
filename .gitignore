@@ -16,7 +16,7 @@ channels/*/episodes/*/status.json
 channels/*/episodes/*/plan.local.json
 # النسخة الاحتياطية قبل الكتابة الصريحة فوق خطة مصمَّمة (bal plan --force-overwrite-designed): على الجهاز فقط
 channels/*/episodes/*/plan.backup-*.json
-# قفل كتابة الخطة (D109): حفظ الصفحة والشورتس وختم السلسلة تحته؛ محلي ولا يُرفع
+# قفل كتابة الخطة (D110): حفظ الصفحة والشورتس وختم السلسلة تحته؛ محلي ولا يُرفع
 channels/*/episodes/*/plan.json.write.lock
 assets/recitations/**/*.wav
 assets/recitations/**/*.mp3
@@ -52,9 +52,15 @@ channels/*/episodes/*/scene-workflow.v2.json.*.tmp
 
 # فيديوهات المعاينات على Google Drive لا في Git (قرار صاحب المشروع، ٨ نوفمبر ٢٠٢٦):
 # يُحفظ previews/index.json وحده (العنوان والبصمة ورابط Drive). الملفات المتتبَّعة قبل هذا القرار
-# تبقى حتى تنظيف السجل بموافقة صاحب المشروع.
+# تبقى حتى تنظيف السجل بموافقة صاحب المشروع. وD109 (١٢ نوفمبر): أُزيل من التتبّع ما لا يستعمله شيء، والباقي
+# مقفل بقائمة في tests/no-tracked-preview-videos.test.ts، فلا يدخل Git فيديو معاينة جديد ولو بـ git add -f.
 channels/*/episodes/*/previews/*.mp4
 channels/*/episodes/*/previews/history/
+channels/*/episodes/*/previews/*.mov
+channels/*/episodes/*/previews/*.webm
+channels/*/episodes/*/previews/*.mkv
+channels/*/episodes/*/previews/*.m4v
+channels/*/episodes/*/previews/*.MP4
 
 # صندوق ملاحظات المالك (docs/studio/notes-inbox.md): يكتبه الاستوديو محليًا ويُرفع وحده إلى الفرع studio-notes،
 # فلا يُتتبع على main (وإلا عطّل git pull والتحديث). ردود Claude في notes/resolved.json وهي متتبَّعة على main.

@@ -143,7 +143,7 @@ export const moveEpisode = async (ch: string, episodeDir: string, seriesId: stri
 const restampPlan = async (episodeDir: string, stamp: SeriesStamp | undefined) => {
   const f = path.join(episodeDir, "plan.json");
   if (!existsSync(f)) return;
-  // تحت قفل الخطة نفسه مع حفظ الصفحة (D109)؛ الختم خارج بصمة الخطة، فلا يصير تعديل الصفحة التالي «قديمًا»
+  // تحت قفل الخطة نفسه مع حفظ الصفحة (D110)؛ الختم خارج بصمة الخطة، فلا يصير تعديل الصفحة التالي «قديمًا»
   await withPlanWrite(f, async () => {
     const plan = JSON.parse(await readFile(f, "utf8")) as { series?: SeriesStamp };
     if (stamp) plan.series = stamp;

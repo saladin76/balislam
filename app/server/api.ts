@@ -4,7 +4,8 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
 import { busy, busyRefusal, handleExtra, longJobs, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
-import { createContentSync, setSharedContentSync } from "./contentSync.ts";
+import { contentSyncEnabled, createContentSync, setSharedContentSync } from "./contentSync.ts";
+import { restoreUntrackedPreviews } from "./untrackedPreviews.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
 import { MAX_BODY_BYTES, readBody } from "./body.ts";
 import { writeFileAtomic, writeJsonAtomic } from "../../src/io/atomicJson.ts";
@@ -142,6 +143,11 @@ export const balApi = (): Plugin => ({
       .then(([sweep, ch]) => sweep.sweepAllOrphanWordFixFragments(ch.channelsDir()))
       .then((n) => { if (n) console.log(`[studio] ${n} orphaned word-fix fragment(s) moved to voice/superseded/sentences.`); })
       .catch((e) => console.error("[studio] word-fix fragments:", (e as Error).message));
+    // D109: فيديوهات المعاينة القديمة التي أُزيلت من Git تبقى على جهاز المالك؛ إن حذفها تحديثٌ طبّقه كود أقدم
+    // تعود من كائنات Git المحلية مرة واحدة (app/server/untrackedPreviews.ts). جهاز المالك وحده، كالحفظ الآلي.
+    if (contentSyncEnabled()) void restoreUntrackedPreviews(root)
+      .then((r) => { if (r.restored.length) console.log(`[studio] ${r.restored.length} old preview video(s) kept on this device after they left Git.`); })
+      .catch((e) => console.error("[studio] old previews:", (e as Error).message));
     // «كل الأماكن نسخة واحدة» (D101): حفظ محتوى المالك في main واستقبال التحديثات آليًا، على جهاز المالك وحده
     const contentSync = createContentSync(root, {
       canRestart: () => busy.size === 0 && ![...renderJobs.values(), ...longJobs.values()].some((j) => j.status === "running"),

@@ -289,7 +289,7 @@ export type SentenceRow = {
   recordedOn: string | null;
   /** D97: the take is current under the tone it was recorded with, not the inherited tone now («سُجّلت بنبرة …») */
   recordedTone: string | null;
-  /** D109: the scene's current audio clamped this sentence's timing to its file (ms), «التوقيت ضُبط قليلًا»; null otherwise */
+  /** D110: the scene's current audio clamped this sentence's timing to its file (ms), «التوقيت ضُبط قليلًا»; null otherwise */
   timingClamped: number | null;
 };
 export type VerseRow = {
@@ -545,7 +545,7 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
       continue;
     }
     pcm = await decode(path.join(dir, s.audio!.file));
-    // D109: a bounded overshoot is clamped (shared rule, src/remotion/dafatir/audio/trim.ts) and named in the row
+    // D110: a bounded overshoot is clamped (shared rule, src/remotion/dafatir/audio/trim.ts) and named in the row
     const clip = measurePart(s.id, pcm, SR, s.audio!.words, (c) => {
       warnAlignmentClamp("الجملة " + s.id, c);
       if (c.overshootEndSec > 0.005 || c.undershootStartSec > 0.005) clamped[s.id] = Math.round(Math.max(c.overshootEndSec, c.undershootStartSec) * 1000);
@@ -712,7 +712,7 @@ const adoptSceneAudio = async (ctx: Ctx, scene: PlanScene, list: Sentence[], cli
 /** يكتب نص مشهد واحد في plan.json كما هو على القرص (بلا آيات، بلا إعادة توليد للخطة أبدًا) */
 const writeSceneNarration = async (scriptPath: string, sceneId: string, narration: string): Promise<boolean> => {
   const file = planPathFor(scriptPath);
-  // D109: read and write under the plan write lock, as the page's save does (src/plan/planWriteLock.ts)
+  // D110: read and write under the plan write lock, as the page's save does (src/plan/planWriteLock.ts)
   return withPlanWrite(file, async () => {
     const raw = await readJson<Plan>(file);
     const scene = raw?.chapters.flatMap((c) => c.scenes).find((s) => s.id === sceneId);
