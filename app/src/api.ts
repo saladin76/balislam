@@ -12,8 +12,6 @@ import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
 import type { TechReviewSummary } from "../../src/channel/techReviews";
 import type { ScriptSaveReply } from "./planGuard";
-import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
-import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerJob, ownerMessage } from "./serverMessages";
 import { emitStudioError } from "./errorEvents";
 import { ownerText, planOrder } from "../../src/i18n/sceneNames";
@@ -38,8 +36,6 @@ export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; ch
 export type TashkeelReport = { file: boolean; words: number; covered: number; coverage: number; min: number; ok: boolean; gaps: { sceneId: string; words: string[]; narration: string }[]; ambiguous: { word: string; forms: string[]; scenes: string[] }[] };
 export type ReviewItem = { key: string; kind: "ayah" | "hadith" | "other"; label: string; ref: string; detail: string; text?: string; line: number; hash: string; status: "pending" | "changed" | "verified" | "rejected"; note?: string; at?: string };
 export type ReviewSummary = { total: number; verified: number; pending: number; changed: number; rejected: number; ok: boolean };
-export type SceneReviewItem = { id: string; hash: string; status: "pending" | "changed" | "ok" | "fix"; note?: string; at?: string };
-export type SceneReviewSummary = { total: number; ok: number; fix: number; pending: number; changed: number; done: boolean };
 export type VoiceReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; tashkeel?: TashkeelReport; review?: ReviewSummary };
 export type Overview = {
   id: string;
@@ -328,32 +324,6 @@ export const api = {
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
       method: "DELETE",
     }, channel).then(prepareRead),
-  workflow: (episode: string, channel?: string) => call<{
-    approvals: WorkflowApprovalView;
-    fingerprints: Partial<Record<WorkflowStage, string>>;
-    revision: number;
-  }>(`/api/episodes/${episode}/workflow`, undefined, channel),
-  workflowDecision: (episode: string, channel: string,
-    decision: { action: "submit" | "approve" | "reject" | "reopen"; stage: WorkflowStage;
-      expectedFingerprint: string; note: string; confirmWatched?: boolean }) =>
-    call<{ approvals: WorkflowApprovalView }>(`/api/episodes/${episode}/workflow`, {
-      method: "POST", json: decision,
-    }, channel),
-  scriptSignoff: (episode: string) =>
-    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
-  approveScriptSignoff: (episode: string, reviewer: string, note: string) =>
-    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(
-      `/api/episodes/${episode}/script-signoff`, { method: "PUT", json: { reviewer, note, confirm: true } }),
-  voiceReview: (episode: string, channel: string) =>
-    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
-      `/api/episodes/${episode}/voice-review`, undefined, channel),
-  approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string }) =>
-    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
-      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: data }, channel),
-  approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
-    call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
-      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
-
   /** المراجعات الفنية للقناة (توصيات المنفّذ وشرائطها ومقاطعها) */
   techReviews: (channel: string) => call<{ reviews: TechReviewSummary[] }>("/api/tech-reviews", undefined, channel),
   techReviewFileUrl: (channel: string, dir: string, id: string, rel: string) => `/api/tech-reviews/${encodeURIComponent(dir)}/${encodeURIComponent(id)}/${rel.split("/").map(encodeURIComponent).join("/")}?channel=${encodeURIComponent(channel)}`,
@@ -387,8 +357,6 @@ export const api = {
   undoMoveEpisodes: (token: string) => call<{ ok: boolean; results: EpisodeMoveResult[] }>("/api/series/move-episodes/undo", { method: "POST", json: { token } }),
   research: (id: string) => call<{ text: string; exists: boolean; label: string }>(`/api/episodes/${id}/research`),
   saveResearch: (id: string, text: string) => call<{ ok: boolean }>(`/api/episodes/${id}/research`, { method: "PUT", json: { text } }),
-  sceneReview: (id: string) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`),
-  setSceneReview: (id: string, b: { id: string; status: "ok" | "fix" | "pending"; note?: string }) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`, { method: "PUT", json: b }),
   review: (id: string) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`),
   setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
   /** QA balislam 7: «حذف الحلقة» moves the folder into the local trash (nothing deleted, nothing pushed); «تراجع» restores. */

@@ -152,6 +152,12 @@ export const balApi = (): Plugin => ({
     if (contentSyncEnabled()) void restoreUntrackedPreviews(root)
       .then((r) => { if (r.restored.length) console.log(`[studio] ${r.restored.length} old preview video(s) kept on this device after they left Git.`); })
       .catch((e) => console.error("[studio] old previews:", (e as Error).message));
+    // D120 (العمل ٧): السجلات القديمة التي لا يقرؤها شيء تُنقل مرة مع كل تشغيل إلى أرشيف محلي في .studio/ بعد نسخة في
+    // ~/balislam-backup (src/studio/legacyMigration.ts). لا شيء ⇒ لا كتابة. لا يُعتمد بها شيء ولا يُلغى. لا يعمل داخل الاختبارات.
+    if (!process.env.VITEST) void Promise.all([load("/src/studio/legacyMigration.ts"), load("/src/channel/index.ts")])
+      .then(([m, ch]) => m.migrateLegacyRecords({ channelsDir: ch.channelsDir() }))
+      .then((r) => { if (r.moved.length || r.skipped.length) console.log(`[studio] ${r.moved.length ? "legacy records archived" : "legacy records left in place"}: ${r.moved.length} moved, ${r.skipped.length} left.`); })
+      .catch((e) => console.error("[studio] legacy migration:", (e as Error).message));
     // «كل الأماكن نسخة واحدة» (D101): حفظ محتوى المالك في main واستقبال التحديثات آليًا، على جهاز المالك وحده
     const contentSync = createContentSync(root, {
       canRestart: () => busy.size === 0 && ![...renderJobs.values(), ...longJobs.values()].some((j) => j.status === "running"),
@@ -191,7 +197,7 @@ export const balApi = (): Plugin => ({
 
         // Unified engine (2026-11-08): the scene-first ledger (src/studio/sceneService.ts) is the only
         // approval authority. The isolated V2 review API is no longer mounted, so it cannot act as a
-        // second authority; its modules stay in src/workflow/*V2* until the owner accepts the release.
+        // second authority; its modules were removed (D120).
         if (parts[0] === "studio-v2")
           return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بالخطوات الأربع في الاستوديو: «١ التجهيز» ثم «٢ المشاهد» ثم «٣ النسخة النهائية» ثم «٤ النشر»." });
 
@@ -504,33 +510,10 @@ export const balApi = (): Plugin => ({
             return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
           }
 
-          if (parts[2] === "workflow" && parts.length === 3) {
-            const { workflowReadForEpisode } = await load("/src/workflow/server.ts");
-            if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
-            // Unified engine: the six-stage ledger is read-only (migration); it takes no new decisions.
-            if (req.method === "POST") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
-            return send(res, 405, { error: "Method not allowed" });
-          }
-
-          if (parts[2] === "script-signoff" && parts.length === 3) {
-            const { scriptSignoffStatus } = await load("/src/script/approval.ts");
-            if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));
-            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
-            return send(res, 405, { error: "Method not allowed" });
-          }
-          if (parts[2] === "voice-review" && parts.length === 3) {
-            const plan = await io.loadPlan(ep);
-            if (!plan) throw new HttpError(404, "خطة الحلقة غير موجودة.");
-            const { loadVoiceIndex } = await load("/src/voice/generate.ts");
-            const { voiceReviewItems, episodeVoiceApproved } = await load("/src/voice/review.ts");
-            const voice = await loadVoiceIndex(ep);
-            if (req.method === "GET") {
-              return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice), episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
-            }
-            // The voice is reviewed inside each scene's AV approval; no separate voice approval.
-            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
-            return send(res, 405, { error: "Method not allowed" });
-          }
+          // D120: the old approval records (six-stage ledger, old script signoff, separate voice approval) are gone;
+          // their data was archived by `bal migrate legacy`. Every method answers 410 and nothing is read.
+          if (["workflow", "script-signoff", "voice-review"].includes(parts[2] ?? "") && parts.length === 3)
+            return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
 
           if (parts[2] === "quran-audit" && parts.length === 3) {
             if (req.method !== "GET") return send(res, 405, { error: "التدقيق للقراءة فقط." });

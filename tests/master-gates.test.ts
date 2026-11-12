@@ -15,9 +15,7 @@ const { generatePlan } = await import("../src/plan/generate");
 const { loadChannel } = await import("../src/channel/index");
 const { setReview, reviewItems } = await import("../src/script/review");
 const { approveStoryboard } = await import("../src/plan/storyboard");
-const { setSceneReview } = await import("../src/plan/sceneReview");
 const { assertMasterReady } = await import("../src/render/episode");
-const { approveVoiceScene, approveVoiceEpisode } = await import("../src/voice/review");
 
 const tempDirs: string[] = [];
 afterAll(async () => { await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true }))); });
@@ -69,9 +67,6 @@ const fresh = async () => {
   spoken.props = { text: "", light: "ink", subtitle: "" };
   for (const item of reviewItems(parsed, null)) await setReview(scriptPath, parsed, item.key, "verified");
   await approveStoryboard(scriptPath, plan);
-  for (const s of scenes) await setSceneReview(scriptPath, plan, s.id, "ok");
-  await approveVoiceScene(scriptPath, plan, media.voice as never, spoken.id, "owner-test", "استمعت للمقطع كاملًا وتحققت من النبرة والنطق");
-  await approveVoiceEpisode(scriptPath, plan, media.voice as never, "owner-test", "تم الاستماع المتصل للتعليق الصوتي كاملًا وتحقق انتقال المقاطع");
   return { dir, scriptPath, parsed, plan, media, spoken, verse };
 };
 
@@ -83,12 +78,6 @@ describe("بوابات النسخة النهائية", () => {
 
   it("الحالة المكتملة تمر", async () => {
     await expect(assertMasterReady({ scriptPath: ok.scriptPath, plan: ok.plan, media: ok.media as never, channel })).resolves.toBe(true);
-  });
-
-  it("مراجعة المشهد القديمة (scene-review.json) ليست سلطة: لا تمنح ولا تمنع؛ الحَكَم سجل «إنتاج المشاهد»", async () => {
-    const s = await fresh();
-    await setSceneReview(s.scriptPath, s.plan, s.spoken.id, "pending");
-    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).resolves.toBe(true);
   });
 
   it("مشهد تغيّر بعد اعتماد الستوري بورد يمنع", async () => {

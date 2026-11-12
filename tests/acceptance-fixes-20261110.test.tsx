@@ -144,7 +144,7 @@ describe("P-05 · a board changed after «اعتمد التجهيز» (11 Nov: c
 
 describe("P-06 · no pointer to a screen that no longer exists", () => {
   it("messages name the four current steps", () => {
-    for (const f of ["src/plan/storyboard.ts", "src/cli/index.ts", "src/plan/sceneReview.ts", "src/studio/sceneService.ts", "src/script/review.ts",
+    for (const f of ["src/plan/storyboard.ts", "src/cli/index.ts", "src/studio/sceneService.ts", "src/script/review.ts",
       "app/server/api.ts", "app/server/extra.ts", "app/src/serverMessages.ts"]) {
       const text = src(f);
       expect(text, f).not.toMatch(/«المشاهد ← ستوري بورد»|«المشاهد ← مراجعة المشهد»|من «إنتاج المشاهد»|في «إنتاج المشاهد»\.|الخطوتان ١ و٢|«السكريبت ← سجل التوثيق»|الستوري بورد ← «أدوات وتفاصيل»/);

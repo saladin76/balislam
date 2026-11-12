@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { motionFingerprint } from "../src/render/motionFingerprint";
 import { staleMotionScenes } from "../src/render/motionValidity";
-import { sceneHash } from "../src/plan/sceneReview";
+import { sceneHash } from "../src/plan/sceneHash";
 import type { Plan } from "../src/plan/types";
 import type { EpisodeMedia } from "../src/plan/media";
 import type { StoryboardMotion } from "../src/render/storyboardMotion";

@@ -7,7 +7,7 @@
 import { existsSync } from "node:fs";
 import { readJsonFile, writeJsonAtomic } from "../io/atomicJson";
 import path from "node:path";
-import { sceneHash } from "./sceneReview";
+import { sceneHash } from "./sceneHash";
 import { createHash } from "node:crypto";
 import type { PlanScene } from "./types";
 import type { Plan } from "./types";

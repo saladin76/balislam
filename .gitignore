@@ -75,13 +75,13 @@ channels/*/notes/*.json.*.tmp
 # - سجل اعتماد المشاهد الموقَّع (src/studio/sceneService.ts: stateFileFor، والقفل serialized، والكتابة الذرية)
 channels/*/episodes/*/scene-production.v1.json
 channels/*/episodes/*/scene-production.v1.json.lock
-# - نسخة السكريبت كما اعتُمد، موقَّعة ومربوطة بجيله في السجل (src/studio/scriptScope.ts، D66)
+# - نسخة السكريبت كما اعتُمد (D66، أُلغيت بـ D76؛ قديمة، يؤرشفها `bal migrate legacy`، D120)
 channels/*/episodes/*/script-approved.v1.json
 channels/*/episodes/*/script-approved.v1.json.*.tmp
-# - سجل المراحل الست القديم الموقَّع (src/workflow/store.ts: ledgerFile، withLock، persist)
+# - سجلات قديمة لا يقرؤها شيء (D120): ينقلها `bal migrate legacy` إلى .studio/legacy-archive/ عند تشغيل الاستوديو؛
+#   تبقى متجاهَلة إن عادت من نسخة قديمة (سجل المراحل الست، واعتماد الصوت المنفصل، ونسخة السكريبت المعتمدة القديمة)
 channels/*/episodes/*/workflow-approvals.json
 channels/*/episodes/*/workflow-approvals.json.lock
-# - اعتماد الصوت مربوط ببايتات voice/*.mp3 المحلية (src/voice/review.ts: voiceReviewFile)
 channels/*/episodes/*/voice-review.json
 # - قفل فهرس المعاينات (مجلد مؤقت؛ src/render/episodePreviews.ts: withPreviewIndexLock)
 channels/*/episodes/*/previews/.preview-index.lock/
@@ -93,8 +93,8 @@ channels/*/episodes/*/storyboard.json
 # - ملفات الكتابة الذرية المؤقتة لكل كاتب في مجلد الحلقة (*.<uuid>.tmp)
 channels/*/episodes/*/*.tmp
 channels/*/episodes/*/**/*.tmp
-# ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): script-signoff.json وreview.json
-# وscene-review.json وpublish.json وnotes/resolved.json. لا تمنع «حدّث الآن» منذ D95: تُحفظ نسخة احتياطية منها وتبقى.
+# ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): review.json وpublish.json وnotes/resolved.json
+# (وscript-signoff.json وscene-review.json القديمان: يؤرشفهما `bal migrate legacy`، D120). لا تمنع «حدّث الآن» منذ D95: تُحفظ نسخة احتياطية منها وتبقى.
 
 # الوصلات التي سمعها المالك في النسخة المجمعة (M6): حالة محلية مربوطة ببصمة التجميع، لا تُرفع
 channels/*/episodes/*/seam-checks.local.json

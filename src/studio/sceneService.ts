@@ -21,14 +21,14 @@ import { readPlanFile } from "../plan/io";
 import { loadStoryboard, recordBoardsAfterPreparation, storyboardStatus } from "../plan/storyboard";
 import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
 import { verifiedOwnRecitations } from "../quran/manualAudio";
-import { verifyVideoEvidence } from "../workflow/videoEvidence";
+import { verifyVideoEvidence } from "./videoEvidence";
 import {
   approveScript, approveStoryboard, approveSceneAv, approveFinalMaster, approveAssembly, grantPublish,
   createSceneFirstProduction, changeScript, changeStoryboard, reviseSceneInput,
   submitSceneAvPreview, requestSceneCorrection, submitAssembly, sceneFirstProgress, sceneSeams,
   assertExactMasterApproved, assertExactMasterReadyForPublish, approvedSceneInputsSha256, type SceneFirstProduction,
 } from "./sceneProduction";
-import { workflowSigningKey } from "../workflow/trust";
+import { workflowSigningKey } from "./signingKey";
 import { appendStudioNote, correctionInboxView } from "./notesInbox";
 import { scheduleStudioNotesSync } from "./notesSync";
 import { channelsDir, loadChannel } from "../channel";

@@ -36,7 +36,6 @@
 - **حالة الاعتمادات:** من الأوامر الآتية (كلها للقراءة فقط):
   - `BAL_CHANNEL=zubdat-alkutub npx bal review <الحلقة>`: سجل التوثيق.
   - `… npx bal storyboard <الحلقة>`: اعتماد الستوري بورد.
-  - `… npx bal scenes-review <الحلقة>`: مراجعة المشاهد.
   - `… npx bal tashkeel <الحلقة>`: تغطية التشكيل.
 - **نسخة المراجعة الحالية للحلقة 001:** `previews/review-018.mp4`، وهي غير معتمدة للنشر. وسجل النسخ في `channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/docs/production-log.md`.
 - **النسخة النهائية 4K:** لم تُصنع لأي حلقة بعد (٥ نوفمبر ٢٠٢٦).
