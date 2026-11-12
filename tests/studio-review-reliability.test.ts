@@ -111,7 +111,7 @@ describe("alignment bounds", () => {
     { start: [-0.3], end: [0.9] },
     { start: [0.1], end: [NaN] },
     { start: [0.1], end: [] },
-    { start: [0.8, 0.2], end: [0.9, 0.3] },
+    { start: [0.8], end: [0.2] },
   ])("refuses invalid alignment with a recovery instruction", (alignment) => {
     expect(() => safeTrim(bounds, alignment)).toThrow(/دون توليد جديد/);
   });

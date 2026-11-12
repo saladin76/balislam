@@ -1,5 +1,8 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
 import { PlanSaveQueue } from "./planSaveQueue";
+import { PlanSaveRecovery } from "./PlanSaveRecovery";
+import { withServerFields } from "./planMerge";
+import { PLAN_SERVER_FIELDS_EVENT, type PlanServerFieldsDetail } from "./planServerFields";
 import { browserPlanRevision } from "../../src/plan/revision";
 import { SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
 import "./studio-shell.css";
@@ -15,7 +18,7 @@ import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedSte
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
-import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary, type SceneProductionRead } from "./api";
+import { api, isPlanConflict, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary, type SceneProductionRead } from "./api";
 import { scriptSaveMessage } from "./planGuard";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
@@ -160,6 +163,8 @@ export const App: React.FC = () => {
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
+  /** The last refused save was a revision conflict (409): the recovery offers the three-way merge (D105). */
+  const [planConflict, setPlanConflict] = useState(false);
   /** Counts successful plan saves: step ٢ reads the ledger again after each (dafatir M6). */
   const [planSaved, setPlanSaved] = useState(0);
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
@@ -251,8 +256,10 @@ export const App: React.FC = () => {
     try {
       await planSaves.current!.flush();
       setPlanState("saved");
+      setPlanConflict(false);
       setPlanSaved((n) => n + 1);
     } catch (e) {
+      setPlanConflict(isPlanConflict(e));
       setPlanState("error");
       say((e as Error).message, true);
       throw e;
@@ -269,7 +276,7 @@ export const App: React.FC = () => {
       if (channelRef.current !== ch || episodeRef.current !== id) return;
       if (planSaves.current!.hasPending) return;
       setPlan(d.plan);
-      planSaves.current!.seed(ch, id, browserPlanRevision(d.plan));
+      planSaves.current!.seed(ch, id, browserPlanRevision(d.plan), d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
         setScript(d.script);
@@ -309,6 +316,24 @@ export const App: React.FC = () => {
     try { window.history.replaceState(null, "", `${window.location.pathname}${next}`); } catch { /* not critical */ }
   }, [channelId, channels, epId, tab, seriesId, shownScene]);
 
+  // D105: moving the episode (series stamp) or saving its shorts writes plan.json on the server. Both fields are
+  // outside the plan revision, so a pending edit stays valid; the page takes the new fields and, when nothing
+  // is pending, the server's current revision, so the next edit is never refused as stale.
+  useEffect(() => {
+    const h = (e: Event) => {
+      const detail = (e as CustomEvent<PlanServerFieldsDetail>).detail;
+      const ch = channelRef.current, id = episodeRef.current;
+      if (!id || !detail?.episodes?.includes(id) || (detail.channel && detail.channel !== ch)) return;
+      api.episode(id, ch).then((d) => {
+        if (channelRef.current !== ch || episodeRef.current !== id) return;
+        setPlan((prev) => (prev ? withServerFields(prev, d.plan) : d.plan));
+        if (!planSaves.current!.hasPending) planSaves.current!.seed(ch, id, browserPlanRevision(d.plan), d.plan);
+      }).catch(() => {});
+    };
+    window.addEventListener(PLAN_SERVER_FIELDS_EVENT, h);
+    return () => window.removeEventListener(PLAN_SERVER_FIELDS_EVENT, h);
+  }, []);
+
   /** حفظ تلقائي للخطة بعد توقف التعديل */
   const onPlanChange = useCallback((p: Plan) => {
     setPlan(p);
@@ -331,7 +356,7 @@ export const App: React.FC = () => {
     setSavedScript(script);
     setCheck(r.check);
     setPlan(r.plan);
-    planSaves.current!.seed(channelRef.current, epId, browserPlanRevision(r.plan));
+    planSaves.current!.seed(channelRef.current, epId, browserPlanRevision(r.plan), r.plan);
     setPlanState("saved");
     // M2: step ١'s approval state (script fingerprint, blockers) is re-read at once, so «اعتمد التجهيز»
     // never sends the fingerprint of the script before this save.
@@ -494,18 +519,19 @@ export const App: React.FC = () => {
           onToggleScheme={toggleScheme}
         />
         {planState === "error" && planSaves.current!.hasPending ? (
-          <section className="plan-save-recovery" role="alert" aria-label="تعديل خطة لم يُحفظ">
-            <strong>لم تُحفظ الخطة؛ تعديلك ما زال في هذه الصفحة.</strong>
-            <span>أعد المحاولة. عند تعارض نسخة أخرى، نزّل تعديلك قبل إعادة تحميل الصفحة.</span>
-            <button type="button" className="btn" onClick={() => { void flushPlan().catch(() => {}); }}>أعد محاولة الحفظ</button>
-            <button type="button" className="btn ghost" onClick={() => {
-              const item = planSaves.current!.snapshot;
-              if (!item) return;
-              const url = URL.createObjectURL(new Blob([JSON.stringify(item.value, null, 2)], { type: "application/json" }));
-              const a = document.createElement("a"); a.href = url; a.download = item.channel + "-" + item.episode + "-unsaved-plan.json"; a.click();
-              setTimeout(() => URL.revokeObjectURL(url), 1000);
-            }}>نزّل نسخة تعديلك</button>
-          </section>
+          <PlanSaveRecovery
+            queue={planSaves.current!}
+            conflict={planConflict}
+            retry={flushPlan}
+            latest={async (ch, id) => (await api.episode(id, ch)).plan}
+            revisionOf={browserPlanRevision}
+            onPlan={(p) => { setPlan(p); setPlanState("dirty"); }}
+            onLeft={(ch, id) => {
+              setPlanConflict(false); setPlanState("saved");
+              say("فُتحت النسخة المحفوظة؛ تعديلك في الملف المنزَّل وفي هذا المتصفح.");
+              if (ch === channelRef.current && id === episodeRef.current) void loadEpisode(id);
+            }}
+          />
         ) : null}
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty || planState !== "saved"} />
         {!EPISODE_TABS.includes(tab) && tab !== "home" && tab !== "series" ? (
@@ -780,7 +806,7 @@ export const App: React.FC = () => {
             onOpenSettings={openSettings}
             onPlanSave={async (p) => { onPlanChange(p); await flushPlan(); }}
             onPlanFlush={flushPlan}
-            onPlanReplaced={(p) => { setPlan(p); planSaves.current!.seed(channelId, epId, browserPlanRevision(p)); setPlanState("saved"); }}
+            onPlanReplaced={(p) => { setPlan(p); planSaves.current!.seed(channelId, epId, browserPlanRevision(p), p); setPlanState("saved"); }}
             livePreview={(id) => <SceneLivePreview sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => setRequestedSceneId(id)}
             onOpenStoryboard={() => setTab("storyboard")}

@@ -675,6 +675,8 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 /* Review reliability: recovery and diagnostics remain readable on desktop and touch screens. */
 .plan-save-recovery { margin: 12px 20px; padding: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border: 1px solid var(--warn); border-radius: 12px; background: var(--sf); }
 .plan-save-recovery strong, .plan-save-recovery span { flex-basis: 100%; }
+.plan-save-recovery .plan-save-note { line-height: 1.8; color: var(--ink); }
+@media (max-width: 720px) { .plan-save-recovery { margin: 12px 16px; } .plan-save-recovery .btn { flex: 1 1 100%; min-height: 44px; white-space: normal; } }
 .sync-diagnostics pre, .prep-error-card pre { direction: rtl; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 14px; max-height: 240px; overflow-y: auto; }
 .sync-diagnostics summary, .prep-error-card summary { cursor: pointer; padding-block: 8px; }
 .shell-v3 .prep-error-card { display: block; flex: 1 1 100%; max-width: 100%; white-space: normal; overflow: visible; text-overflow: clip; font-size: 14px; line-height: 1.8; padding: 12px 16px; margin-top: 8px; border-inline-start: 3px solid var(--warn); border-radius: 8px; background: var(--sf); }

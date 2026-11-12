@@ -853,7 +853,7 @@ export const balApi = (): Plugin => ({
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
         // Known, owner-facing refusals (QA H4/M3): a busy lock or episode, or a state file being written / damaged.
         if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY", "PLAN_CONFLICT"].includes(String((err as { code?: unknown })?.code)))
-          return send(res, 409, { error: (err as Error).message });
+          return send(res, 409, { error: (err as Error).message, code: String((err as { code?: unknown }).code) });
         if (isMissingFileError(err)) return send(res, 404, { error: /^ENOENT\b/.test((err as Error).message) ? "الملف المطلوب غير موجود." : (err as Error).message });
         console.error("[studio] request failed:", url.pathname, err);
         return send(res, 500, { error: (err as Error).message });

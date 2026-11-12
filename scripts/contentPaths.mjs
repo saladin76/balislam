@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
  *     (فحوص البيانات نفسها)، وأي ملف آخر في الدفع يُعيده إلى البوابة الكاملة. القرار بالفرق (diff) لا بالرسالة.
  *
  * ما ليس هنا عمدًا (محلي للجهاز، أكثره في .gitignore): سجل الاعتماد الموقَّع وأقفاله، script-approved،
- * storyboard.json (سجل مراجعة اللوحات)، voice/ وكل الصوت والفيديو، previews/*.mp4، notes/inbox.json
+ * storyboard.json (سجل مراجعة اللوحات)، قفل كتابة الخطة plan.json.write.lock والنسخ plan.backup-*.json (D105)، voice/ وكل الصوت والفيديو، previews/*.mp4، notes/inbox.json
  * (يُرفع وحده إلى studio-notes)، notes/resolved.json (يكتبه Claude لا الاستوديو)، .env، out/ وrenders/.
  */
 
@@ -35,7 +35,7 @@ const NEVER_RES = [
   /(^|\/)\.env($|\.)/,
   /scene-production\.v1\.json/, /scene-workflow\.v2\.json/, /script-approved\.v1\.json/, /workflow-approvals\.json/,
   /voice-review\.json/, /(^|\/)storyboard\.json$/, /seam-checks\.local\.json/, /notes\/inbox\.json$/,
-  /(^|\/)voice\//, /\.(mp3|mp4|wav|m4a|aac|mov|webm|png|jpe?g|pdf|zip|tar)$/i, /\.tmp$/, /\.lock(\/|$)/,
+  /(^|\/)voice\//, /\.(mp3|mp4|wav|m4a|aac|mov|webm|png|jpe?g|pdf|zip|tar)$/i, /\.tmp$/, /\.lock(\/|$)/, /\.write\.lock$/,
 ];
 
 /** هل المسار (نسبيًا لجذر المستودع، بشرطات /) محتوى مالك يُحفظ في main؟ */

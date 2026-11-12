@@ -92,29 +92,72 @@ export const speechBounds = (samples: Float32Array, sampleRate: number, opts: Pa
 };
 
 /**
- * توسيع القص ليشمل أول حرف وآخر حرف كما في محاذاة الحروف التي يعيدها التوليد (إن وُجدت):
- * القص لا يبدأ بعد أول حرف ولا ينتهي قبل آخر حرف أبدًا.
+ * كم يُقبل أن تتجاوز محاذاة الكلمات طرفي الملف بعد فكّه (D105، مراجعة PR #97): ١٥٠ م.ث.
+ * التوقيت يحسبه مزوّد الصوت على صوته هو، والملف المحفوظ MP3 يُفك هنا بـ ffmpeg إلى 44.1 kHz. قيس (ffmpeg 6.1،
+ * LAME 128k، جملة طولها ١٫٠٠٠ ث): المفكّك يحذف حشو المرمّز فيعطي ١٫٠٠٠ ث، بينما المدة المعلنة للملف (إطارات MP3
+ * كاملة، ١١٥٢ عينة للإطار) ١٫٠٤٥ ث عند 44.1 kHz و١٫٠٥٦ عند 24 kHz و١٫٠٧١ عند 22.05 kHz؛ وبلا ترويسة LAME يبقى
+ * الحشو في الملف المفكوك (١٫٠٤٥). فتوقيت محسوب على المدة المعلنة يتجاوز الملف المفكوك حتى ≈ ٧١ م.ث. الحد ١٥٠ م.ث
+ * ضعف ذلك تقريبًا، وأقصر من أقصر كلمة منطوقة؛ وما فوقه ليس فرق ترميز بل توقيت ملف آخر أو تسجيل مقطوع، فيُرفض.
+ * يُراجَع على تسجيلات المالك الحقيقية بـ `npx bal voice-timing --all-channels --takes` (قياس فقط، بلا توليد).
  */
-export const safeTrim = (b: SpeechBounds, alignment?: { start: number[]; end: number[] }, opts: Partial<TrimOptions> = {}): SpeechBounds => {
+export const ALIGNMENT_OVERSHOOT_MAX_SEC = 0.15;
+
+/** تجاوز محدود حُصر في طرفي الملف: يُسجَّل تنبيهًا ولا يوقف التركيب */
+export type AlignmentClamp = { overshootEndSec: number; undershootStartSec: number; disorder: number; duration: number };
+export class AlignmentCorruptError extends Error {
+  readonly code = "ALIGNMENT_CORRUPT";
+  constructor(readonly detail: Record<string, unknown>) {
+    super("توقيت المحاذاة لا يطابق مدة التسجيل؛ أعد معالجة التسجيل الأصلي دون توليد جديد. " + JSON.stringify(detail));
+  }
+}
+
+/**
+ * يفحص محاذاة الكلمات مقابل مدة الملف: `ok` سليمة، و`clamped` تجاوز محدود (≤ ALIGNMENT_OVERSHOOT_MAX_SEC)
+ * يُحصر في طرفي الملف، و`corrupt` توقيت تالف بوضوح (قيمة غير رقمية، أطوال مختلفة، كلمة نهايتها قبل بدايتها
+ * بأكثر من الحد، أو تجاوز أكبر من الحد). ترتيب الكلمات المتداخل قليلًا ليس تلفًا (القص يأخذ أصغر بداية وأكبر نهاية).
+ */
+export const alignmentVerdict = (duration: number, alignment: { start: number[]; end: number[] }, maxSec = ALIGNMENT_OVERSHOOT_MAX_SEC):
+  { kind: "ok" } | { kind: "clamped"; clamp: AlignmentClamp } | { kind: "corrupt"; detail: Record<string, unknown> } => {
+  const { start, end } = alignment;
+  const detail = (reason: string) => ({ reason, duration, first: start[0], last: end.at(-1), words: start.length });
+  if (!Number.isFinite(duration) || duration <= 0) return { kind: "corrupt", detail: detail("مدة الملف غير صالحة") };
+  if (start.length !== end.length) return { kind: "corrupt", detail: detail("عدد البدايات لا يساوي عدد النهايات") };
+  if (start.some((x, i) => !Number.isFinite(x) || !Number.isFinite(end[i]))) return { kind: "corrupt", detail: detail("توقيت غير رقمي") };
+  if (start.some((x, i) => x - end[i]! > maxSec)) return { kind: "corrupt", detail: detail("كلمة تنتهي قبل أن تبدأ") };
+  const overshootEndSec = Math.max(0, Math.max(...end) - duration);
+  const undershootStartSec = Math.max(0, -Math.min(...start));
+  if (overshootEndSec > maxSec || undershootStartSec > maxSec)
+    return { kind: "corrupt", detail: { ...detail("التوقيت يتجاوز طرفي الملف"), overshootEndSec, undershootStartSec, maxSec } };
+  let disorder = 0;
+  for (let i = 1; i < start.length; i++) if (start[i]! < start[i - 1]! || end[i]! < end[i - 1]! || start[i]! > end[i]!) disorder++;
+  const tiny = 1e-6;
+  if (overshootEndSec <= tiny && undershootStartSec <= tiny && disorder === 0) return { kind: "ok" };
+  return { kind: "clamped", clamp: { overshootEndSec, undershootStartSec, disorder, duration } };
+};
+
+/** التنبيه الافتراضي للتجاوز المحدود: سطر في سجل الخادم (لا يراه المالك خطأً، ولا يوقف التركيب) */
+export const warnAlignmentClamp = (label: string, c: AlignmentClamp) => {
+  // eslint-disable-next-line no-console
+  console.warn(`[voice] ${label}: محاذاة خارج طرفي الملف حُصرت فيه (نهاية +${Math.round(c.overshootEndSec * 1000)} م.ث، بداية −${Math.round(c.undershootStartSec * 1000)} م.ث، ترتيب ${c.disorder}، المدة ${c.duration.toFixed(3)} ث).`);
+};
+
+/**
+ * توسيع القص ليشمل أول حرف وآخر حرف كما في محاذاة الحروف التي يعيدها التوليد (إن وُجدت):
+ * القص لا يبدأ بعد أول حرف ولا ينتهي قبل آخر حرف أبدًا، ولا يخرج عن الملف أبدًا (speechEnd ≤ end ≤ duration).
+ * مشترك بين أجزاء دفاتر الزمن وتركيب الجمل (D50): التجاوز المحدود يُحصر ويُنبَّه عليه (`onClamp`)، والتالف يُرفض.
+ */
+export const safeTrim = (b: SpeechBounds, alignment?: { start: number[]; end: number[] }, opts: Partial<TrimOptions> = {},
+  onClamp: (c: AlignmentClamp) => void = (c) => warnAlignmentClamp("تسجيل", c)): SpeechBounds => {
   if (!alignment || (!alignment.start.length && !alignment.end.length)) return b;
   const o = { ...TRIM_DEFAULTS, ...opts };
-  // Timestamp encoders can differ from decoded PCM by one analysis frame. Reject larger drift;
-  // never return speechEnd > end (the compositor correctly refuses that contract).
-  const tolerance = o.frameSec + 1e-9;
-  const invalid = !Number.isFinite(b.duration) || b.duration <= 0 ||
-    alignment.start.length !== alignment.end.length ||
-    alignment.start.some((start, i) => !Number.isFinite(start) || !Number.isFinite(alignment.end[i]) ||
-      start < -tolerance || alignment.end[i]! > b.duration + tolerance || start > alignment.end[i]! ||
-      (i > 0 && (start < alignment.start[i - 1]! || alignment.end[i]! < alignment.end[i - 1]!)));
-  if (invalid) throw new Error(
-    "توقيت المحاذاة لا يطابق مدة التسجيل؛ أعد معالجة التسجيل الأصلي دون توليد جديد. " +
-    JSON.stringify({ duration: b.duration, first: alignment.start[0], last: alignment.end.at(-1) }),
-  );
+  const v = alignmentVerdict(b.duration, alignment);
+  if (v.kind === "corrupt") throw new AlignmentCorruptError(v.detail);
+  if (v.kind === "clamped") onClamp(v.clamp);
   const firstChar = Math.max(0, Math.min(b.duration, Math.min(...alignment.start)));
   const lastChar = Math.max(0, Math.min(b.duration, Math.max(...alignment.end)));
   // The no-silence fallback also derives b.speech* from the same alignment.
   const speechStart = Math.max(0, Math.min(b.duration, Math.min(b.speechStart, firstChar)));
-  const speechEnd = Math.min(b.duration, Math.max(b.speechEnd, lastChar));
+  const speechEnd = Math.max(speechStart, Math.min(b.duration, Math.max(b.speechEnd, lastChar)));
   return { ...b, speechStart, speechEnd, start: Math.max(0, Math.min(b.start, speechStart - o.onsetPadSec)), end: Math.min(b.duration, Math.max(b.end, speechEnd + o.releasePadSec)) };
 };
 

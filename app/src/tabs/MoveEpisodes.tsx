@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { notifyPlanServerFields } from "../planServerFields";
 import { api, type EpisodeMoveResult, type MoveEpisodesResult, type SeriesRead } from "../api";
 import { EPISODES, arabicCountAr } from "../../../src/i18n/count";
 import { SERIES_KIND_AR } from "../../../src/channel/series";
@@ -124,6 +125,7 @@ export const useEpisodeMover = (onChanged: () => Promise<void> | void) => {
   changed.current = onChanged;
   const move = useCallback(async (to: string, ids: string[]) => {
     const r = await api.moveEpisodes(to, ids);
+    notifyPlanServerFields(ids);
     await changed.current();
     setToast({ line: movedLine(r), token: r.undo, err: !r.ok });
     return r;
@@ -134,6 +136,7 @@ export const useEpisodeMover = (onChanged: () => Promise<void> | void) => {
     setToast({ line: "جارٍ التراجع…" });
     try {
       const r = await api.undoMoveEpisodes(token);
+      notifyPlanServerFields(r.results.map((x) => x.episode));
       await changed.current();
       setToast({ line: undoneLine(r.results), err: !r.ok });
     } catch (x) { setToast({ line: (x as Error).message, err: true }); }
