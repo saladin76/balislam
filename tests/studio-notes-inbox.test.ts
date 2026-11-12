@@ -47,7 +47,11 @@ describe("قراءة ملاحظة التصحيح", () => {
   });
   it("سطر الحالة تحت الملاحظة", () => {
     expect(noteInboxLine({ sync: "sent", status: "open", answer: null })).toBe("أُرسلت الملاحظة");
-    expect(noteInboxLine({ sync: "pending", status: "open", answer: null })).toBe("بانتظار الإرسال (بلا اتصال)");
+    expect(noteInboxLine({ sync: "pending", status: "open", answer: null })).toBe("بانتظار الإرسال؛ محفوظة على جهازك.");
+    // QA 12 Nov: the line says what really happened — «بلا اتصال» only for a real network failure
+    expect(noteInboxLine({ sync: "pending", status: "open", answer: null, reason: "offline" })).toMatch(/لا اتصال بالإنترنت/);
+    expect(noteInboxLine({ sync: "pending", status: "open", answer: null, reason: "error" })).toMatch(/^لم تُرسل الملاحظة: تعذّر الدفع إلى GitHub \(ليس انقطاع اتصال\)/);
+    expect(noteInboxLine({ sync: "pending", status: "open", answer: null, reason: "error" })).not.toMatch(/بلا اتصال/);
     expect(noteInboxLine({ sync: "sent", status: "fixed", answer: null })).toBe("أُصلحت — أنتج المشهد من جديد");
     expect(noteInboxLine({ sync: "pending", status: "fixed", answer: "أبطأتُ السهم" })).toBe("أُصلحت — أنتج المشهد من جديد (أبطأتُ السهم)");
     const ui = readFileSync(path.join(repo, "app/src/workspace/SceneProductionPanel.tsx"), "utf8");
@@ -205,18 +209,18 @@ describe("الإرسال إلى studio-notes", () => {
     expect(git(origin, "rev-parse", "refs/heads/studio-notes")).toBe(tip);
   });
 
-  it("بلا اتصال: تبقى «بانتظار الإرسال»، ثم تُرسل كلها في المحاولة التالية فوق ما سبق (إضافة فقط)", async () => {
+  it("تعذّر الدفع (مستودع غير موجود، ليس انقطاع اتصال): تبقى «بانتظار الإرسال» بسببها الحقيقي، ثم تُرسل كلها في المحاولة التالية (إضافة فقط)", async () => {
     git(owner, "remote", "set-url", "origin", path.join(path.dirname(origin), "missing.git"));
     await note(2, "[النبرة @0:07] أهدأ");
     const before = ownerSnapshot();
     const off = await syncStudioNotes({ channelsDir: path.join(owner, "channels") });
-    expect(off).toMatchObject({ ok: false, reason: "offline" });
+    expect(off).toMatchObject({ ok: false, reason: "error" });
     expect(ownerSnapshot()).toEqual(before);
     const queued = (await readInbox(epDir)).notes;
     expect(queued[0]!.sync!.state).toBe("sent"); // ما أُرسل لا يرجع «بانتظار»
     expect(queued[1]!.sync).toMatchObject({ state: "pending" });
-    expect(queued[1]!.sync!.lastError).toMatch(/^offline/);
-    expect((await correctionInboxView(epDir, 2))!.sync).toBe("pending");
+    expect(queued[1]!.sync!.lastError).toMatch(/^error/);
+    expect(await correctionInboxView(epDir, 2)).toMatchObject({ sync: "pending", reason: "error" });
 
     git(owner, "remote", "set-url", "origin", origin);
     await note(3, "[الحركة @0:09] الكلمة تتأخر");

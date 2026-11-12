@@ -77,22 +77,28 @@ export type NewEpisodeOptions = { episode: string; slug: string; domain: string;
   /** سلسلة الحلقة أو تصنيفها (src/channel/series.ts)؛ غيابها أو «general» = «عام» */
   series?: string };
 
+/** The owner's input to «حلقة جديدة» is refused (a 409 in the Studio, never a 500): which field, in Arabic, without a path. */
+export class EpisodeInputError extends Error {
+  constructor(message: string, readonly field: "episode" | "slug" | "domain" | "series") { super(message); this.name = "EpisodeInputError"; }
+}
+const arD = (s: string) => s.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
+
 /** ينشئ مجلد حلقة جديدة بقالب السكريبت. */
 export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> => {
-  if (!/^\d{3}$/.test(opts.episode)) throw new Error("رقم الحلقة يجب أن يكون ثلاث خانات، مثل 002.");
+  if (!/^\d{3}$/.test(opts.episode)) throw new EpisodeInputError("رقم الحلقة ثلاث خانات، مثل ٠٠٢.", "episode");
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(opts.slug)) {
-    throw new Error("الاسم المختصر بالإنجليزية وحروف صغيرة وشرطات فقط، مثل family-conflict.");
+    throw new EpisodeInputError("اسم المجلد بحروف إنجليزية صغيرة وأرقام وشرطات فقط، مثل family-conflict.", "slug");
   }
   const channel = loadChannel();
   const DOMAINS = domainIds(channel);
-  if (!DOMAINS.includes(opts.domain)) throw new Error(`المجال يجب أن يكون واحدًا من: ${DOMAINS.join("، ")}.`);
+  if (!DOMAINS.includes(opts.domain)) throw new EpisodeInputError(`اختر المجال من القائمة (${DOMAINS.join("، ")}).`, "domain");
   const episodesDir = channelPaths().episodes;
 
   const existing = await scriptEpisodeDirectories(episodesDir, opts.episode);
-  if (existing.length) throw new Error(`الحلقة ${opts.episode} موجودة بالفعل: episodes/${existing[0]}`);
+  if (existing.length) throw new EpisodeInputError(`الحلقة ${arD(opts.episode)} موجودة بالفعل في هذه القناة؛ اختر رقمًا آخر.`, "episode");
 
   const dir = path.join(episodesDir, `${opts.episode}-${opts.slug}`);
-  if (existsSync(dir)) throw new Error(`المجلد ${path.basename(dir)} موجود مسبقًا؛ لا يمكن تحويل مختبر أو مجلد قائم إلى حلقة جديدة.`);
+  if (existsSync(dir)) throw new EpisodeInputError(`في القناة مجلد بالرقم والاسم نفسيهما (مختبر أو مجلد قائم)؛ غيّر اسم المجلد أو الرقم.`, "slug");
   await mkdir(path.join(dir, "voice"), { recursive: true });
   await mkdir(path.join(dir, "out"), { recursive: true });
   const fill = (t: string) =>
@@ -105,8 +111,8 @@ export const createEpisode = async (opts: NewEpisodeOptions): Promise<string> =>
   const series = await import("../channel/seriesStore");
   const model = await import("../channel/series");
   const chosen = opts.series && opts.series !== model.GENERAL_SLUG ? series.getSeries(channel.id, opts.series) : undefined;
-  if (opts.series && opts.series !== model.GENERAL_SLUG && !chosen) throw new Error(`السلسلة «${opts.series}» غير موجودة في هذه القناة.`);
-  if (chosen?.status === "archived") throw new Error(`«${chosen.name}» مؤرشفة؛ أعدها نشطة قبل إضافة حلقة.`);
+  if (opts.series && opts.series !== model.GENERAL_SLUG && !chosen) throw new EpisodeInputError(`السلسلة المختارة غير موجودة في هذه القناة؛ اختر غيرها.`, "series");
+  if (chosen?.status === "archived") throw new EpisodeInputError(`«${chosen.name}» مؤرشفة؛ أعدها نشطة قبل إضافة حلقة.`, "series");
   const ownTemplate = chosen?.template?.script?.source === "series" ? path.join(templatesDir, channel.id, "series", chosen.id, "script.md") : null;
   const scriptTemplate = ownTemplate && existsSync(ownTemplate) ? ownTemplate : templateFor(channel.id, "script.md");
   if (!scriptTemplate) throw new Error("لا يوجد قالب سكريبت لهذه القناة ولا القالب المحايد templates/_neutral/script.md.");

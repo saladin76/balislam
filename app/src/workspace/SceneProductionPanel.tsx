@@ -42,6 +42,10 @@ type Props = {
   /** Step ٢ only: before «اعتمد التجهيز» the whole screen is one line and this one button back to step ١. */
   onOpenPreparation?: () => void;
   onUpdated?: () => void;
+  /** Every read model this panel takes (GET or a decision's answer) goes to the band at once (QA: stale «٠ من ١٦٣»). */
+  onState?: (w: SceneProductionRead) => void;
+  /** The scene on screen in step ٢ (the App keeps it in the address bar). */
+  onShownScene?: (id: string | null) => void;
   /**
    * شاشة «المشاهد» (الخطوة ٢) فقط: الخطة لعرض نص كل مشهد وشريط التقدم، ومحرر المشهد الكامل
    * يُفتح خلف «تحرير المشهد» بدل أن يظهر دائمًا. بدونها تبقى اللوحة شريط القرار في الخطوتين ٣ و٤.
@@ -106,10 +110,15 @@ export const NoteText: React.FC<{ raw: string }> = ({ raw }) => {
 };
 
 /** سطر هادئ واحد تحت ملاحظة التصحيح: هل وصلت الملاحظة، وهل أُصلح المشهد (docs/studio/notes-inbox.md). */
-export const noteInboxLine = (inbox: { sync: "pending" | "sent"; status: string; answer: string | null }) =>
+export const noteInboxLine = (inbox: { sync: "pending" | "sent"; status: string; answer: string | null; reason?: string }) =>
   inbox.status === "fixed" ? `أُصلحت — أنتج المشهد من جديد${inbox.answer ? ` (${inbox.answer})` : ""}`
     : inbox.status === "wont-fix" ? `لن تُعدَّل${inbox.answer ? `: ${inbox.answer}` : ""}`
-    : inbox.sync === "sent" ? "أُرسلت الملاحظة" : "بانتظار الإرسال (بلا اتصال)";
+    : inbox.sync === "sent" ? "أُرسلت الملاحظة"
+    // QA 12 Nov: say what really happened; the note is kept on this device and the Studio retries every ١٠ دقائق.
+    : inbox.reason === "offline" ? "بانتظار الإرسال: لا اتصال بالإنترنت الآن؛ محفوظة على جهازك وتُرسل وحدها حين يعود الاتصال."
+    : inbox.reason === "rejected" ? "بانتظار الإرسال: تغيّر صندوق الملاحظات على GitHub؛ يُعاد الإرسال وحده خلال دقائق."
+    : inbox.reason ? "لم تُرسل الملاحظة: تعذّر الدفع إلى GitHub (ليس انقطاع اتصال). محفوظة على جهازك ويُعاد الإرسال وحده كل ١٠ دقائق؛ إن تكرر فأخبر Claude."
+    : "بانتظار الإرسال؛ محفوظة على جهازك.";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 const noop = () => {};
@@ -120,7 +129,7 @@ const noop = () => {};
  * All decisions are server-authenticated, bound to real bytes and serialized.
  */
 export const SceneProductionPanel: React.FC<Props> = ({
-  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onOpenPreparation, onUpdated,
+  episodeId, channelId, onOpenScene, onOpenStoryboard, onOpenScript, onOpenPublish, onOpenReview, onOpenFinal, onOpenPreparation, onUpdated, onState, onShownScene,
   plan, channel, editor, livePreview, requestedSceneId, onCloseEditor, viewSceneId, media, onMediaChange, onPlanSave, hasVoiceKeys, onOpenSettings,
   initialRead, onPlanFlush, onPlanReplaced, view = "one", onView, thumb, finalView, onFinalView,
 }) => {
@@ -192,6 +201,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
     );
     return () => { alive = false; };
   }, [episodeId, channelId]);
+  const onStateRef = useRef(onState);
+  onStateRef.current = onState;
+  useEffect(() => { if (data) onStateRef.current?.(data); }, [data]);
   useEffect(() => {
     if (editor && requestedSceneId) setEditing(requestedSceneId);
   }, [requestedSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -344,6 +356,18 @@ export const SceneProductionPanel: React.FC<Props> = ({
     strip.scrollLeft += (n.left + n.width / 2) - (s.left + s.width / 2);
   }, [currentId, sceneMode, order.length]);
 
+  // dafatir M6: any plan change saved from this screen (editor fields, tone, text) re-reads the scene state once
+  // the autosave has run, so a scene waiting for a change unlocks as soon as its inputs changed.
+  const planSeen = useRef(plan);
+  useEffect(() => {
+    if (!sceneMode || planSeen.current === plan) return;
+    planSeen.current = plan;
+    const t = setTimeout(() => { void refresh().catch(() => {}); }, 1400);
+    return () => clearTimeout(t);
+  }, [plan, sceneMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onShownRef = useRef(onShownScene);
+  onShownRef.current = onShownScene;
+  useEffect(() => { if (sceneMode && data) onShownRef.current?.(shownId); }, [sceneMode, data, shownId]);
   // صوت المشهد: لا تعليق، أو بلا ملف، أو ملف لنص قديم، أو مطابق
   const voiceOf = (id: string): VoiceState => {
     const narr = planScenes.find((x) => x.scene.id === id)?.scene.narration.trim() ?? "";
@@ -428,7 +452,12 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [seamAt, setSeamAt] = useState(0);
 
   if (sceneMode && editing) {
-    const close = () => { setViewId(editing); setEditing(null); onCloseEditor?.(); };
+    // dafatir M6: an edit in the editor changes the scene's inputs; the state is read again on the way back
+    // (after the pending plan save), so «أنتج هذا المشهد» unlocks without a reload.
+    const close = () => {
+      setViewId(editing); setEditing(null); onCloseEditor?.();
+      void Promise.resolve(onPlanFlush?.()).then(() => refresh()).catch(() => {});
+    };
     const idx = order.indexOf(editing);
     return (
       <>
@@ -809,14 +838,21 @@ export const SceneProductionPanel: React.FC<Props> = ({
         onApprove={() => void act("approve-assembly", data.assembly!.sha256)} />
     );
   }
-  // QA 12 Nov (balislam 6, dafatir M7, zubdat D-23): before any assembly the seams view is a locked explanation, never
-  // the legacy single-scene card (with its «إرسال للمراجعة», removed in D40). The dock above points to the scene.
-  // (Once every scene is approved, the panel below offers «دمج المشاهد للمراجعة» or waits for the recitations.)
-  if (data && finalView === "seams" && !data.assembly && data.progress.currentScene) {
+  // QA 12 Nov (all three channels): before an assembly exists «الوصلات» is an explanation, never the step-٢ scene card.
+  if (data && finalView === "seams" && !data.assembly && !data.progress.assemblyApproved) {
+    const pendingRecs = data.progress.recitationPending?.length ?? 0;
     return (
       <section className="scene-first-panel sp" aria-label="الوصلات">
         <div className="sp-row">
-          <div><h3>الوصلات تُسمع بعد التجميع</h3><p className="sp-hint">{`تُدمج المشاهد في نسخة واحدة بعد اعتمادها كلها (معتمد ${ar(data.progress.approvedScenes)} من ${ar(data.progress.totalScenes)})، ثم تُسمع كل وصلة بين مشهدين هنا.`}</p></div>
+          <div><h3>الوصلات تظهر بعد تجميع الحلقة</h3><p className="sp-hint">{data.progress.canAssemble
+            ? "كل المشاهد معتمدة: اجمعها في نسخة واحدة، ثم استمع لكل وصلة بين مشهدين واعتمدها هنا."
+            : pendingRecs ? "تُجمع الحلقة بعد اعتماد كل المشاهد وتلاواتها؛ بعدها تُسمع كل وصلة بين مشهدين هنا."
+            : `تُجمع الحلقة بعد اعتماد كل المشاهد (${arNumOf(data.progress.approvedScenes)} من ${arNumOf(data.progress.totalScenes)} الآن)؛ بعدها تُسمع كل وصلة بين مشهدين هنا.`}</p></div>
+          <div className="sp-actions">{pendingRecs
+            ? <button className="btn primary" type="button" onClick={() => onFinalView?.("recitations")}>إلى التلاوات</button>
+            : !data.progress.canAssemble && data.progress.currentScene && onOpenScene
+              ? <button className="btn primary" type="button" onClick={() => onOpenScene(data.progress.currentScene!)}>إلى المشاهد</button>
+              : null}</div>
         </div>
       </section>
     );
@@ -826,7 +862,13 @@ export const SceneProductionPanel: React.FC<Props> = ({
       <section className="scene-first-panel sp" aria-label="النسخة الأساسية">
         <div className="sp-row">
           <div><h3>النسخة الأساسية تُصنع بعد الوصلات</h3><p className="sp-hint">{data.assembly ? "استمع لكل وصلة بين مشهدين في الحلقة المجمعة واعتمدها؛ بعدها تُصنع النسخة الأساسية 4K هنا." : "تُجمع المشاهد المعتمدة أولًا في نسخة واحدة وتُسمع وصلاتها."}</p></div>
-          <div className="sp-actions"><button className="btn primary" type="button" onClick={() => onFinalView?.(data.progress.canAssemble ? "seams" : "recitations")}>{data.progress.canAssemble ? "إلى الوصلات" : versesAreCitations(channel) ? "إلى المعاينة قبل النهائية" : "إلى التلاوات"}</button></div>
+          <div className="sp-actions">{data.progress.canAssemble || data.assembly
+            ? <button className="btn primary" type="button" onClick={() => onFinalView?.("seams")}>إلى الوصلات</button>
+            : (data.progress.recitationPending?.length ?? 0) > 0
+              ? <button className="btn primary" type="button" onClick={() => onFinalView?.("recitations")}>إلى التلاوات</button>
+              : data.progress.currentScene && onOpenScene
+                ? <button className="btn primary" type="button" onClick={() => onOpenScene(data.progress.currentScene!)}>إلى المشاهد</button>
+                : null}</div>
         </div>
       </section>
     );
@@ -1064,7 +1106,8 @@ export const SceneDecisionActions: React.FC<{
   // سطر واحد بما ينتظره «اعتمد»، ثم ما يمنع غيره
   const reasons: React.ReactNode[] = [];
   if (!review) reasons.push(
-    p.awaitingChange != null ? `بانتظار التعديل${p.awaitingChange ? ` («${p.awaitingChange}»)` : ""}: إنتاجه بالمدخلات نفسها يعطي النسخة نفسها؛ يُنتج من جديد حين يتغيّر (نبرة، نص، لوحة) أو حين تُجاب ملاحظتك «أُصلحت».`
+    // QA 12 Nov: the note itself is shown once, above, with its badge («الحركة عند ٠:٠٠»), never its raw «[الحركة @0:00]» tag
+    p.awaitingChange != null ? `بانتظار التعديل: إنتاجه بالمدخلات نفسها يعطي النسخة نفسها؛ يُنتج من جديد حين يتغيّر (نبرة، نص، لوحة) أو حين تُجاب ملاحظتك «أُصلحت».`
     : p.preparing === "now" ? "يُجهَّز هذا المشهد الآن بصوته وحركته؛ «اعتمد» يُفتح حين تكتمل معاينته."
       : p.preparing === "queued" ? "هذا المشهد في دور التجهيز؛ «اعتمد» يُفتح حين تكتمل معاينته."
       : !p.readyForAv ? "ينقص هذا المشهد صوت الراوي: ولّد الصوت، ثم أنتج المشهد."

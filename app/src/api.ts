@@ -149,7 +149,9 @@ export type SceneProductionRead = {
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
       /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */
-      inbox?: { id: string; sync: "pending" | "sent"; status: "open" | "in-progress" | "fixed" | "wont-fix"; answer: string | null } } }[];
+      inbox?: { id: string; sync: "pending" | "sent"; status: "open" | "in-progress" | "fixed" | "wont-fix"; answer: string | null;
+        /** Why it still waits: the last failed send («offline» only for a real network failure). */
+        reason?: "offline" | "rejected" | "no-repo" | "no-remote" | "error" } } }[];
   /** «جاهز ١٢ من ٣١»: approved, submitted, or with a current draft. */
   prepared?: { ready: number; total: number };
   assembly: { sha256: string; approved: boolean } | null;

@@ -7,7 +7,7 @@ import { Band, type ManageItem } from "./shell/Band";
 import { EpisodeSpine, STEPS, stepOf, stepsDone, type StepTab } from "./shell/EpisodeSpine";
 import { useColorScheme } from "./ui/colorScheme";
 import { episodeLength } from "../../src/plan/episodeLength";
-import { duration, episodeTitle, num } from "./ui/format";
+import { arDigits, arNum, duration, episodeTitle, latinDigits, num } from "./ui/format";
 import config from "../../config.json";
 import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedStep";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -140,7 +140,14 @@ export const App: React.FC = () => {
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   const [viewSceneId, setViewSceneId] = useState<string | undefined>();
-  useEffect(() => { setRequestedSceneId(undefined); setViewSceneId(undefined); setSceneView("one"); setFinalView(null); }, [channelId, epId]);
+  /** The scene on screen in step ٢ (in the address bar, so a reload keeps it); the boot route's scene is used once. */
+  const [shownScene, setShownScene] = useState<string | undefined>(bootRoute.scene);
+  const bootScene = useRef<string | undefined>(bootRoute.scene);
+  useEffect(() => {
+    const keep = bootScene.current;
+    bootScene.current = undefined;
+    setRequestedSceneId(undefined); setViewSceneId(keep); setShownScene(keep); setSceneView("one"); setFinalView(null);
+  }, [channelId, epId]);
   /** The ledger read by the spine: a locked step renders one `LockedStep` (D52). */
   const [ledger, setLedger] = useState<{ key: string; w: SceneProductionRead | null } | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -173,7 +180,12 @@ export const App: React.FC = () => {
     setTimeout(() => setToast(null), 2600);
   };
 
-  const reloadChannels = useCallback(() => api.channels().then(setChannels).catch((e) => say(e.message, true)), []);
+  // QA 12 Nov: a fresh browser (no channel stored, no hash) takes the first channel at once, so «مرجع القناة»,
+  // the labs and the guide are offered before the owner picks a channel.
+  const reloadChannels = useCallback(() => api.channels().then((list) => {
+    setChannels(list);
+    setChannelId((c) => c || list[0]?.id || "");
+  }).catch((e) => say(e.message, true)), []);
   const reloadKeys = useCallback(
     () =>
       api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: false })).catch(() => {}),
@@ -184,6 +196,7 @@ export const App: React.FC = () => {
     reloadKeys();
   }, [reloadChannels, reloadKeys]);
 
+  const prevChannel = useRef("");
   // عند تغيير القناة: حلقاتها وهويتها
   useEffect(() => {
     setApiChannel(channelId);
@@ -193,16 +206,21 @@ export const App: React.FC = () => {
     loadedKey.current = "";
     episodesOf.current = "";
     const ch = channelId;
+    const switched = Boolean(prevChannel.current && prevChannel.current !== ch);
+    if (ch) prevChannel.current = ch;
     api.episodes().then((list) => {
       if (channelRef.current !== ch) return;
       episodesOf.current = ch;
       setEpisodes(list);
       const want = pendingOpen.current;
       pendingOpen.current = null;
+      // QA 12 Nov: switching channels comes back to the episode last open in that channel (per-channel memory).
+      const remembered = switched ? store.get(`bal-episode:${ch}`) : null;
       if (want && list.some((e) => e.id === want.ep)) {
         setEpId(want.ep);
         setTab(want.tab);
-      } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
+      } else if (remembered && list.some((e) => e.id === remembered)) setEpId(remembered);
+      else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
     api.identity().then(({ identity, defaults }) => {
       if (channelRef.current === ch) setIdent({ draft: identity, saved: identity, defaults });
@@ -257,6 +275,7 @@ export const App: React.FC = () => {
     if (loadedKey.current === key) return;
     loadedKey.current = key;
     store.set("bal-episode", epId);
+    store.set(`bal-episode:${channelId}`, epId);
     setPlan(null);
     loadEpisode(epId);
   }, [epId, channelId, episodes, loadEpisode]);
@@ -270,11 +289,11 @@ export const App: React.FC = () => {
   // The address bar always names the current channel, episode and step (a link the owner can keep).
   useEffect(() => {
     const ch = channelId || channels[0]?.id || "";
-    const next = studioHash({ channel: ch, episode: epId, tab, series: seriesId });
+    const next = studioHash({ channel: ch, episode: epId, tab, series: seriesId, scene: tab === "episode" ? shownScene : undefined });
     if (!next || (window.location.hash === next && !window.location.search)) return;
     // `?link` (and any query) is dropped once applied: a later restore of this tab is a fresh open again (D85).
     try { window.history.replaceState(null, "", `${window.location.pathname}${next}`); } catch { /* not critical */ }
-  }, [channelId, channels, epId, tab, seriesId]);
+  }, [channelId, channels, epId, tab, seriesId, shownScene]);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
   const onPlanChange = useCallback((p: Plan) => {
@@ -337,6 +356,7 @@ export const App: React.FC = () => {
     if (!r.channel) return;
     const want = { ep: r.episode ?? epId, tab: r.tab ?? tab };
     if (r.series) setSeriesId(r.series);
+    if (r.scene && want.ep === epId && r.channel === (channelId || channels[0]?.id)) setViewSceneId(r.scene);
     if (want.ep === epId && want.tab === tab && r.channel === (channelId || channels[0]?.id)) return;
     if (!confirmLeaveScript()) return;
     void flushPlan().then(() => {
@@ -406,10 +426,10 @@ export const App: React.FC = () => {
   ] : here === 2 && done[0] ? [
     // D68: without recitations the same view holds only the watch-only pre-final preview, so it is named for it.
     { id: "recitations", label: recStage ? "التلاوات" : "قبل النهائية", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },
-    { id: "seams", label: "الوصلات", sub: w?.assembly && w.seams.length ? String(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
+    { id: "seams", label: "الوصلات", sub: w?.assembly && w.seams.length ? arNum(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
     { id: "master", label: "النسخة الأساسية", sub: "4K", current: final === "master", onSelect: () => setFinalView("master") },
   ] : [];
-  const stepSub = here === 0 ? (done[0] ? "معتمد" : "ينتظرك") : here === 1 && w ? `${w.progress.approvedScenes} من ${w.progress.totalScenes}`
+  const stepSub = here === 0 ? (done[0] ? "معتمد" : "ينتظرك") : here === 1 && w ? `${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)}`
     : here === 2 && done[0] ? views.find((v) => v.current)?.label : here === 3 && done[3] ? "مأذون" : undefined;
   const epTitle = episodeTitle(episodes?.find((e) => e.id === epId)?.title || plan?.title || "");
   const channelName = channels.find((c) => c.id === cid)?.name ?? channel.name;
@@ -739,6 +759,8 @@ export const App: React.FC = () => {
             onView={setSceneView}
             thumb={(id) => <SceneThumb sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onUpdated={() => setHomeKey(k => k + 1)}
+            onState={(st) => setLedger({ key: `${channelId}/${epId}`, w: st })}
+            onShownScene={(id) => setShownScene(id ?? undefined)}
             editor={(sceneId, onSelect) => (
               <EpisodeTab
                 key={epId}
@@ -769,6 +791,8 @@ export const App: React.FC = () => {
 
         {showNew ? (
           <NewEpisode
+            channelId={channelId || channels[0]?.id}
+            taken={(episodes ?? []).map((e) => e.id)}
             domains={Object.entries(channels.find((c) => c.id === (channelId || channels[0]?.id))?.domains ?? defaultChannel.domains).map(([id, d]) => [id, d.name])}
             suggested={newPrefill?.suggested ?? String((episodes?.reduce((m, e) => Math.max(m, Number(e.id)), 0) ?? 0) + 1).padStart(3, "0")}
             initialTitle={newPrefill?.title}
@@ -813,34 +837,63 @@ export const App: React.FC = () => {
   );
 };
 
-const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; series?: [string, string][]; initialSeries?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, initialTitle, initialDomain, series = [], initialSeries, onClose, onCreated }) => {
+/** A folder name from the Arabic title (rough, readable Latin), or «episode-٠٠٢» when nothing is left. */
+const AR_LATIN: Record<string, string> = { ا: "a", أ: "a", إ: "i", آ: "a", ء: "", ؤ: "u", ئ: "i", ب: "b", ت: "t", ث: "th", ج: "j", ح: "h", خ: "kh", د: "d", ذ: "dh", ر: "r", ز: "z", س: "s", ش: "sh", ص: "s", ض: "d", ط: "t", ظ: "z", ع: "a", غ: "gh", ف: "f", ق: "q", ك: "k", ل: "l", م: "m", ن: "n", ه: "h", ة: "a", و: "w", ي: "y", ى: "a" };
+export const autoSlug = (title: string, episode: string): string => {
+  const words = title.normalize("NFKD").replace(/[\u064B-\u065F\u0670\u0640]/g, "").split(/\s+/)
+    .map((w) => [...w].map((c) => AR_LATIN[c] ?? (/[a-z0-9]/i.test(c) ? c.toLowerCase() : "")).join("").replace(/^al(?=.{3,})/, ""))
+    .filter((w) => w.length > 1).slice(0, 4);
+  const slug = words.join("-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 40).replace(/-$/, "");
+  return slug || `episode-${latinDigits(episode) || "new"}`;
+};
+const NewEpisode: React.FC<{ channelId?: string; taken?: string[]; domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; series?: [string, string][]; initialSeries?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ channelId = "", taken = [], domains, suggested, initialTitle, initialDomain, series = [], initialSeries, onClose, onCreated }) => {
   const ph = channelPlaceholders(useChannel().id);
   const [inSeries, setInSeries] = useState(initialSeries && series.some(([id]) => id === initialSeries) ? initialSeries : GENERAL_SLUG);
-  const [episode, setEpisode] = useState(suggested);
+  const [episode, setEpisode] = useState(arDigits(suggested));
   const [slug, setSlug] = useState("");
   const [domain, setDomain] = useState(initialDomain && domains.some(([d]) => d === initialDomain) ? initialDomain : (domains[0]?.[0] ?? ""));
   const [title, setTitle] = useState(initialTitle ?? "");
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<{ field?: string; msg: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const number = latinDigits(episode.trim());
+  const folder = slug.trim() || autoSlug(title, number);
+  const fieldErr = (f: string) => (err?.field === f ? err.msg : "");
   return (
     <Dialog as="form" labelledBy="new-episode-title" onClose={onClose} width={520}
+        noValidate
         onSubmit={async (e) => {
           e.preventDefault();
-          setErr("");
+          if (busy) return;
+          // QA 12 Nov: Arabic messages next to the field, never the browser's English tooltip or a silent no-op.
+          if (!title.trim()) return setErr({ field: "title", msg: "اكتب عنوان الحلقة أولًا." });
+          if (!/^\d{3}$/.test(number)) return setErr({ field: "episode", msg: "الرقم ثلاث خانات، مثل ٠٠٢." });
+          if (taken.includes(number)) return setErr({ field: "episode", msg: `الحلقة ${arDigits(number)} موجودة بالفعل؛ اختر رقمًا آخر.` });
+          if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(folder)) return setErr({ field: "slug", msg: "اسم المجلد بحروف إنجليزية صغيرة وأرقام وشرطات فقط، مثل family-conflict." });
+          setErr(null);
+          setBusy(true);
           try {
-            await api.createEpisode({ episode, slug, domain, title, ...(inSeries && inSeries !== GENERAL_SLUG ? { series: inSeries } : {}) });
-            onCreated(episode);
+            await api.createEpisode({ episode: number, slug: folder, domain, title: title.trim(), ...(inSeries && inSeries !== GENERAL_SLUG ? { series: inSeries } : {}) });
+            onCreated(number);
           } catch (x) {
-            setErr((x as Error).message);
+            const m = (x as Error).message;
+            setErr({ field: /رقم|الحلقة .* موجودة/.test(m) ? "episode" : /المجلد/.test(m) ? "slug" : undefined, msg: m });
+          } finally {
+            setBusy(false);
           }
         }}
       >
         <div className="modal-head"><h3 id="new-episode-title">حلقة جديدة</h3></div>
         <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label className="field"><span>العنوان (سؤال)</span><input id="new-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={ph.episodeTitle} required /></label>
-          <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10 }}>
-            <label className="field"><span>الرقم</span><input id="new-number" type="text" value={episode} onChange={(e) => setEpisode(e.target.value)} pattern="\d{3}" required /></label>
-            <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="new-slug" type="text" dir="ltr" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder={ph.episodeSlug} pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
+          <label className="field"><span>العنوان (سؤال)</span><input id="new-title" type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (err?.field === "title") setErr(null); }} placeholder={`مثال: ${ph.episodeTitle}`} aria-invalid={Boolean(fieldErr("title"))} aria-describedby={fieldErr("title") ? "new-title-err" : undefined} />
+            {fieldErr("title") ? <span id="new-title-err" className="help" role="alert" style={{ color: "var(--err)" }}>{fieldErr("title")}</span> : null}</label>
+          <div className="new-ep-grid" style={{ display: "grid", gridTemplateColumns: "100px minmax(0, 1fr)", gap: 10 }}>
+            <label className="field"><span>الرقم</span><input id="new-number" type="text" inputMode="numeric" value={episode} onChange={(e) => { setEpisode(arDigits(latinDigits(e.target.value))); if (err?.field === "episode") setErr(null); }} aria-invalid={Boolean(fieldErr("episode"))} aria-describedby={fieldErr("episode") ? "new-number-err" : undefined} /></label>
+            <label className="field"><span>اسم المجلد بالإنجليزية (اختياري)</span><input id="new-slug" type="text" dir="ltr" value={slug} onChange={(e) => { setSlug(e.target.value.toLowerCase()); if (err?.field === "slug") setErr(null); }} placeholder={title.trim() ? folder : ph.episodeSlug} aria-invalid={Boolean(fieldErr("slug"))} aria-describedby="new-slug-help" /></label>
           </div>
+          {fieldErr("episode") ? <span id="new-number-err" className="help" role="alert" style={{ color: "var(--err)" }}>{fieldErr("episode")}</span> : null}
+          <span id="new-slug-help" className="help" style={fieldErr("slug") ? { color: "var(--err)" } : undefined} role={fieldErr("slug") ? "alert" : undefined}>
+            {fieldErr("slug") || (slug.trim() ? "" : title.trim() ? `إن تركته فارغًا يُسمّى المجلد «${folder}».` : "إن تركته فارغًا يُسمّى المجلد من العنوان تلقائيًا.")}
+          </span>
           {series.length > 1 ? (
             <label className="field">
               <span>السلسلة أو التصنيف (تأخذ الحلقة قالبه وهويته الآن)</span>
@@ -855,10 +908,10 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
               {domains.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
-          {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
+          {err && !err.field ? <div className="help" role="alert" style={{ color: "var(--err)" }}>{err.msg}</div> : null}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button type="button" className="btn" onClick={onClose}>إلغاء</button>
-            <button type="submit" className="btn primary">إنشاء</button>
+            <button type="submit" className="btn primary" disabled={busy}>{busy ? "جارٍ الإنشاء…" : "إنشاء"}</button>
           </div>
         </div>
     </Dialog>

@@ -83,6 +83,8 @@ const parseNotes = (text: string): StudioNote[] => {
  * محاولة إرسال واحدة لكل الصناديق التي فيها ملاحظة «بانتظار الإرسال».
  * `inboxFiles` (اختياري) يحدّد الصناديق؛ وإلا تُجمع من `channelsDir`.
  */
+/** A failure that really is the network (QA 12 Nov): anything else (a bad remote, auth, a hook) is not «بلا اتصال». */
+export const NETWORK_FAILURE = /could not resolve (?:host|proxy)|failed to connect|connection (?:timed out|refused|reset)|timed out|network is unreachable|temporary failure in name resolution|getaddrinfo|eai_again|enotfound/i;
 const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles?: string[] }): Promise<SyncResult> => {
   const remote = opts.remote ?? "origin";
   const files = (opts.inboxFiles ?? listInboxFiles(opts.channelsDir)).filter((f) => existsSync(f));
@@ -113,12 +115,12 @@ const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles
 
   // آخر ما على GitHub من الفرع (أو لا شيء: أول ملاحظة تنشئ الفرع).
   const ls = await runGit(top, ["ls-remote", "--refs", remote, NOTES_REF], { timeout: 30_000 });
-  if (!ls.ok) return fail("offline", ls.err || "Cannot reach the remote.");
+  if (!ls.ok) return fail(!ls.err || NETWORK_FAILURE.test(ls.err) ? "offline" : "error", ls.err || "Cannot reach the remote.");
   const tip = ls.out.split(/\s+/)[0] || "";
   if (tip) {
     const fetched = await runGit(top, ["fetch", "--no-tags", "--no-write-fetch-head", "--no-recurse-submodules", remote,
       `+${NOTES_REF}:${NOTES_TRACKING_REF}`], { timeout: 60_000 });
-    if (!fetched.ok) return fail("offline", fetched.err || "Cannot fetch the notes branch.");
+    if (!fetched.ok) return fail(!fetched.err || NETWORK_FAILURE.test(fetched.err) ? "offline" : "error", fetched.err || "Cannot fetch the notes branch.");
   }
 
   const tmp = await mkdtemp(path.join(os.tmpdir(), "bal-notes-index-"));
@@ -159,7 +161,7 @@ const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles
         `${commit}:${NOTES_REF}`], { timeout: 120_000 });
       if (!push.ok) {
         const text = `${push.out}\n${push.err}`;
-        return fail(/rejected|non-fast-forward|fetch first|stale info/i.test(text) ? "rejected" : "offline", text.trim().slice(-400));
+        return fail(/rejected|non-fast-forward|fetch first|stale info/i.test(text) ? "rejected" : NETWORK_FAILURE.test(text) ? "offline" : "error", text.trim().slice(-400));
       }
       await runGit(top, ["update-ref", NOTES_TRACKING_REF, commit]);
     }

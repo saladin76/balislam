@@ -198,8 +198,14 @@ export const balApi = (): Plugin => ({
         if (parts[0] === "episodes" && parts.length === 1) {
           if (req.method === "POST") {
             const b = await readBody(req);
-            const { createEpisode } = await load("/src/script/episodes.ts");
-            await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title, ...(typeof b.series === "string" && b.series ? { series: b.series } : {}) });
+            const { createEpisode, EpisodeInputError } = await load("/src/script/episodes.ts");
+            try {
+              await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title, ...(typeof b.series === "string" && b.series ? { series: b.series } : {}) });
+            } catch (error) {
+              // QA 12 Nov: a duplicate number or a bad field is the owner's input, answered 409 in Arabic (never a 500 with a path).
+              if (error instanceof EpisodeInputError) return send(res, 409, { error: (error as Error).message, field: (error as { field?: string }).field });
+              throw error;
+            }
             return send(res, 200, { ok: true });
           }
           // الجاهزة للتشغيل فقط (لها script.md)؛ مجلدات الخطة وحدها (000-trailer، المختبرات) لا تُفتح حلقاتٍ
@@ -285,7 +291,12 @@ export const balApi = (): Plugin => ({
                 return { ...read, seamTimes: await assemblySeamTimes(scriptPath, plan, read.seams) };
               } catch { return read; }
             };
-            if (req.method === "GET") return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
+            if (req.method === "GET") {
+              // QA 12 Nov (all channels): a new episode is opened before its first plan exists; the plan is made here
+              // as GET /episodes/:id does (from the script), instead of a 500 «Prepare and save a storyboard plan first.».
+              if (!(await io.readPlanFile(scriptPath))) await io.regeneratePlan(ep).catch(() => null);
+              return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
+            }
             if (req.method === "POST") {
               const body = await readBody(req);
               // H6: the direct script/storyboard approvals carry the same checks as «اعتمد التجهيز».
