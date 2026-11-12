@@ -16,6 +16,7 @@ import { SceneComp, ScenePreview } from "../ui/Preview";
 import { arDigits, num } from "../ui/format";
 import config from "../../../config.json";
 import "./sceneSettings.css";
+import { OwnerText } from "../ui/OwnerText";
 
 /**
  * «إعدادات المشهد» للمالك (D56): ما يظهر هو ما يستعمله المشهد المختار فقط، والمشهد يُختار من بطاقات بصورته،
@@ -343,7 +344,7 @@ const SentenceCard: React.FC<{
           );
         })}
       </div>
-      {note ? <p className="ss-note" role="status">{note}</p> : null}
+      {note ? <p className="ss-note" role="status"><OwnerText text={note} /></p> : null}
 
       {phraseField && phraseSpec ? (
         <div className="ss-block">

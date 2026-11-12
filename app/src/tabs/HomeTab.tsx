@@ -12,6 +12,7 @@ import { GENERAL_SLUG } from "../../../src/channel/series";
 import { NewSeriesDialog, SeriesGrid } from "./Series";
 import { EPISODE_DRAG_TYPE, dragEpisodes, encodeDrag, episodesIn, seriesOfEpisode, sharedSeries } from "./seriesView";
 import { MoveEpisodesDialog, RowMoveButton, SelectionDock, useEpisodeMover } from "./MoveEpisodes";
+import { OwnerText } from "../ui/OwnerText";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
@@ -140,7 +141,7 @@ export const HomeTab: React.FC<{
     return () => { live = false; };
   }, [channel.id]);
 
-  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
+  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p><OwnerText text={err} /></p></div>;
   if (!items) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
   const inSeries = series && seriesFilter !== "all" ? new Set(episodesIn(seriesFilter, series.series, items).map((e) => e.id)) : null;

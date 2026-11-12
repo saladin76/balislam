@@ -139,8 +139,22 @@ export const ownerMessage = (message: string, opts: { untranslated?: boolean } =
   const prefixed = text.match(/^([a-z0-9-]+): (.+)$/s);
   if (prefixed && EXACT[prefixed[2]!.trim()]) return `${prefixed[1]}: ${EXACT[prefixed[2]!.trim()]}`;
   // QA 12 Nov: a refusal still in English reads in Arabic first; the server's own words follow as the details.
-  if (opts.untranslated !== false && text && !/[\u0600-\u06FF]/.test(text) && /[A-Za-z]{3}/.test(text)) return `${UNTRANSLATED} (التفاصيل: ${text.slice(0, 240)})`;
+  // KI-009 (owner, 12 Nov): the screen shows the Arabic lead; OwnerText folds these details under «تفاصيل».
+  if (opts.untranslated !== false && text && !/[\u0600-\u06FF]/.test(text) && /[A-Za-z]{3}/.test(text)) return `${UNTRANSLATED} (التفاصيل: ${text.slice(0, DETAILS_MAX)})`;
   return message;
 };
 /** The Arabic lead of a server refusal that has no translation yet (the English text follows as its details). */
 export const UNTRANSLATED = "تعذّر تنفيذ الطلب؛ إن تكرر فأرسل هذه الرسالة إلى Claude.";
+/** The server's own words are kept whole enough to diagnose (they are folded away, not shown). */
+const DETAILS_MAX = 1200;
+const DETAILED = /^([\s\S]*?) \(التفاصيل: ([\s\S]*)\)$/;
+
+/**
+ * Splits an owner message into the Arabic sentence the owner reads and the technical text that only
+ * goes under «تفاصيل» (KI-009). Only the untranslated-refusal form is split; any other text is the lead.
+ */
+export const splitOwnerDetails = (text: string): { lead: string; details: string | null } => {
+  const m = text.match(DETAILED);
+  if (!m || !m[1]!.endsWith(UNTRANSLATED)) return { lead: text, details: null };
+  return { lead: m[1]!, details: m[2]! };
+};

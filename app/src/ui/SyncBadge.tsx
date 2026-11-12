@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, type SyncStatus } from "../api";
 import { arDigits } from "./format";
+import { OwnerText } from "./OwnerText";
 
 /**
  * «محفوظ في كل الأماكن ✓» (D101): حالة الحفظ الآلي لعمل المالك في المستودع واستقبال التحديثات.
@@ -75,7 +76,7 @@ export const SyncBadge: React.FC<{ hasUnsaved?: boolean }> = ({ hasUnsaved }) =>
             <ul>{st.skipped.slice(0, 12).map((f) => <li key={f}>{f}</li>)}</ul>
           </>) : null}
           {st.conflicts ? <div>اختر لكل ملف «أبقِ نسختي» أو «خذ الجديد» في الشريط أعلى الصفحة.</div> : null}
-          {note ? <div role="status">{note}</div> : null}
+          {note ? <div role="status"><OwnerText text={note} /></div> : null}
           <div className="acts">
             <button type="button" onClick={async () => { setNote(null); try { setSt(await api.syncNow()); } catch (e) { setNote((e as Error).message); } }}>احفظ وحدّث الآن</button>
             {st.restartNeeded ? (

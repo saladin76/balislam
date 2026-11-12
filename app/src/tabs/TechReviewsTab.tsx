@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import { Markdown } from "../ui/Markdown";
 import type { TechReviewSummary } from "../../../src/channel/techReviews";
+import { OwnerText } from "../ui/OwnerText";
 
 const REC: Record<TechReviewSummary["recommendation"], string> = { ready: "جاهز للاعتماد البصري", fixes: "يحتاج إصلاحات محددة" };
 
@@ -27,7 +28,7 @@ export const TechReviewsTab: React.FC<{ channel: string }> = ({ channel }) => {
     fetch(api.techReviewFileUrl(channel, r.dir, r.id, "report.md")).then((x) => (x.ok ? x.text() : Promise.reject(new Error(String(x.status))))).then((text) => setReport({ key, text }), (e: Error) => setErr(e.message));
   }, [channel, r?.dir, r?.id, r?.hasReport]);
 
-  if (err) return <div className="panel"><p className="err">{err}</p></div>;
+  if (err) return <div className="panel"><p className="err"><OwnerText text={err} /></p></div>;
   if (!list) return <div className="panel"><p className="muted">جارٍ تحميل المراجعات…</p></div>;
   if (!list.length || !r) return <div className="panel"><p className="muted">لا مراجعات فنية لهذه القناة.</p></div>;
 

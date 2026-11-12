@@ -23,6 +23,7 @@ import { fourSteps, nextLine } from "./HomeTab";
 import "./series.css";
 import { useChannel } from "../../../src/channel/context";
 import { channelPlaceholders } from "../../../src/channel/placeholders";
+import { OwnerText } from "../ui/OwnerText";
 
 type StepTab = "script" | "storyboard" | "episode" | "review" | "publish";
 const toneName = (t: string) => (tones as Record<string, { nameAr: string }>)[t]?.nameAr ?? t;
@@ -156,7 +157,7 @@ export const NewSeriesDialog: React.FC<{ kind: SeriesKind; data: SeriesRead; par
         </label>
         <label className="field"><span>وصف قصير (اختياري)</span><input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={140} /></label>
         <p className="help">الهوية مشتقة من هوية القناة وحدها: لون من لوحتها، وزخرفة من زخارفها، وخط عناوينها نفسه. تُضبط بعد الإنشاء في «هوية السلسلة».</p>
-        {err ? <p className="help" style={{ color: "var(--err)" }} role="alert">{err}</p> : null}
+        {err ? <p className="help" style={{ color: "var(--err)" }} role="alert"><OwnerText text={err} /></p> : null}
         <div className="sr-dialog-acts">
           <button type="submit" className="btn primary" aria-busy={busy}>{busy ? "جارٍ الإنشاء…" : "أنشئ"}</button>
           <button type="button" className="btn" onClick={onClose}>إلغاء</button>
@@ -225,7 +226,7 @@ export const SeriesPage: React.FC<{
   const mover = useEpisodeMover(async () => { await load(); onChanged?.(); });
   useEffect(() => { setPane("episodes"); setData(null); void load(); }, [channel.id, seriesId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
+  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p><OwnerText text={err} /></p></div>;
   if (!data || !items) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
   const saved = data.series.find((x) => x.id === seriesId);
   if (!saved || !draft) return <div className="empty-state"><h2>السلسلة غير موجودة</h2><button className="btn" type="button" onClick={onBack}>إلى حلقات القناة</button></div>;
@@ -265,7 +266,7 @@ export const SeriesPage: React.FC<{
           <button key={k} type="button" role="tab" aria-selected={pane === k} onClick={() => setPane(k)}>{l}</button>
         ))}
       </div>
-      {msg ? <p className={`sr-msg${msg.err ? " is-err" : ""}`} role={msg.err ? "alert" : "status"}>{msg.text}</p> : null}
+      {msg ? <p className={`sr-msg${msg.err ? " is-err" : ""}`} role={msg.err ? "alert" : "status"}><OwnerText text={msg.text} /></p> : null}
 
       {pane === "episodes" ? (
         <>

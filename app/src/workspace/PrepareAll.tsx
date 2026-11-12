@@ -3,6 +3,7 @@ import { api, type ScenePrepareRead } from "../api";
 import { ownerMessage } from "../serverMessages";
 import { nameSceneIds, sceneName, sceneNames } from "./sceneNames";
 import { tones, toneIds } from "../../../src/voice/tones";
+import { OwnerText } from "../ui/OwnerText";
 
 /**
  * M1: when the episode has no tone the voice cannot be made and preparing stops at once. The choice is
@@ -203,7 +204,7 @@ export const PrepareAll: React.FC<{
       ) : job?.status === "error" ? (
         <span className="prep-note is-err" role="alert">تعذّر التجهيز: {named(job.error)}</span>
       ) : null}
-      {error ? <span className="prep-note is-err" role="alert">{error}</span> : null}
+      {error ? <span className="prep-note is-err" role="alert"><OwnerText text={error} /></span> : null}
     </div>
   );
 };

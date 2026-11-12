@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, type ReviewItem, type ReviewSummary } from "../api";
+import { OwnerText } from "../ui/OwnerText";
 
 const STATUS: Record<ReviewItem["status"], { label: string; color: string }> = {
   verified: { label: "موثّق", color: "var(--ok)" },
@@ -41,7 +42,7 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
     }
   };
 
-  if (!summary) return msg ? <p className="help">{msg}</p> : null;
+  if (!summary) return msg ? <p className="help"><OwnerText text={msg} /></p> : null;
   return (
     <div className="review-panel" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div className="col-head">
@@ -86,7 +87,7 @@ export const ReviewPanel: React.FC<{ episodeId: string; savedText: string; onGoT
           </div>
         );
       })}
-      {msg ? <p className="help" style={{ color: "var(--err)" }}>{msg}</p> : null}
+      {msg ? <p className="help" style={{ color: "var(--err)" }}><OwnerText text={msg} /></p> : null}
     </div>
   );
 };
