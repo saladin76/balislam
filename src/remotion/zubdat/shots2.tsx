@@ -714,48 +714,53 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
 
   // S11 — من الخاطر إلى العمل
   "thought-to-action": {
-    nameAr: "المعنى الذي نفهمه يظهر في عملنا",
+    nameAr: "الفكرة تكتمل حين تتحول إلى عمل",
     render: (c) => {
       const { frame, z, at, end, T, Box, P } = kit(c);
-      const tCollect = at("نجمع", 0.04);
-      const tForget = at("ننساها", 0.14);
-      const tUnder = at("نفهمه", 0.24);
-      const tWork = at("عملنا", 0.36);
-      const tRush = at("العجلة", 0.48);
-      const tChange = at("فلنغير", 0.58);
-      const tEnter = at("دخولنا", 0.64);
-      const tDhikr = at("للذكر", 0.8);
-      const tLearn = at("فلنتعلمه", 0.94);
+      // السكريبت المعتمد (١١ نوفمبر): «ولكن فهم المعنى وحده لا يكفي. فما فائدة أن نعجب بكلام عن السكينة، ثم ندخل صلاتنا مستعجلين
+      // كالعادة؟ وما فائدة أن نتحدث عن معاني الأذكار، ولا نتعلمها؟ الفكرة تكتمل حين تتحول إلى عمل.»
+      const tCollect = at("فهم", 0.03);
+      const tForget = at("يكفي", 0.12);
+      const tKalam = at("بكلام", 0.2);
+      const tEnter = at("ندخل", 0.3);
+      const tRush = at("مستعجلين", 0.38);
+      const tAdah = end("كالعادة", 0.44);
+      const tDhikr = at("الأذكار", 0.6);
+      const tLearn = at("نتعلمها", 0.68);
+      const tUnder = at("الفكرة", 0.76);
+      const tTurn = at("تتحول", 0.88);
+      const tWork = at("عمل", 0.96);
       const fade = P(tForget - 2, tForget + 16);
-      const spin = prog(frame, tRush - 4, tChange, (t) => t) * Math.PI * 10;
+      const spin = prog(frame, tRush - 4, tAdah + 10, (t) => t) * Math.PI * 10;
       return {
-        focus: [[tCollect, 1450, 300], [tUnder, 1180, 500], [tWork, 760, 500], [tRush, 1420, 760], [tChange, 1190, 740], [tEnter, 970, 780], [tDhikr, 720, 740], [tLearn, 720, 820]],
-        cam: [C(0, 1400, 380, 1.12), C(tUnder - 6, 980, 540, 1.08), C(tRush - 6, 1100, 620, 1.05)],
+        focus: [[tCollect, 1450, 300], [tKalam, 1250, 640], [tEnter, 970, 780], [tRush, 1420, 760], [at("نتحدث", 0.52), 720, 720], [tDhikr, 720, 660], [tLearn, 720, 820], [tUnder, 1200, 500], [tWork, 740, 500]],
+        cam: [C(0, 1400, 380, 1.12), C(tKalam - 6, 1100, 640, 1.05), C(tUnder - 8, 980, 580, 1.0)],
         world: (
           <g>
-            {/* الخواطر وحدها لا تكفي: تبهت */}
+            {/* «فهم المعنى وحده لا يكفي»: يبهت */}
             <g opacity={1 - 0.7 * fade}>
               {[0, 1, 2].map((k) => (
                 <Cloud key={k} x={1360 + k * 120} y={250 - (k % 2) * 40} r={80} p={P(tCollect + k * 5, tCollect + k * 5 + 12)} z={z} />
               ))}
             </g>
-            {T("kh", 1480, 380, "خواطر مؤثرة", 72, ["خواطر", 0.06], ["مؤثرة", 0.1], { opacity: 1 - 0.7 * fade })}
-            {/* المسار: نفهمه ← عملنا، ومنه مثالان */}
-            {Box("fh", 1200, 500, "نفهمه", 88, tUnder, { font: "head" })}
-            <Arrow x1={1020} y1={490} x2={920} y2={490} p={P(tWork - 6, tWork + 8)} c={z.ink} w={8} />
-            {Box("am", 740, 500, "عملنا", 88, tWork, { font: "head", fill: z.hl })}
-            <path d="M760 560 L760 610 L1250 610 L1250 650" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="12 10" opacity={P(tRush - 4, tRush + 8)} />
-            <path d="M760 560 L760 650" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="12 10" opacity={P(tDhikr - 4, tDhikr + 8)} />
-            {/* المثال الأول: العجلة ← نغير طريقة الدخول */}
-            <Clock x={1430} y={750} r={80} a1={spin / 6} a2={spin} p={P(tRush - 4, tRush + 6)} z={z} />
-            <Stroke d="M1340 760 C1250 700 1120 700 1040 760" p={P(tChange, tEnter + 10, (t) => t)} c={z.ink} w={8} />
+            {T("kh", 1480, 380, "فهم المعنى", 72, ["فهم", 0.03], ["المعنى", 0.06], { opacity: 1 - 0.7 * fade })}
+            {/* المثال الأول: «نعجب بكلام عن السكينة، ثم ندخل صلاتنا مستعجلين كالعادة» */}
+            {T("sk", 1220, 600, "بكلام عن السكينة", 60, ["بكلام", 0.2], ["السكينة", 0.24])}
             <Stroke d="M900 760 L1040 760 L1016 796 L924 796 Z" p={P(tEnter - 2, tEnter + 12)} c={z.ink} w={5} fill={z.hl} fillP={0.5} />
-            {T("dk", 1190, 860, "طريقة دخولنا", 66, ["طريقة", 0.6], ["دخولنا", 0.64])}
-            {/* المثال الثاني: للذكر معنى ← فلنتعلمه */}
-            <g opacity={P(tDhikr - 4, tDhikr + 8)}>
+            <Clock x={1430} y={730} r={80} a1={spin / 6} a2={spin} p={P(tRush - 4, tRush + 6)} z={z} />
+            <circle cx={1430} cy={730} r={108} fill="none" stroke={z.alert} strokeWidth={6} strokeDasharray="18 14" opacity={P(tRush + 4, tRush + 14)} />
+            {T("ms", 1430, 870, "مستعجلين", 60, ["مستعجلين", 0.38])}
+            {/* المثال الثاني: «نتحدث عن معاني الأذكار، ولا نتعلمها» — الكتيّب مغلق، و«نتعلمها» تُشطب */}
+            <g opacity={P(at("نتحدث", 0.52) - 4, at("نتحدث", 0.52) + 8)} transform="translate(0 -30)">
               <path d="M600 690 Q660 660 720 690 Q780 660 840 690 L840 790 Q780 760 720 790 Q660 760 600 790 Z M720 690 L720 790" fill={z.paper} stroke={z.ink} strokeWidth={6} />
             </g>
-            {T("lr", 720, 860, "فلنتعلمه", 80, ["فلنتعلمه", 0.94], undefined, { font: "head" })}
+            {T("dh", 720, 640, "معاني الأذكار", 58, ["معاني", 0.56], ["الأذكار", 0.6])}
+            {T("lr", 720, 840, "نتعلمها", 72, ["نتعلمها", 0.68], undefined, { font: "head" })}
+            <Cross x1={850} x2={590} y={822} p={P(end("نتعلمها", 0.7), end("نتعلمها", 0.7) + 12)} z={z} />
+            {/* «الفكرة تكتمل حين تتحول إلى عمل» */}
+            {Box("fh", 1200, 480, "الفكرة", 88, tUnder, { font: "head" })}
+            <Arrow x1={1020} y1={470} x2={920} y2={470} p={P(tTurn - 2, tTurn + 12)} c={z.ink} w={8} />
+            {Box("am", 740, 480, "عمل", 88, tWork, { font: "head", fill: z.hl })}
           </g>
         ),
       };
