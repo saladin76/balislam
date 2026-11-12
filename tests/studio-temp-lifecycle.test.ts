@@ -139,6 +139,7 @@ const isolatedGitRepository = (f: Fixture) => {
   mkdirSync(episode, { recursive: true });
   copyFileSync(gate, path.join(scripts, "gate.mjs"));
   copyFileSync(path.join(projectRoot, "scripts", "git-env.mjs"), path.join(scripts, "git-env.mjs"));
+  copyFileSync(path.join(projectRoot, "scripts", "contentPaths.mjs"), path.join(scripts, "contentPaths.mjs"));
   writeFileSync(path.join(directory, "package.json"), '{"name":"synthetic-gate-repo","private":true}');
   writeFileSync(path.join(directory, "package-lock.json"), '{"name":"synthetic-gate-repo"}');
   writeFileSync(path.join(directory, ".gitignore"), "node_modules/\n");

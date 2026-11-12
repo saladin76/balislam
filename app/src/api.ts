@@ -403,6 +403,10 @@ export const api = {
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string; blocked?: string; local?: number; conflicts?: UpdateConflict[] }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean; restart?: boolean; conflicts?: UpdateConflict[] }>("/api/update", { method: "POST", json: {} }),
+  /** D101: حالة «كل الأماكن نسخة واحدة» (الحفظ الآلي في main واستقبال التحديثات) */
+  syncStatus: () => call<SyncStatus>("/api/sync"),
+  syncNow: () => call<SyncStatus>("/api/sync", { method: "POST", json: {} }),
+  restartStudio: () => call<{ ok: boolean; message: string }>("/api/sync/restart", { method: "POST", json: {} }),
   /** D95: «أبقِ نسختي» أو «خذ الجديد» لملف واحد تعارض فيه تعديل المالك مع التحديث */
   resolveUpdateConflict: (file: string, choice: "mine" | "new") => call<{ ok: boolean; message: string }>("/api/update/resolve", { method: "POST", json: { file, choice } }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),
@@ -446,4 +450,12 @@ export const api = {
   setStoryboard: (id: string, action: "approve", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs").then((js) => js.map(ownerJob)),
   videoUrl: (episode: string, file: string) => withChannel(`/api/episodes/${episode}/video/${encodeURIComponent(file)}`),
+};
+
+/** D101: app/server/contentSync.ts SyncState */
+export type SyncStatus = {
+  enabled: boolean;
+  state: "off" | "synced" | "saving" | "pending" | "updating" | "conflict" | "error";
+  message: string; pending: string[]; skipped: string[]; conflicts: number;
+  lastSavedAt?: string; lastCommit?: string; lastUpdateAt?: string; updateNote?: string; restartNeeded?: boolean; supervised: boolean;
 };

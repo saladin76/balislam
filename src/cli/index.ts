@@ -282,7 +282,8 @@ program
   .description("فتح الاستوديو في المتصفح")
   .action(async () => {
     const { spawn } = await import("node:child_process");
-    spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit", shell: process.platform === "win32" });
+    // نفس npm run app (D101): استوديو واحد على 4321 ومشرف يعيد تشغيله بعد التحديثات
+    spawn(process.execPath, [path.join(projectRoot, "scripts", "studio.mjs")], { cwd: projectRoot, stdio: "inherit" });
   });
 
 program

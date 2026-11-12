@@ -3,7 +3,8 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyRefusal, handleExtra, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
+import { busy, busyRefusal, handleExtra, longJobs, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
+import { createContentSync, setSharedContentSync } from "./contentSync.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
 import { MAX_BODY_BYTES, readBody } from "./body.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
@@ -140,6 +141,13 @@ export const balApi = (): Plugin => ({
       .then(([sweep, ch]) => sweep.sweepAllOrphanWordFixFragments(ch.channelsDir()))
       .then((n) => { if (n) console.log(`[studio] ${n} orphaned word-fix fragment(s) moved to voice/superseded/sentences.`); })
       .catch((e) => console.error("[studio] word-fix fragments:", (e as Error).message));
+    // «كل الأماكن نسخة واحدة» (D101): حفظ محتوى المالك في main واستقبال التحديثات آليًا، على جهاز المالك وحده
+    const contentSync = createContentSync(root, {
+      canRestart: () => busy.size === 0 && ![...renderJobs.values(), ...longJobs.values()].some((j) => j.status === "running"),
+      onRestart: () => process.exit(75),
+    });
+    setSharedContentSync(contentSync);
+    contentSync.start();
     server.middlewares.use(async (req, res, next) => {
       // Anti-framing on API responses too (H1); the HTML/assets get it from studioSecurityHeaders().
       applyStudioSecurityHeaders(res);

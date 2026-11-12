@@ -3,6 +3,7 @@ import type { EpisodeSummary } from "../api";
 import { Icon } from "../ui/icons";
 import { Num, arDigits, episodeTitle } from "../ui/format";
 import { groupEpisodes } from "../tabs/seriesView";
+import { SyncBadge } from "../ui/SyncBadge";
 
 /** The picker's groups: «عام» last; series names from the channel's series. */
 export const groupBySeries = (eps: EpisodeSummary[], names: Record<string, string>) =>
@@ -65,6 +66,7 @@ export const TopBar: React.FC<Props> = (p) => {
         </nav>
       ) : <span />}
       <div className="ms-me">
+        <SyncBadge hasUnsaved={!!p.save && (p.save.unsaved || p.save.state === "dirty" || p.save.state === "saving")} />
         {saveLabel ? <span className={`ms-save${p.save!.state === "error" ? " is-err" : saveLabel !== "محفوظ" ? " is-dirty" : ""}`} role="status">{saveLabel}</span> : null}
         <button type="button" className="ms-ibtn" onClick={p.onToggleScheme} aria-pressed={p.scheme === "dark"}
           aria-label={p.scheme === "dark" ? "الوضع النهاري" : "الوضع الليلي"} title={p.scheme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}>

@@ -171,13 +171,21 @@ describe("balislam 7 · delete is local, shown and reversible; the studio never 
     expect(t).toContain("لا يُرفع شيء إلى GitHub");
     expect(t).toContain("«تراجع»");
   });
-  it("no git commit, push or archive deletion is triggered from the studio server (notes inbox excepted)", async () => {
+  it("no git commit, push or archive deletion is triggered from the studio server (notes inbox and D101 owner-content save excepted)", async () => {
     const files = async (d: string): Promise<string[]> => (await readdir(d, { withFileTypes: true })).flatMap((x) =>
       x.isDirectory() ? [] : [path.join(d, x.name)]).concat(...await Promise.all((await readdir(d, { withFileTypes: true }))
         .filter((x) => x.isDirectory()).map((x) => files(path.join(d, x.name)))));
     const all = [...await files(path.join(root, "app/server")), ...await files(path.join(root, "src/studio"))].filter((f) => /\.ts$/.test(f));
     for (const f of all) {
       const text = readFileSync(f, "utf8");
+      // D101 (قرار صاحب المشروع ١٢ نوفمبر): contentSync.ts وحده يدفع، ملفات محتوى المالك فقط إلى main عبر الخطاف، بلا --force ولا --no-verify
+      if (f.endsWith("contentSync.ts")) {
+        expect(text).toMatch(/isOwnerContentPath/);
+        expect(text).toMatch(/:refs\/heads\/main`/);
+        expect(text).not.toMatch(/--no-verify|--force|"-f"/);
+        expect(text).not.toMatch(/"balislam-archive"/);
+        continue;
+      }
       if (!f.endsWith("notesSync.ts")) expect(text, f).not.toMatch(/\["push"|"push",|\["commit"|"commit",|"commit-tree"/);
       expect(text, f).not.toMatch(/"balislam-archive"/);
     }

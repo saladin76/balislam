@@ -7,6 +7,7 @@ import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
 import { applyUpdate, resolveConflict, updateStatus } from "./update.ts";
+import { getSharedContentSync } from "./contentSync.ts";
 import { childEnv } from "../../scripts/git-env.mjs";
 import { prepareRunning, PREPARE_RUNNING_MESSAGE } from "./prepare.ts";
 import { ownerText } from "../../src/i18n/sceneNames.ts";
@@ -310,6 +311,25 @@ export const ownerRefusal = async (ctx: Pick<ExtraCtx, "load">): Promise<string 
 
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
+
+  // «كل الأماكن نسخة واحدة» (D101): حالة الحفظ الآلي، و«احفظ الآن»، وإعادة التشغيل بعد تحديث كود الخادم
+  if (parts[0] === "sync") {
+    const sync = getSharedContentSync();
+    if (!sync) return send(res, 200, { enabled: false, state: "off", message: "الحفظ الآلي غير مفعَّل.", pending: [], skipped: [], conflicts: 0, supervised: false }), true;
+    if (req.method === "POST") {
+      const refusal = await ownerRefusal(ctx);
+      if (refusal) return send(res, 403, { error: refusal }), true;
+      if (parts[1] === "restart") {
+        if (!sync.state.supervised) return send(res, 409, { error: "أعد تشغيل الاستوديو بنفسك: أغلق نافذة Terminal (Ctrl + C) ثم شغّل npm run app." }), true;
+        if ([...renderJobs.values(), ...longJobs.values()].some((j) => j.status === "running")) return send(res, 409, { error: "مهمة رندر أو إنتاج جارية؛ انتظر انتهاءها ثم أعد التشغيل." }), true;
+        send(res, 200, { ok: true, message: "يُعاد تشغيل الاستوديو…" });
+        setTimeout(() => process.exit(75), 500);
+        return true;
+      }
+      await sync.tick(true);
+    }
+    return send(res, 200, sync.state), true;
+  }
 
   // التحديث من GitHub
   if (parts[0] === "update") {
