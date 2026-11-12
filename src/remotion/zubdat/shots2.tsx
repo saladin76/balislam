@@ -266,55 +266,66 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
 
   // S04 — الأمانة في القراءة، والأحكام مع الخشوع
   "honest-reading": {
-    nameAr: "نقرأ بأمانة: كلام المؤلف وشرحنا، والأحكام مع الخشوع",
+    nameAr: "نقرأ بأمانة: كلام المؤلف وشرحنا، والصحة مع الخشوع",
     render: (c) => {
       const { frame, z, at, end, T, Box, P } = kit(c);
-      const tBook = at("الكتاب", 0.04);
-      const tAuth = at("المؤلف", 0.14);
-      const tNisba = at("سننسبه", 0.2);
-      const tAdd = at("نضيفه", 0.26);
-      const tMayyiz = at("سنميزه", 0.34);
-      const tRules = at("بأحكام", 0.48);
-      const tFeel = at("المشاعر", 0.56);
-      const tSihha = at("فصحة", 0.64);
-      const tKhush = at("الخشوع", 0.72);
+      // السكريبت المعتمد (١١ نوفمبر): «سنميز بين ما يقوله المؤلف وما نضيفه من شرح. وسنتذكر أن الخشوع لا يغني عن صحة الصلاة،
+      // كما أن صحة أفعالها لا تعني أننا وصلنا إلى كمال الخشوع. فلكلٍّ موضعه، ونحن نطلب الأمرين معًا.»
+      const tMayyiz = at("سنميز", 0.06);
+      const tAuth = at("يقوله", 0.12);
+      const tNisba = end("المؤلف", 0.16);
+      const tAdd = at("نضيفه", 0.2);
+      const tKh1 = at("الخشوع", 0.36);
+      const tYughni = at("يغني", 0.4);
+      const tSihha = at("صحة", 0.44);
+      const tSihha2 = at("صحة", 0.56, 2);
+      const tTani = at("تعني", 0.62);
+      const tKamal = at("كمال", 0.7);
+      const tMawdi = at("موضعه", 0.82);
       const tTogether = at("معا", 0.95);
-      const top = 1 - 0.75 * P(tRules - 12, tRules + 6);
+      const top = 1 - 0.75 * P(tKh1 - 12, tKh1 + 6);
       return {
-        focus: [[tBook, 1600, 330], [tAuth, 1150, 300], [tNisba, 1400, 300], [tAdd, 620, 300], [tMayyiz, 880, 300], [tRules, 1250, 720], [tFeel, 700, 720], [tSihha, 1250, 720], [tKhush, 700, 720], [tTogether, 960, 800]],
-        cam: [C(0, 1100, 380, 1.08), C(tRules - 10, 960, 600, 1.0)],
+        focus: [[tMayyiz, 900, 320], [tAuth, 1150, 300], [tNisba, 1400, 300], [tAdd, 620, 300], [tKh1, 700, 720], [tYughni, 960, 660], [tSihha, 1250, 720], [tSihha2, 1250, 720], [tTani, 960, 780], [tKamal, 700, 720], [tMawdi, 960, 720], [tTogether, 960, 600]],
+        cam: [C(0, 1100, 380, 1.08), C(tKh1 - 10, 960, 600, 1.0)],
         world: (
           <g>
             <g opacity={top}>
-              {/* الكتاب */}
-              <g opacity={P(tBook - 6, tBook + 8)} transform={`translate(1640 ${330 - 30 * (1 - P(tBook - 6, tBook + 10))}) rotate(4)`}>
+              {/* كتاب المؤلف: ما يقوله يُنسب إليه */}
+              <g opacity={P(tAuth - 6, tAuth + 8)} transform={`translate(1640 ${330 - 30 * (1 - P(tAuth - 6, tAuth + 10))}) rotate(4)`}>
                 <rect x={-80} y={-110} width={160} height={220} rx={10} fill={z.ink} />
                 <rect x={-56} y={-80} width={112} height={14} rx={4} fill={z.hl} />
               </g>
-              {Box("au", 1180, 320, "ما يقوله المؤلف", 62, tAuth - 6, { tEnd: end("المؤلف", 0.14) })}
-              <Arrow x1={1430} y1={300} x2={1550} y2={300} p={P(tNisba, tNisba + 14)} c={z.ink} w={7} />
               <Stroke d="M900 160 L900 480" p={P(tMayyiz - 2, tMayyiz + 14)} c={z.ink} w={5} />
+              {Box("au", 1180, 320, "ما يقوله المؤلف", 62, tAuth - 6, { tEnd: end("المؤلف", 0.16) })}
+              <Arrow x1={1430} y1={300} x2={1550} y2={300} p={P(tNisba, tNisba + 14)} c={z.ink} w={7} />
               <g transform="translate(600 320) rotate(-2)" opacity={P(tAdd - 6, tAdd + 6)}>
                 <rect x={-230} y={-80} width={460} height={160} fill={z.hl} />
               </g>
-              {T("ad", 600, 330, "ما نضيفه من شرح", 66, ["نضيفه", 0.26], ["شرح", 0.3])}
+              {T("ad", 600, 330, "ما نضيفه من شرح", 66, ["نضيفه", 0.2], ["شرح", 0.24])}
             </g>
-            {/* لا نستبدل بالأحكام المشاعر، والاثنان معًا */}
-            {Box("hk", 1280, 720, "أحكام الصلاة", 84, tRules, { font: "head" })}
-            {/* D73: الأحكام كتاب مدوَّن، يُرسم مع «بأحكام» */}
-            <Icon id="book" x={1720} y={716} s={0.95} p={P(tRules - 2, tRules + 14)} c={z.ink} />
-            <g opacity={1 - P(tSihha - 12, tSihha + 4)}>
-              {T("ms", 690, 720, "مجرد المشاعر", 62, ["مجرد", 0.52], ["المشاعر", 0.56])}
-              {/* D73: المشاعر قلب بخط القلم، مع «المشاعر» */}
-              <g opacity={P(at("المشاعر", 0.56) - 2, at("المشاعر", 0.56) + 10)}><path d={heartPath(690, 610, 46)} fill="none" stroke={z.ink} strokeWidth={7} /></g>
-              <Arrow x1={880} y1={660} x2={1060} y2={660} p={P(tFeel + 6, tFeel + 18)} c={z.ink} w={6} bend={40} />
-              <Cross x1={1080} x2={860} y={620} p={P(tFeel + 18, tFeel + 30)} z={z} />
+            {/* الخشوع (قلب) والصحة (كتاب الأحكام): كلٌّ لا يغني عن الآخر */}
+            <g opacity={P(tKh1 - 2, tKh1 + 10)}><path d={heartPath(690, 600, 46)} fill="none" stroke={z.ink} strokeWidth={7} /></g>
+            <g opacity={1 - P(tKamal - 8, tKamal + 2)}>{T("kh", 690, 730, "الخشوع", 84, ["الخشوع", 0.36], undefined, { font: "head" })}</g>
+            {T("km", 690, 730, "كمال الخشوع", 76, ["كمال", 0.7], ["الخشوع", 0.72, 2], { font: "head" })}
+            {Box("sh", 1280, 720, "صحة الصلاة", 84, tSihha, { font: "head", tEnd: end("الصلاة", 0.48) })}
+            <Icon id="book" x={1720} y={716} s={0.95} p={P(tSihha - 2, tSihha + 14)} c={z.ink} />
+            {/* «لا يغني عن»: سهم من الخشوع إلى الصحة يُشطب */}
+            <g opacity={1 - P(tSihha2 - 8, tSihha2 + 2)}>
+              <Arrow x1={880} y1={640} x2={1060} y2={640} p={P(tYughni, tYughni + 12)} c={z.ink} w={6} bend={40} />
+              <Cross x1={1070} x2={870} y={606} p={P(tYughni + 12, tYughni + 24)} z={z} />
             </g>
-            {T("sh", 1280, 590, "صحة العبادة", 72, ["فصحة", 0.64], ["العبادة", 0.68])}
-            {T("tk", 660, 740, "طلب الخشوع", 84, ["وطلب", 0.7], ["الخشوع", 0.72], { font: "head" })}
-            <Stroke d="M1250 790 Q960 900 690 790" p={P(tTogether - 4, tTogether + 14)} c={z.hl} w={22} />
-            <Stroke d="M1250 790 Q960 900 690 790" p={P(tTogether - 4, tTogether + 14)} c={z.ink} w={6} />
-            {T("mm", 970, 872, "معا", 64, ["معا", 0.95])}
+            {/* «لا تعني… كمال الخشوع»: سهم من الصحة إلى الخشوع يُشطب */}
+            <g opacity={1 - P(tMawdi - 8, tMawdi + 2)}>
+              <Arrow x1={1060} y1={820} x2={880} y2={820} p={P(tTani, tTani + 12)} c={z.ink} w={6} bend={-40} />
+              <Cross x1={1070} x2={870} y={846} p={P(tTani + 12, tTani + 24)} z={z} />
+            </g>
+            {/* «فلكلٍّ موضعه»: كلٌّ يُثبَّت في مكانه بخط تحته */}
+            <Stroke d="M540 790 L840 790" p={P(tMawdi, tMawdi + 12)} c={z.hl} w={16} />
+            <Stroke d="M1130 790 L1430 790" p={P(tMawdi + 4, tMawdi + 16)} c={z.hl} w={16} />
+            {/* «نطلب الأمرين معًا»: قوس يجمعهما من فوق */}
+            <Stroke d="M1180 640 Q960 520 800 600" p={P(tTogether - 4, tTogether + 14)} c={z.hl} w={22} />
+            <Stroke d="M1180 640 Q960 520 800 600" p={P(tTogether - 4, tTogether + 14)} c={z.ink} w={6} />
+            {T("mm", 975, 540, "معا", 72, ["معا", 0.95], undefined, { font: "head" })}
           </g>
         ),
       };
