@@ -15,6 +15,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        # التاريخ كاملًا: tests/strong-voice.test.ts يقارن src/voice/tones.ts بنسخته قبل D70 (git show bf21ec72)،
+        # والنسخة الضحلة الافتراضية (عمق 1) لا تحوي ذلك الـcommit (033).
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "24"

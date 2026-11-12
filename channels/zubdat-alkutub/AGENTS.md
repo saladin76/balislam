@@ -37,6 +37,7 @@
 
 | تريد أن… | اقرأ |
 |---|---|
+| تبدأ محادثة جديدة على القناة | `docs/zubdat-alkutub/briefing.md` (رسالة التكليف، تُلصق في أولها) |
 | تبدأ العمل | `docs/zubdat-alkutub/00-start-here.md` |
 | تعرف الهوية وما هو مقفل | `docs/zubdat-alkutub/01-identity.md` |
 | تفهم الملفات والمحرك | `docs/zubdat-alkutub/02-architecture.md` |
