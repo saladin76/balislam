@@ -1,4 +1,4 @@
-/** Fixes from the full-funnel walkthrough of 8 November (docs/studio/funnel-audit-20261108.md). */
+/** Fixes from the full-funnel walkthrough of 8 November (docs/studio/archive/funnel-audit-20261108.md). */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
