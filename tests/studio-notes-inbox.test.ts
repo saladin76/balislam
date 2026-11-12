@@ -31,6 +31,8 @@ const asRemote = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "192.168.
 const asCrossSite = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "127.0.0.1", sameOrigin: false, host: "127.0.0.1:4321" }, fn);
 
 const repo = path.resolve(import.meta.dirname, "..");
+/** Sending is asked for explicitly, to a bare repository on this disk only (KI-008). */
+const SEND = { ...process.env, BAL_NOTES_SYNC: "on" } as NodeJS.ProcessEnv;
 const SHA = (s: string) => createHash("sha256").update(s).digest("hex");
 const git = (cwd: string, ...args: string[]) =>
   execFileSync("git", args, { cwd, encoding: "utf8", env: childEnv({ GIT_TERMINAL_PROMPT: "0" }) }).trim();
@@ -192,7 +194,7 @@ describe("الإرسال إلى studio-notes", () => {
     await note(1, "[الحركة @0:03] السهم سريع");
     const before = ownerSnapshot();
     expect(before.status).not.toContain("inbox.json"); // متجاهَل على main: لا يعطّل git pull ولا التحديث
-    const r = await syncStudioNotes({ channelsDir: path.join(owner, "channels") });
+    const r = await syncStudioNotes({ channelsDir: path.join(owner, "channels"), env: SEND });
     expect(r).toMatchObject({ ok: true, pushed: true });
     expect(ownerSnapshot()).toEqual(before);
     expect(git(origin, "rev-parse", "refs/heads/main")).toBe(originMain);
@@ -205,7 +207,7 @@ describe("الإرسال إلى studio-notes", () => {
     expect((await readInbox(epDir)).notes[0]!.sync).toMatchObject({ state: "sent", commit: tip });
     expect((await correctionInboxView(epDir, 1))!.sync).toBe("sent");
     // لا شيء جديد للإرسال: لا commit جديد
-    expect(await syncStudioNotes({ channelsDir: path.join(owner, "channels") })).toMatchObject({ ok: true, pushed: false });
+    expect(await syncStudioNotes({ channelsDir: path.join(owner, "channels"), env: SEND })).toMatchObject({ ok: true, pushed: false });
     expect(git(origin, "rev-parse", "refs/heads/studio-notes")).toBe(tip);
   });
 
@@ -213,7 +215,7 @@ describe("الإرسال إلى studio-notes", () => {
     git(owner, "remote", "set-url", "origin", path.join(path.dirname(origin), "missing.git"));
     await note(2, "[النبرة @0:07] أهدأ");
     const before = ownerSnapshot();
-    const off = await syncStudioNotes({ channelsDir: path.join(owner, "channels") });
+    const off = await syncStudioNotes({ channelsDir: path.join(owner, "channels"), env: SEND });
     expect(off).toMatchObject({ ok: false, reason: "error" });
     expect(ownerSnapshot()).toEqual(before);
     const queued = (await readInbox(epDir)).notes;
@@ -224,7 +226,7 @@ describe("الإرسال إلى studio-notes", () => {
 
     git(owner, "remote", "set-url", "origin", origin);
     await note(3, "[الحركة @0:09] الكلمة تتأخر");
-    const on = await syncStudioNotes({ channelsDir: path.join(owner, "channels") });
+    const on = await syncStudioNotes({ channelsDir: path.join(owner, "channels"), env: SEND });
     expect(on).toMatchObject({ ok: true, pushed: true });
     const tip = git(origin, "rev-parse", "refs/heads/studio-notes");
     expect(git(origin, "rev-list", "--count", tip)).toBe("2");

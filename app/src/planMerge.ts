@@ -2,7 +2,7 @@ import type { Plan } from "../../src/plan/types";
 import { SERVER_OWNED_PLAN_FIELDS } from "../../src/plan/revision";
 
 /**
- * «حمّل النسخة الأحدث وأعد تطبيق تعديلي» (D107): a three-way merge of the owner's unsaved edit onto the plan
+ * «حمّل النسخة الأحدث وأعد تطبيق تعديلي» (D109): a three-way merge of the owner's unsaved edit onto the plan
  * that won on disk. `base` is the plan the edit started from (the last version this page loaded or saved),
  * `mine` the unsaved edit, `theirs` the newest plan from the server. What only one side changed is kept; the same
  * field changed differently on both sides is a conflict, and then nothing is applied (the edit stays pending and

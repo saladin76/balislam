@@ -183,10 +183,10 @@ export const joinNotes = (notes: readonly (StudioNote | LocalNote)[], resolved: 
 
 /** حالة ملاحظة التصحيح كما يعرضها الاستوديو تحت الملاحظة (مربوطة برقم الحدث في السجل). */
 /** Why a note still waits (QA 12 Nov: a failed push read «بلا اتصال»): the reason of the last failed send, if any. */
-export type NoteSyncReason = "offline" | "rejected" | "no-repo" | "no-remote" | "error";
+export type NoteSyncReason = "offline" | "rejected" | "auth" | "not-owner" | "no-repo" | "no-remote" | "error";
 export type CorrectionInboxView = { id: string; sync: NoteSync["state"]; status: NoteStatus; answer: string | null; reason?: NoteSyncReason };
 const syncReason = (lastError?: string): NoteSyncReason | undefined => {
-  const r = /^(offline|rejected|no-repo|no-remote|error):/.exec(lastError ?? "")?.[1];
+  const r = /^(offline|rejected|auth|not-owner|no-repo|no-remote|error):/.exec(lastError ?? "")?.[1];
   return r as NoteSyncReason | undefined;
 };
 export const correctionInboxView = async (episodeDir: string, ledgerSeq: number): Promise<CorrectionInboxView | null> => {

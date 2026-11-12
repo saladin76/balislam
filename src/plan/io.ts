@@ -81,7 +81,7 @@ export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overw
     }
     if (current) await copyFile(file, lastPlanBackupFor(scriptPath));
     // ختم السلسلة يملكه انتماء الحلقة (seriesStore.moveEpisode)، ومقاطع الشورتس يملكها «مقاطع الشورتس» (saveShortsSelection)،
-    // لا الصفحة: خطة قديمة في المتصفح لا تعيد ختمًا قبل النقل (D77) ولا اختيار شورتس قبل حفظه (D107). الحقلان خارج البصمة
+    // لا الصفحة: خطة قديمة في المتصفح لا تعيد ختمًا قبل النقل (D77) ولا اختيار شورتس قبل حفظه (D109). الحقلان خارج البصمة
     // (SERVER_OWNED_PLAN_FIELDS في revision.ts)، فنقل الحلقة أو حفظ الشورتس لا يجعل تعديل الصفحة التالي «قديمًا».
     const next: Plan = { ...plan, updatedAt: new Date().toISOString() };
     for (const k of SERVER_OWNED_PLAN_FIELDS) {
@@ -111,7 +111,7 @@ export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overw
 export const saveShortsSelection = async (episode: string, shorts: PlanShort[] | null): Promise<Plan> => {
   const scriptPath = await resolveScriptPath(episode);
   const file = planPathFor(scriptPath);
-  // تحت قفل الخطة نفسه مع حفظ الصفحة (D107): القراءة والكتابة معًا، فلا يضيع تعديل صفحة كُتب بينهما
+  // تحت قفل الخطة نفسه مع حفظ الصفحة (D109): القراءة والكتابة معًا، فلا يضيع تعديل صفحة كُتب بينهما
   return withPlanWrite(file, async () => {
     const current = await readJson<Plan>(file);
     if (!current) throw new Error("لا خطة لهذه الحلقة بعد؛ لم تُحفظ المقاطع.");

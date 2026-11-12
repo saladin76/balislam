@@ -18,6 +18,7 @@ import "./scene-production.css";
 import "../shell/screens-s3.css";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
+import { NOTES_STATUS_EVENT } from "../ui/NotesBadge";
 import { SentencesPanel } from "./SentencesPanel";
 import { ShortsPicker } from "../tabs/ShortsPicker";
 import { StudioErrorBoundary } from "../shell/ErrorBoundary";
@@ -122,6 +123,8 @@ export const noteInboxLine = (inbox: { sync: "pending" | "sent"; status: string;
     // QA 12 Nov: say what really happened; the note is kept on this device and the Studio retries every ١٠ دقائق.
     : inbox.reason === "offline" ? "بانتظار الإرسال: لا اتصال بالإنترنت الآن؛ محفوظة على جهازك وتُرسل وحدها حين يعود الاتصال."
     : inbox.reason === "rejected" ? "بانتظار الإرسال: تغيّر صندوق الملاحظات على GitHub؛ يُعاد الإرسال وحده خلال دقائق."
+    // KI-008: a test or work copy keeps its notes; it never sends them to the owner's box
+    : inbox.reason === "not-owner" ? "لم تُرسل: هذه النسخة ليست استوديو المالك، فلا تُرسل ملاحظاتها إلى صندوقه."
     : inbox.reason ? "لم تُرسل الملاحظة: تعذّر الدفع إلى GitHub (ليس انقطاع اتصال). محفوظة على جهازك ويُعاد الإرسال وحده كل ١٠ دقائق؛ إن تكرر فأخبر Claude."
     : "بانتظار الإرسال؛ محفوظة على جهازك.";
 
@@ -209,6 +212,12 @@ export const SceneProductionPanel: React.FC<Props> = ({
       cause => { if (alive) setError((cause as Error).message); },
     );
     return () => { alive = false; };
+  }, [episodeId, channelId]);
+  // KI-001: the line under a sent note follows the notes indicator (sent, or the real reason) without a reload
+  useEffect(() => {
+    const on = () => { void api.sceneProduction(episodeId, channelId).then(setData).catch(() => {}); };
+    window.addEventListener(NOTES_STATUS_EVENT, on);
+    return () => window.removeEventListener(NOTES_STATUS_EVENT, on);
   }, [episodeId, channelId]);
   const onStateRef = useRef(onState);
   onStateRef.current = onState;

@@ -2,7 +2,7 @@ import type { Plan } from "./types";
 import { stripQuran } from "./quranText";
 
 /**
- * Plan fields written by the server alone, never by the page's plan save (D107): the series stamp (moving an
+ * Plan fields written by the server alone, never by the page's plan save (D109): the series stamp (moving an
  * episode, src/channel/seriesStore.ts) and the owner's shorts selection (src/plan/io.ts saveShortsSelection).
  * They are left out of the revision, and PUT /plan keeps them from disk, so moving an episode or saving the
  * shorts never turns the page's next edit into a 409.

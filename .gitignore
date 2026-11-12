@@ -16,7 +16,7 @@ channels/*/episodes/*/status.json
 channels/*/episodes/*/plan.local.json
 # النسخة الاحتياطية قبل الكتابة الصريحة فوق خطة مصمَّمة (bal plan --force-overwrite-designed): على الجهاز فقط
 channels/*/episodes/*/plan.backup-*.json
-# قفل كتابة الخطة (D107): حفظ الصفحة والشورتس وختم السلسلة تحته؛ محلي ولا يُرفع
+# قفل كتابة الخطة (D109): حفظ الصفحة والشورتس وختم السلسلة تحته؛ محلي ولا يُرفع
 channels/*/episodes/*/plan.json.write.lock
 assets/recitations/**/*.wav
 assets/recitations/**/*.mp3

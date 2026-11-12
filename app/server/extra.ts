@@ -312,6 +312,11 @@ export const ownerRefusal = async (ctx: Pick<ExtraCtx, "load">): Promise<string 
 export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody, load, episodesDir } = ctx;
 
+  // «ملاحظات لم تُرسل: N» (D107): ما بقي من ملاحظات المالك على هذا الجهاز وسبب آخر محاولة، للقراءة فقط
+  if (parts[0] === "notes" && parts[1] === "status" && parts.length === 2 && req.method === "GET") {
+    const [sync, chMod] = await Promise.all([load("/src/studio/notesSync.ts"), load("/src/channel/index.ts")]);
+    return send(res, 200, await sync.studioNotesStatus(chMod.channelsDir())), true;
+  }
   // «كل الأماكن نسخة واحدة» (D101): حالة الحفظ الآلي، و«احفظ الآن»، وإعادة التشغيل بعد تحديث كود الخادم
   if (parts[0] === "sync") {
     const sync = getSharedContentSync();
