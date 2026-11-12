@@ -15,8 +15,8 @@ import type { ScriptSaveReply } from "./planGuard";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerJob, ownerMessage } from "./serverMessages";
-import type { LexiconCommand, SentenceCommand, SentencesRead, WordFixOutcome } from "../../src/voice/sentenceVoice";
-export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, WordFixOutcome } from "../../src/voice/sentenceVoice";
+import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
+export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
 export type Issue = { level: "error" | "warning"; code: string; message: string; line?: number };
 export type CheckResult = { ok: boolean; issues: Issue[]; stats: { chapters: { number: number; words: number; seconds: number }[]; totalWords: number; totalSeconds: number; /** 0 للنص المتصل بلا أقسام */ divisions?: number } };
@@ -252,6 +252,9 @@ export const api = {
   /** الصوت جملةً جملة (D50): قراءة جمل الحلقة، وفعل المالك على جملة. */
   sentences: (episode: string, channel: string) =>
     call<SentencesRead>(`/api/episodes/${episode}/sentences`, undefined, channel),
+  /** D97: what choosing the episode tone would invalidate (read only; shown before it is applied). */
+  toneImpact: (episode: string, channel: string | undefined, tone: string | null) =>
+    call<ToneImpact>(`/api/episodes/${episode}/sentences/tone-impact?tone=${encodeURIComponent(tone ?? "")}`, undefined, channel),
   sentenceAction: (episode: string, channel: string, body: SentenceCommand) =>
     call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome }>(
       `/api/episodes/${episode}/sentences`, { method: "POST", json: body }, channel),

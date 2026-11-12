@@ -606,6 +606,12 @@ export const balApi = (): Plugin => ({
           }
           // الصوت جملةً جملة (D50): القراءة والأفعال (تعديل/تقسيم/نبرة/وقفة/توليد) من الاستوديو على جهاز المالك (assertSceneOwner).
           // التوليد لجملة واحدة فقط؛ الآيات لا تُولَّد أبدًا (ترفع من own-recitations).
+          // D97: what choosing the episode tone would invalidate, read before it is applied (nothing is generated).
+          if (parts[2] === "sentences" && parts[3] === "tone-impact" && parts.length === 4 && req.method === "GET") {
+            const sv = await load("/src/voice/sentenceVoice.ts");
+            try { return send(res, 200, await sv.toneChangeImpact(ep, url.searchParams.get("tone") || null)); }
+            catch (error) { return refuse(error); }
+          }
           if (parts[2] === "sentences" && parts.length === 3) {
             const sv = await load("/src/voice/sentenceVoice.ts");
             if (req.method === "GET") return send(res, 200, await sv.readSentences(ep));

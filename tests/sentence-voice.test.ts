@@ -160,7 +160,9 @@ describe("أفعال الجمل تحفظ المعرّفات والترتيب (د
     expect(r[0]!.id).toBe("id0");
     expect(r[2]!.id).toBe("id2");
     expect(r[2]!.audio?.file).toBe("c.mp3");
-    expect(r[1]!.id).not.toBe("id1");
+    // D97: the changed sentence takes the old one's place (its id), so the page and the server agree without a write
+    expect(r[1]!.id).toBe("id1");
+    expect(r[1]!.text).toBe("شيء آخر.");
   });
   it("القص بتوقيت الكلمات لا يُعتمد بلا وقفة حقيقية بين الجملتين", () => {
     const w = (s: number) => ({ word: "x", start: s, end: s + 0.3 });

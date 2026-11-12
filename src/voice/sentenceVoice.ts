@@ -41,7 +41,7 @@ import { remapWords, snapBoundary, SPLICE, spliceWord, type SpliceCheck } from "
 import {
   addSentenceAfter, clampPause, contextFingerprint, cutPoints, deleteSentence, editSentenceText, emptyDoc, heardKey,
   mergeWithNext, reconcileScene, sceneNarration, sentenceFingerprint, sentencesFor, sentenceStatus, splitSentence,
-  normText, sceneAdoption, splitBasmalaInList, sceneSpans, words, type SceneSpan, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
+  normText, sceneAdoption, splitBasmalaInList, sceneSpans, words, recordedOnOtherText, recordedText, type SceneSpan, type Sentence, type SentenceAudio, type SentenceCorrection, type SentencesDoc, type SentenceStatus, type TimedWord,
 } from "./sentences";
 
 export const SENTENCE_SAMPLE_RATE = 44100;
@@ -218,9 +218,18 @@ const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, o: {
     const legacy = legacyTunes(ctx.layers, tone, { text: s.text }).map((l) => ({ ...l, fingerprint: fp(l.tune) })).filter((l) => l.fingerprint !== fingerprint);
     const pick = o.version !== undefined ? legacy.find((l) => l.version === o.version)
       : s.audio && s.audio.fingerprint !== fingerprint ? legacy.find((l) => l.fingerprint === s.audio!.fingerprint) : undefined;
-    if (pick) return { ...base, tune: pick.tune, fingerprint: pick.fingerprint, presetVersion: pick.version, olderTone: true };
+    if (pick) return { ...base, tune: pick.tune, fingerprint: pick.fingerprint, presetVersion: pick.version, olderTone: true, pinnedTone: undefined as Tone | undefined };
+    // D97: a take recorded with a known tone (audio.tone) stays valid when only the INHERITED tone changes
+    // (the episode or scene tone chosen or changed later): the episode tone is a default for new generations.
+    // A sentence whose own explicit tone differs from its take still needs generating (the owner chose it).
+    const recTone = s.audio?.tone;
+    if (s.audio && s.audio.fingerprint !== fingerprint && !t.explicit && isTone(recTone) && recTone !== tone) {
+      const pinned = voiceSettingsFor(ctx.profile, recTone);
+      if (fp(pinned) === s.audio.fingerprint)
+        return { ...base, tone: recTone, tune: pinned, fingerprint: s.audio.fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: recTone };
+    }
   }
-  return { ...base, tune, fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false };
+  return { ...base, tune, fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: undefined as Tone | undefined };
 };
 
 /** نص الجارتين في تسلسل الحلقة (جمل الراوي فقط؛ الآية لا تدخل النص المجاور) */
@@ -268,6 +277,10 @@ export type SentenceRow = {
   fixes: number;
   /** حدود الجملة في صوت المشهد ملفًا واحدًا (لتشغيلها وحدها حين لا تسجيل لها)؛ null بلا صوت مشهد مطابق لنصه */
   sceneSpan: SceneSpan | null;
+  /** status "old" (D97): the text the current take was recorded on («قديم — سُجّل على نص سابق»); null otherwise */
+  recordedOn: string | null;
+  /** D97: the take is current under the tone it was recorded with, not the inherited tone now («سُجّلت بنبرة …») */
+  recordedTone: string | null;
 };
 export type VerseRow = {
   id: string; sceneId: string; kind: "verse-card"; ayahKey: string; reference: string;
@@ -310,7 +323,9 @@ const coverageOf = (ctx: Ctx, id: string, text: string, corrections: SentenceCor
 const wordFixRefusal = (s: Sentence, fingerprint: string): string | null => {
   if (s.kind !== "narration") return "نص قرآني: لا يُعاد نطقه بالصوت المستنسخ أبدًا.";
   if (!s.audio) return "ولّد الجملة أولًا؛ إعادة نطق كلمة تعمل على تسجيل موجود.";
-  if (s.audio.fingerprint !== fingerprint) return "تسجيلها لا يطابق إعدادها الحالي (تحتاج توليدًا)؛ ولّدها كاملة.";
+  if (s.audio.fingerprint !== fingerprint) return recordedOnOtherText(s)
+    ? "تسجيلها قديم — سُجّل على نص سابق؛ ولّدها كاملة بنصها الحالي."
+    : "تسجيلها لا يطابق إعدادها الحالي (تحتاج توليدًا)؛ ولّدها كاملة.";
   if (s.audio.timing === "estimated") return "توقيت كلمات تسجيلها تقديري (لم يُرجع النموذج محاذاة)؛ ولّدها كاملة.";
   const ws = s.audio.words;
   if (ws.length !== words(s.text).length) return "توقيت كلمات تسجيلها لا يطابق نصها؛ ولّدها كاملة.";
@@ -323,9 +338,12 @@ const fresh = (ctx: Ctx, scene: PlanScene, list: Sentence[]) =>
   list.every((s) => s.kind === "basmala" || (s.kind === "narration" && s.audio && s.audio.fingerprint === voiceOf(ctx, scene, list, s).fingerprint));
 const waitingReason = (ctx: Ctx, scene: PlanScene, list: Sentence[], hasOld = false): string | null => {
   if (list.some((s) => s.kind === "verse")) return "في هذا المشهد نص قرآني داخل التعليق؛ الصوت المستنسخ لا يتلوه. انقله إلى مشهد آية من محرر المشهد.";
-  const n = list.filter((s) => s.kind !== "basmala" && (!s.audio || s.audio.fingerprint !== voiceOf(ctx, scene, list, s).fingerprint)).length;
+  const notCurrent = list.filter((s) => s.kind !== "basmala" && (!s.audio || s.audio.fingerprint !== voiceOf(ctx, scene, list, s).fingerprint));
+  const n = notCurrent.length;
   if (!n) return null;
-  return `جمل بلا صوت حالي: ${n.toLocaleString("ar-EG")}. يُركَّب صوت المشهد من جمله حين تُولَّد كلها${hasOld ? "، وحتى ذلك يبقى صوته السابق كما هو" : ""}.`;
+  // D97: say how many of them hold a take recorded on an earlier text («قديم»), so the owner knows they can be heard
+  const old = notCurrent.filter((s) => s.audio && recordedOnOtherText(s)).length;
+  return `جمل بلا صوت حالي: ${n.toLocaleString("ar-EG")}${old ? ` (منها ${old.toLocaleString("ar-EG")} «قديم» سُجّل على نص سابق)` : ""}. يُركَّب صوت المشهد من جمله حين تُولَّد كلها${hasOld ? "، وحتى ذلك يبقى صوته السابق كما هو" : ""}.`;
 };
 
 export const readSentences = async (episode: string): Promise<SentencesRead> => {
@@ -373,6 +391,8 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         tashkeel: coverageOf(ctx, s.id, s.text, s.corrections), chars: v.send.text.length,
         ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined),
         sceneSpan: spans?.[k] ?? null,
+        recordedOn: s.audio && recordedOnOtherText(s) ? recordedText(s.audio) : null,
+        recordedTone: v.pinnedTone ?? null,
       };
     });
     const sceneOlder = Boolean(clip && audio.state === "scene" && !clip.basmala && isSupersededVersion(clip.presetVersion));
@@ -857,7 +877,11 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
     let sceneId = cmd.sceneId;
     let id = cmd.id;
     if (id && !id.startsWith("virtual-")) {
-      sceneId = Object.entries(ctx.doc.scenes).find(([, v]) => v.sentences.some((s) => s.id === id))?.[0] ?? sceneId;
+      // D97: the id the page shows is the reconciled one (a scene whose text changed after recording is
+      // reconciled on every read, with stable ids), so it is looked up in the reconciled lists, not only on disk.
+      sceneId = Object.entries(ctx.doc.scenes).find(([, v]) => v.sentences.some((s) => s.id === id))?.[0]
+        ?? flatScenes.filter((sc) => ctx.doc.scenes[sc.id] && isNarrated(sc)).find((sc) => sceneSentences(ctx, sc).list.some((s) => s.id === id))?.id
+        ?? sceneId;
     } else if (id?.startsWith("virtual-")) {
       const m = /^virtual-(.+)-(\d+)$/.exec(id);
       if (m) { sceneId = m[1]; cmd.index = Number(m[2]); id = undefined; }
@@ -991,6 +1015,102 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
     await saveDoc(scriptPath, ctx.doc);
   });
   return { read: await readSentences(episode), planChanged, ...(composed ? { composed } : {}), ...(message ? { message } : {}), ...(fix ? { fix } : {}) };
+};
+
+export type ToneImpact = {
+  tone: string | null;
+  /** sentences that are current now and would need a new (paid) generation under this episode tone */
+  sentences: { id: string; sceneId: string }[];
+  /** whole-scene voices (not sentence by sentence) that would need a new generation */
+  scenes: string[];
+};
+/**
+ * D97: what choosing (or clearing) the episode tone would invalidate, BEFORE it is applied: the studio shows
+ * «سيحتاج N جملة توليدًا جديدًا» and asks. Read only: nothing is written, generated or sent.
+ * Takes recorded with a known tone keep it (voiceOf pins them), so only takes made under the channel layer whose
+ * sound the chosen tone really changes are counted.
+ */
+export const toneChangeImpact = async (episode: string, tone: string | null): Promise<ToneImpact> => {
+  if (tone !== null && !isTone(tone)) throw new Error("النبرة المختارة غير معروفة.");
+  const ctx = await loadCtx(episode);
+  const nextPlan: Plan = { ...ctx.plan, tone: tone ?? undefined };
+  const after: Ctx = { ...ctx, plan: nextPlan };
+  const sentences: ToneImpact["sentences"] = [];
+  if (!ctx.map) for (const { scene } of allScenes(ctx.plan)) {
+    if (!isNarrated(scene) || !ctx.doc.scenes[scene.id]) continue;
+    const { list } = sceneSentences(ctx, scene);
+    for (const s of list) {
+      if (s.kind !== "narration" || !s.audio) continue;
+      const now = sentenceStatus(s, voiceOf(ctx, scene, list, s).fingerprint);
+      if (now !== "generated" && now !== "heard") continue;
+      const later = sentenceStatus(s, voiceOf(after, scene, list, s).fingerprint);
+      if (later !== "generated" && later !== "heard") sentences.push({ id: s.id, sceneId: scene.id });
+    }
+  }
+  const { sceneVoiceToneImpact } = await import("./generate");
+  return { tone, sentences, scenes: await sceneVoiceToneImpact(ctx.scriptPath, ctx.plan, nextPlan) };
+};
+
+export type SentencesRepair = {
+  file: string;
+  /** scenes whose saved sentences were behind the plan text (reconciled now, with stable ids) */
+  reconciled: string[];
+  /** old takes the earlier reconcile had parked on a scene's first sentence, put back on the sentence they belong to («قديم») */
+  restored: { sceneId: string; sentenceId: string; file: string }[];
+  written: boolean;
+  backup: string | null;
+};
+const plainWords = (t: string) => new Set(words(stripTashkeel(t)).map(normWord).filter(Boolean));
+const overlap = (a: string, b: string) => {
+  const x = plainWords(a), y = plainWords(b);
+  let n = 0;
+  for (const w of x) if (y.has(w)) n++;
+  return x.size + y.size - n ? n / (x.size + y.size - n) : 0;
+};
+/**
+ * D97 one-time repair of voice/sentences.json (owner's Mac, after remap-scene-ids --with-changed-text):
+ * 1) every saved scene whose text changed is reconciled with the plan once and saved (stable ids; changed sentences
+ *    keep their old take as «قديم»);
+ * 2) takes the earlier reconcile parked on the scene's first sentence (recorded on another sentence's text) are put
+ *    back as the «قديم» take of the sentence without audio whose text is closest (≥ 30% shared words).
+ * Preview by default; `apply` writes after a backup (sentences.before-repair.json). Nothing is deleted or generated.
+ */
+export const repairSentences = async (episode: string, o: { apply?: boolean } = {}): Promise<SentencesRepair> => {
+  const { serialized } = await import("../studio/sceneService");
+  const scriptPath = await resolveScriptPath(episode);
+  const file = sentencesFileFor(scriptPath);
+  const out: SentencesRepair = { file, reconciled: [], restored: [], written: false, backup: null };
+  if (o.apply) (await import("../studio/sceneService")).assertSceneOwner();
+  if (!existsSync(file)) return out;
+  await serialized(file, async () => {
+    const ctx = await loadCtx(episode);
+    for (const { scene } of allScenes(ctx.plan)) {
+      const rec = ctx.doc.scenes[scene.id];
+      if (!rec || !isNarrated(scene)) continue;
+      const list = reconcileScene(rec.sentences, scene.id, scene.narration).map((x) => ({ ...x }));
+      if (list !== rec.sentences && sceneNarration(rec.sentences) !== normText(scene.narration)) out.reconciled.push(scene.id);
+      const head = list[0];
+      const parked = (head?.takes ?? []).filter((t) => { const r = recordedText(t); return r !== null && normText(r) !== normText(head!.text) && !list.some((x) => normText(x.text) === normText(r)); });
+      for (const t of parked) {
+        const target = list.filter((x) => x.kind === "narration" && !x.audio)
+          .map((x) => ({ x, score: overlap(recordedText(t)!, x.text) })).sort((a, z) => z.score - a.score)[0];
+        if (!target || target.score < 0.3) continue;
+        target.x.audio = t;
+        head!.takes = head!.takes!.filter((y) => y !== t);
+        out.restored.push({ sceneId: scene.id, sentenceId: target.x.id, file: t.file });
+      }
+      if (head && !head.takes?.length) delete head.takes;
+      rec.sentences = list;
+    }
+    if (o.apply && (out.reconciled.length || out.restored.length)) {
+      const backup = path.join(path.dirname(file), "sentences.before-repair.json");
+      if (!existsSync(backup)) await writeAtomic(backup, await readFile(file));
+      out.backup = backup;
+      await saveDoc(scriptPath, ctx.doc);
+      out.written = true;
+    }
+  });
+  return out;
 };
 
 export type LexiconCommand = { op: "set" | "remove"; word: string; say?: string; note?: string; match?: LexiconMatch };

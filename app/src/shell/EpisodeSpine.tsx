@@ -189,7 +189,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
             ) : null}
             {prep?.toneMissing?.length ? (
               <li className="is-warn spine-tone"><i aria-hidden="true">!</i><span>النبرة<small>{onEpisodeTone
-                ? <EpisodeTonePick scenes={prep.toneMissing} order={w!.scenes.map((x) => x.id)} onPick={async (t) => { await onEpisodeTone(t); setTick((k) => k + 1); }} />
+                ? <EpisodeTonePick scenes={prep.toneMissing} order={w!.scenes.map((x) => x.id)} episodeId={episodeId} channelId={channelId} onPick={async (t) => { await onEpisodeTone(t); setTick((k) => k + 1); }} />
                 : `لا نبرة للحلقة (${sceneNames(w!.scenes.map((x) => x.id), prep.toneMissing, 4)}): اخترها في تحرير المشهد ← «نبرة الصوت في الحلقة».`}
                 {" "}بدونها يتوقف تجهيز الصوت فور بدئه.</small></span></li>
             ) : null}

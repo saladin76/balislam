@@ -143,6 +143,23 @@ program
   });
 
 program
+  .command("repair-sentences")
+  .description("إصلاح لمرة واحدة لملف الجمل (voice/sentences.json) بعد نقل المعرّفات مع نص تغيّر (D97): مصالحة ثابتة المعرّفات، وإرجاع التسجيلات القديمة إلى جملها «قديم». تجربة افتراضيًا، ولا يحذف شيئًا")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--apply", "اكتب التغيير (تُحفظ نسخة voice/sentences.before-repair.json أولًا)")
+  .action(async (episode: string, opts: { apply?: boolean }) => {
+    const { repairSentences } = await import("../voice/sentenceVoice");
+    const r = await repairSentences(episode, { apply: opts.apply === true });
+    if (!r.reconciled.length && !r.restored.length) { console.log("ملف الجمل سليم؛ لا شيء يحتاج إصلاحًا."); return; }
+    console.log(`مشاهد تُصالَح مع نص الخطة: ${r.reconciled.length}${r.reconciled.length ? ` (${r.reconciled.join("، ")})` : ""}`);
+    console.log(`تسجيلات قديمة تعود إلى جملها («قديم»): ${r.restored.length}`);
+    for (const x of r.restored) console.log(`  ${x.sceneId} / ${x.sentenceId} ← ${x.file}`);
+    console.log("لا يُحذف تسجيل ولا يُولَّد شيء.");
+    if (opts.apply) console.log(r.written ? `كُتب. النسخة السابقة: ${r.backup}` : "لم يُكتب.");
+    else console.log("تجربة فقط؛ للكتابة: --apply");
+  });
+
+program
   .command("voice-review")
   .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
   .argument("<episode>", "رقم الحلقة")
