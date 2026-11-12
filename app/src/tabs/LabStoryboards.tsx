@@ -10,6 +10,7 @@ import { ownerText } from "../../../src/i18n/sceneNames";
 import { api } from "../api";
 import { useScrollLock } from "../ui/scrollLock";
 import { STORYBOARD_STATUS_AR, labStoryboardsEnabled, shownStatus, type StoryboardEntry, type StoryboardStatus, type StoryboardVersion } from "../../../src/channel/labStoryboardsShared";
+import { OwnerText } from "../ui/OwnerText";
 
 const date = (v?: string | null) => (v ? new Date(v).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }) : "—");
 const Status: React.FC<{ v: StoryboardVersion }> = ({ v }) => {
@@ -79,7 +80,7 @@ const Decide: React.FC<{ channel: string; dir: string; slot: string; v: Storyboa
       </label>
       <button disabled={!note.trim()} onClick={submit}>سجّل «{STORYBOARD_STATUS_AR[open]}»</button>
       <button onClick={() => setOpen(null)}>إلغاء</button>
-      {err ? <p className="err">{err}</p> : null}
+      {err ? <p className="err"><OwnerText text={err} /></p> : null}
     </div>
   );
 };
@@ -125,7 +126,7 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
   }, [channel, load]);
 
   if (!labStoryboardsEnabled(channel)) return null;
-  if (err) return <p className="err">{err}</p>;
+  if (err) return <p className="err"><OwnerText text={err} /></p>;
   if (!entries) return <p className="muted">جارٍ تحميل الستوري بورد…</p>;
   return (
     <div className="sbi">

@@ -14,6 +14,7 @@ import { Thumbnail } from "../../../src/remotion/Thumbnail";
 import config from "../../../config.json";
 import { tones, toneIds, voiceSettingsFor } from "../../../src/voice/tones";
 import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
+import { OwnerText } from "../ui/OwnerText";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 /** أنماط عامة للقنوات التي لم تُعتمد هويتها بعد (الافتتاحيات المعتمدة محجوزة لقنواتها) */
@@ -96,7 +97,7 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
           <button className="btn small" onClick={async () => { setVmsg("جارٍ التحميل…"); try { const r = await api.testService("elevenlabs"); if (r.ok && r.voices) { setVoices(r.voices); setVmsg(""); } else setVmsg(r.message ?? "تعذّر جلب الأصوات"); } catch (e) { setVmsg((e as Error).message); } }}>اختيار من أصوات حسابك</button>
           {c.voice?.id ? <button className="btn ghost small" onClick={() => set({ voice: { ...c.voice, id: undefined, name: undefined } })}>رجوع للصوت العام</button> : null}
         </div>
-        <span className="help">{vmsg || "صوتك المستنسخ هو الأساس في كل القنوات. اختر صوتًا آخر هنا فقط إن نسخت صوتك نسخة خاصة بهذه القناة."}</span>
+        <span className="help"><OwnerText text={vmsg || "صوتك المستنسخ هو الأساس في كل القنوات. اختر صوتًا آخر هنا فقط إن نسخت صوتك نسخة خاصة بهذه القناة."} /></span>
       </div>
 
       <VoiceRegister c={c} set={set} />
@@ -294,7 +295,7 @@ const ListenPanel: React.FC<{ c: ChannelConfig; play: PlayState; setPlay: (s: Pl
         ) : (
           <button className="btn small" onClick={() => api.voiceModels(c.id).then((r) => setModels(r.models)).catch((e) => setPlay({ ...play, msg: (e as Error).message }))}>مقارنة بنموذج آخر</button>
         )}
-        <span className="help">{play.msg ?? ""}{spent ? ` — مجموع هذه الجلسة: ${spent} حرف` : ""}</span>
+        <span className="help"><OwnerText text={play.msg ?? ""} />{spent ? ` — مجموع هذه الجلسة: ${spent} حرف` : ""}</span>
       </div>
     </div>
   );

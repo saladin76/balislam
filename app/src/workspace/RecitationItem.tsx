@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { api, type Loudness, type OwnRecitationsRead, type RecitationPolish, type RecitationVariant } from "../api";
 import { SCENES, countAr, num, sceneName, seconds as secs, verseRef } from "../ui/format";
+import { OwnerText } from "../ui/OwnerText";
 
 const lufs = (l?: Loudness | null) => (l && Number.isFinite(l.integrated) ? `علوّ ${num(l.integrated, 1)} — ذروة ${num(l.truePeak, 1)}` : "—");
 const sec = (n: number) => secs(n, 2);
@@ -116,8 +117,8 @@ export const RecitationItem: React.FC<{
             onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void upload(file); }} />
         </>
       ) : null}
-      {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
-      {msg ? <p className="sp-hint" role="status">{msg}</p> : null}
+      {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
+      {msg ? <p className="sp-hint" role="status"><OwnerText text={msg} /></p> : null}
     </li>
   );
 };

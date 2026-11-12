@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { api, type DriveHandoffRead } from "../api";
 import { Hint } from "../shell/Screen";
 import { arDigits } from "../ui/format";
+import { OwnerText } from "../ui/OwnerText";
 
 /**
  * «إلى Drive» في خطوة النشر (D53): النشر يدوي بالكامل بيد المالك. بعد «إذن النشر» يرسل الاستوديو الملفات
@@ -89,7 +90,7 @@ export const DriveHandoffCard: React.FC<{ episodeId: string; view: DriveView; pr
           <div className="s45-actions">{resend(primary)}</div>
         </>
       )}
-      {err ? <p className="s45-alert" role="alert">{err}</p> : null}
+      {err ? <p className="s45-alert" role="alert"><OwnerText text={err} /></p> : null}
     </section>
   );
 };

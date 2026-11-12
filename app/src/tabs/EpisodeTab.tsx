@@ -34,6 +34,7 @@ import { More } from "../shell/Screen";
 import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 import { episodeLength } from "../../../src/plan/episodeLength";
 import { duration, lengthSource, num, sceneName, seconds, verseRef } from "../ui/format";
+import { OwnerText } from "../ui/OwnerText";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -585,13 +586,13 @@ const RenderBox: React.FC<{ episodeId: string; chapter?: number }> = ({ episodeI
         <button className="btn" disabled={running} onClick={() => start("landscape")}>رندر الحلقة ١٦:٩</button>
         {chapter !== undefined ? <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {arNumE(chapter)} شورت ٩:١٦</button> : null}
       </div>
-      {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
+      {err ? <div className="help" style={{ color: "var(--err)" }}><OwnerText text={err} /></div> : null}
       {mine.map((j) => (
         <div key={j.id} className="job">
           <span style={{ minWidth: 150 }}>{j.chapter ? `الفصل ${j.chapter} — عمودي` : `الحلقة — ${j.orientation === "portrait" ? "عمودي" : "أفقي"}`}</span>
           <span className="bar"><i style={{ width: `${j.status === "done" ? 100 : j.pct}%`, background: j.status === "error" ? "var(--err)" : undefined }} /></span>
           <span style={{ minWidth: 90, fontVariantNumeric: "tabular-nums" }}>
-            {j.status === "running" ? (j.queued ? "في الطابور" : `${j.pct}%`) : j.status === "done" ? "جاهز" : j.error ?? "فشل"}
+            {j.status === "running" ? (j.queued ? "في الطابور" : `${j.pct}%`) : j.status === "done" ? "جاهز" : <OwnerText text={j.error ?? "فشل"} />}
           </span>
           {j.status === "done" && j.output ? <a className="btn small" href={api.videoUrl(j.episode, j.output)} target="_blank" rel="noreferrer">فتح</a> : null}
           {j.status === "running" ? <button className="btn ghost small" onClick={() => void api.cancelJob(j.id).catch((x) => setErr((x as Error).message))}>إلغاء</button> : null}
@@ -631,7 +632,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
         {busy ? "جارٍ التوليد…" : state === "ok" ? "أعد توليد صوت هذا المشهد" : "ولّد صوت هذا المشهد"}
       </button>
       {!hasKeys ? <span className="help">يتطلب مفتاح الصوت من <KeysLink /></span> : null}
-      {msg ? <span className="help">{msg}</span> : null}
+      {msg ? <span className="help"><OwnerText text={msg} /></span> : null}
     </div>
   );
 };
@@ -695,7 +696,7 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
         </div>
       ) : null}
       {est?.tashkeel ? <TashkeelBox t={est.tashkeel} order={order} /> : null}
-      {msg ? <div className="help">{msg}</div> : null}
+      {msg ? <div className="help"><OwnerText text={msg} /></div> : null}
     </div>
   );
 };

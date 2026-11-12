@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import { channelLibraries, type LibrarySlot } from "../../../src/visual/library";
 import { chatgptProjectInstructions, fireflyPrompt } from "../../../src/visual/prompts";
+import { OwnerText } from "./OwnerText";
 
 const readAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -60,7 +61,7 @@ export const ChannelImages: React.FC<{ channel: string }> = ({ channel }) => {
           <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} /> الناقصة فقط
         </label>
         <span className="spacer" />
-        {msg ? <span className="help">{msg}</span> : null}
+        {msg ? <span className="help"><OwnerText text={msg} /></span> : null}
       </div>
       {groups.map((g) => {
         const list = slots.filter((s) => s.group === g && (!onlyMissing || !fileFor(s.id)));

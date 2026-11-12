@@ -14,6 +14,7 @@ import "./sentences.css";
 import { Icon } from "../ui/icons";
 import { Num } from "../ui/format";
 import { pagePlayer, sentenceClip, type Clip, type PlayerState } from "./sentencePlayer";
+import { OwnerText } from "../ui/OwnerText";
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 const secAr = (ms: number) => `${(ms / 1000).toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ث`;
@@ -349,7 +350,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
     api.toneUpgrade(episodeId, channelId, true).then((r) => { if (live && r.plan) setOlderPlan({ chars: r.plan.chars, credits: r.plan.credits }); }).catch(() => { /* التقدير اختياري */ });
     return () => { live = false; };
   }, [episodeId, channelId, sceneId, olderCount]);
-  if (!read) return error ? <p className="scene-first-error" role="alert">{error}</p> : <p className="sp-hint sv-loading">جارٍ تحميل الجمل…</p>;
+  if (!read) return error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : <p className="sp-hint sv-loading">جارٍ تحميل الجمل…</p>;
   if (!scenes.length) return null;
 
   const noKey = !(hasVoiceKeys ?? read.voiceKey);
@@ -856,8 +857,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       {scenes.map((s) => (paragraph && !s.verse ? paraBlock(s) : sceneBlock(s)))}
       {wordPopover()}
       {whyPopover()}
-      {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
-      {msg ? <p className="sp-hint" role="status">{msg}</p> : null}
+      {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
+      {msg ? <p className="sp-hint" role="status"><OwnerText text={msg} /></p> : null}
     </div>
   );
 };

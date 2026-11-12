@@ -7,6 +7,7 @@ import { num } from "../ui/format";
 import "./scene-production.css";
 import { useChannel } from "../../../src/channel/context";
 import { versesAreCitations } from "../../../src/quran/citation";
+import { OwnerText } from "../ui/OwnerText";
 
 const ar = (n: number) => num(n);
 
@@ -106,8 +107,8 @@ export const PreFinalPanel: React.FC<{
           </ul>
         </div>
       ) : null}
-      {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
-      {msg ? <p className="sp-hint" role="status">{msg}</p> : null}
+      {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
+      {msg ? <p className="sp-hint" role="status"><OwnerText text={msg} /></p> : null}
     </section>
   );
 };

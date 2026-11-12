@@ -7,6 +7,7 @@ import { api } from "../api";
 import { Markdown } from "../ui/Markdown";
 import type { GuideIndex } from "../../../src/channel/guide";
 import { ownerText } from "../../../src/i18n/sceneNames";
+import { OwnerText } from "../ui/OwnerText";
 
 export const GuideTab: React.FC<{ channel: string }> = ({ channel }) => {
   const [index, setIndex] = useState<GuideIndex | null | undefined>(undefined);
@@ -51,7 +52,7 @@ export const GuideTab: React.FC<{ channel: string }> = ({ channel }) => {
         </nav>
         <p className="muted guide-note">للقراءة فقط. المصدر: <code dir="ltr">docs/{index.channel}/</code> في المستودع، ويُحدَّث مع كل تغيير.</p>
       </aside>
-      <article className="guide-page">{err ? <p className="err">{err}</p> : text ? <Markdown text={text} onLink={onLink} /> : <p className="muted">جارٍ التحميل…</p>}</article>
+      <article className="guide-page">{err ? <p className="err"><OwnerText text={err} /></p> : text ? <Markdown text={text} onLink={onLink} /> : <p className="muted">جارٍ التحميل…</p>}</article>
     </div>
   );
 };

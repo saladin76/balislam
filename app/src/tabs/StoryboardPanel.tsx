@@ -21,6 +21,7 @@ import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
 import { AfterPreparationList, BoardAuditLog } from "./BoardAuditLog";
 import "../shell/screens-s12.css";
+import { OwnerText } from "../ui/OwnerText";
 
 const ar = (n: number) => num(n);
 const fmtAr = (sec: number) => duration(Math.floor(sec));
@@ -259,7 +260,7 @@ export const StoryboardPanel: React.FC<{
           {arabicCountAr(sceneCount, SCENES)} — {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
           {st && st.approved ? <span className="s12-soft"> — معتمد {ar(st.approved)}</span> : null}
         </span>
-        {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
+        {!info && err ? <p className="s12-alert" role="alert"><OwnerText text={err} /></p> : null}
       </header>
 
       {/* 11 Nov: what changed after «اعتمد التجهيز», informative; each scene opens in step ٢ (no re-approval here) */}
@@ -341,7 +342,7 @@ export const StoryboardPanel: React.FC<{
       <Previews episodeId={episodeId} order={order} />
 
       <More>
-        {err ? <p className="s12-alert" role="alert">{err}</p> : null}
+        {err ? <p className="s12-alert" role="alert"><OwnerText text={err} /></p> : null}
         {job?.status === "error" ? <p className="s12-alert">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
 
         <section className="s12-tool" aria-label="عرض اللوحات">

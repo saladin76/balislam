@@ -9,6 +9,7 @@ import { ChannelIdentity } from "./ChannelIdentity";
 import { approvedIdentity, reservedEmblems } from "../../../brand/identity/approved";
 import type { Identity } from "../../../brand/identity/index";
 import { versesAreCitations } from "../../../src/quran/citation";
+import { OwnerText } from "../ui/OwnerText";
 
 const SLOTS: ChannelDomain["theme"][] = ["paper", "family", "night", "warm"];
 
@@ -84,7 +85,7 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         </button>
         </> : null}
       </div>
-      {msg ? <div className={`note ${msg.err ? "err" : ""}`}>{msg.text}</div> : null}
+      {msg ? <div className={`note ${msg.err ? "err" : ""}`}><OwnerText text={msg.text} /></div> : null}
 
       <nav className="channel-section-nav" aria-label="أقسام إعدادات القناة">
         <a href="#channel-identity">الهوية</a>
@@ -231,7 +232,7 @@ const NewChannel: React.FC<{ onCreated: (id: string) => void }> = ({ onCreated }
         </select>
       </label>
       <label className="check"><input type="checkbox" checked={quran} onChange={(e) => setQuran(e.target.checked)} /><span>تستشهد بالقرآن والحديث</span></label>
-      {err ? <span className="help" style={{ color: "var(--err)" }}>{err}</span> : null}
+      {err ? <span className="help" style={{ color: "var(--err)" }}><OwnerText text={err} /></span> : null}
       <button className="btn primary" type="submit" style={{ alignSelf: "flex-start" }}>إنشاء القناة</button>
     </form>
   );
