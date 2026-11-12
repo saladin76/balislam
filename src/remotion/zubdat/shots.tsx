@@ -493,29 +493,35 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
 
   // S26 — خطوة واحدة قبل الصلاة القادمة
   "one-step": {
-    nameAr: "خطوة واحدة: نتوقف قبل الصلاة القادمة ونستحضر التكبير",
+    nameAr: "خطوة واحدة: توقف لحظة واستحضر معنى الكلمة التي تفتتح بها صلاتك",
     render: ({ frame, z, at, end }) => {
-      const t0 = at("ولنجعل", 0.02);
-      const tStep = at("خطوة", 0.1, 1);
-      const tBefore = at("قبل", 0.22);
-      const tNext = at("صلاتنا", 0.26);
-      const tStop = at("نتوقف", 0.36);
-      const tRecall = at("ونستحضر", 0.45);
-      const tSmall = at("صغيرة", 0.74, 1);
-      const tDir = at("تتجه", 0.84);
-      const tGoal = at("المقصود", 0.94);
+      // السكريبت المعتمد (١١ نوفمبر): «فلنخرج من هذه الحلقة بخطوة واحدة فقط. عندما تحين صلاتك القادمة، لا تدخلها على عجل. توقف لحظة،
+      // ثم استحضر معنى الكلمة التي تفتتح بها صلاتك: الله أكبر. لا نعد بتغير فوري؛ لكن هذه خطوة يمكن أن نبدأ بها.» — سكون عند «الله أكبر».
+      const t0 = at("فلنخرج", 0.02);
+      const tStep = at("بخطوة", 0.08);
+      const tBefore = at("تحين", 0.2);
+      const tNext = at("صلاتك", 0.22);
+      const tAjal = at("على", 0.3);
+      const tStop = at("توقف", 0.38);
+      const tRecall = at("استحضر", 0.46);
+      const tOpen = at("تفتتح", 0.56);
+      const tFawri = at("بتغير", 0.74);
+      const tLakin = at("لكن", 0.8);
+      const tSmall = at("خطوة", 0.86);
+      const tDir = at("يمكن", 0.9);
+      const tGoal = at("نبدأ", 0.94);
       const line = prog(frame, t0 - 4, t0 + 22);
       const PX = 900; // الصلاة القادمة
       const note = prog(frame, tRecall - 6, tRecall + 10, outCubic);
       return {
-        focus: [[tStep, 1380, 520], [tBefore, 1020, 470], [tNext, 900, 600], [tStop, 1030, 380], [tRecall, 520, 300], [at("سندخل", 0.6), 780, 470], [tSmall, 1200, 520], [tDir, 980, 530], [tGoal, 900, 560]],
-        cam: [C(0, 960, 540, 1.05), C(tStep - 6, 1260, 520, 1.3), C(tBefore - 4, 1040, 520, 1.18), C(tRecall - 6, 820, 440, 1.12), C(tSmall - 6, 1000, 520, 1.12), C(tGoal - 8, 960, 540, 1.05)],
+        focus: [[tStep, 1380, 520], [tBefore, 1020, 470], [tNext, 900, 600], [tAjal, 1250, 760], [tStop, 1030, 380], [tRecall, 520, 300], [tOpen, 780, 470], [tFawri, 1380, 330], [tSmall, 1200, 520], [tDir, 980, 530], [tGoal, 900, 560]],
+        cam: [C(0, 960, 540, 1.05), C(tStep - 6, 1260, 520, 1.3), C(tBefore - 4, 1040, 520, 1.18), C(tRecall - 6, 820, 440, 1.12), C(tFawri - 6, 1000, 520, 1.08), C(tGoal - 8, 960, 540, 1.05)],
         world: (
           <g>
             <g transform="translate(960 560)">
               <DayStrip z={z} line={line} sun={1} ticksAll />
             </g>
-            {/* «خطوة واحدة»: سهم قصير فسفوري على خط اليوم، ويتسع قليلًا عند «صغيرة» */}
+            {/* «بخطوة واحدة»: سهم قصير فسفوري على خط اليوم، ويتسع قليلًا عند «خطوة» الثانية */}
             <g transform={`translate(1400 560) scale(${1 + 0.18 * Math.sin(Math.PI * prog(frame, tSmall - 2, tSmall + 16))})`}>
               <Stroke d="M0 0 L-110 0" p={prog(frame, tStep - 2, tStep + 10)} c={z.hl} w={30} />
               <Arrow x1={0} y1={0} x2={-120} y2={0} p={prog(frame, tStep - 2, tStep + 12)} c={z.ink} w={8} />
@@ -523,20 +529,26 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             <Stroke d={`M1120 470 Q1020 430 ${PX + 30} 470`} p={prog(frame, tBefore - 2, tBefore + 12)} c={z.ink} w={6} />
             <circle cx={PX + 4} cy={560} r={58} fill="none" stroke={z.hl} strokeWidth={14} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(frame, tNext - 2, tNext + 14)} />
             <circle cx={PX + 4} cy={560} r={44 * prog(frame, tGoal - 2, tGoal + 12)} fill={z.hl} opacity={0.7} />
-            <Write id="nx" x={PX} y={700} text="صلاتنا القادمة" size={66} p={wp(frame, tNext, end("القادمة", 0.3))} c={z.ink} z={z} />
+            <Write id="nx" x={PX} y={700} text="صلاتك القادمة" size={66} p={wp(frame, tNext, end("القادمة", 0.26))} c={z.ink} z={z} />
+            {/* «لا تدخلها على عجل»: تُشطب مع «توقف» */}
+            <Write id="aj" x={1250} y={790} text="على عجل" size={60} p={wp(frame, tAjal, end("عجل", 0.34))} c={z.ink} z={z} />
+            <Cross x1={1370} x2={1130} y={774} p={prog(frame, tStop - 2, tStop + 10)} z={z} />
             <Pause x={1030} y={400} p={prog(frame, tStop - 2, tStop + 14)} z={z} />
-            <Write id="st" x={1030} y={310} text="نتوقف قليلا" size={64} p={wp(frame, tStop, end("قليلا", 0.4))} c={z.ink} z={z} />
+            <Write id="st" x={1030} y={310} text="توقف لحظة" size={64} p={wp(frame, tStop, end("لحظة", 0.42))} c={z.ink} z={z} />
             {/* الورقة اللاصقة: المهمة الواحدة، ومربع فارغ ينتظر التنفيذ */}
             <g transform={`translate(${520} ${300 - 120 * (1 - note)}) rotate(${-3 + 4 * (1 - note)})`} opacity={note}>
               <rect x={-250 + 8} y={-120 + 10} width={500} height={240} fill={z.ink} opacity={0.12} />
               <rect x={-250} y={-120} width={500} height={240} fill={z.hl} />
               <rect x={-60} y={-136} width={120} height={32} fill={z.paper} opacity={0.7} transform="rotate(-4)" />
-              <Write id="nt" x={0} y={-10} text="نستحضر معنى التكبير" size={64} p={wp(frame, tRecall, end("التكبير", 0.55))} c={z.ink} z={z} />
-              <rect x={-24} y={36} width={48} height={48} rx={6} fill="none" stroke={z.ink} strokeWidth={6} opacity={prog(frame, end("التكبير", 0.55), end("التكبير", 0.55) + 10)} />
+              <Write id="nt" x={0} y={-10} text="استحضر معنى الكلمة" size={64} p={wp(frame, tRecall, end("الكلمة", 0.52))} c={z.ink} z={z} />
+              <rect x={-24} y={36} width={48} height={48} rx={6} fill="none" stroke={z.ink} strokeWidth={6} opacity={prog(frame, end("الكلمة", 0.52), end("الكلمة", 0.52) + 10)} />
             </g>
-            {/* نستحضره قبل أن «ندخل» بها الصلاة: صلة من الورقة إلى الصلاة القادمة */}
-            <path d={`M640 420 Q800 470 ${PX - 30} 520`} fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="14 12" strokeLinecap="round" opacity={prog(frame, at("سندخل", 0.6) - 2, at("سندخل", 0.6) + 10)} />
-            <Arrow x1={790} y1={470} x2={PX - 34} y2={518} p={prog(frame, at("سندخل", 0.6), at("سندخل", 0.6) + 14)} c={z.ink} w={6} bend={-6} />
+            {/* «التي تفتتح بها صلاتك»: صلة من الورقة إلى الصلاة القادمة، تكتمل قبل سكون «الله أكبر» */}
+            <path d={`M640 420 Q800 470 ${PX - 30} 520`} fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="14 12" strokeLinecap="round" opacity={prog(frame, tOpen - 2, tOpen + 8)} />
+            <Arrow x1={790} y1={470} x2={PX - 34} y2={518} p={prog(frame, tOpen, tOpen + 12)} c={z.ink} w={6} bend={-6} />
+            {/* «لا نعد بتغير فوري»: يُشطب مع «لكن» */}
+            <Write id="fw" x={1380} y={330} text="تغير فوري" size={60} p={wp(frame, tFawri, end("فوري", 0.78))} c={z.ink} z={z} />
+            <Cross x1={1500} x2={1260} y={314} p={prog(frame, tLakin - 2, tLakin + 10)} z={z} />
             <Arrow x1={1270} y1={540} x2={PX + 70} y2={540} p={prog(frame, tDir - 2, tDir + 16)} c={z.ink} w={8} bend={60} />
           </g>
         ),
