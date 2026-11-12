@@ -239,40 +239,43 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
 
   // S07 — خط الانتباه: يخرج ثم يرجع
   "attention-line": {
-    nameAr: "خط الانتباه: تشرد الخواطر ثم نرجع إلى ما نقرؤه",
+    nameAr: "خط الانتباه: يشرد الذهن ثم نعود إلى ما نقرؤه",
     render: ({ frame, z, at, end }) => {
-      const tCause = at("بالأسباب", 0.04);
-      const tFull = at("خشوعا", 0.18);
-      const tSalah = at("صلاة", 0.26);
-      const tThought = at("ترد", 0.33);
-      const tWeak = at("يضعف", 0.43);
-      const tBack = at("نرجع", 0.52);
-      const tRead = at("نقرأه", 0.6);
-      const tSay = at("ونقوله", 0.64);
-      // الأمر 008: الخشوع يزيد وينقص، نجاهد فيه، لا نيأس، ونتطلع إلى الأكمل
-      const tKh = at("الخشوع", 0.7);
-      const tUp = at("يزيد", 0.72);
-      const tDown = at("وينقص", 0.75);
-      const tJ = at("نجاهد", 0.78);
-      const tTalab = at("طلبه", 0.83);
-      const tYa = at("نيأس", 0.87);
-      const tQal = at("قل", 0.89);
-      const tAsp = at("ونتطلع", 0.91);
-      const tAkmal = at("أكمل", 0.98);
+      // السكريبت المعتمد (١١ نوفمبر): «ولا يعني هذا أن الخواطر ستنقطع تمامًا. قد يشرد الذهن، ثم ننتبه، فنعود إلى ما نقرأه ونقوله.
+      // وهذه العودة نفسها جزء من مجاهدتنا. فالخشوع يزيد وينقص؛ وما نسعى إليه ليس ادعاء الكمال، بل الاستمرار في طلبه.»
+      const tCause = at("الخواطر", 0.06);
+      const tFull = at("ستنقطع", 0.1);
+      const tSalah = at("تماما", 0.14);
+      const tThought = at("يشرد", 0.2);
+      const tWeak = at("الذهن", 0.24);
+      const tBack = at("فنعود", 0.32);
+      const tRead = at("نقرأه", 0.38);
+      const tSay = at("ونقوله", 0.42);
+      const tAwda = at("العودة", 0.48);
+      const tMuj = at("مجاهدتنا", 0.56);
+      const tKh = at("الخشوع", 0.62);
+      const tUp = at("يزيد", 0.65);
+      const tDown = at("وينقص", 0.68);
+      const tJ = at("نسعى", 0.74);
+      const tYa = at("ادعاء", 0.8);
+      const tQal = at("الكمال", 0.84);
+      const tAsp = at("الاستمرار", 0.9);
+      const tAkmal = at("طلبه", 0.97);
       const seg1 = prog(frame, tCause, tFull, (t) => t);
       const ghost = prog(frame, tFull - 4, tFull + 12);
       const seg2 = prog(frame, tThought - 2, tWeak, (t) => t);
       const seg3 = prog(frame, tWeak, tBack, (t) => t);
       const seg4 = prog(frame, tBack - 2, tRead + 8, (t) => t);
-      const truth = prog(frame, tBack + 10, tRead + 20);
+      const truth = prog(frame, tAwda - 2, tAwda + 16);
       // صفحة الفكرة الجديدة: ما سبق يبهت ولا يختفي، ويُرسم مؤشر الخشوع على الورقة نفسها
       // الأمر 010: ما سبق يُخفى تمامًا فلا يبقى طيفه فوق المؤشر
       const dim = 1 - prog(frame, tKh - 6, tKh + 12);
-      const W = [[1620, 600], [1420, 440], [1220, 660], [990, 450], [800, 580], [560, 330]] as const;
-      const segT: [number, number][] = [[tUp - 2, tUp + 14], [tDown - 2, tDown + 14], [tJ - 2, tTalab + 10], [tQal - 6, tQal + 10], [tAsp - 2, tAkmal + 4]];
+      // «الاستمرار» يمضي صاعدًا دون أن يبلغ «ادعاء الكمال» المشطوب
+      const W = [[1620, 600], [1420, 440], [1220, 660], [990, 450], [800, 580], [560, 500]] as const;
+      const segT: [number, number][] = [[tUp - 2, tUp + 14], [tDown - 2, tDown + 14], [tJ - 2, tJ + 18], [tYa - 4, tQal + 8], [tAsp - 2, tAkmal + 8]];
       const segP = segT.map(([a, b]) => prog(frame, a, b, (t) => t));
       const seg = (i: number) => `M${W[i]![0]} ${W[i]![1]} L${W[i + 1]![0]} ${W[i + 1]![1]}`;
-      // الساعي: يظهر مع «نجاهد» ويمشي على رأس المؤشر صعودًا وهبوطًا
+      // الساعي: يظهر مع «نسعى» ويمشي على رأس المؤشر صعودًا وهبوطًا
       const tipK = segP[4]! > 0 ? 4 : segP[3]! > 0 ? 3 : 2;
       const tp = segP[tipK]!;
       const sx = lerp(W[tipK]![0], W[tipK + 1]![0], tp);
@@ -280,20 +283,20 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const cloud = (k: number) => prog(frame, tThought + k * 6, tThought + k * 6 + 12, outCubic);
       return {
         camLen: 26,
-        focus: [[tCause, 1590, 500], [tFull, 860, 600], [tSalah, 860, 620], [tThought, 1200, 350], [at("الخواطر", 0.36), 1050, 250], [tWeak, 900, 260], [tBack, 700, 400], [tRead, 250, 560], [tSay, 150, 560], [tKh, 960, 200], [tUp, 1420, 400], [tDown, 1220, 700], [tJ, 1120, 500], [tYa, 800, 640], [tAsp, 700, 420], [tAkmal, 470, 250]],
+        focus: [[tCause, 1590, 500], [tFull, 860, 600], [tSalah, 860, 620], [tThought, 1200, 350], [tWeak, 900, 260], [tBack, 700, 400], [tRead, 250, 560], [tSay, 150, 560], [tAwda, 600, 600], [tMuj, 520, 720], [tKh, 960, 200], [tUp, 1420, 400], [tDown, 1220, 700], [tJ, 1120, 500], [tYa, 470, 250], [tAsp, 770, 830], [tAkmal, 560, 460]],
         cam: [C(0, 1440, 520, 1.3), C(tFull - 6, 1000, 560, 1.0), C(tThought - 2, 1130, 400, 1.22), C(tBack - 2, 760, 440, 1.14), C(tRead, 520, 560, 1.25), C(tKh - 6, 1000, 470, 1.0)],
         world: (
           <g>
             <g opacity={dim}>
-            <Write id="cs" x={1590} y={470} text="الأسباب" size={72} p={wp(frame, tCause, tCause + 14)} c={z.ink} z={z} />
+            <Write id="cs" x={1590} y={470} text="الخواطر" size={72} p={wp(frame, tCause, end("الخواطر", 0.08))} c={z.ink} z={z} />
             <Stroke d="M1720 560 L1380 560" p={seg1} c={z.ink} w={9} />
-            {/* الخشوع الكامل المتصوَّر: خط مثالي متقطع، يُشطب */}
+            {/* «ستنقطع تمامًا»: خط مثالي بلا خواطر، يُشطب */}
             <g opacity={ghost * (1 - 0.6 * prog(frame, tThought, tThought + 20))}>
               <line x1={1380} y1={560} x2={360} y2={560} stroke={z.faint} strokeWidth={6} strokeDasharray="18 16" />
             </g>
             <rect x={660} y={570} width={400} height={100} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tFull - 4, tFull + 8) * (1 - 0.5 * prog(frame, tThought, tThought + 20))} />
-            <Write id="kf" x={860} y={640} text="خشوع كامل" size={68} p={wp(frame, tFull, end("كاملا", 0.22))} c={z.ink} z={z} opacity={1 - 0.5 * prog(frame, tThought, tThought + 20)} />
-            <Cross x1={1010} x2={710} y={624} p={prog(frame, tSalah - 2, tSalah + 12)} z={z} />
+            <Write id="kf" x={860} y={640} text="ستنقطع تماما" size={64} p={wp(frame, tFull, end("تماما", 0.16))} c={z.ink} z={z} opacity={1 - 0.5 * prog(frame, tThought, tThought + 20)} />
+            <Cross x1={1010} x2={710} y={624} p={prog(frame, end("تماما", 0.16), end("تماما", 0.16) + 14)} z={z} />
             {/* الخواطر: يخرج الخط عن مساره */}
             <Stroke d="M1380 560 C1300 560 1290 430 1210 410 C1130 390 1170 300 1090 320 C1020 340 1050 262 1000 300" p={seg2} c={z.ink} w={9} />
             {/* الخواطر لا تختفي: عند «نرجع» تتنحى قليلًا إلى الأعلى وتبهت، وتبقى حاضرة */}
@@ -306,15 +309,16 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
                 <path d={`M${-r} 0 a${r * 0.6} ${r * 0.6} 0 0 1 ${r * 0.7} ${-r * 0.6} a${r * 0.7} ${r * 0.7} 0 0 1 ${r * 1.1} ${r * 0.1} a${r * 0.5} ${r * 0.5} 0 0 1 ${r * 0.2} ${r * 0.9} Z`} fill={z.faint} fillOpacity={0.25} stroke={z.ink} strokeWidth={6} strokeLinejoin="round" />
               </g>
             ))}
-            {/* يضعف الانتباه: الخط يبهت ويتقطع */}
+            {/* «الذهن» شارد: الخط يبهت ويتقطع */}
             <path d="M1000 300 C960 270 900 250 830 250" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="10 14" opacity={0.45 * Math.min(1, seg3 * 3)} pathLength={1} />
-            {/* نرجع: يعود الخط إلى المحور حتى الكتاب */}
+            {/* «فنعود»: يعود الخط إلى المحور حتى الكتاب، و«العودة» نفسها تُبرز */}
             <Stroke d="M830 250 C700 260 700 560 560 560 L400 560" p={seg4} c={z.ink} w={10} />
             <Stroke d="M830 250 C700 260 700 560 560 560 L400 560" p={truth} c={z.hl} w={34} opacity={0.8} />
             <OpenBook x={310} y={560} s={1.1} p={prog(frame, tRead - 4, tRead + 14)} z={z} />
             {[0, 1, 2].map((k) => (
               <Stroke key={k} d={`M${215 - k * 18} ${520} q${-16} 40 0 80`} p={prog(frame, tSay + k * 3, tSay + k * 3 + 10)} c={z.ink} w={6} opacity={0.8} />
             ))}
+            <Write id="mj" x={600} y={720} text="جزء من مجاهدتنا" size={64} p={wp(frame, at("جزء", 0.52), end("مجاهدتنا", 0.57))} c={z.ink} font="head" z={z} />
             </g>
             {/* «فالخشوع يزيد وينقص»: مؤشر يعلو وينخفض على خط أساس متقطع */}
             <Write id="kh" x={960} y={210} text="الخشوع" size={84} p={wp(frame, tKh, end("الخشوع", 0.71))} c={z.ink} font="head" z={z} />
@@ -328,17 +332,18 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             {segP.map((p, i) => <Stroke key={i} d={seg(i)} p={p} c={z.ink} w={12} />)}
             <Write id="yz" x={1420} y={390} text="يزيد" size={72} p={wp(frame, tUp, end("يزيد", 0.73))} c={z.ink} z={z} />
             <Write id="yn" x={1220} y={740} text="وينقص" size={72} p={wp(frame, tDown, end("وينقص", 0.76))} c={z.ink} z={z} />
-            {/* «نجاهد أنفسنا في طلبه»: ساعٍ يصعد مع المؤشر */}
+            {/* «ما نسعى إليه»: ساعٍ يصعد مع المؤشر */}
             <g transform={`rotate(${tipK === 3 ? 8 : -14} ${sx} ${sy})`}>
               <InkPerson x={sx} y={sy - 4} s={0.42} pose="walk" p={prog(frame, tJ - 4, tJ + 10)} z={z} dir={-1} />
             </g>
-            <Write id="jh" x={1160} y={480} text="نجاهد" size={60} p={wp(frame, tJ, end("نجاهد", 0.79))} c={z.ink} font="head" z={z} />
-            {/* «ولا نيأس إذا قل»: هبوط قصير لا ينكسر فيه الخط */}
-            <Write id="ny" x={800} y={680} text="لا نيأس" size={72} p={wp(frame, tYa - 6, end("نيأس", 0.88))} c={z.ink} z={z} />
-            {/* «ونتطلع دائمًا إلى ما هو أكمل»: أفق متقطع يقترب منه المؤشر ولا يُغلق */}
-            <rect x={380} y={196} width={180} height={110} rx={16} fill={z.hl} opacity={0.75 * prog(frame, tAkmal - 2, tAkmal + 10)} />
-            <rect x={380} y={196} width={180} height={110} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tAsp, tAsp + 12)} />
-            <Write id="ak" x={470} y={272} text="أكمل" size={66} p={wp(frame, tAkmal, end("أكمل", 0.99))} c={z.ink} font="head" z={z} />
+            <Write id="jh" x={1160} y={480} text="نسعى" size={60} p={wp(frame, tJ, end("نسعى", 0.75))} c={z.ink} font="head" z={z} />
+            {/* «ليس ادعاء الكمال»: أفق متقطع يقترب منه المؤشر، والادعاء يُشطب */}
+            <rect x={300} y={196} width={340} height={110} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tYa - 4, tYa + 8)} />
+            <Write id="ak" x={470} y={272} text="ادعاء الكمال" size={58} p={wp(frame, tYa, end("الكمال", 0.86))} c={z.ink} font="head" z={z} />
+            <Cross x1={640} x2={300} y={252} p={prog(frame, end("الكمال", 0.86), end("الكمال", 0.86) + 14)} z={z} />
+            {/* «بل الاستمرار في طلبه»: المؤشر يمضي، والكلمة تحته تُبرز */}
+            <rect x={560} y={792} width={420} height={80} rx={10} fill={z.hl} opacity={0.75 * prog(frame, tAsp - 2, tAsp + 12)} />
+            <Write id="ny" x={770} y={852} text="الاستمرار في طلبه" size={60} p={wp(frame, tAsp, end("طلبه", 0.98))} c={z.ink} font="head" z={z} />
           </g>
         ),
       };

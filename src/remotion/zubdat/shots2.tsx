@@ -426,39 +426,42 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
 
   // S06 — من العمل المزدحم إلى الصلاة: التهيؤ
   "busy-threshold": {
-    nameAr: "من عمل مزدحم إلى الصلاة: التهيؤ ليس ترفًا",
+    nameAr: "من عمل مرهق إلى الصلاة: قيمة التهيؤ",
     render: (c) => {
       const { frame, z, at, T, P } = kit(c);
-      const tWork = at("عمل", 0.04);
-      const tBusy = at("مزدحم", 0.1);
-      const tMove = at("فننتقل", 0.16);
-      const tMind = at("والذهن", 0.26);
+      // السكريبت المعتمد (١١ نوفمبر): «ننهي عملًا مرهقًا، ونقوم إلى الصلاة، لكن العمل لا يزال يشغل أفكارنا. هنا تظهر قيمة
+      // التهيؤ؛ فلحظات نهدئ فيها عجلتنا، ونتذكر لماذا نصلي، قد تعيننا على الدخول في الصلاة بقدر أكبر من السكينة.»
+      const tWork = at("عملا", 0.1);
+      const tBusy = at("مرهقا", 0.14);
+      const tMove = at("ونقوم", 0.2);
+      const tMind = at("يشغل", 0.32);
+      const tLux = at("قيمة", 0.42);
       const tPrep = at("التهيؤ", 0.46);
-      const tLux = at("ترفا", 0.54);
-      const tCauses = at("الأسباب", 0.66);
+      const tCauses = at("نهدئ", 0.56);
+      const tTaz = at("لماذا", 0.66);
+      const tEnter = at("الدخول", 0.84);
       const tCalm = at("السكينة", 0.94);
-      const tEnter = at("ندخل", 0.8);
       c.reg([400, 500, 740, 860], tMove + 6);
       const icons: [IconId, number, number, number][] = [["bag", 1500, 360, -8], ["phone", 1650, 470, 10], ["calendar", 1430, 560, 4], ["clock", 1620, 660, -6], ["cart", 1480, 760, 6]];
       const calm = P(tCauses, tCalm + 6);
       return {
-        focus: [[tWork, 1550, 500], [tBusy, 1560, 560], [tMove, 1000, 600], [tMind, 560, 380], [tPrep, 1000, 520], [tLux, 1000, 280], [tCauses, 560, 500], [tCalm, 560, 760]],
-        cam: [C(0, 1550, 480, 1.3), C(tMove - 6, 1000, 560, 1.0), C(tMind - 4, 850, 560, 1.1), C(tPrep - 4, 980, 540, 1.0), C(tCalm - 8, 700, 640, 1.12)],
+        focus: [[tWork, 1550, 500], [tBusy, 1560, 560], [tMove, 1000, 600], [tMind, 560, 380], [tLux, 1000, 300], [tPrep, 1000, 520], [tCauses, 820, 760], [tTaz, 570, 470], [tEnter, 570, 760], [tCalm, 570, 470]],
+        cam: [C(0, 1550, 480, 1.3), C(tMove - 6, 1000, 560, 1.0), C(tMind - 4, 850, 560, 1.1), C(tLux - 4, 980, 540, 1.0), C(tCalm - 8, 700, 640, 1.12)],
         world: (
           <g>
             {icons.map(([id, x, y, r], k) => (
               <Icon key={id} id={id} x={x} y={y} s={1.25} rot={r} p={P(tWork + k * 4, tWork + k * 4 + 10)} c={z.ink} opacity={1 - 0.5 * calm} />
             ))}
-            {T("ws", 1560, 250, "عمل مزدحم", 60, ["عمل", 0.04], ["مزدحم", 0.1], { opacity: 1 - calm })}
+            {T("ws", 1560, 250, "عملا مرهقا", 60, ["عملا", 0.1], ["مرهقا", 0.14], { opacity: 1 - calm })}
             {/* الانتقال إلى الصلاة */}
             <Arrow x1={1340} y1={620} x2={720} y2={700} p={P(tMove, tMove + 18)} c={z.ink} w={8} bend={60} />
             <Stroke d="M420 800 L720 800 L680 850 L460 850 Z" p={P(tMove + 6, tMove + 22)} c={z.ink} w={6} fill={z.hl} fillP={0.45 * P(tMove + 10, tMove + 24)} />
-            {/* «ندخل صلاتنا»: يقف للصلاة على سجادته، ويضيء ما حولها */}
+            {/* «الدخول في الصلاة»: يقف للصلاة على سجادته، ويضيء ما حولها */}
             <ellipse cx={570} cy={830} rx={lerp(60, 230, P(tEnter - 2, tEnter + 16))} ry={lerp(16, 60, P(tEnter - 2, tEnter + 16))} fill={z.hl} opacity={0.55 * P(tEnter - 2, tEnter + 8)} style={{ mixBlendMode: "multiply" }} />
             <InkPerson x={570} y={810} s={1.05} pose="stand" p={P(tMove + 10, tMove + 28)} z={z} dir={-1} opacity={1 - P(tEnter, tEnter + 10)} />
             <InkPerson x={570} y={810} s={1.05} pose="fold" z={z} dir={-1} opacity={P(tEnter, tEnter + 10)} />
-            {/* الذهن ما زال في العمل */}
-            <g opacity={1 - calm}>
+            {/* الذهن ما زال في العمل؛ يهدأ مع «نهدئ» ويخلو قبل «لماذا نصلي» */}
+            <g opacity={1 - P(tCauses, tTaz - 2)}>
               <path d="M600 450 C760 360 1100 330 1380 380" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="10 14" opacity={P(tMind, tMind + 14)} />
               <Cloud x={600} y={400} r={70} p={P(tMind - 2, tMind + 12)} z={z} />
               <Icon id="phone" x={600} y={385} s={0.55} p={P(tMind + 6, tMind + 16)} c={z.ink} />
@@ -466,12 +469,13 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {/* التهيؤ: مسافة بين العمل والصلاة */}
             <rect x={940} y={160} width={120} height={720} rx={20} fill={z.hl} opacity={0.75 * P(tPrep - 2, tPrep + 14)} />
             {T("th", 1000, 560, "التهيؤ", 72, ["التهيؤ", 0.46], undefined, { font: "head" })}
-            {T("tr", 1000, 300, "ترفا", 64, ["ترفا", 0.54])}
-            <Cross x1={1070} x2={930} y={284} p={P(tLux + 8, tLux + 20)} z={z} />
+            {/* «قيمة التهيؤ» تُبرز، و«لماذا نصلي» سؤال فوق المصلي يُذكِّر بالغاية */}
+            {T("tr", 1000, 300, "قيمة", 64, ["قيمة", 0.42], undefined, { font: "head" })}
+            <g opacity={P(tTaz - 2, tTaz + 10) * (1 - P(tEnter - 6, tEnter + 6))}>{T("lm", 570, 470, "لماذا نصلي؟", 60, ["لماذا", 0.66], ["نصلي", 0.7])}</g>
             <Stroke d="M440 868 Q570 880 700 868" p={P(tCalm - 2, tCalm + 14)} c={z.hl} w={16} />
-            {/* «الأسباب التي تعيننا»: سهم من شريط التهيؤ إلى المصلي */}
-            <Stroke d="M960 760 Q820 820 700 830" p={P(at("الأسباب", 0.66) - 2, at("تعيننا", 0.74) + 10, (t) => t)} c={z.hl} w={34} opacity={0.85} />
-            <Arrow x1={930} y1={720} x2={660} y2={760} p={P(at("تعيننا", 0.74) - 2, at("تعيننا", 0.74) + 14)} c={z.ink} w={7} bend={30} />
+            {/* «لحظات نهدئ فيها… قد تعيننا»: سهم من شريط التهيؤ إلى المصلي */}
+            <Stroke d="M960 760 Q820 820 700 830" p={P(tCauses - 2, at("تعيننا", 0.76) + 10, (t) => t)} c={z.hl} w={34} opacity={0.85} />
+            <Arrow x1={930} y1={720} x2={660} y2={760} p={P(at("تعيننا", 0.76) - 2, at("تعيننا", 0.76) + 14)} c={z.ink} w={7} bend={30} />
             {T("sk", 570, 470, "السكينة", 64, ["السكينة", 0.94])}
           </g>
         ),
