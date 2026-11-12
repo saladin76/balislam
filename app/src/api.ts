@@ -274,7 +274,7 @@ export const api = {
   sentenceAction: (episode: string, channel: string, body: SentenceCommand) =>
     call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome }>(
       `/api/episodes/${episode}/sentences`, { method: "POST", json: body }, channel),
-  /** «أعد توليد ما وُلّد بالنبرة القوية» (بعد إلغاء D70، ١١ نوفمبر): dryRun يعرض العدد والحروف، ثم التوليد بضغطة المالك */
+  /** «أعد توليد ما وُلّد بنبرة سابقة» (بعد استعادة أول نسخة من النبرات، ١٢ نوفمبر): dryRun يعرض العدد والحروف، ثم التوليد بضغطة المالك */
   toneUpgrade: (episode: string, channel: string, dryRun: boolean) =>
     call<{ plan?: ToneUpgradePlan; result?: ToneUpgradeResult; media?: EpisodeMedia }>(`/api/episodes/${episode}/voice/upgrade-tone`, { method: "POST", json: { dryRun } }, channel),
   /** قاموس النطق للقناة: تعديل كلمة أو حذفها */

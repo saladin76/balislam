@@ -453,14 +453,14 @@
     "footer": "المعلومات التاريخية مأخوذة من مصادرها ومراجَعة قبل النشر. لا تُصوَّر الأنبياء ولا الصحابة."
   },
   "voice": {
-    "profile": {
-      "nameAr": "راوٍ وثائقي",
-      "speed": 0.95,
-      "stability": 0.5,
-      "style": 0.22,
-      "direction": "documentary storyteller narrating history"
-    },
     "profileHistory": {
+      "1": {
+        "nameAr": "راوٍ وثائقي",
+        "speed": 0.95,
+        "stability": 0.5,
+        "style": 0.22,
+        "direction": "documentary storyteller narrating history"
+      },
       "2": {
         "nameAr": "راوٍ وثائقي حازم",
         "speed": 1,

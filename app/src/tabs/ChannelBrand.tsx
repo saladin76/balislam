@@ -13,7 +13,6 @@ import { styleNameAr, styleTemplate } from "../../../src/plan/styles";
 import { Thumbnail } from "../../../src/remotion/Thumbnail";
 import config from "../../../config.json";
 import { tones, toneIds, voiceSettingsFor } from "../../../src/voice/tones";
-import type { VoiceProfile } from "../../../src/channel/types";
 import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 
 const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -97,7 +96,7 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
           <button className="btn small" onClick={async () => { setVmsg("جارٍ التحميل…"); try { const r = await api.testService("elevenlabs"); if (r.ok && r.voices) { setVoices(r.voices); setVmsg(""); } else setVmsg(r.message ?? "تعذّر جلب الأصوات"); } catch (e) { setVmsg((e as Error).message); } }}>اختيار من أصوات حسابك</button>
           {c.voice?.id ? <button className="btn ghost small" onClick={() => set({ voice: { ...c.voice, id: undefined, name: undefined } })}>رجوع للصوت العام</button> : null}
         </div>
-        <span className="help">{vmsg || "صوتك المستنسخ هو الأساس في كل القنوات؛ وما يميز كل قناة طبقتها تحت. اختر صوتًا آخر هنا فقط إن نسخت صوتك نسخة خاصة بهذه القناة."}</span>
+        <span className="help">{vmsg || "صوتك المستنسخ هو الأساس في كل القنوات. اختر صوتًا آخر هنا فقط إن نسخت صوتك نسخة خاصة بهذه القناة."}</span>
       </div>
 
       <VoiceRegister c={c} set={set} />
@@ -200,55 +199,32 @@ const EnginePanel: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>)
   );
 };
 
-/** طبقات جاهزة: نقطة بداية لكل قناة، وتُضبط بالمنزلقات (كما كانت قبل D70 الملغى) */
-const REGISTERS: VoiceProfile[] = [
-  { nameAr: "وقور هادئ", speed: 0.9, stability: 0.6, style: 0.08 },
-  { nameAr: "راوٍ وثائقي", speed: 0.95, stability: 0.5, style: 0.22 },
-  { nameAr: "سريع واضح", speed: 1.02, stability: 0.45, style: 0.28 },
-  { nameAr: "حكّاء قريب", speed: 0.94, stability: 0.45, style: 0.3 },
-];
 const pct = (x: number) => `${num(Math.round(x * 100))}٪`;
 
 /**
- * طبقة صوت القناة: صوت صاحب القناة نفسه بسرعة وثبات وتعبير خاصة بها، والنبرات (لكل حلقة أو مشهد) تتحرك حولها.
- * يظهر جدول بما تصير إليه كل نبرة في هذه القناة.
+ * نبرات القناة (أول نسخة، 2d8bee52، مُستعادة ١٢ نوفمبر): نبرة افتراضية للقناة، ولكل نبرة إعدادها نفسه.
+ * لا طبقة قناة تحت النبرة؛ بلا نبرة: إعدادات الصوت الأساسية.
  */
 const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>) => void }> = ({ c, set }) => {
-  const p = c.voice?.profile;
-  const put = (profile: VoiceProfile | undefined) => set({ voice: { ...c.voice, profile } });
   const [play, setPlay] = useState<PlayState>({ busy: false });
-  const slider = (key: "speed" | "stability" | "style", label: string, help: string, min: number, max: number) => (
-    <label className="field">
-      <span>{label}: <b>{key === "speed" ? `${num(p![key], 2)}×` : pct(p![key])}</b> <small>{help}</small></span>
-      <input type="range" min={min} max={max} step={0.01} value={p![key]} onChange={(e) => put({ ...p!, nameAr: p!.nameAr, [key]: Number(e.target.value) })} />
-    </label>
-  );
   return (
     <div className="field voice-register">
-      <span>طبقة صوت القناة <small>(صوتك نفسه بإيقاع وإحساس أساسي خاص بهذه القناة؛ والنبرة تختارها لكل حلقة أو مشهد)</small></span>
-      <div className="chips">
-        {REGISTERS.map((r) => (
-          <button key={r.nameAr} className={`chip ${p?.nameAr === r.nameAr ? "on" : ""}`} onClick={() => put({ ...r })}>{p?.nameAr === r.nameAr ? "✓ " : ""}{r.nameAr}</button>
-        ))}
-        {p ? <button className="chip" onClick={() => put(undefined)}>بلا طبقة (إعدادات الصوت العامة)</button> : null}
-      </div>
-      {p ? (
-        <>
-          <label className="field"><span>اسم الطبقة</span><input type="text" value={p.nameAr ?? ""} onChange={(e) => put({ ...p, nameAr: e.target.value })} /></label>
-          {slider("speed", "السرعة", "أبطأ للتأمل، أسرع للخلاصات", 0.8, 1.1)}
-          {slider("stability", "الثبات", "أعلى = أهدأ وأثبت، أقل = تلوين أكثر", 0.3, 0.8)}
-          {slider("style", "التعبير", "أعلى = أداء أكثر حيوية (ومعه احتمال تذبذب أكبر)", 0, 0.5)}
-        </>
-      ) : null}
-      <ListenPanel c={c} profile={p} play={play} setPlay={setPlay} />
+      <label className="field">
+        <span>النبرة الافتراضية للقناة <small>(الصوت نفسه بإحساس مختلف؛ تتغير لكل حلقة أو مشهد)</small></span>
+        <select id="ch-tone" value={c.voice?.tone ?? ""} onChange={(e) => set({ voice: { ...c.voice, tone: e.target.value || undefined } })}>
+          <option value="">عادية (إعدادات الصوت الأساسية)</option>
+          {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
+        </select>
+      </label>
+      <ListenPanel c={c} play={play} setPlay={setPlay} />
       <table className="dom-table tone-table">
-        <thead><tr><th>النبرة في الحلقة</th><th>السرعة</th><th>الثبات</th><th>التعبير</th><th>استمع <small className="help">(يصرف رصيدًا)</small></th></tr></thead>
+        <thead><tr><th>النبرة</th><th>السرعة</th><th>الثبات</th><th>التعبير</th><th>استمع <small className="help">(يصرف رصيدًا)</small></th></tr></thead>
         <tbody>
           {[undefined, ...toneIds].map((t) => {
-            const v = voiceSettingsFor(p, t) ?? { speed: config.voice.speed, stability: config.voice.stability, style: config.voice.style };
+            const v = voiceSettingsFor(undefined, t) ?? { speed: config.voice.speed, stability: config.voice.stability, style: config.voice.style };
             return (
               <tr key={t ?? "base"}>
-                <td>{t ? <>{tones[t].nameAr} <small className="help">{tones[t].useAr}</small></> : <b>طبقة القناة وحدها</b>}</td>
+                <td>{t ? <>{tones[t].nameAr} <small className="help">{tones[t].useAr}</small></> : <b>عادية (إعدادات الصوت الأساسية)</b>}</td>
                 <td>{num(v.speed, 2)}×</td>
                 <td>{pct(v.stability)}</td>
                 <td>{pct(v.style)}</td>
@@ -258,7 +234,7 @@ const VoiceRegister: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig
           })}
         </tbody>
       </table>
-      <span className="help">تغيير الطبقة يعيد توليد صوت المشاهد غير المنشورة عند التوليد التالي (المشاهد التي لم يتغير صوتها لا يُعاد توليدها). عادت النبرات كما كانت (أُلغي قرار النبرات القوية D70، ١١ نوفمبر)؛ وما وُلّد بالنبرة القوية صالح ولا يُعاد آليًا، ويُعاد بـ«أعد توليد ما وُلّد بالنبرة القوية» في «الجمل».</span>
+      <span className="help">هذه أول نسخة من النبرات كما وُضعت في الاستوديو (أُعيدت ١٢ نوفمبر). ما وُلّد بنبرة سابقة صالح ولا يُعاد آليًا، ويُعاد بـ«أعد توليد ما وُلّد بنبرة سابقة» في «الجمل».</span>
     </div>
   );
 };
@@ -273,8 +249,8 @@ const SAMPLE_TEXT: Record<string, string> = {
 };
 
 /** تجربة السماع: النص والنموذج، ويُشغَّل الصوت من أزرار جدول النبرات. */
-const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: PlayState; setPlay: (s: PlayState) => void }> = ({ c, profile, play, setPlay }) => {
-  const [text, setText] = useState(SAMPLE_TEXT[c.id] ?? "اكتب هنا سطرين بروح القناة لتسمع صوتك بطبقتها ونبراتها.");
+const ListenPanel: React.FC<{ c: ChannelConfig; play: PlayState; setPlay: (s: PlayState) => void }> = ({ c, play, setPlay }) => {
+  const [text, setText] = useState(SAMPLE_TEXT[c.id] ?? "اكتب هنا سطرين بروح القناة لتسمع صوتك بنبراتها.");
   const [models, setModels] = useState<{ id: string; name: string; arabic: boolean }[] | null>(null);
   const [model, setModel] = useState("");
   const [spent, setSpent] = useState(0);
@@ -290,7 +266,7 @@ const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: Pl
     }
     audio.current?.pause();
     setPlay({ busy: true, msg: "جارٍ التوليد…" });
-    api.voiceSample(c.id, { text, tone: r.tone, model: model || undefined, profile })
+    api.voiceSample(c.id, { text, tone: r.tone, model: model || undefined })
       .then((x) => {
         setSpent((n) => n + x.chars);
         const a = new Audio(api.voiceSampleUrl(c.id, x.file));
@@ -305,7 +281,7 @@ const ListenPanel: React.FC<{ c: ChannelConfig; profile?: VoiceProfile; play: Pl
   return (
     <div className="listen-panel">
       <label className="field">
-        <span>تجربة السماع <small>(صوتك بطبقة القناة الحالية — حتى قبل الحفظ — وبكل نبرة؛ اضغط ▶ في الجدول)</small></span>
+        <span>تجربة السماع <small>(صوتك بكل نبرة؛ اضغط ▶ في الجدول)</small></span>
         <textarea rows={2} value={text} maxLength={400} onChange={(e) => setText(e.target.value)} />
       </label>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
