@@ -8,6 +8,7 @@ import { SCENES, arabicCountAr } from "../../../src/i18n/count";
 import { citationChip, citationNotice } from "./citationNotice";
 import { DockChip, DockText } from "./DockText";
 import { Icon } from "../ui/icons";
+import { CORRECTIONS, countAr } from "../../../src/i18n/count";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
@@ -192,7 +193,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
           <h2>قبل أن تعتمد</h2>
           <ul>
             <li className={scriptFixes || diverged ? "is-warn" : undefined}><i aria-hidden="true">{scriptFixes || diverged ? "!" : <Icon name="check" />}</i>
-              <span>السكريبت<small>{scriptFixes ? <>{arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"}</> : diverged ? "لا يطابق اللوحات (انظر أدناه)" : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
+              <span>السكريبت<small>{scriptFixes ? <>قبل الاعتماد: {countAr(scriptFixes, CORRECTIONS)}</> : diverged ? "لا يطابق اللوحات (انظر أدناه)" : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
             {diverged ? (
               <li className="is-warn"><i aria-hidden="true">!</i><span>اللوحات والسكريبت<small>{divergedLine}. ما يُعتمد يجب أن يكون ما يُنطق.</small></span></li>
             ) : null}
@@ -242,7 +243,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
             {err ? <p className="ms-float spine-err" role="alert">{err}</p> : null}
             <div className="ms-dock-in is-wrap">
               <DockText line={next.fix === "script"
-                ? <>التجهيز لم يُعتمد بعد: {arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في السكريبت.</>
+                ? <>التجهيز لم يُعتمد بعد: في السكريبت {countAr(scriptFixes, CORRECTIONS)} قبل الاعتماد.</>
                 : next.text} />
               {/* الخطوة ٢ الآن وأنت خارج شاشتها: سطر «جاهز ١٢ من ١١٤» هنا، وفي شاشة المشاهد نفسها هناك */}
               <div className="ms-dock-ctl">

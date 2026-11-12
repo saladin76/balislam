@@ -15,6 +15,7 @@ import type { ScriptSaveReply } from "./planGuard";
 import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
 import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerJob, ownerMessage } from "./serverMessages";
+import { ownerText, planOrder } from "../../src/i18n/sceneNames";
 import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
@@ -93,6 +94,15 @@ const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?"
 /** The scene-preparation queue's errors in Arabic (P-07). */
 const prepareRead = (r: ScenePrepareRead): ScenePrepareRead => ({ ...r, job: r.job ? ownerJob(r.job as ScenePrepareJob & { log?: string[] }) : r.job });
 
+/**
+ * The script check as the owner reads it (QA 12 Nov: «جملة من 27 كلمة»، «(السطر 15)»): every message with
+ * Arabic-Indic digits and scene names («المشهد ٥») instead of ids. The server's own messages stay as they are (CLI, tests).
+ */
+export const ownerCheck = (c: CheckResult, plan?: Plan | null): CheckResult => {
+  if (!c?.issues) return c;
+  const order = planOrder(plan);
+  return { ...c, issues: c.issues.map((i) => ({ ...i, message: ownerText(i.message, order) })) };
+};
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
@@ -103,7 +113,7 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(ownerMessage((data as { error?: string }).error ?? `خطأ ${res.status}`));
+  if (!res.ok) throw new Error(ownerMessage((data as { error?: string }).error ?? `تعذّر الطلب (رمز ${res.status.toLocaleString("ar-EG", { useGrouping: false })}).`));
   return data as T;
 };
 
@@ -366,8 +376,8 @@ export const api = {
   deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; dir: string; trash: string; entry: TrashEntry; tracked: number }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
   trashList: () => call<{ trash: string; items: TrashEntry[] }>("/api/trash"),
   restoreTrash: (id: string) => call<{ ok: boolean; entry: TrashEntry }>("/api/trash/restore", { method: "POST", json: { id } }),
-  episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
-  saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
+  episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
+  saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
   savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
   /** مقاطع الشورتس (D83): الاختيار المحفوظ والمقترح ومشاهد الحلقة بمددها؛ الحفظ يكتب plan.shorts وحدها */
   shorts: (id: string) => call<ShortsRead>(`/api/episodes/${id}/shorts`),
@@ -377,7 +387,7 @@ export const api = {
   /** على خطة مصمَّمة يرفض الخادم (409) إلا بـ confirmRegenerate من planGuard.ts (رقم الحلقة مكتوبًا) */
   regenerate: (id: string, confirm: { overwriteDesigned?: true; confirmEpisode?: string } = {}) =>
     call<{ plan: Plan; backup?: string }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: confirm }),
-  check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
+  check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }).then((c) => ownerCheck(c)),
   identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
   saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity } }),
   render: (b: { episode: string; orientation: string; chapter?: number }) => call<RenderJob>("/api/render", { method: "POST", json: b }).then(ownerJob),

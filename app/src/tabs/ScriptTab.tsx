@@ -4,6 +4,7 @@ import config from "../../../config.json";
 import { ReviewPanel } from "./ReviewPanel";
 import { Hint, More } from "../shell/Screen";
 import "../shell/screens-s12.css";
+import { countAr, ERRORS, ownerText, WARNINGS, WORDS } from "../ui/format";
 
 export type ScriptTabHandle = { goToLine: (line: number) => void; hasUnsavedResearch: () => boolean };
 
@@ -166,17 +167,17 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
           <header className="s12-rail-head">
             <span className={`s12-verdict ${check.ok ? "ok" : "bad"}`}>
               <i aria-hidden />
-              {check.ok ? "صالح" : `${ar(errors)} ${errors === 1 ? "خطأ" : "أخطاء"}`}
-              {warnings ? <span className="s12-soft"> — {ar(warnings)} تنبيه</span> : null}
+              {check.ok ? "صالح" : countAr(errors, ERRORS)}
+              {warnings ? <span className="s12-soft"> — {countAr(warnings, WARNINGS)}</span> : null}
             </span>
-            <span className="s12-num">{ar(check.stats.totalWords)} كلمة — {fmtAr(check.stats.totalSeconds)}</span>
+            <span className="s12-num">{countAr(check.stats.totalWords, WORDS)} — {fmtAr(check.stats.totalSeconds)}</span>
           </header>
           {sortedIssues.length ? (
             <ul className="s12-issues">
               {sortedIssues.map((i, k) => (
                 <li key={k}>
                   <button className={`s12-issue ${i.level}`} onClick={() => i.line && goToLine(i.line)} disabled={!i.line}>
-                    <span className="s12-msg"><i className="s12-lv" aria-label={i.level === "error" ? "خطأ" : "تنبيه"} />{i.message}</span>
+                    <span className="s12-msg"><i className="s12-lv" aria-label={i.level === "error" ? "خطأ" : "تنبيه"} />{ownerText(i.message)}</span>
                     {i.line ? <span className="s12-ln">سطر {ar(i.line)}</span> : null}
                   </button>
                 </li>

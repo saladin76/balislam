@@ -15,7 +15,7 @@ import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
 import { api, type AfterPreparationWhat, type CloudPreviewJob, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
 import { episodeLength } from "../../../src/plan/episodeLength";
-import { duration, lengthSource, num, sceneName, verseRef } from "../ui/format";
+import { duration, isTechnicalNote, lengthSource, num, ownerPreviewText, sceneName, verseRef } from "../ui/format";
 import { BoardViewer, type BoardShot } from "./BoardViewer";
 import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
@@ -338,7 +338,7 @@ export const StoryboardPanel: React.FC<{
       ) : null}
 
       {/* فيديوهات الحلقة ظاهرة دائمًا تحت اللوحات، لا مطوية: هي ما يُراجَع */}
-      <Previews episodeId={episodeId} />
+      <Previews episodeId={episodeId} order={order} />
 
       <More>
         {err ? <p className="s12-alert" role="alert">{err}</p> : null}
@@ -370,9 +370,9 @@ export const StoryboardPanel: React.FC<{
             </button>
           </div>
           {quranAudit && <div role="status" className="s12-audit">
-            <p>بيئة مرجع المصحف: {quranAudit.environment}. المطابقة التقنية ليست اعتمادًا شرعيًا.</p>
+            <p>{MUSHAF_ENV_AR[quranAudit.environment] ?? "المقارنة بنص السكريبت المحلي."} المطابقة التقنية ليست اعتمادًا شرعيًا.</p>
             {quranAudit.audits.map((a) => <div key={a.key}>
-              <strong>{verseRef(a.key)}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? a.status}</strong>
+              <strong>{verseRef(a.key)}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? AUDIT_STATUS_AR[a.status] ?? "لم يُقارَن"}</strong>
               {!a.numbers.ok && <p className="warn">{a.numbers.notes.join("؛ ")}</p>}
               {a.ops.length > 0 && <ul>{a.ops.map((op, i) => <li key={i}>
                 الموضع {ar(op.at + 1)}، {op.cls}، {op.op}: في السكريبت «{op.shown || "∅"}»، في المصحف «{op.ref || "∅"}»
@@ -406,6 +406,15 @@ export const StoryboardPanel: React.FC<{
   );
 };
 
+/** «مقارنة مع المصحف» in Arabic (QA 12 Nov: «local-script-evidence-only»، «pending» were shown as they are). */
+const MUSHAF_ENV_AR: Record<string, string> = {
+  "local-script-evidence-only": "لا نسخة مرجعية من المصحف على هذا الجهاز؛ عُرض نص السكريبت وحده للمراجعة.",
+};
+const AUDIT_STATUS_AR: Record<string, string> = {
+  pending: "لم يُقارَن بعد بنسخة مرجعية — يحتاج مراجعتك",
+  missing: "لا نص آية مكتوب في السكريبت",
+  failed: "تعذّرت المقارنة",
+};
 /** ملفات المراجعة والاعتماد للحلقة (reviews/): تقارير داخلية تُفتح في نافذة مستقلة، لا تُنشر. */
 const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   const [files, setFiles] = useState<{ name: string; title: string; note: string; mtime: number }[]>([]);
@@ -457,7 +466,7 @@ const CloudDownload: React.FC<{ episodeId: string; file: EpisodePreview; onDone:
 };
 
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
-const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
+const Previews: React.FC<{ episodeId: string; order: string[] }> = ({ episodeId, order }) => {
   const [files, setFiles] = useState<EpisodePreview[]>([]);
   const [auto, setAuto] = useState(false);
   const [tick, setTick] = useState(0);
@@ -481,9 +490,11 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
                   {f.driveUrl ? <a className="btn small" href={f.driveUrl} target="_blank" rel="noreferrer">افتحه على Google Drive</a> : null}
                 </div>}
             <figcaption>
-              <b>{f.title}</b>
+              <b title={f.title}>{ownerPreviewText(f.title, order)}</b>
               <span className="help">رفع رقم {ar(f.version)}{f.updatedAt ? ` — ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
-              {f.note ? <span className="help">{f.note}</span> : null}
+              {f.note ? (isTechnicalNote(f.note)
+                ? <details className="help"><summary>تفاصيل</summary><span dir="auto">{f.note}</span></details>
+                : <span className="help">{ownerPreviewText(f.note, order)}</span>) : null}
             </figcaption>
           </figure>
         ))}

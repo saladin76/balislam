@@ -128,8 +128,27 @@ const mp3 = ["-ar", "48000", "-c:a", "libmp3lame", "-b:a", "192k"];
  * Processed copy of `input` at `output` (MP3, 48 kHz mono). `narrationLufs` is the narration's measured
  * integrated loudness when known; a value outside a sane speech range falls back to the default.
  */
+/** QA 12 Nov (balislam Major 5): a silent or empty upload is said in Arabic, never as ffmpeg's «-inf» command line. */
+export const RECITATION_SILENT = "الملف صامت أو فارغ: لا صوت مسموع فيه. سجّل التلاوة من جديد وارفعها.";
+export const RECITATION_UNREADABLE = "تعذّرت قراءة الملف الصوتي: صيغته غير مدعومة أو هو تالف. ارفعه بصيغة MP3 أو WAV أو M4A.";
+/** Below this integrated loudness (LUFS) a file holds no audible recitation (−70 is R128's absolute gate). */
+const SILENT_LUFS = -70;
+const audible = (x: string | number | undefined) => Number.isFinite(Number(x)) && Number(x) > SILENT_LUFS;
+
 export const polishRecitation = async (input: string, output: string, opts: { narrationLufs?: number | null } = {}): Promise<PolishReport> => {
+  try {
+    return await polishRecitationOnce(input, output, opts);
+  } catch (e) {
+    const msg = (e as Error).message ?? "";
+    if (msg === RECITATION_SILENT || /-inf|out of range|measured_I/i.test(msg)) throw Object.assign(new Error(RECITATION_SILENT), { code: "RECITATION_SILENT", details: msg.slice(0, 600) });
+    if (/^Command failed: ffmpeg|Invalid data found|could not find codec|does not contain any stream/i.test(msg))
+      throw Object.assign(new Error(RECITATION_UNREADABLE), { code: "RECITATION_UNREADABLE", details: msg.slice(0, 600) });
+    throw e;
+  }
+};
+const polishRecitationOnce = async (input: string, output: string, opts: { narrationLufs?: number | null }): Promise<PolishReport> => {
   const before = await measureLoudness(input);
+  if (!audible(before.integrated)) throw new Error(RECITATION_SILENT);
   const trim = await analyse(input, path.dirname(output));
   const fromNarration = typeof opts.narrationLufs === "number" && opts.narrationLufs >= -24 && opts.narrationLufs <= -12;
   const target = { integrated: fromNarration ? Math.round(opts.narrationLufs! * 10) / 10 : RECITATION_LOUDNESS.integrated,
@@ -141,6 +160,7 @@ export const polishRecitation = async (input: string, output: string, opts: { na
   // Pass 1: measure the trimmed, denoised signal; pass 2: apply one linear gain to reach the target.
   const { stderr } = await ff(["-i", input, "-vn", "-af", `${pre},${norm}:print_format=json`, "-f", "null", "-"]);
   const m = lastJson(stderr);
+  if (!audible(m.input_i)) throw new Error(RECITATION_SILENT);
   const filters = `${pre},${norm}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`;
   await ff(["-loglevel", "error", "-i", input, "-vn", "-af", filters, "-ac", "1", ...mp3, output]);
   const after = await measureLoudness(output);

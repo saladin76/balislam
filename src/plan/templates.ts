@@ -29,17 +29,17 @@ const CAMERA_OPTIONS = [
 /** أدوات المحرك (الأوامر 006–011) في محرر المشهد: فارغ = السلوك القائم حرفيًا */
 const GAIT_OPTIONS = [
   { value: "", label: "الافتراضية" },
-  { value: "stroll", label: "تمهّل (stroll)" },
-  { value: "walk", label: "مشي عادي (walk)" },
-  { value: "brisk", label: "مشي سريع (brisk)" },
-  { value: "heavy", label: "مشي مثقل (heavy)" },
+  { value: "stroll", label: "تمهّل" },
+  { value: "walk", label: "مشي عادي" },
+  { value: "brisk", label: "مشي سريع" },
+  { value: "heavy", label: "مشي مثقل" },
 ];
 const MOTION_OPTIONS = [
   { value: "", label: "القديمة (كما هي)" },
   { value: "natural", label: "طبيعية: قدم ثابتة وتسارع والتفاتة بالجسد" },
 ];
 const CAMERA_PLAN_HELP =
-  "مع الكاميرا المؤلَّفة فقط. فارغ = خطة آلية من كلمات المعنى. «ثابت» وحدها = كاميرا ساكنة. أو سطر لكل حركة: الكلمة (ويجوز +إطارات أو -إطارات) أو رقم الإطار | wide أو medium أو close ثم الهدف (hero، pair، door، board، center، وother للطرف الآخر مع التأطير المحتوي) ثم مدة اختيارية بالإطارات (12–300). السطر الأول 0 = التأطير الافتتاحي.";
+  "مع الكاميرا المؤلَّفة فقط. فارغ = خطة آلية من كلمات المعنى. «ثابت» وحدها = كاميرا ساكنة. أو سطر لكل حركة: الكلمة المنطوقة (ويجوز +إطارات أو -إطارات) أو رقم الإطار | ثم اللقطة: wide (واسعة) أو medium (متوسطة) أو close (قريبة)، ثم الهدف: hero (البطل)، pair (الاثنان)، door (الباب)، board (اللوحة)، center (الوسط)، other (الطرف الآخر)، ثم مدة اختيارية بالإطارات (من ١٢ إلى ٣٠٠). السطر الأول ٠ = التأطير الافتتاحي.";
 const LOOK_OPTIONS = [
   { value: "hero", label: "شاب (سترة)" },
   { value: "heroThobe", label: "شاب (ثوب)" },
@@ -294,12 +294,12 @@ export const templateDefs: TemplateDef[] = [
       { key: "cameraPlan", label: "خطة الكاميرا (اختياري)", type: "textarea", help: CAMERA_PLAN_HELP },
       { key: "cameraPlanPortrait", label: "خطة الكاميرا للعمودي (اختياري)", type: "textarea", help: "مثل خطة الكاميرا، للنسخة العمودية وحدها؛ فارغ = الخطة نفسها." },
       { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الكاميرا المؤلَّفة فقط." },
-      { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away, walk, proud, apologize, listen, talk" },
+      { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "حركة لكل جملة بالترتيب، مفصولة بفاصلة: stand (وقوف)، think (تفكير)، sit (جلوس)، sit-low (جلوس منخفض)، head-down (رأس منحنٍ)، hold (إمساك)، cross (ذراعان متشابكتان)، point (إشارة)، look-up (نظر للأعلى)، nod (إيماءة)، turn-away (التفات)، walk (مشي)، proud (تعالٍ)، apologize (اعتذار)، listen (إصغاء)، talk (كلام)" },
       { key: "poseTimeline", label: "وضعيات بتوقيت دقيق (اختياري)", type: "textarea", help: "سطر لكل حدث: رقم_الإطار | الوضعية (من قائمة الحركات أعلاه)، تحل محل الإيماءات الآلية." },
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
       { key: "shot", label: "لقطة مصمَّمة", type: "select", ui: "shot", options: [{ value: "", label: "بلا (إخراج عام)" }, ...Object.entries(SHOTS).map(([value, d]) => ({ value, label: d.nameAr }))] },
       { key: "cast", label: "من في المشهد", type: "select", options: [{ value: "", label: "من معنى الكلام" }, { value: "solo", label: "البطل وحده" }, { value: "companion", label: "شخص أمامه" }, { value: "witnesses", label: "شاهدان على موقف واحد" }] },
-      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence, verify, step (الأولى/الثانية/الثالثة)، measure (المقياس). لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "سطر لكل حدث: المعنى | الكلمة المنطوقة. اختر المعنى من القائمة (بأسمائه العربية). لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
       { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: lightingHelp("alley-tale") },
     ],
   },
@@ -314,11 +314,11 @@ export const templateDefs: TemplateDef[] = [
       { key: "biome", label: "الطريق", type: "select", options: [{ value: "city", label: "أطراف المدينة" }, { value: "fields", label: "الحقول" }, { value: "desert", label: "الصحراء" }, { value: "hill", label: "تلة الفجر" }] },
       { key: "mood", label: "المزاج", type: "select", options: MOOD_OPTIONS },
       { key: "moodTo", label: "يتحول إلى", type: "select", options: [{ value: "", label: "لا يتحول" }, ...MOOD_OPTIONS] },
-      { key: "poses", label: "حركة المسافر", type: "text", help: "walk للمشي (الافتراضي)، أو stand ليقف طوال المشهد" },
+      { key: "poses", label: "حركة المسافر", type: "text", help: "walk (يمشي، الافتراضي)، أو stand (يقف طوال المشهد)" },
       { key: "motion", label: "طريقة المشي", type: "select", options: MOTION_OPTIONS, help: "الطبيعية: قدم ثابتة على الطريق المتحرك، وتباطؤ عند المحطات واندفاع بعدها." },
-      { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية stroll)." },
+      { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية: تمهّل)." },
       { key: "look", label: "المسافر", type: "select", options: LOOK_OPTIONS },
-      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence, verify, step (الأولى/الثانية/الثالثة)، measure (المقياس). لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "سطر لكل حدث: المعنى | الكلمة المنطوقة. اختر المعنى من القائمة (بأسمائه العربية). لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
       { key: "lighting", label: "الإضاءة والظلال (اختياري)", type: "textarea", help: lightingHelp("road-journey") },
     ],
   },
@@ -331,11 +331,11 @@ export const templateDefs: TemplateDef[] = [
     minSeconds: 4,
     fields: [
       { key: "mood", label: "لون الضوء", type: "select", options: [{ value: "night", label: "ضوء ورقي (حيرة وسؤال)" }, { value: "dawn", label: "ضوء الفجر (حق وخلاصة)" }] },
-      { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "مفصولة بفاصلة: stand, think, sit, sit-low, head-down, hold, cross, point, look-up, nod, turn-away" },
+      { key: "poses", label: "حركة البطل لكل جملة", type: "text", help: "حركة لكل جملة بالترتيب، مفصولة بفاصلة: stand (وقوف)، think (تفكير)، sit (جلوس)، sit-low (جلوس منخفض)، head-down (رأس منحنٍ)، hold (إمساك)، cross (ذراعان متشابكتان)، point (إشارة)، look-up (نظر للأعلى)، nod (إيماءة)، turn-away (التفات)" },
       { key: "motion", label: "الانتقال بين العلامات", type: "select", options: MOTION_OPTIONS, help: "الطبيعية: يمشي إلى علامة كل سطر بخطوات حقيقية بدل الانزلاق السريع، ويقصّر المسافة إن قصر السطر." },
-      { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية walk)." },
+      { key: "gait", label: "المشية", type: "select", options: GAIT_OPTIONS, help: "مع الطريقة الطبيعية فقط (الافتراضية: مشي عادي)." },
       { key: "look", label: "البطل", type: "select", options: LOOK_OPTIONS },
-      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "المعنى | الكلمة المنطوقة. المعاني: truth, wrong, just, news, people, memory, door, think, walk, pain, decide, heart, witnesses, companion, harsh, proud, spread, apologize, listen, debate, money, work, success, evidence, verify, step (الأولى/الثانية/الثالثة)، measure (المقياس). لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
+      { key: "cues", label: "الأحداث (سطر لكل كلمة)", type: "textarea", options: Object.entries(cueNamesAr).map(([value, label]) => ({ value, label })), ui: "events", match: "first", help: "سطر لكل حدث: المعنى | الكلمة المنطوقة. اختر المعنى من القائمة (بأسمائه العربية). لا أحداث في جملة فيها ذكر الله أو دعاء أو آية" },
     ],
   },
   {
@@ -386,7 +386,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "head", label: "رأس الصفحة (عنوان القسم، اختياري)", type: "text", common: true },
       { key: "label", label: "العنوان (لمشهد العنوان)", type: "text" },
       { key: "title", label: "العنوان (اسم القسم، أو موضوع المقارنة أو الخط الزمني)", type: "text" },
-      { key: "from", label: "كاميرا البداية من المشهد السابق (x,y,تكبير)", type: "text", common: true },
+      { key: "from", label: "كاميرا البداية من المشهد السابق (الموضع الأفقي، الرأسي، التكبير)", type: "text", common: true },
       { key: "exit", label: "الخروج", type: "select", common: true, options: [{ value: "", label: "حسب المشهد" }, { value: "turn", label: "قلب صفحة" }, { value: "fade", label: "خفوت الحبر" }, { value: "none", label: "يكمله المشهد التالي" }] },
       { key: "idea", label: "فكرة المشهد (قيد التصميم)", type: "textarea" },
       { key: "batch", label: "الدفعة", type: "text" },
@@ -420,7 +420,7 @@ export const templateDefs: TemplateDef[] = [
       { key: "verdict", label: "الحكم في المقارنة", type: "select", options: [{ value: "", label: "بلا" }, { value: "a", label: "الأول" }, { value: "b", label: "الثاني" }, { value: "both", label: "يجتمعان" }, { value: "open", label: "مسألة مفتوحة" }] },
       { key: "verdictText", label: "نص الحكم", type: "text" },
       { key: "verdictWord", label: "كلمة الحكم", type: "text", ui: "anchor", match: "prefix", slot: "الحكم" },
-      { key: "items", label: "العلامات أو الشواهد", type: "textarea", help: "سطر لكل عنصر: «كلمة = نص». في الخط الزمني تسبق «؟» الكلمة للفجوة بلا سجل. في الشواهد النص مفتاح الرسم: tool، home، food، settle، burial، art (ويجوز «= مفتاح = وسم»)" },
+      { key: "items", label: "العلامات أو الشواهد", type: "textarea", help: "سطر لكل عنصر: «كلمة = نص». في الخط الزمني تسبق «؟» الكلمة للفجوة بلا سجل. في الشواهد النص اسم الرسمة: tool (أداة)، home (مسكن)، food (طعام)، settle (استقرار)، burial (دفن)، art (فن) (ويجوز «= الرسمة = وسم»)" },
       { key: "limit", label: "حدود الشاهد", type: "text" },
       { key: "limitWord", label: "كلمة حدود الشاهد", type: "text", ui: "anchor", match: "prefix", slot: "حدود الشاهد", fallbackFrom: "limit" },
     ],
@@ -551,7 +551,7 @@ export const templateDefs: TemplateDef[] = [
     baseSeconds: 7,
     minSeconds: 4,
     fields: [
-      { key: "image", label: "الصورة", type: "image", help: "ولّدها من الوصف بالأسفل (Midjourney أو Flux…) بنسبة 16:9 ثم ارفعها هنا. الشورت يقصّ من الوسط حسب «نقطة التركيز»." },
+      { key: "image", label: "الصورة", type: "image", help: "ارسمها أو ولّدها من الوصف بالأسفل بنسبة ١٦:٩ ثم ارفعها هنا. الشورت يقصّ من الوسط حسب «نقطة التركيز»." },
       { key: "prompt", label: "وصف الصورة لأداة التوليد (بالإنجليزية)", type: "textarea", help: "صف المشهد فقط: المكان والزمن والضوء وما يحدث. الاستوديو يضيف أسلوب القناة وقواعد الوجوه تلقائيًا." },
       { key: "image2", label: "اللوحة الثانية (اختيارية)", type: "image", help: "لوحة ثانية تتبدل مع العبارة التالية من الكلام. لوحتان أو ثلاث في المشهد الطويل تبقي الحركة فوق حد القناة." },
       { key: "prompt2", label: "وصف اللوحة الثانية (بالإنجليزية)", type: "textarea" },

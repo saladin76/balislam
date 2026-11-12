@@ -6,6 +6,8 @@
  * This is an additional fail-closed production barrier; the remaining renderer
  * and publisher adapters must call requireSceneMasterReady before release.
  */
+import { SCENES, countAr } from "../i18n/count";
+import { planOrder, sceneNames } from "../i18n/sceneNames";
 import path from "node:path";
 import { BASMALA_KEY, hasBasmala } from "../voice/basmala";
 import { cachedFileSha256 } from "../io/hashCache";
@@ -441,7 +443,8 @@ const carryForwardAfterPreparation = async (episode: string, file: string, doc: 
   const event: AuditEvent = {
     seq: doc.history.length + 1, action: AFTER_PREPARATION_ACTION, at, by: "system",
     resultSha256: state.storyboard.sha256,
-    note: `تحديث بعد التجهيز: ${scenes.length ? `يُراجَع ${scenes.length === 1 ? "مشهد واحد" : `${scenes.length} مشاهد`} في «٢ المشاهد» (${scenes.slice(0, 8).map(x => x.id).join("، ")}${scenes.length > 8 ? "…" : ""})` : "لم يتغيّر مشهد"}${script ? "؛ تغيّر السكريبت" : ""}. لا اعتماد جديد للتجهيز.`,
+    // QA 12 Nov: the owner reads this note in the board log — scenes by their number, Arabic counting.
+    note: `تحديث بعد التجهيز: ${scenes.length ? `يُراجَع ${countAr(scenes.length, SCENES)} في «٢ المشاهد» (${sceneNames(planOrder(plan), scenes.map(x => x.id), 8)})` : "لم يتغيّر مشهد"}${script ? "؛ تغيّر السكريبت" : ""}. لا اعتماد جديد للتجهيز.`,
     change,
   };
   const next = applyReconciled(doc, state, { history: [...doc.history, event] });

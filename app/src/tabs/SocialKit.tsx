@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../api";
-import { arDigits } from "../ui/format";
+import { PROBLEMS, WARNINGS, arDigits, countAr } from "../ui/format";
 import { kitIssues } from "../../../src/package/quality";
 import { CHAPTERS_TOKEN, checkCaption, checkDescription, checkTitle, resolveDescription, RULES, type Check, type PublishKit, type ShortKit } from "../../../src/package/social";
 
@@ -109,7 +109,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
       {/* فحص الجودة قبل التصدير: الأخطاء تمنع الحزمة، والتنبيهات للمراجعة */}
       <div className="kit-quality" style={{ border: `1px solid ${blocking ? "var(--err)" : "var(--line)"}`, background: blocking ? "var(--err-soft)" : undefined, borderRadius: 8, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
         <b style={{ color: blocking ? "var(--err)" : issues.length ? "var(--warn)" : "var(--ok)" }}>
-          {blocking ? `جودة النشر: ${blocking} مشكلة تمنع التصدير` : issues.length ? `جودة النشر: ${issues.length} تنبيه للمراجعة` : "جودة النشر: لا عناوين عامة ولا تكرار ولا نص مبتور ✓"}
+          {blocking ? `جودة النشر: ${countAr(blocking, PROBLEMS)} تمنع التصدير` : issues.length ? `جودة النشر: ${countAr(issues.length, WARNINGS)} للمراجعة` : "جودة النشر: لا عناوين عامة ولا تكرار ولا نص مبتور ✓"}
         </b>
         {issues.map((i, k) => (
           <span key={k} className="help" style={{ color: i.level === "error" ? "var(--err)" : undefined }}>

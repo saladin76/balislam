@@ -1,3 +1,4 @@
+import { AYAT, CLIPS, SCENES, SENTENCES, countAr as countOf } from "../../../src/i18n/count";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useScrollLock } from "../ui/scrollLock";
 import { api, type OwnRecitationsRead, type SentenceCommand, type SentenceRow, type SentenceScene, type SentencesRead, type WordFixOutcome } from "../api";
@@ -827,7 +828,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
       if (r.media) onMediaChange?.(r.media);
       setRead(await api.sentences(episodeId, channelId));
       const res = r.result!;
-      setMsg(`أُعيد توليد ${ar(res.sentences)} جملة و${ar(res.sceneJobs)} مقطع مشهد بالنبرة كما كانت؛ التسجيلات السابقة محفوظة.${res.errors.length ? ` تعذّر ${ar(res.errors.length)}: ${res.errors[0]!.error}` : ""}`);
+      setMsg(`أُعيد توليد ${countOf(res.sentences, SENTENCES)} و${countOf(res.sceneJobs, CLIPS)} بالنبرة كما كانت؛ التسجيلات السابقة محفوظة.${res.errors.length ? ` تعذّر ${ar(res.errors.length)}: ${res.errors[0]!.error}` : ""}`);
       onChanged?.();
     } catch (e) {
       setError((e as Error).message);
@@ -837,7 +838,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   };
   return (
     <div ref={wrap} className={`sv${sceneId ? " is-scene" : " is-episode"}${paragraph ? " is-para" : ""}`} dir="rtl">
-      {!sceneId ? <p className="sv-summary">{ar(voiced)} من {ar(total)} جملة بصوت — {ar(scenes.filter((s) => s.verse).length)} آية</p> : null}
+      {!sceneId ? <p className="sv-summary">{ar(voiced)} من {countOf(total, SENTENCES)} بصوت — {countOf(scenes.filter((s) => s.verse).length, AYAT, "بلا آيات")}</p> : null}
       {noKey && !paragraph ? (
         <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : " من الإعدادات"}.</p>
       ) : null}
@@ -861,7 +862,7 @@ export const OLDER_TONE = "وُلّدت بالنبرة القوية (المُل�
 export const UPGRADE_ALL = "أعد توليد ما وُلّد بالنبرة القوية";
 /** نص التأكيد: كم جملة وكم مشهد، وأنه يصرف رصيدًا */
 export const toneUpgradeConfirm = (p: { sentences: unknown[]; sceneJobs: { ids: unknown[] }; scenes: unknown[]; chars: number; credits: number }) =>
-  `${UPGRADE_ALL}؟\n${ar(p.sentences.length)} جملة و${ar(p.sceneJobs.ids.length)} مقطع مشهد، في ${ar(p.scenes.length)} مشهدًا.\n` +
+  `${UPGRADE_ALL}؟\n${countOf(p.sentences.length, SENTENCES)} و${countOf(p.sceneJobs.ids.length, CLIPS)}، في ${countOf(p.scenes.length, SCENES)}.\n` +
   `يصرف نحو ${ar(p.credits)} من رصيد الصوت (${ar(p.chars)} حرفًا). التسجيلات السابقة تبقى محفوظة، والمشاهد المتأثرة تعود لمراجعتك.`;
 
 type WordFixResult = { index: number; word: string; before: string; say: string; save: boolean; result: WordFixOutcome };

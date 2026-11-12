@@ -7,6 +7,7 @@ import { planAfterScriptSave, planPathFor, regeneratePlan } from "../src/plan/io
 import { generatePlan } from "../src/plan/generate";
 import { parseScript } from "../src/script/parse";
 import { loadChannel } from "../src/channel";
+import { SCENES, countAr } from "../src/i18n/count";
 import { confirmRegenerate, DESIGNED_PLAN_KEPT, scriptSaveMessage } from "../app/src/planGuard";
 import type { Plan } from "../src/plan/types";
 
@@ -174,18 +175,22 @@ describe("الاستوديو والأوامر", () => {
     const plan = readPlan(real("dafatir-alzaman", "001-adam-beginning"));
     let asked = "";
     expect(confirmRegenerate("001", plan, (m) => { asked = m; return "002"; })).toBeNull();
-    expect(asked).toContain(`ستُمحى ${designedScenes(plan).length} مشهدًا مصمَّمًا`);
+    expect(asked).toContain(`ستُمحى المشاهد المصمَّمة (${countAr(designedScenes(plan).length, SCENES)})`);
+    expect(asked).not.toMatch(/[0-9]/);
     expect(confirmRegenerate("001", plan, () => null)).toBeNull();
     expect(confirmRegenerate("001", plan, () => " 001 ")).toEqual({ overwriteDesigned: true, confirmEpisode: "001" });
+    expect(confirmRegenerate("001", plan, () => "٠٠١")).toEqual({ overwriteDesigned: true, confirmEpisode: "001" });
     expect(confirmRegenerate("001", { chapters: [] } as never, () => { throw new Error("لا يُسأل"); })).toEqual({});
   });
 
   it("رسالة حفظ السكريبت: سطر واحد على الخطة المصمَّمة، مع المشاهد المختلفة إن وُجدت", () => {
     expect(scriptSaveMessage({}).msg).toBe("حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك");
     expect(scriptSaveMessage({ planUnchanged: true, divergence: { scenes: [], unplaced: [] } })).toEqual({ msg: DESIGNED_PLAN_KEPT, warn: false });
-    const r = scriptSaveMessage({ planUnchanged: true, divergence: { scenes: [{ id: "c1-s3" }], unplaced: [{ line: 17 }] } });
+    const r = scriptSaveMessage({ planUnchanged: true, divergence: { scenes: [{ id: "c1-s3" }], unplaced: [{ line: 17 }] } }, ["c1-s1", "c1-s2", "c1-s3"]);
     expect(r.warn).toBe(true);
-    expect(r.msg).toContain("مشاهد نصها في السكريبت يختلف عن الخطة: c1-s3");
-    expect(r.msg).toContain("السطر 17");
+    // QA 12 Nov: the scene by its number, Arabic-Indic digits
+    expect(r.msg).toContain("مشاهد نصها في السكريبت يختلف عن الخطة: المشهد ٣");
+    expect(r.msg).toContain("السطر ١٧");
+    expect(r.msg).not.toMatch(/c1-s|[0-9]/);
   });
 });

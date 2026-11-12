@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { api, type Loudness, type OwnRecitationsRead, type RecitationPolish, type RecitationVariant } from "../api";
-import { num, sceneName, seconds as secs, verseRef } from "../ui/format";
+import { SCENES, countAr, num, sceneName, seconds as secs, verseRef } from "../ui/format";
 
 const lufs = (l?: Loudness | null) => (l && Number.isFinite(l.integrated) ? `علوّ ${num(l.integrated, 1)} — ذروة ${num(l.truePeak, 1)}` : "—");
 const sec = (n: number) => secs(n, 2);
@@ -86,7 +86,7 @@ export const RecitationItem: React.FC<{
   return (
     <li className={`pf-rec${compact ? " is-compact" : ""}`}>
       <div className="pf-rec-head">
-        <b title={key}>{verseRef(key)}</b> <span className="sp-hint" title={scenes.join("، ")}>{order?.length ? scenes.map((id) => sceneName(order, id)).join("، ") : scenes.length > 1 ? `${num(scenes.length)} مشاهد` : "مشهدها"}</span>
+        <b title={key}>{verseRef(key)}</b> <span className="sp-hint" title={scenes.join("، ")}>{order?.length ? scenes.map((id) => sceneName(order, id)).join("، ") : scenes.length > 1 ? countAr(scenes.length, SCENES) : "مشهدها"}</span>
         <span className={`pf-st is-${approved ? "ok" : pending ? "review" : "missing"}`}>{approved ? "معتمدة" : pending ? "بانتظار استماعك" : "لم تُرفع"}</span>
       </div>
       {approved ? (

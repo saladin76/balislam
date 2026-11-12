@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
+import { NOTES, SCENES, WARNINGS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
 import { createPortal } from "react-dom";
 import { afterPreparationLine, api, type SceneProductionRead, type SceneOwnerAction, type ScenePrepareRead } from "../api";
 import { channelProductionProfile } from "../../../src/channel/productionRules";
@@ -17,6 +17,7 @@ import "../shell/screens-s3.css";
 import { More } from "../shell/Screen";
 import { PrepareAll } from "./PrepareAll";
 import { SentencesPanel } from "./SentencesPanel";
+import { ShortsPicker } from "../tabs/ShortsPicker";
 import { StudioErrorBoundary } from "../shell/ErrorBoundary";
 import { clockAr, sceneName, seamName } from "./sceneNames";
 import { sceneSeconds } from "../../../src/plan/duration";
@@ -156,6 +157,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const [voiceMsg, setVoiceMsg] = useState("");
   // بعد «اعتمد» يُعرض المشهد التالي فورًا، وتبدأ مسودته الجاهزة بالتشغيل
   const [advanced, setAdvanced] = useState(false);
+  const [shortsOpen, setShortsOpen] = useState(false);
   // «جمل الحلقة كلها» في «أدوات وتفاصيل»: تُفتح بطلب المالك فقط (القائمة طويلة)
   const [allSentences, setAllSentences] = useState(false);
   // التجهيز في الخلفية (يبدأ وحده بعد «اعتمد التجهيز»): يقول تحت المشهد غير الجاهز «يُجهَّز الآن» أو «في الدور»
@@ -657,7 +659,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
               <div>
                 <h3>كل المشاهد معتمدة</h3>
                 <p className="sp-hint">{(data!.progress.recitationPending?.length ?? 0) > 0
-                  ? `${ar(data!.progress.recitationPending!.length)} مشهد آية معتمد «مشروطًا بالتلاوة»؛ التلاوات والمعاينة قبل النهائية في الخطوة ٣.`
+                  ? `آيات معتمدة «مشروطًا بالتلاوة»: ${ar(data!.progress.recitationPending!.length)}؛ التلاوات والمعاينة قبل النهائية في الخطوة ٣.`
                   : "اختر أي مشهد من الشريط لتعيد مشاهدته. التجميع والنسخة النهائية في الخطوة ٣."}</p>
               </div>
             </div>
@@ -665,7 +667,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
 
           {issues.length ? (
             <button type="button" className={`s3-issues${blocking ? " is-block" : ""}`} onClick={openIssues}>
-              {blocking ? `${ar(blocking)} ملاحظات تمنع النسخة النهائية` : `${ar(issues.length)} تنبيهات قبل النسخة النهائية`} — عرضها
+              {blocking ? `${countAr(blocking, NOTES)} تمنع النسخة النهائية` : `${countAr(issues.length, WARNINGS)} قبل النسخة النهائية`} — عرضها
             </button>
           ) : null}
 
@@ -696,6 +698,17 @@ export const SceneProductionPanel: React.FC<Props> = ({
                   <SentencesPanel episodeId={episodeId} channelId={channelId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
                     onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
                     onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
+                  </StudioErrorBoundary>
+                ) : null}
+              </div>
+              {/* D83 + QA 12 Nov: the owner picks the shorts segments at any time; making them stays after Master (rule ٤). */}
+              <div className="s3-more-group">
+                <h3>مقاطع الشورتس</h3>
+                <p className="sp-hint">حدّد مقاطع الشورتس الآن من مشهد إلى مشهد؛ تُصنع بعد اعتماد النسخة الأساسية في «٤ النشر».</p>
+                <button type="button" className="btn" aria-expanded={shortsOpen} onClick={() => setShortsOpen((v) => !v)}>{shortsOpen ? "أخفِ مقاطع الشورتس" : "حدّد مقاطع الشورتس"}</button>
+                {shortsOpen ? (
+                  <StudioErrorBoundary scope="screen" compact label="مقاطع الشورتس">
+                    <ShortsPicker episodeId={episodeId} approved={Boolean(data?.progress.masterApproved)} />
                   </StudioErrorBoundary>
                 ) : null}
               </div>
@@ -938,7 +951,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
         <div className="sp-row">
           <div>
             <h3>كل المشاهد معتمدة، وبانتظار التلاوات</h3>
-            <p className="sp-hint">{ar(data.progress.recitationPending!.length)} مشهد آية معتمد «مشروطًا بالتلاوة». شاهد «المعاينة قبل النهائية» ثم ارفع التلاوات أدناه؛ بعد اعتماد كل تلاوة يُفتح مشهدها وحده لمراجعة سريعة. التجميع والنسخة النهائية والنشر لا تُفتح قبل ذلك.</p>
+            <p className="sp-hint">آيات معتمدة «مشروطًا بالتلاوة»: {ar(data.progress.recitationPending!.length)}. شاهد «المعاينة قبل النهائية» ثم ارفع التلاوات أدناه؛ بعد اعتماد كل تلاوة يُفتح مشهدها وحده لمراجعة سريعة. التجميع والنسخة النهائية والنشر لا تُفتح قبل ذلك.</p>
           </div>
         </div>
       ) : allApproved && !data.assembly ? (

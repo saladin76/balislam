@@ -98,6 +98,11 @@ const EXACT: Record<string, string> = {
   "AV/Master review requires a playable video with an audio track, valid duration and required resolution.": "الفيديو غير صالح للمراجعة: يلزم مقطع قابل للتشغيل فيه مسار صوت ومدة ودقة صحيحة. أنتجه من جديد.",
 };
 const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
+  // QA 12 Nov: raw ffmpeg/ffprobe command lines never reach the owner.
+  [/Command failed: ffprobe[\s\S]*previews\/episode\.mp4[\s\S]*No such file or directory/, () => "لا نسخة مجمعة للحلقة على هذا الجهاز بعد؛ اجمع المشاهد المعتمدة أولًا في «٣ النسخة النهائية»."],
+  [/Command failed: ffmpeg[\s\S]*(?:measured_I|-inf\b|Value -inf)/, () => "الملف صامت أو فارغ: لا صوت مسموع فيه. سجّل التلاوة من جديد وارفعها."],
+  [/Command failed: ffprobe[\s\S]*No such file or directory/, () => "الملف المطلوب لم يُصنع بعد على هذا الجهاز؛ أنتجه أولًا ثم أعد المحاولة."],
+  [/Command failed: (?:ffmpeg|ffprobe)/, () => "تعذّرت معالجة الملف الصوتي أو المرئي: صيغته غير مدعومة أو هو تالف. ارفعه بصيغة أخرى (MP3 أو WAV أو M4A للصوت)."],
   [/^Scene (\S+) has changed after audiovisual approval\.$/, (m) => `تغيّر المشهد ${m[1]} بعد اعتماده؛ يحتاج إنتاجًا واعتمادًا جديدين.`],
   // Render-browser download failures that escape the renderer's own wrapper (D36).
   [/(getaddrinfo (ENOTFOUND|EAI_AGAIN)[^\n]*remotion|remotion\.media|download(ing)? (the )?(chrome|browser)|headless shell)/i, () =>
@@ -112,14 +117,15 @@ export const ownerJob = <T extends { error?: string; log?: string[] } | null | u
   if (!job) return job;
   const out = { ...job } as NonNullable<T> & { error?: string; log?: string[]; voice?: { error?: string }; failed?: { error: string }[]; skipped?: { error?: string }[] };
   if (typeof out.error === "string") out.error = ownerMessage(out.error);
-  if (Array.isArray(out.log)) out.log = out.log.map((l) => (typeof l === "string" ? ownerMessage(l) : l));
+  // Log lines are progress, not refusals: translated when known, never wrapped as a failure.
+  if (Array.isArray(out.log)) out.log = out.log.map((l) => (typeof l === "string" ? ownerMessage(l, { untranslated: false }) : l));
   if (out.voice && typeof out.voice.error === "string") out.voice = { ...out.voice, error: ownerMessage(out.voice.error) };
   if (Array.isArray(out.failed)) out.failed = out.failed.map((f) => ({ ...f, error: ownerMessage(f.error ?? "") }));
   if (Array.isArray(out.skipped)) out.skipped = out.skipped.map((f) => (typeof f.error === "string" ? { ...f, error: ownerMessage(f.error) } : f));
   return out as T;
 };
 
-export const ownerMessage = (message: string): string => {
+export const ownerMessage = (message: string, opts: { untranslated?: boolean } = {}): string => {
   const text = message.trim();
   const exact = EXACT[text] ?? EXACT[text.replace(/^Error:\s*/, "")];
   if (exact) return exact;
@@ -132,5 +138,9 @@ export const ownerMessage = (message: string): string => {
   // Per-scene failure lists ("c6-end: <message>") keep their prefix.
   const prefixed = text.match(/^([a-z0-9-]+): (.+)$/s);
   if (prefixed && EXACT[prefixed[2]!.trim()]) return `${prefixed[1]}: ${EXACT[prefixed[2]!.trim()]}`;
+  // QA 12 Nov: a refusal still in English reads in Arabic first; the server's own words follow as the details.
+  if (opts.untranslated !== false && text && !/[\u0600-\u06FF]/.test(text) && /[A-Za-z]{3}/.test(text)) return `${UNTRANSLATED} (التفاصيل: ${text.slice(0, 240)})`;
   return message;
 };
+/** The Arabic lead of a server refusal that has no translation yet (the English text follows as its details). */
+export const UNTRANSLATED = "تعذّر تنفيذ الطلب؛ إن تكرر فأرسل هذه الرسالة إلى Claude.";

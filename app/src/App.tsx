@@ -7,7 +7,7 @@ import { Band, type ManageItem } from "./shell/Band";
 import { EpisodeSpine, STEPS, stepOf, stepsDone, type StepTab } from "./shell/EpisodeSpine";
 import { useColorScheme } from "./ui/colorScheme";
 import { episodeLength } from "../../src/plan/episodeLength";
-import { arDigits, arNum, duration, episodeTitle, latinDigits, num } from "./ui/format";
+import { arDigits, arNum, countAr, duration, episodeTitle, latinDigits, num, WORDS } from "./ui/format";
 import config from "../../config.json";
 import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedStep";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -175,9 +175,12 @@ export const App: React.FC = () => {
   /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
   const scriptDirtyRef = useRef(false);
 
-  const say = (msg: string, err = false) => {
+  // QA 12 Nov: a warning the owner must read stays long enough to read it (the script-save list vanished in ٢ ث).
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const say = (msg: string, err = false, ms = 2600) => {
     setToast({ msg, err });
-    setTimeout(() => setToast(null), 2600);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), ms);
   };
 
   // QA 12 Nov: a fresh browser (no channel stored, no hash) takes the first channel at once, so «مرجع القناة»,
@@ -323,8 +326,8 @@ export const App: React.FC = () => {
     setHomeKey((k) => k + 1);
     api.episode(epId).then((d) => { setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys }); }).catch(() => {});
     // خطة مصمَّمة: لم تُلمس، وتُذكر المشاهد التي اختلف نصها عن السكريبت
-    const note = scriptSaveMessage(r);
-    say(note.msg, note.warn);
+    const note = scriptSaveMessage(r, r.plan?.chapters.flatMap((c) => c.scenes.map((x) => x.id)) ?? []);
+    say(note.msg, note.warn, note.warn ? 9000 : undefined);
   };
 
   const scriptDirty = script !== savedScript;
@@ -412,12 +415,12 @@ export const App: React.FC = () => {
   const autoFinal: FinalView = !w ? "recitations" : (w.progress.recitationPending?.length ?? 0) > 0 || !w.progress.canAssemble ? "recitations" : !w.progress.assemblyApproved ? "seams" : "master";
   const final: FinalView = finalView ?? autoFinal;
   const views: HeaderView[] = tab === "home" || tab === "library" || (tab === "guide" && hasGuide) ? [
-    { id: "home", label: "الحلقات", sub: episodes ? String(episodes.length) : undefined, current: tab === "home", onSelect: () => void navigateManage("home") },
+    { id: "home", label: "الحلقات", sub: episodes ? arNum(episodes.length) : undefined, current: tab === "home", onSelect: () => void navigateManage("home") },
     { id: "library", label: "مكتبة القناة", current: tab === "library", onSelect: () => void navigateManage("library") },
     ...(hasGuide ? [{ id: "guide", label: "مرجع القناة", current: tab === "guide", onSelect: () => void navigateManage("guide") }] : []),
   ] : !inEpisode ? [] : here === 0 ? [
-    { id: "storyboard", label: "اللوحات والنص", sub: plan ? String(plan.chapters.reduce((n, c) => n + c.scenes.length, 0)) : undefined, current: tab === "storyboard", onSelect: () => go("storyboard") },
-    { id: "script", label: "السكريبت", sub: check ? `${num(check.stats.totalWords)} كلمة` : undefined, current: tab === "script", onSelect: () => go("script") },
+    { id: "storyboard", label: "اللوحات والنص", sub: plan ? arNum(plan.chapters.reduce((n, c) => n + c.scenes.length, 0)) : undefined, current: tab === "storyboard", onSelect: () => go("storyboard") },
+    { id: "script", label: "السكريبت", sub: check ? countAr(check.stats.totalWords, WORDS) : undefined, current: tab === "script", onSelect: () => go("script") },
     { id: "research", label: "البحث والمصادر", current: tab === "research", onSelect: () => go("research") },
   ] : here === 1 && done[0] ? [
     { id: "one", label: "مشهدًا مشهدًا", current: tab === "episode" && sceneView === "one", onSelect: () => { setSceneView("one"); go("episode"); } },

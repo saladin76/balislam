@@ -20,7 +20,8 @@ describe("رسائل الخادم للمالك بالعربية", () => {
   });
   it("الرسائل غير المعروفة والعربية تمر كما هي", () => {
     expect(ownerMessage("حدّد نبرة كل مقطع")).toBe("حدّد نبرة كل مقطع");
-    expect(ownerMessage("Something new")).toBe("Something new");
+    // QA 12 Nov: an untranslated English refusal reads in Arabic first, with the server's words as the details
+    expect(ownerMessage("Something new")).toBe("تعذّر تنفيذ الطلب؛ إن تكرر فأرسل هذه الرسالة إلى Claude. (التفاصيل: Something new)");
   });
   it("كل طلب في الواجهة يمر بالترجمة", () => {
     expect(src("app/src/api.ts")).toContain("throw new Error(ownerMessage(");

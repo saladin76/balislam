@@ -26,9 +26,28 @@ const AR = "٠١٢٣٤٥٦٧٨٩";
 export const arabicCountAr = (n: number, f: ArabicNounForms): string =>
   arabicCount(n, f).replace(/\d/g, (d) => AR[Number(d)]!);
 
+/**
+ * The Studio's one counting formatter for owner-facing text (QA 12 Nov: «٢ أخطاء»، «٢ آية»، «١ مشهد»، «جملة من 27
+ * كلمة»): Arabic-Indic digits and the right number–noun agreement. `zero` names the empty case («بلا أخطاء»);
+ * without it ٠ reads «٠ <plural>».
+ */
+export const countAr = (n: number, f: ArabicNounForms, zero?: string): string =>
+  n === 0 ? (zero ?? `٠ ${f.few}`) : arabicCountAr(Math.max(0, Math.round(n)), f);
+
 export const SCENES: ArabicNounForms = { one: "مشهد واحد", two: "مشهدان", few: "مشاهد", many: "مشهدًا", hundred: "مشهد" };
 export const AYAT: ArabicNounForms = { one: "آية واحدة", two: "آيتان", few: "آيات", many: "آية", hundred: "آية" };
 export const EPISODES: ArabicNounForms = { one: "حلقة واحدة", two: "حلقتان", few: "حلقات", many: "حلقة", hundred: "حلقة" };
 export const CITATIONS: ArabicNounForms = { one: "استشهاد واحد", two: "استشهادان", few: "استشهادات", many: "استشهادًا", hundred: "استشهاد" };
+export const ERRORS: ArabicNounForms = { one: "خطأ واحد", two: "خطآن", few: "أخطاء", many: "خطأً", hundred: "خطأ" };
+export const WARNINGS: ArabicNounForms = { one: "تنبيه واحد", two: "تنبيهان", few: "تنبيهات", many: "تنبيهًا", hundred: "تنبيه" };
+export const WORDS: ArabicNounForms = { one: "كلمة واحدة", two: "كلمتان", few: "كلمات", many: "كلمة", hundred: "كلمة" };
+export const SENTENCES: ArabicNounForms = { one: "جملة واحدة", two: "جملتان", few: "جمل", many: "جملة", hundred: "جملة" };
+export const CORRECTIONS: ArabicNounForms = { one: "تصحيح واحد", two: "تصحيحان", few: "تصحيحات", many: "تصحيحًا", hundred: "تصحيح" };
+export const NOTES: ArabicNounForms = { one: "ملاحظة واحدة", two: "ملاحظتان", few: "ملاحظات", many: "ملاحظة", hundred: "ملاحظة" };
+export const PROBLEMS: ArabicNounForms = { one: "مشكلة واحدة", two: "مشكلتان", few: "مشكلات", many: "مشكلة", hundred: "مشكلة" };
+export const CLIPS: ArabicNounForms = { one: "مقطع واحد", two: "مقطعان", few: "مقاطع", many: "مقطعًا", hundred: "مقطع" };
+export const SEAMS: ArabicNounForms = { one: "وصلة واحدة", two: "وصلتان", few: "وصلات", many: "وصلة", hundred: "وصلة" };
+export const LETTERS: ArabicNounForms = { one: "حرف واحد", two: "حرفان", few: "أحرف", many: "حرفًا", hundred: "حرف" };
+export const SECONDS_AR: ArabicNounForms = { one: "ثانية واحدة", two: "ثانيتان", few: "ثوانٍ", many: "ثانية", hundred: "ثانية" };
 /** «كل سبت»: the weekly publishing day as the owner reads it. */
 export const everyWeekday = (day: string) => `كل ${day.replace(/^(يوم\s+)?(ال)?/, "")}`;

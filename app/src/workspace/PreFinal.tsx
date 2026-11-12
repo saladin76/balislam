@@ -1,3 +1,4 @@
+import { SCENES, countAr } from "../../../src/i18n/count";
 import React, { useEffect, useState } from "react";
 import { api, type OwnRecitationsRead } from "../api";
 import { RecitationItem } from "./RecitationItem";
@@ -65,7 +66,7 @@ export const PreFinalPanel: React.FC<{
   };
   const makePreFinal = () => guard("prefinal", async () => {
     const r = await api.makePreFinal(episodeId, channelId);
-    setMsg(`جُمعت ${ar(r.scenes)} مشاهد${r.recitationPending.length ? `؛ ${ar(r.recitationPending.length)} آية صامتة بانتظار تلاوتها` : ""}.`);
+    setMsg(`جُمعت ${countAr(r.scenes, SCENES)}${r.recitationPending.length ? `؛ آيات صامتة بانتظار تلاوتها: ${ar(r.recitationPending.length)}` : ""}.`);
   });
   const verses = recs?.verses ?? [];
   const keys = [...new Set(verses.map((v) => v.key))];

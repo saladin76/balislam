@@ -1,5 +1,6 @@
 import { OverlayToggles } from "../ui/Overlays";
-import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
+import { SCENES, WORDS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
+const arNumE = (n: number) => n.toLocaleString("ar-EG");
 import { resolveOverlays } from "../../../brand/identity/index";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerRef } from "@remotion/player";
@@ -705,7 +706,7 @@ const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
       <span style={{ color, fontWeight: 600 }}>
         {!t.file
           ? "التشكيل: لا توجد نسخة مشكولة (tashkeel.md) لهذه الحلقة؛ التوليد متوقف حتى تُضاف."
-          : `التشكيل: ${pct}% (${t.covered} من ${t.words} كلمة) — الحد ${Math.round(t.min * 100)}% ${t.ok ? "✓" : "— التوليد متوقف حتى يكتمل"}`}
+          : `التشكيل: ${arNumE(pct)}٪ (${arNumE(t.covered)} من ${countAr(t.words, WORDS)}) — الحد ${arNumE(Math.round(t.min * 100))}٪ ${t.ok ? "✓" : "— التوليد متوقف حتى يكتمل"}`}
       </span>
       {t.gaps.length ? (
         <details open={!t.ok}>
