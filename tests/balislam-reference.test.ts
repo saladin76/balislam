@@ -27,7 +27,7 @@ describe("المرجع الهندسي لـ«بالإسلام» — البنية 
     const idx = (await readGuideIndex("balislam"))!;
     expect(idx.channel).toBe("balislam");
     expect(idx.navLabel).toBe("مرجع الاستوديو");
-    expect(idx.entries.map((e) => e.file).sort()).toEqual(pages().sort());
+    expect(idx.entries.filter((e) => !e.shared).map((e) => e.file).sort()).toEqual(pages().sort());
     for (const f of ["README.md", "00-start-here.md", "01-constants.md", "02-architecture.md", "03-engine.md", "04-render-quality.md", "05-development.md", "06-decisions.md"]) expect(pages()).toContain(f);
   });
   it("الاستوديو يقرأ كل صفحة، ولا يقرأ ما خارج الفهرس", async () => {

@@ -8,7 +8,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { projectRoot } from "../config/paths";
 
-export type GuideEntry = { file: string; title: string; summary?: string };
+/** shared: صفحة مشتركة بين القنوات من docs/studio/ (مثل studio-map.md، D103)، تُعرض في مرجع كل قناة بلا نسخة ثانية */
+export type GuideEntry = { file: string; title: string; summary?: string; shared?: boolean };
+/** مجلد الصفحات المشتركة بين القنوات (D103) */
+export const sharedGuideDir = (root = projectRoot) => path.join(root, "docs", "studio");
 /** navLabel: اسم القسم في قائمة الاستوديو لهذه القناة (الافتراضي «دليل الاستوديو») */
 export type GuideIndex = { title: string; channel: string; navLabel?: string; entries: GuideEntry[] };
 
@@ -25,7 +28,8 @@ export const readGuideIndex = async (channel: string, root = projectRoot): Promi
 /** نص صفحة من الدليل: يُقبل فقط ما في الفهرس (لا مسارات أخرى) */
 export const readGuidePage = async (channel: string, file: string, root = projectRoot): Promise<string | null> => {
   const idx = await readGuideIndex(channel, root);
-  if (!idx || !idx.entries.some((e) => e.file === file) || !/^[\w.-]+\.md$/.test(file)) return null;
-  const p = path.join(guideDir(channel, root), file);
+  const entry = idx?.entries.find((e) => e.file === file);
+  if (!entry || !/^[\w.-]+\.md$/.test(file)) return null;
+  const p = path.join(entry.shared ? sharedGuideDir(root) : guideDir(channel, root), file);
   return existsSync(p) ? readFile(p, "utf8") : null;
 };
