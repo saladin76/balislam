@@ -166,45 +166,45 @@
     }
   },
   "sb032-05-phone-landscape.mp4": {
-    "title": "032 · الهاتف c1-s117…s119 أفقي صامت (جاهز للمراجعة)",
+    "title": "033 · الهاتف c1-s117…s119 (بلا تعليم فوق الصورة، 033) أفقي صامت (جاهز للمراجعة)",
     "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
-    "version": 1,
-    "updatedAt": "2026-11-11T21:28:25.980Z",
-    "sha256": "af533f1e08355ac0d87221ca35de4cb8cf377d20310cb291c52f03b95c38a3ed",
-    "size": 1673160,
+    "version": 2,
+    "updatedAt": "2026-11-12T05:10:29.799Z",
+    "sha256": "3b27fa3580055b3e42383f2e8dcccfba0c0b438b3fb2b71ae828d26a7ae512e2",
+    "size": 1622302,
     "source": {
       "type": "git-branch",
       "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-05-phone-landscape",
-      "commit": "3dc600e0ed3e0805aa152c7d3745d69dca3cec7c",
-      "sha256": "af533f1e08355ac0d87221ca35de4cb8cf377d20310cb291c52f03b95c38a3ed",
-      "size": 1673160,
+      "commit": "fbdd10b7f7da5809720c764a193b1bc65b96e01a",
+      "sha256": "3b27fa3580055b3e42383f2e8dcccfba0c0b438b3fb2b71ae828d26a7ae512e2",
+      "size": 1622302,
       "parts": [
         {
           "name": "part-000",
-          "size": 1673160,
-          "sha256": "af533f1e08355ac0d87221ca35de4cb8cf377d20310cb291c52f03b95c38a3ed"
+          "size": 1622302,
+          "sha256": "3b27fa3580055b3e42383f2e8dcccfba0c0b438b3fb2b71ae828d26a7ae512e2"
         }
       ]
     }
   },
   "sb032-05-phone-portrait.mp4": {
-    "title": "032 · الهاتف c1-s117…s119 عمودي صامت (جاهز للمراجعة)",
+    "title": "033 · الهاتف c1-s117…s119 (بلا تعليم فوق الصورة، 033) عمودي صامت (جاهز للمراجعة)",
     "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
-    "version": 1,
-    "updatedAt": "2026-11-11T21:28:29.369Z",
-    "sha256": "eb0262cc6ef7c6702ff39563c64757542f1112fa788df9b49f9cca48e388210d",
-    "size": 1206794,
+    "version": 2,
+    "updatedAt": "2026-11-12T05:10:33.499Z",
+    "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69",
+    "size": 1271904,
     "source": {
       "type": "git-branch",
       "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-05-phone-portrait",
-      "commit": "729e1385350b3ee10d87a8d7a6ea9a51714053ab",
-      "sha256": "eb0262cc6ef7c6702ff39563c64757542f1112fa788df9b49f9cca48e388210d",
-      "size": 1206794,
+      "commit": "830f9d96cc2245940905b97338b87ef97ea1e1bb",
+      "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69",
+      "size": 1271904,
       "parts": [
         {
           "name": "part-000",
-          "size": 1206794,
-          "sha256": "eb0262cc6ef7c6702ff39563c64757542f1112fa788df9b49f9cca48e388210d"
+          "size": 1271904,
+          "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69"
         }
       ]
     }
@@ -298,16 +298,16 @@
     }
   },
   "sb032-09-recall-landscape.mp4": {
-    "title": "032 · تذكّر الميزان c1-s148…s150 أفقي صامت (جاهز للمراجعة)",
+    "title": "033 · تذكّر الميزان c1-s148…s150 أفقي صامت (جاهز للمراجعة)",
     "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
-    "version": 1,
-    "updatedAt": "2026-11-11T21:28:46.548Z",
+    "version": 2,
+    "updatedAt": "2026-11-12T05:10:36.592Z",
     "sha256": "a43725d3d1e600b9396270f01a112d5bafd3fd7b74619033e0b4d4a191695531",
     "size": 3443113,
     "source": {
       "type": "git-branch",
       "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-09-recall-landscape",
-      "commit": "1b68f077d8dfdfd2afb48ae28580fac9d8f81b16",
+      "commit": "0acf2b764fcb51ff832a65bd0f7ec9758740157e",
       "sha256": "a43725d3d1e600b9396270f01a112d5bafd3fd7b74619033e0b4d4a191695531",
       "size": 3443113,
       "parts": [
@@ -315,6 +315,28 @@
           "name": "part-000",
           "size": 3443113,
           "sha256": "a43725d3d1e600b9396270f01a112d5bafd3fd7b74619033e0b4d4a191695531"
+        }
+      ]
+    }
+  },
+  "sb032-09-recall-portrait.mp4": {
+    "title": "033 · تذكّر الميزان c1-s148…s150 عمودي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-12T05:10:40.182Z",
+    "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244",
+    "size": 2277512,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-09-recall-portrait",
+      "commit": "5e0a2b599468d8dd2883189e5fa1760ab3e48d21",
+      "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244",
+      "size": 2277512,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2277512,
+          "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244"
         }
       ]
     }

@@ -237,7 +237,7 @@ const RECALL_SHOTS: Record<string, Def> = {
       const tQ = at("قال", 0.8);
       const kc = KC(portrait);
       return {
-        cam: portrait ? [kc(0, SX, 1.3), kc(tA, W2_X - 40, 1.3)] : [kc(0, SX, 1.12), kc(tT, SX, 1.16), kc(tA, SX + 100, 1.2)],
+        cam: portrait ? [kc(0, SX, 1.3), kc(tT, W1_X + 60, 1.3), kc(tL, SX, 1.3), kc(tA, W2_X - 40, 1.3)] : [kc(0, SX, 1.12), kc(tT, SX, 1.16), kc(tA, SX + 100, 1.2)],
         world: souqWorld(frame, { lift: 1, drop: 1, vendor: "hold", w1: "think", w2: frame < tQ ? "nod" : "talk", pillR: P(frame, tT, 16), pillG: P(frame, tT + 6, 16), dimG: P(frame, tQ + 8, 24), levelGlow: 0.6 * P(frame, tL, 14) * (1 - P(frame, tA, 20)) }),
         tint: RECALL_TINT,
         tintOpacity: 0.22,
@@ -1104,7 +1104,7 @@ const CAFE_SHOTS: Record<string, Def> = {
       const full = 0.5 * P(frame, tO, 22) + 0.5 * P(frame, tR + 10, 30);
       const st: CafeState = { show: 1, full, lines: 3, tag: 1, thumb: 0.4 * (1 - P(frame, tO, 10)), man: P(frame, tP, 18), pose: frame < tK ? "sit-show" : frame < tV ? "sit" : "sit-show" };
       return {
-        cam: [phoneCam(kc, portrait, 0, 1.24), kc(tO, PH[0], portrait ? 1.5 : 1.7, -170), kc(tX, PH[0], portrait ? 1.3 : 1.5, -100), phoneCam(kc, portrait, tK, 1.3), phoneCam(kc, portrait, tW, 1.2)],
+        cam: [phoneCam(kc, portrait, 0, 1.24), kc(tO, PH[0], portrait ? 1.5 : 1.7, -170), kc(tX, PH[0], portrait ? 1.3 : 1.5, -100), phoneCam(kc, portrait, tK, 1.3), ...(portrait ? [kc(tV, PH[0], 1.3, -110)] : []), phoneCam(kc, portrait, tW, 1.2)],
         world: cafeWorld(frame, st),
         spans: [thing("photo", PH[0] - 170, PH[0] + 170)],
       };
