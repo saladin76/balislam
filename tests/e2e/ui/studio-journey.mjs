@@ -80,6 +80,7 @@ const until = async (label, fn, ms = 900_000, every = 1000) => {
 };
 
 let browser;
+let failShot = async () => {};
 try {
   // ── the episode and its script (the routes the «حلقة جديدة» dialog and the script editor use) ──
   const fx = (f) => readFile(path.join(fixtures, f), "utf8");
@@ -94,6 +95,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  failShot = async () => { if (shots) { await mkdir(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, "failure.png") }).catch(() => {}); } };
   const snap = async (name) => { if (shots) { await mkdir(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, `${name}.png`) }); } };
   const go = async (step) => { await page.goto(`${origin}/?link#/${CH}/${EP}/${step}`); await page.waitForLoadState("networkidle").catch(() => {}); };
   const click = async (name, opts = {}) => { const b = page.getByRole("button", { name, exact: opts.exact ?? false }).first(); await b.waitFor({ state: "visible", timeout: opts.timeout ?? 60_000 }); await b.click(); };
@@ -120,9 +122,9 @@ try {
   for (let i = 0; i < total; i++) {
     const before = await state();
     const id = before.progress.currentScene;
-    await page.reload();
-    await page.waitForLoadState("networkidle").catch(() => {});
-    await click("اعتمد المشهد");
+    // The scene by its own address (D102: #/<channel>/<episode>/episode/<scene>), as after a reload on it.
+    await go(`episode/${id}`);
+    await click("اعتمد المشهد", { timeout: 180_000 });
     const watched = page.getByLabel(/شاهدته (بالصوت )?كاملًا/).first();
     await watched.waitFor({ state: "visible", timeout: 60_000 });
     await watched.check();
@@ -180,6 +182,7 @@ try {
   ok(errors.length === 0, `no page error (${errors.join(" | ").slice(0, 300)})`);
   ok(outgoing.length === 0, `no request left this machine (${outgoing.join(", ")})`);
 } catch (e) {
+  await failShot();
   ok(false, `journey stopped: ${e.message}`);
 } finally {
   await browser?.close().catch(() => {});

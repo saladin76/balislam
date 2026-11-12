@@ -63,5 +63,12 @@ jobs:
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.63.0
           npx playwright install --with-deps chromium
-          npm run e2e:ui
+          npm run e2e:ui -- --shots "$RUNNER_TEMP/e2e-ui-shots"
+      - name: Studio page screenshots (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-ui-shots
+          path: ${{ runner.temp }}/e2e-ui-shots
+          if-no-files-found: ignore
 
