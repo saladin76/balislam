@@ -940,13 +940,13 @@ export const WordFixPopover: React.FC<{
           ))}
         </p>
         <label className="ms-pop-fl sv-fix-say">
-          <span>اكتبها كما يجب أن تُنطق<small>يغيّر ما يُرسل إلى الصوت وحده؛ نص السكريبت والترجمة كما هما</small></span>
+          <span>اكتبها كما يجب أن تُنطق{" "}<small>يغيّر ما يُرسل إلى الصوت وحده؛ نص السكريبت والترجمة كما هما</small></span>
           <span className="ms-pop-inp">
             <input ref={field} dir="rtl" value={f.say} maxLength={80} autoFocus disabled={Boolean(busy)} onChange={(e) => onDraft({ ...f, say: e.target.value })} />
-            {w.sent !== w.say ? <small>يُرسل الآن «{w.sent}»{w.source === "lexicon" ? " (من قاموس النطق)" : w.source === "sentence" ? " (تصحيح سابق لهذه الجملة)" : w.source === "tashkeel" ? " (من النسخة المشكولة)" : ""}</small> : null}
+            {w.sent !== w.say ? <small>النطق المستعمل حتى الآن «{w.sent}»{w.source === "lexicon" ? " (من قاموس النطق)" : w.source === "sentence" ? " (تصحيح سابق لهذه الجملة)" : w.source === "tashkeel" ? " (من النسخة المشكولة)" : ""}</small> : null}
           </span>
         </label>
-        <p className="ms-pop-hint sv-fix-send" aria-live="polite"><Icon name="info" /><span>سيُرسل: «{sendPreview(w.word, f.say)}»{noop ? " — الكلمة كما كُتبت" : ""}</span></p>
+        <p className="ms-pop-hint sv-fix-send" aria-live="polite"><Icon name="info" /><span>عند «أعد نطق الكلمة» يُرسل: «{sendPreview(w.word, f.say)}»{noop ? " — الكلمة كما كُتبت" : ""}</span></p>
         {variants.length ? (
           <div className="sv-fix-variants" role="group" aria-label="جرّب صيغة أخرى">
             <span>جرّب صيغة أخرى:</span>
@@ -959,14 +959,14 @@ export const WordFixPopover: React.FC<{
         <p className="ms-pop-hint"><Icon name="info" /><span>{neighbourHint(words.map((x) => x.word), f.index, f.wide)}</span></p>
         <label className="ms-pop-chk sv-fix-check">
           <input type="checkbox" checked={f.save && !noop} disabled={Boolean(busy) || noop} onChange={(e) => onDraft({ ...f, save: e.target.checked })} />
-          <span>احفظ هذا النطق للقناة<small>{noop ? "لا يُحفظ نطق مثل الكلمة تمامًا" : "يُستعمل في كل حلقة، للكلمة بتشكيلها هذا"}</small></span>
+          <span>احفظ هذا النطق للقناة{" "}<small>{noop ? "لا يُحفظ نطق مثل الكلمة تمامًا" : "يُستعمل في كل حلقة، للكلمة بتشكيلها هذا"}</small></span>
         </label>
         {f.save && !noop && dropsShadda(w.say, f.say) ? <p className="ms-pop-hint is-warn"><Icon name="warn" /><span>النطق يحذف الشدّة التي في «{w.say}»؛ تأكد أن هذا مقصود قبل حفظه للقناة.</span></p> : null}
         <details className="ms-pop-more" open={f.wide || undefined}>
           <summary>المزيد</summary>
           <label className="ms-pop-chk">
             <input type="checkbox" checked={f.wide} disabled={Boolean(busy)} onChange={(e) => onDraft({ ...f, wide: e.target.checked })} />
-            <span>أعدها مع كلمتين من كل جانب<small>لوصل أنعم حين لا تكفي الجارتان؛ والتسجيل الحالي يبقى في «ارجع إلى التسجيل السابق».</small></span>
+            <span>أعدها مع كلمتين من كل جانب{" "}<small>لوصل أنعم حين لا تكفي الجارتان؛ والتسجيل الحالي يبقى في «ارجع إلى التسجيل السابق».</small></span>
           </label>
         </details>
         {noKey ? <p className="ms-pop-hint is-warn"><Icon name="warn" /><span>إعادة النطق تحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : " من الإعدادات"}.</span></p> : null}

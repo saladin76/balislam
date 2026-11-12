@@ -16,7 +16,7 @@ import { SceneComp } from "../ui/Preview";
 import { api, type AfterPreparationWhat, type CloudPreviewJob, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
 import { episodeLength } from "../../../src/plan/episodeLength";
 import { duration, isTechnicalNote, lengthSource, num, ownerPreviewText, sceneName, verseRef } from "../ui/format";
-import { BoardViewer, type BoardShot } from "./BoardViewer";
+import { BOARD_APPROVED_TITLE, BoardViewer, boardsApprovedText, type BoardShot } from "./BoardViewer";
 import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
 import { AfterPreparationList, BoardAuditLog } from "./BoardAuditLog";
@@ -258,7 +258,8 @@ export const StoryboardPanel: React.FC<{
         <Hint>راجع كل لوحة: صورتها ونص تعليقها.</Hint>
         <span className="s12-num" title={lengthSource(length)}>
           {arabicCountAr(sceneCount, SCENES)} — {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
-          {st && st.approved ? <span className="s12-soft"> — معتمد {ar(st.approved)}</span> : null}
+          {/* KI-015: عدد اللوحات المعتمدة في التجهيز، لا عدد المشاهد المعتمدة في الخطوة ٢ */}
+          {st && st.approved ? <span className="s12-soft"> — {boardsApprovedText(st.approved)}</span> : null}
         </span>
         {!info && err ? <p className="s12-alert" role="alert"><OwnerText text={err} /></p> : null}
       </header>
@@ -284,7 +285,7 @@ export const StoryboardPanel: React.FC<{
                   <div className="sb-txt s12-txt">
                     <p className="s12-shot-meta">
                       <span className="s12-id">{sceneName(order, s.id)}</span>
-                      {state === "approved" ? <span className="s12-mark ok" title="معتمد">معتمد</span> : state === "changed" ? <span className="s12-mark warn" title="تغيّر بعد الاعتماد">تغيّر</span> : state === "new" && st?.approved ? <span className="s12-mark warn" title="أُضيفت بعد الاعتماد">جديدة</span> : null}
+                      {state === "approved" ? <span className="s12-mark ok" title={BOARD_APPROVED_TITLE}>لوحة معتمدة</span> : state === "changed" ? <span className="s12-mark warn" title="تغيّر بعد الاعتماد">تغيّر</span> : state === "new" && st?.approved ? <span className="s12-mark warn" title="أُضيفت بعد الاعتماد">جديدة</span> : null}
                       <span className="spacer" />
                       <span className="s12-time">{fmtAr(from / fps)}</span>
                     </p>

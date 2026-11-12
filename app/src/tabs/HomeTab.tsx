@@ -38,6 +38,8 @@ export const stagesOf = (e: Overview): Stage[] => {
 /** الخطوات الأربع لكل حلقة من سجل الإنتاج: أين وصلت، وما الخطوة التالية، وأين تُفتح. */
 /** The delete confirmation: the episode's number typed in either digit system («001» or «٠٠١»). */
 export const confirmsEpisode = (typed: string, id: string): boolean => latinDigits(typed.trim()) === id;
+/** KI-019: «انقلها إلى سلة المحذوفات» لا يُضغط قبل كتابة رقم الحلقة الصحيح، ولا أثناء النقل. */
+export const deleteReady = (typed: string, id: string, busy?: boolean): boolean => !busy && confirmsEpisode(typed, id);
 
 const mb = (bytes: number) => num(Math.max(0.1, Math.round(bytes / 1e5) / 10), 1);
 /**
@@ -166,6 +168,7 @@ export const HomeTab: React.FC<{
           <button
             className="btn primary danger"
             aria-busy={del.busy}
+            disabled={!deleteReady(del.typed, del.id, del.busy)}
             onClick={async () => {
               if (del.busy) return;
               if (!confirmsEpisode(del.typed, del.id)) { setDel({ ...del, msg: `اكتب رقم الحلقة (${arDigits(del.id)}) في الخانة للتأكيد.` }); document.getElementById("del-confirm")?.focus(); return; }

@@ -67,5 +67,11 @@
 .pf-variant { display: grid; grid-template-columns: auto auto 1fr; gap: 4px 10px; align-items: center; padding: 6px 8px; border-radius: 8px; }
 .pf-variant.is-on { background: rgba(127,127,127,.12); }
 .pf-variant audio { grid-column: 1 / -1; width: 100%; }
+/* KI-022: مشغّل بأرقام عربية بدل مشغّل المتصفح الأصلي */
+.own-audio { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pf-variant .own-audio { grid-column: 1 / -1; width: 100%; }
+.own-audio-pp { inline-size: 36px; block-size: 36px; display: inline-grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: inherit; cursor: pointer; flex: none; }
+.own-audio-seek { flex: 1; min-width: 0; accent-color: var(--acc, currentColor); }
+.own-audio-t { font-size: var(--t-12); color: var(--mute); flex: none; }
 .pf-approve { display: grid; gap: 6px; }
 .pf-upload { justify-self: start; cursor: pointer; }

@@ -14,7 +14,7 @@ import { Providers } from "../../../src/remotion/Providers";
 import { styleNameAr } from "../../../src/plan/styles";
 import { templateDefs } from "../../../src/plan/templates";
 import { tones, toneIds } from "../../../src/voice/tones";
-import { Num, arDigits, episodeTitle } from "../ui/format";
+import { Num, arDigits, episodeTitle, fontNameAr } from "../ui/format";
 import { Icon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
 import { EPISODE_DRAG_TYPE, breadcrumb, decodeDrag, dropVerdict, episodesIn, kindAr, parentChoices, seriesGrid, seriesOfEpisode, suggestSlug } from "./seriesView";
@@ -354,7 +354,7 @@ const IdentityEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
   const parts = d.emblem.parts;
   return (
     <section className="sr-editor" aria-label="هوية السلسلة">
-      <p className="help">كل اختيار هنا من هوية القناة وحدها: لا لون ولا خط ولا زخرفة من خارجها. خط العناوين <bdi>«{rules.fonts.heading}»</bdi> ثابت.</p>
+      <p className="help">كل اختيار هنا من هوية القناة وحدها: لا لون ولا خط ولا زخرفة من خارجها. خط العناوين «{fontNameAr(rules.fonts.heading)}» ثابت.</p>
       <fieldset><legend>لون السلسلة (من لوحة القناة)</legend>
         <div className="sr-swatches" role="radiogroup" aria-label="لون السلسلة">
           {rules.accents.map((a) => (
@@ -466,7 +466,7 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
 
 // ———————————————————— Menus and dialogs ————————————————————
 
-const SeriesMenu: React.FC<{ general: boolean; archived: boolean; canDelete: boolean; onRename: () => void; onMove: () => void; onArchive: () => void; onDelete: () => void }> = (p) => {
+export const SeriesMenu: React.FC<{ general: boolean; archived: boolean; canDelete: boolean; onRename: () => void; onMove: () => void; onArchive: () => void; onDelete: () => void }> = (p) => {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -478,12 +478,13 @@ const SeriesMenu: React.FC<{ general: boolean; archived: boolean; canDelete: boo
   const items = [
     { label: "أعد التسمية…", on: p.onRename },
     ...(p.general ? [] : [{ label: "انقل إلى تصنيف…", on: p.onMove }, { label: p.archived ? "أعدها نشطة" : "أرشف", on: p.onArchive }]),
-    ...(p.general ? [] : [{ label: p.canDelete ? "احذف…" : "احذف… (انقل حلقاتها أولًا)", on: p.onDelete, danger: true }]),
+    // KI-021: سلسلة فيها حلقات لا تُحذف (الخادم يرفض)، فالعنصر معطّل بسببه ولا يفتح تأكيدًا يُرفض بعده
+    ...(p.general ? [] : [{ label: p.canDelete ? "احذف…" : "احذف… (انقل حلقاتها أولًا)", on: p.onDelete, danger: true, disabled: !p.canDelete }]),
   ];
   return (
     <div className="row-menu sr-menu" ref={box}>
       <button type="button" className="ledger-more" aria-haspopup="menu" aria-expanded={open} aria-label="خيارات السلسلة" title="خيارات السلسلة" onClick={() => setOpen((v) => !v)}>⋯</button>
-      {open ? <div className="row-menu-pop" role="menu">{items.map((it) => <button key={it.label} type="button" role="menuitem" className={"danger" in it && it.danger ? "is-danger" : undefined} onClick={() => { setOpen(false); it.on(); }}>{it.label}</button>)}</div> : null}
+      {open ? <div className="row-menu-pop" role="menu">{items.map((it) => { const off = "disabled" in it && it.disabled; return <button key={it.label} type="button" role="menuitem" className={"danger" in it && it.danger ? "is-danger" : undefined} disabled={off} aria-disabled={off || undefined} onClick={() => { if (off) return; setOpen(false); it.on(); }}>{it.label}</button>; })}</div> : null}
     </div>
   );
 };
