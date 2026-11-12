@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { INK_SHOTS, habitHeartCues } from "../src/remotion/zubdat/shots";
 import { makeAt, makeEnd, Sun, type Z } from "../src/remotion/zubdat/inkKit";
 import { estimateTimings, type WordTiming } from "../src/remotion/scenes/timing";
+import { heavyTimeout } from "./helpers/heavyTimeout";
 
 /**
  * توجيه صاحب القناة على c1-s1 (٩ نوفمبر، «الحركة غير مناسبة»):
@@ -64,7 +65,8 @@ describe("c1-s1 (habit-heart): توجيه المالك ٩ نوفمبر", () => {
   });
 
   /** يرسم المشهد إطارًا إطارًا (مئات الإطارات)؛ على جهاز بنواتين وتحت الاختبارات المتوازية يتجاوز حد 5 ث الافتراضي. */
-  const HEAVY = 30_000;
+  // KI-032: المهلة تتسع مع حمل الجهاز (tests/helpers/heavyTimeout.ts)؛ الفحوص نفسها كما هي
+  const HEAVY = heavyTimeout(30_000);
   for (const c of cases) {
     it(`${c.name}: الشبكة كاملة قبل «لكنْ»، وتبدأ الاختفاء عندها، وتفرغ الصفحة قبل «سؤالٌ»`, () => {
       const tL = start(c.timings, "لكن"), tQ = start(c.timings, "سؤال");
