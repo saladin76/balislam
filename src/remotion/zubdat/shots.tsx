@@ -431,27 +431,31 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
   takbir: {
     nameAr: "التكبير: ندخل الصلاة، ثم سكون عند الذكر",
     render: ({ frame, z, at, end }) => {
-      const tEnter = at("ندخل", 0.03);
-      const tSalah = at("الصلاة", 0.08);
-      const tTak = at("بالتكبير", 0.12);
+      // السكريبت المعتمد (١١ نوفمبر): «ثم نرفع أيدينا وندخل الصلاة بالتكبير: الله أكبر. كلمات نرددها كثيرًا، لكنها ليست مجرد إشارة
+      // لبداية الصلاة؛ فهي تذكير بأن الله أكبر من كل شيء. هنا ندخل عبادة لها أحكامها ومعانيها، لا تمرينًا على الهدوء فحسب.»
+      const tSalah = at("نرفع", 0.02);
+      const tRaise = at("أيدينا", 0.05);
+      const tEnter = at("وندخل", 0.08);
+      const tTak = at("بالتكبير", 0.13);
       const tA1 = at("الله", 0.16, 1);
-      const tMany = at("مرات", 0.3);
-      const tRecall = at("نستحضر", 0.42);
+      const tMany = at("نرددها", 0.3);
+      const tRecall = at("مجرد", 0.38);
+      const tCut = end("الصلاة", 0.44, 2);
       const tA2 = at("الله", 0.52, 2);
       const tEndA2 = end("شيء", 0.62);
-      const tThikr = at("الذكر", 0.66);
-      const tIbada = at("عبادة", 0.74);
-      const tTamrin = at("تمرين", 0.84);
-      const tFahasb = at("فحسب", 0.94);
+      const tThikr = at("هنا", 0.66);
+      const tIbada = at("عبادة", 0.72);
+      const tTamrin = at("تمرينا", 0.86);
+      const tFahasb = at("فحسب", 0.96);
       const mat = prog(frame, tEnter - 2, tEnter + 16);
       // الشخص والسجادة يتواريان بهدوء قبل الذكر، فيبقى الذكر وحده
       const fadeFig = 1 - prog(frame, tA1 - 22, tA1 - 8);
-      const raised = prog(frame, tTak - 2, tTak + 8);
+      const raised = prog(frame, tRaise - 2, tRaise + 8);
       const word = prog(frame, tA1 - 8, tA1 + 2);
       const ticks = (k: number) => prog(frame, tMany + k * 3, tMany + k * 3 + 6);
       const clear = 1 - prog(frame, tThikr - 2, tThikr + 18);
       return {
-        focus: [[tEnter, 960, 820], [tSalah, 960, 700], [tTak, 960, 600], [tMany, 960, 700], [at("كثيرة", 0.33), 1000, 810], [tRecall, 960, 880], [tThikr, 960, 700], [tIbada, 1260, 760], [tTamrin, 640, 760], [tFahasb, 640, 760]],
+        focus: [[tSalah, 960, 700], [tRaise, 960, 600], [tEnter, 960, 820], [tTak, 960, 600], [tMany, 960, 700], [at("كثيرا", 0.33), 1000, 810], [tRecall, 960, 880], [tThikr, 960, 700], [tIbada, 1260, 760], [tTamrin, 640, 760], [tFahasb, 640, 760]],
         still: [[tA1 - 24, end("أكبر", 0.2, 1) + 14], [tA2 - 24, tEndA2 + 14]],
         cam: [C(0, 960, 600, 1.1), C(tTak - 4, 960, 560, 1.02), C(tA1 - 30, 960, 540, 1.0), C(tMany - 2, 960, 660, 1.08), C(tA2 - 34, 960, 540, 1.0), C(tEndA2 + 14, 960, 620, 1.06)],
         world: (
@@ -473,12 +477,14 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
               {Array.from({ length: 9 }, (_, k) => (
                 <line key={k} x1={1160 - k * 50} x2={1160 - k * 50} y1={700} y2={700 - 56 * ticks(k)} stroke={z.ink} strokeWidth={9} strokeLinecap="round" opacity={ticks(k)} />
               ))}
-              <Write id="mk" x={960} y={780} text="مرات كثيرة" size={66} p={wp(frame, tMany, end("كثيرة", 0.36))} c={z.ink} z={z} />
-              <Write id="ns" x={960} y={862} text="نستحضر ما نقوله" size={62} p={wp(frame, tRecall, end("نقوله", 0.48))} c={z.ink} font="body" weight={500} z={z} />
+              <Write id="mk" x={960} y={780} text="نرددها كثيرا" size={66} p={wp(frame, tMany, end("كثيرا", 0.34))} c={z.ink} z={z} />
+              {/* «ليست مجرد إشارة لبداية الصلاة»: تُشطب قبل سكون الذكر */}
+              <Write id="ns" x={960} y={862} text="مجرد إشارة" size={62} p={wp(frame, tRecall, end("إشارة", 0.4))} c={z.ink} font="body" weight={500} z={z} />
+              <Cross x1={1130} x2={790} y={846} p={prog(frame, tCut, tCut + 10)} z={z} />
             </g>
-            <Write id="ib" x={1260} y={760} text="عبادة مشروعة" size={66} p={wp(frame, tIbada, end("مشروعة", 0.8))} c={z.ink} font="body" weight={600} z={z} />
-            <Write id="tm" x={640} y={760} text="تمرين على الهدوء" size={72} p={wp(frame, tTamrin, end("الهدوء", 0.9))} c={z.ink} z={z} />
-            <Cross x1={830} x2={450} y={744} p={prog(frame, tFahasb - 2, tFahasb + 12)} z={z} />
+            <Write id="ib" x={1280} y={760} text="عبادة لها أحكامها ومعانيها" size={54} p={wp(frame, tIbada, end("ومعانيها", 0.8))} c={z.ink} font="body" weight={600} z={z} />
+            <Write id="tm" x={620} y={760} text="تمرينا على الهدوء" size={66} p={wp(frame, tTamrin, end("الهدوء", 0.92))} c={z.ink} z={z} />
+            <Cross x1={820} x2={420} y={744} p={prog(frame, tFahasb - 2, tFahasb + 12)} z={z} />
           </g>
         ),
       };
