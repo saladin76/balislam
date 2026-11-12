@@ -127,7 +127,7 @@ label.field > span { font-weight: 600; font-size: 13px; }
 .issue:hover { border-color: var(--line); }
 .issue .lv { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 1px 8px; height: fit-content; }
 .issue.error .lv { background: var(--err-soft); color: var(--err); }
-.issue.warning .lv { background: var(--warn-soft); color: var(--warn); }
+.issue.warning .lv { background: var(--warn-soft); color: var(--ink); }
 .issue .ln { grid-column: 2; font-size: 12px; color: var(--muted); }
 .verdict { margin: 12px 16px 0; padding: 10px 14px; border-radius: 10px; font-weight: 600; }
 .verdict.ok { background: var(--ok-soft); color: var(--ok); }
@@ -366,6 +366,13 @@ details.box > summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
 .update-banner { display: flex; align-items: center; gap: 12px; padding: 8px 18px; background: var(--ok-soft); color: var(--ok); border-bottom: 1px solid var(--line); font-size: 13px; flex-wrap: wrap; }
 .update-banner .help { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .update-banner.err { background: #F6DCD8; color: var(--err); }
+/* D95: ملفات تعارض فيها تعديل المالك مع التحديث */
+.update-conflicts { display: flex; flex-direction: column; gap: 6px; padding: 10px 18px; background: var(--warn-soft); color: var(--ink); border-bottom: 1px solid var(--line); font-size: 13px; }
+.update-conflicts ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.update-conflicts li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.update-conflicts .uc-file { min-width: 0; overflow-wrap: anywhere; }
+.update-conflicts .uc-ch { font-weight: 600; }
+.update-conflicts .uc-actions { display: flex; gap: 8px; }
 
 /* حزمة الانتشار */
 .kit { gap: 12px; }
@@ -383,7 +390,7 @@ details.box > summary { cursor: pointer; font-weight: 700; padding: 2px 0; }
 .kit-checks { display: flex; flex-wrap: wrap; gap: 4px; }
 .kit-check { font-size: 12px; padding: 1px 8px; border-radius: 999px; }
 .kit-check.ok { background: var(--ok-soft); color: var(--ok); }
-.kit-check.warn { background: var(--warn-soft); color: var(--warn); }
+.kit-check.warn { background: var(--warn-soft); color: var(--ink); }
 
 .playing-hint { display: flex; align-items: center; gap: 12px; margin: 10px 0; padding: 10px 14px; border-radius: 12px; background: #fff6df; border: 1px solid #e9c46a; font-size: 14px; }
 .playing-hint span { flex: 1; }

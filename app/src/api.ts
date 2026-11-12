@@ -64,6 +64,8 @@ export type Overview = {
 };
 export type ProductionSummary = { steps?: [boolean, boolean, boolean, boolean]; preparation?: boolean; script: boolean; storyboard: boolean; approvedScenes: number; totalScenes: number; canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean };
 /** معاينة حلقة: source يبيّن هل الفيديو على هذا الجهاز، أو في مجلد Drive المتزامن، أو رابط Drive فقط */
+/** D95: ملف تعارض فيه تعديل المالك مع التحديث؛ الجديد في مكانه ونسخة المالك في النسخة الاحتياطية */
+export type UpdateConflict = { file: string; channel: string; mine: string | null; backup: string; at: string; reason: "both-changed" | "untracked-collision" | "deleted-here-changed-there" };
 export type EpisodePreview = { name: string; size: number; mtime: number; title: string; note: string; version: number; updatedAt: string | null; source: "local" | "drive-mirror" | "drive-link" | "git-branch" | "missing"; driveUrl: string | null;
   /** معاينة سحابية على فرع previews/* (D75): الحجم بالعربية لزر «حمّل المعاينة» */
   cloud?: { ref: string; size: number; sizeLabel: string } | null };
@@ -388,8 +390,10 @@ export const api = {
   channel: () => call<ChannelConfig>("/api/channel"),
   saveChannel: (channel: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel } }),
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
-  updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string; blocked?: string }>(`/api/update${force ? "?force=1" : ""}`),
-  applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean }>("/api/update", { method: "POST", json: {} }),
+  updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string; blocked?: string; local?: number; conflicts?: UpdateConflict[] }>(`/api/update${force ? "?force=1" : ""}`),
+  applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean; restart?: boolean; conflicts?: UpdateConflict[] }>("/api/update", { method: "POST", json: {} }),
+  /** D95: «أبقِ نسختي» أو «خذ الجديد» لملف واحد تعارض فيه تعديل المالك مع التحديث */
+  resolveUpdateConflict: (file: string, choice: "mine" | "new") => call<{ ok: boolean; message: string }>("/api/update/resolve", { method: "POST", json: { file, choice } }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),
   saveKit: (id: string, kit: PublishKit) => call(`/api/episodes/${id}/kit`, { method: "PUT", json: { kit } }),
   regenerateKit: (id: string) => call<{ kit: PublishKit; keywords: string[] }>(`/api/episodes/${id}/kit/regenerate`, { method: "POST", json: {} }),

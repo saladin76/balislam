@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { api } from "../api";
+import { api, type UpdateConflict } from "../api";
 import { updateOutcome } from "./updateOutcome";
 
 /**
@@ -7,13 +7,29 @@ import { updateOutcome } from "./updateOutcome";
  * ويحدّث الاستوديو بضغطة واحدة دون إغلاق الـ Terminal.
  */
 export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsaved: boolean }> = ({ beforeUpdate, hasUnsaved }) => {
-  const [st, setSt] = useState<{ behind: number; changes: string[]; blocked?: string } | null>(null);
+  const [st, setSt] = useState<{ behind: number; changes: string[]; blocked?: string; local?: number } | null>(null);
+  const [conflicts, setConflicts] = useState<UpdateConflict[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
 
   const check = useCallback((force = false) => {
-    api.updateStatus(force).then((s) => setSt(s.available ? s : null)).catch(() => {});
+    api.updateStatus(force).then((s) => {
+      setSt(s.available ? s : null);
+      setConflicts(s.conflicts ?? []);
+    }).catch(() => {});
   }, []);
+  const resolve = async (file: string, choice: "mine" | "new") => {
+    setBusy(true);
+    try {
+      const r = await api.resolveUpdateConflict(file, choice);
+      setConflicts((list) => list.filter((c) => c.file !== file));
+      setMsg({ text: `${r.message} أعد تحميل الصفحة ليظهر الملف في الاستوديو.` });
+    } catch (e) {
+      setMsg({ text: (e as Error).message, err: true });
+    } finally {
+      setBusy(false);
+    }
+  };
   useEffect(() => {
     check();
     const t = setInterval(() => check(), 60_000);
@@ -25,7 +41,7 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
     };
   }, [check]);
 
-  if (!st && !msg) return null;
+  if (!st && !msg && !conflicts.length) return null;
   const apply = async () => {
     if (hasUnsaved) {
       window.alert("هناك تغييرات لم تُحفظ. احفظها أولًا قبل تحديث الاستوديو.");
@@ -37,11 +53,13 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
       await beforeUpdate();
       const r = await api.applyUpdate();
       const outcome = updateOutcome(r);
+      setConflicts(r.conflicts ?? []);
       if (outcome === "failure") {
         setMsg({ text: r.message || "تعذّر تحديث الاستوديو؛ لم تُطبّق العملية.", err: true });
         return;
       }
-      if (outcome === "restart") setMsg({ text: `${r.message} نزلت حزم جديدة: أغلق الاستوديو (Ctrl + C) وشغّله مرة أخيرة.` });
+      if (outcome === "restart") setMsg({ text: r.reinstalled ? `${r.message} نزلت حزم جديدة.` : r.message });
+      else if (r.conflicts?.length) setMsg({ text: r.message });
       else {
         setMsg({ text: `${r.message} جارٍ إعادة التحميل…` });
         setTimeout(() => window.location.reload(), 1500);
@@ -68,7 +86,27 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
       setBusy(false);
     }
   };
+  const conflictCard = conflicts.length ? (
+    <div className="update-conflicts" role="alert" data-testid="update-conflicts">
+      <b>{conflicts.length === 1 ? "ملف يحتاج قرارك بعد التحديث" : `${conflicts.length} ملفات تحتاج قرارك بعد التحديث`}</b>
+      <span className="help">تغيّر الملف على جهازك وفي التحديث معًا في الموضع نفسه. الجديد الآن في مكانه، ونسختك محفوظة. اختر لكل ملف وحده:</span>
+      <ul>
+        {conflicts.map((c) => (
+          <li key={c.file}>
+            <span className="uc-file"><span className="uc-ch">{c.channel}</span> <bdi dir="ltr">{c.file}</bdi>
+              {c.reason === "deleted-here-changed-there" ? <span className="help"> (حذفتَه على جهازك وتغيّر في التحديث)</span> : null}</span>
+            <span className="uc-actions">
+              <button className="btn small" disabled={busy} onClick={() => resolve(c.file, "mine")}>أبقِ نسختي</button>
+              <button className="btn primary small" disabled={busy} onClick={() => resolve(c.file, "new")}>خذ الجديد</button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+  if (!st && !msg) return conflictCard;
   return (
+    <>
     <div className={`update-banner ${msg?.err ? "err" : ""}`} role="status">
       {msg ? (
         <span style={{ whiteSpace: "pre-line" }}>{msg.text}</span>
@@ -76,12 +114,14 @@ export const UpdateBanner: React.FC<{ beforeUpdate: () => Promise<void>; hasUnsa
         <>
           <b>تحديث جديد متاح</b>
           <span className="help" title={st.changes.join("\n")}>{st.changes[0] ?? ""}{st.behind > 1 ? ` (+${st.behind - 1})` : ""}</span>
-          {st.blocked ? <span className="help" style={{ whiteSpace: "pre-line" }}>{st.blocked}</span>
-            : <span className="help">{hasUnsaved ? "احفظ التعديلات أولًا ثم حدّث يدويًا" : "لن يبدأ التحديث دون موافقتك"}</span>}
-          <button className="btn primary small" disabled={busy || hasUnsaved || Boolean(st.blocked)} onClick={() => apply()}>{busy ? "جارٍ التحديث…" : "حدّث الآن"}</button>
+          <span className="help">{hasUnsaved ? "احفظ التعديلات أولًا ثم حدّث يدويًا"
+            : st.local ? `تعديلاتك على هذا الجهاز (${st.local}) تُحفظ نسخة منها وتبقى كما هي` : "لن يبدأ التحديث دون موافقتك"}</span>
+          <button className="btn primary small" disabled={busy || hasUnsaved} onClick={() => apply()}>{busy ? "جارٍ التحديث…" : "حدّث الآن"}</button>
         </>
       ) : null}
       {msg ? <button className="btn ghost small" onClick={() => setMsg(null)}>إغلاق</button> : null}
     </div>
+    {conflictCard}
+    </>
   );
 };

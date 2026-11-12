@@ -83,7 +83,7 @@ channels/*/episodes/*/storyboard.json
 channels/*/episodes/*/*.tmp
 channels/*/episodes/*/**/*.tmp
 # ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): script-signoff.json وreview.json
-# وscene-review.json وpublish.json وnotes/resolved.json. تمنع التحديث حتى تُحفظ، والرسالة تسمّيها.
+# وscene-review.json وpublish.json وnotes/resolved.json. لا تمنع «حدّث الآن» منذ D95: تُحفظ نسخة احتياطية منها وتبقى.
 
 # الوصلات التي سمعها المالك في النسخة المجمعة (M6): حالة محلية مربوطة ببصمة التجميع، لا تُرفع
 channels/*/episodes/*/seam-checks.local.json

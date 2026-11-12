@@ -3,11 +3,14 @@ import { arabicCount, OTHER_FILES } from "../../src/i18n/count.ts";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { childEnv } from "../../scripts/git-env.mjs";
+import { localChanges, readConflicts, resolveConflict, safeFastForward, type UpdateConflict } from "./safeUpdate.ts";
+export { resolveConflict };
 
 /**
- * Safe, explicit studio update.
- * Never changes local edits, creates automatic commits, resolves conflicts,
- * checks out files, or updates a detached review worktree.
+ * Safe, explicit studio update (D95: local edits in any channel no longer block it).
+ * Never loses local edits (full backup outside the repo first, then re-applied with --3way),
+ * never creates commits, never merges non-fast-forward, never leaves conflict markers,
+ * and never updates a detached review worktree. Logic in ./safeUpdate.ts.
  */
 const git = (root: string, args: string[], timeout = 60_000) =>
   new Promise<{ ok: boolean; out: string }>((resolve) => {
@@ -22,8 +25,12 @@ const run = (cmd: string, args: string[], root: string, timeout = 600_000) =>
 
 export type UpdateStatus = {
   available: boolean; behind: number; changes: string[]; error?: string;
-  /** An update exists but local files block it: the Arabic message names them. */
+  /** Kept for API compatibility; local edits no longer block (D95). */
   blocked?: string;
+  /** How many local edits exist (they are backed up and kept during the update). */
+  local?: number;
+  /** Files from an earlier update that wait for «أبقِ نسختي / خذ الجديد». */
+  conflicts?: UpdateConflict[];
 };
 let lastFetch = 0;
 let cached: UpdateStatus | null = null;
@@ -68,10 +75,10 @@ export const dirtyTreeMessage = async (root: string): Promise<string | null> => 
   const b = await blockingFiles(root);
   if (!b) return "تعذّر فحص حالة الملفات المحلية بـ Git؛ لم يُعدل أي ملف.";
   if (!b.tracked.length && !b.untracked.length) return null;
-  const parts = ["لا يُحدَّث الاستوديو لأن هذه الملفات تغيّرت على هذا الجهاز ولم تُحفظ في Git، والتحديث لا يكتب فوقها:"];
+  const parts = ["هذه الملفات تغيّرت على هذا الجهاز ولم تُحفظ في Git؛ «حدّث الآن» يحفظ نسخة احتياطية منها ويبقيها كما هي:"];
   if (b.tracked.length) parts.push(`ملفات متتبَّعة معدَّلة (${b.tracked.length}):\n${listLines(b.tracked)}`);
   if (b.untracked.length) parts.push(`ملفات جديدة غير متتبَّعة (${b.untracked.length}):\n${listLines(b.untracked)}`);
-  parts.push("احفظها (commit) أو أرسل القائمة إلى Claude ليحدد مكانها، ثم أعد المحاولة. لم يُعدل أي ملف.");
+  parts.push("لا تمنع التحديث (D95).");
   return parts.join("\n");
 };
 
@@ -94,11 +101,12 @@ const pendingGitOperation = async (root: string): Promise<boolean> => {
 };
 
 export const updateStatus = async (root: string, force = false): Promise<UpdateStatus> => {
-  const off = { available: false, behind: 0, changes: [] };
+  const off: UpdateStatus = { available: false, behind: 0, changes: [] };
   if (updating) return off;
   if (!await activeMain(root)) return { ...off, error: "التحديث داخل الاستوديو متاح لفرع main فقط؛ نسخة المراجعة لا تتحدث تلقائيًا." };
   if (await pendingGitOperation(root)) return { ...off, error: "هناك عملية Git غير مكتملة (دمج أو إعادة تأسيس أو انتقاء التزام)؛ لا تحديث قبل حلها يدويًا." };
-  const dirty = await dirtyTreeMessage(root);
+  const conflicts = await readConflicts(root);
+  const local = (await localChanges(root))?.length ?? 0;
   if (force || !cached || Date.now() - lastFetch >= 60_000) {
     const f = await git(root, ["fetch", "--quiet", "origin", "main"]);
     if (!f.ok) return { ...off, error: "تعذّر الوصول إلى GitHub للتحقق من التحديث." };
@@ -106,39 +114,27 @@ export const updateStatus = async (root: string, force = false): Promise<UpdateS
   }
   const count = await git(root, ["rev-list", "--count", "HEAD..origin/main"]);
   const ahead = await git(root, ["rev-list", "--count", "origin/main..HEAD"]);
-  if (!count.ok || !ahead.ok || Number(ahead.out) > 0) return { ...off, error: "الفرع المحلي متباعد عن main؛ يلزم مراجعة Git يدويًا." };
+  if (!count.ok || !ahead.ok || Number(ahead.out) > 0) return { ...off, conflicts, error: "الفرع المحلي متباعد عن main؛ يلزم مراجعة Git يدويًا." };
   const behind = Number(count.out) || 0;
   const log = behind ? (await git(root, ["log", "--format=%s", "HEAD..origin/main"])).out.split("\n").filter(Boolean).slice(0, 8) : [];
-  // The dirty-tree check is not cached: the owner may commit the listed files at any moment.
-  if (dirty) return { available: behind > 0, behind, changes: log, blocked: dirty };
-  return (cached = { available: behind > 0, behind, changes: log });
+  cached = { available: behind > 0, behind, changes: log };
+  return { ...cached, local, conflicts };
 };
 
-export const applyUpdate = async (root: string): Promise<{ ok: boolean; message: string; reinstalled?: boolean }> => {
+export const applyUpdate = async (root: string): Promise<{ ok: boolean; message: string; reinstalled?: boolean; restart?: boolean; conflicts?: UpdateConflict[]; backup?: string }> => {
   if (updating) return { ok: false, message: "يوجد تحديث قيد التنفيذ." };
   updating = true;
   try {
     if (!await activeMain(root)) return { ok: false, message: "أوقف التحديث: هذه نسخة مراجعة أو فرع غير main." };
     if (await pendingGitOperation(root)) return { ok: false, message: "أوقف التحديث: توجد عملية Git غير مكتملة؛ لم يُعدل أي ملف." };
-    const dirty = await dirtyTreeMessage(root);
-    if (dirty) return { ok: false, message: `أوقف التحديث. ${dirty}` };
-    const before = await git(root, ["rev-parse", "HEAD"]);
     const fetch = await git(root, ["fetch", "--quiet", "origin", "main"]);
     if (!fetch.ok) return { ok: false, message: "فشل التحقق من GitHub؛ لم يُطبّق التحديث." };
     const ahead = await git(root, ["rev-list", "--count", "origin/main..HEAD"]);
     if (!ahead.ok || Number(ahead.out) > 0) return { ok: false, message: "توجد commits محلية؛ يلزم دمجها يدويًا. لم يُعدل أي ملف." };
-    // Recheck after network operation: never override edits or pending operations.
+    // Recheck after the network operation: never run over a Git operation that started meanwhile.
     if (await pendingGitOperation(root)) return { ok: false, message: "بدأت عملية Git أثناء جلب التحديث؛ أُوقف التحديث لحمايتها." };
-    const dirtyAfter = await dirtyTreeMessage(root);
-    if (dirtyAfter) return { ok: false, message: `ظهرت تعديلات أثناء الفحص؛ أُوقف التحديث لحمايتها. ${dirtyAfter}` };
-    const m = await git(root, ["merge", "--ff-only", "origin/main"], 120_000);
-    if (!m.ok) return { ok: false, message: "تعذّر تحديث main بشكل آمن (fast-forward فقط). لم نجرِ دمجًا تلقائيًا أو نحذف ملفات." };
-    const changed = await git(root, ["diff", "--name-only", before.out, "HEAD"]);
-    const needInstall = changed.ok && changed.out.split("\n").some((f) => f === "package.json" || f === "package-lock.json");
-    if (!needInstall) return { ok: true, message: "تم تحديث الشيفرة بأمان." };
-    const installed = await run("npm", ["ci", "--no-audit", "--no-fund"], root);
-    if (!installed.ok) return { ok: false, message: "تحدّثت الشيفرة، لكن تثبيت الاعتماديات فشل. شغّل npm ci داخل هذا المجلد ثم أعد تشغيل الاستوديو." };
-    return { ok: true, message: "تم التحديث وتثبيت الاعتماديات. أعد تشغيل الاستوديو.", reinstalled: true };
+    const r = await safeFastForward(root, { runInstall: (dir) => run("npm", ["ci", "--no-audit", "--no-fund"], dir).then((x) => x.ok) });
+    return r;
   } finally {
     updating = false;
     cached = null;
