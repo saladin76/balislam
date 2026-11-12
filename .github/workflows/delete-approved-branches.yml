@@ -1,0 +1,77 @@
+# حذف الفروع التي وافق عليها المالك (D117، docs/studio/branches-inventory.md).
+# القائمة: docs/studio/branches-approved-delete.txt، سطر لكل فرع: «<الفئة> <الفرع> <SHA>».
+# لا يُحذف أبدًا: main، studio-notes، backup/*، previews/*، أو فرع ليس في القائمة.
+# الفئة 1 (مدموج): يُعاد فحص compare main...<الفرع> قبل الحذف مباشرة، ويُتخطى إن كان ahead_by ≠ 0.
+# كل الفئات: يُتخطى الفرع إن تغيّر SHA عن المسجَّل في القائمة (عمل جديد عليه بعد الموافقة).
+# يُسجَّل اسم كل فرع وSHA قبل حذفه، فيُستعاد بـ: gh api -X POST repos/<repo>/git/refs -f ref=refs/heads/<الفرع> -f sha=<SHA>
+name: delete-approved-branches
+
+on:
+  push:
+    branches: [main]
+    paths: [docs/studio/branches-approved-delete.txt]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: delete-approved-branches
+  cancel-in-progress: false
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: docs/studio/branches-approved-delete.txt
+          sparse-checkout-cone-mode: false
+      - name: Delete approved branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          LIST: docs/studio/branches-approved-delete.txt
+        run: |
+          set -u
+          deleted=0; skipped=0; gone=0; failed=0
+          rows=""
+          add() { rows="${rows}| \`$1\` | $2 | \`$3\` | $4 |"$'\n'; }
+          while read -r cat branch sha _rest; do
+            case "$cat" in ''|'#'*) continue ;; esac
+            if [ "$cat" != 1 ] && [ "$cat" != 2 ]; then echo "::warning::bad category line: $cat $branch"; skipped=$((skipped+1)); add "$branch" "$cat" "-" "skipped: bad category"; continue; fi
+            case "$branch" in
+              main|studio-notes|backup/*|previews/*|'')
+                echo "::warning::protected, never deleted: $branch"; skipped=$((skipped+1)); add "$branch" "$cat" "-" "skipped: protected"; continue ;;
+            esac
+            enc=$(jq -rn --arg b "$branch" '$b|@uri')
+            cur=$(gh api "repos/$REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null) || cur=""
+            if [ -z "$cur" ]; then echo "already gone: $branch"; gone=$((gone+1)); add "$branch" "$cat" "$sha" "already gone"; continue; fi
+            if [ -n "$sha" ] && [ "$cur" != "$sha" ]; then
+              echo "::warning::SHA changed for $branch ($sha -> $cur), skipped"; skipped=$((skipped+1)); add "$branch" "$cat" "$cur" "skipped: SHA changed"; continue
+            fi
+            if [ "$cat" = 1 ]; then
+              ahead=$(gh api "repos/$REPO/compare/main...$enc" --jq '.ahead_by' 2>/dev/null) || ahead=""
+              if [ "$ahead" != "0" ]; then
+                echo "::warning::$branch ahead_by=${ahead:-?}, skipped"; skipped=$((skipped+1)); add "$branch" "$cat" "$cur" "skipped: ahead_by=${ahead:-?}"; continue
+              fi
+            fi
+            echo "DELETE $branch $cur (category $cat)"
+            if gh api -X DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null; then
+              deleted=$((deleted+1)); add "$branch" "$cat" "$cur" "deleted"
+            else
+              echo "::error::delete failed: $branch"; failed=$((failed+1)); add "$branch" "$cat" "$cur" "FAILED"
+            fi
+          done < "$LIST"
+          {
+            echo "## Approved branch deletion"
+            echo
+            echo "deleted: $deleted · already gone: $gone · skipped: $skipped · failed: $failed"
+            echo
+            echo "Restore: \`gh api -X POST repos/$REPO/git/refs -f ref=refs/heads/<branch> -f sha=<sha>\`"
+            echo
+            echo "| branch | category | sha | result |"
+            echo "|---|---|---|---|"
+            printf '%s' "$rows"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$failed" -eq 0 ]
