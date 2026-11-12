@@ -4,6 +4,7 @@ import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
 import { EpisodeTonePick, PrepareAll } from "../workspace/PrepareAll";
 import { arNum, sceneName, sceneNames } from "../workspace/sceneNames";
+import { SCENES, arabicCountAr } from "../../../src/i18n/count";
 import { citationChip, citationNotice } from "./citationNotice";
 import { DockChip, DockText } from "./DockText";
 import { Icon } from "../ui/icons";
@@ -47,6 +48,8 @@ type Props = {
   onState?: (w: SceneProductionRead | null) => void;
   /** M1: set the episode tone (the page saves its own plan, so no later save drops it). */
   onEpisodeTone?: (tone: string) => Promise<void>;
+  /** D-5/M4: scenes whose designed drawing was made for an earlier text (shown words-only until updated). */
+  shotMismatch?: string[];
 };
 
 /**
@@ -55,7 +58,7 @@ type Props = {
  * وملاحظة اللوحات)، أو سطرًا وزرًا إلى مكان القرار حين يكون المالك خارج خطوته؛ وفي الخطوة ١ ورقة لاصقة
  * «قبل أن تعتمد». الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
-export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scriptErrors, onScriptLine, refreshKey, onTab, onDecided, onOpenSettings, onState, onEpisodeTone }) => {
+export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scriptErrors, onScriptLine, refreshKey, onTab, onDecided, onOpenSettings, onState, onEpisodeTone, shotMismatch = [] }) => {
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
   const [reviewed, setReviewed] = useState(false);
@@ -192,6 +195,9 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
               <span>السكريبت<small>{scriptFixes ? <>{arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"}</> : diverged ? "لا يطابق اللوحات (انظر أدناه)" : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
             {diverged ? (
               <li className="is-warn"><i aria-hidden="true">!</i><span>اللوحات والسكريبت<small>{divergedLine}. ما يُعتمد يجب أن يكون ما يُنطق.</small></span></li>
+            ) : null}
+            {shotMismatch.length ? (
+              <li className="is-warn"><i aria-hidden="true">!</i><span>الرسوم<small>{arabicCountAr(shotMismatch.length, SCENES)} {shotMismatch.length === 1 ? "رسمه صُمم" : "رسمها صُمم"} لنص سابق ({sceneNames(w?.scenes.map((x) => x.id) ?? shotMismatch, shotMismatch, 4)})؛ تُعرض بالكلمات وحدها حتى تُحدَّث.</small></span></li>
             ) : null}
             <li className={prep && !prep.boardsRecorded ? "is-warn" : undefined}><i aria-hidden="true">{prep && !prep.boardsRecorded ? "!" : <Icon name="check" />}</i>
               <span>اللوحات<small>{prep && !prep.boardsRecorded ? "راجعها كلها؛ ملاحظتك بجوار الزر اختيارية" : "سُجّلت مراجعتها"}</small></span></li>

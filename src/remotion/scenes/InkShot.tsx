@@ -8,7 +8,8 @@ import { estimateTimings } from "./timing";
 import { normalizeArabic } from "../../script/quranMeta";
 import { camAt, camTransform, type CamKey } from "../illus/shots/kit";
 import { INK_SHOTS } from "../zubdat/shots";
-import { H, W, PageSheet, Paper, makeAt, makeEnd, type Z } from "../zubdat/inkKit";
+import { H, W, InkSpokenContext, PageSheet, Paper, fam, makeAt, makeEnd, measure, prog, type Z } from "../zubdat/inkKit";
+import { allowFromName, inkShotWordIssue, spoken } from "../zubdat/spoken";
 import { parseInkArgs } from "../zubdat/kitShots";
 import type { SceneBase, StringFields } from "./types";
 
@@ -93,6 +94,40 @@ const fitFrame = (c: { x: number; y: number; z: number }, box: [number, number, 
 
 const SACRED = /الله|لله|ربنا|ربه|ربك|سبحانه|تعالي|تعالى/;
 
+/**
+ * المشهد بالكلمات وحدها (D-5): لقطة صُممت على كلمات لم تعد في النص لا يُرسم منها شيء (القاعدة الثالثة)، بل جملة
+ * الراوي الحالية على الورقة بخط القناة، تظهر كاملة عند بدء نطقها (بلا قلم: لا كتابة لحظة ذكر الله).
+ * التنبيه للمالك في فحص الخطة (src/plan/shotWords.ts).
+ */
+const InkWordsOnly: React.FC<{ timings: { word: string; start: number; end: number }[]; frame: number; dur: number; z: Z }> = ({ timings, frame, dur, z }) => {
+  const sentences: { words: string[]; start: number }[] = [];
+  let cur: { words: string[]; start: number } | null = null;
+  for (const t of timings) {
+    if (!cur) { cur = { words: [], start: t.start }; sentences.push(cur); }
+    cur.words.push(t.word);
+    if (/[.؟?!؛:]$/.test(t.word)) cur = null;
+  }
+  const k = Math.max(0, sentences.reduce((n, s, i) => (s.start <= frame + 4 ? i : n), 0));
+  const s = sentences[k];
+  if (!s) return null;
+  const size = 76, maxW = 1380;
+  const lines: string[] = [];
+  for (const w of s.words) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && measure(`${last} ${w}`, size, fam("hand")) <= maxW) lines[lines.length - 1] = `${last} ${w}`;
+    else lines.push(w);
+  }
+  const o = prog(frame, s.start - 6, s.start + 6) * (1 - prog(frame, dur - 14, dur - 2));
+  const y0 = 470 - ((lines.length - 1) * size * 1.5) / 2;
+  return (
+    <g opacity={o}>
+      {lines.map((l, i) => (
+        <text key={`${k}-${i}`} x={W / 2} y={y0 + i * size * 1.5} direction="rtl" textAnchor="middle" fontFamily={fam("hand")} fontSize={size} fill={z.ink}>{l}</text>
+      ))}
+    </g>
+  );
+};
+
 export const InkShot: React.FC<InkShotProps> = (props) => {
   const frame = useCurrentFrame();
   const { durationInFrames: dur } = useVideoConfig();
@@ -106,7 +141,20 @@ export const InkShot: React.FC<InkShotProps> = (props) => {
   const logo = (size: number) => <LogoMark size={size} colors={t.logo} mark={channelMark} />;
   const regs: Reg[] = [];
   const reg = (r: [number, number, number, number], t: number) => regs.push({ r, t });
-  const shot = def ? def.render({ frame, dur, z, at: makeAt(timings, dur), end: makeEnd(timings, dur), logo, reg, task: props.task, args: parseInkArgs(props.labels, props.cues) }) : null;
+  // اللقطة على نص سابق؟ (D-5) كلمة توقيت لم تعد في النص: المشهد بالكلمات وحدها. كتابة لا تُنطق: لا تُكتب.
+  const allow = allowFromName(useChannel().name);
+  // الحكم من نص المشهد نفسه (لا من محاذاة الصوت التي قد تقسم الكلمات بغير طريقته)، فيطابق فحص الخطة تمامًا
+  const issue = React.useMemo(() => {
+    if (!def || (props.shot ?? "").startsWith("kit-") || !narration.trim()) return { missing: [] as string[], unspoken: [] as string[], textTimings: [] as ReturnType<typeof estimateTimings> };
+    const textTimings = estimateTimings(narration, 6, dur - 12);
+    return { ...inkShotWordIssue(def, { narration, props: { labels: props.labels, cues: props.cues, task: props.task } }, textTimings, dur, allow), textTimings };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.shot, narration, dur]);
+  const wordsOnly = issue.missing.length > 0;
+  const isSpoken = React.useMemo(() => (issue.unspoken.length ? (text: string) => text.split(/\s+/).every((w) => spoken(issue.textTimings, w, allow)) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [issue]);
+  const shot = def && !wordsOnly ? def.render({ frame, dur, z, at: makeAt(timings, dur), end: makeEnd(timings, dur), logo, reg, task: props.task, args: parseInkArgs(props.labels, props.cues) }) : null;
   // مواضع الأحداث تُعد عناصر أيضًا (للرسوم غير النصية): مستطيل حول كل حدث من لحظته
   for (const [t, x, y] of shot?.focus ?? []) reg([x - 170, y - 110, x + 170, y + 110], t);
   // سكون تام للكاميرا عند كل ذكر لله (ومع نوافذ المشهد الخاصة)
@@ -122,7 +170,8 @@ export const InkShot: React.FC<InkShotProps> = (props) => {
         <svg viewBox={vb} preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
           <g transform={camTransform(c)}>
             <Paper z={z} />
-            {shot?.world}
+            <InkSpokenContext.Provider value={isSpoken}>{shot?.world}</InkSpokenContext.Provider>
+            {wordsOnly ? <InkWordsOnly timings={timings} frame={frame} dur={dur} z={z} /> : null}
           </g>
           {/* صفحة جديدة لكل فكرة: الورقة السابقة تُقلب من اليسار إلى اليمين (اتجاه تقليب الكتاب العربي) */}
           {frame < 16 ? (

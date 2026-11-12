@@ -1,5 +1,4 @@
 import path from "node:path";
-import React from "react";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import config from "../../config.json";
@@ -10,7 +9,8 @@ import { loadPlan, readJson } from "../plan/io";
 import type { Plan, PlanScene } from "../plan/types";
 import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { estimateTimings, toFrames, type WordTiming } from "../remotion/scenes/timing";
-import { Mark, Write, type Z } from "../remotion/zubdat/inkKit";
+import type { Z } from "../remotion/zubdat/inkKit";
+import { PRE_AT, PRE_END, collectWrites, findWord, spoken, stem, type Drawn } from "../remotion/zubdat/spoken";
 import { KIT_SHOTS, MIN_TEXT, parseInkArgs } from "../remotion/zubdat/kitShots";
 import { kitPhraseRange } from "../remotion/zubdat/kitSlots";
 import { INK_SHOTS } from "../remotion/zubdat/shots";
@@ -98,43 +98,7 @@ export const episodeTimeline = async (episode: string): Promise<{ plan: Plan; sp
 };
 
 // ── فحص مشاهد الحبر ──────────────────────────────────────────────────────
-const strip = (w: string) => normalizeArabic(w.replace(/[«»"“”'؟?!.,،:؛…ـ()]/g, ""));
-const PRE_AT = ["", "و", "ف", "ب", "ل", "وب", "ول"];
-const PRE_END = ["", "و", "ف", "ب", "ل"];
-const findWord = (timings: WordTiming[], word: string, nth: number, pre: string[]) => {
-  const k = strip(word);
-  if (!k) return null;
-  let n = 0;
-  for (const t of timings) {
-    const w = strip(t.word);
-    if (pre.some((p) => w === p + k)) if (++n === nth) return t;
-  }
-  return null;
-};
-/** جذع الكلمة للمقارنة: بلا سابقة (و ف ب ل ك) ولا «ال» ولا ألف التنوين أو التاء المربوطة في آخرها */
-const stem = (w: string) => strip(w).replace(/^(?:[وف]?(?:[بلك])?)(?:ال|ل(?=ل))?/, "").replace(/(?:ا|ة|ه)$/, "");
-const spoken = (timings: WordTiming[], token: string, allow: Set<string>) => {
-  const k = stem(token);
-  if (!k || !/[ء-ي]/.test(k) || allow.has(k)) return true;
-  return timings.some((t) => stem(t.word) === k);
-};
-
-type Drawn = { id: string; text: string; size: number; p: number; kind: "write" | "mark" };
-/** يجمع النصوص المكتوبة (Write) من شجرة المشهد، ويفتح المكوّنات الصغيرة الخالية من الخطافات */
-const collectWrites = (node: React.ReactNode, out: Drawn[], depth = 0) => {
-  if (depth > 40 || node == null || typeof node === "boolean") return;
-  if (Array.isArray(node)) { for (const n of node) collectWrites(n, out, depth + 1); return; }
-  if (!React.isValidElement(node)) return;
-  const el = node as React.ReactElement<Record<string, unknown>>;
-  const props = el.props ?? {};
-  if (el.type === Write) { out.push({ id: String(props.id ?? ""), text: String(props.text ?? ""), size: Number(props.size ?? 0), p: Number(props.p ?? 0), kind: "write" }); return; }
-  if (el.type === Mark) { out.push({ id: "mark", text: "", size: 0, p: Number(props.p ?? 0), kind: "mark" }); return; }
-  if (typeof el.type === "function") {
-    try { collectWrites((el.type as (p: unknown) => React.ReactNode)(props), out, depth + 1); } catch { /* مكوّن بخطافات: لا نص فيه من مشاهد الحبر */ }
-    return;
-  }
-  collectWrites(props.children as React.ReactNode, out, depth + 1);
-};
+// مطابقة الكلمة المنطوقة وجمع النصوص المكتوبة: src/remotion/zubdat/spoken.ts (نقي، يستعمله القالب وفحص الخطة أيضًا)
 
 export type Finding = { level: "error" | "warn"; code: string; msg: string };
 export type InkSceneCheck = { id: string; shot: string; kit: boolean; seconds: number; voiced: boolean; cues: number; texts: Drawn[]; findings: Finding[] };

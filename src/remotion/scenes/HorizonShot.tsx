@@ -7,6 +7,7 @@ import { HZ_SCENES } from "../dafatir/horizon/episode001";
 import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../dafatir/horizon/meta";
 import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/horizon/timeline";
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
+import { horizonShotWordIssue } from "../../plan/shotWords";
 import { verseRef } from "../dafatir/horizon/kit";
 import type { SceneBase, StringFields } from "./types";
 
@@ -31,6 +32,38 @@ const timelineFor = (narration: string, timings: SceneBase["narrationTimings"], 
   return buildTimeline(sentences, HZ_LEAD);
 };
 
+/**
+ * المشهد بالكلمات وحدها (M4): حين لا يطابق التصميمُ النصَّ الحالي (كلمة صُمم عليها لم تعد فيه)، لا يُرسم من التصميم
+ * شيء (القاعدة الثالثة: الفراغ أفضل من عنصر خاطئ)، بل الدفتر مفتوحًا وجملة الراوي على الصفحة تظهر عند بدء نطقها
+ * (جملة كاملة لا كلمة كلمة: لا حدث لحظة ذكر الله).
+ * التنبيه للمالك في فحص الخطة (src/plan/shotWords.ts)، لا على الشاشة.
+ */
+export const HorizonWordsOnly: React.FC<{ t: number; tl: Timeline; dur: number; exit: string; head?: string }> = ({ t, tl, dur, exit, head }) => {
+  const k = tl.sentences.findIndex((s, i) => t < s.e || i === tl.sentences.length - 1);
+  const sent = k >= 0 ? tl.sentences[k]! : undefined;
+  const shown = sent ? sent.text.split(/\s+/).filter(Boolean) : [];
+  const fadeOut = 1 - prog(t, dur - 0.75, dur - 0.15);
+  return (
+    <>
+      <Book id="wo" t={t} dur={dur} exit={exit === "turn" || exit === "fade" ? exit : "none"} cam={NEUTRAL} R={head ? <ChapterHead label={head} /> : undefined} />
+      {sent ? (
+        <div style={{ position: "absolute", left: 1040, width: 600, top: 300, color: C.inkText, direction: "rtl", textAlign: "center", fontFamily: "'Amiri', serif", fontSize: 54, lineHeight: 1.7, opacity: fadeOut }}>
+          <span style={{ opacity: prog(t, sent.s - 0.2, sent.s + 0.2) }}>{shown.join(" ")}</span>
+        </div>
+      ) : null}
+    </>
+  );
+};
+
+/** حارس المشهد المصمَّم: أي خطأ في رسمه (كلمة لم تعد في النص) يعرض المشهد بالكلمات وحدها بدل أن ينهار. */
+export class ShotGuard extends React.Component<{ fallback: React.ReactNode; resetKey: string; children: React.ReactNode }, { failed: string | null }> {
+  state = { failed: null as string | null };
+  static getDerivedStateFromError(): { failed: string } { return { failed: "x" }; }
+  componentDidUpdate(prev: { resetKey: string }) { if (prev.resetKey !== this.props.resetKey && this.state.failed) this.setState({ failed: null }); }
+  componentDidCatch() { /* التنبيه في فحص الخطة؛ لا ضجيج في كل إطار */ }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
 export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -39,6 +72,10 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const shot = props.shot && HZ_SCENES[props.shot] ? props.shot : "pending";
   const meta = HZ_META[shot]!;
   const tl = timelineFor(props.narration ?? "", props.narrationTimings, fps);
+  // M4: كلمة صُمم عليها المشهد ولم تعد في نصه؟ يُعرف من النص قبل الرسم، فلا يُستدعى الرسم أصلًا (بلا خطأ في كل إطار)
+  const stale = React.useMemo(() => Boolean(horizonShotWordIssue({ id: "", narration: props.narration ?? "", props: { ...(props as unknown as Record<string, string>), shot } })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shot, props.narration, props.exit, props.ref]);
   const Comp = HZ_SCENES[shot]!;
   const exit = (props.exit as typeof meta.exit) || meta.exit;
   // نهاية آخر كلمة منطوقة: منها يبدأ خروج المشهد (قلب الصفحة أو خفوت الحبر)
@@ -55,7 +92,11 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
         <Dusk />
         <SceneCloseContext.Provider value={close}>
           <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
-            <Comp t={t} tl={tl} dur={dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
+            {stale ? <HorizonWordsOnly t={t} tl={tl} dur={dur} exit={exit} head={props.head} /> : (
+              <ShotGuard resetKey={`${shot}|${props.narration ?? ""}`} fallback={<HorizonWordsOnly t={t} tl={tl} dur={dur} exit={exit} head={props.head} />}>
+                <Comp t={t} tl={tl} dur={dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
+              </ShotGuard>
+            )}
           </VersePageContext.Provider>
         </SceneCloseContext.Provider>
       </AbsoluteFill>
@@ -97,7 +138,7 @@ export const HorizonVerse: React.FC<HorizonVerseProps> = (props) => {
 
 export const horizonShotSample: Omit<HorizonShotProps, "themeId" | "orientation"> = {
   shot: "known",
-  head: "الفصل الثاني",
+  head: "قصة البداية",
   narration: "فأجابهم الله بأنه يعلم ما لا يعلمون. إن معرفتنا محدودة، وعلم الله محيط بكل شيء. وقد نعرف بعض الحكم من أمر من أمور الله، ولكننا لا ندعي الإحاطة بجميع حكمه.",
 };
 export const horizonShotSampleEn = horizonShotSample;

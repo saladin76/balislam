@@ -5,6 +5,7 @@ import { parseCameraPlan, parseCameraPlanLines, parsePoseTimeline } from "./dire
 import { lightingIssues } from "./lighting";
 import { transitionIssues } from "./transitions";
 import type { Plan } from "./types";
+import { shotWordPlanIssues } from "./shotWords";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
 import { elementExclusion, excludeReasonAr, figuresAllowed, setExclusion, templateExclusion, type LibraryRules } from "../channel/library";
@@ -127,5 +128,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
     }
   // Isolated policy review: never infer an approval from a creative heuristic.
   out.push(...channelProductionIssues(plan, channel));
+  // اللقطات المصمَّمة على نص سابق (D-5، M4): تنبيه واضح، والقالب يعرض الكلمات وحدها بدل الرسم الخاطئ
+  out.push(...shotWordPlanIssues(plan, (channel as { name?: string } | undefined)?.name));
   return out;
 };

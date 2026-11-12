@@ -32,12 +32,28 @@ export const buildTimeline = (sentences: string[], lead: number): Timeline => {
   return { words, sentences: out, end: t };
 };
 
+/**
+ * كلمة صُمم عليها مشهد ولم تعد في نصه (عُدّل النص بعد التصميم). يلتقطها HorizonShot فيعرض المشهد بالكلمات وحدها،
+ * ويلتقطها فحص الخطة (src/plan/shotWords.ts) فيُظهر تنبيهًا واضحًا؛ لا ينهار المشهد ولا اللوحة (M4).
+ */
+export class MissingWordError extends Error {
+  readonly word: string;
+  readonly nth: number;
+  constructor(word: string, nth: number) {
+    super(`كلمة غير موجودة في التوقيت: ${word} (${nth})`);
+    this.name = "MissingWordError";
+    this.word = word;
+    this.nth = nth;
+  }
+}
+export const isMissingWord = (e: unknown): e is MissingWordError => e instanceof MissingWordError || (e as { name?: string } | null)?.name === "MissingWordError";
+
 /** بداية الكلمة رقم nth التي تبدأ بـ prefix (بعد حذف الحركات وعلامات الترقيم). */
 export const at = (tl: Timeline, prefix: string, nth = 1): number => {
   const p = clean(prefix);
   const hits = tl.words.filter((x) => x.w.startsWith(p));
   const hit = hits[nth - 1];
-  if (!hit) throw new Error(`كلمة غير موجودة في التوقيت: ${prefix} (${nth})`);
+  if (!hit) throw new MissingWordError(prefix, nth);
   return hit.s;
 };
 
@@ -45,7 +61,7 @@ export const at = (tl: Timeline, prefix: string, nth = 1): number => {
 export const end = (tl: Timeline, prefix: string, nth = 1): number => {
   const p = clean(prefix);
   const hit = tl.words.filter((x) => x.w.startsWith(p))[nth - 1];
-  if (!hit) throw new Error(`كلمة غير موجودة في التوقيت: ${prefix} (${nth})`);
+  if (!hit) throw new MissingWordError(prefix, nth);
   return hit.e;
 };
 
