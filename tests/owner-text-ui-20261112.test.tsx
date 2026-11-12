@@ -191,3 +191,19 @@ describe("new episode", () => {
     expect(src("app/server/api.ts")).toMatch(/if \(!\(await io\.readPlanFile\(scriptPath\)\)\) await io\.regeneratePlan\(ep\)/);
   });
 });
+
+describe("stylesheets parse", () => {
+  // A merge once lost a «}» in shell.css and the whole Studio showed Vite's error overlay (caught by ui-audit).
+  it("every app stylesheet has balanced braces", async () => {
+    const { readdirSync } = await import("node:fs");
+    const walk = (d: string): string[] => readdirSync(path.join(root, d), { withFileTypes: true })
+      .flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith(".css") ? [path.join(d, e.name)] : []));
+    const bad = walk("app/src").filter((f) => {
+      const s = src(f).replace(/\/\*[\s\S]*?\*\//g, "").replace(/"[^"\n]*"|'[^'\n]*'/g, "");
+      let d = 0;
+      for (const c of s) { if (c === "{") d++; else if (c === "}" && --d < 0) return true; }
+      return d !== 0;
+    });
+    expect(bad).toEqual([]);
+  });
+});
