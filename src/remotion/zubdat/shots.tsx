@@ -169,11 +169,15 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const tT = at("أول", 0.06);
       const tSub = at("وكان", 0.14);
       const tDr = at("الدكتور", 0.3);
-      const tTrip = at("رحلة", 0.45);
-      const tA = at("التهيؤ", 0.6);
-      const tBst = at("نقوله", 0.7);
-      const tStep = at("بالخطوة", 0.84);
-      const tHeart = at("تهيئة", 0.92);
+      // السكريبت المعتمد (١١ نوفمبر): «يصحبنا… مِنَ التهيؤ للصلاة إلى معاني أقوالها وأفعالها. ولكننا لن نبدأ من الركوع
+      // أو السجود؛ سنبدأ مما يسبقهما: كيف نهيئ قلوبنا؟»
+      const tTrip = at("من", 0.36, 2);
+      const tA = at("التهيؤ", 0.4);
+      const tBst = at("معاني", 0.5);
+      const tNot = at("الركوع", 0.68);
+      const tStep = at("سنبدأ", 0.78);
+      const tKayf = at("كيف", 0.88);
+      const tHeart = at("نهيئ", 0.92);
       const bIn = prog(frame, tB - 10, tB + 16, outCubic);
       const bx = 1330 + 700 * (1 - bIn);
       const rot = lerp(9, -3, bIn);
@@ -184,8 +188,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const fill = prog(frame, tHeart - 2, tHeart + 16);
       const flag = prog(frame, tStep - 2, tStep + 14, outCubic);
       return {
-        focus: [[tT, 1330, 410], [tSub, 1330, 500], [tDr, 1250, 850], [tTrip, 950, 560], [at("معاني", 0.52), 860, 560], [tA, 760, 570], [tBst, 350, 430], [tStep, 760, 480], [tHeart, 760, 700]],
-        cam: [C(0, 1180, 500, 1.02), C(tDr - 10, 1240, 600, 1.08), C(tTrip - 2, 900, 520, 1.0), C(tBst - 4, 760, 520, 1.05), C(tHeart - 8, 820, 560, 1.15)],
+        focus: [[tT, 1330, 410], [tSub, 1330, 500], [tDr, 1250, 850], [tTrip, 950, 560], [tA, 760, 570], [tBst, 420, 470], [tNot, 420, 470], [tStep, 760, 480], [tKayf, 680, 740]],
+        cam: [C(0, 1180, 500, 1.02), C(tDr - 10, 1240, 600, 1.08), C(tTrip - 2, 900, 520, 1.0), C(tBst - 4, 760, 520, 1.05), C(tKayf - 8, 820, 600, 1.1)],
         world: (
           <g>
             {/* الكتاب: غلاف أسود بشريط فسفوري (بطاقة القناة، لا صورة الغلاف الأصلي) */}
@@ -213,19 +217,20 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             <g opacity={prog(frame, tA - 4, tA + 8)}>
               <circle cx={760} cy={570} r={46} fill={z.paper} stroke={z.ink} strokeWidth={7} />
               <circle cx={760} cy={570} r={40 * fill} fill={z.hl} />
-              {fill > 0 ? <path d={heartPath(760, 572, 18)} fill={z.ink} opacity={prog(frame, end("القلب", 0.97) - 6, end("القلب", 0.97) + 6)} /> : null}
+              {fill > 0 ? <path d={heartPath(760, 572, 18)} fill={z.ink} opacity={prog(frame, end("قلوبنا", 0.97) - 6, end("قلوبنا", 0.97) + 6)} /> : null}
             </g>
-            <Write id="sa" x={760} y={690} text="التهيؤ لها" size={66} p={wp(frame, tA, end("لها", 0.64))} c={z.ink} z={z} opacity={1 - fill} />
-            <g opacity={prog(frame, tBst - 4, tBst + 8)}>
+            <Write id="sa" x={760} y={690} text="التهيؤ للصلاة" size={66} p={wp(frame, tA, end("للصلاة", 0.46))} c={z.ink} z={z} opacity={1 - fill} />
+            {/* «لن نبدأ من الركوع أو السجود»: المحطة الثانية تخفت، والبداية من الأولى */}
+            <g opacity={prog(frame, tBst - 4, tBst + 8) * (1 - 0.65 * prog(frame, tNot - 2, tNot + 12))}>
               <circle cx={420} cy={440} r={46} fill={z.paper} stroke={z.ink} strokeWidth={7} />
             </g>
-            <Write id="sb" x={420} y={570} text="ما نقوله ونفعله" size={66} p={wp(frame, tBst - 4, end("ونفعله", 0.74))} c={z.ink} z={z} />
+            <Write id="sb" x={420} y={570} text="معاني أقوالها وأفعالها" size={52} p={wp(frame, tBst - 4, end("وأفعالها", 0.6))} c={z.ink} z={z} opacity={1 - 0.65 * prog(frame, tNot - 2, tNot + 12)} />
             {/* الخطوة الأولى: علم يُغرز في المحطة الأولى */}
             <g transform={`translate(${760} ${570 - 46 - 40 * (1 - flag)})`} opacity={flag}>
               <line x1={0} y1={0} x2={0} y2={-110} stroke={z.ink} strokeWidth={7} strokeLinecap="round" />
               <path d="M0 -110 L-70 -88 L0 -66 Z" fill={z.hl} stroke={z.ink} strokeWidth={5} strokeLinejoin="round" />
             </g>
-            <Write id="tq" x={760} y={760} text="تهيئة القلب" size={92} p={wp(frame, tHeart, end("القلب", 0.98))} c={z.ink} font="head" z={z} />
+            <Write id="tq" x={620} y={800} text="كيف نهيئ قلوبنا؟" size={76} p={wp(frame, tKayf, end("قلوبنا", 0.98))} c={z.ink} font="head" z={z} />
           </g>
         ),
       };
