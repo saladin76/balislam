@@ -292,6 +292,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
       if (channel.outro.seconds) scene.durationSec = channel.outro.seconds;
       if (old?.edited && old.template === scene.template) {
         scene.props = { ...scene.props, ...old.props };
+        // KI-051: the owner's length for the closing card stays (it used to fall back to the outro's seconds)
+        if (old.durationSec) scene.durationSec = old.durationSec;
         scene.edited = true;
       }
     }
@@ -302,6 +304,8 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
       scene.edited = true;
     }
     if (old?.overlays && Object.keys(old.overlays).length) scene.overlays = { ...old.overlays };
+    // KI-051: an unchanged closing card stays byte for byte the card already approved
+    if (old && old.template === scene.template) { keepKeyOrder(scene.props, old.props ?? {}); keepKeyOrder(scene, old); }
     lastChapter.scenes.push(scene);
   }
 
