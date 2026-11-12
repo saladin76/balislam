@@ -492,30 +492,34 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tTitle = at("أول", 0.06);
       const tAuthor = at("المؤلف", 0.14);
       const tRisala = at("رسالة", 0.22);
-      const tIbn = at("ابن", 0.25);
+      // السكريبت المعتمد (١١ نوفمبر): «يروي أنه تأمل معاني من رسالة لابن القيم عن أسرار الصلاة… وهو واقف أمام الكعبة… كأنه يصلي
+      // لأول مرة. ومن هذه التجربة، ومما جمعه وشرحه من كلام ابن القيم، تشكّل هذا الكتاب.»
+      const tIbn = at("لابن", 0.25);
       const tAsrar = at("أسرار", 0.29);
-      const tTaammul = at("وتأمل", 0.34);
-      const tMaani = at("معانيها", 0.37);
+      const tTaammul = at("تأمل", 0.18);
+      const tMaani0 = at("معاني", 0.2);
+      // «تأمل معاني» تُقال قبل «رسالة»: التحديد يبدأ بعد أن تنبسط المخطوطة
+      const tMaani = Math.max(tMaani0, tRisala + 14);
       const tStand = at("واقف", 0.46);
       const tKaaba = at("الكعبة", 0.5);
       const tKa = at("كأنه", 0.53);
       const tPray = at("يصلي", 0.55);
       const tFirst = at("لأول", 0.57);
-      const tThree = at("ثلاث", 0.65);
-      const tHadhihi = at("لهذه", 0.7);
-      const tAdd = at("وأضاف", 0.74);
-      const tIlayha = at("إليها", 0.76);
-      const tKutub = at("كتب", 0.77);
-      const tSharh = at("شرحه", 0.86);
+      const tThree = at("التجربة", 0.7);
+      const tHadhihi = at("جمعه", 0.76);
+      const tSharh = at("وشرحه", 0.79);
+      const tAdd = at("كلام", 0.83);
+      const tIlayha = end("القيم", 0.87, 2);
+      const tKutub = tAdd;
       const tBook = at("الكتاب", 0.97);
       // اللحظة الأساسية: «كأنه يصلي لأول مرة» — ما حولها يهدأ، والمصلي في نور هادئ
       const moment = P(tKa - 6, tKa + 16);
-      // اللحظة تبقى حتى «ثلاث»: ما بعد «ثم جمع» يبدأ بعد أن تستقر الجملة
+      // اللحظة تبقى حتى «التجربة»: ما بعدها يبدأ بعد أن تستقر الجملة
       const after = P(tThree - 14, tThree + 2);
       const calm = 1 - 0.7 * moment * (1 - after);
-      // الصيغ الثلاث: ورقتان تظهران خلف المخطوطة ثم تنضمان إليها
-      const three = P(tThree - 4, tThree + 12);
-      const merge = P(tHadhihi - 2, tHadhihi + 18);
+      // «ومما جمعه»: ورقتان تظهران خلف المخطوطة ثم تنضمان إليها
+      const three = P(tHadhihi - 4, tHadhihi + 8);
+      const merge = P(tHadhihi + 8, tHadhihi + 26);
       const final = P(tBook - 10, tBook + 12);
       const others = 1 - final;
       const pray = P(tPray - 4, tPray + 8);
@@ -523,7 +527,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const sheetS = lerp(1, 0.55, final);
       c.reg([380, 240, 900, 760], tRisala);
       return {
-        focus: [[tWhy, 1400, 300], [tTitle, 960, 190], [tAuthor, 1320, 620], [tRisala, 640, 480], [tAsrar, 640, 360], [tIbn, 640, 440], [tMaani, 640, 560], [tStand, 1320, 700], [tKa, 1320, 400], [tFirst, 1320, 380], [tThree, 700, 500], [tHadhihi, 760, 500], [tKutub, 1090, 560], [tSharh, 1300, 400], [tBook, 960, 520]],
+        focus: [[tWhy, 1400, 300], [tTitle, 960, 190], [tAuthor, 1320, 620], [tTaammul, 640, 480], [tRisala, 640, 480], [tIbn, 640, 440], [tAsrar, 640, 360], [tMaani, 640, 560], [tStand, 1320, 700], [tKa, 1320, 400], [tFirst, 1320, 380], [tThree, 700, 500], [tHadhihi, 760, 500], [tSharh, 1300, 400], [tKutub, 1090, 560], [tBook, 960, 520]],
         cam: [C(0, 960, 300, 1.12), C(tAuthor - 6, 960, 470, 1.0), C(tKa - 8, 1240, 520, 1.12), C(tThree - 14, 960, 500, 1.0)],
         world: (
           <g>
@@ -537,9 +541,12 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <ellipse cx={1320} cy={620} rx={lerp(60, 230, moment)} ry={lerp(40, 260, moment)} fill={z.hl} opacity={0.45 * moment} style={{ mixBlendMode: "multiply" }} />
               <Stroke d="M1450 814 L1190 814 L1170 840 L1470 840 Z" p={P(tStand - 4, tStand + 10)} c={z.ink} w={6} fill={z.hl} fillP={0.5 * P(tStand + 2, tStand + 14)} />
               {/* «وهو واقف أمام الكعبة»: الكعبة أمامه لحظة نطقها */}
-              <Kaaba x={1040} y={830} s={0.78} p={P(tKaaba - 4, tKaaba + 16)} z={z} band={0} />
+              <g opacity={1 - P(tAdd - 10, tAdd)}><Kaaba x={1040} y={830} s={0.78} p={P(tKaaba - 4, tKaaba + 16)} z={z} band={0} /></g>
             </g>
             {T("au", 1320, 900 - 40, "المؤلف", 64, ["المؤلف", 0.14], undefined, { opacity: 1 - P(tStand - 8, tStand) })}
+            {/* «وأن تلك المعاني حضرت معه»: سهم متقطع من المخطوطة إلى المؤلف */}
+            <path d="M860 470 Q1080 380 1250 560" fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="12 12" opacity={P(at("حضرت", 0.4) - 2, at("حضرت", 0.4) + 8) * (1 - P(tKa - 6, tKa + 6))} />
+            <Arrow x1={1180} y1={470} x2={1250} y2={560} p={P(at("حضرت", 0.4) + 4, at("حضرت", 0.4) + 16) * (1 - P(tKa - 6, tKa + 6))} c={z.ink} w={6} />
             {/* «كأنه يصلي لأول مرة»: الجملة نفسها، فوق المصلي */}
             <g opacity={1 - after}>
               {T("ka", 1320, 370, "كأنه يصلي لأول مرة", 80, ["كأنه", 0.53], ["مرة", 0.6, 2], { font: "head" })}
@@ -558,7 +565,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 <rect x={-210} y={-240} width={420} height={480} rx={10} fill={z.paper} stroke={z.ink} strokeWidth={7} />
                 <rect x={-210} y={-240} width={420} height={480} rx={10} fill={z.hl} opacity={0.22} />
                 <path d="M-210 -240 Q-232 -222 -210 -204 M210 -240 Q232 -222 210 -204 M-210 240 Q-232 222 -210 204 M210 240 Q232 222 210 204" fill="none" stroke={z.ink} strokeWidth={6} />
-                <Lines x={0} y={-50} w={320} n={6} p={P(tTaammul - 6, tMaani + 14, (t) => t)} z={z} gap={46} />
+                <Lines x={0} y={-50} w={320} n={6} p={P(tRisala, tMaani + 14, (t) => t)} z={z} gap={46} />
               </g>
               {/* «وتأمل معانيها»: تحديد فسفوري على سطرين */}
               <rect x={-160} y={-30} width={320 * P(tMaani - 2, tMaani + 12)} height={40} fill={z.hl} opacity={0.85} />
@@ -572,10 +579,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               ))}
             </g>
             {T("as", sheetX, 330, "أسرار الصلاة", 56, ["أسرار", 0.29], ["الصلاة", 0.31], { font: "head", opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
-            {T("iq", sheetX, 400, "ابن القيم", 62, ["ابن", 0.25], ["القيم", 0.27], { opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
-            {T("ts", sheetX - 100, 820, "ثلاث صيغ", 66, ["ثلاث", 0.65], ["صيغ", 0.67], { opacity: others })}
-            {/* «وأضاف إليها من كتب ابن القيم الأخرى»: ما أضافه يدخل مع «وأضاف» (كتب بالحبر بلا عناوين)، ويتجه إلى الرسالة مع «إليها»، ويُسمّى مع «كتب».
-                كان السهم يُرسم مع «وأضاف» من فراغ قبل ظهور الكتب بثانية ونصف (مراجعة D34) */}
+            {T("iq", sheetX, 400, "ابن القيم", 62, ["لابن", 0.25], ["القيم", 0.27], { opacity: lerp(1, 0.3, moment * (1 - after)) * (1 - final) })}
+            {/* «من كلام ابن القيم»: كتبه بالحبر بلا عناوين تدخل مع «كلام»، ويتجه سهمها إلى الرسالة بعد «القيم» */}
             <g opacity={others}>
               {[0, 1, 2].map((k) => (
                 <g key={k} transform={`translate(${1030 + k * 70} ${lerp(660, 540, P(tAdd - 4 + k * 3, tAdd + 10 + k * 3, outCubic))})`} opacity={P(tAdd - 4 + k * 3, tAdd + 6 + k * 3)}>
@@ -584,12 +589,12 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 </g>
               ))}
               <Arrow x1={1000} y1={540} x2={930} y2={540} p={P(tIlayha - 2, tIlayha + 10)} c={z.ink} w={6} />
-              {T("kt", 1080, 790, "كتب ابن القيم الأخرى", 60, ["كتب", 0.77], ["الأخرى", 0.8])}
-              {/* «ومن شرحه وإضافاته هو»: سهم من المؤلف إلى الهامش */}
+              {T("kt", 1080, 790, "كلام ابن القيم", 60, ["كلام", 0.83], ["القيم", 0.87, 2])}
+              {/* «ومما جمعه وشرحه»: سهم من المؤلف إلى الهامش */}
               <path d="M1290 440 Q1100 320 900 330" fill="none" stroke={z.ink} strokeWidth={6} strokeLinecap="round" pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - P(tSharh - 2, tSharh + 14, (t) => t)} />
-              {T("sh", 1420, 360, "شرحه وإضافاته", 64, ["شرحه", 0.86], ["وإضافاته", 0.89])}
+              {T("sh", 1420, 360, "جمعه وشرحه", 64, ["جمعه", 0.76], ["وشرحه", 0.79])}
             </g>
-            {/* «فكان هذا الكتاب»: تجتمع كلها في كتاب واحد (رسم القناة، لا غلاف طبعة) */}
+            {/* «تشكّل هذا الكتاب»: تجتمع كلها في كتاب واحد (رسم القناة، لا غلاف طبعة) */}
             <g transform={`translate(960 ${lerp(560, 520, final)}) scale(${lerp(0.6, 1, final)}) rotate(-3)`} opacity={final}>
               <rect x={-130} y={-180} width={260} height={360} rx={14} fill={z.ink} />
               <rect x={-90} y={-120} width={180} height={18} rx={6} fill={z.hl} />
