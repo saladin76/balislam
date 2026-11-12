@@ -134,6 +134,8 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
   }
   return data as T;
 };
+/** For feature modules with their own client (pronunciationApi.ts): the same channel, errors and «أرسل المشكلة». */
+export const apiCall = call;
 
 
 /** What changed in a scene re-opened after «اعتمد التجهيز». */

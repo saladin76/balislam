@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, type KeyState } from "../api";
+import { PronunciationCheckSettings } from "./PronunciationCheckSettings";
 
 type TestResult = Awaited<ReturnType<typeof api.testService>>;
 
@@ -138,6 +139,8 @@ export const SettingsTab: React.FC<{
           <KeyInput id="k-model" label="النموذج (اختياري)" secret={false} state={keys.ELEVENLABS_MODEL_ID} onSave={(v) => save({ ELEVENLABS_MODEL_ID: v })} placeholder="eleven_v4" />
         )}
       </details>
+
+      <PronunciationCheckSettings />
 
 
     </div>

@@ -273,3 +273,7 @@
 .sv-split-gap:hover:not(:disabled), .sv-split-gap:focus-visible { border-color: var(--accent, #2c5e55); color: var(--accent, #2c5e55); }
 .sv-split-gap.is-on { background: var(--accent, #2c5e55); color: var(--on-accent, #fff); }
 .sv-split-preview { margin: 0; font-size: 13px; color: var(--ink, inherit); }
+/* العمل ٩: فحص النطق — تنبيه للأذن تحت الجملة، لا يمنع شيئًا */
+.sv-pron { margin: 6px 0; padding: 6px 10px; border-radius: 8px; border-inline-start: 3px solid var(--warn, #94621a); background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-size: 0.92em; line-height: 1.7; }
+.sv-pron b { font-weight: 700; }
+.sv-pron-why { display: block; color: var(--muted, inherit); font-size: 0.95em; }
