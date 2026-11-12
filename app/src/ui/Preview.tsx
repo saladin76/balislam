@@ -13,6 +13,7 @@ import { sceneFrames } from "../../../src/plan/duration";
 import type { Plan, PlanScene } from "../../../src/plan/types";
 import type { ThemeId } from "../../../brand/themes";
 import config from "../../../config.json";
+import { onSoloAudio } from "./soloAudio";
 
 export type Orientation = "landscape" | "portrait";
 const size = (o: Orientation) => (o === "portrait" ? config.video.short : config.video.episode);
@@ -97,6 +98,8 @@ const ArPlayer = forwardRef<PlayerRef, ArPlayerProps>((props, ref) => {
   const own = useRef<PlayerRef | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
+  // D105: a sentence starting to play pauses this Player itself (pausing only its <audio> lets it play again at once)
+  useEffect(() => onSoloAudio(typeof document !== "undefined" ? document : null, () => { const p = own.current; if (p?.isPlaying()) p.pause(); }), []);
   const setRef = (p: PlayerRef | null) => {
     own.current = p;
     if (typeof ref === "function") ref(p); else if (ref) ref.current = p;
