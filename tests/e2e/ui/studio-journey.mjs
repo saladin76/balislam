@@ -8,7 +8,7 @@
  * a temporary Drive folder (BAL_DRIVE_PUBLISH_DIR). Every non-local request in this process is refused.
  * The fixture's script, research and vowelled copy are put in place through the same routes the page uses.
  *
- *   npm run e2e:ui            (node tests/e2e/ui/studio-journey.mjs [--channel dafatir-alzaman] [--port 4451] [--shots <dir>])
+ *   npm run e2e:ui            (tsx tests/e2e/ui/studio-journey.mjs [--channel dafatir-alzaman] [--port 4451] [--shots <dir>])
  *
  * Playwright is resolved from the project, PLAYWRIGHT_MODULE, or /opt/node-tools. Exit code 1 when anything fails.
  */
@@ -143,11 +143,13 @@ try {
   await page.reload();
   await page.waitForLoadState("networkidle").catch(() => {});
   await snap("3-seams");
+  // One seam on screen at a time: «سمعتها» (kept on the server per assembly), then «الوصلة التالية».
   for (let k = 0; k < assembled.seams.length; k++) {
-    const heard = page.getByLabel("سمعتها").nth(k);
-    if (await heard.count()) await heard.check();
-    else await click("الوصلة سليمة");
+    await page.getByLabel("سمعتها").first().click();
+    await until(`seam ${k + 1} heard`, async () => Object.keys((await api("GET", `episodes/${EP}/seam-checks`)).heard ?? {}).length >= k + 1 || null, 30_000, 500);
+    if (k < assembled.seams.length - 1) await page.getByRole("button", { name: "الوصلة التالية" }).click();
   }
+  ok(true, `٣ every seam heard from the page (${assembled.seams.length})`);
   await tick(/شاهدت الحلقة كاملة/);
   await click(/اعتمد الوصلات|اعتماد التجميع/);
   const asmOk = await until("assembly approved", async () => { const s = await state(); return s.progress.assemblyApproved ? s : null; }, 60_000);

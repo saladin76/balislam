@@ -147,7 +147,19 @@ for (const channel of selectedChannels()) {
       // The episode tone (no default since D104): chosen in step ١ like the owner does.
       // The closing card's length set in the scene editor (4 s): the test episode is ~25 s, and a static end card
       // longer than that would fail rule two (motion ≥ 80%) on its own (see KI-049).
-      const shaped = { ...plan, tone: c.episodeTone, chapters: plan.chapters.map((ch: any) => ({ ...ch, scenes: ch.scenes.map((x: any) => x.id === "c1-end" ? { ...x, durationSec: 4, edited: true } : x) })) };
+      // «دفاتر الزمن»: a new episode's scenes are documentary plates; the owner uploads each plate's picture from the
+      // scene settings (here a generated pattern, never a real or generated photograph).
+      const plates: Record<string, string> = {};
+      for (const x of plan.chapters.flatMap((ch: any) => ch.scenes).filter((x: any) => x.template === "doc-plate" && !x.props?.image)) {
+        const png = path.join(st.root, `${x.id}-plate.png`);
+        ffmpeg(["-f", "lavfi", "-i", "mandelbrot=s=1280x720:end_pts=1", "-frames:v", "1", png]);
+        const up = await st.call("POST", `episodes/${EP}/images`, { name: `${x.id}.png`, scene: x.id, data: (await readFile(png)).toString("base64") });
+        ok(`${x.id}: plate picture`, up);
+        plates[x.id] = up.body.file;
+      }
+      const shaped = { ...plan, tone: c.episodeTone, chapters: plan.chapters.map((ch: any) => ({ ...ch, scenes: ch.scenes.map((x: any) =>
+        x.id === "c1-end" ? { ...x, durationSec: 4, edited: true }
+        : plates[x.id] ? { ...x, props: { ...x.props, image: plates[x.id] }, edited: true } : x) })) };
       ok("episode tone + end card", await st.call("PUT", `episodes/${EP}/plan`, { plan: shaped, expectedRevision: await browserPlanRevision(plan) }));
 
       let s = await gates("fresh", { approvedScenes: 0, canAssemble: false, assemblyApproved: false, masterApproved: false, publishAllowed: false });
