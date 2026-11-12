@@ -829,36 +829,38 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
 
   // S16 — الوضوء: من أحوال القلب إلى الأفعال
   wudu: {
-    nameAr: "الوضوء: دقائقه جزء من تهيئنا",
+    nameAr: "الوضوء: لحظاته فرصة للتهيؤ",
     render: (c) => {
       const { frame, z, at, T, P } = kit(c);
-      const tMove = at("وينتقل", 0.01);
-      const tBook = at("الكتاب", 0.04);
-      const tHeart = at("القلب", 0.08);
-      const tActs = at("أفعال", 0.14);
-      const tWudu = at("الوضوء", 0.3);
-      const tDo = at("نتوضأ", 0.36);
-      const tPurify = at("ونتطهر", 0.5);
-      const tRecall = at("نستحضر", 0.58);
-      // الأمر 008: ظاهر الوضوء وباطنه
-      const tZahir = at("ظاهر", 0.42);
-      const tBadan = at("البدن", 0.47);
-      const tBatin = at("وباطن", 0.44);
-      const tQalb = at("القلب", 0.5, 2);
-      const tDhunub = at("الذنوب", 0.52);
-      const tTawba = at("بالتوبة", 0.55);
-      const tTarb = at("تربوي", 0.59);
-      const tMinutes = at("دقائق", 0.74);
-      const tPart = at("جزءا", 0.84);
-      const tPrep = at("تهيئنا", 0.92);
-      const tWorship = at("للعبادة", 0.96);
-      // الكتاب يُفتح وتُقلب صفحته مع «وينتقل بنا الكتاب»، ثم يتوارى حين تبدأ الأفعال
+      // السكريبت المعتمد (١١ نوفمبر): «كيف نترجم هذا الإقبال إلى خطوات؟ نبدأ بالوضوء. نغسل أعضاءنا امتثالًا لأمر الله، ويلفت المؤلف
+      // انتباهنا إلى معنى آخر: أن يصحب طهارة البدن تذكر حاجتنا إلى التوبة وطهارة القلب. هذا معنى تربوي، لا شرط لصحة الوضوء.
+      // وهكذا تصير لحظات الوضوء فرصة للتهيؤ للصلاة.» — لا حدث جديد عند «لأمر الله».
+      const tMove = at("نترجم", 0.03);
+      const tBook = at("هذا", 0.06);
+      const tHeart = at("الإقبال", 0.08);
+      const tActs = at("خطوات", 0.12);
+      const tWudu = at("بالوضوء", 0.18);
+      const tDo = at("نغسل", 0.22);
+      const tZahir = at("يصحب", 0.44);
+      const tPurify = at("طهارة", 0.46);
+      const tBadan = at("البدن", 0.48);
+      const tBatin = at("تذكر", 0.5);
+      const tQalb = tBatin;
+      const tDhunub = at("حاجتنا", 0.52);
+      const tTawba = at("التوبة", 0.56);
+      const tTarb = at("تربوي", 0.68);
+      const tShart = at("شرط", 0.72);
+      const tMinutes = at("لحظات", 0.84);
+      const tPart = at("فرصة", 0.9);
+      const tPrep = at("للتهيؤ", 0.94);
+      const tWorship = at("للصلاة", 0.98);
+      // الكتاب يُفتح مع «نترجم» وتُقلب صفحته، ثم يتوارى حين يبدأ الوضوء
       const book = P(tMove - 4, tMove + 10) * (1 - P(tWudu - 10, tWudu + 4));
       const flip = P(tBook - 2, tBook + 16, (t) => t);
-      // الإبريق يميل مع «الوضوء» ويعتدل عند «نستحضر»: الماء يجري بين الحدثين فقط
+      // الإبريق يميل مع «بالوضوء» ويعتدل قبل «يصحب»: الماء يجري بين الحدثين فقط
       const tilt = P(tWudu - 2, tWudu + 12) * (1 - P(tZahir - 14, tZahir));
       const flow = P(tWudu + 6, tWudu + 16) * (1 - P(tZahir - 18, tZahir - 6));
-      // الصفحة تُفسح لعمودَي الظاهر والباطن: «أحوال القلب» و«أفعال» تتوارى
+      // الصفحة تُفسح لعمودَي «طهارة البدن» و«طهارة القلب»: «الإقبال» و«خطوات» تتواريان
       const clear = P(tZahir - 12, tZahir);
       const side = 1 - 0.55 * P(tMinutes - 4, tMinutes + 12);
       const stain = 1 - P(tTawba - 2, tTawba + 22);
@@ -868,21 +870,21 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const rot = rub * 7 * Math.sin(frame * 0.32);
       const bar = P(tMinutes, tPrep + 6, (t) => t);
       return {
-        focus: [[tMove, 960, 470], [tHeart, 1450, 300], [tActs, 1150, 300], [tWudu, 900, 400], [tDo, 960, 520], [tPurify, 960, 660], [tZahir, 1290, 330], [tBadan, 1290, 450], [tBatin, 1610, 330], [tQalb, 1610, 470], [tTawba, 1610, 600], [tTarb, 1610, 680], [tMinutes, 1100, 800], [tPart, 760, 800], [tPrep, 470, 760], [tWorship, 470, 720]],
+        focus: [[tMove, 960, 470], [tHeart, 1450, 300], [tActs, 1150, 300], [tWudu, 900, 400], [tDo, 960, 520], [tPurify, 1290, 430], [tBadan, 1290, 450], [tBatin, 1610, 400], [tDhunub, 1610, 470], [tTawba, 1610, 600], [tTarb, 1610, 680], [tShart, 1610, 780], [tMinutes, 1100, 800], [tPart, 760, 800], [tPrep, 470, 760], [tWorship, 470, 720]],
         cam: [C(0, 1100, 420, 1.2), C(tWudu - 8, 960, 470, 1.15), C(tZahir - 8, 1250, 480, 1.0), C(tMinutes - 6, 960, 640, 1.05), C(tWorship, 820, 640, 1.08)],
         world: (
           <g>
-            {/* «وينتقل بنا الكتاب»: كتاب مفتوح تُقلب صفحته */}
+            {/* «نترجم هذا»: كتاب مفتوح تُقلب صفحته */}
             <g opacity={book} transform="translate(960 470) scale(1.6)">
               <path d="M-80 -34 Q-40 -54 0 -34 Q40 -54 80 -34 L80 44 Q40 24 0 44 Q-40 24 -80 44 Z M0 -34 L0 44" fill={z.paper} stroke={z.ink} strokeWidth={4} />
               {flip > 0 && flip < 1 ? <path d={`M0 -34 Q${(80 - 160 * flip) / 2} ${-54 + 10 * Math.sin(Math.PI * flip)} ${80 - 160 * flip} -34 L${80 - 160 * flip} 44 Q${(80 - 160 * flip) / 2} 24 0 44 Z`} fill={z.paper} stroke={z.ink} strokeWidth={3} /> : null}
             </g>
-            {/* «من أحوال القلب إلى أفعال»: القلب يخرج من الكتاب ثم ينتقل جانبًا لتأتي الأفعال */}
+            {/* «الإقبال إلى خطوات»: القلب يخرج من الكتاب ثم ينتقل جانبًا وتأتي الخطوات */}
             <path d={heartPath(lerp(960, 1500, P(tActs - 4, tActs + 18)), lerp(lerp(470, 380, P(tHeart - 6, tHeart + 10)), 300, P(tActs - 4, tActs + 18)), lerp(110, 50, P(tActs - 4, tActs + 18)))} fill={z.hl} fillOpacity={0.6 * (1 - P(tActs, tActs + 18))} stroke={z.ink} strokeWidth={8} opacity={P(tHeart - 6, tHeart + 6) * (1 - 0.6 * P(tWudu, tWudu + 12)) * (1 - clear)} />
-            {T("hq", 1500, 420, "أحوال القلب", 60, ["أحوال", 0.06], ["القلب", 0.08], { opacity: (1 - 0.6 * P(tWudu, tWudu + 12)) * (1 - clear) })}
+            {T("hq", 1500, 420, "الإقبال", 64, ["الإقبال", 0.08], undefined, { opacity: (1 - 0.6 * P(tWudu, tWudu + 12)) * (1 - clear) })}
             <g opacity={1 - clear}><Arrow x1={1420} y1={300} x2={1250} y2={300} p={P(tActs - 4, tActs + 10)} c={z.ink} w={6} /></g>
-            {T("af", 1170, 320, "أفعال", 64, ["أفعال", 0.14], undefined, { opacity: (1 - 0.6 * P(tWudu, tWudu + 12)) * (1 - clear) })}
-            {T("wd", 960, 230, "الوضوء", 90, ["الوضوء", 0.3], undefined, { font: "head" })}
+            {T("af", 1170, 320, "خطوات", 64, ["خطوات", 0.12], undefined, { opacity: (1 - 0.6 * P(tWudu, tWudu + 12)) * (1 - clear) })}
+            {T("wd", 960, 230, "بالوضوء", 90, ["بالوضوء", 0.18], undefined, { font: "head" })}
             {/* الإبريق: يميل فيجري الماء على الكفين */}
             <g transform={`translate(700 380) rotate(${38 * tilt})`} opacity={P(tWudu - 6, tWudu + 4)}>
               <Stroke d="M-46 -40 Q-60 40 -30 70 L30 70 Q60 40 46 -40 Z" p={P(tWudu - 6, tWudu + 6)} c={z.ink} w={7} fill={z.paper} fillP={1} />
@@ -893,41 +895,44 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
             {flow > 0 ? (
               <path d="M806 412 Q880 405 925 458" fill="none" stroke={z.ink} strokeWidth={7} strokeLinecap="round" strokeDasharray="22 12" strokeDashoffset={-frame * 3} opacity={flow * 0.8} />
             ) : null}
-            {/* الكفان: تتلقيان الماء، وتتحركان حركة الغسل الهادئة مع «نتوضأ» */}
+            {/* الكفان: تتلقيان الماء، وتتحركان حركة الغسل الهادئة بعد «لأمر الله» */}
             <g transform={`rotate(${rot} 960 560)`}>
               <Hands x={960} y={540} s={1.1} p={P(tWudu - 2, tWudu + 20)} z={z} />
             </g>
-            {/* «ونتطهر»: يسيل الماء من الكفين إلى الحوض، وهالة فسفورية حولهما */}
+            {/* «طهارة البدن»: يسيل الماء من الكفين إلى الحوض، وهالة فسفورية حولهما */}
             <Stroke d="M820 715 Q960 760 1100 715" p={P(tPurify - 4, tPurify + 10)} c={z.ink} w={6} />
             {[0, 1, 2].map((k) => {
               const d = P(tPurify + k * 7, tPurify + k * 7 + 14, (t) => t);
               return d > 0 && d < 1 ? <Drop key={k} x={930 + k * 30} y={lerp(660, 735, d)} s={0.9} z={z} o={1 - d * 0.4} /> : null;
             })}
             <ellipse cx={960} cy={540} rx={lerp(120, 290, P(tPurify, tPurify + 18)) + 60 * Math.sin(Math.PI * P(tBadan - 2, tBadan + 22, (t) => t))} ry={lerp(60, 150, P(tPurify, tPurify + 18)) + 40 * Math.sin(Math.PI * P(tBadan - 2, tBadan + 22, (t) => t))} fill={z.hl} opacity={0.5 * P(tPurify, tPurify + 10) * (1 - 0.6 * P(tMinutes, tMinutes + 12))} style={{ mixBlendMode: "multiply" }} />
-            {/* «ظاهر وباطن»: عمودان؛ الظاهر عند الكفين، والباطن قلب تصفو بقعته «بالتوبة» */}
+            {/* عمودان: «طهارة البدن» عند الكفين، و«طهارة القلب» قلب تظهر فيه بقعة مع «حاجتنا» وتصفو مع «التوبة» */}
             <g opacity={side}>
-              {T("zh", 1290, 330, "ظاهر", 70, ["ظاهر", 0.42], undefined, { font: "head" })}
               <Arrow x1={1170} y1={480} x2={1090} y2={530} p={P(tBadan - 4, tBadan + 10)} c={z.ink} w={6} />
-              {T("bd", 1300, 430, "طهارة البدن", 66, ["طهارة", 0.46], ["البدن", 0.47])}
+              {T("bd", 1300, 430, "طهارة البدن", 66, ["طهارة", 0.46], ["البدن", 0.48], { font: "head" })}
               <line x1={1450} x2={1450} y1={270} y2={640} stroke={z.faint} strokeWidth={4} strokeDasharray="10 12" opacity={P(tBatin - 4, tBatin + 10)} />
-              {T("bt", 1610, 330, "باطن", 70, ["وباطن", 0.44], undefined, { font: "head" })}
+              {T("bt", 1610, 330, "طهارة القلب", 62, ["وطهارة", 0.6], ["القلب", 0.62], { font: "head" })}
               <g opacity={P(tQalb - 6, tQalb + 6)}>
                 <path d={heartPath(1610, 470, 78)} fill={z.hl} fillOpacity={0.15 + 0.6 * (1 - stain)} stroke={z.ink} strokeWidth={8} />
                 <circle cx={1588} cy={460} r={30 * stain * P(tDhunub - 4, tDhunub + 8)} fill={z.ink} opacity={0.55} />
                 <circle cx={1632} cy={490} r={20 * stain * P(tDhunub, tDhunub + 10)} fill={z.ink} opacity={0.45} />
               </g>
-              {T("tw", 1610, 600, "بالتوبة", 60, ["بالتوبة", 0.55], undefined, { font: "head" })}
+              {T("tw", 1610, 600, "التوبة", 60, ["التوبة", 0.56], undefined, { font: "head" })}
               {/* «معنى تربوي، لا شرط لصحة الوضوء» */}
               <rect x={1455} y={630} width={310} height={84} rx={14} fill={z.hl} opacity={0.8 * P(tTarb - 2, tTarb + 10)} />
-              {T("tr", 1610, 690, "معنى تربوي", 62, ["معنى", 0.58], ["تربوي", 0.59])}
+              {T("tr", 1610, 690, "معنى تربوي", 62, ["معنى", 0.66, 2], ["تربوي", 0.68])}
+              <g opacity={1 - P(tMinutes - 10, tMinutes - 2)}>
+                {T("sr", 1610, 790, "شرط", 58, ["شرط", 0.72])}
+                <Cross x1={1680} x2={1540} y={774} p={P(tShart + 6, tShart + 18)} z={z} />
+              </g>
             </g>
-            {/* دقائق الوضوء تملأ شريط التهيؤ حتى تصل إلى السجادة: «للعبادة» */}
+            {/* «لحظات الوضوء» تملأ شريط التهيؤ حتى تصل إلى السجادة: «للصلاة» */}
             <g opacity={P(tMinutes - 4, tMinutes + 6)}>
               <rect x={600} y={780} width={760} height={46} rx={23} fill="none" stroke={z.ink} strokeWidth={6} />
               <rect x={1360 - 754 * bar} y={785} width={751 * bar} height={36} rx={18} fill={z.hl} />
             </g>
-            {T("dq", 1510, 815, "دقائق الوضوء", 62, ["دقائق", 0.74], ["الوضوء", 0.78, 3])}
-            {T("th", 470, 830, "تهيئنا", 60, ["تهيئنا", 0.92], undefined, { font: "head" })}
+            {T("dq", 1510, 815, "لحظات الوضوء", 62, ["لحظات", 0.84], ["الوضوء", 0.86, 2])}
+            {T("th", 470, 830, "للتهيؤ", 60, ["للتهيؤ", 0.94], undefined, { font: "head" })}
             <Stroke d="M330 740 L610 740 L580 768 L360 768 Z" p={P(tWorship - 4, tWorship + 10)} c={z.ink} w={6} fill={z.hl} fillP={0.6 * P(tWorship + 2, tWorship + 14)} />
           </g>
         ),
