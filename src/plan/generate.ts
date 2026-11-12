@@ -93,6 +93,19 @@ export type QuranTexts = Record<string, string>;
  * - bridge تُضم لتعليق المشهد السابق. [صوت: …] يُلحق بالمشهد التالي.
  * - إن مُررت خطة سابقة تُحفظ تعديلات المستخدم للمشاهد التي لم يتغير قالبها.
  */
+/**
+ * Reorders `obj`'s own keys in place to follow `like`'s key order (keys `like` lacks keep their own order, after).
+ * Values are untouched. KI-051: plan scenes are fingerprinted as JSON by the signed ledger.
+ */
+const keepKeyOrder = (obj: object, like: object) => {
+  const rank = new Map(Object.keys(like).map((k, i) => [k, i]));
+  const entries = Object.entries(obj);
+  const sorted = [...entries].sort(([a], [b]) => (rank.get(a) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b) ?? Number.MAX_SAFE_INTEGER));
+  if (sorted.every(([k], i) => k === entries[i]![0])) return;
+  for (const [k] of entries) delete (obj as Record<string, unknown>)[k];
+  for (const [k, v] of sorted) (obj as Record<string, unknown>)[k] = v;
+};
+
 export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran: QuranTexts = {}, channel: ChannelConfig = defaultChannel): Plan => {
   const fm = (parsed.frontmatter ?? {}) as { title?: string; domain?: Domain; episode?: string; lang?: string; style?: string; format?: string };
   // أسلوب الحلقة: المشاهد التي بلا علامة تُعرض بالسبورة المتصلة أو بالشخصية المتكلمة
@@ -248,6 +261,10 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
     if (old.tone) s.tone = old.tone;
     if (old.voice) s.voice = old.voice;
     if (old.transition) s.transition = old.transition;
+    // KI-051: the ledger fingerprints a scene as JSON (key order included); an unchanged scene stays byte for byte
+    // the scene already approved, whatever order the page or the editor saved its keys in.
+    keepKeyOrder(s.props, old.props ?? {});
+    keepKeyOrder(s, old);
   }
 
   // شاشة النهاية: آخر مشهد في الحلقة، من «الخطوة العملية»
