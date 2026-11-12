@@ -20,7 +20,7 @@
 | ماذا | كيف | الملف |
 |---|---|---|
 | **الحفظ الآلي إلى main** | كل ٥ ثوانٍ يُفحص ما تغيّر. بعد ٦ ثوانٍ من توقف الكتابة تُجمع ملفات المحتوى وحدها في commit برسالة عربية تذكر القناة والحلقة، ويُدفع إلى `main` عبر البوابة. لا commit محلي قبل نجاح الدفع، ولا stash، ولا لمس لملفات العمل. | `app/server/contentSync.ts` |
-| **ما يُحفظ (محتوى المالك)** | ملفات الحلقة: `script.md` و`plan.json` و`research.md` و`publish.json` و`series.json` و`tashkeel.md` و`tone-map.json` و`review.json` و`previews/index.json` و`storyboards/index.json`. وملفات القناة: `pronunciations.json` و`ideas.json` و`calendar.json` و`channel.json` و`identity.json`. و`series/<id>/series.json` و`config.json`. | `scripts/contentPaths.mjs` |
+| **ما يُحفظ (محتوى المالك)** | ملفات الحلقة: `script.md` و`plan.json` و`research.md` و`publish.json` و`series.json` و`tashkeel.md` و`tone-map.json` ونسخها السابقة `tone-map.v<الإصدار>.json` (D115) و`review.json` و`previews/index.json` و`storyboards/index.json`. وملفات القناة: `pronunciations.json` و`ideas.json` و`calendar.json` و`channel.json` و`identity.json`. و`series/<id>/series.json` و`config.json`. | `scripts/contentPaths.mjs` |
 | **ما لا يُرفع أبدًا** | سجل الاعتمادات الموقَّع وأقفاله، و`script-approved`، و`storyboard.json`، و`voice/` وكل صوت وفيديو وصورة، و`notes/inbox.json` (يذهب وحده إلى `studio-notes`)، و`.env`، و`out/` و`renders/`. الحذف المحلي لا يُرسل ويُذكر فقط. | `scripts/contentPaths.mjs` (`NEVER_RES`) |
 | **بوابة المحتوى** | إن كان كل ملف في **كل commit** من مدى الدفع محتوى مالك، تعمل «بوابة المحتوى»: JSON صالح، ولا خطأ **جديد** في فحص الخطة أو السكريبت، ولا أثر لأدوات الإنتاج. أي ملف كود في الدفع يعيده إلى البوابة الكاملة. القرار بالفرق لا بالرسالة، وهذه قاعدة في البوابة لا تجاوز لها. | `scripts/gate.mjs`، `scripts/contentGate.mts` |
 | **الاستقبال الآلي** | عند التشغيل، وكل ٣ دقائق، وقبل كل حفظ: «حدّث الآن» نفسه (D95). الصفحة تعيد تحميل نفسها في مكانها بعد توقف الكتابة. | `app/server/update.ts` (`applyUpdate`)، `app/server/safeUpdate.ts` |
@@ -223,6 +223,7 @@
 | D110 | ١٢ نوفمبر | **اعتمادية الحفظ ووضوح المراجعة:** طابور حفظ لا يضيّع التعديل، و409 بدمج ثلاثي أو مخرج بنسخة، ونقل الحلقة والشورتس لا يقفلان الصفحة، وتسامح ١٥٠ م.ث في تركيب الجمل و`bal voice-timing` | مشترك | PR #97 (`1637d864`) |
 | D111 | ١٢ نوفمبر | **قرارا المالك «يبقى كما هو»:** اختيار الشورتس يدوي بلا اقتراح آلي (KI-045)، والرسمة التي لا تطابق نصها تنبيه لا يمنع Master (KI-046). وثائق فقط، لا تغيير في الشاشات | مشترك | — |
 | D112 | ١٢ نوفمبر | **التقاط الأخطاء آليًا (العمل ٣):** `.studio/errors.jsonl` لأخطاء الخادم والواجهة بلا سر، و«أرسل المشكلة» بدل «انسخ نص الخطأ» يضيف ملاحظة «خطأ» إلى صندوق الحلقة أو الصندوق العام، و`bal errors` (KI-048) | مشترك | — |
+| D115 | ١٢ نوفمبر | **العمل ٦ والعمل ١٠ (المطور والحفظ):** نسخ خريطة النبرة السابقة تُحفظ في `main` مع الجديدة (KI-050)؛ واختبارات لا تحتاج تاريخ Git (KI-030) ولا تنتهي مهلتها تحت الحمل (KI-032) ولا ضجيج دفع فيها (KI-029)؛ وجرد الفروع `docs/studio/branches-inventory.md` ينتظر موافقة المالك، ولم يُحذف فرع | مشترك | — |
 
 ---
 

@@ -71,7 +71,7 @@ export const contentSyncEnabled = (env = process.env, platform = process.platfor
 const CHANNEL_NAMES: Record<string, string> = { "balislam": "بالإسلام", "dafatir-alzaman": "دفاتر الزمن", "zubdat-alkutub": "زبدة الكتب" };
 const WHAT: [RegExp, string][] = [
   [/\/script\.md$/, "السكريبت"], [/\/plan\.json$/, "الخطة"], [/\/research\.md$/, "البحث"], [/\/publish\.json$/, "نصوص النشر"],
-  [/\/series\.json$/, "السلسلة"], [/\/tashkeel\.md$/, "التشكيل"], [/\/tone-map\.json$/, "خريطة النبرة"], [/\/review\.json$/, "سجل التوثيق"],
+  [/\/series\.json$/, "السلسلة"], [/\/tashkeel\.md$/, "التشكيل"], [/\/tone-map\.json$/, "خريطة النبرة"], [/\/tone-map\.v[0-9.]+\.json$/, "نسخة خريطة النبرة السابقة"], [/\/review\.json$/, "سجل التوثيق"],
   [/\/previews\/index\.json$/, "فهرس المعاينات"], [/\/storyboards\/index\.json$/, "لوحات المختبر"], [/pronunciations?\.json$/, "النطق"],
   [/ideas\.json$/, "بنك الأفكار"], [/calendar\.json$/, "التقويم"], [/channel\.json$/, "إعدادات القناة"], [/identity\.json$/, "الهوية"],
   [/^config\.json$/, "إعدادات الاستوديو"],

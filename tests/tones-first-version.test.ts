@@ -7,7 +7,6 @@
  *   (عميل ElevenLabs مزيّف: لا شبكة ولا رصيد). المعرّف grave لم يعد نبرة، ويُعرف به التسجيل القديم وحده.
  */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -54,8 +53,9 @@ describe("أول نسخة من النبرات (2d8bee52) حرفًا", () => {
       expect(TONE_PRESETS_FIRST[t]).toEqual(FIRST[t]);
       expect(voiceSettingsFor(undefined, t)).toEqual({ stability: FIRST[t]!.stability, style: FIRST[t]!.style, speed: FIRST[t]!.speed });
     }
-    // the first source, byte for byte, for the six presets
-    const first = execFileSync("git", ["show", "2d8bee52:src/voice/tones.ts"], { encoding: "utf8" });
+    // the first source, byte for byte, for the six presets: the file as it was at 2d8bee52, pinned in tests/fixtures
+    // (its Git blob id is checked in tests/ki-030-no-git-history.test.ts), so a shallow clone runs this too (KI-030)
+    const first = readFileSync("tests/fixtures/tones-first-version/tones.2d8bee52.ts.txt", "utf8");
     const now = readFileSync("src/voice/tones.ts", "utf8");
     for (const line of first.split("\n").filter((l) => /^  (calm|warm|documentary|dramatic|energetic|intimate): \{/.test(l))) expect(now).toContain(line);
   });

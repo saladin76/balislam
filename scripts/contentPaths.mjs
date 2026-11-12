@@ -18,6 +18,8 @@ import { spawnSync } from "node:child_process";
 export const CONTENT_PATH_RES = [
   // ملفات الحلقة التي يحرّرها المالك في الاستوديو
   /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/(script\.md|plan\.json|research\.md|publish\.json|series\.json|tashkeel\.md|tone-map\.json|review\.json)$/,
+  // نسخ خريطة النبرة السابقة (tone-map.v1.9.json) التي يشير إليها `previous` في tone-map.json (KI-050، D113)
+  /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/tone-map\.v[0-9]+(\.[0-9]+)*\.json$/,
   // فهرس المعاينات وحده (العنوان والبصمة ورابط Drive)، لا الفيديو
   /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/previews\/index\.json$/,
   // فهرس لوحات المختبرات وقراراتها

@@ -18,12 +18,25 @@ export const episodeScenes = (): Scene[] => {
   return (plan.chapters as { scenes: Scene[] }[]).flatMap((c) => c.scenes).filter((s) => s.template === "alley-tale" && !s.props.shot);
 };
 
-export const badFrames = async (o: "landscape" | "portrait"): Promise<string[]> => {
+/**
+ * KI-032 (D113): the whole orientation in one test took 71–251 s and timed out at 240 s on a busy two-core
+ * machine, refusing unrelated pushes. The same scenes are now checked in chunks, one test each, so a test is a
+ * fraction of the work; `edgeChunks` covers every scene exactly once (asserted in each file).
+ */
+export const EDGE_CHUNK = 15;
+export const edgeChunks = (size = EDGE_CHUNK): Scene[][] => {
+  const all = episodeScenes();
+  const out: Scene[][] = [];
+  for (let i = 0; i < all.length; i += size) out.push(all.slice(i, i + size));
+  return out;
+};
+
+export const badFrames = async (o: "landscape" | "portrait", scenes: Scene[] = episodeScenes()): Promise<string[]> => {
   const { AlleyTale } = await import("../../src/remotion/scenes/AlleyTale");
   const { sceneFrames } = await import("../../src/plan/duration");
   const bad: string[] = [];
   let probed = 0;
-  for (const s of episodeScenes()) {
+  for (const s of scenes) {
     edgeState.ORI = o;
     edgeState.DUR = sceneFrames(s as never);
     for (edgeState.F = 0; edgeState.F < edgeState.DUR; edgeState.F += 3) {
