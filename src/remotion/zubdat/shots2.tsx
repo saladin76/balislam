@@ -1218,44 +1218,48 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     nameAr: "نتعلم معاني الأذكار، ولا نضيف إليها ألفاظًا",
     render: (c) => {
       const { frame, z, at, T, P } = kit(c);
-      const tLearn = at("نتعلم", 0.06);
-      const tMeanings = at("معاني", 0.1);
-      const tAdhkar = at("الأذكار", 0.16);
-      const tAdd = at("نضيف", 0.32);
-      const tOurs = at("عندنا", 0.44);
-      const tHurma = at("حرمته", 0.6);
-      const tPlace = at("وموضعه", 0.66);
-      const tUnder = at("وفهمه", 0.76);
-      const tGood = at("حسن", 0.9);
+      // السكريبت المعتمد (١١ نوفمبر): «وبعد أن نسمع ألفاظ الذكر، نحتاج إلى أن نفهم معانيها. فالأذكار المأثورة لها صيغها ومواضعها؛
+      // نتعلمها كما وردت، ولا ننسب إليها ألفاظًا من عندنا. وعندما نفهم ما نقول، يصبح لكل لفظ معنى نتأمله.»
+      const tAdhkar = at("ألفاظ", 0.06);
+      const tLearn = tAdhkar;
+      const tMeanings = at("معانيها", 0.18);
+      const tHurma = at("صيغها", 0.3);
+      const tPlace = at("ومواضعها", 0.34);
+      const tWarad = at("نتعلمها", 0.38);
+      const tAdd = at("ننسب", 0.48);
+      const tOurs = at("عندنا", 0.58);
+      const tUnder = at("نفهم", 0.66, 2);
+      const tGood = at("معنى", 0.9);
       const att = P(tAdd, tAdd + 22);
       return {
-        focus: [[tLearn, 600, 440], [tAdhkar, 1300, 440], [tAdd, 1000, 760], [tOurs, 1000, 760], [tHurma, 1300, 440], [tPlace, 1300, 440], [tUnder, 950, 440], [tGood, 950, 300]],
-        cam: [C(0, 600, 440, 1.3), C(tAdhkar - 6, 1300, 450, 1.25), C(tAdd - 6, 1000, 600, 1.1), C(tUnder - 6, 950, 440, 1.15)],
+        focus: [[tAdhkar, 1300, 440], [tMeanings, 600, 440], [tHurma, 1300, 300], [tWarad, 1300, 440], [tAdd, 1000, 760], [tOurs, 1000, 760], [tUnder, 950, 440], [tGood, 950, 300]],
+        cam: [C(0, 1300, 450, 1.25), C(tMeanings - 6, 950, 450, 1.1), C(tAdd - 6, 1000, 600, 1.1), C(tUnder - 6, 950, 440, 1.15)],
         world: (
           <g>
-            {/* الذكر المشروع: بطاقة ثابتة بسطور رمادية لا نص */}
+            {/* «ألفاظ الذكر» المأثورة: بطاقة ثابتة بسطور رمادية لا نص، يحيط بها إطار مع «صيغها»، وتُبرز مع «نتعلمها كما وردت» */}
             <g opacity={P(tAdhkar - 4, tAdhkar + 8)}>
               <rect x={1120} y={320} width={360} height={240} rx={18} fill={z.paper} stroke={z.ink} strokeWidth={7} />
+              <rect x={1120} y={320} width={360} height={240} rx={18} fill={z.hl} opacity={0.35 * P(tWarad, tWarad + 14)} />
               <Lines x={1300} y={390} w={270} n={3} p={P(tAdhkar, tAdhkar + 16, (t) => t)} z={z} gap={44} />
               <rect x={1104} y={304} width={392} height={272} rx={24} fill="none" stroke={z.ink} strokeWidth={4} opacity={P(tHurma, tHurma + 14)} />
             </g>
-            {T("ad", 1300, 640, "الأذكار التي نقولها", 60, ["الأذكار", 0.16], ["نقولها", 0.2])}
-            {/* المعاني: كتاب يُفتح */}
+            {T("ad", 1300, 640, "ألفاظ الذكر", 62, ["ألفاظ", 0.06], ["الذكر", 0.08])}
+            {/* «معانيها»: كتاب يُفتح */}
             <g opacity={P(tMeanings - 4, tMeanings + 8)}>
               <path d="M460 360 Q530 330 600 360 Q670 330 740 360 L740 500 Q670 470 600 500 Q530 470 460 500 Z M600 360 L600 500" fill={z.paper} stroke={z.ink} strokeWidth={6} />
             </g>
-            {T("mn", 600, 580, "معاني", 64, ["معاني", 0.1], undefined, { font: "head" })}
-            {/* ألفاظ من عندنا: بطاقة متقطعة تقترب ثم تُشطب */}
-            <g transform={`translate(${lerp(820, 1000, att)} 750)`} opacity={P(tAdd - 4, tAdd + 6) * (1 - 0.5 * P(tHurma, tHurma + 10))}>
+            {T("mn", 600, 580, "معانيها", 64, ["معانيها", 0.18], undefined, { font: "head" })}
+            {/* «ولا ننسب إليها ألفاظًا من عندنا»: بطاقة متقطعة تقترب ثم تُشطب، وتخفت مع «نفهم» */}
+            <g transform={`translate(${lerp(820, 1000, att)} 750)`} opacity={P(tAdd - 4, tAdd + 6) * (1 - 0.5 * P(tUnder, tUnder + 10))}>
               <rect x={-200} y={-56} width={400} height={100} rx={14} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" />
             </g>
-            {T("lf", lerp(820, 1000, att), 762, "ألفاظا من عندنا", 64, ["ألفاظا", 0.38], ["عندنا", 0.44], { opacity: 1 - 0.5 * P(tHurma, tHurma + 10) })}
+            {T("lf", lerp(820, 1000, att), 762, "ألفاظا من عندنا", 64, ["ألفاظا", 0.52], ["عندنا", 0.58], { opacity: 1 - 0.5 * P(tUnder, tUnder + 10) })}
             <Cross x1={lerp(1010, 1190, att)} x2={lerp(630, 810, att)} y={746} p={P(tOurs + 8, tOurs + 22)} z={z} />
-            {T("hm", 1300, 260, "حرمته وموضعه", 60, ["حرمته", 0.6], ["وموضعه", 0.66])}
-            {/* الفهم يعين على حسن الأداء */}
+            {T("hm", 1300, 260, "صيغها ومواضعها", 60, ["صيغها", 0.3], ["ومواضعها", 0.34])}
+            {/* «وعندما نفهم ما نقول»: سهم من المعاني إلى الألفاظ، و«معنى نتأمله» */}
             <Arrow x1={760} y1={430} x2={1100} y2={430} p={P(tUnder - 2, tUnder + 16)} c={z.ink} w={7} />
             <Stroke d="M760 430 L1100 430" p={P(tGood - 2, tGood + 14)} c={z.hl} w={26} opacity={0.8} />
-            {T("hs", 930, 360, "حسن أدائه", 64, ["حسن", 0.9], ["أدائه", 0.94], { font: "head" })}
+            {T("hs", 930, 360, "معنى نتأمله", 64, ["معنى", 0.9], ["نتأمله", 0.95], { font: "head" })}
           </g>
         ),
       };
