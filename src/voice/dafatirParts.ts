@@ -17,7 +17,7 @@ import { RenderInternals } from "@remotion/renderer";
 import type { Plan } from "../plan/types";
 import { studioMediaNamespace } from "../plan/collect";
 import { partJobs, type PartJob, type ToneMap } from "../remotion/dafatir/audio/parts";
-import { TRIM_DEFAULTS, safeTrim, speechBounds, warnAlignmentClamp } from "../remotion/dafatir/audio/trim";
+import { TRIM_DEFAULTS, safeTrim, speechBounds, warnAlignmentClamp, type AlignmentClamp } from "../remotion/dafatir/audio/trim";
 import { boundaryProblems, composeScene, renderBoundaries, type ComposedScene, type PartResult, type SeqItem } from "../remotion/dafatir/audio/compose";
 import { HZ_META, type HzExit } from "../remotion/dafatir/horizon/meta";
 import { normWord, stripTashkeel } from "./tashkeel";
@@ -118,7 +118,8 @@ export const decodeAudio = async (file: string, sampleRate = PARTS_SAMPLE_RATE):
 export type TimedWord = { word: string; start: number; end: number };
 
 /** قياس حدود جزء من عيناته ومحاذاة كلماته: القص لا يبدأ بعد أول حرف ولا ينتهي قبل آخر حرف */
-export const measurePart = (partId: string, samples: Float32Array, sampleRate: number, words: TimedWord[]): PartResult => {
+export const measurePart = (partId: string, samples: Float32Array, sampleRate: number, words: TimedWord[],
+  onClamp: (c: AlignmentClamp) => void = (c) => warnAlignmentClamp("الجزء " + partId, c)): PartResult => {
   const align = words.length ? { start: words.map((w) => w.start), end: words.map((w) => w.end) } : undefined;
   let raw;
   try {
@@ -130,7 +131,7 @@ export const measurePart = (partId: string, samples: Float32Array, sampleRate: n
     raw = { duration, speechStart: Math.min(...align.start), speechEnd: Math.max(...align.end), start: 0, end: duration, floorDb: -120, peakDb: -120 };
   }
   let b;
-  try { b = safeTrim(raw, align, {}, (c) => warnAlignmentClamp("الجزء " + partId, c)); }
+  try { b = safeTrim(raw, align, {}, onClamp); }
   catch (error) { throw new Error("الجزء " + partId + ": " + (error as Error).message); }
   const boundedWords = words.map((w) => ({ ...w, start: Math.max(0, Math.min(b.duration, w.start)), end: Math.max(0, Math.min(b.duration, w.end)) }));
   return { clip: { partId, duration: b.duration, speechStart: b.speechStart, speechEnd: b.speechEnd, start: b.start, end: b.end }, words: boundedWords };

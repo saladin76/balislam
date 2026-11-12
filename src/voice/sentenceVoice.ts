@@ -17,7 +17,9 @@ import { existsSync } from "node:fs";
 import { mkdir, open, readFile, rename, rm, unlink, writeFile } from "node:fs/promises";
 import config from "../../config.json";
 import { resolveScriptPath } from "../script/episodes";
-import { planPathFor, readJson, readPlanFile, writePlanFile } from "../plan/io";
+import { planPathFor, readJson, readPlanFile, stripQuran } from "../plan/io";
+import { withPlanWrite } from "../plan/planWriteLock";
+import { writeJsonAtomic } from "../io/atomicJson";
 import { syncScriptNarration } from "../script/narrationSync";
 import type { Plan, PlanScene } from "../plan/types";
 import { loadChannel } from "../channel/index";
@@ -25,7 +27,7 @@ import { showsDivision } from "../script/divisions";
 import type { VoiceProfile } from "../channel/types";
 import { loadStoryboard, storyboardBlockMessage, storyboardStatus, unapprovedScenes } from "../plan/storyboard";
 import { encodeWav, renderBoundaries } from "../remotion/dafatir/audio/compose";
-import { TRIM_DEFAULTS } from "../remotion/dafatir/audio/trim";
+import { TRIM_DEFAULTS, warnAlignmentClamp } from "../remotion/dafatir/audio/trim";
 import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
 import { audioDuration, estimateWords, speechContextFor, voiceDirFor, type VoiceClip, type VoiceIndex } from "./generate";
 import { capsFor, dropTagWords } from "./models";
@@ -287,6 +289,8 @@ export type SentenceRow = {
   recordedOn: string | null;
   /** D97: the take is current under the tone it was recorded with, not the inherited tone now («سُجّلت بنبرة …») */
   recordedTone: string | null;
+  /** D109: the scene's current audio clamped this sentence's timing to its file (ms), «التوقيت ضُبط قليلًا»; null otherwise */
+  timingClamped: number | null;
 };
 export type VerseRow = {
   id: string; sceneId: string; kind: "verse-card"; ayahKey: string; reference: string;
@@ -398,6 +402,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined),
         sceneSpan: spans?.[k] ?? null,
         recordedOn: s.audio && recordedOnOtherText(s) ? recordedText(s.audio) : null,
+        timingClamped: audio.state === "sentences" ? clip?.sentences?.clamped?.[s.id] ?? null : null,
         recordedTone: v.pinnedTone ?? null,
       };
     });
@@ -524,6 +529,7 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
   // The basmala: the owner's approved recording, or a marked silent placeholder until it is approved.
   const basmalaRec = list.some((s) => s.kind === "basmala") ? await approvedBasmala(ctx.scriptPath) : undefined;
   const basmalaAudio = new Map<string, SentenceAudio>();
+  const clamped: Record<string, number> = {};
   for (const s of list) {
     let pcm: Float32Array;
     if (s.kind === "basmala") {
@@ -539,7 +545,11 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
       continue;
     }
     pcm = await decode(path.join(dir, s.audio!.file));
-    const clip = measurePart(s.id, pcm, SR, s.audio!.words).clip;
+    // D109: a bounded overshoot is clamped (shared rule, src/remotion/dafatir/audio/trim.ts) and named in the row
+    const clip = measurePart(s.id, pcm, SR, s.audio!.words, (c) => {
+      warnAlignmentClamp("الجملة " + s.id, c);
+      if (c.overshootEndSec > 0.005 || c.undershootStartSec > 0.005) clamped[s.id] = Math.round(Math.max(c.overshootEndSec, c.undershootStartSec) * 1000);
+    }).clip;
     let sum = 0, n = 0;
     for (let i = Math.floor(clip.speechStart * SR); i < Math.min(pcm.length, Math.ceil(clip.speechEnd * SR)); i++) { sum += pcm[i]! * pcm[i]!; n++; }
     items.push({ s, pcm, clip, rms: n ? Math.sqrt(sum / n) : 0 });
@@ -591,7 +601,7 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
   const vdir = voiceDirFor(ctx.scriptPath);
   if (!existsSync(path.join(vdir, file))) await writeAtomic(path.join(vdir, file), encodeWav(out, SR));
   const narration = scene.narration.trim();
-  const clip: VoiceClip = { file, hash, text: narration, duration: total, words: sceneWords, ...(timing ? { timing } : {}), sentences: { hash, ids: list.map((s) => s.id) },
+  const clip: VoiceClip = { file, hash, text: narration, duration: total, words: sceneWords, ...(timing ? { timing } : {}), sentences: { hash, ids: list.map((s) => s.id), ...(Object.keys(clamped).length ? { clamped } : {}) },
     ...(basmalaAudio.size ? { basmala: { pending: !basmalaRec, sha256: basmalaRec?.sha256 ?? null } } : {}) };
   // index.json يُقرأ من جديد قبل الكتابة: لا يُمس مشهد آخر
   const indexFile = path.join(vdir, "index.json");
@@ -702,18 +712,21 @@ const adoptSceneAudio = async (ctx: Ctx, scene: PlanScene, list: Sentence[], cli
 /** يكتب نص مشهد واحد في plan.json كما هو على القرص (بلا آيات، بلا إعادة توليد للخطة أبدًا) */
 const writeSceneNarration = async (scriptPath: string, sceneId: string, narration: string): Promise<boolean> => {
   const file = planPathFor(scriptPath);
-  const raw = await readJson<Plan>(file);
-  const scene = raw?.chapters.flatMap((c) => c.scenes).find((s) => s.id === sceneId);
-  if (!raw || !scene) throw new Error("المشهد غير موجود في الخطة.");
-  if (scene.template === "verse-card") throw new Error("مشهد الآية بلا تعليق؛ تلاوته تُرفع ولا تُكتب هنا.");
-  if (normText(scene.narration) === narration) return false;
-  const before = scene.narration;
-  scene.narration = narration;
-  scene.edited = true;
-  await writePlanFile(file, { ...raw, updatedAt: new Date().toISOString() });
-  // QA balislam 2: the same change in script.md when it can be placed unambiguously (else the scene is flagged).
-  await syncScriptNarration(scriptPath, before, narration);
-  return true;
+  // D109: read and write under the plan write lock, as the page's save does (src/plan/planWriteLock.ts)
+  return withPlanWrite(file, async () => {
+    const raw = await readJson<Plan>(file);
+    const scene = raw?.chapters.flatMap((c) => c.scenes).find((s) => s.id === sceneId);
+    if (!raw || !scene) throw new Error("المشهد غير موجود في الخطة.");
+    if (scene.template === "verse-card") throw new Error("مشهد الآية بلا تعليق؛ تلاوته تُرفع ولا تُكتب هنا.");
+    if (normText(scene.narration) === narration) return false;
+    const before = scene.narration;
+    scene.narration = narration;
+    scene.edited = true;
+    await writeJsonAtomic(file, stripQuran({ ...raw, updatedAt: new Date().toISOString() }));
+    // QA balislam 2: the same change in script.md when it can be placed unambiguously (else the scene is flagged).
+    await syncScriptNarration(scriptPath, before, narration);
+    return true;
+  });
 };
 
 /** بوابات أي طلب صوت مدفوع لجملة (التوليد وإعادة نطق كلمة): الآية، التشكيل، الاعتمادات، النبرة، المفتاح، تدريب الصوت */

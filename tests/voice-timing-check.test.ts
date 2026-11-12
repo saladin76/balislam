@@ -9,7 +9,7 @@ import { mkdir, mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ALIGNMENT_OVERSHOOT_MAX_SEC, AlignmentCorruptError, alignmentVerdict, safeTrim } from "../src/remotion/dafatir/audio/trim";
+import { ALIGNMENT_DISORDER_MAX, ALIGNMENT_OVERSHOOT_MAX_SEC, AlignmentCorruptError, alignmentVerdict, safeTrim } from "../src/remotion/dafatir/audio/trim";
 import { measurePart } from "../src/voice/dafatirParts";
 import { checkVoiceTimings, ffmpegDuration, formatTimingReport, summarize } from "../src/voice/timingCheck";
 
@@ -43,6 +43,12 @@ describe("the stitcher's alignment rule", () => {
     const early = safeTrim(b, { start: [-0.05], end: [0.9] }, {}, warn);
     expect(early.speechStart).toBe(0);
     expect(early.start).toBe(0);
+  });
+  it("more than two inverted pairs is a timing list of another take: refused", () => {
+    expect(alignmentVerdict(1, { start: [0.1, 0.3, 0.2, 0.5, 0.4], end: [0.2, 0.4, 0.3, 0.6, 0.5] }).kind).toBe("clamped"); // two
+    const three = { start: [0.1, 0.3, 0.2, 0.5, 0.4, 0.7, 0.6], end: [0.2, 0.4, 0.3, 0.6, 0.5, 0.8, 0.7] };
+    expect(alignmentVerdict(1, three)).toMatchObject({ kind: "corrupt", detail: { disorder: 3, maxDisorder: ALIGNMENT_DISORDER_MAX } });
+    expect(() => safeTrim(b, three, {}, () => {})).toThrow(/مقلوب/);
   });
   it("slightly overlapping or reordered words are not corruption", () => {
     const warn = vi.fn();

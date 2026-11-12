@@ -101,6 +101,8 @@ export const speechBounds = (samples: Float32Array, sampleRate: number, opts: Pa
  * يُراجَع على تسجيلات المالك الحقيقية بـ `npx bal voice-timing --all-channels --takes` (قياس فقط، بلا توليد).
  */
 export const ALIGNMENT_OVERSHOOT_MAX_SEC = 0.15;
+/** كم زوجًا متجاورًا مقلوب الترتيب يُقبل (تقريب توقيت المزوّد)؛ ما فوقه توقيت تسجيل آخر فيُرفض (D109) */
+export const ALIGNMENT_DISORDER_MAX = 2;
 
 /** تجاوز محدود حُصر في طرفي الملف: يُسجَّل تنبيهًا ولا يوقف التركيب */
 export type AlignmentClamp = { overshootEndSec: number; undershootStartSec: number; disorder: number; duration: number };
@@ -114,7 +116,7 @@ export class AlignmentCorruptError extends Error {
 /**
  * يفحص محاذاة الكلمات مقابل مدة الملف: `ok` سليمة، و`clamped` تجاوز محدود (≤ ALIGNMENT_OVERSHOOT_MAX_SEC)
  * يُحصر في طرفي الملف، و`corrupt` توقيت تالف بوضوح (قيمة غير رقمية، أطوال مختلفة، كلمة نهايتها قبل بدايتها
- * بأكثر من الحد، أو تجاوز أكبر من الحد). ترتيب الكلمات المتداخل قليلًا ليس تلفًا (القص يأخذ أصغر بداية وأكبر نهاية).
+ * بأكثر من الحد، أو تجاوز أكبر من الحد). ترتيب الكلمات المتداخل قليلًا (حتى ALIGNMENT_DISORDER_MAX زوجًا) ليس تلفًا (القص يأخذ أصغر بداية وأكبر نهاية)، وما فوقه تلف.
  */
 export const alignmentVerdict = (duration: number, alignment: { start: number[]; end: number[] }, maxSec = ALIGNMENT_OVERSHOOT_MAX_SEC):
   { kind: "ok" } | { kind: "clamped"; clamp: AlignmentClamp } | { kind: "corrupt"; detail: Record<string, unknown> } => {
@@ -130,6 +132,9 @@ export const alignmentVerdict = (duration: number, alignment: { start: number[];
     return { kind: "corrupt", detail: { ...detail("التوقيت يتجاوز طرفي الملف"), overshootEndSec, undershootStartSec, maxSec } };
   let disorder = 0;
   for (let i = 1; i < start.length; i++) if (start[i]! < start[i - 1]! || end[i]! < end[i - 1]! || start[i]! > end[i]!) disorder++;
+  // A word or two out of order is rounding in the provider's timings; more is a timing list of another take.
+  if (disorder > ALIGNMENT_DISORDER_MAX)
+    return { kind: "corrupt", detail: { ...detail("ترتيب الكلمات مقلوب في أكثر من موضعين"), disorder, maxDisorder: ALIGNMENT_DISORDER_MAX } };
   const tiny = 1e-6;
   if (overshootEndSec <= tiny && undershootStartSec <= tiny && disorder === 0) return { kind: "ok" };
   return { kind: "clamped", clamp: { overshootEndSec, undershootStartSec, disorder, duration } };

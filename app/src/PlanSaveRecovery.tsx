@@ -14,9 +14,22 @@ import { mergePlans } from "./planMerge";
  */
 export const backupKeyFor = (channel: string, episode: string) => `bal-unsaved-plan:${channel}/${episode}`;
 
-const keepInBrowser = (item: { channel: string; episode: string; value: Plan }) => {
-  try { localStorage.setItem(backupKeyFor(item.channel, item.episode), JSON.stringify({ at: new Date().toISOString(), plan: item.value })); }
+/** The browser copy of an unsaved edit: the edit and the version it started from (for the three-way merge). */
+export type PlanBackup = { at: string; plan: Plan; base?: Plan };
+const keepInBrowser = (item: { channel: string; episode: string; value: Plan }, base?: Plan) => {
+  try { localStorage.setItem(backupKeyFor(item.channel, item.episode), JSON.stringify({ at: new Date().toISOString(), plan: item.value, ...(base ? { base } : {}) })); }
   catch { /* private window or full storage: the download below is the backup */ }
+};
+export const readPlanBackup = (channel: string, episode: string): PlanBackup | null => {
+  try {
+    const raw = localStorage.getItem(backupKeyFor(channel, episode));
+    if (!raw) return null;
+    const b = JSON.parse(raw) as PlanBackup;
+    return b && b.plan && Array.isArray(b.plan.chapters) ? b : null;
+  } catch { return null; }
+};
+export const clearPlanBackup = (channel: string, episode: string) => {
+  try { localStorage.removeItem(backupKeyFor(channel, episode)); } catch { /* nothing stored */ }
 };
 const download = (item: { channel: string; episode: string; value: Plan }) => {
   try {
@@ -40,7 +53,7 @@ export const PlanSaveRecovery: React.FC<{
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const item = queue.snapshot;
-  useEffect(() => { if (item) keepInBrowser(item); }, [item]);
+  useEffect(() => { if (item) keepInBrowser(item, queue.baseOf(item.channel, item.episode)); }, [item, queue]);
   if (!item) return null;
 
   const reapply = async () => {
@@ -64,7 +77,7 @@ export const PlanSaveRecovery: React.FC<{
   };
   const leave = () => {
     if (!window.confirm("يُنزَّل تعديلك ملفًا ويُحفظ نسخة في هذا المتصفح، ثم تُفتح النسخة المحفوظة دون تعديلك. هل تتابع؟")) return;
-    keepInBrowser(item);
+    keepInBrowser(item, queue.baseOf(item.channel, item.episode));
     download(item);
     try { queue.discard(); } catch (e) { setNote((e as Error).message); return; }
     onLeft(item.channel, item.episode);
@@ -81,6 +94,53 @@ export const PlanSaveRecovery: React.FC<{
         : <button type="button" className="btn" disabled={busy} onClick={() => { void retry().catch(() => {}); }}>أعد محاولة الحفظ</button>}
       <button type="button" className="btn ghost" disabled={busy} onClick={() => download(item)}>نزّل نسخة تعديلك</button>
       <button type="button" className="btn ghost" disabled={busy} onClick={leave}>افتح النسخة المحفوظة (بعد نسخة من تعديلي)</button>
+      {note ? <span className="plan-save-note" role="status">{note}</span> : null}
+    </section>
+  );
+};
+
+/**
+ * «استعد تعديلي المحفوظ» (D109): a browser copy of an edit left by the way out (or by a reload while a save was
+ * refused) is shown when the episode is open with nothing pending. Restoring re-applies it with the same
+ * three-way merge onto the plan on screen; a real conflict applies nothing and keeps the copy. The copy is cleared
+ * after the restored edit is saved (App.tsx), or by «احذف النسخة».
+ */
+export const PlanBackupRestore: React.FC<{
+  channel: string; episode: string; backup: PlanBackup;
+  /** the newest saved plan, read from the server */
+  latest: () => Promise<Plan>;
+  /** queue the merged edit as pending against `theirs`, and save it */
+  apply: (merged: Plan, theirs: Plan) => Promise<void>;
+  onDropped: () => void;
+}> = ({ channel, episode, backup, latest, apply, onDropped }) => {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const when = (() => { try { return new Date(backup.at).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }); } catch { return ""; } })();
+  const restore = async () => {
+    setBusy(true); setNote("");
+    try {
+      const current = await latest();
+      const r = mergePlans(backup.base ?? current, backup.plan, current);
+      if (!r.ok) {
+        const where = r.conflicts.slice(0, 4).join("، ") + (r.conflicts.length > 4 ? "…" : "");
+        setNote(`تعديلك المحفوظ والنسخة الحالية غيّرا الموضع نفسه (${where})، فلم نطبّق شيئًا. نزّله وأعد التعديل يدويًا.`);
+        return;
+      }
+      await apply(r.plan, current);
+    } catch (e) { setNote((e as Error).message); } finally { setBusy(false); }
+  };
+  const drop = () => {
+    if (!window.confirm("حذف النسخة المحفوظة في هذا المتصفح من تعديلك؟ لا يتغير شيء في الخطة.")) return;
+    clearPlanBackup(channel, episode);
+    onDropped();
+  };
+  return (
+    <section className="plan-save-recovery" role="status" aria-label="تعديل محفوظ في المتصفح">
+      <strong>في هذا المتصفح نسخة من تعديل لم يُحفظ{when ? ` (${when})` : ""}.</strong>
+      <span>يمكن إعادة تطبيقها فوق الخطة الحالية؛ ما تغيّر في الموضع نفسه لا يُطبَّق ويُذكر.</span>
+      <button type="button" className="btn primary" disabled={busy} onClick={() => { void restore(); }}>استعد تعديلي المحفوظ</button>
+      <button type="button" className="btn ghost" disabled={busy} onClick={() => download({ channel, episode, value: backup.plan })}>نزّل النسخة</button>
+      <button type="button" className="btn ghost" disabled={busy} onClick={drop}>احذف النسخة</button>
       {note ? <span className="plan-save-note" role="status">{note}</span> : null}
     </section>
   );

@@ -14,7 +14,7 @@ import { createServer, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { api, isPlanConflict, setApiChannel } from "../app/src/api";
 import { PlanSaveQueue } from "../app/src/planSaveQueue";
-import { PlanSaveRecovery } from "../app/src/PlanSaveRecovery";
+import { PlanBackupRestore, PlanSaveRecovery, backupKeyFor, clearPlanBackup, readPlanBackup } from "../app/src/PlanSaveRecovery";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { mergePlans, withServerFields } from "../app/src/planMerge";
@@ -203,6 +203,45 @@ describe("the recovery bar", () => {
   it("offline: offers the retry and the same way out", () => {
     const html = renderToStaticMarkup(React.createElement(PlanSaveRecovery, props(false)));
     for (const t of ["أعد محاولة الحفظ", "افتح النسخة المحفوظة (بعد نسخة من تعديلي)"]) expect(html).toContain(t);
+  });
+});
+
+describe("«استعد تعديلي المحفوظ» (D109)", () => {
+  const store = new Map<string, string>();
+  const g = globalThis as unknown as { localStorage?: unknown };
+  const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) };
+  it("reads a stored copy (edit and base), shows the restore bar, and clears the copy", () => {
+    const had = g.localStorage;
+    g.localStorage = fake;
+    try {
+      const plan = { episode: "001", chapters: [] } as unknown as Plan;
+      expect(readPlanBackup("balislam", "001")).toBeNull();
+      store.set(backupKeyFor("balislam", "001"), JSON.stringify({ at: "2026-11-12T10:00:00Z", plan, base: plan }));
+      store.set(backupKeyFor("balislam", "002"), "{not json");
+      const b = readPlanBackup("balislam", "001")!;
+      expect(b.plan).toEqual(plan);
+      expect(readPlanBackup("balislam", "002")).toBeNull();
+      const html = renderToStaticMarkup(React.createElement(PlanBackupRestore, { channel: "balislam", episode: "001", backup: b, latest: async () => plan, apply: async () => {}, onDropped: () => {} }));
+      for (const t of ["استعد تعديلي المحفوظ", "نزّل النسخة", "احذف النسخة"]) expect(html).toContain(t);
+      clearPlanBackup("balislam", "001");
+      expect(readPlanBackup("balislam", "001")).toBeNull();
+    } finally { if (had === undefined) delete g.localStorage; else g.localStorage = had; }
+  });
+  it("restoring re-applies the stored edit by the same merge, against a newer saved plan", async () => {
+    const d0 = await api.episode("986", CH);
+    const base = d0.plan;
+    const mine = structuredClone(base); mine.chapters[0]!.scenes[2]!.props.text = "من النسخة المحفوظة";
+    // the page that saved meanwhile
+    const page = await openPage("986");
+    await page.edit("c1-s2", "بعد الترك");
+    const theirs = (await api.episode("986", CH)).plan;
+    const merged = mergePlans(base, mine, theirs);
+    expect(merged.ok).toBe(true);
+    if (!merged.ok) return;
+    const queue = new PlanSaveQueue<Plan>(async (item, rev) => (await api.savePlan(item.episode, item.value, item.channel, rev)).planRevision);
+    queue.rebase(CH, "986", browserPlanRevision(theirs), theirs, merged.plan);
+    await queue.flush();
+    expect((await planOnDisk("986")).chapters[0]!.scenes.map((s) => s.props.text)).toEqual(["تعديلي", "بعد الترك", "من النسخة المحفوظة"]);
   });
 });
 

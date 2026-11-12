@@ -1,6 +1,6 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
 import { PlanSaveQueue } from "./planSaveQueue";
-import { PlanSaveRecovery } from "./PlanSaveRecovery";
+import { PlanBackupRestore, PlanSaveRecovery, clearPlanBackup, readPlanBackup } from "./PlanSaveRecovery";
 import { withServerFields } from "./planMerge";
 import { PLAN_SERVER_FIELDS_EVENT, type PlanServerFieldsDetail } from "./planServerFields";
 import { browserPlanRevision } from "../../src/plan/revision";
@@ -165,6 +165,9 @@ export const App: React.FC = () => {
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   /** The last refused save was a revision conflict (409): the recovery offers the three-way merge (D109). */
   const [planConflict, setPlanConflict] = useState(false);
+  /** D109: «ch/ep» whose browser copy (PlanSaveRecovery) is cleared when its edit is saved; re-read on each tick. */
+  const clearBackupOnSave = useRef<string | null>(null);
+  const [backupTick, setBackupTick] = useState(0);
   /** Counts successful plan saves: step ٢ reads the ledger again after each (dafatir M6). */
   const [planSaved, setPlanSaved] = useState(0);
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
@@ -253,12 +256,21 @@ export const App: React.FC = () => {
     saveTimer.current = null;
     if (!planSaves.current!.hasPending) return;
     setPlanState("saving");
+    const item = planSaves.current!.snapshot;
+    const key = item ? item.channel + "/" + item.episode : null;
     try {
       await planSaves.current!.flush();
       setPlanState("saved");
       setPlanConflict(false);
       setPlanSaved((n) => n + 1);
+      // D109: the browser copy of a refused or restored edit goes once that edit is saved
+      if (key && clearBackupOnSave.current === key) {
+        clearPlanBackup(item!.channel, item!.episode);
+        clearBackupOnSave.current = null;
+        setBackupTick((n) => n + 1);
+      }
     } catch (e) {
+      if (key) clearBackupOnSave.current = key;
       setPlanConflict(isPlanConflict(e));
       setPlanState("error");
       say((e as Error).message, true);
@@ -527,12 +539,33 @@ export const App: React.FC = () => {
             revisionOf={browserPlanRevision}
             onPlan={(p) => { setPlan(p); setPlanState("dirty"); }}
             onLeft={(ch, id) => {
+              clearBackupOnSave.current = null; // the way out keeps the copy: «استعد تعديلي المحفوظ» offers it back
+              setBackupTick((n) => n + 1);
               setPlanConflict(false); setPlanState("saved");
               say("فُتحت النسخة المحفوظة؛ تعديلك في الملف المنزَّل وفي هذا المتصفح.");
               if (ch === channelRef.current && id === episodeRef.current) void loadEpisode(id);
             }}
           />
         ) : null}
+        {(() => {
+          const backup = inEpisode && plan && planState === "saved" && !planSaves.current!.hasPending ? readPlanBackup(channelRef.current, epId) : null;
+          void backupTick;
+          return backup ? (
+            <PlanBackupRestore
+              key={channelRef.current + "/" + epId + backup.at}
+              channel={channelRef.current} episode={epId} backup={backup}
+              latest={async () => (await api.episode(epId, channelRef.current)).plan}
+              apply={async (merged, theirs) => {
+                const ch = channelRef.current;
+                planSaves.current!.rebase(ch, epId, browserPlanRevision(theirs), theirs, merged);
+                clearBackupOnSave.current = ch + "/" + epId;
+                setPlan(merged); setPlanState("dirty");
+                await flushPlan();
+              }}
+              onDropped={() => setBackupTick((n) => n + 1)}
+            />
+          ) : null;
+        })()}
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty || planState !== "saved"} />
         {!EPISODE_TABS.includes(tab) && tab !== "home" && tab !== "series" ? (
           <div className="page-head"><h1>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</h1></div>
