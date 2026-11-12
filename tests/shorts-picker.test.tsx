@@ -159,6 +159,9 @@ describe("الخادم: GET/PUT /api/episodes/<ep>/shorts", () => {
     server = http.createServer(vite.middlewares);
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    // الإحماء داخل مهلة التجهيز (60 ث): أول طلب يحوّل شجرة وحدات المسار بـ ssrLoadModule (نحو ثانية محليًا،
+    // وفوق 5 ث على خادم CI المزدحم). طلب قراءة لا يكتب شيئًا، فتقيس الاختبارات سلوك المسار لا كلفة التحويل الأول (033).
+    expect((await call("GET", "episodes/986/shorts")).status).toBe(200);
   }, 60_000);
   afterAll(async () => {
     await new Promise<void>((resolve) => server?.close(() => resolve()));
