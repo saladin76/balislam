@@ -1,11 +1,15 @@
 import React from "react";
 import "./shell.css";
 import { readScheme, resolveScheme } from "../ui/colorScheme";
+import { reportUiError, sendProblem, type Reported } from "../errorCapture";
+import { redactSecrets } from "../../../src/studio/redact";
 
 /**
- * When a screen throws while rendering (D89): instead of a white page, one card in the «المِرسَم» style (D57) with
- * the error text to copy, «أعد المحاولة» and «ارجع إلى الرئيسية». Nothing is cleared or deleted: no file, no
- * approval, no localStorage key. Two scopes:
+ * When a screen throws while rendering (D89): instead of a white page, one card in the «المِرسَم» style (D57): a plain
+ * Arabic sentence, one action «أرسل المشكلة» (D112: the error is already written to `.studio/errors.jsonl` on this
+ * device; the button adds it to Claude's notes box), the way back («أعد المحاولة»، «ارجع إلى الرئيسية»), and the
+ * technical text folded under «تفاصيل» (D108). Nothing is cleared or deleted: no file, no approval, no localStorage
+ * key. Two scopes:
  * - `app`: around the whole Studio (main.tsx). «ارجع إلى الرئيسية» reloads the page on the channel's home.
  * - `screen`: around one step / panel. The rest of the Studio (band, top bar) stays usable; the boundary resets
  *   by itself when `resetKey` changes (another channel, episode or step).
@@ -23,7 +27,7 @@ type Props = {
   compact?: boolean;
   children: React.ReactNode;
 };
-type State = { error: Error | null; stack: string; tries: number; copied: boolean };
+type State = { error: Error | null; stack: string; tries: number; sending: boolean; sent: { ok: boolean; text: string } | null };
 
 /** The text the owner copies: message, where (component stack), the address and the time. No secret is in it. */
 export const crashReport = (error: Error, componentStack: string, where = typeof window === "undefined" ? "" : window.location.href): string =>
@@ -45,53 +49,63 @@ const storedChannel = (): string | null => {
 };
 
 export class StudioErrorBoundary extends React.Component<Props, State> {
-  state: State = { error: null, stack: "", tries: 0, copied: false };
+  state: State = { error: null, stack: "", tries: 0, sending: false, sent: null };
+  /** The record of the last caught error in `.studio/errors.jsonl` (null when the Studio did not answer). */
+  reported: Promise<string | null> = Promise.resolve(null);
   static getDerivedStateFromError(error: unknown): Partial<State> {
-    return { error: error instanceof Error ? error : new Error(String(error)), copied: false };
+    return { error: error instanceof Error ? error : new Error(String(error)), sent: null };
   }
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
     // The app scope may fail before the Studio set the theme: the owner's light/dark choice still applies (read only).
     if (this.props.scope === "app" && typeof document !== "undefined" && !document.documentElement.dataset.theme)
       document.documentElement.dataset.theme = resolveScheme(readScheme(), Boolean(window.matchMedia?.("(prefers-color-scheme: dark)").matches));
     this.setState({ stack: info.componentStack ?? "" });
-    console.error(`[studio] ${this.props.scope === "app" ? "الاستوديو" : this.props.label ?? "شاشة"}:`, error);
+    const label = this.props.scope === "app" ? "الاستوديو" : this.props.label ?? "شاشة";
+    console.error(`[studio] ${label}:`, error);
+    // D112: written on this device at once, before the owner presses anything.
+    this.report = () => reportUiError({ kind: "render", error, componentStack: info.componentStack ?? "", label });
+    this.reported = this.report().then((r: Reported | null) => r?.id ?? null);
   }
+  private report: () => Promise<Reported | null> = () => Promise.resolve(null);
   componentDidUpdate(prev: Props) {
-    if (this.state.error && prev.resetKey !== this.props.resetKey) this.setState({ error: null, stack: "", copied: false });
+    if (this.state.error && prev.resetKey !== this.props.resetKey) this.setState({ error: null, stack: "", sent: null });
   }
-  private retry = () => this.setState((s) => ({ error: null, stack: "", copied: false, tries: s.tries + 1 }));
+  private retry = () => this.setState((s) => ({ error: null, stack: "", sent: null, tries: s.tries + 1 }));
   private home = () => {
     if (this.props.onHome) { this.props.onHome(); this.retry(); return; }
     window.location.assign(homeHref(storedChannel()));
   };
-  private copy = async (text: string, field: HTMLTextAreaElement | null) => {
-    try { await navigator.clipboard.writeText(text); }
-    catch { field?.select(); try { document.execCommand("copy"); } catch { /* the text stays selected for ⌘C */ } }
-    this.setState({ copied: true });
+  private send = async () => {
+    this.setState({ sending: true });
+    const sent = await sendProblem(await this.reported, async () => (await this.report())?.id ?? null);
+    this.setState({ sending: false, sent });
   };
-  private field: HTMLTextAreaElement | null = null;
   private id = `crash-${Math.random().toString(36).slice(2, 8)}`;
   render() {
-    const { error, stack, tries, copied } = this.state;
+    const { error, stack, tries, sending, sent } = this.state;
     // The key remounts the children on «أعد المحاولة», so a stale state inside them does not throw again.
     if (!error) return <React.Fragment key={tries}>{this.props.children}</React.Fragment>;
     const app = this.props.scope === "app";
-    const text = crashReport(error, stack);
+    // No credential on screen either (D112): the patterns of src/studio/redact.ts (a token, a key=value, a URL with a token).
+    const text = redactSecrets(crashReport(error, stack));
     const card = (
       <section className={`locked-step crash-step${this.props.compact ? " is-compact" : ""}`} role="alert" aria-labelledby={this.id}>
         <div className="locked-card">
           <p className="locked-eyebrow">{app ? "الاستوديو" : this.props.label ?? "هذه الشاشة"} — تعذّر العرض</p>
           <h2 id={this.id}>حدث خطأ في العرض</h2>
-          <p className="locked-reason">لم يُمسح شيء ولم يُحذف: ملفاتك واعتماداتك وتسجيلاتك كما هي. أعد المحاولة، أو ارجع إلى الرئيسية؛ وإن تكرر فانسخ نص الخطأ وأرسله.</p>
-          <label className="crash-text">
-            <span>نص الخطأ</span>
-            <textarea ref={(el) => { this.field = el; }} readOnly dir="ltr" rows={app ? 8 : 5} value={text} onFocus={(e) => e.currentTarget.select()} />
-          </label>
+          <p className="locked-reason">لم يُمسح شيء ولم يُحذف: ملفاتك واعتماداتك وتسجيلاتك كما هي. اضغط «أرسل المشكلة» فيصل الخطأ إلى Claude بتفاصيله، بلا صورة شاشة ولا شرح؛ ثم أعد المحاولة أو ارجع إلى الرئيسية.</p>
+          {sent ? <p role="status" className={`crash-sent${sent.ok ? " is-ok" : " is-err"}`}>{sent.text}</p> : null}
           <div className="crash-actions">
-            <button type="button" className="btn primary" onClick={this.retry}>أعد المحاولة</button>
-            <button type="button" className="btn" onClick={this.home}>ارجع إلى الرئيسية</button>
-            <button type="button" className="btn ghost" onClick={() => void this.copy(text, this.field)}>{copied ? "نُسخ نص الخطأ" : "انسخ نص الخطأ"}</button>
+            {!sent?.ok ? (
+              <button type="button" className="btn primary" disabled={sending} onClick={() => void this.send()}>{sending ? "يُرسل…" : "أرسل المشكلة"}</button>
+            ) : null}
+            <button type="button" className="btn" onClick={this.retry}>أعد المحاولة</button>
+            <button type="button" className="btn ghost" onClick={this.home}>ارجع إلى الرئيسية</button>
           </div>
+          <details className="owner-details crash-details">
+            <summary>تفاصيل</summary>
+            <code dir="ltr">{text}</code>
+          </details>
         </div>
       </section>
     );

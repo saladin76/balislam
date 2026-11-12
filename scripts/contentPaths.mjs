@@ -33,6 +33,8 @@ export const CONTENT_PATH_RES = [
 /** أسماء لا تُرفع أبدًا ولو طابقت نمطًا بخطأ مستقبلي (دفاع إضافي). */
 const NEVER_RES = [
   /(^|\/)\.env($|\.)/,
+  // حالة الاستوديو المحلية وسجل الأخطاء (.studio/errors.jsonl، D112)
+  /(^|\/)\.studio\//,
   /scene-production\.v1\.json/, /scene-workflow\.v2\.json/, /script-approved\.v1\.json/, /workflow-approvals\.json/,
   /voice-review\.json/, /(^|\/)storyboard\.json$/, /seam-checks\.local\.json/, /notes\/inbox\.json$/,
   /(^|\/)voice\//, /\.(mp3|mp4|wav|m4a|aac|mov|webm|png|jpe?g|pdf|zip|tar)$/i, /\.tmp$/, /\.lock(\/|$)/, /\.write\.lock$/,

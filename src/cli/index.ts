@@ -512,6 +512,25 @@ program
     console.log(`البصمة: ${r.sha256}`);
   });
 
+// سجل الأخطاء المحلي (D112، .studio/errors.jsonl): آخر الأخطاء مجمّعة بالرسالة
+program
+  .command("errors")
+  .description("آخر أخطاء الاستوديو على هذا الجهاز (.studio/errors.jsonl)، مجمّعة بالرسالة مع عدد مرات كل منها")
+  .option("--last <n>", "عدد السطور الأخيرة التي تُقرأ من السجل", "500")
+  .option("--limit <n>", "عدد المجموعات المعروضة", "20")
+  .option("--json", "إخراج JSON")
+  .action(async (opts: { last: string; limit: string; json?: boolean }) => {
+    const { errorsFileFor, formatErrorGroups, groupErrors, readErrorRecords } = await import("../studio/errorLog");
+    const file = errorsFileFor(projectRoot);
+    const records = (await readErrorRecords(file)).slice(-Math.max(1, Number(opts.last) || 500));
+    const groups = groupErrors(records);
+    const shown = file.startsWith(projectRoot + path.sep) ? path.relative(projectRoot, file) : file;
+    if (opts.json) { console.log(JSON.stringify({ file: shown, records: records.length, groups }, null, 2)); return; }
+    if (!records.length) { console.log("لا أخطاء مسجلة على هذا الجهاز."); return; }
+    console.log(formatErrorGroups(groups, Math.max(1, Number(opts.limit) || 20)));
+    console.log(`\n${records.length} خطأ في ${groups.length} مجموعة (${shown}). لإرسال خطأ: «أرسل المشكلة» في الاستوديو.`);
+  });
+
 // صندوق ملاحظات المالك (docs/studio/notes-inbox.md): Claude يبدأ كل جلسة عمل بـ «bal notes --open»
 const notesCmd = program
   .command("notes")

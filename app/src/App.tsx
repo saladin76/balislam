@@ -55,6 +55,7 @@ import { shotWordIssues } from "../../src/plan/shotWords";
 import { hasBasmala } from "../../src/voice/basmala";
 import { bootPlace, navigationKind, parseStudioHash, studioHash } from "./shell/route";
 import { StudioErrorBoundary } from "./shell/ErrorBoundary";
+import { ErrorNotice } from "./ui/ErrorNotice";
 import { OwnerText } from "./ui/OwnerText";
 import { splitOwnerDetails } from "./serverMessages";
 
@@ -571,6 +572,7 @@ export const App: React.FC = () => {
           ) : null;
         })()}
         <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty || planState !== "saved"} />
+        <ErrorNotice />
         {!EPISODE_TABS.includes(tab) && tab !== "home" && tab !== "series" ? (
           <div className="page-head"><h1>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</h1></div>
         ) : null}

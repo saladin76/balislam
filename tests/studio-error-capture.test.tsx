@@ -166,8 +166,12 @@ describe("معيار القبول (العمل ٣)", { timeout: 120_000 }, () => 
       expect(body.errorId).toMatch(/^e[0-9a-f]{10}$/);
       expectNoSecret("500 body", JSON.stringify(body));
       serverErrorId = body.errorId!;
-      // the same fault twice: grouped by message in `bal errors`
-      expect((await fetch(`/api/episodes/001/scene-production/c1-s1?channel=${CH}`)).status).toBe(500);
+      // the same failure again within ten seconds (a poll): the same record, not a new line
+      const again = await (await fetch(`/api/episodes/001/scene-production/c1-s1?channel=${CH}`)).json() as { errorId?: string };
+      expect(again.errorId).toBe(serverErrorId);
+      // the same message from another route: a second line, grouped with the first in `bal errors`
+      process.env.BAL_TEST_FAULT_ROUTE = "^/api/episodes/001/";
+      expect((await fetch(`/api/episodes/001/sentences?channel=${CH}`)).status).toBe(500);
     } finally {
       delete process.env.BAL_TEST_FAULT_ROUTE;
       delete process.env.BAL_TEST_FAULT_MESSAGE;

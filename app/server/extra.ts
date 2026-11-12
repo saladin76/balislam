@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { safeName } from "./util.ts";
+import { captureRouteError } from "./errors.ts";
 import { applyUpdate, resolveConflict, updateStatus } from "./update.ts";
 import { getSharedContentSync } from "./contentSync.ts";
 import { childEnv } from "../../scripts/git-env.mjs";
@@ -815,7 +816,12 @@ export const handleExtra = async (ctx: ExtraCtx): Promise<boolean> => {
     const store = await load("/src/channel/seriesStore.ts");
     const model = await load("/src/channel/series.ts");
     const { approvedIdentity } = await load("/brand/identity/approved.ts");
-    const fail = (e: unknown) => { send(res, (e as { issues?: string[] }).issues ? 400 : 500, { error: (e as Error).message, issues: (e as { issues?: string[] }).issues }); return true; };
+    const fail = (e: unknown) => {
+      const issues = (e as { issues?: string[] }).issues;
+      // D112: an unexpected error (not the owner's invalid input) is logged in .studio/errors.jsonl
+      send(res, issues ? 400 : 500, { error: (e as Error).message, issues, ...(issues ? {} : { errorId: captureRouteError(ctx.root, req, e, ch).id }) });
+      return true;
+    };
     if (!parts[1] && req.method === "GET") {
       const approved = approvedIdentity(ch);
       const list = store.listSeries(ch);
