@@ -1,3 +1,4 @@
+import { browserPlanRevision } from "../src/plan/revision";
 /**
  * Readiness rehearsal (plan task 3): ONE full production cycle through the REAL Studio server API.
  *
@@ -382,7 +383,7 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
 
     // ── 8. Editing ONE scene re-opens only it and invalidates assembly, Master and publish ─────
     const before = await state();
-    const edit = await call("PUT", `episodes/${EP}/plan`, { plan: planOf("الشكر قيد النعم") });
+    const edit = await call("PUT", `episodes/${EP}/plan`, { plan: planOf("الشكر قيد النعم"), expectedRevision: await browserPlanRevision((await call("GET", `episodes/${EP}`)).body.plan) });
     expect(edit.status).toBe(200);
     const after = await state();
     expect(after.scenes.map((x: any) => [x.id, x.status])).toEqual([["c1-s1", "approved"], ["c1-s2", "needs_revision"], ["c1-s3", "approved"]]);

@@ -129,8 +129,11 @@ export const measurePart = (partId: string, samples: Float32Array, sampleRate: n
     const duration = samples.length / sampleRate;
     raw = { duration, speechStart: Math.min(...align.start), speechEnd: Math.max(...align.end), start: 0, end: duration, floorDb: -120, peakDb: -120 };
   }
-  const b = safeTrim(raw, align);
-  return { clip: { partId, duration: b.duration, speechStart: b.speechStart, speechEnd: b.speechEnd, start: b.start, end: b.end }, words };
+  let b;
+  try { b = safeTrim(raw, align); }
+  catch (error) { throw new Error("الجزء " + partId + ": " + (error as Error).message); }
+  const boundedWords = words.map((w) => ({ ...w, start: Math.max(0, Math.min(b.duration, w.start)), end: Math.max(0, Math.min(b.duration, w.end)) }));
+  return { clip: { partId, duration: b.duration, speechStart: b.speechStart, speechEnd: b.speechEnd, start: b.start, end: b.end }, words: boundedWords };
 };
 
 /** تسلسل الحلقة كما يراه الرندر (للصمت عند الحدود) */

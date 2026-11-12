@@ -96,10 +96,22 @@ export const speechBounds = (samples: Float32Array, sampleRate: number, opts: Pa
  * القص لا يبدأ بعد أول حرف ولا ينتهي قبل آخر حرف أبدًا.
  */
 export const safeTrim = (b: SpeechBounds, alignment?: { start: number[]; end: number[] }, opts: Partial<TrimOptions> = {}): SpeechBounds => {
-  if (!alignment || !alignment.start.length) return b;
+  if (!alignment || (!alignment.start.length && !alignment.end.length)) return b;
   const o = { ...TRIM_DEFAULTS, ...opts };
-  const firstChar = Math.min(...alignment.start);
-  const lastChar = Math.max(...alignment.end);
+  // Timestamp encoders can differ from decoded PCM by one analysis frame. Reject larger drift;
+  // never return speechEnd > end (the compositor correctly refuses that contract).
+  const tolerance = o.frameSec + 1e-9;
+  const invalid = !Number.isFinite(b.duration) || b.duration <= 0 ||
+    alignment.start.length !== alignment.end.length ||
+    alignment.start.some((start, i) => !Number.isFinite(start) || !Number.isFinite(alignment.end[i]) ||
+      start < -tolerance || alignment.end[i]! > b.duration + tolerance || start > alignment.end[i]! ||
+      (i > 0 && (start < alignment.start[i - 1]! || alignment.end[i]! < alignment.end[i - 1]!)));
+  if (invalid) throw new Error(
+    "توقيت المحاذاة لا يطابق مدة التسجيل؛ أعد معالجة التسجيل الأصلي دون توليد جديد. " +
+    JSON.stringify({ duration: b.duration, first: alignment.start[0], last: alignment.end.at(-1) }),
+  );
+  const firstChar = Math.max(0, Math.min(b.duration, Math.min(...alignment.start)));
+  const lastChar = Math.max(0, Math.min(b.duration, Math.max(...alignment.end)));
   const speechStart = Math.min(b.speechStart, firstChar);
   const speechEnd = Math.max(b.speechEnd, lastChar);
   return { ...b, speechStart, speechEnd, start: Math.max(0, Math.min(b.start, speechStart - o.onsetPadSec)), end: Math.min(b.duration, Math.max(b.end, speechEnd + o.releasePadSec)) };

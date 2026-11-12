@@ -1,3 +1,5 @@
+import { FramePlayer } from "./FramePlayer";
+export { FramePlayer } from "./FramePlayer";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NOTES, SCENES, WARNINGS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
 import { createPortal } from "react-dom";
@@ -150,6 +152,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
   const stripRef = useRef<HTMLOListElement>(null);
   // قرار المشهد: مشكلة في لحظة بعينها (الحركة أو النبرة)، وخطوة تأكيد الاعتماد، وتوليد الصوت
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoSeconds, setVideoSeconds] = useState<{ id: string; seconds: number } | null>(null);
   const [problem, setProblem] = useState<{ kind: ProblemKind; at: number } | null>(null);
   const [problemText, setProblemText] = useState("");
   const [toneChoice, setToneChoice] = useState("");
@@ -587,7 +590,7 @@ export const SceneProductionPanel: React.FC<Props> = ({
             </div>
             <div className="s3-meta">
               <span className={`s3-state is-${status}`}>{stateText}</span>
-              {hit ? <span className="s3-len"><Num className="clk">{clock(secs(shownId))}</Num></span> : null}
+              {hit ? <span className="s3-len"><Num className="clk">{clock(videoSeconds?.id === shownId ? videoSeconds.seconds : secs(shownId))}</Num></span> : null}
               {prepLine}
               <button type="button" className="btn ghost s3-edit" onClick={() => setEditing(shownId)}><Icon name="doc" />تحرير المشهد</button>
             </div>
@@ -616,9 +619,9 @@ export const SceneProductionPanel: React.FC<Props> = ({
           <>
           <div className="s3-media">
             {isCurrent && previewUrl ? (
-              <FramePlayer key={`${currentId}:${candidate}`} ref={videoRef} autoPlay={advanced} src={previewUrl} label={`${sceneName(order, currentId)} بالصوت والصورة`} />
+              <FramePlayer key={`${currentId}:${candidate}`} ref={videoRef} autoPlay={advanced} expectedDuration={secs(shownId)} onDuration={(seconds) => setVideoSeconds({ id: shownId, seconds })} src={previewUrl} label={`${sceneName(order, currentId)} بالصوت والصورة`} />
             ) : !isCurrent && shownVideo ? (
-              <FramePlayer key={shownId} src={shownVideo} label={`${sceneName(order, shownId)} بالصوت والصورة`} />
+              <FramePlayer key={shownId} expectedDuration={secs(shownId)} onDuration={(seconds) => setVideoSeconds({ id: shownId, seconds })} src={shownVideo} label={`${sceneName(order, shownId)} بالصوت والصورة`} />
             ) : livePreview ? (
               // The tag sits under the frame, never over it: burned-in captions run along the top of the picture.
               <figure className="s3-livebox">
@@ -1195,51 +1198,7 @@ export const SceneDecisionActions: React.FC<{
  * The scene's frame (direction D): the picture on the channel's paper, a small play pill and a thin progress
  * line. The same <video>: «الحركة/النبرة غير مناسبة» read its current time through the forwarded ref.
  */
-export const FramePlayer = React.forwardRef<HTMLVideoElement, {
-  src: string; label: string; autoPlay?: boolean; className?: string;
-  onTimeUpdate?: React.ReactEventHandler<HTMLVideoElement>; onLoadedMetadata?: React.ReactEventHandler<HTMLVideoElement>;
-}>(({ src, label, autoPlay, className, onTimeUpdate, onLoadedMetadata }, ref) => {
-  const own = useRef<HTMLVideoElement | null>(null);
-  const box = useRef<HTMLDivElement | null>(null);
-  const [t, setT] = useState(0);
-  const [d, setD] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const setRef = (el: HTMLVideoElement | null) => {
-    own.current = el;
-    if (typeof ref === "function") ref(el); else if (ref) ref.current = el;
-  };
-  const toggle = () => { const v = own.current; if (!v) return; if (v.paused) void v.play().catch(noop); else v.pause(); };
-  const mute = () => { const v = own.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); };
-  const full = () => {
-    const el = box.current;
-    if (typeof document === "undefined" || !el) return;
-    if (document.fullscreenElement) void document.exitFullscreen().catch(noop); else void el.requestFullscreen?.().catch(noop);
-  };
-  // Our own controls, in Arabic (the browser's native ones speak the browser's language): play, time, sound, full screen.
-  return (
-    <div ref={box} className={`s3-frame${className ? ` ${className}` : ""}`}>
-      <video ref={setRef} className="scene-first-video" preload="metadata" playsInline autoPlay={autoPlay} src={src} aria-label={label}
-        onClick={toggle} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
-        onVolumeChange={(e) => setMuted(e.currentTarget.muted)}
-        onTimeUpdate={(e) => { setT(e.currentTarget.currentTime); onTimeUpdate?.(e); }}
-        onLoadedMetadata={(e) => { setD(e.currentTarget.duration || 0); onLoadedMetadata?.(e); }} />
-      <div className="s3-play" dir="ltr">
-        <button type="button" onClick={toggle} aria-label={playing ? "أوقف" : "شغّل"} title={playing ? "أوقف" : "شغّل"}><Icon name={playing ? "pause" : "play"} /></button>
-        <Num className="clk">{`${clockAr(t)} / ${clockAr(d)}`}</Num>
-      </div>
-      <div className="s3-tools" dir="ltr">
-        <button type="button" onClick={mute} aria-pressed={muted} aria-label={muted ? "أعد الصوت" : "اكتم الصوت"} title={muted ? "أعد الصوت" : "اكتم الصوت"}>{muted ? "بلا صوت" : "الصوت"}</button>
-        <button type="button" onClick={full} aria-label="ملء الشاشة" title="ملء الشاشة">ملء الشاشة</button>
-      </div>
-      <input className="s3-prog" type="range" min={0} max={d || 0} step={0.05} value={Math.min(t, d || 0)} aria-label="موضع التشغيل"
-        aria-valuetext={`${clockAr(t)} من ${clockAr(d)}`}
-        style={{ "--p": `${d ? (100 * t) / d : 0}%` } as React.CSSProperties}
-        onChange={(e) => { const v = own.current; if (v) v.currentTime = Number(e.target.value); }} />
-    </div>
-  );
-});
-FramePlayer.displayName = "FramePlayer";
+
 
 /**
  * Step ٣ «الوصلات» (direction D): one seam at a time between two scenes of the assembled episode: the last

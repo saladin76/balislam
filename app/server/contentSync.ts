@@ -47,6 +47,15 @@ export type SyncState = {
 };
 
 type G = { ok: boolean; out: string; err: string };
+/** Keep the failing assertion, not just the gate's final red cross. Bounded for the UI. */
+export const gateFailureSummary = (text: string): string => {
+  const plain = text.replace(/\x1b\[[0-9;]*m/g, "");
+  const lines = plain.split("\n");
+  const start = lines.findIndex((line) => /FAIL\s+tests\/|AssertionError|بوابة المحتوى رفضت/.test(line));
+  const detail = start >= 0 ? lines.slice(start, start + 45).join("\n") : "";
+  const summary = lines.filter((line) => /•|✗/.test(line)).slice(-8).join("\n");
+  return [detail, summary].filter(Boolean).join("\n").slice(0, 7000) || "رفضت بوابة التسليم الحفظ.";
+};
 const run = (cwd: string, args: string[], opts: { env?: Record<string, string>; input?: string; timeout?: number } = {}) =>
   new Promise<G>((resolve) => {
     const child = execFile("git", args, {
@@ -177,8 +186,7 @@ export const pushContentOnce = async (root: string, files: string[], remote = "o
       if (/rejected|non-fast-forward|fetch first|stale info/i.test(text) && !/بوابة|hook declined|pre-push/i.test(text))
         return { ok: false, reason: "rejected", message: "سبقه تحديث آخر على GitHub.", files };
       if (/بوابة|hook declined|pre-push|failed to push some refs/i.test(text) && !/Could not resolve host|unable to access|Connection|timed out/i.test(text)) {
-        const lines = text.split("\n").filter((l) => /•|✗/.test(l)).slice(0, 6).join("\n");
-        return { ok: false, reason: "gate", message: lines || "رفضت بوابة التسليم الحفظ.", files };
+        return { ok: false, reason: "gate", message: gateFailureSummary(text), files };
       }
       return { ok: false, reason: "offline", message: "تعذّر الوصول إلى GitHub.", files };
     }

@@ -1,3 +1,4 @@
+import { browserPlanRevision } from "../src/plan/revision";
 /**
  * «جهّز كل المشاهد» over the REAL Studio server API (same harness as studio-e2e-cycle.test.ts).
  *
@@ -268,7 +269,7 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
 
     // ── Editing scene 2 discards only its draft and re-opens only it ────────────────────────────
     const before = await state();
-    expect((await call("PUT", `episodes/${EP}/plan`, { plan: planOf("الشكر قيد النعم") })).status).toBe(200);
+    expect((await call("PUT", `episodes/${EP}/plan`, { plan: planOf("الشكر قيد النعم"), expectedRevision: await browserPlanRevision((await call("GET", `episodes/${EP}`)).body.plan) })).status).toBe(200);
     const after = await state();
     expect(after.scenes.map((x: any) => [x.id, x.status, x.draft])).toEqual([
       ["c1-s1", "approved", "none"], ["c1-s2", "queued", "stale"], ["c1-s3", before.scenes[2].status, "ready"]]);

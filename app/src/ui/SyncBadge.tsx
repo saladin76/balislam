@@ -35,7 +35,10 @@ export const SyncBadge: React.FC<{ hasUnsaved?: boolean }> = ({ hasUnsaved }) =>
       try {
         const s = await api.syncStatus();
         if (!alive) return;
-        if (lost) { window.location.reload(); return; } // عاد الخادم بعد إعادة تشغيله
+        if (lost) {
+          if (!typing() && !unsaved.current) window.location.reload();
+          return;
+        } // عاد الخادم بعد إعادة تشغيله
         setSt(s);
         if (seenUpdate.current === null) seenUpdate.current = s.lastUpdateAt;
         else if (s.lastUpdateAt && s.lastUpdateAt !== seenUpdate.current && !s.restartNeeded) {
@@ -55,7 +58,8 @@ export const SyncBadge: React.FC<{ hasUnsaved?: boolean }> = ({ hasUnsaved }) =>
 
   if (!st || !st.enabled || st.state === "off") return null;
   const tone = st.state === "synced" ? "" : st.state === "saving" || st.state === "updating" ? " is-busy" : st.state === "error" ? " is-err" : " is-warn";
-  const label = st.state === "conflict"
+  const label = st.state === "pending" ? "لم يُحفظ في المستودع بعد" + (st.pending.length ? " (" + arDigits(st.pending.length) + ")" : "")
+    : st.state === "conflict"
     ? (st.conflicts === 1 ? "يحتاج قرارك (ملف واحد)" : `يحتاج قرارك (${arDigits(st.conflicts)} ملفات)`)
     : st.restartNeeded && st.state === "synced" ? "تحديث جديد وصل" : LABEL[st.state];
   return (
@@ -63,7 +67,12 @@ export const SyncBadge: React.FC<{ hasUnsaved?: boolean }> = ({ hasUnsaved }) =>
       <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} title="الحفظ في المستودع والتحديثات">{label}</button>
       {open ? (
         <div className="ms-sync-pop" role="dialog" aria-label="الحفظ في المستودع">
-          <div>{st.message}</div>
+          <strong>{st.state === "pending" ? "نسخة المستودع لم تُحدّث بعد" : "حالة الحفظ والمزامنة"}</strong>
+          <div>حفظ الملفات على جهازك مستقل عن حفظ نسخة منها في المستودع.</div>
+          <details className="sync-diagnostics" open={st.state === "error" || undefined}>
+            <summary>سبب الحالة والتشخيص</summary>
+            <pre>{st.message}</pre>
+          </details>
           {st.lastSavedAt ? <div>آخر حفظ في المستودع: {time(st.lastSavedAt)}</div> : null}
           {st.lastUpdateAt ? <div>آخر تحديث وصل: {time(st.lastUpdateAt)}</div> : null}
           {st.pending.length ? (<>

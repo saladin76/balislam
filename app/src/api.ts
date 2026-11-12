@@ -378,7 +378,8 @@ export const api = {
   restoreTrash: (id: string) => call<{ ok: boolean; entry: TrashEntry }>("/api/trash/restore", { method: "POST", json: { id } }),
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
   saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
-  savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
+  savePlan: (id: string, plan: Plan, channel: string, expectedRevision: string) =>
+    call<{ ok: boolean; planRevision: string }>(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan, expectedRevision } }, channel),
   /** مقاطع الشورتس (D83): الاختيار المحفوظ والمقترح ومشاهد الحلقة بمددها؛ الحفظ يكتب plan.shorts وحدها */
   shorts: (id: string) => call<ShortsRead>(`/api/episodes/${id}/shorts`),
   saveShorts: (id: string, shorts: PlanShort[]) => call<ShortsRead & { warnings: string[] }>(`/api/episodes/${id}/shorts`, { method: "PUT", json: { shorts } }),

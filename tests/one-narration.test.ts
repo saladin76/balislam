@@ -15,13 +15,14 @@ import { emptyMedia } from "../src/plan/media";
  */
 const CHANNELS = ["balislam", "dafatir-alzaman", "zubdat-alkutub"] as const;
 const EPISODES = {
-  balislam: "channels/balislam/episodes/001-know-the-truth",
-  "dafatir-alzaman": "channels/dafatir-alzaman/episodes/001-adam-beginning",
-  "zubdat-alkutub": "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli",
+  balislam: "tests/fixtures/one-narration/balislam",
+  "dafatir-alzaman": "tests/fixtures/one-narration/dafatir-alzaman",
+  "zubdat-alkutub": "tests/fixtures/one-narration/zubdat-alkutub",
 } as const;
 const DOMAIN = { balislam: "psychology", "dafatir-alzaman": "islamic", "zubdat-alkutub": "self" } as const;
 
-describe("الحلقات 001: سرد واحد بلا فصول", () => {
+// Frozen D87 snapshots: owner edits never become hard-coded test expectations.
+describe("نسخ الحلقات 001 المحفوظة: سرد واحد بلا فصول", () => {
   it.each(CHANNELS)("%s: السكريبت بلا «## الفصل» والخطة قسم واحد بلا عنوان", (ch) => {
     const script = readFileSync(`${EPISODES[ch]}/script.md`, "utf8");
     expect(script).not.toMatch(/^## (الفصل|الْفَصْلُ)/m);
@@ -77,7 +78,7 @@ describe("showsDivision: لا «الفصل ١» لقسم بلا عنوان في 
 describe("شاشة النهاية تبقى بتعديلها حين يتغير عدد الأقسام (c6-end ← c1-end)", () => {
   it("تعديل c6-end المحفوظ ينتقل إلى c1-end في التوليد من سكريبت بلا أقسام", () => {
     const ep = EPISODES["zubdat-alkutub"];
-    const old = JSON.parse(readFileSync(`${ep}/versions/2026-11-11-cfed78ed-headings/plan.json`, "utf8"));
+    const old = JSON.parse(readFileSync("channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/versions/2026-11-11-cfed78ed-headings/plan.json", "utf8"));
     const end = old.chapters.at(-1).scenes.at(-1);
     expect(end.id).toBe("c6-end");
     expect(end.edited).toBe(true);
