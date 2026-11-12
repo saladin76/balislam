@@ -210,6 +210,9 @@ beforeAll(async () => {
   server = http.createServer(vite.middlewares);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  // الإحماء داخل مهلة التجهيز (60 ث): أول طلب لمسارات السلاسل يحوّل وحداتها بـ ssrLoadModule، وهذا تجاوز 5 ث على
+  // خادم CI المزدحم. قراءة القائمة لا تكتب شيئًا، فيبقى اختبار «المالك وحده» يقيس الرفض لا كلفة التحويل الأول (033).
+  expect((await call("GET", "series")).status).toBe(200);
 }, 60_000);
 afterAll(async () => {
   await new Promise<void>((resolve) => server?.close(() => resolve()));

@@ -72,7 +72,8 @@ describe("remapLocalVoice", () => {
 describe("خرائط المعرّفات المحفوظة للحلقات 001", () => {
   const eps = [
     ["channels/balislam/episodes/001-know-the-truth", "versions/2026-11-11-574ec242-headings"],
-    ["channels/zubdat-alkutub/episodes/001-awwal-marra-osalli", "versions/2026-11-11-cfed78ed-headings"],
+    // زبدة الكتب: الخطة بعد إعادة الربط محفوظة plan.after-remap.json؛ ١٢ نوفمبر غيّر بعدها تشكيل اسم الكتاب في ثلاثة مشاهد
+    ["channels/zubdat-alkutub/episodes/001-awwal-marra-osalli", "versions/2026-11-11-cfed78ed-headings", "plan.after-remap.json"],
     // دفاتر الزمن: الخطة بعد إعادة الربط محفوظة plan.v9.1.json؛ الأمر 031 غيّر بعدها نص مشهدين وأضاف c1-s48
     ["channels/dafatir-alzaman/episodes/001-adam-beginning", "versions/2026-11-11-4a9cc3b0-sections", "plan.v9.1.json"],
   ];

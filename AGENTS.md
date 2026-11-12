@@ -10,9 +10,9 @@
 
 | القناة | المعرّف | دليلها التفصيلي |
 | --- | --- | --- |
-| بالإسلام | `balislam` | **[docs/balislam/](docs/balislam/README.md)** — ابدأ من [00-start-here.md](docs/balislam/00-start-here.md)، والمرجعيات الرسمية في `channels/balislam/references/` |
-| دفاتر الزمن | `dafatir-alzaman` | **[docs/dafatir-alzaman/](docs/dafatir-alzaman/README.md)** — ابدأ من [00-start-here.md](docs/dafatir-alzaman/00-start-here.md) |
-| زبدة الكتب | `zubdat-alkutub` | **[docs/zubdat-alkutub/](docs/zubdat-alkutub/README.md)** — ابدأ من [00-start-here.md](docs/zubdat-alkutub/00-start-here.md)، والمختصر في [channels/zubdat-alkutub/AGENTS.md](channels/zubdat-alkutub/AGENTS.md) |
+| بالإسلام | `balislam` | **[docs/balislam/](docs/balislam/README.md)** — ابدأ من [00-start-here.md](docs/balislam/00-start-here.md)، ورسالة التكليف [briefing.md](docs/balislam/briefing.md)، والمرجعيات الرسمية في `channels/balislam/references/` |
+| دفاتر الزمن | `dafatir-alzaman` | **[docs/dafatir-alzaman/](docs/dafatir-alzaman/README.md)** — ابدأ من [00-start-here.md](docs/dafatir-alzaman/00-start-here.md)، ورسالة التكليف [briefing.md](docs/dafatir-alzaman/briefing.md) |
+| زبدة الكتب | `zubdat-alkutub` | **[docs/zubdat-alkutub/](docs/zubdat-alkutub/README.md)** — ابدأ من [00-start-here.md](docs/zubdat-alkutub/00-start-here.md)، ورسالة التكليف [briefing.md](docs/zubdat-alkutub/briefing.md)، والمختصر في [channels/zubdat-alkutub/AGENTS.md](channels/zubdat-alkutub/AGENTS.md) |
 
 التشغيل وفتح الاستوديو: [README.md](README.md).
 
