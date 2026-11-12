@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { OwnerText } from "./ui/OwnerText";
 import type { Plan } from "../../src/plan/types";
 import type { PlanSaveQueue } from "./planSaveQueue";
 import { mergePlans } from "./planMerge";
@@ -94,7 +95,7 @@ export const PlanSaveRecovery: React.FC<{
         : <button type="button" className="btn" disabled={busy} onClick={() => { void retry().catch(() => {}); }}>أعد محاولة الحفظ</button>}
       <button type="button" className="btn ghost" disabled={busy} onClick={() => download(item)}>نزّل نسخة تعديلك</button>
       <button type="button" className="btn ghost" disabled={busy} onClick={leave}>افتح النسخة المحفوظة (بعد نسخة من تعديلي)</button>
-      {note ? <span className="plan-save-note" role="status">{note}</span> : null}
+      {note ? <span className="plan-save-note" role="status"><OwnerText text={note} /></span> : null}
     </section>
   );
 };
@@ -141,7 +142,7 @@ export const PlanBackupRestore: React.FC<{
       <button type="button" className="btn primary" disabled={busy} onClick={() => { void restore(); }}>استعد تعديلي المحفوظ</button>
       <button type="button" className="btn ghost" disabled={busy} onClick={() => download({ channel, episode, value: backup.plan })}>نزّل النسخة</button>
       <button type="button" className="btn ghost" disabled={busy} onClick={drop}>احذف النسخة</button>
-      {note ? <span className="plan-save-note" role="status">{note}</span> : null}
+      {note ? <span className="plan-save-note" role="status"><OwnerText text={note} /></span> : null}
     </section>
   );
 };

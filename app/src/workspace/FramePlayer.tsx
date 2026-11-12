@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Icon } from "../ui/icons";
 import { Num } from "../ui/format";
+import { OwnerText } from "../ui/OwnerText";
 import { clockAr } from "./sceneNames";
 
 const noop = () => {};
@@ -67,7 +68,7 @@ export const FramePlayer = React.forwardRef<HTMLVideoElement, {
         onChange={(e) => { const v = own.current; if (v) v.currentTime = Number(e.target.value); }} />
     </div>
       {error ? <div className="s3-media-error" role="alert">
-        <span>{error}</span>
+        <span><OwnerText text={error} /></span>
         <button type="button" onClick={() => { setError(""); own.current?.load(); }}>أعد تحميل الفيديو</button>
       </div> : null}
       {d > 0 && expectedDuration !== undefined && Math.abs(d - expectedDuration) > 0.2 ? (
