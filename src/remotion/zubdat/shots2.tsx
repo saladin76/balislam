@@ -942,39 +942,41 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
 
   // S17 — إلى المسجد: عودة من الغفلة وإقبال بتذلل (الأمر 008). لا تجسيد ولا جهة: الخيط أفقي إلى سجادة المسجد
   "to-mosque": {
-    nameAr: "إلى المسجد: عودة من الغفلة، وإقبال بتذلل وانكسار",
+    nameAr: "إلى المسجد: من الغفلة إلى تمام العبودية، والقلب ينتبه",
     render: (c) => {
       const { frame, z, at, T, Box, P } = kit(c);
-      const tGo = at("نتوجه", 0.04);
-      const tMasjid = at("المسجد", 0.08);
-      const tGhafla = at("الغفلة", 0.18);
-      const tKhataya = at("والخطايا", 0.21);
-      const tWeak = at("تضعف", 0.28);
-      const tAwda = at("عودة", 0.4);
-      const tTilk = at("تلك", 0.43);
-      const tTadh = at("بتذلل", 0.5);
-      const tTamam = at("تمام", 0.63);
+      // السكريبت المعتمد (١١ نوفمبر): «ثم نتوجه إلى المسجد… فالمؤلف يذكرنا بما قد يعلق بقلوبنا من غفلة بين الصلاتين. ويصف المجيء
+      // إلى المسجد بأنه من تمام العبودية. أما نحن، فنتذكر أن تغيير المكان وحده لا يكفي؛ بل يحتاج القلب أيضًا إلى أن ينتبه.»
+      const tGo = at("نتوجه", 0.03);
+      const tMasjid = at("المسجد", 0.06);
+      const tGhafla = at("غفلة", 0.36);
+      const tKhataya = at("بين", 0.38);
+      const tWeak = at("الصلاتين", 0.4);
+      const tAwda = at("المجيء", 0.48);
+      const tTilk = at("المسجد", 0.52, 2);
+      const tTamam = at("تمام", 0.56);
+      const tTadh = at("العبودية", 0.58);
       const tPlace = at("المكان", 0.72);
-      const tGuar = at("ضمانا", 0.78);
-      const tHeart = at("فالقلب", 0.86);
-      const tCare = at("عناية", 0.94);
+      const tGuar = at("يكفي", 0.78);
+      const tHeart = at("القلب", 0.88);
+      const tCare = at("ينتبه", 0.97);
       const walk = P(tGo, tTamam + 8, (t) => t);
       const pathX = (t: number) => lerp(1500, 560, t);
       const pathY = (t: number) => 560 - 90 * Math.sin(Math.PI * t);
       const wx = pathX(walk * 0.92);
       const wy = pathY(walk * 0.92) - 20;
-      const top = 1 - 0.85 * P(tPlace - 10, tPlace + 4);
-      // الغفلة: غيمة رمادية حول رأس السائر تثقل مع «الخطايا»، وتتفرق مع «عودة»
+      const top = 1 - 0.94 * P(tPlace - 10, tPlace + 4);
+      // «غفلة»: غيمة رمادية حول رأس السائر تثقل مع «بين الصلاتين»، وتتفرق مع «المجيء»
       const fog = P(tGhafla - 4, tGhafla + 14) * (1 - P(tAwda - 2, tTilk + 14));
       const heavy = P(tKhataya - 2, tKhataya + 12);
-      // الصلة: خيط من قلب السائر إلى سجادة المسجد؛ يرق مع «تضعف»، ويقوى مع «عودة»
+      // الصلة: خيط من قلب السائر إلى المسجد؛ يرق مع «الصلاتين»، ويقوى مع «المجيء»
       const thin = P(tWeak - 2, tWeak + 14) * (1 - P(tAwda - 2, tAwda + 14));
       const strong = P(tAwda - 2, tAwda + 16);
       const bow = P(tTadh - 4, tTadh + 14);
       const drop = (k: number) => P(tAwda + k * 6, tAwda + k * 6 + 14);
       const hx = wx - 6, hy = wy - 0.55 * 200;
       return {
-        focus: [[tGo, 1500, 520], [tMasjid, 470, 520], [tGhafla, 1250, 640], [tWeak, 1000, 500], [tAwda, 900, 660], [tTadh, wx, 420], [tTamam, 470, 380], [tPlace, 1200, 780], [tGuar, 960, 780], [tHeart, 650, 780], [tCare, 650, 780]],
+        focus: [[tGo, 1500, 520], [tMasjid, 470, 520], [tGhafla, 1250, 640], [tWeak, 1000, 500], [tAwda, 900, 660], [tTadh, wx, 420], [tTamam, 470, 380], [tPlace, 1200, 780], [tGuar, 1350, 840], [tHeart, 650, 780], [tCare, 650, 780]],
         cam: [C(0, 1000, 500, 1.0), C(tPlace - 8, 960, 600, 1.0)],
         world: (
           <g>
@@ -986,7 +988,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               {T("ms", 440, 690, "المسجد", 60, ["المسجد", 0.08], undefined, { font: "head" })}
               {/* خيط الصلة إلى سجادة المسجد (أفقي، لا إلى أعلى) */}
               <line x1={hx} y1={hy} x2={470} y2={575} stroke={strong > 0 ? z.hl : z.ink} strokeWidth={lerp(lerp(6, 3, thin), 14, strong)} strokeDasharray={strong > 0.5 ? undefined : `${lerp(18, 6, thin)} ${lerp(12, 30, thin)}`} strokeLinecap="round" opacity={P(tGhafla + 6, tGhafla + 18) * lerp(lerp(0.8, 0.35, thin), 0.9, strong)} />
-              {/* السائر: ينحني قليلًا ويبطئ مع «بتذلل وانكسار» */}
+              {/* السائر: ينحني قليلًا مع «العبودية» */}
               <g transform={`rotate(${-9 * bow} ${wx} ${wy})`}>
                 <InkPerson x={wx} y={wy} s={0.55} pose="walk" p={P(tGo, tGo + 12)} z={z} dir={-1} />
               </g>
@@ -1002,19 +1004,19 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 const fy = dx > 0 ? pathY(0.45 + k * 0.08) + 40 * dx : hy - 90 - (k % 2) * 30;
                 return <Icon key={id} id={id} x={fx} y={fy} s={0.42} p={P(tGhafla + k * 4, tGhafla + 10 + k * 4)} c={z.ink} opacity={1 - 0.6 * dx} />;
               })}
-              {T("gf", 1250, 700, "الغفلة", 64, ["الغفلة", 0.18], undefined, { font: "head", opacity: 1 - 0.6 * strong })}
-              {T("aw", 900, 720, "عودة", 76, ["عودة", 0.4], undefined, { font: "head" })}
-              {T("tm", 440, 360, "تمام العبودية", 64, ["تمام", 0.63], ["العبودية", 0.65])}
+              {T("gf", 1250, 700, "غفلة", 64, ["غفلة", 0.36], undefined, { font: "head", opacity: 1 - 0.6 * strong })}
+              {T("aw", 900, 720, "المجيء", 70, ["المجيء", 0.48], undefined, { font: "head" })}
+              {T("tm", 440, 360, "تمام العبودية", 64, ["تمام", 0.56], ["العبودية", 0.58])}
             </g>
-            {/* المكان وحده ليس ضمانًا؛ والقلب يحتاج عناية */}
+            {/* «تغيير المكان وحده لا يكفي» يُشطب؛ «بل يحتاج القلب أيضًا إلى أن ينتبه» */}
             {Box("mk", 1350, 760, "المكان وحده", 62, tPlace, { tEnd: c.end("وحده", 0.74) })}
-            {T("dm", 1010, 770, "ضمانا", 66, ["ضمانا", 0.78])}
-            <Cross x1={1550} x2={910} y={752} p={P(tGuar + 10, tGuar + 22)} z={z} />
+            {T("dm", 1350, 870, "لا يكفي", 62, ["لا", 0.76], ["يكفي", 0.78])}
+            <Cross x1={1550} x2={1150} y={752} p={P(tGuar + 6, tGuar + 18)} z={z} />
             <g opacity={P(tHeart - 4, tHeart + 8)}>
               <circle cx={600} cy={800} r={70 + 10 * P(tCare, tCare + 14)} fill={z.hl} opacity={0.7} />
               <path d={heartPath(600, 800, 42)} fill="none" stroke={z.ink} strokeWidth={8} />
             </g>
-            {T("en", 760, 820, "عناية", 60, ["عناية", 0.94], undefined, { font: "head" })}
+            {T("en", 760, 820, "ينتبه", 60, ["ينتبه", 0.97], undefined, { font: "head" })}
           </g>
         ),
       };
