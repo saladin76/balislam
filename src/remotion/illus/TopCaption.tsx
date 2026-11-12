@@ -28,6 +28,11 @@ export const captionLines = (timings: WordTiming[], max: number, strictMax = fal
   return out;
 };
 
+/** شفافية لوح العمودي: أقل قدر يعطي النص الورقي تباين 4.5:1 فوق أفتح ألوان الهوية (يفحصه tests/top-caption-portrait.test.tsx) */
+export const CAPTION_PLATE_ALPHA = 0.78;
+const hex = (c: string) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+export const captionPlate = (a = CAPTION_PLATE_ALPHA) => `rgba(${hex(ID.night).join(", ")}, ${a})`;
+
 export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTiming[]; keys: string[]; portrait: boolean; out?: number; keyColor?: string; safeWrap?: boolean }> = ({ frame, fps, timings, keys, portrait, out = 1, keyColor = ID.dawn, safeWrap = false }) => {
   if (!timings.length) return null;
   const lines = captionLines(timings, safeWrap ? (portrait ? 5 : 8) : (portrait ? 6 : 10), safeWrap);
@@ -39,27 +44,8 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
   const keySet = new Set(keys.map(bareWord).filter(Boolean));
   const lineIn = spring({ frame: frame - ((line[0]?.start ?? 0) - 4), fps, config: { damping: 20, stiffness: 160 } });
   const size = safeWrap ? (portrait ? 56 : 50) : (portrait ? 62 : 54);
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: portrait ? 250 : 34,
-        left: portrait ? 70 : 120,
-        right: portrait ? 70 : 120,
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: portrait ? "4px 18px" : "0 16px",
-        direction: "rtl",
-        fontFamily: "'Tajawal', 'IBM Plex Sans Arabic', sans-serif",
-        fontWeight: 700,
-        fontSize: size,
-        lineHeight: 1.35,
-        opacity: out * lineIn,
-        transform: `translateY(${(1 - lineIn) * -10}px)`,
-        textShadow: "0 2px 14px rgba(0,0,0,.55)",
-      }}
-    >
+  const words = (
+    <>
       {line.map((w, i) => {
         const said = interpolate(frame, [w.start - 3, w.start + 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
         const key = keySet.has(bareWord(w.word));
@@ -79,6 +65,53 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
           </span>
         );
       })}
+    </>
+  );
+  const box = {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    justifyContent: "center",
+    gap: "4px 18px",
+    direction: "rtl" as const,
+    fontFamily: "'Tajawal', 'IBM Plex Sans Arabic', sans-serif",
+    fontWeight: 700,
+    fontSize: size,
+    lineHeight: 1.35,
+    textShadow: "0 2px 14px rgba(0,0,0,.55)",
+  };
+  if (portrait) {
+    // العمودي (033): خلف السطر لوح من ليل القناة بقدر ما يكفي لتباين 4.5:1 فوق أفتح ألوان الهوية (نافذة الفجر والورق)،
+    // بحجم السطر وحده لا بعرض الإطار، فلا يحجب المشهد. الأفقي كما كان حرفًا.
+    return (
+      <div style={{ position: "absolute", top: 250, left: 70, right: 70, display: "flex", justifyContent: "center", opacity: out * lineIn, transform: `translateY(${(1 - lineIn) * -10}px)` }}>
+        <div data-caption-plate={CAPTION_PLATE_ALPHA} style={{ ...box, maxWidth: "100%", padding: "8px 26px 12px", borderRadius: 30, background: captionPlate() }}>
+          {words}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 34,
+        left: 120,
+        right: 120,
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        gap: "0 16px",
+        direction: "rtl",
+        fontFamily: "'Tajawal', 'IBM Plex Sans Arabic', sans-serif",
+        fontWeight: 700,
+        fontSize: size,
+        lineHeight: 1.35,
+        opacity: out * lineIn,
+        transform: `translateY(${(1 - lineIn) * -10}px)`,
+        textShadow: "0 2px 14px rgba(0,0,0,.55)",
+      }}
+    >
+      {words}
     </div>
   );
 };

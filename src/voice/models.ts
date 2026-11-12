@@ -3,7 +3,8 @@
  * - multilingual v2: السرعة والتعبير والثبات المتصل والنص المجاور (لاتصال النبرة بين المشاهد).
  * - v3: ثبات بثلاث قيم فقط (0 / 0.5 / 1) وأوامر أداء بين أقواس.
  * - v4: الثبات والتشابه وأوامر الأداء؛ لا سرعة ولا تعبير (حسب توثيق ElevenLabs)، فالسرعة تُطبَّق بعد التوليد
- *   بتمديد زمني يحفظ طبقة الصوت، والتعبير يُنقل بأمر أداء يناسب النبرة.
+ *   بتمديد زمني يحفظ طبقة الصوت، والتعبير يُنقل بأمر أداء يناسب النبرة. ويقبل النص المجاور (وصل الطلبات أوثق فيه،
+ *   D94): بدونه تُقرأ كل جملة منفصلة كأنها أول الكلام وآخره، فيتقطّع الإيقاع بين الجمل. v3 وحده بلا وصل.
  * نموذج غير معروف يعامَل بحذر كنموذج v4.
  */
 export type ModelCaps = {
@@ -22,7 +23,7 @@ export type ModelCaps = {
 };
 
 export const MODEL_CAPS: Record<string, ModelCaps> = {
-  eleven_v4: { id: "eleven_v4", nameAr: "Eleven v4 (الأحدث، أعلى جودة)", speed: "post", style: false, stability: "continuous", context: false, tags: true, needsTraining: true },
+  eleven_v4: { id: "eleven_v4", nameAr: "Eleven v4 (الأحدث، أعلى جودة)", speed: "post", style: false, stability: "continuous", context: true, tags: true, needsTraining: true },
   eleven_v3: { id: "eleven_v3", nameAr: "Eleven v3", speed: "post", style: false, stability: "discrete", context: false, tags: true, needsTraining: true },
   eleven_multilingual_v2: { id: "eleven_multilingual_v2", nameAr: "Multilingual v2 (المجرَّب سابقًا)", speed: "native", style: true, stability: "continuous", context: true, tags: false, needsTraining: true },
 };

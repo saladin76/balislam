@@ -55,7 +55,7 @@ describe("ElevenLabs", () => {
     expect((calls[0]!.init.headers as Record<string, string>)["xi-api-key"]).toBe("K");
   });
 
-  it("v4: أمر الأداء أول النص، وبلا سرعة ولا تعبير ولا نص مجاور (لا يقبلها النموذج)", async () => {
+  it("v4: أمر الأداء أول النص، وبلا سرعة ولا تعبير (لا يقبلهما النموذج)، والنص المجاور يُرسل (D94)", async () => {
     const { f, calls } = mockFetch({
       "/with-timestamps": () => ({ json: { audio_base64: Buffer.from("ID3").toString("base64"), alignment: alignment("[calm] مرحبا") } }),
     });
@@ -67,7 +67,7 @@ describe("ElevenLabs", () => {
     expect(body.voice_settings.stability).toBe(0.6);
     expect(body.voice_settings).not.toHaveProperty("speed");
     expect(body.voice_settings).not.toHaveProperty("style");
-    expect(body).not.toHaveProperty("previous_text");
+    expect(body.previous_text).toBe("قبل");
   });
 
   it("نموذج بلا توقيت: يُرجع الصوت وحده", async () => {
