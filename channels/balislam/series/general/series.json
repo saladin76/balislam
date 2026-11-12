@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "id": "general",
+  "name": "عام",
+  "kind": "category",
+  "order": 9999,
+  "status": "active",
+  "identity": {
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "none"
+    },
+    "thumbnail": {
+      "badge": "none"
+    },
+    "intro": "channel",
+    "accent": {
+      "base": "#F2B35B"
+    },
+    "motif": "arches",
+    "emblem": {
+      "parts": [
+        "arch"
+      ]
+    }
+  },
+  "template": {
+    "script": {
+      "source": "channel"
+    }
+  }
+}
